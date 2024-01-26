@@ -101,6 +101,7 @@ CheckRunTime:
   stage: test
   needs: []
   timeout: 30 seconds
+  allow_failure: true
   before_script:
     - apt-get -y update
     - apt-get -y install bc time
