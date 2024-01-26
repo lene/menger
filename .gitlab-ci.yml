@@ -1,13 +1,315 @@
-# You can override the included template(s) by including variable overrides
-# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
-# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
-# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
-# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
-# Note that environment variables can be set in several places
-# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
 stages:
-- test
-sast:
-  stage: test
+  - test
+  - build
+  - test built
+  - package
+  - release
+
+variables:
+  DEPLOYABLE_BASE_NAME: menger
+  DEPLOYABLE_VERSION: 0.1.0
+  SBT_IMAGE: hseeberger/scala-sbt:17.0.2_1.6.2_3.1.1
+  DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
+
+default:
+  retry: 2
+
 include:
-- template: Security/SAST.gitlab-ci.yml
+  - template: Code-Quality.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Jobs/Container-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+# This job installs sbt by itself. It is somewhat slower than the ones based on scala-sbt below.
+# I leave it in mostly for documentation how to install the environment.
+Test:Debian:
+  parallel:
+    matrix:
+      - IMAGE:
+        - ubuntu:20.04
+        - ubuntu:22.04
+        - ubuntu:latest
+        - debian:stable-slim
+        - debian:testing-slim
+  image: $IMAGE
+  stage: test
+  needs: []
+  before_script:
+    - apt-get -y update
+    - apt-get -y upgrade
+    - apt-get -y install curl gnupg openjdk-17-jdk # 17 is the latest openjdk version in debian stable
+    - echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" > /etc/apt/sources.list.d/sbt.list
+    - echo "deb https://repo.scala-sbt.org/scalasbt/debian /" > /etc/apt/sources.list.d/sbt_old.list
+    - curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
+    - apt-get -y update
+    - apt-get -y install sbt
+  script:
+    - sbt test
+
+# The following ones use a prepared docker image for sbt.
+Test:SbtImage:
+  image: $SBT_IMAGE
+  stage: test
+  needs: []
+  script:
+    - sbt test
+  artifacts:
+    when: always
+    reports:
+      junit: target/test-reports/**/TEST-*.xml
+
+CheckCoverage:
+  image: $SBT_IMAGE
+  stage: test
+  needs: []
+  before_script:
+    - apt-get -y update
+    - apt-get -y install bc
+  script:
+    - 'curl -o coverage.log --location --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/coverage.log?job=${CI_JOB_NAME}"'
+    - . coverage.log || true
+    - statement_rate_old=${statement_rate:-0}
+    - branch_rate_old=${branch_rate:-0}
+    - sbt clean coverage test || true
+    - sbt coverageReport
+    - REPORT=$(head -n 2 target/scala-3.*.*/scoverage-report/scoverage.xml | tail -n 1 | xargs)
+    - for word in $REPORT; do echo $word; done | grep rate | tr - _ > coverage.log
+    - . coverage.log
+    - echo "statement_rate_old=$statement_rate_old, statement_rate=$statement_rate"
+    - echo "branch_rate_old=$branch_rate_old, branch_rate=$branch_rate"
+    - if [ $(echo "$branch_rate_old > $branch_rate" | bc -l) -eq 1 ]; then echo "branch rate decreased from $branch_rate_old to $branch_rate"; fi
+    - if [ $(echo "$statement_rate_old > $statement_rate" | bc -l) -eq 1 ]; then exit 1; fi
+  artifacts:
+    when: always
+    reports:
+      junit: target/test-reports/**/TEST-*.xml
+    paths:
+      - coverage.log
+
+Run:UseSbtDocker:
+  image: $SBT_IMAGE
+  stage: test
+  needs: []
+  timeout: 30 seconds
+  script:
+    - exit 0
+    - sbt run
+
+CheckRunTime:
+  image: $SBT_IMAGE
+  stage: test
+  needs: []
+  timeout: 30 seconds
+  before_script:
+    - apt-get -y update
+    - apt-get -y install bc time
+  script:
+    - sbt compile
+    - /usr/bin/time -f %U -o runtime.log sbt run
+    - echo "$(<runtime.log) > $TEST_RUN_MAX_RUNNING_TIME"
+    - if [ $(echo "$(<runtime.log) > $TEST_RUN_MAX_RUNNING_TIME" | bc -l) -eq 1 ]; then exit 1; fi
+  artifacts:
+    paths:
+      - runtime.log
+
+TagIsNewAndConsistent:
+  stage: test
+  image: alpine:latest
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "master"
+  allow_failure: true
+  before_script:
+    - apk update
+    - apk add git
+  script:
+    - VERSION_SBT=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
+    - test -n "$VERSION_SBT"
+    - echo $VERSION_SBT
+    - VERSION_RUN_TEST=$(egrep '^VERSION=.*' run-test-game.sh | cut -d = -f 2)
+    - test -n "$VERSION_RUN_TEST"
+    - echo $VERSION_RUN_TEST
+    - test "$VERSION_SBT" = "$VERSION_RUN_TEST"
+    - VERSIONS_DOCKERFILE=$(egrep 'ARG version=.*' Dockerfile | cut -d = -f 2)
+    - test -n "$VERSIONS_DOCKERFILE"
+    - echo $VERSIONS_DOCKERFILE
+    - test $(echo $VERSIONS_DOCKERFILE | wc -w) -eq 2
+    - VERSIONS_DOCKERFILE_1=$(egrep 'ARG version=.*' Dockerfile | cut -d = -f 2 | head -n 1)
+    - VERSIONS_DOCKERFILE_2=$(egrep 'ARG version=.*' Dockerfile | cut -d = -f 2 | tail -n 1)
+    - test "$VERSIONS_DOCKERFILE_1" = "$VERSIONS_DOCKERFILE_2"
+    - test "$VERSION_SBT" = "$VERSIONS_DOCKERFILE_1"
+    - VERSIONS_CI=$(egrep 'DEPLOYABLE_VERSION.*' .gitlab-ci.yml | head -n 1 | cut -d ':' -f 2 | xargs)
+    - test -n "$VERSIONS_CI"
+    - echo $VERSIONS_CI
+    - test "$VERSION_SBT" = "$VERSIONS_CI"
+    - git tag | ( ! grep "^${VERSION_SBT}\$" )
+
+ChangelogIsUpdated:
+  stage: test
+  image: alpine:latest
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "master"
+  allow_failure: true
+  script:
+    - test -f CHANGELOG.md || exit 0
+    - VERSION=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
+    - test -n "$VERSION"
+    - fgrep "## [$VERSION]" CHANGELOG.md
+    - fgrep "...$VERSION" CHANGELOG.md
+    - echo $CI_MERGE_REQUEST_TITLE | grep '^Draft:\|^WIP:' ||
+      fgrep "## [$VERSION] - $(date +%Y-%m-%d)" CHANGELOG.md
+
+BuildDeployable:
+  image: $SBT_IMAGE
+  stage: build
+  needs: []
+  allow_failure: true
+  script:
+    - sbt "Universal / packageBin"
+    - mv target/universal/${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip .
+  artifacts:
+    paths:
+      - go-3d-*.*.*.zip
+
+BuildDockerImage:
+  image: docker:24.0.5
+  stage: build
+  needs: []
+  allow_failure: true
+  services:
+    - docker:24.0.5-dind
+  script:
+    - VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
+    - TAG=${VERSION}-${CI_COMMIT_SHORT_SHA}
+    - docker build --build-arg version=${VERSION} -t ${DOCKER_IMAGE}:${TAG} .
+    - test -n "$CI_COMMIT_TAG" && docker tag ${DOCKER_IMAGE}:${TAG} ${DOCKER_IMAGE}:$CI_COMMIT_TAG
+    - docker tag ${DOCKER_IMAGE}:${TAG} ${DOCKER_IMAGE}:${VERSION}
+    - docker tag ${DOCKER_IMAGE}:${TAG} ${DOCKER_IMAGE}:latest
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} registry.gitlab.com
+    - docker push --all-tags ${DOCKER_IMAGE}
+
+container_scanning:
+  stage: build
+  allow_failure: true
+  needs:
+    - BuildDockerImage
+  variables:
+    CS_IMAGE: ${DOCKER_IMAGE}:latest
+
+CreateTag:
+  stage: release
+  image: alpine:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE != "schedule"
+      when: on_success
+  needs:
+    - TagIsNewAndConsistent
+  before_script:
+    - apk update
+    - apk add git
+    - git config user.email "${GITLAB_USER_EMAIL}"
+    - git config user.name "${GITLAB_USER_NAME}"
+  script:
+    - VERSION_SBT=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
+    - echo "**** Tagging release as version $VERSION_SBT"
+    - git remote add tag-origin https://oauth2:${GITLAB_ACCESS_TOKEN}@gitlab.com/${CI_PROJECT_PATH}
+    - git tag -a "${VERSION_SBT}" -m "Released $(date +%Y-%m-%d)"
+    - git push tag-origin "${VERSION_SBT}"
+
+Upload:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: BuildDeployable
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_TAG
+  allow_failure: true
+  before_script:
+    - apk update
+    - apk add curl
+  script:
+    - export DEPLOYABLE_ZIP_FILE=${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip
+    - echo curl --header "JOB-TOKEN $CI_JOB_TOKEN" --upload-file ${DEPLOYABLE_ZIP_FILE} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${DEPLOYABLE_ZIP_FILE}"
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file ${DEPLOYABLE_ZIP_FILE} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${DEPLOYABLE_ZIP_FILE}"'
+
+PushToGithub:
+  stage: release
+  image: alpine:latest
+  rules:
+    - if: "$CI_COMMIT_TAG"
+      when: on_success
+  allow_failure: true
+  needs: []
+  before_script:
+    - apk update
+    - apk add openssh-client git sshpass
+    - eval $(ssh-agent -s)
+    - echo "$GITHUB_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan github.com >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - ssh -T git@github.com 2>&1 || true
+    - git config user.email "${GITLAB_USER_EMAIL}"
+    - git config user.name "${GITLAB_USER_NAME}"
+    - git config pull.rebase true
+  script:
+    - git remote add github git@github.com:lene/DuplicateImages.git
+    - git remote show github
+    - BRANCH=${CI_COMMIT_BRANCH:-master}
+    - git checkout $BRANCH
+    - git pull github $BRANCH
+    - git push github $BRANCH
+    - git push github $CI_COMMIT_TAG
+
+CreateGithubRelease:
+  stage: release
+  needs:
+    - PushToGithub
+  image: alpine:latest
+  rules:
+    - if: "$CI_COMMIT_TAG"
+      when: on_success
+  allow_failure: true
+  before_script:
+    - apk update
+    - apk add curl
+  variables:
+    RELEASE_API_URL: "https://api.github.com/repos/lene/DuplicateImages/releases"
+    DESCRIPTION: "Full Changelog: https://github.com/lene/DuplicateImages/blob/${CI_COMMIT_TAG}/CHANGELOG.md"
+  script:
+    - POST_DATA='{
+      "tag_name":"'${CI_COMMIT_TAG}'",
+      "target_commitish":"master",
+      "name":"'${CI_COMMIT_TAG}'",
+      "body":"'${FULL_DESCRIPTION}${DESCRIPTION}'",
+      "draft":false,
+      "prerelease":false,
+      "generate_release_notes":false
+      }'
+    - echo $API_URL
+    - echo $POST_DATA
+    - 'curl -L -X POST 
+         -H "Accept: application/vnd.github+json" 
+         -H "X-GitHub-Api-Version: 2022-11-28" 
+         -H "Authorization: Bearer ${GITHUB_API_TOKEN}"
+         ${RELEASE_API_URL} -d "${POST_DATA}"'
+
+CreateGitlabRelease:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: BuildDeployable
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - echo 'running release_job'
+  release:
+    name: 'Release $CI_COMMIT_TAG'
+    description: 'Created using the release-cli'
+    tag_name: '$CI_COMMIT_TAG'
+    ref: '$CI_COMMIT_TAG'
