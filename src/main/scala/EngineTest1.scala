@@ -7,15 +7,20 @@ import com.badlogic.gdx.{Game, Gdx}
 
 class EngineTest1 extends Game:
 
-  lazy val sprite = new Texture("alice.png")
-  lazy val batch = new SpriteBatch
-
+  private lazy val gdxResources = GDXResources(1)
+  private lazy val builder = GeometryBuilder()
+  
   override def create(): Unit = {}
 
-  override def render(): Unit = {
-    Gdx.gl.glClearColor(0.4f + MathUtils.random() * 0.2f, 0.4f + MathUtils.random() * 0.2f, 0.4f + MathUtils.random() * 0.2f, 1f)
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-    batch.begin()
-    batch.draw(sprite, (Gdx.graphics.getWidth - sprite.getWidth) / 2f, (Gdx.graphics.getHeight - sprite.getHeight) / 2f)
-    batch.end()
-  }
+  override def render(): Unit =
+    gdxResources.render(builder.createModel("WHITE", 0, 0, 0, 1) :: Nil )
+  
+  override def dispose(): Unit =
+      gdxResources.dispose()
+      builder.dispose()
+
+  override def resume(): Unit = {}
+
+  override def resize(width: Int, height: Int): Unit = gdxResources.resize()
+
+  override def pause(): Unit = {}
