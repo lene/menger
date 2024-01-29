@@ -58,10 +58,10 @@ class Square(material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = G
     if angle != 0 then instance.transform.rotate(axisX, axisY, axisZ, angle)
     instance :: Nil
 
-class Cube(material: Material = Builder.WHITE_MATERIAL):
+class Cube(material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES):
 
   def at(x: Float, y: Float, z: Float, scale: Float): List[ModelInstance] =
-    val face = Square(material)
+    val face = Square(material, primitiveType)
     face.at(x, y - 0.5f * scale, z, scale, 1, 0, 0, 90) :::
     face.at(x, y + 0.5f * scale, z, scale, 1, 0, 0, -90) :::
     face.at(x - 0.5f * scale, y, z, scale, 0, 1, 0, 90) :::
@@ -69,11 +69,13 @@ class Cube(material: Material = Builder.WHITE_MATERIAL):
     face.at(x, y, z - 0.5f * scale, scale, 0, 0, 1, 90) :::
     face.at(x, y, z + 0.5f * scale, scale, 0, 0, 1, -90)
 
-class SpongeByVolume(level: Int, material: Material = Builder.WHITE_MATERIAL) extends Cube(material):
+class SpongeByVolume(
+  level: Int, material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
+) extends Cube(material, primitiveType):
   override def at(x: Float, y: Float, z: Float, scale: Float): List[ModelInstance] =
     if level <= 0 then super.at(x, y, z, scale)
     else
-      val subSponge = SpongeByVolume(level - 1, material)
+      val subSponge = SpongeByVolume(level - 1, material, primitiveType)
       val shift = scale / 3f
       val subCubeList = for (
         xx <- -1 to 1; yy <- -1 to 1; zz <- -1 to 1 if abs(xx) + abs(yy) + abs(zz) > 1

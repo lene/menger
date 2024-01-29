@@ -7,13 +7,15 @@ import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.{Game, Gdx}
 
-class EngineTest(timeout: Float = 0, spongeLevel: Int = 0) extends Game:
+class EngineTest(timeout: Float = 0, spongeLevel: Int = 0, lines: Boolean = false) extends Game:
 
   private lazy val gdxResources = GDXResources()
-  private lazy val sponge: List[ModelInstance] = SpongeByVolume(spongeLevel).at(0, 0, 0, 1)
+  private lazy val primitiveType = if lines then GL20.GL_LINES else GL20.GL_TRIANGLES
+  private lazy val sponge: List[ModelInstance] =
+    SpongeByVolume(spongeLevel, primitiveType = primitiveType).at(0, 0, 0, 1)
   
   override def create(): Unit =
-    println(s"${sponge.size} faces")
+    Gdx.app.log("create", s"Level $spongeLevel, ${sponge.size} faces")
     if timeout > 0 then
       Timer.schedule(() => Gdx.app.exit(), timeout, 0)
 

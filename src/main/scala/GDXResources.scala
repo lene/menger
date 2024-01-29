@@ -16,14 +16,14 @@ case class GDXResources():
   private val cameraPosition = Vector3(-2f, 1f, -1f)
   private val environment: Environment = createEnvironment
   private val camera: PerspectiveCamera = createCamera(cameraPosition)
-  Gdx.input.setInputProcessor(new MengerInputMultiplexer(camera))
-  private val modelBatch = new ModelBatch
+  Gdx.input.setInputProcessor(MengerInputMultiplexer(camera))
+  private val modelBatch = ModelBatch()
 
   def render(models: List[RenderableProvider]*): Unit =
     Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     modelBatch.begin(camera)
-    models.foreach(model => modelBatch.render(model.asJava, environment))
+    modelBatch.render(models.flatten.asJava, environment)
     modelBatch.end()
 
 
@@ -35,9 +35,9 @@ case class GDXResources():
   def dispose(): Unit = modelBatch.dispose()
 
   private def createEnvironment: Environment =
-    val localEnv = new Environment()
-    localEnv.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4, 0.4, 0.4, 1.0))
-    localEnv.add(new DirectionalLight().set(0.8, 0.8, 0.8, -1, -0.8, -0.2))
+    val localEnv = Environment()
+    localEnv.set(ColorAttribute(ColorAttribute.AmbientLight, 0.4, 0.4, 0.4, 1.0))
+    localEnv.add(DirectionalLight().set(0.8, 0.8, 0.8, -1, -0.8, -0.2))
     localEnv
 
   private def createCamera(cameraPos: Vector3): PerspectiveCamera =

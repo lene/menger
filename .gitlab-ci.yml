@@ -67,13 +67,13 @@ CheckCoverage:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install bc
+    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb
   script:
     - 'curl -o coverage.log --location --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/coverage.log?job=${CI_JOB_NAME}"'
     - . coverage.log || true
     - statement_rate_old=${statement_rate:-0}
     - branch_rate_old=${branch_rate:-0}
-    - sbt clean coverage test || true
+    - xvfb-run sbt clean coverage test || true
     - sbt coverageReport
     - REPORT=$(head -n 2 target/scala-3.*.*/scoverage-report/scoverage.xml | tail -n 1 | xargs)
     - for word in $REPORT; do echo $word; done | grep rate | tr - _ > coverage.log
@@ -97,7 +97,7 @@ Run:UseSbtDocker:
     - apt-get -y update
     - apt-get -y install mesa-utils x11-xserver-utils xvfb
   script:
-    - xvfb-run sbt "run --timeout 0.1"
+    - xvfb-run sbt "run --timeout 0.1 --level 1 --lines"
 
 CheckRunTime:
   image: $SBT_IMAGE
@@ -120,8 +120,7 @@ TagIsNewAndConsistent:
   image: alpine:latest
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "master"
-  allow_failure: true
+    - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     - apk update
     - apk add git
@@ -129,14 +128,6 @@ TagIsNewAndConsistent:
     - VERSION_SBT=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
     - test -n "$VERSION_SBT"
     - echo $VERSION_SBT
-    - VERSIONS_DOCKERFILE=$(egrep 'ARG version=.*' Dockerfile | cut -d = -f 2)
-    - test -n "$VERSIONS_DOCKERFILE"
-    - echo $VERSIONS_DOCKERFILE
-    - test $(echo $VERSIONS_DOCKERFILE | wc -w) -eq 2
-    - VERSIONS_DOCKERFILE_1=$(egrep 'ARG version=.*' Dockerfile | cut -d = -f 2 | head -n 1)
-    - VERSIONS_DOCKERFILE_2=$(egrep 'ARG version=.*' Dockerfile | cut -d = -f 2 | tail -n 1)
-    - test "$VERSIONS_DOCKERFILE_1" = "$VERSIONS_DOCKERFILE_2"
-    - test "$VERSION_SBT" = "$VERSIONS_DOCKERFILE_1"
     - VERSIONS_CI=$(egrep 'DEPLOYABLE_VERSION.*' .gitlab-ci.yml | head -n 1 | cut -d ':' -f 2 | xargs)
     - test -n "$VERSIONS_CI"
     - echo $VERSIONS_CI
@@ -148,7 +139,7 @@ ChangelogIsUpdated:
   image: alpine:latest
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_COMMIT_BRANCH == "main"
   allow_failure: true
   script:
     - test -f CHANGELOG.md || exit 0
@@ -174,7 +165,7 @@ CreateTag:
   stage: release
   image: alpine:latest
   rules:
-    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE != "schedule"
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE != "schedule"
       when: on_success
   needs:
     - TagIsNewAndConsistent
@@ -232,9 +223,9 @@ PushToGithub:
     - git config user.name "${GITLAB_USER_NAME}"
     - git config pull.rebase true
   script:
-    - git remote add github git@github.com:lene/DuplicateImages.git
+    - git remote add github git@github.com:lene/menger.git
     - git remote show github
-    - BRANCH=${CI_COMMIT_BRANCH:-master}
+    - BRANCH=${CI_COMMIT_BRANCH:-main}
     - git checkout $BRANCH
     - git pull github $BRANCH
     - git push github $BRANCH
@@ -253,12 +244,12 @@ CreateGithubRelease:
     - apk update
     - apk add curl
   variables:
-    RELEASE_API_URL: "https://api.github.com/repos/lene/DuplicateImages/releases"
-    DESCRIPTION: "Full Changelog: https://github.com/lene/DuplicateImages/blob/${CI_COMMIT_TAG}/CHANGELOG.md"
+    RELEASE_API_URL: "https://api.github.com/repos/lene/menger/releases"
+    DESCRIPTION: "Full Changelog: https://github.com/lene/menger/blob/${CI_COMMIT_TAG}/CHANGELOG.md"
   script:
     - POST_DATA='{
       "tag_name":"'${CI_COMMIT_TAG}'",
-      "target_commitish":"master",
+      "target_commitish":"main",
       "name":"'${CI_COMMIT_TAG}'",
       "body":"'${FULL_DESCRIPTION}${DESCRIPTION}'",
       "draft":false,
