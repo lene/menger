@@ -13,10 +13,10 @@ object Main extends App:
 
   val config = new Lwjgl3ApplicationConfiguration
   config.disableAudio(true)
-  config.setTitle("Engine Test 1")
+  config.setTitle("Engine Test")
   config.setWindowedMode(800, 600)
   config.setBackBufferConfig(
     COLOR_BITS, COLOR_BITS, COLOR_BITS, COLOR_BITS, DEPTH_BITS, STENCIL_BITS,
     NUM_ANTIALIAS_SAMPLES
   )
-  new Lwjgl3Application(new EngineTest1, config)
+  new Lwjgl3Application(new EngineTest, config)

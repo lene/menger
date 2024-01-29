@@ -13,7 +13,7 @@ import scala.jdk.CollectionConverters.*
 
 case class GDXResources(boardSize: Int):
 
-  private val cameraPosition = Vector3(-boardSize*2f, boardSize*1f, -boardSize*1f).scl(3f/4f)
+  private val cameraPosition = Vector3(-boardSize*2f, boardSize*1f, -boardSize*1f)
   private val environment: Environment = createEnvironment
   private val camera: PerspectiveCamera = createCamera(cameraPosition)
 //  Gdx.input.setInputProcessor(new Go3DInputMultiplexer(camera))

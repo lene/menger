@@ -5,7 +5,7 @@ import com.badlogic.gdx.graphics.{GL20, Texture}
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.{Game, Gdx}
 
-class EngineTest1 extends Game:
+class EngineTest extends Game:
 
   private lazy val gdxResources = GDXResources(1)
   private lazy val builder = GeometryBuilder()
@@ -13,8 +13,8 @@ class EngineTest1 extends Game:
   override def create(): Unit = {}
 
   override def render(): Unit =
-    gdxResources.render(builder.createModel("WHITE", 0, 0, 0, 1) :: Nil )
-  
+    gdxResources.render(/*Sphere().at(0, 0, 0, 1) ::*/ Cube().at(0, 0, 0, 2) )
+
   override def dispose(): Unit =
       gdxResources.dispose()
       builder.dispose()
