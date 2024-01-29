@@ -18,7 +18,6 @@ include:
   - template: Code-Quality.gitlab-ci.yml
   - template: Security/SAST.gitlab-ci.yml
   - template: Security/Dependency-Scanning.gitlab-ci.yml
-  - template: Jobs/Container-Scanning.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
 
 # This job installs sbt by itself. It is somewhat slower than the ones based on scala-sbt below.
@@ -27,7 +26,6 @@ Test:Debian:
   parallel:
     matrix:
       - IMAGE:
-        - ubuntu:20.04
         - ubuntu:22.04
         - ubuntu:latest
         - debian:stable-slim
@@ -44,16 +42,20 @@ Test:Debian:
     - curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
     - apt-get -y update
     - apt-get -y install sbt
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb
   script:
-    - sbt test
+    - xvfb-run sbt test
 
 # The following ones use a prepared docker image for sbt.
 Test:SbtImage:
   image: $SBT_IMAGE
   stage: test
   needs: []
+  before_script:
+    - apt-get -y update
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb
   script:
-    - sbt test
+    - xvfb-run sbt test
   artifacts:
     when: always
     reports:
@@ -91,23 +93,22 @@ Run:UseSbtDocker:
   image: $SBT_IMAGE
   stage: test
   needs: []
-  timeout: 30 seconds
+  before_script:
+    - apt-get -y update
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb
   script:
-    - exit 0
-    - sbt run
+    - xvfb-run sbt "run --timeout 0.1"
 
 CheckRunTime:
   image: $SBT_IMAGE
   stage: test
   needs: []
-  timeout: 30 seconds
-  allow_failure: true
   before_script:
     - apt-get -y update
-    - apt-get -y install bc time
+    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb
   script:
     - sbt compile
-    - /usr/bin/time -f %U -o runtime.log sbt run
+    - /usr/bin/time -f %U -o runtime.log xvfb-run sbt "run --timeout 0.1"
     - echo "$(<runtime.log) > $TEST_RUN_MAX_RUNNING_TIME"
     - if [ $(echo "$(<runtime.log) > $TEST_RUN_MAX_RUNNING_TIME" | bc -l) -eq 1 ]; then exit 1; fi
   artifacts:
@@ -128,10 +129,6 @@ TagIsNewAndConsistent:
     - VERSION_SBT=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
     - test -n "$VERSION_SBT"
     - echo $VERSION_SBT
-    - VERSION_RUN_TEST=$(egrep '^VERSION=.*' run-test-game.sh | cut -d = -f 2)
-    - test -n "$VERSION_RUN_TEST"
-    - echo $VERSION_RUN_TEST
-    - test "$VERSION_SBT" = "$VERSION_RUN_TEST"
     - VERSIONS_DOCKERFILE=$(egrep 'ARG version=.*' Dockerfile | cut -d = -f 2)
     - test -n "$VERSIONS_DOCKERFILE"
     - echo $VERSIONS_DOCKERFILE
@@ -166,38 +163,12 @@ BuildDeployable:
   image: $SBT_IMAGE
   stage: build
   needs: []
-  allow_failure: true
   script:
     - sbt "Universal / packageBin"
     - mv target/universal/${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip .
   artifacts:
     paths:
       - go-3d-*.*.*.zip
-
-BuildDockerImage:
-  image: docker:24.0.5
-  stage: build
-  needs: []
-  allow_failure: true
-  services:
-    - docker:24.0.5-dind
-  script:
-    - VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
-    - TAG=${VERSION}-${CI_COMMIT_SHORT_SHA}
-    - docker build --build-arg version=${VERSION} -t ${DOCKER_IMAGE}:${TAG} .
-    - test -n "$CI_COMMIT_TAG" && docker tag ${DOCKER_IMAGE}:${TAG} ${DOCKER_IMAGE}:$CI_COMMIT_TAG
-    - docker tag ${DOCKER_IMAGE}:${TAG} ${DOCKER_IMAGE}:${VERSION}
-    - docker tag ${DOCKER_IMAGE}:${TAG} ${DOCKER_IMAGE}:latest
-    - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} registry.gitlab.com
-    - docker push --all-tags ${DOCKER_IMAGE}
-
-container_scanning:
-  stage: build
-  allow_failure: true
-  needs:
-    - BuildDockerImage
-  variables:
-    CS_IMAGE: ${DOCKER_IMAGE}:latest
 
 CreateTag:
   stage: release
@@ -242,8 +213,11 @@ PushToGithub:
   rules:
     - if: "$CI_COMMIT_TAG"
       when: on_success
-  allow_failure: true
-  needs: []
+  needs:
+    - Test:Debian
+    - Test:SbtImage
+    - Run:UseSbtDocker
+    - CheckRunTime
   before_script:
     - apk update
     - apk add openssh-client git sshpass

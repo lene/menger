@@ -4,6 +4,7 @@ val libgdxVersion = "1.12.1"
 
 lazy val root = project
   .in(file("."))
+  .enablePlugins(JavaAppPackaging)
   .settings(
     name := "Menger",
     version := "0.1.0",
@@ -17,6 +18,9 @@ lazy val root = project
     ),
     // ScalaTest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+    // Scallop command line parser
+    libraryDependencies += "org.rogach" %% "scallop" % "5.0.0",
+
     // libGDX
     libraryDependencies ++= Seq(
       "com.badlogicgames.gdx" % "gdx" % libgdxVersion,
