@@ -24,3 +24,12 @@ class MengerSuite extends AnyFunSuite:
     assert(cube.at(0, 0, 0, 1).size == 6)
   }
 
+  test("sponge level 0 has six faces") {
+    val sponge = new SpongeByVolume(0)
+    assert(sponge.at(0, 0, 0, 1).size == 6)
+  }
+
+  test("sponge level 1 has twenty times six faces") {
+    val sponge = new SpongeByVolume(1)
+    assert(sponge.at(0, 0, 0, 1).size == 20 * 6)
+  }

@@ -6,7 +6,8 @@ import com.badlogic.gdx.backends.lwjgl3.{
 import org.rogach.scallop._
 
 class MengerCLIConf(arguments: Seq[String]) extends ScallopConf(arguments):
-  val timeout = opt[Float](required = false, default = Some(0))
+  val timeout: ScallopOption[Float] = opt[Float](required = false, default = Some(0))
+  val level: ScallopOption[Int] = opt[Int](required = false, default = Some(1), validate = (_ >= 0))
   verify()
 
 object Main:
@@ -17,7 +18,6 @@ object Main:
 
   def main(args: Array[String]): Unit =
     val conf = new MengerCLIConf(args.toList)
-    val timeout: Float = conf.timeout()
     val config = new Lwjgl3ApplicationConfiguration
     config.disableAudio(true)
     config.setTitle("Engine Test")
@@ -26,4 +26,4 @@ object Main:
       COLOR_BITS, COLOR_BITS, COLOR_BITS, COLOR_BITS, DEPTH_BITS, STENCIL_BITS,
       NUM_ANTIALIAS_SAMPLES
     )
-    new Lwjgl3Application(new EngineTest(timeout), config)
+    new Lwjgl3Application(new EngineTest(conf.timeout(), conf.level()), config)

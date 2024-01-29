@@ -11,9 +11,9 @@ import scala.collection.immutable.List
 import scala.jdk.CollectionConverters.*
 
 
-case class GDXResources(boardSize: Int):
+case class GDXResources():
 
-  private val cameraPosition = Vector3(-boardSize*2f, boardSize*1f, -boardSize*1f)
+  private val cameraPosition = Vector3(-2f, 1f, -1f)
   private val environment: Environment = createEnvironment
   private val camera: PerspectiveCamera = createCamera(cameraPosition)
   Gdx.input.setInputProcessor(new MengerInputMultiplexer(camera))
