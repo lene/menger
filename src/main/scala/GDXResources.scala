@@ -1,11 +1,12 @@
 package menger
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
+import com.badlogic.gdx.graphics.{FPSLogger, GL20, PerspectiveCamera}
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, RenderableProvider}
 import com.badlogic.gdx.math.Vector3
+import org.lwjgl.opengl.GL11
 
 import scala.collection.immutable.List
 import scala.jdk.CollectionConverters.*
@@ -18,13 +19,15 @@ case class GDXResources():
   private val camera: PerspectiveCamera = createCamera(cameraPosition)
   Gdx.input.setInputProcessor(MengerInputMultiplexer(camera))
   private val modelBatch = ModelBatch()
+  private val fpsLogger = FPSLogger()
 
   def render(models: List[RenderableProvider]*): Unit =
     Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+    clear()
     modelBatch.begin(camera)
     modelBatch.render(models.flatten.asJava, environment)
     modelBatch.end()
+    fpsLogger.log()
 
 
   def resize(): Unit =
@@ -49,3 +52,12 @@ case class GDXResources():
     cam.lookAt(0, 0, 0)
     cam.update()
     cam
+
+  private def clear(): Unit =
+    val coverageBit = if Gdx.graphics.getBufferFormat.coverageSampling
+    then GL20.GL_COVERAGE_BUFFER_BIT_NV else 0
+    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT | coverageBit)
+    Gdx.gl.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_NICEST)
+    Gdx.gl.glEnable(GL11.GL_LINE_SMOOTH)
+    Gdx.gl.glHint(GL11.GL_POLYGON_SMOOTH_HINT, GL11.GL_NICEST)
+    Gdx.gl.glEnable(GL11.GL_POLYGON_SMOOTH)

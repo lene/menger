@@ -1,9 +1,7 @@
 package menger
 
-import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.ModelInstance
-import com.badlogic.gdx.graphics.{GL20, Texture}
-import com.badlogic.gdx.math.MathUtils
+import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.{Game, Gdx}
 
