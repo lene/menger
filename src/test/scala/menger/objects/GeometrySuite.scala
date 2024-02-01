@@ -1,17 +1,14 @@
-package menger
+package menger.objects
 
-import com.badlogic.gdx.Version
 import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
 import com.badlogic.gdx.graphics.GL20
-import menger.objects.{Cube, CubeFromSquares, Sphere, SpongeByVolume}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.runtime.stdLibPatches.Predef.assert
 
-class MengerSuite extends AnyFunSuite:
-  test("libGDX version is high enough") {
-      assert(Version.isHigherEqual(1, 12, 0))
-  }
+import menger.EngineTest
+
+class GeometrySuite extends AnyFunSuite:
 
   test("instantiating a client works") {
     /**

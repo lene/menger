@@ -1,7 +1,7 @@
 import org.scalatest.funsuite.AnyFunSuite
 
 class OptionsSuite extends AnyFunSuite:
-  test("empty options, default timeout") {
+  test("empty options give default timeout") {
     val options = MengerCLIOptions(Seq[String]())
     assert(options.timeout() == 0)
   }
