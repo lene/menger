@@ -1,4 +1,4 @@
-package menger
+package menger.objects
 
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.Material

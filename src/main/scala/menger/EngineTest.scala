@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.{Game, Gdx}
+import menger.objects.SpongeByVolume
 
 class EngineTest(timeout: Float = 0, spongeLevel: Int = 0, lines: Boolean = false) extends Game:
 

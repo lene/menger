@@ -3,6 +3,7 @@ package menger
 import com.badlogic.gdx.Version
 import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
 import com.badlogic.gdx.graphics.GL20
+import menger.objects.{Cube, CubeFromSquares, Sphere, SpongeByVolume}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.runtime.stdLibPatches.Predef.assert
