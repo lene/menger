@@ -1,16 +1,15 @@
-package menger.objects
+package menger
 
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance}
-import menger.Builder
 
 import scala.collection.mutable
 
 val SPHERE_DIVISIONS = 32
 case class Sphere(
-  divisions: Int = SPHERE_DIVISIONS, material: Material = Builder.WHITE_MATERIAL, 
+  divisions: Int = SPHERE_DIVISIONS, material: Material = Builder.WHITE_MATERIAL,
   primitiveType: Int = GL20.GL_TRIANGLES
-):
+) extends Geometry(material, primitiveType):
 
   def at(x: Float, y: Float, z: Float, scale: Float): List[ModelInstance] =
     val instance = new ModelInstance(Sphere.model(divisions, material, primitiveType))
@@ -27,5 +26,5 @@ object Sphere:
       Builder.modelBuilder.createSphere(
         1, 1, 1, 2 * divisions, divisions, material, Builder.DEFAULT_FLAGS
     ))
-    
+
   def numStoredModels: Int = models.size

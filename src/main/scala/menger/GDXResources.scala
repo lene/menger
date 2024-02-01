@@ -1,10 +1,10 @@
 package menger
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.{FPSLogger, GL20, PerspectiveCamera}
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, RenderableProvider}
+import com.badlogic.gdx.graphics.{FPSLogger, GL20, PerspectiveCamera}
 import com.badlogic.gdx.math.Vector3
 import org.lwjgl.opengl.GL11
 

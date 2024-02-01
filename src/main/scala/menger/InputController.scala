@@ -1,9 +1,9 @@
 package menger
 
 import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.{Gdx, InputAdapter}
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.{Gdx, InputAdapter}
 
 class InputController(camera: PerspectiveCamera) extends InputAdapter:
 

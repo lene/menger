@@ -1,10 +1,11 @@
 package menger
 
-import org.scalatest.funsuite.AnyFunSuite
 import com.badlogic.gdx.Version
 import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
 import com.badlogic.gdx.graphics.GL20
-import menger.objects.{Cube, Sphere}
+import org.scalatest.funsuite.AnyFunSuite
+
+import scala.runtime.stdLibPatches.Predef.assert
 
 class MengerSuite extends AnyFunSuite:
   test("libGDX version is high enough") {
@@ -58,12 +59,12 @@ class MengerSuite extends AnyFunSuite:
     assert(Cube.numStoredModels == 2)
   }
 
-  test("cube old_at() operates with six faces") {
-    assert(Cube().old_at(0, 0, 0, 1).size == 6)
+  test("cube from squares operates with six faces") {
+    assert(CubeFromSquares().at(0, 0, 0, 1).size == 6)
   }
 
-  test("cube old_at() stores one square") {
-    assert(Cube.numStoredFaces == 1)
+  test("cube from squares stores one square") {
+    assert(CubeFromSquares.numStoredFaces == 1)
   }
 
   test("sponge level 0 is one model") {
