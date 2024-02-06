@@ -17,7 +17,7 @@ lazy val root = project
       "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test
     ),
     // ScalaTest
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % "test",
     // Scallop command line parser
     libraryDependencies += "org.rogach" %% "scallop" % "5.0.0",
 
