@@ -58,37 +58,37 @@ class DirectionSuite extends AnyFunSuite:
   }
 
   test("rotation around Z axis") {
-    assert(Z.rotate90(Z) == Z)
     assert(X.rotate90(Z) == Y)
     assert(Y.rotate90(Z) == negX)
-    assert(negZ.rotate90(Z) == negZ)
+    assert(Z.rotate90(Z) == Z)
     assert(negX.rotate90(Z) == negY)
     assert(negY.rotate90(Z) == X)
+    assert(negZ.rotate90(Z) == negZ)
   }
 
   test("rotating around -X axis") {
-    assert(Z.rotate90(negX) == Y)
-    assert(Y.rotate90(negX) == negZ)
     assert(X.rotate90(negX) == X)
-    assert(negZ.rotate90(negX) == negY)
-    assert(negY.rotate90(negX) == Z)
+    assert(Y.rotate90(negX) == negZ)
+    assert(Z.rotate90(negX) == Y)
     assert(negX.rotate90(negX) == negX)
+    assert(negY.rotate90(negX) == Z)
+    assert(negZ.rotate90(negX) == negY)
   }
 
   test("rotating around -Y axis") {
-    assert(Z.rotate90(negY) == negX)
     assert(X.rotate90(negY) == Z)
     assert(Y.rotate90(negY) == Y)
-    assert(negZ.rotate90(negY) == X)
+    assert(Z.rotate90(negY) == negX)
     assert(negX.rotate90(negY) == negZ)
     assert(negY.rotate90(negY) == negY)
+    assert(negZ.rotate90(negY) == X)
   }
 
   test("rotating around -Z axis") {
-    assert(Z.rotate90(negZ) == Z)
     assert(X.rotate90(negZ) == negY)
     assert(Y.rotate90(negZ) == X)
-    assert(negZ.rotate90(negZ) == negZ)
+    assert(Z.rotate90(negZ) == Z)
     assert(negX.rotate90(negZ) == Y)
     assert(negY.rotate90(negZ) == negX)
+    assert(negZ.rotate90(negZ) == negZ)
   }

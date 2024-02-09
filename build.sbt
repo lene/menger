@@ -11,6 +11,7 @@ lazy val root = project
     maintainer := "lene.preuss@gmail.com",
 
     scalaVersion := scala3Version,
+    scalacOptions ++= Seq("-deprecation", "-explain", "-feature"),
 
     // JUnit
     libraryDependencies ++= Seq(
