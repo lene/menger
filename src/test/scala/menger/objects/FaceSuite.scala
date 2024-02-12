@@ -78,15 +78,6 @@ class FaceSuite extends AnyFunSuite:
         assert(subfaces.count(_.normal == checkedNormal) == 1)
   }
 
-  test("rotated subfaces point in correct direction for each location for z normal") {
-    val face = Face(0, 0, 0, 3, Z)
-    val subfaces = face.subdivide()
-    subfaces.filter(_.normal == Y).foreach { f => assert(f.yCen == -1) }
-    subfaces.filter(_.normal == -Y).foreach { f => assert(f.yCen == 1) }
-    subfaces.filter(_.normal == X).foreach { f => assert(f.xCen == -1) }
-    subfaces.filter(_.normal == -X).foreach { f => assert(f.xCen == 1) }
-  }
-
   test("rotated subfaces point in correct direction for each location for x normal") {
     val face = Face(0, 0, 0, 3, X)
     val subfaces = face.subdivide()
@@ -96,22 +87,49 @@ class FaceSuite extends AnyFunSuite:
     subfaces.filter(_.normal == -Z).foreach { f => assert(f.zCen == 1) }
   }
 
-  ignore("rotated subfaces point in correct direction for each location for y normal") {
+  test("rotated subfaces point in correct direction for each location for -x normal") {
+    val face = Face(0, 0, 0, 3, -X)
+    val subfaces = face.subdivide()
+    subfaces.filter(_.normal == Y).foreach { f => assert(f.yCen == 1) }
+    subfaces.filter(_.normal == -Y).foreach { f => assert(f.yCen == -1) }
+    subfaces.filter(_.normal == Z).foreach { f => assert(f.zCen == 1) }
+    subfaces.filter(_.normal == -Z).foreach { f => assert(f.zCen == -1) }
+  }
+
+  test("rotated subfaces point in correct direction for each location for y normal") {
     val face = Face(0, 0, 0, 3, Y)
     val subfaces = face.subdivide()
-    subfaces.filter(_.normal == X).foreach { f => assert(f.xCen == -1, s"$subfaces") }
+    subfaces.filter(_.normal == X).foreach { f => assert(f.xCen == -1, s"$f") }
     subfaces.filter(_.normal == -X).foreach { f => assert(f.xCen == 1) }
     subfaces.filter(_.normal == Z).foreach { f => assert(f.zCen == -1) }
     subfaces.filter(_.normal == -Z).foreach { f => assert(f.zCen == 1) }
   }
 
-  test("rotated subfaces have correct z positions for z normal") {
-    val face = Face(0, 0, 0, 1, Z)
-    val subfaces = face.subdivide().filter(_.normal != Z)
-    assert(
-      subfaces.forall(_.zCen == -1/3f),
-      s"zCen: ${subfaces.map(_.zCen)}: mismatch with ${-1/3f}"
-    )
+  test("rotated subfaces point in correct direction for each location for -y normal") {
+    val face = Face(0, 0, 0, 3, -Y)
+    val subfaces = face.subdivide()
+    subfaces.filter(_.normal == X).foreach { f => assert(f.xCen == 1, s"$f") }
+    subfaces.filter(_.normal == -X).foreach { f => assert(f.xCen == -1) }
+    subfaces.filter(_.normal == Z).foreach { f => assert(f.zCen == 1) }
+    subfaces.filter(_.normal == -Z).foreach { f => assert(f.zCen == -1) }
+  }
+
+  test("rotated subfaces point in correct direction for each location for z normal") {
+    val face = Face(0, 0, 0, 3, Z)
+    val subfaces = face.subdivide()
+    subfaces.filter(_.normal == Y).foreach { f => assert(f.yCen == -1) }
+    subfaces.filter(_.normal == -Y).foreach { f => assert(f.yCen == 1) }
+    subfaces.filter(_.normal == X).foreach { f => assert(f.xCen == -1) }
+    subfaces.filter(_.normal == -X).foreach { f => assert(f.xCen == 1) }
+  }
+
+  test("rotated subfaces point in correct direction for each location for -z normal") {
+    val face = Face(0, 0, 0, 3, -Z)
+    val subfaces = face.subdivide()
+    subfaces.filter(_.normal == Y).foreach { f => assert(f.yCen == 1) }
+    subfaces.filter(_.normal == -Y).foreach { f => assert(f.yCen == -1) }
+    subfaces.filter(_.normal == X).foreach { f => assert(f.xCen == 1) }
+    subfaces.filter(_.normal == -X).foreach { f => assert(f.xCen == -1) }
   }
 
   test("rotated subfaces have correct x positions for x normal") {
@@ -123,13 +141,84 @@ class FaceSuite extends AnyFunSuite:
     )
   }
 
+  test("rotated subfaces have correct x positions for -x normal") {
+    val face = Face(0, 0, 0, 1, -X)
+    val subfaces = face.subdivide().filter(_.normal != -X)
+    assert(
+      subfaces.forall(_.xCen == 1 / 3f),
+      s"xCen: ${subfaces.map(_.xCen)}: mismatch with ${1 / 3f}"
+    )
+  }
+
+  test("rotated subfaces have correct y positions for y normal") {
+    val face = Face(0, 0, 0, 1, Y)
+    val subfaces = face.subdivide().filter(_.normal != Y)
+    assert(
+      subfaces.forall(_.yCen == -1 / 3f),
+      s"yCen: ${subfaces.map(_.yCen)}: mismatch with ${-1 / 3f}"
+    )
+  }
+
+  test("rotated subfaces have correct y positions for -y normal") {
+    val face = Face(0, 0, 0, 1, -Y)
+    val subfaces = face.subdivide().filter(_.normal != -Y)
+    assert(
+      subfaces.forall(_.yCen == 1 / 3f),
+      s"yCen: ${subfaces.map(_.yCen)}: mismatch with ${1 / 3f}"
+    )
+  }
+
+  test("rotated subfaces have correct z positions for z normal") {
+    val face = Face(0, 0, 0, 1, Z)
+    val subfaces = face.subdivide().filter(_.normal != Z)
+    assert(
+      subfaces.forall(_.zCen == -1 / 3f),
+      s"zCen: ${subfaces.map(_.zCen)}: mismatch with ${-1 / 3f}"
+    )
+  }
+
+  test("rotated subfaces have correct z positions for -z normal") {
+    val face = Face(0, 0, 0, 1, -Z)
+    val subfaces = face.subdivide().filter(_.normal != -Z)
+    assert(
+      subfaces.forall(_.zCen == 1 / 3f),
+      s"zCen: ${subfaces.map(_.zCen)}: mismatch with ${1 / 3f}"
+    )
+  }
+
+  test("rotated subfaces have correct x positions for different scales") {
+    Seq(X, -X).foreach { normal =>
+      Seq(1f, 2f, 1 / 3f, 1 / 9f, 0.5f, 1e9f, 1e-9f).foreach { scale =>
+        val face = Face(0, 0, 0, scale, normal)
+        val subfaces = face.subdivide().filter(_.normal != normal)
+        assert(
+          subfaces.forall(_.xCen == -normal.sign * scale / 3f),
+          s"xCen: ${subfaces.map(_.xCen)}: mismatch with ${-normal.sign * scale / 3f}")
+      }
+    }
+  }
+
+  test("rotated subfaces have correct y positions for different scales") {
+    Seq(Y, -Y).foreach { normal =>
+      Seq(1f, 2f, 1 / 3f, 1 / 9f, 0.5f, 1e9f, 1e-9f).foreach { scale =>
+        val face = Face(0, 0, 0, scale, normal)
+        val subfaces = face.subdivide().filter(_.normal != normal)
+        assert(
+          subfaces.forall(_.yCen == -normal.sign * scale / 3f),
+          s"yCen: ${subfaces.map(_.yCen)}: mismatch with ${-normal.sign * scale / 3f}")
+      }
+    }
+  }
+
   test("rotated subfaces have correct z positions for different scales") {
-    Seq(1f, 2f, 1/3f, 1/9f, 0.5f, 1e9f, 1e-9f).foreach { scale =>
-      val face = Face(0, 0, 0, scale, Z)
-      val subfaces = face.subdivide().filter(_.normal != Z)
-      assert(
-        subfaces.forall(_.zCen == -scale/3f),
-        s"zCen: ${subfaces.map(_.zCen)}: mismatch with ${-scale/3f}")
+    Seq(Z, -Z).foreach { normal =>
+      Seq(1f, 2f, 1 / 3f, 1 / 9f, 0.5f, 1e9f, 1e-9f).foreach { scale =>
+        val face = Face(0, 0, 0, scale, normal)
+        val subfaces = face.subdivide().filter(_.normal != normal)
+        assert(
+          subfaces.forall(_.zCen == -normal.sign * scale / 3f),
+          s"zCen: ${subfaces.map(_.zCen)}: mismatch with ${-normal.sign * scale / 3f}")
+      }
     }
   }
 
@@ -140,4 +229,25 @@ class FaceSuite extends AnyFunSuite:
       subfaces.filter(_.normal == Z).forall(_.zCen == 1),
       s"zCen: ${subfaces.map(_.zCen)}: mismatch with 1"
     )
+  }
+
+  test("subdividing any face twice gives a total of 12*12 subfaces") {
+    for normal <- Seq(X, Y, Z, -X, -Y, -Z) do
+      val face = Face(0, 0, 0, 1, normal)
+      val twiceSubdivided = face.subdivide().flatMap(_.subdivide())
+      assert(twiceSubdivided.size == 144)
+  }
+
+  test("subdividing any face twice ends up with normals pointing in all directions") {
+    for normal <- Seq(X, Y, Z, -X, -Y, -Z) do
+      val face = Face(0, 0, 0, 1, normal)
+      val twiceSubdivided = face.subdivide().flatMap(_.subdivide())
+      assert(twiceSubdivided.map(_.normal).toSet == Set(X, Y, Z, -X, -Y, -Z))
+  }
+
+  test("subdividing any face twice ends up with subfaces 1/9 the original size") {
+    for normal <- Seq(X, Y, Z, -X, -Y, -Z) do
+      val face = Face(0, 0, 0, 1, normal)
+      val twiceSubdivided = face.subdivide().flatMap(_.subdivide())
+      assert(twiceSubdivided.forall(_.scale == 1f/9f))
   }

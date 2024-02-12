@@ -11,47 +11,49 @@ enum Direction(val x: Byte, val y: Byte, val z: Byte):
   case negZ extends Direction(0, 0, -1)
 
   @targetName("-")
-  def unary_- : Direction = Direction((-x).toByte, (-y).toByte, (-z).toByte)
+  def unary_- = Direction((-x).toByte, (-y).toByte, (-z).toByte)
 
-  def rotate90(D: Direction): Direction =
-    val rot = getRotatedVector(D)
-    Direction(rot)
+  def rotate90(D: Direction): Direction = Direction(getRotatedVector(D))
 
   lazy val fold1: Direction =
     /**
-     *  X => negY
-     *  Y => negZ
-     *  Z => negX
-     *  negX => Y
-     *  negY => Z
-     *  negZ => X
+     *  Something something cross product, I dunno but it works
+     *  X => -Y
+     *  Y => -Z
+     *  Z => -X
+     *  -X => Y
+     *  -Y => Z
+     *  -Z => X
      */
-    val newOrdinal = (this.ordinal + 1) % 3
-    -Direction.fromOrdinal(newOrdinal)
+    val foldedOrdinal = (this.abs.ordinal + 1) % 3
+    -Direction.fromOrdinal(foldedOrdinal)
 
   lazy val fold2: Direction =
     /**
-     *  X => negZ
-     *  Y => negX
-     *  Z => negY
-     *  negX => Z
-     *  negY => X
-     *  negZ => Y
+     *  As above but cross product with a different axis I guess
+     *  X => -Z
+     *  Y => -X
+     *  Z => -Y
+     *  -X => Z
+     *  -Y => X
+     *  -Z => Y
      */
-    val newOrdinal = (this.ordinal + 2) % 3
-    -Direction.fromOrdinal(newOrdinal)
+    val foldedOrdinal = (this.abs.ordinal + 2) % 3
+    -Direction.fromOrdinal(foldedOrdinal)
 
-  lazy val fold3: Direction = -fold1
-  lazy val fold4: Direction = -fold2
+  lazy val sign: Byte  = (x + y + z).toByte
 
   private def getRotatedVector(direction: Direction): (Byte, Byte, Byte) =
-    (direction.x, direction.y, direction.z) match
-      case (1, 0, 0) => (x, (-z).toByte, y)
-      case (0, 1, 0) => (z, y, (-x).toByte)
-      case (0, 0, 1) => ((-y).toByte, x, z)
-      case (-1, 0, 0) => (x, z, (-y).toByte)
-      case (0, -1, 0) => ((-z).toByte, y, x)
-      case (0, 0, -1) => (y, (-x).toByte, z)
+    /** rotate 90 degrees around axis `direction` */
+    direction match
+      case Direction.X => (x, (-z).toByte, y)
+      case Direction.Y => (z, y, (-x).toByte)
+      case Direction.Z => ((-y).toByte, x, z)
+      case Direction.negX => (x, z, (-y).toByte)
+      case Direction.negY => ((-z).toByte, y, x)
+      case Direction.negZ => (y, (-x).toByte, z)
+
+  private[objects] def abs: Direction = Direction(x.abs, y.abs, z.abs)
 
 object Direction:
   def apply(x: Byte, y: Byte, z: Byte): Direction =
@@ -64,4 +66,4 @@ object Direction:
       case (0, 0, -1) => Direction.negZ
       case _ => throw new IllegalArgumentException("Invalid direction ($x, $y, $z)")
 
-  def apply(xyz: (Byte, Byte, Byte)): Direction = apply(xyz._1, xyz._2, xyz._3)
+  def apply(xyz: (Byte, Byte, Byte)): Direction = apply.tupled(xyz)

@@ -28,7 +28,12 @@ echo "status after sbt test: $status"
 xvfb-run sbt "run --level 3 --timeout 0.1" || status=1
 echo "status after sbt run: $status"
 
-#VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
+sbt "Universal / packageBin" || status=1
+VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
+unzip -oq ./target/universal/menger-${VERSION}.zip || status=1
+xvfb-run ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --lines || status=1
+echo "status after running built: $status"
+
 #docker build --build-arg version="$VERSION" -t test_image . || status=1
 #echo "status after docker build: $status"
 

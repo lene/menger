@@ -26,16 +26,16 @@ case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Dir
   private def runningCoordinates(x1: Int, x2: Int, add: Float): (Float, Float, Float) =
     normal match
       case X | Direction.negX => (xCen, yCen + x1 * add, zCen + x2 * add)
-      case Y | Direction.negY => (xCen + x1 * add, yCen, zCen + x2 * add)
+      case Y | Direction.negY => (xCen + x2 * add, yCen, zCen + x1 * add)
       case Z | Direction.negZ => (xCen + x1 * add, yCen + x2 * add, zCen)
 
   private def runningCoordinatesShifted(
     x1: Float, x2: Float, add: Float, shift: Float
   ): (Float, Float, Float) =
     normal match
-      case X | Direction.negX => (xCen + shift, yCen + x1 * add, zCen + x2 * add)
-      case Y | Direction.negY => (xCen + x1 * add, yCen + shift, zCen + x2 * add)
-      case Z | Direction.negZ => (xCen + x1 * add, yCen + x2 * add, zCen + shift)
+      case X | Direction.negX => (xCen + shift * normal.sign, yCen + x1 * add, zCen + x2 * add)
+      case Y | Direction.negY => (xCen + x2 * add, yCen + shift * normal.sign, zCen + x1 * add)
+      case Z | Direction.negZ => (xCen + x1 * add, yCen + x2 * add, zCen + shift * normal.sign)
 
 object Face:
   def apply(xyzCen: (Float, Float, Float), scale: Float, normal: Direction): Face =
