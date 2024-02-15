@@ -97,7 +97,9 @@ Run:UseSbtDocker:
     - apt-get -y update
     - apt-get -y install mesa-utils x11-xserver-utils xvfb
   script:
-    - xvfb-run sbt "run --timeout 0.1 --level 1 --lines"
+    - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines"
+    - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines --sponge-type square"
+    - xvfb-run -a sbt "run --timeout 0.1 --level 4 --lines --sponge-type square"
 
 CheckRunTime:
   image: $SBT_IMAGE
@@ -159,7 +161,7 @@ BuildDeployable:
     - mv target/universal/${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip .
   artifacts:
     paths:
-      - go-3d-*.*.*.zip
+      - menger-*.*.*.zip
 
 CreateTag:
   stage: release

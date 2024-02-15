@@ -35,3 +35,9 @@ class OptionsSuite extends AnyFunSuite:
     val options = MengerCLIOptions(Seq[String]("--antialias-samples", "1"))
     assert(options.antialiasSamples() == 1)
   }
+
+  test("getConfig") {
+
+    val options = MengerCLIOptions(Seq[String]())
+    val config = Main.getConfig(options)
+  }

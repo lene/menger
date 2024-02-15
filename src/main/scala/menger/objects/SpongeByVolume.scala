@@ -16,8 +16,13 @@ class SpongeByVolume(
   override def at(x: Float, y: Float, z: Float, scale: Float): List[ModelInstance] =
     if level <= 0 then super.at(x, y, z, scale)
     else
-      val shift = scale / 3f
-      val subCubeList = for (
-        xx <- -1 to 1; yy <- -1 to 1; zz <- -1 to 1 if abs(xx) + abs(yy) + abs(zz) > 1
-      ) yield subSponge.at(x + xx * shift, y + yy * shift, z + zz * shift, scale / 3f)
-      subCubeList.flatten.toList
+      logTime("at", 10) {
+        val shift = scale / 3f
+        val subCubeList = for (
+          xx <- -1 to 1; yy <- -1 to 1; zz <- -1 to 1 if abs(xx) + abs(yy) + abs(zz) > 1
+        ) yield subSponge.at(x + xx * shift, y + yy * shift, z + zz * shift, scale / 3f)
+        subCubeList.flatten.toList
+      }
+
+  override def toString: String =
+    s"SpongeByVolume(level=$level, ${6 * Math.pow(20, level).toLong} faces)"

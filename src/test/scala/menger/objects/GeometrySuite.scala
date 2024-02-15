@@ -82,3 +82,32 @@ class GeometrySuite extends AnyFunSuite:
     val cubeSize = SpongeByVolume(0).at(0, 0, 0, 1).size
     assert(SpongeByVolume(2).at(0, 0, 0, 1).size == 20 * 20 * cubeSize)
   }
+
+  test("sphere toString") {
+    assert(Sphere().toString == "Sphere")
+  }
+
+  test("cube toString") {
+    assert(Cube().toString == "Cube")
+  }
+
+  test("sponge by volume toString") {
+    assert(SpongeByVolume(0).toString == "SpongeByVolume(level=0, 6 faces)")
+  }
+
+  test("sponge by surface toString") {
+    assert(SpongeBySurface(0).toString == "SpongeBySurface(level=0, 6 faces)")
+  }
+
+  test("sponge by surface at() returns 6 faces regardless of level", GfxTest) {
+    assert(SpongeBySurface(0).at(0, 0, 0, 1).size == 6)
+    assert(SpongeBySurface(1).at(0, 0, 0, 1).size == 6)
+  }
+
+  test("face of sponge by surface level 1 has 12 subfaces", GfxTest) {
+    assert(SpongeBySurface(1).faces.size == 12)
+  }
+
+  test("sponge by surface creates mesh(es)", GfxTest) {
+    assert(!SpongeBySurface(1).mesh.meshes.isEmpty)
+  }

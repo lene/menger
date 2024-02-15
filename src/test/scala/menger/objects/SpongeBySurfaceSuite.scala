@@ -23,3 +23,4 @@ class SpongeBySurfaceSuite extends AnyFunSuite:
     val face = Face(0, 0, 0, 1, Z)
     assert(sponge.surfaces(face).size == 12 * 12)
   }
+  
