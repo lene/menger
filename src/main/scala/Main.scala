@@ -17,6 +17,7 @@ object Main:
     config.setWindowedMode(opts.width(), opts.height())
     config.setBackBufferConfig(
       COLOR_BITS, COLOR_BITS, COLOR_BITS, COLOR_BITS, DEPTH_BITS, STENCIL_BITS,
-      opts.antialias_samples()
+      opts.antialiasSamples()
     )
-    Lwjgl3Application(EngineTest(opts.timeout(), opts.level(), opts.lines()), config)
+    val rendering = EngineTest(opts.timeout(), opts.level(), opts.lines(), opts.spongeType())
+    Lwjgl3Application(rendering, config)

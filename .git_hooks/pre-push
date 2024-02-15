@@ -26,7 +26,9 @@ xvfb-run sbt test || status=1
 echo "status after sbt test: $status"
 
 xvfb-run sbt "run --level 3 --timeout 0.1" || status=1
-echo "status after sbt run: $status"
+echo "status after sbt run for box: $status"
+xvfb-run sbt "run --level 3 --timeout 0.1 --sponge-type square" || status=1
+echo "status after sbt run for square: $status"
 
 sbt "Universal / packageBin" || status=1
 VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)

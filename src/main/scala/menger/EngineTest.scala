@@ -4,14 +4,17 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.{Game, Gdx}
-import menger.objects.SpongeByVolume
+import menger.objects.{SpongeBySurface, SpongeByVolume}
 
-class EngineTest(timeout: Float = 0, spongeLevel: Int = 0, lines: Boolean = false) extends Game:
+class EngineTest(
+  timeout: Float = 0, spongeLevel: Int = 0, lines: Boolean = false, spongeType: String = "box"
+) extends Game:
 
   private lazy val gdxResources = GDXResources()
   private lazy val primitiveType = if lines then GL20.GL_LINES else GL20.GL_TRIANGLES
   private lazy val sponge: List[ModelInstance] =
-    SpongeByVolume(spongeLevel, primitiveType = primitiveType).at(0, 0, 0, 1)
+    if spongeType == "box" then SpongeByVolume(spongeLevel, primitiveType = primitiveType).at(0, 0, 0, 1)
+    else SpongeBySurface(spongeLevel, primitiveType = primitiveType).at(0, 0, 0, 1)
   
   override def create(): Unit =
     Gdx.app.log("create", s"Level $spongeLevel, ${sponge.size} faces")

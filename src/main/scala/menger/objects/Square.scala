@@ -7,9 +7,12 @@ case class Square(
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Geometry(material, primitiveType):
 
+  def at(x: Float, y: Float, z: Float, scale: Float): List[ModelInstance] =
+    at(x, y, z, scale, 1, 0, 0, 0)
+
   def at(
           x: Float, y: Float, z: Float, scale: Float,
-          axisX: Float = 1, axisY: Float = 0, axisZ: Float = 0, angle: Float = 0
+          axisX: Float, axisY: Float, axisZ: Float, angle: Float
         ): List[ModelInstance] =
     val instance = new ModelInstance(model)
     instance.transform.setToTranslationAndScaling(x, y, z, scale, scale, scale)
