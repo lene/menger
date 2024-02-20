@@ -22,7 +22,9 @@ class SpongeByVolume(
         val subCubeList = for (
           xx <- -1 to 1; yy <- -1 to 1; zz <- -1 to 1 if abs(xx) + abs(yy) + abs(zz) > 1
         ) 
-          yield subSponge.at(Vector3(center.x + xx * shift, center.y + yy * shift, center.z + zz * shift), scale / 3f)
+          yield subSponge.at(
+            Vector3(center.x + xx * shift, center.y + yy * shift, center.z + zz * shift), scale / 3f
+          )
         
         subCubeList.flatten.toList
       }

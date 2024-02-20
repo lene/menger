@@ -12,8 +12,8 @@ class OptionsSuite extends AnyFunSuite:
     assert(options.timeout() == 1)
   }
 
-  test("--sponge-type box|square") {
-    Seq("box", "square").foreach { spongeType =>
+  test("--sponge-type cube|square") {
+    Seq("cube", "square").foreach { spongeType =>
       val options = MengerCLIOptions(Seq[String]("--sponge-type", spongeType))
       assert(options.spongeType() == spongeType)
     }
@@ -21,7 +21,7 @@ class OptionsSuite extends AnyFunSuite:
 
   test("default for --sponge-type") {
     val options = MengerCLIOptions(Seq[String]())
-    assert(options.spongeType() == "box")
+    assert(options.spongeType() == "square")
   }
 
 
@@ -37,7 +37,6 @@ class OptionsSuite extends AnyFunSuite:
   }
 
   test("getConfig") {
-
     val options = MengerCLIOptions(Seq[String]())
-    val config = Main.getConfig(options)
+    Main.getConfig(options)
   }

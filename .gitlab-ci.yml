@@ -97,9 +97,9 @@ Run:UseSbtDocker:
     - apt-get -y update
     - apt-get -y install mesa-utils x11-xserver-utils xvfb
   script:
+    - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines --sponge-type cube"
     - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines"
-    - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines --sponge-type square"
-    - xvfb-run -a sbt "run --timeout 0.1 --level 4 --sponge-type square"
+    - xvfb-run -a sbt "run --timeout 0.1 --level 4"
 
 CheckRunTime:
   image: $SBT_IMAGE

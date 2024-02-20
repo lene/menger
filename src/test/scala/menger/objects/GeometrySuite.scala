@@ -1,20 +1,23 @@
 package menger.objects
 
+import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
-import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
 import com.badlogic.gdx.math.Vector3
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.Tag
 
 import scala.runtime.stdLibPatches.Predef.assert
-import menger.EngineTest
+import menger.{EngineTest, InputController}
 
 
 object GfxTest extends Tag("GfxTest")
 
 class GeometrySuite extends AnyFunSuite:
-  val ORIGIN = Vector3(0, 0, 0)
-  
+  private val ORIGIN = Vector3(0, 0, 0)
+  private lazy val camera = PerspectiveCamera(67, 10, 10)
+
+
   test("instantiating a client works", GfxTest) {
     /**
      * Running this in sbt repeatedly causes:
@@ -111,4 +114,14 @@ class GeometrySuite extends AnyFunSuite:
 
   test("sponge by surface creates mesh(es)", GfxTest) {
     assert(!SpongeBySurface(1).mesh.meshes.isEmpty)
+  }
+
+  test("InputController should instantiate", GfxTest) {
+    InputController(camera)
+  }
+
+  test("InputController.keyDown should recognize CTRL", GfxTest) {
+    val inputController = InputController(camera)
+    assert(inputController.keyDown(Keys.CONTROL_LEFT))
+    assert(inputController.keyDown(Keys.CONTROL_RIGHT))
   }

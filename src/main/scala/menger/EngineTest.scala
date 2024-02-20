@@ -8,13 +8,13 @@ import com.badlogic.gdx.{Game, Gdx}
 import menger.objects.{Geometry, SpongeBySurface, SpongeByVolume}
 
 class EngineTest(
-  timeout: Float = 0, spongeLevel: Int = 0, lines: Boolean = false, spongeType: String = "box"
+  timeout: Float = 0, spongeLevel: Int = 0, lines: Boolean = false, spongeType: String = "square"
 ) extends Game:
 
   private lazy val gdxResources = GDXResources()
   private lazy val primitiveType = if lines then GL20.GL_LINES else GL20.GL_TRIANGLES
   private lazy val sponge: Geometry =
-    if spongeType == "box" then SpongeByVolume(spongeLevel, primitiveType = primitiveType)
+    if spongeType == "cube" then SpongeByVolume(spongeLevel, primitiveType = primitiveType)
     else SpongeBySurface(spongeLevel, primitiveType = primitiveType)
   private lazy val drawables: List[ModelInstance] =sponge.at(Vector3(0, 0, 0), 1)
   
