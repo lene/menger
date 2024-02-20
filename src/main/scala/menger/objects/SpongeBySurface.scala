@@ -13,14 +13,13 @@ class SpongeBySurface(
 ) extends Geometry(material, primitiveType):
   if level < 0 then throw new IllegalArgumentException("Level must be >= 0")
 
-  override def at(x: Float, y: Float, z: Float, scale: Float): List[ModelInstance] = logTime("at") {
-    val xlate = Vector3(x, y, z)
-    val facingPlusX = transformed(ModelInstance(mesh), scale, xlate, 0, 1, 0, 90)
-    val facingMinusX = transformed(ModelInstance(mesh), scale, xlate, 0, 1, 0, -90)
-    val facingPlusY = transformed(ModelInstance(mesh), scale, xlate, 1, 0, 0, 90)
-    val facingMinusY = transformed(ModelInstance(mesh), scale, xlate, 1, 0, 0, -90)
-    val facingPlusZ = transformed(ModelInstance(mesh), scale, xlate, 0, 1, 0, 0)
-    val facingMinusZ = transformed(ModelInstance(mesh), scale, xlate, 0, 1, 0, 180)
+  override def at(center: Vector3, scale: Float): List[ModelInstance] = logTime("at") {
+    val facingPlusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 90)
+    val facingMinusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, -90)
+    val facingPlusY = transformed(ModelInstance(mesh), scale, center, 1, 0, 0, 90)
+    val facingMinusY = transformed(ModelInstance(mesh), scale, center, 1, 0, 0, -90)
+    val facingPlusZ = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 0)
+    val facingMinusZ = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 180)
 
     List(facingPlusX, facingMinusX, facingPlusY, facingMinusY, facingPlusZ, facingMinusZ)
   }

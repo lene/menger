@@ -2,6 +2,7 @@ package menger.objects
 
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
+import com.badlogic.gdx.math.Vector3
 
 import scala.math.abs
 
@@ -13,14 +14,16 @@ class SpongeByVolume(
   then SpongeByVolume(level - 1, material, primitiveType)
   else Cube(material, primitiveType)
 
-  override def at(x: Float, y: Float, z: Float, scale: Float): List[ModelInstance] =
-    if level <= 0 then super.at(x, y, z, scale)
+  override def at(center: Vector3, scale: Float): List[ModelInstance] =
+    if level <= 0 then super.at(center, scale)
     else
       logTime("at", 10) {
         val shift = scale / 3f
         val subCubeList = for (
           xx <- -1 to 1; yy <- -1 to 1; zz <- -1 to 1 if abs(xx) + abs(yy) + abs(zz) > 1
-        ) yield subSponge.at(x + xx * shift, y + yy * shift, z + zz * shift, scale / 3f)
+        ) 
+          yield subSponge.at(Vector3(center.x + xx * shift, center.y + yy * shift, center.z + zz * shift), scale / 3f)
+        
         subCubeList.flatten.toList
       }
 

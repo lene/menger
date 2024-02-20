@@ -2,6 +2,7 @@ package menger
 
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.{Game, Gdx}
 import menger.objects.{Geometry, SpongeBySurface, SpongeByVolume}
@@ -15,7 +16,7 @@ class EngineTest(
   private lazy val sponge: Geometry =
     if spongeType == "box" then SpongeByVolume(spongeLevel, primitiveType = primitiveType)
     else SpongeBySurface(spongeLevel, primitiveType = primitiveType)
-  private lazy val drawables: List[ModelInstance] =sponge.at(1, 1, 1, 2)
+  private lazy val drawables: List[ModelInstance] =sponge.at(Vector3(0, 0, 0), 1)
   
   override def create(): Unit =
     Gdx.app.log("create", sponge.toString())

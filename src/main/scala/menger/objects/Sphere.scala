@@ -2,6 +2,7 @@ package menger.objects
 
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance}
+import com.badlogic.gdx.math.Vector3
 
 import scala.collection.mutable
 
@@ -11,10 +12,10 @@ case class Sphere(
   primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Geometry(material, primitiveType):
 
-  def at(x: Float, y: Float, z: Float, scale: Float): List[ModelInstance] =
+  def at(center: Vector3, scale: Float): List[ModelInstance] =
     val instance = new ModelInstance(Sphere.model(divisions, material, primitiveType))
     instance.transform.setToTranslationAndScaling(
-      x, y, z, scale, scale, scale
+      center, Vector3(scale, scale, scale)
     )
     instance :: Nil
 
