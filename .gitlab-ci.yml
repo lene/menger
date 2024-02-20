@@ -99,7 +99,7 @@ Run:UseSbtDocker:
   script:
     - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines"
     - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines --sponge-type square"
-    - xvfb-run -a sbt "run --timeout 0.1 --level 4 --lines --sponge-type square"
+    - xvfb-run -a sbt "run --timeout 0.1 --level 4 --sponge-type square"
 
 CheckRunTime:
   image: $SBT_IMAGE

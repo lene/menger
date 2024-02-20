@@ -15,7 +15,7 @@ class EngineTest(
   private lazy val sponge: Geometry =
     if spongeType == "box" then SpongeByVolume(spongeLevel, primitiveType = primitiveType)
     else SpongeBySurface(spongeLevel, primitiveType = primitiveType)
-  private lazy val drawables: List[ModelInstance] =sponge.at(0, 0, 0, 1)
+  private lazy val drawables: List[ModelInstance] =sponge.at(1, 1, 1, 2)
   
   override def create(): Unit =
     Gdx.app.log("create", sponge.toString())

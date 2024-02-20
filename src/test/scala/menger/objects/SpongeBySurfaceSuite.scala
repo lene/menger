@@ -24,3 +24,8 @@ class SpongeBySurfaceSuite extends AnyFunSuite:
     assert(sponge.surfaces(face).size == 12 * 12)
   }
   
+  test("level -1 throws exception") {
+    assertThrows[IllegalArgumentException] {
+      SpongeBySurface(-1)
+    }
+  }
