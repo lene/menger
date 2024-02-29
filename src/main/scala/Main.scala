@@ -2,7 +2,7 @@
 import com.badlogic.gdx.backends.lwjgl3.{
   Lwjgl3Application, Lwjgl3ApplicationConfiguration
 }
-import menger.EngineTest
+import menger.MengerEngine
 
 object Main:
   private final val COLOR_BITS = 8
@@ -12,13 +12,13 @@ object Main:
   def main(args: Array[String]): Unit =
     val opts = MengerCLIOptions(args.toList)
     val config = getConfig(opts)
-    val rendering = EngineTest(opts.timeout(), opts.level(), opts.lines(), opts.spongeType())
+    val rendering = MengerEngine(opts.timeout(), opts.level(), opts.lines(), opts.spongeType())
     Lwjgl3Application(rendering, config)
 
   def getConfig(opts: MengerCLIOptions): Lwjgl3ApplicationConfiguration =
     val config = Lwjgl3ApplicationConfiguration()
     config.disableAudio(true)
-    config.setTitle("Engine Test")
+    config.setTitle("Menger Sponges")
     config.setWindowedMode(opts.width(), opts.height())
     config.setBackBufferConfig(
       COLOR_BITS, COLOR_BITS, COLOR_BITS, COLOR_BITS, DEPTH_BITS, STENCIL_BITS,

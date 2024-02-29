@@ -8,7 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.Tag
 
 import scala.runtime.stdLibPatches.Predef.assert
-import menger.{EngineTest, InputController}
+import menger.{MengerEngine, InputController}
 
 
 object GfxTest extends Tag("GfxTest")
@@ -24,7 +24,7 @@ class GeometrySuite extends AnyFunSuite:
      * java.lang.UnsatisfiedLinkError: Native Library /tmp/lwjgl{$USER}/.../liblwjgl.so already loaded in another classloader
      * So only run this with "sbt test"
      */
-    Lwjgl3Application(EngineTest(0.1), Lwjgl3ApplicationConfiguration()).exit()
+    Lwjgl3Application(MengerEngine(0.1), Lwjgl3ApplicationConfiguration()).exit()
   }
 
   test("just instantiating a sphere does not store a model", GfxTest) {
@@ -108,12 +108,12 @@ class GeometrySuite extends AnyFunSuite:
     assert(SpongeBySurface(1).at(ORIGIN, 1).size == 6)
   }
 
-  test("face of sponge by surface level 1 has 12 subfaces", GfxTest) {
+  test("face of sponge by surface level 1 has 12 subfaces") {
     assert(SpongeBySurface(1).faces.size == 12)
   }
 
   test("sponge by surface creates mesh(es)", GfxTest) {
-    assert(!SpongeBySurface(1).mesh.meshes.isEmpty)
+    assert(SpongeBySurface(1).mesh.meshes.notEmpty)
   }
 
   test("InputController should instantiate", GfxTest) {
@@ -125,3 +125,24 @@ class GeometrySuite extends AnyFunSuite:
     assert(inputController.keyDown(Keys.CONTROL_LEFT))
     assert(inputController.keyDown(Keys.CONTROL_RIGHT))
   }
+
+  test("InputController.keyDown should recognize arrow keys", GfxTest) {
+    val inputController = InputController(camera)
+    assert(inputController.keyDown(Keys.LEFT))
+    assert(inputController.keyDown(Keys.RIGHT))
+    assert(inputController.keyDown(Keys.UP))
+    assert(inputController.keyDown(Keys.DOWN))
+  }
+
+  test("InputController.keyDown should recognize Escape", GfxTest) {
+    val inputController = InputController(camera)
+    assert(inputController.keyDown(Keys.ESCAPE))
+  }
+
+
+  test("InputController.keyDown should recognize Q", GfxTest) {
+    val inputController = InputController(camera)
+    assert(inputController.keyDown(Keys.Q))
+  }
+
+  

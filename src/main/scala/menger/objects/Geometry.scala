@@ -12,6 +12,6 @@ trait Geometry(material: Material = Builder.WHITE_MATERIAL, primitiveType: Int =
     val start = System.currentTimeMillis()
     val result = f
     val duration = System.currentTimeMillis() - start
-    if duration >= minDuration then
+    if duration >= minDuration && Gdx.app != null then
     Gdx.app.log(s"${getClass.getSimpleName}.$msg", s"${duration}ms")
     result

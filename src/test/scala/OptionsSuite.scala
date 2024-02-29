@@ -12,8 +12,8 @@ class OptionsSuite extends AnyFunSuite:
     assert(options.timeout() == 1)
   }
 
-  test("--sponge-type cube|square") {
-    Seq("cube", "square").foreach { spongeType =>
+  test("--sponge-type cube|square|tesseract") {
+    Seq("cube", "square", "tesseract").foreach { spongeType =>
       val options = MengerCLIOptions(Seq[String]("--sponge-type", spongeType))
       assert(options.spongeType() == spongeType)
     }

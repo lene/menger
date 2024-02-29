@@ -30,3 +30,14 @@ metals.sbt
 .idea
 .idea_modules
 /.worksheet/
+
+# scaladoc generated files
+index.html
+index.js
+index
+lib
+package.html
+/menger
+
+# extracted build files
+/menger-*.*.*
