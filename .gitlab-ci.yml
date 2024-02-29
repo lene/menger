@@ -88,6 +88,18 @@ CheckCoverage:
       junit: target/test-reports/**/TEST-*.xml
     paths:
       - coverage.log
+      - target/scala-3.3.1/scoverage-report/
+
+pages:
+  stage: package
+  needs:
+    - CheckCoverage
+  when: always
+  script:
+    - mv target/scala-3.3.1/scoverage-report/ public/
+  artifacts:
+    paths:
+      - public
 
 Run:UseSbtDocker:
   image: $SBT_IMAGE
