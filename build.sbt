@@ -1,5 +1,5 @@
 
-val scala3Version = "3.3.1"
+val scala3Version = "3.4.0"
 val libgdxVersion = "1.12.1"
 
 lazy val root = project
@@ -28,5 +28,5 @@ lazy val root = project
       "net.sf.proguard" % "proguard-base" % "6.2.2" % "provided",
       "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % libgdxVersion,
       "com.badlogicgames.gdx" % "gdx-platform" % libgdxVersion classifier "natives-desktop",
-    )
+    ),
   )

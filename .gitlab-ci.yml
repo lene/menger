@@ -10,6 +10,7 @@ variables:
   DEPLOYABLE_VERSION: 0.2.0
   SBT_IMAGE: hseeberger/scala-sbt:17.0.2_1.6.2_3.1.1
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
+  SCALA_VERSION: 3.4.0
 
 default:
   retry: 2
@@ -88,7 +89,7 @@ CheckCoverage:
       junit: target/test-reports/**/TEST-*.xml
     paths:
       - coverage.log
-      - target/scala-3.3.1/scoverage-report/
+      - target/scala-${SCALA_VERSION}/scoverage-report/
 
 pages:
   stage: package
@@ -96,7 +97,7 @@ pages:
     - CheckCoverage
   when: always
   script:
-    - mv target/scala-3.3.1/scoverage-report/ public/
+    - mv target/scala-${SCALA_VERSION}/scoverage-report/ public/
   artifacts:
     paths:
       - public
