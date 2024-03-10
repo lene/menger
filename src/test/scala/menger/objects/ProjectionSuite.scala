@@ -1,6 +1,7 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector4
+import com.badlogic.gdx.math.{Vector3, Vector4}
+import menger.objects.higher_d.{Projection, VertexInfo}
 import org.scalatest.funsuite.AnyFunSuite
 
 class ProjectionSuite extends AnyFunSuite:
@@ -45,3 +46,24 @@ class ProjectionSuite extends AnyFunSuite:
     val projected = projection(points)
     projected.foreach(p => assert(p.x == 0.5f && p.y == 0.0f && p.z == 0.0f))
   }
+
+  test("VertexInfo from Vector3 sets position") {
+    val vertex = VertexInfo(Vector3(1, 2, 3))
+    assert(vertex.hasPosition)
+  }
+
+  test("VertexInfo from Vector3 keeps set position") {
+    val vertex = VertexInfo(Vector3(1, 2, 3))
+    assert(vertex.position == Vector3(1, 2, 3))
+  }
+
+  test("VertexInfo from Vector3 does not set normal") {
+    val vertex = VertexInfo(Vector3(1, 2, 3))
+    assert(!vertex.hasNormal)
+  }
+    
+  test("VertexInfo from Vector3 does not set color") {
+    val vertex = VertexInfo(Vector3(1, 2, 3))
+    assert(!vertex.hasColor)
+  }
+    

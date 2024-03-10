@@ -5,10 +5,14 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.{Game, Gdx}
-import menger.objects.{Geometry, Projection, SpongeBySurface, SpongeByVolume, Tesseract, TesseractProjection}
+import menger.objects.higher_d.{Projection, Rotation, Tesseract, RotatedProjection}
+import menger.objects.{
+  Geometry, SpongeBySurface, SpongeByVolume
+}
 
 class MengerEngine(
-  timeout: Float = 0, spongeLevel: Int = 0, lines: Boolean = false, spongeType: String = "square"
+  timeout: Float = 0, spongeLevel: Int = 0, lines: Boolean = false, spongeType: String = "square",
+  rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters()
 ) extends Game:
 
   private lazy val gdxResources = GDXResources()
@@ -17,8 +21,9 @@ class MengerEngine(
     spongeType match
       case "square" => SpongeBySurface(spongeLevel, primitiveType = primitiveType)
       case "cube" => SpongeByVolume(spongeLevel, primitiveType = primitiveType)
-      case "tesseract" => TesseractProjection(
-        Tesseract(), Projection(3,1), primitiveType = primitiveType
+      case "tesseract" => RotatedProjection(
+        Tesseract(), rotationProjectionParameters.projection, rotationProjectionParameters.rotation,
+        primitiveType = primitiveType
       )
       case _ => throw new IllegalArgumentException(s"Unknown sponge type: $spongeType")
   private lazy val drawables: List[ModelInstance] =sponge.at(Vector3(0, 0, 0), 1)

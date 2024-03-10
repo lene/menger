@@ -1,6 +1,7 @@
 package menger.objects
 
 import com.badlogic.gdx.math.{Vector3, Vector4}
+import menger.objects.higher_d.{Projection, Tesseract, RotatedProjection}
 import org.scalatest.funsuite.AnyFunSuite
 
 class TesseractSuite extends AnyFunSuite:
@@ -61,18 +62,18 @@ class TesseractSuite extends AnyFunSuite:
   }
 
   test("TesseractProjection projectedFaceVertices size equals tesseract faces size") {
-    val tp = TesseractProjection(Tesseract(), Projection(4, 1))
+    val tp = RotatedProjection(Tesseract(), Projection(4, 1))
     assert(tp.projectedFaceVertices.size == tp.tesseract.faces.size)
   }
 
   test("untransformed projected tesseract has only 4 distinct coordinate values") {
-    val tp = TesseractProjection(Tesseract(), Projection(4, 1))
+    val tp = RotatedProjection(Tesseract(), Projection(4, 1))
     val coordinateValues = tp.projectedFaceVertices.flatMap(_.toList).flatMap(toList)
     assert(coordinateValues.distinct.size == 4)
   }
 
   test("untransformed projected tesseract has only 2 distinct absolute coordinate values") {
-    val tp = TesseractProjection(Tesseract(), Projection(4, 1))
+    val tp = RotatedProjection(Tesseract(), Projection(4, 1))
     val coordinateValues = tp.projectedFaceVertices.flatMap(_.toList).flatMap(toList).map(_.abs)
     assert(coordinateValues.distinct.size == 2)
   }
