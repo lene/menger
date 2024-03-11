@@ -20,7 +20,7 @@ lazy val root = project
     // ScalaTest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % "test",
     // Scallop command line parser
-    libraryDependencies += "org.rogach" %% "scallop" % "5.0.0",
+    libraryDependencies += "org.rogach" %% "scallop" % "5.0.1",
 
     // libGDX
     libraryDependencies ++= Seq(

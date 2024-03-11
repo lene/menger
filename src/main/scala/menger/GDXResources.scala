@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, RenderableProvider}
 import com.badlogic.gdx.graphics.{FPSLogger, GL20, PerspectiveCamera}
 import com.badlogic.gdx.math.Vector3
+import menger.input.MengerInputMultiplexer
 import org.lwjgl.opengl.GL11
 
 import scala.collection.immutable.List

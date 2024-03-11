@@ -48,7 +48,7 @@ class OptionsSuite extends AnyFunSuite:
     assert(options.projectionEyeW() == 2)
   }
 
-  test("invalid --projection-screen-w (<=0)") {
+  test("invalid --projection-screen-w (<= 0)") {
     assertThrows[IllegalArgumentException]({
       MengerCLIOptions(Seq("--projection-screen-w", "0", "--projection-eye-w", "2"))
     })

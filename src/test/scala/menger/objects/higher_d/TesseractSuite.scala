@@ -1,7 +1,6 @@
-package menger.objects
+package menger.objects.higher_d
 
 import com.badlogic.gdx.math.{Vector3, Vector4}
-import menger.objects.higher_d.{Projection, Tesseract, RotatedProjection}
 import org.scalatest.funsuite.AnyFunSuite
 
 class TesseractSuite extends AnyFunSuite:
