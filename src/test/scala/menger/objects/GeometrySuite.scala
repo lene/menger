@@ -9,7 +9,7 @@ import org.scalatest.Tag
 
 import scala.runtime.stdLibPatches.Predef.assert
 import menger.MengerEngine
-import menger.input.{InputController, InputController3D}
+import menger.input.MengerInputController
 
 
 object GfxTest extends Tag("GfxTest")
@@ -118,36 +118,36 @@ class GeometrySuite extends AnyFunSuite:
   }
 
   test("InputController3D should instantiate from a camera", GfxTest) {
-    InputController3D(camera)
+    MengerInputController(camera)
   }
 
   test("InputController3D.keyDown should recognize CTRL", GfxTest) {
-    val inputController = InputController3D(camera)
+    val inputController = MengerInputController(camera)
     Seq(
       Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT
     ).foreach { testKeyDown(inputController, _) }
   }
 
   test("InputController3D.keyDown should recognize arrow keys", GfxTest) {
-    val inputController = InputController3D(camera)
+    val inputController = MengerInputController(camera)
     Seq(
       Keys.LEFT, Keys.RIGHT, Keys.UP, Keys.DOWN
     ).foreach { testKeyDown(inputController, _) }
   }
 
   test("InputController3D.keyDown should recognize Escape", GfxTest) {
-    val inputController = InputController3D(camera)
+    val inputController = MengerInputController(camera)
     testKeyDown(inputController, Keys.ESCAPE)
   }
 
 
   test("InputController3D.keyDown should recognize Q", GfxTest) {
-    val inputController = InputController3D(camera)
+    val inputController = MengerInputController(camera)
     testKeyDown(inputController, Keys.Q)
   }
 
   test("InputController3D.keyDown should not recognize various other keys", GfxTest) {
-    val inputController = InputController3D(camera)
+    val inputController = MengerInputController(camera)
     Seq(
       Keys.A, Keys.B, Keys.C, Keys.D, Keys.E, Keys.F, Keys.G, Keys.H, Keys.I, Keys.J,
       Keys.K, Keys.L, Keys.M, Keys.N, Keys.O, Keys.P, Keys.R, Keys.S, Keys.T, Keys.U,
@@ -158,7 +158,7 @@ class GeometrySuite extends AnyFunSuite:
   }
 
 
-def testKeyDown(inputController: InputController, key: Int): Unit = {
+def testKeyDown(inputController: MengerInputController, key: Int): Unit = {
   assert(inputController.keyDown(key))
   inputController.keyUp(key)
 }
