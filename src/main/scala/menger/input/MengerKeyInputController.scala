@@ -4,17 +4,16 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.{Gdx, InputAdapter}
+import menger.RotationProjectionParameters
 
-class MengerInputController(camera: PerspectiveCamera) extends InputAdapter:
+class MengerKeyInputController(
+  camera: PerspectiveCamera, eventDispatcher: EventDispatcher
+) extends InputAdapter:
 
   private var ctrl = false
   private var alt = false
   private var shift = false
   private var rotatePressed: Map[Int, Boolean] = Map().withDefaultValue(false)
-
-  private var angleXW = 0f
-  private var angleYW = 0f
-  private var angleZW = 0f
 
   private val defaultPos = camera.position.cpy
   private val defaultDirection = camera.direction.cpy
@@ -42,29 +41,38 @@ class MengerInputController(camera: PerspectiveCamera) extends InputAdapter:
       case Keys.PAGE_DOWN | Keys.PAGE_UP => setRotatePressed(keycode, false)
       case _ => false
 
-  private final val rotateAngle = 360f
-  private final val origin = Vector3.Zero
+  private final val rotateAngle = 45f
   def update(): Unit =
-    Gdx.app.log("InputControllerHigherD", s"rotatePressed:$rotatePressed, angleXW: $angleXW, angleYW: $angleYW, angleZW: $angleZW, $shift, $ctrl, $alt")
     if rotatePressed.values.exists(_ == true) then
       val delta = Gdx.graphics.getDeltaTime
-      if !(shift || ctrl || alt) then
-        // algorithm pulled from
-        // https://github.com/libgdx/libgdx/blob/master/gdx/src/com/badlogic/gdx/graphics/g3d/utils/CameraInputController.java#L187
-        if (rotatePressed(Keys.RIGHT)) camera.rotateAround(origin, Vector3.Y, -delta*rotateAngle)
-        if (rotatePressed(Keys.LEFT)) camera.rotateAround(origin, Vector3.Y, delta*rotateAngle)
-        val tmpXZ = Vector3()
-        tmpXZ.set(camera.direction).crs(camera.up).y = 0f
-        if (rotatePressed(Keys.UP)) camera.rotateAround(origin, tmpXZ.nor, delta*rotateAngle)
-        if (rotatePressed(Keys.DOWN)) camera.rotateAround(origin, tmpXZ.nor, -delta*rotateAngle)
-        camera.update()
-      else if shift then
-        if rotatePressed(Keys.RIGHT) then angleXW -= delta * rotateAngle
-        if rotatePressed(Keys.LEFT) then angleXW += delta * rotateAngle
-        if rotatePressed(Keys.UP) then angleYW += delta * rotateAngle
-        if rotatePressed(Keys.DOWN) then angleYW -= delta * rotateAngle
-        if rotatePressed(Keys.PAGE_UP) then angleZW += delta * rotateAngle
-        if rotatePressed(Keys.PAGE_DOWN) then angleZW -= delta * rotateAngle
+      if !(shift || ctrl || alt) then onNoModifiersPressed(delta)
+      else if shift then onShiftPressed(delta)
+
+  private final val origin = Vector3.Zero
+  private def onNoModifiersPressed(delta: Float): Unit =
+    // algorithm pulled from
+    // https://github.com/libgdx/libgdx/blob/master/gdx/src/com/badlogic/gdx/graphics/g3d/utils/CameraInputController.java#L187
+    camera.rotateAround(origin, Vector3.Y, getAngle(delta, Seq(Keys.RIGHT, Keys.LEFT)))
+    val tmpXZ = Vector3()
+    tmpXZ.set(camera.direction).crs(camera.up).y = 0f
+    camera.rotateAround(origin, tmpXZ.nor, getAngle(delta, Seq(Keys.UP, Keys.DOWN)))
+    camera.update()
+
+  private def onShiftPressed(delta: Float): Unit =
+    eventDispatcher.notifyObservers(
+      RotationProjectionParameters(
+        getAngle(delta, Seq(Keys.LEFT, Keys.RIGHT)),
+        getAngle(delta, Seq(Keys.UP, Keys.DOWN)),
+        getAngle(delta, Seq(Keys.PAGE_UP, Keys.PAGE_DOWN))
+      )
+    )
+
+  private val factor = Map(
+    Keys.RIGHT -> -1, Keys.LEFT -> 1, Keys.UP -> 1, Keys.DOWN -> -1,
+    Keys.PAGE_UP -> 1, Keys.PAGE_DOWN -> -1
+  )
+  private def getAngle(delta: Float, keys: Seq[Int]): Float = delta * rotateAngle * direction(keys)
+  private def direction(keys: Seq[Int]) = keys.find(rotatePressed).map(factor(_)).getOrElse(0)
 
   private def resetCamera: Boolean =
     camera.position.set(defaultPos)

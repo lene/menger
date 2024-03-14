@@ -9,7 +9,7 @@ import org.scalatest.Tag
 
 import scala.runtime.stdLibPatches.Predef.assert
 import menger.MengerEngine
-import menger.input.MengerInputController
+import menger.input.{EventDispatcher, MengerKeyInputController}
 
 
 object GfxTest extends Tag("GfxTest")
@@ -17,6 +17,8 @@ object GfxTest extends Tag("GfxTest")
 class GeometrySuite extends AnyFunSuite:
   private val ORIGIN = Vector3(0, 0, 0)
   private lazy val camera = PerspectiveCamera(67, 10, 10)
+  private lazy val dispatcher = EventDispatcher()
+  private def controller = MengerKeyInputController(camera, dispatcher)
 
 
   test("instantiating a client works", GfxTest) {
@@ -117,48 +119,41 @@ class GeometrySuite extends AnyFunSuite:
     assert(SpongeBySurface(1).mesh.meshes.notEmpty)
   }
 
-  test("InputController3D should instantiate from a camera", GfxTest) {
-    MengerInputController(camera)
+  test("InputController should instantiate from a camera and dispatcher", GfxTest) { 
+    controller 
   }
 
-  test("InputController3D.keyDown should recognize CTRL", GfxTest) {
-    val inputController = MengerInputController(camera)
+  test("InputController.keyDown should recognize CTRL", GfxTest) {
+    Seq(Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT).foreach { testKeyDown(controller, _) }
+  }
+
+  test("InputController.keyDown should recognize Shift", GfxTest) {
+    Seq(Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT).foreach { testKeyDown(controller, _) }
+  }
+
+  test("InputController.keyDown should recognize arrow keys", GfxTest) {
+    Seq(Keys.LEFT, Keys.RIGHT, Keys.UP, Keys.DOWN).foreach { testKeyDown(controller, _) }
+  }
+
+  test("InputController.keyDown should recognize Escape", GfxTest) {
+    testKeyDown(controller, Keys.ESCAPE)
+  }
+
+
+  test("InputController.keyDown should recognize Q", GfxTest) {
+    testKeyDown(controller, Keys.Q)
+  }
+
+  test("InputController.keyDown should not recognize various other keys", GfxTest) {
     Seq(
-      Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT
-    ).foreach { testKeyDown(inputController, _) }
-  }
-
-  test("InputController3D.keyDown should recognize arrow keys", GfxTest) {
-    val inputController = MengerInputController(camera)
-    Seq(
-      Keys.LEFT, Keys.RIGHT, Keys.UP, Keys.DOWN
-    ).foreach { testKeyDown(inputController, _) }
-  }
-
-  test("InputController3D.keyDown should recognize Escape", GfxTest) {
-    val inputController = MengerInputController(camera)
-    testKeyDown(inputController, Keys.ESCAPE)
+      Keys.A, Keys.B, Keys.C, Keys.D, Keys.E, Keys.F, Keys.G, Keys.H, Keys.I, Keys.J, Keys.K, 
+      Keys.L, Keys.M, Keys.N, Keys.O, Keys.P, Keys.R, Keys.S, Keys.T, Keys.U, Keys.V, Keys.W, 
+      Keys.X, Keys.Y, Keys.Z
+    ).foreach { key => assert(!controller.keyDown(key)) }
   }
 
 
-  test("InputController3D.keyDown should recognize Q", GfxTest) {
-    val inputController = MengerInputController(camera)
-    testKeyDown(inputController, Keys.Q)
-  }
-
-  test("InputController3D.keyDown should not recognize various other keys", GfxTest) {
-    val inputController = MengerInputController(camera)
-    Seq(
-      Keys.A, Keys.B, Keys.C, Keys.D, Keys.E, Keys.F, Keys.G, Keys.H, Keys.I, Keys.J,
-      Keys.K, Keys.L, Keys.M, Keys.N, Keys.O, Keys.P, Keys.R, Keys.S, Keys.T, Keys.U,
-      Keys.V, Keys.W, Keys.X, Keys.Y, Keys.Z
-    ).foreach { key =>
-      assert(!inputController.keyDown(key))
-    }
-  }
-
-
-def testKeyDown(inputController: MengerInputController, key: Int): Unit = {
+def testKeyDown(inputController: MengerKeyInputController, key: Int): Unit = {
   assert(inputController.keyDown(key))
   inputController.keyUp(key)
 }

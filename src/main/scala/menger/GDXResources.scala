@@ -6,19 +6,19 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, RenderableProvider}
 import com.badlogic.gdx.graphics.{FPSLogger, GL20, PerspectiveCamera}
 import com.badlogic.gdx.math.Vector3
-import menger.input.MengerInputMultiplexer
+import menger.input.{EventDispatcher, MengerInputMultiplexer}
 import org.lwjgl.opengl.GL11
 
 import scala.collection.immutable.List
 import scala.jdk.CollectionConverters.*
 
 
-case class GDXResources():
+case class GDXResources(eventDispatcher: EventDispatcher):
 
   private val cameraPosition = Vector3(-2f, 1f, -1f)
   private val environment: Environment = createEnvironment
   private val camera: PerspectiveCamera = createCamera(cameraPosition)
-  Gdx.input.setInputProcessor(MengerInputMultiplexer(camera))
+  Gdx.input.setInputProcessor(MengerInputMultiplexer(camera, eventDispatcher))
   private val modelBatch = ModelBatch()
   private val fpsLogger = FPSLogger()
 

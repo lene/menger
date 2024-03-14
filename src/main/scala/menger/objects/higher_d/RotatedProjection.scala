@@ -1,22 +1,45 @@
 package menger.objects.higher_d
 
+import scala.compiletime.uninitialized
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance}
 import com.badlogic.gdx.math.Vector3
+import menger.RotationProjectionParameters
+import menger.input.Observer
 import menger.objects.{Builder, Geometry}
 
 case class RotatedProjection(
-  tesseract: Tesseract, projection: Projection, rotation: Rotation = Rotation(),
+  tesseract: Tesseract, var projection: Projection, var rotation: Rotation = Rotation(),
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(material, primitiveType) with RectMesh:
+) extends Geometry(material, primitiveType) with RectMesh with Observer:
 
-  lazy val projectedFaceVertices: Seq[RectVertices3D] = 
+  private var changed = true
+  private var precomputedMesh: Model = uninitialized
+
+  def projectedFaceVertices: Seq[RectVertices3D] =
     tesseract.faces.map {rotation(_)}.map {projection(_)}
     
-  lazy val projectedFaceInfo: Seq[RectInfo] = projectedFaceVertices.map {
+  def projectedFaceInfo: Seq[RectInfo] = projectedFaceVertices.map {
     case (a, b, c, d) => (VertexInfo(a), VertexInfo(b), VertexInfo(c), VertexInfo(d))
   }
 
-  lazy val mesh: Model = logTime("mesh") { model(projectedFaceInfo, primitiveType, material) }
+  def mesh: Model = logTime("mesh", 10) {
+    if changed then
+      precomputedMesh = model(projectedFaceInfo, primitiveType, material)
+      changed = false
+    precomputedMesh
+  }
 
   override def at(center: Vector3, scale: Float): List[ModelInstance] = ModelInstance(mesh) :: Nil
+
+  override def handleEvent(event: RotationProjectionParameters): Unit =
+    rotation += event.rotation
+    projection = Projection(event.eyeW, event.screenW)
+    changed = true
+
+object RotatedProjection:
+  def apply(
+    tesseract: Tesseract, parameters: RotationProjectionParameters,
+    material: Material, primitiveType: Int
+  ): RotatedProjection =
+    RotatedProjection(tesseract, parameters.projection, parameters.rotation, material, primitiveType)
