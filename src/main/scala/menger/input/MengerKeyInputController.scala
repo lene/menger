@@ -6,13 +6,11 @@ import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.{Gdx, InputAdapter}
 import menger.RotationProjectionParameters
 
-class MengerKeyInputController(
-  camera: PerspectiveCamera, eventDispatcher: EventDispatcher
-) extends InputAdapter:
+class KeyController(camera: PerspectiveCamera, dispatcher: EventDispatcher) extends InputAdapter:
 
-  private var ctrl = false
-  private var alt = false
-  private var shift = false
+  private var ctrlPressed = false
+  private var altPressed = false
+  private var shiftPressed = false
   private var rotatePressed: Map[Int, Boolean] = Map().withDefaultValue(false)
 
   private val defaultPos = camera.position.cpy
@@ -29,7 +27,7 @@ class MengerKeyInputController(
       case Keys.ESCAPE => resetCamera
       case Keys.Q =>
         if ctrl then System.exit(0)
-        true
+        false
       case _ => false
 
   override def keyUp(keycode: Int): Boolean =
@@ -48,22 +46,25 @@ class MengerKeyInputController(
       if !(shift || ctrl || alt) then onNoModifiersPressed(delta)
       else if shift then onShiftPressed(delta)
 
+  def shift: Boolean = shiftPressed
+  def ctrl: Boolean = ctrlPressed
+  def alt: Boolean = altPressed
+
   private final val origin = Vector3.Zero
   private def onNoModifiersPressed(delta: Float): Unit =
     // algorithm pulled from
     // https://github.com/libgdx/libgdx/blob/master/gdx/src/com/badlogic/gdx/graphics/g3d/utils/CameraInputController.java#L187
-    camera.rotateAround(origin, Vector3.Y, getAngle(delta, Seq(Keys.RIGHT, Keys.LEFT)))
+    camera.rotateAround(origin, Vector3.Y, angle(delta, Seq(Keys.RIGHT, Keys.LEFT)))
     val tmpXZ = Vector3()
     tmpXZ.set(camera.direction).crs(camera.up).y = 0f
-    camera.rotateAround(origin, tmpXZ.nor, getAngle(delta, Seq(Keys.UP, Keys.DOWN)))
+    camera.rotateAround(origin, tmpXZ.nor, angle(delta, Seq(Keys.UP, Keys.DOWN)))
     camera.update()
 
   private def onShiftPressed(delta: Float): Unit =
-    eventDispatcher.notifyObservers(
+    dispatcher.notifyObservers(
       RotationProjectionParameters(
-        getAngle(delta, Seq(Keys.LEFT, Keys.RIGHT)),
-        getAngle(delta, Seq(Keys.UP, Keys.DOWN)),
-        getAngle(delta, Seq(Keys.PAGE_UP, Keys.PAGE_DOWN))
+        angle(delta, Seq(Keys.LEFT, Keys.RIGHT)), angle(delta, Seq(Keys.UP, Keys.DOWN)),
+        angle(delta, Seq(Keys.PAGE_UP, Keys.PAGE_DOWN))
       )
     )
 
@@ -71,7 +72,7 @@ class MengerKeyInputController(
     Keys.RIGHT -> -1, Keys.LEFT -> 1, Keys.UP -> 1, Keys.DOWN -> -1,
     Keys.PAGE_UP -> 1, Keys.PAGE_DOWN -> -1
   )
-  private def getAngle(delta: Float, keys: Seq[Int]): Float = delta * rotateAngle * direction(keys)
+  private def angle(delta: Float, keys: Seq[Int]): Float = delta * rotateAngle * direction(keys)
   private def direction(keys: Seq[Int]) = keys.find(rotatePressed).map(factor(_)).getOrElse(0)
 
   private def resetCamera: Boolean =
@@ -80,21 +81,21 @@ class MengerKeyInputController(
     camera.up.set(defaultUp)
     camera.lookAt(0, 0, 0)
     camera.update()
-    true
+    false
 
   private def setCtrl(mode: Boolean): Boolean =
-    ctrl = mode
-    true
+    ctrlPressed = mode
+    false
 
   private def setAlt(mode: Boolean): Boolean =
-    alt = mode
-    true
+    altPressed = mode
+    false
 
   private def setShift(mode: Boolean): Boolean =
-    shift = mode
-    true
+    shiftPressed = mode
+    false
 
   private def setRotatePressed(keycode: Int, mode: Boolean): Boolean =
     this.rotatePressed += keycode -> mode
     update()
-    true
+    false

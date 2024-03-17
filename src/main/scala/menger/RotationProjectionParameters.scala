@@ -12,7 +12,8 @@ case class RotationProjectionParameters(
   
   @targetName("plus")
   def +(other: RotationProjectionParameters): RotationProjectionParameters =
-    val newEyeW = math.pow(eyeW, if other.eyeW >= 1 then 1.1 else 0.9).toFloat
+    val exponent = if other.eyeW > eyeW then 1.1 else if other.eyeW == eyeW then 1.0 else 0.9
+    val newEyeW = math.pow(eyeW, exponent).toFloat
     RotationProjectionParameters(
       rotXW + other.rotXW, rotYW + other.rotYW, rotZW + other.rotZW, newEyeW, screenW
     )
