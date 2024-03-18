@@ -8,9 +8,9 @@ import menger.RotationProjectionParameters
 
 class KeyController(camera: PerspectiveCamera, dispatcher: EventDispatcher) extends InputAdapter:
 
-  private var ctrl = false
-  private var alt = false
-  private var shift = false
+  private var ctrlPressed = false
+  private var altPressed = false
+  private var shiftPressed = false
   private var rotatePressed: Map[Int, Boolean] = Map().withDefaultValue(false)
 
   private val defaultPos = camera.position.cpy
