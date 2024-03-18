@@ -11,6 +11,8 @@ variables:
   SBT_IMAGE: hseeberger/scala-sbt:17.0.2_1.6.2_3.1.1
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.4.0
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+  GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
 
 default:
   retry: 2
@@ -90,6 +92,19 @@ CheckCoverage:
     paths:
       - coverage.log
       - target/scala-${SCALA_VERSION}/scoverage-report/
+
+sonarcloud-check:
+  rules:
+    - if: "$SONAR_TOKEN"
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner
 
 pages:
   stage: package
