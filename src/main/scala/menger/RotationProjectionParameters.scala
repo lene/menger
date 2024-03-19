@@ -12,14 +12,16 @@ case class RotationProjectionParameters(
   
   @targetName("plus")
   def +(other: RotationProjectionParameters): RotationProjectionParameters =
-    val exponent = if other.eyeW > eyeW then 1.1 else if other.eyeW == eyeW then 1.0 else 0.9
-    val newEyeW = math.pow(eyeW, exponent).toFloat
-    RotationProjectionParameters(
-      rotXW + other.rotXW, rotYW + other.rotYW, rotZW + other.rotZW, newEyeW, screenW
-    )
+    val rot = rotation + other.rotation
+    val proj = projection + other.projection
+    RotationProjectionParameters(rot.rotXW, rot.rotYW, rot.rotZW, proj.eyeW, proj.screenW)
 
 object RotationProjectionParameters:
   def apply(opts: MengerCLIOptions): RotationProjectionParameters =
     RotationProjectionParameters(
       opts.rotXW(), opts.rotYW(), opts.rotZW(), opts.projectionEyeW(), opts.projectionScreenW()
     )
+
+  def apply(rotXW: Float, rotYW: Float, rotZW: Float): RotationProjectionParameters =
+    RotationProjectionParameters(rotXW, rotYW, rotZW, 2, 1)
+

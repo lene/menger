@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.{Vector3, Vector4}
+import com.badlogic.gdx.math.Vector4
 import org.scalatest.funsuite.AnyFunSuite
 
 class ProjectionSuite extends AnyFunSuite:
@@ -30,6 +30,62 @@ class ProjectionSuite extends AnyFunSuite:
     assertThrows[AssertionError] {
       Projection(-1, -2)
     }
+  }
+
+  test("adding a projection with bigger eyeW increases eyeW") {
+    val p1 = Projection(2, 1)
+    val p2 = Projection(3, 1)
+    val p3 = p1 + p2
+    assert(p3.eyeW > p1.eyeW)
+  }
+
+  test("adding a projection with bigger eyeW sets eyeW to less than sum of eyeWs") {
+    val p1 = Projection(2, 1)
+    val p2 = Projection(3, 1)
+    val p3 = p1 + p2
+    assert(p3.eyeW < p1.eyeW + p2.eyeW)
+  }
+
+  test("adding a projection with bigger eyeW increases eyeW by exponent defined in class") {
+    val p1 = Projection(2, 1)
+    val p2 = Projection(3, 1)
+    val p3 = p1 + p2
+    assertResult(p3.eyeW === math.pow(p1.eyeW, p1.addExponent))
+  }
+
+  test("adding a projection with smaller eyeW decreases eyeW") {
+    val p1 = Projection(3, 1)
+    val p2 = Projection(2, 1)
+    val p3 = p1 + p2
+    assert(p3.eyeW < p1.eyeW)
+  }
+
+  test("adding a projection with smaller eyeW sets eyeW to less than sum of eyeWs") {
+    val p1 = Projection(3, 1)
+    val p2 = Projection(2, 1)
+    val p3 = p1 + p2
+    assert(p3.eyeW < p1.eyeW + p2.eyeW)
+  }
+
+  test("adding a projection with smaller eyeW decreases eyeW by exponent defined in class") {
+    val p1 = Projection(3, 1)
+    val p2 = Projection(2, 1)
+    val p3 = p1 + p2
+    assertResult(p3.eyeW === math.pow(p1.eyeW, 1f / p1.addExponent))
+  }
+
+  test("adding a projection with same eyeW keeps eyeW equal") {
+    val p1 = Projection(3, 1)
+    val p2 = Projection(3, 1)
+    val p3 = p1 + p2
+    assert(p3.eyeW == p1.eyeW)
+  }
+
+  test("adding a projection keeps screenW equal") {
+    val p1 = Projection(3, 1)
+    val p2 = Projection(2, 1)
+    val p3 = p1 + p2
+    assert(p3.screenW == p1.screenW)
   }
 
   test("projecting a point") {

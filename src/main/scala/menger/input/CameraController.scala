@@ -27,16 +27,16 @@ class CameraController(
 
   override def scrolled(amountX: Float, amountY: Float): Boolean =
     if isShiftPressed then
-      Gdx.app.log("MengerCameraInputController", s"scrolling: $amountX, $amountY")
-      eventDispatcher.notifyObservers(RotationProjectionParameters(0,0,0, amountY))
-      true
+      val eyeW = Math.pow(64, amountY.toDouble).toFloat + 1
+      eventDispatcher.notifyObservers(RotationProjectionParameters(0,0,0, eyeW))
+      false
     else super.scrolled(amountX, amountY)
 
   private def shiftTouchDragged(screenX: Int, screenY: Int): Boolean =
-    val drag = draggedDistance3D(screenX, screenY)
+    val dragged = draggedDistance3D(screenX, screenY)
     shiftStart = (screenX, screenY)
-    eventDispatcher.notifyObservers(RotationProjectionParameters(drag(0), drag(1), drag(2)))
-    true
+    eventDispatcher.notifyObservers(RotationProjectionParameters.apply.tupled(dragged))
+    false
 
   private def draggedDistance3D(screenX: Int, screenY: Int): (Float, Float, Float) =
     val screenDist = screenDistance(screenX, screenY)

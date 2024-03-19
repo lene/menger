@@ -1,5 +1,7 @@
 package menger.objects.higher_d
 
+import com.badlogic.gdx.Gdx
+
 import scala.compiletime.uninitialized
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance}
@@ -34,7 +36,7 @@ case class RotatedProjection(
 
   override def handleEvent(event: RotationProjectionParameters): Unit =
     rotation += event.rotation
-    projection = Projection(event.eyeW, event.screenW)
+    projection += event.projection
     changed = true
 
 object RotatedProjection:
