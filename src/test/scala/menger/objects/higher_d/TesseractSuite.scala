@@ -62,7 +62,7 @@ class TesseractSuite extends AnyFunSuite:
 
   test("TesseractProjection projectedFaceVertices size equals tesseract faces size") {
     val tp = RotatedProjection(Tesseract(), Projection(4, 1))
-    assert(tp.projectedFaceVertices.size == tp.tesseract.faces.size)
+    assert(tp.projectedFaceVertices.size == tp.object4D.faces.size)
   }
 
   test("untransformed projected tesseract has only 4 distinct coordinate values") {
@@ -75,6 +75,10 @@ class TesseractSuite extends AnyFunSuite:
     val tp = RotatedProjection(Tesseract(), Projection(4, 1))
     val coordinateValues = tp.projectedFaceVertices.flatMap(_.toList).flatMap(toList).map(_.abs)
     assert(coordinateValues.distinct.size == 2)
+  }
+  
+  test("TesseractSponge level 1 has 48 times the number of faces as tesseract") {
+    assert(TesseractSponge(1).faces.size == 48 * Tesseract().faces.size)
   }
 
 def toList(v: Vector3) = List(v.x, v.y, v.z)

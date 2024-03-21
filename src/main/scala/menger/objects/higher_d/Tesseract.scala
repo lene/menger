@@ -1,21 +1,22 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.VertexAttributes.Usage
-import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
-import com.badlogic.gdx.graphics.g3d.utils.{MeshBuilder, MeshPartBuilder}
-import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance}
-import com.badlogic.gdx.math.{Matrix4, Vector3, Vector4}
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.math.Vector4
 import menger.objects.*
-import menger.objects.higher_d.Rotation
+
+import scala.annotation.targetName
+import scala.math.abs
 
 
+trait Mesh4D extends RectMesh:
+  lazy val faces: Seq[RectVertices4D]
 
 /** A tesseract of edge length `size` centered at the origin */
 case class Tesseract(
   size: Float = 1.0,
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends RectMesh:
+) extends Mesh4D:
 
   lazy val vertices: Seq[Vector4] = for (
     xx <- -1 to 1 by 2; yy <- -1 to 1 by 2; zz <- -1 to 1 by 2; ww <- -1 to 1 by 2
@@ -40,3 +41,26 @@ case class Tesseract(
     // sets instead of tuples so edges are equal regardless of direction
     case (a, b, c, d) => Seq(Set(a, b), Set(b, c), Set(c, d), Set(d, a))
   }.distinct.map(set => (set.head, set.last))
+
+extension (v: Vector4)
+  @targetName("times")
+  def *(a: Float): Vector4 = Vector4(v.x * a, v.y * a, v.z * a, v.w * a)
+  @targetName("dividedBy")
+  def /(a: Float): Vector4 = v * (1 / a)
+  @targetName("plus")
+  def +(v2: Vector4): Vector4 = Vector4(v.x + v2.x, v.y + v2.y, v.z + v2.z, v.w + v2.w)
+
+
+class TesseractSponge(level: Int) extends Mesh4D:
+  lazy val faces: Seq[RectVertices4D] = if level == 0 then Tesseract().faces else
+    val t = TesseractSponge(level - 1)
+    val multipliedFaces = t.faces.map { case (a, b, c, d) => (a / 3, b / 3, c / 3, d / 3) }
+    val nestedFaces = for (
+      xx <- -1 to 1; yy <- -1 to 1; zz <- -1 to 1; ww <- -1 to 1
+      if abs(xx) + abs(yy) + abs(zz) + abs(ww) > 2
+    ) yield multipliedFaces.map {
+      case (a, b, c, d) =>
+        val shift = Vector4(xx.toFloat, yy.toFloat, zz.toFloat, ww.toFloat) / 3
+        (a + shift, b + shift, c + shift, d + shift)
+    }
+    nestedFaces.flatten

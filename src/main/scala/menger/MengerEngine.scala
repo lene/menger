@@ -1,12 +1,12 @@
 package menger
 
 import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.{Game, Gdx}
 import menger.input.EventDispatcher
-import menger.objects.higher_d.{RotatedProjection, Tesseract}
+import menger.objects.higher_d.{RotatedProjection, Tesseract, TesseractSponge}
 import menger.objects.{Builder, Geometry, SpongeBySurface, SpongeByVolume}
 
 class MengerEngine(
@@ -16,16 +16,9 @@ class MengerEngine(
 
   private val material = Builder.WHITE_MATERIAL
   private lazy val primitiveType = if lines then GL20.GL_LINES else GL20.GL_TRIANGLES
-  private lazy val sponge: Geometry =
-    spongeType match
-      case "square" => SpongeBySurface(spongeLevel, primitiveType = primitiveType)
-      case "cube" => SpongeByVolume(spongeLevel, primitiveType = primitiveType)
-      case "tesseract" => RotatedProjection(
-        Tesseract(), rotationProjectionParameters, material, primitiveType
-      )
-      case _ => throw new IllegalArgumentException(s"Unknown sponge type: $spongeType")
+  private lazy val sponge: Geometry = generateObject(spongeType, spongeLevel, material, primitiveType)
   private lazy val eventDispatcher = EventDispatcher()
-  if spongeType == "tesseract" then eventDispatcher.addObserver(sponge)
+  "tesseract".r.findFirstIn(spongeType).foreach(_ => eventDispatcher.addObserver(sponge))
   private def drawables: List[ModelInstance] = sponge.at(Vector3(0, 0, 0), 1)
   private lazy val gdxResources = GDXResources(eventDispatcher)
 
@@ -43,3 +36,15 @@ class MengerEngine(
   override def resize(width: Int, height: Int): Unit = gdxResources.resize()
 
   override def pause(): Unit = {}
+
+  private def generateObject(spongeType: String, level: Int, material: Material, primitiveType: Int): Geometry =
+    spongeType match
+      case "square" => SpongeBySurface(level, material, primitiveType)
+      case "cube" => SpongeByVolume(level, material, primitiveType)
+      case "tesseract" => RotatedProjection(
+        Tesseract(), rotationProjectionParameters, material, primitiveType
+      )
+      case "tesseract-sponge" => RotatedProjection(
+        TesseractSponge(level), rotationProjectionParameters, material, primitiveType
+      )
+      case _ => throw new IllegalArgumentException(s"Unknown sponge type: $spongeType")

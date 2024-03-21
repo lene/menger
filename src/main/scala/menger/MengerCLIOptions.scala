@@ -6,7 +6,8 @@ import org.rogach.scallop.exceptions.ScallopException
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments):
   val timeout: ScallopOption[Float] = opt[Float](required = false, default = Some(0))
   val spongeType: ScallopOption[String] = choice(
-    choices = List("cube", "square", "tesseract"), required = false, default = Some("square")
+    choices = List("cube", "square", "tesseract", "tesseract-sponge"), 
+    required = false, default = Some("square")
   )
   val projectionScreenW: ScallopOption[Float] = opt[Float](
     required = false, default = Some(1), validate = _ > 0

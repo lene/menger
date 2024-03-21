@@ -11,7 +11,7 @@ import menger.input.Observer
 import menger.objects.{Builder, Geometry}
 
 case class RotatedProjection(
-  tesseract: Tesseract, var projection: Projection, var rotation: Rotation = Rotation(),
+  object4D: Mesh4D, var projection: Projection, var rotation: Rotation = Rotation(),
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Geometry(material, primitiveType) with RectMesh with Observer:
 
@@ -19,7 +19,7 @@ case class RotatedProjection(
   private var precomputedMesh: Model = uninitialized
 
   def projectedFaceVertices: Seq[RectVertices3D] =
-    tesseract.faces.map {rotation(_)}.map {projection(_)}
+    object4D.faces.map {rotation(_)}.map {projection(_)}
     
   def projectedFaceInfo: Seq[RectInfo] = projectedFaceVertices.map {
     case (a, b, c, d) => (VertexInfo(a), VertexInfo(b), VertexInfo(c), VertexInfo(d))
@@ -41,7 +41,7 @@ case class RotatedProjection(
 
 object RotatedProjection:
   def apply(
-    tesseract: Tesseract, parameters: RotationProjectionParameters,
+    object4D: Mesh4D, parameters: RotationProjectionParameters,
     material: Material, primitiveType: Int
   ): RotatedProjection =
-    RotatedProjection(tesseract, parameters.projection, parameters.rotation, material, primitiveType)
+    RotatedProjection(object4D, parameters.projection, parameters.rotation, material, primitiveType)
