@@ -1,7 +1,5 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.Gdx
-
 import scala.compiletime.uninitialized
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance}
@@ -38,6 +36,8 @@ case class RotatedProjection(
     rotation += event.rotation
     projection += event.projection
     changed = true
+
+  override def toString: String = s"${getClass.getSimpleName}[${object4D.toString}]"
 
 object RotatedProjection:
   def apply(

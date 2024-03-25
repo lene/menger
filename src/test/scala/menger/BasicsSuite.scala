@@ -1,9 +1,8 @@
 package menger
 
 import com.badlogic.gdx.Version
-import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.flatspec.AnyFlatSpec
 
-class BasicsSuite  extends AnyFunSuite:
-  test("libGDX version is high enough") {
+class BasicsSuite  extends AnyFlatSpec:
+  "libGDX version" should "be high enough" in:
     assert(Version.isHigherEqual(1, 12, 0))
-  }

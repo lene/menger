@@ -30,6 +30,7 @@ VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
 unzip -oq ./target/universal/menger-${VERSION}.zip || status=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type cube || status=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 4 --timeout 0.1 --sponge-type square || status=1
+xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge || status=1
 echo "status after running built: $status"
 
 #docker build --build-arg version="$VERSION" -t test_image . || status=1

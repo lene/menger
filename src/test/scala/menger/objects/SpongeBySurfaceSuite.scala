@@ -1,31 +1,25 @@
 package menger.objects
 
 import menger.objects.Direction.Z
-import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.Assertions.assertThrows
+import org.scalatest.flatspec.AnyFlatSpec
 
-class SpongeBySurfaceSuite extends AnyFunSuite:
+class SpongeBySurfaceSuite extends AnyFlatSpec:
+  trait StartFace:
+    val face: Face = Face(0, 0, 0, 1, Z)
 
-  test("surfaces at level 0 leaves face intact") {
-    val sponge = SpongeBySurface(0)
-    val face = Face(0, 0, 0, 1, Z)
+  "surfaces at level 0" should "leave face intact" in new StartFace:
+    val sponge: SpongeBySurface = SpongeBySurface(0)
     assert(sponge.surfaces(face).size == 1)
     assert(sponge.surfaces(face).head == face)
-  }
 
-  test("surfaces at level 1 creates 12 subfaces") {
-    val sponge = SpongeBySurface(1)
-    val face = Face(0, 0, 0, 1, Z)
+  "surfaces at level 1" should "create 12 subfaces" in new StartFace:
+    val sponge: SpongeBySurface = SpongeBySurface(1)
     assert(sponge.surfaces(face).size == 12)
-  }
 
-  test("surfaces at level 2 creates 12*12 subfaces") {
-    val sponge = SpongeBySurface(2)
-    val face = Face(0, 0, 0, 1, Z)
+  "surfaces at level 2" should "create 12*12 subfaces" in new StartFace:
+    val sponge: SpongeBySurface = SpongeBySurface(2)
     assert(sponge.surfaces(face).size == 12 * 12)
-  }
   
-  test("level -1 throws exception") {
-    assertThrows[IllegalArgumentException] {
-      SpongeBySurface(-1)
-    }
-  }
+  "level -1" should "throw exception" in:
+    assertThrows[IllegalArgumentException] {SpongeBySurface(-1)}

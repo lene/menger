@@ -1,9 +1,10 @@
 package menger
 
-import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.flatspec.AnyFlatSpec
 
-class RotationProjectionParametersSuite extends AnyFunSuite {
-  test("from CLI options") {
+class RotationProjectionParametersSuite extends AnyFlatSpec:
+
+  "instantiating from CLI options" should "work" in:
     val options = MengerCLIOptions(
       Seq(
         "--rot-x-w", "1", "--rot-y-w", "2", "--rot-z-w", "3",
@@ -15,18 +16,16 @@ class RotationProjectionParametersSuite extends AnyFunSuite {
     assert(parameters.rotZW == 3)
     assert(parameters.screenW == 1)
     assert(parameters.eyeW == 2)
-  }
 
-  test("plus for rotation parameters") {
+  "plus for rotation parameters" should "add the components" in:
     val p1 = RotationProjectionParameters(1, 2, 3)
     val p2 = RotationProjectionParameters(4, 5, 6)
     val p3 = p1 + p2
     assert(p3.rotXW == 5)
     assert(p3.rotYW == 7)
     assert(p3.rotZW == 9)
-  }
 
-  test("plus for projection parameters - increase distance") {
+  "plus for projection parameters" should "increase distance if adding bigger distance" in:
     val originalEyeDistance = 2f
     val targetEyeDistance = 3f
     val p1 = RotationProjectionParameters(0, 0, 0, originalEyeDistance, 1)
@@ -34,9 +33,8 @@ class RotationProjectionParametersSuite extends AnyFunSuite {
     val p3 = p1 + p2
     assert(p3.eyeW > originalEyeDistance)
     assert(p3.eyeW < targetEyeDistance)
-  }
 
-  test("plus for projection parameters - decrease distance") {
+  it should "decrease distance if adding smaller distance" in:
     val originalEyeDistance = 3f
     val targetEyeDistance = 2f
     val p1 = RotationProjectionParameters(0, 0, 0, originalEyeDistance, 1)
@@ -44,14 +42,11 @@ class RotationProjectionParametersSuite extends AnyFunSuite {
     val p3 = p1 + p2
     assert(p3.eyeW < originalEyeDistance)
     assert(p3.eyeW > targetEyeDistance)
-  }
 
-  test("plus for projection parameters - keep distance same") {
+  it should "keep distance same if adding same distance" in:
     val originalEyeDistance = 3f
     val targetEyeDistance = 3f
     val p1 = RotationProjectionParameters(0, 0, 0, originalEyeDistance, 1)
     val p2 = RotationProjectionParameters(0, 0, 0, targetEyeDistance, 1)
     val p3 = p1 + p2
     assert(p3.eyeW == originalEyeDistance)
-  }
-}

@@ -4,7 +4,7 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
 import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
 import com.badlogic.gdx.math.Vector3
-import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.Tag
 import org.scalamock.scalatest.MockFactory
 
@@ -15,7 +15,7 @@ import menger.input.{EventDispatcher, CameraController, KeyController, Observer}
 
 object GdxTest extends Tag("GdxTest")  // needs Gdx to be available
 
-class GeometrySuite extends AnyFunSuite with MockFactory:
+class GeometrySuite extends AnyFlatSpec with MockFactory:
   // Can't mock Java class. Extend in Scala to mock: https://github.com/lampepfl/dotty/issues/18694
   class MockedCamera extends PerspectiveCamera
   private val camera = stub[MockedCamera]
@@ -25,195 +25,160 @@ class GeometrySuite extends AnyFunSuite with MockFactory:
   private def controller = KeyController(camera, dispatcher)
 
 
-  test("instantiating a client works", GdxTest) {
+  "instantiating a client" should "work" taggedAs GdxTest in:
     /**
      * Running this in sbt repeatedly causes:
      * java.lang.UnsatisfiedLinkError: Native Library /tmp/lwjgl{$USER}/.../liblwjgl.so already loaded in another classloader
      * So only run this with "sbt test"
      */
     Lwjgl3Application(MengerEngine(0.01), Lwjgl3ApplicationConfiguration()).exit()
-  }
 
-  test("just instantiating a sphere does not store a model", GdxTest) {
+  "instantiating a sphere" should "not store a model" taggedAs GdxTest in:
     assert(Sphere.numStoredModels == 0)
     Sphere()
     assert(Sphere.numStoredModels == 0)
-  }
 
-  test("calling at() on a sphere stores model", GdxTest) {
+  "calling at() on a sphere" should "store a model" taggedAs GdxTest in:
     assert(Sphere.numStoredModels == 0)
     Sphere().at(ORIGIN, 1)
     assert(Sphere.numStoredModels == 1)
-  }
 
-  test("calling at() on different spheres stores only one model", GdxTest) {
+  "calling at() on different spheres" should "store only one model" taggedAs GdxTest in:
     assert(Sphere.numStoredModels == 1)
     Sphere().at(ORIGIN, 1)
     Sphere().at(ORIGIN, 2)
     assert(Sphere.numStoredModels == 1)
-  }
 
-  test("calling at() on sphere with different parameters stores two models", GdxTest) {
+  "calling at() on sphere with different parameters" should "store two models" taggedAs GdxTest in:
     assert(Sphere.numStoredModels == 1)
     Sphere(divisions = 10).at(ORIGIN, 1)
     assert(Sphere.numStoredModels == 2)
-  }
 
-  test("sphere toString") {
+  "sphere toString" should "return class name" in:
     assert(Sphere().toString == "Sphere")
-  }
 
-  test("cube is one model", GdxTest) {
+  "cube" should "be one model" taggedAs GdxTest in:
     assert(Cube().at(ORIGIN, 1).size == 1)
-  }
 
-  test("cube model is stored", GdxTest) {
+  it should "store one model" taggedAs GdxTest in:
     assert(Cube.numStoredModels == 1)
-  }
 
-  test("different cube models are stored separately", GdxTest) {
+  "different cube models" should "be stored separately" taggedAs GdxTest in:
     Cube(primitiveType = GL20.GL_LINES).at(ORIGIN, 1)
     assert(Cube.numStoredModels == 2)
-  }
 
-  test("cube toString") {
+  "cube toString" should "return class name" in:
     assert(Cube().toString == "Cube")
-  }
 
-  test("cube from squares operates with six faces", GdxTest) {
+  "cube from squares" should "operate with six faces" taggedAs GdxTest in:
     assert(CubeFromSquares().at(ORIGIN, 1).size == 6)
-  }
 
-  test("cube from squares stores one square", GdxTest) {
+  it should "store one square" taggedAs GdxTest in:
     assert(CubeFromSquares.numStoredFaces == 1)
-  }
 
-  test("sponge level 0 is one model", GdxTest) {
+  "sponge level 0" should "be one model" taggedAs GdxTest in:
     assert(SpongeByVolume(0).at(ORIGIN, 1).size == 1)
-  }
 
-  test("sponge level 1 has twenty times the size of level 0", GdxTest) {
+  "sponge level 1" should "have twenty times the size of level 0" taggedAs GdxTest in:
     val cubeSize = SpongeByVolume(0).at(ORIGIN, 1).size
     assert(SpongeByVolume(1).at(ORIGIN, 1).size == 20 * cubeSize)
-  }
 
-  test("sponge level 2 has 400 times the size of level 0", GdxTest) {
+  "sponge level 2" should "have 400 times the size of level 0" taggedAs GdxTest in:
     val cubeSize = SpongeByVolume(0).at(ORIGIN, 1).size
     assert(SpongeByVolume(2).at(ORIGIN, 1).size == 20 * 20 * cubeSize)
-  }
 
-  test("sponge by volume toString") {
+  "sponge by volume toString" should "return class name" in:
     assert(SpongeByVolume(0).toString == "SpongeByVolume(level=0, 6 faces)")
-  }
 
-  test("sponge by surface toString") {
+  "sponge by surface" should "have toString return class name" in:
     assert(SpongeBySurface(0).toString == "SpongeBySurface(level=0, 6 faces)")
-  }
 
-  test("sponge by surface at() returns 6 faces regardless of level", GdxTest) {
+  it should "have at() returns 6 faces regardless of level" taggedAs GdxTest in:
     assert(SpongeBySurface(0).at(ORIGIN, 1).size == 6)
     assert(SpongeBySurface(1).at(ORIGIN, 1).size == 6)
-  }
 
-  test("face of sponge by surface level 1 has 12 subfaces") {
-    assert(SpongeBySurface(1).faces.size == 12)
-  }
-
-  test("sponge by surface creates mesh(es)", GdxTest) {
+  it should "create mesh(es)" taggedAs GdxTest in:
     assert(SpongeBySurface(1).mesh.meshes.notEmpty)
-  }
 
-  test("MengerEngine with lines", GdxTest) {
+  "face of sponge by surface level 1" should "have 12 subfaces" in:
+    assert(SpongeBySurface(1).faces.size == 12)
+
+  "MengerEngine" should "instantiate with lines" taggedAs GdxTest in:
     MengerEngine(0.01, lines = true).create()
-  }
 
-  test("MengerEngine with cube sponge", GdxTest) {
+  it should "instantiate with cube sponge" taggedAs GdxTest in:
     MengerEngine(0.01, spongeType = "cube").create()
-  }
 
-  test("MengerEngine with tesseract", GdxTest) {
+  it should "instantiate with tesseract" taggedAs GdxTest in:
     MengerEngine(0.01, spongeType = "tesseract").create()
-  }
 
-  test("MengerEngine with invalid object type fails", GdxTest) {
+  it should "fail with invalid object type" taggedAs GdxTest in:
     assertThrows[IllegalArgumentException] {
       MengerEngine(0.01, spongeType = "invalid").create()
     }
-  }
 
-  test("InputController should instantiate from a camera and dispatcher") {
+  "InputController" should "instantiate from a camera and dispatcher" in:
     controller
-  }
 
-  private final val modKeys = Seq(
-    Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT, Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT,
-    Keys.ALT_LEFT, Keys.ALT_RIGHT
-  )
-  test("InputController.keyDown should recognize modifier keys") {
-    modKeys.foreach { testKeyDown(controller, _) }
-  }
-
-  private final val rotateKeys = Seq(
-    Keys.LEFT, Keys.RIGHT, Keys.UP, Keys.DOWN, Keys.PAGE_UP, Keys.PAGE_DOWN
-  )
-  test("InputController.keyDown should recognize rotate keys", GdxTest) {
-    rotateKeys.foreach {testKeyDown(controller, _)}
-  }
-
-  test("rotate keys should rotate camera", GdxTest) {
-    rotateKeys.foreach { testKeyDown(controller, _) }
-    camera.rotateAround.verify(*, *, *).repeat(2 * rotateKeys.size)
-  }
-
-  test("InputController.keyDown should recognize Escape") {
-    testKeyDown(controller, Keys.ESCAPE)
-  }
-
-  test("InputController.keyDown should recognize Q") {
-    testKeyDown(controller, Keys.Q)
-  }
-
-  test("InputController.keyDown should not react to various other keys") {
-    Seq(
-      Keys.A, Keys.B, Keys.C, Keys.D, Keys.E, Keys.F, Keys.G, Keys.H, Keys.I, Keys.J, Keys.K,
-      Keys.L, Keys.M, Keys.N, Keys.O, Keys.P, Keys.R, Keys.S, Keys.T, Keys.U, Keys.V, Keys.W,
-      Keys.X, Keys.Y, Keys.Z
-    ).foreach { key => assert(!controller.keyDown(key)) }
-  }
-
-  test("pressing shift should be recorded") {
-    Seq(Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT).foreach { key =>
-      val thisController = controller
-      thisController.keyDown(key)
-      assert(thisController.shift)
-    }
-  }
-
-  test("pressing ctrl should be recorded") {
-    Seq(Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT).foreach { key =>
-      val thisController = controller
-      thisController.keyDown(key)
-      assert(thisController.ctrl)
-    }
-  }
-
-  test("pressing alt should be recorded") {
-    Seq(Keys.ALT_LEFT, Keys.ALT_RIGHT).foreach { key =>
-      val thisController = controller
-      thisController.keyDown(key)
-      assert(thisController.alt)
-    }
-  }
-
-  test("InputController should notify event dispatcher with shift pressed", GdxTest) {
+  it should "notify event dispatcher with shift pressed" taggedAs GdxTest in:
     val thisController = controller
     thisController.keyDown(Keys.SHIFT_LEFT)
     thisController.keyDown(Keys.RIGHT)
     thisController.keyUp(Keys.SHIFT_LEFT)
     dispatcher.notifyObservers.verify(*).once()
-  }
 
-  test("EventDispatcher should notify observers with shift pressed", GdxTest) {
+  private final val modKeys = Seq(
+    Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT, Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT,
+    Keys.ALT_LEFT, Keys.ALT_RIGHT
+  )
+  private final val rotateKeys = Seq(
+    Keys.LEFT, Keys.RIGHT, Keys.UP, Keys.DOWN, Keys.PAGE_UP, Keys.PAGE_DOWN
+  )
+  "InputController.keyDown" should "recognize modifier keys" in:
+    modKeys.foreach { testKeyDown(controller, _) }
+
+  it should "recognize rotate keys" taggedAs GdxTest in:
+    rotateKeys.foreach {testKeyDown(controller, _)}
+
+  it should "recognize Escape" in:
+    testKeyDown(controller, Keys.ESCAPE)
+
+  it should "recognize Q" in:
+    testKeyDown(controller, Keys.Q)
+
+  it should "not react to various other keys" in:
+    Seq(
+      Keys.A, Keys.B, Keys.C, Keys.D, Keys.E, Keys.F, Keys.G, Keys.H, Keys.I, Keys.J, Keys.K,
+      Keys.L, Keys.M, Keys.N, Keys.O, Keys.P, Keys.R, Keys.S, Keys.T, Keys.U, Keys.V, Keys.W,
+      Keys.X, Keys.Y, Keys.Z
+    ).foreach { key => assert(!controller.keyDown(key)) }
+
+  "rotate keys" should "rotate camera" taggedAs GdxTest in:
+    rotateKeys.foreach {testKeyDown(controller, _)}
+    camera.rotateAround.verify(*, *, *).repeat(2 * rotateKeys.size)
+
+  "pressing shift" should "be recorded" in:
+    Seq(Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT).foreach { key =>
+      val thisController = controller
+      thisController.keyDown(key)
+      assert(thisController.shift)
+    }
+
+  "pressing ctrl" should "be recorded" in:
+    Seq(Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT).foreach { key =>
+      val thisController = controller
+      thisController.keyDown(key)
+      assert(thisController.ctrl)
+    }
+
+  "pressing alt" should "be recorded" in:
+    Seq(Keys.ALT_LEFT, Keys.ALT_RIGHT).foreach { key =>
+      val thisController = controller
+      thisController.keyDown(key)
+      assert(thisController.alt)
+    }
+
+  "EventDispatcher" should "notify observers with shift pressed" taggedAs GdxTest in:
     class TestObserver extends Observer:
       var notified = false
       override def handleEvent(event: RotationProjectionParameters): Unit = notified = true
@@ -226,32 +191,27 @@ class GeometrySuite extends AnyFunSuite with MockFactory:
     thisController.keyDown(Keys.RIGHT)
     thisController.keyUp(Keys.SHIFT_LEFT)
     assert(observer.notified)
-  }
 
-  test("CameraInputController instantiated", GdxTest) {
+  "CameraInputController" should "instantiate" taggedAs GdxTest in:
     CameraController(camera, dispatcher)
-  }
 
-  test("CameraInputController touchDown", GdxTest) {
+  it should "record touchDown" taggedAs GdxTest in:
     val thisController = CameraController(camera, dispatcher)
     thisController.touchDown(0, 1, 0, 0)
-  }
 
-  test("CameraInputController touchDragged", GdxTest) {
+  it should "record touchDragged" taggedAs GdxTest in:
     val thisController = CameraController(camera, dispatcher)
     thisController.touchDragged(0, 1, 0)
-  }
 
-  test("CameraInputController scrolled", GdxTest) {
+  it should "record scrolled" taggedAs GdxTest in:
     val thisController = CameraController(camera, dispatcher)
     thisController.scrolled(0, 1)
-  }
 
-  ignore("CameraInputController touchDragged with shift", GdxTest) {
+  ignore should "record touchDragged with shift" taggedAs GdxTest in:
     ???
     val thisController = CameraController(camera, dispatcher)
     thisController.touchDragged(0, 1, 0)
-  }
+
 
 def testKeyDown(inputController: KeyController, key: Int): Unit = {
   assert(!inputController.keyDown(key))

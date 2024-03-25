@@ -1,72 +1,60 @@
 import menger.MengerCLIOptions
-import org.rogach.scallop.exceptions.ScallopException
-import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.Assertions.assertThrows
+import org.scalatest.flatspec.AnyFlatSpec
 
-class OptionsSuite extends AnyFunSuite:
-  test("empty options give default timeout") {
+class OptionsSuite extends AnyFlatSpec:
+  "empty options" should "give default timeout" in:
     val options = MengerCLIOptions(Seq[String]())
     assert(options.timeout() == 0)
-  }
 
-  test("--timeout option sets timeout") {
+  "--timeout" should "set timeout" in:
     val options = MengerCLIOptions(Seq("--timeout", "1"))
     assert(options.timeout() == 1)
-  }
 
-  test("--sponge-type cube|square|tesseract|tesseract-sponge") {
+  "--sponge-type" should "parse cube|square|tesseract|tesseract-sponge" in:
     Seq("cube", "square", "tesseract", "tesseract-sponge").foreach { spongeType =>
       val options = MengerCLIOptions(Seq("--sponge-type", spongeType))
       assert(options.spongeType() == spongeType)
     }
-  }
 
-  test("default for --sponge-type") {
+  it should "default to square" in:
     val options = MengerCLIOptions(Seq[String]())
     assert(options.spongeType() == "square")
-  }
 
-
-  test("invalid --sponge-type throws IllegalArgumentException") {
+  it should "throw IllegalArgumentException if invalid" in:
     assertThrows[IllegalArgumentException]({
       MengerCLIOptions(Seq("--sponge-type", "invalid"))
     })
-  }
 
-  test("--antialias-samples") {
+  "--antialias-samples" should "set antialias samples" in:
     val options = MengerCLIOptions(Seq("--antialias-samples", "1"))
     assert(options.antialiasSamples() == 1)
-  }
 
-  test("getConfig") {
+
+  "getConfig" should "return default config if no options" in:
     val options = MengerCLIOptions(Seq[String]())
     Main.getConfig(options)
-  }
 
-  test("valid --projection-screen-w and --projection-eye-w") {
+  "--projection-screen-w" should "be valid with matching --projection-eye-w" in:
     val options = MengerCLIOptions(Seq("--projection-screen-w", "1", "--projection-eye-w", "2"))
     assert(options.projectionScreenW() == 1)
     assert(options.projectionEyeW() == 2)
-  }
 
-  test("invalid --projection-screen-w (<= 0)") {
+  it should "be invalid if <= 0" in:
     assertThrows[IllegalArgumentException]({
       MengerCLIOptions(Seq("--projection-screen-w", "0", "--projection-eye-w", "2"))
     })
-  }
 
-  test("invalid --projection-eye-w (<= --projection-screen-w)") {
+  it should "be invalid if <= --projection-screen-w)" in:
     assertThrows[IllegalArgumentException]({
       MengerCLIOptions(Seq("--projection-screen-w", "2", "--projection-eye-w", "2"))
     })
-  }
 
-  test("valid --rot-x-w") {
+  "--rot-x-w" should "be valid if 0 <= x < 360" in:
     val options = MengerCLIOptions(Seq("--rot-x-w", "1"))
     assert(options.rotXW() == 1)
-  }
 
-  test("invalid --rot-x-w") {
+  it should "be invalid if >= 360" in:
     assertThrows[IllegalArgumentException]({
       MengerCLIOptions(Seq("--rot-x-w", "360"))
     })
-  }
