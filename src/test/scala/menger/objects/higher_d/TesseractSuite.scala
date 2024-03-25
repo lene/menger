@@ -1,84 +1,46 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.{Vector3, Vector4}
-import org.scalatest.funsuite.AnyFunSuite
+import com.badlogic.gdx.math.Vector4
+import org.scalatest.flatspec.AnyFlatSpec
 
-class TesseractSuite extends AnyFunSuite:
+class TesseractSuite extends AnyFlatSpec:
 
-  test("tesseract has 16 vertices") {
-    assert(Tesseract().vertices.size == 16)
-  }
+  trait Fixture:
+    val tesseract: Tesseract = Tesseract()
 
-  test("all default tesseract vertices are +/-0.5") {
-    assert(Tesseract().vertices.forall(v =>
-      v.x == 0.5 || v.x == -0.5 && v.y == 0.5 || v.y == -0.5 &&
-        v.z == 0.5 || v.z == -0.5 && v.w == 0.5 || v.w == -0.5
-    ))
-  }
+  "A Tesseract" should "have 16 vertices" in new Fixture:
+    assert(tesseract.vertices.size == 16)
 
-  test("tesseract vertices scale with tesseract size") {
+  it should "have vertex coordinates all at +/-0.5" in new Fixture:
+    assert(tesseract.vertices.forall(v => v.toArray.forall(_.abs == 0.5)))
+
+  it should "have vertices scale with tesseract size" in:
     Seq(2.0f, 10.0f, 1e8f, 0.5f, 1e-8f).foreach { size =>
-      assert(Tesseract(2 * size).vertices.forall(v =>
-        v.x == size || v.x == -size && v.y == size || v.y == -size &&
-          v.z == size || v.z == -size && v.w == size || v.w == -size
-      ))
+      assert(Tesseract(2 * size).vertices.forall(v => v.toArray.forall(_.abs == size)))
     }
-  }
 
-  test("tesseract has 24 faces") {
-    assert(Tesseract().faceIndices.size == 24)
-  }
+  it should "have 24 faces" in new Fixture:
+    assert(tesseract.faceIndices.size == 24)
 
-  test("first face of tesseract is correct") {
+  it should "have correct first face" in new Fixture:
     assert(
-      Tesseract(2).faces.head == (
-        Vector4(-1.0,-1.0,-1.0,-1.0),
-        Vector4(-1.0,-1.0,-1.0, 1.0),
-        Vector4(-1.0,-1.0, 1.0, 1.0),
-        Vector4(-1.0,-1.0, 1.0,-1.0)
+      tesseract.faces.head == (
+        Vector4(-0.5,-0.5,-0.5,-0.5), Vector4(-0.5,-0.5,-0.5, 0.5),
+        Vector4(-0.5,-0.5, 0.5, 0.5), Vector4(-0.5,-0.5, 0.5,-0.5)
       )
     )
-  }
 
-  test("last face of tesseract is correct") {
+  it should "have correct last face" in new Fixture:
     assert(
-      Tesseract(2).faces.last == (
-        Vector4( 1.0, 1.0,-1.0,-1.0),
-        Vector4( 1.0, 1.0,-1.0, 1.0),
-        Vector4( 1.0, 1.0, 1.0, 1.0),
-        Vector4( 1.0, 1.0, 1.0,-1.0)
+      tesseract.faces.last == (
+        Vector4( 0.5, 0.5,-0.5,-0.5), Vector4( 0.5, 0.5,-0.5, 0.5),
+        Vector4( 0.5, 0.5, 0.5, 0.5), Vector4( 0.5, 0.5, 0.5,-0.5)
       )
     )
-  }
 
-  test("tesseract has 32 edges") {
-    assert(Tesseract().edges.size == 32)
-  }
+  it should "have 32 edges" in new Fixture:
+    assert(tesseract.edges.size == 32)
 
-  test("every edge of a tesseract of unit size has length 2") {
-    val edgeLengths = Tesseract().edges.map { case (a, b) => a.dst(b) }
+  it should "have only edges of unit length" in new Fixture:
+    val edgeLengths: Seq[Float] = tesseract.edges.map { case (a, b) => a.dst(b) }
     assert(edgeLengths.forall { _ == 1.0f })
-  }
-
-  test("TesseractProjection projectedFaceVertices size equals tesseract faces size") {
-    val tp = RotatedProjection(Tesseract(), Projection(4, 1))
-    assert(tp.projectedFaceVertices.size == tp.object4D.faces.size)
-  }
-
-  test("untransformed projected tesseract has only 4 distinct coordinate values") {
-    val tp = RotatedProjection(Tesseract(), Projection(4, 1))
-    val coordinateValues = tp.projectedFaceVertices.flatMap(_.toList).flatMap(toList)
-    assert(coordinateValues.distinct.size == 4)
-  }
-
-  test("untransformed projected tesseract has only 2 distinct absolute coordinate values") {
-    val tp = RotatedProjection(Tesseract(), Projection(4, 1))
-    val coordinateValues = tp.projectedFaceVertices.flatMap(_.toList).flatMap(toList).map(_.abs)
-    assert(coordinateValues.distinct.size == 2)
-  }
-  
-  test("TesseractSponge level 1 has 48 times the number of faces as tesseract") {
-    assert(TesseractSponge(1).faces.size == 48 * Tesseract().faces.size)
-  }
-
-def toList(v: Vector3) = List(v.x, v.y, v.z)

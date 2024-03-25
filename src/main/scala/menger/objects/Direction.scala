@@ -11,7 +11,7 @@ enum Direction(val x: Byte, val y: Byte, val z: Byte):
   case negZ extends Direction(0, 0, -1)
 
   @targetName("-")
-  def unary_- = Direction((-x).toByte, (-y).toByte, (-z).toByte)
+  private[objects] def unary_- : Direction = Direction((-x).toByte, (-y).toByte, (-z).toByte)
 
   def rotate90(D: Direction): Direction = Direction(getRotatedVector(D))
 
