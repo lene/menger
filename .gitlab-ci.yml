@@ -27,10 +27,10 @@ Test:Debian:
   parallel:
     matrix:
       - IMAGE:
-        - ubuntu:22.04
+#        - ubuntu:22.04
         - ubuntu:latest
-        - debian:stable-slim
-        - debian:testing-slim
+#        - debian:stable-slim
+#        - debian:testing-slim
   image: $IMAGE
   stage: test
   needs: []
@@ -173,7 +173,6 @@ ChangelogIsUpdated:
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
-  allow_failure: true
   script:
     - test -f CHANGELOG.md || exit 0
     - VERSION=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)

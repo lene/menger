@@ -37,7 +37,7 @@ case class RotatedProjection(
     projection += event.projection
     changed = true
 
-  override def toString: String = s"${getClass.getSimpleName}[${object4D.toString}]"
+  override def toString: String = s"${getClass.getSimpleName}[${object4D.getClass.getSimpleName}]"
 
 object RotatedProjection:
   def apply(

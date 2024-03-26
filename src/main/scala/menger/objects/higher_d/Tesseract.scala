@@ -5,9 +5,6 @@ import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.math.Vector4
 import menger.objects.*
 
-import scala.annotation.targetName
-import scala.math.abs
-
 /** A tesseract of edge length `size` centered at the origin */
 case class Tesseract(
   size: Float = 1.0,
