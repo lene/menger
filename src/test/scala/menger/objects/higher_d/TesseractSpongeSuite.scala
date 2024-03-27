@@ -163,6 +163,21 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh:
         )), subfaces.toString
     )
 
+  it should "contain face pointing in x bordered on center hole" in new Sponge2:
+    assert(
+      containsAllEpsilon(
+        subfaces, List(
+          Vector4(-1f,   -1f, -1/3f, -1/3f),
+          Vector4(-1f, -1/3f, -1/3f,  1/3f),
+          Vector4(-1f, -1/3f,  1/3f,  1/3f),
+          Vector4(-1f,   -1f,  1/3f, -1/3f)
+        )), subfaces.toString
+    )
+    
+  it should "contain 16 subfaces" in new Sponge2:
+    assert(subfaces.size == 16)
+    
+    
   def containsEpsilon(vecs: Iterable[Vector4], vec: Vector4, epsilon: Float = 1e-6f): Boolean =
     vecs.exists(_.epsilonEquals(vec, epsilon))
 
