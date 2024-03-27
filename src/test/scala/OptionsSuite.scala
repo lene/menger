@@ -11,11 +11,10 @@ class OptionsSuite extends AnyFlatSpec:
     val options = MengerCLIOptions(Seq("--timeout", "1"))
     assert(options.timeout() == 1)
 
-  "--sponge-type" should "parse cube|square|tesseract|tesseract-sponge" in:
-    Seq("cube", "square", "tesseract", "tesseract-sponge").foreach { spongeType =>
+  "--sponge-type" should "parse cube|square|tesseract|tesseract-sponge|tesseract-sponge-2" in:
+    for spongeType <- Seq("cube", "square", "tesseract", "tesseract-sponge", "tesseract-sponge-2") do
       val options = MengerCLIOptions(Seq("--sponge-type", spongeType))
       assert(options.spongeType() == spongeType)
-    }
 
   it should "default to square" in:
     val options = MengerCLIOptions(Seq[String]())
