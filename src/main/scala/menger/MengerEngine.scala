@@ -6,7 +6,7 @@ import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.{Game, Gdx}
 import menger.input.EventDispatcher
-import menger.objects.higher_d.{RotatedProjection, Tesseract, TesseractSponge}
+import menger.objects.higher_d.{RotatedProjection, Tesseract, TesseractSponge, TesseractSponge2}
 import menger.objects.{Builder, Geometry, SpongeBySurface, SpongeByVolume}
 
 class MengerEngine(
@@ -46,5 +46,8 @@ class MengerEngine(
       )
       case "tesseract-sponge" => RotatedProjection(
         TesseractSponge(level), rotationProjectionParameters, material, primitiveType
+      )
+      case "tesseract-sponge-2" => RotatedProjection(
+        TesseractSponge2(level), rotationProjectionParameters, material, primitiveType
       )
       case _ => throw new IllegalArgumentException(s"Unknown sponge type: $spongeType")
