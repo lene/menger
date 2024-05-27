@@ -16,7 +16,7 @@ case class Rotation(
   private lazy val Rzw = matrix(2, 3, rotZW)
   private lazy val rotate = matrix(0, 3, rotXW).mul(Ryw).mul(Rzw)
 
-  def apply(point: Vector4): Vector4 = if isZero then point else multiply(rotate, point)
+  def apply(point: Vector4): Vector4 = if isZero then point else rotate.multiply(point)
 
   def apply(points: Seq[Vector4]): Seq[Vector4] = points.map(apply)
 
@@ -26,13 +26,6 @@ case class Rotation(
 
   @targetName("plus")
   def +(r: Rotation): Rotation = Rotation(rotXW + r.rotXW, rotYW + r.rotYW, rotZW + r.rotZW)
-
-  def multiply(m: Matrix4, v: Vector4): Vector4 =
-    val m0 = m.`val`(Matrix4.M00) * v.x + m.`val`(Matrix4.M01) * v.y + m.`val`(Matrix4.M02) * v.z + m.`val`(Matrix4.M03) * v.w
-    val m1 = m.`val`(Matrix4.M10) * v.x + m.`val`(Matrix4.M11) * v.y + m.`val`(Matrix4.M12) * v.z + m.`val`(Matrix4.M13) * v.w
-    val m2 = m.`val`(Matrix4.M20) * v.x + m.`val`(Matrix4.M21) * v.y + m.`val`(Matrix4.M22) * v.z + m.`val`(Matrix4.M23) * v.w
-    val m3 = m.`val`(Matrix4.M30) * v.x + m.`val`(Matrix4.M31) * v.y + m.`val`(Matrix4.M32) * v.z + m.`val`(Matrix4.M33) * v.w
-    Vector4(m0, m1, m2, m3)
 
   def matrix(row: Int, col: Int, angle: Float): Matrix4 =
     val m = Array.fill(4, 4)(0f)
