@@ -177,7 +177,44 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh:
   it should "contain 16 subfaces" in new Sponge2:
     assert(subfaces.size == 16)
     
-    
+  "rotating around an axis" should "move a point around an axis through the origin" in new Sponge2:
+    val point: Vector4 = Vector4(-1, -1, -1, -1)
+    val axis: (Vector4, Vector4) = (Vector4(0, 0, 0, 0), Vector4(-1, -1, 1/3f, -1/3f))
+    val rotated: Vector4 = sponge2.rotate(point, axis, 90)
+    assert(!rotated.epsilonEquals(point))
+
+  it should "move a point around the x axis" in new Sponge2:
+    val point: Vector4 = Vector4(-1, -1, -1, -1)
+    val axis: (Vector4, Vector4) = (Vector4(0, 0, 0, 0), Vector4(1, 0, 0, 0))
+    val rotated: Vector4 = sponge2.rotate(point, axis, 90)
+    assert(!rotated.epsilonEquals(point))
+
+  it should "move a point around the y axis" in new Sponge2:
+    val point: Vector4 = Vector4(-1, -1, -1, -1)
+    val axis: (Vector4, Vector4) = (Vector4(0, 0, 0, 0), Vector4(0, 1, 0, 0))
+    val rotated: Vector4 = sponge2.rotate(point, axis, 90)
+    assert(!rotated.epsilonEquals(point))
+
+  it should "move a point around the z axis" in new Sponge2:
+    val point: Vector4 = Vector4(-1, -1, -1, -1)
+    val axis: (Vector4, Vector4) = (Vector4(0, 0, 0, 0), Vector4(0, 0, 1, 0))
+    val rotated: Vector4 = sponge2.rotate(point, axis, 90)
+    assert(!rotated.epsilonEquals(point))
+
+  it should "move a point around the w axis" in new Sponge2:
+    val point: Vector4 = Vector4(-1, -1, -1, -1)
+    val axis: (Vector4, Vector4) = (Vector4(0, 0, 0, 0), Vector4(0, 0, 0, 1))
+    val rotated: Vector4 = sponge2.rotate(point, axis, 90)
+    assert(!rotated.epsilonEquals(point))
+
+  it should "move a point around an axis not through the origin" in new Sponge2:
+    val point: Vector4 = Vector4(1, 1, 1, 1)
+    val axis: (Vector4, Vector4) = (Vector4(-1, -1, -1/3f, -1/3f), Vector4(-1, -1, 1/3f, -1/3f))
+    println(">>>>>")
+    val rotated: Vector4 = sponge2.rotate(point, axis, 90)
+    println("<<<<<")
+    assert(!rotated.epsilonEquals(point))
+
   def containsEpsilon(vecs: Iterable[Vector4], vec: Vector4, epsilon: Float = 1e-6f): Boolean =
     vecs.exists(_.epsilonEquals(vec, epsilon))
 
