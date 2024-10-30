@@ -1,16 +1,13 @@
 
-val scala3Version = "3.4.0"
-val libgdxVersion = "1.12.1"
-
 lazy val root = project
   .in(file("."))
   .enablePlugins(JavaAppPackaging)
   .settings(
     name := "Menger",
-    version := "0.2.1",
+    version := "0.2.2",
     maintainer := "lene.preuss@gmail.com",
 
-    scalaVersion := scala3Version,
+    scalaVersion := "3.5.2",
     scalacOptions ++= Seq("-deprecation", "-explain", "-feature"),
 
     // JUnit
@@ -18,17 +15,18 @@ lazy val root = project
       "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test
     ),
     // ScalaTest
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % Test,
-    libraryDependencies += "org.scalamock" %% "scalamock" % "6.0.0-M2" % Test,
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % Test,
+    libraryDependencies += "org.scalamock" %% "scalamock" % "6.0.0" % Test,
 
-      // Scallop command line parser
-    libraryDependencies += "org.rogach" %% "scallop" % "5.0.1",
+    // Scallop command line parser
+    libraryDependencies += "org.rogach" %% "scallop" % "5.1.0",
 
     // libGDX
     libraryDependencies ++= Seq(
-      "com.badlogicgames.gdx" % "gdx" % libgdxVersion,
+      "com.badlogicgames.gdx" % "gdx" % "1.12.1",
       "net.sf.proguard" % "proguard-base" % "6.2.2" % "provided",
-      "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % libgdxVersion,
-      "com.badlogicgames.gdx" % "gdx-platform" % libgdxVersion classifier "natives-desktop",
+      "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.12.1",
+      "com.badlogicgames.gdx" % "gdx-platform" % "1.12.1" classifier "natives-desktop",
     ),
+
   )

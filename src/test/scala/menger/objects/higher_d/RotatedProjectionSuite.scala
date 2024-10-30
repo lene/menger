@@ -1,6 +1,7 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
+import com.badlogic.gdx.math.{Vector3, Vector4}
 import org.scalatest.flatspec.AnyFlatSpec
 
 extension(v: Vector3)
@@ -10,7 +11,9 @@ class RotatedProjectionSuite extends AnyFlatSpec:
 
   trait ProjectedTesseract:
     val tesseract: RotatedProjection = RotatedProjection(Tesseract(), Projection(4, 1))
-    val coordinateValues: Seq[Float] = tesseract.projectedFaceVertices.flatMap(_.toList).flatMap(_.toList)
+    val coordinateValues: Seq[Float] = tesseract.projectedFaceVertices.flatMap(
+      _.toList.asInstanceOf[List[Vector3]]
+    ).flatMap(_.toList)
 
   "A RotatedProjection" should "be able to be created from a Projection alone" in:
     RotatedProjection(Tesseract(), Projection(4, 1))
@@ -31,7 +34,9 @@ class RotatedProjectionSuite extends AnyFlatSpec:
     assert(tesseract.projectedFaceInfo.size == tesseract.object4D.faces.size)
 
   it should "have a position set for all vertices" in new ProjectedTesseract:
-    assert(tesseract.projectedFaceInfo.forall(v => v.toList.forall(_.hasPosition)))
+    assert(tesseract.projectedFaceInfo.forall(
+      _.toList.forall(_.asInstanceOf[VertexInfo].hasPosition))
+    )
 
   it should "have the correct position set for all vertices" in new ProjectedTesseract:
     assert(
