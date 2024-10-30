@@ -4,7 +4,7 @@ lazy val root = project
   .enablePlugins(JavaAppPackaging)
   .settings(
     name := "Menger",
-    version := "0.2.2",
+    version := "0.3.0",
     maintainer := "lene.preuss@gmail.com",
 
     scalaVersion := "3.5.2",
@@ -29,4 +29,5 @@ lazy val root = project
       "com.badlogicgames.gdx" % "gdx-platform" % "1.12.1" classifier "natives-desktop",
     ),
 
+    libraryDependencies += "org.jcuda" % "jcuda" % "12.0.0",
   )

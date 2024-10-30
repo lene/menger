@@ -1,6 +1,5 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
 import com.badlogic.gdx.math.Vector4
 import org.scalatest.flatspec.AnyFlatSpec
 
