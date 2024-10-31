@@ -12,9 +12,6 @@ variables:
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.6.4
 
-default:
-  retry: 2
-
 include:
   - template: Code-Quality.gitlab-ci.yml
   - template: Security/SAST.gitlab-ci.yml
@@ -24,11 +21,13 @@ include:
 # This job installs sbt by itself. It is somewhat slower than the ones based on scala-sbt below.
 # I leave it in mostly for documentation how to install the environment.
 Test:Debian:
+  retry: 1
   parallel:
     matrix:
       - IMAGE:
+# Disabling most installs for now to save expensive GitLab minutes
+          - ubuntu:latest
 #        - ubuntu:22.04
-        - ubuntu:latest
 #        - debian:stable-slim
 #        - debian:testing-slim
   image: $IMAGE
@@ -49,6 +48,7 @@ Test:Debian:
 
 # The following ones use a prepared docker image for sbt.
 Test:SbtImage:
+  retry: 1
   image: $SBT_IMAGE
   stage: test
   needs: []
