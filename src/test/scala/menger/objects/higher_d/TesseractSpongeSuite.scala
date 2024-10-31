@@ -222,7 +222,7 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh:
     assert(containsEpsilon(vecs, vec, epsilon), vecs.toString)
 
   def containsAllEpsilon(rects: Seq[RectVertices4D], vecs: Seq[Vector4], epsilon: Float = 1e-6f): Boolean =
-    containsAllEpsilon2(rects.map(_.toList), vecs, epsilon)
+    containsAllEpsilon2(rects.map(_.toList.map(_.asInstanceOf[Vector4])), vecs, epsilon)
 
   def containsAllEpsilon2(rects: Seq[Seq[Vector4]], vecs: Seq[Vector4], epsilon: Float = 1e-6f): Boolean =
     rects.exists(rect => rect.forall(v => containsEpsilon(vecs, v, epsilon)))

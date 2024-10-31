@@ -13,5 +13,5 @@ extension (v: Vector4)
   def +(v2: Vector4): Vector4 = Vector4(v.x + v2.x, v.y + v2.y, v.z + v2.z, v.w + v2.w)
   def -(v2: Vector4): Vector4 = Vector4(v.x - v2.x, v.y - v2.y, v.z - v2.z, v.w - v2.w)
   def toArray: Array[Float] = Array(v.x, v.y, v.z, v.w)
-  def toString: String = f"(${v.x}%.2f, ${v.y}%.2f, ${v.z}%.2f, ${v.w}%.2f)"
+//  def toString: String = f"(${v.x}%.2f, ${v.y}%.2f, ${v.z}%.2f, ${v.w}%.2f)"
   def toVec2: String = f"(${v.z}%.2f, ${v.w}%.2f)"
