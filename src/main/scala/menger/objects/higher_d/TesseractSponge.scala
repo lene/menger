@@ -61,12 +61,14 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
     val oppositeEdges = edges.drop(2) ++ edges.take(2)
 
     val rotatedOneWay = for (i <- edges.indices) yield
-      (edges(i)(0), edges(i)(1),
-        rotate(oppositeEdges(i)(0), edges(i), 90), rotate(oppositeEdges(i)(1), edges(i), 90)
+      (
+        edges(i)(0), edges(i)(1),
+        Rotate(edges(i), 90)(oppositeEdges(i)(0)), Rotate(edges(i), 90)(oppositeEdges(i)(1))
       )
     val rotatedOtherWay = for (i <- edges.indices) yield
-      (edges(i)(0), edges(i)(1),
-        rotate(oppositeEdges(i)(0), edges(i), 90), rotate(oppositeEdges(i)(1), edges(i), 90)
+      (
+        edges(i)(0), edges(i)(1),
+        Rotate(edges(i), 90)(oppositeEdges(i)(0)), Rotate(edges(i), 90)(oppositeEdges(i)(1))
       )
     rotatedOneWay ++ rotatedOtherWay
 
@@ -116,8 +118,8 @@ extension (m: Matrix4)
 //    println(s"v': $v_")
     v_
 
-def rotate(point: Vector4, axis: (Vector4, Vector4), angle: Float): Vector4 =
-  /*
+case class Rotate(axis: (Vector4, Vector4), angle: Float):
+  /**
   In 3D the matrix of a proper rotation R by angle θ around the axis u = (ux, uy, uz),
   a unit vector, is given by:
         |    cos θ + ux^2(1 − cos θ)   uxuy(1 − cos θ) − uz sin θ   uxuz(1 − cos θ) + uy sin θ |
@@ -138,8 +140,7 @@ def rotate(point: Vector4, axis: (Vector4, Vector4), angle: Float): Vector4 =
       [u]_× = | uz    0  −ux |
               | −uy   ux   0 |
   (https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle)
-  */
-  /*
+
     template <> Rotation<4>::operator Matrix<4>() const {
     Matrix<4> Rxy = Matrix<4> (0, 1, axis[0]), Rxz = Matrix<4> (0, 2, axis[1]),
               Rxw = Matrix<4> (0, 3, axis[2]),  Ryz = Matrix<4> (1, 2, axis[3]),
@@ -180,29 +181,31 @@ def rotate(point: Vector4, axis: (Vector4, Vector4), angle: Float): Vector4 =
   (3) apply the inverse of step (1)
 
   */
-  val u = (axis(1) - axis(0)).nor()
-  val uxu = outerProduct(u)
-  val ux = crossProductMatrix(u)
-  val I = Matrix4().idt()
-  val cosTheta = math.cos(angle.toRadians).toFloat
-  val sinTheta = math.sin(angle.toRadians).toFloat
-  val transformationMatrix = I.scl(cosTheta).add(ux.scl(sinTheta)).add(uxu.scl(1 - cosTheta))
-  transformationMatrix.multiply(point - axis(0)) + axis(0)
+  val u: Vector4 = (axis(1) - axis(0)).nor()
+  val uxu: Matrix4 = outerProduct(u)
+  val ux: Matrix4 = crossProductMatrix(u)
+  val I: Matrix4 = Matrix4().idt()
+  val cosTheta: Float = math.cos(angle.toRadians).toFloat
+  val sinTheta: Float = math.sin(angle.toRadians).toFloat
+  val transformationMatrix: Matrix4 = I.scl(cosTheta).add(ux.scl(sinTheta)).add(uxu.scl(1 - cosTheta))
 
-def outerProduct(u: Vector4): Matrix4 =
-  val (x, y, z, w) = (u.x, u.y, u.z, u.w)
-  Matrix4(Array(
-    x * x, x * y, x * z, x * w,
-    y * x, y * y, y * z, y * w,
-    z * x, z * y, z * z, z * w,
-    w * x, w * y, w * z, w * w
-  ))
+  def apply(point: Vector4): Vector4 =
+    transformationMatrix.multiply(point - axis(0)) + axis(0)
 
-def crossProductMatrix(u: Vector4): Matrix4 =
-  val (x, y, z, w) = (u.x, u.y, u.z, u.w)
-  Matrix4(Array(
-    0, -z, y, 0,
-    z, 0, -x, 0,
-    -y, x, 0, 0,
-    0, 0, 0, 0
-  ))
+  private def outerProduct(u: Vector4): Matrix4 =
+    val (x, y, z, w) = (u.x, u.y, u.z, u.w)
+    Matrix4(Array(
+      x * x, x * y, x * z, x * w,
+      y * x, y * y, y * z, y * w,
+      z * x, z * y, z * z, z * w,
+      w * x, w * y, w * z, w * w
+    ))
+
+  private def crossProductMatrix(u: Vector4): Matrix4 =
+    val (x, y, z, w) = (u.x, u.y, u.z, u.w)
+    Matrix4(Array(
+      0, -z, y, 0,
+      z, 0, -x, 0,
+      -y, x, 0, 0,
+      0, 0, 0, 0
+    ))
