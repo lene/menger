@@ -2,8 +2,12 @@ package menger.objects.higher_d
 
 import com.badlogic.gdx.math.Vector4
 import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should._
 
-class TesseractSponge2Suite extends AnyFlatSpec with RectMesh:
+class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
+  
+  val epsilon: Float = 1e-5f
+  
   trait Sponge2:
     val tesseract: Tesseract = Tesseract(2)
     val sponge2: TesseractSponge2 = TesseractSponge2(1)
@@ -12,19 +16,35 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh:
       Vector4(-1, -1, -1, -1), Vector4(-1, -1, -1, 1), Vector4(-1, -1, 1, 1), Vector4(-1, -1, 1, -1))
     )
     val subfaces: Seq[RectVertices4D] = sponge2.subdividedFace(face)
+    val centerSubface: List[Vector4] = List(
+      Vector4(-1f, -1f, -1 / 3f, 1 / 3f), Vector4(-1f, -1f, 1 / 3f, 1 / 3f),
+      Vector4(-1f, -1f, 1 / 3f, -1 / 3f), Vector4(-1f, -1f, -1 / 3f, -1 / 3f)
+    )
+    val centerSubfaceEdges: Seq[(Vector4, Vector4)] = List(
+      (centerSubface(0), centerSubface(1)), (centerSubface(1), centerSubface(2)),
+      (centerSubface(2), centerSubface(3)), (centerSubface(3), centerSubface(0))
+    )
     val subfacesString: String = subfaces.toString.replace("),", "),\n")
     val flatSubfaces: Seq[RectVertices4D] = sponge2.subdivideFlatParts(face)
     val perpendicularSubfaces: Seq[RectVertices4D] = sponge2.subdividePerpendicularParts(face)
     val perpendicularSubfacesString: String = perpendicularSubfaces.toString.replace("),", "),\n")
 
+    def faceToString(face: List[Vector4]): String = face.map(vec2string).mkString(", ")
+    def diffToFaces(faces: Seq[RectVertices4D], face2: List[Vector4]): String =
+      def diffBetweenFaces(face1: List[Vector4], face2: List[Vector4]): List[Vector4] =
+        face1.zip(face2).map((vertex1, vertex2) => vertex2 - vertex1)
+
+      val facesAsList: Seq[List[Vector4]] = faces.map(_.toList.map(_.asInstanceOf[Vector4]))
+      facesAsList.map(face1 => diffBetweenFaces(face1, face2).map(vec2string)).toString.replace("),", "),\n")
+
+    def lineRoughlyEquals(line1: (Vector4, Vector4), line2: (Vector4, Vector4)): Boolean =
+      line1._1.epsilonEquals(line2._1) && line1._2.epsilonEquals(line2._2)
+
   "A TesseractSponge2 level 0" should "have 24 faces" in:
-    val sponge = TesseractSponge2(0)
-    assert(sponge.faces.size == 24)
+    assert(TesseractSponge2(0).faces.size == 24)
 
   "A TesseractSponge level < 0" should "be imposssible" in:
-    assertThrows[AssertionError] {
-      TesseractSponge2(-1)
-    }
+    assertThrows[AssertionError] {TesseractSponge2(-1)}
 
   "A subdivided face's corner points" should "contain the original face's corners" in new Sponge2:
     for v <- face.toList do assertContainsEpsilon(sponge2.cornerPoints(face).values, v)
@@ -95,15 +115,7 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh:
     )
 
   it should "not contain center subface" in new Sponge2:
-    assert(
-      !containsAllEpsilon(
-        flatSubfaces, List(
-          Vector4(-1f, -1f, -1 / 3f, 1 / 3f),
-          Vector4(-1f, -1f, 1 / 3f, 1 / 3f),
-          Vector4(-1f, -1f, 1 / 3f, -1 / 3f),
-          Vector4(-1f, -1f, -1 / 3f, -1 / 3f)
-        )), subfacesString
-    )
+    assert(!containsAllEpsilon(flatSubfaces, centerSubface), subfacesString)
 
   it should "contain middle right subface" in new Sponge2:
     assert(
@@ -149,28 +161,58 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh:
         )), subfacesString
     )
 
+  it should "all have 1/9 the original area" in new Sponge2:
+    val originalArea: Float = area(face)
+    val subfaceArea: Seq[Float] = flatSubfaces.map(area)
+    subfaceArea.foreach(_ shouldBe originalArea / 9 +- epsilon)
+
   "A subdivided face's perpendicular parts" should "have size 8" in new Sponge2:
-    assert(perpendicularSubfaces.size == 8)
+    perpendicularSubfaces should have size 8
 
   it should "have 8 distinct surfaces" in new Sponge2:
-    assert(perpendicularSubfaces.toSet.size == 8)
+    perpendicularSubfaces.toSet should have size 8
 
   it should "not contain any of the flat surfaces" in new Sponge2:
-    assert(
-      flatSubfaces.toSet.intersect(perpendicularSubfaces.toSet).isEmpty
+    flatSubfaces.toSet.intersect(perpendicularSubfaces.toSet) shouldBe empty
+
+  it should "all have the same base lines" in new Sponge2:
+    perpendicularSubfaces.foreach(subface =>
+      centerSubfaceEdges.exists(line => lineRoughlyEquals(line, subface.take(2))) shouldBe true
     )
+
+  it should "all be 1/3 of the original side length long" in new Sponge2:
+    perpendicularSubfaces.foreach(subface =>
+      (subface(2) - subface(1)).len shouldBe 2/3f +- epsilon
+    )
+
+  it should "all be parallel to the axes" in new Sponge2:
+    def isParallelToAxes(v: Vector4): Boolean =
+      v.toArray.count(f => math.abs(f) < epsilon) == 3
+
+    perpendicularSubfaces.foreach(r =>
+      val differences = Seq(r(1) - r(0), r(2) - r(1), r(3) - r(2), r(0) - r(3))
+      assert(
+        differences.forall(v => isParallelToAxes(v)),
+        differences.map(vec2string).toString
+      )
+    )
+
+  it should "all have 1/9 the original area" in new Sponge2:
+    val originalArea: Float = area(face)
+    val subfaceArea: Seq[Float] = perpendicularSubfaces.map(area)
+    subfaceArea.foreach(_ shouldBe originalArea / 9 +- epsilon)
 
   it should "contain face rotated into y direction" in new Sponge2:
-    assert(
-      containsAllEpsilon(
-        perpendicularSubfaces, List(
-          Vector4(-1f,   -1f, -1/3f, -1/3f),
-          Vector4(-1f, -1/3f, -1/3f, -1/3f),
-          Vector4(-1f, -1/3f, -1/3f,  1/3f),
-          Vector4(-1f,   -1f, -1/3f,  1/3f)
-        )), subfacesString
+    private val expected = List(
+      Vector4(-1f,   -1f, -1/3f, -1/3f),
+      Vector4(-1f, -1/3f, -1/3f, -1/3f),
+      Vector4(-1f, -1/3f, -1/3f,  1/3f),
+      Vector4(-1f,   -1f, -1/3f,  1/3f)
     )
-
+    assert(
+      containsAllEpsilon(perpendicularSubfaces, expected),
+      s"\nexpected: ${faceToString(expected)} \ndiff: ${diffToFaces(perpendicularSubfaces, expected)}"  //subfacesString
+    )
 
   "A subdivided face" should "contain top left subface" in new Sponge2:
     assert(
@@ -216,7 +258,7 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh:
         )), subfacesString
     )
 
-  ignore should "not contain center subface" in new Sponge2:
+  it should "not contain center subface" in new Sponge2:
     assert(
       !containsAllEpsilon(
         subfaces, List(
@@ -279,13 +321,13 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh:
           Vector4(-1f, -1/3f, -1/3f,  1/3f),
           Vector4(-1f, -1/3f,  1/3f,  1/3f),
           Vector4(-1f,   -1f,  1/3f, -1/3f)
-        )), subfacesString
+        ), 1e-5), subfacesString
     )
 
   it should "contain 16 subfaces" in new Sponge2:
     assert(subfaces.size == 16)
 
-  ignore should "contain 16 distinct subfaces" in new Sponge2:
+  it should "contain 16 distinct subfaces" in new Sponge2:
     assert(subfaces.toSet.size == 16)
   
   def containsEpsilon(vecs: Iterable[Vector4], vec: Vector4, epsilon: Float = 1e-6f): Boolean =

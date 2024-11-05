@@ -22,3 +22,10 @@ trait RectMesh:
       facesPart.foreach(face => meshBuilder.rect.tupled(face))
     )
     Builder.modelBuilder.end()
+
+def faceToString(face: RectMesh#RectVertices4D): String =
+  s"(${vec2string(face._1)}, ${vec2string(face._2)}, ${vec2string(face._3)}, ${vec2string(face._4)})"
+
+def area(face: RectMesh#RectVertices4D): Float =
+  val (a, b, c, _) = face
+  (b - a).len() * (c - b).len()

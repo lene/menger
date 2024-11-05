@@ -41,3 +41,6 @@ package.html
 
 # extracted build files
 /menger-*.*.*
+
+# profiling files
+flight.jfr

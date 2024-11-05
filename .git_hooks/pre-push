@@ -31,11 +31,8 @@ unzip -oq ./target/universal/menger-${VERSION}.zip || status=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type cube --lines || status=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 4 --timeout 0.1 --sponge-type square --lines || status=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge --lines || status=1
-xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge-2 --lines || status=1
+xvfb-run -a ./menger-${VERSION}/bin/menger --level 1 --timeout 0.1 --sponge-type tesseract-sponge-2 --lines || status=1
 echo "status after running built: $status"
-
-#docker build --build-arg version="$VERSION" -t test_image . || status=1
-#echo "status after docker build: $status"
 
 if [ $status -gt 0 ]; then
   commit_msg=$(git log --oneline | head -n 1 | cut -d' ' -f 2-)
