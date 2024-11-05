@@ -23,102 +23,8 @@ class TesseractSponge(level: Int) extends Mesh4D:
     face match { case (a, b, c, d) => (a + delta, b + delta, c + delta, d + delta) }
 
 
-class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
-  assert(level >= 0, "Level must be non-negative")
-  lazy val faces: Seq[RectVertices4D] =
-    if level == 0 then Tesseract(size).faces else nestedFaces.flatten
 
-  def nestedFaces: Seq[Seq[RectVertices4D]] =
-    TesseractSponge2(level - 1).faces.map(subdividedFace)
-
-  def subdividedFace(face: RectVertices4D): Seq[RectVertices4D] =
-    subdivideFlatParts(face) ++ subdividePerpendicularParts(face)
-
-  def subdivideFlatParts(face: RectVertices4D): Seq[RectVertices4D] =
-    // split the face into 9 smaller squares and return all except the center one
-    val c = cornerPoints(face)
-    Seq(
-      (c("a"), c("ab1"), c("da2bc11"), c("da2")), // 1 // top left
-      (c("ab1"), c("ab2"), c("da2bc12"), c("da2bc11")), // 2 // top middle
-      (c("ab2"), c("b"), c("bc1"), c("da2bc12")), // 3 // top right
-      (c("da2"), c("da2bc11"), c("da1bc21"), c("da1")), // 4 // middle left
-      (c("da2bc12"), c("bc1"), c("bc2"), c("da1bc22")), // 5 // middle right
-      (c("da1"), c("da1bc21"), c("cd2"), c("d")), // 6 // bottom left
-      (c("da1bc21"), c("da1bc22"), c("cd1"), c("cd2")), // 7 // bottom middle
-      (c("da1bc22"), c("bc2"), c("c"), c("cd1")) // 8 // bottom right
-    )
-
-  def subdividePerpendicularParts(face: RectVertices4D): Seq[RectVertices4D] =
-    // for each edge of the central part of the face:
-    // 1. rotate the opposite vertex around the edge in 1 normal direction of the face
-    // 2. rotate the opposite vertex around the edge in the other normal direction of the face
-    val c = cornerPoints(face)
-    val centralPart = (c("da2bc11"), c("da2bc12"), c("da1bc22"), c("da1bc21"))
-    val edges = Seq(
-      (centralPart(0), centralPart(1)), (centralPart(1), centralPart(2)),
-      (centralPart(2), centralPart(3)), (centralPart(3), centralPart(0))
-    )
-    val oppositeEdges = edges.drop(2) ++ edges.take(2)
-
-    val rotatedOneWay = for (i <- edges.indices) yield
-      (
-        edges(i)(0), edges(i)(1),
-        Rotate(edges(i), 90)(oppositeEdges(i)(0)), Rotate(edges(i), 90)(oppositeEdges(i)(1))
-      )
-    val rotatedOtherWay = for (i <- edges.indices) yield
-      (
-        edges(i)(0), edges(i)(1),
-        Rotate(edges(i), 90)(oppositeEdges(i)(0)), Rotate(edges(i), 90)(oppositeEdges(i)(1))
-      )
-    rotatedOneWay ++ rotatedOtherWay
-
-  def cornerPoints(face: RectVertices4D): Map[String, Vector4] =
-    val (a, b, c, d) = face
-    val ab1 = a + (b - a) / 3
-    val ab2 = a + (b - a) * 2 / 3
-    val bc1 = b + (c - b) / 3
-    val bc2 = b + (c - b) * 2 / 3
-    val cd1 = c + (d - c) / 3
-    val cd2 = c + (d - c) * 2 / 3    // reversed direction
-    val da1 = d + (a - d) / 3
-    val da2 = d + (a - d) * 2 / 3    // reversed direction
-    val da1bc21 = da1 + (bc2 - da1) / 3
-    val da1bc22 = da1 + (bc2 - da1) * 2 / 3
-    val da2bc11 = da2 + (bc1 - da2) / 3
-    val da2bc12 = da2 + (bc1 - da2) * 2 / 3
-    Map(
-      "a" -> a, "b" -> b, "c" -> c, "d" -> d,
-      "ab1" -> ab1, "ab2" -> ab2, "bc1" -> bc1, "bc2" -> bc2,
-      "cd1" -> cd1, "cd2" -> cd2, "da1" -> da1, "da2" -> da2,
-      "da1bc21" -> da1bc21, "da1bc22" -> da1bc22, "da2bc11" -> da2bc11, "da2bc12" -> da2bc12
-    )
-
-extension (m: Matrix4)
-  def add(m1: Matrix4): Matrix4 =
-    val mArray = Array(
-      m.`val`(Matrix4.M00), m.`val`(Matrix4.M01), m.`val`(Matrix4.M02), m.`val`(Matrix4.M03),
-      m.`val`(Matrix4.M10), m.`val`(Matrix4.M11), m.`val`(Matrix4.M12), m.`val`(Matrix4.M13),
-      m.`val`(Matrix4.M20), m.`val`(Matrix4.M21), m.`val`(Matrix4.M22), m.`val`(Matrix4.M23),
-      m.`val`(Matrix4.M30), m.`val`(Matrix4.M31), m.`val`(Matrix4.M32), m.`val`(Matrix4.M33)
-    )
-    val m1Array = Array(
-      m1.`val`(Matrix4.M00), m1.`val`(Matrix4.M01), m1.`val`(Matrix4.M02), m1.`val`(Matrix4.M03),
-      m1.`val`(Matrix4.M10), m1.`val`(Matrix4.M11), m1.`val`(Matrix4.M12), m1.`val`(Matrix4.M13),
-      m1.`val`(Matrix4.M20), m1.`val`(Matrix4.M21), m1.`val`(Matrix4.M22), m1.`val`(Matrix4.M23),
-      m1.`val`(Matrix4.M30), m1.`val`(Matrix4.M31), m1.`val`(Matrix4.M32), m1.`val`(Matrix4.M33)
-    )
-    Matrix4(mArray.zip(m1Array).map((a, b) => a + b))
-  def multiply(v: Vector4): Vector4 =
-//    println(s"v: $v")
-    val m0 = m.`val`(Matrix4.M00) * v.x + m.`val`(Matrix4.M01) * v.y + m.`val`(Matrix4.M02) * v.z + m.`val`(Matrix4.M03) * v.w
-    val m1 = m.`val`(Matrix4.M10) * v.x + m.`val`(Matrix4.M11) * v.y + m.`val`(Matrix4.M12) * v.z + m.`val`(Matrix4.M13) * v.w
-    val m2 = m.`val`(Matrix4.M20) * v.x + m.`val`(Matrix4.M21) * v.y + m.`val`(Matrix4.M22) * v.z + m.`val`(Matrix4.M23) * v.w
-    val m3 = m.`val`(Matrix4.M30) * v.x + m.`val`(Matrix4.M31) * v.y + m.`val`(Matrix4.M32) * v.z + m.`val`(Matrix4.M33) * v.w
-    val v_ = Vector4(m0, m1, m2, m3)
-//    println(s"v': $v_")
-    v_
-
-case class Rotate(axis: (Vector4, Vector4), angle: Float):
+case class Rotate(transformationMatrix: Matrix4, basePoint: Vector4):
   /**
   In 3D the matrix of a proper rotation R by angle θ around the axis u = (ux, uy, uz),
   a unit vector, is given by:
@@ -181,16 +87,31 @@ case class Rotate(axis: (Vector4, Vector4), angle: Float):
   (3) apply the inverse of step (1)
 
   */
-  val u: Vector4 = (axis(1) - axis(0)).nor()
-  val uxu: Matrix4 = outerProduct(u)
-  val ux: Matrix4 = crossProductMatrix(u)
-  val I: Matrix4 = Matrix4().idt()
-  val cosTheta: Float = math.cos(angle.toRadians).toFloat
-  val sinTheta: Float = math.sin(angle.toRadians).toFloat
-  val transformationMatrix: Matrix4 = I.scl(cosTheta).add(ux.scl(sinTheta)).add(uxu.scl(1 - cosTheta))
 
   def apply(point: Vector4): Vector4 =
-    transformationMatrix.multiply(point - axis(0)) + axis(0)
+    transformationMatrix.multiply(point - basePoint) + basePoint
+
+object Rotate:
+  def apply(axis: (Vector4, Vector4), angle: Float): Rotate =
+    val u: Vector4 = (axis(1) - axis(0)).nor()
+    val uxu: Matrix4 = outerProduct(u)
+    val ux: Matrix4 = crossProductMatrix(u)
+    val I: Matrix4 = Matrix4().idt()
+    val cosTheta: Float = math.cos(angle.toRadians).toFloat
+    val sinTheta: Float = math.sin(angle.toRadians).toFloat
+    val transformationMatrix: Matrix4 = I.scl(cosTheta).add(ux.scl(sinTheta)).add(uxu.scl(1 - cosTheta))
+    Rotate(transformationMatrix, axis(0))
+
+  def apply(ii: Int, jj: Int, angle: Float, basePoint: Vector4 = Vector4.Zero): Rotate =
+    val cosTheta: Float = math.cos(angle.toRadians).toFloat
+    val sinTheta: Float = math.sin(angle.toRadians).toFloat
+    val values: Array[Float] = Array.fill(16)(0)
+    for i <- 0 to 3 do values(i*4+i) = 1
+    values(ii*4+ii) = cosTheta
+    values(jj*4+jj) = cosTheta
+    values(ii*4+jj) = -sinTheta
+    values(jj*4+ii) = sinTheta
+    Rotate(Matrix4(values), basePoint)
 
   private def outerProduct(u: Vector4): Matrix4 =
     val (x, y, z, w) = (u.x, u.y, u.z, u.w)
