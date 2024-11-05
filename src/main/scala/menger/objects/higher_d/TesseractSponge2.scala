@@ -42,12 +42,14 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
     val rotatedOneWay = for (i <- edges.indices) yield
       (
         edges(i)(0), edges(i)(1),
-        Rotate(edges(i), 90)(oppositeEdges(i)(0)), Rotate(edges(i), 90)(oppositeEdges(i)(1))
+        Rotate(Plane(face), edges(i), 90)(0)(oppositeEdges(i)(0)), 
+        Rotate(Plane(face), edges(i), 90)(0)(oppositeEdges(i)(1))
       )
     val rotatedOtherWay = for (i <- edges.indices) yield
       (
         edges(i)(0), edges(i)(1),
-        Rotate(edges(i), 90)(oppositeEdges(i)(0)), Rotate(edges(i), 90)(oppositeEdges(i)(1))
+        Rotate(Plane(face), edges(i), 90)(1)(oppositeEdges(i)(0)), 
+        Rotate(Plane(face), edges(i), 90)(1)(oppositeEdges(i)(1))
       )
     rotatedOneWay ++ rotatedOtherWay
 

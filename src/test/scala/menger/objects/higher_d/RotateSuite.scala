@@ -6,52 +6,125 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 class RotateSuite extends AnyFlatSpec:
   private val axisName = Array("x", "y", "z", "w")
-  private def assertRotation(point: Vector4, axis: (Vector4, Vector4), angle: Float, expected: Vector4): Unit =
-    val rotate = Rotate(axis, angle)
-    val rotated: Vector4 = rotate(point)
-    val output = s"${rotate.transformationMatrix.str}\n${str(rotated)}"
-    assert(rotated.epsilonEquals(expected), output)
-  private def assertRotationsEqual(axis: (Vector4, Vector4), plane1: Int, plane2: Int): Unit =
-    val point = Vector4(-1, -1, -1, -1)
-    val rotateAxis = Rotate(axis, 90)
-    val rotatePlane = Rotate(plane1, plane2, 90)
-    val output = s"\n${axisName(axis(1).toArray.indexWhere(_ > 0))}:\n${rotateAxis.transformationMatrix.str}\n" +
-      s"${axisName(plane1)}${axisName(plane2)}:\n${rotatePlane.transformationMatrix.str}"
-    assert(rotateAxis(point).epsilonEquals(rotatePlane(point)), output)
 
-  "rotating around x axis" should "move a point around the x axis" in:
-    assertRotation(Vector4(-1, -1, -1, -1), (Vector4(0, 0, 0, 0), Vector4(1, 0, 0, 0)), 90, Vector4(-1, -1, 1, -1))
-
-  it should "equal rotating around yz plane" in:
-    assertRotationsEqual((Vector4(0, 0, 0, 0), Vector4(1, 0, 0, 0)), 1, 2)
-
-  "rotating around y axis" should "move a point around the y axis" in:
-    assertRotation(Vector4(-1, -1, -1, -1), (Vector4(0, 0, 0, 0), Vector4(0, 1, 0, 0)), 90, Vector4(1, -1, -1, -1))
-
-  it should "equal rotating around negative xz plane" in :
-    assertRotationsEqual((Vector4(0, 0, 0, 0), Vector4(0, 1, 0, 0)), 2, 0)
-
-  "rotating around z axis" should "move a point around the z axis" in:
-    assertRotation(Vector4(-1, -1, -1, -1), (Vector4(0, 0, 0, 0), Vector4(0, 0, 1, 0)), 90, Vector4(-1, 1, -1, -1))
-
-  it should "equal rotating around xy plane" in :
-    assertRotationsEqual((Vector4(0, 0, 0, 0), Vector4(0, 0, 1, 0)), 0, 1)
-
-  "rotating around w axis" should "move a point around the w axis" in:
-    assertRotation(Vector4(-1, -1, -1, -1), (Vector4(0, 0, 0, 0), Vector4(0, 0, 0, 1)), 90, Vector4(-1, -1, -1, 1))
-
-  it should "print all 4D base transformation matrices" in:
+  "it" should "be possible to print all 4D base transformation matrices" in:
+    val axisNames = Array("x", "y", "z", "w")
     for i <- 0 to 3 do
       for j <- 0 to 3 do
-        if i != j && i < j then
-          val rotate = Rotate(i, j, 90)
-          println(s"Rotating around ${axisName(i)}${axisName(j)} plane:")
+        if  i < j then
+          val rotate = Rotate(Plane(i, j), 90)
+          println(s"Rotating around ${axisNames(i)}${axisNames(j)} plane:")
           println(rotate.transformationMatrix.str)
-          println(str(rotate(Vector4(-1, -1, -1, -1))))
 
-  ignore should "move a point around an axis not through the origin" in:
-    assertRotation(
-      Vector4(1, 1, 1, 1),
-      (Vector4(-1, -1, -1 / 3f, -1 / 3f), Vector4(-1, -1, 1 / 3f, -1 / 3f)),
-      90, Vector4(-1, -1, -1, 1)
+  private def checkPlaneAndLineRotation(
+      point: Vector4, plane: Plane, direction: (Vector4, Vector4), expected1: Vector4, expected2: Vector4
+  ): Unit =
+    val rotate = Rotate(plane, direction, 90)
+    assert(rotate.length == 2, s"\n${rotate.mkString(", ")} size != 2")
+    val rotated = rotate.map(_.apply(point))
+    assert(
+      rotated(0).epsilonEquals(expected1),
+      s"\n${rotate(0).transformationMatrix.str}\n${str(rotated(0))} != ${str(expected1)}\n"
+    )
+    assert(
+      rotated(1).epsilonEquals(expected2),
+      s"\n${rotate(1).transformationMatrix.str}\n${str(rotated(1))} != ${str(expected2)}\n"
+    )
+  
+  "rotating around a plane and an axis" should "be correct for rotating around x in the xy plane" in:
+    checkPlaneAndLineRotation(
+      Vector4(0, 1, 0, 0),
+      Plane(0, 1), (Vector4(0, 0, 0, 0), Vector4(1, 0, 0, 0)),
+      Vector4(0, 0, -1, 0), Vector4(0, 0, 0, -1)
+    )
+
+  it should "be correct for rotating around y in the xy plane" in:
+    checkPlaneAndLineRotation(
+      Vector4(1, 0, 0, 0),
+      Plane(0, 1), (Vector4(0, 0, 0, 0), Vector4(0, 1, 0, 0)),
+      Vector4(0, 0, -1, 0), Vector4(0, 0, 0, -1)
+    )
+  
+  it should "fail for rotating around z in the xy plane" in:
+    assertThrows[IllegalArgumentException] {
+      Rotate(Plane(0, 1), (Vector4(0, 0, 0, 0), Vector4(0, 0, 1, 0)), 90)
+    }
+
+  it should "fail for rotating around w in the xy plane" in:
+    assertThrows[IllegalArgumentException] {
+      Rotate(Plane(0, 1), (Vector4(0, 0, 0, 0), Vector4(0, 0, 0, 1)), 90)
+    }
+
+  it should "be correct for rotating around x in the xz plane" in:
+    checkPlaneAndLineRotation(
+      Vector4(0, 0, 1, 0),
+      Plane(0, 2), (Vector4(0, 0, 0, 0), Vector4(1, 0, 0, 0)),
+      Vector4(0, -1, 0, 0), Vector4(0, 0, 0, -1)
+    )
+
+  it should "be correct for rotating around z in the xz plane" in:
+    checkPlaneAndLineRotation(
+      Vector4(1, 0, 0, 0),
+      Plane(0, 2), (Vector4(0, 0, 0, 0), Vector4(0, 0, 1, 0)),
+      Vector4(0, -1, 0, 0), Vector4(0, 0, 0, -1)
+    )
+  it should "fail for rotating around y in the xz plane" in:
+    assertThrows[IllegalArgumentException] {
+      Rotate(Plane(0, 2), (Vector4(0, 0, 0, 0), Vector4(0, 1, 0, 0)), 90)
+    }
+  it should "fail for rotating around w in the xz plane" in:
+    assertThrows[IllegalArgumentException] {
+      Rotate(Plane(0, 2), (Vector4(0, 0, 0, 0), Vector4(0, 0, 0, 1)), 90)
+    }
+  it should "be correct for rotating around x in the xw plane" in:
+    checkPlaneAndLineRotation(
+      Vector4(0, 0, 0, 1),
+      Plane(0, 3), (Vector4(0, 0, 0, 0), Vector4(1, 0, 0, 0)),
+      Vector4(0, -1, 0, 0), Vector4(0, 0, -1, 0)
+    )
+  it should "be correct for rotating around w in the xw plane" in:
+    checkPlaneAndLineRotation(
+      Vector4(1, 0, 0, 0),
+      Plane(0, 3), (Vector4(0, 0, 0, 0), Vector4(0, 0, 0, 1)),
+      Vector4(0, -1, 0, 0), Vector4(0, 0, -1, 0)
+    )
+  it should "fail for rotating around y in the xw plane" in:
+    assertThrows[IllegalArgumentException] {
+      Rotate(Plane(0, 3), (Vector4(0, 0, 0, 0), Vector4(0, 1, 0, 0)), 90)
+    }
+  it should "fail for rotating around z in the xw plane" in:
+    assertThrows[IllegalArgumentException] {
+      Rotate(Plane(0, 3), (Vector4(0, 0, 0, 0), Vector4(0, 0, 1, 0)), 90)
+    }
+  it should "be correct for rotating around y in the yz plane" in:
+    checkPlaneAndLineRotation(
+      Vector4(0, 1, 0, 0),
+      Plane(1, 2), (Vector4(0, 0, 0, 0), Vector4(0, 0, 1, 0)),
+      Vector4(-1, 0, 0, 0), Vector4(0, 0, 0, -1)
+    )
+  it should "be correct for rotating around z in the yz plane" in:
+    checkPlaneAndLineRotation(
+      Vector4(0, 0, 1, 0),
+      Plane(1, 2), (Vector4(0, 0, 0, 0), Vector4(0, 1, 0, 0)),
+      Vector4(-1, 0, 0, 0), Vector4(0, 0, 0, -1)
+    )
+  it should "fail for rotating around x in the yz plane" in:
+    assertThrows[IllegalArgumentException] {
+      Rotate(Plane(1, 2), (Vector4(0, 0, 0, 0), Vector4(1, 0, 0, 0)), 90)
+    }
+  it should "fail for rotating around w in the yz plane" in:
+    assertThrows[IllegalArgumentException] {
+      Rotate(Plane(1, 2), (Vector4(0, 0, 0, 0), Vector4(0, 0, 0, 1)), 90)
+    }
+  it should "be correct for rotating around y in the yw plane" in:
+    checkPlaneAndLineRotation(
+      Vector4(0, 0, 0, 1),
+      Plane(1, 3), (Vector4(0, 0, 0, 0), Vector4(0, 1, 0, 0)),
+      Vector4(-1, 0, 0, 0), Vector4(0, 0, -1, 0)
+    )
+  it should "be correct for rotating around w in the yw plane" in:
+    checkPlaneAndLineRotation(
+      Vector4(0, 0, 1, 0),
+      Plane(1, 3), (Vector4(0, 0, 0, 0), Vector4(0, 0, 0, 1)),
+      Vector4(-1, 0, 0, 0), Vector4(0, 0, -1, 0)
     )
