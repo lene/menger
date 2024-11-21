@@ -37,7 +37,7 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
   private def checkPlaneAndLineRotation(
       point: Vector4, plane: Plane, direction: (Vector4, Vector4), expected1: Vector4, expected2: Vector4
   ): Unit =
-    val rotate = Rotate(plane, direction, 90)
+    val rotate = Rotate(plane, direction, direction(0), 90)
     assert(rotate.length == 2, s"\n${rotate.mkString(", ")} size != 2")
     val rotated = rotate.map(_.apply(point))
     assert(
@@ -50,78 +50,76 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
     )
 
   "rotating around a plane and an axis" should "be correct for rotating around x in the xy plane" in:
-    checkPlaneAndLineRotation(y, Plane.xy, (zero, x), -z, -w)
+    checkPlaneAndLineRotation(y, Plane.xy, (zero, x), z, w)
 
   it should "be correct for rotating around y in the xy plane" in:
     checkPlaneAndLineRotation(x, Plane.xy, (zero, y), -z, -w)
   
   it should "fail for rotating around z in the xy plane" in:
-    assertThrows[IllegalArgumentException] {Rotate(Plane.xy, (zero, z), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.xy, (zero, z), zero, 90)}
 
   it should "fail for rotating around w in the xy plane" in:
-    assertThrows[IllegalArgumentException] {Rotate(Plane.xy, (zero, w), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.xy, (zero, w), zero, 90)}
 
   it should "be correct for rotating around x in the xz plane" in:
-    checkPlaneAndLineRotation(z, Plane.xz, (zero, x), -y, -w)
+    checkPlaneAndLineRotation(z, Plane.xz, (zero, x), y, w)
 
   it should "be correct for rotating around z in the xz plane" in:
     checkPlaneAndLineRotation(x, Plane.xz, (zero, z), -y, -w)
 
   it should "fail for rotating around y in the xz plane" in:
-    assertThrows[IllegalArgumentException] {Rotate(Plane.xz, (zero, y), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.xz, (zero, y), zero, 90)}
 
   it should "fail for rotating around w in the xz plane" in:
-    assertThrows[IllegalArgumentException] {Rotate(Plane.xz, (zero, w), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.xz, (zero, w), zero, 90)}
 
   it should "be correct for rotating around x in the xw plane" in:
-    checkPlaneAndLineRotation(w, Plane.xw, (zero, x), -y, -z)
+    checkPlaneAndLineRotation(w, Plane.xw, (zero, x), y, z)
 
   it should "be correct for rotating around w in the xw plane" in:
     checkPlaneAndLineRotation(x, Plane.xw, (zero, w), -y, -z)
 
   it should "fail for rotating around y in the xw plane" in:
-    assertThrows[IllegalArgumentException] {Rotate(Plane.xw, (zero, y), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.xw, (zero, y), zero, 90)}
 
   it should "fail for rotating around z in the xw plane" in:
-    assertThrows[IllegalArgumentException] {
-      Rotate(Plane.xw, (zero, z), 90)
-    }
+    assertThrows[IllegalArgumentException] {Rotate(Plane.xw, (zero, z), zero, 90)}
 
   it should "be correct for rotating around y in the yz plane" in:
-    checkPlaneAndLineRotation(z, Plane.yz, (zero, y), -x, -w)
+    checkPlaneAndLineRotation(z, Plane.yz, (zero, y), x, w)
 
   it should "be correct for rotating around z in the yz plane" in:
     checkPlaneAndLineRotation(y, Plane.yz, (zero, z), -x, -w)
 
   it should "fail for rotating around x in the yz plane" in:
-    assertThrows[IllegalArgumentException] {Rotate(Plane.yz, (zero, x), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.yz, (zero, x), zero, 90)}
 
   it should "fail for rotating around w in the yz plane" in:
-    assertThrows[IllegalArgumentException] {Rotate(Plane.yz, (zero, w), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.yz, (zero, w), zero, 90)}
 
   it should "be correct for rotating around y in the yw plane" in:
-    checkPlaneAndLineRotation(w, Plane.yw, (zero, y), -x, -z)
+    checkPlaneAndLineRotation(w, Plane.yw, (zero, y), x, z)
 
   it should "be correct for rotating around w in the yw plane" in:
     checkPlaneAndLineRotation(y, Plane.yw, (zero, w), -x, -z)
 
   it should "fail for rotating around x in the yw plane" in :
-    assertThrows[IllegalArgumentException] {Rotate(Plane.yw, (zero, x), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.yw, (zero, x), zero, 90)}
 
   it should "fail for rotating around z in the yw plane" in :
-    assertThrows[IllegalArgumentException] {Rotate(Plane.yw, (zero, z), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.yw, (zero, z), zero, 90)}
 
   it should "be correct for rotating around z in the zw plane" in:
-    checkPlaneAndLineRotation(w, Plane.zw, (zero, z), -x, -y)
+    checkPlaneAndLineRotation(w, Plane.zw, (zero, z), x, y)
 
   it should "be correct for rotating around w in the zw plane" in:
     checkPlaneAndLineRotation(z, Plane.zw, (zero, w), -x, -y)
 
   it should "fail for rotating around x in the zw plane" in :
-    assertThrows[IllegalArgumentException] {Rotate(Plane.zw, (zero, x), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.zw, (zero, x), zero, 90)}
 
   it should "fail for rotating around y in the zw plane" in :
-    assertThrows[IllegalArgumentException] {Rotate(Plane.zw, (zero, y), 90)}
+    assertThrows[IllegalArgumentException] {Rotate(Plane.zw, (zero, y), zero, 90)}
 
   "rotating a point around different planes" should "be correct for xy plane" in:
     checkPlaneRotation(x, Plane.xy, -y)
@@ -213,11 +211,91 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
     val rotatedXZYZ = rotateYZ(rotateXZ(x))
     assert(rotatedXZYZ.epsilonEquals(-y), s"\n${str(rotatedXZYZ)} != ${str(-y)}\n")
 
-  "A concrete example from the 4d sponge" should "produce correct results" in:
+  "A concrete example from the 4d sponge" should "produce correct results in xy plane" in:
     val centralPart = Seq(
-      Vector4(-1.0, -1.0, -0.3, -0.3), Vector4(-1.0, -0.3, -0.3, -0.3),
-      Vector4(-1.0, -0.3, -0.3,  0.3), Vector4(-1.0, -1.0, -0.3,  0.3)
+      Vector4(-1, -1, 3, 3), Vector4(-1,  1, 3, 3),
+      Vector4( 1,  1, 3, 3), Vector4( 1, -1, 3, 3)
     )
+    checkFacesAroundFaceEdges(centralPart, Plane.xy, 90f)
+
+  it should "produce correct results in xy plane pointing opposite" in:
+    val centralPart = Seq(
+      Vector4(-1, -1, -3, -3), Vector4(-1,  1, -3, -3),
+      Vector4( 1,  1, -3, -3), Vector4( 1, -1, -3, -3)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.xy, -90f)
+
+  it should "produce correct results in xz plane" in :
+    val centralPart = Seq(
+      Vector4(-1, 3, -1, 3), Vector4(-1, 3, 1, 3),
+      Vector4(1, 3, 1, 3), Vector4(1, 3, -1, 3)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.xz, 90f)
+
+  it should "produce correct results in xz plane pointing opposite" in :
+    val centralPart = Seq(
+      Vector4(-1, -3, -1, -3), Vector4(-1, -3, 1, -3),
+      Vector4(1, -3, 1, -3), Vector4(1, -3, -1, -3)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.xz, -90f)
+
+  it should "produce correct results in xw plane" in:
+    val centralPart = Seq(
+      Vector4(-1, 3, 3, -1), Vector4(-1, 3, 3, 1),
+      Vector4(1, 3, 3, 1), Vector4(1, 3, 3, -1)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.xw, 90f)
+
+  it should "produce correct results in xw plane pointing opposite" in:
+    val centralPart = Seq(
+      Vector4(-1, -3, -3, -1), Vector4(-1, -3, -3, 1),
+      Vector4(1, -3, -3, 1), Vector4(1, -3, -3, -1)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.xw, -90f)
+
+  it should "produce correct results in yz plane" in:
+    val centralPart = Seq(
+      Vector4(3, -1, -1, 3), Vector4(3, -1, 1, 3),
+      Vector4(3, 1, 1, 3), Vector4(3, 1, -1, 3)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.yz, 90f)
+
+  it should "produce correct results in yz plane pointing opposite" in:
+    val centralPart = Seq(
+      Vector4(-3, -1, -1, -3), Vector4(-3, -1, 1, -3),
+      Vector4(-3, 1, 1, -3), Vector4(-3, 1, -1, -3)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.yz, -90f)
+
+  it should "produce correct results in yw plane" in:
+    val centralPart = Seq(
+      Vector4(-3, -3, -1, -1), Vector4(-3, -1, -1, -1),
+      Vector4(-3, -1, -1, 1), Vector4(-3, -3, -1, 1)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.yw, 90f)
+
+  it should "produce correct results in yw plane pointing opposite" in:
+    val centralPart = Seq(
+      Vector4(-3, -3, 1, 1), Vector4(-3, -1, 1, 1),
+      Vector4(-3, -1, 1, -1), Vector4(-3, -3, 1, -1)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.yw, -90f)
+
+  it should "produce correct results in zw plane" in:
+    val centralPart = Seq(
+      Vector4(3, 3, -1, -1), Vector4(3, 3, -1, 1),
+      Vector4(3, 3, 1, 1), Vector4(3, 3, 1, -1)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.zw, 90f)
+
+  it should "produce correct results in zw plane pointing opposite" in:
+    val centralPart = Seq(
+      Vector4(-3, -3, -1, -1), Vector4(-3, -3, -1, 1),
+      Vector4(-3, -3, 1, 1), Vector4(-3, -3, 1, -1)
+    )
+    checkFacesAroundFaceEdges(centralPart, Plane.zw, -90f)
+
+  def checkFacesAroundFaceEdges(centralPart: Seq[Vector4], rotationPlane: Plane, angle: Float): Unit =
     val edges = Seq(
       (centralPart(0), centralPart(1)), (centralPart(1), centralPart(2)),
       (centralPart(2), centralPart(3)), (centralPart(3), centralPart(0))
@@ -227,10 +305,21 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
       edges.indices.foreach(edge => {
         val rotatedRect = (
           edges(edge)(0), edges(edge)(1),
-          Rotate(Plane(0, 1), edges(edge), 90)(rotationDirection)(oppositeEdges(edge)(0)),
-          Rotate(Plane(0, 1), edges(edge), 90)(rotationDirection)(oppositeEdges(edge)(1))
+          Rotate(rotationPlane, edges(edge), edges(edge)(0), angle)(rotationDirection)(oppositeEdges(edge)(0)),
+          Rotate(rotationPlane, edges(edge), edges(edge)(1), angle)(rotationDirection)(oppositeEdges(edge)(1))
         )
-        println(faceToString(rotatedRect))
-        area(rotatedRect) shouldBe 4/9f +- 1e-6f
-      })
+
+        // all rotated square faces should have size 2x2
+        val clue = s"rotated face:\n${faceToString(rotatedRect)}\n"
+        withClue(clue) {area(rotatedRect) shouldBe 4f +- 1e-6f}
+        rotatedRect.productIterator.foreach(v => v shouldBe a[Vector4])
+        // all coordinates in this example should be +-1 or +-3
+        withClue(clue) {rotatedRect.productIterator.foreach(absElements(_) should contain atLeastOneOf (1, 3))}
+        withClue(clue) {rotatedRect.productIterator.foreach(absElements(_) should not contain 5)}
     })
+  })
+
+def absElements(vec: Any) =
+  vec.asInstanceOf[Vector4].toArray.map(
+    value => (math.abs(value) * 1e5).round.toInt / 100000
+  ).toSet

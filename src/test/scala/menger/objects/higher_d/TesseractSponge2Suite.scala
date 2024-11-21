@@ -7,7 +7,12 @@ import org.scalatest.matchers.should._
 class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
   
   val epsilon: Float = 1e-5f
-  
+
+  def rect2string(rect: RectVertices4D): String = rect.productIterator.map {
+    case v: Vector4 => vec2string(v)
+    case _ => ""
+  }.mkString("(", ", ", ")")
+
   trait Sponge2:
     val tesseract: Tesseract = Tesseract(2)
     val sponge2: TesseractSponge2 = TesseractSponge2(1)
@@ -27,15 +32,17 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     val subfacesString: String = subfaces.toString.replace("),", "),\n")
     val flatSubfaces: Seq[RectVertices4D] = sponge2.subdivideFlatParts(face)
     val perpendicularSubfaces: Seq[RectVertices4D] = sponge2.subdividePerpendicularParts(face)
-    val perpendicularSubfacesString: String = perpendicularSubfaces.toString.replace("),", "),\n")
+    val perpendicularSubfacesString: String =
+      perpendicularSubfaces.map(rect2string).mkString(", ").replace("),", "),\n")
 
     def faceToString(face: List[Vector4]): String = face.map(vec2string).mkString(", ")
     def diffToFaces(faces: Seq[RectVertices4D], face2: List[Vector4]): String =
       def diffBetweenFaces(face1: List[Vector4], face2: List[Vector4]): List[Vector4] =
         face1.zip(face2).map((vertex1, vertex2) => vertex2 - vertex1)
-
       val facesAsList: Seq[List[Vector4]] = faces.map(_.toList.map(_.asInstanceOf[Vector4]))
-      facesAsList.map(face1 => diffBetweenFaces(face1, face2).map(vec2string)).toString.replace("),", "),\n")
+      facesAsList.map(
+        face1 => diffBetweenFaces(face1, face2).map(vec2string)
+      ).toString.replace("),", "),\n").replace("Vector(", "Vector(\n ")
 
     def lineRoughlyEquals(line1: (Vector4, Vector4), line2: (Vector4, Vector4)): Boolean =
       line1._1.epsilonEquals(line2._1) && line1._2.epsilonEquals(line2._2)
@@ -211,7 +218,11 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     )
     assert(
       containsAllEpsilon(perpendicularSubfaces, expected),
-      s"\nexpected: ${faceToString(expected)} \ndiff: ${diffToFaces(perpendicularSubfaces, expected)}"  //subfacesString
+      s"""\nexpected:
+  ${faceToString(expected)}
+actual:
+ $perpendicularSubfacesString
+diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""  //subfacesString
     )
 
   "A subdivided face" should "contain top left subface" in new Sponge2:

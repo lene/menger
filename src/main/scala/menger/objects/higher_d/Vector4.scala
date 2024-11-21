@@ -23,4 +23,4 @@ case class Vector[dim <: Int & Singleton](v: Float*)(implicit d: ValueOf[dim]):
   lazy val dimension: Int = d.value
   assert(v.size == dimension, s"Expected $dimension elements, got ${v.size}")
 
-def vec2string(vec: Vector4): String = vec.toArray.map(f => f"$f%.1f").mkString("<", ", ", ">")
+def vec2string(vec: Vector4): String = vec.toArray.map(f => f"$f% .2f").mkString("<", ", ", ">")

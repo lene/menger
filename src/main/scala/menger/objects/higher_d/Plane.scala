@@ -7,6 +7,8 @@ import scala.::
 case class Plane(i: Int, j: Int):
   require(i >= 0 && i < 4 && j >= 0 && j < 4, s"i and j must be between 0 and 3, are $i and $j")
   lazy val indices: Array[Int] = Array(i, j)
+  lazy val normalIndices: Array[Int] = Set(0, 1, 2, 3).diff(indices.toSet).toArray
+  override def toString: String = s"${("x", "y", "z", "w")(i)}${("x", "y", "z", "w")(j)}"
 
 object Plane:
   val epsilon: Float = 1e-6f

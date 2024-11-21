@@ -1,8 +1,9 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.math.{Matrix4, Vector4}
+import scala.collection.mutable
 
-case class Rotate(transformationMatrix: Matrix4, basePoint: Vector4):
+case class Rotate(transformationMatrix: Matrix4, pivotPoint: Vector4):
   /**
    In 3D the matrix of a proper rotation R by angle θ around the axis u = (ux, uy, uz),
    a unit vector, is given by:
@@ -63,56 +64,57 @@ case class Rotate(transformationMatrix: Matrix4, basePoint: Vector4):
    (1) translate the space so that the rotation axis passes through the origin
    (2) rotate about u axis as in the above formula
    (3) apply the inverse of step (1)
-
    */
-
   def apply(point: Vector4): Vector4 =
-    transformationMatrix.multiply(point - basePoint) + basePoint
+    transformationMatrix.multiply(point - pivotPoint) + pivotPoint
 
 object Rotate:
 
-  def apply(plane: Plane, axis: (Vector4, Vector4), angle: Float): Array[Rotate] =
-    val u: Vector4 = (axis(1) - axis(0)).nor()
+  def apply(plane: Plane, axis: (Vector4, Vector4), pivotPoint: Vector4, angle: Float): Array[Rotate] =
+    val u: Vector4 = axis(1) - axis(0)
     val direction: Int = u.toArray.indexWhere(math.abs(_) > Plane.epsilon)
+    val sign = math.signum(u.toArray(direction))
+    val realAngle = -sign * angle
     if direction != plane.i && direction != plane.j then
       throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")
+//    println(s"from $plane around ${Seq('x', 'y', 'z', 'w')(direction)} at ${vec2string(pivotPoint)} by $realAngle°")
     val rotations: Array[Rotate] = plane match
       case Plane.xy =>
         direction match
-          case 0 => Array(2, 3).map(idx => apply(Plane(plane.j, idx), angle, axis(0)))
-          case 1 => Array(2, 3).map(idx => apply(Plane(plane.i, idx), angle, axis(0)))
+          case 0 => plane.normalIndices.map(idx => apply(Plane(plane.j, idx), realAngle, pivotPoint))
+          case 1 => plane.normalIndices.map(idx => apply(Plane(idx, plane.i), realAngle, pivotPoint))
           case _ => throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")
       case Plane.xz =>
         direction match
-          case 0 => Array(1, 3).map(idx => apply(Plane(plane.j, idx), angle, axis(0)))
-          case 2 => Array(1, 3).map(idx => apply(Plane(plane.i, idx), angle, axis(0)))
+          case 0 => plane.normalIndices.map(idx => apply(Plane(plane.j, idx), realAngle, pivotPoint))
+          case 2 => plane.normalIndices.map(idx => apply(Plane(idx, plane.i), realAngle, pivotPoint))
           case _ => throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")
       case Plane.xw =>
         direction match
-          case 0 => Array(1, 2).map(idx => apply(Plane(plane.j, idx), angle, axis(0)))
-          case 3 => Array(1, 2).map(idx => apply(Plane(plane.i, idx), angle, axis(0)))
+          case 0 => plane.normalIndices.map(idx => apply(Plane(plane.j, idx), realAngle, pivotPoint))
+          case 3 => plane.normalIndices.map(idx => apply(Plane(idx, plane.i), realAngle, pivotPoint))
           case _ => throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")
       case Plane.yz =>
         direction match
-          case 1 => Array(0, 3).map(idx => apply(Plane(plane.j, idx), angle, axis(0)))
-          case 2 => Array(0, 3).map(idx => apply(Plane(plane.i, idx), angle, axis(0)))
+          case 1 => plane.normalIndices.map(idx => apply(Plane(plane.j, idx), realAngle, pivotPoint))
+          case 2 => plane.normalIndices.map(idx => apply(Plane(idx, plane.i), realAngle, pivotPoint))
           case _ => throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")
       case Plane.yw =>
         direction match
-          case 1 => Array(0, 2).map(idx => apply(Plane(plane.j, idx), angle, axis(0)))
-          case 3 => Array(0, 2).map(idx => apply(Plane(plane.i, idx), angle, axis(0)))
+          case 1 => plane.normalIndices.map(idx => apply(Plane(plane.j, idx), realAngle, pivotPoint))
+          case 3 => plane.normalIndices.map(idx => apply(Plane(idx, plane.i), realAngle, pivotPoint))
           case _ => throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")
       case Plane.zw =>
         direction match
-          case 2 => Array(0, 1).map(idx => apply(Plane(plane.j, idx), angle, axis(0)))
-          case 3 => Array(0, 1).map(idx => apply(Plane(plane.i, idx), angle, axis(0)))
+          case 2 => plane.normalIndices.map(idx => apply(Plane(plane.j, idx), realAngle, pivotPoint))
+          case 3 => plane.normalIndices.map(idx => apply(Plane(idx, plane.i), realAngle, pivotPoint))
           case _ => throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")
       case _ =>
         throw new IllegalArgumentException(s"plane must be xy, xz, xw, yz, yw, or zw, is $plane")
     rotations
 
-  def apply(plane: Plane, angle: Float, basePoint: Vector4 = Vector4.Zero): Rotate =
-    Rotate(transformationMatrix(plane, angle), basePoint)
+  def apply(plane: Plane, angle: Float, pivotPoint: Vector4 = Vector4.Zero): Rotate =
+    Rotate(transformationMatrix(plane, angle), pivotPoint)
 
   private def transformationMatrix(plane: Plane, angle: Float) =
     val cosTheta: Float = math.cos(angle.toRadians).toFloat

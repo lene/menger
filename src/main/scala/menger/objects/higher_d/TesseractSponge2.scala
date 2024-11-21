@@ -51,8 +51,8 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
   ) =
     val rect = (
       edges(i)(0), edges(i)(1),
-      Rotate(Plane(face), edges(i), 90)(j)(oppositeEdges(i)(0)),
-      Rotate(Plane(face), edges(i), 90)(j)(oppositeEdges(i)(1))
+      Rotate(Plane(face), edges(i), edges(i)(0), 90)(j)(oppositeEdges(i)(0)),
+      Rotate(Plane(face), edges(i), edges(i)(1), 90)(j)(oppositeEdges(i)(1))
     )
     println(s"original: ${faceToString((edges(i)(0), edges(i)(1), oppositeEdges(i)(0), oppositeEdges(i)(1)))}")
     println(s"plane:    ${Plane(face)}")
