@@ -15,11 +15,15 @@ lazy val root = project
       "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test
     ),
     // ScalaTest
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.18" % Test,
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
     libraryDependencies += "org.scalamock" %% "scalamock" % "6.0.0" % Test,
 
     // Scallop command line parser
     libraryDependencies += "org.rogach" %% "scallop" % "5.1.0",
+
+    // Logging
+    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.12",
 
     // libGDX
     libraryDependencies ++= Seq(

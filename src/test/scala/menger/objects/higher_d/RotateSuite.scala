@@ -3,6 +3,7 @@ package menger.objects.higher_d
 import com.badlogic.gdx.math.Vector4
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import com.typesafe.scalalogging.Logger
 
 
 trait StandardVector:
@@ -16,6 +17,7 @@ trait StandardVector:
     a.zip(b).map(v => v._1.epsilonEquals(v._2)).forall(identity)
 
 class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
+  val logger = Logger("RotateSuite")
 
   "printing all 4D base transformation matrices" should "be possible" in:
     val axisNames = Seq("x", "y", "z", "w")
@@ -23,8 +25,8 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
       for j <- 0 to 3 do
         if  i < j then
           val rotate = Rotate(Plane(i, j), 90)
-          println(s"Rotating around ${axisNames(i)}${axisNames(j)} plane:")
-          println(rotate.transformationMatrix.str)
+          logger.info(s"Rotating around ${axisNames(i)}${axisNames(j)} plane:")
+          logger.info(s"\n${rotate.transformationMatrix.str}")
 
   private def checkPlaneRotation(point: Vector4, plane: Plane, expected: Vector4, angle: Float = 90): Unit =
     val rotate = Rotate(plane, angle)

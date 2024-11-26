@@ -1,9 +1,11 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.math.Vector4
+import com.typesafe.scalalogging.Logger
 
 class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
   assert(level >= 0, "Level must be non-negative")
+  private val logger = Logger("TesseractSponge2")
   lazy val faces: Seq[RectVertices4D] =
     if level == 0 then Tesseract(size).faces else nestedFaces.flatten
 
@@ -38,7 +40,7 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
       (centralPart(2), centralPart(3)), (centralPart(3), centralPart(0))
     )
     val oppositeEdges = edges.drop(2) ++ edges.take(2)
-    println("edges: " + edges)
+    logger.debug(s"edges: ${edges.map(edgeToString).mkString("(\n", ",\n", ")")}")
     val rotated = for rotationDirection <- 0 to 1 yield
       for edge <- edges.indices yield
         rotatedRect(face, edges, oppositeEdges, edge, rotationDirection)
@@ -54,9 +56,9 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
       Rotate(Plane(face), edges(i), edges(i)(0), 90)(j)(oppositeEdges(i)(0)),
       Rotate(Plane(face), edges(i), edges(i)(1), 90)(j)(oppositeEdges(i)(1))
     )
-    println(s"original: ${faceToString((edges(i)(0), edges(i)(1), oppositeEdges(i)(0), oppositeEdges(i)(1)))}")
-    println(s"plane:    ${Plane(face)}")
-    println(s"rotated:  ${faceToString(rect)}")
+    logger.debug(s"original: ${faceToString((edges(i)(0), edges(i)(1), oppositeEdges(i)(0), oppositeEdges(i)(1)))}")
+    logger.debug(s"plane:    ${Plane(face)}")
+    logger.debug(s"rotated:  ${faceToString(rect)}")
     rect
 
   def cornerPoints(face: RectVertices4D): Map[String, Vector4] =

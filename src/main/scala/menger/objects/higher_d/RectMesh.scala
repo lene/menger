@@ -23,8 +23,10 @@ trait RectMesh:
     )
     Builder.modelBuilder.end()
 
+def faceToString(face: Seq[Vector4]): String = face.map(vec2string).mkString("(", ", ", ")")
 def faceToString(face: RectMesh#RectVertices4D): String =
-  s"(${vec2string(face._1)}, ${vec2string(face._2)}, ${vec2string(face._3)}, ${vec2string(face._4)})"
+  faceToString(Seq(face._1, face._2, face._3, face._4))
+def edgeToString(edge: (Vector4, Vector4)): String = faceToString(Seq(edge._1, edge._2))
 
 def area(face: RectMesh#RectVertices4D): Float =
   val (a, b, c, _) = face

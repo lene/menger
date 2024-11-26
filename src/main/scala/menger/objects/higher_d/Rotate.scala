@@ -1,6 +1,7 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.math.{Matrix4, Vector4}
+import com.typesafe.scalalogging.Logger
 import scala.collection.mutable
 
 case class Rotate(transformationMatrix: Matrix4, pivotPoint: Vector4):
@@ -69,6 +70,7 @@ case class Rotate(transformationMatrix: Matrix4, pivotPoint: Vector4):
     transformationMatrix.multiply(point - pivotPoint) + pivotPoint
 
 object Rotate:
+  private val logger = Logger("Rotate")
 
   def apply(plane: Plane, axis: (Vector4, Vector4), pivotPoint: Vector4, angle: Float): Array[Rotate] =
     val u: Vector4 = axis(1) - axis(0)
@@ -77,7 +79,7 @@ object Rotate:
     val realAngle = -sign * angle
     if direction != plane.i && direction != plane.j then
       throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")
-//    println(s"from $plane around ${Seq('x', 'y', 'z', 'w')(direction)} at ${vec2string(pivotPoint)} by $realAngle°")
+    logger.debug(s"from $plane around ${Seq('x', 'y', 'z', 'w')(direction)} at ${vec2string(pivotPoint)} by $realAngle°")
     val rotations: Array[Rotate] = plane match
       case Plane.xy =>
         direction match

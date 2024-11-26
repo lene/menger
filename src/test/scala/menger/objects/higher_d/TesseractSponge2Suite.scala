@@ -35,7 +35,6 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     val perpendicularSubfacesString: String =
       perpendicularSubfaces.map(rect2string).mkString(", ").replace("),", "),\n")
 
-    def faceToString(face: List[Vector4]): String = face.map(vec2string).mkString(", ")
     def diffToFaces(faces: Seq[RectVertices4D], face2: List[Vector4]): String =
       def diffBetweenFaces(face1: List[Vector4], face2: List[Vector4]): List[Vector4] =
         face1.zip(face2).map((vertex1, vertex2) => vertex2 - vertex1)
