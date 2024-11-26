@@ -17,7 +17,7 @@ trait StandardVector:
     a.zip(b).map(v => v._1.epsilonEquals(v._2)).forall(identity)
 
 class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
-  val logger = Logger("RotateSuite")
+  private val logger = Logger("RotateSuite")
 
   "printing all 4D base transformation matrices" should "be possible" in:
     val axisNames = Seq("x", "y", "z", "w")
@@ -28,6 +28,7 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
           logger.info(s"Rotating around ${axisNames(i)}${axisNames(j)} plane:")
           logger.info(s"\n${rotate.transformationMatrix.str}")
 
+  // TODO: make this return a function which takes expected as argument
   private def checkPlaneRotation(point: Vector4, plane: Plane, expected: Vector4, angle: Float = 90): Unit =
     val rotate = Rotate(plane, angle)
     val rotated = rotate(point)
@@ -36,6 +37,7 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
       s"\n${rotate.transformationMatrix.str}\n${str(rotated)} != ${str(expected)}\n"
     )
 
+  // TODO: make this return a function which takes expected1 and expected2 as arguments
   private def checkPlaneAndLineRotation(
       point: Vector4, plane: Plane, direction: (Vector4, Vector4), expected1: Vector4, expected2: Vector4
   ): Unit =
@@ -52,10 +54,10 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
     )
 
   "rotating around a plane and an axis" should "be correct for rotating around x in the xy plane" in:
-    checkPlaneAndLineRotation(y, Plane.xy, (zero, x), z, w)
+    checkPlaneAndLineRotation(y, Plane.xy, (zero, x), -z, -w)
 
   it should "be correct for rotating around y in the xy plane" in:
-    checkPlaneAndLineRotation(x, Plane.xy, (zero, y), -z, -w)
+    checkPlaneAndLineRotation(x, Plane.xy, (zero, y), z, w)
   
   it should "fail for rotating around z in the xy plane" in:
     assertThrows[IllegalArgumentException] {Rotate(Plane.xy, (zero, z), zero, 90)}
@@ -64,10 +66,10 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
     assertThrows[IllegalArgumentException] {Rotate(Plane.xy, (zero, w), zero, 90)}
 
   it should "be correct for rotating around x in the xz plane" in:
-    checkPlaneAndLineRotation(z, Plane.xz, (zero, x), y, w)
+    checkPlaneAndLineRotation(z, Plane.xz, (zero, x), -y, -w)
 
   it should "be correct for rotating around z in the xz plane" in:
-    checkPlaneAndLineRotation(x, Plane.xz, (zero, z), -y, -w)
+    checkPlaneAndLineRotation(x, Plane.xz, (zero, z), y, w)
 
   it should "fail for rotating around y in the xz plane" in:
     assertThrows[IllegalArgumentException] {Rotate(Plane.xz, (zero, y), zero, 90)}
@@ -76,10 +78,10 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
     assertThrows[IllegalArgumentException] {Rotate(Plane.xz, (zero, w), zero, 90)}
 
   it should "be correct for rotating around x in the xw plane" in:
-    checkPlaneAndLineRotation(w, Plane.xw, (zero, x), y, z)
+    checkPlaneAndLineRotation(w, Plane.xw, (zero, x), -y, -z)
 
   it should "be correct for rotating around w in the xw plane" in:
-    checkPlaneAndLineRotation(x, Plane.xw, (zero, w), -y, -z)
+    checkPlaneAndLineRotation(x, Plane.xw, (zero, w), y, z)
 
   it should "fail for rotating around y in the xw plane" in:
     assertThrows[IllegalArgumentException] {Rotate(Plane.xw, (zero, y), zero, 90)}
@@ -88,10 +90,10 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
     assertThrows[IllegalArgumentException] {Rotate(Plane.xw, (zero, z), zero, 90)}
 
   it should "be correct for rotating around y in the yz plane" in:
-    checkPlaneAndLineRotation(z, Plane.yz, (zero, y), x, w)
+    checkPlaneAndLineRotation(z, Plane.yz, (zero, y), -x, -w)
 
   it should "be correct for rotating around z in the yz plane" in:
-    checkPlaneAndLineRotation(y, Plane.yz, (zero, z), -x, -w)
+    checkPlaneAndLineRotation(y, Plane.yz, (zero, z), x, w)
 
   it should "fail for rotating around x in the yz plane" in:
     assertThrows[IllegalArgumentException] {Rotate(Plane.yz, (zero, x), zero, 90)}
@@ -100,10 +102,10 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
     assertThrows[IllegalArgumentException] {Rotate(Plane.yz, (zero, w), zero, 90)}
 
   it should "be correct for rotating around y in the yw plane" in:
-    checkPlaneAndLineRotation(w, Plane.yw, (zero, y), x, z)
+    checkPlaneAndLineRotation(w, Plane.yw, (zero, y), -x, -z)
 
   it should "be correct for rotating around w in the yw plane" in:
-    checkPlaneAndLineRotation(y, Plane.yw, (zero, w), -x, -z)
+    checkPlaneAndLineRotation(y, Plane.yw, (zero, w), x, z)
 
   it should "fail for rotating around x in the yw plane" in :
     assertThrows[IllegalArgumentException] {Rotate(Plane.yw, (zero, x), zero, 90)}
@@ -112,10 +114,10 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
     assertThrows[IllegalArgumentException] {Rotate(Plane.yw, (zero, z), zero, 90)}
 
   it should "be correct for rotating around z in the zw plane" in:
-    checkPlaneAndLineRotation(w, Plane.zw, (zero, z), x, y)
+    checkPlaneAndLineRotation(w, Plane.zw, (zero, z), -x, -y)
 
   it should "be correct for rotating around w in the zw plane" in:
-    checkPlaneAndLineRotation(z, Plane.zw, (zero, w), -x, -y)
+    checkPlaneAndLineRotation(z, Plane.zw, (zero, w), x, y)
 
   it should "fail for rotating around x in the zw plane" in :
     assertThrows[IllegalArgumentException] {Rotate(Plane.zw, (zero, x), zero, 90)}
@@ -218,84 +220,84 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
       Vector4(-1, -1, 3, 3), Vector4(-1,  1, 3, 3),
       Vector4( 1,  1, 3, 3), Vector4( 1, -1, 3, 3)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.xy, 90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.xy, -90f)
 
   it should "produce correct results in xy plane pointing opposite" in:
     val centralPart = Seq(
       Vector4(-1, -1, -3, -3), Vector4(-1,  1, -3, -3),
       Vector4( 1,  1, -3, -3), Vector4( 1, -1, -3, -3)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.xy, -90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.xy, 90f)
 
   it should "produce correct results in xz plane" in :
     val centralPart = Seq(
       Vector4(-1, 3, -1, 3), Vector4(-1, 3, 1, 3),
       Vector4(1, 3, 1, 3), Vector4(1, 3, -1, 3)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.xz, 90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.xz, -90f)
 
   it should "produce correct results in xz plane pointing opposite" in :
     val centralPart = Seq(
       Vector4(-1, -3, -1, -3), Vector4(-1, -3, 1, -3),
       Vector4(1, -3, 1, -3), Vector4(1, -3, -1, -3)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.xz, -90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.xz, 90f)
 
   it should "produce correct results in xw plane" in:
     val centralPart = Seq(
       Vector4(-1, 3, 3, -1), Vector4(-1, 3, 3, 1),
       Vector4(1, 3, 3, 1), Vector4(1, 3, 3, -1)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.xw, 90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.xw, -90f)
 
   it should "produce correct results in xw plane pointing opposite" in:
     val centralPart = Seq(
       Vector4(-1, -3, -3, -1), Vector4(-1, -3, -3, 1),
       Vector4(1, -3, -3, 1), Vector4(1, -3, -3, -1)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.xw, -90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.xw, 90f)
 
   it should "produce correct results in yz plane" in:
     val centralPart = Seq(
       Vector4(3, -1, -1, 3), Vector4(3, -1, 1, 3),
       Vector4(3, 1, 1, 3), Vector4(3, 1, -1, 3)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.yz, 90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.yz, -90f)
 
   it should "produce correct results in yz plane pointing opposite" in:
     val centralPart = Seq(
       Vector4(-3, -1, -1, -3), Vector4(-3, -1, 1, -3),
       Vector4(-3, 1, 1, -3), Vector4(-3, 1, -1, -3)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.yz, -90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.yz, 90f)
 
   it should "produce correct results in yw plane" in:
     val centralPart = Seq(
       Vector4(-3, -3, -1, -1), Vector4(-3, -1, -1, -1),
       Vector4(-3, -1, -1, 1), Vector4(-3, -3, -1, 1)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.yw, 90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.yw, -90f)
 
   it should "produce correct results in yw plane pointing opposite" in:
     val centralPart = Seq(
       Vector4(-3, -3, 1, 1), Vector4(-3, -1, 1, 1),
       Vector4(-3, -1, 1, -1), Vector4(-3, -3, 1, -1)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.yw, -90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.yw, 90f)
 
   it should "produce correct results in zw plane" in:
     val centralPart = Seq(
       Vector4(3, 3, -1, -1), Vector4(3, 3, -1, 1),
       Vector4(3, 3, 1, 1), Vector4(3, 3, 1, -1)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.zw, 90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.zw, -90f)
 
   it should "produce correct results in zw plane pointing opposite" in:
     val centralPart = Seq(
       Vector4(-3, -3, -1, -1), Vector4(-3, -3, -1, 1),
       Vector4(-3, -3, 1, 1), Vector4(-3, -3, 1, -1)
     )
-    checkFacesAroundFaceEdges(centralPart, Plane.zw, -90f)
+    checkFacesAroundFaceEdges(centralPart, Plane.zw, 90f)
 
   def checkFacesAroundFaceEdges(centralPart: Seq[Vector4], rotationPlane: Plane, angle: Float): Unit =
     val edges = Seq(

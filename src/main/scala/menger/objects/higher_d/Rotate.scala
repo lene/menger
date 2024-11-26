@@ -76,7 +76,7 @@ object Rotate:
     val u: Vector4 = axis(1) - axis(0)
     val direction: Int = u.toArray.indexWhere(math.abs(_) > Plane.epsilon)
     val sign = math.signum(u.toArray(direction))
-    val realAngle = -sign * angle
+    val realAngle = sign * angle
     if direction != plane.i && direction != plane.j then
       throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")
     logger.debug(s"from $plane around ${Seq('x', 'y', 'z', 'w')(direction)} at ${vec2string(pivotPoint)} by $realAngle°")
