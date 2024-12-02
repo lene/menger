@@ -7,7 +7,7 @@ lazy val root = project
     version := "0.2.3",
     maintainer := "lene.preuss@gmail.com",
 
-    scalaVersion := "3.5.2",
+    scalaVersion := "3.6.2",
     scalacOptions ++= Seq("-deprecation", "-explain", "-feature"),
 
     // JUnit
