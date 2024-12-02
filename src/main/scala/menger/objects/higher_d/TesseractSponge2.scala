@@ -31,7 +31,7 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
 
   def subdividePerpendicularParts(face: RectVertices4D): Seq[RectVertices4D] =
     // for each edge of the central part of the face:
-    // 1. rotate the opposite vertex around the edge in 1 normal direction of the face
+    // 1. rotate the opposite vertex around the edge in the first normal direction of the face
     // 2. rotate the opposite vertex around the edge in the other normal direction of the face
     val c = cornerPoints(face)
     val centralPart = (c("da2bc11"), c("da2bc12"), c("da1bc22"), c("da1bc21"))

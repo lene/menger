@@ -2,7 +2,6 @@ package menger.objects.higher_d
 
 import com.badlogic.gdx.math.{Matrix4, Vector4}
 import com.typesafe.scalalogging.Logger
-import scala.collection.mutable
 
 case class Rotate(transformationMatrix: Matrix4, pivotPoint: Vector4):
   /**
@@ -76,6 +75,7 @@ object Rotate:
     val u: Vector4 = axis(1) - axis(0)
     val direction: Int = u.toArray.indexWhere(math.abs(_) > Plane.epsilon)
     val sign = math.signum(u.toArray(direction))
+//    val realAngle = angle
     val realAngle = sign * angle
     if direction != plane.i && direction != plane.j then
       throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")

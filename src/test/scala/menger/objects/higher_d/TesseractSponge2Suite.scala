@@ -5,13 +5,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should._
 
 class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
-  
-  val epsilon: Float = 1e-5f
-
-  def rect2string(rect: RectVertices4D): String = rect.productIterator.map {
-    case v: Vector4 => vec2string(v)
-    case _ => ""
-  }.mkString("(", ", ", ")")
 
   trait Sponge2:
     val tesseract: Tesseract = Tesseract(2)
@@ -33,7 +26,7 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     val flatSubfaces: Seq[RectVertices4D] = sponge2.subdivideFlatParts(face)
     val perpendicularSubfaces: Seq[RectVertices4D] = sponge2.subdividePerpendicularParts(face)
     val perpendicularSubfacesString: String =
-      perpendicularSubfaces.map(rect2string).mkString(", ").replace("),", "),\n")
+      perpendicularSubfaces.map(rect2str).mkString(", ").replace("),", "),\n")
 
     def diffToFaces(faces: Seq[RectVertices4D], face2: List[Vector4]): String =
       def diffBetweenFaces(face1: List[Vector4], face2: List[Vector4]): List[Vector4] =
@@ -45,6 +38,17 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
 
     def lineRoughlyEquals(line1: (Vector4, Vector4), line2: (Vector4, Vector4)): Boolean =
       line1._1.epsilonEquals(line2._1) && line1._2.epsilonEquals(line2._2)
+
+  val epsilon: Float = 1e-5f
+
+  def rect2str(rect: RectVertices4D): String = rect.productIterator.map {
+    case v: Vector4 => vec2string(v)
+    case _ => ""
+  }.mkString("(", ", ", ")")
+
+  def seq2str(seq: Seq[RectVertices4D]): String = seq.map(rect2str).mkString(",\n")
+
+  def sponge2str(sponge: TesseractSponge2): String = seq2str(sponge.faces) + "\n"
 
   "A TesseractSponge2 level 0" should "have 24 faces" in:
     assert(TesseractSponge2(0).faces.size == 24)
@@ -339,15 +343,37 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""  //subfacesString
 
   it should "contain 16 distinct subfaces" in new Sponge2:
     assert(subfaces.toSet.size == 16)
-  
-  def containsEpsilon(vecs: Iterable[Vector4], vec: Vector4, epsilon: Float = 1e-6f): Boolean =
+
+  private def round(f: Float): Float = math.round(f / epsilon) * epsilon
+
+  "All level 1 sponge corner points" should "have absolute coordinate values 1/2 or 1/6" in new Sponge2:
+    val cornerPoints: Seq[Vector4] = sponge2.faces.flatMap(_.productIterator).map(_.asInstanceOf[Vector4])
+    val cornerCoordinateValues: Set[Float] = cornerPoints.toSet.flatMap(_.toArray).map(math.abs).map(round)
+    val clue: String = sponge2str(sponge2).replace("0.83", s"${Console.YELLOW}0.83${Console.RED}")
+    withClue(clue) {cornerCoordinateValues should contain only (round(1/2f), round(1/6f))}
+
+  for i <- 0 to 23 do
+    s"Subdivided subface ${i+1}" should "have absolute coordinate values 1/2 or 1/6" in new Sponge2:
+      checkCoordinatesOfSubdividedFace(TesseractSponge2(0), i)
+
+  private def checkCoordinatesOfSubdividedFace(sponge: TesseractSponge2, i: Int) =
+    val subface: RectVertices4D = sponge.faces(i)
+    val subdividedFace: Seq[RectVertices4D] = sponge.subdividedFace(subface)
+    val cornerPoints: Seq[Vector4] = subdividedFace.flatMap(_.productIterator).map(_.asInstanceOf[Vector4])
+    val cornerCoordinateValues: Set[Float] = cornerPoints.toSet.flatMap(_.toArray).map(math.abs).map(round)
+    val coords = seq2str(subdividedFace).replace("0.83", s"${Console.YELLOW}0.83${Console.RED}")
+    val clue = s"${i+1}/${sponge.faces.length} (${Plane(subface)})\n$coords\n"
+    withClue(clue) {cornerCoordinateValues should contain atLeastOneOf(round(1 / 2f), round(1 / 6f))}
+    withClue(clue) {cornerCoordinateValues diff Set(round(1 / 2f), round(1 / 6f)) shouldBe empty}
+
+  private def containsEpsilon(vecs: Iterable[Vector4], vec: Vector4, epsilon: Float = 1e-6f): Boolean =
     vecs.exists(_.epsilonEquals(vec, epsilon))
 
-  def assertContainsEpsilon(vecs: Iterable[Vector4], vec: Vector4, epsilon: Float = 1e-6f): Unit =
+  private def assertContainsEpsilon(vecs: Iterable[Vector4], vec: Vector4, epsilon: Float = 1e-6f): Unit =
     assert(containsEpsilon(vecs, vec, epsilon), vecs.toString)
 
-  def containsAllEpsilon(rects: Seq[RectVertices4D], vecs: Seq[Vector4], epsilon: Float = 1e-6f): Boolean =
+  private def containsAllEpsilon(rects: Seq[RectVertices4D], vecs: Seq[Vector4], epsilon: Float = 1e-6f): Boolean =
     containsAllEpsilon2(rects.map(_.toList.map(_.asInstanceOf[Vector4])), vecs, epsilon)
 
-  def containsAllEpsilon2(rects: Seq[Seq[Vector4]], vecs: Seq[Vector4], epsilon: Float = 1e-6f): Boolean =
+  private def containsAllEpsilon2(rects: Seq[Seq[Vector4]], vecs: Seq[Vector4], epsilon: Float = 1e-6f): Boolean =
     rects.exists(rect => rect.forall(v => containsEpsilon(vecs, v, epsilon)))
