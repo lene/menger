@@ -10,8 +10,8 @@ import scala.math.{pow, signum}
  *  the eye is at `(0, 0, 0, -eyeW)` and the screen is at `(0, 0, 0, -screenW)`
  */
 case class Projection(eyeW: Float, screenW: Float) extends RectMesh:
-  assert(eyeW > 0 && screenW > 0, "eyeW and screenW must be positive")
-  assert(eyeW > screenW, "eyeW must be greater than screenW")
+  require(eyeW > 0 && screenW > 0, "eyeW and screenW must be positive")
+  require(eyeW > screenW, "eyeW must be greater than screenW")
 
   final val addExponent = 1.1
 
@@ -29,5 +29,5 @@ case class Projection(eyeW: Float, screenW: Float) extends RectMesh:
   /** project a sequence of 4D points to 3D */
   def apply(points: Seq[Vector4]): Seq[Vector3] = points.map(apply)
   def apply(points: RectVertices4D): RectVertices3D = (
-    apply(points(0)), apply(points(1)), apply(points(2)), apply(points(3))
+    apply(points.a), apply(points.b), apply(points.c), apply(points.d)
   )

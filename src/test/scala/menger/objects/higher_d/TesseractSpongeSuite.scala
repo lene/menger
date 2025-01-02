@@ -13,7 +13,7 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh:
     assert(sponge.faces.size == 24)
 
   "A TesseractSponge level < 0" should "be imposssible" in:
-    assertThrows[AssertionError] {
+    assertThrows[IllegalArgumentException] {
       TesseractSponge(-1)
     }
 
@@ -22,7 +22,7 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh:
 
   it should "have no vertices with absolute value greater than 0.5" in new Sponge:
     assert(
-      sponge.faces.forall(rect => rect.toList.forall(v => v.asInstanceOf[Vector4].toArray.forall(_.abs <= 0.5)))
+      sponge.faces.forall(rect => rect.asSeq.forall(v => v.toArray.forall(_.abs <= 0.5)))
     )
 
   it should "have no face in the center of each face of the Tesseract" in new Sponge:
@@ -34,12 +34,12 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh:
 
   def isCenterOfOriginalFace(face: RectVertices4D): Boolean =
     // A face is a center face if 2 of its coordinates are +/- 1/6 and the other 2 are 0.5
-    face.toList.forall({ v =>
-      val va = v.asInstanceOf[Vector4].toArray
+    face.asSeq.forall({ v =>
+      val va = v.toArray
       va.count(_.abs == 0.5) == 2 && va.count(_.abs == 1 / 6f) == 2
     }
     )
 
   def isCenterOfOriginalTesseract(face: RectVertices4D): Boolean =
     // A face is a center face if all of its coordinates are +/- 1/6
-    face.toList.forall { _.asInstanceOf[Vector4].toArray.count(_.abs == 1 / 6f) == 4 }
+    face.asSeq.forall { _.toArray.count(_.abs == 1 / 6f) == 4 }

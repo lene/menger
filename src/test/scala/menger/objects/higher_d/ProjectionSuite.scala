@@ -9,16 +9,16 @@ class ProjectionSuite extends AnyFlatSpec:
     Projection(2, 1)
 
   it should "fail if screen behind camera" in:
-    assertThrows[AssertionError] {Projection(1, 2)}
+    assertThrows[IllegalArgumentException] {Projection(1, 2)}
 
   it should "fail if screen on same distance as camera" in:
-    assertThrows[AssertionError] {Projection(1, 1)}
+    assertThrows[IllegalArgumentException] {Projection(1, 1)}
 
   it should "fail if screen W negative" in:
-    assertThrows[AssertionError] {Projection(2, -1)}
+    assertThrows[IllegalArgumentException] {Projection(2, -1)}
 
   it should "fail if camera W negative" in:
-    assertThrows[AssertionError] {Projection(-1, -2)}
+    assertThrows[IllegalArgumentException] {Projection(-1, -2)}
 
   "adding a projection with bigger eyeW" should "increase eyeW" in:
     val p1 = Projection(2, 1)

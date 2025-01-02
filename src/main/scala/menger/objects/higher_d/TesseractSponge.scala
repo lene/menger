@@ -5,7 +5,7 @@ import com.badlogic.gdx.math.Vector4
 import scala.math.abs
 
 class TesseractSponge(level: Int) extends Mesh4D:
-  assert(level >= 0, "Level must be non-negative")
+  require(level >= 0, "Level must be non-negative")
   lazy val faces: Seq[RectVertices4D] =
     if level == 0 then Tesseract().faces else nestedFaces.flatten
 
@@ -15,9 +15,13 @@ class TesseractSponge(level: Int) extends Mesh4D:
   ) yield shrunkSubSponge.map(translate(_, Vector4(xx / 3f, yy / 3f, zz / 3f, ww / 3f)))
 
   private def shrunkSubSponge: Seq[RectVertices4D] =
-    subSponge.map { case (a, b, c, d) => (a / 3, b / 3, c / 3, d / 3) }
+    subSponge.map { 
+      case RectVertices4D(a, b, c, d) => RectVertices4D(a / 3, b / 3, c / 3, d / 3) 
+    }
 
   private def subSponge: Seq[RectVertices4D] = TesseractSponge(level - 1).faces
 
   private def translate(face: RectVertices4D, delta: Vector4): RectVertices4D =
-    face match { case (a, b, c, d) => (a + delta, b + delta, c + delta, d + delta) }
+    face match { 
+      case RectVertices4D(a, b, c, d) => RectVertices4D(a + delta, b + delta, c + delta, d + delta) 
+    }

@@ -24,7 +24,7 @@ class TesseractSuite extends AnyFlatSpec:
 
   it should "have correct first face" in new Fixture:
     assert(
-      tesseract.faces.head == (
+      tesseract.faces.head == RectVertices4D(
         Vector4(-0.5,-0.5,-0.5,-0.5), Vector4(-0.5,-0.5,-0.5, 0.5),
         Vector4(-0.5,-0.5, 0.5, 0.5), Vector4(-0.5,-0.5, 0.5,-0.5)
       )
@@ -32,7 +32,7 @@ class TesseractSuite extends AnyFlatSpec:
 
   it should "have correct last face" in new Fixture:
     assert(
-      tesseract.faces.last == (
+      tesseract.faces.last == RectVertices4D(
         Vector4( 0.5, 0.5,-0.5,-0.5), Vector4( 0.5, 0.5,-0.5, 0.5),
         Vector4( 0.5, 0.5, 0.5, 0.5), Vector4( 0.5, 0.5, 0.5,-0.5)
       )

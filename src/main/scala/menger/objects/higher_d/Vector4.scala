@@ -21,6 +21,6 @@ extension (v: Vector4)
 /// An n-dimensional vector TODO: continue later
 case class Vector[dim <: Int & Singleton](v: Float*)(implicit d: ValueOf[dim]):
   lazy val dimension: Int = d.value
-  assert(v.size == dimension, s"Expected $dimension elements, got ${v.size}")
+  require(v.size == dimension, s"Expected $dimension elements, got ${v.size}")
 
 def vec2string(vec: Vector4): String = vec.toArray.map(f => f"$f% .2f").mkString("<", ", ", ">")

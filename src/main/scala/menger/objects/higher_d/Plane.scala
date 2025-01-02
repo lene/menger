@@ -18,15 +18,17 @@ object Plane:
   val zw: Plane = Plane(2, 3)
 
   def apply(cornerPoints: Seq[Vector4]): Plane =
-    if cornerPoints.isEmpty then throw new IllegalArgumentException("Corner points must not be empty")
+    if cornerPoints.isEmpty then 
+      throw new IllegalArgumentException("Corner points must not be empty")
+    if cornerPoints.length < 3 then 
+      throw new IllegalArgumentException(s"need at least 3 points, have $cornerPoints")
     val setIndices = Plane.setIndices(cornerPoints)
     if setIndices.length != 2 then throw new IllegalArgumentException(
       s"Corner points must lie in a plane, has ${setIndices.mkString(", ")} (${cornerPoints.mkString(", ")})"
     )
     Plane(setIndices.head, setIndices.last)
 
-  def apply(cornerPoints: (Vector4, Vector4, Vector4, Vector4)): Plane =
-    apply(Seq(cornerPoints._1, cornerPoints._2, cornerPoints._3, cornerPoints._4))
+  def apply(cornerPoints: RectVertices4D): Plane = apply(cornerPoints.asSeq)
 
   def differenceVectors(cornerPoints: Seq[Vector4]): Seq[Vector4] =
     differences(cornerPoints :+ cornerPoints.head)
@@ -35,4 +37,6 @@ object Plane:
     seq.sliding(2).collect { case Seq(a, b) => b - a }.toSeq
 
   def setIndices(cornerPoints: Seq[Vector4]): Array[Int] =
-    differenceVectors(cornerPoints).foldLeft(Set.empty[Int])((set, v) => set + v.toArray.indexWhere(math.abs(_) > epsilon)).toArray.sorted
+    differenceVectors(cornerPoints).foldLeft(
+      Set.empty[Int])((set, v) => set + v.toArray.indexWhere(math.abs(_) > epsilon)
+    ).toArray.sorted

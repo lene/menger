@@ -13,5 +13,5 @@ class VectorSuite extends AnyFlatSpec:
     assert(v1.v.size == 1)
 
   it should "fail when instantiated with the wrong number of elements" in:
-    assertThrows[AssertionError](Vector[1](1, 2))
-    assertThrows[AssertionError](Vector[2](1))
+    assertThrows[IllegalArgumentException](Vector[1](1, 2))
+    assertThrows[IllegalArgumentException](Vector[2](1))

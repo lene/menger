@@ -10,7 +10,7 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     val tesseract: Tesseract = Tesseract(2)
     val sponge2: TesseractSponge2 = TesseractSponge2(1)
     val face: RectVertices4D = tesseract.faces.head
-    assert(face == (
+    assert(face == RectVertices4D(
       Vector4(-1, -1, -1, -1), Vector4(-1, -1, -1, 1), Vector4(-1, -1, 1, 1), Vector4(-1, -1, 1, -1))
     )
     val subfaces: Seq[RectVertices4D] = sponge2.subdividedFace(face)
@@ -31,7 +31,7 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     def diffToFaces(faces: Seq[RectVertices4D], face2: List[Vector4]): String =
       def diffBetweenFaces(face1: List[Vector4], face2: List[Vector4]): List[Vector4] =
         face1.zip(face2).map((vertex1, vertex2) => vertex2 - vertex1)
-      val facesAsList: Seq[List[Vector4]] = faces.map(_.toList.map(_.asInstanceOf[Vector4]))
+      val facesAsList: Seq[List[Vector4]] = faces.map(_.asSeq.toList)
       facesAsList.map(
         face1 => diffBetweenFaces(face1, face2).map(vec2string)
       ).toString.replace("),", "),\n").replace("Vector(", "Vector(\n ")
@@ -54,10 +54,10 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     assert(TesseractSponge2(0).faces.size == 24)
 
   "A TesseractSponge level < 0" should "be imposssible" in:
-    assertThrows[AssertionError] {TesseractSponge2(-1)}
+    assertThrows[IllegalArgumentException] {TesseractSponge2(-1)}
 
   "A subdivided face's corner points" should "contain the original face's corners" in new Sponge2:
-    for v <- face.toList do assertContainsEpsilon(sponge2.cornerPoints(face).values, v)
+    for v <- face.asSeq do assertContainsEpsilon(sponge2.cornerPoints(face).values, v)
 
   it should "contain the interior points at a distance of a third from the edge" in new Sponge2:
     for z <- Seq(-1/3f, 1/3f) do
@@ -172,8 +172,8 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     )
 
   it should "all have 1/9 the original area" in new Sponge2:
-    val originalArea: Float = area(face)
-    val subfaceArea: Seq[Float] = flatSubfaces.map(area)
+    val originalArea: Float = face.area
+    val subfaceArea: Seq[Float] = flatSubfaces.map(_.area)
     subfaceArea.foreach(_ shouldBe originalArea / 9 +- epsilon)
 
   "A subdivided face's perpendicular parts" should "have size 8" in new Sponge2:
@@ -187,12 +187,12 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
 
   it should "all have the same base lines" in new Sponge2:
     perpendicularSubfaces.foreach(subface =>
-      centerSubfaceEdges.exists(line => lineRoughlyEquals(line, subface.take(2))) shouldBe true
+      centerSubfaceEdges.exists(line => lineRoughlyEquals(line, (subface.a, subface.b))) shouldBe true
     )
 
   it should "all be 1/3 of the original side length long" in new Sponge2:
     perpendicularSubfaces.foreach(subface =>
-      (subface(2) - subface(1)).len shouldBe 2/3f +- epsilon
+      (subface.b - subface.a).len shouldBe 2/3f +- epsilon
     )
 
   it should "all be parallel to the axes" in new Sponge2:
@@ -200,7 +200,7 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
       v.toArray.count(f => math.abs(f) < epsilon) == 3
 
     perpendicularSubfaces.foreach(r =>
-      val differences = Seq(r(1) - r(0), r(2) - r(1), r(3) - r(2), r(0) - r(3))
+      val differences = Seq(r.b - r.a, r.c - r.b, r.d - r.c, r.a - r.d)
       assert(
         differences.forall(v => isParallelToAxes(v)),
         differences.map(vec2string).toString
@@ -208,8 +208,8 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     )
 
   it should "all have 1/9 the original area" in new Sponge2:
-    val originalArea: Float = area(face)
-    val subfaceArea: Seq[Float] = perpendicularSubfaces.map(area)
+    val originalArea: Float = face.area
+    val subfaceArea: Seq[Float] = perpendicularSubfaces.map(_.area)
     subfaceArea.foreach(_ shouldBe originalArea / 9 +- epsilon)
 
   it should "contain face rotated into y direction" in new Sponge2:
@@ -373,7 +373,7 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""  //subfacesString
     assert(containsEpsilon(vecs, vec, epsilon), vecs.toString)
 
   private def containsAllEpsilon(rects: Seq[RectVertices4D], vecs: Seq[Vector4], epsilon: Float = 1e-6f): Boolean =
-    containsAllEpsilon2(rects.map(_.toList.map(_.asInstanceOf[Vector4])), vecs, epsilon)
+    containsAllEpsilon2(rects.map(_.asSeq), vecs, epsilon)
 
   private def containsAllEpsilon2(rects: Seq[Seq[Vector4]], vecs: Seq[Vector4], epsilon: Float = 1e-6f): Boolean =
     rects.exists(rect => rect.forall(v => containsEpsilon(vecs, v, epsilon)))
