@@ -20,7 +20,7 @@ case class Rotation(
 
   def apply(points: Seq[Vector4]): Seq[Vector4] = points.map(apply)
 
-  def apply(points: RectVertices4D): RectVertices4D = RectVertices4D(
+  def apply(points: Face4D): Face4D = Face4D(
     apply(points._1), apply(points._2), apply(points._3), apply(points._4)
   )
 

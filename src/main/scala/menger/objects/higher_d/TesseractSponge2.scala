@@ -6,30 +6,30 @@ import com.typesafe.scalalogging.Logger
 class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
   require(level >= 0, "Level must be non-negative")
   private val logger = Logger("TesseractSponge2")
-  lazy val faces: Seq[RectVertices4D] =
+  lazy val faces: Seq[Face4D] =
     if level == 0 then Tesseract(size).faces else nestedFaces.flatten
 
-  def nestedFaces: Seq[Seq[RectVertices4D]] =
+  def nestedFaces: Seq[Seq[Face4D]] =
     TesseractSponge2(level - 1).faces.map(subdividedFace)
 
-  def subdividedFace(face: RectVertices4D): Seq[RectVertices4D] =
+  def subdividedFace(face: Face4D): Seq[Face4D] =
     subdivideFlatParts(face) ++ subdividePerpendicularParts(face)
 
-  def subdivideFlatParts(face: RectVertices4D): Seq[RectVertices4D] =
+  def subdivideFlatParts(face: Face4D): Seq[Face4D] =
     // split the face into 9 smaller squares and return all except the center one
     val c = cornerPoints(face)
     Seq(
-      RectVertices4D(c("a"), c("ab1"), c("da2bc11"), c("da2")), // 1 // top left
-      RectVertices4D(c("ab1"), c("ab2"), c("da2bc12"), c("da2bc11")), // 2 // top middle
-      RectVertices4D(c("ab2"), c("b"), c("bc1"), c("da2bc12")), // 3 // top right
-      RectVertices4D(c("da2"), c("da2bc11"), c("da1bc21"), c("da1")), // 4 // middle left
-      RectVertices4D(c("da2bc12"), c("bc1"), c("bc2"), c("da1bc22")), // 5 // middle right
-      RectVertices4D(c("da1"), c("da1bc21"), c("cd2"), c("d")), // 6 // bottom left
-      RectVertices4D(c("da1bc21"), c("da1bc22"), c("cd1"), c("cd2")), // 7 // bottom middle
-      RectVertices4D(c("da1bc22"), c("bc2"), c("c"), c("cd1")) // 8 // bottom right
+      Face4D(c("a"), c("ab1"), c("da2bc11"), c("da2")), // 1 // top left
+      Face4D(c("ab1"), c("ab2"), c("da2bc12"), c("da2bc11")), // 2 // top middle
+      Face4D(c("ab2"), c("b"), c("bc1"), c("da2bc12")), // 3 // top right
+      Face4D(c("da2"), c("da2bc11"), c("da1bc21"), c("da1")), // 4 // middle left
+      Face4D(c("da2bc12"), c("bc1"), c("bc2"), c("da1bc22")), // 5 // middle right
+      Face4D(c("da1"), c("da1bc21"), c("cd2"), c("d")), // 6 // bottom left
+      Face4D(c("da1bc21"), c("da1bc22"), c("cd1"), c("cd2")), // 7 // bottom middle
+      Face4D(c("da1bc22"), c("bc2"), c("c"), c("cd1")) // 8 // bottom right
     )
 
-  def subdividePerpendicularParts(face: RectVertices4D): Seq[RectVertices4D] =
+  def subdividePerpendicularParts(face: Face4D): Seq[Face4D] =
     // for each edge of the central part of the face:
     // 1. rotate the opposite vertex around the edge in the first normal direction of the face
     // 2. rotate the opposite vertex around the edge in the other normal direction of the face
@@ -47,21 +47,21 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
     rotated.flatten    
 
   private def rotatedRect(
-    face: RectVertices4D,
+    face: Face4D,
     edges: Seq[(Vector4, Vector4)], oppositeEdges: Seq[(Vector4, Vector4)],
     i: Int, j: Int
   ) =
-    val rect = RectVertices4D(
+    val rect = Face4D(
       edges(i)(0), edges(i)(1),
       Rotate(Plane(face), edges(i), edges(i)(0), 90)(j)(oppositeEdges(i)(0)),
       Rotate(Plane(face), edges(i), edges(i)(1), 90)(j)(oppositeEdges(i)(1))
     )
-    logger.debug(s"original: ${faceToString((edges(i)(0), edges(i)(1), oppositeEdges(i)(0), oppositeEdges(i)(1)))}")
+    logger.debug(s"original: ${faceToString(Seq(edges(i)(0), edges(i)(1), oppositeEdges(i)(0), oppositeEdges(i)(1)))}")
     logger.debug(s"plane:    ${Plane(face)}")
-    logger.debug(s"rotated:  ${faceToString(rect)}")
+    logger.debug(s"rotated:  $rect")
     rect
 
-  def cornerPoints(face: RectVertices4D): Map[String, Vector4] =
+  def cornerPoints(face: Face4D): Map[String, Vector4] =
     val (a, b, c, d) = face.asTuple
     val ab1 = a + (b - a) / 3
     val ab2 = a + (b - a) * 2 / 3

@@ -26,11 +26,11 @@ case class Tesseract(
     ( 8,10,14,12), ( 9,11,15,13), (10,11,15,14), (12,13,15,14)
   )
 
-  lazy val faces: Seq[RectVertices4D] = faceIndices.map {
-    case (a, b, c, d) => RectVertices4D(vertices(a), vertices(b), vertices(c), vertices(d))
+  lazy val faces: Seq[Face4D] = faceIndices.map {
+    case (a, b, c, d) => Face4D(vertices(a), vertices(b), vertices(c), vertices(d))
   }
 
   lazy val edges: Seq[(Vector4, Vector4)] = faces.flatMap {
     // sets instead of tuples so edges are equal regardless of direction
-    case RectVertices4D(a, b, c, d, _, _) => Seq(Set(a, b), Set(b, c), Set(c, d), Set(d, a))
+    case Face4D(a, b, c, d) => Seq(Set(a, b), Set(b, c), Set(c, d), Set(d, a))
   }.distinct.map(set => (set.head, set.last))

@@ -7,12 +7,12 @@ lazy val root = project
     version := "0.2.3",
     maintainer := "lene.preuss@gmail.com",
 
-    scalaVersion := "3.6.2",
+    scalaVersion := "3.6.4",
     scalacOptions ++= Seq("-deprecation", "-explain", "-feature"),
 
     // Logging
     libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.6",
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.17",
     // JUnit
     libraryDependencies ++= Seq(
       "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test
@@ -23,10 +23,6 @@ lazy val root = project
 
     // Scallop command line parser
     libraryDependencies += "org.rogach" %% "scallop" % "5.2.0",
-
-    // Logging
-    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.17",
 
     // libGDX
     libraryDependencies ++= Seq(

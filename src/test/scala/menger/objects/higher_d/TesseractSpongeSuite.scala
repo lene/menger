@@ -32,7 +32,7 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh:
     assert(sponge.faces.forall(rect => !isCenterOfOriginalTesseract(rect)))
 
 
-  def isCenterOfOriginalFace(face: RectVertices4D): Boolean =
+  def isCenterOfOriginalFace(face: Face4D): Boolean =
     // A face is a center face if 2 of its coordinates are +/- 1/6 and the other 2 are 0.5
     face.asSeq.forall({ v =>
       val va = v.toArray
@@ -40,6 +40,6 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh:
     }
     )
 
-  def isCenterOfOriginalTesseract(face: RectVertices4D): Boolean =
+  def isCenterOfOriginalTesseract(face: Face4D): Boolean =
     // A face is a center face if all of its coordinates are +/- 1/6
     face.asSeq.forall { _.toArray.count(_.abs == 1 / 6f) == 4 }

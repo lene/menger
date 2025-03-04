@@ -307,14 +307,14 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
     val oppositeEdges = edges.drop(2) ++ edges.take(2)
     (0 to 1).foreach(rotationDirection => {
       edges.indices.foreach(edge => {
-        val rotatedRect = RectVertices4D(
+        val rotatedRect = Face4D(
           edges(edge)(0), edges(edge)(1),
           Rotate(rotationPlane, edges(edge), edges(edge)(0), angle)(rotationDirection)(oppositeEdges(edge)(0)),
           Rotate(rotationPlane, edges(edge), edges(edge)(1), angle)(rotationDirection)(oppositeEdges(edge)(1))
         )
 
         // all rotated square faces should have size 2x2
-        val clue = s"rotated face:\n${faceToString(rotatedRect)}\n"
+        val clue = s"rotated face:\n$rotatedRect\n"
         withClue(clue) {rotatedRect.area shouldBe 4f +- 1e-6f}
         rotatedRect.asSeq.foreach(v => v shouldBe a[Vector4])
         // all coordinates in this example should be +-1 or +-3
