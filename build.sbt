@@ -23,14 +23,14 @@ lazy val root = project
 
     // Logging
     libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.15",
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.17",
 
     // libGDX
     libraryDependencies ++= Seq(
-      "com.badlogicgames.gdx" % "gdx" % "1.13.0",
+      "com.badlogicgames.gdx" % "gdx" % "1.13.1",
       "net.sf.proguard" % "proguard-base" % "6.2.2" % "provided",
-      "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.13.0",
-      "com.badlogicgames.gdx" % "gdx-platform" % "1.13.0" classifier "natives-desktop",
+      "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.13.1",
+      "com.badlogicgames.gdx" % "gdx-platform" % "1.13.1" classifier "natives-desktop",
     ),
 
   )

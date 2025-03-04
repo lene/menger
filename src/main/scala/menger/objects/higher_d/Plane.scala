@@ -18,12 +18,11 @@ object Plane:
   val zw: Plane = Plane(2, 3)
 
   def apply(cornerPoints: Seq[Vector4]): Plane =
-    if cornerPoints.isEmpty then 
-      throw new IllegalArgumentException("Corner points must not be empty")
-    if cornerPoints.length < 3 then 
-      throw new IllegalArgumentException(s"need at least 3 points, have $cornerPoints")
+    require(cornerPoints.nonEmpty, "Corner points must not be empty")
+    require(cornerPoints.length >= 3, s"Need at least 3 corner points, have $cornerPoints")
     val setIndices = Plane.setIndices(cornerPoints)
-    if setIndices.length != 2 then throw new IllegalArgumentException(
+    require(
+      setIndices.length == 2,
       s"Corner points must lie in a plane, has ${setIndices.mkString(", ")} (${cornerPoints.mkString(", ")})"
     )
     Plane(setIndices.head, setIndices.last)

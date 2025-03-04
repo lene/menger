@@ -14,14 +14,8 @@ class TesseractSponge(level: Int) extends Mesh4D:
     if abs(xx) + abs(yy) + abs(zz) + abs(ww) > 2
   ) yield shrunkSubSponge.map(translate(_, Vector4(xx / 3f, yy / 3f, zz / 3f, ww / 3f)))
 
-  private def shrunkSubSponge: Seq[RectVertices4D] =
-    subSponge.map { 
-      case RectVertices4D(a, b, c, d) => RectVertices4D(a / 3, b / 3, c / 3, d / 3) 
-    }
+  private def shrunkSubSponge: Seq[RectVertices4D] = subSponge.map { face => face / 3 }
 
   private def subSponge: Seq[RectVertices4D] = TesseractSponge(level - 1).faces
 
-  private def translate(face: RectVertices4D, delta: Vector4): RectVertices4D =
-    face match { 
-      case RectVertices4D(a, b, c, d) => RectVertices4D(a + delta, b + delta, c + delta, d + delta) 
-    }
+  private def translate(face: RectVertices4D, delta: Vector4): RectVertices4D = face + delta

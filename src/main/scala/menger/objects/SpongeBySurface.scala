@@ -11,7 +11,7 @@ import menger.objects.Direction.Z
 class SpongeBySurface(
   level: Int, material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Geometry(material, primitiveType):
-  if level < 0 then throw new IllegalArgumentException("Level must be >= 0")
+  require(level >= 0, "Level must be non-negative")
 
   override def at(center: Vector3, scale: Float): List[ModelInstance] = logTime("at") {
     val facingPlusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 90)
