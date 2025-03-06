@@ -4,7 +4,10 @@ import com.badlogic.gdx.math.Vector4
 
 import scala.annotation.targetName
 
-case class RectVertices4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
+case class RectVertices4D(
+    a: Vector4, b: Vector4, c: Vector4, d: Vector4,
+    normal1: Vector4 = Vector4.Zero, normal2: Vector4 = Vector4.Zero
+):
   def asTuple: (Vector4, Vector4, Vector4, Vector4) = (a, b, c, d)
   def asSeq: Seq[Vector4] = Seq(a, b, c, d)
   def area: Float = (b - a).len() * (c - b).len()
@@ -17,10 +20,12 @@ case class RectVertices4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
 
 
 object RectVertices4D:
+  /** Create a face from 4 vertices. */
   def apply(seq: Seq[Vector4]): RectVertices4D =
     require(seq.length == 4, s"Need 4 vertices, have ${seq.length}: ${seq.map(vec2string)}")
     RectVertices4D(seq.head, seq(1), seq(2), seq(3))
 
+  /** Create a face from a center, scale and 2 normal vectors. */
   def apply(center: Vector4, scale: Float, normalVectors: Seq[Vector4]): RectVertices4D =
     require(normalVectors.size == 2, s"Need 2 normals, have ${normalVectors.size}: ${normalVectors.map(vec2string)}")
     val parallels = normals(normalVectors)

@@ -10,6 +10,9 @@ lazy val root = project
     scalaVersion := "3.6.2",
     scalacOptions ++= Seq("-deprecation", "-explain", "-feature"),
 
+    // Logging
+    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.6",
     // JUnit
     libraryDependencies ++= Seq(
       "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test

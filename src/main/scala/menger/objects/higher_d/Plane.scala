@@ -1,6 +1,9 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.math.Vector4
+import com.typesafe.scalalogging.Logger
+
+val logger = Logger("menger.objects.higher_d.Plane")
 
 case class Plane(i: Int, j: Int):
   require(i >= 0 && i < 4 && j >= 0 && j < 4, s"i and j must be between 0 and 3, are $i and $j")
@@ -24,6 +27,12 @@ object Plane:
     require(
       setIndices.length == 2,
       s"Corner points must lie in a plane, has ${setIndices.mkString(", ")} (${cornerPoints.mkString(", ")})"
+    )
+    val differences: Array[Vector4] = cornerPoints.foldLeft(Array(cornerPoints.last - cornerPoints.head))((diffs, v) => diffs :+ v - diffs.head)
+    logger.info(
+      s"cornerPoints: ${cornerPoints.mkString(", ")}\n" +
+      s"differences: ${differences.mkString(", ")}\n" +
+      s"diffs: ${differences.map(_.toArray.mkString(", ")).mkString("\n")}"
     )
     Plane(setIndices.head, setIndices.last)
 

@@ -4,7 +4,6 @@ GITLAB_PROJECT_ID=53243565
 CI_LINT_OUTPUT=/tmp/gitlab-ci-lint.json
 
 status=0
-
 if [ -n "${GITLAB_ACCESS_TOKEN}" ]; then
   CONTENT="$(cat .gitlab-ci.yml)"
   jq --null-input --arg yaml "$CONTENT" '.content=$yaml' | \

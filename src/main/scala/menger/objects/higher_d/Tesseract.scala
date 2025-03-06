@@ -32,5 +32,5 @@ case class Tesseract(
 
   lazy val edges: Seq[(Vector4, Vector4)] = faces.flatMap {
     // sets instead of tuples so edges are equal regardless of direction
-    case RectVertices4D(a, b, c, d) => Seq(Set(a, b), Set(b, c), Set(c, d), Set(d, a))
+    case RectVertices4D(a, b, c, d, _, _) => Seq(Set(a, b), Set(b, c), Set(c, d), Set(d, a))
   }.distinct.map(set => (set.head, set.last))

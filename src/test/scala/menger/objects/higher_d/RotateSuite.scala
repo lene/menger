@@ -316,10 +316,10 @@ class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
         // all rotated square faces should have size 2x2
         val clue = s"rotated face:\n${faceToString(rotatedRect)}\n"
         withClue(clue) {rotatedRect.area shouldBe 4f +- 1e-6f}
-        rotatedRect.productIterator.foreach(v => v shouldBe a[Vector4])
+        rotatedRect.asSeq.foreach(v => v shouldBe a[Vector4])
         // all coordinates in this example should be +-1 or +-3
-        withClue(clue) {rotatedRect.productIterator.foreach(absElements(_) should contain atLeastOneOf (1, 3))}
-        withClue(clue) {rotatedRect.productIterator.foreach(absElements(_) should not contain 5)}
+        withClue(clue) {rotatedRect.asSeq.foreach(absElements(_) should contain atLeastOneOf (1, 3))}
+        withClue(clue) {rotatedRect.asSeq.foreach(absElements(_) should not contain 5)}
     })
   })
 
