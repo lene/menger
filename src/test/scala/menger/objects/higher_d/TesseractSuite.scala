@@ -44,3 +44,13 @@ class TesseractSuite extends AnyFlatSpec:
   it should "have only edges of unit length" in new Fixture:
     val edgeLengths: Seq[Float] = tesseract.edges.map { case (a, b) => a.dst(b) }
     assert(edgeLengths.forall { _ == 1.0f })
+
+  "Face4D normal" should "point into +xy for the first Face4D" in new Fixture:
+    withClue(s"${tesseract.faces.head.plane}:\n${tesseract.faces.head.normals}") {
+      assert(tesseract.faces.head.normals.toSet == Set(Vector4.X, Vector4.Y))
+    }
+
+  it should "point into -xy for the 2nd Face4D" in new Fixture:
+    withClue(s"Face in ${tesseract.faces(1).plane} plane has ${tesseract.faces(1).plane.neg} normals:\n${tesseract.faces(1).normals}") {
+      assert(tesseract.faces(1).normals.toSet == tesseract.faces(1).plane.units.toSet)
+    }

@@ -7,7 +7,7 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
   require(level >= 0, "Level must be non-negative")
   private val logger = Logger("TesseractSponge2")
   lazy val faces: Seq[Face4D] =
-    if level == 0 then Tesseract(size).faces else nestedFaces.flatten
+    if level == 0 then Tesseract(size).faces.slice(0,1) else nestedFaces.flatten
 
   def nestedFaces: Seq[Seq[Face4D]] =
     TesseractSponge2(level - 1).faces.map(subdividedFace)
@@ -34,17 +34,17 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
     // 1. rotate the opposite vertex around the edge in the first normal direction of the face
     // 2. rotate the opposite vertex around the edge in the other normal direction of the face
     val c = cornerPoints(face)
-    val centralPart = (c("da2bc11"), c("da2bc12"), c("da1bc22"), c("da1bc21"))
-    val edges = Seq(
-      (centralPart(0), centralPart(1)), (centralPart(1), centralPart(2)),
-      (centralPart(2), centralPart(3)), (centralPart(3), centralPart(0))
-    )
-    val oppositeEdges = edges.drop(2) ++ edges.take(2)
-    logger.debug(s"edges: ${edges.map(edgeToString).mkString("(\n", ",\n", ")")}")
-    val rotated = for rotationDirection <- 0 to 1 yield
-      for edge <- edges.indices yield
-        rotatedRect(face, edges, oppositeEdges, edge, rotationDirection)
-    rotated.flatten    
+    val centralPart = Face4D(c("da2bc11"), c("da2bc12"), c("da1bc22"), c("da1bc21"))
+    if true then
+      centralPart.rotate()
+    else
+      val edges = centralPart.edges
+      val oppositeEdges = edges.drop(2) ++ edges.take(2)
+      logger.debug(s"edges: ${edges.map(edgeToString).mkString("(\n", ",\n", ")")}")
+      val rotated = for rotationDirection <- 0 to 1 yield
+        for edge <- edges.indices yield
+          rotatedRect(face, edges, oppositeEdges, edge, rotationDirection)
+      rotated.flatten
 
   private def rotatedRect(
     face: Face4D,

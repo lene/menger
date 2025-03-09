@@ -10,6 +10,10 @@ case class Plane(i: Int, j: Int):
   lazy val indices: Array[Int] = Array(i, j)
   lazy val normalIndices: Array[Int] = Set(0, 1, 2, 3).diff(indices.toSet).toArray
   override def toString: String = s"${("x", "y", "z", "w")(i)}${("x", "y", "z", "w")(j)}"
+  def neg: Plane =
+    val unusedIndices = (0 to 3).diff(indices)
+    Plane(unusedIndices.head, unusedIndices.last)
+  def units: Seq[Vector4] = Seq(Plane.units(i), Plane.units(j)) 
 
 object Plane:
   val epsilon: Float = 1e-6f
@@ -19,6 +23,9 @@ object Plane:
   val yz: Plane = Plane(1, 2)
   val yw: Plane = Plane(1, 3)
   val zw: Plane = Plane(2, 3)
+  val units: Array[Vector4] = Array(
+    Vector4.X, Vector4.Y, Vector4.Z, Vector4.W
+  )
 
   def apply(cornerPoints: Seq[Vector4]): Plane =
     require(cornerPoints.nonEmpty, "Corner points must not be empty")
