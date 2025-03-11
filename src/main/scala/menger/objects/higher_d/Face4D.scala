@@ -40,7 +40,7 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
   def plane: Plane = Plane(asSeq)
 
   def rotate(): Seq[Face4D] =
-    logger.info(s"rotate $this")
+//    logger.info(s"rotate $this")
     edges.flatMap { case (cornerA, cornerB) => rotate(cornerA, cornerB) }
 
   def rotate(cornerA: Vector4, cornerB: Vector4): Seq[Face4D] =
@@ -48,7 +48,7 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
     val corners = Seq(cornerA, cornerB)
 
     val oppositeCorners = remainingCorners(allCorners, corners)
-    logger.info(s"${corners.map(vec2string)} -> ${oppositeCorners.map(vec2string)}")
+//    logger.info(s"${corners.map(vec2string)} -> ${oppositeCorners.map(vec2string)}")
     require(
       oppositeCorners.size == 2,
       s"${corners.map(_.asString)} not in ${Set(a, b, c, d).map(_.asString)}"
@@ -60,7 +60,7 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
     )
     normals.map { normal =>
       val newOpposites = corners.map(_ + normal * distance.len())
-      Face4D(a, b, newOpposites.last, newOpposites.head)
+      Face4D(cornerA, cornerB, newOpposites.last, newOpposites.head)
     }
 
 def normalDirections(edgeVectors: Seq[Vector4]): Seq[Vector4] =

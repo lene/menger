@@ -7,10 +7,10 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
   require(level >= 0, "Level must be non-negative")
   private val logger = Logger("TesseractSponge2")
   lazy val faces: Seq[Face4D] =
-    if level == 0 then Tesseract(size).faces.slice(0,1) else nestedFaces.flatten
+    if level == 0 then Tesseract(size).faces else nestedFaces
 
-  def nestedFaces: Seq[Seq[Face4D]] =
-    TesseractSponge2(level - 1).faces.map(subdividedFace)
+  def nestedFaces: Seq[Face4D] =
+    TesseractSponge2(level - 1).faces.flatMap(subdividedFace)
 
   def subdividedFace(face: Face4D): Seq[Face4D] =
     subdivideFlatParts(face) ++ subdividePerpendicularParts(face)

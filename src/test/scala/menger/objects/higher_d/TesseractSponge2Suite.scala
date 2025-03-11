@@ -349,11 +349,14 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""  //subfacesString
     val clue: String = sponge2str(sponge2).replace("0.83", s"${Console.YELLOW}0.83${Console.RED}")
     withClue(clue) {cornerCoordinateValues should contain only (round(1/2f), round(1/6f))}
 
-  for i <- 0 to 23 do
-    s"Subdivided subface ${i+1}" should "have absolute coordinate values 1/2 or 1/6" in new Sponge2:
-      checkCoordinatesOfSubdividedFace(TesseractSponge2(0), i)
+  "Subdivided subfaces" should "have absolute coordinate values 1/2 or 1/6 in face 1" in:
+    checkCoordinatesOfSubdividedSpongeFace(TesseractSponge2(0), 0)
 
-  private def checkCoordinatesOfSubdividedFace(sponge: TesseractSponge2, i: Int) =
+  for i <- 1 to 23 do
+    it should s"have absolute coordinate values 1/2 or 1/6 in face ${i+1}" in:
+      checkCoordinatesOfSubdividedSpongeFace(TesseractSponge2(0), i)
+  
+  private def checkCoordinatesOfSubdividedSpongeFace(sponge: TesseractSponge2, i: Int) =
     val subface: Face4D = sponge.faces(i)
     val subdividedFace: Seq[Face4D] = sponge.subdividedFace(subface)
     val cornerPoints: Seq[Vector4] = subdividedFace.flatMap(_.asSeq)

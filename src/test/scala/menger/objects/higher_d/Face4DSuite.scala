@@ -6,6 +6,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.Inspectors.forAll
 
 class Face4DSuite extends AnyFlatSpec with RectMesh with Matchers:
+  private val xyFace: Face4D = Face4D(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0), Vector4(1, 1, 0, 0), Vector4(-1, 1, 0, 0))
 
   "4D normals" should "fail if created with only one vector" in:
     an [IllegalArgumentException] should be thrownBy normals(Seq(Vector4.Z))
@@ -67,7 +68,7 @@ class Face4DSuite extends AnyFlatSpec with RectMesh with Matchers:
   }
 
   "instantiating a Face4D from its vertices" should "create the normals" in:
-    val face = Face4D(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0), Vector4(1, 1, 0, 0), Vector4(-1, 1, 0, 0))
+    val face = xyFace
     face.normals.head should not be Vector4.Zero
     face.normals.last should not be Vector4.Zero
 
@@ -118,8 +119,7 @@ class Face4DSuite extends AnyFlatSpec with RectMesh with Matchers:
     }
 
   "instantiating a Face4D from its vertices"  should "create the correct normals in xy" in:
-    val face = Face4D(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0), Vector4(1, 1, 0, 0), Vector4(-1, 1, 0, 0))
-    face.normals should contain only (Vector4.Z, Vector4.W)
+    xyFace.normals should contain only (Vector4.Z, Vector4.W)
 
   it should "create the correct normals in xz" in:
     val face = Face4D(Vector4(-1, 0, -1, 0), Vector4(1, 0, -1, 0), Vector4(1, 0, 1, 0), Vector4(-1, 0, 1, 0))
@@ -198,39 +198,34 @@ class Face4DSuite extends AnyFlatSpec with RectMesh with Matchers:
     an [IllegalArgumentException] should be thrownBy remainingCorners(seq, cornersToRemove)
 
   "rotate around an edge" should "return a Face4D at all" in:
-    val face = Face4D(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0), Vector4(1, 1, 0, 0), Vector4(-1, 1, 0, 0))
-    val rotated = face.rotate(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0))
+    val rotated = xyFace.rotate(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0))
     rotated should not be empty
 
   it should "actually return 2 Face4Ds" in:
-    val face = Face4D(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0), Vector4(1, 1, 0, 0), Vector4(-1, 1, 0, 0))
-    val rotated = face.rotate(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0))
+    val rotated = xyFace.rotate(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0))
     rotated should have length 2
 
   it should "rotate a selected Face4D correctly" in:
     val face = Face4D(Vector4(-1, -1, -3, -3), Vector4(1, -1, -3, -3), Vector4(1, 1, -3, -3), Vector4(-1, 1, -3, -3))
-    assert(face.normals.contains(Vector4.Z))
+    face.normals should contain (Vector4.Z)
     val rotated = face.rotate(Vector4(-1, -1, -3, -3), Vector4(1, -1, -3, -3))
     rotated should contain (Face4D(Vector4(-1, -1, -3, -3), Vector4(1, -1, -3, -3), Vector4(1, -1, -1, -3), Vector4(-1, -1, -1, -3)))
 
   it should "rotate another selected Face4D correctly" in:
     val face = Face4D(Vector4(1, 1, 3, 3), Vector4(-1, 1, 3, 3), Vector4(-1, -1, 3, 3), Vector4(1, -1, 3, 3))
-    assert(face.normals.contains(-Vector4.Z))
+    face.normals should contain (-Vector4.Z)
     val rotated = face.rotate(Vector4(1, 1, 3, 3), Vector4(-1, 1, 3, 3))
     rotated should contain (Face4D(Vector4(1, 1, 3, 3), Vector4(-1, 1, 3, 3), Vector4(-1, 1, 1, 3), Vector4(1, 1, 1, 3)))
 
   "rotate" should "return 8 Face4Ds" in:
-    val face = Face4D(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0), Vector4(1, 1, 0, 0), Vector4(-1, 1, 0, 0))
-    val rotated = face.rotate()
+    val rotated = xyFace.rotate()
     rotated should have length 8
 
   it should "cover all edges of the original Face4D" in:
-    val face = Face4D(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0), Vector4(1, 1, 0, 0), Vector4(-1, 1, 0, 0))
-    val rotated = face.rotate()
+    val rotated = xyFace.rotate()
     val rotatedEdges = rotated.flatMap(_.edges)
-    rotatedEdges should contain allElementsOf face.edges
+    rotatedEdges should contain allElementsOf xyFace.edges
 
   it should "all have the same area as the original" in:
-    val face = Face4D(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0), Vector4(1, 1, 0, 0), Vector4(-1, 1, 0, 0))
-    val rotated = face.rotate()
-    rotated.map(_.area) should contain only face.area
+    val rotated = xyFace.rotate()
+    rotated.map(_.area) should contain only xyFace.area
