@@ -1,7 +1,7 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.math.{Matrix4, Vector4}
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.LazyLogging
 
 case class Rotate(transformationMatrix: Matrix4, pivotPoint: Vector4):
   /**
@@ -68,14 +68,12 @@ case class Rotate(transformationMatrix: Matrix4, pivotPoint: Vector4):
   def apply(point: Vector4): Vector4 =
     transformationMatrix.multiply(point - pivotPoint) + pivotPoint
 
-object Rotate:
-  private val logger = Logger("Rotate")
+object Rotate extends LazyLogging:
 
   def apply(plane: Plane, axis: (Vector4, Vector4), pivotPoint: Vector4, angle: Float): Array[Rotate] =
     val u: Vector4 = axis(1) - axis(0)
-    val direction: Int = u.toArray.indexWhere(math.abs(_) > Plane.epsilon)
+    val direction: Int = u.toArray.indexWhere(math.abs(_) > Const.epsilon)
     val sign = math.signum(u.toArray(direction))
-//    val realAngle = angle
     val realAngle = sign * angle
     if direction != plane.i && direction != plane.j then
       throw new IllegalArgumentException(s"axis must be in the $plane plane, is $direction")

@@ -3,7 +3,7 @@ package menger.objects.higher_d
 import com.badlogic.gdx.math.Vector4
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.LazyLogging
 
 
 trait StandardVector:
@@ -16,8 +16,7 @@ trait StandardVector:
   def seqsOfVectorsEpsilonEquals(a: Seq[Vector4], b: Seq[Vector4]): Boolean =
     a.zip(b).map(v => v._1.epsilonEquals(v._2)).forall(identity)
 
-class RotateSuite extends AnyFlatSpec with StandardVector with Matchers:
-  private val logger = Logger("RotateSuite")
+class RotateSuite extends AnyFlatSpec with StandardVector with Matchers with LazyLogging:
 
   "printing all 4D base transformation matrices" should "be possible" in:
     val axisNames = Seq("x", "y", "z", "w")

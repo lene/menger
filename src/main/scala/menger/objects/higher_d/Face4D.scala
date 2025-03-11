@@ -27,11 +27,11 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
   private def getNormals: Seq[Vector4] =
     val edges = Seq(b - a, c - b, d - c, a - d)
     require(
-      edges.map(v => v.toArray.count(_.abs > 0) == 1).forall(_ == true),
+      edges.map(v => v.toArray.count(_.abs > Const.epsilon) == 1).forall(_ == true),
       s"Edges must be parallel to the axes, are ${edges.map(vec2string)}"
     )
     require(
-      edges.sliding(2).forall({ case Seq(a, b) => a.dot(b) == 0 }),
+      edges.sliding(2).forall({ case Seq(a, b) => a.dot(b) < Const.epsilon }),
       s"Edges must be orthogonal, are ${edges.map(vec2string)}"
     )
     normalDirections(edges).zip(normalSigns(edges)).map { case (vec, sign) => vec * sign }
@@ -40,22 +40,19 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
   def plane: Plane = Plane(asSeq)
 
   def rotate(): Seq[Face4D] =
-//    logger.info(s"rotate $this")
     edges.flatMap { case (cornerA, cornerB) => rotate(cornerA, cornerB) }
 
   def rotate(cornerA: Vector4, cornerB: Vector4): Seq[Face4D] =
-    val allCorners = Seq(a, b, c, d)
+    val allCorners = asSeq
     val corners = Seq(cornerA, cornerB)
-
     val oppositeCorners = remainingCorners(allCorners, corners)
-//    logger.info(s"${corners.map(vec2string)} -> ${oppositeCorners.map(vec2string)}")
     require(
       oppositeCorners.size == 2,
       s"${corners.map(_.asString)} not in ${Set(a, b, c, d).map(_.asString)}"
     )
     val distance = oppositeCorners.head - corners.last
     require(
-      distance == oppositeCorners.last - corners.head,
+      distance.dst(oppositeCorners.last - corners.head) < Const.epsilon,
       s"Corners must be opposite - got ${corners.map(_.asString)} in $this}"
     )
     normals.map { normal =>
@@ -63,18 +60,18 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
       Face4D(cornerA, cornerB, newOpposites.last, newOpposites.head)
     }
 
+/** normals point in the two directions orthogonal to the edges */
 def normalDirections(edgeVectors: Seq[Vector4]): Seq[Vector4] =
-  /** normals point in the two directions orthogonal to the edges */
   val edgeDirectionIndices = edgeVectors.toSet.flatMap(setIndices(_))
   val normalIndices = (0 until Face4D.dimension).toSet.diff(edgeDirectionIndices)
   normalIndices.map(unitVector).toSeq
 
+/**
+ *  signs depend on the directions the first two edges are traversed - if the first edge is
+ *  traversed from - to +, the first normal has positive sign, else negative. Analogous for the
+ *  second edge and the second normal.
+ */
 def normalSigns(edgeVectors: Seq[Vector4]): Seq[Float] =
-  /**
-   *  signs depend on the directions the first two edges are traversed - if the first edge is
-   *  traversed from - to +, the first normal has positive sign, else negative. Analogous for
-   *  the second edge and the second normal.
-   */
   val firstTwoEdges = edgeVectors.take(2)
   val sum = firstTwoEdges.reduce((v1, v2) => v1 + v2).toArray.toIndexedSeq
   sum.filter(_.abs > 0).map(_.sign)
@@ -107,8 +104,8 @@ def normals(vecs: Seq[Vector4]): Set[Vector4] =
   require(normals.size == 2, s"Expected 2 normals, have ${normals.size}: ${normals.map(vec2string)}")
   normals
 
-def setIndices(v: Vector4, epsilon: Float = 1e-6): Seq[Int] =
-  allIndicesWhere(v.toArray.toIndexedSeq, s => s.abs > epsilon)
+def setIndices(v: Vector4): Seq[Int] =
+  allIndicesWhere(v.toArray.toIndexedSeq, s => s.abs > Const.epsilon)
 
 def allIndicesWhere[A](s: Seq[A], pred: A => Boolean): Seq[Int] =
   s.zipWithIndex.filter { case (elem, _) => pred(elem) }.map { case (_, index) => index }
@@ -123,12 +120,13 @@ def unitVector(direction: Int): Vector4 =
 def remainingCorners(allCorners: Seq[Vector4], cornersToRemove: Seq[Vector4]): Seq[Vector4] =
   require(allCorners.size == 4, s"Need 4 corners, have ${allCorners.size}")
   require(cornersToRemove.size == 2, s"Need 2 corners to remove, have ${cornersToRemove.size}")
-  val firstToRemove = allCorners.indexOf(cornersToRemove.head)  
-  val secondToRemove = allCorners.indexOf(cornersToRemove.last)
+  val firstToRemove = allCorners.indexWhere(_.dst(cornersToRemove.head) < Const.epsilon)
+  val secondToRemove = allCorners.indexWhere(_.dst(cornersToRemove.last) < Const.epsilon)
   require(
     secondToRemove == firstToRemove + 1 || (firstToRemove == 3 && secondToRemove == 0), 
     s"Expected adjacent corners, got $firstToRemove and $secondToRemove" 
   )
   val remaining = allCorners.diff(cornersToRemove)
+  // if removing middle two corners, the remaining corners are wrapped, i.e. effectively swapped
   if firstToRemove == 1 then remaining.reverse else remaining
 

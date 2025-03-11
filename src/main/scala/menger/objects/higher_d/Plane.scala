@@ -1,9 +1,8 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.math.Vector4
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.LazyLogging
 
-val logger = Logger("menger.objects.higher_d.Plane")
 
 case class Plane(i: Int, j: Int):
   require(i >= 0 && i < 4 && j >= 0 && j < 4, s"i and j must be between 0 and 3, are $i and $j")
@@ -15,8 +14,7 @@ case class Plane(i: Int, j: Int):
     Plane(unusedIndices.head, unusedIndices.last)
   def units: Seq[Vector4] = Seq(Plane.units(i), Plane.units(j)) 
 
-object Plane:
-  val epsilon: Float = 1e-6f
+object Plane extends LazyLogging:
   val xy: Plane = Plane(0, 1)
   val xz: Plane = Plane(0, 2)
   val xw: Plane = Plane(0, 3)
@@ -53,5 +51,5 @@ object Plane:
 
   def setIndices(cornerPoints: Seq[Vector4]): Array[Int] =
     differenceVectors(cornerPoints).foldLeft(
-      Set.empty[Int])((set, v) => set + v.toArray.indexWhere(math.abs(_) > epsilon)
+      Set.empty[Int])((set, v) => set + v.toArray.indexWhere(math.abs(_) > Const.epsilon)
     ).toArray.sorted

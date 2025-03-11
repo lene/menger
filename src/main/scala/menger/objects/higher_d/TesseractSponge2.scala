@@ -1,21 +1,30 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.math.Vector4
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.LazyLogging
 
-class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
+/**
+ * Represents a 4D Menger sponge based on a tesseract.
+ * Each level is constructed by subdividing each face of the previous level into 9 smaller squares,
+ * and replacing the center one with faces flipped perpendicular to it.
+ * @param level The recursion level (0 = regular tesseract)
+ * @param size The size of the bounding tesseract
+ */
+class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D with LazyLogging:
+
+  private type CornerMap = Map[String, Vector4]
+
   require(level >= 0, "Level must be non-negative")
-  private val logger = Logger("TesseractSponge2")
-  lazy val faces: Seq[Face4D] =
-    if level == 0 then Tesseract(size).faces else nestedFaces
 
-  def nestedFaces: Seq[Face4D] =
-    TesseractSponge2(level - 1).faces.flatMap(subdividedFace)
+  lazy val faces: Seq[Face4D] = if level == 0 then Tesseract(size).faces else nestedFaces
 
-  def subdividedFace(face: Face4D): Seq[Face4D] =
-    subdivideFlatParts(face) ++ subdividePerpendicularParts(face)
+  private[higher_d] def nestedFaces: Seq[Face4D] =
+    TesseractSponge2(level - 1).faces.flatMap(faceGenerator)
 
-  def subdivideFlatParts(face: Face4D): Seq[Face4D] =
+  private[higher_d] def faceGenerator(face: Face4D): Seq[Face4D] =
+    generateFlatParts(face) ++ generatePerpendicularParts(face)
+
+  private[higher_d] def generateFlatParts(face: Face4D): Seq[Face4D] =
     // split the face into 9 smaller squares and return all except the center one
     val c = cornerPoints(face)
     Seq(
@@ -29,48 +38,27 @@ class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D:
       Face4D(c("da1bc22"), c("bc2"), c("c"), c("cd1")) // 8 // bottom right
     )
 
-  def subdividePerpendicularParts(face: Face4D): Seq[Face4D] =
-    // for each edge of the central part of the face:
-    // 1. rotate the opposite vertex around the edge in the first normal direction of the face
-    // 2. rotate the opposite vertex around the edge in the other normal direction of the face
+  private[higher_d] def generatePerpendicularParts(face: Face4D): Seq[Face4D] =
     val c = cornerPoints(face)
     val centralPart = Face4D(c("da2bc11"), c("da2bc12"), c("da1bc22"), c("da1bc21"))
-    if true then
-      centralPart.rotate()
-    else
-      val edges = centralPart.edges
-      val oppositeEdges = edges.drop(2) ++ edges.take(2)
-      logger.debug(s"edges: ${edges.map(edgeToString).mkString("(\n", ",\n", ")")}")
-      val rotated = for rotationDirection <- 0 to 1 yield
-        for edge <- edges.indices yield
-          rotatedRect(face, edges, oppositeEdges, edge, rotationDirection)
-      rotated.flatten
+    centralPart.rotate()
 
-  private def rotatedRect(
-    face: Face4D,
-    edges: Seq[(Vector4, Vector4)], oppositeEdges: Seq[(Vector4, Vector4)],
-    i: Int, j: Int
-  ) =
-    val rect = Face4D(
-      edges(i)(0), edges(i)(1),
-      Rotate(Plane(face), edges(i), edges(i)(0), 90)(j)(oppositeEdges(i)(0)),
-      Rotate(Plane(face), edges(i), edges(i)(1), 90)(j)(oppositeEdges(i)(1))
-    )
-    logger.debug(s"original: ${faceToString(Seq(edges(i)(0), edges(i)(1), oppositeEdges(i)(0), oppositeEdges(i)(1)))}")
-    logger.debug(s"plane:    ${Plane(face)}")
-    logger.debug(s"rotated:  $rect")
-    rect
-
-  def cornerPoints(face: Face4D): Map[String, Vector4] =
+  private[higher_d] def cornerPoints(face: Face4D): CornerMap =
     val (a, b, c, d) = face.asTuple
-    val ab1 = a + (b - a) / 3
-    val ab2 = a + (b - a) * 2 / 3
-    val bc1 = b + (c - b) / 3
-    val bc2 = b + (c - b) * 2 / 3
-    val cd1 = c + (d - c) / 3
-    val cd2 = c + (d - c) * 2 / 3    // reversed direction
-    val da1 = d + (a - d) / 3
-    val da2 = d + (a - d) * 2 / 3    // reversed direction
+
+    val edgeAB = (b - a) / 3
+    val edgeBC = (c - b) / 3
+    val edgeCD = (d - c) / 3
+    val edgeDA = (a - d) / 3
+
+    val ab1 = a + edgeAB
+    val ab2 = a + edgeAB * 2
+    val bc1 = b + edgeBC
+    val bc2 = b + edgeBC * 2
+    val cd1 = c + edgeCD
+    val cd2 = c + edgeCD * 2    // reversed direction
+    val da1 = d + edgeDA
+    val da2 = d + edgeDA * 2
     val da1bc21 = da1 + (bc2 - da1) / 3
     val da1bc22 = da1 + (bc2 - da1) * 2 / 3
     val da2bc11 = da2 + (bc1 - da2) / 3

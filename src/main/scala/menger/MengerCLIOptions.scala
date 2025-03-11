@@ -15,15 +15,12 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments):
   val projectionEyeW: ScallopOption[Float] = opt[Float](
     required = false, default = Some(2), validate = _ > 0
   )
-  val rotXW: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0), validate = a => a >= 0 && a < 360
-  )
-  val rotYW: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0), validate = a => a >= 0 && a < 360
-  )
-  val rotZW: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0), validate = a => a >= 0 && a < 360
-  )
+  private def degreeOpt = opt[Float](
+      required = false, default = Some(0), validate = a => a >= 0 && a < 360
+    )
+  val rotXW: ScallopOption[Float] = degreeOpt
+  val rotYW: ScallopOption[Float] = degreeOpt
+  val rotZW: ScallopOption[Float] = degreeOpt
   val level: ScallopOption[Int] = opt[Int](required = false, default = Some(1), validate = _ >= 0)
   val lines: ScallopOption[Boolean] = opt[Boolean](required = false, default = Some(false))
   val width: ScallopOption[Int] = opt[Int](required = false, default = Some(800))

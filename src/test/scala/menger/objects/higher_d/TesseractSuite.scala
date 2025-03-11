@@ -17,8 +17,12 @@ class TesseractSuite extends AnyFlatSpec with Matchers:
 
   it should "have vertices scale with tesseract size" in:
     forAll(Seq(2.0f, 10.0f, 1e8f, 0.5f, 1e-8f)) { size =>
-      forAll(Tesseract(2 * size).vertices) { v => forAll(v.toArray) { s => s.abs == size }}
+      forAll(Tesseract(size).vertices) { v => forAll(v.toArray) { s => s.abs == size / 2 } }
     }
+
+  it should "be centered at the origin" in :
+    val center = tesseract.vertices.reduce((a, b) => new Vector4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w)) / 16f
+    center should be (Vector4(0, 0, 0, 0))
 
   it should "have 24 faces" in:
     tesseract.faceIndices should have size 24
@@ -41,6 +45,16 @@ class TesseractSuite extends AnyFlatSpec with Matchers:
   it should "have only edges of unit length" in:
     val edgeLengths: Seq[Float] = tesseract.edges.map { case (a, b) => a.dst(b) }
     edgeLengths should contain only 1.0f
+
+  it should "have all faces lying in specific planes" in :
+    val planes = Set(Plane.xy, Plane.xz, Plane.xw, Plane.yz, Plane.yw, Plane.zw)
+    forAll(tesseract.faces) { face => planes should contain(face.plane) }
+
+  it should "have 4 faces for each of the 6 possible planes" in :
+    val facePlanes = tesseract.faces.map(_.plane)
+    val planeCounts = facePlanes.groupBy(identity).view.mapValues(_.size).toMap
+    planeCounts.values should contain only 4
+    planeCounts.size should be(6)
 
   "Face4D normal" should "point into +xy for the first Face4D" in:
     withClue(faceClue(tesseract.faces.head)) {

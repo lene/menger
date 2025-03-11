@@ -1,13 +1,15 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
-import com.badlogic.gdx.math.{Vector3, Vector4}
+import com.badlogic.gdx.math.Vector3
 import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.Inspectors.forAll
 
 extension(v: Vector3)
   def toList: List[Float] = List(v.x, v.y, v.z)
 
-class RotatedProjectionSuite extends AnyFlatSpec:
+class RotatedProjectionSuite extends AnyFlatSpec with Matchers:
 
   trait ProjectedTesseract:
     val tesseract: RotatedProjection = RotatedProjection(Tesseract(), Projection(4, 1))
@@ -22,27 +24,26 @@ class RotatedProjectionSuite extends AnyFlatSpec:
     RotatedProjection(Tesseract(), Projection(4, 1), Rotation(90, 0, 0))
 
   "A Tesseract's Projection's projectedFaceVertices" should "have equal size to faces" in new ProjectedTesseract:
-    assert(tesseract.projectedFaceVertices.size == tesseract.object4D.faces.size)
+    tesseract.projectedFaceVertices should have size tesseract.object4D.faces.size
 
   it should "have only 4 distinct coordinate values if not rotated" in new ProjectedTesseract:
-    assert(coordinateValues.distinct.size == 4)
+    coordinateValues.distinct should have size 4
 
   it should "have only 2 distinct absolute coordinate values if not rotated" in new ProjectedTesseract:
-    assert(coordinateValues.map(_.abs).distinct.size == 2)
+    coordinateValues.map(_.abs).distinct should have size 2
 
   "A RotatedProjection's projectedFaceInfo" should "have equal size to faces" in new ProjectedTesseract:
-    assert(tesseract.projectedFaceInfo.size == tesseract.object4D.faces.size)
+    tesseract.projectedFaceInfo should have size tesseract.object4D.faces.size
 
   it should "have a position set for all vertices" in new ProjectedTesseract:
-    assert(tesseract.projectedFaceInfo.forall(
-      _.toList.forall(_.asInstanceOf[VertexInfo].hasPosition))
-    )
+    forAll(tesseract.projectedFaceInfo) {
+      p => forAll(p.toList) { v => v.asInstanceOf[VertexInfo].hasPosition should be(true) }
+    }
 
   it should "have the correct position set for all vertices" in new ProjectedTesseract:
-    assert(
-      tesseract.projectedFaceVertices.zip(tesseract.projectedFaceInfo).forall {
-        case (vertices, infos) => vertices.toList.zip(infos.toList).forall {
-          case (vertex, info) => vertex == info.position
-        }
+    forAll(tesseract.projectedFaceVertices.zip(tesseract.projectedFaceInfo)) {
+      case (vertices, infos) => forAll(vertices.toList.zip(infos.toList)) {
+        case (vertex, info) => vertex should be (info.position)
       }
-    )
+    }
+

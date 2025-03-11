@@ -1,35 +1,32 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector4
 import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.Inspectors.forAll
 
-class TesseractSpongeSuite extends AnyFlatSpec with RectMesh:
+class TesseractSpongeSuite extends AnyFlatSpec with RectMesh with Matchers:
 
   trait Sponge:
     val sponge: TesseractSponge = TesseractSponge(1)
 
   "A TesseractSponge level 0" should "have 24 faces" in:
     val sponge = TesseractSponge(0)
-    assert(sponge.faces.size == 24)
+    sponge.faces should have size 24
 
-  "A TesseractSponge level < 0" should "be imposssible" in:
-    assertThrows[IllegalArgumentException] {
-      TesseractSponge(-1)
-    }
+  "A TesseractSponge level < 0" should "be impossible" in:
+    an[IllegalArgumentException] should be thrownBy TesseractSponge(-1)
 
   "A TesseractSponge level 1" should "have 48 times the number of a Tesseract's faces" in new Sponge:
-    assert(sponge.faces.size == 48 * Tesseract().faces.size)
+    sponge.faces should have size 48 * Tesseract().faces.size
 
   it should "have no vertices with absolute value greater than 0.5" in new Sponge:
-    assert(
-      sponge.faces.forall(rect => rect.asSeq.forall(v => v.toArray.forall(_.abs <= 0.5)))
-    )
+    forAll(sponge.faces) { rect => forAll(rect.asSeq) { v => v.toArray.forall(_.abs <= 0.5) } }
 
   it should "have no face in the center of each face of the Tesseract" in new Sponge:
-    assert(sponge.faces.forall(rect => !isCenterOfOriginalFace(rect)))
+    forAll(sponge.faces) { rect => !isCenterOfOriginalFace(rect) }
 
   it should "have no face around the removed center Tesseract" in new Sponge:
-    assert(sponge.faces.forall(rect => !isCenterOfOriginalTesseract(rect)))
+    forAll(sponge.faces) { rect => !isCenterOfOriginalTesseract(rect) }
 
 
   def isCenterOfOriginalFace(face: Face4D): Boolean =

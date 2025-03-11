@@ -1,17 +1,18 @@
 package menger.objects.higher_d
 
 import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class VectorSuite extends AnyFlatSpec:
+class VectorSuite extends AnyFlatSpec with Matchers:
   "A Vector of any dimension" should "be instatiable" in:
     val v1 = Vector[1](1)
     val v2 = Vector[2](1, 2)
 
   it should "have the correct number of elements" in:
     val v1 = Vector[1](1)
-    assert(v1.dimension == 1)
-    assert(v1.v.size == 1)
+    v1.dimension should be (1)
+    v1.v should have size 1
 
   it should "fail when instantiated with the wrong number of elements" in:
-    assertThrows[IllegalArgumentException](Vector[1](1, 2))
-    assertThrows[IllegalArgumentException](Vector[2](1))
+    an[IllegalArgumentException] should be thrownBy Vector[1](1, 2)
+    an[IllegalArgumentException] should be thrownBy Vector[2](1)
