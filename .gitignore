@@ -44,3 +44,7 @@ package.html
 
 # profiling files
 flight.jfr
+
+# file storing access token for GitLab CI lint
+.set-gitlab-token.sh
+
