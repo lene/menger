@@ -12,9 +12,10 @@ case class RotationProjectionParameters(
   
   @targetName("plus")
   def +(other: RotationProjectionParameters): RotationProjectionParameters =
-    val rot = rotation + other.rotation
     val proj = projection + other.projection
-    RotationProjectionParameters(rot.rotXW, rot.rotYW, rot.rotZW, proj.eyeW, proj.screenW)
+    RotationProjectionParameters(
+      rotXW + other.rotXW, rotYW + other.rotYW, rotZW + other.rotZW, proj.eyeW, proj.screenW
+    )
 
 object RotationProjectionParameters:
   def apply(opts: MengerCLIOptions): RotationProjectionParameters =

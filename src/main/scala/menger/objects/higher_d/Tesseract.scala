@@ -5,15 +5,28 @@ import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.math.Vector4
 import menger.objects.*
 
-/** A tesseract of edge length `size` centered at the origin */
+/**
+ * Represents a tesseract (4D hypercube) of edge length `size` centered at the origin.
+ * A tesseract has:
+ * - 16 vertices (0D elements)
+ * - 32 edges (1D elements)
+ * - 24 faces (2D elements)
+ * - 8 cells (3D elements)
+ *
+ * @param size Length of each edge of the tesseract
+ * @param material Material to use for rendering
+ * @param primitiveType OpenGL primitive type for rendering
+ */
 case class Tesseract(
   size: Float = 1.0,
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Mesh4D:
 
-  lazy val vertices: Seq[Vector4] = for (
-    xx <- -1 to 1 by 2; yy <- -1 to 1 by 2; zz <- -1 to 1 by 2; ww <- -1 to 1 by 2
-  ) yield Vector4(xx * size / 2, yy * size / 2, zz * size / 2, ww * size / 2)
+  lazy val vertices: Seq[Vector4] =
+    val coords = Seq(-size / 2, size / 2)
+    for (
+      xx <- coords; yy <- coords; zz <- coords; ww <- coords
+    ) yield Vector4(xx, yy, zz, ww)
 
   /**
    *  indices of the vertices to make up tesseract faces originally taken from
@@ -55,11 +68,11 @@ case class Tesseract(
    */
   lazy val faceIndices: Seq[RectIndices] = Seq(
     ( 0, 1, 3, 2), ( 0, 1, 5, 4), ( 0, 1, 9, 8), ( 0, 2, 6, 4),
-    ( 0, 2,10, 8), ( 0, 4,12, 8), (3, 1, 5, 7), (3, 1, 9, 11),
-    (5, 1, 9, 13), (3, 2, 6, 7), (3, 2, 10, 11), (10, 2, 6, 14),
-    (15, 7, 3, 11), (5, 4, 6, 7), (12, 4, 5, 13), (12, 4, 6, 14),
-    (15, 7, 5, 13), (15, 7, 6, 14), (10, 8, 9, 11), (12, 8, 9, 13),
-    (12, 8, 10, 14), (15, 11, 9, 13), (15, 11, 10, 14), (15, 13, 12, 14)
+    ( 0, 2,10, 8), ( 0, 4,12, 8), ( 3, 1, 5, 7), ( 3, 1, 9,11),
+    ( 5, 1, 9,13), ( 3, 2, 6, 7), ( 3, 2,10,11), (10, 2, 6,14),
+    (15, 7, 3,11), ( 5, 4, 6, 7), (12, 4, 5,13), (12, 4, 6,14),
+    (15, 7, 5,13), (15, 7, 6,14), (10, 8, 9,11), (12, 8, 9,13),
+    (12, 8,10,14), (15,11, 9,13), (15,11,10,14), (15,13,12,14)
   )
 
   lazy val faces: Seq[Face4D] = faceIndices.map {
@@ -71,12 +84,4 @@ case class Tesseract(
     case Face4D(a, b, c, d) => Seq(Set(a, b), Set(b, c), Set(c, d), Set(d, a))
   }.distinct.map(set => (set.head, set.last))
 
-/** template for moving indices around, remove this once no longer used - negative numbers contain crossed edges*/
-val permutations = List(
-  (8, 10, 14, 12), (8, 10, 12, 14), (-8, 14, 10, 12), (8, 14, 12, 10),
-  (-8, 12, 10, 14), (8, 12, 14, 10), (10, 8, 14, 12), (10, 8, 12, 14),
-  (-10, 14, 8, 12), (10, 14, 12, 8), (-10, 12, 8, 14), (10, 12, 14, 8),
-  (14, 8, 10, 12), (-14, 8, 12, 10), (14, 10, 8, 12), (-14, 10, 12, 8),
-  (14, 12, 8, 10), (14, 12, 10, 8), (12, 8, 10, 14), (-12, 8, 14, 10),
-  (12, 10, 8, 14), (-12, 10, 14, 8), (12, 14, 8, 10), (12, 14, 10, 8)
-)
+

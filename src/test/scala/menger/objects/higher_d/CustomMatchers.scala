@@ -39,7 +39,7 @@ trait CustomMatchers:
   def containAllEpsilon(expected: Iterable[Vector4]) = new FaceContainsAllVector4Matcher(expected)
 
   /**
-   * Separate class for negating the containAllEpsilon matcher sice using it with `not` gives the error:
+   * Separate class for negating the containAllEpsilon matcher since using it with `not` gives the error:
    * value containAllEpsilon is not a member of
    * org.scalatest.matchers.dsl.ResultOfNotWordForAny[Seq[menger.objects.higher_d.Face4D]]
    */

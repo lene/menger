@@ -3,8 +3,9 @@ package menger.objects.higher_d
 import com.badlogic.gdx.math.Vector4
 import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should._
-import CustomMatchers._
+import org.scalatest.matchers.should.*
+import CustomMatchers.*
+import menger.objects.higher_d.Plane.xw
 
 class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
 
@@ -282,13 +283,12 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
         ))
     }
 
-  ignore should "contain face pointing in x bordered on center hole" in new Sponge2:
-    withClue(subfacesString) {
-      subfaces should containAllEpsilon(List(
-          Vector4(-1, -1,    -1/3f, -1/3f), Vector4(-1, -1/3f, -1/3f,  1/3f),
-          Vector4(-1, -1/3f,  1/3f,  1/3f), Vector4(-1, -1,     1/3f, -1/3f)
-        ))
-    }
+  Seq(Plane.xw, Plane.yw, Plane.xz, Plane.yz).foreach { plane =>
+    it should s"contain Face4D in $plane bordered on center hole" in new Sponge2:
+      withClue(s"$subfacesString\n${subfaces.map(_.plane)}") {
+        subfaces.map(_.plane) should contain(plane)
+      }
+  }
 
   it should "contain 16 subfaces" in new Sponge2:
     subfaces should have size 16
@@ -302,14 +302,15 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
     val nestedCount = level0.faces.map(face => level1.faceGenerator(face).size).sum
     level1.faces should have size nestedCount
 
-  "All faces in TesseractSponge2" should "be rectangular and axis-aligned" in new Sponge2:
+  "All faces in TesseractSponge2" should "be parallel to an axis" in new Sponge2:
     forAll(subfaces) { face =>
       val edges = face.edges.map { case (a, b) => b - a }
-
-      // Each edge should be parallel to an axis (3 components should be near zero)
       forAll(edges) { edge =>edge.toArray.count(v => math.abs(v) < Const.epsilon) shouldBe 3 }
+    }
 
-      // Opposite edges should be parallel, equal length and opposite direction
+  it should "have opposite edges parallel, equal length and opposite direction" in new Sponge2:
+    forAll(subfaces) { face =>
+      val edges = face.edges.map { case (a, b) => b - a }
       (edges(0) + edges(2)).len shouldBe 0f +- Const.epsilon
       (edges(1) + edges(3)).len shouldBe 0f +- Const.epsilon
     }

@@ -12,7 +12,7 @@ extension (m: Matrix4)
 
   def add(m1: Matrix4): Matrix4 = Matrix4(asArray.zip(m1.asArray).map((a, b) => a + b))
 
-  def multiply(v: Vector4): Vector4 =
+  def apply(v: Vector4): Vector4 =
     val m0 = m.`val`(Matrix4.M00) * v.x + m.`val`(Matrix4.M01) * v.y + m.`val`(Matrix4.M02) * v.z + m.`val`(Matrix4.M03) * v.w
     val m1 = m.`val`(Matrix4.M10) * v.x + m.`val`(Matrix4.M11) * v.y + m.`val`(Matrix4.M12) * v.z + m.`val`(Matrix4.M13) * v.w
     val m2 = m.`val`(Matrix4.M20) * v.x + m.`val`(Matrix4.M21) * v.y + m.`val`(Matrix4.M22) * v.z + m.`val`(Matrix4.M23) * v.w

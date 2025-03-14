@@ -62,7 +62,7 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
 
 /** normals point in the two directions orthogonal to the edges */
 def normalDirections(edgeVectors: Seq[Vector4]): Seq[Vector4] =
-  val edgeDirectionIndices = edgeVectors.toSet.flatMap(setIndices(_))
+  val edgeDirectionIndices = edgeVectors.toSet.flatMap(setIndices)
   val normalIndices = (0 until Face4D.dimension).toSet.diff(edgeDirectionIndices)
   normalIndices.map(unitVector).toSeq
 
@@ -83,9 +83,10 @@ object Face4D:
       vertices.length == dimension,
       s"Need 4$dimension vertices, have ${vertices.length}: ${vertices.map(vec2string)}"
     )
+    val edgeLengths = (vertices :+ vertices.head).sliding(2).map(edge => edge.head.dst2(edge.last)).toSet
     require(
-      (vertices :+ vertices.head).sliding(2).map(edge => edge.head.dst2(edge.last)).toSet.size == 1,
-      s"Vertices must all be same length, are ${vertices.map(vec2string)}"
+      edgeLengths.max - edgeLengths.min <= Const.epsilon,
+      s"Vertices must all be same length, are $edgeLengths (${vertices.map(vec2string)})"
     )
     Face4D(vertices.head, vertices(1), vertices(2), vertices(3))
 
