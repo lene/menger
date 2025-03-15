@@ -33,12 +33,6 @@ object Plane extends LazyLogging:
       setIndices.length == 2,
       s"Corner points must lie in a plane, has ${setIndices.mkString(", ")} (${cornerPoints.mkString(", ")})"
     )
-    val differences: Array[Vector4] = cornerPoints.foldLeft(Array(cornerPoints.last - cornerPoints.head))((diffs, v) => diffs :+ v - diffs.head)
-    logger.debug(
-      s"cornerPoints: ${cornerPoints.mkString(", ")}\n" +
-      s"differences: ${differences.mkString(", ")}\n" +
-      s"diffs: ${differences.map(_.toArray.mkString(", ")).mkString("\n")}"
-    )
     Plane(setIndices.head, setIndices.last)
 
   def apply(cornerPoints: Face4D): Plane = apply(cornerPoints.asSeq)

@@ -8,14 +8,14 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.Tag
 import org.scalamock.scalatest.MockFactory
 
-import scala.runtime.stdLibPatches.Predef.assert
 import menger.{MengerEngine, RotationProjectionParameters}
-import menger.input.{EventDispatcher, CameraController, KeyController, Observer}
+import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
+import org.scalatest.matchers.should.Matchers
 
 
 object GdxTest extends Tag("GdxTest")  // needs Gdx to be available
 
-class GeometrySuite extends AnyFlatSpec with MockFactory:
+class GeometrySuite extends AnyFlatSpec with MockFactory with Matchers:
   // Can't mock Java class. Extend in Scala to mock: https://github.com/lampepfl/dotty/issues/18694
   class MockedCamera extends PerspectiveCamera
   private val camera = stub[MockedCamera]
@@ -37,91 +37,91 @@ class GeometrySuite extends AnyFlatSpec with MockFactory:
      * So only run this with "sbt test"
      */
     assume(loadingLWJGLSucceeds)
-    assert(loadingLWJGLSucceeds)
+    loadingLWJGLSucceeds should be (true)
 
   "instantiating a sphere" should "not store a model" taggedAs GdxTest in:
-    assert(Sphere.numStoredModels == 0)
+    Sphere.numStoredModels should be (0)
     Sphere()
-    assert(Sphere.numStoredModels == 0)
+    Sphere.numStoredModels should be(0)
 
   "calling at() on a sphere" should "store a model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    assert(Sphere.numStoredModels == 0)
+    Sphere.numStoredModels should be(0)
     Sphere().at(ORIGIN, 1)
-    assert(Sphere.numStoredModels == 1)
+    Sphere.numStoredModels should be(1)
 
   "calling at() on different spheres" should "store only one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    assert(Sphere.numStoredModels == 1)
+    Sphere.numStoredModels should be(1)
     Sphere().at(ORIGIN, 1)
     Sphere().at(ORIGIN, 2)
-    assert(Sphere.numStoredModels == 1)
+    Sphere.numStoredModels should be(1)
 
   "calling at() on sphere with different parameters" should "store two models" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    assert(Sphere.numStoredModels == 1)
+    Sphere.numStoredModels should be(1)
     Sphere(divisions = 10).at(ORIGIN, 1)
-    assert(Sphere.numStoredModels == 2)
+    Sphere.numStoredModels should be(2)
 
   "sphere toString" should "return class name" in:
-    assert(Sphere().toString == "Sphere")
+    Sphere().toString should be("Sphere")
 
   "cube" should "be one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    assert(Cube().at(ORIGIN, 1).size == 1)
+    Cube().at(ORIGIN, 1) should have size 1
 
   it should "store one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    assert(Cube.numStoredModels == 1)
+    Cube.numStoredModels should be(1)
 
   "different cube models" should "be stored separately" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     Cube(primitiveType = GL20.GL_LINES).at(ORIGIN, 1)
-    assert(Cube.numStoredModels == 2)
+    Cube.numStoredModels should be(2)
 
   "cube toString" should "return class name" in:
-    assert(Cube().toString == "Cube")
+    Cube().toString should be("Cube")
 
   "cube from squares" should "operate with six faces" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    assert(CubeFromSquares().at(ORIGIN, 1).size == 6)
+    CubeFromSquares().at(ORIGIN, 1) should have size 6
 
   it should "store one square" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    assert(CubeFromSquares.numStoredFaces == 1)
+    CubeFromSquares.numStoredFaces should be(1)
 
   "sponge level 0" should "be one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    assert(SpongeByVolume(0).at(ORIGIN, 1).size == 1)
+    SpongeByVolume(0).at(ORIGIN, 1) should have size 1
 
   "sponge level 1" should "have twenty times the size of level 0" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     val cubeSize = SpongeByVolume(0).at(ORIGIN, 1).size
-    assert(SpongeByVolume(1).at(ORIGIN, 1).size == 20 * cubeSize)
+    SpongeByVolume(1).at(ORIGIN, 1) should have size 20 * cubeSize
 
   "sponge level 2" should "have 400 times the size of level 0" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     val cubeSize = SpongeByVolume(0).at(ORIGIN, 1).size
-    assert(SpongeByVolume(2).at(ORIGIN, 1).size == 20 * 20 * cubeSize)
+    SpongeByVolume(2).at(ORIGIN, 1) should have size 20 * 20 * cubeSize
 
   "sponge by volume toString" should "return class name" in:
-    assert(SpongeByVolume(0).toString == "SpongeByVolume(level=0, 6 faces)")
+    SpongeByVolume(0).toString should be("SpongeByVolume(level=0, 6 faces)")
 
   "sponge by surface" should "have toString return class name" in:
     assume(loadingLWJGLSucceeds)
-    assert(SpongeBySurface(0).toString == "SpongeBySurface(level=0, 6 faces)")
+    SpongeBySurface(0).toString should be("SpongeBySurface(level=0, 6 faces)")
 
   it should "have at() returns 6 faces regardless of level" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    assert(SpongeBySurface(0).at(ORIGIN, 1).size == 6)
-    assert(SpongeBySurface(1).at(ORIGIN, 1).size == 6)
+    SpongeBySurface(0).at(ORIGIN, 1) should have size 6
+    SpongeBySurface(1).at(ORIGIN, 1) should have size 6
 
   it should "create mesh(es)" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    assert(SpongeBySurface(1).mesh.meshes.notEmpty)
+    SpongeBySurface(1).mesh.meshes should not be empty
 
   "face of sponge by surface level 1" should "have 12 subfaces" in:
-    assert(SpongeBySurface(1).faces.size == 12)
+    SpongeBySurface(1).faces should have size 12
 
   "MengerEngine" should "instantiate with lines" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
@@ -136,9 +136,7 @@ class GeometrySuite extends AnyFlatSpec with MockFactory:
     MengerEngine(0.01, spongeType = "tesseract").create()
 
   it should "fail with invalid object type" taggedAs GdxTest in:
-    assertThrows[IllegalArgumentException] {
-      MengerEngine(0.01, spongeType = "invalid").create()
-    }
+    an [IllegalArgumentException] should be thrownBy MengerEngine(0.01, spongeType = "invalid").create()
 
   "InputController" should "instantiate from a camera and dispatcher" in:
     assume(loadingLWJGLSucceeds)
@@ -178,7 +176,7 @@ class GeometrySuite extends AnyFlatSpec with MockFactory:
       Keys.A, Keys.B, Keys.C, Keys.D, Keys.E, Keys.F, Keys.G, Keys.H, Keys.I, Keys.J, Keys.K,
       Keys.L, Keys.M, Keys.N, Keys.O, Keys.P, Keys.R, Keys.S, Keys.T, Keys.U, Keys.V, Keys.W,
       Keys.X, Keys.Y, Keys.Z
-    ).foreach { key => assert(!controller.keyDown(key)) }
+    ).foreach { key => !controller.keyDown(key) should be (true) }
 
   "rotate keys" should "rotate camera" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
@@ -189,21 +187,21 @@ class GeometrySuite extends AnyFlatSpec with MockFactory:
     Seq(Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT).foreach { key =>
       val thisController = controller
       thisController.keyDown(key)
-      assert(thisController.shift)
+      thisController.shift should be (true)
     }
 
   "pressing ctrl" should "be recorded" in:
     Seq(Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT).foreach { key =>
       val thisController = controller
       thisController.keyDown(key)
-      assert(thisController.ctrl)
+      thisController.ctrl should be (true)
     }
 
   "pressing alt" should "be recorded" in:
     Seq(Keys.ALT_LEFT, Keys.ALT_RIGHT).foreach { key =>
       val thisController = controller
       thisController.keyDown(key)
-      assert(thisController.alt)
+      thisController.alt should be (true)
     }
 
   "EventDispatcher" should "notify observers with shift pressed" taggedAs GdxTest in:
@@ -219,7 +217,7 @@ class GeometrySuite extends AnyFlatSpec with MockFactory:
     thisController.keyDown(Keys.SHIFT_LEFT)
     thisController.keyDown(Keys.RIGHT)
     thisController.keyUp(Keys.SHIFT_LEFT)
-    assert(observer.notified)
+    observer.notified should be (true)
 
   "CameraInputController" should "instantiate" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
@@ -245,8 +243,7 @@ class GeometrySuite extends AnyFlatSpec with MockFactory:
     val thisController = CameraController(camera, dispatcher)
     thisController.touchDragged(0, 1, 0)
 
-
-def testKeyDown(inputController: KeyController, key: Int): Unit = {
-  assert(!inputController.keyDown(key))
-  inputController.keyUp(key)
-}
+  def testKeyDown(inputController: KeyController, key: Int): Unit = {
+    inputController.keyDown(key) should be (false)
+    inputController.keyUp(key)
+  }

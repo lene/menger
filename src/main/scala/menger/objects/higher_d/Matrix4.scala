@@ -10,8 +10,6 @@ extension (m: Matrix4)
     m.`val`(Matrix4.M30), m.`val`(Matrix4.M31), m.`val`(Matrix4.M32), m.`val`(Matrix4.M33)
   )
 
-  def add(m1: Matrix4): Matrix4 = Matrix4(asArray.zip(m1.asArray).map((a, b) => a + b))
-
   def apply(v: Vector4): Vector4 =
     val m0 = m.`val`(Matrix4.M00) * v.x + m.`val`(Matrix4.M01) * v.y + m.`val`(Matrix4.M02) * v.z + m.`val`(Matrix4.M03) * v.w
     val m1 = m.`val`(Matrix4.M10) * v.x + m.`val`(Matrix4.M11) * v.y + m.`val`(Matrix4.M12) * v.z + m.`val`(Matrix4.M13) * v.w
@@ -29,5 +27,3 @@ extension (m: Matrix4)
       Array(bdArray(Matrix4.M30), bdArray(Matrix4.M31), bdArray(Matrix4.M32), bdArray(Matrix4.M33)).mkString("|", " ", "|")
     )
     mArray.mkString("\n")
-
-def str(v: Vector4): String = Array(v.x, v.y, v.z, v.w).map("% 2.2f".format(_)).mkString("<", " ", ">")

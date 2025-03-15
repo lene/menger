@@ -10,7 +10,7 @@ variables:
   DEPLOYABLE_VERSION: 0.2.3
   SBT_IMAGE: hseeberger/scala-sbt:17.0.2_1.6.2_3.1.1
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
-  SCALA_VERSION: 3.6.2
+  SCALA_VERSION: 3.6.4
 
 default:
   retry: 2
@@ -131,6 +131,7 @@ Run:UseSbtDocker:
     - xvfb-run -a sbt "run --timeout 0.1 --level 4"
     - xvfb-run -a sbt "run --timeout 0.1 --sponge-type tesseract"
     - xvfb-run -a sbt "run --timeout 0.1 --level 1 --sponge-type tesseract-sponge"
+    - xvfb-run -a sbt "run --timeout 0.1 --level 1 --sponge-type tesseract-sponge-2"
 
 CheckRunTime:
   image: $SBT_IMAGE

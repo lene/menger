@@ -77,9 +77,6 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
   it should "contain 16 distinct points" in new Sponge2:
     sponge2.cornerPoints(face).values.toSet should have size 16
 
-  ignore should "print the points" in new Sponge2:
-    assert(false, sponge2.cornerPoints(face).toSeq.sortBy(v => v._2.z*10 + v._2.w).mkString("\n"))
-
   "A subdivided face's flat parts" should "have size 8" in new Sponge2:
     flatSubfaces should have size 8
 
@@ -180,13 +177,10 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     def isParallelToAxes(v: Vector4): Boolean =
       v.toArray.count(f => math.abs(f) < Const.epsilon) == 3
 
-    perpendicularSubfaces.foreach(r =>
-      val differences = Seq(r.b - r.a, r.c - r.b, r.d - r.c, r.a - r.d)
-      assert(
-        differences.forall(v => isParallelToAxes(v)),
-        differences.map(vec2string).toString
-      )
-    )
+    forAll(perpendicularSubfaces) { face =>
+      val edges = Seq(face.b - face.a, face.c - face.b, face.d - face.c, face.a - face.d)
+      forAll(edges) { edge => isParallelToAxes(edge) shouldBe true }
+    }
 
   it should "all have 1/9 the original area" in new Sponge2:
     val originalArea: Float = face.area

@@ -1,8 +1,9 @@
 package menger
 
 import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class RotationProjectionParametersSuite extends AnyFlatSpec:
+class RotationProjectionParametersSuite extends AnyFlatSpec with Matchers:
 
   "instantiating from CLI options" should "work" in:
     val options = MengerCLIOptions(
@@ -11,19 +12,19 @@ class RotationProjectionParametersSuite extends AnyFlatSpec:
         "--projection-screen-w", "1", "--projection-eye-w", "2"
       ))
     val parameters = RotationProjectionParameters(options)
-    assert(parameters.rotXW == 1)
-    assert(parameters.rotYW == 2)
-    assert(parameters.rotZW == 3)
-    assert(parameters.screenW == 1)
-    assert(parameters.eyeW == 2)
+    parameters.rotXW should be (1)
+    parameters.rotYW should be (2)
+    parameters.rotZW should be (3)
+    parameters.screenW should be (1)
+    parameters.eyeW should be (2)
 
   "plus for rotation parameters" should "add the components" in:
     val p1 = RotationProjectionParameters(1, 2, 3)
     val p2 = RotationProjectionParameters(4, 5, 6)
     val p3 = p1 + p2
-    assert(p3.rotXW == 5)
-    assert(p3.rotYW == 7)
-    assert(p3.rotZW == 9)
+    p3.rotXW should be (5)
+    p3.rotYW should be (7)
+    p3.rotZW should be (9)
 
   "plus for projection parameters" should "increase distance if adding bigger distance" in:
     val originalEyeDistance = 2f
@@ -31,8 +32,8 @@ class RotationProjectionParametersSuite extends AnyFlatSpec:
     val p1 = RotationProjectionParameters(0, 0, 0, originalEyeDistance, 1)
     val p2 = RotationProjectionParameters(0, 0, 0, targetEyeDistance, 1)
     val p3 = p1 + p2
-    assert(p3.eyeW > originalEyeDistance)
-    assert(p3.eyeW < targetEyeDistance)
+    p3.eyeW should be > originalEyeDistance
+    p3.eyeW should be < targetEyeDistance
 
   it should "decrease distance if adding smaller distance" in:
     val originalEyeDistance = 3f
@@ -40,8 +41,8 @@ class RotationProjectionParametersSuite extends AnyFlatSpec:
     val p1 = RotationProjectionParameters(0, 0, 0, originalEyeDistance, 1)
     val p2 = RotationProjectionParameters(0, 0, 0, targetEyeDistance, 1)
     val p3 = p1 + p2
-    assert(p3.eyeW < originalEyeDistance)
-    assert(p3.eyeW > targetEyeDistance)
+    p3.eyeW should be < originalEyeDistance
+    p3.eyeW should be > targetEyeDistance
 
   it should "keep distance same if adding same distance" in:
     val originalEyeDistance = 3f
@@ -49,4 +50,4 @@ class RotationProjectionParametersSuite extends AnyFlatSpec:
     val p1 = RotationProjectionParameters(0, 0, 0, originalEyeDistance, 1)
     val p2 = RotationProjectionParameters(0, 0, 0, targetEyeDistance, 1)
     val p3 = p1 + p2
-    assert(p3.eyeW == originalEyeDistance)
+    p3.eyeW should be (originalEyeDistance)

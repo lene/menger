@@ -16,7 +16,6 @@ extension (v: Vector4)
   def unary_- : Vector4 = com.badlogic.gdx.math.Vector4(-v.x, -v.y, -v.z, -v.w)
   def toArray: Array[Float] = Array(v.x, v.y, v.z, v.w)
   def asString: String = vec2string(v)
-  def toVec2: String = f"(${v.z}%.2f, ${v.w}%.2f)"
   def ===(v2: Vector4): Boolean = v.epsilonEquals(v2, Const.epsilon)
 
 /// An n-dimensional vector TODO: continue later

@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.{Matrix4, Vector4}
+import com.badlogic.gdx.math.Vector4
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.*
 import CustomMatchers.*
@@ -14,9 +14,6 @@ trait StandardVector:
   val y = Vector4(0, 1, 0, 0)
   val z = Vector4(0, 0, 1, 0)
   val w = Vector4(0, 0, 0, 1)
-
-  def seqsOfVectorsEpsilonEquals(a: Seq[Vector4], b: Seq[Vector4]): Boolean =
-    a.zip(b).map(v => v._1.epsilonEquals(v._2)).forall(identity)
 
 class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with StandardVector:
   "zero Rotation" should "keep point same" in:
@@ -63,9 +60,8 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
   it should "add up" in:
     val r1 = Rotation(10, 0, 0)
     val r2 = Rotation(20, 0, 0)
-    val p = Vector4(1, 2, 3, 4)
     (r1 + r2) === Rotation(30, 0, 0) should be (true)
-  
+
   "chaining two rotations" should "have same result regardless of order" in:
     val r1 = Rotation(10, 0, 0)
     val r2 = Rotation(20, 0, 0)
