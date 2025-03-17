@@ -1,16 +1,15 @@
 package menger.objects
 
 import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
 import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
 import com.badlogic.gdx.math.Vector3
 import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.Tag
 import org.scalamock.scalatest.MockFactory
 
 import menger.{MengerEngine, RotationProjectionParameters}
 import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
-import org.scalatest.matchers.should.Matchers
 
 
 object GdxTest extends Tag("GdxTest")  // needs Gdx to be available
@@ -23,12 +22,7 @@ class GeometrySuite extends AnyFlatSpec with MockFactory with Matchers:
 
   private val ORIGIN = Vector3(0, 0, 0)
   private def controller = KeyController(camera, dispatcher)
-  private lazy val loadingLWJGLSucceeds: Boolean =
-    try
-      Lwjgl3Application(MengerEngine(0.01), Lwjgl3ApplicationConfiguration()).exit()
-      true
-    catch
-      case _: UnsatisfiedLinkError => false
+  private val loadingLWJGLSucceeds: Boolean = LWJGLLoadChecker.loadingLWJGLSucceeds
 
   "instantiating a client" should "work" taggedAs GdxTest in:
     /**
