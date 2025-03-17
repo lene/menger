@@ -329,6 +329,15 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
     it should s"have absolute coordinate values 1/2 or 1/6 in face ${i+1}" in:
       checkCoordinatesOfSubdividedSpongeFace(TesseractSponge2(0), i)
 
+  "toString" should "return the class name" in new Sponge2:
+    sponge2.toString should include("TesseractSponge2")
+
+  it should "contain the sponge level" in new Sponge2:
+    sponge2.toString should include(s"level=${sponge2.level}")
+
+  it should "contain the number of faces" in new Sponge2:
+    sponge2.toString should include(s"${sponge2.faces.size} faces")
+
   private def checkCoordinatesOfSubdividedSpongeFace(sponge: TesseractSponge2, i: Int) =
     val subface: Face4D = sponge.faces(i)
     val subdividedFace: Seq[Face4D] = sponge.faceGenerator(subface)

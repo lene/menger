@@ -28,15 +28,22 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh with Matchers:
   it should "have no face around the removed center Tesseract" in new Sponge:
     forAll(sponge.faces) { rect => !isCenterOfOriginalTesseract(rect) }
 
+  "toString" should "return the class name" in new Sponge:
+    sponge.toString should include("TesseractSponge")
 
-  def isCenterOfOriginalFace(face: Face4D): Boolean =
+  it should "contain the sponge level" in new Sponge:
+    sponge.toString should include(s"level=${sponge.level}")
+
+  it should "contain the number of faces" in new Sponge:
+    sponge.toString should include(s"${sponge.faces.size} faces")
+
+  private def isCenterOfOriginalFace(face: Face4D): Boolean =
     // A face is a center face if 2 of its coordinates are +/- 1/6 and the other 2 are 0.5
     face.asSeq.forall({ v =>
       val va = v.toArray
       va.count(_.abs == 0.5) == 2 && va.count(_.abs == 1 / 6f) == 2
-    }
-    )
+    })
 
-  def isCenterOfOriginalTesseract(face: Face4D): Boolean =
+  private def isCenterOfOriginalTesseract(face: Face4D): Boolean =
     // A face is a center face if all of its coordinates are +/- 1/6
     face.asSeq.forall { _.toArray.count(_.abs == 1 / 6f) == 4 }

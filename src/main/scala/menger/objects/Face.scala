@@ -13,25 +13,14 @@ case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Dir
   lazy val vertices: (VertexInfo, VertexInfo, VertexInfo, VertexInfo) =
     val half = scale / 2
     normal match
-      case X | Direction.negX => (
-          VertexInfo().setPos(xCen, yCen - half, zCen - half),
-          VertexInfo().setPos(xCen, yCen - half, zCen + half),
-          VertexInfo().setPos(xCen, yCen + half, zCen + half),
-          VertexInfo().setPos(xCen, yCen + half, zCen - half)
-        )
-      case Y | Direction.negY => (
-          VertexInfo().setPos(xCen - half, yCen, zCen - half),
-          VertexInfo().setPos(xCen + half, yCen, zCen - half),
-          VertexInfo().setPos(xCen + half, yCen, zCen + half),
-          VertexInfo().setPos(xCen - half, yCen, zCen + half)
-        )
-      case Z | Direction.negZ => (
-          VertexInfo().setPos(xCen - half, yCen - half, zCen),
-          VertexInfo().setPos(xCen + half, yCen - half, zCen),
-          VertexInfo().setPos(xCen + half, yCen + half, zCen),
-          VertexInfo().setPos(xCen - half, yCen + half, zCen)
-        )
+      case X | Direction.negX => createVertices((0, -half, -half), (0, -half, half), (0, half, half), (0, half, -half))
+      case Y | Direction.negY => createVertices((-half, 0, -half), (half, 0, -half), (half, 0, half), (-half, 0, half))
+      case Z | Direction.negZ => createVertices((-half, -half, 0), (half, -half, 0), (half, half, 0), (-half, half, 0))
 
+  private def createVertices(offsets: (Float, Float, Float)*): (VertexInfo, VertexInfo, VertexInfo, VertexInfo) =
+    offsets.map { case (dx, dy, dz) => VertexInfo().setPos(xCen + dx, yCen + dy, zCen + dz) } match
+      case Seq(v1, v2, v3, v4) => (v1, v2, v3, v4)
+  
   private lazy val unrotatedSubFaces: Seq[Face] =
     for (x <- -1 to 1; y <- -1 to 1 if abs(x) + abs(y) > 0)
       yield Face(runningCoordinates(x/3f, y/3f, scale), scale / 3f, normal)

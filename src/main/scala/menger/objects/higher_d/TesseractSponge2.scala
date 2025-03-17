@@ -10,7 +10,7 @@ import com.typesafe.scalalogging.LazyLogging
  * @param level The recursion level (0 = regular tesseract)
  * @param size The size of the bounding tesseract
  */
-class TesseractSponge2(level: Int, size: Float = 1) extends Mesh4D with LazyLogging:
+class TesseractSponge2(level: Int, size: Float = 1) extends Fractal4D(level) with LazyLogging:
 
   private type CornerMap = Map[String, Vector4]
 

@@ -18,8 +18,8 @@ case class Projection(eyeW: Float, screenW: Float) extends RectMesh:
   @targetName("plus")
   def +(p: Projection): Projection = Projection(newEyeW(p), screenW)
 
-  def newEyeW(p: Projection): Float = pow(eyeW, exponent(p)).toFloat
-  def exponent(p: Projection): Double = pow(addExponent, signum(p.eyeW - eyeW))
+  private def newEyeW(p: Projection): Float = pow(eyeW, exponent(p)).toFloat
+  private def exponent(p: Projection): Double = pow(addExponent, signum(p.eyeW - eyeW))
 
   /** project a single 4D point `point` to 3D */
   def apply(point: Vector4): Vector3 =

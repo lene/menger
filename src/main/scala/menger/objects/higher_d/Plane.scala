@@ -30,8 +30,7 @@ object Plane extends LazyLogging:
     require(cornerPoints.length >= 3, s"Need at least 3 corner points, have $cornerPoints")
     val setIndices = Plane.setIndices(cornerPoints)
     require(
-      setIndices.length == 2,
-      s"Corner points must lie in a plane, has ${setIndices.mkString(", ")} (${cornerPoints.mkString(", ")})"
+      setIndices.length == 2, s"Corner points must lie in a plane, are $setIndices ($cornerPoints)"
     )
     Plane(setIndices.head, setIndices.last)
 
@@ -40,7 +39,7 @@ object Plane extends LazyLogging:
   def differenceVectors(cornerPoints: Seq[Vector4]): Seq[Vector4] =
     differences(cornerPoints :+ cornerPoints.head)
 
-  def differences(seq: Seq[Vector4]): Seq[Vector4] =
+  private def differences(seq: Seq[Vector4]): Seq[Vector4] =
     seq.sliding(2).collect { case Seq(a, b) => b - a }.toSeq
 
   def setIndices(cornerPoints: Seq[Vector4]): Array[Int] =
