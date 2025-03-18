@@ -6,7 +6,7 @@ import com.badlogic.gdx.math.Vector3
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.Tag
-import org.scalamock.scalatest.MockFactory
+import org.scalamock.stubs.Stubs
 
 import menger.{MengerEngine, RotationProjectionParameters}
 import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
@@ -14,11 +14,17 @@ import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
 
 object GdxTest extends Tag("GdxTest")  // needs Gdx to be available
 
-class GeometrySuite extends AnyFlatSpec with MockFactory with Matchers:
+class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
   // Can't mock Java class. Extend in Scala to mock: https://github.com/lampepfl/dotty/issues/18694
   class MockedCamera extends PerspectiveCamera
   private val camera = stub[MockedCamera]
+  (camera.translate(_: Vector3)).returns(Vector3 => ())
+  camera.update.returns(())
+  camera.rotateAround.returns(Vector3 => ())
+  (camera.lookAt(_: Float, _: Float, _: Float)).returns(Vector3 => ())
+
   private val dispatcher = stub[EventDispatcher]
+  dispatcher.notifyObservers.returns (_ => ())
 
   private val ORIGIN = Vector3(0, 0, 0)
   private def controller = KeyController(camera, dispatcher)
@@ -142,7 +148,7 @@ class GeometrySuite extends AnyFlatSpec with MockFactory with Matchers:
     thisController.keyDown(Keys.SHIFT_LEFT)
     thisController.keyDown(Keys.RIGHT)
     thisController.keyUp(Keys.SHIFT_LEFT)
-    dispatcher.notifyObservers.verify(*).once()
+    dispatcher.notifyObservers.times should be (1)
 
   private final val modKeys = Seq(
     Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT, Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT,
@@ -175,7 +181,7 @@ class GeometrySuite extends AnyFlatSpec with MockFactory with Matchers:
   "rotate keys" should "rotate camera" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     rotateKeys.foreach {testKeyDown(controller, _)}
-    camera.rotateAround.verify(*, *, *).repeat(2 * rotateKeys.size)
+    camera.rotateAround.times should be (4 * rotateKeys.size)
 
   "pressing shift" should "be recorded" in:
     Seq(Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT).foreach { key =>
@@ -221,6 +227,8 @@ class GeometrySuite extends AnyFlatSpec with MockFactory with Matchers:
     assume(loadingLWJGLSucceeds)
     val thisController = CameraController(camera, dispatcher)
     thisController.touchDown(0, 1, 0, 0)
+
+  import scala.language.postfixOps
 
   it should "record touchDragged" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)

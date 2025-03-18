@@ -19,7 +19,7 @@ lazy val root = project
     ),
     // ScalaTest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-    libraryDependencies += "org.scalamock" %% "scalamock" % "6.1.1" % Test,
+    libraryDependencies += "org.scalamock" %% "scalamock" % "7.2.0" % Test,
 
     // Scallop command line parser
     libraryDependencies += "org.rogach" %% "scallop" % "5.2.0",
@@ -31,5 +31,6 @@ lazy val root = project
       "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.13.1",
       "com.badlogicgames.gdx" % "gdx-platform" % "1.13.1" classifier "natives-desktop",
     ),
+    Test / scalacOptions += "-experimental"
 
   )

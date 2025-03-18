@@ -22,14 +22,14 @@ include:
 # I leave it in mostly for documentation how to install the environment.
 Test:Debian:
   retry: 1
+  when: manual  # disable for now to save expensive GitLab minutes
   parallel:
     matrix:
       - IMAGE:
-# Disabling most installs for now to save expensive GitLab minutes
-          - ubuntu:latest
-#        - ubuntu:22.04
-#        - debian:stable-slim
-#        - debian:testing-slim
+        - ubuntu:latest
+        - ubuntu:22.04
+        - debian:stable-slim
+        - debian:testing-slim
   image: $IMAGE
   stage: test
   needs: []
@@ -131,7 +131,7 @@ Run:UseSbtDocker:
     - xvfb-run -a sbt "run --timeout 0.1 --level 4"
     - xvfb-run -a sbt "run --timeout 0.1 --sponge-type tesseract"
     - xvfb-run -a sbt "run --timeout 0.1 --level 1 --sponge-type tesseract-sponge"
-    - xvfb-run -a sbt "run --timeout 0.1 --level 1 --sponge-type tesseract-sponge-2"
+    - xvfb-run -a sbt "run --timeout 0.1 --level 2 --sponge-type tesseract-sponge-2"
 
 CheckRunTime:
   image: $SBT_IMAGE

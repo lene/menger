@@ -46,9 +46,7 @@ class SpongeBySurface(
   lazy val mesh: Model = logTime("mesh", 5) {
       Builder.modelBuilder.begin()
       faces.grouped(MeshBuilder.MAX_VERTICES / 4).foreach(facesPart =>
-        val meshBuilder: MeshPartBuilder = Builder.modelBuilder.part(
-          "sponge", primitiveType, Usage.Position | Usage.Normal, material
-        )
+        val meshBuilder = Builder.modelBuilder.part("sponge", primitiveType, Builder.DEFAULT_FLAGS, material)
         facesPart.foreach(face => meshBuilder.rect.tupled(face.vertices))
       )
       Builder.modelBuilder.end()

@@ -2,6 +2,7 @@ package menger.objects.higher_d
 
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
 import com.badlogic.gdx.math.Vector3
+import menger.objects.LWJGLLoadChecker
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.Inspectors.forAll
@@ -44,4 +45,3 @@ class RotatedProjectionSuite extends AnyFlatSpec with Matchers:
         case (vertex, info) => vertex should be (info.position)
       }
     }
-
