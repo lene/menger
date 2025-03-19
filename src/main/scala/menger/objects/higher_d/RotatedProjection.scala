@@ -19,8 +19,8 @@ case class RotatedProjection(
   def projectedFaceVertices: Seq[Quad3D] =
     object4D.faces.map {rotation(_)}.map {projection(_)}
     
-  def projectedFaceInfo: Seq[RectInfo] = projectedFaceVertices.map {
-    rv => (VertexInfo(rv(0)), VertexInfo(rv(1)), VertexInfo(rv(2)), VertexInfo(rv(3)))
+  def projectedFaceInfo: Seq[QuadInfo] = projectedFaceVertices.map {
+    rv => QuadInfo(VertexInfo(rv(0)), VertexInfo(rv(1)), VertexInfo(rv(2)), VertexInfo(rv(3)))
   }
 
   def mesh: Model = logTime("mesh", 10) {
