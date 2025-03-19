@@ -3,7 +3,7 @@ package menger.objects.higher_d
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.math.Vector4
-import menger.objects.*
+import menger.objects.Builder
 
 /**
  * Represents a tesseract (4D hypercube) of edge length `size` centered at the origin.
@@ -21,7 +21,7 @@ case class Tesseract(
   size: Float = 1.0,
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Mesh4D:
-
+  
   lazy val vertices: Seq[Vector4] =
     val coords = Seq(-size / 2, size / 2)
     for (
@@ -66,7 +66,7 @@ case class Tesseract(
    }
    ```
    */
-  lazy val faceIndices: Seq[RectIndices] = Seq(
+  lazy val faceIndices: Seq[RectIndices] = RectIndices.fromTuples(
     ( 0, 1, 3, 2), ( 0, 1, 5, 4), ( 0, 1, 9, 8), ( 0, 2, 6, 4),
     ( 0, 2,10, 8), ( 0, 4,12, 8), ( 3, 1, 5, 7), ( 3, 1, 9,11),
     ( 5, 1, 9,13), ( 3, 2, 6, 7), ( 3, 2,10,11), (10, 2, 6,14),
@@ -75,9 +75,7 @@ case class Tesseract(
     (12, 8,10,14), (15,11, 9,13), (15,11,10,14), (15,13,12,14)
   )
 
-  lazy val faces: Seq[Face4D] = faceIndices.map {
-    case (a, b, c, d) => Face4D(vertices(a), vertices(b), vertices(c), vertices(d))
-  }
+  lazy val faces: Seq[Face4D] = faceIndices.map { _.toFace4D(vertices) }
 
   lazy val edges: Seq[(Vector4, Vector4)] = faces.flatMap {
     // sets instead of tuples so edges are equal regardless of direction

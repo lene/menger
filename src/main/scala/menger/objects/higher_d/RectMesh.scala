@@ -8,7 +8,6 @@ import com.badlogic.gdx.math.{Vector3, Vector4}
 import menger.objects.Builder
 
 trait RectMesh:
-  type RectIndices = (Int, Int, Int, Int)
   type RectVertices3D = (Vector3, Vector3, Vector3, Vector3)
   type RectInfo = (VertexInfo, VertexInfo, VertexInfo, VertexInfo)
 
