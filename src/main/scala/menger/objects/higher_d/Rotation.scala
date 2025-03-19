@@ -34,7 +34,7 @@ object Rotation extends LazyLogging:
     val rotate = Rotation.matrix(0, 3, degreesXW).mul(Ryw).mul(Rzw)
     Rotation(rotate, pivotPoint)
 
-  def apply(plane: Plane, axis: (Vector4, Vector4), pivotPoint: Vector4, angle: Float): Array[Rotation] =
+  def apply(plane: Plane, axis: Edge, pivotPoint: Vector4, angle: Float): Array[Rotation] =
     val u: Vector4 = axis(1) - axis(0)
     val direction: Int = u.toArray.indexWhere(math.abs(_) > Const.epsilon)
     require(

@@ -37,15 +37,15 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
     )
     normalDirections(edges).zip(normalSigns(edges)).map { case (vec, sign) => vec * sign }
 
-  def edges: Seq[(Vector4, Vector4)] = Seq((a, b), (b, c), (c, d), (d, a))
+  def edges: Seq[Edge] = Seq(Edge(a, b), Edge(b, c), Edge(c, d), Edge(d, a))
   def plane: Plane = Plane(asSeq)
 
   def rotate(): Seq[Face4D] =
-    edges.flatMap { case (cornerA, cornerB) => rotate(cornerA, cornerB) }
+    edges.flatMap { edge => rotate(edge) }
 
-  def rotate(cornerA: Vector4, cornerB: Vector4): Seq[Face4D] =
+  def rotate(edge: Edge): Seq[Face4D] =
     val allCorners = asSeq
-    val corners = Seq(cornerA, cornerB)
+    val corners = edge.asSeq
     val oppositeCorners = remainingCorners(allCorners, corners)
     require(
       oppositeCorners.size == 2,
@@ -58,7 +58,7 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
     )
     normals.map { normal =>
       val newOpposites = corners.map(_ + normal * distance.len())
-      Face4D(cornerA, cornerB, newOpposites.last, newOpposites.head)
+      Face4D(edge.v0, edge.v1, newOpposites.last, newOpposites.head)
     }
 
 /** normals point in the two directions orthogonal to the edges */

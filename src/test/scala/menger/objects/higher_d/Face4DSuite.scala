@@ -244,28 +244,28 @@ class Face4DSuite extends AnyFlatSpec with RectMesh with Matchers:
     an [IllegalArgumentException] should be thrownBy remainingCorners(seqXY, cornersToRemove)
 
   "rotate around an edge" should "return a Face4D at all" in:
-    val rotated = faceXY.rotate(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0))
+    val rotated = faceXY.rotate(Edge(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0)))
     rotated should not be empty
 
   it should "actually return 2 Face4Ds" in:
-    val rotated = faceXY.rotate(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0))
+    val rotated = faceXY.rotate(Edge(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0)))
     rotated should have length 2
 
   it should "rotate a selected Face4D correctly" in:
     val face = faceXY + Vector4(0, 0, -3, -3)
     face.normals should contain (Vector4.Z)
-    val rotated = face.rotate(Vector4(-1, -1, -3, -3), Vector4(1, -1, -3, -3))
+    val rotated = face.rotate(Edge(Vector4(-1, -1, -3, -3), Vector4(1, -1, -3, -3)))
     rotated should contain (Face4D(Vector4(-1, -1, -3, -3), Vector4(1, -1, -3, -3), Vector4(1, -1, -1, -3), Vector4(-1, -1, -1, -3)))
 
   it should "rotate another selected Face4D correctly" in:
     val face = Face4D(Vector4(1, 1, 3, 3), Vector4(-1, 1, 3, 3), Vector4(-1, -1, 3, 3), Vector4(1, -1, 3, 3))
     face.normals should contain (-Vector4.Z)
-    val rotated = face.rotate(Vector4(1, 1, 3, 3), Vector4(-1, 1, 3, 3))
+    val rotated = face.rotate(Edge(Vector4(1, 1, 3, 3), Vector4(-1, 1, 3, 3)))
     rotated should contain (Face4D(Vector4(1, 1, 3, 3), Vector4(-1, 1, 3, 3), Vector4(-1, 1, 1, 3), Vector4(1, 1, 1, 3)))
 
   it should "throw exception when corners are not in the face" in:
     val face = Face4D(Vector4(-1, -1, 0, 0), Vector4(1, -1, 0, 0), Vector4(1, 1, 0, 0), Vector4(-1, 1, 0, 0))
-    an [IllegalArgumentException] should be thrownBy face.rotate(Vector4(-2, -2, 0, 0), Vector4(2, -2, 0, 0))
+    an [IllegalArgumentException] should be thrownBy face.rotate(Edge(Vector4(-2, -2, 0, 0), Vector4(2, -2, 0, 0)))
 
   "rotate" should "return 8 Face4Ds" in:
     val rotated = faceXY.rotate()

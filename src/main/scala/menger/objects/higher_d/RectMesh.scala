@@ -2,7 +2,6 @@ package menger.objects.higher_d
 
 import com.badlogic.gdx.graphics.g3d.{Material, Model}
 import com.badlogic.gdx.graphics.g3d.utils.{MeshBuilder, MeshPartBuilder}
-import com.badlogic.gdx.math.Vector4
 import menger.objects.Builder
 
 trait RectMesh:
@@ -15,5 +14,3 @@ trait RectMesh:
       facesPart.foreach(face => meshBuilder.rect(face.v0, face.v1, face.v2, face.v3))
     )
     Builder.modelBuilder.end()
-
-def edgeToString(edge: (Vector4, Vector4)): String = faceToString(Seq(edge._1, edge._2))

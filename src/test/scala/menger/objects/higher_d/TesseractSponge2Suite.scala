@@ -298,15 +298,15 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
 
   "All faces in TesseractSponge2" should "be parallel to an axis" in new Sponge2:
     forAll(subfaces) { face =>
-      val edges = face.edges.map { case (a, b) => b - a }
-      forAll(edges) { edge =>edge.toArray.count(v => math.abs(v) < Const.epsilon) shouldBe 3 }
+      val edgeVectors = face.edges.map(_.diff)
+      forAll(edgeVectors) { edge => edge.toArray.count(v => math.abs(v) < Const.epsilon) shouldBe 3 }
     }
 
   it should "have opposite edges parallel, equal length and opposite direction" in new Sponge2:
     forAll(subfaces) { face =>
-      val edges = face.edges.map { case (a, b) => b - a }
-      (edges(0) + edges(2)).len shouldBe 0f +- Const.epsilon
-      (edges(1) + edges(3)).len shouldBe 0f +- Const.epsilon
+      val edgeVectors = face.edges.map(_.diff)
+      (edgeVectors(0) + edgeVectors(2)).len shouldBe 0f +- Const.epsilon
+      (edgeVectors(1) + edgeVectors(3)).len shouldBe 0f +- Const.epsilon
     }
 
   "Each subdivision" should "multiply surface area by 16/9" in:

@@ -4,7 +4,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import com.badlogic.gdx.graphics.g3d.{Material, Model}
 import menger.objects.LWJGLLoadChecker
-import com.badlogic.gdx.math.Vector4
 
 class RectMeshSuite extends AnyFlatSpec with Matchers:
 
@@ -41,9 +40,3 @@ class RectMeshSuite extends AnyFlatSpec with Matchers:
 //  it should "create a model with the right number of indices" in new RectMeshInstance:
 //    assume(loadingLWJGLSucceeds)
 //    modelData.get.meshParts.get(0).mesh.getNumIndices should be (4)
-
-  "an edge's string representation" should "be correct" in:
-    val edge = (Vector4(0, 0, 0, 0), Vector4(1, 1, 1, 1))
-    edgeToString(edge) should include ("<0, 0, 0, 0>")
-    edgeToString(edge) should include ("<1, 1, 1, 1>")
-
