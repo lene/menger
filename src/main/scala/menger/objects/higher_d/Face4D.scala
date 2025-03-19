@@ -4,6 +4,7 @@ import com.badlogic.gdx.math.Vector4
 
 import scala.annotation.targetName
 
+/** A square in 4D space, parallel to any two axes, defined by 4 vertices */
 case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
 
   lazy val normals: Seq[Vector4] = getNormals

@@ -13,9 +13,7 @@ class RotatedProjectionSuite extends AnyFlatSpec with Matchers:
 
   trait ProjectedTesseract:
     val tesseract: RotatedProjection = RotatedProjection(Tesseract(), Projection(4, 1))
-    val coordinateValues: Seq[Float] = tesseract.projectedFaceVertices.flatMap(
-      _.toList.asInstanceOf[List[Vector3]]
-    ).flatMap(_.toList)
+    val coordinateValues: Seq[Float] = tesseract.projectedFaceVertices.flatMap(_.toList).flatMap(_.toList)
 
   "A RotatedProjection" should "be able to be created from a Projection alone" in:
     RotatedProjection(Tesseract(), Projection(4, 1))

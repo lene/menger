@@ -16,11 +16,11 @@ case class RotatedProjection(
   private var changed = true
   private var precomputedMesh: Model = uninitialized
 
-  def projectedFaceVertices: Seq[RectVertices3D] =
+  def projectedFaceVertices: Seq[Quad3D] =
     object4D.faces.map {rotation(_)}.map {projection(_)}
     
   def projectedFaceInfo: Seq[RectInfo] = projectedFaceVertices.map {
-    case (a, b, c, d) => (VertexInfo(a), VertexInfo(b), VertexInfo(c), VertexInfo(d))
+    rv => (VertexInfo(rv(0)), VertexInfo(rv(1)), VertexInfo(rv(2)), VertexInfo(rv(3)))
   }
 
   def mesh: Model = logTime("mesh", 10) {

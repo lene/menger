@@ -28,6 +28,6 @@ case class Projection(eyeW: Float, screenW: Float) extends RectMesh:
 
   /** project a sequence of 4D points to 3D */
   def apply(points: Seq[Vector4]): Seq[Vector3] = points.map(apply)
-  def apply(points: Face4D): RectVertices3D = (
-    apply(points.a), apply(points.b), apply(points.c), apply(points.d)
-  )
+  def apply(points: Face4D): Quad3D =
+    val vectors: Seq[Vector3] = apply(points.asSeq)
+    Quad3D(vectors(0), vectors(1), vectors(2), vectors(3))

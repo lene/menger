@@ -9,3 +9,4 @@ case class FixedVector[n <: Int & Singleton, T](values: T*)(implicit d: ValueOf[
   def apply(i: Int): T =
     require(i >= 0 && i < d.value, s"Index $i out of bounds")
     values(i)
+    
