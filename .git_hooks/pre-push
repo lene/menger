@@ -46,13 +46,30 @@ else
   echo "Scala version: ${GREEN_TEXT}${SCALA_VERSION}${RESET_TEXT}"
 fi
 
-xvfb-run -a sbt test || STATUS=1
+VERSION_SBT=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
+VERSIONS_CI=$(egrep 'DEPLOYABLE_VERSION.*' .gitlab-ci.yml | head -n 1 | cut -d ':' -f 2 | xargs)
+if [ "$VERSION_SBT" != "$VERSIONS_CI" ]; then
+  echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in .gitlab-ci.yml: ${RED_TEXT}${VERSIONS_CI}${RESET_TEXT}"
+  STATUS=1
+fi
+if git tag | ( grep "^${VERSION_SBT}\$" ); then
+  echo "Tag ${RED_TEXT}${VERSION_SBT}${RESET_TEXT} already exists ($(git tag | xargs))"
+  STATUS=1
+else echo "Tag ${GREEN_TEXT}${VERSION_SBT}${RESET_TEXT} does not exist"
+fi
+if [ $STATUS -gt 0 ]
+then
+  echo "Status after tag check: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after tag check: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+fi
+
+xvfb-run -a sbt test --warn || STATUS=1
 if [ $STATUS -gt 0 ]
 then echo "Status after sbt test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after sbt test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
-sbt "Universal / packageBin" || STATUS=1
+sbt "Universal / packageBin" --warn || STATUS=1
 VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
 unzip -oq ./target/universal/menger-${VERSION}.zip || STATUS=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type cube --lines || STATUS=1

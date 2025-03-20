@@ -1,9 +1,12 @@
 # Changelog
 
-## [0.2.4] - 2025-03-19
+## [0.2.4] - 2025-03-20
 
 ### Added
 - Clean up code by replacing Tuples with explicit classes
+
+### Upgraded
+- ScalaMock to 7.2.0, fixing resulting errors in tests
 
 ## [0.2.3] - 2025-03-17
 

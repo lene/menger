@@ -13,7 +13,7 @@ class SpongeBySurface(
 ) extends Geometry(material, primitiveType):
   require(level >= 0, "Level must be non-negative")
 
-  override def at(center: Vector3, scale: Float): List[ModelInstance] = logTime("at") {
+  override def at(center: Vector3, scale: Float): List[ModelInstance] = logTime("at", 5) {
     val facingPlusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 90)
     val facingMinusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, -90)
     val facingPlusY = transformed(ModelInstance(mesh), scale, center, 1, 0, 0, 90)
@@ -41,9 +41,9 @@ class SpongeBySurface(
       (faces, _) => faces.flatMap(_.subdivide())
     )
 
-  lazy val faces: Seq[Face] = logTime("faces") { surfaces(Face(0, 0, 0, 1, Z)) }
+  lazy val faces: Seq[Face] = logTime("faces", 5) { surfaces(Face(0, 0, 0, 1, Z)) }
 
-  lazy val mesh: Model = logTime("mesh") {
+  lazy val mesh: Model = logTime("mesh", 5) {
       Builder.modelBuilder.begin()
       faces.grouped(MeshBuilder.MAX_VERTICES / 4).foreach(facesPart =>
         val meshBuilder: MeshPartBuilder = Builder.modelBuilder.part(
