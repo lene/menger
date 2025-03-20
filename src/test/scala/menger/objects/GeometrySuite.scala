@@ -241,7 +241,6 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
     thisController.scrolled(0, 1)
 
   ignore should "record touchDragged with shift" taggedAs GdxTest in:
-    ???
     val thisController = CameraController(camera, dispatcher)
     thisController.touchDragged(0, 1, 0)
 

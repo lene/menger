@@ -13,7 +13,7 @@ import menger.MengerEngine
 object LWJGLLoadChecker:
   lazy val loadingLWJGLSucceeds: Boolean =
     try
-      Lwjgl3Application(MengerEngine(0.01), Lwjgl3ApplicationConfiguration()).exit()
+      Lwjgl3Application(MengerEngine(0.01), Lwjgl3ApplicationConfiguration())
       true
     catch
       case _: UnsatisfiedLinkError => false

@@ -4,7 +4,7 @@ lazy val root = project
   .enablePlugins(JavaAppPackaging)
   .settings(
     name := "Menger",
-    version := "0.2.4",
+    version := "0.2.5",
     maintainer := "lene.preuss@gmail.com",
 
     scalaVersion := "3.6.4",
@@ -12,7 +12,7 @@ lazy val root = project
 
     // Logging
     libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.17",
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.18",
     // JUnit
     libraryDependencies ++= Seq(
       "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test

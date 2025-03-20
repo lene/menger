@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.5] - 2025-03-21
+
+### Added
+- script parameter animations
+
 ## [0.2.4] - 2025-03-20
 
 ### Added

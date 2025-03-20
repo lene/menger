@@ -7,7 +7,7 @@ stages:
 
 variables:
   DEPLOYABLE_BASE_NAME: menger
-  DEPLOYABLE_VERSION: 0.2.4
+  DEPLOYABLE_VERSION: 0.2.5
   SBT_IMAGE: hseeberger/scala-sbt:17.0.2_1.6.2_3.1.1
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.6.4
@@ -23,6 +23,8 @@ include:
 Test:Debian:
   retry: 1
   when: manual  # disable for now to save expensive GitLab minutes
+  tags:
+    - nvidia  # currently unused; will be necessary for CUDA and OptiX tests
   parallel:
     matrix:
       - IMAGE:
@@ -238,7 +240,6 @@ PushToGithub:
     - if: "$CI_COMMIT_TAG"
       when: on_success
   needs:
-    - Test:Debian
     - Test:SbtImage
     - Run:UseSbtDocker
     - CheckRunTime
