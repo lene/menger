@@ -26,13 +26,19 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments):
   val width: ScallopOption[Int] = opt[Int](required = false, default = Some(800))
   val height: ScallopOption[Int] = opt[Int](required = false, default = Some(600))
   val antialiasSamples: ScallopOption[Int] = opt[Int](required = false, default = Some(4))
+  // TODO: use custom converters for AnimationSpecification, see https://github.com/scallop/scallop/wiki/Custom-converters
+  val animate: ScallopOption[List[String]] = opt[List[String]](required = false, default = Some(List()))
   validate(projectionScreenW, projectionEyeW) { (screen, eye) =>
     if eye > screen then Right(())
     else Left("eyeW must be greater than screenW")
   }
+  validate(animate, spongeType) { (start, sponge) => validateAnimationSpecifications(start, sponge) }
   verify()
 
-  override def onError(e: Throwable): Unit = e match {
+  private def validateAnimationSpecifications(spec: List[String], spongeType: String) =
+    if AnimationSpecifications(spec, spongeType).valid then Right(())
+    else Left("Invalid animation specification")
+
+  override def onError(e: Throwable): Unit = e match
     case ScallopException(message) => throw IllegalArgumentException(message)
     case other => throw other
-  }
