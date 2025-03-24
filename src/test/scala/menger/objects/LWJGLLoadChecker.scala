@@ -1,6 +1,6 @@
 package menger.objects
 
-import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
+import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration, Lwjgl3NativesLoader}
 import com.badlogic.gdx.Gdx.gl20
 import menger.MengerEngine
 
@@ -13,6 +13,7 @@ import menger.MengerEngine
 object LWJGLLoadChecker:
   lazy val loadingLWJGLSucceeds: Boolean =
     try
+      Lwjgl3NativesLoader.load()
       Lwjgl3Application(MengerEngine(0.01), Lwjgl3ApplicationConfiguration())
       true
     catch
