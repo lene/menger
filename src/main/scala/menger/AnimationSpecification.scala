@@ -3,7 +3,7 @@ package menger
 import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 
-class AnimationSpecification(s: String, spongeType: String) extends LazyLogging:
+class AnimationSpecification(s: String) extends LazyLogging:
 
   type StartEnd = (Float, Float)
 
@@ -18,7 +18,7 @@ class AnimationSpecification(s: String, spongeType: String) extends LazyLogging:
     val parametersOnly = asMap.get -- AnimationSpecification.TIMESCALE_PARAMETERS
     parametersOnly.map { case (k, v) => k -> parseStartEnd(v) }
 
-  def valid: Boolean = timeSpecValid && animationParametersValid
+  def valid(spongeType: String): Boolean = timeSpecValid && animationParametersValid(spongeType)
 
   private def parseStartEnd(s: String): StartEnd =
     val splitted = s.split('-')
@@ -30,23 +30,27 @@ class AnimationSpecification(s: String, spongeType: String) extends LazyLogging:
   private def timeSpecValid: Boolean =
     (seconds.nonEmpty && seconds.get > 0) ^ (frames.nonEmpty && frames.get > 0)
 
-  private def animationParametersValid: Boolean =
-    val validParameters = AnimationSpecification.ALWAYS_VALID_PARAMETERS ++ (spongeType match
-      case "tesseract" => AnimationSpecification.FOUR_D_VALID_PARAMETERS
-      case "tesseract-sponge" | "tesseract-sponge-2" => AnimationSpecification.FOUR_D_VALID_PARAMETERS ++ AnimationSpecification.FRACTAL_VALID_PARAMETERS
-      case "square" | "cube" => AnimationSpecification.FRACTAL_VALID_PARAMETERS
-      case _ => Seq.empty
-    )
-    logger.warn(s"Valid parameters for $spongeType: $validParameters")
-    animationParameters.nonEmpty && animationParameters.keySet.subsetOf(validParameters)
+  private def animationParametersValid(spongeType: String): Boolean =
+    animationParameters.nonEmpty && 
+      animationParameters.keySet.subsetOf(AnimationSpecification.validParameters(spongeType))
 
 object AnimationSpecification:
   final val TIMESCALE_PARAMETERS = Set("frames", "seconds")
   final val ALWAYS_VALID_PARAMETERS = Set("rot-x", "rot-y", "rot-z")
-  final val FOUR_D_VALID_PARAMETERS = Set("rot-x-w", "rot-y-w", "rot-z-w", "projection-screen-w", "projection-eye-w")
+  final val FOUR_D_VALID_PARAMETERS = Set(
+    "rot-x-w", "rot-y-w", "rot-z-w", "projection-screen-w", "projection-eye-w"
+  )
   final val FRACTAL_VALID_PARAMETERS = Set("level")
+  final val FOUR_D_OBJECTS = Set("tesseract", "tesseract-sponge", "tesseract-sponge-2")
+  final val FRACTAL_OBJECTS = Set("tesseract-sponge", "tesseract-sponge-2", "square", "cube")
+
+  def validParameters(spongeType: String): Set[String] =
+    ALWAYS_VALID_PARAMETERS ++ (
+      if FOUR_D_OBJECTS.contains(spongeType) then FOUR_D_VALID_PARAMETERS else Set.empty) ++ (
+      if FRACTAL_OBJECTS.contains(spongeType) then FRACTAL_VALID_PARAMETERS else Set.empty
+    )
 
 
-class AnimationSpecifications(specification: List[String], spongeType: String):
-  private val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_, spongeType))
-  def valid: Boolean = parts.forall(_.valid)
+case class AnimationSpecifications(specification: List[String] = List.empty):
+  val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_))
+  def valid(spongeType: String): Boolean = parts.forall(_.valid(spongeType))

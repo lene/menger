@@ -3,6 +3,8 @@ package menger
 import org.rogach.scallop.*
 import org.rogach.scallop.exceptions.ScallopException
 
+import scala.util.Try
+
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments):
   val timeout: ScallopOption[Float] = opt[Float](required = false, default = Some(0))
   val spongeType: ScallopOption[String] = choice(
@@ -27,18 +29,29 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments):
   val height: ScallopOption[Int] = opt[Int](required = false, default = Some(600))
   val antialiasSamples: ScallopOption[Int] = opt[Int](required = false, default = Some(4))
   // TODO: use custom converters for AnimationSpecification, see https://github.com/scallop/scallop/wiki/Custom-converters
-  val animate: ScallopOption[List[String]] = opt[List[String]](required = false, default = Some(List()))
+  val animate: ScallopOption[AnimationSpecifications] = opt[AnimationSpecifications]()(animationSpecificationsConverter)
   validate(projectionScreenW, projectionEyeW) { (screen, eye) =>
     if eye > screen then Right(())
     else Left("eyeW must be greater than screenW")
   }
-  validate(animate, spongeType) { (start, sponge) => validateAnimationSpecifications(start, sponge) }
+  validate(animate, spongeType) { (start, sponge) => validateAnimationSpecification(start, sponge) }
   verify()
 
-  private def validateAnimationSpecifications(spec: List[String], spongeType: String) =
-    if AnimationSpecifications(spec, spongeType).valid then Right(())
+  private def validateAnimationSpecification(spec: AnimationSpecifications, spongeType: String) =
+    if spec.valid(spongeType) then Right(())
     else Left("Invalid animation specification")
 
   override def onError(e: Throwable): Unit = e match
     case ScallopException(message) => throw IllegalArgumentException(message)
     case other => throw other
+
+val animationSpecificationsConverter: ValueConverter[AnimationSpecifications] = new ValueConverter[AnimationSpecifications] {
+  val argType = org.rogach.scallop.ArgType.LIST
+  def parse(s: List[(String, List[String])]): Either[String, Option[AnimationSpecifications]] =
+    val specificationStrings = s.flatMap(_(1))
+    Try {
+      Right(Some(AnimationSpecifications(specificationStrings)))
+    }.recover {
+      case e: Exception => Left(e.getMessage)
+    }.get
+}

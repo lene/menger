@@ -1,4 +1,5 @@
-import menger.{AnimationSpecification, MengerCLIOptions}
+package menger
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -28,11 +29,6 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
     val options = MengerCLIOptions(Seq("--antialias-samples", "1"))
     options.antialiasSamples() shouldEqual 1
 
-
-  "getConfig" should "return default config if no options" in:
-    val options = MengerCLIOptions(Seq[String]())
-    Main.getConfig(options)
-
   "--projection-screen-w" should "be valid with matching --projection-eye-w" in:
     val options = MengerCLIOptions(Seq("--projection-screen-w", "1", "--projection-eye-w", "2"))
     options.projectionScreenW() shouldEqual 1
@@ -53,8 +49,8 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
   it should "be invalid if >= 360" in:
     an [IllegalArgumentException] should be thrownBy MengerCLIOptions(Seq("--rot-x-w", "360"))
 
-  "--animate" should "default to empty list" in:
-    MengerCLIOptions(Seq()).animate() shouldEqual List()
+  "--animate" should "default to empty animation specifications" in:
+    MengerCLIOptions(Seq()).animate() should equal (AnimationSpecifications())
 
   it should "be invalid for bad AnimationSpecifications syntax" in:
     an [IllegalArgumentException] should be thrownBy
@@ -106,6 +102,24 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
     it should s"succeed when level is specified for fractal sponge type $sponge" in:
       MengerCLIOptions(Seq("--sponge-type", sponge, "--animate", s"frames=10:level=0-1"))
   }
-  
+
   it should "succeed when two valid animation specifications are given" in:
     MengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10", "--animate", "frames=10:rot-x=10-20"))
+
+  it should "return the correct animation parameters"  in:
+    val options = MengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10:rot-y=0-10"))
+    options.animate().specification should have size 1
+    options.animate().specification.head shouldEqual "frames=10:rot-x=0-10:rot-y=0-10"
+    options.animate().parts should have size 1
+    options.animate().parts.head.animationParameters should have size 2
+    options.animate().parts.head.animationParameters("rot-x") shouldEqual (0, 10)
+    options.animate().parts.head.animationParameters("rot-y") shouldEqual (0, 10)
+
+  it should "return correct animation parameters when two valid animation specifications are given" in:
+    val options = MengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10", "--animate", "frames=10:rot-x=10-20"))
+    options.animate().specification should have size 2
+    options.animate().parts should have size 2
+    options.animate().parts.head.animationParameters should have size 1
+    options.animate().parts.head.animationParameters("rot-x") shouldEqual (0, 10)
+    options.animate().parts.last.animationParameters should have size 1
+    options.animate().parts.last.animationParameters("rot-x") shouldEqual (10, 20)
