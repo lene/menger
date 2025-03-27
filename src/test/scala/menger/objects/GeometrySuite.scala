@@ -1,13 +1,14 @@
 package menger.objects
 
 import com.badlogic.gdx.Input.Keys
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
 import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
 import com.badlogic.gdx.math.Vector3
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.Tag
 import org.scalamock.stubs.Stubs
-
 import menger.{MengerEngine, RotationProjectionParameters}
 import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
 
@@ -15,20 +16,28 @@ import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
 object GdxTest extends Tag("GdxTest")  // needs Gdx to be available
 
 class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
-  // Can't mock Java class. Extend in Scala to mock: https://github.com/lampepfl/dotty/issues/18694
-  class MockedCamera extends PerspectiveCamera
-  private val camera = stub[MockedCamera]
-  (camera.translate(_: Vector3)).returns(Vector3 => ())
-  camera.update.returns(())
-  camera.rotateAround.returns(Vector3 => ())
-  (camera.lookAt(_: Float, _: Float, _: Float)).returns(Vector3 => ())
+  private val loadingLWJGLSucceeds: Boolean = LWJGLLoadChecker.loadingLWJGLSucceeds
+  private val camera = createMockCamera
+
+  private def createMockCamera =
+    // Can't mock Java class. Extend in Scala to mock: https://github.com/lampepfl/dotty/issues/18694
+    class MockedCamera extends PerspectiveCamera
+    val camera = stub[MockedCamera]
+    (camera.translate(_: Vector3)).returns(Vector3 => ())
+    camera.update.returns(())
+    camera.rotateAround.returns(Vector3 => ())
+    (camera.lookAt(_: Float, _: Float, _: Float)).returns(Vector3 => ())
+    camera
 
   private val dispatcher = stub[EventDispatcher]
   dispatcher.notifyObservers.returns (_ => ())
 
+  // class MockedApplication extends Lwjgl3Application(MengerEngine(.01), Lwjgl3ApplicationConfiguration())
+  // private val application = stub[MockedApplication]
+  // Gdx.app = application
+
   private val ORIGIN = Vector3(0, 0, 0)
   private def controller = KeyController(camera, dispatcher)
-  private val loadingLWJGLSucceeds: Boolean = LWJGLLoadChecker.loadingLWJGLSucceeds
 
   "instantiating a client" should "work" taggedAs GdxTest in:
     /**
