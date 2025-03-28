@@ -1,6 +1,6 @@
 
 import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
-import menger.{MengerCLIOptions, MengerEngine, RotationProjectionParameters}
+import menger.{AnimatedMengerEngine, InteractiveMengerEngine, MengerCLIOptions, MengerEngine, RotationProjectionParameters}
 
 object Main:
   private final val COLOR_BITS = 8
@@ -10,9 +10,7 @@ object Main:
   def main(args: Array[String]): Unit =
     val opts = MengerCLIOptions(args.toList)
     val config = getConfig(opts)
-    val rotationProjectionParameters = RotationProjectionParameters(opts)
-    
-    val rendering = MengerEngine(opts.timeout(), opts.level(), opts.lines(), opts.spongeType(), rotationProjectionParameters)
+    val rendering = createEngine(opts)
     Lwjgl3Application(rendering, config)
 
   def getConfig(opts: MengerCLIOptions): Lwjgl3ApplicationConfiguration =
@@ -25,3 +23,15 @@ object Main:
       opts.antialiasSamples()
     )
     config
+
+  def createEngine(opts: MengerCLIOptions): MengerEngine =
+    val rotationProjectionParameters = RotationProjectionParameters(opts)
+    if opts.animate().parts.nonEmpty then
+      AnimatedMengerEngine(
+        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.animate()
+      )
+    else
+      InteractiveMengerEngine(
+        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.timeout()
+      )
+

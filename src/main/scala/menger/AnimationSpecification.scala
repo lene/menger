@@ -20,12 +20,31 @@ class AnimationSpecification(s: String) extends LazyLogging:
 
   def valid(spongeType: String): Boolean = timeSpecValid && animationParametersValid(spongeType)
 
+  def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
+    def current(bounds: (Float, Float)): Float =
+      bounds._1 + (bounds._2 - bounds._1) * frame / frames.get
+    require(animationParameters.nonEmpty, "AnimationSpecification.animationParameters not defined")
+    val rotXWBounds: (Float, Float) = animationParameters.get("rot-x-w").getOrElse(0f, 0f)
+    val rotYWBounds: (Float, Float) = animationParameters.get("rot-y-w").getOrElse(0f, 0f)
+    val rotZWBounds: (Float, Float) = animationParameters.get("rot-z-w").getOrElse(0f, 0f)
+    val screenWBounds: (Float, Float) = animationParameters.get("projection-screen-w")
+      .getOrElse(Const.defaultScreenW, Const.defaultScreenW)
+    val eyeWBounds: (Float, Float) = animationParameters.get("projection-eye-w")
+      .getOrElse(Const.defaultEyeW, Const.defaultEyeW)
+    RotationProjectionParameters(
+      rotXW = current(rotXWBounds),
+      rotYW = current(rotYWBounds),
+      rotZW = current(rotZWBounds),
+      screenW = current(screenWBounds),
+      eyeW = current(eyeWBounds)
+    )
+
   private def parseStartEnd(s: String): StartEnd =
-    val splitted = s.split('-')
-    require(splitted.length == 2, s"Invalid start-end specification: $s")
-    require(splitted.head.toFloatOption.isDefined, s"Start ${splitted.head} not a Float")
-    require(splitted.last.toFloatOption.isDefined, s"End ${splitted.last} not a Float")
-    (splitted.head.toFloat, splitted.last.toFloat)
+    val parts = s.split('-')
+    require(parts.length == 2, s"Invalid start-end specification: $s")
+    require(parts.head.toFloatOption.isDefined, s"Start ${parts.head} not a Float")
+    require(parts.last.toFloatOption.isDefined, s"End ${parts.last} not a Float")
+    (parts.head.toFloat, parts.last.toFloat)
 
   private def timeSpecValid: Boolean =
     (seconds.nonEmpty && seconds.get > 0) ^ (frames.nonEmpty && frames.get > 0)
@@ -51,6 +70,26 @@ object AnimationSpecification:
     )
 
 
-case class AnimationSpecifications(specification: List[String] = List.empty):
+case class AnimationSpecifications(specification: List[String] = List.empty) extends LazyLogging:
   val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_))
-  def valid(spongeType: String): Boolean = parts.forall(_.valid(spongeType))
+  val numFrames: Int = parts.map(_.frames.getOrElse(0)).sum
+
+  def valid(spongeType: String): Boolean =
+    parts.forall(_.valid(spongeType)) && parts.map(_.seconds).map(_.isDefined).toSet.size < 2
+
+  def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
+    require(parts.head.frames.isDefined, "AnimationSpecification.frames not defined")
+    val partsBounds: Map[Int, (Int, Int)] =
+      parts.zipWithIndex.map { case (part, i) =>
+        i -> (0, part.frames.getOrElse(0))
+      }.toMap
+    logger.info(partsBounds.toString())
+    ???
+
+  def partAndFrame(totalFrame: Int): (Int, Int) =
+    val part = parts.find(_.frames.exists(_ > totalFrame))
+    part match
+      case Some(p) =>
+        val frame = totalFrame - p.frames.getOrElse(0)
+        (parts.indexOf(p), frame)
+      case None => (parts.length - 1, totalFrame - parts.last.frames.getOrElse(0))

@@ -123,3 +123,7 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
     options.animate().parts.head.animationParameters("rot-x") shouldEqual (0, 10)
     options.animate().parts.last.animationParameters should have size 1
     options.animate().parts.last.animationParameters("rot-x") shouldEqual (10, 20)
+
+  it should "fail if both frames and seconds are specified in separate specifications" in:
+    an[IllegalArgumentException] should be thrownBy
+      MengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10", "--animate", "seconds=10:rot-x=10-20"))

@@ -1,6 +1,7 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.math.Vector4
+import menger.Const
 
 import scala.annotation.targetName
 

@@ -2,6 +2,7 @@ package menger.objects.higher_d
 
 import com.badlogic.gdx.math.Vector4
 import com.typesafe.scalalogging.LazyLogging
+import menger.Const
 
 
 case class Plane(i: Int, j: Int):

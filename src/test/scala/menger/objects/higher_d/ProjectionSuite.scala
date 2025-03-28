@@ -1,6 +1,7 @@
 package menger.objects.higher_d
 
 import com.badlogic.gdx.math.Vector4
+import menger.Const
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.Inspectors.forAll

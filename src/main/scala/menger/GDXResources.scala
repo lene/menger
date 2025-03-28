@@ -13,12 +13,12 @@ import scala.collection.immutable.List
 import scala.jdk.CollectionConverters.*
 
 
-case class GDXResources(eventDispatcher: EventDispatcher):
+case class GDXResources(eventDispatcher: Option[EventDispatcher]):
 
   private val cameraPosition = Vector3(-2f, 1f, -1f)
   private val environment: Environment = createEnvironment
   private val camera: PerspectiveCamera = createCamera(cameraPosition)
-  Gdx.input.setInputProcessor(MengerInputMultiplexer(camera, eventDispatcher))
+  eventDispatcher.foreach(e => Gdx.input.setInputProcessor(MengerInputMultiplexer(camera, e)))
   private val modelBatch = ModelBatch()
   private val fpsLogger = FPSLogger()
 

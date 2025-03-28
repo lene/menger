@@ -2,7 +2,7 @@ package menger.objects
 
 import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
 import com.badlogic.gdx.Gdx.gl20
-import menger.MengerEngine
+import menger.InteractiveMengerEngine
 
 /**
  *  So here's the thing: when executing tests in sbt, the LWJGL library can be loaded only once.
@@ -13,7 +13,7 @@ import menger.MengerEngine
 object LWJGLLoadChecker:
   lazy val loadingLWJGLSucceeds: Boolean =
     try
-      Lwjgl3Application(MengerEngine(0.01), Lwjgl3ApplicationConfiguration())
+      Lwjgl3Application(InteractiveMengerEngine(timeout = 0.01), Lwjgl3ApplicationConfiguration())
       true
     catch
       case _: UnsatisfiedLinkError => false
