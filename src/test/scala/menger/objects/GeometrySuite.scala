@@ -9,7 +9,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.Tag
 import org.scalamock.stubs.Stubs
-import menger.{MengerEngine, RotationProjectionParameters}
+import menger.{InteractiveMengerEngine, RotationProjectionParameters}
 import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
 
 
@@ -134,18 +134,18 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "MengerEngine" should "instantiate with lines" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    MengerEngine(0.01, lines = true).create()
+    InteractiveMengerEngine(lines = true, timeout = 0.01).create()
 
   it should "instantiate with cube sponge" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    MengerEngine(0.01, spongeType = "cube").create()
+    InteractiveMengerEngine(spongeType = "cube", timeout = 0.01).create()
 
   it should "instantiate with tesseract" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    MengerEngine(0.01, spongeType = "tesseract").create()
+    InteractiveMengerEngine(spongeType = "tesseract", timeout = 0.01).create()
 
   it should "fail with invalid object type" taggedAs GdxTest in:
-    an [IllegalArgumentException] should be thrownBy MengerEngine(0.01, spongeType = "invalid").create()
+    an [IllegalArgumentException] should be thrownBy InteractiveMengerEngine(spongeType = "invalid", timeout = 0.01).create()
 
   "InputController" should "instantiate from a camera and dispatcher" in:
     assume(loadingLWJGLSucceeds)

@@ -5,7 +5,9 @@ import menger.objects.higher_d.{Projection, Rotation}
 import scala.annotation.targetName
 
 case class RotationProjectionParameters(
-  rotXW: Float = 0, rotYW: Float = 0, rotZW: Float = 0, eyeW: Float = 2, screenW: Float = 1
+  rotXW: Float = 0, rotYW: Float = 0, rotZW: Float = 0,
+  eyeW: Float = Const.defaultEyeW, screenW: Float = Const.defaultScreenW,
+  rotX: Float = 0, rotY: Float = 0, rotZ: Float = 0
 ):
   lazy val projection: Projection = Projection(eyeW, screenW)
   lazy val rotation: Rotation = Rotation(rotXW, rotYW, rotZW)
@@ -24,5 +26,5 @@ object RotationProjectionParameters:
     )
 
   def apply(rotXW: Float, rotYW: Float, rotZW: Float): RotationProjectionParameters =
-    RotationProjectionParameters(rotXW, rotYW, rotZW, 2, 1)
+    RotationProjectionParameters(rotXW, rotYW, rotZW, Const.defaultEyeW, Const.defaultScreenW)
 

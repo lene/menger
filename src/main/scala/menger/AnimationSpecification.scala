@@ -3,7 +3,7 @@ package menger
 import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 
-class AnimationSpecification(s: String) extends LazyLogging:
+case class AnimationSpecification(s: String) extends LazyLogging:
 
   type StartEnd = (Float, Float)
 
@@ -20,12 +20,47 @@ class AnimationSpecification(s: String) extends LazyLogging:
 
   def valid(spongeType: String): Boolean = timeSpecValid && animationParametersValid(spongeType)
 
+  override def toString: String =
+    val timeSpec = (seconds, frames) match
+      case (Some(s), None) => s"seconds=$s"
+      case (None, Some(f)) => s"frames=$f"
+      case _ => throw IllegalArgumentException("Invalid animation specification")
+    val animationSpec = animationParameters.mkString(":")
+    s"$timeSpec:$animationSpec"
+
+  def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
+    def current(bounds: (Float, Float)): Float = {
+      bounds._1 + (bounds._2 - bounds._1) * frame / frames.get
+    }
+
+    require(animationParameters.nonEmpty, "AnimationSpecification.animationParameters not defined")
+    val rotXBounds: (Float, Float) = animationParameters.get("rot-x").getOrElse(0f, 0f)
+    val rotYBounds: (Float, Float) = animationParameters.get("rot-y").getOrElse(0f, 0f)
+    val rotZBounds: (Float, Float) = animationParameters.get("rot-z").getOrElse(0f, 0f)
+    val rotXWBounds: (Float, Float) = animationParameters.get("rot-x-w").getOrElse(0f, 0f)
+    val rotYWBounds: (Float, Float) = animationParameters.get("rot-y-w").getOrElse(0f, 0f)
+    val rotZWBounds: (Float, Float) = animationParameters.get("rot-z-w").getOrElse(0f, 0f)
+    val screenWBounds: (Float, Float) = animationParameters.get("projection-screen-w")
+      .getOrElse(Const.defaultScreenW, Const.defaultScreenW)
+    val eyeWBounds: (Float, Float) = animationParameters.get("projection-eye-w")
+      .getOrElse(Const.defaultEyeW, Const.defaultEyeW)
+    RotationProjectionParameters(
+      rotX = current(rotXBounds),
+      rotY = current(rotYBounds),
+      rotZ = current(rotZBounds),
+      rotXW = current(rotXWBounds),
+      rotYW = current(rotYWBounds),
+      rotZW = current(rotZWBounds),
+      screenW = current(screenWBounds),
+      eyeW = current(eyeWBounds)
+    )
+
   private def parseStartEnd(s: String): StartEnd =
-    val splitted = s.split('-')
-    require(splitted.length == 2, s"Invalid start-end specification: $s")
-    require(splitted.head.toFloatOption.isDefined, s"Start ${splitted.head} not a Float")
-    require(splitted.last.toFloatOption.isDefined, s"End ${splitted.last} not a Float")
-    (splitted.head.toFloat, splitted.last.toFloat)
+    val parts = s.split('-')
+    require(parts.length == 2, s"Invalid start-end specification: $s")
+    require(parts.head.toFloatOption.isDefined, s"Start ${parts.head} not a Float")
+    require(parts.last.toFloatOption.isDefined, s"End ${parts.last} not a Float")
+    (parts.head.toFloat, parts.last.toFloat)
 
   private def timeSpecValid: Boolean =
     (seconds.nonEmpty && seconds.get > 0) ^ (frames.nonEmpty && frames.get > 0)
@@ -51,6 +86,35 @@ object AnimationSpecification:
     )
 
 
-case class AnimationSpecifications(specification: List[String] = List.empty):
+case class AnimationSpecifications(specification: List[String] = List.empty) extends LazyLogging:
   val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_))
-  def valid(spongeType: String): Boolean = parts.forall(_.valid(spongeType))
+  val numFrames: Int = parts.map(_.frames.getOrElse(0)).sum
+
+  def valid(spongeType: String): Boolean =
+    parts.forall(_.valid(spongeType)) && parts.map(_.seconds).map(_.isDefined).toSet.size < 2
+
+  def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
+    partAndFrame(frame).map((specList, frame) => accumulateAllButLastRotationProjections(specList) + specList.last.rotationProjectionParameters(frame)).getOrElse(
+      throw IllegalArgumentException("AnimationSpecification.frames not defined")
+    )
+
+  def accumulateAllButLastRotationProjections(specs: List[AnimationSpecification]): RotationProjectionParameters =
+    specs.init.foldLeft(RotationProjectionParameters()) { (acc, spec) =>
+      acc + spec.rotationProjectionParameters(spec.frames.getOrElse(0))
+    }
+
+  def partAndFrame(
+    totalFrame: Int,
+    partsParts: List[AnimationSpecification] = parts,
+    accumulator: List[AnimationSpecification] = List.empty
+  ): Try[(List[AnimationSpecification], Int)] =
+    if partsParts.isEmpty then
+       throw IllegalArgumentException("AnimationSpecification.parts not defined")
+    else
+      val current = partsParts.head
+      if current.frames.isEmpty then
+        throw IllegalArgumentException(s"Animation specification $current has no frames")
+      else
+        if current.frames.getOrElse(0) > totalFrame then
+          Try((accumulator :+ current, totalFrame))
+        else partAndFrame(totalFrame - current.frames.getOrElse(0), partsParts.tail, accumulator :+ current)

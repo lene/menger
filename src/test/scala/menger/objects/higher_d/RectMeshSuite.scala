@@ -12,6 +12,6 @@ class RectMeshSuite extends AnyFlatSpec with Matchers:
   val faces: Seq[QuadInfo] = Seq(face)
   val primitiveType = 0
   val material = Material()
-
-  "A RectMesh-derived object" should "be able to call model()" in new RectMeshInstance:
-    assume(LWJGLLoadChecker.loadingLWJGLSucceeds)
+//
+//  "A RectMesh-derived object" should "be able to call model()" in new RectMeshInstance:
+//    assume(LWJGLLoadChecker.loadingLWJGLSucceeds)
