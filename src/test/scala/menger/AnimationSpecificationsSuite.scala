@@ -59,7 +59,7 @@ class AnimationSpecificationsSuite extends AnyFlatSpec with Matchers:
       rotXW = 5, rotYW = 95
     )
 
-  ignore should "be correct for a single part with 3D rotation" in :
+  it should "be correct for a single part with 3D rotation" in :
     AnimationSpecifications(
       List("frames=10:rot-x=0-10")
     ).rotationProjectionParameters(5) shouldBe RotationProjectionParameters(
@@ -70,17 +70,14 @@ class AnimationSpecificationsSuite extends AnyFlatSpec with Matchers:
     AnimationSpecifications(
       List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
     ).rotationProjectionParameters(15) shouldBe RotationProjectionParameters(
-      rotXW = 10,
-      rotYW = 5
+      rotXW = 10, rotYW = 5
     )
 
   it should "also work when there are three parts" in:
     AnimationSpecifications(
       List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10", "frames=10:rot-z-w=0-10")
     ).rotationProjectionParameters(25) shouldBe RotationProjectionParameters(
-      rotXW = 10,
-      rotYW = 10,
-      rotZW = 5
+      rotXW = 10, rotYW = 10, rotZW = 5
     )
 
   it should "fail for a frame outside of the specified range" in:

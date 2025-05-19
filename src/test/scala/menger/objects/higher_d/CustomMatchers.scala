@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector4
+import com.badlogic.gdx.math.{Matrix4, Vector4}
 import menger.Const
 import org.scalatest.matchers.{MatchResult, Matcher}
 
@@ -10,11 +10,25 @@ trait CustomMatchers:
     def apply(left: Vector4): MatchResult =
       MatchResult(
         left.dst(expected) < Const.epsilon,
-        s"""${left.asString} is not equal to ${expected.asString}""",
+        s"""${left.asString} is not epsilon-equal to ${expected.asString}""",
         s"""${left.asString} equal to ${expected.asString} to ${Const.epsilon}"""
       )
 
   def epsilonEqual(expected: Vector4) = new VectorsRoughlyEqualMatcher(expected)
+
+  class MatricesRoughlyEqualMatcher(expected: Matrix4) extends Matcher[Matrix4]:
+
+    def apply(left: Matrix4): MatchResult = {
+      MatchResult(
+        expected.asArray.zip(left.asArray).forall(
+          (expectedElement, leftElement) => expectedElement - leftElement < Const.epsilon
+        ),
+        s"""${left.str} is not epsilon-equal to \n${expected.str}""",
+        s"""${left.str} equal to ${expected.str} to ${Const.epsilon}"""
+      )
+    }
+
+  def epsilonEqual(expected: Matrix4) = new MatricesRoughlyEqualMatcher(expected)
 
   def containsEpsilon(left: Iterable[Vector4], expected: Vector4): Boolean =
     left.exists(_.dst(expected) < Const.epsilon)

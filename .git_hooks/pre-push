@@ -76,6 +76,8 @@ xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 4 --timeout 0.1 --sponge-type square --lines || STATUS=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge --lines || STATUS=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge-2 --lines || STATUS=1
+xvfb-run -a ./menger-${VERSION}/bin/menger \
+  --level 1 --sponge-type tesseract-sponge-2 --animate frames=5:rot-y-w=0-90:rot-y=0-30 || STATUS=1
 if [ $STATUS -gt 0 ]
 then echo "Status after running built: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after running built: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"

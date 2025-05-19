@@ -17,12 +17,12 @@ class AnimatedMengerEngine(
   protected def gdxResources: GDXResources = GDXResources(None)
 
   override def currentRotProj: RotationProjectionParameters =
-    rotationProjectionParameters + animationSpecifications.rotationProjectionParameters(currentFrame)
+    val r = rotationProjectionParameters + animationSpecifications.rotationProjectionParameters(currentFrame)
+    Gdx.app.log(s"${getClass.getSimpleName}.currentRotProj()", s"frame: $currentFrame $r")
+    r
+
   override def create(): Unit =
-    Gdx.app.log(
-      s"${getClass.getSimpleName}.create()",
-      s"Animating for $animationSpecifications"
-    )
+    Gdx.app.log(s"${getClass.getSimpleName}.create()", s"Animating for $animationSpecifications")
 
   override def render(): Unit =
     super.render()
@@ -34,8 +34,3 @@ class AnimatedMengerEngine(
     currentFrame += 1
     if currentFrame >= animationSpecifications.numFrames then
       Gdx.app.exit()
-    Gdx.app.log(
-      s"${getClass.getSimpleName}.nextStep()",
-      s"Current frame: $currentFrame"
-    )
-    

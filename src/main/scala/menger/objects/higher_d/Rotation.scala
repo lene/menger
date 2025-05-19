@@ -2,7 +2,7 @@ package menger.objects.higher_d
 
 import com.badlogic.gdx.math.{Matrix4, Vector4}
 import com.typesafe.scalalogging.LazyLogging
-import menger.Const
+import menger.{Const, RotationProjectionParameters}
 import menger.objects.higher_d.Plane.logger
 
 import scala.annotation.targetName
@@ -20,6 +20,9 @@ case class Rotation(transformationMatrix: Matrix4, pivotPoint: Vector4) extends 
   @targetName("plus")
   def +(r: Rotation): Rotation = Rotation(transformationMatrix.mul(r.transformationMatrix), pivotPoint)
 
+  @targetName("mul")
+  def *(r: Rotation): Rotation = Rotation(transformationMatrix.mul(r.transformationMatrix), pivotPoint)
+
   def ===(r: Rotation): Boolean =
     epsilonEquals(transformationMatrix, r.transformationMatrix) && pivotPoint === r.pivotPoint
 
@@ -34,6 +37,12 @@ object Rotation extends LazyLogging:
     val Rzw = Rotation.matrix(2, 3, degreesZW)
     val rotate = Rotation.matrix(0, 3, degreesXW).mul(Ryw).mul(Rzw)
     Rotation(rotate, pivotPoint)
+
+  def apply(rotProjParameters: RotationProjectionParameters): Rotation =
+    val Rx = Rotation.matrix(0, 1, rotProjParameters.rotX)
+    val Ry = Rotation.matrix(0, 2, rotProjParameters.rotY)
+    val rot3D = Rotation.matrix(0, 0, rotProjParameters.rotZ).mul(Rx).mul(Ry)
+    Rotation(rotProjParameters.rotXW, rotProjParameters.rotYW, rotProjParameters.rotZW) * Rotation(rot3D, Vector4.Zero)
 
   def apply(plane: Plane, axis: Edge, pivotPoint: Vector4, angle: Float): Array[Rotation] =
     val u: Vector4 = axis(1) - axis(0)
