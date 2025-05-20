@@ -42,12 +42,20 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
     an [IllegalArgumentException] should be thrownBy
       MengerCLIOptions(Seq("--projection-screen-w", "2", "--projection-eye-w", "2"))
 
-  "--rot-x-w" should "be valid if 0 <= x < 360" in:
-    val options = MengerCLIOptions(Seq("--rot-x-w", "1"))
-    options.rotXW() shouldEqual 1
+  "rotation options" should "be valid if 0 <= x < 360" in:
+    for opt <- Seq("--rot-x", "--rot-y", "--rot-z", "--rot-x-w", "--rot-y-w", "--rot-z-w") do
+      val options = MengerCLIOptions(Seq(opt, "1"))
+      opt match
+        case "--rot-x" => options.rotX() shouldEqual 1
+        case "--rot-y" => options.rotY() shouldEqual 1
+        case "--rot-z" => options.rotZ() shouldEqual 1
+        case "--rot-x-w" => options.rotXW() shouldEqual 1
+        case "--rot-y-w" => options.rotYW() shouldEqual 1
+        case "--rot-z-w" => options.rotZW() shouldEqual 1
 
   it should "be invalid if >= 360" in:
-    an [IllegalArgumentException] should be thrownBy MengerCLIOptions(Seq("--rot-x-w", "360"))
+    for opt <- Seq("--rot-x", "--rot-y", "--rot-z", "--rot-x-w", "--rot-y-w", "--rot-z-w") do
+      an [IllegalArgumentException] should be thrownBy MengerCLIOptions(Seq(opt, "360"))
 
   "--animate" should "default to empty animation specifications" in:
     MengerCLIOptions(Seq()).animate() should equal (AnimationSpecifications())
@@ -127,3 +135,7 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
   it should "fail if both frames and seconds are specified in separate specifications" in:
     an[IllegalArgumentException] should be thrownBy
       MengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10", "--animate", "seconds=10:rot-x=10-20"))
+
+  it should "fail if the same rotation is declared as static and animated" in:
+    an[IllegalArgumentException] should be thrownBy
+      MengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10", "--rot-x", "10"))

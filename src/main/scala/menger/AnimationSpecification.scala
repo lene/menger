@@ -29,11 +29,11 @@ case class AnimationSpecification(s: String) extends LazyLogging:
     s"$timeSpec:$animationSpec"
 
   def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
-    def current(bounds: (Float, Float)): Float = {
+    def current(bounds: (Float, Float)): Float =
       bounds._1 + (bounds._2 - bounds._1) * frame / frames.get
-    }
 
     require(animationParameters.nonEmpty, "AnimationSpecification.animationParameters not defined")
+    require(frame <= frames.get, s"Frame $frame exceeds total frames ${frames.get}")
     val rotXBounds: (Float, Float) = animationParameters.get("rot-x").getOrElse(0f, 0f)
     val rotYBounds: (Float, Float) = animationParameters.get("rot-y").getOrElse(0f, 0f)
     val rotZBounds: (Float, Float) = animationParameters.get("rot-z").getOrElse(0f, 0f)
@@ -45,16 +45,24 @@ case class AnimationSpecification(s: String) extends LazyLogging:
     val eyeWBounds: (Float, Float) = animationParameters.get("projection-eye-w")
       .getOrElse(Const.defaultEyeW, Const.defaultEyeW)
     RotationProjectionParameters(
-      rotX = current(rotXBounds),
-      rotY = current(rotYBounds),
-      rotZ = current(rotZBounds),
       rotXW = current(rotXWBounds),
       rotYW = current(rotYWBounds),
       rotZW = current(rotZWBounds),
       screenW = current(screenWBounds),
-      eyeW = current(eyeWBounds)
+      eyeW = current(eyeWBounds),
+      rotX = current(rotXBounds),
+      rotY = current(rotYBounds),
+      rotZ = current(rotZBounds),
     )
 
+  def isRotationAxisSet(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
+    x != 0 && animationParameters.contains("rot-x") ||
+    y != 0 && animationParameters.contains("rot-y") ||
+    z != 0 && animationParameters.contains("rot-z") ||
+    xw != 0 && animationParameters.contains("rot-x-w") ||
+    yw != 0 && animationParameters.contains("rot-y-w") ||
+    zw != 0 && animationParameters.contains("rot-z-w")
+    
   private def parseStartEnd(s: String): StartEnd =
     val parts = s.split('-')
     require(parts.length == 2, s"Invalid start-end specification: $s")
@@ -86,35 +94,3 @@ object AnimationSpecification:
     )
 
 
-case class AnimationSpecifications(specification: List[String] = List.empty) extends LazyLogging:
-  val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_))
-  val numFrames: Int = parts.map(_.frames.getOrElse(0)).sum
-
-  def valid(spongeType: String): Boolean =
-    parts.forall(_.valid(spongeType)) && parts.map(_.seconds).map(_.isDefined).toSet.size < 2
-
-  def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
-    partAndFrame(frame).map((specList, frame) => accumulateAllButLastRotationProjections(specList) + specList.last.rotationProjectionParameters(frame)).getOrElse(
-      throw IllegalArgumentException("AnimationSpecification.frames not defined")
-    )
-
-  def accumulateAllButLastRotationProjections(specs: List[AnimationSpecification]): RotationProjectionParameters =
-    specs.init.foldLeft(RotationProjectionParameters()) { (acc, spec) =>
-      acc + spec.rotationProjectionParameters(spec.frames.getOrElse(0))
-    }
-
-  def partAndFrame(
-    totalFrame: Int,
-    partsParts: List[AnimationSpecification] = parts,
-    accumulator: List[AnimationSpecification] = List.empty
-  ): Try[(List[AnimationSpecification], Int)] =
-    if partsParts.isEmpty then
-       throw IllegalArgumentException("AnimationSpecification.parts not defined")
-    else
-      val current = partsParts.head
-      if current.frames.isEmpty then
-        throw IllegalArgumentException(s"Animation specification $current has no frames")
-      else
-        if current.frames.getOrElse(0) > totalFrame then
-          Try((accumulator :+ current, totalFrame))
-        else partAndFrame(totalFrame - current.frames.getOrElse(0), partsParts.tail, accumulator :+ current)

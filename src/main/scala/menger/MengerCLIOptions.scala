@@ -1,11 +1,12 @@
 package menger
 
+import com.typesafe.scalalogging.LazyLogging
 import org.rogach.scallop.*
 import org.rogach.scallop.exceptions.ScallopException
 
 import scala.util.Try
 
-class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments):
+class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:
   val timeout: ScallopOption[Float] = opt[Float](required = false, default = Some(0))
   val spongeType: ScallopOption[String] = choice(
     choices = List("cube", "square", "tesseract", "tesseract-sponge", "tesseract-sponge-2"), 
@@ -20,6 +21,9 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments):
   private def degreeOpt = opt[Float](
       required = false, default = Some(0), validate = a => a >= 0 && a < 360
     )
+  val rotX: ScallopOption[Float] = degreeOpt
+  val rotY: ScallopOption[Float] = degreeOpt
+  val rotZ: ScallopOption[Float] = degreeOpt
   val rotXW: ScallopOption[Float] = degreeOpt
   val rotYW: ScallopOption[Float] = degreeOpt
   val rotZW: ScallopOption[Float] = degreeOpt
@@ -42,6 +46,12 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments):
     else Left("eyeW must be greater than screenW")
   }
   validate(animate, spongeType) { (spec, sponge) => validateAnimationSpecification(spec, sponge) }
+  validate(animate, rotX, rotY, rotZ, rotXW, rotYW, rotZW) { (spec, x, y, z, xw, yw, zw) =>
+    logger.info(s"animate: $spec, rotX: $x, rotY: $y, rotZ: $z, rotXW: $xw, rotYW: $yw, rotZW: $zw")
+    if !spec.isRotationAxisSet(x, y, z, xw, yw, zw) then Right(())
+    else Left("Animation specification has rotation axis set that is also set statically")
+  }
+
   verify()
 
   private def validateAnimationSpecification(spec: AnimationSpecifications, spongeType: String) =
