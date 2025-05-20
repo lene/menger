@@ -20,6 +20,9 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments):
   private def degreeOpt = opt[Float](
       required = false, default = Some(0), validate = a => a >= 0 && a < 360
     )
+  val rotX: ScallopOption[Float] = degreeOpt
+  val rotY: ScallopOption[Float] = degreeOpt
+  val rotZ: ScallopOption[Float] = degreeOpt
   val rotXW: ScallopOption[Float] = degreeOpt
   val rotYW: ScallopOption[Float] = degreeOpt
   val rotZW: ScallopOption[Float] = degreeOpt
