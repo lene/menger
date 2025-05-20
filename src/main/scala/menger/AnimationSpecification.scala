@@ -86,10 +86,10 @@ case class AnimationSpecifications(specification: List[String] = List.empty) ext
     logger.info(partsBounds.toString())
     ???
 
-  def partAndFrame(totalFrame: Int): (Int, Int) =
-    val part = parts.find(_.frames.exists(_ > totalFrame))
-    part match
-      case Some(p) =>
-        val frame = totalFrame - p.frames.getOrElse(0)
-        (parts.indexOf(p), frame)
-      case None => (parts.length - 1, totalFrame - parts.last.frames.getOrElse(0))
+  def partAndFrame(globalFrame: Int): (Int, Int) =
+    val totalBounds: Seq[Int] = for (i <- parts.indices) yield parts.slice(0, i).map(_.frames.getOrElse(0)).sum
+    if ! totalBounds.exists(_ < globalFrame) then
+      logger.error(s"Global frame $globalFrame out of bounds")
+      throw new IllegalArgumentException(s"Global frame $globalFrame out of bounds")
+    val part: Int = totalBounds.indexWhere(_ > globalFrame)
+    ???
