@@ -10,21 +10,17 @@ case class AnimationSpecification(s: String) extends LazyLogging:
   val asMap: Option[Map[String, String]] =
     Try {s.split(":").map(_.split("=")).map(arr => (arr(0), arr(1))).toMap}.toOption
 
-  val seconds: Option[Float] = asMap.flatMap(_.get("seconds")).flatMap(_.toFloatOption)
-
   val frames: Option[Int] = asMap.flatMap(_.get("frames")).flatMap(_.toIntOption)
 
   lazy val animationParameters: Map[String, StartEnd] =
     val parametersOnly = asMap.get -- AnimationSpecification.TIMESCALE_PARAMETERS
     parametersOnly.map { case (k, v) => k -> parseStartEnd(v) }
 
+  def timeSpecValid: Boolean = frames.nonEmpty && frames.get > 0
   def valid(spongeType: String): Boolean = timeSpecValid && animationParametersValid(spongeType)
 
   override def toString: String =
-    val timeSpec = (seconds, frames) match
-      case (Some(s), None) => s"seconds=$s"
-      case (None, Some(f)) => s"frames=$f"
-      case _ => throw IllegalArgumentException("Invalid animation specification")
+    val timeSpec = s"frames=${frames.get}"
     val animationSpec = animationParameters.mkString(":")
     s"$timeSpec:$animationSpec"
 
@@ -70,15 +66,12 @@ case class AnimationSpecification(s: String) extends LazyLogging:
     require(parts.last.toFloatOption.isDefined, s"End ${parts.last} not a Float")
     (parts.head.toFloat, parts.last.toFloat)
 
-  private def timeSpecValid: Boolean =
-    (seconds.nonEmpty && seconds.get > 0) ^ (frames.nonEmpty && frames.get > 0)
-
   private def animationParametersValid(spongeType: String): Boolean =
     animationParameters.nonEmpty && 
       animationParameters.keySet.subsetOf(AnimationSpecification.validParameters(spongeType))
 
 object AnimationSpecification:
-  final val TIMESCALE_PARAMETERS = Set("frames", "seconds")
+  final val TIMESCALE_PARAMETERS = Set("frames")
   final val ALWAYS_VALID_PARAMETERS = Set("rot-x", "rot-y", "rot-z")
   final val FOUR_D_VALID_PARAMETERS = Set(
     "rot-x-w", "rot-y-w", "rot-z-w", "projection-screen-w", "projection-eye-w"

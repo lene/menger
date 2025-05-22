@@ -85,3 +85,7 @@ class AnimationSpecificationsSuite extends AnyFlatSpec with Matchers:
       AnimationSpecifications(
         List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
       ).rotationProjectionParameters(20)
+
+  it should "fail when specifying seconds as time metric" in:
+    an [IllegalArgumentException] should be thrownBy
+      AnimationSpecifications(List("seconds=10:rot-x-w=0-10"))

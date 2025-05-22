@@ -55,7 +55,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   verify()
 
   private def validateAnimationSpecification(spec: AnimationSpecifications, spongeType: String) =
-    if spec.valid(spongeType) then Right(())
+    if spec.valid(spongeType) && spec.timeSpecValid then Right(())
     else Left("Invalid animation specification")
 
   override def onError(e: Throwable): Unit = e match

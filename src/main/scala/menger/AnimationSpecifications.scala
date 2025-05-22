@@ -7,9 +7,10 @@ import scala.util.Try
 case class AnimationSpecifications(specification: List[String] = List.empty) extends LazyLogging:
   val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_))
   val numFrames: Int = parts.map(_.frames.getOrElse(0)).sum
+  require(parts.forall(_.timeSpecValid), "AnimationSpecification.frames not defined")
 
-  def valid(spongeType: String): Boolean =
-    parts.forall(_.valid(spongeType)) && parts.map(_.seconds).map(_.isDefined).toSet.size < 2
+  def valid(spongeType: String): Boolean = parts.forall(_.valid(spongeType))
+  def timeSpecValid: Boolean = parts.forall(_.timeSpecValid)
 
   def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
     def previousPlusCurrentRotation(specs: List[AnimationSpecification], frame: Int): RotationProjectionParameters =
