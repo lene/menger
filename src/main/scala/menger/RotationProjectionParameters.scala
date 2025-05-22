@@ -21,12 +21,12 @@ case class RotationProjectionParameters(
       rotX + other.rotX, rotY + other.rotY, rotZ + other.rotZ
     )
 
-  override def toString: String = 
-    "|" + 
-      (if(rotX != 0 || rotY != 0 || rotZ != 0) then s"x: $rotX y: $rotY z: $rotZ " else "") +
-      (if(rotXW != 0 || rotYW != 0 || rotZW != 0) then s"xw: $rotXW yw: $rotYW zw: $rotZW " else "") +
-      (if(eyeW != Const.defaultEyeW) then s"eyeW=$eyeW " else "") +
-      (if(screenW != Const.defaultScreenW) then s"screenW=$screenW " else "") + 
+  override def toString: String =
+    "|" +
+      (if rotX != 0 || rotY != 0 || rotZ != 0 then s"x: ${rotX%3.0f} y: $rotY z: $rotZ" else "") +
+      (if rotXW != 0 || rotYW != 0 || rotZW != 0 then s"xw: $rotXW yw: $rotYW zw: $rotZW" else "") +
+      (if eyeW != Const.defaultEyeW then s"eyeW=$eyeW" else "") +
+      (if screenW != Const.defaultScreenW then s"screenW=$screenW" else "") +
     "|"
 
 object RotationProjectionParameters:
