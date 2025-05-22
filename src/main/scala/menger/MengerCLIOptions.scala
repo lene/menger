@@ -41,6 +41,10 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val animate: ScallopOption[AnimationSpecifications] = opt[AnimationSpecifications]()(
     animationSpecificationsConverter
   )
+  val saveName: ScallopOption[String] = opt[String](
+    required = false, default = Some("menger%d.png"), validate = _.nonEmpty
+  )
+  
   validate(projectionScreenW, projectionEyeW) { (screen, eye) =>
     if eye > screen then Right(())
     else Left("eyeW must be greater than screenW")
