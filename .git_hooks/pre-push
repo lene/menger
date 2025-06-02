@@ -48,9 +48,16 @@ fi
 
 VERSION_SBT=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
 VERSIONS_CI=$(egrep 'DEPLOYABLE_VERSION.*' .gitlab-ci.yml | head -n 1 | cut -d ':' -f 2 | xargs)
+VERSION_SOURCE=$(egrep 'version\("menger v.* ' src/main/scala/menger/MengerCLIOptions.scala | cut -d 'v' -f 3 | cut -d ' ' -f 1)
 if [ "$VERSION_SBT" != "$VERSIONS_CI" ]; then
   echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in .gitlab-ci.yml: ${RED_TEXT}${VERSIONS_CI}${RESET_TEXT}"
   STATUS=1
+fi
+if [ "$VERSION_SBT" != "$VERSION_SOURCE" ]; then
+  echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in MengerCLIOptions.scala: ${RED_TEXT}${VERSION_SOURCE}${RESET_TEXT}"
+  STATUS=1
+else
+  echo "Version: ${GREEN_TEXT}${VERSION_SBT}${RESET_TEXT}"
 fi
 if git tag | ( grep "^${VERSION_SBT}\$" ); then
   echo "Tag ${RED_TEXT}${VERSION_SBT}${RESET_TEXT} already exists ($(git tag | xargs))"

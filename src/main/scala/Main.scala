@@ -26,10 +26,10 @@ object Main:
 
   def createEngine(opts: MengerCLIOptions): MengerEngine =
     val rotationProjectionParameters = RotationProjectionParameters(opts)
-    if opts.animate().parts.nonEmpty then
+    if opts.animate.isDefined && opts.animate().parts.nonEmpty then
       AnimatedMengerEngine(
         opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.animate(),
-        opts.saveName()
+        opts.saveName.toOption
       )
     else
       InteractiveMengerEngine(

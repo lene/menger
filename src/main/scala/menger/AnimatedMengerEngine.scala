@@ -2,15 +2,14 @@ package menger
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
-import com.badlogic.gdx.graphics.PixmapIO
+import com.badlogic.gdx.graphics.{Pixmap, PixmapIO}
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
-import com.badlogic.gdx.utils.ScreenUtils
 
 class AnimatedMengerEngine(
   spongeType: String, spongeLevel: Int,
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
-  lines: Boolean, val animationSpecifications: AnimationSpecifications, val saveName: String
+  lines: Boolean, val animationSpecifications: AnimationSpecifications, val saveName: Option[String]
 ) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines):
   private var currentFrame: Int = 0
 
@@ -21,64 +20,33 @@ class AnimatedMengerEngine(
 
   override def currentRotProj: RotationProjectionParameters =
     val r = rotationProjectionParameters + animationSpecifications.rotationProjectionParameters(currentFrame)
-    Gdx.app.log(s"${getClass.getSimpleName}.currentRotProj()", s"frame: $currentFrame $r $currentSaveName")
+    Gdx.app.log(s"${getClass.getSimpleName}", s"frame: $currentFrame $r ${currentSaveName.getOrElse("")}")
     r
 
   override def create(): Unit =
-    Gdx.app.log(
-      s"${getClass.getSimpleName}.create()",
-      s"Animating for $animationSpecifications ${if saveName.nonEmpty then s"and saving to $saveName" else ""}"
-    )
+    Gdx.app.log(s"${getClass.getSimpleName}", s"Animating for $animationSpecifications")
 
   override def render(): Unit =
     super.render()
     gdxResources.render(drawables)
     saveImage()
     nextStep()
-    
 
   private def nextStep(): Unit = 
     currentFrame += 1
     if currentFrame >= animationSpecifications.numFrames then
       Gdx.app.exit()
 
-  private def currentSaveName: Option[String] =
-    if saveName.nonEmpty then Some(saveName.format(currentFrame)) else None
+  private def currentSaveName: Option[String] = saveName.map(_.format(currentFrame))
 
-  private def saveImage():  Unit =
-    if saveName.nonEmpty then
-      val fileName = currentSaveName.getOrElse("")
-      Gdx.app.log(s"${getClass.getSimpleName}.saveImage()", s"Saving image to $fileName")
-      ScreenshotFactory.saveScreenshot(fileName)
-    else
-      Gdx.app.log(s"${getClass.getSimpleName}.saveImage()", "No save name provided, skipping image save.")
+  private def saveImage():  Unit = currentSaveName.foreach(ScreenshotFactory.saveScreenshot)
 
 
-object ScreenshotFactory {
-  private var counter = 1
+object ScreenshotFactory:
+  def saveScreenshot(fileName: String): Unit =
+    val pixmap = getScreenshot(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
+    PixmapIO.writePNG(FileHandle(fileName), pixmap)
+    pixmap.dispose()
 
-  def saveScreenshot(fileName: String): Unit = {
-      val fh = new FileHandle(fileName)
-      val pixmap = getScreenshot(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight, false)
-      PixmapIO.writePNG(fh, pixmap)
-      pixmap.dispose
-  }
-
-  private def getScreenshot(x: Int, y: Int, w: Int, h: Int, yDown: Boolean) = {
-    val pixmap = ScreenUtils.getFrameBufferPixmap(x, y, w, h)
-    if (yDown) {
-      // Flip the pixmap upside down
-      val pixels = pixmap.getPixels
-      val numBytes = w * h * 4
-      val lines = new Array[Byte](numBytes)
-      val numBytesPerLine = w * 4
-      for (i <- 0 until h) {
-        pixels.position((h - i - 1) * numBytesPerLine)
-        pixels.get(lines, i * numBytesPerLine, numBytesPerLine)
-      }
-      pixels.clear
-      pixels.put(lines)
-    }
-    pixmap
-  }
-}
+  private def getScreenshot(x: Int, y: Int, w: Int, h: Int) =
+    Pixmap.createFromFrameBuffer(x, y, w, h)
