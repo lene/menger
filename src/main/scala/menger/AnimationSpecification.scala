@@ -5,7 +5,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 case class AnimationSpecification(s: String) extends LazyLogging:
 
-  type StartEnd = (Float, Float)
+  private type StartEnd = (start: Float, end: Float)
 
   val asMap: Option[Map[String, String]] =
     Try {s.split(":").map(_.split("=")).map(arr => (arr(0), arr(1))).toMap}.toOption
@@ -25,20 +25,20 @@ case class AnimationSpecification(s: String) extends LazyLogging:
     s"$timeSpec:$animationSpec"
 
   def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
-    def current(bounds: (Float, Float)): Float =
-      bounds._1 + (bounds._2 - bounds._1) * frame / frames.get
+    def current(bounds: StartEnd): Float =
+      bounds.start + (bounds.end - bounds.start) * frame / frames.get
 
     require(animationParameters.nonEmpty, "AnimationSpecification.animationParameters not defined")
     require(frame <= frames.get, s"Frame $frame exceeds total frames ${frames.get}")
-    val rotXBounds: (Float, Float) = animationParameters.get("rot-x").getOrElse(0f, 0f)
-    val rotYBounds: (Float, Float) = animationParameters.get("rot-y").getOrElse(0f, 0f)
-    val rotZBounds: (Float, Float) = animationParameters.get("rot-z").getOrElse(0f, 0f)
-    val rotXWBounds: (Float, Float) = animationParameters.get("rot-x-w").getOrElse(0f, 0f)
-    val rotYWBounds: (Float, Float) = animationParameters.get("rot-y-w").getOrElse(0f, 0f)
-    val rotZWBounds: (Float, Float) = animationParameters.get("rot-z-w").getOrElse(0f, 0f)
-    val screenWBounds: (Float, Float) = animationParameters.get("projection-screen-w")
+    val rotXBounds: StartEnd = animationParameters.get("rot-x").getOrElse(0f, 0f)
+    val rotYBounds: StartEnd = animationParameters.get("rot-y").getOrElse(0f, 0f)
+    val rotZBounds: StartEnd = animationParameters.get("rot-z").getOrElse(0f, 0f)
+    val rotXWBounds: StartEnd = animationParameters.get("rot-x-w").getOrElse(0f, 0f)
+    val rotYWBounds: StartEnd = animationParameters.get("rot-y-w").getOrElse(0f, 0f)
+    val rotZWBounds: StartEnd = animationParameters.get("rot-z-w").getOrElse(0f, 0f)
+    val screenWBounds: StartEnd = animationParameters.get("projection-screen-w")
       .getOrElse(Const.defaultScreenW, Const.defaultScreenW)
-    val eyeWBounds: (Float, Float) = animationParameters.get("projection-eye-w")
+    val eyeWBounds: StartEnd = animationParameters.get("projection-eye-w")
       .getOrElse(Const.defaultEyeW, Const.defaultEyeW)
     RotationProjectionParameters(
       rotXW = current(rotXWBounds),

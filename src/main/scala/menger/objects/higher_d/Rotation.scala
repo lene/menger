@@ -3,7 +3,6 @@ package menger.objects.higher_d
 import com.badlogic.gdx.math.{Matrix4, Vector4}
 import com.typesafe.scalalogging.LazyLogging
 import menger.{Const, RotationProjectionParameters}
-import menger.objects.higher_d.Plane.logger
 
 import scala.annotation.targetName
 

@@ -17,7 +17,8 @@ case class Cube(
 
 
 object Cube:
-  private val models: mutable.Map[(Material, Int), Model] = mutable.Map.empty
+  private type CubeDefinition = (material: Material, primitiveType: Int)
+  private val models: mutable.Map[CubeDefinition, Model] = mutable.Map.empty
   def model(material: Material, primitiveType: Int): Model =
     models.getOrElseUpdate(
       (material, primitiveType),

@@ -20,7 +20,8 @@ case class Sphere(
     instance :: Nil
 
 object Sphere:
-  private val models: mutable.Map[(Int, Material, Int), Model] = mutable.Map.empty
+  private type SphereDefinition = (divisions: Int, material: Material, primitiveType: Int)
+  private val models: mutable.Map[SphereDefinition, Model] = mutable.Map.empty
   def model(divisions: Int, material: Material, primitiveType: Int): Model =
     models.getOrElseUpdate(
       (divisions, material, primitiveType),

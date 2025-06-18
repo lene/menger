@@ -262,8 +262,8 @@ class FaceSuite extends AnyFlatSpec with Matchers:
     }
 
   forAll(Seq(
-    (0f, 0f, 1f), (0f, 1f, 0f), (1f, 0f, 0f), (0f, 0f, -1f), (0f, -1f, 0f), (-1f, 0f, 0f),
-    (1f, 1f, 1f), (1f, 1f, -1f), (1f, -1f, 1f), (1f, -1f, -1f),
+    ( 0f, 0f, 1f), ( 0f, 1f,  0f), ( 1f,  0f, 0f), ( 0f,  0f, -1f), (0f, -1f, 0f), (-1f, 0f, 0f),
+    ( 1f, 1f, 1f), ( 1f, 1f, -1f), ( 1f, -1f, 1f), ( 1f, -1f, -1f),
     (-1f, 1f, 1f), (-1f, 1f, -1f), (-1f, -1f, 1f), (-1f, -1f, -1f)
   )) { case (xCen, yCen, zCen) =>
     it should s"be correct for center <$xCen, $yCen, $zCen>" in:

@@ -1,5 +1,7 @@
 package menger.objects
 
+import menger.objects.Direction.ByteVec
+
 import scala.annotation.targetName
 
 enum Direction(val x: Byte, val y: Byte, val z: Byte):
@@ -43,7 +45,7 @@ enum Direction(val x: Byte, val y: Byte, val z: Byte):
 
   lazy val sign: Byte  = (x + y + z).toByte
 
-  private def getRotatedVector(direction: Direction): (Byte, Byte, Byte) =
+  private def getRotatedVector(direction: Direction): ByteVec =
     /** rotate 90 degrees around axis `direction` */
     direction match
       case Direction.X => (x, (-z).toByte, y)
@@ -56,6 +58,9 @@ enum Direction(val x: Byte, val y: Byte, val z: Byte):
   private[objects] def abs: Direction = Direction(x.abs, y.abs, z.abs)
 
 object Direction:
+
+  private type ByteVec = (x: Byte, y: Byte, z: Byte)
+
   def apply(x: Byte, y: Byte, z: Byte): Direction =
     (x, y, z) match
       case (1, 0, 0) => Direction.X
@@ -66,4 +71,4 @@ object Direction:
       case (0, 0, -1) => Direction.negZ
       case _ => throw new IllegalArgumentException("Invalid direction ($x, $y, $z)")
 
-  def apply(xyz: (Byte, Byte, Byte)): Direction = apply.tupled(xyz)
+  def apply(xyz: ByteVec): Direction = apply.tupled(xyz)
