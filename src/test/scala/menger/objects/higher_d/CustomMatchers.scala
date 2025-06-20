@@ -53,21 +53,6 @@ trait CustomMatchers:
 
   def containAllEpsilon(expected: Iterable[Vector4]) = new FaceContainsAllVector4Matcher(expected)
 
-  /**
-   * Separate class for negating the containAllEpsilon matcher since using it with `not` gives the error:
-   * value containAllEpsilon is not a member of
-   * org.scalatest.matchers.dsl.ResultOfNotWordForAny[Seq[Face4D]]
-   */
-  class FaceNotContainsAllVector4Matcher(expected: Iterable[Vector4]) extends Matcher[Seq[Face4D]]:
-    def apply(left: Seq[Face4D]): MatchResult =
-      MatchResult(
-        !containsAllEpsilon(left, expected.toSeq),
-        s"""${left.map(_.toString)} contains all ${expected.map(asString)}""",
-        s"""${left.map(_.toString)} does not contain all ${expected.map(asString)}"""
-      )
-
-  def notContainAllEpsilon(expected: Iterable[Vector4]) = new FaceNotContainsAllVector4Matcher(expected)
-
   private def containsAllEpsilon(rects: Seq[Face4D], expected: Seq[Vector4]): Boolean =
     rects.map(_.asSeq).exists(rect => rect.forall(v => containsEpsilon(expected, v)))
 

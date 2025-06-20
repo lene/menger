@@ -117,7 +117,7 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     }
 
   it should "not contain center subface" in new Sponge2:
-    withClue(subfacesString) { flatSubfaces should notContainAllEpsilon (centerSubface) }
+    withClue(subfacesString) { flatSubfaces should not (containAllEpsilon (centerSubface)) }
 
   it should "contain middle right subface" in new Sponge2:
     withClue(subfacesString) {
@@ -244,7 +244,7 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
     }
 
   it should "not contain center subface" in new Sponge2:
-    withClue(subfacesString) { subfaces should notContainAllEpsilon(centerSubface) }
+    withClue(subfacesString) { subfaces should not (containAllEpsilon(centerSubface)) }
 
   it should "contain middle right subface" in new Sponge2:
     withClue(subfacesString) {

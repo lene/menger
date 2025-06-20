@@ -10,7 +10,7 @@ variables:
   DEPLOYABLE_VERSION: 0.2.5
   SBT_IMAGE: hseeberger/scala-sbt:17.0.2_1.6.2_3.1.1
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
-  SCALA_VERSION: 3.6.4
+  SCALA_VERSION: 3.7.1
 
 include:
   - template: Code-Quality.gitlab-ci.yml
@@ -113,6 +113,7 @@ pages:
   stage: package
   needs:
     - CheckCoverage
+    - ScalaVersionConsistent
   when: always
   script:
     - mv target/scala-${SCALA_VERSION}/scoverage-report/ public/
@@ -173,6 +174,22 @@ TagIsNewAndConsistent:
     - echo $VERSIONS_CI
     - test "$VERSION_SBT" = "$VERSIONS_CI"
     - git tag | ( ! grep "^${VERSION_SBT}\$" )
+
+ScalaVersionConsistent:
+  stage: test
+  image: alpine:latest
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - SCALA_VERSION=$(egrep 'scalaVersion := ".*"' build.sbt | cut -d \" -f 2)
+    - >
+      GITLAB_SCALA_VERSION=$(egrep 'SCALA_VERSION. .*' .gitlab-ci.yml | cut -d: -f 2 | xargs)
+    - if [ "$SCALA_VERSION" != "$GITLAB_SCALA_VERSION" ]
+    - then
+    - echo "Scala in build.sbt ${SCALA_VERSION}, in .gitlab-ci.yml ${GITLAB_SCALA_VERSION}"
+    - exit 1
+    - fi
 
 ChangelogIsUpdated:
   stage: test

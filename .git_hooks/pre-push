@@ -37,7 +37,7 @@ else echo "Status after gitlab lint: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 SCALA_VERSION=$(egrep 'scalaVersion := ".*"' build.sbt | cut -d \" -f 2)
-GITLAB_SCALA_VERSION=$(egrep 'SCALA_VERSION: .*' .gitlab-ci.yml | cut -d : -f 2 | xargs)
+GITLAB_SCALA_VERSION=$(egrep 'SCALA_VERSION. .*' .gitlab-ci.yml | head -n 1 | cut -d: -f 2 | xargs)
 if [ "$SCALA_VERSION" != "$GITLAB_SCALA_VERSION" ]
 then
   echo "Scala in build.sbt: ${RED_TEXT}${SCALA_VERSION}${RESET_TEXT}, in .gitlab-ci.yml: ${RED_TEXT}${GITLAB_SCALA_VERSION}${RESET_TEXT}"

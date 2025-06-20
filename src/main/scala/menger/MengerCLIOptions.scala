@@ -40,7 +40,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     required = false, default = Some(Const.defaultAntialiasSamples)
   )
   val animate: ScallopOption[AnimationSpecifications] = opt[AnimationSpecifications]()(
-    animationSpecificationsConverter
+    using animationSpecificationsConverter
   )
   val saveName: ScallopOption[String] = opt[String](
     required = false,  validate = _.nonEmpty
@@ -73,7 +73,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
 
 
 val animationSpecificationsConverter = new ValueConverter[AnimationSpecifications] {
-  val argType = org.rogach.scallop.ArgType.LIST
+  val argType: ArgType.V = org.rogach.scallop.ArgType.LIST
   def parse(s: List[(String, List[String])]): Either[String, Option[AnimationSpecifications]] =
     val specStrings = s.flatMap(_(1))
     if specStrings.isEmpty then Right(None)

@@ -7,7 +7,7 @@ lazy val root = project
     version := "0.2.5",
     maintainer := "lene.preuss@gmail.com",
 
-    scalaVersion := "3.6.4",
+    scalaVersion := "3.7.2",
     scalacOptions ++= Seq("-deprecation", "-explain", "-feature"),
 
     // Logging
