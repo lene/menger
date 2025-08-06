@@ -19,17 +19,17 @@ lazy val root = project
     ),
     // ScalaTest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-    libraryDependencies += "org.scalamock" %% "scalamock" % "7.2.0" % Test,
+    libraryDependencies += "org.scalamock" %% "scalamock" % "7.4.0" % Test,
 
     // Scallop command line parser
     libraryDependencies += "org.rogach" %% "scallop" % "5.2.0",
 
     // libGDX
     libraryDependencies ++= Seq(
-      "com.badlogicgames.gdx" % "gdx" % "1.13.1",
+      "com.badlogicgames.gdx" % "gdx" % "1.13.5",
       "net.sf.proguard" % "proguard-base" % "6.2.2" % "provided",
-      "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.13.1",
-      "com.badlogicgames.gdx" % "gdx-platform" % "1.13.1" classifier "natives-desktop",
+      "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.13.5",
+      "com.badlogicgames.gdx" % "gdx-platform" % "1.13.5" classifier "natives-desktop",
     ),
     Test / scalacOptions += "-experimental"
 

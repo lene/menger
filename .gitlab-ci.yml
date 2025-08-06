@@ -10,7 +10,7 @@ variables:
   DEPLOYABLE_VERSION: 0.2.5
   SBT_IMAGE: hseeberger/scala-sbt:17.0.2_1.6.2_3.1.1
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
-  SCALA_VERSION: 3.7.1
+  SCALA_VERSION: 3.7.2
 
 include:
   - template: Code-Quality.gitlab-ci.yml

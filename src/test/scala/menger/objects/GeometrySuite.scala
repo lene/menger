@@ -24,7 +24,7 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
     class MockedCamera extends PerspectiveCamera
     val camera = stub[MockedCamera]
     (camera.translate(_: Vector3)).returns(Vector3 => ())
-    camera.update.returns(())
+    (() => camera.update).returns(Unit => ())
     camera.rotateAround.returns(Vector3 => ())
     (camera.lookAt(_: Float, _: Float, _: Float)).returns(Vector3 => ())
     camera
