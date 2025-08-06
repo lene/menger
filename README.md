@@ -80,3 +80,6 @@ for a Scala 3 REPL.
 - Implement 3D/4D/ND mazes
 - Implement a 3D/4D/ND maze solver
 - Abstract the graphics routines to a generic 3D rendering library in Scala3
+  
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lene/menger)
