@@ -2,17 +2,22 @@
 
 ## [0.2.6] - Unreleased
 
-### Upgraded
-- Scala to 3.7.1
-- sbt to 1.10.11
-
 ### Added
-= Use named tuples throughout the code
+- replaced LibGDX's `Vector4` with `Vector[4, Float]` for future extensibility
+
+### Upgraded
+- sbt to 1.11.4
 
 ## [0.2.5] - 2025-03-27
 
 ### Added
 - script parameter animations
+  = Use named tuples throughout the code
+
+### Upgraded
+- Scala to 3.7.2
+- sbt to 1.10.11
+- Scalamock to 7.4.0
 
 ## [0.2.4] - 2025-03-20
 

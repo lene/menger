@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector4
+import menger.objects.{Vector, vec2string}
 import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.*
@@ -15,14 +15,14 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     val sponge2: TesseractSponge2 = TesseractSponge2(1)
     val face: Face4D = tesseract.faces.head
     require(
-      face == Face4D(Vector4(-1, -1, -1, -1), Vector4(-1, -1, -1, 1), Vector4(-1, -1, 1, 1), Vector4(-1, -1, 1, -1))
+      face == Face4D(Vector[4, Float](-1, -1, -1, -1), Vector[4, Float](-1, -1, -1, 1), Vector[4, Float](-1, -1, 1, 1), Vector[4, Float](-1, -1, 1, -1))
     )
     val subfaces: Seq[Face4D] = sponge2.faceGenerator(face)
-    val centerSubface: List[Vector4] = List(
-      Vector4(-1, -1, -1/3f, 1/3f), Vector4(-1, -1, 1/3f, 1/3f),
-      Vector4(-1, -1, 1/3f, -1/3f), Vector4(-1, -1, -1/3f, -1/3f)
+    val centerSubface: List[Vector[4, Float]] = List(
+      Vector[4, Float](-1, -1, -1/3f, 1/3f), Vector[4, Float](-1, -1, 1/3f, 1/3f),
+      Vector[4, Float](-1, -1, 1/3f, -1/3f), Vector[4, Float](-1, -1, -1/3f, -1/3f)
     )
-    val centerSubfaceEdges: Seq[(Vector4, Vector4)] = List(
+    val centerSubfaceEdges: Seq[(Vector[4, Float], Vector[4, Float])] = List(
       (centerSubface(0), centerSubface(1)), (centerSubface(1), centerSubface(2)),
       (centerSubface(2), centerSubface(3)), (centerSubface(3), centerSubface(0))
     )
@@ -33,15 +33,15 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     val perpendicularSubfacesString: String =
       perpendicularSubfaces.map(rect2str).mkString(", ").replace("),", "),\n")
 
-    def diffToFaces(faces: Seq[Face4D], face2: List[Vector4]): String =
-      def diffBetweenFaces(face1: List[Vector4], face2: List[Vector4]): List[Vector4] =
+    def diffToFaces(faces: Seq[Face4D], face2: List[Vector[4, Float]]): String =
+      def diffBetweenFaces(face1: List[Vector[4, Float]], face2: List[Vector[4, Float]]): List[Vector[4, Float]] =
         face1.zip(face2).map((vertex1, vertex2) => vertex2 - vertex1)
-      val facesAsList: Seq[List[Vector4]] = faces.map(_.asSeq.toList)
+      val facesAsList: Seq[List[Vector[4, Float]]] = faces.map(_.asSeq.toList)
       facesAsList.map(
         face1 => diffBetweenFaces(face1, face2).map(vec2string)
       ).toString.replace("),", "),\n").replace("Vector(", "Vector(\n ")
 
-    def lineRoughlyEquals(line1: (Vector4, Vector4), line2: (Vector4, Vector4)): Boolean =
+    def lineRoughlyEquals(line1: (Vector[4, Float], Vector[4, Float]), line2: (Vector[4, Float], Vector[4, Float])): Boolean =
       line1._1.epsilonEquals(line2._1) && line1._2.epsilonEquals(line2._2)
 
   def rect2str(rect: Face4D): String = rect.asSeq.map(vec2string).mkString("(", ", ", ")")
@@ -68,7 +68,7 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
   it should "contain the interior points at a distance of a third from the edge" in new Sponge2:
     forAll (Seq(-1/3f, 1/3f)) { z =>
       forAll(Seq(-1/3f, 1/3f)) { w =>
-        sponge2.cornerPoints(face).values should containEpsilon (Vector4(-1, -1, z, w))
+        sponge2.cornerPoints(face).values should containEpsilon (Vector[4, Float](-1, -1, z, w))
       }
     }
 
@@ -87,32 +87,32 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
   it should "contain top left subface" in new Sponge2:
     withClue(flatSubfacesString) {
       flatSubfaces should containAllEpsilon(List(
-          Vector4(-1, -1, -1,    -1),    Vector4(-1, -1, -1,    -1/3f),
-          Vector4(-1, -1, -1/3f, -1/3f), Vector4(-1, -1, -1/3f, -1)
+          Vector[4, Float](-1, -1, -1,    -1),    Vector[4, Float](-1, -1, -1,    -1/3f),
+          Vector[4, Float](-1, -1, -1/3f, -1/3f), Vector[4, Float](-1, -1, -1/3f, -1)
         ))
     }
 
   it should "contain top middle subface" in new Sponge2:
     withClue(subfacesString) {
       flatSubfaces should containAllEpsilon(List(
-          Vector4(-1, -1, -1,    -1/3f), Vector4(-1, -1, -1,     1/3f),
-          Vector4(-1, -1, -1/3f,  1/3f), Vector4(-1, -1, -1/3f, -1/3f)
+          Vector[4, Float](-1, -1, -1,    -1/3f), Vector[4, Float](-1, -1, -1,     1/3f),
+          Vector[4, Float](-1, -1, -1/3f,  1/3f), Vector[4, Float](-1, -1, -1/3f, -1/3f)
         ))
     }
 
   it should "contain top right subface" in new Sponge2:
     withClue(subfacesString) {
       flatSubfaces should containAllEpsilon(List(
-          Vector4(-1, -1, -1,    1/3f), Vector4(-1, -1, -1,    1),
-          Vector4(-1, -1, -1/3f, 1),    Vector4(-1, -1, -1/3f, 1/3f)
+          Vector[4, Float](-1, -1, -1,    1/3f), Vector[4, Float](-1, -1, -1,    1),
+          Vector[4, Float](-1, -1, -1/3f, 1),    Vector[4, Float](-1, -1, -1/3f, 1/3f)
         ))
     }
 
   it should "contain middle left subface" in new Sponge2:
     withClue(subfacesString) {
       flatSubfaces should containAllEpsilon(List(
-          Vector4(-1, -1, -1/3f, -1),    Vector4(-1, -1, -1/3f, -1/3f),
-          Vector4(-1, -1,  1/3f, -1/3f), Vector4(-1, -1,  1/3f, -1)
+          Vector[4, Float](-1, -1, -1/3f, -1),    Vector[4, Float](-1, -1, -1/3f, -1/3f),
+          Vector[4, Float](-1, -1,  1/3f, -1/3f), Vector[4, Float](-1, -1,  1/3f, -1)
         ))
     }
 
@@ -122,32 +122,32 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
   it should "contain middle right subface" in new Sponge2:
     withClue(subfacesString) {
       flatSubfaces should containAllEpsilon(List(
-          Vector4(-1, -1, -1/3f, 1/3f), Vector4(-1, -1, -1/3f, 1),
-          Vector4(-1, -1,  1/3f, 1),    Vector4(-1, -1,  1/3f, 1/3f)
+          Vector[4, Float](-1, -1, -1/3f, 1/3f), Vector[4, Float](-1, -1, -1/3f, 1),
+          Vector[4, Float](-1, -1,  1/3f, 1),    Vector[4, Float](-1, -1,  1/3f, 1/3f)
         ))
     }
 
   it should "contain bottom left subface" in new Sponge2:
     withClue(subfacesString) {
       flatSubfaces should containAllEpsilon(List(
-          Vector4(-1, -1, 1/3f, -1/3f), Vector4(-1, -1, 1/3f, -1),
-          Vector4(-1, -1, 1,    -1),    Vector4(-1, -1, 1,    -1/3f)
+          Vector[4, Float](-1, -1, 1/3f, -1/3f), Vector[4, Float](-1, -1, 1/3f, -1),
+          Vector[4, Float](-1, -1, 1,    -1),    Vector[4, Float](-1, -1, 1,    -1/3f)
         ))
     }
 
   it should "contain bottom middle subface" in new Sponge2:
     withClue(subfacesString) {
       flatSubfaces should containAllEpsilon(List(
-          Vector4(-1, -1, 1/3f,  1/3f), Vector4(-1, -1, 1,     1/3f),
-          Vector4(-1, -1, 1,    -1/3f), Vector4(-1, -1, 1/3f, -1/3f)
+          Vector[4, Float](-1, -1, 1/3f,  1/3f), Vector[4, Float](-1, -1, 1,     1/3f),
+          Vector[4, Float](-1, -1, 1,    -1/3f), Vector[4, Float](-1, -1, 1/3f, -1/3f)
         ))
     }
 
   it should "contain bottom right subface" in new Sponge2:
     withClue(subfacesString) {
       flatSubfaces should containAllEpsilon(List(
-          Vector4(-1, -1, 1/3f, 1/3f), Vector4(-1, -1, 1/3f, 1),
-          Vector4(-1, -1, 1,    1),    Vector4(-1, -1, 1,    1/3f)
+          Vector[4, Float](-1, -1, 1/3f, 1/3f), Vector[4, Float](-1, -1, 1/3f, 1),
+          Vector[4, Float](-1, -1, 1,    1),    Vector[4, Float](-1, -1, 1,    1/3f)
         ))
     }
 
@@ -171,11 +171,11 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
 
   it should "all be 1/3 of the original side length long" in new Sponge2:
     perpendicularSubfaces.foreach(subface =>
-      (subface.b - subface.a).len shouldBe 2/3f +- Const.epsilon
+      (subface.b - subface.a).len() shouldBe 2/3f +- Const.epsilon
     )
 
   it should "all be parallel to the axes" in new Sponge2:
-    def isParallelToAxes(v: Vector4): Boolean =
+    def isParallelToAxes(v: Vector[4, Float]): Boolean =
       v.toArray.count(f => math.abs(f) < Const.epsilon) == 3
 
     forAll(perpendicularSubfaces) { face =>
@@ -201,8 +201,8 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
 
   it should "contain face rotated into y direction" in new Sponge2:
     val expected = List(
-      Vector4(-1, -1,    -1/3f, -1/3f), Vector4(-1, -1/3f, -1/3f, -1/3f),
-      Vector4(-1, -1/3f, -1/3f,  1/3f), Vector4(-1, -1,    -1/3f,  1/3f)
+      Vector[4, Float](-1, -1,    -1/3f, -1/3f), Vector[4, Float](-1, -1/3f, -1/3f, -1/3f),
+      Vector[4, Float](-1, -1/3f, -1/3f,  1/3f), Vector[4, Float](-1, -1,    -1/3f,  1/3f)
     )
     val clue = s"""\nexpected:
   ${faceToString(expected)}
@@ -214,32 +214,32 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
   "A subdivided face" should "contain top left subface" in new Sponge2:
     withClue(subfacesString) {
       subfaces should containAllEpsilon(List(
-        Vector4(-1, -1, -1,    -1),    Vector4(-1, -1, -1,    -1/3f),
-        Vector4(-1, -1, -1/3f, -1/3f), Vector4(-1, -1, -1/3f, -1)
+        Vector[4, Float](-1, -1, -1,    -1),    Vector[4, Float](-1, -1, -1,    -1/3f),
+        Vector[4, Float](-1, -1, -1/3f, -1/3f), Vector[4, Float](-1, -1, -1/3f, -1)
       ))
     }
 
   it should "contain top middle subface" in new Sponge2:
     withClue(subfacesString) {
       subfaces should containAllEpsilon(List(
-          Vector4(-1, -1, -1,    -1/3f), Vector4(-1, -1, -1,     1/3f),
-          Vector4(-1, -1, -1/3f,  1/3f), Vector4(-1, -1, -1/3f, -1/3f)
+          Vector[4, Float](-1, -1, -1,    -1/3f), Vector[4, Float](-1, -1, -1,     1/3f),
+          Vector[4, Float](-1, -1, -1/3f,  1/3f), Vector[4, Float](-1, -1, -1/3f, -1/3f)
         ))
     }
 
   it should "contain top right subface" in new Sponge2:
     withClue(subfacesString) {
       subfaces should containAllEpsilon(List(
-          Vector4(-1, -1, -1,    1/3f), Vector4(-1, -1, -1,    1),
-          Vector4(-1, -1, -1/3f, 1),    Vector4(-1, -1, -1/3f, 1/3f)
+          Vector[4, Float](-1, -1, -1,    1/3f), Vector[4, Float](-1, -1, -1,    1),
+          Vector[4, Float](-1, -1, -1/3f, 1),    Vector[4, Float](-1, -1, -1/3f, 1/3f)
         ))
     }
 
   it should "contain middle left subface" in new Sponge2:
     withClue(subfacesString) {
       subfaces should containAllEpsilon(List(
-          Vector4(-1, -1, -1/3f, -1),    Vector4(-1, -1, -1/3f, -1/3f),
-          Vector4(-1, -1,  1/3f, -1/3f), Vector4(-1, -1,  1/3f, -1)
+          Vector[4, Float](-1, -1, -1/3f, -1),    Vector[4, Float](-1, -1, -1/3f, -1/3f),
+          Vector[4, Float](-1, -1,  1/3f, -1/3f), Vector[4, Float](-1, -1,  1/3f, -1)
         ))
     }
 
@@ -249,32 +249,32 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
   it should "contain middle right subface" in new Sponge2:
     withClue(subfacesString) {
       subfaces should containAllEpsilon(List(
-          Vector4(-1, -1, -1/3f, 1/3f), Vector4(-1, -1, -1/3f, 1),
-          Vector4(-1, -1,  1/3f, 1),    Vector4(-1, -1,  1/3f, 1/3f)
+          Vector[4, Float](-1, -1, -1/3f, 1/3f), Vector[4, Float](-1, -1, -1/3f, 1),
+          Vector[4, Float](-1, -1,  1/3f, 1),    Vector[4, Float](-1, -1,  1/3f, 1/3f)
         ))
     }
 
   it should "contain bottom left subface" in new Sponge2:
     withClue(subfacesString) {
       subfaces should containAllEpsilon(List(
-          Vector4(-1, -1, 1/3f, -1/3f), Vector4(-1, -1, 1/3f, -1),
-          Vector4(-1, -1, 1,    -1),    Vector4(-1, -1, 1,    -1/3f)
+          Vector[4, Float](-1, -1, 1/3f, -1/3f), Vector[4, Float](-1, -1, 1/3f, -1),
+          Vector[4, Float](-1, -1, 1,    -1),    Vector[4, Float](-1, -1, 1,    -1/3f)
         ))
     }
 
   it should "contain bottom middle subface" in new Sponge2:
     withClue(subfacesString) {
       subfaces should containAllEpsilon(List(
-          Vector4(-1, -1, 1/3f,  1/3f), Vector4(-1, -1, 1,     1/3f),
-          Vector4(-1, -1, 1,    -1/3f), Vector4(-1, -1, 1/3f, -1/3f)
+          Vector[4, Float](-1, -1, 1/3f,  1/3f), Vector[4, Float](-1, -1, 1,     1/3f),
+          Vector[4, Float](-1, -1, 1,    -1/3f), Vector[4, Float](-1, -1, 1/3f, -1/3f)
         ))
     }
 
   it should "contain bottom right subface" in new Sponge2:
     withClue(subfacesString) {
       subfaces should containAllEpsilon(List(
-          Vector4(-1, -1, 1/3f, 1/3f), Vector4(-1, -1, 1/3f, 1),
-          Vector4(-1, -1, 1,    1),    Vector4(-1, -1, 1,    1/3f)
+          Vector[4, Float](-1, -1, 1/3f, 1/3f), Vector[4, Float](-1, -1, 1/3f, 1),
+          Vector[4, Float](-1, -1, 1,    1),    Vector[4, Float](-1, -1, 1,    1/3f)
         ))
     }
 
@@ -306,8 +306,8 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
   it should "have opposite edges parallel, equal length and opposite direction" in new Sponge2:
     forAll(subfaces) { face =>
       val edgeVectors = face.edges.map(_.diff)
-      (edgeVectors(0) + edgeVectors(2)).len shouldBe 0f +- Const.epsilon
-      (edgeVectors(1) + edgeVectors(3)).len shouldBe 0f +- Const.epsilon
+      (edgeVectors(0) + edgeVectors(2)).len() shouldBe 0f +- Const.epsilon
+      (edgeVectors(1) + edgeVectors(3)).len() shouldBe 0f +- Const.epsilon
     }
 
   "Each subdivision" should "multiply surface area by 16/9" in:
@@ -318,7 +318,7 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
   private def round(f: Float): Float = math.round(f / Const.epsilon) * Const.epsilon
 
   "All level 1 sponge corner points" should "have absolute coordinate values 1/2 or 1/6" in new Sponge2:
-    val cornerPoints: Seq[Vector4] = sponge2.faces.flatMap(_.asSeq)
+    val cornerPoints: Seq[Vector[4, Float]] = sponge2.faces.flatMap(_.asSeq)
     val cornerCoordinateValues: Set[Float] = cornerPoints.toSet.flatMap(_.toArray).map(math.abs).map(round)
     val clue: String = sponge2str(sponge2).replace("0.83", s"${Console.YELLOW}0.83${Console.RED}")
     withClue(clue) {cornerCoordinateValues should contain only (round(1/2f), round(1/6f))}
@@ -342,7 +342,7 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
   private def checkCoordinatesOfSubdividedSpongeFace(sponge: TesseractSponge2, i: Int) =
     val subface: Face4D = sponge.faces(i)
     val subdividedFace: Seq[Face4D] = sponge.faceGenerator(subface)
-    val cornerPoints: Seq[Vector4] = subdividedFace.flatMap(_.asSeq)
+    val cornerPoints: Seq[Vector[4, Float]] = subdividedFace.flatMap(_.asSeq)
     val cornerCoordinateValues: Set[Float] = cornerPoints.toSet.flatMap(_.toArray).map(math.abs).map(round)
     val coords = seq2str(subdividedFace).replace("0.83", s"${Console.YELLOW}0.83${Console.RED}")
     val clue = s"${i+1}/${sponge.faces.length} (${Plane(subface)})\n$coords\n"

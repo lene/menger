@@ -1,6 +1,7 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.{Vector3, Vector4}
+import com.badlogic.gdx.math.Vector3
+import menger.objects.Vector
 
 import scala.annotation.targetName
 import scala.math.{pow, signum}
@@ -22,12 +23,12 @@ case class Projection(eyeW: Float, screenW: Float) extends RectMesh:
   private def exponent(p: Projection): Double = pow(addExponent, signum(p.eyeW - eyeW))
 
   /** project a single 4D point `point` to 3D */
-  def apply(point: Vector4): Vector3 =
+  def apply(point: Vector[4, Float]): Vector3 =
     val projectionFactor = (eyeW - screenW) / (eyeW - point.w)
     Vector3(point.x * projectionFactor, point.y * projectionFactor, point.z * projectionFactor)
 
   /** project a sequence of 4D points to 3D */
-  def apply(points: Seq[Vector4]): Seq[Vector3] = points.map(apply)
+  def apply(points: Seq[Vector[4, Float]]): Seq[Vector3] = points.map(apply)
   def apply(points: Face4D): Quad3D =
     val vectors: Seq[Vector3] = apply(points.asSeq)
     Quad3D(vectors(0), vectors(1), vectors(2), vectors(3))

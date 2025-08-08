@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector4
+import menger.objects.Vector
 import com.typesafe.scalalogging.LazyLogging
 import menger.Const
 
@@ -13,7 +13,7 @@ case class Plane(i: Int, j: Int):
   def neg: Plane =
     val unusedIndices = (0 to 3).diff(indices)
     Plane(unusedIndices.head, unusedIndices.last)
-  def units: Seq[Vector4] = Seq(Plane.units(i), Plane.units(j)) 
+  def units: Seq[Vector[4, Float]] = Seq(Plane.units(i), Plane.units(j)) 
 
 object Plane extends LazyLogging:
   val xy: Plane = Plane(0, 1)
@@ -22,11 +22,11 @@ object Plane extends LazyLogging:
   val yz: Plane = Plane(1, 2)
   val yw: Plane = Plane(1, 3)
   val zw: Plane = Plane(2, 3)
-  val units: Array[Vector4] = Array(
-    Vector4.X, Vector4.Y, Vector4.Z, Vector4.W
+  val units: Array[Vector[4, Float]] = Array(
+    Vector.X, Vector.Y, Vector.Z, Vector.W
   )
 
-  def apply(cornerPoints: Seq[Vector4]): Plane =
+  def apply(cornerPoints: Seq[Vector[4, Float]]): Plane =
     require(cornerPoints.nonEmpty, "Corner points must not be empty")
     require(cornerPoints.length >= 3, s"Need at least 3 corner points, have $cornerPoints")
     val setIndices = Plane.setIndices(cornerPoints)
@@ -37,13 +37,13 @@ object Plane extends LazyLogging:
 
   def apply(cornerPoints: Face4D): Plane = apply(cornerPoints.asSeq)
 
-  def differenceVectors(cornerPoints: Seq[Vector4]): Seq[Vector4] =
+  def differenceVectors(cornerPoints: Seq[Vector[4, Float]]): Seq[Vector[4, Float]] =
     differences(cornerPoints :+ cornerPoints.head)
 
-  private def differences(seq: Seq[Vector4]): Seq[Vector4] =
+  private def differences(seq: Seq[Vector[4, Float]]): Seq[Vector[4, Float]] =
     seq.sliding(2).collect { case Seq(a, b) => b - a }.toSeq
 
-  def setIndices(cornerPoints: Seq[Vector4]): Array[Int] =
+  def setIndices(cornerPoints: Seq[Vector[4, Float]]): Array[Int] =
     differenceVectors(cornerPoints).foldLeft(
       Set.empty[Int])((set, v) => set + v.toArray.indexWhere(math.abs(_) > Const.epsilon)
     ).toArray.sorted

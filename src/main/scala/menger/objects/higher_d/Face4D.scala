@@ -1,22 +1,22 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector4
+import menger.objects.{Vector, vec2string}
 import menger.Const
 
 import scala.annotation.targetName
 
 /** A square in 4D space, parallel to any two axes, defined by 4 vertices */
-case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
+case class Face4D(a: Vector[4, Float], b: Vector[4, Float], c: Vector[4, Float], d: Vector[4, Float]):
 
-  lazy val normals: Seq[Vector4] = getNormals
+  lazy val normals: Seq[Vector[4, Float]] = getNormals
 
-  def asTuple: (Vector4, Vector4, Vector4, Vector4) = (a, b, c, d)
-  def asSeq: Seq[Vector4] = Seq(a, b, c, d)
+  def asTuple: (Vector[4, Float], Vector[4, Float], Vector[4, Float], Vector[4, Float]) = (a, b, c, d)
+  def asSeq: Seq[Vector[4, Float]] = Seq(a, b, c, d)
 
   def area: Float = (b - a).len() * (c - b).len()
 
   @targetName("plus")
-  def +(delta: Vector4): Face4D = Face4D(a + delta, b + delta, c + delta, d + delta)
+  def +(delta: Vector[4, Float]): Face4D = Face4D(a + delta, b + delta, c + delta, d + delta)
 
   @targetName("div")
   def /(scale: Float): Face4D = Face4D(a / scale, b / scale, c / scale, d / scale)
@@ -26,7 +26,7 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
 
   override def toString: String = faceToString(asSeq)
 
-  private def getNormals: Seq[Vector4] =
+  private def getNormals: Seq[Vector[4, Float]] =
     val edges = Seq(b - a, c - b, d - c, a - d)
     require(
       edges.map(v => v.toArray.count(_.abs > Const.epsilon) == 1).forall(_ == true),
@@ -63,7 +63,7 @@ case class Face4D(a: Vector4, b: Vector4, c: Vector4, d: Vector4):
     }
 
 /** normals point in the two directions orthogonal to the edges */
-def normalDirections(edgeVectors: Seq[Vector4]): Seq[Vector4] =
+def normalDirections(edgeVectors: Seq[Vector[4, Float]]): Seq[Vector[4, Float]] =
   val edgeDirectionIndices = edgeVectors.toSet.flatMap(setIndices)
   val normalIndices = (0 until Face4D.dimension).toSet.diff(edgeDirectionIndices)
   normalIndices.map(unitVector).toSeq
@@ -73,14 +73,14 @@ def normalDirections(edgeVectors: Seq[Vector4]): Seq[Vector4] =
  *  traversed from - to +, the first normal has positive sign, else negative. Analogous for the
  *  second edge and the second normal.
  */
-def normalSigns(edgeVectors: Seq[Vector4]): Seq[Float] =
+def normalSigns(edgeVectors: Seq[Vector[4, Float]]): Seq[Float] =
   val firstTwoEdges = edgeVectors.take(2)
   val sum = firstTwoEdges.reduce((v1, v2) => v1 + v2).toArray.toIndexedSeq
   sum.filter(_.abs > 0).map(_.sign)
 
 object Face4D:
   val dimension = 4
-  def apply(vertices: Seq[Vector4]): Face4D =
+  def apply(vertices: Seq[Vector[4, Float]]): Face4D =
     require(
       vertices.length == dimension,
       s"Need 4$dimension vertices, have ${vertices.length}: ${vertices.map(vec2string)}"
@@ -92,13 +92,13 @@ object Face4D:
     )
     Face4D(vertices.head, vertices(1), vertices(2), vertices(3))
 
-def faceToString(seq: Seq[Vector4]): String = seq.map(vec2string).mkString("(", ", ", ")")
+def faceToString(seq: Seq[Vector[4, Float]]): String = seq.map(vec2string).mkString("(", ", ", ")")
 
 val unitVectors = Set(
-  Vector4.X, Vector4.Y, Vector4.Z, Vector4.W, -Vector4.X, -Vector4.Y, -Vector4.Z, -Vector4.W
+  Vector.X, Vector.Y, Vector.Z, Vector.W, -Vector.X, -Vector.Y, -Vector.Z, -Vector.W
 )
 val positiveUnitVectors = unitVectors.map(vec => vec * vec.toArray.filter(_ != 0).sum)
-def normals(vecs: Seq[Vector4]): Set[Vector4] =
+def normals(vecs: Seq[Vector[4, Float]]): Set[Vector[4, Float]] =
   require(vecs.size == 2, s"Need 2 vectors, have ${vecs.size}: ${vecs.map(vec2string)}")
   require(unitVectors.contains(vecs.head), s"vec1 must be a unit vector, is ${vecs.head}")
   require(unitVectors.contains(vecs(1)), s"vec2 must be a unit vector, is ${vecs(1)}")
@@ -107,20 +107,20 @@ def normals(vecs: Seq[Vector4]): Set[Vector4] =
   require(normals.size == 2, s"Expected 2 normals, have ${normals.size}: ${normals.map(vec2string)}")
   normals
 
-def setIndices(v: Vector4): Seq[Int] =
+def setIndices(v: Vector[4, Float]): Seq[Int] =
   allIndicesWhere(v.toArray.toIndexedSeq, s => s.abs > Const.epsilon)
 
 def allIndicesWhere[A](s: Seq[A], pred: A => Boolean): Seq[Int] =
   s.zipWithIndex.filter { case (elem, _) => pred(elem) }.map { case (_, index) => index }
 
-def unitVector(direction: Int): Vector4 =
+def unitVector(direction: Int): Vector[4, Float] =
   /** create a unit vector in the ith direction */
   require(0 until Face4D.dimension contains direction)
   val vec = new Array[Float](Face4D.dimension)
   vec(direction) = 1
-  Vector4(vec)
+  Vector.fromSeq(vec)
 
-def remainingCorners(allCorners: Seq[Vector4], cornersToRemove: Seq[Vector4]): Seq[Vector4] =
+def remainingCorners(allCorners: Seq[Vector[4, Float]], cornersToRemove: Seq[Vector[4, Float]]): Seq[Vector[4, Float]] =
   require(allCorners.size == 4, s"Need 4 corners, have ${allCorners.size}")
   require(cornersToRemove.size == 2, s"Need 2 corners to remove, have ${cornersToRemove.size}")
   val firstToRemove = allCorners.indexWhere(_.dst(cornersToRemove.head) < Const.epsilon)

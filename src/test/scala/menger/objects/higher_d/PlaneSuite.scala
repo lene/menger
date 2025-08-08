@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector4
+import menger.objects.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import CustomMatchers._
@@ -47,7 +47,7 @@ class PlaneSuite extends AnyFlatSpec with StandardVector with Matchers:
     Plane(points1) should not be Plane(points2)
 
   it should "throw an exception for an empty array of points" in:
-    val emptyPoints = Seq[Vector4]()
+    val emptyPoints = Seq[Vector[4, Float]]()
     an [IllegalArgumentException] should be thrownBy Plane(emptyPoints)
 
   it should "throw an exception for a single point" in:

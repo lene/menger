@@ -1,18 +1,19 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.{Matrix4, Vector4}
+import menger.objects.{Vector, vec2string}
+import com.badlogic.gdx.math.{Matrix4}
 import com.typesafe.scalalogging.LazyLogging
 import menger.{Const, RotationProjectionParameters}
 
 import scala.annotation.targetName
 
-case class Rotation(transformationMatrix: Matrix4, pivotPoint: Vector4) extends RectMesh:
+case class Rotation(transformationMatrix: Matrix4, pivotPoint: Vector[4, Float]) extends RectMesh:
   lazy val isZero: Boolean = epsilonEquals(transformationMatrix, Matrix4())
 
-  def apply(point: Vector4): Vector4 =
+  def apply(point: Vector[4, Float]): Vector[4, Float] =
     if isZero then point else transformationMatrix(point - pivotPoint) + pivotPoint
 
-  def apply(points: Seq[Vector4]): Seq[Vector4] = if isZero then points else points.map(apply)
+  def apply(points: Seq[Vector[4, Float]]): Seq[Vector[4, Float]] = if isZero then points else points.map(apply)
 
   def apply(points: Face4D): Face4D = Face4D(apply(points.asSeq))
 
@@ -27,10 +28,10 @@ case class Rotation(transformationMatrix: Matrix4, pivotPoint: Vector4) extends 
 
 object Rotation extends LazyLogging:
 
-  def apply(): Rotation = Rotation(Matrix4(), Vector4.Zero)
+  def apply(): Rotation = Rotation(Matrix4(), Vector.Zero[4, Float])
 
   def apply(
-    degreesXW: Float, degreesYW: Float, degreesZW: Float, pivotPoint: Vector4 = Vector4.Zero
+    degreesXW: Float, degreesYW: Float, degreesZW: Float, pivotPoint: Vector[4, Float] = Vector.Zero[4, Float]
   ): Rotation =
     val Ryw = Rotation.matrix(1, 3, degreesYW)
     val Rzw = Rotation.matrix(2, 3, degreesZW)
@@ -41,10 +42,10 @@ object Rotation extends LazyLogging:
     val Rx = Rotation.matrix(0, 1, rotProjParameters.rotX)
     val Ry = Rotation.matrix(0, 2, rotProjParameters.rotY)
     val rot3D = Rotation.matrix(0, 0, rotProjParameters.rotZ).mul(Rx).mul(Ry)
-    Rotation(rotProjParameters.rotXW, rotProjParameters.rotYW, rotProjParameters.rotZW) * Rotation(rot3D, Vector4.Zero)
+    Rotation(rotProjParameters.rotXW, rotProjParameters.rotYW, rotProjParameters.rotZW) * Rotation(rot3D, Vector.Zero[4, Float])
 
-  def apply(plane: Plane, axis: Edge, pivotPoint: Vector4, angle: Float): Array[Rotation] =
-    val u: Vector4 = axis(1) - axis(0)
+  def apply(plane: Plane, axis: Edge, pivotPoint: Vector[4, Float], angle: Float): Array[Rotation] =
+    val u: Vector[4, Float] = axis(1) - axis(0)
     val direction: Int = u.toArray.indexWhere(math.abs(_) > Const.epsilon)
     require(
       direction == plane.i || direction == plane.j,
@@ -57,11 +58,11 @@ object Rotation extends LazyLogging:
       case plane.i => plane.normalIndices.map(idx => apply(Plane(plane.j, idx), realAngle, pivotPoint))
       case plane.j => plane.normalIndices.map(idx => apply(Plane(idx, plane.i), realAngle, pivotPoint))
 
-  def apply(plane: Plane, angle: Float, pivotPoint: Vector4): Rotation =
+  def apply(plane: Plane, angle: Float, pivotPoint: Vector[4, Float]): Rotation =
     Rotation(matrix(plane, angle), pivotPoint)
 
   def apply(plane: Plane, angle: Float): Rotation =
-    Rotation(matrix(plane, angle), Vector4.Zero)
+    Rotation(matrix(plane, angle), Vector.Zero[4, Float])
 
   private def matrix(row: Int, col: Int, angle: Float): Matrix4 =
     val cosTheta: Float = math.cos(angle.toRadians).toFloat
