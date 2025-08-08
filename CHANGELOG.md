@@ -3,7 +3,8 @@
 ## [0.2.6] - Unreleased
 
 ### Added
-- replaced LibGDX's `Vector4` with `Vector[4, Float]` for future extensibility
+- replaced LibGDX's `Vector4` and `Matrix4` with `Vector[4, Float]` and `Matrix[4, Float]` for 
+  future extensibility
 
 ### Upgraded
 - sbt to 1.11.4
@@ -12,7 +13,7 @@
 
 ### Added
 - script parameter animations
-  = Use named tuples throughout the code
+- Use named tuples throughout the code
 
 ### Upgraded
 - Scala to 3.7.2

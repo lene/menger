@@ -1,14 +1,13 @@
 package menger.objects.higher_d
 
-import menger.objects.{Vector, vec2string}
-import com.badlogic.gdx.math.{Matrix4}
+import menger.objects.{Matrix, Vector, vec2string}
 import com.typesafe.scalalogging.LazyLogging
 import menger.{Const, RotationProjectionParameters}
 
 import scala.annotation.targetName
 
-case class Rotation(transformationMatrix: Matrix4, pivotPoint: Vector[4, Float]) extends RectMesh:
-  lazy val isZero: Boolean = epsilonEquals(transformationMatrix, Matrix4())
+case class Rotation(transformationMatrix: Matrix[4, Float], pivotPoint: Vector[4, Float]) extends RectMesh:
+  lazy val isZero: Boolean = epsilonEquals(transformationMatrix, Matrix.identity[4, Float])
 
   def apply(point: Vector[4, Float]): Vector[4, Float] =
     if isZero then point else transformationMatrix(point - pivotPoint) + pivotPoint
@@ -28,7 +27,7 @@ case class Rotation(transformationMatrix: Matrix4, pivotPoint: Vector[4, Float])
 
 object Rotation extends LazyLogging:
 
-  def apply(): Rotation = Rotation(Matrix4(), Vector.Zero[4, Float])
+  def apply(): Rotation = Rotation(Matrix.identity[4, Float], Vector.Zero[4, Float])
 
   def apply(
     degreesXW: Float, degreesYW: Float, degreesZW: Float, pivotPoint: Vector[4, Float] = Vector.Zero[4, Float]
@@ -64,18 +63,18 @@ object Rotation extends LazyLogging:
   def apply(plane: Plane, angle: Float): Rotation =
     Rotation(matrix(plane, angle), Vector.Zero[4, Float])
 
-  private def matrix(row: Int, col: Int, angle: Float): Matrix4 =
+  private def matrix(row: Int, col: Int, angle: Float): Matrix[4, Float] =
     val cosTheta: Float = math.cos(angle.toRadians).toFloat
     val sinTheta: Float = math.sin(angle.toRadians).toFloat
     val m = Array.fill(4, 4)(0f)
     for i <- 0 to 3 do m(i)(i) = 1f
     m(row)(row) = cosTheta
-    m(row)(col) = -sinTheta
-    m(col)(row) = sinTheta
+    m(col)(row) = -sinTheta
+    m(row)(col) = sinTheta
     m(col)(col) = cosTheta
-    Matrix4(m.flatten)
+    Matrix[4, Float](m.flatten)
 
-  private def matrix(plane: Plane, angle: Float): Matrix4 = Rotation.matrix(plane.i, plane.j, angle)
+  private def matrix(plane: Plane, angle: Float): Matrix[4, Float] = Rotation.matrix(plane.i, plane.j, angle)
 
-def epsilonEquals(m1: Matrix4, m2: Matrix4): Boolean =
+def epsilonEquals(m1: Matrix[4, Float], m2: Matrix[4, Float]): Boolean =
   m2.asArray.zip(m1.asArray).forall((a, b) => math.abs(a - b) < Const.epsilon)

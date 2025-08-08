@@ -1,7 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Matrix4
-import menger.objects.Vector
+import menger.objects.{Vector, Matrix}
 import menger.Const
 import org.scalatest.matchers.{MatchResult, Matcher}
 
@@ -17,9 +16,9 @@ trait CustomMatchers:
 
   def epsilonEqual(expected: Vector[4, Float]) = new VectorsRoughlyEqualMatcher(expected)
 
-  class MatricesRoughlyEqualMatcher(expected: Matrix4) extends Matcher[Matrix4]:
+  class MatricesRoughlyEqualMatcher(expected: Matrix[4, Float]) extends Matcher[Matrix[4, Float]]:
 
-    def apply(left: Matrix4): MatchResult = {
+    def apply(left: Matrix[4, Float]): MatchResult = {
       MatchResult(
         expected.asArray.zip(left.asArray).forall(
           (expectedElement, leftElement) => expectedElement - leftElement < Const.epsilon
@@ -29,7 +28,7 @@ trait CustomMatchers:
       )
     }
 
-  def epsilonEqual(expected: Matrix4) = new MatricesRoughlyEqualMatcher(expected)
+  def epsilonEqual(expected: Matrix[4, Float]) = new MatricesRoughlyEqualMatcher(expected)
 
   def containsEpsilon(left: Iterable[Vector[4, Float]], expected: Vector[4, Float]): Boolean =
     left.exists(_.dst(expected) < Const.epsilon)
