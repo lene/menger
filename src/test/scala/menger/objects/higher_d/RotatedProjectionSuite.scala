@@ -2,9 +2,9 @@ package menger.objects.higher_d
 
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
-import com.badlogic.gdx.math.{Matrix4, Vector3}
+import com.badlogic.gdx.math.Vector3
 import menger.{MengerCLIOptions, RotationProjectionParameters}
-import menger.objects.{Builder, LWJGLLoadChecker}
+import menger.objects.{Builder, LWJGLLoadChecker, Matrix}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.Inspectors.forAll
@@ -37,11 +37,11 @@ class RotatedProjectionSuite extends AnyFlatSpec with Matchers with CustomMatche
     RotatedProjection(
       Tesseract(), rotProjParams, Builder.WHITE_MATERIAL, GL20.GL_TRIANGLES
     ).rotation.transformationMatrix should epsilonEqual(
-    Matrix4(Array[Float](
-      0, -1, 0, 0,
-      1, 0, 0, 0,
-      0, 0, 0, -1,
-      0, 0, 1, 0
+    Matrix[4, Float](Array[Float](
+      0, 1, 0, 0,
+      -1, 0, 0, 0,
+      0, 0, 0, 1,
+      0, 0, -1, 0
     )))
 
   "A Tesseract's Projection's projectedFaceVertices" should "have equal size to faces" in new ProjectedTesseract:

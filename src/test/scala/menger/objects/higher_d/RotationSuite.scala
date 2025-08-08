@@ -1,7 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.{Matrix4}
-import menger.objects.Vector
+import menger.objects.{Vector, Matrix}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.*
 import CustomMatchers.*
@@ -68,7 +67,7 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     val rotProjParams = RotationProjectionParameters()
     val r = Rotation(rotProjParams)
     r.transformationMatrix should epsilonEqual(
-      Matrix4(Array[Float](
+      Matrix[4, Float](Array[Float](
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
@@ -79,7 +78,7 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     val rotProjParams = RotationProjectionParameters(rotX = 90, rotY = 0, rotZ = 0)
     val r = Rotation(rotProjParams)
     r.transformationMatrix should not be epsilonEqual(
-      Matrix4(Array[Float](
+      Matrix[4, Float](Array[Float](
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
@@ -90,22 +89,33 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     val rotProjParams = RotationProjectionParameters(rotX = 90, rotY = 0, rotZ = 0)
     val r = Rotation(rotProjParams)
     r.transformationMatrix should epsilonEqual(
-      Matrix4(Array[Float](
-        0, -1, 0, 0,
-        1, 0, 0, 0,
+      Matrix[4, Float](Array[Float](
+         0, 1, 0, 0,
+        -1, 0, 0, 0,
+         0, 0, 1, 0,
+         0, 0, 0, 1
+    )))
+
+  it should "be created correctly from RotationProjectionParameters when rotating around Y" in:
+    val rotProjParams = RotationProjectionParameters(rotX = 0, rotY = 90, rotZ = 0)
+    val r = Rotation(rotProjParams)
+    r.transformationMatrix should epsilonEqual(
+      Matrix[4, Float](Array[Float](
         0, 0, 1, 0,
-        0, 0, 0, 1
+         0, 1, 0, 0,
+        -1, 0, 0, 0,
+         0, 0, 0, 1
     )))
 
   it should "work together with 4D rotation" in:
     val rotProjParams = RotationProjectionParameters(rotX = 90, rotZW = 90)
     val r = Rotation(rotProjParams)
     r.transformationMatrix should epsilonEqual(
-      Matrix4(Array[Float](
-        0, -1, 0, 0,
-        1, 0, 0, 0,
-        0, 0, 0, -1,
-        0, 0, 1, 0
+      Matrix[4, Float](Array[Float](
+         0, 1,  0, 0,
+        -1, 0,  0, 0,
+         0, 0,  0, 1,
+         0, 0, -1, 0
       )))
 
   "chaining two rotations" should "have same result regardless of order" in:
