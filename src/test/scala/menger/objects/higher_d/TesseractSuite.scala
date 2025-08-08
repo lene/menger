@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector4
+import menger.objects.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.Inspectors.forAll
@@ -21,22 +21,22 @@ class TesseractSuite extends AnyFlatSpec with Matchers:
     }
 
   it should "be centered at the origin" in :
-    val center = tesseract.vertices.reduce((a, b) => new Vector4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w)) / 16f
-    center should be (Vector4(0, 0, 0, 0))
+    val center = tesseract.vertices.reduce((a, b) => new Vector[4, Float](a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w)) / 16f
+    center should be (Vector[4, Float](0, 0, 0, 0))
 
   it should "have 24 faces" in:
     tesseract.faceIndices should have size 24
 
   it should "have correct first face" in:
     tesseract.faces.head should be (Face4D(
-      Vector4(-0.5,-0.5,-0.5,-0.5), Vector4(-0.5,-0.5,-0.5, 0.5),
-      Vector4(-0.5,-0.5, 0.5, 0.5), Vector4(-0.5,-0.5, 0.5,-0.5)
+      Vector[4, Float](-0.5,-0.5,-0.5,-0.5), Vector[4, Float](-0.5,-0.5,-0.5, 0.5),
+      Vector[4, Float](-0.5,-0.5, 0.5, 0.5), Vector[4, Float](-0.5,-0.5, 0.5,-0.5)
     ))
 
   it should "have correct last face" in:
     tesseract.faces.last should be (Face4D(
-      Vector4( 0.5, 0.5, 0.5, 0.5), Vector4( 0.5, 0.5,-0.5, 0.5),
-      Vector4( 0.5, 0.5,-0.5,-0.5), Vector4( 0.5, 0.5, 0.5,-0.5)
+      Vector[4, Float]( 0.5, 0.5, 0.5, 0.5), Vector[4, Float]( 0.5, 0.5,-0.5, 0.5),
+      Vector[4, Float]( 0.5, 0.5,-0.5,-0.5), Vector[4, Float]( 0.5, 0.5, 0.5,-0.5)
     ))
 
   it should "have 32 edges" in:
@@ -58,17 +58,17 @@ class TesseractSuite extends AnyFlatSpec with Matchers:
 
   "Face4D normal" should "point into +xy for the first Face4D" in:
     withClue(faceClue(tesseract.faces.head)) {
-      tesseract.faces.head.normals should contain only (Vector4.X, Vector4.Y)
+      tesseract.faces.head.normals should contain only (Vector.X, Vector.Y)
     }
 
   it should "point into +xz for the 2nd Face4D" in:
     withClue(faceClue(tesseract.faces(1))) {
-      tesseract.faces(1).normals should contain only (Vector4.X, Vector4.Z)
+      tesseract.faces(1).normals should contain only (Vector.X, Vector.Z)
     }
 
   it should "point into +yz for the 3rd Face4D" in:
     withClue(faceClue(tesseract.faces(2))) {
-      tesseract.faces(2).normals should contain only (Vector4.Y, Vector4.Z)
+      tesseract.faces(2).normals should contain only (Vector.Y, Vector.Z)
     }
 
   def faceClue(face: Face4D): String =

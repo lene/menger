@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector4
+import menger.objects.Vector
 import com.typesafe.scalalogging.LazyLogging
 
 /**
@@ -12,7 +12,7 @@ import com.typesafe.scalalogging.LazyLogging
  */
 class TesseractSponge2(level: Int, size: Float = 1) extends Fractal4D(level) with LazyLogging:
 
-  private type CornerMap = Map[String, Vector4]
+  private type CornerMap = Map[String, Vector[4, Float]]
 
   require(level >= 0, "Level must be non-negative")
 

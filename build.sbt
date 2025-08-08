@@ -4,7 +4,7 @@ lazy val root = project
   .enablePlugins(JavaAppPackaging)
   .settings(
     name := "Menger",
-    version := "0.2.5",
+    version := "0.2.6",
     maintainer := "lene.preuss@gmail.com",
 
     scalaVersion := "3.7.2",

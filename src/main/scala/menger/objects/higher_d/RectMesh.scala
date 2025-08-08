@@ -2,7 +2,6 @@ package menger.objects.higher_d
 
 import com.badlogic.gdx.graphics.g3d.{Material, Model}
 import com.badlogic.gdx.graphics.g3d.utils.{MeshBuilder, MeshPartBuilder}
-import com.badlogic.gdx.math.Vector4
 import menger.objects.Builder
 
 trait RectMesh:
