@@ -20,7 +20,7 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh with Matchers:
     sponge.faces should have size 48 * Tesseract().faces.size
 
   it should "have no vertices with absolute value greater than 0.5" in new Sponge:
-    forAll(sponge.faces) { rect => forAll(rect.asSeq) { v => v.toArray.forall(_.abs <= 0.5) } }
+    forAll(sponge.faces) { rect => forAll(rect.asSeq) { v => v.forall(_.abs <= 0.5) } }
 
   it should "have no face in the center of each face of the Tesseract" in new Sponge:
     forAll(sponge.faces) { rect => !isCenterOfOriginalFace(rect) }
@@ -40,10 +40,9 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh with Matchers:
   private def isCenterOfOriginalFace(face: Face4D): Boolean =
     // A face is a center face if 2 of its coordinates are +/- 1/6 and the other 2 are 0.5
     face.asSeq.forall({ v =>
-      val va = v.toArray
-      va.count(_.abs == 0.5) == 2 && va.count(_.abs == 1 / 6f) == 2
+      v.count(_.abs == 0.5) == 2 && v.count(_.abs == 1 / 6f) == 2
     })
 
   private def isCenterOfOriginalTesseract(face: Face4D): Boolean =
     // A face is a center face if all of its coordinates are +/- 1/6
-    face.asSeq.forall { _.toArray.count(_.abs == 1 / 6f) == 4 }
+    face.asSeq.forall { _.count(_.abs == 1 / 6f) == 4 }

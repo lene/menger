@@ -1,24 +1,24 @@
 package menger.objects.higher_d
 
-import menger.objects.{Vector, Matrix}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.*
-import CustomMatchers.*
-import com.typesafe.scalalogging.LazyLogging
-import menger.RotationProjectionParameters
 import org.scalatest.Inspectors.forAll
+import com.typesafe.scalalogging.LazyLogging
+import menger.objects.{Vector, Matrix}
+import menger.RotationProjectionParameters
+import CustomMatchers.*
 
 trait StandardVector:
   val axisName = Array("x", "y", "z", "w")
-  val zero = Vector[4, Float](0, 0, 0, 0)
-  val x = Vector[4, Float](1, 0, 0, 0)
-  val y = Vector[4, Float](0, 1, 0, 0)
-  val z = Vector[4, Float](0, 0, 1, 0)
-  val w = Vector[4, Float](0, 0, 0, 1)
+  val zero: Vector[4] = Vector.Zero[4]
+  val x: Vector[4] = Vector.X
+  val y: Vector[4] = Vector.Y
+  val z: Vector[4] = Vector.Z
+  val w: Vector[4] = Vector.W
 
 class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with StandardVector with CustomMatchers:
   "zero Rotation" should "keep point same" in:
-    val p = Vector[4, Float](1, 2, 3, 4)
+    val p = Vector[4](1, 2, 3, 4)
     val r = Rotation(0, 0, 0)
     r(p) should be (p)
   
@@ -66,30 +66,18 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
   "Rotation in 3D" should "be created from empty RotationProjectionParameters as identity" in:
     val rotProjParams = RotationProjectionParameters()
     val r = Rotation(rotProjParams)
-    r.transformationMatrix should epsilonEqual(
-      Matrix[4, Float](Array[Float](
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    )))
+    r.transformationMatrix should epsilonEqual(Matrix.identity[4])
 
   it should "not be identity if created from RotationProjectionParameters" in:
     val rotProjParams = RotationProjectionParameters(rotX = 90, rotY = 0, rotZ = 0)
     val r = Rotation(rotProjParams)
-    r.transformationMatrix should not be epsilonEqual(
-      Matrix[4, Float](Array[Float](
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    )))
+    r.transformationMatrix should not be epsilonEqual(Matrix.identity[4])
 
   it should "be created correctly from RotationProjectionParameters when rotating around X" in:
     val rotProjParams = RotationProjectionParameters(rotX = 90, rotY = 0, rotZ = 0)
     val r = Rotation(rotProjParams)
     r.transformationMatrix should epsilonEqual(
-      Matrix[4, Float](Array[Float](
+      Matrix[4](Array[Float](
          0, 1, 0, 0,
         -1, 0, 0, 0,
          0, 0, 1, 0,
@@ -100,7 +88,7 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     val rotProjParams = RotationProjectionParameters(rotX = 0, rotY = 90, rotZ = 0)
     val r = Rotation(rotProjParams)
     r.transformationMatrix should epsilonEqual(
-      Matrix[4, Float](Array[Float](
+      Matrix[4](Array[Float](
         0, 0, 1, 0,
          0, 1, 0, 0,
         -1, 0, 0, 0,
@@ -111,7 +99,7 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     val rotProjParams = RotationProjectionParameters(rotX = 90, rotZW = 90)
     val r = Rotation(rotProjParams)
     r.transformationMatrix should epsilonEqual(
-      Matrix[4, Float](Array[Float](
+      Matrix[4](Array[Float](
          0, 1,  0, 0,
         -1, 0,  0, 0,
          0, 0,  0, 1,
@@ -121,42 +109,42 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
   "chaining two rotations" should "have same result regardless of order" in:
     val r1 = Rotation(10, 0, 0)
     val r2 = Rotation(20, 0, 0)
-    val p = Vector[4, Float](1, 2, 3, 4)
+    val p = Vector[4](1, 2, 3, 4)
     r1(r2(p)) === r2(r1(p)) should be (true)
 
   "rotating 90 degrees" should "work around xw plane" in:
     val r = Rotation(90, 0, 0)
-    r(Vector[4, Float](1, 0, 0, 0)) should epsilonEqual (Vector[4, Float](0, 0, 0, -1))
+    r(x) should epsilonEqual (-w)
 
   it should "work around yw plane" in:
     val r = Rotation(0, 90, 0)
-    r(Vector[4, Float](0, 1, 0, 0)) should epsilonEqual (Vector[4, Float](0, 0, 0, -1))
+    r(y) should epsilonEqual (-w)
 
   it should "work around zw plane" in:
     val r = Rotation(0, 0, 90)
-    r(Vector[4, Float](0, 0, 1, 0)) should epsilonEqual (Vector[4, Float](0, 0, 0, -1))
+    r(z) should epsilonEqual (-w)
 
   "printing all 4D base transformation matrices" should "be possible" in:
     val axisNames = Seq("x", "y", "z", "w")
     for i <- 0 to 3 do
       for j <- 0 to 3 do
         if i < j then
-          val rotate = Rotation(Plane(i, j), 90, Vector.Zero[4, Float])
+          val rotate = Rotation(Plane(i, j), 90, Vector.Zero[4])
           logger.debug(s"Rotating around ${axisNames(i)}${axisNames(j)} plane:")
-          logger.debug(s"\n${rotate.transformationMatrix.str}")
+          logger.debug(s"\n${rotate.transformationMatrix}")
 
   // TODO: make this return a function which takes expected as argument
   private def checkPlaneRotation(
-    point: Vector[4, Float], plane: Plane, expected: Vector[4, Float], angle: Float = 90
+    point: Vector[4], plane: Plane, expected: Vector[4], angle: Float = 90
   ): Unit =
-    val rotate = Rotation(plane, angle, Vector.Zero[4, Float])
+    val rotate = Rotation(plane, angle, Vector.Zero[4])
     val rotated = rotate(point)
     rotated should epsilonEqual(expected)
 
 
   // TODO: make this return a function which takes expected1 and expected2 as arguments
   private def checkPlaneAndLineRotation(
-    point: Vector[4, Float], plane: Plane, direction: Edge, expected1: Vector[4, Float], expected2: Vector[4, Float]
+    point: Vector[4], plane: Plane, direction: Edge, expected1: Vector[4], expected2: Vector[4]
   ): Unit =
     val rotate = Rotation(plane, direction, direction(0), 90)
     rotate should have length 2
@@ -314,11 +302,11 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
 
   "rotating by non-standard angles" should "produce correct results" in :
     val sqrt2_2 = math.sqrt(2).toFloat / 2
-    checkPlaneRotation(x, Plane.xy, Vector[4, Float](sqrt2_2, -sqrt2_2, 0, 0), 45)
-    checkPlaneRotation(x, Plane.xy, Vector[4, Float](-sqrt2_2, -sqrt2_2, 0, 0), 135)
-    checkPlaneRotation(y, Plane.xy, Vector[4, Float](sqrt2_2, sqrt2_2, 0, 0), 45)
-    checkPlaneRotation(z, Plane.xz, Vector[4, Float](sqrt2_2, 0, sqrt2_2, 0), 45)
-    checkPlaneRotation(w, Plane.xw, Vector[4, Float](sqrt2_2, 0, 0, sqrt2_2), 45)
+    checkPlaneRotation(x, Plane.xy, Vector[4](sqrt2_2, -sqrt2_2, 0, 0), 45)
+    checkPlaneRotation(x, Plane.xy, Vector[4](-sqrt2_2, -sqrt2_2, 0, 0), 135)
+    checkPlaneRotation(y, Plane.xy, Vector[4](sqrt2_2, sqrt2_2, 0, 0), 45)
+    checkPlaneRotation(z, Plane.xz, Vector[4](sqrt2_2, 0, sqrt2_2, 0), 45)
+    checkPlaneRotation(w, Plane.xw, Vector[4](sqrt2_2, 0, 0, sqrt2_2), 45)
 
   "rotating around multiple planes" should "produce correct results" in :
     val rotateXZ = Rotation(Plane.xz, 90)
@@ -328,89 +316,89 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
 
   "A concrete example from the 4d sponge" should "produce correct results in xy plane" in :
     val centralPart = Seq(
-      Vector[4, Float](-1, -1, 3, 3), Vector[4, Float](-1, 1, 3, 3),
-      Vector[4, Float](1, 1, 3, 3), Vector[4, Float](1, -1, 3, 3)
+      Vector[4](-1, -1, 3, 3), Vector[4](-1, 1, 3, 3),
+      Vector[4](1, 1, 3, 3), Vector[4](1, -1, 3, 3)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.xy, -90f)
 
   it should "produce correct results in xy plane pointing opposite" in :
     val centralPart = Seq(
-      Vector[4, Float](-1, -1, -3, -3), Vector[4, Float](-1, 1, -3, -3),
-      Vector[4, Float](1, 1, -3, -3), Vector[4, Float](1, -1, -3, -3)
+      Vector[4](-1, -1, -3, -3), Vector[4](-1, 1, -3, -3),
+      Vector[4](1, 1, -3, -3), Vector[4](1, -1, -3, -3)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.xy, 90f)
 
   it should "produce correct results in xz plane" in :
     val centralPart = Seq(
-      Vector[4, Float](-1, 3, -1, 3), Vector[4, Float](-1, 3, 1, 3),
-      Vector[4, Float](1, 3, 1, 3), Vector[4, Float](1, 3, -1, 3)
+      Vector[4](-1, 3, -1, 3), Vector[4](-1, 3, 1, 3),
+      Vector[4](1, 3, 1, 3), Vector[4](1, 3, -1, 3)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.xz, -90f)
 
   it should "produce correct results in xz plane pointing opposite" in :
     val centralPart = Seq(
-      Vector[4, Float](-1, -3, -1, -3), Vector[4, Float](-1, -3, 1, -3),
-      Vector[4, Float](1, -3, 1, -3), Vector[4, Float](1, -3, -1, -3)
+      Vector[4](-1, -3, -1, -3), Vector[4](-1, -3, 1, -3),
+      Vector[4](1, -3, 1, -3), Vector[4](1, -3, -1, -3)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.xz, 90f)
 
   it should "produce correct results in xw plane" in :
     val centralPart = Seq(
-      Vector[4, Float](-1, 3, 3, -1), Vector[4, Float](-1, 3, 3, 1),
-      Vector[4, Float](1, 3, 3, 1), Vector[4, Float](1, 3, 3, -1)
+      Vector[4](-1, 3, 3, -1), Vector[4](-1, 3, 3, 1),
+      Vector[4](1, 3, 3, 1), Vector[4](1, 3, 3, -1)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.xw, -90f)
 
   it should "produce correct results in xw plane pointing opposite" in :
     val centralPart = Seq(
-      Vector[4, Float](-1, -3, -3, -1), Vector[4, Float](-1, -3, -3, 1),
-      Vector[4, Float](1, -3, -3, 1), Vector[4, Float](1, -3, -3, -1)
+      Vector[4](-1, -3, -3, -1), Vector[4](-1, -3, -3, 1),
+      Vector[4](1, -3, -3, 1), Vector[4](1, -3, -3, -1)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.xw, 90f)
 
   it should "produce correct results in yz plane" in :
     val centralPart = Seq(
-      Vector[4, Float](3, -1, -1, 3), Vector[4, Float](3, -1, 1, 3),
-      Vector[4, Float](3, 1, 1, 3), Vector[4, Float](3, 1, -1, 3)
+      Vector[4](3, -1, -1, 3), Vector[4](3, -1, 1, 3),
+      Vector[4](3, 1, 1, 3), Vector[4](3, 1, -1, 3)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.yz, -90f)
 
   it should "produce correct results in yz plane pointing opposite" in :
     val centralPart = Seq(
-      Vector[4, Float](-3, -1, -1, -3), Vector[4, Float](-3, -1, 1, -3),
-      Vector[4, Float](-3, 1, 1, -3), Vector[4, Float](-3, 1, -1, -3)
+      Vector[4](-3, -1, -1, -3), Vector[4](-3, -1, 1, -3),
+      Vector[4](-3, 1, 1, -3), Vector[4](-3, 1, -1, -3)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.yz, 90f)
 
   it should "produce correct results in yw plane" in :
     val centralPart = Seq(
-      Vector[4, Float](-3, -3, -1, -1), Vector[4, Float](-3, -1, -1, -1),
-      Vector[4, Float](-3, -1, -1, 1), Vector[4, Float](-3, -3, -1, 1)
+      Vector[4](-3, -3, -1, -1), Vector[4](-3, -1, -1, -1),
+      Vector[4](-3, -1, -1, 1), Vector[4](-3, -3, -1, 1)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.yw, -90f)
 
   it should "produce correct results in yw plane pointing opposite" in :
     val centralPart = Seq(
-      Vector[4, Float](-3, -3, 1, 1), Vector[4, Float](-3, -1, 1, 1),
-      Vector[4, Float](-3, -1, 1, -1), Vector[4, Float](-3, -3, 1, -1)
+      Vector[4](-3, -3, 1, 1), Vector[4](-3, -1, 1, 1),
+      Vector[4](-3, -1, 1, -1), Vector[4](-3, -3, 1, -1)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.yw, 90f)
 
   it should "produce correct results in zw plane" in :
     val centralPart = Seq(
-      Vector[4, Float](3, 3, -1, -1), Vector[4, Float](3, 3, -1, 1),
-      Vector[4, Float](3, 3, 1, 1), Vector[4, Float](3, 3, 1, -1)
+      Vector[4](3, 3, -1, -1), Vector[4](3, 3, -1, 1),
+      Vector[4](3, 3, 1, 1), Vector[4](3, 3, 1, -1)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.zw, -90f)
 
   it should "produce correct results in zw plane pointing opposite" in :
     val centralPart = Seq(
-      Vector[4, Float](-3, -3, -1, -1), Vector[4, Float](-3, -3, -1, 1),
-      Vector[4, Float](-3, -3, 1, 1), Vector[4, Float](-3, -3, 1, -1)
+      Vector[4](-3, -3, -1, -1), Vector[4](-3, -3, -1, 1),
+      Vector[4](-3, -3, 1, 1), Vector[4](-3, -3, 1, -1)
     )
     checkFacesAroundFaceEdges(centralPart, Plane.zw, 90f)
 
-  def checkFacesAroundFaceEdges(centralPart: Seq[Vector[4, Float]], rotationPlane: Plane, angle: Float): Unit =
+  def checkFacesAroundFaceEdges(centralPart: Seq[Vector[4]], rotationPlane: Plane, angle: Float): Unit =
     val edges = Seq(
       Edge(centralPart(0), centralPart(1)), Edge(centralPart(1), centralPart(2)),
       Edge(centralPart(2), centralPart(3)), Edge(centralPart(3), centralPart(0))
@@ -433,5 +421,5 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
       })
     })
 
-  def absElements(vec: Vector[4, Float]): Set[Int] =
-    vec.toArray.map(value => (math.abs(value) * 1e5).round.toInt / 100000).toSet
+  def absElements(vec: Vector[4]): Set[Int] =
+    vec.map(value => (math.abs(value) * 1e5).round.toInt / 100000).toSet

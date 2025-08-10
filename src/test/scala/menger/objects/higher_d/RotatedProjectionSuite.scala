@@ -37,7 +37,7 @@ class RotatedProjectionSuite extends AnyFlatSpec with Matchers with CustomMatche
     RotatedProjection(
       Tesseract(), rotProjParams, Builder.WHITE_MATERIAL, GL20.GL_TRIANGLES
     ).rotation.transformationMatrix should epsilonEqual(
-    Matrix[4, Float](Array[Float](
+    Matrix[4](Array[Float](
       0, 1, 0, 0,
       -1, 0, 0, 0,
       0, 0, 0, 1,

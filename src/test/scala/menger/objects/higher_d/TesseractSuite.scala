@@ -13,30 +13,30 @@ class TesseractSuite extends AnyFlatSpec with Matchers:
     tesseract.vertices should have size 16
 
   it should "have vertex coordinates all at +/-0.5" in:
-    forAll(tesseract.vertices) {v => forAll(v.toArray) {s => s.abs == 0.5} }
+    forAll(tesseract.vertices) {v => v.forall { s => s.abs == 0.5} }
 
   it should "have vertices scale with tesseract size" in:
     forAll(Seq(2.0f, 10.0f, 1e8f, 0.5f, 1e-8f)) { size =>
-      forAll(Tesseract(size).vertices) { v => forAll(v.toArray) { s => s.abs == size / 2 } }
+      forAll(Tesseract(size).vertices) { v => v.forall { s => s.abs == size / 2 } }
     }
 
   it should "be centered at the origin" in :
-    val center = tesseract.vertices.reduce((a, b) => new Vector[4, Float](a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w)) / 16f
-    center should be (Vector[4, Float](0, 0, 0, 0))
+    val center = tesseract.vertices.reduce((a, b) => a + b) / tesseract.vertices.size.toFloat
+    center should be (Vector[4](0, 0, 0, 0))
 
   it should "have 24 faces" in:
     tesseract.faceIndices should have size 24
 
   it should "have correct first face" in:
     tesseract.faces.head should be (Face4D(
-      Vector[4, Float](-0.5,-0.5,-0.5,-0.5), Vector[4, Float](-0.5,-0.5,-0.5, 0.5),
-      Vector[4, Float](-0.5,-0.5, 0.5, 0.5), Vector[4, Float](-0.5,-0.5, 0.5,-0.5)
+      Vector[4](-0.5,-0.5,-0.5,-0.5), Vector[4](-0.5,-0.5,-0.5, 0.5),
+      Vector[4](-0.5,-0.5, 0.5, 0.5), Vector[4](-0.5,-0.5, 0.5,-0.5)
     ))
 
   it should "have correct last face" in:
     tesseract.faces.last should be (Face4D(
-      Vector[4, Float]( 0.5, 0.5, 0.5, 0.5), Vector[4, Float]( 0.5, 0.5,-0.5, 0.5),
-      Vector[4, Float]( 0.5, 0.5,-0.5,-0.5), Vector[4, Float]( 0.5, 0.5, 0.5,-0.5)
+      Vector[4]( 0.5, 0.5, 0.5, 0.5), Vector[4]( 0.5, 0.5,-0.5, 0.5),
+      Vector[4]( 0.5, 0.5,-0.5,-0.5), Vector[4]( 0.5, 0.5, 0.5,-0.5)
     ))
 
   it should "have 32 edges" in:
