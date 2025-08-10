@@ -72,7 +72,7 @@ class ProjectionSuite extends AnyFlatSpec with Matchers:
 
   "projecting a point" should "give expected result" in:
     val projection = Projection(2, 1)
-    val point = Vector[4, Float](1, 0, 0, 0)
+    val point = Vector[4](1, 0, 0, 0)
     val projected = projection(point)
     projected.x should equal (0.5f)
     projected.y should equal (0.0f)
@@ -80,7 +80,7 @@ class ProjectionSuite extends AnyFlatSpec with Matchers:
 
   "projecting a point list" should "give expected result" in:
     val projection = Projection(2, 1)
-    val points = Seq(Vector[4, Float](1, 0, 0, 0), Vector[4, Float](1, 0, 0, 0))
+    val points = Seq(Vector[4](1, 0, 0, 0), Vector[4](1, 0, 0, 0))
     val projected = projection(points)
     forAll(projected) { p =>
       p.x should equal(0.5f)

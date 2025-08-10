@@ -35,12 +35,12 @@ class RectIndicesSuite extends AnyFlatSpec with Matchers:
 
   it should "be able to convert to a Face4D" in:
     val indices = RectIndices(0, 1, 2, 3)
-    val vertices = Seq(new Vector[4, Float](0, 0, 0, 0), new Vector[4, Float](0, 0, 0, 1), new Vector[4, Float](0, 0, 1, 1), new Vector[4, Float](0, 0, 1, 0))
+    val vertices = Seq(new Vector[4](0, 0, 0, 0), new Vector[4](0, 0, 0, 1), new Vector[4](0, 0, 1, 1), new Vector[4](0, 0, 1, 0))
     indices.toFace4D(vertices) should be(Face4D(vertices(0), vertices(1), vertices(2), vertices(3)))
 
   it should "not be able to convert to a Face4D if vertices do not match" in:
     val indices = RectIndices(0, 1, 2, 3)
-    val vertices = Seq(new Vector[4, Float](0, 0, 0, 0), new Vector[4, Float](1, 1, 1, 1), new Vector[4, Float](2, 2, 2, 2), new Vector[4, Float](3, 3, 3, 3))
+    val vertices = Seq(new Vector[4](0, 0, 0, 0), new Vector[4](1, 1, 1, 1), new Vector[4](2, 2, 2, 2), new Vector[4](3, 3, 3, 3))
     an [IllegalArgumentException] should be thrownBy indices.toFace4D(vertices)
 
   "A sequence of RectIndices" should "be able to be created from tuples" in:

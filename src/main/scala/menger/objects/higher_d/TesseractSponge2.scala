@@ -12,7 +12,7 @@ import com.typesafe.scalalogging.LazyLogging
  */
 class TesseractSponge2(level: Int, size: Float = 1) extends Fractal4D(level) with LazyLogging:
 
-  private type CornerMap = Map[String, Vector[4, Float]]
+  private type CornerMap = Map[String, Vector[4]]
 
   require(level >= 0, "Level must be non-negative")
 

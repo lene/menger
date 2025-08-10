@@ -47,7 +47,7 @@ class PlaneSuite extends AnyFlatSpec with StandardVector with Matchers:
     Plane(points1) should not be Plane(points2)
 
   it should "throw an exception for an empty array of points" in:
-    val emptyPoints = Seq[Vector[4, Float]]()
+    val emptyPoints = Seq[Vector[4]]()
     an [IllegalArgumentException] should be thrownBy Plane(emptyPoints)
 
   it should "throw an exception for a single point" in:
