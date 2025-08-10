@@ -17,10 +17,10 @@ case class Rotation(transformationMatrix: Matrix[4], pivotPoint: Vector[4]) exte
   def apply(points: Face4D): Face4D = Face4D(apply(points.asSeq))
 
   @targetName("plus")
-  def +(r: Rotation): Rotation = Rotation(transformationMatrix.mul(r.transformationMatrix), pivotPoint)
+  def +(r: Rotation): Rotation = Rotation(transformationMatrix * r.transformationMatrix, pivotPoint)
 
   @targetName("mul")
-  def *(r: Rotation): Rotation = Rotation(transformationMatrix.mul(r.transformationMatrix), pivotPoint)
+  def *(r: Rotation): Rotation = Rotation(transformationMatrix * r.transformationMatrix, pivotPoint)
 
   def ===(r: Rotation): Boolean =
     transformationMatrix === r.transformationMatrix && pivotPoint === r.pivotPoint
@@ -34,13 +34,13 @@ object Rotation extends LazyLogging:
   ): Rotation =
     val Ryw = Rotation.matrix(1, 3, degreesYW)
     val Rzw = Rotation.matrix(2, 3, degreesZW)
-    val rotate = Rotation.matrix(0, 3, degreesXW).mul(Ryw).mul(Rzw)
+    val rotate = Rotation.matrix(0, 3, degreesXW) * Ryw * Rzw
     Rotation(rotate, pivotPoint)
 
   def apply(rotProjParameters: RotationProjectionParameters): Rotation =
     val Rx = Rotation.matrix(0, 1, rotProjParameters.rotX)
     val Ry = Rotation.matrix(0, 2, rotProjParameters.rotY)
-    val rot3D = Rotation.matrix(0, 0, rotProjParameters.rotZ).mul(Rx).mul(Ry)
+    val rot3D = Rotation.matrix(0, 0, rotProjParameters.rotZ) * Rx * Ry
     Rotation(rotProjParameters.rotXW, rotProjParameters.rotYW, rotProjParameters.rotZW) * Rotation(rot3D, Vector.Zero[4])
 
   def apply(plane: Plane, axis: Edge, pivotPoint: Vector[4], angle: Float): Array[Rotation] =

@@ -28,6 +28,18 @@ class VectorSuite extends AnyFlatSpec with Matchers:
     an [IllegalArgumentException] should be thrownBy Vector.fromSeq[2](Seq(1f))
     an [IllegalArgumentException] should be thrownBy Vector.fromSeq[2](Seq(1f, 2f, 3f))
 
+  "Element access" should "work for valid indices" in:
+    val v = Vector[3](1f, 2f, 3f)
+    v(0) should be (1f)
+    v(1) should be (2f)
+    v(2) should be (3f)
+
+  it should "throw IndexOutOfBoundsException for invalid indices" in:
+    val v = Vector[2](1f, 2f)
+    an [IllegalArgumentException] should be thrownBy v(-1)
+    an [IllegalArgumentException] should be thrownBy v(2)
+    an [IllegalArgumentException] should be thrownBy v(10)
+
   "Addition of two Vectors" should "return a Vector with the correct elements" in:
     val v1 = Vector[2](1f, 2f)
     val v2 = Vector[2](3f, 4f)
@@ -38,26 +50,41 @@ class VectorSuite extends AnyFlatSpec with Matchers:
     val v2 = Vector[2](1f, 2f)
     (v1 - v2).v should contain theSameElementsInOrderAs Seq(2f, 2f)
 
-  "Test for equality" should "work correctly" in:
+  "unary -" should "work correctly" in :
+    val v1 = Vector[2](1f, 2f)
+    (-v1).v should contain theSameElementsInOrderAs Seq(-1f, -2f)
+
+  "Test for approximate equality" should "work correctly" in:
     val v1 = Vector[2](1f, 2f)
     val v2 = Vector[2](1f, 2f)
     val v3 = Vector[2](2f, 3f)
-
     (v1 === v2) should be (true)
     (v1 === v3) should be (false)
+
+  it should "work with very small values" in:
+    val v1 = Vector[2](0.0001f, 0.0002f)
+    val v2 = Vector[2](0.0001f + 1e-6f, 0.0002f + 1e-6f)
+    v1.epsilonEquals(v2, 1e-5f) should be(true)
+    v1.epsilonEquals(v2, 1e-7f) should be(false)
 
   "Length calculation" should "return the correct length" in:
     val v1 = Vector[2](3f, 4f)
     v1.len should be (5f) // 3^2 + 4^2 = 25, sqrt(25) = 5
 
-  "unary -" should "work correctly" in:
-    val v1 = Vector[2](1f, 2f)
-    (-v1).v should contain theSameElementsInOrderAs Seq(-1f, -2f)
+  "Scalar multiplication" should "work correctly" in:
+    val v1 = Vector[3](1f, 2f, 3f)
+    val result = v1 * 2f
+    result.v should contain theSameElementsInOrderAs Seq(2f, 4f, 6f)
 
-  "dot product" should "return the correct value" in:
+  "Scalar division" should "work correctly" in:
+    val v1 = Vector[3](2f, 4f, 6f)
+    val result = v1 / 2f
+    result.v should contain theSameElementsInOrderAs Seq(1f, 2f, 3f)
+
+  it should "return infinity when dividing by zero" in:
     val v1 = Vector[2](1f, 2f)
-    val v2 = Vector[2](3f, 4f)
-    v1.dot(v2) should be (11f) // 1*3 + 2*4 = 3 + 8 = 11
+    val result = v1 / 0f
+    result.v.forall(_.isInfinite) should be (true)
 
   "dst" should "return the correct distance" in:
     val v1 = Vector[2](1f, 2f)
@@ -69,8 +96,65 @@ class VectorSuite extends AnyFlatSpec with Matchers:
     val v2 = Vector[2](4f, 6f)
     v1.dst2(v2) should be (25f) // (4-1)^2 + (6-2)^2 = 9 + 16 = 25
 
+  "dot product" should "return the correct value" in :
+    val v1 = Vector[2](1f, 2f)
+    val v2 = Vector[2](3f, 4f)
+    v1 * v2 should be(11f) // 1*3 + 2*4 = 3 + 8 = 11
+
   "Zero Vector" should "be correctly instantiated" in:
     val zeroVec = Vector.Zero[3]
     zeroVec.v should contain theSameElementsInOrderAs Seq(0f, 0f, 0f)
     zeroVec.dimension should be (3)
 
+  "toString" should "format correctly" in:
+    val v1 = Vector[3](1f, 2.5f, 3f)
+    v1.toString should include ("1")
+    v1.toString should include ("2.50")
+    v1.toString should include ("3")
+    v1.toString should startWith ("<")
+    v1.toString should endWith (">")
+
+  "count" should "work correctly" in:
+    val v = Vector[4](1f, 2f, 3f, 4f)
+    v.count(_ > 2f) should be (2)
+
+  "filter" should "work correctly" in :
+    val v = Vector[4](1f, 2f, 3f, 4f)
+    v.filter(_ > 2f) should contain theSameElementsAs Seq(3f, 4f)
+
+  "forall" should "work correctly" in :
+    val v = Vector[4](1f, 2f, 3f, 4f)
+    v.forall(_ > 0f) should be (true)
+    v.forall(_ > 2f) should be (false)
+
+  "indexWhere" should "work correctly" in :
+    val v = Vector[4](1f, 2f, 3f, 4f)
+    v.indexWhere(_ > 2f) should be (2)
+
+  "map" should "work correctly" in :
+    val v = Vector[4](1f, 2f, 3f, 4f)
+    v.map(_ * 2) should contain theSameElementsInOrderAs Seq(2f, 4f, 6f, 8f)
+
+  "unit vector" should "be correctly instantiated" in:
+    val unitVec = Vector.unit[3](1)
+    unitVec.v should contain theSameElementsInOrderAs Seq(0f, 1f, 0f)
+    unitVec.dimension should be (3)
+
+  it should "fail for invalid direction" in:
+    an [IllegalArgumentException] should be thrownBy Vector.unit[2](-1)
+    an [IllegalArgumentException] should be thrownBy Vector.unit[2](2)
+
+  it should "have length 1" in:
+    val unitVec = Vector.unit[3](0)
+    unitVec.len should be (1f)
+
+  it should "dot product with itself to give 1" in:
+    0 until 3 foreach { i =>
+      Vector.unit[3](i) * Vector.unit[3](i) should be (1f)
+    }
+
+  it should "dot product with unit vectors in other direction to give 0" in:
+    0 until 3 foreach { i =>
+      val otherIndex = (i + 1) % 3
+      Vector.unit[3](i) * Vector.unit[3](otherIndex) should be (0f)
+    }

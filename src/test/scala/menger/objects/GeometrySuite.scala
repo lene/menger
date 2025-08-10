@@ -11,6 +11,7 @@ import org.scalatest.Tag
 import org.scalamock.stubs.Stubs
 import menger.{InteractiveMengerEngine, RotationProjectionParameters}
 import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
+import org.lwjgl.opengl
 
 
 object GdxTest extends Tag("GdxTest")  // needs Gdx to be available
@@ -74,6 +75,13 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "sphere toString" should "return class name" in:
     Sphere().toString should be("Sphere")
+
+  "square" should "be one model" taggedAs GdxTest in:
+    assume(loadingLWJGLSucceeds)
+    Square().at(ORIGIN, 1) should have size 1
+
+  it should "instantiate with material and primitiveType" taggedAs GdxTest in:
+    Square(Builder.WHITE_MATERIAL, GL20.GL_LINES).primitiveType should be (GL20.GL_LINES)
 
   "cube" should "be one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)

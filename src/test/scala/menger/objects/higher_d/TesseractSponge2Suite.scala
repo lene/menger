@@ -42,7 +42,7 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
       ).toString.replace("),", "),\n").replace("Vector(", "Vector(\n ")
 
     def lineRoughlyEquals(line1: (Vector[4], Vector[4]), line2: (Vector[4], Vector[4])): Boolean =
-      line1._1.epsilonEquals(line2._1) && line1._2.epsilonEquals(line2._2)
+      line1._1 === line2._1 && line1._2 === line2._2
 
   def rect2str(rect: Face4D): String = rect.asSeq.map(_.toString).mkString("(", ", ", ")")
 

@@ -33,7 +33,7 @@ case class Face4D(a: Vector[4], b: Vector[4], c: Vector[4], d: Vector[4]):
       s"Edges must be parallel to the axes, are ${edges.map(_.toString)}"
     )
     require(
-      edges.sliding(2).forall({ case Seq(a, b) => a.dot(b) < Const.epsilon }),
+      edges.sliding(2).forall({ case Seq(a, b) => a * b < Const.epsilon }),
       s"Edges must be orthogonal, are ${edges.map(_.toString)}"
     )
     normalDirections(edges).zip(normalSigns(edges)).map { case (vec, sign) => vec * sign }
@@ -65,8 +65,8 @@ case class Face4D(a: Vector[4], b: Vector[4], c: Vector[4], d: Vector[4]):
 /** normals point in the two directions orthogonal to the edges */
 def normalDirections(edgeVectors: Seq[Vector[4]]): Seq[Vector[4]] =
   val edgeDirectionIndices = edgeVectors.toSet.flatMap(setIndices)
-  val normalIndices = (0 until Face4D.dimension).toSet.diff(edgeDirectionIndices)
-  normalIndices.map(unitVector).toSeq
+  val normalIndices = (0 until Face4D.numVertices).toSet.diff(edgeDirectionIndices)
+  normalIndices.map(Vector.unit[4]).toSeq
 
 /**
  *  signs depend on the directions the first two edges are traversed - if the first edge is
@@ -79,16 +79,19 @@ def normalSigns(edgeVectors: Seq[Vector[4]]): Seq[Float] =
   sum.filter(_.abs > 0).map(_.sign)
 
 object Face4D:
+  val numVertices = 4
   val dimension = 4
   def apply(vertices: Seq[Vector[4]]): Face4D =
     require(
-      vertices.length == dimension,
-      s"Need 4$dimension vertices, have ${vertices.length}: ${vertices.map(_.toString)}"
+      vertices.length == numVertices,
+      s"Need $numVertices vertices, have ${vertices.length}: ${vertices.map(_.toString)}"
     )
-    val edgeLengths = (vertices :+ vertices.head).sliding(2).map(edge => edge.head.dst2(edge.last)).toSet
+    val squaredEdgeLengths = (vertices :+ vertices.head).sliding(2).map(
+      edge => edge.head.dst2(edge.last)
+    ).toSet
     require(
-      edgeLengths.max - edgeLengths.min <= Const.epsilon,
-      s"Vertices must all be same length, are $edgeLengths (${vertices.map(_.toString)})"
+      squaredEdgeLengths.max - squaredEdgeLengths.min <= Const.epsilon,
+      s"Vertices must all be same length, are $squaredEdgeLengths (${vertices.map(_.toString)})"
     )
     Face4D(vertices.head, vertices(1), vertices(2), vertices(3))
 
@@ -103,7 +106,7 @@ def normals(vecs: Seq[Vector[4]]): Set[Vector[4]] =
   require(unitVectors.contains(vecs.head), s"vec1 must be a unit vector, is ${vecs.head}")
   require(unitVectors.contains(vecs(1)), s"vec2 must be a unit vector, is ${vecs(1)}")
   require(vecs.head != vecs(1), s"vec1 and vec2 must be different, are ${vecs.head}")
-  val normals = positiveUnitVectors.filter(vec => vec.dot(vecs.head) == 0 && vec.dot(vecs(1)) == 0)
+  val normals = positiveUnitVectors.filter(vec => vec * vecs.head == 0 && vec * vecs(1) == 0)
   require(normals.size == 2, s"Expected 2 normals, have ${normals.size}: ${normals.map(_.toString)}")
   normals
 
@@ -112,13 +115,6 @@ def setIndices(v: Vector[4]): Seq[Int] =
 
 def allIndicesWhere[A](s: Seq[A], pred: A => Boolean): Seq[Int] =
   s.zipWithIndex.filter { case (elem, _) => pred(elem) }.map { case (_, index) => index }
-
-def unitVector(direction: Int): Vector[4] =
-  /** create a unit vector in the ith direction */
-  require(0 until Face4D.dimension contains direction)
-  val vec = new Array[Float](Face4D.dimension)
-  vec(direction) = 1
-  Vector.fromSeq(vec.toSeq)
 
 def remainingCorners(allCorners: Seq[Vector[4]], cornersToRemove: Seq[Vector[4]]): Seq[Vector[4]] =
   require(allCorners.size == 4, s"Need 4 corners, have ${allCorners.size}")
