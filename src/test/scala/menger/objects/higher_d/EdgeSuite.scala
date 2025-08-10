@@ -5,16 +5,16 @@ import org.scalatest.matchers.should.Matchers
 import menger.objects.Vector
 
 class EdgeSuite extends AnyFlatSpec with Matchers:
-  "An Edge" should "be able to be created with 2 Vector4s" in:
+  "An Edge" should "be able to be created with 2 Vector[4]s" in:
     Edge(Vector[4](0, 0, 0, 0), Vector[4](1, 0, 0, 0))
 
   it should "have a dimension of 2" in:
     Edge(Vector[4](0, 0, 0, 0), Vector[4](1, 0, 0, 0)).dimension should be(2)
 
-  it should "not be able to be created with 3 Vector4s" in:
+  it should "not be able to be created with 3 Vector[4]s" in:
     "Edge(Vector[4](0, 0, 0, 0), Vector[4](1, 0, 0, 0), Vector[4](1, 1, 0, 0))" shouldNot typeCheck
 
-  it should "not be able to be created with 1 Vector4" in:
+  it should "not be able to be created with 1 Vector[4]" in:
     "Edge(Vector[4](0, 0, 0, 0))" shouldNot typeCheck
 
   it should "correctly return the vertices" in:

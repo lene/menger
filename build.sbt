@@ -4,10 +4,10 @@ lazy val root = project
   .enablePlugins(JavaAppPackaging)
   .settings(
     name := "Menger",
-    version := "0.2.6",
+    version := "0.2.7",
     maintainer := "lene.preuss@gmail.com",
 
-    scalaVersion := "3.7.2",
+    scalaVersion := "3.7.3",
     scalacOptions ++= Seq("-deprecation", "-explain", "-feature"),
 
     // Logging
@@ -19,7 +19,7 @@ lazy val root = project
     ),
     // ScalaTest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-    libraryDependencies += "org.scalamock" %% "scalamock" % "7.4.0" % Test,
+    libraryDependencies += "org.scalamock" %% "scalamock" % "7.4.1" % Test,
 
     // Scallop command line parser
     libraryDependencies += "org.rogach" %% "scallop" % "5.2.0",

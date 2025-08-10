@@ -2,12 +2,11 @@ package menger
 
 import com.typesafe.scalalogging.LazyLogging
 import org.rogach.scallop.*
-import org.rogach.scallop.exceptions.ScallopException
 
 import scala.util.Try
 
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:
-  version("menger v0.2.6 (c) 2023-25, lene.preuss@gmail.com")
+  version("menger v0.2.7 (c) 2023-25, lene.preuss@gmail.com")
   val timeout: ScallopOption[Float] = opt[Float](required = false, default = Some(0))
   val spongeType: ScallopOption[String] = choice(
     choices = List("cube", "square", "tesseract", "tesseract-sponge", "tesseract-sponge-2"), 
@@ -20,8 +19,8 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     required = false, default = Some(Const.defaultEyeW), validate = _ > 0
   )
   private def degreeOpt = opt[Float](
-      required = false, default = Some(0), validate = a => a >= 0 && a < 360
-    )
+    required = false, default = Some(0), validate = a => a >= 0 && a < 360
+  )
   val rotX: ScallopOption[Float] = degreeOpt
   val rotY: ScallopOption[Float] = degreeOpt
   val rotZ: ScallopOption[Float] = degreeOpt
