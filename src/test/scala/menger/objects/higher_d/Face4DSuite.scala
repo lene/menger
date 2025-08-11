@@ -61,8 +61,8 @@ class Face4DSuite extends AnyFlatSpec with RectMesh with Matchers:
   Seq(Vector.X, Vector.Y, Vector.Z, Vector.W).combinations(2).foreach { case Seq(vec1, vec2) =>
     it should s"be orthogonal to both ${vec1.toString} and ${vec2.toString}" in:
       forAll (normals(Seq(vec1, vec2))) { normal =>
-        normal.dot(vec1) should be (0)
-        normal.dot(vec2) should be (0)
+        normal * vec1 should be (0)
+        normal * vec2 should be (0)
       }
   }
 

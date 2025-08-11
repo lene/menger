@@ -99,7 +99,7 @@ class VectorSuite extends AnyFlatSpec with Matchers:
   "dot product" should "return the correct value" in :
     val v1 = Vector[2](1f, 2f)
     val v2 = Vector[2](3f, 4f)
-    v1.dot(v2) should be(11f) // 1*3 + 2*4 = 3 + 8 = 11
+    v1 * v2 should be(11f) // 1*3 + 2*4 = 3 + 8 = 11
 
   "Zero Vector" should "be correctly instantiated" in:
     val zeroVec = Vector.Zero[3]

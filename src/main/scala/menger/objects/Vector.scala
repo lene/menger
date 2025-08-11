@@ -23,8 +23,14 @@ case class Vector[dim <: Int & Singleton](v: Float*)(implicit d: ValueOf[dim]):
 
   def === (that: Vector[dim]): Boolean = epsilonEquals(that)
 
+  def epsilonEquals(that: Vector[dim], epsilon: Float = Const.epsilon): Boolean =
+    v.zip(that.v).forall { case (a, b) => math.abs(a - b) < epsilon }
+
   def len: Float = 
     math.sqrt(v.map(x => x * x).sum).toFloat
+
+  def *(that: Vector[dim]): Float =
+    v.zip(that.v).foldLeft(0f) { case (acc, (a, b)) => acc + a * b }
 
   def * (scalar: Float): Vector[dim] =
     Vector.fromSeq(v.map(x => x * scalar))(using d)
@@ -32,18 +38,13 @@ case class Vector[dim <: Int & Singleton](v: Float*)(implicit d: ValueOf[dim]):
   def / (scalar: Float): Vector[dim] = *(1 / scalar)
 
   def dst(that: Vector[dim]): Float =
-    math.sqrt(dst2(that)).toFloat
+    (that - this).len
 
   def dst2(that: Vector[dim]): Float =
-    v.zip(that.v).map { case (a, b) => (a - b) * (a - b) }.sum
+    val diff = that - this
+    diff * diff
 
-  def dot(that: Vector[dim]): Float =
-    v.zip(that.v).foldLeft(0f) { case (acc, (a, b)) => acc + a * b }
-  
   override def toString: String = v.map(float2string).mkString("<", ", ", ">")
-
-  def epsilonEquals(that: Vector[dim], epsilon: Float = Const.epsilon): Boolean =
-    v.zip(that.v).forall { case (a, b) => math.abs(a - b) < epsilon }
 
   def count(p: Float => Boolean): Int = v.count(p)
   def filter(p: Float => Boolean): Seq[Float] = v.filter(p)

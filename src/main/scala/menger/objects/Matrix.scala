@@ -1,6 +1,5 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Matrix4
 import menger.Const
 
 case class Matrix[dim <: Int & Singleton](m: Array[Float])(implicit d: ValueOf[dim]):

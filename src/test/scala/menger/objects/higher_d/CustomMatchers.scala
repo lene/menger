@@ -59,7 +59,7 @@ trait CustomMatchers:
   class Vector4SeqsMatcher(expected: Iterable[Vector[4]]) extends Matcher[Iterable[Vector[4]]]:
     def apply(left: Iterable[Vector[4]]): MatchResult =
       MatchResult(
-        left.zip(expected).forall((v1, v2) => v1.epsilonEquals(v2)),
+        left.zip(expected).forall((v1, v2) => v1 === v2),
         s"""${left.map(_.toString)} not equal ${expected.map(_.toString)}""",
         s"""${left.map(_.toString)} equals ${expected.map(_.toString)} to ${Const.epsilon}"""
       )
