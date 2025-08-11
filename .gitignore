@@ -15,6 +15,9 @@ project/local-plugins.sbt
 .sbt-scripted/
 local.sbt
 
+# generated pictures
+*.png
+
 # Bloop
 .bsp
 
@@ -48,3 +51,5 @@ flight.jfr
 # file storing access token for GitLab CI lint
 .set-gitlab-token.sh
 
+# 
+.lwjgl
