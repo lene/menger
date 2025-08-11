@@ -2,10 +2,11 @@ package menger
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
-import com.badlogic.gdx.graphics.PixmapIO
+import com.badlogic.gdx.graphics.{Pixmap, PixmapIO}
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
-import com.badlogic.gdx.utils.ScreenUtils
+
+import java.util.zip.Deflater
 
 class AnimatedMengerEngine(
   spongeType: String, spongeLevel: Int,
@@ -45,7 +46,7 @@ class AnimatedMengerEngine(
   private def currentSaveName: Option[String] =
     if saveName.nonEmpty then Some(saveName.format(currentFrame)) else None
 
-  private def saveImage():  Unit =
+  private def saveImage(): Unit =
     if saveName.nonEmpty then
       val fileName = currentSaveName.getOrElse("")
       Gdx.app.log(s"${getClass.getSimpleName}.saveImage()", s"Saving image to $fileName")
@@ -54,31 +55,8 @@ class AnimatedMengerEngine(
       Gdx.app.log(s"${getClass.getSimpleName}.saveImage()", "No save name provided, skipping image save.")
 
 
-object ScreenshotFactory {
-  private var counter = 1
-
-  def saveScreenshot(fileName: String): Unit = {
-      val fh = new FileHandle(fileName)
-      val pixmap = getScreenshot(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight, false)
-      PixmapIO.writePNG(fh, pixmap)
-      pixmap.dispose
-  }
-
-  private def getScreenshot(x: Int, y: Int, w: Int, h: Int, yDown: Boolean) = {
-    val pixmap = ScreenUtils.getFrameBufferPixmap(x, y, w, h)
-    if (yDown) {
-      // Flip the pixmap upside down
-      val pixels = pixmap.getPixels
-      val numBytes = w * h * 4
-      val lines = new Array[Byte](numBytes)
-      val numBytesPerLine = w * 4
-      for (i <- 0 until h) {
-        pixels.position((h - i - 1) * numBytesPerLine)
-        pixels.get(lines, i * numBytesPerLine, numBytesPerLine)
-      }
-      pixels.clear
-      pixels.put(lines)
-    }
-    pixmap
-  }
-}
+object ScreenshotFactory:
+  def saveScreenshot(fileName: String): Unit =
+      val pixmap = Pixmap.createFromFrameBuffer(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
+      PixmapIO.writePNG(Gdx.files.external(fileName), pixmap, Deflater.BEST_COMPRESSION, true)
+      pixmap.dispose()
