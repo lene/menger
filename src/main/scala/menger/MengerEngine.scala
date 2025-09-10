@@ -1,14 +1,14 @@
 package menger
 
 import com.badlogic.gdx.Game
-import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.{Color, GL20}
 import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
 import menger.objects.{Builder, Geometry, SpongeBySurface, SpongeByVolume}
 import menger.objects.higher_d.{RotatedProjection, Tesseract, TesseractSponge, TesseractSponge2}
 
 abstract class MengerEngine(
   val spongeType: String, val spongeLevel: Int,
-  val rotationProjectionParameters: RotationProjectionParameters, val lines: Boolean
+  val rotationProjectionParameters: RotationProjectionParameters, val lines: Boolean, val color: Color
 ) extends Game:
   protected val material: Material = Builder.WHITE_MATERIAL
   protected lazy val primitiveType: Int = if lines then GL20.GL_LINES else GL20.GL_TRIANGLES

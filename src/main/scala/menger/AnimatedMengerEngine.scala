@@ -2,15 +2,16 @@ package menger
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
-import com.badlogic.gdx.graphics.{Pixmap, PixmapIO}
+import com.badlogic.gdx.graphics.{Color, Pixmap, PixmapIO}
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 
 class AnimatedMengerEngine(
   spongeType: String, spongeLevel: Int,
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
-  lines: Boolean, val animationSpecifications: AnimationSpecifications, val saveName: Option[String]
-) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines):
+  lines: Boolean, color: Color, val animationSpecifications: AnimationSpecifications, 
+  val saveName: Option[String]
+) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color):
   private var currentFrame: Int = 0
 
   protected def drawables: List[ModelInstance] = 

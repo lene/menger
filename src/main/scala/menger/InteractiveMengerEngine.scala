@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
 import com.typesafe.scalalogging.LazyLogging
 import menger.input.EventDispatcher
 import menger.objects.Geometry
@@ -12,8 +13,8 @@ import menger.objects.Geometry
 class InteractiveMengerEngine(
   spongeType: String = "square", spongeLevel: Int = 0,
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
-  lines: Boolean = false, timeout: Float = 0
-) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines)
+  lines: Boolean = false, color: Color = Color.WHITE, timeout: Float = 0
+) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color)
 with LazyLogging:
 
   private lazy val sponge: Geometry = generateObject(spongeType, spongeLevel, material, primitiveType)

@@ -1,5 +1,6 @@
 package menger
 
+import com.badlogic.gdx.graphics.Color
 import com.typesafe.scalalogging.LazyLogging
 import org.rogach.scallop.*
 
@@ -29,6 +30,9 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val rotZW: ScallopOption[Float] = degreeOpt
   val level: ScallopOption[Int] = opt[Int](required = false, default = Some(1), validate = _ >= 0)
   val lines: ScallopOption[Boolean] = opt[Boolean](required = false, default = Some(false))
+  val color: ScallopOption[Color] = opt[Color](required = false, default = Some(Color.LIGHT_GRAY))(
+    using colorConverter
+  )
   val width: ScallopOption[Int] = opt[Int](
     required = false, default = Some(Const.defaultWindowWidth)
   )
@@ -79,4 +83,39 @@ val animationSpecificationsConverter = new ValueConverter[AnimationSpecification
     else
       Try { Right(Some(AnimationSpecifications(specStrings)))
       }.recover { case e: Exception => Left(e.getMessage) }.get
+}
+
+val colorConverter = new ValueConverter[Color] {
+  val argType: ArgType.V = org.rogach.scallop.ArgType.SINGLE
+  def parse(s: List[(String, List[String])]): Either[String, Option[Color]] =
+    if s.isEmpty || s.head._2.isEmpty then Right(None)
+    else
+      val input = s.head._2.head.trim
+      Try { doParse(input) }.recover {
+        case e: Exception => Left(s"Color '$input' not recognized: ${e.getMessage}")
+      }.get
+
+  private def doParse(input: String): Either[String, Option[Color]] =
+    if input.contains(',') then parseInts(input)
+    else parseHex(input)
+
+  private def parseHex(input: String): Either[String, Option[Color]] =
+    input.length match
+      case len if len >= 6 && len <= 8 => Right(Some(Color.valueOf(input)))
+      case _ => Left(s"Color '$input' must be a name or a hex value RRGGBB or RRGGBBAA")
+
+  private def parseInts(input: String): Either[String, Option[Color]] =
+    val parts = input.trim.split(",").map(_.trim)
+    parts.length match
+      case n if input.startsWith(",") || input.endsWith(",") =>
+        Left(s"Color '$input' must not start or end with a comma")
+      case n if n < 3 || n > 4 =>
+        Left(s"Color '$input' must have 3 or 4 components")
+      case _ =>
+        val nums = parts.map(_.toInt)
+        if nums.exists(n => n < 0 || n > 255) then
+            Left(s"Color '$input' has values out of range 0-255")
+        else
+          val Array(r, g, b, a) = nums.map(_ / 255f).padTo(4, 1f)
+          Right(Some(Color(r, g, b, a)))
 }

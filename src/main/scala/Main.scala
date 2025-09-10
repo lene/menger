@@ -28,11 +28,11 @@ object Main:
     val rotationProjectionParameters = RotationProjectionParameters(opts)
     if opts.animate.isDefined && opts.animate().parts.nonEmpty then
       AnimatedMengerEngine(
-        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.animate(),
+        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(), opts.animate(),
         opts.saveName.toOption
       )
     else
       InteractiveMengerEngine(
-        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.timeout()
+        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(), opts.timeout()
       )
 
