@@ -10,7 +10,7 @@ abstract class MengerEngine(
   val spongeType: String, val spongeLevel: Int,
   val rotationProjectionParameters: RotationProjectionParameters, val lines: Boolean, val color: Color
 ) extends Game:
-  protected val material: Material = Builder.WHITE_MATERIAL
+  protected val material: Material = Builder.material(color)
   protected lazy val primitiveType: Int = if lines then GL20.GL_LINES else GL20.GL_TRIANGLES
   protected def gdxResources: GDXResources
   protected def drawables: List[ModelInstance]

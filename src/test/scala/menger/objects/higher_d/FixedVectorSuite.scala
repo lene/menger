@@ -1,5 +1,6 @@
 package menger.objects.higher_d
 
+import menger.objects.FixedVector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

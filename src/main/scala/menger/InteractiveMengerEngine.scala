@@ -16,7 +16,6 @@ class InteractiveMengerEngine(
   lines: Boolean = false, color: Color = Color.WHITE, timeout: Float = 0
 ) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color)
 with LazyLogging:
-
   private lazy val sponge: Geometry = generateObject(spongeType, spongeLevel, material, primitiveType)
   private lazy val eventDispatcher = EventDispatcher()
   "tesseract".r.findFirstIn(spongeType).foreach(_ => eventDispatcher.addObserver(sponge))
@@ -25,7 +24,7 @@ with LazyLogging:
   protected def gdxResources: GDXResources = GDXResources(Some(eventDispatcher))
 
   override def create(): Unit =
-    Gdx.app.log(s"${getClass.getSimpleName}.create()", sponge.toString())
+    Gdx.app.log(s"${getClass.getSimpleName}.create()", s"$sponge color=$color")
     if timeout > 0 then startExitTimer(timeout)
 
   override def render(): Unit = gdxResources.render(drawables)

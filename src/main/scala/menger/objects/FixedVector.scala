@@ -1,4 +1,4 @@
-package menger.objects.higher_d
+package menger.objects
 
 case class FixedVector[n <: Int & Singleton, T](values: T*)(implicit d: ValueOf[n]):
 
