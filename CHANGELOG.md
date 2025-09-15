@@ -1,8 +1,9 @@
 # Changelog
 
-## [0.2.7] - Unreleased
+## [0.2.7] - 2025-09-15
 
 ### Added
+- `--color` option to set the color of the rendered object
 
 ### Upgraded
 - Scala to 3.7.3

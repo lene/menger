@@ -167,7 +167,6 @@ TagIsNewAndConsistent:
   image: ubuntu:latest
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     - apt-get -y update
     - apt-get -y install git
@@ -186,7 +185,6 @@ ScalaVersionConsistent:
   image: ubuntu:latest
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "main"
   script:
     - SCALA_VERSION=$(egrep 'scalaVersion := ".*"' build.sbt | cut -d \" -f 2 | xargs) || true
     - >
@@ -204,7 +202,6 @@ ChangelogIsUpdated:
   image: ubuntu:latest
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "main"
   script:
     - test -f CHANGELOG.md || exit 0
     - VERSION=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
