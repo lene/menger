@@ -7,7 +7,7 @@ import org.rogach.scallop.*
 import scala.util.Try
 
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:
-  version("menger v0.2.7 (c) 2023-25, lene.preuss@gmail.com")
+  version("menger v0.2.8 (c) 2023-25, lene.preuss@gmail.com")
   val timeout: ScallopOption[Float] = opt[Float](required = false, default = Some(0))
   val spongeType: ScallopOption[String] = choice(
     choices = List("cube", "square", "tesseract", "tesseract-sponge", "tesseract-sponge-2"), 
