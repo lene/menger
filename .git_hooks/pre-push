@@ -61,7 +61,11 @@ else
 fi
 if git tag | ( grep "^${VERSION_SBT}\$" ); then
   echo "Tag ${RED_TEXT}${VERSION_SBT}${RESET_TEXT} already exists ($(git tag | xargs))"
-  STATUS=1
+  if [ "$1" != "github" ]; then
+    STATUS=1
+  else
+    echo "Pushing anyway due to github argument"
+  fi
 else echo "Tag ${GREEN_TEXT}${VERSION_SBT}${RESET_TEXT} does not exist"
 fi
 if [ $STATUS -gt 0 ]
