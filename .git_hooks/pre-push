@@ -61,16 +61,13 @@ else
 fi
 if git tag | ( grep "^${VERSION_SBT}\$" ); then
   echo "Tag ${RED_TEXT}${VERSION_SBT}${RESET_TEXT} already exists ($(git tag | xargs))"
-  if [ "$1" != "github" ]; then
-    STATUS=1
-  else
-    echo "Pushing anyway due to github argument"
+  if [ "$1" != "github" ]; then STATUS=1
+  else echo "Pushing anyway due to github argument"
   fi
 else echo "Tag ${GREEN_TEXT}${VERSION_SBT}${RESET_TEXT} does not exist"
 fi
 if [ $STATUS -gt 0 ]
-then
-  echo "Status after tag check: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+then echo "Status after tag check: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after tag check: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
@@ -78,6 +75,12 @@ xvfb-run -a sbt test --warn || STATUS=1
 if [ $STATUS -gt 0 ]
 then echo "Status after sbt test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after sbt test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+fi
+
+sbt "scalafix --check" --warn || STATUS=1
+if [ $STATUS -gt 0 ]
+then echo "Status after scalafix: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after scalafix: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 sbt "Universal / packageBin" --warn || STATUS=1
