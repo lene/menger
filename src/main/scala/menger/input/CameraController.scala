@@ -1,10 +1,10 @@
 package menger.input
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input.Buttons
+import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController
-import com.badlogic.gdx.Input.{Buttons, Keys}
-
 import menger.RotationProjectionParameters
 import menger.Vec3
 

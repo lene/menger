@@ -10,12 +10,19 @@ lazy val root = project
     scalaVersion := "3.7.3",
     scalacOptions ++= Seq("-deprecation", "-explain", "-feature"),
 
+    // Scalafix configuration
+    ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0",
+    inThisBuild(List(
+      semanticdbEnabled := true,
+      semanticdbVersion := scalafixSemanticdb.revision
+    )),
+
     // Logging
-    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
+    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6",
     libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.18",
     // JUnit
     libraryDependencies ++= Seq(
-      "net.aichler" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test
+      "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test
     ),
     // ScalaTest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,

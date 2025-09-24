@@ -1,10 +1,18 @@
 package menger
 
 import com.badlogic.gdx.Game
-import com.badlogic.gdx.graphics.{Color, GL20}
-import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
-import menger.objects.{Builder, Geometry, SpongeBySurface, SpongeByVolume}
-import menger.objects.higher_d.{RotatedProjection, Tesseract, TesseractSponge, TesseractSponge2}
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.graphics.g3d.ModelInstance
+import menger.objects.Builder
+import menger.objects.Geometry
+import menger.objects.SpongeBySurface
+import menger.objects.SpongeByVolume
+import menger.objects.higher_d.RotatedProjection
+import menger.objects.higher_d.Tesseract
+import menger.objects.higher_d.TesseractSponge
+import menger.objects.higher_d.TesseractSponge2
 
 abstract class MengerEngine(
   val spongeType: String, val spongeLevel: Int,

@@ -1,7 +1,7 @@
 package menger.objects.higher_d
 
-import menger.objects.Vector
 import com.typesafe.scalalogging.LazyLogging
+import menger.objects.Vector
 
 /**
  * Represents a 4D Menger sponge based on a tesseract.

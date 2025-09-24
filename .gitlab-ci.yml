@@ -96,6 +96,17 @@ CheckCoverage:
       - coverage.log
       - target/scala-${SCALA_VERSION}/scoverage-report/
 
+Scalafix:
+  image: $SBT_IMAGE
+  stage: test
+  needs: []
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - sbt "scalafix --check"
+  allow_failure: false
+
 sonarcloud-check:
   variables:
     SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache

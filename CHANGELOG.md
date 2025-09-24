@@ -2,6 +2,12 @@
 
 ## [0.2.8] - Unreleased
 
+### Added
+- Scalafix integration for code quality and automated refactoring
+
+### Upgraded
+- Updated dependencies: scala-logging 3.9.6, sbt-native-packager 1.11.3, sbt-scoverage 2.3.1, sbt-jupiter-interface 0.11.3
+
 ## [0.2.7] - 2025-09-15
 
 ### Added

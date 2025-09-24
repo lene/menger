@@ -1,8 +1,9 @@
 package menger
 
-import menger.objects.higher_d.{Projection, Rotation}
-
 import scala.annotation.targetName
+
+import menger.objects.higher_d.Projection
+import menger.objects.higher_d.Rotation
 
 case class RotationProjectionParameters(
   rotXW: Float = 0, rotYW: Float = 0, rotZW: Float = 0,

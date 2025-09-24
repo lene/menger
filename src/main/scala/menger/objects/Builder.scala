@@ -1,10 +1,12 @@
 package menger.objects
 
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
 import com.badlogic.gdx.graphics.g3d.Material
-import com.badlogic.gdx.graphics.g3d.attributes.{ColorAttribute, IntAttribute}
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
+import com.badlogic.gdx.graphics.g3d.attributes.IntAttribute
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
-import com.badlogic.gdx.graphics.{Color, GL20}
 
 object Builder:
   val modelBuilder = ModelBuilder()

@@ -1,12 +1,16 @@
 package menger.objects.higher_d
 
 import scala.compiletime.uninitialized
+
 import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance}
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import menger.RotationProjectionParameters
 import menger.input.Observer
-import menger.objects.{Builder, Geometry}
+import menger.objects.Builder
+import menger.objects.Geometry
 
 case class RotatedProjection(
   object4D: Mesh4D, var projection: Projection, var rotation: Rotation = Rotation(),

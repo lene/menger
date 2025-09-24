@@ -1,10 +1,12 @@
 package menger.objects
 
+import scala.math.abs
+
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
 import menger.Vec3
-import menger.objects.Direction.{X, Y, Z}
-
-import scala.math.abs
+import menger.objects.Direction.X
+import menger.objects.Direction.Y
+import menger.objects.Direction.Z
 
 
 case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Direction):

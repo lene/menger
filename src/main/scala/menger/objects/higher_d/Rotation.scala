@@ -1,10 +1,12 @@
 package menger.objects.higher_d
 
-import menger.objects.{Matrix, Vector}
-import com.typesafe.scalalogging.LazyLogging
-import menger.{Const, RotationProjectionParameters}
-
 import scala.annotation.targetName
+
+import com.typesafe.scalalogging.LazyLogging
+import menger.Const
+import menger.RotationProjectionParameters
+import menger.objects.Matrix
+import menger.objects.Vector
 
 case class Rotation(transformationMatrix: Matrix[4], pivotPoint: Vector[4]) extends RectMesh:
   lazy val isZero: Boolean = transformationMatrix === Matrix.identity[4]

@@ -1,8 +1,8 @@
 package menger
 
-import com.typesafe.scalalogging.LazyLogging
-
 import scala.util.Try
+
+import com.typesafe.scalalogging.LazyLogging
 
 case class AnimationSpecifications(specification: List[String] = List.empty) extends LazyLogging:
   val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_))

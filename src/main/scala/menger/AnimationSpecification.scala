@@ -1,6 +1,7 @@
 package menger
 
 import scala.util.Try
+
 import com.typesafe.scalalogging.LazyLogging
 
 case class AnimationSpecification(s: String) extends LazyLogging:

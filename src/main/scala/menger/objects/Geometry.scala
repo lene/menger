@@ -2,7 +2,8 @@ package menger.objects
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import menger.RotationProjectionParameters
 import menger.input.Observer

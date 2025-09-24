@@ -1,7 +1,8 @@
 package menger.objects.higher_d
 
-import menger.objects.Vector
 import scala.math.abs
+
+import menger.objects.Vector
 
 class TesseractSponge(level: Int) extends Fractal4D(level):
 

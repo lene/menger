@@ -1,10 +1,10 @@
 package menger
 
+import scala.util.Try
+
 import com.badlogic.gdx.graphics.Color
 import com.typesafe.scalalogging.LazyLogging
 import org.rogach.scallop.*
-
-import scala.util.Try
 
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:
   version("menger v0.2.8 (c) 2023-25, lene.preuss@gmail.com")

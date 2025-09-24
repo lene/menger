@@ -1,6 +1,11 @@
 
-import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
-import menger.{AnimatedMengerEngine, InteractiveMengerEngine, MengerCLIOptions, MengerEngine, RotationProjectionParameters}
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
+import menger.AnimatedMengerEngine
+import menger.InteractiveMengerEngine
+import menger.MengerCLIOptions
+import menger.MengerEngine
+import menger.RotationProjectionParameters
 
 object Main:
   private final val COLOR_BITS = 8

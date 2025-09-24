@@ -1,8 +1,8 @@
 package menger.objects
 
-import menger.objects.Direction.ByteVec
-
 import scala.annotation.targetName
+
+import menger.objects.Direction.ByteVec
 
 enum Direction(val x: Byte, val y: Byte, val z: Byte):
   case X extends Direction(1, 0, 0)

@@ -2,8 +2,11 @@ package menger.objects
 
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.VertexAttributes.Usage
-import com.badlogic.gdx.graphics.g3d.utils.{MeshBuilder, MeshPartBuilder}
-import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance}
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder
+import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder
 import com.badlogic.gdx.math.Vector3
 import menger.objects.Direction.Z
 

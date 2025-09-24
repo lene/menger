@@ -2,8 +2,8 @@ package menger.objects.higher_d
 
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Material
-import menger.objects.Vector
 import menger.objects.Builder
+import menger.objects.Vector
 
 /**
  * Represents a tesseract (4D hypercube) of edge length `size` centered at the origin.

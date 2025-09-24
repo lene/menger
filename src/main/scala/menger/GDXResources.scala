@@ -1,16 +1,21 @@
 package menger
 
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
-import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
-import com.badlogic.gdx.graphics.g3d.{Environment, ModelBatch, RenderableProvider}
-import com.badlogic.gdx.graphics.{FPSLogger, GL20, PerspectiveCamera}
-import com.badlogic.gdx.math.Vector3
-import menger.input.{EventDispatcher, MengerInputMultiplexer}
-import org.lwjgl.opengl.GL11
-
 import scala.collection.immutable.List
 import scala.jdk.CollectionConverters.*
+
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.FPSLogger
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.PerspectiveCamera
+import com.badlogic.gdx.graphics.g3d.Environment
+import com.badlogic.gdx.graphics.g3d.ModelBatch
+import com.badlogic.gdx.graphics.g3d.RenderableProvider
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
+import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
+import com.badlogic.gdx.math.Vector3
+import menger.input.EventDispatcher
+import menger.input.MengerInputMultiplexer
+import org.lwjgl.opengl.GL11
 
 
 case class GDXResources(eventDispatcher: Option[EventDispatcher]):

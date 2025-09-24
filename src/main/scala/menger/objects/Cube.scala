@@ -1,10 +1,12 @@
 package menger.objects
 
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.g3d.{Material, Model, ModelInstance}
-import com.badlogic.gdx.math.Vector3
-
 import scala.collection.mutable
+
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.math.Vector3
 
 case class Cube(
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES

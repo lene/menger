@@ -1,10 +1,11 @@
 package menger.objects.higher_d
 
+import scala.annotation.targetName
+import scala.math.pow
+import scala.math.signum
+
 import com.badlogic.gdx.math.Vector3
 import menger.objects.Vector
-
-import scala.annotation.targetName
-import scala.math.{pow, signum}
 
 
 /** project 4D points to 3D where the point we look at is at the origin `(0, 0, 0, 0)`,

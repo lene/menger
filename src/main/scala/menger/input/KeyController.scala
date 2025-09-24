@@ -1,9 +1,10 @@
 package menger.input
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Keys
+import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.math.Vector3
-import com.badlogic.gdx.{Gdx, InputAdapter}
 import menger.RotationProjectionParameters
 
 class KeyController(camera: PerspectiveCamera, dispatcher: EventDispatcher) extends InputAdapter:
