@@ -5,6 +5,10 @@
 ### Added
 - Scalafix integration for code quality and automated refactoring
 
+### Fixed
+- Path traversal vulnerability in screenshot filename handling with comprehensive test coverage
+- Improved timing precision by replacing System.currentTimeMillis with System.nanoTime
+
 ### Upgraded
 - Updated dependencies: scala-logging 3.9.6, sbt-native-packager 1.11.3, sbt-scoverage 2.3.1, sbt-jupiter-interface 0.11.3
 

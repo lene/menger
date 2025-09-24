@@ -16,9 +16,9 @@ trait Geometry(
   override def handleEvent(event: RotationProjectionParameters): Unit = {}
   
   def logTime[T](msg: String, minDuration: Int = 0)(f: => T): T =
-    val start = System.currentTimeMillis()
+    val start = System.nanoTime()
     val result = f
-    val duration = System.currentTimeMillis() - start
+    val duration = (System.nanoTime() - start) / 1_000_000
     if duration >= minDuration && Gdx.app != null then
     Gdx.app.log(s"${getClass.getSimpleName}.$msg", s"${duration}ms")
     result
