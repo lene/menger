@@ -11,7 +11,6 @@ lazy val root = project
     scalacOptions ++= Seq("-deprecation", "-explain", "-feature"),
 
     // Scalafix configuration
-    ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0",
     inThisBuild(List(
       semanticdbEnabled := true,
       semanticdbVersion := scalafixSemanticdb.revision
