@@ -18,8 +18,9 @@ class InteractiveMengerEngine(
 ) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color)
 with LazyLogging:
   private lazy val sponge: Geometry = generateObject(spongeType, spongeLevel, material, primitiveType)
-  private lazy val eventDispatcher = EventDispatcher()
-  "tesseract".r.findFirstIn(spongeType).foreach(_ => eventDispatcher.addObserver(sponge))
+  private lazy val eventDispatcher =
+    val dispatcher = EventDispatcher()
+    "tesseract".r.findFirstIn(spongeType).fold(dispatcher)(_ => dispatcher.withObserver(sponge))
 
   protected def drawables: List[ModelInstance] = sponge.at(Vector3(0, 0, 0), 1)
   protected def gdxResources: GDXResources = GDXResources(Some(eventDispatcher))

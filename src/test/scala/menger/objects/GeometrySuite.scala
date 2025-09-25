@@ -227,9 +227,8 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
       var notified = false
       override def handleEvent(event: RotationProjectionParameters): Unit = notified = true
 
-    val dispatcher = EventDispatcher()
     val observer = TestObserver()
-    dispatcher.addObserver(observer)
+    val dispatcher = EventDispatcher().withObserver(observer)
     val thisController = KeyController(camera, dispatcher)
     thisController.keyDown(Keys.SHIFT_LEFT)
     thisController.keyDown(Keys.RIGHT)

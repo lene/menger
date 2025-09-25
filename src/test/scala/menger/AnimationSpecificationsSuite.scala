@@ -35,10 +35,9 @@ class AnimationSpecificationsSuite extends AnyFlatSpec with Matchers:
     )
 
   it should "fail for a frame outside of the specified range" in:
-    an [IllegalArgumentException] should be thrownBy
-      AnimationSpecifications(
-        List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
-      ).partAndFrame(20)
+    AnimationSpecifications(
+      List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
+    ).partAndFrame(20).isFailure should be(true)
 
   "RotationProjectionParameters for a frame" should "be correct if no rotation" in:
     AnimationSpecifications(

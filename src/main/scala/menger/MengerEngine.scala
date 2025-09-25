@@ -28,6 +28,7 @@ abstract class MengerEngine(
   override def resize(width: Int, height: Int): Unit = gdxResources.resize()
   def currentRotProj: RotationProjectionParameters = rotationProjectionParameters
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   protected def generateObject(
     spongeType: String, level: Int, material: Material, primitiveType: Int
   ): Geometry =
@@ -41,4 +42,4 @@ abstract class MengerEngine(
       case "tesseract-sponge-2" => RotatedProjection(
         TesseractSponge2(level), currentRotProj, material, primitiveType
       )
-      case _ => throw new IllegalArgumentException(s"Unknown sponge type: $spongeType")
+      case _ => throw IllegalArgumentException(s"Unknown sponge type: $spongeType")

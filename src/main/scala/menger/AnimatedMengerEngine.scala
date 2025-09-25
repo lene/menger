@@ -11,10 +11,10 @@ import com.badlogic.gdx.math.Vector3
 class AnimatedMengerEngine(
   spongeType: String, spongeLevel: Int,
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
-  lines: Boolean, color: Color, val animationSpecifications: AnimationSpecifications, 
+  lines: Boolean, color: Color, val animationSpecifications: AnimationSpecifications,
   val saveName: Option[String]
 ) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color):
-  private var currentFrame: Int = 0
+  private val frameCounter = java.util.concurrent.atomic.AtomicInteger(0)
 
   protected def drawables: List[ModelInstance] = 
     generateObject(spongeType, spongeLevel, material, primitiveType).at(Vector3(0, 0, 0), 1)
@@ -22,6 +22,7 @@ class AnimatedMengerEngine(
   protected def gdxResources: GDXResources = GDXResources(None)
 
   override def currentRotProj: RotationProjectionParameters =
+    val currentFrame = frameCounter.get()
     val r = rotationProjectionParameters + animationSpecifications.rotationProjectionParameters(currentFrame)
     Gdx.app.log(s"${getClass.getSimpleName}", s"frame: $currentFrame $r ${currentSaveName.getOrElse("")}")
     r
@@ -35,12 +36,12 @@ class AnimatedMengerEngine(
     saveImage()
     nextStep()
 
-  private def nextStep(): Unit = 
-    currentFrame += 1
-    if currentFrame >= animationSpecifications.numFrames then
+  private def nextStep(): Unit =
+    val nextFrame = frameCounter.incrementAndGet()
+    if nextFrame >= animationSpecifications.numFrames then
       Gdx.app.exit()
 
-  private def currentSaveName: Option[String] = saveName.map(_.format(currentFrame))
+  private def currentSaveName: Option[String] = saveName.map(_.format(frameCounter.get()))
 
   private def saveImage():  Unit = currentSaveName.foreach(ScreenshotFactory.saveScreenshot)
 

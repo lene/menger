@@ -16,6 +16,16 @@ lazy val root = project
       semanticdbVersion := scalafixSemanticdb.revision
     )),
 
+    // WartRemover configuration - explicit warts excluding LibGDX-incompatible ones
+    wartremoverWarnings ++= Seq(
+      Wart.Var,           // Warn on mutable variables (allows LibGDX vars to compile)
+      Wart.While,         // Prevent while loops
+      Wart.AsInstanceOf,  // Prevent unsafe casting
+      Wart.IsInstanceOf,  // Prevent runtime type checks
+      Wart.Throw          // Prevent throwing exceptions
+      // Excluding Wart.Null and Wart.Return for LibGDX compatibility
+    ),
+
     // Logging
     libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6",
     libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.18",

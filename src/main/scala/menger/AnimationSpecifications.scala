@@ -34,11 +34,11 @@ case class AnimationSpecifications(specification: List[String] = List.empty) ext
                     accumulator: List[AnimationSpecification] = List.empty
                   ): Try[(List[AnimationSpecification], Int)] =
     if partsParts.isEmpty then
-      throw IllegalArgumentException("AnimationSpecification.parts not defined")
+      scala.util.Failure(IllegalArgumentException("AnimationSpecification.parts not defined"))
     else
       val current = partsParts.head
       if current.frames.isEmpty then
-        throw IllegalArgumentException(s"Animation specification $current has no frames")
+        scala.util.Failure(IllegalArgumentException(s"Animation specification $current has no frames"))
       else
         if current.frames.getOrElse(0) > totalFrame then
           Try((accumulator :+ current, totalFrame))

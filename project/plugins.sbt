@@ -7,4 +7,5 @@ addSbtPlugin("com.github.sbt.junit" % "sbt-jupiter-interface" % "0.11.3")
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.3.1")
 // Code quality and refactoring
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.11.1")
+addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.4.1")
 ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always

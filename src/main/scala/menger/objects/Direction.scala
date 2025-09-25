@@ -61,6 +61,7 @@ object Direction:
 
   private type ByteVec = (x: Byte, y: Byte, z: Byte)
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def apply(x: Byte, y: Byte, z: Byte): Direction =
     (x, y, z) match
       case (1, 0, 0) => Direction.X
@@ -69,6 +70,6 @@ object Direction:
       case (-1, 0, 0) => Direction.negX
       case (0, -1, 0) => Direction.negY
       case (0, 0, -1) => Direction.negZ
-      case _ => throw new IllegalArgumentException("Invalid direction ($x, $y, $z)")
+      case _ => throw IllegalArgumentException("Invalid direction ($x, $y, $z)")
 
   def apply(xyz: ByteVec): Direction = apply.tupled(xyz)
