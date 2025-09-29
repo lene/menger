@@ -1,5 +1,7 @@
 package menger
 
+import scala.util.Try
+
 import com.badlogic.gdx.Game
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
@@ -28,18 +30,17 @@ abstract class MengerEngine(
   override def resize(width: Int, height: Int): Unit = gdxResources.resize()
   def currentRotProj: RotationProjectionParameters = rotationProjectionParameters
 
-  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   protected def generateObject(
     spongeType: String, level: Int, material: Material, primitiveType: Int
-  ): Geometry =
+  ): Try[Geometry] =
     spongeType match
-      case "square" => SpongeBySurface(level, material, primitiveType)
-      case "cube" => SpongeByVolume(level, material, primitiveType)
-      case "tesseract" => RotatedProjection(Tesseract(), currentRotProj, material, primitiveType)
-      case "tesseract-sponge" => RotatedProjection(
+      case "square" => Try(SpongeBySurface(level, material, primitiveType))
+      case "cube" => Try(SpongeByVolume(level, material, primitiveType))
+      case "tesseract" => Try(RotatedProjection(Tesseract(), currentRotProj, material, primitiveType))
+      case "tesseract-sponge" => Try(RotatedProjection(
         TesseractSponge(level), currentRotProj, material, primitiveType
-      )
-      case "tesseract-sponge-2" => RotatedProjection(
+      ))
+      case "tesseract-sponge-2" => Try(RotatedProjection(
         TesseractSponge2(level), currentRotProj, material, primitiveType
-      )
-      case _ => throw IllegalArgumentException(s"Unknown sponge type: $spongeType")
+      ))
+      case _ => scala.util.Failure(IllegalArgumentException(s"Unknown sponge type: $spongeType"))

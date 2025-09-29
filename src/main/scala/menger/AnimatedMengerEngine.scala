@@ -16,16 +16,25 @@ class AnimatedMengerEngine(
 ) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color):
   private val frameCounter = java.util.concurrent.atomic.AtomicInteger(0)
 
-  protected def drawables: List[ModelInstance] = 
-    generateObject(spongeType, spongeLevel, material, primitiveType).at(Vector3(0, 0, 0), 1)
+  protected def drawables: List[ModelInstance] =
+    generateObject(spongeType, spongeLevel, material, primitiveType) match
+      case scala.util.Success(geometry) => geometry.at(Vector3(0, 0, 0), 1)
+      case scala.util.Failure(exception) =>
+        Gdx.app.error(s"${getClass.getSimpleName}", s"Failed to create sponge type '$spongeType': ${exception.getMessage}")
+        sys.exit(1)
 
   protected def gdxResources: GDXResources = GDXResources(None)
 
   override def currentRotProj: RotationProjectionParameters =
     val currentFrame = frameCounter.get()
-    val r = rotationProjectionParameters + animationSpecifications.rotationProjectionParameters(currentFrame)
-    Gdx.app.log(s"${getClass.getSimpleName}", s"frame: $currentFrame $r ${currentSaveName.getOrElse("")}")
-    r
+    animationSpecifications.rotationProjectionParameters(currentFrame) match
+      case scala.util.Success(animParams) =>
+        val rotProjPar = rotationProjectionParameters + animParams
+        Gdx.app.log(s"${getClass.getSimpleName}", s"frame: $currentFrame $rotProjPar ${currentSaveName.getOrElse("")}")
+        rotProjPar
+      case scala.util.Failure(exception) =>
+        Gdx.app.error(s"${getClass.getSimpleName}", s"Animation frame $currentFrame failed: ${exception.getMessage}")
+        sys.exit(1)
 
   override def create(): Unit =
     Gdx.app.log(s"${getClass.getSimpleName}", s"Animating for $animationSpecifications")

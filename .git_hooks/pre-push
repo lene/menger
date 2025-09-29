@@ -94,6 +94,8 @@ xvfb-run -a ./menger-${VERSION}/bin/menger \
   --level 1 --sponge-type tesseract-sponge-2 --animate frames=5:rot-y-w=0-90:rot-y=0-30 --save-name test_image%d.png || STATUS=1
 ls test_image*.png 2>&1 || STATUS=1
 rm -f test_image*.png
+# Test invalid sponge type exits with error code
+xvfb-run -a ./menger-${VERSION}/bin/menger --level 1 --timeout 0.1 --sponge-type invalid --lines 2>/dev/null && STATUS=1
 
 if [ $STATUS -gt 0 ]
 then echo "Status after running built: ${RED_TEXT}${STATUS}${RESET_TEXT}"

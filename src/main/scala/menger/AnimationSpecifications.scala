@@ -12,13 +12,13 @@ case class AnimationSpecifications(specification: List[String] = List.empty) ext
   def valid(spongeType: String): Boolean = parts.forall(_.valid(spongeType))
   def timeSpecValid: Boolean = parts.forall(_.timeSpecValid)
 
-  def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
+  def rotationProjectionParameters(frame: Int): Try[RotationProjectionParameters] =
     def previousPlusCurrentRotation(specs: List[AnimationSpecification], frame: Int): RotationProjectionParameters =
       accumulateAllButLastRotationProjections(specs) + specs.last.rotationProjectionParameters(frame)
 
-    partAndFrame(frame).map(previousPlusCurrentRotation).getOrElse(
-      throw IllegalArgumentException("AnimationSpecification.frames not defined")
-    )
+    partAndFrame(frame).map { case (specs, frameOffset) =>
+      previousPlusCurrentRotation(specs, frameOffset)
+    }
 
   def isRotationAxisSet(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
     parts.exists(_.isRotationAxisSet(x, y, z, xw, yw, zw))

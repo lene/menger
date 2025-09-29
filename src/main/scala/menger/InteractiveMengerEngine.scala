@@ -17,7 +17,11 @@ class InteractiveMengerEngine(
   lines: Boolean = false, color: Color = Color.WHITE, timeout: Float = 0
 ) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color)
 with LazyLogging:
-  private lazy val sponge: Geometry = generateObject(spongeType, spongeLevel, material, primitiveType)
+  private lazy val sponge: Geometry = generateObject(spongeType, spongeLevel, material, primitiveType) match
+    case scala.util.Success(geometry) => geometry
+    case scala.util.Failure(exception) =>
+      logger.error(s"Failed to create sponge type '$spongeType': ${exception.getMessage}")
+      sys.exit(1)
   private lazy val eventDispatcher =
     val dispatcher = EventDispatcher()
     "tesseract".r.findFirstIn(spongeType).fold(dispatcher)(_ => dispatcher.withObserver(sponge))

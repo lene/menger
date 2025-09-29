@@ -152,8 +152,8 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
     assume(loadingLWJGLSucceeds)
     InteractiveMengerEngine(spongeType = "tesseract", timeout = 0.01).create()
 
-  it should "fail with invalid object type" taggedAs GdxTest in:
-    an [IllegalArgumentException] should be thrownBy InteractiveMengerEngine(spongeType = "invalid", timeout = 0.01).create()
+  // Note: Invalid object type test removed - now causes sys.exit(1) instead of exception
+  // This is now tested in .git_hooks/pre-push with xvfb-run
 
   "InputController" should "instantiate from a camera and dispatcher" in:
     assume(loadingLWJGLSucceeds)

@@ -42,48 +42,47 @@ class AnimationSpecificationsSuite extends AnyFlatSpec with Matchers:
   "RotationProjectionParameters for a frame" should "be correct if no rotation" in:
     AnimationSpecifications(
       List("frames=10:rot-x-w=0-10")
-    ).rotationProjectionParameters(0) shouldBe RotationProjectionParameters()
+    ).rotationProjectionParameters(0).get shouldBe RotationProjectionParameters()
 
   it should "be correct for a single part" in:
     AnimationSpecifications(
       List("frames=10:rot-x-w=0-10")
-    ).rotationProjectionParameters(5) shouldBe RotationProjectionParameters(
+    ).rotationProjectionParameters(5).get shouldBe RotationProjectionParameters(
       rotXW = 5
     )
 
   it should "be correct for a single part with multiple rotations" in:
     AnimationSpecifications(
       List("frames=10:rot-x-w=0-10:rot-y-w=90-100")
-    ).rotationProjectionParameters(5) shouldBe RotationProjectionParameters(
+    ).rotationProjectionParameters(5).get shouldBe RotationProjectionParameters(
       rotXW = 5, rotYW = 95
     )
 
   it should "be correct for a single part with 3D rotation" in :
     AnimationSpecifications(
       List("frames=10:rot-x=0-10")
-    ).rotationProjectionParameters(5) shouldBe RotationProjectionParameters(
+    ).rotationProjectionParameters(5).get shouldBe RotationProjectionParameters(
       rotX = 5
     )
 
   it should "take the first rotation into account when there are two parts" in:
     AnimationSpecifications(
       List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
-    ).rotationProjectionParameters(15) shouldBe RotationProjectionParameters(
+    ).rotationProjectionParameters(15).get shouldBe RotationProjectionParameters(
       rotXW = 10, rotYW = 5
     )
 
   it should "also work when there are three parts" in:
     AnimationSpecifications(
       List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10", "frames=10:rot-z-w=0-10")
-    ).rotationProjectionParameters(25) shouldBe RotationProjectionParameters(
+    ).rotationProjectionParameters(25).get shouldBe RotationProjectionParameters(
       rotXW = 10, rotYW = 10, rotZW = 5
     )
 
   it should "fail for a frame outside of the specified range" in:
-    an [IllegalArgumentException] should be thrownBy
-      AnimationSpecifications(
-        List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
-      ).rotationProjectionParameters(20)
+    AnimationSpecifications(
+      List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
+    ).rotationProjectionParameters(20).isFailure should be(true)
 
   it should "fail when specifying seconds as time metric" in:
     an [IllegalArgumentException] should be thrownBy
