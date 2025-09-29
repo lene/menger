@@ -10,7 +10,7 @@ import com.badlogic.gdx.math.Vector3
 
 case class Cube(
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(material, primitiveType):
+) extends Geometry:
 
   def at(center: Vector3, scale: Float): List[ModelInstance] =
     val instance = new ModelInstance(Cube.model(material, primitiveType))
@@ -32,7 +32,7 @@ object Cube:
 
 class CubeFromSquares(
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(material, primitiveType):
+) extends Geometry:
   def at(center: Vector3, scale: Float): List[ModelInstance] =
     val face = CubeFromSquares.face(material, primitiveType)
     face.at(Vector3(center.x, center.y - 0.5f * scale, center.z), scale, Vector3(1, 0, 0), 90) :::

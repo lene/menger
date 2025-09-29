@@ -8,7 +8,7 @@ import com.badlogic.gdx.math.Vector3
 
 case class Square(
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(material, primitiveType):
+) extends Geometry:
 
   def at(center: Vector3, scale: Float): List[ModelInstance] =
     at(center, scale, Vector3(1, 0, 0), 0)

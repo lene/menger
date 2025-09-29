@@ -13,7 +13,7 @@ import menger.objects.Direction.Z
 
 class SpongeBySurface(
   level: Int, material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(material, primitiveType):
+) extends Geometry:
   require(level >= 0, "Level must be non-negative")
 
   override def at(center: Vector3, scale: Float): List[ModelInstance] = logTime("at", 5) {

@@ -12,7 +12,7 @@ val SPHERE_DIVISIONS = 32
 case class Sphere(
   divisions: Int = SPHERE_DIVISIONS, material: Material = Builder.WHITE_MATERIAL,
   primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(material, primitiveType):
+) extends Geometry:
 
   def at(center: Vector3, scale: Float): List[ModelInstance] =
     val instance = new ModelInstance(Sphere.model(divisions, material, primitiveType))

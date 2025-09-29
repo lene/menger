@@ -15,7 +15,7 @@ import menger.objects.Geometry
 case class RotatedProjection(
   object4D: Mesh4D, var projection: Projection, var rotation: Rotation = Rotation(),
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(material, primitiveType) with RectMesh with Observer:
+) extends Geometry with RectMesh with Observer:
 
   private var changed = true
   private var precomputedMesh: Model = uninitialized
