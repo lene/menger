@@ -15,27 +15,27 @@ extension(v: Vector3)
 class RotatedProjectionSuite extends AnyFlatSpec with Matchers with CustomMatchers:
 
   trait ProjectedTesseract:
-    val tesseract: RotatedProjection = RotatedProjection(Tesseract(), Projection(4, 1))
+    val tesseract: RotatedProjection = RotatedProjection(Vector3.Zero, 1f, Tesseract(), Projection(4, 1))
     val coordinateValues: Seq[Float] = tesseract.projectedFaceVertices.flatMap(_.toList).flatMap(_.toList)
 
   "A RotatedProjection" should "be able to be created from a Projection alone" in:
-    RotatedProjection(Tesseract(), Projection(4, 1))
+    RotatedProjection(Vector3.Zero, 1f, Tesseract(), Projection(4, 1))
 
   it should "be able to be created from a Projection and Rotation" in:
-    RotatedProjection(Tesseract(), Projection(4, 1), Rotation(90, 0, 0))
+    RotatedProjection(Vector3.Zero, 1f, Tesseract(), Projection(4, 1), Rotation(90, 0, 0))
 
   it should "be created without error with 3D and 4D rotations from CLI args" in :
     val rotProjParams = RotationProjectionParameters(MengerCLIOptions(Seq[String](
       "--rot-x", "90", "--rot-z-w", "90"
     )))
-    RotatedProjection(Tesseract(), rotProjParams, Builder.WHITE_MATERIAL, GL20.GL_TRIANGLES)
+    RotatedProjection(Vector3.Zero, 1f, Tesseract(), rotProjParams.projection, rotProjParams.rotation, Builder.WHITE_MATERIAL, GL20.GL_TRIANGLES)
 
   it should "be created correctly with 3D and 4D rotations from CLI args" in :
     val rotProjParams = RotationProjectionParameters(MengerCLIOptions(Seq[String](
       "--rot-x", "90", "--rot-z-w", "90"
     )))
     RotatedProjection(
-      Tesseract(), rotProjParams, Builder.WHITE_MATERIAL, GL20.GL_TRIANGLES
+      Vector3.Zero, 1f, Tesseract(), rotProjParams.projection, rotProjParams.rotation, Builder.WHITE_MATERIAL, GL20.GL_TRIANGLES
     ).rotation.transformationMatrix should epsilonEqual(
     Matrix[4](Array[Float](
       0, 1, 0, 0,

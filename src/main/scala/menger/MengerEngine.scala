@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.math.Vector3
 import menger.objects.Builder
 import menger.objects.Geometry
 import menger.objects.SpongeBySurface
@@ -34,13 +35,13 @@ abstract class MengerEngine(
     spongeType: String, level: Int, material: Material, primitiveType: Int
   ): Try[Geometry] =
     spongeType match
-      case "square" => Try(SpongeBySurface(level, material, primitiveType))
-      case "cube" => Try(SpongeByVolume(level, material, primitiveType))
-      case "tesseract" => Try(RotatedProjection(Tesseract(), currentRotProj, material, primitiveType))
+      case "square" => Try(SpongeBySurface(Vector3.Zero, 1f, level, material, primitiveType))
+      case "cube" => Try(SpongeByVolume(Vector3.Zero, 1f, level, material, primitiveType))
+      case "tesseract" => Try(RotatedProjection(Vector3.Zero, 1f, Tesseract(), currentRotProj.projection, currentRotProj.rotation, material, primitiveType))
       case "tesseract-sponge" => Try(RotatedProjection(
-        TesseractSponge(level), currentRotProj, material, primitiveType
+        Vector3.Zero, 1f, TesseractSponge(level), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
       ))
       case "tesseract-sponge-2" => Try(RotatedProjection(
-        TesseractSponge2(level), currentRotProj, material, primitiveType
+        Vector3.Zero, 1f, TesseractSponge2(level), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
       ))
       case _ => scala.util.Failure(IllegalArgumentException(s"Unknown sponge type: $spongeType"))

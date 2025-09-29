@@ -13,9 +13,10 @@ import menger.objects.Builder
 import menger.objects.Geometry
 
 case class RotatedProjection(
+  center: Vector3 = Vector3.Zero, scale: Float = 1f,
   object4D: Mesh4D, var projection: Projection, var rotation: Rotation = Rotation(),
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry with RectMesh with Observer:
+) extends Geometry(center, scale) with RectMesh with Observer:
 
   private var changed = true
   private var precomputedMesh: Model = uninitialized
@@ -34,7 +35,7 @@ case class RotatedProjection(
     precomputedMesh
   }
 
-  override def at(center: Vector3, scale: Float): List[ModelInstance] = ModelInstance(mesh) :: Nil
+  override def at(): List[ModelInstance] = ModelInstance(mesh) :: Nil
 
   override def handleEvent(event: RotationProjectionParameters): Unit =
     rotation += event.rotation
@@ -48,4 +49,4 @@ object RotatedProjection:
     object4D: Mesh4D, parameters: RotationProjectionParameters,
     material: Material, primitiveType: Int
   ): RotatedProjection =
-    RotatedProjection(object4D, parameters.projection, parameters.rotation, material, primitiveType)
+    RotatedProjection(Vector3.Zero, 1f, object4D, parameters.projection, parameters.rotation, material, primitiveType)

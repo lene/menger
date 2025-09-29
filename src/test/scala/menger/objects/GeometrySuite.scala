@@ -57,20 +57,20 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
   "calling at() on a sphere" should "store a model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     Sphere.numStoredModels should be(0)
-    Sphere().at(ORIGIN, 1)
+    Sphere(ORIGIN, 1).at()
     Sphere.numStoredModels should be(1)
 
   "calling at() on different spheres" should "store only one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     Sphere.numStoredModels should be(1)
-    Sphere().at(ORIGIN, 1)
-    Sphere().at(ORIGIN, 2)
+    Sphere(ORIGIN, 1).at()
+    Sphere(ORIGIN, 2).at()
     Sphere.numStoredModels should be(1)
 
   "calling at() on sphere with different parameters" should "store two models" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     Sphere.numStoredModels should be(1)
-    Sphere(divisions = 10).at(ORIGIN, 1)
+    Sphere(ORIGIN, 1, divisions = 10).at()
     Sphere.numStoredModels should be(2)
 
   "sphere toString" should "return class name" in:
@@ -78,14 +78,14 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "square" should "be one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    Square().at(ORIGIN, 1) should have size 1
+    Square(ORIGIN, 1).at() should have size 1
 
   it should "instantiate with material and primitiveType" taggedAs GdxTest in:
-    Square(Builder.WHITE_MATERIAL, GL20.GL_LINES).primitiveType should be (GL20.GL_LINES)
+    Square(Vector3.Zero, 1f, Builder.WHITE_MATERIAL, GL20.GL_LINES).primitiveType should be (GL20.GL_LINES)
 
   "cube" should "be one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    Cube().at(ORIGIN, 1) should have size 1
+    Cube(ORIGIN, 1).at() should have size 1
 
   it should "store one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
@@ -93,7 +93,7 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "different cube models" should "be stored separately" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    Cube(primitiveType = GL20.GL_LINES).at(ORIGIN, 1)
+    Cube(ORIGIN, 1, primitiveType = GL20.GL_LINES).at()
     Cube.numStoredModels should be(2)
 
   "cube toString" should "return class name" in:
@@ -101,7 +101,7 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "cube from squares" should "operate with six faces" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    CubeFromSquares().at(ORIGIN, 1) should have size 6
+    CubeFromSquares(ORIGIN, 1).at() should have size 6
 
   it should "store one square" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
@@ -109,36 +109,36 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "sponge level 0" should "be one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    SpongeByVolume(0).at(ORIGIN, 1) should have size 1
+    SpongeByVolume(ORIGIN, 1, 0).at() should have size 1
 
   "sponge level 1" should "have twenty times the size of level 0" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    val cubeSize = SpongeByVolume(0).at(ORIGIN, 1).size
-    SpongeByVolume(1).at(ORIGIN, 1) should have size 20 * cubeSize
+    val cubeSize = SpongeByVolume(ORIGIN, 1, 0).at().size
+    SpongeByVolume(ORIGIN, 1, 1).at() should have size 20 * cubeSize
 
   "sponge level 2" should "have 400 times the size of level 0" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    val cubeSize = SpongeByVolume(0).at(ORIGIN, 1).size
-    SpongeByVolume(2).at(ORIGIN, 1) should have size 20 * 20 * cubeSize
+    val cubeSize = SpongeByVolume(ORIGIN, 1, 0).at().size
+    SpongeByVolume(ORIGIN, 1, 2).at() should have size 20 * 20 * cubeSize
 
   "sponge by volume toString" should "return class name" in:
-    SpongeByVolume(0).toString should be("SpongeByVolume(level=0, 6 faces)")
+    SpongeByVolume(Vector3.Zero, 1f, 0).toString should be("SpongeByVolume(level=0, 6 faces)")
 
   "sponge by surface" should "have toString return class name" in:
     assume(loadingLWJGLSucceeds)
-    SpongeBySurface(0).toString should be("SpongeBySurface(level=0, 6 faces)")
+    SpongeBySurface(Vector3.Zero, 1f, 0).toString should be("SpongeBySurface(level=0, 6 faces)")
 
   it should "have at() returns 6 faces regardless of level" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    SpongeBySurface(0).at(ORIGIN, 1) should have size 6
-    SpongeBySurface(1).at(ORIGIN, 1) should have size 6
+    SpongeBySurface(ORIGIN, 1, 0).at() should have size 6
+    SpongeBySurface(ORIGIN, 1, 1).at() should have size 6
 
   it should "create mesh(es)" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    SpongeBySurface(1).mesh.meshes should not be empty
+    SpongeBySurface(Vector3.Zero, 1f, 1).mesh.meshes should not be empty
 
   "face of sponge by surface level 1" should "have 12 subfaces" in:
-    SpongeBySurface(1).faces should have size 12
+    SpongeBySurface(Vector3.Zero, 1f, 1).faces should have size 12
 
   "MengerEngine" should "instantiate with lines" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)

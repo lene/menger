@@ -9,23 +9,25 @@ import com.badlogic.gdx.math.Vector3
 
 
 class SpongeByVolume(
+  center: Vector3 = Vector3.Zero, scale: Float = 1f,
   level: Int, material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Cube(material, primitiveType):
+) extends Cube(center, scale, material, primitiveType):
   private val subSponge = if level > 1
-  then SpongeByVolume(level - 1, material, primitiveType)
-  else Cube(material, primitiveType)
+  then SpongeByVolume(Vector3.Zero, 1f, level - 1, material, primitiveType)
+  else Cube(Vector3.Zero, 1f, material, primitiveType)
 
-  override def at(center: Vector3, scale: Float): List[ModelInstance] =
-    if level <= 0 then super.at(center, scale)
+  override def at(): List[ModelInstance] =
+    if level <= 0 then super.at()
     else
       logTime("at", 10) {
         val shift = scale / 3f
         val subCubeList = for (
           xx <- -1 to 1; yy <- -1 to 1; zz <- -1 to 1 if abs(xx) + abs(yy) + abs(zz) > 1
-        ) 
-          yield subSponge.at(
-            Vector3(center.x + xx * shift, center.y + yy * shift, center.z + zz * shift), scale / 3f
-          )
+        )
+          yield SpongeByVolume(
+            Vector3(center.x + xx * shift, center.y + yy * shift, center.z + zz * shift), scale / 3f,
+            level - 1, material, primitiveType
+          ).at()
         
         subCubeList.flatten.toList
       }

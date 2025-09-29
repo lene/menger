@@ -26,7 +26,7 @@ with LazyLogging:
     val dispatcher = EventDispatcher()
     "tesseract".r.findFirstIn(spongeType).fold(dispatcher)(_ => dispatcher.withObserver(sponge))
 
-  protected def drawables: List[ModelInstance] = sponge.at(Vector3(0, 0, 0), 1)
+  protected def drawables: List[ModelInstance] = sponge.at()
   protected def gdxResources: GDXResources = GDXResources(Some(eventDispatcher))
 
   override def create(): Unit =

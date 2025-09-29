@@ -10,11 +10,12 @@ import com.badlogic.gdx.math.Vector3
 
 val SPHERE_DIVISIONS = 32
 case class Sphere(
+  center: Vector3 = Vector3.Zero, scale: Float = 1f,
   divisions: Int = SPHERE_DIVISIONS, material: Material = Builder.WHITE_MATERIAL,
   primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry:
+) extends Geometry(center, scale):
 
-  def at(center: Vector3, scale: Float): List[ModelInstance] =
+  def at(): List[ModelInstance] =
     val instance = new ModelInstance(Sphere.model(divisions, material, primitiveType))
     instance.transform.setToTranslationAndScaling(
       center, Vector3(scale, scale, scale)

@@ -8,8 +8,8 @@ import com.badlogic.gdx.math.Vector3
 import menger.RotationProjectionParameters
 import menger.input.Observer
 
-trait Geometry extends Observer:
-  def at(center: Vector3, scale: Float = 1): List[ModelInstance]
+trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f) extends Observer:
+  def at(): List[ModelInstance]
   override def toString: String = getClass.getSimpleName
   override def handleEvent(event: RotationProjectionParameters): Unit = {}
   

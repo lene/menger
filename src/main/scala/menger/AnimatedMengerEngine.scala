@@ -18,7 +18,7 @@ class AnimatedMengerEngine(
 
   protected def drawables: List[ModelInstance] =
     generateObject(spongeType, spongeLevel, material, primitiveType) match
-      case scala.util.Success(geometry) => geometry.at(Vector3(0, 0, 0), 1)
+      case scala.util.Success(geometry) => geometry.at()
       case scala.util.Failure(exception) =>
         Gdx.app.error(s"${getClass.getSimpleName}", s"Failed to create sponge type '$spongeType': ${exception.getMessage}")
         sys.exit(1)
