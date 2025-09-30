@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import menger.objects.Builder
+import menger.objects.Composite
 import menger.objects.Geometry
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
@@ -44,4 +45,6 @@ abstract class MengerEngine(
       case "tesseract-sponge-2" => Try(RotatedProjection(
         Vector3.Zero, 1f, TesseractSponge2(level), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
       ))
+      case composite if composite.startsWith("composite[") =>
+        Composite.parseComposite(composite, level, material, primitiveType, generateObject)
       case _ => scala.util.Failure(IllegalArgumentException(s"Unknown sponge type: $spongeType"))

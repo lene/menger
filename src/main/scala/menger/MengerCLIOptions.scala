@@ -8,10 +8,14 @@ import org.rogach.scallop.*
 
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:
   version("menger v0.2.8 (c) 2023-25, lene.preuss@gmail.com")
+
+  private def validateSpongeType(spongeType: String): Boolean =
+    menger.objects.Composite.isValidSpongeType(spongeType)
+
   val timeout: ScallopOption[Float] = opt[Float](required = false, default = Some(0))
-  val spongeType: ScallopOption[String] = choice(
-    choices = List("cube", "square", "tesseract", "tesseract-sponge", "tesseract-sponge-2"), 
-    required = false, default = Some("square")
+  val spongeType: ScallopOption[String] = opt[String](
+    required = false, default = Some("square"),
+    validate = validateSpongeType
   )
   val projectionScreenW: ScallopOption[Float] = opt[Float](
     required = false, default = Some(Const.defaultScreenW), validate = _ > 0
