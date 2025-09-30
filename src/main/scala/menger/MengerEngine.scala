@@ -17,8 +17,11 @@ class MengerEngine(
   private val material = Builder.WHITE_MATERIAL
   private lazy val primitiveType = if lines then GL20.GL_LINES else GL20.GL_TRIANGLES
   private lazy val sponge: Geometry = generateObject(spongeType, spongeLevel, material, primitiveType)
-  private lazy val eventDispatcher = EventDispatcher()
-  "tesseract".r.findFirstIn(spongeType).foreach(_ => eventDispatcher.addObserver(sponge))
+  private lazy val eventDispatcher = {
+    val dispatcher = EventDispatcher()
+    "tesseract".r.findFirstIn(spongeType).foreach(_ => dispatcher.addObserver(sponge))
+    dispatcher
+  }
   private def drawables: List[ModelInstance] = sponge.at(Vector3(0, 0, 0), 1)
   private lazy val gdxResources = GDXResources(eventDispatcher)
 
