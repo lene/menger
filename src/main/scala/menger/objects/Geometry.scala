@@ -9,7 +9,7 @@ import menger.RotationProjectionParameters
 import menger.input.Observer
 
 trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f) extends Observer:
-  def at(): List[ModelInstance]
+  def getModel: List[ModelInstance]
   override def toString: String = getClass.getSimpleName
   override def handleEvent(event: RotationProjectionParameters): Unit = {}
   

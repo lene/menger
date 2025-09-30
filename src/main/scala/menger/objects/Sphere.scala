@@ -15,7 +15,7 @@ case class Sphere(
   primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Geometry(center, scale):
 
-  def at(): List[ModelInstance] =
+  def getModel: List[ModelInstance] =
     val instance = new ModelInstance(Sphere.model(divisions, material, primitiveType))
     instance.transform.setToTranslationAndScaling(
       center, Vector3(scale, scale, scale)

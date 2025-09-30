@@ -10,9 +10,9 @@ class Composite(
   geometries: List[Geometry]
 ) extends Geometry(center, scale):
 
-  override def at(): List[ModelInstance] =
+  override def getModel: List[ModelInstance] =
     logTime("at()") {
-      geometries.flatMap(_.at())
+      geometries.flatMap(_.getModel)
     }
 
   override def handleEvent(event: RotationProjectionParameters): Unit =

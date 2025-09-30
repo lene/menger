@@ -57,20 +57,20 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
   "calling at() on a sphere" should "store a model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     Sphere.numStoredModels should be(0)
-    Sphere(ORIGIN, 1).at()
+    Sphere(ORIGIN, 1).getModel
     Sphere.numStoredModels should be(1)
 
   "calling at() on different spheres" should "store only one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     Sphere.numStoredModels should be(1)
-    Sphere(ORIGIN, 1).at()
-    Sphere(ORIGIN, 2).at()
+    Sphere(ORIGIN, 1).getModel
+    Sphere(ORIGIN, 2).getModel
     Sphere.numStoredModels should be(1)
 
   "calling at() on sphere with different parameters" should "store two models" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     Sphere.numStoredModels should be(1)
-    Sphere(ORIGIN, 1, divisions = 10).at()
+    Sphere(ORIGIN, 1, divisions = 10).getModel
     Sphere.numStoredModels should be(2)
 
   "sphere toString" should "return class name" in:
@@ -78,14 +78,14 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "square" should "be one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    Square(ORIGIN, 1).at() should have size 1
+    Square(ORIGIN, 1).getModel should have size 1
 
   it should "instantiate with material and primitiveType" taggedAs GdxTest in:
     Square(Vector3.Zero, 1f, Builder.WHITE_MATERIAL, GL20.GL_LINES).primitiveType should be (GL20.GL_LINES)
 
   "cube" should "be one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    Cube(ORIGIN, 1).at() should have size 1
+    Cube(ORIGIN, 1).getModel should have size 1
 
   it should "store one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
@@ -93,7 +93,7 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "different cube models" should "be stored separately" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    Cube(ORIGIN, 1, primitiveType = GL20.GL_LINES).at()
+    Cube(ORIGIN, 1, primitiveType = GL20.GL_LINES).getModel
     Cube.numStoredModels should be(2)
 
   "cube toString" should "return class name" in:
@@ -101,7 +101,7 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "cube from squares" should "operate with six faces" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    CubeFromSquares(ORIGIN, 1).at() should have size 6
+    CubeFromSquares(ORIGIN, 1).getModel should have size 6
 
   it should "store one square" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
@@ -109,17 +109,17 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "sponge level 0" should "be one model" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    SpongeByVolume(ORIGIN, 1, 0).at() should have size 1
+    SpongeByVolume(ORIGIN, 1, 0).getModel should have size 1
 
   "sponge level 1" should "have twenty times the size of level 0" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    val cubeSize = SpongeByVolume(ORIGIN, 1, 0).at().size
-    SpongeByVolume(ORIGIN, 1, 1).at() should have size 20 * cubeSize
+    val cubeSize = SpongeByVolume(ORIGIN, 1, 0).getModel.size
+    SpongeByVolume(ORIGIN, 1, 1).getModel should have size 20 * cubeSize
 
   "sponge level 2" should "have 400 times the size of level 0" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    val cubeSize = SpongeByVolume(ORIGIN, 1, 0).at().size
-    SpongeByVolume(ORIGIN, 1, 2).at() should have size 20 * 20 * cubeSize
+    val cubeSize = SpongeByVolume(ORIGIN, 1, 0).getModel.size
+    SpongeByVolume(ORIGIN, 1, 2).getModel should have size 20 * 20 * cubeSize
 
   "sponge by volume toString" should "return class name" in:
     SpongeByVolume(Vector3.Zero, 1f, 0).toString should be("SpongeByVolume(level=0, 6 faces)")
@@ -130,8 +130,8 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   it should "have at() returns 6 faces regardless of level" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    SpongeBySurface(ORIGIN, 1, 0).at() should have size 6
-    SpongeBySurface(ORIGIN, 1, 1).at() should have size 6
+    SpongeBySurface(ORIGIN, 1, 0).getModel should have size 6
+    SpongeBySurface(ORIGIN, 1, 1).getModel should have size 6
 
   it should "create mesh(es)" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
@@ -268,21 +268,21 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
   "Composite with empty geometries list" should "return empty model list" taggedAs GdxTest in :
     assume(loadingLWJGLSucceeds)
     val composite = Composite(geometries = List.empty)
-    composite.at() should be(empty)
+    composite.getModel should be(empty)
   
   "Composite with single geometry" should "return same models as the geometry" taggedAs GdxTest in :
     assume(loadingLWJGLSucceeds)
     val sphere = Sphere(Vector3.Zero, 1f)
     val composite = Composite(geometries = List(sphere))
-    composite.at() should have size sphere.at().size
+    composite.getModel should have size sphere.getModel.size
   
   "Composite with multiple geometries" should "combine all models" taggedAs GdxTest in :
     assume(loadingLWJGLSucceeds)
     val sphere = Sphere(Vector3.Zero, 1f)
     val cube = Cube(Vector3.Zero, 1f)
     val composite = Composite(geometries = List(sphere, cube))
-    val expectedSize = sphere.at().size + cube.at().size
-    composite.at() should have size expectedSize
+    val expectedSize = sphere.getModel.size + cube.getModel.size
+    composite.getModel should have size expectedSize
 
   "Composite with nested composites" should "work correctly" taggedAs GdxTest in :
     assume(loadingLWJGLSucceeds)
@@ -292,5 +292,5 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
     val square = Square(Vector3.Zero, 1f)
     val outerComposite = Composite(geometries = List(innerComposite, square))
 
-    val expectedSize = sphere.at().size + cube.at().size + square.at().size
-    outerComposite.at() should have size expectedSize
+    val expectedSize = sphere.getModel.size + cube.getModel.size + square.getModel.size
+    outerComposite.getModel should have size expectedSize

@@ -13,7 +13,7 @@ case class Cube(
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Geometry(center, scale):
 
-  def at(): List[ModelInstance] =
+  def getModel: List[ModelInstance] =
     val instance = new ModelInstance(Cube.model(material, primitiveType))
     instance.transform.setToTranslationAndScaling(center, Vector3(scale, scale, scale))
     instance :: Nil
@@ -35,7 +35,7 @@ class CubeFromSquares(
   center: Vector3 = Vector3.Zero, scale: Float = 1f,
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Geometry(center, scale):
-  def at(): List[ModelInstance] =
+  def getModel: List[ModelInstance] =
     val faceModel = CubeFromSquares.face(material, primitiveType).model
     val facePositions = List(
       (Vector3(center.x, center.y - 0.5f * scale, center.z), Vector3(1, 0, 0), 90f),

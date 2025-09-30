@@ -16,8 +16,8 @@ class SpongeByVolume(
   then SpongeByVolume(Vector3.Zero, 1f, level - 1, material, primitiveType)
   else Cube(Vector3.Zero, 1f, material, primitiveType)
 
-  override def at(): List[ModelInstance] =
-    if level <= 0 then super.at()
+  override def getModel: List[ModelInstance] =
+    if level <= 0 then super.getModel
     else
       logTime("at", 10) {
         val shift = scale / 3f
@@ -27,7 +27,7 @@ class SpongeByVolume(
           yield SpongeByVolume(
             Vector3(center.x + xx * shift, center.y + yy * shift, center.z + zz * shift), scale / 3f,
             level - 1, material, primitiveType
-          ).at()
+          ).getModel
         
         subCubeList.flatten.toList
       }

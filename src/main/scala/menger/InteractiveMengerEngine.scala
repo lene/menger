@@ -24,7 +24,7 @@ with LazyLogging:
       sys.exit(1)
   private lazy val eventDispatcher = dispatcherWithRegisteredSponge
 
-  protected def drawables: List[ModelInstance] = sponge.at()
+  protected def drawables: List[ModelInstance] = sponge.getModel
   protected lazy val gdxResources: GDXResources = GDXResources(Some(eventDispatcher))
 
   override def create(): Unit =

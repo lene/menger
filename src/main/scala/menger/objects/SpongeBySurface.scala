@@ -17,7 +17,7 @@ class SpongeBySurface(
 ) extends Geometry(center, scale):
   require(level >= 0, "Level must be non-negative")
 
-  override def at(): List[ModelInstance] = logTime("at", 5) {
+  override def getModel: List[ModelInstance] = logTime("at", 5) {
     val facingPlusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 90)
     val facingMinusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, -90)
     val facingPlusY = transformed(ModelInstance(mesh), scale, center, 1, 0, 0, 90)

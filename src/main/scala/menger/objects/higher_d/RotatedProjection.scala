@@ -35,7 +35,7 @@ case class RotatedProjection(
     precomputedMesh
   }
 
-  override def at(): List[ModelInstance] = ModelInstance(mesh) :: Nil
+  override def getModel: List[ModelInstance] = ModelInstance(mesh) :: Nil
 
   override def handleEvent(event: RotationProjectionParameters): Unit =
     rotation += event.rotation

@@ -11,7 +11,7 @@ case class Square(
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Geometry(center, scale):
 
-  def at(): List[ModelInstance] =
+  def getModel: List[ModelInstance] =
     at(Vector3(1, 0, 0), 0)
 
   def at(axis: Vector3, angle: Float): List[ModelInstance] =
