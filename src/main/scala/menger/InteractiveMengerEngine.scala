@@ -22,14 +22,10 @@ with LazyLogging:
     case scala.util.Failure(exception) =>
       logger.error(s"Failed to create sponge type '$spongeType': ${exception.getMessage}")
       sys.exit(1)
-  private lazy val eventDispatcher = {
-    val dispatcher = EventDispatcher()
-    "tesseract".r.findFirstIn(spongeType).foreach(_ => dispatcher.addObserver(sponge))
-    dispatcher
-  }
+  private lazy val eventDispatcher = dispatcherWithRegisteredSponge
 
   protected def drawables: List[ModelInstance] = sponge.at()
-  protected def gdxResources: GDXResources = GDXResources(Some(eventDispatcher))
+  protected lazy val gdxResources: GDXResources = GDXResources(Some(eventDispatcher))
 
   override def create(): Unit =
     Gdx.app.log(s"${getClass.getSimpleName}.create()", s"$sponge color=$color")
@@ -53,3 +49,7 @@ with LazyLogging:
     logger.info(s"Starting timer for $timeout seconds")
     Timer.schedule(() => Gdx.app.exit(), timeout, 0)
 
+  private def dispatcherWithRegisteredSponge =
+    val dispatcher = EventDispatcher()
+    "tesseract".r.findFirstIn(spongeType).foreach(_ => dispatcher.addObserver(sponge))
+    dispatcher
