@@ -21,6 +21,4 @@ trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f) extends Observ
     Gdx.app.log(s"${getClass.getSimpleName}.$msg", s"${duration}ms")
     result
 
-  def composite(other: Geometry): Geometry =
-    ???
     

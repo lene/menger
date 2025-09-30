@@ -264,3 +264,33 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
     inputController.keyDown(key) should be (false)
     inputController.keyUp(key)
   }
+
+  "Composite with empty geometries list" should "return empty model list" taggedAs GdxTest in :
+    assume(loadingLWJGLSucceeds)
+    val composite = Composite(geometries = List.empty)
+    composite.at() should be(empty)
+  
+  "Composite with single geometry" should "return same models as the geometry" taggedAs GdxTest in :
+    assume(loadingLWJGLSucceeds)
+    val sphere = Sphere(Vector3.Zero, 1f)
+    val composite = Composite(geometries = List(sphere))
+    composite.at() should have size sphere.at().size
+  
+  "Composite with multiple geometries" should "combine all models" taggedAs GdxTest in :
+    assume(loadingLWJGLSucceeds)
+    val sphere = Sphere(Vector3.Zero, 1f)
+    val cube = Cube(Vector3.Zero, 1f)
+    val composite = Composite(geometries = List(sphere, cube))
+    val expectedSize = sphere.at().size + cube.at().size
+    composite.at() should have size expectedSize
+
+  "Composite with nested composites" should "work correctly" taggedAs GdxTest in :
+    assume(loadingLWJGLSucceeds)
+    val sphere = Sphere(Vector3.Zero, 1f)
+    val cube = Cube(Vector3.Zero, 1f)
+    val innerComposite = Composite(geometries = List(sphere, cube))
+    val square = Square(Vector3.Zero, 1f)
+    val outerComposite = Composite(geometries = List(innerComposite, square))
+
+    val expectedSize = sphere.at().size + cube.at().size + square.at().size
+    outerComposite.at() should have size expectedSize
