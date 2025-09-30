@@ -1,7 +1,9 @@
 package menger.objects
 
 import scala.util.Try
-import com.badlogic.gdx.graphics.g3d.{Material, ModelInstance}
+
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import menger.RotationProjectionParameters
 
