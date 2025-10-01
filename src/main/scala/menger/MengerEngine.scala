@@ -50,5 +50,5 @@ abstract class MengerEngine(
         Vector3.Zero, 1f, TesseractSponge2(level), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
       ))
       case composite if composite.startsWith("composite[") =>
-        Composite.parseComposite(composite, level, material, primitiveType, generateObject)
+        Composite.parseCompositeFromCLIOption(composite, level, material, primitiveType, generateObject)
       case _ => scala.util.Failure(IllegalArgumentException(s"Unknown sponge type: $spongeType"))

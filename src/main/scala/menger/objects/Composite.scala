@@ -25,53 +25,15 @@ class Composite(
     s"Composite(${geometries.map(_.toString).mkString(", ")})"
 
 object Composite:
-  private val basicSpongeTypes = List("cube", "square", "square-sponge", "cube-sponge", "tesseract", "tesseract-sponge", "tesseract-sponge-2")
-  private val compositeValidComponents = List("cube", "square") // Only basic 3D shapes for now
   private val compositePattern = """composite\[(.+)]""".r
 
-  def isValidSpongeType(spongeType: String): Boolean =
-    if basicSpongeTypes.contains(spongeType) then true
-    else spongeType match
-      case compositePattern(content) =>
-        val components = parseComponentsFromContent(content)
-        components.nonEmpty && components.forall(isValidCompositeComponent)
-      case _ => false
-
-  private def isValidCompositeComponent(spongeType: String): Boolean =
-    isValidType(spongeType, compositeValidComponents, isValidCompositeComponent)
-
-  private def isValidType(
-    spongeType: String,
-    allowedTypes: List[String],
-    recursiveValidator: String => Boolean
-  ): Boolean =
-    if allowedTypes.contains(spongeType) then true
-    else spongeType match
-      case compositePattern(content) =>
-        val components = parseComponentsFromContent(content)
-        components.nonEmpty && components.forall(recursiveValidator)
-      case _ => false
-
-  private def parseComponentsFromContent(content: String): List[String] =
-    def parse(chars: List[Char], depth: Int, current: String, acc: List[String]): List[String] =
-      chars match
-        case Nil => if current.nonEmpty then current :: acc else acc
-        case '[' :: rest => parse(rest, depth + 1, current + '[', acc)
-        case ']' :: rest => parse(rest, depth - 1, current + ']', acc)
-        case ',' :: rest if depth == 0 =>
-          val newAcc = if current.nonEmpty then current :: acc else acc
-          parse(rest, depth, "", newAcc)
-        case char :: rest => parse(rest, depth, current + char, acc)
-
-    parse(content.toList, 0, "", Nil).reverse
-
-  def parseComposite(
+  def parseCompositeFromCLIOption(
     spongeType: String, level: Int, material: Material, primitiveType: Int,
     generateObject: (String, Int, Material, Int) => Try[Geometry]
   ): Try[Geometry] =
     spongeType match
       case compositePattern(content) =>
-        val componentTypes = parseComponentsFromContent(content)
+        val componentTypes = content.split(",").toList
         val geometries = componentTypes.map(componentType =>
           generateObject(componentType, level, material, primitiveType)
         )

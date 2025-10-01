@@ -10,7 +10,21 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   version("menger v0.2.8 (c) 2023-25, lene.preuss@gmail.com")
 
   private def validateSpongeType(spongeType: String): Boolean =
-    menger.objects.Composite.isValidSpongeType(spongeType)
+    isValidSpongeType(spongeType)
+
+  private val basicSpongeTypes = List("cube", "square", "square-sponge", "cube-sponge", "tesseract", "tesseract-sponge", "tesseract-sponge-2")
+  private val compositePattern = """composite\[(.+)]""".r
+
+  private def isValidSpongeType(spongeType: String): Boolean =
+    if basicSpongeTypes.contains(spongeType) then true
+    else spongeType match
+      case compositePattern(content) =>
+        // Only allow cube and square in composites (no nesting, no whitespace)
+        val components = content.split(",").toSet
+        val allowed = Set("cube", "square")
+        components.nonEmpty && components.subsetOf(allowed)
+      case _ => false
+
 
   val timeout: ScallopOption[Float] = opt[Float](required = false, default = Some(0))
   val spongeType: ScallopOption[String] = opt[String](
