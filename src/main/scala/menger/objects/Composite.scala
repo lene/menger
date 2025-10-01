@@ -25,18 +25,34 @@ class Composite(
     s"Composite(${geometries.map(_.toString).mkString(", ")})"
 
 object Composite:
-  private val basicSpongeTypes = List("cube", "square", "tesseract", "tesseract-sponge", "tesseract-sponge-2")
-  private val compositePattern = """composite\[(.+)\]""".r
+  private val basicSpongeTypes = List("cube", "square", "square-sponge", "cube-sponge", "tesseract", "tesseract-sponge", "tesseract-sponge-2")
+  private val compositeValidComponents = List("cube", "square") // Only basic 3D shapes for now
+  private val compositePattern = """composite\[(.+)]""".r
 
   def isValidSpongeType(spongeType: String): Boolean =
     if basicSpongeTypes.contains(spongeType) then true
     else spongeType match
       case compositePattern(content) =>
-        val components = parseComponents(content)
-        components.nonEmpty && components.forall(isValidSpongeType)
+        val components = parseComponentsFromContent(content)
+        components.nonEmpty && components.forall(isValidCompositeComponent)
       case _ => false
 
-  private def parseComponents(content: String): List[String] =
+  private def isValidCompositeComponent(spongeType: String): Boolean =
+    isValidType(spongeType, compositeValidComponents, isValidCompositeComponent)
+
+  private def isValidType(
+    spongeType: String,
+    allowedTypes: List[String],
+    recursiveValidator: String => Boolean
+  ): Boolean =
+    if allowedTypes.contains(spongeType) then true
+    else spongeType match
+      case compositePattern(content) =>
+        val components = parseComponentsFromContent(content)
+        components.nonEmpty && components.forall(recursiveValidator)
+      case _ => false
+
+  private def parseComponentsFromContent(content: String): List[String] =
     def parse(chars: List[Char], depth: Int, current: String, acc: List[String]): List[String] =
       chars match
         case Nil => if current.nonEmpty then current :: acc else acc
@@ -55,7 +71,7 @@ object Composite:
   ): Try[Geometry] =
     spongeType match
       case compositePattern(content) =>
-        val componentTypes = parseComponents(content)
+        val componentTypes = parseComponentsFromContent(content)
         val geometries = componentTypes.map(componentType =>
           generateObject(componentType, level, material, primitiveType)
         )

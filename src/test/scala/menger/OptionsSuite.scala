@@ -24,12 +24,35 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
       val options = SafeMengerCLIOptions(Seq("--sponge-type", spongeType))
       options.spongeType() shouldEqual spongeType
 
+  it should "parse new sponge types square-sponge and cube-sponge" in:
+    for spongeType <- Seq("square-sponge", "cube-sponge") do
+      val options = SafeMengerCLIOptions(Seq("--sponge-type", spongeType))
+      options.spongeType() shouldEqual spongeType
+
+  it should "parse simple composite syntax" in:
+    for composite <- Seq("composite[cube,square]", "composite[cube]", "composite[square]") do
+      val options = SafeMengerCLIOptions(Seq("--sponge-type", composite))
+      options.spongeType() shouldEqual composite
+
+  it should "parse nested composite syntax" in:
+    for composite <- Seq("composite[composite[cube,square],cube]", "composite[cube,composite[square]]") do
+      val options = SafeMengerCLIOptions(Seq("--sponge-type", composite))
+      options.spongeType() shouldEqual composite
+
   it should "default to square" in:
     val options = SafeMengerCLIOptions(Seq[String]())
     options.spongeType() shouldEqual "square"
 
   it should "throw ScallopException if invalid" in:
     an [ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--sponge-type", "invalid"))
+
+  it should "throw ScallopException for composite with 4D shapes" in:
+    for composite <- Seq("composite[cube,tesseract]", "composite[tesseract]", "composite[composite[cube,tesseract],cube]") do
+      an [ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--sponge-type", composite))
+
+  it should "throw ScallopException for malformed composite syntax" in:
+    for malformed <- Seq("composite[cube", "compositecube,square]", "composite", "composite[]") do
+      an [ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--sponge-type", malformed))
 
   "--antialias-samples" should "set antialias samples" in:
     val options = SafeMengerCLIOptions(Seq("--antialias-samples", "1"))

@@ -10,9 +10,11 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import menger.objects.Builder
 import menger.objects.Composite
+import menger.objects.Cube
 import menger.objects.Geometry
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
+import menger.objects.Square
 import menger.objects.higher_d.RotatedProjection
 import menger.objects.higher_d.Tesseract
 import menger.objects.higher_d.TesseractSponge
@@ -36,8 +38,10 @@ abstract class MengerEngine(
     spongeType: String, level: Int, material: Material, primitiveType: Int
   ): Try[Geometry] =
     spongeType match
-      case "square" => Try(SpongeBySurface(Vector3.Zero, 1f, level, material, primitiveType))
-      case "cube" => Try(SpongeByVolume(Vector3.Zero, 1f, level, material, primitiveType))
+      case "square" => Try(Square(Vector3.Zero, 1f, material, primitiveType))
+      case "cube" => Try(Cube(Vector3.Zero, 1f, material, primitiveType))
+      case "square-sponge" => Try(SpongeBySurface(Vector3.Zero, 1f, level, material, primitiveType))
+      case "cube-sponge" => Try(SpongeByVolume(Vector3.Zero, 1f, level, material, primitiveType))
       case "tesseract" => Try(RotatedProjection(Vector3.Zero, 1f, Tesseract(), currentRotProj.projection, currentRotProj.rotation, material, primitiveType))
       case "tesseract-sponge" => Try(RotatedProjection(
         Vector3.Zero, 1f, TesseractSponge(level), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
