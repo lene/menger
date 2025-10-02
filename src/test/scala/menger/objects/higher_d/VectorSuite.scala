@@ -158,3 +158,36 @@ class VectorSuite extends AnyFlatSpec with Matchers:
       val otherIndex = (i + 1) % 3
       Vector.unit[3](i) * Vector.unit[3](otherIndex) should be (0f)
     }
+
+  "float2String" should "format correctly in the default case (2 digits)" in:
+    menger.objects.float2string(1f) should be ("1")
+    menger.objects.float2string(1.1f) should be ("1.10")
+    menger.objects.float2string(1.123f) should be ("1.12")
+    menger.objects.float2string(1.126f) should be ("1.13")
+    menger.objects.float2string(1.0f) should be ("1")
+
+  it should "work the same when 2 digits are explicitly specified" in:
+    menger.objects.float2String(2)(1f) should be ("1")
+    menger.objects.float2String(2)(1.1f) should be ("1.10")
+    menger.objects.float2String(2)(1.123f) should be ("1.12")
+    menger.objects.float2String(2)(1.126f) should be ("1.13")
+    menger.objects.float2String(2)(1.0f) should be ("1")
+
+  it should "work correctly when 0 digits are specified" in:
+    menger.objects.float2String(0)(1f) should be ("1")
+    menger.objects.float2String(0)(1.1f) should be ("1")
+    menger.objects.float2String(0)(1.5f) should be ("2")
+    menger.objects.float2String(0)(1.9f) should be ("2")
+
+  it should "work correctly when 3 digits are specified" in:
+    menger.objects.float2String(3)(1f) should be ("1")
+    menger.objects.float2String(3)(1.1f) should be ("1.100")
+    menger.objects.float2String(3)(1.1234f) should be ("1.123")
+    menger.objects.float2String(3)(1.1236f) should be ("1.124") // 1.1235 fails due to FP precision
+    menger.objects.float2String(3)(1.9999f) should be ("2.000")
+
+  it should "work correctly with negative numbers" in:
+    menger.objects.float2String(2)(-1f) should be ("-1")
+    menger.objects.float2String(2)(-1.1f) should be ("-1.10")
+    menger.objects.float2String(2)(-1.123f) should be ("-1.12")
+    menger.objects.float2String(2)(-1.126f) should be ("-1.13")

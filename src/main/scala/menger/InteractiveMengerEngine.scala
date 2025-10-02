@@ -12,7 +12,7 @@ import menger.objects.Geometry
 
 
 class InteractiveMengerEngine(
-  spongeType: String = "square", spongeLevel: Int = 0,
+  spongeType: String = "square", spongeLevel: Float = 0.0f,
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
   lines: Boolean = false, color: Color = Color.WHITE, timeout: Float = 0
 ) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color)

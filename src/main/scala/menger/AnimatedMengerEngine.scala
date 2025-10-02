@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 
 class AnimatedMengerEngine(
-  spongeType: String, spongeLevel: Int,
+  spongeType: String, spongeLevel: Float,
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
   lines: Boolean, color: Color, val animationSpecifications: AnimationSpecifications,
   val saveName: Option[String]

@@ -28,8 +28,8 @@ object Composite:
   private val compositePattern = """composite\[(.+)]""".r
 
   def parseCompositeFromCLIOption(
-    spongeType: String, level: Int, material: Material, primitiveType: Int,
-    generateObject: (String, Int, Material, Int) => Try[Geometry]
+    spongeType: String, level: Float, material: Material, primitiveType: Int,
+    generateObject: (String, Float, Material, Int) => Try[Geometry]
   ): Try[Geometry] =
     spongeType match
       case compositePattern(content) =>

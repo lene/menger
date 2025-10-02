@@ -71,5 +71,12 @@ case object Vector:
   val W: Vector[4] = unit[4](3)
 
 
-def float2string(f: Float): String = 
-  if (f - f.toInt).abs > Const.epsilon then f"$f% .2f" else s"${f.toInt}"
+def float2string(f: Float): String = float2String(2)(f)
+
+def float2String(digits: Int)(f: Float): String =
+  //if (f - f.toInt).abs > Const.epsilon then f"${f}%.${digits}f" else s"${f.toInt}"
+  if ((f - f.toInt).abs > Const.epsilon)
+    String.format(s"%.${digits}f", f.asInstanceOf[AnyRef])
+  else
+    s"${f.toInt}"
+
