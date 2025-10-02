@@ -46,7 +46,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val rotXW: ScallopOption[Float] = degreeOpt
   val rotYW: ScallopOption[Float] = degreeOpt
   val rotZW: ScallopOption[Float] = degreeOpt
-  val level: ScallopOption[Int] = opt[Int](required = false, default = Some(1), validate = _ >= 0)
+  val level: ScallopOption[Float] = opt[Float](required = false, default = Some(1.0f), validate = _ >= 0)
   val lines: ScallopOption[Boolean] = opt[Boolean](required = false, default = Some(false))
   val color: ScallopOption[Color] = opt[Color](required = false, default = Some(Color.LIGHT_GRAY))(
     using colorConverter

@@ -121,6 +121,28 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
     val cubeSize = SpongeByVolume(ORIGIN, 1, 0).getModel.size
     SpongeByVolume(ORIGIN, 1, 2).getModel should have size 20 * 20 * cubeSize
 
+  "sponge level 1.5" should "instantiate" in:
+    SpongeByVolume(ORIGIN, 1, 1.5f)
+
+  it should "have a transparentSponge" in:
+    val sponge = SpongeByVolume(ORIGIN, 1, 1.5f)
+    sponge.transparentSponge should not be empty
+
+  it should "have a nextLevelSponge" in:
+    val sponge = SpongeByVolume(ORIGIN, 1, 1.5f)
+    sponge.nextLevelSponge should not be empty
+
+  it should "generate a model" taggedAs GdxTest in:
+    assume(loadingLWJGLSucceeds)
+    SpongeByVolume(ORIGIN, 1, 1.5f).getModel should not be empty
+
+  it should "generate a model with elements of level 1 and level 2 sponge" taggedAs GdxTest in:
+    assume(loadingLWJGLSucceeds)
+    val l1SpongeSize = SpongeByVolume(ORIGIN, 1, 1).getModel.size
+    val l2SpongeSize = SpongeByVolume(ORIGIN, 1, 2).getModel.size
+    val totalExpectedSize = l1SpongeSize + l2SpongeSize
+    SpongeByVolume(ORIGIN, 1, 1.5f).getModel should have size totalExpectedSize
+
   "sponge by volume toString" should "return class name" in:
     SpongeByVolume(Vector3.Zero, 1f, 0).toString should be("SpongeByVolume(level=0, 6 faces)")
 

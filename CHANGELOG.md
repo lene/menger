@@ -8,6 +8,8 @@
 ### Fixed
 - Path traversal vulnerability in screenshot filename handling with comprehensive test coverage
 - Improved timing precision by replacing System.currentTimeMillis with System.nanoTime
+- Made getIntegerModel a lazy val to prevent repeated sponge instantiation in render loop
+- Corrected alpha calculation for fractional level sponges to properly transition from full opacity to transparency
 
 ### Upgraded
 - Updated dependencies: scala-logging 3.9.6, sbt-native-packager 1.11.3, sbt-scoverage 2.3.1, sbt-jupiter-interface 0.11.3

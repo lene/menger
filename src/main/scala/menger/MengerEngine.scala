@@ -21,7 +21,7 @@ import menger.objects.higher_d.TesseractSponge
 import menger.objects.higher_d.TesseractSponge2
 
 abstract class MengerEngine(
-  val spongeType: String, val spongeLevel: Int,
+  val spongeType: String, val spongeLevel: Float,
   val rotationProjectionParameters: RotationProjectionParameters, val lines: Boolean, val color: Color
 ) extends Game:
   protected val material: Material = Builder.material(color)
@@ -35,20 +35,26 @@ abstract class MengerEngine(
   def currentRotProj: RotationProjectionParameters = rotationProjectionParameters
 
   protected def generateObject(
-    spongeType: String, level: Int, material: Material, primitiveType: Int
-  ): Try[Geometry] =
+    spongeType: String, level: Float, material: Material, primitiveType: Int
+  ): Try[Geometry] = {
+    MengerEngine.count += 1
+    println(s"Generating object #${MengerEngine.count}: type='$spongeType', level=$level")
     spongeType match
       case "square" => Try(Square(Vector3.Zero, 1f, material, primitiveType))
       case "cube" => Try(Cube(Vector3.Zero, 1f, material, primitiveType))
-      case "square-sponge" => Try(SpongeBySurface(Vector3.Zero, 1f, level, material, primitiveType))
+      case "square-sponge" => Try(SpongeBySurface(Vector3.Zero, 1f, level.toInt, material, primitiveType))
       case "cube-sponge" => Try(SpongeByVolume(Vector3.Zero, 1f, level, material, primitiveType))
       case "tesseract" => Try(RotatedProjection(Vector3.Zero, 1f, Tesseract(), currentRotProj.projection, currentRotProj.rotation, material, primitiveType))
       case "tesseract-sponge" => Try(RotatedProjection(
-        Vector3.Zero, 1f, TesseractSponge(level), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
+        Vector3.Zero, 1f, TesseractSponge(level.toInt), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
       ))
       case "tesseract-sponge-2" => Try(RotatedProjection(
-        Vector3.Zero, 1f, TesseractSponge2(level), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
+        Vector3.Zero, 1f, TesseractSponge2(level.toInt), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
       ))
       case composite if composite.startsWith("composite[") =>
         Composite.parseCompositeFromCLIOption(composite, level, material, primitiveType, generateObject)
       case _ => scala.util.Failure(IllegalArgumentException(s"Unknown sponge type: $spongeType"))
+  }
+
+object MengerEngine:
+  var count: Int = 0
