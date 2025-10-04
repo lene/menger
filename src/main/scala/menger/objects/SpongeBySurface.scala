@@ -21,7 +21,7 @@ class SpongeBySurface(
   ): Geometry & FractionalLevelSponge =
     SpongeBySurface(center, scale, level, material, primitiveType)
 
-  override def getModel: List[ModelInstance] = logTime("at", 5) {
+  override def getModel: List[ModelInstance] = logTime("getModel", 10) {
     if level.isValidInt then getIntegerModel
     else List(
       nextLevelSponge.map(_.getModel).getOrElse(Nil),
@@ -58,7 +58,7 @@ class SpongeBySurface(
 
   lazy val faces: Seq[Face] = logTime("faces", 5) { surfaces(Face(0, 0, 0, 1, Z)) }
 
-  lazy val mesh: Model = logTime("mesh", 5) {
+  lazy val mesh: Model = logTime("mesh", 10) {
       Builder.modelBuilder.begin()
       faces.grouped(MeshBuilder.MAX_VERTICES / 4).foreach(facesPart =>
         val meshBuilder = Builder.modelBuilder.part("sponge", primitiveType, Builder.DEFAULT_FLAGS, material)

@@ -178,6 +178,20 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
     an[ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10", "--rot-x", "10"))
 
+  it should "fail if level is declared both as static and animated" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--animate", "frames=10:level=0-2", "--level", "2"))
+
+  it should "fail if level is explicitly set to default value and animated" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--animate", "frames=10:level=0-2", "--level", "1.0"))
+
+  it should "succeed if level is animated but not explicitly set as option" in:
+    SafeMengerCLIOptions(Seq("--animate", "frames=10:level=0-2", "--sponge-type", "cube"))
+
+  it should "succeed if level is set as option but not animated" in:
+    SafeMengerCLIOptions(Seq("--level", "2", "--sponge-type", "cube"))
+
   "color option" should "default color to light gray" in:
     val options = SafeMengerCLIOptions(Seq[String]())
     options.color() shouldEqual Color.LIGHT_GRAY

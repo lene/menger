@@ -86,6 +86,16 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     else Left("Animation specification has rotation axis set that is also set statically")
   }
 
+  validateOpt(animate, level) { (spec, lvl) =>
+    if spec.isEmpty then Right(())
+    else
+      val levelIsAnimated = spec.get.parts.exists(_.animationParameters.contains("level"))
+      val levelIsExplicitlySet = level.isSupplied
+      if levelIsAnimated && levelIsExplicitlySet then
+        Left("Level cannot be specified both as --level option and in animation specification")
+      else Right(())
+  }
+
   verify()
 
   private def validateAnimationSpecification(spec: AnimationSpecifications, spongeType: String) =

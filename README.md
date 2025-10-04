@@ -87,6 +87,7 @@ for a Scala 3 REPL.
   - Chaining: Multiple animation specifications can be chained using `--animate` multiple times
     - `--animate frames=10:rot-x-w=0-10 --animate frames=10:rot-y-w=0-10` - Sequential rotations
     - `--animate frames=10:level=0-2 --animate frames=10:level=2-0` - Animate level up then down
+  - Note: Parameters cannot be specified both as CLI options (e.g., `--level`, `--rot-x`) and in animation specifications
 - `--save-name <pattern>` - Save frames to files (e.g., `frame%d.png`)
 
 

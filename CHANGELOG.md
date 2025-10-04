@@ -6,6 +6,7 @@
 - Level animation support for all fractal sponge types via `--animate frames=N:level=start-end`
 - Comprehensive unit tests for level animation with single and chained animation specifications
 - Documentation for animation parameters including level, rotation, 4D rotation, and projection settings
+- Validation to prevent parameters from being specified both as CLI option and in animation spec
 
 ### Fixed
 - Refactored AnimationSpecification to eliminate code duplication in interpolation logic
