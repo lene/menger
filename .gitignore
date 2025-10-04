@@ -18,6 +18,10 @@ local.sbt
 # generated pictures
 *.png
 
+# local dev tools
+.jvmopts
+CLAUDE.md
+
 # Bloop
 .bsp
 

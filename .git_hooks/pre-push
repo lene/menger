@@ -90,12 +90,19 @@ xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 4 --timeout 0.1 --sponge-type square --lines || STATUS=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge --lines || STATUS=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge-2 --lines || STATUS=1
+# Test animation and file output
+rm -f test_image*.png
 xvfb-run -a ./menger-${VERSION}/bin/menger \
   --level 1 --sponge-type tesseract-sponge-2 --animate frames=5:rot-y-w=0-90:rot-y=0-30 --save-name test_image%d.png || STATUS=1
 ls test_image*.png 2>&1 || STATUS=1
 rm -f test_image*.png
 # Test invalid sponge type exits with error code
-xvfb-run -a ./menger-${VERSION}/bin/menger --level 1 --timeout 0.1 --sponge-type invalid --lines 2>/dev/null && STATUS=1
+xvfb-run -a ./menger-${VERSION}/bin/menger --level 1 --timeout 0.1 --sponge-type invalid 2>/dev/null && STATUS=1
+# Test fractional levels
+for TYPE in cube square # tesseract-sponge tesseract-sponge-2
+do
+  xvfb-run -a ./menger-${VERSION}/bin/menger --level 1.5 --timeout 0.1 --sponge-type $TYPE || STATUS=1
+done
 
 if [ $STATUS -gt 0 ]
 then echo "Status after running built: ${RED_TEXT}${STATUS}${RESET_TEXT}"

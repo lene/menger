@@ -159,6 +159,18 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
     assume(loadingLWJGLSucceeds)
     SpongeBySurface(Vector3.Zero, 1f, 1).mesh.meshes should not be empty
 
+  "sponge by surface level 1.5" should "generate a model" taggedAs GdxTest in:
+    assume(loadingLWJGLSucceeds)
+    val sponge = SpongeBySurface(Vector3.Zero, 1f, 1.5f)
+    sponge.getModel should not be empty
+
+  it should "generate a model with elements of level 1 and level 2 sponge" taggedAs GdxTest in:
+    assume(loadingLWJGLSucceeds)
+    val sponge = SpongeBySurface(Vector3.Zero, 1f, 1.5f)
+    val level1 = SpongeBySurface(Vector3.Zero, 1f, 1.0f)
+    val level2 = SpongeBySurface(Vector3.Zero, 1f, 2.0f)
+    sponge.getModel.size shouldBe level1.getModel.size + level2.getModel.size
+
   "face of sponge by surface level 1" should "have 12 subfaces" in:
     SpongeBySurface(Vector3.Zero, 1f, 1).faces should have size 12
 

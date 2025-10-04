@@ -6,18 +6,30 @@ import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.Model
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder
-import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder
 import com.badlogic.gdx.math.Vector3
 import menger.objects.Direction.Z
 
 
 class SpongeBySurface(
-  center: Vector3 = Vector3.Zero, scale: Float = 1f,
-  level: Int, material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(center, scale):
+  val center: Vector3 = Vector3.Zero, val scale: Float = 1f,
+  val level: Float, val material: Material = Builder.WHITE_MATERIAL, val primitiveType: Int = GL20.GL_TRIANGLES
+) extends Geometry(center, scale) with FractionalLevelSponge:
   require(level >= 0, "Level must be non-negative")
 
+  override protected def createInstance(
+    center: Vector3, scale: Float, level: Float, material: Material, primitiveType: Int
+  ): Geometry & FractionalLevelSponge =
+    SpongeBySurface(center, scale, level, material, primitiveType)
+
   override def getModel: List[ModelInstance] = logTime("at", 5) {
+    if level.isValidInt then getIntegerModel
+    else List(
+      nextLevelSponge.map(_.getModel).getOrElse(Nil),
+      transparentSponge.map(_.getModel).getOrElse(Nil)
+    ).flatten
+  }
+
+  private lazy val getIntegerModel =
     val facingPlusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 90)
     val facingMinusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, -90)
     val facingPlusY = transformed(ModelInstance(mesh), scale, center, 1, 0, 0, 90)
@@ -26,7 +38,6 @@ class SpongeBySurface(
     val facingMinusZ = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 180)
 
     List(facingPlusX, facingMinusX, facingPlusY, facingMinusY, facingPlusZ, facingMinusZ)
-  }
 
   private def transformed(
     modelInstance: ModelInstance, scale: Float, xlate: Vector3, axisX: Float, axisY: Float, axisZ: Float, angle: Float
@@ -37,11 +48,11 @@ class SpongeBySurface(
     modelInstance.transform.scale(scale, scale, scale)
     modelInstance
 
-  override def toString: String = s"SpongeBySurface(level=$level, ${6 * faces.size} faces)"
+  override def toString: String = s"SpongeBySurface(level=${float2string(level)}, ${6 * faces.size} faces)"
 
   private[objects] def surfaces(startFace: Face): Seq[Face] =
     val faces = Seq(startFace)
-    level.until(0, -1).foldLeft(faces)(
+    level.toInt.until(0, -1).foldLeft(faces)(
       (faces, _) => faces.flatMap(_.subdivide())
     )
 

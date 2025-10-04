@@ -4,6 +4,8 @@
 
 ### Added
 - Scalafix integration for code quality and automated refactoring
+- Fractional level support for SpongeBySurface with smooth alpha transitions
+- FractionalLevelSponge trait to eliminate code duplication between sponge implementations
 
 ### Fixed
 - Path traversal vulnerability in screenshot filename handling with comprehensive test coverage

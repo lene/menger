@@ -42,7 +42,7 @@ abstract class MengerEngine(
     spongeType match
       case "square" => Try(Square(Vector3.Zero, 1f, material, primitiveType))
       case "cube" => Try(Cube(Vector3.Zero, 1f, material, primitiveType))
-      case "square-sponge" => Try(SpongeBySurface(Vector3.Zero, 1f, level.toInt, material, primitiveType))
+      case "square-sponge" => Try(SpongeBySurface(Vector3.Zero, 1f, level, material, primitiveType))
       case "cube-sponge" => Try(SpongeByVolume(Vector3.Zero, 1f, level, material, primitiveType))
       case "tesseract" => Try(RotatedProjection(Vector3.Zero, 1f, Tesseract(), currentRotProj.projection, currentRotProj.rotation, material, primitiveType))
       case "tesseract-sponge" => Try(RotatedProjection(

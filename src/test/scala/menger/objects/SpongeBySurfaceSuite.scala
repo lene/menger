@@ -24,3 +24,17 @@ class SpongeBySurfaceSuite extends AnyFlatSpec with Matchers:
   
   "level -1" should "throw exception" in:
     an[IllegalArgumentException] should be thrownBy SpongeBySurface(Vector3.Zero, 1f, -1)
+
+  "fractional level 1.5" should "instantiate" in new StartFace:
+    val sponge: SpongeBySurface = SpongeBySurface(Vector3.Zero, 1f, 1.5f)
+    sponge.level shouldBe 1.5f
+
+  it should "have a transparentSponge" in new StartFace:
+    val sponge: SpongeBySurface = SpongeBySurface(Vector3.Zero, 1f, 1.5f)
+    sponge.transparentSponge should not be empty
+    sponge.transparentSponge.get.level shouldBe 1.0f
+
+  it should "have a nextLevelSponge" in new StartFace:
+    val sponge: SpongeBySurface = SpongeBySurface(Vector3.Zero, 1f, 1.5f)
+    sponge.nextLevelSponge should not be empty
+    sponge.nextLevelSponge.get.level shouldBe 2.0f
