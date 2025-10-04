@@ -296,6 +296,7 @@ PushToGithub:
     - git remote add github git@github.com:lene/menger.git
     - git remote show github
     - BRANCH=${CI_COMMIT_BRANCH:-main}
+    - git fetch origin $BRANCH
     - git checkout $BRANCH
     - git pull github $BRANCH
     - git push github $BRANCH
