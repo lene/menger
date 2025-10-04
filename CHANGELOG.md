@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.8] - Unreleased
+## [0.2.8] - 2025-10-04
 
 ### Added
 - Scalafix integration for code quality and automated refactoring

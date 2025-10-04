@@ -156,10 +156,7 @@ Run:UseSbtDocker:
     - xvfb-run -a sbt "run --level 1 --sponge-type tesseract-sponge-2 --animate frames=5:rot-y-w=0-90 --save-name menger%04d.png"
     - test -f menger0000.png
     - test -f menger0004.png
-    - for TYPE in cube square # tesseract-sponge tesseract-sponge-2
-    - do
-    - xvfb-run -a sbt "run --level 1.5 --timeout 0.1 --sponge-type $TYPE"
-    - done
+    - for TYPE in cube square tesseract-sponge tesseract-sponge-2; do xvfb-run -a sbt "run --level 1.5 --timeout 0.1 --sponge-type $TYPE" || exit 1; done
 
 
 CheckRunTime:

@@ -37,8 +37,15 @@ The 4D sponge's Hausdorff dimension is $\log_3 48 = \frac{\log{48}}{\log{3}} \ap
 
 It is equally possible to generate a four-dimensional Menger Sponge analog by subdividing each face
 and replacing the center square with the faces of the hole in the center of the face, leading to 16
-squares for each original square face. This process results in a computational complexity of 
+squares for each original square face. This process results in a computational complexity of
 $O(16^n)$ instead of $O(48^n)$ for the Tesseract subdivision process.
+
+## Fractional levels
+
+All sponge types support fractional levels (e.g., `--level 1.5`), which renders two overlapping
+sponges with smooth alpha blending: the floor level (e.g., level 1) rendered transparently, and the
+ceiling level (e.g., level 2) rendered opaque. The transparency of the lower level increases linearly
+from fully opaque at integer levels to fully transparent as it approaches the next integer level.
 
 
 # Usage
@@ -47,18 +54,29 @@ Compile code with `sbt compile`, test with `sbt test`, run with `sbt run`, and `
 for a Scala 3 REPL.
 
 ## Options
-- `--timeout <float>`
-- `--sponge-type <cube|face|tesseract|tesseract-sponge>`
-- `--projection-screen-w <float>`
-- `--projection-eye-w <float>`
-- `--rot-x-w <float>`
-- `--rot-y-w <float>`
-- `--rot-z-w <float>`
-- `--level <int>`
-- `--lines`
-- `--width <int>`
-- `--height <int>`
-- `--antialias-samples <int>`
+- `--timeout <float>` - Exit after specified seconds (useful for testing)
+- `--sponge-type <type>` - Type of sponge to render:
+  - `square` - 2D square
+  - `cube` - 3D cube
+  - `square-sponge` - Menger sponge by surface subdivision
+  - `cube-sponge` - Menger sponge by volume subdivision
+  - `tesseract` - 4D tesseract
+  - `tesseract-sponge` - 4D sponge (48 tesseracts)
+  - `tesseract-sponge-2` - 4D sponge (16 faces per face)
+  - `composite[type1,type2,...]` - Overlay multiple geometries
+- `--level <float>` - Fractal iteration level (supports fractional values)
+- `--lines` - Render as wireframe
+- `--color <rrggbb>` - Hex color code (e.g., ff0000 for red)
+- `--projection-screen-w <float>` - 4D projection screen distance
+- `--projection-eye-w <float>` - 4D projection eye distance
+- `--rot-x-w <float>` - 4D rotation around XW plane
+- `--rot-y-w <float>` - 4D rotation around YW plane
+- `--rot-z-w <float>` - 4D rotation around ZW plane
+- `--width <int>` - Window width
+- `--height <int>` - Window height
+- `--antialias-samples <int>` - MSAA samples
+- `--animate <spec>` - Animation specification (e.g., `frames=10:rot-y=0-360`)
+- `--save-name <pattern>` - Save frames to files (e.g., `frame%d.png`)
 
 
 # Status
@@ -69,9 +87,12 @@ for a Scala 3 REPL.
 - Replace the square surfaces of the cube with the generator for the menger sponge
 - Implement a function that generates a menger sponge of a given depth
 - Repeat for a 4D cube and a 4D menger sponge
+- Generate a 4D menger sponge by subdividing a Tesseract's face into 16 smaller faces
+- Support fractional levels for all sponge types with smooth alpha blending
+- Composite objects for overlaying multiple geometries
 
 ## Doing
-- Generate a 4D menger sponge by subdividing a Tesseract's face into 16 smaller faces
+- Implement 4D transformations and 4D to 3D projections in CUDA
 
 ## To Do (brain dump, very rough roadmap)
 - Implement 4D transformations and 4D to 3D projections in CUDA
