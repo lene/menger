@@ -1,3 +1,4 @@
+import sbt.Keys.libraryDependencies
 
 lazy val root = project
   .in(file("."))
@@ -15,6 +16,8 @@ lazy val root = project
       semanticdbEnabled := true,
       semanticdbVersion := scalafixSemanticdb.revision
     )),
+    // Run Scalafix during compile only
+    Compile / semanticdbEnabled := true,
 
     // WartRemover configuration - explicit warts excluding LibGDX-incompatible ones
     wartremoverWarnings ++= Seq(
@@ -24,6 +27,14 @@ lazy val root = project
       Wart.IsInstanceOf,  // Prevent runtime type checks
       Wart.Throw          // Prevent throwing exceptions
       // Excluding Wart.Null and Wart.Return for LibGDX compatibility
+    ),
+    // Run WartRemover during compile only
+    Compile / wartremoverWarnings ++= Seq(
+      Wart.Var,
+      Wart.While,
+      Wart.AsInstanceOf,
+      Wart.IsInstanceOf,
+      Wart.Throw
     ),
 
     // Logging
