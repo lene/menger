@@ -17,11 +17,16 @@ class AnimatedMengerEngine(
   private val frameCounter = java.util.concurrent.atomic.AtomicInteger(0)
 
   protected def drawables: List[ModelInstance] =
-    generateObject(spongeType, spongeLevel, material, primitiveType) match
+    val currentLevel = currentAnimatedLevel
+    generateObject(spongeType, currentLevel, material, primitiveType) match
       case scala.util.Success(geometry) => geometry.getModel
       case scala.util.Failure(exception) =>
         Gdx.app.error(s"${getClass.getSimpleName}", s"Failed to create sponge type '$spongeType': ${exception.getMessage}")
         sys.exit(1)
+
+  private def currentAnimatedLevel: Float =
+    val currentFrame = frameCounter.get()
+    animationSpecifications.level(currentFrame).getOrElse(spongeLevel)
 
   protected def gdxResources: GDXResources = GDXResources(None)
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.9] - 2025-10-04
+
+### Added
+- Level animation support for all fractal sponge types via `--animate frames=N:level=start-end`
+- Comprehensive unit tests for level animation with single and chained animation specifications
+- Documentation for animation parameters including level, rotation, 4D rotation, and projection settings
+
+### Fixed
+- Refactored AnimationSpecification to eliminate code duplication in interpolation logic
+- Fixed PushToGithub CI job by adding branch fetch before checkout
+
 ## [0.2.8] - 2025-10-04
 
 ### Added

@@ -75,7 +75,18 @@ for a Scala 3 REPL.
 - `--width <int>` - Window width
 - `--height <int>` - Window height
 - `--antialias-samples <int>` - MSAA samples
-- `--animate <spec>` - Animation specification (e.g., `frames=10:rot-y=0-360`)
+- `--animate <spec>` - Animation specification supporting:
+  - Rotation: `rot-x`, `rot-y`, `rot-z` (3D rotation angles)
+  - 4D rotation: `rot-x-w`, `rot-y-w`, `rot-z-w` (4D rotation angles)
+  - 4D projection: `projection-screen-w`, `projection-eye-w` (4D camera settings)
+  - Level animation: `level` (fractal iteration level for sponge types)
+  - Examples:
+    - `frames=10:rot-y=0-360` - Rotate 360° around Y axis over 10 frames
+    - `frames=20:level=0-3` - Animate from level 0 to 3 over 20 frames
+    - `frames=10:level=0-2:rot-y=0-90` - Combine level and rotation animation
+  - Chaining: Multiple animation specifications can be chained using `--animate` multiple times
+    - `--animate frames=10:rot-x-w=0-10 --animate frames=10:rot-y-w=0-10` - Sequential rotations
+    - `--animate frames=10:level=0-2 --animate frames=10:level=2-0` - Animate level up then down
 - `--save-name <pattern>` - Save frames to files (e.g., `frame%d.png`)
 
 

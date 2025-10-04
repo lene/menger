@@ -12,6 +12,11 @@ case class AnimationSpecifications(specification: List[String] = List.empty) ext
   def valid(spongeType: String): Boolean = parts.forall(_.valid(spongeType))
   def timeSpecValid: Boolean = parts.forall(_.timeSpecValid)
 
+  def level(frame: Int): Option[Float] =
+    partAndFrame(frame).toOption.flatMap { case (specs, frameOffset) =>
+      specs.last.level(frameOffset)
+    }
+
   def rotationProjectionParameters(frame: Int): Try[RotationProjectionParameters] =
     def previousPlusCurrentRotation(specs: List[AnimationSpecification], frame: Int): RotationProjectionParameters =
       accumulateAllButLastRotationProjections(specs) + specs.last.rotationProjectionParameters(frame)

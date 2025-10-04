@@ -50,7 +50,7 @@ class AnimationSpecificationsSuite extends AnyFlatSpec with Matchers:
     ).rotationProjectionParameters(5).get shouldBe RotationProjectionParameters(
       rotXW = 5
     )
-
+  
   it should "be correct for a single part with multiple rotations" in:
     AnimationSpecifications(
       List("frames=10:rot-x-w=0-10:rot-y-w=90-100")
@@ -87,3 +87,40 @@ class AnimationSpecificationsSuite extends AnyFlatSpec with Matchers:
   it should "fail when specifying seconds as time metric" in:
     an [IllegalArgumentException] should be thrownBy
       AnimationSpecifications(List("seconds=10:rot-x-w=0-10"))
+
+  "Level for a frame" should "be None if no level animation" in:
+    AnimationSpecifications(
+      List("frames=10:rot-x-w=0-10")
+    ).level(5) shouldBe None
+
+  it should "be correct for a single part" in:
+    AnimationSpecifications(
+      List("frames=10:level=0-2")
+    ).level(0) shouldBe Some(0.0f)
+
+  it should "interpolate correctly at middle frame" in:
+    AnimationSpecifications(
+      List("frames=10:level=0-2")
+    ).level(5) shouldBe Some(1.0f)
+
+  it should "interpolate correctly at last frame" in:
+    AnimationSpecifications(
+      List("frames=10:level=0-2")
+    ).level(9) shouldBe Some(1.8f)
+
+  it should "work with non-zero start values" in:
+    AnimationSpecifications(
+      List("frames=10:level=1-3")
+    ).level(5) shouldBe Some(2.0f)
+
+  it should "work with fractional values" in:
+    AnimationSpecifications(
+      List("frames=10:level=0.5-2.5")
+    ).level(5) shouldBe Some(1.5f)
+
+  it should "work combined with rotation parameters" in:
+    val specs = AnimationSpecifications(
+      List("frames=10:level=0-2:rot-x=0-90")
+    )
+    specs.level(5) shouldBe Some(1.0f)
+    specs.rotationProjectionParameters(5).get.rotX shouldBe 45.0f

@@ -25,12 +25,15 @@ case class AnimationSpecification(s: String) extends LazyLogging:
     val animationSpec = animationParameters.mkString(":")
     s"$timeSpec:$animationSpec"
 
-  def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
-    def current(bounds: StartEnd): Float =
-      bounds.start + (bounds.end - bounds.start) * frame / frames.get
-
-    require(animationParameters.nonEmpty, "AnimationSpecification.animationParameters not defined")
+  private def current(bounds: StartEnd, frame: Int): Float =
     require(frame <= frames.get, s"Frame $frame exceeds total frames ${frames.get}")
+    bounds.start + (bounds.end - bounds.start) * frame / frames.get
+
+  def level(frame: Int): Option[Float] =
+    animationParameters.get("level").map(current(_, frame))
+
+  def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
+    require(animationParameters.nonEmpty, "AnimationSpecification.animationParameters not defined")
     val rotXBounds: StartEnd = animationParameters.get("rot-x").getOrElse(0f, 0f)
     val rotYBounds: StartEnd = animationParameters.get("rot-y").getOrElse(0f, 0f)
     val rotZBounds: StartEnd = animationParameters.get("rot-z").getOrElse(0f, 0f)
@@ -42,14 +45,14 @@ case class AnimationSpecification(s: String) extends LazyLogging:
     val eyeWBounds: StartEnd = animationParameters.get("projection-eye-w")
       .getOrElse(Const.defaultEyeW, Const.defaultEyeW)
     RotationProjectionParameters(
-      rotXW = current(rotXWBounds),
-      rotYW = current(rotYWBounds),
-      rotZW = current(rotZWBounds),
-      screenW = current(screenWBounds),
-      eyeW = current(eyeWBounds),
-      rotX = current(rotXBounds),
-      rotY = current(rotYBounds),
-      rotZ = current(rotZBounds),
+      rotXW = current(rotXWBounds, frame),
+      rotYW = current(rotYWBounds, frame),
+      rotZW = current(rotZWBounds, frame),
+      screenW = current(screenWBounds, frame),
+      eyeW = current(eyeWBounds, frame),
+      rotX = current(rotXBounds, frame),
+      rotY = current(rotYBounds, frame),
+      rotZ = current(rotZBounds, frame),
     )
 
   def isRotationAxisSet(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
