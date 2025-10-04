@@ -4,11 +4,11 @@ import scala.math.abs
 
 import menger.objects.Vector
 
-class TesseractSponge(level: Int) extends Fractal4D(level):
+class TesseractSponge(level: Float) extends Fractal4D(level):
 
   require(level >= 0, "Level must be non-negative")
 
-  lazy val faces: Seq[Face4D] = if level == 0 then Tesseract().faces else nestedFaces.flatten
+  lazy val faces: Seq[Face4D] = if level.toInt == 0 then Tesseract().faces else nestedFaces.flatten
 
   private def nestedFaces =
     for (

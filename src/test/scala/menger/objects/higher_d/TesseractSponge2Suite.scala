@@ -334,7 +334,7 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
     sponge2.toString should include("TesseractSponge2")
 
   it should "contain the sponge level" in new Sponge2:
-    sponge2.toString should include(s"level=${sponge2.level}")
+    sponge2.toString should include(s"level=${menger.objects.float2string(sponge2.level)}")
 
   it should "contain the number of faces" in new Sponge2:
     sponge2.toString should include(s"${sponge2.faces.size} faces")
@@ -348,3 +348,12 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
     val clue = s"${i+1}/${sponge.faces.length} (${Plane(subface)})\n$coords\n"
     withClue(clue) {cornerCoordinateValues should contain atLeastOneOf(round(1 / 2f), round(1 / 6f))}
     withClue(clue) {cornerCoordinateValues diff Set(round(1 / 2f), round(1 / 6f)) shouldBe empty}
+
+  "fractional level 0.5" should "instantiate" in:
+    val sponge = TesseractSponge2(0.5f)
+    sponge.level shouldBe 0.5f
+
+  it should "use floor for face generation" in:
+    val sponge = TesseractSponge2(0.5f)
+    val level0 = TesseractSponge2(0f)
+    sponge.faces should have size level0.faces.size

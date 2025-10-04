@@ -32,7 +32,7 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh with Matchers:
     sponge.toString should include("TesseractSponge")
 
   it should "contain the sponge level" in new Sponge:
-    sponge.toString should include(s"level=${sponge.level}")
+    sponge.toString should include(s"level=${menger.objects.float2string(sponge.level)}")
 
   it should "contain the number of faces" in new Sponge:
     sponge.toString should include(s"${sponge.faces.size} faces")
@@ -46,3 +46,12 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh with Matchers:
   private def isCenterOfOriginalTesseract(face: Face4D): Boolean =
     // A face is a center face if all of its coordinates are +/- 1/6
     face.asSeq.forall { _.count(_.abs == 1 / 6f) == 4 }
+
+  "fractional level 0.5" should "instantiate" in:
+    val sponge = TesseractSponge(0.5f)
+    sponge.level shouldBe 0.5f
+
+  it should "use floor for face generation" in:
+    val sponge = TesseractSponge(0.5f)
+    val level0 = TesseractSponge(0f)
+    sponge.faces should have size level0.faces.size

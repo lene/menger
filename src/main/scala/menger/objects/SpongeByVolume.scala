@@ -23,14 +23,12 @@ class SpongeByVolume(
   else Cube(Vector3.Zero, 1f, material, primitiveType)
 
   override def getModel: List[ModelInstance] =
-    logTime(s"getModel($level)", 5) {
-      if level <= 0 then super.getModel
-      else if level.isValidInt then getIntegerModel
-      else List(
-          nextLevelSponge.map(_.getModel).getOrElse(Nil),
-          transparentSponge.map(_.getModel).getOrElse(Nil)
-        ).flatten
-    }
+    if level <= 0 then super.getModel
+    else if level.isValidInt then getIntegerModel
+    else List(
+      nextLevelSponge.map(_.getModel).getOrElse(Nil),
+      transparentSponge.map(_.getModel).getOrElse(Nil)
+    ).flatten
 
   private lazy val getIntegerModel =
     val shift = scale / 3f

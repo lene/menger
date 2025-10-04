@@ -10,13 +10,13 @@ import menger.objects.Vector
  * @param level The recursion level (0 = regular tesseract)
  * @param size The size of the bounding tesseract
  */
-class TesseractSponge2(level: Int, size: Float = 1) extends Fractal4D(level) with LazyLogging:
+class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) with LazyLogging:
 
   private type CornerMap = Map[String, Vector[4]]
 
   require(level >= 0, "Level must be non-negative")
 
-  lazy val faces: Seq[Face4D] = if level == 0 then Tesseract(size).faces else nestedFaces
+  lazy val faces: Seq[Face4D] = if level.toInt == 0 then Tesseract(size).faces else nestedFaces
 
   private[higher_d] def nestedFaces: Seq[Face4D] =
     TesseractSponge2(level - 1).faces.flatMap(faceGenerator)

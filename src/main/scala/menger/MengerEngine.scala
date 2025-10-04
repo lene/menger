@@ -15,6 +15,7 @@ import menger.objects.Geometry
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
 import menger.objects.Square
+import menger.objects.higher_d.FractionalRotatedProjection
 import menger.objects.higher_d.RotatedProjection
 import menger.objects.higher_d.Tesseract
 import menger.objects.higher_d.TesseractSponge
@@ -45,11 +46,11 @@ abstract class MengerEngine(
       case "square-sponge" => Try(SpongeBySurface(Vector3.Zero, 1f, level, material, primitiveType))
       case "cube-sponge" => Try(SpongeByVolume(Vector3.Zero, 1f, level, material, primitiveType))
       case "tesseract" => Try(RotatedProjection(Vector3.Zero, 1f, Tesseract(), currentRotProj.projection, currentRotProj.rotation, material, primitiveType))
-      case "tesseract-sponge" => Try(RotatedProjection(
-        Vector3.Zero, 1f, TesseractSponge(level.toInt), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
+      case "tesseract-sponge" => Try(FractionalRotatedProjection(
+        Vector3.Zero, 1f, (l: Float) => TesseractSponge(l), level, currentRotProj.projection, currentRotProj.rotation, material, primitiveType
       ))
-      case "tesseract-sponge-2" => Try(RotatedProjection(
-        Vector3.Zero, 1f, TesseractSponge2(level.toInt), currentRotProj.projection, currentRotProj.rotation, material, primitiveType
+      case "tesseract-sponge-2" => Try(FractionalRotatedProjection(
+        Vector3.Zero, 1f, (l: Float) => TesseractSponge2(l), level, currentRotProj.projection, currentRotProj.rotation, material, primitiveType
       ))
       case composite if composite.startsWith("composite[") =>
         Composite.parseCompositeFromCLIOption(composite, level, material, primitiveType, generateObject)

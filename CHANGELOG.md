@@ -6,12 +6,14 @@
 - Scalafix integration for code quality and automated refactoring
 - Fractional level support for SpongeBySurface with smooth alpha transitions
 - FractionalLevelSponge trait to eliminate code duplication between sponge implementations
+- Fractional level support for TesseractSponge and TesseractSponge2 via FractionalRotatedProjection wrapper
 
 ### Fixed
 - Path traversal vulnerability in screenshot filename handling with comprehensive test coverage
 - Improved timing precision by replacing System.currentTimeMillis with System.nanoTime
 - Made getIntegerModel a lazy val to prevent repeated sponge instantiation in render loop
 - Corrected alpha calculation for fractional level sponges to properly transition from full opacity to transparency
+- Eliminated code duplication by moving createMaterialWithAlpha to FractionalLevelSponge companion object
 
 ### Upgraded
 - Updated dependencies: scala-logging 3.9.6, sbt-native-packager 1.11.3, sbt-scoverage 2.3.1, sbt-jupiter-interface 0.11.3
