@@ -4,7 +4,7 @@ import scala.util.Try
 
 import com.badlogic.gdx.graphics.Color
 import com.typesafe.scalalogging.LazyLogging
-import org.rogach.scallop.*
+import org.rogach.scallop._
 
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:
   version("menger v0.2.9 (c) 2023-25, lene.preuss@gmail.com")

@@ -1,7 +1,7 @@
 package menger
 
 import scala.collection.immutable.List
-import scala.jdk.CollectionConverters.*
+import scala.jdk.CollectionConverters._
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.FPSLogger
