@@ -12,13 +12,13 @@ class AnimatedMengerEngine(
   spongeType: String, spongeLevel: Float,
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
   lines: Boolean, color: Color, val animationSpecifications: AnimationSpecifications,
-  val saveName: Option[String]
-) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color):
+  val saveName: Option[String], faceColor: Option[Color] = None, lineColor: Option[Color] = None
+) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor):
   private val frameCounter = java.util.concurrent.atomic.AtomicInteger(0)
 
   protected def drawables: List[ModelInstance] =
     val currentLevel = currentAnimatedLevel
-    generateObject(spongeType, currentLevel, material, primitiveType) match
+    generateObjectWithOverlay(spongeType, currentLevel) match
       case scala.util.Success(geometry) => geometry.getModel
       case scala.util.Failure(exception) =>
         Gdx.app.error(s"${getClass.getSimpleName}", s"Failed to create sponge type '$spongeType': ${exception.getMessage}")

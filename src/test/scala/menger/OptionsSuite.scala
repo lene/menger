@@ -256,3 +256,37 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
   it should "fail for unrecognized color names" in :
     an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "red"))
     an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "whatever"))
+
+  "face-color and line-color options" should "work together for overlay mode" in:
+    val options = SafeMengerCLIOptions(Seq("--face-color", "ffffff80", "--line-color", "000000ff"))
+    options.faceColor.toOption shouldBe defined
+    options.lineColor.toOption shouldBe defined
+    options.faceColor() shouldEqual Color.valueOf("ffffff80")
+    options.lineColor() shouldEqual new Color(0f, 0f, 0f, 1f)
+
+  it should "fail if --color is used with --face-color" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--color", "ff0000", "--face-color", "ffffff80", "--line-color", "000000ff"))
+
+  it should "fail if --color is used with --line-color" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--color", "ff0000", "--line-color", "000000ff"))
+
+  it should "fail if only --face-color is specified" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--face-color", "ffffff80"))
+
+  it should "fail if only --line-color is specified" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--line-color", "000000ff"))
+
+  it should "fail if --lines is used with --face-color" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--lines", "--face-color", "ffffff80", "--line-color", "000000ff"))
+
+  it should "fail if --lines is used with --line-color" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--lines", "--line-color", "000000ff"))
+
+  it should "succeed with --color and --lines together" in:
+    SafeMengerCLIOptions(Seq("--color", "ff0000", "--lines"))

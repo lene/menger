@@ -14,11 +14,12 @@ import menger.objects.Geometry
 class InteractiveMengerEngine(
   spongeType: String = "square", spongeLevel: Float = 0.0f,
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
-  lines: Boolean = false, color: Color = Color.WHITE, timeout: Float = 0
-) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color)
+  lines: Boolean = false, color: Color = Color.WHITE, timeout: Float = 0,
+  faceColor: Option[Color] = None, lineColor: Option[Color] = None
+) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor)
 with LazyLogging:
-  private lazy val sponge: Geometry = generateObject(
-    spongeType, spongeLevel, material, primitiveType
+  private lazy val sponge: Geometry = generateObjectWithOverlay(
+    spongeType, spongeLevel
   ) match
     case scala.util.Success(geometry) => geometry
     case scala.util.Failure(exception) =>

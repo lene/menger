@@ -51,6 +51,12 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val color: ScallopOption[Color] = opt[Color](required = false, default = Some(Color.LIGHT_GRAY))(
     using colorConverter
   )
+  val faceColor: ScallopOption[Color] = opt[Color](required = false)(
+    using colorConverter
+  )
+  val lineColor: ScallopOption[Color] = opt[Color](required = false)(
+    using colorConverter
+  )
   val width: ScallopOption[Int] = opt[Int](
     required = false, default = Some(Const.defaultWindowWidth)
   )
@@ -90,10 +96,24 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     if spec.isEmpty then Right(())
     else
       val levelIsAnimated = spec.get.parts.exists(_.animationParameters.contains("level"))
-      val levelIsExplicitlySet = level.isSupplied
-      if levelIsAnimated && levelIsExplicitlySet then
+      if levelIsAnimated && level.isSupplied then
         Left("Level cannot be specified both as --level option and in animation specification")
       else Right(())
+  }
+
+  // Validate color option combinations
+  validateOpt(color, faceColor, lineColor) { (c, fc, lc) =>
+    if color.isSupplied && (faceColor.isSupplied || lineColor.isSupplied) then
+      Left("--color cannot be used together with --face-color or --line-color")
+    else if (faceColor.isSupplied && !lineColor.isSupplied) || (!faceColor.isSupplied && lineColor.isSupplied) then
+      Left("--face-color and --line-color must be specified together")
+    else Right(())
+  }
+
+  validateOpt(lines, faceColor, lineColor) { (l, fc, lc) =>
+    if lines.isSupplied && (faceColor.isSupplied || lineColor.isSupplied) then
+      Left("--lines cannot be used together with --face-color or --line-color")
+    else Right(())
   }
 
   verify()

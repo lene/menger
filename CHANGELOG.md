@@ -1,12 +1,16 @@
 # Changelog
 
-## [0.2.9] - 2025-10-04
+## [0.2.9] - 2025-10-05
 
 ### Added
 - Level animation support for all fractal sponge types via `--animate frames=N:level=start-end`
+- Overlay rendering mode with `--face-color` and `--line-color` options for wireframe on transparent faces
+- BlendingAttribute support in material builder for proper alpha transparency
 - Comprehensive unit tests for level animation with single and chained animation specifications
-- Documentation for animation parameters including level, rotation, 4D rotation, and projection settings
 - Validation to prevent parameters from being specified both as CLI option and in animation spec
+- Validation to prevent conflicting color option combinations
+- Documentation for animation parameters including level, rotation, 4D rotation, and projection settings
+- Documentation for overlay mode with face and line color options
 
 ### Fixed
 - Refactored AnimationSpecification to eliminate code duplication in interpolation logic

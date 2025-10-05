@@ -44,8 +44,9 @@ $O(16^n)$ instead of $O(48^n)$ for the Tesseract subdivision process.
 
 All sponge types support fractional levels (e.g., `--level 1.5`), which renders two overlapping
 sponges with smooth alpha blending: the floor level (e.g., level 1) rendered transparently, and the
-ceiling level (e.g., level 2) rendered opaque. The transparency of the lower level increases linearly
-from fully opaque at integer levels to fully transparent as it approaches the next integer level.
+ceiling level (e.g., level 2) rendered opaque. The transparency of the lower level increases 
+linearly from fully opaque at integer levels to fully transparent as it approaches the next integer 
+level.
 
 
 # Usage
@@ -66,7 +67,17 @@ for a Scala 3 REPL.
   - `composite[type1,type2,...]` - Overlay multiple geometries
 - `--level <float>` - Fractal iteration level (supports fractional values)
 - `--lines` - Render as wireframe
-- `--color <rrggbb>` - Hex color code (e.g., ff0000 for red)
+- `--color <rrggbb[aa]>` - Hex color code (e.g., ff0000 for red). Cannot be used with `--face-color`
+  or `--line-color`.
+- `--face-color <rrggbb[aa]>` - Color for filled faces in overlay mode (supports RGBA for 
+  transparency)
+- `--line-color <rrggbb[aa]>` - Color for wireframe lines in overlay mode (supports RGBA for 
+  transparency)
+  - **Overlay mode**: When both `--face-color` and `--line-color` are specified, renders transparent
+    faces with wireframe overlay
+  - Example: `--face-color ffffff40 --line-color 000000ff` (transparent white faces with opaque 
+    black lines)
+  - Note: Both must be specified together. Cannot be used with `--color` or `--lines`.
 - `--projection-screen-w <float>` - 4D projection screen distance
 - `--projection-eye-w <float>` - 4D projection eye distance
 - `--rot-x-w <float>` - 4D rotation around XW plane
@@ -87,7 +98,8 @@ for a Scala 3 REPL.
   - Chaining: Multiple animation specifications can be chained using `--animate` multiple times
     - `--animate frames=10:rot-x-w=0-10 --animate frames=10:rot-y-w=0-10` - Sequential rotations
     - `--animate frames=10:level=0-2 --animate frames=10:level=2-0` - Animate level up then down
-  - Note: Parameters cannot be specified both as CLI options (e.g., `--level`, `--rot-x`) and in animation specifications
+  - Note: Parameters cannot be specified both as CLI options (e.g., `--level`, `--rot-x`) and in 
+    animation specifications
 - `--save-name <pattern>` - Save frames to files (e.g., `frame%d.png`)
 
 

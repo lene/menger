@@ -23,10 +23,12 @@ import menger.objects.higher_d.TesseractSponge2
 
 abstract class MengerEngine(
   val spongeType: String, val spongeLevel: Float,
-  val rotationProjectionParameters: RotationProjectionParameters, val lines: Boolean, val color: Color
+  val rotationProjectionParameters: RotationProjectionParameters, val lines: Boolean, val color: Color,
+  val faceColor: Option[Color] = None, val lineColor: Option[Color] = None
 ) extends Game:
   protected val material: Material = Builder.material(color)
   protected lazy val primitiveType: Int = if lines then GL20.GL_LINES else GL20.GL_TRIANGLES
+  protected val isOverlayMode: Boolean = faceColor.isDefined && lineColor.isDefined
   protected def gdxResources: GDXResources
   protected def drawables: List[ModelInstance]
   override def resume(): Unit = {}
@@ -56,6 +58,17 @@ abstract class MengerEngine(
         Composite.parseCompositeFromCLIOption(composite, level, material, primitiveType, generateObject)
       case _ => scala.util.Failure(IllegalArgumentException(s"Unknown sponge type: $spongeType"))
   }
+
+  protected def generateObjectWithOverlay(spongeType: String, level: Float): Try[Geometry] =
+    if !isOverlayMode then
+      generateObject(spongeType, level, material, primitiveType)
+    else
+      val faceMaterial = Builder.material(faceColor.get)
+      val lineMaterial = Builder.material(lineColor.get)
+      for
+        faces <- generateObject(spongeType, level, faceMaterial, GL20.GL_TRIANGLES)
+        lines <- generateObject(spongeType, level, lineMaterial, GL20.GL_LINES)
+      yield Composite(Vector3.Zero, 1f, List(faces, lines))
 
 object MengerEngine:
   var count: Int = 0
