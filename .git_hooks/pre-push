@@ -86,6 +86,11 @@ fi
 sbt "Universal / packageBin" --warn || STATUS=1
 VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
 unzip -oq ./target/universal/menger-${VERSION}.zip || STATUS=1
+if [ $STATUS -gt 0 ]
+then echo "Status after build: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after build: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+fi
+
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type cube --lines || STATUS=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 4 --timeout 0.1 --sponge-type square --lines || STATUS=1
 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge --lines || STATUS=1
@@ -97,7 +102,7 @@ xvfb-run -a ./menger-${VERSION}/bin/menger \
 ls test_image*.png 2>&1 || STATUS=1
 rm -f test_image*.png
 # Test invalid sponge type exits with error code
-xvfb-run -a ./menger-${VERSION}/bin/menger --level 1 --timeout 0.1 --sponge-type invalid 2>/dev/null && STATUS=1
+xvfb-run -a ./menger-${VERSION}/bin/menger --level 1 --timeout 0.1 --sponge-type invalid 2>/dev/null && STATUS=1 || echo "[${GREEN_TEXT}expected${RESET_TEXT}]"
 # Test fractional levels
 for TYPE in square-sponge cube-sponge tesseract-sponge tesseract-sponge-2
 do

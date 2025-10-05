@@ -13,28 +13,19 @@ lazy val root = project
 
     // Scalafix configuration
     inThisBuild(List(
-      semanticdbEnabled := true,
       semanticdbVersion := scalafixSemanticdb.revision
     )),
     // Run Scalafix during compile only
     Compile / semanticdbEnabled := true,
 
-    // WartRemover configuration - explicit warts excluding LibGDX-incompatible ones
-    wartremoverWarnings ++= Seq(
+    // Run WartRemover during compile only - explicit warts excluding LibGDX-incompatible ones
+    Compile / wartremoverWarnings ++= Seq(
       Wart.Var,           // Warn on mutable variables (allows LibGDX vars to compile)
       Wart.While,         // Prevent while loops
       Wart.AsInstanceOf,  // Prevent unsafe casting
       Wart.IsInstanceOf,  // Prevent runtime type checks
       Wart.Throw          // Prevent throwing exceptions
       // Excluding Wart.Null and Wart.Return for LibGDX compatibility
-    ),
-    // Run WartRemover during compile only
-    Compile / wartremoverWarnings ++= Seq(
-      Wart.Var,
-      Wart.While,
-      Wart.AsInstanceOf,
-      Wart.IsInstanceOf,
-      Wart.Throw
     ),
 
     // Logging
