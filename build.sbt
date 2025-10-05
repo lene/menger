@@ -9,7 +9,7 @@ lazy val root = project
     maintainer := "lene.preuss@gmail.com",
 
     scalaVersion := "3.7.3",
-    scalacOptions ++= Seq("-deprecation", "-explain", "-feature"),
+    scalacOptions ++= Seq("-deprecation", "-explain", "-feature", "-Wunused:imports"),
 
     // Scalafix configuration
     inThisBuild(List(

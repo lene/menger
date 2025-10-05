@@ -4,12 +4,14 @@
 
 ### Added
 - Level animation support for all fractal sponge types via `--animate frames=N:level=start-end`
-- Overlay rendering mode with `--face-color` and `--line-color` options for wireframe on transparent faces
+- Overlay rendering mode with `--face-color` and `--line-color` options for wireframe on transparent 
+  faces
 - BlendingAttribute support in material builder for proper alpha transparency
 - Comprehensive unit tests for level animation with single and chained animation specifications
 - Validation to prevent parameters from being specified both as CLI option and in animation spec
 - Validation to prevent conflicting color option combinations
-- Documentation for animation parameters including level, rotation, 4D rotation, and projection settings
+- Documentation for animation parameters including level, rotation, 4D rotation, and projection 
+  settings
 - Documentation for overlay mode with face and line color options
 
 ### Fixed
@@ -22,17 +24,21 @@
 - Scalafix integration for code quality and automated refactoring
 - Fractional level support for SpongeBySurface with smooth alpha transitions
 - FractionalLevelSponge trait to eliminate code duplication between sponge implementations
-- Fractional level support for TesseractSponge and TesseractSponge2 via FractionalRotatedProjection wrapper
+- Fractional level support for TesseractSponge and TesseractSponge2 via FractionalRotatedProjection
+  wrapper
 
 ### Fixed
 - Path traversal vulnerability in screenshot filename handling with comprehensive test coverage
 - Improved timing precision by replacing System.currentTimeMillis with System.nanoTime
 - Made getIntegerModel a lazy val to prevent repeated sponge instantiation in render loop
-- Corrected alpha calculation for fractional level sponges to properly transition from full opacity to transparency
-- Eliminated code duplication by moving createMaterialWithAlpha to FractionalLevelSponge companion object
+- Corrected alpha calculation for fractional level sponges to properly transition from full opacity 
+  to transparency
+- Eliminated code duplication by moving createMaterialWithAlpha to FractionalLevelSponge companion 
+  object
 
 ### Upgraded
-- Updated dependencies: scala-logging 3.9.6, sbt-native-packager 1.11.3, sbt-scoverage 2.3.1, sbt-jupiter-interface 0.11.3
+- Updated dependencies: scala-logging 3.9.6, sbt-native-packager 1.11.3, sbt-scoverage 2.3.1, 
+  sbt-jupiter-interface 0.11.3
 
 ## [0.2.7] - 2025-09-15
 

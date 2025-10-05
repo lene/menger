@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
 import com.badlogic.gdx.graphics.g3d.ModelInstance
-import com.badlogic.gdx.math.Vector3
 
 class AnimatedMengerEngine(
   spongeType: String, spongeLevel: Float,
