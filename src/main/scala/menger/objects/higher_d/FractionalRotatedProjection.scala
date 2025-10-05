@@ -17,7 +17,8 @@ import menger.objects.higher_d.Rotation
 class FractionalRotatedProjection(
   center: Vector3 = Vector3.Zero, scale: Float = 1f,
   object4DFactory: Float => Mesh4D, val level: Float,
-  var projection: Projection, var rotation: Rotation = Rotation(),
+  @SuppressWarnings(Array("org.wartremover.warts.Var")) var projection: Projection,
+  @SuppressWarnings(Array("org.wartremover.warts.Var")) var rotation: Rotation = Rotation(),
   val material: Material = Builder.WHITE_MATERIAL,
   primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Geometry(center, scale) with FractionalLevelObject:

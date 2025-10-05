@@ -17,6 +17,8 @@ class CameraController(
   camera: PerspectiveCamera, eventDispatcher: EventDispatcher
 ) extends CameraInputController(camera):
 
+  // Touch input state tracking required by LibGDX CameraInputController framework
+  @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var shiftStart = (x = 0, y = 0)
 
   override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =

@@ -19,8 +19,8 @@ lazy val root = project
     Compile / semanticdbEnabled := true,
 
     // Run WartRemover during compile only - explicit warts excluding LibGDX-incompatible ones
-    Compile / wartremoverWarnings ++= Seq(
-      Wart.Var,           // Warn on mutable variables (allows LibGDX vars to compile)
+    Compile / wartremoverErrors ++= Seq(
+      Wart.Var,           // Error on mutable variables (must use @SuppressWarnings)
       Wart.While,         // Prevent while loops
       Wart.AsInstanceOf,  // Prevent unsafe casting
       Wart.IsInstanceOf,  // Prevent runtime type checks

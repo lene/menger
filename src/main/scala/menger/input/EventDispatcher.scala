@@ -1,5 +1,7 @@
 package menger.input
 
+import java.util.concurrent.atomic.AtomicReference
+
 import menger.RotationProjectionParameters
 
 trait Observer:
@@ -7,14 +9,14 @@ trait Observer:
 
 
 class EventDispatcher:
-  private var observers: List[Observer] = Nil
+  private val observers = new AtomicReference[List[Observer]](Nil)
 
   def addObserver(observer: Observer): Unit =
-    observers = observer :: observers
+    observers.updateAndGet(observer :: _)
 
   def withObserver(observer: Observer): EventDispatcher =
     addObserver(observer)
     this
 
   def notifyObservers(event: RotationProjectionParameters): Unit =
-    observers.foreach(_.handleEvent(event))
+    observers.get().foreach(_.handleEvent(event))

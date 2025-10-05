@@ -258,8 +258,10 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
   "EventDispatcher" should "notify observers with shift pressed" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
     class TestObserver extends Observer:
-      var notified = false
-      override def handleEvent(event: RotationProjectionParameters): Unit = notified = true
+      private val notified = new java.util.concurrent.atomic.AtomicBoolean(false)
+      override def handleEvent(event: RotationProjectionParameters): Unit =
+        notified.set(true)
+      def wasNotified: Boolean = notified.get()
 
     val observer = TestObserver()
     val dispatcher = EventDispatcher().withObserver(observer)
@@ -267,7 +269,7 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
     thisController.keyDown(Keys.SHIFT_LEFT)
     thisController.keyDown(Keys.RIGHT)
     thisController.keyUp(Keys.SHIFT_LEFT)
-    observer.notified should be (true)
+    observer.wasNotified should be (true)
 
   "CameraInputController" should "instantiate" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)

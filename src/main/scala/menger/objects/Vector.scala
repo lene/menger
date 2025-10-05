@@ -74,9 +74,10 @@ case object Vector:
 def float2string(f: Float): String = float2String(2)(f)
 
 def float2String(digits: Int)(f: Float): String =
-  //if (f - f.toInt).abs > Const.epsilon then f"${f}%.${digits}f" else s"${f.toInt}"
-  if ((f - f.toInt).abs > Const.epsilon)
-    String.format(s"%.${digits}f", f.asInstanceOf[AnyRef])
+  if (f.isValidInt) s"${f.toInt}"
   else
-    s"${f.toInt}"
+    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+    val boxed = f.asInstanceOf[AnyRef]  // Required by Java String.format API
+    String.format(s"%.${digits}f", boxed)
+
 

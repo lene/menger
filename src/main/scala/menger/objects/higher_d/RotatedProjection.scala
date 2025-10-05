@@ -13,12 +13,16 @@ import menger.objects.Builder
 import menger.objects.Geometry
 
 case class RotatedProjection(
-  center: Vector3 = Vector3.Zero, scale: Float = 1f,
-  object4D: Mesh4D, var projection: Projection, var rotation: Rotation = Rotation(),
+  center: Vector3 = Vector3.Zero, scale: Float = 1f, object4D: Mesh4D,
+  @SuppressWarnings(Array("org.wartremover.warts.Var")) var projection: Projection,
+  @SuppressWarnings(Array("org.wartremover.warts.Var")) var rotation: Rotation = Rotation(),
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Geometry(center, scale) with RectMesh with Observer:
 
+  // Mutable cache for performance-critical mesh computation
+  @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var changed = true
+  @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var precomputedMesh: Model = uninitialized
 
   def projectedFaceVertices: Seq[Quad3D] =

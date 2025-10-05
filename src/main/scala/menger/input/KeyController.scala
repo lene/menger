@@ -9,9 +9,14 @@ import menger.RotationProjectionParameters
 
 class KeyController(camera: PerspectiveCamera, dispatcher: EventDispatcher) extends InputAdapter:
 
+  // Input state tracking required by LibGDX InputAdapter framework
+  @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var ctrlPressed = false
+  @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var altPressed = false
+  @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var shiftPressed = false
+  @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var rotatePressed: Map[Int, Boolean] = Map().withDefaultValue(false)
 
   private val defaultPos = camera.position.cpy

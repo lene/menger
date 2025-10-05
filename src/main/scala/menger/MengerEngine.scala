@@ -40,8 +40,6 @@ abstract class MengerEngine(
   protected def generateObject(
     spongeType: String, level: Float, material: Material, primitiveType: Int
   ): Try[Geometry] = {
-    MengerEngine.count += 1
-    println(s"Generating object #${MengerEngine.count}: type='$spongeType', level=$level")
     spongeType match
       case "square" => Try(Square(Vector3.Zero, 1f, material, primitiveType))
       case "cube" => Try(Cube(Vector3.Zero, 1f, material, primitiveType))
@@ -69,6 +67,3 @@ abstract class MengerEngine(
         faces <- generateObject(spongeType, level, faceMaterial, GL20.GL_TRIANGLES)
         lines <- generateObject(spongeType, level, lineMaterial, GL20.GL_LINES)
       yield Composite(Vector3.Zero, 1f, List(faces, lines))
-
-object MengerEngine:
-  var count: Int = 0
