@@ -35,14 +35,14 @@ lazy val root = project
 
     // Logging
     libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6",
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.18",
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.19",
     // JUnit
     libraryDependencies ++= Seq(
       "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test
     ),
     // ScalaTest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-    libraryDependencies += "org.scalamock" %% "scalamock" % "7.4.1" % Test,
+    libraryDependencies += "org.scalamock" %% "scalamock" % "7.5.0" % Test,
 
     // Scallop command line parser
     libraryDependencies += "org.rogach" %% "scallop" % "5.2.0",
