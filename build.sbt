@@ -18,6 +18,11 @@ lazy val root = project
     // Run Scalafix during compile only
     Compile / semanticdbEnabled := true,
 
+    // Filter out plugin options from scaladoc to avoid warnings
+    Compile / doc / scalacOptions := scalacOptions.value.filterNot(opt =>
+      opt.startsWith("-Xplugin") || opt.startsWith("-P") || opt.contains("semanticdb")
+    ),
+
     // Run WartRemover during compile only - explicit warts excluding LibGDX-incompatible ones
     Compile / wartremoverErrors ++= Seq(
       Wart.Var,           // Error on mutable variables (must use @SuppressWarnings)
