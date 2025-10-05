@@ -17,8 +17,8 @@ trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f) extends Observ
     val start = System.nanoTime()
     val result = f
     val duration = (System.nanoTime() - start) / 1_000_000
-    if duration >= minDuration && Gdx.app != null then
-    Gdx.app.log(s"${getClass.getSimpleName}.$msg", s"${duration}ms")
+    if duration >= minDuration then
+      Option(Gdx.app).foreach(_.log(s"${getClass.getSimpleName}.$msg", s"${duration}ms"))
     result
 
     
