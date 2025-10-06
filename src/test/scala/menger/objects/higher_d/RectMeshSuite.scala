@@ -3,7 +3,6 @@ package menger.objects.higher_d
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import com.badlogic.gdx.graphics.g3d.Material
-import menger.objects.LWJGLLoadChecker
 
 class RectMeshSuite extends AnyFlatSpec with Matchers:
 

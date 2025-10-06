@@ -1,8 +1,6 @@
 package menger.objects
 
 import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
 import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
 import com.badlogic.gdx.math.Vector3
 import org.scalatest.flatspec.AnyFlatSpec
@@ -11,7 +9,6 @@ import org.scalatest.Tag
 import org.scalamock.stubs.Stubs
 import menger.{InteractiveMengerEngine, RotationProjectionParameters}
 import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
-import org.lwjgl.opengl
 
 
 object GdxTest extends Tag("GdxTest")  // needs Gdx to be available

@@ -6,7 +6,6 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.*
 import CustomMatchers.*
 import menger.Const
-import menger.objects.higher_d.Plane.xw
 
 class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
 

@@ -6,7 +6,6 @@ import org.scalatest.Inspectors.forAll
 import com.typesafe.scalalogging.LazyLogging
 import menger.objects.{Vector, Matrix}
 import menger.RotationProjectionParameters
-import CustomMatchers.*
 
 trait StandardVector:
   val axisName = Array("x", "y", "z", "w")

@@ -1,7 +1,6 @@
 package menger.objects
 
 import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
-import com.badlogic.gdx.Gdx.gl20
 import menger.InteractiveMengerEngine
 
 /**

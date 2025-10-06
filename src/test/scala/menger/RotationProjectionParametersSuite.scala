@@ -1,9 +1,5 @@
 package menger
 
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.math.Matrix4
-import menger.objects.Builder
-import menger.objects.higher_d.{RotatedProjection, Tesseract}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
