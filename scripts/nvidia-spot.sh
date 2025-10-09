@@ -147,6 +147,18 @@ fi
 # Read SSH public key
 SSH_PUBLIC_KEY=$(cat "$SSH_KEY")
 
+# Get git configuration from local machine
+GIT_USER_NAME=$(git config --get user.name || echo "")
+GIT_USER_EMAIL=$(git config --get user.email || echo "")
+
+if [ -z "$GIT_USER_NAME" ] || [ -z "$GIT_USER_EMAIL" ]; then
+  echo -e "${YELLOW}Warning: Git user.name or user.email not configured locally${NC}"
+  echo "Configure with:"
+  echo "  git config --global user.name \"Your Name\""
+  echo "  git config --global user.email \"your.email@example.com\""
+  echo ""
+fi
+
 echo -e "${GREEN}=== NVIDIA Spot Instance Configuration ===${NC}"
 echo "Region:            $REGION"
 echo "Instance Type:     $INSTANCE_TYPE"
@@ -208,6 +220,16 @@ ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP \
 
 echo -e "${GREEN}Instance ready!${NC}"
 echo ""
+
+# Configure git identity on remote instance
+if [ -n "$GIT_USER_NAME" ] && [ -n "$GIT_USER_EMAIL" ]; then
+  echo -e "${YELLOW}Configuring git identity...${NC}"
+  ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP \
+    "git config --global user.name \"$GIT_USER_NAME\" && \
+     git config --global user.email \"$GIT_USER_EMAIL\""
+  echo -e "${GREEN}Git configured: $GIT_USER_NAME <$GIT_USER_EMAIL>${NC}"
+  echo ""
+fi
 
 # Upload and start auto-terminate daemon if enabled
 if [ "$AUTO_TERMINATE" = "true" ]; then

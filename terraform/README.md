@@ -8,6 +8,7 @@ Automated provisioning and management of AWS EC2 spot instances with NVIDIA GPUs
 - **One-command launch** of spot instances with configurable pricing
 - **Auto-termination** when you log out (with configurable grace period)
 - **X11 forwarding** for GUI applications (IntelliJ, etc.)
+- **Git identity** automatically configured from your local machine for commits/pushes
 - **Cost controls** with maximum hourly and session cost limits
 - **Multi-session support** - instance only terminates when all users log out
 
@@ -18,6 +19,7 @@ Automated provisioning and management of AWS EC2 spot instances with NVIDIA GPUs
 - AWS CLI configured with credentials (`aws configure`)
 - Terraform >= 1.5.0
 - SSH key pair (`~/.ssh/id_rsa.pub`)
+- Git configured with user.name and user.email (automatically copied to remote instance)
 - OptiX SDK installer downloaded from [developer.nvidia.com/optix](https://developer.nvidia.com/optix)
 
 ### 2. Build Custom AMI (One-time Setup)
@@ -210,6 +212,12 @@ Run `./scripts/nvidia-spot.sh --list-instances` for current prices in your regio
 - **Timeout**: Wait longer, instance initialization takes 2-3 minutes
 - **X11 not working**: Ensure X11 server running locally (XQuartz on macOS, Xming on Windows)
 - **Permission denied**: Check SSH key path with --ssh-key
+
+### Git Configuration Issues
+
+- **Commits fail**: Ensure local git is configured with `git config --global user.name` and `user.email`
+- **Wrong author**: Git identity is copied from local machine at launch time
+- **Manual fix**: SSH to instance and run `git config --global user.name "Your Name"` and `git config --global user.email "your@email.com"`
 
 ### Auto-Terminate Not Working
 

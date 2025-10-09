@@ -43,7 +43,7 @@ Development Tools:
   - Scala/sbt: Run 'sbt' in the menger directory
   - IntelliJ IDEA: Run 'intellij-idea-community'
   - Fish shell: Already set as default
-  - Git: menger repo cloned to ~/workspace/menger
+  - Git: Configured with your local identity, menger repo at ~/workspace/menger
 
 X11 Forwarding:
   Already configured. Connect with: ssh -X ubuntu@<instance-ip>
@@ -51,6 +51,7 @@ X11 Forwarding:
 
 Useful Commands:
   - Check GPU: nvidia-smi
+  - Check git config: git config --list
   - Build menger: cd ~/workspace/menger && sbt compile
   - Run tests: cd ~/workspace/menger && sbt test
 

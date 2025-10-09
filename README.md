@@ -124,6 +124,7 @@ See [terraform/README.md](terraform/README.md) for detailed documentation.
 Features:
 - One-command launch of GPU spot instances
 - Auto-termination on logout (5-minute grace period)
+- Git identity automatically configured from local machine
 - Cost controls with configurable limits
 - X11 forwarding for GUI applications
 
