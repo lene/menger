@@ -18,6 +18,8 @@ AMI_ID=""
 SSH_KEY="${HOME}/.ssh/id_rsa.pub"
 COMMAND=""
 LIST_INSTANCES=false
+LIST_RUNNING=false
+TERMINATE=false
 
 # Colors for output
 RED='\033[0;31m'
@@ -37,19 +39,27 @@ OPTIONS:
   --instance-type TYPE     Instance type (default: g4dn.xlarge)
   --max-price PRICE        Maximum spot price per hour (default: 0.50)
   --max-cost COST          Maximum total session cost (default: 10.00)
-  --ami-id AMI_ID          Custom AMI ID (required)
+  --ami-id AMI_ID          Custom AMI ID (required for launch)
   --list-instances         List available NVIDIA instances and spot prices
+  --list-running           Show currently running instances managed by this script
+  --terminate              Terminate all running instances and clean up resources
   --command "CMD"          Run command and auto-terminate
   --no-auto-terminate      Disable auto-termination on logout
   --ssh-key PATH           Path to SSH public key (default: ~/.ssh/id_rsa.pub)
   -h, --help               Show this help message
 
 EXAMPLES:
-  # List available instances
+  # List available instance types
   $0 --list-instances
 
   # Launch with defaults
   $0 --ami-id ami-xxxxxxxxxxxx
+
+  # Check running instances
+  $0 --list-running
+
+  # Terminate running instances
+  $0 --terminate
 
   # Specify instance type and max price
   $0 --ami-id ami-xxxxxxxxxxxx --instance-type g5.xlarge --max-price 0.75
@@ -97,6 +107,14 @@ while [[ $# -gt 0 ]]; do
       LIST_INSTANCES=true
       shift
       ;;
+    --list-running)
+      LIST_RUNNING=true
+      shift
+      ;;
+    --terminate)
+      TERMINATE=true
+      shift
+      ;;
     --command)
       COMMAND="$2"
       AUTO_TERMINATE="true"
@@ -123,6 +141,102 @@ done
 # List instances if requested
 if [ "$LIST_INSTANCES" = true ]; then
   bash "$SCRIPT_DIR/list-instances.sh" "$REGION"
+  exit 0
+fi
+
+# List running instances if requested
+if [ "$LIST_RUNNING" = true ]; then
+  cd "$TERRAFORM_DIR"
+
+  if [ ! -f "terraform.tfstate" ] || [ ! -s "terraform.tfstate" ]; then
+    echo -e "${YELLOW}No terraform state found. No instances currently managed.${NC}"
+    exit 0
+  fi
+
+  # Check if there are any resources in the state
+  RESOURCE_COUNT=$(terraform state list 2>/dev/null | wc -l)
+  if [ "$RESOURCE_COUNT" -eq 0 ]; then
+    echo -e "${YELLOW}No active instances found.${NC}"
+    exit 0
+  fi
+
+  echo -e "${GREEN}=== Running Instances ===${NC}"
+  echo ""
+
+  # Get instance info from terraform state
+  INSTANCE_ID=$(terraform output -raw instance_id 2>/dev/null || echo "N/A")
+  INSTANCE_IP=$(terraform output -raw instance_public_ip 2>/dev/null || echo "N/A")
+  SPOT_REQUEST_ID=$(terraform output -raw spot_request_id 2>/dev/null || echo "N/A")
+
+  if [ "$INSTANCE_ID" != "N/A" ] && [ -n "$INSTANCE_ID" ]; then
+    # Get additional details from AWS
+    INSTANCE_INFO=$(aws ec2 describe-instances \
+      --region "$REGION" \
+      --instance-ids "$INSTANCE_ID" \
+      --query 'Reservations[0].Instances[0].[InstanceType,State.Name,LaunchTime,Tags[?Key==`Project`].Value|[0]]' \
+      --output text 2>/dev/null || echo "")
+
+    if [ -n "$INSTANCE_INFO" ]; then
+      read -r INST_TYPE STATE LAUNCH_TIME PROJECT <<< "$INSTANCE_INFO"
+
+      echo "Instance ID:       $INSTANCE_ID"
+      echo "Spot Request ID:   $SPOT_REQUEST_ID"
+      echo "Public IP:         $INSTANCE_IP"
+      echo "Instance Type:     $INST_TYPE"
+      echo "State:             $STATE"
+      echo "Project:           $PROJECT"
+      echo "Launch Time:       $LAUNCH_TIME"
+      echo ""
+      echo -e "${YELLOW}To terminate this instance:${NC}"
+      echo "  $0 --terminate"
+      echo ""
+      echo -e "${YELLOW}To connect:${NC}"
+      echo "  ssh -X ubuntu@$INSTANCE_IP"
+    else
+      echo -e "${YELLOW}Instance tracked in terraform but not found in AWS.${NC}"
+      echo "Instance may have been terminated externally."
+      echo ""
+      echo -e "${YELLOW}To clean up terraform state:${NC}"
+      echo "  cd $TERRAFORM_DIR && terraform destroy"
+    fi
+  else
+    echo -e "${YELLOW}No active instances found.${NC}"
+  fi
+
+  exit 0
+fi
+
+# Terminate instances if requested
+if [ "$TERMINATE" = true ]; then
+  cd "$TERRAFORM_DIR"
+
+  if [ ! -f "terraform.tfstate" ] || [ ! -s "terraform.tfstate" ]; then
+    echo -e "${YELLOW}No terraform state found. Nothing to terminate.${NC}"
+    exit 0
+  fi
+
+  # Check if there are any resources
+  RESOURCE_COUNT=$(terraform state list 2>/dev/null | wc -l)
+  if [ "$RESOURCE_COUNT" -eq 0 ]; then
+    echo -e "${YELLOW}No active instances to terminate.${NC}"
+    exit 0
+  fi
+
+  # Get instance info before destroying
+  INSTANCE_ID=$(terraform output -raw instance_id 2>/dev/null || echo "")
+
+  echo -e "${YELLOW}Terminating infrastructure...${NC}"
+
+  # Destroy with minimal output
+  if terraform destroy -auto-approve > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ Instance terminated${NC}"
+    [ -n "$INSTANCE_ID" ] && echo "  Instance ID: $INSTANCE_ID"
+  else
+    echo -e "${RED}Error: Failed to destroy infrastructure${NC}"
+    echo "Run manually: cd $TERRAFORM_DIR && terraform destroy"
+    exit 1
+  fi
+
   exit 0
 fi
 
@@ -216,7 +330,7 @@ echo ""
 # Wait for user-data to complete
 echo -e "${YELLOW}Waiting for instance initialization...${NC}"
 ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP \
-  'while [ ! -f /var/log/user-data.log ] || ! grep -q "Initialization complete" /var/log/user-data.log 2>/dev/null; do sleep 5; done'
+  'bash -c "while [ ! -f /var/log/user-data.log ] || ! grep -q \"Initialization complete\" /var/log/user-data.log 2>/dev/null; do sleep 5; done"'
 
 echo -e "${GREEN}Instance ready!${NC}"
 echo ""
@@ -225,8 +339,8 @@ echo ""
 if [ -n "$GIT_USER_NAME" ] && [ -n "$GIT_USER_EMAIL" ]; then
   echo -e "${YELLOW}Configuring git identity...${NC}"
   ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP \
-    "git config --global user.name \"$GIT_USER_NAME\" && \
-     git config --global user.email \"$GIT_USER_EMAIL\""
+    "bash -c \"git config --global user.name \\\"$GIT_USER_NAME\\\" && \
+     git config --global user.email \\\"$GIT_USER_EMAIL\\\"\""
   echo -e "${GREEN}Git configured: $GIT_USER_NAME <$GIT_USER_EMAIL>${NC}"
   echo ""
 fi
@@ -236,9 +350,9 @@ if [ "$AUTO_TERMINATE" = "true" ]; then
   echo -e "${YELLOW}Setting up auto-terminate daemon...${NC}"
   scp -o StrictHostKeyChecking=no "$SCRIPT_DIR/auto-terminate.sh" ubuntu@$INSTANCE_IP:/tmp/
   ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP \
-    'sudo mv /tmp/auto-terminate.sh /usr/local/bin/ && \
+    'bash -c "sudo mv /tmp/auto-terminate.sh /usr/local/bin/ && \
      sudo chmod +x /usr/local/bin/auto-terminate.sh && \
-     sudo nohup /usr/local/bin/auto-terminate.sh > /dev/null 2>&1 &'
+     sudo nohup /usr/local/bin/auto-terminate.sh > /dev/null 2>&1 &"'
   echo -e "${GREEN}Auto-terminate daemon started${NC}"
   echo ""
 fi
@@ -250,7 +364,7 @@ echo ""
 # Run command if specified
 if [ -n "$COMMAND" ]; then
   echo -e "${YELLOW}Executing command: $COMMAND${NC}"
-  ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP "$COMMAND"
+  ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP "bash -c $(printf '%q' "$COMMAND")"
   echo ""
   echo -e "${GREEN}Command completed${NC}"
   echo -e "${YELLOW}Instance will auto-terminate after grace period${NC}"

@@ -2,6 +2,18 @@
 
 ## [0.3.0] - 2025-10-06
 
+### Added
+- Added --list-running option to nvidia-spot.sh to show currently running instances
+- Added --terminate option to nvidia-spot.sh to terminate instances with concise output
+- Added spot_request_id output to Terraform configuration
+
+### Fixed
+- Fixed nvidia-spot.sh to wrap bash commands in 'bash -c' for fish shell compatibility
+
+### Upgraded
+- Updated build-ami.sh to use Ubuntu 24.04 (noble) as base image
+- Updated CUDA repository configuration for Ubuntu 24.04 compatibility
+- Added Claude Code installation to AMI provisioning
 
 ## [0.2.9] - 2025-10-05
 

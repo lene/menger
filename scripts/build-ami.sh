@@ -25,13 +25,14 @@ echo "Region: $REGION"
 echo "Instance Type: $INSTANCE_TYPE"
 echo "OptiX Installer: $OPTIX_INSTALLER"
 
-# Get latest Ubuntu 22.04 AMI
+# Get latest Ubuntu 24.04 AMI
 echo "=== Finding base Ubuntu AMI ==="
+CANONICAL=099720109477
 BASE_AMI=$(aws ec2 describe-images \
   --region "$REGION" \
-  --owners 099720109477 \
+  --owners "$CANONICAL" \
   --filters \
-    "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*" \
+    "Name=name,Values=ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*" \
     "Name=state,Values=available" \
   --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
   --output text)
@@ -49,20 +50,21 @@ aws ec2 create-key-pair \
   --output text > "$KEY_FILE"
 chmod 400 "$KEY_FILE"
 
-# Create security group
+# Get or create security group
 SG_NAME="menger-ami-build-sg"
-echo "=== Creating security group: $SG_NAME ==="
-SG_ID=$(aws ec2 create-security-group \
+echo "=== Checking for security group: $SG_NAME ==="
+SG_ID=$(aws ec2 describe-security-groups \
   --region "$REGION" \
-  --group-name "$SG_NAME" \
-  --description "Temporary SG for AMI building" \
-  --query 'GroupId' \
-  --output text) || {
-  # If SG already exists, get its ID
-  SG_ID=$(aws ec2 describe-security-groups \
+  --group-names "$SG_NAME" \
+  --query 'SecurityGroups[0].GroupId' \
+  --output text 2>/dev/null) || {
+  # SG doesn't exist, create it
+  echo "Security group not found, creating..."
+  SG_ID=$(aws ec2 create-security-group \
     --region "$REGION" \
-    --group-names "$SG_NAME" \
-    --query 'SecurityGroups[0].GroupId' \
+    --group-name "$SG_NAME" \
+    --description "Temporary SG for AMI building" \
+    --query 'GroupId' \
     --output text)
 }
 
@@ -76,6 +78,38 @@ aws ec2 authorize-security-group-ingress \
 
 echo "Security Group: $SG_ID"
 
+# Get or find subnet
+if [ -z "$SUBNET_ID" ]; then
+  echo "=== Finding subnet in default VPC ==="
+  VPC_ID=$(aws ec2 describe-vpcs \
+    --region "$REGION" \
+    --filters "Name=isDefault,Values=true" \
+    --query 'Vpcs[0].VpcId' \
+    --output text)
+
+  SUBNET_ID=$(aws ec2 describe-subnets \
+    --region "$REGION" \
+    --filters "Name=vpc-id,Values=$VPC_ID" \
+    --query 'Subnets[0].SubnetId' \
+    --output text)
+
+  if [ "$SUBNET_ID" = "None" ] || [ -z "$SUBNET_ID" ]; then
+    echo "Error: No subnets found in default VPC. Creating one..."
+    SUBNET_ID=$(aws ec2 create-subnet \
+      --region "$REGION" \
+      --vpc-id "$VPC_ID" \
+      --cidr-block "172.31.0.0/20" \
+      --query 'Subnet.SubnetId' \
+      --output text)
+    aws ec2 modify-subnet-attribute \
+      --region "$REGION" \
+      --subnet-id "$SUBNET_ID" \
+      --map-public-ip-on-launch
+  fi
+fi
+
+echo "Subnet: $SUBNET_ID"
+
 # Launch temporary instance
 echo "=== Launching temporary build instance ==="
 INSTANCE_ID=$(aws ec2 run-instances \
@@ -84,6 +118,7 @@ INSTANCE_ID=$(aws ec2 run-instances \
   --instance-type "$INSTANCE_TYPE" \
   --key-name "$KEY_NAME" \
   --security-group-ids "$SG_ID" \
+  --subnet-id "$SUBNET_ID" \
   --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=100,VolumeType=gp3}' \
   --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=menger-ami-builder}]" \
   --query 'Instances[0].InstanceId' \
@@ -138,6 +173,13 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   build-essential git curl wget vim htop tmux unzip jq software-properties-common
 
+# Install Node.js (required for Claude Code)
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
+
+# Install Claude Code
+sudo npm install -g @anthropic-ai/claude-code
+
 # Fish shell
 sudo apt-add-repository ppa:fish-shell/release-3 -y
 sudo apt-get update
@@ -145,7 +187,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y fish
 
 # X11 support
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  xauth x11-apps libx11-dev libxext-dev libxrender-dev libxtst-dev libxi-dev
+  xauth x11-apps libx11-dev libxext-dev libxrender-dev libxtst-dev libxi-dev xvfb
 
 # Configure X11 forwarding
 sudo sed -i 's/#X11Forwarding yes/X11Forwarding yes/' /etc/ssh/sshd_config
@@ -157,7 +199,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-drivers-common
 sudo ubuntu-drivers install --gpgpu
 
 # Install CUDA 12.8
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
 sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt-get update
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cuda-toolkit-12-8

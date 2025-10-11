@@ -3,6 +3,11 @@ output "instance_id" {
   value       = aws_spot_instance_request.nvidia_dev.spot_instance_id
 }
 
+output "spot_request_id" {
+  description = "Spot instance request ID"
+  value       = aws_spot_instance_request.nvidia_dev.id
+}
+
 output "instance_public_ip" {
   description = "Public IP address of the instance"
   value       = aws_spot_instance_request.nvidia_dev.public_ip
