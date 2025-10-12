@@ -6,9 +6,13 @@
 - Added --list-running option to nvidia-spot.sh to show currently running instances
 - Added --terminate option to nvidia-spot.sh to terminate instances with concise output
 - Added spot_request_id output to Terraform configuration
+- Added --availability-zone option to target specific AZs (region automatically derived from AZ)
 
 ### Fixed
 - Fixed nvidia-spot.sh to wrap bash commands in 'bash -c' for fish shell compatibility
+- Fixed Terraform configuration to automatically create subnet if none exists in default VPC
+- Simplified auto-termination to use local sleep and terraform destroy instead of remote daemon
+- Reduced verbose Terraform output during instance launch
 
 ### Upgraded
 - Updated build-ami.sh to use Ubuntu 24.04 (noble) as base image

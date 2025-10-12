@@ -20,13 +20,34 @@ get_session_count() {
   who | grep -c "pts/" || echo "0"
 }
 
-# Get instance metadata
+# Get instance metadata using IMDSv2
+get_metadata_token() {
+  curl -X PUT -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" \
+    -s http://169.254.169.254/latest/api/token 2>/dev/null
+}
+
 get_instance_id() {
-  curl -s http://169.254.169.254/latest/meta-data/instance-id
+  local token=$(get_metadata_token)
+  if [ -n "$token" ]; then
+    # Use IMDSv2
+    curl -H "X-aws-ec2-metadata-token: $token" \
+      -s http://169.254.169.254/latest/meta-data/instance-id
+  else
+    # Fallback to IMDSv1
+    curl -s http://169.254.169.254/latest/meta-data/instance-id
+  fi
 }
 
 get_region() {
-  curl -s http://169.254.169.254/latest/meta-data/placement/region
+  local token=$(get_metadata_token)
+  if [ -n "$token" ]; then
+    # Use IMDSv2
+    curl -H "X-aws-ec2-metadata-token: $token" \
+      -s http://169.254.169.254/latest/meta-data/placement/region
+  else
+    # Fallback to IMDSv1
+    curl -s http://169.254.169.254/latest/meta-data/placement/region
+  fi
 }
 
 # Shutdown instance using AWS CLI
@@ -36,20 +57,28 @@ shutdown_instance() {
 
   log "Initiating instance termination: $instance_id in $region"
 
-  # Try to use AWS CLI to terminate
-  if command -v aws &> /dev/null; then
-    aws ec2 terminate-instances \
-      --region "$region" \
-      --instance-ids "$instance_id" 2>&1 | tee -a "$LOG_FILE"
-  else
-    log "AWS CLI not available, using shutdown command"
-    sudo shutdown -h now
+  # Require AWS CLI to terminate
+  if ! command -v aws &> /dev/null; then
+    log "ERROR: AWS CLI not available. Cannot terminate instance properly."
+    log "Instance will remain running. Please terminate manually or install AWS CLI."
+    return 1
   fi
+
+  aws ec2 terminate-instances \
+    --region "$region" \
+    --instance-ids "$instance_id" 2>&1 | tee -a "$LOG_FILE"
 }
 
 # Main daemon logic
 main() {
   log "=== Auto-terminate daemon started ==="
+
+  # Check if AWS CLI is available
+  if ! command -v aws &> /dev/null; then
+    log "ERROR: AWS CLI not found. Daemon cannot function without it."
+    log "Please install AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
+    exit 1
+  fi
 
   local instance_id
   local region

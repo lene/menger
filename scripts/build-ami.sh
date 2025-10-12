@@ -173,6 +173,12 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   build-essential git curl wget vim htop tmux unzip jq software-properties-common
 
+# Install AWS CLI (required for auto-terminate daemon)
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+unzip -q /tmp/awscliv2.zip -d /tmp
+sudo /tmp/aws/install
+rm -rf /tmp/aws /tmp/awscliv2.zip
+
 # Install Node.js (required for Claude Code)
 curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs

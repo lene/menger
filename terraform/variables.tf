@@ -4,6 +4,12 @@ variable "region" {
   default     = "us-east-1"
 }
 
+variable "availability_zone" {
+  description = "AWS availability zone (optional, e.g., us-east-1a). If not specified, uses any available AZ"
+  type        = string
+  default     = ""
+}
+
 variable "instance_type" {
   description = "EC2 instance type with NVIDIA GPU"
   type        = string

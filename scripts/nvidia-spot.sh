@@ -10,6 +10,7 @@ TERRAFORM_DIR="$PROJECT_ROOT/terraform"
 
 # Default configuration
 REGION="${AWS_REGION:-us-east-1}"
+AVAILABILITY_ZONE=""
 INSTANCE_TYPE="g4dn.xlarge"
 MAX_SPOT_PRICE="0.50"
 MAX_SESSION_COST="10.00"
@@ -35,18 +36,19 @@ Usage: $0 [OPTIONS]
 Launch and manage NVIDIA GPU spot instances for menger development.
 
 OPTIONS:
-  --region REGION          AWS region (default: from ~/.aws/config or us-east-1)
-  --instance-type TYPE     Instance type (default: g4dn.xlarge)
-  --max-price PRICE        Maximum spot price per hour (default: 0.50)
-  --max-cost COST          Maximum total session cost (default: 10.00)
-  --ami-id AMI_ID          Custom AMI ID (required for launch)
-  --list-instances         List available NVIDIA instances and spot prices
-  --list-running           Show currently running instances managed by this script
-  --terminate              Terminate all running instances and clean up resources
-  --command "CMD"          Run command and auto-terminate
-  --no-auto-terminate      Disable auto-termination on logout
-  --ssh-key PATH           Path to SSH public key (default: ~/.ssh/id_rsa.pub)
-  -h, --help               Show this help message
+  --region REGION            AWS region (default: from ~/.aws/config or us-east-1)
+  --availability-zone AZ     AWS availability zone (e.g., us-east-1a). Region is derived from AZ
+  --instance-type TYPE       Instance type (default: g4dn.xlarge)
+  --max-price PRICE          Maximum spot price per hour (default: 0.50)
+  --max-cost COST            Maximum total session cost (default: 10.00)
+  --ami-id AMI_ID            Custom AMI ID (required for launch)
+  --list-instances           List available NVIDIA instances and spot prices
+  --list-running             Show currently running instances managed by this script
+  --terminate                Terminate all running instances and clean up resources
+  --command "CMD"            Run command and auto-terminate
+  --no-auto-terminate        Disable auto-termination on logout
+  --ssh-key PATH             Path to SSH public key (default: ~/.ssh/id_rsa.pub)
+  -h, --help                 Show this help message
 
 EXAMPLES:
   # List available instance types
@@ -54,6 +56,9 @@ EXAMPLES:
 
   # Launch with defaults
   $0 --ami-id ami-xxxxxxxxxxxx
+
+  # Launch in specific availability zone (useful for GPU availability, region derived)
+  $0 --ami-id ami-xxxxxxxxxxxx --availability-zone eu-central-1b
 
   # Check running instances
   $0 --list-running
@@ -85,6 +90,10 @@ while [[ $# -gt 0 ]]; do
   case $1 in
     --region)
       REGION="$2"
+      shift 2
+      ;;
+    --availability-zone)
+      AVAILABILITY_ZONE="$2"
       shift 2
       ;;
     --instance-type)
@@ -137,6 +146,14 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# Derive region from availability zone if specified
+if [ -n "$AVAILABILITY_ZONE" ]; then
+  # Extract region by removing the last character (the AZ letter)
+  REGION="${AVAILABILITY_ZONE%?}"
+  echo -e "${YELLOW}Note: Using region $REGION derived from availability zone $AVAILABILITY_ZONE${NC}"
+  echo ""
+fi
 
 # List instances if requested
 if [ "$LIST_INSTANCES" = true ]; then
@@ -275,6 +292,7 @@ fi
 
 echo -e "${GREEN}=== NVIDIA Spot Instance Configuration ===${NC}"
 echo "Region:            $REGION"
+[ -n "$AVAILABILITY_ZONE" ] && echo "Availability Zone: $AVAILABILITY_ZONE"
 echo "Instance Type:     $INSTANCE_TYPE"
 echo "Max Spot Price:    \$${MAX_SPOT_PRICE}/hour"
 echo "Max Session Cost:  \$${MAX_SESSION_COST}"
@@ -288,24 +306,34 @@ cd "$TERRAFORM_DIR"
 
 # Create terraform.tfvars
 cat > terraform.tfvars <<EOF
-region           = "$REGION"
-instance_type    = "$INSTANCE_TYPE"
-max_spot_price   = "$MAX_SPOT_PRICE"
-max_session_cost = $MAX_SESSION_COST
-ami_id           = "$AMI_ID"
-user_public_key  = "$SSH_PUBLIC_KEY"
-auto_terminate   = $AUTO_TERMINATE
+region             = "$REGION"
+availability_zone  = "$AVAILABILITY_ZONE"
+instance_type      = "$INSTANCE_TYPE"
+max_spot_price     = "$MAX_SPOT_PRICE"
+max_session_cost   = $MAX_SESSION_COST
+ami_id             = "$AMI_ID"
+user_public_key    = "$SSH_PUBLIC_KEY"
+auto_terminate     = $AUTO_TERMINATE
 EOF
 
 # Initialize terraform if needed
 if [ ! -d ".terraform" ]; then
   echo -e "${YELLOW}Initializing Terraform...${NC}"
-  terraform init
+  if ! terraform init > /dev/null 2>&1; then
+    echo -e "${RED}Error: Terraform initialization failed${NC}"
+    terraform init
+    exit 1
+  fi
 fi
 
 # Apply terraform configuration
 echo -e "${YELLOW}Launching spot instance...${NC}"
-terraform apply -auto-approve
+if ! terraform apply -auto-approve -compact-warnings > /dev/null 2>&1; then
+  echo -e "${RED}Error: Terraform apply failed${NC}"
+  echo "Retrying with output for debugging..."
+  terraform apply -auto-approve
+  exit 1
+fi
 
 # Extract instance information
 INSTANCE_IP=$(terraform output -raw instance_public_ip)
@@ -345,18 +373,6 @@ if [ -n "$GIT_USER_NAME" ] && [ -n "$GIT_USER_EMAIL" ]; then
   echo ""
 fi
 
-# Upload and start auto-terminate daemon if enabled
-if [ "$AUTO_TERMINATE" = "true" ]; then
-  echo -e "${YELLOW}Setting up auto-terminate daemon...${NC}"
-  scp -o StrictHostKeyChecking=no "$SCRIPT_DIR/auto-terminate.sh" ubuntu@$INSTANCE_IP:/tmp/
-  ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP \
-    'bash -c "sudo mv /tmp/auto-terminate.sh /usr/local/bin/ && \
-     sudo chmod +x /usr/local/bin/auto-terminate.sh && \
-     sudo nohup /usr/local/bin/auto-terminate.sh > /dev/null 2>&1 &"'
-  echo -e "${GREEN}Auto-terminate daemon started${NC}"
-  echo ""
-fi
-
 # Display welcome message
 ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP 'cat ~/WELCOME.txt'
 echo ""
@@ -383,14 +399,33 @@ echo ""
 echo -e "${YELLOW}Disconnected from instance${NC}"
 
 if [ "$AUTO_TERMINATE" = "true" ]; then
-  echo -e "${YELLOW}Instance will auto-terminate after grace period (5 minutes)${NC}"
-  echo "To destroy immediately, run:"
-  echo "  cd $TERRAFORM_DIR && terraform destroy"
+  echo -e "${YELLOW}Waiting 5 minutes before auto-terminating instance...${NC}"
+  echo "Press Ctrl+C to cancel auto-termination and keep instance running"
+  echo ""
+
+  # Wait 5 minutes (300 seconds)
+  if sleep 300; then
+    echo -e "${YELLOW}Grace period expired. Terminating instance...${NC}"
+    cd "$TERRAFORM_DIR"
+    if terraform destroy -auto-approve > /dev/null 2>&1; then
+      echo -e "${GREEN}✓ Instance terminated${NC}"
+    else
+      echo -e "${RED}Error: Failed to destroy infrastructure${NC}"
+      echo "Run manually: cd $TERRAFORM_DIR && terraform destroy"
+      exit 1
+    fi
+  else
+    echo ""
+    echo -e "${YELLOW}Auto-termination cancelled. Instance left running.${NC}"
+    echo "To destroy later:"
+    echo "  cd $TERRAFORM_DIR && terraform destroy"
+  fi
 else
   read -p "Destroy instance now? [y/N] " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo -e "${YELLOW}Destroying instance...${NC}"
+    cd "$TERRAFORM_DIR"
     terraform destroy -auto-approve
     echo -e "${GREEN}Instance destroyed${NC}"
   else
