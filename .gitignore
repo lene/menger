@@ -20,7 +20,6 @@ local.sbt
 
 # local dev tools
 .jvmopts
-CLAUDE.md
 
 # Bloop
 .bsp
