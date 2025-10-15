@@ -30,10 +30,6 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
   private val dispatcher = stub[EventDispatcher]
   dispatcher.notifyObservers.returns (_ => ())
 
-  // class MockedApplication extends Lwjgl3Application(MengerEngine(.01), Lwjgl3ApplicationConfiguration())
-  // private val application = stub[MockedApplication]
-  // Gdx.app = application
-
   private val ORIGIN = Vector3(0, 0, 0)
   private def controller = KeyController(camera, dispatcher)
 

@@ -356,3 +356,18 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
     val sponge = TesseractSponge2(0.5f)
     val level0 = TesseractSponge2(0f)
     sponge.faces should have size level0.faces.size
+
+  "All vertices of TesseractSponge2(1)" should "be inside or on the boundary of TesseractSponge(0)" in :
+    val sponge = TesseractSponge2(1)
+    val boundingSponge = TesseractSponge(0)
+    forAll(sponge.faces.flatMap(_.asSeq)) { v =>
+      boundingSponge.isInSponge(v) should be(true)
+    }
+
+  "All vertices of TesseractSponge2(2)" should "be inside or on the boundary of TesseractSponge(1)" in :
+    pending
+    val sponge = TesseractSponge2(2)
+    val boundingSponge = TesseractSponge(1)
+    forAll(sponge.faces.flatMap(_.asSeq)) { v =>
+      boundingSponge.isInSponge(v) should be(true)
+    }
