@@ -43,8 +43,10 @@ for family in $INSTANCE_FAMILIES; do
         --instance-types "$instance" \
         --product-descriptions "Linux/UNIX" \
         --max-items 1 \
-        --query 'SpotPriceHistory[0].SpotPrice' \
-        --output text 2>/dev/null || echo "N/A")
+        --output json 2>/dev/null | jq -r '.SpotPriceHistory[0].SpotPrice // "N/A"' 2>/dev/null || echo "N/A")
+
+      # Skip instances without spot pricing
+      [ "$spot_price" = "N/A" ] && continue
 
       # Convert memory from MiB to GiB
       mem_gb=$(echo "scale=1; $mem / 1024" | bc)
