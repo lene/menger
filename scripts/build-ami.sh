@@ -155,9 +155,13 @@ sleep 60
 # SSH options
 SSH_OPTS="-i $KEY_FILE -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
-# Copy OptiX installer
+# Copy OptiX installer and verification script
 echo "=== Uploading OptiX installer ==="
 scp $SSH_OPTS "$OPTIX_INSTALLER" ubuntu@$PUBLIC_IP:/tmp/optix-installer.sh
+
+echo "=== Uploading verification script ==="
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+scp $SSH_OPTS "$SCRIPT_DIR/verify-optix.sh" ubuntu@$PUBLIC_IP:/tmp/verify-optix.sh
 
 # Run provisioning script
 echo "=== Running provisioning script (this will take 15-30 minutes) ==="
@@ -217,14 +221,52 @@ chmod +x /tmp/optix-installer.sh
 sudo /tmp/optix-installer.sh --skip-license --prefix=/opt/optix
 rm /tmp/optix-installer.sh
 
-# Set environment variables in skeleton
+# Set environment variables system-wide and for all users
+
+# 1. System-wide environment file
+sudo tee /etc/profile.d/cuda-optix.sh > /dev/null <<'ENVEOF'
+export PATH=/usr/local/cuda-12.8/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH
+export CUDA_HOME=/usr/local/cuda-12.8
+export OPTIX_ROOT=/opt/optix
+ENVEOF
+sudo chmod +x /etc/profile.d/cuda-optix.sh
+
+# 2. Add to /etc/environment for system-wide availability
+sudo sed -i 's|^PATH="|PATH="/usr/local/cuda-12.8/bin:|' /etc/environment
+echo 'CUDA_HOME="/usr/local/cuda-12.8"' | sudo tee -a /etc/environment
+echo 'OPTIX_ROOT="/opt/optix"' | sudo tee -a /etc/environment
+echo 'LD_LIBRARY_PATH="/usr/local/cuda-12.8/lib64"' | sudo tee -a /etc/environment
+
+# 3. Add to existing ubuntu user (bash)
+echo 'export PATH=/usr/local/cuda-12.8/bin:$PATH' >> ~/.bashrc
+echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+echo 'export CUDA_HOME=/usr/local/cuda-12.8' >> ~/.bashrc
+echo 'export OPTIX_ROOT=/opt/optix' >> ~/.bashrc
+
+# 4. Add to existing ubuntu user (fish)
+mkdir -p ~/.config/fish
+cat >> ~/.config/fish/config.fish <<'FISHEOF'
+set -x PATH /usr/local/cuda-12.8/bin $PATH
+set -x LD_LIBRARY_PATH /usr/local/cuda-12.8/lib64 $LD_LIBRARY_PATH
+set -x CUDA_HOME /usr/local/cuda-12.8
+set -x OPTIX_ROOT /opt/optix
+FISHEOF
+
+# 5. Add to skeleton for new users (bash)
 echo 'export PATH=/usr/local/cuda-12.8/bin:$PATH' | sudo tee -a /etc/skel/.bashrc
 echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH' | sudo tee -a /etc/skel/.bashrc
+echo 'export CUDA_HOME=/usr/local/cuda-12.8' | sudo tee -a /etc/skel/.bashrc
 echo 'export OPTIX_ROOT=/opt/optix' | sudo tee -a /etc/skel/.bashrc
+
+# 6. Add to skeleton for new users (fish)
 sudo mkdir -p /etc/skel/.config/fish
-echo 'set -x PATH /usr/local/cuda-12.8/bin $PATH' | sudo tee /etc/skel/.config/fish/config.fish
-echo 'set -x LD_LIBRARY_PATH /usr/local/cuda-12.8/lib64 $LD_LIBRARY_PATH' | sudo tee -a /etc/skel/.config/fish/config.fish
-echo 'set -x OPTIX_ROOT /opt/optix' | sudo tee -a /etc/skel/.config/fish/config.fish
+sudo tee /etc/skel/.config/fish/config.fish > /dev/null <<'FISHSKELEOF'
+set -x PATH /usr/local/cuda-12.8/bin $PATH
+set -x LD_LIBRARY_PATH /usr/local/cuda-12.8/lib64 $LD_LIBRARY_PATH
+set -x CUDA_HOME /usr/local/cuda-12.8
+set -x OPTIX_ROOT /opt/optix
+FISHSKELEOF
 
 # Java
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-17-jdk
@@ -251,6 +293,30 @@ echo "Provisioning completed at $(date)"
 PROVISION_SCRIPT
 
 echo "=== Provisioning complete ==="
+
+# Verify OptiX installation
+echo "=== Verifying OptiX installation ==="
+ssh $SSH_OPTS ubuntu@$PUBLIC_IP 'bash -s' <<'VERIFY_SCRIPT'
+# Set environment variables for verification
+export PATH=/usr/local/cuda-12.8/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH
+export CUDA_HOME=/usr/local/cuda-12.8
+export OPTIX_ROOT=/opt/optix
+
+# Run verification
+chmod +x /tmp/verify-optix.sh
+/tmp/verify-optix.sh
+VERIFY_SCRIPT
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "=== ERROR: OptiX verification failed ==="
+    echo "AMI build aborted. Please review the verification output above."
+    echo ""
+    exit 1
+fi
+
+echo "=== OptiX verification successful ==="
 
 # Stop instance
 echo "=== Stopping instance ==="

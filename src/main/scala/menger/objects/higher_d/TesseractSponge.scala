@@ -1,8 +1,8 @@
 package menger.objects.higher_d
 
-import menger.Const
-
 import scala.math.abs
+
+import menger.Const
 import menger.objects.Vector
 
 

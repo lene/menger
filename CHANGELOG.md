@@ -3,6 +3,9 @@
 ## [0.3.0] - 2025-10-06
 
 ### Added
+- OptiX verification script (`scripts/verify-optix.sh`) for comprehensive validation of NVIDIA driver, CUDA, and OptiX installation
+- Automated OptiX verification in AMI build process to ensure GPU environment is correctly configured
+- Comprehensive environment variable setup for CUDA and OptiX (PATH, LD_LIBRARY_PATH, CUDA_HOME, OPTIX_ROOT) in system-wide locations, ubuntu user, and skeleton for new users
 - Added --list-running option to nvidia-spot.sh to show currently running instances
 - Added --terminate option to nvidia-spot.sh to terminate instances with concise output
 - Added spot_request_id output to Terraform configuration
