@@ -33,9 +33,7 @@ class AnimatedMengerEngine(
     val currentFrame = frameCounter.get()
     animationSpecifications.rotationProjectionParameters(currentFrame) match
       case scala.util.Success(animParams) =>
-        val rotProjPar = rotationProjectionParameters + animParams
-        Gdx.app.log(s"${getClass.getSimpleName}", s"frame: $currentFrame $rotProjPar ${currentSaveName.getOrElse("")}")
-        rotProjPar
+        rotationProjectionParameters + animParams
       case scala.util.Failure(exception) =>
         Gdx.app.error(s"${getClass.getSimpleName}", s"Animation frame $currentFrame failed: ${exception.getMessage}")
         sys.exit(1)
@@ -44,6 +42,8 @@ class AnimatedMengerEngine(
     Gdx.app.log(s"${getClass.getSimpleName}", s"Animating for $animationSpecifications")
 
   override def render(): Unit =
+    val currentFrame = frameCounter.get()
+    Gdx.app.log(s"${getClass.getSimpleName}", s"frame: $currentFrame |$currentRotProj| ${currentSaveName.getOrElse("")}")
     super.render()
     gdxResources.render(drawables)
     saveImage()
