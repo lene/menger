@@ -21,6 +21,10 @@ COMMAND=""
 LIST_INSTANCES=false
 LIST_RUNNING=false
 TERMINATE=false
+LIST_STATES=false
+RESTORE_STATE=""
+SAVE_STATE=""
+NO_AUTO_RESTORE=false
 
 # Colors for output
 RED='\033[0;31m'
@@ -45,6 +49,10 @@ OPTIONS:
   --list-instances           List available NVIDIA instances and spot prices
   --list-running             Show currently running instances managed by this script
   --terminate                Terminate all running instances and clean up resources
+  --list-states              List all saved instance states
+  --restore-state NAME       Restore specific saved state on launch
+  --save-state NAME          Save instance state with given name before shutdown
+  --no-auto-restore          Don't automatically restore 'last' state on launch
   --command "CMD"            Run command and auto-terminate
   --no-auto-terminate        Disable auto-termination on logout
   --ssh-key PATH             Path to SSH public key (default: ~/.ssh/id_rsa.pub)
@@ -65,6 +73,15 @@ EXAMPLES:
 
   # Terminate running instances
   $0 --terminate
+
+  # List saved states
+  $0 --list-states
+
+  # Restore from specific state
+  $0 --ami-id ami-xxxxxxxxxxxx --restore-state before-refactor
+
+  # Save state before shutdown
+  $0 --ami-id ami-xxxxxxxxxxxx --save-state my-checkpoint
 
   # Specify instance type and max price
   $0 --ami-id ami-xxxxxxxxxxxx --instance-type g5.xlarge --max-price 0.75
@@ -124,6 +141,22 @@ while [[ $# -gt 0 ]]; do
       TERMINATE=true
       shift
       ;;
+    --list-states)
+      LIST_STATES=true
+      shift
+      ;;
+    --restore-state)
+      RESTORE_STATE="$2"
+      shift 2
+      ;;
+    --save-state)
+      SAVE_STATE="$2"
+      shift 2
+      ;;
+    --no-auto-restore)
+      NO_AUTO_RESTORE=true
+      shift
+      ;;
     --command)
       COMMAND="$2"
       AUTO_TERMINATE="true"
@@ -158,6 +191,12 @@ fi
 # List instances if requested
 if [ "$LIST_INSTANCES" = true ]; then
   bash "$SCRIPT_DIR/list-instances.sh" "$REGION"
+  exit 0
+fi
+
+# List saved states if requested
+if [ "$LIST_STATES" = true ]; then
+  bash "$SCRIPT_DIR/list-spot-states.sh"
   exit 0
 fi
 
@@ -373,6 +412,31 @@ if [ -n "$GIT_USER_NAME" ] && [ -n "$GIT_USER_EMAIL" ]; then
   echo ""
 fi
 
+# Restore state if requested
+BACKUP_BASE="${SPOT_STATES_DIR:-$HOME/.aws/spot-states}"
+STATE_TO_RESTORE=""
+
+if [ -n "$RESTORE_STATE" ]; then
+  # Explicit state restoration requested
+  STATE_TO_RESTORE="$RESTORE_STATE"
+elif [ "$NO_AUTO_RESTORE" = false ] && [ -d "$BACKUP_BASE/last" ]; then
+  # Auto-restore 'last' state if it exists
+  STATE_TO_RESTORE="last"
+  echo -e "${YELLOW}Note: Auto-restoring 'last' saved state (use --no-auto-restore to skip)${NC}"
+  echo ""
+fi
+
+if [ -n "$STATE_TO_RESTORE" ]; then
+  echo -e "${YELLOW}Restoring state: $STATE_TO_RESTORE${NC}"
+  if bash "$SCRIPT_DIR/restore-spot-state.sh" "$STATE_TO_RESTORE" "$INSTANCE_IP"; then
+    echo -e "${GREEN}✓ State restored successfully${NC}"
+  else
+    echo -e "${RED}Warning: State restoration failed${NC}"
+    echo "Continuing with fresh instance..."
+  fi
+  echo ""
+fi
+
 # Display welcome message
 ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP 'cat ~/WELCOME.txt'
 echo ""
@@ -399,6 +463,25 @@ echo ""
 echo -e "${YELLOW}Disconnected from instance${NC}"
 
 if [ "$AUTO_TERMINATE" = "true" ]; then
+  # Backup state before termination
+  STATE_NAME_TO_SAVE="${SAVE_STATE:-last}"
+
+  echo -e "${YELLOW}Backing up instance state: $STATE_NAME_TO_SAVE${NC}"
+  if bash "$SCRIPT_DIR/backup-spot-state.sh" "$STATE_NAME_TO_SAVE" "$INSTANCE_IP"; then
+    echo -e "${GREEN}✓ State backed up successfully${NC}"
+  else
+    echo -e "${RED}Warning: State backup failed${NC}"
+    read -p "Continue with termination? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo "Termination cancelled. Instance left running."
+      echo "To destroy later:"
+      echo "  cd $TERRAFORM_DIR && terraform destroy"
+      exit 0
+    fi
+  fi
+  echo ""
+
   echo -e "${YELLOW}Waiting 5 minutes before auto-terminating instance...${NC}"
   echo "Press Ctrl+C to cancel auto-termination and keep instance running"
   echo ""

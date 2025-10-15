@@ -10,6 +10,18 @@
 - Added --terminate option to nvidia-spot.sh to terminate instances with concise output
 - Added spot_request_id output to Terraform configuration
 - Added --availability-zone option to target specific AZs (region automatically derived from AZ)
+- Spot instance state management system with automatic backup and restoration:
+  - `scripts/backup-spot-state.sh` - Backup instance state with selective rsync (workspace, configs, SSH keys, shell histories)
+  - `scripts/restore-spot-state.sh` - Restore saved state to new instance
+  - `scripts/list-spot-states.sh` - List all saved states with metadata (timestamp, git branch, size)
+  - `scripts/cleanup-spot-states.sh` - Cleanup old states with filters (--older-than-days, --keep-recent)
+- Integrated state management in nvidia-spot.sh:
+  - `--list-states` - List all saved instance states
+  - `--restore-state NAME` - Restore specific saved state on launch
+  - `--save-state NAME` - Save instance state with given name before shutdown
+  - `--no-auto-restore` - Skip automatic restoration of 'last' state
+  - Auto-saves to 'last' state on logout (before auto-termination)
+  - Auto-restores 'last' state on launch (unless --no-auto-restore specified)
 
 ### Fixed
 - Fixed nvidia-spot.sh to wrap bash commands in 'bash -c' for fish shell compatibility
