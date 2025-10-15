@@ -21,7 +21,7 @@ class FractionalRotatedProjection(
   @SuppressWarnings(Array("org.wartremover.warts.Var")) var rotation: Rotation = Rotation(),
   val material: Material = Builder.WHITE_MATERIAL,
   primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(center, scale) with FractionalLevelObject:
+)(using val profilingConfig: menger.ProfilingConfig) extends Geometry(center, scale) with FractionalLevelObject:
 
   private lazy val transparentRotatedProjection: Option[RotatedProjection] =
     if level.isValidInt then None

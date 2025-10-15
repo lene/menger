@@ -5,6 +5,7 @@ import menger.AnimatedMengerEngine
 import menger.InteractiveMengerEngine
 import menger.MengerCLIOptions
 import menger.MengerEngine
+import menger.ProfilingConfig
 import menger.RotationProjectionParameters
 
 object Main:
@@ -30,15 +31,19 @@ object Main:
     config
 
   def createEngine(opts: MengerCLIOptions): MengerEngine =
+    given ProfilingConfig = opts.profileMinMs.toOption match
+      case Some(minMs) => ProfilingConfig.enabled(minMs)
+      case None => ProfilingConfig.disabled
+
     val rotationProjectionParameters = RotationProjectionParameters(opts)
     if opts.animate.isDefined && opts.animate().parts.nonEmpty then
       AnimatedMengerEngine(
-        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(), 
+        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
         opts.animate(), opts.saveName.toOption, opts.faceColor.toOption, opts.lineColor.toOption
       )
     else
       InteractiveMengerEngine(
-        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(), 
+        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
         opts.timeout(), opts.faceColor.toOption, opts.lineColor.toOption
       )
 

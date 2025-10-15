@@ -12,10 +12,11 @@ class AnimatedMengerEngine(
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
   lines: Boolean, color: Color, val animationSpecifications: AnimationSpecifications,
   val saveName: Option[String], faceColor: Option[Color] = None, lineColor: Option[Color] = None
-) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor):
+)(using config: ProfilingConfig) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor):
   private val frameCounter = java.util.concurrent.atomic.AtomicInteger(0)
 
   protected def drawables: List[ModelInstance] =
+    given ProfilingConfig = profilingConfig
     val currentLevel = currentAnimatedLevel
     generateObjectWithOverlay(spongeType, currentLevel) match
       case scala.util.Success(geometry) => geometry.getModel

@@ -13,6 +13,7 @@ extension(v: Vector3)
   def toList: List[Float] = List(v.x, v.y, v.z)
 
 class RotatedProjectionSuite extends AnyFlatSpec with Matchers with CustomMatchers:
+  given menger.ProfilingConfig = menger.ProfilingConfig.disabled
 
   trait ProjectedTesseract:
     val tesseract: RotatedProjection = RotatedProjection(Vector3.Zero, 1f, Tesseract(), Projection(4, 1))

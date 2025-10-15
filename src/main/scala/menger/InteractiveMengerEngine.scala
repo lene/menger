@@ -14,7 +14,7 @@ class InteractiveMengerEngine(
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
   lines: Boolean = false, color: Color = Color.WHITE, timeout: Float = 0,
   faceColor: Option[Color] = None, lineColor: Option[Color] = None
-) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor)
+)(using config: ProfilingConfig) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor)
 with LazyLogging:
   private lazy val sponge: Geometry = generateObjectWithOverlay(
     spongeType, spongeLevel
@@ -25,7 +25,9 @@ with LazyLogging:
       sys.exit(1)
   private lazy val eventDispatcher = dispatcherWithRegisteredSponge
 
-  protected def drawables: List[ModelInstance] = sponge.getModel
+  protected def drawables: List[ModelInstance] =
+    given ProfilingConfig = profilingConfig
+    sponge.getModel
   protected lazy val gdxResources: GDXResources = GDXResources(Some(eventDispatcher))
 
   override def create(): Unit =

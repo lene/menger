@@ -17,7 +17,7 @@ case class RotatedProjection(
   @SuppressWarnings(Array("org.wartremover.warts.Var")) var projection: Projection,
   @SuppressWarnings(Array("org.wartremover.warts.Var")) var rotation: Rotation = Rotation(),
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(center, scale) with RectMesh with Observer:
+)(using val profilingConfig: menger.ProfilingConfig) extends Geometry(center, scale) with RectMesh with Observer:
 
   // Mutable cache for performance-critical mesh computation
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
@@ -32,7 +32,7 @@ case class RotatedProjection(
     rv => QuadInfo(VertexInfo(rv(0)), VertexInfo(rv(1)), VertexInfo(rv(2)), VertexInfo(rv(3)))
   }
 
-  def mesh: Model = logTime("mesh", 10) {
+  def mesh: Model = logTime("mesh") {
     if changed then
       precomputedMesh = model(projectedFaceInfo, primitiveType, material)
       changed = false
@@ -52,5 +52,5 @@ object RotatedProjection:
   def apply(
     object4D: Mesh4D, parameters: RotationProjectionParameters,
     material: Material, primitiveType: Int
-  ): RotatedProjection =
+  )(using config: menger.ProfilingConfig): RotatedProjection =
     RotatedProjection(Vector3.Zero, 1f, object4D, parameters.projection, parameters.rotation, material, primitiveType)

@@ -12,8 +12,10 @@ import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
 
 
 object GdxTest extends Tag("GdxTest")  // needs Gdx to be available
+  given menger.ProfilingConfig = menger.ProfilingConfig.disabled
 
 class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
+  given menger.ProfilingConfig = menger.ProfilingConfig.disabled
   private val loadingLWJGLSucceeds: Boolean = LWJGLLoadChecker.loadingLWJGLSucceeds
   private val camera = createMockCamera
 

@@ -11,10 +11,10 @@ class Composite(
   center: Vector3 = Vector3.Zero,
   scale: Float = 1f,
   geometries: List[Geometry]
-) extends Geometry(center, scale):
+)(using val profilingConfig: menger.ProfilingConfig) extends Geometry(center, scale):
 
   override def getModel: List[ModelInstance] =
-    logTime("getModel()", 5) {
+    logTime("getModel()") {
       geometries.flatMap(_.getModel)
     }
 
@@ -30,7 +30,7 @@ object Composite:
   def parseCompositeFromCLIOption(
     spongeType: String, level: Float, material: Material, primitiveType: Int,
     generateObject: (String, Float, Material, Int) => Try[Geometry]
-  ): Try[Geometry] =
+  )(using config: menger.ProfilingConfig): Try[Geometry] =
     spongeType match
       case compositePattern(content) =>
         val componentTypes = content.split(",").toList

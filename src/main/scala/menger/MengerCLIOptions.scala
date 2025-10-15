@@ -72,6 +72,9 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val saveName: ScallopOption[String] = opt[String](
     required = false,  validate = _.nonEmpty
   )
+  val profileMinMs: ScallopOption[Int] = opt[Int](
+    required = false, validate = _ >= 0
+  )
 
   mutuallyExclusive(timeout, animate)
   validate(projectionScreenW, projectionEyeW) { (screen, eye) =>

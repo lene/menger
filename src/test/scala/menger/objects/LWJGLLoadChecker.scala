@@ -10,6 +10,7 @@ import menger.InteractiveMengerEngine
  *  LWJGL and use the result to conditionally run the tests, with `assume(loadingLWJGLSucceeds)`.
  */
 object LWJGLLoadChecker:
+  given menger.ProfilingConfig = menger.ProfilingConfig.disabled
   lazy val loadingLWJGLSucceeds: Boolean =
     try
       Lwjgl3Application(InteractiveMengerEngine(timeout = 0.01), Lwjgl3ApplicationConfiguration())

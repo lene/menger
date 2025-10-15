@@ -12,7 +12,7 @@ import menger.objects.Direction.Z
 class SpongeBySurface(
   val center: Vector3 = Vector3.Zero, val scale: Float = 1f,
   val level: Float, val material: Material = Builder.WHITE_MATERIAL, val primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(center, scale) with FractionalLevelSponge:
+)(using val profilingConfig: menger.ProfilingConfig) extends Geometry(center, scale) with FractionalLevelSponge:
   require(level >= 0, "Level must be non-negative")
 
   override protected def createInstance(
@@ -20,7 +20,7 @@ class SpongeBySurface(
   ): Geometry & FractionalLevelSponge =
     SpongeBySurface(center, scale, level, material, primitiveType)
 
-  override def getModel: List[ModelInstance] = logTime("getModel", 10) {
+  override def getModel: List[ModelInstance] = logTime("getModel") {
     if level.isValidInt then getIntegerModel
     else List(
       nextLevelSponge.map(_.getModel).getOrElse(Nil),
@@ -55,9 +55,9 @@ class SpongeBySurface(
       (faces, _) => faces.flatMap(_.subdivide())
     )
 
-  lazy val faces: Seq[Face] = logTime("faces", 5) { surfaces(Face(0, 0, 0, 1, Z)) }
+  lazy val faces: Seq[Face] = logTime("faces") { surfaces(Face(0, 0, 0, 1, Z)) }
 
-  lazy val mesh: Model = logTime("mesh", 10) {
+  lazy val mesh: Model = logTime("mesh") {
       Builder.modelBuilder.begin()
       faces.grouped(MeshBuilder.MAX_VERTICES / 4).foreach(facesPart =>
         val meshBuilder = Builder.modelBuilder.part("sponge", primitiveType, Builder.DEFAULT_FLAGS, material)

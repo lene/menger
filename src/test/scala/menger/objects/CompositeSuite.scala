@@ -4,6 +4,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class CompositeSuite extends AnyFlatSpec with Matchers:
+  given menger.ProfilingConfig = menger.ProfilingConfig.disabled
 
   "Composite toString" should "show component geometries" in:
     val sphere = Sphere()
