@@ -75,6 +75,9 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val profileMinMs: ScallopOption[Int] = opt[Int](
     required = false, validate = _ >= 0
   )
+  val fpsLogInterval: ScallopOption[Int] = opt[Int](
+    required = false, default = Some(1000), validate = _ > 0
+  )
 
   mutuallyExclusive(timeout, animate)
   validate(projectionScreenW, projectionEyeW) { (screen, eye) =>

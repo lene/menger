@@ -11,7 +11,7 @@ import menger.{InteractiveMengerEngine, RotationProjectionParameters}
 import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
 
 
-object GdxTest extends Tag("GdxTest")  // needs Gdx to be available
+object GdxTest extends Tag("GdxTest"):  // needs Gdx to be available
   given menger.ProfilingConfig = menger.ProfilingConfig.disabled
 
 class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:

@@ -39,11 +39,13 @@ object Main:
     if opts.animate.isDefined && opts.animate().parts.nonEmpty then
       AnimatedMengerEngine(
         opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
-        opts.animate(), opts.saveName.toOption, opts.faceColor.toOption, opts.lineColor.toOption
+        opts.animate(), opts.saveName.toOption, opts.faceColor.toOption, opts.lineColor.toOption,
+        opts.fpsLogInterval()
       )
     else
       InteractiveMengerEngine(
         opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
-        opts.timeout(), opts.faceColor.toOption, opts.lineColor.toOption
+        opts.timeout(), opts.faceColor.toOption, opts.lineColor.toOption,
+        opts.fpsLogInterval()
       )
 

@@ -18,7 +18,7 @@ import menger.input.MengerInputMultiplexer
 import org.lwjgl.opengl.GL11
 
 
-case class GDXResources(eventDispatcher: Option[EventDispatcher]) extends LazyLogging:
+case class GDXResources(eventDispatcher: Option[EventDispatcher], fpsLogIntervalMs: Int = 1000) extends LazyLogging:
 
   private val cameraPosition = Vector3(-2f, 1f, -1f)
   private val environment: Environment = createEnvironment
@@ -38,7 +38,7 @@ case class GDXResources(eventDispatcher: Option[EventDispatcher]) extends LazyLo
   private def logFPS(): Unit =
     if logger.underlying.isDebugEnabled then
       val currentTime = System.currentTimeMillis()
-      if currentTime - lastFPSLogTime.get() >= 1000 then
+      if currentTime - lastFPSLogTime.get() >= fpsLogIntervalMs then
         logger.debug(s"FPS: ${Gdx.graphics.getFramesPerSecond}")
         lastFPSLogTime.set(currentTime)
 

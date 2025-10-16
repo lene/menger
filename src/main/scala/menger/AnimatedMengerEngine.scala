@@ -12,8 +12,9 @@ class AnimatedMengerEngine(
   spongeType: String, spongeLevel: Float,
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
   lines: Boolean, color: Color, val animationSpecifications: AnimationSpecifications,
-  val saveName: Option[String], faceColor: Option[Color] = None, lineColor: Option[Color] = None
-)(using config: ProfilingConfig) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor)
+  val saveName: Option[String], faceColor: Option[Color] = None, lineColor: Option[Color] = None,
+  fpsLogIntervalMs: Int = 1000
+)(using config: ProfilingConfig) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor, fpsLogIntervalMs)
 with LazyLogging:
   private val frameCounter = java.util.concurrent.atomic.AtomicInteger(0)
 
@@ -30,7 +31,7 @@ with LazyLogging:
     val currentFrame = frameCounter.get()
     animationSpecifications.level(currentFrame).getOrElse(spongeLevel)
 
-  protected def gdxResources: GDXResources = GDXResources(None)
+  protected def gdxResources: GDXResources = GDXResources(None, fpsLogIntervalMs)
 
   override def currentRotProj: RotationProjectionParameters =
     val currentFrame = frameCounter.get()
