@@ -50,7 +50,7 @@ with LazyLogging:
     Timer.instance().stop()
 
   private def startExitTimer(timeout: Float): Unit =
-    logger.info(s"Starting timer for $timeout seconds")
+    logger.debug(s"Starting timer for $timeout seconds")
     Timer.schedule(() => Gdx.app.exit(), timeout, 0)
 
   private def dispatcherWithRegisteredSponge =
