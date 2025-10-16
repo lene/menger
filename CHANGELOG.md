@@ -22,6 +22,12 @@
   - `--no-auto-restore` - Skip automatic restoration of 'last' state
   - Auto-saves to 'last' state on logout (before auto-termination)
   - Auto-restores 'last' state on launch (unless --no-auto-restore specified)
+- Comprehensive testing infrastructure without creating AWS resources:
+  - `scripts/test-aws-config.sh` - Validate AWS CLI, credentials, permissions, and region setup using dry-run mode
+  - `scripts/validate-ami-build.sh` - Validate AMI build configuration before expensive build process
+  - `scripts/test-terraform-config.sh` - Validate Terraform configuration and generate plan without creating resources
+  - `scripts/test-state-management.sh` - Test state management scripts using mock data (no instance required)
+  - `TESTING.md` - Comprehensive testing guide explaining dry-run strategies and AWS testing approaches
 
 ### Fixed
 - Fixed nvidia-spot.sh to wrap bash commands in 'bash -c' for fish shell compatibility
