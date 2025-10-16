@@ -1,76 +1,8 @@
-# NVIDIA GPU Spot Instance Automation
+# Terraform Configuration Structure
 
-Automated provisioning and management of AWS EC2 spot instances with NVIDIA GPUs for menger development with CUDA and OptiX.
+Terraform infrastructure-as-code for AWS EC2 spot instances with NVIDIA GPUs.
 
-## Features
-
-- **Custom AMI** with CUDA 12.8, OptiX, Scala, IntelliJ, and development tools pre-installed
-- **One-command launch** of spot instances with configurable pricing
-- **Auto-termination** when you log out (with configurable grace period)
-- **X11 forwarding** for GUI applications (IntelliJ, etc.)
-- **Git identity** automatically configured from your local machine for commits/pushes
-- **Cost controls** with maximum hourly and session cost limits
-- **Multi-session support** - instance only terminates when all users log out
-
-## Quick Start
-
-### 1. Prerequisites
-
-- AWS CLI configured with credentials (`aws configure`)
-- Terraform >= 1.5.0
-- SSH key pair (`~/.ssh/id_rsa.pub`)
-- Git configured with user.name and user.email (automatically copied to remote instance)
-- OptiX SDK installer downloaded from [developer.nvidia.com/optix](https://developer.nvidia.com/optix)
-
-### 2. Build Custom AMI (One-time Setup)
-
-```bash
-# Download OptiX SDK from NVIDIA (requires free developer account)
-# Then build AMI:
-./scripts/build-ami.sh /path/to/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64.sh
-```
-
-This takes 15-30 minutes. Note the AMI ID at the end (e.g., `ami-0123456789abcdef0`).
-
-### 3. Launch Instance
-
-```bash
-# List available NVIDIA instances and prices
-./scripts/nvidia-spot.sh --list-instances
-
-# Launch with default settings (g4dn.xlarge)
-./scripts/nvidia-spot.sh --ami-id ami-0123456789abcdef0
-
-# Or specify instance type and max price
-./scripts/nvidia-spot.sh \
-  --ami-id ami-0123456789abcdef0 \
-  --instance-type g5.xlarge \
-  --max-price 0.75
-```
-
-### 4. Connect and Work
-
-The script automatically connects via SSH with X11 forwarding enabled. You can:
-
-```bash
-# Check GPU
-nvidia-smi
-
-# Run IntelliJ
-intellij-idea-community
-
-# Build menger
-cd ~/workspace/menger
-sbt compile
-
-# Run tests
-sbt test
-```
-
-### 5. Cleanup
-
-- **Automatic**: Instance terminates 5 minutes after you log out
-- **Manual**: Run `cd terraform && terraform destroy`
+**For usage instructions, see [GPU_DEVELOPMENT.md](../GPU_DEVELOPMENT.md).**
 
 ## File Structure
 
@@ -89,79 +21,14 @@ scripts/
 ├── nvidia-spot.sh         # Main CLI wrapper
 ├── build-ami.sh           # AMI builder
 ├── list-instances.sh      # Query available instances and prices
-└── auto-terminate.sh      # Daemon for logout detection
+├── auto-terminate.sh      # Daemon for logout detection
+├── backup-spot-state.sh   # Save instance state to local storage
+├── restore-spot-state.sh  # Restore previously saved state
+├── list-spot-states.sh    # List available saved states
+└── cleanup-spot-states.sh # Clean up old saved states
 ```
 
-## CLI Reference
-
-### nvidia-spot.sh
-
-```bash
-Usage: ./scripts/nvidia-spot.sh [OPTIONS]
-
-OPTIONS:
-  --region REGION          AWS region (default: from ~/.aws/config or us-east-1)
-  --instance-type TYPE     Instance type (default: g4dn.xlarge)
-  --max-price PRICE        Maximum spot price per hour (default: 0.50)
-  --max-cost COST          Maximum total session cost (default: 10.00)
-  --ami-id AMI_ID          Custom AMI ID (required)
-  --list-instances         List available NVIDIA instances and spot prices
-  --command "CMD"          Run command and auto-terminate
-  --no-auto-terminate      Disable auto-termination on logout
-  --ssh-key PATH           Path to SSH public key (default: ~/.ssh/id_rsa.pub)
-  -h, --help               Show this help message
-```
-
-### Examples
-
-```bash
-# List instances in us-west-2
-./scripts/nvidia-spot.sh --list-instances --region us-west-2
-
-# Launch and connect interactively
-./scripts/nvidia-spot.sh --ami-id ami-xxx
-
-# Run command and auto-terminate
-./scripts/nvidia-spot.sh --ami-id ami-xxx --command "cd menger && sbt test"
-
-# Launch in different region with specific instance type
-./scripts/nvidia-spot.sh \
-  --ami-id ami-xxx \
-  --region eu-west-1 \
-  --instance-type g4dn.2xlarge \
-  --max-price 1.00
-
-# Disable auto-terminate (keep instance running)
-./scripts/nvidia-spot.sh --ami-id ami-xxx --no-auto-terminate
-```
-
-## AMI Builder
-
-### Using Shell Script (Recommended)
-
-```bash
-./scripts/build-ami.sh /path/to/OptiX-installer.sh
-```
-
-The script:
-1. Launches temporary build instance
-2. Installs NVIDIA drivers, CUDA 12.8, OptiX, and dev tools
-3. Creates AMI
-4. Cleans up temporary resources
-
-### Using Packer (Alternative)
-
-```bash
-packer build \
-  -var 'optix_installer=/path/to/OptiX-installer.sh' \
-  terraform/ami-build.pkr.hcl
-```
-
-## Configuration
-
-### Terraform Variables
-
-Edit `terraform/terraform.tfvars` or use CLI flags:
+## Terraform Variables
 
 ```hcl
 region           = "us-east-1"
@@ -169,82 +36,12 @@ instance_type    = "g4dn.xlarge"
 max_spot_price   = "0.50"
 max_session_cost = 10.00
 ami_id           = "ami-xxxxxxxxxxxx"
+user_public_key  = "ssh-rsa AAAA..."
 auto_terminate   = true
+availability_zone = ""  # Optional, defaults to cheapest AZ
 ```
 
-### Auto-Terminate Behavior
-
-- **Check interval**: 30 seconds
-- **Grace period**: 5 minutes after last user logs out
-- **Multi-session**: Only terminates when all SSH sessions end
-- **Logging**: `/var/log/auto-terminate.log`
-
-## Instance Types
-
-Recommended NVIDIA instance types:
-
-| Instance Type | GPU        | vCPU | RAM   | Use Case                      | Typical Spot Price |
-|---------------|------------|------|-------|-------------------------------|-------------------|
-| g4dn.xlarge   | 1x T4      | 4    | 16GB  | Development, cost-effective   | $0.15-0.30/hr     |
-| g4dn.2xlarge  | 1x T4      | 8    | 32GB  | Development with more CPU/RAM | $0.25-0.45/hr     |
-| g5.xlarge     | 1x A10G    | 4    | 16GB  | Newer GPU, better performance | $0.30-0.60/hr     |
-| g5.2xlarge    | 1x A10G    | 8    | 32GB  | Production workloads          | $0.45-0.85/hr     |
-| p3.2xlarge    | 1x V100    | 8    | 61GB  | High-performance training     | $0.90-1.50/hr     |
-
-Run `./scripts/nvidia-spot.sh --list-instances` for current prices in your region.
-
-## Troubleshooting
-
-### AMI Build Fails
-
-- **OptiX installer fails**: Ensure you downloaded the correct version (Linux x86_64)
-- **NVIDIA driver issues**: Instance type must support GPUs (use g4dn.xlarge for building)
-- **Timeout**: Increase wait time in build-ami.sh
-
-### Instance Launch Fails
-
-- **Spot capacity**: Try different instance type or region
-- **AMI not found**: Ensure AMI ID is in the same region you're launching
-- **Price too low**: Check current spot prices with --list-instances
-
-### SSH Connection Issues
-
-- **Timeout**: Wait longer, instance initialization takes 2-3 minutes
-- **X11 not working**: Ensure X11 server running locally (XQuartz on macOS, Xming on Windows)
-- **Permission denied**: Check SSH key path with --ssh-key
-
-### Git Configuration Issues
-
-- **Commits fail**: Ensure local git is configured with `git config --global user.name` and `user.email`
-- **Wrong author**: Git identity is copied from local machine at launch time
-- **Manual fix**: SSH to instance and run `git config --global user.name "Your Name"` and `git config --global user.email "your@email.com"`
-
-### Auto-Terminate Not Working
-
-- **Check logs**: `ssh ubuntu@<ip> sudo tail -f /var/log/auto-terminate.log`
-- **Daemon not running**: Restart with `sudo nohup /usr/local/bin/auto-terminate.sh &`
-- **Multiple sessions**: All SSH sessions must close for termination
-
-## Cost Estimation
-
-Typical development session costs:
-
-- **g4dn.xlarge** @ $0.20/hr: $1.60 for 8 hours
-- **g5.xlarge** @ $0.50/hr: $4.00 for 8 hours
-- **EBS storage**: $0.08/GB-month (100GB = $8/month if kept)
-
-The auto-terminate feature ensures you only pay for active usage.
-
-## Security Notes
-
-- Security group allows SSH from anywhere (0.0.0.0/0)
-- Consider restricting to your IP for production use
-- All data on instance is lost on termination
-- Use S3 or EFS for persistent storage if needed
-
-## Advanced Usage
-
-### Manual Terraform
+## Manual Terraform Usage
 
 ```bash
 cd terraform
@@ -252,7 +49,7 @@ cd terraform
 # Initialize
 terraform init
 
-# Create terraform.tfvars with your settings
+# Create terraform.tfvars
 cat > terraform.tfvars <<EOF
 region           = "us-east-1"
 instance_type    = "g4dn.xlarge"
@@ -263,28 +60,14 @@ user_public_key  = "$(cat ~/.ssh/id_rsa.pub)"
 auto_terminate   = true
 EOF
 
-# Apply
+# Plan and apply
+terraform plan
 terraform apply
 
-# Get connection info
+# Get outputs
+terraform output instance_public_ip
 terraform output ssh_command
 
-# Destroy
+# Destroy when done
 terraform destroy
 ```
-
-### Persistent Data
-
-Mount EFS for persistent workspace:
-
-```bash
-# Create EFS (one-time)
-aws efs create-file-system --region us-east-1
-
-# Add to user-data.sh:
-sudo mount -t efs fs-xxxxx:/ /home/ubuntu/workspace
-```
-
-## License
-
-Same license as the main menger project.

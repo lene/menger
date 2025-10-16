@@ -28,6 +28,10 @@
   - `scripts/test-terraform-config.sh` - Validate Terraform configuration and generate plan without creating resources
   - `scripts/test-state-management.sh` - Test state management scripts using mock data (no instance required)
   - `TESTING.md` - Comprehensive testing guide explaining dry-run strategies and AWS testing approaches
+- Documentation reorganization:
+  - `GPU_DEVELOPMENT.md` - Comprehensive guide for remote GPU development (consolidated from README.md and TESTING.md)
+  - Updated README.md to focus on application usage and mathematical background
+  - Simplified terraform/README.md to technical reference only
 
 ### Fixed
 - Fixed nvidia-spot.sh to wrap bash commands in 'bash -c' for fish shell compatibility

@@ -102,31 +102,11 @@ for a Scala 3 REPL.
     animation specifications
 - `--save-name <pattern>` - Save frames to files (e.g., `frame%d.png`)
 
-## NVIDIA GPU Development Environment
+## Remote GPU Development
 
-For CUDA/OptiX development, automated AWS EC2 spot instance provisioning is available with pre-configured
-development environment (CUDA 12.8, OptiX, Scala, IntelliJ, X11 forwarding).
-
-Quick start:
-```bash
-# Build custom AMI (one-time setup)
-./scripts/build-ami.sh /path/to/NVIDIA-OptiX-SDK-installer.sh
-
-# Launch instance
-./scripts/nvidia-spot.sh --ami-id ami-xxxxxxxxxxxx
-
-# List available instance types and prices
-./scripts/nvidia-spot.sh --list-instances
-```
-
-See [terraform/README.md](terraform/README.md) for detailed documentation.
-
-Features:
-- One-command launch of GPU spot instances
-- Auto-termination on logout (5-minute grace period)
-- Git identity automatically configured from local machine
-- Cost controls with configurable limits
-- X11 forwarding for GUI applications
+For CUDA/OptiX development on AWS EC2 GPU instances with automated provisioning, state
+management, and cost controls, see [GPU_DEVELOPMENT.md](GPU_DEVELOPMENT.md) for the complete
+guide.
 
 # Status
 ## Done
