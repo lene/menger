@@ -31,7 +31,7 @@ with LazyLogging:
   protected lazy val gdxResources: GDXResources = GDXResources(Some(eventDispatcher))
 
   override def create(): Unit =
-    Gdx.app.log(s"${getClass.getSimpleName}.create()", s"$sponge color=$color")
+    logger.info(s"$sponge color=$color")
     if timeout > 0 then startExitTimer(timeout)
 
   override def render(): Unit = gdxResources.render(drawables)

@@ -4,7 +4,6 @@ import scala.collection.immutable.List
 import scala.jdk.CollectionConverters._
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.FPSLogger
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g3d.Environment
@@ -13,19 +12,20 @@ import com.badlogic.gdx.graphics.g3d.RenderableProvider
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.math.Vector3
+import com.typesafe.scalalogging.LazyLogging
 import menger.input.EventDispatcher
 import menger.input.MengerInputMultiplexer
 import org.lwjgl.opengl.GL11
 
 
-case class GDXResources(eventDispatcher: Option[EventDispatcher]):
+case class GDXResources(eventDispatcher: Option[EventDispatcher]) extends LazyLogging:
 
   private val cameraPosition = Vector3(-2f, 1f, -1f)
   private val environment: Environment = createEnvironment
   private val camera: PerspectiveCamera = createCamera(cameraPosition)
   eventDispatcher.foreach(e => Gdx.input.setInputProcessor(MengerInputMultiplexer(camera, e)))
   private val modelBatch = ModelBatch()
-  private val fpsLogger = FPSLogger()
+  private val lastFPSLogTime = java.util.concurrent.atomic.AtomicLong(System.currentTimeMillis())
 
   def render(models: List[RenderableProvider]*): Unit =
     Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
@@ -33,7 +33,14 @@ case class GDXResources(eventDispatcher: Option[EventDispatcher]):
     modelBatch.begin(camera)
     modelBatch.render(models.flatten.asJava, environment)
     modelBatch.end()
-    fpsLogger.log()
+    logFPS()
+
+  private def logFPS(): Unit =
+    if logger.underlying.isDebugEnabled then
+      val currentTime = System.currentTimeMillis()
+      if currentTime - lastFPSLogTime.get() >= 1000 then
+        logger.debug(s"FPS: ${Gdx.graphics.getFramesPerSecond}")
+        lastFPSLogTime.set(currentTime)
 
 
   def resize(): Unit =
