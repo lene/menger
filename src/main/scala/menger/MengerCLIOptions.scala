@@ -78,6 +78,10 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val fpsLogInterval: ScallopOption[Int] = opt[Int](
     required = false, default = Some(1000), validate = _ > 0
   )
+  val logLevel: ScallopOption[String] = opt[String](
+    required = false, default = Some("INFO"),
+    validate = level => Set("ERROR", "WARN", "INFO", "DEBUG", "TRACE").contains(level.toUpperCase)
+  )
 
   mutuallyExclusive(timeout, animate)
   validate(projectionScreenW, projectionEyeW) { (screen, eye) =>

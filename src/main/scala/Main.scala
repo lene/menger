@@ -1,4 +1,6 @@
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import menger.AnimatedMengerEngine
@@ -7,6 +9,7 @@ import menger.MengerCLIOptions
 import menger.MengerEngine
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import org.slf4j.LoggerFactory
 
 object Main:
   private final val COLOR_BITS = 8
@@ -15,9 +18,17 @@ object Main:
 
   def main(args: Array[String]): Unit =
     val opts = MengerCLIOptions(args.toList)
+    configureLogging(opts.logLevel().toUpperCase)
     val config = getConfig(opts)
     val rendering = createEngine(opts)
     Lwjgl3Application(rendering, config)
+
+  private def configureLogging(levelName: String): Unit =
+    val level = Level.valueOf(levelName)
+    // SLF4J returns the interface, but we need Logback's implementation to set the level
+    LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) match
+      case logger: Logger => logger.setLevel(level)
+      case _ => // Should never happen when Logback is the SLF4J implementation
 
   def getConfig(opts: MengerCLIOptions): Lwjgl3ApplicationConfiguration =
     val config = Lwjgl3ApplicationConfiguration()
