@@ -1,8 +1,31 @@
 import sbt.Keys.libraryDependencies
 
+lazy val optixJni = project
+  .in(file("optix-jni"))
+  .enablePlugins(JniNative)
+  .settings(
+    name := "optix-jni",
+    scalaVersion := "3.7.3",
+
+    // Set library path for tests to find native library
+    // Multiple paths to try: test-classes, classes, and native build output
+    Test / javaOptions ++= Seq(
+      s"-Djava.library.path=${(Test / classDirectory).value / "native" / "x86_64-linux"}:${(Compile / classDirectory).value / "native" / "x86_64-linux"}:${target.value / "native" / "x86_64-linux" / "bin"}"
+    ),
+    Test / fork := true, // Required for javaOptions to take effect
+
+    // Logging
+    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6",
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.19",
+
+    // ScalaTest for future tests
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
+  )
+
 lazy val root = project
   .in(file("."))
   .enablePlugins(JavaAppPackaging)
+  .dependsOn(optixJni)
   .settings(
     name := "Menger",
     version := "0.3.1",

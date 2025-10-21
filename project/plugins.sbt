@@ -1,6 +1,9 @@
 // Universal / packageBin
 addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.11.3")
 
+// JNI native compilation
+addSbtPlugin("com.github.sbt" % "sbt-jni" % "1.6.0")
+
 // JUnit5/Jupiter
 addSbtPlugin("com.github.sbt.junit" % "sbt-jupiter-interface" % "0.11.3")
 // Test coverage (see https://www.baeldung.com/scala/sbt-scoverage-code-analysis)
