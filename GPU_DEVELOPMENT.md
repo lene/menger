@@ -1,14 +1,19 @@
 # GPU Development Guide
 
-Comprehensive guide for NVIDIA GPU development using automated AWS EC2 spot instances with CUDA
-and OptiX.
+Comprehensive guide for NVIDIA GPU development using either local workstation setup or automated
+AWS EC2 spot instances with CUDA and OptiX.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
+- [Local Development Setup](#local-development-setup)
+  - [Automated Setup (Recommended)](#automated-setup-recommended)
+  - [Manual Setup](#manual-setup)
+  - [Fish Shell Configuration](#fish-shell-configuration)
+  - [Verification](#verification)
 - [Quick Start](#quick-start)
-- [Workflow](#workflow)
+- [AWS Cloud Development](#aws-cloud-development)
   - [1. AMI Creation (One-Time Setup)](#1-ami-creation-one-time-setup)
   - [2. Launching Instances](#2-launching-instances)
   - [3. Working on the Instance](#3-working-on-the-instance)
@@ -95,6 +100,235 @@ Before you begin, ensure you have:
 - Linux x86_64 version (e.g., `NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh`)
 
 ---
+
+## Local Development Setup
+
+For developers who have an NVIDIA GPU on their local machine, you can set up OptiX development
+without using AWS cloud resources.
+
+### Automated Setup (Recommended)
+
+The automated setup script handles NVIDIA drivers, CUDA 12.8, and OptiX SDK installation:
+
+```bash
+# Download OptiX SDK first from https://developer.nvidia.com/optix
+# Then run:
+./scripts/setup-optix-local.sh /path/to/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64.sh
+```
+
+**What it does:**
+1. ✅ Checks for NVIDIA GPU
+2. ✅ Installs/updates NVIDIA drivers
+3. ✅ Installs CUDA Toolkit 12.8
+4. ✅ Installs OptiX SDK
+5. ✅ Installs development tools (g++, cmake)
+6. ✅ Configures environment variables (Bash/Zsh)
+7. ✅ Generates Fish shell configuration
+8. ✅ Runs comprehensive verification
+
+**Supported platforms:** Ubuntu 22.04+, Debian 12+
+
+**Time:** 15-30 minutes (includes driver installation and potential reboot)
+
+### Manual Setup
+
+If you prefer manual setup or the automated script doesn't work for your system:
+
+#### 1. Install NVIDIA Drivers
+
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install ubuntu-drivers-common
+sudo ubuntu-drivers install --gpgpu
+
+# Verify
+nvidia-smi
+```
+
+#### 2. Install CUDA Toolkit 12.8
+
+```bash
+# Add CUDA repository
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+
+# Install CUDA
+sudo apt-get install -y cuda-toolkit-12-8
+
+# Verify
+/usr/local/cuda-12.8/bin/nvcc --version
+```
+
+#### 3. Install OptiX SDK
+
+```bash
+# Download from https://developer.nvidia.com/optix (requires free account)
+# Make executable and run:
+chmod +x NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64.sh
+sudo ./NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64.sh --prefix=/usr/local
+```
+
+#### 4. Install Development Tools
+
+```bash
+sudo apt-get install -y build-essential cmake git
+```
+
+#### 5. Configure Environment Variables
+
+**For Bash/Zsh:**
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export PATH=/usr/local/cuda-12.8/bin${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+export CUDA_HOME=/usr/local/cuda-12.8
+export OPTIX_ROOT=/usr/local/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64
+
+# Apply changes
+source ~/.bashrc  # or ~/.zshrc
+```
+
+**For Fish shell:** See next section.
+
+### Fish Shell Configuration
+
+Fish shell users can use the provided environment configuration script:
+
+```fish
+# One-time setup: Add to ~/.config/fish/config.fish
+source /path/to/menger/scripts/setup-optix-env.fish
+
+# Or source manually each session
+source scripts/setup-optix-env.fish
+```
+
+The Fish configuration script:
+- ✅ Sets `PATH` with CUDA binaries
+- ✅ Sets `LD_LIBRARY_PATH` with CUDA libraries
+- ✅ Sets `CUDA_HOME` and `OPTIX_ROOT`
+- ✅ Provides quick verification function: `verify-optix-env`
+- ✅ Shows color-coded status on load
+
+**Quick verification in Fish:**
+```fish
+verify-optix-env
+```
+
+### Verification
+
+After setup (automated or manual), verify your installation:
+
+```bash
+# Run comprehensive verification
+./scripts/verify-optix.sh
+```
+
+This checks:
+- ✅ NVIDIA driver version and compatibility
+- ✅ GPU detection and compute capability
+- ✅ CUDA installation and tools
+- ✅ CUDA libraries in system
+- ✅ OptiX SDK headers and version
+- ✅ Environment variables
+- ✅ Compilation test with OptiX headers
+- ✅ System information
+
+**Example output:**
+```
+=== OptiX Installation Verification ===
+
+1. NVIDIA Driver
+✓ NVIDIA driver installed: version 545.29.06
+✓ Driver version 545.29.06 supports OptiX 8.x
+  NVIDIA GeForce RTX 3080
+
+2. GPU Detection
+✓ Detected 1 GPU(s)
+  GPU 0: NVIDIA GeForce RTX 3080 (Compute 8.6, 10240 MiB)
+
+3. CUDA Installation
+✓ nvcc found: CUDA 12.8
+  Location: /usr/local/cuda-12.8/bin/nvcc
+
+...
+
+=== Summary ===
+Passed: 18
+✓ OptiX environment is correctly configured
+```
+
+### Local Development Workflow
+
+Once setup is complete:
+
+```bash
+cd ~/workspace/menger
+
+# Compile project
+sbt compile
+
+# Run tests
+sbt test
+
+# Run application (interactive mode)
+sbt run
+
+# Run specific sponge type
+sbt "run --level 2 --sponge-type tesseract-sponge"
+
+# Run with animation
+sbt "run --level 1 --animate frames=10:rot-y=0-360"
+```
+
+### Troubleshooting Local Setup
+
+**Driver installation requires reboot:**
+```bash
+# After driver install
+sudo reboot
+
+# Then re-run setup or continue manually
+```
+
+**CUDA not in PATH:**
+```bash
+# Check environment
+echo $PATH | grep cuda
+echo $CUDA_HOME
+
+# Re-source shell config
+source ~/.bashrc  # or ~/.zshrc or config.fish
+```
+
+**OptiX headers not found:**
+```bash
+# Check installation
+ls -la /usr/local/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64/include/
+
+# Verify OPTIX_ROOT
+echo $OPTIX_ROOT
+
+# Re-run verification
+./scripts/verify-optix.sh
+```
+
+**Compilation fails:**
+```bash
+# Check g++ installation
+g++ --version
+
+# Install if missing
+sudo apt-get install build-essential cmake
+```
+
+---
+
+## AWS Cloud Development
+
+For users without a local NVIDIA GPU, or who want access to high-performance cloud GPUs, the
+project provides fully automated AWS EC2 spot instance provisioning.
 
 ## Quick Start
 
