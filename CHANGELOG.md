@@ -1,5 +1,36 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Optional OptiX JNI build system controlled by `ENABLE_OPTIX_JNI` environment variable
+  - Default build no longer requires CUDA/OptiX installation (enables development on systems without NVIDIA GPU)
+  - Set `ENABLE_OPTIX_JNI=true` to enable OptiX JNI compilation when CUDA/OptiX are available
+  - Build system works on vanilla systems without GPU development tools
+
+### Changed
+- **BREAKING**: OptiX JNI is now opt-in rather than required
+  - Root project no longer depends on optixJni by default
+  - Use `ENABLE_OPTIX_JNI=true sbt compile` to build with OptiX support
+- CMake build configuration now gracefully detects CUDA/OptiX availability
+  - Uses `check_language(CUDA)` for non-fatal CUDA detection
+  - Builds stub library when CUDA/OptiX not available
+  - Clear build configuration summary shows what was detected
+- CI/CD pipeline separated into GPU and non-GPU jobs
+  - Main test jobs (`Test:SbtImage`, `CheckCoverage`, `Run:UseSbtDocker`, etc.) no longer install CUDA
+  - OptiX JNI tests run on dedicated GPU runners with `nvidia-gpu` tag
+  - Faster CI builds for non-GPU jobs
+- Updated CLAUDE.md with comprehensive OptiX JNI build instructions
+  - Documents default behavior (OptiX disabled)
+  - Documents how to enable OptiX JNI with environment variable
+  - Added Phase 3 future enhancement section for trait-based renderer architecture
+
+### Fixed
+- Removed duplicate `optix-jni/src/native/` directory (correct location is `src/main/native/`)
+- Added preprocessor guards (`#ifdef HAVE_CUDA`, `#ifdef HAVE_OPTIX`) to C++ source files
+  - OptiXWrapper.cpp compiles without CUDA/OptiX headers
+  - Stub implementations provided when GPU support unavailable
+
 ## [0.3.1] - 2025-10-21
 
 ### Added

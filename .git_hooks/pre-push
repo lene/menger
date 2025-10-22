@@ -77,11 +77,16 @@ then echo "Status after sbt test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after sbt test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
-# Test OptiX JNI bindings
-sbt "project optixJni" test --warn || STATUS=1
-if [ $STATUS -gt 0 ]
-then echo "Status after OptiX JNI test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after OptiX JNI test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+# Test OptiX JNI bindings (only if ENABLE_OPTIX_JNI is set)
+if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
+  echo "ENABLE_OPTIX_JNI=${GREEN_TEXT}${ENABLE_OPTIX_JNI}${RESET_TEXT}, running OptiX JNI tests"
+  sbt "project optixJni" test --warn || STATUS=1
+  if [ $STATUS -gt 0 ]
+  then echo "Status after OptiX JNI test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after OptiX JNI test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+else
+  echo "ENABLE_OPTIX_JNI not set, ${GREEN_TEXT}skipping${RESET_TEXT} OptiX JNI tests"
 fi
 
 sbt "scalafix --check" --warn || STATUS=1

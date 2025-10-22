@@ -1,6 +1,12 @@
 import sbt.Keys.libraryDependencies
 import com.github.sbt.jni.build.{BuildTool, CMake}
 
+// Determine if OptiX JNI should be built
+// Can be controlled via environment variable or system property
+val enableOptiXJni = sys.env.get("ENABLE_OPTIX_JNI")
+  .orElse(sys.props.get("enable.optix.jni"))
+  .exists(v => v.toLowerCase == "true" || v == "1")
+
 lazy val optixJni = project
   .in(file("optix-jni"))
   .enablePlugins(JniNative)
@@ -12,7 +18,7 @@ lazy val optixJni = project
     nativeCompile / sourceDirectory := sourceDirectory.value / "main" / "native",
     nativeBuildTool := CMake.make(Seq.empty),
 
-    // NOTE: If you see a CMake warning about "Ignoring extra path from command line", see README.md
+    // NOTE: If you see a CMake warning about "Ignoring extra path from command line", see CLAUDE.md
     // for instructions on installing the cmake wrapper to suppress it
 
     // Set library path for tests to find native library
@@ -30,11 +36,11 @@ lazy val optixJni = project
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
   )
 
-lazy val root = project
-  .in(file("."))
-  .enablePlugins(JavaAppPackaging)
-  .dependsOn(optixJni)
-  .settings(
+lazy val root = {
+  val base = project
+    .in(file("."))
+    .enablePlugins(JavaAppPackaging)
+    .settings(
     name := "Menger",
     version := "0.3.1",
     maintainer := "lene.preuss@gmail.com",
@@ -86,5 +92,14 @@ lazy val root = project
       "com.badlogicgames.gdx" % "gdx-platform" % "1.13.5" classifier "natives-desktop",
     ),
     Test / scalacOptions += "-experimental"
-
   )
+
+  // Conditionally depend on OptiX JNI based on ENABLE_OPTIX_JNI environment variable
+  if (enableOptiXJni) {
+    println("[info] OptiX JNI support ENABLED (ENABLE_OPTIX_JNI=true)")
+    base.dependsOn(optixJni % Runtime)
+  } else {
+    println("[info] OptiX JNI support DISABLED (set ENABLE_OPTIX_JNI=true to enable)")
+    base
+  }
+}

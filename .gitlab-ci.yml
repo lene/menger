@@ -49,6 +49,7 @@ Test:Debian:
     - xvfb-run sbt test
 
 # The following ones use a prepared docker image for sbt.
+# Main Scala tests - NO CUDA/OptiX required (OptiX JNI disabled by default)
 Test:SbtImage:
   retry: 1
   image: $SBT_IMAGE
@@ -56,24 +57,22 @@ Test:SbtImage:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install wget gnupg2
-    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
-    - dpkg -i cuda-keyring_1.1-1_all.deb
-    - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++ cuda-toolkit-12-8
-    - mkdir -p ~/.local/bin
-    - ln -sf "$PWD/cmake" ~/.local/bin/cmake
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb
   script:
+    # Run without OptiX JNI (ENABLE_OPTIX_JNI not set, defaults to false)
     - xvfb-run sbt test
   artifacts:
     when: always
     reports:
       junit: target/test-reports/**/TEST-*.xml
 
+# OptiX JNI tests - REQUIRES CUDA/OptiX (GPU runner with 'nvidia-gpu' tag)
 Test:OptiXJni:
   image: $SBT_IMAGE
   stage: test
   needs: []
+  tags:
+    - nvidia-gpu  # Requires runner with NVIDIA GPU and CUDA support
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -87,7 +86,8 @@ Test:OptiXJni:
     - mkdir -p ~/.local/bin
     - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
-    - sbt "project optixJni" test
+    # Enable OptiX JNI compilation and run tests
+    - ENABLE_OPTIX_JNI=true sbt "project optixJni" test
   artifacts:
     when: always
     reports:
@@ -102,13 +102,7 @@ CheckCoverage:
     - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     - apt-get -y update
-    - apt-get -y install wget gnupg2
-    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
-    - dpkg -i cuda-keyring_1.1-1_all.deb
-    - apt-get -y update
-    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb cmake g++ cuda-toolkit-12-8
-    - mkdir -p ~/.local/bin
-    - ln -sf "$PWD/cmake" ~/.local/bin/cmake
+    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb
   script:
     - 'curl -o coverage.log --location --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/coverage.log?job=${CI_JOB_NAME}"'
     - . coverage.log || true
@@ -178,13 +172,7 @@ Run:UseSbtDocker:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install wget gnupg2
-    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
-    - dpkg -i cuda-keyring_1.1-1_all.deb
-    - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++ cuda-toolkit-12-8
-    - mkdir -p ~/.local/bin
-    - ln -sf "$PWD/cmake" ~/.local/bin/cmake
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb
   script:
     - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines --sponge-type cube"
     - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines"
@@ -205,13 +193,7 @@ CheckRunTime:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install wget gnupg2
-    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
-    - dpkg -i cuda-keyring_1.1-1_all.deb
-    - apt-get -y update
-    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb cmake g++ cuda-toolkit-12-8
-    - mkdir -p ~/.local/bin
-    - ln -sf "$PWD/cmake" ~/.local/bin/cmake
+    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb
   script:
     - sbt compile
     - /usr/bin/time -f %U -o runtime.log xvfb-run sbt "run --timeout 0.1"
@@ -276,14 +258,8 @@ BuildDeployable:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install wget gnupg2
-    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
-    - dpkg -i cuda-keyring_1.1-1_all.deb
-    - apt-get -y update
-    - apt-get -y install cmake g++ cuda-toolkit-12-8
-    - mkdir -p ~/.local/bin
-    - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
+    # Build without OptiX JNI by default (smaller package, faster build)
     - sbt "Universal / packageBin"
     - mv target/universal/${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip .
   artifacts:

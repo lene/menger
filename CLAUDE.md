@@ -18,18 +18,18 @@ The project consists of two main components:
 
 ### Basic Development
 
+**Default build (without OptiX JNI):**
+
+By default, the project builds **without** OptiX JNI support. This allows development on
+systems without NVIDIA GPU/CUDA installed. The OptiX renderer will use a stub implementation
+that returns placeholder data.
+
 ```bash
-# Compile (includes native OptiX JNI compilation)
+# Compile (core Scala only, NO OptiX JNI)
 sbt compile
 
-# Run tests (both Scala and OptiX JNI tests)
+# Run tests (core Scala only, NO OptiX JNI)
 sbt test --warn
-
-# Test only the core Scala application
-sbt "project root" test --warn
-
-# Test only OptiX JNI bindings (requires CUDA/OptiX)
-sbt "project optixJni" test --warn
 
 # Run specific test
 sbt "testOnly menger.objects.CubeTest"
@@ -44,29 +44,54 @@ sbt console
 sbt "scalafix --check"
 ```
 
-### OptiX JNI Development
+### OptiX JNI Development (Optional)
 
-The OptiX JNI bindings are in the `optix-jni` subproject and require:
+The OptiX JNI bindings are **optional** and disabled by default. To enable them, set the
+`ENABLE_OPTIX_JNI` environment variable to `true`. This requires:
+
 - CUDA Toolkit 12.0+
 - NVIDIA OptiX SDK 8.0
 - CMake 3.18+
 - C++ compiler with C++17 support
 
+**Building with OptiX JNI enabled:**
+
 ```bash
-# Work in the OptiX JNI subproject
-sbt "project optixJni"
+# Enable OptiX JNI for a single command
+ENABLE_OPTIX_JNI=true sbt compile
+
+# Or export it for your entire session
+export ENABLE_OPTIX_JNI=true
+sbt compile
 
 # Compile native code only
-sbt "project optixJni" nativeCompile
+ENABLE_OPTIX_JNI=true sbt "project optixJni" nativeCompile
 
 # Clean and rebuild native code
-rm -rf optix-jni/target/native && sbt "project optixJni" compile
+rm -rf optix-jni/target/native && ENABLE_OPTIX_JNI=true sbt "project optixJni" compile
 
 # Run OptiX JNI tests
-sbt "project optixJni" test
+ENABLE_OPTIX_JNI=true sbt "project optixJni" test
 
-# View generated PTX files (CUDA kernels)
+# View generated PTX files (CUDA kernels) - only created when OptiX available
 ls optix-jni/target/native/x86_64-linux/bin/*.ptx
+
+# Package with OptiX JNI included
+ENABLE_OPTIX_JNI=true sbt "Universal / packageBin"
+```
+
+**Note:** If CUDA/OptiX are not installed, the native library will build as a stub that
+always returns placeholder data. The CMake build will show a summary of what was detected:
+
+```
+========================================
+OptiX JNI Build Configuration:
+  CUDA Support:   FALSE
+  OptiX Support:  FALSE
+
+  NOTE: Building stub library without GPU support
+  The OptiXRenderer will use fallback implementation
+========================================
 ```
 
 ### Packaging and Integration Tests
@@ -244,6 +269,64 @@ menger.input/
 
 Uses Observer pattern: `Geometry` objects subscribe to parameter changes from `EventDispatcher`,
 which is triggered by `KeyController` during interactive mode.
+
+## Future Enhancements
+
+### Phase 3: Trait-Based Renderer Architecture (Planned)
+
+The current OptiX JNI implementation uses a single `OptiXRenderer` class that directly calls
+native methods. A future enhancement would refactor this into a trait-based architecture for
+better separation of concerns and testability.
+
+**Proposed design:**
+
+```scala
+// Common interface for all renderer implementations
+trait Renderer {
+  def initialize(): Boolean
+  def setSphere(x: Float, y: Float, z: Float, radius: Float): Unit
+  def setCamera(eye: Array[Float], lookAt: Array[Float], up: Array[Float], fov: Float): Unit
+  def setLight(direction: Array[Float], intensity: Float): Unit
+  def render(width: Int, height: Int): Array[Byte]
+  def dispose(): Unit
+  def isAvailable: Boolean
+}
+
+// Native OptiX implementation (when OptiX available)
+class OptiXNativeRenderer extends Renderer {
+  @native def initialize(): Boolean
+  // ... other @native methods
+}
+
+// Pure Scala stub implementation (always available)
+class OptiXStubRenderer extends Renderer {
+  def initialize(): Boolean = { ... }
+  def render(width: Int, height: Int): Array[Byte] = {
+    // Returns gray placeholder or simple CPU ray tracer
+  }
+  // ... other stub methods
+}
+
+// Factory with automatic selection
+object OptiXRenderer {
+  def apply(): Renderer = {
+    if (isLibraryLoaded) new OptiXNativeRenderer()
+    else new OptiXStubRenderer()
+  }
+}
+```
+
+**Benefits:**
+- Clean separation between native and stub implementations
+- Stub compiles even if native library build fails
+- Easy to add additional implementations (e.g., CPU ray tracer, Vulkan renderer)
+- Better testability - can mock/test implementations independently
+- Follows patterns from Netty (native epoll vs NIO) and LWJGL
+
+**Estimated effort:** 2-3 hours
+
+This architecture would be particularly useful when OptiX integration becomes more complex or
+when adding alternative rendering backends.
 
 ## Code Quality Rules
 
