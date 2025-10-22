@@ -56,7 +56,11 @@ Test:SbtImage:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++
+    - apt-get -y install wget gnupg2
+    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
+    - dpkg -i cuda-keyring_1.1-1_all.deb
+    - apt-get -y update
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++ cuda-toolkit-12-8
     - mkdir -p ~/.local/bin
     - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
@@ -75,7 +79,11 @@ Test:OptiXJni:
     - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     - apt-get -y update
-    - apt-get -y install cmake g++
+    - apt-get -y install wget gnupg2
+    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
+    - dpkg -i cuda-keyring_1.1-1_all.deb
+    - apt-get -y update
+    - apt-get -y install cmake g++ cuda-toolkit-12-8
     - mkdir -p ~/.local/bin
     - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
@@ -94,7 +102,11 @@ CheckCoverage:
     - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     - apt-get -y update
-    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb cmake g++
+    - apt-get -y install wget gnupg2
+    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
+    - dpkg -i cuda-keyring_1.1-1_all.deb
+    - apt-get -y update
+    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb cmake g++ cuda-toolkit-12-8
     - mkdir -p ~/.local/bin
     - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
@@ -166,7 +178,11 @@ Run:UseSbtDocker:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++
+    - apt-get -y install wget gnupg2
+    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
+    - dpkg -i cuda-keyring_1.1-1_all.deb
+    - apt-get -y update
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++ cuda-toolkit-12-8
     - mkdir -p ~/.local/bin
     - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
@@ -189,7 +205,11 @@ CheckRunTime:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb cmake g++
+    - apt-get -y install wget gnupg2
+    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
+    - dpkg -i cuda-keyring_1.1-1_all.deb
+    - apt-get -y update
+    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb cmake g++ cuda-toolkit-12-8
     - mkdir -p ~/.local/bin
     - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
@@ -256,7 +276,11 @@ BuildDeployable:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install cmake g++
+    - apt-get -y install wget gnupg2
+    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
+    - dpkg -i cuda-keyring_1.1-1_all.deb
+    - apt-get -y update
+    - apt-get -y install cmake g++ cuda-toolkit-12-8
     - mkdir -p ~/.local/bin
     - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
