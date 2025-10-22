@@ -64,6 +64,23 @@ Test:SbtImage:
     reports:
       junit: target/test-reports/**/TEST-*.xml
 
+Test:OptiXJni:
+  image: $SBT_IMAGE
+  stage: test
+  needs: []
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
+  before_script:
+    - apt-get -y update
+    - apt-get -y install cmake g++ nvidia-cuda-toolkit
+  script:
+    - sbt "project optixJni" test
+  artifacts:
+    when: always
+    reports:
+      junit: optix-jni/target/test-reports/**/TEST-*.xml
+
 CheckCoverage:
   image: $SBT_IMAGE
   stage: test
