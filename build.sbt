@@ -1,4 +1,5 @@
 import sbt.Keys.libraryDependencies
+import com.github.sbt.jni.build.{BuildTool, CMake}
 
 lazy val optixJni = project
   .in(file("optix-jni"))
@@ -6,6 +7,13 @@ lazy val optixJni = project
   .settings(
     name := "optix-jni",
     scalaVersion := "3.7.3",
+
+    // Configure native build
+    nativeCompile / sourceDirectory := sourceDirectory.value / "main" / "native",
+    nativeBuildTool := CMake.make(Seq.empty),
+
+    // NOTE: If you see a CMake warning about "Ignoring extra path from command line", see README.md
+    // for instructions on installing the cmake wrapper to suppress it
 
     // Set library path for tests to find native library
     // Multiple paths to try: test-classes, classes, and native build output

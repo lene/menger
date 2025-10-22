@@ -49,6 +49,29 @@ linearly from fully opaque at integer levels to fully transparent as it approach
 level.
 
 
+# Build Requirements
+
+## CMake
+
+The project requires CMake 3.x for building the OptiX JNI bindings.
+
+**Note:** The project includes a `cmake` wrapper script that filters out a harmless warning caused
+by an sbt-jni version parsing bug. To use it, create a symlink in your local bin directory:
+
+```bash
+mkdir -p ~/.local/bin
+ln -sf "$PWD/cmake" ~/.local/bin/cmake
+```
+
+This only needs to be done once. The wrapper ensures `~/.local/bin/cmake` is found before the system
+cmake, filtering out the annoying "Ignoring extra path from command line" warning.
+
+## CUDA and OptiX
+
+For GPU acceleration features (optional), you need:
+- CUDA Toolkit 12.0 or later
+- NVIDIA OptiX SDK 8.0 (see [GPU_DEVELOPMENT.md](GPU_DEVELOPMENT.md) for setup instructions)
+
 # Usage
 
 Compile code with `sbt compile`, test with `sbt test`, run with `sbt run`, and `sbt console`

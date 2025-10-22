@@ -74,6 +74,8 @@ Test:OptiXJni:
   before_script:
     - apt-get -y update
     - apt-get -y install cmake g++ nvidia-cuda-toolkit
+    - mkdir -p ~/.local/bin
+    - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
     - sbt "project optixJni" test
   artifacts:
@@ -90,7 +92,9 @@ CheckCoverage:
     - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     - apt-get -y update
-    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb cmake g++ nvidia-cuda-toolkit
+    - mkdir -p ~/.local/bin
+    - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
     - 'curl -o coverage.log --location --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/coverage.log?job=${CI_JOB_NAME}"'
     - . coverage.log || true
@@ -181,7 +185,9 @@ CheckRunTime:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb cmake g++ nvidia-cuda-toolkit
+    - mkdir -p ~/.local/bin
+    - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
     - sbt compile
     - /usr/bin/time -f %U -o runtime.log xvfb-run sbt "run --timeout 0.1"
@@ -244,6 +250,11 @@ BuildDeployable:
   image: $SBT_IMAGE
   stage: build
   needs: []
+  before_script:
+    - apt-get -y update
+    - apt-get -y install cmake g++ nvidia-cuda-toolkit
+    - mkdir -p ~/.local/bin
+    - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
     - sbt "Universal / packageBin"
     - mv target/universal/${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip .

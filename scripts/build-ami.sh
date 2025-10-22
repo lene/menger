@@ -175,7 +175,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 
 # Basic tools
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  build-essential git curl wget vim htop tmux unzip jq software-properties-common
+  build-essential git curl wget vim htop tmux unzip jq software-properties-common cmake
 
 # Install AWS CLI (required for auto-terminate daemon)
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
@@ -280,6 +280,17 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y sbt
 # Coursier
 curl -fL https://github.com/coursier/launchers/raw/master/cs-x86_64-pc-linux.gz | gzip -d | sudo tee /usr/local/bin/cs > /dev/null
 sudo chmod +x /usr/local/bin/cs
+
+# CMake wrapper to suppress sbt-jni version parsing warning
+sudo tee /usr/local/bin/cmake > /dev/null <<'CMAKEEOF'
+#!/bin/bash
+# Wrapper for cmake that filters out the sbt-jni version parsing warning
+# Redirect stderr to stdout, filter, then redirect back to stderr
+exec 3>&1
+/usr/bin/cmake "$@" 2>&1 >&3 3>&- | grep -v -E "(CMake Warning:|Ignoring extra path from command line|/build/[0-9]+\")" >&2
+exit ${PIPESTATUS[0]}
+CMAKEEOF
+sudo chmod +x /usr/local/bin/cmake
 
 # IntelliJ IDEA
 sudo snap install intellij-idea-community --classic
