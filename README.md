@@ -131,28 +131,4 @@ For CUDA/OptiX development on AWS EC2 GPU instances with automated provisioning,
 management, and cost controls, see [GPU_DEVELOPMENT.md](GPU_DEVELOPMENT.md) for the complete
 guide.
 
-# Status
-## Done
-- Implement a square surface in 3D
-- Implement a cube in 3D
-- CI for tests, linting, SAST, and artifact generation and deployment
-- Replace the square surfaces of the cube with the generator for the menger sponge
-- Implement a function that generates a menger sponge of a given depth
-- Repeat for a 4D cube and a 4D menger sponge
-- Generate a 4D menger sponge by subdividing a Tesseract's face into 16 smaller faces
-- Support fractional levels for all sponge types with smooth alpha blending
-- Composite objects for overlaying multiple geometries
-
-## Doing
-- Implement 4D transformations and 4D to 3D projections in CUDA
-
-## To Do (brain dump, very rough roadmap)
-- Implement 4D transformations and 4D to 3D projections in CUDA
-- Repeat for even higher dimensionalities
-- Implement a Raytracer in CUDA/Optix
-- Implement 3D/4D/ND mazes
-- Implement a 3D/4D/ND maze solver
-- Abstract the graphics routines to a generic 3D rendering library in Scala3
-  
-
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lene/menger)
