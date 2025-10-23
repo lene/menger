@@ -73,9 +73,10 @@ Test:SbtImage:
     reports:
       junit: target/test-reports/**/TEST-*.xml
 
-# OptiX JNI tests - REQUIRES CUDA/OptiX (GPU runner with 'nvidia' tag)
+# OptiX JNI tests - Uses pre-built Docker image with CUDA
+# The image is built and pushed manually (see optix-jni/README.md)
 Test:OptiXJni:
-  image: $SBT_IMAGE
+  image: $CI_REGISTRY_IMAGE/optix-cuda:latest
   stage: test
   needs: []
   tags:
@@ -84,20 +85,11 @@ Test:OptiXJni:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
   before_script:
-    - apt-get -y update
-    - apt-get -y install wget gnupg2 lsb-release
-    # Detect OS and set CUDA repo accordingly
-    - export DISTRO=$(lsb_release -is | tr '[:upper:]' '[:lower:]')
-    - if [ "$DISTRO" = "ubuntu" ]; then export CUDA_REPO="ubuntu2204"; else export CUDA_REPO="debian11"; fi
-    - echo "Detected OS $DISTRO, using CUDA repo $CUDA_REPO"
-    - wget https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_REPO}/x86_64/cuda-keyring_1.1-1_all.deb
-    - dpkg -i cuda-keyring_1.1-1_all.deb
-    - apt-get -y update
-    # Try cuda-toolkit-12-8, fall back to cuda-toolkit-12-6 or cuda-toolkit
-    - apt-get -y install cmake g++ || true
-    - apt-get -y install cuda-toolkit-12-8 || apt-get -y install cuda-toolkit-12-6 || apt-get -y install cuda-toolkit || apt-get -y install nvidia-cuda-toolkit
-    - mkdir -p ~/.local/bin
-    - ln -sf "$PWD/cmake" ~/.local/bin/cmake
+    # Install sbt (CUDA already installed in the image)
+    - apt-get update && apt-get install -y wget gnupg apt-transport-https
+    - echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" > /etc/apt/sources.list.d/sbt.list
+    - wget -qO - "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
+    - apt-get update && apt-get install -y sbt openjdk-17-jdk
   script:
     # Enable OptiX JNI compilation and run tests
     - ENABLE_OPTIX_JNI=true sbt "project optixJni" test
