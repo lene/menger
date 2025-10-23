@@ -66,13 +66,13 @@ Test:SbtImage:
     reports:
       junit: target/test-reports/**/TEST-*.xml
 
-# OptiX JNI tests - REQUIRES CUDA/OptiX (GPU runner with 'nvidia-gpu' tag)
+# OptiX JNI tests - REQUIRES CUDA/OptiX (GPU runner with 'nvidia' tag)
 Test:OptiXJni:
   image: $SBT_IMAGE
   stage: test
   needs: []
   tags:
-    - nvidia-gpu  # Requires runner with NVIDIA GPU and CUDA support
+    - nvidia  # Requires runner with NVIDIA GPU and CUDA support
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
