@@ -18,6 +18,12 @@ include:
   - template: Security/Dependency-Scanning.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
 
+# Override code_quality to fix Docker-in-Docker networking
+code_quality:
+  variables:
+    DOCKER_TLS_CERTDIR: ""  # Disable TLS to fix DinD connection issues
+    DOCKER_DRIVER: overlay2
+
 # This job installs sbt by itself. It is somewhat slower than the ones based on scala-sbt below.
 # I leave it in mostly for documentation how to install the environment.
 Test:Debian:
