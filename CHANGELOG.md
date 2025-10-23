@@ -26,8 +26,10 @@
   - Clear build configuration summary shows what was detected
 - CI/CD pipeline separated into GPU and non-GPU jobs
   - Main test jobs (`Test:SbtImage`, `CheckCoverage`, `Run:UseSbtDocker`, etc.) no longer install CUDA
-  - OptiX JNI tests run on dedicated GPU runners with `nvidia-gpu` tag
+  - OptiX JNI tests run on dedicated GPU runners with `nvidia` tag using pre-built Docker image
   - Faster CI builds for non-GPU jobs
+  - Pre-built Docker image (`optix-cuda:latest`) with CUDA 12.8 reduces OptiX JNI job time from 15-20 minutes to 3-5 minutes
+- Fixed code_quality CI job to use host Docker socket instead of Docker-in-Docker
 - Updated CLAUDE.md with comprehensive OptiX JNI build instructions
   - Documents default behavior (OptiX disabled)
   - Documents how to enable OptiX JNI with environment variable
