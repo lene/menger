@@ -17,6 +17,10 @@ local.sbt
 
 # generated pictures
 *.png
+*.ppm
+
+# object files
+*.o
 
 # local dev tools
 .jvmopts
