@@ -24,8 +24,6 @@ code_quality:
   variables:
     DOCKER_TLS_CERTDIR: ""
     DOCKER_HOST: "unix:///var/run/docker.sock"  # Use host Docker socket
-  tags:
-    - docker  # Ensure we run on a runner with Docker access
 
 # This job installs sbt by itself. It is somewhat slower than the ones based on scala-sbt below.
 # I leave it in mostly for documentation how to install the environment.
