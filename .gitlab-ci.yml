@@ -78,11 +78,17 @@ Test:OptiXJni:
     - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     - apt-get -y update
-    - apt-get -y install wget gnupg2
-    - wget https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/cuda-keyring_1.1-1_all.deb
+    - apt-get -y install wget gnupg2 lsb-release
+    # Detect OS and set CUDA repo accordingly
+    - export DISTRO=$(lsb_release -is | tr '[:upper:]' '[:lower:]')
+    - if [ "$DISTRO" = "ubuntu" ]; then export CUDA_REPO="ubuntu2204"; else export CUDA_REPO="debian11"; fi
+    - echo "Detected OS $DISTRO, using CUDA repo $CUDA_REPO"
+    - wget https://developer.download.nvidia.com/compute/cuda/repos/${CUDA_REPO}/x86_64/cuda-keyring_1.1-1_all.deb
     - dpkg -i cuda-keyring_1.1-1_all.deb
     - apt-get -y update
-    - apt-get -y install cmake g++ cuda-toolkit-12-8
+    # Try cuda-toolkit-12-8, fall back to cuda-toolkit-12-6 or cuda-toolkit
+    - apt-get -y install cmake g++ || true
+    - apt-get -y install cuda-toolkit-12-8 || apt-get -y install cuda-toolkit-12-6 || apt-get -y install cuda-toolkit || apt-get -y install nvidia-cuda-toolkit
     - mkdir -p ~/.local/bin
     - ln -sf "$PWD/cmake" ~/.local/bin/cmake
   script:
