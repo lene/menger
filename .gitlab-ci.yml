@@ -75,12 +75,13 @@ Test:SbtImage:
 
 # OptiX JNI tests - Uses pre-built Docker image with CUDA
 # The image is built and pushed manually (see optix-jni/README.md)
+# IMPORTANT: Requires runner with GPU support configured (see optix-jni/RUNNER_SETUP.md)
 Test:OptiXJni:
   image: $CI_REGISTRY_IMAGE/optix-cuda:latest
   stage: test
   needs: []
   tags:
-    - nvidia  # Requires runner with NVIDIA GPU and CUDA support
+    - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -90,6 +91,8 @@ Test:OptiXJni:
     - echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" > /etc/apt/sources.list.d/sbt.list
     - wget -qO - "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
     - apt-get update && apt-get install -y sbt openjdk-17-jdk
+    # Verify GPU is available - fail fast if not configured
+    - nvidia-smi
   script:
     # Enable OptiX JNI compilation and run tests
     - ENABLE_OPTIX_JNI=true sbt "project optixJni" test

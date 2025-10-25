@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+- GitLab Runner GPU configuration documentation (`optix-jni/RUNNER_SETUP.md`)
+  - Complete step-by-step guide for configuring runners with NVIDIA GPU support
+  - Covers NVIDIA driver, Docker, nvidia-container-toolkit installation
+  - Documents required `gpus = "all"` configuration in runner config.toml
+  - Includes verification steps and troubleshooting section
+
+### Fixed
+- OptiX JNI CI job now includes `nvidia-smi` verification step to fail fast if GPU not configured
+- Updated CI job comments to reference runner setup documentation
+
 ## [0.3.2] - 2025-10-23
 
 ### Added

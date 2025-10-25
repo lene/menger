@@ -16,6 +16,8 @@ The project consists of two main components:
 
 ## Development Commands
 
+**Note**: Commands in this document use `sudo` for elevated privileges where needed. If your system doesn't have `sudo` configured (e.g., some Ubuntu configurations), use `pkexec` instead (e.g., `pkexec systemctl restart docker` instead of `sudo systemctl restart docker`).
+
 ### Basic Development
 
 **Default build (without OptiX JNI):**
@@ -424,3 +426,4 @@ Quick reference:
 
 Features: Auto-termination on logout, git identity auto-configuration, X11 forwarding, cost
 controls.
+- also write the note about pkexec into CLAUDE.md
