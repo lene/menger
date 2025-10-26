@@ -8,10 +8,32 @@
   - Covers NVIDIA driver, Docker, nvidia-container-toolkit installation
   - Documents required `gpus = "all"` configuration in runner config.toml
   - Includes verification steps and troubleshooting section
+- **Phase 3**: Complete OptiX ray tracing pipeline implementation
+  - OptiX module loading from PTX with built-in sphere intersection support
+  - Program groups for ray generation, miss, and closest hit shaders
+  - Pipeline linking with proper stack size configuration
+  - Shader Binding Table (SBT) setup with camera, light, and material parameters
+  - Geometry Acceleration Structure (GAS) for sphere primitives
+  - Full render() pipeline that traces rays and generates RGBA images
+  - Comprehensive test suite (15 tests) covering initialization, configuration, rendering, and disposal
+  - PPM image output for visual verification
+- OptiX SDK path auto-detection in CMake build
+  - Checks `OPTIX_ROOT` environment variable first
+  - Auto-detects SDK in common locations (`/usr/local/`, `~/`, `~/workspace/`)
+  - Supports multiple SDK versions side-by-side
+  - Falls back to hardcoded path only as last resort
+- Pure Scala image analysis for rendered output validation
+  - Brightness standard deviation check verifies proper gradients (not uniform stub output)
+  - Center brightness check validates sphere lighting characteristics
+  - Works with `sbt test` without requiring external tools (ImageMagick, etc.)
 
 ### Fixed
 - OptiX JNI CI job now includes `nvidia-smi` verification step to fail fast if GPU not configured
 - Updated CI job comments to reference runner setup documentation
+- Fixed sphere normal calculation to support arbitrary sphere positions (was hardcoded to origin)
+  - Added sphere_center to HitGroupData structure in SBT
+  - Updated sphere_closesthit.cu to compute normal as normalize(hit_point - sphere_center)
+  - Updated sphere_combined.cu with same fix
 
 ## [0.3.2] - 2025-10-23
 
