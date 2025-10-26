@@ -34,6 +34,9 @@
   - Added sphere_center to HitGroupData structure in SBT
   - Updated sphere_closesthit.cu to compute normal as normalize(hit_point - sphere_center)
   - Updated sphere_combined.cu with same fix
+- Disabled log4j JMX in CI to eliminate cgroup detection errors flooding logs
+  - Added `.sbtopts` with `-Dlog4j2.disableJmx=true`
+  - Fixes "Could not reconfigure JMX" NullPointerException in Docker environments
 
 ## [0.3.2] - 2025-10-23
 

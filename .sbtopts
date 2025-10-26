@@ -1,0 +1,6 @@
+# sbt options (version controlled, affects both local and CI builds)
+# See https://www.scala-sbt.org/1.x/docs/Command-Line-Reference.html
+
+# Disable log4j JMX to prevent cgroup detection errors in Docker/CI
+# Fixes: "Could not reconfigure JMX java.lang.NullPointerException: Cannot invoke CgroupInfo.getMountPoint()"
+-J-Dlog4j2.disableJmx=true
