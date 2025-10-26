@@ -40,6 +40,19 @@
   - Added `.sbtopts` with `-Dlog4j2.disableJmx=true`
   - Fixes "Could not reconfigure JMX" NullPointerException in Docker environments
 
+### Changed
+- OptiX CI Docker image now uses versioned tags (`12.8-9.0-25-1.11.7` format: CUDA-OptiX-Java-sbt)
+  - Enables reproducible builds with explicit version tracking
+  - Introduced `OPTIX_DOCKER_VERSION` variable in `.gitlab-ci.yml`
+  - `latest` tag maintained as alias for newest version
+
+### Upgraded
+- OptiX CI Docker image switched from Ubuntu base to `nvidia/cuda:12.8.0-devel-ubuntu24.04`
+  - Eliminates 15-minute CUDA installation time in Docker builds
+  - CUDA layer (~9GB) pulled from DockerHub instead of being stored in GitLab registry
+  - Improved layer separation for better caching (build tools, OptiX, Java, sbt in separate layers)
+  - Faster incremental updates when upgrading only Java/sbt
+
 ## [0.3.2] - 2025-10-23
 
 ### Added

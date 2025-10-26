@@ -11,6 +11,8 @@ variables:
   SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25_36_1.11.7_3.7.3
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.7.3
+  # OptiX Docker image version: {CUDA}-{OptiX}-{Java}-{sbt}
+  OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.11.7
 
 include:
   - template: Code-Quality.gitlab-ci.yml
@@ -77,7 +79,7 @@ Test:SbtImage:
 # The image is built and pushed manually (see optix-jni/README.md and optix-jni/Dockerfile)
 # IMPORTANT: Requires runner with GPU support configured (see optix-jni/RUNNER_SETUP.md)
 Test:OptiXJni:
-  image: $CI_REGISTRY_IMAGE/optix-cuda:latest
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
   tags:
