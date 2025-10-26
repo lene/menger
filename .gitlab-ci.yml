@@ -8,7 +8,7 @@ stages:
 variables:
   DEPLOYABLE_BASE_NAME: menger
   DEPLOYABLE_VERSION: 0.3.3
-  SBT_IMAGE: hseeberger/scala-sbt:17.0.2_1.6.2_3.1.1
+  SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-jammy-21.0.5_11_1.10.6_3.6.2
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.7.3
 
