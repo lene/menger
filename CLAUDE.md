@@ -426,4 +426,43 @@ Quick reference:
 
 Features: Auto-termination on logout, git identity auto-configuration, X11 forwarding, cost
 controls.
-- also write the note about pkexec into CLAUDE.md
+
+## Next Steps (Session TODO)
+
+### Docker Image Build and Push (Optimized Image)
+
+The Dockerfile has been updated to use nvidia/cuda base image with versioned tagging, but the image needs to be built and pushed:
+
+```bash
+# Set version tag
+export VERSION=12.8-9.0-25-1.11.7
+
+# Build the optimized image (uses NVIDIA CUDA base, faster than manual install)
+docker build -t registry.gitlab.com/lilacashes/menger/optix-cuda:$VERSION -f optix-jni/Dockerfile optix-jni/
+
+# Tag as 'latest'
+docker tag registry.gitlab.com/lilacashes/menger/optix-cuda:$VERSION registry.gitlab.com/lilacashes/menger/optix-cuda:latest
+
+# Login to GitLab container registry (if not already logged in)
+docker login registry.gitlab.com
+# Username: your GitLab username
+# Password: use a Personal Access Token with 'write_registry' scope
+
+# Push both tags
+docker push registry.gitlab.com/lilacashes/menger/optix-cuda:$VERSION
+docker push registry.gitlab.com/lilacashes/menger/optix-cuda:latest
+```
+
+**What changed:**
+- Switched from `FROM ubuntu:24.04` to `FROM nvidia/cuda:12.8.0-devel-ubuntu24.04`
+- Reorganized into separate layers (build tools, OptiX, Java, sbt)
+- Added `OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.11.7` to `.gitlab-ci.yml`
+- CUDA layer (~9GB) now pulled from DockerHub instead of stored in GitLab registry
+
+**Benefits:**
+- Eliminates 15-minute CUDA installation time
+- Faster incremental updates (upgrade only Java/sbt without rebuilding CUDA)
+- Smaller GitLab registry footprint
+- Reproducible CI with explicit version tracking
+
+**Status:** Changes committed (64d6a19), image needs to be built and pushed
