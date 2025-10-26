@@ -8,7 +8,7 @@ stages:
 variables:
   DEPLOYABLE_BASE_NAME: menger
   DEPLOYABLE_VERSION: 0.3.3
-  SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-21.0.8_9_1.11.7_3.7.3
+  SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25_36_1.11.7_3.7.3
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.7.3
 
@@ -86,11 +86,17 @@ Test:OptiXJni:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
   before_script:
-    # Install sbt (CUDA already installed in the image)
+    # Install Java 25 from Eclipse Temurin
     - apt-get update && apt-get install -y wget gnupg apt-transport-https
+    - wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add -
+    - echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" > /etc/apt/sources.list.d/adoptium.list
+    - apt-get update && apt-get install -y temurin-25-jdk
+    # Install sbt
     - echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" > /etc/apt/sources.list.d/sbt.list
     - wget -qO - "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
-    - apt-get update && apt-get install -y sbt openjdk-17-jdk
+    - apt-get update && apt-get install -y sbt
+    # Set JAVA_HOME for JNI detection
+    - export JAVA_HOME=/usr/lib/jvm/temurin-25-jdk-amd64
     # Verify GPU is available - fail fast if not configured
     - nvidia-smi
   script:
