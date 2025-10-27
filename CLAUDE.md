@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Active Development
+
+**Current Work:** Phase 4 - OptiX Integration and Testing (Issue #45)
+- Branch: `45-phase-4-optix-integration-and-testing`
+- See detailed plan: [PHASE_4_PLAN.md](./PHASE_4_PLAN.md)
+
 ## Project Overview
 
 Menger is a Scala 3 application that renders fractals in 3D and 4D using LibGDX for graphics. It
