@@ -121,11 +121,13 @@ ls test_image*.png 2>&1
 ### Expected Test Results
 
 - **Compilation**: Clean compile with no errors (includes native C++/CUDA compilation)
-- **Tests**: All 762+ tests pass (Scala: 750+, OptiX JNI: 12+)
-- **Native artifacts**: Shared library (`liboptixjni.so`) and 3 PTX files generated
+- **Tests**: All 762+ tests pass (Scala: 750+, OptiX JNI: 15)
+- **Native artifacts**: Shared library (`liboptixjni.so`) and PTX file generated
 - **Packaging**: Creates ~22MB ZIP file
 - **Integration**: All sponge types render successfully with expected face counts
 - **Animation**: Generates 5 PNG files (800x600 RGBA)
+
+**Note**: OptiX JNI tests require GPU hardware and proper runner configuration (see CI/CD Configuration section).
 
 ## CMake Wrapper Setup (Required for OptiX JNI)
 
@@ -427,42 +429,213 @@ Quick reference:
 Features: Auto-termination on logout, git identity auto-configuration, X11 forwarding, cost
 controls.
 
-## Next Steps (Session TODO)
+## CI/CD Configuration
 
-### Docker Image Build and Push (Optimized Image)
+### GitLab Runner Setup for OptiX JNI Tests
 
-The Dockerfile has been updated to use nvidia/cuda base image with versioned tagging, but the image needs to be built and pushed:
+The `Test:OptiXJni` CI job requires a GitLab Runner with GPU support and OptiX library access. See `optix-jni/RUNNER_SETUP.md` for complete installation instructions.
+
+**Quick setup summary:**
+
+1. **Install NVIDIA Driver** (580.x or newer recommended)
+2. **Install Docker Engine** (19.03+)
+3. **Install NVIDIA Container Toolkit**:
+   ```bash
+   curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+   curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+     sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+     sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+   sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
+   sudo nvidia-ctk runtime configure --runtime=docker
+   sudo systemctl restart docker
+   ```
+
+4. **Install GitLab Runner**:
+   ```bash
+   curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | sudo bash
+   sudo apt-get install gitlab-runner
+   ```
+
+5. **Register Runner** with tag `nvidia`:
+   ```bash
+   sudo gitlab-runner register
+   # URL: https://gitlab.com/
+   # Token: (from project Settings > CI/CD > Runners)
+   # Tags: nvidia
+   # Executor: docker
+   # Default image: ubuntu:24.04
+   ```
+
+6. **Configure Runner for GPU and OptiX** - Edit `/etc/gitlab-runner/config.toml`:
+   ```toml
+   [[runners]]
+     name = "nvidia-gpu-runner"
+     url = "https://gitlab.com/"
+     token = "YOUR_RUNNER_TOKEN"
+     executor = "docker"
+     tags = ["nvidia"]
+     [runners.docker]
+       tls_verify = false
+       image = "ubuntu:24.04"
+       privileged = false
+       volumes = ["/cache", "/usr/lib/x86_64-linux-gnu/libnvoptix.so.1:/usr/lib/x86_64-linux-gnu/libnvoptix.so.1:ro"]
+       gpus = "all"
+   ```
+
+   **Critical configuration**:
+   - `gpus = "all"` - Enables GPU access in containers
+   - Volume mount for `libnvoptix.so.1` - Required for OptiX runtime (see troubleshooting below)
+
+7. **Restart Runner**:
+   ```bash
+   sudo gitlab-runner restart
+   ```
+
+### OptiX Library Requirement
+
+**Important**: OptiX 7.0+ does not ship the runtime library with the SDK. The OptiX runtime (`libnvoptix.so`) comes from the NVIDIA driver on the host and must be mounted into containers.
+
+The NVIDIA Container Toolkit does not automatically mount OptiX libraries (the `optix` capability is not universally supported). Therefore, the OptiX library must be explicitly mounted as a volume in the runner configuration.
+
+**Verify OptiX library exists on host**:
+```bash
+ls -la /usr/lib/x86_64-linux-gnu/libnvoptix.so.1
+```
+
+If missing, update your NVIDIA driver to a version with OptiX support (580.x+ recommended).
+
+### Docker Image Build and Push
+
+When updating the OptiX CI Docker image:
 
 ```bash
-# Set version tag
+# Set version tag (format: {CUDA}-{OptiX}-{Java}-{sbt})
 export VERSION=12.8-9.0-25-1.11.7
 
-# Build the optimized image (uses NVIDIA CUDA base, faster than manual install)
+# Copy OptiX SDK installer to build context
+cp ~/Downloads/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh optix-jni/
+
+# Build the image
 docker build -t registry.gitlab.com/lilacashes/menger/optix-cuda:$VERSION -f optix-jni/Dockerfile optix-jni/
 
 # Tag as 'latest'
 docker tag registry.gitlab.com/lilacashes/menger/optix-cuda:$VERSION registry.gitlab.com/lilacashes/menger/optix-cuda:latest
 
-# Login to GitLab container registry (if not already logged in)
+# Login and push
 docker login registry.gitlab.com
-# Username: your GitLab username
-# Password: use a Personal Access Token with 'write_registry' scope
-
-# Push both tags
 docker push registry.gitlab.com/lilacashes/menger/optix-cuda:$VERSION
 docker push registry.gitlab.com/lilacashes/menger/optix-cuda:latest
+
+# Update version in .gitlab-ci.yml
+# Set OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.11.7
 ```
 
-**What changed:**
-- Switched from `FROM ubuntu:24.04` to `FROM nvidia/cuda:12.8.0-devel-ubuntu24.04`
-- Reorganized into separate layers (build tools, OptiX, Java, sbt)
-- Added `OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.11.7` to `.gitlab-ci.yml`
-- CUDA layer (~9GB) now pulled from DockerHub instead of stored in GitLab registry
+**Image architecture:**
+- Base: `nvidia/cuda:12.8.0-devel-ubuntu24.04` (~9GB from DockerHub)
+- Layer 2: Build tools (cmake, g++, ~200MB)
+- Layer 3: OptiX SDK 9.0 (~500MB)
+- Layer 4: Java 25 LTS (~400MB)
+- Layer 5: sbt 1.11.7 (~100MB)
 
-**Benefits:**
-- Eliminates 15-minute CUDA installation time
-- Faster incremental updates (upgrade only Java/sbt without rebuilding CUDA)
-- Smaller GitLab registry footprint
-- Reproducible CI with explicit version tracking
+### Troubleshooting CI Failures
 
-**Status:** Changes committed (64d6a19), image needs to be built and pushed
+#### Test:OptiXJni job fails with "OPTIX_ERROR_LIBRARY_NOT_FOUND" or "Error initializing RTX library"
+
+**Cause**: OptiX 7.0+ runtime libraries (`libnvoptix.so`, `libnvidia-rtcore.so`) not accessible in container. These libraries are part of the NVIDIA driver, not the OptiX SDK.
+
+**Solution**: The CI job needs access to NVIDIA driver libraries through proper container configuration:
+
+1. **In .gitlab-ci.yml**, ensure the job has:
+   ```yaml
+   Test:OptiXJni:
+     variables:
+       NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"  # Critical!
+     before_script:
+       # Create symlink for RTX library if needed
+       - |
+         if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+           ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+         fi
+       - ldconfig || true
+   ```
+
+2. **In GitLab Runner config** (`/etc/gitlab-runner/config.toml`), ensure:
+   ```toml
+   [[runners]]
+     [runners.docker]
+       gpus = "all"  # Enable GPU access
+   ```
+
+3. **Verify libraries on host**:
+   ```bash
+   ls -la /usr/lib/x86_64-linux-gnu/libnvoptix.so*
+   ls -la /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so*
+   ```
+
+**Background**: The `NVIDIA_DRIVER_CAPABILITIES` environment variable tells the NVIDIA Container Toolkit which driver libraries to mount into the container. Setting it to `"graphics,compute,utility"` automatically mounts the required OptiX and RTX libraries.
+
+#### Job fails with "could not select device driver with capabilities: [[gpu]]"
+
+**Cause**: NVIDIA Container Toolkit not configured.
+
+**Solution**:
+1. Install NVIDIA Container Toolkit (see setup instructions above)
+2. Reconfigure Docker: `sudo nvidia-ctk runtime configure --runtime=docker`
+3. Restart Docker: `sudo systemctl restart docker`
+4. Restart runner: `sudo gitlab-runner restart`
+
+#### Runner not picking up jobs with 'nvidia' tag
+
+**Cause**: Runner not tagged correctly.
+
+**Solution**:
+1. Check runner tags in GitLab UI: Project Settings > CI/CD > Runners
+2. Add 'nvidia' tag to runner if missing
+3. Or edit `/etc/gitlab-runner/config.toml` and add `tags = ["nvidia"]`
+4. Restart runner
+
+#### Job runs on wrong runner
+
+**Cause**: Multiple runners with same tag, wrong one has priority.
+
+**Solution**:
+1. Pause unwanted runners via GitLab UI or API:
+   ```bash
+   glab api --method PUT projects/lilacashes%2Fmenger/runners/<RUNNER_ID> -f "paused=true"
+   ```
+2. Or configure runner priority in GitLab UI (if available)
+
+#### Docker fails after adding OptiX to supported-driver-capabilities
+
+**Issue**: Adding `"optix"` to `supported-driver-capabilities` in `/etc/nvidia-container-runtime/config.toml` causes Docker containers to fail with "unsupported capabilities" error.
+
+**Root cause**: The `optix` capability is not recognized by all versions of NVIDIA Container Toolkit.
+
+**Solution**: Do NOT add `optix` to supported-driver-capabilities. Use `NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility` environment variable instead (see solution above).
+
+#### CMake cache conflicts when testing locally
+
+**Issue**: When building locally then testing in Docker, you may see CMake errors about incorrect source directories.
+
+**Root cause**: CMake caches absolute paths. When the build directory is mounted in Docker at a different path, the cache becomes invalid.
+
+**Solution**: Clean the native build directory before running Docker tests:
+```bash
+rm -rf optix-jni/target/native
+```
+
+Note: This is only an issue for local development. GitLab CI automatically cleans the workspace.
+
+### CUDA Architecture Compatibility
+
+The OptiX JNI build uses **CUDA architecture sm_75** (set in `CMakeLists.txt` line 38), which targets RTX 20 series GPUs. This is **forward-compatible** with newer GPUs:
+
+| GPU | Compute Capability | Compatible with sm_75 PTX |
+|-----|-------------------|---------------------------|
+| RTX 2080 Ti | sm_75 | ✓ Native |
+| RTX 3090 | sm_86 | ✓ JIT compilation |
+| RTX 4090 | sm_89 | ✓ JIT compilation |
+| RTX A1000 | sm_86 | ✓ JIT compilation |
+| Tesla T4 | sm_75 | ✓ Native |
+
+PTX (Parallel Thread Execution) is NVIDIA's virtual assembly language that provides forward compatibility. When PTX compiled for sm_75 runs on sm_86+ GPUs, the driver JIT-compiles it to the native architecture, ensuring compatibility with future GPUs.

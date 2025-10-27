@@ -84,12 +84,22 @@ Test:OptiXJni:
   needs: []
   tags:
     - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
+  variables:
+    # Request graphics capability to ensure RTX/OptiX libraries are mounted
+    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     # Verify GPU is available - fail fast if not configured
     - nvidia-smi
+    # Create missing symlink for RTX core library if needed (OptiX looks for .so.1)
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    # Update library cache
+    - ldconfig || true
   script:
     # Enable OptiX JNI compilation and run tests
     # Java 25, sbt, CUDA 12.8, and OptiX SDK 9.0 are pre-installed in the Docker image
