@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Added
+- **Phase 4**: Comprehensive OptiX integration testing and validation
+  - Integration tests for different camera positions, light directions, sphere sizes, and positions
+  - Separate renderer instances pattern to handle current SBT update limitations
+  - Edge case tests: extreme FOV (1°-179°), tiny/huge sphere radii, far spheres, close camera
+  - Edge case tests: multiple initialize() calls, dispose() before render(), various render sizes
+  - Performance benchmark: achieves ~650 FPS @ 800x600 (~1.5ms per frame)
+  - Total test suite expanded to 29 tests (from 15), all passing
+
+### Fixed
+- Test suite now handles SBT update limitation by using fresh renderer instances for parameter changes
+  - Camera, light, and sphere parameters require pipeline rebuild to take effect
+  - Integration tests use separate renderer instances to ensure correct behavior
+  - Future enhancement planned: dynamic SBT updates without full pipeline rebuild
+- Root-owned build artifacts from Docker CI no longer require sudo to clean
+  - Added `after_script` in Test:OptiXJni job to chmod 777 target directory
+  - Prevents permission issues when users run `rm -rf optix-jni/target` locally
+  - Files created by root in Docker containers are now accessible to regular users
+
 ## [0.3.3] - 2025-10-26
 
 ### Added

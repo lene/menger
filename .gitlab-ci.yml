@@ -104,6 +104,10 @@ Test:OptiXJni:
     # Enable OptiX JNI compilation and run tests
     # Java 25, sbt, CUDA 12.8, and OptiX SDK 9.0 are pre-installed in the Docker image
     - ENABLE_OPTIX_JNI=true sbt "project optixJni" test
+  after_script:
+    # Fix permissions on generated files so they can be cleaned up locally without sudo
+    # Docker containers run as root, creating root-owned files that cause permission issues
+    - chmod -R 777 optix-jni/target/ || true
   artifacts:
     when: always
     reports:
