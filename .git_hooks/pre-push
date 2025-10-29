@@ -85,6 +85,24 @@ if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
   then echo "Status after OptiX JNI test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
   else echo "Status after OptiX JNI test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
   fi
+
+  # Run compute-sanitizer for memory leak detection
+  echo "Running compute-sanitizer for GPU memory leak detection..."
+  compute-sanitizer --tool memcheck sbt "project optixJni" test --warn > /tmp/compute-sanitizer-prepush.log 2>&1
+  SANITIZER_STATUS=$?
+  ERROR_COUNT=$(grep "ERROR SUMMARY:" /tmp/compute-sanitizer-prepush.log | tail -1 | awk '{print $3}')
+  if [ "$SANITIZER_STATUS" -eq 0 ] && [ "$ERROR_COUNT" = "0" ]; then
+    echo "compute-sanitizer: ${GREEN_TEXT}No memory leaks detected${RESET_TEXT}"
+  else
+    echo "compute-sanitizer: ${RED_TEXT}Memory leaks or errors detected!${RESET_TEXT}"
+    echo "See /tmp/compute-sanitizer-prepush.log for details"
+    tail -50 /tmp/compute-sanitizer-prepush.log
+    STATUS=1
+  fi
+  if [ $STATUS -gt 0 ]
+  then echo "Status after compute-sanitizer: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after compute-sanitizer: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
 else
   echo "ENABLE_OPTIX_JNI not set, ${GREEN_TEXT}skipping${RESET_TEXT} OptiX JNI tests"
 fi

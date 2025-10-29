@@ -113,6 +113,41 @@ Test:OptiXJni:
     reports:
       junit: optix-jni/target/test-reports/**/TEST-*.xml
 
+# OptiX memory leak detection with compute-sanitizer
+# Runs after OptiX JNI tests to verify no GPU memory leaks
+Test:ComputeSanitizer:
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
+  stage: test
+  needs: []
+  tags:
+    - nvidia  # Requires runner with NVIDIA GPU
+  variables:
+    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
+  before_script:
+    - nvidia-smi
+    # Create missing symlink for RTX core library if needed
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    - ldconfig || true
+  script:
+    # Run OptiX JNI tests under compute-sanitizer for memory leak detection
+    - ENABLE_OPTIX_JNI=true compute-sanitizer --tool memcheck sbt "project optixJni" test > compute-sanitizer.log 2>&1 || true
+    # Check for memory leaks in the output
+    - ERROR_COUNT=$(grep "ERROR SUMMARY:" compute-sanitizer.log | tail -1 | awk '{print $3}')
+    - echo "compute-sanitizer ERROR SUMMARY - errors found:" $ERROR_COUNT
+    - if [ "$ERROR_COUNT" != "0" ]; then echo "Memory leaks or errors detected!"; cat compute-sanitizer.log; exit 1; fi
+  after_script:
+    - chmod -R 777 optix-jni/target/ || true
+  artifacts:
+    when: always
+    paths:
+      - compute-sanitizer.log
+
 CheckCoverage:
   image: $SBT_IMAGE
   stage: test
