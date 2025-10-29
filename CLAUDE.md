@@ -409,6 +409,17 @@ Note: `Wart.Null` and `Wart.Return` are disabled for LibGDX compatibility.
 - CMakeLists.txt sets `CMAKE_CUDA_ARCHITECTURES` to a single value (75 or 89)
 - This is expected and correct for OptiX development
 
+**"CMake Error: The source ... does not match ... used to generate cache" after Docker builds:**
+- **Cause**: CMake cache was created in Docker container at different path (e.g., `/builds/lilacashes/menger`) but you're now building locally
+- **Automatic fix**: As of this commit, build.sbt automatically detects and cleans mismatched CMake caches
+- **Manual fix**: `pkexec chown -R $USER:$USER optix-jni/target/ && rm -rf optix-jni/target/native`
+- **Prevention**: Always run Docker containers with your user ID (see "Testing Docker Images Locally" section below)
+
+**"AccessDeniedException" when writing class files after Docker builds:**
+- **Cause**: Docker container ran as root and created root-owned files in `optix-jni/target/`
+- **Fix**: `pkexec chown -R $USER:$USER optix-jni/target/`
+- **Prevention**: Always run Docker containers with `--user $(id -u):$(id -g)` (see below)
+
 ## NVIDIA GPU Development
 
 The project includes Terraform configuration for launching AWS EC2 GPU spot instances for
@@ -542,6 +553,59 @@ docker push registry.gitlab.com/lilacashes/menger/optix-cuda:latest
 - Layer 3: OptiX SDK 9.0 (~500MB)
 - Layer 4: Java 25 LTS (~400MB)
 - Layer 5: sbt 1.11.7 (~100MB)
+
+### Testing Docker Images Locally
+
+**IMPORTANT**: When testing CI Docker images locally, ALWAYS run containers with your user ID to prevent permission issues. Docker containers run as root by default, which creates root-owned files in mounted directories that cause "AccessDeniedException" and CMake cache conflicts.
+
+**Correct way to test OptiX CI image locally:**
+
+```bash
+# Test compilation (no GPU required for compilation)
+docker run --rm \
+  --user $(id -u):$(id -g) \
+  -v "$PWD:/workspace" \
+  -w /workspace \
+  registry.gitlab.com/lilacashes/menger/optix-cuda:12.8-9.0-25-1.11.7 \
+  bash -c "ENABLE_OPTIX_JNI=true sbt 'project optixJni' compile"
+
+# Test with GPU access (requires nvidia-container-toolkit)
+docker run --rm \
+  --user $(id -u):$(id -g) \
+  --gpus all \
+  -e NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility \
+  -v "$PWD:/workspace" \
+  -w /workspace \
+  registry.gitlab.com/lilacashes/menger/optix-cuda:12.8-9.0-25-1.11.7 \
+  bash -c "ENABLE_OPTIX_JNI=true sbt 'project optixJni' test"
+```
+
+**Key flags:**
+- `--user $(id -u):$(id -g)` - **CRITICAL**: Run as your user, not root
+- `-v "$PWD:/workspace"` - Mount current directory as /workspace (not /builds/lilacashes/menger)
+- `-w /workspace` - Set working directory inside container
+- `--gpus all` - Enable GPU access (for runtime tests only)
+- `-e NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility` - Mount OptiX/RTX libraries
+
+**What NOT to do:**
+
+```bash
+# ❌ WRONG - runs as root, creates permission issues
+docker run --rm -v "$PWD:/builds/lilacashes/menger" ...
+
+# ❌ WRONG - mounts at GitLab CI path, causes CMake cache conflicts
+docker run --rm --user $(id -u):$(id -g) -v "$PWD:/builds/lilacashes/menger" ...
+```
+
+**If you already have permission issues from a previous Docker run:**
+
+```bash
+# Fix ownership of root-owned files
+pkexec chown -R $USER:$USER optix-jni/target/
+
+# Clean CMake cache (or let build.sbt auto-clean on next compile)
+rm -rf optix-jni/target/native
+```
 
 ### Troubleshooting CI Failures
 

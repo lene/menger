@@ -18,6 +18,29 @@ lazy val optixJni = project
     nativeCompile / sourceDirectory := sourceDirectory.value / "main" / "native",
     nativeBuildTool := CMake.make(Seq.empty),
 
+    // Auto-clean CMake cache if it's from a different build location (e.g., Docker)
+    // This prevents "CMake Error: The source ... does not match ... used to generate cache"
+    Compile / compile := {
+      val log = streams.value.log
+      val cacheFile = target.value / "native" / "x86_64-linux" / "build" / "CMakeCache.txt"
+      val nativeDir = target.value / "native"
+
+      if (cacheFile.exists()) {
+        val expectedPath = (nativeCompile / sourceDirectory).value.getAbsolutePath
+        val cacheContent = IO.read(cacheFile)
+
+        // Check if cache contains a different source path (e.g., from Docker build)
+        if (!cacheContent.contains(expectedPath)) {
+          log.warn(s"CMake cache from different build location detected (likely Docker container)")
+          log.warn(s"Cleaning native build directory: ${nativeDir.getAbsolutePath}")
+          IO.delete(nativeDir)
+          log.info("Native build directory cleaned. CMake will regenerate cache on next build.")
+        }
+      }
+
+      (Compile / compile).value
+    },
+
     // NOTE: If you see a CMake warning about "Ignoring extra path from command line", see CLAUDE.md
     // for instructions on installing the cmake wrapper to suppress it
 
