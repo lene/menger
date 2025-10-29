@@ -135,31 +135,6 @@ ls test_image*.png 2>&1
 
 **Note**: OptiX JNI tests require GPU hardware and proper runner configuration (see CI/CD Configuration section).
 
-## CMake Wrapper Setup (Required for OptiX JNI)
-
-The project includes OptiX JNI bindings that require CMake for compilation. Due to a version
-parsing bug in sbt-jni (the build plugin), CMake emits an annoying but harmless warning during
-compilation. To suppress this warning, the project includes a `cmake` wrapper script that filters
-it out.
-
-**One-time setup after cloning the repository:**
-
-```bash
-mkdir -p ~/.local/bin
-ln -sf "$PWD/cmake" ~/.local/bin/cmake
-```
-
-This creates a symlink in `~/.local/bin` (which is typically early in your PATH) that points to
-the wrapper script. The wrapper calls the real `/usr/bin/cmake` but filters out the warning line.
-
-**Notes:**
-- This is automatically configured in CI/CD pipelines and AMI builds
-- The wrapper is a simple bash script in the project root that filters stderr
-- If you don't set this up, builds will still work but show a "CMake Warning: Ignoring extra path
-  from command line" message
-- The warning is caused by sbt-jni incorrectly parsing CMake version numbers (e.g., "3.28.3"
-  becomes "328" appended to the build path)
-
 ## Code Architecture
 
 ### Core Components
@@ -244,7 +219,7 @@ target/native/x86_64-linux/
 
 **Key files:**
 - `build.sbt`: Configures sbt-jni plugin, sets library path for tests
-- `cmake` (project root): Wrapper script to suppress sbt-jni version parsing warnings
+- `project/CMakeWithoutVersionBug.scala`: Custom CMake build tool that fixes sbt-jni version parsing bug
 - `optix-jni/src/main/native/CMakeLists.txt`: Defines CMake build for native code
 
 ### 4D Rendering Pipeline
@@ -384,9 +359,9 @@ Note: `Wart.Null` and `Wart.Return` are disabled for LibGDX compatibility.
 ### OptiX JNI Build Issues
 
 **CMake warnings about "Ignoring extra path":**
-- This is a known sbt-jni version parsing bug
-- Set up the cmake wrapper: `ln -sf "$PWD/cmake" ~/.local/bin/cmake`
-- See "CMake Wrapper Setup" section above
+- This warning has been fixed by using a custom `CMakeWithoutVersionBug` build tool
+- See `project/CMakeWithoutVersionBug.scala` for implementation details
+- The issue was caused by sbt-jni passing the cmake version number (e.g., "328") as an extra argument
 
 **"library not found" or "cannot find -lcuda" errors:**
 - Ensure CUDA toolkit is installed: `nvcc --version`

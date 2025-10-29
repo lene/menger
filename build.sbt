@@ -1,5 +1,5 @@
 import sbt.Keys.libraryDependencies
-import com.github.sbt.jni.build.{BuildTool, CMake}
+import com.github.sbt.jni.build.{BuildTool, CMakeWithoutVersionBug}
 
 // Determine if OptiX JNI should be built
 // Can be controlled via environment variable or system property
@@ -16,7 +16,7 @@ lazy val optixJni = project
 
     // Configure native build
     nativeCompile / sourceDirectory := sourceDirectory.value / "main" / "native",
-    nativeBuildTool := CMake.make(Seq.empty),
+    nativeBuildTool := CMakeWithoutVersionBug.make(Seq.empty),
 
     // Auto-clean CMake cache if it's from a different build location (e.g., Docker)
     // This prevents "CMake Error: The source ... does not match ... used to generate cache"
@@ -41,8 +41,8 @@ lazy val optixJni = project
       (Compile / compile).value
     },
 
-    // NOTE: If you see a CMake warning about "Ignoring extra path from command line", see CLAUDE.md
-    // for instructions on installing the cmake wrapper to suppress it
+    // Use custom CMakeWithoutVersionBug to avoid spurious warning from sbt-jni version parsing bug
+    // See project/CMakeWithoutVersionBug.scala for details
 
     // Set library path for tests to find native library
     // Multiple paths to try: test-classes, classes, and native build output
