@@ -404,10 +404,15 @@ Note: `Wart.Null` and `Wart.Return` are disabled for LibGDX compatibility.
 - Run `sbt "project optixJni" nativeCompile` to rebuild
 - For tests, `build.sbt` sets the library path automatically via `Test / javaOptions`
 
-**PTX compilation errors about multiple GPU architectures:**
-- OptiX PTX shaders can only target one architecture at a time
-- CMakeLists.txt sets `CMAKE_CUDA_ARCHITECTURES` to a single value (75 or 89)
-- This is expected and correct for OptiX development
+**CUDA Architecture Support:**
+- The native library (`liboptixjni.so`) contains C++ host code (no device code)
+  - Calls CUDA/OptiX APIs but doesn't contain GPU kernels
+  - Works on any system with compatible CUDA runtime
+- OptiX shaders (`sphere_combined.ptx`) are PTX intermediate representation:
+  - Targets compute_52 (Maxwell generation) as minimum
+  - PTX is JIT-compiled at runtime to actual GPU architecture
+  - Single PTX file works on any NVIDIA GPU from 2014 onwards (sm_52, 75, 86, 89, etc.)
+  - OptiX requirement: Can only target one architecture; we use virtual for maximum compatibility
 
 **"CMake Error: The source ... does not match ... used to generate cache" after Docker builds:**
 - **Cause**: CMake cache was created in Docker container at different path (e.g., `/builds/lilacashes/menger`) but you're now building locally
