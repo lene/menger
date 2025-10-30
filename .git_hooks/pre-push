@@ -123,7 +123,7 @@ if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
     echo "${RED_TEXT}Warning: valgrind not installed, skipping host memory check${RESET_TEXT}"
   else
     # Build native library if not already built
-    sbt "project optixJni" compile --warn >/dev/null 2>&1
+    sbt "project optixJni" nativeCompile --warn >/dev/null 2>&1
     # Compile standalone test
     cd optix-jni/src/main/native
     g++ -std=c++17 \

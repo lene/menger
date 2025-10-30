@@ -173,7 +173,7 @@ Test:Valgrind:
     - ldconfig || true
   script:
     # Build OptiX JNI native library
-    - ENABLE_OPTIX_JNI=true sbt "project optixJni" compile
+    - ENABLE_OPTIX_JNI=true sbt "project optixJni" nativeCompile
     # Compile standalone test
     - cd optix-jni/src/main/native
     - |
