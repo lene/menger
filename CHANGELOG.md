@@ -22,6 +22,11 @@
   - Added `after_script` in Test:OptiXJni job to chmod 777 target directory
   - Prevents permission issues when users run `rm -rf optix-jni/target` locally
   - Files created by root in Docker containers are now accessible to regular users
+- Pre-push hook now uses CUDA-provided compute-sanitizer instead of outdated Ubuntu package
+  - Relies on `$CUDA_HOME` environment variable for portable CUDA installation detection
+  - Fails with descriptive error message if CUDA_HOME not set
+  - Fixes "Unable to find injection library libsanitizer-collection.so" error
+  - Fixed awk field extraction for ERROR_SUMMARY parsing (was reading field 3 instead of field 4)
 
 ## [0.3.3] - 2025-10-26
 

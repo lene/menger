@@ -138,7 +138,7 @@ Test:ComputeSanitizer:
     # Run OptiX JNI tests under compute-sanitizer for memory leak detection
     - ENABLE_OPTIX_JNI=true compute-sanitizer --tool memcheck sbt "project optixJni" test > compute-sanitizer.log 2>&1 || true
     # Check for memory leaks in the output
-    - ERROR_COUNT=$(grep "ERROR SUMMARY:" compute-sanitizer.log | tail -1 | awk '{print $3}')
+    - ERROR_COUNT=$(grep "ERROR SUMMARY:" compute-sanitizer.log | tail -1 | awk '{print $4}')
     - echo "compute-sanitizer ERROR SUMMARY - errors found:" $ERROR_COUNT
     - if [ "$ERROR_COUNT" != "0" ]; then echo "Memory leaks or errors detected!"; cat compute-sanitizer.log; exit 1; fi
   after_script:
