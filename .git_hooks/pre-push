@@ -128,7 +128,7 @@ if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
     cd optix-jni/src/main/native
     g++ -std=c++17 \
       -I./include -I/usr/local/cuda/include -I${OPTIX_ROOT:-/usr/local}/include \
-      -L/usr/local/cuda/lib64 -L../../../../target/native/x86_64-linux/bin \
+      -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
       standalone_test.cpp -loptixjni -lcudart -o standalone_test 2>/dev/null
     COMPILE_STATUS=$?
     cd ../../..
@@ -138,10 +138,10 @@ if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
     else
       # Run under Valgrind
       cd src/main/native
-      LD_LIBRARY_PATH=../../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
+      LD_LIBRARY_PATH=../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
         valgrind --leak-check=full --error-exitcode=1 \
         --errors-for-leak-kinds=definite,indirect \
-        --suppressions=../../../../valgrind.supp \
+        --suppressions=../../../valgrind.supp \
         ./standalone_test > /tmp/valgrind-prepush.log 2>&1
       VALGRIND_STATUS=$?
       cd ../../..

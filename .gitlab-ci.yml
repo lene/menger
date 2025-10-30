@@ -179,16 +179,16 @@ Test:Valgrind:
     - |
       g++ -std=c++17 \
         -I./include -I/usr/local/cuda/include -I/usr/local/include \
-        -L/usr/local/cuda/lib64 -L../../../../target/native/x86_64-linux/bin \
+        -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
         standalone_test.cpp -loptixjni -lcudart -o standalone_test
     # Run under Valgrind
     - |
-      LD_LIBRARY_PATH=../../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
+      LD_LIBRARY_PATH=../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
         valgrind --leak-check=full --error-exitcode=1 \
         --errors-for-leak-kinds=definite,indirect \
-        --suppressions=../../../../valgrind.supp \
-        ./standalone_test > ../../../../valgrind.log 2>&1 || true
-    - cd ../../../..
+        --suppressions=../../../valgrind.supp \
+        ./standalone_test > ../../../valgrind.log 2>&1 || true
+    - cd ../../..
     # Check for memory leaks (only "definitely lost" and "indirectly lost" are our bugs)
     - |
       DEFINITELY_LOST=$(grep "definitely lost:" valgrind.log | awk '{print $4}' | sed 's/,//g')
