@@ -181,6 +181,8 @@ Test:Valgrind:
         -I./include -I/usr/local/cuda/include -I/usr/local/include \
         -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
         standalone_test.cpp -loptixjni -lcudart -o standalone_test
+    # Clean any old valgrind.log
+    - rm -f ../../../valgrind.log
     # Run under Valgrind
     - |
       LD_LIBRARY_PATH=../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
@@ -188,11 +190,14 @@ Test:Valgrind:
         --errors-for-leak-kinds=definite,indirect \
         --suppressions=../../../valgrind.supp \
         ./standalone_test > ../../../valgrind.log 2>&1 || true
+    - echo "Valgrind command completed"
+    - ls -la ../../../ | grep valgrind || echo "No valgrind.log in optix-jni/"
     - cd ../../..
     # Check for memory leaks (only "definitely lost" and "indirectly lost" are our bugs)
     - |
       if [ ! -f optix-jni/valgrind.log ]; then
         echo "ERROR: optix-jni/valgrind.log not found!"
+        ls -la optix-jni/ | grep -E "(valgrind|log)" || echo "No log files in optix-jni/"
         exit 1
       fi
       DEFINITELY_LOST=$(grep "definitely lost:" optix-jni/valgrind.log | awk '{print $4}' | sed 's/,//g')
