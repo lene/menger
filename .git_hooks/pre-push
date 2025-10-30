@@ -116,6 +116,55 @@ if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
   then echo "Status after compute-sanitizer: ${RED_TEXT}${STATUS}${RESET_TEXT}"
   else echo "Status after compute-sanitizer: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
   fi
+
+  # Run Valgrind for host memory leak detection
+  echo "Running Valgrind for host memory leak detection..."
+  if ! command -v valgrind >/dev/null 2>&1; then
+    echo "${RED_TEXT}Warning: valgrind not installed, skipping host memory check${RESET_TEXT}"
+  else
+    # Build native library if not already built
+    sbt "project optixJni" compile --warn >/dev/null 2>&1
+    # Compile standalone test
+    cd optix-jni/src/main/native
+    g++ -std=c++17 \
+      -I./include -I/usr/local/cuda/include -I${OPTIX_ROOT:-/usr/local}/include \
+      -L/usr/local/cuda/lib64 -L../../../../target/native/x86_64-linux/bin \
+      standalone_test.cpp -loptixjni -lcudart -o standalone_test 2>/dev/null
+    COMPILE_STATUS=$?
+    cd ../../..
+    if [ $COMPILE_STATUS -ne 0 ]; then
+      echo "${RED_TEXT}Failed to compile standalone test${RESET_TEXT}"
+      STATUS=1
+    else
+      # Run under Valgrind
+      cd src/main/native
+      LD_LIBRARY_PATH=../../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
+        valgrind --leak-check=full --error-exitcode=1 \
+        --errors-for-leak-kinds=definite,indirect \
+        --suppressions=../../../../valgrind.supp \
+        ./standalone_test > /tmp/valgrind-prepush.log 2>&1
+      VALGRIND_STATUS=$?
+      cd ../../..
+
+      DEFINITELY_LOST=$(grep "definitely lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g')
+      INDIRECTLY_LOST=$(grep "indirectly lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g')
+
+      if [ "$VALGRIND_STATUS" -eq 0 ] && [ "$DEFINITELY_LOST" = "0" ] && [ "$INDIRECTLY_LOST" = "0" ]; then
+        echo "Valgrind: ${GREEN_TEXT}No host memory leaks detected${RESET_TEXT}"
+      else
+        echo "Valgrind: ${RED_TEXT}Host memory leaks detected!${RESET_TEXT}"
+        echo "definitely lost: ${DEFINITELY_LOST} bytes, indirectly lost: ${INDIRECTLY_LOST} bytes"
+        echo "See /tmp/valgrind-prepush.log for details"
+        tail -50 /tmp/valgrind-prepush.log
+        STATUS=1
+      fi
+    fi
+    cd ../../..
+  fi
+  if [ $STATUS -gt 0 ]
+  then echo "Status after Valgrind: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after Valgrind: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
 else
   echo "ENABLE_OPTIX_JNI not set, ${GREEN_TEXT}skipping${RESET_TEXT} OptiX JNI tests"
 fi

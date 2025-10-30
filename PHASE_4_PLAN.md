@@ -121,10 +121,10 @@ ENABLE_OPTIX_JNI=true sbt "project optixJni" test
 
 1. ✅ ~~Run tests on GPU machine to confirm all pass~~ **DONE**
 2. ✅ ~~Use compute-sanitizer + Valgrind to validate no memory leaks~~ **DONE**
-3. **Document:** Update CLAUDE.md with Phase 4 completion status
+3. ✅ ~~Update CLAUDE.md with Phase 4 completion status~~ **DONE**
 4. ✅ ~~Visual check: Inspect rendered output images~~ **DONE** (optix_test_output.ppm)
-5. **CI:** Ensure GPU CI pipeline passes completely
-6. **Close:** Update and close GitLab issue #45
+5. ✅ ~~Add memory leak detection to CI pipeline~~ **DONE** (Test:Valgrind, Test:ComputeSanitizer)
+6. **Remaining:** Verify CI pipeline passes, then close GitLab issue #45
 
 ## Key Files
 

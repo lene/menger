@@ -148,6 +148,65 @@ Test:ComputeSanitizer:
     paths:
       - compute-sanitizer.log
 
+# OptiX host memory leak detection with Valgrind
+# Runs standalone C++ test (bypasses JVM) to check for host-side memory leaks
+Test:Valgrind:
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
+  stage: test
+  needs: []
+  tags:
+    - nvidia  # Requires runner with NVIDIA GPU
+  variables:
+    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
+  before_script:
+    - nvidia-smi
+    # Install Valgrind
+    - apt-get update && apt-get install -y valgrind
+    # Create missing symlink for RTX core library if needed
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    - ldconfig || true
+  script:
+    # Build OptiX JNI native library
+    - ENABLE_OPTIX_JNI=true sbt "project optixJni" compile
+    # Compile standalone test
+    - cd optix-jni/src/main/native
+    - |
+      g++ -std=c++17 \
+        -I./include -I/usr/local/cuda/include -I/usr/local/include \
+        -L/usr/local/cuda/lib64 -L../../../../target/native/x86_64-linux/bin \
+        standalone_test.cpp -loptixjni -lcudart -o standalone_test
+    # Run under Valgrind
+    - |
+      LD_LIBRARY_PATH=../../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
+        valgrind --leak-check=full --error-exitcode=1 \
+        --errors-for-leak-kinds=definite,indirect \
+        --suppressions=../../../../valgrind.supp \
+        ./standalone_test > ../../../../valgrind.log 2>&1 || true
+    - cd ../../../..
+    # Check for memory leaks (only "definitely lost" and "indirectly lost" are our bugs)
+    - |
+      DEFINITELY_LOST=$(grep "definitely lost:" valgrind.log | awk '{print $4}' | sed 's/,//g')
+      INDIRECTLY_LOST=$(grep "indirectly lost:" valgrind.log | awk '{print $4}' | sed 's/,//g')
+      echo "Valgrind - definitely lost: ${DEFINITELY_LOST} bytes"
+      echo "Valgrind - indirectly lost: ${INDIRECTLY_LOST} bytes"
+      if [ "$DEFINITELY_LOST" != "0" ] || [ "$INDIRECTLY_LOST" != "0" ]; then
+        echo "Memory leaks detected in our code!"
+        cat valgrind.log
+        exit 1
+      fi
+  after_script:
+    - chmod -R 777 optix-jni/target/ || true
+  artifacts:
+    when: always
+    paths:
+      - valgrind.log
+
 CheckCoverage:
   image: $SBT_IMAGE
   stage: test

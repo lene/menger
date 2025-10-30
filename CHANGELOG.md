@@ -12,6 +12,13 @@
   - Edge case tests: multiple initialize() calls, dispose() before render(), various render sizes
   - Performance benchmark: achieves ~650 FPS @ 800x600 (~1.5ms per frame)
   - Total test suite expanded to 29 tests (from 15), all passing
+  - Memory leak detection with compute-sanitizer (GPU) and Valgrind (host C++)
+    - compute-sanitizer: 0 errors (GPU memory)
+    - Valgrind: 0 definitely lost, 0 indirectly lost (host memory)
+    - Standalone C++ test for Valgrind (bypasses JVM)
+    - CI job Test:Valgrind verifies host memory leaks
+    - CI job Test:ComputeSanitizer verifies GPU memory leaks
+    - Pre-push hook runs both tools locally
 
 ### Fixed
 - Test suite now handles SBT update limitation by using fresh renderer instances for parameter changes
