@@ -190,23 +190,21 @@ Test:Valgrind:
         --errors-for-leak-kinds=definite,indirect \
         --suppressions=../../../valgrind.supp \
         ./standalone_test > ../../../valgrind.log 2>&1 || true
-    - echo "Valgrind command completed"
-    - ls -la ../../../ | grep valgrind || echo "No valgrind.log in optix-jni/"
     - cd ../../..
     # Check for memory leaks (only "definitely lost" and "indirectly lost" are our bugs)
     - |
-      if [ ! -f optix-jni/valgrind.log ]; then
-        echo "ERROR: optix-jni/valgrind.log not found!"
-        ls -la optix-jni/ | grep -E "(valgrind|log)" || echo "No log files in optix-jni/"
+      if [ ! -f valgrind.log ]; then
+        echo "ERROR: valgrind.log not found in optix-jni/"
+        ls -la | grep -E "(valgrind|log)" || echo "No log files in optix-jni/"
         exit 1
       fi
-      DEFINITELY_LOST=$(grep "definitely lost:" optix-jni/valgrind.log | awk '{print $4}' | sed 's/,//g')
-      INDIRECTLY_LOST=$(grep "indirectly lost:" optix-jni/valgrind.log | awk '{print $4}' | sed 's/,//g')
+      DEFINITELY_LOST=$(grep "definitely lost:" valgrind.log | awk '{print $4}' | sed 's/,//g')
+      INDIRECTLY_LOST=$(grep "indirectly lost:" valgrind.log | awk '{print $4}' | sed 's/,//g')
       echo "Valgrind - definitely lost: ${DEFINITELY_LOST} bytes"
       echo "Valgrind - indirectly lost: ${INDIRECTLY_LOST} bytes"
       if [ "$DEFINITELY_LOST" != "0" ] || [ "$INDIRECTLY_LOST" != "0" ]; then
         echo "Memory leaks detected in our code!"
-        cat optix-jni/valgrind.log
+        cat valgrind.log
         exit 1
       fi
   after_script:
