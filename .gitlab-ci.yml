@@ -198,13 +198,15 @@ Test:Valgrind:
         ls -la | grep -E "(valgrind|log)" || echo "No log files in optix-jni/"
         exit 1
       fi
-      DEFINITELY_LOST=$(grep "definitely lost:" valgrind.log | awk '{print $4}' | sed 's/,//g')
-      INDIRECTLY_LOST=$(grep "indirectly lost:" valgrind.log | awk '{print $4}' | sed 's/,//g')
+      echo "=== Valgrind log file found, contents ==="
+      cat valgrind.log
+      echo "=== End of valgrind.log ==="
+      DEFINITELY_LOST=$(grep "definitely lost:" valgrind.log | awk '{print $4}' | sed 's/,//g' || echo "0")
+      INDIRECTLY_LOST=$(grep "indirectly lost:" valgrind.log | awk '{print $4}' | sed 's/,//g' || echo "0")
       echo "Valgrind - definitely lost: ${DEFINITELY_LOST} bytes"
       echo "Valgrind - indirectly lost: ${INDIRECTLY_LOST} bytes"
       if [ "$DEFINITELY_LOST" != "0" ] || [ "$INDIRECTLY_LOST" != "0" ]; then
         echo "Memory leaks detected in our code!"
-        cat valgrind.log
         exit 1
       fi
   after_script:
