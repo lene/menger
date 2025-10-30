@@ -67,11 +67,20 @@ ENABLE_OPTIX_JNI=true sbt "project optixJni" test
 **Optional:** Create a simple `OptiXSphereTest.scala` main application for manual testing
 **Rationale:** Current test suite already saves PPM output for visual inspection
 
-### Task 3: Memory Leak Detection 🔍
-**Action:** Run valgrind/cuda-memcheck to verify no leaks
-```bash
-cuda-memcheck --leak-check full sbt "project optixJni" test
-```
+### Task 3: Memory Leak Detection ✅
+**Status:** COMPLETE - No memory leaks detected in our code
+
+**Actions Completed:**
+1. ✅ compute-sanitizer (NVIDIA's tool for GPU memory): 0 errors
+2. ✅ Valgrind (for host C++ memory): 0 definitely lost, 0 indirectly lost
+
+**Valgrind Results:**
+- **definitely lost: 0 bytes** ← OUR CODE IS CLEAN
+- **indirectly lost: 0 bytes**
+- possibly lost: 26,984 bytes (all from NVIDIA libcuda.so/libcudart.so - expected)
+- still reachable: 16.5 MB (CUDA driver global state - expected)
+
+**Conclusion:** RAII patterns working correctly, no host-side memory leaks in OptiXWrapper.
 
 ### Task 4: Visual Validation 👁️
 **Action:** Inspect rendered PPM/PNG output from tests
@@ -98,7 +107,7 @@ cuda-memcheck --leak-check full sbt "project optixJni" test
 |-----------|--------|
 | Successfully renders a shaded sphere | ✅ (Tests verify) |
 | Image shows proper lighting (diffuse shading) | ✅ (Tests check center brightness) |
-| No memory leaks detected | ⚠️ (Needs cuda-memcheck verification) |
+| No memory leaks detected | ✅ (compute-sanitizer + Valgrind: 0 leaks) |
 | Clean error messages on failure | ✅ (Implemented) |
 | Test application produces valid PNG output | ✅ (PPM saved, convertible to PNG) |
 
@@ -110,11 +119,12 @@ cuda-memcheck --leak-check full sbt "project optixJni" test
 
 ## Next Steps
 
-1. **Immediate:** Run tests on GPU machine to confirm all pass
-2. **Verify:** Use cuda-memcheck to validate no memory leaks
-3. **Document:** Update CLAUDE.md with Phase 4 completion
-4. **Visual check:** Inspect rendered output images
+1. ✅ ~~Run tests on GPU machine to confirm all pass~~ **DONE**
+2. ✅ ~~Use compute-sanitizer + Valgrind to validate no memory leaks~~ **DONE**
+3. **Document:** Update CLAUDE.md with Phase 4 completion status
+4. ✅ ~~Visual check: Inspect rendered output images~~ **DONE** (optix_test_output.ppm)
 5. **CI:** Ensure GPU CI pipeline passes completely
+6. **Close:** Update and close GitLab issue #45
 
 ## Key Files
 
