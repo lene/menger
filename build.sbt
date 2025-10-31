@@ -38,7 +38,17 @@ lazy val optixJni = project
         }
       }
 
-      (Compile / compile).value
+      val compileResult = (Compile / compile).value
+
+      // Copy PTX file to classes directory (sbt-jni only copies .so/.dll/.dylib)
+      val ptxSource = target.value / "native" / "x86_64-linux" / "bin" / "sphere_combined.ptx"
+      val ptxDest = (Compile / classDirectory).value / "native" / "x86_64-linux" / "sphere_combined.ptx"
+      if (ptxSource.exists()) {
+        IO.copyFile(ptxSource, ptxDest)
+        log.debug(s"Copied PTX file: $ptxSource -> $ptxDest")
+      }
+
+      compileResult
     },
 
     // Use custom CMakeWithoutVersionBug to avoid spurious warning from sbt-jni version parsing bug
@@ -117,10 +127,16 @@ lazy val root = {
     Test / scalacOptions += "-experimental"
   )
 
-  // Conditionally depend on OptiX JNI based on ENABLE_OPTIX_JNI environment variable
+  // Conditionally depend on OptiX JNI and configure library path
   if (enableOptiXJni) {
     println("[info] OptiX JNI support ENABLED (ENABLE_OPTIX_JNI=true)")
-    base.dependsOn(optixJni % Runtime)
+    base
+      .dependsOn(optixJni)  // Compile and runtime dependency
+      .settings(
+        // Set library path for run to find native library and CUDA libraries
+        run / javaOptions += s"-Djava.library.path=${(optixJni / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
+        run / fork := true // Required for javaOptions to take effect
+      )
   } else {
     println("[info] OptiX JNI support DISABLED (set ENABLE_OPTIX_JNI=true to enable)")
     base

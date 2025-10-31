@@ -7,6 +7,7 @@ import menger.AnimatedMengerEngine
 import menger.InteractiveMengerEngine
 import menger.MengerCLIOptions
 import menger.MengerEngine
+import menger.OptiXEngine
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
 import org.slf4j.LoggerFactory
@@ -47,7 +48,14 @@ object Main:
       case None => ProfilingConfig.disabled
 
     val rotationProjectionParameters = RotationProjectionParameters(opts)
-    if opts.animate.isDefined && opts.animate().parts.nonEmpty then
+    if opts.optix() then
+      OptiXEngine(
+        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
+        opts.faceColor.toOption, opts.lineColor.toOption,
+        opts.fpsLogInterval(),
+        opts.radius(), opts.timeout()
+      )
+    else if opts.animate.isDefined && opts.animate().parts.nonEmpty then
       AnimatedMengerEngine(
         opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
         opts.animate(), opts.saveName.toOption, opts.faceColor.toOption, opts.lineColor.toOption,

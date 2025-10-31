@@ -54,6 +54,10 @@ abstract class MengerEngine(
       case "tesseract-sponge-2" => Try(FractionalRotatedProjection(
         Vector3.Zero, 1f, (l: Float) => TesseractSponge2(l), level, currentRotProj.projection, currentRotProj.rotation, material, primitiveType
       ))
+      case "sphere" =>
+        // NOTE: OptiXEngine doesn't use this - OptiX renders directly to 2D image
+        // This case is for potential future CPU-based sphere rendering
+        scala.util.Failure(UnsupportedOperationException("Sphere rendering requires --optix flag"))
       case composite if composite.startsWith("composite[") =>
         Composite.parseCompositeFromCLIOption(composite, level, material, primitiveType, generateObject)
       case _ => scala.util.Failure(IllegalArgumentException(s"Unknown sponge type: $spongeType"))

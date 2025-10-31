@@ -12,7 +12,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   private def validateSpongeType(spongeType: String): Boolean =
     isValidSpongeType(spongeType)
 
-  private val basicSpongeTypes = List("cube", "square", "square-sponge", "cube-sponge", "tesseract", "tesseract-sponge", "tesseract-sponge-2")
+  private val basicSpongeTypes = List("cube", "square", "square-sponge", "cube-sponge", "tesseract", "tesseract-sponge", "tesseract-sponge-2", "sphere")
   private val compositePattern = """composite\[(.+)]""".r
 
   private def isValidSpongeType(spongeType: String): Boolean =
@@ -48,6 +48,8 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val rotZW: ScallopOption[Float] = degreeOpt
   val level: ScallopOption[Float] = opt[Float](required = false, default = Some(1.0f), validate = _ >= 0)
   val lines: ScallopOption[Boolean] = opt[Boolean](required = false, default = Some(false))
+  val optix: ScallopOption[Boolean] = opt[Boolean](required = false, default = Some(false))
+  val radius: ScallopOption[Float] = opt[Float](required = false, default = Some(1.0f), validate = _ > 0)
   val color: ScallopOption[Color] = opt[Color](required = false, default = Some(Color.LIGHT_GRAY))(
     using colorConverter
   )
@@ -123,6 +125,15 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   validateOpt(lines, faceColor, lineColor) { (l, fc, lc) =>
     if lines.isSupplied && (faceColor.isSupplied || lineColor.isSupplied) then
       Left("--lines cannot be used together with --face-color or --line-color")
+    else Right(())
+  }
+
+  // Validate OptiX-related options
+  validateOpt(spongeType, optix) { (st, ox) =>
+    if st.contains("sphere") && !ox.getOrElse(false) then
+      Left("--sponge-type sphere requires --optix flag")
+    else if ox.getOrElse(false) && !st.contains("sphere") then
+      Left("--optix flag requires --sponge-type sphere")
     else Right(())
   }
 

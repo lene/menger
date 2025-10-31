@@ -291,3 +291,50 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
 
   it should "succeed with --color and --lines together" in:
     SafeMengerCLIOptions(Seq("--color", "ff0000", "--lines"))
+
+  "--sponge-type sphere" should "be accepted" in:
+    val options = SafeMengerCLIOptions(Seq("--sponge-type", "sphere", "--optix"))
+    options.spongeType() shouldEqual "sphere"
+
+  "--optix" should "parse correctly and default to false" in:
+    val options1 = SafeMengerCLIOptions(Seq())
+    options1.optix() shouldEqual false
+
+    val options2 = SafeMengerCLIOptions(Seq("--optix", "--sponge-type", "sphere"))
+    options2.optix() shouldEqual true
+
+  "--radius" should "accept positive floats" in:
+    val options1 = SafeMengerCLIOptions(Seq("--radius", "1.5"))
+    options1.radius() shouldEqual 1.5f
+
+    val options2 = SafeMengerCLIOptions(Seq("--radius", "0.5"))
+    options2.radius() shouldEqual 0.5f
+
+    val options3 = SafeMengerCLIOptions(Seq("--radius", "10.0"))
+    options3.radius() shouldEqual 10.0f
+
+  it should "default to 1.0" in:
+    val options = SafeMengerCLIOptions(Seq())
+    options.radius() shouldEqual 1.0f
+
+  it should "reject zero" in:
+    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--radius", "0"))
+
+  it should "reject negative values" in:
+    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--radius", "-1.0"))
+
+  "OptiX validation" should "fail when sponge-type sphere without --optix" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--sponge-type", "sphere"))
+
+  it should "fail when --optix without sponge-type sphere" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--optix"))
+
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--optix", "--sponge-type", "cube"))
+
+  it should "succeed when both --optix and sponge-type sphere" in:
+    val options = SafeMengerCLIOptions(Seq("--optix", "--sponge-type", "sphere"))
+    options.optix() shouldEqual true
+    options.spongeType() shouldEqual "sphere"
