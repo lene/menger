@@ -1,12 +1,6 @@
 import sbt.Keys.libraryDependencies
 import com.github.sbt.jni.build.{BuildTool, CMakeWithoutVersionBug}
 
-// Determine if OptiX JNI should be built
-// Can be controlled via environment variable or system property
-val enableOptiXJni = sys.env.get("ENABLE_OPTIX_JNI")
-  .orElse(sys.props.get("enable.optix.jni"))
-  .exists(v => v.toLowerCase == "true" || v == "1")
-
 lazy val optixJni = project
   .in(file("optix-jni"))
   .enablePlugins(JniNative)
@@ -127,18 +121,12 @@ lazy val root = {
     Test / scalacOptions += "-experimental"
   )
 
-  // Conditionally depend on OptiX JNI and configure library path
-  if (enableOptiXJni) {
-    println("[info] OptiX JNI support ENABLED (ENABLE_OPTIX_JNI=true)")
-    base
-      .dependsOn(optixJni)  // Compile and runtime dependency
-      .settings(
-        // Set library path for run to find native library and CUDA libraries
-        run / javaOptions += s"-Djava.library.path=${(optixJni / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
-        run / fork := true // Required for javaOptions to take effect
-      )
-  } else {
-    println("[info] OptiX JNI support DISABLED (set ENABLE_OPTIX_JNI=true to enable)")
-    base
-  }
+  // Always depend on OptiX JNI and configure library path
+  base
+    .dependsOn(optixJni)  // Compile and runtime dependency
+    .settings(
+      // Set library path for run to find native library and CUDA libraries
+      run / javaOptions += s"-Djava.library.path=${(optixJni / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
+      run / fork := true // Required for javaOptions to take effect
+    )
 }

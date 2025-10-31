@@ -1,7 +1,8 @@
 package menger
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.{Color, GL20}
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.typesafe.scalalogging.LazyLogging
 import menger.optix.OptiXRenderer
@@ -108,28 +109,33 @@ class OptiXEngine(
 
   override def render(): Unit =
     // Check timeout
-    if timeout > 0 then
+    val shouldRender = if timeout > 0 then
       val elapsed = (System.currentTimeMillis() - startTime) / 1000.0
       if elapsed >= timeout then
         logger.info(s"Timeout reached ($timeout seconds), exiting")
         Gdx.app.exit()
-        return
+        false
+      else
+        true
+    else
+      true
 
-    // Clear screen (background color #404040 = RGB 64,64,64)
-    Gdx.gl.glClearColor(0.25f, 0.25f, 0.25f, 1.0f)
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+    if shouldRender then
+      // Clear screen (background color #404040 = RGB 64,64,64)
+      Gdx.gl.glClearColor(0.25f, 0.25f, 0.25f, 1.0f)
+      Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
 
-    // Render with OptiX
-    renderer.foreach { r =>
-      val width = Gdx.graphics.getWidth
-      val height = Gdx.graphics.getHeight
+      // Render with OptiX
+      renderer.foreach { r =>
+        val width = Gdx.graphics.getWidth
+        val height = Gdx.graphics.getHeight
 
-      // Get rendered image from OptiX
-      val rgbaBytes = r.render(width, height)
+        // Get rendered image from OptiX
+        val rgbaBytes = r.render(width, height)
 
-      // Display image via texture
-      optiXResources.updateAndRender(rgbaBytes, width, height)
-    }
+        // Display image via texture
+        optiXResources.updateAndRender(rgbaBytes, width, height)
+      }
 
   override def resize(width: Int, height: Int): Unit =
     logger.debug(s"Window resized to ${width}x${height}")

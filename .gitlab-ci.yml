@@ -58,7 +58,7 @@ Test:Debian:
     - xvfb-run sbt test
 
 # The following ones use a prepared docker image for sbt.
-# Main Scala tests - NO CUDA/OptiX required (OptiX JNI disabled by default)
+# Main Scala tests - requires CMake for OptiX JNI native library stub build
 Test:SbtImage:
   retry: 1
   image: $SBT_IMAGE
@@ -66,9 +66,9 @@ Test:SbtImage:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++
   script:
-    # Run without OptiX JNI (ENABLE_OPTIX_JNI not set, defaults to false)
+    # Run all tests including OptiX JNI (stub implementation without CUDA/OptiX)
     - xvfb-run sbt test
   artifacts:
     when: always
@@ -101,9 +101,9 @@ Test:OptiXJni:
     # Update library cache
     - ldconfig || true
   script:
-    # Enable OptiX JNI compilation and run tests
+    # Run OptiX JNI tests
     # Java 25, sbt, CUDA 12.8, and OptiX SDK 9.0 are pre-installed in the Docker image
-    - ENABLE_OPTIX_JNI=true sbt "project optixJni" test
+    - sbt "project optixJni" test
   after_script:
     # Fix permissions on generated files so they can be cleaned up locally without sudo
     # Docker containers run as root, creating root-owned files that cause permission issues
@@ -136,7 +136,7 @@ Test:ComputeSanitizer:
     - ldconfig || true
   script:
     # Run OptiX JNI tests under compute-sanitizer for memory leak detection
-    - ENABLE_OPTIX_JNI=true compute-sanitizer --tool memcheck sbt "project optixJni" test > compute-sanitizer.log 2>&1 || true
+    - compute-sanitizer --tool memcheck sbt "project optixJni" test > compute-sanitizer.log 2>&1 || true
     # Check for memory leaks in the output
     - ERROR_COUNT=$(grep "ERROR SUMMARY:" compute-sanitizer.log | tail -1 | awk '{print $4}')
     - echo "compute-sanitizer ERROR SUMMARY - errors found:" $ERROR_COUNT
@@ -173,7 +173,7 @@ Test:Valgrind:
     - ldconfig || true
   script:
     # Build OptiX JNI native library
-    - ENABLE_OPTIX_JNI=true sbt "project optixJni" nativeCompile
+    - sbt "project optixJni" nativeCompile
     # Compile standalone test
     - cd optix-jni/src/main/native
     - |
@@ -234,9 +234,9 @@ Test:OptiXIntegration:
     - ldconfig || true
   script:
     # Test sbt run with OptiX sphere rendering
-    - ENABLE_OPTIX_JNI=true xvfb-run -a sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5"
+    - xvfb-run -a sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5"
     # Build and test packaged distribution
-    - ENABLE_OPTIX_JNI=true sbt "Universal / packageBin"
+    - sbt "Universal / packageBin"
     - VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
     - unzip -oq ./target/universal/menger-${VERSION}.zip
     - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
@@ -325,7 +325,7 @@ Run:UseSbtDocker:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++
   script:
     - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines --sponge-type cube"
     - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines"
@@ -346,7 +346,7 @@ CheckRunTime:
   needs: []
   before_script:
     - apt-get -y update
-    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb cmake g++
   script:
     - sbt compile
     - /usr/bin/time -f %U -o runtime.log xvfb-run sbt "run --timeout 0.1"
@@ -411,8 +411,9 @@ BuildDeployable:
   needs: []
   before_script:
     - apt-get -y update
+    - apt-get -y install cmake g++
   script:
-    # Build without OptiX JNI by default (smaller package, faster build)
+    # Build with OptiX JNI stub (no CUDA/OptiX, uses fallback implementation)
     - sbt "Universal / packageBin"
     - mv target/universal/${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip .
   artifacts:

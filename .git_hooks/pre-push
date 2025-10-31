@@ -77,45 +77,44 @@ then echo "Status after sbt test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after sbt test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
-# Test OptiX JNI bindings (only if ENABLE_OPTIX_JNI is set)
-if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
-  echo "ENABLE_OPTIX_JNI=${GREEN_TEXT}${ENABLE_OPTIX_JNI}${RESET_TEXT}, running OptiX JNI tests"
-  sbt "project optixJni" test --warn || STATUS=1
+# Test OptiX JNI bindings
+echo "Running OptiX JNI tests..."
+sbt "project optixJni" test --warn || STATUS=1
   if [ $STATUS -gt 0 ]
   then echo "Status after OptiX JNI test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
   else echo "Status after OptiX JNI test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
   fi
 
-  # Run compute-sanitizer for memory leak detection
-  echo "Running compute-sanitizer for GPU memory leak detection..."
-  if [ -z "$CUDA_HOME" ]; then
-    echo "${RED_TEXT}Error: CUDA_HOME not set${RESET_TEXT}"
-    echo "Please set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)"
+# Run compute-sanitizer for memory leak detection
+echo "Running compute-sanitizer for GPU memory leak detection..."
+if [ -z "$CUDA_HOME" ]; then
+  echo "${RED_TEXT}Error: CUDA_HOME not set${RESET_TEXT}"
+  echo "Please set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)"
+  STATUS=1
+else
+  COMPUTE_SANITIZER="${CUDA_HOME}/compute-sanitizer/compute-sanitizer"
+  if [ ! -x "$COMPUTE_SANITIZER" ]; then
+    echo "${RED_TEXT}Error: compute-sanitizer not found at ${COMPUTE_SANITIZER}${RESET_TEXT}"
+    echo "Please check your CUDA installation"
     STATUS=1
   else
-    COMPUTE_SANITIZER="${CUDA_HOME}/compute-sanitizer/compute-sanitizer"
-    if [ ! -x "$COMPUTE_SANITIZER" ]; then
-      echo "${RED_TEXT}Error: compute-sanitizer not found at ${COMPUTE_SANITIZER}${RESET_TEXT}"
-      echo "Please check your CUDA installation"
-      STATUS=1
+    "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" test --warn > /tmp/compute-sanitizer-prepush.log 2>&1
+    SANITIZER_STATUS=$?
+    ERROR_COUNT=$(grep "ERROR SUMMARY:" /tmp/compute-sanitizer-prepush.log | tail -1 | awk '{print $4}')
+    if [ "$SANITIZER_STATUS" -eq 0 ] && [ "$ERROR_COUNT" = "0" ]; then
+      echo "compute-sanitizer: ${GREEN_TEXT}No memory leaks detected${RESET_TEXT}"
     else
-      "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" test --warn > /tmp/compute-sanitizer-prepush.log 2>&1
-      SANITIZER_STATUS=$?
-      ERROR_COUNT=$(grep "ERROR SUMMARY:" /tmp/compute-sanitizer-prepush.log | tail -1 | awk '{print $4}')
-      if [ "$SANITIZER_STATUS" -eq 0 ] && [ "$ERROR_COUNT" = "0" ]; then
-        echo "compute-sanitizer: ${GREEN_TEXT}No memory leaks detected${RESET_TEXT}"
-      else
-        echo "compute-sanitizer: ${RED_TEXT}Memory leaks or errors detected!${RESET_TEXT}"
-        echo "See /tmp/compute-sanitizer-prepush.log for details"
-        tail -50 /tmp/compute-sanitizer-prepush.log
-        STATUS=1
-      fi
+      echo "compute-sanitizer: ${RED_TEXT}Memory leaks or errors detected!${RESET_TEXT}"
+      echo "See /tmp/compute-sanitizer-prepush.log for details"
+      tail -50 /tmp/compute-sanitizer-prepush.log
+      STATUS=1
     fi
   fi
-  if [ $STATUS -gt 0 ]
-  then echo "Status after compute-sanitizer: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-  else echo "Status after compute-sanitizer: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-  fi
+fi
+if [ $STATUS -gt 0 ]
+then echo "Status after compute-sanitizer: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after compute-sanitizer: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+fi
 
   # Run Valgrind for host memory leak detection
   echo "Running Valgrind for host memory leak detection..."
@@ -125,26 +124,28 @@ if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
     # Build native library if not already built
     sbt "project optixJni" nativeCompile --warn >/dev/null 2>&1
     # Compile standalone test
-    cd optix-jni/src/main/native
-    g++ -std=c++17 \
-      -I./include -I/usr/local/cuda/include -I${OPTIX_ROOT:-/usr/local}/include \
-      -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
-      standalone_test.cpp -loptixjni -lcudart -o standalone_test 2>/dev/null
+    (
+      cd optix-jni/src/main/native
+      g++ -std=c++17 \
+        -I./include -I/usr/local/cuda/include -I${OPTIX_ROOT:-/usr/local}/include \
+        -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
+        standalone_test.cpp -loptixjni -lcudart -o standalone_test 2>/dev/null
+    )
     COMPILE_STATUS=$?
-    cd ../../..
     if [ $COMPILE_STATUS -ne 0 ]; then
       echo "${RED_TEXT}Failed to compile standalone test${RESET_TEXT}"
       STATUS=1
     else
       # Run under Valgrind
-      cd src/main/native
-      LD_LIBRARY_PATH=../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
-        valgrind --leak-check=full --error-exitcode=1 \
-        --errors-for-leak-kinds=definite,indirect \
-        --suppressions=../../../valgrind.supp \
-        ./standalone_test > /tmp/valgrind-prepush.log 2>&1
+      (
+        cd optix-jni/src/main/native
+        LD_LIBRARY_PATH=../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
+          valgrind --leak-check=full --error-exitcode=1 \
+          --errors-for-leak-kinds=definite,indirect \
+          --suppressions=../../../../valgrind.supp \
+          ./standalone_test > /tmp/valgrind-prepush.log 2>&1
+      )
       VALGRIND_STATUS=$?
-      cd ../../..
 
       DEFINITELY_LOST=$(grep "definitely lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g')
       INDIRECTLY_LOST=$(grep "indirectly lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g')
@@ -159,14 +160,10 @@ if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
         STATUS=1
       fi
     fi
-    cd ../../..
   fi
-  if [ $STATUS -gt 0 ]
-  then echo "Status after Valgrind: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-  else echo "Status after Valgrind: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-  fi
-else
-  echo "ENABLE_OPTIX_JNI not set, ${GREEN_TEXT}skipping${RESET_TEXT} OptiX JNI tests"
+if [ $STATUS -gt 0 ]
+then echo "Status after Valgrind: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after Valgrind: ${GREEN_TEXT}${RESET_TEXT}"
 fi
 
 sbt "scalafix --check" --warn || STATUS=1
@@ -201,18 +198,16 @@ do
   xvfb-run -a ./menger-${VERSION}/bin/menger --level 1.5 --timeout 0.1 --sponge-type $TYPE || STATUS=1
 done
 
-# Test OptiX sphere rendering (only if ENABLE_OPTIX_JNI is set)
-if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
-  echo "Testing OptiX sphere rendering..."
-  # Test packaged distribution
-  export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-  xvfb-run -a ./menger-${VERSION}/bin/menger --optix --sponge-type sphere --timeout 0.1 || STATUS=1
-  # Test sbt run with different radius
-  xvfb-run -a sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5" --warn || STATUS=1
-  if [ $STATUS -gt 0 ]
-  then echo "Status after OptiX integration tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-  else echo "Status after OptiX integration tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-  fi
+# Test OptiX sphere rendering
+echo "Testing OptiX sphere rendering..."
+# Test packaged distribution
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64
+xvfb-run -a ./menger-${VERSION}/bin/menger --optix --sponge-type sphere --timeout 0.1 || STATUS=1
+# Test sbt run with different radius
+xvfb-run -a sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5" --warn || STATUS=1
+if [ $STATUS -gt 0 ]
+then echo "Status after OptiX integration tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after OptiX integration tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 if [ $STATUS -gt 0 ]
