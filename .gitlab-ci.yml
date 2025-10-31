@@ -213,6 +213,39 @@ Test:Valgrind:
     paths:
       - optix-jni/valgrind.log
 
+# OptiX sphere rendering integration tests
+# Tests both packaged distribution and sbt run with OptiX enabled
+Test:OptiXIntegration:
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
+  stage: test
+  needs: []
+  tags:
+    - nvidia
+  variables:
+    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
+  before_script:
+    - apt-get -y update
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb unzip
+    # Create missing symlink for RTX core library if needed
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    - ldconfig || true
+  script:
+    # Test sbt run with OptiX sphere rendering
+    - ENABLE_OPTIX_JNI=true xvfb-run -a sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5"
+    # Build and test packaged distribution
+    - ENABLE_OPTIX_JNI=true sbt "Universal / packageBin"
+    - VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
+    - unzip -oq ./target/universal/menger-${VERSION}.zip
+    - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
+    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --sponge-type sphere --timeout 0.1
+  after_script:
+    # Clean up permissions for Docker artifacts
+    - chmod -R 777 target/ || true
+    - chmod -R 777 optix-jni/target/ || true
+
 CheckCoverage:
   image: $SBT_IMAGE
   stage: test

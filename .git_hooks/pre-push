@@ -201,6 +201,20 @@ do
   xvfb-run -a ./menger-${VERSION}/bin/menger --level 1.5 --timeout 0.1 --sponge-type $TYPE || STATUS=1
 done
 
+# Test OptiX sphere rendering (only if ENABLE_OPTIX_JNI is set)
+if [ "$ENABLE_OPTIX_JNI" = "true" ] || [ "$ENABLE_OPTIX_JNI" = "1" ]; then
+  echo "Testing OptiX sphere rendering..."
+  # Test packaged distribution
+  export LD_LIBRARY_PATH=/usr/local/cuda/lib64
+  xvfb-run -a ./menger-${VERSION}/bin/menger --optix --sponge-type sphere --timeout 0.1 || STATUS=1
+  # Test sbt run with different radius
+  xvfb-run -a sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5" --warn || STATUS=1
+  if [ $STATUS -gt 0 ]
+  then echo "Status after OptiX integration tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after OptiX integration tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+fi
+
 if [ $STATUS -gt 0 ]
 then echo "Status after running built: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after running built: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
