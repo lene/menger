@@ -1,5 +1,6 @@
 package menger
 
+import menger.engines.ScreenshotFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

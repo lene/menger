@@ -5,24 +5,10 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.typesafe.scalalogging.LazyLogging
+import menger.optix.OptiXRenderer
 
-/**
- * Manages resources for displaying OptiX-rendered 2D images in LibGDX window.
- *
- * OptiX renders to RGBA byte array, which is converted to a Pixmap, then to a Texture,
- * and finally displayed fullscreen using SpriteBatch.
- *
- * This class handles the 2D rendering pipeline:
- * 1. Convert RGBA bytes to Pixmap
- * 2. Update/create Texture from Pixmap
- * 3. Render texture fullscreen via SpriteBatch
- * 4. Handle window resize (recreate texture at new size)
- * 5. Cleanup on disposal
- */
-// TODO: Replace var with immutable state management (e.g., State monad, Ref, or AtomicReference)
-// Current mutable state is for LibGDX resource lifecycle management
 @SuppressWarnings(Array("org.wartremover.warts.Var"))
-class OptiXResources extends LazyLogging:
+class OptiXResources(renderer: OptiXRenderer, sphereRadius: Float) extends LazyLogging:
 
   private var batch: Option[SpriteBatch] = None
   private var texture: Option[Texture] = None
@@ -30,22 +16,27 @@ class OptiXResources extends LazyLogging:
   private var currentWidth: Int = 0
   private var currentHeight: Int = 0
 
-  /**
-   * Initialize rendering resources (SpriteBatch).
-   * Called once during engine creation.
-   */
   def initialize(): Unit =
     logger.info("Initializing OptiX rendering resources")
     batch = Some(new SpriteBatch())
 
-  /**
-   * Update texture from RGBA byte array and render fullscreen.
-   *
-   * @param rgbaBytes RGBA byte array from OptiX renderer (4 bytes per pixel)
-   * @param width Image width in pixels
-   * @param height Image height in pixels
-   */
-  def updateAndRender(rgbaBytes: Array[Byte], width: Int, height: Int): Unit =
+    logger.info(s"Configuring OptiX renderer with sphere radius=$sphereRadius")
+    renderer.setSphere(0f, 0f, 0f, sphereRadius)
+    logger.debug(s"Configured sphere: center=(0,0,0), radius=$sphereRadius")
+
+    val eye = Array(0f, 0f, 3f)
+    val lookAt = Array(0f, 0f, 0f)
+    val up = Array(0f, 1f, 0f)
+    val fov = 45f
+    renderer.setCamera(eye, lookAt, up, fov)
+    logger.debug(s"Configured camera: eye=${eye.mkString(",")}, lookAt=${lookAt.mkString(",")}, fov=$fov")
+
+    val lightDirection = Array(-1f, -1f, -1f)
+    val lightIntensity = 1.0f
+    renderer.setLight(lightDirection, lightIntensity)
+    logger.debug(s"Configured light: direction=${lightDirection.mkString(",")}, intensity=$lightIntensity")
+
+  def render(rgbaBytes: Array[Byte], width: Int, height: Int): Unit =
     require(rgbaBytes.length == width * height * 4,
       s"Invalid RGBA byte array size: expected ${width * height * 4}, got ${rgbaBytes.length}")
 
@@ -86,31 +77,17 @@ class OptiXResources extends LazyLogging:
       b.end()
     }
 
-  /**
-   * Handle window resize.
-   * Called by LibGDX when window size changes.
-   *
-   * @param width New window width
-   * @param height New window height
-   */
   def resize(width: Int, height: Int): Unit =
     logger.debug(s"Window resized to ${width}x${height}")
     // Note: Texture will be recreated on next updateAndRender() call
     // when OptiX renders at new dimensions
 
-  /**
-   * Dispose of texture and pixmap resources.
-   */
   private def disposeTextureAndPixmap(): Unit =
     texture.foreach(_.dispose())
     texture = None
     pixmap.foreach(_.dispose())
     pixmap = None
 
-  /**
-   * Dispose all resources.
-   * Called when engine shuts down.
-   */
   def dispose(): Unit =
     logger.info("Disposing OptiX rendering resources")
     disposeTextureAndPixmap()

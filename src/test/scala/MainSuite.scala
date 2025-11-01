@@ -1,4 +1,7 @@
-import menger.{MengerCLIOptions, InteractiveMengerEngine, AnimatedMengerEngine, OptiXEngine}
+import menger.MengerCLIOptions
+import menger.engines.AnimatedMengerEngine
+import menger.engines.InteractiveMengerEngine
+import menger.engines.OptiXEngine
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

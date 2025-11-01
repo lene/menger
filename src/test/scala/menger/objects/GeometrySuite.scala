@@ -1,14 +1,19 @@
 package menger.objects
 
 import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.graphics.{GL20, PerspectiveCamera}
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.math.Vector3
+import org.scalatest.Tag
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.Tag
 import org.scalamock.stubs.Stubs
-import menger.{InteractiveMengerEngine, RotationProjectionParameters}
-import menger.input.{CameraController, EventDispatcher, KeyController, Observer}
+import menger.RotationProjectionParameters
+import menger.engines.InteractiveMengerEngine
+import menger.input.CameraController
+import menger.input.EventDispatcher
+import menger.input.KeyController
+import menger.input.Observer
 
 
 object GdxTest extends Tag("GdxTest"):  // needs Gdx to be available

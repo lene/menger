@@ -1,4 +1,4 @@
-package menger
+package menger.engines
 
 import scala.util.Try
 
@@ -8,6 +8,9 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
+import menger.GDXResources
+import menger.ProfilingConfig
+import menger.RotationProjectionParameters
 import menger.objects.Builder
 import menger.objects.Composite
 import menger.objects.Cube

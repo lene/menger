@@ -75,3 +75,6 @@ ISSUE_20_UPDATE.md
 # OptiX SDK installer (large binary, temporary until we use package registry)
 # See issue for proper solution using GitLab Package Registry
 optix-jni/NVIDIA-OptiX-SDK-*.sh
+
+# OptiX JNI standalone test binary
+optix-jni/src/main/native/standalone_test

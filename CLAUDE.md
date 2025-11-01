@@ -698,3 +698,9 @@ The OptiX JNI build uses **CUDA architecture sm_75** (set in `CMakeLists.txt` li
 | Tesla T4 | sm_75 | ✓ Native |
 
 PTX (Parallel Thread Execution) is NVIDIA's virtual assembly language that provides forward compatibility. When PTX compiled for sm_75 runs on sm_86+ GPUs, the driver JIT-compiles it to the native architecture, ensuring compatibility with future GPUs.
+- ALWAYS run the test suite before committing
+- always run the pre-push hook before committing to detect errors early and not commit broken code
+- after pushing to the remote git repository, always monitor the pipeline for failures
+- do not add docstrings unless they really add information that is not clear from the names and types of the method
+- keep lines to 100 charactes max
+- one import per line as enforced by scalafix

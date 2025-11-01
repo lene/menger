@@ -31,7 +31,6 @@ code_quality:
 # I leave it in mostly for documentation how to install the environment.
 Test:Debian:
   retry: 1
-  when: manual  # disable for now to save expensive GitLab minutes
   tags:
     - nvidia  # currently unused; will be necessary for CUDA and OptiX tests
   parallel:
@@ -56,6 +55,7 @@ Test:Debian:
     - apt-get -y install mesa-utils x11-xserver-utils xvfb
   script:
     - xvfb-run sbt test
+  allow_failure: true
 
 # The following ones use a prepared docker image for sbt.
 # Main Scala tests - requires CMake for OptiX JNI native library stub build

@@ -1,12 +1,13 @@
-package menger
+package menger.engines
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.Pixmap
-import com.badlogic.gdx.graphics.PixmapIO
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.typesafe.scalalogging.LazyLogging
+import menger.AnimationSpecifications
+import menger.GDXResources
+import menger.ProfilingConfig
+import menger.RotationProjectionParameters
 
 class AnimatedMengerEngine(
   spongeType: String, spongeLevel: Float,
@@ -61,22 +62,3 @@ with LazyLogging:
   private def currentSaveName: Option[String] = saveName.map(_.format(frameCounter.get()))
 
   private def saveImage():  Unit = currentSaveName.foreach(ScreenshotFactory.saveScreenshot)
-
-
-object ScreenshotFactory:
-  def saveScreenshot(fileName: String): Unit =
-    val safePath = sanitizeFileName(fileName)
-    val pixmap = getScreenshot(0, 0, Gdx.graphics.getWidth, Gdx.graphics.getHeight)
-    PixmapIO.writePNG(FileHandle(safePath), pixmap)
-    pixmap.dispose()
-
-  private[menger] def sanitizeFileName(fileName: String): String =
-    require(fileName.nonEmpty, "File name cannot be empty")
-
-    val sanitized = fileName.filter(c => c.isLetterOrDigit || c == '_' || c == '-' || c == '.')
-
-    require(sanitized.nonEmpty, "File name becomes empty after sanitization")
-    if sanitized.toLowerCase.endsWith(".png") then sanitized else s"$sanitized.png"
-
-  private def getScreenshot(x: Int, y: Int, w: Int, h: Int) =
-    Pixmap.createFromFrameBuffer(x, y, w, h)

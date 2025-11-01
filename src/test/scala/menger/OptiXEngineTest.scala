@@ -1,6 +1,7 @@
 package menger
 
 import com.badlogic.gdx.graphics.Color
+import menger.engines.OptiXEngine
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 

@@ -1,7 +1,8 @@
 package menger.objects
 
-import com.badlogic.gdx.backends.lwjgl3.{Lwjgl3Application, Lwjgl3ApplicationConfiguration}
-import menger.InteractiveMengerEngine
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
+import menger.engines.InteractiveMengerEngine
 
 /**
  *  So here's the thing: when executing tests in sbt, the LWJGL library can be loaded only once.

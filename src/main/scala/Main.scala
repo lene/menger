@@ -3,13 +3,13 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
-import menger.AnimatedMengerEngine
-import menger.InteractiveMengerEngine
 import menger.MengerCLIOptions
-import menger.MengerEngine
-import menger.OptiXEngine
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.engines.AnimatedMengerEngine
+import menger.engines.InteractiveMengerEngine
+import menger.engines.MengerEngine
+import menger.engines.OptiXEngine
 import org.slf4j.LoggerFactory
 
 object Main:

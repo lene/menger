@@ -71,6 +71,8 @@ then echo "Status after tag check: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after tag check: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
+sbt compile || exit 1
+
 xvfb-run -a sbt test --warn || STATUS=1
 if [ $STATUS -gt 0 ]
 then echo "Status after sbt test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
@@ -116,54 +118,55 @@ then echo "Status after compute-sanitizer: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after compute-sanitizer: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
-  # Run Valgrind for host memory leak detection
-  echo "Running Valgrind for host memory leak detection..."
-  if ! command -v valgrind >/dev/null 2>&1; then
-    echo "${RED_TEXT}Warning: valgrind not installed, skipping host memory check${RESET_TEXT}"
+# Run Valgrind for host memory leak detection
+echo "Running Valgrind for host memory leak detection..."
+if ! command -v valgrind >/dev/null 2>&1; then
+  echo "${RED_TEXT}Warning: valgrind not installed, skipping host memory check${RESET_TEXT}"
+else
+  # Build native library if not already built
+  sbt "project optixJni" nativeCompile --warn >/dev/null 2>&1
+  # Compile standalone test
+  (
+    cd optix-jni/src/main/native
+    g++ -std=c++17 \
+      -I./include -I/usr/local/cuda/include -I${OPTIX_ROOT:-/usr/local}/include \
+      -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
+      standalone_test.cpp -loptixjni -lcudart -o standalone_test 2>/dev/null
+  )
+  COMPILE_STATUS=$?
+  if [ $COMPILE_STATUS -ne 0 ]; then
+    echo "${RED_TEXT}Failed to compile standalone test${RESET_TEXT}"
+    STATUS=1
   else
-    # Build native library if not already built
-    sbt "project optixJni" nativeCompile --warn >/dev/null 2>&1
-    # Compile standalone test
+    # Run under Valgrind
     (
       cd optix-jni/src/main/native
-      g++ -std=c++17 \
-        -I./include -I/usr/local/cuda/include -I${OPTIX_ROOT:-/usr/local}/include \
-        -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
-        standalone_test.cpp -loptixjni -lcudart -o standalone_test 2>/dev/null
+      LD_LIBRARY_PATH=../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
+        valgrind --leak-check=full --error-exitcode=1 \
+        --errors-for-leak-kinds=definite,indirect \
+        --suppressions=../../../../valgrind.supp \
+        ./standalone_test > /tmp/valgrind-prepush.log 2>&1
     )
-    COMPILE_STATUS=$?
-    if [ $COMPILE_STATUS -ne 0 ]; then
-      echo "${RED_TEXT}Failed to compile standalone test${RESET_TEXT}"
-      STATUS=1
+    VALGRIND_STATUS=$?
+
+    DEFINITELY_LOST=$(grep "definitely lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g')
+    INDIRECTLY_LOST=$(grep "indirectly lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g')
+
+    if [ "$VALGRIND_STATUS" -eq 0 ] && [ "$DEFINITELY_LOST" = "0" ] && [ "$INDIRECTLY_LOST" = "0" ]; then
+      echo "Valgrind: ${GREEN_TEXT}No host memory leaks detected${RESET_TEXT}"
     else
-      # Run under Valgrind
-      (
-        cd optix-jni/src/main/native
-        LD_LIBRARY_PATH=../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
-          valgrind --leak-check=full --error-exitcode=1 \
-          --errors-for-leak-kinds=definite,indirect \
-          --suppressions=../../../../valgrind.supp \
-          ./standalone_test > /tmp/valgrind-prepush.log 2>&1
-      )
-      VALGRIND_STATUS=$?
-
-      DEFINITELY_LOST=$(grep "definitely lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g')
-      INDIRECTLY_LOST=$(grep "indirectly lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g')
-
-      if [ "$VALGRIND_STATUS" -eq 0 ] && [ "$DEFINITELY_LOST" = "0" ] && [ "$INDIRECTLY_LOST" = "0" ]; then
-        echo "Valgrind: ${GREEN_TEXT}No host memory leaks detected${RESET_TEXT}"
-      else
-        echo "Valgrind: ${RED_TEXT}Host memory leaks detected!${RESET_TEXT}"
-        echo "definitely lost: ${DEFINITELY_LOST} bytes, indirectly lost: ${INDIRECTLY_LOST} bytes"
-        echo "See /tmp/valgrind-prepush.log for details"
-        tail -50 /tmp/valgrind-prepush.log
-        STATUS=1
-      fi
+      echo "Valgrind: ${RED_TEXT}Host memory leaks detected!${RESET_TEXT}"
+      echo "definitely lost: ${DEFINITELY_LOST} bytes, indirectly lost: ${INDIRECTLY_LOST} bytes"
+      echo "See /tmp/valgrind-prepush.log for details"
+      tail -50 /tmp/valgrind-prepush.log
+      STATUS=1
     fi
   fi
+fi
+
 if [ $STATUS -gt 0 ]
 then echo "Status after Valgrind: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after Valgrind: ${GREEN_TEXT}${RESET_TEXT}"
+else echo "Status after Valgrind: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 sbt "scalafix --check" --warn || STATUS=1
@@ -198,6 +201,11 @@ do
   xvfb-run -a ./menger-${VERSION}/bin/menger --level 1.5 --timeout 0.1 --sponge-type $TYPE || STATUS=1
 done
 
+if [ $STATUS -gt 0 ]
+then echo "Status after running built: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after running built: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+fi
+
 # Test OptiX sphere rendering
 echo "Testing OptiX sphere rendering..."
 # Test packaged distribution
@@ -208,11 +216,6 @@ xvfb-run -a sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5" --
 if [ $STATUS -gt 0 ]
 then echo "Status after OptiX integration tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after OptiX integration tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-fi
-
-if [ $STATUS -gt 0 ]
-then echo "Status after running built: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after running built: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 if [ $STATUS -gt 0 ]; then
