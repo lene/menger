@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.optix.OptiXRenderer
 
 @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-class OptiXResources(sphereRadius: Float) extends LazyLogging:
+class OptiXResources(configureGeometry: OptiXRenderer => Unit) extends LazyLogging:
 
   private lazy val renderer: OptiXRenderer = initializeRenderer
 
@@ -16,19 +16,17 @@ class OptiXResources(sphereRadius: Float) extends LazyLogging:
     if !OptiXRenderer.isLibraryLoaded then
       errorExit("OptiX native library failed to load - ensure CUDA and OptiX are available")
 
-    val r = new OptiXRenderer()
+    val r = OptiXRenderer()
     if !r.isAvailable then
       errorExit("OptiX not available on this system - ensure CUDA and OptiX are available")
-
     if !r.initialize() then
       errorExit("Failed to initialize OptiX renderer")
 
     r
 
   def initialize(): Unit =
-    logger.info(s"Configuring OptiX scene with sphere radius=$sphereRadius")
-    renderer.setSphere(0f, 0f, 0f, sphereRadius)
-    logger.debug(s"Configured sphere: center=(0,0,0), radius=$sphereRadius")
+    logger.info("Configuring OptiX scene")
+    configureGeometry(renderer)
 
     val eye = Array(0f, 0f, 3f)
     val lookAt = Array(0f, 0f, 0f)
@@ -46,5 +44,5 @@ class OptiXResources(sphereRadius: Float) extends LazyLogging:
     renderer.render(width, height)
 
   def dispose(): Unit =
-    logger.info("Disposing OptiX renderer")
+    logger.debug("Disposing OptiX renderer")
     renderer.dispose()

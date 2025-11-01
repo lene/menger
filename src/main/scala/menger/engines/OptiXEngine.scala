@@ -3,15 +3,15 @@ package menger.engines
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.Pixmap
-import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.typesafe.scalalogging.LazyLogging
 import menger.GDXResources
 import menger.OptiXResources
 import menger.ProfilingConfig
+import menger.RenderState
 import menger.RotationProjectionParameters
+import menger.optix.OptiXRenderer
 
 @SuppressWarnings(Array("org.wartremover.warts.Throw", "org.wartremover.warts.Var"))
 class OptiXEngine(
@@ -30,17 +30,9 @@ class OptiXEngine(
   faceColor, lineColor, fpsLogIntervalMs
 ) with TimeoutSupport with LazyLogging:
 
-  private case class RenderState(
-    texture: Option[Texture],
-    pixmap: Option[Pixmap],
-    width: Int,
-    height: Int
-  ):
-    def dispose(): Unit =
-      texture.foreach(_.dispose())
-      pixmap.foreach(_.dispose())
-
-  private lazy val optiXResources: OptiXResources = new OptiXResources(sphereRadius)
+  private val geometryGenerator: OptiXRenderer => Unit = _.setSphere(0f, 0f, 0f, sphereRadius)
+  private lazy val optiXResources: OptiXResources =
+    new OptiXResources(geometryGenerator)
   private lazy val batch: SpriteBatch = new SpriteBatch()
   private var renderState: RenderState = RenderState(None, None, 0, 0)
 
@@ -56,7 +48,6 @@ class OptiXEngine(
     if timeout > 0 then startExitTimer(timeout)
 
   override def render(): Unit =
-    Gdx.gl.glClearColor(0.25f, 0.25f, 0.25f, 1.0f)
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
 
     val width = Gdx.graphics.getWidth
@@ -71,34 +62,23 @@ class OptiXEngine(
       renderState.dispose()
       renderState = RenderState(None, None, width, height)
 
-    val pm = renderState.pixmap.getOrElse {
-      val newPixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888)
-      renderState = renderState.copy(pixmap = Some(newPixmap))
-      newPixmap
-    }
+    val (stateWithPixmap, pm) = renderState.ensurePixmap()
+    renderState = stateWithPixmap
 
-    pm.getPixels.clear()
-    pm.getPixels.put(rgbaBytes)
-    pm.getPixels.rewind()
+    renderState.updatePixmap(rgbaBytes, pm)
 
-    val tex = renderState.texture match
-      case Some(existingTexture) =>
-        existingTexture.draw(pm, 0, 0)
-        existingTexture
-      case None =>
-        val newTexture = new Texture(pm)
-        renderState = renderState.copy(texture = Some(newTexture))
-        newTexture
+    val (stateWithTexture, tex) = renderState.ensureTexture(pm)
+    renderState = stateWithTexture
 
     batch.begin()
-    batch.draw(tex, 0, 0, Gdx.graphics.getWidth.toFloat, Gdx.graphics.getHeight.toFloat)
+    batch.draw(tex, 0, 0, width.toFloat, height.toFloat)
     batch.end()
 
   override def resize(width: Int, height: Int): Unit =
     logger.debug(s"Window resized to ${width}x${height}")
 
   override def dispose(): Unit =
-    logger.info("Disposing OptiXEngine")
+    logger.debug("Disposing OptiXEngine")
     renderState.dispose()
     batch.dispose()
     optiXResources.dispose()

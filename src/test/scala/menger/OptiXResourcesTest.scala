@@ -6,11 +6,11 @@ import org.scalatest.matchers.should.Matchers
 class OptiXResourcesTest extends AnyFunSuite with Matchers:
 
   test("OptiXResources can be instantiated"):
-    val resources = new OptiXResources(1.0f)
+    val resources = new OptiXResources(_.setSphere(0f, 0f, 0f, 1.0f))
     resources should not be null
 
   test("dispose() should not throw on uninitialized resources"):
-    val resources = new OptiXResources(1.0f)
+    val resources = new OptiXResources(_.setSphere(0f, 0f, 0f, 1.0f))
     noException should be thrownBy resources.dispose()
 
   test("RGBA byte array size calculation is correct"):
