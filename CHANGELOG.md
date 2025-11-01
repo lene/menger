@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [0.3.4] - 2025-10-29
+## [0.3.4] - 2025-11-02
 
 ### Added
 - **Phase 4**: Comprehensive OptiX integration testing and validation
@@ -19,6 +19,36 @@
     - CI job Test:Valgrind verifies host memory leaks
     - CI job Test:ComputeSanitizer verifies GPU memory leaks
     - Pre-push hook runs both tools locally
+- OptiX sphere rendering implementation with new OptiXEngine
+  - Configurable sphere radius via `--sphere-radius` option
+  - Screenshot saving support via `--save-name` option
+  - Timeout support via `--timeout` option for automated testing
+  - Full integration with LibGDX rendering pipeline
+- SavesScreenshots trait for reusable screenshot functionality across engines
+- Proper logging infrastructure throughout OptiX codebase
+  - Replaced all println statements with LazyLogging logger calls
+  - SLF4J warnings suppressed via system property in build.sbt
+
+### Changed
+- **BREAKING**: OptiX JNI is now always required (ENABLE_OPTIX_JNI removed)
+  - All builds now require CUDA/OptiX installation
+  - Simplified build system by removing conditional compilation
+  - CI jobs updated to always install CMake and build tools
+- Test suite migration to AnyFlatSpec
+  - OptiXRendererTest converted from AnyFunSuite to AnyFlatSpec
+  - Consistent test style across entire codebase
+- OptiXResources refactoring for better modularity
+  - Extracted `createLights()` method from initialization
+  - Added `ensureAvailable()` call to OptiXRenderer for safety
+  - Geometry configuration now uses Try monad for error handling
+  - Changed log level from info to debug for scene configuration details
+- OptiXEngine improvements
+  - More configurable rendering parameters (sphere radius, timeout, save name)
+  - Cleaner separation of concerns with SavesScreenshots trait
+  - Improved error messages via logger instead of println
+- Reduced verbosity in pre-push hook
+  - Simplified compute-sanitizer output parsing
+  - Cleaner error reporting
 
 ### Fixed
 - Test suite now handles SBT update limitation by using fresh renderer instances for parameter changes
@@ -34,6 +64,14 @@
   - Fails with descriptive error message if CUDA_HOME not set
   - Fixes "Unable to find injection library libsanitizer-collection.so" error
   - Fixed awk field extraction for ERROR_SUMMARY parsing (was reading field 3 instead of field 4)
+- CI jobs now install CMake and g++ where needed
+  - CheckRunTime and BuildDeployable jobs updated
+  - Scalafix job updated to install build tools
+- Test:ComputeSanitizer CI job timeout fixed by using standalone C++ test
+  - Job was timing out (>60 minutes) because compute-sanitizer instrumented entire sbt/JVM process
+  - Now uses same standalone_test.cpp as Valgrind job
+  - Bypasses JVM entirely for pure CUDA/OptiX testing
+  - Reduced runtime from >60 minutes (timeout) to ~2 minutes
 
 ## [0.3.3] - 2025-10-26
 

@@ -135,12 +135,35 @@ Test:ComputeSanitizer:
       fi
     - ldconfig || true
   script:
-    # Run OptiX JNI tests under compute-sanitizer for memory leak detection
-    - compute-sanitizer --tool memcheck sbt "project optixJni" test > compute-sanitizer.log 2>&1 || true
+    # Build OptiX JNI native library
+    - sbt "project optixJni" nativeCompile
+    # Compile standalone test
+    - cd optix-jni/src/main/native
+    - |
+      g++ -std=c++17 \
+        -I./include -I/usr/local/cuda/include -I/usr/local/include \
+        -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
+        standalone_test.cpp -loptixjni -lcudart -o standalone_test
+    # Clean any old compute-sanitizer.log
+    - rm -f ../../../compute-sanitizer.log
+    # Run under compute-sanitizer
+    - |
+      LD_LIBRARY_PATH=../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
+        compute-sanitizer --tool memcheck ./standalone_test > ../../../compute-sanitizer.log 2>&1 || true
+    - cd ../../..
     # Check for memory leaks in the output
-    - ERROR_COUNT=$(grep "ERROR SUMMARY:" compute-sanitizer.log | tail -1 | awk '{print $4}')
-    - echo "compute-sanitizer ERROR SUMMARY - errors found:" $ERROR_COUNT
-    - if [ "$ERROR_COUNT" != "0" ]; then echo "Memory leaks or errors detected!"; cat compute-sanitizer.log; exit 1; fi
+    - |
+      if [ ! -f compute-sanitizer.log ]; then
+        echo "ERROR: compute-sanitizer.log not found!"
+        exit 1
+      fi
+      ERROR_COUNT=$(grep "ERROR SUMMARY:" compute-sanitizer.log | tail -1 | awk '{print $4}')
+      echo "compute-sanitizer ERROR SUMMARY - errors found: $ERROR_COUNT"
+      if [ "$ERROR_COUNT" != "0" ]; then
+        echo "Memory leaks or errors detected!"
+        cat compute-sanitizer.log
+        exit 1
+      fi
   after_script:
     - chmod -R 777 optix-jni/target/ || true
   artifacts:
@@ -255,7 +278,7 @@ CheckCoverage:
     - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     - apt-get -y update
-    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb cmake
+    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb cmake g++
   script:
     - 'curl -o coverage.log --location --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/coverage.log?job=${CI_JOB_NAME}"'
     - . coverage.log || true
@@ -285,6 +308,9 @@ Scalafix:
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
+  before_script:
+    - apt-get -y update
+    - apt-get -y install cmake g++
   script:
     - sbt "scalafix --check"
   allow_failure: false
