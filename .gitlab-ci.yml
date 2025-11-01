@@ -52,7 +52,7 @@ Test:Debian:
     - curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
     - apt-get -y update
     - apt-get -y install sbt
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake
   script:
     - xvfb-run sbt test
   allow_failure: true
@@ -164,7 +164,7 @@ Test:Valgrind:
   before_script:
     - nvidia-smi
     # Install Valgrind
-    - apt-get update && apt-get install -y valgrind
+    - apt-get update && apt-get install -y valgrind cmake
     # Create missing symlink for RTX core library if needed
     - |
       if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
@@ -255,7 +255,7 @@ CheckCoverage:
     - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     - apt-get -y update
-    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb cmake
   script:
     - 'curl -o coverage.log --location --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/coverage.log?job=${CI_JOB_NAME}"'
     - . coverage.log || true

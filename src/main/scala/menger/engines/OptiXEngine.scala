@@ -3,15 +3,17 @@ package menger.engines
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.typesafe.scalalogging.LazyLogging
 import menger.GDXResources
 import menger.OptiXResources
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
-import menger.optix.OptiXRenderer
 
-@SuppressWarnings(Array("org.wartremover.warts.Throw"))
+@SuppressWarnings(Array("org.wartremover.warts.Throw", "org.wartremover.warts.Var"))
 class OptiXEngine(
   spongeType: String,
   spongeLevel: Float,
@@ -28,8 +30,19 @@ class OptiXEngine(
   faceColor, lineColor, fpsLogIntervalMs
 ) with TimeoutSupport with LazyLogging:
 
-  private lazy val renderer: OptiXRenderer = initializeRenderer
-  private lazy val optiXResources: OptiXResources = new OptiXResources(renderer, sphereRadius)
+  private case class RenderState(
+    texture: Option[Texture],
+    pixmap: Option[Pixmap],
+    width: Int,
+    height: Int
+  ):
+    def dispose(): Unit =
+      texture.foreach(_.dispose())
+      pixmap.foreach(_.dispose())
+
+  private lazy val optiXResources: OptiXResources = new OptiXResources(sphereRadius)
+  private lazy val batch: SpriteBatch = new SpriteBatch()
+  private var renderState: RenderState = RenderState(None, None, 0, 0)
 
   protected def drawables: List[ModelInstance] =
     throw new UnsupportedOperationException("OptiXEngine doesn't use drawables")
@@ -37,29 +50,10 @@ class OptiXEngine(
   protected def gdxResources: GDXResources =
     throw new UnsupportedOperationException("OptiXEngine doesn't use gdxResources")
 
-  private def errorExit(message: String): Unit =
-    logger.error(message)
-    System.exit(1)
-
   override def create(): Unit =
     logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color")
     optiXResources.initialize()
     if timeout > 0 then startExitTimer(timeout)
-
-  private def initializeRenderer: OptiXRenderer =
-    // Check library loaded (forces companion object initialization)
-    if !OptiXRenderer.isLibraryLoaded then
-      errorExit("OptiX native library failed to load - ensure CUDA and OptiX are available")
-
-    // Initialize OptiX renderer
-    val renderer = new OptiXRenderer()
-    if !renderer.isAvailable then
-      errorExit("OptiX not available on this system - ensure CUDA and OptiX are available")
-
-    if !renderer.initialize() then
-      errorExit("Failed to initialize OptiX renderer")
-
-    renderer
 
   override def render(): Unit =
     Gdx.gl.glClearColor(0.25f, 0.25f, 0.25f, 1.0f)
@@ -67,14 +61,44 @@ class OptiXEngine(
 
     val width = Gdx.graphics.getWidth
     val height = Gdx.graphics.getHeight
-    val rgbaBytes = renderer.render(width, height)
-    optiXResources.render(rgbaBytes, width, height)
+    val rgbaBytes = optiXResources.renderScene(width, height)
+    renderToScreen(rgbaBytes, width, height)
+
+  private def renderToScreen(rgbaBytes: Array[Byte], width: Int, height: Int): Unit =
+    val needsRecreate = width != renderState.width || height != renderState.height
+
+    if needsRecreate then
+      renderState.dispose()
+      renderState = RenderState(None, None, width, height)
+
+    val pm = renderState.pixmap.getOrElse {
+      val newPixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888)
+      renderState = renderState.copy(pixmap = Some(newPixmap))
+      newPixmap
+    }
+
+    pm.getPixels.clear()
+    pm.getPixels.put(rgbaBytes)
+    pm.getPixels.rewind()
+
+    val tex = renderState.texture match
+      case Some(existingTexture) =>
+        existingTexture.draw(pm, 0, 0)
+        existingTexture
+      case None =>
+        val newTexture = new Texture(pm)
+        renderState = renderState.copy(texture = Some(newTexture))
+        newTexture
+
+    batch.begin()
+    batch.draw(tex, 0, 0, Gdx.graphics.getWidth.toFloat, Gdx.graphics.getHeight.toFloat)
+    batch.end()
 
   override def resize(width: Int, height: Int): Unit =
     logger.debug(s"Window resized to ${width}x${height}")
-    optiXResources.resize(width, height)
 
   override def dispose(): Unit =
     logger.info("Disposing OptiXEngine")
+    renderState.dispose()
+    batch.dispose()
     optiXResources.dispose()
-    renderer.dispose()

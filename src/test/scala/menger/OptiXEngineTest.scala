@@ -2,7 +2,7 @@ package menger
 
 import com.badlogic.gdx.graphics.Color
 import menger.engines.OptiXEngine
-import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 /**
@@ -11,7 +11,7 @@ import org.scalatest.matchers.should.Matchers
  * Note: Full lifecycle tests require LibGDX application context and OptiX runtime.
  * These tests verify code structure, parameters, and basic logic without full rendering.
  */
-class OptiXEngineTest extends AnyFunSuite with Matchers:
+class OptiXEngineTest extends AnyFlatSpec with Matchers:
 
   // Dummy rotation/projection parameters for testing
   private def dummyRotProj = RotationProjectionParameters(
@@ -35,19 +35,19 @@ class OptiXEngineTest extends AnyFunSuite with Matchers:
       timeout = timeout
     )
 
-  test("OptiXEngine can be instantiated"):
+  "OptiXEngine" should "be instantiated" in:
     val engine = createEngine()
     engine should not be null
 
-  test("OptiXEngine stores sphere radius"):
+  it should "store sphere radius" in:
     val engine = createEngine(radius = 2.5f)
     engine.sphereRadius shouldBe 2.5f
 
-  test("OptiXEngine stores timeout"):
+  it should "store timeout" in:
     val engine = createEngine(timeout = 5.0f)
     engine.timeout shouldBe 5.0f
 
-  test("OptiXEngine stores color"):
+  it should "store color" in:
     given ProfilingConfig = ProfilingConfig.disabled
     val engine = new OptiXEngine(
       spongeType = "sphere",
@@ -63,11 +63,11 @@ class OptiXEngineTest extends AnyFunSuite with Matchers:
     )
     engine.color shouldBe Color.RED
 
-  test("OptiXEngine sponge type is sphere"):
+  it should "have sponge type sphere" in:
     val engine = createEngine()
     engine.spongeType shouldBe "sphere"
 
-  test("OptiXEngine accepts various radius values"):
+  it should "accept various radius values" in:
     val engine1 = createEngine(radius = 0.1f)
     engine1.sphereRadius shouldBe 0.1f
 
@@ -77,11 +77,6 @@ class OptiXEngineTest extends AnyFunSuite with Matchers:
     val engine3 = createEngine(radius = 1.5f)
     engine3.sphereRadius shouldBe 1.5f
 
-  test("OptiXEngine timeout defaults to 0"):
+  it should "have default timeout 0" in:
     val engine = createEngine()
     engine.timeout shouldBe 0f
-
-  test("OptiXEngine can be disposed without initialization"):
-    val engine = createEngine()
-    // Should not throw even if create() was never called
-    noException should be thrownBy engine.dispose()

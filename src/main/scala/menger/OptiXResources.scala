@@ -1,26 +1,32 @@
 package menger
 
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Pixmap
-import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.typesafe.scalalogging.LazyLogging
 import menger.optix.OptiXRenderer
 
-@SuppressWarnings(Array("org.wartremover.warts.Var"))
-class OptiXResources(renderer: OptiXRenderer, sphereRadius: Float) extends LazyLogging:
+@SuppressWarnings(Array("org.wartremover.warts.Throw"))
+class OptiXResources(sphereRadius: Float) extends LazyLogging:
 
-  private var batch: Option[SpriteBatch] = None
-  private var texture: Option[Texture] = None
-  private var pixmap: Option[Pixmap] = None
-  private var currentWidth: Int = 0
-  private var currentHeight: Int = 0
+  private lazy val renderer: OptiXRenderer = initializeRenderer
+
+  private def errorExit(message: String): Unit =
+    logger.error(message)
+    System.exit(1)
+
+  private def initializeRenderer: OptiXRenderer =
+    if !OptiXRenderer.isLibraryLoaded then
+      errorExit("OptiX native library failed to load - ensure CUDA and OptiX are available")
+
+    val r = new OptiXRenderer()
+    if !r.isAvailable then
+      errorExit("OptiX not available on this system - ensure CUDA and OptiX are available")
+
+    if !r.initialize() then
+      errorExit("Failed to initialize OptiX renderer")
+
+    r
 
   def initialize(): Unit =
-    logger.info("Initializing OptiX rendering resources")
-    batch = Some(new SpriteBatch())
-
-    logger.info(s"Configuring OptiX renderer with sphere radius=$sphereRadius")
+    logger.info(s"Configuring OptiX scene with sphere radius=$sphereRadius")
     renderer.setSphere(0f, 0f, 0f, sphereRadius)
     logger.debug(s"Configured sphere: center=(0,0,0), radius=$sphereRadius")
 
@@ -36,60 +42,9 @@ class OptiXResources(renderer: OptiXRenderer, sphereRadius: Float) extends LazyL
     renderer.setLight(lightDirection, lightIntensity)
     logger.debug(s"Configured light: direction=${lightDirection.mkString(",")}, intensity=$lightIntensity")
 
-  def render(rgbaBytes: Array[Byte], width: Int, height: Int): Unit =
-    require(rgbaBytes.length == width * height * 4,
-      s"Invalid RGBA byte array size: expected ${width * height * 4}, got ${rgbaBytes.length}")
-
-    // Recreate texture if dimensions changed
-    if width != currentWidth || height != currentHeight then
-      disposeTextureAndPixmap()
-      currentWidth = width
-      currentHeight = height
-
-    // Create or update pixmap
-    val pm = pixmap.getOrElse {
-      val newPixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888)
-      pixmap = Some(newPixmap)
-      newPixmap
-    }
-
-    // Copy RGBA bytes to pixmap buffer
-    pm.getPixels.clear()
-    pm.getPixels.put(rgbaBytes)
-    pm.getPixels.rewind()
-
-    // Create or update texture
-    val tex = texture match
-      case Some(existingTexture) =>
-        existingTexture.draw(pm, 0, 0)
-        existingTexture
-      case None =>
-        val newTexture = new Texture(pm)
-        texture = Some(newTexture)
-        newTexture
-
-    // Render texture fullscreen
-    batch.foreach { b =>
-      b.begin()
-      // Draw texture fullscreen: from (0,0) to (screen_width, screen_height)
-      // Note: LibGDX uses bottom-left origin, texture coordinates: (0,0) to (1,1)
-      b.draw(tex, 0, 0, Gdx.graphics.getWidth.toFloat, Gdx.graphics.getHeight.toFloat)
-      b.end()
-    }
-
-  def resize(width: Int, height: Int): Unit =
-    logger.debug(s"Window resized to ${width}x${height}")
-    // Note: Texture will be recreated on next updateAndRender() call
-    // when OptiX renders at new dimensions
-
-  private def disposeTextureAndPixmap(): Unit =
-    texture.foreach(_.dispose())
-    texture = None
-    pixmap.foreach(_.dispose())
-    pixmap = None
+  def renderScene(width: Int, height: Int): Array[Byte] =
+    renderer.render(width, height)
 
   def dispose(): Unit =
-    logger.info("Disposing OptiX rendering resources")
-    disposeTextureAndPixmap()
-    batch.foreach(_.dispose())
-    batch = None
+    logger.info("Disposing OptiX renderer")
+    renderer.dispose()

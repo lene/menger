@@ -704,3 +704,5 @@ PTX (Parallel Thread Execution) is NVIDIA's virtual assembly language that provi
 - do not add docstrings unless they really add information that is not clear from the names and types of the method
 - keep lines to 100 charactes max
 - one import per line as enforced by scalafix
+- aim for functional programming style. in particular avoid mutable variables (var) and throwing exceptions unless it is absolutely necessary and dictated by the interface.
+- when writing tests, use AnyFlatSpec as the testing style
