@@ -16,7 +16,7 @@ class AnimatedMengerEngine(
   val saveName: Option[String], faceColor: Option[Color] = None, lineColor: Option[Color] = None,
   fpsLogIntervalMs: Int = 1000
 )(using config: ProfilingConfig) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor, fpsLogIntervalMs)
-with LazyLogging:
+with LazyLogging with SavesScreenshots:
   private val frameCounter = java.util.concurrent.atomic.AtomicInteger(0)
 
   protected def drawables: List[ModelInstance] =
@@ -59,6 +59,4 @@ with LazyLogging:
     if nextFrame >= animationSpecifications.numFrames then
       Gdx.app.exit()
 
-  private def currentSaveName: Option[String] = saveName.map(_.format(frameCounter.get()))
-
-  private def saveImage():  Unit = currentSaveName.foreach(ScreenshotFactory.saveScreenshot)
+  protected def currentSaveName: Option[String] = saveName.map(_.format(frameCounter.get()))

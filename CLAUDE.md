@@ -706,3 +706,4 @@ PTX (Parallel Thread Execution) is NVIDIA's virtual assembly language that provi
 - one import per line as enforced by scalafix
 - aim for functional programming style. in particular avoid mutable variables (var) and throwing exceptions unless it is absolutely necessary and dictated by the interface.
 - when writing tests, use AnyFlatSpec as the testing style
+- This is a Scala 3 project. Always prefer Scala 3 style over Scala 2 style.

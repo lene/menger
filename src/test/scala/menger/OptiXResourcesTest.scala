@@ -1,21 +1,21 @@
 package menger
 
-import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.util.Try
 
-class OptiXResourcesTest extends AnyFunSuite with Matchers:
+class OptiXResourcesTest extends AnyFlatSpec with Matchers:
 
-  test("OptiXResources can be instantiated"):
+  "OptiXResources" should "be instantiable" in:
     val resources = new OptiXResources(Try(_.setSphere(0f, 0f, 0f, 1.0f)))
     resources should not be null
 
-  test("dispose() should not throw on uninitialized resources"):
+  it should "not throw on dispose() for uninitialized resources" in:
     val resources = new OptiXResources(Try(_.setSphere(0f, 0f, 0f, 1.0f)))
     noException should be thrownBy resources.dispose()
 
-  test("RGBA byte array size calculation is correct"):
+  "RGBA byte array size calculation" should "be correct" in:
     val width = 10
     val height = 10
     val expectedSize = 400

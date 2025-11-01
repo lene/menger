@@ -53,7 +53,8 @@ object Main:
         opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
         opts.faceColor.toOption, opts.lineColor.toOption,
         opts.fpsLogInterval(),
-        opts.radius(), opts.timeout()
+        opts.radius(), opts.timeout(),
+        opts.saveName.toOption
       )
     else if opts.animate.isDefined && opts.animate().parts.nonEmpty then
       AnimatedMengerEngine(

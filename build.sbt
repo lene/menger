@@ -51,7 +51,8 @@ lazy val optixJni = project
     // Set library path for tests to find native library
     // Multiple paths to try: test-classes, classes, and native build output
     Test / javaOptions ++= Seq(
-      s"-Djava.library.path=${(Test / classDirectory).value / "native" / "x86_64-linux"}:${(Compile / classDirectory).value / "native" / "x86_64-linux"}:${target.value / "native" / "x86_64-linux" / "bin"}"
+      s"-Djava.library.path=${(Test / classDirectory).value / "native" / "x86_64-linux"}:${(Compile / classDirectory).value / "native" / "x86_64-linux"}:${target.value / "native" / "x86_64-linux" / "bin"}",
+      "-Dlogback.statusListenerClass=ch.qos.logback.core.status.NopStatusListener"
     ),
     Test / fork := true, // Required for javaOptions to take effect
 
@@ -107,6 +108,10 @@ lazy val root = {
     // ScalaTest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
     libraryDependencies += "org.scalamock" %% "scalamock" % "7.5.0" % Test,
+
+    // Suppress SLF4J replay warnings during tests
+    Test / javaOptions += "-Dlogback.statusListenerClass=ch.qos.logback.core.status.NopStatusListener",
+    Test / fork := true,
 
     // Scallop command line parser
     libraryDependencies += "org.rogach" %% "scallop" % "5.2.0",

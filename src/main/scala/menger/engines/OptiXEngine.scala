@@ -27,11 +27,12 @@ class OptiXEngine(
   lineColor: Option[Color],
   fpsLogIntervalMs: Int,
   val sphereRadius: Float,
-  val timeout: Float = 0f
+  val timeout: Float = 0f,
+  saveName: Option[String] = None
 )(using profilingConfig: ProfilingConfig) extends MengerEngine(
   spongeType, spongeLevel, rotationProjectionParameters, lines, color,
   faceColor, lineColor, fpsLogIntervalMs
-) with TimeoutSupport with LazyLogging:
+) with TimeoutSupport with LazyLogging with SavesScreenshots:
 
   private val geometryGenerator: Try[OptiXRenderer => Unit] = spongeType match {
     case "sphere" => Try(_.setSphere(0f, 0f, 0f, sphereRadius))
@@ -59,6 +60,9 @@ class OptiXEngine(
     val height = Gdx.graphics.getHeight
     val rgbaBytes = optiXResources.renderScene(width, height)
     renderToScreen(rgbaBytes, width, height)
+    saveImage()
+
+  protected def currentSaveName: Option[String] = saveName
 
   private def renderToScreen(rgbaBytes: Array[Byte], width: Int, height: Int): Unit =
     val needsRecreate = width != renderState.width || height != renderState.height

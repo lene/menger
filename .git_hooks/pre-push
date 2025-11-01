@@ -200,22 +200,14 @@ for TYPE in square-sponge cube-sponge tesseract-sponge tesseract-sponge-2
 do
   xvfb-run -a ./menger-${VERSION}/bin/menger --level 1.5 --timeout 0.1 --sponge-type $TYPE || STATUS=1
 done
+# Test OptiX-generated output
+rm -f test_optix*.png
+xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --sponge-type sphere --optix --radius 0.5 --save-name test_optix.png || STATUS=1
+test -f test_optix.png || STATUS=1
 
 if [ $STATUS -gt 0 ]
 then echo "Status after running built: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after running built: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-fi
-
-# Test OptiX sphere rendering
-echo "Testing OptiX sphere rendering..."
-# Test packaged distribution
-export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-xvfb-run -a ./menger-${VERSION}/bin/menger --optix --sponge-type sphere --timeout 0.1 || STATUS=1
-# Test sbt run with different radius
-xvfb-run -a sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5" --warn || STATUS=1
-if [ $STATUS -gt 0 ]
-then echo "Status after OptiX integration tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after OptiX integration tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 if [ $STATUS -gt 0 ]; then
