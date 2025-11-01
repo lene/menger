@@ -1,5 +1,6 @@
 package menger.engines
 
+import scala.util.Failure
 import scala.util.Try
 
 import com.badlogic.gdx.Game
@@ -60,10 +61,10 @@ abstract class MengerEngine(
       case "sphere" =>
         // NOTE: OptiXEngine doesn't use this - OptiX renders directly to 2D image
         // This case is for potential future CPU-based sphere rendering
-        scala.util.Failure(UnsupportedOperationException("Sphere rendering requires --optix flag"))
+        Failure(UnsupportedOperationException("Sphere rendering requires --optix flag"))
       case composite if composite.startsWith("composite[") =>
         Composite.parseCompositeFromCLIOption(composite, level, material, primitiveType, generateObject)
-      case _ => scala.util.Failure(IllegalArgumentException(s"Unknown sponge type: $spongeType"))
+      case _ => Failure(IllegalArgumentException(s"Unknown sponge type: $spongeType"))
   }
 
   protected def generateObjectWithOverlay(spongeType: String, level: Float): Try[Geometry] =

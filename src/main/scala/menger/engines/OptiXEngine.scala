@@ -1,5 +1,8 @@
 package menger.engines
 
+import scala.util.Failure
+import scala.util.Try
+
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
@@ -30,9 +33,11 @@ class OptiXEngine(
   faceColor, lineColor, fpsLogIntervalMs
 ) with TimeoutSupport with LazyLogging:
 
-  private val geometryGenerator: OptiXRenderer => Unit = _.setSphere(0f, 0f, 0f, sphereRadius)
-  private lazy val optiXResources: OptiXResources =
-    new OptiXResources(geometryGenerator)
+  private val geometryGenerator: Try[OptiXRenderer => Unit] = spongeType match {
+    case "sphere" => Try(_.setSphere(0f, 0f, 0f, sphereRadius))
+    case _ => Failure(UnsupportedOperationException(spongeType))
+  }
+  private lazy val optiXResources: OptiXResources = OptiXResources(geometryGenerator)
   private lazy val batch: SpriteBatch = new SpriteBatch()
   private var renderState: RenderState = RenderState(None, None, 0, 0)
 
