@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.3.5] - 2025-11-02
+
+### Added
+- Alpha (transparency) parameter support in OptiX sphere rendering API
+  - Updated `setSphereColor` to accept optional alpha parameter (default: 1.0f)
+  - Extended HitGroupData structure to store RGBA color (previously RGB)
+  - Backward-compatible API: existing 3-parameter calls continue to work
+  - Alpha value stored but not yet rendered (shader implementation pending)
+
 ## [0.3.4] - 2025-11-02
 
 ### Added
