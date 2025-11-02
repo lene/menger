@@ -72,6 +72,11 @@
   - Now uses same standalone_test.cpp as Valgrind job
   - Bypasses JVM entirely for pure CUDA/OptiX testing
   - Reduced runtime from >60 minutes (timeout) to ~2 minutes
+- PushToGithub CI job now uses force push to handle repository divergence
+  - GitHub repository can diverge from GitLab (e.g., commits made directly on GitHub)
+  - Job resets to GitLab's version on merge conflicts (GitLab is source of truth)
+  - Force push is safe after reset and required when histories diverge
+  - Prevents "non-fast-forward" push failures
 
 ## [0.3.3] - 2025-10-26
 

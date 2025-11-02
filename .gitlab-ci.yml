@@ -52,7 +52,7 @@ Test:Debian:
     - curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
     - apt-get -y update
     - apt-get -y install sbt
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++
   script:
     - xvfb-run sbt test
   allow_failure: true
@@ -512,8 +512,8 @@ PushToGithub:
     - git checkout $BRANCH
     - git rebase --abort || true
     - git pull github $BRANCH || git reset --hard origin/$BRANCH
-    - git push github $BRANCH
-    - git push github $CI_COMMIT_TAG
+    - git push --force github $BRANCH
+    - git push --force github $CI_COMMIT_TAG
 
 CreateGithubRelease:
   stage: release
