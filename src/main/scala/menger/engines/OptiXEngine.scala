@@ -27,6 +27,7 @@ class OptiXEngine(
   lineColor: Option[Color],
   fpsLogIntervalMs: Int,
   val sphereRadius: Float,
+  val ior: Float,
   val timeout: Float = 0f,
   saveName: Option[String] = None
 )(using profilingConfig: ProfilingConfig) extends MengerEngine(

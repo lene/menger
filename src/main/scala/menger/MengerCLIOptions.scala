@@ -50,6 +50,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val lines: ScallopOption[Boolean] = opt[Boolean](required = false, default = Some(false))
   val optix: ScallopOption[Boolean] = opt[Boolean](required = false, default = Some(false))
   val radius: ScallopOption[Float] = opt[Float](required = false, default = Some(1.0f), validate = _ > 0)
+  val ior: ScallopOption[Float] = opt[Float](required = false, default = Some(1.0f), validate = _ > 0)
   val color: ScallopOption[Color] = opt[Color](required = false, default = Some(Color.LIGHT_GRAY))(
     using colorConverter
   )
