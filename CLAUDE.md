@@ -264,63 +264,102 @@ menger.input/
 Uses Observer pattern: `Geometry` objects subscribe to parameter changes from `EventDispatcher`,
 which is triggered by `KeyController` during interactive mode.
 
-## Future Enhancements
+## OptiX Transparency and Refraction Physics
 
-### Phase 3: Trait-Based Renderer Architecture (Planned)
+### Fresnel Reflectance
 
-The current OptiX JNI implementation uses a single `OptiXRenderer` class that directly calls
-native methods. A future enhancement would refactor this into a trait-based architecture for
-better separation of concerns and testability.
+Surface reflectance is calculated using the **Schlick approximation** of the Fresnel equations:
 
-**Proposed design:**
-
-```scala
-// Common interface for all renderer implementations
-trait Renderer {
-  def initialize(): Boolean
-  def setSphere(x: Float, y: Float, z: Float, radius: Float): Unit
-  def setCamera(eye: Array[Float], lookAt: Array[Float], up: Array[Float], fov: Float): Unit
-  def setLight(direction: Array[Float], intensity: Float): Unit
-  def render(width: Int, height: Int): Array[Byte]
-  def dispose(): Unit
-  def isAvailable: Boolean
-}
-
-// Native OptiX implementation (when OptiX available)
-class OptiXNativeRenderer extends Renderer {
-  @native def initialize(): Boolean
-  // ... other @native methods
-}
-
-// Pure Scala stub implementation (always available)
-class OptiXStubRenderer extends Renderer {
-  def initialize(): Boolean = { ... }
-  def render(width: Int, height: Int): Array[Byte] = {
-    // Returns gray placeholder or simple CPU ray tracer
-  }
-  // ... other stub methods
-}
-
-// Factory with automatic selection
-object OptiXRenderer {
-  def apply(): Renderer = {
-    if (isLibraryLoaded) new OptiXNativeRenderer()
-    else new OptiXStubRenderer()
-  }
-}
+```
+R₀ = ((n₁ - n₂) / (n₁ + n₂))²
+R(θ) = R₀ + (1 - R₀)(1 - cos θ)⁵
 ```
 
-**Benefits:**
-- Clean separation between native and stub implementations
-- Stub compiles even if native library build fails
-- Easy to add additional implementations (e.g., CPU ray tracer, Vulkan renderer)
-- Better testability - can mock/test implementations independently
-- Follows patterns from Netty (native epoll vs NIO) and LWJGL
+Where:
+- `n₁` = IOR of surrounding medium (assumed to be 1.0 for air/vacuum)
+- `n₂` = IOR of sphere material (from `--ior` parameter)
+- `θ` = angle between ray direction and surface normal
+- `R₀` = reflectance at perpendicular incidence (0° angle)
+- `R(θ)` = reflectance at angle θ
 
-**Estimated effort:** 2-3 hours
+**Example values:**
+- Glass (IOR = 1.5): R₀ = 0.04 (4% reflection perpendicular, up to 100% at grazing angles)
+- Water (IOR = 1.33): R₀ = 0.02 (2% reflection perpendicular)
+- Diamond (IOR = 2.42): R₀ = 0.17 (17% reflection perpendicular)
 
-This architecture would be particularly useful when OptiX integration becomes more complex or
-when adding alternative rendering backends.
+### Beer-Lambert Law (Volume Absorption)
+
+Light intensity decreases exponentially as it travels through an absorbing medium:
+
+```
+I(d) = I₀ · exp(-α · d)
+```
+
+Where:
+- `I₀` = initial light intensity
+- `d` = distance traveled through medium
+- `α` = absorption coefficient (derived from color alpha and RGB values)
+
+**Color interpretation:**
+- **Alpha value**: Controls absorption intensity (0.0 = fully absorbing, 1.0 = no absorption)
+- **RGB values**: Control wavelength-dependent absorption (color tint)
+  - Example: `color=#00ff8080` (semi-transparent green-cyan)
+    - RGB (0, 255, 128) creates green-cyan tint
+    - Alpha 0.5 creates moderate absorption
+  - Pure white `#ffffffff` = no tint, fully transparent (no absorption)
+  - Pure white `#ffffff00` = no tint, fully opaque/absorbing
+
+**Implementation:**
+- For each wavelength (R, G, B), calculate absorption coefficient:
+  ```
+  α_r = -log(color.r) * (1 - color.a)
+  α_g = -log(color.g) * (1 - color.a)
+  α_b = -log(color.b) * (1 - color.a)
+  ```
+- Apply Beer-Lambert law during ray traversal through sphere volume
+
+### Snell's Law (Refraction)
+
+When a ray enters/exits the sphere, it refracts according to Snell's law:
+
+```
+n₁ · sin(θ₁) = n₂ · sin(θ₂)
+```
+
+Where:
+- `θ₁` = angle of incidence
+- `θ₂` = angle of refraction
+- `n₁`, `n₂` = IORs of the two media
+
+**Refraction direction:**
+```
+r = η · d + (η · cos(θ₁) - cos(θ₂)) · n
+```
+
+Where:
+- `r` = refracted ray direction
+- `d` = incident ray direction
+- `n` = surface normal
+- `η = n₁ / n₂` = relative IOR
+
+## Future Enhancements
+
+### Phase 3: Refraction and Fresnel Reflection (In Progress)
+
+Add physically-based refraction and reflection to OptiX sphere rendering.
+
+**CLI Parameters:**
+- `--ior <value>`: Index of refraction (must be > 0, default 1.0 for no refraction)
+  - Common values: glass=1.5, water=1.33, diamond=2.42, air=1.0
+
+**Implementation phases:**
+1. Add `--ior` CLI parameter with validation (> 0)
+2. Pass IOR through Scala layers to OptiX renderer
+3. Update CUDA shaders to:
+   - Calculate Fresnel reflectance using Schlick approximation
+   - Implement Snell's law for refraction at entry/exit points
+   - Apply Beer-Lambert law for volume absorption
+4. Add tests for various IOR values and color combinations
 
 ## Code Quality Rules
 
