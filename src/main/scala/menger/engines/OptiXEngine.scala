@@ -50,8 +50,9 @@ class OptiXEngine(
     throw new UnsupportedOperationException("OptiXEngine doesn't use gdxResources")
 
   override def create(): Unit =
-    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color")
+    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior")
     optiXResources.setSphereColor(color.r, color.g, color.b, color.a)
+    optiXResources.setIOR(ior)
     optiXResources.initialize()
     if timeout > 0 then startExitTimer(timeout)
 

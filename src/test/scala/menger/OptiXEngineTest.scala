@@ -20,7 +20,7 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
     rotX = 0f, rotY = 0f, rotZ = 0f
   )
 
-  private def createEngine(radius: Float = 1.5f, timeout: Float = 0f): OptiXEngine =
+  private def createEngine(radius: Float = 1.5f, ior: Float = 1.0f, timeout: Float = 0f): OptiXEngine =
     given ProfilingConfig = ProfilingConfig.disabled
     new OptiXEngine(
       spongeType = "sphere",
@@ -32,6 +32,7 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       lineColor = None,
       fpsLogIntervalMs = 1000,
       sphereRadius = radius,
+      ior = ior,
       timeout = timeout
     )
 
@@ -59,6 +60,7 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       lineColor = None,
       fpsLogIntervalMs = 1000,
       sphereRadius = 1.0f,
+      ior = 1.0f,
       timeout = 0f
     )
     engine.color shouldBe Color.RED
@@ -76,12 +78,21 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       lineColor = None,
       fpsLogIntervalMs = 1000,
       sphereRadius = 1.0f,
+      ior = 1.0f,
       timeout = 0f
     )
     engine.color.r shouldBe 0f +- 0.01f
     engine.color.g shouldBe 1f +- 0.01f
     engine.color.b shouldBe 0.5f +- 0.01f
     engine.color.a shouldBe 0.5f +- 0.01f
+
+  it should "store IOR" in:
+    val engine = createEngine(ior = 1.5f)
+    engine.ior shouldBe 1.5f
+
+  it should "have default IOR 1.0" in:
+    val engine = createEngine()
+    engine.ior shouldBe 1.0f
 
   it should "have sponge type sphere" in:
     val engine = createEngine()

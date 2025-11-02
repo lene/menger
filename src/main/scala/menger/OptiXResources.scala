@@ -46,6 +46,10 @@ class OptiXResources(configureGeometry: Try[OptiXRenderer => Unit]) extends Lazy
     renderer.setSphereColor(r, g, b, a)
     logger.debug(s"Configured sphere color: RGBA=($r, $g, $b, $a)")
 
+  def setIOR(ior: Float): Unit =
+    renderer.setIOR(ior)
+    logger.debug(s"Configured index of refraction: IOR=$ior")
+
   def renderScene(width: Int, height: Int): Array[Byte] =
     renderer.render(width, height)
 
