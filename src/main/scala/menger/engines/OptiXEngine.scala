@@ -50,8 +50,8 @@ class OptiXEngine(
 
   override def create(): Unit =
     logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color")
-    optiXResources.initialize()
     optiXResources.setSphereColor(color.r, color.g, color.b)
+    optiXResources.initialize()
     if timeout > 0 then startExitTimer(timeout)
 
   override def render(): Unit =
