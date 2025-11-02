@@ -44,7 +44,7 @@ class OptiXResources(configureGeometry: Try[OptiXRenderer => Unit]) extends Lazy
 
   def setSphereColor(r: Float, g: Float, b: Float): Unit =
     renderer.setSphereColor(r, g, b)
-    logger.info(s"Configured sphere color: RGB=($r, $g, $b)")
+    logger.debug(s"Configured sphere color: RGB=($r, $g, $b)")
 
   def renderScene(width: Int, height: Int): Array[Byte] =
     renderer.render(width, height)
