@@ -63,6 +63,26 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
     )
     engine.color shouldBe Color.RED
 
+  it should "store color with transparency" in:
+    given ProfilingConfig = ProfilingConfig.disabled
+    val semiTransparentGreen = new Color(0f, 1f, 0.5f, 0.5f)  // Green with 50% alpha
+    val engine = new OptiXEngine(
+      spongeType = "sphere",
+      spongeLevel = 0f,
+      rotationProjectionParameters = dummyRotProj,
+      lines = false,
+      color = semiTransparentGreen,
+      faceColor = None,
+      lineColor = None,
+      fpsLogIntervalMs = 1000,
+      sphereRadius = 1.0f,
+      timeout = 0f
+    )
+    engine.color.r shouldBe 0f +- 0.01f
+    engine.color.g shouldBe 1f +- 0.01f
+    engine.color.b shouldBe 0.5f +- 0.01f
+    engine.color.a shouldBe 0.5f +- 0.01f
+
   it should "have sponge type sphere" in:
     val engine = createEngine()
     engine.spongeType shouldBe "sphere"

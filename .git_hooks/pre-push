@@ -64,7 +64,7 @@ if git tag | ( grep "^${VERSION_SBT}\$" ); then
   if [ "$1" != "github" ]; then STATUS=1
   else echo "Pushing anyway due to github argument"
   fi
-else echo "Tag ${GREEN_TEXT}${VERSION_SBT}${RESET_TEXT} does not exist"
+else echo "Tag ${GREEN_TEXT}${VERSION_SBT}${RESET_TEXT} is still available"
 fi
 if [ $STATUS -gt 0 ]
 then echo "Status after tag check: ${RED_TEXT}${STATUS}${RESET_TEXT}"
