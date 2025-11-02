@@ -42,9 +42,9 @@ class OptiXResources(configureGeometry: Try[OptiXRenderer => Unit]) extends Lazy
     renderer.setLight(lightDirection, lightIntensity)
     logger.debug(s"Configured light: direction=${lightDirection.mkString(",")}, intensity=$lightIntensity")
 
-  def setSphereColor(r: Float, g: Float, b: Float): Unit =
-    renderer.setSphereColor(r, g, b)
-    logger.debug(s"Configured sphere color: RGB=($r, $g, $b)")
+  def setSphereColor(r: Float, g: Float, b: Float, a: Float = 1.0f): Unit =
+    renderer.setSphereColor(r, g, b, a)
+    logger.debug(s"Configured sphere color: RGBA=($r, $g, $b, $a)")
 
   def renderScene(width: Int, height: Int): Array[Byte] =
     renderer.render(width, height)
