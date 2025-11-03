@@ -448,6 +448,23 @@ Note: `Wart.Null` and `Wart.Return` are disabled for LibGDX compatibility.
 - **Fix**: `pkexec chown -R $USER:$USER optix-jni/target/`
 - **Prevention**: Always run Docker containers with `--user $(id -u):$(id -g)` (see below)
 
+**"Failed to open PTX file" or solid red rendering after sbt clean:**
+- **Cause**: PTX file compiled to `optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx` but OptiX runtime looks for it at `target/native/x86_64-linux/bin/sphere_combined.ptx`
+- **Symptom**: Rendering shows solid red image instead of proper sphere, with errors `[OptiX] Render failed: Failed to open PTX file: target/native/x86_64-linux/bin/sphere_combined.ptx (errno: 2 - No such file or directory)`
+- **Root Cause**: After `sbt clean`, the `target/` directory is removed. The build system compiles PTX to `optix-jni/target/classes/native/` but OptiX runtime expects it in `target/native/x86_64-linux/bin/`
+- **Fix**: Copy PTX file to runtime location:
+  ```bash
+  mkdir -p target/native/x86_64-linux/bin
+  cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx target/native/x86_64-linux/bin/
+  ```
+- **When OptiX fails to load PTX**: It silently falls back to a stub implementation that renders solid red, making it appear as if the shader code is broken when actually it's a file not found error
+
+**Wrong shader file being edited:**
+- **Issue**: The separate shader files (`sphere_miss.cu`, `sphere_closesthit.cu`, `sphere_raygen.cu`) in `optix-jni/src/main/native/shaders/` are NOT compiled or used
+- **Correct file**: Edit `sphere_combined.cu` which contains all three shaders in one file
+- **How to verify**: Check `optix-jni/src/main/native/CMakeLists.txt` - it specifies `shaders/sphere_combined.cu` as the compilation target
+- **Why separate files exist**: They are outdated from an earlier implementation before the combined shader approach
+
 ## NVIDIA GPU Development
 
 The project includes Terraform configuration for launching AWS EC2 GPU spot instances for
