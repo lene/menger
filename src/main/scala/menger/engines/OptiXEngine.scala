@@ -28,6 +28,7 @@ class OptiXEngine(
   fpsLogIntervalMs: Int,
   val sphereRadius: Float,
   val ior: Float,
+  val scale: Float,
   val timeout: Float = 0f,
   saveName: Option[String] = None
 )(using profilingConfig: ProfilingConfig) extends MengerEngine(
@@ -50,9 +51,10 @@ class OptiXEngine(
     throw new UnsupportedOperationException("OptiXEngine doesn't use gdxResources")
 
   override def create(): Unit =
-    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior")
+    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior, scale=$scale")
     optiXResources.setSphereColor(color.r, color.g, color.b, color.a)
     optiXResources.setIOR(ior)
+    optiXResources.setScale(scale)
     optiXResources.initialize()
     if timeout > 0 then startExitTimer(timeout)
 

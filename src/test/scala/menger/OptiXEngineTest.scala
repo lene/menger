@@ -20,7 +20,7 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
     rotX = 0f, rotY = 0f, rotZ = 0f
   )
 
-  private def createEngine(radius: Float = 1.5f, ior: Float = 1.0f, timeout: Float = 0f): OptiXEngine =
+  private def createEngine(radius: Float = 1.5f, ior: Float = 1.0f, scale: Float = 1.0f, timeout: Float = 0f): OptiXEngine =
     given ProfilingConfig = ProfilingConfig.disabled
     new OptiXEngine(
       spongeType = "sphere",
@@ -33,6 +33,7 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       fpsLogIntervalMs = 1000,
       sphereRadius = radius,
       ior = ior,
+      scale = scale,
       timeout = timeout
     )
 
@@ -61,6 +62,7 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       fpsLogIntervalMs = 1000,
       sphereRadius = 1.0f,
       ior = 1.0f,
+      scale = 1.0f,
       timeout = 0f
     )
     engine.color shouldBe Color.RED
@@ -79,6 +81,7 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       fpsLogIntervalMs = 1000,
       sphereRadius = 1.0f,
       ior = 1.0f,
+      scale = 1.0f,
       timeout = 0f
     )
     engine.color.r shouldBe 0f +- 0.01f

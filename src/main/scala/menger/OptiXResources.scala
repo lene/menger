@@ -50,6 +50,10 @@ class OptiXResources(configureGeometry: Try[OptiXRenderer => Unit]) extends Lazy
     renderer.setIOR(ior)
     logger.debug(s"Configured index of refraction: IOR=$ior")
 
+  def setScale(scale: Float): Unit =
+    renderer.setScale(scale)
+    logger.debug(s"Configured scale parameter: scale=$scale")
+
   def renderScene(width: Int, height: Int): Array[Byte] =
     renderer.render(width, height)
 
