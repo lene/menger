@@ -149,8 +149,17 @@ else
     )
     VALGRIND_STATUS=$?
 
-    DEFINITELY_LOST=$(grep "definitely lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g')
-    INDIRECTLY_LOST=$(grep "indirectly lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g')
+    # Parse Valgrind output - handle case where there are no leaks
+    if grep -q "All heap blocks were freed -- no leaks are possible" /tmp/valgrind-prepush.log; then
+      DEFINITELY_LOST=0
+      INDIRECTLY_LOST=0
+    else
+      DEFINITELY_LOST=$(grep "definitely lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g' || echo "0")
+      INDIRECTLY_LOST=$(grep "indirectly lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g' || echo "0")
+      # Default to 0 if grep found nothing
+      [ -z "$DEFINITELY_LOST" ] && DEFINITELY_LOST=0
+      [ -z "$INDIRECTLY_LOST" ] && INDIRECTLY_LOST=0
+    fi
 
     if [ "$VALGRIND_STATUS" -eq 0 ] && [ "$DEFINITELY_LOST" = "0" ] && [ "$INDIRECTLY_LOST" = "0" ]; then
       echo "Valgrind: ${GREEN_TEXT}No host memory leaks detected${RESET_TEXT}"

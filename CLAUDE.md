@@ -27,7 +27,31 @@ iteration levels with alpha blending.
 The project consists of two main components:
 - **Core Scala application** (`menger`): LibGDX-based fractal renderer
 - **OptiX JNI bindings** (`optix-jni`): Native CUDA/OptiX integration for GPU-accelerated ray
-  tracing (optional, requires NVIDIA GPU)
+  tracing
+
+## Build Requirements
+
+**OptiX JNI is now a required dependency.** Building the project requires:
+
+- CUDA Toolkit 12.0+
+- NVIDIA OptiX SDK 9.0+ (8.0 is NOT compatible with modern drivers)
+- CMake 3.18+
+- C++ compiler with C++17 support
+
+If CUDA or OptiX SDK are not installed, the build will fail with a clear error message.
+
+**Runtime flexibility:** While CUDA/OptiX are required at build time, the compiled application
+can run on systems without NVIDIA GPUs. The `OptiXRenderer.isAvailable` method performs runtime
+checks for GPU hardware and drivers, allowing graceful degradation when GPU is unavailable.
+
+**CRITICAL: OptiX SDK Version Compatibility**
+
+OptiX SDK version MUST match the OptiX runtime version in your NVIDIA driver:
+- **Driver 580.x+ includes OptiX 9.0** → Requires OptiX SDK 9.0+
+- **Driver 535.x-575.x includes OptiX 8.0** → Requires OptiX SDK 8.0
+- Mismatches cause CUDA error 718 ("invalid program counter") during GPU execution
+- The build system auto-detects and prefers the highest SDK version installed
+- Check driver's OptiX version: `strings /usr/lib/x86_64-linux-gnu/libnvoptix.so.* | grep "OptiX Version"`
 
 ## Development Commands
 
@@ -35,17 +59,11 @@ The project consists of two main components:
 
 ### Basic Development
 
-**Default build (without OptiX JNI):**
-
-By default, the project builds **without** OptiX JNI support. This allows development on
-systems without NVIDIA GPU/CUDA installed. The OptiX renderer will use a stub implementation
-that returns placeholder data.
-
 ```bash
-# Compile (core Scala only, NO OptiX JNI)
+# Compile (includes native C++/CUDA compilation)
 sbt compile
 
-# Run tests (core Scala only, NO OptiX JNI)
+# Run tests (includes OptiX JNI tests if GPU available)
 sbt test --warn
 
 # Run specific test
@@ -61,53 +79,32 @@ sbt console
 sbt "scalafix --check"
 ```
 
-### OptiX JNI Development (Optional)
-
-The OptiX JNI bindings are **optional** and disabled by default. To enable them, set the
-`ENABLE_OPTIX_JNI` environment variable to `true`. This requires:
-
-- CUDA Toolkit 12.0+
-- NVIDIA OptiX SDK 8.0
-- CMake 3.18+
-- C++ compiler with C++17 support
-
-**Building with OptiX JNI enabled:**
+### OptiX JNI Development
 
 ```bash
-# Enable OptiX JNI for a single command
-ENABLE_OPTIX_JNI=true sbt compile
-
-# Or export it for your entire session
-export ENABLE_OPTIX_JNI=true
-sbt compile
-
 # Compile native code only
-ENABLE_OPTIX_JNI=true sbt "project optixJni" nativeCompile
+sbt "project optixJni" nativeCompile
 
 # Clean and rebuild native code
-rm -rf optix-jni/target/native && ENABLE_OPTIX_JNI=true sbt "project optixJni" compile
+rm -rf optix-jni/target/native && sbt "project optixJni" compile
 
 # Run OptiX JNI tests
-ENABLE_OPTIX_JNI=true sbt "project optixJni" test
+sbt "project optixJni" test
 
-# View generated PTX files (CUDA kernels) - only created when OptiX available
+# View generated PTX files (CUDA kernels)
 ls optix-jni/target/native/x86_64-linux/bin/*.ptx
 
-# Package with OptiX JNI included
-ENABLE_OPTIX_JNI=true sbt "Universal / packageBin"
+# Package application
+sbt "Universal / packageBin"
 ```
 
-**Note:** If CUDA/OptiX are not installed, the native library will build as a stub that
-always returns placeholder data. The CMake build will show a summary of what was detected:
+**Build output summary:**
 
 ```
 ========================================
 OptiX JNI Build Configuration:
-  CUDA Support:   FALSE
-  OptiX Support:  FALSE
-
-  NOTE: Building stub library without GPU support
-  The OptiXRenderer will use fallback implementation
+  CUDA Version:   12.8.0
+  OptiX SDK:      /usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64
 ========================================
 ```
 
@@ -418,8 +415,28 @@ Note: `Wart.Null` and `Wart.Return` are disabled for LibGDX compatibility.
 
 **"OptiX headers not found" during compilation:**
 - Set `OPTIX_ROOT` environment variable to OptiX SDK path
-- Default in CMakeLists.txt: `/usr/local/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64`
+- CMakeLists.txt auto-detects SDK and prefers highest version (9.0 over 8.0)
 - Download from: https://developer.nvidia.com/optix
+
+**CUDA error 718 ("invalid program counter") during GPU execution:**
+- **Cause**: OptiX SDK version mismatch with driver's OptiX runtime version
+- **Symptom**: Tests fail with `cudaDeviceSynchronize() failed: invalid program counter (718)`
+- **Diagnosis**: Check driver's OptiX version vs SDK version:
+  ```bash
+  # Check driver's OptiX version
+  strings /usr/lib/x86_64-linux-gnu/libnvoptix.so.* | grep "OptiX Version"
+
+  # Check which SDK version was used to build
+  grep "OptiX SDK:" optix-jni/target/native/x86_64-linux/build/CMakeCache.txt
+  ```
+- **Fix**: Install matching OptiX SDK version and rebuild:
+  ```bash
+  # For driver 580.x+ (OptiX 9.0), download SDK 9.0 from NVIDIA
+  rm -rf optix-jni/target/native
+  sbt "project optixJni" compile
+  ```
+- **Prevention**: CMakeLists.txt now auto-detects and prefers highest SDK version
+- **Root cause**: OptiX has strict ABI compatibility - SDK must match driver runtime
 
 **"UnsatisfiedLinkError: no optixjni in java.library.path":**
 - The native library didn't build or isn't in the expected location
@@ -457,7 +474,7 @@ Note: `Wart.Null` and `Wart.Return` are disabled for LibGDX compatibility.
   mkdir -p target/native/x86_64-linux/bin
   cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx target/native/x86_64-linux/bin/
   ```
-- **When OptiX fails to load PTX**: It silently falls back to a stub implementation that renders solid red, making it appear as if the shader code is broken when actually it's a file not found error
+- **When OptiX fails to load PTX**: It throws a runtime exception with "Failed to open PTX file" error. Check that the PTX file exists at the expected location
 
 **Wrong shader file being edited:**
 - **Issue**: The separate shader files (`sphere_miss.cu`, `sphere_closesthit.cu`, `sphere_raygen.cu`) in `optix-jni/src/main/native/shaders/` are NOT compiled or used
@@ -612,7 +629,7 @@ docker run --rm \
   -v "$PWD:/workspace" \
   -w /workspace \
   registry.gitlab.com/lilacashes/menger/optix-cuda:12.8-9.0-25-1.11.7 \
-  bash -c "ENABLE_OPTIX_JNI=true sbt 'project optixJni' compile"
+  bash -c "sbt 'project optixJni' compile"
 
 # Test with GPU access (requires nvidia-container-toolkit)
 docker run --rm \
@@ -622,7 +639,7 @@ docker run --rm \
   -v "$PWD:/workspace" \
   -w /workspace \
   registry.gitlab.com/lilacashes/menger/optix-cuda:12.8-9.0-25-1.11.7 \
-  bash -c "ENABLE_OPTIX_JNI=true sbt 'project optixJni' test"
+  bash -c "sbt 'project optixJni' test"
 ```
 
 **Key flags:**
