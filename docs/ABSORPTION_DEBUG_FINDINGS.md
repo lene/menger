@@ -16,16 +16,16 @@ Comprehensive testing with explicit hit_t value checks shows:
 **CONCLUSION**: OptiX sphere primitives DO NOT detect intersections from inside!
 - This is a fundamental limitation of OptiX's built-in sphere primitive
 - Rays pass straight through without detecting the sphere boundary
-- The analytical solution in FIX_PLAN.md is REQUIRED
+- Custom intersection program is REQUIRED (not analytical workaround)
 
-**NEXT STEPS**: Implement analytical exit point computation as described in FIX_PLAN.md
+**NEXT STEPS**: Implement custom sphere intersection program as described in Glass_Implementation_Plan.md
 
 ---
 
 ## Executive Summary
 The volume absorption and color tinting features are not working because the refracted ray never hits the back surface of the sphere. The absorption code is only applied when exiting the sphere (`!entering`), but this condition never occurs.
 
-**CRITICAL UPDATE**: Testing proves OptiX sphere primitives DO support internal ray intersection. The problem is NOT an OptiX limitation but something specific to how we're tracing the refracted ray that prevents it from hitting the sphere again.
+**CONFIRMED**: OptiX built-in sphere primitives DO NOT support internal ray intersection. This is a fundamental limitation of `OPTIX_BUILD_INPUT_TYPE_SPHERES`. Rays originating inside the sphere return `hit_t = -1.0` (no intersection detected). This is NOT a bug in our code but a design limitation of the built-in primitive. See [Glass_Rendering_Findings.md](Glass_Rendering_Findings.md) for complete analysis and [Glass_Implementation_Plan.md](Glass_Implementation_Plan.md) for the custom intersection solution.
 
 ## Evidence Gathered
 
@@ -166,7 +166,7 @@ Based on extensive research of OptiX SDK examples and documentation, the proper 
 1. **Built-in sphere primitives are unsuitable for glass** - They only detect external rays
 2. **Custom intersection is the standard approach** - Used by all OptiX SDK glass examples
 3. **This enables proper glass rendering** - Both entry and exit detection work correctly
-4. **Test code has been removed** - sphere_combined.cu cleaned up (lines 237-333 removed)
+4. **Implementation guide available** - See Glass_Implementation_Plan.md for step-by-step instructions
 
 The path forward is clear and well-documented. Custom intersection programs are not a workaround but the production-tested, NVIDIA-recommended approach for glass rendering in OptiX.
 

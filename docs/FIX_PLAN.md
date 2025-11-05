@@ -8,47 +8,30 @@ Comprehensive testing with explicit hit_t value checks confirms:
 - **Test 1**: Ray from sphere center (tmin=0) → hit_t=-1.0 (NO intersection)
 - **Test 2**: Ray from just inside surface (tmin=0.001) → hit_t=-1.0 (NO intersection)
 - **Test 3**: Same ray with tmin=0 → hit_t=-1.0 (tmin not the issue)
-- **Conclusion**: This is a fundamental limitation of OptiX sphere primitives
+- **Conclusion**: This is a fundamental limitation of OptiX built-in sphere primitives
 
-## Solution: Compute Exit Point Analytically
+## Solution: Custom Intersection Program
 
-When a ray enters the sphere and refracts:
-1. Compute the exit point analytically using ray-sphere intersection math
-2. Calculate the travel distance through the sphere
-3. Apply Beer-Lambert absorption immediately
-4. Trace the continuation ray from the exit point
+See **[Glass_Implementation_Plan.md](Glass_Implementation_Plan.md)** for the complete implementation plan.
 
-### Implementation Steps
+### Summary
 
-1. **Add analytical exit computation**:
-   - When entering, compute where refracted ray exits sphere
-   - Use quadratic formula for ray-sphere intersection
-   - Take the far intersection point
+Replace `OPTIX_BUILD_INPUT_TYPE_SPHERES` with custom intersection program that:
+1. Detects BOTH entry and exit intersections (even from inside sphere)
+2. Reports hit_kind (0=entry, 1=exit) to distinguish intersection type
+3. Passes surface normal via intersection attributes
+4. Enables proper Beer-Lambert absorption calculation
 
-2. **Apply absorption immediately**:
-   - Calculate travel distance = exit_t - entry_t
-   - Apply Beer-Lambert law: I = I₀ * exp(-α * d)
-   - Modify the color before tracing continuation ray
+This is the production-tested, NVIDIA-recommended approach used in all OptiX SDK glass examples (e.g., optixWhitted).
 
-3. **Trace from exit point**:
-   - Start the refracted ray from the computed exit point
-   - This avoids the need for a second intersection
+### Implementation Phases
 
-### Code Changes
+1. **Phase 1**: Code cleanup (remove test code) - 30 min
+2. **Phase 2**: Implement custom intersection program - 2 hours
+3. **Phase 3**: Update host-side pipeline (geometry type, program groups) - 1 hour
+4. **Phase 4**: Fix ray offsetting and state management - 1 hour
+5. **Phase 5**: Testing and validation - 1 hour
 
-In `__closesthit__ch`, when `entering == true`:
-```cuda
-// Compute where refracted ray exits sphere
-float exit_t = compute_sphere_exit(refract_origin, refract_dir, sphere_center, radius);
-float travel_distance = exit_t;
+**Total**: 5-6 hours for complete implementation
 
-// Apply absorption
-float3 absorption = exp(-alpha * travel_distance);
-// Apply to the color that comes back from the refracted ray
-
-// Trace from exit point
-float3 exit_point = refract_origin + refract_dir * exit_t;
-optixTrace from exit_point...
-```
-
-This avoids relying on OptiX to detect the exit and ensures absorption is always applied.
+See Glass_Implementation_Plan.md for detailed code and step-by-step instructions.
