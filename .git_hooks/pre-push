@@ -6,6 +6,47 @@ RED_TEXT='\e[38;5;196m'
 GREEN_TEXT='\e[38;5;46m'
 RESET_TEXT='\e[0m'
 
+# Validate required environment variables for OptiX/CUDA development
+echo "=== Validating Environment ==="
+
+if [ -z "$CUDA_HOME" ]; then
+  echo "${RED_TEXT}Error: CUDA_HOME is not set${RESET_TEXT}"
+  echo "Please set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)"
+  exit 1
+fi
+
+if [ ! -d "$CUDA_HOME" ]; then
+  echo "${RED_TEXT}Error: CUDA_HOME points to non-existent directory: $CUDA_HOME${RESET_TEXT}"
+  exit 1
+fi
+
+if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
+  echo "${RED_TEXT}Error: nvcc not found at $CUDA_HOME/bin/nvcc${RESET_TEXT}"
+  echo "Please verify CUDA_HOME is set correctly"
+  exit 1
+fi
+
+if [ -z "$OPTIX_ROOT" ]; then
+  echo "${RED_TEXT}Error: OPTIX_ROOT is not set${RESET_TEXT}"
+  echo "Please set OPTIX_ROOT to your OptiX SDK directory (e.g., /usr/local/optix)"
+  exit 1
+fi
+
+if [ ! -d "$OPTIX_ROOT" ]; then
+  echo "${RED_TEXT}Error: OPTIX_ROOT points to non-existent directory: $OPTIX_ROOT${RESET_TEXT}"
+  exit 1
+fi
+
+if [ ! -f "$OPTIX_ROOT/include/optix.h" ]; then
+  echo "${RED_TEXT}Error: optix.h not found at $OPTIX_ROOT/include/optix.h${RESET_TEXT}"
+  echo "Please verify OPTIX_ROOT is set correctly"
+  exit 1
+fi
+
+echo "CUDA_HOME: ${GREEN_TEXT}$CUDA_HOME${RESET_TEXT}"
+echo "OPTIX_ROOT: ${GREEN_TEXT}$OPTIX_ROOT${RESET_TEXT}"
+echo ""
+
 if [ -r .set-gitlab-token.sh ]; then
   . ./.set-gitlab-token.sh
 fi
@@ -89,28 +130,29 @@ sbt "project optixJni" test --warn || STATUS=1
 
 # Run compute-sanitizer for memory leak detection
 echo "Running compute-sanitizer for GPU memory leak detection..."
-if [ -z "$CUDA_HOME" ]; then
-  echo "${RED_TEXT}Error: CUDA_HOME not set${RESET_TEXT}"
-  echo "Please set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)"
+COMPUTE_SANITIZER="${CUDA_HOME}/compute-sanitizer/compute-sanitizer"
+if [ ! -x "$COMPUTE_SANITIZER" ]; then
+  echo "${RED_TEXT}Error: compute-sanitizer not found at ${COMPUTE_SANITIZER}${RESET_TEXT}"
+  echo "Please check your CUDA installation"
   STATUS=1
 else
-  COMPUTE_SANITIZER="${CUDA_HOME}/compute-sanitizer/compute-sanitizer"
-  if [ ! -x "$COMPUTE_SANITIZER" ]; then
-    echo "${RED_TEXT}Error: compute-sanitizer not found at ${COMPUTE_SANITIZER}${RESET_TEXT}"
-    echo "Please check your CUDA installation"
-    STATUS=1
+  "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" test --warn > /tmp/compute-sanitizer-prepush.log 2>&1
+  SANITIZER_STATUS=$?
+  ERROR_COUNT=$(grep "ERROR SUMMARY:" /tmp/compute-sanitizer-prepush.log | tail -1 | awk '{print $4}')
+  if [ "$SANITIZER_STATUS" -eq 0 ] && [ "$ERROR_COUNT" = "0" ]; then
+    echo "compute-sanitizer: ${GREEN_TEXT}No GPU memory leaks detected${RESET_TEXT}"
   else
-    "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" test --warn > /tmp/compute-sanitizer-prepush.log 2>&1
-    SANITIZER_STATUS=$?
-    ERROR_COUNT=$(grep "ERROR SUMMARY:" /tmp/compute-sanitizer-prepush.log | tail -1 | awk '{print $4}')
-    if [ "$SANITIZER_STATUS" -eq 0 ] && [ "$ERROR_COUNT" = "0" ]; then
-      echo "compute-sanitizer: ${GREEN_TEXT}No memory leaks detected${RESET_TEXT}"
+    # Distinguish between GPU memory leaks and test failures
+    if [ "$ERROR_COUNT" != "0" ] && [ -n "$ERROR_COUNT" ]; then
+      echo "compute-sanitizer: ${RED_TEXT}GPU memory leaks detected! (${ERROR_COUNT} errors)${RESET_TEXT}"
+    elif [ "$SANITIZER_STATUS" -ne 0 ]; then
+      echo "compute-sanitizer: ${RED_TEXT}OptiX tests failed (but no GPU memory leaks: ${ERROR_COUNT:-0} errors)${RESET_TEXT}"
     else
-      echo "compute-sanitizer: ${RED_TEXT}Memory leaks or errors detected!${RESET_TEXT}"
-      echo "See /tmp/compute-sanitizer-prepush.log for details"
-      tail -50 /tmp/compute-sanitizer-prepush.log
-      STATUS=1
+      echo "compute-sanitizer: ${RED_TEXT}Unknown failure${RESET_TEXT}"
     fi
+    echo "See /tmp/compute-sanitizer-prepush.log for details"
+    tail -50 /tmp/compute-sanitizer-prepush.log
+    STATUS=1
   fi
 fi
 if [ $STATUS -gt 0 ]
@@ -125,17 +167,26 @@ if ! command -v valgrind >/dev/null 2>&1; then
 else
   # Build native library if not already built
   sbt "project optixJni" nativeCompile --warn >/dev/null 2>&1
-  # Compile standalone test
-  (
-    cd optix-jni/src/main/native
-    g++ -std=c++17 \
+
+  # Check if standalone_test binary exists and is executable
+  if [ -x "optix-jni/src/main/native/standalone_test" ]; then
+    echo "Using existing standalone_test binary..."
+    COMPILE_STATUS=0
+  else
+    # Compile standalone test - show errors if compilation fails
+    echo "Compiling standalone_test..."
+    COMPILE_OUTPUT=$(cd optix-jni/src/main/native && g++ -std=c++17 \
       -I./include -I/usr/local/cuda/include -I${OPTIX_ROOT:-/usr/local}/include \
       -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
-      standalone_test.cpp -loptixjni -lcudart -o standalone_test 2>/dev/null
-  )
-  COMPILE_STATUS=$?
+      standalone_test.cpp -loptixjni -lcudart -o standalone_test 2>&1)
+    COMPILE_STATUS=$?
+  fi
+
   if [ $COMPILE_STATUS -ne 0 ]; then
     echo "${RED_TEXT}Failed to compile standalone test${RESET_TEXT}"
+    echo "Compilation output:"
+    echo "$COMPILE_OUTPUT"
+    echo "Note: If OPTIX_ROOT is not set, set it to your OptiX SDK path (e.g., /usr/local/optix)"
     STATUS=1
   else
     # Run under Valgrind
