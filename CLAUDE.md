@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ CRITICAL: Alpha Channel Convention
+
+**STANDARD GRAPHICS ALPHA CONVENTION (DO NOT FORGET THIS):**
+- **alpha = 0.0** → **FULLY TRANSPARENT** (fully transmissive, no opacity, no absorption)
+- **alpha = 1.0** → **FULLY OPAQUE** (no transmission, full opacity, maximum absorption)
+
+This is the standard graphics convention used throughout the codebase. This applies to:
+- All OptiX shader code (`sphere_combined.cu`)
+- All Beer-Lambert absorption calculations
+- All color parameters in Scala code
+- All LibGDX Color objects (Color.a field)
+- All test expectations
+
+**Never confuse this.** If you see alpha described as "absorption intensity where 0.0 = fully absorbing", that is **WRONG** and must be corrected.
+
 ## Active Development
 
 **Current Work:** Phase 4 - OptiX Integration and Testing (Issue #45) - ✅ **COMPLETE**
@@ -298,21 +313,22 @@ Where:
 - `α` = absorption coefficient (derived from color alpha and RGB values)
 
 **Color interpretation:**
-- **Alpha value**: Controls absorption intensity (0.0 = fully absorbing, 1.0 = no absorption)
+- **Alpha value**: Controls opacity/absorption strength (0.0 = fully transparent/no absorption, 1.0 = fully opaque/maximum absorption)
 - **RGB values**: Control wavelength-dependent absorption (color tint)
   - Example: `color=#00ff8080` (semi-transparent green-cyan)
     - RGB (0, 255, 128) creates green-cyan tint
-    - Alpha 0.5 creates moderate absorption
-  - Pure white `#ffffffff` = no tint, fully transparent (no absorption)
-  - Pure white `#ffffff00` = no tint, fully opaque/absorbing
+    - Alpha 0.5 means 50% opacity (semi-transparent, moderate absorption)
+  - Pure white `#ffffffff` = no tint, fully opaque
+  - Pure white `#ffffff00` = no tint, fully transparent (no absorption)
 
 **Implementation:**
 - For each wavelength (R, G, B), calculate absorption coefficient:
   ```
-  α_r = -log(color.r) * (1 - color.a)
-  α_g = -log(color.g) * (1 - color.a)
-  α_b = -log(color.b) * (1 - color.a)
+  α_r = -log(color.r) * color.a
+  α_g = -log(color.g) * color.a
+  α_b = -log(color.b) * color.a
   ```
+  Where `color.a` is the alpha/opacity value (0.0 = transparent, 1.0 = opaque)
 - Apply Beer-Lambert law during ray traversal through sphere volume
 
 ### Snell's Law (Refraction)
