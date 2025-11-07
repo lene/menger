@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### Added
+- Fresnel reflection blending for realistic glass rendering
+  - Implemented reflection ray tracing at both entry and exit hits
+  - Schlick approximation for Fresnel reflectance calculation
+  - Proper blending: `color = fresnel * reflected + (1 - fresnel) * refracted`
+  - Total internal reflection handling when refraction not possible
+  - Increased MAX_TRACE_DEPTH from 2 to 5 to support internal reflections and multi-bounce paths
+  - Beer-Lambert absorption applied only to refracted component at exit
+  - Verified reflection correctness through debug visualizations
+- Camera position configuration for testing different viewing angles
+  - Tested angles from 15° to 30° to observe Fresnel effect
+  - Final test position: (0, 2.5, 1.5) showing clear reflection variation
+
+### Fixed
+- Beer-Lambert absorption sign error (was positive, now correctly negative)
+- Entering/exiting check using `!entering` instead of incorrect dot product
+
+### Technical Notes
+- OptiX SDK's Beer-Lambert implementation designed for hollow spheres (uniform shell thickness)
+- For solid spheres, refracted ray distances vary ~0.7-1.2 (not geometric chord length due to refraction bending)
+- Fresnel reflections subtle with glass IOR=1.5 in uniform environment but physically accurate
+- Diamond IOR=2.4 shows more pronounced reflection effects
+
 ## [0.3.5] - 2025-11-02
 
 ### Added

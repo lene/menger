@@ -25,7 +25,7 @@ class OptiXResources(configureGeometry: Try[OptiXRenderer => Unit]) extends Lazy
       case Failure(exception) => errorExit(
         s"Invalid geometry configuration: ${exception.getMessage}"
       )
-    createCamera(Vector3(0, 0, 3))
+    createCamera(Vector3(0, 2.5f, 1.5f))  // User requested camera position
     createLights()
 
   private def createCamera(cameraPos: Vector3): Unit =
