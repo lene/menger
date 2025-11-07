@@ -53,7 +53,9 @@ object Main:
         opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
         opts.faceColor.toOption, opts.lineColor.toOption,
         opts.fpsLogInterval(),
-        opts.radius(), opts.ior(), opts.scale(), opts.timeout(),
+        opts.radius(), opts.ior(), opts.scale(),
+        opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),
+        opts.timeout(),
         opts.saveName.toOption
       )
     else if opts.animate.isDefined && opts.animate().parts.nonEmpty then

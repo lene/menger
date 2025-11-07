@@ -1,6 +1,7 @@
 package menger
 
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.math.Vector3
 import menger.engines.OptiXEngine
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -34,6 +35,11 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       sphereRadius = radius,
       ior = ior,
       scale = scale,
+      cameraPos = Vector3(0f, 0.5f, 3.0f),
+      cameraLookat = Vector3(0f, 0f, 0f),
+      cameraUp = Vector3(0f, 1f, 0f),
+      center = Vector3(0f, 0f, 0f),
+      planeSpec = PlaneSpec(Axis.Y, false, -2f),
       timeout = timeout
     )
 
@@ -63,6 +69,11 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       sphereRadius = 1.0f,
       ior = 1.0f,
       scale = 1.0f,
+      cameraPos = Vector3(0f, 0.5f, 3.0f),
+      cameraLookat = Vector3(0f, 0f, 0f),
+      cameraUp = Vector3(0f, 1f, 0f),
+      center = Vector3(0f, 0f, 0f),
+      planeSpec = PlaneSpec(Axis.Y, false, -2f),
       timeout = 0f
     )
     engine.color shouldBe Color.RED
@@ -82,6 +93,11 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       sphereRadius = 1.0f,
       ior = 1.0f,
       scale = 1.0f,
+      cameraPos = Vector3(0f, 0.5f, 3.0f),
+      cameraLookat = Vector3(0f, 0f, 0f),
+      cameraUp = Vector3(0f, 1f, 0f),
+      center = Vector3(0f, 0f, 0f),
+      planeSpec = PlaneSpec(Axis.Y, false, -2f),
       timeout = 0f
     )
     engine.color.r shouldBe 0f +- 0.01f

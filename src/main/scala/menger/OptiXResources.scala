@@ -6,9 +6,17 @@ import scala.util.Try
 
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
+import menger.Axis
+import menger.PlaneSpec
 import menger.optix.OptiXRenderer
 
-class OptiXResources(configureGeometry: Try[OptiXRenderer => Unit]) extends LazyLogging:
+class OptiXResources(
+  configureGeometry: Try[OptiXRenderer => Unit],
+  cameraPos: Vector3,
+  cameraLookat: Vector3,
+  cameraUp: Vector3,
+  planeSpec: PlaneSpec
+) extends LazyLogging:
 
   private lazy val renderer: OptiXRenderer = initializeRenderer
 
@@ -25,22 +33,33 @@ class OptiXResources(configureGeometry: Try[OptiXRenderer => Unit]) extends Lazy
       case Failure(exception) => errorExit(
         s"Invalid geometry configuration: ${exception.getMessage}"
       )
-    createCamera(Vector3(0, 2.5f, 1.5f))  // User requested camera position
+    createCamera()
     createLights()
+    configurePlane()
 
-  private def createCamera(cameraPos: Vector3): Unit =
+  private def createCamera(): Unit =
     val eye = Array(cameraPos.x, cameraPos.y, cameraPos.z)
-    val lookAt = Array(0f, 0f, 0f)
-    val up = Array(0f, 1f, 0f)
+    val lookAt = Array(cameraLookat.x, cameraLookat.y, cameraLookat.z)
+    val up = Array(cameraUp.x, cameraUp.y, cameraUp.z)
     val fov = 45f
     renderer.setCamera(eye, lookAt, up, fov)
-    logger.debug(s"Configured camera: eye=${eye.mkString(",")}, lookAt=${lookAt.mkString(",")}, fov=$fov")
+    logger.debug(s"Configured camera: eye=${eye.mkString(",")}, lookAt=${lookAt.mkString(",")}, up=${up.mkString(",")}, fov=$fov")
 
   private def createLights(): Unit =
     val lightDirection = Array(-1f, -1f, -1f)
     val lightIntensity = 1.0f
     renderer.setLight(lightDirection, lightIntensity)
     logger.debug(s"Configured light: direction=${lightDirection.mkString(",")}, intensity=$lightIntensity")
+
+  private def configurePlane(): Unit =
+    val axisInt = planeSpec.axis match
+      case Axis.X => 0
+      case Axis.Y => 1
+      case Axis.Z => 2
+    renderer.setPlane(axisInt, planeSpec.positive, planeSpec.value)
+    val axisName = planeSpec.axis.toString.toLowerCase
+    val sign = if planeSpec.positive then "+" else "-"
+    logger.debug(s"Configured plane: ${sign}${axisName}:${planeSpec.value}")
 
   def setSphereColor(r: Float, g: Float, b: Float, a: Float = 1.0f): Unit =
     renderer.setSphereColor(r, g, b, a)

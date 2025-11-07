@@ -8,9 +8,11 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.GDXResources
 import menger.OptiXResources
+import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.RenderState
 import menger.RotationProjectionParameters
@@ -29,6 +31,11 @@ class OptiXEngine(
   val sphereRadius: Float,
   val ior: Float,
   val scale: Float,
+  val cameraPos: Vector3,
+  val cameraLookat: Vector3,
+  val cameraUp: Vector3,
+  val center: Vector3,
+  val planeSpec: PlaneSpec,
   val timeout: Float = 0f,
   saveName: Option[String] = None
 )(using profilingConfig: ProfilingConfig) extends MengerEngine(
@@ -37,10 +44,11 @@ class OptiXEngine(
 ) with TimeoutSupport with LazyLogging with SavesScreenshots:
 
   private val geometryGenerator: Try[OptiXRenderer => Unit] = spongeType match {
-    case "sphere" => Try(_.setSphere(0f, 0f, 0f, sphereRadius))
+    case "sphere" => Try(_.setSphere(center.x, center.y, center.z, sphereRadius))
     case _ => Failure(UnsupportedOperationException(spongeType))
   }
-  private lazy val optiXResources: OptiXResources = OptiXResources(geometryGenerator)
+  private lazy val optiXResources: OptiXResources =
+    OptiXResources(geometryGenerator, cameraPos, cameraLookat, cameraUp, planeSpec)
   private lazy val batch: SpriteBatch = new SpriteBatch()
   private var renderState: RenderState = RenderState(None, None, 0, 0)
 

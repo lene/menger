@@ -3,6 +3,7 @@ package menger
 import scala.util.Try
 
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import org.rogach.scallop._
 
@@ -86,6 +87,25 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     required = false, default = Some("INFO"),
     validate = level => Set("ERROR", "WARN", "INFO", "DEBUG", "TRACE").contains(level.toUpperCase)
   )
+
+  // Camera parameters
+  val cameraPos: ScallopOption[Vector3] = opt[Vector3](
+    required = false, default = Some(Vector3(0f, 0.5f, 3.0f))
+  )(using vector3Converter)
+  val cameraLookat: ScallopOption[Vector3] = opt[Vector3](
+    required = false, default = Some(Vector3(0f, 0f, 0f))
+  )(using vector3Converter)
+  val cameraUp: ScallopOption[Vector3] = opt[Vector3](
+    required = false, default = Some(Vector3(0f, 1f, 0f))
+  )(using vector3Converter)
+
+  // Scene geometry parameters
+  val center: ScallopOption[Vector3] = opt[Vector3](
+    required = false, default = Some(Vector3(0f, 0f, 0f))
+  )(using vector3Converter)
+  val plane: ScallopOption[PlaneSpec] = opt[PlaneSpec](
+    required = false, default = Some(PlaneSpec(Axis.Y, positive = true, -2.0f))
+  )(using planeSpecConverter)
 
   mutuallyExclusive(timeout, animate)
   validate(projectionScreenW, projectionEyeW) { (screen, eye) =>
@@ -189,4 +209,51 @@ val colorConverter = new ValueConverter[Color] {
         else
           val Array(r, g, b, a) = nums.map(_ / 255f).padTo(4, 1f)
           Right(Some(Color(r, g, b, a)))
+}
+
+val vector3Converter = new ValueConverter[Vector3] {
+  val argType: ArgType.V = org.rogach.scallop.ArgType.SINGLE
+  def parse(s: List[(String, List[String])]): Either[String, Option[Vector3]] =
+    if s.isEmpty || s.head._2.isEmpty then Right(None)
+    else
+      val input = s.head._2.head.trim
+      Try {
+        val parts = input.split(",").map(_.trim.toFloat)
+        if parts.length != 3 then
+          Left(s"Vector3 '$input' must have exactly 3 components (x,y,z)")
+        else
+          Right(Some(Vector3(parts(0), parts(1), parts(2))))
+      }.recover {
+        case e: NumberFormatException => Left(s"Vector3 '$input' contains non-numeric values")
+        case e: Exception => Left(s"Vector3 '$input' not recognized: ${e.getMessage}")
+      }.get
+}
+
+enum Axis:
+  case X, Y, Z
+
+case class PlaneSpec(axis: Axis, positive: Boolean, value: Float)
+
+val planeSpecConverter = new ValueConverter[PlaneSpec] {
+  val argType: ArgType.V = org.rogach.scallop.ArgType.SINGLE
+  def parse(s: List[(String, List[String])]): Either[String, Option[PlaneSpec]] =
+    if s.isEmpty || s.head._2.isEmpty then Right(None)
+    else
+      val input = s.head._2.head.trim
+      Try {
+        val pattern = """([+-]?)([xyz]):(-?\d+\.?\d*)""".r
+        input match
+          case pattern(sign, axisStr, valueStr) =>
+            val axis = axisStr.toLowerCase match
+              case "x" => Axis.X
+              case "y" => Axis.Y
+              case "z" => Axis.Z
+            val positive = sign != "-"  // Default to + if no sign given
+            val value = valueStr.toFloat
+            Right(Some(PlaneSpec(axis, positive, value)))
+          case _ =>
+            Left(s"Plane spec '$input' must match format [+-]?x|y|z:[-]<value> (e.g., y:-2, +y:-2, or -z:5.5)")
+      }.recover {
+        case e: Exception => Left(s"Plane spec '$input' not recognized: ${e.getMessage}")
+      }.get
 }
