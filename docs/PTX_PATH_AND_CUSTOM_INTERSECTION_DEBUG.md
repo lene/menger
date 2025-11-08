@@ -195,7 +195,7 @@ git checkout ac62dac
 
 # Full clean rebuild
 rm -rf optix-jni/target/native
-env ENABLE_OPTIX_JNI=true sbt "project optixJni" nativeCompile
+sbt "project optixJni" nativeCompile
 
 # Copy PTX to runtime location
 cp optix-jni/target/native/x86_64-linux/bin/sphere_combined.ptx \
@@ -219,7 +219,7 @@ git stash apply stash@{0}  # Custom intersection changes
 
 # Full clean rebuild
 rm -rf optix-jni/target/native
-env ENABLE_OPTIX_JNI=true sbt "project optixJni" nativeCompile
+sbt "project optixJni" nativeCompile
 
 # Test rendering
 sbt "run --optix --sponge-type sphere --timeout 2 --radius 0.5 --color 00ff8080 --ior 1.5 --save-name custom.png"

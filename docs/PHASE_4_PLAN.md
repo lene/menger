@@ -59,7 +59,7 @@
 **Status:** All infrastructure complete, tests written
 **Action:** Run full test suite on GPU machine to confirm rendering works
 ```bash
-ENABLE_OPTIX_JNI=true sbt "project optixJni" test
+sbt "project optixJni" test
 ```
 
 ### Task 2: Create OptiXSphereTest Application (Optional) 📝
