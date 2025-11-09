@@ -2,7 +2,27 @@
 
 ## [Unreleased]
 
+### Removed
+- **Documentation Cleanup** - Deleted 7 obsolete documentation files from docs/ directory
+  - Removed historical debug notes from glass rendering implementation (now complete)
+  - Deleted: ABSORPTION_DEBUG_FINDINGS.md, FIX_PLAN.md, Glass_Implementation_Plan.md
+  - Deleted: PTX_PATH_AND_CUSTOM_INTERSECTION_DEBUG.md, SDK_GLASS_EXTRACTION.md
+  - Deleted: OptiX.md (pre-integration planning), PHASE_4_PLAN.md (superseded)
+  - Retained Glass_Rendering_Findings.md as physics reference
+
+### Fixed
+- **README.md** - Updated OptiX SDK version requirement from 8.0 to 9.0+
+  - OptiX 8.0 is NOT compatible with modern NVIDIA drivers (580.x+)
+  - Aligns with CLAUDE.md documentation
+
 ### Added
+- **OptiX JNI Architecture Refactoring** - Two-layer architecture for better separation of concerns
+  - Extracted low-level OptiXContext layer (pure OptiX API wrapper, stateless, unit tested)
+  - Refactored high-level OptiXWrapper to use OptiXContext for all OptiX operations
+  - Added Google Test unit test suite (16 C++ tests for OptiXContext)
+  - Extracted duplicate pipeline compile options to helper function
+  - Deleted dead shader files (sphere_raygen.cu, sphere_miss.cu, sphere_closesthit.cu)
+  - All 96 tests passing (16 C++ + 80 Scala)
 - **OptiX JNI Performance Optimization** - Moved dynamic scene data from SBT to Params
   - Moved sphere color, IOR, scale, light direction/intensity, and plane parameters from SBT to Params struct
   - Parameter changes now require only cudaMemcpy (not SBT rebuild)
@@ -38,6 +58,12 @@
 - Camera position configuration for testing different viewing angles
   - Tested angles from 15° to 30° to observe Fresnel effect
   - Final test position: (0, 2.5, 1.5) showing clear reflection variation
+
+### Improved
+- **Build System** - Reduced CMake build verbosity
+  - Added CMake flags: `-Wno-dev`, `--log-level=WARNING`
+  - Set `CMAKE_INSTALL_MESSAGE LAZY` to suppress verbose install messages
+  - Build output now minimal and focused on actual build progress
 
 ### Fixed
 - Beer-Lambert absorption sign error (was positive, now correctly negative)

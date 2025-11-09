@@ -70,7 +70,7 @@ cmake, filtering out the annoying "Ignoring extra path from command line" warnin
 
 For GPU acceleration features (optional), you need:
 - CUDA Toolkit 12.0 or later
-- NVIDIA OptiX SDK 8.0 (see [GPU_DEVELOPMENT.md](GPU_DEVELOPMENT.md) for setup instructions)
+- NVIDIA OptiX SDK 9.0+ (see [GPU_DEVELOPMENT.md](GPU_DEVELOPMENT.md) for setup instructions)
 
 # Usage
 

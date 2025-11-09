@@ -206,42 +206,101 @@ menger.objects/
 
 ### OptiX JNI Architecture
 
-The `optix-jni` subproject provides JNI bindings to NVIDIA OptiX for GPU-accelerated ray tracing:
+The `optix-jni` subproject provides JNI bindings to NVIDIA OptiX for GPU-accelerated ray tracing using a **two-layer architecture**:
 
+#### Low-Level Layer: OptiXContext
+- Pure OptiX API wrapper with no scene state
+- Stateless where possible (only holds OptiX device context)
+- Explicit resource management (create/destroy pairs for all resources)
+- Direct 1:1 mapping to OptiX operations
+- Unit tested with Google Test (16 C++ tests)
+
+**Files:**
+- `include/OptiXContext.h` / `OptiXContext.cpp`
+
+**Key methods:**
+- `initialize()` / `destroy()` - OptiX device context lifecycle
+- `createModuleFromPTX()` / `destroyModule()` - Shader compilation
+- `createRaygenProgramGroup()` / `createMissProgramGroup()` / `createHitgroupProgramGroup()` - Program group creation
+- `createPipeline()` / `destroyPipeline()` - Pipeline assembly
+- `buildCustomPrimitiveGAS()` / `destroyGAS()` - Geometry acceleration structure
+- `createRaygenSBTRecord()` / `createMissSBTRecord()` / `createHitgroupSBTRecord()` - Shader binding table records
+- `launch()` - OptiX kernel execution
+
+#### High-Level Layer: OptiXWrapper
+- Scene state management (sphere position/radius, camera, light, plane, material properties)
+- Convenience methods for scene setup
+- Performance optimization (scene data in Params instead of SBT for faster parameter updates)
+- Uses OptiXContext for all OptiX operations (composition, not inheritance)
+
+**Files:**
+- `include/OptiXWrapper.h` / `OptiXWrapper.cpp`
+- `include/OptiXData.h` - Shared data structures (Params, SBT records)
+
+**Key methods:**
+- `setSphere()`, `setSphereColor()`, `setIOR()`, `setScale()` - Scene configuration
+- `setCamera()`, `setLight()`, `setPlane()` - Environment setup
+- `render()` - High-level rendering (builds pipeline if needed, launches OptiX, returns RGBA image)
+
+#### JNI Interface
+- Binds Scala `OptiXRenderer` to C++ `OptiXWrapper`
+- Per-instance native handles (supports multiple renderer instances)
+- Error propagation via return codes
+- Functional-style library loading with Try monad
+
+**Files:**
+- `JNIBindings.cpp` - C++ JNI native method implementations
+- `menger/optix/OptiXRenderer.scala` - Scala API with functional library loading
+
+#### Shaders (CUDA)
+- Single combined shader file (`sphere_combined.cu`) compiled to PTX
+- Ray generation, miss, closest hit, and custom sphere intersection programs
+- Reads dynamic scene data from Params struct (not SBT) for performance
+
+**Files:**
+- `shaders/sphere_combined.cu` - All shaders in one file
+- `target/native/x86_64-linux/bin/sphere_combined.ptx` - Compiled PTX
+
+#### Directory Structure
 ```
 optix-jni/src/main/
-  native/                    # C++/CUDA source code
+  native/
     CMakeLists.txt          # CMake build configuration
-    OptiXWrapper.cpp        # C++ OptiX integration layer
-    JNIBindings.cpp         # JNI interface to Scala
+    OptiXContext.cpp        # Low-level OptiX wrapper
+    OptiXWrapper.cpp        # High-level scene renderer
+    JNIBindings.cpp         # JNI interface
     include/
-      OptiXWrapper.h        # C++ headers
-    shaders/                # CUDA OptiX shaders (compiled to PTX)
-      sphere_raygen.cu      # Ray generation shader
-      sphere_closesthit.cu  # Closest hit shader
-      sphere_miss.cu        # Miss shader
+      OptiXContext.h
+      OptiXWrapper.h
+      OptiXData.h           # Shared data structures
+      OptiXConstants.h      # Magic number constants
+    shaders/
+      sphere_combined.cu    # Combined CUDA shaders
+    tests/
+      OptiXContextTest.cpp  # Google Test unit tests (16 tests)
 
-  scala/
-    optix/                  # Scala JNI interface
-      OptiXRenderer.scala   # Main Scala API
-      OptiXNative.scala     # JNI native method declarations
+  scala/menger/optix/
+    OptiXRenderer.scala     # Main Scala API
 
 target/native/x86_64-linux/
   bin/
-    liboptixjni.so         # Compiled JNI shared library
-    *.ptx                  # Compiled CUDA kernels
+    liboptixjni.so          # Compiled JNI shared library
+    sphere_combined.ptx     # Compiled CUDA kernels
 ```
 
 **Build process:**
 1. sbt-jni plugin detects `src/main/native/CMakeLists.txt`
 2. CMake compiles C++ code and CUDA shaders to PTX
-3. Shared library (`liboptixjni.so`) and PTX files copied to `target/native/*/bin/`
-4. Scala code loads native library via `System.loadLibrary()`
+3. Google Test suite runs (16 C++ unit tests)
+4. Shared library (`liboptixjni.so`) and PTX files copied to `target/native/*/bin/`
+5. Scala code loads native library via functional-style loader with Try monad
 
-**Key files:**
-- `build.sbt`: Configures sbt-jni plugin, sets library path for tests
-- `project/CMakeWithoutVersionBug.scala`: Custom CMake build tool that fixes sbt-jni version parsing bug
-- `optix-jni/src/main/native/CMakeLists.txt`: Defines CMake build for native code
+**Key build files:**
+- `build.sbt`: Configures sbt-jni plugin, CMake flags for quiet builds, PTX file copying
+- `project/CMakeWithoutVersionBug.scala`: Custom CMake build tool (fixes sbt-jni version parsing bug)
+- `optix-jni/src/main/native/CMakeLists.txt`: CMake configuration with quiet install messages
+
+**Note on build verbosity**: sbt-jni runs CMake on every compile (no sbt-level incremental tracking), but CMake itself handles dependency tracking and skips actual compilation when source files haven't changed. Build output is minimal thanks to `-Wno-dev`, `--log-level=WARNING`, and `CMAKE_INSTALL_MESSAGE LAZY`.
 
 ### 4D Rendering Pipeline
 
