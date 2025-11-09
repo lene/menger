@@ -1,5 +1,9 @@
 import sbt.Keys.libraryDependencies
 import com.github.sbt.jni.build.{BuildTool, CMakeWithoutVersionBug}
+import scala.sys.process._
+
+// Define custom task key for native tests
+lazy val nativeTest = taskKey[Unit]("Run native C++ tests")
 
 lazy val optixJni = project
   .in(file("optix-jni"))
@@ -47,6 +51,40 @@ lazy val optixJni = project
 
     // Use custom CMakeWithoutVersionBug to avoid spurious warning from sbt-jni version parsing bug
     // See project/CMakeWithoutVersionBug.scala for details
+
+    // Native test task to run C++ Google Test suite
+    nativeTest := {
+      val log = streams.value.log
+      val buildDir = target.value / "native" / "x86_64-linux" / "build"
+      val testExe = buildDir / "optixcontext_test"
+
+      // Ensure native code is compiled first
+      nativeCompile.value
+
+      if (testExe.exists()) {
+        log.info("Running C++ unit tests (Google Test)...")
+
+        val result = Process(
+          Seq(testExe.getAbsolutePath),
+          None,
+          "LD_LIBRARY_PATH" -> "/usr/local/cuda/lib64"
+        ).!
+
+        if (result != 0) {
+          throw new RuntimeException(s"Native tests failed with exit code $result")
+        }
+        log.info("C++ unit tests passed")
+      } else {
+        log.warn(s"C++ test executable not found at ${testExe.getAbsolutePath}")
+        log.warn("Skipping native tests (BUILD_OPTIX_TESTS may be disabled)")
+      }
+    },
+
+    // Make 'test' depend on 'nativeTest' so both Scala and C++ tests run
+    Test / test := {
+      nativeTest.value
+      (Test / test).value
+    },
 
     // Set library path for tests to find native library
     // Multiple paths to try: test-classes, classes, and native build output
