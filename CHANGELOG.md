@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+### Added
+- **OptiX Ray Tracing Constants** - Extracted all magic numbers to named constants
+  - Created RayTracingConstants namespace in OptiXData.h (shared with shaders)
+  - Added 14 named constants with clear documentation and rationale
+  - Moved shader-local constants (MAX_RAY_DISTANCE, COLOR_SCALE_FACTOR, etc.) to shared header
+  - Added CUDA_ERROR_INVALID_PROGRAM_COUNTER to OptiXConstants.h
+  - All numeric thresholds now have descriptive names and comments
+
+### Removed
+- **OptiX JNI Cleanup** - Removed redundant OptixDeviceContext field from OptiXWrapper::Impl
+  - Field was leftover from refactoring migration, never actually used
+  - OptiXContext wrapper now provides sole access to device context
+
+### Fixed
+- **OptiX Transparency Thresholds** - Corrected alpha channel thresholds for byte-precision accuracy
+  - Changed ALPHA_FULLY_TRANSPARENT_THRESHOLD from 0.01 (~3/255) to 1/255 (~0.00392)
+  - Changed ALPHA_FULLY_OPAQUE_THRESHOLD from 0.99 (~252/255) to 254/255 (~0.99608)
+  - Changed COLOR_CHANNEL_MIN_SAFE_VALUE from 0.01 to 1/255 for Beer-Lambert absorption
+  - Thresholds now correctly represent single-byte precision (1/255, 254/255)
+  - Previous values used percentages (1%, 99%) which don't align with 8-bit color channels
+- **OptiX Glass Rendering** - Restored refraction by fixing MAX_TRACE_DEPTH configuration
+  - Consolidated MAX_TRACE_DEPTH to single source of truth in OptiXData.h
+  - Increased from 2 to 5 to allow internal reflections in glass (entry + exit + reflections)
+  - Fixed issue where pipeline was limited to 2 ray bounces, breaking glass refraction
+  - Removed duplicate constant definition in shader (was 5) vs OptiXConstants.h (was 2)
+
 ### Removed
 - **Documentation Cleanup** - Deleted 7 obsolete documentation files from docs/ directory
   - Removed historical debug notes from glass rendering implementation (now complete)
