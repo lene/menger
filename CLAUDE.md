@@ -850,8 +850,12 @@ PTX (Parallel Thread Execution) is NVIDIA's virtual assembly language that provi
 - always run the pre-push hook before committing to detect errors early and not commit broken code
 - after pushing to the remote git repository, always monitor the pipeline for failures
 - do not add docstrings unless they really add information that is not clear from the names and types of the method
-- keep lines to 100 charactes max
+- keep lines to 100 characters maximum
 - one import per line as enforced by scalafix
 - aim for functional programming style. in particular avoid mutable variables (var) and throwing exceptions unless it is absolutely necessary and dictated by the interface.
 - when writing tests, use AnyFlatSpec as the testing style
 - This is a Scala 3 project. Always prefer Scala 3 style over Scala 2 style.
+- do not write docstrings. function and parameter names should be delf-descriptive, ensure that they
+  are instead of writing comments. comments are only for explaining domain specific problems that can
+  not be properly expressed in code form.
+- 

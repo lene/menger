@@ -262,7 +262,8 @@ do
 done
 # Test OptiX-generated output
 rm -f test_optix*.png
-xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --sponge-type sphere --optix --radius 0.5 --save-name test_optix.png || STATUS=1
+xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --sponge-type sphere --optix --radius 0.5 \
+    --ior 1.5 --plane y:-2 --save-name test_optix.png || STATUS=1
 test -f test_optix.png || STATUS=1
 
 if [ $STATUS -gt 0 ]

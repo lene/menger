@@ -34,7 +34,14 @@ class OptiXResources(
     logger.error(message)
     System.exit(1)
 
-  private def initializeRenderer: OptiXRenderer = OptiXRenderer().ensureAvailable()
+  private def initializeRenderer: OptiXRenderer =
+    OptiXRenderer().ensureAvailable().recover:
+      case exception =>
+        errorExit(exception.getMessage)
+        // errorExit calls System.exit(1), so this is unreachable
+        // Return dummy value to satisfy type checker (never executed)
+        OptiXRenderer()
+    .get  // Safe because recover always returns Success
 
   def initialize(): Unit =
     logger.debug("Configuring OptiX scene")
