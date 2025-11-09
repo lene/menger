@@ -1,5 +1,7 @@
 package menger
 
+import java.util.concurrent.atomic.AtomicReference
+
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -18,7 +20,15 @@ class OptiXResources(
   planeSpec: PlaneSpec
 ) extends LazyLogging:
 
-  private lazy val renderer: OptiXRenderer = initializeRenderer
+  private val _rendererRef = new AtomicReference[Option[OptiXRenderer]](None)
+
+  private def renderer: OptiXRenderer =
+    _rendererRef.get() match
+      case Some(r) => r
+      case None =>
+        val r = initializeRenderer
+        _rendererRef.set(Some(r))
+        r
 
   private def errorExit(message: String): Unit =
     logger.error(message)
@@ -77,5 +87,7 @@ class OptiXResources(
     renderer.render(width, height)
 
   def dispose(): Unit =
-    logger.debug("Disposing OptiX renderer")
-    renderer.dispose()
+    _rendererRef.get().foreach { r =>
+      logger.debug("Disposing OptiX renderer")
+      r.dispose()
+    }
