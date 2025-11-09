@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 ### Added
+- **OptiX JNI Performance Optimization** - Moved dynamic scene data from SBT to Params
+  - Moved sphere color, IOR, scale, light direction/intensity, and plane parameters from SBT to Params struct
+  - Parameter changes now require only cudaMemcpy (not SBT rebuild)
+  - Eliminates GPU memory allocations on parameter changes
+  - Standard OptiX practice for dynamic scenes
+  - All 96 tests passing (16 C++ + 80 Scala)
 - **OptiX JNI Library Loading Refactoring** - Converted imperative library loading to functional style
   - Replaced nested try-catch blocks with Try monad composition
   - Replaced while loops with tail-recursive copyLoop() function

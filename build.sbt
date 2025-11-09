@@ -14,7 +14,10 @@ lazy val optixJni = project
 
     // Configure native build
     nativeCompile / sourceDirectory := sourceDirectory.value / "main" / "native",
-    nativeBuildTool := CMakeWithoutVersionBug.make(Seq.empty),
+    nativeBuildTool := CMakeWithoutVersionBug.make(Seq(
+      "-Wno-dev",  // Suppress developer warnings
+      "--log-level=WARNING"  // Only show warnings and errors
+    )),
 
     // Auto-clean CMake cache if it's from a different build location (e.g., Docker)
     // This prevents "CMake Error: The source ... does not match ... used to generate cache"
