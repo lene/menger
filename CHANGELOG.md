@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Added
+- **OptiX JNI Library Loading Refactoring** - Converted imperative library loading to functional style
+  - Replaced nested try-catch blocks with Try monad composition
+  - Replaced while loops with tail-recursive copyLoop() function
+  - Replaced imperative library loading with for-comprehension
+  - Extracted functional helper methods: loadFromSystemPath, detectPlatform, copyStreamToFile, extractPTX
+  - Reduced libraryLoaded initialization from 62 lines to 1 line
+  - All 96 tests passing (16 C++ + 80 Scala)
 - **OptiX JNI Test Suite Refactoring** - Comprehensive code quality improvements
   - Created RendererFixture trait for automatic lifecycle management (eliminates 1500+ lines of boilerplate)
   - Created ColorConstants object with 30+ named color constants (eliminates 100+ magic numbers)
