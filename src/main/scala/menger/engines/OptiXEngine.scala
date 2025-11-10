@@ -97,7 +97,9 @@ class OptiXEngine(
     batch.end()
 
   override def resize(width: Int, height: Int): Unit =
-    logger.debug(s"Window resized to ${width}x${height}")
+    logger.info(s"[OptiXEngine] resize event: ${width}x${height}")
+    optiXResources.updateCameraAspectRatio(width, height)
+    logger.info(s"[OptiXEngine] resize complete")
 
   override def dispose(): Unit =
     logger.debug("Disposing OptiXEngine")

@@ -168,19 +168,15 @@ else
   # Build native library if not already built
   sbt "project optixJni" nativeCompile --warn >/dev/null 2>&1
 
-  # Check if standalone_test binary exists and is executable
-  if [ -x "optix-jni/src/main/native/standalone_test" ]; then
-    echo "Using existing standalone_test binary..."
-    COMPILE_STATUS=0
-  else
-    # Compile standalone test - show errors if compilation fails
-    echo "Compiling standalone_test..."
-    COMPILE_OUTPUT=$(cd optix-jni/src/main/native && g++ -std=c++17 \
+  # Always recompile standalone_test to ensure API compatibility
+  echo "Compiling standalone_test..."
+  COMPILE_OUTPUT=$(cd optix-jni/src/main/native && \
+    rm -f standalone_test && \
+    g++ -std=c++17 \
       -I./include -I/usr/local/cuda/include -I${OPTIX_ROOT:-/usr/local}/include \
       -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
       standalone_test.cpp -loptixjni -lcudart -o standalone_test 2>&1)
-    COMPILE_STATUS=$?
-  fi
+  COMPILE_STATUS=$?
 
   if [ $COMPILE_STATUS -ne 0 ]; then
     echo "${RED_TEXT}Failed to compile standalone test${RESET_TEXT}"

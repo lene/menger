@@ -93,6 +93,28 @@ class OptiXResources(
   def renderScene(width: Int, height: Int): Array[Byte] =
     renderer.render(width, height)
 
+  def updateCameraAspectRatio(width: Int, height: Int): Unit =
+    logger.info(s"[OptiXResources] updateCameraAspectRatio called with ${width}x${height}")
+    val aspectRatio = width.toFloat / height.toFloat
+    val verticalFOV = 45f  // Fixed vertical FOV in degrees
+    // Horizontal FOV adjusts based on aspect ratio
+    // tan(hFOV/2) = tan(vFOV/2) * aspectRatio
+    val verticalFOVRad = Math.toRadians(verticalFOV).toFloat
+    val horizontalFOVRad = 2f * Math.atan(Math.tan(verticalFOVRad / 2f) * aspectRatio).toFloat
+    val horizontalFOV = Math.toDegrees(horizontalFOVRad).toFloat
+
+    logger.info(s"[OptiXResources] Calling updateImageDimensions(${width}, ${height})")
+    // Update cached image dimensions BEFORE calling setCamera
+    renderer.updateImageDimensions(width, height)
+
+    val eye = Array(cameraPos.x, cameraPos.y, cameraPos.z)
+    val lookAt = Array(cameraLookat.x, cameraLookat.y, cameraLookat.z)
+    val up = Array(cameraUp.x, cameraUp.y, cameraUp.z)
+
+    logger.info(s"[OptiXResources] Calling setCamera with vFOV=$verticalFOV°")
+    renderer.setCamera(eye, lookAt, up, verticalFOV)
+    logger.info(s"[OptiXResources] Camera updated: aspect=$aspectRatio, vFOV=$verticalFOV°, hFOV=$horizontalFOV° (${width}x${height})")
+
   def dispose(): Unit =
     _rendererRef.get().foreach { r =>
       logger.debug("Disposing OptiX renderer")
