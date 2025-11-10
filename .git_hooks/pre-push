@@ -114,7 +114,7 @@ fi
 
 sbt compile || exit 1
 
-xvfb-run -a sbt test --warn || STATUS=1
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt test --warn || STATUS=1
 if [ $STATUS -gt 0 ]
 then echo "Status after sbt test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after sbt test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
@@ -243,26 +243,26 @@ then echo "Status after build: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after build: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
-xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type cube --lines || STATUS=1
-xvfb-run -a ./menger-${VERSION}/bin/menger --level 4 --timeout 0.1 --sponge-type square --lines || STATUS=1
-xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge --lines || STATUS=1
-xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge-2 --lines || STATUS=1
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type cube --lines || STATUS=1
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --level 4 --timeout 0.1 --sponge-type square --lines || STATUS=1
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge --lines || STATUS=1
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --level 2 --timeout 0.1 --sponge-type tesseract-sponge-2 --lines || STATUS=1
 # Test animation and file output
 rm -f test_image*.png
-xvfb-run -a ./menger-${VERSION}/bin/menger \
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger \
   --sponge-type tesseract-sponge-2 --animate frames=5:rot-y-w=0-90:rot-y=0-30:level=0-2 --save-name test_image%d.png || STATUS=1
 ls test_image*.png 2>&1 || STATUS=1
 rm -f test_image*.png
 # Test invalid sponge type exits with error code
-xvfb-run -a ./menger-${VERSION}/bin/menger --level 1 --timeout 0.1 --sponge-type invalid 2>/dev/null && STATUS=1 || echo "[${GREEN_TEXT}expected${RESET_TEXT}]"
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --level 1 --timeout 0.1 --sponge-type invalid 2>/dev/null && STATUS=1 || echo "[${GREEN_TEXT}expected${RESET_TEXT}]"
 # Test fractional levels
 for TYPE in square-sponge cube-sponge tesseract-sponge tesseract-sponge-2
 do
-  xvfb-run -a ./menger-${VERSION}/bin/menger --level 1.5 --timeout 0.1 --sponge-type $TYPE || STATUS=1
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --level 1.5 --timeout 0.1 --sponge-type $TYPE || STATUS=1
 done
 # Test OptiX-generated output
 rm -f test_optix*.png
-xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --sponge-type sphere --optix --radius 0.5 \
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --sponge-type sphere --optix --radius 0.5 \
     --ior 1.5 --plane y:-2 --save-name test_optix.png || STATUS=1
 test -f test_optix.png || STATUS=1
 
