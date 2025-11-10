@@ -14,7 +14,8 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 
 **Current:** Phase 4 complete - OptiX Integration and Testing ✅
 **Branch:** `optix-sphere-from-sdk`
-**Next:** Verify CI pipeline passes, close issue #45
+**Local Tests:** 95 tests passing (menger + optix-jni)
+**Status:** CI pipeline fixes applied, awaiting verification
 
 ## Project Overview
 

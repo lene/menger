@@ -136,7 +136,7 @@ if [ ! -x "$COMPUTE_SANITIZER" ]; then
   echo "Please check your CUDA installation"
   STATUS=1
 else
-  "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" test --warn > /tmp/compute-sanitizer-prepush.log 2>&1
+  env RUNNING_UNDER_COMPUTE_SANITIZER=true "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" test --warn > /tmp/compute-sanitizer-prepush.log 2>&1
   SANITIZER_STATUS=$?
   ERROR_COUNT=$(grep "ERROR SUMMARY:" /tmp/compute-sanitizer-prepush.log | tail -1 | awk '{print $4}')
   if [ "$SANITIZER_STATUS" -eq 0 ] && [ "$ERROR_COUNT" = "0" ]; then
