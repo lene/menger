@@ -13,6 +13,9 @@ When the window width changes:
 - Example: If window width doubles, the sphere's diameter must double in both horizontal and vertical directions
 - The sphere MUST remain perfectly circular (no distortion into an ellipse)
 - The scaling is proportional to the width change
+- The sphere remains centered in the window, if it was centered before. The look-at point remains constant.
+- The rendered image must fill the entire window (no black borders)
+- The checkered background MUST also scale uniformly with the sphere
 
 ### 2. Vertical Resize (Height Changes)
 
@@ -20,6 +23,9 @@ When the window height changes:
 - The sphere size MUST NOT change at all
 - The sphere MUST remain exactly the same size as before the height change
 - The sphere MUST remain perfectly circular
+- The sphere remains centered in the window, if it was centered before. The look-at point remains constant.
+- The rendered image must fill the entire window (no black borders)
+- the checkered background does NOT scale with height changes, but the visible area of the background changes to fill the window
 
 ### 3. Display Requirements
 
@@ -39,7 +45,8 @@ When the window height changes:
 
 ## Current Problem
 
-**Unit tests pass** - The automated tests in `WindowResizeDiameterTest.scala` correctly demonstrate the expected behavior when calling `updateImageDimensions()` and `setCamera()` directly.
+**Unit tests pass** - The automated tests in `WindowResizeDiameterTest.scala` correctly demonstrate
+the expected behavior when calling `updateImageDimensions()`, `setCamera()` and `render()` directly.
 
 **Manual window resizing fails** - When the user manually resizes the LibGDX window, the behavior does NOT match the requirements:
 
@@ -48,6 +55,7 @@ When the window height changes:
 2. Vertical resize scales the sphere vertically (WRONG - should not scale at all)
 3. Horizontal resize scales the sphere horizontally only (WRONG - should scale uniformly in both directions)
 4. Resizing below original size causes black borders (WRONG - must fill window)
+5. when resizing, the look-at point shifts (WRONG - must remain constant)
 
 **Task**: Implement correct resize behavior that matches requirements.
 
@@ -64,7 +72,8 @@ Standard perspective projection - keeps horizontal FOV constant:
 - Calls `renderer.setCamera(eye, lookAt, up, verticalFOV)`
 
 **Result with working code:**
-- Sphere vertical size stays constant (as tested)
+- Horizontal resize: Sphere scales uniformly in both directions
+- Vertical resize: Sphere size remains constant
 - This is standard perspective projection behavior
 
 ## The Problem
