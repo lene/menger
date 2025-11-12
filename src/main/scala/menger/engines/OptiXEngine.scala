@@ -51,6 +51,8 @@ class OptiXEngine(
     OptiXResources(geometryGenerator, cameraPos, cameraLookat, cameraUp, planeSpec)
   private lazy val batch: SpriteBatch = new SpriteBatch()
   private var renderState: RenderState = RenderState(None, None, 0, 0)
+  private var lastCameraWidth: Int = 0
+  private var lastCameraHeight: Int = 0
 
   protected def drawables: List[ModelInstance] =
     throw new UnsupportedOperationException("OptiXEngine doesn't use drawables")
@@ -71,6 +73,14 @@ class OptiXEngine(
 
     val width = Gdx.graphics.getWidth
     val height = Gdx.graphics.getHeight
+
+    // Ensure camera is configured for current window dimensions
+    if (width != lastCameraWidth || height != lastCameraHeight) then
+      logger.info(s"[OptiXEngine] render: dimensions changed from ${lastCameraWidth}x${lastCameraHeight} to ${width}x${height}, updating camera")
+      optiXResources.updateCameraAspectRatio(width, height)
+      lastCameraWidth = width
+      lastCameraHeight = height
+
     val rgbaBytes = optiXResources.renderScene(width, height)
     renderToScreen(rgbaBytes, width, height)
     saveImage()
