@@ -12,10 +12,11 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 
 ## Active Development
 
-**Current:** Phase 4 complete - OptiX Integration and Testing ✅
+**Current:** Fixing window resize behavior for OptiX sphere rendering
 **Branch:** `optix-sphere-from-sdk`
 **Local Tests:** 95 tests passing (menger + optix-jni)
-**Status:** CI pipeline fixes applied, awaiting verification
+**Status:** Manual window resize does not match test behavior - investigating
+**Spec:** See [docs/WINDOW_RESIZE_SPEC.md](docs/WINDOW_RESIZE_SPEC.md) for exact requirements
 
 ## Project Overview
 

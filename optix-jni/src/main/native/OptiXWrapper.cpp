@@ -162,12 +162,25 @@ void OptiXWrapper::setCamera(const float* eye, const float* lookAt, const float*
     float v[3];
     VectorMath::cross3f(v, impl->camera.w, u);
 
-    // Scale by FOV and aspect ratio
+    // Width-scaling approach: both ulen and vlen scale with width
+    // This makes the sphere scale uniformly with width changes, and stay constant with height changes
+    constexpr float reference_width = 800.0f;
+    constexpr float reference_height = 600.0f;
+
     float aspect_ratio = static_cast<float>(impl->image_width) / static_cast<float>(impl->image_height);
-    float ulen = std::tan(fov * 0.5f * M_PI / 180.0f);
-    float vlen = ulen / aspect_ratio;
+
+    // Calculate base extents for reference dimensions
+    float base_ulen = std::tan(fov * 0.5f * M_PI / 180.0f);
+    float base_vlen = base_ulen / (reference_width / reference_height);
+
+    // Scale both by width
+    float width_scale = static_cast<float>(impl->image_width) / reference_width;
+    float ulen = base_ulen * width_scale;
+    float vlen = base_vlen * width_scale;
+
     std::cout << "[OptiXWrapper] setCamera: dims=" << impl->image_width << "x" << impl->image_height
-              << " aspect=" << aspect_ratio << " fov=" << fov << "° ulen=" << ulen << " vlen=" << vlen << std::endl;
+              << " aspect=" << aspect_ratio << " width_scale=" << width_scale
+              << " fov=" << fov << "° ulen=" << ulen << " vlen=" << vlen << std::endl;
 
     impl->camera.u[0] = u[0] * ulen;
     impl->camera.u[1] = u[1] * ulen;

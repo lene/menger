@@ -93,27 +93,32 @@ class OptiXResources(
   def renderScene(width: Int, height: Int): Array[Byte] =
     renderer.render(width, height)
 
+  private val referenceWidth = 800
+  private val referenceHeight = 600
+
+  case class RenderDimensions(renderWidth: Int, renderHeight: Int, displayX: Int, displayY: Int, displayWidth: Int, displayHeight: Int)
+
+  def calculateRenderDimensions(windowWidth: Int, windowHeight: Int): RenderDimensions =
+    // Render at window dimensions
+    RenderDimensions(windowWidth, windowHeight, 0, 0, windowWidth, windowHeight)
+
   def updateCameraAspectRatio(width: Int, height: Int): Unit =
     logger.info(s"[OptiXResources] updateCameraAspectRatio called with ${width}x${height}")
-    val aspectRatio = width.toFloat / height.toFloat
-    val verticalFOV = 45f  // Fixed vertical FOV in degrees
-    // Horizontal FOV adjusts based on aspect ratio
-    // tan(hFOV/2) = tan(vFOV/2) * aspectRatio
-    val verticalFOVRad = Math.toRadians(verticalFOV).toFloat
-    val horizontalFOVRad = 2f * Math.atan(Math.tan(verticalFOVRad / 2f) * aspectRatio).toFloat
-    val horizontalFOV = Math.toDegrees(horizontalFOVRad).toFloat
 
-    logger.info(s"[OptiXResources] Calling updateImageDimensions(${width}, ${height})")
-    // Update cached image dimensions BEFORE calling setCamera
-    renderer.updateImageDimensions(width, height)
+    val dims = calculateRenderDimensions(width, height)
+    logger.info(s"[OptiXResources] Render dims: ${dims.renderWidth}x${dims.renderHeight}, display: (${dims.displayX},${dims.displayY}) ${dims.displayWidth}x${dims.displayHeight}")
 
+    // Update image dimensions to render dimensions
+    renderer.updateImageDimensions(dims.renderWidth, dims.renderHeight)
+
+    // Recalculate camera with updated dimensions
     val eye = Array(cameraPos.x, cameraPos.y, cameraPos.z)
     val lookAt = Array(cameraLookat.x, cameraLookat.y, cameraLookat.z)
     val up = Array(cameraUp.x, cameraUp.y, cameraUp.z)
+    val fov = 45f
 
-    logger.info(s"[OptiXResources] Calling setCamera with vFOV=$verticalFOV°")
-    renderer.setCamera(eye, lookAt, up, verticalFOV)
-    logger.info(s"[OptiXResources] Camera updated: aspect=$aspectRatio, vFOV=$verticalFOV°, hFOV=$horizontalFOV° (${width}x${height})")
+    renderer.setCamera(eye, lookAt, up, fov)
+    logger.info(s"[OptiXResources] Camera updated for ${dims.renderWidth}x${dims.renderHeight}")
 
   def dispose(): Unit =
     _rendererRef.get().foreach { r =>

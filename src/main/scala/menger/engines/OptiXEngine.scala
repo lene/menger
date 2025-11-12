@@ -69,20 +69,21 @@ class OptiXEngine(
   override def render(): Unit =
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
 
-    val width = Gdx.graphics.getWidth
-    val height = Gdx.graphics.getHeight
-    val rgbaBytes = optiXResources.renderScene(width, height)
-    renderToScreen(rgbaBytes, width, height)
+    val windowWidth = Gdx.graphics.getWidth
+    val windowHeight = Gdx.graphics.getHeight
+    val dims = optiXResources.calculateRenderDimensions(windowWidth, windowHeight)
+    val rgbaBytes = optiXResources.renderScene(dims.renderWidth, dims.renderHeight)
+    renderToScreen(rgbaBytes, dims)
     saveImage()
 
   protected def currentSaveName: Option[String] = saveName
 
-  private def renderToScreen(rgbaBytes: Array[Byte], width: Int, height: Int): Unit =
-    val needsRecreate = width != renderState.width || height != renderState.height
+  private def renderToScreen(rgbaBytes: Array[Byte], dims: menger.OptiXResources#RenderDimensions): Unit =
+    val needsRecreate = dims.renderWidth != renderState.width || dims.renderHeight != renderState.height
 
     if needsRecreate then
       renderState.dispose()
-      renderState = RenderState(None, None, width, height)
+      renderState = RenderState(None, None, dims.renderWidth, dims.renderHeight)
 
     val (stateWithPixmap, pm) = renderState.ensurePixmap()
     renderState = stateWithPixmap
@@ -93,7 +94,7 @@ class OptiXEngine(
     renderState = stateWithTexture
 
     batch.begin()
-    batch.draw(tex, 0, 0, width.toFloat, height.toFloat)
+    batch.draw(tex, dims.displayX.toFloat, dims.displayY.toFloat, dims.displayWidth.toFloat, dims.displayHeight.toFloat)
     batch.end()
 
   override def resize(width: Int, height: Int): Unit =
