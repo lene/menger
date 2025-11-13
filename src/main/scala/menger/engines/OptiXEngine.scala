@@ -109,7 +109,7 @@ class OptiXEngine(
   override def resize(width: Int, height: Int): Unit =
     logger.info(s"[OptiXEngine] resize event: ${width}x${height}")
     optiXResources.updateCameraAspectRatio(width, height)
-    logger.info(s"[OptiXEngine] resize complete")
+    logger.info("[OptiXEngine] resize complete")
 
   override def dispose(): Unit =
     logger.debug("Disposing OptiXEngine")
