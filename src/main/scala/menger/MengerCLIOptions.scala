@@ -87,6 +87,9 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     required = false, default = Some("INFO"),
     validate = level => Set("ERROR", "WARN", "INFO", "DEBUG", "TRACE").contains(level.toUpperCase)
   )
+  val stats: ScallopOption[Boolean] = opt[Boolean](
+    required = false, default = Some(false)
+  )
 
   // Camera parameters
   val cameraPos: ScallopOption[Vector3] = opt[Vector3](

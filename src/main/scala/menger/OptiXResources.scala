@@ -94,6 +94,9 @@ class OptiXResources(
     logger.debug(s"[OptiXResources] renderScene: rendering at ${width}x${height}")
     renderer.render(width, height)
 
+  def renderSceneWithStats(width: Int, height: Int): menger.optix.RenderResult =
+    renderer.renderWithStats(width, height)
+
   def updateCameraAspectRatio(width: Int, height: Int): Unit =
     val verticalFOV = 45f  // Fixed vertical FOV in degrees
 

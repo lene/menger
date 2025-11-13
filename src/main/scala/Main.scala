@@ -56,7 +56,8 @@ object Main:
         opts.radius(), opts.ior(), opts.scale(),
         opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),
         opts.timeout(),
-        opts.saveName.toOption
+        opts.saveName.toOption,
+        opts.stats()
       )
     else if opts.animate.isDefined && opts.animate().parts.nonEmpty then
       AnimatedMengerEngine(

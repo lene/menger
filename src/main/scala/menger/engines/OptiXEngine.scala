@@ -37,7 +37,8 @@ class OptiXEngine(
   val center: Vector3,
   val planeSpec: PlaneSpec,
   val timeout: Float = 0f,
-  saveName: Option[String] = None
+  saveName: Option[String] = None,
+  val enableStats: Boolean = false
 )(using profilingConfig: ProfilingConfig) extends MengerEngine(
   spongeType, spongeLevel, rotationProjectionParameters, lines, color,
   faceColor, lineColor, fpsLogIntervalMs
@@ -81,11 +82,21 @@ class OptiXEngine(
       lastCameraWidth = width
       lastCameraHeight = height
 
-    val rgbaBytes = optiXResources.renderScene(width, height)
+    val rgbaBytes = if enableStats then renderWithStats(width, height) else optiXResources.renderScene(width, height)
     renderToScreen(rgbaBytes, width, height)
     saveImage()
 
   protected def currentSaveName: Option[String] = saveName
+
+  private def renderWithStats(width: Int, height: Int): Array[Byte] =
+    val result = optiXResources.renderSceneWithStats(width, height)
+    val stats = result.stats
+    logger.info(
+      s"Ray stats: primary=${stats.primaryRays} total=${stats.totalRays} " +
+      s"reflected=${stats.reflectedRays} refracted=${stats.refractedRays} " +
+      s"depth=${stats.minDepthReached}-${stats.maxDepthReached}"
+    )
+    result.image
 
   private def renderToScreen(rgbaBytes: Array[Byte], width: Int, height: Int): Unit =
     val needsRecreate = width != renderState.width || height != renderState.height
