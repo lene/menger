@@ -154,6 +154,12 @@ lazy val root = {
     Test / javaOptions += "-Dlogback.statusListenerClass=ch.qos.logback.core.status.NopStatusListener",
     Test / fork := true,
 
+    // Make root project's test depend on optixJni tests
+    Test / test := {
+      (optixJni / Test / test).value
+      (Test / test).value
+    },
+
     // Scallop command line parser
     libraryDependencies += "org.rogach" %% "scallop" % "5.2.0",
 

@@ -92,7 +92,9 @@ class OptiXResources(
 
   def renderScene(width: Int, height: Int): Array[Byte] =
     logger.debug(s"[OptiXResources] renderScene: rendering at ${width}x${height}")
-    renderer.render(width, height)
+    renderer.render(width, height).getOrElse:
+      logger.error("OptiX rendering failed - returned None")
+      Array.emptyByteArray
 
   def renderSceneWithStats(width: Int, height: Int): menger.optix.RenderResult =
     renderer.renderWithStats(width, height)

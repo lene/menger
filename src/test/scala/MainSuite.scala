@@ -5,8 +5,6 @@ import menger.engines.OptiXEngine
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-// TODO: Replace asInstanceOf with pattern matching for type-safe casting
-@SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
 class MainSuite extends AnyFlatSpec with Matchers:
 
   "getConfig" should "return default config if no options" in :
@@ -25,13 +23,17 @@ class MainSuite extends AnyFlatSpec with Matchers:
     val options = MengerCLIOptions(Seq("--optix", "--sponge-type", "sphere", "--radius", "2.5"))
     val engine = Main.createEngine(options)
     engine shouldBe a [OptiXEngine]
-    engine.asInstanceOf[OptiXEngine].sphereRadius shouldEqual 2.5f
+    engine match
+      case optix: OptiXEngine => optix.sphereRadius shouldEqual 2.5f
+      case _ => fail("Expected OptiXEngine")
 
   it should "pass default radius (1.0) to OptiXEngine when not specified" in:
     val options = MengerCLIOptions(Seq("--optix", "--sponge-type", "sphere"))
     val engine = Main.createEngine(options)
     engine shouldBe a [OptiXEngine]
-    engine.asInstanceOf[OptiXEngine].sphereRadius shouldEqual 1.0f
+    engine match
+      case optix: OptiXEngine => optix.sphereRadius shouldEqual 1.0f
+      case _ => fail("Expected OptiXEngine")
 
   it should "return InteractiveMengerEngine when --optix is false" in:
     val options = MengerCLIOptions(Seq("--sponge-type", "cube"))

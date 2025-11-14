@@ -53,6 +53,7 @@ rm -rf optix-jni/target/native && sbt "project optixJni" compile  # Clean rebuil
 **Wartremover:** No `var`, `while`, `asInstanceOf`, `throw`
 **Scalafix:** OrganizeImports, DisableSyntax (noNulls, noReturns), no unused imports
 **Style:** Max 100 chars/line, functional style, descriptive names over docstrings
+**No null:** Use `Option`, `Try`, or `Either` instead of null - null is forbidden in all Scala code
 
 ## Development Checklist
 
