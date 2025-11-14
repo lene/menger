@@ -338,3 +338,31 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
     val options = SafeMengerCLIOptions(Seq("--optix", "--sponge-type", "sphere"))
     options.optix() shouldEqual true
     options.spongeType() shouldEqual "sphere"
+
+  "MengerCLIOptions --stats" should "parse when provided" in :
+    val opts = SafeMengerCLIOptions(List("--optix", "--sponge-type", "sphere", "--stats"))
+    opts.stats() shouldBe true
+  
+  it should "be optional" in :
+    val opts = SafeMengerCLIOptions(List())
+    opts.stats.toOption shouldBe Some(false)
+  
+  it should "have default value false" in :
+    val opts = SafeMengerCLIOptions(List())
+    opts.stats() shouldBe false
+  
+  it should "be false without explicit flag" in :
+    val opts = SafeMengerCLIOptions(List("--optix", "--sponge-type", "sphere"))
+    opts.stats() shouldBe false
+  
+  "Main.createEngine" should "create OptiXEngine with stats disabled when option not provided" in :
+    val opts = SafeMengerCLIOptions(List("--optix", "--sponge-type", "sphere"))
+    val enableStats = opts.stats()
+  
+    enableStats shouldBe false
+  
+  it should "create OptiXEngine with stats enabled when option provided" in :
+    val opts = SafeMengerCLIOptions(List("--optix", "--sponge-type", "sphere", "--stats"))
+    val enableStats = opts.stats()
+  
+    enableStats shouldBe true

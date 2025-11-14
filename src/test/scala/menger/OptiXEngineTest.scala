@@ -21,7 +21,13 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
     rotX = 0f, rotY = 0f, rotZ = 0f
   )
 
-  private def createEngine(radius: Float = 1.5f, ior: Float = 1.0f, scale: Float = 1.0f, timeout: Float = 0f): OptiXEngine =
+  private def createEngine(
+    radius: Float = 1.5f,
+    ior: Float = 1.0f,
+    scale: Float = 1.0f,
+    timeout: Float = 0f,
+    enableStats: Boolean = false
+  ): OptiXEngine =
     given ProfilingConfig = ProfilingConfig.disabled
     new OptiXEngine(
       spongeType = "sphere",
@@ -40,7 +46,9 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       cameraUp = Vector3(0f, 1f, 0f),
       center = Vector3(0f, 0f, 0f),
       planeSpec = PlaneSpec(Axis.Y, false, -2f),
-      timeout = timeout
+      timeout = timeout,
+      saveName = None,
+      enableStats = enableStats
     )
 
   "OptiXEngine" should "be instantiated" in:
@@ -130,3 +138,11 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
   it should "have default timeout 0" in:
     val engine = createEngine()
     engine.timeout shouldBe 0f
+
+  it should "store enableStats false by default" in:
+    val engine = createEngine()
+    engine.enableStats shouldBe false
+
+  it should "store enableStats true when provided" in:
+    val engine = createEngine(enableStats = true)
+    engine.enableStats shouldBe true
