@@ -54,6 +54,8 @@ class OptiXEngine(
   private var renderState: RenderState = RenderState(None, None, 0, 0)
   private var lastCameraWidth: Int = 0
   private var lastCameraHeight: Int = 0
+  private var hasSaved: Boolean = false
+  private var needsRender: Boolean = true
 
   protected def drawables: List[ModelInstance] =
     throw new UnsupportedOperationException("OptiXEngine doesn't use drawables")
@@ -67,6 +69,11 @@ class OptiXEngine(
     optiXResources.setIOR(ior)
     optiXResources.setScale(scale)
     optiXResources.initialize()
+
+    // Disable continuous rendering - we'll request renders only when needed
+    Gdx.graphics.setContinuousRendering(false)
+    Gdx.graphics.requestRendering()
+
     if timeout > 0 then startExitTimer(timeout)
 
   override def render(): Unit =
@@ -75,16 +82,33 @@ class OptiXEngine(
     val width = Gdx.graphics.getWidth
     val height = Gdx.graphics.getHeight
 
-    // Ensure camera is configured for current window dimensions
-    if (width != lastCameraWidth || height != lastCameraHeight) then
+    // Check if window dimensions changed
+    val dimensionsChanged = width != lastCameraWidth || height != lastCameraHeight
+    if dimensionsChanged then
       logger.info(s"[OptiXEngine] render: dimensions changed from ${lastCameraWidth}x${lastCameraHeight} to ${width}x${height}, updating camera")
       optiXResources.updateCameraAspectRatio(width, height)
       lastCameraWidth = width
       lastCameraHeight = height
+      needsRender = true
 
-    val rgbaBytes = if enableStats then renderWithStats(width, height) else optiXResources.renderScene(width, height)
-    renderToScreen(rgbaBytes, width, height)
+    // Only render the scene if something changed
+    if needsRender then
+      val rgbaBytes = if enableStats then renderWithStats(width, height) else optiXResources.renderScene(width, height)
+      renderToScreen(rgbaBytes, width, height)
+      needsRender = false
+    else
+      // Just redraw the existing texture without re-rendering
+      renderState.texture.foreach: tex =>
+        batch.begin()
+        batch.draw(tex, 0, 0, width.toFloat, height.toFloat)
+        batch.end()
+
     saveImage()
+
+    // Exit after saving when in non-interactive mode (unless timeout is set)
+    if saveName.isDefined && !hasSaved && timeout == 0 then
+      hasSaved = true
+      Gdx.app.exit()
 
   protected def currentSaveName: Option[String] = saveName
 
@@ -120,6 +144,8 @@ class OptiXEngine(
   override def resize(width: Int, height: Int): Unit =
     logger.info(s"[OptiXEngine] resize event: ${width}x${height}")
     optiXResources.updateCameraAspectRatio(width, height)
+    needsRender = true
+    Gdx.graphics.requestRendering()
     logger.info("[OptiXEngine] resize complete")
 
   override def dispose(): Unit =

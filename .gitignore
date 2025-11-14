@@ -22,6 +22,9 @@ local.sbt
 # object files
 *.o
 
+# log files
+*.log
+
 # local dev tools
 .jvmopts
 
