@@ -6,19 +6,18 @@ import scala.util.Try
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.GDXResources
+import menger.OptiXRenderResources
 import menger.OptiXResources
 import menger.PlaneSpec
 import menger.ProfilingConfig
-import menger.RenderState
 import menger.RotationProjectionParameters
 import menger.optix.OptiXRenderer
 
-@SuppressWarnings(Array("org.wartremover.warts.Throw", "org.wartremover.warts.Var"))
+@SuppressWarnings(Array("org.wartremover.warts.Throw"))
 class OptiXEngine(
   spongeType: String,
   spongeLevel: Float,
@@ -50,12 +49,7 @@ class OptiXEngine(
   }
   private lazy val optiXResources: OptiXResources =
     OptiXResources(geometryGenerator, cameraPos, cameraLookat, cameraUp, planeSpec)
-  private lazy val batch: SpriteBatch = new SpriteBatch()
-  private var renderState: RenderState = RenderState(None, None, 0, 0)
-  private var lastCameraWidth: Int = 0
-  private var lastCameraHeight: Int = 0
-  private var hasSaved: Boolean = false
-  private var needsRender: Boolean = true
+  private val renderResources: OptiXRenderResources = OptiXRenderResources(0, 0)
 
   protected def drawables: List[ModelInstance] =
     throw new UnsupportedOperationException("OptiXEngine doesn't use drawables")
@@ -83,31 +77,26 @@ class OptiXEngine(
     val height = Gdx.graphics.getHeight
 
     // Check if window dimensions changed
-    val dimensionsChanged = width != lastCameraWidth || height != lastCameraHeight
+    val (lastWidth, lastHeight) = renderResources.currentDimensions
+    val dimensionsChanged = width != lastWidth || height != lastHeight
     if dimensionsChanged then
-      logger.info(s"[OptiXEngine] render: dimensions changed from ${lastCameraWidth}x${lastCameraHeight} to ${width}x${height}, updating camera")
+      logger.info(s"[OptiXEngine] render: dimensions changed from ${lastWidth}x${lastHeight} to ${width}x${height}, updating camera")
       optiXResources.updateCameraAspectRatio(width, height)
-      lastCameraWidth = width
-      lastCameraHeight = height
-      needsRender = true
+      renderResources.markNeedsRender()
 
     // Only render the scene if something changed
-    if needsRender then
+    if renderResources.needsRender then
       val rgbaBytes = if enableStats then renderWithStats(width, height) else optiXResources.renderScene(width, height)
-      renderToScreen(rgbaBytes, width, height)
-      needsRender = false
+      renderResources.renderToScreen(rgbaBytes, width, height)
     else
       // Just redraw the existing texture without re-rendering
-      renderState.texture.foreach: tex =>
-        batch.begin()
-        batch.draw(tex, 0, 0, width.toFloat, height.toFloat)
-        batch.end()
+      renderResources.redrawExisting(width, height)
 
     saveImage()
 
     // Exit after saving when in non-interactive mode (unless timeout is set)
-    if saveName.isDefined && !hasSaved && timeout == 0 then
-      hasSaved = true
+    if saveName.isDefined && !renderResources.hasSaved && timeout == 0 then
+      renderResources.markSaved()
       Gdx.app.exit()
 
   protected def currentSaveName: Option[String] = saveName
@@ -122,34 +111,14 @@ class OptiXEngine(
     )
     result.image
 
-  private def renderToScreen(rgbaBytes: Array[Byte], width: Int, height: Int): Unit =
-    val needsRecreate = width != renderState.width || height != renderState.height
-
-    if needsRecreate then
-      renderState.dispose()
-      renderState = RenderState(None, None, width, height)
-
-    val (stateWithPixmap, pm) = renderState.ensurePixmap()
-    renderState = stateWithPixmap
-
-    renderState.updatePixmap(rgbaBytes, pm)
-
-    val (stateWithTexture, tex) = renderState.ensureTexture(pm)
-    renderState = stateWithTexture
-
-    batch.begin()
-    batch.draw(tex, 0, 0, width.toFloat, height.toFloat)
-    batch.end()
-
   override def resize(width: Int, height: Int): Unit =
     logger.info(s"[OptiXEngine] resize event: ${width}x${height}")
     optiXResources.updateCameraAspectRatio(width, height)
-    needsRender = true
+    renderResources.markNeedsRender()
     Gdx.graphics.requestRendering()
     logger.info("[OptiXEngine] resize complete")
 
   override def dispose(): Unit =
     logger.debug("Disposing OptiXEngine")
-    renderState.dispose()
-    batch.dispose()
+    renderResources.dispose()
     optiXResources.dispose()
