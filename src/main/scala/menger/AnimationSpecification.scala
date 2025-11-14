@@ -17,15 +17,17 @@ case class AnimationSpecification(s: String) extends LazyLogging:
     val parametersOnly = asMap.get -- AnimationSpecification.TIMESCALE_PARAMETERS
     parametersOnly.map { case (k, v) => k -> parseStartEnd(v) }
 
-  def timeSpecValid: Boolean = frames.nonEmpty && frames.get > 0
+  def timeSpecValid: Boolean = frames.exists(_ > 0)
   def valid(spongeType: String): Boolean = timeSpecValid && animationParametersValid(spongeType)
 
   override def toString: String =
+    // Safe: only called after AnimationSpecifications.require checks timeSpecValid
     val timeSpec = s"frames=${frames.get}"
     val animationSpec = animationParameters.mkString(":")
     s"$timeSpec:$animationSpec"
 
   private def current(bounds: StartEnd, frame: Int): Float =
+    // Safe: only called after AnimationSpecifications.require checks timeSpecValid
     require(frame <= frames.get, s"Frame $frame exceeds total frames ${frames.get}")
     bounds.start + (bounds.end - bounds.start) * frame / frames.get
 

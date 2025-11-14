@@ -61,6 +61,8 @@ object Direction:
 
   private type ByteVec = (x: Byte, y: Byte, z: Byte)
 
+  // Throw is intentional: invalid directions are programming errors (precondition violations),
+  // not recoverable errors. All production calls use provably valid values.
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def apply(x: Byte, y: Byte, z: Byte): Direction =
     (x, y, z) match
@@ -70,6 +72,6 @@ object Direction:
       case (-1, 0, 0) => Direction.negX
       case (0, -1, 0) => Direction.negY
       case (0, 0, -1) => Direction.negZ
-      case _ => throw IllegalArgumentException("Invalid direction ($x, $y, $z)")
+      case _ => throw IllegalArgumentException(s"Invalid direction ($x, $y, $z)")
 
   def apply(xyz: ByteVec): Direction = apply.tupled(xyz)

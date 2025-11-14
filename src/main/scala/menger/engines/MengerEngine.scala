@@ -71,6 +71,7 @@ abstract class MengerEngine(
     if !isOverlayMode then
       generateObject(spongeType, level, material, primitiveType)
     else
+      // Safe: isOverlayMode = faceColor.isDefined && lineColor.isDefined
       val faceMaterial = Builder.material(faceColor.get)
       val lineMaterial = Builder.material(lineColor.get)
       for
