@@ -76,8 +76,7 @@ def float2string(f: Float): String = float2String(2)(f)
 def float2String(digits: Int)(f: Float): String =
   if (f.isValidInt) s"${f.toInt}"
   else
-    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-    val boxed = f.asInstanceOf[AnyRef]  // Required by Java String.format API
+    val boxed = java.lang.Float.valueOf(f)
     String.format(s"%.${digits}f", boxed)
 
 

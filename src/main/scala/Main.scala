@@ -28,8 +28,12 @@ object Main:
     val level = Level.valueOf(levelName)
     // SLF4J returns the interface, but we need Logback's implementation to set the level
     LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) match
-      case logger: Logger => logger.setLevel(level)
-      case _ => // Should never happen when Logback is the SLF4J implementation
+      case logger: Logger =>
+        logger.setLevel(level)
+      case other =>
+        val className = other.getClass.getName
+        System.err.println(s"Warning: Expected Logback Logger but got $className")
+        System.err.println("Logging level not set.")
 
   def getConfig(opts: MengerCLIOptions): Lwjgl3ApplicationConfiguration =
     val config = Lwjgl3ApplicationConfiguration()
@@ -48,27 +52,44 @@ object Main:
       case None => ProfilingConfig.disabled
 
     val rotationProjectionParameters = RotationProjectionParameters(opts)
-    if opts.optix() then
-      OptiXEngine(
-        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
-        opts.faceColor.toOption, opts.lineColor.toOption,
-        opts.fpsLogInterval(),
-        opts.radius(), opts.ior(), opts.scale(),
-        opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),
-        opts.timeout(),
-        opts.saveName.toOption,
-        opts.stats()
-      )
+
+    if opts.optix() then createOptiXEngine(opts, rotationProjectionParameters)
     else if opts.animate.isDefined && opts.animate().parts.nonEmpty then
-      AnimatedMengerEngine(
-        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
-        opts.animate(), opts.saveName.toOption, opts.faceColor.toOption, opts.lineColor.toOption,
-        opts.fpsLogInterval()
-      )
-    else
-      InteractiveMengerEngine(
-        opts.spongeType(), opts.level(), rotationProjectionParameters, opts.lines(), opts.color(),
-        opts.timeout(), opts.faceColor.toOption, opts.lineColor.toOption,
-        opts.fpsLogInterval()
-      )
+      createAnimatedEngine(opts, rotationProjectionParameters)
+    else createInteractiveEngine(opts, rotationProjectionParameters)
+
+  private def createOptiXEngine(
+    opts: MengerCLIOptions,
+    rpp: RotationProjectionParameters
+  )(using ProfilingConfig): OptiXEngine =
+    OptiXEngine(
+      opts.spongeType(), opts.level(), rpp, opts.lines(), opts.color(),
+      opts.faceColor.toOption, opts.lineColor.toOption,
+      opts.fpsLogInterval(),
+      opts.radius(), opts.ior(), opts.scale(),
+      opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),
+      opts.timeout(),
+      opts.saveName.toOption,
+      opts.stats()
+    )
+
+  private def createAnimatedEngine(
+    opts: MengerCLIOptions,
+    rpp: RotationProjectionParameters
+  )(using ProfilingConfig): AnimatedMengerEngine =
+    AnimatedMengerEngine(
+      opts.spongeType(), opts.level(), rpp, opts.lines(), opts.color(),
+      opts.animate(), opts.saveName.toOption, opts.faceColor.toOption, opts.lineColor.toOption,
+      opts.fpsLogInterval()
+    )
+
+  private def createInteractiveEngine(
+    opts: MengerCLIOptions,
+    rpp: RotationProjectionParameters
+  )(using ProfilingConfig): InteractiveMengerEngine =
+    InteractiveMengerEngine(
+      opts.spongeType(), opts.level(), rpp, opts.lines(), opts.color(),
+      opts.timeout(), opts.faceColor.toOption, opts.lineColor.toOption,
+      opts.fpsLogInterval()
+    )
 
