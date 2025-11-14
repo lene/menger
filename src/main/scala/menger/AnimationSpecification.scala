@@ -56,12 +56,12 @@ case class AnimationSpecification(s: String) extends LazyLogging:
     )
 
   def isRotationAxisSet(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
-    x != 0 && animationParameters.contains("rot-x") ||
-    y != 0 && animationParameters.contains("rot-y") ||
-    z != 0 && animationParameters.contains("rot-z") ||
-    xw != 0 && animationParameters.contains("rot-x-w") ||
-    yw != 0 && animationParameters.contains("rot-y-w") ||
-    zw != 0 && animationParameters.contains("rot-z-w")
+    (x != 0 && animationParameters.contains("rot-x")) ||
+    (y != 0 && animationParameters.contains("rot-y")) ||
+    (z != 0 && animationParameters.contains("rot-z")) ||
+    (xw != 0 && animationParameters.contains("rot-x-w")) ||
+    (yw != 0 && animationParameters.contains("rot-y-w")) ||
+    (zw != 0 && animationParameters.contains("rot-z-w"))
     
   private def parseStartEnd(s: String): StartEnd =
     val parts = s.split('-')

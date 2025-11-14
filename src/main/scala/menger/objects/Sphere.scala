@@ -1,6 +1,9 @@
 package menger.objects
 
+import java.util.concurrent.ConcurrentHashMap
+
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Material
@@ -24,7 +27,8 @@ case class Sphere(
 
 object Sphere:
   private type SphereDefinition = (divisions: Int, material: Material, primitiveType: Int)
-  private val models: mutable.Map[SphereDefinition, Model] = mutable.Map.empty
+  private val models: mutable.Map[SphereDefinition, Model] =
+    new ConcurrentHashMap[SphereDefinition, Model]().asScala
   def model(divisions: Int, material: Material, primitiveType: Int): Model =
     models.getOrElseUpdate(
       (divisions, material, primitiveType),

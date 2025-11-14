@@ -1,6 +1,9 @@
 package menger.objects
 
+import java.util.concurrent.ConcurrentHashMap
+
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Material
@@ -21,7 +24,8 @@ case class Cube(
 
 object Cube:
   private type CubeDefinition = (material: Material, primitiveType: Int)
-  private val models: mutable.Map[CubeDefinition, Model] = mutable.Map.empty
+  private val models: mutable.Map[CubeDefinition, Model] =
+    new ConcurrentHashMap[CubeDefinition, Model]().asScala
   def model(material: Material, primitiveType: Int): Model =
     models.getOrElseUpdate(
       (material, primitiveType),
@@ -54,7 +58,8 @@ class CubeFromSquares(
     }
 
 object CubeFromSquares:
-  private val faces: mutable.Map[(Material, Int), Square] = mutable.Map.empty
+  private val faces: mutable.Map[(Material, Int), Square] =
+    new ConcurrentHashMap[(Material, Int), Square]().asScala
   def face(material: Material, primitiveType: Int): Square =
     faces.getOrElseUpdate((material, primitiveType), Square(Vector3.Zero, 1f, material, primitiveType))
   def numStoredFaces: Int = faces.size
