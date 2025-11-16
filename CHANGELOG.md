@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added
+- **Shadow Ray Tracing** - Implemented realistic hard shadows for OptiX renderer
+  - Cast shadow rays from opaque surfaces to detect occlusion by geometry
+  - Shadow factor darkens occluded surfaces to 0.2x ambient lighting (80% reduction)
+  - Added `setShadows(bool enabled)` API method to enable/disable shadow rays
+  - Shadow ray statistics tracked in RayStats (total shadow rays cast)
+  - Added `shadows_enabled` parameter to OptiX Params struct
+  - Added `shadow_rays` field to RayStats struct for performance analysis
+  - Added SHADOW_RAY_OFFSET constant (0.001f) to prevent shadow acne
+  - Uses OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT for optimal performance
+  - Implemented __closesthit__shadow() handler for occlusion testing
+  - 6 comprehensive unit tests added to RayStatsTest.scala (all passing)
+  - CLI integration deferred to future work
+
 ## [0.3.5] - 2025-11-16
 
 ### Fixed

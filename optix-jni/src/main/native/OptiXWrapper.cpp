@@ -69,6 +69,8 @@ struct OptiXWrapper::Impl {
         bool dirty = false;
     } plane;
 
+    bool shadows_enabled = false;  // Enable shadow ray tracing
+
     int image_width = -1;
     int image_height = -1;
 
@@ -377,6 +379,11 @@ void OptiXWrapper::setLight(const float* direction, float intensity) {
     impl->light.intensity = intensity;
 }
 
+void OptiXWrapper::setShadows(bool enabled) {
+    impl->shadows_enabled = enabled;
+    // Synchronized to GPU params before render
+}
+
 void OptiXWrapper::setPlane(int axis, bool positive, float value) {
     impl->plane.axis = axis;
     impl->plane.positive = positive;
@@ -445,6 +452,7 @@ void OptiXWrapper::render(int width, int height, unsigned char* output, RayStats
         params.sphere_scale = impl->sphere.scale;
         std::memcpy(params.light_dir, impl->light.direction, sizeof(float) * 3);
         params.light_intensity = impl->light.intensity;
+        params.shadows_enabled = impl->shadows_enabled;
         params.plane_axis = impl->plane.axis;
         params.plane_positive = impl->plane.positive;
         params.plane_value = impl->plane.value;

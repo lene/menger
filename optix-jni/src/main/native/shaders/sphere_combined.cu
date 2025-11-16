@@ -341,7 +341,39 @@ extern "C" __global__ void __closesthit__ch() {
             params.light_dir[2]
         ));
         const float diffuse = fmaxf(0.0f, dot(normal, light_dir_normalized));
-        const float lighting = AMBIENT_LIGHT_FACTOR + (1.0f - AMBIENT_LIGHT_FACTOR) * diffuse;
+
+        // Shadow ray check (if enabled and surface is lit)
+        float shadow_factor = 1.0f;
+        if (params.shadows_enabled && diffuse > 0.0f) {
+            // Offset origin to avoid self-intersection
+            const float3 shadow_origin = hit_point + normal * SHADOW_RAY_OFFSET;
+
+            // Trace shadow ray toward light
+            unsigned int shadow_occluded = 0;
+
+            optixTrace(
+                params.handle,
+                shadow_origin,
+                light_dir_normalized,
+                SHADOW_RAY_OFFSET,           // tmin
+                1e16f,                        // tmax (effectively infinite)
+                0.0f,                         // ray time
+                OptixVisibilityMask(255),
+                OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,  // Early exit optimization
+                0, 1, 0,                      // SBT offsets and strides
+                shadow_occluded               // Payload: 0=visible, 1=occluded
+            );
+
+            shadow_factor = shadow_occluded > 0 ? 0.0f : 1.0f;
+
+            // Update statistics
+            if (params.stats) {
+                atomicAdd(&params.stats->shadow_rays, 1ULL);
+                atomicAdd(&params.stats->total_rays, 1ULL);
+            }
+        }
+
+        const float lighting = AMBIENT_LIGHT_FACTOR + shadow_factor * (1.0f - AMBIENT_LIGHT_FACTOR) * diffuse;
 
         // Get sphere color from params (RGB only, ignore alpha for solid spheres)
         const float3 sphere_color = make_float3(
@@ -536,4 +568,12 @@ extern "C" __global__ void __closesthit__ch() {
     optixSetPayload_0(static_cast<unsigned int>(fminf(final_color.x * 255.0f, 255.0f)));
     optixSetPayload_1(static_cast<unsigned int>(fminf(final_color.y * 255.0f, 255.0f)));
     optixSetPayload_2(static_cast<unsigned int>(fminf(final_color.z * 255.0f, 255.0f)));
+}
+
+//==============================================================================
+// Shadow ray closest hit shader - marks shadow ray as occluded
+//==============================================================================
+extern "C" __global__ void __closesthit__shadow() {
+    // Shadow ray hit something - mark as occluded
+    optixSetPayload_0(1);  // Set occlusion flag to 1 (occluded)
 }
