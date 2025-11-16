@@ -63,7 +63,7 @@ class OptiXResources(
     logger.debug(s"Configured camera: eye=${eye.mkString(",")}, lookAt=${lookAt.mkString(",")}, up=${up.mkString(",")}, fov=$fov")
 
   private def createLights(): Unit =
-    val lightDirection = Array(-1f, -1f, -1f)
+    val lightDirection = Array(-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
     val lightIntensity = 1.0f
     renderer.setLight(lightDirection, lightIntensity)
     logger.debug(s"Configured light: direction=${lightDirection.mkString(",")}, intensity=$lightIntensity")
@@ -89,6 +89,10 @@ class OptiXResources(
   def setScale(scale: Float): Unit =
     renderer.setScale(scale)
     logger.debug(s"Configured scale parameter: scale=$scale")
+
+  def setShadows(enabled: Boolean): Unit =
+    renderer.setShadows(enabled)
+    logger.debug(s"Configured shadow rays: enabled=$enabled")
 
   def renderScene(width: Int, height: Int): Array[Byte] =
     logger.debug(s"[OptiXResources] renderScene: rendering at ${width}x${height}")

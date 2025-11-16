@@ -70,7 +70,8 @@ object Main:
       opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),
       opts.timeout(),
       opts.saveName.toOption,
-      opts.stats()
+      opts.stats(),
+      opts.shadows()
     )
 
   private def createAnimatedEngine(
