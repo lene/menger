@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.3.5] - 2025-11-16
+
 ### Fixed
 - **CI/CD Docker Configuration** - Fixed OptiX SDK installation paths in CI Docker image
   - Install OptiX to dedicated directory /usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64
