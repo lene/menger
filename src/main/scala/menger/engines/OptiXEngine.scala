@@ -37,7 +37,8 @@ class OptiXEngine(
   val planeSpec: PlaneSpec,
   val timeout: Float = 0f,
   saveName: Option[String] = None,
-  val enableStats: Boolean = false
+  val enableStats: Boolean = false,
+  val shadows: Boolean = false
 )(using profilingConfig: ProfilingConfig) extends MengerEngine(
   spongeType, spongeLevel, rotationProjectionParameters, lines, color,
   faceColor, lineColor, fpsLogIntervalMs
@@ -58,10 +59,11 @@ class OptiXEngine(
     throw new UnsupportedOperationException("OptiXEngine doesn't use gdxResources")
 
   override def create(): Unit =
-    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior, scale=$scale")
+    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, shadows=$shadows")
     optiXResources.setSphereColor(color.r, color.g, color.b, color.a)
     optiXResources.setIOR(ior)
     optiXResources.setScale(scale)
+    optiXResources.setShadows(shadows)
     optiXResources.initialize()
 
     // Disable continuous rendering - we'll request renders only when needed
@@ -107,6 +109,7 @@ class OptiXEngine(
     logger.info(
       s"Ray stats: primary=${stats.primaryRays} total=${stats.totalRays} " +
       s"reflected=${stats.reflectedRays} refracted=${stats.refractedRays} " +
+      s"shadow=${stats.shadowRays} " +
       s"depth=${stats.minDepthReached}-${stats.maxDepthReached}"
     )
     result.image

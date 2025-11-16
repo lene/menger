@@ -32,9 +32,10 @@ This document outlines the comprehensive plan for enhancing the OptiX ray tracin
   - Cast shadow rays from opaque surfaces to light source
   - Tracks shadow ray statistics
   - Darkens surfaces in shadow (0.2x ambient lighting)
-  - Enabled via `setShadows(true)` API (CLI integration pending)
+  - Enabled via `setShadows(true)` API and `--shadows` CLI flag
   - 6 comprehensive tests added to RayStatsTest
-  - Time spent: ~4 hours
+  - CLI integration complete with validation
+  - Time spent: ~5 hours
 
 ### In Progress
 - 🔄 None - Sprint 1 complete!
@@ -52,16 +53,16 @@ This document outlines the comprehensive plan for enhancing the OptiX ray tracin
 - ✅ All 95 tests passing
 - Time spent: ~2 hours
 
-**Total time spent so far:** ~22 hours (10h features + 10h resize investigation + 2h code quality)
+**Total time spent so far:** ~23 hours (11h features + 10h resize investigation + 2h code quality)
 
 ---
 
 ## Sprint Breakdown
 
-### Sprint 1: Foundation (10 hours) - ✅ COMPLETE
+### Sprint 1: Foundation (11 hours) - ✅ COMPLETE
 Quick wins that establish core capabilities and visual improvements.
 - ✅ Feature 1.1: Ray Statistics (COMPLETE - 6 hours)
-- ✅ Feature 1.2: Shadow Rays (COMPLETE - 4 hours)
+- ✅ Feature 1.2: Shadow Rays (COMPLETE - 5 hours)
 
 ### Sprint 2: Interactivity (10-13 hours) - PLANNED
 Make the OptiX window fully interactive and user-friendly.
@@ -78,7 +79,7 @@ Features requiring further investigation and prototyping.
 
 **Total estimated effort (Sprints 1-4):** 39-59 hours
 **Deferred (Sprint 5):** 10-20 hours additional
-**Actual time spent:** 22 hours (as of 2025-11-16) - Sprint 1 complete
+**Actual time spent:** 23 hours (as of 2025-11-16) - Sprint 1 complete
 
 ---
 

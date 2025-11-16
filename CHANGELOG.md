@@ -14,7 +14,10 @@
   - Uses OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT for optimal performance
   - Implemented __closesthit__shadow() handler for occlusion testing
   - 6 comprehensive unit tests added to RayStatsTest.scala (all passing)
-  - CLI integration deferred to future work
+  - **CLI Integration** - Added `--shadows` flag to enable shadow rays via command line
+    - Flag requires `--optix` flag (validated at startup)
+    - Shadow rays automatically counted when `--stats` flag is used
+    - Integrated into OptiXEngine initialization flow
 
 ## [0.3.5] - 2025-11-16
 

@@ -26,7 +26,8 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
     ior: Float = 1.0f,
     scale: Float = 1.0f,
     timeout: Float = 0f,
-    enableStats: Boolean = false
+    enableStats: Boolean = false,
+    shadows: Boolean = false
   ): OptiXEngine =
     given ProfilingConfig = ProfilingConfig.disabled
     new OptiXEngine(
@@ -48,7 +49,8 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       planeSpec = PlaneSpec(Axis.Y, false, -2f),
       timeout = timeout,
       saveName = None,
-      enableStats = enableStats
+      enableStats = enableStats,
+      shadows = shadows
     )
 
   "OptiXEngine" should "be instantiated" in:
@@ -82,7 +84,9 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       cameraUp = Vector3(0f, 1f, 0f),
       center = Vector3(0f, 0f, 0f),
       planeSpec = PlaneSpec(Axis.Y, false, -2f),
-      timeout = 0f
+      timeout = 0f,
+      enableStats = false,
+      shadows = false
     )
     engine.color shouldBe Color.RED
 
@@ -106,7 +110,9 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       cameraUp = Vector3(0f, 1f, 0f),
       center = Vector3(0f, 0f, 0f),
       planeSpec = PlaneSpec(Axis.Y, false, -2f),
-      timeout = 0f
+      timeout = 0f,
+      enableStats = false,
+      shadows = false
     )
     engine.color.r shouldBe 0f +- 0.01f
     engine.color.g shouldBe 1f +- 0.01f

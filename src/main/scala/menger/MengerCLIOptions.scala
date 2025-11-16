@@ -90,6 +90,10 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val stats: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(false)
   )
+  val shadows: ScallopOption[Boolean] = opt[Boolean](
+    required = false, default = Some(false),
+    descr = "Enable shadow rays for realistic shadows (OptiX only)"
+  )
 
   // Camera parameters
   val cameraPos: ScallopOption[Vector3] = opt[Vector3](
@@ -159,6 +163,12 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
       Left("--sponge-type sphere requires --optix flag")
     else if ox.getOrElse(false) && !st.contains("sphere") then
       Left("--optix flag requires --sponge-type sphere")
+    else Right(())
+  }
+
+  validateOpt(shadows, optix) { (sh, ox) =>
+    if sh.getOrElse(false) && !ox.getOrElse(false) then
+      Left("--shadows flag requires --optix flag")
     else Right(())
   }
 
