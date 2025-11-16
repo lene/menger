@@ -141,9 +141,6 @@ Test:ComputeSanitizer:
     - nvidia  # Requires runner with NVIDIA GPU
   variables:
     NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
-    # Set for building OptiX JNI and standalone test
-    CUDA_HOME: /usr/local/cuda
-    OPTIX_ROOT: /usr/local/optix
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -202,9 +199,6 @@ Test:Valgrind:
     - nvidia  # Requires runner with NVIDIA GPU
   variables:
     NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
-    # Set for building OptiX JNI and standalone test
-    CUDA_HOME: /usr/local/cuda
-    OPTIX_ROOT: /usr/local/optix
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -394,10 +388,6 @@ CheckRunTime:
   needs: []
   tags:
     - nvidia
-  variables:
-    # Set for building OptiX JNI
-    CUDA_HOME: /usr/local/cuda
-    OPTIX_ROOT: /usr/local/optix
   before_script:
     - apt-get -y update
     - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb
@@ -467,10 +457,6 @@ BuildDeployable:
   needs: []
   tags:
     - nvidia
-  variables:
-    # Set for building OptiX JNI
-    CUDA_HOME: /usr/local/cuda
-    OPTIX_ROOT: /usr/local/optix
   script:
     # Build deployable package with full OptiX JNI
     - sbt "Universal / packageBin"
