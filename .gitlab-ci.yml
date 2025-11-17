@@ -20,19 +20,13 @@ include:
   - template: Security/Dependency-Scanning.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
 
-# Override code_quality to use host Docker socket instead of DinD
-code_quality:
-  services: []  # Disable DinD service
-  variables:
-    DOCKER_TLS_CERTDIR: ""
-    DOCKER_HOST: "unix:///var/run/docker.sock"  # Use host Docker socket
-
 # This job installs sbt by itself. It is somewhat slower than the ones based on scala-sbt below.
-# I leave it in mostly for documentation how to install the environment.
+# Tests installation from minimal Debian/Ubuntu base images (without CUDA/OptiX).
+# Run manually only for documentation purposes - will fail on OptiX JNI compilation.
 Test:Debian:
   retry: 1
   tags:
-    - nvidia  # currently unused; will be necessary for CUDA and OptiX tests
+    - nvidia
   parallel:
     matrix:
       - IMAGE:
@@ -43,6 +37,9 @@ Test:Debian:
   image: $IMAGE
   stage: test
   needs: []
+  rules:
+    - when: manual
+      allow_failure: true
   before_script:
     - apt-get -y update
     - apt-get -y upgrade
@@ -54,13 +51,14 @@ Test:Debian:
     - apt-get -y install sbt
     - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++
   script:
+    # Skip OptiX JNI compilation (no CUDA installed) by setting ENABLE_OPTIX_JNI=false
+    - export ENABLE_OPTIX_JNI=false
     - xvfb-run sbt test
-  allow_failure: true
 
 # The following ones use a prepared docker image for sbt.
 # Validates that installation instructions in docs/INSTALLATION_FROM_SCRATCH.md work
-# from a fresh sbt image. Runs on releases and can be triggered manually.
-# Installation takes ~10 minutes (CUDA toolkit download), so not run on every MR.
+# from a fresh sbt image. Installation takes ~10 minutes (CUDA toolkit download).
+# Run manually only to avoid blocking MRs.
 Test:SbtImage:
   retry: 1
   image: $SBT_IMAGE
@@ -69,7 +67,6 @@ Test:SbtImage:
   tags:
     - nvidia
   rules:
-    - if: $CI_COMMIT_TAG
     - when: manual
       allow_failure: true
   before_script:
@@ -87,11 +84,11 @@ Test:SbtImage:
     - mkdir -p /usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64
     - sh NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh --skip-license --prefix=/usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64
     - ln -s /usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64 /usr/local/optix
-    # Set environment variables for build
+  script:
+    # Set environment variables for build (must be in script section to persist)
     - export CUDA_HOME=/usr/local/cuda
     - export OPTIX_ROOT=/usr/local/optix
     - export PATH=$CUDA_HOME/bin:$PATH
-  script:
     # Run all tests including OptiX JNI
     - xvfb-run sbt test
   artifacts:

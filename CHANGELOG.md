@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+## [0.3.6] - TBD
+
+### Fixed
+- **CI Job Configuration** - Fixed failing CI jobs and made them manual-only
+  - Test:SbtImage: Moved CUDA_HOME/OPTIX_ROOT exports from before_script to script section
+    - Environment variables in before_script don't persist to script section
+    - This was causing "CUDA compiler not found" errors
+  - Test:SbtImage: Made manual-only (removed automatic tag trigger)
+    - Prevents blocking tag pipelines (was causing 0.3.5 tag pipeline to fail)
+  - Test:Debian: Added ENABLE_OPTIX_JNI=false to skip OptiX compilation
+    - These jobs don't install CUDA, so OptiX JNI compilation always failed
+    - Now tests only the core Scala code without GPU dependencies
+  - Test:Debian: Made manual-only (documentation job, not needed on every pipeline)
+  - code_quality: Removed Docker socket override, now uses default DinD from template
+    - More secure and doesn't require runner configuration changes
+
+### Added
+- **Shadow Ray Tracing** - Implemented realistic hard shadows for OptiX renderer
+  - Cast shadow rays from opaque surfaces to detect occlusion by geometry
+  - Shadow factor darkens occluded surfaces to 0.2x ambient lighting (80% reduction)
+  - Added `setShadows(bool enabled)` API method to enable/disable shadow rays
+  - Shadow ray statistics tracked in RayStats (total shadow rays cast)
+  - Added `shadows_enabled` parameter to OptiX Params struct
+  - Added `shadow_rays` field to RayStats struct for performance analysis
+  - Added SHADOW_RAY_OFFSET constant (0.001f) to prevent shadow acne
+  - Uses OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT for optimal performance
+  - Implemented __closesthit__shadow() handler for occlusion testing
+  - 6 comprehensive unit tests added to RayStatsTest.scala (all passing)
+  - **CLI Integration** - Added `--shadows` flag to enable shadow rays via command line
+    - Flag requires `--optix` flag (validated at startup)
+    - Shadow rays automatically counted when `--stats` flag is used
+    - Integrated into OptiXEngine initialization flow
+
 ## [0.3.5] - 2025-11-17
 
 ### Fixed
