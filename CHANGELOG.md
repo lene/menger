@@ -2,9 +2,14 @@
 
 ## [Unreleased]
 
-## [0.3.5] - 2025-11-16
+## [0.3.5] - 2025-11-17
 
 ### Fixed
+- **OptiX Docker Image** - Added CUDA_HOME environment variable to Docker image
+  - Fixed CI failures in Test:ComputeSanitizer and Test:Valgrind jobs
+  - g++ compilation now finds CUDA headers (cuda.h) when compiling standalone tests
+  - Docker image sets ENV CUDA_HOME=/usr/local/cuda to match OPTIX_ROOT pattern
+  - Allows all CI jobs to rely on Docker image ENV variables without job-level overrides
 - **CI/CD Docker Configuration** - Fixed OptiX SDK installation paths in CI Docker image
   - Install OptiX to dedicated directory /usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64
   - Create symlink /usr/local/optix for consistent OPTIX_ROOT environment variable
