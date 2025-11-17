@@ -51,6 +51,12 @@ level.
 
 # Build Requirements
 
+## Quick Start
+
+For most users, the pre-built Docker image is the easiest way to get started. See [CI/CD documentation](docs/CI_CD.md) for Docker setup.
+
+For a complete installation from scratch (CUDA, OptiX, Java, sbt), see the **[Installation from Scratch Guide](docs/INSTALLATION_FROM_SCRATCH.md)**.
+
 ## CMake
 
 The project requires CMake 3.x for building the OptiX JNI bindings.
@@ -70,7 +76,11 @@ cmake, filtering out the annoying "Ignoring extra path from command line" warnin
 
 For GPU acceleration features (optional), you need:
 - CUDA Toolkit 12.0 or later
-- NVIDIA OptiX SDK 9.0+ (see [GPU_DEVELOPMENT.md](GPU_DEVELOPMENT.md) for setup instructions)
+- NVIDIA OptiX SDK 9.0+
+
+**Installation guides:**
+- [Installation from Scratch](docs/INSTALLATION_FROM_SCRATCH.md) - Complete step-by-step guide
+- [GPU Development Setup](docs/GPU_DEVELOPMENT.md) - AWS EC2 GPU instance setup
 
 # Usage
 

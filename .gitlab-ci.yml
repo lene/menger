@@ -58,7 +58,9 @@ Test:Debian:
   allow_failure: true
 
 # The following ones use a prepared docker image for sbt.
-# Main Scala tests - includes OptiX JNI with CUDA
+# Validates that installation instructions in docs/INSTALLATION_FROM_SCRATCH.md work
+# from a fresh sbt image. Runs on releases and can be triggered manually.
+# Installation takes ~10 minutes (CUDA toolkit download), so not run on every MR.
 Test:SbtImage:
   retry: 1
   image: $SBT_IMAGE
@@ -66,6 +68,10 @@ Test:SbtImage:
   needs: []
   tags:
     - nvidia
+  rules:
+    - if: $CI_COMMIT_TAG
+    - when: manual
+      allow_failure: true
   before_script:
     - apt-get -y update
     - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++ curl
