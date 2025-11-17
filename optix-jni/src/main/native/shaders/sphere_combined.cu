@@ -287,7 +287,9 @@ extern "C" __global__ void __miss__ms() {
                         0.0f,                         // ray time
                         OptixVisibilityMask(255),
                         OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
-                        0, 1, 0,                      // SBT offsets and strides
+                        1,                            // SBT ray type offset (1 = shadow ray)
+                        1,                            // SBT stride
+                        1,                            // Miss SBT index (1 = shadow miss)
                         shadow_occluded               // Payload: 0=visible, 1=occluded
                     );
 
@@ -417,7 +419,9 @@ extern "C" __global__ void __closesthit__ch() {
                 0.0f,                         // ray time
                 OptixVisibilityMask(255),
                 OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,  // Early exit optimization
-                0, 1, 0,                      // SBT offsets and strides
+                1,                            // SBT ray type offset (1 = shadow ray)
+                1,                            // SBT stride
+                1,                            // Miss SBT index (1 = shadow miss)
                 shadow_occluded               // Payload: 0=visible, 1=occluded
             );
 
@@ -625,6 +629,14 @@ extern "C" __global__ void __closesthit__ch() {
     optixSetPayload_0(static_cast<unsigned int>(fminf(final_color.x * 255.0f, 255.0f)));
     optixSetPayload_1(static_cast<unsigned int>(fminf(final_color.y * 255.0f, 255.0f)));
     optixSetPayload_2(static_cast<unsigned int>(fminf(final_color.z * 255.0f, 255.0f)));
+}
+
+//==============================================================================
+// Shadow ray miss shader - light is visible (no occlusion)
+//==============================================================================
+extern "C" __global__ void __miss__shadow() {
+    // Shadow ray missed all geometry - light is visible
+    // Payload remains 0 (not occluded)
 }
 
 //==============================================================================
