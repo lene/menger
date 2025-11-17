@@ -158,9 +158,9 @@ extern "C" __global__ void __raygen__rg() {
         0.0f,                              // rayTime
         OptixVisibilityMask(255),
         OPTIX_RAY_FLAG_NONE,
-        0,                       // SBT offset
-        1,                       // SBT stride
-        0,                       // missSBTIndex
+        0,                       // SBT ray type offset (0 = primary ray)
+        2,                       // SBT stride (2 ray types: primary + shadow)
+        0,                       // missSBTIndex (0 = plane miss)
         p0, p1, p2, p3           // Payload (RGB + depth)
     );
 
@@ -276,7 +276,7 @@ extern "C" __global__ void __miss__ms() {
                     const float3 shadow_origin = hit_point + plane_normal * SHADOW_RAY_OFFSET;
 
                     // Trace shadow ray toward light
-                    unsigned int shadow_occluded = 0;
+                    unsigned int shadow_payload = 0;
 
                     optixTrace(
                         params.handle,
@@ -286,20 +286,25 @@ extern "C" __global__ void __miss__ms() {
                         1e16f,                        // tmax (effectively infinite)
                         0.0f,                         // ray time
                         OptixVisibilityMask(255),
-                        OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
+                        OPTIX_RAY_FLAG_NONE,         // Need closest hit to get alpha value
                         1,                            // SBT ray type offset (1 = shadow ray)
-                        1,                            // SBT stride
+                        2,                            // SBT stride (2 ray types: primary + shadow)
                         1,                            // Miss SBT index (1 = shadow miss)
-                        shadow_occluded               // Payload: 0=visible, 1=occluded
+                        shadow_payload                // Payload: float packed as uint
                     );
 
-                    // Apply shadow darkening if occluded
-                    if (shadow_occluded > 0) {
-                        // Make shadow VERY dark for testing (pure black)
-                        r = 0;
-                        g = 0;
-                        b = 0;
-                    }
+                    // Unpack shadow attenuation (0.0 = no shadow, 1.0 = full shadow)
+                    const float shadow_attenuation = __uint_as_float(shadow_payload);
+
+                    // Convert to shadow factor (1.0 = fully lit, 0.0 = fully shadowed)
+                    const float shadow_factor = 1.0f - shadow_attenuation;
+
+                    // Apply lighting with ambient term (same formula as sphere shader)
+                    // Plane color doesn't have diffuse baked in, so apply full lighting formula
+                    const float lighting_factor = AMBIENT_LIGHT_FACTOR + shadow_factor * (1.0f - AMBIENT_LIGHT_FACTOR) * diffuse;
+                    r = static_cast<unsigned int>(r * lighting_factor);
+                    g = static_cast<unsigned int>(g * lighting_factor);
+                    b = static_cast<unsigned int>(b * lighting_factor);
 
                     // Update statistics
                     if (params.stats) {
@@ -382,7 +387,7 @@ extern "C" __global__ void __closesthit__ch() {
             0.0f,
             OptixVisibilityMask(255),
             OPTIX_RAY_FLAG_NONE,
-            0, 1, 0,
+            0, 2, 0,  // ray_type=0 (primary), stride=2, miss_index=0
             continue_r, continue_g, continue_b, next_depth
         );
 
@@ -408,7 +413,7 @@ extern "C" __global__ void __closesthit__ch() {
             const float3 shadow_origin = hit_point + normal * SHADOW_RAY_OFFSET;
 
             // Trace shadow ray toward light
-            unsigned int shadow_occluded = 0;
+            unsigned int shadow_payload = 0;
 
             optixTrace(
                 params.handle,
@@ -418,14 +423,18 @@ extern "C" __global__ void __closesthit__ch() {
                 1e16f,                        // tmax (effectively infinite)
                 0.0f,                         // ray time
                 OptixVisibilityMask(255),
-                OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,  // Early exit optimization
+                OPTIX_RAY_FLAG_NONE,         // Need closest hit to get alpha value
                 1,                            // SBT ray type offset (1 = shadow ray)
-                1,                            // SBT stride
+                2,                            // SBT stride (2 ray types: primary + shadow)
                 1,                            // Miss SBT index (1 = shadow miss)
-                shadow_occluded               // Payload: 0=visible, 1=occluded
+                shadow_payload                // Payload: float packed as uint
             );
 
-            shadow_factor = shadow_occluded > 0 ? 0.0f : 1.0f;
+            // Unpack shadow attenuation and convert to shadow factor
+            // shadow_attenuation: 0.0 = no occlusion, 1.0 = full occlusion
+            // shadow_factor: 1.0 = fully lit, 0.0 = fully shadowed
+            const float shadow_attenuation = __uint_as_float(shadow_payload);
+            shadow_factor = 1.0f - shadow_attenuation;
 
             // Update statistics
             if (params.stats) {
@@ -484,7 +493,7 @@ extern "C" __global__ void __closesthit__ch() {
             0.0f,
             OptixVisibilityMask(255),
             OPTIX_RAY_FLAG_NONE,
-            0, 1, 0,
+            0, 2, 0,  // ray_type=0 (primary), stride=2, miss_index=0
             final_r, final_g, final_b, final_depth
         );
 
@@ -529,7 +538,7 @@ extern "C" __global__ void __closesthit__ch() {
         0.0f,
         OptixVisibilityMask(255),
         OPTIX_RAY_FLAG_NONE,
-        0, 1, 0,
+        0, 2, 0,  // ray_type=0 (primary), stride=2, miss_index=0
         reflect_r, reflect_g, reflect_b, next_depth
     );
 
@@ -562,7 +571,7 @@ extern "C" __global__ void __closesthit__ch() {
             0.0f,
             OptixVisibilityMask(255),
             OPTIX_RAY_FLAG_NONE,
-            0, 1, 0,
+            0, 2, 0,  // ray_type=0 (primary), stride=2, miss_index=0
             refract_r, refract_g, refract_b, next_depth
         );
     } else {
@@ -635,14 +644,19 @@ extern "C" __global__ void __closesthit__ch() {
 // Shadow ray miss shader - light is visible (no occlusion)
 //==============================================================================
 extern "C" __global__ void __miss__shadow() {
-    // Shadow ray missed all geometry - light is visible
-    // Payload remains 0 (not occluded)
+    // Shadow ray missed all geometry - no occlusion, return 0.0 attenuation
+    optixSetPayload_0(__float_as_uint(0.0f));
 }
 
 //==============================================================================
-// Shadow ray closest hit shader - marks shadow ray as occluded
+// Shadow ray closest hit shader - marks shadow ray as occluded with transparency
 //==============================================================================
 extern "C" __global__ void __closesthit__shadow() {
-    // Shadow ray hit something - mark as occluded
-    optixSetPayload_0(1);  // Set occlusion flag to 1 (occluded)
+    // Shadow ray hit the sphere - return alpha as shadow attenuation
+    // alpha=0.0 (transparent) → attenuation=0.0 (no shadow)
+    // alpha=1.0 (opaque) → attenuation=1.0 (full shadow)
+    const float sphere_alpha = params.sphere_color[3];
+
+    // Pack float as bits into unsigned int payload
+    optixSetPayload_0(__float_as_uint(sphere_alpha));
 }

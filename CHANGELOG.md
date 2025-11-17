@@ -34,6 +34,18 @@
     - Flag requires `--optix` flag (validated at startup)
     - Shadow rays automatically counted when `--stats` flag is used
     - Integrated into OptiXEngine initialization flow
+  - **Transparent Shadows** - Shadows now correctly respect material transparency (alpha)
+    - Shadow intensity varies from 0.0 (fully transparent) to 1.0 (fully opaque)
+    - Shadow closest hit shader returns sphere alpha value as shadow attenuation
+    - Shadow miss shader returns 0.0 (no shadow when ray misses geometry)
+    - Enables realistic effects: glass casts light shadows, opaque objects cast dark shadows
+    - **Critical Fix**: Corrected SBT stride from 1 to 2 in ALL optixTrace calls
+      - Raygen shader primary rays, glass refraction/reflection continuation rays
+      - Incorrect stride prevented shadow shaders from executing at all
+      - Formula: hitgroup_index = sbtGASIndex * stride + rayType (rayType: 0=primary, 1=shadow)
+    - Changed shadow ray flag from OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT to OPTIX_RAY_FLAG_NONE
+      - Allows shadow closest hit shader to execute and read material alpha
+    - Verified working via C++ demo program generating images at alpha values 0.0-1.0
 
 ## [0.3.5] - 2025-11-16
 

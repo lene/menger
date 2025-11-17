@@ -528,6 +528,9 @@ void OptiXWrapper::render(int width, int height, unsigned char* output, RayStats
             height
         );
 
+        // Synchronize to flush printf output
+        CUDA_CHECK(cudaDeviceSynchronize());
+
         // Copy result back to CPU
         CUDA_CHECK(cudaMemcpy(
             output,
