@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.3.6] - 2025-11-17
+
+### Fixed
+- **CI Job Configuration** - Fixed failing CI jobs and made them manual-only
+  - Test:SbtImage: Moved CUDA_HOME/OPTIX_ROOT exports from before_script to script section
+    - Environment variables in before_script don't persist to script section
+    - This was causing "CUDA compiler not found" errors
+  - Test:SbtImage: Made manual-only (removed automatic tag trigger)
+    - Prevents blocking tag pipelines (was causing 0.3.5 tag pipeline to fail)
+  - Test:Debian: Added ENABLE_OPTIX_JNI=false to skip OptiX compilation
+    - These jobs don't install CUDA, so OptiX JNI compilation always failed
+    - Now tests only the core Scala code without GPU dependencies
+  - Test:Debian: Made manual-only (documentation job, not needed on every pipeline)
+  - code_quality: Removed Docker socket override, now uses default DinD from template
+    - More secure and doesn't require runner configuration changes
+
 ### Added
 - **Shadow Ray Tracing** - Implemented realistic hard shadows for OptiX renderer
   - Cast shadow rays from opaque surfaces to detect occlusion by geometry
