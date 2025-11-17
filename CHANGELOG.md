@@ -5,6 +5,19 @@
 ## [0.3.6] - TBD
 
 ### Fixed
+- **Shadow Test Suite** - Fixed 3 failing shadow tests using reference-based region detection
+  - **Problem**: `detectDarkestRegion()` found different regions for each alpha value, making comparisons meaningless
+  - **Solution**: Use opaque sphere (alpha=1.0) to find shadow region first, then measure that same region across all alpha values
+  - Fixed "produce no visible shadow for alpha=0.0" test - now compares same region across images
+  - Fixed "produce intermediate shadow for alpha=0.5" test - ensures opaque < half < transparent ordering
+  - Fixed "change position with different light angles" test - uses more extreme angles (right vs left) for clear distinction
+  - All 147 tests now passing (100% success rate)
+- **Test Execution** - Fixed UnsatisfiedLinkError when using `sbt testOnly` with individual test classes
+  - **Problem**: JVM classloading race condition - companion object not initializing before instance creation
+  - **Solution**: Added explicit `OptiXRenderer.isLibraryLoaded` check in `RendererFixture.beforeEach()`
+  - Forces companion object initialization before creating any instances
+  - Now `sbt "testOnly menger.optix.ShadowTest"` works correctly (previously only full `sbt test` worked)
+  - Affects ShadowTest, RayStatsTest, ShadowDiagnosticTest, and any future tests using RendererFixture
 - **CI Job Configuration** - Fixed failing CI jobs and made them manual-only
   - Test:SbtImage: Moved CUDA_HOME/OPTIX_ROOT exports from before_script to script section
     - Environment variables in before_script don't persist to script section
@@ -18,6 +31,14 @@
   - code_quality: Removed Docker socket override, now uses default DinD from template
     - More secure and doesn't require runner configuration changes
 
+### Added
+- **Shadow Testing Infrastructure** - Comprehensive shadow testing with solid plane rendering mode
+  - Added `setPlaneSolidColor(bool)` API to render plane as solid light gray (brightness 200) instead of checkerboard
+  - Solid plane mode makes shadows clearly visible for algorithmic detection (checkerboard made detection nearly impossible)
+  - Added throughout stack: OptiXData.h, sphere_combined.cu, OptiXWrapper, JNIBindings, OptiXRenderer.scala
+  - 26 shadow tests covering graduated transparency, light direction, geometric correctness, edge cases
+  - `ShadowValidation.scala` helper module with region detection, brightness measurement, shadow intensity calculation
+  - `ShadowDiagnosticTest.scala` saves PPM images for manual inspection (shadow_alpha_*.ppm)
 ### Added
 - **Shadow Ray Tracing** - Implemented realistic hard shadows for OptiX renderer
   - Cast shadow rays from opaque surfaces to detect occlusion by geometry
@@ -34,6 +55,18 @@
     - Flag requires `--optix` flag (validated at startup)
     - Shadow rays automatically counted when `--stats` flag is used
     - Integrated into OptiXEngine initialization flow
+  - **Transparent Shadows** - Shadows now correctly respect material transparency (alpha)
+    - Shadow intensity varies from 0.0 (fully transparent) to 1.0 (fully opaque)
+    - Shadow closest hit shader returns sphere alpha value as shadow attenuation
+    - Shadow miss shader returns 0.0 (no shadow when ray misses geometry)
+    - Enables realistic effects: glass casts light shadows, opaque objects cast dark shadows
+    - **Critical Fix**: Corrected SBT stride from 1 to 2 in ALL optixTrace calls
+      - Raygen shader primary rays, glass refraction/reflection continuation rays
+      - Incorrect stride prevented shadow shaders from executing at all
+      - Formula: hitgroup_index = sbtGASIndex * stride + rayType (rayType: 0=primary, 1=shadow)
+    - Changed shadow ray flag from OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT to OPTIX_RAY_FLAG_NONE
+      - Allows shadow closest hit shader to execute and read material alpha
+    - Verified working via C++ demo program generating images at alpha values 0.0-1.0
 
 ## [0.3.5] - 2025-11-17
 
