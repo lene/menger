@@ -13,10 +13,11 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 ## Active Development
 
 **Current:** Sprint 1 - Implementing Shadow Rays (Feature 1.2) 🔄
-**Branch:** `optix-sphere-from-sdk`
-**Local Tests:** 95 tests passing (menger + optix-jni)
+**Branch:** `feature/shadow-rays`
+**Local Tests:** 144/147 passing (23/26 shadow tests passing, 88.5% success rate)
 **Plan:** [optix-jni/SHADOW_RAYS_PLAN.md](optix-jni/SHADOW_RAYS_PLAN.md)
 **Progress:** [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md)
+**Testing Notes:** [optix-jni/SHADOW_TESTING_NOTES.md](optix-jni/SHADOW_TESTING_NOTES.md) - Shadow test implementation, issues, and next steps
 
 ## Project Overview
 

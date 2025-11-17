@@ -230,24 +230,31 @@ extern "C" __global__ void __miss__ms() {
                 checker_v = hit_point.y;
             }
 
-            // Checkered pattern
-            const float checker_size = PLANE_CHECKER_SIZE;
-            const int check_u = static_cast<int>(floorf(checker_u / checker_size));
-            const int check_v = static_cast<int>(floorf(checker_v / checker_size));
-
-            // XOR to create checkerboard pattern
-            const bool is_light = ((check_u + check_v) & 1) == 0;
-
-            // Medium gray and very dark gray checker colors
-            // These colors are distinct from light spheres (200+) and white (255)
-            if (is_light) {
-                r = PLANE_CHECKER_LIGHT_GRAY;
-                g = PLANE_CHECKER_LIGHT_GRAY;
-                b = PLANE_CHECKER_LIGHT_GRAY;
+            // Plane coloring: solid or checkerboard
+            if (params.plane_solid_color) {
+                // Solid light gray for shadow visibility
+                r = PLANE_SOLID_LIGHT_GRAY;
+                g = PLANE_SOLID_LIGHT_GRAY;
+                b = PLANE_SOLID_LIGHT_GRAY;
             } else {
-                r = PLANE_CHECKER_DARK_GRAY;
-                g = PLANE_CHECKER_DARK_GRAY;
-                b = PLANE_CHECKER_DARK_GRAY;
+                // Checkered pattern
+                const float checker_size = PLANE_CHECKER_SIZE;
+                const int check_u = static_cast<int>(floorf(checker_u / checker_size));
+                const int check_v = static_cast<int>(floorf(checker_v / checker_size));
+
+                // XOR to create checkerboard pattern
+                const bool is_light = ((check_u + check_v) & 1) == 0;
+
+                // Medium gray and very dark gray checker colors
+                if (is_light) {
+                    r = PLANE_CHECKER_LIGHT_GRAY;
+                    g = PLANE_CHECKER_LIGHT_GRAY;
+                    b = PLANE_CHECKER_LIGHT_GRAY;
+                } else {
+                    r = PLANE_CHECKER_DARK_GRAY;
+                    g = PLANE_CHECKER_DARK_GRAY;
+                    b = PLANE_CHECKER_DARK_GRAY;
+                }
             }
 
             // Apply shadow rays to plane if enabled
