@@ -1,7 +1,7 @@
 # Shadow Testing Notes
 
-**Date:** 2025-11-17
-**Status:** Work in Progress - Tests partially fixed but some still failing
+**Date:** 2025-11-17 (Updated: 2025-11-18)
+**Status:** ✅ Complete - All 147 tests passing (100% success rate)
 
 ## Summary
 
@@ -180,9 +180,46 @@ This makes it difficult to distinguish shadows for different alpha values.
 ## Test Counts
 
 - **Total Shadow Tests:** 26
-- **Passing:** 23
-- **Failing:** 3
-- **Success Rate:** 88.5%
+- **Passing:** 26
+- **Failing:** 0
+- **Success Rate:** 100% ✅
+
+## Resolution (2025-11-18)
+
+### Fixed All 3 Failing Tests
+
+**1. Alpha=0.0 Test - Reference-Based Region Detection**
+- **Root Cause:** `detectDarkestRegion()` found different regions for each alpha value, making comparisons meaningless
+- **Fix:** Render opaque sphere (alpha=1.0) first to find actual shadow location, then measure that same region across all alpha values
+- **Code Change:** `ShadowTest.scala:120-138` - Reordered rendering and used common `shadowRegion`
+
+**2. Alpha=0.5 Intermediate Test - Same Solution**
+- **Root Cause:** Same issue - comparing different regions
+- **Fix:** Same reference-based approach
+- **Code Change:** `ShadowTest.scala:159-183` - Use opaque reference region
+
+**3. Position Change Test - More Extreme Light Angles**
+- **Root Cause:** Light angles `(0.5, 1.0, 0.0)` vs `(1.0, 0.5, 0.0)` produced subtle shadows with too much overlap
+- **Fix:** Use more extreme angles: right `(1.0, 0.5, 0.0)` vs left `(-1.0, 1.0, 0.0)` for clear left-right distinction
+- **Code Change:** `ShadowTest.scala:334-350` - Changed light directions
+
+### Additional Fix - testOnly UnsatisfiedLinkError
+
+**Problem:** Running `sbt "testOnly menger.optix.ShadowTest"` alone would fail with:
+```
+UnsatisfiedLinkError: 'boolean menger.optix.OptiXRenderer.initializeNative()'
+```
+But `sbt test` (full suite) worked fine.
+
+**Root Cause:** JVM classloading race condition - `OptiXRenderer` companion object's static initializer wasn't being triggered reliably
+
+**Fix:** Added explicit companion object initialization check in `RendererFixture.beforeEach()`:
+```scala
+require(OptiXRenderer.isLibraryLoaded, "OptiX native library failed to load")
+```
+Forces companion object to initialize before creating any instances.
+
+**Code Change:** `RendererFixture.scala:46-54`
 
 ## Key Learnings
 

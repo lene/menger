@@ -12,12 +12,21 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 
 ## Active Development
 
-**Current:** Sprint 1 - Implementing Shadow Rays (Feature 1.2) 🔄
+**Current:** Sprint 1 - Shadow Rays ✅ COMPLETE
 **Branch:** `feature/shadow-rays`
-**Local Tests:** 144/147 passing (23/26 shadow tests passing, 88.5% success rate)
+**Local Tests:** 147/147 passing (100% success rate) 🎉
 **Plan:** [optix-jni/SHADOW_RAYS_PLAN.md](optix-jni/SHADOW_RAYS_PLAN.md)
 **Progress:** [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md)
-**Testing Notes:** [optix-jni/SHADOW_TESTING_NOTES.md](optix-jni/SHADOW_TESTING_NOTES.md) - Shadow test implementation, issues, and next steps
+**Testing Notes:** [optix-jni/SHADOW_TESTING_NOTES.md](optix-jni/SHADOW_TESTING_NOTES.md)
+
+**Completed (2025-11-18):**
+- ✅ Transparent shadows implementation (alpha-based shadow attenuation)
+- ✅ 26 comprehensive shadow tests (graduated transparency, light direction, geometry)
+- ✅ Solid plane rendering mode for shadow visibility
+- ✅ Reference-based region detection for reliable test comparisons
+- ✅ Fixed testOnly UnsatisfiedLinkError (JVM classloading issue)
+
+**Next:** Sprint 2 - Interactivity (mouse camera control, multiple lights)
 
 ## Project Overview
 

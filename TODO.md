@@ -11,11 +11,11 @@
   > The packaged application failure is expected because it's trying to load the
   > native library from the system path rather than the bundled one. This is a known
   > packaging issue but doesn't affect the correctness of the code.
-- ray casting and tracing statistics
+- ray casting and tracing statistics V
 - antialiasing/adaptive super-sampling
 - --plane: default no plane, can be repeated for multiple planes
-- caustics and shadows
-- define light source(s)
+- shadows V (caustics not yet implemented)
+- define light source(s) V
 - interactive camera positioning with mouse dragging in menger main window
 - on-the-fly change of image dimension with resizing of menger main window
 
