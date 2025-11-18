@@ -114,6 +114,12 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     required = false, default = Some(PlaneSpec(Axis.Y, positive = true, -2.0f))
   )(using planeSpecConverter)
 
+  // Lighting parameters (OptiX only)
+  val light: ScallopOption[List[LightSpec]] = opt[List[LightSpec]](
+    required = false,
+    descr = "Light source (repeatable, max 8). Format: <type>:x,y,z[:intensity[:color]] where type is directional|point"
+  )(using lightSpecConverter)
+
   mutuallyExclusive(timeout, animate)
   validate(projectionScreenW, projectionEyeW) { (screen, eye) =>
     if eye > screen then Right(())
@@ -169,6 +175,14 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   validateOpt(shadows, optix) { (sh, ox) =>
     if sh.getOrElse(false) && !ox.getOrElse(false) then
       Left("--shadows flag requires --optix flag")
+    else Right(())
+  }
+
+  validateOpt(light, optix) { (l, ox) =>
+    if l.isDefined && !ox.getOrElse(false) then
+      Left("--light flag requires --optix flag")
+    else if l.isDefined && l.get.length > 8 then
+      Left("Maximum 8 lights allowed (MAX_LIGHTS=8)")
     else Right(())
   }
 
@@ -269,4 +283,44 @@ val planeSpecConverter = new ValueConverter[PlaneSpec] {
       }.recover {
         case e: Exception => Left(s"Plane spec '$input' not recognized: ${e.getMessage}")
       }.get
+}
+
+enum LightType:
+  case DIRECTIONAL, POINT
+
+case class LightSpec(lightType: LightType, position: Vector3, intensity: Float, color: Color)
+
+val lightSpecConverter = new ValueConverter[List[LightSpec]] {
+  val argType: ArgType.V = org.rogach.scallop.ArgType.LIST
+  def parse(s: List[(String, List[String])]): Either[String, Option[List[LightSpec]]] =
+    val specStrings = s.flatMap(_._2)
+    if specStrings.isEmpty then Right(None)
+    else
+      val pattern = """(?i)(directional|point):(-?\d+\.?\d*),(-?\d+\.?\d*),(-?\d+\.?\d*)(?::([^:]*))?(?::([^:]+))?""".r
+      specStrings.map { input =>
+        input.trim match
+          case pattern(typeStr, x, y, z, intensityStr, colorStr) =>
+            Try {
+              val lightType = typeStr.toLowerCase match
+                case "directional" => LightType.DIRECTIONAL
+                case "point" => LightType.POINT
+              val position = Vector3(x.toFloat, y.toFloat, z.toFloat)
+              val intensity = Option(intensityStr).filter(_.nonEmpty).map(_.toFloat).getOrElse(1.0f)
+              val color = Option(colorStr).map { c =>
+                if c.contains(',') then
+                  val parts = c.split(",").map(_.trim.toInt)
+                  val Array(r, g, b, a) = parts.map(_ / 255f).padTo(4, 1f)
+                  Color(r, g, b, a)
+                else
+                  Color.valueOf(c)
+              }.getOrElse(Color.WHITE)
+              LightSpec(lightType, position, intensity, color)
+            }.toEither.left.map(e => s"Light spec '$input' not recognized: ${e.getMessage}")
+          case _ =>
+            Left(s"Light spec '$input' must match format <type>:x,y,z[:intensity[:color]] where type is directional|point (e.g., directional:0,1,-1, point:0,5,0:2.0:ffffff)")
+      }.foldLeft[Either[String, List[LightSpec]]](Right(List.empty)) {
+        case (Right(acc), Right(spec)) => Right(acc :+ spec)
+        case (Left(err), _) => Left(err)
+        case (_, Left(err)) => Left(err)
+      }.map(Some(_))
 }

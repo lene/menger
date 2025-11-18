@@ -38,7 +38,8 @@ class OptiXEngine(
   val timeout: Float = 0f,
   saveName: Option[String] = None,
   val enableStats: Boolean = false,
-  val shadows: Boolean = false
+  val shadows: Boolean = false,
+  val lights: Option[List[menger.LightSpec]] = None
 )(using profilingConfig: ProfilingConfig) extends MengerEngine(
   spongeType, spongeLevel, rotationProjectionParameters, lines, color,
   faceColor, lineColor, fpsLogIntervalMs
@@ -49,7 +50,7 @@ class OptiXEngine(
     case _ => Failure(UnsupportedOperationException(spongeType))
   }
   private lazy val optiXResources: OptiXResources =
-    OptiXResources(geometryGenerator, cameraPos, cameraLookat, cameraUp, planeSpec)
+    OptiXResources(geometryGenerator, cameraPos, cameraLookat, cameraUp, planeSpec, lights)
   private val renderResources: OptiXRenderResources = OptiXRenderResources(0, 0)
 
   protected def drawables: List[ModelInstance] =

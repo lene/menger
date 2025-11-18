@@ -9,7 +9,10 @@ import scala.util.Try
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.Axis
+import menger.LightSpec
+import menger.LightType
 import menger.PlaneSpec
+import menger.optix.Light
 import menger.optix.OptiXRenderer
 
 class OptiXResources(
@@ -17,7 +20,8 @@ class OptiXResources(
   cameraPos: Vector3,
   cameraLookat: Vector3,
   cameraUp: Vector3,
-  planeSpec: PlaneSpec
+  planeSpec: PlaneSpec,
+  lights: Option[List[LightSpec]] = None
 ) extends LazyLogging:
 
   private val _rendererRef = new AtomicReference[Option[OptiXRenderer]](None)
@@ -63,10 +67,36 @@ class OptiXResources(
     logger.debug(s"Configured camera: eye=${eye.mkString(",")}, lookAt=${lookAt.mkString(",")}, up=${up.mkString(",")}, fov=$fov")
 
   private def createLights(): Unit =
-    val lightDirection = Array(-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
-    val lightIntensity = 1.0f
-    renderer.setLight(lightDirection, lightIntensity)
-    logger.debug(s"Configured light: direction=${lightDirection.mkString(",")}, intensity=$lightIntensity")
+    lights match
+      case Some(lightSpecs) =>
+        val lightArray = lightSpecs.map(convertLightSpec).toArray
+        Try(renderer.setLights(lightArray)) match
+          case Success(_) =>
+            logger.debug(s"Configured ${lightArray.length} light(s) from CLI specification")
+          case Failure(exception) =>
+            errorExit(s"Failed to configure lights: ${exception.getMessage}")
+      case None =>
+        // Default single directional light (backward compatibility)
+        val lightDirection = Array(-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
+        val lightIntensity = 1.0f
+        renderer.setLight(lightDirection, lightIntensity)
+        logger.debug(s"Configured default light: direction=${lightDirection.mkString(",")}, intensity=$lightIntensity")
+
+  private def convertLightSpec(spec: LightSpec): Light =
+    val lightType = spec.lightType match
+      case LightType.DIRECTIONAL => menger.optix.LightType.DIRECTIONAL
+      case LightType.POINT => menger.optix.LightType.POINT
+
+    val position = Array(spec.position.x, spec.position.y, spec.position.z)
+    val color = Array(spec.color.r, spec.color.g, spec.color.b)
+
+    Light(
+      lightType = lightType,
+      direction = position,  // For directional lights, position is treated as direction
+      position = position,   // For point lights
+      color = color,
+      intensity = spec.intensity
+    )
 
   private def configurePlane(): Unit =
     val axisInt = planeSpec.axis match

@@ -131,9 +131,50 @@ for a Scala 3 REPL.
   - Chaining: Multiple animation specifications can be chained using `--animate` multiple times
     - `--animate frames=10:rot-x-w=0-10 --animate frames=10:rot-y-w=0-10` - Sequential rotations
     - `--animate frames=10:level=0-2 --animate frames=10:level=2-0` - Animate level up then down
-  - Note: Parameters cannot be specified both as CLI options (e.g., `--level`, `--rot-x`) and in 
+  - Note: Parameters cannot be specified both as CLI options (e.g., `--level`, `--rot-x`) and in
     animation specifications
 - `--save-name <pattern>` - Save frames to files (e.g., `frame%d.png`)
+
+### OptiX Ray Tracing Options
+
+For GPU-accelerated ray tracing using NVIDIA OptiX (requires `--sponge-type sphere` and `--optix`):
+
+- `--optix` - Enable OptiX renderer (requires `--sponge-type sphere`)
+- `--radius <float>` - Sphere radius (default: 1.0)
+- `--ior <float>` - Index of refraction for glass rendering (default: 1.5)
+  - 1.0 = no refraction, 1.33 = water, 1.5 = glass, 2.42 = diamond
+- `--scale <float>` - Scale parameter (default: 1.0)
+- `--stats` - Display ray tracing statistics after render
+- `--shadows` - Enable shadow rays for realistic shadows (requires `--optix`)
+- `--light <spec>` - Add light source (repeatable, max 8)
+  - Format: `<type>:x,y,z[:intensity[:color]]`
+  - Types: `directional` (parallel rays, sun-like) or `point` (radiates from position)
+  - Intensity: brightness multiplier (default: 1.0)
+  - Color: hex (e.g., `ffffff`) or RGB (e.g., `255,0,0`)
+  - Examples:
+    - `--light directional:-1,1,-1` - Directional light from upper-left-back
+    - `--light point:0,5,0:2.0:ffffff` - Bright white point light above sphere
+    - `--light directional:0,1,0::ff0000` - Red directional light (omit intensity with ::)
+- `--camera-pos <x,y,z>` - Camera position (default: 0,0.5,3)
+- `--camera-lookat <x,y,z>` - Camera look-at point (default: 0,0,0)
+- `--camera-up <x,y,z>` - Camera up vector (default: 0,1,0)
+- `--center <x,y,z>` - Sphere center position (default: 0,0,0)
+- `--plane <spec>` - Ground plane specification (default: +y:-2)
+  - Format: `[+-]?[xyz]:<value>` (e.g., `y:-2`, `+y:-2`, `-z:5.5`)
+
+Example OptiX usage:
+```bash
+# Basic glass sphere
+sbt "run --optix --sponge-type sphere --radius 1.5 --ior 1.5"
+
+# Glass sphere with shadows and custom lighting
+sbt "run --optix --sponge-type sphere --shadows \
+  --light directional:-1,1,-1:1.5 \
+  --light point:2,3,2:0.8:ffd700"
+
+# Display ray statistics
+sbt "run --optix --sponge-type sphere --stats"
+```
 
 ## Remote GPU Development
 

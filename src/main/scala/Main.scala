@@ -71,7 +71,8 @@ object Main:
       opts.timeout(),
       opts.saveName.toOption,
       opts.stats(),
-      opts.shadows()
+      opts.shadows(),
+      opts.light.toOption
     )
 
   private def createAnimatedEngine(
