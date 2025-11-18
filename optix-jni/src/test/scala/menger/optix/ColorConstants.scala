@@ -27,6 +27,7 @@ object ColorConstants:
   val OPAQUE_WHITE = (1.0f, 1.0f, 1.0f, 1.0f)
   val OPAQUE_LIGHT_GRAY = (0.784f, 0.784f, 0.784f, 1.0f)  // RGB(200, 200, 200)
   val OPAQUE_MEDIUM_GRAY = (0.5f, 0.5f, 0.5f, 1.0f)
+  val OPAQUE_SHADOW_TEST_GRAY = (0.75f, 0.75f, 0.75f, 1.0f)  // Standard gray for shadow tests
 
   // ========== Transparency Levels (White Base) ==========
 
