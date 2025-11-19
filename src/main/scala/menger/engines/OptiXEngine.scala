@@ -15,6 +15,7 @@ import menger.OptiXResources
 import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.input.OptiXCameraController
 import menger.optix.OptiXRenderer
 
 @SuppressWarnings(Array("org.wartremover.warts.Throw"))
@@ -52,6 +53,8 @@ class OptiXEngine(
   private lazy val optiXResources: OptiXResources =
     OptiXResources(geometryGenerator, cameraPos, cameraLookat, cameraUp, planeSpec, lights)
   private val renderResources: OptiXRenderResources = OptiXRenderResources(0, 0)
+  private lazy val cameraController: OptiXCameraController =
+    OptiXCameraController(optiXResources, renderResources, cameraPos, cameraLookat, cameraUp)
 
   protected def drawables: List[ModelInstance] =
     throw new UnsupportedOperationException("OptiXEngine doesn't use drawables")
@@ -66,6 +69,10 @@ class OptiXEngine(
     optiXResources.setScale(scale)
     optiXResources.setShadows(shadows)
     optiXResources.initialize()
+
+    // Register interactive camera controller for mouse-based camera control
+    Gdx.input.setInputProcessor(cameraController)
+    logger.info("Interactive camera controls enabled (left-click: orbit, right-click: pan, scroll: zoom)")
 
     // Disable continuous rendering - we'll request renders only when needed
     Gdx.graphics.setContinuousRendering(false)

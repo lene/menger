@@ -62,9 +62,9 @@ class OptiXResources(
     val eye = Array(cameraPos.x, cameraPos.y, cameraPos.z)
     val lookAt = Array(cameraLookat.x, cameraLookat.y, cameraLookat.z)
     val up = Array(cameraUp.x, cameraUp.y, cameraUp.z)
-    val fov = 45f
-    renderer.setCamera(eye, lookAt, up, fov)
-    logger.debug(s"Configured camera: eye=${eye.mkString(",")}, lookAt=${lookAt.mkString(",")}, up=${up.mkString(",")}, fov=$fov")
+    val horizontalFov = 45f
+    renderer.setCamera(eye, lookAt, up, horizontalFovDegrees = horizontalFov)
+    logger.debug(s"Configured camera: eye=${eye.mkString(",")}, lookAt=${lookAt.mkString(",")}, up=${up.mkString(",")}, horizontalFOV=$horizontalFov")
 
   private def createLights(): Unit =
     lights match
@@ -133,8 +133,16 @@ class OptiXResources(
   def renderSceneWithStats(width: Int, height: Int): menger.optix.RenderResult =
     renderer.renderWithStats(width, height)
 
+  def updateCamera(eye: Vector3, lookAt: Vector3, up: Vector3): Unit =
+    val eyeArr = Array(eye.x, eye.y, eye.z)
+    val lookAtArr = Array(lookAt.x, lookAt.y, lookAt.z)
+    val upArr = Array(up.x, up.y, up.z)
+    val horizontalFov = 45f
+    renderer.setCamera(eyeArr, lookAtArr, upArr, horizontalFovDegrees = horizontalFov)
+    logger.debug(s"Updated camera: eye=${eyeArr.mkString(",")}, lookAt=${lookAtArr.mkString(",")}, up=${upArr.mkString(",")}")
+
   def updateCameraAspectRatio(width: Int, height: Int): Unit =
-    val verticalFOV = 45f  // Fixed vertical FOV in degrees
+    val horizontalFov = 45f  // Fixed horizontal FOV in degrees (aspect-ratio independent)
 
     // Update cached image dimensions BEFORE calling setCamera
     renderer.updateImageDimensions(width, height)
@@ -143,7 +151,7 @@ class OptiXResources(
     val lookAt = Array(cameraLookat.x, cameraLookat.y, cameraLookat.z)
     val up = Array(cameraUp.x, cameraUp.y, cameraUp.z)
 
-    renderer.setCamera(eye, lookAt, up, verticalFOV)
+    renderer.setCamera(eye, lookAt, up, horizontalFovDegrees = horizontalFov)
 
   def dispose(): Unit =
     _rendererRef.get().foreach { r =>
