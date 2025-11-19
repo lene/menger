@@ -9,7 +9,8 @@ import scala.math.abs
 
 class ShadowTest extends AnyFlatSpec with Matchers with RendererFixture:
 
-  private val (imageWidth, imageHeight) = STANDARD_IMAGE_SIZE
+  private val imageWidth = STANDARD_IMAGE_SIZE.width
+  private val imageHeight = STANDARD_IMAGE_SIZE.height
 
   // Helper method for standard shadow scene setup
   def setupShadowScene(

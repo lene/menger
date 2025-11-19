@@ -73,3 +73,6 @@ trait RendererFixture extends BeforeAndAfterEach:
   protected def renderImage(width: Int, height: Int): Array[Byte] =
     renderer.render(width, height).getOrElse:
       fail(s"Rendering failed - returned None for ${width}x${height}")
+
+  protected def renderImage(size: ImageSize): Array[Byte] =
+    renderImage(size.width, size.height)

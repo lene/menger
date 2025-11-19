@@ -33,7 +33,7 @@ case class TestScenario(
   camera: CameraConfig = CameraConfig(),
   light: LightConfig = LightConfig(),
   plane: Option[PlaneConfig] = None,
-  imageDimensions: Option[(Int, Int)] = Some((800, 600))
+  imageDimensions: Option[ImageSize] = Some(ImageSize(800, 600))
 ):
 
   // ========== Sphere Configuration ==========
@@ -93,7 +93,10 @@ case class TestScenario(
   // ========== Image Dimensions Configuration ==========
 
   def withImageDimensions(width: Int, height: Int): TestScenario =
-    copy(imageDimensions = Some((width, height)))
+    copy(imageDimensions = Some(ImageSize(width, height)))
+
+  def withImageDimensions(size: ImageSize): TestScenario =
+    copy(imageDimensions = Some(size))
 
   def withoutImageDimensions(): TestScenario =
     copy(imageDimensions = None)
@@ -103,8 +106,8 @@ case class TestScenario(
   
   def applyTo(renderer: OptiXRenderer): Unit =
     // Image dimensions (must be set before camera for correct aspect ratio)
-    imageDimensions.foreach { case (width, height) =>
-      renderer.updateImageDimensions(width, height)
+    imageDimensions.foreach { size =>
+      renderer.updateImageDimensions(size)
     }
 
     // Camera
@@ -143,6 +146,9 @@ case class TestScenario(
     if imageDimensions.isEmpty then
       renderer.updateImageDimensions(width, height)
     renderer.render(width, height).get
+
+  def render(renderer: OptiXRenderer, size: ImageSize): Array[Byte] =
+    render(renderer, size.width, size.height)
 
 
 object TestScenario:

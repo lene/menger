@@ -87,13 +87,13 @@ class RendererTest extends AnyFlatSpec
 
   it should "return Some from render()" in new OptiXRenderer:
     initialize()
-    val result = render(STANDARD_IMAGE_SIZE._1, STANDARD_IMAGE_SIZE._2)
+    val result = render(STANDARD_IMAGE_SIZE)
     result shouldBe defined
 
   it should "return correct size array from render() (RGBA)" in new OptiXRenderer:
     initialize()
-    val result = render(STANDARD_IMAGE_SIZE._1, STANDARD_IMAGE_SIZE._2)
-    val expectedSize = STANDARD_IMAGE_SIZE._1 * STANDARD_IMAGE_SIZE._2 * 4
+    val result = render(STANDARD_IMAGE_SIZE)
+    val expectedSize = ImageValidation.imageByteSize(STANDARD_IMAGE_SIZE)
     result.get.length shouldBe expectedSize
 
   it should "allow dispose() to be called without crashing" in new OptiXRenderer:
@@ -126,15 +126,15 @@ class RendererTest extends AnyFlatSpec
       .withSphereRadius(0.5f)
       .applyTo(renderer)
 
-    val imageData = renderer.render(STANDARD_IMAGE_SIZE._1, STANDARD_IMAGE_SIZE._2).get
-    imageData.length shouldBe STANDARD_IMAGE_SIZE._1 * STANDARD_IMAGE_SIZE._2 * 4
+    val imageData = renderer.render(STANDARD_IMAGE_SIZE).get
+    imageData.length shouldBe ImageValidation.imageByteSize(STANDARD_IMAGE_SIZE)
 
     val savedFile = TestUtilities.savePPM("optix_test_output.ppm", imageData,
-      STANDARD_IMAGE_SIZE._1, STANDARD_IMAGE_SIZE._2).get
+      STANDARD_IMAGE_SIZE.width, STANDARD_IMAGE_SIZE.height).get
 
     savedFile.exists() shouldBe true
-    val expectedSize = s"P6\n${STANDARD_IMAGE_SIZE._1} ${STANDARD_IMAGE_SIZE._2}\n255\n".length +
-      STANDARD_IMAGE_SIZE._1 * STANDARD_IMAGE_SIZE._2 * 3
+    val expectedSize = s"P6\n${STANDARD_IMAGE_SIZE.width} ${STANDARD_IMAGE_SIZE.height}\n255\n".length +
+      STANDARD_IMAGE_SIZE.width * STANDARD_IMAGE_SIZE.height * 3
     savedFile.length() shouldBe expectedSize
 
   "Camera position" should "produce different images" in:
@@ -324,7 +324,7 @@ class RendererTest extends AnyFlatSpec
     image4.length shouldBe 600 * 800 * 4
 
   "Sphere color" should "render correct color (not grayscale)" in:
-    val (width, height) = (200, 200)
+    val imageSize = ImageSize(200, 200)
 
     // Pure red sphere
     TestScenario.default()
@@ -332,8 +332,8 @@ class RendererTest extends AnyFlatSpec
       .withSphereRadius(1.5f)
       .withIOR(1.0f)
       .applyTo(renderer)
-    val imageRed = renderer.render(width, height).get
-    imageRed should beRedDominant(width, height)
+    val imageRed = renderer.render(imageSize).get
+    imageRed should beRedDominant(imageSize)
 
     // Pure green sphere
     TestScenario.default()
@@ -341,8 +341,8 @@ class RendererTest extends AnyFlatSpec
       .withSphereRadius(1.5f)
       .withIOR(1.0f)
       .applyTo(renderer)
-    val imageGreen = renderer.render(width, height).get
-    imageGreen should beGreenDominant(width, height)
+    val imageGreen = renderer.render(imageSize).get
+    imageGreen should beGreenDominant(imageSize)
 
     // Pure blue sphere
     TestScenario.default()
@@ -350,8 +350,8 @@ class RendererTest extends AnyFlatSpec
       .withSphereRadius(1.5f)
       .withIOR(1.0f)
       .applyTo(renderer)
-    val imageBlue = renderer.render(width, height).get
-    imageBlue should beBlueDominant(width, height)
+    val imageBlue = renderer.render(imageSize).get
+    imageBlue should beBlueDominant(imageSize)
 
     // All three images should be different
     imageRed should not equal imageGreen
@@ -359,19 +359,19 @@ class RendererTest extends AnyFlatSpec
     imageRed should not equal imageBlue
 
   it should "render sphere with custom color (green-cyan #00ff80)" in:
-    val (width, height) = (200, 200)
+    val imageSize = ImageSize(200, 200)
 
     TestScenario.default()
       .withSphereColor(0.0f, 1.0f, 0.5f, 1.0f)
       .withSphereRadius(1.5f)
       .withIOR(1.0f)
       .applyTo(renderer)
-    val image = renderer.render(width, height).get
+    val image = renderer.render(imageSize).get
 
-    image should beGreenDominant(width, height)
+    image should beGreenDominant(imageSize)
 
     // Verify center pixel proportions
-    val centerPixel = (height / 2) * width + (width / 2)
+    val centerPixel = (imageSize.height / 2) * imageSize.width + (imageSize.width / 2)
     val rgb = ImageValidation.getRGB(image, centerPixel)
 
     rgb.g should be > (rgb.r + MIN_COLOR_CHANNEL_DIFFERENCE)
@@ -383,18 +383,18 @@ class RendererTest extends AnyFlatSpec
     rgb.r should not equal rgb.b
 
   it should "render grayscale sphere and detect it as gray" in:
-    val (width, height) = (200, 200)
+    val imageSize = ImageSize(200, 200)
 
     TestScenario.default()
       .withSphereColor(OPAQUE_MEDIUM_GRAY)
       .withSphereRadius(1.5f)
       .applyTo(renderer)
-    val imageGray = renderer.render(width, height).get
+    val imageGray = renderer.render(imageSize).get
 
-    imageGray should beGrayscale(width, height)
+    imageGray should beGrayscale(imageSize)
 
     // Verify center pixel is grayscale
-    val centerPixel = (height / 2) * width + (width / 2)
+    val centerPixel = (imageSize.height / 2) * imageSize.width + (imageSize.width / 2)
     val rgb = ImageValidation.getRGB(imageGray, centerPixel)
 
     math.abs(rgb.r - rgb.g) should be < GRAYSCALE_TOLERANCE
@@ -402,7 +402,7 @@ class RendererTest extends AnyFlatSpec
     math.abs(rgb.r - rgb.b) should be < GRAYSCALE_TOLERANCE
 
   it should "support integer color API (0-255 range)" in:
-    renderer.updateImageDimensions(TEST_IMAGE_SIZE._1, TEST_IMAGE_SIZE._2)
+    renderer.updateImageDimensions(TEST_IMAGE_SIZE)
     renderer.setCamera(Array(0.0f, 0.5f, 3.0f), Array(0.0f, 0.0f, 0.0f), Array(0.0f, 1.0f, 0.0f), 60.0f)
     renderer.setLight(Array(0.5f, 0.5f, -0.5f), 1.0f)
     renderer.setSphere(0.0f, 0.0f, 0.0f, 0.5f)
@@ -410,13 +410,12 @@ class RendererTest extends AnyFlatSpec
     renderer.setIOR(1.0f)
     renderer.setScale(1.0f)
 
-    val imageData = renderer.render(TEST_IMAGE_SIZE._1, TEST_IMAGE_SIZE._2).get
+    val imageData = renderer.render(TEST_IMAGE_SIZE).get
 
     // Green should be dominant channel
     val (r, g, b) = ImageValidation.colorChannelRatio(
       imageData,
-      TEST_IMAGE_SIZE._1,
-      TEST_IMAGE_SIZE._2
+      TEST_IMAGE_SIZE
     )
 
     g should be > r

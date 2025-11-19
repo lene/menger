@@ -102,11 +102,10 @@ object ImageValidation:
       getRGB(imageData, idx).isGreen
     }
 
-  def spherePixelArea(
-    imageData: Array[Byte],
-    size: ImageSize,
-    bgThreshold: Int = 30
-  ): Int =
+  def spherePixelArea(imageData: Array[Byte], size: ImageSize): Int =
+    spherePixelArea(imageData, size.width, size.height)
+
+  def spherePixelArea(imageData: Array[Byte], size: ImageSize, bgThreshold: Int): Int =
     spherePixelArea(imageData, size.width, size.height, bgThreshold)
 
 

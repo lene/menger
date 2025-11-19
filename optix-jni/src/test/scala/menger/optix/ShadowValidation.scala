@@ -27,7 +27,10 @@ object ShadowValidation:
       val y0 = height - regionHeight
       Region(x0, y0, x0 + regionWidth, y0 + regionHeight)
 
-    def bottomCenter(size: ImageSize, fraction: Double = 0.25): Region =
+    def bottomCenter(size: ImageSize): Region =
+      bottomCenter(size.width, size.height)
+
+    def bottomCenter(size: ImageSize, fraction: Double): Region =
       bottomCenter(size.width, size.height, fraction)
 
 
@@ -37,7 +40,10 @@ object ShadowValidation:
       val x0 = (width - regionWidth) / 2
       Region(x0, 0, x0 + regionWidth, regionHeight)
 
-    def topCenter(size: ImageSize, fraction: Double = 0.25): Region =
+    def topCenter(size: ImageSize): Region =
+      topCenter(size.width, size.height)
+
+    def topCenter(size: ImageSize, fraction: Double): Region =
       topCenter(size.width, size.height, fraction)
 
 
@@ -47,7 +53,10 @@ object ShadowValidation:
       val y1 = 3 * height / 4
       Region(0, y0, regionWidth, y1)
 
-    def leftSide(size: ImageSize, fraction: Double = 0.25): Region =
+    def leftSide(size: ImageSize): Region =
+      leftSide(size.width, size.height)
+
+    def leftSide(size: ImageSize, fraction: Double): Region =
       leftSide(size.width, size.height, fraction)
 
 
@@ -57,7 +66,10 @@ object ShadowValidation:
       val y1 = 3 * height / 4
       Region(width - regionWidth, y0, width, y1)
 
-    def rightSide(size: ImageSize, fraction: Double = 0.25): Region =
+    def rightSide(size: ImageSize): Region =
+      rightSide(size.width, size.height)
+
+    def rightSide(size: ImageSize, fraction: Double): Region =
       rightSide(size.width, size.height, fraction)
 
 
@@ -116,7 +128,10 @@ object ShadowValidation:
 
     regions.minBy(region => regionBrightness(imageData, width, height, region))
 
-  def detectDarkestRegion(imageData: Array[Byte], size: ImageSize, gridSize: Int = 5): Region =
+  def detectDarkestRegion(imageData: Array[Byte], size: ImageSize): Region =
+    detectDarkestRegion(imageData, size.width, size.height)
+
+  def detectDarkestRegion(imageData: Array[Byte], size: ImageSize, gridSize: Int): Region =
     detectDarkestRegion(imageData, size.width, size.height, gridSize)
 
 

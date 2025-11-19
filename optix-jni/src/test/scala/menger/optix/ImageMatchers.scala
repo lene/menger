@@ -168,21 +168,30 @@ object ImageMatchers:
   def beRedDominant(width: Int, height: Int, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
     haveDominantChannel("r", width, height, tolerance)
 
-  def beRedDominant(size: ImageSize, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
+  def beRedDominant(size: ImageSize): Matcher[Array[Byte]] =
+    beRedDominant(size.width, size.height)
+
+  def beRedDominant(size: ImageSize, tolerance: Double): Matcher[Array[Byte]] =
     beRedDominant(size.width, size.height, tolerance)
 
 
   def beGreenDominant(width: Int, height: Int, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
     haveDominantChannel("g", width, height, tolerance)
 
-  def beGreenDominant(size: ImageSize, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
+  def beGreenDominant(size: ImageSize): Matcher[Array[Byte]] =
+    beGreenDominant(size.width, size.height)
+
+  def beGreenDominant(size: ImageSize, tolerance: Double): Matcher[Array[Byte]] =
     beGreenDominant(size.width, size.height, tolerance)
 
 
   def beBlueDominant(width: Int, height: Int, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
     haveDominantChannel("b", width, height, tolerance)
 
-  def beBlueDominant(size: ImageSize, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
+  def beBlueDominant(size: ImageSize): Matcher[Array[Byte]] =
+    beBlueDominant(size.width, size.height)
+
+  def beBlueDominant(size: ImageSize, tolerance: Double): Matcher[Array[Byte]] =
     beBlueDominant(size.width, size.height, tolerance)
 
 
