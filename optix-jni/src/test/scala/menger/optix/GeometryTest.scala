@@ -20,17 +20,19 @@ class GeometryTest extends AnyFlatSpec with Matchers with RendererFixture:
   OptiXRenderer.isLibraryLoaded shouldBe true
 
   "Sphere geometry" should "scale area with radius²" in:
+    // Render at radius 0.5
     TestScenario.default()
       .withSphereColor(OPAQUE_GREEN)
+      .withSphereRadius(0.5f)
       .applyTo(renderer)
-
-    // Render at radius 0.5
-    renderer.setSphere(0.0f, 0.0f, 0.0f, 0.5f)
     val img1 = renderImage(TEST_IMAGE_SIZE._1, TEST_IMAGE_SIZE._2)
     val area1 = ImageValidation.spherePixelArea(img1, TEST_IMAGE_SIZE._1, TEST_IMAGE_SIZE._2)
 
     // Render at radius 1.0 (double radius)
-    renderer.setSphere(0.0f, 0.0f, 0.0f, 1.0f)
+    TestScenario.default()
+      .withSphereColor(OPAQUE_GREEN)
+      .withSphereRadius(1.0f)
+      .applyTo(renderer)
     val img2 = renderImage(TEST_IMAGE_SIZE._1, TEST_IMAGE_SIZE._2)
     val area2 = ImageValidation.spherePixelArea(img2, TEST_IMAGE_SIZE._1, TEST_IMAGE_SIZE._2)
 

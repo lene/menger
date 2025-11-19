@@ -37,6 +37,15 @@
   - Now `sbt "testOnly menger.optix.ShadowTest"` works correctly (previously only full `sbt test` worked)
   - Affects ShadowTest, RayStatsTest, ShadowDiagnosticTest, and any future tests using RendererFixture
 
+### Changed
+- **Code Quality Improvements** - Refactored tests for consistency and maintainability
+  - Adopted TestScenario builder pattern in GeometryTest and RayStatsTest
+  - Replaced hardcoded image dimensions (800x600, 400x300) with named constants from ThresholdConstants
+  - Converted manual renderer configuration calls to fluent TestScenario API
+  - Created CameraControlConfig case class to extract hardcoded camera control sensitivity values
+  - Fixed scalafix violation: replaced forbidden `return` statement with if/else in OptiXCameraController
+  - All 818 tests passing after refactoring
+
 ### Added
 - **Shadow Testing Infrastructure** - Comprehensive shadow testing with solid plane rendering mode
   - Added `setPlaneSolidColor(bool)` API to render plane as solid light gray (brightness 200) instead of checkerboard

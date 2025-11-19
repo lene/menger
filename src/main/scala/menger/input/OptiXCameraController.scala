@@ -114,19 +114,20 @@ class OptiXCameraController(
     true
 
   override def touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean =
-    if !isDragging then return false
+    if !isDragging then
+      false
+    else
+      val deltaX = screenX - lastX
+      val deltaY = screenY - lastY
+      lastX = screenX
+      lastY = screenY
 
-    val deltaX = screenX - lastX
-    val deltaY = screenY - lastY
-    lastX = screenX
-    lastY = screenY
+      dragButton match
+        case Buttons.LEFT => handleOrbit(deltaX, deltaY)
+        case Buttons.RIGHT => handlePan(deltaX, deltaY)
+        case _ => // Ignore other buttons
 
-    dragButton match
-      case Buttons.LEFT => handleOrbit(deltaX, deltaY)
-      case Buttons.RIGHT => handlePan(deltaX, deltaY)
-      case _ => // Ignore other buttons
-
-    true
+      true
 
   override def scrolled(amountX: Float, amountY: Float): Boolean =
     handleZoom(amountY)
