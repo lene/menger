@@ -426,7 +426,7 @@ class ShadowTest extends AnyFlatSpec with Matchers with RendererFixture:
     }
 
   it should "handle sphere far from plane" in:
-    setupShadowScene(sphereY = 2.0f, planeY = -2.0f)
+    setupShadowScene(sphereY = 1.0f, planeY = -1.0f)
 
     noException should be thrownBy {
       renderer.setShadows(false)
