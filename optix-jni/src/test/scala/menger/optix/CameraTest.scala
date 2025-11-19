@@ -7,12 +7,7 @@ import ColorConstants.*
 import ImageMatchers.*
 import ThresholdConstants.*
 
-/**
- * Camera position variation tests.
- *
- * Tests that different camera positions enable visibility of
- * ceiling and floor planes as expected.
- */
+
 class CameraTest extends AnyFlatSpec with Matchers with RendererFixture:
 
   // Ensure library is loaded before running tests

@@ -1,16 +1,6 @@
 package menger.optix
 
-/**
- * Named threshold constants for OptiX test validation.
- *
- * Provides well-documented, physics-based threshold values for test assertions,
- * eliminating magic numbers and explaining why specific values are chosen.
- *
- * Thresholds are organized by validation category:
- * - Performance: FPS, timing thresholds
- * - Geometry: Area, size, position tolerances
- * - Rendering: Brightness, standard deviation, color ratios
- */
+
 object ThresholdConstants:
 
   // ========== Performance Thresholds ==========

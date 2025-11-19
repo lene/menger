@@ -7,23 +7,7 @@ import org.scalatest.matchers.should.Matchers
 import ColorConstants.*
 import ThresholdConstants.*
 
-/**
- * Performance benchmarking tests.
- *
- * Tests rendering performance across different scenarios:
- * - Opaque vs transparent spheres
- * - Different IOR values (no refraction, glass, diamond)
- * - Different sphere sizes
- *
- * All tests validate >10 FPS threshold for real-time rendering capability.
- *
- * Uses refactored test utilities:
- * - RendererFixture for automatic lifecycle
- * - ColorConstants for performance test configurations
- * - TestScenario.performance*() methods
- * - ThresholdConstants for FPS validation
- * - Helper method to eliminate FPS measurement duplication
- */
+
 class PerformanceTest extends AnyFlatSpec
     with Matchers
     with LazyLogging

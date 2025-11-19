@@ -9,7 +9,7 @@ trait FractionalLevelSponge extends FractionalLevelObject:
   def scale: Float
   def primitiveType: Int
 
-  /** Factory method for creating instances of the specific sponge type */
+  
   protected def createInstance(
     center: Vector3, scale: Float, level: Float, material: Material, primitiveType: Int
   ): Geometry & FractionalLevelSponge

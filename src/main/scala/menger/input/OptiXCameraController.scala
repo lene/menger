@@ -10,16 +10,7 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.OptiXRenderResources
 import menger.OptiXResources
 
-/** Configuration for camera controller sensitivity and limits.
-  *
-  * @param orbitSensitivity Rotation speed in degrees per pixel
-  * @param panSensitivity Translation speed in world units per pixel
-  * @param zoomSensitivity Zoom speed as distance multiplier per scroll unit
-  * @param minDistance Minimum allowed camera distance from lookAt point
-  * @param maxDistance Maximum allowed camera distance from lookAt point
-  * @param minElevation Minimum elevation angle in degrees (prevents gimbal lock)
-  * @param maxElevation Maximum elevation angle in degrees (prevents gimbal lock)
-  */
+
 case class CameraControlConfig(
   orbitSensitivity: Float = 0.3f,
   panSensitivity: Float = 0.005f,
@@ -31,21 +22,10 @@ case class CameraControlConfig(
 )
 
 object CameraControlConfig:
-  /** Default configuration with standard sensitivity values */
+  
   def default: CameraControlConfig = CameraControlConfig()
 
-/** Mouse-based camera controller for OptiX raytracing window.
-  *
-  * Provides interactive camera control independent from LibGDX window:
-  * - Left-click drag: Orbit camera around lookAt point (azimuth/elevation)
-  * - Right-click drag: Pan camera (translate lookAt and eye together)
-  * - Scroll wheel: Zoom in/out (move eye closer/farther from lookAt)
-  *
-  * Camera state is maintained in spherical coordinates (azimuth, elevation, distance)
-  * to enable smooth orbit behavior and prevent gimbal lock.
-  *
-  * @param config Camera control configuration (sensitivity, limits)
-  */
+
 class OptiXCameraController(
   optiXResources: OptiXResources,
   renderResources: OptiXRenderResources,

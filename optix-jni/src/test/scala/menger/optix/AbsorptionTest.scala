@@ -7,12 +7,7 @@ import org.scalatest.matchers.should.Matchers
 import ColorConstants.*
 import ThresholdConstants.*
 
-/**
- * Integration tests for Beer-Lambert absorption (scale parameter).
- *
- * Tests that absorption increases with scale parameter and creates
- * expected center-to-edge brightness gradients.
- */
+
 class AbsorptionTest extends AnyFlatSpec
     with Matchers
     with LazyLogging

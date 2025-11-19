@@ -8,20 +8,7 @@ import org.scalatest.matchers.should.Matchers
 import ColorConstants.*
 import ThresholdConstants.*
 
-/**
- * Integration tests for opaque sphere rendering.
- *
- * Tests baseline sphere rendering without refraction or transparency:
- * - Varying radii (geometric validation)
- * - Different positions (spatial validation)
- * - Different colors (color accuracy)
- *
- * Uses refactored test utilities:
- * - RendererFixture: Eliminates init/dispose boilerplate
- * - ColorConstants: Named colors instead of magic numbers
- * - ThresholdConstants: Named thresholds with documentation
- * - TestScenario: Fluent API for configuring test scenarios
- */
+
 class OpaqueSphereTest extends AnyFlatSpec
     with Matchers
     with LazyLogging

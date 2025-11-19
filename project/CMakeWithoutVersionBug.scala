@@ -3,28 +3,7 @@ package com.github.sbt.jni.build
 import sbt._
 import sys.process._
 
-/**
- * Custom CMake build tool that fixes the sbt-jni version parsing bug.
- *
- * sbt-jni v1.6.0-1.7.1 has a bug where it passes the cmake version number
- * (e.g., "328" for CMake 3.28.3) as an extra argument to the cmake command,
- * causing a spurious warning:
- *
- *   CMake Warning:
- *     Ignoring extra path from command line:
- *      "/path/to/build/328"
- *
- * This class is identical to the original CMake class except it removes
- * the spurious `cmakeVersion.toString` argument from the configure() method.
- *
- * Unfortunately, we can't inherit and override just configure() because
- * CMake.getInstance() returns an anonymous Instance class that can't be extended.
- *
- * Bug location in sbt-jni:
- *   plugin/src/main/scala/com/github/sbt/jni/build/CMake.scala:44-47
- *
- * See: https://github.com/sbt/sbt-jni/blob/v1.7.1/plugin/src/main/scala/com/github/sbt/jni/build/CMake.scala#L44-L47
- */
+
 class CMakeWithoutVersionBug(protected val configuration: Seq[String])
     extends BuildTool with ConfigureMakeInstall {
 

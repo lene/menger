@@ -18,35 +18,19 @@ enum Direction(val x: Byte, val y: Byte, val z: Byte):
   def rotate90(d: Direction): Direction = Direction(getRotatedVector(d))
 
   lazy val fold1: Direction =
-    /**
-     *  Something something cross product, I dunno but it works
-     *  X => -Y
-     *  Y => -Z
-     *  Z => -X
-     *  -X => Y
-     *  -Y => Z
-     *  -Z => X
-     */
+    
     val foldedOrdinal = (this.abs.ordinal + 1) % 3
     -Direction.fromOrdinal(foldedOrdinal)
 
   lazy val fold2: Direction =
-    /**
-     *  As above but cross product with a different axis I guess
-     *  X => -Z
-     *  Y => -X
-     *  Z => -Y
-     *  -X => Z
-     *  -Y => X
-     *  -Z => Y
-     */
+    
     val foldedOrdinal = (this.abs.ordinal + 2) % 3
     -Direction.fromOrdinal(foldedOrdinal)
 
   lazy val sign: Byte  = (x + y + z).toByte
 
   private def getRotatedVector(direction: Direction): ByteVec =
-    /** rotate 90 degrees around axis `direction` */
+    
     direction match
       case Direction.X => (x, (-z).toByte, y)
       case Direction.Y => (z, y, (-x).toByte)

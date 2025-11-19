@@ -12,6 +12,7 @@
 - --plane: default no plane, can be repeated for multiple planes
 - caustics
 - on-the-fly change of image dimension with resizing of menger main window
+- fix optix cache corruption
 
 ## later
 - composites

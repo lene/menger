@@ -3,25 +3,10 @@ package menger.optix
 import org.scalatest.matchers.{BeMatcher, MatchResult, Matcher}
 import ThresholdConstants.*
 
-/**
- * Custom ScalaTest matchers for image validation.
- *
- * Provides fluent, readable assertions for rendered OptiX images.
- * Eliminates repetitive validation code and makes tests self-documenting.
- *
- * Usage:
- * {{{
- * val imageData = renderer.render(800, 600).get
- * imageData should haveSphereCenterAt(400, 300, tolerance = 30)
- * imageData should haveBrightnessGreaterThan(10.0)
- * imageData should haveGreenAsDominantColor
- * }}}
- */
+
 object ImageMatchers:
 
-  /**
-   * Custom MatchResult that includes image dimensions for better error messages.
-   */
+  
   private def imageMatchResult(
     matches: Boolean,
     rawFailureMessage: String,
@@ -37,13 +22,7 @@ object ImageMatchers:
 
   // ========== Image Size Matchers ==========
 
-  /**
-   * Matcher for valid RGBA image size.
-   *
-   * Validates that byte array has correct size for RGBA format.
-   *
-   * Example: `imageData should haveValidRGBASize(800, 600)`
-   */
+  
   def haveValidRGBASize(width: Int, height: Int): Matcher[Array[Byte]] =
     Matcher { imageData =>
       val expectedSize = ImageValidation.imageByteSize(width, height)
@@ -59,11 +38,7 @@ object ImageMatchers:
 
   // ========== Sphere Center Matchers ==========
 
-  /**
-   * Matcher for sphere center position.
-   *
-   * Example: `imageData should haveSphereCenterAt(400, 300, width, height)`
-   */
+  
   def haveSphereCenterAt(
     expectedX: Int,
     expectedY: Int,
@@ -86,11 +61,7 @@ object ImageMatchers:
       )
     }
 
-  /**
-   * Matcher for sphere center near image center.
-   *
-   * Example: `imageData should haveSphereCenteredInImage(width, height)`
-   */
+  
   def haveSphereCenteredInImage(
     width: Int,
     height: Int,
@@ -100,11 +71,7 @@ object ImageMatchers:
 
   // ========== Sphere Area Matchers ==========
 
-  /**
-   * Matcher for sphere pixel area.
-   *
-   * Example: `imageData should haveSphereAreaBetween(500, 15000, width, height)`
-   */
+  
   def haveSphereAreaBetween(
     minArea: Int,
     maxArea: Int,
@@ -124,11 +91,7 @@ object ImageMatchers:
       )
     }
 
-  /**
-   * Matcher for small sphere area.
-   *
-   * Example: `imageData should haveSmallSphereArea(width, height)`
-   */
+  
   def haveSmallSphereArea(width: Int, height: Int): Matcher[Array[Byte]] =
     Matcher { imageData =>
       val area = ImageValidation.spherePixelArea(imageData, width, height)
@@ -143,19 +106,11 @@ object ImageMatchers:
       )
     }
 
-  /**
-   * Matcher for medium sphere area.
-   *
-   * Example: `imageData should haveMediumSphereArea(width, height)`
-   */
+  
   def haveMediumSphereArea(width: Int, height: Int): Matcher[Array[Byte]] =
     haveSphereAreaBetween(MEDIUM_SPHERE_MIN_AREA, MEDIUM_SPHERE_MAX_AREA, width, height)
 
-  /**
-   * Matcher for large sphere area.
-   *
-   * Example: `imageData should haveLargeSphereArea(width, height)`
-   */
+  
   def haveLargeSphereArea(width: Int, height: Int): Matcher[Array[Byte]] =
     Matcher { imageData =>
       val area = ImageValidation.spherePixelArea(imageData, width, height)
@@ -172,11 +127,7 @@ object ImageMatchers:
 
   // ========== Color Matchers ==========
 
-  /**
-   * Matcher for dominant color channel.
-   *
-   * Example: `imageData should haveDominantChannel("g", width, height)`
-   */
+  
   def haveDominantChannel(
     expectedChannel: String,
     width: Int,
@@ -201,46 +152,23 @@ object ImageMatchers:
       )
     }
 
-  /**
-   * Matcher for red-dominant image.
-   *
-   * Example: `imageData should beRedDominant(width, height)`
-   * Example with custom tolerance: `imageData should beRedDominant(width, height, tolerance = 7.0)`
-   */
+  
   def beRedDominant(width: Int, height: Int, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
     haveDominantChannel("r", width, height, tolerance)
 
-  /**
-   * Matcher for green-dominant image.
-   *
-   * Example: `imageData should beGreenDominant(width, height)`
-   * Example with custom tolerance: `imageData should beGreenDominant(width, height, tolerance = 7.0)`
-   */
+  
   def beGreenDominant(width: Int, height: Int, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
     haveDominantChannel("g", width, height, tolerance)
 
-  /**
-   * Matcher for blue-dominant image.
-   *
-   * Example: `imageData should beblueDominant(width, height)`
-   * Example with custom tolerance: `imageData should beBlueDominant(width, height, tolerance = 7.0)`
-   */
+  
   def beBlueDominant(width: Int, height: Int, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
     haveDominantChannel("b", width, height, tolerance)
 
-  /**
-   * Matcher for grayscale image.
-   *
-   * Example: `imageData should beGrayscale(width, height)`
-   */
+  
   def beGrayscale(width: Int, height: Int): Matcher[Array[Byte]] =
     haveDominantChannel("gray", width, height)
 
-  /**
-   * Matcher for color channel ratio.
-   *
-   * Example: `imageData should haveColorRatio(0.33, 0.50, 0.17, width, height, tolerance = 0.1)`
-   */
+  
   def haveColorRatio(
     expectedR: Double,
     expectedG: Double,
@@ -267,11 +195,7 @@ object ImageMatchers:
 
   // ========== Brightness Matchers ==========
 
-  /**
-   * Matcher for brightness standard deviation (refraction indicator).
-   *
-   * Example: `imageData should haveBrightnessStdDevGreaterThan(15.0, width, height)`
-   */
+  
   def haveBrightnessStdDevGreaterThan(
     threshold: Double,
     width: Int,
@@ -290,37 +214,21 @@ object ImageMatchers:
       )
     }
 
-  /**
-   * Matcher for glass-like refraction (stdDev > 15.0).
-   *
-   * Example: `imageData should showGlassRefraction(width, height)`
-   */
+  
   def showGlassRefraction(width: Int, height: Int): Matcher[Array[Byte]] =
     haveBrightnessStdDevGreaterThan(MIN_GLASS_REFRACTION_STDDEV, width, height)
 
-  /**
-   * Matcher for water-like refraction (stdDev > 20.0).
-   *
-   * Example: `imageData should showWaterRefraction(width, height)`
-   */
+  
   def showWaterRefraction(width: Int, height: Int): Matcher[Array[Byte]] =
     haveBrightnessStdDevGreaterThan(MIN_WATER_REFRACTION_STDDEV, width, height)
 
-  /**
-   * Matcher for diamond-like refraction (stdDev > 25.0).
-   *
-   * Example: `imageData should showDiamondRefraction(width, height)`
-   */
+  
   def showDiamondRefraction(width: Int, height: Int): Matcher[Array[Byte]] =
     haveBrightnessStdDevGreaterThan(MIN_DIAMOND_REFRACTION_STDDEV, width, height)
 
   // ========== Background/Plane Visibility Matchers ==========
 
-  /**
-   * Matcher for background visibility.
-   *
-   * Example: `imageData should showBackground(width, height)`
-   */
+  
   def showBackground(width: Int, height: Int): Matcher[Array[Byte]] =
     Matcher { imageData =>
       val visible = ImageValidation.backgroundVisibility(imageData, width, height)
@@ -334,11 +242,7 @@ object ImageMatchers:
       )
     }
 
-  /**
-   * Matcher for plane visibility in region.
-   *
-   * Example: `imageData should showPlaneInRegion("bottom", width, height)`
-   */
+  
   def showPlaneInRegion(
     region: String,
     width: Int,

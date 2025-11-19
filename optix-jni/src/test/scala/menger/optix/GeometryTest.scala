@@ -7,13 +7,7 @@ import ColorConstants.*
 import ThresholdConstants.*
 import ImageMatchers.*
 
-/**
- * Geometric validation tests.
- *
- * Tests sphere geometry properties:
- * - Area scaling with radius²
- * - Center position detection
- */
+
 class GeometryTest extends AnyFlatSpec with Matchers with RendererFixture:
 
   // Ensure library is loaded before running tests

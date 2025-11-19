@@ -20,7 +20,7 @@ case class FractionalRotatedProjectionState(
   rotation: Rotation
 )
 
-/** Wraps RotatedProjection to support fractional levels for 4D sponges */
+
 class FractionalRotatedProjection(
   center: Vector3 = Vector3.Zero, scale: Float = 1f,
   object4DFactory: Float => Mesh4D, val level: Float,

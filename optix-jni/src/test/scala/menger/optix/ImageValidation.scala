@@ -3,12 +3,7 @@ package menger.optix
 import ThresholdConstants.*
 import scala.math.{abs, sqrt}
 
-/**
- * Functional image validation helper object.
- *
- * This implementation eliminates all mutable variables (var) and imperative
- * loops, using functional programming patterns instead (map, filter, fold, etc.).
- */
+
 object ImageValidation:
 
   // ========== Helper Types ==========
@@ -99,16 +94,7 @@ object ImageValidation:
       getRGB(imageData, idx).isGreen
     }
 
-  /**
-   * Detect sphere center position in image coordinates.
-   *
-   * Functional implementation using fold to accumulate weighted sum.
-   *
-   * @param imageData RGBA byte array
-   * @param width image width
-   * @param height image height
-   * @return (centerX, centerY) in pixels
-   */
+  
   def detectSphereCenter(
     imageData: Array[Byte],
     width: Int,
@@ -133,16 +119,7 @@ object ImageValidation:
     if count == 0 then (width / 2, height / 2)
     else ((sumX / count).toInt, (sumY / count).toInt)
 
-  /**
-   * Estimate sphere radius in pixels.
-   *
-   * Functional implementation using tail recursion for edge finding.
-   *
-   * @param imageData RGBA byte array
-   * @param width image width
-   * @param height image height
-   * @return estimated radius in pixels
-   */
+  
   def estimateSphereRadius(
     imageData: Array[Byte],
     width: Int,
@@ -186,17 +163,7 @@ object ImageValidation:
     val variance = brightnesses.map(b => math.pow(b - mean, 2)).sum / numPixels
     math.sqrt(variance)
 
-  /**
-   * Measure average brightness around sphere edges.
-   * Validates Fresnel effect (edges should be brighter at grazing angles).
-   *
-   * Functional implementation using map/filter/average.
-   *
-   * @param imageData RGBA byte array
-   * @param width image width
-   * @param height image height
-   * @return average brightness (0-255) of edge pixels
-   */
+  
   def edgeBrightness(imageData: Array[Byte], width: Int, height: Int): Double =
     val (centerX, centerY) = detectSphereCenter(imageData, width, height)
     val radius = estimateSphereRadius(imageData, width, height)
@@ -220,18 +187,7 @@ object ImageValidation:
     if brightnessSamples.isEmpty then 0.0
     else brightnessSamples.sum.toDouble / brightnessSamples.length
 
-  /**
-   * Measure brightness gradient from center to edges.
-   * Positive gradient = center brighter (absorption).
-   * Negative gradient = edges brighter (Fresnel reflection).
-   *
-   * Functional implementation using flatMap/average.
-   *
-   * @param imageData RGBA byte array
-   * @param width image width
-   * @param height image height
-   * @return centerBrightness - edgeBrightness
-   */
+  
   def brightnessGradient(
     imageData: Array[Byte],
     width: Int,
@@ -258,17 +214,7 @@ object ImageValidation:
 
   // ========== Color Analysis ==========
 
-  /**
-   * Measure R:G:B channel ratios across the entire image.
-   * Validates color rendering.
-   *
-   * Functional implementation using fold to accumulate sums.
-   *
-   * @param imageData RGBA byte array
-   * @param width image width
-   * @param height image height
-   * @return (rRatio, gRatio, bRatio) normalized to sum=1.0
-   */
+  
   def colorChannelRatio(
     imageData: Array[Byte],
     width: Int,
@@ -289,17 +235,7 @@ object ImageValidation:
 
   // ========== Background/Plane Detection ==========
 
-  /**
-   * Detect if checkered plane pattern is visible in the image.
-   * Indicates background visibility through transparency.
-   *
-   * Functional implementation using map/variance calculation.
-   *
-   * @param imageData RGBA byte array
-   * @param width image width
-   * @param height image height
-   * @return true if checkered pattern detected
-   */
+  
   def backgroundVisibility(
     imageData: Array[Byte],
     width: Int,
@@ -318,17 +254,7 @@ object ImageValidation:
       val variance = samples.map(s => (s - mean) * (s - mean)).sum / samples.length
       variance > CHECKERED_PATTERN_MIN_VARIANCE
 
-  /**
-   * Check if plane is visible in specified region of the image.
-   *
-   * Functional implementation using map/variance calculation.
-   *
-   * @param imageData RGBA byte array
-   * @param width image width
-   * @param height image height
-   * @param region "top" or "bottom"
-   * @return true if checkered pattern detected in the region
-   */
+  
   def planeVisibility(
     imageData: Array[Byte],
     width: Int,

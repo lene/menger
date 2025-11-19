@@ -4,13 +4,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import com.typesafe.scalalogging.LazyLogging
 
-/**
- * Tests for GPU buffer reuse optimization.
- *
- * Verifies that the image buffer is properly cached and reused across
- * multiple render calls with the same dimensions, providing performance
- * improvements for animations and repeated renders.
- */
+
 class BufferReuseTest extends AnyFlatSpec with Matchers with LazyLogging {
 
   "GPU buffer reuse" should "work correctly with same dimensions" in {

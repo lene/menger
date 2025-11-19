@@ -7,12 +7,7 @@ import ColorConstants.*
 import ImageMatchers.*
 import ThresholdConstants.*
 
-/**
- * Plane rendering tests.
- *
- * Tests visibility of floor and ceiling planes with
- * opaque and transparent spheres.
- */
+
 class PlaneTest extends AnyFlatSpec with Matchers with RendererFixture:
 
   // Ensure library is loaded before running tests

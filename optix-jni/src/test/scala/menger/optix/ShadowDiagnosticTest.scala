@@ -5,10 +5,7 @@ import org.scalatest.matchers.should.Matchers
 import ShadowValidation.*
 import TestUtilities.*
 
-/**
- * Diagnostic tests to understand actual shadow behavior.
- * These tests print values to help understand what's really happening.
- */
+
 class ShadowDiagnosticTest extends AnyFlatSpec with Matchers with RendererFixture:
 
   def setupShadowScene(

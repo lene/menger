@@ -9,21 +9,7 @@ import ColorConstants.*
 import ThresholdConstants.*
 import ImageMatchers.*
 
-/**
- * Integration tests for transparent sphere rendering (Beer-Lambert absorption).
- *
- * Tests alpha channel variation with IOR=1.0 (no refraction):
- * - Alpha=1.0 (fully opaque) → maximum absorption, no background
- * - Alpha=0.5 (semi-transparent) → moderate absorption, some background
- * - Alpha=0.0 (fully transparent) → no absorption, full background
- *
- * Uses refactored test utilities:
- * - RendererFixture for automatic lifecycle
- * - ColorConstants for named transparency levels
- * - ThresholdConstants for validation thresholds
- * - TestScenario for fluent configuration
- * - Custom ImageMatchers for readable assertions
- */
+
 class TransparencyTest extends AnyFlatSpec
     with Matchers
     with LazyLogging

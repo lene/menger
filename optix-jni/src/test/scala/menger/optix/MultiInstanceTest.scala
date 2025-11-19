@@ -4,12 +4,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import com.typesafe.scalalogging.LazyLogging
 
-/**
- * Tests for multi-instance OptiXRenderer support.
- *
- * These tests verify that multiple OptiXRenderer instances can coexist
- * independently without sharing state (fixed in Phase 1 of code quality improvements).
- */
+
 class MultiInstanceTest extends AnyFlatSpec with Matchers with LazyLogging {
 
   "Multiple OptiXRenderer instances" should "initialize independently" in {

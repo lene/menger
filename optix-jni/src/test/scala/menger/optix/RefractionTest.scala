@@ -8,17 +8,7 @@ import ColorConstants.*
 import ThresholdConstants.*
 import ImageMatchers.*
 
-/**
- * Integration tests for refractive sphere rendering (Snell's law + Fresnel).
- *
- * Tests IOR (index of refraction) variation:
- * - IOR=1.0 → no refraction (baseline)
- * - IOR=1.33 → water
- * - IOR=1.5 → glass
- * - IOR=2.42 → diamond
- *
- * Validates Fresnel edge brightness and refraction distortion.
- */
+
 class RefractionTest extends AnyFlatSpec
     with Matchers
     with LazyLogging

@@ -8,12 +8,7 @@ import ColorConstants.*
 import ThresholdConstants.*
 import ImageMatchers.*
 
-/**
- * Test suite for OptiX JNI bindings.
- *
- * Tests basic structure - library loading, method calls, rendering functionality,
- * edge cases, and performance benchmarking.
- */
+
 class RendererTest extends AnyFlatSpec
     with Matchers
     with LazyLogging

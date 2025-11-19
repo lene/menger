@@ -190,25 +190,22 @@ class MultipleLightsTest extends AnyFlatSpec with Matchers with RendererFixture:
 
     // Extract RGB channels from center region
     val imageData = result.get
-    var totalR = 0.0
-    var totalG = 0.0
-    var totalB = 0.0
-    var count = 0
 
     // Sample center 100x100 pixels
-    for
+    val rgbSamples = for
       y <- 250 until 350
       x <- 350 until 450
-    do
-      val idx = (y * 800 + x) * 4
-      totalR += (imageData(idx) & 0xFF) / 255.0
-      totalG += (imageData(idx + 1) & 0xFF) / 255.0
-      totalB += (imageData(idx + 2) & 0xFF) / 255.0
-      count += 1
+      idx = (y * 800 + x) * 4
+    yield
+      val r = (imageData(idx) & 0xFF) / 255.0
+      val g = (imageData(idx + 1) & 0xFF) / 255.0
+      val b = (imageData(idx + 2) & 0xFF) / 255.0
+      (r, g, b)
 
-    val avgR = totalR / count
-    val avgG = totalG / count
-    val avgB = totalB / count
+    val count = rgbSamples.length
+    val avgR = rgbSamples.map(_._1).sum / count
+    val avgG = rgbSamples.map(_._2).sum / count
+    val avgB = rgbSamples.map(_._3).sum / count
 
     // Should have both red and blue components (purple-ish)
     avgR should be > 0.1

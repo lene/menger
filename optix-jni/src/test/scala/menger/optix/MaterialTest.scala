@@ -8,14 +8,7 @@ import ColorConstants.*
 import ThresholdConstants.*
 import ImageMatchers.*
 
-/**
- * Real-world material simulation tests.
- *
- * Tests rendering of materials with realistic optical properties:
- * - Water (IOR=1.33, blue tint)
- * - Clear glass (IOR=1.5, no tint)
- * - Green glass (IOR=1.5, green tint)
- */
+
 class MaterialTest extends AnyFlatSpec
     with Matchers
     with LazyLogging

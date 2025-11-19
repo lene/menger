@@ -5,7 +5,7 @@ import org.scalatest.matchers.should.Matchers
 import org.rogach.scallop.exceptions.ScallopException
 
 class LoggingCLIOptionsSuite extends AnyFlatSpec with Matchers:
-  /** ScallopConf's onError method calls exit(), need to override it for testing */
+  
   class SafeMengerCLIOptions(args: Seq[String]) extends menger.MengerCLIOptions(args):
     @SuppressWarnings(Array("org.wartremover.warts.Throw"))
     override def onError(e: Throwable): Unit = throw e
