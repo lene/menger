@@ -1,23 +1,16 @@
-- comprehensive test suite V
-- make test suite run faster V
-- clean up the code V
-- get rid of ENABLE_OPTIX_JNI V
-- separate optix function call layer from application code V
-- revise ifs where something < 0.01 is assumed to be 0 V
-- make c++ tests less verbose V
-- remove docstrings
+- introduce overloaded JNI functions for imageSize and vector[3] and use them throughout
+- review tuple return types: (Int, Int) for positions/coordinates, (Double, Double, Double) for RGB ratios - consider named types
+- rename Boolean-returning visibility functions: backgroundVisibility -> isBackgroundVisible, planeVisibility -> isPlaneVisible (and others)
 - ensure PTX are in the right place
   > Packaged app can't find optixjni library
   > The packaged application failure is expected because it's trying to load the
   > native library from the system path rather than the bundled one. This is a known
   > packaging issue but doesn't affect the correctness of the code.
-- ray casting and tracing statistics V
 - antialiasing/adaptive super-sampling
 - --plane: default no plane, can be repeated for multiple planes
-- shadows V (caustics not yet implemented)
-- define light source(s) V
-- interactive camera positioning with mouse dragging in menger main window
+- caustics
 - on-the-fly change of image dimension with resizing of menger main window
+- fix optix cache corruption
 
 ## later
 - composites

@@ -57,6 +57,15 @@
     - Validation (max lights, malformed specs, missing parameters)
     - Edge cases (negative values, zero intensity, case sensitivity)
   - All 818 tests passing (161 optix-jni + 657 core)
+
+### Changed
+- **Code Quality Improvements** - Refactored tests for consistency and maintainability
+  - Adopted TestScenario builder pattern in GeometryTest and RayStatsTest
+  - Replaced hardcoded image dimensions (800x600, 400x300) with named constants from ThresholdConstants
+  - Converted manual renderer configuration calls to fluent TestScenario API
+  - Created CameraControlConfig case class to extract hardcoded camera control sensitivity values
+  - Fixed scalafix violation: replaced forbidden `return` statement with if/else in OptiXCameraController
+  - All 818 tests passing after refactoring
 - **Shadow Ray Tracing** - Implemented realistic hard shadows for OptiX renderer
   - Cast shadow rays from opaque surfaces to detect occlusion by geometry
   - Shadow factor darkens occluded surfaces to 0.2x ambient lighting (80% reduction)

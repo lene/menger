@@ -41,11 +41,7 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
   private def controller = KeyController(camera, dispatcher)
 
   "instantiating a client" should "work" taggedAs GdxTest in:
-    /**
-     * Running this in sbt repeatedly causes:
-     * java.lang.UnsatisfiedLinkError: Native Library /tmp/lwjgl{$USER}/.../liblwjgl.so already loaded in another classloader
-     * So only run this with "sbt test"
-     */
+    
     assume(loadingLWJGLSucceeds)
     loadingLWJGLSucceeds should be (true)
 

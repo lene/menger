@@ -10,10 +10,7 @@ trait FractionalLevelObject:
   def level: Float
   def material: Material
   
-  /** Calculate alpha based on fractional part of level:
-   * - When fractional part = 0: alpha = attr.color.a (material's full opacity)
-   * - When fractional part → 1: alpha → 0 (fully transparent)
-   */
+  
   protected[objects] def calculateAlpha(): Float = {
     val fractionalPart = level - level.floor
     Option(material.get(ColorAttribute.Diffuse))

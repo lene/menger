@@ -59,7 +59,7 @@ case object Vector:
     Vector[dim](Array.fill(d.value)(0f)*)
 
   def unit[dim <: Int & Singleton](direction: Int)(implicit d: ValueOf[dim]): Vector[dim] =
-    /** create a unit vector in the ith direction */
+    
     require(0 <= direction && direction < d.value)
     val vec = Array.fill(d.value)(0f)
     vec(direction) = 1

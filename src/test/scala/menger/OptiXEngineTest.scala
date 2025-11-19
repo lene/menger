@@ -6,12 +6,7 @@ import menger.engines.OptiXEngine
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-/**
- * Tests for OptiXEngine.
- *
- * Note: Full lifecycle tests require LibGDX application context and OptiX runtime.
- * These tests verify code structure, parameters, and basic logic without full rendering.
- */
+
 class OptiXEngineTest extends AnyFlatSpec with Matchers:
 
   // Dummy rotation/projection parameters for testing

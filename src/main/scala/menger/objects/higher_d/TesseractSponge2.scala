@@ -3,13 +3,7 @@ package menger.objects.higher_d
 import com.typesafe.scalalogging.LazyLogging
 import menger.objects.Vector
 
-/**
- * Represents a 4D Menger sponge based on a tesseract.
- * Each level is constructed by subdividing each face of the previous level into 9 smaller squares,
- * and replacing the center one with faces flipped perpendicular to it.
- * @param level The recursion level (0 = regular tesseract)
- * @param size The size of the bounding tesseract
- */
+
 class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) with LazyLogging:
 
   private type CornerMap = Map[String, Vector[4]]

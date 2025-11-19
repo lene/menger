@@ -81,3 +81,4 @@ optix-jni/NVIDIA-OptiX-SDK-*.sh
 
 # OptiX JNI standalone test binary
 optix-jni/src/main/native/standalone_test
+shadow_alpha_*

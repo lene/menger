@@ -16,6 +16,7 @@ import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
 import menger.input.OptiXCameraController
+import menger.optix.ImageSize
 import menger.optix.OptiXRenderer
 
 @SuppressWarnings(Array("org.wartremover.warts.Throw"))
@@ -91,12 +92,13 @@ class OptiXEngine(
     val dimensionsChanged = width != lastWidth || height != lastHeight
     if dimensionsChanged then
       logger.info(s"[OptiXEngine] render: dimensions changed from ${lastWidth}x${lastHeight} to ${width}x${height}, updating camera")
-      optiXResources.updateCameraAspectRatio(width, height)
+      optiXResources.updateCameraAspectRatio(ImageSize(width, height))
       renderResources.markNeedsRender()
 
     // Only render the scene if something changed
     if renderResources.needsRender then
-      val rgbaBytes = if enableStats then renderWithStats(width, height) else optiXResources.renderScene(width, height)
+      val size = ImageSize(width, height)
+      val rgbaBytes = if enableStats then renderWithStats(width, height) else optiXResources.renderScene(size)
       renderResources.renderToScreen(rgbaBytes, width, height)
     else
       // Just redraw the existing texture without re-rendering
@@ -112,7 +114,7 @@ class OptiXEngine(
   protected def currentSaveName: Option[String] = saveName
 
   private def renderWithStats(width: Int, height: Int): Array[Byte] =
-    val result = optiXResources.renderSceneWithStats(width, height)
+    val result = optiXResources.renderSceneWithStats(ImageSize(width, height))
     val stats = result.stats
     logger.info(
       s"Ray stats: primary=${stats.primaryRays} total=${stats.totalRays} " +
@@ -124,7 +126,7 @@ class OptiXEngine(
 
   override def resize(width: Int, height: Int): Unit =
     logger.info(s"[OptiXEngine] resize event: ${width}x${height}")
-    optiXResources.updateCameraAspectRatio(width, height)
+    optiXResources.updateCameraAspectRatio(ImageSize(width, height))
     renderResources.markNeedsRender()
     Gdx.graphics.requestRendering()
     logger.info("[OptiXEngine] resize complete")

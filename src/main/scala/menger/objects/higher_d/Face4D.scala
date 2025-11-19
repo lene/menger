@@ -5,7 +5,7 @@ import scala.annotation.targetName
 import menger.Const
 import menger.objects.Vector
 
-/** A square in 4D space, parallel to any two axes, defined by 4 vertices */
+
 case class Face4D(a: Vector[4], b: Vector[4], c: Vector[4], d: Vector[4]):
 
   lazy val normals: Seq[Vector[4]] = getNormals
@@ -62,17 +62,13 @@ case class Face4D(a: Vector[4], b: Vector[4], c: Vector[4], d: Vector[4]):
       Face4D(edge.v0, edge.v1, newOpposites.last, newOpposites.head)
     }
 
-/** normals point in the two directions orthogonal to the edges */
+
 def normalDirections(edgeVectors: Seq[Vector[4]]): Seq[Vector[4]] =
   val edgeDirectionIndices = edgeVectors.toSet.flatMap(setIndices)
   val normalIndices = (0 until Face4D.numVertices).toSet.diff(edgeDirectionIndices)
   normalIndices.map(Vector.unit[4]).toSeq
 
-/**
- *  signs depend on the directions the first two edges are traversed - if the first edge is
- *  traversed from - to +, the first normal has positive sign, else negative. Analogous for the
- *  second edge and the second normal.
- */
+
 def normalSigns(edgeVectors: Seq[Vector[4]]): Seq[Float] =
   val firstTwoEdges = edgeVectors.take(2)
   val sum = firstTwoEdges.reduce((v1, v2) => v1 + v2).toIndexedSeq
