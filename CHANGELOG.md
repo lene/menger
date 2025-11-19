@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Added
+- **Multi-Light CLI Support** - Implemented CLI interface for multiple light sources
+  - Added `--light` flag (repeatable, max 8 lights) with format `<type>:x,y,z[:intensity[:color]]`
+  - Support for directional and point lights with configurable color and intensity
+  - Light types: `directional` (parallel rays, sun-like) and `point` (radiates with inverse-square falloff)
+  - Case-insensitive light type parsing (DIRECTIONAL, Point, etc.)
+  - Color formats: hex (ffffff) or RGB (255,0,0)
+  - Support for omitting intensity with :: separator (e.g., `directional:x,y,z::ffffff`)
+  - Added LightSpec case class and LightType enum to MengerCLIOptions
+  - Added lightSpecConverter with comprehensive error handling using Either pattern
+  - Validation: requires --optix flag, enforces MAX_LIGHTS=8 limit
+  - Backward compatibility: default directional light when no --light specified
+  - Integration: Main.scala → OptiXEngine → OptiXResources → OptiXRenderer
+  - Added convertLightSpec() helper to convert CLI specs to JNI Light objects
+  - Added LightCLIOptionsSuite with 21 comprehensive tests covering:
+    - Parsing single/multiple lights with all parameter combinations
+    - Validation (max lights, malformed specs, missing parameters)
+    - Edge cases (negative values, zero intensity, case sensitivity)
+  - All 818 tests passing (161 optix-jni + 657 core)
+
 ### Fixed
 - **Shadow Test Suite** - Fixed 3 failing shadow tests using reference-based region detection
   - **Problem**: `detectDarkestRegion()` found different regions for each alpha value, making comparisons meaningless
