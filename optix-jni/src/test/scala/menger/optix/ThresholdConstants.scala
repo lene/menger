@@ -59,9 +59,9 @@ object ThresholdConstants:
 
   // ========== Test Image Sizes ==========
 
-  val SMALL_IMAGE_SIZE = (10, 10)      // Quick smoke tests
-  val TEST_IMAGE_SIZE = (400, 300)     // Most integration tests (4:3 aspect)
-  val STANDARD_IMAGE_SIZE = (800, 600) // Visual validation (4:3 aspect)
+  val SMALL_IMAGE_SIZE = ImageSize(10, 10)      // Quick smoke tests
+  val TEST_IMAGE_SIZE = ImageSize(400, 300)     // Most integration tests (4:3 aspect)
+  val STANDARD_IMAGE_SIZE = ImageSize(800, 600) // Visual validation (4:3 aspect)
 
   // ========== Shadow Detection Grid Sizes ==========
 

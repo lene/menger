@@ -3,6 +3,8 @@
 - reduce test image sizes
 - remove docstrings
 - remove var usage
+- review tuple return types: (Int, Int) for positions/coordinates, (Double, Double, Double) for RGB ratios - consider named types
+- rename Boolean-returning visibility functions: backgroundVisibility -> isBackgroundVisible, planeVisibility -> isPlaneVisible (and others)
 - ensure PTX are in the right place
   > Packaged app can't find optixjni library
   > The packaged application failure is expected because it's trying to load the

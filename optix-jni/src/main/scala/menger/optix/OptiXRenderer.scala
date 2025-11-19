@@ -54,6 +54,10 @@ object Light:
       intensity = intensity
     )
 
+case class ImageSize(width: Int, height: Int):
+  require(width > 0, s"width must be positive, got $width")
+  require(height > 0, s"height must be positive, got $height")
+
 // Ray statistics from OptiX rendering
 case class RayStats(
   totalRays: Long,
@@ -130,7 +134,10 @@ class OptiXRenderer extends LazyLogging:
   
   @native def updateImageDimensions(width: Int, height: Int): Unit
 
-  
+  def updateImageDimensions(size: ImageSize): Unit =
+    updateImageDimensions(size.width, size.height)
+
+
   @native def setLight(direction: Array[Float], intensity: Float): Unit
 
   
@@ -148,9 +155,15 @@ class OptiXRenderer extends LazyLogging:
   
   @native def renderWithStats(width: Int, height: Int): RenderResult
 
-  
+  def renderWithStats(size: ImageSize): RenderResult =
+    renderWithStats(size.width, size.height)
+
+
   def render(width: Int, height: Int): Option[Array[Byte]] =
     Option(renderWithStats(width, height)).map(_.image)
+
+  def render(size: ImageSize): Option[Array[Byte]] =
+    render(size.width, size.height)
 
   // Idempotent initialization - safe to call multiple times
   def initialize(): Boolean =

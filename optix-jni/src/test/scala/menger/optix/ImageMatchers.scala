@@ -36,6 +36,9 @@ object ImageMatchers:
       )
     }
 
+  def haveValidRGBASize(size: ImageSize): Matcher[Array[Byte]] =
+    haveValidRGBASize(size.width, size.height)
+
   // ========== Sphere Center Matchers ==========
 
   
@@ -106,11 +109,17 @@ object ImageMatchers:
       )
     }
 
-  
+  def haveSmallSphereArea(size: ImageSize): Matcher[Array[Byte]] =
+    haveSmallSphereArea(size.width, size.height)
+
+
   def haveMediumSphereArea(width: Int, height: Int): Matcher[Array[Byte]] =
     haveSphereAreaBetween(MEDIUM_SPHERE_MIN_AREA, MEDIUM_SPHERE_MAX_AREA, width, height)
 
-  
+  def haveMediumSphereArea(size: ImageSize): Matcher[Array[Byte]] =
+    haveMediumSphereArea(size.width, size.height)
+
+
   def haveLargeSphereArea(width: Int, height: Int): Matcher[Array[Byte]] =
     Matcher { imageData =>
       val area = ImageValidation.spherePixelArea(imageData, width, height)
@@ -124,6 +133,9 @@ object ImageMatchers:
         height
       )
     }
+
+  def haveLargeSphereArea(size: ImageSize): Matcher[Array[Byte]] =
+    haveLargeSphereArea(size.width, size.height)
 
   // ========== Color Matchers ==========
 
@@ -156,19 +168,31 @@ object ImageMatchers:
   def beRedDominant(width: Int, height: Int, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
     haveDominantChannel("r", width, height, tolerance)
 
-  
+  def beRedDominant(size: ImageSize, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
+    beRedDominant(size.width, size.height, tolerance)
+
+
   def beGreenDominant(width: Int, height: Int, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
     haveDominantChannel("g", width, height, tolerance)
 
-  
+  def beGreenDominant(size: ImageSize, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
+    beGreenDominant(size.width, size.height, tolerance)
+
+
   def beBlueDominant(width: Int, height: Int, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
     haveDominantChannel("b", width, height, tolerance)
 
-  
+  def beBlueDominant(size: ImageSize, tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE): Matcher[Array[Byte]] =
+    beBlueDominant(size.width, size.height, tolerance)
+
+
   def beGrayscale(width: Int, height: Int): Matcher[Array[Byte]] =
     haveDominantChannel("gray", width, height)
 
-  
+  def beGrayscale(size: ImageSize): Matcher[Array[Byte]] =
+    beGrayscale(size.width, size.height)
+
+
   def haveColorRatio(
     expectedR: Double,
     expectedG: Double,
@@ -218,17 +242,26 @@ object ImageMatchers:
   def showGlassRefraction(width: Int, height: Int): Matcher[Array[Byte]] =
     haveBrightnessStdDevGreaterThan(MIN_GLASS_REFRACTION_STDDEV, width, height)
 
-  
+  def showGlassRefraction(size: ImageSize): Matcher[Array[Byte]] =
+    showGlassRefraction(size.width, size.height)
+
+
   def showWaterRefraction(width: Int, height: Int): Matcher[Array[Byte]] =
     haveBrightnessStdDevGreaterThan(MIN_WATER_REFRACTION_STDDEV, width, height)
 
-  
+  def showWaterRefraction(size: ImageSize): Matcher[Array[Byte]] =
+    showWaterRefraction(size.width, size.height)
+
+
   def showDiamondRefraction(width: Int, height: Int): Matcher[Array[Byte]] =
     haveBrightnessStdDevGreaterThan(MIN_DIAMOND_REFRACTION_STDDEV, width, height)
 
+  def showDiamondRefraction(size: ImageSize): Matcher[Array[Byte]] =
+    showDiamondRefraction(size.width, size.height)
+
   // ========== Background/Plane Visibility Matchers ==========
 
-  
+
   def showBackground(width: Int, height: Int): Matcher[Array[Byte]] =
     Matcher { imageData =>
       val visible = ImageValidation.backgroundVisibility(imageData, width, height)
@@ -242,7 +275,10 @@ object ImageMatchers:
       )
     }
 
-  
+  def showBackground(size: ImageSize): Matcher[Array[Byte]] =
+    showBackground(size.width, size.height)
+
+
   def showPlaneInRegion(
     region: String,
     width: Int,

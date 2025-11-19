@@ -27,28 +27,40 @@ object ShadowValidation:
       val y0 = height - regionHeight
       Region(x0, y0, x0 + regionWidth, y0 + regionHeight)
 
-    
+    def bottomCenter(size: ImageSize, fraction: Double = 0.25): Region =
+      bottomCenter(size.width, size.height, fraction)
+
+
     def topCenter(width: Int, height: Int, fraction: Double = 0.25): Region =
       val regionWidth = (width * fraction).toInt
       val regionHeight = (height * fraction).toInt
       val x0 = (width - regionWidth) / 2
       Region(x0, 0, x0 + regionWidth, regionHeight)
 
-    
+    def topCenter(size: ImageSize, fraction: Double = 0.25): Region =
+      topCenter(size.width, size.height, fraction)
+
+
     def leftSide(width: Int, height: Int, fraction: Double = 0.25): Region =
       val regionWidth = (width * fraction).toInt
       val y0 = height / 4
       val y1 = 3 * height / 4
       Region(0, y0, regionWidth, y1)
 
-    
+    def leftSide(size: ImageSize, fraction: Double = 0.25): Region =
+      leftSide(size.width, size.height, fraction)
+
+
     def rightSide(width: Int, height: Int, fraction: Double = 0.25): Region =
       val regionWidth = (width * fraction).toInt
       val y0 = height / 4
       val y1 = 3 * height / 4
       Region(width - regionWidth, y0, width, y1)
 
-  
+    def rightSide(size: ImageSize, fraction: Double = 0.25): Region =
+      rightSide(size.width, size.height, fraction)
+
+
   def regionBrightness(
     imageData: Array[Byte],
     width: Int,
@@ -63,7 +75,10 @@ object ShadowValidation:
     if samples.isEmpty then 0.0
     else samples.sum.toDouble / samples.length
 
-  
+  def regionBrightness(imageData: Array[Byte], size: ImageSize, region: Region): Double =
+    regionBrightness(imageData, size.width, size.height, region)
+
+
   def brightnessContrast(
     imageData: Array[Byte],
     width: Int,
@@ -75,7 +90,10 @@ object ShadowValidation:
     val b2 = regionBrightness(imageData, width, height, region2)
     if b2 == 0.0 then 0.0 else b1 / b2
 
-  
+  def brightnessContrast(imageData: Array[Byte], size: ImageSize, region1: Region, region2: Region): Double =
+    brightnessContrast(imageData, size.width, size.height, region1, region2)
+
+
   def detectDarkestRegion(
     imageData: Array[Byte],
     width: Int,
@@ -98,7 +116,10 @@ object ShadowValidation:
 
     regions.minBy(region => regionBrightness(imageData, width, height, region))
 
-  
+  def detectDarkestRegion(imageData: Array[Byte], size: ImageSize, gridSize: Int = 5): Region =
+    detectDarkestRegion(imageData, size.width, size.height, gridSize)
+
+
   def expectedShadowPosition(
     sphereX: Float,
     sphereY: Float,
