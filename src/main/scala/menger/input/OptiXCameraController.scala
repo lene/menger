@@ -10,6 +10,30 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.OptiXRenderResources
 import menger.OptiXResources
 
+/** Configuration for camera controller sensitivity and limits.
+  *
+  * @param orbitSensitivity Rotation speed in degrees per pixel
+  * @param panSensitivity Translation speed in world units per pixel
+  * @param zoomSensitivity Zoom speed as distance multiplier per scroll unit
+  * @param minDistance Minimum allowed camera distance from lookAt point
+  * @param maxDistance Maximum allowed camera distance from lookAt point
+  * @param minElevation Minimum elevation angle in degrees (prevents gimbal lock)
+  * @param maxElevation Maximum elevation angle in degrees (prevents gimbal lock)
+  */
+case class CameraControlConfig(
+  orbitSensitivity: Float = 0.3f,
+  panSensitivity: Float = 0.005f,
+  zoomSensitivity: Float = 0.1f,
+  minDistance: Float = 0.5f,
+  maxDistance: Float = 20.0f,
+  minElevation: Float = -89.0f,
+  maxElevation: Float = 89.0f
+)
+
+object CameraControlConfig:
+  /** Default configuration with standard sensitivity values */
+  def default: CameraControlConfig = CameraControlConfig()
+
 /** Mouse-based camera controller for OptiX raytracing window.
   *
   * Provides interactive camera control independent from LibGDX window:
@@ -19,13 +43,16 @@ import menger.OptiXResources
   *
   * Camera state is maintained in spherical coordinates (azimuth, elevation, distance)
   * to enable smooth orbit behavior and prevent gimbal lock.
+  *
+  * @param config Camera control configuration (sensitivity, limits)
   */
 class OptiXCameraController(
   optiXResources: OptiXResources,
   renderResources: OptiXRenderResources,
   initialEye: Vector3,
   initialLookAt: Vector3,
-  initialUp: Vector3
+  initialUp: Vector3,
+  config: CameraControlConfig = CameraControlConfig.default
 ) extends InputAdapter with LazyLogging:
 
   // Camera state - stored in both Cartesian and spherical coordinates
@@ -60,15 +87,6 @@ class OptiXCameraController(
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var dragButton: Int = -1
-
-  // Sensitivity settings
-  private val orbitSensitivity = 0.3f      // degrees per pixel
-  private val panSensitivity = 0.005f      // world units per pixel
-  private val zoomSensitivity = 0.1f       // distance multiplier per scroll unit
-  private val minDistance = 0.5f           // minimum zoom distance
-  private val maxDistance = 20.0f          // maximum zoom distance
-  private val minElevation = -89.0f        // prevent gimbal lock
-  private val maxElevation = 89.0f         // prevent gimbal lock
 
   // Compute initial azimuth angle from eye and lookAt positions
   private def computeInitialAzimuth(): Float =
@@ -117,11 +135,11 @@ class OptiXCameraController(
   // Orbit camera: rotate around lookAt point based on mouse delta
   private def handleOrbit(deltaX: Int, deltaY: Int): Unit =
     // Update spherical coordinates
-    azimuth += deltaX * orbitSensitivity
-    elevation -= deltaY * orbitSensitivity  // Invert Y for natural feel
+    azimuth += deltaX * config.orbitSensitivity
+    elevation -= deltaY * config.orbitSensitivity  // Invert Y for natural feel
 
     // Clamp elevation to prevent gimbal lock
-    elevation = elevation.max(minElevation).min(maxElevation)
+    elevation = elevation.max(config.minElevation).min(config.maxElevation)
 
     // Convert spherical to Cartesian and update eye position
     updateEyeFromSpherical()
@@ -135,7 +153,7 @@ class OptiXCameraController(
     val camUp = right.cpy().crs(forward).nor()
 
     // Scale pan delta by distance for natural feel
-    val panScale = distance * panSensitivity
+    val panScale = distance * config.panSensitivity
 
     // Translate both eye and lookAt
     val deltaRight = right.scl(deltaX * panScale)
@@ -149,11 +167,11 @@ class OptiXCameraController(
   // Zoom camera: move eye closer/farther from lookAt along view direction
   private def handleZoom(scrollAmount: Float): Unit =
     // Update distance with exponential scaling for smooth zoom
-    val zoomFactor = 1.0f + (scrollAmount * zoomSensitivity)
+    val zoomFactor = 1.0f + (scrollAmount * config.zoomSensitivity)
     distance *= zoomFactor
 
     // Clamp distance to prevent camera entering geometry or going too far
-    distance = distance.max(minDistance).min(maxDistance)
+    distance = distance.max(config.minDistance).min(config.maxDistance)
 
     // Update eye position from new distance
     updateEyeFromSpherical()
