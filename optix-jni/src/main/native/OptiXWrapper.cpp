@@ -442,9 +442,14 @@ void OptiXWrapper::buildPipeline() {
 
 void OptiXWrapper::setLights(const Light* lights, int count) {
     if (count < 0 || count > RayTracingConstants::MAX_LIGHTS) {
-        std::cerr << "[OptiX] setLights: count " << count << " out of range [0, "
-                  << RayTracingConstants::MAX_LIGHTS << "]" << std::endl;
-        return;
+        throw std::invalid_argument(
+            "Light count " + std::to_string(count) +
+            " out of range [0, " + std::to_string(RayTracingConstants::MAX_LIGHTS) + "]"
+        );
+    }
+
+    if (lights == nullptr && count > 0) {
+        throw std::invalid_argument("Light array is null but count is " + std::to_string(count));
     }
 
     // Copy lights array

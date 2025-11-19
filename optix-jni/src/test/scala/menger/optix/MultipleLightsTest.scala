@@ -299,3 +299,47 @@ class MultipleLightsTest extends AnyFlatSpec with Matchers with RendererFixture:
     // Should render with two lights from above
     val result = renderer.render(800, 600)
     result.isDefined shouldBe true
+
+  // Category 7: Error Handling
+
+  "setLights" should "throw IllegalArgumentException when exceeding MAX_LIGHTS" in:
+    // MAX_LIGHTS is 8, try to set 9 lights
+    val tooManyLights = (0 until 9).map: i =>
+      Light.directional(Array(0.0f, -1.0f, 0.0f))
+    .toArray
+
+    val exception = intercept[IllegalArgumentException]:
+      renderer.setLights(tooManyLights)
+
+    // Verify error message is clear and mentions the limit
+    exception.getMessage should include("9")
+    exception.getMessage should include("8")
+    exception.getMessage should include("out of range")
+
+  it should "throw IllegalArgumentException with clear message for count 10" in:
+    val tooManyLights = (0 until 10).map: i =>
+      Light.directional(Array(0.0f, -1.0f, 0.0f))
+    .toArray
+
+    val exception = intercept[IllegalArgumentException]:
+      renderer.setLights(tooManyLights)
+
+    exception.getMessage should include("10")
+    exception.getMessage should include("out of range")
+
+  it should "succeed with exactly MAX_LIGHTS (8)" in:
+    // This should NOT throw
+    val exactlyMaxLights = (0 until 8).map: i =>
+      Light.directional(Array(0.0f, -1.0f, 0.0f))
+    .toArray
+
+    noException should be thrownBy:
+      renderer.setLights(exactlyMaxLights)
+
+    // And rendering should work
+    TestScenario.default()
+      .withSphereColor(ColorConstants.OPAQUE_LIGHT_GRAY)
+      .applyTo(renderer)
+
+    val result = renderer.render(400, 300)
+    result.isDefined shouldBe true

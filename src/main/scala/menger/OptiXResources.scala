@@ -70,8 +70,11 @@ class OptiXResources(
     lights match
       case Some(lightSpecs) =>
         val lightArray = lightSpecs.map(convertLightSpec).toArray
-        renderer.setLights(lightArray)
-        logger.debug(s"Configured ${lightArray.length} light(s) from CLI specification")
+        Try(renderer.setLights(lightArray)) match
+          case Success(_) =>
+            logger.debug(s"Configured ${lightArray.length} light(s) from CLI specification")
+          case Failure(exception) =>
+            errorExit(s"Failed to configure lights: ${exception.getMessage}")
       case None =>
         // Default single directional light (backward compatibility)
         val lightDirection = Array(-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)

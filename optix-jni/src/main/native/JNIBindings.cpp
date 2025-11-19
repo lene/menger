@@ -183,16 +183,21 @@ JNIEXPORT void JNICALL Java_menger_optix_OptiXRenderer_setLights(
         }
 
         jsize count = env->GetArrayLength(lightsArray);
-        if (count > RayTracingConstants::MAX_LIGHTS) {
-            std::cerr << "[JNI] setLights: too many lights (" << count << "), max is "
-                      << RayTracingConstants::MAX_LIGHTS << std::endl;
+
+        // Validate count BEFORE creating stack array to prevent buffer overflow
+        if (count < 0 || count > RayTracingConstants::MAX_LIGHTS) {
+            jclass exception_class = env->FindClass("java/lang/IllegalArgumentException");
+            std::string message = "Light count " + std::to_string(count) +
+                                " out of range [0, " + std::to_string(RayTracingConstants::MAX_LIGHTS) + "]";
+            env->ThrowNew(exception_class, message.c_str());
             return;
         }
 
         // Find Light class and field IDs
         jclass lightClass = env->FindClass("menger/optix/Light");
         if (lightClass == nullptr) {
-            std::cerr << "[JNI] Failed to find Light class" << std::endl;
+            jclass exception_class = env->FindClass("java/lang/RuntimeException");
+            env->ThrowNew(exception_class, "Failed to find Light class");
             return;
         }
 
@@ -204,7 +209,8 @@ JNIEXPORT void JNICALL Java_menger_optix_OptiXRenderer_setLights(
 
         if (typeField == nullptr || directionField == nullptr || positionField == nullptr ||
             colorField == nullptr || intensityField == nullptr) {
-            std::cerr << "[JNI] Failed to find Light fields" << std::endl;
+            jclass exception_class = env->FindClass("java/lang/RuntimeException");
+            env->ThrowNew(exception_class, "Failed to find Light fields");
             return;
         }
 
@@ -241,11 +247,18 @@ JNIEXPORT void JNICALL Java_menger_optix_OptiXRenderer_setLights(
             env->DeleteLocalRef(lightObj);
         }
 
-        // Call C++ method
+        // Call C++ method (may throw std::invalid_argument)
         wrapper->setLights(lights, count);
 
+    } catch (const std::invalid_argument& e) {
+        // Convert C++ validation exception to Java IllegalArgumentException
+        jclass exception_class = env->FindClass("java/lang/IllegalArgumentException");
+        env->ThrowNew(exception_class, e.what());
+
     } catch (const std::exception& e) {
-        std::cerr << "[JNI] Error in setLights: " << e.what() << std::endl;
+        // Convert other C++ exceptions to Java RuntimeException
+        jclass exception_class = env->FindClass("java/lang/RuntimeException");
+        env->ThrowNew(exception_class, e.what());
     }
 }
 
