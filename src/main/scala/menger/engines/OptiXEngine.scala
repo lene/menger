@@ -16,7 +16,7 @@ import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
 import menger.common.ImageSize
-import menger.common.{Vector => CommonVector}
+import menger.common.Vector
 import menger.input.OptiXCameraController
 import menger.optix.OptiXRenderer
 
@@ -49,7 +49,7 @@ class OptiXEngine(
 ) with TimeoutSupport with LazyLogging with SavesScreenshots:
 
   private val geometryGenerator: Try[OptiXRenderer => Unit] = spongeType match {
-    case "sphere" => Try(_.setSphere(CommonVector[3](center.x, center.y, center.z), sphereRadius))
+    case "sphere" => Try(_.setSphere(Vector[3](center.x, center.y, center.z), sphereRadius))
     case _ => Failure(UnsupportedOperationException(spongeType))
   }
   private lazy val optiXResources: OptiXResources =

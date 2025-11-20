@@ -13,8 +13,8 @@ import menger.LightSpec
 import menger.LightType
 import menger.PlaneSpec
 import menger.common.ImageSize
-import menger.common.{Light => CommonLight}
-import menger.common.{Vector => CommonVector}
+import menger.common.Light
+import menger.common.Vector
 import menger.optix.OptiXRenderer
 
 class OptiXResources(
@@ -61,9 +61,9 @@ class OptiXResources(
     configurePlane()
 
   private def createCamera(): Unit =
-    val eye = CommonVector[3](cameraPos.x, cameraPos.y, cameraPos.z)
-    val lookAt = CommonVector[3](cameraLookat.x, cameraLookat.y, cameraLookat.z)
-    val up = CommonVector[3](cameraUp.x, cameraUp.y, cameraUp.z)
+    val eye = Vector[3](cameraPos.x, cameraPos.y, cameraPos.z)
+    val lookAt = Vector[3](cameraLookat.x, cameraLookat.y, cameraLookat.z)
+    val up = Vector[3](cameraUp.x, cameraUp.y, cameraUp.z)
     val horizontalFov = 45f
     renderer.setCamera(eye, lookAt, up, horizontalFovDegrees = horizontalFov)
     logger.debug(s"Configured camera: eye=(${eye(0)},${eye(1)},${eye(2)}), lookAt=(${lookAt(0)},${lookAt(1)},${lookAt(2)}), up=(${up(0)},${up(1)},${up(2)}), horizontalFOV=$horizontalFov")
@@ -79,18 +79,18 @@ class OptiXResources(
             errorExit(s"Failed to configure lights: ${exception.getMessage}")
       case None =>
         // Default single directional light (backward compatibility)
-        val lightDirection = CommonVector[3](-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
+        val lightDirection = Vector[3](-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
         val lightIntensity = 1.0f
         renderer.setLight(lightDirection, lightIntensity)
         logger.debug(s"Configured default light: direction=(${lightDirection(0)},${lightDirection(1)},${lightDirection(2)}), intensity=$lightIntensity")
 
-  private def convertLightSpec(spec: LightSpec): CommonLight =
-    val position = menger.common.Vector[3](spec.position.x, spec.position.y, spec.position.z)
-    val color = menger.common.Vector[3](spec.color.r, spec.color.g, spec.color.b)
+  private def convertLightSpec(spec: LightSpec): Light =
+    val position = Vector[3](spec.position.x, spec.position.y, spec.position.z)
+    val color = Vector[3](spec.color.r, spec.color.g, spec.color.b)
 
     spec.lightType match
-      case LightType.DIRECTIONAL => CommonLight.Directional(position, color, spec.intensity)
-      case LightType.POINT => CommonLight.Point(position, color, spec.intensity)
+      case LightType.DIRECTIONAL => Light.Directional(position, color, spec.intensity)
+      case LightType.POINT => Light.Point(position, color, spec.intensity)
 
   private def configurePlane(): Unit =
     val axisInt = planeSpec.axis match
@@ -128,9 +128,9 @@ class OptiXResources(
     renderer.renderWithStats(size)
 
   def updateCamera(eye: Vector3, lookAt: Vector3, up: Vector3): Unit =
-    val eyeVec = CommonVector[3](eye.x, eye.y, eye.z)
-    val lookAtVec = CommonVector[3](lookAt.x, lookAt.y, lookAt.z)
-    val upVec = CommonVector[3](up.x, up.y, up.z)
+    val eyeVec = Vector[3](eye.x, eye.y, eye.z)
+    val lookAtVec = Vector[3](lookAt.x, lookAt.y, lookAt.z)
+    val upVec = Vector[3](up.x, up.y, up.z)
     val horizontalFov = 45f
     renderer.setCamera(eyeVec, lookAtVec, upVec, horizontalFovDegrees = horizontalFov)
     logger.debug(s"Updated camera: eye=(${eyeVec(0)},${eyeVec(1)},${eyeVec(2)}), lookAt=(${lookAtVec(0)},${lookAtVec(1)},${lookAtVec(2)}), up=(${upVec(0)},${upVec(1)},${upVec(2)})")
@@ -141,9 +141,9 @@ class OptiXResources(
     // Update cached image dimensions BEFORE calling setCamera
     renderer.updateImageDimensions(size)
 
-    val eye = CommonVector[3](cameraPos.x, cameraPos.y, cameraPos.z)
-    val lookAt = CommonVector[3](cameraLookat.x, cameraLookat.y, cameraLookat.z)
-    val up = CommonVector[3](cameraUp.x, cameraUp.y, cameraUp.z)
+    val eye = Vector[3](cameraPos.x, cameraPos.y, cameraPos.z)
+    val lookAt = Vector[3](cameraLookat.x, cameraLookat.y, cameraLookat.z)
+    val up = Vector[3](cameraUp.x, cameraUp.y, cameraUp.z)
 
     renderer.setCamera(eye, lookAt, up, horizontalFovDegrees = horizontalFov)
 

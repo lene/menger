@@ -25,6 +25,9 @@ include:
 # scalafix in pre-push hooks and semgrep-sast job.
 code_quality:
   allow_failure: true
+  image: docker:latest
+  services:
+    - docker:dind
 
 # This job installs sbt by itself. It is somewhat slower than the ones based on scala-sbt below.
 # Tests installation from minimal Debian/Ubuntu base images (without CUDA/OptiX).
