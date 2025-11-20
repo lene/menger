@@ -530,7 +530,7 @@ class RendererTest extends AnyFlatSpec
     isBackground should be (true)
 
   "Refraction and absorption" should "render with all optical effects combined" in:
-    val (width, height) = (800, 600)
+    val size = ThresholdConstants.STANDARD_IMAGE_SIZE
 
     TestScenario.default()
       .withSphereColor(0.5f, 1.0f, 0.5f, 0.8f)  // Green-tinted glass
@@ -541,13 +541,13 @@ class RendererTest extends AnyFlatSpec
 
     renderer.setScale(1.0f)
 
-    val imageData = renderer.render(width, height).get
-    imageData.length shouldBe ImageValidation.imageByteSize(ImageSize(width, height))
+    val imageData = renderer.render(size).get
+    imageData.length shouldBe ImageValidation.imageByteSize(size)
 
     // Check variation (refraction, absorption, reflection)
-    val centerIdx = height / 2 * width + width / 2
-    val topIdx = height / 4 * width + width / 2
-    val bottomIdx = 3 * height / 4 * width + width / 2
+    val centerIdx = size.height / 2 * size.width + size.width / 2
+    val topIdx = size.height / 4 * size.width + size.width / 2
+    val bottomIdx = 3 * size.height / 4 * size.width + size.width / 2
 
     val centerR = imageData(centerIdx * 4) & 0xFF
     val topR = imageData(topIdx * 4) & 0xFF
@@ -556,6 +556,8 @@ class RendererTest extends AnyFlatSpec
     (centerR != topR || topR != bottomR) shouldBe true
 
   it should "render small sphere with refraction" in:
+    val size = ThresholdConstants.STANDARD_IMAGE_SIZE
+
     TestScenario.default()
       .withSphereRadius(0.5f)
       .withIOR(1.5f)
@@ -564,5 +566,5 @@ class RendererTest extends AnyFlatSpec
 
     renderer.setScale(1.0f)
 
-    val imageData = renderer.render(800, 600).get
-    imageData.length shouldBe 800 * 600 * 4
+    val imageData = renderer.render(size).get
+    imageData.length shouldBe ImageValidation.imageByteSize(size)

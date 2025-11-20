@@ -12,6 +12,7 @@ import menger.Axis
 import menger.LightSpec
 import menger.LightType
 import menger.PlaneSpec
+import menger.optix.ImageSize
 import menger.optix.Light
 import menger.optix.OptiXRenderer
 
@@ -124,14 +125,14 @@ class OptiXResources(
     renderer.setShadows(enabled)
     logger.debug(s"Configured shadow rays: enabled=$enabled")
 
-  def renderScene(width: Int, height: Int): Array[Byte] =
-    logger.debug(s"[OptiXResources] renderScene: rendering at ${width}x${height}")
-    renderer.render(width, height).getOrElse:
+  def renderScene(size: ImageSize): Array[Byte] =
+    logger.debug(s"[OptiXResources] renderScene: rendering at ${size.width}x${size.height}")
+    renderer.render(size).getOrElse:
       logger.error("OptiX rendering failed - returned None")
       Array.emptyByteArray
 
-  def renderSceneWithStats(width: Int, height: Int): menger.optix.RenderResult =
-    renderer.renderWithStats(width, height)
+  def renderSceneWithStats(size: ImageSize): menger.optix.RenderResult =
+    renderer.renderWithStats(size)
 
   def updateCamera(eye: Vector3, lookAt: Vector3, up: Vector3): Unit =
     val eyeArr = Array(eye.x, eye.y, eye.z)
@@ -141,11 +142,11 @@ class OptiXResources(
     renderer.setCamera(eyeArr, lookAtArr, upArr, horizontalFovDegrees = horizontalFov)
     logger.debug(s"Updated camera: eye=${eyeArr.mkString(",")}, lookAt=${lookAtArr.mkString(",")}, up=${upArr.mkString(",")}")
 
-  def updateCameraAspectRatio(width: Int, height: Int): Unit =
+  def updateCameraAspectRatio(size: ImageSize): Unit =
     val horizontalFov = 45f  // Fixed horizontal FOV in degrees (aspect-ratio independent)
 
     // Update cached image dimensions BEFORE calling setCamera
-    renderer.updateImageDimensions(width, height)
+    renderer.updateImageDimensions(size)
 
     val eye = Array(cameraPos.x, cameraPos.y, cameraPos.z)
     val lookAt = Array(cameraLookat.x, cameraLookat.y, cameraLookat.z)
