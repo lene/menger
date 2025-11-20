@@ -13,7 +13,8 @@ import menger.LightSpec
 import menger.LightType
 import menger.PlaneSpec
 import menger.common.ImageSize
-import menger.optix.Light
+import menger.common.{Light => CommonLight}
+import menger.common.{Vector => CommonVector}
 import menger.optix.OptiXRenderer
 
 class OptiXResources(
@@ -60,44 +61,36 @@ class OptiXResources(
     configurePlane()
 
   private def createCamera(): Unit =
-    val eye = Array(cameraPos.x, cameraPos.y, cameraPos.z)
-    val lookAt = Array(cameraLookat.x, cameraLookat.y, cameraLookat.z)
-    val up = Array(cameraUp.x, cameraUp.y, cameraUp.z)
+    val eye = CommonVector[3](cameraPos.x, cameraPos.y, cameraPos.z)
+    val lookAt = CommonVector[3](cameraLookat.x, cameraLookat.y, cameraLookat.z)
+    val up = CommonVector[3](cameraUp.x, cameraUp.y, cameraUp.z)
     val horizontalFov = 45f
     renderer.setCamera(eye, lookAt, up, horizontalFovDegrees = horizontalFov)
-    logger.debug(s"Configured camera: eye=${eye.mkString(",")}, lookAt=${lookAt.mkString(",")}, up=${up.mkString(",")}, horizontalFOV=$horizontalFov")
+    logger.debug(s"Configured camera: eye=(${eye(0)},${eye(1)},${eye(2)}), lookAt=(${lookAt(0)},${lookAt(1)},${lookAt(2)}), up=(${up(0)},${up(1)},${up(2)}), horizontalFOV=$horizontalFov")
 
   private def createLights(): Unit =
     lights match
       case Some(lightSpecs) =>
-        val lightArray = lightSpecs.map(convertLightSpec).toArray
-        Try(renderer.setLights(lightArray)) match
+        val lightSeq = lightSpecs.map(convertLightSpec)
+        Try(renderer.setLights(lightSeq)) match
           case Success(_) =>
-            logger.debug(s"Configured ${lightArray.length} light(s) from CLI specification")
+            logger.debug(s"Configured ${lightSeq.length} light(s) from CLI specification")
           case Failure(exception) =>
             errorExit(s"Failed to configure lights: ${exception.getMessage}")
       case None =>
         // Default single directional light (backward compatibility)
-        val lightDirection = Array(-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
+        val lightDirection = CommonVector[3](-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
         val lightIntensity = 1.0f
         renderer.setLight(lightDirection, lightIntensity)
-        logger.debug(s"Configured default light: direction=${lightDirection.mkString(",")}, intensity=$lightIntensity")
+        logger.debug(s"Configured default light: direction=(${lightDirection(0)},${lightDirection(1)},${lightDirection(2)}), intensity=$lightIntensity")
 
-  private def convertLightSpec(spec: LightSpec): Light =
-    val lightType = spec.lightType match
-      case LightType.DIRECTIONAL => menger.optix.LightType.DIRECTIONAL
-      case LightType.POINT => menger.optix.LightType.POINT
+  private def convertLightSpec(spec: LightSpec): CommonLight =
+    val position = menger.common.Vector[3](spec.position.x, spec.position.y, spec.position.z)
+    val color = menger.common.Vector[3](spec.color.r, spec.color.g, spec.color.b)
 
-    val position = Array(spec.position.x, spec.position.y, spec.position.z)
-    val color = Array(spec.color.r, spec.color.g, spec.color.b)
-
-    Light(
-      lightType = lightType,
-      direction = position,  // For directional lights, position is treated as direction
-      position = position,   // For point lights
-      color = color,
-      intensity = spec.intensity
-    )
+    spec.lightType match
+      case LightType.DIRECTIONAL => CommonLight.Directional(position, color, spec.intensity)
+      case LightType.POINT => CommonLight.Point(position, color, spec.intensity)
 
   private def configurePlane(): Unit =
     val axisInt = planeSpec.axis match
@@ -135,12 +128,12 @@ class OptiXResources(
     renderer.renderWithStats(size)
 
   def updateCamera(eye: Vector3, lookAt: Vector3, up: Vector3): Unit =
-    val eyeArr = Array(eye.x, eye.y, eye.z)
-    val lookAtArr = Array(lookAt.x, lookAt.y, lookAt.z)
-    val upArr = Array(up.x, up.y, up.z)
+    val eyeVec = CommonVector[3](eye.x, eye.y, eye.z)
+    val lookAtVec = CommonVector[3](lookAt.x, lookAt.y, lookAt.z)
+    val upVec = CommonVector[3](up.x, up.y, up.z)
     val horizontalFov = 45f
-    renderer.setCamera(eyeArr, lookAtArr, upArr, horizontalFovDegrees = horizontalFov)
-    logger.debug(s"Updated camera: eye=${eyeArr.mkString(",")}, lookAt=${lookAtArr.mkString(",")}, up=${upArr.mkString(",")}")
+    renderer.setCamera(eyeVec, lookAtVec, upVec, horizontalFovDegrees = horizontalFov)
+    logger.debug(s"Updated camera: eye=(${eyeVec(0)},${eyeVec(1)},${eyeVec(2)}), lookAt=(${lookAtVec(0)},${lookAtVec(1)},${lookAtVec(2)}), up=(${upVec(0)},${upVec(1)},${upVec(2)})")
 
   def updateCameraAspectRatio(size: ImageSize): Unit =
     val horizontalFov = 45f  // Fixed horizontal FOV in degrees (aspect-ratio independent)
@@ -148,9 +141,9 @@ class OptiXResources(
     // Update cached image dimensions BEFORE calling setCamera
     renderer.updateImageDimensions(size)
 
-    val eye = Array(cameraPos.x, cameraPos.y, cameraPos.z)
-    val lookAt = Array(cameraLookat.x, cameraLookat.y, cameraLookat.z)
-    val up = Array(cameraUp.x, cameraUp.y, cameraUp.z)
+    val eye = CommonVector[3](cameraPos.x, cameraPos.y, cameraPos.z)
+    val lookAt = CommonVector[3](cameraLookat.x, cameraLookat.y, cameraLookat.z)
+    val up = CommonVector[3](cameraUp.x, cameraUp.y, cameraUp.z)
 
     renderer.setCamera(eye, lookAt, up, horizontalFovDegrees = horizontalFov)
 

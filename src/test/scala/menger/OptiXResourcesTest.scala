@@ -1,6 +1,7 @@
 package menger
 
 import com.badlogic.gdx.math.Vector3
+import menger.common.{Vector => CommonVector}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -10,7 +11,7 @@ class OptiXResourcesTest extends AnyFlatSpec with Matchers:
 
   "OptiXResources" should "be instantiable" in:
     val resources = new OptiXResources(
-      Try(_.setSphere(0f, 0f, 0f, 1.0f)),
+      Try(_.setSphere(CommonVector[3](0f, 0f, 0f), 1.0f)),
       Vector3(0f, 0.5f, 3.0f),
       Vector3(0f, 0f, 0f),
       Vector3(0f, 1f, 0f),
@@ -20,7 +21,7 @@ class OptiXResourcesTest extends AnyFlatSpec with Matchers:
 
   it should "not throw on dispose() for uninitialized resources" in:
     val resources = new OptiXResources(
-      Try(_.setSphere(0f, 0f, 0f, 1.0f)),
+      Try(_.setSphere(CommonVector[3](0f, 0f, 0f), 1.0f)),
       Vector3(0f, 0.5f, 3.0f),
       Vector3(0f, 0f, 0f),
       Vector3(0f, 1f, 0f),
