@@ -13,7 +13,7 @@ import menger.LightSpec
 import menger.LightType
 import menger.PlaneSpec
 import menger.common.ImageSize
-import menger.optix.Light
+import menger.common.{Light => CommonLight}
 import menger.optix.OptiXRenderer
 
 class OptiXResources(
@@ -70,10 +70,10 @@ class OptiXResources(
   private def createLights(): Unit =
     lights match
       case Some(lightSpecs) =>
-        val lightArray = lightSpecs.map(convertLightSpec).toArray
-        Try(renderer.setLights(lightArray)) match
+        val lightSeq = lightSpecs.map(convertLightSpec)
+        Try(renderer.setLights(lightSeq)) match
           case Success(_) =>
-            logger.debug(s"Configured ${lightArray.length} light(s) from CLI specification")
+            logger.debug(s"Configured ${lightSeq.length} light(s) from CLI specification")
           case Failure(exception) =>
             errorExit(s"Failed to configure lights: ${exception.getMessage}")
       case None =>
@@ -83,21 +83,13 @@ class OptiXResources(
         renderer.setLight(lightDirection, lightIntensity)
         logger.debug(s"Configured default light: direction=${lightDirection.mkString(",")}, intensity=$lightIntensity")
 
-  private def convertLightSpec(spec: LightSpec): Light =
-    val lightType = spec.lightType match
-      case LightType.DIRECTIONAL => menger.optix.LightType.DIRECTIONAL
-      case LightType.POINT => menger.optix.LightType.POINT
+  private def convertLightSpec(spec: LightSpec): CommonLight =
+    val position = menger.common.Vector[3](spec.position.x, spec.position.y, spec.position.z)
+    val color = menger.common.Vector[3](spec.color.r, spec.color.g, spec.color.b)
 
-    val position = Array(spec.position.x, spec.position.y, spec.position.z)
-    val color = Array(spec.color.r, spec.color.g, spec.color.b)
-
-    Light(
-      lightType = lightType,
-      direction = position,  // For directional lights, position is treated as direction
-      position = position,   // For point lights
-      color = color,
-      intensity = spec.intensity
-    )
+    spec.lightType match
+      case LightType.DIRECTIONAL => CommonLight.Directional(position, color, spec.intensity)
+      case LightType.POINT => CommonLight.Point(position, color, spec.intensity)
 
   private def configurePlane(): Unit =
     val axisInt = planeSpec.axis match
