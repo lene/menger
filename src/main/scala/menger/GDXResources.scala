@@ -18,7 +18,7 @@ import menger.input.MengerInputMultiplexer
 import org.lwjgl.opengl.GL11
 
 
-case class GDXResources(eventDispatcher: Option[EventDispatcher], fpsLogIntervalMs: Int = 1000) extends LazyLogging:
+case class GDXResources(eventDispatcher: Option[EventDispatcher], fpsLogIntervalMs: Int = Const.fpsLogIntervalMs) extends LazyLogging:
 
   private val cameraPosition = Vector3(-2f, 1f, -1f)
   private val environment: Environment = createEnvironment

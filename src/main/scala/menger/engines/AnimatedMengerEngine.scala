@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.typesafe.scalalogging.LazyLogging
 import menger.AnimationSpecifications
+import menger.Const
 import menger.GDXResources
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
@@ -14,7 +15,7 @@ class AnimatedMengerEngine(
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
   lines: Boolean, color: Color, val animationSpecifications: AnimationSpecifications,
   val saveName: Option[String], faceColor: Option[Color] = None, lineColor: Option[Color] = None,
-  fpsLogIntervalMs: Int = 1000
+  fpsLogIntervalMs: Int = Const.fpsLogIntervalMs
 )(using config: ProfilingConfig) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor, fpsLogIntervalMs)
 with LazyLogging with SavesScreenshots:
   private val frameCounter = java.util.concurrent.atomic.AtomicInteger(0)

@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
+import menger.Const
 import menger.GDXResources
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
@@ -29,7 +30,7 @@ abstract class MengerEngine(
   val spongeType: String, val spongeLevel: Float,
   val rotationProjectionParameters: RotationProjectionParameters, val lines: Boolean, val color: Color,
   val faceColor: Option[Color] = None, val lineColor: Option[Color] = None,
-  val fpsLogIntervalMs: Int = 1000
+  val fpsLogIntervalMs: Int = Const.fpsLogIntervalMs
 )(using val profilingConfig: ProfilingConfig) extends Game:
   protected val material: Material = Builder.material(color)
   protected lazy val primitiveType: Int = if lines then GL20.GL_LINES else GL20.GL_TRIANGLES

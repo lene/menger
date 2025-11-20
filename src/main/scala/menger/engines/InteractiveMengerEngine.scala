@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.utils.Timer
 import com.typesafe.scalalogging.LazyLogging
+import menger.Const
 import menger.GDXResources
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
@@ -19,7 +20,7 @@ class InteractiveMengerEngine(
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
   lines: Boolean = false, color: Color = Color.WHITE, val timeout: Float = 0,
   faceColor: Option[Color] = None, lineColor: Option[Color] = None,
-  fpsLogIntervalMs: Int = 1000
+  fpsLogIntervalMs: Int = Const.fpsLogIntervalMs
 )(using config: ProfilingConfig) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor, fpsLogIntervalMs)
 with TimeoutSupport with LazyLogging:
   private lazy val sponge: Geometry = generateObjectWithOverlay(

@@ -81,7 +81,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     required = false, validate = _ >= 0
   )
   val fpsLogInterval: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(1000), validate = _ > 0
+    required = false, default = Some(Const.fpsLogIntervalMs), validate = _ > 0
   )
   val logLevel: ScallopOption[String] = opt[String](
     required = false, default = Some("INFO"),
