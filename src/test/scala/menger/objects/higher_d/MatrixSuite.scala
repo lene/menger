@@ -2,7 +2,8 @@ package menger.objects.higher_d
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import menger.objects.{Matrix, Vector}
+import menger.common.Vector
+import menger.objects.Matrix
 import CustomMatchers.*
 
 class MatrixSuite extends AnyFlatSpec with Matchers:

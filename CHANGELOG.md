@@ -3,6 +3,24 @@
 ## [Unreleased]
 
 ### Added
+- **Common Module** - Created `menger-common` subproject for shared types
+  - New module structure: `menger-common` serves as shared dependency for both `optix-jni` and root project
+  - Moved `Const` from `menger` to `menger.common` (epsilon, window defaults, angle conversion)
+  - Moved `Vector[N]` from `menger.objects` to `menger.common` (n-dimensional vector operations)
+  - Moved `ImageSize` from `menger.optix` to `menger.common` (validated width/height)
+  - Moved `Vec3` type alias from `menger` to `menger.common`
+  - Created `Light` sealed trait with `Directional` and `Point` case classes in `menger.common`
+  - Updated 40+ files with new import paths
+  - Foundation for Vector[3] refactoring to replace Array[Float] usage
+
+### Fixed
+- **OptiXEngine Crash** - Fixed "width must be positive, got 0" crash on startup
+  - Changed `OptiXRenderResources.currentDimensions` to return `Option[ImageSize]`
+  - Updated `OptiXEngine.render()` to handle `None` when window dimensions not yet initialized
+  - Added proper initialization logging for first render with valid dimensions
+  - Pre-push hook now passes successfully
+
+### Added
 - **Multi-Light CLI Support** - Implemented CLI interface for multiple light sources
   - Added `--light` flag (repeatable, max 8 lights) with format `<type>:x,y,z[:intensity[:color]]`
   - Support for directional and point lights with configurable color and intensity

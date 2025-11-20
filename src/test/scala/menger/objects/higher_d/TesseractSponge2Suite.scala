@@ -1,11 +1,11 @@
 package menger.objects.higher_d
 
-import menger.objects.Vector
+import menger.common.Vector
 import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.*
 import CustomMatchers.*
-import menger.Const
+import menger.common.Const
 
 class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
 
@@ -333,7 +333,7 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
     sponge2.toString should include("TesseractSponge2")
 
   it should "contain the sponge level" in new Sponge2:
-    sponge2.toString should include(s"level=${menger.objects.float2string(sponge2.level)}")
+    sponge2.toString should include(s"level=${menger.common.float2string(sponge2.level)}")
 
   it should "contain the number of faces" in new Sponge2:
     sponge2.toString should include(s"${sponge2.faces.size} faces")

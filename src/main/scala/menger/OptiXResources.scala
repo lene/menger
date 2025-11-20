@@ -12,7 +12,7 @@ import menger.Axis
 import menger.LightSpec
 import menger.LightType
 import menger.PlaneSpec
-import menger.optix.ImageSize
+import menger.common.ImageSize
 import menger.optix.Light
 import menger.optix.OptiXRenderer
 

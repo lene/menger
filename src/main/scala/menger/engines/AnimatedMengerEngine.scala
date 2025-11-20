@@ -5,10 +5,10 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.typesafe.scalalogging.LazyLogging
 import menger.AnimationSpecifications
-import menger.Const
 import menger.GDXResources
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.common.Const
 
 class AnimatedMengerEngine(
   spongeType: String, spongeLevel: Float,

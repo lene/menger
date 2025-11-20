@@ -2,6 +2,7 @@ package menger
 
 import scala.annotation.targetName
 
+import menger.common.Const
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
 

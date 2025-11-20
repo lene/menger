@@ -5,6 +5,7 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
+import menger.common.Const
 import org.rogach.scallop._
 
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:

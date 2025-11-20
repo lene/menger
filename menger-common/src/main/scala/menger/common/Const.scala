@@ -1,4 +1,4 @@
-package menger
+package menger.common
 
 case object Const:
   val epsilon: Float = 1e-5

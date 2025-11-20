@@ -1,6 +1,4 @@
-package menger.objects
-
-import menger.Const
+package menger.common
 
 
 case class Vector[dim <: Int & Singleton](v: Float*)(implicit d: ValueOf[dim]):
@@ -12,7 +10,7 @@ case class Vector[dim <: Int & Singleton](v: Float*)(implicit d: ValueOf[dim]):
   def apply(i: Int): Float =
     require(i >= 0 && i < d.value, s"Index must be between 0 and ${d.value - 1}, got $i")
     v(i)
-    
+
   def + (delta: Vector[dim]): Vector[dim] =
     Vector[dim](v.zip(delta.v).map { case (a, b) => a + b }*)
 
@@ -50,7 +48,7 @@ case class Vector[dim <: Int & Singleton](v: Float*)(implicit d: ValueOf[dim]):
   def map[B](f: Float => B): Seq[B] = v.map(f)
   def toIndexedSeq: IndexedSeq[Float] = v.toIndexedSeq
 
-  
+
 case object Vector:
   def fromSeq[dim <: Int & Singleton](seq: Seq[Float])(implicit d: ValueOf[dim]): Vector[dim] =
     Vector[dim](seq*)
@@ -59,7 +57,7 @@ case object Vector:
     Vector[dim](Array.fill(d.value)(0f)*)
 
   def unit[dim <: Int & Singleton](direction: Int)(implicit d: ValueOf[dim]): Vector[dim] =
-    
+
     require(0 <= direction && direction < d.value)
     val vec = Array.fill(d.value)(0f)
     vec(direction) = 1

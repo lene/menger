@@ -7,9 +7,9 @@ import com.badlogic.gdx.Input.Buttons
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
-import menger.Const
 import menger.OptiXRenderResources
 import menger.OptiXResources
+import menger.common.Const
 
 
 case class CameraControlConfig(

@@ -1,4 +1,4 @@
-package menger
+package menger.common
 
 type Vec3[T] = (x: T, y: T, z: T)
 

@@ -1,7 +1,8 @@
 package menger.objects.higher_d
 
-import menger.objects.{Vector, Matrix}
-import menger.Const
+import menger.common.Vector
+import menger.objects.Matrix
+import menger.common.Const
 import org.scalatest.matchers.{MatchResult, Matcher}
 
 trait CustomMatchers:

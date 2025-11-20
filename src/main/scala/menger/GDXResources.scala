@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
+import menger.common.Const
 import menger.input.EventDispatcher
 import menger.input.MengerInputMultiplexer
 import org.lwjgl.opengl.GL11

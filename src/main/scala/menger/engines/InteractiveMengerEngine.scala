@@ -7,10 +7,10 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.utils.Timer
 import com.typesafe.scalalogging.LazyLogging
-import menger.Const
 import menger.GDXResources
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.common.Const
 import menger.input.EventDispatcher
 import menger.objects.Geometry
 

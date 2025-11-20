@@ -3,7 +3,7 @@ package menger
 import java.util.concurrent.atomic.AtomicReference
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import menger.optix.ImageSize
+import menger.common.ImageSize
 
 case class OptiXRenderState(
   renderState: RenderState,
@@ -33,9 +33,10 @@ case class OptiXRenderResources(initialWidth: Int, initialHeight: Int):
 
   def needsRender: Boolean = state.get().needsRender
 
-  def currentDimensions: ImageSize =
+  def currentDimensions: Option[ImageSize] =
     val rs = state.get().renderState
-    ImageSize(rs.width, rs.height)
+    if rs.width > 0 && rs.height > 0 then Some(ImageSize(rs.width, rs.height))
+    else None
 
   def renderToScreen(rgbaBytes: Array[Byte], width: Int, height: Int): Unit =
     val updated = state.updateAndGet { current =>

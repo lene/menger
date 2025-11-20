@@ -5,7 +5,7 @@ import scala.math.pow
 import scala.math.signum
 
 import com.badlogic.gdx.math.Vector3
-import menger.objects.Vector
+import menger.common.Vector
 
 
 
