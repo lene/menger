@@ -43,8 +43,7 @@ class TransparencyTest extends AnyFlatSpec
     // Should have some variation (sphere+background)
     imageData should haveBrightnessStdDevGreaterThan(
       MIN_BASIC_REFRACTION_STDDEV,
-      TEST_IMAGE_SIZE.width,
-      TEST_IMAGE_SIZE.height
+      TEST_IMAGE_SIZE
     )
 
   it should "show moderate transparency at alpha=0.5" in:
@@ -140,4 +139,4 @@ class TransparencyTest extends AnyFlatSpec
     val imageData = renderer.render(TEST_IMAGE_SIZE).get
 
     // Checkered floor should be visible at bottom
-    imageData should showPlaneInRegion("bottom", TEST_IMAGE_SIZE.width, TEST_IMAGE_SIZE.height)
+    imageData should showPlaneInRegion("bottom", TEST_IMAGE_SIZE)

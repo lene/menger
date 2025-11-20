@@ -139,16 +139,13 @@ case class TestScenario(
       renderer.setPlane(p.axis, p.positive, p.value)
     }
 
-  
-  def render(renderer: OptiXRenderer, width: Int, height: Int): Array[Byte] =
+
+  def render(renderer: OptiXRenderer, size: ImageSize): Array[Byte] =
     applyTo(renderer)
     // If dimensions weren't set in applyTo, ensure they're set now
     if imageDimensions.isEmpty then
-      renderer.updateImageDimensions(width, height)
-    renderer.render(width, height).get
-
-  def render(renderer: OptiXRenderer, size: ImageSize): Array[Byte] =
-    render(renderer, size.width, size.height)
+      renderer.updateImageDimensions(size)
+    renderer.render(size).get
 
 
 object TestScenario:

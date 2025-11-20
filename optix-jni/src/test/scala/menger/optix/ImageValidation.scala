@@ -19,9 +19,7 @@ object ImageValidation:
   // ========== Image Size Calculations ==========
 
   // Calculate expected byte array size for RGBA image
-  def imageByteSize(width: Int, height: Int): Int = width * height * 4
-
-  def imageByteSize(size: ImageSize): Int = imageByteSize(size.width, size.height)
+  def imageByteSize(size: ImageSize): Int = size.width * size.height * 4
 
   // ========== Low-Level Pixel Access ==========
 
@@ -34,11 +32,8 @@ object ImageValidation:
       b = imageData(offset + 2) & 0xFF
     )
 
-  def getRGBAt(imageData: Array[Byte], width: Int, x: Int, y: Int): RGB =
-    getRGB(imageData, y * width + x)
-
   def getRGBAt(imageData: Array[Byte], size: ImageSize, x: Int, y: Int): RGB =
-    getRGBAt(imageData, size.width, x, y)
+    getRGB(imageData, y * size.width + x)
 
   def brightness(imageData: Array[Byte], pixelIndex: Int): Double =
     getRGB(imageData, pixelIndex).brightness.toDouble
@@ -50,6 +45,7 @@ object ImageValidation:
     height: Int,
     tolerance: Double = GRAYSCALE_CHANNEL_TOLERANCE
   ): String =
+    val size = ImageSize(width, height)
     // Sample center 50% of image
     val startX = width / 4
     val endX = 3 * width / 4
@@ -60,7 +56,7 @@ object ImageValidation:
     val rgbValues = for
       y <- startY until endY
       x <- startX until endX
-    yield getRGBAt(imageData, width, x, y)
+    yield getRGBAt(imageData, size, x, y)
 
     // Calculate averages functionally
     val count = rgbValues.length
@@ -79,46 +75,31 @@ object ImageValidation:
 
   // ========== Pixel Access Helpers ==========
 
-  def getCenterPixel(imageData: Array[Byte], width: Int, height: Int): RGB =
-    val centerIdx = (height / 2) * width + (width / 2)
-    getRGB(imageData, centerIdx)
-
   def getCenterPixel(imageData: Array[Byte], size: ImageSize): RGB =
-    getCenterPixel(imageData, size.width, size.height)
+    val centerIdx = (size.height / 2) * size.width + (size.width / 2)
+    getRGB(imageData, centerIdx)
 
   // ========== Sphere Detection ==========
 
-  def spherePixelArea(
-    imageData: Array[Byte],
-    width: Int,
-    height: Int,
-    bgThreshold: Int = 30
-  ): Int =
+  def spherePixelArea(imageData: Array[Byte], size: ImageSize): Int =
     // Generate all pixel indices
-    val allPixels = 0 until (width * height)
+    val allPixels = 0 until (size.width * size.height)
 
     // Count green pixels (sphere detection logic)
     allPixels.count { idx =>
       getRGB(imageData, idx).isGreen
     }
 
-  def spherePixelArea(imageData: Array[Byte], size: ImageSize): Int =
-    spherePixelArea(imageData, size.width, size.height)
-
   def spherePixelArea(imageData: Array[Byte], size: ImageSize, bgThreshold: Int): Int =
-    spherePixelArea(imageData, size.width, size.height, bgThreshold)
+    spherePixelArea(imageData, size)
 
 
-  def detectSphereCenter(
-    imageData: Array[Byte],
-    width: Int,
-    height: Int
-  ): (Int, Int) =
+  def detectSphereCenter(imageData: Array[Byte], size: ImageSize): (Int, Int) =
     // All pixel coordinates with their indices
     val pixelCoords = for
-      y <- 0 until height
-      x <- 0 until width
-    yield (x, y, y * width + x)
+      y <- 0 until size.height
+      x <- 0 until size.width
+    yield (x, y, y * size.width + x)
 
     // Filter for green pixels and accumulate weighted sum
     val (sumX, sumY, count) = pixelCoords.foldLeft((0.0, 0.0, 0)) {
@@ -130,19 +111,12 @@ object ImageValidation:
           (accX, accY, accCount)
     }
 
-    if count == 0 then (width / 2, height / 2)
+    if count == 0 then (size.width / 2, size.height / 2)
     else ((sumX / count).toInt, (sumY / count).toInt)
 
-  def detectSphereCenter(imageData: Array[Byte], size: ImageSize): (Int, Int) =
-    detectSphereCenter(imageData, size.width, size.height)
 
-
-  def estimateSphereRadius(
-    imageData: Array[Byte],
-    width: Int,
-    height: Int
-  ): Double =
-    val (centerX, centerY) = detectSphereCenter(imageData, width, height)
+  def estimateSphereRadius(imageData: Array[Byte], size: ImageSize): Double =
+    val (centerX, centerY) = detectSphereCenter(imageData, size)
 
     // Find edge pixels in a direction using tail recursion
     def findEdge(dx: Int, dy: Int): Int =
@@ -151,9 +125,9 @@ object ImageValidation:
         val x = centerX + dx * dist
         val y = centerY + dy * dist
 
-        if x < 0 || x >= width || y < 0 || y >= height then
+        if x < 0 || x >= size.width || y < 0 || y >= size.height then
           dist
-        else if !getRGBAt(imageData, width, x, y).isGreen then
+        else if !getRGBAt(imageData, size, x, y).isGreen then
           dist
         else
           search(dist + 1)
@@ -170,26 +144,20 @@ object ImageValidation:
 
     distances.sum / 4.0
 
-  def estimateSphereRadius(imageData: Array[Byte], size: ImageSize): Double =
-    estimateSphereRadius(imageData, size.width, size.height)
-
   // ========== Brightness Analysis ==========
 
-  def brightnessStdDev(imageData: Array[Byte], width: Int, height: Int): Double =
-    val numPixels = width * height
+  def brightnessStdDev(imageData: Array[Byte], size: ImageSize): Double =
+    val numPixels = size.width * size.height
     val brightnesses = (0 until numPixels).map(i => getRGB(imageData, i).brightness)
 
     val mean = brightnesses.sum.toDouble / numPixels
     val variance = brightnesses.map(b => math.pow(b - mean, 2)).sum / numPixels
     math.sqrt(variance)
 
-  def brightnessStdDev(imageData: Array[Byte], size: ImageSize): Double =
-    brightnessStdDev(imageData, size.width, size.height)
 
-
-  def edgeBrightness(imageData: Array[Byte], width: Int, height: Int): Double =
-    val (centerX, centerY) = detectSphereCenter(imageData, width, height)
-    val radius = estimateSphereRadius(imageData, width, height)
+  def edgeBrightness(imageData: Array[Byte], size: ImageSize): Double =
+    val (centerX, centerY) = detectSphereCenter(imageData, size)
+    val radius = estimateSphereRadius(imageData, size)
     val sampleRadius = (radius * 0.8).toInt
 
     // Generate 16 sample angles
@@ -201,8 +169,8 @@ object ImageValidation:
       val x = (centerX + sampleRadius * math.cos(radians)).toInt
       val y = (centerY + sampleRadius * math.sin(radians)).toInt
 
-      if x >= 0 && x < width && y >= 0 && y < height then
-        Some(getRGBAt(imageData, width, x, y).brightness)
+      if x >= 0 && x < size.width && y >= 0 && y < size.height then
+        Some(getRGBAt(imageData, size, x, y).brightness)
       else
         None
     }
@@ -210,16 +178,9 @@ object ImageValidation:
     if brightnessSamples.isEmpty then 0.0
     else brightnessSamples.sum.toDouble / brightnessSamples.length
 
-  def edgeBrightness(imageData: Array[Byte], size: ImageSize): Double =
-    edgeBrightness(imageData, size.width, size.height)
 
-
-  def brightnessGradient(
-    imageData: Array[Byte],
-    width: Int,
-    height: Int
-  ): Double =
-    val (centerX, centerY) = detectSphereCenter(imageData, width, height)
+  def brightnessGradient(imageData: Array[Byte], size: ImageSize): Double =
+    val (centerX, centerY) = detectSphereCenter(imageData, size)
 
     // Sample center region (11x11 box: -5 to +5)
     val centerSamples = for
@@ -227,29 +188,22 @@ object ImageValidation:
       dx <- -5 to 5
       x = centerX + dx
       y = centerY + dy
-      if x >= 0 && x < width && y >= 0 && y < height
-    yield getRGBAt(imageData, width, x, y).brightness
+      if x >= 0 && x < size.width && y >= 0 && y < size.height
+    yield getRGBAt(imageData, size, x, y).brightness
 
     val centerBrightness =
       if centerSamples.isEmpty then 0.0
       else centerSamples.sum.toDouble / centerSamples.length
 
-    val edgeBright = edgeBrightness(imageData, width, height)
+    val edgeBright = edgeBrightness(imageData, size)
 
     centerBrightness - edgeBright
-
-  def brightnessGradient(imageData: Array[Byte], size: ImageSize): Double =
-    brightnessGradient(imageData, size.width, size.height)
 
   // ========== Color Analysis ==========
 
 
-  def colorChannelRatio(
-    imageData: Array[Byte],
-    width: Int,
-    height: Int
-  ): (Double, Double, Double) =
-    val allPixels = 0 until (width * height)
+  def colorChannelRatio(imageData: Array[Byte], size: ImageSize): (Double, Double, Double) =
+    val allPixels = 0 until (size.width * size.height)
 
     // Accumulate RGB sums using fold
     val (rSum, gSum, bSum) = allPixels.foldLeft((0L, 0L, 0L)) {
@@ -262,22 +216,15 @@ object ImageValidation:
     if total == 0 then (0.0, 0.0, 0.0)
     else (rSum / total, gSum / total, bSum / total)
 
-  def colorChannelRatio(imageData: Array[Byte], size: ImageSize): (Double, Double, Double) =
-    colorChannelRatio(imageData, size.width, size.height)
-
   // ========== Background/Plane Detection ==========
 
 
-  def backgroundVisibility(
-    imageData: Array[Byte],
-    width: Int,
-    height: Int
-  ): Boolean =
+  def backgroundVisibility(imageData: Array[Byte], size: ImageSize): Boolean =
     // Sample top-left corner (20x20 region)
     val samples = for
-      y <- 0 until math.min(20, height)
-      x <- 0 until math.min(20, width)
-    yield getRGBAt(imageData, width, x, y).brightness
+      y <- 0 until math.min(20, size.height)
+      x <- 0 until math.min(20, size.width)
+    yield getRGBAt(imageData, size, x, y).brightness
 
     if samples.isEmpty then false
     else
@@ -286,27 +233,19 @@ object ImageValidation:
       val variance = samples.map(s => (s - mean) * (s - mean)).sum / samples.length
       variance > CHECKERED_PATTERN_MIN_VARIANCE
 
-  def backgroundVisibility(imageData: Array[Byte], size: ImageSize): Boolean =
-    backgroundVisibility(imageData, size.width, size.height)
 
-
-  def planeVisibility(
-    imageData: Array[Byte],
-    width: Int,
-    height: Int,
-    region: String
-  ): Boolean =
+  def planeVisibility(imageData: Array[Byte], size: ImageSize, region: String): Boolean =
     val (yStart, yEnd) = region match
-      case "top"    => (0, height / 4)
-      case "bottom" => (3 * height / 4, height)
+      case "top"    => (0, size.height / 4)
+      case "bottom" => (3 * size.height / 4, size.height)
       case _        => (0, 0)
 
     // Sample every other pixel in the region for efficiency
     val samples = for
       y <- yStart until yEnd
-      x <- 0 until width by 2
-      if x >= 0 && x < width && y >= 0 && y < height
-    yield getRGBAt(imageData, width, x, y).brightness
+      x <- 0 until size.width by 2
+      if x >= 0 && x < size.width && y >= 0 && y < size.height
+    yield getRGBAt(imageData, size, x, y).brightness
 
     if samples.isEmpty then false
     else
@@ -314,6 +253,3 @@ object ImageValidation:
       val mean = samples.sum.toDouble / samples.length
       val variance = samples.map(s => (s - mean) * (s - mean)).sum / samples.length
       variance > PLANE_PATTERN_MIN_VARIANCE
-
-  def planeVisibility(imageData: Array[Byte], size: ImageSize, region: String): Boolean =
-    planeVisibility(imageData, size.width, size.height, region)

@@ -163,14 +163,14 @@ class RendererTest extends AnyFlatSpec
     val image3 = renderer.render(width, height).get
 
     // All should have brightness variation
-    ImageValidation.brightnessStdDev(image1, width, height) should be > MIN_BRIGHTNESS_VARIATION
-    ImageValidation.brightnessStdDev(image2, width, height) should be > MIN_BRIGHTNESS_VARIATION
-    ImageValidation.brightnessStdDev(image3, width, height) should be > MIN_BRIGHTNESS_VARIATION
+    ImageValidation.brightnessStdDev(image1, ImageSize(width, height)) should be > MIN_BRIGHTNESS_VARIATION
+    ImageValidation.brightnessStdDev(image2, ImageSize(width, height)) should be > MIN_BRIGHTNESS_VARIATION
+    ImageValidation.brightnessStdDev(image3, ImageSize(width, height)) should be > MIN_BRIGHTNESS_VARIATION
 
     // Valid sizes
-    image1.length shouldBe ImageValidation.imageByteSize(width, height)
-    image2.length shouldBe ImageValidation.imageByteSize(width, height)
-    image3.length shouldBe ImageValidation.imageByteSize(width, height)
+    image1.length shouldBe ImageValidation.imageByteSize(ImageSize(width, height))
+    image2.length shouldBe ImageValidation.imageByteSize(ImageSize(width, height))
+    image3.length shouldBe ImageValidation.imageByteSize(ImageSize(width, height))
 
   "Light direction" should "produce different images" in:
     val (width, height) = (100, 100)
@@ -248,8 +248,8 @@ class RendererTest extends AnyFlatSpec
 
     // All images should be valid
     images.foreach { image =>
-      image.length shouldBe ImageValidation.imageByteSize(width, height)
-      image should haveBrightnessStdDevGreaterThan(5.0, width, height)
+      image.length shouldBe ImageValidation.imageByteSize(ImageSize(width, height))
+      image should haveBrightnessStdDevGreaterThan(5.0, ImageSize(width, height))
     }
 
     // Sequential images should be different
@@ -262,12 +262,12 @@ class RendererTest extends AnyFlatSpec
     // Very narrow FOV
     TestScenario.default().withHorizontalFOV(1.0f).applyTo(renderer)
     val image1 = renderer.render(width, height).get
-    image1.length shouldBe ImageValidation.imageByteSize(width, height)
+    image1.length shouldBe ImageValidation.imageByteSize(ImageSize(width, height))
 
     // Very wide FOV
     TestScenario.default().withHorizontalFOV(179.0f).applyTo(renderer)
     val image2 = renderer.render(width, height).get
-    image2.length shouldBe ImageValidation.imageByteSize(width, height)
+    image2.length shouldBe ImageValidation.imageByteSize(ImageSize(width, height))
 
   it should "handle very small sphere radius" in:
     TestScenario.default().withSphereRadius(0.001f).applyTo(renderer)
@@ -542,7 +542,7 @@ class RendererTest extends AnyFlatSpec
     renderer.setScale(1.0f)
 
     val imageData = renderer.render(width, height).get
-    imageData.length shouldBe ImageValidation.imageByteSize(width, height)
+    imageData.length shouldBe ImageValidation.imageByteSize(ImageSize(width, height))
 
     // Check variation (refraction, absorption, reflection)
     val centerIdx = height / 2 * width + width / 2

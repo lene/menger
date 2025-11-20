@@ -131,7 +131,7 @@ class OptiXRenderer extends LazyLogging:
     )
     setCameraNative(eye, lookAt, up, horizontalFovDegrees)
 
-  
+
   @native def updateImageDimensions(width: Int, height: Int): Unit
 
   def updateImageDimensions(size: ImageSize): Unit =
@@ -152,7 +152,7 @@ class OptiXRenderer extends LazyLogging:
   
   @native def setPlane(axis: Int, positive: Boolean, value: Float): Unit
 
-  
+
   @native def renderWithStats(width: Int, height: Int): RenderResult
 
   def renderWithStats(size: ImageSize): RenderResult =

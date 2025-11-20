@@ -24,8 +24,7 @@ class PerformanceTest extends AnyFlatSpec
       renderer,
       TestScenario.performanceBaseline()
         .withPlane(1, false, -2.0f),
-      TEST_IMAGE_SIZE._1,
-      TEST_IMAGE_SIZE._2
+      TEST_IMAGE_SIZE
     )
 
     logger.info(f"Opaque sphere performance: $fps%.1f FPS")
@@ -38,8 +37,7 @@ class PerformanceTest extends AnyFlatSpec
       TestScenario.performanceTransparent()
         .withIOR(1.5f)
         .withPlane(1, false, -2.0f),
-      TEST_IMAGE_SIZE._1,
-      TEST_IMAGE_SIZE._2
+      TEST_IMAGE_SIZE
     )
 
     logger.info(f"Transparent sphere performance: $fps%.1f FPS")
@@ -52,8 +50,7 @@ class PerformanceTest extends AnyFlatSpec
       TestScenario.diamondSphere()
         .withSphereColor(HIGHLY_TRANSPARENT_WHITE)
         .withPlane(1, false, -2.0f),
-      TEST_IMAGE_SIZE._1,
-      TEST_IMAGE_SIZE._2
+      TEST_IMAGE_SIZE
     )
 
     logger.info(f"Diamond material performance: $fps%.1f FPS")
@@ -68,8 +65,7 @@ class PerformanceTest extends AnyFlatSpec
         .withIOR(1.5f)
         .withSphereRadius(2.0f)
         .withPlane(1, false, -2.0f),
-      TEST_IMAGE_SIZE._1,
-      TEST_IMAGE_SIZE._2
+      TEST_IMAGE_SIZE
     )
 
     logger.info(f"Large sphere performance: $fps%.1f FPS")

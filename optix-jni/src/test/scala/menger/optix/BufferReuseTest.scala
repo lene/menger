@@ -22,13 +22,14 @@ class BufferReuseTest extends AnyFlatSpec with Matchers with LazyLogging {
       renderer.setCamera(eye, lookAt, up, 60f)
 
       // Render multiple times with same dimensions (should reuse buffer)
-      val img1 = renderer.render(800, 600).get
-      val img2 = renderer.render(800, 600).get
-      val img3 = renderer.render(800, 600).get
+      val size = ImageSize(800, 600)
+      val img1 = renderer.render(size).get
+      val img2 = renderer.render(size).get
+      val img3 = renderer.render(size).get
 
-      img1.length should be (800 * 600 * 4)
-      img2.length should be (800 * 600 * 4)
-      img3.length should be (800 * 600 * 4)
+      img1.length should be (ImageValidation.imageByteSize(size))
+      img2.length should be (ImageValidation.imageByteSize(size))
+      img3.length should be (ImageValidation.imageByteSize(size))
 
       // All should have identical content (same scene, same camera)
       img1 should equal (img2)
@@ -54,15 +55,18 @@ class BufferReuseTest extends AnyFlatSpec with Matchers with LazyLogging {
       renderer.setCamera(eye, lookAt, up, 60f)
 
       // Render at different resolutions
-      val img1 = renderer.render(640, 480).get
-      val img2 = renderer.render(1024, 768).get
-      val img3 = renderer.render(800, 600).get
-      val img4 = renderer.render(800, 600).get  // Same as img3, should reuse buffer
+      val size1 = ImageSize(640, 480)
+      val size2 = ImageSize(1024, 768)
+      val size3 = ImageSize(800, 600)
+      val img1 = renderer.render(size1).get
+      val img2 = renderer.render(size2).get
+      val img3 = renderer.render(size3).get
+      val img4 = renderer.render(size3).get  // Same as img3, should reuse buffer
 
-      img1.length should be (640 * 480 * 4)
-      img2.length should be (1024 * 768 * 4)
-      img3.length should be (800 * 600 * 4)
-      img4.length should be (800 * 600 * 4)
+      img1.length should be (ImageValidation.imageByteSize(size1))
+      img2.length should be (ImageValidation.imageByteSize(size2))
+      img3.length should be (ImageValidation.imageByteSize(size3))
+      img4.length should be (ImageValidation.imageByteSize(size3))
 
       // Same dimensions should produce same output
       img3 should equal (img4)
@@ -86,19 +90,20 @@ class BufferReuseTest extends AnyFlatSpec with Matchers with LazyLogging {
       renderer.setCamera(eye, lookAt, up, 60f)
 
       // Render with different sphere positions (same dimensions)
+      val size = ImageSize(400, 300)
       renderer.setSphere(0.0f, 0.0f, 0.0f, 1.5f)
-      val img1 = renderer.render(400, 300).get
+      val img1 = renderer.render(size).get
 
       renderer.setSphere(1.0f, 0.0f, 0.0f, 1.5f)
-      val img2 = renderer.render(400, 300).get
+      val img2 = renderer.render(size).get
 
       renderer.setSphere(0.0f, 1.0f, 0.0f, 1.5f)
-      val img3 = renderer.render(400, 300).get
+      val img3 = renderer.render(size).get
 
       // All renders should succeed
-      img1.length should be (400 * 300 * 4)
-      img2.length should be (400 * 300 * 4)
-      img3.length should be (400 * 300 * 4)
+      img1.length should be (ImageValidation.imageByteSize(size))
+      img2.length should be (ImageValidation.imageByteSize(size))
+      img3.length should be (ImageValidation.imageByteSize(size))
 
       // Images should be different (different sphere positions)
       img1 should not equal img2
@@ -129,15 +134,16 @@ class BufferReuseTest extends AnyFlatSpec with Matchers with LazyLogging {
       renderer.setCamera(eye, lookAt, up, 60f)
 
       // Warmup
-      renderer.render(800, 600).get
+      val size = ImageSize(800, 600)
+      renderer.render(size).get
 
       // Time 100 renders at same resolution (should benefit from buffer reuse)
       val iterations = 100
       val start = System.nanoTime()
 
       for (i <- 0 until iterations) {
-        val img = renderer.render(800, 600).get
-        img.length should be (800 * 600 * 4)
+        val img = renderer.render(size).get
+        img.length should be (ImageValidation.imageByteSize(size))
       }
 
       val end = System.nanoTime()
@@ -162,10 +168,11 @@ class BufferReuseTest extends AnyFlatSpec with Matchers with LazyLogging {
 
     try {
       // First session
+      val size = ImageSize(400, 300)
       renderer.initialize() should be (true)
       renderer.setSphere(0.0f, 0.0f, 0.0f, 1.5f)
-      val img1 = renderer.render(400, 300).get
-      img1.length should be (400 * 300 * 4)
+      val img1 = renderer.render(size).get
+      img1.length should be (ImageValidation.imageByteSize(size))
 
       // Dispose (should free cached buffer)
       renderer.dispose()
@@ -173,8 +180,8 @@ class BufferReuseTest extends AnyFlatSpec with Matchers with LazyLogging {
       // Second session (buffer should be reallocated)
       renderer.initialize() should be (true)
       renderer.setSphere(0.0f, 0.0f, 0.0f, 1.5f)
-      val img2 = renderer.render(400, 300).get
-      img2.length should be (400 * 300 * 4)
+      val img2 = renderer.render(size).get
+      img2.length should be (ImageValidation.imageByteSize(size))
 
       // Should produce same output (same scene)
       img1 should equal (img2)

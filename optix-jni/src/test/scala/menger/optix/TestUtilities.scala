@@ -91,15 +91,14 @@ object TestUtilities extends LazyLogging:
   def measureFPS(
     renderer: OptiXRenderer,
     scenario: TestScenario,
-    width: Int,
-    height: Int,
+    size: ImageSize,
     frames: Int = 100
   ): Double =
     scenario.applyTo(renderer)
 
     val start = System.nanoTime
     (0 until frames).foreach { _ =>
-      renderer.render(width, height).get
+      renderer.render(size).get
     }
     val duration = (System.nanoTime - start) / 1e9
     frames / duration

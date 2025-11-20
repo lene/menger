@@ -20,101 +20,68 @@ object ShadowValidation:
       Region(cx - radius, cy - radius, cx + radius, cy + radius)
 
     
-    def bottomCenter(width: Int, height: Int, fraction: Double = 0.25): Region =
-      val regionWidth = (width * fraction).toInt
-      val regionHeight = (height * fraction).toInt
-      val x0 = (width - regionWidth) / 2
-      val y0 = height - regionHeight
+    def bottomCenter(size: ImageSize, fraction: Double = 0.25): Region =
+      val regionWidth = (size.width * fraction).toInt
+      val regionHeight = (size.height * fraction).toInt
+      val x0 = (size.width - regionWidth) / 2
+      val y0 = size.height - regionHeight
       Region(x0, y0, x0 + regionWidth, y0 + regionHeight)
 
-    def bottomCenter(size: ImageSize): Region =
-      bottomCenter(size.width, size.height)
 
-    def bottomCenter(size: ImageSize, fraction: Double): Region =
-      bottomCenter(size.width, size.height, fraction)
-
-
-    def topCenter(width: Int, height: Int, fraction: Double = 0.25): Region =
-      val regionWidth = (width * fraction).toInt
-      val regionHeight = (height * fraction).toInt
-      val x0 = (width - regionWidth) / 2
+    def topCenter(size: ImageSize, fraction: Double = 0.25): Region =
+      val regionWidth = (size.width * fraction).toInt
+      val regionHeight = (size.height * fraction).toInt
+      val x0 = (size.width - regionWidth) / 2
       Region(x0, 0, x0 + regionWidth, regionHeight)
 
-    def topCenter(size: ImageSize): Region =
-      topCenter(size.width, size.height)
 
-    def topCenter(size: ImageSize, fraction: Double): Region =
-      topCenter(size.width, size.height, fraction)
-
-
-    def leftSide(width: Int, height: Int, fraction: Double = 0.25): Region =
-      val regionWidth = (width * fraction).toInt
-      val y0 = height / 4
-      val y1 = 3 * height / 4
+    def leftSide(size: ImageSize, fraction: Double = 0.25): Region =
+      val regionWidth = (size.width * fraction).toInt
+      val y0 = size.height / 4
+      val y1 = 3 * size.height / 4
       Region(0, y0, regionWidth, y1)
 
-    def leftSide(size: ImageSize): Region =
-      leftSide(size.width, size.height)
 
-    def leftSide(size: ImageSize, fraction: Double): Region =
-      leftSide(size.width, size.height, fraction)
-
-
-    def rightSide(width: Int, height: Int, fraction: Double = 0.25): Region =
-      val regionWidth = (width * fraction).toInt
-      val y0 = height / 4
-      val y1 = 3 * height / 4
-      Region(width - regionWidth, y0, width, y1)
-
-    def rightSide(size: ImageSize): Region =
-      rightSide(size.width, size.height)
-
-    def rightSide(size: ImageSize, fraction: Double): Region =
-      rightSide(size.width, size.height, fraction)
+    def rightSide(size: ImageSize, fraction: Double = 0.25): Region =
+      val regionWidth = (size.width * fraction).toInt
+      val y0 = size.height / 4
+      val y1 = 3 * size.height / 4
+      Region(size.width - regionWidth, y0, size.width, y1)
 
 
   def regionBrightness(
     imageData: Array[Byte],
-    width: Int,
-    height: Int,
+    size: ImageSize,
     region: Region
   ): Double =
     val samples = for
-      y <- region.y0 until region.y1 if y >= 0 && y < height
-      x <- region.x0 until region.x1 if x >= 0 && x < width
-    yield getRGBAt(imageData, width, x, y).brightness
+      y <- region.y0 until region.y1 if y >= 0 && y < size.height
+      x <- region.x0 until region.x1 if x >= 0 && x < size.width
+    yield getRGBAt(imageData, size, x, y).brightness
 
     if samples.isEmpty then 0.0
     else samples.sum.toDouble / samples.length
 
-  def regionBrightness(imageData: Array[Byte], size: ImageSize, region: Region): Double =
-    regionBrightness(imageData, size.width, size.height, region)
-
 
   def brightnessContrast(
     imageData: Array[Byte],
-    width: Int,
-    height: Int,
+    size: ImageSize,
     region1: Region,
     region2: Region
   ): Double =
-    val b1 = regionBrightness(imageData, width, height, region1)
-    val b2 = regionBrightness(imageData, width, height, region2)
+    val b1 = regionBrightness(imageData, size, region1)
+    val b2 = regionBrightness(imageData, size, region2)
     if b2 == 0.0 then 0.0 else b1 / b2
-
-  def brightnessContrast(imageData: Array[Byte], size: ImageSize, region1: Region, region2: Region): Double =
-    brightnessContrast(imageData, size.width, size.height, region1, region2)
 
 
   def detectDarkestRegion(
     imageData: Array[Byte],
-    width: Int,
-    height: Int,
+    size: ImageSize,
     gridSize: Int = 5
   ): Region =
-    val yStart = height / 2
-    val regionWidth = width / gridSize
-    val regionHeight = (height - yStart) / gridSize
+    val yStart = size.height / 2
+    val regionWidth = size.width / gridSize
+    val regionHeight = (size.height - yStart) / gridSize
 
     val regions = for
       gy <- 0 until gridSize
@@ -126,13 +93,7 @@ object ShadowValidation:
       region = Region(x0, y0, x1, y1)
     yield region
 
-    regions.minBy(region => regionBrightness(imageData, width, height, region))
-
-  def detectDarkestRegion(imageData: Array[Byte], size: ImageSize): Region =
-    detectDarkestRegion(imageData, size.width, size.height)
-
-  def detectDarkestRegion(imageData: Array[Byte], size: ImageSize, gridSize: Int): Region =
-    detectDarkestRegion(imageData, size.width, size.height, gridSize)
+    regions.minBy(region => regionBrightness(imageData, size, region))
 
 
   def expectedShadowPosition(
