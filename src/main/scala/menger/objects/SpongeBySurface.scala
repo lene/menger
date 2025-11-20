@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g3d.Model
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder
 import com.badlogic.gdx.math.Vector3
+import menger.common.float2string
 import menger.objects.Direction.Z
 
 

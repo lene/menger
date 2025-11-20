@@ -10,6 +10,7 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.GDXResources
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.common.Const
 import menger.input.EventDispatcher
 import menger.objects.Geometry
 
@@ -19,7 +20,7 @@ class InteractiveMengerEngine(
   rotationProjectionParameters: RotationProjectionParameters = RotationProjectionParameters(),
   lines: Boolean = false, color: Color = Color.WHITE, val timeout: Float = 0,
   faceColor: Option[Color] = None, lineColor: Option[Color] = None,
-  fpsLogIntervalMs: Int = 1000
+  fpsLogIntervalMs: Int = Const.fpsLogIntervalMs
 )(using config: ProfilingConfig) extends MengerEngine(spongeType, spongeLevel, rotationProjectionParameters, lines, color, faceColor, lineColor, fpsLogIntervalMs)
 with TimeoutSupport with LazyLogging:
   private lazy val sponge: Geometry = generateObjectWithOverlay(

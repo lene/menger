@@ -2,8 +2,8 @@ package menger.objects.higher_d
 
 import scala.annotation.targetName
 
-import menger.Const
-import menger.objects.Vector
+import menger.common.Const
+import menger.common.Vector
 
 
 case class Face4D(a: Vector[4], b: Vector[4], c: Vector[4], d: Vector[4]):

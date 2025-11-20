@@ -13,12 +13,13 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
+import menger.common.Const
 import menger.input.EventDispatcher
 import menger.input.MengerInputMultiplexer
 import org.lwjgl.opengl.GL11
 
 
-case class GDXResources(eventDispatcher: Option[EventDispatcher], fpsLogIntervalMs: Int = 1000) extends LazyLogging:
+case class GDXResources(eventDispatcher: Option[EventDispatcher], fpsLogIntervalMs: Int = Const.fpsLogIntervalMs) extends LazyLogging:
 
   private val cameraPosition = Vector3(-2f, 1f, -1f)
   private val environment: Environment = createEnvironment

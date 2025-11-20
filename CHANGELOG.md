@@ -30,6 +30,11 @@
   - Test:Debian: Made manual-only (documentation job, not needed on every pipeline)
   - code_quality: Removed Docker socket override, now uses default DinD from template
     - More secure and doesn't require runner configuration changes
+- **OptiXEngine Crash** - Fixed "width must be positive, got 0" crash on startup
+  - Changed `OptiXRenderResources.currentDimensions` to return `Option[ImageSize]`
+  - Updated `OptiXEngine.render()` to handle `None` when window dimensions not yet initialized
+  - Added proper initialization logging for first render with valid dimensions
+  - Pre-push hook now passes successfully
 
 ### Added
 - **Shadow Testing Infrastructure** - Comprehensive shadow testing with solid plane rendering mode
@@ -39,6 +44,15 @@
   - 26 shadow tests covering graduated transparency, light direction, geometric correctness, edge cases
   - `ShadowValidation.scala` helper module with region detection, brightness measurement, shadow intensity calculation
   - `ShadowDiagnosticTest.scala` saves PPM images for manual inspection (shadow_alpha_*.ppm)
+- **Common Module** - Created `menger-common` subproject for shared types
+  - New module structure: `menger-common` serves as shared dependency for both `optix-jni` and root project
+  - Moved `Const` from `menger` to `menger.common` (epsilon, window defaults, angle conversion)
+  - Moved `Vector[N]` from `menger.objects` to `menger.common` (n-dimensional vector operations)
+  - Moved `ImageSize` from `menger.optix` to `menger.common` (validated width/height)
+  - Moved `Vec3` type alias from `menger` to `menger.common`
+  - Created `Light` sealed trait with `Directional` and `Point` case classes in `menger.common`
+  - Updated 40+ files with new import paths
+  - Foundation for Vector[3] refactoring to replace Array[Float] usage
 - **Multi-Light CLI Support** - Implemented CLI interface for multiple light sources
   - Added `--light` flag (repeatable, max 8 lights) with format `<type>:x,y,z[:intensity[:color]]`
   - Support for directional and point lights with configurable color and intensity

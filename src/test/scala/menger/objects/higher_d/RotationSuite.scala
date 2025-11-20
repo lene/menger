@@ -4,7 +4,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.*
 import org.scalatest.Inspectors.forAll
 import com.typesafe.scalalogging.LazyLogging
-import menger.objects.{Vector, Matrix}
+import menger.common.Vector
+import menger.objects.Matrix
 import menger.RotationProjectionParameters
 
 trait StandardVector:

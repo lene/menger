@@ -1,6 +1,7 @@
 package menger.objects
 
-import menger.Const
+import menger.common.Const
+import menger.common.Vector
 
 case class Matrix[dim <: Int & Singleton](m: Array[Float])(implicit d: ValueOf[dim]):
 

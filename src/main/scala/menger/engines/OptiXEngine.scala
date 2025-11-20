@@ -15,8 +15,8 @@ import menger.OptiXResources
 import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.common.ImageSize
 import menger.input.OptiXCameraController
-import menger.optix.ImageSize
 import menger.optix.OptiXRenderer
 
 @SuppressWarnings(Array("org.wartremover.warts.Throw"))
@@ -87,24 +87,32 @@ class OptiXEngine(
     val width = Gdx.graphics.getWidth
     val height = Gdx.graphics.getHeight
 
-    // Check if window dimensions changed
-    val (lastWidth, lastHeight) = renderResources.currentDimensions
-    val dimensionsChanged = width != lastWidth || height != lastHeight
-    if dimensionsChanged then
-      logger.info(s"[OptiXEngine] render: dimensions changed from ${lastWidth}x${lastHeight} to ${width}x${height}, updating camera")
-      optiXResources.updateCameraAspectRatio(ImageSize(width, height))
-      renderResources.markNeedsRender()
+    // Only proceed if window dimensions are valid
+    if width > 0 && height > 0 then
+      // Check if window dimensions changed
+      val dimensionsChanged = renderResources.currentDimensions match
+        case Some(lastDims) => width != lastDims.width || height != lastDims.height
+        case None => true  // First valid render, dimensions definitely changed
 
-    // Only render the scene if something changed
-    if renderResources.needsRender then
-      val size = ImageSize(width, height)
-      val rgbaBytes = if enableStats then renderWithStats(width, height) else optiXResources.renderScene(size)
-      renderResources.renderToScreen(rgbaBytes, width, height)
-    else
-      // Just redraw the existing texture without re-rendering
-      renderResources.redrawExisting(width, height)
+      if dimensionsChanged then
+        renderResources.currentDimensions match
+          case Some(lastDims) =>
+            logger.info(s"[OptiXEngine] render: dimensions changed from ${lastDims.width}x${lastDims.height} to ${width}x${height}, updating camera")
+          case None =>
+            logger.info(s"[OptiXEngine] render: initializing with dimensions ${width}x${height}")
+        optiXResources.updateCameraAspectRatio(ImageSize(width, height))
+        renderResources.markNeedsRender()
 
-    saveImage()
+      // Only render the scene if something changed
+      if renderResources.needsRender then
+        val size = ImageSize(width, height)
+        val rgbaBytes = if enableStats then renderWithStats(width, height) else optiXResources.renderScene(size)
+        renderResources.renderToScreen(rgbaBytes, width, height)
+      else
+        // Just redraw the existing texture without re-rendering
+        renderResources.redrawExisting(width, height)
+
+      saveImage()
 
     // Exit after saving when in non-interactive mode (unless timeout is set)
     if saveName.isDefined && !renderResources.hasSaved && timeout == 0 then

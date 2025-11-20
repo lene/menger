@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import menger.objects.Vector
+import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import CustomMatchers._

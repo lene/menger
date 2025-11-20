@@ -3,7 +3,7 @@ package menger.objects
 import scala.math.abs
 
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
-import menger.Vec3
+import menger.common.Vec3
 import menger.objects.Direction.X
 import menger.objects.Direction.Y
 import menger.objects.Direction.Z

@@ -9,6 +9,7 @@ import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.OptiXRenderResources
 import menger.OptiXResources
+import menger.common.Const
 
 
 case class CameraControlConfig(
@@ -72,14 +73,14 @@ class OptiXCameraController(
   private def computeInitialAzimuth(): Float =
     val dir = eye.cpy().sub(lookAt)
     val azimuthRad = atan2(dir.x.toDouble, dir.z.toDouble).toFloat
-    (azimuthRad * 180.0f / Pi.toFloat) // Convert to degrees
+    Const.radiansToDegrees(azimuthRad)
 
   // Compute initial elevation angle from eye and lookAt positions
   private def computeInitialElevation(): Float =
     val dir = eye.cpy().sub(lookAt)
     val horizontalDist = sqrt(dir.x * dir.x + dir.z * dir.z).toFloat
     val elevationRad = atan2(dir.y.toDouble, horizontalDist.toDouble).toFloat
-    elevationRad * 180.0f / Pi.toFloat // Convert to degrees
+    Const.radiansToDegrees(elevationRad)
 
   override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
     lastX = screenX
@@ -160,8 +161,8 @@ class OptiXCameraController(
 
   // Convert spherical coordinates (azimuth, elevation, distance) to Cartesian eye position
   private def updateEyeFromSpherical(): Unit =
-    val azimuthRad = azimuth * Pi.toFloat / 180.0f
-    val elevationRad = elevation * Pi.toFloat / 180.0f
+    val azimuthRad = Const.degreesToRadians(azimuth)
+    val elevationRad = Const.degreesToRadians(elevation)
 
     // Spherical to Cartesian conversion
     val cosElev = cos(elevationRad.toDouble).toFloat

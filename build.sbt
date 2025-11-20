@@ -5,8 +5,21 @@ import scala.sys.process._
 // Define custom task key for native tests
 lazy val nativeTest = taskKey[Unit]("Run native C++ tests")
 
+// Common module - shared types between optixJni and root
+lazy val mengerCommon = project
+  .in(file("menger-common"))
+  .settings(
+    name := "menger-common",
+    scalaVersion := "3.7.3",
+    scalacOptions ++= Seq("-deprecation", "-explain", "-feature", "-Wunused:imports"),
+
+    // ScalaTest
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
+  )
+
 lazy val optixJni = project
   .in(file("optix-jni"))
+  .dependsOn(mengerCommon)
   .enablePlugins(JniNative)
   .settings(
     name := "optix-jni",
@@ -173,9 +186,9 @@ lazy val root = {
     Test / scalacOptions += "-experimental"
   )
 
-  // Always depend on OptiX JNI and configure library path
+  // Always depend on OptiX JNI and common module, configure library path
   base
-    .dependsOn(optixJni)  // Compile and runtime dependency
+    .dependsOn(optixJni, mengerCommon)  // Compile and runtime dependency
     .settings(
       // Set library path for run to find native library and CUDA libraries
       run / javaOptions += s"-Djava.library.path=${(optixJni / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",

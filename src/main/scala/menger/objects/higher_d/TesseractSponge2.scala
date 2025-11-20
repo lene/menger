@@ -1,7 +1,7 @@
 package menger.objects.higher_d
 
 import com.typesafe.scalalogging.LazyLogging
-import menger.objects.Vector
+import menger.common.Vector
 
 
 class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) with LazyLogging:

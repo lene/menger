@@ -20,6 +20,12 @@ include:
   - template: Security/Dependency-Scanning.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
 
+# Override code_quality from template to allow failure due to Docker API version mismatch
+# in GitLab's DinD service (API 1.41 vs required 1.44). Code quality is validated by
+# scalafix in pre-push hooks and semgrep-sast job.
+code_quality:
+  allow_failure: true
+
 # This job installs sbt by itself. It is somewhat slower than the ones based on scala-sbt below.
 # Tests installation from minimal Debian/Ubuntu base images (without CUDA/OptiX).
 # Run manually only for documentation purposes - will fail on OptiX JNI compilation.
@@ -307,6 +313,8 @@ Test:OptiXIntegration:
   needs: []
   tags:
     - nvidia
+  timeout: 20m  # Fail fast on hangs, retry will recover
+  retry: 2      # 1 initial + 2 retries = 3 attempts max = 60m total (GitLab max retry=2)
   variables:
     NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
   before_script:
@@ -410,6 +418,8 @@ Run:UseDocker:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
+  timeout: 20m  # Fail fast on hangs, retry will recover
+  retry: 2      # 1 initial + 2 retries = 3 attempts max = 60m total (GitLab max retry=2)
   before_script:
     - apt-get -y update
     - apt-get -y install mesa-utils x11-xserver-utils xvfb

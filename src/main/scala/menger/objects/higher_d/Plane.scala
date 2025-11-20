@@ -1,8 +1,8 @@
 package menger.objects.higher_d
 
 import com.typesafe.scalalogging.LazyLogging
-import menger.Const
-import menger.objects.Vector
+import menger.common.Const
+import menger.common.Vector
 
 
 case class Plane(i: Int, j: Int):

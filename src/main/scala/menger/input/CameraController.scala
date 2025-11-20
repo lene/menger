@@ -6,7 +6,7 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController
 import menger.RotationProjectionParameters
-import menger.Vec3
+import menger.common.Vec3
 
 def isShiftPressed =
   Seq(Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT).exists(Gdx.input.isKeyPressed)
