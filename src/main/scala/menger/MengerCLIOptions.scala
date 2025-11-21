@@ -9,7 +9,7 @@ import menger.common.Const
 import org.rogach.scallop._
 
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:
-  version("menger v0.3.6 (c) 2023-25, lene.preuss@gmail.com")
+  version("menger v0.3.7 (c) 2023-25, lene.preuss@gmail.com")
 
   private def validateSpongeType(spongeType: String): Boolean =
     isValidSpongeType(spongeType)

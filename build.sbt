@@ -124,7 +124,7 @@ lazy val root = {
     .enablePlugins(JavaAppPackaging)
     .settings(
     name := "Menger",
-    version := "0.3.6",
+    version := "0.3.7",
     maintainer := "lene.preuss@gmail.com",
 
     scalaVersion := "3.7.3",
