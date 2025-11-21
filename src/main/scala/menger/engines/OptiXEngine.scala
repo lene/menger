@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
+import menger.ColorConversions.toCommonColor
 import menger.GDXResources
 import menger.OptiXRenderResources
 import menger.OptiXResources
@@ -16,7 +17,6 @@ import menger.PlaneColorSpec
 import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
-import menger.ColorConversions.toCommonColor
 import menger.common.ImageSize
 import menger.common.Vector
 import menger.input.OptiXCameraController

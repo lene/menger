@@ -4,15 +4,9 @@
   > native library from the system path rather than the bundled one. This is a known
   > packaging issue but doesn't affect the correctness of the code.
 - --plane: default no plane, can be repeated for multiple planes
+- use a color class dereved from Vector instead of the libGDX class
 - caustics
 - on-the-fly change of image dimension with resizing of menger main window
-- ~~fix optix cache corruption~~ DONE: auto-detects corruption via log callback and clears cache
-- ensure dockeris up to date on home laptop, should be:
-  $ docker --version
-  Docker version 28.2.2  # Your runner is NEW
-  $ docker version --format '{{.Client.APIVersion}}'
-  1.50  # Your runner's API is NEW (well above 1.44)
-
 
 ## later
 - composites

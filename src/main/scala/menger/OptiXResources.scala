@@ -9,11 +9,11 @@ import scala.util.Try
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.Axis
+import menger.ColorConversions.toCommonColor
 import menger.LightSpec
 import menger.LightType
 import menger.PlaneColorSpec
 import menger.PlaneSpec
-import menger.ColorConversions.toCommonColor
 import menger.common.Color
 import menger.common.ImageSize
 import menger.common.Light

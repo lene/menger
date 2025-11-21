@@ -131,6 +131,10 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val plane: ScallopOption[PlaneSpec] = opt[PlaneSpec](
     required = false, default = Some(PlaneSpec(Axis.Y, positive = true, -2.0f))
   )(using planeSpecConverter)
+  val planeColor: ScallopOption[PlaneColorSpec] = opt[PlaneColorSpec](
+    required = false,
+    descr = "Plane color: #RRGGBB for solid, or RRGGBB:RRGGBB for checkered (OptiX only)"
+  )(using planeColorSpecConverter)
 
   // Lighting parameters (OptiX only)
   val light: ScallopOption[List[LightSpec]] = opt[List[LightSpec]](
@@ -219,6 +223,12 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   validateOpt(aaThreshold, antialiasing) { (_, aa) =>
     if aaThreshold.isSupplied && !aa.getOrElse(false) then
       Left("--aa-threshold requires --antialiasing flag")
+    else Right(())
+  }
+
+  validateOpt(planeColor, optix) { (pc, ox) =>
+    if pc.isDefined && !ox.getOrElse(false) then
+      Left("--plane-color flag requires --optix flag")
     else Right(())
   }
 
@@ -359,4 +369,45 @@ val lightSpecConverter = new ValueConverter[List[LightSpec]] {
         case (Left(err), _) => Left(err)
         case (_, Left(err)) => Left(err)
       }.map(Some(_))
+}
+
+// Plane color specification: solid (one color) or checkered (two colors)
+// Uses menger.common.Color for compatibility with OptiX renderer API
+case class PlaneColorSpec(color1: menger.common.Color, color2: Option[menger.common.Color]):
+  def isSolid: Boolean = color2.isEmpty
+  def isCheckered: Boolean = color2.isDefined
+
+val planeColorSpecConverter = new ValueConverter[PlaneColorSpec] {
+  val argType: ArgType.V = org.rogach.scallop.ArgType.SINGLE
+
+  def parse(s: List[(String, List[String])]): Either[String, Option[PlaneColorSpec]] =
+    if s.isEmpty || s.head._2.isEmpty then Right(None)
+    else
+      val input = s.head._2.head.trim
+      Try { parseSpec(input) }.recover {
+        case e: Exception => Left(s"Plane color '$input' not recognized: ${e.getMessage}")
+      }.get
+
+  private def parseSpec(input: String): Either[String, Option[PlaneColorSpec]] =
+    if input.contains(':') then parseCheckered(input)
+    else parseSolid(input)
+
+  private def parseSolid(input: String): Either[String, Option[PlaneColorSpec]] =
+    parseHexColor(input.stripPrefix("#")).map(c => Some(PlaneColorSpec(c, None)))
+
+  private def parseCheckered(input: String): Either[String, Option[PlaneColorSpec]] =
+    val parts = input.split(":")
+    if parts.length != 2 then
+      Left("Checkered plane color must have exactly two colors separated by ':' (e.g., RRGGBB:RRGGBB)")
+    else
+      for
+        c1 <- parseHexColor(parts(0).stripPrefix("#"))
+        c2 <- parseHexColor(parts(1).stripPrefix("#"))
+      yield Some(PlaneColorSpec(c1, Some(c2)))
+
+  private def parseHexColor(hex: String): Either[String, menger.common.Color] =
+    if hex.length != 6 then
+      Left(s"Color '$hex' must be exactly 6 hex digits (RRGGBB)")
+    else
+      Try { menger.common.Color.fromHex(hex) }.toEither.left.map(_ => s"Color '$hex' contains invalid hex digits")
 }

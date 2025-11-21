@@ -68,6 +68,7 @@ object Main:
       opts.fpsLogInterval(),
       opts.radius(), opts.ior(), opts.scale(),
       opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),
+      opts.planeColor.toOption,
       opts.timeout(),
       opts.saveName.toOption,
       opts.stats(),
