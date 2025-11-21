@@ -620,6 +620,54 @@ void OptiXWrapper::render(int width, int height, unsigned char* output, RayStats
             cudaMemcpyHostToDevice
         ));
 
+        // Allocate caustics buffers if enabled (lazy allocation)
+        if (impl->caustics_enabled) {
+            const size_t hit_points_size = RayTracingConstants::MAX_HIT_POINTS * sizeof(HitPoint);
+            if (impl->cached_hit_points_size != hit_points_size) {
+                // Free existing buffers
+                if (impl->d_hit_points) {
+                    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(impl->d_hit_points)));
+                }
+                if (impl->d_num_hit_points) {
+                    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(impl->d_num_hit_points)));
+                }
+                if (impl->d_caustics_grid) {
+                    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(impl->d_caustics_grid)));
+                }
+                if (impl->d_caustics_grid_counts) {
+                    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(impl->d_caustics_grid_counts)));
+                }
+                if (impl->d_caustics_grid_offsets) {
+                    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(impl->d_caustics_grid_offsets)));
+                }
+
+                // Allocate hit points array
+                CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&impl->d_hit_points), hit_points_size));
+
+                // Allocate counter for atomicAdd
+                CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&impl->d_num_hit_points), sizeof(unsigned int)));
+
+                // Allocate spatial hash grid
+                const size_t grid_size = RayTracingConstants::CAUSTICS_GRID_RESOLUTION *
+                                         RayTracingConstants::CAUSTICS_GRID_RESOLUTION *
+                                         RayTracingConstants::CAUSTICS_GRID_RESOLUTION;
+                CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&impl->d_caustics_grid), grid_size * sizeof(unsigned int)));
+                CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&impl->d_caustics_grid_counts), grid_size * sizeof(unsigned int)));
+                CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&impl->d_caustics_grid_offsets), grid_size * sizeof(unsigned int)));
+
+                impl->cached_hit_points_size = hit_points_size;
+            }
+
+            // Zero out hit point counter
+            unsigned int zero = 0;
+            CUDA_CHECK(cudaMemcpy(
+                reinterpret_cast<void*>(impl->d_num_hit_points),
+                &zero,
+                sizeof(unsigned int),
+                cudaMemcpyHostToDevice
+            ));
+        }
+
         // Set up launch parameters (use cached buffer)
         Params params;
         params.image = reinterpret_cast<unsigned char*>(impl->d_image);
