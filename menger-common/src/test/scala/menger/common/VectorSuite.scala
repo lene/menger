@@ -1,6 +1,5 @@
-package menger.objects.higher_d
+package menger.common
 
-import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -160,34 +159,34 @@ class VectorSuite extends AnyFlatSpec with Matchers:
     }
 
   "float2String" should "format correctly in the default case (2 digits)" in:
-    menger.common.float2string(1f) should be ("1")
-    menger.common.float2string(1.1f) should be ("1.10")
-    menger.common.float2string(1.123f) should be ("1.12")
-    menger.common.float2string(1.126f) should be ("1.13")
-    menger.common.float2string(1.0f) should be ("1")
+    float2string(1f) should be ("1")
+    float2string(1.1f) should be ("1.10")
+    float2string(1.123f) should be ("1.12")
+    float2string(1.126f) should be ("1.13")
+    float2string(1.0f) should be ("1")
 
   it should "work the same when 2 digits are explicitly specified" in:
-    menger.common.float2String(2)(1f) should be ("1")
-    menger.common.float2String(2)(1.1f) should be ("1.10")
-    menger.common.float2String(2)(1.123f) should be ("1.12")
-    menger.common.float2String(2)(1.126f) should be ("1.13")
-    menger.common.float2String(2)(1.0f) should be ("1")
+    float2String(2)(1f) should be ("1")
+    float2String(2)(1.1f) should be ("1.10")
+    float2String(2)(1.123f) should be ("1.12")
+    float2String(2)(1.126f) should be ("1.13")
+    float2String(2)(1.0f) should be ("1")
 
   it should "work correctly when 0 digits are specified" in:
-    menger.common.float2String(0)(1f) should be ("1")
-    menger.common.float2String(0)(1.1f) should be ("1")
-    menger.common.float2String(0)(1.5f) should be ("2")
-    menger.common.float2String(0)(1.9f) should be ("2")
+    float2String(0)(1f) should be ("1")
+    float2String(0)(1.1f) should be ("1")
+    float2String(0)(1.5f) should be ("2")
+    float2String(0)(1.9f) should be ("2")
 
   it should "work correctly when 3 digits are specified" in:
-    menger.common.float2String(3)(1f) should be ("1")
-    menger.common.float2String(3)(1.1f) should be ("1.100")
-    menger.common.float2String(3)(1.1234f) should be ("1.123")
-    menger.common.float2String(3)(1.1236f) should be ("1.124") // 1.1235 fails due to FP precision
-    menger.common.float2String(3)(1.9999f) should be ("2.000")
+    float2String(3)(1f) should be ("1")
+    float2String(3)(1.1f) should be ("1.100")
+    float2String(3)(1.1234f) should be ("1.123")
+    float2String(3)(1.1236f) should be ("1.124") // 1.1235 fails due to FP precision
+    float2String(3)(1.9999f) should be ("2.000")
 
   it should "work correctly with negative numbers" in:
-    menger.common.float2String(2)(-1f) should be ("-1")
-    menger.common.float2String(2)(-1.1f) should be ("-1.10")
-    menger.common.float2String(2)(-1.123f) should be ("-1.12")
-    menger.common.float2String(2)(-1.126f) should be ("-1.13")
+    float2String(2)(-1f) should be ("-1")
+    float2String(2)(-1.1f) should be ("-1.10")
+    float2String(2)(-1.123f) should be ("-1.12")
+    float2String(2)(-1.126f) should be ("-1.13")

@@ -167,8 +167,9 @@ lazy val root = {
     Test / javaOptions += "-Dlogback.statusListenerClass=ch.qos.logback.core.status.NopStatusListener",
     Test / fork := true,
 
-    // Make root project's test depend on optixJni tests
+    // Make root project's test depend on optixJni and mengerCommon tests
     Test / test := {
+      (mengerCommon / Test / test).value
       (optixJni / Test / test).value
       (Test / test).value
     },

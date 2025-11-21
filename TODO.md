@@ -3,13 +3,10 @@
   > The packaged application failure is expected because it's trying to load the
   > native library from the system path rather than the bundled one. This is a known
   > packaging issue but doesn't affect the correctness of the code.
-- antialiasing/adaptive super-sampling
 - --plane: default no plane, can be repeated for multiple planes
 - caustics
 - on-the-fly change of image dimension with resizing of menger main window
-- fix optix cache corruption:
-     [OptiX][3][DISKCACHE]: Failed to insert into the cache. Query failed. database disk image is malformed (code: 11)
-     [OptiX][3][DISKCACHE]: Database corruption detected. Deleting cache file: "/var/tmp/OptixCache_lepr/optix7cache.db".
+- ~~fix optix cache corruption~~ DONE: auto-detects corruption via log callback and clears cache
 - ensure dockeris up to date on home laptop, should be:
   $ docker --version
   Docker version 28.2.2  # Your runner is NEW
