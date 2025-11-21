@@ -121,6 +121,8 @@ Test:Full:
     # Request graphics capability to ensure RTX/OptiX libraries are mounted
     NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
   # NO rules: section - runs on ALL branch pushes
+  timeout: 15m
+  retry: 2
   before_script:
     # Verify GPU is available - fail fast if not configured
     - nvidia-smi
