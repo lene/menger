@@ -1,6 +1,7 @@
+import com.github.sbt.jni.build.CMakeWithoutVersionBug
 import sbt.Keys.libraryDependencies
-import com.github.sbt.jni.build.{BuildTool, CMakeWithoutVersionBug}
-import scala.sys.process._
+
+import scala.sys.process.*
 
 // Define custom task key for native tests
 lazy val nativeTest = taskKey[Unit]("Run native C++ tests")
@@ -124,7 +125,7 @@ lazy val root = {
     .enablePlugins(JavaAppPackaging)
     .settings(
     name := "Menger",
-    version := "0.3.7",
+    version := "0.3.8",
     maintainer := "lene.preuss@gmail.com",
 
     scalaVersion := "3.7.3",
