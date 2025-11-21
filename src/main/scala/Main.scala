@@ -72,7 +72,10 @@ object Main:
       opts.saveName.toOption,
       opts.stats(),
       opts.shadows(),
-      opts.light.toOption
+      opts.light.toOption,
+      opts.antialiasing(),
+      opts.aaMaxDepth(),
+      opts.aaThreshold()
     )
 
   private def createAnimatedEngine(

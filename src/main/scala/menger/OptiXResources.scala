@@ -118,6 +118,10 @@ class OptiXResources(
     renderer.setShadows(enabled)
     logger.debug(s"Configured shadow rays: enabled=$enabled")
 
+  def setAntialiasing(enabled: Boolean, maxDepth: Int, threshold: Float): Unit =
+    renderer.setAntialiasing(enabled, maxDepth, threshold)
+    logger.debug(s"Configured antialiasing: enabled=$enabled, maxDepth=$maxDepth, threshold=$threshold")
+
   def renderScene(size: ImageSize): Array[Byte] =
     logger.debug(s"[OptiXResources] renderScene: rendering at ${size.width}x${size.height}")
     renderer.render(size).getOrElse:

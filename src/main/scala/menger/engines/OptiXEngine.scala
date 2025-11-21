@@ -42,7 +42,10 @@ class OptiXEngine(
   saveName: Option[String] = None,
   val enableStats: Boolean = false,
   val shadows: Boolean = false,
-  val lights: Option[List[menger.LightSpec]] = None
+  val lights: Option[List[menger.LightSpec]] = None,
+  val antialiasing: Boolean = false,
+  val aaMaxDepth: Int = 2,
+  val aaThreshold: Float = 0.1f
 )(using profilingConfig: ProfilingConfig) extends MengerEngine(
   spongeType, spongeLevel, rotationProjectionParameters, lines, color,
   faceColor, lineColor, fpsLogIntervalMs
@@ -65,11 +68,12 @@ class OptiXEngine(
     throw new UnsupportedOperationException("OptiXEngine doesn't use gdxResources")
 
   override def create(): Unit =
-    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, shadows=$shadows")
+    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, shadows=$shadows, antialiasing=$antialiasing")
     optiXResources.setSphereColor(color.r, color.g, color.b, color.a)
     optiXResources.setIOR(ior)
     optiXResources.setScale(scale)
     optiXResources.setShadows(shadows)
+    optiXResources.setAntialiasing(antialiasing, aaMaxDepth, aaThreshold)
     optiXResources.initialize()
 
     // Register interactive camera controller for mouse-based camera control
@@ -128,7 +132,7 @@ class OptiXEngine(
     logger.info(
       s"Ray stats: primary=${stats.primaryRays} total=${stats.totalRays} " +
       s"reflected=${stats.reflectedRays} refracted=${stats.refractedRays} " +
-      s"shadow=${stats.shadowRays} " +
+      s"shadow=${stats.shadowRays} aa=${stats.aaRays} " +
       s"depth=${stats.minDepthReached}-${stats.maxDepthReached}"
     )
     result.image

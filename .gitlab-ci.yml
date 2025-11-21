@@ -13,6 +13,9 @@ variables:
   SCALA_VERSION: 3.7.3
   # OptiX Docker image version: {CUDA}-{OptiX}-{Java}-{sbt}
   OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.11.7
+  # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
+  # See: https://forums.developer.nvidia.com/t/crash-on-launching-game-with-plasma-problematic-frame-libnvidia-glcore-so-570-144-0xa5966c/332304
+  __GL_THREADED_OPTIMIZATIONS: "0"
 
 include:
   - template: Code-Quality.gitlab-ci.yml

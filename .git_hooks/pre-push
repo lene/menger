@@ -261,6 +261,9 @@ rm -f test_optix*.png
 __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --sponge-type sphere --optix --radius 0.5 \
     --ior 1.5 --plane y:-2 --save-name test_optix.png || STATUS=1
 test -f test_optix.png || STATUS=1
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --sponge-type sphere --optix --radius 0.5 \
+    --ior 1.5 --plane y:-2 --antialiasing --aa-max-depth 4 --save-name test_optix-aa.png || STATUS=1
+test -f test_optix-aa.png || STATUS=1
 
 if [ $STATUS -gt 0 ]
 then echo "Status after running built: ${RED_TEXT}${STATUS}${RESET_TEXT}"

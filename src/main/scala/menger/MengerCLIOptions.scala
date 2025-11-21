@@ -96,6 +96,23 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     descr = "Enable shadow rays for realistic shadows (OptiX only)"
   )
 
+  val antialiasing: ScallopOption[Boolean] = opt[Boolean](
+    required = false, default = Some(false),
+    descr = "Enable recursive adaptive antialiasing (OptiX only)"
+  )
+
+  val aaMaxDepth: ScallopOption[Int] = opt[Int](
+    required = false, default = Some(2),
+    validate = d => d >= 1 && d <= 4,
+    descr = "Maximum AA recursion depth (1-4, default: 2)"
+  )
+
+  val aaThreshold: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(0.1f),
+    validate = t => t >= 0.0f && t <= 1.0f,
+    descr = "AA edge detection threshold (0.0-1.0, default: 0.1)"
+  )
+
   // Camera parameters
   val cameraPos: ScallopOption[Vector3] = opt[Vector3](
     required = false, default = Some(Vector3(0f, 0.5f, 3.0f))
@@ -184,6 +201,24 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
       Left("--light flag requires --optix flag")
     else if l.isDefined && l.get.length > 8 then
       Left("Maximum 8 lights allowed (MAX_LIGHTS=8)")
+    else Right(())
+  }
+
+  validateOpt(antialiasing, optix) { (aa, ox) =>
+    if aa.getOrElse(false) && !ox.getOrElse(false) then
+      Left("--antialiasing flag requires --optix flag")
+    else Right(())
+  }
+
+  validateOpt(aaMaxDepth, antialiasing) { (_, aa) =>
+    if aaMaxDepth.isSupplied && !aa.getOrElse(false) then
+      Left("--aa-max-depth requires --antialiasing flag")
+    else Right(())
+  }
+
+  validateOpt(aaThreshold, antialiasing) { (_, aa) =>
+    if aaThreshold.isSupplied && !aa.getOrElse(false) then
+      Left("--aa-threshold requires --antialiasing flag")
     else Right(())
   }
 
