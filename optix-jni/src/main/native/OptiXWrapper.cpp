@@ -114,6 +114,7 @@ struct OptiXWrapper::Impl {
     // Caustics program groups (for PPM rendering)
     OptixProgramGroup caustics_hitpoints_raygen = nullptr;
     OptixProgramGroup caustics_photons_raygen = nullptr;
+    OptixProgramGroup caustics_radiance_raygen = nullptr;
 
     // GPU buffers (created once, reused)
     CUdeviceptr d_gas_output_buffer = 0;
@@ -326,6 +327,9 @@ void OptiXWrapper::createProgramGroups(OptixModule sphere_module) {
     impl->caustics_photons_raygen = impl->optix_context.createRaygenProgramGroup(
         impl->module, "__raygen__photons"
     );
+    impl->caustics_radiance_raygen = impl->optix_context.createRaygenProgramGroup(
+        impl->module, "__raygen__caustics_radiance"
+    );
 }
 
 // Create OptiX pipeline and configure stack sizes
@@ -337,7 +341,8 @@ void OptiXWrapper::createPipeline() {
         impl->shadow_miss_prog_group,
         impl->shadow_hitgroup_prog_group,
         impl->caustics_hitpoints_raygen,
-        impl->caustics_photons_raygen
+        impl->caustics_photons_raygen,
+        impl->caustics_radiance_raygen
     };
 
     OptixPipelineCompileOptions pipeline_compile_options = getDefaultPipelineCompileOptions();
@@ -350,7 +355,7 @@ void OptiXWrapper::createPipeline() {
         pipeline_compile_options,
         pipeline_link_options,
         program_groups,
-        7  // Updated to include caustics raygen programs
+        8  // Updated to include caustics raygen programs
     );
 }
 
@@ -835,6 +840,7 @@ void OptiXWrapper::renderWithCaustics(int width, int height, Params& params) {
         sizeof(unsigned int),
         cudaMemcpyDeviceToHost
     ));
+    std::cerr << "[Caustics] Hit points collected: " << num_hit_points << std::endl;
 
     // =====================================
     // Pass 2-N: Photon Tracing Iterations
@@ -882,6 +888,16 @@ void OptiXWrapper::renderWithCaustics(int width, int height, Params& params) {
         width,
         height
     );
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    // =====================================
+    // Post-Processing: Apply Caustics Radiance to Image
+    // =====================================
+    if (num_hit_points > 0) {
+        // Launch caustics radiance computation (one thread per hit point)
+        launchCausticsPass(width, height, impl->caustics_radiance_raygen, num_hit_points, 1);
+        CUDA_CHECK(cudaDeviceSynchronize());
+    }
 }
 
 void OptiXWrapper::dispose() {
@@ -926,6 +942,11 @@ void OptiXWrapper::dispose() {
             if (impl->caustics_photons_raygen) {
                 impl->optix_context.destroyProgramGroup(impl->caustics_photons_raygen);
                 impl->caustics_photons_raygen = nullptr;
+            }
+
+            if (impl->caustics_radiance_raygen) {
+                impl->optix_context.destroyProgramGroup(impl->caustics_radiance_raygen);
+                impl->caustics_radiance_raygen = nullptr;
             }
 
             if (impl->module) {
