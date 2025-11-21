@@ -111,6 +111,10 @@ struct OptiXWrapper::Impl {
     OptixProgramGroup shadow_miss_prog_group = nullptr;
     OptixProgramGroup shadow_hitgroup_prog_group = nullptr;
 
+    // Caustics program groups (for PPM rendering)
+    OptixProgramGroup caustics_hitpoints_raygen = nullptr;
+    OptixProgramGroup caustics_photons_raygen = nullptr;
+
     // GPU buffers (created once, reused)
     CUdeviceptr d_gas_output_buffer = 0;
     CUdeviceptr d_params = 0;
@@ -314,6 +318,14 @@ void OptiXWrapper::createProgramGroups(OptixModule sphere_module) {
         impl->module, "__closesthit__shadow",
         impl->module, "__intersection__sphere"
     );
+
+    // Caustics raygen programs (for Progressive Photon Mapping)
+    impl->caustics_hitpoints_raygen = impl->optix_context.createRaygenProgramGroup(
+        impl->module, "__raygen__hitpoints"
+    );
+    impl->caustics_photons_raygen = impl->optix_context.createRaygenProgramGroup(
+        impl->module, "__raygen__photons"
+    );
 }
 
 // Create OptiX pipeline and configure stack sizes
@@ -323,7 +335,9 @@ void OptiXWrapper::createPipeline() {
         impl->miss_prog_group,
         impl->hitgroup_prog_group,
         impl->shadow_miss_prog_group,
-        impl->shadow_hitgroup_prog_group
+        impl->shadow_hitgroup_prog_group,
+        impl->caustics_hitpoints_raygen,
+        impl->caustics_photons_raygen
     };
 
     OptixPipelineCompileOptions pipeline_compile_options = getDefaultPipelineCompileOptions();
@@ -336,7 +350,7 @@ void OptiXWrapper::createPipeline() {
         pipeline_compile_options,
         pipeline_link_options,
         program_groups,
-        5  // Updated from 3 to 5 (added shadow miss and shadow hitgroup)
+        7  // Updated to include caustics raygen programs
     );
 }
 
@@ -728,6 +742,26 @@ void OptiXWrapper::dispose() {
             if (impl->hitgroup_prog_group) {
                 impl->optix_context.destroyProgramGroup(impl->hitgroup_prog_group);
                 impl->hitgroup_prog_group = nullptr;
+            }
+
+            if (impl->shadow_miss_prog_group) {
+                impl->optix_context.destroyProgramGroup(impl->shadow_miss_prog_group);
+                impl->shadow_miss_prog_group = nullptr;
+            }
+
+            if (impl->shadow_hitgroup_prog_group) {
+                impl->optix_context.destroyProgramGroup(impl->shadow_hitgroup_prog_group);
+                impl->shadow_hitgroup_prog_group = nullptr;
+            }
+
+            if (impl->caustics_hitpoints_raygen) {
+                impl->optix_context.destroyProgramGroup(impl->caustics_hitpoints_raygen);
+                impl->caustics_hitpoints_raygen = nullptr;
+            }
+
+            if (impl->caustics_photons_raygen) {
+                impl->optix_context.destroyProgramGroup(impl->caustics_photons_raygen);
+                impl->caustics_photons_raygen = nullptr;
             }
 
             if (impl->module) {
