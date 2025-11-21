@@ -113,6 +113,36 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     descr = "AA edge detection threshold (0.0-1.0, default: 0.1)"
   )
 
+  // Caustics (Progressive Photon Mapping) options
+  val caustics: ScallopOption[Boolean] = opt[Boolean](
+    required = false, default = Some(false),
+    descr = "Enable caustics rendering via Progressive Photon Mapping (OptiX only)"
+  )
+
+  val causticsPhotons: ScallopOption[Int] = opt[Int](
+    required = false, default = Some(100000),
+    validate = p => p > 0 && p <= 10000000,
+    descr = "Photons per PPM iteration (default: 100000)"
+  )
+
+  val causticsIterations: ScallopOption[Int] = opt[Int](
+    required = false, default = Some(10),
+    validate = i => i > 0 && i <= 1000,
+    descr = "Number of PPM iterations (default: 10)"
+  )
+
+  val causticsRadius: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(0.1f),
+    validate = r => r > 0.0f && r <= 10.0f,
+    descr = "Initial photon gather radius (default: 0.1)"
+  )
+
+  val causticsAlpha: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(0.7f),
+    validate = a => a > 0.0f && a < 1.0f,
+    descr = "PPM radius reduction factor (default: 0.7)"
+  )
+
   // Camera parameters
   val cameraPos: ScallopOption[Vector3] = opt[Vector3](
     required = false, default = Some(Vector3(0f, 0.5f, 3.0f))
@@ -229,6 +259,36 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   validateOpt(planeColor, optix) { (pc, ox) =>
     if pc.isDefined && !ox.getOrElse(false) then
       Left("--plane-color flag requires --optix flag")
+    else Right(())
+  }
+
+  validateOpt(caustics, optix) { (c, ox) =>
+    if c.getOrElse(false) && !ox.getOrElse(false) then
+      Left("--caustics flag requires --optix flag")
+    else Right(())
+  }
+
+  validateOpt(causticsPhotons, caustics) { (_, c) =>
+    if causticsPhotons.isSupplied && !c.getOrElse(false) then
+      Left("--caustics-photons requires --caustics flag")
+    else Right(())
+  }
+
+  validateOpt(causticsIterations, caustics) { (_, c) =>
+    if causticsIterations.isSupplied && !c.getOrElse(false) then
+      Left("--caustics-iterations requires --caustics flag")
+    else Right(())
+  }
+
+  validateOpt(causticsRadius, caustics) { (_, c) =>
+    if causticsRadius.isSupplied && !c.getOrElse(false) then
+      Left("--caustics-radius requires --caustics flag")
+    else Right(())
+  }
+
+  validateOpt(causticsAlpha, caustics) { (_, c) =>
+    if causticsAlpha.isSupplied && !c.getOrElse(false) then
+      Left("--caustics-alpha requires --caustics flag")
     else Right(())
   }
 

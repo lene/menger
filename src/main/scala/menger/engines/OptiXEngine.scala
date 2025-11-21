@@ -48,7 +48,12 @@ class OptiXEngine(
   val lights: Option[List[menger.LightSpec]] = None,
   val antialiasing: Boolean = false,
   val aaMaxDepth: Int = 2,
-  val aaThreshold: Float = 0.1f
+  val aaThreshold: Float = 0.1f,
+  val caustics: Boolean = false,
+  val causticsPhotons: Int = 100000,
+  val causticsIterations: Int = 10,
+  val causticsRadius: Float = 0.1f,
+  val causticsAlpha: Float = 0.7f
 )(using profilingConfig: ProfilingConfig) extends MengerEngine(
   spongeType, spongeLevel, rotationProjectionParameters, lines, color,
   faceColor, lineColor, fpsLogIntervalMs
@@ -71,12 +76,13 @@ class OptiXEngine(
     throw new UnsupportedOperationException("OptiXEngine doesn't use gdxResources")
 
   override def create(): Unit =
-    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, shadows=$shadows, antialiasing=$antialiasing")
+    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, shadows=$shadows, antialiasing=$antialiasing, caustics=$caustics")
     optiXResources.setSphereColor(color.toCommonColor)
     optiXResources.setIOR(ior)
     optiXResources.setScale(scale)
     optiXResources.setShadows(shadows)
     optiXResources.setAntialiasing(antialiasing, aaMaxDepth, aaThreshold)
+    optiXResources.setCaustics(caustics, causticsPhotons, causticsIterations, causticsRadius, causticsAlpha)
     planeColor.foreach(optiXResources.setPlaneColor)
     optiXResources.initialize()
 

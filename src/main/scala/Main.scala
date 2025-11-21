@@ -76,7 +76,12 @@ object Main:
       opts.light.toOption,
       opts.antialiasing(),
       opts.aaMaxDepth(),
-      opts.aaThreshold()
+      opts.aaThreshold(),
+      opts.caustics(),
+      opts.causticsPhotons(),
+      opts.causticsIterations(),
+      opts.causticsRadius(),
+      opts.causticsAlpha()
     )
 
   private def createAnimatedEngine(

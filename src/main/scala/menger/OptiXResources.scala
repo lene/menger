@@ -125,6 +125,10 @@ class OptiXResources(
     renderer.setAntialiasing(enabled, maxDepth, threshold)
     logger.debug(s"Configured antialiasing: enabled=$enabled, maxDepth=$maxDepth, threshold=$threshold")
 
+  def setCaustics(enabled: Boolean, photonsPerIter: Int, iterations: Int, initialRadius: Float, alpha: Float): Unit =
+    renderer.setCaustics(enabled, photonsPerIter, iterations, initialRadius, alpha)
+    logger.debug(s"Configured caustics: enabled=$enabled, photonsPerIter=$photonsPerIter, iterations=$iterations, initialRadius=$initialRadius, alpha=$alpha")
+
   def setPlaneColor(spec: PlaneColorSpec): Unit =
     val c1 = spec.color1
     spec.color2 match
