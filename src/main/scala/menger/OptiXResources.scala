@@ -11,7 +11,10 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.Axis
 import menger.LightSpec
 import menger.LightType
+import menger.PlaneColorSpec
 import menger.PlaneSpec
+import menger.ColorConversions.toCommonColor
+import menger.common.Color
 import menger.common.ImageSize
 import menger.common.Light
 import menger.common.Vector
@@ -86,7 +89,7 @@ class OptiXResources(
 
   private def convertLightSpec(spec: LightSpec): Light =
     val position = Vector[3](spec.position.x, spec.position.y, spec.position.z)
-    val color = Vector[3](spec.color.r, spec.color.g, spec.color.b)
+    val color = spec.color.toCommonColor
 
     spec.lightType match
       case LightType.DIRECTIONAL => Light.Directional(position, color, spec.intensity)
@@ -102,9 +105,9 @@ class OptiXResources(
     val sign = if planeSpec.positive then "+" else "-"
     logger.debug(s"Configured plane: ${sign}${axisName}:${planeSpec.value}")
 
-  def setSphereColor(r: Float, g: Float, b: Float, a: Float = 1.0f): Unit =
-    renderer.setSphereColor(r, g, b, a)
-    logger.debug(s"Configured sphere color: RGBA=($r, $g, $b, $a)")
+  def setSphereColor(color: Color): Unit =
+    renderer.setSphereColor(color)
+    logger.debug(s"Configured sphere color: RGBA=(${color.r}, ${color.g}, ${color.b}, ${color.a})")
 
   def setIOR(ior: Float): Unit =
     renderer.setIOR(ior)
@@ -121,6 +124,16 @@ class OptiXResources(
   def setAntialiasing(enabled: Boolean, maxDepth: Int, threshold: Float): Unit =
     renderer.setAntialiasing(enabled, maxDepth, threshold)
     logger.debug(s"Configured antialiasing: enabled=$enabled, maxDepth=$maxDepth, threshold=$threshold")
+
+  def setPlaneColor(spec: PlaneColorSpec): Unit =
+    val c1 = spec.color1
+    spec.color2 match
+      case Some(c2) =>
+        renderer.setPlaneCheckerColors(c1, c2)
+        logger.debug(f"Configured checkered plane colors: light=(${c1.r}%.2f, ${c1.g}%.2f, ${c1.b}%.2f), dark=(${c2.r}%.2f, ${c2.g}%.2f, ${c2.b}%.2f)")
+      case None =>
+        renderer.setPlaneSolidColor(c1)
+        logger.debug(f"Configured solid plane color: RGB=(${c1.r}%.2f, ${c1.g}%.2f, ${c1.b}%.2f)")
 
   def renderScene(size: ImageSize): Array[Byte] =
     logger.debug(s"[OptiXResources] renderScene: rendering at ${size.width}x${size.height}")

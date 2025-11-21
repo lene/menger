@@ -5,13 +5,13 @@ enum LightType:
 
 sealed trait Light:
   def lightType: LightType
-  def color: Vector[3]
+  def color: Color
   def intensity: Float
 
 object Light:
   case class Directional(
     direction: Vector[3],
-    color: Vector[3] = Vector[3](1.0f, 1.0f, 1.0f),
+    color: Color = Color(1.0f, 1.0f, 1.0f),
     intensity: Float = 1.0f
   ) extends Light:
     val lightType = LightType.Directional
@@ -19,7 +19,7 @@ object Light:
 
   case class Point(
     position: Vector[3],
-    color: Vector[3] = Vector[3](1.0f, 1.0f, 1.0f),
+    color: Color = Color(1.0f, 1.0f, 1.0f),
     intensity: Float = 1.0f
   ) extends Light:
     val lightType = LightType.Point

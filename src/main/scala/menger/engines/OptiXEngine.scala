@@ -12,9 +12,11 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.GDXResources
 import menger.OptiXRenderResources
 import menger.OptiXResources
+import menger.PlaneColorSpec
 import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.ColorConversions.toCommonColor
 import menger.common.ImageSize
 import menger.common.Vector
 import menger.input.OptiXCameraController
@@ -38,6 +40,7 @@ class OptiXEngine(
   val cameraUp: Vector3,
   val center: Vector3,
   val planeSpec: PlaneSpec,
+  val planeColor: Option[PlaneColorSpec] = None,
   val timeout: Float = 0f,
   saveName: Option[String] = None,
   val enableStats: Boolean = false,
@@ -69,11 +72,12 @@ class OptiXEngine(
 
   override def create(): Unit =
     logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, shadows=$shadows, antialiasing=$antialiasing")
-    optiXResources.setSphereColor(color.r, color.g, color.b, color.a)
+    optiXResources.setSphereColor(color.toCommonColor)
     optiXResources.setIOR(ior)
     optiXResources.setScale(scale)
     optiXResources.setShadows(shadows)
     optiXResources.setAntialiasing(antialiasing, aaMaxDepth, aaThreshold)
+    planeColor.foreach(optiXResources.setPlaneColor)
     optiXResources.initialize()
 
     // Register interactive camera controller for mouse-based camera control
