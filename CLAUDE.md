@@ -12,9 +12,10 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 
 ## Active Development
 
-**Current:** Ready for Sprint 4 - Caustics via Photon Mapping
+**Current:** Sprint 4 - Caustics via Progressive Photon Mapping 🔄 IN PROGRESS
 **Branch:** `feature/caustics`
 **Local Tests:** ~897 passing (21 C++ + ~876 Scala)
+**Plan:** [optix-jni/CAUSTICS_PLAN.md](optix-jni/CAUSTICS_PLAN.md)
 **Progress:** [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md)
 
 **Completed Sprints:**
@@ -22,13 +23,18 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 - ✅ **Sprint 2** - Interactivity (Mouse Camera Control, Multiple Light Sources)
 - ✅ **Sprint 3** - Advanced Quality (Adaptive Antialiasing, Unified Color API, Cache Management)
 
+**Sprint 4 Phases:**
+1. Data structures & GPU memory (3-4h)
+2. Eye ray pass - hit point generation (4-5h)
+3. Photon tracing pass (5-6h)
+4. Progressive refinement & integration (4-5h)
+5. Scala/CLI integration & testing (4-5h)
+
 **Recent Features (v0.3.7):**
 - Unified `menger.common.Color` class with factory methods
 - Custom plane colors via `--plane-color` flag
 - OptiX cache auto-recovery
 - Adaptive antialiasing with `--antialiasing`, `--aa-max-depth`, `--aa-threshold`
-
-**Next:** Sprint 4 - Caustics via Photon Mapping (15-25 hours estimated)
 
 ## Project Overview
 
