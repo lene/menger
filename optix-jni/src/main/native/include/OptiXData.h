@@ -130,7 +130,7 @@ struct CausticsParams {
 
     // GPU buffers (set by host before launch)
     HitPoint* hit_points;            // Array of hit points on diffuse surfaces
-    unsigned int num_hit_points;     // Number of valid hit points
+    unsigned int* num_hit_points;    // Pointer to GPU counter (for atomicAdd)
     unsigned int* grid;              // Spatial hash grid (cell -> first hit point index)
     unsigned int* grid_counts;       // Number of hit points per cell
     unsigned int* grid_offsets;      // Prefix sum for sorted hit point indices

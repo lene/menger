@@ -120,6 +120,7 @@ struct OptiXWrapper::Impl {
 
     // Caustics (Progressive Photon Mapping) GPU buffers
     CUdeviceptr d_hit_points = 0;        // Array of HitPoint structs
+    CUdeviceptr d_num_hit_points = 0;    // GPU counter for atomicAdd
     CUdeviceptr d_caustics_grid = 0;     // Spatial hash grid (cell -> first hit point)
     CUdeviceptr d_caustics_grid_counts = 0;  // Hit points per cell
     CUdeviceptr d_caustics_grid_offsets = 0; // Prefix sum for sorting
@@ -646,7 +647,7 @@ void OptiXWrapper::render(int width, int height, unsigned char* output, RayStats
         params.caustics.alpha = impl->caustics_alpha;
         params.caustics.current_iteration = 0;
         params.caustics.hit_points = reinterpret_cast<HitPoint*>(impl->d_hit_points);
-        params.caustics.num_hit_points = 0;
+        params.caustics.num_hit_points = reinterpret_cast<unsigned int*>(impl->d_num_hit_points);
         params.caustics.grid = reinterpret_cast<unsigned int*>(impl->d_caustics_grid);
         params.caustics.grid_counts = reinterpret_cast<unsigned int*>(impl->d_caustics_grid_counts);
         params.caustics.grid_offsets = reinterpret_cast<unsigned int*>(impl->d_caustics_grid_offsets);
@@ -761,6 +762,10 @@ void OptiXWrapper::dispose() {
             if (impl->d_hit_points) {
                 cudaFree(reinterpret_cast<void*>(impl->d_hit_points));
                 impl->d_hit_points = 0;
+            }
+            if (impl->d_num_hit_points) {
+                cudaFree(reinterpret_cast<void*>(impl->d_num_hit_points));
+                impl->d_num_hit_points = 0;
             }
             if (impl->d_caustics_grid) {
                 cudaFree(reinterpret_cast<void*>(impl->d_caustics_grid));
