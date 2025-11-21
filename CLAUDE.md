@@ -12,29 +12,29 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 
 ## Active Development
 
-**Current:** Sprint 2 - Multi-Light CLI Integration 🔄 IN PROGRESS
-**Branch:** `feature/shadow-rays`
-**Local Tests:** 818/818 passing (161 optix-jni + 657 core) 🎉
-**Plan:** [optix-jni/SHADOW_RAYS_PLAN.md](optix-jni/SHADOW_RAYS_PLAN.md)
+**Current:** Sprint 4 - Caustics via Progressive Photon Mapping 🔄 IN PROGRESS
+**Branch:** `feature/caustics`
+**Local Tests:** ~897 passing (21 C++ + ~876 Scala)
+**Plan:** [optix-jni/CAUSTICS_PLAN.md](optix-jni/CAUSTICS_PLAN.md)
 **Progress:** [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md)
-**Testing Notes:** [optix-jni/SHADOW_TESTING_NOTES.md](optix-jni/SHADOW_TESTING_NOTES.md)
 
-**Completed (2025-11-18):**
-- ✅ Sprint 1 - Shadow Rays Complete
-  - Transparent shadows implementation (alpha-based shadow attenuation)
-  - 26 comprehensive shadow tests (graduated transparency, light direction, geometry)
-  - Solid plane rendering mode for shadow visibility
-  - Reference-based region detection for reliable test comparisons
-  - Fixed testOnly UnsatisfiedLinkError (JVM classloading issue)
+**Completed Sprints:**
+- ✅ **Sprint 1** - Foundation (Ray Statistics, Shadow Rays)
+- ✅ **Sprint 2** - Interactivity (Mouse Camera Control, Multiple Light Sources)
+- ✅ **Sprint 3** - Advanced Quality (Adaptive Antialiasing, Unified Color API, Cache Management)
 
-**Completed (2025-11-19):**
-- ✅ Multi-Light CLI Integration (partial Sprint 2.2)
-  - Added `--light` flag (repeatable, max 8 lights)
-  - Support for directional and point lights with color/intensity
-  - LightCLIOptionsSuite with 21 comprehensive tests
-  - All 818 tests passing
+**Sprint 4 Phases:**
+1. Data structures & GPU memory (3-4h)
+2. Eye ray pass - hit point generation (4-5h)
+3. Photon tracing pass (5-6h)
+4. Progressive refinement & integration (4-5h)
+5. Scala/CLI integration & testing (4-5h)
 
-**Next:** Fix CI pipeline, commit changes, continue Sprint 2 (mouse camera control)
+**Recent Features (v0.3.7):**
+- Unified `menger.common.Color` class with factory methods
+- Custom plane colors via `--plane-color` flag
+- OptiX cache auto-recovery
+- Adaptive antialiasing with `--antialiasing`, `--aa-max-depth`, `--aa-threshold`
 
 ## Project Overview
 
