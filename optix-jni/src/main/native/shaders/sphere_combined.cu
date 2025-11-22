@@ -1642,25 +1642,34 @@ extern "C" __global__ void __raygen__caustics_radiance() {
         atomicAdd(&params.caustics.stats->hit_points_with_flux, 1ULL);
     }
 
-    // Compute radiance estimate
+    // Compute radiance estimate using PPM formula
+    // L = Φ / (π × R²)
+    //
+    // Note: The flux Φ is already normalized by total_photons during emission:
+    //   photon_flux = light_intensity / total_photons
+    // So we should NOT divide by total_photons again here - that was causing
+    // the need for a 10000x magic scale factor.
     const float area = M_PI * hp.radius * hp.radius;
-    const float total_photons = static_cast<float>(params.caustics.total_photons_traced);
 
     // Avoid division by zero
-    if (area < 1e-10f || total_photons < 1.0f) return;
+    if (area < 1e-10f) return;
 
-    // Radiance = flux / (π * R² * N)
+    // Radiance = flux / (π * R²)
+    // Note: For Lambertian BRDF, the reflected radiance is flux/(π*area).
+    // Our flux already includes the cos(θ) term from Lambertian weighting.
     const float3 radiance = make_float3(
-        hp.flux[0] / (area * total_photons),
-        hp.flux[1] / (area * total_photons),
-        hp.flux[2] / (area * total_photons)
+        hp.flux[0] / area,
+        hp.flux[1] / area,
+        hp.flux[2] / area
     );
 
     // Scale caustic contribution
-    // With proper normalization (flux / (π * R² * N)), values should be reasonable.
-    // Apply moderate scale to account for light intensity and PPM energy conservation.
-    // 10000 provides visible caustics without excessive saturation.
-    const float caustic_scale = 10000.0f;
+    // With the corrected formula (no double-normalization), values should be
+    // in a reasonable range. A small scale may still be needed to account for:
+    // - Light intensity calibration differences
+    // - Scene-specific exposure adjustment
+    // Start with 1.0 (physics-based), adjust if caustics are too dim/bright.
+    const float caustic_scale = 1.0f;
 
     // Add caustic radiance to the pixel (additive blending)
     const unsigned int pixel_idx = (hp.pixel_y * params.image_width + hp.pixel_x) * 4;
