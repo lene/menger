@@ -480,9 +480,12 @@ extern "C" __global__ void __raygen__rg() {
     const uint3 dim = optixGetLaunchDimensions();
 
     // Calculate normalized device coordinates [-1, 1]
-    // Note: Flip V so that idx.y=0 (top) maps to v=+1 and idx.y=height (bottom) maps to v=-1
+    // Screen convention: idx.y=0 is top of screen, idx.y=height is bottom
+    // For floor at bottom: top screen should look up (positive v), bottom should look down (negative v)
+    // Since idx.y increases downward but v should increase upward, we need to flip:
+    // idx.y=0 → v=+1 (top of screen looks up), idx.y=height → v=-1 (bottom looks down)
     const float u = (static_cast<float>(idx.x) + 0.5f) / static_cast<float>(dim.x) * 2.0f - 1.0f;
-    const float v = -((static_cast<float>(idx.y) + 0.5f) / static_cast<float>(dim.y) * 2.0f - 1.0f);
+    const float v = 1.0f - (static_cast<float>(idx.y) + 0.5f) / static_cast<float>(dim.y) * 2.0f;
 
     // Construct ray direction from camera basis vectors
     const float3 ray_origin = make_float3(
@@ -1091,9 +1094,9 @@ extern "C" __global__ void __raygen__hitpoints() {
     const RayGenData* rt_data = reinterpret_cast<RayGenData*>(optixGetSbtDataPointer());
 
     // Generate camera ray (same as __raygen__rg)
-    // Note: Flip V so that idx.y=0 (top) maps to v=+1 and idx.y=height (bottom) maps to v=-1
+    // Screen convention: idx.y=0 is top, so flip to get v=+1 at top, v=-1 at bottom
     const float u = (static_cast<float>(idx.x) + 0.5f) / static_cast<float>(dim.x) * 2.0f - 1.0f;
-    const float v = -((static_cast<float>(idx.y) + 0.5f) / static_cast<float>(dim.y) * 2.0f - 1.0f);
+    const float v = 1.0f - (static_cast<float>(idx.y) + 0.5f) / static_cast<float>(dim.y) * 2.0f;
     const float2 d = make_float2(u, v);
 
     const float3 cam_eye = make_float3(rt_data->cam_eye[0], rt_data->cam_eye[1], rt_data->cam_eye[2]);
@@ -1602,9 +1605,11 @@ extern "C" __global__ void __raygen__caustics_radiance() {
         hp.flux[2] / (area * total_photons)
     );
 
-    // Scale caustic contribution - significantly boost for visibility
-    // The photon flux is quite small, so we need a large multiplier
-    const float caustic_scale = 100000.0f;
+    // Scale caustic contribution
+    // With proper normalization (flux / (π * R² * N)), values should be reasonable.
+    // Apply moderate scale to account for light intensity and PPM energy conservation.
+    // 10000 provides visible caustics without excessive saturation.
+    const float caustic_scale = 10000.0f;
 
     // Add caustic radiance to the pixel (additive blending)
     const unsigned int pixel_idx = (hp.pixel_y * params.image_width + hp.pixel_x) * 4;
