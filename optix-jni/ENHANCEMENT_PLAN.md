@@ -141,9 +141,12 @@ Establishes infrastructure for triangle mesh rendering with a basic cube primiti
 
 ### Sprint 6: Full Geometry Support (20-30 hours) - 📋 PLANNED
 Complete geometry pipeline with multiple objects and sponge mesh.
-- Scene graph / object list in OptiX
+
+**Detailed Plan:** [SPRINT_6_PLAN.md](SPRINT_6_PLAN.md)
+
+- Scene graph / object list in OptiX (IAS architecture)
 - Per-object transforms (position, rotation, scale)
-- CLI: Multiple `--object` flags
+- CLI: Multiple `--object` flags with position/size
 - Export `Seq[Face]` from `SpongeBySurface` to triangle buffer
 - Handle large face counts efficiently (sponge levels 0-3+)
 - Performance optimization for BVH build
