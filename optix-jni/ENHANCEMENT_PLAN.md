@@ -184,28 +184,28 @@ Generalized framework for arbitrary 4D mesh objects.
 
 **🎯 MILESTONE: v0.6 - Full 4D Support** (after Sprint 10)
 
-### Sprint 11: Object Animation Foundation (10-15 hours) - 📋 PLANNED
-Infrastructure for animated scenes.
-- Animation timeline/keyframe data structure
+### Sprint 11: Scene Description Language (15-20 hours) - 📋 PLANNED
+Declarative scene files - foundation for complex scene and animation specification.
+- Design simple scene file format (YAML/JSON/custom)
+- Parse scene files with object definitions
+- Material and light definitions in scene file
+- Per-object transforms in scene file
+- CLI: `--scene <file>`
+
+### Sprint 12: Object Animation Foundation (10-15 hours) - 📋 PLANNED
+Infrastructure for animated scenes (builds on scene files).
+- Animation timeline/keyframe data structure in scene format
 - Object transform interpolation
 - Frame sequence rendering
 - Output to image sequence (PNG)
 - CLI: `--animate`, `--frames`, `--fps`
 
-### Sprint 12: Animation Enhancements (8-12 hours) - 📋 PLANNED
+### Sprint 13: Animation Enhancements (8-12 hours) - 📋 PLANNED
 Richer animation capabilities.
 - Easing functions (linear, ease-in-out, etc.)
 - Multi-object animation
 - Camera animation (path following)
 - Animation preview mode
-
-### Sprint 13: Scene Description Language (15-20 hours) - 📋 PLANNED
-Declarative scene files.
-- Design simple scene file format (YAML/JSON/custom)
-- Parse scene files with object definitions
-- Material and light definitions in scene file
-- Animation keyframes in scene file
-- CLI: `--scene <file>`
 
 ### Backlog (Future)
 - **Caustics Revisited:** Return to PPM with simpler approach
@@ -1699,7 +1699,7 @@ menger --level 2 --sponge-type cube --shadows --antialiasing --aa-max-depth 2
 
 **Document Status:** ✅ **Sprints 1-3 Complete, Sprint 4 Deferred, Sprints 5-13 Planned**
 
-**Last Updated:** 2025-11-22 - Added 4D support roadmap (v0.6), renumbered sprints
+**Last Updated:** 2025-11-22 - Scene Description before Animation (Sprint 11→12→13 reorder)
 
 **Next Step:** Begin Sprint 5 - Triangle Mesh Foundation + Cube
 
@@ -1722,6 +1722,6 @@ menger --level 2 --sponge-type cube --shadows --antialiasing --aa-max-depth 2
 - Sprint 8 - 4D Projection Foundation + Tesseract
 - Sprint 9 - TesseractSponge
 - Sprint 10 - 4D Framework → **v0.6 Milestone**
-- Sprint 11 - Object Animation Foundation
-- Sprint 12 - Animation Enhancements
-- Sprint 13 - Scene Description Language
+- Sprint 11 - Scene Description Language
+- Sprint 12 - Object Animation Foundation
+- Sprint 13 - Animation Enhancements
