@@ -1265,6 +1265,15 @@ __device__ void depositPhoton(const float3& photon_pos, const float3& photon_dir
 
                 // Count photons for this hit point (this iteration)
                 atomicAdd(&hp.new_photons, 1);
+
+                // C4: Track deposition statistics
+                if (params.caustics.stats) {
+                    atomicAdd(&params.caustics.stats->photons_deposited, 1ULL);
+                    const double deposited_flux = static_cast<double>(
+                        (flux.x + flux.y + flux.z) * cos_theta
+                    );
+                    atomicAdd(&params.caustics.stats->total_flux_deposited, deposited_flux);
+                }
             }
         }
     }
@@ -1331,6 +1340,11 @@ __device__ void tracePhoton(
                 const float3 hit_point = origin + dir * t;
                 const float3 outward_normal = normalize(hit_point - sphere_center);
 
+                // C2: Track sphere hit statistics
+                if (params.caustics.stats) {
+                    atomicAdd(&params.caustics.stats->sphere_hits, 1ULL);
+                }
+
                 // Determine if entering or exiting
                 const bool entering = dot(dir, outward_normal) < 0.0f;
                 const float3 normal = entering ? outward_normal : make_float3(-outward_normal.x, -outward_normal.y, -outward_normal.z);
@@ -1368,12 +1382,26 @@ __device__ void tracePhoton(
                         expf(-extinction.z * t * params.sphere_scale)
                     );
 
+                    // C5: Track absorption losses before modifying flux
+                    if (params.caustics.stats) {
+                        const double absorbed = static_cast<double>(
+                            flux.x * (1.0f - attenuation.x) +
+                            flux.y * (1.0f - attenuation.y) +
+                            flux.z * (1.0f - attenuation.z)
+                        );
+                        atomicAdd(&params.caustics.stats->total_flux_absorbed, absorbed);
+                    }
+
                     flux = make_float3(flux.x * attenuation.x, flux.y * attenuation.y, flux.z * attenuation.z);
                 }
 
                 // Check for total internal reflection
                 if (sin_theta_t_sq > 1.0f) {
                     // Total internal reflection
+                    // C3: Track TIR events
+                    if (params.caustics.stats) {
+                        atomicAdd(&params.caustics.stats->tir_events, 1ULL);
+                    }
                     const float3 reflect_dir = make_float3(
                         dir.x - 2.0f * cos_theta_i * normal.x,
                         dir.y - 2.0f * cos_theta_i * normal.y,
@@ -1383,6 +1411,10 @@ __device__ void tracePhoton(
                     dir = normalize(reflect_dir);
                 } else {
                     // Refraction using Snell's law
+                    // C3: Track refraction events
+                    if (params.caustics.stats) {
+                        atomicAdd(&params.caustics.stats->refraction_events, 1ULL);
+                    }
                     const float cos_theta_t = sqrtf(1.0f - sin_theta_t_sq);
                     const float3 refract_dir = make_float3(
                         eta * dir.x + (eta * cos_theta_i - cos_theta_t) * normal.x,
@@ -1422,6 +1454,12 @@ __device__ void tracePhoton(
                 depositPhoton(plane_hit, dir, flux);
                 return;  // Photon absorbed by diffuse surface
             }
+        }
+
+        // C2: Track sphere miss (photon missed sphere on this bounce)
+        if (params.caustics.stats && bounce == 0) {
+            // Only count misses on first bounce (direct from light)
+            atomicAdd(&params.caustics.stats->sphere_misses, 1ULL);
         }
 
         // Photon escaped scene
@@ -1509,6 +1547,14 @@ extern "C" __global__ void __raygen__photons() {
         light.color[2] * light.intensity / total_photons
     );
 
+    // C1: Track photon emission statistics
+    if (params.caustics.stats) {
+        atomicAdd(&params.caustics.stats->photons_emitted, 1ULL);
+        // Track total emitted flux (sum of RGB)
+        const double flux_sum = static_cast<double>(photon_flux.x + photon_flux.y + photon_flux.z);
+        atomicAdd(&params.caustics.stats->total_flux_emitted, flux_sum);
+    }
+
     // Trace photon through scene
     tracePhoton(photon_origin, photon_dir, photon_flux, seed, MAX_PHOTON_BOUNCES);
 }
@@ -1591,6 +1637,11 @@ extern "C" __global__ void __raygen__caustics_radiance() {
     const float flux_magnitude = hp.flux[0] + hp.flux[1] + hp.flux[2];
     if (flux_magnitude < 1e-10f) return;
 
+    // C4: Track hit points that received flux
+    if (params.caustics.stats) {
+        atomicAdd(&params.caustics.stats->hit_points_with_flux, 1ULL);
+    }
+
     // Compute radiance estimate
     const float area = M_PI * hp.radius * hp.radius;
     const float total_photons = static_cast<float>(params.caustics.total_photons_traced);
@@ -1623,6 +1674,15 @@ extern "C" __global__ void __raygen__caustics_radiance() {
     const float new_r = fminf(cur_r + radiance.x * caustic_scale, 1.0f);
     const float new_g = fminf(cur_g + radiance.y * caustic_scale, 1.0f);
     const float new_b = fminf(cur_b + radiance.z * caustic_scale, 1.0f);
+
+    // C7: Track brightness metrics
+    if (params.caustics.stats) {
+        const float caustic_brightness = (radiance.x + radiance.y + radiance.z) * caustic_scale / 3.0f;
+        // Use atomicMax for peak brightness (requires casting to int for atomic compare)
+        // Simple approach: just track using atomic operations
+        atomicMax(reinterpret_cast<int*>(&params.caustics.stats->max_caustic_brightness),
+                  __float_as_int(caustic_brightness));
+    }
 
     // Write back to image buffer
     params.image[pixel_idx + 0] = static_cast<unsigned char>(new_r * COLOR_BYTE_MAX);
