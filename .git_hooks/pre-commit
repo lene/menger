@@ -1,0 +1,90 @@
+#!/bin/sh
+
+GITLAB_PROJECT_ID=53243565
+CI_LINT_OUTPUT=/tmp/gitlab-ci-lint.json
+RED_TEXT='\e[38;5;196m'
+GREEN_TEXT='\e[38;5;46m'
+RESET_TEXT='\e[0m'
+
+# Validate required environment variables for OptiX/CUDA development
+echo "=== Validating Environment ==="
+
+if [ -z "$CUDA_HOME" ]; then
+  echo "${RED_TEXT}Error: CUDA_HOME is not set${RESET_TEXT}"
+  echo "Please set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)"
+  exit 1
+fi
+
+if [ ! -d "$CUDA_HOME" ]; then
+  echo "${RED_TEXT}Error: CUDA_HOME points to non-existent directory: $CUDA_HOME${RESET_TEXT}"
+  exit 1
+fi
+
+if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
+  echo "${RED_TEXT}Error: nvcc not found at $CUDA_HOME/bin/nvcc${RESET_TEXT}"
+  echo "Please verify CUDA_HOME is set correctly"
+  exit 1
+fi
+
+if [ -z "$OPTIX_ROOT" ]; then
+  echo "${RED_TEXT}Error: OPTIX_ROOT is not set${RESET_TEXT}"
+  echo "Please set OPTIX_ROOT to your OptiX SDK directory (e.g., /usr/local/optix)"
+  exit 1
+fi
+
+if [ ! -d "$OPTIX_ROOT" ]; then
+  echo "${RED_TEXT}Error: OPTIX_ROOT points to non-existent directory: $OPTIX_ROOT${RESET_TEXT}"
+  exit 1
+fi
+
+if [ ! -f "$OPTIX_ROOT/include/optix.h" ]; then
+  echo "${RED_TEXT}Error: optix.h not found at $OPTIX_ROOT/include/optix.h${RESET_TEXT}"
+  echo "Please verify OPTIX_ROOT is set correctly"
+  exit 1
+fi
+
+echo "CUDA_HOME: ${GREEN_TEXT}$CUDA_HOME${RESET_TEXT}"
+echo "OPTIX_ROOT: ${GREEN_TEXT}$OPTIX_ROOT${RESET_TEXT}"
+echo ""
+
+STATUS=0
+
+sbt compile || STATUS=1
+
+echo "Compiling OptiX JNI..."
+sbt "project optixJni" compile || STATUS=1
+  if [ $STATUS -gt 0 ]
+  then echo "Status after OptiX JNI: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after OptiX JNI: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+
+echo "Compiling Menger Common..."
+sbt "project mengerCommon" compile || STATUS=1
+  if [ $STATUS -gt 0 ]
+  then echo "Status after Menger Common: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after Menger Common: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+
+sbt "scalafix --check" --warn || STATUS=1
+if [ $STATUS -gt 0 ]
+then echo "Status after scalafix: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after scalafix: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+fi
+
+sbt "Universal / packageBin" --warn || STATUS=1
+VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
+unzip -oq ./target/universal/menger-${VERSION}.zip || STATUS=1
+if [ $STATUS -gt 0 ]
+then echo "Status after build: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after build: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+fi
+
+if [ $STATUS -gt 0 ]; then
+  commit_msg=$(git log --oneline | head -n 1 | cut -d' ' -f 2-)
+  if echo "$commit_msg" | grep '^WIP:'; then
+    echo >&2 "Found WIP commit, pushing in spite of failed test suite"
+    STATUS=0
+  fi
+fi
+
+exit $STATUS
