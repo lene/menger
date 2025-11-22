@@ -77,12 +77,11 @@ struct CausticsParams {
 1. **Brute-force photon deposition** - O(n×m) complexity where n=photons, m=hit points
    - Very slow for high photon/hit point counts
    - Need to implement spatial hash grid for O(n) performance
+   - Grid structures already defined in CausticsParams, awaiting implementation
 
-2. **Caustic intensity** - Currently using a large scale factor (100000×)
-   - Needs proper energy normalization
-
-3. **Image orientation** - Floor appears at top of image
-   - Camera up direction issue needs investigation
+2. **Caustic intensity** - Using scale factor of 10000×
+   - Provides visible caustics without oversaturation
+   - May need tuning for different scene configurations
 
 ### Future Improvements
 
