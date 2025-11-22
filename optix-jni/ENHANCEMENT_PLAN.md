@@ -128,6 +128,9 @@ Caustics via Progressive Photon Mapping - deferred due to algorithm issues.
 
 ### Sprint 5: Triangle Mesh Foundation + Cube (12-18 hours) - 📋 PLANNED
 Establishes infrastructure for triangle mesh rendering with a basic cube primitive.
+
+**Detailed Plan:** [SPRINT_5_PLAN.md](SPRINT_5_PLAN.md)
+
 - Add `OptixBuildInputTriangleArray` support to OptiXWrapper
 - Create JNI interface for passing vertex/index buffers
 - Implement triangle closest-hit shader with per-face normals
