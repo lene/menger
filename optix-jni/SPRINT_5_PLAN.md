@@ -15,9 +15,19 @@ Render an opaque and glass cube via `--object cube`, proving the triangle mesh p
 
 ### Success Criteria
 
+**Core Features:**
 - [ ] `--object cube` renders a solid colored cube
 - [ ] `--object cube` with transparency/IOR renders a glass cube with refraction
 - [ ] Triangle mesh infrastructure is reusable for future geometry types
+
+**Polish (Step 5.5):**
+- [ ] PTX packaging works for distribution
+- [ ] CLI options organized by category in help output
+- [ ] Render options encapsulated in config objects
+- [ ] Window resize doesn't change render resolution
+- [ ] CLI errors show usage hints
+
+**Quality:**
 - [ ] All new code has tests
 - [ ] Existing 897+ tests still pass
 
@@ -1521,6 +1531,138 @@ class CLICubeTest extends AnyFlatSpec with Matchers:
 
 ---
 
+## Step 5.5: Polish & Maintenance (2-3 hours)
+
+### Goal
+Address accumulated maintenance items after core features are complete.
+
+---
+
+### Task 5.5.1: Fix PTX packaging for distribution
+
+**Problem:** Packaged application can't find optixjni native library - loads from system path instead of bundled location.
+
+**File:** `build.sbt` and potentially `optix-jni/build.sbt`
+
+**Investigation:**
+1. Check how native libraries are packaged in JAR
+2. Verify PTX files are included in resources
+3. Ensure `NativeLoader` looks in correct locations
+
+**Acceptance:** Running packaged JAR finds PTX without manual file copying.
+
+---
+
+### Task 5.5.2: Encapsulate render options (CLI)
+
+**Problem:** Growing number of CLI flags (`--shadows`, `--antialiasing`, `--aa-max-depth`, `--aa-threshold`, etc.) clutters help output.
+
+**File:** `src/main/scala/menger/MengerCLIOptions.scala`
+
+**Changes:**
+1. Group related options logically in help output
+2. Consider composite flags (e.g., `--quality high` sets multiple options)
+3. Add option categories/sections to Scallop configuration
+
+**Example:**
+```scala
+// Group render quality options
+val qualityOptions = group("Render Quality")
+val antialiasing = opt[Boolean](group = qualityOptions, ...)
+val aaMaxDepth = opt[Int](group = qualityOptions, ...)
+```
+
+**Acceptance:** `--help` output is organized by category.
+
+---
+
+### Task 5.5.3: Encapsulate render options (Internal)
+
+**Problem:** `Params` struct and render configuration have many individual parameters passed separately.
+
+**Files:**
+- `optix-jni/src/main/native/include/OptiXData.h`
+- `optix-jni/src/main/scala/menger/optix/OptiXRenderer.scala`
+
+**Changes:**
+1. Create `RenderConfig` case class grouping related options
+2. Create `LightingConfig` for light-related parameters
+3. Refactor setter methods to accept config objects
+
+**Example:**
+```scala
+case class RenderConfig(
+    shadows: Boolean = true,
+    antialiasing: Boolean = false,
+    aaMaxDepth: Int = 2,
+    aaThreshold: Float = 0.1f
+)
+
+def setRenderConfig(config: RenderConfig): Unit = ...
+```
+
+**Acceptance:** Related parameters grouped in config objects; individual setters still work for backward compatibility.
+
+---
+
+### Task 5.5.4: Disable runtime resolution change on window resize
+
+**Problem:** Resizing the main window can trigger resolution changes that cause rendering artifacts or performance issues.
+
+**File:** `src/main/scala/menger/MengerMain.scala` or LibGDX configuration
+
+**Changes:**
+1. Lock render resolution when OptiX is active
+2. Window can resize but internal render target stays fixed
+3. Scale output to fit window (letterbox if needed)
+
+**Acceptance:** Window resize doesn't trigger OptiX buffer reallocation.
+
+---
+
+### Task 5.5.5: Print CLI help on errors
+
+**Problem:** Invalid CLI arguments show error but not usage help, making it hard for users to correct mistakes.
+
+**File:** `src/main/scala/menger/MengerCLIOptions.scala`
+
+**Changes:**
+1. Catch Scallop validation errors
+2. Print short usage summary with error
+3. Suggest `--help` for full options
+
+**Example output:**
+```
+Error: Unknown option '--objekt'
+Did you mean '--object'?
+
+Usage: menger [options]
+Run with --help for full options list.
+```
+
+**Acceptance:** Invalid arguments show helpful error with usage hint.
+
+---
+
+### Task 5.5.6: Tests for polish tasks
+
+**File:** `src/test/scala/menger/CLIHelpTest.scala` (new)
+
+```scala
+class CLIHelpTest extends AnyFlatSpec with Matchers:
+
+  "CLI" should "show help on invalid option" in:
+    // Capture stderr when parsing invalid args
+    val args = Array("--invalid-option")
+    // Verify error message includes usage hint
+
+  it should "suggest similar options for typos" in:
+    val args = Array("--objekt")  // typo for --object
+    // Verify suggestion is shown
+```
+
+---
+
 ## Files Summary
 
 ### New Files
@@ -1533,6 +1675,8 @@ class CLICubeTest extends AnyFlatSpec with Matchers:
 | `optix-jni/src/test/scala/menger/optix/CubeRenderTest.scala` | Opaque cube render tests |
 | `optix-jni/src/test/scala/menger/optix/GlassCubeTest.scala` | Glass cube render tests |
 | `src/test/scala/menger/CLICubeTest.scala` | CLI integration tests |
+| `src/test/scala/menger/CLIHelpTest.scala` | CLI error/help tests (Step 5.5) |
+| `optix-jni/src/main/scala/menger/optix/RenderConfig.scala` | Render config case class (Step 5.5) |
 
 ### Modified Files
 
