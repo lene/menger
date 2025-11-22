@@ -137,63 +137,70 @@ for (unsigned int hp_idx = 0; hp_idx < num_hp; hp_idx += 1) {
 - `__caustics_count_grid_cells()` - Already implemented
 - Missing: Grid building pass and grid-accelerated lookup in `depositPhoton()`
 
-### 2. Magic Intensity Scale Factor
+### 2. ~~Magic Intensity Scale Factor~~ ✅ FIXED
 
-**Location:** `sphere_combined.cu:1612`
+**Location:** `sphere_combined.cu:1672`
 
 ```cpp
-const float caustic_scale = 10000.0f;
+const float caustic_scale = 1.0f;  // Physics-based
 ```
 
-**Issue:** This is a tuned constant, not physics-based. The PPM radiance formula should produce correct values without scaling.
+**Fix (2025-11-22):** Removed double-normalization bug. The flux was being divided by `total_photons` twice (during emission AND radiance computation). Now uses correct PPM formula: `L = Φ / (π × R²)`.
 
-**Root cause candidates:**
-- Photon flux not properly normalized by total photon count
-- Area term (π × R²) may have units mismatch
-- Light intensity not calibrated
+### 3. ~~No Energy Tracking~~ ✅ IMPLEMENTED
 
-### 3. No Energy Tracking
+**Fix (2025-11-22):** Added atomic counters throughout the pipeline tracking:
+- `photons_emitted`, `total_flux_emitted` (C1)
+- `sphere_hits`, `sphere_misses` (C2)
+- `refraction_events`, `tir_events` (C3)
+- `photons_deposited`, `total_flux_deposited` (C4)
+- `total_flux_absorbed` (C5)
+- `max_caustic_brightness` (C7)
 
-**Issue:** Cannot validate C5 (energy conservation) without tracking:
-- Total flux emitted
-- Total flux deposited
-- Total flux absorbed (Beer-Lambert)
-- Total flux reflected (Fresnel)
+Stats accessible via `OptiXRenderer.getCausticsStats()`.
 
-### 4. No Convergence Metrics
+### 4. ~~No Convergence Metrics~~ ✅ IMPLEMENTED
 
-**Issue:** Cannot validate C6 (convergence) without tracking:
-- Per-iteration variance
-- Radius distribution
-- Flux accumulation rate
+**Fix (2025-11-22):** `CausticsStats` struct now tracks:
+- `avg_radius`, `min_radius`, `max_radius`
+- `flux_variance`
+- Timing metrics for each phase
 
-## Test Ladder Gaps
+### 5. Brute-Force Performance (REMAINING CRITICAL ISSUE)
 
-| Step | Quality Goal | Existing Code | Test Gap |
-|------|--------------|---------------|----------|
-| C1 | Emission count/distribution | `__raygen__photons` | No count validation |
-| C2 | Sphere hit rate | `tracePhoton` | No geometric validation |
-| C3 | Refraction accuracy | `tracePhoton` (Snell's law) | No angle validation |
-| C4 | Focal point position | `depositPhoton` | No centroid validation |
-| C5 | Energy conservation | Not tracked | Need instrumentation |
-| C6 | PPM convergence | Not measured | Need metrics |
-| C7 | Caustic brightness | Not measured | Need comparison |
-| C8 | Reference match | Not implemented | Need PBRT reference |
+The spatial hash grid is the main remaining work. See Issue #1 above.
 
-## Files to Modify
+## Test Ladder Status (Updated 2025-11-22)
 
-### For Analytic Tests (C1-C5)
-- `optix-jni/src/test/scala/menger/optix/caustics/` - New test files
+| Step | Quality Goal | Status | Notes |
+|------|--------------|--------|-------|
+| C1 | Emission count/distribution | ✅ Instrumented | `photons_emitted`, `total_flux_emitted` tracked |
+| C2 | Sphere hit rate | ✅ Instrumented | `sphere_hits`, `sphere_misses` tracked |
+| C3 | Refraction accuracy | ✅ Instrumented | `refraction_events`, `tir_events` tracked |
+| C4 | Focal point position | ✅ Instrumented | `photons_deposited`, `hit_points_with_flux` tracked |
+| C5 | Energy conservation | ✅ Instrumented | `total_flux_emitted/deposited/absorbed` tracked |
+| C6 | PPM convergence | ✅ Instrumented | `avg_radius`, `flux_variance` tracked |
+| C7 | Caustic brightness | ✅ Instrumented | `max_caustic_brightness` tracked |
+| C8 | Reference match | ✅ Reference ready | Mitsuba reference at `src/test/resources/caustics-reference.png` |
 
-### For Instrumentation
-- `OptiXData.h` - Add CausticsStats struct
-- `sphere_combined.cu` - Add atomic counters in shaders
-- `OptiXWrapper.cpp` - Expose stats via JNI
-- `OptiXRenderer.scala` - Add stats retrieval methods
+**Next Steps:** Run `CausticsValidationSpec` tests to verify instrumentation works, then validate C1-C8 quality goals.
 
-### For Spatial Grid Fix
-- `sphere_combined.cu` - Implement grid-accelerated `depositPhoton()`
-- `OptiXWrapper.cpp` - Add grid building pass
+## Files Modified (2025-11-22)
+
+### Instrumentation (Complete)
+- `sphere_combined.cu` - Added atomic counters in shaders ✅
+- `OptiXData.h` - CausticsStats struct (already existed) ✅
+- `OptiXWrapper.cpp` - Stats buffer allocation and getCausticsStats() ✅
+- `JNIBindings.cpp` - getCausticsStatsNative() JNI binding ✅
+
+### Tests (Ready to Run)
+- `CausticsValidationSpec.scala` - Analytic tests for C1-C5 ✅
+- `ReferenceMatchSpec.scala` - Image comparison for C8 ✅
+- `ImageComparison.scala` - SSIM implementation ✅
+
+### Remaining Work: Spatial Grid Performance Fix
+- `sphere_combined.cu` - Implement grid-accelerated `depositPhoton()` for O(1) lookup
+- `OptiXWrapper.cpp` - Add grid building pass before photon tracing
 
 ## Reference Image
 
