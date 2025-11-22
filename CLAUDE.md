@@ -102,12 +102,15 @@ cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx target/nativ
 
 ## Documentation
 
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Code architecture, object hierarchy, rendering pipeline
-- **[docs/PHYSICS.md](docs/PHYSICS.md)** - OptiX physics (Fresnel, Beer-Lambert, Snell's law)
+**Architecture (arc42):** [docs/arc42/README.md](docs/arc42/README.md)
+- Building Blocks: [05-building-block-view.md](docs/arc42/05-building-block-view.md)
+- Deployment: [07-deployment-view.md](docs/arc42/07-deployment-view.md)
+- Concepts (Physics): [08-crosscutting-concepts.md](docs/arc42/08-crosscutting-concepts.md)
+- Decisions: [09-architectural-decisions.md](docs/arc42/09-architectural-decisions.md)
+
+**Other:**
 - **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Complete troubleshooting guide
-- **[docs/CI_CD.md](docs/CI_CD.md)** - GitLab runner setup, Docker images, CI debugging
 - **[optix-jni/README.md](optix-jni/README.md)** - OptiX JNI architecture details
-- **[docs/GPU_DEVELOPMENT.md](docs/GPU_DEVELOPMENT.md)** - AWS EC2 GPU development setup
 
 ## Project Conventions
 
