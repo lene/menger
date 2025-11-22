@@ -154,11 +154,16 @@ Complete geometry pipeline with multiple objects and sponge mesh.
 
 ### Sprint 7: Materials (10-15 hours) - 📋 PLANNED
 Add material support to all geometry types.
-- Per-object color and reflectivity
-- UV coordinates for future texture support
-- Material assignment via CLI flags
+
+**Detailed Plan:** [SPRINT_7_PLAN.md](SPRINT_7_PLAN.md)
+
+- Extended material properties (roughness, metallic, specular)
+- UV coordinates in vertex format (8 floats: pos + normal + UV)
+- Texture upload and sampling infrastructure
+- Material presets (glass, metal, plastic, matte, water, diamond)
+- CLI: `--material`, `--roughness`, `--ior` flags
 - Apply materials to cube, sphere, sponge
-- Tests for material rendering
+- Tests for material and texture rendering
 
 **🎯 MILESTONE: v0.5 - Full 3D Support** (after Sprint 7)
 
