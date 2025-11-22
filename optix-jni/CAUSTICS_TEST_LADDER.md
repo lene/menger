@@ -4,7 +4,9 @@
 > Each step must pass before proceeding to the next. This ensures systematic debugging
 > and prevents wasted effort on downstream issues caused by upstream bugs.
 >
-> **Reference:** [arc42 Section 10 - Quality Requirements](../docs/arc42/10-quality-requirements.md#caustics-quality-progressive-photon-mapping)
+> **References:**
+> - [arc42 Section 10 - Quality Requirements](../docs/arc42/10-quality-requirements.md#caustics-quality-progressive-photon-mapping)
+> - [Caustics Reference Images & Scenes](./CAUSTICS_REFERENCES.md) - Reference materials for validation
 
 ## Overview
 
@@ -580,10 +582,28 @@ class EnergyConservationSpec extends AnyFlatSpec with Matchers {
 2. Compare against reference image using SSIM
 3. Verify SSIM > 0.90
 
+**Reference Images:** See [CAUSTICS_REFERENCES.md](./CAUSTICS_REFERENCES.md) for available references.
+
+**Primary Reference:** `test-resources/caustics-references/renders/canonical-caustics.pbrt`
+- Rendered with PBRT v4 SPPM integrator
+- Exact parameter match to our canonical scene
+- 800×600 resolution, IOR 1.5, point light from above
+
 **Reference Image Creation:**
-- Render with verified implementation (Steps 1-7 passing)
-- Or obtain from trusted external renderer (LuxRender, PBRT, etc.)
-- Store as `test/resources/caustics_reference.png`
+```bash
+# Render with PBRT v4
+cd optix-jni/test-resources/caustics-references/renders
+pbrt canonical-caustics.pbrt
+imgtool convert canonical-caustics.exr canonical-caustics-reference.png
+
+# Store for tests
+cp canonical-caustics-reference.png ../../../../src/test/resources/
+```
+
+**Alternative References:**
+- Appleseed Cornell box (IOR 1.5, same glass parameters)
+- PBRT LTE-Orb scenes (spherical geometry)
+- Jensen's original photon mapping paper images
 
 ---
 
@@ -644,7 +664,19 @@ sbt "testOnly *EnergyConservationSpec" # Step 5
 
 ## References
 
+### Internal Documentation
 - [arc42 Section 10 - Quality Requirements](../docs/arc42/10-quality-requirements.md)
 - [arc42 Section 8 - Physics Concepts](../docs/arc42/08-crosscutting-concepts.md)
+- [Caustics Reference Images & Scenes](./CAUSTICS_REFERENCES.md)
+
+### Reference Scenes
+- **Primary:** `test-resources/caustics-references/renders/canonical-caustics.pbrt`
+- **Secondary:** `test-resources/caustics-references/appleseed/cornell-box-caustics.appleseed`
+- **PBRT scenes:** `test-resources/caustics-references/pbrt/pbrt-v4-scenes/`
+
+### Academic References
 - PBRT Book, Chapter 16: Light Transport III - Bidirectional Methods
-- Jensen, H.W. "Realistic Image Synthesis Using Photon Mapping"
+- Jensen, H.W. "Realistic Image Synthesis Using Photon Mapping" (2001)
+- Jensen, H.W. "Global Illumination using Photon Maps" (1996) - [PDF](https://graphics.stanford.edu/~henrik/papers/ewr7/egwr96.pdf)
+- Hachisuka et al. "Progressive Photon Mapping" (2008)
+- Hachisuka & Jensen "Stochastic Progressive Photon Mapping" (2009)

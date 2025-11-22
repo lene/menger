@@ -1,0 +1,12 @@
+# Ignore rendered output (large binary files)
+output/
+
+# Ignore downloaded PBRT scenes (can be re-cloned)
+pbrt/pbrt-v4-scenes/.git/
+
+# Keep the scene files but ignore generated EXR files
+*.exr
+*.png
+
+# Ignore Mitsuba cache
+__pycache__/
