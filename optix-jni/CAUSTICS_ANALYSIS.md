@@ -195,6 +195,29 @@ const float caustic_scale = 10000.0f;
 - `sphere_combined.cu` - Implement grid-accelerated `depositPhoton()`
 - `OptiXWrapper.cpp` - Add grid building pass
 
+## Reference Image
+
+**Location:** `optix-jni/src/test/resources/caustics-reference.png`
+
+**Generated with:** Mitsuba 3 (`pip install mitsuba`)
+
+**Render script:** `optix-jni/test-resources/caustics-references/render_reference.py`
+
+**Scene parameters (matching arc42 canonical scene):**
+- Glass sphere: center=(0,0,0), radius=1.0, IOR=1.5
+- Floor: Y=-2.0, diffuse gray (0.8)
+- Light: Area light at (0,10,0), 2x2 size, intensity 5000
+- Camera: (0,1,4) looking at origin, FOV=45°
+- Resolution: 800x600, 4096 samples
+
+**To regenerate:**
+```bash
+cd optix-jni/test-resources/caustics-references
+pip install mitsuba numpy pillow
+python3 render_reference.py
+cp output/canonical-caustics-reference.png ../../src/test/resources/caustics-reference.png
+```
+
 ## References
 
 - [CAUSTICS_PLAN.md](./CAUSTICS_PLAN.md) - Original implementation plan
