@@ -1,17 +1,13 @@
-- ensure PTX are in the right place
-  > Packaged app can't find optixjni library
-  > The packaged application failure is expected because it's trying to load the
-  > native library from the system path rather than the bundled one. This is a known
-  > packaging issue but doesn't affect the correctness of the code.
-- --plane: default no plane, can be repeated for multiple planes
-- use a color class dereved from Vector instead of the libGDX class
-- caustics
-- on-the-fly change of image dimension with resizing of menger main window
+# TODO
 
-## later
+Quick notes and ideas. For detailed planning see [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md).
+
+## Backlog
+
+- caustics (deferred - algorithm issues, branch `feature/caustics` preserved)
 - composites
-- Cubes
-- mesh objects 
-- sponges
 - render coordinate cross
-- DSL (domain specific language) aka SDL (scene description language)
+- more primitives (cylinders, cones, torus)
+- 4D sponge in OptiX
+- real-time preview mode
+- GPU instancing

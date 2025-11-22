@@ -12,10 +12,9 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 
 ## Active Development
 
-**Current:** Sprint 4 - Caustics via Progressive Photon Mapping 🔄 IN PROGRESS
-**Branch:** `feature/caustics`
+**Current:** Planning Sprint 5 - Triangle Mesh Foundation
+**Branch:** `feature/caustics` (Sprint 4 deferred, branch preserved)
 **Local Tests:** ~897 passing (21 C++ + ~876 Scala)
-**Plan:** [optix-jni/CAUSTICS_PLAN.md](optix-jni/CAUSTICS_PLAN.md)
 **Progress:** [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md)
 
 **Completed Sprints:**
@@ -23,12 +22,16 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 - ✅ **Sprint 2** - Interactivity (Mouse Camera Control, Multiple Light Sources)
 - ✅ **Sprint 3** - Advanced Quality (Adaptive Antialiasing, Unified Color API, Cache Management)
 
-**Sprint 4 Phases:**
-1. Data structures & GPU memory (3-4h)
-2. Eye ray pass - hit point generation (4-5h)
-3. Photon tracing pass (5-6h)
-4. Progressive refinement & integration (4-5h)
-5. Scala/CLI integration & testing (4-5h)
+**Deferred:**
+- ⏸️ **Sprint 4** - Caustics (algorithm issues, branch preserved for future)
+
+**Upcoming Sprints (Feature Breadth Focus):**
+- **Sprint 5** - Triangle Mesh Foundation (OptiX triangle support)
+- **Sprint 6** - Cube Primitive (first mesh object)
+- **Sprint 7** - Multiple Objects (scene graph)
+- **Sprint 8** - Sponge Mesh Export → **v0.5 Milestone**
+- **Sprint 9-10** - Object Animation
+- **Sprint 11** - Scene Description Language
 
 **Recent Features (v0.3.7):**
 - Unified `menger.common.Color` class with factory methods
@@ -115,3 +118,4 @@ cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx target/nativ
 - No docstrings - use descriptive function/parameter names
 - Comments only for domain-specific problems not expressible in code
 - Always run pre-push hook to catch errors early
+- when running under xvfb-run, set __GL_THREADED_OPTIMIZATIONS=0 to avoid crashes in libnvidia-glcore.so
