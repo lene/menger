@@ -146,8 +146,6 @@ Complete geometry pipeline with multiple objects and sponge mesh.
 - Performance optimization for BVH build
 - Tests for multi-object and sponge rendering
 
-**🎯 MILESTONE: v0.5 - Full Geometry Support** (after Sprint 6)
-
 ### Sprint 7: Materials (10-15 hours) - 📋 PLANNED
 Add material support to all geometry types.
 - Per-object color and reflectivity
@@ -156,7 +154,37 @@ Add material support to all geometry types.
 - Apply materials to cube, sphere, sponge
 - Tests for material rendering
 
-### Sprint 8: Object Animation Foundation (10-15 hours) - 📋 PLANNED
+**🎯 MILESTONE: v0.5 - Full 3D Support** (after Sprint 7)
+
+### Sprint 8: 4D Projection Foundation (12-18 hours) - 📋 PLANNED
+Infrastructure for 4D→3D projection with tesseract proof-of-concept.
+- 4D→3D projection mathematics (perspective, orthographic, cross-section)
+- 4D vertex/edge data structures
+- Tesseract (4D hypercube) geometry generation
+- Project tesseract to 3D triangle mesh
+- CLI: `--object tesseract` option
+- Tests for 4D projection
+
+### Sprint 9: TesseractSponge (15-20 hours) - 📋 PLANNED
+Full 4D Menger sponge rendering.
+- TesseractSponge → 4D mesh export
+- Apply 4D projection pipeline
+- Handle large 4D face counts efficiently
+- Progressive level support (levels 0-2+)
+- CLI: `--object tesseract-sponge --level N`
+- Tests for TesseractSponge rendering
+
+### Sprint 10: 4D Framework (10-15 hours) - 📋 PLANNED
+Generalized framework for arbitrary 4D mesh objects.
+- Abstract 4D mesh interface
+- 4D rotation/transformation controls
+- Interactive 4D manipulation (w-axis rotation)
+- CLI: 4D view parameters
+- Documentation for 4D object creation
+
+**🎯 MILESTONE: v0.6 - Full 4D Support** (after Sprint 10)
+
+### Sprint 11: Object Animation Foundation (10-15 hours) - 📋 PLANNED
 Infrastructure for animated scenes.
 - Animation timeline/keyframe data structure
 - Object transform interpolation
@@ -164,14 +192,14 @@ Infrastructure for animated scenes.
 - Output to image sequence (PNG)
 - CLI: `--animate`, `--frames`, `--fps`
 
-### Sprint 9: Animation Enhancements (8-12 hours) - 📋 PLANNED
+### Sprint 12: Animation Enhancements (8-12 hours) - 📋 PLANNED
 Richer animation capabilities.
 - Easing functions (linear, ease-in-out, etc.)
 - Multi-object animation
 - Camera animation (path following)
 - Animation preview mode
 
-### Sprint 10: Scene Description Language (15-20 hours) - 📋 PLANNED
+### Sprint 13: Scene Description Language (15-20 hours) - 📋 PLANNED
 Declarative scene files.
 - Design simple scene file format (YAML/JSON/custom)
 - Parse scene files with object definitions
@@ -183,13 +211,14 @@ Declarative scene files.
 - **Caustics Revisited:** Return to PPM with simpler approach
 - **More primitives:** Cylinders, cones, torus
 - **Advanced materials:** Subsurface scattering, PBR
-- **4D sponge in OptiX:** TesseractSponge ray tracing
 - **Real-time preview:** Interactive rendering mode
 - **GPU instancing:** Efficient repeated geometry
 - **Dynamic Window Resizing:** Complex, 15+ hours spent with no resolution
 
 **Total estimated effort (Sprints 1-3):** ~34 hours (COMPLETE)
-**Sprints 5-10:** ~75-110 hours estimated
+**Sprints 5-7 (v0.5):** ~42-63 hours estimated
+**Sprints 8-10 (v0.6):** ~37-53 hours estimated
+**Sprints 11-13:** ~33-47 hours estimated
 **Deferred:** Sprint 4 (Caustics), Dynamic Window Resizing
 
 ---
@@ -1668,9 +1697,9 @@ menger --level 2 --sponge-type cube --shadows --antialiasing --aa-max-depth 2
 
 ---
 
-**Document Status:** ✅ **Sprints 1-3 Complete, Sprint 4 Deferred, Sprints 5-10 Planned**
+**Document Status:** ✅ **Sprints 1-3 Complete, Sprint 4 Deferred, Sprints 5-13 Planned**
 
-**Last Updated:** 2025-11-22 - Reorganized: geometry first (Sprints 5-6), materials later (Sprint 7)
+**Last Updated:** 2025-11-22 - Added 4D support roadmap (v0.6), renumbered sprints
 
 **Next Step:** Begin Sprint 5 - Triangle Mesh Foundation + Cube
 
@@ -1686,10 +1715,13 @@ menger --level 2 --sponge-type cube --shadows --antialiasing --aa-max-depth 2
 **Deferred:**
 - Sprint 4 - Caustics (algorithm issues, branch preserved)
 
-**Planned (Sprints 5-10):**
+**Planned (Sprints 5-13):**
 - Sprint 5 - Triangle Mesh Foundation + Cube (basic)
-- Sprint 6 - Full Geometry (multi-object + sponge) → **v0.5 Milestone**
-- Sprint 7 - Materials
-- Sprint 8 - Object Animation Foundation
-- Sprint 9 - Animation Enhancements
-- Sprint 10 - Scene Description Language
+- Sprint 6 - Full Geometry (multi-object + 3D sponge)
+- Sprint 7 - Materials → **v0.5 Milestone**
+- Sprint 8 - 4D Projection Foundation + Tesseract
+- Sprint 9 - TesseractSponge
+- Sprint 10 - 4D Framework → **v0.6 Milestone**
+- Sprint 11 - Object Animation Foundation
+- Sprint 12 - Animation Enhancements
+- Sprint 13 - Scene Description Language
