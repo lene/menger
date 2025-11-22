@@ -832,7 +832,7 @@ void OptiXWrapper::renderWithCaustics(int width, int height, Params& params) {
     launchCausticsPass(width, height, impl->caustics_hitpoints_raygen, width, height);
     CUDA_CHECK(cudaDeviceSynchronize());
 
-    // Read back number of hit points for debugging
+    // Read back number of hit points
     unsigned int num_hit_points = 0;
     CUDA_CHECK(cudaMemcpy(
         &num_hit_points,
@@ -840,11 +840,14 @@ void OptiXWrapper::renderWithCaustics(int width, int height, Params& params) {
         sizeof(unsigned int),
         cudaMemcpyDeviceToHost
     ));
-    std::cerr << "[Caustics] Hit points collected: " << num_hit_points << std::endl;
+    std::cout << "[Caustics] Phase 1: Collected " << num_hit_points << " hit points" << std::endl;
 
     // =====================================
     // Pass 2-N: Photon Tracing Iterations
     // =====================================
+    std::cout << "[Caustics] Phase 2: Tracing " << impl->caustics_photons_per_iter
+              << " photons x " << impl->caustics_iterations << " iterations" << std::endl;
+
     for (int iter = 0; iter < impl->caustics_iterations; ++iter) {
         // Update iteration counter in params
         params.caustics.current_iteration = iter;
@@ -864,6 +867,9 @@ void OptiXWrapper::renderWithCaustics(int width, int height, Params& params) {
         // Launch photon tracing
         launchCausticsPass(width, height, impl->caustics_photons_raygen, photon_grid_width, photon_grid_height);
         CUDA_CHECK(cudaDeviceSynchronize());
+
+        std::cout << "[Caustics]   Iteration " << (iter + 1) << "/" << impl->caustics_iterations
+                  << " complete" << std::endl;
     }
 
     // =====================================
@@ -880,6 +886,8 @@ void OptiXWrapper::renderWithCaustics(int width, int height, Params& params) {
         cudaMemcpyHostToDevice
     ));
 
+    std::cout << "[Caustics] Phase 3: Rendering scene" << std::endl;
+
     // Launch standard render (uses accumulated caustics data)
     impl->optix_context.launch(
         impl->pipeline,
@@ -894,10 +902,14 @@ void OptiXWrapper::renderWithCaustics(int width, int height, Params& params) {
     // Post-Processing: Apply Caustics Radiance to Image
     // =====================================
     if (num_hit_points > 0) {
+        std::cout << "[Caustics] Phase 4: Computing radiance for " << num_hit_points << " hit points" << std::endl;
+
         // Launch caustics radiance computation (one thread per hit point)
         launchCausticsPass(width, height, impl->caustics_radiance_raygen, num_hit_points, 1);
         CUDA_CHECK(cudaDeviceSynchronize());
     }
+
+    std::cout << "[Caustics] Complete: " << params.caustics.total_photons_traced << " total photons traced" << std::endl;
 }
 
 void OptiXWrapper::dispose() {
