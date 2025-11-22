@@ -126,34 +126,35 @@ Implement sophisticated antialiasing and API improvements.
 Caustics via Progressive Photon Mapping - deferred due to algorithm issues.
 - Branch `feature/caustics` preserved for future revisit
 
-### Sprint 5: Triangle Mesh Foundation + Cube (18-27 hours) - 📋 PLANNED
-Establishes infrastructure for all future mesh rendering with a working cube primitive.
+### Sprint 5: Triangle Mesh Foundation + Cube (12-18 hours) - 📋 PLANNED
+Establishes infrastructure for triangle mesh rendering with a basic cube primitive.
 - Add `OptixBuildInputTriangleArray` support to OptiXWrapper
 - Create JNI interface for passing vertex/index buffers
-- Implement triangle closest-hit shader with normals
+- Implement triangle closest-hit shader with per-face normals
 - Scala `Cube` → vertex/index export to OptiX (12 triangles, 6 faces)
-- Per-face normals and UV coordinates
-- Material support (color, reflectivity)
+- Basic solid color rendering (no materials yet)
 - CLI: `--object cube` option
 - Tests for cube rendering
 
-### Sprint 6: Multiple Objects (10-15 hours) - 📋 PLANNED
-Render scenes with more than one object.
+### Sprint 6: Full Geometry Support (20-30 hours) - 📋 PLANNED
+Complete geometry pipeline with multiple objects and sponge mesh.
 - Scene graph / object list in OptiX
 - Per-object transforms (position, rotation, scale)
-- Object selection for materials
-- CLI: Multiple `--object` flags or scene file
-- Small CLI/UX improvement
-
-### Sprint 7: Sponge Mesh Export (12-18 hours) - 📋 PLANNED
-Bridge existing LibGDX sponge geometry to OptiX.
+- CLI: Multiple `--object` flags
 - Export `Seq[Face]` from `SpongeBySurface` to triangle buffer
-- Handle large face counts efficiently
-- Progressive level-of-detail support
+- Handle large face counts efficiently (sponge levels 0-3+)
 - Performance optimization for BVH build
-- CLI/UX improvement
+- Tests for multi-object and sponge rendering
 
-**🎯 MILESTONE: v0.5 - Full Mesh Support** (after Sprint 7)
+**🎯 MILESTONE: v0.5 - Full Geometry Support** (after Sprint 6)
+
+### Sprint 7: Materials (10-15 hours) - 📋 PLANNED
+Add material support to all geometry types.
+- Per-object color and reflectivity
+- UV coordinates for future texture support
+- Material assignment via CLI flags
+- Apply materials to cube, sphere, sponge
+- Tests for material rendering
 
 ### Sprint 8: Object Animation Foundation (10-15 hours) - 📋 PLANNED
 Infrastructure for animated scenes.
@@ -188,7 +189,7 @@ Declarative scene files.
 - **Dynamic Window Resizing:** Complex, 15+ hours spent with no resolution
 
 **Total estimated effort (Sprints 1-3):** ~34 hours (COMPLETE)
-**Sprints 5-10:** ~68-102 hours estimated
+**Sprints 5-10:** ~75-110 hours estimated
 **Deferred:** Sprint 4 (Caustics), Dynamic Window Resizing
 
 ---
@@ -1669,7 +1670,7 @@ menger --level 2 --sponge-type cube --shadows --antialiasing --aa-max-depth 2
 
 **Document Status:** ✅ **Sprints 1-3 Complete, Sprint 4 Deferred, Sprints 5-10 Planned**
 
-**Last Updated:** 2025-11-22 - Consolidated Sprints 5-6 into Triangle Mesh + Cube
+**Last Updated:** 2025-11-22 - Reorganized: geometry first (Sprints 5-6), materials later (Sprint 7)
 
 **Next Step:** Begin Sprint 5 - Triangle Mesh Foundation + Cube
 
@@ -1686,9 +1687,9 @@ menger --level 2 --sponge-type cube --shadows --antialiasing --aa-max-depth 2
 - Sprint 4 - Caustics (algorithm issues, branch preserved)
 
 **Planned (Sprints 5-10):**
-- Sprint 5 - Triangle Mesh Foundation + Cube
-- Sprint 6 - Multiple Objects
-- Sprint 7 - Sponge Mesh Export → **v0.5 Milestone**
+- Sprint 5 - Triangle Mesh Foundation + Cube (basic)
+- Sprint 6 - Full Geometry (multi-object + sponge) → **v0.5 Milestone**
+- Sprint 7 - Materials
 - Sprint 8 - Object Animation Foundation
 - Sprint 9 - Animation Enhancements
 - Sprint 10 - Scene Description Language
