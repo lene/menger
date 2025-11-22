@@ -10,6 +10,22 @@ Guidance for Claude Code when working with this repository.
 
 Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala Color objects, all tests.
 
+## ⚠️ CRITICAL: Architecture Documentation (arc42)
+
+**Single source of truth:** [docs/arc42/README.md](docs/arc42/README.md)
+
+**Before making architectural decisions:**
+1. **Consult arc42** - Check existing decisions in [Section 9](docs/arc42/09-architectural-decisions.md)
+2. **Check quality requirements** - Validate against [Section 10](docs/arc42/10-quality-requirements.md)
+3. **Review risks** - Consider impacts per [Section 11](docs/arc42/11-risks-and-technical-debt.md)
+
+**After making changes:**
+1. **Update arc42** if the change affects architecture, quality requirements, or introduces new risks
+2. **Update sprint plans** if implementing a planned feature - record actual metrics
+3. **Update baseline values** in Section 10 when establishing new performance baselines
+
+**Documentation must stay current** - outdated documentation is worse than no documentation.
+
 ## Active Development
 
 **Current:** Planning Sprint 5 - Triangle Mesh Foundation
@@ -80,11 +96,12 @@ rm -rf optix-jni/target/native && sbt "project optixJni" compile  # Clean rebuil
 ## Development Checklist
 
 1. Update CHANGELOG.md (keepachangelog.com format)
-2. Never `git add -A` - add files explicitly
-3. Run `sbt compile && sbt test --warn` before committing
-4. Run `sbt "scalafix --check"`
-5. Run pre-push hook before pushing
-6. Monitor pipeline after pushing
+2. **Update arc42 documentation** if change affects architecture, quality, or risks
+3. Never `git add -A` - add files explicitly
+4. Run `sbt compile && sbt test --warn` before committing
+5. Run `sbt "scalafix --check"`
+6. Run pre-push hook before pushing
+7. Monitor pipeline after pushing
 
 ## Common Issues
 
@@ -102,15 +119,24 @@ cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx target/nativ
 
 ## Documentation
 
-**Architecture (arc42):** [docs/arc42/README.md](docs/arc42/README.md)
-- Building Blocks: [05-building-block-view.md](docs/arc42/05-building-block-view.md)
-- Deployment: [07-deployment-view.md](docs/arc42/07-deployment-view.md)
-- Concepts (Physics): [08-crosscutting-concepts.md](docs/arc42/08-crosscutting-concepts.md)
-- Decisions: [09-architectural-decisions.md](docs/arc42/09-architectural-decisions.md)
+### Architecture (arc42) - Single Source of Truth
 
-**Other:**
-- **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Complete troubleshooting guide
-- **[optix-jni/README.md](optix-jni/README.md)** - OptiX JNI architecture details
+**Index:** [docs/arc42/README.md](docs/arc42/README.md)
+
+| Section | Purpose | When to Update |
+|---------|---------|----------------|
+| [05 - Building Blocks](docs/arc42/05-building-block-view.md) | Code architecture | New components/modules |
+| [07 - Deployment](docs/arc42/07-deployment-view.md) | CI/CD, GPU setup | Infrastructure changes |
+| [08 - Concepts](docs/arc42/08-crosscutting-concepts.md) | Physics, rendering | Algorithm changes |
+| [09 - Decisions](docs/arc42/09-architectural-decisions.md) | ADRs | Any architectural decision |
+| [10 - Quality](docs/arc42/10-quality-requirements.md) | Performance targets | New baselines established |
+| [11 - Risks](docs/arc42/11-risks-and-technical-debt.md) | Technical debt | New debt or risk identified |
+
+### Other Documentation
+
+- **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[optix-jni/README.md](optix-jni/README.md)** - OptiX JNI module details
+- **[optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md)** - Sprint roadmap
 
 ## Project Conventions
 
