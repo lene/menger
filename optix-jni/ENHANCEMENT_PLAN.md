@@ -1,8 +1,8 @@
 # OptiX Renderer Enhancement Plan
 
 **Created:** 2025-11-09
-**Updated:** 2025-11-21
-**Status:** Sprints 1, 2, and 3 Complete
+**Updated:** 2025-11-22
+**Status:** Sprints 1-3 Complete, Sprint 4 Deferred, Planning Sprints 5-11
 
 ## Overview
 
@@ -16,6 +16,14 @@ This document outlines the comprehensive plan for enhancing the OptiX ray tracin
 2. **Performance:** Ray statistics for optimization insights
 3. **Interactivity:** Mouse camera control
 4. **Flexibility:** Multiple configurable light sources
+5. **Feature Breadth:** Support more object types (cubes, meshes, sponges in OptiX)
+6. **Animation:** Object animation and frame sequence rendering
+7. **Usability:** Scene description language for declarative scene files
+
+## Milestone: v0.5 - Full Mesh Support
+
+**Target:** After Sprint 8
+**Goal:** OptiX renders spheres, cubes, planes, and Menger sponges with full material support
 
 ---
 
@@ -72,7 +80,12 @@ This document outlines the comprehensive plan for enhancing the OptiX ray tracin
   - Time spent: ~2 hours
 
 ### In Progress
-- 🔄 None - Sprints 1, 2, and 3 complete!
+- 🔄 Planning Sprints 5-11 (Feature Breadth Roadmap)
+
+### Deferred
+- ⏸️ **Sprint 4 (Caustics)** - Algorithm issues encountered, deferred to backlog
+  - Branch `feature/caustics` preserved for future revisit
+  - PPM approach hit algorithm issues producing incorrect/invisible results
 
 ### Investigation Completed (Deferred)
 - ⏸️ **Dynamic Window Resizing (5.1)** - Investigated 2025-11-09 to 2025-11-14
@@ -109,16 +122,79 @@ Implement sophisticated antialiasing and API improvements.
 - ✅ Feature 3.2: Unified Color API (COMPLETE - 3 hours)
 - ✅ Feature 3.3: OptiX Cache Management (COMPLETE - 2 hours)
 
-### Sprint 4: Advanced Lighting (15-25 hours) - PLANNED
-Add photon mapping for physically accurate caustics.
+### Sprint 4: Advanced Lighting (15-25 hours) - ⏸️ DEFERRED
+Caustics via Progressive Photon Mapping - deferred due to algorithm issues.
+- Branch `feature/caustics` preserved for future revisit
 
-### Sprint 5: Complex Features (Status: Deferred) - DEFERRED
-Features requiring further investigation and prototyping.
-- ⏸️ Feature 5.1: Dynamic Window Resizing (10+ hours spent, no resolution)
+### Sprint 5: Triangle Mesh Foundation (10-15 hours) - 📋 PLANNED
+Establishes infrastructure for all future mesh rendering.
+- Add `OptixBuildInputTriangleArray` support to OptiXWrapper
+- Create JNI interface for passing vertex/index buffers
+- Implement basic triangle closest-hit shader
+- Render a simple hardcoded cube as proof-of-concept
+- CLI: Minor improvement (help on errors)
 
-**Total estimated effort (Sprints 1-4):** 39-59 hours
-**Deferred (Sprint 5):** 10-20 hours additional
-**Actual time spent:** 35 hours (as of 2025-11-19) - Sprints 1 & 2 complete
+### Sprint 6: Cube Primitive (8-12 hours) - 📋 PLANNED
+First full triangle-mesh primitive with materials.
+- Scala `Cube` → vertex/index export to OptiX
+- Per-face normals and UV coordinates
+- Material support (color, reflectivity)
+- CLI: `--object cube` option
+- Tests for cube rendering
+
+### Sprint 7: Multiple Objects (10-15 hours) - 📋 PLANNED
+Render scenes with more than one object.
+- Scene graph / object list in OptiX
+- Per-object transforms (position, rotation, scale)
+- Object selection for materials
+- CLI: Multiple `--object` flags or scene file
+- Small CLI/UX improvement
+
+### Sprint 8: Sponge Mesh Export (12-18 hours) - 📋 PLANNED
+Bridge existing LibGDX sponge geometry to OptiX.
+- Export `Seq[Face]` from `SpongeBySurface` to triangle buffer
+- Handle large face counts efficiently
+- Progressive level-of-detail support
+- Performance optimization for BVH build
+- CLI/UX improvement
+
+**🎯 MILESTONE: v0.5 - Full Mesh Support** (after Sprint 8)
+
+### Sprint 9: Object Animation Foundation (10-15 hours) - 📋 PLANNED
+Infrastructure for animated scenes.
+- Animation timeline/keyframe data structure
+- Object transform interpolation
+- Frame sequence rendering
+- Output to image sequence (PNG)
+- CLI: `--animate`, `--frames`, `--fps`
+
+### Sprint 10: Animation Enhancements (8-12 hours) - 📋 PLANNED
+Richer animation capabilities.
+- Easing functions (linear, ease-in-out, etc.)
+- Multi-object animation
+- Camera animation (path following)
+- Animation preview mode
+
+### Sprint 11: Scene Description Language (15-20 hours) - 📋 PLANNED
+Declarative scene files.
+- Design simple scene file format (YAML/JSON/custom)
+- Parse scene files with object definitions
+- Material and light definitions in scene file
+- Animation keyframes in scene file
+- CLI: `--scene <file>`
+
+### Backlog (Future)
+- **Caustics Revisited:** Return to PPM with simpler approach
+- **More primitives:** Cylinders, cones, torus
+- **Advanced materials:** Subsurface scattering, PBR
+- **4D sponge in OptiX:** TesseractSponge ray tracing
+- **Real-time preview:** Interactive rendering mode
+- **GPU instancing:** Efficient repeated geometry
+- **Dynamic Window Resizing:** Complex, 15+ hours spent with no resolution
+
+**Total estimated effort (Sprints 1-3):** ~34 hours (COMPLETE)
+**Sprints 5-11:** ~73-107 hours estimated
+**Deferred:** Sprint 4 (Caustics), Dynamic Window Resizing
 
 ---
 
@@ -1596,11 +1672,11 @@ menger --level 2 --sponge-type cube --shadows --antialiasing --aa-max-depth 2
 
 ---
 
-**Document Status:** ✅ **Sprints 1, 2 & 3 Complete**
+**Document Status:** ✅ **Sprints 1-3 Complete, Sprint 4 Deferred, Sprints 5-11 Planned**
 
-**Last Updated:** 2025-11-21 - Adaptive Antialiasing and Color API complete (Sprint 3)
+**Last Updated:** 2025-11-22 - Roadmap planning for feature breadth (Sprints 5-11)
 
-**Next Step:** Begin Sprint 4 - Advanced Lighting (Caustics via Photon Mapping)
+**Next Step:** Begin Sprint 5 - Triangle Mesh Foundation
 
 **Completed:**
 - Feature 1.1 - Ray Statistics ✅
@@ -1610,3 +1686,15 @@ menger --level 2 --sponge-type cube --shadows --antialiasing --aa-max-depth 2
 - Feature 3.1 - Adaptive Antialiasing ✅
 - Feature 3.2 - Unified Color API ✅
 - Feature 3.3 - OptiX Cache Management ✅
+
+**Deferred:**
+- Sprint 4 - Caustics (algorithm issues, branch preserved)
+
+**Planned (Sprints 5-11):**
+- Sprint 5 - Triangle Mesh Foundation
+- Sprint 6 - Cube Primitive
+- Sprint 7 - Multiple Objects
+- Sprint 8 - Sponge Mesh Export → **v0.5 Milestone**
+- Sprint 9 - Object Animation Foundation
+- Sprint 10 - Animation Enhancements
+- Sprint 11 - Scene Description Language
