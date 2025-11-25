@@ -16,8 +16,8 @@
 | Photon tracing | `sphere_combined.cu` | 1277-1397 | ✅ Working |
 | Photon emission | `sphere_combined.cu` | 1446-1514 | ✅ Working |
 | Photon deposition | `sphere_combined.cu` | 1239-1270 | ⚠️ O(n×m) |
-| Radius update | `sphere_combined.cu` | 1533-1564 | ✅ Complete |
-| Radiance computation | `sphere_combined.cu` | 1583-1628 | ✅ Complete |
+| Radius update | `sphere_combined.cu` | 1533-1564 | ❌ Not executing (kernel never called) |
+| Radiance computation | `sphere_combined.cu` | 1583-1628 | ⚠️ Working but limited by radius bug |
 | JNI bindings | `JNIBindings.cpp` | - | ✅ Complete |
 | Scala integration | `OptiXRenderer.scala` | 158-170 | ✅ Complete |
 | CLI options | `MengerCLIOptions.scala` | - | ✅ Complete |
@@ -313,13 +313,25 @@ Stats accessible via `OptiXRenderer.getCausticsStats()`.
 - Caustic radius ~0.3 units (from thick lens formula)
 - Peak brightness > 1.5× ambient floor illumination
 
-**To render reference image:**
+**To render PBRT reference image:**
 ```bash
 cd optix-jni/test-resources/caustics-references/renders
-pbrt canonical-caustics.pbrt                    # Renders to canonical-caustics.exr
-imgtool convert canonical-caustics.exr canonical-caustics.png
-cp canonical-caustics.png ../../../src/test/resources/caustics-reference.png
+pbrt caustics-bdpt.pbrt                    # Renders to caustics-bdpt.png
+cp caustics-bdpt.png ../pbrt-reference.png
 ```
+
+**To run OptiX test (generates /tmp/caustics-test-output.png):**
+```bash
+# ⚠️ WARNING: NEVER CHANGE THESE PARAMETERS - they must match caustics-bdpt.pbrt exactly
+sbt "project optixJni" "testOnly menger.optix.caustics.CausticsReferenceSpec -- -n Slow -z \"produce visible caustics\""
+```
+
+**Scene Parameters - DO NOT MODIFY (from caustics-bdpt.pbrt):**
+- Camera: position=(0,4,8), lookAt=(0,0,0), up=(0,1,0), FOV=45°
+- Light: Point at (0,10,0) with intensity 500
+- Sphere: center=(0,0,0), radius=1.0, IOR=1.5, glass material
+- Floor: Y=-2.0, solid gray reflectance 0.8 (NOT checkered)
+- Resolution: 800×600
 
 **Alternative (Mitsuba 3):** `render_reference.py` script available but PBRT is primary reference
 
@@ -409,97 +421,56 @@ cp canonical-caustics.png ../../../src/test/resources/caustics-reference.png
 
 ### Current Status
 - ✅ **Caustics working** - PPM produces visible caustics on floor
-- ⚠️ **Caustics too weak** - Significantly dimmer/smaller than PBRT reference
+- ⚠️ **Caustics too weak** - Average brightness ~35% of PBRT reference (0.325 vs 0.918)
 - ✅ **Reference established** - `pbrt-reference.png` (1024 samples BDPT, camera at (0,4,8))
 - ✅ **Test command documented** - Can render matching test images with all parameters
+- ✅ **Test infrastructure** - CausticsReferenceSpec with brightness comparison tests
+- ✅ **Code execution verified** - CUDA changes compile, load, and execute correctly
 
-### Root Cause Analysis
+### Root Cause Analysis (UPDATED 2025-11-25)
 
-**Identified Issues (Priority Order):**
+**🔴 CRITICAL BUG IDENTIFIED: Radius Update Kernel Never Executes**
 
-1. **Max photon bounces too low** (10 vs PBRT's 64)
-   - Location: `OptiXData.h:72` - `MAX_PHOTON_BOUNCES = 10`
-   - Impact: Photons with complex internal reflections through glass sphere terminated early
-   - Energy loss before reaching floor reduces caustic brightness
+**The Problem:**
+The CUDA kernel `__caustics_update_radii()` (sphere_combined.cu:1585-1629) is **NEVER BEING CALLED** by the host code.
 
-2. **Max camera ray depth too low** (5 vs PBRT's 64)
-   - Location: `OptiXData.h:12` - `MAX_TRACE_DEPTH = 5`
-   - Impact: Limited indirect illumination capture from caustic-lit surfaces
+**Evidence:**
+1. Brightness invariant across ALL parameter changes: 10× photon count, 9× gathering radius, parameter tweaks - **ZERO effect**
+2. Radius stays at 0.100 (initial value) across all iterations
+3. Debug instrumentation showed kernel never executes
 
-3. **Scale factor possibly too aggressive** (50.0)
-   - Location: `sphere_combined.cu:1666` - `const float scale_factor = 50.0f`
-   - Current empirical scaling may be suppressing caustic brightness
-   - Need to compare against physics-based reference
+**Why This Breaks Everything:**
+Without the radius update kernel executing:
+- Flux doesn't get scaled each iteration (missing critical `flux *= ratio` step)
+- Radii don't shrink progressively
+- Final radiance becomes iteration-independent
+- Result: Brightness constant regardless of photon count, radius, or other parameters
 
-4. **Photon count** (1M total = 100k × 10 iterations)
-   - May need more photons for smoother, brighter caustics convergence
-
-5. **Radiance normalization formula**
-   - Current: `flux / (area × iterations × scale_factor)`
-   - Division by iterations may be double-counting the PPM averaging
-
-### Test-Driven Improvement Strategy
-
-**Philosophy:** Ensure correctness first, optimize performance later. Add tests at each step to prevent regressions.
-
-**Phase 1: Test Infrastructure**
-- Create caustics brightness comparison test
-  - Load reference image (`pbrt-reference.png`)
-  - Render test image with matching parameters
-  - Compare caustic region brightness/intensity
-  - Assert within acceptable range (±20%)
-- Baseline correctness tests
-  - Caustic exists (non-zero brightness in expected region)
-  - Scene geometry correct (sphere size, floor position)
-  - Glass refraction working (IOR 1.5 behavior visible)
-
-**Phase 2: Systematic Improvements** (each with commit + tests)
-
-1. **Increase MAX_PHOTON_BOUNCES: 10 → 32**
-   - Change: `OptiXData.h:72`
-   - Test: Verify caustic brightness increases vs baseline
-   - Commit: "Increase photon bounces from 10 to 32 for better caustics"
-
-2. **Increase MAX_TRACE_DEPTH: 5 → 16**
-   - Change: `OptiXData.h:12`
-   - Test: Verify indirect illumination capture improves
-   - Commit: "Increase camera ray depth from 5 to 16"
-
-3. **Reduce/remove scale factor: 50.0 → 10.0 or remove**
-   - Change: `sphere_combined.cu:1666`
-   - Test: Verify caustic brightness closer to reference
-   - Commit: "Adjust scale factor for correct caustic brightness"
-
-4. **Investigate radiance normalization**
-   - Add debug logging for flux values, area, iterations
-   - Review formula at `sphere_combined.cu:1666-1674`
-   - Test: Verify energy conservation
-   - Commit: "Fix radiance normalization formula"
-
-5. **Increase photon count** (if needed)
-   - Change: CLI default or recommend higher values
-   - Test: Verify smoother caustics with more samples
-   - Commit: "Increase default photon count"
-
-**Phase 3: Validation & Documentation**
-1. Run full test suite - ensure all 818 tests pass
-2. Visual comparison - test image vs reference
-3. Update documentation - document final parameters
-4. Commit reference files - `pbrt-reference.png`, `reference-scene.pbrt`
-
-### Build Requirements
-After each C++/CUDA change:
-```bash
-rm -rf optix-jni/target/native
-sbt "project optixJni" compile
-sbt "project optixJni" test
+**Next Step to Fix:**
+Add missing kernel launch in host code (OptiXWrapper.cpp) after each photon tracing iteration:
+```cpp
+optixLaunch(caustics_update_radii_pipeline, ...)
 ```
 
+**Additional Context (Sample Count Disparity):**
+- PBRT reference: 491M path samples (800×600 × 1024 samples/pixel)
+- Our PPM: 1M photons (100K × 10 iterations)
+- This 491:1 ratio contributes to brightness difference, but cannot be tested until radius update kernel is fixed
+
+### Investigation Notes
+
+**Failed Approaches Tested (2025-11-25):**
+All of the following had **ZERO effect** on brightness due to the radius update kernel bug:
+- Increasing photon count (1M → 10M): No change
+- Increasing gathering radius (0.1 → 0.3): No change
+- Adjusting MAX_PHOTON_BOUNCES, MAX_TRACE_DEPTH, scale_factor: No change
+
+These approaches may become relevant after fixing the kernel bug.
+
 ### Success Criteria
+- Fix radius update kernel invocation (priority #1)
 - Caustic brightness within 20% of PBRT reference
 - All existing 818 tests continue passing
-- New tests document expected caustic behavior
-- Each improvement step has test coverage
 
 ## References
 
