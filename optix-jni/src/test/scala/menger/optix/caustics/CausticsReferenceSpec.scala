@@ -22,6 +22,9 @@ import scala.math.{max, min, sqrt}
   */
 class CausticsReferenceSpec extends AnyFlatSpec with Matchers with RendererFixture:
 
+  private val runningUnderSanitizer: Boolean =
+    sys.env.get("RUNNING_UNDER_COMPUTE_SANITIZER").contains("true")
+
   /** Reference scene parameters matching reference-scene.pbrt */
   object ReferenceScene:
     val sphereCenter: Vector[3] = Vector[3](0.0f, 0.0f, 0.0f)
@@ -170,6 +173,8 @@ class CausticsReferenceSpec extends AnyFlatSpec with Matchers with RendererFixtu
   behavior of "Baseline Caustics"
 
   it should "produce visible caustics with current implementation" taggedAs (Slow) in:
+    if runningUnderSanitizer then cancel("Skipped under compute-sanitizer (too slow)")
+
     setupReferenceScene()
     renderer.enableCaustics(photonsPerIter = 100000, iterations = 10)
 
@@ -190,6 +195,8 @@ class CausticsReferenceSpec extends AnyFlatSpec with Matchers with RendererFixtu
     peakBrightness should be > 0.05
 
   it should "produce brighter caustics than background floor" taggedAs (Slow) in:
+    if runningUnderSanitizer then cancel("Skipped under compute-sanitizer (too slow)")
+
     setupReferenceScene()
     renderer.enableCaustics(photonsPerIter = 100000, iterations = 10)
 

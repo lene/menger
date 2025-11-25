@@ -19,6 +19,9 @@ import scala.math.{Pi, abs, asin, cos, sin, sqrt}
   */
 class CausticsValidationSpec extends AnyFlatSpec with Matchers with RendererFixture:
 
+  private val runningUnderSanitizer: Boolean =
+    sys.env.get("RUNNING_UNDER_COMPUTE_SANITIZER").contains("true")
+
   /** Canonical test scene parameters (from arc42 Section 10) */
   object CanonicalScene:
     val sphereCenter: Vector[3] = Vector[3](0.0f, 0.0f, 0.0f)
@@ -209,6 +212,8 @@ class CausticsValidationSpec extends AnyFlatSpec with Matchers with RendererFixt
   behavior of "Caustics Integration"
 
   it should "produce different images with and without caustics" in:
+    if runningUnderSanitizer then cancel("Skipped under compute-sanitizer (too slow)")
+
     setupCanonicalScene()
 
     // Render without caustics
@@ -223,6 +228,8 @@ class CausticsValidationSpec extends AnyFlatSpec with Matchers with RendererFixt
     withCaustics.image should not equal withoutCaustics.image
 
   it should "produce brighter floor region with caustics" in:
+    if runningUnderSanitizer then cancel("Skipped under compute-sanitizer (too slow)")
+
     setupCanonicalScene()
 
     // Render with caustics
