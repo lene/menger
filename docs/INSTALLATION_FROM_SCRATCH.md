@@ -222,6 +222,8 @@ sbt compile
 ```bash
 # Run all tests (menger + optix-jni)
 # Use xvfb-run for headless execution
+# Set __GL_THREADED_OPTIMIZATIONS=0 to prevent NVIDIA driver threading crashes
+export __GL_THREADED_OPTIMIZATIONS=0
 xvfb-run sbt test
 ```
 
@@ -237,9 +239,11 @@ xvfb-run sbt test
 sbt run
 
 # Headless mode with OptiX sphere rendering
+export __GL_THREADED_OPTIMIZATIONS=0
 xvfb-run sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5"
 
 # Render and save image
+export __GL_THREADED_OPTIMIZATIONS=0
 xvfb-run sbt "run --optix --sponge-type sphere --timeout 1.0 --save-name sphere.png"
 ```
 

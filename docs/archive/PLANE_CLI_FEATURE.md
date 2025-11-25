@@ -3,6 +3,12 @@
 **Priority**: Medium
 **Type**: Enhancement
 **Component**: CLI / OptiX Renderer
+**Status**: ✅ **COMPLETED** (2025-11-21)
+
+> **Implementation:** The `--plane-color` CLI flag was implemented as part of Sprint 3 (Unified Color API).
+> - Solid color: `--plane-color RRGGBB` or `--plane-color #RRGGBB`
+> - Checkered pattern: `--plane-color RRGGBB:RRGGBB`
+> - See `MengerCLIOptions.scala` for implementation details.
 
 ## Feature Description
 
@@ -216,15 +222,12 @@ Add unit tests for color parsing:
 
 ## Success Criteria
 
-- [ ] CLI argument `--plane-solid` enables solid plane mode
-- [ ] CLI argument accepts color in RGB format: `--plane-solid=R,G,B`
-- [ ] CLI argument accepts color in hex format: `--plane-solid=#RRGGBB`
-- [ ] CLI argument accepts named colors: `--plane-solid=white`
-- [ ] Default solid color is light gray (140, 140, 140)
-- [ ] `--help` documents new options
-- [ ] Backward compatible (no CLI args = checkerboard plane)
-- [ ] Color validation provides helpful error messages
-- [ ] Updated documentation in README/CLAUDE.md
+- [x] CLI argument `--plane-color` enables solid/checkered plane mode
+- [x] CLI argument accepts color in hex format: `--plane-color RRGGBB`
+- [x] CLI argument accepts checkered format: `--plane-color RRGGBB:RRGGBB`
+- [x] Backward compatible (no CLI args = default checkerboard plane)
+- [x] Color validation provides helpful error messages
+- [x] Updated documentation in CHANGELOG.md and CLAUDE.md
 
 ## Priority Justification
 

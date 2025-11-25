@@ -100,6 +100,37 @@ mkdir -p target/native/x86_64-linux/bin
 cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx target/native/x86_64-linux/bin/
 ```
 
+### Stale PTX files loaded after shader recompilation
+
+**Symptom:** Shader changes don't take effect even after `sbt nativeCompile`
+
+**Cause:** OptiXWrapper.cpp searches multiple PTX locations in priority order:
+1. `target/native/x86_64-linux/bin/sphere_combined.ptx` (extracted from JAR, often stale)
+2. `optix-jni/target/native/x86_64-linux/bin/sphere_combined.ptx` (fresh build output)
+3. `optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx` (sbt-jni managed)
+
+If location #1 contains a stale PTX file, it gets loaded instead of your fresh compilation.
+
+**Fix (immediate):**
+```bash
+# Force-sync fresh PTX to priority location
+cp optix-jni/target/native/x86_64-linux/bin/sphere_combined.ptx target/native/x86_64-linux/bin/
+```
+
+**Fix (cleanup):**
+```bash
+# Remove stale PTX files
+rm -f target/native/x86_64-linux/bin/sphere_combined.ptx
+# Rebuild will now use fresh PTX from optix-jni/target/
+```
+
+**Prevention:** After modifying shaders, always check timestamps:
+```bash
+ls -lah */target/native/x86_64-linux/bin/sphere_combined.ptx target/native/x86_64-linux/bin/sphere_combined.ptx
+```
+
+**Note:** See `docs/archive/PTX_LOADING_ISSUE.md` for detailed analysis and proposed long-term solutions.
+
 ### Wrong shader file being edited
 
 **Issue:** Separate shader files (`sphere_miss.cu`, `sphere_closesthit.cu`, `sphere_raygen.cu`) NOT compiled/used
@@ -109,6 +140,27 @@ cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx target/nativ
 **Verify:** Check `optix-jni/src/main/native/CMakeLists.txt` - specifies `shaders/sphere_combined.cu`
 
 **Why separate files exist:** Outdated from earlier implementation
+
+### SIGBUS crash in libnvidia-glcore.so during window cleanup
+
+**Symptom:** JVM crashes with `SIGBUS (0x7)` during `glfwDestroyWindow`, especially with xvfb-run
+
+**Error:** Crash in `libnvidia-glcore.so` at application shutdown
+
+**Cause:** NVIDIA OpenGL driver threading issue when running headless (xvfb-run)
+
+**Fix:** Set environment variable before running:
+```bash
+export __GL_THREADED_OPTIMIZATIONS=0
+xvfb-run -a sbt "run --optix ..."
+```
+
+**Prevention:**
+- Already set in `.gitlab-ci.yml` for all CI jobs
+- Already set in `.git_hooks/pre-push`
+- Set in any local test scripts using xvfb-run
+
+**Note:** This issue only affects headless rendering. Interactive display sessions typically don't crash.
 
 ## Package Issues
 
