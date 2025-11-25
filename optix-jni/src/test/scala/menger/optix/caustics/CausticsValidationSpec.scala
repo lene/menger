@@ -30,7 +30,7 @@ class CausticsValidationSpec extends AnyFlatSpec with Matchers with RendererFixt
     val imageSize: ImageSize = ImageSize(800, 600)
 
     // Derived values
-    val glassColor: Color = Color.fromRGBA(0.95f, 0.95f, 1.0f, 0.05f) // Nearly transparent
+    val glassColor: Color = Color(0.95f, 0.95f, 1.0f, 0.05f) // Nearly transparent
 
     // Expected focal point from thick lens formula: f = R * n / (2 * (n - 1))
     val focalDistance: Float = sphereRadius * sphereIOR / (2.0f * (sphereIOR - 1.0f))
