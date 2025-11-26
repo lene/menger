@@ -7,9 +7,6 @@ import org.scalatest.matchers.should.Matchers
 import org.rogach.scallop.exceptions.ScallopException
 
 class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
-  class SafeMengerCLIOptions(args: Seq[String]) extends menger.MengerCLIOptions(args):
-    @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-    override def onError(e: Throwable): Unit = throw e
 
   "--light" should "default to None when not provided" in:
     val opts = SafeMengerCLIOptions(Seq("--optix", "--sponge-type", "sphere"))

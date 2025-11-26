@@ -225,71 +225,50 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   }
 
   validateOpt(shadows, optix) { (sh, ox) =>
-    if sh.getOrElse(false) && !ox.getOrElse(false) then
-      Left("--shadows flag requires --optix flag")
-    else Right(())
+    requiresOptixFlag("shadows", sh.getOrElse(false), ox.getOrElse(false))
   }
 
   validateOpt(light, optix) { (l, ox) =>
-    if l.isDefined && !ox.getOrElse(false) then
-      Left("--light flag requires --optix flag")
-    else if l.isDefined && l.get.length > 8 then
-      Left("Maximum 8 lights allowed (MAX_LIGHTS=8)")
-    else Right(())
+    requiresOptixOption("light", l, ox.getOrElse(false)).flatMap { _ =>
+      if l.isDefined && l.get.length > 8 then Left("Maximum 8 lights allowed (MAX_LIGHTS=8)")
+      else Right(())
+    }
   }
 
   validateOpt(antialiasing, optix) { (aa, ox) =>
-    if aa.getOrElse(false) && !ox.getOrElse(false) then
-      Left("--antialiasing flag requires --optix flag")
-    else Right(())
+    requiresOptixFlag("antialiasing", aa.getOrElse(false), ox.getOrElse(false))
   }
 
   validateOpt(aaMaxDepth, antialiasing) { (_, aa) =>
-    if aaMaxDepth.isSupplied && !aa.getOrElse(false) then
-      Left("--aa-max-depth requires --antialiasing flag")
-    else Right(())
+    requiresParentFlag("aa-max-depth", aaMaxDepth.isSupplied, "antialiasing", aa.getOrElse(false))
   }
 
   validateOpt(aaThreshold, antialiasing) { (_, aa) =>
-    if aaThreshold.isSupplied && !aa.getOrElse(false) then
-      Left("--aa-threshold requires --antialiasing flag")
-    else Right(())
+    requiresParentFlag("aa-threshold", aaThreshold.isSupplied, "antialiasing", aa.getOrElse(false))
   }
 
   validateOpt(planeColor, optix) { (pc, ox) =>
-    if pc.isDefined && !ox.getOrElse(false) then
-      Left("--plane-color flag requires --optix flag")
-    else Right(())
+    requiresOptixOption("plane-color", pc, ox.getOrElse(false))
   }
 
   validateOpt(caustics, optix) { (c, ox) =>
-    if c.getOrElse(false) && !ox.getOrElse(false) then
-      Left("--caustics flag requires --optix flag")
-    else Right(())
+    requiresOptixFlag("caustics", c.getOrElse(false), ox.getOrElse(false))
   }
 
   validateOpt(causticsPhotons, caustics) { (_, c) =>
-    if causticsPhotons.isSupplied && !c.getOrElse(false) then
-      Left("--caustics-photons requires --caustics flag")
-    else Right(())
+    requiresParentFlag("caustics-photons", causticsPhotons.isSupplied, "caustics", c.getOrElse(false))
   }
 
   validateOpt(causticsIterations, caustics) { (_, c) =>
-    if causticsIterations.isSupplied && !c.getOrElse(false) then
-      Left("--caustics-iterations requires --caustics flag")
-    else Right(())
+    requiresParentFlag("caustics-iterations", causticsIterations.isSupplied, "caustics", c.getOrElse(false))
   }
 
   validateOpt(causticsRadius, caustics) { (_, c) =>
-    if causticsRadius.isSupplied && !c.getOrElse(false) then
-      Left("--caustics-radius requires --caustics flag")
-    else Right(())
+    requiresParentFlag("caustics-radius", causticsRadius.isSupplied, "caustics", c.getOrElse(false))
   }
 
   validateOpt(causticsAlpha, caustics) { (_, c) =>
-    if causticsAlpha.isSupplied && !c.getOrElse(false) then
-      Left("--caustics-alpha requires --caustics flag")
-    else Right(())
+    requiresParentFlag("caustics-alpha", causticsAlpha.isSupplied, "caustics", c.getOrElse(false))
   }
 
   verify()
@@ -297,6 +276,21 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   private def validateAnimationSpecification(spec: AnimationSpecifications, spongeType: String) =
     if spec.valid(spongeType) && spec.timeSpecValid then Right(())
     else Left("Invalid animation specification")
+
+  /** Helper for validating that a boolean flag requires --optix */
+  private def requiresOptixFlag(flagName: String, flagValue: Boolean, optixEnabled: Boolean): Either[String, Unit] =
+    if flagValue && !optixEnabled then Left(s"--$flagName flag requires --optix flag")
+    else Right(())
+
+  /** Helper for validating that an optional value requires --optix */
+  private def requiresOptixOption[T](optionName: String, optionValue: Option[T], optixEnabled: Boolean): Either[String, Unit] =
+    if optionValue.isDefined && !optixEnabled then Left(s"--$optionName flag requires --optix flag")
+    else Right(())
+
+  /** Helper for validating that a supplied option requires a parent flag */
+  private def requiresParentFlag(optionName: String, isSupplied: Boolean, parentName: String, parentEnabled: Boolean): Either[String, Unit] =
+    if isSupplied && !parentEnabled then Left(s"--$optionName requires --$parentName flag")
+    else Right(())
 
 
 val animationSpecificationsConverter = new ValueConverter[AnimationSpecifications] {
