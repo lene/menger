@@ -3,6 +3,9 @@
 # Automated window resize test for OptiX sphere rendering
 # This script tests the resize behavior automatically
 
+# Prevent crashes in libnvidia-glcore.so during window cleanup
+export __GL_THREADED_OPTIMIZATIONS=0
+
 echo "Starting OptiX window resize test..."
 echo "This test requires xdotool to be installed"
 
