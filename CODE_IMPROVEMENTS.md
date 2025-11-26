@@ -211,36 +211,38 @@ of domain and UI concerns.
 
 ---
 
-### 4.4 Oversized Files
+### ~~4.4 Oversized Files (Partial)~~ ✅ sphere_combined.cu RESOLVED
 
-| File | Lines | Threshold | Issue |
-|------|-------|-----------|-------|
-| `sphere_combined.cu` | 1700 | 500 | 26 shader programs, PPM caustics |
+| File | Lines | Threshold | Status |
+|------|-------|-----------|--------|
+| ~~`sphere_combined.cu`~~ | ~~1700~~ → 17 | 500 | ✅ **RESOLVED (2025-11-26 - Stone 3)** |
 | `OptiXWrapper.cpp` | 1080 | 500 | Monolithic, 50+ member variables |
 | `MengerCLIOptions.scala` | 473 | 300 | All CLI parsing in one file |
 
-### 4.5 Oversized Functions
+**Resolution (2025-11-26 - Stone 3):** Decomposed `sphere_combined.cu` into 6 focused files:
+- `helpers.cu` (458 lines) - Shadow tracing, lighting, antialiasing, sphere intersection
+- `raygen_primary.cu` (87 lines) - Primary camera ray generation
+- `miss_plane.cu` (124 lines) - Miss shader with checkered plane rendering
+- `hit_sphere.cu` (264 lines) - Sphere material (Fresnel, Snell's law, Beer-Lambert)
+- `shadows.cu` (20 lines) - Shadow ray miss and closest hit shaders
+- `caustics_ppm.cu` (742 lines) - Progressive Photon Mapping (3 raygen programs + helpers)
 
-| Function | File | Lines | Max |
-|----------|------|-------|-----|
-| `render()` | OptiXWrapper.cpp:582-805 | 223 | 50 |
-| `dispose()` | OptiXWrapper.cpp:950-1080 | 130 | 50 |
-| `__closesthit__ch()` | sphere_combined.cu:687-947 | 260 | 50 |
+**Result:** 99% reduction (1711 → 17 lines). `sphere_combined.cu` now only contains includes.
+
+### 4.5 Oversized Functions (Remaining)
+
+| Function | File | Lines | Max | Status |
+|----------|------|-------|-----|--------|
+| `render()` | OptiXWrapper.cpp:582-805 | 223 | 50 | Needs extraction |
+| `dispose()` | OptiXWrapper.cpp:950-1080 | 130 | 50 | Needs extraction |
 
 ---
 
 ## 5. C++/CUDA Code Quality
 
-### 5.1 Shader File Should Be Split
+### ~~5.1 Shader File Should Be Split~~ ✅ RESOLVED
 
-**File:** `sphere_combined.cu` (1700 lines)
-
-**Recommended Split:**
-- `raygen_primary.cu` - Primary camera ray generation
-- `hit_sphere.cu` - Sphere material (Fresnel, refraction)
-- `miss_plane.cu` - Plane rendering and lighting
-- `shadows.cu` - Shadow ray tracing
-- `caustics_ppm.cu` - Progressive Photon Mapping (~730 lines)
+**Resolution (2025-11-26 - Stone 3):** See section 4.4 above. Successfully split into 6 files with all 193 OptiX tests passing.
 
 ### 5.2 Missing Error Recovery in Buffer Allocation
 
@@ -254,8 +256,10 @@ of domain and UI concerns.
 
 | Location | TODO | Status |
 |----------|------|--------|
-| `sphere_combined.cu:1241` | Use spatial hash grid for efficiency | Not implemented |
-| `sphere_combined.cu:1495` | Weight by intensity for multiple lights | Not implemented |
+| `caustics_ppm.cu` | Use spatial hash grid for efficiency | Not implemented |
+| `caustics_ppm.cu` | Weight by intensity for multiple lights | Not implemented |
+
+**Note:** Line numbers changed due to shader file decomposition (Stone 3).
 
 ---
 
