@@ -21,8 +21,13 @@ object Main:
     val opts = MengerCLIOptions(args.toList)
     configureLogging(opts.logLevel().toUpperCase)
     val config = getConfig(opts)
-    val rendering = createEngine(opts)
-    Lwjgl3Application(rendering, config)
+    try
+      val rendering = createEngine(opts)
+      Lwjgl3Application(rendering, config)
+    catch
+      case e: Exception =>
+        System.err.println(s"Error: ${e.getMessage}")
+        sys.exit(1)
 
   private def configureLogging(levelName: String): Unit =
     val level = Level.valueOf(levelName)

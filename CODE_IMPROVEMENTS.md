@@ -42,45 +42,18 @@ The codebase demonstrates **good overall quality** with well-organized constant 
 
 These issues were not covered in the previous constants-focused assessment.
 
-### 1.1 System.exit() Calls in Recoverable Error Scenarios
+### ~~1.1 System.exit() Calls in Recoverable Error Scenarios~~ ✅ RESOLVED
 
-**Files:**
-- `src/main/scala/menger/engines/InteractiveMengerEngine.scala:32`
-- `src/main/scala/menger/engines/AnimatedMengerEngine.scala:30,45`
-- `src/main/scala/menger/OptiXResources.scala:44`
-
-**Problem:** Using `sys.exit(1)` on recoverable errors instead of proper error propagation.
-
-```scala
-// InteractiveMengerEngine.scala:30-32
-case Failure(exception) =>
-  logger.error(s"Failed to create sponge type '$spongeType': ${exception.getMessage}")
-  sys.exit(1)  // Kills JVM immediately
-```
-
-**Impact:**
-- Kills JVM immediately on sponge creation failure
-- Makes testing difficult
-- No graceful shutdown opportunity
-- Unsuitable for library usage
-
-**Fix:** Return `Try[Geometry]` or `Either[Error, Geometry]` from engine constructors.
+**Resolution (2025-11-26):** Refactored to use `.get` on `Try` values, letting exceptions propagate
+to `Main.scala` where a single try-catch handles all engine initialization failures gracefully.
 
 ---
 
-### 1.2 Unsafe `.get()` Calls on Options
+### ~~1.1 Unsafe `.get()` Calls on Options~~ ✅ RESOLVED
 
-**File:** `src/main/scala/menger/AnimationSpecification.scala:18-49`
-
-```scala
-// Line 18 - assumes asMap is always Some(_)
-val parametersOnly = asMap.get -- AnimationSpecification.TIMESCALE_PARAMETERS
-
-// Lines 32-33 - frames.get on Option[Int]
-frames.get  // Dangerous if None
-```
-
-**Fix:** Use pattern matching or `flatMap` for safe Option handling.
+**Resolution (2025-11-26):** Refactored `asMap` to return `Map.empty` instead of `None`,
+eliminating the unsafe `.get` call. The `frames.get` calls in `toString` and `current` are
+now guarded by validation that ensures `frames.isDefined` before those methods are called.
 
 ---
 
