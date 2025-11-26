@@ -9,6 +9,7 @@ import menger.ProfilingConfig
 import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.input.EventDispatcher
+import menger.input.Observer
 import menger.objects.Geometry
 
 
@@ -50,5 +51,7 @@ with TimeoutSupport with LazyLogging:
 
   private def dispatcherWithRegisteredSponge =
     val dispatcher = EventDispatcher()
-    "tesseract".r.findFirstIn(spongeType).foreach(_ => dispatcher.addObserver(sponge))
+    sponge match
+      case obs: Observer => dispatcher.addObserver(obs)
+      case _ => // 3D geometries don't need rotation events
     dispatcher

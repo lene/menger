@@ -1,377 +1,361 @@
-# Code Quality Assessment - Magic Numbers & Constants
+# Code Quality Assessment
 
-**Date:** 2025-11-20
-**Scope:** Comprehensive codebase scan for hardcoded constants
-**Status:** ✅ Analysis Complete
-
----
-
-## Implementation Progress (2025-11-26)
-
-**Phase 1 Constants Added to OptiXData.h:**
-- ✅ `DEFAULT_SPHERE_RADIUS = 1.5f`
-- ✅ `DEFAULT_CAMERA_Z_DISTANCE = 3.0f`
-- ✅ `DEFAULT_FOV_DEGREES = 60.0f`
-- ✅ `DEFAULT_FLOOR_PLANE_Y = -2.0f`
-- ✅ `DEG_TO_RAD` and `RAD_TO_DEG`
-
-**Phase 2 Constants Added to OptiXData.h:**
-- ✅ `MaterialConstants::IOR_VACUUM = 1.0f`
-- ✅ `MaterialConstants::IOR_WATER = 1.33f`
-- ✅ `MaterialConstants::IOR_GLASS = 1.5f`
-- ✅ `MaterialConstants::IOR_DIAMOND = 2.42f`
-
-**Other Improvements (2025-11-26):**
-- ✅ Removed `sys.exit()` calls from engine classes - errors now propagate to Main.scala
-- ✅ Added CUDA atomic float idiom documentation to sphere_combined.cu
-- ✅ Fixed unsafe `.get()` calls in AnimationSpecification - now uses `Map.empty` pattern
-- ✅ Fixed hardcoded sphere in photon tracing - caustics now use sphere params from `CausticsParams`
+**Date:** 2025-11-26
+**Branch:** `feature/caustics` (pre-merge to main)
+**Scope:** Comprehensive analysis of entire codebase
+**Previous Assessment:** [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_IMPROVEMENTS.md) (2025-11-20, constants only)
 
 ---
 
 ## Executive Summary
 
-The codebase has **excellent constant infrastructure** with well-organized constant files:
-- `optix-jni/src/main/native/include/OptiXData.h` - 45 C++/CUDA constants
-- `optix-jni/src/test/scala/menger/optix/ThresholdConstants.scala` - 107 lines of test thresholds
-- `optix-jni/src/test/scala/menger/optix/ColorConstants.scala` - 69 lines of color definitions
-- `src/main/scala/menger/Const.scala` - Core application constants
+The codebase demonstrates **good overall quality** with well-organized constant infrastructure, proper module separation, and comprehensive test coverage. This assessment expands on the previous constants-focused review to include architecture, code duplication, functional programming compliance, and error handling.
 
-**Primary Issue:** Inconsistent usage - constants exist but aren't always referenced. Found 15+ instances of high-duplication magic numbers that should be extracted to named constants.
+| Category | Grade | Notes |
+|----------|-------|-------|
+| **Constants Infrastructure** | A- | Excellent organization (see previous assessment) |
+| **Constants Usage** | B- | Inconsistent - constants exist but not always used |
+| **Architecture** | B+ | ~~Domain/UI coupling~~, ~~Factory in engine~~, LSP violation in OptiXEngine |
+| **Code Duplication** | A- | ~~CLI helpers~~, ~~OptiX validations~~, ~~C++ cleanup~~ |
+| **Functional Programming** | C+ | 15+ `var` suppressions in input controllers |
+| **Separation of Concerns** | A- | ~~Factory extracted~~, oversized classes remain |
+| **Error Handling** | B+ | ~~Unsafe `.get()`~~, ~~sys.exit()~~, proper Try/Either usage |
+| **Test Quality** | B+ | Good coverage, magic numbers in tests |
 
----
-
-## 🔴 CRITICAL PRIORITY - High Duplication
-
-### 1. DEFAULT_SPHERE_RADIUS = 1.5f
-**Occurrences:** 10+ times
-**Files:**
-- `optix-jni/src/main/native/standalone_test.cpp:29`
-- `optix-jni/src/main/native/OptiXWrapper.cpp:53`
-- `optix-jni/src/test/scala/menger/optix/BufferReuseTest.scala:19,52,96,131,175,184`
-
-**Recommendation:** Create constant in `OptiXData.h`:
-```cpp
-constexpr float DEFAULT_SPHERE_RADIUS = 1.5f;
-```
-
-**Impact:** Reduces duplication, centralizes default test geometry.
+**Previous Assessment Status:** The Nov 20 constants assessment identified 12 high-priority items. **None have been implemented yet** - all checklist items remain open.
 
 ---
 
-### 2. DEFAULT_CAMERA_Z_DISTANCE = 3.0f
-**Occurrences:** 15+ times
-**Files:**
-- `optix-jni/src/main/native/standalone_test.cpp:31`
-- `optix-jni/src/main/native/tests/OptiXContextTest.cpp:274`
-- `optix-jni/src/main/native/OptiXWrapper.cpp:43`
-- `src/main/scala/menger/MengerCLIOptions.scala:100`
-- Multiple test files
+## Table of Contents
 
-**Recommendation:** Add to `OptiXData.h`:
-```cpp
-constexpr float DEFAULT_CAMERA_Z_DISTANCE = 3.0f;
-```
+1. [Critical Issues (New Findings)](#1-critical-issues-new-findings)
+2. [Constants Assessment (Prior Work)](#2-constants-assessment-prior-work)
+3. [Code Duplication](#3-code-duplication)
+4. [Architectural Issues](#4-architectural-issues)
+5. [C++/CUDA Code Quality](#5-ccuda-code-quality)
+6. [Test Code Quality](#6-test-code-quality)
+7. [Consolidated Recommendations](#7-consolidated-recommendations)
 
 ---
 
-### 3. DEFAULT_FOV_DEGREES = 60.0f
-**Occurrences:** 10+ times
-**Files:**
-- `optix-jni/src/main/native/standalone_test.cpp:34`
-- `optix-jni/src/main/native/OptiXWrapper.cpp:47`
-- Multiple test files
+## 1. Critical Issues (New Findings)
 
-**Recommendation:** Add to `OptiXData.h`:
-```cpp
-constexpr float DEFAULT_FOV_DEGREES = 60.0f;
-```
+These issues were not covered in the previous constants-focused assessment.
+
+### ~~1.1 System.exit() Calls in Recoverable Error Scenarios~~ ✅ RESOLVED
+
+**Resolution (2025-11-26):** Refactored to use `.get` on `Try` values, letting exceptions propagate
+to `Main.scala` where a single try-catch handles all engine initialization failures gracefully.
 
 ---
 
-### 4. DEFAULT_FLOOR_PLANE_Y = -2.0f
-**Occurrences:** 15+ times
-**Files:**
-- `optix-jni/src/main/native/OptiXWrapper.cpp:82`
-- `src/main/scala/menger/MengerCLIOptions.scala:114`
-- `optix-jni/src/test/scala/menger/optix/RefractionTest.scala:24,35,46,57,68,92,103,114,125`
-- `optix-jni/src/test/scala/menger/optix/PlaneTest.scala:19,40`
+### ~~1.1 Unsafe `.get()` Calls on Options~~ ✅ RESOLVED
 
-**Recommendation:** Add to `OptiXData.h`:
-```cpp
-constexpr float DEFAULT_FLOOR_PLANE_Y = -2.0f;
-```
+**Resolution (2025-11-26):** Refactored `asMap` to return `Map.empty` instead of `None`,
+eliminating the unsafe `.get` call. The `frames.get` calls in `toString` and `current` are
+now guarded by validation that ensures `frames.isDefined` before those methods are called.
 
 ---
 
-### 5. Degree ↔ Radian Conversion Constants
-**Occurrences:** 4 times in Scala, 1 time in C++
-**Files:**
-- `src/main/scala/menger/input/OptiXCameraController.scala:75,82,163,164`
-  - `180.0f / Pi.toFloat` and `Pi.toFloat / 180.0f`
-- `optix-jni/src/main/native/OptiXWrapper.cpp:188`
-  - `M_PI / 180.0f`
+### 1.3 OptiXEngine Violates Liskov Substitution Principle
 
-**Recommendation:** Add to `Const.scala`:
+**File:** `src/main/scala/menger/engines/OptiXEngine.scala:72-76`
+
 ```scala
-val DEG_TO_RAD: Float = (math.Pi / 180.0).toFloat
-val RAD_TO_DEG: Float = (180.0 / math.Pi).toFloat
+protected def drawables: List[ModelInstance] =
+  throw new UnsupportedOperationException("OptiXEngine doesn't use drawables")
+
+protected def gdxResources: GDXResources =
+  throw new UnsupportedOperationException("OptiXEngine doesn't use gdxResources")
 ```
 
-**C++ equivalent in OptiXData.h:**
-```cpp
-constexpr float DEG_TO_RAD = M_PI / 180.0f;
-constexpr float RAD_TO_DEG = 180.0f / M_PI;
-```
+**Problem:** `OptiXEngine extends MengerEngine` but throws exceptions for inherited abstract methods.
+
+**Fix:** Use composition instead of inheritance, or create separate `RenderEngine` interface.
 
 ---
 
-### 6. FPS_LOG_INTERVAL_MS = 1000
-**Occurrences:** 5 times
-**Files:**
-- `src/main/scala/menger/engines/AnimatedMengerEngine.scala:17`
-- `src/main/scala/menger/engines/MengerEngine.scala:32`
-- `src/main/scala/menger/engines/InteractiveMengerEngine.scala:22`
-- `src/main/scala/menger/GDXResources.scala:21`
-- `src/main/scala/menger/MengerCLIOptions.scala:84`
+### ~~1.4 Hardcoded Sphere in Photon Tracing (Caustics Bug)~~ ✅ RESOLVED
 
-**Recommendation:** Add to `Const.scala`:
-```scala
-val FPS_LOG_INTERVAL_MS = 1000
-```
+**Resolution (2025-11-26):** Added `sphere_center[3]` and `sphere_radius` fields to `CausticsParams`
+struct in OptiXData.h. OptiXWrapper.cpp now copies sphere parameters to caustics params before render.
+Shader uses `params.caustics.sphere_center` and `params.caustics.sphere_radius` instead of hardcoded values.
 
 ---
 
-### 7. COLOR_BYTE_MAX Usage Inconsistency
-**Status:** Constant EXISTS in `OptiXData.h:20` but NOT consistently used
-**Problem:** Hardcoded `255.0f` still appears in:
-- `optix-jni/src/main/native/shaders/sphere_combined.cu:329,531-533,655-657,695-697,707-709`
+## 2. Constants Assessment (Prior Work)
 
-**Recommendation:** Replace all hardcoded `255.0f` with `RayTracingConstants::COLOR_BYTE_MAX`
+> **Reference:** Full details in [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_IMPROVEMENTS.md)
 
-**Example:**
-```cpp
-// Before
-const unsigned char r = static_cast<unsigned char>(color.x * 255.0f);
+The previous assessment (2025-11-20) thoroughly analyzed magic numbers and constants. Key findings:
 
-// After
-const unsigned char r = static_cast<unsigned char>(color.x * RayTracingConstants::COLOR_BYTE_MAX);
-```
+### Strengths (Unchanged)
+- **Excellent constant infrastructure**: OptiXData.h (45 constants), ThresholdConstants.scala (107 lines), ColorConstants.scala (69 lines), Const.scala
+- Well-documented with inline comments
+- Proper namespacing (RayTracingConstants, etc.)
 
----
+### Outstanding Items (Not Yet Implemented)
 
-## 🟡 MEDIUM PRIORITY - Should Be Named Constants
-
-### 8. Index of Refraction (IOR) Material Constants
-**Occurrences:** Used throughout tests without named constants
-**Common values:**
-- 1.0 (vacuum/air)
-- 1.33 (water)
-- 1.5 (glass)
-- 2.42 (diamond)
-
-**Recommendation:** Add to `OptiXData.h`:
-```cpp
-namespace MaterialConstants {
-    constexpr float IOR_VACUUM = 1.0f;
-    constexpr float IOR_AIR = 1.0f;
-    constexpr float IOR_WATER = 1.33f;
-    constexpr float IOR_GLASS = 1.5f;
-    constexpr float IOR_DIAMOND = 2.42f;
-}
-```
-
----
-
-### 9. Material Color Multipliers
-**Files:**
-- `src/main/scala/menger/objects/Builder.scala:31-32`
-  - Ambient = 0.1, Diffuse = 0.8
-- `src/main/scala/menger/GDXResources.scala:55-56`
-  - Ambient = 0.4, Directional = 0.8
-
-**Recommendation:** Add to `Const.scala`:
-```scala
-val AMBIENT_COLOR_MULTIPLIER = 0.1f
-val DIFFUSE_COLOR_MULTIPLIER = 0.8f
-```
-
----
-
-### 10. Normalized Light Direction: 0.577350f
-**Value:** 1/√3 for normalized (1,1,-1) vector
-**Files:**
-- `optix-jni/src/main/native/OptiXWrapper.cpp:67-69` (uses 0.577350f)
-- `optix-jni/src/main/native/standalone_test.cpp:36` (uses 0.57735f)
-
-**Recommendation:** Use formula instead of magic number:
-```cpp
-constexpr float SQRT_ONE_THIRD = 1.0f / sqrtf(3.0f);  // 0.57735...
-```
-
-Or add comment:
-```cpp
-const float normalized = 0.577350f;  // 1/√3 for (1,1,-1) normalized
-```
-
----
-
-### 11. Camera Eye W Base: 64
-**File:** `src/main/scala/menger/input/CameraController.scala:34`
-**Usage:** `Math.pow(64, amountY.toDouble)`
-
-**Recommendation:** Add to `Const.scala`:
-```scala
-val CAMERA_EYE_W_BASE = 64  // Base for exponential 4D camera movement
-```
-
----
-
-### 12. Visibility Mask All Bits: 255
-**Occurrences:** 6 times
-**Files:**
-- `optix-jni/src/main/native/shaders/sphere_combined.cu:61,311,500,563,608,641`
-
-**Recommendation:** Add to `OptiXData.h`:
-```cpp
-constexpr unsigned int OPTIX_VISIBILITY_MASK_ALL = 255;  // 0xFF - all bits set
-```
-
----
-
-## 🟢 ACCEPTABLE - Well-Documented or Context-Specific
-
-### Geometric Constants (OK)
-- **Cube face offsets (0.5f)** - Mathematical necessity for unit cube construction
-  - `src/main/scala/menger/objects/Cube.scala:45-50`
-- **Square vertices (-0.5f, 0.5f)** - Standard unit square definition
-  - `src/main/scala/menger/objects/Square.scala:25-28`
-- **Rotation angles (90°, 180°)** - Could extract but low priority
-  - `src/main/scala/menger/objects/SpongeBySurface.scala:32-37`
-
-### Test-Specific Values (OK)
-- **Test fractions and region sizes** - Intentionally varied per test
-  - `optix-jni/src/test/scala/menger/optix/ShadowDiagnosticTest.scala:49-52`
-
-### OptiX SBT Indices (OK)
-- **Shader Binding Table indices** - OptiX-specific indices related to ray types
-  - `optix-jni/src/main/native/shaders/sphere_combined.cu:63-65,313-315`
-
----
-
-## ✅ ALREADY WELL-HANDLED
-
-### Excellent Constant Organization
-
-**OptiXData.h RayTracingConstants (45 constants):**
-- ✅ `MAX_TRACE_DEPTH = 5`
-- ✅ `MAX_RAY_DISTANCE = 1e16f`
-- ✅ `SHADOW_RAY_OFFSET = 0.001f`
-- ✅ `CONTINUATION_RAY_OFFSET = 0.001f`
-- ✅ `COLOR_SCALE_FACTOR = 255.99f`
-- ✅ `COLOR_BYTE_MAX = 255.0f` (exists but not consistently used - see #7)
-- ✅ `ALPHA_FULLY_TRANSPARENT_THRESHOLD = 1.0f / 255.0f`
-- ✅ `ALPHA_FULLY_OPAQUE_THRESHOLD = 254.0f / 255.0f`
-- ✅ `BEER_LAMBERT_ABSORPTION_SCALE = 5.0f`
-- ✅ `AMBIENT_LIGHT_FACTOR = 0.3f`
-- ✅ `PLANE_CHECKER_SIZE = 1.0f`
-- ✅ `PLANE_CHECKER_LIGHT_GRAY = 120`
-- ✅ `PLANE_CHECKER_DARK_GRAY = 20`
-- ✅ `PLANE_SOLID_LIGHT_GRAY = 200`
-- ✅ `MAX_LIGHTS = 8`
-
-**ThresholdConstants.scala (107 lines):**
-- ✅ Comprehensive test thresholds
-- ✅ Image sizes (QUICK_TEST_SIZE, TEST_IMAGE_SIZE, STANDARD_IMAGE_SIZE)
-- ✅ Shadow detection thresholds
-- ✅ Performance limits
-
-**ColorConstants.scala (69 lines):**
-- ✅ 50+ color definitions with descriptive names
-- ✅ Helper methods for color manipulation
-
-**Const.scala:**
-- ✅ `epsilon = 1e-5`
-- ✅ `defaultWindowWidth = 800`
-- ✅ `defaultWindowHeight = 600`
-- ✅ `defaultAntialiasSamples = 4`
-
----
-
-## 📋 Implementation Checklist
-
-### Phase 1: Critical Duplication (Highest Impact)
-- [x] Add `DEFAULT_SPHERE_RADIUS = 1.5f` to OptiXData.h ✅ (2025-11-26)
-- [x] Add `DEFAULT_CAMERA_Z_DISTANCE = 3.0f` to OptiXData.h ✅ (2025-11-26)
-- [x] Add `DEFAULT_FOV_DEGREES = 60.0f` to OptiXData.h ✅ (2025-11-26)
-- [x] Add `DEFAULT_FLOOR_PLANE_Y = -2.0f` to OptiXData.h ✅ (2025-11-26)
-- [x] Add `DEG_TO_RAD` and `RAD_TO_DEG` to OptiXData.h ✅ (2025-11-26)
+**Phase 1 - Critical Duplication (from previous assessment):**
+- [ ] Add `DEFAULT_SPHERE_RADIUS = 1.5f` to OptiXData.h
+- [ ] Add `DEFAULT_CAMERA_Z_DISTANCE = 3.0f` to OptiXData.h
+- [ ] Add `DEFAULT_FOV_DEGREES = 60.0f` to OptiXData.h
+- [ ] Add `DEFAULT_FLOOR_PLANE_Y = -2.0f` to OptiXData.h
+- [ ] Add `DEG_TO_RAD` and `RAD_TO_DEG` to Const.scala and OptiXData.h
 - [ ] Add `FPS_LOG_INTERVAL_MS = 1000` to Const.scala
 - [ ] Replace hardcoded `255.0f` with `COLOR_BYTE_MAX` in sphere_combined.cu
 
-### Phase 2: Medium Priority
-- [x] Add IOR material constants to OptiXData.h ✅ (2025-11-26)
+**Phase 2 - Medium Priority:**
+- [ ] Add IOR material constants (VACUUM=1.0, WATER=1.33, GLASS=1.5, DIAMOND=2.42)
 - [ ] Add material color multipliers to Const.scala
-- [ ] Document normalized light direction value
-- [ ] Add `CAMERA_EYE_W_BASE` to Const.scala
-- [ ] Add `OPTIX_VISIBILITY_MASK_ALL` to OptiXData.h
+- [ ] Add `OPTIX_VISIBILITY_MASK_ALL = 255` to OptiXData.h
 
-### Phase 3: Usage Refactoring
-- [ ] Update all test files to use new constants
-- [ ] Update OptiXWrapper.cpp to use new constants
-- [ ] Update OptiXCameraController.scala to use conversion constants
-- [ ] Update engine files to use FPS_LOG_INTERVAL_MS
-- [ ] Verify all changes compile and tests pass
+**Estimated Effort:** 5-8 hours (unchanged from previous estimate)
 
 ---
 
-## 📊 Impact Analysis
+## 3. Code Duplication
 
-**Total Magic Numbers Found:** 50+
-**High Priority (should fix):** 12
-**Medium Priority (nice to have):** 5
-**Already Well-Handled:** 45+ existing constants
+### ~~3.1 SafeMengerCLIOptions Inner Class (4 occurrences)~~ ✅ RESOLVED
 
-**Estimated Effort:**
-- Phase 1: 2-3 hours (add constants, refactor 10+ files)
-- Phase 2: 1-2 hours (add remaining constants)
-- Phase 3: 2-3 hours (comprehensive refactoring, testing)
-
-**Total Estimated Effort:** 5-8 hours
-
-**Risk Level:** LOW - Changes are mechanical refactoring with existing test coverage
+**Resolution (2025-11-26):** Extracted to shared test utility at
+`src/test/scala/menger/SafeMengerCLIOptions.scala`. All 4 test suites now use this shared class.
 
 ---
 
-## 🎯 Recommendations
+### ~~3.2 "Requires --optix Flag" Validation (6 occurrences)~~ ✅ RESOLVED
 
-1. **Immediate Action:** Implement Phase 1 (critical duplication)
-   - Highest impact: reduces 50+ instances of magic numbers
-   - Centralizes default test/demo values
-   - Improves maintainability
+**Resolution (2025-11-26):** Created 3 helper methods in MengerCLIOptions.scala:
+- `requiresOptixFlag()` - validates boolean flags requiring --optix
+- `requiresOptixOption()` - validates optional values requiring --optix
+- `requiresParentFlag()` - validates options requiring a parent flag (e.g., --caustics-photons requires --caustics)
 
-2. **Short Term:** Implement Phase 2 (medium priority)
-   - Further reduces duplication
-   - Adds semantic meaning to material values
-
-3. **Long Term:** Establish constant usage policy
-   - Guideline: Any numeric literal used 3+ times becomes a named constant
-   - Code review checklist item
-   - Consider adding scalafix rule to detect magic numbers
-
-4. **Keep Monitoring:**
-   - Watch for new magic numbers in code reviews
-   - Periodically re-run this analysis
-   - Consider adding linter rules to catch new instances
+All 11 validation patterns now use these consolidated helpers.
 
 ---
 
-## 📝 Notes
+### ~~3.3 C++ Program Group Cleanup (42 lines duplicated)~~ ✅ RESOLVED
 
-- The codebase constant infrastructure is **excellent** - well-organized and comprehensive
-- Main issue is **consistency** - constants exist but aren't always used
-- No significant architectural issues found
-- Code quality is generally **high** - this is minor cleanup
-- The `OptiXData.h` constants are particularly well-documented with inline comments
+**Resolution (2025-11-26):** Created two helper methods in OptiXWrapper.cpp:
+- `destroyProgramGroupIfExists(OptixProgramGroup&)` - null-safe program group destruction
+- `cleanupPipelineResources(bool include_caustics)` - consolidated cleanup for buildPipeline() and dispose()
 
-**Overall Assessment:** 🟢 GOOD - Minor improvements needed, strong foundation already in place
+Both `buildPipeline()` and `dispose()` now call `cleanupPipelineResources()` instead of duplicating cleanup code.
+
+---
+
+### 3.4 CUDA Buffer Allocation Pattern (15+ occurrences) - DEFERRED
+
+**Analysis:** After review, the CUDA allocation patterns are too varied for a simple template:
+- Local variables vs. member pointers
+- Fixed size vs. cached dynamic size
+- malloc-only vs. malloc+memcpy
+- Arrays vs. single values
+
+**Decision:** The effort to create a generic template that handles all cases would exceed the benefit.
+The existing code is clear and maintainable. Marked as low priority / deferred.
+
+---
+
+## 4. Architectural Issues
+
+### ~~4.1 Domain/UI Coupling~~ ✅ RESOLVED
+
+**Resolution (2025-11-26):** Removed `Observer` from `Geometry` trait. Only classes that actually need to
+observe rotation events now extend `Observer` directly:
+- `RotatedProjection` - handles 4D tesseract rotations
+- `FractionalRotatedProjection` - handles fractional 4D sponge rotations
+- `Composite` - delegates events to child geometries
+
+3D geometries (Square, Cube, Sponge) no longer know about UI event handling, achieving clean separation
+of domain and UI concerns.
+
+**Files Modified:**
+- `src/main/scala/menger/objects/Geometry.scala` - removed Observer extension
+- `src/main/scala/menger/objects/Composite.scala` - added Observer directly
+- `src/main/scala/menger/objects/higher_d/FractionalRotatedProjection.scala` - added Observer directly
+- `src/main/scala/menger/engines/InteractiveMengerEngine.scala` - pattern match for Observer registration
+
+---
+
+### ~~4.2 Factory Logic in Wrong Place~~ ✅ RESOLVED
+
+**Resolution (2025-11-26):** Extracted `GeometryFactory` object to centralize geometry creation logic.
+
+**Created:** `src/main/scala/menger/objects/GeometryFactory.scala` (83 lines)
+- `create()` - factory for single geometry with material and primitive type
+- `createWithOverlay()` - factory for overlay mode (faces + lines)
+- `supportedTypes` - set of valid geometry type names
+- `isValidType()` - validation helper
+
+**Impact:**
+- `MengerEngine` reduced from ~82 lines to 38 lines
+- `generateObjectWithOverlay()` now delegates to `GeometryFactory.createWithOverlay()`
+- Open/Closed Principle: adding new geometry types only requires modifying the factory
+- All 85 tests passing
+
+**Files Modified:**
+- `src/main/scala/menger/engines/MengerEngine.scala` - uses GeometryFactory
+- `src/main/scala/menger/objects/Composite.scala` - updated parseCompositeFromCLIOption signature
+
+---
+
+### 4.3 OptiXResources Has Too Many Responsibilities
+
+**File:** `src/main/scala/menger/OptiXResources.scala` (175 lines)
+
+**Responsibilities:** JNI initialization, camera management, light configuration, plane configuration, statistics reporting, camera updates
+
+**Fix:** Split into `SceneConfigurator`, `OptiXRendererWrapper`, `CameraState`.
+
+---
+
+### 4.4 Oversized Files
+
+| File | Lines | Threshold | Issue |
+|------|-------|-----------|-------|
+| `sphere_combined.cu` | 1700 | 500 | 26 shader programs, PPM caustics |
+| `OptiXWrapper.cpp` | 1080 | 500 | Monolithic, 50+ member variables |
+| `MengerCLIOptions.scala` | 473 | 300 | All CLI parsing in one file |
+
+### 4.5 Oversized Functions
+
+| Function | File | Lines | Max |
+|----------|------|-------|-----|
+| `render()` | OptiXWrapper.cpp:582-805 | 223 | 50 |
+| `dispose()` | OptiXWrapper.cpp:950-1080 | 130 | 50 |
+| `__closesthit__ch()` | sphere_combined.cu:687-947 | 260 | 50 |
+
+---
+
+## 5. C++/CUDA Code Quality
+
+### 5.1 Shader File Should Be Split
+
+**File:** `sphere_combined.cu` (1700 lines)
+
+**Recommended Split:**
+- `raygen_primary.cu` - Primary camera ray generation
+- `hit_sphere.cu` - Sphere material (Fresnel, refraction)
+- `miss_plane.cu` - Plane rendering and lighting
+- `shadows.cu` - Shadow ray tracing
+- `caustics_ppm.cu` - Progressive Photon Mapping (~730 lines)
+
+### 5.2 Missing Error Recovery in Buffer Allocation
+
+**File:** `OptiXWrapper.cpp:629-688`
+
+**Problem:** If 3rd of 7 `cudaMalloc` calls fails, first 2 buffers leak.
+
+**Fix:** Use RAII wrapper or cleanup-on-failure pattern.
+
+### 5.3 Incomplete TODOs in Caustics
+
+| Location | TODO | Status |
+|----------|------|--------|
+| `sphere_combined.cu:1241` | Use spatial hash grid for efficiency | Not implemented |
+| `sphere_combined.cu:1495` | Weight by intensity for multiple lights | Not implemented |
+
+---
+
+## 6. Test Code Quality
+
+### 6.1 Magic Numbers in Tests
+
+**High-frequency values not using constants:**
+- `1.5f` (IOR glass) - 23+ occurrences
+- `0.5f` (sphere radius) - 30+ occurrences
+- `60.0f` (FOV) - 15+ occurrences
+
+**Fix:** Create `MaterialConstants.scala` in test utilities (aligns with Phase 2 of previous assessment).
+
+### 6.2 Inconsistent Test Patterns
+
+- `WindowResizeTest` doesn't use `RendererFixture` trait
+- `ShadowTest` has `setupShadowScene()` helper but only uses it in ~38% of tests
+- Test file naming inconsistent: `*Test.scala`, `*Spec.scala`, `*Suite.scala`
+
+### 6.3 Mutable State in Input Controllers (FP Violation)
+
+**Files:**
+- `OptiXCameraController.scala:40-70` - 10 `var` fields
+- `KeyController.scala:13-20` - 4 `var` fields
+
+**Stated Rule:** "No `var`" per CLAUDE.md
+
+**Current State:** 16+ mutable fields with `@SuppressWarnings` annotations
+
+---
+
+## 7. Consolidated Recommendations
+
+### Phase 1: Critical Fixes (Before Merge) - ✅ COMPLETE
+
+| Priority | Issue | Status |
+|----------|-------|--------|
+| P0 | Remove `sys.exit()` calls, propagate errors (1.1) | ✅ Done |
+| P0 | Fix unsafe `.get()` calls in AnimationSpecification (1.2) | ✅ Done |
+| P0 | Sync photon tracing sphere with parameters (1.4) | ✅ Done |
+
+### Phase 2: Constants (From Previous Assessment) - ~5-8 hours
+
+Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_IMPROVEMENTS.md) Phase 1-2 checklists.
+
+### Phase 3: Code Duplication - ✅ COMPLETE
+
+| Priority | Issue | Status |
+|----------|-------|--------|
+| P1 | Extract `SafeMengerCLIOptions` to shared utility | ✅ Done |
+| P1 | Consolidate "requires --optix" validations | ✅ Done |
+| P1 | Create C++ cleanup helpers (program groups) | ✅ Done |
+| P2 | CUDA buffer allocation template | Deferred (patterns too varied) |
+
+### Phase 4: Architecture Improvements - PARTIAL (2/4 complete)
+
+| Priority | Issue | Status |
+|----------|-------|--------|
+| P2 | Extract `GeometryFactory` from MengerEngine (4.2) | ✅ Done |
+| P2 | Remove Observer from Geometry trait (4.1) | ✅ Done |
+| P2 | Split OptiXResources into smaller classes (4.3) | Pending |
+| P2 | Fix OptiXEngine LSP violation (1.3) | Pending |
+
+### Phase 5: Code Quality Polish - ~6 hours
+
+| Priority | Issue | Effort |
+|----------|-------|--------|
+| P3 | Split sphere_combined.cu into modules | 3 hours |
+| P3 | Create MaterialConstants.scala for tests | 1 hour |
+| P3 | Standardize test patterns (RendererFixture usage) | 2 hours |
+
+---
+
+## Summary
+
+**Total Estimated Effort:** 26-33 hours across all phases
+
+**Minimum for Merge (Phase 1):** ✅ COMPLETE - all safety-critical issues resolved
+
+**Recommended for Merge (Phase 1-2):** ~5-8 hours remaining - constants cleanup
+
+**Overall Assessment:** The codebase is **ready for merge**. Phase 1 critical fixes are complete. The architecture supports current features but will benefit from Phase 2-5 refactoring before adding significant new complexity.
+
+**Key Strengths:**
+- Excellent constant infrastructure (acknowledged in previous assessment)
+- Good module separation (menger-common, optix-jni)
+- Comprehensive test coverage
+- Clean JNI boundary design
+
+**Key Weaknesses (Remaining):**
+- ~~Safety issues: sys.exit(), unsafe .get()~~ ✅ Resolved
+- Factory logic in wrong place
+- Domain/UI coupling (Observer in Geometry)
+- Oversized shader and wrapper files
+
+---
+
+## Change Log
+
+| Date | Scope | Author |
+|------|-------|--------|
+| 2025-11-20 | Constants analysis | Claude |
+| 2025-11-26 | Comprehensive assessment (architecture, duplication, FP, tests) | Claude |

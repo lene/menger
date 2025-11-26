@@ -15,11 +15,11 @@ The codebase demonstrates **good overall quality** with well-organized constant 
 |----------|-------|-------|
 | **Constants Infrastructure** | A- | Excellent organization (see previous assessment) |
 | **Constants Usage** | B- | Inconsistent - constants exist but not always used |
-| **Architecture** | B | LSP violation in OptiXEngine, domain/UI coupling |
-| **Code Duplication** | B- | ~150 lines of duplicated patterns |
+| **Architecture** | B+ | ~~Domain/UI coupling~~, ~~Factory in engine~~, LSP violation in OptiXEngine |
+| **Code Duplication** | A- | ~~CLI helpers~~, ~~OptiX validations~~, ~~C++ cleanup~~ |
 | **Functional Programming** | C+ | 15+ `var` suppressions in input controllers |
-| **Separation of Concerns** | B | Factory logic in engine, oversized classes |
-| **Error Handling** | C+ | Mix of Option/Try/Either; unsafe `.get()` calls |
+| **Separation of Concerns** | A- | ~~Factory extracted~~, oversized classes remain |
+| **Error Handling** | B+ | ~~Unsafe `.get()`~~, ~~sys.exit()~~, proper Try/Either usage |
 | **Test Quality** | B+ | Good coverage, magic numbers in tests |
 
 **Previous Assessment Status:** The Nov 20 constants assessment identified 12 high-priority items. **None have been implemented yet** - all checklist items remain open.
@@ -116,97 +116,87 @@ The previous assessment (2025-11-20) thoroughly analyzed magic numbers and const
 
 ## 3. Code Duplication
 
-### 3.1 SafeMengerCLIOptions Inner Class (4 occurrences)
+### ~~3.1 SafeMengerCLIOptions Inner Class (4 occurrences)~~ ✅ RESOLVED
 
-**Files:**
-- `src/test/scala/menger/LightCLIOptionsSuite.scala:10-12`
-- `src/test/scala/menger/CausticsCLIOptionsSuite.scala:8-10`
-- `src/test/scala/menger/LoggingCLIOptionsSuite.scala:9-11`
-- `src/test/scala/menger/OptionsSuite.scala:11-13`
-
-**Duplicated Code:**
-```scala
-class SafeMengerCLIOptions(args: Seq[String]) extends menger.MengerCLIOptions(args):
-  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-  override def onError(e: Throwable): Unit = throw e
-```
-
-**Fix:** Extract to `src/test/scala/menger/SafeMengerCLIOptions.scala`
+**Resolution (2025-11-26):** Extracted to shared test utility at
+`src/test/scala/menger/SafeMengerCLIOptions.scala`. All 4 test suites now use this shared class.
 
 ---
 
-### 3.2 "Requires --optix Flag" Validation (6 occurrences)
+### ~~3.2 "Requires --optix Flag" Validation (6 occurrences)~~ ✅ RESOLVED
 
-**File:** `src/main/scala/menger/MengerCLIOptions.scala:219-269`
+**Resolution (2025-11-26):** Created 3 helper methods in MengerCLIOptions.scala:
+- `requiresOptixFlag()` - validates boolean flags requiring --optix
+- `requiresOptixOption()` - validates optional values requiring --optix
+- `requiresParentFlag()` - validates options requiring a parent flag (e.g., --caustics-photons requires --caustics)
 
-```scala
-// Repeated pattern 6 times for: shadows, antialiasing, light, planeColor, caustics, spongeType
-validateOpt(feature, optix) { (f, ox) =>
-  if f.isDefined && !ox.getOrElse(false) then
-    Left("--feature requires --optix flag")
-  else Right(())
-}
-```
-
-**Fix:** Create helper method:
-```scala
-private def requiresOptix(featureName: String, isSet: Boolean, optixEnabled: Boolean): Either[String, Unit]
-```
+All 11 validation patterns now use these consolidated helpers.
 
 ---
 
-### 3.3 C++ Program Group Cleanup (42 lines duplicated)
+### ~~3.3 C++ Program Group Cleanup (42 lines duplicated)~~ ✅ RESOLVED
 
-**Locations:**
-- `optix-jni/src/main/native/OptiXWrapper.cpp:449-476` (buildPipeline)
-- `optix-jni/src/main/native/OptiXWrapper.cpp:953-1002` (dispose)
+**Resolution (2025-11-26):** Created two helper methods in OptiXWrapper.cpp:
+- `destroyProgramGroupIfExists(OptixProgramGroup&)` - null-safe program group destruction
+- `cleanupPipelineResources(bool include_caustics)` - consolidated cleanup for buildPipeline() and dispose()
 
-**Fix:** Create `cleanupProgramGroups()` helper method.
+Both `buildPipeline()` and `dispose()` now call `cleanupPipelineResources()` instead of duplicating cleanup code.
 
 ---
 
-### 3.4 CUDA Buffer Allocation Pattern (15+ occurrences)
+### 3.4 CUDA Buffer Allocation Pattern (15+ occurrences) - DEFERRED
 
-**Pattern repeated throughout OptiXWrapper.cpp:**
-```cpp
-CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_buffer), size));
-CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(d_buffer), &data, size, cudaMemcpyHostToDevice));
-```
+**Analysis:** After review, the CUDA allocation patterns are too varied for a simple template:
+- Local variables vs. member pointers
+- Fixed size vs. cached dynamic size
+- malloc-only vs. malloc+memcpy
+- Arrays vs. single values
 
-**Fix:** Create template helper `allocateAndUpload<T>()`.
+**Decision:** The effort to create a generic template that handles all cases would exceed the benefit.
+The existing code is clear and maintainable. Marked as low priority / deferred.
 
 ---
 
 ## 4. Architectural Issues
 
-### 4.1 Domain/UI Coupling
+### ~~4.1 Domain/UI Coupling~~ ✅ RESOLVED
 
-**Problem:** `Geometry` trait extends `Observer` (UI concept)
+**Resolution (2025-11-26):** Removed `Observer` from `Geometry` trait. Only classes that actually need to
+observe rotation events now extend `Observer` directly:
+- `RotatedProjection` - handles 4D tesseract rotations
+- `FractionalRotatedProjection` - handles fractional 4D sponge rotations
+- `Composite` - delegates events to child geometries
 
-**File:** `src/main/scala/menger/objects/Geometry.scala:8`
+3D geometries (Square, Cube, Sponge) no longer know about UI event handling, achieving clean separation
+of domain and UI concerns.
 
-```scala
-trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f) extends Observer
-```
-
-**Impact:** Domain model polluted with UI concerns. Only tesseract objects actually handle rotation events.
-
-**Fix:** Create separate `InputEventListener` trait in UI tier.
+**Files Modified:**
+- `src/main/scala/menger/objects/Geometry.scala` - removed Observer extension
+- `src/main/scala/menger/objects/Composite.scala` - added Observer directly
+- `src/main/scala/menger/objects/higher_d/FractionalRotatedProjection.scala` - added Observer directly
+- `src/main/scala/menger/engines/InteractiveMengerEngine.scala` - pattern match for Observer registration
 
 ---
 
-### 4.2 Factory Logic in Wrong Place
+### ~~4.2 Factory Logic in Wrong Place~~ ✅ RESOLVED
 
-**Problem:** `MengerEngine.generateObject()` contains 13+ geometry type factories
+**Resolution (2025-11-26):** Extracted `GeometryFactory` object to centralize geometry creation logic.
 
-**File:** `src/main/scala/menger/engines/MengerEngine.scala:46-69`
+**Created:** `src/main/scala/menger/objects/GeometryFactory.scala` (83 lines)
+- `create()` - factory for single geometry with material and primitive type
+- `createWithOverlay()` - factory for overlay mode (faces + lines)
+- `supportedTypes` - set of valid geometry type names
+- `isValidType()` - validation helper
 
 **Impact:**
-- Adding geometry types requires modifying engine
-- Violates Open/Closed Principle
-- Logic duplicated in CLI validation
+- `MengerEngine` reduced from ~82 lines to 38 lines
+- `generateObjectWithOverlay()` now delegates to `GeometryFactory.createWithOverlay()`
+- Open/Closed Principle: adding new geometry types only requires modifying the factory
+- All 85 tests passing
 
-**Fix:** Extract `GeometryFactory` object in `menger.objects` package.
+**Files Modified:**
+- `src/main/scala/menger/engines/MengerEngine.scala` - uses GeometryFactory
+- `src/main/scala/menger/objects/Composite.scala` - updated parseCompositeFromCLIOption signature
 
 ---
 
@@ -311,22 +301,23 @@ trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f) extends Observ
 
 Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_IMPROVEMENTS.md) Phase 1-2 checklists.
 
-### Phase 3: Code Duplication - ~3 hours
+### Phase 3: Code Duplication - ✅ COMPLETE
 
-| Priority | Issue | Effort |
+| Priority | Issue | Status |
 |----------|-------|--------|
-| P1 | Extract `SafeMengerCLIOptions` to shared utility | 15 min |
-| P1 | Consolidate "requires --optix" validations | 1 hour |
-| P1 | Create C++ cleanup helpers (program groups, buffers) | 1.5 hours |
+| P1 | Extract `SafeMengerCLIOptions` to shared utility | ✅ Done |
+| P1 | Consolidate "requires --optix" validations | ✅ Done |
+| P1 | Create C++ cleanup helpers (program groups) | ✅ Done |
+| P2 | CUDA buffer allocation template | Deferred (patterns too varied) |
 
-### Phase 4: Architecture Improvements - ~8 hours
+### Phase 4: Architecture Improvements - PARTIAL (2/4 complete)
 
-| Priority | Issue | Effort |
+| Priority | Issue | Status |
 |----------|-------|--------|
-| P2 | Extract `GeometryFactory` from MengerEngine | 2 hours |
-| P2 | Split OptiXResources into smaller classes | 2 hours |
-| P2 | Remove Observer from Geometry trait | 2 hours |
-| P2 | Fix OptiXEngine LSP violation | 2 hours |
+| P2 | Extract `GeometryFactory` from MengerEngine (4.2) | ✅ Done |
+| P2 | Remove Observer from Geometry trait (4.1) | ✅ Done |
+| P2 | Split OptiXResources into smaller classes (4.3) | Pending |
+| P2 | Fix OptiXEngine LSP violation (1.3) | Pending |
 
 ### Phase 5: Code Quality Polish - ~6 hours
 
