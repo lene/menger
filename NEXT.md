@@ -20,50 +20,45 @@
 
 ---
 
+## Completed: Stone 2 ✅
+
+**Issues Resolved:**
+- **1.3** - LSP Violation: OptiXEngine no longer extends MengerEngine inappropriately
+- **4.3** - OptiXResources God Object: Split into 3 focused classes
+
+**Architecture Changes:**
+1. Created `RenderEngine` trait with minimal LibGDX lifecycle contract
+2. Made `MengerEngine` extend `RenderEngine` instead of `Game` directly
+3. Split `OptiXResources.scala` (175 lines) into:
+   - `SceneConfigurator` (119 lines) - scene setup, lights, plane, material properties
+   - `OptiXRendererWrapper` (37 lines) - JNI lifecycle management
+   - `CameraState` (35 lines) - camera position/direction updates
+4. Refactored `OptiXEngine` to use composition instead of inheritance from MengerEngine
+
+**Files Created:**
+- `src/main/scala/menger/engines/RenderEngine.scala` (16 lines)
+- `src/main/scala/menger/optix/SceneConfigurator.scala` (119 lines)
+- `src/main/scala/menger/optix/OptiXRendererWrapper.scala` (37 lines)
+- `src/main/scala/menger/optix/CameraState.scala` (35 lines)
+
+**Files Modified:**
+- `src/main/scala/menger/engines/MengerEngine.scala` - extends RenderEngine
+- `src/main/scala/menger/engines/OptiXEngine.scala` - uses composition, removed LSP violation
+- `src/main/scala/menger/input/OptiXCameraController.scala` - uses new components
+- `src/main/scala/Main.scala` - updated createEngine return type
+- `src/test/scala/menger/OptiXEngineTest.scala` - updated constructor calls
+
+**Results:**
+- OptiXEngine no longer throws UnsupportedOperationException for parent methods
+- Clean separation of concerns across focused classes
+- All 897 tests passing (25 C++ + 872 Scala)
+- Improved testability and maintainability
+
+---
+
 ## Remaining Architectural Inadequacies
 
 Grouped by potential synergy for efficient refactoring:
-
-### **Stone 2** - Liskov Substitution Principle & God Object (HIGH IMPACT)
-**Synergy:** OptiXEngine violates LSP because it inherits from MengerEngine but doesn't use many features. This is related to OptiXResources having too many responsibilities. Fixing both together would create cleaner architecture.
-
-#### 1.3 - OptiXEngine Violates LSP
-- **File:** `src/main/scala/menger/engines/OptiXEngine.scala:72-76`
-- **Problem:**
-  ```scala
-  protected def drawables: List[ModelInstance] =
-    throw new UnsupportedOperationException("OptiXEngine doesn't use drawables")
-
-  protected def gdxResources: GDXResources =
-    throw new UnsupportedOperationException("OptiXEngine doesn't use gdxResources")
-  ```
-- **Impact:** Violates Liskov Substitution Principle - child class throws exceptions for parent methods
-- **Fix Options:**
-  1. Create `RenderEngine` trait with minimal contract
-  2. Use composition instead of inheritance
-  3. Make MengerEngine methods optional (Option[GDXResources])
-
-#### 4.3 - OptiXResources Has Too Many Responsibilities (SRP Violation)
-- **File:** `src/main/scala/menger/OptiXResources.scala` (175 lines)
-- **Current Responsibilities:**
-  - JNI initialization
-  - Camera management
-  - Light configuration
-  - Plane configuration
-  - Statistics reporting
-  - Camera updates
-- **Suggested Split:**
-  - `SceneConfigurator` - lights, plane, camera initial setup
-  - `OptiXRendererWrapper` - JNI bridge, render calls
-  - `CameraState` - camera position/direction updates
-
-**Combined Approach for Stone 2:**
-1. Define minimal `RenderEngine` interface (or use composition)
-2. Extract OptiXResources responsibilities into focused classes
-3. Update OptiXEngine to compose rather than inherit
-4. Estimated effort: 4-6 hours
-
----
 
 ### **Stone 3** - Large Files/Functions Decomposition (MAINTAINABILITY)
 **Synergy:** All related to breaking large units into smaller, focused, testable components.

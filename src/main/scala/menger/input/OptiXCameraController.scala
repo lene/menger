@@ -8,8 +8,9 @@ import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.OptiXRenderResources
-import menger.OptiXResources
 import menger.common.Const
+import menger.optix.CameraState
+import menger.optix.OptiXRendererWrapper
 
 
 case class CameraControlConfig(
@@ -23,12 +24,13 @@ case class CameraControlConfig(
 )
 
 object CameraControlConfig:
-  
+
   def default: CameraControlConfig = CameraControlConfig()
 
 
 class OptiXCameraController(
-  optiXResources: OptiXResources,
+  rendererWrapper: OptiXRendererWrapper,
+  cameraState: CameraState,
   renderResources: OptiXRenderResources,
   initialEye: Vector3,
   initialLookAt: Vector3,
@@ -174,7 +176,7 @@ class OptiXCameraController(
 
   // Update OptiX camera and trigger re-render
   private def updateCamera(): Unit =
-    optiXResources.updateCamera(eye, lookAt, up)
+    cameraState.updateCamera(rendererWrapper.renderer, eye, lookAt, up)
     renderResources.markNeedsRender()
     Gdx.graphics.requestRendering()
     logger.debug(s"Camera updated: eye=$eye, lookAt=$lookAt, distance=$distance, azimuth=$azimuth, elevation=$elevation")
