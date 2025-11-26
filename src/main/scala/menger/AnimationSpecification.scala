@@ -9,13 +9,14 @@ case class AnimationSpecification(s: String) extends LazyLogging:
 
   private type StartEnd = (start: Float, end: Float)
 
-  val asMap: Option[Map[String, String]] =
-    Try {s.split(":").map(_.split("=")).map(arr => (arr(0), arr(1))).toMap}.toOption
+  private val asMap: Map[String, String] =
+    Try { s.split(":").map(_.split("=")).map(arr => (arr(0), arr(1))).toMap }
+      .getOrElse(Map.empty)
 
-  val frames: Option[Int] = asMap.flatMap(_.get("frames")).flatMap(_.toIntOption)
+  val frames: Option[Int] = asMap.get("frames").flatMap(_.toIntOption)
 
   lazy val animationParameters: Map[String, StartEnd] =
-    val parametersOnly = asMap.get -- AnimationSpecification.TIMESCALE_PARAMETERS
+    val parametersOnly = asMap -- AnimationSpecification.TIMESCALE_PARAMETERS
     parametersOnly.map { case (k, v) => k -> parseStartEnd(v) }
 
   def timeSpecValid: Boolean = frames.exists(_ > 0)

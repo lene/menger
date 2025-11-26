@@ -42,45 +42,18 @@ The codebase demonstrates **good overall quality** with well-organized constant 
 
 These issues were not covered in the previous constants-focused assessment.
 
-### 1.1 System.exit() Calls in Recoverable Error Scenarios
+### ~~1.1 System.exit() Calls in Recoverable Error Scenarios~~ ✅ RESOLVED
 
-**Files:**
-- `src/main/scala/menger/engines/InteractiveMengerEngine.scala:32`
-- `src/main/scala/menger/engines/AnimatedMengerEngine.scala:30,45`
-- `src/main/scala/menger/OptiXResources.scala:44`
-
-**Problem:** Using `sys.exit(1)` on recoverable errors instead of proper error propagation.
-
-```scala
-// InteractiveMengerEngine.scala:30-32
-case Failure(exception) =>
-  logger.error(s"Failed to create sponge type '$spongeType': ${exception.getMessage}")
-  sys.exit(1)  // Kills JVM immediately
-```
-
-**Impact:**
-- Kills JVM immediately on sponge creation failure
-- Makes testing difficult
-- No graceful shutdown opportunity
-- Unsuitable for library usage
-
-**Fix:** Return `Try[Geometry]` or `Either[Error, Geometry]` from engine constructors.
+**Resolution (2025-11-26):** Refactored to use `.get` on `Try` values, letting exceptions propagate
+to `Main.scala` where a single try-catch handles all engine initialization failures gracefully.
 
 ---
 
-### 1.2 Unsafe `.get()` Calls on Options
+### ~~1.1 Unsafe `.get()` Calls on Options~~ ✅ RESOLVED
 
-**File:** `src/main/scala/menger/AnimationSpecification.scala:18-49`
-
-```scala
-// Line 18 - assumes asMap is always Some(_)
-val parametersOnly = asMap.get -- AnimationSpecification.TIMESCALE_PARAMETERS
-
-// Lines 32-33 - frames.get on Option[Int]
-frames.get  // Dangerous if None
-```
-
-**Fix:** Use pattern matching or `flatMap` for safe Option handling.
+**Resolution (2025-11-26):** Refactored `asMap` to return `Map.empty` instead of `None`,
+eliminating the unsafe `.get` call. The `frames.get` calls in `toString` and `current` are
+now guarded by validation that ensures `frames.isDefined` before those methods are called.
 
 ---
 
@@ -102,18 +75,11 @@ protected def gdxResources: GDXResources =
 
 ---
 
-### 1.4 Hardcoded Sphere in Photon Tracing (Caustics Bug)
+### ~~1.4 Hardcoded Sphere in Photon Tracing (Caustics Bug)~~ ✅ RESOLVED
 
-**File:** `optix-jni/src/main/native/shaders/sphere_combined.cu:1318-1320`
-
-```cuda
-const float3 sphere_center = make_float3(0.0f, 0.0f, 0.0f);  // Hardcoded!
-const float sphere_radius = 1.5f;  // Hardcoded!
-```
-
-**Problem:** Photon tracing doesn't use actual sphere parameters from `setSphere()`. If sphere is moved or resized, caustics won't follow.
-
-**Fix:** Pass sphere parameters through `CausticsParams` struct.
+**Resolution (2025-11-26):** Added `sphere_center[3]` and `sphere_radius` fields to `CausticsParams`
+struct in OptiXData.h. OptiXWrapper.cpp now copies sphere parameters to caustics params before render.
+Shader uses `params.caustics.sphere_center` and `params.caustics.sphere_radius` instead of hardcoded values.
 
 ---
 
@@ -333,13 +299,13 @@ trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f) extends Observ
 
 ## 7. Consolidated Recommendations
 
-### Phase 1: Critical Fixes (Before Merge) - ~3.5 hours
+### Phase 1: Critical Fixes (Before Merge) - ✅ COMPLETE
 
-| Priority | Issue | Effort |
+| Priority | Issue | Status |
 |----------|-------|--------|
-| P0 | Remove `sys.exit()` calls, propagate errors (1.1) | 2 hours |
-| P0 | Fix unsafe `.get()` calls in AnimationSpecification (1.2) | 30 min |
-| P0 | Sync photon tracing sphere with parameters (1.4) | 1 hour |
+| P0 | Remove `sys.exit()` calls, propagate errors (1.1) | ✅ Done |
+| P0 | Fix unsafe `.get()` calls in AnimationSpecification (1.2) | ✅ Done |
+| P0 | Sync photon tracing sphere with parameters (1.4) | ✅ Done |
 
 ### Phase 2: Constants (From Previous Assessment) - ~5-8 hours
 
@@ -376,11 +342,11 @@ Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_I
 
 **Total Estimated Effort:** 26-33 hours across all phases
 
-**Minimum for Merge (Phase 1):** 3.5 hours - addresses safety-critical issues
+**Minimum for Merge (Phase 1):** ✅ COMPLETE - all safety-critical issues resolved
 
-**Recommended for Merge (Phase 1-2):** 9-12 hours - includes constants cleanup
+**Recommended for Merge (Phase 1-2):** ~5-8 hours remaining - constants cleanup
 
-**Overall Assessment:** The codebase is **mergeable** after Phase 1 fixes. The architecture supports current features but will benefit from Phase 2-5 refactoring before adding significant new complexity.
+**Overall Assessment:** The codebase is **ready for merge**. Phase 1 critical fixes are complete. The architecture supports current features but will benefit from Phase 2-5 refactoring before adding significant new complexity.
 
 **Key Strengths:**
 - Excellent constant infrastructure (acknowledged in previous assessment)
@@ -388,8 +354,8 @@ Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_I
 - Comprehensive test coverage
 - Clean JNI boundary design
 
-**Key Weaknesses (New Findings):**
-- Safety issues: sys.exit(), unsafe .get()
+**Key Weaknesses (Remaining):**
+- ~~Safety issues: sys.exit(), unsafe .get()~~ ✅ Resolved
 - Factory logic in wrong place
 - Domain/UI coupling (Observer in Geometry)
 - Oversized shader and wrapper files

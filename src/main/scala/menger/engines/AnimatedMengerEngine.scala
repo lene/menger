@@ -23,11 +23,7 @@ with LazyLogging with SavesScreenshots:
   protected def drawables: List[ModelInstance] =
     given ProfilingConfig = profilingConfig
     val currentLevel = currentAnimatedLevel
-    generateObjectWithOverlay(spongeType, currentLevel) match
-      case scala.util.Success(geometry) => geometry.getModel
-      case scala.util.Failure(exception) =>
-        logger.error(s"Failed to create sponge type '$spongeType': ${exception.getMessage}")
-        sys.exit(1)
+    generateObjectWithOverlay(spongeType, currentLevel).get.getModel  // Throws on failure - caught by Main
 
   private def currentAnimatedLevel: Float =
     val currentFrame = frameCounter.get()
@@ -37,12 +33,7 @@ with LazyLogging with SavesScreenshots:
 
   override def currentRotProj: RotationProjectionParameters =
     val currentFrame = frameCounter.get()
-    animationSpecifications.rotationProjectionParameters(currentFrame) match
-      case scala.util.Success(animParams) =>
-        rotationProjectionParameters + animParams
-      case scala.util.Failure(exception) =>
-        logger.error(s"Animation frame $currentFrame failed: ${exception.getMessage}")
-        sys.exit(1)
+    animationSpecifications.rotationProjectionParameters(currentFrame).get + rotationProjectionParameters  // Throws on failure - caught by Main
 
   override def create(): Unit =
     logger.info(s"Animating for $animationSpecifications")

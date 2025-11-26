@@ -2,8 +2,6 @@ package menger
 
 import java.util.concurrent.atomic.AtomicReference
 
-import scala.util.Failure
-import scala.util.Success
 import scala.util.Try
 
 import com.badlogic.gdx.math.Vector3
@@ -39,26 +37,12 @@ class OptiXResources(
         _rendererRef.set(Some(r))
         r
 
-  private def errorExit(message: String): Unit =
-    logger.error(message)
-    System.exit(1)
-
   private def initializeRenderer: OptiXRenderer =
-    OptiXRenderer().ensureAvailable().recover:
-      case exception =>
-        errorExit(exception.getMessage)
-        // errorExit calls System.exit(1), so this is unreachable
-        // Return dummy value to satisfy type checker (never executed)
-        OptiXRenderer()
-    .get  // Safe because recover always returns Success
+    OptiXRenderer().ensureAvailable().get  // Throws on failure - caught by Main
 
   def initialize(): Unit =
     logger.debug("Configuring OptiX scene")
-    configureGeometry match
-      case Success(config) => config(renderer)
-      case Failure(exception) => errorExit(
-        s"Invalid geometry configuration: ${exception.getMessage}"
-      )
+    configureGeometry.get(renderer)  // Throws on failure - caught by Main
     createCamera()
     createLights()
     configurePlane()
@@ -75,11 +59,8 @@ class OptiXResources(
     lights match
       case Some(lightSpecs) =>
         val lightSeq = lightSpecs.map(convertLightSpec)
-        Try(renderer.setLights(lightSeq)) match
-          case Success(_) =>
-            logger.debug(s"Configured ${lightSeq.length} light(s) from CLI specification")
-          case Failure(exception) =>
-            errorExit(s"Failed to configure lights: ${exception.getMessage}")
+        renderer.setLights(lightSeq)  // Throws on failure - caught by Main
+        logger.debug(s"Configured ${lightSeq.length} light(s) from CLI specification")
       case None =>
         // Default single directional light (backward compatibility)
         val lightDirection = Vector[3](-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)

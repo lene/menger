@@ -4,6 +4,31 @@
 **Scope:** Comprehensive codebase scan for hardcoded constants
 **Status:** ✅ Analysis Complete
 
+---
+
+## Implementation Progress (2025-11-26)
+
+**Phase 1 Constants Added to OptiXData.h:**
+- ✅ `DEFAULT_SPHERE_RADIUS = 1.5f`
+- ✅ `DEFAULT_CAMERA_Z_DISTANCE = 3.0f`
+- ✅ `DEFAULT_FOV_DEGREES = 60.0f`
+- ✅ `DEFAULT_FLOOR_PLANE_Y = -2.0f`
+- ✅ `DEG_TO_RAD` and `RAD_TO_DEG`
+
+**Phase 2 Constants Added to OptiXData.h:**
+- ✅ `MaterialConstants::IOR_VACUUM = 1.0f`
+- ✅ `MaterialConstants::IOR_WATER = 1.33f`
+- ✅ `MaterialConstants::IOR_GLASS = 1.5f`
+- ✅ `MaterialConstants::IOR_DIAMOND = 2.42f`
+
+**Other Improvements (2025-11-26):**
+- ✅ Removed `sys.exit()` calls from engine classes - errors now propagate to Main.scala
+- ✅ Added CUDA atomic float idiom documentation to sphere_combined.cu
+- ✅ Fixed unsafe `.get()` calls in AnimationSpecification - now uses `Map.empty` pattern
+- ✅ Fixed hardcoded sphere in photon tracing - caustics now use sphere params from `CausticsParams`
+
+---
+
 ## Executive Summary
 
 The codebase has **excellent constant infrastructure** with well-organized constant files:
@@ -276,16 +301,16 @@ constexpr unsigned int OPTIX_VISIBILITY_MASK_ALL = 255;  // 0xFF - all bits set
 ## 📋 Implementation Checklist
 
 ### Phase 1: Critical Duplication (Highest Impact)
-- [ ] Add `DEFAULT_SPHERE_RADIUS = 1.5f` to OptiXData.h
-- [ ] Add `DEFAULT_CAMERA_Z_DISTANCE = 3.0f` to OptiXData.h
-- [ ] Add `DEFAULT_FOV_DEGREES = 60.0f` to OptiXData.h
-- [ ] Add `DEFAULT_FLOOR_PLANE_Y = -2.0f` to OptiXData.h
-- [ ] Add `DEG_TO_RAD` and `RAD_TO_DEG` to Const.scala and OptiXData.h
+- [x] Add `DEFAULT_SPHERE_RADIUS = 1.5f` to OptiXData.h ✅ (2025-11-26)
+- [x] Add `DEFAULT_CAMERA_Z_DISTANCE = 3.0f` to OptiXData.h ✅ (2025-11-26)
+- [x] Add `DEFAULT_FOV_DEGREES = 60.0f` to OptiXData.h ✅ (2025-11-26)
+- [x] Add `DEFAULT_FLOOR_PLANE_Y = -2.0f` to OptiXData.h ✅ (2025-11-26)
+- [x] Add `DEG_TO_RAD` and `RAD_TO_DEG` to OptiXData.h ✅ (2025-11-26)
 - [ ] Add `FPS_LOG_INTERVAL_MS = 1000` to Const.scala
 - [ ] Replace hardcoded `255.0f` with `COLOR_BYTE_MAX` in sphere_combined.cu
 
 ### Phase 2: Medium Priority
-- [ ] Add IOR material constants to OptiXData.h
+- [x] Add IOR material constants to OptiXData.h ✅ (2025-11-26)
 - [ ] Add material color multipliers to Const.scala
 - [ ] Document normalized light direction value
 - [ ] Add `CAMERA_EYE_W_BASE` to Const.scala

@@ -1,8 +1,5 @@
 package menger.engines
 
-import scala.util.Failure
-import scala.util.Success
-
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.utils.Timer
@@ -25,11 +22,7 @@ class InteractiveMengerEngine(
 with TimeoutSupport with LazyLogging:
   private lazy val sponge: Geometry = generateObjectWithOverlay(
     spongeType, spongeLevel
-  ) match
-    case Success(geometry) => geometry
-    case Failure(exception) =>
-      logger.error(s"Failed to create sponge type '$spongeType': ${exception.getMessage}")
-      sys.exit(1)
+  ).get  // Throws on failure - caught by Main
   private lazy val eventDispatcher = dispatcherWithRegisteredSponge
 
   protected def drawables: List[ModelInstance] =
