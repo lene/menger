@@ -5,13 +5,15 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
+import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.input.Observer
 
 class Composite(
   center: Vector3 = Vector3.Zero,
   scale: Float = 1f,
   geometries: List[Geometry]
-)(using val profilingConfig: menger.ProfilingConfig) extends Geometry(center, scale):
+)(using val profilingConfig: ProfilingConfig) extends Geometry(center, scale) with Observer:
 
   override def getModel: List[ModelInstance] =
     logTime("getModel()") {
@@ -19,7 +21,10 @@ class Composite(
     }
 
   override def handleEvent(event: RotationProjectionParameters): Unit =
-    geometries.foreach(_.handleEvent(event))
+    geometries.foreach {
+      case obs: Observer => obs.handleEvent(event)
+      case _ => // Non-observer geometries don't need events
+    }
 
   override def toString: String =
     s"Composite(${geometries.map(_.toString).mkString(", ")})"
@@ -28,14 +33,18 @@ object Composite:
   private val compositePattern = """composite\[(.+)]""".r
 
   def parseCompositeFromCLIOption(
-    spongeType: String, level: Float, material: Material, primitiveType: Int,
-    generateObject: (String, Float, Material, Int) => Try[Geometry]
-  )(using config: menger.ProfilingConfig): Try[Geometry] =
+    spongeType: String,
+    level: Float,
+    material: Material,
+    primitiveType: Int,
+    rotationProjection: RotationProjectionParameters,
+    createGeometry: (String, Float, Material, Int, RotationProjectionParameters) => Try[Geometry]
+  )(using ProfilingConfig): Try[Geometry] =
     spongeType match
       case compositePattern(content) =>
         val componentTypes = content.split(",").toList
         val geometries = componentTypes.map(componentType =>
-          generateObject(componentType, level, material, primitiveType)
+          createGeometry(componentType, level, material, primitiveType, rotationProjection)
         )
 
         // Check if all components were created successfully

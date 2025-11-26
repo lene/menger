@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import menger.RotationProjectionParameters
+import menger.input.Observer
 import menger.objects.Builder
 import menger.objects.FractionalLevelObject
 import menger.objects.Geometry
@@ -28,7 +29,7 @@ class FractionalRotatedProjection(
   initialRotation: Rotation = Rotation(),
   val material: Material = Builder.WHITE_MATERIAL,
   primitiveType: Int = GL20.GL_TRIANGLES
-)(using val profilingConfig: menger.ProfilingConfig) extends Geometry(center, scale) with FractionalLevelObject:
+)(using val profilingConfig: menger.ProfilingConfig) extends Geometry(center, scale) with FractionalLevelObject with Observer:
 
   // Encapsulated mutable state using AtomicReference
   private val state = AtomicReference(
