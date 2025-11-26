@@ -68,25 +68,7 @@ case Failure(exception) =>
 
 ---
 
-### 1.2 Unsafe Atomic Float Operation (Undefined Behavior Risk)
-
-**File:** `optix-jni/src/main/native/shaders/sphere_combined.cu:1692-1693`
-
-```cuda
-atomicMax(reinterpret_cast<int*>(&params.caustics.stats->max_caustic_brightness),
-          __float_as_int(caustic_brightness));
-```
-
-**Problem:**
-- Type-punning through pointer reinterpret_cast violates strict aliasing
-- `max_caustic_brightness` is `float`, cast to `int*`
-- Undefined behavior under `-fstrict-aliasing`
-
-**Fix:** Use proper atomic compare-and-swap pattern for floats.
-
----
-
-### 1.3 Unsafe `.get()` Calls on Options
+### 1.2 Unsafe `.get()` Calls on Options
 
 **File:** `src/main/scala/menger/AnimationSpecification.scala:18-49`
 
@@ -102,7 +84,7 @@ frames.get  // Dangerous if None
 
 ---
 
-### 1.4 OptiXEngine Violates Liskov Substitution Principle
+### 1.3 OptiXEngine Violates Liskov Substitution Principle
 
 **File:** `src/main/scala/menger/engines/OptiXEngine.scala:72-76`
 
@@ -120,7 +102,7 @@ protected def gdxResources: GDXResources =
 
 ---
 
-### 1.5 Hardcoded Sphere in Photon Tracing (Caustics Bug)
+### 1.4 Hardcoded Sphere in Photon Tracing (Caustics Bug)
 
 **File:** `optix-jni/src/main/native/shaders/sphere_combined.cu:1318-1320`
 
@@ -351,14 +333,13 @@ trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f) extends Observ
 
 ## 7. Consolidated Recommendations
 
-### Phase 1: Critical Fixes (Before Merge) - ~4 hours
+### Phase 1: Critical Fixes (Before Merge) - ~3.5 hours
 
 | Priority | Issue | Effort |
 |----------|-------|--------|
-| P0 | Fix atomic float operation UB (1.2) | 30 min |
 | P0 | Remove `sys.exit()` calls, propagate errors (1.1) | 2 hours |
-| P0 | Fix unsafe `.get()` calls in AnimationSpecification (1.3) | 30 min |
-| P0 | Sync photon tracing sphere with parameters (1.5) | 1 hour |
+| P0 | Fix unsafe `.get()` calls in AnimationSpecification (1.2) | 30 min |
+| P0 | Sync photon tracing sphere with parameters (1.4) | 1 hour |
 
 ### Phase 2: Constants (From Previous Assessment) - ~5-8 hours
 
@@ -395,7 +376,7 @@ Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_I
 
 **Total Estimated Effort:** 26-33 hours across all phases
 
-**Minimum for Merge (Phase 1):** 4 hours - addresses safety-critical issues
+**Minimum for Merge (Phase 1):** 3.5 hours - addresses safety-critical issues
 
 **Recommended for Merge (Phase 1-2):** 9-12 hours - includes constants cleanup
 
@@ -408,7 +389,7 @@ Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_I
 - Clean JNI boundary design
 
 **Key Weaknesses (New Findings):**
-- Safety issues: sys.exit(), unsafe atomics, unsafe .get()
+- Safety issues: sys.exit(), unsafe .get()
 - Factory logic in wrong place
 - Domain/UI coupling (Observer in Geometry)
 - Oversized shader and wrapper files
