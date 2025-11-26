@@ -8,8 +8,8 @@ import menger.ProfilingConfig
 import menger.RotationProjectionParameters
 import menger.engines.AnimatedMengerEngine
 import menger.engines.InteractiveMengerEngine
-import menger.engines.MengerEngine
 import menger.engines.OptiXEngine
+import menger.engines.RenderEngine
 import org.slf4j.LoggerFactory
 
 object Main:
@@ -51,7 +51,7 @@ object Main:
     )
     config
 
-  def createEngine(opts: MengerCLIOptions): MengerEngine =
+  def createEngine(opts: MengerCLIOptions): RenderEngine =
     given ProfilingConfig = opts.profileMinMs.toOption match
       case Some(minMs) => ProfilingConfig.enabled(minMs)
       case None => ProfilingConfig.disabled
@@ -68,8 +68,7 @@ object Main:
     rpp: RotationProjectionParameters
   )(using ProfilingConfig): OptiXEngine =
     OptiXEngine(
-      opts.spongeType(), opts.level(), rpp, opts.lines(), opts.color(),
-      opts.faceColor.toOption, opts.lineColor.toOption,
+      opts.spongeType(), opts.level(), opts.lines(), opts.color(),
       opts.fpsLogInterval(),
       opts.radius(), opts.ior(), opts.scale(),
       opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),

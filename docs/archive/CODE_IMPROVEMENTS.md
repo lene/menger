@@ -57,21 +57,15 @@ now guarded by validation that ensures `frames.isDefined` before those methods a
 
 ---
 
-### 1.3 OptiXEngine Violates Liskov Substitution Principle
+### ~~1.3 OptiXEngine Violates Liskov Substitution Principle~~ ✅ RESOLVED
 
-**File:** `src/main/scala/menger/engines/OptiXEngine.scala:72-76`
+**Resolution (2025-11-26 - Stone 2):** Created `RenderEngine` trait with minimal lifecycle contract. `OptiXEngine` now extends `RenderEngine` directly using composition pattern instead of inheriting from `MengerEngine`.
 
-```scala
-protected def drawables: List[ModelInstance] =
-  throw new UnsupportedOperationException("OptiXEngine doesn't use drawables")
+**Files Created:**
+- `src/main/scala/menger/engines/RenderEngine.scala` (16 lines)
+- Related: Refactored OptiXResources into SceneConfigurator, OptiXRendererWrapper, CameraState
 
-protected def gdxResources: GDXResources =
-  throw new UnsupportedOperationException("OptiXEngine doesn't use gdxResources")
-```
-
-**Problem:** `OptiXEngine extends MengerEngine` but throws exceptions for inherited abstract methods.
-
-**Fix:** Use composition instead of inheritance, or create separate `RenderEngine` interface.
+**Result:** No more UnsupportedOperationException violations. Clean architecture using composition over inheritance.
 
 ---
 
@@ -200,13 +194,20 @@ of domain and UI concerns.
 
 ---
 
-### 4.3 OptiXResources Has Too Many Responsibilities
+### ~~4.3 OptiXResources Has Too Many Responsibilities~~ ✅ RESOLVED
 
-**File:** `src/main/scala/menger/OptiXResources.scala` (175 lines)
+**Resolution (2025-11-26 - Stone 2):** Split `OptiXResources.scala` (175 lines) into 3 focused classes:
 
-**Responsibilities:** JNI initialization, camera management, light configuration, plane configuration, statistics reporting, camera updates
+**Files Created:**
+- `SceneConfigurator.scala` (119 lines) - scene setup, lights, plane, material properties
+- `OptiXRendererWrapper.scala` (37 lines) - JNI lifecycle management, render calls
+- `CameraState.scala` (35 lines) - camera position/direction updates
 
-**Fix:** Split into `SceneConfigurator`, `OptiXRendererWrapper`, `CameraState`.
+**Files Modified:**
+- `OptiXEngine.scala` - uses composition with 3 components
+- `OptiXCameraController.scala` - updated to use new components
+
+**Result:** Clean single-responsibility classes, improved testability, better separation of concerns.
 
 ---
 
@@ -310,14 +311,14 @@ Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_I
 | P1 | Create C++ cleanup helpers (program groups) | ✅ Done |
 | P2 | CUDA buffer allocation template | Deferred (patterns too varied) |
 
-### Phase 4: Architecture Improvements - PARTIAL (2/4 complete)
+### Phase 4: Architecture Improvements - ✅ COMPLETE
 
 | Priority | Issue | Status |
 |----------|-------|--------|
-| P2 | Extract `GeometryFactory` from MengerEngine (4.2) | ✅ Done |
-| P2 | Remove Observer from Geometry trait (4.1) | ✅ Done |
-| P2 | Split OptiXResources into smaller classes (4.3) | Pending |
-| P2 | Fix OptiXEngine LSP violation (1.3) | Pending |
+| P2 | Extract `GeometryFactory` from MengerEngine (4.2) | ✅ Done (Stone 1) |
+| P2 | Remove Observer from Geometry trait (4.1) | ✅ Done (Stone 1) |
+| P2 | Split OptiXResources into smaller classes (4.3) | ✅ Done (Stone 2) |
+| P2 | Fix OptiXEngine LSP violation (1.3) | ✅ Done (Stone 2) |
 
 ### Phase 5: Code Quality Polish - ~6 hours
 

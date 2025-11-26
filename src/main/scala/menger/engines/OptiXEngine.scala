@@ -6,32 +6,26 @@ import scala.util.Try
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.ColorConversions.toCommonColor
-import menger.GDXResources
 import menger.OptiXRenderResources
-import menger.OptiXResources
 import menger.PlaneColorSpec
 import menger.PlaneSpec
 import menger.ProfilingConfig
-import menger.RotationProjectionParameters
 import menger.common.ImageSize
-import menger.common.Vector
 import menger.input.OptiXCameraController
+import menger.optix.CameraState
 import menger.optix.OptiXRenderer
+import menger.optix.OptiXRendererWrapper
+import menger.optix.SceneConfigurator
 
-@SuppressWarnings(Array("org.wartremover.warts.Throw"))
 class OptiXEngine(
-  spongeType: String,
-  spongeLevel: Float,
-  rotationProjectionParameters: RotationProjectionParameters,
-  lines: Boolean,
-  color: Color,
-  faceColor: Option[Color],
-  lineColor: Option[Color],
-  fpsLogIntervalMs: Int,
+  val spongeType: String,
+  val spongeLevel: Float,
+  val lines: Boolean,
+  val color: Color,
+  val fpsLogIntervalMs: Int,
   val sphereRadius: Float,
   val ior: Float,
   val scale: Float,
@@ -54,37 +48,34 @@ class OptiXEngine(
   val causticsIterations: Int = 10,
   val causticsRadius: Float = 0.1f,
   val causticsAlpha: Float = 0.7f
-)(using profilingConfig: ProfilingConfig) extends MengerEngine(
-  spongeType, spongeLevel, rotationProjectionParameters, lines, color,
-  faceColor, lineColor, fpsLogIntervalMs
-) with TimeoutSupport with LazyLogging with SavesScreenshots:
+)(using profilingConfig: ProfilingConfig) extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots:
 
   private val geometryGenerator: Try[OptiXRenderer => Unit] = spongeType match {
-    case "sphere" => Try(_.setSphere(Vector[3](center.x, center.y, center.z), sphereRadius))
+    case "sphere" => Try(_.setSphere(menger.common.Vector[3](center.x, center.y, center.z), sphereRadius))
     case _ => Failure(UnsupportedOperationException(spongeType))
   }
-  private lazy val optiXResources: OptiXResources =
-    OptiXResources(geometryGenerator, cameraPos, cameraLookat, cameraUp, planeSpec, lights)
+
+  // Composition: Three focused components instead of one god object
+  private val rendererWrapper = OptiXRendererWrapper()
+  private val sceneConfigurator = SceneConfigurator(geometryGenerator, cameraPos, cameraLookat, cameraUp, planeSpec, lights)
+  private val cameraState = CameraState(cameraPos, cameraLookat, cameraUp)
+
   private val renderResources: OptiXRenderResources = OptiXRenderResources(0, 0)
   private lazy val cameraController: OptiXCameraController =
-    OptiXCameraController(optiXResources, renderResources, cameraPos, cameraLookat, cameraUp)
-
-  protected def drawables: List[ModelInstance] =
-    throw new UnsupportedOperationException("OptiXEngine doesn't use drawables")
-
-  protected def gdxResources: GDXResources =
-    throw new UnsupportedOperationException("OptiXEngine doesn't use gdxResources")
+    OptiXCameraController(rendererWrapper, cameraState, renderResources, cameraPos, cameraLookat, cameraUp)
 
   override def create(): Unit =
     logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, shadows=$shadows, antialiasing=$antialiasing, caustics=$caustics")
-    optiXResources.setSphereColor(color.toCommonColor)
-    optiXResources.setIOR(ior)
-    optiXResources.setScale(scale)
-    optiXResources.setShadows(shadows)
-    optiXResources.setAntialiasing(antialiasing, aaMaxDepth, aaThreshold)
-    optiXResources.setCaustics(caustics, causticsPhotons, causticsIterations, causticsRadius, causticsAlpha)
-    planeColor.foreach(optiXResources.setPlaneColor)
-    optiXResources.initialize()
+
+    val renderer = rendererWrapper.renderer
+    sceneConfigurator.configureScene(renderer)
+    sceneConfigurator.setSphereColor(renderer, color.toCommonColor)
+    sceneConfigurator.setIOR(renderer, ior)
+    sceneConfigurator.setScale(renderer, scale)
+    sceneConfigurator.setShadows(renderer, shadows)
+    sceneConfigurator.setAntialiasing(renderer, antialiasing, aaMaxDepth, aaThreshold)
+    sceneConfigurator.setCaustics(renderer, caustics, causticsPhotons, causticsIterations, causticsRadius, causticsAlpha)
+    planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
 
     // Register interactive camera controller for mouse-based camera control
     Gdx.input.setInputProcessor(cameraController)
@@ -115,13 +106,13 @@ class OptiXEngine(
             logger.info(s"[OptiXEngine] render: dimensions changed from ${lastDims.width}x${lastDims.height} to ${width}x${height}, updating camera")
           case None =>
             logger.info(s"[OptiXEngine] render: initializing with dimensions ${width}x${height}")
-        optiXResources.updateCameraAspectRatio(ImageSize(width, height))
+        cameraState.updateCameraAspectRatio(rendererWrapper.renderer, ImageSize(width, height))
         renderResources.markNeedsRender()
 
       // Only render the scene if something changed
       if renderResources.needsRender then
         val size = ImageSize(width, height)
-        val rgbaBytes = if enableStats then renderWithStats(width, height) else optiXResources.renderScene(size)
+        val rgbaBytes = if enableStats then renderWithStats(width, height) else rendererWrapper.renderScene(size)
         renderResources.renderToScreen(rgbaBytes, width, height)
       else
         // Just redraw the existing texture without re-rendering
@@ -137,7 +128,7 @@ class OptiXEngine(
   protected def currentSaveName: Option[String] = saveName
 
   private def renderWithStats(width: Int, height: Int): Array[Byte] =
-    val result = optiXResources.renderSceneWithStats(ImageSize(width, height))
+    val result = rendererWrapper.renderSceneWithStats(ImageSize(width, height))
     val stats = result.stats
     logger.info(
       s"Ray stats: primary=${stats.primaryRays} total=${stats.totalRays} " +
@@ -149,7 +140,7 @@ class OptiXEngine(
 
   override def resize(width: Int, height: Int): Unit =
     logger.info(s"[OptiXEngine] resize event: ${width}x${height}")
-    optiXResources.updateCameraAspectRatio(ImageSize(width, height))
+    cameraState.updateCameraAspectRatio(rendererWrapper.renderer, ImageSize(width, height))
     renderResources.markNeedsRender()
     Gdx.graphics.requestRendering()
     logger.info("[OptiXEngine] resize complete")
@@ -157,4 +148,7 @@ class OptiXEngine(
   override def dispose(): Unit =
     logger.debug("Disposing OptiXEngine")
     renderResources.dispose()
-    optiXResources.dispose()
+    rendererWrapper.dispose()
+
+  override def pause(): Unit = {}
+  override def resume(): Unit = {}
