@@ -7,10 +7,6 @@ import com.badlogic.gdx.graphics.Color
 
 
 class OptionsSuite extends AnyFlatSpec with Matchers:
-  
-  class SafeMengerCLIOptions(args: Seq[String]) extends menger.MengerCLIOptions(args):
-    @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-    override def onError(e: Throwable): Unit = throw e
 
   "empty options" should "give default timeout" in:
     val options = SafeMengerCLIOptions(Seq[String]())
