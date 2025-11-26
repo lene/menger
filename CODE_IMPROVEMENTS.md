@@ -75,18 +75,11 @@ protected def gdxResources: GDXResources =
 
 ---
 
-### 1.4 Hardcoded Sphere in Photon Tracing (Caustics Bug)
+### ~~1.4 Hardcoded Sphere in Photon Tracing (Caustics Bug)~~ ✅ RESOLVED
 
-**File:** `optix-jni/src/main/native/shaders/sphere_combined.cu:1318-1320`
-
-```cuda
-const float3 sphere_center = make_float3(0.0f, 0.0f, 0.0f);  // Hardcoded!
-const float sphere_radius = 1.5f;  // Hardcoded!
-```
-
-**Problem:** Photon tracing doesn't use actual sphere parameters from `setSphere()`. If sphere is moved or resized, caustics won't follow.
-
-**Fix:** Pass sphere parameters through `CausticsParams` struct.
+**Resolution (2025-11-26):** Added `sphere_center[3]` and `sphere_radius` fields to `CausticsParams`
+struct in OptiXData.h. OptiXWrapper.cpp now copies sphere parameters to caustics params before render.
+Shader uses `params.caustics.sphere_center` and `params.caustics.sphere_radius` instead of hardcoded values.
 
 ---
 
@@ -306,13 +299,13 @@ trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f) extends Observ
 
 ## 7. Consolidated Recommendations
 
-### Phase 1: Critical Fixes (Before Merge) - ~3.5 hours
+### Phase 1: Critical Fixes (Before Merge) - ✅ COMPLETE
 
-| Priority | Issue | Effort |
+| Priority | Issue | Status |
 |----------|-------|--------|
-| P0 | Remove `sys.exit()` calls, propagate errors (1.1) | 2 hours |
-| P0 | Fix unsafe `.get()` calls in AnimationSpecification (1.2) | 30 min |
-| P0 | Sync photon tracing sphere with parameters (1.4) | 1 hour |
+| P0 | Remove `sys.exit()` calls, propagate errors (1.1) | ✅ Done |
+| P0 | Fix unsafe `.get()` calls in AnimationSpecification (1.2) | ✅ Done |
+| P0 | Sync photon tracing sphere with parameters (1.4) | ✅ Done |
 
 ### Phase 2: Constants (From Previous Assessment) - ~5-8 hours
 
@@ -349,11 +342,11 @@ Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_I
 
 **Total Estimated Effort:** 26-33 hours across all phases
 
-**Minimum for Merge (Phase 1):** 3.5 hours - addresses safety-critical issues
+**Minimum for Merge (Phase 1):** ✅ COMPLETE - all safety-critical issues resolved
 
-**Recommended for Merge (Phase 1-2):** 9-12 hours - includes constants cleanup
+**Recommended for Merge (Phase 1-2):** ~5-8 hours remaining - constants cleanup
 
-**Overall Assessment:** The codebase is **mergeable** after Phase 1 fixes. The architecture supports current features but will benefit from Phase 2-5 refactoring before adding significant new complexity.
+**Overall Assessment:** The codebase is **ready for merge**. Phase 1 critical fixes are complete. The architecture supports current features but will benefit from Phase 2-5 refactoring before adding significant new complexity.
 
 **Key Strengths:**
 - Excellent constant infrastructure (acknowledged in previous assessment)
@@ -361,8 +354,8 @@ Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_I
 - Comprehensive test coverage
 - Clean JNI boundary design
 
-**Key Weaknesses (New Findings):**
-- Safety issues: sys.exit(), unsafe .get()
+**Key Weaknesses (Remaining):**
+- ~~Safety issues: sys.exit(), unsafe .get()~~ ✅ Resolved
 - Factory logic in wrong place
 - Domain/UI coupling (Observer in Geometry)
 - Oversized shader and wrapper files

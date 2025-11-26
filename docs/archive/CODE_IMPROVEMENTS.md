@@ -24,6 +24,8 @@
 **Other Improvements (2025-11-26):**
 - ✅ Removed `sys.exit()` calls from engine classes - errors now propagate to Main.scala
 - ✅ Added CUDA atomic float idiom documentation to sphere_combined.cu
+- ✅ Fixed unsafe `.get()` calls in AnimationSpecification - now uses `Map.empty` pattern
+- ✅ Fixed hardcoded sphere in photon tracing - caustics now use sphere params from `CausticsParams`
 
 ---
 
