@@ -10,6 +10,17 @@
   - Resolved Issue 5.2: Missing error recovery in buffer allocation (automatic cleanup prevents leaks)
   - Improved code maintainability through composition and Single Responsibility Principle
   - All 812 tests passing (25 C++ + 787 Scala)
+- **Test Infrastructure Improvements**
+  - Refactored caustics test setup to use `TestScenario` builder API for consistency
+  - Created shared `TestTags.scala` with `Slow` tag for test categorization
+
+### Performance
+- **Test Execution Optimization**
+  - Enabled parallel test execution globally (~2-4x speedup on multi-core systems)
+  - Tagged 12 slowest tests (49.7% of test time) as `Slow` for exclusion from compute-sanitizer
+  - Dramatically reduced caustics test parameters (image size, photon counts, iterations)
+  - Updated pre-push hook to exclude `Slow` tests from compute-sanitizer runs
+  - Expected pre-push hook speedup: ~50%+ reduction in execution time
 
 ## [0.3.7] - 2025-11-21
 

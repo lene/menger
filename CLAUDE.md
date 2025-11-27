@@ -148,3 +148,4 @@ cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx target/nativ
 - Comments only for domain-specific problems not expressible in code
 - Always run pre-push hook to catch errors early
 - when running under xvfb-run, set __GL_THREADED_OPTIMIZATIONS=0 to avoid crashes in libnvidia-glcore.so
+- Do not use scripts or sed to bulk edit code. These have proven to be unreliable and irretrievably corrupt code. Edit code manually only.

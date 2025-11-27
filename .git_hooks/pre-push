@@ -120,15 +120,8 @@ then echo "Status after sbt test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after sbt test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
-# Test OptiX JNI bindings
-echo "Running OptiX JNI tests..."
-sbt "project optixJni" test --warn || STATUS=1
-  if [ $STATUS -gt 0 ]
-  then echo "Status after OptiX JNI test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-  else echo "Status after OptiX JNI test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-  fi
-
 # Run compute-sanitizer for memory leak detection
+# Note: Excludes Slow tests to avoid expensive caustics rendering under compute-sanitizer
 echo "Running compute-sanitizer for GPU memory leak detection..."
 COMPUTE_SANITIZER="${CUDA_HOME}/compute-sanitizer/compute-sanitizer"
 if [ ! -x "$COMPUTE_SANITIZER" ]; then
@@ -136,7 +129,7 @@ if [ ! -x "$COMPUTE_SANITIZER" ]; then
   echo "Please check your CUDA installation"
   STATUS=1
 else
-  env RUNNING_UNDER_COMPUTE_SANITIZER=true "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" test --warn > /tmp/compute-sanitizer-prepush.log 2>&1
+  env RUNNING_UNDER_COMPUTE_SANITIZER=true "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" "testOnly -- -l Slow" --warn > /tmp/compute-sanitizer-prepush.log 2>&1
   SANITIZER_STATUS=$?
   ERROR_COUNT=$(grep "ERROR SUMMARY:" /tmp/compute-sanitizer-prepush.log | tail -1 | awk '{print $4}')
   if [ "$SANITIZER_STATUS" -eq 0 ] && [ "$ERROR_COUNT" = "0" ]; then

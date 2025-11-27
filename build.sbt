@@ -14,6 +14,18 @@ lazy val mengerCommon = project
     scalaVersion := "3.7.3",
     scalacOptions ++= Seq("-deprecation", "-explain", "-feature", "-Wunused:imports"),
 
+    // Scalafix configuration
+    Compile / semanticdbEnabled := true,
+
+    // WartRemover configuration
+    Compile / wartremoverErrors ++= Seq(
+      Wart.Var,
+      Wart.While,
+      Wart.AsInstanceOf,
+      Wart.IsInstanceOf,
+      Wart.Throw
+    ),
+
     // ScalaTest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
   )
@@ -25,6 +37,18 @@ lazy val optixJni = project
   .settings(
     name := "optix-jni",
     scalaVersion := "3.7.3",
+
+    // Scalafix configuration
+    Compile / semanticdbEnabled := true,
+
+    // WartRemover configuration
+    Compile / wartremoverErrors ++= Seq(
+      Wart.Var,
+      Wart.While,
+      Wart.AsInstanceOf,
+      Wart.IsInstanceOf,
+      Wart.Throw
+    ),
 
     // Configure native build
     nativeCompile / sourceDirectory := sourceDirectory.value / "main" / "native",
@@ -133,7 +157,8 @@ lazy val root = {
 
     // Scalafix configuration
     inThisBuild(List(
-      semanticdbVersion := scalafixSemanticdb.revision
+      semanticdbVersion := scalafixSemanticdb.revision,
+      Test / parallelExecution := true  // Enable parallel test execution globally
     )),
     // Run Scalafix during compile only
     Compile / semanticdbEnabled := true,

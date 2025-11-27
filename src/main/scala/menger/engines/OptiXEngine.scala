@@ -79,7 +79,6 @@ class OptiXEngine(
 
     // Register interactive camera controller for mouse-based camera control
     Gdx.input.setInputProcessor(cameraController)
-    logger.info("Interactive camera controls enabled (left-click: orbit, right-click: pan, scroll: zoom)")
 
     // Disable continuous rendering - we'll request renders only when needed
     Gdx.graphics.setContinuousRendering(false)

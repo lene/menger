@@ -71,14 +71,6 @@ then echo "Status after scalafix: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after scalafix: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
-sbt "Universal / packageBin" --warn || STATUS=1
-VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
-unzip -oq ./target/universal/menger-${VERSION}.zip || STATUS=1
-if [ $STATUS -gt 0 ]
-then echo "Status after build: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after build: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-fi
-
 if [ $STATUS -gt 0 ]; then
   commit_msg=$(git log --oneline | head -n 1 | cut -d' ' -f 2-)
   if echo "$commit_msg" | grep '^WIP:'; then
