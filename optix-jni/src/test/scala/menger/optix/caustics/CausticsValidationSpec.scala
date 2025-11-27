@@ -1,6 +1,6 @@
 package menger.optix.caustics
 
-import menger.common.{Color, ImageSize, Vector}
+import menger.common.{Color, ImageSize, OptiXConstants, Vector}
 import menger.optix.{OptiXRenderer, RendererFixture, TestScenario, ThresholdConstants}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -26,8 +26,8 @@ class CausticsValidationSpec extends AnyFlatSpec with Matchers with RendererFixt
   object CanonicalScene:
     val sphereCenter: Vector[3] = Vector[3](0.0f, 0.0f, 0.0f)
     val sphereRadius: Float = 1.0f
-    val sphereIOR: Float = 1.5f
-    val planeY: Float = -2.0f
+    val sphereIOR: Float = OptiXConstants.iorGlass
+    val planeY: Float = OptiXConstants.defaultFloorPlaneY
     val lightDirection: Vector[3] = Vector[3](0.0f, -1.0f, 0.0f)
     val cameraPosition: Vector[3] = Vector[3](0.0f, 1.0f, 4.0f)
     val imageSize: ImageSize = ThresholdConstants.TEST_IMAGE_SIZE

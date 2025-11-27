@@ -1,5 +1,6 @@
 package menger.optix
 
+import menger.common.OptiXConstants
 import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -19,7 +20,7 @@ class AbsorptionTest extends AnyFlatSpec
   "Beer-Lambert absorption" should "increase with scale parameter" in:
     TestScenario.default()
       .withSphereColor(SEMI_TRANSPARENT_GRAY)
-      .withIOR(1.5f)
+      .withIOR(OptiXConstants.iorGlass)
       .withPlane(1, false, -2.0f)
       .applyTo(renderer)
 
@@ -52,7 +53,7 @@ class AbsorptionTest extends AnyFlatSpec
   it should "show center-to-edge gradient" in:
     TestScenario.default()
       .withSphereColor(SEMI_TRANSPARENT_GRAY)
-      .withIOR(1.5f)
+      .withIOR(OptiXConstants.iorGlass)
       .withPlane(1, false, -2.0f)
       .applyTo(renderer)
 

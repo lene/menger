@@ -1,5 +1,6 @@
 package menger.optix
 
+import menger.common.OptiXConstants
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -36,8 +37,8 @@ class PlaneTest extends AnyFlatSpec with Matchers with RendererFixture:
   it should "be visible through transparent sphere" in:
     TestScenario.default()
       .withSphereColor(VERY_TRANSPARENT_WHITE)
-      .withIOR(1.5f)
-      .withPlane(1, false, -2.0f)  // Floor at y=-2
+      .withIOR(OptiXConstants.iorGlass)
+      .withPlane(1, false, OptiXConstants.defaultFloorPlaneY)
       .applyTo(renderer)
 
     val imageData = renderImage(TEST_IMAGE_SIZE)
