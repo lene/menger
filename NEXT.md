@@ -56,32 +56,47 @@
 
 ---
 
-## Completed: Stone 3 (Shader Decomposition) ✅
+## Completed: Stone 3 (Shader Decomposition + Function Refactoring) ✅
 
 **Issues Resolved:**
 - **4.4** - Oversized Files: `sphere_combined.cu` reduced from 1711 to 17 lines
+- **4.5** - Oversized Shader Functions: 5 major functions refactored (46-82% reduction each)
 - **5.1** - Shader File Should Be Split: Successfully decomposed into 6 focused files
 
 **Architecture Changes:**
-1. Extracted shader programs into focused files:
-   - `helpers.cu` (458 lines) - Shadow tracing, lighting, antialiasing, sphere intersection
-   - `raygen_primary.cu` (87 lines) - Primary camera ray generation
-   - `miss_plane.cu` (124 lines) - Miss shader with checkered plane rendering
-   - `hit_sphere.cu` (264 lines) - Sphere material (Fresnel, Snell's law, Beer-Lambert)
-   - `shadows.cu` (20 lines) - Shadow ray miss and closest hit shaders
-   - `caustics_ppm.cu` (742 lines) - Progressive Photon Mapping (3 raygen programs + helpers)
 
-2. `sphere_combined.cu` is now minimal (17 lines):
-   - Include directives for headers
-   - Params declaration
-   - Include directives for all shader files
+### Phase 1: File Decomposition
+Extracted shader programs into focused files:
+- `helpers.cu` (518 lines) - Shadow tracing, lighting helpers, antialiasing, sphere intersection
+- `raygen_primary.cu` (87 lines) - Primary camera ray generation
+- `miss_plane.cu` (152 lines) - Miss shader with checkered plane + helpers
+- `hit_sphere.cu` (360 lines) - Sphere material shader + helpers
+- `shadows.cu` (20 lines) - Shadow ray miss and closest hit shaders
+- `caustics_ppm.cu` (895 lines) - Progressive Photon Mapping + helpers
+
+`sphere_combined.cu` is now minimal (17 lines) - just includes.
+
+### Phase 2: Function Refactoring (Stone 3.5)
+Extracted helper functions from 5 largest shader functions using Single Responsibility Principle:
+
+| Function | File | Before | After | Reduction | Helpers Extracted |
+|----------|------|--------|-------|-----------|-------------------|
+| `__closesthit__ch()` | hit_sphere.cu | 260 | 101 | 61% | 7 (Fresnel, Beer-Lambert, ray tracing) |
+| `tracePhoton()` | caustics_ppm.cu | 173 | 32 | 82% | 3 (intersection, sphere hit, plane check) |
+| `__miss__ms()` | miss_plane.cu | 124 | 43 | 65% | 5 (plane components, checkerboard, normal) |
+| `__raygen__hitpoints()` | caustics_ppm.cu | 112 | 52 | 54% | 3 (camera ray, plane normal, hit point init) |
+| `calculateLighting()` | helpers.cu | 76 | 41 | 46% | 3 (directional light, point light, diffuse term) |
+
+**Total:** 745 lines → 269 lines (64% average reduction across 5 functions)
 
 **Results:**
 - 99% reduction in main file size (1711 → 17 lines)
-- Clean separation by shader program type
+- 64% average reduction in refactored functions
+- Clean separation by shader program type and responsibility
+- All helper functions follow Single Responsibility Principle
 - Maintained single PTX output via #include approach (recommended by OptiX community)
-- All 193 OptiX tests passing
-- Committed: 4 incremental commits with testing after each extraction
+- All 161 OptiX tests passing after each refactoring
+- Committed: Phase 1 (4 commits), Phase 2 (1 commit)
 
 ---
 
@@ -99,15 +114,31 @@ Grouped by potential synergy for efficient refactoring:
 | `MengerCLIOptions.scala` | 473 | 300 | All CLI parsing in one file |
 
 #### 4.5 - Oversized Functions
+
+**CUDA Shaders (Mostly Complete):**
+| Function | File | Lines | Status |
+|----------|------|-------|--------|
+| ~~`__closesthit__ch()`~~ | ~~hit_sphere.cu~~ | ~~260→101~~ | ✅ Refactored 61% |
+| ~~`tracePhoton()`~~ | ~~caustics_ppm.cu~~ | ~~173→32~~ | ✅ Refactored 82% |
+| ~~`__miss__ms()`~~ | ~~miss_plane.cu~~ | ~~124→43~~ | ✅ Refactored 65% |
+| ~~`__raygen__hitpoints()`~~ | ~~caustics_ppm.cu~~ | ~~112→52~~ | ✅ Refactored 54% |
+| ~~`calculateLighting()`~~ | ~~helpers.cu~~ | ~~76→41~~ | ✅ Refactored 46% |
+| `subdividePixel()` | helpers.cu | 96 | Acceptable (cohesive algorithm) |
+| `__raygen__rg()` | raygen_primary.cu | 83 | Could deduplicate camera ray code |
+| `__intersection__sphere()` | helpers.cu | 80 | Acceptable (intersection logic) |
+| `handlePhotonSphereHit()` | caustics_ppm.cu | 87 | Could be further split |
+
+**C++ Functions (Not Started):**
 | Function | File | Lines | Max |
 |----------|------|-------|-----|
 | `render()` | OptiXWrapper.cpp:582-805 | 223 | 50 |
 | `dispose()` | OptiXWrapper.cpp:950-1080 | 130 | 50 |
 
 **Remaining Work for Stone 3:**
-1. Extract helper functions from `render()` and `dispose()` in OptiXWrapper.cpp
-2. Consider splitting MengerCLIOptions by feature (rendering, caustics, lights, etc.)
-3. Estimated remaining effort: 3-4 hours
+1. CUDA Shaders: Consider second round on remaining 80-96 line functions (optional)
+2. C++: Extract helper functions from `render()` and `dispose()` in OptiXWrapper.cpp
+3. Scala: Consider splitting MengerCLIOptions by feature (rendering, caustics, lights, etc.)
+4. Estimated remaining effort: 2-3 hours (C++) + 1 hour (Scala) = 3-4 hours total
 
 ---
 

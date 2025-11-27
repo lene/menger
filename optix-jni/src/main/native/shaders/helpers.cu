@@ -74,8 +74,64 @@ __device__ float traceShadowRay(
 }
 
 //==============================================================================
-// Lighting Calculation Helper
+// Lighting Calculation Helpers
 //==============================================================================
+
+/**
+ * Calculate light direction and attenuation for directional light.
+ */
+__device__ void getDirectionalLightParams(
+    const Light& light,
+    float3& light_dir,
+    float& attenuation
+) {
+    light_dir = normalize(make_float3(
+        light.direction[0],
+        light.direction[1],
+        light.direction[2]
+    ));
+    attenuation = 1.0f;  // No distance falloff
+}
+
+/**
+ * Calculate light direction and attenuation for point light.
+ */
+__device__ void getPointLightParams(
+    const Light& light,
+    const float3& hit_point,
+    float3& light_dir,
+    float& attenuation
+) {
+    const float3 light_pos = make_float3(
+        light.position[0],
+        light.position[1],
+        light.position[2]
+    );
+    const float3 to_light = light_pos - hit_point;
+    const float distance = length(to_light);
+    light_dir = to_light / distance;  // Normalize
+
+    // Inverse-square law: I = I₀ / (1 + d²)
+    attenuation = 1.0f / (1.0f + distance * distance);
+}
+
+/**
+ * Calculate diffuse term (Lambertian: N · L).
+ */
+__device__ float calculateDiffuseTerm(
+    const float3& normal,
+    const float3& light_dir,
+    bool double_sided
+) {
+    if (double_sided) {
+        // Double-sided surface (e.g., plane): use absolute value
+        const float raw_ndotl = dot(normal, light_dir);
+        return fabsf(raw_ndotl);
+    } else {
+        // Single-sided surface (e.g., sphere): clamp to [0, ∞)
+        return fmaxf(0.0f, dot(normal, light_dir));
+    }
+}
 
 /**
  * Calculate total lighting contribution from all lights in scene.
@@ -104,39 +160,13 @@ __device__ float3 calculateLighting(
         float attenuation;
 
         if (light.type == LightType::DIRECTIONAL) {
-            // Directional light: parallel rays from infinite distance
-            light_dir = normalize(make_float3(
-                light.direction[0],
-                light.direction[1],
-                light.direction[2]
-            ));
-            attenuation = 1.0f;  // No distance falloff
-
+            getDirectionalLightParams(light, light_dir, attenuation);
         } else if (light.type == LightType::POINT) {
-            // Point light: radial emission with inverse-square falloff
-            const float3 light_pos = make_float3(
-                light.position[0],
-                light.position[1],
-                light.position[2]
-            );
-            const float3 to_light = light_pos - hit_point;
-            const float distance = length(to_light);
-            light_dir = to_light / distance;  // Normalize
-
-            // Inverse-square law: I = I₀ / (1 + d²)
-            attenuation = 1.0f / (1.0f + distance * distance);
+            getPointLightParams(light, hit_point, light_dir, attenuation);
         }
 
         // Calculate diffuse term (Lambertian: N · L)
-        float ndotl;
-        if (double_sided) {
-            // Double-sided surface (e.g., plane): use absolute value
-            const float raw_ndotl = dot(normal, light_dir);
-            ndotl = fabsf(raw_ndotl);
-        } else {
-            // Single-sided surface (e.g., sphere): clamp to [0, ∞)
-            ndotl = fmaxf(0.0f, dot(normal, light_dir));
-        }
+        const float ndotl = calculateDiffuseTerm(normal, light_dir, double_sided);
 
         // Skip lights that don't contribute (sub-pixel threshold)
         if (ndotl <= MIN_LIGHTING_THRESHOLD) {

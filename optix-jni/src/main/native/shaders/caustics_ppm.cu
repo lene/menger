@@ -104,6 +104,82 @@ __device__ float rnd(unsigned int& seed) {
 }
 
 //==============================================================================
+// Progressive Photon Mapping - Hit Point Generation Helpers
+//==============================================================================
+
+/**
+ * Generate camera ray from pixel coordinates.
+ */
+__device__ float3 generateCameraRay(
+    const uint3& idx,
+    const uint3& dim,
+    const RayGenData* rt_data,
+    float3& cam_eye
+) {
+    // Screen convention: idx.y=0 is top, so flip to get v=+1 at top, v=-1 at bottom
+    const float u = (static_cast<float>(idx.x) + 0.5f) / static_cast<float>(dim.x) * 2.0f - 1.0f;
+    const float v = 1.0f - (static_cast<float>(idx.y) + 0.5f) / static_cast<float>(dim.y) * 2.0f;
+    const float2 d = make_float2(u, v);
+
+    cam_eye = make_float3(rt_data->cam_eye[0], rt_data->cam_eye[1], rt_data->cam_eye[2]);
+    const float3 cam_u = make_float3(rt_data->camera_u[0], rt_data->camera_u[1], rt_data->camera_u[2]);
+    const float3 cam_v = make_float3(rt_data->camera_v[0], rt_data->camera_v[1], rt_data->camera_v[2]);
+    const float3 cam_w = make_float3(rt_data->camera_w[0], rt_data->camera_w[1], rt_data->camera_w[2]);
+
+    return normalize(d.x * cam_u + d.y * cam_v + cam_w);
+}
+
+/**
+ * Get plane normal based on axis.
+ */
+__device__ void getPlaneNormalComponents(
+    int plane_axis,
+    float& nx,
+    float& ny,
+    float& nz
+) {
+    nx = (plane_axis == 0) ? 1.0f : 0.0f;
+    ny = (plane_axis == 1) ? 1.0f : 0.0f;
+    nz = (plane_axis == 2) ? 1.0f : 0.0f;
+}
+
+/**
+ * Initialize a hit point at the given location.
+ */
+__device__ void initializeHitPoint(
+    HitPoint& hp,
+    const float3& position,
+    int plane_axis,
+    const uint3& idx
+) {
+    hp.position[0] = position.x;
+    hp.position[1] = position.y;
+    hp.position[2] = position.z;
+
+    // Plane normal based on axis
+    getPlaneNormalComponents(plane_axis, hp.normal[0], hp.normal[1], hp.normal[2]);
+
+    // Initialize flux accumulator
+    hp.flux[0] = 0.0f;
+    hp.flux[1] = 0.0f;
+    hp.flux[2] = 0.0f;
+
+    // Initial search radius
+    hp.radius = params.caustics.initial_radius;
+    hp.n = 0;
+    hp.new_photons = 0;
+
+    // Store pixel coordinates for final write
+    hp.pixel_x = idx.x;
+    hp.pixel_y = idx.y;
+
+    // BRDF weight (Lambertian = 1/π, normalized later)
+    hp.weight[0] = 1.0f;
+    hp.weight[1] = 1.0f;
+    hp.weight[2] = 1.0f;
+}
+
+//==============================================================================
 // Progressive Photon Mapping - Hit Point Generation (Phase 2)
 //==============================================================================
 
@@ -124,24 +200,12 @@ extern "C" __global__ void __raygen__hitpoints() {
     // Get camera data from SBT
     const RayGenData* rt_data = reinterpret_cast<RayGenData*>(optixGetSbtDataPointer());
 
-    // Generate camera ray (same as __raygen__rg)
-    // Screen convention: idx.y=0 is top, so flip to get v=+1 at top, v=-1 at bottom
-    const float u = (static_cast<float>(idx.x) + 0.5f) / static_cast<float>(dim.x) * 2.0f - 1.0f;
-    const float v = 1.0f - (static_cast<float>(idx.y) + 0.5f) / static_cast<float>(dim.y) * 2.0f;
-    const float2 d = make_float2(u, v);
-
-    const float3 cam_eye = make_float3(rt_data->cam_eye[0], rt_data->cam_eye[1], rt_data->cam_eye[2]);
-    const float3 cam_u = make_float3(rt_data->camera_u[0], rt_data->camera_u[1], rt_data->camera_u[2]);
-    const float3 cam_v = make_float3(rt_data->camera_v[0], rt_data->camera_v[1], rt_data->camera_v[2]);
-    const float3 cam_w = make_float3(rt_data->camera_w[0], rt_data->camera_w[1], rt_data->camera_w[2]);
-
-    const float3 ray_direction = normalize(d.x * cam_u + d.y * cam_v + cam_w);
+    // Generate camera ray
+    float3 cam_eye;
+    const float3 ray_direction = generateCameraRay(idx, dim, rt_data, cam_eye);
 
     // Trace ray to find first hit
-    // Payload: p0 = hit_type (0=miss, 1=diffuse/plane, 2=specular/sphere)
-    //          p1,p2,p3 = hit position (if diffuse)
     unsigned int p0 = 0, p1 = 0, p2 = 0, p3 = 0;
-
     optixTrace(
         params.handle,
         cam_eye,
@@ -157,25 +221,12 @@ extern "C" __global__ void __raygen__hitpoints() {
         p0, p1, p2, p3
     );
 
-    // Check if we hit a diffuse surface (plane)
-    // The miss shader sets p0 differently for plane hits vs background
-    // For caustics, we detect plane hits by checking if ray would have hit the plane
-
-    // Re-compute plane intersection here to determine if it's a diffuse hit
+    // Re-compute plane intersection to determine if we have a diffuse hit
     const int plane_axis = params.plane_axis;
     const float plane_value = params.plane_value;
 
     float ray_orig_comp, ray_dir_comp;
-    if (plane_axis == 0) {
-        ray_orig_comp = cam_eye.x;
-        ray_dir_comp = ray_direction.x;
-    } else if (plane_axis == 1) {
-        ray_orig_comp = cam_eye.y;
-        ray_dir_comp = ray_direction.y;
-    } else {
-        ray_orig_comp = cam_eye.z;
-        ray_dir_comp = ray_direction.z;
-    }
+    getRayPlaneComponents(cam_eye, ray_direction, plane_axis, ray_orig_comp, ray_dir_comp);
 
     // Check for plane intersection
     if (fabsf(ray_dir_comp) > 1e-6f) {
@@ -184,48 +235,12 @@ extern "C" __global__ void __raygen__hitpoints() {
         if (t_plane > 0.0f) {
             const float3 plane_hit = cam_eye + ray_direction * t_plane;
 
-            // Check if ray hit sphere first (sphere would have closer t)
-            // We can't easily get the sphere t from the trace, so we'll
-            // compute it here for comparison
-            // For simplicity in this version, we'll trace a separate ray
-            // to determine if sphere is in the way
-
-            // For now, assume plane is visible if ray reached miss shader
-            // (This is a simplification - in practice we'd need to check)
-
-            // Allocate hit point slot atomically (use pointer to GPU memory, not constant memory)
+            // Allocate hit point slot atomically
             const unsigned int hp_idx = atomicAdd(params.caustics.num_hit_points, 1);
 
             if (hp_idx < MAX_HIT_POINTS) {
                 HitPoint& hp = params.caustics.hit_points[hp_idx];
-
-                hp.position[0] = plane_hit.x;
-                hp.position[1] = plane_hit.y;
-                hp.position[2] = plane_hit.z;
-
-                // Plane normal based on axis
-                hp.normal[0] = (plane_axis == 0) ? 1.0f : 0.0f;
-                hp.normal[1] = (plane_axis == 1) ? 1.0f : 0.0f;
-                hp.normal[2] = (plane_axis == 2) ? 1.0f : 0.0f;
-
-                // Initialize flux accumulator
-                hp.flux[0] = 0.0f;
-                hp.flux[1] = 0.0f;
-                hp.flux[2] = 0.0f;
-
-                // Initial search radius
-                hp.radius = params.caustics.initial_radius;
-                hp.n = 0;
-                hp.new_photons = 0;
-
-                // Store pixel coordinates for final write
-                hp.pixel_x = idx.x;
-                hp.pixel_y = idx.y;
-
-                // BRDF weight (Lambertian = 1/π, normalized later)
-                hp.weight[0] = 1.0f;
-                hp.weight[1] = 1.0f;
-                hp.weight[2] = 1.0f;
+                initializeHitPoint(hp, plane_hit, plane_axis, idx);
             }
         }
     }
