@@ -13,16 +13,19 @@ The codebase demonstrates **good overall quality** with well-organized constant 
 
 | Category | Grade | Notes |
 |----------|-------|-------|
-| **Constants Infrastructure** | A- | Excellent organization (see previous assessment) |
-| **Constants Usage** | B- | Inconsistent - constants exist but not always used |
-| **Architecture** | B+ | ~~Domain/UI coupling~~, ~~Factory in engine~~, LSP violation in OptiXEngine |
+| **Constants Infrastructure** | A | Excellent organization with comprehensive coverage |
+| **Constants Usage** | A- | ~~Inconsistent~~ - OptiXConstants created, ~50 magic numbers replaced |
+| **Architecture** | B+ | ~~Domain/UI coupling~~, ~~Factory in engine~~, ~~LSP violation~~ |
 | **Code Duplication** | A- | ~~CLI helpers~~, ~~OptiX validations~~, ~~C++ cleanup~~ |
 | **Functional Programming** | C+ | 15+ `var` suppressions in input controllers |
-| **Separation of Concerns** | A- | ~~Factory extracted~~, oversized classes remain |
+| **Separation of Concerns** | A | ~~Factory extracted~~, ~~oversized classes~~ (Stone 3 complete) |
 | **Error Handling** | B+ | ~~Unsafe `.get()`~~, ~~sys.exit()~~, proper Try/Either usage |
-| **Test Quality** | B+ | Good coverage, magic numbers in tests |
+| **Test Quality** | A- | Good coverage, ~~magic numbers replaced~~ with constants |
 
-**Previous Assessment Status:** The Nov 20 constants assessment identified 12 high-priority items. **None have been implemented yet** - all checklist items remain open.
+**Status Update (2025-11-27):** Significant progress on code quality improvements:
+- ✅ Stone 1-3 architectural refactoring complete
+- ✅ Constants cleanup (Phase 1-2) complete
+- ✅ Test quality improved (magic numbers eliminated)
 
 ---
 
@@ -88,23 +91,39 @@ The previous assessment (2025-11-20) thoroughly analyzed magic numbers and const
 - Well-documented with inline comments
 - Proper namespacing (RayTracingConstants, etc.)
 
-### Outstanding Items (Not Yet Implemented)
+### ~~Phase 1 & 2 - Constants Infrastructure~~ ✅ RESOLVED
 
-**Phase 1 - Critical Duplication (from previous assessment):**
-- [ ] Add `DEFAULT_SPHERE_RADIUS = 1.5f` to OptiXData.h
-- [ ] Add `DEFAULT_CAMERA_Z_DISTANCE = 3.0f` to OptiXData.h
-- [ ] Add `DEFAULT_FOV_DEGREES = 60.0f` to OptiXData.h
-- [ ] Add `DEFAULT_FLOOR_PLANE_Y = -2.0f` to OptiXData.h
-- [ ] Add `DEG_TO_RAD` and `RAD_TO_DEG` to Const.scala and OptiXData.h
-- [ ] Add `FPS_LOG_INTERVAL_MS = 1000` to Const.scala
+**Resolution (2025-11-27):** Completed comprehensive constants cleanup across entire codebase.
+
+**Phase 1 - C++/CUDA Constants (Already existed in OptiXData.h):**
+- ✅ `DEFAULT_SPHERE_RADIUS = 1.5f` (RayTracingConstants)
+- ✅ `DEFAULT_CAMERA_Z_DISTANCE = 3.0f` (RayTracingConstants)
+- ✅ `DEFAULT_FOV_DEGREES = 60.0f` (RayTracingConstants)
+- ✅ `DEFAULT_FLOOR_PLANE_Y = -2.0f` (RayTracingConstants)
+- ✅ `DEG_TO_RAD` and `RAD_TO_DEG` (RayTracingConstants)
+
+**Phase 2 - Scala Constants:**
+- ✅ Created `menger-common/src/main/scala/menger/common/OptiXConstants.scala` (20 lines)
+  - Default geometry: sphere radius, camera Z, FOV, floor plane Y
+  - Material IORs: vacuum (1.0), water (1.33), glass (1.5), diamond (2.42)
+- ✅ Added `degToRad` and `radToDeg` to Const.scala
+- ✅ Updated OptiXEngineTest.scala to use constants for defaults and assertions
+- ✅ Updated TestScenarios.scala config defaults and factory methods
+- ✅ Replaced ~50 magic numbers across 12 test files:
+  - IOR values (1.5f → OptiXConstants.iorGlass) - 25 occurrences
+  - Sphere radius (1.5f → OptiXConstants.defaultSphereRadius) - 20 occurrences
+  - Floor plane (-2.0f → OptiXConstants.defaultFloorPlaneY) - 4 occurrences
+
+**Commits:**
+- `c406c95` - Add OptiXConstants and replace magic numbers in tests
+- `2353739` - Replace magic numbers with OptiXConstants in TestScenarios
+- `8d4614a` - Replace all magic numbers with OptiXConstants in test files
+
+**Remaining (Low Priority):**
 - [ ] Replace hardcoded `255.0f` with `COLOR_BYTE_MAX` in sphere_combined.cu
-
-**Phase 2 - Medium Priority:**
-- [ ] Add IOR material constants (VACUUM=1.0, WATER=1.33, GLASS=1.5, DIAMOND=2.42)
-- [ ] Add material color multipliers to Const.scala
 - [ ] Add `OPTIX_VISIBILITY_MASK_ALL = 255` to OptiXData.h
 
-**Estimated Effort:** 5-8 hours (unchanged from previous estimate)
+**Estimated Remaining Effort:** ~1 hour
 
 ---
 

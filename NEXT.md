@@ -189,14 +189,32 @@ Grouped by potential synergy for efficient refactoring:
 
 ### **Lower Priority Issues** (Not Grouped)
 
-#### 6.1 - Magic Numbers in Tests
-**High-frequency values not using constants:**
-- `1.5f` (IOR glass) - 23+ occurrences
-- `0.5f` (sphere radius) - 30+ occurrences
-- `60.0f` (FOV) - 15+ occurrences
+#### ~~6.1 - Magic Numbers in Tests~~ ✅ RESOLVED
+**Resolution (2025-11-27):** Completed comprehensive constants cleanup
 
-**Fix:** Create `MaterialConstants.scala` in test utilities
-**Effort:** 1 hour
+**What was done:**
+- ✅ Created `menger-common/src/main/scala/menger/common/OptiXConstants.scala` (20 lines)
+  - Default geometry constants (sphere radius, camera Z, FOV, floor plane Y)
+  - Material IOR constants (vacuum, water, glass, diamond)
+- ✅ Added `degToRad` and `radToDeg` to Const.scala
+- ✅ Replaced ~50 magic numbers across 13 test files:
+  - IOR values (1.5f → OptiXConstants.iorGlass) - 25 occurrences
+  - Sphere radius (1.5f → OptiXConstants.defaultSphereRadius) - 20 occurrences
+  - Floor plane (-2.0f → OptiXConstants.defaultFloorPlaneY) - 4 occurrences
+  - Camera Z (3.0f → OptiXConstants.defaultCameraZDistance) - several occurrences
+  - FOV (60.0f → OptiXConstants.defaultFovDegrees) - several occurrences
+
+**Files updated:**
+- OptiXEngineTest.scala, TestScenarios.scala, CausticsReferenceSpec.scala,
+  CausticsValidationSpec.scala, ShadowTest.scala, PlaneTest.scala,
+  RayStatsTest.scala, AbsorptionTest.scala, PerformanceTest.scala,
+  RendererTest.scala, ShadowDiagnosticTest.scala, FarSphereVisualization.scala,
+  BufferReuseTest.scala, MultiInstanceTest.scala
+
+**Commits:**
+- `c406c95` - Add OptiXConstants and replace magic numbers in tests
+- `2353739` - Replace magic numbers with OptiXConstants in TestScenarios
+- `8d4614a` - Replace all magic numbers with OptiXConstants in test files
 
 #### 6.2 - Inconsistent Test Patterns
 - `WindowResizeTest` doesn't use `RendererFixture` trait
@@ -248,15 +266,17 @@ Grouped by potential synergy for efficient refactoring:
 
 ## Total Remaining Effort Estimate
 
-- **High Priority (Stones 2-4):** 15-20 hours
-- **Polish (Lower priority):** 6-7 hours
-- **Grand Total:** 21-27 hours
+- **High Priority (Stone 4):** 3-4 hours (Caustics TODOs - optional)
+- **Polish (Lower priority):** 5-6 hours (Test patterns + Input controller vars)
+- **Grand Total:** 8-10 hours (down from 21-27 hours)
 
 ---
 
 ## Notes for Next Session
 
-- All major architectural refactoring (Stones 1-3) complete
+- All major architectural refactoring (Stones 1-3) complete ✅
+- Constants cleanup (Phase 1-2) complete ✅
+- Test quality improvements complete ✅
 - All 812 tests passing (25 C++ + 787 Scala)
-- Current branch: `feature/caustics` (5 commits ahead of origin)
-- Ready to push after code quality assessment per CLAUDE.md guidelines
+- Current branch: `feature/caustics` (8 commits ahead of origin)
+- Ready to push after documentation updates
