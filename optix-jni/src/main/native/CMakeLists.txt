@@ -175,6 +175,8 @@ add_library(optixjni SHARED
     SceneParameters.cpp
     RenderConfig.cpp
     PipelineManager.cpp
+    BufferManager.cpp
+    CausticsRenderer.cpp
     JNIBindings.cpp
 )
 
