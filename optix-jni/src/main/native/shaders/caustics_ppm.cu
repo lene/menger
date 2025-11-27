@@ -311,6 +311,172 @@ __device__ void depositPhoton(const float3& photon_pos, const float3& photon_dir
 }
 
 //==============================================================================
+// Progressive Photon Mapping - Photon Tracing Helpers (Phase 3)
+//==============================================================================
+
+/**
+ * Intersect ray with sphere and return distance to nearest hit.
+ * Returns -1.0f if no valid intersection.
+ */
+__device__ float intersectSphere(
+    const float3& origin,
+    const float3& dir,
+    const float3& sphere_center,
+    float sphere_radius
+) {
+    const float3 oc = origin - sphere_center;
+    const float a = dot(dir, dir);
+    const float half_b = dot(oc, dir);
+    const float c = dot(oc, oc) - sphere_radius * sphere_radius;
+    const float discriminant = half_b * half_b - a * c;
+
+    if (discriminant <= 0.0f) {
+        return -1.0f;  // No intersection
+    }
+
+    const float sqrt_d = sqrtf(discriminant);
+    float t = (-half_b - sqrt_d) / a;  // Near intersection
+
+    if (t < 0.001f) {
+        t = (-half_b + sqrt_d) / a;  // Try far intersection
+    }
+
+    return (t > 0.001f) ? t : -1.0f;
+}
+
+/**
+ * Handle photon interaction with sphere surface.
+ * Applies Beer-Lambert absorption when exiting, then refracts or reflects photon.
+ * Updates origin and dir for the next bounce.
+ * Returns false if photon should terminate (absorbed).
+ */
+__device__ bool handlePhotonSphereHit(
+    float3& origin,
+    float3& dir,
+    float3& flux,
+    float t,
+    const float3& sphere_center
+) {
+    const float3 hit_point = origin + dir * t;
+    const float3 outward_normal = normalize(hit_point - sphere_center);
+
+    if (params.caustics.stats) {
+        atomicAdd(&params.caustics.stats->sphere_hits, 1ULL);
+    }
+
+    const bool entering = dot(dir, outward_normal) < 0.0f;
+    const float3 normal = entering ? outward_normal : make_float3(-outward_normal.x, -outward_normal.y, -outward_normal.z);
+
+    const float n1 = entering ? 1.0f : params.sphere_ior;
+    const float n2 = entering ? params.sphere_ior : 1.0f;
+    const float eta = n1 / n2;
+
+    const float cos_theta_i = fabsf(dot(dir, normal));
+    const float sin_theta_i_sq = 1.0f - cos_theta_i * cos_theta_i;
+    const float sin_theta_t_sq = eta * eta * sin_theta_i_sq;
+
+    // Apply Beer-Lambert absorption when exiting
+    if (!entering) {
+        const float3 glass_color = make_float3(
+            params.sphere_color[0],
+            params.sphere_color[1],
+            params.sphere_color[2]
+        );
+        const float glass_alpha = params.sphere_color[3];
+
+        const float absorption_scale = BEER_LAMBERT_ABSORPTION_SCALE;
+        const float3 extinction = make_float3(
+            -logf(fmaxf(glass_color.x, COLOR_CHANNEL_MIN_SAFE_VALUE)) * glass_alpha * absorption_scale,
+            -logf(fmaxf(glass_color.y, COLOR_CHANNEL_MIN_SAFE_VALUE)) * glass_alpha * absorption_scale,
+            -logf(fmaxf(glass_color.z, COLOR_CHANNEL_MIN_SAFE_VALUE)) * glass_alpha * absorption_scale
+        );
+
+        const float3 attenuation = make_float3(
+            expf(-extinction.x * t * params.sphere_scale),
+            expf(-extinction.y * t * params.sphere_scale),
+            expf(-extinction.z * t * params.sphere_scale)
+        );
+
+        if (params.caustics.stats) {
+            const double absorbed = static_cast<double>(
+                flux.x * (1.0f - attenuation.x) +
+                flux.y * (1.0f - attenuation.y) +
+                flux.z * (1.0f - attenuation.z)
+            );
+            atomicAdd(&params.caustics.stats->total_flux_absorbed, absorbed);
+        }
+
+        flux = make_float3(flux.x * attenuation.x, flux.y * attenuation.y, flux.z * attenuation.z);
+    }
+
+    // Check for total internal reflection
+    if (sin_theta_t_sq > 1.0f) {
+        if (params.caustics.stats) {
+            atomicAdd(&params.caustics.stats->tir_events, 1ULL);
+        }
+        const float3 reflect_dir = make_float3(
+            dir.x - 2.0f * cos_theta_i * normal.x,
+            dir.y - 2.0f * cos_theta_i * normal.y,
+            dir.z - 2.0f * cos_theta_i * normal.z
+        );
+        origin = hit_point + reflect_dir * CONTINUATION_RAY_OFFSET;
+        dir = normalize(reflect_dir);
+    } else {
+        // Refraction using Snell's law
+        if (params.caustics.stats) {
+            atomicAdd(&params.caustics.stats->refraction_events, 1ULL);
+        }
+        const float cos_theta_t = sqrtf(1.0f - sin_theta_t_sq);
+        const float3 refract_dir = make_float3(
+            eta * dir.x + (eta * cos_theta_i - cos_theta_t) * normal.x,
+            eta * dir.y + (eta * cos_theta_i - cos_theta_t) * normal.y,
+            eta * dir.z + (eta * cos_theta_i - cos_theta_t) * normal.z
+        );
+        origin = hit_point + refract_dir * CONTINUATION_RAY_OFFSET;
+        dir = normalize(refract_dir);
+    }
+
+    return true;  // Continue tracing
+}
+
+/**
+ * Check if photon hits the plane and deposit energy if so.
+ * Returns true if photon was deposited (absorbed by diffuse surface).
+ */
+__device__ bool checkPlaneIntersection(
+    const float3& origin,
+    const float3& dir,
+    const float3& flux
+) {
+    const int plane_axis = params.plane_axis;
+    const float plane_value = params.plane_value;
+
+    float ray_orig_comp, ray_dir_comp;
+    if (plane_axis == 0) {
+        ray_orig_comp = origin.x;
+        ray_dir_comp = dir.x;
+    } else if (plane_axis == 1) {
+        ray_orig_comp = origin.y;
+        ray_dir_comp = dir.y;
+    } else {
+        ray_orig_comp = origin.z;
+        ray_dir_comp = dir.z;
+    }
+
+    if (fabsf(ray_dir_comp) > 1e-6f) {
+        const float t_plane = (plane_value - ray_orig_comp) / ray_dir_comp;
+
+        if (t_plane > 0.001f) {
+            const float3 plane_hit = origin + dir * t_plane;
+            depositPhoton(plane_hit, dir, flux);
+            return true;  // Photon absorbed by diffuse surface
+        }
+    }
+
+    return false;  // No plane intersection
+}
+
+//==============================================================================
 // Progressive Photon Mapping - Photon Tracing (Phase 3)
 //==============================================================================
 
@@ -334,171 +500,34 @@ __device__ void tracePhoton(
     unsigned int& seed,
     int max_bounces
 ) {
-    // Get sphere geometry for intersection testing
-    // Note: We trace against the same acceleration structure, reusing existing intersection
+    const float3 sphere_center = make_float3(
+        params.caustics.sphere_center[0],
+        params.caustics.sphere_center[1],
+        params.caustics.sphere_center[2]
+    );
+    const float sphere_radius = params.caustics.sphere_radius;
 
     for (int bounce = 0; bounce < max_bounces; ++bounce) {
-        // Trace photon ray to find next intersection
-        // We'll use a simplified approach: check for sphere intersection first,
-        // then plane intersection if sphere missed
+        // Check sphere intersection
+        const float t = intersectSphere(origin, dir, sphere_center, sphere_radius);
 
-        // For this implementation, we trace the photon and check what it hits
-        // We reuse the primary ray closest hit shader, but interpret results differently
-
-        // Check intersection with sphere analytically
-        // Use sphere parameters from caustics config (synced from HitGroupData)
-        const float3 sphere_center = make_float3(
-            params.caustics.sphere_center[0],
-            params.caustics.sphere_center[1],
-            params.caustics.sphere_center[2]
-        );
-        const float sphere_radius = params.caustics.sphere_radius;
-
-        const float3 oc = origin - sphere_center;
-        const float a = dot(dir, dir);
-        const float half_b = dot(oc, dir);
-        const float c = dot(oc, oc) - sphere_radius * sphere_radius;
-        const float discriminant = half_b * half_b - a * c;
-
-        if (discriminant > 0.0f) {
-            // Photon hits sphere - compute intersection point
-            const float sqrt_d = sqrtf(discriminant);
-            float t = (-half_b - sqrt_d) / a;  // Near intersection
-
-            // Check if intersection is in front
-            if (t < 0.001f) {
-                t = (-half_b + sqrt_d) / a;  // Try far intersection
-            }
-
-            if (t > 0.001f) {
-                // Valid sphere intersection
-                const float3 hit_point = origin + dir * t;
-                const float3 outward_normal = normalize(hit_point - sphere_center);
-
-                // C2: Track sphere hit statistics
-                if (params.caustics.stats) {
-                    atomicAdd(&params.caustics.stats->sphere_hits, 1ULL);
-                }
-
-                // Determine if entering or exiting
-                const bool entering = dot(dir, outward_normal) < 0.0f;
-                const float3 normal = entering ? outward_normal : make_float3(-outward_normal.x, -outward_normal.y, -outward_normal.z);
-
-                // Get material properties
-                const float n1 = entering ? 1.0f : params.sphere_ior;
-                const float n2 = entering ? params.sphere_ior : 1.0f;
-                const float eta = n1 / n2;
-
-                const float cos_theta_i = fabsf(dot(dir, normal));
-                const float sin_theta_i_sq = 1.0f - cos_theta_i * cos_theta_i;
-                const float sin_theta_t_sq = eta * eta * sin_theta_i_sq;
-
-                // Apply Beer-Lambert absorption when exiting
-                if (!entering) {
-                    const float3 glass_color = make_float3(
-                        params.sphere_color[0],
-                        params.sphere_color[1],
-                        params.sphere_color[2]
-                    );
-                    const float glass_alpha = params.sphere_color[3];
-
-                    // Calculate extinction from color and alpha
-                    const float absorption_scale = BEER_LAMBERT_ABSORPTION_SCALE;
-                    const float3 extinction = make_float3(
-                        -logf(fmaxf(glass_color.x, COLOR_CHANNEL_MIN_SAFE_VALUE)) * glass_alpha * absorption_scale,
-                        -logf(fmaxf(glass_color.y, COLOR_CHANNEL_MIN_SAFE_VALUE)) * glass_alpha * absorption_scale,
-                        -logf(fmaxf(glass_color.z, COLOR_CHANNEL_MIN_SAFE_VALUE)) * glass_alpha * absorption_scale
-                    );
-
-                    // Beer-Lambert attenuation
-                    const float3 attenuation = make_float3(
-                        expf(-extinction.x * t * params.sphere_scale),
-                        expf(-extinction.y * t * params.sphere_scale),
-                        expf(-extinction.z * t * params.sphere_scale)
-                    );
-
-                    // C5: Track absorption losses before modifying flux
-                    if (params.caustics.stats) {
-                        const double absorbed = static_cast<double>(
-                            flux.x * (1.0f - attenuation.x) +
-                            flux.y * (1.0f - attenuation.y) +
-                            flux.z * (1.0f - attenuation.z)
-                        );
-                        atomicAdd(&params.caustics.stats->total_flux_absorbed, absorbed);
-                    }
-
-                    flux = make_float3(flux.x * attenuation.x, flux.y * attenuation.y, flux.z * attenuation.z);
-                }
-
-                // Check for total internal reflection
-                if (sin_theta_t_sq > 1.0f) {
-                    // Total internal reflection
-                    // C3: Track TIR events
-                    if (params.caustics.stats) {
-                        atomicAdd(&params.caustics.stats->tir_events, 1ULL);
-                    }
-                    const float3 reflect_dir = make_float3(
-                        dir.x - 2.0f * cos_theta_i * normal.x,
-                        dir.y - 2.0f * cos_theta_i * normal.y,
-                        dir.z - 2.0f * cos_theta_i * normal.z
-                    );
-                    origin = hit_point + reflect_dir * CONTINUATION_RAY_OFFSET;
-                    dir = normalize(reflect_dir);
-                } else {
-                    // Refraction using Snell's law
-                    // C3: Track refraction events
-                    if (params.caustics.stats) {
-                        atomicAdd(&params.caustics.stats->refraction_events, 1ULL);
-                    }
-                    const float cos_theta_t = sqrtf(1.0f - sin_theta_t_sq);
-                    const float3 refract_dir = make_float3(
-                        eta * dir.x + (eta * cos_theta_i - cos_theta_t) * normal.x,
-                        eta * dir.y + (eta * cos_theta_i - cos_theta_t) * normal.y,
-                        eta * dir.z + (eta * cos_theta_i - cos_theta_t) * normal.z
-                    );
-                    origin = hit_point + refract_dir * CONTINUATION_RAY_OFFSET;
-                    dir = normalize(refract_dir);
-                }
-
-                continue;  // Continue tracing refracted/reflected photon
-            }
+        if (t > 0.0f) {
+            // Photon hits sphere - apply refraction/reflection
+            handlePhotonSphereHit(origin, dir, flux, t, sphere_center);
+            continue;
         }
 
-        // Photon missed sphere - check plane intersection
-        const int plane_axis = params.plane_axis;
-        const float plane_value = params.plane_value;
-
-        float ray_orig_comp, ray_dir_comp;
-        if (plane_axis == 0) {
-            ray_orig_comp = origin.x;
-            ray_dir_comp = dir.x;
-        } else if (plane_axis == 1) {
-            ray_orig_comp = origin.y;
-            ray_dir_comp = dir.y;
-        } else {
-            ray_orig_comp = origin.z;
-            ray_dir_comp = dir.z;
+        // Sphere missed - check plane intersection
+        if (checkPlaneIntersection(origin, dir, flux)) {
+            return;  // Photon deposited on plane
         }
 
-        if (fabsf(ray_dir_comp) > 1e-6f) {
-            const float t_plane = (plane_value - ray_orig_comp) / ray_dir_comp;
-
-            if (t_plane > 0.001f) {
-                // Photon hits the diffuse plane - deposit energy
-                const float3 plane_hit = origin + dir * t_plane;
-                depositPhoton(plane_hit, dir, flux);
-                return;  // Photon absorbed by diffuse surface
-            }
-        }
-
-        // C2: Track sphere miss (photon missed sphere on this bounce)
+        // Track sphere miss on first bounce
         if (params.caustics.stats && bounce == 0) {
-            // Only count misses on first bounce (direct from light)
             atomicAdd(&params.caustics.stats->sphere_misses, 1ULL);
         }
 
-        // Photon escaped scene
-        return;
+        return;  // Photon escaped scene
     }
 }
 
