@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+- **C++ Architecture Refactoring - Stone 3 Complete**
+  - Decomposed `OptiXWrapper.cpp` (1040 lines → 347 lines, 67% reduction)
+  - Created `BufferManager` class with RAII memory management via `CudaBuffer<T>` template
+  - Created `CausticsRenderer` class for Progressive Photon Mapping multi-pass rendering
+  - Resolved Issue 5.2: Missing error recovery in buffer allocation (automatic cleanup prevents leaks)
+  - Improved code maintainability through composition and Single Responsibility Principle
+  - All 812 tests passing (25 C++ + 787 Scala)
+
 ## [0.3.7] - 2025-11-21
 
 ### Added

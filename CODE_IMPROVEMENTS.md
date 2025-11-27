@@ -211,15 +211,15 @@ of domain and UI concerns.
 
 ---
 
-### ~~4.4 Oversized Files (Partial)~~ ✅ sphere_combined.cu RESOLVED
+### ~~4.4 Oversized Files~~ ✅ RESOLVED (except MengerCLIOptions)
 
 | File | Lines | Threshold | Status |
 |------|-------|-----------|--------|
-| ~~`sphere_combined.cu`~~ | ~~1700~~ → 17 | 500 | ✅ **RESOLVED (2025-11-26 - Stone 3)** |
-| `OptiXWrapper.cpp` | 1080 | 500 | Monolithic, 50+ member variables |
-| `MengerCLIOptions.scala` | 473 | 300 | All CLI parsing in one file |
+| ~~`sphere_combined.cu`~~ | ~~1700~~ → 17 | 500 | ✅ **RESOLVED (2025-11-26 - Stone 3 Phase 1-2)** |
+| ~~`OptiXWrapper.cpp`~~ | ~~1080~~ → 347 | 500 | ✅ **RESOLVED (2025-11-27 - Stone 3 Phase 3)** |
+| `MengerCLIOptions.scala` | 473 | 300 | All CLI parsing in one file (optional) |
 
-**Resolution (2025-11-26 - Stone 3):** Decomposed `sphere_combined.cu` into 6 focused files:
+**Resolution (Stone 3 Phases 1-2, 2025-11-26):** Decomposed `sphere_combined.cu` into 6 focused files:
 - `helpers.cu` (458 lines) - Shadow tracing, lighting, antialiasing, sphere intersection
 - `raygen_primary.cu` (87 lines) - Primary camera ray generation
 - `miss_plane.cu` (124 lines) - Miss shader with checkered plane rendering
@@ -229,12 +229,21 @@ of domain and UI concerns.
 
 **Result:** 99% reduction (1711 → 17 lines). `sphere_combined.cu` now only contains includes.
 
-### 4.5 Oversized Functions (Remaining)
+**Resolution (Stone 3 Phase 3, 2025-11-27):** Decomposed `OptiXWrapper.cpp` (1040 lines, 50+ member variables) into focused components:
+- `BufferManager` (195 lines) - CUDA device memory with RAII via `CudaBuffer<T>` template
+- `CausticsRenderer` (225 lines) - Progressive Photon Mapping multi-pass rendering
+- `OptiXWrapper` (347 lines) - Facade coordinating 5 component classes via composition
 
-| Function | File | Lines | Max | Status |
-|----------|------|-------|-----|--------|
-| `render()` | OptiXWrapper.cpp:582-805 | 223 | 50 | Needs extraction |
-| `dispose()` | OptiXWrapper.cpp:950-1080 | 130 | 50 | Needs extraction |
+**Result:** 67% reduction in OptiXWrapper.cpp. Addresses Issue 5.2 with RAII memory safety.
+
+### ~~4.5 Oversized Functions~~ ✅ RESOLVED
+
+| Function | File | Lines | Status |
+|----------|------|-------|--------|
+| ~~`render()`~~ | ~~OptiXWrapper.cpp~~ | ~~223~~ | ✅ **Made obsolete by class decomposition** |
+| ~~`dispose()`~~ | ~~OptiXWrapper.cpp~~ | ~~130~~ | ✅ **Made obsolete by class decomposition** |
+
+**Resolution (Stone 3 Phase 3, 2025-11-27):** The class decomposition approach eliminated the need for function-level refactoring. The new `render()` and `dispose()` methods are much smaller and delegate to focused component classes (BufferManager, CausticsRenderer, PipelineManager).
 
 ---
 
@@ -242,15 +251,21 @@ of domain and UI concerns.
 
 ### ~~5.1 Shader File Should Be Split~~ ✅ RESOLVED
 
-**Resolution (2025-11-26 - Stone 3):** See section 4.4 above. Successfully split into 6 files with all 193 OptiX tests passing.
+**Resolution (2025-11-26 - Stone 3 Phase 1-2):** See section 4.4 above. Successfully split into 6 files with all OptiX tests passing.
 
-### 5.2 Missing Error Recovery in Buffer Allocation
+### ~~5.2 Missing Error Recovery in Buffer Allocation~~ ✅ RESOLVED
 
-**File:** `OptiXWrapper.cpp:629-688`
+**Resolution (2025-11-27 - Stone 3 Phase 3):** Implemented `CudaBuffer<T>` RAII template in BufferManager.
 
-**Problem:** If 3rd of 7 `cudaMalloc` calls fails, first 2 buffers leak.
+**Solution:**
+- Automatic cleanup in destructor prevents memory leaks
+- Exception safety - buffers freed even on early return or exception
+- Move semantics prevent double-free
+- All buffer allocations now use RAII pattern
 
-**Fix:** Use RAII wrapper or cleanup-on-failure pattern.
+**Files Created:**
+- `include/CudaBuffer.h` - RAII template for CUDA device memory
+- `include/BufferManager.h` / `BufferManager.cpp` - Manages all GPU buffers with automatic cleanup
 
 ### 5.3 Incomplete TODOs in Caustics
 
@@ -323,12 +338,14 @@ Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_I
 | P2 | Remove Observer from Geometry trait (4.1) | ✅ Done (Stone 1) |
 | P2 | Split OptiXResources into smaller classes (4.3) | ✅ Done (Stone 2) |
 | P2 | Fix OptiXEngine LSP violation (1.3) | ✅ Done (Stone 2) |
+| P2 | Split sphere_combined.cu into modules (5.1) | ✅ Done (Stone 3 Phase 1-2) |
+| P2 | Decompose OptiXWrapper.cpp (4.4, 4.5) | ✅ Done (Stone 3 Phase 3) |
+| P2 | Fix buffer allocation error recovery (5.2) | ✅ Done (Stone 3 Phase 3) |
 
-### Phase 5: Code Quality Polish - ~6 hours
+### Phase 5: Code Quality Polish (Optional) - ~3 hours
 
 | Priority | Issue | Effort |
 |----------|-------|--------|
-| P3 | Split sphere_combined.cu into modules | 3 hours |
 | P3 | Create MaterialConstants.scala for tests | 1 hour |
 | P3 | Standardize test patterns (RendererFixture usage) | 2 hours |
 
@@ -336,25 +353,36 @@ Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_I
 
 ## Summary
 
-**Total Estimated Effort:** 26-33 hours across all phases
+**Total Estimated Effort:** ~~26-33~~ → 8-13 hours remaining (Phases 1-4 complete)
 
-**Minimum for Merge (Phase 1):** ✅ COMPLETE - all safety-critical issues resolved
+**Phase 1 (Critical):** ✅ COMPLETE - all safety-critical issues resolved
+**Phase 2 (Constants):** ~5-8 hours remaining - constants cleanup from previous assessment
+**Phase 3 (Duplication):** ✅ COMPLETE - all code duplication eliminated
+**Phase 4 (Architecture):** ✅ COMPLETE - all Stones 1-3 finished
+**Phase 5 (Polish):** ~3 hours remaining - optional test improvements
 
-**Recommended for Merge (Phase 1-2):** ~5-8 hours remaining - constants cleanup
-
-**Overall Assessment:** The codebase is **ready for merge**. Phase 1 critical fixes are complete. The architecture supports current features but will benefit from Phase 2-5 refactoring before adding significant new complexity.
+**Overall Assessment:** The codebase is in **excellent shape**. All major architectural refactoring (Stones 1-3) is complete. All 812 tests passing (25 C++ + 787 Scala). Ready for merge after constants cleanup (Phase 2).
 
 **Key Strengths:**
 - Excellent constant infrastructure (acknowledged in previous assessment)
+- Clean architecture via composition and Single Responsibility Principle
+- RAII memory safety prevents buffer leaks (Issue 5.2 resolved)
 - Good module separation (menger-common, optix-jni)
-- Comprehensive test coverage
+- Comprehensive test coverage (812 tests)
 - Clean JNI boundary design
 
-**Key Weaknesses (Remaining):**
-- ~~Safety issues: sys.exit(), unsafe .get()~~ ✅ Resolved
-- Factory logic in wrong place
-- Domain/UI coupling (Observer in Geometry)
-- Oversized shader and wrapper files
+**Completed Improvements (Stones 1-3):**
+- ✅ Domain/UI coupling resolved (Observer removed from Geometry)
+- ✅ Factory extraction (GeometryFactory created)
+- ✅ LSP violation fixed (OptiXEngine uses composition)
+- ✅ OptiXResources split into 3 focused classes
+- ✅ sphere_combined.cu decomposed (1711 → 17 lines, 99% reduction)
+- ✅ OptiXWrapper.cpp decomposed (1040 → 347 lines, 67% reduction)
+- ✅ Buffer allocation error recovery via RAII
+
+**Remaining Work:**
+- Constants cleanup from previous assessment (5-8 hours)
+- Optional test polish (3 hours)
 
 ---
 
@@ -364,3 +392,4 @@ Implement all items from [docs/archive/CODE_IMPROVEMENTS.md](docs/archive/CODE_I
 |------|-------|--------|
 | 2025-11-20 | Constants analysis | Claude |
 | 2025-11-26 | Comprehensive assessment (architecture, duplication, FP, tests) | Claude |
+| 2025-11-27 | Stone 3 Phase 3 completion (OptiXWrapper decomposition, Issue 5.2 resolution) | Claude |
