@@ -2,12 +2,13 @@ package menger
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
+import menger.common.Const
 import menger.engines.OptiXEngine
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 
-class OptiXEngineTest extends AnyFlatSpec with Matchers:
+class OptiXEngineSuite extends AnyFlatSpec with Matchers:
 
   // Dummy rotation/projection parameters for testing
   private def dummyRotProj = RotationProjectionParameters(
@@ -17,8 +18,8 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
   )
 
   private def createEngine(
-    radius: Float = 1.5f,
-    ior: Float = 1.0f,
+    radius: Float = Const.defaultSphereRadius,
+    ior: Float = Const.iorVacuum,
     scale: Float = 1.0f,
     timeout: Float = 0f,
     enableStats: Boolean = false,
@@ -34,11 +35,11 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
       sphereRadius = radius,
       ior = ior,
       scale = scale,
-      cameraPos = Vector3(0f, 0.5f, 3.0f),
+      cameraPos = Vector3(0f, 0.5f, Const.defaultCameraZDistance),
       cameraLookat = Vector3(0f, 0f, 0f),
       cameraUp = Vector3(0f, 1f, 0f),
       center = Vector3(0f, 0f, 0f),
-      planeSpec = PlaneSpec(Axis.Y, false, -2f),
+      planeSpec = PlaneSpec(Axis.Y, false, Const.defaultFloorPlaneY),
       timeout = timeout,
       saveName = None,
       enableStats = enableStats,
@@ -106,12 +107,12 @@ class OptiXEngineTest extends AnyFlatSpec with Matchers:
     engine.color.a shouldBe 0.5f +- 0.01f
 
   it should "store IOR" in:
-    val engine = createEngine(ior = 1.5f)
-    engine.ior shouldBe 1.5f
+    val engine = createEngine(ior = Const.iorGlass)
+    engine.ior shouldBe Const.iorGlass
 
   it should "have default IOR 1.0" in:
     val engine = createEngine()
-    engine.ior shouldBe 1.0f
+    engine.ior shouldBe Const.iorVacuum
 
   it should "have sponge type sphere" in:
     val engine = createEngine()

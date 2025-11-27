@@ -101,11 +101,6 @@ class OptiXEngine(
         case None => true  // First valid render, dimensions definitely changed
 
       if dimensionsChanged then
-        renderResources.currentDimensions match
-          case Some(lastDims) =>
-            logger.info(s"[OptiXEngine] render: dimensions changed from ${lastDims.width}x${lastDims.height} to ${width}x${height}, updating camera")
-          case None =>
-            logger.info(s"[OptiXEngine] render: initializing with dimensions ${width}x${height}")
         cameraState.updateCameraAspectRatio(rendererWrapper.renderer, ImageSize(width, height))
         renderResources.markNeedsRender()
 
@@ -139,11 +134,9 @@ class OptiXEngine(
     result.image
 
   override def resize(width: Int, height: Int): Unit =
-    logger.info(s"[OptiXEngine] resize event: ${width}x${height}")
     cameraState.updateCameraAspectRatio(rendererWrapper.renderer, ImageSize(width, height))
     renderResources.markNeedsRender()
     Gdx.graphics.requestRendering()
-    logger.info("[OptiXEngine] resize complete")
 
   override def dispose(): Unit =
     logger.debug("Disposing OptiXEngine")

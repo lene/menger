@@ -7,7 +7,7 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.util.Try
 
-class OptiXResourcesTest extends AnyFlatSpec with Matchers:
+class OptiXResourcesSuite extends AnyFlatSpec with Matchers:
 
   "OptiXResources" should "be instantiable" in:
     val resources = new OptiXResources(
