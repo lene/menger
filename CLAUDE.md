@@ -30,7 +30,7 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 
 **Current:** Planning Sprint 5 - Triangle Mesh Foundation
 **Branch:** `feature/caustics` (Sprint 4 deferred, branch preserved)
-**Local Tests:** ~897 passing (21 C++ + ~876 Scala)
+**Local Tests:** 837 passing (25 C++ + 812 Scala)
 **Progress:** [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md)
 
 **Completed Sprints:**

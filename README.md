@@ -53,8 +53,6 @@ level.
 
 ## Quick Start
 
-For most users, the pre-built Docker image is the easiest way to get started. See [CI/CD documentation](docs/CI_CD.md) for Docker setup.
-
 For a complete installation from scratch (CUDA, OptiX, Java, sbt), see the **[Installation from Scratch Guide](docs/INSTALLATION_FROM_SCRATCH.md)**.
 
 ## CMake
@@ -80,7 +78,6 @@ For GPU acceleration features (optional), you need:
 
 **Installation guides:**
 - [Installation from Scratch](docs/INSTALLATION_FROM_SCRATCH.md) - Complete step-by-step guide
-- [GPU Development Setup](docs/GPU_DEVELOPMENT.md) - AWS EC2 GPU instance setup
 
 # Usage
 
@@ -161,6 +158,17 @@ For GPU-accelerated ray tracing using NVIDIA OptiX (requires `--sponge-type sphe
 - `--center <x,y,z>` - Sphere center position (default: 0,0,0)
 - `--plane <spec>` - Ground plane specification (default: +y:-2)
   - Format: `[+-]?[xyz]:<value>` (e.g., `y:-2`, `+y:-2`, `-z:5.5`)
+- `--plane-color <spec>` - Plane color (OptiX only)
+  - Solid: `#RRGGBB` (e.g., `#808080` for gray)
+  - Checkered: `RRGGBB:RRGGBB` (e.g., `ffffff:000000` for black/white checkerboard)
+- `--antialiasing` - Enable recursive adaptive antialiasing (OptiX only)
+- `--aa-max-depth <int>` - Maximum AA recursion depth (1-4, default: 2)
+- `--aa-threshold <float>` - AA edge detection threshold (0.0-1.0, default: 0.1)
+- `--caustics` - Enable caustics rendering via Progressive Photon Mapping (OptiX only)
+- `--caustics-photons <int>` - Photons per PPM iteration (default: 100000)
+- `--caustics-iterations <int>` - Number of PPM iterations (default: 10)
+- `--caustics-radius <float>` - Initial photon gather radius (default: 0.1)
+- `--caustics-alpha <float>` - PPM radius reduction factor (0.0-1.0, default: 0.7)
 
 Example OptiX usage:
 ```bash
@@ -172,14 +180,20 @@ sbt "run --optix --sponge-type sphere --shadows \
   --light directional:-1,1,-1:1.5 \
   --light point:2,3,2:0.8:ffd700"
 
+# Glass sphere with caustics (light focusing effects)
+sbt "run --optix --sponge-type sphere --caustics \
+  --caustics-photons 50000 --caustics-iterations 20"
+
+# High-quality render with antialiasing and caustics
+sbt "run --optix --sponge-type sphere --antialiasing --caustics \
+  --plane-color ffffff:808080"
+
 # Display ray statistics
 sbt "run --optix --sponge-type sphere --stats"
 ```
 
 ## Remote GPU Development
 
-For CUDA/OptiX development on AWS EC2 GPU instances with automated provisioning, state
-management, and cost controls, see [GPU_DEVELOPMENT.md](GPU_DEVELOPMENT.md) for the complete
-guide.
+For CUDA/OptiX development on AWS EC2 GPU instances, see the terraform/ directory for infrastructure configuration.
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lene/menger)
