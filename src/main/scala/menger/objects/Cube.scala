@@ -10,16 +10,30 @@ import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.Model
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
+import menger.common.TriangleMeshData
+import menger.common.TriangleMeshSource
 
 case class Cube(
   center: Vector3 = Vector3.Zero, scale: Float = 1f,
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
-) extends Geometry(center, scale):
+) extends Geometry(center, scale) with TriangleMeshSource:
 
   def getModel: List[ModelInstance] =
     val instance = new ModelInstance(Cube.model(material, primitiveType))
     instance.transform.setToTranslationAndScaling(center, Vector3(scale, scale, scale))
     instance :: Nil
+
+  def toTriangleMesh: TriangleMeshData =
+    val half = scale / 2
+    val faces = Seq(
+      Face(center.x + half, center.y, center.z, scale, Direction.X),
+      Face(center.x - half, center.y, center.z, scale, Direction.negX),
+      Face(center.x, center.y + half, center.z, scale, Direction.Y),
+      Face(center.x, center.y - half, center.z, scale, Direction.negY),
+      Face(center.x, center.y, center.z + half, scale, Direction.Z),
+      Face(center.x, center.y, center.z - half, scale, Direction.negZ)
+    )
+    TriangleMeshData.merge(faces.map(_.toTriangleMesh))
 
 
 object Cube:
