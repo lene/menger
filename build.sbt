@@ -77,6 +77,20 @@ lazy val optixJni = project
         }
       }
 
+      // Clean stale PTX copies before compile
+      // The canonical PTX is in bin/ (produced by nativeCompile via CMake install)
+      // Stale copies in classes/ or root target/ can cause hard-to-debug issues
+      val stalePtxLocations = Seq(
+        (Compile / classDirectory).value / "native" / "x86_64-linux" / "sphere_combined.ptx",
+        baseDirectory.value.getParentFile / "target" / "native" / "x86_64-linux" / "bin" / "sphere_combined.ptx"
+      )
+      stalePtxLocations.foreach { ptxFile =>
+        if (ptxFile.exists()) {
+          IO.delete(ptxFile)
+          log.info(s"Cleaned stale PTX copy: $ptxFile")
+        }
+      }
+
       val compileResult = (Compile / compile).value
 
       // Copy PTX file to classes directory (sbt-jni only copies .so/.dll/.dylib)

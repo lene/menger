@@ -240,11 +240,11 @@ sbt run
 
 # Headless mode with OptiX sphere rendering
 export __GL_THREADED_OPTIMIZATIONS=0
-xvfb-run sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5"
+xvfb-run sbt "run --optix --object sphere --timeout 0.1 --radius 0.5"
 
 # Render and save image
 export __GL_THREADED_OPTIMIZATIONS=0
-xvfb-run sbt "run --optix --sponge-type sphere --timeout 1.0 --save-name sphere.png"
+xvfb-run sbt "run --optix --object sphere --timeout 1.0 --save-name sphere.png"
 ```
 
 ## Troubleshooting

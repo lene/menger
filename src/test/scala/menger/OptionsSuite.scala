@@ -288,15 +288,15 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
   it should "succeed with --color and --lines together" in:
     SafeMengerCLIOptions(Seq("--color", "ff0000", "--lines"))
 
-  "--sponge-type sphere" should "be accepted" in:
-    val options = SafeMengerCLIOptions(Seq("--sponge-type", "sphere", "--optix"))
-    options.spongeType() shouldEqual "sphere"
+  "--object sphere" should "be accepted with --optix" in:
+    val options = SafeMengerCLIOptions(Seq("--object", "sphere", "--optix"))
+    options.objectType.toOption shouldEqual Some("sphere")
 
   "--optix" should "parse correctly and default to false" in:
     val options1 = SafeMengerCLIOptions(Seq())
     options1.optix() shouldEqual false
 
-    val options2 = SafeMengerCLIOptions(Seq("--optix", "--sponge-type", "sphere"))
+    val options2 = SafeMengerCLIOptions(Seq("--optix", "--object", "sphere"))
     options2.optix() shouldEqual true
 
   "--radius" should "accept positive floats" in:
@@ -319,46 +319,43 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
   it should "reject negative values" in:
     an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--radius", "-1.0"))
 
-  "OptiX validation" should "fail when sponge-type sphere without --optix" in:
+  "OptiX validation" should "fail when --object without --optix" in:
     an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--sponge-type", "sphere"))
+      SafeMengerCLIOptions(Seq("--object", "sphere"))
 
-  it should "fail when --optix without sponge-type sphere" in:
+  it should "fail when --optix without --object" in:
     an[ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--optix"))
 
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--optix", "--sponge-type", "cube"))
-
-  it should "succeed when both --optix and sponge-type sphere" in:
-    val options = SafeMengerCLIOptions(Seq("--optix", "--sponge-type", "sphere"))
+  it should "succeed when both --optix and --object sphere" in:
+    val options = SafeMengerCLIOptions(Seq("--optix", "--object", "sphere"))
     options.optix() shouldEqual true
-    options.spongeType() shouldEqual "sphere"
+    options.objectType.toOption shouldEqual Some("sphere")
 
   "MengerCLIOptions --stats" should "parse when provided" in :
-    val opts = SafeMengerCLIOptions(List("--optix", "--sponge-type", "sphere", "--stats"))
+    val opts = SafeMengerCLIOptions(List("--optix", "--object", "sphere", "--stats"))
     opts.stats() shouldBe true
-  
+
   it should "be optional" in :
     val opts = SafeMengerCLIOptions(List())
     opts.stats.toOption shouldBe Some(false)
-  
+
   it should "have default value false" in :
     val opts = SafeMengerCLIOptions(List())
     opts.stats() shouldBe false
-  
+
   it should "be false without explicit flag" in :
-    val opts = SafeMengerCLIOptions(List("--optix", "--sponge-type", "sphere"))
+    val opts = SafeMengerCLIOptions(List("--optix", "--object", "sphere"))
     opts.stats() shouldBe false
-  
+
   "Main.createEngine" should "create OptiXEngine with stats disabled when option not provided" in :
-    val opts = SafeMengerCLIOptions(List("--optix", "--sponge-type", "sphere"))
+    val opts = SafeMengerCLIOptions(List("--optix", "--object", "sphere"))
     val enableStats = opts.stats()
-  
+
     enableStats shouldBe false
-  
+
   it should "create OptiXEngine with stats enabled when option provided" in :
-    val opts = SafeMengerCLIOptions(List("--optix", "--sponge-type", "sphere", "--stats"))
+    val opts = SafeMengerCLIOptions(List("--optix", "--object", "sphere", "--stats"))
     val enableStats = opts.stats()
-  
+
     enableStats shouldBe true

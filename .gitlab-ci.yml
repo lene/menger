@@ -336,13 +336,13 @@ Test:OptiXIntegration:
     - ldconfig || true
   script:
     # Test sbt run with OptiX sphere rendering
-    - xvfb-run -a sbt "run --optix --sponge-type sphere --timeout 0.1 --radius 0.5"
+    - xvfb-run -a sbt "run --optix --object sphere --timeout 0.1 --radius 0.5"
     # Build and test packaged distribution
     - sbt "Universal / packageBin"
     - VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
     - unzip -oq ./target/universal/menger-${VERSION}.zip
     - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --sponge-type sphere --timeout 0.1
+    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --object sphere --timeout 0.1
   after_script:
     # Clean up permissions for Docker artifacts
     - chmod -R 777 target/ || true

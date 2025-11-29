@@ -15,6 +15,7 @@ import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.common.ImageSize
 import menger.input.OptiXCameraController
+import menger.objects.Cube
 import menger.optix.CameraState
 import menger.optix.OptiXRenderer
 import menger.optix.OptiXRendererWrapper
@@ -52,6 +53,11 @@ class OptiXEngine(
 
   private val geometryGenerator: Try[OptiXRenderer => Unit] = spongeType match {
     case "sphere" => Try(_.setSphere(menger.common.Vector[3](center.x, center.y, center.z), sphereRadius))
+    case "cube" => Try { renderer =>
+      val cube = Cube(center = center, scale = sphereRadius * 2)  // Use radius as half-size for consistency
+      val mesh = cube.toTriangleMesh
+      renderer.setTriangleMesh(mesh)
+    }
     case _ => Failure(UnsupportedOperationException(spongeType))
   }
 
@@ -65,12 +71,24 @@ class OptiXEngine(
     OptiXCameraController(rendererWrapper, cameraState, renderResources, cameraPos, cameraLookat, cameraUp)
 
   override def create(): Unit =
-    logger.info(s"Creating OptiXEngine with sphere radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, shadows=$shadows, antialiasing=$antialiasing, caustics=$caustics")
+    logger.info(s"Creating OptiXEngine with object=$spongeType, radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, shadows=$shadows, antialiasing=$antialiasing, caustics=$caustics")
 
     val renderer = rendererWrapper.renderer
     sceneConfigurator.configureScene(renderer)
-    sceneConfigurator.setSphereColor(renderer, color.toCommonColor)
-    sceneConfigurator.setIOR(renderer, ior)
+
+    // Configure color and IOR based on object type
+    spongeType match
+      case "sphere" =>
+        sceneConfigurator.setSphereColor(renderer, color.toCommonColor)
+        sceneConfigurator.setIOR(renderer, ior)
+      case "cube" =>
+        sceneConfigurator.setTriangleMeshColor(renderer, color.toCommonColor)
+        sceneConfigurator.setTriangleMeshIOR(renderer, ior)
+      case _ =>
+        // For other types, try both (backward compatibility)
+        sceneConfigurator.setSphereColor(renderer, color.toCommonColor)
+        sceneConfigurator.setIOR(renderer, ior)
+
     sceneConfigurator.setScale(renderer, scale)
     sceneConfigurator.setShadows(renderer, shadows)
     sceneConfigurator.setAntialiasing(renderer, antialiasing, aaMaxDepth, aaThreshold)

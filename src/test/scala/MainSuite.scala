@@ -16,11 +16,11 @@ class MainSuite extends AnyFlatSpec with Matchers:
     Main.createEngine(options) shouldBe a [InteractiveMengerEngine]
 
   it should "return OptiXEngine when --optix flag is set" in:
-    val options = MengerCLIOptions(Seq("--optix", "--sponge-type", "sphere"))
+    val options = MengerCLIOptions(Seq("--optix", "--object", "sphere"))
     Main.createEngine(options) shouldBe a [OptiXEngine]
 
   it should "pass correct radius to OptiXEngine" in:
-    val options = MengerCLIOptions(Seq("--optix", "--sponge-type", "sphere", "--radius", "2.5"))
+    val options = MengerCLIOptions(Seq("--optix", "--object", "sphere", "--radius", "2.5"))
     val engine = Main.createEngine(options)
     engine shouldBe a [OptiXEngine]
     engine match
@@ -28,7 +28,7 @@ class MainSuite extends AnyFlatSpec with Matchers:
       case _ => fail("Expected OptiXEngine")
 
   it should "pass default radius (1.0) to OptiXEngine when not specified" in:
-    val options = MengerCLIOptions(Seq("--optix", "--sponge-type", "sphere"))
+    val options = MengerCLIOptions(Seq("--optix", "--object", "sphere"))
     val engine = Main.createEngine(options)
     engine shouldBe a [OptiXEngine]
     engine match

@@ -134,9 +134,10 @@ for a Scala 3 REPL.
 
 ### OptiX Ray Tracing Options
 
-For GPU-accelerated ray tracing using NVIDIA OptiX (requires `--sponge-type sphere` and `--optix`):
+For GPU-accelerated ray tracing using NVIDIA OptiX (requires `--optix` and `--object`):
 
-- `--optix` - Enable OptiX renderer (requires `--sponge-type sphere`)
+- `--optix` - Enable OptiX renderer (requires `--object`)
+- `--object <type>` - Object to render: `sphere` (glass sphere) or `cube` (glass cube)
 - `--radius <float>` - Sphere radius (default: 1.0)
 - `--ior <float>` - Index of refraction for glass rendering (default: 1.5)
   - 1.0 = no refraction, 1.33 = water, 1.5 = glass, 2.42 = diamond
@@ -173,23 +174,26 @@ For GPU-accelerated ray tracing using NVIDIA OptiX (requires `--sponge-type sphe
 Example OptiX usage:
 ```bash
 # Basic glass sphere
-sbt "run --optix --sponge-type sphere --radius 1.5 --ior 1.5"
+sbt "run --optix --object sphere --radius 1.5 --ior 1.5"
+
+# Glass cube
+sbt "run --optix --object cube --radius 0.5 --ior 1.5"
 
 # Glass sphere with shadows and custom lighting
-sbt "run --optix --sponge-type sphere --shadows \
+sbt "run --optix --object sphere --shadows \
   --light directional:-1,1,-1:1.5 \
   --light point:2,3,2:0.8:ffd700"
 
 # Glass sphere with caustics (light focusing effects)
-sbt "run --optix --sponge-type sphere --caustics \
+sbt "run --optix --object sphere --caustics \
   --caustics-photons 50000 --caustics-iterations 20"
 
 # High-quality render with antialiasing and caustics
-sbt "run --optix --sponge-type sphere --antialiasing --caustics \
+sbt "run --optix --object sphere --antialiasing --caustics \
   --plane-color ffffff:808080"
 
 # Display ray statistics
-sbt "run --optix --sponge-type sphere --stats"
+sbt "run --optix --object sphere --stats"
 ```
 
 ## Remote GPU Development

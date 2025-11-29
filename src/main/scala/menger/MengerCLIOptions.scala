@@ -7,14 +7,57 @@ import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Const
 import org.rogach.scallop._
+import org.rogach.scallop.exceptions._
 
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:
   version("menger v0.3.9 (c) 2023-25, lene.preuss@gmail.com")
+  banner("""Usage: menger [options]
+           |
+           |Menger sponge fractal renderer with OptiX GPU ray tracing support.
+           |Run with --help for full options list.
+           |""".stripMargin)
+
+  // Custom error handling to show usage hint on errors
+  override def onError(e: Throwable): Unit = e match
+    case Help("") =>
+      builder.printHelp()
+      sys.exit(0)
+    case Version =>
+      builder.vers.foreach(println)
+      sys.exit(0)
+    case Exit() =>
+      sys.exit(0)
+    case ScallopException(message) =>
+      // Print error with usage hint
+      Console.err.println(s"Error: $message")
+      Console.err.println()
+      Console.err.println("Usage: menger [options]")
+      Console.err.println("Run with --help for full options list.")
+      sys.exit(1)
+    case other =>
+      Console.err.println(s"Error: ${other.getMessage}")
+      Console.err.println()
+      Console.err.println("Usage: menger [options]")
+      Console.err.println("Run with --help for full options list.")
+      sys.exit(1)
+
+  // Option groups for organized help output
+  private val generalGroup = group("General:")
+  private val spongeGroup = group("Sponge Rendering:")
+  private val projectionGroup = group("4D Projection:")
+  private val animationGroup = group("Animation:")
+  private val optixGroup = group("OptiX Renderer:")
+  private val optixCameraGroup = group("OptiX Camera:")
+  private val optixLightingGroup = group("OptiX Lighting:")
+  private val optixSceneGroup = group("OptiX Scene:")
+  private val optixQualityGroup = group("OptiX Quality:")
+  private val optixCausticsGroup = group("OptiX Caustics:")
 
   private def validateSpongeType(spongeType: String): Boolean =
     isValidSpongeType(spongeType)
 
-  private val basicSpongeTypes = List("cube", "square", "square-sponge", "cube-sponge", "tesseract", "tesseract-sponge", "tesseract-sponge-2", "sphere")
+  // Note: "sphere" removed - use --object sphere for OptiX rendering
+  private val basicSpongeTypes = List("cube", "square", "square-sponge", "cube-sponge", "tesseract", "tesseract-sponge", "tesseract-sponge-2")
   private val compositePattern = """composite\[(.+)]""".r
 
   private def isValidSpongeType(spongeType: String): Boolean =
@@ -28,149 +71,214 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
       case _ => false
 
 
-  val timeout: ScallopOption[Float] = opt[Float](required = false, default = Some(0))
-  val spongeType: ScallopOption[String] = opt[String](
-    required = false, default = Some("square"),
-    validate = validateSpongeType
-  )
-  val projectionScreenW: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(Const.defaultScreenW), validate = _ > 0
-  )
-  val projectionEyeW: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(Const.defaultEyeW), validate = _ > 0
-  )
-  private def degreeOpt = opt[Float](
-    required = false, default = Some(0), validate = a => a >= 0 && a < 360
-  )
-  val rotX: ScallopOption[Float] = degreeOpt
-  val rotY: ScallopOption[Float] = degreeOpt
-  val rotZ: ScallopOption[Float] = degreeOpt
-  val rotXW: ScallopOption[Float] = degreeOpt
-  val rotYW: ScallopOption[Float] = degreeOpt
-  val rotZW: ScallopOption[Float] = degreeOpt
-  val level: ScallopOption[Float] = opt[Float](required = false, default = Some(1.0f), validate = _ >= 0)
-  val lines: ScallopOption[Boolean] = opt[Boolean](required = false, default = Some(false))
-  val optix: ScallopOption[Boolean] = opt[Boolean](required = false, default = Some(false))
-  val radius: ScallopOption[Float] = opt[Float](required = false, default = Some(1.0f), validate = _ > 0)
-  val ior: ScallopOption[Float] = opt[Float](required = false, default = Some(1.0f), validate = _ > 0)
-  val scale: ScallopOption[Float] = opt[Float](required = false, default = Some(1.0f), validate = _ > 0)
-  val color: ScallopOption[Color] = opt[Color](required = false, default = Some(Color.LIGHT_GRAY))(
-    using colorConverter
-  )
-  val faceColor: ScallopOption[Color] = opt[Color](required = false)(
-    using colorConverter
-  )
-  val lineColor: ScallopOption[Color] = opt[Color](required = false)(
-    using colorConverter
+  // === General Options ===
+  val timeout: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(0), group = generalGroup,
+    descr = "Run for N seconds then exit (0 = interactive)"
   )
   val width: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(Const.defaultWindowWidth)
+    required = false, default = Some(Const.defaultWindowWidth), group = generalGroup,
+    descr = "Window width in pixels"
   )
   val height: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(Const.defaultWindowHeight)
-  )
-  val antialiasSamples: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(Const.defaultAntialiasSamples)
-  )
-  val animate: ScallopOption[AnimationSpecifications] = opt[AnimationSpecifications]()(
-    using animationSpecificationsConverter
+    required = false, default = Some(Const.defaultWindowHeight), group = generalGroup,
+    descr = "Window height in pixels"
   )
   val saveName: ScallopOption[String] = opt[String](
-    required = false,  validate = _.nonEmpty
-  )
-  val profileMinMs: ScallopOption[Int] = opt[Int](
-    required = false, validate = _ >= 0
-  )
-  val fpsLogInterval: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(Const.fpsLogIntervalMs), validate = _ > 0
+    required = false, validate = _.nonEmpty, group = generalGroup,
+    descr = "Save rendered image to file"
   )
   val logLevel: ScallopOption[String] = opt[String](
-    required = false, default = Some("INFO"),
-    validate = level => Set("ERROR", "WARN", "INFO", "DEBUG", "TRACE").contains(level.toUpperCase)
+    required = false, default = Some("INFO"), group = generalGroup,
+    validate = level => Set("ERROR", "WARN", "INFO", "DEBUG", "TRACE").contains(level.toUpperCase),
+    descr = "Log level: ERROR, WARN, INFO, DEBUG, TRACE"
+  )
+  val profileMinMs: ScallopOption[Int] = opt[Int](
+    required = false, validate = _ >= 0, group = generalGroup,
+    descr = "Log frames taking longer than N ms"
+  )
+  val fpsLogInterval: ScallopOption[Int] = opt[Int](
+    required = false, default = Some(Const.fpsLogIntervalMs), validate = _ > 0, group = generalGroup,
+    descr = "FPS logging interval in ms"
   )
   val stats: ScallopOption[Boolean] = opt[Boolean](
-    required = false, default = Some(false)
+    required = false, default = Some(false), group = generalGroup,
+    descr = "Show ray tracing statistics"
   )
+
+  // === Sponge Rendering Options ===
+  val spongeType: ScallopOption[String] = opt[String](
+    required = false, default = Some("square"), group = spongeGroup,
+    validate = validateSpongeType,
+    descr = "Sponge type: square, cube, tesseract-sponge, tesseract-sponge-2, composite[...]"
+  )
+  val level: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(1.0f), validate = _ >= 0, group = spongeGroup,
+    descr = "Fractal recursion level (supports fractional values)"
+  )
+  val lines: ScallopOption[Boolean] = opt[Boolean](
+    required = false, default = Some(false), group = spongeGroup,
+    descr = "Render wireframe instead of faces"
+  )
+  val color: ScallopOption[Color] = opt[Color](
+    required = false, default = Some(Color.LIGHT_GRAY), group = spongeGroup,
+    descr = "Sponge color (hex RRGGBB or R,G,B)"
+  )(using colorConverter)
+  val faceColor: ScallopOption[Color] = opt[Color](
+    required = false, group = spongeGroup,
+    descr = "Face color (requires --line-color)"
+  )(using colorConverter)
+  val lineColor: ScallopOption[Color] = opt[Color](
+    required = false, group = spongeGroup,
+    descr = "Line color (requires --face-color)"
+  )(using colorConverter)
+  val antialiasSamples: ScallopOption[Int] = opt[Int](
+    required = false, default = Some(Const.defaultAntialiasSamples), group = spongeGroup,
+    descr = "OpenGL antialiasing samples"
+  )
+
+  // === 4D Projection Options ===
+  val projectionScreenW: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(Const.defaultScreenW), validate = _ > 0, group = projectionGroup,
+    descr = "4D projection screen W coordinate"
+  )
+  val projectionEyeW: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(Const.defaultEyeW), validate = _ > 0, group = projectionGroup,
+    descr = "4D projection eye W coordinate"
+  )
+  val rotX: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    descr = "Rotation around X axis (degrees)"
+  )
+  val rotY: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    descr = "Rotation around Y axis (degrees)"
+  )
+  val rotZ: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    descr = "Rotation around Z axis (degrees)"
+  )
+  val rotXW: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    descr = "Rotation in X-W plane (degrees)"
+  )
+  val rotYW: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    descr = "Rotation in Y-W plane (degrees)"
+  )
+  val rotZW: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    descr = "Rotation in Z-W plane (degrees)"
+  )
+
+  // === Animation Options ===
+  val animate: ScallopOption[AnimationSpecifications] = opt[AnimationSpecifications](
+    group = animationGroup,
+    descr = "Animation spec: frames=N:param=start-end[:param2=...] (mutually exclusive with --timeout)"
+  )(using animationSpecificationsConverter)
+
+  // === OptiX Renderer Options ===
+  val optix: ScallopOption[Boolean] = opt[Boolean](
+    required = false, default = Some(false), group = optixGroup,
+    descr = "Use OptiX GPU ray tracing (requires --object)"
+  )
+  val objectType: ScallopOption[String] = opt[String](
+    name = "object", required = false, default = None, group = optixGroup,
+    validate = obj => Set("sphere", "cube").contains(obj.toLowerCase),
+    descr = "Object to render: sphere, cube"
+  )
+  val radius: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,
+    descr = "Object radius"
+  )
+  val ior: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,
+    descr = "Index of refraction (1.0 = opaque, 1.5 = glass)"
+  )
+  val scale: ScallopOption[Float] = opt[Float](
+    required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,
+    descr = "Object scale factor"
+  )
+  val center: ScallopOption[Vector3] = opt[Vector3](
+    required = false, default = Some(Vector3(0f, 0f, 0f)), group = optixGroup,
+    descr = "Object center position (x,y,z)"
+  )(using vector3Converter)
+
+  // === OptiX Camera Options ===
+  val cameraPos: ScallopOption[Vector3] = opt[Vector3](
+    required = false, default = Some(Vector3(0f, 0.5f, 3.0f)), group = optixCameraGroup,
+    descr = "Camera position (x,y,z)"
+  )(using vector3Converter)
+  val cameraLookat: ScallopOption[Vector3] = opt[Vector3](
+    required = false, default = Some(Vector3(0f, 0f, 0f)), group = optixCameraGroup,
+    descr = "Camera look-at target (x,y,z)"
+  )(using vector3Converter)
+  val cameraUp: ScallopOption[Vector3] = opt[Vector3](
+    required = false, default = Some(Vector3(0f, 1f, 0f)), group = optixCameraGroup,
+    descr = "Camera up vector (x,y,z)"
+  )(using vector3Converter)
+
+  // === OptiX Lighting Options ===
+  val light: ScallopOption[List[LightSpec]] = opt[List[LightSpec]](
+    required = false, group = optixLightingGroup,
+    descr = "Light source (repeatable, max 8): <type>:x,y,z[:intensity[:color]]"
+  )(using lightSpecConverter)
   val shadows: ScallopOption[Boolean] = opt[Boolean](
-    required = false, default = Some(false),
-    descr = "Enable shadow rays for realistic shadows (OptiX only)"
+    required = false, default = Some(false), group = optixLightingGroup,
+    descr = "Enable shadow rays for realistic shadows"
   )
 
+  // === OptiX Scene Options ===
+  val plane: ScallopOption[PlaneSpec] = opt[PlaneSpec](
+    required = false, default = Some(PlaneSpec(Axis.Y, positive = true, -2.0f)), group = optixSceneGroup,
+    descr = "Ground plane: [+-]x|y|z:value (e.g., y:-2)"
+  )(using planeSpecConverter)
+  val planeColor: ScallopOption[PlaneColorSpec] = opt[PlaneColorSpec](
+    required = false, group = optixSceneGroup,
+    descr = "Plane color: RRGGBB or RRGGBB:RRGGBB for checkered"
+  )(using planeColorSpecConverter)
+
+  // === OptiX Quality Options ===
   val antialiasing: ScallopOption[Boolean] = opt[Boolean](
-    required = false, default = Some(false),
-    descr = "Enable recursive adaptive antialiasing (OptiX only)"
+    required = false, default = Some(false), group = optixQualityGroup,
+    descr = "Enable recursive adaptive antialiasing"
   )
-
   val aaMaxDepth: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(2),
+    required = false, default = Some(2), group = optixQualityGroup,
     validate = d => d >= 1 && d <= 4,
     descr = "Maximum AA recursion depth (1-4, default: 2)"
   )
-
   val aaThreshold: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0.1f),
+    required = false, default = Some(0.1f), group = optixQualityGroup,
     validate = t => t >= 0.0f && t <= 1.0f,
     descr = "AA edge detection threshold (0.0-1.0, default: 0.1)"
   )
 
-  // Caustics (Progressive Photon Mapping) options
+  // === OptiX Caustics Options ===
   val caustics: ScallopOption[Boolean] = opt[Boolean](
-    required = false, default = Some(false),
-    descr = "Enable caustics rendering via Progressive Photon Mapping (OptiX only)"
+    required = false, default = Some(false), group = optixCausticsGroup,
+    descr = "Enable Progressive Photon Mapping caustics"
   )
-
   val causticsPhotons: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(100000),
+    required = false, default = Some(100000), group = optixCausticsGroup,
     validate = p => p > 0 && p <= 10000000,
     descr = "Photons per PPM iteration (default: 100000)"
   )
-
   val causticsIterations: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(10),
+    required = false, default = Some(10), group = optixCausticsGroup,
     validate = i => i > 0 && i <= 1000,
     descr = "Number of PPM iterations (default: 10)"
   )
-
   val causticsRadius: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0.1f),
+    required = false, default = Some(0.1f), group = optixCausticsGroup,
     validate = r => r > 0.0f && r <= 10.0f,
     descr = "Initial photon gather radius (default: 0.1)"
   )
-
   val causticsAlpha: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0.7f),
+    required = false, default = Some(0.7f), group = optixCausticsGroup,
     validate = a => a > 0.0f && a < 1.0f,
     descr = "PPM radius reduction factor (default: 0.7)"
   )
-
-  // Camera parameters
-  val cameraPos: ScallopOption[Vector3] = opt[Vector3](
-    required = false, default = Some(Vector3(0f, 0.5f, 3.0f))
-  )(using vector3Converter)
-  val cameraLookat: ScallopOption[Vector3] = opt[Vector3](
-    required = false, default = Some(Vector3(0f, 0f, 0f))
-  )(using vector3Converter)
-  val cameraUp: ScallopOption[Vector3] = opt[Vector3](
-    required = false, default = Some(Vector3(0f, 1f, 0f))
-  )(using vector3Converter)
-
-  // Scene geometry parameters
-  val center: ScallopOption[Vector3] = opt[Vector3](
-    required = false, default = Some(Vector3(0f, 0f, 0f))
-  )(using vector3Converter)
-  val plane: ScallopOption[PlaneSpec] = opt[PlaneSpec](
-    required = false, default = Some(PlaneSpec(Axis.Y, positive = true, -2.0f))
-  )(using planeSpecConverter)
-  val planeColor: ScallopOption[PlaneColorSpec] = opt[PlaneColorSpec](
-    required = false,
-    descr = "Plane color: #RRGGBB for solid, or RRGGBB:RRGGBB for checkered (OptiX only)"
-  )(using planeColorSpecConverter)
-
-  // Lighting parameters (OptiX only)
-  val light: ScallopOption[List[LightSpec]] = opt[List[LightSpec]](
-    required = false,
-    descr = "Light source (repeatable, max 8). Format: <type>:x,y,z[:intensity[:color]] where type is directional|point"
-  )(using lightSpecConverter)
 
   mutuallyExclusive(timeout, animate)
   validate(projectionScreenW, projectionEyeW) { (screen, eye) =>
@@ -216,11 +324,15 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   }
 
   // Validate OptiX-related options
-  validateOpt(spongeType, optix) { (st, ox) =>
-    if st.contains("sphere") && !ox.getOrElse(false) then
-      Left("--sponge-type sphere requires --optix flag")
-    else if ox.getOrElse(false) && !st.contains("sphere") then
-      Left("--optix flag requires --sponge-type sphere")
+  // OptiX requires --object option to specify the geometry type (sphere, cube)
+  validateOpt(optix, objectType) { (ox, obj) =>
+    val isOptiXEnabled = ox.getOrElse(false)
+    val hasObjectType = obj.isDefined
+
+    if isOptiXEnabled && !hasObjectType then
+      Left("--optix flag requires --object option (e.g., --object sphere or --object cube)")
+    else if hasObjectType && !isOptiXEnabled then
+      Left("--object option requires --optix flag")
     else Right(())
   }
 
@@ -254,6 +366,8 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   validateOpt(caustics, optix) { (c, ox) =>
     requiresOptixFlag("caustics", c.getOrElse(false), ox.getOrElse(false))
   }
+
+  // Note: objectType validation is handled in the combined validateOpt(optix, objectType) above
 
   validateOpt(causticsPhotons, caustics) { (_, c) =>
     requiresParentFlag("caustics-photons", causticsPhotons.isSupplied, "caustics", c.getOrElse(false))

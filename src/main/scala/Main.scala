@@ -67,8 +67,10 @@ object Main:
     opts: MengerCLIOptions,
     rpp: RotationProjectionParameters
   )(using ProfilingConfig): OptiXEngine =
+    // --object is required for OptiX (validated in MengerCLIOptions)
+    val objectType = opts.objectType()
     OptiXEngine(
-      opts.spongeType(), opts.level(), opts.lines(), opts.color(),
+      objectType, opts.level(), opts.lines(), opts.color(),
       opts.fpsLogInterval(),
       opts.radius(), opts.ior(), opts.scale(),
       opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),

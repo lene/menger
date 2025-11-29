@@ -4,6 +4,7 @@ Quick notes and ideas. For detailed planning see [optix-jni/ENHANCEMENT_PLAN.md]
 
 ## Backlog
 
+- fix ctrl-q
 - move menger to a separate subproject so that all projects are on the same level
 - split build.sbt, one for every subproject
 - analyze and improve test coverage

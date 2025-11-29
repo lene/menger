@@ -83,6 +83,14 @@ class SceneConfigurator(
     renderer.setSphereColor(color)
     logger.debug(s"Configured sphere color: RGBA=(${color.r}, ${color.g}, ${color.b}, ${color.a})")
 
+  def setTriangleMeshColor(renderer: OptiXRenderer, color: Color): Unit =
+    renderer.setTriangleMeshColor(color)
+    logger.debug(s"Configured triangle mesh color: RGBA=(${color.r}, ${color.g}, ${color.b}, ${color.a})")
+
+  def setTriangleMeshIOR(renderer: OptiXRenderer, ior: Float): Unit =
+    renderer.setTriangleMeshIOR(ior)
+    logger.debug(s"Configured triangle mesh IOR: $ior")
+
   def setIOR(renderer: OptiXRenderer, ior: Float): Unit =
     renderer.setIOR(ior)
     logger.debug(s"Configured index of refraction: IOR=$ior")
