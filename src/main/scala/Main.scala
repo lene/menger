@@ -49,6 +49,9 @@ object Main:
       COLOR_BITS, COLOR_BITS, COLOR_BITS, COLOR_BITS, DEPTH_BITS, STENCIL_BITS,
       opts.antialiasSamples()
     )
+    // Disable window resizing for OptiX mode to prevent expensive buffer reallocation
+    // OptiX rendering requires fixed resolution for optimal performance
+    if opts.optix() then config.setResizable(false)
     config
 
   def createEngine(opts: MengerCLIOptions): RenderEngine =
@@ -68,9 +71,8 @@ object Main:
     rpp: RotationProjectionParameters
   )(using ProfilingConfig): OptiXEngine =
     // --object is required for OptiX (validated in MengerCLIOptions)
-    val objectType = opts.objectType()
     OptiXEngine(
-      objectType, opts.level(), opts.lines(), opts.color(),
+      opts.objectType(), opts.level(), opts.lines(), opts.color(),
       opts.fpsLogInterval(),
       opts.radius(), opts.ior(), opts.scale(),
       opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),
@@ -78,16 +80,9 @@ object Main:
       opts.timeout(),
       opts.saveName.toOption,
       opts.stats(),
-      opts.shadows(),
       opts.light.toOption,
-      opts.antialiasing(),
-      opts.aaMaxDepth(),
-      opts.aaThreshold(),
-      opts.caustics(),
-      opts.causticsPhotons(),
-      opts.causticsIterations(),
-      opts.causticsRadius(),
-      opts.causticsAlpha()
+      opts.renderConfig,
+      opts.causticsConfig
     )
 
   private def createAnimatedEngine(

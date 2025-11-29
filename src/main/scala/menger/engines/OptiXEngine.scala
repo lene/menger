@@ -17,8 +17,10 @@ import menger.common.ImageSize
 import menger.input.OptiXCameraController
 import menger.objects.Cube
 import menger.optix.CameraState
+import menger.optix.CausticsConfig
 import menger.optix.OptiXRenderer
 import menger.optix.OptiXRendererWrapper
+import menger.optix.RenderConfig
 import menger.optix.SceneConfigurator
 
 class OptiXEngine(
@@ -39,16 +41,9 @@ class OptiXEngine(
   val timeout: Float = 0f,
   saveName: Option[String] = None,
   val enableStats: Boolean = false,
-  val shadows: Boolean = false,
   val lights: Option[List[menger.LightSpec]] = None,
-  val antialiasing: Boolean = false,
-  val aaMaxDepth: Int = 2,
-  val aaThreshold: Float = 0.1f,
-  val caustics: Boolean = false,
-  val causticsPhotons: Int = 100000,
-  val causticsIterations: Int = 10,
-  val causticsRadius: Float = 0.1f,
-  val causticsAlpha: Float = 0.7f
+  val renderConfig: RenderConfig = RenderConfig.Default,
+  val causticsConfig: CausticsConfig = CausticsConfig.Disabled
 )(using profilingConfig: ProfilingConfig) extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots:
 
   private val geometryGenerator: Try[OptiXRenderer => Unit] = spongeType match {
@@ -71,7 +66,7 @@ class OptiXEngine(
     OptiXCameraController(rendererWrapper, cameraState, renderResources, cameraPos, cameraLookat, cameraUp)
 
   override def create(): Unit =
-    logger.info(s"Creating OptiXEngine with object=$spongeType, radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, shadows=$shadows, antialiasing=$antialiasing, caustics=$caustics")
+    logger.info(s"Creating OptiXEngine with object=$spongeType, radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, renderConfig=$renderConfig, causticsConfig=$causticsConfig")
 
     val renderer = rendererWrapper.renderer
     sceneConfigurator.configureScene(renderer)
@@ -90,9 +85,8 @@ class OptiXEngine(
         sceneConfigurator.setIOR(renderer, ior)
 
     sceneConfigurator.setScale(renderer, scale)
-    sceneConfigurator.setShadows(renderer, shadows)
-    sceneConfigurator.setAntialiasing(renderer, antialiasing, aaMaxDepth, aaThreshold)
-    sceneConfigurator.setCaustics(renderer, caustics, causticsPhotons, causticsIterations, causticsRadius, causticsAlpha)
+    renderer.setRenderConfig(renderConfig)
+    renderer.setCausticsConfig(causticsConfig)
     planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
 
     // Register interactive camera controller for mouse-based camera control
@@ -112,16 +106,12 @@ class OptiXEngine(
 
     // Only proceed if window dimensions are valid
     if width > 0 && height > 0 then
-      // Check if window dimensions changed
-      val dimensionsChanged = renderResources.currentDimensions match
-        case Some(lastDims) => width != lastDims.width || height != lastDims.height
-        case None => true  // First valid render, dimensions definitely changed
-
-      if dimensionsChanged then
+      // Initialize camera on first render (window is not resizable in OptiX mode)
+      if renderResources.currentDimensions.isEmpty then
         cameraState.updateCameraAspectRatio(rendererWrapper.renderer, ImageSize(width, height))
         renderResources.markNeedsRender()
 
-      // Only render the scene if something changed
+      // Only render the scene if something changed (camera moved, etc.)
       if renderResources.needsRender then
         val size = ImageSize(width, height)
         val rgbaBytes = if enableStats then renderWithStats(width, height) else rendererWrapper.renderScene(size)
@@ -150,10 +140,9 @@ class OptiXEngine(
     )
     result.image
 
-  override def resize(width: Int, height: Int): Unit =
-    cameraState.updateCameraAspectRatio(rendererWrapper.renderer, ImageSize(width, height))
-    renderResources.markNeedsRender()
-    Gdx.graphics.requestRendering()
+  // Window resize is disabled for OptiX mode (setResizable(false) in Main)
+  // This method is kept for interface compatibility but should never be called with different dimensions
+  override def resize(width: Int, height: Int): Unit = {}
 
   override def dispose(): Unit =
     logger.debug("Disposing OptiXEngine")

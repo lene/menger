@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Const
+import menger.optix.CausticsConfig
+import menger.optix.RenderConfig
 import org.rogach.scallop._
 import org.rogach.scallop.exceptions._
 
@@ -386,6 +388,22 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   }
 
   verify()
+
+  // Config accessors - create typed config objects from CLI options
+  def renderConfig: RenderConfig = RenderConfig(
+    shadows = shadows(),
+    antialiasing = antialiasing(),
+    aaMaxDepth = aaMaxDepth(),
+    aaThreshold = aaThreshold()
+  )
+
+  def causticsConfig: CausticsConfig = CausticsConfig(
+    enabled = caustics(),
+    photonsPerIteration = causticsPhotons(),
+    iterations = causticsIterations(),
+    initialRadius = causticsRadius(),
+    alpha = causticsAlpha()
+  )
 
   private def validateAnimationSpecification(spec: AnimationSpecifications, spongeType: String) =
     if spec.valid(spongeType) && spec.timeSpecValid then Right(())

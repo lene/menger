@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import menger.common.Const
 import menger.engines.OptiXEngine
+import menger.optix.RenderConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -23,7 +24,7 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
     scale: Float = 1.0f,
     timeout: Float = 0f,
     enableStats: Boolean = false,
-    shadows: Boolean = false
+    renderConfig: RenderConfig = RenderConfig.Default
   ): OptiXEngine =
     given ProfilingConfig = ProfilingConfig.disabled
     new OptiXEngine(
@@ -43,7 +44,7 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
       timeout = timeout,
       saveName = None,
       enableStats = enableStats,
-      shadows = shadows
+      renderConfig = renderConfig
     )
 
   "OptiXEngine" should "be instantiated" in:
@@ -75,8 +76,7 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
       center = Vector3(0f, 0f, 0f),
       planeSpec = PlaneSpec(Axis.Y, false, -2f),
       timeout = 0f,
-      enableStats = false,
-      shadows = false
+      enableStats = false
     )
     engine.color shouldBe Color.RED
 
@@ -98,8 +98,7 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
       center = Vector3(0f, 0f, 0f),
       planeSpec = PlaneSpec(Axis.Y, false, -2f),
       timeout = 0f,
-      enableStats = false,
-      shadows = false
+      enableStats = false
     )
     engine.color.r shouldBe 0f +- 0.01f
     engine.color.g shouldBe 1f +- 0.01f
