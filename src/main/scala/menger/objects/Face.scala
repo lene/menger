@@ -9,7 +9,8 @@ import menger.objects.Direction.Y
 import menger.objects.Direction.Z
 
 
-case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Direction):
+case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Direction)
+    extends TriangleMeshSource:
 
   private type QuadInfo = (VertexInfo, VertexInfo, VertexInfo, VertexInfo)
 
@@ -26,7 +27,22 @@ case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Dir
   private def createVertices(offsets: Vec3[Float]*): QuadInfo =
     offsets.map { case (dx, dy, dz) => VertexInfo().setPos(xCen + dx, yCen + dy, zCen + dz) } match
       case Seq(v1, v2, v3, v4) => (v1, v2, v3, v4)
-  
+
+  def toTriangleMesh: TriangleMeshData =
+    val half = scale / 2
+    val n = normal.toFloatArray
+    val offsets: Seq[Vec3[Float]] = normal match
+      case X | Direction.negX => Seq((0f, -half, -half), (0f, -half, half), (0f, half, half), (0f, half, -half))
+      case Y | Direction.negY => Seq((-half, 0f, -half), (half, 0f, -half), (half, 0f, half), (-half, 0f, half))
+      case Z | Direction.negZ => Seq((-half, -half, 0f), (half, -half, 0f), (half, half, 0f), (-half, half, 0f))
+
+    val verts = offsets.flatMap { case (dx, dy, dz) =>
+      Seq(xCen + dx, yCen + dy, zCen + dz, n(0), n(1), n(2))
+    }.toArray
+
+    val indices = Array(0, 1, 2, 0, 2, 3)
+    TriangleMeshData(verts, indices)
+
   private lazy val unrotatedSubFaces: Seq[Face] =
     for (x <- -1 to 1; y <- -1 to 1 if abs(x) + abs(y) > 0)
       yield Face(runningCoordinates(x/3f, y/3f, scale), scale / 3f, normal)

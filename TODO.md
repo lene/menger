@@ -6,6 +6,7 @@ Quick notes and ideas. For detailed planning see [optix-jni/ENHANCEMENT_PLAN.md]
 
 - move menger to a separate subproject so that all projects are on the same level
 - split build.sbt, one for every subproject
+- analyze and improve test coverage
 - disable window resize
 - caustics improvements (deferred - algorithm issues, branch `feature/caustics` preserved)
 - composites

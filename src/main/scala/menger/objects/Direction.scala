@@ -41,6 +41,8 @@ enum Direction(val x: Byte, val y: Byte, val z: Byte):
 
   private[objects] def abs: Direction = Direction(x.abs, y.abs, z.abs)
 
+  def toFloatArray: Array[Float] = Array(x.toFloat, y.toFloat, z.toFloat)
+
 object Direction:
 
   private type ByteVec = (x: Byte, y: Byte, z: Byte)
