@@ -1,32 +1,13 @@
 package menger.input
 
-import scala.math._
-
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Buttons
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.OptiXRenderResources
-import menger.common.Const
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
-
-
-case class CameraControlConfig(
-  orbitSensitivity: Float = 0.3f,
-  panSensitivity: Float = 0.005f,
-  zoomSensitivity: Float = 0.1f,
-  minDistance: Float = 0.5f,
-  maxDistance: Float = 20.0f,
-  minElevation: Float = -89.0f,
-  maxElevation: Float = 89.0f
-)
-
-object CameraControlConfig:
-
-  def default: CameraControlConfig = CameraControlConfig()
-
 
 class OptiXCameraController(
   rendererWrapper: OptiXRendererWrapper,
@@ -35,8 +16,11 @@ class OptiXCameraController(
   initialEye: Vector3,
   initialLookAt: Vector3,
   initialUp: Vector3,
-  config: CameraControlConfig = CameraControlConfig.default
-) extends InputAdapter with LazyLogging:
+  config: OrbitConfig = OrbitConfig()
+) extends InputAdapter with SphericalOrbit with LazyLogging:
+
+  // SphericalOrbit config
+  override protected def orbitConfig: OrbitConfig = config
 
   // Camera state - stored in both Cartesian and spherical coordinates
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
@@ -48,15 +32,22 @@ class OptiXCameraController(
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var up: Vector3 = initialUp.cpy()
 
-  // Spherical coordinates for orbit control
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var distance: Float = eye.cpy().sub(lookAt).len()
+  // Spherical coordinates for orbit control - implementing SphericalOrbit requirements
+  private val (initAzimuth, initElevation, initDistance) = initSpherical(initialEye, initialLookAt)
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var azimuth: Float = computeInitialAzimuth()
-
+  private var _azimuth: Float = initAzimuth
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var elevation: Float = computeInitialElevation()
+  private var _elevation: Float = initElevation
+  @SuppressWarnings(Array("org.wartremover.warts.Var"))
+  private var _distance: Float = initDistance
+
+  override protected def azimuth: Float = _azimuth
+  override protected def azimuth_=(value: Float): Unit = _azimuth = value
+  override protected def elevation: Float = _elevation
+  override protected def elevation_=(value: Float): Unit = _elevation = value
+  override protected def distance: Float = _distance
+  override protected def distance_=(value: Float): Unit = _distance = value
 
   // Mouse tracking state
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
@@ -70,19 +61,6 @@ class OptiXCameraController(
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var dragButton: Int = -1
-
-  // Compute initial azimuth angle from eye and lookAt positions
-  private def computeInitialAzimuth(): Float =
-    val dir = eye.cpy().sub(lookAt)
-    val azimuthRad = atan2(dir.x.toDouble, dir.z.toDouble).toFloat
-    Const.radiansToDegrees(azimuthRad)
-
-  // Compute initial elevation angle from eye and lookAt positions
-  private def computeInitialElevation(): Float =
-    val dir = eye.cpy().sub(lookAt)
-    val horizontalDist = sqrt(dir.x * dir.x + dir.z * dir.z).toFloat
-    val elevationRad = atan2(dir.y.toDouble, horizontalDist.toDouble).toFloat
-    Const.radiansToDegrees(elevationRad)
 
   override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
     lastX = screenX
@@ -116,65 +94,27 @@ class OptiXCameraController(
     handleZoom(amountY)
     true
 
-  // Orbit camera: rotate around lookAt point based on mouse delta
   private def handleOrbit(deltaX: Int, deltaY: Int): Unit =
-    // Update spherical coordinates
-    azimuth += deltaX * config.orbitSensitivity
-    elevation -= deltaY * config.orbitSensitivity  // Invert Y for natural feel
-
-    // Clamp elevation to prevent gimbal lock
-    elevation = elevation.max(config.minElevation).min(config.maxElevation)
-
-    // Convert spherical to Cartesian and update eye position
+    updateOrbit(deltaX, deltaY)
     updateEyeFromSpherical()
     updateCamera()
 
-  // Pan camera: translate both eye and lookAt in screen space
   private def handlePan(deltaX: Int, deltaY: Int): Unit =
-    // Compute camera right and up vectors
     val forward = lookAt.cpy().sub(eye).nor()
-    val right = forward.cpy().crs(up).nor()
-    val camUp = right.cpy().crs(forward).nor()
-
-    // Scale pan delta by distance for natural feel
-    val panScale = distance * config.panSensitivity
-
-    // Translate both eye and lookAt
-    val deltaRight = right.scl(deltaX * panScale)
-    val deltaUp = camUp.scl(-deltaY * panScale) // Invert Y for natural feel
-
-    eye.add(deltaRight).add(deltaUp)
-    lookAt.add(deltaRight).add(deltaUp)
-
+    val panOffset = computePanOffset(deltaX, deltaY, forward, up)
+    eye.add(panOffset)
+    lookAt.add(panOffset)
     updateCamera()
 
-  // Zoom camera: move eye closer/farther from lookAt along view direction
   private def handleZoom(scrollAmount: Float): Unit =
-    // Update distance with exponential scaling for smooth zoom
-    val zoomFactor = 1.0f + (scrollAmount * config.zoomSensitivity)
-    distance *= zoomFactor
-
-    // Clamp distance to prevent camera entering geometry or going too far
-    distance = distance.max(config.minDistance).min(config.maxDistance)
-
-    // Update eye position from new distance
+    updateZoom(scrollAmount)
     updateEyeFromSpherical()
     updateCamera()
 
-  // Convert spherical coordinates (azimuth, elevation, distance) to Cartesian eye position
   private def updateEyeFromSpherical(): Unit =
-    val azimuthRad = Const.degreesToRadians(azimuth)
-    val elevationRad = Const.degreesToRadians(elevation)
+    val newEye = sphericalToCartesian(lookAt)
+    eye.set(newEye.x, newEye.y, newEye.z)
 
-    // Spherical to Cartesian conversion
-    val cosElev = cos(elevationRad.toDouble).toFloat
-    val x = lookAt.x + distance * sin(azimuthRad.toDouble).toFloat * cosElev
-    val y = lookAt.y + distance * sin(elevationRad.toDouble).toFloat
-    val z = lookAt.z + distance * cos(azimuthRad.toDouble).toFloat * cosElev
-
-    eye.set(x, y, z)
-
-  // Update OptiX camera and trigger re-render
   private def updateCamera(): Unit =
     cameraState.updateCamera(rendererWrapper.renderer, eye, lookAt, up)
     renderResources.markNeedsRender()

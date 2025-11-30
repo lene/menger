@@ -10,9 +10,9 @@ import org.scalatest.matchers.should.Matchers
 import org.scalamock.stubs.Stubs
 import menger.RotationProjectionParameters
 import menger.engines.InteractiveMengerEngine
-import menger.input.CameraController
 import menger.input.EventDispatcher
-import menger.input.KeyController
+import menger.input.GdxCameraController
+import menger.input.GdxKeyController
 import menger.input.Observer
 
 
@@ -38,7 +38,7 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
   dispatcher.notifyObservers.returns (_ => ())
 
   private val ORIGIN = Vector3(0, 0, 0)
-  private def controller = KeyController(camera, dispatcher)
+  private def controller = GdxKeyController(camera, dispatcher)
 
   "instantiating a client" should "work" taggedAs GdxTest in:
     
@@ -261,7 +261,7 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
     val observer = TestObserver()
     val dispatcher = EventDispatcher().withObserver(observer)
-    val thisController = KeyController(camera, dispatcher)
+    val thisController = GdxKeyController(camera, dispatcher)
     thisController.keyDown(Keys.SHIFT_LEFT)
     thisController.keyDown(Keys.RIGHT)
     thisController.keyUp(Keys.SHIFT_LEFT)
@@ -269,30 +269,30 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
 
   "CameraInputController" should "instantiate" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    CameraController(camera, dispatcher)
+    GdxCameraController(camera, dispatcher)
 
   it should "record touchDown" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    val thisController = CameraController(camera, dispatcher)
+    val thisController = GdxCameraController(camera, dispatcher)
     thisController.touchDown(0, 1, 0, 0)
 
   import scala.language.postfixOps
 
   it should "record touchDragged" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    val thisController = CameraController(camera, dispatcher)
+    val thisController = GdxCameraController(camera, dispatcher)
     thisController.touchDragged(0, 1, 0)
 
   it should "record scrolled" taggedAs GdxTest in:
     assume(loadingLWJGLSucceeds)
-    val thisController = CameraController(camera, dispatcher)
+    val thisController = GdxCameraController(camera, dispatcher)
     thisController.scrolled(0, 1)
 
   ignore should "record touchDragged with shift" taggedAs GdxTest in:
-    val thisController = CameraController(camera, dispatcher)
+    val thisController = GdxCameraController(camera, dispatcher)
     thisController.touchDragged(0, 1, 0)
 
-  def testKeyDown(inputController: KeyController, key: Int): Unit = {
+  def testKeyDown(inputController: GdxKeyController, key: Int): Unit = {
     inputController.keyDown(key) should be (false)
     inputController.keyUp(key)
   }

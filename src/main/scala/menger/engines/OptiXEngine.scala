@@ -15,6 +15,7 @@ import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.common.ImageSize
 import menger.input.OptiXCameraController
+import menger.input.OptiXInputMultiplexer
 import menger.objects.Cube
 import menger.optix.CameraState
 import menger.optix.CausticsConfig
@@ -89,8 +90,8 @@ class OptiXEngine(
     renderer.setCausticsConfig(causticsConfig)
     planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
 
-    // Register interactive camera controller for mouse-based camera control
-    Gdx.input.setInputProcessor(cameraController)
+    // Register input multiplexer for mouse-based camera control and keyboard shortcuts
+    Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController))
 
     // Disable continuous rendering - we'll request renders only when needed
     Gdx.graphics.setContinuousRendering(false)

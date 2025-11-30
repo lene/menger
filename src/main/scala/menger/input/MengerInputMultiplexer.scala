@@ -6,5 +6,5 @@ import com.badlogic.gdx.graphics.PerspectiveCamera
 class MengerInputMultiplexer(
   camera: PerspectiveCamera, eventDispatcher: EventDispatcher
 ) extends InputMultiplexer:
-  addProcessor(CameraController(camera, eventDispatcher))
-  addProcessor(KeyController(camera, eventDispatcher))
+  addProcessor(GdxCameraController(camera, eventDispatcher))
+  addProcessor(GdxKeyController(camera, eventDispatcher))

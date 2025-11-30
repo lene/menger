@@ -2,13 +2,16 @@
 
 Quick notes and ideas. For detailed planning see [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md).
 
+## Done
+
+- ~~fix ctrl-q~~ - Refactored input controllers with shared BaseKeyController, OptiXInputMultiplexer
+- ~~disable window resize~~ - Window resize disabled for OptiX mode (v0.3)
+
 ## Backlog
 
-- fix ctrl-q
 - move menger to a separate subproject so that all projects are on the same level
 - split build.sbt, one for every subproject
 - analyze and improve test coverage
-- disable window resize
 - caustics improvements (deferred - algorithm issues, branch `feature/caustics` preserved)
 - composites
 - render coordinate cross
