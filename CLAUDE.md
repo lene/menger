@@ -28,26 +28,25 @@ Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala
 
 ## Active Development
 
-**Current:** Planning Sprint 5 - Triangle Mesh Foundation
-**Branch:** `feature/caustics` (Sprint 4 deferred, branch preserved)
-**Local Tests:** 837 passing (25 C++ + 812 Scala)
+**Current:** Sprint 5 Complete - Ready to merge to main
+**Branch:** `feature/caustics` (Sprint 4 deferred, branch preserved with Sprint 5 work)
+**Local Tests:** ~897 passing (21 C++ + ~876 Scala)
 **Progress:** [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md)
 
 **Completed Sprints:**
 - ✅ **Sprint 1** - Foundation (Ray Statistics, Shadow Rays)
 - ✅ **Sprint 2** - Interactivity (Mouse Camera Control, Multiple Light Sources)
 - ✅ **Sprint 3** - Advanced Quality (Adaptive Antialiasing, Unified Color API, Cache Management)
+- ✅ **Sprint 5** - Triangle Mesh Foundation (OptiX triangle support, cube primitive)
 
 **Deferred:**
 - ⏸️ **Sprint 4** - Caustics (algorithm issues, branch preserved for future)
 
 **Upcoming Sprints (Feature Breadth Focus):**
-- **Sprint 5** - Triangle Mesh Foundation (OptiX triangle support)
-- **Sprint 6** - Cube Primitive (first mesh object)
-- **Sprint 7** - Multiple Objects (scene graph)
-- **Sprint 8** - Sponge Mesh Export → **v0.5 Milestone**
-- **Sprint 9-10** - Object Animation
-- **Sprint 11** - Scene Description Language
+- **Sprint 6** - Full Geometry Support (IAS, multiple objects, sponge mesh)
+- **Sprint 7** - Materials (UV coordinates, textures, material presets)
+- **Sprint 8** - Object Animation → **v0.5 Milestone**
+- **Sprint 9** - Scene Description Language
 
 **Recent Features (v0.3.7):**
 - Unified `menger.common.Color` class with factory methods
