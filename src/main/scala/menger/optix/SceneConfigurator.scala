@@ -14,16 +14,6 @@ import menger.common.Color
 import menger.common.Light
 import menger.common.Vector
 
-/** Configures the OptiX scene with geometry, lights, and plane.
-  *
-  * Responsible for initial setup of the rendering scene, including:
-  * - Geometry configuration (via provided configurator function)
-  * - Camera initial setup
-  * - Light sources configuration
-  * - Ground plane configuration
-  * - Material properties (colors, IOR, scale)
-  * - Rendering features (shadows, antialiasing, caustics)
-  */
 class SceneConfigurator(
   configureGeometry: Try[OptiXRenderer => Unit],
   cameraPos: Vector3,

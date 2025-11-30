@@ -5,13 +5,6 @@ import java.util.concurrent.atomic.AtomicReference
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.ImageSize
 
-/** Wrapper for OptiX JNI renderer handling initialization and rendering calls.
-  *
-  * Responsible for:
-  * - JNI renderer lifecycle (initialization, disposal)
-  * - Rendering scene to image buffers
-  * - Rendering with statistics collection
-  */
 class OptiXRendererWrapper extends LazyLogging:
 
   private val _rendererRef = new AtomicReference[Option[OptiXRenderer]](None)

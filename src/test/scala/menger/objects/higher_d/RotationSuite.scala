@@ -133,30 +133,29 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
           logger.debug(s"Rotating around ${axisNames(i)}${axisNames(j)} plane:")
           logger.debug(s"\n${rotate.transformationMatrix}")
 
-  // TODO: make this return a function which takes expected as argument
   private def checkPlaneRotation(
-    point: Vector[4], plane: Plane, expected: Vector[4], angle: Float = 90
-  ): Unit =
-    val rotate = Rotation(plane, angle, Vector.Zero[4])
-    val rotated = rotate(point)
-    rotated should epsilonEqual(expected)
+    point: Vector[4], plane: Plane, angle: Float = 90
+  ): Vector[4] => Unit =
+    expected =>
+      val rotate = Rotation(plane, angle, Vector.Zero[4])
+      val rotated = rotate(point)
+      rotated should epsilonEqual(expected)
 
-
-  // TODO: make this return a function which takes expected1 and expected2 as arguments
   private def checkPlaneAndLineRotation(
-    point: Vector[4], plane: Plane, direction: Edge, expected1: Vector[4], expected2: Vector[4]
-  ): Unit =
-    val rotate = Rotation(plane, direction, direction(0), 90)
-    rotate should have length 2
-    val rotated = rotate.map(_.apply(point))
-    rotated(0) should epsilonEqual(expected1)
-    rotated(1) should epsilonEqual(expected2)
+    point: Vector[4], plane: Plane, direction: Edge
+  ): (Vector[4], Vector[4]) => Unit =
+    (expected1, expected2) =>
+      val rotate = Rotation(plane, direction, direction(0), 90)
+      rotate should have length 2
+      val rotated = rotate.map(_.apply(point))
+      rotated(0) should epsilonEqual(expected1)
+      rotated(1) should epsilonEqual(expected2)
 
   "rotating around a plane and an axis" should "be correct for rotating around x in the xy plane" in :
-    checkPlaneAndLineRotation(y, Plane.xy, Edge(zero, x), -z, -w)
+    checkPlaneAndLineRotation(y, Plane.xy, Edge(zero, x))(-z, -w)
 
   it should "be correct for rotating around y in the xy plane" in :
-    checkPlaneAndLineRotation(x, Plane.xy, Edge(zero, y), z, w)
+    checkPlaneAndLineRotation(x, Plane.xy, Edge(zero, y))(z, w)
 
   it should "fail for rotating around z in the xy plane" in :
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.xy, Edge(zero, z), zero, 90)
@@ -165,10 +164,10 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.xy, Edge(zero, w), zero, 90)
 
   it should "be correct for rotating around x in the xz plane" in :
-    checkPlaneAndLineRotation(z, Plane.xz, Edge(zero, x), -y, -w)
+    checkPlaneAndLineRotation(z, Plane.xz, Edge(zero, x))(-y, -w)
 
   it should "be correct for rotating around z in the xz plane" in :
-    checkPlaneAndLineRotation(x, Plane.xz, Edge(zero, z), y, w)
+    checkPlaneAndLineRotation(x, Plane.xz, Edge(zero, z))(y, w)
 
   it should "fail for rotating around y in the xz plane" in :
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.xz, Edge(zero, y), zero, 90)
@@ -177,10 +176,10 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.xz, Edge(zero, w), zero, 90)
 
   it should "be correct for rotating around x in the xw plane" in :
-    checkPlaneAndLineRotation(w, Plane.xw, Edge(zero, x), -y, -z)
+    checkPlaneAndLineRotation(w, Plane.xw, Edge(zero, x))(-y, -z)
 
   it should "be correct for rotating around w in the xw plane" in :
-    checkPlaneAndLineRotation(x, Plane.xw, Edge(zero, w), y, z)
+    checkPlaneAndLineRotation(x, Plane.xw, Edge(zero, w))(y, z)
 
   it should "fail for rotating around y in the xw plane" in :
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.xw, Edge(zero, y), zero, 90)
@@ -189,10 +188,10 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.xw, Edge(zero, z), zero, 90)
 
   it should "be correct for rotating around y in the yz plane" in :
-    checkPlaneAndLineRotation(z, Plane.yz, Edge(zero, y), -x, -w)
+    checkPlaneAndLineRotation(z, Plane.yz, Edge(zero, y))(-x, -w)
 
   it should "be correct for rotating around z in the yz plane" in :
-    checkPlaneAndLineRotation(y, Plane.yz, Edge(zero, z), x, w)
+    checkPlaneAndLineRotation(y, Plane.yz, Edge(zero, z))(x, w)
 
   it should "fail for rotating around x in the yz plane" in :
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.yz, Edge(zero, x), zero, 90)
@@ -201,10 +200,10 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.yz, Edge(zero, w), zero, 90)
 
   it should "be correct for rotating around y in the yw plane" in :
-    checkPlaneAndLineRotation(w, Plane.yw, Edge(zero, y), -x, -z)
+    checkPlaneAndLineRotation(w, Plane.yw, Edge(zero, y))(-x, -z)
 
   it should "be correct for rotating around w in the yw plane" in :
-    checkPlaneAndLineRotation(y, Plane.yw, Edge(zero, w), x, z)
+    checkPlaneAndLineRotation(y, Plane.yw, Edge(zero, w))(x, z)
 
   it should "fail for rotating around x in the yw plane" in :
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.yw, Edge(zero, x), zero, 90)
@@ -213,10 +212,10 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.yw, Edge(zero, z), zero, 90)
 
   it should "be correct for rotating around z in the zw plane" in :
-    checkPlaneAndLineRotation(w, Plane.zw, Edge(zero, z), -x, -y)
+    checkPlaneAndLineRotation(w, Plane.zw, Edge(zero, z))(-x, -y)
 
   it should "be correct for rotating around w in the zw plane" in :
-    checkPlaneAndLineRotation(z, Plane.zw, Edge(zero, w), x, y)
+    checkPlaneAndLineRotation(z, Plane.zw, Edge(zero, w))(x, y)
 
   it should "fail for rotating around x in the zw plane" in :
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.zw, Edge(zero, x), zero, 90)
@@ -225,68 +224,68 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     an [IllegalArgumentException] should be thrownBy Rotation(Plane.zw, Edge(zero, y), zero, 90)
 
   "rotating a point around different planes" should "be correct for xy plane" in :
-    checkPlaneRotation(x, Plane.xy, -y)
-    checkPlaneRotation(y, Plane.xy, x)
-    checkPlaneRotation(z, Plane.xy, z)
-    checkPlaneRotation(w, Plane.xy, w)
+    checkPlaneRotation(x, Plane.xy)(-y)
+    checkPlaneRotation(y, Plane.xy)(x)
+    checkPlaneRotation(z, Plane.xy)(z)
+    checkPlaneRotation(w, Plane.xy)(w)
 
   it should "be correct for xz plane" in :
-    checkPlaneRotation(x, Plane.xz, -z)
-    checkPlaneRotation(y, Plane.xz, y)
-    checkPlaneRotation(z, Plane.xz, x)
-    checkPlaneRotation(w, Plane.xz, w)
+    checkPlaneRotation(x, Plane.xz)(-z)
+    checkPlaneRotation(y, Plane.xz)(y)
+    checkPlaneRotation(z, Plane.xz)(x)
+    checkPlaneRotation(w, Plane.xz)(w)
 
   it should "be correct for xw plane" in :
-    checkPlaneRotation(x, Plane.xw, -w)
-    checkPlaneRotation(y, Plane.xw, y)
-    checkPlaneRotation(z, Plane.xw, z)
-    checkPlaneRotation(w, Plane.xw, x)
+    checkPlaneRotation(x, Plane.xw)(-w)
+    checkPlaneRotation(y, Plane.xw)(y)
+    checkPlaneRotation(z, Plane.xw)(z)
+    checkPlaneRotation(w, Plane.xw)(x)
 
   it should "be correct for yz plane" in :
-    checkPlaneRotation(x, Plane.yz, x)
-    checkPlaneRotation(y, Plane.yz, -z)
-    checkPlaneRotation(z, Plane.yz, y)
-    checkPlaneRotation(w, Plane.yz, w)
+    checkPlaneRotation(x, Plane.yz)(x)
+    checkPlaneRotation(y, Plane.yz)(-z)
+    checkPlaneRotation(z, Plane.yz)(y)
+    checkPlaneRotation(w, Plane.yz)(w)
 
   it should "be correct for yw plane" in :
-    checkPlaneRotation(x, Plane.yw, x)
-    checkPlaneRotation(y, Plane.yw, -w)
-    checkPlaneRotation(z, Plane.yw, z)
-    checkPlaneRotation(w, Plane.yw, y)
+    checkPlaneRotation(x, Plane.yw)(x)
+    checkPlaneRotation(y, Plane.yw)(-w)
+    checkPlaneRotation(z, Plane.yw)(z)
+    checkPlaneRotation(w, Plane.yw)(y)
 
   it should "be correct for zw plane" in :
-    checkPlaneRotation(x, Plane.zw, x)
-    checkPlaneRotation(y, Plane.zw, y)
-    checkPlaneRotation(z, Plane.zw, -w)
-    checkPlaneRotation(w, Plane.zw, z)
+    checkPlaneRotation(x, Plane.zw)(x)
+    checkPlaneRotation(y, Plane.zw)(y)
+    checkPlaneRotation(z, Plane.zw)(-w)
+    checkPlaneRotation(w, Plane.zw)(z)
 
   "180 degree rotation" should "flip a vector if it lies in the rotation plane" in :
-    checkPlaneRotation(x, Plane.xy, -x, 180)
-    checkPlaneRotation(y, Plane.xy, -y, 180)
-    checkPlaneRotation(x, Plane.xz, -x, 180)
-    checkPlaneRotation(z, Plane.xz, -z, 180)
-    checkPlaneRotation(x, Plane.xw, -x, 180)
-    checkPlaneRotation(w, Plane.xw, -w, 180)
-    checkPlaneRotation(y, Plane.yz, -y, 180)
-    checkPlaneRotation(z, Plane.yz, -z, 180)
-    checkPlaneRotation(y, Plane.yw, -y, 180)
-    checkPlaneRotation(w, Plane.yw, -w, 180)
-    checkPlaneRotation(z, Plane.zw, -z, 180)
-    checkPlaneRotation(w, Plane.zw, -w, 180)
+    checkPlaneRotation(x, Plane.xy, 180)(-x)
+    checkPlaneRotation(y, Plane.xy, 180)(-y)
+    checkPlaneRotation(x, Plane.xz, 180)(-x)
+    checkPlaneRotation(z, Plane.xz, 180)(-z)
+    checkPlaneRotation(x, Plane.xw, 180)(-x)
+    checkPlaneRotation(w, Plane.xw, 180)(-w)
+    checkPlaneRotation(y, Plane.yz, 180)(-y)
+    checkPlaneRotation(z, Plane.yz, 180)(-z)
+    checkPlaneRotation(y, Plane.yw, 180)(-y)
+    checkPlaneRotation(w, Plane.yw, 180)(-w)
+    checkPlaneRotation(z, Plane.zw, 180)(-z)
+    checkPlaneRotation(w, Plane.zw, 180)(-w)
 
   it should "leave a vector intact if not in the rotation plane" in :
-    checkPlaneRotation(z, Plane.xy, z, 180)
-    checkPlaneRotation(w, Plane.xy, w, 180)
-    checkPlaneRotation(y, Plane.xz, y, 180)
-    checkPlaneRotation(w, Plane.xz, w, 180)
-    checkPlaneRotation(y, Plane.xw, y, 180)
-    checkPlaneRotation(z, Plane.xw, z, 180)
-    checkPlaneRotation(x, Plane.yz, x, 180)
-    checkPlaneRotation(w, Plane.yz, w, 180)
-    checkPlaneRotation(x, Plane.yw, x, 180)
-    checkPlaneRotation(z, Plane.yw, z, 180)
-    checkPlaneRotation(x, Plane.zw, x, 180)
-    checkPlaneRotation(y, Plane.zw, y, 180)
+    checkPlaneRotation(z, Plane.xy, 180)(z)
+    checkPlaneRotation(w, Plane.xy, 180)(w)
+    checkPlaneRotation(y, Plane.xz, 180)(y)
+    checkPlaneRotation(w, Plane.xz, 180)(w)
+    checkPlaneRotation(y, Plane.xw, 180)(y)
+    checkPlaneRotation(z, Plane.xw, 180)(z)
+    checkPlaneRotation(x, Plane.yz, 180)(x)
+    checkPlaneRotation(w, Plane.yz, 180)(w)
+    checkPlaneRotation(x, Plane.yw, 180)(x)
+    checkPlaneRotation(z, Plane.yw, 180)(z)
+    checkPlaneRotation(x, Plane.zw, 180)(x)
+    checkPlaneRotation(y, Plane.zw, 180)(y)
 
   "Adding a 90 degree rotation to a 90 degree rotation" should "be a 180 degree rotation" in :
     val rotate1 = Rotation(Plane.xy, 90)
@@ -295,18 +294,18 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     rotated should epsilonEqual (-x)
 
   "rotating by negative angles" should "produce correct results" in :
-    checkPlaneRotation(x, Plane.xy, y, -90)
-    checkPlaneRotation(y, Plane.xy, -x, -90)
-    checkPlaneRotation(z, Plane.xz, -x, -90)
-    checkPlaneRotation(w, Plane.xw, -x, -90)
+    checkPlaneRotation(x, Plane.xy, -90)(y)
+    checkPlaneRotation(y, Plane.xy, -90)(-x)
+    checkPlaneRotation(z, Plane.xz, -90)(-x)
+    checkPlaneRotation(w, Plane.xw, -90)(-x)
 
   "rotating by non-standard angles" should "produce correct results" in :
     val sqrt2_2 = math.sqrt(2).toFloat / 2
-    checkPlaneRotation(x, Plane.xy, Vector[4](sqrt2_2, -sqrt2_2, 0, 0), 45)
-    checkPlaneRotation(x, Plane.xy, Vector[4](-sqrt2_2, -sqrt2_2, 0, 0), 135)
-    checkPlaneRotation(y, Plane.xy, Vector[4](sqrt2_2, sqrt2_2, 0, 0), 45)
-    checkPlaneRotation(z, Plane.xz, Vector[4](sqrt2_2, 0, sqrt2_2, 0), 45)
-    checkPlaneRotation(w, Plane.xw, Vector[4](sqrt2_2, 0, 0, sqrt2_2), 45)
+    checkPlaneRotation(x, Plane.xy, 45)(Vector[4](sqrt2_2, -sqrt2_2, 0, 0))
+    checkPlaneRotation(x, Plane.xy, 135)(Vector[4](-sqrt2_2, -sqrt2_2, 0, 0))
+    checkPlaneRotation(y, Plane.xy, 45)(Vector[4](sqrt2_2, sqrt2_2, 0, 0))
+    checkPlaneRotation(z, Plane.xz, 45)(Vector[4](sqrt2_2, 0, sqrt2_2, 0))
+    checkPlaneRotation(w, Plane.xw, 45)(Vector[4](sqrt2_2, 0, 0, sqrt2_2))
 
   "rotating around multiple planes" should "produce correct results" in :
     val rotateXZ = Rotation(Plane.xz, 90)

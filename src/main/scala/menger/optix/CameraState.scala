@@ -5,13 +5,6 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.common.ImageSize
 import menger.common.Vector
 
-/** Manages camera state and updates for OptiX rendering.
-  *
-  * Responsible for:
-  * - Camera position, look-at, and up vector updates
-  * - Aspect ratio adjustments when window resizes
-  * - FOV management
-  */
 class CameraState(
   initialPos: Vector3,
   initialLookat: Vector3,
