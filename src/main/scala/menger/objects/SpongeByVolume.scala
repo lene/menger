@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
+import menger.common.TriangleMeshData
 import menger.common.float2string
 
 
@@ -42,6 +43,27 @@ class SpongeByVolume(
     ).getModel
 
     subCubeList.flatten.toList
+
+  override def toTriangleMesh: TriangleMeshData =
+    if level <= 0 then super.toTriangleMesh
+    else getIntegerMesh
+
+  private lazy val getIntegerMesh: TriangleMeshData =
+    val shift = scale / 3f
+    val subMeshes = for
+      xx <- -1 to 1
+      yy <- -1 to 1
+      zz <- -1 to 1
+      if abs(xx) + abs(yy) + abs(zz) > 1
+    yield SpongeByVolume(
+      Vector3(center.x + xx * shift, center.y + yy * shift, center.z + zz * shift),
+      scale / 3f,
+      level - 1,
+      material,
+      primitiveType
+    ).toTriangleMesh
+
+    TriangleMeshData.merge(subMeshes)
 
   override def toString: String =
     s"SpongeByVolume(level=${float2string(level)}, ${6 * Math.pow(20, level.toInt).toLong} faces)"
