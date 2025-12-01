@@ -90,7 +90,7 @@ class OptiXEngine(
       case "sphere" =>
         sceneConfigurator.setSphereColor(renderer, color.toCommonColor)
         sceneConfigurator.setIOR(renderer, ior)
-      case "cube" =>
+      case "cube" | "sponge-volume" | "sponge-surface" =>
         sceneConfigurator.setTriangleMeshColor(renderer, color.toCommonColor)
         sceneConfigurator.setTriangleMeshIOR(renderer, ior)
       case _ =>
