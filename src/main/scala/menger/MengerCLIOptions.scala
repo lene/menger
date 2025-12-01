@@ -12,7 +12,7 @@ import org.rogach.scallop._
 import org.rogach.scallop.exceptions._
 
 class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:
-  version("menger v0.3.9 (c) 2023-25, lene.preuss@gmail.com")
+  version("menger v0.4.0 (c) 2023-25, lene.preuss@gmail.com")
   banner("""Usage: menger [options]
            |
            |Menger sponge fractal renderer with OptiX GPU ray tracing support.

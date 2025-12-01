@@ -9,6 +9,7 @@ Quick notes and ideas. For detailed planning see [optix-jni/ENHANCEMENT_PLAN.md]
 
 ## Backlog
 
+- MAX_INSTANCES = 64 is going to lead to problems i suppose
 - move menger to a separate subproject so that all projects are on the same level
 - split build.sbt, one for every subproject
 - analyze and improve test coverage
