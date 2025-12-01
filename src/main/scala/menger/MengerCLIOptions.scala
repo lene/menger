@@ -186,8 +186,8 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   )
   val objectType: ScallopOption[String] = opt[String](
     name = "object", required = false, default = None, group = optixGroup,
-    validate = obj => Set("sphere", "cube").contains(obj.toLowerCase),
-    descr = "Object to render: sphere, cube"
+    validate = obj => Set("sphere", "cube", "sponge-volume", "sponge-surface").contains(obj.toLowerCase),
+    descr = "Object to render: sphere, cube, sponge-volume, sponge-surface"
   )
   val radius: ScallopOption[Float] = opt[Float](
     required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,

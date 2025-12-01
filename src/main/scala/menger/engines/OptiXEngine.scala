@@ -17,6 +17,8 @@ import menger.common.ImageSize
 import menger.input.OptiXCameraController
 import menger.input.OptiXInputMultiplexer
 import menger.objects.Cube
+import menger.objects.SpongeBySurface
+import menger.objects.SpongeByVolume
 import menger.optix.CameraState
 import menger.optix.CausticsConfig
 import menger.optix.OptiXRenderer
@@ -52,6 +54,17 @@ class OptiXEngine(
     case "cube" => Try { renderer =>
       val cube = Cube(center = center, scale = sphereRadius * 2)  // Use radius as half-size for consistency
       val mesh = cube.toTriangleMesh
+      renderer.setTriangleMesh(mesh)
+    }
+    case "sponge-volume" => Try { renderer =>
+      val sponge = SpongeByVolume(center = center, scale = sphereRadius * 2, level = spongeLevel)
+      val mesh = sponge.toTriangleMesh
+      renderer.setTriangleMesh(mesh)
+    }
+    case "sponge-surface" => Try { renderer =>
+      given menger.ProfilingConfig = profilingConfig
+      val sponge = SpongeBySurface(center = center, scale = sphereRadius * 2, level = spongeLevel)
+      val mesh = sponge.toTriangleMesh
       renderer.setTriangleMesh(mesh)
     }
     case _ => Failure(UnsupportedOperationException(spongeType))

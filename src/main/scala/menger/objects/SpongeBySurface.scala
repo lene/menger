@@ -69,7 +69,16 @@ class SpongeBySurface(
     }
 
   override def toTriangleMesh: TriangleMeshData = logTime("toTriangleMesh") {
-    val allFaces = Direction.values.flatMap(dir => surfaces(Face(center.x, center.y, center.z, scale, dir)))
+    val half = scale / 2
+    // Create initial faces offset by half in their normal direction (on the cube surface)
+    val allFaces = Direction.values.flatMap { dir =>
+      val offset = half * dir.sign
+      val (fx, fy, fz) = dir match
+        case Direction.X | Direction.negX => (center.x + offset, center.y, center.z)
+        case Direction.Y | Direction.negY => (center.x, center.y + offset, center.z)
+        case Direction.Z | Direction.negZ => (center.x, center.y, center.z + offset)
+      surfaces(Face(fx, fy, fz, scale, dir))
+    }
     val meshes = allFaces.map(_.toTriangleMesh).toSeq
     TriangleMeshData.merge(meshes)
   }

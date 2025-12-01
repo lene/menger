@@ -31,6 +31,8 @@ case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Dir
   def toTriangleMesh: TriangleMeshData =
     val half = scale / 2
     val n = normal.toFloatArray
+    // Face vertices are in the plane perpendicular to normal, at distance 0 from center
+    // The center (xCen, yCen, zCen) should already be positioned correctly by the caller
     val offsets: Seq[Vec3[Float]] = normal match
       case X | Direction.negX => Seq((0f, -half, -half), (0f, -half, half), (0f, half, half), (0f, half, -half))
       case Y | Direction.negY => Seq((-half, 0f, -half), (half, 0f, -half), (half, 0f, half), (-half, 0f, half))
