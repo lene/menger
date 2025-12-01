@@ -49,6 +49,29 @@ class OptiXEngine(
   val causticsConfig: CausticsConfig = CausticsConfig.Disabled
 )(using profilingConfig: ProfilingConfig) extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots:
 
+  // Level thresholds for warnings (based on triangle counts and performance)
+  private val VolumeLevelWarning = 3  // Level 3 = ~32K cubes = ~384K triangles
+  private val SurfaceLevelWarning = 3 // Level 3 = ~10K triangles per face = ~60K total
+  private val VolumeLevelMax = 5      // Level 5 = ~3.2M cubes (may exhaust GPU memory)
+  private val SurfaceLevelMax = 5     // Level 5 = ~31M triangles (may exhaust GPU memory)
+
+  private def warnIfHighLevel(): Unit =
+    val intLevel = spongeLevel.toInt
+    spongeType match
+      case "sponge-volume" =>
+        if intLevel >= VolumeLevelWarning then
+          val estimatedTriangles = math.pow(20, intLevel).toLong * 12 // 20^level cubes * 12 triangles each
+          logger.warn(s"Sponge level $intLevel may be slow (~${estimatedTriangles / 1000}K triangles)")
+        if intLevel > VolumeLevelMax then
+          logger.error(s"Sponge level $intLevel exceeds recommended maximum ($VolumeLevelMax)")
+      case "sponge-surface" =>
+        if intLevel >= SurfaceLevelWarning then
+          val estimatedTriangles = math.pow(12, intLevel).toLong * 6 * 2 // 12^level sub-faces * 6 faces * 2 triangles
+          logger.warn(s"Sponge level $intLevel may be slow (~${estimatedTriangles / 1000}K triangles)")
+        if intLevel > SurfaceLevelMax then
+          logger.error(s"Sponge level $intLevel exceeds recommended maximum ($SurfaceLevelMax)")
+      case _ => // No warning for other types
+
   private val geometryGenerator: Try[OptiXRenderer => Unit] = spongeType match {
     case "sphere" => Try(_.setSphere(menger.common.Vector[3](center.x, center.y, center.z), sphereRadius))
     case "cube" => Try { renderer =>
@@ -81,6 +104,9 @@ class OptiXEngine(
 
   override def create(): Unit =
     logger.info(s"Creating OptiXEngine with object=$spongeType, radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, renderConfig=$renderConfig, causticsConfig=$causticsConfig")
+
+    // Warn about high sponge levels before generating geometry
+    warnIfHighLevel()
 
     val renderer = rendererWrapper.renderer
     sceneConfigurator.configureScene(renderer)
