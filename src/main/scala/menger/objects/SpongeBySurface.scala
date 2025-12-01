@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g3d.Model
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder
 import com.badlogic.gdx.math.Vector3
+import menger.common.TriangleMeshData
 import menger.common.float2string
 import menger.objects.Direction.Z
 
@@ -13,7 +14,7 @@ import menger.objects.Direction.Z
 class SpongeBySurface(
   val center: Vector3 = Vector3.Zero, val scale: Float = 1f,
   val level: Float, val material: Material = Builder.WHITE_MATERIAL, val primitiveType: Int = GL20.GL_TRIANGLES
-)(using val profilingConfig: menger.ProfilingConfig) extends Geometry(center, scale) with FractionalLevelSponge:
+)(using val profilingConfig: menger.ProfilingConfig) extends Geometry(center, scale) with FractionalLevelSponge with TriangleMeshSource:
   require(level >= 0, "Level must be non-negative")
 
   override protected def createInstance(
@@ -66,3 +67,9 @@ class SpongeBySurface(
       )
       Builder.modelBuilder.end()
     }
+
+  override def toTriangleMesh: TriangleMeshData = logTime("toTriangleMesh") {
+    val allFaces = Direction.values.flatMap(dir => surfaces(Face(center.x, center.y, center.z, scale, dir)))
+    val meshes = allFaces.map(_.toTriangleMesh).toSeq
+    TriangleMeshData.merge(meshes)
+  }
