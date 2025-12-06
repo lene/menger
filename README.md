@@ -134,16 +134,37 @@ for a Scala 3 REPL.
 
 ### OptiX Ray Tracing Options
 
-For GPU-accelerated ray tracing using NVIDIA OptiX (requires `--optix` and `--object`):
+GPU-accelerated ray tracing using NVIDIA OptiX (requires `--optix` and `--object`).
+
+#### Object Types
 
 - `--optix` - Enable OptiX renderer (requires `--object`)
-- `--object <type>` - Object to render: `sphere` (glass sphere) or `cube` (glass cube)
-- `--radius <float>` - Sphere radius (default: 1.0)
-- `--ior <float>` - Index of refraction for glass rendering (default: 1.5)
-  - 1.0 = no refraction, 1.33 = water, 1.5 = glass, 2.42 = diamond
-- `--scale <float>` - Scale parameter (default: 1.0)
-- `--stats` - Display ray tracing statistics after render
-- `--shadows` - Enable shadow rays for realistic shadows (requires `--optix`)
+- `--object <type>` - Object to render:
+  - `sphere` - Sphere primitive
+  - `cube` - Cube primitive (triangle mesh)
+  - `sponge-volume` - Menger sponge using cube instancing via Instance Acceleration Structure
+    (IAS optimization, efficient for high levels ~5)
+  - `sponge-surface` - Menger sponge as triangle mesh (higher detail, max level ~6)
+
+#### Object Parameters
+
+- `--level <float>` - Fractal level for sponge types (supports fractional values)
+- `--radius <float>` - Object radius (default: 1.0)
+- `--scale <float>` - Object scale factor (default: 1.0)
+- `--center <x,y,z>` - Object center position (default: 0,0,0)
+- `--ior <float>` - Index of refraction (default: 1.0 = opaque)
+  - 1.0 = opaque, 1.33 = water, 1.5 = glass, 2.42 = diamond
+- `--color <rrggbb[aa]>` - Object color as hex (e.g., `ff0000` for red, `ff000080` for
+  semi-transparent red)
+
+#### Camera
+
+- `--camera-pos <x,y,z>` - Camera position (default: 0,0.5,3)
+- `--camera-lookat <x,y,z>` - Camera look-at target (default: 0,0,0)
+- `--camera-up <x,y,z>` - Camera up vector (default: 0,1,0)
+
+#### Lighting
+
 - `--light <spec>` - Add light source (repeatable, max 8)
   - Format: `<type>:x,y,z[:intensity[:color]]`
   - Types: `directional` (parallel rays, sun-like) or `point` (radiates from position)
@@ -151,45 +172,70 @@ For GPU-accelerated ray tracing using NVIDIA OptiX (requires `--optix` and `--ob
   - Color: hex (e.g., `ffffff`) or RGB (e.g., `255,0,0`)
   - Examples:
     - `--light directional:-1,1,-1` - Directional light from upper-left-back
-    - `--light point:0,5,0:2.0:ffffff` - Bright white point light above sphere
-    - `--light directional:0,1,0::ff0000` - Red directional light (omit intensity with ::)
-- `--camera-pos <x,y,z>` - Camera position (default: 0,0.5,3)
-- `--camera-lookat <x,y,z>` - Camera look-at point (default: 0,0,0)
-- `--camera-up <x,y,z>` - Camera up vector (default: 0,1,0)
-- `--center <x,y,z>` - Sphere center position (default: 0,0,0)
+    - `--light point:0,5,0:2.0:ffffff` - Bright white point light above
+    - `--light directional:0,1,0::ff0000` - Red light (omit intensity with `::`)
+- `--shadows` - Enable shadow rays for realistic shadows
+
+#### Scene
+
 - `--plane <spec>` - Ground plane specification (default: +y:-2)
   - Format: `[+-]?[xyz]:<value>` (e.g., `y:-2`, `+y:-2`, `-z:5.5`)
-- `--plane-color <spec>` - Plane color (OptiX only)
+- `--plane-color <spec>` - Plane color
   - Solid: `#RRGGBB` (e.g., `#808080` for gray)
   - Checkered: `RRGGBB:RRGGBB` (e.g., `ffffff:000000` for black/white checkerboard)
-- `--antialiasing` - Enable recursive adaptive antialiasing (OptiX only)
+
+#### Quality
+
+- `--antialiasing` - Enable recursive adaptive antialiasing
 - `--aa-max-depth <int>` - Maximum AA recursion depth (1-4, default: 2)
 - `--aa-threshold <float>` - AA edge detection threshold (0.0-1.0, default: 0.1)
-- `--caustics` - Enable caustics rendering via Progressive Photon Mapping (OptiX only)
+- `--stats` - Display ray tracing statistics after render
+
+#### Caustics (Progressive Photon Mapping)
+
+- `--caustics` - Enable caustics rendering
 - `--caustics-photons <int>` - Photons per PPM iteration (default: 100000)
 - `--caustics-iterations <int>` - Number of PPM iterations (default: 10)
 - `--caustics-radius <float>` - Initial photon gather radius (default: 0.1)
 - `--caustics-alpha <float>` - PPM radius reduction factor (0.0-1.0, default: 0.7)
 
-Example OptiX usage:
+#### Planned Features (Sprint 6)
+
+The following features are available via the programmatic API but not yet exposed via CLI:
+
+- **Multiple objects** - The Instance Acceleration Structure (IAS) API supports rendering
+  multiple objects with independent transforms, colors, and materials
+- **Keyword=value object syntax** - Planned format:
+  `--object type=sphere:pos=0,0,0:size=1.0:color=#FF0000:ior=1.5`
+
+See `optix-jni/SPRINT_6_PLAN.md` for details.
+
+#### Examples
+
 ```bash
-# Basic glass sphere
+# Level 3 Menger sponge from above-left
+sbt "run --optix --object sponge-surface --level 3 --camera-pos -2,1.5,-2"
+
+# Same using cube instancing (IAS - faster for high levels)
+sbt "run --optix --object sponge-volume --level 3 --camera-pos -2,1.5,-2"
+
+# Glass sphere with refraction
 sbt "run --optix --object sphere --radius 1.5 --ior 1.5"
 
-# Glass cube
-sbt "run --optix --object cube --radius 0.5 --ior 1.5"
+# Opaque cube
+sbt "run --optix --object cube --radius 0.5"
 
-# Glass sphere with shadows and custom lighting
+# Sphere with shadows and custom lighting
 sbt "run --optix --object sphere --shadows \
   --light directional:-1,1,-1:1.5 \
   --light point:2,3,2:0.8:ffd700"
 
 # Glass sphere with caustics (light focusing effects)
-sbt "run --optix --object sphere --caustics \
+sbt "run --optix --object sphere --ior 1.5 --caustics \
   --caustics-photons 50000 --caustics-iterations 20"
 
-# High-quality render with antialiasing and caustics
-sbt "run --optix --object sphere --antialiasing --caustics \
+# High-quality sponge render with antialiasing
+sbt "run --optix --object sponge-surface --level 2 --antialiasing \
   --plane-color ffffff:808080"
 
 # Display ray statistics
