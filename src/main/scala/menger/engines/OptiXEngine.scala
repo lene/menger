@@ -46,7 +46,8 @@ class OptiXEngine(
   val enableStats: Boolean = false,
   val lights: Option[List[menger.LightSpec]] = None,
   val renderConfig: RenderConfig = RenderConfig.Default,
-  val causticsConfig: CausticsConfig = CausticsConfig.Disabled
+  val causticsConfig: CausticsConfig = CausticsConfig.Disabled,
+  val maxInstances: Int = 64
 )(using profilingConfig: ProfilingConfig) extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots:
 
   // Level thresholds for warnings (based on triangle counts and performance)
@@ -94,7 +95,7 @@ class OptiXEngine(
   }
 
   // Composition: Three focused components instead of one god object
-  private val rendererWrapper = OptiXRendererWrapper()
+  private val rendererWrapper = OptiXRendererWrapper(maxInstances)
   private val sceneConfigurator = SceneConfigurator(geometryGenerator, cameraPos, cameraLookat, cameraUp, planeSpec, lights)
   private val cameraState = CameraState(cameraPos, cameraLookat, cameraUp)
 

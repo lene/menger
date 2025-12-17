@@ -82,7 +82,8 @@ object Main:
       opts.stats(),
       opts.light.toOption,
       opts.renderConfig,
-      opts.causticsConfig
+      opts.causticsConfig,
+      opts.maxInstances()
     )
 
   private def createAnimatedEngine(

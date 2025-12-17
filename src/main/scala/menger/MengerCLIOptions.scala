@@ -239,6 +239,11 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     required = false, group = optixSceneGroup,
     descr = "Plane color: RRGGBB or RRGGBB:RRGGBB for checkered"
   )(using planeColorSpecConverter)
+  val maxInstances: ScallopOption[Int] = opt[Int](
+    required = false, default = Some(64), group = optixSceneGroup,
+    validate = n => n > 0 && n <= 1024,
+    descr = "Maximum object instances in scene (1-1024, default: 64)"
+  )
 
   // === OptiX Quality Options ===
   val antialiasing: ScallopOption[Boolean] = opt[Boolean](
@@ -363,6 +368,10 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
 
   validateOpt(planeColor, optix) { (pc, ox) =>
     requiresOptixOption("plane-color", pc, ox.getOrElse(false))
+  }
+
+  validateOpt(maxInstances, optix) { (_, ox) =>
+    requiresParentFlag("max-instances", maxInstances.isSupplied, "optix", ox.getOrElse(false))
   }
 
   validateOpt(caustics, optix) { (c, ox) =>

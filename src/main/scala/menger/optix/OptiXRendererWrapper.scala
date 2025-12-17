@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicReference
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.ImageSize
 
-class OptiXRendererWrapper extends LazyLogging:
+class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging:
 
   private val _rendererRef = new AtomicReference[Option[OptiXRenderer]](None)
 
@@ -18,7 +18,9 @@ class OptiXRendererWrapper extends LazyLogging:
         r
 
   private def initializeRenderer: OptiXRenderer =
-    OptiXRenderer().ensureAvailable().get  // Throws on failure - caught by Main
+    val r = OptiXRenderer()
+    r.initialize(maxInstances)
+    r.ensureAvailable().get  // Throws on failure - caught by Main
 
   def renderScene(size: ImageSize): Array[Byte] =
     logger.debug(s"[OptiXRendererWrapper] renderScene: rendering at ${size.width}x${size.height}")
