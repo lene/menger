@@ -70,9 +70,10 @@ object Main:
     opts: MengerCLIOptions,
     rpp: RotationProjectionParameters
   )(using ProfilingConfig): OptiXEngine =
-    // --object is required for OptiX (validated in MengerCLIOptions)
+    // --object or --objects is required for OptiX (validated in MengerCLIOptions)
     OptiXEngine(
-      opts.objectType(), opts.level(), opts.lines(), opts.color(),
+      opts.objectType.toOption.getOrElse("sphere"), // Legacy default
+      opts.level(), opts.lines(), opts.color(),
       opts.fpsLogInterval(),
       opts.radius(), opts.ior(), opts.scale(),
       opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),
@@ -83,7 +84,8 @@ object Main:
       opts.light.toOption,
       opts.renderConfig,
       opts.causticsConfig,
-      opts.maxInstances()
+      opts.maxInstances(),
+      opts.objects.toOption
     )
 
   private def createAnimatedEngine(

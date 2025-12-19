@@ -184,11 +184,18 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     required = false, default = Some(false), group = optixGroup,
     descr = "Use OptiX GPU ray tracing (requires --object)"
   )
+  // Legacy single object option (deprecated - use objects instead)
   val objectType: ScallopOption[String] = opt[String](
     name = "object", required = false, default = None, group = optixGroup,
     validate = obj => Set("sphere", "cube", "sponge-volume", "sponge-surface").contains(obj.toLowerCase),
-    descr = "Object to render: sphere, cube, sponge-volume, sponge-surface"
+    descr = "Single object (legacy): sphere, cube, sponge-volume, sponge-surface"
   )
+
+  // New multi-object option with keyword=value format
+  val objects: ScallopOption[List[ObjectSpec]] = opt[List[ObjectSpec]](
+    name = "objects", required = false, group = optixGroup,
+    descr = "Objects (repeatable): type=TYPE:pos=x,y,z:size=S[:level=L][:color=#RGB][:ior=I]"
+  )(using objectSpecConverter)
   val radius: ScallopOption[Float] = opt[Float](
     required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,
     descr = "Object radius"
@@ -331,15 +338,18 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   }
 
   // Validate OptiX-related options
-  // OptiX requires --object option to specify the geometry type (sphere, cube)
-  validateOpt(optix, objectType) { (ox, obj) =>
+  // OptiX requires --object or --objects option to specify geometry
+  validateOpt(optix, objectType, objects) { (ox, obj, objs) =>
     val isOptiXEnabled = ox.getOrElse(false)
     val hasObjectType = obj.isDefined
+    val hasObjects = objs.isDefined
 
-    if isOptiXEnabled && !hasObjectType then
-      Left("--optix flag requires --object option (e.g., --object sphere or --object cube)")
-    else if hasObjectType && !isOptiXEnabled then
-      Left("--object option requires --optix flag")
+    if isOptiXEnabled && !hasObjectType && !hasObjects then
+      Left("--optix flag requires --object or --objects option")
+    else if (hasObjectType || hasObjects) && !isOptiXEnabled then
+      Left("--object/--objects option requires --optix flag")
+    else if hasObjectType && hasObjects then
+      Left("Cannot use both --object and --objects (use --objects only)")
     else Right(())
   }
 
@@ -605,4 +615,15 @@ val planeColorSpecConverter = new ValueConverter[PlaneColorSpec] {
       Left(s"Color '$hex' must be exactly 6 hex digits (RRGGBB)")
     else
       Try { menger.common.Color.fromHex(hex) }.toEither.left.map(_ => s"Color '$hex' contains invalid hex digits")
+}
+
+val objectSpecConverter = new ValueConverter[List[ObjectSpec]] {
+  val argType: ArgType.V = org.rogach.scallop.ArgType.LIST
+  def parse(s: List[(String, List[String])]): Either[String, Option[List[ObjectSpec]]] =
+    val specStrings = s.flatMap(_._2)
+    if specStrings.isEmpty then Right(None)
+    else
+      ObjectSpec.parseAll(specStrings) match
+        case Right(objects) => Right(Some(objects))
+        case Left(error) => Left(error)
 }

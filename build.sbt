@@ -232,7 +232,8 @@ lazy val root = {
     .dependsOn(optixJni, mengerCommon)  // Compile and runtime dependency
     .settings(
       // Set library path for run to find native library and CUDA libraries
-      run / javaOptions += s"-Djava.library.path=${(optixJni / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
+      // Include both the classes directory (where sbt-jni copies .so) and bin directory
+      run / javaOptions += s"-Djava.library.path=${(optixJni / Compile / classDirectory).value / "native" / "x86_64-linux"}:${(optixJni / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
       run / fork := true // Required for javaOptions to take effect
     )
 }

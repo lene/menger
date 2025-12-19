@@ -26,11 +26,11 @@ class SceneConfigurator(
   def configureScene(renderer: OptiXRenderer): Unit =
     logger.debug("Configuring OptiX scene")
     configureGeometry.get(renderer)  // Throws on failure - caught by Main
-    createCamera(renderer)
-    createLights(renderer)
+    configureCamera(renderer)
+    configureLights(renderer)
     configurePlane(renderer)
 
-  private def createCamera(renderer: OptiXRenderer): Unit =
+  def configureCamera(renderer: OptiXRenderer): Unit =
     val eye = Vector[3](cameraPos.x, cameraPos.y, cameraPos.z)
     val lookAt = Vector[3](cameraLookat.x, cameraLookat.y, cameraLookat.z)
     val up = Vector[3](cameraUp.x, cameraUp.y, cameraUp.z)
@@ -38,7 +38,7 @@ class SceneConfigurator(
     renderer.setCamera(eye, lookAt, up, horizontalFovDegrees = horizontalFov)
     logger.debug(s"Configured camera: eye=(${eye(0)},${eye(1)},${eye(2)}), lookAt=(${lookAt(0)},${lookAt(1)},${lookAt(2)}), up=(${up(0)},${up(1)},${up(2)}), horizontalFOV=$horizontalFov")
 
-  private def createLights(renderer: OptiXRenderer): Unit =
+  def configureLights(renderer: OptiXRenderer): Unit =
     lights match
       case Some(lightSpecs) =>
         val lightSeq = lightSpecs.map(convertLightSpec)
@@ -59,7 +59,7 @@ class SceneConfigurator(
       case LightType.DIRECTIONAL => Light.Directional(position, color, spec.intensity)
       case LightType.POINT => Light.Point(position, color, spec.intensity)
 
-  private def configurePlane(renderer: OptiXRenderer): Unit =
+  def configurePlane(renderer: OptiXRenderer): Unit =
     val axisInt = planeSpec.axis match
       case Axis.X => 0
       case Axis.Y => 1

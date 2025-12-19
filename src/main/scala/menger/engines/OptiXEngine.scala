@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.ColorConversions.toCommonColor
+import menger.ObjectSpec
 import menger.OptiXRenderResources
 import menger.PlaneColorSpec
 import menger.PlaneSpec
@@ -47,7 +48,8 @@ class OptiXEngine(
   val lights: Option[List[menger.LightSpec]] = None,
   val renderConfig: RenderConfig = RenderConfig.Default,
   val causticsConfig: CausticsConfig = CausticsConfig.Disabled,
-  val maxInstances: Int = 64
+  val maxInstances: Int = 64,
+  val objectSpecs: Option[List[ObjectSpec]] = None
 )(using profilingConfig: ProfilingConfig) extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots:
 
   // Level thresholds for warnings (based on triangle counts and performance)
@@ -104,6 +106,18 @@ class OptiXEngine(
     OptiXCameraController(rendererWrapper, cameraState, renderResources, cameraPos, cameraLookat, cameraUp)
 
   override def create(): Unit =
+    val result = objectSpecs match
+      case Some(specs) if specs.nonEmpty =>
+        createMultiObjectScene(specs)
+      case _ =>
+        createSingleObjectScene()
+
+    result.recover { case e: Exception =>
+      logger.error(s"Failed to create OptiX scene: ${e.getMessage}", e)
+      Gdx.app.exit()
+    }.get  // Intentional .get - initialization failure should crash (documented)
+
+  private def createSingleObjectScene(): Try[Unit] = Try:
     logger.info(s"Creating OptiXEngine with object=$spongeType, radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, renderConfig=$renderConfig, causticsConfig=$causticsConfig")
 
     // Warn about high sponge levels before generating geometry
@@ -130,6 +144,135 @@ class OptiXEngine(
     renderer.setCausticsConfig(causticsConfig)
     planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
 
+    finalizeCreate()
+
+  private def createMultiObjectScene(specs: List[ObjectSpec]): Try[Unit] = Try:
+    logger.info(s"Creating OptiXEngine with ${specs.length} objects")
+
+    val renderer = rendererWrapper.renderer
+    sceneConfigurator.configureLights(renderer)
+    sceneConfigurator.configurePlane(renderer)
+    sceneConfigurator.configureCamera(renderer)
+
+    // Validate that all objects are compatible with IAS
+    validateObjectSpecs(specs) match
+      case Left(error) => Failure(IllegalArgumentException(error))
+      case Right(_) =>
+        // Determine scene type and setup
+        val objectTypes = specs.map(_.objectType).distinct
+        val setupResult = if objectTypes.forall(_ == "sphere") then
+          setupMultipleSpheres(specs, renderer)
+        else if objectTypes.forall(t => t == "cube" || t == "sponge-volume" || t == "sponge-surface") then
+          setupMultipleTriangleMeshes(specs, renderer)
+        else
+          Failure(UnsupportedOperationException(
+            "Cannot mix spheres and triangle meshes in the same scene yet. " +
+            s"Objects: ${objectTypes.mkString(", ")}"
+          ))
+
+        setupResult.get  // Propagate failure
+        ()  // Return Unit for Try[Unit]
+
+    renderer.setRenderConfig(renderConfig)
+    renderer.setCausticsConfig(causticsConfig)
+    planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
+
+    finalizeCreate()
+
+  private def validateObjectSpecs(specs: List[ObjectSpec]): Either[String, Unit] =
+    if specs.isEmpty then
+      Left("Object specs list cannot be empty")
+    else if specs.length > maxInstances then
+      Left(s"Too many objects: ${specs.length} exceeds max instances limit of $maxInstances. " +
+        "Use --max-instances to increase the limit.")
+    else
+      Right(())
+
+  private def setupMultipleSpheres(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
+    logger.info(s"Setting up ${specs.length} sphere instances")
+
+    // addSphereInstance() automatically enables IAS mode - do NOT call setSphere() first!
+    specs.foreach { spec =>
+      val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
+      val scale = spec.size
+
+      // Create 4x3 transform matrix with scale and translation
+      // Format: 3 rows x 4 columns, row-major storage
+      // [row0: sx, 0, 0, tx], [row1: 0, sy, 0, ty], [row2: 0, 0, sz, tz]
+      val transform = Array(
+        scale, 0f, 0f, spec.x,
+        0f, scale, 0f, spec.y,
+        0f, 0f, scale, spec.z
+      )
+
+      val instanceId = renderer.addSphereInstance(transform, color, spec.ior)
+
+      instanceId match
+        case Some(id) =>
+          logger.debug(s"Added sphere instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, color=$color, ior=${spec.ior}")
+        case None =>
+          logger.error(s"Failed to add sphere instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
+    }
+
+  private def setupMultipleTriangleMeshes(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
+    logger.info(s"Setting up ${specs.length} triangle mesh instances")
+
+    // For triangle meshes, we need all specs to be compatible (same geometry type)
+    // We'll use the first spec to determine the mesh type
+    val firstSpec = specs.head
+    val mesh = createMeshForSpec(firstSpec)
+    renderer.setTriangleMesh(mesh)
+
+    // Validate that all specs use compatible geometry
+    specs.foreach { spec =>
+      require(isCompatibleMesh(spec, firstSpec),
+        s"Cannot mix different triangle mesh types. First object is ${firstSpec.objectType}, " +
+        s"but found ${spec.objectType}. All triangle mesh objects must be the same type for now."
+      )
+    }
+
+    // Add instances
+    specs.foreach { spec =>
+      val position = menger.common.Vector[3](spec.x, spec.y, spec.z)
+      val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
+      val instanceId = renderer.addTriangleMeshInstance(position, color, spec.ior)
+
+      instanceId match
+        case Some(id) =>
+          logger.debug(s"Added ${spec.objectType} instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), color=$color, ior=${spec.ior}")
+        case None =>
+          logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
+    }
+
+  private def createMeshForSpec(spec: ObjectSpec): menger.common.TriangleMeshData =
+    spec.objectType match
+      case "cube" =>
+        val cube = Cube(center = Vector3(0f, 0f, 0f), scale = spec.size)
+        cube.toTriangleMesh
+      case "sponge-volume" =>
+        require(spec.level.isDefined, "sponge-volume requires level")
+        val sponge = SpongeByVolume(center = Vector3(0f, 0f, 0f), scale = spec.size, level = spec.level.get)
+        sponge.toTriangleMesh
+      case "sponge-surface" =>
+        given menger.ProfilingConfig = profilingConfig
+        require(spec.level.isDefined, "sponge-surface requires level")
+        val sponge = SpongeBySurface(center = Vector3(0f, 0f, 0f), scale = spec.size, level = spec.level.get)
+        sponge.toTriangleMesh
+      case other =>
+        require(false, s"Unknown mesh type: $other")
+        ???  // Never reached due to require, but needed for type checker
+
+  private def isCompatibleMesh(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
+    (spec1.objectType, spec2.objectType) match
+      case (t1, t2) if t1 == t2 =>
+        // Same type - check if levels match for sponges
+        (t1, spec1.level, spec2.level) match
+          case ("sponge-volume" | "sponge-surface", Some(l1), Some(l2)) => l1 == l2
+          case ("sponge-volume" | "sponge-surface", _, _) => false  // Missing level
+          case _ => true  // Non-sponge types are always compatible with same type
+      case _ => false  // Different types
+
+  private def finalizeCreate(): Unit =
     // Register input multiplexer for mouse-based camera control and keyboard shortcuts
     Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController))
 
