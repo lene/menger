@@ -21,11 +21,18 @@
   - Configurable instance limit via `--max-instances` (default: 64)
 - **Rendering Tests for IAS** - 18 tests including repeated render stress tests
 - **Integration Tests** - Multi-object and triangle mesh rendering validation
+- **Shadow Rays for Triangle Meshes** - Triangle meshes now cast shadows correctly
+  - Shadow rays trace against IAS handle in multi-object mode
+  - Shadow rays trace against GAS handle in single-object mode
+  - Un-ignored test "cast shadows on the plane" now passes
 
 ### Fixed
 - **CUDA error 700 in IAS mode** - Fixed use-after-free bug in GAS buffer management
   - IAS GAS buffers now managed separately from BufferManager
   - Multiple renders with IAS now work correctly
+- **Triangle mesh shadows** - Triangle meshes now cast shadows on plane and other objects
+  - params.handle correctly set to GAS/IAS handle depending on mode
+  - Shadow ray shader works with both sphere and triangle geometry
 
 ## [0.3.9] - 2025-12-01
 
