@@ -13,6 +13,7 @@ import menger.common.Color
  *   type=cube:pos=2,0,0:size=1.5:color=#0000FF
  *   type=sponge-volume:pos=-2,0,0:size=2.0:level=3:color=#00FF00
  *   type=sponge-surface:pos=0,2,0:size=2.0:level=2.5:color=#FFFF00
+ *   type=cube-sponge:pos=1,0,0:size=2.0:level=2:color=#FF00FF
  */
 case class ObjectSpec(
   objectType: String,
@@ -42,10 +43,10 @@ object ObjectSpec:
     for
       // Required: type
       objType <- kvPairs.get("type") match
-        case Some(t) if Set("sphere", "cube", "sponge-volume", "sponge-surface").contains(t.toLowerCase) =>
+        case Some(t) if Set("sphere", "cube", "sponge-volume", "sponge-surface", "cube-sponge").contains(t.toLowerCase) =>
           Right(t.toLowerCase)
         case Some(t) =>
-          Left(s"Invalid object type: $t (valid: sphere, cube, sponge-volume, sponge-surface)")
+          Left(s"Invalid object type: $t (valid: sphere, cube, sponge-volume, sponge-surface, cube-sponge)")
         case None =>
           Left("Missing required 'type' field")
 
@@ -78,7 +79,7 @@ object ObjectSpec:
       ior <- Try(kvPairs.get("ior").map(_.toFloat).getOrElse(1.0f)).toEither.left.map(_.getMessage)
 
       // Validate: sponges should have level
-      _ <- if (objType == "sponge-volume" || objType == "sponge-surface") && level.isEmpty then
+      _ <- if (objType == "sponge-volume" || objType == "sponge-surface" || objType == "cube-sponge") && level.isEmpty then
         Left("Sponge object requires 'level' field")
       else
         Right(())

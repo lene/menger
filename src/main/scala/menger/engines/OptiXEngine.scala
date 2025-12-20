@@ -18,6 +18,7 @@ import menger.common.ImageSize
 import menger.input.OptiXCameraController
 import menger.input.OptiXInputMultiplexer
 import menger.objects.Cube
+import menger.objects.CubeSpongeGenerator
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
 import menger.optix.CameraState
@@ -160,7 +161,10 @@ class OptiXEngine(
       case Right(_) =>
         // Determine scene type and setup
         val objectTypes = specs.map(_.objectType).distinct
-        val setupResult = if objectTypes.forall(_ == "sphere") then
+        val setupResult = if objectTypes.contains("cube-sponge") then
+          // cube-sponge generates many instances from one spec - handle specially
+          setupCubeSponges(specs, renderer)
+        else if objectTypes.forall(_ == "sphere") then
           setupMultipleSpheres(specs, renderer)
         else if objectTypes.forall(t => t == "cube" || t == "sponge-volume" || t == "sponge-surface") then
           setupMultipleTriangleMeshes(specs, renderer)
@@ -271,6 +275,66 @@ class OptiXEngine(
           case ("sponge-volume" | "sponge-surface", _, _) => false  // Missing level
           case _ => true  // Non-sponge types are always compatible with same type
       case _ => false  // Different types
+
+  private def setupCubeSponges(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] =
+    // cube-sponge generates many cube instances from each spec
+    // Validate that we don't exceed max instances limit
+    val totalInstances = specs.map { spec =>
+      require(spec.level.isDefined, "cube-sponge requires level")
+      val level = spec.level.get.toInt
+      Math.pow(20, level).toLong
+    }.sum
+
+    if totalInstances > maxInstances then
+      Failure(IllegalArgumentException(
+        s"cube-sponge specs generate $totalInstances total instances, " +
+        s"exceeding max instances limit of $maxInstances. " +
+        "Reduce sponge levels or use --max-instances to increase the limit."
+      ))
+    else Try:
+      logger.info(s"Setting up ${specs.length} cube-sponge(s) generating $totalInstances total cube instances")
+
+      // Create base cube mesh (shared by all instances)
+      val baseCube = Cube(center = Vector3(0f, 0f, 0f), scale = 1.0f)
+      renderer.setTriangleMesh(baseCube.toTriangleMesh)
+
+      // For each cube-sponge spec, generate and add all cube instances
+      specs.foreach { spec =>
+        require(spec.level.isDefined, "cube-sponge requires level")
+        val level = spec.level.get.toInt
+        val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
+
+        // Generate all cube transforms using CubeSpongeGenerator
+        val generator = CubeSpongeGenerator(
+          center = Vector3(spec.x, spec.y, spec.z),
+          size = spec.size,
+          level = level
+        )
+
+        logger.info(s"Generating ${generator.cubeCount} cube instances for level $level cube-sponge at (${spec.x}, ${spec.y}, ${spec.z})")
+
+        // Add each cube as an instance
+        generator.generateTransforms.foreach { case (position, scale) =>
+          val posVec = menger.common.Vector[3](position.x, position.y, position.z)
+
+          // Create 4x3 transform matrix with scale and translation
+          val transform = Array(
+            scale, 0f, 0f, position.x,
+            0f, scale, 0f, position.y,
+            0f, 0f, scale, position.z
+          )
+
+          val instanceId = renderer.addTriangleMeshInstance(transform, color, spec.ior)
+
+          instanceId match
+            case None =>
+              logger.error(s"Failed to add cube instance at position=($position), scale=$scale")
+            case Some(_) =>
+              // Success - don't log each instance (too verbose for 8000+ cubes)
+        }
+
+        logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
+      }
 
   private def finalizeCreate(): Unit =
     // Register input multiplexer for mouse-based camera control and keyboard shortcuts

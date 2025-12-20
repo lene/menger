@@ -5,10 +5,22 @@
 ### Added
 - **Instance Acceleration Structure (IAS)** - Multi-object rendering foundation
   - `addSphereInstance()` API for adding sphere instances with position and material
+  - `addTriangleMeshInstance()` API for triangle mesh instances with transforms
   - Per-instance 4x3 transform matrices and material properties
   - GAS registry for geometry type management
   - `optixGetInstanceId()` for per-instance material lookup in shaders
+- **Multi-Object CLI** - `--objects` parameter with keyword=value format
+  - Support for sphere, cube, sponge-volume, sponge-surface, and cube-sponge types
+  - Per-object position, size, color, IOR, and level parameters
+  - Example: `--objects type=sphere:pos=-1,0,0:color=#FF0000`
+- **Cube-Based Sponge (GPU Instancing)** - Memory-efficient sponge rendering
+  - `CubeSpongeGenerator` generates instance transforms instead of merged geometry
+  - One base cube mesh shared by all instances (up to 3.2M instances at level 5)
+  - 40-80x memory reduction vs. merged mesh approach
+  - CLI: `--objects type=cube-sponge:pos=0,0,0:level=2:color=#00FF00`
+  - Configurable instance limit via `--max-instances` (default: 64)
 - **Rendering Tests for IAS** - 18 tests including repeated render stress tests
+- **Integration Tests** - Multi-object and triangle mesh rendering validation
 
 ### Fixed
 - **CUDA error 700 in IAS mode** - Fixed use-after-free bug in GAS buffer management

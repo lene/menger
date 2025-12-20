@@ -194,7 +194,8 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   // New multi-object option with keyword=value format
   val objects: ScallopOption[List[ObjectSpec]] = opt[List[ObjectSpec]](
     name = "objects", required = false, group = optixGroup,
-    descr = "Objects (repeatable): type=TYPE:pos=x,y,z:size=S[:level=L][:color=#RGB][:ior=I]"
+    descr = "Objects (repeatable): type=TYPE:pos=x,y,z:size=S[:level=L][:color=#RGB][:ior=I]. " +
+            "Types: sphere, cube, sponge-volume, sponge-surface, cube-sponge"
   )(using objectSpecConverter)
   val radius: ScallopOption[Float] = opt[Float](
     required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,
