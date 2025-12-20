@@ -343,6 +343,14 @@ Test:OptiXIntegration:
     - unzip -oq ./target/universal/menger-${VERSION}.zip
     - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
     - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --object sphere --timeout 0.1
+    # Test OptiX triangle mesh rendering (cube)
+    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --object cube --timeout 0.1 --radius 0.5 --plane y:-2
+    # Test OptiX triangle mesh rendering (sponge-volume)
+    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --object sponge-volume --timeout 0.1 --level 1 --radius 0.5 --plane y:-2
+    # Test multi-object rendering (IAS with spheres)
+    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --timeout 0.1 --plane y:-2 --objects type=sphere:pos=-1,0,0:size=0.5 --objects type=sphere:pos=1,0,0:size=0.5
+    # Test multi-object rendering (IAS with triangle meshes)
+    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --timeout 0.1 --plane y:-2 --objects type=cube:pos=-1,0,0:size=0.5 --objects type=cube:pos=1,0,0:size=0.5
   after_script:
     # Clean up permissions for Docker artifacts
     - chmod -R 777 target/ || true

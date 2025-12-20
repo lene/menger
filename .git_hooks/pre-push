@@ -257,6 +257,20 @@ test -f test_optix.png || STATUS=1
 __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --optix --object sphere --radius 0.5 \
     --ior 1.5 --plane y:-2 --antialiasing --aa-max-depth 4 --save-name test_optix-aa.png || STATUS=1
 test -f test_optix-aa.png || STATUS=1
+# Test OptiX triangle mesh rendering (cube)
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --optix --object cube --radius 0.5 \
+    --plane y:-2 || STATUS=1
+# Test OptiX triangle mesh rendering (sponge-volume)
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --optix --object sponge-volume \
+    --level 1 --radius 0.5 --plane y:-2 || STATUS=1
+# Test multi-object rendering (IAS with spheres)
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --optix --plane y:-2 \
+    --objects type=sphere:pos=-1,0,0:size=0.5 \
+    --objects type=sphere:pos=1,0,0:size=0.5 || STATUS=1
+# Test multi-object rendering (IAS with triangle meshes)
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-${VERSION}/bin/menger --timeout 0.1 --optix --plane y:-2 \
+    --objects type=cube:pos=-1,0,0:size=0.5 \
+    --objects type=cube:pos=1,0,0:size=0.5 || STATUS=1
 rm -f test_optix*.png
 
 if [ $STATUS -gt 0 ]
