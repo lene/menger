@@ -2,8 +2,8 @@ package menger.optix
 
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
+import menger.Vector3Extensions.toVector3
 import menger.common.ImageSize
-import menger.common.Vector
 
 class CameraState(
   initialPos: Vector3,
@@ -14,9 +14,9 @@ class CameraState(
   private val horizontalFov = 45f  // Fixed horizontal FOV in degrees (aspect-ratio independent)
 
   def updateCamera(renderer: OptiXRenderer, eye: Vector3, lookAt: Vector3, up: Vector3): Unit =
-    val eyeVec = Vector[3](eye.x, eye.y, eye.z)
-    val lookAtVec = Vector[3](lookAt.x, lookAt.y, lookAt.z)
-    val upVec = Vector[3](up.x, up.y, up.z)
+    val eyeVec = eye.toVector3
+    val lookAtVec = lookAt.toVector3
+    val upVec = up.toVector3
     renderer.setCamera(eyeVec, lookAtVec, upVec, horizontalFovDegrees = horizontalFov)
     logger.debug(s"Updated camera: eye=(${eyeVec(0)},${eyeVec(1)},${eyeVec(2)}), lookAt=(${lookAtVec(0)},${lookAtVec(1)},${lookAtVec(2)}), up=(${upVec(0)},${upVec(1)},${upVec(2)})")
 
@@ -24,8 +24,8 @@ class CameraState(
     // Update cached image dimensions BEFORE calling setCamera
     renderer.updateImageDimensions(size)
 
-    val eye = Vector[3](initialPos.x, initialPos.y, initialPos.z)
-    val lookAt = Vector[3](initialLookat.x, initialLookat.y, initialLookat.z)
-    val up = Vector[3](initialUp.x, initialUp.y, initialUp.z)
+    val eye = initialPos.toVector3
+    val lookAt = initialLookat.toVector3
+    val up = initialUp.toVector3
 
     renderer.setCamera(eye, lookAt, up, horizontalFovDegrees = horizontalFov)

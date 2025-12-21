@@ -10,6 +10,7 @@ import menger.LightSpec
 import menger.LightType
 import menger.PlaneColorSpec
 import menger.PlaneSpec
+import menger.Vector3Extensions.toVector3
 import menger.common.Color
 import menger.common.Const
 import menger.common.Light
@@ -32,9 +33,9 @@ class SceneConfigurator(
     configurePlane(renderer)
 
   def configureCamera(renderer: OptiXRenderer): Unit =
-    val eye = Vector[3](cameraPos.x, cameraPos.y, cameraPos.z)
-    val lookAt = Vector[3](cameraLookat.x, cameraLookat.y, cameraLookat.z)
-    val up = Vector[3](cameraUp.x, cameraUp.y, cameraUp.z)
+    val eye = cameraPos.toVector3
+    val lookAt = cameraLookat.toVector3
+    val up = cameraUp.toVector3
     val horizontalFov = Const.Renderer.horizontalFov
     renderer.setCamera(eye, lookAt, up, horizontalFovDegrees = horizontalFov)
     logger.debug(s"Configured camera: eye=(${eye(0)},${eye(1)},${eye(2)}), lookAt=(${lookAt(0)},${lookAt(1)},${lookAt(2)}), up=(${up(0)},${up(1)},${up(2)}), horizontalFOV=$horizontalFov")
@@ -53,7 +54,7 @@ class SceneConfigurator(
         logger.debug(s"Configured default light: direction=(${lightDirection(0)},${lightDirection(1)},${lightDirection(2)}), intensity=$lightIntensity")
 
   private def convertLightSpec(spec: LightSpec): Light =
-    val position = Vector[3](spec.position.x, spec.position.y, spec.position.z)
+    val position = spec.position.toVector3
     val color = spec.color.toCommonColor
 
     spec.lightType match

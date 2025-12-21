@@ -14,6 +14,7 @@ import menger.OptiXRenderResources
 import menger.PlaneColorSpec
 import menger.PlaneSpec
 import menger.ProfilingConfig
+import menger.Vector3Extensions.toVector3
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ObjectType
@@ -91,7 +92,7 @@ class OptiXEngine(
       case _ => // No warning for other types
 
   private val geometryGenerator: Try[OptiXRenderer => Unit] = spongeType match {
-    case "sphere" => Try(_.setSphere(menger.common.Vector[3](center.x, center.y, center.z), sphereRadius))
+    case "sphere" => Try(_.setSphere(center.toVector3, sphereRadius))
     case "cube" => Try { renderer =>
       val cube = Cube(center = center, scale = sphereRadius * 2)  // Use radius as half-size for consistency
       val mesh = cube.toTriangleMesh
