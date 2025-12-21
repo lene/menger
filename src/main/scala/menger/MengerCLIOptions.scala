@@ -502,8 +502,7 @@ val colorConverter = new ValueConverter[Color] {
         if nums.exists(n => n < 0 || n > Const.rgbMaxValue) then
             Left(s"Color '$input' has values out of range 0-${Const.rgbMaxValue}")
         else
-          val Array(r, g, b, a) = nums.map(_ / Const.rgbMaxValueFloat).padTo(4, 1f)
-          Right(Some(Color(r, g, b, a)))
+          Right(Some(ColorConversions.rgbIntsToColor(nums)))
 }
 
 val vector3Converter = new ValueConverter[Vector3] {
@@ -581,8 +580,7 @@ val lightSpecConverter = new ValueConverter[List[LightSpec]] {
               val color = Option(colorStr).map { c =>
                 if c.contains(',') then
                   val parts = c.split(",").map(_.trim.toInt)
-                  val Array(r, g, b, a) = parts.map(_ / Const.rgbMaxValueFloat).padTo(4, 1f)
-                  Color(r, g, b, a)
+                  ColorConversions.rgbIntsToColor(parts)
                 else
                   Color.valueOf(c)
               }.getOrElse(Color.WHITE)
