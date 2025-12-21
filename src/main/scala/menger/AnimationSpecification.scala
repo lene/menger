@@ -66,6 +66,9 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
     (xw != 0 && animationParameters.contains("rot-x-w")) ||
     (yw != 0 && animationParameters.contains("rot-y-w")) ||
     (zw != 0 && animationParameters.contains("rot-z-w"))
+
+  def hasRotationAxisConflict(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
+    isRotationAxisSet(x, y, z, xw, yw, zw)
     
   private def parseStartEnd(valueString: String): StartEnd =
     val parts = valueString.split('-')

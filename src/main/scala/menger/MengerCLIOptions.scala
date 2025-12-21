@@ -64,6 +64,11 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     "cube", "square", "square-sponge", "cube-sponge",
     "tesseract", "tesseract-sponge", "tesseract-sponge-2"
   )
+  // Composite pattern: composite[type1,type2,...]
+  // - composite\[: literal string "composite["
+  // - (.+): one or more characters (captured group 1 - comma-separated types)
+  // - ]: literal closing bracket
+  // Example: "composite[cube,square]"
   private val compositePattern = """composite\[(.+)]""".r
 
   private def isValidSpongeType(spongeType: String): Boolean =
@@ -311,11 +316,11 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   validateOpt(animate, rotX, rotY, rotZ, rotXW, rotYW, rotZW) { (spec, x, y, z, xw, yw, zw) =>
     if spec.isEmpty then Right(())
     else
-    if !spec.get.isRotationAxisSet(
+    if spec.get.hasRotationAxisConflict(
       x.getOrElse(0), y.getOrElse(0), z.getOrElse(0),
       xw.getOrElse(0), yw.getOrElse(0), zw.getOrElse(0)
-    ) then Right(())
-    else Left("Animation specification has rotation axis set that is also set statically")
+    ) then Left("Animation specification has rotation axis set that is also set statically")
+    else Right(())
   }
 
   validateOpt(animate, level) { (spec, lvl) =>
@@ -362,57 +367,57 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     else Right(())
   }
 
-  validateOpt(shadows, optix) { (sh, ox) =>
-    requiresOptixFlag("shadows", sh.getOrElse(false), ox.getOrElse(false))
+  validateOpt(shadows, optix) { (sh, _) =>
+    requiresOptix("shadows", sh.getOrElse(false))
   }
 
-  validateOpt(light, optix) { (l, ox) =>
-    requiresOptixOption("light", l, ox.getOrElse(false)).flatMap { _ =>
+  validateOpt(light, optix) { (l, _) =>
+    requiresOptix("light", l).flatMap { _ =>
       if l.isDefined && l.get.length > Const.maxLights then Left(s"Maximum ${Const.maxLights} lights allowed (MAX_LIGHTS=${Const.maxLights})")
       else Right(())
     }
   }
 
-  validateOpt(antialiasing, optix) { (aa, ox) =>
-    requiresOptixFlag("antialiasing", aa.getOrElse(false), ox.getOrElse(false))
+  validateOpt(antialiasing, optix) { (aa, _) =>
+    requiresOptix("antialiasing", aa.getOrElse(false))
   }
 
   validateOpt(aaMaxDepth, antialiasing) { (_, aa) =>
-    requiresParentFlag("aa-max-depth", aaMaxDepth.isSupplied, "antialiasing", aa.getOrElse(false))
+    requiresParent("aa-max-depth", aaMaxDepth.isSupplied, "antialiasing", aa.getOrElse(false))
   }
 
   validateOpt(aaThreshold, antialiasing) { (_, aa) =>
-    requiresParentFlag("aa-threshold", aaThreshold.isSupplied, "antialiasing", aa.getOrElse(false))
+    requiresParent("aa-threshold", aaThreshold.isSupplied, "antialiasing", aa.getOrElse(false))
   }
 
-  validateOpt(planeColor, optix) { (pc, ox) =>
-    requiresOptixOption("plane-color", pc, ox.getOrElse(false))
+  validateOpt(planeColor, optix) { (pc, _) =>
+    requiresOptix("plane-color", pc)
   }
 
   validateOpt(maxInstances, optix) { (_, ox) =>
-    requiresParentFlag("max-instances", maxInstances.isSupplied, "optix", ox.getOrElse(false))
+    requiresParent("max-instances", maxInstances.isSupplied, "optix", ox.getOrElse(false))
   }
 
-  validateOpt(caustics, optix) { (c, ox) =>
-    requiresOptixFlag("caustics", c.getOrElse(false), ox.getOrElse(false))
+  validateOpt(caustics, optix) { (c, _) =>
+    requiresOptix("caustics", c.getOrElse(false))
   }
 
   // Note: objectType validation is handled in the combined validateOpt(optix, objectType) above
 
   validateOpt(causticsPhotons, caustics) { (_, c) =>
-    requiresParentFlag("caustics-photons", causticsPhotons.isSupplied, "caustics", c.getOrElse(false))
+    requiresParent("caustics-photons", causticsPhotons.isSupplied, "caustics", c.getOrElse(false))
   }
 
   validateOpt(causticsIterations, caustics) { (_, c) =>
-    requiresParentFlag("caustics-iterations", causticsIterations.isSupplied, "caustics", c.getOrElse(false))
+    requiresParent("caustics-iterations", causticsIterations.isSupplied, "caustics", c.getOrElse(false))
   }
 
   validateOpt(causticsRadius, caustics) { (_, c) =>
-    requiresParentFlag("caustics-radius", causticsRadius.isSupplied, "caustics", c.getOrElse(false))
+    requiresParent("caustics-radius", causticsRadius.isSupplied, "caustics", c.getOrElse(false))
   }
 
   validateOpt(causticsAlpha, caustics) { (_, c) =>
-    requiresParentFlag("caustics-alpha", causticsAlpha.isSupplied, "caustics", c.getOrElse(false))
+    requiresParent("caustics-alpha", causticsAlpha.isSupplied, "caustics", c.getOrElse(false))
   }
 
   verify()
@@ -437,20 +442,34 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     if spec.valid(spongeType) && spec.timeSpecValid then Right(())
     else Left("Invalid animation specification")
 
+  /** Generic helper for validating that an option requires a parent flag */
+  private def requires(
+    optionName: String,
+    isSupplied: Boolean,
+    parentName: String,
+    parentEnabled: Boolean
+  ): Either[String, Unit] =
+    if isSupplied && !parentEnabled then
+      Left(s"--$optionName requires --$parentName flag")
+    else
+      Right(())
+
   /** Helper for validating that a boolean flag requires --optix */
-  private def requiresOptixFlag(flagName: String, flagValue: Boolean, optixEnabled: Boolean): Either[String, Unit] =
-    if flagValue && !optixEnabled then Left(s"--$flagName flag requires --optix flag")
-    else Right(())
+  private def requiresOptix(flagName: String, flagValue: Boolean): Either[String, Unit] =
+    requires(flagName, flagValue, "optix", optix())
 
   /** Helper for validating that an optional value requires --optix */
-  private def requiresOptixOption[T](optionName: String, optionValue: Option[T], optixEnabled: Boolean): Either[String, Unit] =
-    if optionValue.isDefined && !optixEnabled then Left(s"--$optionName flag requires --optix flag")
-    else Right(())
+  private def requiresOptix[T](flagName: String, optionValue: Option[T]): Either[String, Unit] =
+    requires(flagName, optionValue.isDefined, "optix", optix())
 
   /** Helper for validating that a supplied option requires a parent flag */
-  private def requiresParentFlag(optionName: String, isSupplied: Boolean, parentName: String, parentEnabled: Boolean): Either[String, Unit] =
-    if isSupplied && !parentEnabled then Left(s"--$optionName requires --$parentName flag")
-    else Right(())
+  private def requiresParent(
+    optionName: String,
+    isSupplied: Boolean,
+    parentName: String,
+    parentEnabled: Boolean
+  ): Either[String, Unit] =
+    requires(optionName, isSupplied, parentName, parentEnabled)
 
 // Helper to safely unwrap Try[Either[String, A]] without using .get
 // Handles the common pattern in value converters where parsing returns Either wrapped in Try
@@ -535,6 +554,12 @@ val planeSpecConverter = new ValueConverter[PlaneSpec] {
     else
       val input = s.head._2.head.trim
       unwrapTryEither(Try {
+        // Plane spec pattern: [+-]?<axis>:<value>
+        // - ([+-]?): optional sign indicating normal direction (group 1)
+        // - ([xyz]): axis perpendicular to plane (group 2)
+        // - (-?\d+\.?\d*): position value on axis, can be negative (group 3)
+        // Example: "y:-2" (plane at y=-2, normal in +Y direction)
+        //          "-z:5.5" (plane at z=5.5, normal in -Z direction)
         val pattern = """([+-]?)([xyz]):(-?\d+\.?\d*)""".r
         input match
           case pattern(sign, axisStr, valueStr) =>
@@ -566,7 +591,13 @@ val lightSpecConverter = new ValueConverter[List[LightSpec]] {
     val specStrings = s.flatMap(_._2)
     if specStrings.isEmpty then Right(None)
     else
-      // Long regex pattern for light spec parsing
+      // Light spec pattern: <type>:x,y,z[:intensity[:color]]
+      // - (?i): case-insensitive matching
+      // - (directional|point): light type (captured group 1)
+      // - (-?\d+\.?\d*): x,y,z coordinates, can be negative floats (groups 2-4)
+      // - (?::([^:]*)): optional intensity (group 5)
+      // - (?::([^:]+)): optional color as hex or RGB (group 6)
+      // Example: "directional:0,1,-1:2.0:ffffff" or "point:0,5,0"
       val pattern = """(?i)(directional|point):(-?\d+\.?\d*),(-?\d+\.?\d*),(-?\d+\.?\d*)(?::([^:]*))?(?::([^:]+))?""".r
       specStrings.map { input =>
         input.trim match

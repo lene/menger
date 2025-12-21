@@ -6,7 +6,7 @@ This document outlines code quality issues and improvement opportunities identif
 
 ---
 
-## Completed Issues (2025-12-21)
+## Completed Issues (2025-12-21/22)
 
 ### ✅ Magic Numbers Extraction
 Extracted magic numbers to `menger.common.Const` object with comprehensive constants. See commit `refactor: Extract magic numbers to named constants`.
@@ -22,6 +22,9 @@ Eliminated color conversion duplication by creating `ColorConversions.rgbIntsToC
 
 ### ✅ Vector3 Conversion Deduplication
 Eliminated Vector3 to Vector[3] conversion duplication by creating `Vector3Extensions.toVector3` extension method. See commit `refactor: Deduplicate Vector3 to Vector[3] conversions`.
+
+### ✅ Repetitive Validation Patterns (Issue #7)
+Consolidated three nearly identical validation helper methods into a generic `requires` helper with overloaded convenience methods. Eliminated ~20 lines of duplication. See commit TBD.
 
 ---
 
@@ -69,11 +72,10 @@ Eliminated Vector3 to Vector[3] conversion duplication by creating `Vector3Exten
 - **Resolution:** Created `ColorConversions.rgbIntsToColor()` helper method
 - **Commit:** `refactor: Deduplicate color conversion logic`
 
-### **7. Repetitive Validation Patterns**
-- **File:** `MengerCLIOptions.scala:357-408`
-- **Issue:** Similar validation helper methods repeated (`requiresOptixFlag`, `requiresParentFlag`, etc.)
-- **Improvement:** Create a generic validation framework
-- **Effort:** Medium
+### ~~**7. Repetitive Validation Patterns**~~ (COMPLETED)
+- **Status:** ✅ Completed 2025-12-22
+- **Resolution:** Consolidated validation helpers into generic `requires` method with overloads
+- **Commit:** TBD
 
 ### **8. Mutable State in Input Controllers**
 - **Files:** `BaseKeyController.scala`, `OptiXCameraController.scala`
@@ -161,7 +163,7 @@ Eliminated Vector3 to Vector[3] conversion duplication by creating `Vector3Exten
 ### **Short-term (Medium Effort)**
 1. Refactor large methods in `MengerCLIOptions`
 2. ~~Eliminate code duplication in color parsing~~ ✅ COMPLETED
-3. Create unified validation framework
+3. ~~Create unified validation framework~~ ✅ COMPLETED (generic requires helper)
 4. Replace mutable state in input controllers
 
 ### **Long-term (High Effort)**

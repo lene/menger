@@ -28,6 +28,9 @@ case class AnimationSpecifications(specification: List[String] = List.empty) ext
   def isRotationAxisSet(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
     parts.exists(_.isRotationAxisSet(x, y, z, xw, yw, zw))
 
+  def hasRotationAxisConflict(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
+    isRotationAxisSet(x, y, z, xw, yw, zw)
+
   def accumulateAllButLastRotationProjections(specs: List[AnimationSpecification]): RotationProjectionParameters =
     specs.init.foldLeft(RotationProjectionParameters()) { (acc, spec) =>
       acc + spec.rotationProjectionParameters(spec.frames.getOrElse(0))

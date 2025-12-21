@@ -74,7 +74,8 @@ def normalSigns(edgeVectors: Seq[Vector[4]]): Seq[Float] =
   sum.filter(_.abs > 0).map(_.sign)
 
 object Face4D:
-  val numVertices = 4
+  private val VERTICES_PER_FACE = 4
+  val numVertices: Int = VERTICES_PER_FACE
   val dimension = 4
   def apply(vertices: Seq[Vector[4]]): Face4D =
     require(

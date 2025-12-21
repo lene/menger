@@ -10,9 +10,9 @@ This document identifies opportunities to improve code quality across the Menger
 
 ## Summary Statistics
 
-- **Total Issues Found**: 55 (12 completed)
-- **Low Effort (< 1 hour)**: 21 issues (7 completed)
-- **Medium Effort (1-4 hours)**: 22 issues (4 completed)
+- **Total Issues Found**: 55 (16 completed)
+- **Low Effort (< 1 hour)**: 21 issues (10 completed)
+- **Medium Effort (1-4 hours)**: 22 issues (5 completed)
 - **High Effort (4+ hours)**: 12 issues (1 completed)
 
 ---
@@ -69,6 +69,26 @@ Created `ColorConversions.rgbIntsToColor()` helper method to eliminate duplicate
 
 Created `Vector3Extensions.toVector3` extension method to eliminate manual `Vector[3](v.x, v.y, v.z)` conversions. Replaced 9 usage sites across 3 files (`OptiXEngine.scala`, `CameraState.scala`, `SceneConfigurator.scala`). See commit `refactor: Deduplicate Vector3 to Vector[3] conversions`.
 
+### ✅ 26. Simplify Validation Helper Duplication (COMPLETED 2025-12-22)
+
+Consolidated three nearly identical validation methods (`requiresOptixFlag`, `requiresOptixOption`, `requiresParentFlag`) into a single generic `requires` helper with convenient overloads (`requiresOptix`, `requiresParent`). Eliminated ~20 lines of duplicated code and simplified all 12 call sites. See commit TBD.
+
+### ✅ 7. Rename Poorly Named Constants (COMPLETED 2025-12-22)
+
+Renamed `numVertices = 4` to `VERTICES_PER_FACE` constant in `Face4D.scala` for better clarity. See commit TBD.
+
+### ✅ 8. Fix Unclear Boolean Naming (COMPLETED 2025-12-22)
+
+Added `hasRotationAxisConflict` method to `AnimationSpecification` and `AnimationSpecifications` to replace confusing double-negative pattern `!spec.get.isRotationAxisSet(...)`. Improved readability in `MengerCLIOptions` validation logic. See commit TBD.
+
+### ✅ Regex Documentation (COMPLETED 2025-12-22)
+
+Added comprehensive documentation for all complex regex patterns in `MengerCLIOptions.scala`:
+- Light spec pattern (line 584): documented capture groups and examples
+- Plane spec pattern (line 552): explained axis and position matching
+- Composite pattern (line 67): clarified composite type syntax
+See commit TBD.
+
 ---
 
 ## Low Effort Improvements (< 1 hour)
@@ -91,28 +111,15 @@ Created `Vector3Extensions.toVector3` extension method to eliminate manual `Vect
 
 ---
 
-### 7. Rename Poorly Named Method Parameters (10 min)
+### ~~7. Rename Poorly Named Method Parameters (10 min)~~ ✅ COMPLETED 2025-12-22
 
-**Files**: Various
-
-```scala
-// Face4D.scala:68, 78
-def numVertices = 4 // Rename variable to VERTICES_PER_FACE
-```
+**Status:** Completed - See above
 
 ---
 
-### 8. Fix Unclear Boolean Naming (15 min)
+### ~~8. Fix Unclear Boolean Naming (15 min)~~ ✅ COMPLETED 2025-12-22
 
-**File**: `MengerCLIOptions.scala:311`
-
-```scala
-// Before:
-if !spec.get.isRotationAxisSet(
-
-// After: Make it clearer what "not set" means
-if spec.get.hasNoRotationAxis(
-```
+**Status:** Completed - See above
 
 ---
 
@@ -134,23 +141,11 @@ Check if these are used anywhere. If not, remove them.
 
 ---
 
-### 7-21. Additional Low-Effort Improvements
+### 10-21. Additional Low-Effort Improvements
 
-7. **Add type aliases for complex types** (10 min)
-    - `type Transform4x3 = Array[Float]` (length 12)
-    - `type ColorRGBA = (Float, Float, Float, Float)`
-
-8. **Improve regex documentation** (15 min)
-    - `MengerCLIOptions.scala:551` - Add comment explaining pattern
-    - `MengerCLIOptions.scala:523` - Add comment for plane spec pattern
-
-9. **Add validation error messages** (20 min)
+10. **Add validation error messages** (20 min)
     - Many validation failures have generic messages
     - Add specific guidance on how to fix
-
-10. **Extract repeated validation patterns** (20 min)
-    - `MengerCLIOptions.scala:433-445` - Three similar validators
-    - Could extract to generic `requires` helper
 
 11-21. **Minor naming improvements across various files** (30 min total)
 
@@ -171,6 +166,12 @@ Check if these are used anywhere. If not, remove them.
 ---
 
 ### ~~24. Deduplicate Vector3 to Vector[3] Conversion (45 min)~~ ✅ COMPLETED 2025-12-22
+
+**Status:** Completed - See above
+
+---
+
+### ~~26. Simplify Validation Helper Duplication (1 hour)~~ ✅ COMPLETED 2025-12-22
 
 **Status:** Completed - See above
 
@@ -218,49 +219,6 @@ val setupResult = classifyScene(specs) match
   case SceneType.Spheres(specs) => setupSpheres(specs, renderer)
   case SceneType.TriangleMeshes(specs) => setupMultipleTriangleMeshes(specs, renderer)
   case SceneType.Mixed(_) => Failure(...)
-```
-
----
-
-### 26. Simplify Validation Helper Duplication (1 hour)
-
-**File**: `MengerCLIOptions.scala:433-445`
-
-```scala
-// Before: Three nearly identical methods
-private def requiresOptixFlag(flagName: String, flagValue: Boolean, optixEnabled: Boolean): Either[String, Unit] =
-  if flagValue && !optixEnabled then Left(s"--$flagName flag requires --optix flag")
-  else Right(())
-
-private def requiresOptixOption[T](optionName: String, optionValue: Option[T], optixEnabled: Boolean): Either[String, Unit] =
-  if optionValue.isDefined && !optixEnabled then Left(s"--$optionName flag requires --optix flag")
-  else Right(())
-
-private def requiresParentFlag(optionName: String, isSupplied: Boolean, parentName: String, parentEnabled: Boolean): Either[String, Unit] =
-  if isSupplied && !parentEnabled then Left(s"--$optionName requires --$parentName flag")
-  else Right(())
-
-// After: Single generic method
-private def requires(
-  optionName: String,
-  isSupplied: Boolean,
-  parentName: String,
-  parentEnabled: Boolean
-): Either[String, Unit] =
-  if isSupplied && !parentEnabled then
-    Left(s"--$optionName requires --$parentName flag")
-  else
-    Right(())
-
-// Convenience overloads
-private def requiresOptix(flagName: String, isSupplied: Boolean): Either[String, Unit] =
-  requires(flagName, isSupplied, "optix", optix())
-
-private def requiresOptix[T](flagName: String, value: Option[T]): Either[String, Unit] =
-  requires(flagName, value.isDefined, "optix", optix())
-
-private def requiresOptix(flagName: String, value: Boolean): Either[String, Unit] =
-  requires(flagName, value, "optix", optix())
 ```
 
 ---
