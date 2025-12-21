@@ -3,6 +3,7 @@ package menger.objects.higher_d
 import menger.common.Const
 import menger.common.Vector
 import menger.objects.higher_d.CustomMatchers._
+import menger.objects.higher_d.Face4DTestUtils.faceToString
 import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should._

@@ -42,50 +42,53 @@ object ObjectSpec:
     }.toMap
 
     for
-      // Required: type
-      objType <- kvPairs.get("type") match
-        case Some(t) if ObjectType.isValid(t) =>
-          Right(t.toLowerCase)
-        case Some(t) =>
-          Left(s"Invalid object type: $t (valid: ${ObjectType.validTypesString})")
-        case None =>
-          Left("Missing required 'type' field")
-
-      // Optional: position (pos=x,y,z)
-      position <- kvPairs.get("pos") match
-        case Some(posStr) =>
-          posStr.split(",").map(_.trim) match
-            case Array(xStr, yStr, zStr) =>
-              Try((xStr.toFloat, yStr.toFloat, zStr.toFloat)).toEither.left.map(_.getMessage)
-            case _ =>
-              Left(s"Invalid position format: $posStr (expected x,y,z)")
-        case None => Right((0.0f, 0.0f, 0.0f))
-      (x, y, z) = position
-
-      // Optional: size
-      size <- Try(kvPairs.get("size").map(_.toFloat).getOrElse(1.0f)).toEither.left.map(_.getMessage)
-
-      // Optional: level (for sponges)
-      level <- Try(kvPairs.get("level").map(_.toFloat)).toEither.left.map(_.getMessage)
-
-      // Optional: color
-      color <- Try {
-        kvPairs.get("color").map { colorStr =>
-          val hexStr = if colorStr.startsWith("#") then colorStr.substring(1) else colorStr
-          Color.fromHex(hexStr)
-        }
-      }.toEither.left.map(_.getMessage)
-
-      // Optional: ior
-      ior <- Try(kvPairs.get("ior").map(_.toFloat).getOrElse(1.0f)).toEither.left.map(_.getMessage)
-
-      // Validate: sponges should have level
-      _ <- if ObjectType.isSponge(objType) && level.isEmpty then
-        Left("Sponge object requires 'level' field")
-      else
-        Right(())
-
+      objType <- parseObjectType(kvPairs)
+      (x, y, z) <- parsePosition(kvPairs)
+      size <- parseSize(kvPairs)
+      level <- parseLevel(kvPairs)
+      color <- parseColor(kvPairs)
+      ior <- parseIOR(kvPairs)
+      _ <- validateSpongeLevel(objType, level)
     yield ObjectSpec(objType, x, y, z, size, level, color, ior)
+
+  private def parseObjectType(kvPairs: Map[String, String]): Either[String, String] =
+    kvPairs.get("type") match
+      case Some(t) if ObjectType.isValid(t) => Right(t.toLowerCase)
+      case Some(t) => Left(s"Invalid object type: $t (valid: ${ObjectType.validTypesString})")
+      case None => Left("Missing required 'type' field")
+
+  private def parsePosition(kvPairs: Map[String, String]): Either[String, (Float, Float, Float)] =
+    kvPairs.get("pos") match
+      case Some(posStr) =>
+        posStr.split(",").map(_.trim) match
+          case Array(xStr, yStr, zStr) =>
+            Try((xStr.toFloat, yStr.toFloat, zStr.toFloat)).toEither.left.map(_.getMessage)
+          case _ =>
+            Left(s"Invalid position format: $posStr (expected x,y,z)")
+      case None => Right((0.0f, 0.0f, 0.0f))
+
+  private def parseSize(kvPairs: Map[String, String]): Either[String, Float] =
+    Try(kvPairs.get("size").map(_.toFloat).getOrElse(1.0f)).toEither.left.map(_.getMessage)
+
+  private def parseLevel(kvPairs: Map[String, String]): Either[String, Option[Float]] =
+    Try(kvPairs.get("level").map(_.toFloat)).toEither.left.map(_.getMessage)
+
+  private def parseColor(kvPairs: Map[String, String]): Either[String, Option[menger.common.Color]] =
+    Try {
+      kvPairs.get("color").map { colorStr =>
+        val hexStr = if colorStr.startsWith("#") then colorStr.substring(1) else colorStr
+        menger.common.Color.fromHex(hexStr)
+      }
+    }.toEither.left.map(_.getMessage)
+
+  private def parseIOR(kvPairs: Map[String, String]): Either[String, Float] =
+    Try(kvPairs.get("ior").map(_.toFloat).getOrElse(1.0f)).toEither.left.map(_.getMessage)
+
+  private def validateSpongeLevel(objType: String, level: Option[Float]): Either[String, Unit] =
+    if ObjectType.isSponge(objType) && level.isEmpty then
+      Left("Sponge object requires 'level' field")
+    else
+      Right(())
 
   /**
    * Validate multiple object specifications.

@@ -1,6 +1,8 @@
 package menger.objects.higher_d
 
 import menger.common.Vector
+import menger.objects.higher_d.Face4DTestUtils.normals
+import menger.objects.higher_d.Face4DTestUtils.setIndices
 import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

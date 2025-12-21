@@ -24,7 +24,13 @@ Eliminated color conversion duplication by creating `ColorConversions.rgbIntsToC
 Eliminated Vector3 to Vector[3] conversion duplication by creating `Vector3Extensions.toVector3` extension method. See commit `refactor: Deduplicate Vector3 to Vector[3] conversions`.
 
 ### ✅ Repetitive Validation Patterns (Issue #7)
-Consolidated three nearly identical validation helper methods into a generic `requires` helper with overloaded convenience methods. Eliminated ~20 lines of duplication. See commit TBD.
+Consolidated three nearly identical validation helper methods into a generic `requires` helper with overloaded convenience methods. Eliminated ~20 lines of duplication. See Phase 1 commit.
+
+### ✅ Deep For-Comprehension Simplification
+Refactored `ObjectSpec.scala` 8-level deep for-comprehension by extracting 7 focused helper methods. Reduced main parse method from 45 lines of nested code to clean 8-line structure. Major readability improvement. See Phase 2 commit.
+
+### ✅ Top-Level Test Functions Organization
+Moved test-only functions from `Face4D.scala` to new `Face4DTestUtils.scala`. Removed 18 lines of test code from production file (128 → 113 lines). Clean separation between production code and test utilities. See Phase 2 commit.
 
 ---
 

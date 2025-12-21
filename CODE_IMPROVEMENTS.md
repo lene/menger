@@ -10,9 +10,9 @@ This document identifies opportunities to improve code quality across the Menger
 
 ## Summary Statistics
 
-- **Total Issues Found**: 55 (16 completed)
-- **Low Effort (< 1 hour)**: 21 issues (10 completed)
-- **Medium Effort (1-4 hours)**: 22 issues (5 completed)
+- **Total Issues Found**: 55 (18 completed)
+- **Low Effort (< 1 hour)**: 21 issues (11 completed)
+- **Medium Effort (1-4 hours)**: 22 issues (6 completed)
 - **High Effort (4+ hours)**: 12 issues (1 completed)
 
 ---
@@ -89,6 +89,25 @@ Added comprehensive documentation for all complex regex patterns in `MengerCLIOp
 - Composite pattern (line 67): clarified composite type syntax
 See commit TBD.
 
+### ✅ 27. Simplify Deep For-Comprehension (COMPLETED 2025-12-22)
+
+Refactored `ObjectSpec.scala` 8-level deep for-comprehension into clean, maintainable structure:
+- Extracted 7 focused helper methods (parseObjectType, parsePosition, parseSize, parseLevel, parseColor, parseIOR, validateSpongeLevel)
+- Reduced main `parse()` method from 45 lines of nested code to clean 8-line for-comprehension
+- Each helper method < 10 lines with single responsibility
+- Major readability improvement while maintaining all validation logic
+See commit TBD.
+
+### ✅ 9. Organize Top-Level Functions in Face4D (COMPLETED 2025-12-22)
+
+Moved test-only functions from `Face4D.scala` to new `Face4DTestUtils.scala`:
+- Created `Face4DTestUtils` object containing `faceToString`, `normals`, `setIndices`, and related utilities
+- Removed 18 lines of test code from production file (128 → 113 lines)
+- Updated test imports in `Face4DSuite` and `TesseractSponge2Suite`
+- Inlined `toString` implementation (no need for separate `faceToString` in production)
+- Clean separation between production code and test utilities
+See commit TBD.
+
 ---
 
 ## Low Effort Improvements (< 1 hour)
@@ -123,21 +142,9 @@ See commit TBD.
 
 ---
 
-### 9. Remove Commented Code (5 min)
+### ~~9. Remove Commented Code (5 min)~~ ✅ COMPLETED 2025-12-22
 
-**File**: `Face4D.scala:96-108`
-
-Multiple top-level functions that appear to be test code or should be private:
-
-```scala
-// Lines 96-108: These should either be:
-// 1. Moved to companion object as private
-// 2. Removed if unused
-def normals(faces: Seq[Face4D]): Seq[Vector[4]] = ...
-def setIndices(faces: Seq[Face4D]): Seq[Int] = ...
-```
-
-Check if these are used anywhere. If not, remove them.
+**Status:** Completed - See above in "Completed Issues" section
 
 ---
 
@@ -223,27 +230,9 @@ val setupResult = classifyScene(specs) match
 
 ---
 
-### 27. Simplify Deep For-Comprehension (1.5 hours)
+### ~~27. Simplify Deep For-Comprehension (1.5 hours)~~ ✅ COMPLETED 2025-12-22
 
-**File**: `ObjectSpec.scala:43-87`
-
-8-level deep for-comprehension is hard to read.
-
-```scala
-// Before: 45 lines of deeply nested for-comprehension
-for
-  objType <- kvPairs.get("type") match ...
-  position <- kvPairs.get("pos") match ...
-  (x, y, z) = position
-  size <- Try(...).toEither.left.map(_.getMessage)
-  level <- Try(...).toEither.left.map(_.getMessage)
-  color <- Try { ... }.toEither.left.map(_.getMessage)
-  ior <- Try(...).toEither.left.map(_.getMessage)
-  _ <- if (...) then Left(...) else Right(())
-yield ObjectSpec(objType, x, y, z, size, level, color, ior)
-
-// After: Break into smaller methods
-def parse(spec: String): Either[String, ObjectSpec] =
+**Status:** Completed - See above in "Completed Issues" section
   val kvPairs = parseKeyValuePairs(spec)
   for
     objType <- parseObjectType(kvPairs)
