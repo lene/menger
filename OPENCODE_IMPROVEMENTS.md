@@ -6,6 +6,19 @@ This document outlines code quality issues and improvement opportunities identif
 
 ---
 
+## Completed Issues (2025-12-21)
+
+### ✅ Magic Numbers Extraction
+Extracted magic numbers to `menger.common.Const` object with comprehensive constants. See commit `refactor: Extract magic numbers to named constants`.
+
+### ✅ Redundant Method Removal
+Removed unused 3-parameter `setSphereColor(r,g,b)` method. See commit `refactor: Remove redundant setSphereColor(r,g,b) method`.
+
+### ✅ Line Length Violations
+Fixed line length violations to meet 100 character limit. See commit `refactor: Fix line length violations to meet 100 char limit`.
+
+---
+
 ## **Low Effort Issues (Quick Wins)**
 
 ### **1. Unused Imports and Wildcard Imports**
@@ -29,12 +42,10 @@ This document outlines code quality issues and improvement opportunities identif
 - **Improvement:** Remove redundant annotations for better readability
 - **Effort:** Low
 
-### **4. Magic Numbers Without Constants**
-- **Files:** `OptiXEngine.scala`, `SceneConfigurator.scala`
-- **Issue:** Hard-coded values like `45f` (horizontal FOV), `1.0f` (default intensity)
-- **Example:** `SceneConfigurator.scala:37` - `val horizontalFov = 45f`
-- **Improvement:** Extract to constants in companion objects or `Const.scala`
-- **Effort:** Low
+### ~~**4. Magic Numbers Without Constants**~~ (COMPLETED)
+- **Status:** ✅ Completed 2025-12-21
+- **Resolution:** Created comprehensive `menger.common.Const` object
+- **Commit:** `refactor: Extract magic numbers to named constants`
 
 ---
 
@@ -138,9 +149,9 @@ This document outlines code quality issues and improvement opportunities identif
 ## **Summary by Priority**
 
 ### **Immediate (Low Effort)**
-1. Fix wildcard imports (56 instances)
-2. Organize imports consistently
-3. Extract magic numbers to constants
+1. ~~Extract magic numbers to constants~~ ✅ COMPLETED
+2. Fix wildcard imports (56 instances)
+3. Organize imports consistently
 4. Remove redundant type annotations
 
 ### **Short-term (Medium Effort)**

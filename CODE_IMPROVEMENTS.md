@@ -10,147 +10,30 @@ This document identifies opportunities to improve code quality across the Menger
 
 ## Summary Statistics
 
-- **Total Issues Found**: 58
-- **Low Effort (< 1 hour)**: 24 issues
+- **Total Issues Found**: 55 (3 completed)
+- **Low Effort (< 1 hour)**: 21 issues
 - **Medium Effort (1-4 hours)**: 22 issues
 - **High Effort (4+ hours)**: 12 issues
 
 ---
 
+## Completed Issues
+
+### ✅ 1. Extract Magic Numbers to Named Constants (COMPLETED 2025-12-21)
+
+Created `menger.common.Const` object with comprehensive constants extracted from magic numbers throughout the codebase. See commit `refactor: Extract magic numbers to named constants`.
+
+### ✅ 2. Remove Redundant Private Method (COMPLETED 2025-12-21)
+
+Removed unused 3-parameter `setSphereColor(r,g,b)` method from `OptiXRenderer.scala:363-364`. See commit `refactor: Remove redundant setSphereColor(r,g,b) method`.
+
+### ✅ 3. Fix Line Length Violations (COMPLETED 2025-12-21)
+
+Fixed line length violations in `MengerCLIOptions.scala`, `ObjectSpec.scala`, and `OptiXEngine.scala` to meet 100 character limit. See commit `refactor: Fix line length violations to meet 100 char limit`.
+
+---
+
 ## Low Effort Improvements (< 1 hour)
-
-### 1. Extract Magic Numbers to Named Constants (15-30 min)
-
-**Priority**: High
-**Impact**: Improves readability, maintainability
-
-#### Files affected:
-- `MengerCLIOptions.scala`: Lines 62, 152, 156, 160, 164, 168, 172, 251-252, 278-279, 283, 289, 486, 489, 564
-- `OptiXEngine.scala`: Lines 57-60, 67, 73, 82
-- `OptiXRenderer.scala`: Lines 318, 330, 346, 411
-- `Main.scala`: Lines 16-18
-- `SceneConfigurator.scala`: Line 37
-- `SphericalOrbit.scala`: Lines 9-15
-- `Face4D.scala`: Lines 68, 78
-
-#### Examples:
-```scala
-// Before:
-if l.isDefined && l.get.length > 8 then Left("Maximum 8 lights allowed")
-val nums = parts.map(_.toInt)
-val Array(r, g, b, a) = nums.map(_ / 255f).padTo(4, 1f)
-
-// After:
-private val MAX_LIGHTS = 8
-private val MAX_RGB_VALUE = 255f
-if l.isDefined && l.get.length > MAX_LIGHTS then Left(s"Maximum $MAX_LIGHTS lights allowed")
-val nums = parts.map(_.toInt)
-val Array(r, g, b, a) = nums.map(_ / MAX_RGB_VALUE).padTo(4, 1f)
-```
-
-#### Recommended constants to create:
-```scala
-// MengerCLIOptions.scala companion object
-object Constants:
-  val MAX_LIGHTS = 8
-  val MAX_ROTATION_DEGREES = 360
-  val DEFAULT_MAX_INSTANCES = 64
-  val MAX_INSTANCES_LIMIT = 1024
-  val MAX_PHOTONS_DEFAULT = 100000
-  val MAX_PHOTONS_LIMIT = 10000000
-  val MAX_ITERATIONS_DEFAULT = 10
-  val MAX_ITERATIONS_LIMIT = 1000
-  val MAX_CAUSTICS_RADIUS = 10.0f
-  val RGB_MAX_VALUE = 255
-  val RGB_MAX_VALUE_FLOAT = 255f
-
-// OptiXEngine.scala companion object
-object OptiXEngine:
-  private val SPONGE_LEVEL_WARNING_THRESHOLD = 3
-  private val CUBE_SPONGE_MAX_LEVEL = 5
-  private val TRIANGLES_PER_CUBE = 12
-  private val CUBES_PER_SPONGE_LEVEL = 20
-  private val CUBE_SCALE_FACTOR = 2.0f
-
-// OptiXRenderer.scala companion object
-object OptiXRenderer:
-  private val TRANSFORM_MATRIX_SIZE = 12  // 4x3 row-major
-  private val DEFAULT_MAX_INSTANCES = 64
-  private val STREAM_COPY_BUFFER_SIZE = 8192
-
-// Main.scala
-private val COLOR_BITS = 8
-private val DEPTH_BITS = 16
-private val STENCIL_BITS = 0
-
-// SceneConfigurator.scala
-private val DEFAULT_HORIZONTAL_FOV = 45f
-
-// SphericalOrbit.scala
-object SphericalOrbit:
-  val DEFAULT_ZOOM_SENSITIVITY = 0.3f
-  val DEFAULT_PAN_SENSITIVITY = 0.005f
-  val DEFAULT_MIN_DISTANCE = 0.1f
-  val DEFAULT_MAX_DISTANCE = 20.0f
-  val DEFAULT_MIN_ELEVATION = -89.0f
-  val DEFAULT_MAX_ELEVATION = 89.0f
-```
-
----
-
-### 2. Remove Redundant Private Method (5 min)
-
-**File**: `optix-jni/src/main/scala/menger/optix/OptiXRenderer.scala:163-164`
-
-```scala
-// Before:
-private def setSphereColor(r: Float, g: Float, b: Float): Unit =
-  setSphereColor(r, g, b, 1.0f)
-
-// Used only once on line 364:
-setSphereColor(color.r, color.g, color.b)
-
-// After: Inline the call
-setSphereColor(color.r, color.g, color.b, 1.0f)
-```
-
-**Impact**: Reduces code by 2 lines, eliminates unnecessary indirection.
-
----
-
-### 3. Fix Line Length Violations (30 min)
-
-**Priority**: Medium
-**Impact**: Code style compliance
-
-30+ lines exceed 100 characters. Most egregious:
-
-```scala
-// MengerCLIOptions.scala:62 (131 chars)
-List("cube", "square", "square-sponge", "cube-sponge", "tesseract", "tesseract-sponge", "tesseract-sponge-2")
-
-// Fix: Multi-line
-val basicSpongeTypes = List(
-  "cube", "square", "square-sponge", "cube-sponge",
-  "tesseract", "tesseract-sponge", "tesseract-sponge-2"
-)
-
-// MengerCLIOptions.scala:572 (147 chars)
-Left(s"Color '$input' must be 3-4 integers (R,G,B[,A]) in 0-255 range or a hex value RRGGBB or RRGGBBAA")
-
-// Fix: Multi-line string
-Left(
-  s"Color '$input' must be 3-4 integers (R,G,B[,A]) " +
-  "in 0-255 range or a hex value RRGGBB or RRGGBBAA"
-)
-```
-
-**Files needing fixes**:
-- `MengerCLIOptions.scala`: Lines 62, 312, 330, 534, 551, 572
-- `ObjectSpec.scala`: Line 82
-- `OptiXEngine.scala`: Line 233
-
----
 
 ### 4. Improve Variable Naming (20 min)
 
@@ -269,31 +152,31 @@ Check if these are used anywhere. If not, remove them.
 
 ---
 
-### 10-24. Additional Low-Effort Improvements
+### 7-21. Additional Low-Effort Improvements
 
-10. **Add type aliases for complex types** (10 min)
+7. **Add type aliases for complex types** (10 min)
     - `type Transform4x3 = Array[Float]` (length 12)
     - `type ColorRGBA = (Float, Float, Float, Float)`
 
-11. **Improve regex documentation** (15 min)
+8. **Improve regex documentation** (15 min)
     - `MengerCLIOptions.scala:551` - Add comment explaining pattern
     - `MengerCLIOptions.scala:523` - Add comment for plane spec pattern
 
-12. **Add validation error messages** (20 min)
+9. **Add validation error messages** (20 min)
     - Many validation failures have generic messages
     - Add specific guidance on how to fix
 
-13. **Extract repeated validation patterns** (20 min)
+10. **Extract repeated validation patterns** (20 min)
     - `MengerCLIOptions.scala:433-445` - Three similar validators
     - Could extract to generic `requires` helper
 
-14-24. **Minor naming improvements across various files** (30 min total)
+11-21. **Minor naming improvements across various files** (30 min total)
 
 ---
 
 ## Medium Effort Improvements (1-4 hours)
 
-### 25. Deduplicate Transform Matrix Creation (30 min)
+### 22. Deduplicate Transform Matrix Creation (30 min)
 
 **Priority**: High
 **Impact**: DRY principle, maintainability
@@ -335,7 +218,7 @@ object TransformUtil:
 
 ---
 
-### 26. Deduplicate Color Conversion (30 min)
+### 23. Deduplicate Color Conversion (30 min)
 
 **File**: `MengerCLIOptions.scala:486-490` and `564-565`
 
@@ -362,7 +245,7 @@ private object ColorConversion:
 
 ---
 
-### 27. Deduplicate Vector3 to Vector[3] Conversion (45 min)
+### 24. Deduplicate Vector3 to Vector[3] Conversion (45 min)
 
 **File**: `SceneConfigurator.scala:34-36` and `55`
 
@@ -386,7 +269,7 @@ val up = cameraUp.toVector3
 
 ---
 
-### 28. Simplify Complex Conditionals in OptiXEngine (2 hours)
+### 25. Simplify Complex Conditionals in OptiXEngine (2 hours)
 
 **Priority**: High
 **Impact**: Readability, maintainability
@@ -432,7 +315,7 @@ val setupResult = classifyScene(specs) match
 
 ---
 
-### 29. Simplify Validation Helper Duplication (1 hour)
+### 26. Simplify Validation Helper Duplication (1 hour)
 
 **File**: `MengerCLIOptions.scala:433-445`
 
@@ -475,7 +358,7 @@ private def requiresOptix(flagName: String, value: Boolean): Either[String, Unit
 
 ---
 
-### 30. Simplify Deep For-Comprehension (1.5 hours)
+### 27. Simplify Deep For-Comprehension (1.5 hours)
 
 **File**: `ObjectSpec.scala:43-87`
 
@@ -519,7 +402,7 @@ private def validateSpongeLevel(objType: String, level: Option[Float]): Either[S
 
 ---
 
-### 31. Reduce Unsafe `.get` Calls (2 hours)
+### 28. Reduce Unsafe `.get` Calls (2 hours)
 
 **Priority**: High
 **Impact**: Safety, error handling
@@ -560,7 +443,7 @@ spec.level match
 
 ---
 
-### 32. Extract Sponge Type Validation (45 min)
+### 29. Extract Sponge Type Validation (45 min)
 
 **Pattern repeated** across multiple files:
 
@@ -579,7 +462,7 @@ if ObjectType.isSponge(objType) then ...
 
 ---
 
-### 33-46. Additional Medium-Effort Improvements
+### 30-43. Additional Medium-Effort Improvements
 
 33. **Extract complex regex to documented method** (1 hour)
 34. **Add builder pattern for complex objects** (2 hours)
@@ -600,7 +483,7 @@ if ObjectType.isSponge(objType) then ...
 
 ## High Effort Improvements (4+ hours)
 
-### 47. Refactor OptiXEngine Constructor (4-6 hours)
+### 44. Refactor OptiXEngine Constructor (4-6 hours)
 
 **Priority**: Critical
 **Impact**: Maintainability, testability
@@ -688,7 +571,7 @@ class OptiXEngine(
 
 ---
 
-### 48. Split MengerCLIOptions into Multiple Files (6-8 hours)
+### 45. Split MengerCLIOptions into Multiple Files (6-8 hours)
 
 **Priority**: High
 **Impact**: Maintainability, testability
@@ -721,7 +604,7 @@ src/main/scala/menger/cli/
 
 ---
 
-### 49. Extract Transform Matrix Utilities to Common Module (4 hours)
+### 46. Extract Transform Matrix Utilities to Common Module (4 hours)
 
 **Priority**: Medium
 **Impact**: Reusability, testability
@@ -763,7 +646,7 @@ object Transform4x3:
 
 ---
 
-### 50. Reduce setupCubeSponges Method Complexity (2-3 hours)
+### 47. Reduce setupCubeSponges Method Complexity (2-3 hours)
 
 **File**: `OptiXEngine.scala:279-337` (59 lines)
 
@@ -835,7 +718,7 @@ private def addSingleCubeInstance(
 
 ---
 
-### 51. Implement Builder Pattern for ObjectSpec (3-4 hours)
+### 48. Implement Builder Pattern for ObjectSpec (3-4 hours)
 
 **Priority**: Medium
 **Impact**: Usability, testability
@@ -901,7 +784,7 @@ val spec = ObjectSpec.builder("sphere")
 
 ---
 
-### 52. Add Comprehensive Error Context (5-6 hours)
+### 49. Add Comprehensive Error Context (5-6 hours)
 
 **Priority**: Medium
 **Impact**: Debuggability
@@ -942,7 +825,7 @@ def setupCubeSponges(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit
 
 ---
 
-### 53. Create Configuration DSL (8-10 hours)
+### 50. Create Configuration DSL (8-10 hours)
 
 **Priority**: Low
 **Impact**: Usability (nice-to-have)
@@ -970,7 +853,7 @@ val engine = OptiXEngine.fromScene(scene)
 
 ---
 
-### 54. Add Metrics and Telemetry (6-8 hours)
+### 51. Add Metrics and Telemetry (6-8 hours)
 
 **Priority**: Low
 **Impact**: Observability
@@ -996,7 +879,7 @@ class LoggingMetricsCollector extends MetricsCollector:
 
 ---
 
-### 55-58. Additional High-Effort Improvements
+### 52-55. Additional High-Effort Improvements
 
 55. **Implement scene graph abstraction** (10-12 hours)
 56. **Add comprehensive benchmarking suite** (8-10 hours)
@@ -1108,36 +991,35 @@ Few tests cover:
 ## Priority Summary
 
 ### Critical (Do Before Merge)
-- **#47**: Refactor OptiXEngine constructor (19 params)
-- **#1**: Extract magic numbers to constants
-- **#31**: Reduce unsafe `.get` calls
+- **#44**: Refactor OptiXEngine constructor (19 params)
+- **#28**: Reduce unsafe `.get` calls
 
 ### High (Do Soon)
-- **#48**: Split MengerCLIOptions.scala
-- **#25**: Deduplicate transform matrix creation
-- **#28**: Simplify complex conditionals
+- **#45**: Split MengerCLIOptions.scala
+- **#22**: Deduplicate transform matrix creation
+- **#25**: Simplify complex conditionals
 
 ### Medium (Do When Time Permits)
-- **#26-27**: Deduplicate color/vector conversion
-- **#29-30**: Simplify validation and for-comprehensions
-- **#50**: Reduce setupCubeSponges complexity
+- **#23-24**: Deduplicate color/vector conversion
+- **#26-27**: Simplify validation and for-comprehensions
+- **#47**: Reduce setupCubeSponges complexity
 
 ### Low (Nice to Have)
-- **#53**: Configuration DSL
-- **#54**: Metrics and telemetry
-- **#55-58**: Advanced features
+- **#50**: Configuration DSL
+- **#51**: Metrics and telemetry
+- **#52-55**: Advanced features
 
 ---
 
 ## Estimated Total Effort
 
-- **Low effort items**: 24 × 30 min avg = 12 hours
+- **Low effort items**: 21 × 30 min avg = 10.5 hours
 - **Medium effort items**: 22 × 2 hours avg = 44 hours
 - **High effort items**: 12 × 6 hours avg = 72 hours
 
-**Total**: ~128 hours (16 days) for all improvements
+**Total**: ~126.5 hours (16 days) for all improvements
 
-**Recommended for immediate action** (critical + high): ~40 hours (5 days)
+**Recommended for immediate action** (critical + high): ~35 hours (4.5 days)
 
 ---
 
