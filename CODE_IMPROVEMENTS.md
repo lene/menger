@@ -10,9 +10,9 @@ This document identifies opportunities to improve code quality across the Menger
 
 ## Summary Statistics
 
-- **Total Issues Found**: 55 (10 completed)
+- **Total Issues Found**: 55 (12 completed)
 - **Low Effort (< 1 hour)**: 21 issues (7 completed)
-- **Medium Effort (1-4 hours)**: 22 issues (2 completed)
+- **Medium Effort (1-4 hours)**: 22 issues (4 completed)
 - **High Effort (4+ hours)**: 12 issues (1 completed)
 
 ---
@@ -57,9 +57,17 @@ Replaced unsafe `.get` calls with proper error handling using helper functions:
 
 See commit `refactor: Replace unsafe .get calls with proper error handling`.
 
-###  ✅ 29. Extract Sponge Type Validation to ObjectType.isSponge (COMPLETED 2025-12-21)
+### ✅ 29. Extract Sponge Type Validation to ObjectType.isSponge (COMPLETED 2025-12-21)
 
 Updated `OptiXEngine.scala` to use `ObjectType.isSponge()` eliminating hardcoded sponge type checks. See commit `refactor: Extract sponge type validation to ObjectType.isSponge`.
+
+### ✅ 23. Deduplicate Color Conversion Logic (COMPLETED 2025-12-22)
+
+Created `ColorConversions.rgbIntsToColor()` helper method to eliminate duplicated RGB int-to-float conversion logic in `MengerCLIOptions.scala`. Replaced 2 usage sites with centralized conversion. See commit `refactor: Deduplicate color conversion logic`.
+
+### ✅ 24. Deduplicate Vector3 to Vector[3] Conversion (COMPLETED 2025-12-22)
+
+Created `Vector3Extensions.toVector3` extension method to eliminate manual `Vector[3](v.x, v.y, v.z)` conversions. Replaced 9 usage sites across 3 files (`OptiXEngine.scala`, `CameraState.scala`, `SceneConfigurator.scala`). See commit `refactor: Deduplicate Vector3 to Vector[3] conversions`.
 
 ---
 
@@ -156,54 +164,15 @@ Check if these are used anywhere. If not, remove them.
 
 ---
 
-### 23. Deduplicate Color Conversion (30 min)
+### ~~23. Deduplicate Color Conversion (30 min)~~ ✅ COMPLETED 2025-12-22
 
-**File**: `MengerCLIOptions.scala:486-490` and `564-565`
-
-```scala
-// Before (duplicated):
-val nums = parts.map(_.toInt)
-val Array(r, g, b, a) = nums.map(_ / 255f).padTo(4, 1f)
-
-// After: Extract to helper
-private object ColorConversion:
-  private val RGB_MAX = 255f
-
-  def rgbIntsToFloats(parts: Array[String]): Either[String, Array[Float]] =
-    Try {
-      val nums = parts.map(_.toInt)
-      if nums.exists(n => n < 0 || n > 255) then
-        Left("RGB values must be in range 0-255")
-      else
-        Right(nums.map(_ / RGB_MAX).padTo(4, 1f))
-    }.recover {
-      case e: NumberFormatException => Left(s"Invalid integer in color: ${e.getMessage}")
-    }.get
-```
+**Status:** Completed - See above
 
 ---
 
-### 24. Deduplicate Vector3 to Vector[3] Conversion (45 min)
+### ~~24. Deduplicate Vector3 to Vector[3] Conversion (45 min)~~ ✅ COMPLETED 2025-12-22
 
-**File**: `SceneConfigurator.scala:34-36` and `55`
-
-```scala
-// Before (pattern repeated 6 times):
-val eye = Vector[3](cameraPos.x, cameraPos.y, cameraPos.z)
-val lookAt = Vector[3](cameraLookat.x, cameraLookat.y, cameraLookat.z)
-val up = Vector[3](cameraUp.x, cameraUp.y, cameraUp.z)
-
-// After: Add extension method
-extension (v: Vector3)
-  def toVector3: Vector[3] = Vector[3](v.x, v.y, v.z)
-
-// Usage:
-val eye = cameraPos.toVector3
-val lookAt = cameraLookat.toVector3
-val up = cameraUp.toVector3
-```
-
-**Location**: Create in `menger-common` as `Vector3Extensions.scala`
+**Status:** Completed - See above
 
 ---
 

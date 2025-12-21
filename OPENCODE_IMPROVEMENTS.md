@@ -17,6 +17,12 @@ Removed unused 3-parameter `setSphereColor(r,g,b)` method. See commit `refactor:
 ### ✅ Line Length Violations
 Fixed line length violations to meet 100 character limit. See commit `refactor: Fix line length violations to meet 100 char limit`.
 
+### ✅ Color Conversion Deduplication
+Eliminated color conversion duplication by creating `ColorConversions.rgbIntsToColor()` helper method. See commit `refactor: Deduplicate color conversion logic`.
+
+### ✅ Vector3 Conversion Deduplication
+Eliminated Vector3 to Vector[3] conversion duplication by creating `Vector3Extensions.toVector3` extension method. See commit `refactor: Deduplicate Vector3 to Vector[3] conversions`.
+
 ---
 
 ## **Low Effort Issues (Quick Wins)**
@@ -58,12 +64,10 @@ Fixed line length violations to meet 100 character limit. See commit `refactor: 
 - **Improvement:** Extract validation logic to separate validator classes
 - **Effort:** Medium
 
-### **6. Code Duplication in Color Conversion**
-- **Files:** `ColorConversions.scala`, `MengerCLIOptions.scala` (color converters)
-- **Issue:** Similar color parsing logic repeated in multiple places
-- **Example:** Both files have hex color parsing with slight variations
-- **Improvement:** Create a unified `ColorParser` utility
-- **Effort:** Medium
+### ~~**6. Code Duplication in Color Conversion**~~ (COMPLETED)
+- **Status:** ✅ Completed 2025-12-22
+- **Resolution:** Created `ColorConversions.rgbIntsToColor()` helper method
+- **Commit:** `refactor: Deduplicate color conversion logic`
 
 ### **7. Repetitive Validation Patterns**
 - **File:** `MengerCLIOptions.scala:357-408`
@@ -156,7 +160,7 @@ Fixed line length violations to meet 100 character limit. See commit `refactor: 
 
 ### **Short-term (Medium Effort)**
 1. Refactor large methods in `MengerCLIOptions`
-2. Eliminate code duplication in color parsing
+2. ~~Eliminate code duplication in color parsing~~ ✅ COMPLETED
 3. Create unified validation framework
 4. Replace mutable state in input controllers
 
