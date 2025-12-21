@@ -59,7 +59,10 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     isValidSpongeType(spongeType)
 
   // Note: "sphere" removed - use --object sphere for OptiX rendering
-  private val basicSpongeTypes = List("cube", "square", "square-sponge", "cube-sponge", "tesseract", "tesseract-sponge", "tesseract-sponge-2")
+  private val basicSpongeTypes = List(
+    "cube", "square", "square-sponge", "cube-sponge",
+    "tesseract", "tesseract-sponge", "tesseract-sponge-2"
+  )
   private val compositePattern = """composite\[(.+)]""".r
 
   private def isValidSpongeType(spongeType: String): Boolean =
@@ -309,7 +312,8 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     if spec.isEmpty then Right(())
     else
     if !spec.get.isRotationAxisSet(
-      x.getOrElse(0), y.getOrElse(0), z.getOrElse(0), xw.getOrElse(0), yw.getOrElse(0), zw.getOrElse(0)
+      x.getOrElse(0), y.getOrElse(0), z.getOrElse(0),
+      xw.getOrElse(0), yw.getOrElse(0), zw.getOrElse(0)
     ) then Right(())
     else Left("Animation specification has rotation axis set that is also set statically")
   }
@@ -327,9 +331,13 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   validateOpt(color, faceColor, lineColor) { (c, fc, lc) =>
     if color.isSupplied && (faceColor.isSupplied || lineColor.isSupplied) then
       Left("--color cannot be used together with --face-color or --line-color")
-    else if (faceColor.isSupplied && !lineColor.isSupplied) || (!faceColor.isSupplied && lineColor.isSupplied) then
-      Left("--face-color and --line-color must be specified together")
-    else Right(())
+    else
+      val bothOrNeitherSupplied =
+        (faceColor.isSupplied && !lineColor.isSupplied) ||
+        (!faceColor.isSupplied && lineColor.isSupplied)
+      if bothOrNeitherSupplied then
+        Left("--face-color and --line-color must be specified together")
+      else Right(())
   }
 
   validateOpt(lines, faceColor, lineColor) { (l, fc, lc) =>
@@ -531,7 +539,10 @@ val planeSpecConverter = new ValueConverter[PlaneSpec] {
             val value = valueStr.toFloat
             Right(Some(PlaneSpec(axis, positive, value)))
           case _ =>
-            Left(s"Plane spec '$input' must match format [+-]?x|y|z:[-]<value> (e.g., y:-2, +y:-2, or -z:5.5)")
+            Left(
+              s"Plane spec '$input' must match format [+-]?x|y|z:[-]<value> " +
+              "(e.g., y:-2, +y:-2, or -z:5.5)"
+            )
       }.recover {
         case e: Exception => Left(s"Plane spec '$input' not recognized: ${e.getMessage}")
       }.get
@@ -548,6 +559,7 @@ val lightSpecConverter = new ValueConverter[List[LightSpec]] {
     val specStrings = s.flatMap(_._2)
     if specStrings.isEmpty then Right(None)
     else
+      // Long regex pattern for light spec parsing
       val pattern = """(?i)(directional|point):(-?\d+\.?\d*),(-?\d+\.?\d*),(-?\d+\.?\d*)(?::([^:]*))?(?::([^:]+))?""".r
       specStrings.map { input =>
         input.trim match
@@ -569,7 +581,11 @@ val lightSpecConverter = new ValueConverter[List[LightSpec]] {
               LightSpec(lightType, position, intensity, color)
             }.toEither.left.map(e => s"Light spec '$input' not recognized: ${e.getMessage}")
           case _ =>
-            Left(s"Light spec '$input' must match format <type>:x,y,z[:intensity[:color]] where type is directional|point (e.g., directional:0,1,-1, point:0,5,0:2.0:ffffff)")
+            Left(
+              s"Light spec '$input' must match format " +
+              "<type>:x,y,z[:intensity[:color]] where type is directional|point " +
+              "(e.g., directional:0,1,-1, point:0,5,0:2.0:ffffff)"
+            )
       }.foldLeft[Either[String, List[LightSpec]]](Right(List.empty)) {
         case (Right(acc), Right(spec)) => Right(acc :+ spec)
         case (Left(err), _) => Left(err)

@@ -79,7 +79,10 @@ object ObjectSpec:
       ior <- Try(kvPairs.get("ior").map(_.toFloat).getOrElse(1.0f)).toEither.left.map(_.getMessage)
 
       // Validate: sponges should have level
-      _ <- if (objType == "sponge-volume" || objType == "sponge-surface" || objType == "cube-sponge") && level.isEmpty then
+      isSponge = objType == "sponge-volume" ||
+                 objType == "sponge-surface" ||
+                 objType == "cube-sponge"
+      _ <- if isSponge && level.isEmpty then
         Left("Sponge object requires 'level' field")
       else
         Right(())

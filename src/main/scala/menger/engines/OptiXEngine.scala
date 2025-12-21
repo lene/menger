@@ -52,7 +52,8 @@ class OptiXEngine(
   val causticsConfig: CausticsConfig = CausticsConfig.Disabled,
   val maxInstances: Int = 64,
   val objectSpecs: Option[List[ObjectSpec]] = None
-)(using profilingConfig: ProfilingConfig) extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots:
+)(using profilingConfig: ProfilingConfig)
+  extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots:
 
   // Level thresholds for warnings (based on triangle counts and performance)
   private val VolumeLevelWarning = Const.Engine.spongeLevelWarningThreshold
@@ -65,14 +66,24 @@ class OptiXEngine(
     spongeType match
       case "sponge-volume" =>
         if intLevel >= VolumeLevelWarning then
-          val estimatedTriangles = math.pow(Const.Engine.cubesPerSpongeLevel, intLevel).toLong * Const.Engine.trianglesPerCube
-          logger.warn(s"Sponge level $intLevel may be slow (~${estimatedTriangles / 1000}K triangles)")
+          val estimatedTriangles =
+            math.pow(Const.Engine.cubesPerSpongeLevel, intLevel).toLong *
+            Const.Engine.trianglesPerCube
+          logger.warn(
+            s"Sponge level $intLevel may be slow " +
+            s"(~${estimatedTriangles / 1000}K triangles)"
+          )
         if intLevel > VolumeLevelMax then
           logger.error(s"Sponge level $intLevel exceeds recommended maximum ($VolumeLevelMax)")
       case "sponge-surface" =>
         if intLevel >= SurfaceLevelWarning then
-          val estimatedTriangles = math.pow(Const.Engine.trianglesPerCube, intLevel).toLong * 6 * 2 // 12^level sub-faces * 6 faces * 2 triangles
-          logger.warn(s"Sponge level $intLevel may be slow (~${estimatedTriangles / 1000}K triangles)")
+          // 12^level sub-faces * 6 faces * 2 triangles
+          val estimatedTriangles =
+            math.pow(Const.Engine.trianglesPerCube, intLevel).toLong * 6 * 2
+          logger.warn(
+            s"Sponge level $intLevel may be slow " +
+            s"(~${estimatedTriangles / 1000}K triangles)"
+          )
         if intLevel > SurfaceLevelMax then
           logger.error(s"Sponge level $intLevel exceeds recommended maximum ($SurfaceLevelMax)")
       case _ => // No warning for other types
