@@ -161,7 +161,7 @@ class OptiXEngine(
 
     finalizeCreate()
 
-  private def createMultiObjectScene(specs: List[ObjectSpec]): Try[Unit] = Try:
+  private def createMultiObjectScene(specs: List[ObjectSpec]): Try[Unit] =
     logger.info(s"Creating OptiXEngine with ${specs.length} objects")
 
     val renderer = rendererWrapper.renderer
@@ -170,12 +170,12 @@ class OptiXEngine(
     sceneConfigurator.configureCamera(renderer)
 
     // Validate that all objects are compatible with IAS
-    validateObjectSpecs(specs) match
+    val validationResult = validateObjectSpecs(specs) match
       case Left(error) => Failure(IllegalArgumentException(error))
       case Right(_) =>
         // Determine scene type and setup
         val objectTypes = specs.map(_.objectType).distinct
-        val setupResult = if objectTypes.contains("cube-sponge") then
+        if objectTypes.contains("cube-sponge") then
           // cube-sponge generates many instances from one spec - handle specially
           setupCubeSponges(specs, renderer)
         else if objectTypes.forall(_ == "sphere") then
@@ -188,14 +188,14 @@ class OptiXEngine(
             s"Objects: ${objectTypes.mkString(", ")}"
           ))
 
-        setupResult.get  // Propagate failure
-        ()  // Return Unit for Try[Unit]
-
-    renderer.setRenderConfig(renderConfig)
-    renderer.setCausticsConfig(causticsConfig)
-    planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
-
-    finalizeCreate()
+    validationResult.flatMap { _ =>
+      Try {
+        renderer.setRenderConfig(renderConfig)
+        renderer.setCausticsConfig(causticsConfig)
+        planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
+        finalizeCreate()
+      }
+    }
 
   private def validateObjectSpecs(specs: List[ObjectSpec]): Either[String, Unit] =
     if specs.isEmpty then
@@ -262,11 +262,13 @@ class OptiXEngine(
         cube.toTriangleMesh
       case "sponge-volume" =>
         require(spec.level.isDefined, "sponge-volume requires level")
+        // Safe .get: level validated by require above
         val sponge = SpongeByVolume(center = Vector3(0f, 0f, 0f), scale = spec.size, level = spec.level.get)
         sponge.toTriangleMesh
       case "sponge-surface" =>
         given menger.ProfilingConfig = profilingConfig
         require(spec.level.isDefined, "sponge-surface requires level")
+        // Safe .get: level validated by require above
         val sponge = SpongeBySurface(center = Vector3(0f, 0f, 0f), scale = spec.size, level = spec.level.get)
         sponge.toTriangleMesh
       case other =>
@@ -290,6 +292,7 @@ class OptiXEngine(
     // Validate that we don't exceed max instances limit
     val totalInstances = specs.map { spec =>
       require(spec.level.isDefined, "cube-sponge requires level")
+      // Safe .get: level validated by require above
       val level = spec.level.get.toInt
       Math.pow(Const.Engine.cubesPerSpongeLevel, level).toLong
     }.sum
@@ -311,6 +314,7 @@ class OptiXEngine(
       // For each cube-sponge spec, generate and add all cube instances
       specs.foreach { spec =>
         require(spec.level.isDefined, "cube-sponge requires level")
+        // Safe .get: level validated by require above
         val level = spec.level.get.toInt
         val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
 

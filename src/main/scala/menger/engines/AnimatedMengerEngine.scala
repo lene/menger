@@ -20,10 +20,24 @@ class AnimatedMengerEngine(
 with LazyLogging with SavesScreenshots:
   private val frameCounter = java.util.concurrent.atomic.AtomicInteger(0)
 
+  // Helper to unwrap Try with graceful error handling and app exit on failure
+  private def unwrapOrExit[A](t: scala.util.Try[A], errorContext: String): A =
+    t.getOrElse {
+      t.failed.foreach { e =>
+        logger.error(s"$errorContext: ${e.getMessage}", e)
+        Gdx.app.exit()
+      }
+      ??? // Control never reaches here - app exits above
+    }
+
   protected def drawables: List[ModelInstance] =
     given ProfilingConfig = profilingConfig
     val currentLevel = currentAnimatedLevel
-    generateObjectWithOverlay(spongeType, currentLevel).get.getModel  // Throws on failure - caught by Main
+    val geometry = unwrapOrExit(
+      generateObjectWithOverlay(spongeType, currentLevel),
+      s"Failed to generate object for frame ${frameCounter.get()}"
+    )
+    geometry.getModel
 
   private def currentAnimatedLevel: Float =
     val currentFrame = frameCounter.get()
@@ -33,7 +47,11 @@ with LazyLogging with SavesScreenshots:
 
   override def currentRotProj: RotationProjectionParameters =
     val currentFrame = frameCounter.get()
-    animationSpecifications.rotationProjectionParameters(currentFrame).get + rotationProjectionParameters  // Throws on failure - caught by Main
+    val params = unwrapOrExit(
+      animationSpecifications.rotationProjectionParameters(currentFrame),
+      s"Failed to get rotation parameters for frame $currentFrame"
+    )
+    params + rotationProjectionParameters
 
   override def create(): Unit =
     logger.info(s"Animating for $animationSpecifications")

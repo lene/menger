@@ -452,6 +452,13 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     if isSupplied && !parentEnabled then Left(s"--$optionName requires --$parentName flag")
     else Right(())
 
+// Helper to safely unwrap Try[Either[String, A]] without using .get
+// Handles the common pattern in value converters where parsing returns Either wrapped in Try
+private def unwrapTryEither[A](t: scala.util.Try[Either[String, A]]): Either[String, A] =
+  t.fold(
+    error => Left(error.getMessage),
+    identity
+  )
 
 val animationSpecificationsConverter = new ValueConverter[AnimationSpecifications] {
   val argType: ArgType.V = org.rogach.scallop.ArgType.LIST
@@ -459,8 +466,9 @@ val animationSpecificationsConverter = new ValueConverter[AnimationSpecification
     val specStrings = s.flatMap(_(1))
     if specStrings.isEmpty then Right(None)
     else
-      Try { Right(Some(AnimationSpecifications(specStrings)))
-      }.recover { case e: Exception => Left(e.getMessage) }.get
+      unwrapTryEither(Try(Right(Some(AnimationSpecifications(specStrings)))).recover {
+        case e: Exception => Left(e.getMessage)
+      })
 }
 
 val colorConverter = new ValueConverter[Color] {
@@ -469,9 +477,9 @@ val colorConverter = new ValueConverter[Color] {
     if s.isEmpty || s.head._2.isEmpty then Right(None)
     else
       val input = s.head._2.head.trim
-      Try { parseColorValue(input) }.recover {
+      unwrapTryEither(Try(parseColorValue(input)).recover {
         case e: Exception => Left(s"Color '$input' not recognized: ${e.getMessage}")
-      }.get
+      })
 
   private def parseColorValue(input: String): Either[String, Option[Color]] =
     if input.contains(',') then parseInts(input)
@@ -504,7 +512,7 @@ val vector3Converter = new ValueConverter[Vector3] {
     if s.isEmpty || s.head._2.isEmpty then Right(None)
     else
       val input = s.head._2.head.trim
-      Try {
+      unwrapTryEither(Try {
         val parts = input.split(",").map(_.trim.toFloat)
         if parts.length != 3 then
           Left(s"Vector3 '$input' must have exactly 3 components (x,y,z)")
@@ -513,7 +521,7 @@ val vector3Converter = new ValueConverter[Vector3] {
       }.recover {
         case e: NumberFormatException => Left(s"Vector3 '$input' contains non-numeric values")
         case e: Exception => Left(s"Vector3 '$input' not recognized: ${e.getMessage}")
-      }.get
+      })
 }
 
 enum Axis:
@@ -527,7 +535,7 @@ val planeSpecConverter = new ValueConverter[PlaneSpec] {
     if s.isEmpty || s.head._2.isEmpty then Right(None)
     else
       val input = s.head._2.head.trim
-      Try {
+      unwrapTryEither(Try {
         val pattern = """([+-]?)([xyz]):(-?\d+\.?\d*)""".r
         input match
           case pattern(sign, axisStr, valueStr) =>
@@ -545,7 +553,7 @@ val planeSpecConverter = new ValueConverter[PlaneSpec] {
             )
       }.recover {
         case e: Exception => Left(s"Plane spec '$input' not recognized: ${e.getMessage}")
-      }.get
+      })
 }
 
 enum LightType:
@@ -606,9 +614,9 @@ val planeColorSpecConverter = new ValueConverter[PlaneColorSpec] {
     if s.isEmpty || s.head._2.isEmpty then Right(None)
     else
       val input = s.head._2.head.trim
-      Try { parseSpec(input) }.recover {
+      unwrapTryEither(Try(parseSpec(input)).recover {
         case e: Exception => Left(s"Plane color '$input' not recognized: ${e.getMessage}")
-      }.get
+      })
 
   private def parseSpec(input: String): Either[String, Option[PlaneColorSpec]] =
     if input.contains(':') then parseCheckered(input)
