@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Const
+import menger.common.ObjectType
 import menger.optix.CausticsConfig
 import menger.optix.RenderConfig
 import org.rogach.scallop._
@@ -190,15 +191,14 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   // Legacy single object option (deprecated - use objects instead)
   val objectType: ScallopOption[String] = opt[String](
     name = "object", required = false, default = None, group = optixGroup,
-    validate = obj => Set("sphere", "cube", "sponge-volume", "sponge-surface").contains(obj.toLowerCase),
-    descr = "Single object (legacy): sphere, cube, sponge-volume, sponge-surface"
+    validate = obj => ObjectType.isLegacy(obj),
+    descr = s"Single object (legacy): ${ObjectType.legacyTypesString}"
   )
 
   // New multi-object option with keyword=value format
   val objects: ScallopOption[List[ObjectSpec]] = opt[List[ObjectSpec]](
     name = "objects", required = false, group = optixGroup,
-    descr = "Objects (repeatable): type=TYPE:pos=x,y,z:size=S[:level=L][:color=#RGB][:ior=I]. " +
-            "Types: sphere, cube, sponge-volume, sponge-surface, cube-sponge"
+    descr = s"Objects (repeatable): type=TYPE:pos=x,y,z:size=S[:level=L][:color=#RGB][:ior=I]. Types: ${ObjectType.validTypesString}"
   )(using objectSpecConverter)
   val radius: ScallopOption[Float] = opt[Float](
     required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,

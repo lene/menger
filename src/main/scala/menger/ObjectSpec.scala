@@ -3,6 +3,7 @@ package menger
 import scala.util.Try
 
 import menger.common.Color
+import menger.common.ObjectType
 
 /**
  * Object specification parsed from CLI --object flag.
@@ -43,10 +44,10 @@ object ObjectSpec:
     for
       // Required: type
       objType <- kvPairs.get("type") match
-        case Some(t) if Set("sphere", "cube", "sponge-volume", "sponge-surface", "cube-sponge").contains(t.toLowerCase) =>
+        case Some(t) if ObjectType.isValid(t) =>
           Right(t.toLowerCase)
         case Some(t) =>
-          Left(s"Invalid object type: $t (valid: sphere, cube, sponge-volume, sponge-surface, cube-sponge)")
+          Left(s"Invalid object type: $t (valid: ${ObjectType.validTypesString})")
         case None =>
           Left("Missing required 'type' field")
 
@@ -79,10 +80,7 @@ object ObjectSpec:
       ior <- Try(kvPairs.get("ior").map(_.toFloat).getOrElse(1.0f)).toEither.left.map(_.getMessage)
 
       // Validate: sponges should have level
-      isSponge = objType == "sponge-volume" ||
-                 objType == "sponge-surface" ||
-                 objType == "cube-sponge"
-      _ <- if isSponge && level.isEmpty then
+      _ <- if ObjectType.isSponge(objType) && level.isEmpty then
         Left("Sponge object requires 'level' field")
       else
         Right(())
