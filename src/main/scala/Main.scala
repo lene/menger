@@ -67,7 +67,7 @@ object Main:
 
   private def createOptiXEngine(
     opts: MengerCLIOptions,
-    rpp: RotationProjectionParameters
+    rotationProjectionParams: RotationProjectionParameters
   )(using ProfilingConfig): OptiXEngine =
     // --object or --objects is required for OptiX (validated in MengerCLIOptions)
     OptiXEngine(
@@ -89,20 +89,20 @@ object Main:
 
   private def createAnimatedEngine(
     opts: MengerCLIOptions,
-    rpp: RotationProjectionParameters
+    rotationProjectionParams: RotationProjectionParameters
   )(using ProfilingConfig): AnimatedMengerEngine =
     AnimatedMengerEngine(
-      opts.spongeType(), opts.level(), rpp, opts.lines(), opts.color(),
+      opts.spongeType(), opts.level(), rotationProjectionParams, opts.lines(), opts.color(),
       opts.animate(), opts.saveName.toOption, opts.faceColor.toOption, opts.lineColor.toOption,
       opts.fpsLogInterval()
     )
 
   private def createInteractiveEngine(
     opts: MengerCLIOptions,
-    rpp: RotationProjectionParameters
+    rotationProjectionParams: RotationProjectionParameters
   )(using ProfilingConfig): InteractiveMengerEngine =
     InteractiveMengerEngine(
-      opts.spongeType(), opts.level(), rpp, opts.lines(), opts.color(),
+      opts.spongeType(), opts.level(), rotationProjectionParams, opts.lines(), opts.color(),
       opts.timeout(), opts.faceColor.toOption, opts.lineColor.toOption,
       opts.fpsLogInterval()
     )

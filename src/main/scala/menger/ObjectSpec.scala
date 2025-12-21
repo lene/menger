@@ -55,8 +55,8 @@ object ObjectSpec:
       position <- kvPairs.get("pos") match
         case Some(posStr) =>
           posStr.split(",").map(_.trim) match
-            case Array(px, py, pz) =>
-              Try((px.toFloat, py.toFloat, pz.toFloat)).toEither.left.map(_.getMessage)
+            case Array(xStr, yStr, zStr) =>
+              Try((xStr.toFloat, yStr.toFloat, zStr.toFloat)).toEither.left.map(_.getMessage)
             case _ =>
               Left(s"Invalid position format: $posStr (expected x,y,z)")
         case None => Right((0.0f, 0.0f, 0.0f))

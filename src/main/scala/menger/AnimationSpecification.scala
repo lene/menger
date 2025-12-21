@@ -5,12 +5,12 @@ import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Const
 
-case class AnimationSpecification(s: String) extends LazyLogging:
+case class AnimationSpecification(specString: String) extends LazyLogging:
 
   private type StartEnd = (start: Float, end: Float)
 
   private val asMap: Map[String, String] =
-    Try { s.split(":").map(_.split("=")).map(arr => (arr(0), arr(1))).toMap }
+    Try { specString.split(":").map(_.split("=")).map(arr => (arr(0), arr(1))).toMap }
       .getOrElse(Map.empty)
 
   val frames: Option[Int] = asMap.get("frames").flatMap(_.toIntOption)
@@ -67,9 +67,9 @@ case class AnimationSpecification(s: String) extends LazyLogging:
     (yw != 0 && animationParameters.contains("rot-y-w")) ||
     (zw != 0 && animationParameters.contains("rot-z-w"))
     
-  private def parseStartEnd(s: String): StartEnd =
-    val parts = s.split('-')
-    require(parts.length == 2, s"Invalid start-end specification: $s")
+  private def parseStartEnd(valueString: String): StartEnd =
+    val parts = valueString.split('-')
+    require(parts.length == 2, s"Invalid start-end specification: $valueString")
     require(parts.head.toFloatOption.isDefined, s"Start ${parts.head} not a Float")
     require(parts.last.toFloatOption.isDefined, s"End ${parts.last} not a Float")
     (parts.head.toFloat, parts.last.toFloat)

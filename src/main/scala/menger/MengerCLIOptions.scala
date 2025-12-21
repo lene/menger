@@ -328,7 +328,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   }
 
   // Validate color option combinations
-  validateOpt(color, faceColor, lineColor) { (c, fc, lc) =>
+  validateOpt(color, faceColor, lineColor) { (colorOpt, faceColorOpt, lineColorOpt) =>
     if color.isSupplied && (faceColor.isSupplied || lineColor.isSupplied) then
       Left("--color cannot be used together with --face-color or --line-color")
     else
@@ -340,7 +340,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
       else Right(())
   }
 
-  validateOpt(lines, faceColor, lineColor) { (l, fc, lc) =>
+  validateOpt(lines, faceColor, lineColor) { (linesOpt, faceColorOpt, lineColorOpt) =>
     if lines.isSupplied && (faceColor.isSupplied || lineColor.isSupplied) then
       Left("--lines cannot be used together with --face-color or --line-color")
     else Right(())
@@ -469,11 +469,11 @@ val colorConverter = new ValueConverter[Color] {
     if s.isEmpty || s.head._2.isEmpty then Right(None)
     else
       val input = s.head._2.head.trim
-      Try { doParse(input) }.recover {
+      Try { parseColorValue(input) }.recover {
         case e: Exception => Left(s"Color '$input' not recognized: ${e.getMessage}")
       }.get
 
-  private def doParse(input: String): Either[String, Option[Color]] =
+  private def parseColorValue(input: String): Either[String, Option[Color]] =
     if input.contains(',') then parseInts(input)
     else parseHex(input)
 
