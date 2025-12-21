@@ -4,16 +4,16 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.math.Vector3
-import org.scalatest.Tag
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-import org.scalamock.stubs.Stubs
 import menger.RotationProjectionParameters
 import menger.engines.InteractiveMengerEngine
 import menger.input.EventDispatcher
 import menger.input.GdxCameraController
 import menger.input.GdxKeyController
 import menger.input.Observer
+import org.scalamock.stubs.Stubs
+import org.scalatest.Tag
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 
 object GdxTest extends Tag("GdxTest"):  // needs Gdx to be available

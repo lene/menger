@@ -1,10 +1,10 @@
 package menger.objects.higher_d
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 import menger.common.Vector
 import menger.objects.Matrix
-import CustomMatchers.*
+import menger.objects.higher_d.CustomMatchers._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 class MatrixSuite extends AnyFlatSpec with Matchers:
   val rawValues: Array[Float] = Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)

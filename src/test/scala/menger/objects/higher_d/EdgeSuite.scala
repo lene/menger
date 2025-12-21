@@ -1,8 +1,8 @@
 package menger.objects.higher_d
 
+import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import menger.common.Vector
 
 class EdgeSuite extends AnyFlatSpec with Matchers:
   "An Edge" should "be able to be created with 2 Vector[4]s" in:

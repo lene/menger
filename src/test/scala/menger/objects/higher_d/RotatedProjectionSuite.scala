@@ -3,11 +3,13 @@ package menger.objects.higher_d
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
 import com.badlogic.gdx.math.Vector3
-import menger.{MengerCLIOptions, RotationProjectionParameters}
-import menger.objects.{Builder, Matrix}
+import menger.MengerCLIOptions
+import menger.RotationProjectionParameters
+import menger.objects.Builder
+import menger.objects.Matrix
+import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.Inspectors.forAll
 
 extension(v: Vector3)
   def toList: List[Float] = List(v.x, v.y, v.z)

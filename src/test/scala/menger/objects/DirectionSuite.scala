@@ -1,6 +1,11 @@
 package menger.objects
 
-import menger.objects.Direction.{X, Y, Z, negX, negY, negZ}
+import menger.objects.Direction.X
+import menger.objects.Direction.Y
+import menger.objects.Direction.Z
+import menger.objects.Direction.negX
+import menger.objects.Direction.negY
+import menger.objects.Direction.negZ
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

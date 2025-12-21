@@ -2,9 +2,9 @@ package menger
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
+import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.rogach.scallop.exceptions.ScallopException
 
 class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
 

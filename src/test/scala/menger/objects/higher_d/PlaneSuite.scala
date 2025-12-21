@@ -1,9 +1,9 @@
 package menger.objects.higher_d
 
 import menger.common.Vector
+import menger.objects.higher_d.CustomMatchers._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import CustomMatchers._
 
 class PlaneSuite extends AnyFlatSpec with StandardVector with Matchers:
 

@@ -1,8 +1,8 @@
 package menger
 
+import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.rogach.scallop.exceptions.ScallopException
 
 class LoggingCLIOptionsSuite extends AnyFlatSpec with Matchers:
 

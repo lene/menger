@@ -1,8 +1,8 @@
 package menger.objects.higher_d
 
+import com.badlogic.gdx.graphics.g3d.Material
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import com.badlogic.gdx.graphics.g3d.Material
 
 class RectMeshSuite extends AnyFlatSpec with Matchers:
 

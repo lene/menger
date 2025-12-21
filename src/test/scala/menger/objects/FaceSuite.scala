@@ -1,10 +1,12 @@
 package menger.objects
 
 import com.badlogic.gdx.math.Vector3
+import menger.objects.Direction.X
+import menger.objects.Direction.Y
+import menger.objects.Direction.Z
+import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.Inspectors.forAll
-import menger.objects.Direction.{X, Y, Z}
 
 class FaceSuite extends AnyFlatSpec with Matchers:
   "any ol' Face" should "instantiate" in:

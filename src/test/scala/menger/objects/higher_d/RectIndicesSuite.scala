@@ -1,8 +1,8 @@
 package menger.objects.higher_d
 
+import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import menger.common.Vector
 
 class RectIndicesSuite extends AnyFlatSpec with Matchers:
 

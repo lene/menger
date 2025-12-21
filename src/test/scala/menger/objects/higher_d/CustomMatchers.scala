@@ -1,9 +1,10 @@
 package menger.objects.higher_d
 
+import menger.common.Const
 import menger.common.Vector
 import menger.objects.Matrix
-import menger.common.Const
-import org.scalatest.matchers.{MatchResult, Matcher}
+import org.scalatest.matchers.MatchResult
+import org.scalatest.matchers.Matcher
 
 trait CustomMatchers:
   class VectorsRoughlyEqualMatcher(expected: Vector[4]) extends Matcher[Vector[4]]:

@@ -1,9 +1,9 @@
 package menger
 
+import com.badlogic.gdx.graphics.Color
+import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.rogach.scallop.exceptions.ScallopException
-import com.badlogic.gdx.graphics.Color
 
 
 class OptionsSuite extends AnyFlatSpec with Matchers:

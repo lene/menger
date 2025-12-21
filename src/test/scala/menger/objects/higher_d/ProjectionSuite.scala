@@ -1,10 +1,10 @@
 package menger.objects.higher_d
 
-import menger.common.Vector
 import menger.common.Const
+import menger.common.Vector
+import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.Inspectors.forAll
 
 class ProjectionSuite extends AnyFlatSpec with Matchers:
   "instantiating a projection" should "be valid if eyeW > screenW" in:

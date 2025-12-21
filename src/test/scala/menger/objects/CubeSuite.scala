@@ -1,9 +1,9 @@
 package menger.objects
 
 import com.badlogic.gdx.math.Vector3
+import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.Inspectors.forAll
 
 class CubeSuite extends AnyFlatSpec with Matchers:
 

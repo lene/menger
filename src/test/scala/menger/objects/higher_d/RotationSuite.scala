@@ -1,12 +1,12 @@
 package menger.objects.higher_d
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.*
-import org.scalatest.Inspectors.forAll
 import com.typesafe.scalalogging.LazyLogging
+import menger.RotationProjectionParameters
 import menger.common.Vector
 import menger.objects.Matrix
-import menger.RotationProjectionParameters
+import org.scalatest.Inspectors.forAll
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should._
 
 trait StandardVector:
   val axisName = Array("x", "y", "z", "w")

@@ -1,11 +1,11 @@
 package menger.objects.higher_d
 
+import menger.common.Const
 import menger.common.Vector
+import menger.objects.higher_d.CustomMatchers._
 import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.*
-import CustomMatchers.*
-import menger.common.Const
+import org.scalatest.matchers.should._
 
 class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
 

@@ -1,8 +1,8 @@
 package menger
 
+import menger.common.Color
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import menger.common.Color
 
 class ObjectSpecTest extends AnyFlatSpec with Matchers:
 
