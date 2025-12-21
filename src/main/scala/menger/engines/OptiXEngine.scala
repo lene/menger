@@ -16,6 +16,7 @@ import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.common.Const
 import menger.common.ImageSize
+import menger.common.ObjectType
 import menger.common.TransformUtil
 import menger.input.OptiXCameraController
 import menger.input.OptiXInputMultiplexer
@@ -145,7 +146,7 @@ class OptiXEngine(
       case "sphere" =>
         sceneConfigurator.setSphereColor(renderer, color.toCommonColor)
         sceneConfigurator.setIOR(renderer, ior)
-      case "cube" | "sponge-volume" | "sponge-surface" =>
+      case _ if ObjectType.isSponge(spongeType) || spongeType == "cube" =>
         sceneConfigurator.setTriangleMeshColor(renderer, color.toCommonColor)
         sceneConfigurator.setTriangleMeshIOR(renderer, ior)
       case _ =>
@@ -179,7 +180,7 @@ class OptiXEngine(
           setupCubeSponges(specs, renderer)
         else if objectTypes.forall(_ == "sphere") then
           setupMultipleSpheres(specs, renderer)
-        else if objectTypes.forall(t => t == "cube" || t == "sponge-volume" || t == "sponge-surface") then
+        else if objectTypes.forall(t => t == "cube" || ObjectType.isSponge(t)) then
           setupMultipleTriangleMeshes(specs, renderer)
         else
           Failure(UnsupportedOperationException(
@@ -276,10 +277,12 @@ class OptiXEngine(
     (spec1.objectType, spec2.objectType) match
       case (t1, t2) if t1 == t2 =>
         // Same type - check if levels match for sponges
-        (t1, spec1.level, spec2.level) match
-          case ("sponge-volume" | "sponge-surface", Some(l1), Some(l2)) => l1 == l2
-          case ("sponge-volume" | "sponge-surface", _, _) => false  // Missing level
-          case _ => true  // Non-sponge types are always compatible with same type
+        if ObjectType.isSponge(t1) then
+          (spec1.level, spec2.level) match
+            case (Some(l1), Some(l2)) => l1 == l2
+            case _ => false  // Missing level
+        else
+          true  // Non-sponge types are always compatible with same type
       case _ => false  // Different types
 
   private def setupCubeSponges(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = {
