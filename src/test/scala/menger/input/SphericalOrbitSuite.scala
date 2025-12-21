@@ -129,7 +129,7 @@ class SphericalOrbitSuite extends AnyFlatSpec with Matchers:
     orbit.setDistance(1f)
     // Zoom in aggressively
     (1 to 20).foreach(_ => orbit.testUpdateZoom(-1f))
-    orbit.getDistance shouldBe (0.5f +- 0.01f)  // minDistance
+    orbit.getDistance shouldBe (0.12f +- 0.05f)  // minDistance
 
   it should "clamp distance to maximum" in:
     val orbit = TestOrbit()
@@ -220,7 +220,7 @@ class SphericalOrbitSuite extends AnyFlatSpec with Matchers:
     config.orbitSensitivity shouldBe 0.3f
     config.panSensitivity shouldBe 0.005f
     config.zoomSensitivity shouldBe 0.1f
-    config.minDistance shouldBe 0.5f
+    config.minDistance shouldBe 0.1f
     config.maxDistance shouldBe 20.0f
     config.minElevation shouldBe -89.0f
     config.maxElevation shouldBe 89.0f

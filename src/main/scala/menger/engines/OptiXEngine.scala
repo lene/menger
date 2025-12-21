@@ -14,6 +14,7 @@ import menger.OptiXRenderResources
 import menger.PlaneColorSpec
 import menger.PlaneSpec
 import menger.ProfilingConfig
+import menger.common.Const
 import menger.common.ImageSize
 import menger.input.OptiXCameraController
 import menger.input.OptiXInputMultiplexer
@@ -54,23 +55,23 @@ class OptiXEngine(
 )(using profilingConfig: ProfilingConfig) extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots:
 
   // Level thresholds for warnings (based on triangle counts and performance)
-  private val VolumeLevelWarning = 3  // Level 3 = ~32K cubes = ~384K triangles
-  private val SurfaceLevelWarning = 3 // Level 3 = ~10K triangles per face = ~60K total
-  private val VolumeLevelMax = 5      // Level 5 = ~3.2M cubes (may exhaust GPU memory)
-  private val SurfaceLevelMax = 5     // Level 5 = ~31M triangles (may exhaust GPU memory)
+  private val VolumeLevelWarning = Const.Engine.spongeLevelWarningThreshold
+  private val SurfaceLevelWarning = Const.Engine.spongeLevelWarningThreshold
+  private val VolumeLevelMax = Const.Engine.cubeSpongeMaxLevel
+  private val SurfaceLevelMax = Const.Engine.cubeSpongeMaxLevel
 
   private def warnIfHighLevel(): Unit =
     val intLevel = spongeLevel.toInt
     spongeType match
       case "sponge-volume" =>
         if intLevel >= VolumeLevelWarning then
-          val estimatedTriangles = math.pow(20, intLevel).toLong * 12 // 20^level cubes * 12 triangles each
+          val estimatedTriangles = math.pow(Const.Engine.cubesPerSpongeLevel, intLevel).toLong * Const.Engine.trianglesPerCube
           logger.warn(s"Sponge level $intLevel may be slow (~${estimatedTriangles / 1000}K triangles)")
         if intLevel > VolumeLevelMax then
           logger.error(s"Sponge level $intLevel exceeds recommended maximum ($VolumeLevelMax)")
       case "sponge-surface" =>
         if intLevel >= SurfaceLevelWarning then
-          val estimatedTriangles = math.pow(12, intLevel).toLong * 6 * 2 // 12^level sub-faces * 6 faces * 2 triangles
+          val estimatedTriangles = math.pow(Const.Engine.trianglesPerCube, intLevel).toLong * 6 * 2 // 12^level sub-faces * 6 faces * 2 triangles
           logger.warn(s"Sponge level $intLevel may be slow (~${estimatedTriangles / 1000}K triangles)")
         if intLevel > SurfaceLevelMax then
           logger.error(s"Sponge level $intLevel exceeds recommended maximum ($SurfaceLevelMax)")
@@ -276,13 +277,13 @@ class OptiXEngine(
           case _ => true  // Non-sponge types are always compatible with same type
       case _ => false  // Different types
 
-  private def setupCubeSponges(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] =
+  private def setupCubeSponges(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = {
     // cube-sponge generates many cube instances from each spec
     // Validate that we don't exceed max instances limit
     val totalInstances = specs.map { spec =>
       require(spec.level.isDefined, "cube-sponge requires level")
       val level = spec.level.get.toInt
-      Math.pow(20, level).toLong
+      Math.pow(Const.Engine.cubesPerSpongeLevel, level).toLong
     }.sum
 
     if totalInstances > maxInstances then
@@ -295,6 +296,7 @@ class OptiXEngine(
       logger.info(s"Setting up ${specs.length} cube-sponge(s) generating $totalInstances total cube instances")
 
       // Create base cube mesh (shared by all instances)
+      // Level 1 Menger sponge geometry
       val baseCube = Cube(center = Vector3(0f, 0f, 0f), scale = 1.0f)
       renderer.setTriangleMesh(baseCube.toTriangleMesh)
 
@@ -335,6 +337,8 @@ class OptiXEngine(
 
         logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
       }
+    
+  }
 
   private def finalizeCreate(): Unit =
     // Register input multiplexer for mouse-based camera control and keyboard shortcuts

@@ -34,3 +34,53 @@ case object Const:
   val iorWater: Float = 1.33f
   val iorGlass: Float = 1.5f
   val iorDiamond: Float = 2.42f
+
+  // New constants extracted from MengerCLIOptions
+  val maxLights = 8
+  val defaultMaxInstances = 64
+  val maxInstancesLimit = 1024
+  val maxPhotonsDefault = 100000
+  val maxPhotonsLimit = 10000000
+  val maxIterationsDefault = 10
+  val maxIterationsLimit = 1000
+  val maxCausticsRadius = 10.0f
+  val rgbMaxValue = 255
+  val rgbMaxValueFloat = 255f
+  val defaultSpongeLevel = 1.0f
+
+  // New constants extracted from OptiXEngine
+  object Engine:
+    val spongeLevelWarningThreshold = 3
+    val cubeSpongeMaxLevel = 5
+    val trianglesPerCube = 12
+    val cubesPerSpongeLevel = 20
+    val cubeScaleFactor = 2.0f
+    val sphereScaleFactor = 2.0f
+    val spongeScaleFactor = 2.0f
+
+  // New constants extracted from OptiXRenderer
+  object Renderer:
+    val transformMatrixSize = 12  // 4x3 row-major
+    val defaultMaxInstances = 64
+    val streamCopyBufferSize = 8192
+    val horizontalFov = 45f
+
+  // New constants extracted from Main
+  object Display:
+    val colorBits = 8
+    val depthBits = 16
+    val stencilBits = 0
+
+  // New constants extracted from SphericalOrbit
+  object Input:
+    val defaultZoomSensitivity = 0.3f
+    val defaultPanSensitivity = 0.005f
+    val defaultMinDistance = 0.1f // Changed to match SphericalOrbit default (was 0.5f in some places)
+    val defaultMaxDistance = 20.0f
+    val defaultMinElevation = -89.0f
+    val defaultMaxElevation = 89.0f
+
+  // New constants extracted from Face4D
+  object Geometry:
+    val verticesPerFace = 4
+

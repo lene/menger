@@ -115,7 +115,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     descr = "Sponge type: square, cube, tesseract-sponge, tesseract-sponge-2, composite[...]"
   )
   val level: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(1.0f), validate = _ >= 0, group = spongeGroup,
+    required = false, default = Some(Const.defaultSpongeLevel), validate = _ >= 0, group = spongeGroup,
     descr = "Fractal recursion level (supports fractional values)"
   )
   val lines: ScallopOption[Boolean] = opt[Boolean](
@@ -248,9 +248,9 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     descr = "Plane color: RRGGBB or RRGGBB:RRGGBB for checkered"
   )(using planeColorSpecConverter)
   val maxInstances: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(64), group = optixSceneGroup,
-    validate = n => n > 0 && n <= 1024,
-    descr = "Maximum object instances in scene (1-1024, default: 64)"
+    required = false, default = Some(Const.defaultMaxInstances), group = optixSceneGroup,
+    validate = n => n > 0 && n <= Const.maxInstancesLimit,
+    descr = s"Maximum object instances in scene (1-${Const.maxInstancesLimit}, default: ${Const.defaultMaxInstances})"
   )
 
   // === OptiX Quality Options ===
@@ -275,18 +275,18 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     descr = "Enable Progressive Photon Mapping caustics"
   )
   val causticsPhotons: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(100000), group = optixCausticsGroup,
-    validate = p => p > 0 && p <= 10000000,
-    descr = "Photons per PPM iteration (default: 100000)"
+    required = false, default = Some(Const.maxPhotonsDefault), group = optixCausticsGroup,
+    validate = p => p > 0 && p <= Const.maxPhotonsLimit,
+    descr = s"Photons per PPM iteration (default: ${Const.maxPhotonsDefault})"
   )
   val causticsIterations: ScallopOption[Int] = opt[Int](
-    required = false, default = Some(10), group = optixCausticsGroup,
-    validate = i => i > 0 && i <= 1000,
-    descr = "Number of PPM iterations (default: 10)"
+    required = false, default = Some(Const.maxIterationsDefault), group = optixCausticsGroup,
+    validate = i => i > 0 && i <= Const.maxIterationsLimit,
+    descr = s"Number of PPM iterations (default: ${Const.maxIterationsDefault})"
   )
   val causticsRadius: ScallopOption[Float] = opt[Float](
     required = false, default = Some(0.1f), group = optixCausticsGroup,
-    validate = r => r > 0.0f && r <= 10.0f,
+    validate = r => r > 0.0f && r <= Const.maxCausticsRadius,
     descr = "Initial photon gather radius (default: 0.1)"
   )
   val causticsAlpha: ScallopOption[Float] = opt[Float](
@@ -360,7 +360,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
 
   validateOpt(light, optix) { (l, ox) =>
     requiresOptixOption("light", l, ox.getOrElse(false)).flatMap { _ =>
-      if l.isDefined && l.get.length > 8 then Left("Maximum 8 lights allowed (MAX_LIGHTS=8)")
+      if l.isDefined && l.get.length > Const.maxLights then Left(s"Maximum ${Const.maxLights} lights allowed (MAX_LIGHTS=${Const.maxLights})")
       else Right(())
     }
   }
@@ -483,10 +483,10 @@ val colorConverter = new ValueConverter[Color] {
         Left(s"Color '$input' must have 3 or 4 components")
       case _ =>
         val nums = parts.map(_.toInt)
-        if nums.exists(n => n < 0 || n > 255) then
-            Left(s"Color '$input' has values out of range 0-255")
+        if nums.exists(n => n < 0 || n > Const.rgbMaxValue) then
+            Left(s"Color '$input' has values out of range 0-${Const.rgbMaxValue}")
         else
-          val Array(r, g, b, a) = nums.map(_ / 255f).padTo(4, 1f)
+          val Array(r, g, b, a) = nums.map(_ / Const.rgbMaxValueFloat).padTo(4, 1f)
           Right(Some(Color(r, g, b, a)))
 }
 
@@ -561,7 +561,7 @@ val lightSpecConverter = new ValueConverter[List[LightSpec]] {
               val color = Option(colorStr).map { c =>
                 if c.contains(',') then
                   val parts = c.split(",").map(_.trim.toInt)
-                  val Array(r, g, b, a) = parts.map(_ / 255f).padTo(4, 1f)
+                  val Array(r, g, b, a) = parts.map(_ / Const.rgbMaxValueFloat).padTo(4, 1f)
                   Color(r, g, b, a)
                 else
                   Color.valueOf(c)

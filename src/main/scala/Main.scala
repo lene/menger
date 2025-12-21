@@ -6,6 +6,7 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import menger.MengerCLIOptions
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.common.Const
 import menger.engines.AnimatedMengerEngine
 import menger.engines.InteractiveMengerEngine
 import menger.engines.OptiXEngine
@@ -13,10 +14,6 @@ import menger.engines.RenderEngine
 import org.slf4j.LoggerFactory
 
 object Main:
-  private final val COLOR_BITS = 8
-  private final val DEPTH_BITS = 16
-  private final val STENCIL_BITS = 0
-
   def main(args: Array[String]): Unit =
     val opts = MengerCLIOptions(args.toList)
     configureLogging(opts.logLevel().toUpperCase)
@@ -46,7 +43,9 @@ object Main:
     config.setTitle("Menger Sponges")
     config.setWindowedMode(opts.width(), opts.height())
     config.setBackBufferConfig(
-      COLOR_BITS, COLOR_BITS, COLOR_BITS, COLOR_BITS, DEPTH_BITS, STENCIL_BITS,
+      Const.Display.colorBits, Const.Display.colorBits,
+      Const.Display.colorBits, Const.Display.colorBits,
+      Const.Display.depthBits, Const.Display.stencilBits,
       opts.antialiasSamples()
     )
     // Disable window resizing for OptiX mode to prevent expensive buffer reallocation

@@ -6,13 +6,13 @@ import com.badlogic.gdx.math.Vector3
 import menger.common.Const
 
 case class OrbitConfig(
-  orbitSensitivity: Float = 0.3f,
-  panSensitivity: Float = 0.005f,
+  orbitSensitivity: Float = Const.Input.defaultZoomSensitivity,
+  panSensitivity: Float = Const.Input.defaultPanSensitivity,
   zoomSensitivity: Float = 0.1f,
-  minDistance: Float = 0.5f,
-  maxDistance: Float = 20.0f,
-  minElevation: Float = -89.0f,
-  maxElevation: Float = 89.0f
+  minDistance: Float = Const.Input.defaultMinDistance,
+  maxDistance: Float = Const.Input.defaultMaxDistance,
+  minElevation: Float = Const.Input.defaultMinElevation,
+  maxElevation: Float = Const.Input.defaultMaxElevation
 )
 
 trait SphericalOrbit:

@@ -36,7 +36,7 @@ case class Face4D(a: Vector[4], b: Vector[4], c: Vector[4], d: Vector[4]):
       edges.sliding(2).forall({ case Seq(a, b) => a * b < Const.epsilon }),
       s"Edges must be orthogonal, are ${edges.map(_.toString)}"
     )
-    normalDirections(edges).zip(normalSigns(edges)).map { case (vec, sign) => vec * sign }
+    normalDirections(edges).zip(normalSigns(edges.take(2))).map { case (vec, sign) => vec * sign }
 
   def edges: Seq[Edge] = Seq(Edge(a, b), Edge(b, c), Edge(c, d), Edge(d, a))
   def plane: Plane = Plane(asSeq)
@@ -70,8 +70,7 @@ def normalDirections(edgeVectors: Seq[Vector[4]]): Seq[Vector[4]] =
 
 
 def normalSigns(edgeVectors: Seq[Vector[4]]): Seq[Float] =
-  val firstTwoEdges = edgeVectors.take(2)
-  val sum = firstTwoEdges.reduce((v1, v2) => v1 + v2).toIndexedSeq
+  val sum = edgeVectors.reduce(_ + _)
   sum.filter(_.abs > 0).map(_.sign)
 
 object Face4D:
