@@ -1,7 +1,5 @@
 #!/bin/sh
 
-GITLAB_PROJECT_ID=53243565
-CI_LINT_OUTPUT=/tmp/gitlab-ci-lint.json
 RED_TEXT='\e[38;5;196m'
 GREEN_TEXT='\e[38;5;46m'
 RESET_TEXT='\e[0m'
@@ -60,6 +58,13 @@ sbt "project optixJni" compile || STATUS=1
 
 echo "Compiling Menger Common..."
 sbt "project mengerCommon" compile || STATUS=1
+  if [ $STATUS -gt 0 ]
+  then echo "Status after Menger Common: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after Menger Common: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+
+echo "Running full tests..."
+sbt test --warn || STATUS=1
   if [ $STATUS -gt 0 ]
   then echo "Status after Menger Common: ${RED_TEXT}${STATUS}${RESET_TEXT}"
   else echo "Status after Menger Common: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
