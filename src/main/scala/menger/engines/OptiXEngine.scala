@@ -16,6 +16,7 @@ import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.common.Const
 import menger.common.ImageSize
+import menger.common.TransformUtil
 import menger.input.OptiXCameraController
 import menger.input.OptiXInputMultiplexer
 import menger.objects.Cube
@@ -212,14 +213,7 @@ class OptiXEngine(
       val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
       val scale = spec.size
 
-      // Create 4x3 transform matrix with scale and translation
-      // Format: 3 rows x 4 columns, row-major storage
-      // [row0: sx, 0, 0, tx], [row1: 0, sy, 0, ty], [row2: 0, 0, sz, tz]
-      val transform = Array(
-        scale, 0f, 0f, spec.x,
-        0f, scale, 0f, spec.y,
-        0f, 0f, scale, spec.z
-      )
+      val transform = TransformUtil.createScaleTranslation(scale, spec.x, spec.y, spec.z)
 
       val instanceId = renderer.addSphereInstance(transform, color, spec.ior)
 
@@ -328,13 +322,8 @@ class OptiXEngine(
 
         // Add each cube as an instance
         generator.generateTransforms.foreach { case (position, scale) =>
-          val posVec = menger.common.Vector[3](position.x, position.y, position.z)
-
-          // Create 4x3 transform matrix with scale and translation
-          val transform = Array(
-            scale, 0f, 0f, position.x,
-            0f, scale, 0f, position.y,
-            0f, 0f, scale, position.z
+          val transform = TransformUtil.createScaleTranslation(
+            scale, position.x, position.y, position.z
           )
 
           val instanceId = renderer.addTriangleMeshInstance(transform, color, spec.ior)
