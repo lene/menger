@@ -41,6 +41,21 @@ Removed unused wildcard imports from `InstanceAccelerationSuite.scala` and `Shad
 ### ✅ TEST-1. Magic Numbers in Tests
 Extracted hardcoded test values to descriptive named constants in `CubeSpongeGeneratorTest.scala` (9 constants, 14 replacements) and `SpongeBySurfaceMeshSuite.scala` (8 constants, 10 replacements). Improved test readability and maintainability. See Phase 3 commit.
 
+### ✅ Complex Conditionals Simplification (Phase 4)
+Refactored deeply nested if/else logic in OptiXEngine into clean pattern matching using SceneType enum. Extracted `classifyScene()` and `isTriangleMeshType()` helper methods. Replaced 13-line if/else chain with 9-line pattern match. See Phase 4 commit.
+
+### ✅ Method Complexity Reduction (Phase 4)
+Broke down 59-line `setupCubeSponges` method into 6 focused helper methods. Main method reduced to clean 8-line for-comprehension. Each helper < 20 lines with single responsibility. See Phase 4 commit.
+
+### ✅ Boolean Expression Simplification (Phase 5)
+Simplified 13 complex boolean expressions across 6 files by extracting well-named predicate methods. Added 16 helper methods total including `hasConflictingColorOptions`, `hasTransparency`, `shouldExitAfterSave`, etc. Simplified XOR logic from double-negative to simple inequality. See commit `35daa51`.
+
+### ✅ Regex Documentation and Extraction (Phase 5)
+Extracted and documented complex parsing logic in `AnimationSpecification.scala` and `Composite.scala`. Added comprehensive ScalaDoc explaining format specifications with examples. Previously opaque regex patterns now clearly documented. See commit `35daa51`.
+
+### ✅ Naming Consistency Improvement (Phase 6)
+Fixed naming inconsistencies: renamed `timeSpecValid` → `isTimeSpecValid` (boolean method naming), renamed `cfg` → `config` (abbreviation consistency). All boolean methods now follow is/has/should pattern. See commit `b6fb0cc`.
+
 ---
 
 ## **Low Effort Issues (Quick Wins)**
