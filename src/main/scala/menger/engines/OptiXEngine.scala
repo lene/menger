@@ -1,6 +1,7 @@
 package menger.engines
 
 import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 import com.badlogic.gdx.Gdx
@@ -31,6 +32,12 @@ import menger.optix.OptiXRenderer
 import menger.optix.OptiXRendererWrapper
 import menger.optix.RenderConfig
 import menger.optix.SceneConfigurator
+
+enum SceneType:
+  case CubeSponges(specs: List[ObjectSpec])
+  case Spheres(specs: List[ObjectSpec])
+  case TriangleMeshes(specs: List[ObjectSpec])
+  case Mixed(specs: List[ObjectSpec])
 
 class OptiXEngine(
   val spongeType: String,
@@ -162,6 +169,21 @@ class OptiXEngine(
 
     finalizeCreate()
 
+  private def classifyScene(specs: List[ObjectSpec]): SceneType =
+    val objectTypes = specs.map(_.objectType).distinct
+    
+    if objectTypes.contains("cube-sponge") then
+      SceneType.CubeSponges(specs)
+    else if objectTypes.forall(_ == "sphere") then
+      SceneType.Spheres(specs)
+    else if objectTypes.forall(isTriangleMeshType) then
+      SceneType.TriangleMeshes(specs)
+    else
+      SceneType.Mixed(specs)
+
+  private def isTriangleMeshType(objectType: String): Boolean =
+    objectType == "cube" || ObjectType.isSponge(objectType)
+
   private def createMultiObjectScene(specs: List[ObjectSpec]): Try[Unit] =
     logger.info(s"Creating OptiXEngine with ${specs.length} objects")
 
@@ -174,20 +196,21 @@ class OptiXEngine(
     val validationResult = validateObjectSpecs(specs) match
       case Left(error) => Failure(IllegalArgumentException(error))
       case Right(_) =>
-        // Determine scene type and setup
-        val objectTypes = specs.map(_.objectType).distinct
-        if objectTypes.contains("cube-sponge") then
-          // cube-sponge generates many instances from one spec - handle specially
-          setupCubeSponges(specs, renderer)
-        else if objectTypes.forall(_ == "sphere") then
-          setupMultipleSpheres(specs, renderer)
-        else if objectTypes.forall(t => t == "cube" || ObjectType.isSponge(t)) then
-          setupMultipleTriangleMeshes(specs, renderer)
-        else
-          Failure(UnsupportedOperationException(
-            "Cannot mix spheres and triangle meshes in the same scene yet. " +
-            s"Objects: ${objectTypes.mkString(", ")}"
-          ))
+        // Determine scene type and setup using pattern matching
+        classifyScene(specs) match
+          case SceneType.CubeSponges(specs) =>
+            // cube-sponge generates many instances from one spec - handle specially
+            setupCubeSponges(specs, renderer)
+          case SceneType.Spheres(specs) =>
+            setupMultipleSpheres(specs, renderer)
+          case SceneType.TriangleMeshes(specs) =>
+            setupMultipleTriangleMeshes(specs, renderer)
+          case SceneType.Mixed(specs) =>
+            val objectTypes = specs.map(_.objectType).distinct
+            Failure(UnsupportedOperationException(
+              "Cannot mix spheres and triangle meshes in the same scene yet. " +
+              s"Objects: ${objectTypes.mkString(", ")}"
+            ))
 
     validationResult.flatMap { _ =>
       Try {
@@ -288,65 +311,91 @@ class OptiXEngine(
           true  // Non-sponge types are always compatible with same type
       case _ => false  // Different types
 
-  private def setupCubeSponges(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = {
-    // cube-sponge generates many cube instances from each spec
-    // Validate that we don't exceed max instances limit
-    val totalInstances = specs.map { spec =>
-      require(spec.level.isDefined, "cube-sponge requires level")
-      // Safe .get: level validated by require above
-      val level = spec.level.get.toInt
-      Math.pow(Const.Engine.cubesPerSpongeLevel, level).toLong
-    }.sum
+  private def calculateInstanceCount(spec: ObjectSpec): Long =
+    require(spec.level.isDefined, "cube-sponge requires level")
+    // Safe .get: level validated by require above
+    val level = spec.level.get.toInt
+    Math.pow(Const.Engine.cubesPerSpongeLevel, level).toLong
 
+  private def validateInstanceLimit(specs: List[ObjectSpec]): Try[Unit] =
+    val totalInstances = specs.map(calculateInstanceCount).sum
+    
     if totalInstances > maxInstances then
       Failure(IllegalArgumentException(
         s"cube-sponge specs generate $totalInstances total instances, " +
         s"exceeding max instances limit of $maxInstances. " +
         "Reduce sponge levels or use --max-instances to increase the limit."
       ))
-    else Try:
-      logger.info(s"Setting up ${specs.length} cube-sponge(s) generating $totalInstances total cube instances")
+    else
+      Success(())
 
-      // Create base cube mesh (shared by all instances)
-      // Level 1 Menger sponge geometry
-      val baseCube = Cube(center = Vector3(0f, 0f, 0f), scale = 1.0f)
-      renderer.setTriangleMesh(baseCube.toTriangleMesh)
+  private def setupBaseCubeMesh(renderer: OptiXRenderer): Try[Unit] = Try:
+    // Create base cube mesh (shared by all instances)
+    val baseCube = Cube(center = Vector3(0f, 0f, 0f), scale = 1.0f)
+    renderer.setTriangleMesh(baseCube.toTriangleMesh)
 
-      // For each cube-sponge spec, generate and add all cube instances
-      specs.foreach { spec =>
-        require(spec.level.isDefined, "cube-sponge requires level")
-        // Safe .get: level validated by require above
-        val level = spec.level.get.toInt
-        val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
+  private def addAllCubeInstances(
+    specs: List[ObjectSpec],
+    renderer: OptiXRenderer
+  ): Unit =
+    specs.foreach { spec =>
+      addCubeInstancesForSpec(spec, renderer)
+    }
 
-        // Generate all cube transforms using CubeSpongeGenerator
-        val generator = CubeSpongeGenerator(
-          center = Vector3(spec.x, spec.y, spec.z),
-          size = spec.size,
-          level = level
-        )
+  private def addCubeInstancesForSpec(
+    spec: ObjectSpec,
+    renderer: OptiXRenderer
+  ): Unit =
+    require(spec.level.isDefined, "cube-sponge requires level")
+    // Safe .get: level validated by require above
+    val level = spec.level.get.toInt
+    val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
 
-        logger.info(s"Generating ${generator.cubeCount} cube instances for level $level cube-sponge at (${spec.x}, ${spec.y}, ${spec.z})")
+    // Generate all cube transforms using CubeSpongeGenerator
+    val generator = CubeSpongeGenerator(
+      center = Vector3(spec.x, spec.y, spec.z),
+      size = spec.size,
+      level = level
+    )
 
-        // Add each cube as an instance
-        generator.generateTransforms.foreach { case (position, scale) =>
-          val transform = TransformUtil.createScaleTranslation(
-            scale, position.x, position.y, position.z
-          )
+    logger.info(s"Generating ${generator.cubeCount} cube instances for level $level cube-sponge at (${spec.x}, ${spec.y}, ${spec.z})")
 
-          val instanceId = renderer.addTriangleMeshInstance(transform, color, spec.ior)
+    // Add each cube as an instance
+    generator.generateTransforms.foreach { case (position, scale) =>
+      addSingleCubeInstance(position, scale, color, spec.ior, renderer)
+    }
 
-          instanceId match
-            case None =>
-              logger.error(s"Failed to add cube instance at position=($position), scale=$scale")
-            case Some(_) =>
-              // Success - don't log each instance (too verbose for 8000+ cubes)
-        }
+    logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
 
-        logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
-      }
-    
-  }
+  private def addSingleCubeInstance(
+    position: Vector3,
+    scale: Float,
+    color: menger.common.Color,
+    ior: Float,
+    renderer: OptiXRenderer
+  ): Unit =
+    val transform = TransformUtil.createScaleTranslation(
+      scale, position.x, position.y, position.z
+    )
+
+    val instanceId = renderer.addTriangleMeshInstance(transform, color, ior)
+
+    instanceId match
+      case None =>
+        logger.error(s"Failed to add cube instance at position=($position), scale=$scale")
+      case Some(_) =>
+        // Success - don't log each instance (too verbose for 8000+ cubes)
+
+  private def setupCubeSponges(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] =
+    val totalInstances = specs.map(calculateInstanceCount).sum
+    logger.info(s"Setting up ${specs.length} cube-sponge(s) generating $totalInstances total cube instances")
+
+    for
+      _ <- validateInstanceLimit(specs)
+      _ <- setupBaseCubeMesh(renderer)
+    yield
+      addAllCubeInstances(specs, renderer)
+  
 
   private def finalizeCreate(): Unit =
     // Register input multiplexer for mouse-based camera control and keyboard shortcuts

@@ -10,9 +10,9 @@ This document identifies opportunities to improve code quality across the Menger
 
 ## Summary Statistics
 
-- **Total Issues Found**: 55 (21 completed)
+- **Total Issues Found**: 55 (23 completed)
 - **Low Effort (< 1 hour)**: 21 issues (14 completed)
-- **Medium Effort (1-4 hours)**: 22 issues (6 completed)
+- **Medium Effort (1-4 hours)**: 22 issues (8 completed)
 - **High Effort (4+ hours)**: 12 issues (1 completed)
 
 ---
@@ -133,15 +133,35 @@ See commit TBD.
 ### ✅ TEST-1. Extract Magic Numbers in Tests (COMPLETED 2025-12-22)
 
 Extracted hardcoded test values to descriptive named constants:
-- `CubeSpongeGeneratorTest.scala`: Added 9 constants
-  - Cube count constants: `LEVEL_0_CUBE_COUNT` through `LEVEL_5_CUBE_COUNT`
-  - Geometry constants: `CUBE_CORNER_COUNT`, `CUBE_EDGE_COUNT`, `BYTES_PER_TRANSFORM`
-  - Replaced 14 magic numbers with named constants
-- `SpongeBySurfaceMeshSuite.scala`: Added 8 constants
-  - Mesh size constants: `QUAD_TRIANGLE_COUNT`, `QUAD_VERTEX_COUNT`
-  - Level-based counts: `LEVEL_0_TRIANGLES`, `LEVEL_0_VERTICES` through `LEVEL_2_TRIANGLES`, `LEVEL_2_VERTICES`
-  - Replaced 10 magic numbers with named constants
+- `CubeSpongeGeneratorTest.scala`: Added 9 constants (LEVEL_0-5_CUBE_COUNT, CUBE_CORNER_COUNT, CUBE_EDGE_COUNT, BYTES_PER_TRANSFORM)
+- `SpongeBySurfaceMeshSuite.scala`: Added 8 constants (QUAD_TRIANGLE_COUNT, QUAD_VERTEX_COUNT, LEVEL_0-2_TRIANGLES/VERTICES)
+- Replace 24 magic numbers across both test files with descriptive constant names
 - Improved test readability and maintainability with self-documenting constant names
+See commit TBD.
+
+### ✅ 25. Simplify Complex Conditionals in OptiXEngine (COMPLETED 2025-12-22)
+
+Refactored deeply nested if/else logic into clean pattern matching:
+- Created `SceneType` enum (CubeSponges, Spheres, TriangleMeshes, Mixed)
+- Extracted `classifyScene()` method to determine scene type
+- Extracted `isTriangleMeshType()` helper method
+- Replaced 13-line if/else chain with 9-line pattern match
+- Improved readability and type safety in scene setup logic
+- File: `src/main/scala/menger/engines/OptiXEngine.scala:171-206`
+See commit TBD.
+
+### ✅ 47. Reduce setupCubeSponges Method Complexity (COMPLETED 2025-12-22)
+
+Broke down 59-line method into focused helper methods:
+- Extracted `calculateInstanceCount(spec: ObjectSpec): Long` - compute instances for one spec
+- Extracted `validateInstanceLimit(specs: List[ObjectSpec]): Try[Unit]` - validate total instances
+- Extracted `setupBaseCubeMesh(renderer: OptiXRenderer): Try[Unit]` - create shared mesh
+- Extracted `addAllCubeInstances(specs, renderer): Unit` - add all instances
+- Extracted `addCubeInstancesForSpec(spec, renderer): Unit` - handle one spec
+- Extracted `addSingleCubeInstance(...)` - add one cube instance
+- Main method reduced from 59 lines to clean 8-line for-comprehension
+- Each helper < 20 lines with single responsibility
+- File: `src/main/scala/menger/engines/OptiXEngine.scala:307-365`
 See commit TBD.
 
 ---
@@ -218,49 +238,9 @@ See commit TBD.
 
 ---
 
-### 25. Simplify Complex Conditionals in OptiXEngine (2 hours)
+### ~~25. Simplify Complex Conditionals in OptiXEngine (2 hours)~~ ✅ COMPLETED 2025-12-22
 
-**Priority**: High
-**Impact**: Readability, maintainability
-
-**File**: `OptiXEngine.scala:159-177`
-
-```scala
-// Before: Deeply nested conditionals
-val objectTypes = specs.map(_.objectType).distinct
-val setupResult = if objectTypes.contains("cube-sponge") then
-  ...
-else if objectTypes.forall(_ == "sphere") then
-  ...
-else if objectTypes.forall(t => t == "cube" || t == "sponge-volume" || t == "sponge-surface") then
-  ...
-else
-  ...
-
-// After: Use pattern matching with guards
-enum SceneType:
-  case CubeSponge(specs: List[ObjectSpec])
-  case Spheres(specs: List[ObjectSpec])
-  case TriangleMeshes(specs: List[ObjectSpec])
-  case Mixed(specs: List[ObjectSpec])
-
-def classifyScene(specs: List[ObjectSpec]): SceneType =
-  val objectTypes = specs.map(_.objectType).distinct
-  objectTypes match
-    case types if types.contains("cube-sponge") => SceneType.CubeSponge(specs)
-    case types if types.forall(_ == "sphere") => SceneType.Spheres(specs)
-    case types if types.forall(isTriangleMeshType) => SceneType.TriangleMeshes(specs)
-    case _ => SceneType.Mixed(specs)
-
-private def isTriangleMeshType(t: String): Boolean =
-  t == "cube" || t == "sponge-volume" || t == "sponge-surface"
-
-val setupResult = classifyScene(specs) match
-  case SceneType.CubeSponge(specs) => setupCubeSponges(specs, renderer)
-  case SceneType.Spheres(specs) => setupSpheres(specs, renderer)
-  case SceneType.TriangleMeshes(specs) => setupMultipleTriangleMeshes(specs, renderer)
-  case SceneType.Mixed(_) => Failure(...)
-```
+**Status:** Completed - See above
 
 ---
 
@@ -486,75 +466,9 @@ object Transform4x3:
 
 ---
 
-### 47. Reduce setupCubeSponges Method Complexity (2-3 hours)
+### ~~47. Reduce setupCubeSponges Method Complexity (2-3 hours)~~ ✅ COMPLETED 2025-12-22
 
-**File**: `OptiXEngine.scala:279-337` (59 lines)
-
-**Problem**: Method exceeds 50 lines, has nested logic.
-
-```scala
-// Before: 59-line method with nested logic
-private def setupCubeSponges(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] =
-  // 59 lines of validation, generation, and instance addition
-
-// After: Break into smaller methods (each < 20 lines)
-private def setupCubeSponges(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] =
-  for
-    _ <- validateInstanceLimit(specs)
-    _ <- setupBaseCubeMesh(renderer)
-    _ <- addAllCubeInstances(specs, renderer)
-  yield ()
-
-private def validateInstanceLimit(specs: List[ObjectSpec]): Try[Unit] =
-  val totalInstances = specs.map(calculateInstanceCount).sum
-  if totalInstances > maxInstances then
-    Failure(IllegalArgumentException(buildLimitErrorMessage(totalInstances)))
-  else
-    Success(())
-
-private def calculateInstanceCount(spec: ObjectSpec): Long =
-  require(spec.level.isDefined, "cube-sponge requires level")
-  Math.pow(20, spec.level.get.toInt).toLong
-
-private def buildLimitErrorMessage(total: Long): String =
-  s"cube-sponge specs generate $total total instances, " +
-  s"exceeding max instances limit of $maxInstances. " +
-  "Reduce sponge levels or use --max-instances to increase the limit."
-
-private def setupBaseCubeMesh(renderer: OptiXRenderer): Try[Unit] = Try:
-  val baseCube = Cube(center = Vector3(0f, 0f, 0f), scale = 1.0f)
-  renderer.setTriangleMesh(baseCube.toTriangleMesh)
-
-private def addAllCubeInstances(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
-  specs.foreach(spec => addCubeInstancesForSpec(spec, renderer))
-
-private def addCubeInstancesForSpec(spec: ObjectSpec, renderer: OptiXRenderer): Unit =
-  val generator = createGenerator(spec)
-  logger.info(s"Generating ${generator.cubeCount} cube instances...")
-  generator.generateTransforms.foreach { case (position, scale) =>
-    addSingleCubeInstance(position, scale, spec, renderer)
-  }
-
-private def createGenerator(spec: ObjectSpec): CubeSpongeGenerator =
-  require(spec.level.isDefined, "cube-sponge requires level")
-  CubeSpongeGenerator(
-    center = Vector3(spec.x, spec.y, spec.z),
-    size = spec.size,
-    level = spec.level.get.toInt
-  )
-
-private def addSingleCubeInstance(
-  position: Vector3,
-  scale: Float,
-  spec: ObjectSpec,
-  renderer: OptiXRenderer
-): Unit =
-  val transform = Transform4x3.scaleTranslation(scale, Vector[3](position.x, position.y, position.z))
-  val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
-  renderer.addTriangleMeshInstance(transform.toArray, color, spec.ior) match
-    case None => logger.error(s"Failed to add cube instance at $position")
-    case Some(_) => // Success (don't log for 8000+ cubes)
-```
+**Status:** Completed - See above
 
 ---
 
