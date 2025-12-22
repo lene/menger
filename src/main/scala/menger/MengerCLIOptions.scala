@@ -459,7 +459,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   )
 
   private def validateAnimationSpecification(spec: AnimationSpecifications, spongeType: String) =
-    if spec.valid(spongeType) && spec.timeSpecValid then Right(())
+    if spec.valid(spongeType) && spec.isTimeSpecValid then Right(())
     else Left("Invalid animation specification")
 
   /** Generic helper for validating that an option requires a parent flag */

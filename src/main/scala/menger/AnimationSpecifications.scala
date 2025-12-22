@@ -7,10 +7,10 @@ import com.typesafe.scalalogging.LazyLogging
 case class AnimationSpecifications(specification: List[String] = List.empty) extends LazyLogging:
   val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_))
   val numFrames: Int = parts.map(_.frames.getOrElse(0)).sum
-  require(parts.forall(_.timeSpecValid), "AnimationSpecification.frames not defined")
+  require(parts.forall(_.isTimeSpecValid), "AnimationSpecification.frames not defined")
 
   def valid(spongeType: String): Boolean = parts.forall(_.valid(spongeType))
-  def timeSpecValid: Boolean = parts.forall(_.timeSpecValid)
+  def isTimeSpecValid: Boolean = parts.forall(_.isTimeSpecValid)
 
   def level(frame: Int): Option[Float] =
     partAndFrame(frame).toOption.flatMap { case (specs, frameOffset) =>

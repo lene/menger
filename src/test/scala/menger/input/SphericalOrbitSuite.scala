@@ -7,8 +7,8 @@ import org.scalatest.matchers.should.Matchers
 class SphericalOrbitSuite extends AnyFlatSpec with Matchers:
 
   // Concrete implementation for testing the trait
-  class TestOrbit(cfg: OrbitConfig = OrbitConfig()) extends SphericalOrbit:
-    override protected def orbitConfig: OrbitConfig = cfg
+  class TestOrbit(config: OrbitConfig = OrbitConfig()) extends SphericalOrbit:
+    override protected def orbitConfig: OrbitConfig = config
 
     @SuppressWarnings(Array("org.wartremover.warts.Var"))
     private var _azimuth: Float = 0f

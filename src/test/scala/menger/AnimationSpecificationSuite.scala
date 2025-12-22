@@ -85,7 +85,7 @@ class AnimationSpecificationSuite extends AnyFlatSpec with Matchers:
     ) shouldBe false
 
   "AnimationSpecification" should "be invalid when specifying seconds as time metric" in :
-    AnimationSpecification("seconds=10:rot-x-w=0-10").timeSpecValid shouldBe false
+    AnimationSpecification("seconds=10:rot-x-w=0-10").isTimeSpecValid shouldBe false
 
   it should "be invalid when specifying no time metric" in :
-    AnimationSpecification("rot-x-w=0-10").timeSpecValid shouldBe false
+    AnimationSpecification("rot-x-w=0-10").isTimeSpecValid shouldBe false
