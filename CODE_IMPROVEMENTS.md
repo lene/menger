@@ -10,9 +10,9 @@ This document identifies opportunities to improve code quality across the Menger
 
 ## Summary Statistics
 
-- **Total Issues Found**: 55 (23 completed)
+- **Total Issues Found**: 55 (25 completed)
 - **Low Effort (< 1 hour)**: 21 issues (14 completed)
-- **Medium Effort (1-4 hours)**: 22 issues (8 completed)
+- **Medium Effort (1-4 hours)**: 22 issues (10 completed)
 - **High Effort (4+ hours)**: 12 issues (1 completed)
 
 ---
@@ -164,6 +164,30 @@ Broke down 59-line method into focused helper methods:
 - File: `src/main/scala/menger/engines/OptiXEngine.scala:307-365`
 See commit TBD.
 
+### ✅ 30. Extract Complex Regex to Documented Methods (COMPLETED 2025-12-22)
+
+Extracted and documented complex parsing logic:
+- `AnimationSpecification.scala`: Added `parseSpecString()` method with comprehensive docs explaining "frames=5:rot-y=0-90" format
+- `AnimationSpecification.scala`: Enhanced `parseStartEnd()` with full ScalaDoc documenting "start-end" parsing
+- `Composite.scala`: Added ScalaDoc for `compositePattern` regex explaining "composite[type1,type2,...]" format
+- `Composite.scala`: Extracted `parseComponentTypes()` method replacing inline `split(",")` call
+- Previously opaque regex patterns now have clear documentation with format specifications and examples
+See commit `35daa51`.
+
+### ✅ 38. Simplify Complex Boolean Expressions (COMPLETED 2025-12-22)
+
+Simplified 13 complex boolean expressions across 6 files by extracting well-named predicate methods:
+- `MengerCLIOptions.scala`: Added 9 validation predicates (`hasConflictingColorOptions`, `hasFaceLineColorMismatch`, etc.)
+  - Simplified XOR from `(a && !b) || (!a && b)` to `a != b`
+  - Changed unsafe `.isDefined && .get` to safe `.exists`
+  - Added `isValidRgbValue` and `isValidHexColorLength` helpers
+- `RotationProjectionParameters.scala`: Added 4 toString formatting helpers (`hasXYZRotation`, `hasNonDefaultEyeW`, etc.)
+- `Builder.scala`: Added `hasTransparency(colors*)` varargs method to check alpha < 1.0
+- `ObjectType.scala` (menger-common): Added `isSpongeOrCube(type)` helper
+- `OptiXEngine.scala`: Added `shouldExitAfterSave` predicate for exit condition
+- `Main.scala`: Simplified animation check using `.toOption.exists`
+See commit `35daa51`.
+
 ---
 
 ## Low Effort Improvements (< 1 hour)
@@ -282,14 +306,20 @@ private def validateSpongeLevel(objType: String, level: Option[Float]): Either[S
 
 ---
 
-### 30-43. Additional Medium-Effort Improvements
+### ~~30. Extract complex regex to documented method (1 hour)~~ ✅ COMPLETED 2025-12-22
 
-33. **Extract complex regex to documented method** (1 hour)
+**Status:** Completed - See above
+
+---
+
+### 33-46. Additional Medium-Effort Improvements
+
+33. **Extract remaining regex patterns** (1 hour)
 34. **Add builder pattern for complex objects** (2 hours)
 35. **Improve error messages with actionable guidance** (1.5 hours)
 36. **Add validation summary method** (1 hour)
 37. **Extract animation parameter parsing** (1.5 hours)
-38. **Simplify Boolean expressions** (1 hour)
+~~38. **Simplify Boolean expressions** (1 hour)~~ ✅ COMPLETED 2025-12-22
 39. **Add more specific exception types** (2 hours)
 40. **Improve test organization** (2 hours)
 41. **Add property-based tests** (3 hours)
