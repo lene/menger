@@ -14,6 +14,9 @@ object Builder:
   final val WHITE_MATERIAL = material(Color(0.8, 0.8, 0.8, 1.0))
   final val DEFAULT_FLAGS = Usage.Position | Usage.Normal
 
+  private def hasTransparency(colors: Color*): Boolean =
+    colors.exists(_.a < 1.0f)
+
   def material(ambientColor: Color, diffuseColor: Color, specularColor: Color): Material =
     val mat = Material(
       ColorAttribute.createAmbient(ambientColor),
@@ -22,7 +25,7 @@ object Builder:
       IntAttribute.createCullFace(GL20.GL_NONE)
     )
     // Enable blending if any color has alpha < 1.0
-    if ambientColor.a < 1.0f || diffuseColor.a < 1.0f || specularColor.a < 1.0f then
+    if hasTransparency(ambientColor, diffuseColor, specularColor) then
       mat.set(new BlendingAttribute(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA))
     mat
 

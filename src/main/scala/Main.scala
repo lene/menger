@@ -61,7 +61,7 @@ object Main:
     val rotationProjectionParameters = RotationProjectionParameters(opts)
 
     if opts.optix() then createOptiXEngine(opts, rotationProjectionParameters)
-    else if opts.animate.isDefined && opts.animate().parts.nonEmpty then
+    else if opts.animate.toOption.exists(_.parts.nonEmpty) then
       createAnimatedEngine(opts, rotationProjectionParameters)
     else createInteractiveEngine(opts, rotationProjectionParameters)
 

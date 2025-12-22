@@ -154,7 +154,7 @@ class OptiXEngine(
       case "sphere" =>
         sceneConfigurator.setSphereColor(renderer, color.toCommonColor)
         sceneConfigurator.setIOR(renderer, ior)
-      case _ if ObjectType.isSponge(spongeType) || spongeType == "cube" =>
+      case _ if ObjectType.isSpongeOrCube(spongeType) =>
         sceneConfigurator.setTriangleMeshColor(renderer, color.toCommonColor)
         sceneConfigurator.setTriangleMeshIOR(renderer, ior)
       case _ =>
@@ -432,9 +432,12 @@ class OptiXEngine(
       saveImage()
 
     // Exit after saving when in non-interactive mode (unless timeout is set)
-    if saveName.isDefined && !renderResources.hasSaved && timeout == 0 then
+    if shouldExitAfterSave then
       renderResources.markSaved()
       Gdx.app.exit()
+
+  private def shouldExitAfterSave: Boolean =
+    saveName.isDefined && !renderResources.hasSaved && timeout == 0
 
   protected def currentSaveName: Option[String] = saveName
 

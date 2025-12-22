@@ -23,12 +23,17 @@ case class RotationProjectionParameters(
       rotX + other.rotX, rotY + other.rotY, rotZ + other.rotZ
     )
 
+  private def hasXYZRotation: Boolean = rotX != 0 || rotY != 0 || rotZ != 0
+  private def hasXYZWRotation: Boolean = rotXW != 0 || rotYW != 0 || rotZW != 0
+  private def hasNonDefaultEyeW: Boolean = eyeW != Const.defaultEyeW
+  private def hasNonDefaultScreenW: Boolean = screenW != Const.defaultScreenW
+
   override def toString: String = 
     "|" + 
-      (if(rotX != 0 || rotY != 0 || rotZ != 0) then s"x: $rotX y: $rotY z: $rotZ " else "") +
-      (if(rotXW != 0 || rotYW != 0 || rotZW != 0) then s"xw: $rotXW yw: $rotYW zw: $rotZW " else "") +
-      (if(eyeW != Const.defaultEyeW) then s"eyeW=$eyeW " else "") +
-      (if(screenW != Const.defaultScreenW) then s"screenW=$screenW " else "") + 
+      (if hasXYZRotation then s"x: $rotX y: $rotY z: $rotZ " else "") +
+      (if hasXYZWRotation then s"xw: $rotXW yw: $rotYW zw: $rotZW " else "") +
+      (if hasNonDefaultEyeW then s"eyeW=$eyeW " else "") +
+      (if hasNonDefaultScreenW then s"screenW=$screenW " else "") + 
     "|"
 
 object RotationProjectionParameters:

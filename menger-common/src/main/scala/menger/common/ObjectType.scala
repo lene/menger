@@ -67,6 +67,15 @@ object ObjectType:
     SPONGE_TYPES.contains(objectType.toLowerCase)
 
   /**
+   * Checks if the given object type is a sponge variant or cube.
+   *
+   * @param objectType Object type string (case-insensitive)
+   * @return true if the type is a sponge variant or cube, false otherwise
+   */
+  def isSpongeOrCube(objectType: String): Boolean =
+    isSponge(objectType) || objectType.toLowerCase == "cube"
+
+  /**
    * Formats a comma-separated list of valid types for error messages.
    *
    * @return Human-readable list of valid types

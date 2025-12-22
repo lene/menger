@@ -9,9 +9,27 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
 
   private type StartEnd = (start: Float, end: Float)
 
-  private val asMap: Map[String, String] =
-    Try { specString.split(":").map(_.split("=")).map(arr => (arr(0), arr(1))).toMap }
-      .getOrElse(Map.empty)
+  /**
+   * Parses animation specification string into key-value map.
+   * 
+   * Format: "key1=value1:key2=value2:..."
+   * 
+   * Example input: "frames=5:rot-y=0-90:level=0-2"
+   * Example output: Map("frames" -> "5", "rot-y" -> "0-90", "level" -> "0-2")
+   * 
+   * @param specString Animation specification in colon-separated key=value format
+   * @return Map of parameter names to their string values, or empty Map if parsing fails
+   */
+  private def parseSpecString(specString: String): Map[String, String] =
+    Try {
+      specString
+        .split(":")               // Split by colon: ["frames=5", "rot-y=0-90", ...]
+        .map(_.split("="))        // Split each by equals: [["frames", "5"], ["rot-y", "0-90"], ...]
+        .map(arr => (arr(0), arr(1)))  // Convert to tuples: [("frames", "5"), ...]
+        .toMap
+    }.getOrElse(Map.empty)
+
+  private val asMap: Map[String, String] = parseSpecString(specString)
 
   val frames: Option[Int] = asMap.get("frames").flatMap(_.toIntOption)
 
@@ -70,6 +88,18 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
   def hasRotationAxisConflict(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
     isRotationAxisSet(x, y, z, xw, yw, zw)
     
+  /**
+   * Parses a range specification string into start and end values.
+   * 
+   * Format: "start-end" where start and end are floating point numbers
+   * 
+   * Example: "0-90" parses to (0.0f, 90.0f)
+   *          "1.5-3.7" parses to (1.5f, 3.7f)
+   * 
+   * @param valueString Range specification in "start-end" format
+   * @return Tuple of (start, end) float values
+   * @throws IllegalArgumentException if format is invalid or values are not floats
+   */
   private def parseStartEnd(valueString: String): StartEnd =
     val parts = valueString.split('-')
     require(parts.length == 2, s"Invalid start-end specification: $valueString")

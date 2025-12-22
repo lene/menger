@@ -332,26 +332,40 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
       else Right(())
   }
 
+  private def hasConflictingColorOptions: Boolean =
+    color.isSupplied && (faceColor.isSupplied || lineColor.isSupplied)
+
+  private def hasFaceLineColorMismatch: Boolean =
+    faceColor.isSupplied != lineColor.isSupplied
+
+  private def hasLinesWithColorConflict: Boolean =
+    lines.isSupplied && (faceColor.isSupplied || lineColor.isSupplied)
+
   // Validate color option combinations
   validateOpt(color, faceColor, lineColor) { (colorOpt, faceColorOpt, lineColorOpt) =>
-    if color.isSupplied && (faceColor.isSupplied || lineColor.isSupplied) then
+    if hasConflictingColorOptions then
       Left("--color cannot be used together with --face-color or --line-color. " +
         "Use either --color OR (--face-color AND --line-color)")
-    else
-      val bothOrNeitherSupplied =
-        (faceColor.isSupplied && !lineColor.isSupplied) ||
-        (!faceColor.isSupplied && lineColor.isSupplied)
-      if bothOrNeitherSupplied then
-        Left("--face-color and --line-color must be specified together. " +
-          "Provide both options or use --color instead")
-      else Right(())
+    else if hasFaceLineColorMismatch then
+      Left("--face-color and --line-color must be specified together. " +
+        "Provide both options or use --color instead")
+    else Right(())
   }
 
   validateOpt(lines, faceColor, lineColor) { (linesOpt, faceColorOpt, lineColorOpt) =>
-    if lines.isSupplied && (faceColor.isSupplied || lineColor.isSupplied) then
+    if hasLinesWithColorConflict then
       Left("--lines cannot be used together with --face-color or --line-color")
     else Right(())
   }
+
+  private def isOptiXWithoutObjects(isOptiXEnabled: Boolean, hasObjectType: Boolean, hasObjects: Boolean): Boolean =
+    isOptiXEnabled && !hasObjectType && !hasObjects
+
+  private def hasObjectsWithoutOptiX(isOptiXEnabled: Boolean, hasObjectType: Boolean, hasObjects: Boolean): Boolean =
+    (hasObjectType || hasObjects) && !isOptiXEnabled
+
+  private def hasBothObjectOptions(hasObjectType: Boolean, hasObjects: Boolean): Boolean =
+    hasObjectType && hasObjects
 
   // Validate OptiX-related options
   // OptiX requires --object or --objects option to specify geometry
@@ -360,12 +374,12 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     val hasObjectType = obj.isDefined
     val hasObjects = objs.isDefined
 
-    if isOptiXEnabled && !hasObjectType && !hasObjects then
+    if isOptiXWithoutObjects(isOptiXEnabled, hasObjectType, hasObjects) then
       Left("--optix flag requires --object or --objects option. " +
         "Add --object sphere or --objects \"type=sphere:pos=0,0,0\"")
-    else if (hasObjectType || hasObjects) && !isOptiXEnabled then
+    else if hasObjectsWithoutOptiX(isOptiXEnabled, hasObjectType, hasObjects) then
       Left("--object/--objects option requires --optix flag. Add --optix to enable OptiX rendering")
-    else if hasObjectType && hasObjects then
+    else if hasBothObjectOptions(hasObjectType, hasObjects) then
       Left("Cannot use both --object and --objects (use --objects only). " +
         "Combine multiple objects with --objects \"obj1:obj2:obj3\"")
     else Right(())
@@ -377,7 +391,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
 
   validateOpt(light, optix) { (l, _) =>
     requiresOptix("light", l).flatMap { _ =>
-      if l.isDefined && l.get.length > Const.maxLights then
+      if l.exists(_.length > Const.maxLights) then
         Left(s"Maximum ${Const.maxLights} lights allowed (MAX_LIGHTS=${Const.maxLights}). " +
           s"You specified ${l.get.length} lights. Reduce the number of --light options")
       else Right(())
@@ -510,21 +524,29 @@ val colorConverter = new ValueConverter[Color] {
     if input.contains(',') then parseInts(input)
     else parseHex(input)
 
+  private def isValidHexColorLength(len: Int): Boolean = (6 to 8).contains(len)
+
   private def parseHex(input: String): Either[String, Option[Color]] =
     input.length match
-      case len if len >= 6 && len <= 8 => Right(Some(Color.valueOf(input)))
+      case len if isValidHexColorLength(len) => Right(Some(Color.valueOf(input)))
       case _ => Left(s"Color '$input' must be a name or a hex value RRGGBB or RRGGBBAA")
+
+  private def hasInvalidCommaPlacement(input: String): Boolean =
+    input.startsWith(",") || input.endsWith(",")
+
+  private def isValidRgbValue(n: Int): Boolean =
+    n >= 0 && n <= Const.rgbMaxValue
 
   private def parseInts(input: String): Either[String, Option[Color]] =
     val parts = input.trim.split(",").map(_.trim)
     parts.length match
-      case n if input.startsWith(",") || input.endsWith(",") =>
+      case n if hasInvalidCommaPlacement(input) =>
         Left(s"Color '$input' must not start or end with a comma")
       case n if n < 3 || n > 4 =>
         Left(s"Color '$input' must have 3 or 4 components")
       case _ =>
         val nums = parts.map(_.toInt)
-        if nums.exists(n => n < 0 || n > Const.rgbMaxValue) then
+        if !nums.forall(isValidRgbValue) then
             Left(s"Color '$input' has values out of range 0-${Const.rgbMaxValue}")
         else
           Right(Some(ColorConversions.rgbIntsToColor(nums)))
