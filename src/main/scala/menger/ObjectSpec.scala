@@ -54,8 +54,12 @@ object ObjectSpec:
   private def parseObjectType(kvPairs: Map[String, String]): Either[String, String] =
     kvPairs.get("type") match
       case Some(t) if ObjectType.isValid(t) => Right(t.toLowerCase)
-      case Some(t) => Left(s"Invalid object type: $t (valid: ${ObjectType.validTypesString})")
-      case None => Left("Missing required 'type' field")
+      case Some(t) =>
+        Left(s"Invalid object type: '$t'. Valid types: ${ObjectType.validTypesString}. " +
+          "Example: type=sphere or type=cube")
+      case None =>
+        Left("Missing required 'type' field. Add type=<object-type> to specification. " +
+          s"Valid types: ${ObjectType.validTypesString}")
 
   private def parsePosition(kvPairs: Map[String, String]): Either[String, (Float, Float, Float)] =
     kvPairs.get("pos") match
@@ -64,7 +68,8 @@ object ObjectSpec:
           case Array(xStr, yStr, zStr) =>
             Try((xStr.toFloat, yStr.toFloat, zStr.toFloat)).toEither.left.map(_.getMessage)
           case _ =>
-            Left(s"Invalid position format: $posStr (expected x,y,z)")
+            Left(s"Invalid position format: '$posStr'. Expected format: pos=x,y,z " +
+              "(three comma-separated numbers). Example: pos=1.0,2.0,3.0")
       case None => Right((0.0f, 0.0f, 0.0f))
 
   private def parseSize(kvPairs: Map[String, String]): Either[String, Float] =
@@ -86,7 +91,8 @@ object ObjectSpec:
 
   private def validateSpongeLevel(objType: String, level: Option[Float]): Either[String, Unit] =
     if ObjectType.isSponge(objType) && level.isEmpty then
-      Left("Sponge object requires 'level' field")
+      Left("Sponge object requires 'level' field. Add level=<number> to specification. " +
+        s"Example: type=$objType:level=2")
     else
       Right(())
 

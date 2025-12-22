@@ -10,8 +10,8 @@ This document identifies opportunities to improve code quality across the Menger
 
 ## Summary Statistics
 
-- **Total Issues Found**: 55 (18 completed)
-- **Low Effort (< 1 hour)**: 21 issues (11 completed)
+- **Total Issues Found**: 55 (21 completed)
+- **Low Effort (< 1 hour)**: 21 issues (14 completed)
 - **Medium Effort (1-4 hours)**: 22 issues (6 completed)
 - **High Effort (4+ hours)**: 12 issues (1 completed)
 
@@ -108,6 +108,42 @@ Moved test-only functions from `Face4D.scala` to new `Face4DTestUtils.scala`:
 - Clean separation between production code and test utilities
 See commit TBD.
 
+### ✅ 10. Add Validation Error Messages (COMPLETED 2025-12-22)
+
+Improved validation error messages with actionable guidance and examples:
+- `ObjectSpec.scala`: Enhanced 3 error messages (type, position, level validation)
+  - Added format examples: "Expected format: pos=x,y,z (three comma-separated numbers)"
+  - Provided concrete examples: "Example: pos=1.0,2.0,3.0"
+- `MengerCLIOptions.scala`: Enhanced 5 error messages (optix, color, lights validation)
+  - Added solution hints: "Add --optix to enable OptiX rendering"
+  - Explained how to fix: "Use either --color OR (--face-color AND --line-color)"
+  - Provided guidance for max lights: "You specified N lights. Reduce the number of --light options"
+- Users now receive specific instructions on fixing validation failures instead of generic errors
+See commit TBD.
+
+### ✅ OPENCODE-1. Fix Wildcard Import Violations (COMPLETED 2025-12-22)
+
+Removed unused wildcard imports violating `.scalafix.conf`:
+- `optix-jni/src/test/scala/menger/optix/InstanceAccelerationSuite.scala` - removed `import ImageMatchers.*`
+- `optix-jni/src/test/scala/menger/optix/ShadowSuite.scala` - removed `import ImageMatchers.*`
+- Both files imported but never used any ImageMatchers methods
+- Improved Scala 3 import compliance (only 2 instances found, not 56 as originally reported)
+See commit TBD.
+
+### ✅ TEST-1. Extract Magic Numbers in Tests (COMPLETED 2025-12-22)
+
+Extracted hardcoded test values to descriptive named constants:
+- `CubeSpongeGeneratorTest.scala`: Added 9 constants
+  - Cube count constants: `LEVEL_0_CUBE_COUNT` through `LEVEL_5_CUBE_COUNT`
+  - Geometry constants: `CUBE_CORNER_COUNT`, `CUBE_EDGE_COUNT`, `BYTES_PER_TRANSFORM`
+  - Replaced 14 magic numbers with named constants
+- `SpongeBySurfaceMeshSuite.scala`: Added 8 constants
+  - Mesh size constants: `QUAD_TRIANGLE_COUNT`, `QUAD_VERTEX_COUNT`
+  - Level-based counts: `LEVEL_0_TRIANGLES`, `LEVEL_0_VERTICES` through `LEVEL_2_TRIANGLES`, `LEVEL_2_VERTICES`
+  - Replaced 10 magic numbers with named constants
+- Improved test readability and maintainability with self-documenting constant names
+See commit TBD.
+
 ---
 
 ## Low Effort Improvements (< 1 hour)
@@ -150,9 +186,7 @@ See commit TBD.
 
 ### 10-21. Additional Low-Effort Improvements
 
-10. **Add validation error messages** (20 min)
-    - Many validation failures have generic messages
-    - Add specific guidance on how to fix
+~~10. **Add validation error messages** (20 min)~~ ✅ COMPLETED 2025-12-22
 
 11-21. **Minor naming improvements across various files** (30 min total)
 

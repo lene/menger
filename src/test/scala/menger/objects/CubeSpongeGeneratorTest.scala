@@ -6,11 +6,23 @@ import org.scalatest.matchers.should.Matchers
 
 class CubeSpongeGeneratorTest extends AnyFlatSpec with Matchers:
 
+  private val LEVEL_0_CUBE_COUNT = 1
+  private val LEVEL_1_CUBE_COUNT = 20
+  private val LEVEL_2_CUBE_COUNT = 400
+  private val LEVEL_3_CUBE_COUNT = 8000
+  private val LEVEL_4_CUBE_COUNT = 160000
+  private val LEVEL_5_CUBE_COUNT = 3200000
+
+  private val CUBE_CORNER_COUNT = 8
+  private val CUBE_EDGE_COUNT = 12
+
+  private val BYTES_PER_TRANSFORM = 48L
+
   "CubeSpongeGenerator" should "generate 1 cube at level 0" in:
     val generator = CubeSpongeGenerator(Vector3.Zero, 1.0f, 0)
     val transforms = generator.generateTransforms
 
-    transforms.length shouldBe 1
+    transforms.length shouldBe LEVEL_0_CUBE_COUNT
     transforms.head._1 shouldBe Vector3.Zero
     transforms.head._2 shouldBe 1.0f
 
@@ -18,27 +30,27 @@ class CubeSpongeGeneratorTest extends AnyFlatSpec with Matchers:
     val generator = CubeSpongeGenerator(Vector3.Zero, 1.0f, 1)
     val transforms = generator.generateTransforms
 
-    transforms.length shouldBe 20
+    transforms.length shouldBe LEVEL_1_CUBE_COUNT
 
   it should "generate 400 cubes at level 2" in:
     val generator = CubeSpongeGenerator(Vector3.Zero, 1.0f, 2)
     val transforms = generator.generateTransforms
 
-    transforms.length shouldBe 400
+    transforms.length shouldBe LEVEL_2_CUBE_COUNT
 
   it should "generate 8000 cubes at level 3" in:
     val generator = CubeSpongeGenerator(Vector3.Zero, 1.0f, 3)
     val transforms = generator.generateTransforms
 
-    transforms.length shouldBe 8000
+    transforms.length shouldBe LEVEL_3_CUBE_COUNT
 
   it should "correctly calculate cube count" in:
-    CubeSpongeGenerator(level = 0).cubeCount shouldBe 1
-    CubeSpongeGenerator(level = 1).cubeCount shouldBe 20
-    CubeSpongeGenerator(level = 2).cubeCount shouldBe 400
-    CubeSpongeGenerator(level = 3).cubeCount shouldBe 8000
-    CubeSpongeGenerator(level = 4).cubeCount shouldBe 160000
-    CubeSpongeGenerator(level = 5).cubeCount shouldBe 3200000
+    CubeSpongeGenerator(level = 0).cubeCount shouldBe LEVEL_0_CUBE_COUNT
+    CubeSpongeGenerator(level = 1).cubeCount shouldBe LEVEL_1_CUBE_COUNT
+    CubeSpongeGenerator(level = 2).cubeCount shouldBe LEVEL_2_CUBE_COUNT
+    CubeSpongeGenerator(level = 3).cubeCount shouldBe LEVEL_3_CUBE_COUNT
+    CubeSpongeGenerator(level = 4).cubeCount shouldBe LEVEL_4_CUBE_COUNT
+    CubeSpongeGenerator(level = 5).cubeCount shouldBe LEVEL_5_CUBE_COUNT
 
   it should "generate cubes with correct subdivision pattern" in:
     val generator = CubeSpongeGenerator(Vector3.Zero, 3.0f, 1)
@@ -73,13 +85,13 @@ class CubeSpongeGeneratorTest extends AnyFlatSpec with Matchers:
     val cornerCount = transforms.count { case (pos, _) =>
       pos.x != 0.0f && pos.y != 0.0f && pos.z != 0.0f
     }
-    cornerCount shouldBe 8  // 8 corners
+    cornerCount shouldBe CUBE_CORNER_COUNT
 
     val edgeCount = transforms.count { case (pos, _) =>
       val nonZeroCount = Seq(pos.x, pos.y, pos.z).count(_ != 0.0f)
       nonZeroCount == 2
     }
-    edgeCount shouldBe 12  // 12 edges
+    edgeCount shouldBe CUBE_EDGE_COUNT
 
   it should "respect custom center position" in:
     val customCenter = Vector3(5.0f, 10.0f, -3.0f)
@@ -99,8 +111,7 @@ class CubeSpongeGeneratorTest extends AnyFlatSpec with Matchers:
     val generator = CubeSpongeGenerator(level = 3)
     val estimatedBytes = generator.estimateTransformMemoryBytes
 
-    // 8000 cubes * 48 bytes per transform = 384,000 bytes
-    estimatedBytes shouldBe 8000L * 48L
+    estimatedBytes shouldBe LEVEL_3_CUBE_COUNT * BYTES_PER_TRANSFORM
 
   it should "reject negative levels" in:
     assertThrows[IllegalArgumentException]:

@@ -9,36 +9,39 @@ class SpongeBySurfaceMeshSuite extends AnyFlatSpec with Matchers:
 
   given menger.ProfilingConfig = menger.ProfilingConfig.disabled
 
+  private val QUAD_TRIANGLE_COUNT = 2
+  private val QUAD_VERTEX_COUNT = 4
+
+  private val LEVEL_0_TRIANGLES = 12
+  private val LEVEL_0_VERTICES = 24
+  private val LEVEL_1_TRIANGLES = 144
+  private val LEVEL_1_VERTICES = 288
+  private val LEVEL_2_TRIANGLES = 1728
+  private val LEVEL_2_VERTICES = 3456
+
   "Face.toTriangleMesh" should "generate a quad mesh with 2 triangles" in:
     val face = Face(0, 0, 0, 1.0f, Direction.Z)
     val mesh = face.toTriangleMesh
-    mesh.numTriangles shouldBe 2
-    mesh.numVertices shouldBe 4
+    mesh.numTriangles shouldBe QUAD_TRIANGLE_COUNT
+    mesh.numVertices shouldBe QUAD_VERTEX_COUNT
 
   "SpongeBySurface.toTriangleMesh" should "generate 12 triangles at level 0 (6 faces * 2 triangles)" in:
     val sponge = SpongeBySurface(Vector3.Zero, 1.0f, level = 0)
     val mesh = sponge.toTriangleMesh
-    mesh.numTriangles shouldBe 12
-    mesh.numVertices shouldBe 24
+    mesh.numTriangles shouldBe LEVEL_0_TRIANGLES
+    mesh.numVertices shouldBe LEVEL_0_VERTICES
 
   it should "generate correct number of triangles at level 1" in:
     val sponge = SpongeBySurface(Vector3.Zero, 1.0f, level = 1)
     val mesh = sponge.toTriangleMesh
-    // Level 1: 6 faces * (8 unrotated + 4 rotated) = 6 * 12 = 72 sub-faces
-    // Each sub-face = 2 triangles, so 72 * 2 = 144 triangles
-    mesh.numTriangles shouldBe 144
-    mesh.numVertices shouldBe 288
+    mesh.numTriangles shouldBe LEVEL_1_TRIANGLES
+    mesh.numVertices shouldBe LEVEL_1_VERTICES
 
   it should "generate correct number of triangles at level 2" taggedAs Slow in:
     val sponge = SpongeBySurface(Vector3.Zero, 1.0f, level = 2)
     val mesh = sponge.toTriangleMesh
-    // Level 2: more complex subdivision
-    // At level 1 we have 12 sub-faces per original face
-    // At level 2, each of those 12 subdivides into 12 more = 144 per original face
-    // 6 original faces * 144 = 864 sub-faces
-    // 864 * 2 triangles = 1728 triangles
-    mesh.numTriangles shouldBe 1728
-    mesh.numVertices shouldBe 3456
+    mesh.numTriangles shouldBe LEVEL_2_TRIANGLES
+    mesh.numVertices shouldBe LEVEL_2_VERTICES
 
   it should "position faces correctly at level 0" in:
     val sponge = SpongeBySurface(Vector3.Zero, 2.0f, level = 0)

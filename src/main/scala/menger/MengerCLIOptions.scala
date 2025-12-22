@@ -335,13 +335,15 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   // Validate color option combinations
   validateOpt(color, faceColor, lineColor) { (colorOpt, faceColorOpt, lineColorOpt) =>
     if color.isSupplied && (faceColor.isSupplied || lineColor.isSupplied) then
-      Left("--color cannot be used together with --face-color or --line-color")
+      Left("--color cannot be used together with --face-color or --line-color. " +
+        "Use either --color OR (--face-color AND --line-color)")
     else
       val bothOrNeitherSupplied =
         (faceColor.isSupplied && !lineColor.isSupplied) ||
         (!faceColor.isSupplied && lineColor.isSupplied)
       if bothOrNeitherSupplied then
-        Left("--face-color and --line-color must be specified together")
+        Left("--face-color and --line-color must be specified together. " +
+          "Provide both options or use --color instead")
       else Right(())
   }
 
@@ -359,11 +361,13 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     val hasObjects = objs.isDefined
 
     if isOptiXEnabled && !hasObjectType && !hasObjects then
-      Left("--optix flag requires --object or --objects option")
+      Left("--optix flag requires --object or --objects option. " +
+        "Add --object sphere or --objects \"type=sphere:pos=0,0,0\"")
     else if (hasObjectType || hasObjects) && !isOptiXEnabled then
-      Left("--object/--objects option requires --optix flag")
+      Left("--object/--objects option requires --optix flag. Add --optix to enable OptiX rendering")
     else if hasObjectType && hasObjects then
-      Left("Cannot use both --object and --objects (use --objects only)")
+      Left("Cannot use both --object and --objects (use --objects only). " +
+        "Combine multiple objects with --objects \"obj1:obj2:obj3\"")
     else Right(())
   }
 
@@ -373,7 +377,9 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
 
   validateOpt(light, optix) { (l, _) =>
     requiresOptix("light", l).flatMap { _ =>
-      if l.isDefined && l.get.length > Const.maxLights then Left(s"Maximum ${Const.maxLights} lights allowed (MAX_LIGHTS=${Const.maxLights})")
+      if l.isDefined && l.get.length > Const.maxLights then
+        Left(s"Maximum ${Const.maxLights} lights allowed (MAX_LIGHTS=${Const.maxLights}). " +
+          s"You specified ${l.get.length} lights. Reduce the number of --light options")
       else Right(())
     }
   }
