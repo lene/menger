@@ -5,21 +5,19 @@ import scala.util.Success
 import scala.util.Try
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.ColorConversions.toCommonColor
 import menger.ObjectSpec
 import menger.OptiXRenderResources
-import menger.PlaneColorSpec
-import menger.PlaneSpec
 import menger.ProfilingConfig
 import menger.Vector3Extensions.toVector3
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ObjectType
 import menger.common.TransformUtil
+import menger.config.OptiXEngineConfig
 import menger.input.OptiXCameraController
 import menger.input.OptiXInputMultiplexer
 import menger.objects.Cube
@@ -27,10 +25,8 @@ import menger.objects.CubeSpongeGenerator
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
 import menger.optix.CameraState
-import menger.optix.CausticsConfig
 import menger.optix.OptiXRenderer
 import menger.optix.OptiXRendererWrapper
-import menger.optix.RenderConfig
 import menger.optix.SceneConfigurator
 
 enum SceneType:
@@ -39,31 +35,20 @@ enum SceneType:
   case TriangleMeshes(specs: List[ObjectSpec])
   case Mixed(specs: List[ObjectSpec])
 
-class OptiXEngine(
-  val spongeType: String,
-  val spongeLevel: Float,
-  val lines: Boolean,
-  val color: Color,
-  val fpsLogIntervalMs: Int,
-  val sphereRadius: Float,
-  val ior: Float,
-  val scale: Float,
-  val cameraPos: Vector3,
-  val cameraLookat: Vector3,
-  val cameraUp: Vector3,
-  val center: Vector3,
-  val planeSpec: PlaneSpec,
-  val planeColor: Option[PlaneColorSpec] = None,
-  val timeout: Float = 0f,
-  saveName: Option[String] = None,
-  val enableStats: Boolean = false,
-  val lights: Option[List[menger.LightSpec]] = None,
-  val renderConfig: RenderConfig = RenderConfig.Default,
-  val causticsConfig: CausticsConfig = CausticsConfig.Disabled,
-  val maxInstances: Int = 64,
-  val objectSpecs: Option[List[ObjectSpec]] = None
-)(using profilingConfig: ProfilingConfig)
+class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingConfig)
   extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots:
+
+  // Convenience accessors for config sections
+  private val scene = config.scene
+  private val camera = config.camera
+  private val environment = config.environment
+  private val execution = config.execution
+
+  // Required by TimeoutSupport trait
+  override def timeout: Float = execution.timeout
+
+  // Public accessors for testing
+  def sphereRadius: Float = scene.sphereRadius
 
   // Level thresholds for warnings (based on triangle counts and performance)
   private val VolumeLevelWarning = Const.Engine.spongeLevelWarningThreshold
@@ -72,8 +57,8 @@ class OptiXEngine(
   private val SurfaceLevelMax = Const.Engine.cubeSpongeMaxLevel
 
   private def warnIfHighLevel(): Unit =
-    val intLevel = spongeLevel.toInt
-    spongeType match
+    val intLevel = scene.level.toInt
+    scene.spongeType match
       case "sponge-volume" =>
         if intLevel >= VolumeLevelWarning then
           val estimatedTriangles =
@@ -98,38 +83,46 @@ class OptiXEngine(
           logger.error(s"Sponge level $intLevel exceeds recommended maximum ($SurfaceLevelMax)")
       case _ => // No warning for other types
 
-  private val geometryGenerator: Try[OptiXRenderer => Unit] = spongeType match {
-    case "sphere" => Try(_.setSphere(center.toVector3, sphereRadius))
+  private val geometryGenerator: Try[OptiXRenderer => Unit] = scene.spongeType match {
+    case "sphere" => Try(_.setSphere(scene.center.toVector3, scene.sphereRadius))
     case "cube" => Try { renderer =>
-      val cube = Cube(center = center, scale = sphereRadius * 2)  // Use radius as half-size for consistency
+      val cube = Cube(center = scene.center, scale = scene.sphereRadius * 2)
       val mesh = cube.toTriangleMesh
       renderer.setTriangleMesh(mesh)
     }
     case "sponge-volume" => Try { renderer =>
-      val sponge = SpongeByVolume(center = center, scale = sphereRadius * 2, level = spongeLevel)
+      val sponge = SpongeByVolume(center = scene.center, scale = scene.sphereRadius * 2, level = scene.level)
       val mesh = sponge.toTriangleMesh
       renderer.setTriangleMesh(mesh)
     }
     case "sponge-surface" => Try { renderer =>
       given menger.ProfilingConfig = profilingConfig
-      val sponge = SpongeBySurface(center = center, scale = sphereRadius * 2, level = spongeLevel)
+      val sponge = SpongeBySurface(center = scene.center, scale = scene.sphereRadius * 2, level = scene.level)
       val mesh = sponge.toTriangleMesh
       renderer.setTriangleMesh(mesh)
     }
-    case _ => Failure(UnsupportedOperationException(spongeType))
+    case _ => Failure(UnsupportedOperationException(scene.spongeType))
   }
 
   // Composition: Three focused components instead of one god object
-  private val rendererWrapper = OptiXRendererWrapper(maxInstances)
-  private val sceneConfigurator = SceneConfigurator(geometryGenerator, cameraPos, cameraLookat, cameraUp, planeSpec, lights)
-  private val cameraState = CameraState(cameraPos, cameraLookat, cameraUp)
+  private val rendererWrapper = OptiXRendererWrapper(execution.maxInstances)
+  private val sceneConfigurator = SceneConfigurator(
+    geometryGenerator,
+    camera.position,
+    camera.lookAt,
+    camera.up,
+    environment.plane,
+    environment.lights
+  )
+  private val cameraState = CameraState(camera.position, camera.lookAt, camera.up)
 
   private val renderResources: OptiXRenderResources = OptiXRenderResources(0, 0)
   private lazy val cameraController: OptiXCameraController =
-    OptiXCameraController(rendererWrapper, cameraState, renderResources, cameraPos, cameraLookat, cameraUp)
+    OptiXCameraController(rendererWrapper, cameraState, renderResources,
+      camera.position, camera.lookAt, camera.up)
 
   override def create(): Unit =
-    val result = objectSpecs match
+    val result = scene.objectSpecs match
       case Some(specs) if specs.nonEmpty =>
         createMultiObjectScene(specs)
       case _ =>
@@ -141,7 +134,9 @@ class OptiXEngine(
     }.get  // Intentional .get - initialization failure should crash (documented)
 
   private def createSingleObjectScene(): Try[Unit] = Try:
-    logger.info(s"Creating OptiXEngine with object=$spongeType, radius=$sphereRadius, color=$color, ior=$ior, scale=$scale, renderConfig=$renderConfig, causticsConfig=$causticsConfig")
+    val color = scene.material.color
+    val ior = scene.material.ior
+    logger.info(s"Creating OptiXEngine with object=${scene.spongeType}, radius=${scene.sphereRadius}, color=$color, ior=$ior, scale=${scene.scale}, renderConfig=${config.render}, causticsConfig=${config.caustics}")
 
     // Warn about high sponge levels before generating geometry
     warnIfHighLevel()
@@ -150,11 +145,11 @@ class OptiXEngine(
     sceneConfigurator.configureScene(renderer)
 
     // Configure color and IOR based on object type
-    spongeType match
+    scene.spongeType match
       case "sphere" =>
         sceneConfigurator.setSphereColor(renderer, color.toCommonColor)
         sceneConfigurator.setIOR(renderer, ior)
-      case _ if ObjectType.isSpongeOrCube(spongeType) =>
+      case _ if ObjectType.isSpongeOrCube(scene.spongeType) =>
         sceneConfigurator.setTriangleMeshColor(renderer, color.toCommonColor)
         sceneConfigurator.setTriangleMeshIOR(renderer, ior)
       case _ =>
@@ -162,10 +157,10 @@ class OptiXEngine(
         sceneConfigurator.setSphereColor(renderer, color.toCommonColor)
         sceneConfigurator.setIOR(renderer, ior)
 
-    sceneConfigurator.setScale(renderer, scale)
-    renderer.setRenderConfig(renderConfig)
-    renderer.setCausticsConfig(causticsConfig)
-    planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
+    sceneConfigurator.setScale(renderer, scene.scale)
+    renderer.setRenderConfig(config.render)
+    renderer.setCausticsConfig(config.caustics)
+    environment.planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
 
     finalizeCreate()
 
@@ -214,9 +209,9 @@ class OptiXEngine(
 
     validationResult.flatMap { _ =>
       Try {
-        renderer.setRenderConfig(renderConfig)
-        renderer.setCausticsConfig(causticsConfig)
-        planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
+        renderer.setRenderConfig(config.render)
+        renderer.setCausticsConfig(config.caustics)
+        environment.planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
         finalizeCreate()
       }
     }
@@ -224,8 +219,8 @@ class OptiXEngine(
   private def validateObjectSpecs(specs: List[ObjectSpec]): Either[String, Unit] =
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
-    else if specs.length > maxInstances then
-      Left(s"Too many objects: ${specs.length} exceeds max instances limit of $maxInstances. " +
+    else if specs.length > execution.maxInstances then
+      Left(s"Too many objects: ${specs.length} exceeds max instances limit of ${execution.maxInstances}. " +
         "Use --max-instances to increase the limit.")
     else
       Right(())
@@ -320,10 +315,10 @@ class OptiXEngine(
   private def validateInstanceLimit(specs: List[ObjectSpec]): Try[Unit] =
     val totalInstances = specs.map(calculateInstanceCount).sum
     
-    if totalInstances > maxInstances then
+    if totalInstances > execution.maxInstances then
       Failure(IllegalArgumentException(
         s"cube-sponge specs generate $totalInstances total instances, " +
-        s"exceeding max instances limit of $maxInstances. " +
+        s"exceeding max instances limit of ${execution.maxInstances}. " +
         "Reduce sponge levels or use --max-instances to increase the limit."
       ))
     else
@@ -405,7 +400,7 @@ class OptiXEngine(
     Gdx.graphics.setContinuousRendering(false)
     Gdx.graphics.requestRendering()
 
-    if timeout > 0 then startExitTimer(timeout)
+    if execution.timeout > 0 then startExitTimer(execution.timeout)
 
   override def render(): Unit =
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
@@ -423,7 +418,7 @@ class OptiXEngine(
       // Only render the scene if something changed (camera moved, etc.)
       if renderResources.needsRender then
         val size = ImageSize(width, height)
-        val rgbaBytes = if enableStats then renderWithStats(width, height) else rendererWrapper.renderScene(size)
+        val rgbaBytes = if execution.enableStats then renderWithStats(width, height) else rendererWrapper.renderScene(size)
         renderResources.renderToScreen(rgbaBytes, width, height)
       else
         // Just redraw the existing texture without re-rendering
@@ -437,9 +432,9 @@ class OptiXEngine(
       Gdx.app.exit()
 
   private def shouldExitAfterSave: Boolean =
-    saveName.isDefined && !renderResources.hasSaved && timeout == 0
+    execution.saveName.isDefined && !renderResources.hasSaved && execution.timeout == 0
 
-  protected def currentSaveName: Option[String] = saveName
+  protected def currentSaveName: Option[String] = execution.saveName
 
   private def renderWithStats(width: Int, height: Int): Array[Byte] =
     val result = rendererWrapper.renderSceneWithStats(ImageSize(width, height))

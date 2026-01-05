@@ -22,7 +22,7 @@ class SceneConfigurator(
   cameraLookat: Vector3,
   cameraUp: Vector3,
   planeSpec: PlaneSpec,
-  lights: Option[List[LightSpec]] = None
+  lights: List[LightSpec] = List.empty
 ) extends LazyLogging:
 
   def configureScene(renderer: OptiXRenderer): Unit =
@@ -41,17 +41,16 @@ class SceneConfigurator(
     logger.debug(s"Configured camera: eye=(${eye(0)},${eye(1)},${eye(2)}), lookAt=(${lookAt(0)},${lookAt(1)},${lookAt(2)}), up=(${up(0)},${up(1)},${up(2)}), horizontalFOV=$horizontalFov")
 
   def configureLights(renderer: OptiXRenderer): Unit =
-    lights match
-      case Some(lightSpecs) =>
-        val lightSeq = lightSpecs.map(convertLightSpec)
-        renderer.setLights(lightSeq)  // Throws on failure - caught by Main
-        logger.debug(s"Configured ${lightSeq.length} light(s) from CLI specification")
-      case None =>
-        // Default single directional light (backward compatibility)
-        val lightDirection = Vector[3](-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
-        val lightIntensity = 1.0f
-        renderer.setLight(lightDirection, lightIntensity)
-        logger.debug(s"Configured default light: direction=(${lightDirection(0)},${lightDirection(1)},${lightDirection(2)}), intensity=$lightIntensity")
+    if lights.nonEmpty then
+      val lightSeq = lights.map(convertLightSpec)
+      renderer.setLights(lightSeq)
+      logger.debug(s"Configured ${lightSeq.length} light(s) from CLI specification")
+    else
+      // Default single directional light (backward compatibility)
+      val lightDirection = Vector[3](-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
+      val lightIntensity = 1.0f
+      renderer.setLight(lightDirection, lightIntensity)
+      logger.debug(s"Configured default light: direction=(${lightDirection(0)},${lightDirection(1)},${lightDirection(2)}), intensity=$lightIntensity")
 
   private def convertLightSpec(spec: LightSpec): Light =
     val position = spec.position.toVector3

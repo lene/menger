@@ -10,12 +10,12 @@ import menger.PlaneSpec
  *
  * @param plane ground plane specification
  * @param planeColor optional checkered or solid color for the plane
- * @param lights list of light sources (default: single directional light)
+ * @param lights list of light sources (empty = use default lighting)
  */
 case class EnvironmentConfig(
   plane: PlaneSpec,
   planeColor: Option[PlaneColorSpec] = None,
-  lights: Option[List[LightSpec]] = None
+  lights: List[LightSpec] = List.empty
 )
 
 object EnvironmentConfig:
@@ -25,7 +25,7 @@ object EnvironmentConfig:
   val Default: EnvironmentConfig = EnvironmentConfig(
     plane = PlaneSpec(Axis.X, positive = false, 0f),
     planeColor = None,
-    lights = None
+    lights = List.empty
   )
 
   /**
@@ -34,5 +34,5 @@ object EnvironmentConfig:
   val WithPlane: EnvironmentConfig = EnvironmentConfig(
     plane = PlaneSpec(Axis.Y, positive = true, -2f),
     planeColor = None,
-    lights = None
+    lights = List.empty
   )

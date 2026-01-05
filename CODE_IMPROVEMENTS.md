@@ -10,10 +10,10 @@ This document identifies opportunities to improve code quality across the Menger
 
 ## Summary Statistics
 
-- **Total Issues Found**: 55 (26 completed)
+- **Total Issues Found**: 55 (27 completed)
 - **Low Effort (< 1 hour)**: 21 issues (14 completed)
 - **Medium Effort (1-4 hours)**: 22 issues (11 completed)
-- **High Effort (4+ hours)**: 12 issues (1 completed)
+- **High Effort (4+ hours)**: 12 issues (2 completed)
 
 ---
 
@@ -347,91 +347,25 @@ private def validateSpongeLevel(objType: String, level: Option[Float]): Either[S
 
 ## High Effort Improvements (4+ hours)
 
-### 44. Refactor OptiXEngine Constructor (4-6 hours)
+### ✅ 44. Refactor OptiXEngine Constructor (COMPLETED 2026-01-05)
 
 **Priority**: Critical
 **Impact**: Maintainability, testability
 
-**File**: `OptiXEngine.scala:31-54`
+Refactored the 22-parameter `OptiXEngine` constructor to use a single `OptiXEngineConfig` parameter:
 
-**Problem**: 19 parameters is excessive and violates SRP.
+**Changes Made:**
+1. Created `MaterialConfig.scala` with presets: Default, Glass, Diamond, Mirror, Water
+2. Updated `EnvironmentConfig.scala`: changed `lights: Option[List[LightSpec]]` to `List[LightSpec] = List.empty`
+3. Updated `SceneConfig.scala`: removed unused `lines` parameter, replaced `color`/`ior` with `material: MaterialConfig`
+4. Rewrote `OptiXEngine.scala` to take single `config: OptiXEngineConfig` parameter
+5. Updated `SceneConfigurator.scala` to use `List[LightSpec]` instead of `Option[List[LightSpec]]`
+6. Updated `Main.scala` to build `OptiXEngineConfig` and pass to new constructor
+7. Updated `OptiXEngineSuite.scala` and `MainSuite.scala` tests to use new config-based API
 
-```scala
-// Before: 19 parameters
-class OptiXEngine(
-  val spongeType: String,
-  val spongeLevel: Float,
-  val lines: Boolean,
-  val color: Color,
-  val fpsLogIntervalMs: Int,
-  val sphereRadius: Float,
-  val ior: Float,
-  val scale: Float,
-  val cameraPos: Vector3,
-  val cameraLookat: Vector3,
-  val cameraUp: Vector3,
-  val center: Vector3,
-  val planeSpec: PlaneSpec,
-  val planeColor: Option[PlaneColorSpec] = None,
-  val timeout: Float = 0f,
-  saveName: Option[String] = None,
-  val enableStats: Boolean = false,
-  val lights: Option[List[menger.LightSpec]] = None,
-  val renderConfig: RenderConfig = RenderConfig.Default,
-  val causticsConfig: CausticsConfig = CausticsConfig.Disabled,
-  val maxInstances: Int = 64,
-  val objectSpecs: Option[List[ObjectSpec]] = None
-)
+**Result:** 1 top-level parameter (down from 22)
 
-// After: Group related parameters into config objects
-case class SceneConfig(
-  spongeType: String,
-  spongeLevel: Float,
-  lines: Boolean,
-  color: Color,
-  sphereRadius: Float,
-  ior: Float,
-  scale: Float,
-  center: Vector3,
-  objectSpecs: Option[List[ObjectSpec]] = None
-)
-
-case class CameraConfig(
-  position: Vector3,
-  lookAt: Vector3,
-  up: Vector3
-)
-
-case class EnvironmentConfig(
-  planeSpec: PlaneSpec,
-  planeColor: Option[PlaneColorSpec] = None,
-  lights: Option[List[LightSpec]] = None
-)
-
-case class ExecutionConfig(
-  fpsLogIntervalMs: Int,
-  timeout: Float = 0f,
-  saveName: Option[String] = None,
-  enableStats: Boolean = false,
-  maxInstances: Int = 64
-)
-
-class OptiXEngine(
-  scene: SceneConfig,
-  camera: CameraConfig,
-  environment: EnvironmentConfig,
-  execution: ExecutionConfig,
-  renderConfig: RenderConfig = RenderConfig.Default,
-  causticsConfig: CausticsConfig = CausticsConfig.Disabled
-)
-```
-
-**Migration strategy**:
-1. Create new config classes
-2. Add factory method that accepts old parameters
-3. Deprecate old constructor
-4. Update all call sites
-5. Remove deprecated constructor
+See detailed refactoring plan at `/docs/OptixEngineRefactor.md`
 
 ---
 
@@ -789,13 +723,13 @@ Few tests cover:
 ## Priority Summary
 
 ### Critical (Do Before Merge)
-- **#44**: Refactor OptiXEngine constructor (19 params)
-- **#28**: Reduce unsafe `.get` calls
+- ~~**#44**: Refactor OptiXEngine constructor (19 params)~~ ✅ COMPLETED 2026-01-05
+- ~~**#28**: Reduce unsafe `.get` calls~~ ✅ COMPLETED 2025-12-21
 
 ### High (Do Soon)
 - **#45**: Split MengerCLIOptions.scala
-- **#22**: Deduplicate transform matrix creation
-- **#25**: Simplify complex conditionals
+- ~~**#22**: Deduplicate transform matrix creation~~ ✅ COMPLETED 2025-12-21
+- ~~**#25**: Simplify complex conditionals~~ ✅ COMPLETED 2025-12-22
 
 ### Medium (Do When Time Permits)
 - **#23-24**: Deduplicate color/vector conversion

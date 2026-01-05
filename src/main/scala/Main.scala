@@ -7,6 +7,12 @@ import menger.MengerCLIOptions
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
 import menger.common.Const
+import menger.config.CameraConfig
+import menger.config.EnvironmentConfig
+import menger.config.ExecutionConfig
+import menger.config.MaterialConfig
+import menger.config.OptiXEngineConfig
+import menger.config.SceneConfig
 import menger.engines.AnimatedMengerEngine
 import menger.engines.InteractiveMengerEngine
 import menger.engines.OptiXEngine
@@ -60,32 +66,43 @@ object Main:
 
     val rotationProjectionParameters = RotationProjectionParameters(opts)
 
-    if opts.optix() then createOptiXEngine(opts, rotationProjectionParameters)
+    if opts.optix() then createOptiXEngine(opts)
     else if opts.animate.toOption.exists(_.parts.nonEmpty) then
       createAnimatedEngine(opts, rotationProjectionParameters)
     else createInteractiveEngine(opts, rotationProjectionParameters)
 
-  private def createOptiXEngine(
-    opts: MengerCLIOptions,
-    rotationProjectionParams: RotationProjectionParameters
-  )(using ProfilingConfig): OptiXEngine =
-    // --object or --objects is required for OptiX (validated in MengerCLIOptions)
-    OptiXEngine(
-      opts.objectType.toOption.getOrElse("sphere"), // Legacy default
-      opts.level(), opts.lines(), opts.color(),
-      opts.fpsLogInterval(),
-      opts.radius(), opts.ior(), opts.scale(),
-      opts.cameraPos(), opts.cameraLookat(), opts.cameraUp(), opts.center(), opts.plane(),
-      opts.planeColor.toOption,
-      opts.timeout(),
-      opts.saveName.toOption,
-      opts.stats(),
-      opts.light.toOption,
-      opts.renderConfig,
-      opts.causticsConfig,
-      opts.maxInstances(),
-      opts.objects.toOption
+  private def createOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): OptiXEngine =
+    val engineConfig = OptiXEngineConfig(
+      scene = SceneConfig(
+        spongeType = opts.objectType.toOption.getOrElse("sphere"),
+        level = opts.level(),
+        material = MaterialConfig(opts.color(), opts.ior()),
+        sphereRadius = opts.radius(),
+        scale = opts.scale(),
+        center = opts.center(),
+        objectSpecs = opts.objects.toOption
+      ),
+      camera = CameraConfig(
+        position = opts.cameraPos(),
+        lookAt = opts.cameraLookat(),
+        up = opts.cameraUp()
+      ),
+      environment = EnvironmentConfig(
+        plane = opts.plane(),
+        planeColor = opts.planeColor.toOption,
+        lights = opts.light.toOption.getOrElse(List.empty)
+      ),
+      execution = ExecutionConfig(
+        fpsLogIntervalMs = opts.fpsLogInterval(),
+        timeout = opts.timeout(),
+        saveName = opts.saveName.toOption,
+        enableStats = opts.stats(),
+        maxInstances = opts.maxInstances()
+      ),
+      render = opts.renderConfig,
+      caustics = opts.causticsConfig
     )
+    OptiXEngine(engineConfig)
 
   private def createAnimatedEngine(
     opts: MengerCLIOptions,
@@ -106,4 +123,3 @@ object Main:
       opts.timeout(), opts.faceColor.toOption, opts.lineColor.toOption,
       opts.fpsLogInterval()
     )
-
