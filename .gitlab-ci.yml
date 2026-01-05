@@ -313,8 +313,8 @@ Test:Valgrind:
     paths:
       - optix-jni/valgrind.log
 
-# OptiX sphere rendering integration tests
-# Tests both packaged distribution and sbt run with OptiX enabled
+# OptiX integration tests - comprehensive CLI and rendering tests
+# Uses scripts/integration-tests.sh which runs 27 test scenarios
 Test:OptiXIntegration:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
@@ -325,6 +325,11 @@ Test:OptiXIntegration:
   retry: 2      # 1 initial + 2 retries = 3 attempts max = 60m total (GitLab max retry=2)
   variables:
     NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
+    # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
+    __GL_THREADED_OPTIMIZATIONS: "0"
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
   before_script:
     - apt-get -y update
     - apt-get -y install mesa-utils x11-xserver-utils xvfb unzip
@@ -335,22 +340,13 @@ Test:OptiXIntegration:
       fi
     - ldconfig || true
   script:
-    # Test sbt run with OptiX sphere rendering
-    - xvfb-run -a sbt "run --optix --object sphere --timeout 0.1 --radius 0.5"
-    # Build and test packaged distribution
+    # Build packaged distribution
     - sbt "Universal / packageBin"
     - VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
     - unzip -oq ./target/universal/menger-${VERSION}.zip
     - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --object sphere --timeout 0.1
-    # Test OptiX triangle mesh rendering (cube)
-    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --object cube --timeout 0.1 --radius 0.5 --plane y:-2
-    # Test OptiX triangle mesh rendering (sponge-volume)
-    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --object sponge-volume --timeout 0.1 --level 1 --radius 0.5 --plane y:-2
-    # Test multi-object rendering (IAS with spheres)
-    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --timeout 0.1 --plane y:-2 --objects type=sphere:pos=-1,0,0:size=0.5 --objects type=sphere:pos=1,0,0:size=0.5
-    # Test multi-object rendering (IAS with triangle meshes)
-    - xvfb-run -a ./menger-${VERSION}/bin/menger --optix --timeout 0.1 --plane y:-2 --objects type=cube:pos=-1,0,0:size=0.5 --objects type=cube:pos=1,0,0:size=0.5
+    # Run comprehensive integration tests (27 scenarios)
+    - ./scripts/integration-tests.sh ./menger-${VERSION}/bin/menger
   after_script:
     # Clean up permissions for Docker artifacts
     - chmod -R 777 target/ || true
