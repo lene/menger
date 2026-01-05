@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.4.0] - 2025-12-01
+## [0.4.0] - 2026-01-05
 
 ### Added
 - **Instance Acceleration Structure (IAS)** - Multi-object rendering foundation
