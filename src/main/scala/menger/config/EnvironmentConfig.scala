@@ -1,9 +1,9 @@
 package menger.config
 
-import menger.Axis
-import menger.LightSpec
-import menger.PlaneColorSpec
-import menger.PlaneSpec
+import menger.cli.Axis
+import menger.cli.LightSpec
+import menger.cli.PlaneColorSpec
+import menger.cli.PlaneSpec
 
 /**
  * Environment configuration for lighting and ground plane.

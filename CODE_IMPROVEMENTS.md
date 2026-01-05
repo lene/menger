@@ -10,10 +10,10 @@ This document identifies opportunities to improve code quality across the Menger
 
 ## Summary Statistics
 
-- **Total Issues Found**: 55 (27 completed)
+- **Total Issues Found**: 55 (28 completed)
 - **Low Effort (< 1 hour)**: 21 issues (14 completed)
 - **Medium Effort (1-4 hours)**: 22 issues (11 completed)
-- **High Effort (4+ hours)**: 12 issues (2 completed)
+- **High Effort (4+ hours)**: 12 issues (3 completed)
 
 ---
 
@@ -369,36 +369,45 @@ See detailed refactoring plan at `/docs/OptixEngineRefactor.md`
 
 ---
 
-### 45. Split MengerCLIOptions into Multiple Files (6-8 hours)
+### ✅ 45. Split MengerCLIOptions into Multiple Files (COMPLETED 2026-01-05)
 
 **Priority**: High
 **Impact**: Maintainability, testability
 
-**File**: `MengerCLIOptions.scala` (630 lines)
+**File**: `MengerCLIOptions.scala` (712 → 326 lines, -54%)
 
-**Problem**: Single file does too much - CLI parsing, validation, conversion.
+**Problem**: Single file did too much - CLI parsing, validation, type definitions, converters.
 
-**Refactoring plan**:
+**Refactoring completed**:
 
 ```
 src/main/scala/menger/cli/
-├── MengerCLIOptions.scala (100 lines) - Main options class
-├── ValidationRules.scala (100 lines) - All validation logic
+├── CliTypes.scala (18 lines) - Axis, PlaneSpec, LightType, LightSpec, PlaneColorSpec
+├── CliValidation.scala (211 lines) - Validation trait with all validateOpt rules
 ├── converters/
-│   ├── AnimationConverter.scala (50 lines)
-│   ├── ColorConverter.scala (80 lines)
-│   ├── PlaneSpecConverter.scala (40 lines)
-│   ├── ObjectSpecConverter.scala (60 lines)
-│   ├── LightSpecConverter.scala (40 lines)
-│   └── ConverterHelpers.scala (30 lines)
-└── Constants.scala (30 lines) - All magic numbers
+│   ├── ConverterUtils.scala (10 lines) - unwrapTryEither helper
+│   ├── CameraConverters.scala (26 lines) - vector3Converter
+│   ├── MaterialConverters.scala (52 lines) - colorConverter
+│   ├── EnvironmentConverters.scala (146 lines) - planeSpec, planeColor, lightSpec converters
+│   └── SceneConverters.scala (31 lines) - animationSpecifications, objectSpec converters
 ```
 
+**Total**: 820 lines across 8 files (previously 712 lines in 1 file)
+
+**Changes Made:**
+1. Created `menger.cli.CliTypes` for shared types (Axis, PlaneSpec, LightType, LightSpec, PlaneColorSpec)
+2. Created converter modules grouped by config domain (Camera, Material, Environment, Scene)
+3. Created `menger.cli.CliValidation` trait with all validation predicates and `validateOpt` rules
+4. Updated `MengerCLIOptions.scala` to import converters and mix in `CliValidation`
+5. Updated `EnvironmentConfig.scala` and `SceneConfigurator.scala` imports
+6. Updated test files (`LightCLIOptionsSuite.scala`, `OptiXEngineSuite.scala`) imports
+
 **Benefits**:
-- Each file < 100 lines
-- Easy to test converters independently
-- Clear separation of concerns
-- Better code organization
+- Converters are now reusable `given` instances (Scala 3 style)
+- Types moved to dedicated file to avoid circular dependencies
+- Validation logic isolated in dedicated trait using self-type (`self: ScallopConf =>`)
+- Clear separation of concerns between option definitions, validation, and converters
+- Each file < 215 lines, main file reduced from 712 → 326 lines (-54%)
 
 ---
 
@@ -727,7 +736,7 @@ Few tests cover:
 - ~~**#28**: Reduce unsafe `.get` calls~~ ✅ COMPLETED 2025-12-21
 
 ### High (Do Soon)
-- **#45**: Split MengerCLIOptions.scala
+- ~~**#45**: Split MengerCLIOptions.scala~~ ✅ COMPLETED 2026-01-05
 - ~~**#22**: Deduplicate transform matrix creation~~ ✅ COMPLETED 2025-12-21
 - ~~**#25**: Simplify complex conditionals~~ ✅ COMPLETED 2025-12-22
 

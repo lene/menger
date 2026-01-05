@@ -2,6 +2,8 @@ package menger
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
+import menger.cli.Axis
+import menger.cli.PlaneSpec
 import menger.common.Const
 import menger.config.CameraConfig
 import menger.config.EnvironmentConfig

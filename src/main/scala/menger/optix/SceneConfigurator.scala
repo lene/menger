@@ -4,13 +4,13 @@ import scala.util.Try
 
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
-import menger.Axis
 import menger.ColorConversions.toCommonColor
-import menger.LightSpec
-import menger.LightType
-import menger.PlaneColorSpec
-import menger.PlaneSpec
 import menger.Vector3Extensions.toVector3
+import menger.cli.Axis
+import menger.cli.LightSpec
+import menger.cli.LightType
+import menger.cli.PlaneColorSpec
+import menger.cli.PlaneSpec
 import menger.common.Color
 import menger.common.Const
 import menger.common.Light

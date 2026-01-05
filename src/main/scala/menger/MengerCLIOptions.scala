@@ -1,10 +1,20 @@
 package menger
 
-import scala.util.Try
-
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
+import menger.cli.Axis
+import menger.cli.CliValidation
+import menger.cli.LightSpec
+import menger.cli.PlaneColorSpec
+import menger.cli.PlaneSpec
+import menger.cli.converters.animationSpecificationsConverter
+import menger.cli.converters.colorConverter
+import menger.cli.converters.lightSpecConverter
+import menger.cli.converters.objectSpecConverter
+import menger.cli.converters.planeColorSpecConverter
+import menger.cli.converters.planeSpecConverter
+import menger.cli.converters.vector3Converter
 import menger.common.Const
 import menger.common.ObjectType
 import menger.optix.CausticsConfig
@@ -12,7 +22,11 @@ import menger.optix.RenderConfig
 import org.rogach.scallop._
 import org.rogach.scallop.exceptions._
 
-class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) with LazyLogging:
+class MengerCLIOptions(arguments: Seq[String])
+    extends ScallopConf(arguments)
+    with CliValidation
+    with LazyLogging:
+
   version("menger v0.4.0 (c) 2023-25, lene.preuss@gmail.com")
   banner("""Usage: menger [options]
            |
@@ -20,7 +34,6 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
            |Run with --help for full options list.
            |""".stripMargin)
 
-  // Custom error handling to show usage hint on errors
   override def onError(e: Throwable): Unit = e match
     case Help("") =>
       builder.printHelp()
@@ -31,7 +44,6 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     case Exit() =>
       sys.exit(0)
     case ScallopException(message) =>
-      // Print error with usage hint
       Console.err.println(s"Error: $message")
       Console.err.println()
       Console.err.println("Usage: menger [options]")
@@ -56,31 +68,22 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   private val optixQualityGroup = group("OptiX Quality:")
   private val optixCausticsGroup = group("OptiX Caustics:")
 
-  private def validateSpongeType(spongeType: String): Boolean =
-    isValidSpongeType(spongeType)
-
-  // Note: "sphere" removed - use --object sphere for OptiX rendering
+  // Sponge type validation
   private val basicSpongeTypes = List(
     "cube", "square", "square-sponge", "cube-sponge",
     "tesseract", "tesseract-sponge", "tesseract-sponge-2"
   )
   // Composite pattern: composite[type1,type2,...]
-  // - composite\[: literal string "composite["
-  // - (.+): one or more characters (captured group 1 - comma-separated types)
-  // - ]: literal closing bracket
-  // Example: "composite[cube,square]"
   private val compositePattern = """composite\[(.+)]""".r
 
   private def isValidSpongeType(spongeType: String): Boolean =
     if basicSpongeTypes.contains(spongeType) then true
     else spongeType match
       case compositePattern(content) =>
-        // Only allow cube and square in composites (no nesting, no whitespace)
         val components = content.split(",").toSet
         val allowed = Set("cube", "square")
         components.nonEmpty && components.subsetOf(allowed)
       case _ => false
-
 
   // === General Options ===
   val timeout: ScallopOption[Float] = opt[Float](
@@ -120,7 +123,7 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   // === Sponge Rendering Options ===
   val spongeType: ScallopOption[String] = opt[String](
     required = false, default = Some("square"), group = spongeGroup,
-    validate = validateSpongeType,
+    validate = isValidSpongeType,
     descr = "Sponge type: square, cube, tesseract-sponge, tesseract-sponge-2, composite[...]"
   )
   val level: ScallopOption[Float] = opt[Float](
@@ -193,17 +196,15 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     required = false, default = Some(false), group = optixGroup,
     descr = "Use OptiX GPU ray tracing (requires --object)"
   )
-  // Legacy single object option (deprecated - use objects instead)
   val objectType: ScallopOption[String] = opt[String](
     name = "object", required = false, default = None, group = optixGroup,
     validate = obj => ObjectType.isLegacy(obj),
     descr = s"Single object (legacy): ${ObjectType.legacyTypesString}"
   )
-
-  // New multi-object option with keyword=value format
   val objects: ScallopOption[List[ObjectSpec]] = opt[List[ObjectSpec]](
     name = "objects", required = false, group = optixGroup,
-    descr = s"Objects (repeatable): type=TYPE:pos=x,y,z:size=S[:level=L][:color=#RGB][:ior=I]. Types: ${ObjectType.validTypesString}"
+    descr = "Objects (repeatable): type=TYPE:pos=x,y,z:size=S[:level=L][:color=#RGB][:ior=I]. " +
+      s"Types: ${ObjectType.validTypesString}"
   )(using objectSpecConverter)
   val radius: ScallopOption[Float] = opt[Float](
     required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,
@@ -258,7 +259,8 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
   val maxInstances: ScallopOption[Int] = opt[Int](
     required = false, default = Some(Const.defaultMaxInstances), group = optixSceneGroup,
     validate = n => n > 0 && n <= Const.maxInstancesLimit,
-    descr = s"Maximum object instances in scene (1-${Const.maxInstancesLimit}, default: ${Const.defaultMaxInstances})"
+    descr = s"Maximum object instances in scene (1-${Const.maxInstancesLimit}, " +
+      s"default: ${Const.defaultMaxInstances})"
   )
 
   // === OptiX Quality Options ===
@@ -303,146 +305,11 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     descr = "PPM radius reduction factor (default: 0.7)"
   )
 
-  mutuallyExclusive(timeout, animate)
-  validate(projectionScreenW, projectionEyeW) { (screen, eye) =>
-    if eye > screen then Right(())
-    else Left("eyeW must be greater than screenW")
-  }
-  validateOpt(animate, spongeType) {
-    case (Some(spec), Some(sponge)) => validateAnimationSpecification(spec, sponge)
-    case _ => Right(())
-  }
-
-  validateOpt(animate, rotX, rotY, rotZ, rotXW, rotYW, rotZW) { (spec, x, y, z, xw, yw, zw) =>
-    if spec.isEmpty then Right(())
-    else
-    if spec.get.hasRotationAxisConflict(
-      x.getOrElse(0), y.getOrElse(0), z.getOrElse(0),
-      xw.getOrElse(0), yw.getOrElse(0), zw.getOrElse(0)
-    ) then Left("Animation specification has rotation axis set that is also set statically")
-    else Right(())
-  }
-
-  validateOpt(animate, level) { (spec, lvl) =>
-    if spec.isEmpty then Right(())
-    else
-      val levelIsAnimated = spec.get.parts.exists(_.animationParameters.contains("level"))
-      if levelIsAnimated && level.isSupplied then
-        Left("Level cannot be specified both as --level option and in animation specification")
-      else Right(())
-  }
-
-  private def hasConflictingColorOptions: Boolean =
-    color.isSupplied && (faceColor.isSupplied || lineColor.isSupplied)
-
-  private def hasFaceLineColorMismatch: Boolean =
-    faceColor.isSupplied != lineColor.isSupplied
-
-  private def hasLinesWithColorConflict: Boolean =
-    lines.isSupplied && (faceColor.isSupplied || lineColor.isSupplied)
-
-  // Validate color option combinations
-  validateOpt(color, faceColor, lineColor) { (colorOpt, faceColorOpt, lineColorOpt) =>
-    if hasConflictingColorOptions then
-      Left("--color cannot be used together with --face-color or --line-color. " +
-        "Use either --color OR (--face-color AND --line-color)")
-    else if hasFaceLineColorMismatch then
-      Left("--face-color and --line-color must be specified together. " +
-        "Provide both options or use --color instead")
-    else Right(())
-  }
-
-  validateOpt(lines, faceColor, lineColor) { (linesOpt, faceColorOpt, lineColorOpt) =>
-    if hasLinesWithColorConflict then
-      Left("--lines cannot be used together with --face-color or --line-color")
-    else Right(())
-  }
-
-  private def isOptiXWithoutObjects(isOptiXEnabled: Boolean, hasObjectType: Boolean, hasObjects: Boolean): Boolean =
-    isOptiXEnabled && !hasObjectType && !hasObjects
-
-  private def hasObjectsWithoutOptiX(isOptiXEnabled: Boolean, hasObjectType: Boolean, hasObjects: Boolean): Boolean =
-    (hasObjectType || hasObjects) && !isOptiXEnabled
-
-  private def hasBothObjectOptions(hasObjectType: Boolean, hasObjects: Boolean): Boolean =
-    hasObjectType && hasObjects
-
-  // Validate OptiX-related options
-  // OptiX requires --object or --objects option to specify geometry
-  validateOpt(optix, objectType, objects) { (ox, obj, objs) =>
-    val isOptiXEnabled = ox.getOrElse(false)
-    val hasObjectType = obj.isDefined
-    val hasObjects = objs.isDefined
-
-    if isOptiXWithoutObjects(isOptiXEnabled, hasObjectType, hasObjects) then
-      Left("--optix flag requires --object or --objects option. " +
-        "Add --object sphere or --objects \"type=sphere:pos=0,0,0\"")
-    else if hasObjectsWithoutOptiX(isOptiXEnabled, hasObjectType, hasObjects) then
-      Left("--object/--objects option requires --optix flag. Add --optix to enable OptiX rendering")
-    else if hasBothObjectOptions(hasObjectType, hasObjects) then
-      Left("Cannot use both --object and --objects (use --objects only). " +
-        "Combine multiple objects with --objects \"obj1:obj2:obj3\"")
-    else Right(())
-  }
-
-  validateOpt(shadows, optix) { (sh, _) =>
-    requiresOptix("shadows", sh.getOrElse(false))
-  }
-
-  validateOpt(light, optix) { (l, _) =>
-    requiresOptix("light", l).flatMap { _ =>
-      if l.exists(_.length > Const.maxLights) then
-        Left(s"Maximum ${Const.maxLights} lights allowed (MAX_LIGHTS=${Const.maxLights}). " +
-          s"You specified ${l.get.length} lights. Reduce the number of --light options")
-      else Right(())
-    }
-  }
-
-  validateOpt(antialiasing, optix) { (aa, _) =>
-    requiresOptix("antialiasing", aa.getOrElse(false))
-  }
-
-  validateOpt(aaMaxDepth, antialiasing) { (_, aa) =>
-    requiresParent("aa-max-depth", aaMaxDepth.isSupplied, "antialiasing", aa.getOrElse(false))
-  }
-
-  validateOpt(aaThreshold, antialiasing) { (_, aa) =>
-    requiresParent("aa-threshold", aaThreshold.isSupplied, "antialiasing", aa.getOrElse(false))
-  }
-
-  validateOpt(planeColor, optix) { (pc, _) =>
-    requiresOptix("plane-color", pc)
-  }
-
-  validateOpt(maxInstances, optix) { (_, ox) =>
-    requiresParent("max-instances", maxInstances.isSupplied, "optix", ox.getOrElse(false))
-  }
-
-  validateOpt(caustics, optix) { (c, _) =>
-    requiresOptix("caustics", c.getOrElse(false))
-  }
-
-  // Note: objectType validation is handled in the combined validateOpt(optix, objectType) above
-
-  validateOpt(causticsPhotons, caustics) { (_, c) =>
-    requiresParent("caustics-photons", causticsPhotons.isSupplied, "caustics", c.getOrElse(false))
-  }
-
-  validateOpt(causticsIterations, caustics) { (_, c) =>
-    requiresParent("caustics-iterations", causticsIterations.isSupplied, "caustics", c.getOrElse(false))
-  }
-
-  validateOpt(causticsRadius, caustics) { (_, c) =>
-    requiresParent("caustics-radius", causticsRadius.isSupplied, "caustics", c.getOrElse(false))
-  }
-
-  validateOpt(causticsAlpha, caustics) { (_, c) =>
-    requiresParent("caustics-alpha", causticsAlpha.isSupplied, "caustics", c.getOrElse(false))
-  }
-
+  // Register validation rules from CliValidation trait
+  registerValidationRules()
   verify()
 
-  // Config accessors - create typed config objects from CLI options
+  // Config accessors
   def renderConfig: RenderConfig = RenderConfig(
     shadows = shadows(),
     antialiasing = antialiasing(),
@@ -457,255 +324,3 @@ class MengerCLIOptions(arguments: Seq[String]) extends ScallopConf(arguments) wi
     initialRadius = causticsRadius(),
     alpha = causticsAlpha()
   )
-
-  private def validateAnimationSpecification(spec: AnimationSpecifications, spongeType: String) =
-    if spec.valid(spongeType) && spec.isTimeSpecValid then Right(())
-    else Left("Invalid animation specification")
-
-  /** Generic helper for validating that an option requires a parent flag */
-  private def requires(
-    optionName: String,
-    isSupplied: Boolean,
-    parentName: String,
-    parentEnabled: Boolean
-  ): Either[String, Unit] =
-    if isSupplied && !parentEnabled then
-      Left(s"--$optionName requires --$parentName flag")
-    else
-      Right(())
-
-  /** Helper for validating that a boolean flag requires --optix */
-  private def requiresOptix(flagName: String, flagValue: Boolean): Either[String, Unit] =
-    requires(flagName, flagValue, "optix", optix())
-
-  /** Helper for validating that an optional value requires --optix */
-  private def requiresOptix[T](flagName: String, optionValue: Option[T]): Either[String, Unit] =
-    requires(flagName, optionValue.isDefined, "optix", optix())
-
-  /** Helper for validating that a supplied option requires a parent flag */
-  private def requiresParent(
-    optionName: String,
-    isSupplied: Boolean,
-    parentName: String,
-    parentEnabled: Boolean
-  ): Either[String, Unit] =
-    requires(optionName, isSupplied, parentName, parentEnabled)
-
-// Helper to safely unwrap Try[Either[String, A]] without using .get
-// Handles the common pattern in value converters where parsing returns Either wrapped in Try
-private def unwrapTryEither[A](t: scala.util.Try[Either[String, A]]): Either[String, A] =
-  t.fold(
-    error => Left(error.getMessage),
-    identity
-  )
-
-val animationSpecificationsConverter = new ValueConverter[AnimationSpecifications] {
-  val argType: ArgType.V = org.rogach.scallop.ArgType.LIST
-  def parse(s: List[(String, List[String])]): Either[String, Option[AnimationSpecifications]] =
-    val specStrings = s.flatMap(_(1))
-    if specStrings.isEmpty then Right(None)
-    else
-      unwrapTryEither(Try(Right(Some(AnimationSpecifications(specStrings)))).recover {
-        case e: Exception => Left(e.getMessage)
-      })
-}
-
-val colorConverter = new ValueConverter[Color] {
-  val argType: ArgType.V = org.rogach.scallop.ArgType.SINGLE
-  def parse(s: List[(String, List[String])]): Either[String, Option[Color]] =
-    if s.isEmpty || s.head._2.isEmpty then Right(None)
-    else
-      val input = s.head._2.head.trim
-      unwrapTryEither(Try(parseColorValue(input)).recover {
-        case e: Exception => Left(s"Color '$input' not recognized: ${e.getMessage}")
-      })
-
-  private def parseColorValue(input: String): Either[String, Option[Color]] =
-    if input.contains(',') then parseInts(input)
-    else parseHex(input)
-
-  private def isValidHexColorLength(len: Int): Boolean = (6 to 8).contains(len)
-
-  private def parseHex(input: String): Either[String, Option[Color]] =
-    input.length match
-      case len if isValidHexColorLength(len) => Right(Some(Color.valueOf(input)))
-      case _ => Left(s"Color '$input' must be a name or a hex value RRGGBB or RRGGBBAA")
-
-  private def hasInvalidCommaPlacement(input: String): Boolean =
-    input.startsWith(",") || input.endsWith(",")
-
-  private def isValidRgbValue(n: Int): Boolean =
-    n >= 0 && n <= Const.rgbMaxValue
-
-  private def parseInts(input: String): Either[String, Option[Color]] =
-    val parts = input.trim.split(",").map(_.trim)
-    parts.length match
-      case n if hasInvalidCommaPlacement(input) =>
-        Left(s"Color '$input' must not start or end with a comma")
-      case n if n < 3 || n > 4 =>
-        Left(s"Color '$input' must have 3 or 4 components")
-      case _ =>
-        val nums = parts.map(_.toInt)
-        if !nums.forall(isValidRgbValue) then
-            Left(s"Color '$input' has values out of range 0-${Const.rgbMaxValue}")
-        else
-          Right(Some(ColorConversions.rgbIntsToColor(nums)))
-}
-
-val vector3Converter = new ValueConverter[Vector3] {
-  val argType: ArgType.V = org.rogach.scallop.ArgType.SINGLE
-  def parse(s: List[(String, List[String])]): Either[String, Option[Vector3]] =
-    if s.isEmpty || s.head._2.isEmpty then Right(None)
-    else
-      val input = s.head._2.head.trim
-      unwrapTryEither(Try {
-        val parts = input.split(",").map(_.trim.toFloat)
-        if parts.length != 3 then
-          Left(s"Vector3 '$input' must have exactly 3 components (x,y,z)")
-        else
-          Right(Some(Vector3(parts(0), parts(1), parts(2))))
-      }.recover {
-        case e: NumberFormatException => Left(s"Vector3 '$input' contains non-numeric values")
-        case e: Exception => Left(s"Vector3 '$input' not recognized: ${e.getMessage}")
-      })
-}
-
-enum Axis:
-  case X, Y, Z
-
-case class PlaneSpec(axis: Axis, positive: Boolean, value: Float)
-
-val planeSpecConverter = new ValueConverter[PlaneSpec] {
-  val argType: ArgType.V = org.rogach.scallop.ArgType.SINGLE
-  def parse(s: List[(String, List[String])]): Either[String, Option[PlaneSpec]] =
-    if s.isEmpty || s.head._2.isEmpty then Right(None)
-    else
-      val input = s.head._2.head.trim
-      unwrapTryEither(Try {
-        // Plane spec pattern: [+-]?<axis>:<value>
-        // - ([+-]?): optional sign indicating normal direction (group 1)
-        // - ([xyz]): axis perpendicular to plane (group 2)
-        // - (-?\d+\.?\d*): position value on axis, can be negative (group 3)
-        // Example: "y:-2" (plane at y=-2, normal in +Y direction)
-        //          "-z:5.5" (plane at z=5.5, normal in -Z direction)
-        val pattern = """([+-]?)([xyz]):(-?\d+\.?\d*)""".r
-        input match
-          case pattern(sign, axisStr, valueStr) =>
-            val axis = axisStr.toLowerCase match
-              case "x" => Axis.X
-              case "y" => Axis.Y
-              case "z" => Axis.Z
-            val positive = sign != "-"  // Default to + if no sign given
-            val value = valueStr.toFloat
-            Right(Some(PlaneSpec(axis, positive, value)))
-          case _ =>
-            Left(
-              s"Plane spec '$input' must match format [+-]?x|y|z:[-]<value> " +
-              "(e.g., y:-2, +y:-2, or -z:5.5)"
-            )
-      }.recover {
-        case e: Exception => Left(s"Plane spec '$input' not recognized: ${e.getMessage}")
-      })
-}
-
-enum LightType:
-  case DIRECTIONAL, POINT
-
-case class LightSpec(lightType: LightType, position: Vector3, intensity: Float, color: Color)
-
-val lightSpecConverter = new ValueConverter[List[LightSpec]] {
-  val argType: ArgType.V = org.rogach.scallop.ArgType.LIST
-  def parse(s: List[(String, List[String])]): Either[String, Option[List[LightSpec]]] =
-    val specStrings = s.flatMap(_._2)
-    if specStrings.isEmpty then Right(None)
-    else
-      // Light spec pattern: <type>:x,y,z[:intensity[:color]]
-      // - (?i): case-insensitive matching
-      // - (directional|point): light type (captured group 1)
-      // - (-?\d+\.?\d*): x,y,z coordinates, can be negative floats (groups 2-4)
-      // - (?::([^:]*)): optional intensity (group 5)
-      // - (?::([^:]+)): optional color as hex or RGB (group 6)
-      // Example: "directional:0,1,-1:2.0:ffffff" or "point:0,5,0"
-      val pattern = """(?i)(directional|point):(-?\d+\.?\d*),(-?\d+\.?\d*),(-?\d+\.?\d*)(?::([^:]*))?(?::([^:]+))?""".r
-      specStrings.map { input =>
-        input.trim match
-          case pattern(typeStr, x, y, z, intensityStr, colorStr) =>
-            Try {
-              val lightType = typeStr.toLowerCase match
-                case "directional" => LightType.DIRECTIONAL
-                case "point" => LightType.POINT
-              val position = Vector3(x.toFloat, y.toFloat, z.toFloat)
-              val intensity = Option(intensityStr).filter(_.nonEmpty).map(_.toFloat).getOrElse(1.0f)
-              val color = Option(colorStr).map { c =>
-                if c.contains(',') then
-                  val parts = c.split(",").map(_.trim.toInt)
-                  ColorConversions.rgbIntsToColor(parts)
-                else
-                  Color.valueOf(c)
-              }.getOrElse(Color.WHITE)
-              LightSpec(lightType, position, intensity, color)
-            }.toEither.left.map(e => s"Light spec '$input' not recognized: ${e.getMessage}")
-          case _ =>
-            Left(
-              s"Light spec '$input' must match format " +
-              "<type>:x,y,z[:intensity[:color]] where type is directional|point " +
-              "(e.g., directional:0,1,-1, point:0,5,0:2.0:ffffff)"
-            )
-      }.foldLeft[Either[String, List[LightSpec]]](Right(List.empty)) {
-        case (Right(acc), Right(spec)) => Right(acc :+ spec)
-        case (Left(err), _) => Left(err)
-        case (_, Left(err)) => Left(err)
-      }.map(Some(_))
-}
-
-// Plane color specification: solid (one color) or checkered (two colors)
-// Uses menger.common.Color for compatibility with OptiX renderer API
-case class PlaneColorSpec(color1: menger.common.Color, color2: Option[menger.common.Color]):
-  def isSolid: Boolean = color2.isEmpty
-  def isCheckered: Boolean = color2.isDefined
-
-val planeColorSpecConverter = new ValueConverter[PlaneColorSpec] {
-  val argType: ArgType.V = org.rogach.scallop.ArgType.SINGLE
-
-  def parse(s: List[(String, List[String])]): Either[String, Option[PlaneColorSpec]] =
-    if s.isEmpty || s.head._2.isEmpty then Right(None)
-    else
-      val input = s.head._2.head.trim
-      unwrapTryEither(Try(parseSpec(input)).recover {
-        case e: Exception => Left(s"Plane color '$input' not recognized: ${e.getMessage}")
-      })
-
-  private def parseSpec(input: String): Either[String, Option[PlaneColorSpec]] =
-    if input.contains(':') then parseCheckered(input)
-    else parseSolid(input)
-
-  private def parseSolid(input: String): Either[String, Option[PlaneColorSpec]] =
-    parseHexColor(input.stripPrefix("#")).map(c => Some(PlaneColorSpec(c, None)))
-
-  private def parseCheckered(input: String): Either[String, Option[PlaneColorSpec]] =
-    val parts = input.split(":")
-    if parts.length != 2 then
-      Left("Checkered plane color must have exactly two colors separated by ':' (e.g., RRGGBB:RRGGBB)")
-    else
-      for
-        c1 <- parseHexColor(parts(0).stripPrefix("#"))
-        c2 <- parseHexColor(parts(1).stripPrefix("#"))
-      yield Some(PlaneColorSpec(c1, Some(c2)))
-
-  private def parseHexColor(hex: String): Either[String, menger.common.Color] =
-    if hex.length != 6 then
-      Left(s"Color '$hex' must be exactly 6 hex digits (RRGGBB)")
-    else
-      Try { menger.common.Color.fromHex(hex) }.toEither.left.map(_ => s"Color '$hex' contains invalid hex digits")
-}
-
-val objectSpecConverter = new ValueConverter[List[ObjectSpec]] {
-  val argType: ArgType.V = org.rogach.scallop.ArgType.LIST
-  def parse(s: List[(String, List[String])]): Either[String, Option[List[ObjectSpec]]] =
-    val specStrings = s.flatMap(_._2)
-    if specStrings.isEmpty then Right(None)
-    else
-      ObjectSpec.parseAll(specStrings) match
-        case Right(objects) => Right(Some(objects))
-        case Left(error) => Left(error)
-}
