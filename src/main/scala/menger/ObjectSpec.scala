@@ -4,6 +4,7 @@ import scala.util.Try
 
 import menger.common.Color
 import menger.common.ObjectType
+import menger.optix.Material
 
 /**
  * Object specification parsed from CLI --object flag.
@@ -15,6 +16,8 @@ import menger.common.ObjectType
  *   type=sponge-volume:pos=-2,0,0:size=2.0:level=3:color=#00FF00
  *   type=sponge-surface:pos=0,2,0:size=2.0:level=2.5:color=#FFFF00
  *   type=cube-sponge:pos=1,0,0:size=2.0:level=2:color=#FF00FF
+ *   type=sphere:pos=0,0,0:material=glass:ior=1.7
+ *   type=cube:pos=0,0,0:material=metal:color=#FFD700
  */
 case class ObjectSpec(
   objectType: String,
@@ -24,14 +27,23 @@ case class ObjectSpec(
   size: Float = 1.0f,
   level: Option[Float] = None,
   color: Option[Color] = None,
-  ior: Float = 1.0f
+  ior: Float = 1.0f,
+  material: Option[Material] = None
 )
 
 object ObjectSpec:
 
   /**
    * Parse object specification from keyword=value format.
-   * Format: type=TYPE:pos=x,y,z:size=S:level=L:color=#RRGGBB:ior=I
+   * Format: type=TYPE:pos=x,y,z:size=S:level=L:color=#RRGGBB:ior=I:material=PRESET
+   * 
+   * Material keywords:
+   *   material=PRESET - base material preset (glass, water, diamond, chrome, gold, copper, metal, plastic, matte)
+   *   ior=VALUE       - override IOR (also applies without material preset)
+   *   roughness=VALUE - override roughness (only with material preset)
+   *   metallic=VALUE  - override metallic (only with material preset)
+   *   specular=VALUE  - override specular (only with material preset)
+   *   color=#RRGGBB   - override color (works with or without material preset)
    */
   def parse(spec: String): Either[String, ObjectSpec] =
     val parts = spec.split(":").map(_.trim)
@@ -48,8 +60,9 @@ object ObjectSpec:
       level <- parseLevel(kvPairs)
       color <- parseColor(kvPairs)
       ior <- parseIOR(kvPairs)
+      material <- parseMaterial(kvPairs, color, ior)
       _ <- validateSpongeLevel(objType, level)
-    yield ObjectSpec(objType, x, y, z, size, level, color, ior)
+    yield ObjectSpec(objType, x, y, z, size, level, color, ior, material)
 
   private def parseObjectType(kvPairs: Map[String, String]): Either[String, String] =
     kvPairs.get("type") match
@@ -88,6 +101,34 @@ object ObjectSpec:
 
   private def parseIOR(kvPairs: Map[String, String]): Either[String, Float] =
     Try(kvPairs.get("ior").map(_.toFloat).getOrElse(1.0f)).toEither.left.map(_.getMessage)
+
+  private def parseMaterial(
+    kvPairs: Map[String, String],
+    color: Option[Color],
+    ior: Float
+  ): Either[String, Option[Material]] =
+    kvPairs.get("material") match
+      case Some(presetName) =>
+        Material.fromName(presetName) match
+          case Some(baseMaterial) =>
+            Try {
+              val withColor = color.map(c => baseMaterial.copy(color = c)).getOrElse(baseMaterial)
+              val withIor = if kvPairs.contains("ior") then withColor.copy(ior = ior) else withColor
+              val withRoughness = kvPairs.get("roughness")
+                .map(v => withIor.copy(roughness = v.toFloat))
+                .getOrElse(withIor)
+              val withMetallic = kvPairs.get("metallic")
+                .map(v => withRoughness.copy(metallic = v.toFloat))
+                .getOrElse(withRoughness)
+              val withSpecular = kvPairs.get("specular")
+                .map(v => withMetallic.copy(specular = v.toFloat))
+                .getOrElse(withMetallic)
+              Some(withSpecular)
+            }.toEither.left.map(e => s"Invalid material override: ${e.getMessage}")
+          case None =>
+            Left(s"Unknown material preset: '$presetName'. Valid presets: ${Material.presetNames.mkString(", ")}")
+      case None =>
+        Right(None)
 
   private def validateSpongeLevel(objType: String, level: Option[Float]): Either[String, Unit] =
     if ObjectType.isSponge(objType) && level.isEmpty then

@@ -1,6 +1,6 @@
 package menger
 
-import menger.common.Color
+import menger.optix.Material
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -155,3 +155,84 @@ class ObjectSpecTest extends AnyFlatSpec with Matchers:
         obj.color.isDefined shouldBe true
         obj.ior shouldBe 1.5f
       case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  // Material preset tests (Step 7.4)
+  "ObjectSpec material parsing" should "parse material preset" in:
+    val result = ObjectSpec.parse("type=sphere:pos=0,0,0:material=glass")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.ior shouldBe 1.5f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse material with IOR override" in:
+    val result = ObjectSpec.parse("type=sphere:pos=0,0,0:material=glass:ior=1.7")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.ior shouldBe 1.7f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse material with color override" in:
+    val result = ObjectSpec.parse("type=cube:pos=0,0,0:material=metal:color=#FFD700")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        // Gold color: #FFD700 = RGB(1.0, 0.843, 0.0)
+        spec.material.get.color.r shouldBe 1.0f
+        spec.material.get.color.g should be(0.84f +- 0.01f)
+        spec.material.get.color.b shouldBe 0.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse material with multiple overrides" in:
+    val result = ObjectSpec.parse("type=sphere:material=plastic:roughness=0.5:color=#FF0000")
+    result match
+      case Right(spec) =>
+        val mat = spec.material.get
+        mat.roughness shouldBe 0.5f
+        mat.color.r shouldBe 1.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "return None material for spec without material keyword" in:
+    val result = ObjectSpec.parse("type=sphere:pos=0,0,0")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe None
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "fail for unknown material preset" in:
+    val result = ObjectSpec.parse("type=sphere:pos=0,0,0:material=unobtanium")
+    result shouldBe a[Left[_, _]]
+    result.left.map(_ should include("Unknown material preset"))
+
+  it should "parse all known material presets" in:
+    Material.presetNames.foreach { presetName =>
+      val result = ObjectSpec.parse(s"type=sphere:material=$presetName")
+      result match
+        case Right(spec) =>
+          spec.material shouldBe defined
+        case Left(error) =>
+          fail(s"Failed to parse preset '$presetName': $error")
+    }
+
+  it should "be case insensitive for material presets" in:
+    val result = ObjectSpec.parse("type=sphere:material=GLASS")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.ior shouldBe 1.5f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  "Material.fromName" should "return Glass for 'glass'" in:
+    Material.fromName("glass") shouldBe Some(Material.Glass)
+
+  it should "return Diamond for 'diamond'" in:
+    Material.fromName("diamond") shouldBe Some(Material.Diamond)
+
+  it should "return None for unknown preset" in:
+    Material.fromName("unobtanium") shouldBe None
+
+  it should "be case insensitive" in:
+    Material.fromName("GLASS") shouldBe Some(Material.Glass)
+    Material.fromName("Glass") shouldBe Some(Material.Glass)
+    Material.fromName("gLaSs") shouldBe Some(Material.Glass)

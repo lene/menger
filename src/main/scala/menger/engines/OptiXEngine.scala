@@ -230,16 +230,20 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
     // addSphereInstance() automatically enables IAS mode - do NOT call setSphere() first!
     specs.foreach { spec =>
-      val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
+      // Use material properties if available, otherwise fall back to spec color/ior
+      val (color, ior) = spec.material match
+        case Some(mat) => (mat.color, mat.ior)
+        case None => (spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f)), spec.ior)
+
       val scale = spec.size
 
       val transform = TransformUtil.createScaleTranslation(scale, spec.x, spec.y, spec.z)
 
-      val instanceId = renderer.addSphereInstance(transform, color, spec.ior)
+      val instanceId = renderer.addSphereInstance(transform, color, ior)
 
       instanceId match
         case Some(id) =>
-          logger.debug(s"Added sphere instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, color=$color, ior=${spec.ior}")
+          logger.debug(s"Added sphere instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, color=$color, ior=$ior")
         case None =>
           logger.error(s"Failed to add sphere instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
     }
@@ -264,12 +268,16 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
     // Add instances
     specs.foreach { spec =>
       val position = menger.common.Vector[3](spec.x, spec.y, spec.z)
-      val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
-      val instanceId = renderer.addTriangleMeshInstance(position, color, spec.ior)
+      // Use material properties if available, otherwise fall back to spec color/ior
+      val (color, ior) = spec.material match
+        case Some(mat) => (mat.color, mat.ior)
+        case None => (spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f)), spec.ior)
+
+      val instanceId = renderer.addTriangleMeshInstance(position, color, ior)
 
       instanceId match
         case Some(id) =>
-          logger.debug(s"Added ${spec.objectType} instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), color=$color, ior=${spec.ior}")
+          logger.debug(s"Added ${spec.objectType} instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), color=$color, ior=$ior")
         case None =>
           logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
     }
@@ -344,7 +352,10 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
     require(spec.level.isDefined, "cube-sponge requires level")
     // Safe .get: level validated by require above
     val level = spec.level.get.toInt
-    val color = spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f))
+    // Use material properties if available, otherwise fall back to spec color/ior
+    val (color, ior) = spec.material match
+      case Some(mat) => (mat.color, mat.ior)
+      case None => (spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f)), spec.ior)
 
     // Generate all cube transforms using CubeSpongeGenerator
     val generator = CubeSpongeGenerator(
@@ -357,7 +368,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
     // Add each cube as an instance
     generator.generateTransforms.foreach { case (position, scale) =>
-      addSingleCubeInstance(position, scale, color, spec.ior, renderer)
+      addSingleCubeInstance(position, scale, color, ior, renderer)
     }
 
     logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
