@@ -138,6 +138,7 @@ Test:Full:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH
   timeout: 15m
   retry: 2
   before_script:
@@ -184,6 +185,7 @@ Test:OptiXJni:
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH
   before_script:
     # Verify GPU is available - fail fast if not configured
     - nvidia-smi
@@ -220,6 +222,7 @@ Test:ComputeSanitizer:
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH
   before_script:
     - nvidia-smi
     # Create missing symlink for RTX core library if needed
@@ -278,6 +281,7 @@ Test:Valgrind:
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH
   before_script:
     - nvidia-smi
     # Install Valgrind
@@ -347,6 +351,7 @@ Test:OptiXIntegration:
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH
   before_script:
     - apt-get -y update
     - apt-get -y install mesa-utils x11-xserver-utils xvfb unzip
@@ -376,6 +381,7 @@ CheckCoverage:
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH
   before_script:
     - apt-get -y update
     - apt-get -y install bc mesa-utils x11-xserver-utils xvfb curl
@@ -408,6 +414,7 @@ Scalafix:
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH
   script:
     # Scalafix only checks Scala code style, no GPU needed
     - sbt "scalafix --check"
