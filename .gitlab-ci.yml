@@ -23,6 +23,20 @@ include:
   - template: Security/Dependency-Scanning.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
 
+# Control when pipelines are created to ensure:
+# - MR pipelines run for merge requests
+# - Tag pipelines run for tags (triggered by CreateRelease)
+# - Main branch pipelines run after MR merge (for CreateRelease job)
+# - Feature branch pipelines are skipped when MR is open (avoid duplicates)
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
 # Override code_quality from template to allow failure due to Docker API version mismatch
 # in GitLab's DinD service (API 1.41 vs required 1.44). Code quality is validated by
 # scalafix in pre-push hooks and semgrep-sast job.
@@ -108,7 +122,7 @@ Test:SbtImage:
     reports:
       junit: target/test-reports/**/TEST-*.xml
 
-# Full test suite - Runs on ALL pushes (no rules restrictions)
+# Full test suite - Runs on MR, main, and tag pipelines
 # Uses pre-built Docker image with CUDA, OptiX, Java 25, and sbt
 # IMPORTANT: Requires runner with GPU support configured (see optix-jni/RUNNER_SETUP.md)
 Test:Full:
@@ -120,7 +134,10 @@ Test:Full:
   variables:
     # Request graphics capability to ensure RTX/OptiX libraries are mounted
     NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
-  # NO rules: section - runs on ALL branch pushes
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
   timeout: 15m
   retry: 2
   before_script:
@@ -432,6 +449,10 @@ Run:UseDocker:
   needs: []
   timeout: 20m  # Fail fast on hangs, retry will recover
   retry: 2      # 1 initial + 2 retries = 3 attempts max = 60m total (GitLab max retry=2)
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
   before_script:
     - apt-get -y update
     - apt-get -y install mesa-utils x11-xserver-utils xvfb
@@ -455,6 +476,10 @@ CheckRunTime:
   needs: []
   tags:
     - nvidia
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
   before_script:
     - apt-get -y update
     - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb
@@ -524,6 +549,10 @@ BuildDeployable:
   needs: []
   tags:
     - nvidia
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
   script:
     # Build deployable package with full OptiX JNI
     - sbt "Universal / packageBin"
@@ -532,23 +561,28 @@ BuildDeployable:
     paths:
       - menger-*.*.*.zip
 
-CreateTag:
+# Creates GitLab release AND tag in one job using the release: keyword.
+# This automatically triggers a tag pipeline where Upload, PushToGithub, and
+# CreateGithubRelease jobs run.
+CreateRelease:
   stage: release
-  image: alpine:latest
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: BuildDeployable
+      artifacts: true
   rules:
+    # Don't run on tag pipeline (would duplicate the release)
+    - if: $CI_COMMIT_TAG
+      when: never
+    # Run on main branch after MR merge
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE != "schedule"
-      when: on_success
-  before_script:
-    - apk update
-    - apk add git
-    - git config user.email "${GITLAB_USER_EMAIL}"
-    - git config user.name "${GITLAB_USER_NAME}"
   script:
-    - VERSION_SBT=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
-    - echo "**** Tagging release as version $VERSION_SBT"
-    - git remote add tag-origin https://oauth2:${GITLAB_ACCESS_TOKEN}@gitlab.com/${CI_PROJECT_PATH}
-    - git tag -a "${VERSION_SBT}" -m "Released $(date +%Y-%m-%d)"
-    - git push tag-origin "${VERSION_SBT}"
+    - echo "Creating release for version ${DEPLOYABLE_VERSION}"
+  release:
+    name: 'Release ${DEPLOYABLE_VERSION}'
+    description: 'Released ${DEPLOYABLE_VERSION}'
+    tag_name: '${DEPLOYABLE_VERSION}'
+    ref: '$CI_COMMIT_SHA'
 
 Upload:
   stage: release
@@ -574,7 +608,6 @@ PushToGithub:
     - if: "$CI_COMMIT_TAG"
       when: on_success
   needs:
-    - Test:SbtImage
     - Run:UseDocker
     - CheckRunTime
   before_script:
@@ -633,19 +666,3 @@ CreateGithubRelease:
          -H "X-GitHub-Api-Version: 2022-11-28" 
          -H "Authorization: Bearer ${GITHUB_API_TOKEN}"
          ${RELEASE_API_URL} -d "${POST_DATA}"'
-
-CreateGitlabRelease:
-  stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
-  needs:
-    - job: BuildDeployable
-      artifacts: true
-  rules:
-    - if: $CI_COMMIT_TAG
-  script:
-    - echo 'running release_job'
-  release:
-    name: 'Release $CI_COMMIT_TAG'
-    description: 'Created using the release-cli'
-    tag_name: '$CI_COMMIT_TAG'
-    ref: '$CI_COMMIT_TAG'
