@@ -34,11 +34,12 @@ class SpongeByVolumeMeshSuite extends AnyFlatSpec with Matchers:
   it should "position cubes correctly at level 1" in:
     val sponge = SpongeByVolume(Vector3.Zero, 3.0f, level = 1)
     val mesh = sponge.toTriangleMesh
+    val stride = mesh.vertexStride
 
     val vertices = mesh.vertices
-    val xs = (0 until mesh.numVertices).map(i => vertices(i * 6))
-    val ys = (0 until mesh.numVertices).map(i => vertices(i * 6 + 1))
-    val zs = (0 until mesh.numVertices).map(i => vertices(i * 6 + 2))
+    val xs = (0 until mesh.numVertices).map(i => vertices(i * stride))
+    val ys = (0 until mesh.numVertices).map(i => vertices(i * stride + 1))
+    val zs = (0 until mesh.numVertices).map(i => vertices(i * stride + 2))
 
     xs.min should be < -0.9f
     xs.max should be > 0.9f
@@ -50,10 +51,11 @@ class SpongeByVolumeMeshSuite extends AnyFlatSpec with Matchers:
   it should "preserve proper normals for faces" in:
     val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 0)
     val mesh = sponge.toTriangleMesh
+    val stride = mesh.vertexStride
 
     for i <- 0 until mesh.numVertices do
-      val nx = mesh.vertices(i * 6 + 3)
-      val ny = mesh.vertices(i * 6 + 4)
-      val nz = mesh.vertices(i * 6 + 5)
+      val nx = mesh.vertices(i * stride + 3)
+      val ny = mesh.vertices(i * stride + 4)
+      val nz = mesh.vertices(i * stride + 5)
       val lengthSquared = nx * nx + ny * ny + nz * nz
       lengthSquared shouldBe 1.0f +- 0.01f

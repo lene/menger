@@ -38,12 +38,15 @@ case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Dir
       case Y | Direction.negY => Seq((-half, 0f, -half), (half, 0f, -half), (half, 0f, half), (-half, 0f, half))
       case Z | Direction.negZ => Seq((-half, -half, 0f), (half, -half, 0f), (half, half, 0f), (-half, half, 0f))
 
-    val verts = offsets.flatMap { case (dx, dy, dz) =>
-      Seq(xCen + dx, yCen + dy, zCen + dz, n(0), n(1), n(2))
+    // UV coordinates for quad corners: (0,0), (1,0), (1,1), (0,1)
+    val uvs = Seq((0f, 0f), (1f, 0f), (1f, 1f), (0f, 1f))
+
+    val verts = offsets.zip(uvs).flatMap { case ((dx, dy, dz), (u, v)) =>
+      Seq(xCen + dx, yCen + dy, zCen + dz, n(0), n(1), n(2), u, v)
     }.toArray
 
     val indices = Array(0, 1, 2, 0, 2, 3)
-    TriangleMeshData(verts, indices)
+    TriangleMeshData(verts, indices, 8)
 
   private lazy val unrotatedSubFaces: Seq[Face] =
     for (x <- -1 to 1; y <- -1 to 1 if abs(x) + abs(y) > 0)

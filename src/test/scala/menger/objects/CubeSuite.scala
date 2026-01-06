@@ -15,9 +15,10 @@ class CubeSuite extends AnyFlatSpec with Matchers:
     val mesh = Cube().toTriangleMesh
     mesh.numTriangles shouldBe 12
 
-  it should "produce 144 floats for vertices (24 × 6)" in:
+  it should "produce 192 floats for vertices (24 × 8, with UVs)" in:
     val mesh = Cube().toTriangleMesh
-    mesh.vertices.length shouldBe 144
+    mesh.vertices.length shouldBe 192
+    mesh.vertexStride shouldBe 8
 
   it should "produce 36 indices (12 × 3)" in:
     val mesh = Cube().toTriangleMesh
@@ -30,19 +31,21 @@ class CubeSuite extends AnyFlatSpec with Matchers:
 
   it should "have normalized normals" in:
     val mesh = Cube().toTriangleMesh
+    val stride = mesh.vertexStride
     for i <- 0 until mesh.numVertices do
-      val nx = mesh.vertices(i * 6 + 3)
-      val ny = mesh.vertices(i * 6 + 4)
-      val nz = mesh.vertices(i * 6 + 5)
+      val nx = mesh.vertices(i * stride + 3)
+      val ny = mesh.vertices(i * stride + 4)
+      val nz = mesh.vertices(i * stride + 5)
       val length = math.sqrt(nx * nx + ny * ny + nz * nz)
       length shouldBe 1.0 +- 0.001
 
   it should "have normals pointing in all 6 directions" in:
     val mesh = Cube().toTriangleMesh
+    val stride = mesh.vertexStride
     val normals = (0 until mesh.numVertices).map { i =>
-      val nx = mesh.vertices(i * 6 + 3)
-      val ny = mesh.vertices(i * 6 + 4)
-      val nz = mesh.vertices(i * 6 + 5)
+      val nx = mesh.vertices(i * stride + 3)
+      val ny = mesh.vertices(i * stride + 4)
+      val nz = mesh.vertices(i * stride + 5)
       (nx.round, ny.round, nz.round)
     }.toSet
 
@@ -55,10 +58,11 @@ class CubeSuite extends AnyFlatSpec with Matchers:
 
   it should "respect center parameter" in:
     val mesh = Cube(center = Vector3(1.0f, 2.0f, 3.0f), scale = 2.0f).toTriangleMesh
+    val stride = mesh.vertexStride
 
-    val xs = (0 until mesh.numVertices).map(i => mesh.vertices(i * 6))
-    val ys = (0 until mesh.numVertices).map(i => mesh.vertices(i * 6 + 1))
-    val zs = (0 until mesh.numVertices).map(i => mesh.vertices(i * 6 + 2))
+    val xs = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride))
+    val ys = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride + 1))
+    val zs = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride + 2))
 
     // Center at (1, 2, 3), scale 2 means half = 1
     xs.min shouldBe 0.0f +- 0.001f
@@ -71,11 +75,12 @@ class CubeSuite extends AnyFlatSpec with Matchers:
   it should "respect scale parameter" in:
     forAll(Seq(0.5f, 1.0f, 2.0f, 10.0f)) { scale =>
       val mesh = Cube(center = Vector3.Zero, scale = scale).toTriangleMesh
+      val stride = mesh.vertexStride
       val half = scale / 2
 
-      val xs = (0 until mesh.numVertices).map(i => mesh.vertices(i * 6))
-      val ys = (0 until mesh.numVertices).map(i => mesh.vertices(i * 6 + 1))
-      val zs = (0 until mesh.numVertices).map(i => mesh.vertices(i * 6 + 2))
+      val xs = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride))
+      val ys = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride + 1))
+      val zs = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride + 2))
 
       xs.min shouldBe -half +- 0.001f
       xs.max shouldBe half +- 0.001f
@@ -87,11 +92,12 @@ class CubeSuite extends AnyFlatSpec with Matchers:
 
   it should "have 4 vertices per normal direction" in:
     val mesh = Cube().toTriangleMesh
+    val stride = mesh.vertexStride
     val normalCounts = (0 until mesh.numVertices)
       .map { i =>
-        val nx = mesh.vertices(i * 6 + 3).round
-        val ny = mesh.vertices(i * 6 + 4).round
-        val nz = mesh.vertices(i * 6 + 5).round
+        val nx = mesh.vertices(i * stride + 3).round
+        val ny = mesh.vertices(i * stride + 4).round
+        val nz = mesh.vertices(i * stride + 5).round
         (nx, ny, nz)
       }
       .groupBy(identity)
@@ -104,6 +110,16 @@ class CubeSuite extends AnyFlatSpec with Matchers:
     normalCounts((0, -1, 0)) shouldBe 4
     normalCounts((0, 0, 1)) shouldBe 4
     normalCounts((0, 0, -1)) shouldBe 4
+
+  it should "include UV coordinates for all vertices" in:
+    val mesh = Cube().toTriangleMesh
+    mesh.hasUVs shouldBe true
+    val stride = mesh.vertexStride
+    for i <- 0 until mesh.numVertices do
+      val u = mesh.vertices(i * stride + 6)
+      val v = mesh.vertices(i * stride + 7)
+      u should (be >= 0f and be <= 1f)
+      v should (be >= 0f and be <= 1f)
 
   "Cube" should "implement TriangleMeshSource trait" in:
     val cube: menger.common.TriangleMeshSource = Cube()
