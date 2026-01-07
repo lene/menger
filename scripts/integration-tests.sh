@@ -14,6 +14,7 @@ fi
 # Configuration
 DEFAULT_TIMEOUT=0.1
 CAUSTICS_TIMEOUT=1.0
+TEST_ASSETS_DIR="$(dirname "$0")/test-assets"
 
 # Test tracking
 PASSED=0
@@ -156,6 +157,25 @@ test_scene_options() {
         --optix --object sphere --width 400 --height 300 --save-name test_size.png --plane y:-2
 }
 
+test_materials() {
+    echo "Materials:"
+    run_test "material preset glass" --optix --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=glass
+    run_test "material preset chrome" --optix --plane y:-2 \
+        --objects type=cube:pos=0,0,0:size=0.5:material=chrome
+    run_test "material preset matte" --optix --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=matte
+    run_test "material with color override" --optix --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=metal:color=#FFD700
+}
+
+test_textures() {
+    echo "Textures:"
+    run_test "texture on cube" --optix --plane y:-2 \
+        --texture-dir "$TEST_ASSETS_DIR" \
+        --objects type=cube:pos=0,0,0:size=0.5:texture=test_checker.png
+}
+
 test_caustics() {
     echo "Caustics:"
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "caustics minimal" \
@@ -176,6 +196,8 @@ test_error_handling() {
     run_test_should_fail "invalid object type" --optix --object invalid-type --plane y:-2
     run_test_should_fail "invalid multi-object type" \
         --optix --objects type=invalid:pos=0,0,0:size=1 --plane y:-2
+    run_test_should_fail "invalid material preset" \
+        --optix --objects type=sphere:pos=0,0,0:size=0.5:material=unobtanium --plane y:-2
 }
 
 # ============================================
@@ -192,6 +214,8 @@ main() {
     test_antialiasing
     test_lighting
     test_scene_options
+    test_materials
+    test_textures
     test_caustics
     test_file_output
     test_error_handling
