@@ -2,20 +2,20 @@ package menger.cli.converters
 
 import scala.util.Try
 
-import menger.AnimationSpecifications
+import menger.AnimationSpecificationSequence
 import menger.ObjectSpec
 import menger.cli.converters.ConverterUtils.unwrapTryEither
 import org.rogach.scallop.ArgType
 import org.rogach.scallop.ValueConverter
 
-given animationSpecificationsConverter: ValueConverter[AnimationSpecifications] with
+given animationSpecificationSequenceConverter: ValueConverter[AnimationSpecificationSequence] with
   val argType: ArgType.V = ArgType.LIST
 
-  def parse(s: List[(String, List[String])]): Either[String, Option[AnimationSpecifications]] =
+  def parse(s: List[(String, List[String])]): Either[String, Option[AnimationSpecificationSequence]] =
     val specStrings = s.flatMap(_(1))
     if specStrings.isEmpty then Right(None)
     else
-      unwrapTryEither(Try(Right(Some(AnimationSpecifications(specStrings)))).recover {
+      unwrapTryEither(Try(Right(Some(AnimationSpecificationSequence(specStrings)))).recover {
         case e: Exception => Left(e.getMessage)
       })
 

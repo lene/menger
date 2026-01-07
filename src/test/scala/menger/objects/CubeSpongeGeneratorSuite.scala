@@ -4,7 +4,7 @@ import com.badlogic.gdx.math.Vector3
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class CubeSpongeGeneratorTest extends AnyFlatSpec with Matchers:
+class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
 
   private val LEVEL_0_CUBE_COUNT = 1
   private val LEVEL_1_CUBE_COUNT = 20

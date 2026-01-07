@@ -4,7 +4,7 @@ import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 
-case class AnimationSpecifications(specification: List[String] = List.empty) extends LazyLogging:
+case class AnimationSpecificationSequence(specification: List[String] = List.empty) extends LazyLogging:
   val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_))
   val numFrames: Int = parts.map(_.frames.getOrElse(0)).sum
   require(parts.forall(_.isTimeSpecValid), "AnimationSpecification.frames not defined")

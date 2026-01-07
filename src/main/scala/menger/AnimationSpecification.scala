@@ -41,13 +41,13 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
   def valid(spongeType: String): Boolean = isTimeSpecValid && animationParametersValid(spongeType)
 
   override def toString: String =
-    // Safe .get: frames guaranteed Some by AnimationSpecifications validation (isTimeSpecValid check)
+    // Safe .get: frames guaranteed Some by AnimationSpecificationSequence validation (isTimeSpecValid check)
     val timeSpec = s"frames=${frames.get}"
     val animationSpec = animationParameters.mkString(":")
     s"$timeSpec:$animationSpec"
 
   private def current(bounds: StartEnd, frame: Int): Float =
-    // Safe .get: frames guaranteed Some by AnimationSpecifications validation (isTimeSpecValid check)
+    // Safe .get: frames guaranteed Some by AnimationSpecificationSequence validation (isTimeSpecValid check)
     require(frame <= frames.get, s"Frame $frame exceeds total frames ${frames.get}")
     bounds.start + (bounds.end - bounds.start) * frame / frames.get
 

@@ -1,6 +1,6 @@
 package menger.cli
 
-import menger.AnimationSpecifications
+import menger.AnimationSpecificationSequence
 import menger.ObjectSpec
 import menger.common.Const
 import org.rogach.scallop.ScallopConf
@@ -10,7 +10,7 @@ trait CliValidation:
   self: ScallopConf =>
 
   protected def timeout: ScallopOption[Float]
-  protected def animate: ScallopOption[AnimationSpecifications]
+  protected def animate: ScallopOption[AnimationSpecificationSequence]
   protected def spongeType: ScallopOption[String]
   protected def level: ScallopOption[Float]
   protected def rotX: ScallopOption[Float]
@@ -182,7 +182,7 @@ trait CliValidation:
     hasObjectType && hasObjects
 
   private def validateAnimationSpecification(
-    spec: AnimationSpecifications, spongeType: String
+    spec: AnimationSpecificationSequence, spongeType: String
   ): Either[String, Unit] =
     if spec.valid(spongeType) && spec.isTimeSpecValid then Right(())
     else Left("Invalid animation specification")

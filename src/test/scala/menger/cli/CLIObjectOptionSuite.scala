@@ -1,4 +1,6 @@
-package menger
+package menger.cli
+
+import menger.MengerCLIOptions
 
 import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec

@@ -3,7 +3,7 @@ package menger
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TextureLoaderTest extends AnyFlatSpec with Matchers:
+class TextureLoaderSuite extends AnyFlatSpec with Matchers:
 
   "TextureLoader.createCheckerTexture" should "create texture with correct dimensions" in:
     val texture = TextureLoader.createCheckerTexture(64, 64)

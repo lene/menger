@@ -3,17 +3,17 @@ package menger
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class AnimationSpecificationsSuite extends AnyFlatSpec with Matchers:
-  "AnimationSpecifications" should "be empty by default" in:
-    AnimationSpecifications().parts should be (empty)
+class AnimationSpecificationSequenceSuite extends AnyFlatSpec with Matchers:
+  "AnimationSpecificationSequence" should "be empty by default" in:
+    AnimationSpecificationSequence().parts should be (empty)
 
   "Finding the animation specification for a frame" should "return the frame if only one part" in:
-    AnimationSpecifications(List("frames=10:rot-x-w=0-10")).partAndFrame(5).get shouldBe (
+    AnimationSpecificationSequence(List("frames=10:rot-x-w=0-10")).partAndFrame(5).get shouldBe (
       List(AnimationSpecification("frames=10:rot-x-w=0-10")), 5
     )
 
   it should "return the correct part if only one part and multiple rotations" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x-w=0-10:rot-y-w=90-100")
     ).partAndFrame(5).get shouldBe (
       List(AnimationSpecification("frames=10:rot-x-w=0-10:rot-y-w=90-100")), 5
@@ -21,105 +21,105 @@ class AnimationSpecificationsSuite extends AnyFlatSpec with Matchers:
 
 
   it should "return the correct parts and frame for multiple parts" in:
-    AnimationSpecifications(List(
+    AnimationSpecificationSequence(List(
       "frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
     ).partAndFrame(15).get shouldBe (
       List(AnimationSpecification("frames=10:rot-x-w=0-10"), AnimationSpecification("frames=10:rot-y-w=0-10")), 5
     )
 
   it should "only return the relevant parts for multiple parts if frame is in the first part" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
     ).partAndFrame(5).get shouldBe (
       List(AnimationSpecification("frames=10:rot-x-w=0-10")), 5
     )
 
   it should "fail for a frame outside of the specified range" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
     ).partAndFrame(20).isFailure should be(true)
 
   "RotationProjectionParameters for a frame" should "be correct if no rotation" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x-w=0-10")
     ).rotationProjectionParameters(0).get shouldBe RotationProjectionParameters()
 
   it should "be correct for a single part" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x-w=0-10")
     ).rotationProjectionParameters(5).get shouldBe RotationProjectionParameters(
       rotXW = 5
     )
   
   it should "be correct for a single part with multiple rotations" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x-w=0-10:rot-y-w=90-100")
     ).rotationProjectionParameters(5).get shouldBe RotationProjectionParameters(
       rotXW = 5, rotYW = 95
     )
 
   it should "be correct for a single part with 3D rotation" in :
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x=0-10")
     ).rotationProjectionParameters(5).get shouldBe RotationProjectionParameters(
       rotX = 5
     )
 
   it should "take the first rotation into account when there are two parts" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
     ).rotationProjectionParameters(15).get shouldBe RotationProjectionParameters(
       rotXW = 10, rotYW = 5
     )
 
   it should "also work when there are three parts" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10", "frames=10:rot-z-w=0-10")
     ).rotationProjectionParameters(25).get shouldBe RotationProjectionParameters(
       rotXW = 10, rotYW = 10, rotZW = 5
     )
 
   it should "fail for a frame outside of the specified range" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x-w=0-10", "frames=10:rot-y-w=0-10")
     ).rotationProjectionParameters(20).isFailure should be(true)
 
   it should "fail when specifying seconds as time metric" in:
     an [IllegalArgumentException] should be thrownBy
-      AnimationSpecifications(List("seconds=10:rot-x-w=0-10"))
+      AnimationSpecificationSequence(List("seconds=10:rot-x-w=0-10"))
 
   "Level for a frame" should "be None if no level animation" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:rot-x-w=0-10")
     ).level(5) shouldBe None
 
   it should "be correct for a single part" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:level=0-2")
     ).level(0) shouldBe Some(0.0f)
 
   it should "interpolate correctly at middle frame" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:level=0-2")
     ).level(5) shouldBe Some(1.0f)
 
   it should "interpolate correctly at last frame" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:level=0-2")
     ).level(9) shouldBe Some(1.8f)
 
   it should "work with non-zero start values" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:level=1-3")
     ).level(5) shouldBe Some(2.0f)
 
   it should "work with fractional values" in:
-    AnimationSpecifications(
+    AnimationSpecificationSequence(
       List("frames=10:level=0.5-2.5")
     ).level(5) shouldBe Some(1.5f)
 
   it should "work combined with rotation parameters" in:
-    val specs = AnimationSpecifications(
+    val specs = AnimationSpecificationSequence(
       List("frames=10:level=0-2:rot-x=0-90")
     )
     specs.level(5) shouldBe Some(1.0f)

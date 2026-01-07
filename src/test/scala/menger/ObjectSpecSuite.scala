@@ -4,7 +4,7 @@ import menger.optix.Material
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ObjectSpecTest extends AnyFlatSpec with Matchers:
+class ObjectSpecSuite extends AnyFlatSpec with Matchers:
 
   "ObjectSpec.parse" should "parse sphere with minimal attributes" in:
     val result = ObjectSpec.parse("type=sphere")

@@ -1,12 +1,14 @@
-package menger
+package menger.cli
 
 import com.badlogic.gdx.graphics.Color
+import menger.AnimationSpecification
+import menger.MengerCLIOptions
 import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 
-class OptionsSuite extends AnyFlatSpec with Matchers:
+class CLIOptionsSuite extends AnyFlatSpec with Matchers:
 
   "empty options" should "give default timeout" in:
     val options = SafeMengerCLIOptions(Seq[String]())
@@ -95,7 +97,7 @@ class OptionsSuite extends AnyFlatSpec with Matchers:
   "--animate" should "default to empty animation specifications" in:
     SafeMengerCLIOptions(Seq()).animate.toOption shouldBe None
 
-  it should "be invalid for bad AnimationSpecifications syntax" in:
+  it should "be invalid for bad AnimationSpecificationSequence syntax" in:
     an [ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--animate", "0:1:2:3"))
 

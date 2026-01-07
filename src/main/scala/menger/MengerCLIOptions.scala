@@ -8,7 +8,7 @@ import menger.cli.CliValidation
 import menger.cli.LightSpec
 import menger.cli.PlaneColorSpec
 import menger.cli.PlaneSpec
-import menger.cli.converters.animationSpecificationsConverter
+import menger.cli.converters.animationSpecificationSequenceConverter
 import menger.cli.converters.colorConverter
 import menger.cli.converters.lightSpecConverter
 import menger.cli.converters.objectSpecConverter
@@ -186,10 +186,10 @@ class MengerCLIOptions(arguments: Seq[String])
   )
 
   // === Animation Options ===
-  val animate: ScallopOption[AnimationSpecifications] = opt[AnimationSpecifications](
+  val animate: ScallopOption[AnimationSpecificationSequence] = opt[AnimationSpecificationSequence](
     group = animationGroup,
     descr = "Animation spec: frames=N:param=start-end[:param2=...] (mutually exclusive with --timeout)"
-  )(using animationSpecificationsConverter)
+  )(using animationSpecificationSequenceConverter)
 
   // === OptiX Renderer Options ===
   val optix: ScallopOption[Boolean] = opt[Boolean](
