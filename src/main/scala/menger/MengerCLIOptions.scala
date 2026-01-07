@@ -73,13 +73,11 @@ class MengerCLIOptions(arguments: Seq[String])
     "cube", "square", "square-sponge", "cube-sponge",
     "tesseract", "tesseract-sponge", "tesseract-sponge-2"
   )
-  // Composite pattern: composite[type1,type2,...]
-  private val compositePattern = """composite\[(.+)]""".r
 
   private def isValidSpongeType(spongeType: String): Boolean =
     if basicSpongeTypes.contains(spongeType) then true
     else spongeType match
-      case compositePattern(content) =>
+      case common.Patterns.CompositeType(content) =>
         val components = content.split(",").toSet
         val allowed = Set("cube", "square")
         components.nonEmpty && components.subsetOf(allowed)

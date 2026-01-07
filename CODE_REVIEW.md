@@ -10,7 +10,7 @@
 | Priority | Open | Completed |
 |----------|------|-----------|
 | High | 0 | 5 |
-| Medium | 11 | 15 |
+| Medium | 8 | 18 |
 | Low | 5 | 6 |
 
 ---
@@ -21,14 +21,11 @@
 
 | ID | Description | Location | Est. Hours |
 |----|-------------|----------|------------|
-| M1 | Extract Transform Matrix Utilities to Common Module | `OptiXEngine.scala` | 4 |
 | M2 | Implement Builder Pattern for ObjectSpec | `ObjectSpec.scala` | 3-4 |
 | M3 | Add Comprehensive Error Context | Various | 5-6 |
-| M4 | Extract remaining regex patterns | `AnimationSpecification.scala` | 1 |
-| M5 | Add builder pattern for complex objects | Various | 2 |
+| M5 | Add builder pattern for complex objects | Various | 0.5 |
 | M6 | Extract animation parameter parsing | `MengerCLIOptions.scala` | 1.5 |
 | M7 | Add more specific exception types | `Direction.scala`, etc. | 2 |
-| M8 | Improve test organization | Test files | 2 |
 | M9 | Reduce cognitive complexity | Large methods | 2 |
 | M10 | Add debug logging strategically | Various | 1 |
 | M11 | Mutable state in input controllers | `BaseKeyController.scala`, `OptiXCameraController.scala` | 4 |
@@ -51,7 +48,6 @@
 
 **Files:**
 - `ObjectSpec.scala` - Missing examples for parse error cases
-- Transform utilities - No documentation on matrix format
 
 ### DOC-2. Outdated TODO Comments
 
@@ -139,6 +135,9 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 - ✅ Boolean expressions simplified (13 expressions, 16 helper methods)
 - ✅ Regex documentation and extraction
 - ✅ Naming consistency (`timeSpecValid` → `isTimeSpecValid`)
+- ✅ Test organization improvements (M8) - renamed files, created test packages
+- ✅ Transform matrix utilities (M1) - already in `menger.common.TransformUtil`
+- ✅ Extract regex patterns (M4) - moved to `menger.common.Patterns`
 
 ### Low Priority - Completed
 
@@ -167,10 +166,10 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | ~28 |
+| Medium priority | ~20 |
 | Low priority | ~45 |
 | Documentation | ~4 |
-| **Total** | **~77 hours** |
+| **Total** | **~69 hours** |
 
 ---
 
@@ -192,5 +191,6 @@ Before each release:
 **Good Practices Already in Place:**
 - No `var` or `throw` in production code (wartremover enforced)
 - Functional style throughout
-- Comprehensive test coverage (1400+ tests)
+- Comprehensive test coverage (~900 tests, 78% statement coverage)
+- Coverage protection with ratchet mechanism (60% floor, 80% min, 1% drop threshold)
 - Scalafix integration for consistent style

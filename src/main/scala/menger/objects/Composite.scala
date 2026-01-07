@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.common.Patterns
 import menger.input.Observer
 
 class Composite(
@@ -30,26 +31,6 @@ class Composite(
     s"Composite(${geometries.map(_.toString).mkString(", ")})"
 
 object Composite:
-  /**
-   * Regex pattern for parsing composite type specifications.
-   * 
-   * Format: "composite[type1,type2,...]"
-   * - composite\[: literal string "composite["
-   * - (.+): one or more characters (captured group 1 - comma-separated types)
-   * - ]: literal closing bracket
-   * 
-   * Example: "composite[cube,square]" matches with capture group 1 = "cube,square"
-   */
-  private val compositePattern = """composite\[(.+)]""".r
-
-  /**
-   * Extracts component type names from a composite specification string.
-   * 
-   * @param compositeContent The captured content from composite pattern (e.g., "cube,square")
-   * @return List of individual component type names (e.g., List("cube", "square"))
-   */
-  private def parseComponentTypes(compositeContent: String): List[String] =
-    compositeContent.split(",").toList
 
   def parseCompositeFromCLIOption(
     spongeType: String,
@@ -60,8 +41,8 @@ object Composite:
     createGeometry: (String, Float, Material, Int, RotationProjectionParameters) => Try[Geometry]
   )(using ProfilingConfig): Try[Geometry] =
     spongeType match
-      case compositePattern(content) =>
-        val componentTypes = parseComponentTypes(content)
+      case Patterns.CompositeType(content) =>
+        val componentTypes = Patterns.parseCompositeComponents(content)
         val geometries = componentTypes.map(componentType =>
           createGeometry(componentType, level, material, primitiveType, rotationProjection)
         )
