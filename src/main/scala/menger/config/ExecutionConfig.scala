@@ -8,13 +8,15 @@ package menger.config
  * @param saveName optional screenshot filename (with %d for frame number in animations)
  * @param enableStats enable ray tracing statistics collection and logging
  * @param maxInstances maximum number of object instances allowed in multi-object scenes
+ * @param textureDir base directory for loading texture files
  */
 case class ExecutionConfig(
   fpsLogIntervalMs: Int = 5000,
   timeout: Float = 0f,
   saveName: Option[String] = None,
   enableStats: Boolean = false,
-  maxInstances: Int = 64
+  maxInstances: Int = 64,
+  textureDir: String = "."
 )
 
 object ExecutionConfig:
@@ -31,7 +33,8 @@ object ExecutionConfig:
     timeout = 0.1f,
     saveName = None,
     enableStats = false,
-    maxInstances = 64
+    maxInstances = 64,
+    textureDir = "."
   )
 
   /**
@@ -42,5 +45,6 @@ object ExecutionConfig:
     timeout = 0f,
     saveName = None,
     enableStats = true,
-    maxInstances = 64
+    maxInstances = 64,
+    textureDir = "."
   )

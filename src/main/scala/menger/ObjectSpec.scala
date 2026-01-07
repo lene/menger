@@ -18,6 +18,7 @@ import menger.optix.Material
  *   type=cube-sponge:pos=1,0,0:size=2.0:level=2:color=#FF00FF
  *   type=sphere:pos=0,0,0:material=glass:ior=1.7
  *   type=cube:pos=0,0,0:material=metal:color=#FFD700
+ *   type=cube:pos=0,0,0:texture=brick.png
  */
 case class ObjectSpec(
   objectType: String,
@@ -28,14 +29,15 @@ case class ObjectSpec(
   level: Option[Float] = None,
   color: Option[Color] = None,
   ior: Float = 1.0f,
-  material: Option[Material] = None
+  material: Option[Material] = None,
+  texture: Option[String] = None
 )
 
 object ObjectSpec:
 
   /**
    * Parse object specification from keyword=value format.
-   * Format: type=TYPE:pos=x,y,z:size=S:level=L:color=#RRGGBB:ior=I:material=PRESET
+   * Format: type=TYPE:pos=x,y,z:size=S:level=L:color=#RRGGBB:ior=I:material=PRESET:texture=FILE
    * 
    * Material keywords:
    *   material=PRESET - base material preset (glass, water, diamond, chrome, gold, copper, metal, plastic, matte)
@@ -44,6 +46,7 @@ object ObjectSpec:
    *   metallic=VALUE  - override metallic (only with material preset)
    *   specular=VALUE  - override specular (only with material preset)
    *   color=#RRGGBB   - override color (works with or without material preset)
+   *   texture=FILE    - texture filename (relative to texture directory)
    */
   def parse(spec: String): Either[String, ObjectSpec] =
     val parts = spec.split(":").map(_.trim)
@@ -61,8 +64,9 @@ object ObjectSpec:
       color <- parseColor(kvPairs)
       ior <- parseIOR(kvPairs)
       material <- parseMaterial(kvPairs, color, ior)
+      texture <- parseTexture(kvPairs)
       _ <- validateSpongeLevel(objType, level)
-    yield ObjectSpec(objType, x, y, z, size, level, color, ior, material)
+    yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture)
 
   private def parseObjectType(kvPairs: Map[String, String]): Either[String, String] =
     kvPairs.get("type") match
@@ -129,6 +133,12 @@ object ObjectSpec:
             Left(s"Unknown material preset: '$presetName'. Valid presets: ${Material.presetNames.mkString(", ")}")
       case None =>
         Right(None)
+
+  private def parseTexture(kvPairs: Map[String, String]): Either[String, Option[String]] =
+    kvPairs.get("texture") match
+      case Some(filename) if filename.nonEmpty => Right(Some(filename))
+      case Some(_) => Left("Texture filename cannot be empty")
+      case None => Right(None)
 
   private def validateSpongeLevel(objType: String, level: Option[Float]): Either[String, Unit] =
     if ObjectType.isSponge(objType) && level.isEmpty then

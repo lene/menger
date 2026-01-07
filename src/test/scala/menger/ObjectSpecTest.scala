@@ -8,7 +8,7 @@ class ObjectSpecTest extends AnyFlatSpec with Matchers:
 
   "ObjectSpec.parse" should "parse sphere with minimal attributes" in:
     val result = ObjectSpec.parse("type=sphere")
-    result shouldBe Right(ObjectSpec("sphere", 0.0f, 0.0f, 0.0f, 1.0f, None, None, 1.0f))
+    result shouldBe Right(ObjectSpec("sphere", 0.0f, 0.0f, 0.0f, 1.0f, None, None, 1.0f, None, None))
 
   it should "parse sphere with all attributes" in:
     val result = ObjectSpec.parse("type=sphere:pos=1,2,3:size=2.5:color=#FF0000:ior=1.5")
@@ -236,3 +236,38 @@ class ObjectSpecTest extends AnyFlatSpec with Matchers:
     Material.fromName("GLASS") shouldBe Some(Material.Glass)
     Material.fromName("Glass") shouldBe Some(Material.Glass)
     Material.fromName("gLaSs") shouldBe Some(Material.Glass)
+
+  // Texture tests (Step 7.5)
+  "ObjectSpec texture parsing" should "parse texture filename" in:
+    val result = ObjectSpec.parse("type=cube:pos=0,0,0:texture=brick.png")
+    result match
+      case Right(spec) =>
+        spec.texture shouldBe Some("brick.png")
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse texture with material" in:
+    val result = ObjectSpec.parse("type=cube:material=metal:texture=metal_plate.jpg")
+    result match
+      case Right(spec) =>
+        spec.texture shouldBe Some("metal_plate.jpg")
+        spec.material shouldBe defined
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "have None texture when not specified" in:
+    val result = ObjectSpec.parse("type=cube:pos=0,0,0")
+    result match
+      case Right(spec) =>
+        spec.texture shouldBe None
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse texture with path" in:
+    val result = ObjectSpec.parse("type=cube:texture=textures/brick.png")
+    result match
+      case Right(spec) =>
+        spec.texture shouldBe Some("textures/brick.png")
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "fail for empty texture filename" in:
+    val result = ObjectSpec.parse("type=cube:texture=")
+    result shouldBe a[Left[_, _]]
+    result.left.map(_ should include("cannot be empty"))

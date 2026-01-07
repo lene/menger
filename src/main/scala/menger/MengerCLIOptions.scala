@@ -262,6 +262,10 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = s"Maximum object instances in scene (1-${Const.maxInstancesLimit}, " +
       s"default: ${Const.defaultMaxInstances})"
   )
+  val textureDir: ScallopOption[String] = opt[String](
+    required = false, default = Some("."), group = optixSceneGroup,
+    descr = "Base directory for texture files (default: current directory)"
+  )
 
   // === OptiX Quality Options ===
   val antialiasing: ScallopOption[Boolean] = opt[Boolean](

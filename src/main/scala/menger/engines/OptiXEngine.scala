@@ -12,6 +12,7 @@ import menger.ColorConversions.toCommonColor
 import menger.ObjectSpec
 import menger.OptiXRenderResources
 import menger.ProfilingConfig
+import menger.TextureLoader
 import menger.Vector3Extensions.toVector3
 import menger.common.Const
 import menger.common.ImageSize
@@ -265,6 +266,9 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
       )
     }
 
+    // Load textures and build a map from filename to texture index
+    val textureIndices = loadTexturesForSpecs(specs, renderer)
+
     // Add instances
     specs.foreach { spec =>
       val position = menger.common.Vector[3](spec.x, spec.y, spec.z)
@@ -273,14 +277,45 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
         case Some(mat) => (mat.color, mat.ior)
         case None => (spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f)), spec.ior)
 
-      val instanceId = renderer.addTriangleMeshInstance(position, color, ior)
+      // Get texture index if this spec has a texture
+      val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
+
+      val instanceId = renderer.addTriangleMeshInstance(position, color, ior, textureIndex)
 
       instanceId match
         case Some(id) =>
-          logger.debug(s"Added ${spec.objectType} instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), color=$color, ior=$ior")
+          val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
+          logger.debug(s"Added ${spec.objectType} instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), color=$color, ior=$ior$textureInfo")
         case None =>
           logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
     }
+
+  private def loadTexturesForSpecs(
+    specs: List[ObjectSpec],
+    renderer: OptiXRenderer
+  ): Map[String, Int] =
+    // Collect unique texture filenames
+    val textureFilenames = specs.flatMap(_.texture).distinct
+
+    if textureFilenames.isEmpty then
+      Map.empty
+    else
+      logger.info(s"Loading ${textureFilenames.length} texture(s)")
+
+      textureFilenames.flatMap { filename =>
+        TextureLoader.load(filename, execution.textureDir) match
+          case scala.util.Success(textureData) =>
+            renderer.uploadTexture(textureData.name, textureData.data, textureData.width, textureData.height) match
+              case scala.util.Success(index) =>
+                logger.debug(s"Uploaded texture '$filename' as index $index")
+                Some(filename -> index)
+              case scala.util.Failure(e) =>
+                logger.error(s"Failed to upload texture '$filename': ${e.getMessage}")
+                None
+          case scala.util.Failure(e) =>
+            logger.error(s"Failed to load texture '$filename': ${e.getMessage}")
+            None
+      }.toMap
 
   private def createMeshForSpec(spec: ObjectSpec): menger.common.TriangleMeshData =
     spec.objectType match
