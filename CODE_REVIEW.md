@@ -10,7 +10,7 @@
 | Priority | Open | Completed |
 |----------|------|-----------|
 | High | 0 | 5 |
-| Medium | 7 | 19 |
+| Medium | 5 | 21 |
 | Low | 5 | 6 |
 
 ---
@@ -21,9 +21,7 @@
 
 | ID | Description | Location | Est. Hours |
 |----|-------------|----------|------------|
-| M2 | Implement Builder Pattern for ObjectSpec | `ObjectSpec.scala` | 3-4 |
 | M3 | Add Comprehensive Error Context | Various | 5-6 |
-| M5 | Add builder pattern for complex objects | Various | 0.5 |
 | M6 | Extract animation parameter parsing | `MengerCLIOptions.scala` | 1.5 |
 | M9 | Reduce cognitive complexity | Large methods | 2 |
 | M10 | Add debug logging strategically | Various | 1 |
@@ -138,6 +136,8 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 - ✅ Transform matrix utilities (M1) - already in `menger.common.TransformUtil`
 - ✅ Extract regex patterns (M4) - moved to `menger.common.Patterns`
 - ✅ Specific exception types (M7) - `MengerException` hierarchy in `menger.common`
+- ✅ Material helper methods (M2) - `withXxxOpt` methods for cleaner construction
+- ✅ Builder pattern review (M5) - Config classes already well-structured
 
 ### Low Priority - Completed
 
@@ -166,10 +166,10 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | ~18 |
+| Medium priority | ~14.5 |
 | Low priority | ~45 |
 | Documentation | ~4 |
-| **Total** | **~67 hours** |
+| **Total** | **~63.5 hours** |
 
 ---
 

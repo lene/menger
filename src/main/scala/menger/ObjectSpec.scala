@@ -116,18 +116,14 @@ object ObjectSpec:
         Material.fromName(presetName) match
           case Some(baseMaterial) =>
             Try {
-              val withColor = color.map(c => baseMaterial.copy(color = c)).getOrElse(baseMaterial)
-              val withIor = if kvPairs.contains("ior") then withColor.copy(ior = ior) else withColor
-              val withRoughness = kvPairs.get("roughness")
-                .map(v => withIor.copy(roughness = v.toFloat))
-                .getOrElse(withIor)
-              val withMetallic = kvPairs.get("metallic")
-                .map(v => withRoughness.copy(metallic = v.toFloat))
-                .getOrElse(withRoughness)
-              val withSpecular = kvPairs.get("specular")
-                .map(v => withMetallic.copy(specular = v.toFloat))
-                .getOrElse(withMetallic)
-              Some(withSpecular)
+              Some(
+                baseMaterial
+                  .withColorOpt(color)
+                  .withIorOpt(Option.when(kvPairs.contains("ior"))(ior))
+                  .withRoughnessOpt(kvPairs.get("roughness").map(_.toFloat))
+                  .withMetallicOpt(kvPairs.get("metallic").map(_.toFloat))
+                  .withSpecularOpt(kvPairs.get("specular").map(_.toFloat))
+              )
             }.toEither.left.map(e => s"Invalid material override: ${e.getMessage}")
           case None =>
             Left(s"Unknown material preset: '$presetName'. Valid presets: ${Material.presetNames.mkString(", ")}")
