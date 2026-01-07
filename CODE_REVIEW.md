@@ -10,7 +10,7 @@
 | Priority | Open | Completed |
 |----------|------|-----------|
 | High | 0 | 5 |
-| Medium | 3 | 23 |
+| Medium | 2 | 24 |
 | Low | 5 | 6 |
 
 ---
@@ -21,7 +21,6 @@
 
 | ID | Description | Location | Est. Hours |
 |----|-------------|----------|------------|
-| M6 | Extract animation parameter parsing | `MengerCLIOptions.scala` | 1.5 |
 | M9 | Reduce cognitive complexity | Large methods | 2 |
 | M11 | Mutable state in input controllers | `BaseKeyController.scala`, `OptiXCameraController.scala` | 4 |
 
@@ -138,6 +137,7 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 - ✅ Builder pattern review (M5) - Config classes already well-structured
 - ✅ Comprehensive error context (M3) - Enhanced error messages across ObjectSpec, CLI converters
 - ✅ Strategic debug logging (M10) - Added to ObjectSpec, AnimationSpecification, CliValidation
+- ✅ Extract animation parameter parsing (M6) - Constants and helpers in AnimationSpecification
 
 ### Low Priority - Completed
 
@@ -166,10 +166,10 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | ~7.5 |
+| Medium priority | ~6 |
 | Low priority | ~45 |
 | Documentation | ~4 |
-| **Total** | **~56.5 hours** |
+| **Total** | **~55 hours** |
 
 ---
 

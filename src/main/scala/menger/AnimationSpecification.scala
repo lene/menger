@@ -31,7 +31,9 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
 
   private val asMap: Map[String, String] = parseSpecString(specString)
 
-  val frames: Option[Int] = asMap.get("frames").flatMap(_.toIntOption)
+  import AnimationSpecification.*
+
+  val frames: Option[Int] = asMap.get(Frames).flatMap(_.toIntOption)
 
   lazy val animationParameters: Map[String, StartEnd] =
     val parametersOnly = asMap -- AnimationSpecification.TIMESCALE_PARAMETERS
@@ -63,38 +65,30 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
     bounds.start + (bounds.end - bounds.start) * frame / frames.get
 
   def level(frame: Int): Option[Float] =
-    animationParameters.get("level").map(current(_, frame))
+    animationParameters.get(Level).map(current(_, frame))
+
+  private def getBounds(param: String, default: Float = 0f): StartEnd =
+    animationParameters.get(param).getOrElse(default, default)
 
   def rotationProjectionParameters(frame: Int): RotationProjectionParameters =
     require(animationParameters.nonEmpty, "AnimationSpecification.animationParameters not defined")
-    val rotXBounds: StartEnd = animationParameters.get("rot-x").getOrElse(0f, 0f)
-    val rotYBounds: StartEnd = animationParameters.get("rot-y").getOrElse(0f, 0f)
-    val rotZBounds: StartEnd = animationParameters.get("rot-z").getOrElse(0f, 0f)
-    val rotXWBounds: StartEnd = animationParameters.get("rot-x-w").getOrElse(0f, 0f)
-    val rotYWBounds: StartEnd = animationParameters.get("rot-y-w").getOrElse(0f, 0f)
-    val rotZWBounds: StartEnd = animationParameters.get("rot-z-w").getOrElse(0f, 0f)
-    val screenWBounds: StartEnd = animationParameters.get("projection-screen-w")
-      .getOrElse(Const.defaultScreenW, Const.defaultScreenW)
-    val eyeWBounds: StartEnd = animationParameters.get("projection-eye-w")
-      .getOrElse(Const.defaultEyeW, Const.defaultEyeW)
     RotationProjectionParameters(
-      rotXW = current(rotXWBounds, frame),
-      rotYW = current(rotYWBounds, frame),
-      rotZW = current(rotZWBounds, frame),
-      screenW = current(screenWBounds, frame),
-      eyeW = current(eyeWBounds, frame),
-      rotX = current(rotXBounds, frame),
-      rotY = current(rotYBounds, frame),
-      rotZ = current(rotZBounds, frame),
+      rotXW = current(getBounds(RotXW), frame),
+      rotYW = current(getBounds(RotYW), frame),
+      rotZW = current(getBounds(RotZW), frame),
+      screenW = current(getBounds(ProjectionScreenW, Const.defaultScreenW), frame),
+      eyeW = current(getBounds(ProjectionEyeW, Const.defaultEyeW), frame),
+      rotX = current(getBounds(RotX), frame),
+      rotY = current(getBounds(RotY), frame),
+      rotZ = current(getBounds(RotZ), frame)
     )
 
+  private def isAxisAnimated(value: Float, paramName: String): Boolean =
+    value != 0 && animationParameters.contains(paramName)
+
   def isRotationAxisSet(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
-    (x != 0 && animationParameters.contains("rot-x")) ||
-    (y != 0 && animationParameters.contains("rot-y")) ||
-    (z != 0 && animationParameters.contains("rot-z")) ||
-    (xw != 0 && animationParameters.contains("rot-x-w")) ||
-    (yw != 0 && animationParameters.contains("rot-y-w")) ||
-    (zw != 0 && animationParameters.contains("rot-z-w"))
+    isAxisAnimated(x, RotX) || isAxisAnimated(y, RotY) || isAxisAnimated(z, RotZ) ||
+    isAxisAnimated(xw, RotXW) || isAxisAnimated(yw, RotYW) || isAxisAnimated(zw, RotZW)
 
   def hasRotationAxisConflict(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
     isRotationAxisSet(x, y, z, xw, yw, zw)
@@ -129,12 +123,21 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
     hasParams && allValid
 
 object AnimationSpecification:
-  final val TIMESCALE_PARAMETERS = Set("frames")
-  final val ALWAYS_VALID_PARAMETERS = Set("rot-x", "rot-y", "rot-z")
-  final val FOUR_D_VALID_PARAMETERS = Set(
-    "rot-x-w", "rot-y-w", "rot-z-w", "projection-screen-w", "projection-eye-w"
-  )
-  final val FRACTAL_VALID_PARAMETERS = Set("level")
+  final val RotX = "rot-x"
+  final val RotY = "rot-y"
+  final val RotZ = "rot-z"
+  final val RotXW = "rot-x-w"
+  final val RotYW = "rot-y-w"
+  final val RotZW = "rot-z-w"
+  final val ProjectionScreenW = "projection-screen-w"
+  final val ProjectionEyeW = "projection-eye-w"
+  final val Level = "level"
+  final val Frames = "frames"
+
+  final val TIMESCALE_PARAMETERS = Set(Frames)
+  final val ALWAYS_VALID_PARAMETERS = Set(RotX, RotY, RotZ)
+  final val FOUR_D_VALID_PARAMETERS = Set(RotXW, RotYW, RotZW, ProjectionScreenW, ProjectionEyeW)
+  final val FRACTAL_VALID_PARAMETERS = Set(Level)
   final val FOUR_D_OBJECTS = Set("tesseract", "tesseract-sponge", "tesseract-sponge-2")
   final val FRACTAL_OBJECTS = Set("tesseract-sponge", "tesseract-sponge-2", "square", "cube")
 
