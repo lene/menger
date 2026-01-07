@@ -88,12 +88,20 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 
 ## Testing Issues
 
-### TEST-1. Insufficient Edge Case Testing
+### ~~TEST-1. Insufficient Edge Case Testing~~ - RESOLVED
 
-Few tests cover:
-- Empty inputs
-- Boundary conditions (max values)
-- Invalid combinations
+**Resolution:** Added ~135 edge case tests across 6 test files:
+- `ColorConversionsSuite.scala` (NEW) - 19 tests for array bounds, boundary values
+- `MaterialUnitSuite.scala` (NEW) - 40 tests for `fromName()`, factory methods, edge values
+- `AnimationSpecificationSuite.scala` - +30 tests for frames=0, malformed parsing
+- `CubeSuite.scala` - +6 tests for zero/negative scale
+- `MaterialConfigSuite.scala` (NEW) - 20 tests for preset validation
+- `CameraConfigSuite.scala` (NEW) - 9 tests for default values
+
+**Findings documented:**
+- AnimationSpecification parser doesn't support negative ranges (delimiter conflict)
+- Material class has no validation for IOR/roughness/metallic values
+- Cube handles degenerate cases (scale=0) gracefully
 
 ---
 
@@ -171,5 +179,5 @@ Before each release:
 **Good Practices Already in Place:**
 - No `var` or `throw` in production code (wartremover enforced)
 - Functional style throughout
-- Comprehensive test coverage (900+ tests)
+- Comprehensive test coverage (1400+ tests)
 - Scalafix integration for consistent style

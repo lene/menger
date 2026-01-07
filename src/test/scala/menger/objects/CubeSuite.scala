@@ -124,3 +124,60 @@ class CubeSuite extends AnyFlatSpec with Matchers:
   "Cube" should "implement TriangleMeshSource trait" in:
     val cube: menger.common.TriangleMeshSource = Cube()
     cube.toTriangleMesh should not be null
+
+  // Edge case tests for scale parameter
+  "Cube edge cases" should "produce degenerate mesh with scale = 0 (all vertices at center)" in:
+    val mesh = Cube(center = Vector3.Zero, scale = 0f).toTriangleMesh
+    val stride = mesh.vertexStride
+    
+    // All vertices should be at the center (0, 0, 0)
+    for i <- 0 until mesh.numVertices do
+      mesh.vertices(i * stride) shouldBe 0f +- 0.001f
+      mesh.vertices(i * stride + 1) shouldBe 0f +- 0.001f
+      mesh.vertices(i * stride + 2) shouldBe 0f +- 0.001f
+
+  it should "still have valid structure with scale = 0" in:
+    val mesh = Cube(scale = 0f).toTriangleMesh
+    mesh.numVertices shouldBe 24
+    mesh.numTriangles shouldBe 12
+    all(mesh.indices) should be >= 0
+    all(mesh.indices) should be < mesh.numVertices
+
+  it should "handle negative scale (inverted cube)" in:
+    val mesh = Cube(center = Vector3.Zero, scale = -2.0f).toTriangleMesh
+    val stride = mesh.vertexStride
+    val half = 1.0f  // abs(-2.0f) / 2
+
+    val xs = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride))
+    val ys = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride + 1))
+    val zs = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride + 2))
+
+    // Negative scale produces inverted coordinates
+    xs.min shouldBe -half +- 0.001f
+    xs.max shouldBe half +- 0.001f
+
+  it should "handle very small scale (epsilon-sized cube)" in:
+    val mesh = Cube(scale = 0.0001f).toTriangleMesh
+    mesh.numVertices shouldBe 24
+    mesh.numTriangles shouldBe 12
+
+  it should "handle very large scale" in:
+    val mesh = Cube(scale = 1000000f).toTriangleMesh
+    val stride = mesh.vertexStride
+    val half = 500000f
+
+    val xs = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride))
+    xs.min shouldBe -half +- 1f
+    xs.max shouldBe half +- 1f
+
+  it should "handle center at extreme coordinates" in:
+    val mesh = Cube(center = Vector3(1000000f, -1000000f, 0f), scale = 2f).toTriangleMesh
+    val stride = mesh.vertexStride
+
+    val xs = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride))
+    val ys = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride + 1))
+
+    xs.min shouldBe (1000000f - 1f) +- 1f
+    xs.max shouldBe (1000000f + 1f) +- 1f
+    ys.min shouldBe (-1000000f - 1f) +- 1f
+    ys.max shouldBe (-1000000f + 1f) +- 1f
