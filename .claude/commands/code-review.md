@@ -22,6 +22,31 @@ You are a senior software architect and code quality expert conducting a compreh
 !`git diff --stat origin/main...` # Changes from main (if applicable)
 ```
 
+### Existing Review File Check
+
+**CRITICAL FIRST STEP**: Before starting the review, check if CODE_REVIEW.md already exists:
+
+```bash
+!`test -f CODE_REVIEW.md && echo "EXISTS" || echo "NEW"`
+```
+
+**If CODE_REVIEW.md exists**:
+1. **Read the entire file** using the Read tool
+2. **Extract existing issues**: Note all issue IDs, descriptions, and current status
+3. **Understand context**: Review historical findings and priorities
+4. **Plan update strategy**: You will UPDATE the file, not replace it
+
+**During the review**:
+- Cross-reference new findings with existing issues
+- Mark resolved issues as "Completed" with resolution date
+- Update issue severity/priority if changed
+- Add new issues with new IDs (continue numbering)
+- Preserve the historical record in "Completed Issues" section
+
+**If CODE_REVIEW.md does not exist**:
+- Create a new comprehensive review from scratch
+- Start issue numbering at 1
+
 ## Objective
 
 Perform **holistic code quality assessment** of the **ENTIRE CODEBASE** to identify architectural improvements, code smells, and maintainability issues. Assess both existing code and recent changes, as new introductions may reveal:
@@ -222,18 +247,24 @@ Perform **holistic code quality assessment** of the **ENTIRE CODEBASE** to ident
 ## Analysis Methodology
 
 ### Phase 1: Codebase Reconnaissance (15-20 minutes)
-1. **Map the architecture**:
+1. **Review existing CODE_REVIEW.md** (if it exists):
+   - Read the entire file to understand previous findings
+   - Note all existing issue IDs and their current status
+   - Identify areas of focus from previous reviews
+   - Understand historical context and trends
+
+2. **Map the architecture**:
    - Identify main modules/packages
    - Understand dependency structure
    - Find entry points and main workflows
 
-2. **Identify code patterns**:
+3. **Identify code patterns**:
    - Common abstractions used
    - Error handling approaches
    - Testing patterns
    - Configuration management
 
-3. **Gather metrics**:
+4. **Gather metrics**:
    - File sizes (find files >400 lines)
    - Function sizes (find functions >50 lines)
    - Cyclomatic complexity indicators
@@ -282,7 +313,28 @@ Perform **holistic code quality assessment** of the **ENTIRE CODEBASE** to ident
 
 ## Output Format
 
-Document findings in **CODE_REVIEW.md** with the following structure:
+### Updating Existing vs Creating New Review
+
+**If CODE_REVIEW.md already exists** (you read it in the pre-review step):
+
+1. **Preserve structure**: Maintain existing sections and organization
+2. **Update issue statuses**:
+   - Move resolved issues from "Open Issues" to "Completed Issues" section
+   - Add resolution date and brief note on how it was fixed
+   - Update the summary table (Open/Completed counts)
+3. **Add new issues**:
+   - Continue issue ID numbering from existing issues (e.g., if M11 exists, start at M12)
+   - Add to appropriate priority sections
+4. **Update existing issues**:
+   - If severity/priority changed, note the change and reason
+   - Add updated estimates if scope changed
+   - Add progress notes if partially addressed
+5. **Refresh date**: Update "Last Updated" timestamp
+6. **Maintain history**: Keep "Completed Issues" section as historical record
+
+**If CODE_REVIEW.md does not exist**:
+
+Create a new comprehensive review with the following structure:
 
 ```markdown
 # Code Quality Review - [Date]
@@ -339,6 +391,19 @@ Brief overview of codebase health, highlighting major themes and priorities.
 ## Low Priority Issues
 
 [Brief list format acceptable]
+
+## Completed Issues
+
+**Note**: Only include this section if updating an existing CODE_REVIEW.md. Track resolved issues here to maintain historical context.
+
+### High Priority (Completed)
+- **[ID]** - [Brief description] - Resolved: [Date] - [How it was fixed]
+
+### Medium Priority (Completed)
+- **[ID]** - [Brief description] - Resolved: [Date] - [How it was fixed]
+
+### Low Priority (Completed)
+- **[ID]** - [Brief description] - Resolved: [Date] - [How it was fixed]
 
 ## Positive Patterns
 
@@ -478,6 +543,9 @@ Use these standardized categories for consistency:
 ## Best Practices for Analysis
 
 ### DO:
+- ✅ **Read existing CODE_REVIEW.md FIRST** if it exists - critical for continuity
+- ✅ **Update existing issues** rather than duplicating findings
+- ✅ **Maintain historical tracking** in "Completed Issues" section
 - ✅ Review the ENTIRE codebase systematically
 - ✅ Use LSP tools (goToDefinition, findReferences) to understand code flow
 - ✅ Look for patterns, not just individual issues
@@ -489,6 +557,9 @@ Use these standardized categories for consistency:
 - ✅ Identify opportunities for abstraction revealed by recent changes
 
 ### DON'T:
+- ❌ **Overwrite existing CODE_REVIEW.md** - always update, never replace
+- ❌ **Duplicate existing issues** - cross-reference first
+- ❌ **Lose historical context** - preserve completed issues section
 - ❌ Focus only on recent changes or specific files
 - ❌ Report style issues handled by linters (Scalafix, Wartremover)
 - ❌ Suggest premature optimization without evidence
@@ -547,6 +618,8 @@ grep -r "class\|object\|trait" --include="*.scala" . | wc -l
 ### Sub-Task Breakdown
 
 1. **Sub-task 1: Codebase Mapping** (15-20 min)
+   - **First: Check and read CODE_REVIEW.md if it exists**
+   - Review previous findings and extract existing issue IDs
    - Gather file list and sizes
    - Identify module structure
    - Understand architecture
@@ -570,11 +643,14 @@ grep -r "class\|object\|trait" --include="*.scala" . | wc -l
    - Group related issues
    - Identify refactoring opportunities
 
-5. **Final Output: Generate CODE_REVIEW.md**
-   - Compile all findings into structured markdown
+5. **Final Output: Generate/Update CODE_REVIEW.md**
+   - If updating existing file: preserve structure, update issue statuses, add new issues with continued numbering
+   - If creating new file: compile all findings into structured markdown
+   - Cross-reference findings with existing issues (mark resolved, update changed)
    - Include executive summary
    - Provide actionable recommendations
    - Add metrics summary
+   - Maintain "Completed Issues" section for historical tracking
 
 ## Confidence & Certainty
 
@@ -591,6 +667,10 @@ Unlike security reviews, code quality issues are more subjective. Use these guid
 
 Before outputting CODE_REVIEW.md, verify:
 
+- [ ] **Read existing CODE_REVIEW.md if it exists** (critical first step)
+- [ ] **Cross-referenced all findings with existing issues** (marked resolved, updated changed)
+- [ ] **Continued issue numbering from existing file** (e.g., M11 → M12)
+- [ ] **Preserved "Completed Issues" section** with historical tracking
 - [ ] Reviewed ALL source files (not just recent changes)
 - [ ] Checked files >400 lines, functions >50 lines
 - [ ] Identified code duplication patterns
@@ -602,7 +682,8 @@ Before outputting CODE_REVIEW.md, verify:
 - [ ] Prioritized findings by impact
 - [ ] Estimated technical debt costs
 - [ ] Considered opportunities revealed by recent changes
-- [ ] Generated complete CODE_REVIEW.md with all sections
+- [ ] Updated "Last Updated" timestamp
+- [ ] Generated/updated complete CODE_REVIEW.md with all sections
 
 ---
 
