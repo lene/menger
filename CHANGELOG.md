@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.4.1] - 2026-01-07
+
+### Added
+- **Material System** - PBR-based material properties for realistic rendering
+  - Material case class with baseColor, metallic, roughness, IOR, alpha
+  - Material presets: glass, water, diamond, chrome, gold, copper, metal, plastic, matte
+  - Per-object material assignment via CLI: `--objects type=sphere:material=glass`
+  - Per-object color override: `--objects type=cube:material=chrome:color=#FF0000`
+- **UV Coordinates** - Texture mapping foundation
+  - 8-float vertex format: position (3) + normal (3) + UV (2)
+  - UV generation for cube and sponge meshes
+  - Box mapping for procedural UV assignment
+- **Texture Support** - Image-based surface coloring
+  - `TextureLoader` utility for PNG/JPEG loading
+  - `--texture-dir` CLI option for texture search path
+  - Per-object texture assignment: `--objects type=cube:texture=checker.png`
+  - Texture sampling in shaders with bilinear filtering
+  - Per-instance texture indices in IAS mode
+- **Integration Tests** - Material and texture validation
+  - Glass, chrome, matte preset tests
+  - Texture rendering test
+  - Invalid material error handling test
+
+### Changed
+- OptiX shaders extended with texture sampling functions
+- Vertex format updated from 6 to 8 floats per vertex
+
 ## [0.4.0] - 2026-01-05
 
 ### Added
