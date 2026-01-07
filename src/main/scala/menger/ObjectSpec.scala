@@ -83,28 +83,51 @@ object ObjectSpec:
       case Some(posStr) =>
         posStr.split(",").map(_.trim) match
           case Array(xStr, yStr, zStr) =>
-            Try((xStr.toFloat, yStr.toFloat, zStr.toFloat)).toEither.left.map(_.getMessage)
+            Try((xStr.toFloat, yStr.toFloat, zStr.toFloat)).toEither.left.map { e =>
+              s"Invalid position value in '$posStr': ${e.getMessage}. " +
+                "Position components must be valid numbers (e.g., pos=1.0,2.0,3.0)"
+            }
           case _ =>
             Left(s"Invalid position format: '$posStr'. Expected format: pos=x,y,z " +
               "(three comma-separated numbers). Example: pos=1.0,2.0,3.0")
       case None => Right((0.0f, 0.0f, 0.0f))
 
   private def parseSize(kvPairs: Map[String, String]): Either[String, Float] =
-    Try(kvPairs.get("size").map(_.toFloat).getOrElse(1.0f)).toEither.left.map(_.getMessage)
+    kvPairs.get("size") match
+      case Some(sizeStr) =>
+        Try(sizeStr.toFloat).toEither.left.map { e =>
+          s"Invalid size value '$sizeStr': ${e.getMessage}. Size must be a valid number (e.g., size=1.5)"
+        }
+      case None => Right(1.0f)
 
   private def parseLevel(kvPairs: Map[String, String]): Either[String, Option[Float]] =
-    Try(kvPairs.get("level").map(_.toFloat)).toEither.left.map(_.getMessage)
+    kvPairs.get("level") match
+      case Some(levelStr) =>
+        Try(levelStr.toFloat).toEither.left.map { e =>
+          s"Invalid level value '$levelStr': ${e.getMessage}. Level must be a valid number (e.g., level=2)"
+        }.map(Some(_))
+      case None => Right(None)
 
   private def parseColor(kvPairs: Map[String, String]): Either[String, Option[menger.common.Color]] =
-    Try {
-      kvPairs.get("color").map { colorStr =>
-        val hexStr = if colorStr.startsWith("#") then colorStr.substring(1) else colorStr
-        menger.common.Color.fromHex(hexStr)
-      }
-    }.toEither.left.map(_.getMessage)
+    kvPairs.get("color") match
+      case Some(colorStr) =>
+        Try {
+          val hexStr = if colorStr.startsWith("#") then colorStr.substring(1) else colorStr
+          menger.common.Color.fromHex(hexStr)
+        }.toEither.left.map { e =>
+          s"Invalid color value '$colorStr': ${e.getMessage}. " +
+            "Color must be hex format (e.g., color=#FF0000 or color=FF0000)"
+        }.map(Some(_))
+      case None => Right(None)
 
   private def parseIOR(kvPairs: Map[String, String]): Either[String, Float] =
-    Try(kvPairs.get("ior").map(_.toFloat).getOrElse(1.0f)).toEither.left.map(_.getMessage)
+    kvPairs.get("ior") match
+      case Some(iorStr) =>
+        Try(iorStr.toFloat).toEither.left.map { e =>
+          s"Invalid IOR value '$iorStr': ${e.getMessage}. " +
+            "IOR (index of refraction) must be a valid number (e.g., ior=1.5)"
+        }
+      case None => Right(1.0f)
 
   private def parseMaterial(
     kvPairs: Map[String, String],
@@ -115,25 +138,47 @@ object ObjectSpec:
       case Some(presetName) =>
         Material.fromName(presetName) match
           case Some(baseMaterial) =>
-            Try {
-              Some(
-                baseMaterial
-                  .withColorOpt(color)
-                  .withIorOpt(Option.when(kvPairs.contains("ior"))(ior))
-                  .withRoughnessOpt(kvPairs.get("roughness").map(_.toFloat))
-                  .withMetallicOpt(kvPairs.get("metallic").map(_.toFloat))
-                  .withSpecularOpt(kvPairs.get("specular").map(_.toFloat))
-              )
-            }.toEither.left.map(e => s"Invalid material override: ${e.getMessage}")
+            parseMaterialOverrides(kvPairs, baseMaterial, color, ior)
           case None =>
             Left(s"Unknown material preset: '$presetName'. Valid presets: ${Material.presetNames.mkString(", ")}")
       case None =>
         Right(None)
 
+  private def parseMaterialOverrides(
+    kvPairs: Map[String, String],
+    baseMaterial: Material,
+    color: Option[Color],
+    ior: Float
+  ): Either[String, Option[Material]] =
+    for
+      roughness <- parseOptionalFloat(kvPairs, "roughness", "roughness value (0.0-1.0)")
+      metallic <- parseOptionalFloat(kvPairs, "metallic", "metallic value (0.0-1.0)")
+      specular <- parseOptionalFloat(kvPairs, "specular", "specular value (0.0-1.0)")
+    yield Some(
+      baseMaterial
+        .withColorOpt(color)
+        .withIorOpt(Option.when(kvPairs.contains("ior"))(ior))
+        .withRoughnessOpt(roughness)
+        .withMetallicOpt(metallic)
+        .withSpecularOpt(specular)
+    )
+
+  private def parseOptionalFloat(
+    kvPairs: Map[String, String],
+    key: String,
+    description: String
+  ): Either[String, Option[Float]] =
+    kvPairs.get(key) match
+      case Some(valueStr) =>
+        Try(valueStr.toFloat).toEither.left.map { e =>
+          s"Invalid $key value '$valueStr': ${e.getMessage}. Expected a valid $description"
+        }.map(Some(_))
+      case None => Right(None)
+
   private def parseTexture(kvPairs: Map[String, String]): Either[String, Option[String]] =
     kvPairs.get("texture") match
       case Some(filename) if filename.nonEmpty => Right(Some(filename))
-      case Some(_) => Left("Texture filename cannot be empty")
+      case Some(_) => Left("Texture filename cannot be empty. Provide a valid filename (e.g., texture=brick.png)")
       case None => Right(None)
 
   private def validateSpongeLevel(objType: String, level: Option[Float]): Either[String, Unit] =
@@ -145,11 +190,14 @@ object ObjectSpec:
 
   /**
    * Validate multiple object specifications.
-   * Returns error if any spec is invalid.
+   * Returns error if any spec is invalid, including index of failing spec.
    */
   def parseAll(specs: List[String]): Either[String, List[ObjectSpec]] =
-    specs.foldLeft[Either[String, List[ObjectSpec]]](Right(List.empty)) { (acc, spec) =>
-      acc.flatMap { objects =>
-        parse(spec).map(obj => objects :+ obj)
-      }
+    specs.zipWithIndex.foldLeft[Either[String, List[ObjectSpec]]](Right(List.empty)) {
+      case (acc, (spec, index)) =>
+        acc.flatMap { objects =>
+          parse(spec).left.map { error =>
+            s"Error in object specification #${index + 1}: $error"
+          }.map(obj => objects :+ obj)
+        }
     }

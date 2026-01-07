@@ -185,7 +185,12 @@ trait CliValidation:
     spec: AnimationSpecificationSequence, spongeType: String
   ): Either[String, Unit] =
     if spec.valid(spongeType) && spec.isTimeSpecValid then Right(())
-    else Left("Invalid animation specification")
+    else Left(
+      "Invalid animation specification. Check that: " +
+      "(1) animation parameters are valid for the object type, " +
+      "(2) time format is correct (frames=N or fps=N), " +
+      "(3) parameter values are within valid ranges"
+    )
 
   private def requires(
     optionName: String,

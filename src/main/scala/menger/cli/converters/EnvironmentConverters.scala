@@ -22,7 +22,9 @@ given planeSpecConverter: ValueConverter[PlaneSpec] with
     else
       val input = s.head._2.head.trim
       unwrapTryEither(Try(parsePlaneSpec(input)).recover {
-        case e: Exception => Left(s"Plane spec '$input' not recognized: ${e.getMessage}")
+        case e: Exception =>
+          Left(s"Plane spec '$input' not recognized: ${e.getMessage}. " +
+            "Expected format: [+-]?x|y|z:<value> (e.g., y:-2 or -z:5.5)")
       })
 
   private def parsePlaneSpec(input: String): Either[String, Option[PlaneSpec]] =
@@ -56,7 +58,9 @@ given planeColorSpecConverter: ValueConverter[PlaneColorSpec] with
     else
       val input = s.head._2.head.trim
       unwrapTryEither(Try(parseSpec(input)).recover {
-        case e: Exception => Left(s"Plane color '$input' not recognized: ${e.getMessage}")
+        case e: Exception =>
+          Left(s"Plane color '$input' not recognized: ${e.getMessage}. " +
+            "Expected hex color RRGGBB or checkered pattern RRGGBB:RRGGBB")
       })
 
   private def parseSpec(input: String): Either[String, Option[PlaneColorSpec]] =
@@ -79,10 +83,11 @@ given planeColorSpecConverter: ValueConverter[PlaneColorSpec] with
       yield Some(PlaneColorSpec(c1, Some(c2)))
 
   private def parseHexColor(hex: String): Either[String, menger.common.Color] =
-    if hex.length != 6 then Left(s"Color '$hex' must be exactly 6 hex digits (RRGGBB)")
+    if hex.length != 6 then
+      Left(s"Color '$hex' must be exactly 6 hex digits (RRGGBB). Example: FF0000 for red")
     else
       Try(menger.common.Color.fromHex(hex)).toEither.left
-        .map(_ => s"Color '$hex' contains invalid hex digits")
+        .map(_ => s"Color '$hex' contains invalid hex digits. Use only 0-9 and A-F")
 
 given lightSpecConverter: ValueConverter[List[LightSpec]] with
   val argType: ArgType.V = ArgType.LIST
@@ -110,9 +115,9 @@ given lightSpecConverter: ValueConverter[List[LightSpec]] with
           parseSingleLightSpec(input, typeStr, x, y, z, intensityStr, colorStr)
         case _ =>
           Left(
-            s"Light spec '$input' must match format " +
-            "<type>:x,y,z[:intensity[:color]] where type is directional|point " +
-            "(e.g., directional:0,1,-1, point:0,5,0:2.0:ffffff)"
+            s"Light spec '$input' has invalid format. " +
+            "Expected: <type>:x,y,z[:intensity[:color]] where type is 'directional' or 'point'. " +
+            "Examples: directional:0,1,-1 or point:0,5,0:2.0:ffffff"
           )
     }.foldLeft[Either[String, List[LightSpec]]](Right(List.empty)) {
       case (Right(acc), Right(spec)) => Right(acc :+ spec)
@@ -137,7 +142,10 @@ given lightSpecConverter: ValueConverter[List[LightSpec]] with
       val intensity = Option(intensityStr).filter(_.nonEmpty).map(_.toFloat).getOrElse(1.0f)
       val color = Option(colorStr).map(parseColor).getOrElse(Color.WHITE)
       LightSpec(lightType, position, intensity, color)
-    }.toEither.left.map(e => s"Light spec '$input' not recognized: ${e.getMessage}")
+    }.toEither.left.map { e =>
+      s"Light spec '$input' parse error: ${e.getMessage}. " +
+        "Check that coordinates and intensity are valid numbers"
+    }
 
   private def parseColor(colorStr: String): Color =
     if colorStr.contains(',') then

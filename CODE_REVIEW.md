@@ -10,7 +10,7 @@
 | Priority | Open | Completed |
 |----------|------|-----------|
 | High | 0 | 5 |
-| Medium | 5 | 21 |
+| Medium | 4 | 22 |
 | Low | 5 | 6 |
 
 ---
@@ -21,7 +21,6 @@
 
 | ID | Description | Location | Est. Hours |
 |----|-------------|----------|------------|
-| M3 | Add Comprehensive Error Context | Various | 5-6 |
 | M6 | Extract animation parameter parsing | `MengerCLIOptions.scala` | 1.5 |
 | M9 | Reduce cognitive complexity | Large methods | 2 |
 | M10 | Add debug logging strategically | Various | 1 |
@@ -138,6 +137,7 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 - ✅ Specific exception types (M7) - `MengerException` hierarchy in `menger.common`
 - ✅ Material helper methods (M2) - `withXxxOpt` methods for cleaner construction
 - ✅ Builder pattern review (M5) - Config classes already well-structured
+- ✅ Comprehensive error context (M3) - Enhanced error messages across ObjectSpec, CLI converters
 
 ### Low Priority - Completed
 
@@ -166,10 +166,10 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | ~14.5 |
+| Medium priority | ~8.5 |
 | Low priority | ~45 |
 | Documentation | ~4 |
-| **Total** | **~63.5 hours** |
+| **Total** | **~57.5 hours** |
 
 ---
 
