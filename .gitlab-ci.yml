@@ -374,10 +374,18 @@ Test:OptiXIntegration:
     - chmod -R 777 target/ || true
     - chmod -R 777 optix-jni/target/ || true
 
+# Coverage check with ratchet mechanism:
+# - Fails if coverage drops more than 1% AND is below 80%
+# - Fails if coverage drops below absolute floor of 60%
+# - Warns (but doesn't fail) if coverage drops but stays above 80%
 CheckCoverage:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
+  variables:
+    COVERAGE_DROP_THRESHOLD: "1.0"   # Max allowed drop in percentage points
+    COVERAGE_MIN: "80"               # Minimum before drop becomes failure
+    COVERAGE_FLOOR: "60"             # Absolute minimum - always fail below this
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -386,19 +394,46 @@ CheckCoverage:
     - apt-get -y update
     - apt-get -y install bc mesa-utils x11-xserver-utils xvfb curl
   script:
+    # Fetch previous coverage from artifacts (if available)
     - 'curl -o coverage.log --location --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/coverage.log?job=${CI_JOB_NAME}"'
     - . coverage.log || true
     - statement_rate_old=${statement_rate:-0}
     - branch_rate_old=${branch_rate:-0}
+    # Run tests with coverage
     - xvfb-run sbt clean coverage test || true
     - sbt coverageReport
+    # Extract coverage from report
     - REPORT=$(head -n 2 target/scala-3.*.*/scoverage-report/scoverage.xml | tail -n 1 | xargs)
     - for word in $REPORT; do echo $word; done | grep rate | tr - _ > coverage.log
     - . coverage.log
-    - echo "statement_rate_old=$statement_rate_old, statement_rate=$statement_rate"
-    - echo "branch_rate_old=$branch_rate_old, branch_rate=$branch_rate"
-    - if [ $(echo "$branch_rate_old > $branch_rate" | bc -l) -eq 1 ]; then echo "branch rate decreased from $branch_rate_old to $branch_rate"; fi
-    - if [ $(echo "$statement_rate_old > $statement_rate" | bc -l) -eq 1 -a $(echo "$statement_rate < 0.9" | bc -l) -eq 1 ]; then exit 1; fi
+    # Report current vs previous coverage
+    - echo "=== Coverage Report ==="
+    - echo "Statement coverage - current:${statement_rate}% previous:${statement_rate_old}%"
+    - echo "Branch coverage - current:${branch_rate}% previous:${branch_rate_old}%"
+    # Check absolute floor - always fail if below this
+    - |
+      if [ $(echo "$statement_rate < $COVERAGE_FLOOR" | bc -l) -eq 1 ]; then
+        echo "ERROR: Statement coverage ${statement_rate}% is below absolute minimum ${COVERAGE_FLOOR}%"
+        exit 1
+      fi
+    # Check for coverage drop
+    - |
+      COVERAGE_DROP=$(echo "$statement_rate_old - $statement_rate" | bc -l)
+      if [ $(echo "$COVERAGE_DROP > $COVERAGE_DROP_THRESHOLD" | bc -l) -eq 1 ]; then
+        echo "WARNING: Coverage dropped by ${COVERAGE_DROP}% (threshold: ${COVERAGE_DROP_THRESHOLD}%)"
+        if [ $(echo "$statement_rate < $COVERAGE_MIN" | bc -l) -eq 1 ]; then
+          echo "ERROR: Coverage ${statement_rate}% is below minimum ${COVERAGE_MIN}%"
+          exit 1
+        else
+          echo "Coverage still above ${COVERAGE_MIN}%, continuing..."
+        fi
+      fi
+    # Warn about branch coverage drop (informational only)
+    - |
+      if [ $(echo "$branch_rate_old > $branch_rate" | bc -l) -eq 1 ]; then
+        echo "INFO: Branch coverage decreased from ${branch_rate_old}% to ${branch_rate}%"
+      fi
+    - echo "=== Coverage check passed ==="
   artifacts:
     when: always
     reports:

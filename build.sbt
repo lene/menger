@@ -230,7 +230,10 @@ lazy val root = {
       "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.13.5",
       "com.badlogicgames.gdx" % "gdx-platform" % "1.13.5" classifier "natives-desktop",
     ),
-    Test / scalacOptions += "-experimental"
+    Test / scalacOptions += "-experimental",
+
+    // Coverage configuration - exclude untestable packages (JNI/GPU and LibGDX/OpenGL code)
+    coverageExcludedPackages := "menger\\.optix\\..*;menger\\.engines\\..*"
   )
 
   // Always depend on OptiX JNI and common module, configure library path

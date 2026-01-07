@@ -120,6 +120,77 @@ then echo "Status after sbt test: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after sbt test: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
+# Coverage check with ratchet mechanism
+# Skip with SKIP_COVERAGE=1
+if [ "${SKIP_COVERAGE:-0}" != "1" ]; then
+  echo "=== Checking Test Coverage ==="
+  BASELINE_FILE=".coverage_baseline"
+  COVERAGE_DROP_THRESHOLD="1.0"
+  COVERAGE_MIN="80"
+  COVERAGE_FLOOR="60"
+
+  # Run coverage
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt clean coverage test coverageReport --warn > /tmp/coverage-prepush.log 2>&1
+  COVERAGE_STATUS=$?
+
+  if [ $COVERAGE_STATUS -ne 0 ]; then
+    echo "Coverage report: ${RED_TEXT}Failed to generate${RESET_TEXT}"
+    tail -20 /tmp/coverage-prepush.log
+    STATUS=1
+  else
+    # Extract statement coverage from the report
+    REPORT_FILE="target/scala-3.7.3/scoverage-report/scoverage.xml"
+    if [ -f "$REPORT_FILE" ]; then
+      STATEMENT_RATE=$(grep -oP 'statement-rate="\K[0-9.]+' "$REPORT_FILE" | head -1)
+
+      if [ -z "$STATEMENT_RATE" ]; then
+        echo "Coverage: ${RED_TEXT}Could not parse coverage rate${RESET_TEXT}"
+        STATUS=1
+      else
+        # Get baseline if it exists
+        if [ -f "$BASELINE_FILE" ]; then
+          BASELINE=$(cat "$BASELINE_FILE")
+        else
+          BASELINE="$STATEMENT_RATE"
+          echo "No baseline file found, using current coverage as baseline"
+        fi
+
+        # Calculate coverage drop
+        DROP=$(echo "$BASELINE - $STATEMENT_RATE" | bc)
+
+        echo "Statement coverage - current: ${STATEMENT_RATE}% previous: ${BASELINE}%"
+
+        # Check absolute floor
+        BELOW_FLOOR=$(echo "$STATEMENT_RATE < $COVERAGE_FLOOR" | bc)
+        if [ "$BELOW_FLOOR" -eq 1 ]; then
+          echo "Coverage: ${RED_TEXT}FAILED - Below absolute floor of ${COVERAGE_FLOOR}%${RESET_TEXT}"
+          STATUS=1
+        # Check if dropped too much AND below minimum
+        elif [ "$(echo "$DROP > $COVERAGE_DROP_THRESHOLD" | bc)" -eq 1 ]; then
+          BELOW_MIN=$(echo "$STATEMENT_RATE < $COVERAGE_MIN" | bc)
+          if [ "$BELOW_MIN" -eq 1 ]; then
+            echo "Coverage: ${RED_TEXT}FAILED - Dropped ${DROP}% and below ${COVERAGE_MIN}%${RESET_TEXT}"
+            STATUS=1
+          else
+            echo "Coverage: ${GREEN_TEXT}WARNING - Dropped ${DROP}% but above ${COVERAGE_MIN}%${RESET_TEXT}"
+          fi
+        else
+          echo "Coverage: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+        fi
+      fi
+    else
+      echo "Coverage: ${RED_TEXT}Report file not found${RESET_TEXT}"
+      STATUS=1
+    fi
+  fi
+else
+  echo "=== Skipping Coverage Check (SKIP_COVERAGE=1) ==="
+fi
+if [ $STATUS -gt 0 ]
+then echo "Status after coverage check: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after coverage check: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+fi
+
 # Run compute-sanitizer for memory leak detection
 # Note: Excludes Slow tests to avoid expensive caustics rendering under compute-sanitizer
 echo "Running compute-sanitizer for GPU memory leak detection..."
