@@ -2,6 +2,7 @@ package menger
 
 import scala.util.Try
 
+import com.typesafe.scalalogging.LazyLogging
 import menger.common.Color
 import menger.common.ObjectType
 import menger.optix.Material
@@ -33,7 +34,7 @@ case class ObjectSpec(
   texture: Option[String] = None
 )
 
-object ObjectSpec:
+object ObjectSpec extends LazyLogging:
 
   /**
    * Parse object specification from keyword=value format.
@@ -49,14 +50,16 @@ object ObjectSpec:
    *   texture=FILE    - texture filename (relative to texture directory)
    */
   def parse(spec: String): Either[String, ObjectSpec] =
+    logger.debug(s"Parsing object spec: $spec")
     val parts = spec.split(":").map(_.trim)
     val kvPairs = parts.flatMap { part =>
       part.split("=", 2) match
         case Array(key, value) => Some(key.trim.toLowerCase -> value.trim)
         case _ => None
     }.toMap
+    logger.debug(s"Parsed key-value pairs: $kvPairs")
 
-    for
+    val result = for
       objType <- parseObjectType(kvPairs)
       (x, y, z) <- parsePosition(kvPairs)
       size <- parseSize(kvPairs)
@@ -67,6 +70,11 @@ object ObjectSpec:
       texture <- parseTexture(kvPairs)
       _ <- validateSpongeLevel(objType, level)
     yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture)
+
+    result match
+      case Right(obj) => logger.debug(s"Successfully parsed: $obj")
+      case Left(err) => logger.debug(s"Parse failed: $err")
+    result
 
   private def parseObjectType(kvPairs: Map[String, String]): Either[String, String] =
     kvPairs.get("type") match

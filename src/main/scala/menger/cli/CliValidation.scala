@@ -1,5 +1,6 @@
 package menger.cli
 
+import com.typesafe.scalalogging.Logger
 import menger.AnimationSpecificationSequence
 import menger.ObjectSpec
 import menger.common.Const
@@ -8,6 +9,8 @@ import org.rogach.scallop.ScallopOption
 
 trait CliValidation:
   self: ScallopConf =>
+
+  private val validationLogger = Logger(getClass)
 
   protected def timeout: ScallopOption[Float]
   protected def animate: ScallopOption[AnimationSpecificationSequence]
@@ -42,6 +45,7 @@ trait CliValidation:
   protected def causticsAlpha: ScallopOption[Float]
 
   protected def registerValidationRules(): Unit =
+    validationLogger.debug("Registering CLI validation rules")
     mutuallyExclusive(timeout, animate)
 
     validate(projectionScreenW, projectionEyeW) { (screen, eye) =>
@@ -92,6 +96,9 @@ trait CliValidation:
       val isOptiXEnabled = ox.getOrElse(false)
       val hasObjectType = obj.isDefined
       val hasObjects = objs.isDefined
+      validationLogger.debug(
+        s"OptiX validation: enabled=$isOptiXEnabled, hasObjectType=$hasObjectType, hasObjects=$hasObjects"
+      )
 
       if isOptiXWithoutObjects(isOptiXEnabled, hasObjectType, hasObjects) then
         Left("--optix flag requires --object or --objects option. " +
@@ -184,7 +191,11 @@ trait CliValidation:
   private def validateAnimationSpecification(
     spec: AnimationSpecificationSequence, spongeType: String
   ): Either[String, Unit] =
-    if spec.valid(spongeType) && spec.isTimeSpecValid then Right(())
+    validationLogger.debug(s"Validating animation spec for spongeType='$spongeType': $spec")
+    val isValid = spec.valid(spongeType)
+    val timeValid = spec.isTimeSpecValid
+    validationLogger.debug(s"Animation validation result: isValid=$isValid, timeValid=$timeValid")
+    if isValid && timeValid then Right(())
     else Left(
       "Invalid animation specification. Check that: " +
       "(1) animation parameters are valid for the object type, " +

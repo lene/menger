@@ -35,10 +35,21 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
 
   lazy val animationParameters: Map[String, StartEnd] =
     val parametersOnly = asMap -- AnimationSpecification.TIMESCALE_PARAMETERS
-    parametersOnly.map { case (k, v) => k -> parseStartEnd(v) }
+    val parsed = parametersOnly.map { case (k, v) => k -> parseStartEnd(v) }
+    logger.debug(s"Parsed animation parameters: $parsed")
+    parsed
 
-  def isTimeSpecValid: Boolean = frames.exists(_ > 0)
-  def valid(spongeType: String): Boolean = isTimeSpecValid && animationParametersValid(spongeType)
+  def isTimeSpecValid: Boolean =
+    val valid = frames.exists(_ > 0)
+    logger.debug(s"Time spec valid: $valid (frames=$frames)")
+    valid
+
+  def valid(spongeType: String): Boolean =
+    val timeValid = isTimeSpecValid
+    val paramsValid = animationParametersValid(spongeType)
+    val result = timeValid && paramsValid
+    logger.debug(s"Animation valid for '$spongeType': $result (timeValid=$timeValid, paramsValid=$paramsValid)")
+    result
 
   override def toString: String =
     // Safe .get: frames guaranteed Some by AnimationSpecificationSequence validation (isTimeSpecValid check)
@@ -108,8 +119,14 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
     (parts.head.toFloat, parts.last.toFloat)
 
   private def animationParametersValid(spongeType: String): Boolean =
-    animationParameters.nonEmpty && 
-      animationParameters.keySet.subsetOf(AnimationSpecification.validParameters(spongeType))
+    val validParams = AnimationSpecification.validParameters(spongeType)
+    val providedParams = animationParameters.keySet
+    val hasParams = animationParameters.nonEmpty
+    val allValid = providedParams.subsetOf(validParams)
+    if !allValid then
+      val invalidParams = providedParams -- validParams
+      logger.debug(s"Invalid animation parameters for '$spongeType': $invalidParams. Valid: $validParams")
+    hasParams && allValid
 
 object AnimationSpecification:
   final val TIMESCALE_PARAMETERS = Set("frames")
