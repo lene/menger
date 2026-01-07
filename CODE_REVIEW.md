@@ -10,7 +10,7 @@
 | Priority | Open | Completed |
 |----------|------|-----------|
 | High | 0 | 5 |
-| Medium | 1 | 25 |
+| Medium | 0 | 26 |
 | Low | 5 | 6 |
 
 ---
@@ -19,9 +19,7 @@
 
 ### Medium Priority
 
-| ID | Description | Location | Est. Hours |
-|----|-------------|----------|------------|
-| M11 | Mutable state in input controllers | `BaseKeyController.scala`, `OptiXCameraController.scala` | 4 |
+No open medium priority issues.
 
 ### Low Priority
 
@@ -138,6 +136,7 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 - ✅ Strategic debug logging (M10) - Added to ObjectSpec, AnimationSpecification, CliValidation
 - ✅ Extract animation parameter parsing (M6) - Constants and helpers in AnimationSpecification
 - ✅ Reduce cognitive complexity (M9) - Split CliValidation.registerValidationRules, extracted material helper in OptiXEngine
+- ✅ Encapsulate mutable state (M11) - Closed as accepted framework constraint (see Deferred section)
 
 ### Low Priority - Completed
 
@@ -155,10 +154,11 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 The following issues were explicitly deferred or accepted:
 
 1. **Mutable state in LibGDX integration** - Required by framework, properly suppressed
-2. **OptiX cache management** - Works correctly, no changes needed
-3. **Caustics algorithm issues** - Deferred to future sprint, not blocking
-4. **Test performance** - Acceptable, optimization not priority
-5. **Exception-based error handling** - Some `throw` usage required at boundaries
+2. **M11: Encapsulate mutable state in input controllers** - After analysis, encapsulating into case classes would add complexity without benefit. The existing code is already well-structured: vars have proper suppression annotations, state is properly encapsulated (private with controlled access), and the SphericalOrbit trait provides clean abstraction. LibGDX's InputAdapter pattern requires mutable state for tracking between callbacks.
+3. **OptiX cache management** - Works correctly, no changes needed
+4. **Caustics algorithm issues** - Deferred to future sprint, not blocking
+5. **Test performance** - Acceptable, optimization not priority
+6. **Exception-based error handling** - Some `throw` usage required at boundaries
 
 ---
 
@@ -166,10 +166,10 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | ~4 |
+| Medium priority | 0 |
 | Low priority | ~45 |
 | Documentation | ~4 |
-| **Total** | **~53 hours** |
+| **Total** | **~49 hours** |
 
 ---
 
