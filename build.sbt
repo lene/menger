@@ -27,7 +27,9 @@ lazy val mengerCommon = project
     ),
 
     // ScalaTest
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+    // ScalaCheck integration for property-based testing
+    libraryDependencies += "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
   )
 
 lazy val optixJni = project
@@ -154,7 +156,9 @@ lazy val optixJni = project
     libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.5.19",
 
     // ScalaTest for future tests
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+    // ScalaCheck integration for property-based testing
+    libraryDependencies += "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
   )
 
 lazy val root = {
@@ -202,6 +206,8 @@ lazy val root = {
     // ScalaTest
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % Test,
     libraryDependencies += "org.scalamock" %% "scalamock" % "7.5.0" % Test,
+    // ScalaCheck integration for property-based testing
+    libraryDependencies += "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test,
 
     // Suppress SLF4J replay warnings during tests
     Test / javaOptions += "-Dlogback.statusListenerClass=ch.qos.logback.core.status.NopStatusListener",

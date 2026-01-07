@@ -11,7 +11,7 @@
 |----------|------|-----------|
 | High | 0 | 5 |
 | Medium | 11 | 15 |
-| Low | 6 | 5 |
+| Low | 5 | 6 |
 
 ---
 
@@ -42,7 +42,6 @@
 | L3 | Scene graph abstraction | Architecture | 10-12 |
 | L4 | Comprehensive benchmarking suite | Tests | 8-10 |
 | L5 | Plugin system for geometry types | Architecture | 12-15 |
-| L6 | Property-based tests | Tests | 3 |
 
 ---
 
@@ -103,6 +102,19 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 - Material class has no validation for IOR/roughness/metallic values
 - Cube handles degenerate cases (scale=0) gracefully
 
+### ~~L6. Property-Based Tests~~ - RESOLVED
+
+**Resolution:** Added ScalaCheck property-based tests for core mathematical types:
+- `PropertyTestGenerators.scala` - Generators for Vector[4], Matrix[4], angles, floats
+- `VectorPropertySuite.scala` - 18 tests: commutativity, associativity, identity, inverse, triangle inequality
+- `MatrixPropertySuite.scala` - 7 tests: identity laws, associativity, vector multiplication
+- `RotationPropertySuite.scala` - 10 tests: 360° equivalence, inverse, length preservation, composition
+
+**Key design decisions:**
+- Used small value ranges (-10 to 10) for tests involving chained operations to avoid float precision issues
+- Added explicit `approxEqual` helper with 0.001 tolerance for property tests while keeping `Const.epsilon` (1e-5) for production code
+- Fixed bug in `CustomMatchers.MatricesRoughlyEqualMatcher` (missing `math.abs()`)
+
 ---
 
 ## Completed Issues (v0.4.1)
@@ -135,6 +147,7 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 - ✅ Import organization (scalafix compliant)
 - ✅ Redundant type annotations reviewed
 - ✅ Test magic numbers extracted
+- ✅ Property-based tests for Vector, Matrix, Rotation
 
 ---
 
@@ -155,9 +168,9 @@ The following issues were explicitly deferred or accepted:
 | Category | Hours |
 |----------|-------|
 | Medium priority | ~28 |
-| Low priority | ~48 |
+| Low priority | ~45 |
 | Documentation | ~4 |
-| **Total** | **~80 hours** |
+| **Total** | **~77 hours** |
 
 ---
 

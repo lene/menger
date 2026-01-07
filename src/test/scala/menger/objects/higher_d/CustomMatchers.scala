@@ -20,15 +20,14 @@ trait CustomMatchers:
 
   class MatricesRoughlyEqualMatcher(expected: Matrix[4]) extends Matcher[Matrix[4]]:
 
-    def apply(left: Matrix[4]): MatchResult = {
+    def apply(left: Matrix[4]): MatchResult =
       MatchResult(
         expected.m.zip(left.m).forall(
-          (expectedElement, leftElement) => expectedElement - leftElement < Const.epsilon
+          (expectedElement, leftElement) => math.abs(expectedElement - leftElement) < Const.epsilon
         ),
         s"""$left is not epsilon-equal to \n$expected""",
         s"""$left equal to $expected to ${Const.epsilon}"""
       )
-    }
 
   def epsilonEqual(expected: Matrix[4]) = new MatricesRoughlyEqualMatcher(expected)
 
