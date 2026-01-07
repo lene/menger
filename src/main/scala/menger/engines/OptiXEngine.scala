@@ -228,16 +228,19 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
     else
       Right(())
 
+  private val defaultColor = menger.common.Color(0.7f, 0.7f, 0.7f)
+
+  private def extractMaterialProperties(spec: ObjectSpec): (menger.common.Color, Float) =
+    spec.material match
+      case Some(mat) => (mat.color, mat.ior)
+      case None => (spec.color.getOrElse(defaultColor), spec.ior)
+
   private def setupMultipleSpheres(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
     logger.info(s"Setting up ${specs.length} sphere instances")
 
     // addSphereInstance() automatically enables IAS mode - do NOT call setSphere() first!
     specs.foreach { spec =>
-      // Use material properties if available, otherwise fall back to spec color/ior
-      val (color, ior) = spec.material match
-        case Some(mat) => (mat.color, mat.ior)
-        case None => (spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f)), spec.ior)
-
+      val (color, ior) = extractMaterialProperties(spec)
       val scale = spec.size
 
       val transform = TransformUtil.createScaleTranslation(scale, spec.x, spec.y, spec.z)
@@ -274,10 +277,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
     // Add instances
     specs.foreach { spec =>
       val position = menger.common.Vector[3](spec.x, spec.y, spec.z)
-      // Use material properties if available, otherwise fall back to spec color/ior
-      val (color, ior) = spec.material match
-        case Some(mat) => (mat.color, mat.ior)
-        case None => (spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f)), spec.ior)
+      val (color, ior) = extractMaterialProperties(spec)
 
       // Get texture index if this spec has a texture
       val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
@@ -390,10 +390,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
     require(spec.level.isDefined, "cube-sponge requires level")
     // Safe .get: level validated by require above
     val level = spec.level.get.toInt
-    // Use material properties if available, otherwise fall back to spec color/ior
-    val (color, ior) = spec.material match
-      case Some(mat) => (mat.color, mat.ior)
-      case None => (spec.color.getOrElse(menger.common.Color(0.7f, 0.7f, 0.7f)), spec.ior)
+    val (color, ior) = extractMaterialProperties(spec)
 
     // Generate all cube transforms using CubeSpongeGenerator
     val generator = CubeSpongeGenerator(

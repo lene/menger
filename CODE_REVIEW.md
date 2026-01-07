@@ -10,7 +10,7 @@
 | Priority | Open | Completed |
 |----------|------|-----------|
 | High | 0 | 5 |
-| Medium | 2 | 24 |
+| Medium | 1 | 25 |
 | Low | 5 | 6 |
 
 ---
@@ -21,7 +21,6 @@
 
 | ID | Description | Location | Est. Hours |
 |----|-------------|----------|------------|
-| M9 | Reduce cognitive complexity | Large methods | 2 |
 | M11 | Mutable state in input controllers | `BaseKeyController.scala`, `OptiXCameraController.scala` | 4 |
 
 ### Low Priority
@@ -138,6 +137,7 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 - ✅ Comprehensive error context (M3) - Enhanced error messages across ObjectSpec, CLI converters
 - ✅ Strategic debug logging (M10) - Added to ObjectSpec, AnimationSpecification, CliValidation
 - ✅ Extract animation parameter parsing (M6) - Constants and helpers in AnimationSpecification
+- ✅ Reduce cognitive complexity (M9) - Split CliValidation.registerValidationRules, extracted material helper in OptiXEngine
 
 ### Low Priority - Completed
 
@@ -166,10 +166,10 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | ~6 |
+| Medium priority | ~4 |
 | Low priority | ~45 |
 | Documentation | ~4 |
-| **Total** | **~55 hours** |
+| **Total** | **~53 hours** |
 
 ---
 

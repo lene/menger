@@ -46,13 +46,21 @@ trait CliValidation:
 
   protected def registerValidationRules(): Unit =
     validationLogger.debug("Registering CLI validation rules")
-    mutuallyExclusive(timeout, animate)
+    registerProjectionValidations()
+    registerAnimationValidations()
+    registerColorValidations()
+    registerOptiXValidations()
+    registerAntialiasingValidations()
+    registerCausticsValidations()
 
+  private def registerProjectionValidations(): Unit =
+    mutuallyExclusive(timeout, animate)
     validate(projectionScreenW, projectionEyeW) { (screen, eye) =>
       if eye > screen then Right(())
       else Left("eyeW must be greater than screenW")
     }
 
+  private def registerAnimationValidations(): Unit =
     validateOpt(animate, spongeType) {
       case (Some(spec), Some(sponge)) => validateAnimationSpecification(spec, sponge)
       case _ => Right(())
@@ -76,6 +84,7 @@ trait CliValidation:
         else Right(())
     }
 
+  private def registerColorValidations(): Unit =
     validateOpt(color, faceColor, lineColor) { (_, _, _) =>
       if hasConflictingColorOptions then
         Left("--color cannot be used together with --face-color or --line-color. " +
@@ -92,6 +101,7 @@ trait CliValidation:
       else Right(())
     }
 
+  private def registerOptiXValidations(): Unit =
     validateOpt(optix, objectType, objects) { (ox, obj, objs) =>
       val isOptiXEnabled = ox.getOrElse(false)
       val hasObjectType = obj.isDefined
@@ -124,6 +134,15 @@ trait CliValidation:
       }
     }
 
+    validateOpt(planeColor, optix) { (pc, _) =>
+      requiresOptix("plane-color", pc)
+    }
+
+    validateOpt(maxInstances, optix) { (_, ox) =>
+      requiresParent("max-instances", maxInstances.isSupplied, "optix", ox.getOrElse(false))
+    }
+
+  private def registerAntialiasingValidations(): Unit =
     validateOpt(antialiasing, optix) { (aa, _) =>
       requiresOptix("antialiasing", aa.getOrElse(false))
     }
@@ -136,14 +155,7 @@ trait CliValidation:
       requiresParent("aa-threshold", aaThreshold.isSupplied, "antialiasing", aa.getOrElse(false))
     }
 
-    validateOpt(planeColor, optix) { (pc, _) =>
-      requiresOptix("plane-color", pc)
-    }
-
-    validateOpt(maxInstances, optix) { (_, ox) =>
-      requiresParent("max-instances", maxInstances.isSupplied, "optix", ox.getOrElse(false))
-    }
-
+  private def registerCausticsValidations(): Unit =
     validateOpt(caustics, optix) { (c, _) =>
       requiresOptix("caustics", c.getOrElse(false))
     }
