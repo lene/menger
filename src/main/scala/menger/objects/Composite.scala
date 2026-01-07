@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Vector3
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
 import menger.common.Patterns
+import menger.common.UnknownGeometryException
 import menger.input.Observer
 
 class Composite(
@@ -54,4 +55,4 @@ object Composite:
         else
           val successfulGeometries = geometries.collect { case scala.util.Success(geom) => geom }
           Try(Composite(Vector3.Zero, 1f, successfulGeometries))
-      case _ => scala.util.Failure(IllegalArgumentException(s"Not a composite type: $spongeType"))
+      case _ => scala.util.Failure(UnknownGeometryException(spongeType, Seq("composite[type1,type2,...]")))

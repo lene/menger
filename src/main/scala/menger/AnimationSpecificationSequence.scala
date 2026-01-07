@@ -3,6 +3,7 @@ package menger
 import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.common.AnimationException
 
 case class AnimationSpecificationSequence(specification: List[String] = List.empty) extends LazyLogging:
   val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_))
@@ -43,11 +44,15 @@ case class AnimationSpecificationSequence(specification: List[String] = List.emp
                   ): Try[(List[AnimationSpecification], Int)] =
     partsParts match
       case Nil =>
-        scala.util.Failure(IllegalArgumentException("AnimationSpecification.parts not defined"))
+        scala.util.Failure(AnimationException("Animation specification parts not defined"))
       case current :: rest =>
         current.frames match
           case None =>
-            scala.util.Failure(IllegalArgumentException(s"Animation specification $current has no frames"))
+            val specIndex = parts.indexOf(current)
+            scala.util.Failure(AnimationException(
+              s"Animation specification has no frames: $current",
+              Some(specIndex)
+            ))
           case Some(frameCount) if frameCount > totalFrame =>
             Try((accumulator :+ current, totalFrame))
           case Some(frameCount) =>

@@ -2,6 +2,7 @@ package menger.objects
 
 import scala.annotation.targetName
 
+import menger.common.InvalidDirectionException
 import menger.objects.Direction.ByteVec
 
 enum Direction(val x: Byte, val y: Byte, val z: Byte):
@@ -58,6 +59,6 @@ object Direction:
       case (-1, 0, 0) => Direction.negX
       case (0, -1, 0) => Direction.negY
       case (0, 0, -1) => Direction.negZ
-      case _ => throw IllegalArgumentException(s"Invalid direction ($x, $y, $z)")
+      case _ => throw InvalidDirectionException(x, y, z, "must be a unit vector along one axis")
 
   def apply(xyz: ByteVec): Direction = apply.tupled(xyz)

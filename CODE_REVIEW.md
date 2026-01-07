@@ -10,7 +10,7 @@
 | Priority | Open | Completed |
 |----------|------|-----------|
 | High | 0 | 5 |
-| Medium | 8 | 18 |
+| Medium | 7 | 19 |
 | Low | 5 | 6 |
 
 ---
@@ -25,7 +25,6 @@
 | M3 | Add Comprehensive Error Context | Various | 5-6 |
 | M5 | Add builder pattern for complex objects | Various | 0.5 |
 | M6 | Extract animation parameter parsing | `MengerCLIOptions.scala` | 1.5 |
-| M7 | Add more specific exception types | `Direction.scala`, etc. | 2 |
 | M9 | Reduce cognitive complexity | Large methods | 2 |
 | M10 | Add debug logging strategically | Various | 1 |
 | M11 | Mutable state in input controllers | `BaseKeyController.scala`, `OptiXCameraController.scala` | 4 |
@@ -138,6 +137,7 @@ Some shader functions exceed 50 lines. Consider breaking down for readability.
 - ✅ Test organization improvements (M8) - renamed files, created test packages
 - ✅ Transform matrix utilities (M1) - already in `menger.common.TransformUtil`
 - ✅ Extract regex patterns (M4) - moved to `menger.common.Patterns`
+- ✅ Specific exception types (M7) - `MengerException` hierarchy in `menger.common`
 
 ### Low Priority - Completed
 
@@ -166,10 +166,10 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | ~20 |
+| Medium priority | ~18 |
 | Low priority | ~45 |
 | Documentation | ~4 |
-| **Total** | **~69 hours** |
+| **Total** | **~67 hours** |
 
 ---
 

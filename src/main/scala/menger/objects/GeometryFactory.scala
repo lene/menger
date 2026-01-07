@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.math.Vector3
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.common.UnknownGeometryException
 import menger.objects.higher_d.FractionalRotatedProjection
 import menger.objects.higher_d.RotatedProjection
 import menger.objects.higher_d.Tesseract
@@ -52,7 +53,7 @@ object GeometryFactory:
           composite, level, material, primitiveType, rotationProjection,
           create
         )
-      case _ => Failure(IllegalArgumentException(s"Unknown sponge type: $spongeType"))
+      case _ => Failure(UnknownGeometryException(spongeType, supportedTypes.toSeq.sorted))
 
   def createWithOverlay(
     spongeType: String,

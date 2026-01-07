@@ -14,10 +14,12 @@ import menger.OptiXRenderResources
 import menger.ProfilingConfig
 import menger.TextureLoader
 import menger.Vector3Extensions.toVector3
+import menger.common.ConfigurationException
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ObjectType
 import menger.common.TransformUtil
+import menger.common.ValidationException
 import menger.config.OptiXEngineConfig
 import menger.input.OptiXCameraController
 import menger.input.OptiXInputMultiplexer
@@ -190,7 +192,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
     // Validate that all objects are compatible with IAS
     val validationResult = validateObjectSpecs(specs) match
-      case Left(error) => Failure(IllegalArgumentException(error))
+      case Left(error) => Failure(ValidationException(error, "objectSpecs", specs.map(_.objectType)))
       case Right(_) =>
         // Determine scene type and setup using pattern matching
         classifyScene(specs) match
@@ -359,10 +361,11 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
     val totalInstances = specs.map(calculateInstanceCount).sum
     
     if totalInstances > execution.maxInstances then
-      Failure(IllegalArgumentException(
+      Failure(ConfigurationException(
         s"cube-sponge specs generate $totalInstances total instances, " +
         s"exceeding max instances limit of ${execution.maxInstances}. " +
-        "Reduce sponge levels or use --max-instances to increase the limit."
+        "Reduce sponge levels or use --max-instances to increase the limit.",
+        Some("maxInstances")
       ))
     else
       Success(())

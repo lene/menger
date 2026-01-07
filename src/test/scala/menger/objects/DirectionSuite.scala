@@ -1,5 +1,6 @@
 package menger.objects
 
+import menger.common.InvalidDirectionException
 import menger.objects.Direction.X
 import menger.objects.Direction.Y
 import menger.objects.Direction.Z
@@ -27,14 +28,14 @@ class DirectionSuite extends AnyFlatSpec with Matchers:
     Direction((0, -1, 0)) should be (negY)
     Direction((0, 0, -1)) should be (negZ)
 
-  "instantiating from invalid values" should "throw IllegalArgumentException for zero vector" in:
-    an [IllegalArgumentException] should be thrownBy Direction(0, 0, 0)
+  "instantiating from invalid values" should "throw InvalidDirectionException for zero vector" in:
+    an [InvalidDirectionException] should be thrownBy Direction(0, 0, 0)
 
-  it should "throw IllegalArgumentException for non-unit vectors" in:
-    an [IllegalArgumentException] should be thrownBy Direction(1, 1, 0)
-    an [IllegalArgumentException] should be thrownBy Direction(2, 0, 0)
-    an [IllegalArgumentException] should be thrownBy Direction(-1, -1, 0)
-    an [IllegalArgumentException] should be thrownBy Direction(-2, 0, 0)
+  it should "throw InvalidDirectionException for non-unit vectors" in:
+    an [InvalidDirectionException] should be thrownBy Direction(1, 1, 0)
+    an [InvalidDirectionException] should be thrownBy Direction(2, 0, 0)
+    an [InvalidDirectionException] should be thrownBy Direction(-1, -1, 0)
+    an [InvalidDirectionException] should be thrownBy Direction(-2, 0, 0)
 
   "minus on Direction" should "return its negative" in:
     -X should be (negX)
