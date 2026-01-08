@@ -13,6 +13,9 @@ lazy val root = project
   .settings(
     name := "menger-root",
     publish / skip := true,
+    // Delegate run to mengerApp so `sbt "run --args"` works from root
+    Compile / run / aggregate := false,
+    Compile / run := (mengerApp / Compile / run).evaluated,
     // Run all tests across all subprojects
     Test / test := {
       (mengerCommon / Test / test).value
