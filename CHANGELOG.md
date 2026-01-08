@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.4.1] - 2026-01-07
+## [0.4.1] - 2026-01-08
 
 ### Added
 - **Material System** - PBR-based material properties for realistic rendering
