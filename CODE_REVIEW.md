@@ -72,9 +72,33 @@ These are legitimate future work items, not stale comments.
 
 Updated files: `caustics_ppm.cu`, `miss_plane.cu`, `helpers.cu`, `raygen_primary.cu`
 
-### CPP-2. Long Functions in Shaders
+### ~~CPP-2. Long Functions in Shaders~~ - RESOLVED
 
-Some shader functions exceed 50 lines. Consider breaking down for readability.
+**Resolution:** Extracted helper functions from long shader functions:
+
+**Phase 1 - Fresnel color blending (helpers.cu):**
+- `blendFresnelColorsAndSetPayload()` - shared by hit_triangle.cu and hit_sphere.cu
+- `payloadToFloat3()` - convert integer payloads to float3
+
+**Phase 2 - Triangle geometry (hit_triangle.cu):**
+- `getTriangleGeometry()` - extracts hit point, interpolated normal, UVs
+- `getTriangleMaterial()` - gets material properties with texture sampling
+- `TriangleGeometry` struct - encapsulates interpolated geometry data
+
+**Phase 3 - Antialiasing (helpers.cu):**
+- `sampleGridAndDetectEdges()` - samples 3x3 grid and computes max color difference
+
+**Phase 4 - Photon emission (caustics_ppm.cu):**
+- `emitDirectionalPhoton()` - generates parallel rays for directional lights
+- `emitPointPhoton()` - generates random rays for point lights
+- `calculatePhotonFlux()` - computes per-photon flux from light properties
+
+**Phase 5 - Photon absorption (caustics_ppm.cu):**
+- `applyPhotonBeerLambert()` - applies Beer-Lambert absorption to photon flux
+
+**Design decision:** `__intersection__sphere()` (92 lines) left unchanged with documented
+rationale - it's adapted from NVIDIA OptiX SDK and refactoring would risk bugs and
+make SDK comparison difficult.
 
 ---
 
@@ -173,9 +197,10 @@ The following issues were explicitly deferred or accepted:
 | Category | Hours |
 |----------|-------|
 | Medium priority | 0 |
-| Low priority | ~45 |
+| Low priority | ~43 |
 | Documentation | 0 |
-| **Total** | **~45 hours** |
+| C++ Issues | 0 |
+| **Total** | **~43 hours** |
 
 ---
 
