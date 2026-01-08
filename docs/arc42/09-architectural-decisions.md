@@ -131,13 +131,8 @@ This section documents significant architectural decisions. Detailed implementat
 
 ## 9.2 Sprint-Level Decisions
 
-Detailed implementation decisions are documented in sprint plans:
-
-| Sprint | Plan | Key Decisions |
-|--------|------|---------------|
-| 5 | [SPRINT_5_PLAN.md](../../optix-jni/SPRINT_5_PLAN.md) | Triangle GAS, vertex format, per-face normals |
-| 6 | [SPRINT_6_PLAN.md](../../optix-jni/SPRINT_6_PLAN.md) | IAS architecture, instance materials, sponge export |
-| 7 | [SPRINT_7_PLAN.md](../../optix-jni/SPRINT_7_PLAN.md) | UV coordinates, texture support, material presets |
+Detailed implementation decisions are documented in sprint planning documents and code review files.
+Historical sprint plans (5, 6, 7) have been archived after completion.
 
 ## 9.3 Future Decisions
 

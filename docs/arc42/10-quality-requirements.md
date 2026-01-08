@@ -4,10 +4,7 @@
 > Each sprint references these scenarios and establishes actual baselines.
 >
 > **Sprint Traceability:**
-> - [Sprint 4](../../optix-jni/CAUSTICS_TEST_LADDER.md) - Caustics validation (C1-C8)
-> - [Sprint 5](../../optix-jni/SPRINT_5_PLAN.md) - Establishes cube/triangle baselines
-> - [Sprint 6](../../optix-jni/SPRINT_6_PLAN.md) - Establishes sponge/multi-object baselines
-> - [Sprint 7](../../optix-jni/SPRINT_7_PLAN.md) - Validates material/texture performance
+> - [Caustics Test Ladder](../caustics/CAUSTICS_TEST_LADDER.md) - Caustics validation (C1-C8)
 
 ## 10.1 Quality Tree
 
@@ -55,7 +52,7 @@ Speed    Efficiency      Quality    Accuracy       Coverage   Handling
 
 > **Validation Approach:** Caustics validation uses a **ladder of tests** from analytic physics
 > to reference image comparison. Each step must pass before proceeding to the next.
-> See [Caustics Test Ladder](../../optix-jni/CAUSTICS_TEST_LADDER.md) for implementation details.
+> See [Caustics Test Ladder](../caustics/CAUSTICS_TEST_LADDER.md) for implementation details.
 
 | ID | Scenario | Measure | Target | Test Type |
 |----|----------|---------|--------|-----------|
@@ -108,7 +105,7 @@ For reproducible validation, use this fixed configuration:
 
 | ID | Scenario | Measure | Target | Validated By |
 |----|----------|---------|--------|--------------|
-| R1 | All tests pass | Count | 897+ tests passing | All sprints |
+| R1 | All tests pass | Count | 1091+ tests passing | All sprints |
 | R2 | GPU error recovery | Cache corruption | Auto-recover | Sprint 3 ✅ |
 | R3 | Invalid CLI args | Error message | Clear, actionable | Sprint 5 |
 | R4 | Missing GPU | Graceful degradation | LibGDX fallback | Existing |
@@ -131,7 +128,7 @@ For reproducible validation, use this fixed configuration:
 | menger.objects | ~50 | Geometry generation, subdivision |
 | menger.input | ~20 | Event handling, camera |
 | optix-jni (Scala) | ~100 | Renderer API, materials |
-| optix-jni (C++) | 21 | OptiXContext primitives |
+| optix-jni (C++) | 33 | OptiXContext primitives |
 | CLI | ~30 | Argument parsing, validation |
 
 ### Test Types

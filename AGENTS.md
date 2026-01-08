@@ -3,7 +3,7 @@
 ## Build/Test Commands
 ```bash
 sbt compile                    # Compile all modules (includes C++/CUDA)
-sbt test --warn               # Run all tests (~897 total)
+sbt test --warn               # Run all tests (~1064 Scala + 27 C++ = ~1091 total)
 sbt "testOnly ClassName"      # Run specific Scala test
 sbt "project optixJni" nativeTest  # Run C++ Google Test suite
 sbt "scalafix --check"        # Verify code quality

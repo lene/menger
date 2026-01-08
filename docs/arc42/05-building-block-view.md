@@ -9,16 +9,16 @@
 │                                                                      │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐   │
 │  │                  │  │                  │  │                  │   │
-│  │   menger.core    │  │  menger.objects  │  │   optix-jni      │   │
+│  │   menger-app     │  │  menger.objects  │  │   optix-jni      │   │
 │  │   (Application)  │  │   (Geometry)     │  │   (Ray Tracing)  │   │
-│  │                  │  │                  │  │                  │   │
+│  │                  │  │   in menger-app  │  │                  │   │
 │  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘   │
 │           │                     │                     │              │
 │           └─────────────────────┴─────────────────────┘              │
 │                                 │                                    │
 │                                 ▼                                    │
 │                    ┌────────────────────────┐                        │
-│                    │     menger.common      │                        │
+│                    │     menger-common      │                        │
 │                    │   (Shared utilities)   │                        │
 │                    └────────────────────────┘                        │
 │                                                                      │
@@ -27,23 +27,30 @@
 
 ## 5.2 Level 2: Component Details
 
-### 5.2.1 menger.core (Application Layer)
+### 5.2.1 menger-app (Application Layer)
 
 **Purpose:** Entry point, CLI parsing, engine orchestration.
 
 ```
-menger/
-├── Main.scala              # Entry point, LibGDX config
-├── MengerCLIOptions.scala  # CLI argument parsing (Scallop)
-├── MengerEngine.scala      # Abstract base, geometry factory
-├── InteractiveMengerEngine # Interactive mode
-├── AnimatedMengerEngine    # Animation mode
-└── OptiXResources.scala    # OptiX renderer lifecycle
+menger-app/src/main/scala/
+├── Main.scala                        # Entry point, LibGDX config
+└── menger/
+    ├── MengerCLIOptions.scala        # CLI argument parsing (Scallop)
+    ├── OptiXRenderResources.scala    # OptiX renderer lifecycle
+    ├── cli/                          # CLI types and converters
+    ├── config/                       # Configuration classes
+    └── engines/
+        ├── MengerEngine.scala        # Abstract base, geometry factory
+        ├── InteractiveMengerEngine.scala  # Interactive mode
+        ├── AnimatedMengerEngine.scala     # Animation mode
+        ├── OptiXEngine.scala         # OptiX-based rendering engine
+        └── RenderEngine.scala        # Common engine trait
 ```
 
 ### 5.2.2 menger.objects (Geometry Layer)
 
 **Purpose:** Fractal geometry generation via surface subdivision.
+**Location:** `menger-app/src/main/scala/menger/objects/`
 
 ```
 menger.objects/
@@ -69,9 +76,8 @@ menger.objects/
 optix-jni/
 ├── src/main/scala/menger/optix/
 │   ├── OptiXRenderer.scala       # Scala JNI interface
-│   └── geometry/
-│       ├── CubeGeometry.scala    # Cube mesh generation
-│       └── SpongeGeometry.scala  # Sponge mesh export
+│   ├── Material.scala            # Material definitions
+│   └── RenderConfig.scala        # Render configuration
 │
 └── src/main/native/
     ├── include/
@@ -130,13 +136,16 @@ optix-jni/
 ## 5.4 Input Handling
 
 ```
-menger.input/
+menger.input/  (in menger-app)
 ├── EventDispatcher           # Publishes rotation/projection events
-├── Observer                  # Event subscribers (implemented by Geometry)
-├── CameraController          # Camera movement (LibGDX)
+├── BaseKeyController         # Abstract keyboard input handler
+├── GdxKeyController          # LibGDX keyboard controls
+├── OptiXKeyController        # OptiX window keyboard controls
+├── GdxCameraController       # Camera movement (LibGDX)
 ├── OptiXCameraController     # Camera control (OptiX window)
-├── KeyController             # 4D rotation keyboard controls
-└── MengerInputMultiplexer    # Combines input processors
+├── SphericalOrbit            # Spherical camera orbit logic
+├── MengerInputMultiplexer    # Combines LibGDX input processors
+└── OptiXInputMultiplexer     # Combines OptiX input processors
 ```
 
 **Pattern:** Observer pattern for 4D parameter changes. Geometry objects subscribe to EventDispatcher.
