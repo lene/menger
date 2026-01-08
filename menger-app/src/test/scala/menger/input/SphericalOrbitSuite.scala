@@ -10,27 +10,24 @@ class SphericalOrbitSuite extends AnyFlatSpec with Matchers:
   class TestOrbit(config: OrbitConfig = OrbitConfig()) extends SphericalOrbit:
     override protected def orbitConfig: OrbitConfig = config
 
+    // Use consolidated SphericalCoords - single var instead of three
     @SuppressWarnings(Array("org.wartremover.warts.Var"))
-    private var _azimuth: Float = 0f
-    @SuppressWarnings(Array("org.wartremover.warts.Var"))
-    private var _elevation: Float = 0f
-    @SuppressWarnings(Array("org.wartremover.warts.Var"))
-    private var _distance: Float = 1f
+    private var coords: SphericalCoords = SphericalCoords(0f, 0f, 1f)
 
-    override protected def azimuth: Float = _azimuth
-    override protected def azimuth_=(value: Float): Unit = _azimuth = value
-    override protected def elevation: Float = _elevation
-    override protected def elevation_=(value: Float): Unit = _elevation = value
-    override protected def distance: Float = _distance
-    override protected def distance_=(value: Float): Unit = _distance = value
+    override protected def azimuth: Float = coords.azimuth
+    override protected def azimuth_=(value: Float): Unit = coords = coords.copy(azimuth = value)
+    override protected def elevation: Float = coords.elevation
+    override protected def elevation_=(value: Float): Unit = coords = coords.copy(elevation = value)
+    override protected def distance: Float = coords.distance
+    override protected def distance_=(value: Float): Unit = coords = coords.copy(distance = value)
 
     // Public accessors for testing
-    def getAzimuth: Float = _azimuth
-    def setAzimuth(value: Float): Unit = _azimuth = value
-    def getElevation: Float = _elevation
-    def setElevation(value: Float): Unit = _elevation = value
-    def getDistance: Float = _distance
-    def setDistance(value: Float): Unit = _distance = value
+    def getAzimuth: Float = coords.azimuth
+    def setAzimuth(value: Float): Unit = coords = coords.copy(azimuth = value)
+    def getElevation: Float = coords.elevation
+    def setElevation(value: Float): Unit = coords = coords.copy(elevation = value)
+    def getDistance: Float = coords.distance
+    def setDistance(value: Float): Unit = coords = coords.copy(distance = value)
 
     // Expose protected methods for testing
     def testInitSpherical(eye: Vector3, lookAt: Vector3): (Float, Float, Float) =

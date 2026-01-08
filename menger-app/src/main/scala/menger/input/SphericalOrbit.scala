@@ -15,6 +15,9 @@ case class OrbitConfig(
   maxElevation: Float = Const.Input.defaultMaxElevation
 )
 
+// Consolidated spherical coordinate state - reduces multiple vars to one
+case class SphericalCoords(azimuth: Float, elevation: Float, distance: Float)
+
 trait SphericalOrbit:
   protected def orbitConfig: OrbitConfig
 

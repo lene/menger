@@ -9,6 +9,9 @@ import menger.OptiXRenderResources
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 
+// Consolidated drag state - reduces 4 vars to 1 Option
+private case class DragState(lastX: Int, lastY: Int, button: Int)
+
 class OptiXCameraController(
   rendererWrapper: OptiXRendererWrapper,
   cameraState: CameraState,
@@ -22,7 +25,8 @@ class OptiXCameraController(
   // SphericalOrbit config
   override protected def orbitConfig: OrbitConfig = config
 
-  // Camera state - stored in both Cartesian and spherical coordinates
+  // Camera position state - LibGDX Vector3 is inherently mutable
+  // These vars are required for LibGDX integration which uses mutable vectors
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var eye: Vector3 = initialEye.cpy()
 
@@ -32,63 +36,49 @@ class OptiXCameraController(
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var up: Vector3 = initialUp.cpy()
 
-  // Spherical coordinates for orbit control - implementing SphericalOrbit requirements
+  // Spherical coordinates - consolidated into single var
   private val (initAzimuth, initElevation, initDistance) = initSpherical(initialEye, initialLookAt)
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var _azimuth: Float = initAzimuth
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var _elevation: Float = initElevation
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var _distance: Float = initDistance
+  private var spherical: SphericalCoords = SphericalCoords(initAzimuth, initElevation, initDistance)
 
-  override protected def azimuth: Float = _azimuth
-  override protected def azimuth_=(value: Float): Unit = _azimuth = value
-  override protected def elevation: Float = _elevation
-  override protected def elevation_=(value: Float): Unit = _elevation = value
-  override protected def distance: Float = _distance
-  override protected def distance_=(value: Float): Unit = _distance = value
+  // SphericalOrbit trait implementation - delegate to consolidated state
+  override protected def azimuth: Float = spherical.azimuth
+  override protected def azimuth_=(value: Float): Unit =
+    spherical = spherical.copy(azimuth = value)
+  override protected def elevation: Float = spherical.elevation
+  override protected def elevation_=(value: Float): Unit =
+    spherical = spherical.copy(elevation = value)
+  override protected def distance: Float = spherical.distance
+  override protected def distance_=(value: Float): Unit =
+    spherical = spherical.copy(distance = value)
 
-  // Mouse tracking state
+  // Mouse tracking state - consolidated into Option[DragState]
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var lastX: Int = 0
-
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var lastY: Int = 0
-
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var isDragging: Boolean = false
-
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var dragButton: Int = -1
+  private var dragState: Option[DragState] = None
 
   override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
-    lastX = screenX
-    lastY = screenY
-    isDragging = true
-    dragButton = button
+    dragState = Some(DragState(screenX, screenY, button))
     true
 
   override def touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
-    isDragging = false
-    dragButton = -1
+    dragState = None
     true
 
   override def touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean =
-    if !isDragging then
-      false
-    else
-      val deltaX = screenX - lastX
-      val deltaY = screenY - lastY
-      lastX = screenX
-      lastY = screenY
+    dragState match
+      case None => false
+      case Some(state) =>
+        val deltaX = screenX - state.lastX
+        val deltaY = screenY - state.lastY
+        dragState = Some(state.copy(lastX = screenX, lastY = screenY))
 
-      dragButton match
-        case Buttons.LEFT => handleOrbit(deltaX, deltaY)
-        case Buttons.RIGHT => handlePan(deltaX, deltaY)
-        case _ => // Ignore other buttons
+        state.button match
+          case Buttons.LEFT => handleOrbit(deltaX, deltaY)
+          case Buttons.RIGHT => handlePan(deltaX, deltaY)
+          case _ => // Ignore other buttons
 
-      true
+        true
 
   override def scrolled(amountX: Float, amountY: Float): Boolean =
     handleZoom(amountY)
