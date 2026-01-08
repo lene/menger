@@ -11,7 +11,7 @@ import menger.optix.Material
  * Object specification parsed from CLI --object flag.
  * Format: type=TYPE:key=value:key=value...
  *
- * Examples:
+ * Success examples:
  *   type=sphere:pos=0,0,0:size=1.0:color=#FF0000:ior=1.5
  *   type=cube:pos=2,0,0:size=1.5:color=#0000FF
  *   type=sponge-volume:pos=-2,0,0:size=2.0:level=3:color=#00FF00
@@ -20,6 +20,15 @@ import menger.optix.Material
  *   type=sphere:pos=0,0,0:material=glass:ior=1.7
  *   type=cube:pos=0,0,0:material=metal:color=#FFD700
  *   type=cube:pos=0,0,0:texture=brick.png
+ *
+ * Error examples (input → error message):
+ *   "type=invalid" → "Invalid object type: 'invalid'. Valid types: sphere, cube, ..."
+ *   "pos=1,2,3" (missing type) → "Missing required 'type' field..."
+ *   "type=sphere:pos=1,2" → "Invalid position format: '1,2'. Expected format: pos=x,y,z..."
+ *   "type=sphere:size=abc" → "Invalid size value 'abc': For input string: \"abc\"..."
+ *   "type=sponge-volume:pos=0,0,0" → "Sponge object requires 'level' field..."
+ *   "type=sphere:material=unknown" → "Unknown material preset: 'unknown'. Valid presets: ..."
+ *   "type=sphere:color=notahex" → "Invalid color value 'notahex': For input string: \"notahex\"..."
  */
 case class ObjectSpec(
   objectType: String,

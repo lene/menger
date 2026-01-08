@@ -35,10 +35,10 @@ No open medium priority issues.
 
 ## Documentation Issues
 
-### DOC-1. Missing API Documentation
+### ~~DOC-1. Missing API Documentation~~ - RESOLVED
 
-**Files:**
-- `ObjectSpec.scala` - Missing examples for parse error cases
+**Resolution:** Added error examples to ObjectSpec scaladoc showing common parse error cases
+and their corresponding error messages.
 
 ### DOC-2. Outdated TODO Comments
 
@@ -168,8 +168,8 @@ The following issues were explicitly deferred or accepted:
 |----------|-------|
 | Medium priority | 0 |
 | Low priority | ~45 |
-| Documentation | ~4 |
-| **Total** | **~49 hours** |
+| Documentation | ~3 |
+| **Total** | **~48 hours** |
 
 ---
 
