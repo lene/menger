@@ -42,5 +42,7 @@ lazy val mengerApp = project
   .settings(
     // Set library path for run to find native library and CUDA libraries
     run / javaOptions += s"-Djava.library.path=${(optixJni / Compile / classDirectory).value / "native" / "x86_64-linux"}:${(optixJni / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
-    run / fork := true
+    run / fork := true,
+    // Use project root as working directory so file paths match packaged executable behavior
+    run / baseDirectory := (ThisBuild / baseDirectory).value
   )
