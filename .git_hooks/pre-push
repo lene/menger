@@ -130,7 +130,7 @@ if [ "${SKIP_COVERAGE:-0}" != "1" ]; then
   COVERAGE_FLOOR="60"
 
   # Run coverage
-  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt clean "mengerApp / coverage" "mengerApp / test" "mengerApp / coverageReport" --warn > /tmp/coverage-prepush.log 2>&1
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt "project mengerApp" "set coverageEnabled := true" clean test coverageReport --warn > /tmp/coverage-prepush.log 2>&1
   COVERAGE_STATUS=$?
 
   if [ $COVERAGE_STATUS -ne 0 ]; then
