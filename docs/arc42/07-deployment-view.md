@@ -47,17 +47,9 @@
 
 ## 7.2 Local Development Setup
 
-### Automated Setup (Recommended)
-
-```bash
-# Install all dependencies
-./scripts/setup-dev-environment.sh
-
-# Verify installation
-sbt compile && sbt test --warn
-```
-
 ### Manual Setup
+
+See [Deployment View](07-deployment-view.md#manual-setup) below for step-by-step instructions.
 
 1. **NVIDIA Driver** (580.x+ for OptiX 9.0)
    ```bash
@@ -102,19 +94,19 @@ For developers without local NVIDIA GPU, use AWS EC2 spot instances.
 ### Quick Start
 
 ```bash
-# Launch instance (creates if needed)
-./scripts/aws-gpu-instance.sh launch
+# Launch spot instance (creates if needed)
+./scripts/nvidia-spot.sh launch
 
 # Connect with X11 forwarding
-./scripts/aws-gpu-instance.sh connect
+./scripts/nvidia-spot.sh connect
 
 # Work on instance...
 
 # Save state and stop
-./scripts/aws-gpu-instance.sh stop
+./scripts/nvidia-spot.sh stop
 
 # Terminate when done
-./scripts/aws-gpu-instance.sh terminate
+./scripts/nvidia-spot.sh terminate
 ```
 
 ### Pre-configured AMI

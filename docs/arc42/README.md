@@ -29,10 +29,10 @@ This directory contains the architecture documentation for the Menger fractal re
 ## Conventions
 
 - This documentation is the **single source of truth** for architecture
-- Sprint plans in `optix-jni/` contain detailed implementation decisions
+- Sprint plans in `docs/archive/sprints/` contain detailed implementation decisions
 - Troubleshooting guides remain in `docs/TROUBLESHOOTING.md` (referenced from section 11)
 
 ## Version
 
-- **Last Updated:** 2025-11-22
+- **Last Updated:** 2026-01-08
 - **arc42 Template Version:** 8.2

@@ -88,12 +88,11 @@ Applies to: OptiX shaders, Beer-Lambert absorption, Scala Color objects, all tes
 case class Color(r: Float, g: Float, b: Float, a: Float = 1.0f)
 
 object Color:
-  def fromRGB(r: Float, g: Float, b: Float): Color
-  def fromRGBA(r: Float, g: Float, b: Float, a: Float): Color
+  def fromRGB(r: Int, g: Int, b: Int): Color      // 0-255 range
+  def fromRGBA(r: Int, g: Int, b: Int, a: Int): Color
   def fromHex(hex: String): Color  // "#RRGGBB" or "#RRGGBBAA"
 
-  val WHITE = Color(1f, 1f, 1f, 1f)
-  val BLACK = Color(0f, 0f, 0f, 1f)
+  val LIGHT_GRAY: Color = Color(200/255f, 200/255f, 200/255f)
 ```
 
 ### Hex Format
@@ -164,7 +163,7 @@ DisableSyntax.noReturns  // No return statements
 |----------|----------|-----------|---------|
 | Scala Unit | `src/test/scala/` | ScalaTest | Logic, parsing |
 | OptiX Unit | `optix-jni/src/test/scala/` | ScalaTest | Renderer API |
-| C++ Unit | `optix-jni/src/test/native/` | Google Test | OptiX context |
+| C++ Unit | `optix-jni/src/main/native/tests/` | Google Test | OptiX context |
 | Visual | Manual | - | Render comparison |
 
 ### Test Patterns

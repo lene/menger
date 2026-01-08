@@ -57,11 +57,11 @@
 |--------------|----------|
 | **Performance** | Surface subdivision, GPU acceleration, BVH optimization |
 | **Visual Quality** | Fresnel reflection, Beer-Lambert absorption, adaptive AA |
-| **Testability** | 897+ tests, separate unit/integration tests |
+| **Testability** | 1091+ tests, separate unit/integration tests |
 | **Maintainability** | Wartremover, Scalafix enforcement |
 
 ## 4.4 Organizational Strategy
 
 - **Single source of truth**: arc42 documentation
-- **Sprint-based development**: Detailed plans in `optix-jni/SPRINT_*_PLAN.md`
+- **Sprint-based development**: Detailed plans in `docs/archive/sprints/`
 - **CI/CD**: Automated testing on GPU-enabled runner

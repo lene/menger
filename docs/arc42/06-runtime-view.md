@@ -88,8 +88,8 @@ CLI Arguments                 Scala Layer                 C++ Layer
      │                             │                           │
      ▼                             ▼                           ▼
 ┌─────────────┐           ┌─────────────────┐         ┌─────────────────┐
-│ --optix     │──────────►│ OptiXResources  │────────►│ OptiXWrapper    │
-│ --ior 1.5   │           │ .initialize()   │         │ .initialize()   │
+│ --optix     │──────────►│ OptiXRender-    │────────►│ OptiXWrapper    │
+│ --ior 1.5   │           │ Resources       │         │ .initialize()   │
 │ --shadows   │           └────────┬────────┘         └────────┬────────┘
 └─────────────┘                    │                           │
                                    ▼                           ▼

@@ -88,7 +88,14 @@ optix-jni/
     ├── OptiXWrapper.cpp          # Scene state management
     ├── JNIBindings.cpp           # Scala↔C++ bridge
     └── shaders/
-        └── sphere_combined.cu    # CUDA shaders (raygen, hit, miss)
+        ├── sphere_combined.cu    # Main entry point (includes all)
+        ├── raygen_primary.cu     # Ray generation shader
+        ├── hit_sphere.cu         # Sphere intersection/closest hit
+        ├── hit_triangle.cu       # Triangle mesh closest hit
+        ├── miss_plane.cu         # Miss shader (plane/background)
+        ├── shadows.cu            # Shadow ray handling
+        ├── helpers.cu            # Shared utilities
+        └── caustics_ppm.cu       # Photon mapping (experimental)
 ```
 
 ## 5.3 OptiX JNI Architecture (Level 3)

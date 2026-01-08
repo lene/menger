@@ -65,7 +65,7 @@ Detailed troubleshooting: [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)
 
 | Metric | Source | Alert Threshold |
 |--------|--------|-----------------|
-| Test count | CI | < 897 (regression) |
+| Test count | CI | < 1091 (regression) |
 | Build time | CI | > 10 minutes |
 | Render time | RayStats | > 2× baseline |
 | GPU memory | nvidia-smi | > 80% |

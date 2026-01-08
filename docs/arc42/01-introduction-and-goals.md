@@ -28,7 +28,7 @@
 | 1 | **Performance** | Efficient surface subdivision (O(12^n) vs O(20^n) volume) |
 | 2 | **Visual Quality** | Physically-based rendering (Fresnel, Beer-Lambert, Snell's law) |
 | 3 | **Extensibility** | Easy addition of new geometry types and materials |
-| 4 | **Testability** | Comprehensive test coverage (~897 tests) |
+| 4 | **Testability** | Comprehensive test coverage (~1091 tests) |
 | 5 | **Maintainability** | Functional Scala style, no mutable state, no exceptions |
 
 ## 1.3 Stakeholders
