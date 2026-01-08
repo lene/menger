@@ -40,31 +40,37 @@ No open medium priority issues.
 **Resolution:** Added error examples to ObjectSpec scaladoc showing common parse error cases
 and their corresponding error messages.
 
-### DOC-2. Outdated TODO Comments
+### ~~DOC-2. Outdated TODO Comments~~ - RESOLVED
 
-**File:** `optix-jni/src/main/native/shaders/caustics_ppm.cu`
-- Line 287: `TODO: Use spatial hash grid for efficiency`
-- Line 574: `TODO: Weight by intensity for multiple lights`
+**Resolution:** After investigation, these TODOs are **not outdated** - they document valid future optimizations:
+- Line 287: Spatial hash grid would improve O(n) brute-force photon deposition
+- Line 574: Multi-light caustics support (currently only uses first light, unlike direct lighting which loops all lights)
 
-### DOC-3. Complex Algorithms Lack Explanation
+These are legitimate future work items, not stale comments.
 
-**Files:**
-- `CubeSpongeGenerator.scala` - Recursive subdivision algorithm
-- `SpongeBySurface.scala` - Face generation algorithm
-- `caustics_ppm.cu` - Photon mapping algorithm
+### ~~DOC-3. Complex Algorithms Lack Explanation~~ - RESOLVED
+
+**Resolution:** Added inline algorithm comments to:
+- `Face.scala` - Menger sponge face subdivision (8 unrotated + 4 rotated sub-faces)
+- `SpongeBySurface.scala` - Surface-based generation approach and iteration pattern
+- `caustics_ppm.cu` - High-level PPM overview (4 phases, key physics equations)
 
 ---
 
 ## C++ Code Issues
 
-### CPP-1. Magic Numbers in Shaders
+### ~~CPP-1. Magic Numbers in Shaders~~ - RESOLVED
 
-**Files:** `caustics_ppm.cu`, `sphere_combined.cu`, `helpers.cu`
+**Resolution:** Added 7 new named constants to `OptiXData.h` and updated shader files:
+- `RAY_PARALLEL_THRESHOLD` (1e-6f) - ray nearly parallel to surface
+- `FLUX_EPSILON` (1e-10f) - near-zero flux/area threshold
+- `HIT_POINT_RAY_TMIN` (0.0001f) - hit point ray minimum t
+- `PHOTON_EMISSION_DISTANCE` (20.0f) - photon start distance behind sphere
+- `PHOTON_DISK_RADIUS_MULTIPLIER` (2.0f) - disk radius for sphere coverage
+- `SQRT_3` (1.732050808f) - RGB cube diagonal for color distance
+- `ALPHA_OPAQUE_BYTE` (255) - fully opaque alpha output
 
-Examples:
-- Ray offset values (0.001f, 0.0001f)
-- Maximum ray depth (10, 20)
-- Grid sizes (64, 128)
+Updated files: `caustics_ppm.cu`, `miss_plane.cu`, `helpers.cu`, `raygen_primary.cu`
 
 ### CPP-2. Long Functions in Shaders
 
@@ -168,8 +174,8 @@ The following issues were explicitly deferred or accepted:
 |----------|-------|
 | Medium priority | 0 |
 | Low priority | ~45 |
-| Documentation | ~3 |
-| **Total** | **~48 hours** |
+| Documentation | 0 |
+| **Total** | **~45 hours** |
 
 ---
 

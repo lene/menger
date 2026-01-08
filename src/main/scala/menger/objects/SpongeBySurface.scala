@@ -10,6 +10,23 @@ import menger.common.TriangleMeshData
 import menger.common.float2string
 import menger.objects.Direction.Z
 
+// Menger Sponge Surface-Based Generator
+//
+// Generates a Menger sponge by recursive subdivision of its 6 outer faces.
+// Unlike volume-based approaches that start with a cube and carve holes,
+// this builds only the visible surfaces, which is more memory-efficient.
+//
+// Algorithm:
+//   1. Start with 6 faces (one per cube side)
+//   2. Each face subdivides into 12 sub-faces per level (see Face.scala)
+//   3. After N levels, render all accumulated faces as a mesh
+//
+// The surfaces() method iterates from level N down to 0, applying
+// subdivision at each step. This reverse iteration allows the same
+// Face.subdivide() logic to be applied uniformly.
+//
+// Supports fractional levels by blending between integer levels
+// (nextLevelSponge + transparentSponge for smooth LOD transitions).
 
 class SpongeBySurface(
   val center: Vector3 = Vector3.Zero, val scale: Float = 1f,
@@ -51,6 +68,7 @@ class SpongeBySurface(
 
   override def toString: String = s"SpongeBySurface(level=${float2string(level)}, ${6 * faces.size} faces)"
 
+  // Apply subdivision N times (from level down to 1), accumulating sub-faces
   private[objects] def surfaces(startFace: Face): Seq[Face] =
     val faces = Seq(startFace)
     level.toInt.until(0, -1).foldLeft(faces)(
@@ -68,6 +86,8 @@ class SpongeBySurface(
       Builder.modelBuilder.end()
     }
 
+  // Generate triangle mesh for all 6 cube faces
+  // Each face is offset by half the scale in its normal direction (on the cube surface)
   override def toTriangleMesh: TriangleMeshData = logTime("toTriangleMesh") {
     val half = scale / 2
     // Create initial faces offset by half in their normal direction (on the cube surface)
