@@ -125,6 +125,14 @@ Ideas for future consideration, not yet scheduled.
 | GPU composites | Render fractals as composites | Needs design |
 | Coordinate cross | Render axis visualization | Small feature |
 
+### Project Infrastructure
+
+| Idea | Description | Complexity |
+|------|-------------|------------|
+| GitLab Package Registry | Publish artifacts for cross-project dependencies | Low (1-2 hours) |
+| Maven Central (optix-jni) | Publish optix-jni as standalone JNI library | Medium (4-6 hours) |
+| Repository split | Separate repos for menger-common, optix-jni, menger-app | Medium (depends on above) |
+
 ---
 
 ## Timeline Estimate

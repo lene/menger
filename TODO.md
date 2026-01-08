@@ -7,10 +7,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 
 ## Quick Notes
 
-- MAX_INSTANCES = 64 may be limiting for complex scenes
 - Valgrind standalone test - verify still up to date
-- Consider moving menger to separate subproject (all subprojects same level)
-- Consider splitting build.sbt per subproject
 
 ## Ideas
 

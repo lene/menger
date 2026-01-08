@@ -7,7 +7,7 @@ stages:
 
 variables:
   DEPLOYABLE_BASE_NAME: menger
-  DEPLOYABLE_VERSION: 0.4.0
+  DEPLOYABLE_VERSION: 0.4.1
   SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25_36_1.11.7_3.7.3
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.7.3
@@ -120,7 +120,7 @@ Test:SbtImage:
   artifacts:
     when: always
     reports:
-      junit: target/test-reports/**/TEST-*.xml
+      junit: menger-app/target/test-reports/**/TEST-*.xml
 
 # Full test suite - Runs on MR, main, and tag pipelines
 # Uses pre-built Docker image with CUDA, OptiX, Java 25, and sbt
@@ -161,13 +161,15 @@ Test:Full:
   after_script:
     # Fix permissions on generated files so they can be cleaned up locally without sudo
     # Docker containers run as root, creating root-owned files that cause permission issues
-    - chmod -R 777 target/ || true
+    - chmod -R 777 menger-app/target/ || true
+    - chmod -R 777 menger-common/target/ || true
     - chmod -R 777 optix-jni/target/ || true
   artifacts:
     when: always
     reports:
       junit:
-        - target/test-reports/**/TEST-*.xml
+        - menger-app/target/test-reports/**/TEST-*.xml
+        - menger-common/target/test-reports/**/TEST-*.xml
         - optix-jni/target/test-reports/**/TEST-*.xml
 
 # OptiX JNI tests - Uses pre-built Docker image with CUDA, OptiX, Java 25, and sbt
@@ -363,15 +365,15 @@ Test:OptiXIntegration:
     - ldconfig || true
   script:
     # Build packaged distribution
-    - sbt "Universal / packageBin"
-    - VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
-    - unzip -oq ./target/universal/menger-${VERSION}.zip
+    - sbt "mengerApp / Universal / packageBin"
+    - VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
+    - unzip -oq ./menger-app/target/universal/menger-app-${VERSION}.zip
     - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
     # Run comprehensive integration tests (27 scenarios)
-    - ./scripts/integration-tests.sh ./menger-${VERSION}/bin/menger
+    - ./scripts/integration-tests.sh ./menger-app-${VERSION}/bin/menger-app
   after_script:
     # Clean up permissions for Docker artifacts
-    - chmod -R 777 target/ || true
+    - chmod -R 777 menger-app/target/ || true
     - chmod -R 777 optix-jni/target/ || true
 
 # Coverage check with ratchet mechanism:
@@ -403,7 +405,7 @@ CheckCoverage:
     - xvfb-run sbt clean coverage test || true
     - sbt coverageReport
     # Extract coverage from report
-    - REPORT=$(head -n 2 target/scala-3.*.*/scoverage-report/scoverage.xml | tail -n 1 | xargs)
+    - REPORT=$(head -n 2 menger-app/target/scala-3.*.*/scoverage-report/scoverage.xml | tail -n 1 | xargs)
     - for word in $REPORT; do echo $word; done | grep rate | tr - _ > coverage.log
     - . coverage.log
     # Report current vs previous coverage
@@ -437,10 +439,10 @@ CheckCoverage:
   artifacts:
     when: always
     reports:
-      junit: target/test-reports/**/TEST-*.xml
+      junit: menger-app/target/test-reports/**/TEST-*.xml
     paths:
       - coverage.log
-      - target/scala-${SCALA_VERSION}/scoverage-report/
+      - menger-app/target/scala-${SCALA_VERSION}/scoverage-report/
 
 Scalafix:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
@@ -480,7 +482,7 @@ pages:
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
   script:
-    - mv target/scala-${SCALA_VERSION}/scoverage-report/ public/
+    - mv menger-app/target/scala-${SCALA_VERSION}/scoverage-report/ public/
   artifacts:
     paths:
       - public
@@ -499,17 +501,17 @@ Run:UseDocker:
     - apt-get -y update
     - apt-get -y install mesa-utils x11-xserver-utils xvfb
   script:
-    - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines --sponge-type cube"
-    - xvfb-run -a sbt "run --timeout 0.1 --level 1 --lines"
-    - xvfb-run -a sbt "run --timeout 0.1 --level 4"
-    - xvfb-run -a sbt "run --timeout 0.1 --sponge-type tesseract"
-    - xvfb-run -a sbt "run --timeout 0.1 --level 1 --sponge-type tesseract-sponge"
-    - xvfb-run -a sbt "run --timeout 0.1 --level 2 --sponge-type tesseract-sponge-2"
-    - xvfb-run -a sbt "run --level 1 --sponge-type tesseract-sponge-2 --animate frames=5:rot-y-w=0-90:rot-y=0-30"
-    - xvfb-run -a sbt "run --level 1 --sponge-type tesseract-sponge-2 --animate frames=5:rot-y-w=0-90 --save-name menger%04d.png"
+    - xvfb-run -a sbt "mengerApp / run --timeout 0.1 --level 1 --lines --sponge-type cube"
+    - xvfb-run -a sbt "mengerApp / run --timeout 0.1 --level 1 --lines"
+    - xvfb-run -a sbt "mengerApp / run --timeout 0.1 --level 4"
+    - xvfb-run -a sbt "mengerApp / run --timeout 0.1 --sponge-type tesseract"
+    - xvfb-run -a sbt "mengerApp / run --timeout 0.1 --level 1 --sponge-type tesseract-sponge"
+    - xvfb-run -a sbt "mengerApp / run --timeout 0.1 --level 2 --sponge-type tesseract-sponge-2"
+    - xvfb-run -a sbt "mengerApp / run --level 1 --sponge-type tesseract-sponge-2 --animate frames=5:rot-y-w=0-90:rot-y=0-30"
+    - xvfb-run -a sbt "mengerApp / run --level 1 --sponge-type tesseract-sponge-2 --animate frames=5:rot-y-w=0-90 --save-name menger%04d.png"
     - test -f menger0000.png
     - test -f menger0004.png
-    - for TYPE in cube square tesseract-sponge tesseract-sponge-2; do xvfb-run -a sbt "run --level 1.5 --timeout 0.1 --sponge-type $TYPE" || exit 1; done
+    - for TYPE in cube square tesseract-sponge tesseract-sponge-2; do xvfb-run -a sbt "mengerApp / run --level 1.5 --timeout 0.1 --sponge-type $TYPE" || exit 1; done
 
 
 CheckRunTime:
@@ -529,7 +531,7 @@ CheckRunTime:
     - sbt compile
     # Test if OPTIX_ROOT is needed for running (unset to check)
     - unset OPTIX_ROOT
-    - /usr/bin/time -f %U -o runtime.log xvfb-run sbt "run --timeout 0.1"
+    - /usr/bin/time -f %U -o runtime.log xvfb-run sbt "mengerApp / run --timeout 0.1"
     - echo "$(<runtime.log) > $TEST_RUN_MAX_RUNNING_TIME"
     - if [ $(echo "$(<runtime.log) > $TEST_RUN_MAX_RUNNING_TIME" | bc -l) -eq 1 ]; then exit 1; fi
   artifacts:
@@ -545,7 +547,7 @@ TagIsNewAndConsistent:
     - apt-get -y update
     - apt-get -y install git
   script:
-    - VERSION_SBT=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
+    - VERSION_SBT=$(egrep 'version := ".*"' menger-app/build.sbt | cut -d \" -f 2)
     - test -n "$VERSION_SBT"
     - echo $VERSION_SBT
     - VERSIONS_CI=$(egrep 'DEPLOYABLE_VERSION.*' .gitlab-ci.yml | head -n 1 | cut -d ':' -f 2 | xargs)
@@ -560,7 +562,7 @@ ScalaVersionConsistent:
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
   script:
-    - SCALA_VERSION=$(egrep 'scalaVersion := ".*"' build.sbt | cut -d \" -f 2 | xargs) || true
+    - SCALA_VERSION=$(egrep 'scalaVersion := ".*"' menger-app/build.sbt | cut -d \" -f 2 | xargs) || true
     - >
       GITLAB_SCALA_VERSION=$(egrep 'SCALA_VERSION. .*' .gitlab-ci.yml | head -n 1 | cut -d: -f 2 | xargs) || true
     - if [ "$SCALA_VERSION" = "$GITLAB_SCALA_VERSION" ]
@@ -578,7 +580,7 @@ ChangelogIsUpdated:
     - if: "$CI_MERGE_REQUEST_ID"
   script:
     - test -f CHANGELOG.md || exit 0
-    - VERSION=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
+    - VERSION=$(egrep 'version := ".*"' menger-app/build.sbt | cut -d \" -f 2)
     - test -n "$VERSION"
     - fgrep "## [$VERSION]" CHANGELOG.md
     - fgrep "...$VERSION" CHANGELOG.md
@@ -597,8 +599,8 @@ BuildDeployable:
     - if: $CI_COMMIT_TAG
   script:
     # Build deployable package with full OptiX JNI
-    - sbt "Universal / packageBin"
-    - mv target/universal/${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip .
+    - sbt "mengerApp / Universal / packageBin"
+    - mv menger-app/target/universal/${DEPLOYABLE_BASE_NAME}-app-${DEPLOYABLE_VERSION}.zip ./${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip
   artifacts:
     paths:
       - menger-*.*.*.zip

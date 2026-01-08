@@ -27,7 +27,7 @@ class MengerCLIOptions(arguments: Seq[String])
     with CliValidation
     with LazyLogging:
 
-  version("menger v0.4.0 (c) 2023-25, lene.preuss@gmail.com")
+  version("menger v0.4.1 (c) 2023-25, lene.preuss@gmail.com")
   banner("""Usage: menger [options]
            |
            |Menger sponge fractal renderer with OptiX GPU ray tracing support.

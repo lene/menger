@@ -77,7 +77,7 @@ then echo "Status after gitlab lint: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after gitlab lint: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
-SCALA_VERSION=$(egrep 'scalaVersion := ".*"' build.sbt | head -n 1 | cut -d \" -f 2)
+SCALA_VERSION=$(egrep 'scalaVersion := ".*"' menger-app/build.sbt | head -n 1 | cut -d \" -f 2)
 GITLAB_SCALA_VERSION=$(egrep 'SCALA_VERSION. .*' .gitlab-ci.yml | head -n 1 | cut -d: -f 2 | xargs)
 if [ "$SCALA_VERSION" != "$GITLAB_SCALA_VERSION" ]
 then
@@ -87,9 +87,9 @@ else
   echo "Scala version: ${GREEN_TEXT}${SCALA_VERSION}${RESET_TEXT}"
 fi
 
-VERSION_SBT=$(egrep 'version := ".*"' build.sbt | cut -d \" -f 2)
+VERSION_SBT=$(egrep 'version := ".*"' menger-app/build.sbt | cut -d \" -f 2)
 VERSIONS_CI=$(egrep 'DEPLOYABLE_VERSION.*' .gitlab-ci.yml | head -n 1 | cut -d ':' -f 2 | xargs)
-VERSION_SOURCE=$(egrep 'version\("menger v.* ' src/main/scala/menger/MengerCLIOptions.scala | cut -d 'v' -f 3 | cut -d ' ' -f 1)
+VERSION_SOURCE=$(egrep 'version\("menger v.* ' menger-app/src/main/scala/menger/MengerCLIOptions.scala | cut -d 'v' -f 3 | cut -d ' ' -f 1)
 if [ "$VERSION_SBT" != "$VERSIONS_CI" ]; then
   echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in .gitlab-ci.yml: ${RED_TEXT}${VERSIONS_CI}${RESET_TEXT}"
   STATUS=1
@@ -130,7 +130,7 @@ if [ "${SKIP_COVERAGE:-0}" != "1" ]; then
   COVERAGE_FLOOR="60"
 
   # Run coverage
-  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt clean coverage test coverageReport --warn > /tmp/coverage-prepush.log 2>&1
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt clean "mengerApp / coverage" "mengerApp / test" "mengerApp / coverageReport" --warn > /tmp/coverage-prepush.log 2>&1
   COVERAGE_STATUS=$?
 
   if [ $COVERAGE_STATUS -ne 0 ]; then
@@ -139,7 +139,7 @@ if [ "${SKIP_COVERAGE:-0}" != "1" ]; then
     STATUS=1
   else
     # Extract statement coverage from the report
-    REPORT_FILE="target/scala-3.7.3/scoverage-report/scoverage.xml"
+    REPORT_FILE="menger-app/target/scala-3.7.3/scoverage-report/scoverage.xml"
     if [ -f "$REPORT_FILE" ]; then
       STATEMENT_RATE=$(grep -oP 'statement-rate="\K[0-9.]+' "$REPORT_FILE" | head -1)
 
@@ -296,16 +296,16 @@ then echo "Status after scalafix: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after scalafix: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
-sbt "Universal / packageBin" --warn || STATUS=1
-VERSION=$(grep 'version :=' build.sbt | cut -d '"' -f 2)
-unzip -oq ./target/universal/menger-${VERSION}.zip || STATUS=1
+sbt "mengerApp / Universal / packageBin" --warn || STATUS=1
+VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
+unzip -oq ./menger-app/target/universal/menger-app-${VERSION}.zip || STATUS=1
 if [ $STATUS -gt 0 ]
 then echo "Status after build: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after build: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 # Run integration tests
-./scripts/integration-tests.sh "./menger-${VERSION}/bin/menger" || STATUS=1
+./scripts/integration-tests.sh "./menger-app-${VERSION}/bin/menger-app" || STATUS=1
 if [ $STATUS -gt 0 ]
 then echo "Status after integration tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after integration tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
