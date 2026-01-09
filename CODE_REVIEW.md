@@ -1,6 +1,6 @@
 # Code Review Findings
 
-**Last Updated:** 2026-01-07
+**Last Updated:** 2026-01-09
 **Purpose:** Track code quality issues identified during comprehensive pre-release reviews
 
 ---
@@ -10,8 +10,8 @@
 | Priority | Open | Completed |
 |----------|------|-----------|
 | High | 0 | 5 |
-| Medium | 0 | 26 |
-| Low | 5 | 6 |
+| Medium | 3 | 26 |
+| Low | 11 | 6 |
 
 ---
 
@@ -19,7 +19,22 @@
 
 ### Medium Priority
 
-No open medium priority issues.
+| ID | Description | Location | Est. Hours |
+|----|-------------|----------|------------|
+| M1 | Shader physics code duplication (~200 lines) | hit_sphere.cu / hit_triangle.cu | 4-6 |
+| M2 | Zero-vector check missing in normalize() | VectorMath.h:24,74-78 | 1 |
+| M3 | Missing bounds check in setLights() | SceneParameters.cpp:95-104 | 0.5 |
+
+**M1 Details:** Functions `computeFresnelReflectance`, `traceReflectedRay`, `traceRefractedRay`,
+`applyBeerLambertAbsorption`, `handleFullyTransparent*`, `handleFullyOpaque*`, and
+`traceFinalNonRecursiveRay` are nearly identical between sphere and triangle hit shaders.
+Could be consolidated into parameterized helpers in `helpers.cu`.
+
+**M2 Details:** Both `normalize()` (line 24) and `normalize3f()` (lines 74-78) divide by vector
+length without checking for zero-length vectors, which could cause undefined behavior.
+
+**M3 Details:** `setLights()` does not validate `count <= MAX_LIGHTS`. While the caller
+(`OptiXWrapper::setLights`) validates, this class should defend itself against buffer overflow.
 
 ### Low Priority
 
@@ -30,6 +45,12 @@ No open medium priority issues.
 | L3 | Scene graph abstraction | Architecture | 10-12 |
 | L4 | Comprehensive benchmarking suite | Tests | 8-10 |
 | L5 | Plugin system for geometry types | Architecture | 12-15 |
+| L6 | Magic number for program group count | PipelineManager.cpp:138 | 0.5 |
+| L7 | Long function setupShaderBindingTable (116 lines) | PipelineManager.cpp:142-257 | 2 |
+| L8 | Magic number for max photon threads | CausticsRenderer.cpp:106 | 0.5 |
+| L9 | Magic number for stack size | OptiXContext.cpp:340 | 0.5 |
+| L10 | Repeated transparency value 0.02f | MaterialPresets.h:46,57,68 | 0.5 |
+| L11 | Exception usage in RAII buffer | CudaBuffer.h:77,89 | 1 |
 
 ---
 
@@ -196,11 +217,11 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | 0 |
-| Low priority | ~43 |
+| Medium priority | ~6 |
+| Low priority | ~49 |
 | Documentation | 0 |
 | C++ Issues | 0 |
-| **Total** | **~43 hours** |
+| **Total** | **~55 hours** |
 
 ---
 
