@@ -10,7 +10,7 @@
 | Priority | Open | Completed |
 |----------|------|-----------|
 | High | 0 | 5 |
-| Medium | 3 | 26 |
+| Medium | 2 | 27 |
 | Low | 11 | 6 |
 
 ---
@@ -21,14 +21,20 @@
 
 | ID | Description | Location | Est. Hours |
 |----|-------------|----------|------------|
-| M1 | Shader physics code duplication (~200 lines) | hit_sphere.cu / hit_triangle.cu | 4-6 |
+| ~~M1~~ | ~~Shader physics code duplication (~200 lines)~~ | ~~hit_sphere.cu / hit_triangle.cu~~ | ~~4-6~~ |
 | M2 | Zero-vector check missing in normalize() | VectorMath.h:24,74-78 | 1 |
 | M3 | Missing bounds check in setLights() | SceneParameters.cpp:95-104 | 0.5 |
 
-**M1 Details:** Functions `computeFresnelReflectance`, `traceReflectedRay`, `traceRefractedRay`,
-`applyBeerLambertAbsorption`, `handleFullyTransparent*`, `handleFullyOpaque*`, and
-`traceFinalNonRecursiveRay` are nearly identical between sphere and triangle hit shaders.
-Could be consolidated into parameterized helpers in `helpers.cu`.
+**~~M1~~ - RESOLVED:** Extracted 7 shared physics functions to `helpers.cu`:
+- `handleFullyTransparent()` - transparent surface pass-through
+- `handleFullyOpaque()` - opaque surface with diffuse shading
+- `traceFinalNonRecursiveRay()` - max depth fallback
+- `computeFresnelReflectance()` - Schlick approximation
+- `traceReflectedRay()` - reflection with stats tracking
+- `traceRefractedRay()` - Snell's law refraction
+- `applyBeerLambertAbsorption()` - volumetric absorption with optional distance_scale
+
+Reduced total code by ~200 lines while consolidating physics calculations.
 
 **M2 Details:** Both `normalize()` (line 24) and `normalize3f()` (lines 74-78) divide by vector
 length without checking for zero-length vectors, which could cause undefined behavior.
@@ -217,11 +223,11 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | ~6 |
+| Medium priority | ~1.5 |
 | Low priority | ~49 |
 | Documentation | 0 |
 | C++ Issues | 0 |
-| **Total** | **~55 hours** |
+| **Total** | **~50.5 hours** |
 
 ---
 
