@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-01-07
+**Last Updated:** 2026-01-11
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -92,6 +92,24 @@ Strategic feature planning for the Menger ray tracing renderer.
 - Camera animation (path following)
 - Animation preview mode
 
+### Sprint 14: Visual Enhancements & Polish (20-25 hours)
+
+**Goal:** Improve visual quality and animation workflow
+
+#### Visual Quality (10-12h)
+- Soft shadows with area lights (penumbra)
+- Depth of field (camera aperture, bokeh)
+- Coordinate cross (axis visualization for debugging)
+
+#### Animation Workflow (8-10h)
+- Bezier/spline camera paths
+- Animation export/import (JSON format)
+- Additional primitives for animation demos (cylinder, cone, torus)
+
+#### Maintenance (2-3h)
+- Test coverage analysis and improvement
+- Valgrind standalone test verification
+
 **🎯 MILESTONE: v0.6 - Scene Language & Animation**
 
 ---
@@ -102,20 +120,20 @@ Ideas for future consideration, not yet scheduled.
 
 ### High Interest
 
-| Idea | Description | Complexity |
-|------|-------------|------------|
-| Caustics | Progressive Photon Mapping (deferred, algorithm issues) | Very High |
-| More primitives | Cylinders, cones, torus | Medium |
-| Soft shadows | Area lights with penumbra | Medium |
+| Idea | Description | Complexity | Status |
+|------|-------------|------------|--------|
+| Caustics | Progressive Photon Mapping (deferred, algorithm issues) | Very High | Deferred |
+| More primitives | Cylinders, cones, torus | Medium | → Sprint 14 |
+| Soft shadows | Area lights with penumbra | Medium | → Sprint 14 |
 
 ### Medium Interest
 
-| Idea | Description | Complexity |
-|------|-------------|------------|
-| Depth of field | Camera aperture simulation, bokeh | Medium |
-| HDR environment | Image-based lighting | Medium |
-| Subsurface scattering | Advanced material effect | High |
-| Real-time preview | Interactive low-quality mode | Medium |
+| Idea | Description | Complexity | Status |
+|------|-------------|------------|--------|
+| Depth of field | Camera aperture simulation, bokeh | Medium | → Sprint 14 |
+| HDR environment | Image-based lighting | Medium | Backlog |
+| Subsurface scattering | Advanced material effect | High | Backlog |
+| Real-time preview | Interactive low-quality mode | Medium | Backlog |
 
 ### Low Priority / Deferred
 
@@ -123,7 +141,7 @@ Ideas for future consideration, not yet scheduled.
 |------|-------------|-------|
 | Dynamic window resize | LibGDX/OptiX buffer issues | 15+ hours investigation, no resolution |
 | GPU composites | Render fractals as composites | Needs design |
-| Coordinate cross | Render axis visualization | Small feature |
+| Coordinate cross | Render axis visualization | → Sprint 14 |
 
 ### Project Infrastructure
 
@@ -142,7 +160,8 @@ Ideas for future consideration, not yet scheduled.
 | Completed (1-7) | 7 sprints | ~100 hours |
 | 4D Support (8-10) | 3 sprints | 37-53 hours |
 | Scene/Animation (11-13) | 3 sprints | 33-47 hours |
-| **Total Remaining** | 6 sprints | **70-100 hours** |
+| Polish (14) | 1 sprint | 20-25 hours |
+| **Total Remaining** | 7 sprints | **90-125 hours** |
 
 ---
 
