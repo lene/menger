@@ -90,7 +90,8 @@ object Main:
         timeout = opts.timeout(),
         saveName = opts.saveName.toOption,
         enableStats = opts.stats(),
-        maxInstances = opts.maxInstances()
+        maxInstances = opts.maxInstances(),
+        textureDir = opts.textureDir()
       ),
       render = opts.renderConfig,
       caustics = opts.causticsConfig

@@ -81,53 +81,58 @@ run_test "Custom Color (red)" "-o --objects type=sphere:color=#ff0000 -s $OUTPUT
 run_test "Custom Color (green)" "-o --objects type=sphere:color=#00ff00 -s $OUTPUT_DIR/10-green.png"
 run_test "Custom Color (blue)" "-o --objects type=sphere:color=#0000ff -s $OUTPUT_DIR/11-blue.png"
 
+# Textures
+echo -e "${YELLOW}--- Textures ---${NC}"
+run_test "Textured Cube" "-o --texture-dir scripts/test-assets --objects type=cube:texture=test_checker.png -s $OUTPUT_DIR/12-textured-cube.png"
+run_test "Textured Cube + Glass" "-o --texture-dir scripts/test-assets --objects type=cube:texture=test_checker.png:material=glass -s $OUTPUT_DIR/13-textured-glass.png"
+
 # Multi-Object Scenes (note: cannot mix spheres with cubes/meshes yet - TD-5)
 echo -e "${YELLOW}--- Multi-Object Scenes ---${NC}"
-run_test "Two Spheres" "-o --objects type=sphere:pos=-1.5,0,0 --objects type=sphere:pos=1.5,0,0 -s $OUTPUT_DIR/12-two-spheres.png"
-run_test "Two Cubes" "-o --objects type=cube:pos=-1.5,0,0:material=glass --objects type=cube:pos=1.5,0,0 -s $OUTPUT_DIR/13-two-cubes.png"
-run_test "RGB Cubes" "-o --objects type=cube:pos=-2,0,0:color=#ff0000 --objects type=cube:pos=0,0,0:color=#00ff00 --objects type=cube:pos=2,0,0:color=#0000ff -s $OUTPUT_DIR/14-rgb-cubes.png"
+run_test "Two Spheres" "-o --objects type=sphere:pos=-1.5,0,0 --objects type=sphere:pos=1.5,0,0 -s $OUTPUT_DIR/14-two-spheres.png"
+run_test "Two Cubes" "-o --objects type=cube:pos=-1.5,0,0:material=glass --objects type=cube:pos=1.5,0,0 -s $OUTPUT_DIR/15-two-cubes.png"
+run_test "RGB Cubes" "-o --objects type=cube:pos=-2,0,0:color=#ff0000 --objects type=cube:pos=0,0,0:color=#00ff00 --objects type=cube:pos=2,0,0:color=#0000ff -s $OUTPUT_DIR/16-rgb-cubes.png"
 
 # Lighting
 echo -e "${YELLOW}--- Lighting ---${NC}"
-run_test "Point Light" "-o --objects type=sphere --light point:2,3,2:1.0 -s $OUTPUT_DIR/15-point-light.png"
-run_test "Directional Light" "-o --objects type=sphere --light directional:-1,-1,-1:0.8 -s $OUTPUT_DIR/16-directional.png"
-run_test "Colored Light (orange)" "-o --objects type=sphere --light point:2,3,2:1.0:ff8800 -s $OUTPUT_DIR/17-colored-light.png"
-run_test "Two Colored Lights" "-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff -s $OUTPUT_DIR/18-two-lights.png"
+run_test "Point Light" "-o --objects type=sphere --light point:2,3,2:1.0 -s $OUTPUT_DIR/17-point-light.png"
+run_test "Directional Light" "-o --objects type=sphere --light directional:-1,-1,-1:0.8 -s $OUTPUT_DIR/18-directional.png"
+run_test "Colored Light (orange)" "-o --objects type=sphere --light point:2,3,2:1.0:ff8800 -s $OUTPUT_DIR/19-colored-light.png"
+run_test "Two Colored Lights" "-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff -s $OUTPUT_DIR/20-two-lights.png"
 
 # Shadows (using homogeneous scenes - cannot mix spheres with cubes yet)
 echo -e "${YELLOW}--- Shadows ---${NC}"
-run_test "Shadows On (spheres)" "-o --objects type=sphere:pos=-1,0.5,0 --objects type=sphere:pos=1,0,0:size=0.5 --shadows -s $OUTPUT_DIR/19-shadows-on.png"
-run_test "Shadows Off (spheres)" "-o --objects type=sphere:pos=-1,0.5,0 --objects type=sphere:pos=1,0,0:size=0.5 -s $OUTPUT_DIR/20-shadows-off.png"
+run_test "Shadows On (spheres)" "-o --objects type=sphere:pos=-1,0.5,0 --objects type=sphere:pos=1,0,0:size=0.5 --shadows -s $OUTPUT_DIR/21-shadows-on.png"
+run_test "Shadows Off (spheres)" "-o --objects type=sphere:pos=-1,0.5,0 --objects type=sphere:pos=1,0,0:size=0.5 -s $OUTPUT_DIR/22-shadows-off.png"
 
 # Antialiasing
 echo -e "${YELLOW}--- Antialiasing ---${NC}"
-run_test "No AA" "-o --objects type=sphere -s $OUTPUT_DIR/21-no-aa.png"
-run_test "AA On" "-o --objects type=sphere --antialiasing -s $OUTPUT_DIR/22-aa-on.png"
-run_test "AA Depth 4" "-o --objects type=sphere --antialiasing --aa-max-depth 4 -s $OUTPUT_DIR/23-aa-depth4.png"
+run_test "No AA" "-o --objects type=sphere -s $OUTPUT_DIR/23-no-aa.png"
+run_test "AA On" "-o --objects type=sphere --antialiasing -s $OUTPUT_DIR/24-aa-on.png"
+run_test "AA Depth 4" "-o --objects type=sphere --antialiasing --aa-max-depth 4 -s $OUTPUT_DIR/25-aa-depth4.png"
 
 # Ground Plane
 echo -e "${YELLOW}--- Ground Plane ---${NC}"
-run_test "Default Plane" "-o --objects type=sphere --plane y:-1 -s $OUTPUT_DIR/24-plane-default.png"
-run_test "Solid Plane" "-o --objects type=sphere --plane y:-1 --plane-color 808080 -s $OUTPUT_DIR/25-plane-solid.png"
-run_test "Checkered Plane" "-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000 -s $OUTPUT_DIR/26-plane-checker.png"
+run_test "Default Plane" "-o --objects type=sphere --plane y:-1 -s $OUTPUT_DIR/26-plane-default.png"
+run_test "Solid Plane" "-o --objects type=sphere --plane y:-1 --plane-color 808080 -s $OUTPUT_DIR/27-plane-solid.png"
+run_test "Checkered Plane" "-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000 -s $OUTPUT_DIR/28-plane-checker.png"
 
 # Camera
 echo -e "${YELLOW}--- Camera ---${NC}"
-run_test "High Camera" "-o --objects type=sphere --camera-pos 0,5,10 --camera-lookat 0,0,0 -s $OUTPUT_DIR/27-camera-high.png"
-run_test "Close Camera" "-o --objects type=sphere --camera-pos 0,1,3 --camera-lookat 0,0,0 -s $OUTPUT_DIR/28-camera-close.png"
+run_test "High Camera" "-o --objects type=sphere --camera-pos 0,5,10 --camera-lookat 0,0,0 -s $OUTPUT_DIR/29-camera-high.png"
+run_test "Close Camera" "-o --objects type=sphere --camera-pos 0,1,3 --camera-lookat 0,0,0 -s $OUTPUT_DIR/30-camera-close.png"
 
 # Image Size
 echo -e "${YELLOW}--- Image Size ---${NC}"
-run_test "HD 1920x1080" "-o --objects type=sphere --width 1920 --height 1080 -s $OUTPUT_DIR/29-hd.png"
-run_test "Square 512x512" "-o --objects type=sphere --width 512 --height 512 -s $OUTPUT_DIR/30-square.png"
+run_test "HD 1920x1080" "-o --objects type=sphere --width 1920 --height 1080 -s $OUTPUT_DIR/31-hd.png"
+run_test "Square 512x512" "-o --objects type=sphere --width 512 --height 512 -s $OUTPUT_DIR/32-square.png"
 
 # Caustics
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
-run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/31-caustics.png"
+run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/33-caustics.png"
 
 # Showcase
 echo -e "${YELLOW}--- Showcase ---${NC}"
-run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/32-showcase.png"
+run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/34-showcase.png"
 
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
@@ -153,6 +158,8 @@ interactive_tests=(
     "Metal (blue):-o --objects type=sphere:material=metal:color=#4488ff"
     "Plastic (red):-o --objects type=sphere:material=plastic:color=#ff4444"
     "Matte (green):-o --objects type=sphere:material=matte:color=#44ff44"
+    "Textured cube:-o --texture-dir scripts/test-assets --objects type=cube:texture=test_checker.png"
+    "Textured cube + glass:-o --texture-dir scripts/test-assets --objects type=cube:texture=test_checker.png:material=glass"
     "Two spheres + shadows:-o --objects type=sphere:pos=-1.5,0,0:material=glass --objects type=sphere:pos=1.5,0,0 --shadows"
     "Sponge surface L1:-o --objects type=sponge-surface:level=1"
     "Cube Sponge L1:-o --objects type=cube-sponge:level=1:color=#00ffff --max-instances 64"
