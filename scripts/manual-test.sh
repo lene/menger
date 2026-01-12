@@ -9,13 +9,30 @@ cd "$(dirname "$0")/.."
 OUTPUT_DIR="test-output"
 MENGER="./menger-app/target/universal/stage/bin/menger-app"
 # Timeout in seconds for each static render test
-TIMEOUT=3
+TIMEOUT=0.5
 
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+# Parse command line arguments
+SKIP_STATIC=false
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -i|--interactive)
+            SKIP_STATIC=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [-i|--interactive]"
+            echo "  -i, --interactive  Skip static tests, go directly to interactive menu"
+            exit 1
+            ;;
+    esac
+done
 
 echo -e "${BLUE}=== Menger Manual Test Suite ===${NC}\n"
 
@@ -29,6 +46,11 @@ echo -e "${YELLOW}[2/2] Setting up test output directory...${NC}"
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 echo -e "${GREEN}✓ Output directory: $OUTPUT_DIR${NC}\n"
+
+# Skip static tests if -i/--interactive flag is set
+if [ "$SKIP_STATIC" = true ]; then
+    echo -e "${YELLOW}Skipping static tests (--interactive mode)${NC}\n"
+else
 
 # Function to run a test with timeout
 run_test() {
@@ -113,6 +135,8 @@ echo ""
 ls -la "$OUTPUT_DIR"/*.png | awk '{print $9, $5}' | column -t
 echo ""
 
+fi  # End of static tests block
+
 # Interactive tests
 echo -e "${BLUE}=== Interactive Tests ===${NC}"
 echo -e "${YELLOW}The following tests require manual interaction.${NC}"
@@ -121,6 +145,14 @@ echo -e "Controls: Mouse drag = rotate, Scroll = zoom, Q/ESC = quit\n"
 interactive_tests=(
     "Basic sphere:-o --objects type=sphere"
     "Glass refraction:-o --objects type=sphere:material=glass"
+    "Water:-o --objects type=sphere:material=water"
+    "Diamond:-o --objects type=sphere:material=diamond"
+    "Chrome (metallic):-o --objects type=sphere:material=chrome"
+    "Gold (metallic):-o --objects type=sphere:material=gold"
+    "Copper (metallic):-o --objects type=sphere:material=copper"
+    "Metal (blue):-o --objects type=sphere:material=metal:color=#4488ff"
+    "Plastic (red):-o --objects type=sphere:material=plastic:color=#ff4444"
+    "Matte (green):-o --objects type=sphere:material=matte:color=#44ff44"
     "Two spheres + shadows:-o --objects type=sphere:pos=-1.5,0,0:material=glass --objects type=sphere:pos=1.5,0,0 --shadows"
     "Sponge surface L1:-o --objects type=sponge-surface:level=1"
     "Cube Sponge L1:-o --objects type=cube-sponge:level=1:color=#00ffff --max-instances 64"
