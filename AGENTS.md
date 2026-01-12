@@ -25,6 +25,6 @@ sbt run                       # Run application
 - **Architecture docs:** consult docs/arc42/ before architectural changes
 - **Manual edits only:** never use scripts/sed for bulk code changes
 - **Never commit automatically:** never commit changes without the user reviewing them. Always show a diff for the user to review. 
-- **Pre-push hook:** always run before commits
+- **Pre-push hook:** always run before commits (can take up to 5 minutes to complete)
 - **CUDA/OptiX:** SDK version must match driver (check with strings command)
 - 
