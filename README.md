@@ -208,7 +208,7 @@ The following features are available via the programmatic API but not yet expose
 - **Keyword=value object syntax** - Planned format:
   `--object type=sphere:pos=0,0,0:size=1.0:color=#FF0000:ior=1.5`
 
-See `optix-jni/SPRINT_6_PLAN.md` for details.
+See `docs/archive/sprints/SPRINT_6.md` for implementation details.
 
 #### Examples
 

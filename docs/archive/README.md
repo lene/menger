@@ -28,11 +28,13 @@ archive/
 
 ## Active Planning Documents
 
-See root directory:
 - [ROADMAP.md](../../ROADMAP.md) - Strategic feature planning (Sprints 8-13)
-- [SPRINT.md](../../SPRINT.md) - Current sprint details
+- [docs/sprints/](../sprints/) - Active sprint planning documents
+  - [SPRINT.md](../sprints/SPRINT.md) - Current sprint details
+  - [SPRINT8.md](../sprints/SPRINT8.md) through [SPRINT13.md](../sprints/SPRINT13.md) - Future sprint plans
 - [TODO.md](../../TODO.md) - Quick notes and ideas
 - [CODE_REVIEW.md](../../CODE_REVIEW.md) - Code quality findings
+- [CODE_IMPROVEMENTS.md](../../CODE_IMPROVEMENTS.md) - Code quality assessments
 
 ## Archive Index
 

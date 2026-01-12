@@ -321,7 +321,7 @@ This is partially addressed but could be enhanced further.
 
 ## Sprint 7 Medium Priority Issues Plan
 
-A detailed implementation plan exists in `docs/SPRINT_7_M_ISSUES_PLAN.md` with:
+A detailed implementation plan exists in `docs/archive/sprints/SPRINT_7_M_ISSUES_PLAN.md` with:
 - 21 hours of estimated work
 - 11 issues categorized (M1-M11)
 - Phased execution plan
