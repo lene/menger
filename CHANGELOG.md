@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.4.1] - 2026-01-08
+## [0.4.1] - 2026-01-12
 
 ### Added
 - **Material System** - PBR-based material properties for realistic rendering
@@ -18,14 +18,32 @@
   - Per-object texture assignment: `--objects type=cube:texture=checker.png`
   - Texture sampling in shaders with bilinear filtering
   - Per-instance texture indices in IAS mode
-- **Integration Tests** - Material and texture validation
-  - Glass, chrome, matte preset tests
-  - Texture rendering test
-  - Invalid material error handling test
+- **Multi-Project Build Structure** - Reorganized into modular subprojects
+  - Separate modules: common, mengerApp, native
+  - Improved build isolation and dependency management
+- **Comprehensive Error Handling** - Robust error reporting and validation
+  - Specific exception types: InvalidMaterialException, TextureLoadException, InvalidObjectSpecException
+  - Detailed error context with actionable messages
+  - Material and object specification validation
+- **Test Coverage Improvements** - ~170 new tests for robustness
+  - Property-based tests for animation parameters
+  - Edge case tests for CLI parsing and object specifications
+  - Coverage protection with ratchet mechanism (75.87% threshold)
+- **Manual Test Script** - Comprehensive visual regression testing tool
+  - Tests materials, textures, multi-object scenes, shadows, and reflections
+- **Strategic Debug Logging** - Configurable diagnostic output for troubleshooting
 
 ### Changed
 - OptiX shaders extended with texture sampling functions
 - Vertex format updated from 6 to 8 floats per vertex
+- Removed legacy `--object` CLI option (superseded by `--objects`)
+- Reduced cognitive complexity across shaders and parsing code
+- Extracted shared helper functions and regex patterns to common module
+
+### Fixed
+- Reflection formula in `traceReflectedRay` for accurate glass rendering
+- Working directory for `sbt run` now correctly uses project root
+- Screenshot path handling in ScreenshotFactory
 
 ## [0.4.0] - 2026-01-05
 

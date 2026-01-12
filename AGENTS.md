@@ -105,6 +105,10 @@ rm -rf optix-jni/target/native ; sbt "project optixJni" compile  # Clean rebuild
 1. **Make code changes**
    - Follow code standards above
    - Update CHANGELOG.md (keepachangelog.com format)
+     - don't document every single commit. instead give a concise, but complete of the features that hae been added and the bugs that  
+       have been fixed. but only preexistig bugs, bugs that were introduced during the development of 0.4.1 and have bee fixed do not  
+       get mentioned.
+
    - Update arc42 documentation if affecting architecture, quality, or risks
 
 2. **Test changes**
