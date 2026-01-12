@@ -192,13 +192,9 @@ class MengerCLIOptions(arguments: Seq[String])
   // === OptiX Renderer Options ===
   val optix: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(false), group = optixGroup,
-    descr = "Use OptiX GPU ray tracing (requires --object)"
+    descr = "Use OptiX GPU ray tracing (requires --objects)"
   )
-  val objectType: ScallopOption[String] = opt[String](
-    name = "object", required = false, default = None, group = optixGroup,
-    validate = obj => ObjectType.isLegacy(obj),
-    descr = s"Single object (legacy): ${ObjectType.legacyTypesString}"
-  )
+
   val objects: ScallopOption[List[ObjectSpec]] = opt[List[ObjectSpec]](
     name = "objects", required = false, group = optixGroup,
     descr = "Objects (repeatable): type=TYPE:pos=x,y,z:size=S[:level=L][:color=#RGB][:ior=I]. " +

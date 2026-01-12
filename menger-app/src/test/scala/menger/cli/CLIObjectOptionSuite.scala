@@ -1,37 +1,35 @@
 package menger.cli
 
-import menger.MengerCLIOptions
-
 import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class CLIObjectOptionSuite extends AnyFlatSpec with Matchers:
 
-  "--object" should "accept 'sphere' with --optix" in:
-    val options = SafeMengerCLIOptions(Seq("--optix", "--object", "sphere"))
-    options.objectType.toOption shouldBe Some("sphere")
+  "--objects" should "accept 'type=sphere' with --optix" in:
+    val options = SafeMengerCLIOptions(Seq("--optix", "--objects", "type=sphere"))
+    options.objects.toOption.flatMap(_.headOption.map(_.objectType)) shouldBe Some("sphere")
 
-  it should "accept 'cube' with --optix" in:
-    val options = SafeMengerCLIOptions(Seq("--optix", "--object", "cube"))
-    options.objectType.toOption shouldBe Some("cube")
+  it should "accept 'type=cube' with --optix" in:
+    val options = SafeMengerCLIOptions(Seq("--optix", "--objects", "type=cube"))
+    options.objects.toOption.flatMap(_.headOption.map(_.objectType)) shouldBe Some("cube")
 
   it should "reject without --optix" in:
     an[ScallopException] should be thrownBy:
-      SafeMengerCLIOptions(Seq("--object", "sphere"))
+      SafeMengerCLIOptions(Seq("--objects", "type=sphere"))
 
   it should "reject unknown object type" in:
     an[ScallopException] should be thrownBy:
-      SafeMengerCLIOptions(Seq("--optix", "--object", "pyramid"))
+      SafeMengerCLIOptions(Seq("--optix", "--objects", "type=pyramid"))
 
-  "--optix" should "require --object option" in:
+  "--optix" should "require --objects option" in:
     an[ScallopException] should be thrownBy:
       SafeMengerCLIOptions(Seq("--optix"))
 
-  it should "work with --object sphere" in:
+  it should "work with --objects type=sphere" in:
     noException should be thrownBy:
-      SafeMengerCLIOptions(Seq("--optix", "--object", "sphere"))
+      SafeMengerCLIOptions(Seq("--optix", "--objects", "type=sphere"))
 
-  it should "work with --object cube" in:
+  it should "work with --objects type=cube" in:
     noException should be thrownBy:
-      SafeMengerCLIOptions(Seq("--optix", "--object", "cube"))
+      SafeMengerCLIOptions(Seq("--optix", "--objects", "type=cube"))

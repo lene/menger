@@ -29,7 +29,6 @@ trait CliValidation:
   protected def lineColor: ScallopOption[?]
   protected def lines: ScallopOption[Boolean]
   protected def optix: ScallopOption[Boolean]
-  protected def objectType: ScallopOption[String]
   protected def objects: ScallopOption[List[ObjectSpec]]
   protected def shadows: ScallopOption[Boolean]
   protected def light: ScallopOption[List[LightSpec]]
@@ -102,22 +101,18 @@ trait CliValidation:
     }
 
   private def registerOptiXValidations(): Unit =
-    validateOpt(optix, objectType, objects) { (ox, obj, objs) =>
+    validateOpt(optix, objects) { (ox, objs) =>
       val isOptiXEnabled = ox.getOrElse(false)
-      val hasObjectType = obj.isDefined
       val hasObjects = objs.isDefined
       validationLogger.debug(
-        s"OptiX validation: enabled=$isOptiXEnabled, hasObjectType=$hasObjectType, hasObjects=$hasObjects"
+        s"OptiX validation: enabled=$isOptiXEnabled, hasObjects=$hasObjects"
       )
 
-      if isOptiXWithoutObjects(isOptiXEnabled, hasObjectType, hasObjects) then
-        Left("--optix flag requires --object or --objects option. " +
-          "Add --object sphere or --objects \"type=sphere:pos=0,0,0\"")
-      else if hasObjectsWithoutOptiX(isOptiXEnabled, hasObjectType, hasObjects) then
-        Left("--object/--objects option requires --optix flag. Add --optix to enable OptiX rendering")
-      else if hasBothObjectOptions(hasObjectType, hasObjects) then
-        Left("Cannot use both --object and --objects (use --objects only). " +
-          "Combine multiple objects with --objects \"obj1:obj2:obj3\"")
+      if isOptiXEnabled && !hasObjects then
+        Left("--optix flag requires --objects option. " +
+          "Add --objects \"type=sphere:pos=0,0,0:size=1\"")
+      else if hasObjects && !isOptiXEnabled then
+        Left("--objects option requires --optix flag. Add --optix to enable OptiX rendering")
       else Right(())
     }
 
@@ -186,19 +181,6 @@ trait CliValidation:
 
   private def hasLinesWithColorConflict: Boolean =
     lines.isSupplied && (faceColor.isSupplied || lineColor.isSupplied)
-
-  private def isOptiXWithoutObjects(
-    isOptiXEnabled: Boolean, hasObjectType: Boolean, hasObjects: Boolean
-  ): Boolean =
-    isOptiXEnabled && !hasObjectType && !hasObjects
-
-  private def hasObjectsWithoutOptiX(
-    isOptiXEnabled: Boolean, hasObjectType: Boolean, hasObjects: Boolean
-  ): Boolean =
-    (hasObjectType || hasObjects) && !isOptiXEnabled
-
-  private def hasBothObjectOptions(hasObjectType: Boolean, hasObjects: Boolean): Boolean =
-    hasObjectType && hasObjects
 
   private def validateAnimationSpecification(
     spec: AnimationSpecificationSequence, spongeType: String

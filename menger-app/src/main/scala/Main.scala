@@ -10,7 +10,6 @@ import menger.common.Const
 import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
 import menger.config.ExecutionConfig
-import menger.config.MaterialConfig
 import menger.config.OptiXEngineConfig
 import menger.config.SceneConfig
 import menger.engines.AnimatedMengerEngine
@@ -74,12 +73,6 @@ object Main:
   private def createOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): OptiXEngine =
     val engineConfig = OptiXEngineConfig(
       scene = SceneConfig(
-        spongeType = opts.objectType.toOption.getOrElse("sphere"),
-        level = opts.level(),
-        material = MaterialConfig(opts.color(), opts.ior()),
-        sphereRadius = opts.radius(),
-        scale = opts.scale(),
-        center = opts.center(),
         objectSpecs = opts.objects.toOption
       ),
       camera = CameraConfig(

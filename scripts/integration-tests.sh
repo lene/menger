@@ -106,10 +106,10 @@ print_summary() {
 
 test_basic_objects() {
     echo "Basic OptiX Objects:"
-    run_test "sphere" --optix --object sphere --radius 0.5 --plane y:-2
-    run_test "cube" --optix --object cube --radius 0.5 --plane y:-2
-    run_test "sponge-volume" --optix --object sponge-volume --level 1 --radius 0.5 --plane y:-2
-    run_test "sponge-surface" --optix --object sponge-surface --level 1 --radius 0.5 --plane y:-2
+    run_test "sphere" --optix --objects type=sphere:size=0.5 --plane y:-2
+    run_test "cube" --optix --objects type=cube:size=0.5 --plane y:-2
+    run_test "sponge-volume" --optix --objects type=sponge-volume:level=1:size=0.5 --plane y:-2
+    run_test "sponge-surface" --optix --objects type=sponge-surface:level=1:size=0.5 --plane y:-2
 }
 
 test_multi_object() {
@@ -135,26 +135,26 @@ test_multi_object() {
 
 test_antialiasing() {
     echo "Antialiasing:"
-    run_test "AA basic" --optix --object sphere --antialiasing --plane y:-2
-    run_test "AA custom depth" --optix --object sphere --antialiasing --aa-max-depth 2 --plane y:-2
-    run_test "AA custom threshold" --optix --object sphere --antialiasing --aa-threshold 0.05 --plane y:-2
+    run_test "AA basic" --optix --objects type=sphere --antialiasing --plane y:-2
+    run_test "AA custom depth" --optix --objects type=sphere --antialiasing --aa-max-depth 2 --plane y:-2
+    run_test "AA custom threshold" --optix --objects type=sphere --antialiasing --aa-threshold 0.05 --plane y:-2
 }
 
 test_lighting() {
     echo "Lighting:"
-    run_test "point light" --optix --object sphere --light point:0,3,0:2.0 --plane y:-2
-    run_test "directional light" --optix --object sphere --light directional:1,-1,-1:1.5 --plane y:-2
-    run_test "colored light" --optix --object sphere --light point:2,2,2:1.5:#FF0000 --plane y:-2
-    run_test "shadows" --optix --object sphere --shadows --light directional:1,-1,-1:2.0 --plane y:-2
+    run_test "point light" --optix --objects type=sphere --light point:0,3,0:2.0 --plane y:-2
+    run_test "directional light" --optix --objects type=sphere --light directional:1,-1,-1:1.5 --plane y:-2
+    run_test "colored light" --optix --objects type=sphere --light point:2,2,2:1.5:#FF0000 --plane y:-2
+    run_test "shadows" --optix --objects type=sphere --shadows --light directional:1,-1,-1:2.0 --plane y:-2
 }
 
 test_scene_options() {
     echo "Scene Options:"
-    run_test "custom camera" --optix --object sphere --camera-pos 0,2,5 --camera-lookat 0,0,0 --plane y:-2
-    run_test "plane color solid" --optix --object sphere --plane y:-2 --plane-color '#808080'
-    run_test "plane color checkered" --optix --object sphere --plane y:-2 --plane-color '#FFFFFF:#000000'
+    run_test "custom camera" --optix --objects type=sphere --camera-pos 0,2,5 --camera-lookat 0,0,0 --plane y:-2
+    run_test "plane color solid" --optix --objects type=sphere --plane y:-2 --plane-color '#808080'
+    run_test "plane color checkered" --optix --objects type=sphere --plane y:-2 --plane-color '#FFFFFF:#000000'
     run_test_with_output "custom size + save" "test_size.png" \
-        --optix --object sphere --width 400 --height 300 --save-name test_size.png --plane y:-2
+        --optix --objects type=sphere --width 400 --height 300 --save-name test_size.png --plane y:-2
 }
 
 test_materials() {
@@ -179,21 +179,21 @@ test_textures() {
 test_caustics() {
     echo "Caustics:"
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "caustics minimal" \
-        --optix --object sphere --ior 1.5 --caustics \
+        --optix --objects type=sphere:ior=1.5 --caustics \
         --caustics-photons 1000 --caustics-iterations 1 --plane y:-2
 }
 
 test_file_output() {
     echo "File Output:"
     run_test_with_output "save PNG" "test_output.png" \
-        --optix --object sphere --save-name test_output.png --plane y:-2
+        --optix --objects type=sphere --save-name test_output.png --plane y:-2
     run_test_with_output "save with AA" "test_aa.png" \
-        --optix --object sphere --antialiasing --save-name test_aa.png --plane y:-2
+        --optix --objects type=sphere --antialiasing --save-name test_aa.png --plane y:-2
 }
 
 test_error_handling() {
     echo "Error Handling:"
-    run_test_should_fail "invalid object type" --optix --object invalid-type --plane y:-2
+    run_test_should_fail "invalid object type" --optix --objects type=invalid-type --plane y:-2
     run_test_should_fail "invalid multi-object type" \
         --optix --objects type=invalid:pos=0,0,0:size=1 --plane y:-2
     run_test_should_fail "invalid material preset" \
