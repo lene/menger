@@ -35,6 +35,7 @@
 | TD-2 | Hardcoded MAX_LIGHTS = 8 | Low | 1h (make configurable) |
 | TD-3 | Window resize not working | Medium | 15+h (deferred) |
 | TD-4 | Caustics algorithm incomplete | High | 20+h (deferred) |
+| TD-5 | Cannot mix spheres with triangle meshes | Medium | 8-12h (multi-GAS IAS) |
 
 ### Deferred Features
 
@@ -43,6 +44,7 @@
 | Dynamic window resize | Complex timing issues | Backlog |
 | Caustics (PPM) | Algorithm produces incorrect results | Branch preserved |
 | Soft shadows | Requires area lights | Future sprint |
+| Mixed geometry scenes | Spheres use analytical GAS, meshes use triangle GAS | TD-5 |
 
 ## 11.3 Common Issues and Solutions
 

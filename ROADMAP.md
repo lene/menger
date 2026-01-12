@@ -130,6 +130,7 @@ Ideas for future consideration, not yet scheduled.
 
 | Idea | Description | Complexity | Status |
 |------|-------------|------------|--------|
+| Mixed geometry scenes | Spheres + cubes/meshes in same scene (multi-GAS IAS) | Medium | Backlog (TD-5) |
 | Depth of field | Camera aperture simulation, bokeh | Medium | → Sprint 14 |
 | HDR environment | Image-based lighting | Medium | Backlog |
 | Subsurface scattering | Advanced material effect | High | Backlog |

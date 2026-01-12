@@ -6,6 +6,34 @@ import org.scalatest.matchers.should.Matchers
 
 class ScreenshotFactorySuite extends AnyFlatSpec with Matchers:
 
+  // === sanitizePath tests (new method for full paths) ===
+
+  "sanitizePath" should "allow forward slashes for subdirectories" in:
+    ScreenshotFactory.sanitizePath("output/test.png") should be("output/test.png")
+
+  it should "allow nested subdirectories" in:
+    ScreenshotFactory.sanitizePath("a/b/c/test.png") should be("a/b/c/test.png")
+
+  it should "reject path traversal with .." in:
+    an[IllegalArgumentException] should be thrownBy ScreenshotFactory.sanitizePath("../etc/passwd")
+
+  it should "reject hidden path traversal" in:
+    an[IllegalArgumentException] should be thrownBy ScreenshotFactory.sanitizePath("foo/../bar/test.png")
+
+  it should "strip leading slash to keep paths relative" in:
+    ScreenshotFactory.sanitizePath("/absolute/path.png") should be("absolute/path.png")
+
+  it should "add png extension if missing" in:
+    ScreenshotFactory.sanitizePath("output/test") should be("output/test.png")
+
+  it should "preserve existing png extension" in:
+    ScreenshotFactory.sanitizePath("output/test.png") should be("output/test.png")
+
+  it should "remove dangerous characters but keep path separators" in:
+    ScreenshotFactory.sanitizePath("output/test<script>.png") should be("output/testscript.png")
+
+  // === sanitizeFileName tests (original method for filenames only) ===
+
   "sanitizeFileName" should "preserve normal filenames unchanged" in:
     ScreenshotFactory.sanitizeFileName("normal_file.png") should be("normal_file.png")
 

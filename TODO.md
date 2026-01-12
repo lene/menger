@@ -3,6 +3,8 @@
 Quick notes and ideas captured during development. Review periodically and promote to 
 [ROADMAP.md](ROADMAP.md) or [SPRINT.md](SPRINT.md) as appropriate.
 
+- Render directly to files without displaying the render window
+- Add more procedural textures (wood, marble, etc.) as a texture library
 ---
 
 ## Ideas
