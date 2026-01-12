@@ -2,7 +2,7 @@
 
 ## 1.1 Requirements Overview
 
-**Menger** is a Scala 3 fractal renderer that generates and visualizes Menger sponges (3D) and tesseract sponges (4D) using surface subdivision algorithms.
+**Menger** is a Scala 3 project that provides OptiX ray tracing capabilities, a rendering engine, and 3D/4D visualization tools. The current showcase application generates and visualizes Menger sponges (3D) and tesseract sponges (4D) using surface subdivision algorithms.
 
 ### Core Requirements
 
@@ -28,7 +28,7 @@
 | 1 | **Performance** | Efficient surface subdivision (O(12^n) vs O(20^n) volume) |
 | 2 | **Visual Quality** | Physically-based rendering (Fresnel, Beer-Lambert, Snell's law) |
 | 3 | **Extensibility** | Easy addition of new geometry types and materials |
-| 4 | **Testability** | Comprehensive test coverage (~1091 tests) |
+| 4 | **Testability** | Comprehensive test coverage (1,070 tests) |
 | 5 | **Maintainability** | Functional Scala style, no mutable state, no exceptions |
 
 ## 1.3 Stakeholders

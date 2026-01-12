@@ -29,8 +29,10 @@ This directory contains the architecture documentation for the Menger fractal re
 ## Conventions
 
 - This documentation is the **single source of truth** for architecture
-- Sprint plans in `docs/archive/sprints/` contain detailed implementation decisions
-- Troubleshooting guides remain in `docs/TROUBLESHOOTING.md` (referenced from section 11)
+- Sprint planning documents contain detailed implementation decisions:
+  - Active sprints: [docs/sprints/](../sprints/)
+  - Completed sprints: [docs/archive/sprints/](../archive/sprints/)
+- Troubleshooting guides remain in [docs/TROUBLESHOOTING.md](../TROUBLESHOOTING.md) (referenced from section 11)
 
 ## Version
 
