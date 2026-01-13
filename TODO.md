@@ -10,7 +10,8 @@ Quick notes and ideas captured during development. Review periodically and promo
 - do we even support procedural textures?
 - better user guide documentation
 - better developer documentation
-- better agent instructions for updating documentation (what else is missing?)
+- better agent instructions for updating documentation and changelog, monitoring ci pipelines after 
+  push, using glab (what else is missing?)
 
 ---
 
