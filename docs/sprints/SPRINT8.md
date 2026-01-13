@@ -1,24 +1,34 @@
-# Sprint 8: 4D Projection Foundation
+# Sprint 8: 4D Projection + UX Improvements
 
-**Sprint:** 8 - 4D Projection Foundation
-**Status:** Not Started
-**Estimate:** 12-15 hours
+**Sprint:** 8 - 4D Projection Foundation + UX Improvements
+**Status:** In Progress
+**Estimate:** 17.5-22.5 hours
 **Branch:** `feature/sprint-8`
 
 ---
 
 ## Goal
 
-Render a tesseract (4D hypercube) projected to 3D via OptiX ray tracing using `--objects type=tesseract`.
+1. Render a tesseract (4D hypercube) projected to 3D via OptiX ray tracing using `--objects type=tesseract`
+2. Improve user experience with headless rendering and bug fixes
+3. Create user documentation
 
 ## Success Criteria
 
+### 4D Projection
 - [ ] `--objects type=tesseract` renders a 4D hypercube projected to 3D
 - [ ] 4D rotation parameters work: `rot-xw`, `rot-yw`, `rot-zw`
 - [ ] 4D projection parameters work: `eye-w`, `screen-w`
 - [ ] Default rotation (15° XW, 10° YW) shows visible 4D structure
 - [ ] Materials work on tesseract (glass, chrome, etc.)
-- [ ] All tests pass (~40 new tests)
+
+### UX Improvements
+- [ ] `--headless` flag renders to file without displaying window
+- [ ] Screenshots saved via `--save-name` are correctly oriented (no vertical flip)
+
+### Documentation
+- [ ] User guide created at `docs/USER_GUIDE.md`
+- [ ] All tests pass (~50 new tests)
 
 ---
 
@@ -836,7 +846,164 @@ sbt "run --optix --objects type=tesseract:pos=-2,0,0:size=1.5:color=#4488FF --ob
 
 ---
 
-### Step 8.8: Update Documentation
+### Step 8.8: Fix Vertical Flip Bug
+
+**Status:** Not Started
+**Estimate:** 0.5-1 hour
+
+Fix the bug where screenshots saved via `--save-name` are vertically flipped.
+
+#### Problem
+
+`Pixmap.createFromFrameBuffer()` captures OpenGL framebuffer data which uses bottom-left origin, but PNG files expect top-left origin.
+
+#### Solution
+
+Flip the pixmap vertically before saving.
+
+#### Files to Modify
+
+**`menger-app/src/main/scala/menger/engines/ScreenshotFactory.scala`**
+
+```scala
+private def getScreenshot(x: Int, y: Int, w: Int, h: Int): Pixmap =
+  val original = Pixmap.createFromFrameBuffer(x, y, w, h)
+  flipVertically(original)
+
+private def flipVertically(pixmap: Pixmap): Pixmap =
+  val width = pixmap.getWidth
+  val height = pixmap.getHeight
+  val flipped = Pixmap(width, height, pixmap.getFormat)
+  for y <- 0 until height do
+    for x <- 0 until width do
+      flipped.drawPixel(x, height - 1 - y, pixmap.getPixel(x, y))
+  pixmap.dispose()
+  flipped
+```
+
+#### Tests
+
+- Update existing screenshot tests to verify correct orientation
+- Add test that verifies top-left pixel matches expected position
+
+---
+
+### Step 8.9: Headless Rendering
+
+**Status:** Not Started
+**Estimate:** 2-3 hours
+
+Add `--headless` CLI flag that renders directly to file without displaying a window.
+
+#### Problem
+
+Users want to render directly to files without displaying a window (e.g., for batch processing, CI/CD, remote servers).
+
+#### Solution
+
+Add `--headless` CLI flag that creates an invisible window using LibGDX's `setInitialVisible(false)`.
+
+#### Files to Modify
+
+**`menger-app/src/main/scala/menger/MengerCLIOptions.scala`**
+
+Add flag:
+```scala
+val headless: ScallopOption[Boolean] = opt[Boolean](
+  name = "headless", default = Some(false), group = generalGroup,
+  descr = "Render to file without displaying window (requires --save-name)"
+)
+```
+
+Add validation:
+```scala
+validate(headless, saveName) { (h, s) =>
+  if h && s.isEmpty then Left("--headless requires --save-name")
+  else Right(())
+}
+```
+
+**`menger-app/src/main/scala/Main.scala`**
+
+Configure invisible window:
+```scala
+def getConfig(opts: MengerCLIOptions): Lwjgl3ApplicationConfiguration =
+  val config = Lwjgl3ApplicationConfiguration()
+  config.disableAudio(true)
+  config.setTitle("Menger Sponges")
+  config.setWindowedMode(opts.width(), opts.height())
+  
+  // Headless mode: create invisible window
+  if opts.headless() then
+    config.setInitialVisible(false)
+    config.setDecorated(false)
+  
+  // ... rest of config ...
+```
+
+#### Tests
+
+- Unit test that `--headless` without `--save-name` fails validation
+- Integration test that `--headless --save-name test.png` produces correct file
+
+---
+
+### Step 8.10: Create User Guide
+
+**Status:** Not Started
+**Estimate:** 2-3 hours
+
+Create comprehensive user documentation.
+
+#### File to Create
+
+**`docs/USER_GUIDE.md`**
+
+Structure:
+```markdown
+# Menger User Guide
+
+## Quick Start
+- Installation requirements
+- First render command
+- Viewing results
+
+## Basic Usage
+- Rendering spheres, cubes, sponges
+- Setting position, size, color
+- Camera controls
+
+## Materials
+- Available presets (glass, chrome, gold, etc.)
+- Custom IOR values
+- Textures
+
+## 4D Visualization
+- What is a tesseract?
+- Rendering tesseracts
+- 4D rotation parameters
+- 4D projection parameters
+
+## Headless Rendering
+- Batch processing
+- CI/CD integration
+
+## Advanced Topics
+- Multiple objects
+- Custom lighting
+- Performance tips
+
+## Examples Gallery
+- Sample render commands with descriptions
+```
+
+#### Also Fix Broken Links
+
+- `docs/INSTALLATION_FROM_SCRATCH.md` - references to non-existent files
+
+---
+
+### Step 8.11: Update Documentation
 
 **Status:** Not Started
 **Estimate:** 0.5 hours
@@ -862,7 +1029,11 @@ Update changelog, roadmap, and backlog.
   - 4D projection parameters: `eye-w`, `screen-w` (default: 3.0, 1.5)
   - 4D rotation parameters: `rot-xw`, `rot-yw`, `rot-zw` (default: 15, 10, 0)
   - Full material support (glass, chrome, etc.)
-  - Example: `--objects type=tesseract:pos=0,0,0:size=2:rot-xw=30:material=glass`
+- **Headless rendering** - `--headless` flag for batch processing without window
+- **User Guide** - Comprehensive documentation at `docs/USER_GUIDE.md`
+
+### Fixed
+- Screenshot vertical flip bug - images now saved with correct orientation
 ```
 
 **`TODO.md`** (add to backlog):
@@ -870,16 +1041,9 @@ Update changelog, roadmap, and backlog.
 ## Backlog - 4D Features
 
 - Multiple tesseract instances with independent 4D rotations
-  - Currently all tesseracts in a scene share the same mesh (projection/rotation parameters)
-  - Enhancement: per-instance 4D rotation via modified ObjectSpec handling
-  - Requires: generate separate mesh per unique (eyeW, screenW, rotXW, rotYW, rotZW) combination
-  - Or: implement 4D rotation as shader-time transformation
 ```
 
-**`ROADMAP.md`** - Update completed sprints table:
-```markdown
-| 8 | 4D Projection Foundation | ✅ Complete | [archive](docs/archive/sprints/) |
-```
+**`ROADMAP.md`** - Update completed sprints table
 
 ---
 
@@ -897,17 +1061,23 @@ Update changelog, roadmap, and backlog.
 
 ## Summary
 
-| Step | Task | Estimate | Files |
-|------|------|----------|-------|
-| 8.1 | Add "tesseract" to ObjectType | 0.5h | `ObjectType.scala`, new `ObjectTypeSpec.scala` |
-| 8.2 | Verify Rotation.identity | 0.5h | `Rotation.scala` |
-| 8.3 | Create TesseractMesh | 4-5h | New: `TesseractMesh.scala`, `TesseractMeshSpec.scala` |
-| 8.4 | Add ObjectSpec 4D parameters | 1.5h | `ObjectSpec.scala`, `ObjectSpecSpec.scala` |
-| 8.5 | Integrate into OptiXEngine | 2h | `OptiXEngine.scala` |
-| 8.6 | Update CLI documentation | 0.5h | `MengerCLIOptions.scala` |
-| 8.7 | Integration tests | 2h | New: `TesseractIntegrationSpec.scala` |
-| 8.8 | Update documentation | 0.5h | `CHANGELOG.md`, `TODO.md`, `ROADMAP.md` |
-| **Total** | | **12-15h** | |
+| Step | Task | Estimate | Status | Files |
+|------|------|----------|--------|-------|
+| **4D PROJECTION** | | | | |
+| 8.1 | Add "tesseract" to ObjectType | 0.5h | Not Started | `ObjectType.scala`, new `ObjectTypeSpec.scala` |
+| 8.2 | Verify Rotation.identity | 0.5h | Not Started | `Rotation.scala` |
+| 8.3 | Create TesseractMesh | 4-5h | Not Started | New: `TesseractMesh.scala`, `TesseractMeshSpec.scala` |
+| 8.4 | Add ObjectSpec 4D parameters | 1.5h | Not Started | `ObjectSpec.scala`, `ObjectSpecSpec.scala` |
+| 8.5 | Integrate into OptiXEngine | 2h | Not Started | `OptiXEngine.scala` |
+| 8.6 | Update CLI documentation | 0.5h | Not Started | `MengerCLIOptions.scala` |
+| 8.7 | Integration tests | 2h | Not Started | New: `TesseractIntegrationSpec.scala` |
+| **UX IMPROVEMENTS** | | | | |
+| 8.8 | Fix vertical flip bug | 0.5-1h | Not Started | `ScreenshotFactory.scala` |
+| 8.9 | Headless rendering | 2-3h | Not Started | `Main.scala`, `MengerCLIOptions.scala` |
+| **DOCUMENTATION** | | | | |
+| 8.10 | Create User Guide | 2-3h | Not Started | New: `docs/USER_GUIDE.md` |
+| 8.11 | Update CHANGELOG, archive | 0.5h | Not Started | `CHANGELOG.md`, `TODO.md`, `ROADMAP.md` |
+| **TOTAL** | | **17.5-22.5h** | | |
 
 ---
 

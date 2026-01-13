@@ -236,3 +236,8 @@ For current sprint status, completed features, and roadmap, see:
 - **Code quality:** [CODE_IMPROVEMENTS.md](CODE_IMPROVEMENTS.md)
 
 **Note:** Development status details are intentionally kept in separate files to avoid this document becoming stale.
+
+## Miscellaneous notes
+
+- do not write images to /tmp. sanitizeFileName would strip the slashes. write to the current folder or a subfolder.
+- you can capture screenshots of the rendering window with `scrot` if needed.

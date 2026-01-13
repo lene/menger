@@ -110,6 +110,7 @@ test_basic_objects() {
     run_test "cube" --optix --objects type=cube:size=0.5 --plane y:-2
     run_test "sponge-volume" --optix --objects type=sponge-volume:level=1:size=0.5 --plane y:-2
     run_test "sponge-surface" --optix --objects type=sponge-surface:level=1:size=0.5 --plane y:-2
+    run_test "tesseract" --optix --objects type=tesseract:size=0.5 --plane y:-2
 }
 
 test_multi_object() {
@@ -183,6 +184,31 @@ test_caustics() {
         --caustics-photons 1000 --caustics-iterations 1 --plane y:-2
 }
 
+test_tesseract() {
+    echo "Tesseract (4D Hypercube):"
+    run_test "tesseract default rotation" --optix --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8
+    run_test "tesseract custom XW rotation" --optix --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8:rot-xw=45
+    run_test "tesseract custom YW rotation" --optix --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8:rot-yw=30
+    run_test "tesseract custom ZW rotation" --optix --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8:rot-zw=60
+    run_test "tesseract all rotations" --optix --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8:rot-xw=30:rot-yw=20:rot-zw=10
+    run_test "tesseract custom projection" --optix --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8:eye-w=5.0:screen-w=2.0
+    run_test "tesseract with color" --optix --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8:color=#4488FF
+    run_test "tesseract with material" --optix --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8:material=glass
+    run_test "tesseract transparent" --optix --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8:ior=1.5
+    run_test "multiple tesseracts" --optix --plane y:-2 \
+        --objects type=tesseract:pos=-1,0,0:size=0.5 \
+        --objects type=tesseract:pos=1,0,0:size=0.5
+}
+
 test_file_output() {
     echo "File Output:"
     run_test_with_output "save PNG" "test_output.png" \
@@ -198,6 +224,8 @@ test_error_handling() {
         --optix --objects type=invalid:pos=0,0,0:size=1 --plane y:-2
     run_test_should_fail "invalid material preset" \
         --optix --objects type=sphere:pos=0,0,0:size=0.5:material=unobtanium --plane y:-2
+    run_test_should_fail "tesseract invalid eye-w <= screen-w" \
+        --optix --objects type=tesseract:eye-w=1.0:screen-w=2.0 --plane y:-2
 }
 
 # ============================================
@@ -217,6 +245,7 @@ main() {
     test_materials
     test_textures
     test_caustics
+    test_tesseract
     test_file_output
     test_error_handling
 
