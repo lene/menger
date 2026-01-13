@@ -8,8 +8,6 @@ cd "$(dirname "$0")/.."
 
 OUTPUT_DIR="test-output"
 MENGER="./menger-app/target/universal/stage/bin/menger-app"
-# Timeout in seconds for each static render test
-TIMEOUT=0.5
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -52,13 +50,13 @@ if [ "$SKIP_STATIC" = true ]; then
     echo -e "${YELLOW}Skipping static tests (--interactive mode)${NC}\n"
 else
 
-# Function to run a test with timeout
+# Function to run a test with headless mode
 run_test() {
     local name="$1"
     local args="$2"
     echo -e "${BLUE}Testing:${NC} $name"
-    echo "  Command: $MENGER $args -t $TIMEOUT"
-    $MENGER $args -t $TIMEOUT
+    echo "  Command: $MENGER $args --headless"
+    $MENGER $args --headless
     echo -e "${GREEN}  ✓ Done${NC}\n"
 }
 
@@ -126,13 +124,21 @@ echo -e "${YELLOW}--- Image Size ---${NC}"
 run_test "HD 1920x1080" "-o --objects type=sphere --width 1920 --height 1080 -s $OUTPUT_DIR/31-hd.png"
 run_test "Square 512x512" "-o --objects type=sphere --width 512 --height 512 -s $OUTPUT_DIR/32-square.png"
 
+# 4D Tesseract
+echo -e "${YELLOW}--- 4D Tesseract ---${NC}"
+run_test "Tesseract (default)" "-o --objects type=tesseract -s $OUTPUT_DIR/33-tesseract.png"
+run_test "Tesseract (rotated)" "-o --objects type=tesseract:rot-xw=45:rot-yw=30 -s $OUTPUT_DIR/34-tesseract-rot.png"
+run_test "Tesseract (projection)" "-o --objects type=tesseract:eye-w=4.0:screen-w=2.0 -s $OUTPUT_DIR/35-tesseract-proj.png"
+run_test "Tesseract (glass)" "-o --objects type=tesseract:material=glass -s $OUTPUT_DIR/36-tesseract-glass.png"
+run_test "Tesseract (chrome)" "-o --objects type=tesseract:material=chrome -s $OUTPUT_DIR/37-tesseract-chrome.png"
+
 # Caustics
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
-run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/33-caustics.png"
+run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/38-caustics.png"
 
 # Showcase
 echo -e "${YELLOW}--- Showcase ---${NC}"
-run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/34-showcase.png"
+run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/39-showcase.png"
 
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
@@ -163,6 +169,10 @@ interactive_tests=(
     "Two spheres + shadows:-o --objects type=sphere:pos=-1.5,0,0:material=glass --objects type=sphere:pos=1.5,0,0 --shadows"
     "Sponge surface L1:-o --objects type=sponge-surface:level=1"
     "Cube Sponge L1:-o --objects type=cube-sponge:level=1:color=#00ffff --max-instances 64"
+    "Tesseract (4D hypercube):-o --objects type=tesseract"
+    "Tesseract (4D rotated):-o --objects type=tesseract:rot-xw=45:rot-yw=30:rot-zw=15"
+    "Tesseract (glass):-o --objects type=tesseract:material=glass"
+    "Tesseract (chrome):-o --objects type=tesseract:material=chrome"
     "Colored lights:-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff"
     "Checkered plane:-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000"
 )
