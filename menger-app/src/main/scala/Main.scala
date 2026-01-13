@@ -56,6 +56,10 @@ object Main:
     // Disable window resizing for OptiX mode to prevent expensive buffer reallocation
     // OptiX rendering requires fixed resolution for optimal performance
     if opts.optix() then config.setResizable(false)
+    // Headless mode: render without displaying window (for CI/CD, batch processing)
+    if opts.headless() then
+      config.setInitialVisible(false)
+      config.setDecorated(false)
     config
 
   def createEngine(opts: MengerCLIOptions): RenderEngine =

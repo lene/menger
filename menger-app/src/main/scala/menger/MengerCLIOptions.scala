@@ -117,6 +117,10 @@ class MengerCLIOptions(arguments: Seq[String])
     required = false, default = Some(false), group = generalGroup,
     descr = "Show ray tracing statistics"
   )
+  val headless: ScallopOption[Boolean] = opt[Boolean](
+    name = "headless", default = Some(false), group = generalGroup,
+    descr = "Render without displaying window (requires --save-name)"
+  )
 
   // === Sponge Rendering Options ===
   val spongeType: ScallopOption[String] = opt[String](

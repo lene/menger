@@ -806,25 +806,25 @@ package menger.engines
 
 ```bash
 # Basic tesseract with default rotation
-sbt "run --optix --objects type=tesseract:pos=0,0,0:size=2:color=#4488FF --save-name tesseract-basic.png --timeout 3"
+sbt "run --optix --objects type=tesseract:pos=0,0,0:size=2:color=#4488FF --headless --save-name tesseract-basic.png --timeout 3"
 
 # Tesseract with no rotation (aligned to axes)
-sbt "run --optix --objects type=tesseract:pos=0,0,0:size=2:rot-xw=0:rot-yw=0:color=#FF8844 --save-name tesseract-no-rotation.png --timeout 3"
+sbt "run --optix --objects type=tesseract:pos=0,0,0:size=2:rot-xw=0:rot-yw=0:color=#FF8844 --headless --save-name tesseract-no-rotation.png --timeout 3"
 
 # Tesseract with 45-degree XW rotation
-sbt "run --optix --objects type=tesseract:pos=0,0,0:size=2:rot-xw=45:rot-yw=0:color=#44FF88 --save-name tesseract-rot45.png --timeout 3"
+sbt "run --optix --objects type=tesseract:pos=0,0,0:size=2:rot-xw=45:rot-yw=0:color=#44FF88 --headless --save-name tesseract-rot45.png --timeout 3"
 
 # Glass tesseract
-sbt "run --optix --objects type=tesseract:pos=0,0,0:size=2:material=glass --save-name tesseract-glass.png --timeout 3"
+sbt "run --optix --objects type=tesseract:pos=0,0,0:size=2:material=glass --headless --save-name tesseract-glass.png --timeout 3"
 
 # Chrome tesseract
-sbt "run --optix --objects type=tesseract:pos=0,0,0:size=2:material=chrome --save-name tesseract-chrome.png --timeout 3"
+sbt "run --optix --objects type=tesseract:pos=0,0,0:size=2:material=chrome --headless --save-name tesseract-chrome.png --timeout 3"
 
 # Multiple tesseracts (same mesh, different positions)
-sbt "run --optix --objects type=tesseract:pos=-2,0,0:color=#FF0000 --objects type=tesseract:pos=2,0,0:color=#00FF00 --save-name tesseract-multi.png --timeout 3"
+sbt "run --optix --objects type=tesseract:pos=-2,0,0:color=#FF0000 --objects type=tesseract:pos=2,0,0:color=#00FF00 --headless --save-name tesseract-multi.png --timeout 3"
 
 # Tesseract with sphere
-sbt "run --optix --objects type=tesseract:pos=-2,0,0:size=1.5:color=#4488FF --objects type=sphere:pos=2,0,0:color=#FF4444 --save-name tesseract-with-sphere.png --timeout 3"
+sbt "run --optix --objects type=tesseract:pos=-2,0,0:size=1.5:color=#4488FF --objects type=sphere:pos=2,0,0:color=#FF4444 --headless --save-name tesseract-with-sphere.png --timeout 3"
 ```
 
 ---
@@ -873,7 +873,7 @@ private def flipVertically(pixmap: Pixmap): Pixmap =
 
 ### Step 8.9: Headless Rendering
 
-**Status:** Not Started
+**Status:** Complete
 **Estimate:** 2-3 hours
 
 Add `--headless` CLI flag that renders directly to file without displaying a window.
@@ -1056,7 +1056,7 @@ Update changelog, roadmap, and backlog.
 | 8.7 | Integration tests | 2h | Complete | New: `TesseractIntegrationSuite.scala` (25 tests) |
 | **UX IMPROVEMENTS** | | | | |
 | 8.8 | Fix vertical flip bug | 0.5-1h | Complete | `ScreenshotFactory.scala` |
-| 8.9 | Headless rendering | 2-3h | Not Started | `Main.scala`, `MengerCLIOptions.scala` |
+| 8.9 | Headless rendering | 2-3h | Complete | `Main.scala`, `MengerCLIOptions.scala`, `CliValidation.scala` |
 | **DOCUMENTATION** | | | | |
 | 8.10 | Create User Guide | 2-3h | Not Started | New: `docs/USER_GUIDE.md` |
 | 8.11 | Update CHANGELOG, archive | 0.5h | Not Started | `CHANGELOG.md`, `TODO.md`, `ROADMAP.md` |

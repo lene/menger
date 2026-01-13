@@ -42,6 +42,8 @@ trait CliValidation:
   protected def causticsIterations: ScallopOption[Int]
   protected def causticsRadius: ScallopOption[Float]
   protected def causticsAlpha: ScallopOption[Float]
+  protected def headless: ScallopOption[Boolean]
+  protected def saveName: ScallopOption[String]
 
   protected def registerValidationRules(): Unit =
     validationLogger.debug("Registering CLI validation rules")
@@ -51,6 +53,7 @@ trait CliValidation:
     registerOptiXValidations()
     registerAntialiasingValidations()
     registerCausticsValidations()
+    registerHeadlessValidations()
 
   private def registerProjectionValidations(): Unit =
     mutuallyExclusive(timeout, animate)
@@ -219,3 +222,16 @@ trait CliValidation:
     parentEnabled: Boolean
   ): Either[String, Unit] =
     requires(optionName, isSupplied, parentName, parentEnabled)
+
+  private def registerHeadlessValidations(): Unit =
+    validateOpt(headless, saveName) { (h, s) =>
+      if h.getOrElse(false) && s.isEmpty then
+        Left("--headless requires --save-name to specify output file")
+      else Right(())
+    }
+
+    validateOpt(headless, timeout) { (h, t) =>
+      if h.getOrElse(false) && t.getOrElse(0f) > 0f then
+        Left("--headless and --timeout are mutually exclusive")
+      else Right(())
+    }

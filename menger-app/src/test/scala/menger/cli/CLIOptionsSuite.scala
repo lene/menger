@@ -360,3 +360,55 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     val enableStats = opts.stats()
 
     enableStats shouldBe true
+
+  // === Headless Mode Tests ===
+
+  "MengerCLIOptions --headless" should "default to false" in:
+    val opts = SafeMengerCLIOptions(Seq())
+    opts.headless() shouldBe false
+
+  it should "be true when flag is provided" in:
+    val opts = SafeMengerCLIOptions(Seq("--headless", "--save-name", "output.png"))
+    opts.headless() shouldBe true
+
+  it should "succeed with --save-name" in:
+    val opts = SafeMengerCLIOptions(Seq("--headless", "--save-name", "test.png"))
+    opts.headless() shouldBe true
+    opts.saveName() shouldBe "test.png"
+
+  it should "fail without --save-name" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--headless"))
+
+  it should "work with --optix mode" in:
+    val opts = SafeMengerCLIOptions(Seq(
+      "--optix", "--objects", "type=sphere",
+      "--headless", "--save-name", "output.png"
+    ))
+    opts.headless() shouldBe true
+    opts.optix() shouldBe true
+
+  it should "work with --animate mode" in:
+    val opts = SafeMengerCLIOptions(Seq(
+      "--animate", "frames=10:rot-y=0-360",
+      "--headless", "--save-name", "frame_%04d.png"
+    ))
+    opts.headless() shouldBe true
+    opts.animate().parts should have size 1
+
+  it should "work with interactive mode (non-OptiX)" in:
+    val opts = SafeMengerCLIOptions(Seq(
+      "--sponge-type", "cube",
+      "--headless", "--save-name", "cube.png"
+    ))
+    opts.headless() shouldBe true
+    opts.spongeType() shouldBe "cube"
+
+  it should "fail when used with --timeout" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--headless", "--save-name", "test.png", "--timeout", "5"))
+
+  it should "succeed with --timeout=0 (the default)" in:
+    val opts = SafeMengerCLIOptions(Seq("--headless", "--save-name", "test.png"))
+    opts.headless() shouldBe true
+    opts.timeout() shouldBe 0f

@@ -48,14 +48,32 @@ run_test() {
     rm -f test_*.png
 }
 
-# Run a test that should FAIL
+# Run a test that should FAIL (uses --timeout unless --headless is present)
 run_test_should_fail() {
     local name="$1"
     shift
 
     rm -f test_*.png
 
-    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --timeout $DEFAULT_TIMEOUT "$@" >/dev/null 2>&1; then
+    # Check if --headless is in the arguments (headless and timeout are mutually exclusive)
+    local use_timeout=true
+    for arg in "$@"; do
+        if [ "$arg" = "--headless" ]; then
+            use_timeout=false
+            break
+        fi
+    done
+
+    local cmd_result
+    if $use_timeout; then
+        __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --timeout $DEFAULT_TIMEOUT "$@" >/dev/null 2>&1
+        cmd_result=$?
+    else
+        __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN "$@" >/dev/null 2>&1
+        cmd_result=$?
+    fi
+
+    if [ $cmd_result -eq 0 ]; then
         ((FAILED++))
         FAILED_TESTS="$FAILED_TESTS\n  - $name (expected failure but succeeded)"
         echo -e "  ${RED}✗${RESET} $name"
@@ -67,7 +85,7 @@ run_test_should_fail() {
     rm -f test_*.png
 }
 
-# Run a test that produces output file
+# Run a test that produces output file (uses --timeout unless --headless is present)
 run_test_with_output() {
     local name="$1"
     local output_file="$2"
@@ -75,13 +93,40 @@ run_test_with_output() {
 
     rm -f "$output_file"
 
-    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --timeout $DEFAULT_TIMEOUT "$@" >/dev/null 2>&1 && [ -f "$output_file" ]; then
-        ((PASSED++))
-        echo -e "  ${GREEN}✓${RESET} $name"
+    # Check if --headless is in the arguments (headless and timeout are mutually exclusive)
+    local use_timeout=true
+    for arg in "$@"; do
+        if [ "$arg" = "--headless" ]; then
+            use_timeout=false
+            break
+        fi
+    done
+
+    local result
+    if $use_timeout; then
+        result=$(__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --timeout $DEFAULT_TIMEOUT "$@" >/dev/null 2>&1 && [ -f "$output_file" ])
     else
-        ((FAILED++))
-        FAILED_TESTS="$FAILED_TESTS\n  - $name"
-        echo -e "  ${RED}✗${RESET} $name"
+        result=$(__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN "$@" >/dev/null 2>&1 && [ -f "$output_file" ])
+    fi
+
+    if $use_timeout; then
+        if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --timeout $DEFAULT_TIMEOUT "$@" >/dev/null 2>&1 && [ -f "$output_file" ]; then
+            ((PASSED++))
+            echo -e "  ${GREEN}✓${RESET} $name"
+        else
+            ((FAILED++))
+            FAILED_TESTS="$FAILED_TESTS\n  - $name"
+            echo -e "  ${RED}✗${RESET} $name"
+        fi
+    else
+        if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN "$@" >/dev/null 2>&1 && [ -f "$output_file" ]; then
+            ((PASSED++))
+            echo -e "  ${GREEN}✓${RESET} $name"
+        else
+            ((FAILED++))
+            FAILED_TESTS="$FAILED_TESTS\n  - $name"
+            echo -e "  ${RED}✗${RESET} $name"
+        fi
     fi
 
     rm -f "$output_file"
@@ -155,7 +200,7 @@ test_scene_options() {
     run_test "plane color solid" --optix --objects type=sphere --plane y:-2 --plane-color '#808080'
     run_test "plane color checkered" --optix --objects type=sphere --plane y:-2 --plane-color '#FFFFFF:#000000'
     run_test_with_output "custom size + save" "test_size.png" \
-        --optix --objects type=sphere --width 400 --height 300 --save-name test_size.png --plane y:-2
+        --optix --objects type=sphere --width 400 --height 300 --headless --save-name test_size.png --plane y:-2
 }
 
 test_materials() {
@@ -212,9 +257,23 @@ test_tesseract() {
 test_file_output() {
     echo "File Output:"
     run_test_with_output "save PNG" "test_output.png" \
-        --optix --objects type=sphere --save-name test_output.png --plane y:-2
+        --optix --objects type=sphere --headless --save-name test_output.png --plane y:-2
     run_test_with_output "save with AA" "test_aa.png" \
-        --optix --objects type=sphere --antialiasing --save-name test_aa.png --plane y:-2
+        --optix --objects type=sphere --antialiasing --headless --save-name test_aa.png --plane y:-2
+}
+
+test_headless() {
+    echo "Headless Mode:"
+    run_test_with_output "headless sphere" "test_headless_sphere.png" \
+        --optix --objects type=sphere --headless --save-name test_headless_sphere.png --plane y:-2
+    run_test_with_output "headless cube" "test_headless_cube.png" \
+        --optix --objects type=cube --headless --save-name test_headless_cube.png --plane y:-2
+    run_test_with_output "headless tesseract" "test_headless_tesseract.png" \
+        --optix --objects type=tesseract --headless --save-name test_headless_tesseract.png --plane y:-2
+    run_test_with_output "headless multi-object" "test_headless_multi.png" \
+        --optix --objects type=sphere:pos=-1,0,0 --objects type=cube:pos=1,0,0 \
+        --headless --save-name test_headless_multi.png --plane y:-2
+    run_test_should_fail "headless without save-name" --optix --objects type=sphere --headless --plane y:-2
 }
 
 test_error_handling() {
@@ -226,6 +285,8 @@ test_error_handling() {
         --optix --objects type=sphere:pos=0,0,0:size=0.5:material=unobtanium --plane y:-2
     run_test_should_fail "tesseract invalid eye-w <= screen-w" \
         --optix --objects type=tesseract:eye-w=1.0:screen-w=2.0 --plane y:-2
+    run_test_should_fail "headless with timeout" \
+        --optix --objects type=sphere --headless --save-name test.png --timeout 5 --plane y:-2
 }
 
 # ============================================
@@ -247,6 +308,7 @@ main() {
     test_caustics
     test_tesseract
     test_file_output
+    test_headless
     test_error_handling
 
     print_summary
