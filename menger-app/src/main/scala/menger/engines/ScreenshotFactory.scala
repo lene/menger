@@ -37,5 +37,20 @@ object ScreenshotFactory:
     require(sanitized.nonEmpty, "File name becomes empty after sanitization")
     if sanitized.toLowerCase.endsWith(".png") then sanitized else s"$sanitized.png"
 
-  private def getScreenshot(x: Int, y: Int, w: Int, h: Int) =
-    Pixmap.createFromFrameBuffer(x, y, w, h)
+  // OpenGL framebuffer has Y=0 at bottom, but PNG format has Y=0 at top.
+  // LibGDX handles this internally for display, but we must flip when saving.
+  private def getScreenshot(x: Int, y: Int, w: Int, h: Int): Pixmap =
+    val original = Pixmap.createFromFrameBuffer(x, y, w, h)
+    flipVertically(original)
+
+  private def flipVertically(pixmap: Pixmap): Pixmap =
+    val width = pixmap.getWidth
+    val height = pixmap.getHeight
+    val flipped = new Pixmap(width, height, pixmap.getFormat)
+    (0 until height).foreach { y =>
+      (0 until width).foreach { x =>
+        flipped.drawPixel(x, height - 1 - y, pixmap.getPixel(x, y))
+      }
+    }
+    pixmap.dispose()
+    flipped
