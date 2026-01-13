@@ -79,22 +79,22 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
 
   it should "fail when type is missing" in:
     val result = ObjectSpec.parse("pos=1,2,3:size=2.0")
-    result shouldBe a[Left[_, _]]
+    result shouldBe a[Left[?, ?]]
     result.left.map(_ should include("Missing required 'type' field"))
 
   it should "fail when type is invalid" in:
     val result = ObjectSpec.parse("type=pyramid:pos=0,0,0")
-    result shouldBe a[Left[_, _]]
+    result shouldBe a[Left[?, ?]]
     result.left.map(_ should include("Invalid object type"))
 
   it should "fail when position format is invalid" in:
     val result = ObjectSpec.parse("type=sphere:pos=1,2")
-    result shouldBe a[Left[_, _]]
+    result shouldBe a[Left[?, ?]]
     result.left.map(_ should include("Invalid position format"))
 
   it should "fail when sponge is missing level" in:
     val result = ObjectSpec.parse("type=sponge-volume:size=2.0")
-    result shouldBe a[Left[_, _]]
+    result shouldBe a[Left[?, ?]]
     result.left.map(_ should include("requires 'level' field"))
 
   it should "accept sponge-volume type (case insensitive)" in:
@@ -125,7 +125,7 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
       "type=cube:pos=2,0,0"
     )
     val result = ObjectSpec.parseAll(specs)
-    result shouldBe a[Left[_, _]]
+    result shouldBe a[Left[?, ?]]
 
   it should "return empty list for empty input" in:
     val result = ObjectSpec.parseAll(List.empty)
@@ -202,7 +202,7 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
 
   it should "fail for unknown material preset" in:
     val result = ObjectSpec.parse("type=sphere:pos=0,0,0:material=unobtanium")
-    result shouldBe a[Left[_, _]]
+    result shouldBe a[Left[?, ?]]
     result.left.map(_ should include("Unknown material preset"))
 
   it should "parse all known material presets" in:
@@ -269,5 +269,105 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
 
   it should "fail for empty texture filename" in:
     val result = ObjectSpec.parse("type=cube:texture=")
-    result shouldBe a[Left[_, _]]
+    result shouldBe a[Left[?, ?]]
     result.left.map(_ should include("cannot be empty"))
+
+  // 4D Projection tests (Sprint 8)
+  "ObjectSpec 4D projection parsing" should "create Projection4DSpec for tesseract type" in:
+    val result = ObjectSpec.parse("type=tesseract:pos=0,0,0:size=2.0")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "tesseract"
+        spec.projection4D shouldBe defined
+        val proj = spec.projection4D.get
+        proj.eyeW shouldBe Projection4DSpec.DefaultEyeW
+        proj.screenW shouldBe Projection4DSpec.DefaultScreenW
+        proj.rotXW shouldBe Projection4DSpec.DefaultRotXW
+        proj.rotYW shouldBe Projection4DSpec.DefaultRotYW
+        proj.rotZW shouldBe Projection4DSpec.DefaultRotZW
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "have None projection4D for non-hypercube types" in:
+    val sphereResult = ObjectSpec.parse("type=sphere:pos=0,0,0")
+    val cubeResult = ObjectSpec.parse("type=cube:pos=0,0,0")
+    val spongeResult = ObjectSpec.parse("type=sponge-volume:level=2")
+
+    sphereResult.map(_.projection4D) shouldBe Right(None)
+    cubeResult.map(_.projection4D) shouldBe Right(None)
+    spongeResult.map(_.projection4D) shouldBe Right(None)
+
+  it should "parse custom 4D rotation angles" in:
+    val result = ObjectSpec.parse("type=tesseract:rot-xw=30:rot-yw=45:rot-zw=60")
+    result match
+      case Right(spec) =>
+        val proj = spec.projection4D.get
+        proj.rotXW shouldBe 30.0f
+        proj.rotYW shouldBe 45.0f
+        proj.rotZW shouldBe 60.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse custom eye-w and screen-w parameters" in:
+    val result = ObjectSpec.parse("type=tesseract:eye-w=5.0:screen-w=2.0")
+    result match
+      case Right(spec) =>
+        val proj = spec.projection4D.get
+        proj.eyeW shouldBe 5.0f
+        proj.screenW shouldBe 2.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "fail when eye-w <= screen-w" in:
+    val equalResult = ObjectSpec.parse("type=tesseract:eye-w=2.0:screen-w=2.0")
+    equalResult shouldBe a[Left[?, ?]]
+    equalResult.left.map(_ should include("must be greater than"))
+
+    val lessThanResult = ObjectSpec.parse("type=tesseract:eye-w=1.0:screen-w=2.0")
+    lessThanResult shouldBe a[Left[?, ?]]
+    lessThanResult.left.map(_ should include("must be greater than"))
+
+  it should "fail when eye-w or screen-w is not positive" in:
+    // Zero values fail the "greater than" check first (0 is not > 0)
+    val zeroResult = ObjectSpec.parse("type=tesseract:eye-w=0:screen-w=0")
+    zeroResult shouldBe a[Left[?, ?]]
+    zeroResult.left.map(_ should include("must be greater than"))
+
+    // Negative values - eye-w=-1 is not > screen-w=-2
+    val negativeResult = ObjectSpec.parse("type=tesseract:eye-w=-1:screen-w=-2")
+    negativeResult shouldBe a[Left[?, ?]]
+    negativeResult.left.map(_ should include("must be positive"))
+
+  it should "fail for invalid 4D rotation value" in:
+    val result = ObjectSpec.parse("type=tesseract:rot-xw=notanumber")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Invalid rot-xw"))
+
+  it should "combine 4D parameters with other attributes" in:
+    val result = ObjectSpec.parse("type=tesseract:pos=1,2,3:size=2.5:color=#FF0000:rot-xw=45:eye-w=4.0:screen-w=1.0")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "tesseract"
+        spec.x shouldBe 1.0f
+        spec.y shouldBe 2.0f
+        spec.z shouldBe 3.0f
+        spec.size shouldBe 2.5f
+        spec.color shouldBe defined
+        spec.projection4D shouldBe defined
+        spec.projection4D.get.rotXW shouldBe 45.0f
+        spec.projection4D.get.eyeW shouldBe 4.0f
+        spec.projection4D.get.screenW shouldBe 1.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "be case insensitive for tesseract type" in:
+    val result = ObjectSpec.parse("type=TESSERACT")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "tesseract"
+        spec.projection4D shouldBe defined
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  "Projection4DSpec.default" should "have expected default values" in:
+    val default = Projection4DSpec.default
+    default.eyeW shouldBe 3.0f
+    default.screenW shouldBe 1.5f
+    default.rotXW shouldBe 15f
+    default.rotYW shouldBe 10f
+    default.rotZW shouldBe 0f

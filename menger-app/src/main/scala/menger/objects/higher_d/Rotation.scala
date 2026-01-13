@@ -29,7 +29,9 @@ case class Rotation(transformationMatrix: Matrix[4], pivotPoint: Vector[4]) exte
 
 object Rotation extends LazyLogging:
 
-  def apply(): Rotation = Rotation(Matrix.identity[4], Vector.Zero[4])
+  val identity: Rotation = Rotation(Matrix.identity[4], Vector.Zero[4])
+
+  def apply(): Rotation = identity
 
   def apply(
     degreesXW: Float, degreesYW: Float, degreesZW: Float, pivotPoint: Vector[4] = Vector.Zero[4]

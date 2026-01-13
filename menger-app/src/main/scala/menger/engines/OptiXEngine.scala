@@ -12,6 +12,7 @@ import menger.ColorConversions.toCommonColor
 import menger.ObjectSpec
 import menger.OptiXRenderResources
 import menger.ProfilingConfig
+import menger.Projection4DSpec
 import menger.TextureLoader
 import menger.Vector3Extensions.toVector3
 import menger.common.ConfigurationException
@@ -27,6 +28,7 @@ import menger.objects.Cube
 import menger.objects.CubeSpongeGenerator
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
+import menger.objects.higher_d.TesseractMesh
 import menger.optix.CameraState
 import menger.optix.Material
 import menger.optix.OptiXRenderer
@@ -181,7 +183,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
       SceneType.Mixed(specs)
 
   private def isTriangleMeshType(objectType: String): Boolean =
-    objectType == "cube" || ObjectType.isSponge(objectType)
+    objectType == "cube" || ObjectType.isSponge(objectType) || ObjectType.isHypercube(objectType)
 
   private def createMultiObjectScene(specs: List[ObjectSpec]): Try[Unit] =
     logger.info(s"Creating OptiXEngine with ${specs.length} objects")
@@ -336,6 +338,19 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
         // Safe .get: level validated by require above
         val sponge = SpongeBySurface(center = Vector3(0f, 0f, 0f), scale = spec.size, level = spec.level.get)
         sponge.toTriangleMesh
+      case "tesseract" =>
+        // Safe .getOrElse: projection4D should always be Some for tesseract (parser guarantees this)
+        val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
+        val tesseract = TesseractMesh(
+          center = Vector3(0f, 0f, 0f),
+          size = spec.size,
+          eyeW = proj.eyeW,
+          screenW = proj.screenW,
+          rotXW = proj.rotXW,
+          rotYW = proj.rotYW,
+          rotZW = proj.rotZW
+        )
+        tesseract.toTriangleMesh
       case other =>
         require(false, s"Unknown mesh type: $other")
         ???  // Never reached due to require, but needed for type checker
@@ -343,13 +358,21 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
   private def isCompatibleMesh(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     (spec1.objectType, spec2.objectType) match
       case (t1, t2) if t1 == t2 =>
-        // Same type - check if levels match for sponges
+        // Same type - check if parameters match
         if ObjectType.isSponge(t1) then
           (spec1.level, spec2.level) match
             case (Some(l1), Some(l2)) => l1 == l2
             case _ => false  // Missing level
+        else if ObjectType.isHypercube(t1) then
+          // Hypercube types are compatible only if 4D projection params match
+          (spec1.projection4D, spec2.projection4D) match
+            case (Some(p1), Some(p2)) =>
+              p1.eyeW == p2.eyeW && p1.screenW == p2.screenW &&
+              p1.rotXW == p2.rotXW && p1.rotYW == p2.rotYW && p1.rotZW == p2.rotZW
+            case (None, None) => true  // Both using defaults
+            case _ => false
         else
-          true  // Non-sponge types are always compatible with same type
+          true  // Non-sponge, non-hypercube types are always compatible with same type
       case _ => false  // Different types
 
   private def calculateInstanceCount(spec: ObjectSpec): Long =

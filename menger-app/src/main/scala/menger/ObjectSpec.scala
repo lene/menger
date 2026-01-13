@@ -20,6 +20,7 @@ import menger.optix.Material
  *   type=sphere:pos=0,0,0:material=glass:ior=1.7
  *   type=cube:pos=0,0,0:material=metal:color=#FFD700
  *   type=cube:pos=0,0,0:texture=brick.png
+ *   type=tesseract:pos=0,0,0:size=2:rot-xw=30:rot-yw=15:color=#4488FF
  *
  * Error examples (input → error message):
  *   "type=invalid" → "Invalid object type: 'invalid'. Valid types: sphere, cube, ..."
@@ -29,6 +30,7 @@ import menger.optix.Material
  *   "type=sponge-volume:pos=0,0,0" → "Sponge object requires 'level' field..."
  *   "type=sphere:material=unknown" → "Unknown material preset: 'unknown'. Valid presets: ..."
  *   "type=sphere:color=notahex" → "Invalid color value 'notahex': For input string: \"notahex\"..."
+ *   "type=tesseract:eye-w=1:screen-w=2" → "eye-w must be greater than screen-w..."
  */
 case class ObjectSpec(
   objectType: String,
@@ -40,8 +42,32 @@ case class ObjectSpec(
   color: Option[Color] = None,
   ior: Float = 1.0f,
   material: Option[Material] = None,
-  texture: Option[String] = None
+  texture: Option[String] = None,
+  projection4D: Option[Projection4DSpec] = None
 )
+
+/**
+ * 4D projection parameters for hypercube objects (tesseract, etc.).
+ * Only applicable to object types where ObjectType.isHypercube returns true.
+ */
+case class Projection4DSpec(
+  eyeW: Float = Projection4DSpec.DefaultEyeW,
+  screenW: Float = Projection4DSpec.DefaultScreenW,
+  rotXW: Float = Projection4DSpec.DefaultRotXW,
+  rotYW: Float = Projection4DSpec.DefaultRotYW,
+  rotZW: Float = Projection4DSpec.DefaultRotZW
+):
+  require(eyeW > screenW, s"eyeW ($eyeW) must be greater than screenW ($screenW)")
+  require(eyeW > 0 && screenW > 0, "eyeW and screenW must be positive")
+
+object Projection4DSpec:
+  val DefaultEyeW: Float = 3.0f
+  val DefaultScreenW: Float = 1.5f
+  val DefaultRotXW: Float = 15f
+  val DefaultRotYW: Float = 10f
+  val DefaultRotZW: Float = 0f
+
+  val default: Projection4DSpec = Projection4DSpec()
 
 object ObjectSpec extends LazyLogging:
 
@@ -57,6 +83,13 @@ object ObjectSpec extends LazyLogging:
    *   specular=VALUE  - override specular (only with material preset)
    *   color=#RRGGBB   - override color (works with or without material preset)
    *   texture=FILE    - texture filename (relative to texture directory)
+   *
+   * 4D projection keywords (only for tesseract type):
+   *   eye-w=VALUE     - 4D eye W-coordinate (default: 3.0)
+   *   screen-w=VALUE  - 4D screen W-coordinate (default: 1.5)
+   *   rot-xw=DEGREES  - XW plane rotation angle (default: 15)
+   *   rot-yw=DEGREES  - YW plane rotation angle (default: 10)
+   *   rot-zw=DEGREES  - ZW plane rotation angle (default: 0)
    */
   def parse(spec: String): Either[String, ObjectSpec] =
     logger.debug(s"Parsing object spec: $spec")
@@ -77,8 +110,9 @@ object ObjectSpec extends LazyLogging:
       ior <- parseIOR(kvPairs)
       material <- parseMaterial(kvPairs, color, ior)
       texture <- parseTexture(kvPairs)
+      projection4D <- parse4DProjection(kvPairs, objType)
       _ <- validateSpongeLevel(objType, level)
-    yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture)
+    yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D)
 
     result match
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")
@@ -202,6 +236,43 @@ object ObjectSpec extends LazyLogging:
     if ObjectType.isSponge(objType) && level.isEmpty then
       Left("Sponge object requires 'level' field. Add level=<number> to specification. " +
         s"Example: type=$objType:level=2")
+    else
+      Right(())
+
+  private def parse4DProjection(
+    kvPairs: Map[String, String],
+    objType: String
+  ): Either[String, Option[Projection4DSpec]] =
+    if ObjectType.isHypercube(objType) then
+      for
+        eyeW <- parseFloatParam(kvPairs, "eye-w", Projection4DSpec.DefaultEyeW, "4D eye W-coordinate")
+        screenW <- parseFloatParam(kvPairs, "screen-w", Projection4DSpec.DefaultScreenW, "4D screen W-coordinate")
+        rotXW <- parseFloatParam(kvPairs, "rot-xw", Projection4DSpec.DefaultRotXW, "XW rotation angle in degrees")
+        rotYW <- parseFloatParam(kvPairs, "rot-yw", Projection4DSpec.DefaultRotYW, "YW rotation angle in degrees")
+        rotZW <- parseFloatParam(kvPairs, "rot-zw", Projection4DSpec.DefaultRotZW, "ZW rotation angle in degrees")
+        _ <- validate4DParams(eyeW, screenW)
+      yield Some(Projection4DSpec(eyeW, screenW, rotXW, rotYW, rotZW))
+    else
+      Right(None)
+
+  private def parseFloatParam(
+    kvPairs: Map[String, String],
+    key: String,
+    default: Float,
+    description: String
+  ): Either[String, Float] =
+    kvPairs.get(key) match
+      case Some(valueStr) =>
+        Try(valueStr.toFloat).toEither.left.map { e =>
+          s"Invalid $key value '$valueStr': ${e.getMessage}. Expected a valid $description (e.g., $key=$default)"
+        }
+      case None => Right(default)
+
+  private def validate4DParams(eyeW: Float, screenW: Float): Either[String, Unit] =
+    if eyeW <= screenW then
+      Left(s"eye-w ($eyeW) must be greater than screen-w ($screenW) for 4D projection")
+    else if eyeW <= 0 || screenW <= 0 then
+      Left("eye-w and screen-w must be positive values for 4D projection")
     else
       Right(())
 
