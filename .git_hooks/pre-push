@@ -139,7 +139,7 @@ if [ "${SKIP_COVERAGE:-0}" != "1" ]; then
     STATUS=1
   else
     # Extract statement coverage from the report
-    REPORT_FILE="menger-app/target/scala-3.7.3/scoverage-report/scoverage.xml"
+    REPORT_FILE="menger-app/target/scala-3.7.4/scoverage-report/scoverage.xml"
     if [ -f "$REPORT_FILE" ]; then
       STATEMENT_RATE=$(grep -oP 'statement-rate="\K[0-9.]+' "$REPORT_FILE" | head -1)
 
