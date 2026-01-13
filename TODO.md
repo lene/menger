@@ -14,6 +14,7 @@ Quick notes and ideas captured during development. Review periodically and promo
   push, using glab (what else is missing?)
 - films ("parchment") surface/material types
 - sponge with xyz -> RGB mapping procedural texture
+- better 4D rotation with mouse dragging
 
 ---
 

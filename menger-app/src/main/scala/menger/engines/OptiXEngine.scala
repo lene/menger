@@ -13,6 +13,7 @@ import menger.ObjectSpec
 import menger.OptiXRenderResources
 import menger.ProfilingConfig
 import menger.Projection4DSpec
+import menger.RotationProjectionParameters
 import menger.TextureLoader
 import menger.Vector3Extensions.toVector3
 import menger.common.ConfigurationException
@@ -22,6 +23,8 @@ import menger.common.ObjectType
 import menger.common.TransformUtil
 import menger.common.ValidationException
 import menger.config.OptiXEngineConfig
+import menger.input.EventDispatcher
+import menger.input.Observer
 import menger.input.OptiXCameraController
 import menger.input.OptiXInputMultiplexer
 import menger.objects.Cube
@@ -42,7 +45,7 @@ enum SceneType:
   case Mixed(specs: List[ObjectSpec])
 
 class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingConfig)
-  extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots:
+  extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots with Observer:
 
   // Convenience accessors for config sections
   private val scene = config.scene
@@ -55,6 +58,44 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
   // Public accessors for testing
   def sphereRadius: Float = scene.sphereRadius
+
+  // Event dispatcher for 4D rotation events
+  private val eventDispatcher = EventDispatcher().withObserver(this)
+
+  // Mutable state for current object specs (for interactive rotation updates)
+  // Wartremover: var required for interactive rotation state management
+  @SuppressWarnings(Array("org.wartremover.warts.Var"))
+  private var currentObjectSpecs: Option[List[ObjectSpec]] = scene.objectSpecs
+
+  // Track if we have tesseract objects (need rebuild on rotation)
+  private lazy val hasTesseracts: Boolean = currentObjectSpecs.exists(_.exists(_.objectType == "tesseract"))
+
+  // Handle rotation events from keyboard
+  override def handleEvent(event: RotationProjectionParameters): Unit =
+    logger.info(s"Received rotation event: rotXW=${event.rotXW}, rotYW=${event.rotYW}, rotZW=${event.rotZW}")
+    if hasTesseracts then
+      logger.info("Has tesseracts, updating rotation")
+      // Update object specs with new rotation values
+      currentObjectSpecs = currentObjectSpecs.map(_.map { spec =>
+        if spec.objectType == "tesseract" then
+          val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
+          val newProj = currentProj.copy(
+            rotXW = currentProj.rotXW + event.rotXW,
+            rotYW = currentProj.rotYW + event.rotYW,
+            rotZW = currentProj.rotZW + event.rotZW
+          )
+          logger.info(s"Updated tesseract rotation: rotXW=${newProj.rotXW}, rotYW=${newProj.rotYW}, rotZW=${newProj.rotZW}")
+          spec.copy(projection4D = Some(newProj))
+        else
+          spec
+      })
+      // Rebuild scene with updated rotation
+      rebuildScene()
+      // Mark resources as needing render and request it
+      renderResources.markNeedsRender()
+      Gdx.graphics.requestRendering()
+    else
+      logger.info(s"No tesseracts in scene, ignoring rotation event")
 
   // Level thresholds for warnings (based on triangle counts and performance)
   private val VolumeLevelWarning = Const.Engine.spongeLevelWarningThreshold
@@ -463,13 +504,54 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
   private def finalizeCreate(): Unit =
     // Register input multiplexer for mouse-based camera control and keyboard shortcuts
-    Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController))
+    Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController, eventDispatcher))
 
     // Disable continuous rendering - we'll request renders only when needed
     Gdx.graphics.setContinuousRendering(false)
     Gdx.graphics.requestRendering()
 
     if execution.timeout > 0 then startExitTimer(execution.timeout)
+
+  private def rebuildScene(): Unit =
+    currentObjectSpecs match
+      case Some(specs) =>
+        Try {
+          // Log the current rotation values we're about to use
+          specs.filter(_.objectType == "tesseract").foreach { spec =>
+            val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
+            logger.info(s"Rebuilding tesseract with rotation: rotXW=${proj.rotXW}, rotYW=${proj.rotYW}, rotZW=${proj.rotZW}")
+          }
+
+          logger.debug("Rebuilding scene with updated rotation")
+          // Dispose and re-initialize renderer
+          val renderer = rendererWrapper.renderer
+          renderer.dispose()
+          renderer.initialize(execution.maxInstances)
+
+          // Recreate scene with updated specs
+          sceneConfigurator.configureScene(renderer)
+          renderer.setRenderConfig(config.render)
+          renderer.setCausticsConfig(config.caustics)
+          environment.planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
+
+          // Rebuild geometry based on scene type
+          classifyScene(specs) match
+            case SceneType.TriangleMeshes(meshSpecs) =>
+              setupMultipleTriangleMeshes(meshSpecs, renderer).get
+            case SceneType.Spheres(sphereSpecs) =>
+              setupMultipleSpheres(sphereSpecs, renderer).get
+            case SceneType.CubeSponges(cubeSpecs) =>
+              setupCubeSponges(cubeSpecs, renderer).get
+            case SceneType.Mixed(mixedSpecs) =>
+              logger.warn("Cannot rebuild mixed scene type")
+              Failure(UnsupportedOperationException("Mixed scenes not supported for rebuilding")).get
+
+          logger.debug("Scene rebuild complete")
+        }.recover { case e =>
+          logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
+        }
+      case None =>
+        logger.warn("Cannot rebuild single-object scene interactively")
 
   override def render(): Unit =
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
