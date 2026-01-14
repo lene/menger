@@ -72,9 +72,8 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
   // Handle rotation events from keyboard
   override def handleEvent(event: RotationProjectionParameters): Unit =
-    logger.info(s"Received rotation event: rotXW=${event.rotXW}, rotYW=${event.rotYW}, rotZW=${event.rotZW}")
+    logger.debug(s"Received rotation event: rotXW=${event.rotXW}, rotYW=${event.rotYW}, rotZW=${event.rotZW}")
     if hasTesseracts then
-      logger.info("Has tesseracts, updating rotation")
       // Update object specs with new rotation values
       currentObjectSpecs = currentObjectSpecs.map(_.map { spec =>
         if spec.objectType == "tesseract" then
@@ -84,7 +83,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
             rotYW = currentProj.rotYW + event.rotYW,
             rotZW = currentProj.rotZW + event.rotZW
           )
-          logger.info(s"Updated tesseract rotation: rotXW=${newProj.rotXW}, rotYW=${newProj.rotYW}, rotZW=${newProj.rotZW}")
+          logger.debug(s"Updated tesseract rotation: rotXW=${newProj.rotXW}, rotYW=${newProj.rotYW}, rotZW=${newProj.rotZW}")
           spec.copy(projection4D = Some(newProj))
         else
           spec
@@ -94,8 +93,6 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
       // Mark resources as needing render and request it
       renderResources.markNeedsRender()
       Gdx.graphics.requestRendering()
-    else
-      logger.info(s"No tesseracts in scene, ignoring rotation event")
 
   // Level thresholds for warnings (based on triangle counts and performance)
   private val VolumeLevelWarning = Const.Engine.spongeLevelWarningThreshold
@@ -516,12 +513,6 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
     currentObjectSpecs match
       case Some(specs) =>
         Try {
-          // Log the current rotation values we're about to use
-          specs.filter(_.objectType == "tesseract").foreach { spec =>
-            val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
-            logger.info(s"Rebuilding tesseract with rotation: rotXW=${proj.rotXW}, rotYW=${proj.rotYW}, rotZW=${proj.rotZW}")
-          }
-
           logger.debug("Rebuilding scene with updated rotation")
           // Dispose and re-initialize renderer
           val renderer = rendererWrapper.renderer
@@ -529,7 +520,9 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
           renderer.initialize(execution.maxInstances)
 
           // Recreate scene with updated specs
-          sceneConfigurator.configureScene(renderer)
+          // Note: Do NOT reconfigure camera - preserve current view
+          sceneConfigurator.configureLights(renderer)
+          sceneConfigurator.configurePlane(renderer)
           renderer.setRenderConfig(config.render)
           renderer.setCausticsConfig(config.caustics)
           environment.planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))

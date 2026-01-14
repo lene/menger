@@ -26,7 +26,7 @@ class OptiXKeyController(dispatcher: EventDispatcher) extends BaseKeyController 
     val rotXW = angle(delta, Seq(Keys.LEFT, Keys.RIGHT))
     val rotYW = angle(delta, Seq(Keys.UP, Keys.DOWN))
     val rotZW = angle(delta, Seq(Keys.PAGE_UP, Keys.PAGE_DOWN))
-    logger.info(s"Dispatching rotation event: rotXW=$rotXW, rotYW=$rotYW, rotZW=$rotZW")
+    logger.debug(s"Dispatching 4D rotation event: rotXW=$rotXW, rotYW=$rotYW, rotZW=$rotZW")
     dispatcher.notifyObservers(
       RotationProjectionParameters(rotXW, rotYW, rotZW)
     )

@@ -327,22 +327,46 @@ sbt "run --optix --object sphere"            # Ray-traced sphere
 
 ### 3.3 Interactive Controls
 
-When running in interactive mode (LibGDX), use these controls:
+#### LibGDX Mode (Real-time Preview)
 
-#### Mouse Controls
+When running in LibGDX interactive mode, use these controls:
 
+**Mouse Controls:**
 - **Left Click + Drag**: Rotate the object around X and Y axes
 - **Right Click + Drag**: Rotate the object around the Z axis
 - **Scroll Wheel**: Zoom in/out
 
-#### Keyboard Shortcuts
-
+**Keyboard Shortcuts:**
 - **ESC**: Exit application
 - **Space**: Pause/resume animation (if enabled)
 - **R**: Reset camera to default position
 - **S**: Take screenshot (saves to current directory)
 - **W**: Toggle wireframe mode
 - **F**: Toggle fullscreen
+
+**4D Rotation (Tesseract/4D objects):**
+- **Shift + LEFT/RIGHT arrows**: Rotate in XW plane
+- **Shift + UP/DOWN arrows**: Rotate in YW plane
+- **Shift + PAGE_UP/PAGE_DOWN**: Rotate in ZW plane
+
+#### OptiX Mode (Ray Tracing)
+
+When running in OptiX mode, use these controls:
+
+**Mouse Controls:**
+- **Left Click + Drag**: Rotate camera view around the scene
+- **Scroll Wheel**: Zoom in/out
+
+**Keyboard Shortcuts:**
+- **ESC**: Exit application
+- **Ctrl + Q**: Exit application
+
+**4D Rotation (Tesseract/4D objects - NEW!):**
+- **Shift + LEFT/RIGHT arrows**: Rotate tesseract in XW plane
+- **Shift + UP/DOWN arrows**: Rotate tesseract in YW plane
+- **Shift + PAGE_UP/PAGE_DOWN**: Rotate tesseract in ZW plane
+
+**Note**: In OptiX mode, 4D rotation triggers a scene rebuild and re-render. Each rotation takes 1-2 seconds depending on complexity. The tesseract will visibly change shape as it rotates through 4D space.
 
 ---
 
