@@ -26,13 +26,17 @@ This codebase demonstrates strong architectural patterns with clear separation o
 
 ## 1. Code Duplication
 
-### 1.1 CRITICAL: Metallic Rendering Logic (CUDA Shaders)
+### 1.1 CRITICAL: Metallic Rendering Logic (CUDA Shaders) ✅ RESOLVED
+
+**Status:** Fixed in commit f5453cf (2026-01-14)
 
 **Location:**
-- `/home/lepr/workspace/menger/optix-jni/src/main/native/shaders/hit_sphere.cu:54-91`
-- `/home/lepr/workspace/menger/optix-jni/src/main/native/shaders/hit_triangle.cu:174-210`
+- `/home/lepr/workspace/menger/optix-jni/src/main/native/shaders/hit_sphere.cu:54-91` (was)
+- `/home/lepr/workspace/menger/optix-jni/src/main/native/shaders/hit_triangle.cu:174-210` (was)
 
-**Issue:** Nearly identical metallic/diffuse blending logic appears in both sphere and triangle hit shaders (38 lines duplicated):
+**Resolution:** Extracted duplicated logic into shared helper function `handleMetallicOpaque()` in helpers.cu. Both hit shaders now call this single function, eliminating 38 lines of duplication.
+
+**Original Issue:** Nearly identical metallic/diffuse blending logic appeared in both sphere and triangle hit shaders (38 lines duplicated):
 
 ```cuda
 // Both shaders contain this identical pattern:
@@ -68,22 +72,17 @@ if (metallic > 0.0f) {
 }
 ```
 
-**Recommendation:** Extract this into a shared helper function in `helpers.cu`:
+**Original Recommendation:** Extract this into a shared helper function in `helpers.cu`.
 
-```cuda
-__device__ void handleMetallicSurface(
-    const float3& hit_point,
-    const float3& ray_direction,
-    const float3& normal,
-    const float4& material_color,
-    float metallic,
-    unsigned int depth
-) {
-    // Implementation here
-}
-```
+**Implementation:** Created `handleMetallicOpaque()` function in helpers.cu that:
+- Accepts hit_point, ray_direction, normal, material_color, metallic, and depth parameters
+- Traces both reflection and diffuse rays
+- Blends using formula: `final = metallic * tinted_reflection + (1-metallic) * diffuse`
+- Sets output payloads
 
-**Impact:** Reduces 38 lines of duplication, ensures consistent behavior, and makes future PBR enhancements easier.
+Both hit_sphere.cu and hit_triangle.cu now call this single function instead of duplicating the logic.
+
+**Impact Achieved:** Reduced 38 lines of duplication, ensured consistent behavior across all geometry types, and centralized PBR logic for easier future modifications.
 
 ---
 
