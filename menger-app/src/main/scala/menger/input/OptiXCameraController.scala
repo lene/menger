@@ -1,11 +1,13 @@
 package menger.input
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input.{Buttons, Keys}
+import com.badlogic.gdx.Input.Buttons
+import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
-import menger.{OptiXRenderResources, RotationProjectionParameters}
+import menger.OptiXRenderResources
+import menger.RotationProjectionParameters
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 

@@ -278,7 +278,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
       case None => Material(spec.color.getOrElse(defaultColor), spec.ior)
 
   private def setupMultipleSpheres(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
-    logger.info(s"Setting up ${specs.length} sphere instances")
+    logger.debug(s"Setting up ${specs.length} sphere instances")
 
     // addSphereInstance() automatically enables IAS mode - do NOT call setSphere() first!
     specs.foreach { spec =>
@@ -297,7 +297,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
     }
 
   private def setupMultipleTriangleMeshes(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
-    logger.info(s"Setting up ${specs.length} triangle mesh instances")
+    logger.debug(s"Setting up ${specs.length} triangle mesh instances")
 
     // For triangle meshes, we need all specs to be compatible (same geometry type)
     // We'll use the first spec to determine the mesh type
@@ -462,7 +462,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
       level = level
     )
 
-    logger.info(s"Generating ${generator.cubeCount} cube instances for level $level cube-sponge at (${spec.x}, ${spec.y}, ${spec.z})")
+    logger.debug(s"Generating ${generator.cubeCount} cube instances for level $level cube-sponge at (${spec.x}, ${spec.y}, ${spec.z})")
 
     // Add each cube as an instance
     generator.generateTransforms.foreach { case (position, scale) =>
@@ -491,7 +491,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
   private def setupCubeSponges(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] =
     val totalInstances = specs.map(calculateInstanceCount).sum
-    logger.info(s"Setting up ${specs.length} cube-sponge(s) generating $totalInstances total cube instances")
+    logger.debug(s"Setting up ${specs.length} cube-sponge(s) generating $totalInstances total cube instances")
 
     for
       _ <- validateInstanceLimit(specs)

@@ -12,7 +12,9 @@ class OptiXKeyController(dispatcher: EventDispatcher) extends BaseKeyController 
   def update(): Unit =
     if rotatePressed.values.exists(_ == true) then
       // Check if Gdx is initialized (for test compatibility)
+      // scalafix:off DisableSyntax.null
       if Gdx.graphics != null then
+        // scalafix:on DisableSyntax.null
         val delta = Gdx.graphics.getDeltaTime
         if shift then
           logger.debug(s"Shift pressed with rotation keys, delta=$delta")

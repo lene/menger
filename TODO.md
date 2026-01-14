@@ -15,6 +15,8 @@ Quick notes and ideas captured during development. Review periodically and promo
 - films ("parchment") surface/material types
 - sponge with xyz -> RGB mapping procedural texture
 - better 4D rotation with mouse dragging
+- Scala wrapper for libGDX to delegate var and null usage to that layer
+- shadows with transparent objects
 
 ---
 
