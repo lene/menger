@@ -27,6 +27,7 @@ import menger.input.EventDispatcher
 import menger.input.Observer
 import menger.input.OptiXCameraController
 import menger.input.OptiXInputMultiplexer
+import menger.input.OptiXKeyController
 import menger.objects.Cube
 import menger.objects.CubeSpongeGenerator
 import menger.objects.SpongeBySurface
@@ -163,7 +164,7 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
   private val renderResources: OptiXRenderResources = OptiXRenderResources(0, 0)
   private lazy val cameraController: OptiXCameraController =
     OptiXCameraController(rendererWrapper, cameraState, renderResources,
-      camera.position, camera.lookAt, camera.up)
+      camera.position, camera.lookAt, camera.up, eventDispatcher)
 
   override def create(): Unit =
     val result = scene.objectSpecs match
@@ -501,7 +502,8 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
   private def finalizeCreate(): Unit =
     // Register input multiplexer for mouse-based camera control and keyboard shortcuts
-    Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController, eventDispatcher))
+    val keyController = OptiXKeyController(eventDispatcher)
+    Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController, keyController))
 
     // Disable continuous rendering - we'll request renders only when needed
     Gdx.graphics.setContinuousRendering(false)
@@ -514,18 +516,29 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
       case Some(specs) =>
         Try {
           logger.debug("Rebuilding scene with updated rotation")
-          // Dispose and re-initialize renderer
+
           val renderer = rendererWrapper.renderer
+
+          // Save current camera state before dispose (which wipes everything)
+          val savedEye = cameraController.currentEye
+          val savedLookAt = cameraController.currentLookAt
+          val savedUp = cameraController.currentUp
+          logger.debug(s"Saving camera state: eye=$savedEye, lookAt=$savedLookAt")
+
+          // Dispose and re-initialize renderer
           renderer.dispose()
           renderer.initialize(execution.maxInstances)
 
-          // Recreate scene with updated specs
-          // Note: Do NOT reconfigure camera - preserve current view
+          // Recreate scene configuration
           sceneConfigurator.configureLights(renderer)
           sceneConfigurator.configurePlane(renderer)
           renderer.setRenderConfig(config.render)
           renderer.setCausticsConfig(config.caustics)
           environment.planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
+
+          // Restore camera to saved position
+          cameraState.updateCamera(renderer, savedEye, savedLookAt, savedUp)
+          logger.debug(s"Restored camera state: eye=$savedEye, lookAt=$savedLookAt")
 
           // Rebuild geometry based on scene type
           classifyScene(specs) match

@@ -4,7 +4,7 @@ import com.badlogic.gdx.InputMultiplexer
 
 class OptiXInputMultiplexer(
   cameraController: OptiXCameraController,
-  dispatcher: EventDispatcher
+  keyController: OptiXKeyController
 ) extends InputMultiplexer:
   addProcessor(cameraController)
-  addProcessor(OptiXKeyController(dispatcher))
+  addProcessor(keyController)

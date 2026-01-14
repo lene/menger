@@ -11,10 +11,12 @@ class OptiXKeyController(dispatcher: EventDispatcher) extends BaseKeyController 
 
   def update(): Unit =
     if rotatePressed.values.exists(_ == true) then
-      val delta = Gdx.graphics.getDeltaTime
-      if shift then
-        logger.debug(s"Shift pressed with rotation keys, delta=$delta")
-        onShiftPressed(delta)
+      // Check if Gdx is initialized (for test compatibility)
+      if Gdx.graphics != null then
+        val delta = Gdx.graphics.getDeltaTime
+        if shift then
+          logger.debug(s"Shift pressed with rotation keys, delta=$delta")
+          onShiftPressed(delta)
 
   override protected def handleEscape(): Boolean =
     Gdx.app.exit()

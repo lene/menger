@@ -1,11 +1,11 @@
 package menger.input
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input.Buttons
+import com.badlogic.gdx.Input.{Buttons, Keys}
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
-import menger.OptiXRenderResources
+import menger.{OptiXRenderResources, RotationProjectionParameters}
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 
@@ -19,11 +19,15 @@ class OptiXCameraController(
   initialEye: Vector3,
   initialLookAt: Vector3,
   initialUp: Vector3,
+  dispatcher: EventDispatcher,
   config: OrbitConfig = OrbitConfig()
 ) extends InputAdapter with SphericalOrbit with LazyLogging:
 
   // SphericalOrbit config
   override protected def orbitConfig: OrbitConfig = config
+
+  // 4D rotation sensitivity - convert pixel deltas to rotation degrees
+  private final val rotation4DSensitivity = 0.3f
 
   // Camera position state - LibGDX Vector3 is inherently mutable
   // These vars are required for LibGDX integration which uses mutable vectors
@@ -35,6 +39,11 @@ class OptiXCameraController(
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var up: Vector3 = initialUp.cpy()
+
+  // Public getters for camera state (needed for scene rebuild)
+  def currentEye: Vector3 = eye.cpy()
+  def currentLookAt: Vector3 = lookAt.cpy()
+  def currentUp: Vector3 = up.cpy()
 
   // Spherical coordinates - consolidated into single var
   private val (initAzimuth, initElevation, initDistance) = initSpherical(initialEye, initialLookAt)
@@ -73,10 +82,16 @@ class OptiXCameraController(
         val deltaY = screenY - state.lastY
         dragState = Some(state.copy(lastX = screenX, lastY = screenY))
 
-        state.button match
-          case Buttons.LEFT => handleOrbit(deltaX, deltaY)
-          case Buttons.RIGHT => handlePan(deltaX, deltaY)
-          case _ => // Ignore other buttons
+        // Check if Shift key is pressed for 4D rotation
+        val shiftPressed = Gdx.input.isKeyPressed(Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)
+
+        if shiftPressed then
+          handle4DRotation(state.button, deltaX, deltaY)
+        else
+          state.button match
+            case Buttons.LEFT => handleOrbit(deltaX, deltaY)
+            case Buttons.RIGHT => handlePan(deltaX, deltaY)
+            case _ => // Ignore other buttons
 
         true
 
@@ -110,3 +125,19 @@ class OptiXCameraController(
     renderResources.markNeedsRender()
     Gdx.graphics.requestRendering()
     logger.debug(s"Camera updated: eye=$eye, lookAt=$lookAt, distance=$distance, azimuth=$azimuth, elevation=$elevation")
+
+  private def handle4DRotation(button: Int, deltaX: Int, deltaY: Int): Unit =
+    button match
+      case Buttons.LEFT =>
+        // Left drag: horizontal controls XW, vertical controls YW
+        val rotXW = -deltaX * rotation4DSensitivity  // Negative for intuitive direction
+        val rotYW = deltaY * rotation4DSensitivity   // Positive matches arrow key convention
+        logger.debug(s"Shift + left drag: deltaX=$deltaX, deltaY=$deltaY -> rotXW=$rotXW, rotYW=$rotYW")
+        dispatcher.notifyObservers(RotationProjectionParameters(rotXW, rotYW, 0f))
+      case Buttons.RIGHT =>
+        // Right drag: vertical controls ZW
+        val rotZW = deltaY * rotation4DSensitivity
+        logger.debug(s"Shift + right drag: deltaY=$deltaY -> rotZW=$rotZW")
+        dispatcher.notifyObservers(RotationProjectionParameters(0f, 0f, rotZW))
+      case _ =>
+        // Ignore other buttons

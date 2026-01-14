@@ -355,6 +355,7 @@ When running in OptiX mode, use these controls:
 
 **Mouse Controls:**
 - **Left Click + Drag**: Rotate camera view around the scene
+- **Right Click + Drag**: Pan camera
 - **Scroll Wheel**: Zoom in/out
 
 **Keyboard Shortcuts:**
@@ -362,9 +363,16 @@ When running in OptiX mode, use these controls:
 - **Ctrl + Q**: Exit application
 
 **4D Rotation (Tesseract/4D objects - NEW!):**
+
+*Keyboard Controls:*
 - **Shift + LEFT/RIGHT arrows**: Rotate tesseract in XW plane
 - **Shift + UP/DOWN arrows**: Rotate tesseract in YW plane
 - **Shift + PAGE_UP/PAGE_DOWN**: Rotate tesseract in ZW plane
+
+*Mouse Controls:*
+- **Shift + Left Drag (horizontal)**: Rotate tesseract in XW plane
+- **Shift + Left Drag (vertical)**: Rotate tesseract in YW plane
+- **Shift + Right Drag (vertical)**: Rotate tesseract in ZW plane
 
 **Note**: In OptiX mode, 4D rotation triggers a scene rebuild and re-render. Each rotation takes 1-2 seconds depending on complexity. The tesseract will visibly change shape as it rotates through 4D space.
 
