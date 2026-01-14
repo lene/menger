@@ -123,19 +123,13 @@ rm -rf optix-jni/target/native ; sbt "project optixJni" compile  # Clean rebuild
    sbt "scalafix --check"
    ```
 
-4. **Pre-push quality assessment** (REQUIRED before git push)
-   - Perform **comprehensive code quality assessment** of entire codebase
-   - Check: clean code guidelines, clarity of intent, separation of concerns, functional programming, code duplication, hardcoded constants, over-long functions/classes, architectural efficiency
-   - Assess **entire codebase**, not just new code (new code may reveal opportunities for abstraction)
-   - **Document findings in CODE_IMPROVEMENTS.md**
+4. **Run pre-push hook** (can take up to 10 minutes)
 
-5. **Run pre-push hook** (can take up to 5 minutes)
-
-6. **Show diff to user**
+5. **Show diff to user**
    - User reviews all changes
    - User decides when to commit
 
-7. **Monitor pipeline** after pushing
+6. **Monitor pipeline** after pushing
 
 ---
 
