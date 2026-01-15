@@ -38,6 +38,31 @@ case object Const:
   // New constants extracted from MengerCLIOptions
   val maxLights = 8
   val defaultMaxInstances = 64
+
+  // Input and interaction constants
+  object Input:
+    // Rotation and interaction
+    val defaultRotateAngle: Float = 45f              // Default rotation increment in degrees
+    val eyeScrollBase: Double = 64.0                // Base for exponential eyeW scroll calculation
+    val eyeScrollOffset: Float = 1.0f               // Offset added to scroll result
+    val fullRotationDegrees: Float = 360f              // Complete rotation in degrees
+    
+    // Sensitivities
+    val rotation4DSensitivity: Float = 0.3f          // 4D rotation sensitivity factor
+    val zoomSensitivity: Float = 0.1f                 // Zoom sensitivity
+    
+    // Orbit controls (merged from duplicate Input object below)
+    val defaultZoomSensitivity = 0.3f
+    val defaultPanSensitivity = 0.005f
+    val defaultMinDistance = 0.1f
+    val defaultMaxDistance = 20.0f
+    val defaultMinElevation = -89.0f
+    val defaultMaxElevation = 89.0f
+
+  object Camera:
+    // Perspective and projection
+    val perspectiveScale: Float = 2.0f                // NDC range scale factor
+    val pixelHalfUnit: Float = 1.0f                  // Unit for pixel calculations
   val maxInstancesLimit = 1024
   val maxPhotonsDefault = 100000
   val maxPhotonsLimit = 10000000
@@ -71,14 +96,7 @@ case object Const:
     val depthBits = 16
     val stencilBits = 0
 
-  // New constants extracted from SphericalOrbit
-  object Input:
-    val defaultZoomSensitivity = 0.3f
-    val defaultPanSensitivity = 0.005f
-    val defaultMinDistance = 0.1f // Changed to match SphericalOrbit default (was 0.5f in some places)
-    val defaultMaxDistance = 20.0f
-    val defaultMinElevation = -89.0f
-    val defaultMaxElevation = 89.0f
+  
 
   // New constants extracted from Face4D
   object Geometry:

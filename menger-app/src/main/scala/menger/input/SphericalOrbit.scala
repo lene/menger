@@ -8,7 +8,7 @@ import menger.common.Const
 case class OrbitConfig(
   orbitSensitivity: Float = Const.Input.defaultZoomSensitivity,
   panSensitivity: Float = Const.Input.defaultPanSensitivity,
-  zoomSensitivity: Float = 0.1f,
+  zoomSensitivity: Float = Const.Input.zoomSensitivity,
   minDistance: Float = Const.Input.defaultMinDistance,
   maxDistance: Float = Const.Input.defaultMaxDistance,
   minElevation: Float = Const.Input.defaultMinElevation,

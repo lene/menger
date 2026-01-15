@@ -4,10 +4,11 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Keys
 import com.typesafe.scalalogging.LazyLogging
 import menger.RotationProjectionParameters
+import menger.common.Const
 
 class OptiXKeyController(dispatcher: EventDispatcher) extends BaseKeyController with LazyLogging:
 
-  private final val rotateAngle = 45f
+  private final val rotateAngle = Const.Input.defaultRotateAngle
 
   def update(): Unit =
     if rotatePressed.values.exists(_ == true) then

@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.OptiXRenderResources
 import menger.RotationProjectionParameters
+import menger.common.Const
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 
@@ -29,7 +30,7 @@ class OptiXCameraController(
   override protected def orbitConfig: OrbitConfig = config
 
   // 4D rotation sensitivity - convert pixel deltas to rotation degrees
-  private final val rotation4DSensitivity = 0.3f
+  private final val rotation4DSensitivity = Const.Input.rotation4DSensitivity
 
   // Camera position state - LibGDX Vector3 is inherently mutable
   // These vars are required for LibGDX integration which uses mutable vectors

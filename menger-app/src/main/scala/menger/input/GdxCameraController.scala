@@ -6,6 +6,7 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController
 import menger.RotationProjectionParameters
+import menger.common.Const
 import menger.common.Vec3
 
 def isShiftPressed =
@@ -31,7 +32,7 @@ class GdxCameraController(
 
   override def scrolled(amountX: Float, amountY: Float): Boolean =
     if isShiftPressed then
-      val eyeW = Math.pow(64, amountY.toDouble).toFloat + 1
+      val eyeW = Math.pow(Const.Input.eyeScrollBase, amountY.toDouble).toFloat + Const.Input.eyeScrollOffset
       eventDispatcher.notifyObservers(RotationProjectionParameters(0,0,0, eyeW))
       false
     else super.scrolled(amountX, amountY)
@@ -51,5 +52,5 @@ class GdxCameraController(
     else if isRightClicked then (x = 0, y = 0, z = screenX - shiftStart(0))
     else Vec3.zero
 
-  private final val degrees = 360f
+  private final val degrees = Const.Input.fullRotationDegrees
   private def screenToWorld(screen: Int): Float = screen.toFloat / Gdx.graphics.getWidth * degrees

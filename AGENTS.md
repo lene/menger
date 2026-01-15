@@ -59,6 +59,7 @@ Your bash tool has known limitations. Follow these workarounds:
 - **No null:** Use `Option`, `Try`, or `Either` - null is forbidden in all Scala code
 - **No docstrings:** Use descriptive function/parameter names instead
 - **Comments:** Only for domain-specific problems not expressible in code
+- **No magic numbers:** Introduce named constants with a clear name instead
 
 ### Functional Programming (Enforced)
 - **Immutability:** Avoid mutable state, use `val` not `var`

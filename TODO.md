@@ -17,7 +17,11 @@ Quick notes and ideas captured during development. Review periodically and promo
 - better 4D rotation with mouse dragging
 - Scala wrapper for libGDX to delegate var and null usage to that layer
 - shadows with transparent objects
-
+- 4D and 3D sponge cutaways
+- 4D and 3D objects in a scene together
+- 4D camera distance with shift mouse wheel
+- examples for mixed-metallic (0 < metallic < 1) materials
+- fractional sponges in OptiX
 ---
 
 ## Ideas

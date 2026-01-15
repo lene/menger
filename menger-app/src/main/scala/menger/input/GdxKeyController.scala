@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.math.Vector3
 import menger.RotationProjectionParameters
+import menger.common.Const
 
 class GdxKeyController(camera: PerspectiveCamera, dispatcher: EventDispatcher) extends BaseKeyController:
 
@@ -12,7 +13,7 @@ class GdxKeyController(camera: PerspectiveCamera, dispatcher: EventDispatcher) e
   private val defaultDirection = camera.direction.cpy
   private val defaultUp = camera.up.cpy
 
-  private final val rotateAngle = 45f
+  private final val rotateAngle = Const.Input.defaultRotateAngle
 
   def update(): Unit =
     if rotatePressed.values.exists(_ == true) then
