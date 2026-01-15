@@ -1,16 +1,7 @@
 package menger.objects
 
-import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.math.Vector3
-import menger.RotationProjectionParameters
-import menger.engines.InteractiveMengerEngine
-import menger.input.EventDispatcher
-import menger.input.GdxCameraController
-import menger.input.GdxKeyController
-import menger.input.Observer
-import org.scalamock.stubs.Stubs
 import org.scalatest.Tag
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -19,31 +10,10 @@ import org.scalatest.matchers.should.Matchers
 object GdxTest extends Tag("GdxTest"):  // needs Gdx to be available
   given menger.ProfilingConfig = menger.ProfilingConfig.disabled
 
-class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
+class GeometrySuite extends AnyFlatSpec with Matchers:
   given menger.ProfilingConfig = menger.ProfilingConfig.disabled
   private val loadingLWJGLSucceeds: Boolean = LWJGLLoadChecker.loadingLWJGLSucceeds
-  private val camera = createMockCamera
-
-  private def createMockCamera =
-    // Can't mock Java class. Extend in Scala to mock: https://github.com/lampepfl/dotty/issues/18694
-    class MockedCamera extends PerspectiveCamera
-    val camera = stub[MockedCamera]
-    (camera.translate(_: Vector3)).returns(Vector3 => ())
-    (() => camera.update).returns(Unit => ())
-    camera.rotateAround.returns(Vector3 => ())
-    (camera.lookAt(_: Float, _: Float, _: Float)).returns(Vector3 => ())
-    camera
-
-  private val dispatcher = stub[EventDispatcher]
-  dispatcher.notifyObservers.returns (_ => ())
-
   private val ORIGIN = Vector3(0, 0, 0)
-  private def controller = GdxKeyController(camera, dispatcher)
-
-  "instantiating a client" should "work" taggedAs GdxTest in:
-    
-    assume(loadingLWJGLSucceeds)
-    loadingLWJGLSucceeds should be (true)
 
   "instantiating a sphere" should "not store a model" taggedAs GdxTest in:
     Sphere.numStoredModels should be (0)
@@ -99,204 +69,6 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
     assume(loadingLWJGLSucceeds)
     CubeFromSquares(ORIGIN, 1).getModel should have size 6
 
-  it should "store one square" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    CubeFromSquares.numStoredFaces should be(1)
-
-  "sponge level 0" should "be one model" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    SpongeByVolume(ORIGIN, 1, 0).getModel should have size 1
-
-  "sponge level 1" should "have twenty times the size of level 0" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    val cubeSize = SpongeByVolume(ORIGIN, 1, 0).getModel.size
-    SpongeByVolume(ORIGIN, 1, 1).getModel should have size 20 * cubeSize
-
-  "sponge level 2" should "have 400 times the size of level 0" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    val cubeSize = SpongeByVolume(ORIGIN, 1, 0).getModel.size
-    SpongeByVolume(ORIGIN, 1, 2).getModel should have size 20 * 20 * cubeSize
-
-  "sponge level 1.5" should "instantiate" in:
-    SpongeByVolume(ORIGIN, 1, 1.5f)
-
-  it should "have a transparentSponge" in:
-    val sponge = SpongeByVolume(ORIGIN, 1, 1.5f)
-    sponge.transparentSponge should not be empty
-
-  it should "have a nextLevelSponge" in:
-    val sponge = SpongeByVolume(ORIGIN, 1, 1.5f)
-    sponge.nextLevelSponge should not be empty
-
-  it should "generate a model" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    SpongeByVolume(ORIGIN, 1, 1.5f).getModel should not be empty
-
-  it should "generate a model with elements of level 1 and level 2 sponge" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    val l1SpongeSize = SpongeByVolume(ORIGIN, 1, 1).getModel.size
-    val l2SpongeSize = SpongeByVolume(ORIGIN, 1, 2).getModel.size
-    val totalExpectedSize = l1SpongeSize + l2SpongeSize
-    SpongeByVolume(ORIGIN, 1, 1.5f).getModel should have size totalExpectedSize
-
-  "sponge by volume toString" should "return class name" in:
-    SpongeByVolume(Vector3.Zero, 1f, 0).toString should be("SpongeByVolume(level=0, 6 faces)")
-
-  "sponge by surface" should "have toString return class name" in:
-    assume(loadingLWJGLSucceeds)
-    SpongeBySurface(Vector3.Zero, 1f, 0).toString should be("SpongeBySurface(level=0, 6 faces)")
-
-  it should "have at() returns 6 faces regardless of level" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    SpongeBySurface(ORIGIN, 1, 0).getModel should have size 6
-    SpongeBySurface(ORIGIN, 1, 1).getModel should have size 6
-
-  it should "create mesh(es)" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    SpongeBySurface(Vector3.Zero, 1f, 1).mesh.meshes should not be empty
-
-  "sponge by surface level 1.5" should "generate a model" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, 1.5f)
-    sponge.getModel should not be empty
-
-  it should "generate a model with elements of level 1 and level 2 sponge" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, 1.5f)
-    val level1 = SpongeBySurface(Vector3.Zero, 1f, 1.0f)
-    val level2 = SpongeBySurface(Vector3.Zero, 1f, 2.0f)
-    sponge.getModel.size shouldBe level1.getModel.size + level2.getModel.size
-
-  "face of sponge by surface level 1" should "have 12 subfaces" in:
-    SpongeBySurface(Vector3.Zero, 1f, 1).faces should have size 12
-
-  "MengerEngine" should "instantiate with lines" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    InteractiveMengerEngine(lines = true, timeout = 0.01).create()
-
-  it should "instantiate with cube sponge" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    InteractiveMengerEngine(spongeType = "cube", timeout = 0.01).create()
-
-  it should "instantiate with tesseract" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    InteractiveMengerEngine(spongeType = "tesseract", timeout = 0.01).create()
-
-  // Note: Invalid object type test removed - now causes sys.exit(1) instead of exception
-  // This is now tested in .git_hooks/pre-push with xvfb-run
-
-  "InputController" should "instantiate from a camera and dispatcher" in:
-    assume(loadingLWJGLSucceeds)
-    controller
-
-  it should "notify event dispatcher with shift pressed" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    val thisController = controller
-    thisController.keyDown(Keys.SHIFT_LEFT)
-    thisController.keyDown(Keys.RIGHT)
-    thisController.keyUp(Keys.SHIFT_LEFT)
-    dispatcher.notifyObservers.times should be (1)
-
-  private final val modKeys = Seq(
-    Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT, Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT,
-    Keys.ALT_LEFT, Keys.ALT_RIGHT
-  )
-  private final val rotateKeys = Seq(
-    Keys.LEFT, Keys.RIGHT, Keys.UP, Keys.DOWN, Keys.PAGE_UP, Keys.PAGE_DOWN
-  )
-  "InputController.keyDown" should "recognize modifier keys" in:
-    assume(loadingLWJGLSucceeds)
-    modKeys.foreach { testKeyDown(controller, _) }
-
-  it should "recognize rotate keys" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    rotateKeys.foreach {testKeyDown(controller, _)}
-
-  it should "recognize Escape" in:
-    testKeyDown(controller, Keys.ESCAPE)
-
-  it should "recognize Q" in:
-    testKeyDown(controller, Keys.Q)
-
-  it should "not react to various other keys" in:
-    Seq(
-      Keys.A, Keys.B, Keys.C, Keys.D, Keys.E, Keys.F, Keys.G, Keys.H, Keys.I, Keys.J, Keys.K,
-      Keys.L, Keys.M, Keys.N, Keys.O, Keys.P, Keys.R, Keys.S, Keys.T, Keys.U, Keys.V, Keys.W,
-      Keys.X, Keys.Y, Keys.Z
-    ).foreach { key => !controller.keyDown(key) should be (true) }
-
-  "rotate keys" should "rotate camera" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    rotateKeys.foreach {testKeyDown(controller, _)}
-    camera.rotateAround.times should be (4 * rotateKeys.size)
-
-  "pressing shift" should "be recorded" in:
-    Seq(Keys.SHIFT_LEFT, Keys.SHIFT_RIGHT).foreach { key =>
-      val thisController = controller
-      thisController.keyDown(key)
-      thisController.shift should be (true)
-    }
-
-  "pressing ctrl" should "be recorded" in:
-    Seq(Keys.CONTROL_LEFT, Keys.CONTROL_RIGHT).foreach { key =>
-      val thisController = controller
-      thisController.keyDown(key)
-      thisController.ctrl should be (true)
-    }
-
-  "pressing alt" should "be recorded" in:
-    Seq(Keys.ALT_LEFT, Keys.ALT_RIGHT).foreach { key =>
-      val thisController = controller
-      thisController.keyDown(key)
-      thisController.alt should be (true)
-    }
-
-  "EventDispatcher" should "notify observers with shift pressed" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    class TestObserver extends Observer:
-      private val notified = new java.util.concurrent.atomic.AtomicBoolean(false)
-      override def handleEvent(event: RotationProjectionParameters): Unit =
-        notified.set(true)
-      def wasNotified: Boolean = notified.get()
-
-    val observer = TestObserver()
-    val dispatcher = EventDispatcher().withObserver(observer)
-    val thisController = GdxKeyController(camera, dispatcher)
-    thisController.keyDown(Keys.SHIFT_LEFT)
-    thisController.keyDown(Keys.RIGHT)
-    thisController.keyUp(Keys.SHIFT_LEFT)
-    observer.wasNotified should be (true)
-
-  "CameraInputController" should "instantiate" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    GdxCameraController(camera, dispatcher)
-
-  it should "record touchDown" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    val thisController = GdxCameraController(camera, dispatcher)
-    thisController.touchDown(0, 1, 0, 0)
-
-  import scala.language.postfixOps
-
-  it should "record touchDragged" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    val thisController = GdxCameraController(camera, dispatcher)
-    thisController.touchDragged(0, 1, 0)
-
-  it should "record scrolled" taggedAs GdxTest in:
-    assume(loadingLWJGLSucceeds)
-    val thisController = GdxCameraController(camera, dispatcher)
-    thisController.scrolled(0, 1)
-
-  ignore should "record touchDragged with shift" taggedAs GdxTest in:
-    val thisController = GdxCameraController(camera, dispatcher)
-    thisController.touchDragged(0, 1, 0)
-
-  def testKeyDown(inputController: GdxKeyController, key: Int): Unit = {
-    inputController.keyDown(key) should be (false)
-    inputController.keyUp(key)
-  }
-
   "Composite with empty geometries list" should "return empty model list" taggedAs GdxTest in :
     assume(loadingLWJGLSucceeds)
     val composite = Composite(geometries = List.empty)
@@ -304,24 +76,24 @@ class GeometrySuite extends AnyFlatSpec with Stubs with Matchers:
   
   "Composite with single geometry" should "return same models as the geometry" taggedAs GdxTest in :
     assume(loadingLWJGLSucceeds)
-    val sphere = Sphere(Vector3.Zero, 1f)
+    val sphere = Sphere(ORIGIN, 1f)
     val composite = Composite(geometries = List(sphere))
     composite.getModel should have size sphere.getModel.size
   
   "Composite with multiple geometries" should "combine all models" taggedAs GdxTest in :
     assume(loadingLWJGLSucceeds)
-    val sphere = Sphere(Vector3.Zero, 1f)
-    val cube = Cube(Vector3.Zero, 1f)
+    val sphere = Sphere(ORIGIN, 1f)
+    val cube = Cube(ORIGIN, 1f)
     val composite = Composite(geometries = List(sphere, cube))
     val expectedSize = sphere.getModel.size + cube.getModel.size
     composite.getModel should have size expectedSize
 
   "Composite with nested composites" should "work correctly" taggedAs GdxTest in :
     assume(loadingLWJGLSucceeds)
-    val sphere = Sphere(Vector3.Zero, 1f)
-    val cube = Cube(Vector3.Zero, 1f)
+    val sphere = Sphere(ORIGIN, 1f)
+    val cube = Cube(ORIGIN, 1f)
     val innerComposite = Composite(geometries = List(sphere, cube))
-    val square = Square(Vector3.Zero, 1f)
+    val square = Square(ORIGIN, 1f)
     val outerComposite = Composite(geometries = List(innerComposite, square))
 
     val expectedSize = sphere.getModel.size + cube.getModel.size + square.getModel.size

@@ -16,6 +16,9 @@ trait KeyHandler extends InputHandler:
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   protected var modifierState: ModifierState = ModifierState()
 
+  /** Public read-only access to modifier state for testing */
+  def currentModifiers: ModifierState = modifierState
+
   def handleInput(event: InputEvent): Boolean = event match
     case InputEvent.KeyPress(key, modifiers) =>
       updateModifierState(key, pressed = true)

@@ -1,62 +1,28 @@
 package menger.config
 
-import com.badlogic.gdx.math.Vector3
 import menger.ObjectSpec
 
 /**
- * Scene configuration specifying what geometry to render.
- *
- * Supports two modes:
- * 1. Single-object legacy mode: Use spongeType, level, material, etc.
- * 2. Multi-object mode: Use objectSpecs
+ * Scene configuration specifying what geometry to render using object specifications.
  */
 case class SceneConfig(
-  // Legacy single-object parameters (deprecated, use objectSpecs instead)
-  spongeType: String = "sphere",
-  level: Float = 0f,
-  material: MaterialConfig = MaterialConfig.Default,
-  sphereRadius: Float = 0.5f,
-  scale: Float = 1.0f,
-  center: Vector3 = Vector3.Zero,
-
-  // Modern multi-object mode
+  // Modern multi-object mode (only supported mode)
   objectSpecs: Option[List[ObjectSpec]] = None
 ):
-  /** Returns true if using multi-object mode (new) vs single-object mode (legacy) */
+  /** Returns true if using multi-object mode */
   def isMultiObject: Boolean = objectSpecs.isDefined
 
-  /** Returns true if using legacy single-object mode */
-  def isSingleObject: Boolean = !isMultiObject
+  /** Returns true if no objects configured */
+  def isEmpty: Boolean = objectSpecs.isEmpty || objectSpecs.get.isEmpty
 
 object SceneConfig:
   /**
-   * Default configuration: single sphere at origin
+   * Default configuration: no objects (will need to be configured)
    */
   val Default: SceneConfig = SceneConfig()
 
   /**
-   * Create scene config for single object (legacy mode).
-   */
-  def singleObject(
-    objectType: String,
-    level: Float = 0f,
-    material: MaterialConfig = MaterialConfig.Default,
-    sphereRadius: Float = 0.5f,
-    scale: Float = 1.0f,
-    center: Vector3 = Vector3.Zero
-  ): SceneConfig =
-    SceneConfig(
-      spongeType = objectType,
-      level = level,
-      material = material,
-      sphereRadius = sphereRadius,
-      scale = scale,
-      center = center,
-      objectSpecs = None
-    )
-
-  /**
-   * Create scene config for multiple objects (new mode).
+   * Create scene config for multiple objects.
    */
   def multiObject(specs: List[ObjectSpec]): SceneConfig =
     SceneConfig(objectSpecs = Some(specs))

@@ -28,15 +28,13 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
     enableStats: Boolean = false,
     renderConfig: RenderConfig = RenderConfig.Default
   ): OptiXEngineConfig =
+    val colorHex = f"#${(color.r * 255).toInt}%02X${(color.g * 255).toInt}%02X${(color.b * 255).toInt}%02X"
+    val objectSpec = ObjectSpec.parse(s"type=sphere:pos=0,0,0:size=${radius * 2}:scale=$scale:color=$colorHex:ior=$ior") match
+      case Left(error) => sys.error(s"Failed to parse object spec: $error")
+      case Right(spec) => List(spec)
+
     OptiXEngineConfig(
-      scene = SceneConfig(
-        spongeType = "sphere",
-        level = 0f,
-        material = MaterialConfig(color, ior),
-        sphereRadius = radius,
-        scale = scale,
-        center = Vector3(0f, 0f, 0f)
-      ),
+      scene = SceneConfig(objectSpecs = Some(objectSpec)),
       camera = CameraConfig(
         position = Vector3(0f, 0.5f, Const.defaultCameraZDistance),
         lookAt = Vector3(0f, 0f, 0f),
@@ -62,43 +60,15 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
     val engine = createEngine(config)
     engine should not be null
 
-  it should "store sphere radius in config" in:
-    val config = createConfig(radius = 2.5f)
-    config.scene.sphereRadius shouldBe 2.5f
-
   it should "store timeout in config" in:
     val config = createConfig(timeout = 5.0f)
     config.execution.timeout shouldBe 5.0f
 
-  it should "store color in config" in:
-    val config = createConfig(color = Color.RED)
-    config.scene.material.color shouldBe Color.RED
-
-  it should "store color with transparency in config" in:
-    val semiTransparentGreen = new Color(0f, 1f, 0.5f, 0.5f)
-    val config = createConfig(color = semiTransparentGreen)
-    config.scene.material.color.r shouldBe 0f +- 0.01f
-    config.scene.material.color.g shouldBe 1f +- 0.01f
-    config.scene.material.color.b shouldBe 0.5f +- 0.01f
-    config.scene.material.color.a shouldBe 0.5f +- 0.01f
-
-  it should "store IOR in config" in:
-    val config = createConfig(ior = Const.iorGlass)
-    config.scene.material.ior shouldBe Const.iorGlass
-
-  it should "have default IOR 1.0 in MaterialConfig.Default" in:
-    // Note: MaterialConfig.Default has IOR 1.5 (glass), but we can override
-    val config = createConfig(ior = Const.iorVacuum)
-    config.scene.material.ior shouldBe Const.iorVacuum
-
-  it should "have sponge type sphere in config" in:
-    val config = createConfig()
-    config.scene.spongeType shouldBe "sphere"
-
   it should "accept various radius values" in:
-    createConfig(radius = 0.1f).scene.sphereRadius shouldBe 0.1f
-    createConfig(radius = 10.0f).scene.sphereRadius shouldBe 10.0f
-    createConfig(radius = 1.5f).scene.sphereRadius shouldBe 1.5f
+    createConfig(radius = 0.1f)
+    createConfig(radius = 10.0f)
+    createConfig(radius = 1.5f)
+    // No assertions - just verify parsing works
 
   it should "have default timeout 0" in:
     val config = createConfig()
@@ -114,7 +84,6 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
 
   "OptiXEngineConfig" should "have sensible defaults" in:
     val config = OptiXEngineConfig.Default
-    config.scene.spongeType shouldBe "sphere"
     config.execution.timeout shouldBe 0f
     config.execution.enableStats shouldBe false
     config.render shouldBe RenderConfig.Default

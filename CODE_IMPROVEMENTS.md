@@ -108,11 +108,11 @@ Tightly coupled to LibGDX but isolated to framework boundary; extraction would p
 ### 8.1 AA Stack Overflow Tracking ✅ RESOLVED
 Added `aa_stack_overflows` counter to RayStats; tracks when AA subdivision is skipped due to full stack.
 
-### 8.2 Input Event Abstraction - OPTIONAL
-Extract LibGDX events to sealed trait hierarchy for better testability (6 hours).
+### 8.2 Input Event Abstraction ✅ RESOLVED
+Extracted LibGDX input events to sealed trait hierarchy (InputEvent, Key, MouseButton); created handler layer with adapter pattern enabling pure domain tests.
 
-### 8.3 OptiXEngine Extraction - OPTIONAL
-Split multi-object scene builders into strategy classes for cleaner single responsibility (8 hours).
+### 8.3 OptiXEngine Extraction ✅ RESOLVED
+Extracted multi-object scene building logic into strategy pattern (SphereSceneBuilder, TriangleMeshSceneBuilder, CubeSpongeSceneBuilder); reduced OptiXEngine from 617 to 377 lines.
 
 ---
 
