@@ -38,7 +38,13 @@ Test / fork := true
 Test / scalacOptions += "-experimental"
 
 // Coverage configuration - exclude untestable packages (JNI/GPU and LibGDX/OpenGL code)
-coverageExcludedPackages := "menger\\.optix\\..*;menger\\.engines\\..*"
+// Also exclude LibGDX adapter handlers that require native library initialization for testing
+coverageExcludedPackages := "menger\\.optix\\..*;menger\\.engines\\..*;" +
+  "menger\\.input\\.LibGDXInputAdapter;" +
+  "menger\\.input\\.GdxKeyHandler;" +
+  "menger\\.input\\.GdxCameraHandler;" +
+  "menger\\.input\\.OptiXCameraHandler;" +
+  "menger\\.input\\.OptiXKeyHandler"
 
 libraryDependencies ++= Seq(
   // Logging

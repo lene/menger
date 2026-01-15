@@ -6,6 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.RotationProjectionParameters
 import menger.common.Const
 
+@deprecated("Use OptiXKeyHandler with LibGDXInputAdapter instead", "next-version")
 class OptiXKeyController(dispatcher: EventDispatcher) extends BaseKeyController with LazyLogging:
 
   private final val rotateAngle = Const.Input.defaultRotateAngle

@@ -25,9 +25,9 @@ import menger.common.ValidationException
 import menger.config.OptiXEngineConfig
 import menger.input.EventDispatcher
 import menger.input.Observer
-import menger.input.OptiXCameraController
+import menger.input.OptiXCameraHandler
 import menger.input.OptiXInputMultiplexer
-import menger.input.OptiXKeyController
+import menger.input.OptiXKeyHandler
 import menger.objects.Cube
 import menger.objects.CubeSpongeGenerator
 import menger.objects.SpongeBySurface
@@ -162,8 +162,8 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
   private val cameraState = CameraState(camera.position, camera.lookAt, camera.up)
 
   private val renderResources: OptiXRenderResources = OptiXRenderResources(0, 0)
-  private lazy val cameraController: OptiXCameraController =
-    OptiXCameraController(rendererWrapper, cameraState, renderResources,
+  private lazy val cameraController: OptiXCameraHandler =
+    OptiXCameraHandler(rendererWrapper, cameraState, renderResources,
       camera.position, camera.lookAt, camera.up, eventDispatcher)
 
   override def create(): Unit =
@@ -502,8 +502,8 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
   private def finalizeCreate(): Unit =
     // Register input multiplexer for mouse-based camera control and keyboard shortcuts
-    val keyController = OptiXKeyController(eventDispatcher)
-    Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController, keyController))
+    val keyHandler = OptiXKeyHandler(eventDispatcher)
+    Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController, keyHandler))
 
     // Disable continuous rendering - we'll request renders only when needed
     Gdx.graphics.setContinuousRendering(false)

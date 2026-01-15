@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.InputAdapter
 
+@deprecated("Use KeyHandler trait with LibGDXInputAdapter instead", "next-version")
 abstract class BaseKeyController extends InputAdapter:
 
   // Input state tracking required by LibGDX InputAdapter framework

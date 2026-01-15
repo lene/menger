@@ -14,6 +14,7 @@ def isShiftPressed =
 def isLeftClicked = Gdx.input.isButtonPressed(Buttons.LEFT)
 def isRightClicked = Gdx.input.isButtonPressed(Buttons.RIGHT)
 
+@deprecated("Use GdxCameraHandler with LibGDXInputAdapter instead", "next-version")
 class GdxCameraController(
   camera: PerspectiveCamera, eventDispatcher: EventDispatcher
 ) extends CameraInputController(camera):

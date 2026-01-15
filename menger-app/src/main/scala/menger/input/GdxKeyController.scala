@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Vector3
 import menger.RotationProjectionParameters
 import menger.common.Const
 
+@deprecated("Use GdxKeyHandler with LibGDXInputAdapter instead", "next-version")
 class GdxKeyController(camera: PerspectiveCamera, dispatcher: EventDispatcher) extends BaseKeyController:
 
   private val defaultPos = camera.position.cpy

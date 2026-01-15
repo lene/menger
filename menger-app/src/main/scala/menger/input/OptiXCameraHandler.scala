@@ -1,22 +1,33 @@
 package menger.input
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input.Buttons
 import com.badlogic.gdx.Input.Keys
-import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.OptiXRenderResources
 import menger.RotationProjectionParameters
 import menger.common.Const
+import menger.common.MouseButton
+import menger.common.ScreenCoords
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 
-// Consolidated drag state - reduces 4 vars to 1 Option
-private case class DragState(lastX: Int, lastY: Int, button: Int)
+/** Consolidated drag state - reduces multiple vars to single Option */
+private case class CameraDragState(lastPos: ScreenCoords, button: MouseButton)
 
-@deprecated("Use OptiXCameraHandler with LibGDXInputAdapter instead", "next-version")
-class OptiXCameraController(
+/**
+ * Camera/mouse input handler for OptiX ray-traced rendering mode.
+ *
+ * Implements spherical orbit camera system with support for:
+ * - Left drag: orbit camera (azimuth/elevation)
+ * - Right drag: pan camera
+ * - Scroll: zoom (change distance)
+ * - Shift + left drag: 4D XW/YW rotation
+ * - Shift + right drag: 4D ZW rotation
+ *
+ * Uses SphericalOrbit trait for camera math (azimuth, elevation, distance).
+ */
+class OptiXCameraHandler(
   rendererWrapper: OptiXRendererWrapper,
   cameraState: CameraState,
   renderResources: OptiXRenderResources,
@@ -25,16 +36,14 @@ class OptiXCameraController(
   initialUp: Vector3,
   dispatcher: EventDispatcher,
   config: OrbitConfig = OrbitConfig()
-) extends InputAdapter with SphericalOrbit with LazyLogging:
+) extends CameraHandler with SphericalOrbit with LazyLogging:
 
-  // SphericalOrbit config
   override protected def orbitConfig: OrbitConfig = config
 
   // 4D rotation sensitivity - convert pixel deltas to rotation degrees
-  private final val rotation4DSensitivity = Const.Input.rotation4DSensitivity
+  private val rotation4DSensitivity = Const.Input.rotation4DSensitivity
 
   // Camera position state - LibGDX Vector3 is inherently mutable
-  // These vars are required for LibGDX integration which uses mutable vectors
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var eye: Vector3 = initialEye.cpy()
 
@@ -66,40 +75,41 @@ class OptiXCameraController(
   override protected def distance_=(value: Float): Unit =
     spherical = spherical.copy(distance = value)
 
-  // Mouse tracking state - consolidated into Option[DragState]
+  // Mouse tracking state - consolidated into Option[CameraDragState]
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var dragState: Option[DragState] = None
+  private var dragState: Option[CameraDragState] = None
 
-  override def touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
-    dragState = Some(DragState(screenX, screenY, button))
+  /** Check if shift key is currently pressed */
+  private def isShiftPressed: Boolean =
+    Gdx.input.isKeyPressed(Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)
+
+  override protected def handleMouseDown(pos: ScreenCoords, button: MouseButton, pointer: Int): Boolean =
+    dragState = Some(CameraDragState(pos, button))
     true
 
-  override def touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
+  override protected def handleMouseUp(pos: ScreenCoords, button: MouseButton, pointer: Int): Boolean =
     dragState = None
     true
 
-  override def touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean =
+  override protected def handleMouseDrag(pos: ScreenCoords, pointer: Int, button: MouseButton): Boolean =
     dragState match
       case None => false
       case Some(state) =>
-        val deltaX = screenX - state.lastX
-        val deltaY = screenY - state.lastY
-        dragState = Some(state.copy(lastX = screenX, lastY = screenY))
+        val deltaX = pos.x - state.lastPos.x
+        val deltaY = pos.y - state.lastPos.y
+        dragState = Some(state.copy(lastPos = pos))
 
-        // Check if Shift key is pressed for 4D rotation
-        val shiftPressed = Gdx.input.isKeyPressed(Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)
-
-        if shiftPressed then
-          handle4DRotation(state.button, deltaX, deltaY)
+        if isShiftPressed then
+          handle4DRotation(button, deltaX, deltaY)
         else
-          state.button match
-            case Buttons.LEFT => handleOrbit(deltaX, deltaY)
-            case Buttons.RIGHT => handlePan(deltaX, deltaY)
+          button match
+            case MouseButton.Left => handleOrbit(deltaX, deltaY)
+            case MouseButton.Right => handlePan(deltaX, deltaY)
             case _ => // Ignore other buttons
 
         true
 
-  override def scrolled(amountX: Float, amountY: Float): Boolean =
+  override protected def handleScroll(amountX: Float, amountY: Float): Boolean =
     handleZoom(amountY)
     true
 
@@ -130,15 +140,15 @@ class OptiXCameraController(
     Gdx.graphics.requestRendering()
     logger.debug(s"Camera updated: eye=$eye, lookAt=$lookAt, distance=$distance, azimuth=$azimuth, elevation=$elevation")
 
-  private def handle4DRotation(button: Int, deltaX: Int, deltaY: Int): Unit =
+  private def handle4DRotation(button: MouseButton, deltaX: Int, deltaY: Int): Unit =
     button match
-      case Buttons.LEFT =>
+      case MouseButton.Left =>
         // Left drag: horizontal controls XW, vertical controls YW
         val rotXW = -deltaX * rotation4DSensitivity  // Negative for intuitive direction
         val rotYW = deltaY * rotation4DSensitivity   // Positive matches arrow key convention
         logger.debug(s"Shift + left drag: deltaX=$deltaX, deltaY=$deltaY -> rotXW=$rotXW, rotYW=$rotYW")
         dispatcher.notifyObservers(RotationProjectionParameters(rotXW, rotYW, 0f))
-      case Buttons.RIGHT =>
+      case MouseButton.Right =>
         // Right drag: vertical controls ZW
         val rotZW = deltaY * rotation4DSensitivity
         logger.debug(s"Shift + right drag: deltaY=$deltaY -> rotZW=$rotZW")
