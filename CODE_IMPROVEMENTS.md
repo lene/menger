@@ -105,9 +105,14 @@ Tightly coupled to LibGDX but isolated to framework boundary; extraction would p
 
 ## 8. Remaining Opportunities (Nice-to-Have)
 
-1. **AA stack overflow tracking** - Add stats counter when stack is full (1 hour)
-2. **Input event abstraction** - Extract LibGDX events to sealed trait hierarchy (6 hours)
-3. **OptiXEngine extraction** - Split multi-object scene builders into strategy classes (8 hours)
+### 8.1 AA Stack Overflow Tracking ✅ RESOLVED
+Added `aa_stack_overflows` counter to RayStats; tracks when AA subdivision is skipped due to full stack.
+
+### 8.2 Input Event Abstraction - OPTIONAL
+Extract LibGDX events to sealed trait hierarchy for better testability (6 hours).
+
+### 8.3 OptiXEngine Extraction - OPTIONAL
+Split multi-object scene builders into strategy classes for cleaner single responsibility (8 hours).
 
 ---
 
