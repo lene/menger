@@ -22,8 +22,6 @@ Quick notes and ideas captured during development. Review periodically and promo
 - 4D camera distance with shift mouse wheel
 - examples for mixed-metallic (0 < metallic < 1) materials
 - fractional sponges in OptiX
----
-
-## Ideas
+- parametrized surfaces in 3D and 4D
 
 - Rounded edges on cubes/sponges
