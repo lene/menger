@@ -74,13 +74,14 @@ object ObjectSpec extends LazyLogging:
   /**
    * Parse object specification from keyword=value format.
    * Format: type=TYPE:pos=x,y,z:size=S:level=L:color=#RRGGBB:ior=I:material=PRESET:texture=FILE
-   * 
+   *
    * Material keywords:
-   *   material=PRESET - base material preset (glass, water, diamond, chrome, gold, copper, metal, plastic, matte)
+   *   material=PRESET - base material preset (glass, water, diamond, chrome, gold, copper, metal, plastic, matte, film, parchment)
    *   ior=VALUE       - override IOR (also applies without material preset)
    *   roughness=VALUE - override roughness (only with material preset)
    *   metallic=VALUE  - override metallic (only with material preset)
    *   specular=VALUE  - override specular (only with material preset)
+   *   emission=VALUE  - override emission (0.0-10.0, default 0.0)
    *   color=#RRGGBB   - override color (works with or without material preset)
    *   texture=FILE    - texture filename (relative to texture directory)
    *
@@ -205,6 +206,7 @@ object ObjectSpec extends LazyLogging:
       roughness <- parseOptionalFloat(kvPairs, "roughness", "roughness value (0.0-1.0)")
       metallic <- parseOptionalFloat(kvPairs, "metallic", "metallic value (0.0-1.0)")
       specular <- parseOptionalFloat(kvPairs, "specular", "specular value (0.0-1.0)")
+      emission <- parseOptionalFloat(kvPairs, "emission", "emission value (0.0-10.0)")
     yield Some(
       baseMaterial
         .withColorOpt(color)
@@ -212,6 +214,7 @@ object ObjectSpec extends LazyLogging:
         .withRoughnessOpt(roughness)
         .withMetallicOpt(metallic)
         .withSpecularOpt(specular)
+        .withEmissionOpt(emission)
     )
 
   private def parseOptionalFloat(
