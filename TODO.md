@@ -3,9 +3,15 @@
 Quick notes and ideas captured during development. Review periodically and promote to
 [ROADMAP.md](ROADMAP.md) or [SPRINT.md](docs/sprints/SPRINT.md) as appropriate.
 
+- object specification help string is outdated
+- how to use lines and emission properties in object specification?
+- documentation needs update for new parchment etc material
+- parchment has an ior, it shouldn't. instead it should attenuate light like... well, parchment
+- ior (and maybe others) are both part of ObjectSpec and separate CLI parameter - redundant
+- texture/material for plane
 - Render directly to files without displaying the render window
 - output to files is still flipped vertically
-- check materials for correctness - find references
+- check materials for real-life correctness - find references
 - Add more procedural textures (wood, marble, etc.) as a texture library
 - do we even support procedural textures?
 - better user guide documentation
@@ -23,5 +29,5 @@ Quick notes and ideas captured during development. Review periodically and promo
 - examples for mixed-metallic (0 < metallic < 1) materials
 - fractional sponges in OptiX
 - parametrized surfaces in 3D and 4D
-
+- multiple planes, as well as zero
 - Rounded edges on cubes/sponges
