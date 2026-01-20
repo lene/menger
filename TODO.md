@@ -3,6 +3,8 @@
 Quick notes and ideas captured during development. Review periodically and promote to
 [ROADMAP.md](ROADMAP.md) or [SPRINT.md](docs/sprints/SPRINT.md) as appropriate.
 
+- sphere_combined: outdated name
+- edge radius seems to be much higher than specified 
 - object specification help string is outdated
 - how to use lines and emission properties in object specification?
 - documentation needs update for new parchment etc material
@@ -12,6 +14,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 - Render directly to files without displaying the render window
 - output to files is still flipped vertically
 - check materials for real-life correctness - find references
+- generalize TesseractEdgeSceneBuilder to support other 4D objects
 - Add more procedural textures (wood, marble, etc.) as a texture library
 - do we even support procedural textures?
 - better user guide documentation

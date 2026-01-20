@@ -19,6 +19,7 @@ import menger.config.OptiXEngineConfig
 import menger.engines.scene.CubeSpongeSceneBuilder
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SphereSceneBuilder
+import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.EventDispatcher
 import menger.input.Observer
@@ -167,7 +168,14 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
   private def selectSceneBuilder(sceneType: SceneType): Option[SceneBuilder] =
     sceneType match
       case SceneType.Spheres(_) => Some(SphereSceneBuilder())
-      case SceneType.TriangleMeshes(_) => Some(TriangleMeshSceneBuilder(execution.textureDir)(using profilingConfig))
+      case SceneType.TriangleMeshes(specs) =>
+        // Check if tesseracts with edge rendering - use specialized builder
+        val allTesseracts = specs.forall(s => ObjectType.isHypercube(s.objectType))
+        val hasEdgeRendering = specs.exists(_.hasEdgeRendering)
+        if allTesseracts && hasEdgeRendering then
+          Some(TesseractEdgeSceneBuilder(execution.textureDir)(using profilingConfig))
+        else
+          Some(TriangleMeshSceneBuilder(execution.textureDir)(using profilingConfig))
       case SceneType.CubeSponges(_) => Some(CubeSpongeSceneBuilder())
       case SceneType.Mixed(_) => None
 

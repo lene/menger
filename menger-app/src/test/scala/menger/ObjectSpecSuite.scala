@@ -371,3 +371,93 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
     default.rotXW shouldBe 15f
     default.rotYW shouldBe 10f
     default.rotZW shouldBe 0f
+
+  // Edge rendering parameter tests
+  "ObjectSpec edge parameter parsing" should "parse edge-radius" in:
+    val result = ObjectSpec.parse("type=tesseract:edge-radius=0.05")
+    result match
+      case Right(spec) =>
+        spec.edgeRadius shouldBe Some(0.05f)
+        spec.hasEdgeRendering shouldBe true
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse edge-material preset" in:
+    val result = ObjectSpec.parse("type=tesseract:edge-material=film")
+    result match
+      case Right(spec) =>
+        spec.edgeMaterial shouldBe defined
+        spec.edgeMaterial.get.roughness shouldBe 0.1f  // Film's roughness
+        spec.edgeRadius shouldBe Some(0.02f)  // Default radius when edge params present
+        spec.hasEdgeRendering shouldBe true
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse edge-color with default material" in:
+    val result = ObjectSpec.parse("type=tesseract:edge-color=#00FFFF")
+    result match
+      case Right(spec) =>
+        spec.edgeMaterial shouldBe defined
+        spec.edgeMaterial.get.color.r shouldBe 0.0f
+        spec.edgeMaterial.get.color.g shouldBe 1.0f
+        spec.edgeMaterial.get.color.b shouldBe 1.0f
+        spec.hasEdgeRendering shouldBe true
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse edge-emission with default material" in:
+    val result = ObjectSpec.parse("type=tesseract:edge-emission=5.0")
+    result match
+      case Right(spec) =>
+        spec.edgeMaterial shouldBe defined
+        spec.edgeMaterial.get.emission shouldBe 5.0f
+        spec.hasEdgeRendering shouldBe true
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse combined edge parameters" in:
+    val result = ObjectSpec.parse("type=tesseract:edge-material=parchment:edge-color=#FF0000:edge-emission=3.0:edge-radius=0.03")
+    result match
+      case Right(spec) =>
+        spec.edgeRadius shouldBe Some(0.03f)
+        spec.edgeMaterial shouldBe defined
+        spec.edgeMaterial.get.color.r shouldBe 1.0f
+        spec.edgeMaterial.get.color.g shouldBe 0.0f
+        spec.edgeMaterial.get.color.b shouldBe 0.0f
+        spec.edgeMaterial.get.emission shouldBe 3.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "combine edge parameters with face material" in:
+    val result = ObjectSpec.parse("type=tesseract:material=glass:edge-material=film:edge-emission=2.0")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.ior shouldBe 1.5f  // Glass IOR
+        spec.edgeMaterial shouldBe defined
+        spec.edgeMaterial.get.emission shouldBe 2.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "fail for edge parameters on non-tesseract type" in:
+    val result = ObjectSpec.parse("type=sphere:edge-radius=0.05")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("only valid for hypercube types"))
+
+  it should "fail for invalid edge-radius value" in:
+    val result = ObjectSpec.parse("type=tesseract:edge-radius=notanumber")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Invalid edge-radius"))
+
+  it should "fail for negative edge-radius" in:
+    val result = ObjectSpec.parse("type=tesseract:edge-radius=-0.01")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("must be positive"))
+
+  it should "fail for unknown edge-material preset" in:
+    val result = ObjectSpec.parse("type=tesseract:edge-material=unobtanium")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Unknown edge material preset"))
+
+  it should "have hasEdgeRendering=false when no edge params" in:
+    val result = ObjectSpec.parse("type=tesseract:material=glass")
+    result match
+      case Right(spec) =>
+        spec.hasEdgeRendering shouldBe false
+        spec.edgeRadius shouldBe None
+        spec.edgeMaterial shouldBe None
+      case Left(error) => fail(s"Expected Right but got Left: $error")

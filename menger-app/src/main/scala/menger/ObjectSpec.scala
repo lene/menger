@@ -43,8 +43,12 @@ case class ObjectSpec(
   ior: Float = 1.0f,
   material: Option[Material] = None,
   texture: Option[String] = None,
-  projection4D: Option[Projection4DSpec] = None
-)
+  projection4D: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None
+):
+  /** Returns true if edge rendering parameters are specified */
+  def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined
 
 /**
  * 4D projection parameters for hypercube objects (tesseract, etc.).
@@ -91,6 +95,16 @@ object ObjectSpec extends LazyLogging:
    *   rot-xw=DEGREES  - XW plane rotation angle (default: 15)
    *   rot-yw=DEGREES  - YW plane rotation angle (default: 10)
    *   rot-zw=DEGREES  - ZW plane rotation angle (default: 0)
+   *
+   * Edge rendering keywords (only for tesseract type):
+   *   edge-radius=VALUE     - Radius of cylinder edges (default: 0.02)
+   *   edge-material=PRESET  - Material preset for edges (film, parchment, etc.)
+   *   edge-color=#RRGGBB    - Edge color override
+   *   edge-emission=VALUE   - Edge emission override (0.0-10.0)
+   *
+   * Examples with edge rendering:
+   *   type=tesseract:material=film:edge-material=film:edge-emission=3.0
+   *   type=tesseract:material=glass:edge-color=#00FFFF:edge-emission=5.0:edge-radius=0.03
    */
   def parse(spec: String): Either[String, ObjectSpec] =
     logger.debug(s"Parsing object spec: $spec")
@@ -112,8 +126,10 @@ object ObjectSpec extends LazyLogging:
       material <- parseMaterial(kvPairs, color, ior)
       texture <- parseTexture(kvPairs)
       projection4D <- parse4DProjection(kvPairs, objType)
+      edgeParams <- parseEdgeParameters(kvPairs, objType)
       _ <- validateSpongeLevel(objType, level)
-    yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D)
+    yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D,
+      edgeParams._1, edgeParams._2)
 
     result match
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")
@@ -292,3 +308,91 @@ object ObjectSpec extends LazyLogging:
           }.map(obj => objects :+ obj)
         }
     }
+
+  // Edge parameter defaults
+  private val DefaultEdgeRadius: Float = 0.02f
+
+  /**
+   * Parse edge rendering parameters (only applicable to hypercube types).
+   * Returns (edgeRadius, edgeMaterial) tuple.
+   */
+  private def parseEdgeParameters(
+    kvPairs: Map[String, String],
+    objType: String
+  ): Either[String, (Option[Float], Option[Material])] =
+    // Edge parameters only applicable to hypercube types (tesseract)
+    val hasEdgeParams = kvPairs.keys.exists(k =>
+      k.startsWith("edge-") || k == "edgeradius" || k == "edgematerial" ||
+      k == "edgecolor" || k == "edgeemission"
+    )
+
+    if hasEdgeParams && !ObjectType.isHypercube(objType) then
+      Left(s"Edge rendering parameters (edge-radius, edge-material, etc.) are only valid for hypercube types (tesseract), not '$objType'")
+    else if !hasEdgeParams then
+      Right((None, None))
+    else
+      for
+        edgeRadius <- parseEdgeRadius(kvPairs)
+        edgeMaterial <- parseEdgeMaterial(kvPairs)
+      yield (edgeRadius, edgeMaterial)
+
+  private def parseEdgeRadius(kvPairs: Map[String, String]): Either[String, Option[Float]] =
+    kvPairs.get("edge-radius") match
+      case Some(valueStr) =>
+        Try(valueStr.toFloat).toEither.left.map { e =>
+          s"Invalid edge-radius value '$valueStr': ${e.getMessage}. " +
+            s"Expected a valid radius (e.g., edge-radius=$DefaultEdgeRadius)"
+        }.flatMap { value =>
+          if value <= 0 then
+            Left(s"edge-radius must be positive, got $value")
+          else
+            Right(Some(value))
+        }
+      case None =>
+        // If any edge parameter is present, use default radius
+        val hasAnyEdgeParam = kvPairs.keys.exists(k =>
+          k == "edge-material" || k == "edge-color" || k == "edge-emission"
+        )
+        Right(if hasAnyEdgeParam then Some(DefaultEdgeRadius) else None)
+
+  private def parseEdgeMaterial(kvPairs: Map[String, String]): Either[String, Option[Material]] =
+    val edgeColor = parseEdgeColor(kvPairs)
+    val edgeEmission = parseOptionalFloat(kvPairs, "edge-emission", "edge emission value (0.0-10.0)")
+
+    kvPairs.get("edge-material") match
+      case Some(presetName) =>
+        Material.fromName(presetName) match
+          case Some(baseMaterial) =>
+            for
+              color <- edgeColor
+              emission <- edgeEmission
+            yield Some(
+              baseMaterial
+                .withColorOpt(color)
+                .withEmissionOpt(emission)
+            )
+          case None =>
+            Left(s"Unknown edge material preset: '$presetName'. Valid presets: ${Material.presetNames.mkString(", ")}")
+      case None =>
+        // If edge-color or edge-emission specified without edge-material, create a default material
+        for
+          color <- edgeColor
+          emission <- edgeEmission
+        yield
+          if color.isDefined || emission.isDefined then
+            val baseColor = color.getOrElse(Color(1.0f, 1.0f, 1.0f))
+            Some(Material(baseColor, emission = emission.getOrElse(0.0f)))
+          else
+            None
+
+  private def parseEdgeColor(kvPairs: Map[String, String]): Either[String, Option[Color]] =
+    kvPairs.get("edge-color") match
+      case Some(colorStr) =>
+        Try {
+          val hexStr = if colorStr.startsWith("#") then colorStr.substring(1) else colorStr
+          Color.fromHex(hexStr)
+        }.toEither.left.map { e =>
+          s"Invalid edge-color value '$colorStr': ${e.getMessage}. " +
+            "Color must be hex format (e.g., edge-color=#00FFFF)"
+        }.map(Some(_))
+      case None => Right(None)
