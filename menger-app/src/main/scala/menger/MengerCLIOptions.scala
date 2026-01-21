@@ -201,9 +201,12 @@ class MengerCLIOptions(arguments: Seq[String])
 
   val objects: ScallopOption[List[ObjectSpec]] = opt[List[ObjectSpec]](
     name = "objects", required = false, group = optixGroup,
-    descr = "Objects (repeatable): type=TYPE:pos=x,y,z:size=S[:level=L][:color=#RGB][:ior=I]. " +
+    descr = "Objects (repeatable): type=TYPE[:param=value...]. " +
       s"Types: ${ObjectType.validTypesString}. " +
-      "Tesseract-specific: rot-xw, rot-yw, rot-zw, eye-w, screen-w"
+      "Common: pos=x,y,z, size=S, color=#RGB, ior=I, material=PRESET, texture=FILE, emission=E. " +
+      "Sponge: level=L. " +
+      "Tesseract 4D: rot-xw, rot-yw, rot-zw, eye-w, screen-w. " +
+      "Tesseract edges: edge-radius=R, edge-material=PRESET, edge-color=#RGB, edge-emission=E"
   )(using objectSpecConverter)
   val radius: ScallopOption[Float] = opt[Float](
     required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,

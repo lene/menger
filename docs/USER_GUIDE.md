@@ -567,6 +567,10 @@ material=metal               # Generic brushed metal
 # Matte materials
 material=plastic             # Matte plastic
 material=matte               # Non-reflective matte surface
+
+# Translucent materials
+material=film                # Thin translucent film
+material=parchment           # Translucent paper-like surface
 ```
 
 **Usage with `--objects` flag:**
@@ -869,11 +873,11 @@ Render complex scenes with multiple objects (OptiX v0.4+):
 
 #### Object Parameters
 
+**Basic Parameters (all types):**
 ```bash
-type=<type>                  # sphere, cube, sponge-volume, sponge-surface
+type=<type>                  # sphere, cube, sponge-volume, sponge-surface, cube-sponge, tesseract
 pos=<x,y,z>                  # Position (default: 0,0,0)
 size=<float>                 # Size/scale factor (default: 1.0)
-level=<float>                # Fractal level for sponges
 color=#RRGGBB[AA]            # Color with optional alpha
 ior=<float>                  # Index of refraction
 material=<preset>            # Material preset (see section 6.1)
@@ -881,6 +885,29 @@ texture=<path>               # Texture file path (PNG/JPEG)
 roughness=<float>            # Custom roughness (0.0-1.0)
 metallic=<float>             # Custom metallic (0.0-1.0)
 specular=<float>             # Custom specular (0.0-1.0)
+emission=<float>             # Emission intensity (0.0-10.0, for glowing objects)
+```
+
+**Sponge-specific:**
+```bash
+level=<float>                # Fractal level (required for sponges)
+```
+
+**Tesseract 4D Projection (tesseract type only):**
+```bash
+eye-w=<float>                # 4D eye W-coordinate (default: 3.0)
+screen-w=<float>             # 4D screen W-coordinate (default: 1.5)
+rot-xw=<degrees>             # XW plane rotation (default: 15)
+rot-yw=<degrees>             # YW plane rotation (default: 10)
+rot-zw=<degrees>             # ZW plane rotation (default: 0)
+```
+
+**Tesseract Edge Rendering (tesseract type only):**
+```bash
+edge-radius=<float>          # Cylinder edge radius (default: 0.02)
+edge-material=<preset>       # Edge material (chrome, plastic, film, etc.)
+edge-color=#RRGGBB           # Edge color override
+edge-emission=<float>        # Edge emission (0.0-10.0, for glowing edges)
 ```
 
 #### Multi-Object Examples
@@ -906,6 +933,25 @@ sbt "run --optix \
 sbt "run --optix \
     --objects 'type=cube:texture=wood.png:pos=0,0,0' \
     --objects 'type=cube:texture=metal.jpg:pos=2,0,0'"
+```
+
+**Tesseract (4D Hypercube):**
+```bash
+# Basic tesseract with glass material
+sbt "run --optix \
+    --objects 'type=tesseract:material=glass'"
+
+# Tesseract with custom 4D rotation
+sbt "run --optix \
+    --objects 'type=tesseract:material=diamond:rot-xw=30:rot-yw=45'"
+
+# Tesseract with glowing edges (wireframe effect)
+sbt "run --optix \
+    --objects 'type=tesseract:material=glass:edge-radius=0.02:edge-material=chrome:edge-emission=3.0'"
+
+# Tesseract with colored emissive edges
+sbt "run --optix \
+    --objects 'type=tesseract:edge-radius=0.025:edge-color=#00FFFF:edge-emission=5.0'"
 ```
 
 ---

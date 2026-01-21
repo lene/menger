@@ -3,10 +3,6 @@
 Quick notes and ideas captured during development. Review periodically and promote to
 [ROADMAP.md](ROADMAP.md) or [SPRINT.md](docs/sprints/SPRINT.md) as appropriate.
 
-- sphere_combined: outdated name
-- edge radius seems to be much higher than specified 
-- object specification help string is outdated
-- how to use lines and emission properties in object specification?
 - documentation needs update for new parchment etc material
 - parchment has an ior, it shouldn't. instead it should attenuate light like... well, parchment
 - ior (and maybe others) are both part of ObjectSpec and separate CLI parameter - redundant
