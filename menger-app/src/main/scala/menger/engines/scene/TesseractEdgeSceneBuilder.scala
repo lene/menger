@@ -48,7 +48,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       val firstSpec = specs.head
       specs.find(!isCompatible(_, firstSpec)) match
         case Some(incompatible) =>
-          Left(s"Incompatible 4D projection parameters between tesseracts. " +
+          Left("Incompatible 4D projection parameters between tesseracts. " +
             "All tesseracts must have matching projection parameters for shared mesh rendering.")
         case None =>
           // Calculate total instances: faces (1 mesh instance per spec) + edges (32 cylinders per spec)

@@ -1,6 +1,6 @@
 # Code Quality Assessment - Menger Project
 
-**Date:** 2026-01-15
+**Date:** 2026-01-21
 **Branch:** feature/sprint-8
 **Overall Grade:** A
 
@@ -114,6 +114,17 @@ Extracted LibGDX input events to sealed trait hierarchy (InputEvent, Key, MouseB
 ### 8.3 OptiXEngine Extraction ✅ RESOLVED
 Extracted multi-object scene building logic into strategy pattern (SphereSceneBuilder, TriangleMeshSceneBuilder, CubeSpongeSceneBuilder); reduced OptiXEngine from 617 to 377 lines.
 
+### 8.4 Cylinder Edge Rendering for Tesseracts ✅ IMPLEMENTED (2026-01-21)
+Added cylinder primitive support for 4D tesseract edge rendering:
+- New `hit_cylinder.cu` shader with ray-cylinder intersection (body + caps)
+- Extended SBT to 6 records (3 geometry types × 2 ray types)
+- Added `TesseractEdgeSceneBuilder` following strategy pattern
+- Cylinder data passed via params buffer indexed by instance material
+
+**Minor Issues Identified:**
+- Magic number `1e-8f` used as tolerance in hit_cylinder.cu (lines 92, 144) - consider extracting to `CYLINDER_INTERSECTION_TOLERANCE`
+- Closest-hit shading pattern duplicated across sphere/triangle/cylinder (~90 lines each) - low priority consolidation opportunity
+
 ---
 
 ## 9. Conclusion
@@ -130,6 +141,6 @@ All critical and high-priority issues have been resolved. The codebase demonstra
 
 ---
 
-**Last Updated:** 2026-01-15
+**Last Updated:** 2026-01-21
 **Review Type:** Comprehensive code quality assessment
-**Lines Analyzed:** ~20,000 lines (Scala + CUDA + C++)
+**Lines Analyzed:** ~21,000 lines (Scala + CUDA + C++)
