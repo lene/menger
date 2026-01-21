@@ -132,13 +132,28 @@ run_test "Tesseract (projection)" "-o --objects type=tesseract:eye-w=4.0:screen-
 run_test "Tesseract (glass)" "-o --objects type=tesseract:material=glass -s $OUTPUT_DIR/36-tesseract-glass.png"
 run_test "Tesseract (chrome)" "-o --objects type=tesseract:material=chrome -s $OUTPUT_DIR/37-tesseract-chrome.png"
 
+# Tesseract Edge Rendering (Phase 4 feature)
+echo -e "${YELLOW}--- Tesseract Edge Rendering ---${NC}"
+run_test "Tesseract with chrome edges" "-o --objects type=tesseract:edge-radius=0.02:edge-material=chrome -s $OUTPUT_DIR/38-tesseract-chrome-edges.png"
+run_test "Tesseract with cyan emissive edges" "-o --objects type=tesseract:edge-radius=0.03:edge-color=#00ffff:edge-emission=3.0 -s $OUTPUT_DIR/39-tesseract-cyan-edges.png"
+run_test "Tesseract glass with gold edges" "-o --objects type=tesseract:material=glass:edge-material=gold:edge-radius=0.025 -s $OUTPUT_DIR/40-tesseract-glass-gold.png"
+run_test "Tesseract rotated with edges" "-o --objects type=tesseract:rot-xw=45:rot-yw=30:edge-material=chrome:edge-radius=0.02 -s $OUTPUT_DIR/41-tesseract-rot-edges.png"
+run_test "Tesseract film with emissive edges" "-o --objects type=tesseract:material=film:edge-color=#ff00ff:edge-emission=5.0:edge-radius=0.03 -s $OUTPUT_DIR/42-tesseract-film-magenta.png"
+
+# Film and Parchment Materials
+echo -e "${YELLOW}--- Film and Parchment Materials ---${NC}"
+run_test "Film sphere" "-o --objects type=sphere:material=film -s $OUTPUT_DIR/43-film-sphere.png"
+run_test "Parchment cube" "-o --objects type=cube:material=parchment -s $OUTPUT_DIR/44-parchment-cube.png"
+run_test "Film with emission" "-o --objects type=sphere:material=film:emission=3.0 -s $OUTPUT_DIR/45-film-emissive.png"
+
 # Caustics
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
-run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/38-caustics.png"
+run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/46-caustics.png"
 
 # Showcase
 echo -e "${YELLOW}--- Showcase ---${NC}"
-run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/39-showcase.png"
+run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/47-showcase.png"
+run_test "Tesseract Showcase (glass with emissive edges)" "-o --objects type=tesseract:material=glass:edge-color=#00ffff:edge-emission=5.0:edge-radius=0.025:rot-xw=20:rot-yw=15 --antialiasing --shadows --width 1920 --height 1080 -s $OUTPUT_DIR/48-tesseract-showcase.png"
 
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
@@ -161,9 +176,12 @@ interactive_tests=(
     "Chrome (metallic):-o --objects type=sphere:material=chrome"
     "Gold (metallic):-o --objects type=sphere:material=gold"
     "Copper (metallic):-o --objects type=sphere:material=copper"
+    "Film (translucent):-o --objects type=sphere:material=film"
+    "Parchment (semi-translucent):-o --objects type=cube:material=parchment"
     "Metal (blue):-o --objects type=sphere:material=metal:color=#4488ff"
     "Plastic (red):-o --objects type=sphere:material=plastic:color=#ff4444"
     "Matte (green):-o --objects type=sphere:material=matte:color=#44ff44"
+    "Emissive sphere:-o --objects type=sphere:material=film:emission=5.0:color=#ff8800"
     "Textured cube:-o --texture-dir scripts/test-assets --objects type=cube:texture=test_checker.png"
     "Textured cube + glass:-o --texture-dir scripts/test-assets --objects type=cube:texture=test_checker.png:material=glass"
     "Two spheres + shadows:-o --objects type=sphere:pos=-1.5,0,0:material=glass --objects type=sphere:pos=1.5,0,0 --shadows"
@@ -173,6 +191,11 @@ interactive_tests=(
     "Tesseract (4D rotated):-o --objects type=tesseract:rot-xw=45:rot-yw=30:rot-zw=15"
     "Tesseract (glass):-o --objects type=tesseract:material=glass"
     "Tesseract (chrome):-o --objects type=tesseract:material=chrome"
+    "Tesseract with chrome edges:-o --objects type=tesseract:edge-material=chrome:edge-radius=0.02"
+    "Tesseract with cyan glow edges:-o --objects type=tesseract:edge-color=#00ffff:edge-emission=5.0:edge-radius=0.03"
+    "Tesseract glass + gold edges:-o --objects type=tesseract:material=glass:edge-material=gold:edge-radius=0.025"
+    "Tesseract film + magenta glow:-o --objects type=tesseract:material=film:edge-color=#ff00ff:edge-emission=5.0:edge-radius=0.03"
+    "Tesseract rotated with edges:-o --objects type=tesseract:rot-xw=45:rot-yw=30:edge-material=chrome:edge-radius=0.02"
     "Colored lights:-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff"
     "Checkered plane:-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000"
 )

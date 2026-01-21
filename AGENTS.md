@@ -45,7 +45,6 @@ Your bash tool has known limitations. Follow these workarounds:
 ### Git Workflow
 - **Never `git add -A`** - add files explicitly
 - **Never commit automatically** - always show diff for user review first
-- **Pre-push requirement:** Perform comprehensive code quality assessment (see Development Workflow section)
 - when fetching, always use the --all --tags options
 
 ---
