@@ -236,26 +236,15 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
           val renderer = rendererWrapper.renderer
 
-          // Save current camera state before dispose (which wipes everything)
+          // Save current camera state
           val savedEye = cameraController.currentEye
           val savedLookAt = cameraController.currentLookAt
           val savedUp = cameraController.currentUp
           logger.debug(s"Saving camera state: eye=$savedEye, lookAt=$savedLookAt")
 
-          // Dispose and re-initialize renderer
-          renderer.dispose()
-          renderer.initialize(execution.maxInstances)
-
-          // Recreate scene configuration
-          sceneConfigurator.configureLights(renderer)
-          sceneConfigurator.configurePlane(renderer)
-          renderer.setRenderConfig(config.render)
-          renderer.setCausticsConfig(config.caustics)
-          environment.planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
-
-          // Restore camera to saved position
-          cameraState.updateCamera(renderer, savedEye, savedLookAt, savedUp)
-          logger.debug(s"Restored camera state: eye=$savedEye, lookAt=$savedLookAt")
+          // Clear geometry without destroying OptiX context
+          // This is much lighter weight than dispose/initialize
+          renderer.clearAllInstances()
 
           // Rebuild geometry based on scene type using strategy pattern
           classifyScene(specs) match
@@ -266,6 +255,10 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
                 case None =>
                   logger.warn("Cannot rebuild mixed scene type")
                   Failure(UnsupportedOperationException("Mixed scenes not supported for rebuilding")).get
+
+          // Restore camera to saved position
+          cameraState.updateCamera(renderer, savedEye, savedLookAt, savedUp)
+          logger.debug(s"Restored camera state: eye=$savedEye, lookAt=$savedLookAt")
 
           logger.debug("Scene rebuild complete")
         }.recover { case e =>
