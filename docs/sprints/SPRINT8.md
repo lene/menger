@@ -1,9 +1,11 @@
 # Sprint 8: 4D Projection + UX Improvements
 
 **Sprint:** 8 - 4D Projection Foundation + UX Improvements
-**Status:** Complete
+**Status:** ✅ Complete (2026-01-26)
+**Actual Time:** ~20 hours
 **Estimate:** 17.5-22.5 hours
-**Branch:** `feature/sprint-8`
+**Branch:** `feature/sprint-8` (merged to main)
+**Release:** v0.4.2
 
 ---
 
@@ -988,17 +990,17 @@ Structure:
 
 ### Step 8.11: Update Documentation
 
-**Status:** Not Started
+**Status:** Complete
 **Estimate:** 0.5 hours
 
 Update changelog, roadmap, and backlog.
 
 #### Subtasks
 
-- [ ] Update CHANGELOG.md with new features
-- [ ] Update ROADMAP.md to mark Sprint 8 complete
-- [ ] Add multiple instances to backlog in TODO.md
-- [ ] Archive sprint documentation
+- [x] Update CHANGELOG.md with new features
+- [x] Update ROADMAP.md to mark Sprint 8 complete
+- [x] Update TODO.md with backlog items
+- [x] Archive sprint documentation
 
 #### Files to Modify
 
@@ -1032,13 +1034,15 @@ Update changelog, roadmap, and backlog.
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing (Scala + C++): `sbt test --warn`
-- [ ] Code compiles without warnings: `sbt compile`
-- [ ] Code quality checks pass: `sbt "scalafix --check"`
-- [ ] CHANGELOG.md updated
-- [ ] Manual verification screenshots captured
-- [ ] Sprint documentation archived
+- [x] All success criteria met
+- [x] All tests passing (Scala + C++): 1159 tests passing
+- [x] Code compiles without warnings
+- [x] Code quality checks pass: scalafix clean
+- [x] CHANGELOG.md updated (v0.4.2)
+- [x] Manual verification screenshots captured
+- [x] Sprint documentation archived
+- [x] ROADMAP.md updated
+- [x] Test coverage: 82.04% (up from 78.01%)
 
 ---
 
@@ -1059,8 +1063,8 @@ Update changelog, roadmap, and backlog.
 | 8.9 | Headless rendering | 2-3h | Complete | `Main.scala`, `MengerCLIOptions.scala`, `CliValidation.scala` |
 | **DOCUMENTATION** | | | | |
 | 8.10 | Create User Guide | 2-3h | Complete | New: `docs/USER_GUIDE.md` |
-| 8.11 | Update CHANGELOG, archive | 0.5h | Not Started | `CHANGELOG.md`, `TODO.md`, `ROADMAP.md` |
-| **TOTAL** | | **17.5-22.5h** | | |
+| 8.11 | Update CHANGELOG, archive | 0.5h | Complete | `CHANGELOG.md`, `TODO.md`, `ROADMAP.md` |
+| **TOTAL** | | **17.5-22.5h** | **✅ Complete** | |
 
 ---
 

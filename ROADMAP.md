@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-01-11
+**Last Updated:** 2026-01-26
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -11,7 +11,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | Version | Name | Status | Key Features |
 |---------|------|--------|--------------|
 | v0.4.1 | Full 3D Support | ✅ Complete | Materials, textures, multi-object scenes |
-| v0.5 | Full 4D Support | Planned | 4D projection, tesseract, 4D sponge |
+| v0.4.2 | 4D Foundation | ✅ Complete | Tesseract, cylinder edges, 4D rotation, metallic reflection |
+| v0.5 | Full 4D Support | Planned | 4D sponge, advanced 4D manipulation |
 | v0.6 | Scene Language | Planned | Declarative scene files, animation |
 
 ---
@@ -27,20 +28,11 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 5 | Triangle Mesh + Cube | ✅ Complete | [archive](docs/archive/sprints/) |
 | 6 | Full Geometry (IAS, sponges) | ✅ Complete | [archive](docs/archive/sprints/) |
 | 7 | Materials & Textures | ✅ Complete | [archive](docs/archive/sprints/) |
+| 8 | 4D Projection + UX | ✅ Complete | [SPRINT8.md](docs/sprints/SPRINT8.md) |
 
 ---
 
 ## Planned Sprints
-
-### Sprint 8: 4D Projection Foundation (12-18 hours)
-
-**Goal:** Render a tesseract (4D hypercube) projected to 3D
-
-- 4D→3D projection mathematics (perspective, orthographic, cross-section)
-- 4D vertex/edge data structures
-- Tesseract geometry generation (16 vertices, 32 edges, 24 faces, 8 cells)
-- Project tesseract to 3D triangle mesh
-- CLI: `--objects type=tesseract`
 
 ### Sprint 9: TesseractSponge (15-20 hours)
 
@@ -158,11 +150,11 @@ Ideas for future consideration, not yet scheduled.
 
 | Phase | Sprints | Estimated Hours |
 |-------|---------|-----------------|
-| Completed (1-7) | 7 sprints | ~100 hours |
-| 4D Support (8-10) | 3 sprints | 37-53 hours |
+| Completed (1-8) | 8 sprints | ~120 hours |
+| 4D Support (9-10) | 2 sprints | 25-35 hours |
 | Scene/Animation (11-13) | 3 sprints | 33-47 hours |
 | Polish (14) | 1 sprint | 20-25 hours |
-| **Total Remaining** | 7 sprints | **90-125 hours** |
+| **Total Remaining** | 6 sprints | **78-107 hours** |
 
 ---
 

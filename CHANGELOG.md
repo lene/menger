@@ -1,5 +1,105 @@
 # Changelog
 
+## [0.4.2] - 2026-01-26
+
+### Added
+- **Tesseract (4D Hypercube)** - Render 4D geometry projected to 3D via OptiX
+  - `--objects type=tesseract` for 4D hypercube rendering (16 vertices, 24 faces projected to 3D)
+  - 4D projection parameters: `eye-w=W`, `screen-w=W` (default: 3.0, 1.5)
+  - 4D rotation parameters: `rot-xw=DEG`, `rot-yw=DEG`, `rot-zw=DEG` (default: 15°, 10°, 0°)
+  - Full material support (glass, chrome, etc.) on tesseract faces
+  - `TesseractMesh` class for 4D→3D projection with proper normals and UVs
+- **Cylinder Primitive** - Custom OptiX primitive for edge rendering
+  - Analytical ray-cylinder intersection in CUDA shader
+  - Support for 32 cylindrical edges per tesseract
+  - `addCylinderInstance()` API for cylinder instances with endpoints and radius
+  - CLI: `--objects type=tesseract:edge-material=chrome:edge-radius=0.02`
+- **Metallic Reflection on Cylinder Edges** - Single-bounce PBR reflection
+  - Cylinder shader uses `handleMetallicOpaque()` for depth 0 metallic materials
+  - Diffuse fallback for depth > 0 to prevent stack overflow
+  - Stack size increased from 32KB to 48KB for metallic cylinder rendering
+  - Chrome and copper edges show realistic mirror-like reflections
+- **Interactive 4D Rotation** - Mouse-based manipulation of 4D objects
+  - Left-drag: XW plane rotation (horizontal movement controls 4D rotation)
+  - Right-drag: YW plane rotation (horizontal movement controls 4D rotation)
+  - Middle-drag: ZW plane rotation (horizontal movement controls 4D rotation)
+  - Vertical movement on all drags controls 3D camera pitch
+  - Camera state preserved during 4D rotation (position, target, up vector)
+- **Edge Material Properties** - Separate materials for tesseract edges
+  - `edge-material=PRESET` for preset materials on edges (chrome, copper, glass, etc.)
+  - `edge-color=#RRGGBB` for custom edge colors
+  - `edge-emission=VALUE` for glowing edges (0.0-1.0)
+  - `edge-radius=VALUE` for cylinder thickness (default: 0.02)
+- **Emission Property** - Self-illuminating materials
+  - Added `emission` field to Material case class (0.0-1.0)
+  - Emissive materials glow without requiring light sources
+  - Film and Parchment preset materials with emission values
+- **Headless Rendering** - Batch processing without window display
+  - `--headless` flag renders directly to file without displaying window
+  - Invisible window creation using LibGDX's `setInitialVisible(false)`
+  - Requires `--save-name` to be specified
+  - Useful for CI/CD, batch processing, and remote servers
+- **Scene Builder Architecture** - Strategy pattern for object type handling
+  - `SceneBuilder` trait with validate/buildScene/calculateInstanceCount methods
+  - `SphereSceneBuilder` for pure sphere scenes
+  - `TriangleMeshSceneBuilder` for cubes and sponges
+  - `CubeSpongeSceneBuilder` for GPU-instanced cube sponges
+  - `TesseractEdgeSceneBuilder` for tesseracts with cylindrical edges
+  - Automatic builder selection based on object types
+  - Validation prevents incompatible object combinations
+- **Input Abstraction Layer** - Clean separation of LibGDX and rendering logic
+  - `InputEvent` ADT for key/mouse events (KeyPress, KeyRelease, MouseDrag)
+  - `InputHandler` trait for processing input events
+  - `GdxKeyHandler` and `OptiXKeyHandler` for specific handling
+  - `GdxCameraHandler` and `OptiXCameraHandler` for camera manipulation
+  - `LibGDXInputAdapter` bridges LibGDX callbacks to event system
+  - Zero LibGDX dependencies in camera/key handler logic
+- **User Guide** - Comprehensive documentation (1630 lines)
+  - Quick start guide with installation and first render
+  - Basic usage: spheres, cubes, sponges with materials
+  - 4D visualization guide: tesseracts, rotation, projection
+  - Headless rendering for batch processing
+  - Advanced topics: multiple objects, custom lighting, performance
+  - Examples gallery with render commands
+- **Projection4DSpec** - 4D projection parameter encapsulation
+  - Separate case class for 4D-specific parameters (eyeW, screenW, rotations)
+  - Default values defined in companion object
+  - Used by ObjectSpec for tesseract configuration
+
+### Changed
+- OptiX pipeline now includes cylinder custom primitive hit groups
+- Stack size increased from 32KB to 48KB for metallic cylinder shaders
+- Shader file renamed from `sphere_combined.cu` to `optix_shaders.cu`
+- Input handling refactored to use event-based architecture instead of controller pattern
+- Camera manipulation extracted to separate handler classes
+- Scene building logic extracted from OptiXEngine to dedicated builder classes
+- Material extraction logic moved to `MaterialExtractor` utility
+- Texture loading logic moved to `TextureManager` utility
+
+### Fixed
+- Screenshot vertical flip bug - images now saved with correct orientation
+  - Added `flipVertically()` method in ScreenshotFactory
+  - OpenGL framebuffer (bottom-left origin) correctly converted to PNG (top-left origin)
+- Infinite pipeline rebuild loop for tesseract edge rendering
+  - Fixed by properly tracking pipeline state in TesseractEdgeSceneBuilder
+- Cylinder module cleanup causing double-free crash
+  - Fixed GAS buffer management for cylinder primitives
+- Crash when rotating tesseract with chrome edges
+  - Resolved by implementing single-bounce reflection strategy
+
+### Tests
+- All 1159 tests passing (394 in menger-app, 765 in optix-jni + C++)
+- Test coverage: 82.04% (up from 78.01%)
+- 51 integration tests passing (basic objects, multi-object, materials, tesseract, headless)
+- New test suites:
+  - `TesseractMeshSuite` - 18 tests for 4D→3D projection
+  - `TesseractIntegrationSuite` - 25 tests for tesseract rendering pipeline
+  - `CylinderSuite` - 34 tests for cylinder primitive and intersection
+  - `Camera4DRotationSuite` - 21 tests for interactive 4D rotation
+  - `InputEventSuite` - 11 tests for input event system
+  - `KeyHandlerSuite` - 12 tests for key event handling
+  - `CameraHandlerSuite` - 6 tests for camera manipulation
+
 ## [0.4.1] - 2026-01-12
 
 ### Added
