@@ -26,6 +26,8 @@ import menger.input.Observer
 import menger.input.OptiXCameraHandler
 import menger.input.OptiXInputMultiplexer
 import menger.input.OptiXKeyHandler
+import menger.objects.higher_d.TesseractSponge2Mesh
+import menger.objects.higher_d.TesseractSpongeMesh
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 import menger.optix.SceneConfigurator
@@ -122,6 +124,30 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
             )
           if intLevel > SurfaceLevelMax then
             logger.error(s"Sponge level $intLevel exceeds recommended maximum ($SurfaceLevelMax)")
+        case "tesseract-sponge" =>
+          if intLevel >= Const.Engine.tesseractSpongeWarnLevel then
+            val triangles = TesseractSpongeMesh.estimatedTriangles(intLevel)
+            logger.warn(
+              s"tesseract-sponge level $intLevel may be slow " +
+              s"(~${triangles / 1000}K triangles)"
+            )
+          if intLevel > Const.Engine.tesseractSpongeMaxLevel then
+            logger.error(
+              s"tesseract-sponge level $intLevel exceeds recommended maximum " +
+              s"(${Const.Engine.tesseractSpongeMaxLevel})"
+            )
+        case "tesseract-sponge-2" =>
+          if intLevel >= Const.Engine.tesseractSponge2WarnLevel then
+            val triangles = TesseractSponge2Mesh.estimatedTriangles(intLevel)
+            logger.warn(
+              s"tesseract-sponge-2 level $intLevel may be slow " +
+              s"(~${triangles / 1000}K triangles)"
+            )
+          if intLevel > Const.Engine.tesseractSponge2MaxLevel then
+            logger.error(
+              s"tesseract-sponge-2 level $intLevel exceeds recommended maximum " +
+              s"(${Const.Engine.tesseractSponge2MaxLevel})"
+            )
         case _ => // No warning for other types
     }
 

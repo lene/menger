@@ -83,6 +83,12 @@ case object Const:
     val sphereScaleFactor = 2.0f
     val spongeScaleFactor = 2.0f
 
+    // 4D sponge performance thresholds
+    val tesseractSpongeWarnLevel: Int = 2     // 55K faces - warn user
+    val tesseractSponge2WarnLevel: Int = 3    // 98K faces - warn user
+    val tesseractSpongeMaxLevel: Int = 4      // 127M faces at level 4
+    val tesseractSponge2MaxLevel: Int = 5     // 25M faces at level 5
+
   // New constants extracted from OptiXRenderer
   object Renderer:
     val transformMatrixSize = 12  // 4x3 row-major

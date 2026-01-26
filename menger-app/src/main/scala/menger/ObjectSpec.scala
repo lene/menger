@@ -255,6 +255,11 @@ object ObjectSpec extends LazyLogging:
     if ObjectType.isSponge(objType) && level.isEmpty then
       Left("Sponge object requires 'level' field. Add level=<number> to specification. " +
         s"Example: type=$objType:level=2")
+    else if ObjectType.is4DSponge(objType) && level.isEmpty then
+      Left("4D sponge object requires 'level' field. Add level=<number> to specification. " +
+        s"Example: type=$objType:level=1")
+    else if level.exists(_ < 0) then
+      Left(s"Level must be non-negative, got ${level.get}")
     else
       Right(())
 

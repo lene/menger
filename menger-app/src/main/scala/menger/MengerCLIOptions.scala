@@ -27,7 +27,7 @@ class MengerCLIOptions(arguments: Seq[String])
     with CliValidation
     with LazyLogging:
 
-  version("menger v0.4.2 (c) 2023-26, lene.preuss@gmail.com")
+  version("menger v0.4.3 (c) 2023-26, lene.preuss@gmail.com")
   banner("""Usage: menger [options]
            |
            |Menger sponge fractal renderer with OptiX GPU ray tracing support.
@@ -204,9 +204,10 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = "Objects (repeatable): type=TYPE[:param=value...]. " +
       s"Types: ${ObjectType.validTypesString}. " +
       "Common: pos=x,y,z, size=S, color=#RGB, ior=I, material=PRESET, texture=FILE, emission=E. " +
-      "Sponge: level=L. " +
-      "Tesseract 4D: rot-xw, rot-yw, rot-zw, eye-w, screen-w. " +
-      "Tesseract edges: edge-radius=R, edge-material=PRESET, edge-color=#RGB, edge-emission=E"
+      "3D sponge: level=L. " +
+      "4D sponge: level=L (required). " +
+      "4D projection: rot-xw, rot-yw, rot-zw, eye-w, screen-w. " +
+      "4D edges: edge-radius=R, edge-material=PRESET, edge-color=#RGB, edge-emission=E"
   )(using objectSpecConverter)
   val radius: ScallopOption[Float] = opt[Float](
     required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,

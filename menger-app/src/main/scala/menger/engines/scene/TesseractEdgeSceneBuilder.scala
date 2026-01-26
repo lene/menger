@@ -8,27 +8,35 @@ import menger.ProfilingConfig
 import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.Vector
+import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
 import menger.objects.higher_d.Tesseract
+import menger.objects.higher_d.TesseractSponge
+import menger.objects.higher_d.TesseractSponge2
 import menger.optix.Material
 import menger.optix.OptiXRenderer
 
 /**
- * Scene builder for tesseract objects with cylinder edge rendering.
+ * Scene builder for 4D hypercube objects with cylinder edge rendering.
  *
- * Renders tesseract (4D hypercube) objects with:
+ * Renders 4D hypercube objects (tesseract, tesseract-sponge, tesseract-sponge-2) with:
  * - Faces rendered as triangle meshes (existing functionality)
  * - Edges rendered as cylinders (new functionality)
  *
- * This builder is used when tesseract objects have edge rendering parameters
+ * This builder is used when hypercube objects have edge rendering parameters
  * (edge-radius, edge-material, edge-color, edge-emission).
  *
  * Key characteristics:
  * - Projects 4D edges to 3D using the same rotation and projection as faces
- * - Creates cylinder instances for each of the 32 edges of the tesseract
+ * - Creates cylinder instances for each edge of the 4D mesh
  * - Supports custom edge materials and emission for glowing edges
- * - All tesseracts must have same 4D projection parameters (inherited constraint)
+ * - All hypercubes must have same 4D projection parameters (inherited constraint)
+ *
+ * Edge counts:
+ * - Tesseract: 32 edges
+ * - TesseractSponge level 1: 1,152 edges
+ * - TesseractSponge2 level 1: 384 edges
  */
 class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: ProfilingConfig)
   extends SceneBuilder:
@@ -40,7 +48,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
     else if !specs.forall(s => ObjectType.isHypercube(s.objectType)) then
-      Left("TesseractEdgeSceneBuilder only supports hypercube types (tesseract)")
+      Left("TesseractEdgeSceneBuilder only supports hypercube types (tesseract, tesseract-sponge, tesseract-sponge-2)")
     else if !specs.forall(_.hasEdgeRendering) then
       Left("TesseractEdgeSceneBuilder requires edge rendering parameters on all specs")
     else
@@ -48,14 +56,15 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       val firstSpec = specs.head
       specs.find(!isCompatible(_, firstSpec)) match
         case Some(incompatible) =>
-          Left("Incompatible 4D projection parameters between tesseracts. " +
-            "All tesseracts must have matching projection parameters for shared mesh rendering.")
+          Left("Incompatible 4D projection parameters between hypercubes. " +
+            "All hypercubes must have matching projection parameters for shared mesh rendering.")
         case None =>
           // Calculate total instances: faces (1 mesh instance per spec) + edges (32 cylinders per spec)
           val totalInstances = calculateInstanceCount(specs)
           if totalInstances > maxInstances then
             Left(s"Too many instances: $totalInstances exceeds max instances limit of $maxInstances. " +
-              "Each tesseract with edges creates 33 instances (1 mesh + 32 cylinders).")
+              "Each hypercube with edges creates 1 mesh instance + N edge cylinder instances " +
+              "(varies by type and level).")
           else
             Right(())
 
@@ -96,18 +105,34 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
     }
 
   /**
-   * Add cylinder instances for all edges of a tesseract.
+   * Add cylinder instances for all edges of a 4D hypercube mesh.
    *
-   * A tesseract has 32 edges. Each edge is projected from 4D to 3D using
-   * the same rotation and projection as the faces.
+   * Edge counts vary by mesh type:
+   * - Tesseract: 32 edges
+   * - TesseractSponge: grows exponentially with level
+   * - TesseractSponge2: grows exponentially with level
+   *
+   * Each edge is projected from 4D to 3D using the same rotation and projection as the faces.
    */
   private def addEdgeCylinders(spec: ObjectSpec, renderer: OptiXRenderer): Unit =
     val proj4D = spec.projection4D.getOrElse(Projection4DSpec.default)
     val edgeRadius = spec.edgeRadius.getOrElse(0.02f)
     val edgeMaterial = spec.edgeMaterial.getOrElse(defaultEdgeMaterial)
 
-    // Create tesseract with spec's size
-    val tesseract = Tesseract(size = spec.size)
+    // Create the appropriate 4D mesh based on object type
+    val mesh4D: Mesh4D = spec.objectType.toLowerCase match
+      case "tesseract" =>
+        Tesseract(size = spec.size)
+      case "tesseract-sponge" =>
+        require(spec.level.isDefined, "tesseract-sponge requires level parameter")
+        TesseractSponge(spec.level.get)
+      case "tesseract-sponge-2" =>
+        require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
+        TesseractSponge2(spec.level.get, spec.size)
+      case other =>
+        require(false, s"Unsupported hypercube type for edge rendering: $other")
+        // Never reached due to require, but needed for type checker
+        Tesseract(size = spec.size)
 
     // Create rotation and projection (same as TesseractMesh)
     val rotation: Rotation =
@@ -118,11 +143,14 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
 
     val projection = Projection(proj4D.eyeW, proj4D.screenW)
 
-    // Position offset for this tesseract instance
+    // Position offset for this hypercube instance
     val offset = Vector3(spec.x, spec.y, spec.z)
 
+    // Extract edges from the 4D mesh
+    val edges = extractEdges(mesh4D)
+
     // Project each edge and create cylinder
-    val edgeCount = tesseract.edges.count { case (v0_4d, v1_4d) =>
+    val edgeCount = edges.count { case (v0_4d, v1_4d) =>
       // Apply 4D rotation
       val rotatedV0 = rotation(v0_4d)
       val rotatedV1 = rotation(v1_4d)
@@ -145,7 +173,35 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
           false
     }
 
-    logger.debug(s"Added $edgeCount edge cylinders for tesseract at (${spec.x}, ${spec.y}, ${spec.z})")
+    logger.debug(s"Added $edgeCount edge cylinders for ${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
+
+  /**
+   * Extract all unique edges from a 4D mesh.
+   *
+   * Edges are extracted from the quad faces by taking each edge of each face
+   * and deduplicating using canonical ordering.
+   *
+   * @param mesh4D The 4D mesh to extract edges from
+   * @return Set of unique edges as (start, end) vertex pairs
+   */
+  private def extractEdges(mesh4D: Mesh4D): Seq[(Vector[4], Vector[4])] =
+    mesh4D.faces.flatMap { face =>
+      // Each quad face has 4 edges: (a,b), (b,c), (c,d), (d,a)
+      val vertices = Seq(face.a, face.b, face.c, face.d)
+      vertices.zip(vertices.tail :+ vertices.head)
+    }.map { case (v1, v2) =>
+      // Use canonical ordering to deduplicate edges (smaller vector first)
+      if compareVectors(v1, v2) < 0 then (v1, v2) else (v2, v1)
+    }.distinct
+
+  /**
+   * Compare two 4D vectors lexicographically.
+   * Returns negative if v1 < v2, positive if v1 > v2, zero if equal.
+   */
+  private def compareVectors(v1: Vector[4], v2: Vector[4]): Int =
+    (0 until 4).map { i =>
+      v1(i).compare(v2(i))
+    }.find(_ != 0).getOrElse(0)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // Both must be hypercubes
@@ -161,5 +217,33 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
         case _ => false
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
-    // Each tesseract: 1 face mesh instance + 32 edge cylinder instances = 33 instances
-    specs.length.toLong * 33L
+    // Calculate total instances: 1 face mesh instance + N edge cylinder instances per object
+    // Edge counts vary by type:
+    // - Tesseract: 32 edges
+    // - TesseractSponge level 1: ~1,152 edges
+    // - TesseractSponge2 level 1: ~384 edges
+    specs.map { spec =>
+      val edgeCount = estimateEdgeCount(spec)
+      1L + edgeCount  // 1 face mesh + N edge cylinders
+    }.sum
+
+  /**
+   * Estimate the number of edges for a given hypercube spec.
+   * Uses the face count as a proxy (each quad face has 4 edges, but edges are shared).
+   */
+  private def estimateEdgeCount(spec: ObjectSpec): Long =
+    spec.objectType.toLowerCase match
+      case "tesseract" =>
+        32L  // Known constant
+      case "tesseract-sponge" =>
+        val level = spec.level.map(_.toInt).getOrElse(0)
+        // Approximate: each face has 4 edges, edges are shared 2:1
+        import menger.objects.higher_d.TesseractSpongeMesh
+        TesseractSpongeMesh.estimatedFaces(level) * 2
+      case "tesseract-sponge-2" =>
+        val level = spec.level.map(_.toInt).getOrElse(0)
+        // Approximate: each face has 4 edges, edges are shared 2:1
+        import menger.objects.higher_d.TesseractSponge2Mesh
+        TesseractSponge2Mesh.estimatedFaces(level) * 2
+      case _ =>
+        32L  // Default conservative estimate

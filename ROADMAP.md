@@ -12,7 +12,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 |---------|------|--------|--------------|
 | v0.4.1 | Full 3D Support | ✅ Complete | Materials, textures, multi-object scenes |
 | v0.4.2 | 4D Foundation | ✅ Complete | Tesseract, cylinder edges, 4D rotation, metallic reflection |
-| v0.5 | Full 4D Support | Planned | 4D sponge, advanced 4D manipulation |
+| v0.4.3 | 4D Fractals | ✅ Complete | 4D sponges (tesseract-sponge, tesseract-sponge-2), edge rendering |
+| v0.5 | Advanced 4D | Planned | Interactive 4D manipulation, 4D slicing |
 | v0.6 | Scene Language | Planned | Declarative scene files, animation |
 
 ---
@@ -29,20 +30,11 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 6 | Full Geometry (IAS, sponges) | ✅ Complete | [archive](docs/archive/sprints/) |
 | 7 | Materials & Textures | ✅ Complete | [archive](docs/archive/sprints/) |
 | 8 | 4D Projection + UX | ✅ Complete | [SPRINT8.md](docs/sprints/SPRINT8.md) |
+| 9 | TesseractSponge | ✅ Complete | [SPRINT9.md](docs/sprints/SPRINT9.md) |
 
 ---
 
 ## Planned Sprints
-
-### Sprint 9: TesseractSponge (15-20 hours)
-
-**Goal:** Render 4D Menger sponge projected to 3D
-
-- TesseractSponge → 4D mesh export
-- Apply 4D projection pipeline
-- Handle large 4D face counts efficiently
-- Progressive level support (levels 0-2+)
-- CLI: `--objects type=tesseract-sponge:level=N`
 
 ### Sprint 10: 4D Framework (10-15 hours)
 
@@ -53,7 +45,7 @@ Strategic feature planning for the Menger ray tracing renderer.
 - Interactive 4D manipulation (w-axis rotation)
 - CLI: 4D view parameters (`--4d-rotation`, `--4d-slice`)
 
-**🎯 MILESTONE: v0.5 - Full 4D Support**
+**🎯 MILESTONE: v0.5 - Advanced 4D**
 
 ### Sprint 11: Scene Description Language (15-20 hours)
 

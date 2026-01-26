@@ -3,6 +3,9 @@
 Quick notes and ideas captured during development. Review periodically and promote to
 [ROADMAP.md](ROADMAP.md) or [SPRINT.md](docs/sprints/SPRINT.md) as appropriate.
 
+- fix PushToGithub (see https://gitlab.com/lilacashes/menger/-/jobs/12865767482)
+- find better names for sponge-2 and tesseract-sponge-2
+- validate tesseract spnge generation from surfaces by repeating it with cubes. same result?
 - parchment has an ior, it shouldn't. instead it should attenuate light like... well, parchment
 - ior (and maybe others) are both part of ObjectSpec and separate CLI parameter - redundant
 - texture/material for plane

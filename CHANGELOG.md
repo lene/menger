@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.4.3] - 2026-01-26
+
+### Added
+- **4D Menger Sponges (TesseractSponge)** - Fractal 4D geometry rendering
+  - `--objects type=tesseract-sponge:level=N` for volume-based 4D Menger sponge (24 × 48^level faces)
+  - `--objects type=tesseract-sponge-2:level=N` for surface-based 4D Menger sponge (24 × 16^level faces)
+  - Fractional level support (e.g., `level=1.5` truncates to integer level)
+  - Level parameter required and must be non-negative
+  - Full 4D projection support (rot-xw, rot-yw, rot-zw, eye-w, screen-w)
+  - Material support (glass, chrome, etc.) on projected sponge faces
+  - Cylindrical edge rendering with `edge-material` and `edge-radius` parameters
+- **Generalized 4D Projection Pipeline** - `Mesh4DProjection` class
+  - Refactored `TesseractMesh` to accept any `Mesh4D` instance (not just Tesseract)
+  - Backward-compatible `TesseractMesh` factory object preserves existing API
+  - `TesseractSpongeMesh` and `TesseractSponge2Mesh` factories for convenient sponge creation
+  - All 4D meshes now share the same projection, rotation, and translation logic
+- **4D Sponge Type System** - Classification and validation
+  - Extended `ObjectType` with `tesseract-sponge` and `tesseract-sponge-2`
+  - New `ObjectType.is4DSponge()` helper method
+  - Both types classified as hypercubes via `ObjectType.isHypercube()`
+  - Validation enforces level requirement for 4D sponges in `ObjectSpec`
+- **Performance Warnings** - Automatic threshold checks for high-level sponges
+  - tesseract-sponge: warns at level ≥2 (55K faces), errors at level >4 (127M faces)
+  - tesseract-sponge-2: warns at level ≥3 (98K faces), errors at level >5 (25M faces)
+  - Estimated triangle counts logged to inform users of render complexity
+  - Warnings are advisory only - no hard rejection of high levels
+- **Edge Rendering for All 4D Types** - Generalized cylinder edge extraction
+  - `TesseractEdgeSceneBuilder` supports tesseract, tesseract-sponge, tesseract-sponge-2
+  - Dynamic edge extraction from any `Mesh4D` (not limited to 32 edges)
+  - Edge count grows with sponge level (e.g., level 1 sponge has ~1,152 edges)
+  - Instance budget calculation accounts for variable edge counts
+
+### Changed
+- **MeshFactory** - Added 4D sponge cases
+  - `tesseract-sponge` and `tesseract-sponge-2` now supported in `MeshFactory.create()`
+  - Both use 4D projection parameters from `ObjectSpec.projection4D`
+- **OptiX Engine** - Integrated performance warnings
+  - `warnIfHighLevel()` now handles 4D sponge types with triangle estimates
+- **CLI Help** - Updated `--objects` description
+  - Clarified level requirement for 4D sponges: `level=L (required)`
+  - Generalized 4D parameter descriptions
+
+### Technical Details
+- **Architecture**: All 4D meshes (Tesseract, TesseractSponge, TesseractSponge2) implement `Mesh4D` trait
+- **Projection**: 4D faces → 3D quads → 2 triangles per quad
+- **Edge Extraction**: Canonical ordering deduplicates edges from quad faces
+- **Backward Compatibility**: Existing `TesseractMesh` usage unaffected
+
 ## [0.4.2] - 2026-01-26
 
 ### Added
