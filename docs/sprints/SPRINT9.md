@@ -2,7 +2,7 @@
 
 **Sprint:** 9 - TesseractSponge
 **Status:** Not Started
-**Estimate:** 15-20 hours
+**Estimate:** 15 hours
 **Branch:** `feature/sprint-9`
 **Depends on:** Sprint 8 (TesseractMesh)
 
@@ -20,7 +20,9 @@ Render 4D Menger sponges (`TesseractSponge` and `TesseractSponge2`) projected to
 - [ ] 4D rotation parameters work: `rot-xw`, `rot-yw`, `rot-zw`
 - [ ] Materials work on sponges (glass, chrome, etc.)
 - [ ] Level limits enforced with warnings (level 3/4 max)
-- [ ] All tests pass (~35 new tests)
+- [ ] Edge rendering works with 4D sponges: `edge-material`, `edge-radius`
+- [ ] Mixed 4D/3D scenes render correctly
+- [ ] All tests pass (~40 new tests)
 
 ---
 
@@ -1056,6 +1058,285 @@ Update changelog, roadmap, and TODO.
 
 ---
 
+### Step 9.9: Generalize Edge Rendering for 4D Sponges
+
+**Status:** Not Started
+**Estimate:** 2.5 hours
+
+Extend `TesseractEdgeSceneBuilder` to support edge rendering for 4D sponges, not just tesseracts.
+
+#### Background
+
+Sprint 8 added cylindrical edge rendering for tesseracts via `TesseractEdgeSceneBuilder`. Now that Sprint 9 adds 4D sponges, edge rendering should work with sponge types too.
+
+The refactoring in Step 9.1 (Mesh4DProjection) provides the foundation - edges need to be extracted from any `Mesh4D`, not just `Tesseract`.
+
+#### Subtasks
+
+- [ ] Refactor `TesseractEdgeSceneBuilder` to work with any `Mesh4D`
+- [ ] Update edge extraction to handle sponge geometry
+- [ ] Add unit tests for 4D sponge edge rendering
+- [ ] Update CLI examples to show sponge edge rendering
+- [ ] Add integration test: `type=tesseract-sponge:level=1:edge-material=chrome`
+
+#### Files to Modify
+
+**`menger-app/src/main/scala/menger/engines/scene/TesseractEdgeSceneBuilder.scala`**
+
+The key change is generalizing the edge extraction logic:
+
+```scala
+/**
+ * Scene builder that renders any 4D mesh with cylindrical edges.
+ *
+ * Supports:
+ * - Tesseract (24 faces, 32 edges)
+ * - TesseractSponge (48^level × 24 faces, more edges)
+ * - TesseractSponge2 (16^level × 24 faces, more edges)
+ */
+class TesseractEdgeSceneBuilder(
+  textureDir: String = ".",
+  maxInstances: Int = Const.Engine.maxInstancesWithEdges
+) extends SceneBuilder:
+
+  override def canHandle(specs: List[ObjectSpec]): Boolean =
+    specs.nonEmpty &&
+      specs.forall(spec => ObjectType.isHypercube(spec.objectType)) &&
+      specs.exists(hasEdgeRendering)
+
+  private def hasEdgeRendering(spec: ObjectSpec): Boolean =
+    spec.edgeMaterial.isDefined || spec.edgeRadius.isDefined
+
+  // ... existing code ...
+
+  private def addEdgeCylinders(spec: ObjectSpec, renderer: OptiXRenderer): Unit =
+    val proj4D = spec.projection4D.getOrElse(Projection4DSpec.default)
+    val edgeRadius = spec.edgeRadius.getOrElse(0.02f)
+    val edgeMaterial = spec.edgeMaterial.getOrElse(defaultEdgeMaterial)
+
+    // Create the appropriate 4D mesh based on object type
+    val mesh4D: Mesh4D = spec.objectType.toLowerCase match
+      case "tesseract" =>
+        Tesseract(size = spec.size)
+      case "tesseract-sponge" =>
+        require(spec.level.isDefined, "tesseract-sponge requires level")
+        TesseractSponge(level = spec.level.get)
+      case "tesseract-sponge-2" =>
+        require(spec.level.isDefined, "tesseract-sponge-2 requires level")
+        TesseractSponge2(level = spec.level.get, size = spec.size)
+      case other =>
+        throw IllegalArgumentException(s"Unsupported 4D object type: $other")
+
+    // Extract edges from the 4D mesh
+    val edges = extractEdges(mesh4D)
+
+    // Create rotation and projection
+    val rotation: Rotation =
+      if proj4D.rotXW == 0f && proj4D.rotYW == 0f && proj4D.rotZW == 0f then
+        Rotation.identity
+      else
+        Rotation(proj4D.rotXW, proj4D.rotYW, proj4D.rotZW, Vector[4](0f, 0f, 0f, 0f))
+
+    val projection = Projection(proj4D.eyeW, proj4D.screenW)
+
+    // Project and render each edge as a cylinder
+    val position = Vector[3](spec.x, spec.y, spec.z)
+    val edgeCount = edges.count { edge =>
+      val (v0_4d, v1_4d) = edge
+      val p0_3d = projection(rotation(v0_4d))
+      val p1_3d = projection(rotation(v1_4d))
+
+      val p0 = position + Vector[3](p0_3d.x, p0_3d.y, p0_3d.z)
+      val p1 = position + Vector[3](p1_3d.x, p1_3d.y, p1_3d.z)
+
+      renderer.addCylinder(p0, p1, edgeRadius, edgeMaterial) match
+        case Some(id) =>
+          logger.trace(s"Added edge cylinder $id from $p0 to $p1")
+          true
+        case None =>
+          logger.warn(s"Failed to add edge cylinder from $p0 to $p1")
+          false
+    }
+
+    logger.debug(s"Added $edgeCount edge cylinders for ${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
+
+  /**
+   * Extract all unique edges from a 4D mesh.
+   *
+   * An edge is a pair of vertices that share a face. For complex meshes like
+   * sponges, this identifies all structural edges that should be rendered.
+   */
+  private def extractEdges(mesh4D: Mesh4D): Set[(Vector[4], Vector[4])] =
+    val edges = scala.collection.mutable.Set[(Vector[4], Vector[4])]()
+
+    mesh4D.faces.foreach { face =>
+      // Each quad face has 4 edges
+      val vertices = Seq(face.a, face.b, face.c, face.d)
+      for i <- 0 until 4 do
+        val v0 = vertices(i)
+        val v1 = vertices((i + 1) % 4)
+        // Add edge in canonical order (smaller vector first) to avoid duplicates
+        val edge = if compareVectors(v0, v1) < 0 then (v0, v1) else (v1, v0)
+        edges.add(edge)
+    }
+
+    edges.toSet
+
+  private def compareVectors(v0: Vector[4], v1: Vector[4]): Int =
+    for i <- 0 until 4 do
+      val cmp = java.lang.Float.compare(v0(i), v1(i))
+      if cmp != 0 then return cmp
+    0
+```
+
+#### Update Instance Count Calculation
+
+**`menger-app/src/main/scala/menger/engines/scene/TesseractEdgeSceneBuilder.scala`**
+
+Update the instance count calculation to account for variable edge counts:
+
+```scala
+private def calculateInstanceCount(specs: List[ObjectSpec]): Int =
+  specs.map { spec =>
+    val faceInstance = if spec.material.isDefined then 1 else 0
+    val edgeCount = if spec.edgeMaterial.isDefined || spec.edgeRadius.isDefined then
+      estimateEdgeCount(spec)
+    else
+      0
+    faceInstance + edgeCount
+  }.sum
+
+private def estimateEdgeCount(spec: ObjectSpec): Int =
+  spec.objectType.toLowerCase match
+    case "tesseract" => 32
+    case "tesseract-sponge" if spec.level.isDefined =>
+      val level = spec.level.get.toInt
+      // Rough estimate: 32 × 48^level (exponential growth)
+      (32 * math.pow(48, level)).toInt
+    case "tesseract-sponge-2" if spec.level.isDefined =>
+      val level = spec.level.get.toInt
+      // Rough estimate: 32 × 16^level
+      (32 * math.pow(16, level)).toInt
+    case _ => 32  // Default fallback
+```
+
+#### Tests to Add
+
+**`menger-app/src/test/scala/menger/engines/scene/TesseractEdgeSceneBuilderSpec.scala`** (additions)
+
+```scala
+"TesseractEdgeSceneBuilder" should "handle tesseract-sponge with edges" in:
+  val spec = ObjectSpec.parse("type=tesseract-sponge:level=1:edge-material=chrome:edge-radius=0.02").toOption.get
+  val builder = TesseractEdgeSceneBuilder()
+
+  builder.canHandle(List(spec)) shouldBe true
+
+it should "handle tesseract-sponge-2 with edges" in:
+  val spec = ObjectSpec.parse("type=tesseract-sponge-2:level=1:edge-material=chrome:edge-radius=0.02").toOption.get
+  val builder = TesseractEdgeSceneBuilder()
+
+  builder.canHandle(List(spec)) shouldBe true
+
+it should "extract more edges from level 1 sponge than level 0" in:
+  val builder = TesseractEdgeSceneBuilder()
+
+  val tesseract = Tesseract(size = 1.0f)
+  val sponge = TesseractSponge(level = 1f)
+
+  val tesseractEdges = builder.extractEdges(tesseract)
+  val spongeEdges = builder.extractEdges(sponge)
+
+  spongeEdges.size should be > tesseractEdges.size
+```
+
+#### Manual Verification
+
+```bash
+# TesseractSponge with chrome edges
+./menger-app --optix --objects type=tesseract-sponge:level=1:edge-material=chrome:edge-radius=0.015:material=glass --save-name sponge4d-edges.png --timeout 10
+
+# TesseractSponge2 with colored edges
+./menger-app --optix --objects type=tesseract-sponge-2:level=1:edge-material=matte:edge-color=#FF0000:edge-radius=0.02 --save-name sponge4d2-edges.png --timeout 10
+```
+
+---
+
+### Step 9.10: Verify Mixed 4D/3D Scenes
+
+**Status:** Not Started
+**Estimate:** 1 hour
+
+Verify that 4D sponges can be rendered alongside 3D objects in the same scene.
+
+#### Background
+
+The multi-object architecture from Sprint 7 should already support mixing 4D and 3D objects. This step verifies it works correctly and adds explicit test coverage.
+
+#### Subtasks
+
+- [ ] Add integration test for mixed 4D/3D scenes
+- [ ] Verify instance-based rendering works correctly
+- [ ] Add CLI examples to documentation
+- [ ] Take screenshots for documentation
+
+#### Tests to Add
+
+**`menger-app/src/test/scala/menger/engines/TesseractSpongeIntegrationSpec.scala`** (additions)
+
+```scala
+// === Mixed 4D/3D Scene Tests ===
+
+"Mixed 4D/3D scenes" should "render 4D sponge with 3D sphere" in:
+  val spec1 = ObjectSpec.parse("type=tesseract-sponge:level=1:pos=-1.5,0,0").toOption.get
+  val spec2 = ObjectSpec.parse("type=sphere:pos=1.5,0,0").toOption.get
+
+  ObjectType.isHypercube(spec1.objectType) shouldBe true
+  ObjectType.isHypercube(spec2.objectType) shouldBe false
+
+it should "render multiple 4D and 3D objects together" in:
+  val specs = List(
+    ObjectSpec.parse("type=tesseract-sponge:level=1:pos=-2,0,0:color=#FF0000").toOption.get,
+    ObjectSpec.parse("type=cube:pos=0,0,0:color=#00FF00").toOption.get,
+    ObjectSpec.parse("type=tesseract:pos=2,0,0:color=#0000FF").toOption.get
+  )
+
+  specs.length shouldBe 3
+  specs.count(s => ObjectType.isHypercube(s.objectType)) shouldBe 2
+```
+
+#### Manual Verification
+
+```bash
+# 4D sponge + 3D sphere
+./menger-app --optix \
+  --objects type=tesseract-sponge:level=1:pos=-1.5,0,0:color=#FF4444 \
+  --objects type=sphere:pos=1.5,0,0:color=#4444FF \
+  --save-name mixed-4d-3d.png --timeout 5
+
+# Multiple 4D and 3D objects
+./menger-app --optix \
+  --objects type=tesseract-sponge:level=1:pos=-2,0,0:material=glass \
+  --objects type=sponge-surface:level=2:pos=0,0,0:color=#00FF00 \
+  --objects type=tesseract-sponge-2:level=1:pos=2,0,0:material=chrome \
+  --save-name mixed-4d-3d-sponges.png --timeout 10
+
+# 4D sponge with edges + 3D sponge
+./menger-app --optix \
+  --objects type=tesseract-sponge:level=1:pos=-1.5,0,0:edge-material=chrome:edge-radius=0.01:material=glass \
+  --objects type=sponge-volume:level=2:pos=1.5,0,0:color=#FF8800 \
+  --save-name mixed-edges-4d-3d.png --timeout 10
+```
+
+#### Expected Results
+
+All combinations should work without errors:
+- 4D sponges should project correctly to 3D
+- 3D objects should render normally
+- Instance-based acceleration structure should handle both
+- Materials should apply correctly to all objects
+
+---
+
 ## Definition of Done
 
 - [ ] All success criteria met
@@ -1080,7 +1361,9 @@ Update changelog, roadmap, and TODO.
 | 9.6 | Update CLI documentation | 0.5h | `MengerCLIOptions.scala` |
 | 9.7 | Integration tests | 2.5h | New: `TesseractSpongeIntegrationSpec.scala` |
 | 9.8 | Update documentation | 0.5h | `CHANGELOG.md`, `ROADMAP.md` |
-| **Total** | | **11-13h** | |
+| 9.9 | Generalize edge rendering for 4D sponges | 2.5h | `TesseractEdgeSceneBuilder.scala` |
+| 9.10 | Verify mixed 4D/3D scenes | 1h | Test additions only |
+| **Total** | | **15h** | |
 
 ---
 
@@ -1092,6 +1375,8 @@ Update changelog, roadmap, and TODO.
 2. **Level limits:** TesseractSponge max 3, TesseractSponge2 max 4
 3. **Refactored architecture:** `Mesh4DProjection` accepts any `Mesh4D`
 4. **Fractional levels:** Supported from the start (matches LibGDX behavior)
+5. **Edge rendering generalized:** TesseractEdgeSceneBuilder extended to support all 4D meshes (Step 9.9)
+6. **Mixed 4D/3D scenes:** Explicitly tested and verified (Step 9.10)
 
 ### Performance Considerations
 
