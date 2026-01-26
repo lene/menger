@@ -1,0 +1,10 @@
+
+- /home/lepr/.claude/plans/tingly-soaring-cray.md has the full implementation details
+
+You can resume by asking me to "verify the tesseract edge rendering fix" after your restart.
+After your restart, run:
+
+  cd /home/lepr/workspace/menger
+
+  ./menger-app/target/universal/stage/bin/menger-app --headless --save-name output.png -o --objects
+"type=tesseract:edge-material=chrome:edge-radius=0.02"
