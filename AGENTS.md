@@ -203,7 +203,7 @@ pkexec chown -R $USER:$USER optix-jni/target/
 |----------|---------|
 | [docs/arc42/README.md](docs/arc42/README.md) | **Architecture (single source of truth)** |
 | [CHANGELOG.md](CHANGELOG.md) | Version history (keepachangelog.com format) |
-| [CODE_IMPROVEMENTS.md](CODE_IMPROVEMENTS.md) | Code quality assessments (updated before each push) |
+| [CODE_IMPROVEMENTS.md](CODE_IMPROVEMENTS.md) | Code quality assessments |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and solutions |
 
 ### arc42 Architecture Sections
