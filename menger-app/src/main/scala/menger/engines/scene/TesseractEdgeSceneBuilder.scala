@@ -60,31 +60,51 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
             Right(())
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
+    System.err.println(s"[TesseractEdgeSceneBuilder] Building tesseract scene with edge rendering: ${specs.length} tesseracts")
     logger.info(s"Building tesseract scene with edge rendering: ${specs.length} tesseracts")
 
     // Create shared base geometry for faces
     val firstSpec = specs.head
     val mesh = MeshFactory.create(firstSpec)
+    System.err.println("[TesseractEdgeSceneBuilder] Calling setTriangleMesh")
     renderer.setTriangleMesh(mesh)
 
     // Load textures
     val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
 
     // Add instances for each tesseract
+    System.err.println(s"[TesseractEdgeSceneBuilder] Processing ${specs.length} tesseract specs")
     specs.foreach { spec =>
-      // Add face mesh instance
-      val faceMaterial = MaterialExtractor.extract(spec)
+      System.err.println(s"[TesseractEdgeSceneBuilder] Processing tesseract at (${spec.x}, ${spec.y}, ${spec.z})")
       val position = Vector[3](spec.x, spec.y, spec.z)
-      val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
 
-      renderer.addTriangleMeshInstance(position, faceMaterial, textureIndex) match
-        case Some(id) =>
-          logger.debug(s"Added tesseract face mesh instance $id at ($position)")
-        case None =>
-          logger.error(s"Failed to add tesseract face mesh instance at ($position)")
+      val hasFaceMaterial = spec.material.isDefined
+      val hasEdgeMaterial = spec.edgeMaterial.isDefined
+      System.err.println(s"[TesseractEdgeSceneBuilder] Tesseract spec: material=$hasFaceMaterial, edgeMaterial=$hasEdgeMaterial")
 
-      // Add edge cylinder instances
-      addEdgeCylinders(spec, renderer)
+      // Only add face mesh instance if face material is specified (not just edge material)
+      if hasFaceMaterial then
+        System.err.println("[TesseractEdgeSceneBuilder] Adding face mesh instance")
+        val faceMaterial = MaterialExtractor.extract(spec)
+        val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
+
+        renderer.addTriangleMeshInstance(position, faceMaterial, textureIndex) match
+          case Some(id) =>
+            System.err.println(s"[TesseractEdgeSceneBuilder] Added tesseract face mesh instance $id")
+            logger.debug(s"Added tesseract face mesh instance $id at ($position)")
+          case None =>
+            System.err.println("[TesseractEdgeSceneBuilder] Failed to add tesseract face mesh instance")
+            logger.error(s"Failed to add tesseract face mesh instance at ($position)")
+      else
+        System.err.println("[TesseractEdgeSceneBuilder] Skipping face mesh instance (no face material specified)")
+
+      // Add edge cylinder instances if edge material or edge radius specified
+      if hasEdgeMaterial || spec.edgeRadius.isDefined then
+        System.err.println("[TesseractEdgeSceneBuilder] Adding edge cylinders")
+        addEdgeCylinders(spec, renderer)
+      else
+        System.err.println("[TesseractEdgeSceneBuilder] Skipping edge cylinders")
+        logger.debug("Skipping edge cylinders (no edge material/radius specified)")
     }
 
   /**
@@ -94,9 +114,11 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
    * the same rotation and projection as the faces.
    */
   private def addEdgeCylinders(spec: ObjectSpec, renderer: OptiXRenderer): Unit =
+    System.err.println("[TesseractEdgeSceneBuilder] addEdgeCylinders called")
     val proj4D = spec.projection4D.getOrElse(Projection4DSpec.default)
     val edgeRadius = spec.edgeRadius.getOrElse(0.02f)
     val edgeMaterial = spec.edgeMaterial.getOrElse(defaultEdgeMaterial)
+    System.err.println(s"[TesseractEdgeSceneBuilder] edgeRadius=$edgeRadius, edgeMaterial=$edgeMaterial")
 
     // Create tesseract with spec's size
     val tesseract = Tesseract(size = spec.size)
@@ -137,6 +159,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
           false
     }
 
+    System.err.println(s"[TesseractEdgeSceneBuilder] Added $edgeCount edge cylinders for tesseract at (${spec.x}, ${spec.y}, ${spec.z})")
     logger.debug(s"Added $edgeCount edge cylinders for tesseract at (${spec.x}, ${spec.y}, ${spec.z})")
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
