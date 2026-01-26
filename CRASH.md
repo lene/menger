@@ -864,3 +864,119 @@ This logging was ESSENTIAL for understanding the execution flow and identifying 
    - Option C: Use triangle mesh cylinders instead of custom primitives
    - Estimated effort: 4-8 hours (Option B) or 16-24 hours (Option C)
    - Estimated risk: Medium (stack overflow risks remain)
+
+---
+
+## Fix Implementation Plan (Priority 1 - Pipeline Rebuild Loop)
+
+### Overview
+
+Separate camera updates (cheap SBT update) from geometry updates (expensive pipeline rebuild) to eliminate the infinite rebuild loop.
+
+### Phase 1: Clean Up Debug Logging
+
+Remove verbose debug logging added during crash investigation from:
+
+1. **SceneParameters.cpp** - Remove 4-5 debug statements (setCamera, isAnyDirty, clearDirtyFlags logging)
+2. **PipelineManager.cpp** - Remove ~25 debug statements (createPipeline, cleanup, buildPipeline logging)
+3. **OptiXWrapper.cpp** - Remove ~15 debug statements (render, clearAllInstances logging)
+
+**Keep:** CUDA error logging (actual error reporting, not debug state)
+
+### Phase 2: Add Selective Dirty Flag Methods
+
+Add to `SceneParameters.h` (after `clearDirtyFlags()`):
+
+```cpp
+// Fine-grained dirty flag queries (for optimized pipeline rebuild)
+bool isCameraDirty() const { return camera.dirty; }
+bool isGeometryDirty() const { return sphere.dirty || plane.dirty || triangle_mesh.dirty; }
+void clearCameraDirty() { camera.dirty = false; }
+```
+
+### Phase 3: Add Lightweight Camera Update
+
+Add `updateCameraInSBT()` to `PipelineManager`:
+
+```cpp
+void PipelineManager::updateCameraInSBT(const SceneParameters& scene) {
+    if (!sbt.raygenRecord) return;  // Need full pipeline build first
+
+    const auto& camera = scene.getCamera();
+    RayGenData rg_data;
+    std::memcpy(rg_data.cam_eye, camera.eye, sizeof(float) * 3);
+    std::memcpy(rg_data.camera_u, camera.u, sizeof(float) * 3);
+    std::memcpy(rg_data.camera_v, camera.v, sizeof(float) * 3);
+    std::memcpy(rg_data.camera_w, camera.w, sizeof(float) * 3);
+
+    RayGenSbtRecord sbt_record;
+    OPTIX_CHECK(optixSbtRecordPackHeader(raygen_prog_group, &sbt_record));
+    sbt_record.data = rg_data;
+
+    CUDA_CHECK(cudaMemcpy(
+        reinterpret_cast<void*>(sbt.raygenRecord),
+        &sbt_record,
+        sizeof(RayGenSbtRecord),
+        cudaMemcpyHostToDevice
+    ));
+}
+```
+
+### Phase 4: Modify Render Loop
+
+In `OptiXWrapper.cpp` render() method, replace:
+
+```cpp
+if (!impl->pipeline_built || impl->scene.isAnyDirty()) {
+    buildPipeline();
+}
+impl->scene.clearDirtyFlags();
+```
+
+With:
+
+```cpp
+// Geometry change: expensive pipeline rebuild
+if (!impl->pipeline_built || impl->scene.isGeometryDirty()) {
+    buildPipeline();
+    impl->scene.clearDirtyFlags();
+}
+// Camera-only change: lightweight SBT update
+else if (impl->scene.isCameraDirty()) {
+    impl->pipeline_manager.updateCameraInSBT(impl->scene);
+    impl->scene.clearCameraDirty();
+}
+```
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `optix-jni/src/main/native/include/SceneParameters.h` | Add 3 inline methods |
+| `optix-jni/src/main/native/SceneParameters.cpp` | Remove debug statements |
+| `optix-jni/src/main/native/include/PipelineManager.h` | Add `updateCameraInSBT()` declaration |
+| `optix-jni/src/main/native/PipelineManager.cpp` | Add `updateCameraInSBT()`, remove debug statements |
+| `optix-jni/src/main/native/OptiXWrapper.cpp` | Modify render() logic, remove debug statements |
+
+### Verification
+
+```bash
+# Test 1: Headless render should produce output
+./menger-app -o --objects type=tesseract:edge-material=chrome:edge-radius=0.02
+ls -la output.png  # Should exist
+
+# Test 2: No infinite rebuild loop
+./menger-app -o --objects type=tesseract:edge-material=chrome:edge-radius=0.02 > test.log 2>&1 &
+sleep 5; pkill -9 menger-app
+grep -c "Pipeline rebuild" test.log  # Should be 1-2, not hundreds
+
+# Test 3: Interactive rotation works smoothly (manual test)
+# Test 4: sbt test passes
+```
+
+### Success Criteria
+
+1. Pipeline rebuilds only 1-2 times (not hundreds)
+2. Interactive rotation works smoothly for extended periods
+3. Headless render produces output file
+4. All existing tests pass
