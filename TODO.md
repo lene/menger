@@ -6,8 +6,6 @@ Quick notes and ideas captured during development. Review periodically and promo
 - parchment has an ior, it shouldn't. instead it should attenuate light like... well, parchment
 - ior (and maybe others) are both part of ObjectSpec and separate CLI parameter - redundant
 - texture/material for plane
-- Render directly to files without displaying the render window
-- output to files is still flipped vertically
 - check materials for real-life correctness - find references
 - generalize TesseractEdgeSceneBuilder to support other 4D objects
 - Add more procedural textures (wood, marble, etc.) as a texture library
