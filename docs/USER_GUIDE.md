@@ -1405,7 +1405,7 @@ If you encounter a bug or have a feature request:
 
 #### Contributing
 
-Contributions are welcome! The project follows functional programming principles in Scala 3. See the [Menger Constitution](.specify/memory/constitution.md) for code standards and development workflow.
+Contributions are welcome! The project follows functional programming principles in Scala 3. See [AGENTS.md](../AGENTS.md) for code standards and development workflow.
 
 ---
 
