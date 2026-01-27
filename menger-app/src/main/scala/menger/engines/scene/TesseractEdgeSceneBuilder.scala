@@ -44,11 +44,40 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
   // Default edge material if none specified
   private val defaultEdgeMaterial = Material.Film
 
+  /**
+   * Calculate exact number of instances needed (meshes + edge cylinders).
+   * Generates actual meshes to determine precise edge counts.
+   */
+  override def calculateRequiredInstances(specs: List[ObjectSpec]): Int =
+    specs.foldLeft(0) { (total, spec) =>
+      val meshInstances = 1  // The main mesh
+      val edgeInstances = if spec.hasEdgeRendering then
+        // Generate 4D mesh to get actual edge count
+        val mesh4D: Mesh4D = spec.objectType.toLowerCase match
+          case "tesseract" =>
+            Tesseract(size = spec.size)
+          case "tesseract-sponge" =>
+            require(spec.level.isDefined, "tesseract-sponge requires level parameter")
+            TesseractSponge(spec.level.get)
+          case "tesseract-sponge-2" =>
+            require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
+            TesseractSponge2(spec.level.get, spec.size)
+          case other =>
+            require(false, s"Unknown 4D object type: $other")
+            Tesseract(size = spec.size)  // Never reached, but needed for type checker
+
+        val edges = extractEdges(mesh4D)
+        edges.size
+      else
+        0
+      total + meshInstances + edgeInstances
+    }
+
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
-    else if !specs.forall(s => ObjectType.isHypercube(s.objectType)) then
-      Left("TesseractEdgeSceneBuilder only supports hypercube types (tesseract, tesseract-sponge, tesseract-sponge-2)")
+    else if !specs.forall(s => ObjectType.isProjected4D(s.objectType)) then
+      Left("TesseractEdgeSceneBuilder only supports 4D projected types (tesseract, tesseract-sponge, tesseract-sponge-2)")
     else if !specs.forall(_.hasEdgeRendering) then
       Left("TesseractEdgeSceneBuilder requires edge rendering parameters on all specs")
     else
@@ -56,20 +85,29 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       val firstSpec = specs.head
       specs.find(!isCompatible(_, firstSpec)) match
         case Some(incompatible) =>
-          Left("Incompatible 4D projection parameters between hypercubes. " +
-            "All hypercubes must have matching projection parameters for shared mesh rendering.")
+          Left("Incompatible 4D projection parameters between 4D objects. " +
+            "All 4D objects must have matching projection parameters for shared mesh rendering.")
         case None =>
-          // Calculate total instances: faces (1 mesh instance per spec) + edges (32 cylinders per spec)
-          val totalInstances = calculateInstanceCount(specs)
-          if totalInstances > maxInstances then
-            Left(s"Too many instances: $totalInstances exceeds max instances limit of $maxInstances. " +
-              "Each hypercube with edges creates 1 mesh instance + N edge cylinder instances " +
-              "(varies by type and level).")
+          // Calculate actual required instances by generating meshes
+          val requiredInstances = calculateRequiredInstances(specs)
+
+          if requiredInstances > maxInstances then
+            val recommended = Math.min(requiredInstances * 2, menger.common.Const.maxInstancesLimit)
+            Left(
+              s"Scene requires $requiredInstances instances (including edge cylinders) but limit is $maxInstances. " +
+              s"Recommendation: Add --max-instances $recommended to your command. " +
+              "Note: Edge rendering creates one cylinder per edge (varies by object type and level)."
+            )
           else
             Right(())
 
-  override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
+  override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.info(s"Building tesseract scene with edge rendering: ${specs.length} tesseracts")
+
+    // Reinitialize renderer with correct maxInstances if needed
+    if maxInstances > 64 then
+      logger.debug(s"Reinitializing renderer with maxInstances=$maxInstances")
+      renderer.reinitialize(maxInstances)
 
     // Create shared base geometry for faces
     val firstSpec = specs.head
@@ -204,8 +242,8 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
     }.find(_ != 0).getOrElse(0)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
-    // Both must be hypercubes
-    if !ObjectType.isHypercube(spec1.objectType) || !ObjectType.isHypercube(spec2.objectType) then
+    // Both must be 4D projected types
+    if !ObjectType.isProjected4D(spec1.objectType) || !ObjectType.isProjected4D(spec2.objectType) then
       false
     else
       // Must have same 4D projection params (for shared mesh geometry)

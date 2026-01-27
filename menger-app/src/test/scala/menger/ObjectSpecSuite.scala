@@ -436,7 +436,7 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
   it should "fail for edge parameters on non-tesseract type" in:
     val result = ObjectSpec.parse("type=sphere:edge-radius=0.05")
     result shouldBe a[Left[?, ?]]
-    result.left.map(_ should include("only valid for hypercube types"))
+    result.left.map(_ should include("only valid for 4D projected types"))
 
   it should "fail for invalid edge-radius value" in:
     val result = ObjectSpec.parse("type=tesseract:edge-radius=notanumber")

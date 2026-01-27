@@ -263,8 +263,12 @@ class MengerCLIOptions(arguments: Seq[String])
     required = false, default = Some(Const.defaultMaxInstances), group = optixSceneGroup,
     validate = n => n > 0 && n <= Const.maxInstancesLimit,
     descr = s"Maximum object instances in scene (1-${Const.maxInstancesLimit}, " +
-      s"default: ${Const.defaultMaxInstances})"
+      s"default: auto-calculated for edge rendering, otherwise ${Const.defaultMaxInstances})"
   )
+
+  // Track if user explicitly provided maxInstances value
+  def userSetMaxInstances: Boolean = maxInstances.isSupplied
+
   val textureDir: ScallopOption[String] = opt[String](
     required = false, default = Some("."), group = optixSceneGroup,
     descr = "Base directory for texture files (default: current directory)"

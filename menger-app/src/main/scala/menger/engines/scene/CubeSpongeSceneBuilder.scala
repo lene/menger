@@ -50,7 +50,7 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
       else
         Right(())
 
-  override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] =
+  override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] =
     val totalInstances = calculateInstanceCount(specs)
     logger.debug(s"Setting up ${specs.length} cube-sponge(s) generating $totalInstances total cube instances")
 

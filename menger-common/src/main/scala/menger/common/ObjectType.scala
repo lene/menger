@@ -19,7 +19,7 @@ object ObjectType:
     "cube-sponge"
   )
 
-  val HYPERCUBE_TYPES: Set[String] = Set(
+  val PROJECTED_4D_TYPES: Set[String] = Set(
     "tesseract",
     "tesseract-sponge",
     "tesseract-sponge-2"
@@ -31,8 +31,8 @@ object ObjectType:
   def isSponge(objectType: String): Boolean =
     SPONGE_TYPES.contains(objectType.toLowerCase)
 
-  def isHypercube(objectType: String): Boolean =
-    HYPERCUBE_TYPES.contains(objectType.toLowerCase)
+  def isProjected4D(objectType: String): Boolean =
+    PROJECTED_4D_TYPES.contains(objectType.toLowerCase)
 
   def isSpongeOrCube(objectType: String): Boolean =
     isSponge(objectType) || objectType.toLowerCase == "cube"

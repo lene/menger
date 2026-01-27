@@ -4,6 +4,7 @@ import scala.util.Try
 
 import menger.ObjectSpec
 import menger.ProfilingConfig
+import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.Vector
 import menger.optix.OptiXRenderer
@@ -48,7 +49,7 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
         case None =>
           Right(())
 
-  override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
+  override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up ${specs.length} triangle mesh instances")
 
     // Create shared base geometry
@@ -78,7 +79,10 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
-    (spec1.objectType, spec2.objectType) match
+    val t1 = spec1.objectType.toLowerCase
+    val t2 = spec2.objectType.toLowerCase
+
+    (t1, t2) match
       case (t1, t2) if t1 == t2 =>
         // Same type - check if parameters match
         if ObjectType.isSponge(t1) then
@@ -86,20 +90,25 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
           (spec1.level, spec2.level) match
             case (Some(l1), Some(l2)) => l1 == l2
             case _ => false  // Missing level
-        else if ObjectType.isHypercube(t1) then
-          // Hypercubes must have same 4D projection params
-          (spec1.projection4D, spec2.projection4D) match
-            case (Some(p1), Some(p2)) =>
-              p1.eyeW == p2.eyeW && p1.screenW == p2.screenW &&
-              p1.rotXW == p2.rotXW && p1.rotYW == p2.rotYW && p1.rotZW == p2.rotZW
-            case (None, None) => true  // Both using defaults
-            case _ => false
+        else if ObjectType.isProjected4D(t1) then
+          // 4D objects must have matching projection parameters
+          matchingProjectionParams(spec1, spec2)
         else
-          true  // Non-sponge, non-hypercube types are always compatible with same type
+          true  // Other types (cube) always compatible with same type
+
+      // Allow mixing different 4D projected types if projection params match
+      case (t1, t2) if ObjectType.isProjected4D(t1) && ObjectType.isProjected4D(t2) =>
+        matchingProjectionParams(spec1, spec2)
+
       case _ => false  // Different types
+
+  private def matchingProjectionParams(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
+    val p1 = spec1.projection4D.getOrElse(Projection4DSpec.default)
+    val p2 = spec2.projection4D.getOrElse(Projection4DSpec.default)
+    p1 == p2
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
     specs.length.toLong
 
   private def isTriangleMeshType(spec: ObjectSpec): Boolean =
-    spec.objectType == "cube" || ObjectType.isSponge(spec.objectType) || ObjectType.isHypercube(spec.objectType)
+    spec.objectType == "cube" || ObjectType.isSponge(spec.objectType) || ObjectType.isProjected4D(spec.objectType)

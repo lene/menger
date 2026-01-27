@@ -25,23 +25,23 @@ class ObjectTypeSuite extends AnyFlatSpec with Matchers:
     ObjectType.isValid("") shouldBe false
     ObjectType.isValid("hypercube") shouldBe false
 
-  "ObjectType.isHypercube" should "classify tesseract as hypercube" in:
-    ObjectType.isHypercube("tesseract") shouldBe true
+  "ObjectType.isProjected4D" should "classify tesseract as hypercube" in:
+    ObjectType.isProjected4D("tesseract") shouldBe true
 
   it should "classify tesseract case-insensitively" in:
-    ObjectType.isHypercube("TESSERACT") shouldBe true
-    ObjectType.isHypercube("Tesseract") shouldBe true
+    ObjectType.isProjected4D("TESSERACT") shouldBe true
+    ObjectType.isProjected4D("Tesseract") shouldBe true
 
   it should "not classify cube as hypercube" in:
-    ObjectType.isHypercube("cube") shouldBe false
+    ObjectType.isProjected4D("cube") shouldBe false
 
   it should "not classify sphere as hypercube" in:
-    ObjectType.isHypercube("sphere") shouldBe false
+    ObjectType.isProjected4D("sphere") shouldBe false
 
   it should "not classify sponge types as hypercube" in:
-    ObjectType.isHypercube("sponge-volume") shouldBe false
-    ObjectType.isHypercube("sponge-surface") shouldBe false
-    ObjectType.isHypercube("cube-sponge") shouldBe false
+    ObjectType.isProjected4D("sponge-volume") shouldBe false
+    ObjectType.isProjected4D("sponge-surface") shouldBe false
+    ObjectType.isProjected4D("cube-sponge") shouldBe false
 
   "ObjectType.isSponge" should "not classify tesseract as sponge" in:
     ObjectType.isSponge("tesseract") shouldBe false

@@ -63,7 +63,7 @@ case object Const:
     // Perspective and projection
     val perspectiveScale: Float = 2.0f                // NDC range scale factor
     val pixelHalfUnit: Float = 1.0f                  // Unit for pixel calculations
-  val maxInstancesLimit = 1024
+  val maxInstancesLimit = 65536  // Support high-level 4D sponges with edge rendering
   val maxPhotonsDefault = 100000
   val maxPhotonsLimit = 10000000
   val maxIterationsDefault = 10

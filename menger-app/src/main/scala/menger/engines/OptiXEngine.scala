@@ -36,9 +36,13 @@ enum SceneType:
   case CubeSponges(specs: List[ObjectSpec])
   case Spheres(specs: List[ObjectSpec])
   case TriangleMeshes(specs: List[ObjectSpec])
-  case Mixed(specs: List[ObjectSpec])
+  case SimpleMixed(specs: List[ObjectSpec], meshType: String)
+  case ComplexMixed(specs: List[ObjectSpec])
 
-class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingConfig)
+class OptiXEngine(
+  config: OptiXEngineConfig,
+  userSetMaxInstances: Boolean = false
+)(using profilingConfig: ProfilingConfig)
   extends RenderEngine with TimeoutSupport with LazyLogging with SavesScreenshots with Observer:
 
   // Convenience accessors for config sections
@@ -65,16 +69,17 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var currentObjectSpecs: Option[List[ObjectSpec]] = Some(objectSpecs)
 
-  // Track if we have tesseract objects (need rebuild on rotation)
-  private lazy val hasTesseracts: Boolean = currentObjectSpecs.exists(_.exists(_.objectType == "tesseract"))
+  // Track if we have 4D projected objects (need rebuild on rotation)
+  private lazy val has4DObjects: Boolean =
+    currentObjectSpecs.exists(_.exists(spec => ObjectType.isProjected4D(spec.objectType)))
 
   // Handle rotation events from keyboard
   override def handleEvent(event: RotationProjectionParameters): Unit =
     logger.debug(s"Received rotation event: rotXW=${event.rotXW}, rotYW=${event.rotYW}, rotZW=${event.rotZW}")
-    if hasTesseracts then
+    if has4DObjects then
       // Update object specs with new rotation values
       currentObjectSpecs = currentObjectSpecs.map(_.map { spec =>
-        if spec.objectType == "tesseract" then
+        if ObjectType.isProjected4D(spec.objectType) then
           val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
           val newProj = currentProj.copy(
             rotXW = currentProj.rotXW + event.rotXW,
@@ -177,33 +182,62 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
     }.get  // Intentional .get - initialization failure should crash (documented)
 
   private def classifyScene(specs: List[ObjectSpec]): SceneType =
-    val objectTypes = specs.map(_.objectType).distinct
+    val types = specs.map(_.objectType.toLowerCase).toSet
 
-    if objectTypes.contains("cube-sponge") then
+    if types.contains("cube-sponge") then
       SceneType.CubeSponges(specs)
-    else if objectTypes.forall(_ == "sphere") then
+    else if types.forall(_ == "sphere") then
       SceneType.Spheres(specs)
-    else if objectTypes.forall(isTriangleMeshType) then
+    else if types.forall(isTriangleMeshType) then
       SceneType.TriangleMeshes(specs)
     else
-      SceneType.Mixed(specs)
+      // Mixed scene - spheres + triangle meshes
+      val hasSpheres = types.contains("sphere")
+      val meshTypes = types.filter(isTriangleMeshType)
+
+      if hasSpheres && meshTypes.size == 1 then
+        // Simple mixed: spheres + one mesh type (SUPPORTED)
+        SceneType.SimpleMixed(specs, meshTypes.head)
+      else if hasSpheres && meshTypes.size > 1 then
+        // Check if all mesh types are 4D projected and compatible
+        val all4DProjected = meshTypes.forall(ObjectType.isProjected4D)
+        if all4DProjected then
+          // All 4D objects can share GAS - treat as SimpleMixed with first type
+          SceneType.SimpleMixed(specs, meshTypes.head)
+        else
+          // Complex mixed: spheres + multiple incompatible mesh types (NOT SUPPORTED)
+          SceneType.ComplexMixed(specs)
+      else
+        // Other mixed scenarios
+        SceneType.ComplexMixed(specs)
 
   private def isTriangleMeshType(objectType: String): Boolean =
-    objectType == "cube" || ObjectType.isSponge(objectType) || ObjectType.isHypercube(objectType)
+    objectType == "cube" || ObjectType.isSponge(objectType) || ObjectType.isProjected4D(objectType)
 
   private def selectSceneBuilder(sceneType: SceneType): Option[SceneBuilder] =
     sceneType match
       case SceneType.Spheres(_) => Some(SphereSceneBuilder())
       case SceneType.TriangleMeshes(specs) =>
-        // Check if tesseracts with edge rendering - use specialized builder
-        val allTesseracts = specs.forall(s => ObjectType.isHypercube(s.objectType))
+        // Check if 4D projected types with edge rendering - use specialized builder
+        val all4DProjected = specs.forall(s => ObjectType.isProjected4D(s.objectType))
         val hasEdgeRendering = specs.exists(_.hasEdgeRendering)
-        if allTesseracts && hasEdgeRendering then
+        if all4DProjected && hasEdgeRendering then
           Some(TesseractEdgeSceneBuilder(execution.textureDir)(using profilingConfig))
         else
           Some(TriangleMeshSceneBuilder(execution.textureDir)(using profilingConfig))
       case SceneType.CubeSponges(_) => Some(CubeSpongeSceneBuilder())
-      case SceneType.Mixed(_) => None
+      case SceneType.SimpleMixed(_, _) => None  // Handled specially in createMultiObjectScene
+      case SceneType.ComplexMixed(_) => None
+
+  private def selectMeshBuilder(specs: List[ObjectSpec]): SceneBuilder =
+    val firstType = specs.head.objectType.toLowerCase
+    val all4DProjected = specs.forall(s => ObjectType.isProjected4D(s.objectType))
+    val hasEdgeRendering = specs.exists(_.hasEdgeRendering)
+
+    if all4DProjected && hasEdgeRendering then
+      TesseractEdgeSceneBuilder(execution.textureDir)(using profilingConfig)
+    else
+      TriangleMeshSceneBuilder(execution.textureDir)(using profilingConfig)
 
   private def createMultiObjectScene(specs: List[ObjectSpec]): Try[Unit] =
     logger.info(s"Creating OptiXEngine with ${specs.length} objects")
@@ -218,19 +252,63 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
     // Determine scene type and setup using strategy pattern
     val result = classifyScene(specs) match
-      case sceneType @ SceneType.Mixed(specs) =>
+      case SceneType.SimpleMixed(specs, meshType) =>
+        // Spheres + one triangle mesh type - SUPPORTED
+        Try {
+          val sphereSpecs = specs.filter(_.objectType.toLowerCase == "sphere")
+          val meshSpecs = specs.filterNot(_.objectType.toLowerCase == "sphere")
+
+          logger.info(s"Mixed scene: ${sphereSpecs.size} spheres + ${meshSpecs.size} mesh objects")
+
+          // Calculate effective maxInstances for mesh builder (may need auto-adjustment)
+          val meshBuilder = selectMeshBuilder(meshSpecs)
+          val effectiveMaxInstances = if !userSetMaxInstances then
+            val required = meshBuilder.calculateRequiredInstances(meshSpecs)
+            if required > 0 && required > execution.maxInstances then
+              val adjusted = Math.min(required * 2, menger.common.Const.maxInstancesLimit)
+              logger.info(s"Auto-adjusting max instances: ${execution.maxInstances} → $adjusted (scene requires $required)")
+              adjusted
+            else
+              execution.maxInstances
+          else
+            execution.maxInstances
+
+          // Build spheres with SphereSceneBuilder
+          if sphereSpecs.nonEmpty then
+            val sphereBuilder = SphereSceneBuilder()
+            sphereBuilder.buildScene(sphereSpecs, renderer, effectiveMaxInstances).get
+
+          // Build triangle meshes with appropriate builder
+          if meshSpecs.nonEmpty then
+            meshBuilder.buildScene(meshSpecs, renderer, effectiveMaxInstances).get
+        }
+
+      case SceneType.ComplexMixed(specs) =>
         val objectTypes = specs.map(_.objectType).distinct
         Failure(UnsupportedOperationException(
-          "Cannot mix spheres and triangle meshes in the same scene yet. " +
-          s"Objects: ${objectTypes.mkString(", ")}"
+          "Cannot mix spheres with multiple different triangle mesh types. " +
+          s"Objects: ${objectTypes.mkString(", ")}. " +
+          "Spheres can be mixed with one mesh type at a time."
         ))
 
       case sceneType =>
         selectSceneBuilder(sceneType) match
           case Some(builder) =>
-            builder.validate(specs, execution.maxInstances) match
+            // Auto-adjust maxInstances if user didn't explicitly set it
+            val effectiveMaxInstances = if !userSetMaxInstances then
+              val required = builder.calculateRequiredInstances(specs)
+              if required > 0 && required > execution.maxInstances then
+                val adjusted = Math.min(required * 2, menger.common.Const.maxInstancesLimit)
+                logger.info(s"Auto-adjusting max instances: ${execution.maxInstances} → $adjusted (scene requires $required)")
+                adjusted
+              else
+                execution.maxInstances
+            else
+              execution.maxInstances
+
+            builder.validate(specs, effectiveMaxInstances) match
               case Left(error) => Failure(ValidationException(error, "objectSpecs", specs.map(_.objectType)))
-              case Right(_) => builder.buildScene(specs, renderer)
+              case Right(_) => builder.buildScene(specs, renderer, effectiveMaxInstances)
           case None =>
             Failure(UnsupportedOperationException(s"No builder available for $sceneType"))
 
@@ -274,13 +352,46 @@ class OptiXEngine(config: OptiXEngineConfig)(using profilingConfig: ProfilingCon
 
           // Rebuild geometry based on scene type using strategy pattern
           classifyScene(specs) match
+            case SceneType.SimpleMixed(specs, meshType) =>
+              // Handle mixed scenes specially (spheres + one mesh type)
+              val sphereSpecs = specs.filter(_.objectType.toLowerCase == "sphere")
+              val meshSpecs = specs.filterNot(_.objectType.toLowerCase == "sphere")
+
+              logger.debug(s"Rebuilding mixed scene: ${sphereSpecs.size} spheres + ${meshSpecs.size} mesh objects")
+
+              // Calculate effective maxInstances for mesh builder
+              val meshBuilder = selectMeshBuilder(meshSpecs)
+              val effectiveMaxInstances = if !userSetMaxInstances then
+                val required = meshBuilder.calculateRequiredInstances(meshSpecs)
+                if required > 0 && required > execution.maxInstances then
+                  val adjusted = Math.min(required * 2, menger.common.Const.maxInstancesLimit)
+                  logger.debug(s"Auto-adjusting max instances for rebuild: ${execution.maxInstances} → $adjusted")
+                  adjusted
+                else
+                  execution.maxInstances
+              else
+                execution.maxInstances
+
+              // Rebuild spheres
+              if sphereSpecs.nonEmpty then
+                val sphereBuilder = SphereSceneBuilder()
+                sphereBuilder.buildScene(sphereSpecs, renderer, effectiveMaxInstances).get
+
+              // Rebuild meshes
+              if meshSpecs.nonEmpty then
+                meshBuilder.buildScene(meshSpecs, renderer, effectiveMaxInstances).get
+
+            case SceneType.ComplexMixed(specs) =>
+              logger.warn("Cannot rebuild complex mixed scene type")
+              Failure(UnsupportedOperationException("Complex mixed scenes not supported for rebuilding")).get
+
             case sceneType =>
               selectSceneBuilder(sceneType) match
                 case Some(builder) =>
-                  builder.buildScene(specs, renderer).get
+                  builder.buildScene(specs, renderer, execution.maxInstances).get
                 case None =>
-                  logger.warn("Cannot rebuild mixed scene type")
-                  Failure(UnsupportedOperationException("Mixed scenes not supported for rebuilding")).get
+                  logger.warn(s"Cannot rebuild scene type: $sceneType")
+                  Failure(UnsupportedOperationException(s"Scene type $sceneType not supported for rebuilding")).get
 
           // Restore camera to saved position
           cameraState.updateCamera(renderer, savedEye, savedLookAt, savedUp)

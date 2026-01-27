@@ -34,7 +34,7 @@ class SphereSceneBuilder extends SceneBuilder:
     else
       Right(())
 
-  override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
+  override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up ${specs.length} sphere instances")
 
     // addSphereInstance() automatically enables IAS mode - do NOT call setSphere() first!

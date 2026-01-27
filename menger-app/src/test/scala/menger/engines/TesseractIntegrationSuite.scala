@@ -77,9 +77,9 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
   // === Type Classification Tests ===
 
   it should "classify tesseract as hypercube type" in:
-    ObjectType.isHypercube("tesseract") shouldBe true
-    ObjectType.isHypercube("TESSERACT") shouldBe true
-    ObjectType.isHypercube("Tesseract") shouldBe true
+    ObjectType.isProjected4D("tesseract") shouldBe true
+    ObjectType.isProjected4D("TESSERACT") shouldBe true
+    ObjectType.isProjected4D("Tesseract") shouldBe true
 
   it should "classify tesseract as valid type" in:
     ObjectType.isValid("tesseract") shouldBe true
@@ -89,7 +89,7 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
 
   it should "classify tesseract as triangle mesh type" in:
     // This tests the isTriangleMeshType logic used in OptiXEngine
-    val isTriangleMesh = ObjectType.isHypercube("tesseract")
+    val isTriangleMesh = ObjectType.isProjected4D("tesseract")
     isTriangleMesh shouldBe true
 
   // === Material Support Tests ===
@@ -254,11 +254,11 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
 
   "SceneType classification" should "group tesseract with triangle mesh types" in:
     // This verifies the logic in OptiXEngine.isTriangleMeshType
-    val tesseractIsTriangleMesh = ObjectType.isHypercube("tesseract")
+    val tesseractIsTriangleMesh = ObjectType.isProjected4D("tesseract")
     tesseractIsTriangleMesh shouldBe true
 
     // Spheres are NOT triangle meshes
-    ObjectType.isHypercube("sphere") shouldBe false
+    ObjectType.isProjected4D("sphere") shouldBe false
 
     // Cubes and sponges ARE triangle meshes (via isSponge or direct check)
     ObjectType.isSponge("sponge-volume") shouldBe true

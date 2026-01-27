@@ -100,7 +100,7 @@ object Main:
       render = opts.renderConfig,
       caustics = opts.causticsConfig
     )
-    OptiXEngine(engineConfig)
+    OptiXEngine(engineConfig, opts.userSetMaxInstances)
 
   private def createAnimatedEngine(
     opts: MengerCLIOptions,

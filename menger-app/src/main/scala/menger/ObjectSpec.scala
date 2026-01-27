@@ -267,7 +267,7 @@ object ObjectSpec extends LazyLogging:
     kvPairs: Map[String, String],
     objType: String
   ): Either[String, Option[Projection4DSpec]] =
-    if ObjectType.isHypercube(objType) then
+    if ObjectType.isProjected4D(objType) then
       for
         eyeW <- parseFloatParam(kvPairs, "eye-w", Projection4DSpec.DefaultEyeW, "4D eye W-coordinate")
         screenW <- parseFloatParam(kvPairs, "screen-w", Projection4DSpec.DefaultScreenW, "4D screen W-coordinate")
@@ -331,8 +331,8 @@ object ObjectSpec extends LazyLogging:
       k == "edgecolor" || k == "edgeemission"
     )
 
-    if hasEdgeParams && !ObjectType.isHypercube(objType) then
-      Left(s"Edge rendering parameters (edge-radius, edge-material, etc.) are only valid for hypercube types (tesseract), not '$objType'")
+    if hasEdgeParams && !ObjectType.isProjected4D(objType) then
+      Left(s"Edge rendering parameters (edge-radius, edge-material, etc.) are only valid for 4D projected types (tesseract, tesseract-sponge, tesseract-sponge-2), not '$objType'")
     else if !hasEdgeParams then
       Right((None, None))
     else

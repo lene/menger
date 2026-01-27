@@ -56,9 +56,10 @@ trait SceneBuilder extends LazyLogging:
    *
    * @param specs List of object specifications (pre-validated)
    * @param renderer OptiX renderer to configure
+   * @param maxInstances Maximum number of instances (may be auto-adjusted)
    * @return Try[Unit] - Success if scene built successfully, Failure otherwise
    */
-  def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit]
+  def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit]
 
   /**
    * Checks if two object specs are compatible for this scene type.
@@ -84,3 +85,15 @@ trait SceneBuilder extends LazyLogging:
    * @return Total instance count
    */
   def calculateInstanceCount(specs: List[ObjectSpec]): Long
+
+  /**
+   * Calculate exact number of instances required for the given specs.
+   *
+   * Used for auto-adjustment of maxInstances before validation.
+   * Default implementation returns 0 (no auto-adjustment needed).
+   * Override in builders that need dynamic instance calculation.
+   *
+   * @param specs List of object specifications
+   * @return Exact number of instances required
+   */
+  def calculateRequiredInstances(specs: List[ObjectSpec]): Int = 0

@@ -49,22 +49,22 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
 
   // === Hypercube Classification Tests ===
 
-  "ObjectType.isHypercube" should "identify 4D hypercube types" in:
-    ObjectType.isHypercube("tesseract") shouldBe true
-    ObjectType.isHypercube("tesseract-sponge") shouldBe true
-    ObjectType.isHypercube("tesseract-sponge-2") shouldBe true
+  "ObjectType.isProjected4D" should "identify 4D hypercube types" in:
+    ObjectType.isProjected4D("tesseract") shouldBe true
+    ObjectType.isProjected4D("tesseract-sponge") shouldBe true
+    ObjectType.isProjected4D("tesseract-sponge-2") shouldBe true
 
   it should "be case-insensitive" in:
-    ObjectType.isHypercube("TESSERACT") shouldBe true
-    ObjectType.isHypercube("Tesseract-Sponge") shouldBe true
-    ObjectType.isHypercube("TESSERACT-SPONGE-2") shouldBe true
+    ObjectType.isProjected4D("TESSERACT") shouldBe true
+    ObjectType.isProjected4D("Tesseract-Sponge") shouldBe true
+    ObjectType.isProjected4D("TESSERACT-SPONGE-2") shouldBe true
 
   it should "not classify 3D types as hypercubes" in:
-    ObjectType.isHypercube("sphere") shouldBe false
-    ObjectType.isHypercube("cube") shouldBe false
-    ObjectType.isHypercube("sponge-volume") shouldBe false
-    ObjectType.isHypercube("sponge-surface") shouldBe false
-    ObjectType.isHypercube("cube-sponge") shouldBe false
+    ObjectType.isProjected4D("sphere") shouldBe false
+    ObjectType.isProjected4D("cube") shouldBe false
+    ObjectType.isProjected4D("sponge-volume") shouldBe false
+    ObjectType.isProjected4D("sponge-surface") shouldBe false
+    ObjectType.isProjected4D("cube-sponge") shouldBe false
 
   // === 4D Sponge Classification Tests ===
 
@@ -117,24 +117,24 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
   "Type classification" should "have mutually exclusive sponge and hypercube categories" in:
     // 3D sponges are not hypercubes
     ObjectType.isSponge("sponge-volume") shouldBe true
-    ObjectType.isHypercube("sponge-volume") shouldBe false
+    ObjectType.isProjected4D("sponge-volume") shouldBe false
 
     // 4D sponges are hypercubes but not 3D sponges
     ObjectType.is4DSponge("tesseract-sponge") shouldBe true
-    ObjectType.isHypercube("tesseract-sponge") shouldBe true
+    ObjectType.isProjected4D("tesseract-sponge") shouldBe true
     ObjectType.isSponge("tesseract-sponge") shouldBe false
 
     // Regular tesseract is hypercube but not a sponge
-    ObjectType.isHypercube("tesseract") shouldBe true
+    ObjectType.isProjected4D("tesseract") shouldBe true
     ObjectType.isSponge("tesseract") shouldBe false
     ObjectType.is4DSponge("tesseract") shouldBe false
 
-  it should "classify 4D sponges as both is4DSponge and isHypercube" in:
+  it should "classify 4D sponges as both is4DSponge and isProjected4D" in:
     ObjectType.is4DSponge("tesseract-sponge") shouldBe true
-    ObjectType.isHypercube("tesseract-sponge") shouldBe true
+    ObjectType.isProjected4D("tesseract-sponge") shouldBe true
 
     ObjectType.is4DSponge("tesseract-sponge-2") shouldBe true
-    ObjectType.isHypercube("tesseract-sponge-2") shouldBe true
+    ObjectType.isProjected4D("tesseract-sponge-2") shouldBe true
 
   // === Constants Access Tests ===
 
@@ -155,8 +155,8 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.SPONGE_TYPES should contain("cube-sponge")
     ObjectType.SPONGE_TYPES.size shouldBe 3
 
-  "ObjectType.HYPERCUBE_TYPES" should "contain all 4D types" in:
-    ObjectType.HYPERCUBE_TYPES should contain("tesseract")
-    ObjectType.HYPERCUBE_TYPES should contain("tesseract-sponge")
-    ObjectType.HYPERCUBE_TYPES should contain("tesseract-sponge-2")
-    ObjectType.HYPERCUBE_TYPES.size shouldBe 3
+  "ObjectType.PROJECTED_4D_TYPES" should "contain all 4D types" in:
+    ObjectType.PROJECTED_4D_TYPES should contain("tesseract")
+    ObjectType.PROJECTED_4D_TYPES should contain("tesseract-sponge")
+    ObjectType.PROJECTED_4D_TYPES should contain("tesseract-sponge-2")
+    ObjectType.PROJECTED_4D_TYPES.size shouldBe 3
