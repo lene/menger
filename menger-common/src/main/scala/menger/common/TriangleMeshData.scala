@@ -17,8 +17,8 @@ case class TriangleMeshData(
     vertexStride: Int = TriangleMeshData.DefaultVertexStride
 ):
   require(
-    vertexStride == 6 || vertexStride == 8,
-    s"Vertex stride must be 6 (pos+normal) or 8 (pos+normal+uv), got $vertexStride"
+    vertexStride == 6 || vertexStride == 8 || vertexStride == 9,
+    s"Vertex stride must be 6 (pos+normal), 8 (pos+normal+uv), or 9 (pos+normal+uv+alpha), got $vertexStride"
   )
   require(
     vertices.isEmpty || vertices.length % vertexStride == 0,
@@ -39,6 +39,9 @@ object TriangleMeshData:
 
   /** Legacy vertex stride without UV coordinates (position + normal = 6 floats) */
   val LegacyVertexStride: Int = 6
+
+  /** Extended vertex stride with per-vertex alpha (position + normal + UV + alpha = 9 floats) */
+  val VertexStrideWithAlpha: Int = 9
 
   val empty: TriangleMeshData = TriangleMeshData(Array.emptyFloatArray, Array.emptyIntArray, 6)
 

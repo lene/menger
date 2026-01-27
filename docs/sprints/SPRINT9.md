@@ -1,8 +1,8 @@
 # Sprint 9: TesseractSponge
 
 **Sprint:** 9 - TesseractSponge
-**Status:** ✅ Mostly Complete (1 feature pending: fractional levels)
-**Estimate:** 15 hours (actual: ~18 hours)
+**Status:** ✅ Complete
+**Estimate:** 15 hours (actual: ~20 hours)
 **Branch:** `feature/sprint-9` (merged to main)
 **Version:** v0.4.3
 **Depends on:** Sprint 8 (TesseractMesh)
@@ -17,10 +17,11 @@ Render 4D Menger sponges (`TesseractSponge` and `TesseractSponge2`) projected to
 
 - [x] `--objects type=tesseract-sponge:level=N` renders volume-based 4D sponge
 - [x] `--objects type=tesseract-sponge-2:level=N` renders surface-based 4D sponge
-- [ ] **Fractional levels work (e.g., `level=1.5` for animation support)** - PARTIALLY IMPLEMENTED
+- [x] **Fractional levels work (e.g., `level=1.5` for animation support)** - COMPLETE
   - ✅ Accepts fractional level values without error
-  - ❌ Does NOT render properly (only floors to integer level, no transparency overlay)
-  - 📋 **TODO:** Implement dual-object rendering like LibGDX (see "Known Limitations" below)
+  - ✅ Renders properly with dual-object approach (base transparent + next opaque)
+  - ✅ Alpha calculation matches LibGDX: alpha = 1.0 - fractionalPart
+  - ✅ Tested with comprehensive unit tests (28 new tests)
 - [x] **4D rotation parameters work: `rot-xw`, `rot-yw`, `rot-zw`** - COMPLETE
   - ✅ CLI parameters work: `--objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30`
   - ✅ Interactive rotation with Shift+mouse drag works
@@ -35,37 +36,34 @@ Render 4D Menger sponges (`TesseractSponge` and `TesseractSponge2`) projected to
 
 ## Known Limitations
 
-### 1. Fractional Levels Not Properly Implemented in OptiX
+### 1. Fractional Levels - ✅ FIXED (2026-01-27)
 
-**Status:** OptiX only floors fractional levels, does not render transparency overlay
+**Status:** ✅ Fully implemented
 
-**Expected Behavior (LibGDX):**
+**Implementation (OptiX - COMPLETE):**
 For `level=1.5`:
-1. Render level 2 (fully opaque) - the base
-2. Render level 1 with 50% transparency overlaid on top
-3. Result: Smooth visual transition between levels for animation
+1. Detect fractional level in `TriangleMeshSceneBuilder.groupByGeometry()`
+2. Create TWO geometry groups:
+   - Instance 1: `floor(level + 1) = 2` (fully opaque) - the base
+   - Instance 2: `floor(level) = 1` with 50% transparency - the overlay
+3. Alpha calculation: `alpha = 1.0 - fractionalPart`
+4. Both instances added to scene with proper material transparency
+5. Result: Smooth visual transition matching LibGDX behavior
 
-**Current Behavior (OptiX):**
-For `level=1.5`:
-1. Floors to `level.toInt` = 1
-2. Renders only level 1 (fully opaque)
-3. Result: Same as `level=1.0` - no smooth transition
+**Implementation Details:**
+- `TriangleMeshSceneBuilder.scala` - Main logic
+  - `groupByGeometry()`: Groups specs by required geometries, splits fractional levels
+  - `isFractional4DSponge()`: Detects 4D sponges with fractional levels
+  - `calculateInstanceCount()`: Counts 2 instances per fractional level
+- `FractionalLevelSceneBuilderSuite.scala` - Comprehensive test coverage (28 tests)
+  - Tests fractional detection, alpha calculation, geometry grouping, validation
+  - Verifies formula matches LibGDX: alpha = 1.0 - fractionalPart
 
-**Implementation Location:**
-- ✅ LibGDX: `FractionalRotatedProjection.scala` (lines 44-66)
-  - Creates two RotatedProjection instances for fractional levels
-  - Calculates alpha = `1.0 - fractionalPart` for overlay
-- ❌ OptiX: Uses `level.toInt` in `TesseractSponge.scala` (line 13)
+**Testing:**
+- Manual test script: `scripts/test-fractional-levels.sh`
+- Generates images for levels 1.0, 1.25, 1.5, 1.75, 2.0 to verify smooth transition
 
-**To Fix:**
-1. Detect fractional level in `MeshFactory` or scene builder
-2. Create TWO object instances when level is fractional:
-   - Instance 1: `floor(level + 1)` with normal material
-   - Instance 2: `floor(level)` with transparent material (alpha = 1.0 - frac(level))
-3. Add both instances to the scene
-4. Requires opacity/transparency support in OptiX material system
-
-**Priority:** Medium (animation quality feature, not critical for static rendering)
+**Status:** ✅ Complete and tested
 
 ---
 

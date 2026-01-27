@@ -34,48 +34,61 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
-    else if specs.length > maxInstances then
-      Left(s"Too many objects: ${specs.length} exceeds max instances limit of $maxInstances. " +
-        "Use --max-instances to increase the limit.")
     else if !specs.forall(isTriangleMeshType) then
       Left("All objects must be triangle mesh types (cube, sponge-*, tesseract)")
     else
-      // Check compatibility - all specs must be compatible with first spec
-      val firstSpec = specs.head
-      specs.find(!isCompatible(_, firstSpec)) match
-        case Some(incompatible) =>
-          Left(s"Incompatible mesh types or parameters: ${firstSpec.objectType} vs ${incompatible.objectType}. " +
-            "All triangle mesh objects must be the same type with matching parameters.")
-        case None =>
-          Right(())
+      // Check instance count (accounting for fractional levels creating 2 instances)
+      val instanceCount = calculateInstanceCount(specs)
+      if instanceCount > maxInstances then
+        Left(s"Too many instances: $instanceCount exceeds max instances limit of $maxInstances. " +
+          s"(${specs.length} specs, some with fractional levels). " +
+          "Use --max-instances to increase the limit.")
+      else
+        // Check compatibility - all specs must be compatible with first spec
+        val firstSpec = specs.head
+        specs.find(!isCompatible(_, firstSpec)) match
+          case Some(incompatible) =>
+            Left(s"Incompatible mesh types or parameters: ${firstSpec.objectType} vs ${incompatible.objectType}. " +
+              "All triangle mesh objects must be the same type with matching parameters.")
+          case None =>
+            Right(())
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
-    logger.debug(s"Setting up ${specs.length} triangle mesh instances")
+    logger.debug(s"Setting up triangle mesh instances for ${specs.length} specs")
 
-    // Create shared base geometry
-    val firstSpec = specs.head
-    val mesh = MeshFactory.create(firstSpec)
-    renderer.setTriangleMesh(mesh)
-
-    // Load textures
+    // Load textures once
     val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
 
-    // Add instances
-    specs.foreach { spec =>
-      val material = MaterialExtractor.extract(spec)
-      val position = Vector[3](spec.x, spec.y, spec.z)
+    // Group specs by their required base geometries
+    // For fractional 4D sponges, we need both floor(level) and floor(level+1)
+    // For everything else, we need just the spec itself
+    val geometryGroups = groupByGeometry(specs)
 
-      // Get texture index if this spec has a texture
-      val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
+    // Process each geometry group
+    geometryGroups.foreach { case (geomSpec, instanceSpecs) =>
+      logger.debug(s"Setting up geometry for ${geomSpec.objectType} level=${geomSpec.level}")
+      val mesh = MeshFactory.create(geomSpec)
+      renderer.setTriangleMesh(mesh)
 
-      val instanceId = renderer.addTriangleMeshInstance(position, material, textureIndex)
+      // Add all instances that use this geometry
+      instanceSpecs.foreach { case (spec, alpha) =>
+        val position = Vector[3](spec.x, spec.y, spec.z)
+        val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
+        val baseMaterial = MaterialExtractor.extract(spec)
+        val material = if alpha < 1.0f then
+          baseMaterial.copy(color = baseMaterial.color.copy(a = alpha))
+        else
+          baseMaterial
 
-      instanceId match
-        case Some(id) =>
-          val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
-          logger.debug(s"Added ${spec.objectType} instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), material=$material$textureInfo")
-        case None =>
-          logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
+        val instanceId = renderer.addTriangleMeshInstance(position, material, textureIndex)
+        instanceId match
+          case Some(id) =>
+            val alphaInfo = if alpha < 1.0f then f", alpha=$alpha%.2f" else ""
+            val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
+            logger.debug(s"Added ${spec.objectType} instance $id (level=${geomSpec.level}) at position=(${spec.x}, ${spec.y}, ${spec.z})$alphaInfo$textureInfo")
+          case None =>
+            logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
+      }
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
@@ -86,19 +99,31 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
       case (t1, t2) if t1 == t2 =>
         // Same type - check if parameters match
         if ObjectType.isSponge(t1) then
-          // Sponges must have same level
+          // 3D sponges: Must have same level (shared geometry)
           (spec1.level, spec2.level) match
             case (Some(l1), Some(l2)) => l1 == l2
             case _ => false  // Missing level
+        else if ObjectType.is4DSponge(t1) then
+          // 4D sponges: Compatible if both have levels (any levels ok)
+          // Different levels and fractional levels handled via multiple geometries
+          (spec1.level, spec2.level) match
+            case (Some(_), Some(_)) => matchingProjectionParams(spec1, spec2)
+            case _ => false  // Missing level
         else if ObjectType.isProjected4D(t1) then
-          // 4D objects must have matching projection parameters
+          // Other 4D objects (tesseract): must have matching projection parameters
           matchingProjectionParams(spec1, spec2)
         else
           true  // Other types (cube) always compatible with same type
 
       // Allow mixing different 4D projected types if projection params match
       case (t1, t2) if ObjectType.isProjected4D(t1) && ObjectType.isProjected4D(t2) =>
-        matchingProjectionParams(spec1, spec2)
+        // Both must have levels if they're sponges
+        val levelsOk = (ObjectType.is4DSponge(t1), ObjectType.is4DSponge(t2)) match
+          case (true, true) => spec1.level.isDefined && spec2.level.isDefined
+          case (true, false) => spec1.level.isDefined
+          case (false, true) => spec2.level.isDefined
+          case (false, false) => true
+        levelsOk && matchingProjectionParams(spec1, spec2)
 
       case _ => false  // Different types
 
@@ -108,7 +133,70 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
     p1 == p2
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
-    specs.length.toLong
+    specs.map { spec =>
+      if isFractional4DSponge(spec) then 2L else 1L
+    }.sum
 
   private def isTriangleMeshType(spec: ObjectSpec): Boolean =
     spec.objectType == "cube" || ObjectType.isSponge(spec.objectType) || ObjectType.isProjected4D(spec.objectType)
+
+  /**
+   * Check if a spec is a 4D sponge with fractional level.
+   */
+  private def isFractional4DSponge(spec: ObjectSpec): Boolean =
+    ObjectType.is4DSponge(spec.objectType) && spec.level.exists(isFractional)
+
+  /**
+   * Check if a level value has a fractional component.
+   */
+  private def isFractional(level: Float): Boolean =
+    level != level.floor
+
+  /**
+   * Group specs by their required base geometries.
+   *
+   * For fractional 4D sponges (e.g., level=1.5):
+   * - Creates TWO geometry entries:
+   *   1. floor(level+1) = 2 with original spec and alpha=1.0 (opaque base)
+   *   2. floor(level) = 1 with original spec and alpha=1.0-frac (transparent overlay)
+   *
+   * For integer levels or non-sponges:
+   * - Creates ONE geometry entry with alpha=1.0
+   *
+   * Returns: Map[geomSpec -> List[(instanceSpec, alpha)]]
+   * - geomSpec: Spec with integer level for creating base geometry
+   * - instanceSpec: Original spec for position/material
+   * - alpha: Transparency value for this instance
+   */
+  private def groupByGeometry(specs: List[ObjectSpec]): Map[ObjectSpec, List[(ObjectSpec, Float)]] =
+    val groups = scala.collection.mutable.Map[ObjectSpec, List[(ObjectSpec, Float)]]()
+
+    specs.foreach { spec =>
+      if isFractional4DSponge(spec) then
+        val level = spec.level.get
+        val fractionalPart = level - level.floor
+        val alpha = 1.0f - fractionalPart
+
+        // Next level (fully opaque)
+        val nextLevelSpec = spec.copy(level = Some((level + 1).floor))
+        val nextKey = geometryKey(nextLevelSpec)
+        groups(nextKey) = groups.getOrElse(nextKey, Nil) :+ (spec, 1.0f)
+
+        // Current level (transparent overlay)
+        val currentLevelSpec = spec.copy(level = Some(level.floor))
+        val currentKey = geometryKey(currentLevelSpec)
+        groups(currentKey) = groups.getOrElse(currentKey, Nil) :+ (spec, alpha)
+      else
+        // Integer level or non-sponge
+        val key = geometryKey(spec)
+        groups(key) = groups.getOrElse(key, Nil) :+ (spec, 1.0f)
+    }
+
+    groups.toMap
+
+  /**
+   * Create a normalized geometry key for grouping.
+   * Strips position and material info, keeping only geometry-defining parameters.
+   */
+  private def geometryKey(spec: ObjectSpec): ObjectSpec =
+    spec.copy(x = 0f, y = 0f, z = 0f, color = None, material = None, texture = None)
