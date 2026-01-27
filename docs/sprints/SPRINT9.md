@@ -1,9 +1,10 @@
 # Sprint 9: TesseractSponge
 
 **Sprint:** 9 - TesseractSponge
-**Status:** Not Started
-**Estimate:** 15 hours
-**Branch:** `feature/sprint-9`
+**Status:** ✅ Mostly Complete (2 features pending: fractional levels, Shift+arrow rotation)
+**Estimate:** 15 hours (actual: ~18 hours)
+**Branch:** `feature/sprint-9` (merged to main)
+**Version:** v0.4.3
 **Depends on:** Sprint 8 (TesseractMesh)
 
 ---
@@ -14,15 +15,97 @@ Render 4D Menger sponges (`TesseractSponge` and `TesseractSponge2`) projected to
 
 ## Success Criteria
 
-- [ ] `--objects type=tesseract-sponge:level=N` renders volume-based 4D sponge
-- [ ] `--objects type=tesseract-sponge-2:level=N` renders surface-based 4D sponge
-- [ ] Fractional levels work (e.g., `level=1.5` for animation support)
-- [ ] 4D rotation parameters work: `rot-xw`, `rot-yw`, `rot-zw`
-- [ ] Materials work on sponges (glass, chrome, etc.)
-- [ ] Level limits enforced with warnings (level 3/4 max)
-- [ ] Edge rendering works with 4D sponges: `edge-material`, `edge-radius`
-- [ ] Mixed 4D/3D scenes render correctly
-- [ ] All tests pass (~40 new tests)
+- [x] `--objects type=tesseract-sponge:level=N` renders volume-based 4D sponge
+- [x] `--objects type=tesseract-sponge-2:level=N` renders surface-based 4D sponge
+- [ ] **Fractional levels work (e.g., `level=1.5` for animation support)** - PARTIALLY IMPLEMENTED
+  - ✅ Accepts fractional level values without error
+  - ❌ Does NOT render properly (only floors to integer level, no transparency overlay)
+  - 📋 **TODO:** Implement dual-object rendering like LibGDX (see "Known Limitations" below)
+- [ ] **4D rotation parameters work: `rot-xw`, `rot-yw`, `rot-zw`** - PARTIALLY IMPLEMENTED
+  - ✅ CLI parameters work: `--objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30`
+  - ✅ Interactive rotation with Shift+mouse drag works
+  - ❌ Interactive rotation with Shift+arrow keys does NOT work
+  - 📋 **TODO:** Call `keyHandler.update(deltaTime)` in render loop (see "Known Limitations" below)
+- [x] Materials work on sponges (glass, chrome, etc.)
+- [x] Level limits enforced with warnings (level 3/4 max)
+- [x] Edge rendering works with 4D sponges: `edge-material`, `edge-radius`
+- [x] Mixed 4D/3D scenes render correctly
+- [x] All tests pass (1,274 total, 184 for TesseractSponge)
+
+---
+
+## Known Limitations
+
+### 1. Fractional Levels Not Properly Implemented in OptiX
+
+**Status:** OptiX only floors fractional levels, does not render transparency overlay
+
+**Expected Behavior (LibGDX):**
+For `level=1.5`:
+1. Render level 2 (fully opaque) - the base
+2. Render level 1 with 50% transparency overlaid on top
+3. Result: Smooth visual transition between levels for animation
+
+**Current Behavior (OptiX):**
+For `level=1.5`:
+1. Floors to `level.toInt` = 1
+2. Renders only level 1 (fully opaque)
+3. Result: Same as `level=1.0` - no smooth transition
+
+**Implementation Location:**
+- ✅ LibGDX: `FractionalRotatedProjection.scala` (lines 44-66)
+  - Creates two RotatedProjection instances for fractional levels
+  - Calculates alpha = `1.0 - fractionalPart` for overlay
+- ❌ OptiX: Uses `level.toInt` in `TesseractSponge.scala` (line 13)
+
+**To Fix:**
+1. Detect fractional level in `MeshFactory` or scene builder
+2. Create TWO object instances when level is fractional:
+   - Instance 1: `floor(level + 1)` with normal material
+   - Instance 2: `floor(level)` with transparent material (alpha = 1.0 - frac(level))
+3. Add both instances to the scene
+4. Requires opacity/transparency support in OptiX material system
+
+**Priority:** Medium (animation quality feature, not critical for static rendering)
+
+---
+
+### 2. 4D Rotation with Shift+Arrow Keys Not Working
+
+**Status:** Keyboard handler exists but `update()` method never called in render loop
+
+**Expected Behavior:**
+- User holds Shift + Left/Right/Up/Down/PageUp/PageDown
+- OptiXKeyHandler.update() checks pressed keys each frame
+- Dispatches rotation events to rotate 4D objects
+
+**Current Behavior:**
+- Shift + arrow keys do nothing
+- Only Shift + mouse drag works for 4D rotation
+
+**Root Cause:**
+- `OptiXKeyHandler.update(deltaTime)` is never called in `OptiXEngine.render()` (line 407+)
+- The handler tracks key presses correctly (lines 46-51)
+- But without calling `update()`, the rotation logic never executes (lines 57-71)
+
+**Implementation Location:**
+- ✅ Handler code exists: `OptiXKeyHandler.scala` (lines 57-81)
+- ❌ Not hooked up: `OptiXEngine.render()` never calls `keyHandler.update()`
+
+**To Fix:**
+```scala
+// In OptiXEngine.scala, render() method:
+override def render(): Unit =
+  Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+
+  // Add this line:
+  keyHandler.update(Gdx.graphics.getDeltaTime)
+
+  val width = Gdx.graphics.getWidth
+  // ... rest of render method
+```
+
+**Priority:** High (interactive feature regression, should work like mouse)
 
 ---
 

@@ -5,7 +5,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 
 - fix PushToGithub (see https://gitlab.com/lilacashes/menger/-/jobs/12865767482)
 - find better names for sponge-2 and tesseract-sponge-2
-- validate tesseract spnge generation from surfaces by repeating it with cubes. same result?
+- validate tesseract sponge generation from surfaces by repeating it with cubes. same result?
 - parchment has an ior, it shouldn't. instead it should attenuate light like... well, parchment
 - ior (and maybe others) are both part of ObjectSpec and separate CLI parameter - redundant
 - texture/material for plane
@@ -24,7 +24,12 @@ Quick notes and ideas captured during development. Review periodically and promo
 - ~~4D and 3D objects in a scene together~~ → **Sprint 9.10 (verification)**
 - 4D camera distance with shift mouse wheel → **Deferred to Sprint 10 or 11**
 - examples for mixed-metallic (0 < metallic < 1) materials
-- ~~fractional sponges in OptiX~~ → **Sprint 9 (included in core implementation)**
+- fractional sponges in OptiX → **Sprint 9 INCOMPLETE** - only floors level, missing transparency overlay
+  - Need to implement dual-object rendering: level L+1 (opaque) + level L (transparent)
+  - See `FractionalRotatedProjection.scala` for LibGDX reference implementation
+- 4D rotation with Shift+arrow keys → **Sprint 9 INCOMPLETE** - handler exists but not called
+  - Fix: add `keyHandler.update(Gdx.graphics.getDeltaTime)` to `OptiXEngine.render()`
+  - Shift+mouse drag works, only keyboard is broken
 - parametrized surfaces in 3D and 4D
 - multiple planes, as well as zero
 - Rounded edges on cubes/sponges
