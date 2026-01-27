@@ -27,9 +27,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 - fractional sponges in OptiX → **Sprint 9 INCOMPLETE** - only floors level, missing transparency overlay
   - Need to implement dual-object rendering: level L+1 (opaque) + level L (transparent)
   - See `FractionalRotatedProjection.scala` for LibGDX reference implementation
-- 4D rotation with Shift+arrow keys → **Sprint 9 INCOMPLETE** - handler exists but not called
-  - Fix: add `keyHandler.update(Gdx.graphics.getDeltaTime)` to `OptiXEngine.render()`
-  - Shift+mouse drag works, only keyboard is broken
+- ~~4D rotation with Shift+arrow keys~~ → **FIXED** - added keyHandler.update() call in render loop
 - parametrized surfaces in 3D and 4D
 - multiple planes, as well as zero
 - Rounded edges on cubes/sponges

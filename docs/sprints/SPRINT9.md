@@ -1,7 +1,7 @@
 # Sprint 9: TesseractSponge
 
 **Sprint:** 9 - TesseractSponge
-**Status:** ✅ Mostly Complete (2 features pending: fractional levels, Shift+arrow rotation)
+**Status:** ✅ Mostly Complete (1 feature pending: fractional levels)
 **Estimate:** 15 hours (actual: ~18 hours)
 **Branch:** `feature/sprint-9` (merged to main)
 **Version:** v0.4.3
@@ -21,11 +21,10 @@ Render 4D Menger sponges (`TesseractSponge` and `TesseractSponge2`) projected to
   - ✅ Accepts fractional level values without error
   - ❌ Does NOT render properly (only floors to integer level, no transparency overlay)
   - 📋 **TODO:** Implement dual-object rendering like LibGDX (see "Known Limitations" below)
-- [ ] **4D rotation parameters work: `rot-xw`, `rot-yw`, `rot-zw`** - PARTIALLY IMPLEMENTED
+- [x] **4D rotation parameters work: `rot-xw`, `rot-yw`, `rot-zw`** - COMPLETE
   - ✅ CLI parameters work: `--objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30`
   - ✅ Interactive rotation with Shift+mouse drag works
-  - ❌ Interactive rotation with Shift+arrow keys does NOT work
-  - 📋 **TODO:** Call `keyHandler.update(deltaTime)` in render loop (see "Known Limitations" below)
+  - ✅ Interactive rotation with Shift+arrow keys works (fixed: keyHandler.update() now called)
 - [x] Materials work on sponges (glass, chrome, etc.)
 - [x] Level limits enforced with warnings (level 3/4 max)
 - [x] Edge rendering works with 4D sponges: `edge-material`, `edge-radius`
@@ -70,42 +69,34 @@ For `level=1.5`:
 
 ---
 
-### 2. 4D Rotation with Shift+Arrow Keys Not Working
+### 2. 4D Rotation with Shift+Arrow Keys - ✅ FIXED
 
-**Status:** Keyboard handler exists but `update()` method never called in render loop
+**Status:** ✅ FIXED (commit 2026-01-27)
 
-**Expected Behavior:**
-- User holds Shift + Left/Right/Up/Down/PageUp/PageDown
-- OptiXKeyHandler.update() checks pressed keys each frame
-- Dispatches rotation events to rotate 4D objects
+**What was wrong:**
+- `OptiXKeyHandler.update(deltaTime)` was never called in `OptiXEngine.render()`
+- Handler tracked key presses correctly but rotation logic never executed
 
-**Current Behavior:**
-- Shift + arrow keys do nothing
-- Only Shift + mouse drag works for 4D rotation
+**The fix:**
+- Added `keyHandler` field using `AtomicReference[Option[OptiXKeyHandler]]` (no var, no wartremover warnings)
+- Store handler in `finalizeCreate()`: `keyHandler.set(Some(handler))`
+- Call update in `render()`: `keyHandler.get().foreach(_.update(Gdx.graphics.getDeltaTime))`
 
-**Root Cause:**
-- `OptiXKeyHandler.update(deltaTime)` is never called in `OptiXEngine.render()` (line 407+)
-- The handler tracks key presses correctly (lines 46-51)
-- But without calling `update()`, the rotation logic never executes (lines 57-71)
+**Implementation:**
+- `OptiXEngine.scala` line 74: Field declaration
+- `OptiXEngine.scala` line 331: Handler initialization
+- `OptiXEngine.scala` line 416: Update call in render loop
 
-**Implementation Location:**
-- ✅ Handler code exists: `OptiXKeyHandler.scala` (lines 57-81)
-- ❌ Not hooked up: `OptiXEngine.render()` never calls `keyHandler.update()`
+**Verified:** All 1,274 tests pass
 
-**To Fix:**
-```scala
-// In OptiXEngine.scala, render() method:
-override def render(): Unit =
-  Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
-
-  // Add this line:
-  keyHandler.update(Gdx.graphics.getDeltaTime)
-
-  val width = Gdx.graphics.getWidth
-  // ... rest of render method
+**Usage:**
+```bash
+# Now works: Hold Shift + arrow keys to rotate 4D objects
+./menger-app -o --objects type=tesseract-sponge:level=1
+# Shift+Left/Right: rotYW
+# Shift+Up/Down: rotXW
+# Shift+PageUp/PageDown: rotZW
 ```
-
-**Priority:** High (interactive feature regression, should work like mouse)
 
 ---
 

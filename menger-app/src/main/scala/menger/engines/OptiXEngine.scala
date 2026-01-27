@@ -69,6 +69,10 @@ class OptiXEngine(
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var currentObjectSpecs: Option[List[ObjectSpec]] = Some(objectSpecs)
 
+  // Keyboard handler for 4D rotation (initialized in finalizeCreate)
+  // Using AtomicReference to avoid var
+  private val keyHandler = new java.util.concurrent.atomic.AtomicReference[Option[OptiXKeyHandler]](None)
+
   // Track if we have 4D projected objects (need rebuild on rotation)
   private lazy val has4DObjects: Boolean =
     currentObjectSpecs.exists(_.exists(spec => ObjectType.isProjected4D(spec.objectType)))
@@ -323,8 +327,9 @@ class OptiXEngine(
 
   private def finalizeCreate(): Unit =
     // Register input multiplexer for mouse-based camera control and keyboard shortcuts
-    val keyHandler = OptiXKeyHandler(eventDispatcher)
-    Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController, keyHandler))
+    val handler = OptiXKeyHandler(eventDispatcher)
+    keyHandler.set(Some(handler))
+    Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController, handler))
 
     // Disable continuous rendering - we'll request renders only when needed
     Gdx.graphics.setContinuousRendering(false)
@@ -406,6 +411,9 @@ class OptiXEngine(
 
   override def render(): Unit =
     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+
+    // Update keyboard handler for 4D rotation (Shift+arrow keys)
+    keyHandler.get().foreach(_.update(Gdx.graphics.getDeltaTime))
 
     val width = Gdx.graphics.getWidth
     val height = Gdx.graphics.getHeight
