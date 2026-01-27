@@ -254,6 +254,34 @@ test_tesseract() {
         --objects type=tesseract:pos=1,0,0:size=0.5
 }
 
+test_4d_sponges() {
+    echo "4D Menger Sponges:"
+    run_test "tesseract-sponge level 0" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=0:pos=0,0,0:size=0.8
+    run_test "tesseract-sponge level 1" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=1:pos=0,0,0:size=0.8
+    run_test "tesseract-sponge-2 level 0" --optix --plane y:-2 \
+        --objects type=tesseract-sponge-2:level=0:pos=0,0,0:size=0.8
+    run_test "tesseract-sponge-2 level 1" --optix --plane y:-2 \
+        --objects type=tesseract-sponge-2:level=1:pos=0,0,0:size=0.8
+    run_test "tesseract-sponge with rotation" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30:size=0.8
+    run_test "tesseract-sponge with material" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=1:material=glass:size=0.8
+    run_test "tesseract-sponge-2 with color" --optix --plane y:-2 \
+        --objects type=tesseract-sponge-2:level=1:color=#FF4488:size=0.8
+    run_test "tesseract-sponge with edges" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=1:edge-material=chrome:edge-radius=0.015:size=0.8
+    run_test "mixed 4D sponge + tesseract" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=1:pos=-1.5,0,0:size=0.5 \
+        --objects type=tesseract:pos=1.5,0,0:size=0.5
+    run_test "mixed 4D sponge + 3D sphere" --optix --plane y:-2 \
+        --objects type=tesseract-sponge-2:level=1:pos=-1.5,0,0:size=0.5 \
+        --objects type=sphere:pos=1.5,0,0:size=0.5
+    run_test "fractional level (truncates)" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=0.5:size=0.8
+}
+
 test_file_output() {
     echo "File Output:"
     run_test_with_output "save PNG" "test_output.png" \
@@ -285,6 +313,12 @@ test_error_handling() {
         --optix --objects type=sphere:pos=0,0,0:size=0.5:material=unobtanium --plane y:-2
     run_test_should_fail "tesseract invalid eye-w <= screen-w" \
         --optix --objects type=tesseract:eye-w=1.0:screen-w=2.0 --plane y:-2
+    run_test_should_fail "tesseract-sponge missing level" \
+        --optix --objects type=tesseract-sponge:pos=0,0,0 --plane y:-2
+    run_test_should_fail "tesseract-sponge-2 missing level" \
+        --optix --objects type=tesseract-sponge-2:pos=0,0,0 --plane y:-2
+    run_test_should_fail "tesseract-sponge negative level" \
+        --optix --objects type=tesseract-sponge:level=-1 --plane y:-2
     run_test_should_fail "headless with timeout" \
         --optix --objects type=sphere --headless --save-name test.png --timeout 5 --plane y:-2
 }
@@ -307,6 +341,7 @@ main() {
     test_textures
     test_caustics
     test_tesseract
+    test_4d_sponges
     test_file_output
     test_headless
     test_error_handling

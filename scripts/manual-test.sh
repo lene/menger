@@ -146,14 +146,29 @@ run_test "Film sphere" "-o --objects type=sphere:material=film -s $OUTPUT_DIR/43
 run_test "Parchment cube" "-o --objects type=cube:material=parchment -s $OUTPUT_DIR/44-parchment-cube.png"
 run_test "Film with emission" "-o --objects type=sphere:material=film:emission=3.0 -s $OUTPUT_DIR/45-film-emissive.png"
 
+# 4D Menger Sponges
+echo -e "${YELLOW}--- 4D Menger Sponges ---${NC}"
+run_test "TesseractSponge Level 0" "-o --objects type=tesseract-sponge:level=0 -s $OUTPUT_DIR/46-tesseract-sponge-l0.png"
+run_test "TesseractSponge Level 1" "-o --objects type=tesseract-sponge:level=1 -s $OUTPUT_DIR/47-tesseract-sponge-l1.png"
+run_test "TesseractSponge2 Level 1" "-o --objects type=tesseract-sponge-2:level=1 -s $OUTPUT_DIR/48-tesseract-sponge2-l1.png"
+run_test "TesseractSponge2 Level 2" "-o --objects type=tesseract-sponge-2:level=2 -s $OUTPUT_DIR/49-tesseract-sponge2-l2.png"
+run_test "TesseractSponge (rotated)" "-o --objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30 -s $OUTPUT_DIR/50-tesseract-sponge-rot.png"
+run_test "TesseractSponge (glass)" "-o --objects type=tesseract-sponge:level=1:material=glass -s $OUTPUT_DIR/51-tesseract-sponge-glass.png"
+run_test "TesseractSponge2 (chrome)" "-o --objects type=tesseract-sponge-2:level=1:material=chrome -s $OUTPUT_DIR/52-tesseract-sponge2-chrome.png"
+run_test "TesseractSponge with chrome edges" "-o --objects type=tesseract-sponge:level=1:edge-material=chrome:edge-radius=0.015 -s $OUTPUT_DIR/53-tesseract-sponge-edges.png"
+run_test "TesseractSponge2 glass + gold edges" "-o --objects type=tesseract-sponge-2:level=1:material=glass:edge-material=gold:edge-radius=0.02 -s $OUTPUT_DIR/54-tesseract-sponge2-glass-gold.png"
+run_test "Mixed 4D sponges" "-o --objects type=tesseract-sponge:level=1:pos=-1.5,0,0:color=#FF4444 --objects type=tesseract-sponge-2:level=1:pos=1.5,0,0:color=#44FF44 -s $OUTPUT_DIR/55-mixed-4d-sponges.png"
+run_test "4D sponge + 3D sphere" "-o --objects type=tesseract-sponge-2:level=1:pos=-1.5,0,0:material=glass --objects type=sphere:pos=1.5,0,0:material=chrome -s $OUTPUT_DIR/56-4d-sponge-3d-sphere.png"
+
 # Caustics
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
-run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/46-caustics.png"
+run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/57-caustics.png"
 
 # Showcase
 echo -e "${YELLOW}--- Showcase ---${NC}"
-run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/47-showcase.png"
-run_test "Tesseract Showcase (glass with emissive edges)" "-o --objects type=tesseract:material=glass:edge-color=#00ffff:edge-emission=5.0:edge-radius=0.025:rot-xw=20:rot-yw=15 --antialiasing --shadows --width 1920 --height 1080 -s $OUTPUT_DIR/48-tesseract-showcase.png"
+run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/58-showcase.png"
+run_test "Tesseract Showcase (glass with emissive edges)" "-o --objects type=tesseract:material=glass:edge-color=#00ffff:edge-emission=5.0:edge-radius=0.025:rot-xw=20:rot-yw=15 --antialiasing --shadows --width 1920 --height 1080 -s $OUTPUT_DIR/59-tesseract-showcase.png"
+run_test "4D Sponge Showcase (glass with edges)" "-o --objects type=tesseract-sponge-2:level=2:material=glass:edge-material=chrome:edge-radius=0.015:rot-xw=30:rot-yw=20 --antialiasing --shadows --width 1920 --height 1080 -s $OUTPUT_DIR/60-tesseract-sponge-showcase.png"
 
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
@@ -196,6 +211,16 @@ interactive_tests=(
     "Tesseract glass + gold edges:-o --objects type=tesseract:material=glass:edge-material=gold:edge-radius=0.025"
     "Tesseract film + magenta glow:-o --objects type=tesseract:material=film:edge-color=#ff00ff:edge-emission=5.0:edge-radius=0.03"
     "Tesseract rotated with edges:-o --objects type=tesseract:rot-xw=45:rot-yw=30:edge-material=chrome:edge-radius=0.02"
+    "TesseractSponge L1 (4D Menger):-o --objects type=tesseract-sponge:level=1"
+    "TesseractSponge L1 rotated:-o --objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30"
+    "TesseractSponge L1 glass:-o --objects type=tesseract-sponge:level=1:material=glass"
+    "TesseractSponge2 L1 (surface 4D):-o --objects type=tesseract-sponge-2:level=1"
+    "TesseractSponge2 L2:-o --objects type=tesseract-sponge-2:level=2"
+    "TesseractSponge2 L1 chrome:-o --objects type=tesseract-sponge-2:level=1:material=chrome"
+    "TesseractSponge L1 + chrome edges:-o --objects type=tesseract-sponge:level=1:edge-material=chrome:edge-radius=0.015"
+    "TesseractSponge2 glass + gold edges:-o --objects type=tesseract-sponge-2:level=1:material=glass:edge-material=gold:edge-radius=0.02"
+    "Mixed 4D sponges (red+green):-o --objects type=tesseract-sponge:level=1:pos=-1.5,0,0:color=#ff4444 --objects type=tesseract-sponge-2:level=1:pos=1.5,0,0:color=#44ff44"
+    "4D sponge + 3D sphere:-o --objects type=tesseract-sponge-2:level=1:pos=-1.5,0,0:material=glass --objects type=sphere:pos=1.5,0,0:material=chrome"
     "Colored lights:-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff"
     "Checkered plane:-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000"
 )
