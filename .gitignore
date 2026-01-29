@@ -18,7 +18,12 @@ local.sbt
 # generated pictures
 *.png
 !scripts/test-assets/*.png
+!scripts/reference-images/*.png
 *.ppm
+
+# test output directories
+scripts/test-output/
+scripts/test-diffs/
 
 # object files
 *.o

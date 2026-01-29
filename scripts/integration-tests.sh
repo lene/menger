@@ -1,51 +1,164 @@
 #!/bin/bash
 # Integration tests for Menger OptiX renderer
-# Usage: ./scripts/integration-tests.sh <menger-binary-path>
+# Usage: ./scripts/integration-tests.sh <menger-binary-path> [--update-references]
 #
 # Runs comprehensive integration tests and prints summary.
 # Exit code: 0 if all pass, 1 if any fail.
+#
+# Options:
+#   --update-references  Regenerate reference images instead of comparing
 
-MENGER_BIN="$1"
+# Parse arguments
+UPDATE_REFERENCES=false
+MENGER_BIN=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --update-references)
+            UPDATE_REFERENCES=true
+            shift
+            ;;
+        *)
+            MENGER_BIN="$1"
+            shift
+            ;;
+    esac
+done
+
 if [ -z "$MENGER_BIN" ] || [ ! -x "$MENGER_BIN" ]; then
-    echo "Usage: $0 <menger-binary-path>"
+    echo "Usage: $0 <menger-binary-path> [--update-references]"
     exit 1
 fi
 
 # Configuration
 DEFAULT_TIMEOUT=0.1
 CAUSTICS_TIMEOUT=1.0
-TEST_ASSETS_DIR="$(dirname "$0")/test-assets"
+SCRIPT_DIR="$(dirname "$0")"
+TEST_ASSETS_DIR="$SCRIPT_DIR/test-assets"
+REFERENCE_DIR="$SCRIPT_DIR/reference-images"
+DIFF_DIR="$SCRIPT_DIR/test-diffs"
+IMAGE_DIFF_THRESHOLD=0.001  # 0.1% pixel difference tolerance
 
 # Test tracking
 PASSED=0
 FAILED=0
 FAILED_TESTS=""
+IMAGE_COMPARISON_FAILURES=0
 
 # Colors
 RED='\e[38;5;196m'
 GREEN='\e[38;5;46m'
+YELLOW='\e[38;5;226m'
 RESET='\e[0m'
+
+# Create directories if they don't exist
+mkdir -p "$REFERENCE_DIR"
+mkdir -p "$DIFF_DIR"
+
+# Check for ImageMagick
+if ! command -v compare &> /dev/null; then
+    echo -e "${RED}ERROR: ImageMagick 'compare' command not found${RESET}"
+    echo "Please install ImageMagick: sudo apt-get install imagemagick"
+    exit 1
+fi
+
+# Compare images using ImageMagick
+# Returns 0 if images match within threshold, 1 otherwise
+# Sets global variable COMPARISON_RESULT with the comparison message
+compare_images() {
+    local test_name="$1"
+    local actual_image="$2"
+    local reference_image="$3"
+    local diff_image="$4"
+
+    if [ ! -f "$reference_image" ]; then
+        COMPARISON_RESULT="no reference"
+        return 0
+    fi
+
+    # Use ImageMagick compare with AE (Absolute Error) metric
+    # Returns number of different pixels
+    local diff_pixels
+    diff_pixels=$(compare -metric AE "$actual_image" "$reference_image" "$diff_image" 2>&1) || true
+
+    # Get total pixel count
+    local total_pixels
+    total_pixels=$(identify -format "%[fx:w*h]" "$actual_image" 2>/dev/null) || total_pixels=1
+
+    # Calculate percentage difference
+    local diff_percent
+    diff_percent=$(echo "scale=6; $diff_pixels / $total_pixels" | bc)
+
+    # Compare against threshold
+    local is_below_threshold
+    is_below_threshold=$(echo "$diff_percent <= $IMAGE_DIFF_THRESHOLD" | bc)
+
+    if [ "$is_below_threshold" -eq 1 ]; then
+        COMPARISON_RESULT="match (diff: ${diff_percent}%)"
+        rm -f "$diff_image"  # Remove diff image if test passed
+        return 0
+    else
+        COMPARISON_RESULT="MISMATCH (diff: ${diff_percent}%, saved to: $diff_image)"
+        ((IMAGE_COMPARISON_FAILURES++))
+        return 1
+    fi
+}
 
 # Run a test, track result, clean up
 run_test() {
     local name="$1"
     shift
-    local timeout="${TIMEOUT:-$DEFAULT_TIMEOUT}"
 
-    # Clean up any pre-existing test files
-    rm -f test_*.png
+    # Generate temporary output filename
+    local temp_output="test_temp_$$.png"
+    rm -f "$temp_output"
 
-    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --timeout $timeout "$@" >/dev/null 2>&1; then
-        ((PASSED++))
-        echo -e "  ${GREEN}✓${RESET} $name"
-    else
-        ((FAILED++))
-        FAILED_TESTS="$FAILED_TESTS\n  - $name"
-        echo -e "  ${RED}✗${RESET} $name"
+    # Run test in headless mode with output file
+    local test_passed=false
+    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless --save-name "$temp_output" "$@" >/dev/null 2>&1 && [ -f "$temp_output" ]; then
+        test_passed=true
     fi
 
-    # Clean up test output files
-    rm -f test_*.png
+    if $test_passed; then
+        # Sanitize test name for filename (replace spaces and special chars with underscores)
+        local sanitized_name=$(echo "$name" | sed 's/[^a-zA-Z0-9-]/_/g' | sed 's/__*/_/g')
+        local reference_file="$REFERENCE_DIR/${sanitized_name}.png"
+        local diff_file="$DIFF_DIR/${sanitized_name}_diff.png"
+
+        if [ "$UPDATE_REFERENCES" = true ]; then
+            # Update reference image mode
+            cp "$temp_output" "$reference_file"
+            echo -e "  ${name} - reference updated ${YELLOW}⟳${RESET}"
+            ((PASSED++))
+        else
+            # Normal test mode with image comparison
+            local image_match=true
+            COMPARISON_RESULT=""
+            if [ -f "$reference_file" ]; then
+                if ! compare_images "$name" "$temp_output" "$reference_file" "$diff_file"; then
+                    image_match=false
+                fi
+            else
+                COMPARISON_RESULT="no reference"
+            fi
+
+            if $image_match; then
+                ((PASSED++))
+                echo -e "  ${name} - ${COMPARISON_RESULT} ${GREEN}✓${RESET}"
+            else
+                ((FAILED++))
+                FAILED_TESTS="$FAILED_TESTS\n  - $name (image mismatch)"
+                echo -e "  ${name} - ${COMPARISON_RESULT} ${RED}✗${RESET}"
+            fi
+        fi
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - $name (execution failed)"
+        echo -e "  ${name} - execution failed ${RED}✗${RESET}"
+    fi
+
+    # Clean up temporary file
+    rm -f "$temp_output"
 }
 
 # Run a test that should FAIL (uses --timeout unless --headless is present)
@@ -76,10 +189,10 @@ run_test_should_fail() {
     if [ $cmd_result -eq 0 ]; then
         ((FAILED++))
         FAILED_TESTS="$FAILED_TESTS\n  - $name (expected failure but succeeded)"
-        echo -e "  ${RED}✗${RESET} $name"
+        echo -e "  ${name} - expected failure but succeeded ${RED}✗${RESET}"
     else
         ((PASSED++))
-        echo -e "  ${GREEN}✓${RESET} $name"
+        echo -e "  ${name} - failed as expected ${GREEN}✓${RESET}"
     fi
 
     rm -f test_*.png
@@ -102,31 +215,53 @@ run_test_with_output() {
         fi
     done
 
-    local result
-    if $use_timeout; then
-        result=$(__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --timeout $DEFAULT_TIMEOUT "$@" >/dev/null 2>&1 && [ -f "$output_file" ])
-    else
-        result=$(__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN "$@" >/dev/null 2>&1 && [ -f "$output_file" ])
-    fi
-
+    local test_passed=false
     if $use_timeout; then
         if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --timeout $DEFAULT_TIMEOUT "$@" >/dev/null 2>&1 && [ -f "$output_file" ]; then
-            ((PASSED++))
-            echo -e "  ${GREEN}✓${RESET} $name"
-        else
-            ((FAILED++))
-            FAILED_TESTS="$FAILED_TESTS\n  - $name"
-            echo -e "  ${RED}✗${RESET} $name"
+            test_passed=true
         fi
     else
         if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN "$@" >/dev/null 2>&1 && [ -f "$output_file" ]; then
-            ((PASSED++))
-            echo -e "  ${GREEN}✓${RESET} $name"
-        else
-            ((FAILED++))
-            FAILED_TESTS="$FAILED_TESTS\n  - $name"
-            echo -e "  ${RED}✗${RESET} $name"
+            test_passed=true
         fi
+    fi
+
+    if $test_passed; then
+        # Sanitize test name for filename (replace spaces and special chars with underscores)
+        local sanitized_name=$(echo "$name" | sed 's/[^a-zA-Z0-9-]/_/g' | sed 's/__*/_/g')
+        local reference_file="$REFERENCE_DIR/${sanitized_name}.png"
+        local diff_file="$DIFF_DIR/${sanitized_name}_diff.png"
+
+        if [ "$UPDATE_REFERENCES" = true ]; then
+            # Update reference image mode
+            cp "$output_file" "$reference_file"
+            echo -e "  ${name} - reference updated ${YELLOW}⟳${RESET}"
+            ((PASSED++))
+        else
+            # Normal test mode with image comparison
+            local image_match=true
+            COMPARISON_RESULT=""
+            if [ -f "$reference_file" ]; then
+                if ! compare_images "$name" "$output_file" "$reference_file" "$diff_file"; then
+                    image_match=false
+                fi
+            else
+                COMPARISON_RESULT="no reference"
+            fi
+
+            if $image_match; then
+                ((PASSED++))
+                echo -e "  ${name} - ${COMPARISON_RESULT} ${GREEN}✓${RESET}"
+            else
+                ((FAILED++))
+                FAILED_TESTS="$FAILED_TESTS\n  - $name (image mismatch)"
+                echo -e "  ${name} - ${COMPARISON_RESULT} ${RED}✗${RESET}"
+            fi
+        fi
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - $name (execution failed)"
+        echo -e "  ${name} - execution failed ${RED}✗${RESET}"
     fi
 
     rm -f "$output_file"
@@ -142,6 +277,15 @@ print_summary() {
         echo -e "Passed: ${PASSED}/${total}"
         echo -e "Failed: ${RED}${FAILED}/${total}${RESET}"
         echo -e "\nFailed tests:${FAILED_TESTS}"
+    fi
+
+    if [ $IMAGE_COMPARISON_FAILURES -gt 0 ]; then
+        echo -e "\n${YELLOW}Image comparison failures: ${IMAGE_COMPARISON_FAILURES}${RESET}"
+        echo -e "Review diff images in: ${DIFF_DIR}"
+    fi
+
+    if [ "$UPDATE_REFERENCES" = true ]; then
+        echo -e "\n${YELLOW}Reference images updated in: ${REFERENCE_DIR}${RESET}"
     fi
 }
 
@@ -347,6 +491,11 @@ test_error_handling() {
 main() {
     echo "=== Menger Integration Tests ==="
     echo "Binary: $MENGER_BIN"
+    if [ "$UPDATE_REFERENCES" = true ]; then
+        echo -e "Mode: ${YELLOW}UPDATE REFERENCES${RESET}"
+    else
+        echo "Mode: Test with image comparison"
+    fi
     echo ""
 
     test_basic_objects

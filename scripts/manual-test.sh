@@ -7,26 +7,36 @@ set -e
 cd "$(dirname "$0")/.."
 
 OUTPUT_DIR="test-output"
+REFERENCE_DIR="scripts/reference-images"
+DIFF_DIR="scripts/test-diffs"
 MENGER="./menger-app/target/universal/stage/bin/menger-app"
+IMAGE_DIFF_THRESHOLD=0.001  # 0.1% pixel difference tolerance
 
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Parse command line arguments
 SKIP_STATIC=false
+UPDATE_REFERENCES=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         -i|--interactive)
             SKIP_STATIC=true
             shift
             ;;
+        --update-references)
+            UPDATE_REFERENCES=true
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [-i|--interactive]"
-            echo "  -i, --interactive  Skip static tests, go directly to interactive menu"
+            echo "Usage: $0 [-i|--interactive] [--update-references]"
+            echo "  -i, --interactive      Skip static tests, go directly to interactive menu"
+            echo "  --update-references    Regenerate reference images instead of comparing"
             exit 1
             ;;
     esac
@@ -34,16 +44,80 @@ done
 
 echo -e "${BLUE}=== Menger Manual Test Suite ===${NC}\n"
 
+if [ "$UPDATE_REFERENCES" = true ]; then
+    echo -e "${YELLOW}Mode: UPDATE REFERENCES${NC}\n"
+else
+    echo -e "Mode: Test with image comparison\n"
+fi
+
 # Step 1: Build executable
-echo -e "${YELLOW}[1/2] Building executable...${NC}"
+echo -e "${YELLOW}[1/3] Building executable...${NC}"
 sbt stage
 echo -e "${GREEN}✓ Build complete${NC}\n"
 
 # Step 2: Create output directory
-echo -e "${YELLOW}[2/2] Setting up test output directory...${NC}"
+echo -e "${YELLOW}[2/3] Setting up test output directory...${NC}"
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
+mkdir -p "$REFERENCE_DIR"
+mkdir -p "$DIFF_DIR"
 echo -e "${GREEN}✓ Output directory: $OUTPUT_DIR${NC}\n"
+
+# Step 3: Check for ImageMagick
+echo -e "${YELLOW}[3/3] Checking for ImageMagick...${NC}"
+if ! command -v compare &> /dev/null; then
+    echo -e "${RED}WARNING: ImageMagick 'compare' command not found${NC}"
+    echo "Image comparison will be skipped. Install with: sudo apt-get install imagemagick"
+    IMAGEMAGICK_AVAILABLE=false
+else
+    echo -e "${GREEN}✓ ImageMagick available${NC}"
+    IMAGEMAGICK_AVAILABLE=true
+fi
+echo ""
+
+# Compare images using ImageMagick
+# Returns 0 if images match within threshold, 1 otherwise
+compare_images() {
+    local test_name="$1"
+    local actual_image="$2"
+    local reference_image="$3"
+    local diff_image="$4"
+
+    if [ "$IMAGEMAGICK_AVAILABLE" = false ]; then
+        return 0
+    fi
+
+    if [ ! -f "$reference_image" ]; then
+        echo -e "    ${YELLOW}⚠${NC} No reference image found, skipping comparison"
+        return 0
+    fi
+
+    # Use ImageMagick compare with AE (Absolute Error) metric
+    local diff_pixels
+    diff_pixels=$(compare -metric AE "$actual_image" "$reference_image" "$diff_image" 2>&1) || true
+
+    # Get total pixel count
+    local total_pixels
+    total_pixels=$(identify -format "%[fx:w*h]" "$actual_image" 2>/dev/null) || total_pixels=1
+
+    # Calculate percentage difference
+    local diff_percent
+    diff_percent=$(echo "scale=6; $diff_pixels / $total_pixels" | bc)
+
+    # Compare against threshold
+    local is_below_threshold
+    is_below_threshold=$(echo "$diff_percent <= $IMAGE_DIFF_THRESHOLD" | bc)
+
+    if [ "$is_below_threshold" -eq 1 ]; then
+        echo -e "    ${GREEN}✓${NC} Image matches reference (diff: ${diff_percent}%)"
+        rm -f "$diff_image"
+        return 0
+    else
+        echo -e "    ${RED}✗${NC} Image differs from reference (diff: ${diff_percent}%, threshold: ${IMAGE_DIFF_THRESHOLD})"
+        echo -e "      Diff saved to: $diff_image"
+        return 1
+    fi
+}
 
 # Skip static tests if -i/--interactive flag is set
 if [ "$SKIP_STATIC" = true ]; then
@@ -54,10 +128,44 @@ else
 run_test() {
     local name="$1"
     local args="$2"
+
+    # Extract output filename from args (look for -s argument)
+    local output_file=""
+    local found_save=false
+    for arg in $args; do
+        if [ "$found_save" = true ]; then
+            output_file="$arg"
+            break
+        fi
+        if [ "$arg" = "-s" ]; then
+            found_save=true
+        fi
+    done
+
     echo -e "${BLUE}Testing:${NC} $name"
     echo "  Command: $MENGER $args --headless"
-    $MENGER $args --headless
-    echo -e "${GREEN}  ✓ Done${NC}\n"
+
+    if $MENGER $args --headless; then
+        # Check if we should compare images
+        if [ -n "$output_file" ] && [ -f "$output_file" ]; then
+            # Sanitize test name for filename
+            local sanitized_name=$(echo "$name" | sed 's/[^a-zA-Z0-9-]/_/g' | sed 's/__*/_/g')
+            local reference_file="$REFERENCE_DIR/${sanitized_name}.png"
+            local diff_file="$DIFF_DIR/${sanitized_name}_diff.png"
+
+            if [ "$UPDATE_REFERENCES" = true ]; then
+                # Update reference image mode
+                cp "$output_file" "$reference_file"
+                echo -e "  ${YELLOW}⟳${NC} Reference updated: $reference_file"
+            else
+                # Compare with reference
+                compare_images "$name" "$output_file" "$reference_file" "$diff_file"
+            fi
+        fi
+        echo -e "${GREEN}  ✓ Done${NC}\n"
+    else
+        echo -e "${RED}  ✗ Failed${NC}\n"
+    fi
 }
 
 echo -e "${BLUE}=== Static Render Tests ===${NC}\n"
@@ -185,6 +293,9 @@ run_test "4D Sponge Showcase (glass with edges)" "-o --objects type=tesseract-sp
 
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
+if [ "$UPDATE_REFERENCES" = true ]; then
+    echo -e "Reference images updated in: ${YELLOW}$REFERENCE_DIR/${NC}"
+fi
 echo ""
 ls -la "$OUTPUT_DIR"/*.png | awk '{print $9, $5}' | column -t
 echo ""
