@@ -161,9 +161,8 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
     p1 == p2
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
-    specs.map { spec =>
-      if isFractional4DSponge(spec) then 2L else 1L
-    }.sum
+    // Per-vertex alpha implementation: all specs create 1 instance (fractional levels are merged)
+    specs.length.toLong
 
   private def isTriangleMeshType(spec: ObjectSpec): Boolean =
     spec.objectType == "cube" || ObjectType.isSponge(spec.objectType) || ObjectType.isProjected4D(spec.objectType)
@@ -179,52 +178,3 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
    */
   private def isFractional(level: Float): Boolean =
     level != level.floor
-
-  /**
-   * Group specs by their required base geometries.
-   *
-   * For fractional 4D sponges (e.g., level=1.5):
-   * - Creates TWO geometry entries:
-   *   1. floor(level+1) = 2 with original spec and alpha=1.0 (opaque base)
-   *   2. floor(level) = 1 with original spec and alpha=1.0-frac (transparent overlay)
-   *
-   * For integer levels or non-sponges:
-   * - Creates ONE geometry entry with alpha=1.0
-   *
-   * Returns: Map[geomSpec -> List[(instanceSpec, alpha)]]
-   * - geomSpec: Spec with integer level for creating base geometry
-   * - instanceSpec: Original spec for position/material
-   * - alpha: Transparency value for this instance
-   */
-  private def groupByGeometry(specs: List[ObjectSpec]): Map[ObjectSpec, List[(ObjectSpec, Float)]] =
-    val groups = scala.collection.mutable.Map[ObjectSpec, List[(ObjectSpec, Float)]]()
-
-    specs.foreach { spec =>
-      if isFractional4DSponge(spec) then
-        val level = spec.level.get
-        val fractionalPart = level - level.floor
-        val alpha = 1.0f - fractionalPart
-
-        // Next level (fully opaque)
-        val nextLevelSpec = spec.copy(level = Some((level + 1).floor))
-        val nextKey = geometryKey(nextLevelSpec)
-        groups(nextKey) = groups.getOrElse(nextKey, Nil) :+ (spec, 1.0f)
-
-        // Current level (transparent overlay)
-        val currentLevelSpec = spec.copy(level = Some(level.floor))
-        val currentKey = geometryKey(currentLevelSpec)
-        groups(currentKey) = groups.getOrElse(currentKey, Nil) :+ (spec, alpha)
-      else
-        // Integer level or non-sponge
-        val key = geometryKey(spec)
-        groups(key) = groups.getOrElse(key, Nil) :+ (spec, 1.0f)
-    }
-
-    groups.toMap
-
-  /**
-   * Create a normalized geometry key for grouping.
-   * Strips position and material info, keeping only geometry-defining parameters.
-   */
-  private def geometryKey(spec: ObjectSpec): ObjectSpec =
-    spec.copy(x = 0f, y = 0f, z = 0f, color = None, material = None, texture = None)

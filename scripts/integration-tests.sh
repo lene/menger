@@ -278,8 +278,25 @@ test_4d_sponges() {
     run_test "mixed 4D sponge + 3D sphere" --optix --plane y:-2 \
         --objects type=tesseract-sponge-2:level=1:pos=-1.5,0,0:size=0.5 \
         --objects type=sphere:pos=1.5,0,0:size=0.5
-    run_test "fractional level (truncates)" --optix --plane y:-2 \
+
+    # Fractional level tests (per-vertex alpha blending)
+    run_test "fractional level 0.5 (tesseract-sponge)" --optix --plane y:-2 \
         --objects type=tesseract-sponge:level=0.5:size=0.8
+    run_test "fractional level 1.25 (tesseract-sponge)" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=1.25:size=0.8
+    run_test "fractional level 1.5 (tesseract-sponge)" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=1.5:size=0.8
+    run_test "fractional level 1.75 (tesseract-sponge-2)" --optix --plane y:-2 \
+        --objects type=tesseract-sponge-2:level=1.75:size=0.8
+    run_test "fractional level 0.9 (tesseract-sponge-2)" --optix --plane y:-2 \
+        --objects type=tesseract-sponge-2:level=0.9:size=0.8
+    run_test "fractional level with material" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=1.5:material=glass:size=0.8
+    run_test "fractional level with rotation" --optix --plane y:-2 \
+        --objects type=tesseract-sponge-2:level=1.3:rot-xw=30:rot-yw=20:size=0.8
+    run_test "mixed fractional + integer levels" --optix --plane y:-2 \
+        --objects type=tesseract-sponge:level=1.5:pos=-1.2,0,0:size=0.5 \
+        --objects type=tesseract-sponge:level=1:pos=1.2,0,0:size=0.5
 }
 
 test_file_output() {

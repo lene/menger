@@ -3,6 +3,8 @@
 Quick notes and ideas captured during development. Review periodically and promote to
 [ROADMAP.md](ROADMAP.md) or [SPRINT.md](docs/sprints/SPRINT.md) as appropriate.
 
+- fractional level 3d sponges
+- for integration tests: store reference images and compare rendered output against them
 - fix PushToGithub (see https://gitlab.com/lilacashes/menger/-/jobs/12865767482)
 - find better names for sponge-2 and tesseract-sponge-2
 - validate tesseract sponge generation from surfaces by repeating it with cubes. same result?

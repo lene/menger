@@ -160,6 +160,19 @@ run_test "TesseractSponge2 glass + gold edges" "-o --objects type=tesseract-spon
 run_test "Mixed 4D sponges" "-o --objects type=tesseract-sponge:level=1:pos=-1.5,0,0:color=#FF4444 --objects type=tesseract-sponge-2:level=1:pos=1.5,0,0:color=#44FF44 -s $OUTPUT_DIR/55-mixed-4d-sponges.png"
 run_test "4D sponge + 3D sphere" "-o --objects type=tesseract-sponge-2:level=1:pos=-1.5,0,0:material=glass --objects type=sphere:pos=1.5,0,0:material=chrome -s $OUTPUT_DIR/56-4d-sponge-3d-sphere.png"
 
+# Fractional Levels (per-vertex alpha blending)
+echo -e "${YELLOW}--- Fractional Levels (4D Sponges) ---${NC}"
+run_test "TesseractSponge Level 0.5" "-o --objects type=tesseract-sponge:level=0.5 -s $OUTPUT_DIR/61-tesseract-sponge-l0.5.png"
+run_test "TesseractSponge Level 1.25" "-o --objects type=tesseract-sponge:level=1.25 -s $OUTPUT_DIR/62-tesseract-sponge-l1.25.png"
+run_test "TesseractSponge Level 1.5" "-o --objects type=tesseract-sponge:level=1.5 -s $OUTPUT_DIR/63-tesseract-sponge-l1.5.png"
+run_test "TesseractSponge Level 1.75" "-o --objects type=tesseract-sponge:level=1.75 -s $OUTPUT_DIR/64-tesseract-sponge-l1.75.png"
+run_test "TesseractSponge2 Level 0.9" "-o --objects type=tesseract-sponge-2:level=0.9 -s $OUTPUT_DIR/65-tesseract-sponge2-l0.9.png"
+run_test "TesseractSponge2 Level 1.3" "-o --objects type=tesseract-sponge-2:level=1.3 -s $OUTPUT_DIR/66-tesseract-sponge2-l1.3.png"
+run_test "Fractional level (glass)" "-o --objects type=tesseract-sponge:level=1.5:material=glass -s $OUTPUT_DIR/67-frac-glass.png"
+run_test "Fractional level (rotated)" "-o --objects type=tesseract-sponge-2:level=1.4:rot-xw=30:rot-yw=20 -s $OUTPUT_DIR/68-frac-rotated.png"
+run_test "Mixed fractional + integer" "-o --objects type=tesseract-sponge:level=1.5:pos=-1.5,0,0:color=#FF8844 --objects type=tesseract-sponge:level=1:pos=1.5,0,0:color=#4488FF -s $OUTPUT_DIR/69-mixed-frac-int.png"
+run_test "Fractional with edges" "-o --objects type=tesseract-sponge:level=1.6:edge-material=chrome:edge-radius=0.015 -s $OUTPUT_DIR/70-frac-edges.png"
+
 # Caustics
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
 run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/57-caustics.png"
@@ -221,6 +234,12 @@ interactive_tests=(
     "TesseractSponge2 glass + gold edges:-o --objects type=tesseract-sponge-2:level=1:material=glass:edge-material=gold:edge-radius=0.02"
     "Mixed 4D sponges (red+green):-o --objects type=tesseract-sponge:level=1:pos=-1.5,0,0:color=#ff4444 --objects type=tesseract-sponge-2:level=1:pos=1.5,0,0:color=#44ff44"
     "4D sponge + 3D sphere:-o --objects type=tesseract-sponge-2:level=1:pos=-1.5,0,0:material=glass --objects type=sphere:pos=1.5,0,0:material=chrome"
+    "TesseractSponge L0.5 (fractional):-o --objects type=tesseract-sponge:level=0.5"
+    "TesseractSponge L1.5 (fractional):-o --objects type=tesseract-sponge:level=1.5"
+    "TesseractSponge2 L1.3 (fractional):-o --objects type=tesseract-sponge-2:level=1.3"
+    "Fractional L1.5 glass:-o --objects type=tesseract-sponge:level=1.5:material=glass"
+    "Fractional L1.4 rotated:-o --objects type=tesseract-sponge-2:level=1.4:rot-xw=30:rot-yw=20"
+    "Mixed fractional + integer:-o --objects type=tesseract-sponge:level=1.5:pos=-1.5,0,0 --objects type=tesseract-sponge:level=1:pos=1.5,0,0"
     "Colored lights:-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff"
     "Checkered plane:-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000"
 )
