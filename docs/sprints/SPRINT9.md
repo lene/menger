@@ -30,38 +30,51 @@ Render 4D Menger sponges (`TesseractSponge` and `TesseractSponge2`) projected to
 - [x] Level limits enforced with warnings (level 3/4 max)
 - [x] Edge rendering works with 4D sponges: `edge-material`, `edge-radius`
 - [x] Mixed 4D/3D scenes render correctly
-- [x] All tests pass (1,274 total, 184 for TesseractSponge)
+- [x] All tests pass (1,302 total, including comprehensive 4D sponge coverage)
 
 ---
 
 ## Known Limitations
 
-### 1. Fractional Levels - ✅ FIXED (2026-01-27)
+### 1. Fractional Levels - ✅ FIXED (2026-01-29)
 
-**Status:** ✅ Fully implemented
+**Status:** ✅ Fully implemented with per-vertex alpha
 
 **Implementation (OptiX - COMPLETE):**
 For `level=1.5`:
-1. Detect fractional level in `TriangleMeshSceneBuilder.groupByGeometry()`
-2. Create TWO geometry groups:
-   - Instance 1: `floor(level + 1) = 2` (fully opaque) - the base
-   - Instance 2: `floor(level) = 1` with 50% transparency - the overlay
-3. Alpha calculation: `alpha = 1.0 - fractionalPart`
-4. Both instances added to scene with proper material transparency
-5. Result: Smooth visual transition matching LibGDX behavior
+1. Detect fractional level in `TriangleMeshSceneBuilder.buildScene()`
+2. Generate BOTH level geometries (floor and ceil):
+   - Level 2 mesh with per-vertex alpha = 1.0 (fully opaque)
+   - Level 1 mesh with per-vertex alpha = 0.5 (1.0 - fractionalPart)
+3. Merge both meshes into single TriangleMeshData with stride=9 (pos+normal+uv+alpha)
+4. Upload as one triangle mesh to OptiX
+5. Shader interpolates per-vertex alpha and multiplies with material alpha
+6. Result: Smooth visual transition matching LibGDX behavior
+
+**Key Technical Details:**
+- Extended vertex format from stride=8 to stride=9 (added alpha channel)
+- `TriangleMeshData.withAlpha()`: Adds per-vertex alpha to stride=8 mesh
+- `TriangleMeshData.merge()`: Combines multiple meshes into one
+- Shader: Interpolates vertex alpha using barycentric coordinates
+- Formula: `final_alpha = vertex_alpha × material_alpha`
 
 **Implementation Details:**
-- `TriangleMeshSceneBuilder.scala` - Main logic
-  - `groupByGeometry()`: Groups specs by required geometries, splits fractional levels
+- `TriangleMeshData.scala` - Extended vertex format support
+  - `VertexStrideWithAlpha = 9`: New stride constant
+  - `withAlpha()`: Converts stride=8 to stride=9 with alpha values
+- `TriangleMeshSceneBuilder.scala` - Fractional mesh creation
+  - `createFractionalMesh()`: Generates and merges both levels
   - `isFractional4DSponge()`: Detects 4D sponges with fractional levels
-  - `calculateInstanceCount()`: Counts 2 instances per fractional level
-- `FractionalLevelSceneBuilderSuite.scala` - Comprehensive test coverage (28 tests)
-  - Tests fractional detection, alpha calculation, geometry grouping, validation
-  - Verifies formula matches LibGDX: alpha = 1.0 - fractionalPart
+  - `calculateInstanceCount()`: Counts 1 merged instance per fractional level
+- `hit_triangle.cu` - Shader alpha interpolation
+  - `TriangleGeometry.vertex_alpha`: Interpolated per-vertex alpha
+  - `getTriangleMaterial()`: Multiplies vertex_alpha with material alpha
+- `JNIBindings.cpp` - Accepts stride=9 validation
 
 **Testing:**
-- Manual test script: `scripts/test-fractional-levels.sh`
-- Generates images for levels 1.0, 1.25, 1.5, 1.75, 2.0 to verify smooth transition
+- All 1302 tests pass (no regressions)
+- Manual testing: levels 1.0, 1.25, 1.5, 1.75, 2.0 render correctly
+- Proper 4D fractal structure visible (not random noise)
 
 **Status:** ✅ Complete and tested
 

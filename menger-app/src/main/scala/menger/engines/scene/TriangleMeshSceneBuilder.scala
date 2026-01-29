@@ -6,6 +6,7 @@ import menger.ObjectSpec
 import menger.ProfilingConfig
 import menger.Projection4DSpec
 import menger.common.ObjectType
+import menger.common.TriangleMeshData
 import menger.common.Vector
 import menger.optix.OptiXRenderer
 
@@ -59,37 +60,64 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
     // Load textures once
     val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
 
-    // Group specs by their required base geometries
-    // For fractional 4D sponges, we need both floor(level) and floor(level+1)
-    // For everything else, we need just the spec itself
-    val geometryGroups = groupByGeometry(specs)
+    // For each spec, create either a single mesh or a merged fractional mesh
+    specs.foreach { spec =>
+      val mesh = if isFractional4DSponge(spec) then
+        // Fractional level: merge both levels with per-vertex alpha
+        logger.debug(s"Creating fractional mesh for ${spec.objectType} level=${spec.level.get}")
+        createFractionalMesh(spec)
+      else
+        // Integer level or non-sponge: single mesh
+        MeshFactory.create(spec)
 
-    // Process each geometry group
-    geometryGroups.foreach { case (geomSpec, instanceSpecs) =>
-      logger.debug(s"Setting up geometry for ${geomSpec.objectType} level=${geomSpec.level}")
-      val mesh = MeshFactory.create(geomSpec)
+      // Upload mesh and add instance
       renderer.setTriangleMesh(mesh)
 
-      // Add all instances that use this geometry
-      instanceSpecs.foreach { case (spec, alpha) =>
-        val position = Vector[3](spec.x, spec.y, spec.z)
-        val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
-        val baseMaterial = MaterialExtractor.extract(spec)
-        val material = if alpha < 1.0f then
-          baseMaterial.copy(color = baseMaterial.color.copy(a = alpha))
-        else
-          baseMaterial
+      val position = Vector[3](spec.x, spec.y, spec.z)
+      val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
+      val material = MaterialExtractor.extract(spec)
 
-        val instanceId = renderer.addTriangleMeshInstance(position, material, textureIndex)
-        instanceId match
-          case Some(id) =>
-            val alphaInfo = if alpha < 1.0f then f", alpha=$alpha%.2f" else ""
-            val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
-            logger.debug(s"Added ${spec.objectType} instance $id (level=${geomSpec.level}) at position=(${spec.x}, ${spec.y}, ${spec.z})$alphaInfo$textureInfo")
-          case None =>
-            logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
-      }
+      val instanceId = renderer.addTriangleMeshInstance(position, material, textureIndex)
+      instanceId match
+        case Some(id) =>
+          val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
+          val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
+          logger.debug(s"Added ${spec.objectType} instance $id ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
+        case None =>
+          logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
     }
+
+  /**
+   * Create a merged mesh for fractional level rendering.
+   *
+   * For level=1.5:
+   * - Generates level 2 geometry with vertex alpha = 1.0 (opaque)
+   * - Generates level 1 geometry with vertex alpha = 0.5 (1.0 - frac)
+   * - Merges both into a single mesh
+   *
+   * The shader will interpolate per-vertex alpha and multiply with material alpha:
+   * - Level 2 triangles: final_alpha = 1.0 × material.alpha
+   * - Level 1 triangles: final_alpha = 0.5 × material.alpha
+   */
+  private def createFractionalMesh(spec: ObjectSpec): TriangleMeshData =
+    val level = spec.level.get
+    val fractionalPart = level - level.floor
+    val alphaTransparent = 1.0f - fractionalPart
+
+    // Generate both level geometries
+    val nextLevelSpec = spec.copy(level = Some((level + 1).floor))
+    val currentLevelSpec = spec.copy(level = Some(level.floor))
+
+    val nextLevel = MeshFactory.create(nextLevelSpec)
+    val currentLevel = MeshFactory.create(currentLevelSpec)
+
+    // Assign per-vertex alpha
+    val nextWithAlpha = TriangleMeshData.withAlpha(nextLevel, 1.0f)
+    val currentWithAlpha = TriangleMeshData.withAlpha(currentLevel, alphaTransparent)
+
+    // Merge into single mesh
+    logger.debug(s"Merging fractional mesh: level ${level.floor} (alpha=$alphaTransparent) + level ${(level+1).floor} (alpha=1.0)")
+    TriangleMeshData.merge(Seq(nextWithAlpha, currentWithAlpha))
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     val t1 = spec1.objectType.toLowerCase
