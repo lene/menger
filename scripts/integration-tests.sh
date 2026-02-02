@@ -443,6 +443,51 @@ test_4d_sponges() {
         --objects type=tesseract-sponge:level=1:pos=1.2,0,0:size=0.5
 }
 
+test_3d_fractional_sponges() {
+    echo "3D Fractional Sponges:"
+    # SpongeByVolume fractional levels
+    run_test "sponge-volume fractional level 0.5" --optix --plane y:-2 \
+        --objects type=sponge-volume:level=0.5:size=0.8
+    run_test "sponge-volume fractional level 1.25" --optix --plane y:-2 \
+        --objects type=sponge-volume:level=1.25:size=0.8
+    run_test "sponge-volume fractional level 1.5" --optix --plane y:-2 \
+        --objects type=sponge-volume:level=1.5:size=0.8
+    run_test "sponge-volume fractional level 1.75" --optix --plane y:-2 \
+        --objects type=sponge-volume:level=1.75:size=0.8
+
+    # SpongeBySurface fractional levels
+    run_test "sponge-surface fractional level 0.5" --optix --plane y:-2 \
+        --objects type=sponge-surface:level=0.5:size=0.8
+    run_test "sponge-surface fractional level 1.25" --optix --plane y:-2 \
+        --objects type=sponge-surface:level=1.25:size=0.8
+    run_test "sponge-surface fractional level 1.5" --optix --plane y:-2 \
+        --objects type=sponge-surface:level=1.5:size=0.8
+    run_test "sponge-surface fractional level 1.75" --optix --plane y:-2 \
+        --objects type=sponge-surface:level=1.75:size=0.8
+
+    # Fractional levels with materials
+    run_test "sponge-volume fractional with glass" --optix --plane y:-2 \
+        --objects type=sponge-volume:level=1.5:material=glass:size=0.8
+    run_test "sponge-surface fractional with chrome" --optix --plane y:-2 \
+        --objects type=sponge-surface:level=1.5:material=chrome:size=0.8
+    run_test "sponge-volume fractional with color" --optix --plane y:-2 \
+        --objects type=sponge-volume:level=1.3:color=#FF4488:size=0.8
+
+    # Mixed fractional and integer levels
+    run_test "mixed sponge-volume fractional + integer" --optix --plane y:-2 \
+        --objects type=sponge-volume:level=1.5:pos=-1.2,0,0:size=0.5 \
+        --objects type=sponge-volume:level=1:pos=1.2,0,0:size=0.5
+    run_test "mixed sponge-surface types different levels" --optix --plane y:-2 \
+        --objects type=sponge-surface:level=1.25:pos=-1.2,0,0:size=0.5 \
+        --objects type=sponge-surface:level=1.75:pos=1.2,0,0:size=0.5
+
+    # Edge cases
+    run_test "sponge-volume very small fractional part" --optix --plane y:-2 \
+        --objects type=sponge-volume:level=1.01:size=0.8
+    run_test "sponge-surface fractional near 1.0" --optix --plane y:-2 \
+        --objects type=sponge-surface:level=1.99:size=0.8
+}
+
 test_file_output() {
     echo "File Output:"
     run_test_with_output "save PNG" "test_output.png" \
@@ -508,6 +553,7 @@ main() {
     test_caustics
     test_tesseract
     test_4d_sponges
+    test_3d_fractional_sponges
     test_file_output
     test_headless
     test_error_handling
