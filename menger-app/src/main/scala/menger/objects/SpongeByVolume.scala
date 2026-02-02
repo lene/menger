@@ -46,7 +46,23 @@ class SpongeByVolume(
 
   override def toTriangleMesh: TriangleMeshData =
     if level <= 0 then super.toTriangleMesh
-    else getIntegerMesh
+    else if level.isValidInt then getIntegerMesh
+    else getFractionalMesh
+
+  private def getFractionalMesh: TriangleMeshData =
+    val fractionalPart = level - level.floor
+    val alphaTransparent = 1.0f - fractionalPart
+
+    // Generate both level geometries
+    val nextLevel = SpongeByVolume(center, scale, (level + 1).floor, material, primitiveType).toTriangleMesh
+    val currentLevel = SpongeByVolume(center, scale, level.floor, material, primitiveType).toTriangleMesh
+
+    // Assign per-vertex alpha: next level opaque, current level transparent
+    val nextWithAlpha = TriangleMeshData.withAlpha(nextLevel, 1.0f)
+    val currentWithAlpha = TriangleMeshData.withAlpha(currentLevel, alphaTransparent)
+
+    // Merge into single mesh
+    TriangleMeshData.merge(Seq(nextWithAlpha, currentWithAlpha))
 
   private lazy val getIntegerMesh: TriangleMeshData =
     val shift = scale / 3f

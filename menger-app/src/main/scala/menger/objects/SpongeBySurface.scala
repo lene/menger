@@ -89,6 +89,26 @@ class SpongeBySurface(
   // Generate triangle mesh for all 6 cube faces
   // Each face is offset by half the scale in its normal direction (on the cube surface)
   override def toTriangleMesh: TriangleMeshData = logTime("toTriangleMesh") {
+    if level.isValidInt then getIntegerMesh
+    else getFractionalMesh
+  }
+
+  private def getFractionalMesh: TriangleMeshData =
+    val fractionalPart = level - level.floor
+    val alphaTransparent = 1.0f - fractionalPart
+
+    // Generate both level geometries
+    val nextLevel = SpongeBySurface(center, scale, (level + 1).floor, material, primitiveType).toTriangleMesh
+    val currentLevel = SpongeBySurface(center, scale, level.floor, material, primitiveType).toTriangleMesh
+
+    // Assign per-vertex alpha: next level opaque, current level transparent
+    val nextWithAlpha = TriangleMeshData.withAlpha(nextLevel, 1.0f)
+    val currentWithAlpha = TriangleMeshData.withAlpha(currentLevel, alphaTransparent)
+
+    // Merge into single mesh
+    TriangleMeshData.merge(Seq(nextWithAlpha, currentWithAlpha))
+
+  private def getIntegerMesh: TriangleMeshData =
     val half = scale / 2
     // Create initial faces offset by half in their normal direction (on the cube surface)
     val allFaces = Direction.values.flatMap { dir =>
@@ -101,4 +121,3 @@ class SpongeBySurface(
     }
     val meshes = allFaces.map(_.toTriangleMesh).toSeq
     TriangleMeshData.merge(meshes)
-  }
