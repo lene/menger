@@ -9,6 +9,15 @@ sealed trait Light:
   def intensity: Float
 
 object Light:
+  /** Directional light with parallel rays (like sunlight).
+    *
+    * @param direction Vector pointing TOWARD the light source position (where the light comes from).
+    *                  The light rays travel in the opposite direction (-direction), shining onto the scene.
+    *                  For example, direction=(1,-1,-1) places light at upper-right-back, shining toward lower-left-front.
+    *                  Automatically normalized.
+    * @param color Light color (RGB, each component 0.0-1.0)
+    * @param intensity Light brightness multiplier (default: 1.0)
+    */
   case class Directional(
     direction: Vector[3],
     color: Color = Color(1.0f, 1.0f, 1.0f),

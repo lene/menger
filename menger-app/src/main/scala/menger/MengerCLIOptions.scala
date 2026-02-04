@@ -243,7 +243,7 @@ class MengerCLIOptions(arguments: Seq[String])
   // === OptiX Lighting Options ===
   val light: ScallopOption[List[LightSpec]] = opt[List[LightSpec]](
     required = false, group = optixLightingGroup,
-    descr = "Light source (repeatable, max 8): <type>:x,y,z[:intensity[:color]]"
+    descr = "Light source (repeatable, max 8): <type>:x,y,z[:intensity[:color]]. For directional: x,y,z points TO light"
   )(using lightSpecConverter)
   val shadows: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(false), group = optixLightingGroup,

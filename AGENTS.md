@@ -45,6 +45,8 @@ Your bash tool has known limitations. Follow these workarounds:
 ### Git Workflow
 - **Never `git add -A`** - add files explicitly
 - **Never commit automatically** - always show diff for user review first
+- **Never commit failing tests** - all tests must pass before commit (run `sbt test`)
+- **Never commit test changes without investigation** - follow TEST FAILURE PROTOCOL
 - when fetching, always use the --all --tags options
 
 ---
@@ -99,6 +101,111 @@ rm -rf optix-jni/target/native ; sbt "project optixJni" compile  # Clean rebuild
 
 ---
 
+## TEST FAILURE PROTOCOL
+
+### ⚠️ CRITICAL: When Tests Fail
+
+**NEVER rewrite tests to make them pass without thorough investigation first.**
+
+Failing tests are often catching real bugs. Follow this protocol:
+
+#### 1. **Investigate Root Cause FIRST**
+
+Before changing ANY test code, determine WHY it failed:
+
+```bash
+# Run the specific failing test to see exact failure
+sbt "testOnly ClassName -- -z \"test name pattern\""
+
+# Check git history of the test
+git log --oneline --follow -- path/to/TestFile.scala
+
+# Check recent changes to code under test
+git log --oneline --since="1 week ago" -- path/to/implementation/
+
+# Check if the test passed before recent changes
+git checkout <previous-commit>
+sbt "testOnly ClassName -- -z \"test name\""
+git checkout -
+```
+
+#### 2. **Determine Correct Behavior**
+
+Ask these questions:
+
+- **Is the test expectation correct?** Review test logic and assertions
+- **Did code behavior change intentionally?** Check commit messages
+- **Is this catching a regression?** Compare with previous working versions
+- **Does visual output match expectations?** Run visual regression tests if applicable
+
+#### 3. **Decision Tree**
+
+```
+Test Fails
+    ├─> Bug in IMPLEMENTATION
+    │   └─> FIX THE CODE, keep test unchanged
+    │
+    ├─> Bug in TEST (wrong expectation)
+    │   └─> Verify with git history that test was ALWAYS wrong
+    │       └─> Document WHY test was wrong in commit message
+    │       └─> Fix test expectations
+    │
+    ├─> Intentional behavior change
+    │   └─> Verify change is documented and approved
+    │       └─> Update test to match NEW correct behavior
+    │       └─> Document in commit: "test: Update for behavior change in <commit>"
+    │
+    └─> Test became flaky/brittle
+        └─> Improve test robustness
+        └─> Don't just widen tolerances without understanding WHY
+```
+
+#### 4. **Document Your Investigation**
+
+When fixing a test, the commit message MUST explain:
+
+```
+test: Fix incorrect expectation in ShadowRayTest
+
+Root cause investigation:
+- Test expected 0 shadow rays for light direction (0,0,-1)
+- Test passed with commit 7d0e2fc (buggy - missing negation)
+- Test failed with commit bb92d30 (fixed - restored negation)
+- Analysis: Test expectation was wrong, written for buggy behavior
+
+The test assumed light direction (0,0,-1) would not illuminate
+sphere front, but correct shader behavior negates direction,
+making it (0,0,+1) which DOES illuminate front faces.
+
+Fix: Change light direction to actually point away from sphere.
+```
+
+#### 5. **Red Flags - STOP and Ask User**
+
+These situations require user consultation:
+
+- **Multiple tests failing after "simple" refactor** → Likely introduced bug
+- **Visual tests fail but unit tests pass** → Visual tests caught rendering bug
+- **Integration tests fail but unit tests pass** → System behavior changed
+- **Only some similar tests fail** → Likely edge case bug
+- **Test has been stable for months** → Respect test's history
+
+### Visual Regression Testing Value
+
+**Lesson from directional light bug:**
+
+- Unit tests PASSED with buggy code (no negation)
+- Visual regression tests CAUGHT the bug (42x threshold exceeded)
+- Demonstrates: visual tests catch bugs that unit tests miss
+
+Always run visual tests when changing rendering code:
+
+```bash
+sbt test  # Includes visual regression tests in IntegrationSuite
+```
+
+---
+
 ## DEVELOPMENT WORKFLOW
 
 ### Standard Development Cycle
@@ -117,6 +224,8 @@ rm -rf optix-jni/target/native ; sbt "project optixJni" compile  # Clean rebuild
    sbt compile
    sbt test
    ```
+
+   **If tests fail:** Follow TEST FAILURE PROTOCOL above (investigate BEFORE fixing tests)
 
 3. **Verify code quality**
    ```bash

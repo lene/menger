@@ -633,7 +633,10 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
 
 **Directional Light** (`directional`)
 - Parallel rays (like sunlight)
-- Position specifies direction (normalized automatically)
+- Direction vector points TOWARD the light source (where light comes from)
+  - Light rays travel in opposite direction, shining onto the scene
+  - Example: `directional:1,-1,-1` places light at upper-right-back
+- Normalized automatically
 - No falloff with distance
 - Example: `--light directional:-1,1,-1`
 
