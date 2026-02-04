@@ -5,7 +5,9 @@ Quick notes and ideas captured during development. Review periodically and promo
 
 - for integration tests: store reference images and compare rendered output against them
 - parallelize integration tests
-- fix PushToGithub (see https://gitlab.com/lilacashes/menger/-/jobs/12865767482)
+- ~~fix PushToGithub (see https://gitlab.com/lilacashes/menger/-/jobs/12865767482)~~
+  - ✓ Fixed: Added GIT_DEPTH: 0 to fetch complete history
+  - Root cause: Shallow clone missing older commits GitHub expected
 - find better names for sponge-2 and tesseract-sponge-2 (volume filling vs surface unfolding)
 - validate tesseract sponge generation from surfaces by repeating it with cubes. same result?
 - parchment has an ior, it shouldn't. instead it should attenuate light like... well, parchment
