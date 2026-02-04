@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **Shadow Ray Direction** - Corrected directional light direction convention for shadow rays
+  - Root cause: Commit bb92d30 incorrectly negated light direction, causing shadow rays to trace away from light sources
+  - Shadow rays now correctly trace toward light sources, restoring shadow functionality
+  - Established convention: `light.direction` points TO the light source (where light comes from)
+  - All 26 shadow tests pass, all 87 integration tests pass
+  - Documentation updated across Light.scala, USER_GUIDE.md, OptiXData.h, MengerCLIOptions.scala, helpers.cu
+  - Reference images regenerated with corrected lighting
+
 ## [0.4.3] - 2026-01-26
 
 ### Added
