@@ -1,926 +1,2398 @@
-# Sprint 10: 4D Framework
+# Sprint 10: Scala DSL for Scene Description
 
-**Sprint:** 10 - 4D Framework
+**Sprint:** 10 - Scene Description Language (Scala DSL)
 **Status:** Not Started
-**Estimate:** 20-25 hours
+**Estimate:** 18-23 hours
 **Branch:** `feature/sprint-10`
-**Depends on:** Sprint 8 (TesseractMesh), Sprint 9 (TesseractSponge)
+**Dependencies:** None (builds on existing infrastructure)
 
 ---
 
 ## Goal
 
-Enable interactive 4D manipulation in OptiX mode, with enhanced CLI parameters and a clean abstract 4D API for extensibility. Support **multiple tesseract instances with independent 4D rotations** in the same scene.
+Create a Scala DSL that allows concise, type-safe scene definitions that compile with the project and can be loaded via `--scene <classname>`.
 
 ## Success Criteria
 
-- [ ] Interactive 4D rotation in OptiX mode (Shift+Arrow keys, Shift+Mouse drag)
-- [ ] Interactive 4D projection adjustment (Shift+Scroll changes `eyeW`)
-- [ ] Reset 4D view to defaults (ESC key in OptiX mode)
-- [ ] Per-instance 4D parameters in multi-object scenes
-- [ ] CLI: `--4d-rotation=XW,YW,ZW` shorthand for 4D rotation angles
-- [ ] CLI: `--4d-preset=NAME` for common 4D views (edge-on, face-on, cell-on)
-- [ ] State persistence: save/load 4D view parameters
-- [ ] Abstract `Mesh4D` interface formalized for future extensions
-- [ ] All tests pass (~30-40 new tests)
+- [ ] `--scene scenes.MyScene` loads and renders a scene defined in Scala DSL
+- [ ] Both block-style and case-class-style syntax work
+- [ ] Concise syntax: `sphere(Glass)` creates a glass sphere at origin
+- [ ] Scene files can import definitions from other files (standard Scala imports)
+- [ ] All current object types, materials, and lights are expressible
+- [ ] Texture support: `cube((0,0,0), "brick.png", size = 1.5f)`
+- [ ] Render settings: `shadows()`, `antialiasing(4)`, `highQuality()`
+- [ ] Comprehensive tests for DSL parsing and scene generation
+- [ ] Example scene files demonstrating DSL capabilities
 
 ---
 
-## Background
+## Scope
 
-### Current State (after Sprints 8 & 9)
+### In Scope (First Version)
+- Objects: sphere, cube, sponge (Volume/Surface/CubeSponge)
+- Materials: presets (glass, chrome, gold, etc.) + custom definitions
+- Lights: directional, point (up to 8)
+- Camera: position, lookAt, up
+- Plane: axis, position, color (solid or checkered)
+- Textures: per-object texture assignment (`texture = "brick.png"`)
+- Render settings: shadows, antialiasing configuration
 
-| Component | Status |
-|-----------|--------|
-| 4D math (`Rotation`, `Projection`, `Vector[4]`, `Matrix[4]`) | ✅ Complete |
-| 4D objects (`Tesseract`, `TesseractSponge`, `TesseractSponge2`) | ✅ Complete |
-| LibGDX 4D interaction (Shift+Arrow/Mouse) | ✅ Complete |
-| OptiX 4D rendering (`TesseractMesh`, `Mesh4DProjection`) | ✅ Complete (Sprint 8-9) |
-| OptiX 4D interaction | ❌ Not implemented |
-| Per-instance 4D parameters | ❌ All instances share same projection |
-| 4D CLI presets | ❌ Not implemented |
+### Deferred (Backlog)
+- Caustics settings (algorithm issues, Sprint 4 deferred)
+- Animation keyframes (Sprint 12)
+- Runtime evaluation (compile-time only for now)
+- 4D DSL enhancements (tesseract support - after Sprint 11)
 
-### Key Challenge: Re-rendering on 4D Rotation
+---
 
-Unlike 3D camera movement (which only updates OptiX camera parameters), 4D rotation requires **regenerating the mesh** because:
-- 4D→3D projection happens on the CPU
-- The projected 3D mesh changes with each 4D rotation
-- OptiX sees a different triangle mesh each frame
+## DSL Design
 
-**Architecture Decision:** Accept mesh regeneration cost for now. 4D rotations are infrequent user interactions, not continuous animations. Future optimization (shader-based 4D) deferred to backlog.
+### Block-Style Syntax (Primary)
+
+```scala
+package scenes
+
+import menger.dsl.*
+
+object MyScene extends SceneDefinition:
+
+  val scene = scene {
+    camera(position = (0, 0.5, 3), lookAt = (0, 0, 0))
+    
+    light(Directional((-1, 1, -1), intensity = 2.0))
+    light(Point((0, 5, 0), intensity = 1.5, color = "#FFFFCC"))
+    
+    sphere(Glass)                                    // at origin, default size
+    sphere((2, 0, 0), Chrome, size = 0.8)           // with position, material, size
+    cube((-2, 0, 0), color = "#FF0000", size = 1.5) // with color instead of material
+    sponge(Volume, level = 3, color = "#00FF00")    // sponge with level
+    
+    plane(Y at -2, color = "#808080")
+  }
+```
+
+### Case-Class Style (Alternative)
+
+```scala
+package scenes
+
+import menger.dsl.*
+
+object MyScene2 extends SceneDefinition:
+  val scene = Scene(
+    camera = Camera((0, 0.5, 3) -> (0, 0, 0)),
+    lights = List(
+      Directional((-1, 1, -1), intensity = 2.0),
+      Point((0, 5, 0), intensity = 1.5)
+    ),
+    objects = List(
+      Sphere(Glass),
+      Sphere((2, 0, 0), Chrome, size = 0.8),
+      Cube((-2, 0, 0), color = "#FF0000")
+    ),
+    plane = Some(Plane(Y at -2, color = "#808080"))
+  )
+```
+
+### Reusable Definitions
+
+```scala
+// scenes/common/Materials.scala
+package scenes.common
+
+import menger.dsl.*
+
+object Materials:
+  val MyCustomGlass = Glass.copy(ior = 1.7, color = Color("#E0E0FF"))
+  val BrushedGold = Gold.copy(roughness = 0.3)
+
+// scenes/common/Lighting.scala  
+package scenes.common
+
+import menger.dsl.*
+
+object Lighting:
+  val ThreePoint = List(
+    Directional((-1, 1, -1), intensity = 1.0),
+    Directional((1, 0.5, -1), intensity = 0.5),
+    Directional((0, -1, 1), intensity = 0.3)
+  )
+
+// Usage:
+import scenes.common.Materials.MyCustomGlass
+import scenes.common.Lighting.ThreePoint
+
+object MyScene extends SceneDefinition:
+  val scene = scene {
+    lights(ThreePoint)
+    sphere(MyCustomGlass)
+  }
+```
 
 ---
 
 ## Tasks
 
-### Step 10.1: Create OptiX4DController Class
+### Step 11.1: Create Core DSL Types
 
 **Status:** Not Started
-**Estimate:** 3 hours
+**Estimate:** 2 hours
 
-Create a new controller class that handles 4D rotation/projection input in OptiX mode.
-
-#### Subtasks
-
-- [ ] Create `OptiX4DController` class implementing `Observer`
-- [ ] Handle Shift+Arrow keys for 4D rotation (XW, YW, ZW planes)
-- [ ] Handle Shift+Scroll for projection adjustment (eyeW)
-- [ ] Create `EventDispatcher` instance for OptiX mode
-- [ ] Track current 4D rotation state
-- [ ] Provide callback mechanism to notify engine of 4D changes
+Create the fundamental types for the DSL in `menger.dsl` package.
 
 #### Files to Create
 
-**`menger-app/src/main/scala/menger/input/OptiX4DController.scala`**
+**`menger-app/src/main/scala/menger/dsl/Vec3.scala`**
 
 ```scala
-package menger.input
+package menger.dsl
 
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input.Keys
-import com.typesafe.scalalogging.LazyLogging
-import menger.RotationProjectionParameters
-import menger.common.Const
+import com.badlogic.gdx.math.Vector3 as GdxVector3
+import menger.common.Vector
 
-/**
- * Handles 4D rotation and projection input for OptiX mode.
- *
- * Controls:
- * - Shift + Left/Right: Rotate in XW plane
- * - Shift + Up/Down: Rotate in YW plane
- * - Shift + PageUp/PageDown: Rotate in ZW plane
- * - Shift + Scroll: Adjust eyeW (4D projection distance)
- * - ESC: Reset to default 4D view
- */
-class OptiX4DController(
-  initialParams: RotationProjectionParameters,
-  onChange: RotationProjectionParameters => Unit
-) extends LazyLogging:
+/** 3D vector for DSL use with implicit conversions from tuples. */
+case class Vec3(x: Float, y: Float, z: Float):
+  def toGdxVector3: GdxVector3 = GdxVector3(x, y, z)
+  def toCommonVector: Vector[3] = Vector[3](x, y, z)
 
-  // Current 4D state - accumulates rotation/projection changes
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var currentParams: RotationProjectionParameters = initialParams
+object Vec3:
+  val Zero: Vec3 = Vec3(0f, 0f, 0f)
+  val UnitX: Vec3 = Vec3(1f, 0f, 0f)
+  val UnitY: Vec3 = Vec3(0f, 1f, 0f)
+  val UnitZ: Vec3 = Vec3(0f, 0f, 1f)
+  
+  /** Implicit conversion from tuple to Vec3 */
+  given Conversion[(Float, Float, Float), Vec3] with
+    def apply(t: (Float, Float, Float)): Vec3 = Vec3(t._1, t._2, t._3)
+  
+  /** Implicit conversion from Int tuple to Vec3 */
+  given Conversion[(Int, Int, Int), Vec3] with
+    def apply(t: (Int, Int, Int)): Vec3 = Vec3(t._1.toFloat, t._2.toFloat, t._3.toFloat)
+  
+  /** Implicit conversion from Double tuple to Vec3 */
+  given Conversion[(Double, Double, Double), Vec3] with
+    def apply(t: (Double, Double, Double)): Vec3 = Vec3(t._1.toFloat, t._2.toFloat, t._3.toFloat)
+```
 
-  private val defaultParams: RotationProjectionParameters = initialParams
+**`menger-app/src/main/scala/menger/dsl/Color.scala`**
 
-  private final val rotateAngle = 45f  // degrees per second
+```scala
+package menger.dsl
 
-  def params: RotationProjectionParameters = currentParams
+import menger.common.Color as CommonColor
 
-  def update(): Unit =
-    if isShiftPressed && anyRotationKeyPressed then
-      val delta = Gdx.graphics.getDeltaTime
-      applyRotation(delta)
+/** Color for DSL use with hex string parsing. */
+case class Color(r: Float, g: Float, b: Float, a: Float = 1.0f):
+  def toCommonColor: CommonColor = CommonColor(r, g, b, a)
+  def copy(
+    r: Float = this.r,
+    g: Float = this.g,
+    b: Float = this.b,
+    a: Float = this.a
+  ): Color = Color(r, g, b, a)
 
-  private def isShiftPressed: Boolean =
-    Gdx.input.isKeyPressed(Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)
+object Color:
+  val White: Color = Color(1f, 1f, 1f)
+  val Black: Color = Color(0f, 0f, 0f)
+  val Red: Color = Color(1f, 0f, 0f)
+  val Green: Color = Color(0f, 1f, 0f)
+  val Blue: Color = Color(0f, 0f, 1f)
+  
+  /** Parse hex color string (with or without #) */
+  def apply(hex: String): Color =
+    val cleanHex = if hex.startsWith("#") then hex.substring(1) else hex
+    require(cleanHex.length == 6 || cleanHex.length == 8,
+      s"Hex color must be 6 or 8 characters, got: $hex")
+    val r = Integer.parseInt(cleanHex.substring(0, 2), 16) / 255f
+    val g = Integer.parseInt(cleanHex.substring(2, 4), 16) / 255f
+    val b = Integer.parseInt(cleanHex.substring(4, 6), 16) / 255f
+    val a = if cleanHex.length == 8 then
+      Integer.parseInt(cleanHex.substring(6, 8), 16) / 255f
+    else 1f
+    Color(r, g, b, a)
+  
+  /** Implicit conversion from hex string to Color */
+  given Conversion[String, Color] with
+    def apply(hex: String): Color = Color(hex)
+```
 
-  private def anyRotationKeyPressed: Boolean =
-    Seq(Keys.LEFT, Keys.RIGHT, Keys.UP, Keys.DOWN, Keys.PAGE_UP, Keys.PAGE_DOWN)
-      .exists(Gdx.input.isKeyPressed)
+**`menger-app/src/main/scala/menger/dsl/Material.scala`**
 
-  private def applyRotation(delta: Float): Unit =
-    val dXW = angle(delta, Keys.LEFT, Keys.RIGHT)
-    val dYW = angle(delta, Keys.UP, Keys.DOWN)
-    val dZW = angle(delta, Keys.PAGE_UP, Keys.PAGE_DOWN)
+```scala
+package menger.dsl
 
-    if dXW != 0f || dYW != 0f || dZW != 0f then
-      val deltaParams = RotationProjectionParameters(dXW, dYW, dZW)
-      currentParams = currentParams + deltaParams
-      logger.debug(s"4D rotation: XW=${currentParams.rotXW}, YW=${currentParams.rotYW}, ZW=${currentParams.rotZW}")
-      onChange(currentParams)
+import menger.optix.Material as OptixMaterial
 
-  private def angle(delta: Float, negKey: Int, posKey: Int): Float =
-    val neg = if Gdx.input.isKeyPressed(negKey) then -1 else 0
-    val pos = if Gdx.input.isKeyPressed(posKey) then 1 else 0
-    delta * rotateAngle * (neg + pos)
+/** Material definition for DSL use. */
+case class Material(
+  color: Color = Color.White,
+  ior: Float = 1.0f,
+  roughness: Float = 0.5f,
+  metallic: Float = 0.0f,
+  specular: Float = 0.5f
+):
+  def toOptixMaterial: OptixMaterial = OptixMaterial(
+    color = color.toCommonColor,
+    ior = ior,
+    roughness = roughness,
+    metallic = metallic,
+    specular = specular
+  )
+  
+  def copy(
+    color: Color = this.color,
+    ior: Float = this.ior,
+    roughness: Float = this.roughness,
+    metallic: Float = this.metallic,
+    specular: Float = this.specular
+  ): Material = Material(color, ior, roughness, metallic, specular)
 
-  def applyDelta(dXW: Float, dYW: Float, dZW: Float): Unit =
-    if dXW != 0f || dYW != 0f || dZW != 0f then
-      val deltaParams = RotationProjectionParameters(dXW, dYW, dZW)
-      currentParams = currentParams + deltaParams
-      onChange(currentParams)
-
-  def handleScroll(amountY: Float): Boolean =
-    if isShiftPressed then
-      // Exponential scaling for smooth zoom feel
-      val factor = Math.pow(1.1, amountY.toDouble).toFloat
-      val newEyeW = (currentParams.eyeW * factor).max(currentParams.screenW + 0.1f)
-      currentParams = currentParams.copy(eyeW = newEyeW)
-      logger.debug(s"4D projection: eyeW=${currentParams.eyeW}")
-      onChange(currentParams)
-      true
-    else
-      false
-
-  def resetToDefault(): Unit =
-    currentParams = defaultParams
-    logger.info("Reset 4D view to defaults")
-    onChange(currentParams)
+object Material:
+  // Dielectric presets (transparent materials with refraction)
+  val Glass: Material = Material(
+    color = Color(1f, 1f, 1f, 0.02f),
+    ior = 1.5f,
+    roughness = 0f,
+    metallic = 0f,
+    specular = 1f
+  )
+  
+  val Water: Material = Material(
+    color = Color(1f, 1f, 1f, 0.02f),
+    ior = 1.33f,
+    roughness = 0f,
+    metallic = 0f,
+    specular = 1f
+  )
+  
+  val Diamond: Material = Material(
+    color = Color(1f, 1f, 1f, 0.02f),
+    ior = 2.42f,
+    roughness = 0f,
+    metallic = 0f,
+    specular = 1f
+  )
+  
+  // Metal presets
+  val Chrome: Material = Material(
+    color = Color(0.9f, 0.9f, 0.9f),
+    ior = 1f,
+    roughness = 0f,
+    metallic = 1f,
+    specular = 1f
+  )
+  
+  val Gold: Material = Material(
+    color = Color(1f, 0.84f, 0f),
+    ior = 1f,
+    roughness = 0.1f,
+    metallic = 1f,
+    specular = 1f
+  )
+  
+  val Copper: Material = Material(
+    color = Color(0.72f, 0.45f, 0.20f),
+    ior = 1f,
+    roughness = 0.2f,
+    metallic = 1f,
+    specular = 1f
+  )
+  
+  // Factory methods
+  def matte(color: Color): Material =
+    Material(color, ior = 1f, roughness = 1f, metallic = 0f, specular = 0f)
+  
+  def plastic(color: Color): Material =
+    Material(color, ior = 1.5f, roughness = 0.3f, metallic = 0f, specular = 0.5f)
+  
+  def metal(color: Color): Material =
+    Material(color, ior = 1f, roughness = 0.1f, metallic = 1f, specular = 1f)
+  
+  def glass(color: Color): Material =
+    Material(color.copy(a = 0.02f), ior = 1.5f, roughness = 0f, metallic = 0f, specular = 1f)
 ```
 
 #### Tests to Add
 
-**`menger-app/src/test/scala/menger/input/OptiX4DControllerSpec.scala`**
+**`menger-app/src/test/scala/menger/dsl/Vec3Spec.scala`**
 
 ```scala
-package menger.input
+package menger.dsl
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import menger.RotationProjectionParameters
 
-class OptiX4DControllerSpec extends AnyFlatSpec with Matchers:
+class Vec3Spec extends AnyFlatSpec with Matchers:
 
-  "OptiX4DController" should "start with initial parameters" in:
-    val initial = RotationProjectionParameters(15f, 10f, 0f)
-    var callbackInvoked = false
-    val controller = OptiX4DController(initial, _ => callbackInvoked = true)
+  "Vec3" should "create from explicit values" in:
+    val v = Vec3(1f, 2f, 3f)
+    v.x shouldBe 1f
+    v.y shouldBe 2f
+    v.z shouldBe 3f
 
-    controller.params shouldBe initial
+  it should "convert from Float tuple" in:
+    val v: Vec3 = (1.0f, 2.0f, 3.0f)
+    v shouldBe Vec3(1f, 2f, 3f)
 
-  it should "accumulate rotation changes via applyDelta" in:
-    val initial = RotationProjectionParameters(0f, 0f, 0f)
-    var lastParams: RotationProjectionParameters = initial
-    val controller = OptiX4DController(initial, p => lastParams = p)
+  it should "convert from Int tuple" in:
+    val v: Vec3 = (1, 2, 3)
+    v shouldBe Vec3(1f, 2f, 3f)
 
-    controller.applyDelta(10f, 20f, 30f)
-    lastParams.rotXW shouldBe 10f
-    lastParams.rotYW shouldBe 20f
-    lastParams.rotZW shouldBe 30f
+  it should "convert from Double tuple" in:
+    val v: Vec3 = (1.0, 2.0, 3.0)
+    v shouldBe Vec3(1f, 2f, 3f)
 
-    controller.applyDelta(5f, -10f, 15f)
-    lastParams.rotXW shouldBe 15f
-    lastParams.rotYW shouldBe 10f
-    lastParams.rotZW shouldBe 45f
+  it should "convert to GdxVector3" in:
+    val v = Vec3(1f, 2f, 3f)
+    val gdx = v.toGdxVector3
+    gdx.x shouldBe 1f
+    gdx.y shouldBe 2f
+    gdx.z shouldBe 3f
 
-  it should "reset to defaults" in:
-    val initial = RotationProjectionParameters(15f, 10f, 5f)
-    var lastParams = initial
-    val controller = OptiX4DController(initial, p => lastParams = p)
+  it should "convert to CommonVector" in:
+    val v = Vec3(1f, 2f, 3f)
+    val common = v.toCommonVector
+    common(0) shouldBe 1f
+    common(1) shouldBe 2f
+    common(2) shouldBe 3f
 
-    controller.applyDelta(30f, 40f, 50f)
-    controller.resetToDefault()
-    lastParams shouldBe initial
+  it should "have Zero constant" in:
+    Vec3.Zero shouldBe Vec3(0f, 0f, 0f)
+```
 
-  it should "clamp eyeW above screenW" in:
-    val initial = RotationProjectionParameters(0f, 0f, 0f, eyeW = 3f, screenW = 1.5f)
-    var lastParams = initial
-    val controller = OptiX4DController(initial, p => lastParams = p)
+**`menger-app/src/test/scala/menger/dsl/ColorSpec.scala`**
 
-    // eyeW should never go below screenW + epsilon
-    controller.params.eyeW should be > controller.params.screenW
+```scala
+package menger.dsl
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class ColorSpec extends AnyFlatSpec with Matchers:
+
+  "Color" should "parse 6-digit hex without #" in:
+    val c = Color("FF0000")
+    c.r shouldBe 1f +- 0.01f
+    c.g shouldBe 0f +- 0.01f
+    c.b shouldBe 0f +- 0.01f
+    c.a shouldBe 1f
+
+  it should "parse 6-digit hex with #" in:
+    val c = Color("#00FF00")
+    c.r shouldBe 0f +- 0.01f
+    c.g shouldBe 1f +- 0.01f
+    c.b shouldBe 0f +- 0.01f
+
+  it should "parse 8-digit hex with alpha" in:
+    val c = Color("#FF000080")
+    c.r shouldBe 1f +- 0.01f
+    c.a shouldBe 0.5f +- 0.01f
+
+  it should "convert from string implicitly" in:
+    val c: Color = "#0000FF"
+    c.b shouldBe 1f +- 0.01f
+
+  it should "reject invalid hex" in:
+    an[IllegalArgumentException] should be thrownBy Color("GGG")
+    an[IllegalArgumentException] should be thrownBy Color("FF00")
+
+  it should "have predefined constants" in:
+    Color.White shouldBe Color(1f, 1f, 1f)
+    Color.Black shouldBe Color(0f, 0f, 0f)
+    Color.Red shouldBe Color(1f, 0f, 0f)
+```
+
+**`menger-app/src/test/scala/menger/dsl/MaterialSpec.scala`**
+
+```scala
+package menger.dsl
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class MaterialSpec extends AnyFlatSpec with Matchers:
+
+  "Material presets" should "have correct Glass properties" in:
+    val glass = Material.Glass
+    glass.ior shouldBe 1.5f
+    glass.roughness shouldBe 0f
+    glass.metallic shouldBe 0f
+    glass.specular shouldBe 1f
+    glass.color.a shouldBe 0.02f +- 0.01f
+
+  it should "have correct Chrome properties" in:
+    val chrome = Material.Chrome
+    chrome.metallic shouldBe 1f
+    chrome.roughness shouldBe 0f
+
+  it should "have correct Gold properties" in:
+    val gold = Material.Gold
+    gold.metallic shouldBe 1f
+    gold.color.r shouldBe 1f
+    gold.color.g shouldBe 0.84f +- 0.01f
+
+  "Material.copy" should "allow overriding properties" in:
+    val customGlass = Material.Glass.copy(ior = 1.7f)
+    customGlass.ior shouldBe 1.7f
+    customGlass.roughness shouldBe 0f  // unchanged
+
+  "Material factory methods" should "create matte materials" in:
+    val m = Material.matte(Color.Red)
+    m.roughness shouldBe 1f
+    m.metallic shouldBe 0f
+    m.specular shouldBe 0f
+
+  it should "create plastic materials" in:
+    val m = Material.plastic(Color.Blue)
+    m.roughness shouldBe 0.3f
+    m.metallic shouldBe 0f
+
+  it should "create metal materials" in:
+    val m = Material.metal(Color.White)
+    m.metallic shouldBe 1f
+    m.roughness shouldBe 0.1f
+
+  "Material.toOptixMaterial" should "convert correctly" in:
+    val dsl = Material.Glass
+    val optix = dsl.toOptixMaterial
+    optix.ior shouldBe dsl.ior
+    optix.roughness shouldBe dsl.roughness
+    optix.metallic shouldBe dsl.metallic
 ```
 
 ---
 
-### Step 10.2: Integrate OptiX4DController into OptiXKeyController
+### Step 11.2: Create Light Types
 
 **Status:** Not Started
-**Estimate:** 2 hours
+**Estimate:** 1 hour
 
-Extend `OptiXKeyController` to delegate 4D input to `OptiX4DController`.
+Create DSL types for light sources.
 
-#### Subtasks
+#### Files to Create
 
-- [ ] Add `OptiX4DController` dependency to `OptiXKeyController`
-- [ ] Call `controller.update()` on each frame
-- [ ] Handle ESC key to reset 4D view (in addition to existing behavior)
-- [ ] Update `BaseKeyController` to track PageUp/PageDown keys
+**`menger-app/src/main/scala/menger/dsl/Light.scala`**
 
-#### Files to Modify
-
-**`menger-app/src/main/scala/menger/input/BaseKeyController.scala`**
-
-Add PageUp/PageDown to tracked keys:
 ```scala
-// Add to rotatePressed map initialization
-Keys.PAGE_UP -> false, Keys.PAGE_DOWN -> false
+package menger.dsl
+
+import menger.common.Light as CommonLight
+import menger.common.LightType as CommonLightType
+
+/** Base trait for DSL light definitions. */
+sealed trait Light:
+  def toCommonLight: CommonLight
+
+/** Directional light (like sun). */
+case class Directional(
+  direction: Vec3,
+  intensity: Float = 1.0f,
+  color: Color = Color.White
+) extends Light:
+  def toCommonLight: CommonLight = CommonLight.Directional(
+    direction = direction.toCommonVector,
+    color = color.toCommonColor,
+    intensity = intensity
+  )
+
+object Directional:
+  /** Create from tuple (uses implicit conversion) */
+  def apply(direction: (Float, Float, Float), intensity: Float, color: Color): Directional =
+    Directional(Vec3(direction._1, direction._2, direction._3), intensity, color)
+  
+  def apply(direction: (Float, Float, Float), intensity: Float): Directional =
+    Directional(Vec3(direction._1, direction._2, direction._3), intensity, Color.White)
+  
+  def apply(direction: (Float, Float, Float)): Directional =
+    Directional(Vec3(direction._1, direction._2, direction._3), 1.0f, Color.White)
+  
+  /** Overloads for Int tuples */
+  def apply(direction: (Int, Int, Int), intensity: Float, color: Color): Directional =
+    Directional(Vec3(direction._1.toFloat, direction._2.toFloat, direction._3.toFloat), intensity, color)
+  
+  def apply(direction: (Int, Int, Int), intensity: Float): Directional =
+    Directional(Vec3(direction._1.toFloat, direction._2.toFloat, direction._3.toFloat), intensity, Color.White)
+  
+  def apply(direction: (Int, Int, Int)): Directional =
+    Directional(Vec3(direction._1.toFloat, direction._2.toFloat, direction._3.toFloat), 1.0f, Color.White)
+
+/** Point light (like light bulb). */
+case class Point(
+  position: Vec3,
+  intensity: Float = 1.0f,
+  color: Color = Color.White
+) extends Light:
+  def toCommonLight: CommonLight = CommonLight.Point(
+    position = position.toCommonVector,
+    color = color.toCommonColor,
+    intensity = intensity
+  )
+
+object Point:
+  /** Create from tuple */
+  def apply(position: (Float, Float, Float), intensity: Float, color: Color): Point =
+    Point(Vec3(position._1, position._2, position._3), intensity, color)
+  
+  def apply(position: (Float, Float, Float), intensity: Float): Point =
+    Point(Vec3(position._1, position._2, position._3), intensity, Color.White)
+  
+  def apply(position: (Float, Float, Float)): Point =
+    Point(Vec3(position._1, position._2, position._3), 1.0f, Color.White)
+  
+  /** Overloads for Int tuples */
+  def apply(position: (Int, Int, Int), intensity: Float, color: Color): Point =
+    Point(Vec3(position._1.toFloat, position._2.toFloat, position._3.toFloat), intensity, color)
+  
+  def apply(position: (Int, Int, Int), intensity: Float): Point =
+    Point(Vec3(position._1.toFloat, position._2.toFloat, position._3.toFloat), intensity, Color.White)
+  
+  def apply(position: (Int, Int, Int)): Point =
+    Point(Vec3(position._1.toFloat, position._2.toFloat, position._3.toFloat), 1.0f, Color.White)
 ```
 
-**`menger-app/src/main/scala/menger/input/OptiXKeyController.scala`**
+#### Tests to Add
+
+**`menger-app/src/test/scala/menger/dsl/LightSpec.scala`**
 
 ```scala
-package menger.input
+package menger.dsl
 
-import com.badlogic.gdx.Gdx
-import menger.RotationProjectionParameters
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import menger.common.LightType as CommonLightType
 
-class OptiXKeyController(
-  fourDController: Option[OptiX4DController] = None
-) extends BaseKeyController:
+class LightSpec extends AnyFlatSpec with Matchers:
 
-  override def keyDown(keycode: Int): Boolean =
-    val handled = super.keyDown(keycode)
-    // Additional handling can go here
-    handled
+  "Directional" should "create with Vec3 direction" in:
+    val light = Directional(Vec3(-1f, 1f, -1f), intensity = 2.0f)
+    light.direction shouldBe Vec3(-1f, 1f, -1f)
+    light.intensity shouldBe 2.0f
+    light.color shouldBe Color.White
 
-  override protected def handleEscape(): Boolean =
-    // Reset 4D view if controller exists, then exit
-    fourDController.foreach(_.resetToDefault())
-    Gdx.app.exit()
-    true
+  it should "create from Float tuple" in:
+    val light = Directional((-1f, 1f, -1f), intensity = 2.0f)
+    light.direction shouldBe Vec3(-1f, 1f, -1f)
 
-  override protected def onRotationUpdate(): Unit =
-    fourDController.foreach(_.update())
-```
+  it should "create from Int tuple" in:
+    val light = Directional((-1, 1, -1), intensity = 2.0f)
+    light.direction shouldBe Vec3(-1f, 1f, -1f)
 
----
+  it should "use default intensity of 1.0" in:
+    val light = Directional((-1, 1, -1))
+    light.intensity shouldBe 1.0f
 
-### Step 10.3: Enable 4D Mesh Regeneration in OptiXEngine
+  it should "accept custom color" in:
+    val light = Directional((-1, 1, -1), intensity = 1.0f, color = Color("#FF0000"))
+    light.color.r shouldBe 1f +- 0.01f
 
-**Status:** Not Started
-**Estimate:** 4 hours
+  it should "convert to CommonLight" in:
+    val light = Directional((-1f, 1f, -1f), intensity = 2.0f)
+    val common = light.toCommonLight
+    common.lightType shouldBe CommonLightType.Directional
+    common.intensity shouldBe 2.0f
 
-Add the ability for `OptiXEngine` to regenerate 4D meshes when rotation parameters change.
+  "Point" should "create with Vec3 position" in:
+    val light = Point(Vec3(0f, 5f, 0f), intensity = 1.5f)
+    light.position shouldBe Vec3(0f, 5f, 0f)
+    light.intensity shouldBe 1.5f
 
-#### Subtasks
+  it should "create from tuple" in:
+    val light = Point((0, 5, 0), intensity = 1.5f)
+    light.position shouldBe Vec3(0f, 5f, 0f)
 
-- [ ] Store current `RotationProjectionParameters` in engine state
-- [ ] Create method to regenerate 4D mesh with new parameters
-- [ ] Update mesh in OptiX renderer after regeneration
-- [ ] Track whether scene contains 4D objects (to skip regeneration for 3D-only scenes)
-- [ ] Request re-render after mesh update
-
-#### Files to Modify
-
-**`menger-app/src/main/scala/menger/engines/OptiXEngine.scala`**
-
-Add 4D state management:
-```scala
-// New imports
-import menger.RotationProjectionParameters
-import menger.input.OptiX4DController
-import menger.objects.higher_d.TesseractMesh
-import menger.objects.higher_d.TesseractSpongeMesh
-import menger.objects.higher_d.TesseractSponge2Mesh
-
-// Add to class body:
-
-// 4D state - only used when scene contains 4D objects
-@SuppressWarnings(Array("org.wartremover.warts.Var"))
-private var current4DParams: Option[RotationProjectionParameters] = None
-
-private lazy val fourDController: Option[OptiX4DController] =
-  if has4DObjects then
-    val initial = RotationProjectionParameters(
-      rotXW = default4DRotXW,
-      rotYW = default4DRotYW,
-      rotZW = default4DRotZW,
-      eyeW = default4DEyeW,
-      screenW = default4DScreenW
-    )
-    current4DParams = Some(initial)
-    Some(OptiX4DController(initial, on4DParamsChanged))
-  else
-    None
-
-private def has4DObjects: Boolean =
-  scene.objectSpecs.exists(_.exists(spec => ObjectType.isHypercube(spec.objectType))) ||
-  ObjectType.isHypercube(scene.spongeType)
-
-private def on4DParamsChanged(params: RotationProjectionParameters): Unit =
-  current4DParams = Some(params)
-  regenerate4DMeshes(params)
-  renderResources.markNeedsRender()
-  Gdx.graphics.requestRendering()
-
-private def regenerate4DMeshes(params: RotationProjectionParameters): Unit =
-  scene.objectSpecs match
-    case Some(specs) =>
-      // Multi-object mode: regenerate all 4D meshes
-      val fourDSpecs = specs.filter(s => ObjectType.isHypercube(s.objectType))
-      if fourDSpecs.nonEmpty then
-        regenerateMultiObject4DMeshes(fourDSpecs, params)
-    case None =>
-      // Single-object mode
-      if ObjectType.isHypercube(scene.spongeType) then
-        regenerateSingleObject4DMesh(params)
-
-private def regenerateSingleObject4DMesh(params: RotationProjectionParameters): Unit =
-  val mesh = create4DMeshWithParams(scene.spongeType, scene.sphereRadius * 2, scene.level, params)
-  rendererWrapper.renderer.setTriangleMesh(mesh)
-
-private def create4DMeshWithParams(
-  objectType: String,
-  size: Float,
-  level: Float,
-  params: RotationProjectionParameters
-): menger.common.TriangleMeshData =
-  objectType match
-    case "tesseract" =>
-      TesseractMesh(
-        size = size,
-        eyeW = params.eyeW,
-        screenW = params.screenW,
-        rotXW = params.rotXW,
-        rotYW = params.rotYW,
-        rotZW = params.rotZW
-      ).toTriangleMesh
-    case "tesseract-sponge" =>
-      TesseractSpongeMesh(
-        size = size,
-        level = level,
-        eyeW = params.eyeW,
-        screenW = params.screenW,
-        rotXW = params.rotXW,
-        rotYW = params.rotYW,
-        rotZW = params.rotZW
-      ).toTriangleMesh
-    case "tesseract-sponge-2" =>
-      TesseractSponge2Mesh(
-        size = size,
-        level = level,
-        eyeW = params.eyeW,
-        screenW = params.screenW,
-        rotXW = params.rotXW,
-        rotYW = params.rotYW,
-        rotZW = params.rotZW
-      ).toTriangleMesh
-    case other =>
-      throw IllegalArgumentException(s"Not a 4D object type: $other")
+  it should "convert to CommonLight" in:
+    val light = Point((0f, 5f, 0f), intensity = 1.5f)
+    val common = light.toCommonLight
+    common.lightType shouldBe CommonLightType.Point
+    common.intensity shouldBe 1.5f
 ```
 
 ---
 
-### Step 10.4: Add 4D Mouse Controls to OptiXCameraController
-
-**Status:** Not Started
-**Estimate:** 2 hours
-
-Extend `OptiXCameraController` to handle Shift+Mouse for 4D rotation and Shift+Scroll for projection.
-
-#### Subtasks
-
-- [ ] Pass `OptiX4DController` reference to `OptiXCameraController`
-- [ ] Detect Shift+Drag and route to 4D controller
-- [ ] Detect Shift+Scroll and route to 4D controller
-- [ ] Preserve existing 3D camera behavior when Shift is not pressed
-
-#### Files to Modify
-
-**`menger-app/src/main/scala/menger/input/OptiXCameraController.scala`**
-
-```scala
-// Add parameter:
-class OptiXCameraController(
-  rendererWrapper: OptiXRendererWrapper,
-  cameraState: CameraState,
-  renderResources: OptiXRenderResources,
-  initialEye: Vector3,
-  initialLookAt: Vector3,
-  initialUp: Vector3,
-  config: OrbitConfig = OrbitConfig(),
-  fourDController: Option[OptiX4DController] = None  // NEW
-) extends InputAdapter with SphericalOrbit with LazyLogging:
-
-  // ... existing code ...
-
-  override def touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean =
-    dragState match
-      case None => false
-      case Some(state) =>
-        val deltaX = screenX - state.lastX
-        val deltaY = screenY - state.lastY
-        dragState = Some(state.copy(lastX = screenX, lastY = screenY))
-
-        if isShiftPressed then
-          // 4D rotation via mouse drag
-          fourDController.foreach { ctrl =>
-            handle4DDrag(deltaX, deltaY, state.button, ctrl)
-          }
-        else
-          state.button match
-            case Buttons.LEFT => handleOrbit(deltaX, deltaY)
-            case Buttons.RIGHT => handlePan(deltaX, deltaY)
-            case _ => // Ignore other buttons
-
-        true
-
-  private def handle4DDrag(deltaX: Int, deltaY: Int, button: Int, ctrl: OptiX4DController): Unit =
-    val sensitivity = 0.5f
-    button match
-      case Buttons.LEFT =>
-        // Left drag: XW and YW rotation
-        val dXW = deltaX * sensitivity
-        val dYW = -deltaY * sensitivity
-        ctrl.applyDelta(dXW, dYW, 0f)
-      case Buttons.RIGHT =>
-        // Right drag: ZW rotation
-        val dZW = deltaX * sensitivity
-        ctrl.applyDelta(0f, 0f, dZW)
-      case _ => ()
-
-  override def scrolled(amountX: Float, amountY: Float): Boolean =
-    if isShiftPressed then
-      fourDController.map(_.handleScroll(amountY)).getOrElse(false)
-    else
-      handleZoom(amountY)
-      true
-
-  private def isShiftPressed: Boolean =
-    Gdx.input.isKeyPressed(Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT)
-```
-
----
-
-### Step 10.5: Add 4D CLI Enhancements
+### Step 11.3: Create Scene Object Types
 
 **Status:** Not Started
 **Estimate:** 2.5 hours
 
-Add new CLI options for convenient 4D parameter specification.
+Create DSL types for scene objects (sphere, cube, sponge).
 
-#### Subtasks
+#### Files to Create
 
-- [ ] Add `--4d-rotation=XW,YW,ZW` shorthand option
-- [ ] Add `--4d-preset=NAME` for common views
-- [ ] Add preset definitions (edge-on, face-on, cell-on, classic)
-- [ ] Validate that shorthand and explicit options don't conflict
-- [ ] Update help text
+**`menger-app/src/main/scala/menger/dsl/SceneObject.scala`**
+
+```scala
+package menger.dsl
+
+import menger.ObjectSpec
+import menger.optix.Material as OptixMaterial
+
+/** Base trait for all DSL scene objects. */
+sealed trait SceneObject:
+  def pos: Vec3
+  def size: Float
+  def toObjectSpec: ObjectSpec
+
+/** Sphere object. */
+case class Sphere(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f
+) extends SceneObject:
+  def toObjectSpec: ObjectSpec = ObjectSpec(
+    objectType = "sphere",
+    x = pos.x,
+    y = pos.y,
+    z = pos.z,
+    size = size,
+    level = None,
+    color = color.map(_.toCommonColor),
+    ior = material.map(_.ior).getOrElse(ior),
+    material = material.map(_.toOptixMaterial),
+    texture = None
+  )
+
+object Sphere:
+  /** Sphere with just material at origin */
+  def apply(material: Material): Sphere =
+    Sphere(pos = Vec3.Zero, material = Some(material))
+  
+  /** Sphere with position and material */
+  def apply(pos: Vec3, material: Material): Sphere =
+    Sphere(pos = pos, material = Some(material))
+  
+  def apply(pos: Vec3, material: Material, size: Float): Sphere =
+    Sphere(pos = pos, material = Some(material), size = size)
+  
+  /** Sphere from tuple position */
+  def apply(pos: (Float, Float, Float), material: Material): Sphere =
+    Sphere(Vec3(pos._1, pos._2, pos._3), material)
+  
+  def apply(pos: (Float, Float, Float), material: Material, size: Float): Sphere =
+    Sphere(Vec3(pos._1, pos._2, pos._3), material, size)
+  
+  def apply(pos: (Int, Int, Int), material: Material): Sphere =
+    Sphere(Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), material)
+  
+  def apply(pos: (Int, Int, Int), material: Material, size: Float): Sphere =
+    Sphere(Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), material, size)
+
+/** Cube object. */
+case class Cube(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f
+) extends SceneObject:
+  def toObjectSpec: ObjectSpec = ObjectSpec(
+    objectType = "cube",
+    x = pos.x,
+    y = pos.y,
+    z = pos.z,
+    size = size,
+    level = None,
+    color = color.map(_.toCommonColor),
+    ior = material.map(_.ior).getOrElse(ior),
+    material = material.map(_.toOptixMaterial),
+    texture = None
+  )
+
+object Cube:
+  def apply(material: Material): Cube =
+    Cube(pos = Vec3.Zero, material = Some(material))
+  
+  def apply(pos: Vec3, material: Material): Cube =
+    Cube(pos = pos, material = Some(material))
+  
+  def apply(pos: Vec3, material: Material, size: Float): Cube =
+    Cube(pos = pos, material = Some(material), size = size)
+  
+  def apply(pos: (Float, Float, Float), material: Material): Cube =
+    Cube(Vec3(pos._1, pos._2, pos._3), material)
+  
+  def apply(pos: (Float, Float, Float), material: Material, size: Float): Cube =
+    Cube(Vec3(pos._1, pos._2, pos._3), material, size)
+  
+  def apply(pos: (Int, Int, Int), material: Material): Cube =
+    Cube(Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), material)
+  
+  def apply(pos: (Int, Int, Int), material: Material, size: Float): Cube =
+    Cube(Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), material, size)
+
+/** Sponge type variants. */
+enum SpongeType(val objectTypeName: String):
+  case Volume extends SpongeType("sponge-volume")
+  case Surface extends SpongeType("sponge-surface")
+  case CubeSponge extends SpongeType("cube-sponge")
+
+/** Sponge object (Menger sponge variants). */
+case class Sponge(
+  spongeType: SpongeType,
+  pos: Vec3 = Vec3.Zero,
+  level: Float,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f
+) extends SceneObject:
+  def toObjectSpec: ObjectSpec = ObjectSpec(
+    objectType = spongeType.objectTypeName,
+    x = pos.x,
+    y = pos.y,
+    z = pos.z,
+    size = size,
+    level = Some(level),
+    color = color.map(_.toCommonColor),
+    ior = material.map(_.ior).getOrElse(ior),
+    material = material.map(_.toOptixMaterial),
+    texture = None
+  )
+
+object Sponge:
+  /** Sponge at origin with level */
+  def apply(spongeType: SpongeType, level: Float): Sponge =
+    Sponge(spongeType = spongeType, level = level)
+  
+  def apply(spongeType: SpongeType, level: Float, color: Color): Sponge =
+    Sponge(spongeType = spongeType, level = level, color = Some(color))
+  
+  def apply(spongeType: SpongeType, level: Float, material: Material): Sponge =
+    Sponge(spongeType = spongeType, level = level, material = Some(material))
+  
+  /** Sponge with position */
+  def apply(spongeType: SpongeType, pos: Vec3, level: Float): Sponge =
+    Sponge(spongeType = spongeType, pos = pos, level = level)
+  
+  def apply(spongeType: SpongeType, pos: Vec3, level: Float, color: Color): Sponge =
+    Sponge(spongeType = spongeType, pos = pos, level = level, color = Some(color))
+  
+  def apply(spongeType: SpongeType, pos: Vec3, level: Float, material: Material): Sponge =
+    Sponge(spongeType = spongeType, pos = pos, level = level, material = Some(material))
+  
+  /** Tuple position overloads */
+  def apply(spongeType: SpongeType, pos: (Float, Float, Float), level: Float): Sponge =
+    Sponge(spongeType, Vec3(pos._1, pos._2, pos._3), level)
+  
+  def apply(spongeType: SpongeType, pos: (Float, Float, Float), level: Float, color: Color): Sponge =
+    Sponge(spongeType, Vec3(pos._1, pos._2, pos._3), level, Some(color))
+  
+  def apply(spongeType: SpongeType, pos: (Int, Int, Int), level: Float): Sponge =
+    Sponge(spongeType, Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), level)
+
+// Export SpongeType variants for convenience
+export SpongeType.{Volume, Surface, CubeSponge}
+```
+
+#### Tests to Add
+
+**`menger-app/src/test/scala/menger/dsl/SceneObjectSpec.scala`**
+
+```scala
+package menger.dsl
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class SceneObjectSpec extends AnyFlatSpec with Matchers:
+
+  // === Sphere Tests ===
+
+  "Sphere" should "create at origin with just material" in:
+    val s = Sphere(Material.Glass)
+    s.pos shouldBe Vec3.Zero
+    s.material shouldBe Some(Material.Glass)
+    s.size shouldBe 1.0f
+
+  it should "create with position and material" in:
+    val s = Sphere((2, 0, 0), Material.Chrome)
+    s.pos shouldBe Vec3(2f, 0f, 0f)
+    s.material shouldBe Some(Material.Chrome)
+
+  it should "create with position, material, and size" in:
+    val s = Sphere((1, 2, 3), Material.Gold, size = 0.5f)
+    s.pos shouldBe Vec3(1f, 2f, 3f)
+    s.size shouldBe 0.5f
+
+  it should "convert to ObjectSpec correctly" in:
+    val s = Sphere((1f, 2f, 3f), Material.Glass, size = 2.0f)
+    val spec = s.toObjectSpec
+    spec.objectType shouldBe "sphere"
+    spec.x shouldBe 1f
+    spec.y shouldBe 2f
+    spec.z shouldBe 3f
+    spec.size shouldBe 2.0f
+    spec.material.isDefined shouldBe true
+
+  // === Cube Tests ===
+
+  "Cube" should "create at origin with material" in:
+    val c = Cube(Material.Chrome)
+    c.pos shouldBe Vec3.Zero
+    c.material shouldBe Some(Material.Chrome)
+
+  it should "create with color instead of material" in:
+    val c = Cube(pos = Vec3(1f, 0f, 0f), color = Some(Color("#FF0000")))
+    c.color.isDefined shouldBe true
+    c.material shouldBe None
+
+  it should "convert to ObjectSpec correctly" in:
+    val c = Cube((1, 2, 3), Material.Gold, size = 1.5f)
+    val spec = c.toObjectSpec
+    spec.objectType shouldBe "cube"
+    spec.x shouldBe 1f
+    spec.size shouldBe 1.5f
+
+  // === Sponge Tests ===
+
+  "Sponge" should "create Volume type with level" in:
+    val s = Sponge(Volume, level = 3)
+    s.spongeType shouldBe Volume
+    s.level shouldBe 3f
+    s.pos shouldBe Vec3.Zero
+
+  it should "create Surface type with position and level" in:
+    val s = Sponge(Surface, (1, 2, 3), level = 2.5f)
+    s.spongeType shouldBe Surface
+    s.pos shouldBe Vec3(1f, 2f, 3f)
+    s.level shouldBe 2.5f
+
+  it should "create CubeSponge with color" in:
+    val s = Sponge(CubeSponge, level = 2, color = Color("#00FF00"))
+    s.spongeType shouldBe CubeSponge
+    s.color.isDefined shouldBe true
+
+  it should "convert Volume to correct ObjectSpec type" in:
+    val s = Sponge(Volume, level = 3)
+    s.toObjectSpec.objectType shouldBe "sponge-volume"
+
+  it should "convert Surface to correct ObjectSpec type" in:
+    val s = Sponge(Surface, level = 2)
+    s.toObjectSpec.objectType shouldBe "sponge-surface"
+
+  it should "convert CubeSponge to correct ObjectSpec type" in:
+    val s = Sponge(CubeSponge, level = 2)
+    s.toObjectSpec.objectType shouldBe "cube-sponge"
+
+  it should "include level in ObjectSpec" in:
+    val s = Sponge(Volume, level = 3.5f)
+    s.toObjectSpec.level shouldBe Some(3.5f)
+```
+
+---
+
+### Step 11.4: Create Camera and Plane Types
+
+**Status:** Not Started
+**Estimate:** 1.5 hours
+
+Create DSL types for camera and ground plane.
+
+#### Files to Create
+
+**`menger-app/src/main/scala/menger/dsl/Camera.scala`**
+
+```scala
+package menger.dsl
+
+import menger.config.CameraConfig
+
+/** Camera configuration for DSL use. */
+case class Camera(
+  position: Vec3 = Vec3(0f, 0f, 3f),
+  lookAt: Vec3 = Vec3.Zero,
+  up: Vec3 = Vec3.UnitY
+):
+  def toCameraConfig: CameraConfig = CameraConfig(
+    position = position.toGdxVector3,
+    lookAt = lookAt.toGdxVector3,
+    up = up.toGdxVector3
+  )
+
+object Camera:
+  val Default: Camera = Camera()
+  
+  /** Create camera with position -> lookAt syntax */
+  def apply(positionToLookAt: (Vec3, Vec3)): Camera =
+    Camera(position = positionToLookAt._1, lookAt = positionToLookAt._2)
+  
+  /** Arrow syntax helper: position -> lookAt */
+  extension (pos: Vec3)
+    def ->(lookAt: Vec3): (Vec3, Vec3) = (pos, lookAt)
+  
+  /** Create from tuple positions */
+  def apply(position: (Float, Float, Float), lookAt: (Float, Float, Float)): Camera =
+    Camera(
+      position = Vec3(position._1, position._2, position._3),
+      lookAt = Vec3(lookAt._1, lookAt._2, lookAt._3)
+    )
+  
+  def apply(position: (Int, Int, Int), lookAt: (Int, Int, Int)): Camera =
+    Camera(
+      position = Vec3(position._1.toFloat, position._2.toFloat, position._3.toFloat),
+      lookAt = Vec3(lookAt._1.toFloat, lookAt._2.toFloat, lookAt._3.toFloat)
+    )
+```
+
+**`menger-app/src/main/scala/menger/dsl/Plane.scala`**
+
+```scala
+package menger.dsl
+
+import menger.cli.Axis
+import menger.cli.PlaneSpec
+import menger.cli.PlaneColorSpec
+
+/** Axis with position for plane definition. */
+case class AxisPosition(axis: Axis, positive: Boolean, value: Float)
+
+/** Axis helpers for DSL syntax: Y at -2 */
+sealed trait AxisHelper:
+  def axis: Axis
+  def at(value: Float): AxisPosition = 
+    AxisPosition(axis, positive = value >= 0, value)
+  def at(value: Int): AxisPosition = at(value.toFloat)
+
+case object X extends AxisHelper:
+  val axis: Axis = Axis.X
+
+case object Y extends AxisHelper:
+  val axis: Axis = Axis.Y
+
+case object Z extends AxisHelper:
+  val axis: Axis = Axis.Z
+
+/** Ground plane configuration. */
+case class Plane(
+  axisPosition: AxisPosition,
+  color: Option[Color] = None,
+  checkered: Option[(Color, Color)] = None
+):
+  require(color.isDefined || checkered.isDefined || (color.isEmpty && checkered.isEmpty),
+    "Plane must have either solid color, checkered colors, or no color")
+  
+  def toPlaneSpec: PlaneSpec = PlaneSpec(
+    axis = axisPosition.axis,
+    positive = axisPosition.positive,
+    value = axisPosition.value
+  )
+  
+  def toPlaneColorSpec: Option[PlaneColorSpec] =
+    (color, checkered) match
+      case (Some(c), _) => Some(PlaneColorSpec(c.toCommonColor, None))
+      case (_, Some((c1, c2))) => Some(PlaneColorSpec(c1.toCommonColor, Some(c2.toCommonColor)))
+      case _ => None
+
+object Plane:
+  /** Plane with solid color */
+  def apply(axisPosition: AxisPosition, color: Color): Plane =
+    Plane(axisPosition, color = Some(color))
+  
+  /** Plane with solid color from string */
+  def apply(axisPosition: AxisPosition, color: String): Plane =
+    Plane(axisPosition, color = Some(Color(color)))
+  
+  /** Plane with checkered pattern */
+  def apply(axisPosition: AxisPosition, checkered: (Color, Color)): Plane =
+    Plane(axisPosition, checkered = Some(checkered))
+  
+  /** Plane with checkered pattern from strings */
+  def apply(axisPosition: AxisPosition, color1: String, color2: String): Plane =
+    Plane(axisPosition, checkered = Some((Color(color1), Color(color2))))
+```
+
+#### Tests to Add
+
+**`menger-app/src/test/scala/menger/dsl/CameraSpec.scala`**
+
+```scala
+package menger.dsl
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class CameraSpec extends AnyFlatSpec with Matchers:
+
+  "Camera" should "have sensible defaults" in:
+    val cam = Camera()
+    cam.position shouldBe Vec3(0f, 0f, 3f)
+    cam.lookAt shouldBe Vec3.Zero
+    cam.up shouldBe Vec3.UnitY
+
+  it should "create with explicit position and lookAt" in:
+    val cam = Camera(position = Vec3(1f, 2f, 3f), lookAt = Vec3(0f, 0f, 0f))
+    cam.position shouldBe Vec3(1f, 2f, 3f)
+    cam.lookAt shouldBe Vec3.Zero
+
+  it should "create from tuple positions" in:
+    val cam = Camera((0, 0.5, 3), (0, 0, 0))
+    cam.position shouldBe Vec3(0f, 0.5f, 3f)
+    cam.lookAt shouldBe Vec3.Zero
+
+  it should "create from Float tuple positions" in:
+    val cam = Camera((0f, 0.5f, 3f), (0f, 0f, 0f))
+    cam.position shouldBe Vec3(0f, 0.5f, 3f)
+
+  it should "support arrow syntax" in:
+    import Camera.->;
+    val cam = Camera(Vec3(0f, 0.5f, 3f) -> Vec3.Zero)
+    cam.position shouldBe Vec3(0f, 0.5f, 3f)
+    cam.lookAt shouldBe Vec3.Zero
+
+  it should "convert to CameraConfig" in:
+    val cam = Camera((1, 2, 3), (0, 0, 0))
+    val config = cam.toCameraConfig
+    config.position.x shouldBe 1f
+    config.position.y shouldBe 2f
+    config.position.z shouldBe 3f
+    config.lookAt.x shouldBe 0f
+```
+
+**`menger-app/src/test/scala/menger/dsl/PlaneSpec.scala`**
+
+```scala
+package menger.dsl
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import menger.cli.Axis
+
+class PlaneSpec extends AnyFlatSpec with Matchers:
+
+  "AxisHelper" should "create Y at -2" in:
+    val ap = Y at -2
+    ap.axis shouldBe Axis.Y
+    ap.value shouldBe -2f
+    ap.positive shouldBe false
+
+  it should "create X at 5" in:
+    val ap = X at 5
+    ap.axis shouldBe Axis.X
+    ap.value shouldBe 5f
+    ap.positive shouldBe true
+
+  it should "create Z at 0" in:
+    val ap = Z at 0
+    ap.axis shouldBe Axis.Z
+    ap.value shouldBe 0f
+    ap.positive shouldBe true
+
+  "Plane" should "create with solid color" in:
+    val p = Plane(Y at -2, color = Color("#808080"))
+    p.color.isDefined shouldBe true
+    p.checkered shouldBe None
+
+  it should "create with solid color from string" in:
+    val p = Plane(Y at -2, "808080")
+    p.color.isDefined shouldBe true
+
+  it should "create with checkered pattern" in:
+    val p = Plane(Y at -2, checkered = (Color.White, Color.Black))
+    p.checkered.isDefined shouldBe true
+    p.color shouldBe None
+
+  it should "create with checkered pattern from strings" in:
+    val p = Plane(Y at -2, "FFFFFF", "000000")
+    p.checkered.isDefined shouldBe true
+
+  it should "convert to PlaneSpec" in:
+    val p = Plane(Y at -2, "808080")
+    val spec = p.toPlaneSpec
+    spec.axis shouldBe Axis.Y
+    spec.value shouldBe -2f
+    spec.positive shouldBe false
+
+  it should "convert solid color to PlaneColorSpec" in:
+    val p = Plane(Y at -2, color = Color.White)
+    val colorSpec = p.toPlaneColorSpec
+    colorSpec.isDefined shouldBe true
+    colorSpec.get.isSolid shouldBe true
+
+  it should "convert checkered to PlaneColorSpec" in:
+    val p = Plane(Y at -2, checkered = (Color.White, Color.Black))
+    val colorSpec = p.toPlaneColorSpec
+    colorSpec.isDefined shouldBe true
+    colorSpec.get.isCheckered shouldBe true
+```
+
+---
+
+### Step 11.5: Create Scene and SceneBuilder
+
+**Status:** Not Started
+**Estimate:** 3 hours
+
+Create the main Scene class and the builder for block-style DSL.
+
+#### Files to Create
+
+**`menger-app/src/main/scala/menger/dsl/Scene.scala`**
+
+```scala
+package menger.dsl
+
+import com.badlogic.gdx.graphics.{Color => GdxColor}
+import com.badlogic.gdx.math.Vector3
+import menger.ObjectSpec
+import menger.cli.LightSpec
+import menger.cli.LightType as CliLightType
+import menger.cli.PlaneColorSpec
+import menger.cli.PlaneSpec
+import menger.config.CameraConfig
+import menger.config.EnvironmentConfig
+import menger.config.ExecutionConfig
+import menger.config.OptiXEngineConfig
+import menger.config.SceneConfig
+
+/** Complete scene definition. */
+case class Scene(
+  camera: Camera = Camera.Default,
+  lights: List[Light] = List.empty,
+  objects: List[SceneObject] = List.empty,
+  plane: Option[Plane] = None
+):
+  require(lights.size <= 8, s"Maximum 8 lights allowed, got ${lights.size}")
+  require(objects.nonEmpty, "Scene must have at least one object")
+  
+  /** Convert to OptiXEngineConfig for rendering. */
+  def toOptiXEngineConfig: OptiXEngineConfig =
+    val objectSpecs = objects.map(_.toObjectSpec)
+    
+    val lightSpecs = lights.map { light =>
+      light match
+        case d: Directional =>
+          LightSpec(
+            CliLightType.DIRECTIONAL,
+            Vector3(d.direction.x, d.direction.y, d.direction.z),
+            d.intensity,
+            GdxColor(d.color.r, d.color.g, d.color.b, d.color.a)
+          )
+        case p: Point =>
+          LightSpec(
+            CliLightType.POINT,
+            Vector3(p.position.x, p.position.y, p.position.z),
+            p.intensity,
+            GdxColor(p.color.r, p.color.g, p.color.b, p.color.a)
+          )
+    }
+    
+    val planeSpec = plane.map(_.toPlaneSpec).getOrElse(
+      PlaneSpec(menger.cli.Axis.Y, positive = true, -2f)
+    )
+    val planeColorSpec = plane.flatMap(_.toPlaneColorSpec)
+    
+    OptiXEngineConfig(
+      scene = SceneConfig(objectSpecs = Some(objectSpecs)),
+      camera = camera.toCameraConfig,
+      environment = EnvironmentConfig(
+        plane = planeSpec,
+        planeColor = planeColorSpec,
+        lights = lightSpecs
+      ),
+      execution = ExecutionConfig.Default
+    )
+```
+
+**`menger-app/src/main/scala/menger/dsl/SceneBuilder.scala`**
+
+```scala
+package menger.dsl
+
+import scala.collection.mutable.ListBuffer
+
+/** Mutable builder for block-style DSL syntax. */
+class SceneBuilder:
+  private var _camera: Camera = Camera.Default
+  private val _lights: ListBuffer[Light] = ListBuffer.empty
+  private val _objects: ListBuffer[SceneObject] = ListBuffer.empty
+  private var _plane: Option[Plane] = None
+  
+  // === Camera ===
+  
+  def camera(
+    position: Vec3 = Vec3(0f, 0f, 3f),
+    lookAt: Vec3 = Vec3.Zero,
+    up: Vec3 = Vec3.UnitY
+  ): Unit =
+    _camera = Camera(position, lookAt, up)
+  
+  def camera(position: (Float, Float, Float), lookAt: (Float, Float, Float)): Unit =
+    _camera = Camera(position, lookAt)
+  
+  def camera(position: (Int, Int, Int), lookAt: (Int, Int, Int)): Unit =
+    _camera = Camera(position, lookAt)
+  
+  // === Lights ===
+  
+  def light(l: Light): Unit =
+    require(_lights.size < 8, "Maximum 8 lights allowed")
+    _lights += l
+  
+  def lights(ls: List[Light]): Unit =
+    require(_lights.size + ls.size <= 8, s"Maximum 8 lights allowed, would have ${_lights.size + ls.size}")
+    _lights ++= ls
+  
+  // === Objects ===
+  
+  /** Add a sphere to the scene. */
+  def sphere(material: Material): Unit =
+    _objects += Sphere(material)
+  
+  def sphere(pos: Vec3, material: Material, size: Float = 1.0f): Unit =
+    _objects += Sphere(pos, material, size)
+  
+  def sphere(pos: (Float, Float, Float), material: Material): Unit =
+    _objects += Sphere(pos, material)
+  
+  def sphere(pos: (Float, Float, Float), material: Material, size: Float): Unit =
+    _objects += Sphere(pos, material, size)
+  
+  def sphere(pos: (Int, Int, Int), material: Material): Unit =
+    _objects += Sphere(pos, material)
+  
+  def sphere(pos: (Int, Int, Int), material: Material, size: Float): Unit =
+    _objects += Sphere(pos, material, size)
+  
+  /** Add a cube to the scene. */
+  def cube(material: Material): Unit =
+    _objects += Cube(material)
+  
+  def cube(pos: Vec3, material: Material, size: Float = 1.0f): Unit =
+    _objects += Cube(pos, material, size)
+  
+  def cube(pos: (Float, Float, Float), material: Material): Unit =
+    _objects += Cube(pos, material)
+  
+  def cube(pos: (Float, Float, Float), material: Material, size: Float): Unit =
+    _objects += Cube(pos, material, size)
+  
+  def cube(pos: (Int, Int, Int), material: Material): Unit =
+    _objects += Cube(pos, material)
+  
+  def cube(pos: (Int, Int, Int), material: Material, size: Float): Unit =
+    _objects += Cube(pos, material, size)
+  
+  /** Cube with color instead of material */
+  def cube(pos: Vec3, color: Color, size: Float): Unit =
+    _objects += Cube(pos = pos, color = Some(color), size = size)
+  
+  def cube(pos: (Float, Float, Float), color: String, size: Float): Unit =
+    _objects += Cube(pos = Vec3(pos._1, pos._2, pos._3), color = Some(Color(color)), size = size)
+  
+  def cube(pos: (Int, Int, Int), color: String, size: Float): Unit =
+    _objects += Cube(pos = Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), color = Some(Color(color)), size = size)
+  
+  /** Add a sponge to the scene. */
+  def sponge(spongeType: SpongeType, level: Float): Unit =
+    _objects += Sponge(spongeType, level = level)
+  
+  def sponge(spongeType: SpongeType, level: Float, color: Color): Unit =
+    _objects += Sponge(spongeType, level = level, color = Some(color))
+  
+  def sponge(spongeType: SpongeType, level: Float, color: String): Unit =
+    _objects += Sponge(spongeType, level = level, color = Some(Color(color)))
+  
+  def sponge(spongeType: SpongeType, level: Float, material: Material): Unit =
+    _objects += Sponge(spongeType, level = level, material = Some(material))
+  
+  def sponge(spongeType: SpongeType, pos: Vec3, level: Float): Unit =
+    _objects += Sponge(spongeType, pos = pos, level = level)
+  
+  def sponge(spongeType: SpongeType, pos: Vec3, level: Float, color: Color): Unit =
+    _objects += Sponge(spongeType, pos = pos, level = level, color = Some(color))
+  
+  def sponge(spongeType: SpongeType, pos: Vec3, level: Float, material: Material): Unit =
+    _objects += Sponge(spongeType, pos = pos, level = level, material = Some(material))
+  
+  def sponge(spongeType: SpongeType, pos: (Float, Float, Float), level: Float): Unit =
+    _objects += Sponge(spongeType, Vec3(pos._1, pos._2, pos._3), level)
+  
+  def sponge(spongeType: SpongeType, pos: (Float, Float, Float), level: Float, color: String): Unit =
+    _objects += Sponge(spongeType, Vec3(pos._1, pos._2, pos._3), level, color = Some(Color(color)))
+  
+  def sponge(spongeType: SpongeType, pos: (Int, Int, Int), level: Float): Unit =
+    _objects += Sponge(spongeType, Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), level)
+  
+  /** Add any SceneObject directly. */
+  def add(obj: SceneObject): Unit =
+    _objects += obj
+  
+  def add(objs: List[SceneObject]): Unit =
+    _objects ++= objs
+  
+  // === Plane ===
+  
+  def plane(axisPosition: AxisPosition, color: Color): Unit =
+    _plane = Some(Plane(axisPosition, color = Some(color)))
+  
+  def plane(axisPosition: AxisPosition, color: String): Unit =
+    _plane = Some(Plane(axisPosition, color))
+  
+  def plane(axisPosition: AxisPosition, checkered: (Color, Color)): Unit =
+    _plane = Some(Plane(axisPosition, checkered = Some(checkered)))
+  
+  def plane(axisPosition: AxisPosition, color1: String, color2: String): Unit =
+    _plane = Some(Plane(axisPosition, color1, color2))
+  
+  // === Build ===
+  
+  def build(): Scene =
+    require(_objects.nonEmpty, "Scene must have at least one object")
+    Scene(
+      camera = _camera,
+      lights = _lights.toList,
+      objects = _objects.toList,
+      plane = _plane
+    )
+```
+
+**`menger-app/src/main/scala/menger/dsl/package.scala`**
+
+```scala
+package menger
+
+/** DSL for defining ray-traced scenes in Scala. */
+package object dsl:
+  
+  /** Block-style scene builder function. */
+  def scene(block: SceneBuilder ?=> Unit): Scene =
+    val builder = SceneBuilder()
+    block(using builder)
+    builder.build()
+  
+  // Re-export all DSL types for convenient imports
+  export menger.dsl.Vec3
+  export menger.dsl.Color
+  export menger.dsl.Material
+  export menger.dsl.Material.{Glass, Water, Diamond, Chrome, Gold, Copper}
+  export menger.dsl.Light
+  export menger.dsl.Directional
+  export menger.dsl.Point
+  export menger.dsl.SceneObject
+  export menger.dsl.Sphere
+  export menger.dsl.Cube
+  export menger.dsl.Sponge
+  export menger.dsl.SpongeType
+  export menger.dsl.SpongeType.{Volume, Surface, CubeSponge}
+  export menger.dsl.Camera
+  export menger.dsl.Plane
+  export menger.dsl.X
+  export menger.dsl.Y
+  export menger.dsl.Z
+  export menger.dsl.Scene
+  export menger.dsl.SceneDefinition
+```
+
+**`menger-app/src/main/scala/menger/dsl/SceneDefinition.scala`**
+
+```scala
+package menger.dsl
+
+/** Trait for scene definition objects that can be loaded via --scene flag. */
+trait SceneDefinition:
+  /** The scene to render. */
+  val scene: Scene
+```
+
+#### Tests to Add
+
+**`menger-app/src/test/scala/menger/dsl/SceneBuilderSpec.scala`**
+
+```scala
+package menger.dsl
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class SceneBuilderSpec extends AnyFlatSpec with Matchers:
+
+  "SceneBuilder" should "build a simple scene with one sphere" in:
+    val s = scene {
+      sphere(Glass)
+    }
+    s.objects should have size 1
+    s.objects.head shouldBe a[Sphere]
+
+  it should "build scene with camera" in:
+    val s = scene {
+      camera(position = (0, 0.5, 3), lookAt = (0, 0, 0))
+      sphere(Glass)
+    }
+    s.camera.position shouldBe Vec3(0f, 0.5f, 3f)
+    s.camera.lookAt shouldBe Vec3.Zero
+
+  it should "build scene with lights" in:
+    val s = scene {
+      light(Directional((-1, 1, -1), intensity = 2.0f))
+      light(Point((0, 5, 0)))
+      sphere(Glass)
+    }
+    s.lights should have size 2
+
+  it should "build scene with multiple objects" in:
+    val s = scene {
+      sphere(Glass)
+      sphere((2, 0, 0), Chrome, size = 0.8f)
+      cube((-2, 0, 0), "#FF0000", size = 1.5f)
+    }
+    s.objects should have size 3
+
+  it should "build scene with sponge" in:
+    val s = scene {
+      sponge(Volume, level = 3)
+    }
+    s.objects should have size 1
+    s.objects.head shouldBe a[Sponge]
+    s.objects.head.asInstanceOf[Sponge].level shouldBe 3f
+
+  it should "build scene with plane" in:
+    val s = scene {
+      sphere(Glass)
+      plane(Y at -2, "#808080")
+    }
+    s.plane.isDefined shouldBe true
+
+  it should "build scene with checkered plane" in:
+    val s = scene {
+      sphere(Glass)
+      plane(Y at -2, "FFFFFF", "000000")
+    }
+    s.plane.get.checkered.isDefined shouldBe true
+
+  it should "reject more than 8 lights" in:
+    an[IllegalArgumentException] should be thrownBy:
+      scene {
+        for i <- 1 to 9 do light(Point((i, 0, 0)))
+        sphere(Glass)
+      }
+
+  it should "reject empty scene" in:
+    an[IllegalArgumentException] should be thrownBy:
+      scene {
+        camera((0, 0, 3), (0, 0, 0))
+        // no objects
+      }
+
+  it should "support adding list of lights" in:
+    val threePointLighting = List(
+      Directional((-1, 1, -1), intensity = 1.0f),
+      Directional((1, 0.5, -1), intensity = 0.5f),
+      Directional((0, -1, 1), intensity = 0.3f)
+    )
+    val s = scene {
+      lights(threePointLighting)
+      sphere(Glass)
+    }
+    s.lights should have size 3
+```
+
+**`menger-app/src/test/scala/menger/dsl/SceneSpec.scala`**
+
+```scala
+package menger.dsl
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class SceneSpec extends AnyFlatSpec with Matchers:
+
+  "Scene (case class style)" should "create with explicit lists" in:
+    val s = Scene(
+      camera = Camera((0, 0, 3), (0, 0, 0)),
+      lights = List(Directional((-1, 1, -1))),
+      objects = List(Sphere(Glass), Cube((2, 0, 0), Chrome)),
+      plane = Some(Plane(Y at -2, "808080"))
+    )
+    s.objects should have size 2
+    s.lights should have size 1
+    s.plane.isDefined shouldBe true
+
+  it should "convert to OptiXEngineConfig" in:
+    val s = scene {
+      camera((0, 0.5, 3), (0, 0, 0))
+      light(Directional((-1, 1, -1), intensity = 2.0f))
+      sphere(Glass)
+      cube((2, 0, 0), Chrome)
+      plane(Y at -2, "808080")
+    }
+    
+    val config = s.toOptiXEngineConfig
+    
+    // Check camera
+    config.camera.position.x shouldBe 0f
+    config.camera.position.y shouldBe 0.5f
+    config.camera.position.z shouldBe 3f
+    
+    // Check objects
+    config.scene.objectSpecs.isDefined shouldBe true
+    config.scene.objectSpecs.get should have size 2
+    
+    // Check lights
+    config.environment.lights should have size 1
+    config.environment.lights.head.intensity shouldBe 2.0f
+    
+    // Check plane
+    config.environment.plane.value shouldBe -2f
+
+  it should "use default camera when not specified" in:
+    val s = Scene(objects = List(Sphere(Glass)))
+    s.camera shouldBe Camera.Default
+
+  it should "reject empty objects list" in:
+    an[IllegalArgumentException] should be thrownBy:
+      Scene(objects = List.empty)
+
+  it should "reject more than 8 lights" in:
+    val tooManyLights = (1 to 9).map(i => Point((i, 0, 0))).toList
+    an[IllegalArgumentException] should be thrownBy:
+      Scene(lights = tooManyLights, objects = List(Sphere(Glass)))
+```
+
+---
+
+### Step 11.6: Create Scene Loader
+
+**Status:** Not Started
+**Estimate:** 2 hours
+
+Create the loader that finds and loads scene definitions by class name.
+
+#### Files to Create
+
+**`menger-app/src/main/scala/menger/dsl/SceneLoader.scala`**
+
+```scala
+package menger.dsl
+
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+
+import com.typesafe.scalalogging.LazyLogging
+import menger.config.OptiXEngineConfig
+
+/** Loads scene definitions by class name. */
+object SceneLoader extends LazyLogging:
+
+  /** 
+   * Load a scene definition by fully qualified class name.
+   * 
+   * @param className Fully qualified class name (e.g., "scenes.MyScene")
+   * @return Either an error message or the OptiXEngineConfig
+   */
+  def load(className: String): Either[String, OptiXEngineConfig] =
+    logger.info(s"Loading scene: $className")
+    
+    for
+      clazz <- loadClass(className)
+      instance <- getInstance(clazz)
+      scene <- extractScene(instance, className)
+      config <- validateAndConvert(scene)
+    yield config
+
+  private def loadClass(className: String): Either[String, Class[?]] =
+    Try(Class.forName(className)) match
+      case Success(clazz) => Right(clazz)
+      case Failure(e: ClassNotFoundException) =>
+        Left(s"Scene class not found: '$className'. " +
+          "Make sure the class exists and is compiled. " +
+          s"Error: ${e.getMessage}")
+      case Failure(e) =>
+        Left(s"Failed to load scene class '$className': ${e.getMessage}")
+
+  private def getInstance(clazz: Class[?]): Either[String, Any] =
+    // Scala objects have a MODULE$ field containing the singleton instance
+    Try {
+      val field = clazz.getField("MODULE$")
+      field.get(null)
+    } match
+      case Success(instance) => Right(instance)
+      case Failure(_) =>
+        // Try to instantiate as a class instead
+        Try(clazz.getDeclaredConstructor().newInstance()) match
+          case Success(instance) => Right(instance)
+          case Failure(e) =>
+            Left(s"Scene '${clazz.getName}' must be an object extending SceneDefinition, " +
+              s"or a class with a no-arg constructor. Error: ${e.getMessage}")
+
+  private def extractScene(instance: Any, className: String): Either[String, Scene] =
+    instance match
+      case sd: SceneDefinition =>
+        Try(sd.scene) match
+          case Success(scene) => Right(scene)
+          case Failure(e) =>
+            Left(s"Error evaluating scene in '$className': ${e.getMessage}")
+      case _ =>
+        Left(s"'$className' does not extend SceneDefinition. " +
+          "Scene objects must extend menger.dsl.SceneDefinition trait.")
+
+  private def validateAndConvert(scene: Scene): Either[String, OptiXEngineConfig] =
+    Try(scene.toOptiXEngineConfig) match
+      case Success(config) =>
+        logger.info(s"Scene loaded successfully: ${scene.objects.size} objects, ${scene.lights.size} lights")
+        Right(config)
+      case Failure(e) =>
+        Left(s"Invalid scene configuration: ${e.getMessage}")
+```
+
+#### Tests to Add
+
+**`menger-app/src/test/scala/menger/dsl/SceneLoaderSpec.scala`**
+
+```scala
+package menger.dsl
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+// Test scene definitions (these would normally be in separate files)
+object TestSimpleScene extends SceneDefinition:
+  val scene = Scene(
+    objects = List(Sphere(Glass))
+  )
+
+object TestComplexScene extends SceneDefinition:
+  val scene = scene {
+    camera((0, 0.5, 3), (0, 0, 0))
+    light(Directional((-1, 1, -1), intensity = 2.0f))
+    sphere(Glass)
+    cube((2, 0, 0), Chrome)
+    plane(Y at -2, "808080")
+  }
+
+object TestInvalidScene extends SceneDefinition:
+  val scene: Scene = throw RuntimeException("Scene initialization failed")
+
+class NotASceneDefinition:
+  val scene = "not a scene"
+
+class SceneLoaderSpec extends AnyFlatSpec with Matchers:
+
+  "SceneLoader" should "load a simple scene by class name" in:
+    val result = SceneLoader.load("menger.dsl.TestSimpleScene")
+    result shouldBe a[Right[_, _]]
+    result.toOption.get.scene.objectSpecs.get should have size 1
+
+  it should "load a complex scene with all elements" in:
+    val result = SceneLoader.load("menger.dsl.TestComplexScene")
+    result shouldBe a[Right[_, _]]
+    
+    val config = result.toOption.get
+    config.scene.objectSpecs.get should have size 2
+    config.environment.lights should have size 1
+    config.camera.position.y shouldBe 0.5f
+
+  it should "return error for non-existent class" in:
+    val result = SceneLoader.load("scenes.DoesNotExist")
+    result shouldBe a[Left[_, _]]
+    result.left.getOrElse("") should include("not found")
+
+  it should "return error for class that doesn't extend SceneDefinition" in:
+    val result = SceneLoader.load("menger.dsl.NotASceneDefinition")
+    result shouldBe a[Left[_, _]]
+    result.left.getOrElse("") should include("SceneDefinition")
+
+  it should "return error when scene initialization fails" in:
+    val result = SceneLoader.load("menger.dsl.TestInvalidScene")
+    result shouldBe a[Left[_, _]]
+    result.left.getOrElse("") should include("Error evaluating scene")
+```
+
+---
+
+### Step 11.7: Add CLI Option for Scene Loading
+
+**Status:** Not Started
+**Estimate:** 1.5 hours
+
+Add `--scene` CLI option and integrate with Main.scala.
 
 #### Files to Modify
 
 **`menger-app/src/main/scala/menger/MengerCLIOptions.scala`**
 
+Add after other OptiX options (around line 85):
+
 ```scala
-// Add new options in projection group:
-
-val fourDRotation: ScallopOption[String] = opt[String](
-  name = "4d-rotation", required = false, group = projectionGroup,
-  descr = "4D rotation angles as XW,YW,ZW in degrees (e.g., --4d-rotation=30,20,0)"
+val sceneClass: ScallopOption[String] = opt[String](
+  name = "scene",
+  required = false,
+  group = optixGroup,
+  descr = """Load scene from Scala DSL class.
+            |  Format: fully.qualified.ClassName
+            |  Example: --scene scenes.MyScene
+            |  The class must extend menger.dsl.SceneDefinition""".stripMargin
 )
+```
 
-val fourDPreset: ScallopOption[String] = opt[String](
-  name = "4d-preset", required = false, group = projectionGroup,
-  descr = "4D view preset: classic (default), edge-on, face-on, cell-on, flat"
-)
+Add validation (in the validation section):
 
-// Add validation:
-validateOpt(fourDRotation, rotXW, rotYW, rotZW) { (rotation, xw, yw, zw) =>
-  if rotation.isDefined && (xw.isDefined || yw.isDefined || zw.isDefined) then
-    Left("Cannot specify both --4d-rotation and individual --rot-xw/--rot-yw/--rot-zw options")
+```scala
+// --scene requires --optix
+validateOpt(sceneClass, optix) { (scene, isOptix) =>
+  if scene.isDefined && !isOptix then
+    Left("--scene requires --optix flag")
+  else
+    Right(())
+}
+
+// --scene is mutually exclusive with --objects
+validateOpt(sceneClass, objects) { (scene, objs) =>
+  if scene.isDefined && objs.exists(_.nonEmpty) then
+    Left("--scene and --objects are mutually exclusive")
   else
     Right(())
 }
 ```
 
-#### Files to Create
+**`menger-app/src/main/scala/Main.scala`**
 
-**`menger-app/src/main/scala/menger/config/FourDPresets.scala`**
+Modify `createOptiXEngine` method:
 
 ```scala
-package menger.config
-
-import menger.RotationProjectionParameters
-import menger.common.Const
-
-object FourDPresets:
-
-  val presets: Map[String, RotationProjectionParameters] = Map(
-    "classic" -> RotationProjectionParameters(
-      rotXW = 15f, rotYW = 10f, rotZW = 0f,
-      eyeW = Const.defaultEyeW, screenW = Const.defaultScreenW
-    ),
-    "edge-on" -> RotationProjectionParameters(
-      rotXW = 45f, rotYW = 0f, rotZW = 0f,
-      eyeW = 3f, screenW = 1.5f
-    ),
-    "face-on" -> RotationProjectionParameters(
-      rotXW = 0f, rotYW = 0f, rotZW = 0f,
-      eyeW = 3f, screenW = 1.5f
-    ),
-    "cell-on" -> RotationProjectionParameters(
-      rotXW = 45f, rotYW = 45f, rotZW = 0f,
-      eyeW = 3f, screenW = 1.5f
-    ),
-    "flat" -> RotationProjectionParameters(
-      rotXW = 0f, rotYW = 0f, rotZW = 0f,
-      eyeW = 10f, screenW = 9f  // Nearly orthographic projection
-    )
-  )
-
-  def get(name: String): Option[RotationProjectionParameters] =
-    presets.get(name.toLowerCase)
-
-  def names: Seq[String] = presets.keys.toSeq.sorted
+private def createOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): OptiXEngine =
+  // Check if loading from scene file
+  val engineConfig = opts.sceneClass.toOption match
+    case Some(className) =>
+      // Load from DSL scene class
+      menger.dsl.SceneLoader.load(className) match
+        case Right(config) => 
+          // Apply CLI overrides for execution config
+          config.copy(
+            execution = ExecutionConfig(
+              fpsLogIntervalMs = opts.fpsLogInterval(),
+              timeout = opts.timeout(),
+              saveName = opts.saveName.toOption,
+              enableStats = opts.stats(),
+              maxInstances = opts.maxInstances()
+            ),
+            render = opts.renderConfig,
+            caustics = opts.causticsConfig
+          )
+        case Left(error) =>
+          System.err.println(s"Error loading scene: $error")
+          sys.exit(1)
+    case None =>
+      // Original CLI-based configuration
+      OptiXEngineConfig(
+        scene = SceneConfig(
+          spongeType = opts.objectType.toOption.getOrElse("sphere"),
+          level = opts.level(),
+          material = MaterialConfig(opts.color(), opts.ior()),
+          sphereRadius = opts.radius(),
+          scale = opts.scale(),
+          center = opts.center(),
+          objectSpecs = opts.objects.toOption
+        ),
+        camera = CameraConfig(
+          position = opts.cameraPos(),
+          lookAt = opts.cameraLookat(),
+          up = opts.cameraUp()
+        ),
+        environment = EnvironmentConfig(
+          plane = opts.plane(),
+          planeColor = opts.planeColor.toOption,
+          lights = opts.light.toOption.getOrElse(List.empty)
+        ),
+        execution = ExecutionConfig(
+          fpsLogIntervalMs = opts.fpsLogInterval(),
+          timeout = opts.timeout(),
+          saveName = opts.saveName.toOption,
+          enableStats = opts.stats(),
+          maxInstances = opts.maxInstances()
+        ),
+        render = opts.renderConfig,
+        caustics = opts.causticsConfig
+      )
+  
+  OptiXEngine(engineConfig)
 ```
 
----
-
-### Step 10.6: Per-Instance 4D Parameters in Multi-Object Mode
-
-**Status:** Not Started
-**Estimate:** 3 hours
-
-Enable different 4D rotations for different tesseract instances in the same scene.
-
-#### Subtasks
-
-- [ ] Extend `ObjectSpec` to include 4D parameters (if not done in Sprint 8)
-- [ ] Store per-instance 4D params alongside mesh data
-- [ ] Generate separate meshes for instances with different 4D rotations
-- [ ] Group instances by 4D parameters for efficient rendering
-
-#### Architecture Decision
-
-Two approaches:
-1. **Generate separate meshes** for each unique 4D parameter set (current approach)
-2. **Share mesh, use shader-time 4D rotation** (future optimization)
-
-Sprint 10 uses approach 1 for simplicity. Instances with identical 4D params share a mesh.
-
-#### Files to Modify
-
-**`menger-app/src/main/scala/menger/engines/OptiXEngine.scala`**
-
-Update `setupMultipleTriangleMeshes` to handle 4D objects:
+Add import at top of Main.scala:
 
 ```scala
-private def setupMultipleTriangleMeshes(specs: List[ObjectSpec], renderer: OptiXRenderer): Try[Unit] = Try:
-  // Group specs by mesh identity (type + level + 4D params for hypercubes)
-  val meshGroups = groupSpecsByMeshIdentity(specs)
-
-  meshGroups.foreach { case (meshKey, groupSpecs) =>
-    val firstSpec = groupSpecs.head
-    val mesh = createMeshForSpec(firstSpec)
-
-    // If this is the first mesh, set it as the base
-    // Otherwise, we need multi-mesh support (future enhancement)
-    if meshKey == meshGroups.keys.head then
-      renderer.setTriangleMesh(mesh)
-
-    // Add instances for this mesh group
-    groupSpecs.foreach { spec =>
-      val position = menger.common.Vector[3](spec.x, spec.y, spec.z)
-      val (color, ior) = extractMaterialProperties(spec)
-      renderer.addTriangleMeshInstance(position, color, ior, -1)
-    }
-  }
-
-private case class MeshKey(
-  objectType: String,
-  level: Option[Float],
-  rotXW: Float,
-  rotYW: Float,
-  rotZW: Float,
-  eyeW: Float,
-  screenW: Float
-)
-
-private def groupSpecsByMeshIdentity(specs: List[ObjectSpec]): Map[MeshKey, List[ObjectSpec]] =
-  specs.groupBy { spec =>
-    MeshKey(
-      spec.objectType,
-      spec.level,
-      spec.rotXW,
-      spec.rotYW,
-      spec.rotZW,
-      spec.eyeW,
-      spec.screenW
-    )
-  }
+import menger.dsl.SceneLoader
 ```
 
----
+#### Tests to Add
 
-### Step 10.7: Abstract Mesh4D Interface Formalization
-
-**Status:** Not Started
-**Estimate:** 2 hours
-
-Clean up and document the 4D mesh interface for future extensibility.
-
-#### Subtasks
-
-- [ ] Add documentation to `Mesh4D` trait
-- [ ] Add `Fractal4D` documentation
-- [ ] Create `Mesh4DSource` trait (analogous to `TriangleMeshSource`)
-- [ ] Ensure consistent API across all 4D types
-- [ ] Add tests for interface compliance
-
-#### Files to Modify
-
-**`menger-app/src/main/scala/menger/objects/higher_d/Mesh4D.scala`**
+**`menger-app/src/test/scala/menger/cli/SceneCLIOptionsSuite.scala`**
 
 ```scala
-package menger.objects.higher_d
+package menger.cli
 
-/**
- * Trait for objects that represent 4D mesh geometry.
- *
- * Implementors provide a sequence of 4D faces (quadrilaterals in 4D space)
- * that can be projected to 3D for rendering.
- *
- * Known implementors:
- * - Tesseract: Basic 4D hypercube (24 faces)
- * - TesseractSponge: Volume-based 4D Menger analog
- * - TesseractSponge2: Surface-based 4D fractal
- */
-trait Mesh4D:
-  /**
-   * All faces of this 4D mesh.
-   * Each face is a quadrilateral defined by 4 vertices in 4D space.
-   */
-  def faces: Seq[Face4D]
-
-  /** Number of faces in this mesh */
-  def faceCount: Int = faces.size
-
-  /** Number of vertices (faces * 4, may include duplicates) */
-  def vertexCount: Int = faces.size * 4
-```
-
-**`menger-app/src/main/scala/menger/objects/higher_d/Fractal4D.scala`**
-
-```scala
-package menger.objects.higher_d
-
-/**
- * Trait for 4D fractal objects with a recursion level.
- *
- * Extends Mesh4D with level-based geometry generation.
- * Supports fractional levels for smooth animation transitions.
- */
-trait Fractal4D extends Mesh4D:
-  /**
-   * Fractal recursion level.
-   * - Level 0: Base shape (e.g., Tesseract)
-   * - Level N: N iterations of subdivision
-   * - Fractional levels (e.g., 1.5): Interpolated geometry
-   */
-  def level: Float
-```
-
----
-
-### Step 10.8: State Persistence (Save/Load 4D View)
-
-**Status:** Not Started
-**Estimate:** 2 hours
-
-Add ability to save and restore 4D view parameters.
-
-#### Subtasks
-
-- [ ] Define JSON format for 4D state
-- [ ] Add `--save-4d-state=FILE` CLI option
-- [ ] Add `--load-4d-state=FILE` CLI option
-- [ ] Save state on exit (optional: `--auto-save-4d`)
-- [ ] Add tests for serialization/deserialization
-
-#### Files to Create
-
-**`menger-app/src/main/scala/menger/config/FourDState.scala`**
-
-```scala
-package menger.config
-
-import scala.util.Try
-
-import menger.RotationProjectionParameters
-
-/**
- * Serializable 4D view state for save/load functionality.
- */
-case class FourDState(
-  rotXW: Float,
-  rotYW: Float,
-  rotZW: Float,
-  eyeW: Float,
-  screenW: Float
-):
-  def toParams: RotationProjectionParameters =
-    RotationProjectionParameters(rotXW, rotYW, rotZW, eyeW, screenW)
-
-object FourDState:
-  def fromParams(params: RotationProjectionParameters): FourDState =
-    FourDState(params.rotXW, params.rotYW, params.rotZW, params.eyeW, params.screenW)
-
-  def toJson(state: FourDState): String =
-    s"""{
-       |  "rotXW": ${state.rotXW},
-       |  "rotYW": ${state.rotYW},
-       |  "rotZW": ${state.rotZW},
-       |  "eyeW": ${state.eyeW},
-       |  "screenW": ${state.screenW}
-       |}""".stripMargin
-
-  def fromJson(json: String): Try[FourDState] = Try:
-    // Simple JSON parsing (or use a library like circe/upickle)
-    val rotXW = extractFloat(json, "rotXW")
-    val rotYW = extractFloat(json, "rotYW")
-    val rotZW = extractFloat(json, "rotZW")
-    val eyeW = extractFloat(json, "eyeW")
-    val screenW = extractFloat(json, "screenW")
-    FourDState(rotXW, rotYW, rotZW, eyeW, screenW)
-
-  private def extractFloat(json: String, key: String): Float =
-    val pattern = s""""$key":\\s*([\\d.\\-]+)""".r
-    pattern.findFirstMatchIn(json).map(_.group(1).toFloat).getOrElse(0f)
-
-  def save(state: FourDState, path: String): Try[Unit] = Try:
-    val json = toJson(state)
-    java.nio.file.Files.writeString(java.nio.file.Path.of(path), json)
-
-  def load(path: String): Try[FourDState] =
-    Try(java.nio.file.Files.readString(java.nio.file.Path.of(path))).flatMap(fromJson)
-```
-
----
-
-### Step 10.9: Integration Tests and Manual Verification
-
-**Status:** Not Started
-**Estimate:** 3 hours
-
-Create integration tests and perform manual visual verification.
-
-#### Subtasks
-
-- [ ] Create integration test file
-- [ ] Test 4D rotation produces different meshes
-- [ ] Test 4D presets generate expected geometry
-- [ ] Test multi-instance with different 4D params
-- [ ] Manual verification commands
-- [ ] Take screenshots for documentation
-
-#### Files to Create
-
-**`menger-app/src/test/scala/menger/engines/OptiX4DIntegrationSpec.scala`**
-
-```scala
-package menger.engines
-
-import menger.ObjectSpec
-import menger.RotationProjectionParameters
-import menger.config.FourDPresets
-import menger.objects.higher_d.TesseractMesh
+import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class OptiX4DIntegrationSpec extends AnyFlatSpec with Matchers:
+class SceneCLIOptionsSuite extends AnyFlatSpec with Matchers:
 
-  "4D presets" should "all be defined" in:
-    FourDPresets.names should contain allOf ("classic", "edge-on", "face-on", "cell-on", "flat")
+  "--scene" should "be parsed when provided with --optix" in:
+    val opts = SafeMengerCLIOptions(Seq("--optix", "--scene", "scenes.MyScene"))
+    opts.sceneClass.toOption shouldBe Some("scenes.MyScene")
 
-  it should "return valid parameters for each preset" in:
-    FourDPresets.names.foreach { name =>
-      val params = FourDPresets.get(name)
-      params shouldBe defined
-      params.get.eyeW should be > params.get.screenW
-    }
+  it should "default to None when not provided" in:
+    val opts = SafeMengerCLIOptions(Seq("--optix", "--object", "sphere"))
+    opts.sceneClass.toOption shouldBe None
 
-  "Different 4D rotations" should "produce different meshes" in:
-    val mesh1 = TesseractMesh(rotXW = 0f, rotYW = 0f).toTriangleMesh
-    val mesh2 = TesseractMesh(rotXW = 45f, rotYW = 0f).toTriangleMesh
+  it should "require --optix flag" in:
+    an[ScallopException] should be thrownBy:
+      SafeMengerCLIOptions(Seq("--scene", "scenes.MyScene"))
 
-    mesh1.vertices should not equal mesh2.vertices
+  it should "be mutually exclusive with --objects" in:
+    an[ScallopException] should be thrownBy:
+      SafeMengerCLIOptions(Seq(
+        "--optix",
+        "--scene", "scenes.MyScene",
+        "--objects", "type=sphere"
+      ))
 
-  "Different eyeW values" should "produce different mesh sizes" in:
-    val near = TesseractMesh(eyeW = 3f, screenW = 1.5f).toTriangleMesh
-    val far = TesseractMesh(eyeW = 10f, screenW = 1.5f).toTriangleMesh
-
-    def boundingBox(mesh: menger.common.TriangleMeshData): Float =
-      val xs = (0 until mesh.numVertices).map(i => mesh.vertices(i * 8))
-      xs.max - xs.min
-
-    boundingBox(near) should be > boundingBox(far)
-
-  "RotationProjectionParameters" should "accumulate correctly" in:
-    val p1 = RotationProjectionParameters(10f, 20f, 30f)
-    val p2 = RotationProjectionParameters(5f, -10f, 15f)
-    val sum = p1 + p2
-
-    sum.rotXW shouldBe 15f
-    sum.rotYW shouldBe 10f
-    sum.rotZW shouldBe 45f
-```
-
-#### Manual Verification Commands
-
-```bash
-# Interactive 4D rotation (requires GPU)
-sbt "run --optix --objects type=tesseract:color=#4488FF --timeout 30"
-# Use Shift+Arrow keys to rotate in 4D
-# Use Shift+Scroll to adjust projection distance
-
-# 4D presets
-sbt "run --optix --objects type=tesseract:color=#FF8844 --4d-preset=edge-on --save-name tesseract-edge-on.png --timeout 3"
-sbt "run --optix --objects type=tesseract:color=#44FF88 --4d-preset=cell-on --save-name tesseract-cell-on.png --timeout 3"
-sbt "run --optix --objects type=tesseract:color=#FF44FF --4d-preset=flat --save-name tesseract-flat.png --timeout 3"
-
-# 4D rotation shorthand
-sbt "run --optix --objects type=tesseract:color=#FFFF44 --4d-rotation=45,30,15 --save-name tesseract-custom-rotation.png --timeout 3"
-
-# Multiple tesseracts with different 4D rotations
-sbt "run --optix --objects type=tesseract:pos=-2,0,0:rot-xw=0:rot-yw=0:color=#FF0000 --objects type=tesseract:pos=2,0,0:rot-xw=45:rot-yw=30:color=#00FF00 --save-name tesseract-multi-rotation.png --timeout 5"
-
-# 4D sponge with interactive rotation
-sbt "run --optix --objects type=tesseract-sponge:level=1:color=#8888FF --timeout 30"
+  it should "allow other OptiX options" in:
+    val opts = SafeMengerCLIOptions(Seq(
+      "--optix",
+      "--scene", "scenes.MyScene",
+      "--timeout", "5",
+      "--shadows"
+    ))
+    opts.sceneClass.toOption shouldBe Some("scenes.MyScene")
+    opts.timeout() shouldBe 5f
+    opts.shadows() shouldBe true
 ```
 
 ---
 
-### Step 10.10: Update Documentation
+### Step 11.8: Create Example Scene Files
 
 **Status:** Not Started
 **Estimate:** 1 hour
 
-Update changelog, roadmap, and documentation.
+Create example scene files demonstrating DSL capabilities.
 
-#### Subtasks
+#### Files to Create
 
-- [ ] Update CHANGELOG.md
-- [ ] Update ROADMAP.md to mark Sprint 10 complete
-- [ ] Update CLI help text
-- [ ] Archive sprint documentation
+**`menger-app/src/main/scala/scenes/SimpleScene.scala`**
+
+```scala
+package scenes
+
+import menger.dsl.*
+
+/** Simple scene with a single glass sphere. */
+object SimpleScene extends SceneDefinition:
+  val scene = scene {
+    sphere(Glass)
+  }
+```
+
+**`menger-app/src/main/scala/scenes/ThreeSpheres.scala`**
+
+```scala
+package scenes
+
+import menger.dsl.*
+
+/** Three spheres with different materials. */
+object ThreeSpheres extends SceneDefinition:
+  val scene = scene {
+    camera((0, 0.5, 4), (0, 0, 0))
+    
+    light(Directional((-1, 1, -1), intensity = 1.5f))
+    
+    sphere((-2, 0, 0), Glass)
+    sphere((0, 0, 0), Chrome)
+    sphere((2, 0, 0), Gold)
+    
+    plane(Y at -1, "404040")
+  }
+```
+
+**`menger-app/src/main/scala/scenes/MengerShowcase.scala`**
+
+```scala
+package scenes
+
+import menger.dsl.*
+
+/** Menger sponge showcase with various materials. */
+object MengerShowcase extends SceneDefinition:
+  val scene = scene {
+    camera((0, 1, 5), (0, 0, 0))
+    
+    light(Directional((-1, 2, -1), intensity = 1.2f))
+    light(Point((3, 3, 3), intensity = 0.8f))
+    
+    // Central sponge
+    sponge(Volume, level = 2.5f, material = Glass)
+    
+    // Surrounding spheres
+    sphere((2.5, 0, 0), Chrome, size = 0.5f)
+    sphere((-2.5, 0, 0), Gold, size = 0.5f)
+    sphere((0, 2.5, 0), Diamond, size = 0.5f)
+    
+    plane(Y at -1.5, "FFFFFF", "808080")  // checkered
+  }
+```
+
+**`menger-app/src/main/scala/scenes/common/Materials.scala`**
+
+```scala
+package scenes.common
+
+import menger.dsl.*
+
+/** Reusable custom material definitions. */
+object Materials:
+  /** Custom tinted glass */
+  val TintedGlass = Glass.copy(color = Color("#E0E8FF"))
+  
+  /** Custom rose gold */
+  val RoseGold = Gold.copy(color = Color("#B76E79"))
+  
+  /** Brushed metal with higher roughness */
+  val BrushedMetal = Chrome.copy(roughness = 0.3f)
+  
+  /** Frosted glass effect */
+  val FrostedGlass = Glass.copy(roughness = 0.4f)
+```
+
+**`menger-app/src/main/scala/scenes/common/Lighting.scala`**
+
+```scala
+package scenes.common
+
+import menger.dsl.*
+
+/** Reusable lighting setups. */
+object Lighting:
+  /** Classic three-point lighting */
+  val ThreePoint: List[Light] = List(
+    Directional((-1, 1, -1), intensity = 1.0f),   // key light
+    Directional((1, 0.5, -1), intensity = 0.5f),  // fill light  
+    Directional((0, -0.5, 1), intensity = 0.3f)   // back light
+  )
+  
+  /** Dramatic single light from above */
+  val Dramatic: List[Light] = List(
+    Point((0, 5, 0), intensity = 2.0f)
+  )
+  
+  /** Soft ambient-like lighting */
+  val Soft: List[Light] = List(
+    Directional((-1, 1, -1), intensity = 0.7f),
+    Directional((1, 1, 1), intensity = 0.5f),
+    Directional((0, 1, 0), intensity = 0.3f)
+  )
+```
+
+**`menger-app/src/main/scala/scenes/CustomMaterialsDemo.scala`**
+
+```scala
+package scenes
+
+import menger.dsl.*
+import scenes.common.Materials.*
+import scenes.common.Lighting.*
+
+/** Demo using custom materials and lighting presets. */
+object CustomMaterialsDemo extends SceneDefinition:
+  val scene = scene {
+    camera((0, 1, 5), (0, 0, 0))
+    
+    lights(ThreePoint)
+    
+    sphere((-2, 0, 0), TintedGlass)
+    sphere((0, 0, 0), RoseGold)
+    sphere((2, 0, 0), FrostedGlass)
+    
+    plane(Y at -1, "303030")
+  }
+```
+
+---
+
+### Step 11.9: Add Texture Support to DSL
+
+**Status:** Not Started
+**Estimate:** 1.5 hours
+
+Add texture support to scene objects in the DSL.
 
 #### Files to Modify
 
-**`CHANGELOG.md`** (add after Sprint 9 entry):
+**`menger-app/src/main/scala/menger/dsl/SceneObject.scala`**
 
-```markdown
-## [0.5.0] - 2026-XX-XX
+Add `texture` parameter to Sphere, Cube, and Sponge:
 
-### Added
-- **Tesseract (4D Hypercube)** - Render 4D geometry projected to 3D via OptiX
-  - `--objects type=tesseract` for 4D hypercube rendering
-  - 4D projection parameters: `eye-w`, `screen-w`
-  - 4D rotation parameters: `rot-xw`, `rot-yw`, `rot-zw`
+```scala
+/** Sphere object. */
+case class Sphere(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None  // NEW
+) extends SceneObject:
+  def toObjectSpec: ObjectSpec = ObjectSpec(
+    objectType = "sphere",
+    x = pos.x,
+    y = pos.y,
+    z = pos.z,
+    size = size,
+    level = None,
+    color = color.map(_.toCommonColor),
+    ior = material.map(_.ior).getOrElse(ior),
+    material = material.map(_.toOptixMaterial),
+    texture = texture  // NEW
+  )
 
-- **TesseractSponge (4D Menger Sponge)** - Render 4D fractal sponges
-  - `--objects type=tesseract-sponge:level=N` - Volume-based 4D sponge (levels 0-3)
-  - `--objects type=tesseract-sponge-2:level=N` - Surface-based 4D sponge (levels 0-4)
-  - Fractional level support for smooth animations
-  - Full material support (glass, chrome, etc.)
-
-- **Interactive 4D Manipulation in OptiX Mode**
-  - Shift + Arrow keys: Rotate in XW/YW/ZW planes
-  - Shift + Mouse drag: XW/YW rotation (left), ZW rotation (right)
-  - Shift + Scroll: Adjust 4D projection distance (eyeW)
-  - ESC: Reset 4D view to defaults
-
-- **4D CLI Enhancements**
-  - `--4d-rotation=XW,YW,ZW` shorthand for rotation angles
-  - `--4d-preset=NAME` for common views (classic, edge-on, face-on, cell-on, flat)
-  - `--save-4d-state=FILE` / `--load-4d-state=FILE` for view persistence
-
-- **Per-Instance 4D Parameters**
-  - Different tesseracts in the same scene can have different 4D rotations
-  - Example: `--objects type=tesseract:pos=-2,0,0:rot-xw=0 --objects type=tesseract:pos=2,0,0:rot-xw=45`
-
-### Changed
-- Refactored `TesseractMesh` to `Mesh4DProjection` for reuse with any 4D geometry
-- Abstract `Mesh4D` and `Fractal4D` interfaces documented for extensibility
+// Similar updates for Cube and Sponge...
 ```
 
-**`ROADMAP.md`** - Update completed sprints table:
+**`menger-app/src/main/scala/menger/dsl/SceneBuilder.scala`**
+
+Add texture overloads:
+
+```scala
+/** Add a cube with texture. */
+def cube(pos: Vec3, texture: String, size: Float = 1.0f): Unit =
+  _objects += Cube(pos = pos, texture = Some(texture), size = size)
+
+def cube(pos: (Float, Float, Float), texture: String, size: Float): Unit =
+  _objects += Cube(pos = Vec3(pos._1, pos._2, pos._3), texture = Some(texture), size = size)
+
+def cube(pos: (Int, Int, Int), texture: String, size: Float): Unit =
+  _objects += Cube(
+    pos = Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat),
+    texture = Some(texture),
+    size = size
+  )
+
+/** Add a sponge with texture. */
+def sponge(spongeType: SpongeType, level: Float, texture: String): Unit =
+  _objects += Sponge(spongeType, level = level, texture = Some(texture))
+```
+
+#### Tests to Add
+
+**`menger-app/src/test/scala/menger/dsl/TextureDSLSpec.scala`**
+
+```scala
+package menger.dsl
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class TextureDSLSpec extends AnyFlatSpec with Matchers:
+
+  "Cube with texture" should "include texture in ObjectSpec" in:
+    val c = Cube(pos = Vec3.Zero, texture = Some("checker.png"), size = 1.0f)
+    c.texture shouldBe Some("checker.png")
+    c.toObjectSpec.texture shouldBe Some("checker.png")
+
+  "SceneBuilder" should "support cube with texture" in:
+    val s = scene {
+      cube((0, 0, 0), "brick.png", size = 1.5f)
+    }
+    s.objects.head.asInstanceOf[Cube].texture shouldBe Some("brick.png")
+
+  it should "support sponge with texture" in:
+    val s = scene {
+      sponge(Volume, level = 2, "wood.png")
+    }
+    s.objects.head.asInstanceOf[Sponge].texture shouldBe Some("wood.png")
+
+  "Sphere" should "support texture" in:
+    val s = Sphere(pos = Vec3.Zero, texture = Some("earth.png"))
+    s.texture shouldBe Some("earth.png")
+```
+
+#### Verification
+
+```bash
+sbt "project mengerApp" "testOnly menger.dsl.TextureDSLSpec"
+```
+
+---
+
+### Step 11.10: Add Render Settings to DSL
+
+**Status:** Not Started
+**Estimate:** 1.5 hours
+
+Add render settings (shadows, antialiasing) to the scene DSL.
+
+#### Files to Create
+
+**`menger-app/src/main/scala/menger/dsl/RenderSettings.scala`**
+
+```scala
+package menger.dsl
+
+import menger.config.RenderConfig
+
+/** Render settings configuration for DSL use. */
+case class RenderSettings(
+  shadows: Boolean = false,
+  antialiasing: Int = 1,
+  maxDepth: Int = 10
+):
+  require(antialiasing >= 1 && antialiasing <= 16,
+    s"Antialiasing must be 1-16, got $antialiasing")
+  require(maxDepth >= 1 && maxDepth <= 50,
+    s"Max depth must be 1-50, got $maxDepth")
+
+  def toRenderConfig: RenderConfig = RenderConfig(
+    shadows = shadows,
+    antialiasing = antialiasing,
+    maxDepth = maxDepth
+  )
+
+object RenderSettings:
+  val Default: RenderSettings = RenderSettings()
+  val HighQuality: RenderSettings = RenderSettings(
+    shadows = true,
+    antialiasing = 4,
+    maxDepth = 20
+  )
+  val Fast: RenderSettings = RenderSettings(
+    shadows = false,
+    antialiasing = 1,
+    maxDepth = 5
+  )
+```
+
+#### Files to Modify
+
+**`menger-app/src/main/scala/menger/dsl/Scene.scala`**
+
+Add render settings to Scene:
+
+```scala
+/** Complete scene definition. */
+case class Scene(
+  camera: Camera = Camera.Default,
+  lights: List[Light] = List.empty,
+  objects: List[SceneObject] = List.empty,
+  plane: Option[Plane] = None,
+  render: RenderSettings = RenderSettings.Default  // NEW
+):
+  // ... existing code ...
+
+  /** Convert to OptiXEngineConfig for rendering. */
+  def toOptiXEngineConfig: OptiXEngineConfig =
+    // ... existing code ...
+    OptiXEngineConfig(
+      scene = SceneConfig(objectSpecs = Some(objectSpecs)),
+      camera = camera.toCameraConfig,
+      environment = EnvironmentConfig(
+        plane = planeSpec,
+        planeColor = planeColorSpec,
+        lights = lightSpecs
+      ),
+      execution = ExecutionConfig.Default,
+      render = render.toRenderConfig  // NEW
+    )
+```
+
+**`menger-app/src/main/scala/menger/dsl/SceneBuilder.scala`**
+
+Add render settings builder methods:
+
+```scala
+class SceneBuilder:
+  // ... existing fields ...
+  private var _render: RenderSettings = RenderSettings.Default
+
+  // === Render Settings ===
+
+  def shadows(enabled: Boolean = true): Unit =
+    _render = _render.copy(shadows = enabled)
+
+  def antialiasing(samples: Int): Unit =
+    _render = _render.copy(antialiasing = samples)
+
+  def maxDepth(depth: Int): Unit =
+    _render = _render.copy(maxDepth = depth)
+
+  def render(settings: RenderSettings): Unit =
+    _render = settings
+
+  def highQuality(): Unit =
+    _render = RenderSettings.HighQuality
+
+  // === Build ===
+
+  def build(): Scene =
+    require(_objects.nonEmpty, "Scene must have at least one object")
+    Scene(
+      camera = _camera,
+      lights = _lights.toList,
+      objects = _objects.toList,
+      plane = _plane,
+      render = _render  // NEW
+    )
+```
+
+**`menger-app/src/main/scala/menger/dsl/package.scala`**
+
+Add export for RenderSettings:
+
+```scala
+export menger.dsl.RenderSettings
+```
+
+#### Tests to Add
+
+**`menger-app/src/test/scala/menger/dsl/RenderSettingsSpec.scala`**
+
+```scala
+package menger.dsl
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class RenderSettingsSpec extends AnyFlatSpec with Matchers:
+
+  "RenderSettings" should "have sensible defaults" in:
+    val r = RenderSettings()
+    r.shadows shouldBe false
+    r.antialiasing shouldBe 1
+    r.maxDepth shouldBe 10
+
+  it should "validate antialiasing range" in:
+    an[IllegalArgumentException] should be thrownBy RenderSettings(antialiasing = 0)
+    an[IllegalArgumentException] should be thrownBy RenderSettings(antialiasing = 17)
+
+  it should "validate maxDepth range" in:
+    an[IllegalArgumentException] should be thrownBy RenderSettings(maxDepth = 0)
+    an[IllegalArgumentException] should be thrownBy RenderSettings(maxDepth = 51)
+
+  "RenderSettings.HighQuality" should "enable shadows and AA" in:
+    val r = RenderSettings.HighQuality
+    r.shadows shouldBe true
+    r.antialiasing shouldBe 4
+
+  "SceneBuilder" should "support shadows() method" in:
+    val s = scene {
+      shadows()
+      sphere(Glass)
+    }
+    s.render.shadows shouldBe true
+
+  it should "support antialiasing() method" in:
+    val s = scene {
+      antialiasing(4)
+      sphere(Glass)
+    }
+    s.render.antialiasing shouldBe 4
+
+  it should "support highQuality() shortcut" in:
+    val s = scene {
+      highQuality()
+      sphere(Glass)
+    }
+    s.render.shadows shouldBe true
+    s.render.antialiasing shouldBe 4
+
+  it should "support render(settings) method" in:
+    val s = scene {
+      render(RenderSettings.Fast)
+      sphere(Glass)
+    }
+    s.render.maxDepth shouldBe 5
+
+  "Scene.toOptiXEngineConfig" should "include render settings" in:
+    val s = scene {
+      shadows()
+      antialiasing(2)
+      sphere(Glass)
+    }
+    val config = s.toOptiXEngineConfig
+    config.render.shadows shouldBe true
+    config.render.antialiasing shouldBe 2
+```
+
+#### Verification
+
+```bash
+sbt "project mengerApp" "testOnly menger.dsl.RenderSettingsSpec"
+```
+
+---
+
+### Step 11.11: Update Documentation
+
+**Status:** Not Started
+**Estimate:** 1 hour
+
+Update changelog, README, and add DSL documentation.
+
+#### Files to Modify
+
+**`CHANGELOG.md`** (add at top):
 
 ```markdown
-| 8 | 4D Projection Foundation | ✅ Complete | [archive](docs/archive/sprints/) |
-| 9 | TesseractSponge | ✅ Complete | [archive](docs/archive/sprints/) |
-| 10 | 4D Framework | ✅ Complete | [archive](docs/archive/sprints/) |
+## [0.6.0] - 2026-XX-XX
+
+### Added
+- **Scala DSL for Scene Description** - Define scenes using type-safe Scala code
+  - Block-style syntax: `scene { sphere(Glass); cube((2,0,0), Chrome) }`
+  - Case-class style: `Scene(objects = List(Sphere(Glass)))`
+  - Load via CLI: `--scene scenes.MyScene`
+  - Reusable materials and lighting setups via standard Scala imports
+  - Full IDE support with autocompletion and type checking
+```
+
+**`README.md`** (add new section):
+
+```markdown
+## Scene Description Language (DSL)
+
+Define scenes using type-safe Scala code:
+
+```scala
+// scenes/MyScene.scala
+package scenes
+
+import menger.dsl.*
+
+object MyScene extends SceneDefinition:
+  val scene = scene {
+    camera((0, 0.5, 3), (0, 0, 0))
+    light(Directional((-1, 1, -1), intensity = 2.0f))
+    
+    sphere(Glass)
+    cube((2, 0, 0), Chrome)
+    sponge(Volume, level = 3, color = "#00FF00")
+    
+    plane(Y at -2, "#808080")
+  }
+```
+
+Run with:
+```bash
+sbt "run --optix --scene scenes.MyScene"
+```
+
+See `menger-app/src/main/scala/scenes/` for more examples.
+```
+
+**`TODO.md`** (add to backlog):
+
+```markdown
+## Backlog - Scene DSL
+
+### Deferred Features
+- Caustics settings in DSL (algorithm issues, Sprint 4 deferred)
+- Runtime scene evaluation (currently compile-time only)
+- Tesseract support (depends on Sprint 8)
+
+### Future Enhancements
+- Animation keyframes in DSL (Sprint 12)
+- Scene composition (combining multiple scenes)
+- Procedural object placement helpers
 ```
 
 ---
@@ -928,70 +2400,69 @@ Update changelog, roadmap, and documentation.
 ## Definition of Done
 
 - [ ] All success criteria met
-- [ ] All tests passing (Scala + C++): `sbt test --warn`
+- [ ] All tests passing: `sbt test --warn`
 - [ ] Code compiles without warnings: `sbt compile`
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
+- [ ] Example scenes render correctly
 - [ ] CHANGELOG.md updated
-- [ ] Manual verification screenshots captured
-- [ ] Sprint documentation archived
-- [ ] Interactive 4D demo works on GPU machine
+- [ ] README.md updated with DSL documentation
+- [ ] TODO.md updated with deferred features
 
 ---
 
 ## Summary
 
-| Step | Task | Estimate | Files |
-|------|------|----------|-------|
-| 10.1 | Create OptiX4DController | 3h | New: `OptiX4DController.scala` |
-| 10.2 | Integrate into OptiXKeyController | 2h | `OptiXKeyController.scala`, `BaseKeyController.scala` |
-| 10.3 | Enable 4D mesh regeneration | 4h | `OptiXEngine.scala` |
-| 10.4 | Add 4D mouse controls | 2h | `OptiXCameraController.scala` |
-| 10.5 | Add 4D CLI enhancements | 2.5h | `MengerCLIOptions.scala`, new: `FourDPresets.scala` |
-| 10.6 | Per-instance 4D parameters | 3h | `OptiXEngine.scala` |
-| 10.7 | Abstract Mesh4D interface | 2h | `Mesh4D.scala`, `Fractal4D.scala` |
-| 10.8 | State persistence | 2h | New: `FourDState.scala`, `MengerCLIOptions.scala` |
-| 10.9 | Integration tests | 3h | New: `OptiX4DIntegrationSpec.scala` |
-| 10.10 | Update documentation | 1h | `CHANGELOG.md`, `ROADMAP.md` |
-| **Total** | | **24.5h** | |
+| Step | Task | Estimate | New Files |
+|------|------|----------|-----------|
+| 11.1 | Core DSL Types (Vec3, Color, Material) | 2h | 3 source + 3 test |
+| 11.2 | Light Types | 1h | 1 source + 1 test |
+| 11.3 | Scene Object Types | 2.5h | 1 source + 1 test |
+| 11.4 | Camera and Plane Types | 1.5h | 2 source + 2 test |
+| 11.5 | Scene and SceneBuilder | 3h | 3 source + 2 test |
+| 11.6 | Scene Loader | 2h | 1 source + 1 test |
+| 11.7 | CLI Integration | 1.5h | Modify 2 + 1 test |
+| 11.8 | Example Scenes | 1h | 6 source |
+| 11.9 | Texture Support | 1.5h | Modify 2 + 1 test |
+| 11.10 | Render Settings DSL | 1.5h | 1 source + 1 test |
+| 11.11 | Documentation | 1h | Modify 3 |
+| **Total** | | **~18.5h** | ~28 files |
 
 ---
 
 ## Notes
 
-### Decisions Made
+### Design Decisions
 
-1. **Mesh regeneration on 4D rotation:** Accept CPU cost for now; shader-based 4D rotation deferred
-2. **Per-instance 4D params:** Group instances by 4D params to minimize mesh duplication
-3. **4D presets:** Five common views: classic, edge-on, face-on, cell-on, flat
-4. **State format:** Simple JSON for portability
+1. **Compile-time only**: Scenes are compiled as part of the project for type safety and IDE support. Runtime evaluation can be added later if needed.
 
-### Dependencies on Sprints 8 & 9
+2. **Two syntax styles**: Block-style (`scene { }`) for convenience, case-class style for explicit control. Both produce the same `Scene` type.
 
-This sprint assumes:
-- `ObjectSpec` has 4D fields (`eyeW`, `screenW`, `rotXW`, `rotYW`, `rotZW`)
-- `TesseractMesh`, `TesseractSpongeMesh`, `TesseractSponge2Mesh` exist
-- `ObjectType.isHypercube()` recognizes all 4D types
-- `createMeshForSpec()` handles tesseract types
+3. **Tuple conversions**: Implicit conversions allow `(1, 2, 3)` instead of `Vec3(1f, 2f, 3f)` for conciseness.
+
+4. **Material presets**: Common materials (Glass, Chrome, Gold) are pre-defined; custom materials via `Material(...)` or `.copy()`.
+
+5. **Standard imports**: Reusable definitions use standard Scala `import` statements, no special DSL syntax needed.
 
 ### Potential Issues
 
-1. **Performance:** High-level 4D sponges may lag during interactive rotation (millions of triangles)
-2. **Multi-mesh IAS:** Current IAS assumes single mesh type; per-instance 4D may need multi-mesh GAS
-3. **Input focus:** LibGDX input may conflict with other UI elements
+1. **Implicit conversions**: May cause ambiguity in some cases. Can be resolved by using explicit types.
 
-### Future Enhancements (Backlog)
+2. **Tuple vs Vec3**: Multiple overloads needed for Int/Float/Double tuples. May affect compile times.
 
-- Shader-time 4D rotation (eliminates mesh regeneration)
-- 4D animation timeline
-- 4D cross-section (slice through W)
-- VR support for true 4D immersion
+3. **Error messages**: Scene validation errors need clear messages for DSL users.
+
+### Future Extensions
+
+1. **Texture support**: Add `texture: Option[String]` to objects
+2. **Render settings**: Add `render { shadows(); antialiasing() }` block
+3. **Animation**: Add keyframe support for position/rotation over time
+4. **Procedural helpers**: Grid, circle, random placement utilities
 
 ---
 
 ## References
 
-- Existing 4D code: `menger-app/src/main/scala/menger/objects/higher_d/`
-- LibGDX 4D controls: `GdxKeyController.scala`, `GdxCameraController.scala`
-- OptiX integration: `menger-app/src/main/scala/menger/engines/OptiXEngine.scala`
-- Sprint 8 plan: `SPRINT8.md`
-- Sprint 9 plan: `SPRINT9.md`
+- Existing config classes: `menger-app/src/main/scala/menger/config/`
+- ObjectSpec parsing: `menger-app/src/main/scala/menger/ObjectSpec.scala`
+- Material presets: `optix-jni/src/main/scala/menger/optix/Material.scala`
+- Light types: `menger-common/src/main/scala/menger/common/Light.scala`
