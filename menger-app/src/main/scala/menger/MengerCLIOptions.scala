@@ -209,22 +209,6 @@ class MengerCLIOptions(arguments: Seq[String])
       "4D projection: rot-xw, rot-yw, rot-zw, eye-w, screen-w. " +
       "4D edges: edge-radius=R, edge-material=PRESET, edge-color=#RGB, edge-emission=E"
   )(using objectSpecConverter)
-  val radius: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,
-    descr = "Object radius"
-  )
-  val ior: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,
-    descr = "Index of refraction (1.0 = opaque, 1.5 = glass)"
-  )
-  val scale: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(1.0f), validate = _ > 0, group = optixGroup,
-    descr = "Object scale factor"
-  )
-  val center: ScallopOption[Vector3] = opt[Vector3](
-    required = false, default = Some(Vector3(0f, 0f, 0f)), group = optixGroup,
-    descr = "Object center position (x,y,z)"
-  )(using vector3Converter)
 
   // === OptiX Camera Options ===
   val cameraPos: ScallopOption[Vector3] = opt[Vector3](

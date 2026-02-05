@@ -1,7 +1,5 @@
 package menger.cli
 
-import menger.MengerCLIOptions
-
 import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

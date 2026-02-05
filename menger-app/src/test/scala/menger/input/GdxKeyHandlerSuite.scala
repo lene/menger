@@ -1,7 +1,5 @@
 package menger.input
 
-import menger.RotationProjectionParameters
-import menger.common.{InputEvent, Key, ModifierState}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

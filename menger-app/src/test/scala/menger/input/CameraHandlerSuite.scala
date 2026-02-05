@@ -1,6 +1,5 @@
 package menger.input
 
-import menger.common.{InputEvent, MouseButton, ScreenCoords}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

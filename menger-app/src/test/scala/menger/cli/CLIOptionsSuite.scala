@@ -300,26 +300,6 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     val options2 = SafeMengerCLIOptions(Seq("--optix", "--objects", "type=sphere"))
     options2.optix() shouldEqual true
 
-  "--radius" should "accept positive floats" in:
-    val options1 = SafeMengerCLIOptions(Seq("--radius", "1.5"))
-    options1.radius() shouldEqual 1.5f
-
-    val options2 = SafeMengerCLIOptions(Seq("--radius", "0.5"))
-    options2.radius() shouldEqual 0.5f
-
-    val options3 = SafeMengerCLIOptions(Seq("--radius", "10.0"))
-    options3.radius() shouldEqual 10.0f
-
-  it should "default to 1.0" in:
-    val options = SafeMengerCLIOptions(Seq())
-    options.radius() shouldEqual 1.0f
-
-  it should "reject zero" in:
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--radius", "0"))
-
-  it should "reject negative values" in:
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--radius", "-1.0"))
-
   "OptiX validation" should "fail when --objects without --optix" in:
     an[ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--objects", "type=sphere"))

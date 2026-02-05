@@ -9,7 +9,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 - find better names for sponge-2 and tesseract-sponge-2 (volume filling vs surface unfolding)
 - validate tesseract sponge generation from surfaces by repeating it with cubes. same result?
 - ~~parchment has an ior, it shouldn't. instead it should attenuate light like... well, parchment~~
-- ior (and maybe others) are both part of ObjectSpec and separate CLI parameter - redundant
+- ~~ior (and maybe others) are both part of ObjectSpec and separate CLI parameter - redundant~~
 - texture/material for plane
 - check materials for real-life correctness - find references
 - PBR texture support
@@ -17,6 +17,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 - Add more procedural textures (wood, marble, etc.) as a texture library → **Deferred to future sprint**
 - do we even support procedural textures? If not, do so
 - better user guide documentation
+  - Update all examples to use --objects syntax (remove outdated --object, --radius, --ior, --scale, --center examples)
   - Guidance for generating good and interesting scenes and animations
 - better developer documentation
 - better agent instructions for updating documentation and changelog, monitoring ci pipelines after

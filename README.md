@@ -142,23 +142,20 @@ GPU-accelerated ray tracing using NVIDIA OptiX (requires `--optix` and `--object
 #### Object Types
 
 - `--optix` - Enable OptiX renderer (requires `--object`)
-- `--object <type>` - Object to render:
-  - `sphere` - Sphere primitive
-  - `cube` - Cube primitive (triangle mesh)
-  - `sponge-volume` - Menger sponge using cube instancing via Instance Acceleration Structure
-    (IAS optimization, efficient for high levels ~5)
-  - `sponge-surface` - Menger sponge as triangle mesh (higher detail, max level ~6)
+- `--objects <spec>` - Objects to render (repeatable), format: `type=TYPE[:param=value...]`
+  - Object types: `sphere`, `cube`, `sponge-volume`, `sponge-surface`, `cube-sponge`, `tesseract`, `tesseract-sponge`, `tesseract-sponge-2`
+  - Common parameters: `pos=x,y,z`, `size=S`, `color=#RGB`, `material=PRESET`, `texture=FILE`, `emission=E`
+  - Material parameters: `ior=I`, `roughness=R`, `metallic=M`, `specular=S`
+  - Sponge parameters: `level=L` (supports fractional values)
+  - 4D projection: `rot-xw=A`, `rot-yw=B`, `rot-zw=C`, `eye-w=W`, `screen-w=W`
+  - 4D edges: `edge-radius=R`, `edge-material=PRESET`, `edge-color=#RGB`, `edge-emission=E`
 
-#### Object Parameters
+  Examples:
+  - `--objects type=sphere:size=1.5:material=glass`
+  - `--objects type=cube:pos=0,0,0:color=#FF0000:material=metal`
+  - `--objects type=sponge-surface:level=2:material=glass`
 
-- `--level <float>` - Fractal level for sponge types (supports fractional values)
-- `--radius <float>` - Object radius (default: 1.0)
-- `--scale <float>` - Object scale factor (default: 1.0)
-- `--center <x,y,z>` - Object center position (default: 0,0,0)
-- `--ior <float>` - Index of refraction (default: 1.0 = opaque)
-  - 1.0 = opaque, 1.33 = water, 1.5 = glass, 2.42 = diamond
-- `--color <rrggbb[aa]>` - Object color as hex (e.g., `ff0000` for red, `ff000080` for
-  semi-transparent red)
+**Note:** Legacy single-object options (`--object`, `--radius`, `--ior`, `--scale`, `--center`) have been removed. Use `--objects` with the key=value format instead.
 
 #### Camera
 
@@ -271,22 +268,22 @@ sbt "run --optix --object sponge-surface --level 3 --camera-pos -2,1.5,-2"
 sbt "run --optix --object sponge-volume --level 3 --camera-pos -2,1.5,-2"
 
 # Glass sphere with refraction
-sbt "run --optix --object sphere --radius 1.5 --ior 1.5"
+sbt "run --optix --objects type=sphere:size=1.5:material=glass"
 
 # Opaque cube
-sbt "run --optix --object cube --radius 0.5"
+sbt "run --optix --objects type=cube:size=1:material=matte:color=#808080"
 
 # Sphere with shadows and custom lighting
-sbt "run --optix --object sphere --shadows \
+sbt "run --optix --objects type=sphere:material=glass --shadows \
   --light directional:-1,1,-1:1.5 \
   --light point:2,3,2:0.8:ffd700"
 
 # Glass sphere with caustics (light focusing effects)
-sbt "run --optix --object sphere --ior 1.5 --caustics \
+sbt "run --optix --objects type=sphere:material=glass --caustics \
   --caustics-photons 50000 --caustics-iterations 20"
 
 # High-quality sponge render with antialiasing
-sbt "run --optix --object sponge-surface --level 2 --antialiasing \
+sbt "run --optix --objects type=sponge-surface:level=2:material=glass --antialiasing \
   --plane-color ffffff:808080"
 
 # Display ray statistics
