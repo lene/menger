@@ -3,14 +3,12 @@
 Quick notes and ideas captured during development. Review periodically and promote to
 [ROADMAP.md](ROADMAP.md) or [SPRINT.md](docs/sprints/SPRINT.md) as appropriate.
 
-- for integration tests: store reference images and compare rendered output against them
 - parallelize integration tests
-- ~~fix PushToGithub (see https://gitlab.com/lilacashes/menger/-/jobs/12865767482)~~
-  - ✓ Fixed: Added GIT_DEPTH: 0 to fetch complete history
-  - Root cause: Shallow clone missing older commits GitHub expected
+- ~~fix code quality ci job~~
+- implement proper thin-film physics with thickness parameter and interference effects (Film material)
 - find better names for sponge-2 and tesseract-sponge-2 (volume filling vs surface unfolding)
 - validate tesseract sponge generation from surfaces by repeating it with cubes. same result?
-- parchment has an ior, it shouldn't. instead it should attenuate light like... well, parchment
+- ~~parchment has an ior, it shouldn't. instead it should attenuate light like... well, parchment~~
 - ior (and maybe others) are both part of ObjectSpec and separate CLI parameter - redundant
 - texture/material for plane
 - check materials for real-life correctness - find references
@@ -33,9 +31,3 @@ Quick notes and ideas captured during development. Review periodically and promo
 - multiple planes, as well as zero
 - Rounded edges on cubes/sponges
 - test on both CUDA 12 and 13 (docker images for both)
-- create release checklist:
-    - Update documentation and sprint plans, remove obsolete items
-    - Update ChangeLog
-    - run comprehensive code quality analysis and remove obsolete code
-    - update dependencies
-    - ???
