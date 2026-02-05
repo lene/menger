@@ -42,14 +42,17 @@ workflow:
       when: never
     - if: $CI_COMMIT_BRANCH
 
-# Override code_quality from template to allow failure due to Docker API version mismatch
-# in GitLab's DinD service (API 1.41 vs required 1.44). Code quality is validated by
-# scalafix in pre-push hooks and semgrep-sast job.
+# Override code_quality from template to use compatible Docker versions
+# Docker 27.x supports API 1.46, ensuring compatibility with DinD service
+# Code quality is also validated by scalafix in pre-push hooks and semgrep-sast job.
 code_quality:
-  allow_failure: true
-  image: docker:latest
+  stage: test
+  image: docker:27
   services:
-    - docker:dind
+    - docker:27-dind
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
 
 # This job installs sbt by itself. It is somewhat slower than the ones based on scala-sbt below.
 # Tests installation from minimal Debian/Ubuntu base images (without CUDA/OptiX).
