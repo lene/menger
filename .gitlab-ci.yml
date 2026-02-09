@@ -12,7 +12,7 @@ default:
 
 variables:
   DEPLOYABLE_BASE_NAME: menger
-  DEPLOYABLE_VERSION: 0.4.3
+  DEPLOYABLE_VERSION: 0.5.0
   SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25.0.1_8_1.12.0_3.7.4
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.7.4
