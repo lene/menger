@@ -1,21 +1,58 @@
 # Current Sprint
 
-**Sprint:** (none active)
-**Status:** Between sprints
-**Next:** Sprint 8 - 4D Projection Foundation
+**Sprint:** 10 - Scala DSL for Scene Description
+**Status:** In Progress
+**Started:** 2026-02-09
+**Branch:** `feature/sprint-10`
 
 ---
 
-When starting a new sprint, copy this template and fill in the details:
+## Goal
+
+Create a Scala DSL that allows concise, type-safe scene definitions that compile with the project and can be loaded via `--scene <classname>`.
+
+## Success Criteria
+
+- [ ] `--scene scenes.MyScene` loads and renders a scene defined in Scala DSL
+- [ ] Case-class style syntax works
+- [ ] Arrow syntax for camera works
+- [ ] All object types, materials, and lights are expressible
+- [ ] Material factory shorthands work
+- [ ] Texture support works
+- [ ] Render settings as flat Scene fields
+- [ ] Caustics configuration works
+- [ ] Comprehensive tests pass
+- [ ] Example scene files created
+
+## Progress
+
+See [SPRINT10.md](SPRINT10.md) for detailed task breakdown and implementation plan.
+
+---
+
+## Sprint Archive
+
+When a sprint completes:
+
+1. Update status to ✅ Complete
+2. Move file to `docs/archive/sprints/SPRINT_N.md`
+3. Update ROADMAP.md completed sprints table
+4. Reset this file for next sprint
+
+---
+
+## Template
+
+When starting a new sprint, copy this template:
 
 ```markdown
 # Current Sprint
 
-**Sprint:** 8 - 4D Projection Foundation
+**Sprint:** N - Sprint Name
 **Status:** In Progress
 **Started:** YYYY-MM-DD
 **Target:** YYYY-MM-DD
-**Branch:** `feature/sprint-8`
+**Branch:** `feature/sprint-N`
 
 ---
 
@@ -33,7 +70,7 @@ When starting a new sprint, copy this template and fill in the details:
 
 ## Tasks
 
-### Step 8.1: [Task Name]
+### Step N.1: [Task Name]
 
 **Status:** Not Started | In Progress | Complete
 **Estimate:** X hours
@@ -43,10 +80,6 @@ When starting a new sprint, copy this template and fill in the details:
 
 **Files:**
 - `path/to/file.scala` - description
-
-### Step 8.2: [Task Name]
-
-...
 
 ---
 
@@ -72,14 +105,3 @@ When starting a new sprint, copy this template and fill in the details:
 - [Link to relevant docs]
 - [Link to related issues]
 ```
-
----
-
-## Sprint Archive
-
-When a sprint completes:
-
-1. Update status to ✅ Complete
-2. Move file to `docs/archive/sprints/SPRINT_N.md`
-3. Update ROADMAP.md completed sprints table
-4. Reset this file for next sprint

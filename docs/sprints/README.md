@@ -4,25 +4,29 @@ Active sprint planning documents for ongoing and future development work.
 
 ## Current Sprint
 
-- **[SPRINT.md](SPRINT.md)** - Current sprint work in progress
+- **[SPRINT.md](SPRINT.md)** - Sprint 10: Scala DSL for Scene Description (In Progress)
+- **[SPRINT10.md](SPRINT10.md)** - Detailed planning document
 
 ## Upcoming Sprints
 
 | Sprint | Focus | Status | File |
 |--------|-------|--------|------|
-| 8 | Code Quality Improvements | Planned | [SPRINT8.md](SPRINT8.md) |
-| 9 | Object Animation | Planned | [SPRINT9.md](SPRINT9.md) |
-| 10 | Scene Description Language | Planned | [SPRINT10.md](SPRINT10.md) |
-| 11 | Advanced Features | Planned | [SPRINT11.md](SPRINT11.md) |
-| 12 | Performance & Polish | Planned | [SPRINT12.md](SPRINT12.md) |
-| 13 | Final Release Prep | Planned | [SPRINT13.md](SPRINT13.md) |
+| 11 | 4D Framework Enhancements | Planned | [SPRINT11.md](SPRINT11.md) |
+| 12 | Visual Quality & Materials | Planned | [SPRINT12.md](SPRINT12.md) |
+| 13 | Object Animation Foundation | Planned | [SPRINT13.md](SPRINT13.md) |
+| 14 | Advanced Animation System | Planned | [SPRINT14.md](SPRINT14.md) |
 
 ## Completed Sprints
 
 See [docs/archive/sprints/](../archive/sprints/) for completed sprint documentation:
-- Sprint 5 - Triangle Mesh + Cube
-- Sprint 6 - Full Geometry (IAS)
-- Sprint 7 - Materials & Textures
+
+| Sprint | Focus | Version | Archived File |
+|--------|-------|---------|---------------|
+| 9 | TesseractSponge (4D Sponges) | v0.4.3 | [SPRINT_9.md](../archive/sprints/SPRINT_9.md) |
+| 8 | 4D Projection + UX Improvements | v0.4.2 | [SPRINT_8.md](../archive/sprints/SPRINT_8.md) |
+| 7 | Materials & Textures | - | [SPRINT_7.md](../archive/sprints/SPRINT_7.md) |
+| 6 | Full Geometry (IAS) | - | [SPRINT_6.md](../archive/sprints/SPRINT_6.md) |
+| 5 | Triangle Mesh + Cube | - | [SPRINT_5.md](../archive/sprints/SPRINT_5.md) |
 
 ## Sprint Lifecycle
 
