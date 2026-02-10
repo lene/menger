@@ -126,7 +126,7 @@ class MengerCLIOptions(arguments: Seq[String])
   val spongeType: ScallopOption[String] = opt[String](
     required = false, default = Some("square"), group = spongeGroup,
     validate = isValidSpongeType,
-    descr = "Sponge type: square, cube, tesseract-sponge, tesseract-sponge-2, composite[...]"
+    descr = "Sponge type: square, cube, tesseract-sponge-volume, tesseract-sponge-surface, composite[...] (old names: tesseract-sponge, tesseract-sponge-2 still work)"
   )
   val level: ScallopOption[Float] = opt[Float](
     required = false, default = Some(Const.defaultSpongeLevel), validate = _ >= 0, group = spongeGroup,

@@ -4,3 +4,10 @@
 # Disable log4j JMX to prevent cgroup detection errors in Docker/CI
 # Fixes: "Could not reconfigure JMX java.lang.NullPointerException: Cannot invoke CgroupInfo.getMountPoint()"
 -J-Dlog4j2.disableJmx=true
+
+# Suppress Java 21 warnings for Scala 3.7.4 and native libraries (libGDX, LWJGL)
+-J--add-opens=java.base/java.lang=ALL-UNNAMED
+-J--add-opens=java.base/java.nio=ALL-UNNAMED
+-J--add-opens=java.base/sun.nio.ch=ALL-UNNAMED
+-J--enable-native-access=ALL-UNNAMED
+-J-Djdk.internal.lambda.disableEagerInitialization=true

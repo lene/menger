@@ -57,10 +57,10 @@ libraryDependencies ++= Seq(
   "org.scalamock" %% "scalamock" % "7.5.0" % Test,
   "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test,
   // Scallop command line parser
-  "org.rogach" %% "scallop" % "5.2.0",
+  "org.rogach" %% "scallop" % "6.0.0",
   // libGDX
-  "com.badlogicgames.gdx" % "gdx" % "1.13.5",
+  "com.badlogicgames.gdx" % "gdx" % "1.14.0",
   "net.sf.proguard" % "proguard-base" % "6.2.2" % "provided",
-  "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.13.5",
-  "com.badlogicgames.gdx" % "gdx-platform" % "1.13.5" classifier "natives-desktop"
+  "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.14.0",
+  "com.badlogicgames.gdx" % "gdx-platform" % "1.14.0" classifier "natives-desktop"
 )

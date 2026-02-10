@@ -109,8 +109,8 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     validStr should include("sponge-surface")
     validStr should include("cube-sponge")
     validStr should include("tesseract")
-    validStr should include("tesseract-sponge")
-    validStr should include("tesseract-sponge-2")
+    validStr should include("tesseract-sponge-volume")
+    validStr should include("tesseract-sponge-surface")
 
   // === Mutual Exclusivity Tests ===
 
@@ -145,8 +145,8 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.VALID_TYPES should contain("sponge-surface")
     ObjectType.VALID_TYPES should contain("cube-sponge")
     ObjectType.VALID_TYPES should contain("tesseract")
-    ObjectType.VALID_TYPES should contain("tesseract-sponge")
-    ObjectType.VALID_TYPES should contain("tesseract-sponge-2")
+    ObjectType.VALID_TYPES should contain("tesseract-sponge-volume")
+    ObjectType.VALID_TYPES should contain("tesseract-sponge-surface")
     ObjectType.VALID_TYPES.size shouldBe 8
 
   "ObjectType.SPONGE_TYPES" should "contain only 3D sponge types" in:
@@ -157,6 +157,34 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
 
   "ObjectType.PROJECTED_4D_TYPES" should "contain all 4D types" in:
     ObjectType.PROJECTED_4D_TYPES should contain("tesseract")
-    ObjectType.PROJECTED_4D_TYPES should contain("tesseract-sponge")
-    ObjectType.PROJECTED_4D_TYPES should contain("tesseract-sponge-2")
+    ObjectType.PROJECTED_4D_TYPES should contain("tesseract-sponge-volume")
+    ObjectType.PROJECTED_4D_TYPES should contain("tesseract-sponge-surface")
     ObjectType.PROJECTED_4D_TYPES.size shouldBe 3
+
+  // === Deprecated Aliases Tests ===
+
+  "ObjectType.normalize" should "map deprecated names to canonical names" in:
+    ObjectType.normalize("sponge") shouldBe "sponge-volume"
+    ObjectType.normalize("sponge-2") shouldBe "sponge-surface"
+    ObjectType.normalize("tesseract-sponge") shouldBe "tesseract-sponge-volume"
+    ObjectType.normalize("tesseract-sponge-2") shouldBe "tesseract-sponge-surface"
+
+  it should "leave canonical names unchanged" in:
+    ObjectType.normalize("sponge-volume") shouldBe "sponge-volume"
+    ObjectType.normalize("tesseract-sponge-volume") shouldBe "tesseract-sponge-volume"
+    ObjectType.normalize("sphere") shouldBe "sphere"
+
+  it should "be case-insensitive" in:
+    ObjectType.normalize("SPONGE") shouldBe "sponge-volume"
+    ObjectType.normalize("Tesseract-Sponge-2") shouldBe "tesseract-sponge-surface"
+
+  "ObjectType.isDeprecated" should "identify deprecated names" in:
+    ObjectType.isDeprecated("sponge") shouldBe true
+    ObjectType.isDeprecated("sponge-2") shouldBe true
+    ObjectType.isDeprecated("tesseract-sponge") shouldBe true
+    ObjectType.isDeprecated("tesseract-sponge-2") shouldBe true
+
+  it should "not flag canonical names as deprecated" in:
+    ObjectType.isDeprecated("sponge-volume") shouldBe false
+    ObjectType.isDeprecated("tesseract-sponge-volume") shouldBe false
+    ObjectType.isDeprecated("sphere") shouldBe false

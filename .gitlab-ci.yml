@@ -21,6 +21,9 @@ variables:
   # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
   # See: https://forums.developer.nvidia.com/t/crash-on-launching-game-with-plasma-problematic-frame-libnvidia-glcore-so-570-144-0xa5966c/332304
   __GL_THREADED_OPTIMIZATIONS: "0"
+  # Suppress Java 21 warnings for Scala 3.7.4 and native libraries
+  JAVA_OPTS: "--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --enable-native-access=ALL-UNNAMED"
+  SBT_OPTS: "-J--add-opens=java.base/java.lang=ALL-UNNAMED -J--add-opens=java.base/java.nio=ALL-UNNAMED -J--enable-native-access=ALL-UNNAMED"
 
 include:
   - template: Code-Quality.gitlab-ci.yml

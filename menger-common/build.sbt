@@ -1,6 +1,6 @@
 name := "menger-common"
 version := "0.4.1"
-scalaVersion := "3.7.3"
+scalaVersion := "3.7.4"
 
 organization := "io.github.lilacashes"
 description := "Common types and utilities for Menger ray tracer"
