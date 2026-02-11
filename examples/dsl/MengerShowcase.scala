@@ -77,6 +77,7 @@ object MengerShowcase:
         color = "#CCFFFF"  // Cool white
       )
     ),
+    plane = Some(Plane(Y at -3, color = "#404040")),  // Dark gray floor
     caustics = Caustics.HighQuality
   )
 
