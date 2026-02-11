@@ -1,6 +1,6 @@
 package menger.dsl
 
-import menger.common.Color as CommonColor
+import menger.common.{Color => CommonColor}
 
 /** Color with hex string parsing for DSL */
 case class Color(r: Float, g: Float, b: Float, a: Float = 1.0f):

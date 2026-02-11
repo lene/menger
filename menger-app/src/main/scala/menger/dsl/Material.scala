@@ -1,6 +1,6 @@
 package menger.dsl
 
-import menger.optix.Material as OptixMaterial
+import menger.optix.{Material => OptixMaterial}
 
 /** Material definition for DSL with presets and factory methods */
 case class Material(

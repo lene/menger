@@ -1,10 +1,12 @@
 package menger.input
 
-import menger.common.{InputEvent, Key, ModifierState}
+import scala.collection.mutable.ListBuffer
+
+import menger.common.InputEvent
+import menger.common.Key
+import menger.common.ModifierState
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import scala.collection.mutable.ListBuffer
 
 /**
  * Pure domain tests for KeyHandler trait logic.

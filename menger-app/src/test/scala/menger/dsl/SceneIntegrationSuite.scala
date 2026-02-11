@@ -1,8 +1,9 @@
 package menger.dsl
 
+import scala.language.implicitConversions
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import scala.language.implicitConversions
 
 /** Integration tests demonstrating end-to-end scene creation and rendering preparation. */
 class SceneIntegrationSuite extends AnyFlatSpec with Matchers:

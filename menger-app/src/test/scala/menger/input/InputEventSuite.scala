@@ -1,6 +1,10 @@
 package menger.input
 
-import menger.common.{InputEvent, Key, MouseButton, ModifierState, ScreenCoords}
+import menger.common.InputEvent
+import menger.common.Key
+import menger.common.ModifierState
+import menger.common.MouseButton
+import menger.common.ScreenCoords
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

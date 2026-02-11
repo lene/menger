@@ -1,7 +1,8 @@
 package menger.dsl
 
-import menger.config.CameraConfig
 import scala.annotation.targetName
+
+import menger.config.CameraConfig
 
 /** Camera configuration for scene rendering.
   *

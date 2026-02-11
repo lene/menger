@@ -14,8 +14,8 @@ class ProfilingIntegrationSuite extends AnyFlatSpec with Matchers:
     val square = Square()
     val cube = Cube()
 
-    square should not be null
-    cube should not be null
+    square shouldBe a[Square]
+    cube shouldBe a[Cube]
 
   "SpongeBySurface" should "propagate ProfilingConfig to child instances" in:
     given ProfilingConfig = ProfilingConfig.enabled(5)
@@ -45,7 +45,7 @@ class ProfilingIntegrationSuite extends AnyFlatSpec with Matchers:
       menger.objects.higher_d.Projection(4, 1)
     )
 
-    projection should not be null
+    projection shouldBe a[menger.objects.higher_d.RotatedProjection]
 
   "FractionalRotatedProjection" should "accept ProfilingConfig" in:
     given ProfilingConfig = ProfilingConfig.disabled

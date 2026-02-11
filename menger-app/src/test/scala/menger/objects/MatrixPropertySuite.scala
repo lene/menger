@@ -4,7 +4,7 @@ import menger.PropertyTestGenerators.matrix4Gen
 import menger.PropertyTestGenerators.smallMatrix4Gen
 import menger.PropertyTestGenerators.vector4Gen
 import menger.common.Vector
-import menger.objects.higher_d.CustomMatchers.*
+import menger.objects.higher_d.CustomMatchers._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks

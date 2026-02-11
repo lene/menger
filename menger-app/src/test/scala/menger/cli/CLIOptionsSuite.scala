@@ -139,12 +139,12 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
   Seq("tesseract").foreach { sponge =>
     it should s"fail when level is specified for non-fractal sponge type $sponge" in:
       an[ScallopException] should be thrownBy
-        SafeMengerCLIOptions(Seq("--sponge-type", sponge, "--animate", s"frames=10:level=0-1"))
+        SafeMengerCLIOptions(Seq("--sponge-type", sponge, "--animate", "frames=10:level=0-1"))
   }
 
   Seq("tesseract-sponge", "tesseract-sponge-2", "square", "cube").foreach { sponge =>
     it should s"succeed when level is specified for fractal sponge type $sponge" in:
-      SafeMengerCLIOptions(Seq("--sponge-type", sponge, "--animate", s"frames=10:level=0-1"))
+      SafeMengerCLIOptions(Seq("--sponge-type", sponge, "--animate", "frames=10:level=0-1"))
   }
 
   it should "succeed when two valid animation specifications are given" in:

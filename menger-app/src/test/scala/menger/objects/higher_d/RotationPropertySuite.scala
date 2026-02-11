@@ -3,7 +3,7 @@ package menger.objects.higher_d
 import menger.PropertyTestGenerators.angleGen
 import menger.PropertyTestGenerators.smallVector4Gen
 import menger.objects.Matrix
-import menger.objects.higher_d.CustomMatchers.*
+import menger.objects.higher_d.CustomMatchers._
 import org.scalacheck.Gen
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

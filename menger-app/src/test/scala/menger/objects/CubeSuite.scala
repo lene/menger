@@ -123,7 +123,7 @@ class CubeSuite extends AnyFlatSpec with Matchers:
 
   "Cube" should "implement TriangleMeshSource trait" in:
     val cube: menger.common.TriangleMeshSource = Cube()
-    cube.toTriangleMesh should not be null
+    cube.toTriangleMesh shouldBe a[menger.common.TriangleMeshData]
 
   // Edge case tests for scale parameter
   "Cube edge cases" should "produce degenerate mesh with scale = 0 (all vertices at center)" in:

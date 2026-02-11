@@ -1,8 +1,9 @@
 package menger.dsl
 
+import scala.language.implicitConversions
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import scala.language.implicitConversions
 
 class ColorSuite extends AnyFlatSpec with Matchers:
 

@@ -11,7 +11,7 @@ import org.scalatest.matchers.should.Matchers
 class FaceSuite extends AnyFlatSpec with Matchers:
   "any ol' Face" should "instantiate" in:
     val face = Face(0, 0, 0, 1, X)
-    face should not be null
+    face shouldBe a[Face]
 
   "subdividing one face" should "give a total of 12 subfaces" in:
     forAll(Seq(X, Y, Z, -X, -Y, -Z)) { normal =>

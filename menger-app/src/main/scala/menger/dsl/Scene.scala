@@ -1,6 +1,7 @@
 package menger.dsl
 
-import menger.config.{SceneConfig, CameraConfig}
+import menger.config.CameraConfig
+import menger.config.SceneConfig
 
 /** Complete scene definition with camera, objects, and lighting.
   *

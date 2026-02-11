@@ -1,7 +1,9 @@
 package menger.input
 
-import com.badlogic.gdx.Input.{Buttons, Keys}
-import menger.common.{Key, MouseButton}
+import com.badlogic.gdx.Input.Buttons
+import com.badlogic.gdx.Input.Keys
+import menger.common.Key
+import menger.common.MouseButton
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -1,6 +1,6 @@
 package menger.dsl
 
-import com.badlogic.gdx.math.Vector3 as GdxVector3
+import com.badlogic.gdx.math.{Vector3 => GdxVector3}
 import menger.common.Vector
 
 /** 3D vector for DSL with convenient tuple conversions */

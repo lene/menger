@@ -1,11 +1,13 @@
 package menger.input
 
+import scala.collection.mutable.ListBuffer
+
 import menger.RotationProjectionParameters
-import menger.common.{InputEvent, Key, ModifierState}
+import menger.common.InputEvent
+import menger.common.Key
+import menger.common.ModifierState
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import scala.collection.mutable.ListBuffer
 
 /**
  * Tests for OptiXKeyHandler - OptiX keyboard input handler.

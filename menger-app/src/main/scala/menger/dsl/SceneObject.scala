@@ -1,8 +1,9 @@
 package menger.dsl
 
+import scala.annotation.targetName
+
 import menger.ObjectSpec
 import menger.common.ObjectType
-import scala.annotation.targetName
 
 /** Base trait for all scene objects */
 sealed trait SceneObject:

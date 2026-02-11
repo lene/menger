@@ -6,6 +6,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 - Scala DSL for scene description (type-safe, compiled with project)
 - Scene files can import other files
 - check output - seems buggy (e.g. gold is transparent, fractional sponge level weirdnesses)
+- coverage uses old coverage percentage as reference
 - rotation of objects in 3D, possibly full transform (position, rotation, scale)
 - Camera animation (path following)
 - Light animation

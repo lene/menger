@@ -1,7 +1,8 @@
 package menger.dsl
 
-import menger.common.Light as CommonLight
 import scala.annotation.targetName
+
+import menger.common.{Light => CommonLight}
 
 /** Base trait for DSL light types */
 sealed trait Light:

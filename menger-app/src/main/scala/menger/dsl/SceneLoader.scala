@@ -1,6 +1,7 @@
 package menger.dsl
 
 import scala.util.Try
+
 import com.typesafe.scalalogging.LazyLogging
 
 /** Loader for pre-compiled DSL scenes.
@@ -67,7 +68,10 @@ object SceneLoader extends LazyLogging:
       // Get the MODULE$ field (Scala object singleton)
       val moduleField = cls.getDeclaredField("MODULE$")
       moduleField.setAccessible(true)
+      // scalafix:off DisableSyntax.null
+      // Note: null is correct here - getting static field via Java reflection
       val module = moduleField.get(null)
+      // scalafix:on DisableSyntax.null
 
       // Get the scene field
       val sceneField = cls.getDeclaredField("scene")

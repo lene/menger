@@ -58,7 +58,7 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
   "OptiXEngine" should "be instantiated" in:
     val config = createConfig()
     val engine = createEngine(config)
-    engine should not be null
+    engine shouldBe a[OptiXEngine]
 
   it should "store timeout in config" in:
     val config = createConfig(timeout = 5.0f)
