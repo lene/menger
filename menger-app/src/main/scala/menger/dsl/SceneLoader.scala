@@ -1,71 +1,93 @@
 package menger.dsl
 
-import scala.io.Source
-import scala.util.{Try, Using}
+import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 
-/** Loader for scene definition files written in Scala DSL.
+/** Loader for pre-compiled DSL scenes.
   *
-  * Scene files are Scala source files that define a scene using the DSL API.
-  * The file must evaluate to a Scene value.
+  * Supports two loading mechanisms:
+  * 1. Registry lookup: Simple names like "glass-sphere" registered via SceneRegistry
+  * 2. Reflection: Fully-qualified class names like "examples.dsl.GlassSphere"
   *
-  * Example scene file:
-  * ```
+  * Example scene object:
+  * ```scala
+  * package examples.dsl
   * import menger.dsl.*
   *
-  * Scene(
-  *   camera = Camera((0f, 0f, 3f), (0f, 0f, 0f)),
-  *   objects = List(
-  *     Sphere((0f, 0f, 0f), Material.Glass),
-  *     Cube((2f, 0f, 0f), Material.Gold)
-  *   ),
-  *   lights = List(
-  *     Directional((1f, -1f, -1f))
+  * object MyScene:
+  *   val scene = Scene(
+  *     camera = Camera((0f, 0f, 3f), (0f, 0f, 0f)),
+  *     objects = List(Sphere(Material.Glass)),
+  *     lights = List(Directional((1f, -1f, -1f)))
   *   )
-  * )
+  *
+  *   // Optional: Register for short name access
+  *   SceneRegistry.register("my-scene", scene)
   * ```
+  *
+  * Usage:
+  * - `--scene glass-sphere` (registry lookup)
+  * - `--scene examples.dsl.GlassSphere` (reflection)
   */
 object SceneLoader extends LazyLogging:
 
-  /** Load and evaluate a scene definition from a file.
+  /** Load a scene by name or fully-qualified class name.
     *
-    * @param path Path to the scene definition file
+    * First attempts registry lookup, then tries reflection if that fails.
+    *
+    * @param sceneName Simple name or fully-qualified class name
     * @return Either an error message or the loaded Scene
     */
-  def loadFromFile(path: String): Either[String, Scene] =
-    logger.info(s"Loading scene from file: $path")
+  def load(sceneName: String): Either[String, Scene] =
+    logger.info(s"Loading scene: $sceneName")
 
-    // Read file content
-    val contentResult = Using(Source.fromFile(path)) { source =>
-      source.mkString
-    }.toEither.left.map { ex =>
-      s"Failed to read scene file '$path': ${ex.getMessage}"
-    }
+    // Try registry first
+    SceneRegistry.get(sceneName) match
+      case Some(scene) =>
+        logger.info(s"Loaded scene from registry: $sceneName")
+        Right(scene)
+      case None =>
+        // Try reflection
+        loadByReflection(sceneName)
 
-    contentResult.flatMap { content =>
-      logger.debug(s"File content loaded, ${content.length} characters")
-      parseScene(content, path)
-    }
-
-  /** Parse and evaluate scene definition from a string.
+  /** Load a scene by fully-qualified class name using reflection.
     *
-    * @param content Scene definition as Scala code
-    * @param sourceName Name for error messages (typically filename)
-    * @return Either an error message or the parsed Scene
+    * Expects an object with a `scene` field of type Scene.
+    *
+    * @param className Fully-qualified class name (e.g., "examples.dsl.GlassSphere")
+    * @return Either an error message or the loaded Scene
     */
-  def parseScene(content: String, sourceName: String = "<inline>"): Either[String, Scene] =
+  private def loadByReflection(className: String): Either[String, Scene] =
+    logger.debug(s"Attempting to load scene via reflection: $className")
+
     Try {
-      // Use Scala's reflection/compilation API to evaluate the DSL
-      // For now, return an error as this requires runtime compilation
-      Left(s"Scene loading from file not yet implemented. Scene files must be pre-compiled.")
-    }.toEither match
-      case Right(result) => result
-      case Left(ex) => Left(s"Failed to parse scene from '$sourceName': ${ex.getMessage}")
+      // Get the class
+      val cls = Class.forName(s"$className$$")
 
-  /** Validate that a scene definition is syntactically correct.
-    *
-    * @param content Scene definition as Scala code
-    * @return Either validation errors or Unit on success
-    */
-  def validate(content: String): Either[String, Unit] =
-    parseScene(content, "<validation>").map(_ => ())
+      // Get the MODULE$ field (Scala object singleton)
+      val moduleField = cls.getDeclaredField("MODULE$")
+      moduleField.setAccessible(true)
+      val module = moduleField.get(null)
+
+      // Get the scene field
+      val sceneField = cls.getDeclaredField("scene")
+      sceneField.setAccessible(true)
+      val scene = sceneField.get(module)
+
+      scene match
+        case s: Scene => Right(s)
+        case _ => Left(s"Object '$className' has a 'scene' field but it's not of type Scene")
+    }.toEither match
+      case Right(result) =>
+        logger.info(s"Successfully loaded scene via reflection: $className")
+        result
+      case Left(ex: ClassNotFoundException) =>
+        Left(s"Scene not found: '$className'. Available registered scenes: ${SceneRegistry.list().mkString(", ")}")
+      case Left(ex: NoSuchFieldException) =>
+        Left(s"Object '$className' does not have a 'scene' field of type Scene")
+      case Left(ex) =>
+        Left(s"Failed to load scene '$className': ${ex.getMessage}")
+
+  /** List all available scenes (from registry only). */
+  def listAvailable(): List[String] =
+    SceneRegistry.list()

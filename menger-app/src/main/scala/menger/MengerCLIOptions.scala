@@ -199,6 +199,12 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = "Use OptiX GPU ray tracing (requires --objects)"
   )
 
+  val scene: ScallopOption[String] = opt[String](
+    name = "scene", required = false, group = optixGroup,
+    descr = "Load pre-compiled DSL scene by name (e.g., 'glass-sphere') or fully-qualified class name (e.g., 'examples.dsl.GlassSphere'). " +
+      "Mutually exclusive with --objects"
+  )
+
   val objects: ScallopOption[List[ObjectSpec]] = opt[List[ObjectSpec]](
     name = "objects", required = false, group = optixGroup,
     descr = "Objects (repeatable): type=TYPE[:param=value...]. " +

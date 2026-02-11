@@ -10,7 +10,7 @@ import menger.dsl.*
  * - A camera positioned to view the sphere
  * - A directional light
  *
- * Usage: Convert to rendering config using scene.toSceneConfig and scene.toCameraConfig
+ * Usage: --scene glass-sphere
  */
 object GlassSphere:
   val scene = Scene(
@@ -25,3 +25,6 @@ object GlassSphere:
       Directional((1f, -1f, -1f))
     )
   )
+
+  // Register scene for CLI access
+  SceneRegistry.register("glass-sphere", scene)

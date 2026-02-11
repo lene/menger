@@ -47,5 +47,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 
 - Easing functions (ease-in-out, cubic, bounce, elastic)
 - Video output via ffmpeg
+- other polytopes in 3D and 4D
+- higher dimensional menger sponge and sierpinski tetrahedron analogs 
 - steroscopic 3D rendering (left/right eye cameras)
 

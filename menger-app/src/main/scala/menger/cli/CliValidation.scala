@@ -29,6 +29,7 @@ trait CliValidation:
   protected def lineColor: ScallopOption[?]
   protected def lines: ScallopOption[Boolean]
   protected def optix: ScallopOption[Boolean]
+  protected def scene: ScallopOption[String]
   protected def objects: ScallopOption[List[ObjectSpec]]
   protected def shadows: ScallopOption[Boolean]
   protected def light: ScallopOption[List[LightSpec]]
@@ -104,18 +105,22 @@ trait CliValidation:
     }
 
   private def registerOptiXValidations(): Unit =
-    validateOpt(optix, objects) { (ox, objs) =>
+    // Validate scene and objects are mutually exclusive
+    mutuallyExclusive(scene, objects)
+
+    validateOpt(optix, scene, objects) { (ox, sc, objs) =>
       val isOptiXEnabled = ox.getOrElse(false)
+      val hasScene = sc.isDefined
       val hasObjects = objs.isDefined
       validationLogger.debug(
-        s"OptiX validation: enabled=$isOptiXEnabled, hasObjects=$hasObjects"
+        s"OptiX validation: enabled=$isOptiXEnabled, hasScene=$hasScene, hasObjects=$hasObjects"
       )
 
-      if isOptiXEnabled && !hasObjects then
-        Left("--optix flag requires --objects option. " +
-          "Add --objects \"type=sphere:pos=0,0,0:size=1\"")
-      else if hasObjects && !isOptiXEnabled then
-        Left("--objects option requires --optix flag. Add --optix to enable OptiX rendering")
+      if isOptiXEnabled && !hasScene && !hasObjects then
+        Left("--optix flag requires either --scene or --objects option. " +
+          "Add --scene <scene-name> or --objects \"type=sphere:pos=0,0,0:size=1\"")
+      else if (hasScene || hasObjects) && !isOptiXEnabled then
+        Left("--scene/--objects option requires --optix flag. Add --optix to enable OptiX rendering")
       else Right(())
     }
 

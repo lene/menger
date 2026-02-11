@@ -75,19 +75,45 @@ object Main:
     else createInteractiveEngine(opts, rotationProjectionParameters)
 
   private def createOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): OptiXEngine =
+    // Load DSL scene if --scene option is provided
+    val (sceneConfig, cameraConfig, lightsFromScene, causticsFromScene) = opts.scene.toOption match
+      case Some(sceneName) =>
+        // Load scene via DSL
+        import menger.dsl.SceneLoader
+        SceneLoader.load(sceneName) match
+          case Right(dslScene) =>
+            // Convert DSL scene to configs
+            val scene = dslScene.toSceneConfig
+            val camera = dslScene.toCameraConfig
+            // Convert DSL lights to CLI light specs
+            val lights = dslScene.lights.map { light =>
+              val commonLight = light.toCommonLight
+              menger.cli.LightSpec.fromCommonLight(commonLight)
+            }
+            val caustics = dslScene.caustics.map(_.toCausticsConfig).getOrElse(opts.causticsConfig)
+            (scene, camera, lights, caustics)
+          case Left(error) =>
+            System.err.println(s"Failed to load scene '$sceneName': $error")
+            sys.exit(1)
+      case None =>
+        // Use CLI options for scene/camera/lights
+        val scene = SceneConfig(objectSpecs = opts.objects.toOption)
+        val camera = CameraConfig(
+          position = opts.cameraPos(),
+          lookAt = opts.cameraLookat(),
+          up = opts.cameraUp()
+        )
+        val lights = opts.light.toOption.getOrElse(List.empty)
+        val caustics = opts.causticsConfig
+        (scene, camera, lights, caustics)
+
     val engineConfig = OptiXEngineConfig(
-      scene = SceneConfig(
-        objectSpecs = opts.objects.toOption
-      ),
-      camera = CameraConfig(
-        position = opts.cameraPos(),
-        lookAt = opts.cameraLookat(),
-        up = opts.cameraUp()
-      ),
+      scene = sceneConfig,
+      camera = cameraConfig,
       environment = EnvironmentConfig(
         plane = opts.plane(),
         planeColor = opts.planeColor.toOption,
-        lights = opts.light.toOption.getOrElse(List.empty)
+        lights = lightsFromScene
       ),
       execution = ExecutionConfig(
         fpsLogIntervalMs = opts.fpsLogInterval(),
@@ -98,7 +124,7 @@ object Main:
         textureDir = opts.textureDir()
       ),
       render = opts.renderConfig,
-      caustics = opts.causticsConfig
+      caustics = causticsFromScene
     )
     OptiXEngine(engineConfig, opts.userSetMaxInstances)
 

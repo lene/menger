@@ -15,6 +15,8 @@ import menger.dsl.*
  * - VolumeFilling: Standard Menger sponge
  * - SurfaceUnfolding: Surface-based sponge variation
  * - CubeSponge: Cube-based sponge pattern
+ *
+ * Usage: --scene menger-showcase
  */
 object MengerShowcase:
   val scene = Scene(
@@ -77,3 +79,6 @@ object MengerShowcase:
     ),
     caustics = Caustics.HighQuality
   )
+
+  // Register scene for CLI access
+  SceneRegistry.register("menger-showcase", scene)
