@@ -2,9 +2,9 @@ package examples.dsl
 
 import scala.language.implicitConversions
 
-import menger.dsl._
-import examples.dsl.common.Materials._
 import examples.dsl.common.Lighting._
+import examples.dsl.common.Materials._
+import menger.dsl._
 
 /**
  * Example: Using reusable materials and lighting

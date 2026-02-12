@@ -1,6 +1,8 @@
 package menger.dsl
 
-import menger.cli.{Axis, PlaneColorSpec, PlaneSpec}
+import menger.cli.Axis
+import menger.cli.PlaneColorSpec
+import menger.cli.PlaneSpec
 
 /** Axis position specification for planes.
   *
