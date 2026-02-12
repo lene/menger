@@ -2,7 +2,7 @@ package examples.dsl
 
 import scala.language.implicitConversions
 
-import menger.dsl.*
+import menger.dsl._
 
 /**
  * Example: Material showcase scene

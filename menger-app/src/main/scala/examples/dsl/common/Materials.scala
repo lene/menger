@@ -2,7 +2,7 @@ package examples.dsl.common
 
 import scala.language.implicitConversions
 
-import menger.dsl.*
+import menger.dsl._
 
 /**
  * Reusable custom material definitions
@@ -13,7 +13,7 @@ import menger.dsl.*
  *
  * Usage in scenes:
  * {{{
- *   import examples.dsl.common.Materials.*
+ *   import examples.dsl.common.Materials._
  *
  *   Scene(
  *     objects = List(
