@@ -290,6 +290,85 @@ sbt "run --optix --objects type=sponge-surface:level=2:material=glass --antialia
 sbt "run --optix --object sphere --stats"
 ```
 
+### Scala DSL for Scene Description (v0.5.0)
+
+Define scenes in type-safe Scala code that compiles with your project:
+
+```scala
+package examples.dsl
+
+import scala.language.implicitConversions
+import menger.dsl.*
+
+object MyScene:
+  val scene = Scene(
+    camera = Camera(
+      position = (0f, 2f, 5f),
+      lookAt = (0f, 0f, 0f)
+    ),
+    objects = List(
+      Sphere(
+        pos = (-2f, 0f, 0f),
+        material = Material.Glass,
+        size = 1.0f
+      ),
+      Sphere(
+        pos = (0f, 0f, 0f),
+        material = Material.Chrome,
+        size = 1.0f
+      ),
+      Sphere(
+        pos = (2f, 0f, 0f),
+        material = Material.Gold,
+        size = 1.0f
+      )
+    ),
+    lights = List(
+      Directional(
+        direction = (1f, -1f, -1f),
+        intensity = 1.5f
+      ),
+      Directional(
+        direction = (-1f, -0.5f, -1f),
+        intensity = 0.5f
+      )
+    ),
+    plane = Some(Plane(Y at -1, color = "#606060")),
+    caustics = Some(Caustics.HighQuality)
+  )
+
+  SceneRegistry.register("my-scene", scene)
+```
+
+**Load and render:**
+```bash
+# By class name
+sbt "run --optix --scene examples.dsl.MyScene"
+
+# By registry short name
+sbt "run --optix --scene my-scene"
+```
+
+**Key Features:**
+- Type-safe scene definitions with compile-time checking
+- Tuple syntax for positions: `(0f, 2f, 5f)`
+- Axis syntax for planes: `Y at -1`
+- Material presets and factories: `Material.Glass`, `Material.matte(Color.Red)`
+- Reusable components: import materials and lighting from shared libraries
+- IDE support with auto-completion and type hints
+
+**Included Examples:**
+- `examples.dsl.SimpleScene` - Minimal single sphere
+- `examples.dsl.ThreeMaterials` - Material showcase
+- `examples.dsl.GlassSphere` - Glass with caustics
+- `examples.dsl.MengerShowcase` - Menger sponge showcase
+- `examples.dsl.ComplexLighting` - Multi-light setup
+- See `menger-app/src/main/scala/examples/dsl/` for more
+
+**Reusable Libraries:**
+- `examples.dsl.common.Materials` - 20+ custom materials
+- `examples.dsl.common.Lighting` - 8 lighting setups
+
 ## Remote GPU Development
 
 For CUDA/OptiX development on AWS EC2 GPU instances, see the terraform/ directory for infrastructure configuration.

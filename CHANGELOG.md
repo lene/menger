@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+### Added
+- **Scala DSL for Scene Description** - Type-safe scene definition language compiled with the project
+  - Core DSL types: `Vec3`, `Color`, `Material` with intuitive constructors and implicit conversions
+  - Scene objects: `Sphere`, `Cube`, `Sponge` (VolumeFilling, SurfaceUnfolding, CubeSponge)
+  - Lights: `Directional` and `Point` lights with tuple position syntax
+  - Camera: Position/lookAt configuration with tuple support
+  - Plane: Ground plane with axis syntax (`Y at -2`) and solid/checkered colors
+  - Caustics: High-quality photon mapping configuration (`Caustics.HighQuality`)
+  - Material presets: Glass, Water, Diamond, Chrome, Gold, Copper with `.copy()` customization
+  - Material factories: `Material.matte()`, `Material.plastic()`, `Material.metal()`, `Material.glass()`
+  - Scene composition with compile-time type checking and IDE support
+- **Scene Loader** - Dynamic scene loading via reflection
+  - `--scene <classname>` CLI option for loading pre-compiled DSL scenes
+  - SceneRegistry for short-name aliases (e.g., `--scene glass-sphere`)
+  - Dual loading mechanism: registry lookup + reflection-based class loading
+  - Clear error messages for missing scenes or invalid class names
+- **9 Example Scenes** - Comprehensive DSL demonstrations
+  - `SimpleScene` - Minimal single sphere example
+  - `ThreeMaterials` - Glass, Chrome, Gold material showcase
+  - `CausticsDemo` - High-quality caustics rendering with glass sphere
+  - `CustomMaterials` - 5 custom materials using `.copy()` and factories
+  - `ComplexLighting` - Multi-light setup (key, fill, rim, warm/cool accents)
+  - `SpongeShowcase` - Three sponge types comparison
+  - `MengerShowcase` - Classic Menger Sponge with three-point lighting
+  - `GlassSphere` - Glass sphere with caustics on white floor
+  - `ReusableComponents` - Pattern for importing common materials/lighting
+- **Reusable Component Libraries** - Shared materials and lighting setups
+  - `examples.dsl.common.Materials` - 20+ custom materials (TintedGlass, BrushedGold, RoseGold, Pearl, Obsidian, Terracotta, etc.)
+  - `examples.dsl.common.Lighting` - 8 pre-configured lighting setups (ThreePointLighting, DramaticLighting, GoldenHourLighting, StudioLighting, RimLighting, ColoredAccentLighting, NightSceneLighting, SoftAmbientLighting)
+  - Import and reuse across multiple scenes for consistency
+- **DSL Integration Tests** - 164 comprehensive tests
+  - PlaneSuite (22 tests) - Axis helpers, solid/checkered planes, validation
+  - ExampleScenesSuite (10 tests) - All example scenes load via reflection
+  - Material, Light, Camera, Scene, Caustics, Color, Vec3 test suites
+
+### Changed
+- Scene definition now supports compile-time type-safe DSL as alternative to CLI
+- Example scenes moved from `examples/dsl/` to `menger-app/src/main/scala/examples/dsl/` for proper compilation
+
 ## [0.4.3] - 2026-02-05
 
 ### Added

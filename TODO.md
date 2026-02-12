@@ -3,8 +3,8 @@
 Quick notes and ideas captured during development. Review periodically and promote to
 [ROADMAP.md](ROADMAP.md) or sprint plans as appropriate.
 
-- Scala DSL for scene description (type-safe, compiled with project)
-- Scene files can import other files
+- ~~Scala DSL for scene description (type-safe, compiled with project)~~ → **Completed in Sprint 10 (v0.5.0)**
+- ~~Scene files can import other files~~ → **Completed in Sprint 10 (v0.5.0)**
 - check output - seems buggy (e.g. gold is transparent, fractional sponge level weirdnesses)
 - coverage uses old coverage percentage as reference
 - rotation of objects in 3D, possibly full transform (position, rotation, scale)
@@ -44,11 +44,20 @@ Quick notes and ideas captured during development. Review periodically and promo
 - Object transform animation (position, rotation, scale)
 - Keyframe system with linear interpolation
 - Frame sequence rendering
-- DSL animation syntax
+- DSL animation syntax (deferred from Sprint 10 - requires keyframe system first)
+- DSL support for 4D objects (tesseract, tesseract-sponge) - deferred from Sprint 10
 
 - Easing functions (ease-in-out, cubic, bounce, elastic)
 - Video output via ffmpeg
 - other polytopes in 3D and 4D
 - higher dimensional menger sponge and sierpinski tetrahedron analogs 
 - steroscopic 3D rendering (left/right eye cameras)
+- create a website with feedback button (opening GitHub or GitLab issue pre-filled with template)
 
+## DSL Deferred Features (from Sprint 10)
+
+- Runtime scene evaluation (currently compile-time only)
+- Window/output settings in DSL (width, height, saveName, headless — CLI-only for now)
+- DSL syntax for render settings beyond those currently supported
+- Scene composition helpers and utilities
+- Procedural placement/generation helpers in DSL
