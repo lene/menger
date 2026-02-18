@@ -1,7 +1,70 @@
 # Code Quality Assessment - Menger Project
 
-**Date:** 2026-02-12
+**Date:** 2026-02-18
 **Branch:** feature/sprint-10
+**Focus:** Full codebase (post code-review fixes — M2, M3, M4, L6–L10, L12–L16)
+**Overall Grade:** A-
+
+---
+
+## Assessment (2026-02-18) — Post Code-Review Fix Sprint
+
+### Executive Summary
+
+All actionable code review issues from the sprint plan were fixed (13 issues: M2, M3, M4, L6–L10,
+L12–L16). The codebase now has no medium-priority open issues and no open low-priority defects
+(only four feature-idea items L2–L5 remain deferred). Grade: **A-** (excellent).
+
+**What changed this sprint:**
+- C++: Named constants replacing all remaining magic numbers in PipelineManager, CausticsRenderer,
+  OptiXContext, MaterialPresets, OptiXData, hit_triangle.cu
+- C++: Defensive guards (zero-vector in normalize, bounds clamp in setLights)
+- C++: setupShaderBindingTable decomposed into 3 helpers
+- Scala: DSL material presets now fully delegate to OptixMaterial (single source of truth)
+- Scala: buildFractionalMesh shared trait method eliminates duplication between SpongeByVolume and SpongeBySurface
+- Scala: Redundant tuple overloads removed from all DSL companion objects (implicit Vec3 conversions cover them)
+- Scala: Plane.toPlaneColorSpec uses safe pattern match instead of Option.get
+- Scala: SceneIndex forces eager initialization of all example scenes at startup
+
+### Category Grades
+
+| Category | Grade | Notes |
+|----------|-------|-------|
+| Naming & Clarity | A | All constants named and documented |
+| Separation of Concerns | A | Clean layering; material system unified |
+| Functional Style | A- | Minor documented .get uses at JNI boundaries (accepted) |
+| Code Duplication | A | Material presets, sponge mesh helpers, shader physics all unified |
+| Magic Numbers | A | All extracted; no inline numeric literals without named constant |
+| Function Length | A | Max ~100 lines; all recent helpers are focused |
+| Architecture | A | Layered design; DSL → common → optix chain clean |
+| Testing | A | ~900 tests, 78% statement coverage with ratchet |
+| Recent Changes Quality | A | Disciplined refactoring, no regressions |
+
+**Overall: A-**
+
+### New Issues Found (This Assessment)
+
+None requiring action. Two observations documented below for completeness:
+
+1. **hit_triangle.cu dual stride checks** (LOW, maintainability): Lines 67 and 134 both check
+   `stride >= VERTEX_STRIDE_WITH_UV` independently (one in geometry extraction, one in material
+   sampling). This is correct but a brief comment explaining why both checks exist would help
+   future readers. Not a defect.
+
+2. **SceneParameters.cpp default light direction** (LOW, acceptable): `0.577350f` appears
+   three times in the default light initialization (lines 13–15) with an inline comment explaining
+   the math. Could be named `DEFAULT_LIGHT_DIRECTION_COMPONENT` but the comment is sufficient.
+   Acceptable as-is.
+
+### Architectural Opportunities (Future Sprints)
+
+- Caustics spatial hash (L2–L5 deferred): linear photon deposition could use 3D spatial hash
+- Multi-light caustics: caustics_ppm.cu currently only uses first light (documented in TODO.md)
+- DSL runtime scene construction: scene definitions are compile-time only
+
+---
+
+## Assessment (2026-02-12) — Sprint 10 DSL Implementation
 **Focus:** Scala DSL Implementation (Sprint 10)
 **Overall Grade:** A
 
@@ -1843,8 +1906,8 @@ The Scala DSL implementation represents **exemplary software engineering** with 
 
 ---
 
-**Last Updated:** 2026-02-12
-**Review Type:** Comprehensive code quality assessment (DSL focus)
+**Last Updated:** 2026-02-18
+**Review Type:** Comprehensive code quality assessment (DSL focus — see 2026-02-18 entry above for full-codebase review)
 **Reviewer:** Claude Sonnet 4.5
 **Files Analyzed:** 11 DSL files, 9 example scenes, 2 common libraries, 13 test suites
 **Lines Analyzed:** ~2,000 lines of production code, ~1,500 lines of test code
