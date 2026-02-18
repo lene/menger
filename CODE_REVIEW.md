@@ -1,6 +1,6 @@
 # Code Review Findings
 
-**Last Updated:** 2026-01-09
+**Last Updated:** 2026-02-18
 **Purpose:** Track code quality issues identified during comprehensive pre-release reviews
 
 ---
@@ -10,8 +10,8 @@
 | Priority | Open | Completed |
 |----------|------|-----------|
 | High | 0 | 5 |
-| Medium | 2 | 27 |
-| Low | 11 | 6 |
+| Medium | 0 | 30 |
+| Low | 4 | 17 |
 
 ---
 
@@ -22,8 +22,9 @@
 | ID | Description | Location | Est. Hours |
 |----|-------------|----------|------------|
 | ~~M1~~ | ~~Shader physics code duplication (~200 lines)~~ | ~~hit_sphere.cu / hit_triangle.cu~~ | ~~4-6~~ |
-| M2 | Zero-vector check missing in normalize() | VectorMath.h:24,74-78 | 1 |
-| M3 | Missing bounds check in setLights() | SceneParameters.cpp:95-104 | 0.5 |
+| ~~M2~~ | ~~Zero-vector check missing in normalize()~~ | ~~VectorMath.h:24,74-78~~ | ~~1~~ |
+| ~~M3~~ | ~~Missing bounds check in setLights()~~ | ~~SceneParameters.cpp:95-104~~ | ~~0.5~~ |
+| ~~M4~~ | ~~Duplicated material preset definitions between DSL and OptiX layers~~ | ~~dsl/Material.scala vs optix/Material.scala~~ | ~~2~~ |
 
 **~~M1~~ - RESOLVED:** Extracted 7 shared physics functions to `helpers.cu`:
 - `handleFullyTransparent()` - transparent surface pass-through
@@ -36,27 +37,94 @@
 
 Reduced total code by ~200 lines while consolidating physics calculations.
 
-**M2 Details:** Both `normalize()` (line 24) and `normalize3f()` (lines 74-78) divide by vector
-length without checking for zero-length vectors, which could cause undefined behavior.
+**~~M2~~ - RESOLVED (2026-02-18):** Added zero-length guards to both `normalize(float3)` (line 24)
+and `normalize3f(float v[3])` (lines 74-78) in `VectorMath.h`. Both now return early (zero vector /
+no-op) when length ≤ 0.0f, preventing division by zero.
 
-**M3 Details:** `setLights()` does not validate `count <= MAX_LIGHTS`. While the caller
-(`OptiXWrapper::setLights`) validates, this class should defend itself against buffer overflow.
+**~~M3~~ - RESOLVED (2026-02-18):** Added defensive clamp in `SceneParameters::setLights()`:
+`if (count > RayTracingConstants::MAX_LIGHTS) count = RayTracingConstants::MAX_LIGHTS;`. Also added
+null-pointer guard for the case where `lightsArray == nullptr && count > 0`.
+
+**~~M4~~ - RESOLVED (2026-02-18):** `dsl/Material.scala` now delegates all preset values to
+`OptixMaterial`. Added `Color.fromCommon()` to `dsl/Color.scala` and a private `fromOptix()` helper
+in `dsl/Material.scala`. Glass, Water, Diamond, Chrome, Gold, Copper, Film, Parchment presets and
+the matte/plastic/metal/glass factory methods all delegate to their `OptixMaterial` counterparts.
+`Plastic` and `Matte` remain inline (no named equivalents in OptixMaterial). Physics values (IOR,
+roughness, specular) now have a single source of truth.
 
 ### Low Priority
 
 | ID | Description | Location | Est. Hours |
 |----|-------------|----------|------------|
-| L1 | Configuration DSL | New feature | 8-10 |
+| ~~L1~~ | ~~Configuration DSL~~ | ~~New feature~~ | ~~8-10~~ |
 | L2 | Metrics and Telemetry | New feature | 6-8 |
 | L3 | Scene graph abstraction | Architecture | 10-12 |
 | L4 | Comprehensive benchmarking suite | Tests | 8-10 |
 | L5 | Plugin system for geometry types | Architecture | 12-15 |
-| L6 | Magic number for program group count | PipelineManager.cpp:138 | 0.5 |
-| L7 | Long function setupShaderBindingTable (116 lines) | PipelineManager.cpp:142-257 | 2 |
-| L8 | Magic number for max photon threads | CausticsRenderer.cpp:106 | 0.5 |
-| L9 | Magic number for stack size | OptiXContext.cpp:340 | 0.5 |
-| L10 | Repeated transparency value 0.02f | MaterialPresets.h:46,57,68 | 0.5 |
+| ~~L6~~ | ~~Magic number for program group count~~ | ~~PipelineManager.cpp:138~~ | ~~0.5~~ |
+| ~~L7~~ | ~~Long function setupShaderBindingTable (116 lines)~~ | ~~PipelineManager.cpp:142-257~~ | ~~2~~ |
+| ~~L8~~ | ~~Magic number for max photon threads~~ | ~~CausticsRenderer.cpp:106~~ | ~~0.5~~ |
+| ~~L9~~ | ~~Magic number for stack size~~ | ~~OptiXContext.cpp:340~~ | ~~0.5~~ |
+| ~~L10~~ | ~~Repeated transparency value 0.02f~~ | ~~MaterialPresets.h:46,57,68~~ | ~~0.5~~ |
 | L11 | Exception usage in RAII buffer | CudaBuffer.h:77,89 | 1 |
+| ~~L12~~ | ~~Duplicated getFractionalMesh logic in sponge classes~~ | ~~SpongeByVolume.scala:52-74, SpongeBySurface.scala:96-114~~ | ~~1~~ |
+| ~~L13~~ | ~~Magic number stride=9 in hit_triangle.cu~~ | ~~hit_triangle.cu:79,211~~ | ~~0.5~~ |
+| ~~L14~~ | ~~Option.get usage in Plane.toPlaneColorSpec~~ | ~~dsl/Plane.scala:99,101~~ | ~~0.5~~ |
+| ~~L15~~ | ~~Tuple overload explosion in DSL types~~ | ~~dsl/Light.scala, dsl/SceneObject.scala, dsl/Camera.scala~~ | ~~2~~ |
+| ~~L16~~ | ~~SceneRegistry populated only on class load — list() unreliable~~ | ~~dsl/SceneRegistry.scala, dsl/SceneLoader.scala~~ | ~~1~~ |
+
+**~~L1~~ - RESOLVED (Sprint 10):** The Scala DSL in `menger-app/src/main/scala/menger/dsl/` fully
+supersedes this feature idea. Provides `Scene`, `Camera`, `Light`, `Material`, `Plane`, `Color`,
+`Vec3`, `Caustics`, `SceneObject` types with implicit tuple conversions, hex color parsing, material
+presets, and CLI integration via `SceneLoader` / `SceneRegistry`. Nine complete example scenes ship
+in `examples/dsl/`. Moved to Completed Issues below.
+
+**~~L6~~ - RESOLVED (2026-02-18):** Added `constexpr int NUM_PROGRAM_GROUPS = 12;` with a comment
+enumerating the groups (raygen×1 + miss×2 + hitgroups: sphere×2 + tri×2 + cyl×2 + caustics×3) in
+`PipelineManager.cpp`. The `createPipeline()` call now uses `NUM_PROGRAM_GROUPS`.
+
+**~~L7~~ - RESOLVED (2026-02-18):** Extracted three private helpers from `setupShaderBindingTable`
+in `PipelineManager.cpp`: `createRaygenRecord()`, `createMissRecords()`, and
+`createHitgroupRecords()`. The main function now handles cleanup/sizing then delegates to the three
+helpers. Declarations added to `PipelineManager.h`.
+
+**~~L8~~ - RESOLVED (2026-02-18):** Added `constexpr int MAX_PHOTON_THREADS_PER_ROW = 1024;` in
+`CausticsRenderer.cpp` and replaced the magic literal.
+
+**~~L9~~ - RESOLVED (2026-02-18):** Added
+`constexpr unsigned int MIN_CONTINUATION_STACK_SIZE = 49152u;  // 48 KB minimum for metallic cylinders`
+in `OptiXContext.cpp` and replaced the magic literal.
+
+**~~L10~~ - RESOLVED (2026-02-18):** Added
+`constexpr float DIELECTRIC_ALPHA = 0.02f;  // Near-transparent alpha for glass/water/diamond` near
+the top of the `RayTracingConstants` namespace in `MaterialPresets.h`. All three
+`mat.color[3] = 0.02f` assignments now use `DIELECTRIC_ALPHA`.
+
+**~~L12~~ - RESOLVED (2026-02-18):** Added `protected def buildFractionalMesh(nextLevelMesh, currentLevelMesh)` to
+the `FractionalLevelSponge` trait. `SpongeByVolume.getFractionalMesh` and
+`SpongeBySurface.getFractionalMesh` now each reduce to a 4-line call that constructs the two meshes
+and delegates to the shared helper.
+
+**~~L13~~ - RESOLVED (2026-02-18):** Added `constexpr unsigned int VERTEX_STRIDE_WITH_ALPHA = 9;`
+to `OptiXData.h` (alongside the existing `VERTEX_STRIDE_WITH_UV`). Both `stride >= 9` checks in
+`hit_triangle.cu` (lines 79 and 211) now use `VERTEX_STRIDE_WITH_ALPHA`.
+
+**~~L14~~ - RESOLVED (2026-02-18):** `Plane.toPlaneColorSpec` now uses a pattern match on
+`(color, checkered)` instead of `color.isDefined` / `color.get` / `checkered.get`, removing the
+unsafe `.get` calls.
+
+**~~L15~~ - RESOLVED (2026-02-18):** Removed all redundant Float/Int/Double tuple overloads from
+`Directional`, `Point`, `Sphere`, `Cube`, `Sponge`, and `Camera` companion objects. The existing
+`given Conversion[(Float,Float,Float), Vec3]` etc. in `Vec3.scala` handle all three numeric types
+automatically. Removed now-unused `import scala.annotation.targetName` from `Light.scala` and
+`Camera.scala` (retained in `SceneObject.scala` where `@targetName` is still used on multi-arg
+overloads).
+
+**~~L16~~ - RESOLVED (2026-02-18):** Created `examples/dsl/SceneIndex.scala` — an `object SceneIndex`
+with a `val all: List[Scene]` that eagerly references every example scene, triggering their object
+initializers and registry calls. `Main.scala` now evaluates `examples.dsl.SceneIndex` before
+calling `SceneLoader.load()`. `SceneLoader`'s `ClassNotFoundException` handler now shows the
+populated registry list (or a helpful FQN hint if it's still empty).
 
 ---
 
@@ -195,6 +263,12 @@ make SDK comparison difficult.
 - ✅ Reduce cognitive complexity (M9) - Split CliValidation.registerValidationRules, extracted material helper in OptiXEngine
 - ✅ Encapsulate mutable state (M11) - Closed as accepted framework constraint (see Deferred section)
 
+### Medium Priority - Completed (this sprint)
+
+- ✅ M2: Zero-vector guards added to `normalize()` and `normalize3f()` in `VectorMath.h`
+- ✅ M3: Defensive bounds clamp and null guard added to `SceneParameters::setLights()`
+- ✅ M4: DSL material presets delegate to `OptixMaterial`; single source of truth for IOR/roughness/alpha values
+
 ### Low Priority - Completed
 
 - ✅ Redundant `setSphereColor(r,g,b)` method removed
@@ -203,6 +277,17 @@ make SDK comparison difficult.
 - ✅ Redundant type annotations reviewed
 - ✅ Test magic numbers extracted
 - ✅ Property-based tests for Vector, Matrix, Rotation
+- ✅ L1: Configuration DSL - fully implemented as Sprint 10 Scala DSL in `menger-app/src/main/scala/menger/dsl/` with nine example scenes in `examples/dsl/`
+- ✅ L6: `NUM_PROGRAM_GROUPS = 12` named constant added to `PipelineManager.cpp`
+- ✅ L7: `setupShaderBindingTable` split into `createRaygenRecord`, `createMissRecords`, `createHitgroupRecords`
+- ✅ L8: `MAX_PHOTON_THREADS_PER_ROW = 1024` named constant added to `CausticsRenderer.cpp`
+- ✅ L9: `MIN_CONTINUATION_STACK_SIZE = 49152u` named constant added to `OptiXContext.cpp`
+- ✅ L10: `DIELECTRIC_ALPHA = 0.02f` named constant added to `MaterialPresets.h`; all three usages updated
+- ✅ L12: `buildFractionalMesh()` extracted to `FractionalLevelSponge` trait; `SpongeByVolume` and `SpongeBySurface` delegate to it
+- ✅ L13: `VERTEX_STRIDE_WITH_ALPHA = 9` added to `OptiXData.h`; both magic `9` checks in `hit_triangle.cu` updated
+- ✅ L14: `Plane.toPlaneColorSpec` uses pattern match instead of `Option.get`
+- ✅ L15: Redundant Float/Int/Double tuple overloads removed from all DSL companion objects
+- ✅ L16: `SceneIndex` object forces eager initialization of all example scenes; `Main.scala` evaluates it before scene loading
 
 ---
 
@@ -216,6 +301,7 @@ The following issues were explicitly deferred or accepted:
 4. **Caustics algorithm issues** - Deferred to future sprint, not blocking
 5. **Test performance** - Acceptable, optimization not priority
 6. **Exception-based error handling** - Some `throw` usage required at boundaries
+7. **L11: Exception usage in CudaBuffer (CudaBuffer.h:77,89)** - Accepted. Throwing at JNI boundaries is the correct pattern: Java callers cannot receive CUDA error codes any other way. The constructor throws `CudaException` on allocation failure, which propagates cleanly to Scala as a JVM exception. No change needed.
 
 ---
 
@@ -223,11 +309,11 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | ~1.5 |
-| Low priority | ~49 |
+| Medium priority | 0 |
+| Low priority (feature ideas L2–L5) | ~36 |
 | Documentation | 0 |
 | C++ Issues | 0 |
-| **Total** | **~50.5 hours** |
+| **Total** | **~36 hours** |
 
 ---
 
@@ -252,3 +338,8 @@ Before each release:
 - Comprehensive test coverage (~900 tests, 78% statement coverage)
 - Coverage protection with ratchet mechanism (60% floor, 80% min, 1% drop threshold)
 - Scalafix integration for consistent style
+- DSL types use `require()` for all validated fields (ior, roughness, metallic, specular, emission, size) — runtime validation catches misuse early
+- `TriangleMeshData` cleanly separated in `menger-common` with `menger-app` re-exporting via a one-line `export` (no real duplication)
+- `helpers.cu` `traceContinuationRay` / `COVERAGE_CONTINUATION_OFFSET` and `FractionalLevelSponge.SkinNormalOffset` are well-documented with the coupling between Scala and CUDA constants explained inline
+- DSL `Color` provides an implicit `Conversion[String, Color]` for ergonomic hex literal syntax in scene definitions
+- `SceneLoader` error handling uses `Either[String, Scene]` throughout and distinguishes `ClassNotFoundException` / `NoSuchFieldException` / general exceptions with distinct messages
