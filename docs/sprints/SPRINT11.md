@@ -1,8 +1,8 @@
-# Sprint 11: 4D Framework Enhancements
+# Sprint 11: libGDX Wrapper, Thin-Film Physics, and 4D Framework Enhancements
 
-**Sprint:** 11 - 4D Framework Completion
+**Sprint:** 11
 **Status:** Not Started
-**Estimate:** 8-10 hours
+**Estimate:** 17-22 hours
 **Branch:** `feature/sprint-11`
 **Dependencies:** Sprint 10 (Scala DSL) - optional but recommended
 
@@ -10,23 +10,28 @@
 
 ## Goal
 
-Complete the 4D manipulation framework with convenience features: projection adjustment, view presets, state persistence, and per-instance 4D parameters. This sprint completes the user experience features that make 4D exploration more intuitive.
+Three areas of work this sprint:
+
+1. **libGDX Scala wrapper** — eliminate `var` and `null` from Scala code by delegating those concerns to a dedicated wrapper layer around libGDX.
+2. **Thin-film physics** — implement proper thin-film interference for the Film material, with a thickness parameter and wavelength-dependent interference effects.
+3. **4D framework enhancements** — complete the 4D user-experience features: interactive projection adjustment, view reset, CLI shortcuts, and state persistence.
 
 ## Success Criteria
 
+- [ ] libGDX API calls in Scala use a wrapper layer; no `var` or `null` in non-wrapper Scala code related to libGDX
+- [ ] Film material supports a `thickness` parameter (in nanometers) and renders visible interference fringes
 - [ ] Interactive 4D projection adjustment (Shift+Scroll changes `eyeW`)
 - [ ] Reset 4D view to defaults (ESC key)
 - [ ] CLI: `--4d-rotation=XW,YW,ZW` shorthand for 4D rotation angles
 - [ ] CLI: `--4d-preset=NAME` for common 4D views (edge-on, face-on, cell-on)
 - [ ] State persistence: save/load 4D view parameters
-- [ ] Per-instance 4D parameters in multi-object scenes (optional stretch goal)
-- [ ] All tests pass (~15-20 new tests)
+- [ ] All tests pass (~20-30 new tests)
 
 ---
 
 ## Background
 
-### Already Implemented (Sprint 8-9)
+### Already Implemented (Sprint 8-10)
 
 | Feature | Status |
 |---------|--------|
@@ -37,22 +42,82 @@ Complete the 4D manipulation framework with convenience features: projection adj
 | OptiX 4D interaction (Shift+Arrow keys) | ✅ Complete (v0.4.2) |
 | OptiX 4D mouse rotation (Shift+Drag) | ✅ Complete (v0.4.2) |
 | Abstract `Mesh4D` interface | ✅ Complete |
+| Film material (basic) | ✅ Complete (v0.5.0) |
 
 ### Remaining Features (This Sprint)
 
 | Feature | Status | Priority |
 |---------|--------|----------|
+| Scala libGDX wrapper (no var/null) | ❌ Not implemented | High |
+| Thin-film interference physics | ❌ Not implemented | High |
 | Shift+Scroll projection adjustment | ❌ Not implemented | High |
 | ESC to reset 4D view | ❌ Not implemented | High |
 | CLI shortcuts (--4d-rotation, --4d-preset) | ❌ Not implemented | High |
 | State persistence | ❌ Not implemented | Medium |
-| Per-instance 4D parameters | ❌ Not implemented | Low (stretch) |
+
+### Deferred to Sprint 12
+
+| Feature | Reason |
+|---------|--------|
+| Per-instance 4D parameters | Stretch goal, deferred from this sprint |
 
 ---
 
 ## Tasks
 
-### Task 11.1: Add Shift+Scroll for 4D Projection Adjustment
+### Task 11.1: Scala Wrapper for libGDX
+
+**Estimate:** 4-5 hours
+
+Introduce a thin Scala wrapper layer around libGDX to isolate all `var` and `null` usage. The goal is that all Scala code outside the wrapper interacts with idiomatic Scala (immutable values, `Option` instead of `null`, `val` instead of `var`), while the wrapper handles the mutable/nullable libGDX API internally.
+
+#### Scope
+
+- Identify all sites in the Scala codebase where libGDX types are held in `var`s or where `null` is used for libGDX values (e.g. `ApplicationListener`, `SpriteBatch`, `BitmapFont`, libGDX asset handles)
+- Introduce wrapper objects / classes in a dedicated package (e.g. `menger.gdx`) that own the mutable state
+- Expose immutable or `Option`-typed interfaces to callers
+- Ensure no functional regressions (all existing tests pass)
+
+#### Design Notes
+
+- The wrapper layer is the *only* place that holds `var`s for libGDX objects; everything else accesses them through the wrapper's stable interface
+- `null` returns from libGDX APIs (unloaded assets, missing fonts, etc.) become `Option[T]` at the wrapper boundary
+- Lifecycle (`create()`, `dispose()`, etc.) remains internal to the wrapper
+
+#### Tests to Add
+
+- Unit tests verifying that wrapper methods return `Option` (not `null`) for absent resources
+- Verify that previously `var`-backed state is correctly initialised and disposed through the wrapper lifecycle
+
+---
+
+### Task 11.2: Thin-Film Physics (Film Material)
+
+**Estimate:** 5-6 hours
+
+Replace the current Film material's approximate color tinting with a physically-based thin-film interference model. The interference color depends on the film thickness (in nanometers) and the angle of incidence, producing the characteristic rainbow iridescence seen in soap bubbles, oil slicks, and anti-reflective coatings.
+
+#### Physics Background
+
+Thin-film interference occurs when light reflects off the top and bottom surfaces of a thin transparent layer. The path difference is `2 * n * d * cos(θ_t)` where `n` is the film's refractive index, `d` is the thickness, and `θ_t` is the transmitted angle. Constructive interference for wavelength `λ` occurs when the path difference equals `m * λ`.
+
+#### Files to Modify
+
+- **`optix-jni/src/main/native/shaders/` (hit shader)** — add thin-film interference calculation; sample across visible spectrum (≈400–700 nm) and convert to RGB
+- **`optix-jni/src/main/native/include/MaterialPresets.h`** — add `filmThicknessNm` field to the Film preset; default ~500 nm (green interference)
+- **`optix-jni/src/main/native/include/OptiXData.h`** — add `filmThickness` field to the material struct
+- **JNI bindings** — expose `setFilmThickness(float nm)` on `OptiXRenderer`
+- **`menger-common/`** — add `filmThickness` to `Material` / `OptixMaterial`
+- **`menger-app/` CLI** — add `--film-thickness=NM` option
+
+#### Tests to Add
+
+- Render Film sphere at several thickness values (200 nm, 400 nm, 600 nm) and assert that the dominant hue shifts with thickness
+- Verify that at 0 nm thickness the film renders like a plain dielectric
+
+---
+
+### Task 11.3: Add Shift+Scroll for 4D Projection Adjustment
 
 **Estimate:** 1.5 hours
 
@@ -96,7 +161,7 @@ class OptiXCameraHandler4DProjectionSpec extends AnyFlatSpec:
 
 ---
 
-### Task 11.2: Add ESC to Reset 4D View
+### Task 11.4: Add ESC to Reset 4D View
 
 **Estimate:** 1 hour
 
@@ -121,7 +186,7 @@ override protected def handleKeyPress(key: Key, modifiers: ModifierState): Boole
 
 ---
 
-### Task 11.3: Add CLI Shortcuts (--4d-rotation, --4d-preset)
+### Task 11.5: Add CLI Shortcuts (--4d-rotation, --4d-preset)
 
 **Estimate:** 2.5 hours
 
@@ -206,7 +271,7 @@ class FourDPresetsSpec extends AnyFlatSpec:
 
 ---
 
-### Task 11.4: State Persistence (Save/Load 4D View)
+### Task 11.6: State Persistence (Save/Load 4D View)
 
 **Estimate:** 2 hours
 
@@ -282,42 +347,7 @@ val load4DState: ScallopOption[String] = opt[String](
 
 ---
 
-### Task 11.5: Per-Instance 4D Parameters (Stretch Goal)
-
-**Estimate:** 3 hours
-
-Enable different 4D rotations for different tesseract instances in the same scene.
-
-**Note:** This is a stretch goal. If time is limited, defer to later sprint.
-
-#### Architecture Decision
-
-Instances with identical 4D params share a mesh. Different params require separate meshes.
-
-#### Files to Modify
-
-**`menger-app/src/main/scala/menger/engines/OptiXEngine.scala`**
-
-Group specs by mesh identity (type + level + 4D params):
-
-```scala
-private case class MeshKey(
-  objectType: String,
-  level: Option[Float],
-  rotXW: Float,
-  rotYW: Float,
-  rotZW: Float
-)
-
-private def groupSpecsByMeshIdentity(specs: List[ObjectSpec]): Map[MeshKey, List[ObjectSpec]] =
-  specs.groupBy { spec =>
-    MeshKey(spec.objectType, spec.level, spec.rotXW, spec.rotYW, spec.rotZW)
-  }
-```
-
----
-
-### Task 11.6: Documentation Updates
+### Task 11.7: Documentation Updates
 
 **Estimate:** 1 hour
 
@@ -331,53 +361,23 @@ Update documentation to reflect new features.
 ## [Unreleased]
 
 ### Added
-- **4D Framework Enhancements (Sprint 11)**
+- Scala wrapper layer for libGDX (no var/null outside wrapper)
+- Thin-film interference physics for Film material (`--film-thickness=NM`)
+- **4D Framework Enhancements**
   - Shift+Scroll to adjust 4D projection distance (eyeW)
   - ESC to reset 4D view to defaults
   - CLI shortcuts: `--4d-rotation=XW,YW,ZW` for quick rotation setup
   - CLI presets: `--4d-preset=NAME` (classic, edge-on, face-on, cell-on, flat)
   - State persistence: `--save-4d-state=FILE`, `--load-4d-state=FILE`
-  - Per-instance 4D parameters for multi-tesseract scenes
 ```
 
 **`USER_GUIDE.md`**
 
-Add section on 4D view presets:
-
-```markdown
-### 4D View Presets
-
-For quick setup, use predefined 4D views:
-
-```bash
-# Edge-on view (one edge points toward viewer)
-menger --optix --objects type=tesseract --4d-preset=edge-on
-
-# Face-on view (one face perpendicular to view)
-menger --optix --objects type=tesseract --4d-preset=face-on
-
-# Cell-on view (diagonal through hypercube)
-menger --optix --objects type=tesseract --4d-preset=cell-on
-
-# Flat projection (nearly orthographic)
-menger --optix --objects type=tesseract --4d-preset=flat
-```
-
-Available presets: `classic`, `edge-on`, `face-on`, `cell-on`, `flat`
-```
+Add section on thin-film thickness and 4D view presets.
 
 **`TODO.md`**
 
-Move completed items:
-
-```markdown
-## Completed in Sprint 11
-- [x] 4D projection adjustment (Shift+Scroll)
-- [x] 4D view reset (ESC)
-- [x] 4D CLI shortcuts
-- [x] 4D view presets
-- [x] 4D state persistence
-```
+Move completed items and update sprint 12 deferred list.
 
 ---
 
@@ -385,13 +385,14 @@ Move completed items:
 
 | Task | Description | Estimate | Priority |
 |------|-------------|----------|----------|
-| 11.1 | Shift+Scroll projection | 1.5h | High |
-| 11.2 | ESC reset 4D view | 1h | High |
-| 11.3 | CLI shortcuts & presets | 2.5h | High |
-| 11.4 | State persistence | 2h | Medium |
-| 11.5 | Per-instance 4D params | 3h | Low (stretch) |
-| 11.6 | Documentation | 1h | High |
-| **Total** | | **8-11h** | |
+| 11.1 | Scala libGDX wrapper | 4-5h | High |
+| 11.2 | Thin-film physics | 5-6h | High |
+| 11.3 | Shift+Scroll projection | 1.5h | High |
+| 11.4 | ESC reset 4D view | 1h | High |
+| 11.5 | CLI shortcuts & presets | 2.5h | High |
+| 11.6 | State persistence | 2h | Medium |
+| 11.7 | Documentation | 1h | High |
+| **Total** | | **17-19h** | |
 
 ---
 
@@ -402,7 +403,7 @@ Move completed items:
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
 - [ ] USER_GUIDE.md updated with new features
-- [ ] Manual verification of 4D presets
+- [ ] Manual verification of thin-film rendering and 4D presets
 - [ ] TODO.md updated
 
 ---
@@ -413,28 +414,29 @@ Move completed items:
 
 Recommended order for minimal dependencies:
 
-1. **Task 11.3** (CLI shortcuts) - Foundation, independent
-2. **Task 11.1** (Shift+Scroll) - Builds on existing input handling
-3. **Task 11.2** (ESC reset) - Simple extension
-4. **Task 11.4** (State persistence) - Uses CLI from 11.3
-5. **Task 11.5** (Per-instance) - Optional stretch goal
-6. **Task 11.6** (Documentation) - Last
+1. **Task 11.1** (libGDX wrapper) — foundational refactor, no feature dependencies
+2. **Task 11.2** (Thin-film physics) — independent, C++/shader work
+3. **Task 11.5** (CLI shortcuts) — foundation for 4D enhancements
+4. **Task 11.3** (Shift+Scroll) — builds on existing input handling
+5. **Task 11.4** (ESC reset) — simple extension
+6. **Task 11.6** (State persistence) — uses CLI from 11.5
+7. **Task 11.7** (Documentation) — last
 
 ### Testing Strategy
 
-- **Unit tests**: FourDPresets, FourDState serialization
-- **Integration tests**: CLI option parsing and validation
-- **Manual tests**: Interactive testing of Shift+Scroll and ESC
+- **Unit tests**: libGDX wrapper boundary, FourDPresets, FourDState serialisation, thin-film colour at known thickness values
+- **Integration tests**: CLI option parsing and validation, Film material renders
+- **Manual tests**: Interactive Shift+Scroll and ESC; visual check of thin-film iridescence
 
-### Design Philosophy
+### Deferred
 
-This sprint focuses on **usability enhancements** rather than new core features. All the foundational 4D work was completed in Sprints 8-9. We're now adding quality-of-life features that make 4D exploration more intuitive and reproducible.
+- **Per-instance 4D parameters** (was 11.5): deferred to Sprint 12. Instances with identical 4D params share a mesh; different params require separate meshes — group specs by `(objectType, level, rotXW, rotYW, rotZW)`.
 
 ---
 
 ## References
 
-- Original Sprint 10 plan (4D Framework): `docs/sprints/SPRINT10_OLD_BACKUP.md`
 - Sprint 8 (4D Foundation): `docs/arc42/adr/ADR-008-4d-projection.md`
 - Sprint 9 (TesseractSponge): `CHANGELOG.md` v0.4.3
 - Existing 4D input handling: `menger-app/src/main/scala/menger/input/OptiXKeyHandler.scala`
+- Film material: `optix-jni/src/main/native/include/MaterialPresets.h`

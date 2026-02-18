@@ -11,7 +11,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 - Camera animation (path following)
 - Light animation
 - Property animation (colors, IOR, etc.)
-- implement proper thin-film physics with thickness parameter and interference effects (Film material)
+- implement proper thin-film physics with thickness parameter and interference effects (Film material) → **Sprint 11 (Task 11.2)**
 - validate tesseract sponge generation from surfaces by repeating it with cubes. same result?
 - PBR texture support
 - images as backgrounds
@@ -24,16 +24,18 @@ Quick notes and ideas captured during development. Review periodically and promo
 - better agent instructions for updating documentation and changelog, monitoring ci pipelines after
   push, using glab (what else is missing?)
 - sponge with xyz -> RGB mapping procedural texture (needs procedural texture infrastructure)
-- Scala wrapper for libGDX to delegate var and null usage to that layer
+- Scala wrapper for libGDX to delegate var and null usage to that layer → **Sprint 11 (Task 11.1)**
 - 4D and 3D sponge cutaways
 - parametrized surfaces in 3D and 4D
 - multiple planes, as well as zero
 - test on both CUDA 12 and 13 (docker images for both)
 
-- Shift+Scroll for 4D projection adjustment
-- ESC to reset 4D view
-- CLI shortcuts: `--4d-rotation`, `--4d-preset`
-- State persistence (save/load 4D view)
+- Scala wrapper for libGDX (no var/null outside wrapper) → **Sprint 11 (Task 11.1)**
+- Thin-film physics with thickness parameter → **Sprint 11 (Task 11.2)**
+- Shift+Scroll for 4D projection adjustment → **Sprint 11 (Task 11.3)**
+- ESC to reset 4D view → **Sprint 11 (Task 11.4)**
+- CLI shortcuts: `--4d-rotation`, `--4d-preset` → **Sprint 11 (Task 11.5)**
+- State persistence (save/load 4D view) → **Sprint 11 (Task 11.6)**
 
 - texture/material for plane → **Sprint 12 (Task 12.1)**
 - check materials for real-life correctness → **Sprint 12 (Task 12.3)**
