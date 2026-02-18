@@ -494,15 +494,15 @@ sbt "run --optix --object sponge-surface --level 2 \
 - Projected to 3D using 4D→3D perspective projection
 - Example: `sbt "run --sponge-type tesseract"`
 
-**Tesseract Sponge** (`--sponge-type tesseract-sponge`)
+**Tesseract Sponge Volume** (`--sponge-type tesseract-sponge-volume`)
 - 4D Menger sponge (48 tesseracts per iteration)
 - Hausdorff dimension ≈ 3.524
-- Example: `sbt "run --sponge-type tesseract-sponge --level 2"`
+- Example: `sbt "run --sponge-type tesseract-sponge-volume --level 2"`
 
-**Tesseract Sponge 2** (`--sponge-type tesseract-sponge-2`)
+**Tesseract Sponge Surface** (`--sponge-type tesseract-sponge-surface`)
 - Alternative generation (16 faces per face)
 - More efficient: O(16^n) vs O(48^n)
-- Example: `sbt "run --sponge-type tesseract-sponge-2 --level 2"`
+- Example: `sbt "run --sponge-type tesseract-sponge-surface --level 2"`
 
 #### 4D Projection Controls
 
@@ -1563,19 +1563,19 @@ sbt "run --sponge-type tesseract --rot-x-w 30 --rot-y-w 45"
 
 **Step 3: Tesseract sponge level 1**
 ```bash
-sbt "run --sponge-type tesseract-sponge --level 1"
+sbt "run --sponge-type tesseract-sponge-volume --level 1"
 ```
 
 **Step 4: Animate 4D rotation**
 ```bash
-sbt "run --sponge-type tesseract-sponge --level 1 \
+sbt "run --sponge-type tesseract-sponge-volume --level 1 \
     --save-name tesseract_%03d.png \
     --animate frames=36:rot-x-w=0-360"
 ```
 
 **Step 5: Complex 4D motion**
 ```bash
-sbt "run --sponge-type tesseract-sponge --level 1 \
+sbt "run --sponge-type tesseract-sponge-volume --level 1 \
     --save-name 4d_complex_%03d.png \
     --animate frames=20:rot-x-w=0-90:rot-y-w=0-45 \
     --animate frames=20:rot-z-w=0-90"
@@ -1874,8 +1874,8 @@ Contributions are welcome! The project follows functional programming principles
                              - square-sponge (Menger by surface)
                              - cube-sponge (Menger by volume)
                              - tesseract (4D hypercube)
-                             - tesseract-sponge (4D sponge, 48 tesseracts)
-                             - tesseract-sponge-2 (4D sponge, 16 faces)
+                             - tesseract-sponge-volume (4D sponge, 48 tesseracts)
+                             - tesseract-sponge-surface (4D sponge, 16 faces)
                              - composite[type1,type2,...] (overlay)
 --level <float>              Recursion level (supports fractional)
 --lines                      Wireframe mode

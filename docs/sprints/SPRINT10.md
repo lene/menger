@@ -1,7 +1,7 @@
 # Sprint 10: Scala DSL for Scene Description
 
 **Sprint:** 10 - Scene Description Language (Scala DSL)
-**Status:** Not Started
+**Status:** Completed
 **Estimate:** 18-23 hours
 **Branch:** `feature/sprint-10`
 **Dependencies:** None (builds on existing infrastructure)
@@ -14,18 +14,18 @@ Create a Scala DSL that allows concise, type-safe scene definitions that compile
 
 ## Success Criteria
 
-- [ ] `--scene scenes.MyScene` loads and renders a scene defined in Scala DSL
-- [ ] Case-class style syntax: `Scene(objects = List(Sphere(Glass)))`
-- [ ] Concise syntax: `Sphere(Glass)` creates a glass sphere at origin
-- [ ] Arrow syntax for camera: `Camera((0, 0.5, 3) -> (0, 0, 0))`
-- [ ] Scene files can import definitions from other files (standard Scala imports)
-- [ ] All current object types, materials, and lights are expressible
-- [ ] Material factory shorthands: `Matte("#FF0000")`, `Plastic("#00FF00")`
-- [ ] Texture support: `Cube((0,0,0), texture = "brick.png", size = 1.5)`
-- [ ] Render settings as flat Scene fields: `shadows = true`, `antialiasing = true`
-- [ ] Caustics configuration: `caustics = Caustics(photons = 100000)`
-- [ ] Comprehensive tests for DSL parsing and scene generation
-- [ ] Example scene files demonstrating DSL capabilities
+- [x] `--scene scenes.MyScene` loads and renders a scene defined in Scala DSL
+- [x] Case-class style syntax: `Scene(objects = List(Sphere(Glass)))`
+- [x] Concise syntax: `Sphere(Glass)` creates a glass sphere at origin
+- [x] Arrow syntax for camera: `Camera((0, 0.5, 3) -> (0, 0, 0))`
+- [x] Scene files can import definitions from other files (standard Scala imports)
+- [x] All current object types, materials, and lights are expressible
+- [x] Material factory shorthands: `Matte("#FF0000")`, `Plastic("#00FF00")`
+- [x] Texture support: `Cube((0,0,0), texture = "brick.png", size = 1.5)`
+- [x] Render settings as flat Scene fields: `shadows = true`, `antialiasing = true`
+- [x] Caustics configuration: `caustics = Caustics(photons = 100000)`
+- [x] Comprehensive tests for DSL parsing and scene generation
+- [x] Example scene files demonstrating DSL capabilities
 
 ---
 
@@ -139,7 +139,7 @@ object MyScene extends SceneDefinition:
 
 ### Task 11.0.1: Fix CI Warning Spam
 
-**Status:** Not Started | **Estimate:** 1-1.5 hours | **Priority:** HIGH
+**Status:** Done | **Estimate:** 1-1.5 hours | **Priority:** HIGH
 
 Suppress JVM warnings from Java 21 about deprecated/restricted APIs in Scala 3.7.4, libGDX, LWJGL.
 
@@ -166,7 +166,7 @@ variables:
 
 ### Task 11.0.2: Rename Sponge Types for Clarity
 
-**Status:** Not Started | **Estimate:** 1 hour | **Priority:** MEDIUM
+**Status:** Done | **Estimate:** 1 hour | **Priority:** MEDIUM
 
 Rename confusing sponge type names before implementing DSL.
 
@@ -195,7 +195,7 @@ Rename confusing sponge type names before implementing DSL.
 
 ### Step 11.1: Create Core DSL Types
 
-**Status:** Not Started | **Estimate:** 2 hours
+**Status:** Done | **Estimate:** 2 hours
 
 Create `Vec3`, `Color`, and `Material` types in `menger.dsl` package.
 
@@ -286,7 +286,7 @@ object Material:
 
 ### Step 11.2: Create Light Types
 
-**Status:** Not Started | **Estimate:** 1 hour
+**Status:** Done | **Estimate:** 1 hour
 
 **`Light.scala`** - Light types with tuple support:
 ```scala
@@ -328,7 +328,7 @@ object Point:
 
 ### Step 11.3: Create Scene Object Types
 
-**Status:** Not Started | **Estimate:** 2.5 hours
+**Status:** Done | **Estimate:** 2.5 hours
 
 **`SceneObject.scala`** - Objects (Sphere, Cube, Sponge):
 ```scala
@@ -399,7 +399,7 @@ export SpongeType.{VolumeFilling, SurfaceUnfolding, CubeSponge}
 
 ### Step 11.4: Create Camera and Plane Types
 
-**Status:** Not Started | **Estimate:** 1.5 hours
+**Status:** Done | **Estimate:** 1.5 hours
 
 **`Camera.scala`** - Camera with arrow syntax:
 ```scala
@@ -469,7 +469,7 @@ object Plane:
 
 ### Step 11.5: Create Scene, Caustics, and SceneDefinition
 
-**Status:** Not Started | **Estimate:** 3 hours
+**Status:** Done | **Estimate:** 3 hours
 
 **`Caustics.scala`** - Caustics config:
 ```scala
@@ -550,7 +550,7 @@ package object dsl:
 
 ### Step 11.6: Create Scene Loader
 
-**Status:** Not Started | **Estimate:** 2 hours
+**Status:** Done | **Estimate:** 2 hours
 
 **`SceneLoader.scala`** - Load scenes by class name:
 ```scala
@@ -592,7 +592,7 @@ object SceneLoader extends LazyLogging:
 
 ### Step 11.7: Add CLI Option for Scene Loading
 
-**Status:** Not Started | **Estimate:** 1.5 hours
+**Status:** Done | **Estimate:** 1.5 hours
 
 **Modify `MengerCLIOptions.scala`** - Add `--scene` option:
 ```scala
@@ -631,7 +631,7 @@ private def createOptiXEngine(opts: MengerCLIOptions): OptiXEngine =
 
 ### Step 11.8: Create Example Scene Files
 
-**Status:** Not Started | **Estimate:** 1 hour
+**Status:** Done | **Estimate:** 1 hour
 
 Create example scenes in `menger-app/src/main/scala/scenes/`:
 
@@ -646,7 +646,7 @@ Create example scenes in `menger-app/src/main/scala/scenes/`:
 
 ### Step 11.9: Add Texture Support to DSL
 
-**Status:** Not Started | **Estimate:** 1.5 hours
+**Status:** Done | **Estimate:** 1.5 hours
 
 **Modify `SceneObject.scala`** - Add `texture: Option[String] = None` parameter to Sphere, Cube, Sponge case classes and include in `toObjectSpec`.
 
@@ -664,7 +664,7 @@ Render settings are now flat fields on `Scene`. No separate step needed.
 
 ### Step 11.11: Update Documentation
 
-**Status:** Not Started | **Estimate:** 1 hour
+**Status:** Done | **Estimate:** 1 hour
 
 **`CHANGELOG.md`** - Add v0.6.0 section with DSL features.
 
@@ -676,11 +676,11 @@ Render settings are now flat fields on `Scene`. No separate step needed.
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing: `sbt test --warn`
-- [ ] Code compiles without warnings
-- [ ] Example scenes render correctly
-- [ ] Documentation updated (CHANGELOG, README, TODO)
+- [x] All success criteria met
+- [x] All tests passing: `sbt test --warn`
+- [x] Code compiles without warnings
+- [x] Example scenes render correctly
+- [x] Documentation updated (CHANGELOG, README, TODO)
 
 ---
 
