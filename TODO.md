@@ -3,10 +3,9 @@
 Quick notes and ideas captured during development. Review periodically and promote to
 [ROADMAP.md](ROADMAP.md) or sprint plans as appropriate.
 
-- ~~Scene files can import other files~~ → **Completed in Sprint 10 (v0.5.0)**
-- fractional sponges do not work correctly - see frame_XXX.png examples (where level=XXX/100) - investigate and fix
 - coverage uses old coverage percentage as reference
 - optimize pre-push hook execution time by parallelization - first analyze bottlenecks, then consider parallelizing
+- run ChangelogIsUpdated before the long running jobs so we know immediately if we forgot to update the changelog
 - rotation of objects in 3D, possibly full transform (position, rotation, scale)
 - Camera animation (path following)
 - Light animation
