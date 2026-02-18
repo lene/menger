@@ -41,6 +41,13 @@
 - Scene definition now supports compile-time type-safe DSL as alternative to CLI
 - Example scenes moved from `examples/dsl/` to `menger-app/src/main/scala/examples/dsl/` for proper compilation
 
+### Fixed
+- **Fractional sponge rendering** - Sponge geometry at fractional levels (e.g., 0.5, 1.5) now renders correctly
+  - Added coverage alpha blending shader path: `vertex_alpha × diffuse + (1 − vertex_alpha) × continuation_ray`
+  - Previously, partial alpha triggered the Fresnel refractive path, which had no effect on white/gray materials
+  - Fixed z-fighting between skin and sponge meshes by expanding skin vertices 0.0003 world units outward along normals
+  - Fix applied to all sponge types: `SpongeByVolume`, `SpongeBySurface`, and 4D sponge projections
+
 ## [0.4.3] - 2026-02-05
 
 ### Added
