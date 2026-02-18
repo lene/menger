@@ -2,12 +2,27 @@ package menger.objects
 
 import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.math.Vector3
+import menger.common.TriangleMeshData
 
 
 trait FractionalLevelSponge extends FractionalLevelObject:
   def center: Vector3
   def scale: Float
   def primitiveType: Int
+
+  /** Merge next-level and current-level meshes into a single fractional-level mesh.
+   *  Expands currentLevelMesh outward along normals to prevent z-fighting, then
+   *  blends the two meshes using per-vertex alpha based on the fractional part of level. */
+  protected def buildFractionalMesh(
+    nextLevelMesh: TriangleMeshData,
+    currentLevelMesh: TriangleMeshData
+  ): TriangleMeshData =
+    val alphaTransparent = 1.0f - (level - level.floor)
+    val expanded = TriangleMeshData.expandAlongNormals(currentLevelMesh, FractionalLevelSponge.SkinNormalOffset)
+    TriangleMeshData.merge(Seq(
+      TriangleMeshData.withAlpha(nextLevelMesh, 1.0f),
+      TriangleMeshData.withAlpha(expanded, alphaTransparent)
+    ))
 
   
   protected def createInstance(
