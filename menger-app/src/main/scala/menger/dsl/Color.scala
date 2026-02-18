@@ -12,6 +12,8 @@ case class Color(r: Float, g: Float, b: Float, a: Float = 1.0f):
   def toCommonColor: CommonColor = CommonColor(r, g, b, a)
 
 object Color:
+  def fromCommon(c: CommonColor): Color = Color(c.r, c.g, c.b, c.a)
+
   val White = Color(1f, 1f, 1f)
   val Black = Color(0f, 0f, 0f)
   val Red = Color(1f, 0f, 0f)

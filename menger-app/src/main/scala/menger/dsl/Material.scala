@@ -28,99 +28,29 @@ case class Material(
     )
 
 object Material:
-  // Dielectric presets (transparent materials with refraction)
-  val Glass = Material(
-    color = Color(1f, 1f, 1f, 0.02f),
-    ior = 1.5f,
-    roughness = 0f,
-    metallic = 0f,
-    specular = 1f
-  )
+  private def fromOptix(m: OptixMaterial): Material =
+    Material(Color.fromCommon(m.color), m.ior, m.roughness, m.metallic, m.specular, m.emission)
 
-  val Water = Material(
-    color = Color(1f, 1f, 1f, 0.02f),
-    ior = 1.33f,
-    roughness = 0f,
-    metallic = 0f,
-    specular = 1f
-  )
+  // Dielectric presets — delegate to OptixMaterial to avoid duplication
+  val Glass   = fromOptix(OptixMaterial.Glass)
+  val Water   = fromOptix(OptixMaterial.Water)
+  val Diamond = fromOptix(OptixMaterial.Diamond)
 
-  val Diamond = Material(
-    color = Color(1f, 1f, 1f, 0.02f),
-    ior = 2.42f,
-    roughness = 0f,
-    metallic = 0f,
-    specular = 1f
-  )
+  // Metal presets — delegate to OptixMaterial
+  val Chrome = fromOptix(OptixMaterial.Chrome)
+  val Gold   = fromOptix(OptixMaterial.Gold)
+  val Copper = fromOptix(OptixMaterial.Copper)
 
-  // Metal presets (colored reflections, no refraction)
-  val Chrome = Material(
-    color = Color(0.9f, 0.9f, 0.9f),
-    ior = 1f,
-    roughness = 0f,
-    metallic = 1f,
-    specular = 1f
-  )
+  // Semi-transparent presets — delegate to OptixMaterial
+  val Film      = fromOptix(OptixMaterial.Film)
+  val Parchment = fromOptix(OptixMaterial.Parchment)
 
-  val Gold = Material(
-    color = Color(1f, 0.84f, 0f),
-    ior = 1f,
-    roughness = 0.1f,
-    metallic = 1f,
-    specular = 1f
-  )
+  // Opaque presets (no equivalent in OptixMaterial named presets)
+  val Plastic = Material(Color.White, ior = 1.5f, roughness = 0.3f, metallic = 0f, specular = 0.5f)
+  val Matte   = Material(Color.White, ior = 1.0f, roughness = 1.0f, metallic = 0f, specular = 0f)
 
-  val Copper = Material(
-    color = Color(0.72f, 0.45f, 0.20f),
-    ior = 1f,
-    roughness = 0.2f,
-    metallic = 1f,
-    specular = 1f
-  )
-
-  // Semi-transparent materials
-  val Film = Material(
-    color = Color(1f, 1f, 1f, 0.2f),
-    ior = 1.1f,
-    roughness = 0.1f,
-    metallic = 0f,
-    specular = 0.5f
-  )
-
-  val Parchment = Material(
-    color = Color(245f/255f, 222f/255f, 179f/255f, 0.4f),
-    ior = 1.0f,
-    roughness = 0.5f,
-    metallic = 0f,
-    specular = 0.2f
-  )
-
-  // Opaque presets for convenience
-  val Plastic = Material(
-    color = Color.White,
-    ior = 1.5f,
-    roughness = 0.3f,
-    metallic = 0f,
-    specular = 0.5f
-  )
-
-  val Matte = Material(
-    color = Color.White,
-    ior = 1.0f,
-    roughness = 1.0f,
-    metallic = 0f,
-    specular = 0f
-  )
-
-  // Factory methods for custom colors
-  def matte(color: Color): Material =
-    Material(color, ior = 1f, roughness = 1f, metallic = 0f, specular = 0f)
-
-  def plastic(color: Color): Material =
-    Material(color, ior = 1.5f, roughness = 0.3f, metallic = 0f, specular = 0.5f)
-
-  def metal(color: Color): Material =
-    Material(color, ior = 1f, roughness = 0.1f, metallic = 1f, specular = 1f)
-
-  def glass(color: Color): Material =
-    Material(color.copy(a = 0.02f), ior = 1.5f, roughness = 0f, metallic = 0f, specular = 1f)
+  // Factory methods — delegate to OptixMaterial
+  def matte(color: Color): Material   = fromOptix(OptixMaterial.matte(color.toCommonColor))
+  def plastic(color: Color): Material = fromOptix(OptixMaterial.plastic(color.toCommonColor))
+  def metal(color: Color): Material   = fromOptix(OptixMaterial.metal(color.toCommonColor))
+  def glass(color: Color): Material   = fromOptix(OptixMaterial.glass(color.toCommonColor))
