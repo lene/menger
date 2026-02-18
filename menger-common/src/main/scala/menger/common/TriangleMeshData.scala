@@ -66,6 +66,29 @@ object TriangleMeshData:
     indices
 
   /**
+   * Expand all vertices outward along their normals by a fixed world-space offset.
+   *
+   * Used for fractional sponge skin meshes to prevent z-fighting with the underlying
+   * sponge faces. Moves each vertex by offset * normal, pushing the face slightly outward
+   * (toward the viewer) so it sits in front of the sponge face behind it.
+   *
+   * @param mesh   Source mesh (any supported stride)
+   * @param offset World-space offset to expand along normals (positive = outward)
+   * @return New mesh with expanded vertex positions, same stride and indices
+   */
+  def expandAlongNormals(mesh: TriangleMeshData, offset: Float): TriangleMeshData =
+    require(mesh.vertexStride >= 6, s"Mesh must have at least stride 6, got ${mesh.vertexStride}")
+    val newVertices = mesh.vertices.clone()
+    for (i <- 0 until mesh.numVertices) {
+      val base = i * mesh.vertexStride
+      // Position offsets: px += offset * nx, py += offset * ny, pz += offset * nz
+      newVertices(base)     += offset * mesh.vertices(base + 3)
+      newVertices(base + 1) += offset * mesh.vertices(base + 4)
+      newVertices(base + 2) += offset * mesh.vertices(base + 5)
+    }
+    TriangleMeshData(newVertices, mesh.indices, mesh.vertexStride)
+
+  /**
    * Add per-vertex alpha channel to mesh, extending stride from 8 to 9.
    *
    * Takes a mesh with stride=8 (pos+normal+uv) and returns a new mesh with stride=9

@@ -129,8 +129,9 @@ if [ "${SKIP_COVERAGE:-0}" != "1" ]; then
   COVERAGE_MIN="80"
   COVERAGE_FLOOR="60"
 
-  # Run coverage
-  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt "project mengerApp" "set coverageEnabled := true" clean test coverageReport --warn > /tmp/coverage-prepush.log 2>&1
+  # Run coverage (clean separately to avoid ClassNotFoundException with scoverage)
+  sbt "project mengerApp" clean --warn > /dev/null 2>&1
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt "project mengerApp" "set coverageEnabled := true" test coverageReport --warn > /tmp/coverage-prepush.log 2>&1
   COVERAGE_STATUS=$?
 
   if [ $COVERAGE_STATUS -ne 0 ]; then

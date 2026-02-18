@@ -53,9 +53,18 @@ class SpongeByVolume(
     val fractionalPart = level - level.floor
     val alphaTransparent = 1.0f - fractionalPart
 
-    // Generate both level geometries
+    // Generate both level geometries.
+    // The skin (currentLevel) faces are expanded slightly outward along their normals so they
+    // sit just in front of the underlying sponge faces at non-hole positions. Without this,
+    // both meshes share faces at the same z, and the continuation ray (from coverage-alpha
+    // blending) starts past the sponge face (within tmin), shooting into the interior and
+    // making solid faces appear transparent. The offset (SkinNormalOffset = 3 * 0.0001f)
+    // keeps the sponge face reachable within the COVERAGE_CONTINUATION_OFFSET tmin (0.0001f).
     val nextLevel = SpongeByVolume(center, scale, (level + 1).floor, material, primitiveType).toTriangleMesh
-    val currentLevel = SpongeByVolume(center, scale, level.floor, material, primitiveType).toTriangleMesh
+    val currentLevel = TriangleMeshData.expandAlongNormals(
+      SpongeByVolume(center, scale, level.floor, material, primitiveType).toTriangleMesh,
+      FractionalLevelSponge.SkinNormalOffset
+    )
 
     // Assign per-vertex alpha: next level opaque, current level transparent
     val nextWithAlpha = TriangleMeshData.withAlpha(nextLevel, 1.0f)
@@ -83,3 +92,4 @@ class SpongeByVolume(
 
   override def toString: String =
     s"SpongeByVolume(level=${float2string(level)}, ${6 * Math.pow(20, level.toInt).toLong} faces)"
+

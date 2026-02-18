@@ -97,9 +97,14 @@ class SpongeBySurface(
     val fractionalPart = level - level.floor
     val alphaTransparent = 1.0f - fractionalPart
 
-    // Generate both level geometries
+    // Generate both level geometries.
+    // Expand skin faces outward along normals to prevent z-fighting (same fix as
+    // SpongeByVolume.getFractionalMesh — see FractionalLevelSponge for rationale).
     val nextLevel = SpongeBySurface(center, scale, (level + 1).floor, material, primitiveType).toTriangleMesh
-    val currentLevel = SpongeBySurface(center, scale, level.floor, material, primitiveType).toTriangleMesh
+    val currentLevel = TriangleMeshData.expandAlongNormals(
+      SpongeBySurface(center, scale, level.floor, material, primitiveType).toTriangleMesh,
+      FractionalLevelSponge.SkinNormalOffset
+    )
 
     // Assign per-vertex alpha: next level opaque, current level transparent
     val nextWithAlpha = TriangleMeshData.withAlpha(nextLevel, 1.0f)

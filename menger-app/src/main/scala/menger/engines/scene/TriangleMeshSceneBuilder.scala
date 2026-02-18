@@ -8,6 +8,7 @@ import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.TriangleMeshData
 import menger.common.Vector
+import menger.objects.FractionalLevelSponge
 import menger.optix.OptiXRenderer
 
 /**
@@ -109,7 +110,12 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
     val currentLevelSpec = spec.copy(level = Some(level.floor))
 
     val nextLevel = MeshFactory.create(nextLevelSpec)
-    val currentLevel = MeshFactory.create(currentLevelSpec)
+    // Expand skin faces outward along normals to prevent z-fighting with the underlying sponge
+    // faces (same fix as SpongeByVolume.getFractionalMesh — see there for detailed rationale).
+    val currentLevel = TriangleMeshData.expandAlongNormals(
+      MeshFactory.create(currentLevelSpec),
+      FractionalLevelSponge.SkinNormalOffset
+    )
 
     // Assign per-vertex alpha
     val nextWithAlpha = TriangleMeshData.withAlpha(nextLevel, 1.0f)
