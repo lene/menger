@@ -86,7 +86,10 @@ object SceneLoader extends LazyLogging:
         logger.info(s"Successfully loaded scene via reflection: $className")
         result
       case Left(ex: ClassNotFoundException) =>
-        Left(s"Scene not found: '$className'. Available registered scenes: ${SceneRegistry.list().mkString(", ")}")
+        val registered = SceneRegistry.list()
+        val hint = if registered.nonEmpty then s"Registered short names: ${registered.mkString(", ")}"
+                   else "Use a fully-qualified class name (e.g. 'examples.dsl.GlassSphere')"
+        Left(s"Scene not found: '$className'. $hint")
       case Left(ex: NoSuchFieldException) =>
         Left(s"Object '$className' does not have a 'scene' field of type Scene")
       case Left(ex) =>

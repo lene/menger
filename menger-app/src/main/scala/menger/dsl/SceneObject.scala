@@ -50,18 +50,6 @@ object Sphere:
   def apply(pos: Vec3, material: Material, size: Float): Sphere =
     Sphere(pos, Some(material), size = size)
 
-  // Tuple position overloads
-  @targetName("sphereFloatTupleMat")
-  def apply(pos: (Float, Float, Float), material: Material): Sphere =
-    Sphere(Vec3(pos._1, pos._2, pos._3), Some(material))
-
-  @targetName("sphereIntTupleMat")
-  def apply(pos: (Int, Int, Int), material: Material): Sphere =
-    Sphere(Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), Some(material))
-
-  @targetName("sphereDoubleTupleMat")
-  def apply(pos: (Double, Double, Double), material: Material): Sphere =
-    Sphere(Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), Some(material))
 
 /** Cube object */
 case class Cube(
@@ -102,18 +90,6 @@ object Cube:
   def apply(pos: Vec3, material: Material, size: Float): Cube =
     Cube(pos, Some(material), size = size)
 
-  // Tuple position overloads
-  @targetName("cubeFloatTupleMat")
-  def apply(pos: (Float, Float, Float), material: Material): Cube =
-    Cube(Vec3(pos._1, pos._2, pos._3), Some(material))
-
-  @targetName("cubeIntTupleMat")
-  def apply(pos: (Int, Int, Int), material: Material): Cube =
-    Cube(Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), Some(material))
-
-  @targetName("cubeDoubleTupleMat")
-  def apply(pos: (Double, Double, Double), material: Material): Cube =
-    Cube(Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), Some(material))
 
 /** Sponge type enumeration for DSL */
 enum SpongeType(val objectTypeName: String):
@@ -180,18 +156,6 @@ object Sponge:
   def apply(pos: Vec3, spongeType: SpongeType, level: Float, material: Material, size: Float): Sponge =
     Sponge(spongeType, pos, level, Some(material), size = size)
 
-  // Tuple position overloads
-  @targetName("spongeFloatTupleTypeLevel")
-  def apply(pos: (Float, Float, Float), spongeType: SpongeType, level: Float): Sponge =
-    Sponge(spongeType, Vec3(pos._1, pos._2, pos._3), level)
-
-  @targetName("spongeIntTupleTypeLevel")
-  def apply(pos: (Int, Int, Int), spongeType: SpongeType, level: Float): Sponge =
-    Sponge(spongeType, Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), level)
-
-  @targetName("spongeDoubleTupleTypeLevel")
-  def apply(pos: (Double, Double, Double), spongeType: SpongeType, level: Float): Sponge =
-    Sponge(spongeType, Vec3(pos._1.toFloat, pos._2.toFloat, pos._3.toFloat), level)
 
 // Export SpongeType values for convenient imports
 export SpongeType.{VolumeFilling, SurfaceUnfolding, CubeSponge}

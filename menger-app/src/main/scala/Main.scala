@@ -78,6 +78,9 @@ object Main:
     // Load DSL scene if --scene option is provided
     val (sceneConfig, cameraConfig, lightsFromScene, causticsFromScene) = opts.scene.toOption match
       case Some(sceneName) =>
+        // Ensure all example scene objects are initialized so short names are registered
+        val _ = examples.dsl.SceneIndex
+
         // Load scene via DSL
         import menger.dsl.SceneLoader
         SceneLoader.load(sceneName) match

@@ -95,11 +95,9 @@ case class Plane(
 
   /** Convert to PlaneColorSpec for rendering. */
   def toPlaneColorSpec: PlaneColorSpec =
-    if color.isDefined then
-      PlaneColorSpec(color.get.toCommonColor, None)
-    else
-      val (c1, c2) = checkered.get  // Safe due to require checks
-      PlaneColorSpec(c1.toCommonColor, Some(c2.toCommonColor))
+    (color, checkered) match
+      case (Some(c), _)          => PlaneColorSpec(c.toCommonColor, None)
+      case (_, Some((c1, c2)))   => PlaneColorSpec(c1.toCommonColor, Some(c2.toCommonColor))
 
 object Plane:
   /** Create a solid-colored plane.
