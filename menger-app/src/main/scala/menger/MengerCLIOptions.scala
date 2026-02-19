@@ -186,6 +186,21 @@ class MengerCLIOptions(arguments: Seq[String])
     required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
     descr = "Rotation in Z-W plane (degrees)"
   )
+  val fourDRotation: ScallopOption[String] = opt[String](
+    name = "rotation-4d", required = false, group = projectionGroup,
+    descr = "4D rotation shorthand: XW,YW,ZW in degrees (e.g., --rotation-4d=30,20,0). " +
+      "Mutually exclusive with --rot-xw, --rot-yw, --rot-zw"
+  )
+
+  // Resolve effective 4D rotation angles, honouring --rotation-4d shorthand.
+  // Validation has already run by the time these accessors are called, so the
+  // parse result is guaranteed to be Right if fourDRotation.isSupplied.
+  private lazy val parsedFourDRotation: Option[(Float, Float, Float)] =
+    fourDRotation.toOption.map(parseFourDRotationValues(_).getOrElse((0f, 0f, 0f)))
+
+  def effectiveRotXW: Float = parsedFourDRotation.map(_._1).getOrElse(rotXW())
+  def effectiveRotYW: Float = parsedFourDRotation.map(_._2).getOrElse(rotYW())
+  def effectiveRotZW: Float = parsedFourDRotation.map(_._3).getOrElse(rotZW())
 
   // === Animation Options ===
   val animate: ScallopOption[AnimationSpecificationSequence] = opt[AnimationSpecificationSequence](

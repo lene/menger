@@ -243,15 +243,14 @@ Move completed items and update sprint 12 deferred list.
 
 ## Summary
 
-| Task | Description | Estimate | Priority |
-|------|-------------|----------|----------|
-| 11.1 | Scala libGDX wrapper | 4-5h | High |
-| 11.2 | Thin-film physics | 5-6h | High |
-| 11.3 | Shift+Scroll projection | 1.5h | High |
-| 11.4 | ESC reset 4D view | 1h | High |
-| 11.5 | CLI shortcuts & presets | 2.5h | High |
-| 11.6 | State persistence | 2h | Medium |
-| 11.7 | Documentation | 1h | High |
+| Task      | Description | Estimate | Priority |
+|-----------|-------------|----------|----------|
+| 11.1      | Scala libGDX wrapper | 4-5h | High |
+| 11.2      | Thin-film physics | 5-6h | High |
+| 11.3      | Shift+Scroll projection | 1.5h | High |
+| 11.4      | ESC reset 4D view | 1h | High |
+| 11.5      | CLI shortcuts | 2.5h | High |
+| 11.6      | Documentation | 1h | High |
 | **Total** | | **17-19h** | |
 
 ---
@@ -279,8 +278,7 @@ Recommended order for minimal dependencies:
 3. **Task 11.5** (CLI shortcuts) — foundation for 4D enhancements
 4. **Task 11.3** (Shift+Scroll) — builds on existing input handling
 5. **Task 11.4** (ESC reset) — simple extension
-6. **Task 11.6** (State persistence) — uses CLI from 11.5
-7. **Task 11.7** (Documentation) — last
+7. **Task 11.6** (Documentation) — last
 
 ### Testing Strategy
 

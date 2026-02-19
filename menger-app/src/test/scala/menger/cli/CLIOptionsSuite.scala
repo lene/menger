@@ -93,6 +93,56 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     for opt <- Seq("--rot-x", "--rot-y", "--rot-z", "--rot-x-w", "--rot-y-w", "--rot-z-w") do
       an [ScallopException] should be thrownBy SafeMengerCLIOptions(Seq(opt, "360"))
 
+  "--rotation-4d" should "parse XW,YW,ZW and expose via effectiveRot accessors" in:
+    val opts = SafeMengerCLIOptions(Seq("--rotation-4d", "30,20,0"))
+    opts.effectiveRotXW shouldEqual 30f
+    opts.effectiveRotYW shouldEqual 20f
+    opts.effectiveRotZW shouldEqual 0f
+
+  it should "fall back to individual --rot-xw/yw/zw when not supplied" in:
+    val opts = SafeMengerCLIOptions(Seq("--rot-x-w", "45", "--rot-y-w", "15"))
+    opts.effectiveRotXW shouldEqual 45f
+    opts.effectiveRotYW shouldEqual 15f
+    opts.effectiveRotZW shouldEqual 0f
+
+  it should "default to zero when neither --rotation-4d nor individual options are supplied" in:
+    val opts = SafeMengerCLIOptions(Seq())
+    opts.effectiveRotXW shouldEqual 0f
+    opts.effectiveRotYW shouldEqual 0f
+    opts.effectiveRotZW shouldEqual 0f
+
+  it should "be invalid when combined with --rot-x-w" in:
+    an [ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--rotation-4d", "30,20,0", "--rot-x-w", "10"))
+
+  it should "be invalid when combined with --rot-y-w" in:
+    an [ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--rotation-4d", "30,20,0", "--rot-y-w", "10"))
+
+  it should "be invalid when combined with --rot-z-w" in:
+    an [ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--rotation-4d", "30,20,0", "--rot-z-w", "10"))
+
+  it should "be invalid if fewer than 3 components" in:
+    an [ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--rotation-4d", "30,20"))
+
+  it should "be invalid if more than 3 components" in:
+    an [ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--rotation-4d", "30,20,10,5"))
+
+  it should "be invalid if a component is not a number" in:
+    an [ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--rotation-4d", "30,abc,0"))
+
+  it should "be invalid if a component is >= 360" in:
+    an [ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--rotation-4d", "30,360,0"))
+
+  it should "be invalid if a component is negative" in:
+    an [ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--rotation-4d", "30,-1,0"))
+
   "--animate" should "default to empty animation specifications" in:
     SafeMengerCLIOptions(Seq()).animate.toOption shouldBe None
 
@@ -175,6 +225,10 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
   it should "fail if the same rotation is declared as static and animated" in:
     an[ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10", "--rot-x", "10"))
+
+  it should "fail if a 4D axis set via --rotation-4d is also animated" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--rotation-4d", "30,0,0", "--animate", "frames=10:rot-x-w=0-10"))
 
   it should "fail if level is declared both as static and animated" in:
     an[ScallopException] should be thrownBy

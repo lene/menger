@@ -2,6 +2,46 @@
 
 ---
 
+## Assessment (2026-02-19) — `--rotation-4d` CLI shorthand (Sprint 11.5)
+
+**Date:** 2026-02-19
+**Branch:** feature/sprint-11
+**Focus:** Task 11.5 — `--rotation-4d=XW,YW,ZW` shorthand option
+**Overall Grade:** A-
+
+### Summary
+
+Task 11.5 added `--rotation-4d` as a shorthand for `--rot-x-w/y-w/z-w`.  The initial
+implementation had a critical validation gap (animation conflict check bypassed by the
+shorthand), a performance issue (`def` parsed three times), and a wrong flag name in an
+error message.  All three were fixed before this commit.
+
+### Issues Found and Fixed
+
+**CRITICAL — C1 (FIXED): animation conflict check ignored `--rotation-4d`**
+`CliValidation.registerAnimationValidations()` used raw `rotXW.getOrElse(0)` (always 0 when
+`--rotation-4d` is used), so `--rotation-4d 30,0,0 --animate frames=10:rot-x-w=0-10` silently
+passed.  Fixed by checking `fourDRotation.isSupplied` and using `parseFourDRotationValues`
+to compute effective values before calling `hasRotationAxisConflict`.  Test added.
+
+**HIGH — H2 (FIXED): `parsedFourDRotation` was `def`, parsed string 3× per invocation**
+`effectiveRotXW`, `effectiveRotYW`, `effectiveRotZW` each called `parsedFourDRotation` which
+re-parsed the same string.  Changed to `lazy val`; parses once on first access.
+
+**MEDIUM — M3 (FIXED): error message said `--rot-xw` instead of `--rot-x-w`**
+Scallop converts `rotXW` → `rot-x-w` (hyphen before each uppercase), so the error text
+`"--rotation-4d cannot be combined with --rot-xw, --rot-yw, or --rot-zw"` was misleading.
+Fixed to `--rot-x-w, --rot-y-w, --rot-z-w`.  Test descriptions corrected to match.
+
+### Remaining Issues (pre-existing, future work)
+
+**LOW — L1: `parseFourDRotationValues` lives in `CliValidation` trait**
+The method is domain parsing logic (string → three floats), not validation per se.  It
+belongs in a dedicated parser/converter helper (e.g., `cli/converters/`) to keep
+`CliValidation` focused on cross-option rules.  Effort: Trivial.
+
+---
+
 ## Assessment (2026-02-19) — Shift+Scroll 4D eyeW + ESC Reset (Sprint 11.3/11.4)
 
 **Date:** 2026-02-19

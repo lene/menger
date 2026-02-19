@@ -22,6 +22,7 @@ trait CliValidation:
   protected def rotXW: ScallopOption[Float]
   protected def rotYW: ScallopOption[Float]
   protected def rotZW: ScallopOption[Float]
+  protected def fourDRotation: ScallopOption[String]
   protected def projectionScreenW: ScallopOption[Float]
   protected def projectionEyeW: ScallopOption[Float]
   protected def color: ScallopOption[?]
@@ -62,6 +63,14 @@ trait CliValidation:
       if eye > screen then Right(())
       else Left("eyeW must be greater than screenW")
     }
+    validateOpt(fourDRotation) { rot =>
+      rot.map(parseFourDRotationValues).getOrElse(Right((0f, 0f, 0f))).map(_ => ())
+    }
+    validateOpt(fourDRotation, rotXW, rotYW, rotZW) { (rot4D, _, _, _) =>
+      if rot4D.isDefined && (rotXW.isSupplied || rotYW.isSupplied || rotZW.isSupplied) then
+        Left("--rotation-4d cannot be combined with --rot-x-w, --rot-y-w, or --rot-z-w")
+      else Right(())
+    }
 
   private def registerAnimationValidations(): Unit =
     validateOpt(animate, spongeType) {
@@ -71,11 +80,17 @@ trait CliValidation:
 
     validateOpt(animate, rotX, rotY, rotZ, rotXW, rotYW, rotZW) { (spec, x, y, z, xw, yw, zw) =>
       if spec.isEmpty then Right(())
-      else if spec.get.hasRotationAxisConflict(
-        x.getOrElse(0), y.getOrElse(0), z.getOrElse(0),
-        xw.getOrElse(0), yw.getOrElse(0), zw.getOrElse(0)
-      ) then Left("Animation specification has rotation axis set that is also set statically")
-      else Right(())
+      else
+        val (effectiveXW, effectiveYW, effectiveZW) =
+          if fourDRotation.isSupplied then
+            parseFourDRotationValues(fourDRotation()).getOrElse((0f, 0f, 0f))
+          else
+            (xw.getOrElse(0f), yw.getOrElse(0f), zw.getOrElse(0f))
+        if spec.get.hasRotationAxisConflict(
+          x.getOrElse(0), y.getOrElse(0), z.getOrElse(0),
+          effectiveXW, effectiveYW, effectiveZW
+        ) then Left("Animation specification has rotation axis set that is also set statically")
+        else Right(())
     }
 
     validateOpt(animate, level) { (spec, lvl) =>
@@ -227,6 +242,23 @@ trait CliValidation:
     parentEnabled: Boolean
   ): Either[String, Unit] =
     requires(optionName, isSupplied, parentName, parentEnabled)
+
+  protected def parseFourDRotationValues(s: String): Either[String, (Float, Float, Float)] =
+    val parts = s.split(",").map(_.trim)
+    if parts.length != 3 then
+      Left(s"--rotation-4d must be XW,YW,ZW (three comma-separated degrees, e.g., 30,20,0), got: '$s'")
+    else
+      val results = parts.map { p =>
+        try Right(p.toFloat)
+        catch case _: NumberFormatException => Left(p)
+      }
+      results.find(_.isLeft) match
+        case Some(Left(bad)) => Left(s"--rotation-4d: '$bad' is not a valid number")
+        case _ =>
+          val floats = results.collect { case Right(f) => f }
+          if floats.exists(f => f < 0 || f >= 360) then
+            Left("--rotation-4d values must each be in range [0, 360)")
+          else Right((floats(0), floats(1), floats(2)))
 
   private def registerHeadlessValidations(): Unit =
     validateOpt(headless, saveName) { (h, s) =>
