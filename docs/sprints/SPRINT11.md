@@ -186,7 +186,7 @@ override protected def handleKeyPress(key: Key, modifiers: ModifierState): Boole
 
 ---
 
-### Task 11.5: Add CLI Shortcuts (--4d-rotation, --4d-preset)
+### Task 11.5: Add CLI Shortcuts (--4d-rotation)
 
 **Estimate:** 2.5 hours
 
@@ -203,151 +203,11 @@ val fourDRotation: ScallopOption[String] = opt[String](
   name = "4d-rotation", required = false,
   descr = "4D rotation angles as XW,YW,ZW in degrees (e.g., --4d-rotation=30,20,0)"
 )
-
-val fourDPreset: ScallopOption[String] = opt[String](
-  name = "4d-preset", required = false,
-  descr = "4D view preset: classic (default), edge-on, face-on, cell-on, flat"
-)
-
-// Validation: cannot specify both
-validateOpt(fourDRotation, rotXW, rotYW, rotZW) { (rotation, xw, yw, zw) =>
-  if rotation.isDefined && (xw.isDefined || yw.isDefined || zw.isDefined) then
-    Left("Cannot specify both --4d-rotation and individual --rot-xw/--rot-yw/--rot-zw")
-  else
-    Right(())
-}
-```
-
-#### Files to Create
-
-**`menger-app/src/main/scala/menger/config/FourDPresets.scala`**
-
-```scala
-package menger.config
-
-import menger.RotationProjectionParameters
-import menger.common.Const
-
-object FourDPresets:
-  val presets: Map[String, RotationProjectionParameters] = Map(
-    "classic" -> RotationProjectionParameters(
-      rotXW = 15f, rotYW = 10f, rotZW = 0f,
-      eyeW = Const.defaultEyeW, screenW = Const.defaultScreenW
-    ),
-    "edge-on" -> RotationProjectionParameters(
-      rotXW = 45f, rotYW = 0f, rotZW = 0f,
-      eyeW = 3f, screenW = 1.5f
-    ),
-    "face-on" -> RotationProjectionParameters(
-      rotXW = 0f, rotYW = 0f, rotZW = 0f,
-      eyeW = 3f, screenW = 1.5f
-    ),
-    "cell-on" -> RotationProjectionParameters(
-      rotXW = 45f, rotYW = 45f, rotZW = 0f,
-      eyeW = 3f, screenW = 1.5f
-    ),
-    "flat" -> RotationProjectionParameters(
-      rotXW = 0f, rotYW = 0f, rotZW = 0f,
-      eyeW = 10f, screenW = 9f  // Nearly orthographic
-    )
-  )
-
-  def get(name: String): Option[RotationProjectionParameters] =
-    presets.get(name.toLowerCase)
-```
-
-#### Tests to Add
-
-```scala
-class FourDPresetsSpec extends AnyFlatSpec:
-  it should "define all standard presets" in:
-    FourDPresets.presets.keys should contain allOf ("classic", "edge-on", "face-on", "cell-on", "flat")
-
-  it should "ensure eyeW > screenW for all presets" in:
-    FourDPresets.presets.values.foreach { params =>
-      params.eyeW should be > params.screenW
-    }
 ```
 
 ---
 
-### Task 11.6: State Persistence (Save/Load 4D View)
-
-**Estimate:** 2 hours
-
-Add ability to save and restore 4D view parameters.
-
-#### Files to Create
-
-**`menger-app/src/main/scala/menger/config/FourDState.scala`**
-
-```scala
-package menger.config
-
-import scala.util.Try
-import menger.RotationProjectionParameters
-
-case class FourDState(
-  rotXW: Float,
-  rotYW: Float,
-  rotZW: Float,
-  eyeW: Float,
-  screenW: Float
-):
-  def toParams: RotationProjectionParameters =
-    RotationProjectionParameters(rotXW, rotYW, rotZW, eyeW, screenW)
-
-object FourDState:
-  def fromParams(params: RotationProjectionParameters): FourDState =
-    FourDState(params.rotXW, params.rotYW, params.rotZW, params.eyeW, params.screenW)
-
-  def toJson(state: FourDState): String =
-    s"""{
-       |  "rotXW": ${state.rotXW},
-       |  "rotYW": ${state.rotYW},
-       |  "rotZW": ${state.rotZW},
-       |  "eyeW": ${state.eyeW},
-       |  "screenW": ${state.screenW}
-       |}""".stripMargin
-
-  def fromJson(json: String): Try[FourDState] = Try:
-    val rotXW = extractFloat(json, "rotXW")
-    val rotYW = extractFloat(json, "rotYW")
-    val rotZW = extractFloat(json, "rotZW")
-    val eyeW = extractFloat(json, "eyeW")
-    val screenW = extractFloat(json, "screenW")
-    FourDState(rotXW, rotYW, rotZW, eyeW, screenW)
-
-  private def extractFloat(json: String, key: String): Float =
-    val pattern = s""""$key":\\s*([\\d.\\-]+)""".r
-    pattern.findFirstMatchIn(json).map(_.group(1).toFloat).getOrElse(0f)
-
-  def save(state: FourDState, path: String): Try[Unit] = Try:
-    java.nio.file.Files.writeString(java.nio.file.Path.of(path), toJson(state))
-
-  def load(path: String): Try[FourDState] =
-    Try(java.nio.file.Files.readString(java.nio.file.Path.of(path))).flatMap(fromJson)
-```
-
-#### CLI Options
-
-**`menger-app/src/main/scala/menger/MengerCLIOptions.scala`**
-
-```scala
-val save4DState: ScallopOption[String] = opt[String](
-  name = "save-4d-state", required = false,
-  descr = "Save current 4D view state to file on exit"
-)
-
-val load4DState: ScallopOption[String] = opt[String](
-  name = "load-4d-state", required = false,
-  descr = "Load 4D view state from file"
-)
-```
-
----
-
-### Task 11.7: Documentation Updates
+### Task 11.6: Documentation Updates
 
 **Estimate:** 1 hour
 

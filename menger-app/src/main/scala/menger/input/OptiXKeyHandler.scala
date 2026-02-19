@@ -13,13 +13,16 @@ import menger.gdx.KeyPressTracker
  *
  * Handles:
  * - Arrow keys with Shift: dispatch 4D rotation events
- * - Escape: exit application
+ * - Escape: reset 4D view to initial state (parallel to GdxKeyHandler resetting 3D camera)
  * - Ctrl+Q: quit application
  *
  * Note: This handler only processes Shift-modified keys for 4D rotation.
  * Unlike GdxKeyHandler, it does not handle 3D camera rotation.
  */
-class OptiXKeyHandler(dispatcher: EventDispatcher) extends KeyHandler with LazyLogging:
+class OptiXKeyHandler(
+  dispatcher: EventDispatcher,
+  onReset: () => Unit = () => ()
+) extends KeyHandler with LazyLogging:
 
   private val rotateAngle  = Const.Input.defaultRotateAngle
   private val rotatePressed = KeyPressTracker()
@@ -30,7 +33,7 @@ class OptiXKeyHandler(dispatcher: EventDispatcher) extends KeyHandler with LazyL
         rotatePressed.press(key)
         false
       case Key.Escape =>
-        GdxRuntime.exit()
+        onReset()
         true
       case Key.Q if modifiers.ctrl =>
         GdxRuntime.exit()

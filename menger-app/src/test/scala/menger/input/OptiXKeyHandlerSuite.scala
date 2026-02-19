@@ -1,5 +1,7 @@
 package menger.input
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import scala.collection.mutable.ListBuffer
 
 import menger.RotationProjectionParameters
@@ -42,10 +44,30 @@ class OptiXKeyHandlerSuite extends AnyFlatSpec with Matchers:
     val dispatcher = TestEventDispatcher()
     val handler = OptiXKeyHandler(dispatcher)
 
-    // Escape quits the app - should be consumed
-    // Note: Can't test Gdx.app.exit() without LibGDX runtime
+    // Escape resets 4D view - should be consumed
     val result = handler.handleInput(InputEvent.KeyPress(Key.Escape, ModifierState()))
     result shouldBe true
+  }
+
+  it should "call onReset callback on Escape" in {
+    val dispatcher = TestEventDispatcher()
+    val resetCalled = new AtomicBoolean(false)
+    val handler = OptiXKeyHandler(dispatcher, onReset = () => resetCalled.set(true))
+
+    handler.handleInput(InputEvent.KeyPress(Key.Escape, ModifierState()))
+
+    resetCalled.get() shouldBe true
+  }
+
+  it should "not call onReset when no Escape pressed" in {
+    val dispatcher = TestEventDispatcher()
+    val resetCalled = new AtomicBoolean(false)
+    val handler = OptiXKeyHandler(dispatcher, onReset = () => resetCalled.set(true))
+
+    handler.handleInput(InputEvent.KeyPress(Key.Left, ModifierState()))
+    handler.handleInput(InputEvent.KeyPress(Key.Up, ModifierState()))
+
+    resetCalled.get() shouldBe false
   }
 
   it should "consume Ctrl+Q" in {

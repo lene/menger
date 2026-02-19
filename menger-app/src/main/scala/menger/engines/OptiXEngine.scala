@@ -28,6 +28,7 @@ import menger.input.Observer
 import menger.input.OptiXCameraHandler
 import menger.input.OptiXInputMultiplexer
 import menger.input.OptiXKeyHandler
+import menger.objects.higher_d.Projection
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
 import menger.optix.CameraState
@@ -78,25 +79,34 @@ class OptiXEngine(
   private lazy val has4DObjects: Boolean =
     currentObjectSpecs.get().exists(_.exists(spec => ObjectType.isProjected4D(spec.objectType)))
 
-  // Handle rotation events from keyboard
+  // Handle rotation/projection events from keyboard and mouse
   override def handleEvent(event: RotationProjectionParameters): Unit =
     logger.debug(s"Received rotation event: rotXW=${event.rotXW}, rotYW=${event.rotYW}, rotZW=${event.rotZW}")
     if has4DObjects then
-      // Update object specs with new rotation values
+      // Update object specs with new rotation and projection values
       currentObjectSpecs.set(currentObjectSpecs.get().map(_.map { spec =>
         if ObjectType.isProjected4D(spec.objectType) then
           val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
+          // Apply eyeW change using same exponential formula as Projection.+
+          // Only when event carries an explicit (non-default) eyeW value
+          val newEyeW =
+            if event.eyeW != Const.defaultEyeW then
+              val updatedProjection = Projection(currentProj.eyeW, currentProj.screenW) + event.projection
+              updatedProjection.eyeW
+            else
+              currentProj.eyeW
           val newProj = currentProj.copy(
+            eyeW = newEyeW,
             rotXW = currentProj.rotXW + event.rotXW,
             rotYW = currentProj.rotYW + event.rotYW,
             rotZW = currentProj.rotZW + event.rotZW
           )
-          logger.debug(s"Updated tesseract rotation: rotXW=${newProj.rotXW}, rotYW=${newProj.rotYW}, rotZW=${newProj.rotZW}")
+          logger.debug(s"Updated tesseract: rotXW=${newProj.rotXW}, rotYW=${newProj.rotYW}, rotZW=${newProj.rotZW}, eyeW=${newProj.eyeW}")
           spec.copy(projection4D = Some(newProj))
         else
           spec
       }))
-      // Rebuild scene with updated rotation
+      // Rebuild scene with updated rotation/projection
       rebuildScene()
       // Mark resources as needing render and request it
       renderResources.markNeedsRender()
@@ -326,9 +336,16 @@ class OptiXEngine(
       }
     }
 
+  private def resetTo4DDefaults(): Unit =
+    logger.debug("Resetting 4D view to initial state")
+    currentObjectSpecs.set(Some(objectSpecs))
+    rebuildScene()
+    renderResources.markNeedsRender()
+    GdxRuntime.requestRendering()
+
   private def finalizeCreate(): Unit =
     // Register input multiplexer for mouse-based camera control and keyboard shortcuts
-    val handler = OptiXKeyHandler(eventDispatcher)
+    val handler = OptiXKeyHandler(eventDispatcher, onReset = () => resetTo4DDefaults())
     keyHandler.set(Some(handler))
     GdxRuntime.setInputProcessor(OptiXInputMultiplexer(cameraController, handler))
 

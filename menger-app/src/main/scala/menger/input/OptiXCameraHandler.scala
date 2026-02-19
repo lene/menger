@@ -72,7 +72,11 @@ class OptiXCameraHandler(
         true
 
   override protected def handleScroll(amountX: Float, amountY: Float): Boolean =
-    handleZoom(amountY)
+    if isShiftPressed then
+      val eyeW = Math.pow(Const.Input.eyeScrollBase, amountY.toDouble).toFloat + Const.Input.eyeScrollOffset
+      dispatcher.notifyObservers(RotationProjectionParameters(0, 0, 0, eyeW))
+    else
+      handleZoom(amountY)
     true
 
   private def handleOrbit(deltaX: Int, deltaY: Int): Unit =

@@ -412,7 +412,7 @@ while true; do
         IFS=':' read -r name args <<< "${interactive_tests[$idx]}"
         echo -e "\n${BLUE}Running:${NC} $name"
         echo "Command: $MENGER $args"
-        echo -e "${YELLOW}Press Q or ESC to quit and return to menu${NC}\n"
+        echo -e "${YELLOW}Press Ctrl+Q to quit and return to menu (ESC resets 4D view)${NC}\n"
         $MENGER $args || true
         echo ""
     else

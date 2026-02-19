@@ -2,6 +2,60 @@
 
 ---
 
+## Assessment (2026-02-19) — Shift+Scroll 4D eyeW + ESC Reset (Sprint 11.3/11.4)
+
+**Date:** 2026-02-19
+**Branch:** feature/sprint-11
+**Focus:** Tasks 11.3 (Shift+Scroll adjusts 4D eyeW) and 11.4 (ESC resets 4D view)
+**Overall Grade:** A-
+
+### Summary
+
+Tasks 11.3 and 11.4 are correctly implemented and functionally sound. The ESC-reset design
+(injected `onReset` callback) is architecturally superior to the sprint plan's suggestion of a new
+event type. `resetTo4DDefaults()` is minimal and correct. The `onReset` tests in
+`OptiXKeyHandlerSuite` are well-written. Two new issues surfaced from the new code.
+
+### Issues Found
+
+**MAJOR — M1: eyeW scroll formula duplicated in both camera handlers**
+`OptiXCameraHandler.scala:76` and `GdxCameraHandler.scala:64` are byte-for-byte identical:
+```scala
+val eyeW = Math.pow(Const.Input.eyeScrollBase, amountY.toDouble).toFloat + Const.Input.eyeScrollOffset
+dispatcher.notifyObservers(RotationProjectionParameters(0, 0, 0, eyeW))
+```
+Should be extracted to a shared helper (e.g., `CameraHandler` trait method or companion object).
+If the formula changes, both must be updated in lockstep with no compile-time enforcement.
+
+**MEDIUM — M2: `handleScroll` return value is semantically inconsistent between handlers**
+`GdxCameraHandler` returns `false` for Shift+Scroll (lets other handlers act); `OptiXCameraHandler`
+returns `true` for all scrolls (consumes). Probably intentional due to different multiplexer setups,
+but undocumented. Add a comment to each handler explaining the choice.
+
+**MEDIUM — M3: ESC return value asymmetry between key handlers**
+`GdxKeyHandler` returns `false` on ESC (does not consume, may let system close window);
+`OptiXKeyHandler` returns `true` (consumes, prevents app exit). Correct and intentional, but
+undocumented. Both branches should have a brief comment explaining why.
+
+**MEDIUM — M4: Missing Shift+Scroll tests for `OptiXCameraHandler` (sprint plan gap)**
+Sprint plan `SPRINT11.md` called for two tests ("adjust eyeW on Shift+Scroll", "clamp eyeW above
+screenW") that were not written. `OptiXCameraHandler` is in `coverageExcludedPackages` (requires
+LibGDX runtime), making unit tests difficult. However, the boundary case — a large negative scroll
+producing `eyeW ≈ 1.016f` close to `screenW = 1.0f` — is a latent crash risk if `Projection` ever
+receives `eyeW ≤ screenW`.
+
+**LOW — L1: `event.eyeW != Const.defaultEyeW` sentinel pattern in `OptiXEngine.handleEvent`**
+`OptiXEngine.scala:93` uses default value as a sentinel to distinguish "eyeW-changing event" from
+"rotation-only event". If a user genuinely wants to reset eyeW to exactly `defaultEyeW`, the engine
+would ignore it. The assumption should be documented with a comment.
+
+**LOW — L2: `effectiveMaxInstances` calculation appears three times in `OptiXEngine`**
+Three near-identical blocks at lines ~280-290, ~313-322, ~387-396 in `OptiXEngine.scala`. A private
+`computeEffectiveMaxInstances(builder, specs)` helper would eliminate all three copies. Pre-existing,
+but newly confirmed by reading the full file context.
+
+---
+
 ## Assessment (2026-02-19) — LibGDX Wrapper Layer (Sprint 11.1)
 
 **Date:** 2026-02-19
