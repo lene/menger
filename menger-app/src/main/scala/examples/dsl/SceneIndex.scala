@@ -7,6 +7,7 @@ object SceneIndex:
     SimpleScene.scene,
     ThreeMaterials.scene,
     GlassSphere.scene,
+    FilmSphere.scene,
     MengerShowcase.scene,
     SpongeShowcase.scene,
     CausticsDemo.scene,

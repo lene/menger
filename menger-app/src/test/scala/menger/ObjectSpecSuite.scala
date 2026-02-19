@@ -461,3 +461,36 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
         spec.edgeRadius shouldBe None
         spec.edgeMaterial shouldBe None
       case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  // Thin-film thickness tests
+  "ObjectSpec film-thickness parsing" should "parse film-thickness with material preset" in:
+    val result = ObjectSpec.parse("type=sphere:material=chrome:film-thickness=300")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.filmThickness shouldBe 300.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse film material with default thickness" in:
+    val result = ObjectSpec.parse("type=sphere:material=film")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.filmThickness shouldBe 500.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "allow film-thickness override on film material" in:
+    val result = ObjectSpec.parse("type=sphere:material=film:film-thickness=200")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.filmThickness shouldBe 200.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse standalone film-thickness without material preset" in:
+    val result = ObjectSpec.parse("type=sphere:film-thickness=400")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.filmThickness shouldBe 400.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")

@@ -1,5 +1,107 @@
 # Code Quality Assessment - Menger Project
 
+---
+
+## Assessment (2026-02-19) — Thin-Film Interference (Sprint 11.2)
+
+**Date:** 2026-02-19
+**Branch:** feature/sprint-11
+**Focus:** Thin-film interference feature + broad codebase review
+**Overall Grade:** A-
+
+### Executive Summary
+
+Sprint 11.2 added physically-based thin-film interference (iridescent soap bubble / oil slick effect)
+using the Airy reflectance formula with CIE 1931 XYZ color matching. The implementation is
+scientifically sound, well-integrated across all shader paths (sphere, triangle, cylinder), and
+correctly threaded through the entire Scala-to-CUDA stack. Test coverage is solid. One functional
+defect was found (emission silently ignored for transparent triangle meshes in the thin-film path —
+pre-existing, not a regression). Several named-constant violations and a weakly-asserted test were
+also found. No regressions in existing functionality.
+
+**What changed this sprint:**
+- CUDA/C++: `computeThinFilmReflectance()` and `blendFresnelColorsRGBAndSetPayload()` in `helpers.cu`
+- CUDA/C++: Thin-film branch added to `hit_sphere.cu` and `hit_triangle.cu`
+- C++: `film_thickness` field added to `InstanceMaterial` and `MaterialProperties` in `OptiXData.h`
+- C++: `Material.Film` preset added to `MaterialPresets.h`
+- Scala: `filmThickness` field added to `optix.Material` and `dsl.Material`; propagated through
+  `ObjectSpec` parsing and all three `addInstance` JNI methods
+- Scala: `FilmRenderSuite` (8 render-level GPU tests), `FilmSphere` example DSL scene
+- Shell: `test_film_materials` function added to `integration-tests.sh`; static and interactive
+  entries added to `manual-test.sh`
+
+### Category Grades
+
+| Category | Grade | Notes |
+|----------|-------|-------|
+| Naming & Clarity | A- | Unnamed magic numbers in Airy implementation; indentation regression |
+| Separation of Concerns | A | Clean layering; film path consistent with existing Fresnel path |
+| Functional Style | A | No null, Option-correct, Either for parsing |
+| Code Duplication | A- | `blendFresnelColorsRGBAndSetPayload` near-clone of scalar version |
+| Magic Numbers | B+ | Three unnamed constants in `computeThinFilmReflectance` |
+| Function Length | A | All functions appropriately sized |
+| Architecture | A | Film feature is additive; zero breaking changes |
+| Testing | B+ | Render suite solid; one vacuous assertion found |
+
+### Issues Found
+
+**M1 — MEDIUM: Emission ignored for transparent triangle mesh (functional defect, pre-existing)**
+`getTriangleMaterial()` does not output an `emission` value — it has six output parameters (color,
+ior, roughness, metallic, specular, film_thickness) but no emission. As a result, both Fresnel blend
+calls in `hit_triangle.cu` pass `emission = 0.0f` (default) instead of the actual material emission.
+Any semi-transparent triangle mesh with `emission > 0` will not show its glow in the transparent path.
+The opaque path and sphere/cylinder shaders are unaffected. Fix: add `emission` as a seventh output
+parameter to `getTriangleMaterial()`.
+
+**L1 — LOW: Indentation regression in `calculateLighting()` comment (cosmetic)**
+File: `helpers.cu`. The `// Add ambient lighting` comment block lost its 4-space indentation, leaving
+it at column 0 while surrounding code is at 4-space indent. Editing artifact from adding thin-film.
+
+**L2 — LOW: Three unnamed magic numbers in `computeThinFilmReflectance()`**
+`0.001f` (min cosine clamp), `1e-8f` (Airy denominator guard), `106.5f` (CIE Y integral
+normalisation) should be named constants per project standard.
+
+**L3 — LOW: `blendFresnelColorsRGBAndSetPayload` duplicates scalar version body**
+~30 lines of identical color packing/unpacking code shared between the two Fresnel blend functions.
+Acceptable GPU-performance trade-off (scalar path avoids 3× per-channel multiply); document why
+both exist.
+
+**L4 — LOW: Vacuous assertion in `FilmRenderSuite` (test quality)**
+`filmChannelSpread should be >= 0.0` is trivially true (spread cannot be negative). Replace with a
+meaningful assertion or convert to `logger.info` only.
+
+**L5 — LOW: Raw `255.0f`/`255.99f` literals in cylinder diffuse fallback path**
+`hit_cylinder.cu` fallback uses unnamed literals; named constants `COLOR_SCALE_FACTOR` /
+`COLOR_BYTE_MAX` exist elsewhere in the codebase.
+
+**L6 — LOW: Cylinder thin-film silently skipped without comment**
+`hit_cylinder.cu` retrieves `film_thickness` via `getInstanceMaterialPBR()` but never uses it (no
+thin-film branch exists for the diffuse-only cylinder shader). This known limitation should be
+documented with a comment so future developers understand the behaviour.
+
+**B1 — LOW: `OPTION B` comment in `hit_cylinder.cu` implies unresolved design decision**
+Should either document what OPTION A was and why rejected, or drop the "OPTION B" framing.
+
+**B2 — LOW: Empty `__closesthit__cylinder_shadow` comment misleading**
+Says "payload already set for blocked" but the shadow payload is actually set by the any-hit shader;
+the comment should clarify the payload convention.
+
+**B3 — LOW: `Plastic`/`Matte` DSL presets not delegating to `OptixMaterial` (pre-existing)**
+`dsl/Material.scala` lines 52–53 hard-code the Plastic/Matte values instead of calling
+`OptixMaterial.fromName` / `fromOptix` like all other presets do. If the optix-layer defaults ever
+change, the DSL presets will silently diverge.
+
+### Positive Observations
+
+- Physics implementation correct and well-documented: Airy formula, Snell's law, CIE XYZ, D65 matrix
+- Consistent propagation through the full DSL → JNI → C++ → GPU shader stack
+- `FilmSphere.scala` example is a clear teaching scene (300/500/700 nm side-by-side)
+- Shell test coverage is exemplary: 8 CLI scenarios covering preset, overrides, regression, and edges
+- Regression safety: `filmThickness=0` branch falls through to existing scalar Fresnel path
+- Per-channel Fresnel infrastructure is forward-compatible with future dispersion effects
+
+---
+
 **Date:** 2026-02-18
 **Branch:** feature/sprint-10
 **Focus:** Full codebase (post code-review fixes — M2, M3, M4, L6–L10, L12–L16)

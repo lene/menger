@@ -86,6 +86,7 @@ object ObjectSpec extends LazyLogging:
    *   metallic=VALUE  - override metallic (only with material preset)
    *   specular=VALUE  - override specular (only with material preset)
    *   emission=VALUE  - override emission (0.0-10.0, default 0.0)
+   *   film-thickness=NM - thin-film thickness in nm for iridescent interference (e.g., 500)
    *   color=#RRGGBB   - override color (works with or without material preset)
    *   texture=FILE    - texture filename (relative to texture directory)
    *
@@ -210,7 +211,13 @@ object ObjectSpec extends LazyLogging:
           case None =>
             Left(s"Unknown material preset: '$presetName'. Valid presets: ${Material.presetNames.mkString(", ")}")
       case None =>
-        Right(None)
+        // Allow film-thickness without explicit material preset (creates default material with thin film)
+        kvPairs.get("film-thickness") match
+          case Some(_) =>
+            val baseMaterial = Material(color.getOrElse(Color(1.0f, 1.0f, 1.0f)), ior = ior)
+            parseMaterialOverrides(kvPairs, baseMaterial, color, ior)
+          case None =>
+            Right(None)
 
   private def parseMaterialOverrides(
     kvPairs: Map[String, String],
@@ -223,6 +230,7 @@ object ObjectSpec extends LazyLogging:
       metallic <- parseOptionalFloat(kvPairs, "metallic", "metallic value (0.0-1.0)")
       specular <- parseOptionalFloat(kvPairs, "specular", "specular value (0.0-1.0)")
       emission <- parseOptionalFloat(kvPairs, "emission", "emission value (0.0-10.0)")
+      filmThickness <- parseOptionalFloat(kvPairs, "film-thickness", "film thickness in nm (e.g., 500)")
     yield Some(
       baseMaterial
         .withColorOpt(color)
@@ -231,6 +239,7 @@ object ObjectSpec extends LazyLogging:
         .withMetallicOpt(metallic)
         .withSpecularOpt(specular)
         .withEmissionOpt(emission)
+        .withFilmThicknessOpt(filmThickness)
     )
 
   private def parseOptionalFloat(

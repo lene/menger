@@ -9,13 +9,15 @@ case class Material(
   roughness: Float = 0.5f,
   metallic: Float = 0.0f,
   specular: Float = 0.5f,
-  emission: Float = 0.0f
+  emission: Float = 0.0f,
+  filmThickness: Float = 0.0f
 ):
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
   require(roughness >= 0f && roughness <= 1f, s"Roughness must be in [0, 1], got $roughness")
   require(metallic >= 0f && metallic <= 1f, s"Metallic must be in [0, 1], got $metallic")
   require(specular >= 0f && specular <= 1f, s"Specular must be in [0, 1], got $specular")
   require(emission >= 0f, s"Emission must be non-negative, got $emission")
+  require(filmThickness >= 0f, s"Film thickness must be non-negative, got $filmThickness")
 
   def toOptixMaterial: OptixMaterial =
     OptixMaterial(
@@ -24,12 +26,13 @@ case class Material(
       roughness = roughness,
       metallic = metallic,
       specular = specular,
-      emission = emission
+      emission = emission,
+      filmThickness = filmThickness
     )
 
 object Material:
   private def fromOptix(m: OptixMaterial): Material =
-    Material(Color.fromCommon(m.color), m.ior, m.roughness, m.metallic, m.specular, m.emission)
+    Material(Color.fromCommon(m.color), m.ior, m.roughness, m.metallic, m.specular, m.emission, m.filmThickness)
 
   // Dielectric presets — delegate to OptixMaterial to avoid duplication
   val Glass   = fromOptix(OptixMaterial.Glass)

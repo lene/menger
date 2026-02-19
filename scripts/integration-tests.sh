@@ -437,6 +437,35 @@ test_materials() {
         --objects type=sphere:pos=0,0,0:size=0.5:material=metal:color=#FFD700
 }
 
+test_film_materials() {
+    echo "Film Materials (Thin-Film Interference):"
+    # Default Film preset (500nm, IOR 1.33)
+    run_test "film sphere default" --optix --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=film
+    # Explicit thickness overrides
+    run_test "film thickness 300nm" --optix --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=film:film-thickness=300
+    run_test "film thickness 700nm" --optix --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=film:film-thickness=700
+    # Coated metal (chrome with oily film)
+    run_test "chrome with film coating 300nm" --optix --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=chrome:film-thickness=300
+    # Three thicknesses side by side
+    run_test "three film thicknesses" --optix --plane y:-2 \
+        --objects type=sphere:pos=-2,0,0:size=0.5:material=film:film-thickness=300 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=film \
+        --objects type=sphere:pos=2,0,0:size=0.5:material=film:film-thickness=700
+    # Regression: zero thickness behaves like standard dielectric
+    run_test "film zero thickness (regression)" --optix --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=glass
+    # Standalone film-thickness without material preset
+    run_test "standalone film-thickness parameter" --optix --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:film-thickness=500
+    # Film on tesseract edges
+    run_test "tesseract with film edge material" --optix --plane y:-2 \
+        --objects type=tesseract:size=0.8:edge-material=film:edge-radius=0.025
+}
+
 test_textures() {
     echo "Textures:"
     run_test "texture on cube" --optix --plane y:-2 \
@@ -623,6 +652,7 @@ export -f test_antialiasing
 export -f test_lighting
 export -f test_scene_options
 export -f test_materials
+export -f test_film_materials
 export -f test_textures
 export -f test_caustics
 export -f test_tesseract
@@ -665,6 +695,7 @@ main() {
             "test_lighting"
             "test_scene_options"
             "test_materials"
+            "test_film_materials"
             "test_textures"
             "test_caustics"
             "test_tesseract"
@@ -703,6 +734,7 @@ main() {
         test_lighting
         test_scene_options
         test_materials
+        test_film_materials
         test_textures
         test_caustics
         test_tesseract

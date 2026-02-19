@@ -208,6 +208,26 @@ sbt test  # Includes visual regression tests in IntegrationSuite
 
 ## DEVELOPMENT WORKFLOW
 
+### Shell Test Coverage (REQUIRED for every new rendering feature)
+
+Every new rendering feature **must** be covered in both shell test scripts:
+
+- **`scripts/integration-tests.sh`** — headless regression tests run as part of the pre-push hook.
+  Add a `test_<feature>()` function, export it with `export -f test_<feature>`, add it to the
+  `categories` array (parallel mode), and add the call to the sequential fallback in `main()`.
+
+- **`scripts/manual-test.sh`** — static and interactive visual tests for human verification.
+  Add static `run_test` entries with numbered output filenames (continue the existing sequence).
+  Add interactive entries in the `interactive_tests` array so developers can explore the feature live.
+
+**The check: if you add a new material preset, object type, shader path, or CLI parameter,
+open both scripts and verify they have at least one test exercising the new code.**
+
+Rationale: unit tests and `sbt test` verify correctness at the Scala/C++ level; shell tests verify
+the end-to-end CLI surface and catch regressions in argument parsing, GPU dispatch, and image output.
+
+---
+
 ### Standard Development Cycle
 
 1. **Make code changes**

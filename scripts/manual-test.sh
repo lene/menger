@@ -254,6 +254,15 @@ run_test "Film sphere" "-o --objects type=sphere:material=film -s $OUTPUT_DIR/43
 run_test "Parchment cube" "-o --objects type=cube:material=parchment -s $OUTPUT_DIR/44-parchment-cube.png"
 run_test "Film with emission" "-o --objects type=sphere:material=film:emission=3.0 -s $OUTPUT_DIR/45-film-emissive.png"
 
+# Thin-Film Interference (physically-based, Airy formula)
+echo -e "${YELLOW}--- Thin-Film Interference ---${NC}"
+run_test "Film 300nm (violet/blue)" "-o --objects type=sphere:material=film:film-thickness=300 --plane y:-2 -s $OUTPUT_DIR/83-film-300nm.png"
+run_test "Film 500nm (green, default)" "-o --objects type=sphere:material=film --plane y:-2 -s $OUTPUT_DIR/84-film-500nm.png"
+run_test "Film 700nm (red/orange)" "-o --objects type=sphere:material=film:film-thickness=700 --plane y:-2 -s $OUTPUT_DIR/85-film-700nm.png"
+run_test "Three thicknesses side by side" "-o --objects type=sphere:pos=-2,0,0:material=film:film-thickness=300 --objects type=sphere:pos=0,0,0:material=film --objects type=sphere:pos=2,0,0:material=film:film-thickness=700 --plane y:-2 -s $OUTPUT_DIR/86-film-three-thicknesses.png"
+run_test "Chrome with oil film 300nm" "-o --objects type=sphere:material=chrome:film-thickness=300 --plane y:-2 -s $OUTPUT_DIR/87-chrome-film-coated.png"
+run_test "Film 2000nm (thick, averaged grey)" "-o --objects type=sphere:material=film:film-thickness=2000 --plane y:-2 -s $OUTPUT_DIR/88-film-2000nm.png"
+
 # 4D Menger Sponges
 echo -e "${YELLOW}--- 4D Menger Sponges ---${NC}"
 run_test "TesseractSponge Level 0" "-o --objects type=tesseract-sponge:level=0 -s $OUTPUT_DIR/46-tesseract-sponge-l0.png"
@@ -330,6 +339,11 @@ interactive_tests=(
     "Gold (metallic):-o --objects type=sphere:material=gold"
     "Copper (metallic):-o --objects type=sphere:material=copper"
     "Film (translucent):-o --objects type=sphere:material=film"
+    "Film 300nm (violet/blue tint):-o --objects type=sphere:material=film:film-thickness=300 --plane y:-2"
+    "Film 500nm (green tint, default):-o --objects type=sphere:material=film --plane y:-2"
+    "Film 700nm (red/orange tint):-o --objects type=sphere:material=film:film-thickness=700 --plane y:-2"
+    "Three film thicknesses:-o --objects type=sphere:pos=-2,0,0:material=film:film-thickness=300 --objects type=sphere:pos=0,0,0:material=film --objects type=sphere:pos=2,0,0:material=film:film-thickness=700 --plane y:-2"
+    "Chrome with oily film coat:-o --objects type=sphere:material=chrome:film-thickness=300 --plane y:-2"
     "Parchment (semi-translucent):-o --objects type=cube:material=parchment"
     "Metal (blue):-o --objects type=sphere:material=metal:color=#4488ff"
     "Plastic (red):-o --objects type=sphere:material=plastic:color=#ff4444"

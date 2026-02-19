@@ -209,7 +209,7 @@ class MengerCLIOptions(arguments: Seq[String])
     name = "objects", required = false, group = optixGroup,
     descr = "Objects (repeatable): type=TYPE[:param=value...]. " +
       s"Types: ${ObjectType.validTypesString}. " +
-      "Common: pos=x,y,z, size=S, color=#RGB, ior=I, material=PRESET, texture=FILE, emission=E. " +
+      "Common: pos=x,y,z, size=S, color=#RGB, ior=I, material=PRESET, texture=FILE, emission=E, film-thickness=NM. " +
       "3D sponge: level=L. " +
       "4D sponge: level=L (required). " +
       "4D projection: rot-xw, rot-yw, rot-zw, eye-w, screen-w. " +
