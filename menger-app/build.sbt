@@ -44,7 +44,8 @@ coverageExcludedPackages := "menger\\.optix\\..*;menger\\.engines\\..*;" +
   "menger\\.input\\.GdxKeyHandler;" +
   "menger\\.input\\.GdxCameraHandler;" +
   "menger\\.input\\.OptiXCameraHandler;" +
-  "menger\\.input\\.OptiXKeyHandler"
+  "menger\\.input\\.OptiXKeyHandler;" +
+  "menger\\.gdx\\..*"
 
 libraryDependencies ++= Seq(
   // Logging

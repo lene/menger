@@ -3,7 +3,6 @@ package menger.engines
 import scala.util.Failure
 import scala.util.Try
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import menger.ObjectSpec
@@ -21,6 +20,7 @@ import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SphereSceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
+import menger.gdx.GdxRuntime
 import menger.input.EventDispatcher
 import menger.input.Observer
 import menger.input.OptiXCameraHandler
@@ -65,9 +65,8 @@ class OptiXEngine(
   private val eventDispatcher = EventDispatcher().withObserver(this)
 
   // Mutable state for current object specs (for interactive rotation updates)
-  // Wartremover: var required for interactive rotation state management
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var currentObjectSpecs: Option[List[ObjectSpec]] = Some(objectSpecs)
+  private val currentObjectSpecs =
+    new java.util.concurrent.atomic.AtomicReference[Option[List[ObjectSpec]]](Some(objectSpecs))
 
   // Keyboard handler for 4D rotation (initialized in finalizeCreate)
   // Using AtomicReference to avoid var
@@ -75,14 +74,14 @@ class OptiXEngine(
 
   // Track if we have 4D projected objects (need rebuild on rotation)
   private lazy val has4DObjects: Boolean =
-    currentObjectSpecs.exists(_.exists(spec => ObjectType.isProjected4D(spec.objectType)))
+    currentObjectSpecs.get().exists(_.exists(spec => ObjectType.isProjected4D(spec.objectType)))
 
   // Handle rotation events from keyboard
   override def handleEvent(event: RotationProjectionParameters): Unit =
     logger.debug(s"Received rotation event: rotXW=${event.rotXW}, rotYW=${event.rotYW}, rotZW=${event.rotZW}")
     if has4DObjects then
       // Update object specs with new rotation values
-      currentObjectSpecs = currentObjectSpecs.map(_.map { spec =>
+      currentObjectSpecs.set(currentObjectSpecs.get().map(_.map { spec =>
         if ObjectType.isProjected4D(spec.objectType) then
           val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
           val newProj = currentProj.copy(
@@ -94,12 +93,12 @@ class OptiXEngine(
           spec.copy(projection4D = Some(newProj))
         else
           spec
-      })
+      }))
       // Rebuild scene with updated rotation
       rebuildScene()
       // Mark resources as needing render and request it
       renderResources.markNeedsRender()
-      Gdx.graphics.requestRendering()
+      GdxRuntime.requestRendering()
 
   // Level thresholds for warnings (based on triangle counts and performance)
   private val VolumeLevelWarning = Const.Engine.spongeLevelWarningThreshold
@@ -182,7 +181,7 @@ class OptiXEngine(
 
     result.recover { case e: Exception =>
       logger.error(s"Failed to create OptiX scene: ${e.getMessage}", e)
-      Gdx.app.exit()
+      GdxRuntime.exit()
     }.get  // Intentional .get - initialization failure should crash (documented)
 
   private def classifyScene(specs: List[ObjectSpec]): SceneType =
@@ -329,16 +328,16 @@ class OptiXEngine(
     // Register input multiplexer for mouse-based camera control and keyboard shortcuts
     val handler = OptiXKeyHandler(eventDispatcher)
     keyHandler.set(Some(handler))
-    Gdx.input.setInputProcessor(OptiXInputMultiplexer(cameraController, handler))
+    GdxRuntime.setInputProcessor(OptiXInputMultiplexer(cameraController, handler))
 
     // Disable continuous rendering - we'll request renders only when needed
-    Gdx.graphics.setContinuousRendering(false)
-    Gdx.graphics.requestRendering()
+    GdxRuntime.setContinuousRendering(false)
+    GdxRuntime.requestRendering()
 
     if execution.timeout > 0 then startExitTimer(execution.timeout)
 
   private def rebuildScene(): Unit =
-    currentObjectSpecs match
+    currentObjectSpecs.get() match
       case Some(specs) =>
         Try {
           logger.debug("Rebuilding scene with updated rotation")
@@ -410,13 +409,13 @@ class OptiXEngine(
         logger.warn("Cannot rebuild single-object scene interactively")
 
   override def render(): Unit =
-    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
+    GdxRuntime.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
 
     // Update keyboard handler for 4D rotation (Shift+arrow keys)
-    keyHandler.get().foreach(_.update(Gdx.graphics.getDeltaTime))
+    keyHandler.get().foreach(_.update(GdxRuntime.deltaTime))
 
-    val width = Gdx.graphics.getWidth
-    val height = Gdx.graphics.getHeight
+    val width  = GdxRuntime.width
+    val height = GdxRuntime.height
 
     // Only proceed if window dimensions are valid
     if width > 0 && height > 0 then
@@ -439,7 +438,7 @@ class OptiXEngine(
     // Exit after saving when in non-interactive mode (unless timeout is set)
     if shouldExitAfterSave then
       renderResources.markSaved()
-      Gdx.app.exit()
+      GdxRuntime.exit()
 
   private def shouldExitAfterSave: Boolean =
     execution.saveName.isDefined && !renderResources.hasSaved && execution.timeout == 0

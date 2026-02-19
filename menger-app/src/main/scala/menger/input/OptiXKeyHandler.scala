@@ -1,11 +1,12 @@
 package menger.input
 
-import com.badlogic.gdx.Gdx
 import com.typesafe.scalalogging.LazyLogging
 import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.Key
 import menger.common.ModifierState
+import menger.gdx.GdxRuntime
+import menger.gdx.KeyPressTracker
 
 /**
  * Keyboard input handler for OptiX ray-traced rendering mode.
@@ -20,33 +21,26 @@ import menger.common.ModifierState
  */
 class OptiXKeyHandler(dispatcher: EventDispatcher) extends KeyHandler with LazyLogging:
 
-  private val rotateAngle = Const.Input.defaultRotateAngle
-
-  /** Track which rotation keys are currently pressed */
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var rotatePressed: Map[Key, Boolean] = Map().withDefaultValue(false)
+  private val rotateAngle  = Const.Input.defaultRotateAngle
+  private val rotatePressed = KeyPressTracker()
 
   override protected def handleKeyPress(key: Key, modifiers: ModifierState): Boolean =
     key match
       case Key.Left | Key.Right | Key.Up | Key.Down | Key.PageUp | Key.PageDown =>
-        rotatePressed = rotatePressed.updated(key, true)
+        rotatePressed.press(key)
         false
       case Key.Escape =>
-        // scalafix:off DisableSyntax.null
-        if Gdx.app != null then Gdx.app.exit()
-        // scalafix:on DisableSyntax.null
+        GdxRuntime.exit()
         true
       case Key.Q if modifiers.ctrl =>
-        // scalafix:off DisableSyntax.null
-        if Gdx.app != null then Gdx.app.exit()
-        // scalafix:on DisableSyntax.null
+        GdxRuntime.exit()
         true
       case _ => false
 
   override protected def handleKeyRelease(key: Key, modifiers: ModifierState): Boolean =
     key match
       case Key.Left | Key.Right | Key.Up | Key.Down | Key.PageUp | Key.PageDown =>
-        rotatePressed = rotatePressed.updated(key, false)
+        rotatePressed.release(key)
         false
       case _ => false
 
@@ -55,13 +49,9 @@ class OptiXKeyHandler(dispatcher: EventDispatcher) extends KeyHandler with LazyL
    * Must be called from render loop.
    */
   def update(deltaTime: Float): Unit =
-    if rotatePressed.values.exists(identity) && modifierState.shift then
-      // Check if Gdx is initialized (for test compatibility)
-      // scalafix:off DisableSyntax.null
-      if Gdx.graphics != null then
-        // scalafix:on DisableSyntax.null
-        logger.debug(s"Shift pressed with rotation keys, delta=$deltaTime")
-        onShiftPressed(deltaTime)
+    if rotatePressed.anyPressed && modifierState.shift then
+      logger.debug(s"Shift pressed with rotation keys, delta=$deltaTime")
+      onShiftPressed(deltaTime)
 
   private def onShiftPressed(delta: Float): Unit =
     val rotXW = angle(delta, Seq(Key.Left, Key.Right))
@@ -77,4 +67,4 @@ class OptiXKeyHandler(dispatcher: EventDispatcher) extends KeyHandler with LazyL
   )
 
   private def angle(delta: Float, keys: Seq[Key]): Float =
-    delta * rotateAngle * keys.find(rotatePressed).map(factor(_)).getOrElse(0)
+    delta * rotateAngle * keys.find(rotatePressed.isPressed).map(factor(_)).getOrElse(0)

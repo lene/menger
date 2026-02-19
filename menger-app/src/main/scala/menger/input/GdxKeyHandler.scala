@@ -1,12 +1,13 @@
 package menger.input
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.math.Vector3
 import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.Key
 import menger.common.ModifierState
+import menger.gdx.GdxRuntime
+import menger.gdx.KeyPressTracker
 
 /**
  * Keyboard input handler for LibGDX 3D rendering mode.
@@ -22,34 +23,29 @@ class GdxKeyHandler(
   dispatcher: EventDispatcher
 ) extends KeyHandler:
 
-  private val defaultPos = camera.position.cpy
+  private val defaultPos       = camera.position.cpy
   private val defaultDirection = camera.direction.cpy
-  private val defaultUp = camera.up.cpy
-  private val rotateAngle = Const.Input.defaultRotateAngle
-
-  /** Track which rotation keys are currently pressed */
-  @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private var rotatePressed: Map[Key, Boolean] = Map().withDefaultValue(false)
+  private val defaultUp        = camera.up.cpy
+  private val rotateAngle      = Const.Input.defaultRotateAngle
+  private val rotatePressed    = KeyPressTracker()
 
   override protected def handleKeyPress(key: Key, modifiers: ModifierState): Boolean =
     key match
       case Key.Left | Key.Right | Key.Up | Key.Down | Key.PageUp | Key.PageDown =>
-        rotatePressed = rotatePressed.updated(key, true)
+        rotatePressed.press(key)
         false
       case Key.Escape =>
         resetCamera()
         false
       case Key.Q if modifiers.ctrl =>
-        // scalafix:off DisableSyntax.null
-        if Gdx.app != null then Gdx.app.exit()
-        // scalafix:on DisableSyntax.null
+        GdxRuntime.exit()
         true
       case _ => false
 
   override protected def handleKeyRelease(key: Key, modifiers: ModifierState): Boolean =
     key match
       case Key.Left | Key.Right | Key.Up | Key.Down | Key.PageUp | Key.PageDown =>
-        rotatePressed = rotatePressed.updated(key, false)
+        rotatePressed.release(key)
         false
       case _ => false
 
@@ -58,7 +54,7 @@ class GdxKeyHandler(
    * Must be called from render loop.
    */
   def update(deltaTime: Float): Unit =
-    if rotatePressed.values.exists(identity) then
+    if rotatePressed.anyPressed then
       if !(modifierState.shift || modifierState.ctrl || modifierState.alt) then
         onNoModifiersPressed(deltaTime)
       else if modifierState.shift then
@@ -91,7 +87,7 @@ class GdxKeyHandler(
   )
 
   private def angle(delta: Float, keys: Seq[Key]): Float =
-    delta * rotateAngle * keys.find(rotatePressed).map(factor(_)).getOrElse(0)
+    delta * rotateAngle * keys.find(rotatePressed.isPressed).map(factor(_)).getOrElse(0)
 
   private def resetCamera(): Unit =
     camera.position.set(defaultPos)
