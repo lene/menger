@@ -1,7 +1,7 @@
 # Menger User Guide
 
-**Version**: 0.4.2
-**Last Updated**: January 2026
+**Version**: 0.5.1
+**Last Updated**: February 2026
 
 Welcome to the Menger User Guide! This comprehensive guide will help you install, use, and master the Menger 3D/4D visualization and ray tracing tool.
 
@@ -88,6 +88,7 @@ The project extends this concept to four dimensions with **tesseract sponges**, 
   - Material presets (glass, water, diamond, metals, plastics)
   - Custom material parameters (IOR, roughness, metallic, specular)
   - Texture mapping support (PNG/JPEG)
+  - **Thin-film interference**: iridescent materials (soap bubbles, oil slicks) with `film-thickness=NM`
 
 - **Realistic Lighting**
   - Multiple light sources (up to 8)
@@ -360,10 +361,10 @@ When running in OptiX mode, use these controls:
 - **Scroll Wheel**: Zoom in/out
 
 **Keyboard Shortcuts:**
-- **ESC**: Exit application
+- **ESC**: Reset 4D view to initial state (rotation and projection)
 - **Ctrl + Q**: Exit application
 
-**4D Rotation (Tesseract/4D objects - NEW!):**
+**4D Rotation (Tesseract/4D objects):**
 
 *Keyboard Controls:*
 - **Shift + LEFT/RIGHT arrows**: Rotate tesseract in XW plane
@@ -375,7 +376,10 @@ When running in OptiX mode, use these controls:
 - **Shift + Left Drag (vertical)**: Rotate tesseract in YW plane
 - **Shift + Right Drag (vertical)**: Rotate tesseract in ZW plane
 
-**Note**: In OptiX mode, 4D rotation triggers a scene rebuild and re-render. Each rotation takes 1-2 seconds depending on complexity. The tesseract will visibly change shape as it rotates through 4D space.
+**4D Projection Adjustment:**
+- **Shift + Scroll Wheel**: Adjust the 4D eye distance (`eyeW`). Scroll up = move the 4D viewpoint further away (flatter projection); scroll down = move closer (more perspective distortion).
+
+**Note**: In OptiX mode, 4D rotation and projection changes trigger a scene rebuild and re-render. The tesseract will visibly change shape as it rotates through 4D space.
 
 ---
 
@@ -513,10 +517,13 @@ Control the 4D→3D projection:
 --projection-screen-w 1.0    # Distance to projection screen in W dimension
 --projection-eye-w 3.0       # Eye position in W dimension
 
-# Rotate in 4D space
+# Rotate in 4D space (individual axes)
 --rot-x-w 45                 # Rotate around XW plane (degrees)
 --rot-y-w 30                 # Rotate around YW plane
 --rot-z-w 15                 # Rotate around ZW plane
+
+# Compact shorthand for all three 4D rotation angles at once
+--rotation-4d 45,30,15       # XW,YW,ZW in degrees (mutually exclusive with --rot-x-w/y-w/z-w)
 ```
 
 ### 5.3 Fractional Levels
@@ -569,10 +576,36 @@ material=metal               # Generic brushed metal
 material=plastic             # Matte plastic
 material=matte               # Non-reflective matte surface
 
-# Translucent materials
-material=film                # Thin translucent film
+# Translucent / interference materials
+material=film                # Thin-film interference (500 nm default; iridescent rainbow colors)
 material=parchment           # Translucent paper-like surface
 ```
+
+**Thin-Film Interference (`film-thickness=NM`):**
+
+The `film` preset and any material can have a `film-thickness` parameter (nanometers) that enables
+physically-based thin-film interference — the same optical effect as soap bubbles and oil slicks.
+The color shifts with both thickness and viewing angle (angle of incidence).
+
+```bash
+# Film preset with default thickness (500 nm → green constructive interference)
+--objects 'type=sphere:material=film'
+
+# Explicit thickness values (different dominant colors)
+--objects 'type=sphere:material=film:film-thickness=300'   # ~violet/blue
+--objects 'type=sphere:material=film:film-thickness=500'   # ~green
+--objects 'type=sphere:material=film:film-thickness=700'   # ~red/orange
+
+# Oil-slick coating over another material
+--objects 'type=sphere:material=chrome:film-thickness=400'
+```
+
+| Thickness (nm) | Dominant color at normal incidence |
+|---------------|------------------------------------|
+| 200–300       | Violet / blue                      |
+| 400–500       | Green                              |
+| 550–650       | Yellow / orange                    |
+| 650–750       | Red                                |
 
 **Usage with `--objects` flag:**
 ```bash
@@ -1976,7 +2009,7 @@ Contributions are welcome! The project follows functional programming principles
 
 ### 10.2 Keyboard Shortcuts
 
-**Interactive Mode (LibGDX) Only:**
+**LibGDX Mode:**
 
 | Key | Action |
 |-----|--------|
@@ -1987,13 +2020,35 @@ Contributions are welcome! The project follows functional programming principles
 | W | Toggle wireframe mode |
 | F | Toggle fullscreen |
 
-**Mouse Controls:**
+**LibGDX Mouse Controls:**
 
 | Action | Effect |
 |--------|--------|
 | Left Click + Drag | Rotate around X/Y axes |
 | Right Click + Drag | Rotate around Z axis |
 | Scroll Wheel | Zoom in/out |
+
+**OptiX Mode:**
+
+| Key | Action |
+|-----|--------|
+| ESC | Reset 4D view to initial state |
+| Ctrl + Q | Exit application |
+| Shift + Left/Right arrows | Rotate 4D object in XW plane |
+| Shift + Up/Down arrows | Rotate 4D object in YW plane |
+| Shift + Page Up/Down | Rotate 4D object in ZW plane |
+
+**OptiX Mouse Controls:**
+
+| Action | Effect |
+|--------|--------|
+| Left Click + Drag | Rotate camera |
+| Right Click + Drag | Pan camera |
+| Scroll Wheel | Zoom in/out |
+| Shift + Left Drag (horizontal) | Rotate 4D object in XW plane |
+| Shift + Left Drag (vertical) | Rotate 4D object in YW plane |
+| Shift + Right Drag (vertical) | Rotate 4D object in ZW plane |
+| Shift + Scroll Wheel | Adjust 4D projection eye distance (eyeW) |
 
 ### 10.3 File Formats
 

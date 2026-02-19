@@ -129,6 +129,32 @@ This section documents significant architectural decisions. Detailed implementat
 
 ---
 
+### AD-7: libGDX Wrapper Layer (`menger.gdx`)
+
+**Status:** Accepted
+**Date:** 2026-02
+
+**Context:** LibGDX requires mutable state (`var` fields, `null` initialization) for camera objects, input tracking, and lifecycle management. This conflicted with the project's functional Scala style (Wartremover enforces no `var`/`null` outside wrappers).
+
+**Decision:** Introduce `menger.gdx` as the sole package permitted to hold `var` and `null` for libGDX concerns. All Scala code outside this package interacts with immutable values and `Option[T]` instead of nullable references.
+
+**Wrapper classes:**
+- `GdxRuntime` — `Gdx.app` exit, rendering requests
+- `KeyPressTracker` — Shift/Ctrl/Alt modifier state as `Boolean` vals
+- `DragTracker` — mouse drag delta as immutable `(Float, Float)` snapshots
+- `OrbitCamera` — spherical orbit math wrapping mutable libGDX `Vector3`
+
+**Rationale:**
+- Single, auditable boundary for mutability; easy to find all `var`s
+- Input handlers and engines stay pure; testable without a running libGDX context
+- Consistent with project rule: `var` only at necessary system boundaries
+
+**Consequences:**
+- Small overhead of wrapper delegation (negligible at interactive frame rates)
+- New libGDX features must first be wrapped before use in non-`menger.gdx` code
+
+---
+
 ## 9.2 Sprint-Level Decisions
 
 Detailed implementation decisions are documented in sprint planning documents and code review files.
@@ -140,6 +166,11 @@ Decisions to be made in upcoming sprints:
 
 | Sprint | Topic | Options |
 |--------|-------|---------|
-| 8-10 | 4D projection method | Perspective vs orthographic vs cross-section |
-| 11 | Scene file format | YAML vs JSON vs custom DSL |
 | 12-13 | Animation keyframe format | Linear vs Bezier interpolation |
+
+### Resolved Future Decisions
+
+| Sprint | Topic | Decision |
+|--------|-------|----------|
+| 8-10 | 4D projection method | Perspective projection (implemented in `RotatedProjection`) |
+| 11 | Scene file format | Scala DSL (implemented in Sprint 10; Sprint 11 used existing DSL) |

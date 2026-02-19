@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+- **Scala libGDX Wrapper** (`menger.gdx`) — all `var` and `null` for libGDX confined to a dedicated wrapper layer; non-wrapper Scala code uses `val` and `Option` throughout
+  - `GdxRuntime` — lifecycle and exit; `KeyPressTracker` — Shift/Ctrl state; `DragTracker` — mouse drag delta; `OrbitCamera` — spherical camera orbit
+  - Input handlers (`GdxKeyHandler`, `GdxCameraHandler`, `OptiXKeyHandler`, `OptiXCameraHandler`) rewritten to delegate all mutable state to the wrapper
+- **4D Framework Enhancements**
+  - Shift+Scroll adjusts 4D projection distance (`eyeW`) interactively in OptiX mode
+  - ESC resets the 4D view (rotation and projection) to its initial state without affecting the 3D camera
+  - `--rotation-4d=XW,YW,ZW` CLI shorthand — specifies all three 4D rotation angles in a single option; mutually exclusive with `--rot-x-w`/`--rot-y-w`/`--rot-z-w`
+
 ## [0.5.1] - 2026-02-19
 
 ### Added

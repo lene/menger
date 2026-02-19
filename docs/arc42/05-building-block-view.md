@@ -39,6 +39,11 @@ menger-app/src/main/scala/
     ├── OptiXRenderResources.scala    # OptiX renderer lifecycle
     ├── cli/                          # CLI types and converters
     ├── config/                       # Configuration classes
+    ├── gdx/                          # LibGDX wrapper layer (all var/null isolated here)
+    │   ├── GdxRuntime.scala          # Lifecycle and exit
+    │   ├── KeyPressTracker.scala     # Shift/Ctrl/Alt modifier state
+    │   ├── DragTracker.scala         # Mouse drag delta tracking
+    │   └── OrbitCamera.scala        # Spherical camera orbit (wraps mutable Vector3)
     └── engines/
         ├── MengerEngine.scala        # Abstract base, geometry factory
         ├── InteractiveMengerEngine.scala  # Interactive mode
@@ -144,15 +149,16 @@ optix-jni/
 
 ```
 menger.input/  (in menger-app)
-├── EventDispatcher           # Publishes rotation/projection events
-├── BaseKeyController         # Abstract keyboard input handler
-├── GdxKeyController          # LibGDX keyboard controls
-├── OptiXKeyController        # OptiX window keyboard controls
-├── GdxCameraController       # Camera movement (LibGDX)
-├── OptiXCameraController     # Camera control (OptiX window)
+├── EventDispatcher           # Publishes rotation/projection/eyeW events
+├── InputHandler              # Abstract base keyboard+mouse handler
+├── KeyHandler                # Abstract keyboard handler (uses KeyPressTracker from menger.gdx)
+├── GdxKeyHandler             # LibGDX keyboard controls (3D rotation, zoom)
+├── OptiXKeyHandler           # OptiX keyboard: 4D rotation, ESC resets 4D view
+├── GdxCameraHandler          # Camera movement (LibGDX)
+├── OptiXCameraHandler        # Camera + 4D controls: Shift+Scroll adjusts eyeW
 ├── SphericalOrbit            # Spherical camera orbit logic
 ├── MengerInputMultiplexer    # Combines LibGDX input processors
 └── OptiXInputMultiplexer     # Combines OptiX input processors
 ```
 
-**Pattern:** Observer pattern for 4D parameter changes. Geometry objects subscribe to EventDispatcher.
+**Pattern:** Observer pattern for 4D parameter changes. `EventDispatcher` notifies geometry objects of `RotationProjectionParameters` changes (rotation angles and `eyeW`). All mutable state (`var`, `null`) is delegated to `menger.gdx` wrapper classes.
