@@ -3,6 +3,7 @@ package menger.cli
 import com.typesafe.scalalogging.Logger
 import menger.AnimationSpecificationSequence
 import menger.ObjectSpec
+import menger.cli.converters.ConverterUtils
 import menger.common.Const
 import org.rogach.scallop.ScallopConf
 import org.rogach.scallop.ScallopOption
@@ -64,9 +65,9 @@ trait CliValidation:
       else Left("eyeW must be greater than screenW")
     }
     validateOpt(fourDRotation) { rot =>
-      rot.map(parseFourDRotationValues).getOrElse(Right((0f, 0f, 0f))).map(_ => ())
+      rot.map(ConverterUtils.parseFourDRotation).getOrElse(Right((0f, 0f, 0f))).map(_ => ())
     }
-    validateOpt(fourDRotation, rotXW, rotYW, rotZW) { (rot4D, _, _, _) =>
+    validateOpt(fourDRotation) { rot4D =>
       if rot4D.isDefined && (rotXW.isSupplied || rotYW.isSupplied || rotZW.isSupplied) then
         Left("--rotation-4d cannot be combined with --rot-x-w, --rot-y-w, or --rot-z-w")
       else Right(())
@@ -83,7 +84,7 @@ trait CliValidation:
       else
         val (effectiveXW, effectiveYW, effectiveZW) =
           if fourDRotation.isSupplied then
-            parseFourDRotationValues(fourDRotation()).getOrElse((0f, 0f, 0f))
+            ConverterUtils.parseFourDRotation(fourDRotation()).getOrElse((0f, 0f, 0f))
           else
             (xw.getOrElse(0f), yw.getOrElse(0f), zw.getOrElse(0f))
         if spec.get.hasRotationAxisConflict(
@@ -157,7 +158,7 @@ trait CliValidation:
     }
 
     validateOpt(maxInstances, optix) { (_, ox) =>
-      requiresParent("max-instances", maxInstances.isSupplied, "optix", ox.getOrElse(false))
+      requires("max-instances", maxInstances.isSupplied, "optix", ox.getOrElse(false))
     }
 
   private def registerAntialiasingValidations(): Unit =
@@ -166,11 +167,11 @@ trait CliValidation:
     }
 
     validateOpt(aaMaxDepth, antialiasing) { (_, aa) =>
-      requiresParent("aa-max-depth", aaMaxDepth.isSupplied, "antialiasing", aa.getOrElse(false))
+      requires("aa-max-depth", aaMaxDepth.isSupplied, "antialiasing", aa.getOrElse(false))
     }
 
     validateOpt(aaThreshold, antialiasing) { (_, aa) =>
-      requiresParent("aa-threshold", aaThreshold.isSupplied, "antialiasing", aa.getOrElse(false))
+      requires("aa-threshold", aaThreshold.isSupplied, "antialiasing", aa.getOrElse(false))
     }
 
   private def registerCausticsValidations(): Unit =
@@ -179,21 +180,19 @@ trait CliValidation:
     }
 
     validateOpt(causticsPhotons, caustics) { (_, c) =>
-      requiresParent("caustics-photons", causticsPhotons.isSupplied, "caustics", c.getOrElse(false))
+      requires("caustics-photons", causticsPhotons.isSupplied, "caustics", c.getOrElse(false))
     }
 
     validateOpt(causticsIterations, caustics) { (_, c) =>
-      requiresParent(
-        "caustics-iterations", causticsIterations.isSupplied, "caustics", c.getOrElse(false)
-      )
+      requires("caustics-iterations", causticsIterations.isSupplied, "caustics", c.getOrElse(false))
     }
 
     validateOpt(causticsRadius, caustics) { (_, c) =>
-      requiresParent("caustics-radius", causticsRadius.isSupplied, "caustics", c.getOrElse(false))
+      requires("caustics-radius", causticsRadius.isSupplied, "caustics", c.getOrElse(false))
     }
 
     validateOpt(causticsAlpha, caustics) { (_, c) =>
-      requiresParent("caustics-alpha", causticsAlpha.isSupplied, "caustics", c.getOrElse(false))
+      requires("caustics-alpha", causticsAlpha.isSupplied, "caustics", c.getOrElse(false))
     }
 
   private def hasConflictingColorOptions: Boolean =
@@ -234,31 +233,6 @@ trait CliValidation:
 
   private def requiresOptix[T](flagName: String, optionValue: Option[T]): Either[String, Unit] =
     requires(flagName, optionValue.isDefined, "optix", optix())
-
-  private def requiresParent(
-    optionName: String,
-    isSupplied: Boolean,
-    parentName: String,
-    parentEnabled: Boolean
-  ): Either[String, Unit] =
-    requires(optionName, isSupplied, parentName, parentEnabled)
-
-  protected def parseFourDRotationValues(s: String): Either[String, (Float, Float, Float)] =
-    val parts = s.split(",").map(_.trim)
-    if parts.length != 3 then
-      Left(s"--rotation-4d must be XW,YW,ZW (three comma-separated degrees, e.g., 30,20,0), got: '$s'")
-    else
-      val results = parts.map { p =>
-        try Right(p.toFloat)
-        catch case _: NumberFormatException => Left(p)
-      }
-      results.find(_.isLeft) match
-        case Some(Left(bad)) => Left(s"--rotation-4d: '$bad' is not a valid number")
-        case _ =>
-          val floats = results.collect { case Right(f) => f }
-          if floats.exists(f => f < 0 || f >= 360) then
-            Left("--rotation-4d values must each be in range [0, 360)")
-          else Right((floats(0), floats(1), floats(2)))
 
   private def registerHeadlessValidations(): Unit =
     validateOpt(headless, saveName) { (h, s) =>

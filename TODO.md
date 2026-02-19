@@ -6,6 +6,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 - coverage uses old coverage percentage as reference
 - optimize pre-push hook execution time by parallelization - first analyze bottlenecks, then consider parallelizing
 - rotation of objects in 3D, possibly full transform (position, rotation, scale)
+- test which opens libGDX window (GeometrySuite): remove
 - Camera animation (path following)
 - Light animation
 - Property animation (colors, IOR, etc.)

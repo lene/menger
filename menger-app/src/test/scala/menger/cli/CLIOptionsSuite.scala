@@ -123,6 +123,10 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     an [ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--rotation-4d", "30,20,0", "--rot-z-w", "10"))
 
+  it should "be invalid when combined with all three individual 4D rotation flags" in:
+    an [ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq("--rotation-4d", "30,20,10", "--rot-x-w", "5", "--rot-y-w", "5", "--rot-z-w", "5"))
+
   it should "be invalid if fewer than 3 components" in:
     an [ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--rotation-4d", "30,20"))
@@ -138,6 +142,10 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
   it should "be invalid if a component is >= 360" in:
     an [ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--rotation-4d", "30,360,0"))
+
+  it should "accept 359.9 as valid maximum boundary value" in:
+    val opts = SafeMengerCLIOptions(Seq("--rotation-4d", "359.9,359.9,359.9"))
+    opts.effectiveRotXW shouldEqual 359.9f
 
   it should "be invalid if a component is negative" in:
     an [ScallopException] should be thrownBy

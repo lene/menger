@@ -27,14 +27,4 @@ design, and understanding of animation systems.
 
   ---
 
-  My Recommendation:
-
-  The Scala wrapper for libGDX (task #1) would benefit the most from Opus 4.6. It's a
-large-scale architectural refactoring that requires:
-  - Systematic analysis of the entire codebase
-  - Sophisticated architectural decision-making
-  - Understanding functional programming principles deeply
-  - Careful planning to avoid breaking existing functionality
-
-  This is the kind of "think deeply about the whole system" task where Opus 4.6's advanced reasoning
-would shine.
+# 3. Debug and fix caustics

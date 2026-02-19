@@ -8,6 +8,7 @@ import menger.cli.CliValidation
 import menger.cli.LightSpec
 import menger.cli.PlaneColorSpec
 import menger.cli.PlaneSpec
+import menger.cli.converters.ConverterUtils
 import menger.cli.converters.animationSpecificationSequenceConverter
 import menger.cli.converters.colorConverter
 import menger.cli.converters.lightSpecConverter
@@ -196,7 +197,7 @@ class MengerCLIOptions(arguments: Seq[String])
   // Validation has already run by the time these accessors are called, so the
   // parse result is guaranteed to be Right if fourDRotation.isSupplied.
   private lazy val parsedFourDRotation: Option[(Float, Float, Float)] =
-    fourDRotation.toOption.map(parseFourDRotationValues(_).getOrElse((0f, 0f, 0f)))
+    fourDRotation.toOption.map(ConverterUtils.parseFourDRotation(_).getOrElse((0f, 0f, 0f)))
 
   def effectiveRotXW: Float = parsedFourDRotation.map(_._1).getOrElse(rotXW())
   def effectiveRotYW: Float = parsedFourDRotation.map(_._2).getOrElse(rotYW())
