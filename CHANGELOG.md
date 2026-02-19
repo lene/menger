@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-02-19
+
+### Added
+- **Thin-Film Interference** — physically-based iridescent materials (soap bubbles, oil slicks)
+  - Airy reflectance formula with 16-sample CIE 1931 XYZ spectral integration (380–780 nm)
+  - `film-thickness=NM` CLI parameter on any object; applied per-wavelength for RGB iridescence
+  - `material=film` preset: IOR 1.33, 500 nm (constructive interference at green), 20% transparency
+  - Coated materials: combine any material with `film-thickness=NM` for oil-slick effects
+  - `FilmSphere` DSL example scene: three spheres at 300 nm (violet), 500 nm (green), 700 nm (red)
+  - 8 GPU integration tests in `FilmRenderSuite`; 8 CLI scenarios in `integration-tests.sh`
+
 ## [0.5.0] - 2026-02-18
 
 ### Added
