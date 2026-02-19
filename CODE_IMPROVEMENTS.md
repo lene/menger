@@ -2,6 +2,39 @@
 
 ---
 
+## Assessment (2026-02-19) — LibGDX Wrapper Layer (Sprint 11.1)
+
+**Date:** 2026-02-19
+**Branch:** feature/sprint-11
+**Focus:** menger.gdx wrapper package + refactored input handlers
+**Overall Grade:** A-
+
+### Summary
+
+The LibGDX wrapper refactoring is well-executed: all `var` and `null` now live only in `menger.gdx.*` and `InputHandler.scala`. The new wrapper classes (GdxRuntime, KeyPressTracker, DragTracker, OrbitCamera) are minimal and focused. One style issue was fixed during the assessment (AtomicReference import). Several medium issues remain for future sprints.
+
+### Resolved This Session
+- **STYLE**: `OptiXEngine.scala` used fully-qualified `java.util.concurrent.atomic.AtomicReference` — fixed by adding import.
+
+### Issues Found
+
+**MEDIUM — M1: Duplication between GdxKeyHandler and OptiXKeyHandler**
+Both files contain identical `factor` Map and `angle()` calculation. Could be extracted to a shared location (e.g., a companion object or `KeyRotationCalc` helper). Left as-is since both classes already use `KeyPressTracker` from `menger.gdx` which eliminated the larger duplication.
+
+**MEDIUM — M2: `MouseButton.toGdxButton` extension method in GdxCameraHandler**
+The conversion logic belongs in `LibGDXConverters`, not in a handler class. Pre-existing issue, not introduced by this sprint.
+
+**LOW — L1: OrbitCamera has 5 separate `@SuppressWarnings(Var)` annotations**
+Could consolidate eye/lookAt/up/spherical into one case class with a single var. The current approach is clear and explicit; consolidation would be a minor aesthetic improvement only.
+
+**LOW — L2: `KeyHandler.modifierState` var is still in the base trait**
+This is explicitly out of scope per the plan ("Out of scope: modifierState var in InputHandler.scala — pure domain state, not libGDX-related"), but worth noting for a future cleanup sprint.
+
+**LOW — L3: `DragTracker._origin` uses underscore prefix**
+Scala convention would allow just `private var origin` with an exposure approach, but the current `_origin`/`origin` pattern is unambiguous and harmless.
+
+---
+
 ## Assessment (2026-02-19) — Thin-Film Interference (Sprint 11.2)
 
 **Date:** 2026-02-19

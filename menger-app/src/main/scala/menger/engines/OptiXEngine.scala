@@ -1,5 +1,7 @@
 package menger.engines
 
+import java.util.concurrent.atomic.AtomicReference
+
 import scala.util.Failure
 import scala.util.Try
 
@@ -66,11 +68,11 @@ class OptiXEngine(
 
   // Mutable state for current object specs (for interactive rotation updates)
   private val currentObjectSpecs =
-    new java.util.concurrent.atomic.AtomicReference[Option[List[ObjectSpec]]](Some(objectSpecs))
+    new AtomicReference[Option[List[ObjectSpec]]](Some(objectSpecs))
 
   // Keyboard handler for 4D rotation (initialized in finalizeCreate)
   // Using AtomicReference to avoid var
-  private val keyHandler = new java.util.concurrent.atomic.AtomicReference[Option[OptiXKeyHandler]](None)
+  private val keyHandler = new AtomicReference[Option[OptiXKeyHandler]](None)
 
   // Track if we have 4D projected objects (need rebuild on rotation)
   private lazy val has4DObjects: Boolean =
