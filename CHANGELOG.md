@@ -5,7 +5,10 @@
 ### Added
 - **Scala libGDX Wrapper** (`menger.gdx`) — all `var` and `null` for libGDX confined to a dedicated wrapper layer; non-wrapper Scala code uses `val` and `Option` throughout
   - `GdxRuntime` — lifecycle and exit; `KeyPressTracker` — Shift/Ctrl state; `DragTracker` — mouse drag delta; `OrbitCamera` — spherical camera orbit
+  - `ModelFactory` — abstraction for LibGDX model creation with `LibGDXModelFactory` (production) and `MockModelFactory` (testing without LibGDX initialization)
   - Input handlers (`GdxKeyHandler`, `GdxCameraHandler`, `OptiXKeyHandler`, `OptiXCameraHandler`) rewritten to delegate all mutable state to the wrapper
+  - `Builder` uses dependency-injected `ModelFactory` instead of direct `ModelBuilder` instantiation
+  - 17 model caching tests in `ModelFactorySuite` running without LibGDX/LWJGL window creation
 - **4D Framework Enhancements**
   - Shift+Scroll adjusts 4D projection distance (`eyeW`) interactively in OptiX mode
   - ESC resets the 4D view (rotation and projection) to its initial state without affecting the 3D camera
