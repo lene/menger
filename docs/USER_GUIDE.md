@@ -134,7 +134,7 @@ sbt compile
 sbt run
 
 # Or render a glass sphere with OptiX (high quality)
-sbt "run --optix --object sphere --ior 1.5 --radius 1.5"
+sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5'"
 ```
 
 See the interactive window open with a rotating Menger sponge, or wait a few seconds for a ray-traced sphere to render!
@@ -235,7 +235,7 @@ export __GL_THREADED_OPTIMIZATIONS=0
 xvfb-run sbt test
 
 # Quick render test
-sbt "run --optix --object sphere --timeout 0.5"
+sbt "run --optix --objects 'type=sphere' --timeout 0.5"
 ```
 
 If all tests pass, you're ready to go!
@@ -258,7 +258,7 @@ sbt "run --option1 value1 --option2 value2"
 # Examples
 sbt "run --level 2"                          # Level 2 sponge
 sbt "run --width 1920 --height 1080"        # HD resolution
-sbt "run --optix --object sphere"            # Ray-traced sphere
+sbt "run --optix --objects 'type=sphere'    # Ray-traced sphere
 ```
 
 **Important**: Always quote the entire command after `run` when using options.
@@ -300,7 +300,7 @@ sbt "run --optix --object sphere"            # Ray-traced sphere
 
 ```bash
 --optix                      # Enable OptiX ray tracing
---object <type>              # Object to render (sphere, cube, sponge-volume, sponge-surface)
+--object <type>              # DEPRECATED: Use --objects instead
 --radius <float>             # Object radius (default: 1.0)
 --scale <float>              # Object scale factor (default: 1.0)
 --center <x,y,z>             # Object center position
@@ -442,10 +442,10 @@ OptiX mode uses NVIDIA's ray tracing engine for physically-based rendering with 
 **Example:**
 ```bash
 # Glass sphere with refraction
-sbt "run --optix --object sphere --ior 1.5 --radius 1.5"
+sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5'"
 
 # High-quality Menger sponge with shadows and antialiasing
-sbt "run --optix --object sponge-surface --level 2 \
+sbt "run --optix --objects 'type=sponge-surface:level=2' \
     --shadows --antialiasing --plane-color ffffff:808080"
 ```
 
@@ -457,32 +457,32 @@ sbt "run --optix --object sponge-surface --level 2 \
 
 #### Basic Primitives
 
-**Sphere** (`--object sphere`)
+**Sphere** (`--objects 'type=sphere'`)
 - Perfect sphere primitive
 - Supports all material properties
 - Fast rendering
-- Example: `sbt "run --optix --object sphere --radius 1.5"`
+- Example: `sbt "run --optix --objects 'type=sphere:size=1.5'"`
 
-**Cube** (`--object cube`)
+**Cube** (`--objects 'type=cube'`)
 - Triangle mesh cube
 - Supports textures and all materials
-- Example: `sbt "run --optix --object cube --radius 0.5"`
+- Example: `sbt "run --optix --objects 'type=cube:size=0.5'"`
 
 #### Menger Sponges
 
-**Surface Subdivision** (`--sponge-type square-sponge` or `--object sponge-surface`)
+**Surface Subdivision** (`--sponge-type square-sponge` or `--objects 'type=sponge-surface'`)
 - Generates only the outer surface
 - Computational complexity: O(12^n)
 - Higher detail, suitable for levels 0-6
 - No internal faces (efficient for ray tracing)
 - Example: `sbt "run --sponge-type square-sponge --level 3"`
 
-**Volume Subdivision** (`--sponge-type cube-sponge` or `--object sponge-volume`)
+**Volume Subdivision** (`--sponge-type cube-sponge` or `--objects 'type=sponge-volume'`)
 - Generates cube instances
 - Computational complexity: O(20^n)
 - Uses Instance Acceleration Structure (IAS)
 - Efficient for high levels (5+) in OptiX mode
-- Example: `sbt "run --optix --object sponge-volume --level 5"`
+- Example: `sbt "run --optix --objects 'type=sponge-volume:level=5'"`
 
 **Which to use?**
 - **Surface subdivision**: Better for low to medium levels (0-4), more geometric detail, works in both modes
@@ -699,7 +699,7 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
 
 ```bash
 # Three-point lighting setup
-sbt "run --optix --object sphere \
+sbt "run --optix --objects 'type=sphere' \
     --light directional:-1,1,-1:1.5 \          # Key light
     --light directional:1,0.5,-1:0.5:8080ff \  # Fill light (blue)
     --light point:0,3,2:0.8:ffffff"             # Rim light
@@ -710,7 +710,7 @@ sbt "run --optix --object sphere \
 Enable shadow rays for realistic shadows:
 
 ```bash
-sbt "run --optix --object sphere \
+sbt "run --optix --objects 'type=sphere' \
     --shadows \
     --light directional:-1,1,-1"
 ```
@@ -795,7 +795,7 @@ After generating frames, use ffmpeg to create a video:
 
 ```bash
 # Generate frames
-sbt "run --optix --object sphere --level 2 \
+sbt "run --optix --objects 'type=sphere' --level 2 \
     --save-name frame%03d.png --animate frames=36:rot-y=0-360 \
     --timeout 0.5"
 
@@ -822,20 +822,20 @@ Caustics are the patterns of light focused through transparent refractive object
 **Basic Caustics:**
 ```bash
 # Glass sphere with caustics
-sbt "run --optix --object sphere --ior 1.5 --caustics"
+sbt "run --optix --objects 'type=sphere:ior=1.5' --caustics"
 ```
 
 **High-Quality Caustics:**
 ```bash
 # More photons and iterations for better quality
-sbt "run --optix --object sphere --ior 1.5 \
+sbt "run --optix --objects 'type=sphere:ior=1.5' \
     --caustics --caustics-photons 500000 --caustics-iterations 50"
 ```
 
 **Caustics with Complex Geometry:**
 ```bash
 # Menger sponge with caustics (computationally intensive!)
-sbt "run --optix --object sponge-surface --level 2 \
+sbt "run --optix --objects 'type=sponge-surface:level=2' \
     --ior 1.5 --caustics --caustics-photons 200000"
 ```
 
@@ -883,14 +883,14 @@ OptiX mode uses recursive adaptive antialiasing that samples more heavily at edg
 **Examples:**
 ```bash
 # Standard quality
-sbt "run --optix --object sphere --antialiasing"
+sbt "run --optix --objects 'type=sphere' --antialiasing"
 
 # High quality (more recursion)
-sbt "run --optix --object sphere \
+sbt "run --optix --objects 'type=sphere' \
     --antialiasing --aa-max-depth 4 --aa-threshold 0.05"
 
 # Fast AA (less sensitive edge detection)
-sbt "run --optix --object sphere \
+sbt "run --optix --objects 'type=sphere' \
     --antialiasing --aa-max-depth 2 --aa-threshold 0.2"
 ```
 
@@ -1442,34 +1442,34 @@ Let's create a simple glass sphere with nice lighting.
 
 **Step 1: Basic sphere**
 ```bash
-sbt "run --optix --object sphere"
+sbt "run --optix --objects 'type=sphere'"
 ```
 
 **Step 2: Make it glass**
 ```bash
-sbt "run --optix --object sphere --ior 1.5"
+sbt "run --optix --objects 'type=sphere:ior=1.5'"
 ```
 
 **Step 3: Make it bigger**
 ```bash
-sbt "run --optix --object sphere --ior 1.5 --radius 1.5"
+sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5'"
 ```
 
 **Step 4: Add shadows**
 ```bash
-sbt "run --optix --object sphere --ior 1.5 --radius 1.5 --shadows"
+sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' --shadows"
 ```
 
 **Step 5: Improve lighting**
 ```bash
-sbt "run --optix --object sphere --ior 1.5 --radius 1.5 --shadows \
+sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' --shadows \
     --light directional:-1,1,-1:1.5 \
     --light point:2,3,2:0.8:ffffff"
 ```
 
 **Step 6: Add antialiasing**
 ```bash
-sbt "run --optix --object sphere --ior 1.5 --radius 1.5 --shadows \
+sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' --shadows \
     --antialiasing \
     --light directional:-1,1,-1:1.5 \
     --light point:2,3,2:0.8:ffffff"
@@ -1477,7 +1477,7 @@ sbt "run --optix --object sphere --ior 1.5 --radius 1.5 --shadows \
 
 **Step 7: Save the image**
 ```bash
-sbt "run --optix --object sphere --ior 1.5 --radius 1.5 --shadows \
+sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' --shadows \
     --antialiasing --save-name my_first_sphere.png --timeout 10 \
     --light directional:-1,1,-1:1.5 \
     --light point:2,3,2:0.8:ffffff"
@@ -1491,7 +1491,7 @@ Glass requires careful attention to IOR, lighting, and scene setup.
 
 **Good Glass Setup:**
 ```bash
-sbt "run --optix --object sphere \
+sbt "run --optix --objects 'type=sphere' \
     --ior 1.5 \
     --radius 1.5 \
     --shadows \
@@ -1503,7 +1503,7 @@ sbt "run --optix --object sphere \
 
 **Glass Menger Sponge:**
 ```bash
-sbt "run --optix --object sponge-surface \
+sbt "run --optix --objects 'type=sponge-surface' \
     --level 2 \
     --ior 1.5 \
     --shadows \
@@ -1514,7 +1514,7 @@ sbt "run --optix --object sponge-surface \
 
 **Glass with Caustics:**
 ```bash
-sbt "run --optix --object sphere \
+sbt "run --optix --objects 'type=sphere' \
     --ior 1.5 --radius 1.5 \
     --caustics --caustics-photons 200000 --caustics-iterations 20 \
     --shadows --antialiasing \
@@ -1534,12 +1534,12 @@ Create a smooth 360° rotation animation.
 
 **Step 1: Test a single frame**
 ```bash
-sbt "run --optix --object sponge-surface --level 2"
+sbt "run --optix --objects 'type=sponge-surface:level=2'"
 ```
 
 **Step 2: Add good lighting and camera**
 ```bash
-sbt "run --optix --object sponge-surface --level 2 \
+sbt "run --optix --objects 'type=sponge-surface:level=2' \
     --camera-pos -2,1.5,-2 \
     --shadows \
     --light directional:-1,1,-1"
@@ -1547,7 +1547,7 @@ sbt "run --optix --object sponge-surface --level 2 \
 
 **Step 3: Create animation (36 frames = 10° per frame)**
 ```bash
-sbt "run --optix --object sponge-surface --level 2 \
+sbt "run --optix --objects 'type=sponge-surface:level=2' \
     --camera-pos -2,1.5,-2 \
     --shadows \
     --light directional:-1,1,-1 \
@@ -1558,7 +1558,7 @@ sbt "run --optix --object sponge-surface --level 2 \
 
 **Step 4: Add quality improvements**
 ```bash
-sbt "run --optix --object sponge-surface --level 2 \
+sbt "run --optix --objects 'type=sponge-surface:level=2' \
     --camera-pos -2,1.5,-2 \
     --shadows --antialiasing \
     --light directional:-1,1,-1:1.5 \
@@ -1804,13 +1804,13 @@ For a complete troubleshooting guide, see [TROUBLESHOOTING.md](TROUBLESHOOTING.m
 **2. Reduce Quality for Previews**
 ```bash
 # Fast preview (no AA, no shadows)
-sbt "run --optix --object sponge-surface --level 2"
+sbt "run --optix --objects 'type=sponge-surface:level=2'"
 
 # Medium quality (AA only)
-sbt "run --optix --object sponge-surface --level 2 --antialiasing"
+sbt "run --optix --objects 'type=sponge-surface:level=2' --antialiasing"
 
 # Full quality (AA + shadows)
-sbt "run --optix --object sponge-surface --level 2 --antialiasing --shadows"
+sbt "run --optix --objects 'type=sponge-surface:level=2' --antialiasing --shadows"
 ```
 
 **3. Use LibGDX for Exploration**
@@ -1819,17 +1819,17 @@ sbt "run --optix --object sponge-surface --level 2 --antialiasing --shadows"
 sbt "run --sponge-type square-sponge --level 2"
 
 # Then render final version with OptiX
-sbt "run --optix --object sponge-surface --level 2 --antialiasing --shadows"
+sbt "run --optix --objects 'type=sponge-surface:level=2' --antialiasing --shadows"
 ```
 
 **4. Limit Caustics Quality**
 ```bash
 # Fast caustics preview
-sbt "run --optix --object sphere --ior 1.5 \
+sbt "run --optix --objects 'type=sphere:ior=1.5' \
     --caustics --caustics-photons 50000 --caustics-iterations 5"
 
 # Production caustics
-sbt "run --optix --object sphere --ior 1.5 \
+sbt "run --optix --objects 'type=sphere:ior=1.5' \
     --caustics --caustics-photons 500000 --caustics-iterations 50"
 ```
 
@@ -1855,7 +1855,7 @@ xvfb-run sbt "run --optix ... --timeout 2.0"
 
 Check render statistics:
 ```bash
-sbt "run --optix --object sphere --stats"
+sbt "run --optix --objects 'type=sphere' --stats"
 ```
 
 This displays ray counts, intersection tests, and timing information.
@@ -1930,13 +1930,12 @@ Contributions are welcome! The project follows functional programming principles
 #### OptiX Core Options
 ```
 --optix                      Enable OptiX ray tracing
---object <type>              Object type: sphere, cube,
-                             sponge-volume, sponge-surface
---radius <float>             Object radius (default: 1.0)
---scale <float>              Object scale (default: 1.0)
---center <x,y,z>             Object center (default: 0,0,0)
---ior <float>                Index of refraction (default: 1.0)
---color <rrggbb[aa]>         Object color
+--object <type>              DEPRECATED: Use --objects instead
+--radius <float>             DEPRECATED: Use --objects 'type=...:size=...' instead
+--scale <float>              DEPRECATED: Use --objects 'type=...:size=...' instead
+--center <x,y,z>             DEPRECATED: Use --objects 'type=...:pos=x,y,z' instead
+--ior <float>                DEPRECATED: Use --objects 'type=...:ior=...' instead
+--color <rrggbb[aa]>         DEPRECATED: Use --objects 'type=...:color=...' instead
 ```
 
 #### OptiX Camera Options
@@ -2084,7 +2083,7 @@ ffmpeg -framerate 15 -i frame%03d.png -vf "scale=640:-1" output.gif
 ```bash
 # QUICK START
 sbt run                                    # Interactive mode
-sbt "run --optix --object sphere"          # Ray-traced sphere
+sbt "run --optix --objects 'type=sphere'"          # Ray-traced sphere
 
 # COMMON OPERATIONS
 sbt compile                                # Build project
@@ -2093,7 +2092,7 @@ sbt clean                                  # Clean build artifacts
 
 # BASIC RENDERS
 sbt "run --level 2"                        # Level 2 sponge (LibGDX)
-sbt "run --optix --object sphere --ior 1.5"    # Glass sphere
+sbt "run --optix --objects 'type=sphere:ior=1.5'"    # Glass sphere
 
 # QUALITY IMPROVEMENTS
 --shadows                                  # Add shadows
