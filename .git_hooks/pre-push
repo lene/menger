@@ -177,6 +177,7 @@ if [ "${SKIP_COVERAGE:-0}" != "1" ]; then
           fi
         else
           echo "Coverage: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+          echo "$STATEMENT_RATE" > "$BASELINE_FILE"
         fi
       fi
     else
