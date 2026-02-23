@@ -3,6 +3,7 @@ package menger.dsl
 import scala.annotation.targetName
 
 import menger.ObjectSpec
+import menger.Projection4DSpec
 import menger.common.ObjectType
 
 /** Base trait for all scene objects */
@@ -159,3 +160,124 @@ object Sponge:
 
 // Export SpongeType values for convenient imports
 export SpongeType.{VolumeFilling, SurfaceUnfolding, CubeSponge}
+
+
+/** Tesseract sponge type enumeration for DSL */
+enum TesseractSpongeType(val objectTypeName: String):
+  case VolumeRemoving extends TesseractSpongeType("tesseract-sponge-volume")
+  case SurfaceSubdividing extends TesseractSpongeType("tesseract-sponge-surface")
+
+/** Tesseract (4D hypercube) object */
+case class Tesseract(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec =
+    ObjectSpec(
+      objectType = "tesseract",
+      x = pos.x,
+      y = pos.y,
+      z = pos.z,
+      size = size,
+      level = None,
+      color = color.map(_.toCommonColor),
+      ior = material.map(_.ior).getOrElse(ior),
+      material = material.map(_.toOptixMaterial),
+      texture = texture,
+      projection4D = projection,
+      edgeRadius = edgeRadius,
+      edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
+    )
+
+object Tesseract:
+  // Material-only constructor (at origin)
+  def apply(material: Material): Tesseract =
+    Tesseract(pos = Vec3.Zero, material = Some(material))
+
+  // Position + material
+  def apply(pos: Vec3, material: Material): Tesseract =
+    Tesseract(pos, Some(material))
+
+  @targetName("tesseractPosMatSize")
+  def apply(pos: Vec3, material: Material, size: Float): Tesseract =
+    Tesseract(pos, Some(material), size = size)
+
+
+/** Tesseract sponge fractal object (4D) */
+case class TesseractSponge(
+  spongeType: TesseractSpongeType,
+  pos: Vec3 = Vec3.Zero,
+  level: Float,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None
+) extends SceneObject:
+  require(level >= 0f, s"Level must be non-negative, got $level")
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec =
+    ObjectSpec(
+      objectType = ObjectType.normalize(spongeType.objectTypeName),
+      x = pos.x,
+      y = pos.y,
+      z = pos.z,
+      size = size,
+      level = Some(level),
+      color = color.map(_.toCommonColor),
+      ior = material.map(_.ior).getOrElse(ior),
+      material = material.map(_.toOptixMaterial),
+      texture = texture,
+      projection4D = projection,
+      edgeRadius = edgeRadius,
+      edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
+    )
+
+object TesseractSponge:
+  // Type + level (at origin, no material)
+  def apply(spongeType: TesseractSpongeType, level: Float): TesseractSponge =
+    TesseractSponge(spongeType, Vec3.Zero, level)
+
+  // Type + level + material (at origin)
+  @targetName("tesseractSpongeTypeLevelMat")
+  def apply(spongeType: TesseractSpongeType, level: Float, material: Material): TesseractSponge =
+    TesseractSponge(spongeType, Vec3.Zero, level, Some(material))
+
+  // Type + level + material + size (at origin)
+  @targetName("tesseractSpongeTypeLevelMatSize")
+  def apply(spongeType: TesseractSpongeType, level: Float, material: Material, size: Float): TesseractSponge =
+    TesseractSponge(spongeType, Vec3.Zero, level, Some(material), size = size)
+
+  // Position + type + level
+  @targetName("tesseractSpongePosTypeLevel")
+  def apply(pos: Vec3, spongeType: TesseractSpongeType, level: Float): TesseractSponge =
+    TesseractSponge(spongeType, pos, level)
+
+  // Position + type + level + material
+  @targetName("tesseractSpongePosTypeLevelMat")
+  def apply(pos: Vec3, spongeType: TesseractSpongeType, level: Float, material: Material): TesseractSponge =
+    TesseractSponge(spongeType, pos, level, Some(material))
+
+  // Position + type + level + material + size
+  @targetName("tesseractSpongePosTypeLevelMatSize")
+  def apply(pos: Vec3, spongeType: TesseractSpongeType, level: Float, material: Material, size: Float): TesseractSponge =
+    TesseractSponge(spongeType, pos, level, Some(material), size = size)
+
+
+// Export TesseractSpongeType values for convenient imports
+export TesseractSpongeType.{VolumeRemoving, SurfaceSubdividing}

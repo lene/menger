@@ -14,4 +14,5 @@ object SceneIndex:
     CustomMaterials.scene,
     ComplexLighting.scene,
     ReusableComponents.scene,
+    TesseractDemo.scene,
   )
