@@ -21,7 +21,7 @@ case class Square(
     instance :: Nil
 
   lazy val model: Model =
-    Builder.modelBuilder.createRect(
+    Builder.modelFactory.createRect(
       -0.5f, -0.5f, 0,
       0.5f, -0.5f, 0,
       0.5f, 0.5f, 0,

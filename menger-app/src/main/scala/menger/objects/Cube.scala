@@ -43,9 +43,10 @@ object Cube:
   def model(material: Material, primitiveType: Int): Model =
     models.getOrElseUpdate(
       (material, primitiveType),
-      Builder.modelBuilder.createBox(
+      Builder.modelFactory.createBox(
         1f, 1f, 1f, primitiveType, material, Builder.DEFAULT_FLAGS
-      ))
+      )
+    )
   def numStoredModels: Int = models.size
 
 

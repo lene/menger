@@ -32,8 +32,9 @@ object Sphere:
   def model(divisions: Int, material: Material, primitiveType: Int): Model =
     models.getOrElseUpdate(
       (divisions, material, primitiveType),
-      Builder.modelBuilder.createSphere(
+      Builder.modelFactory.createSphere(
         1, 1, 1, 2 * divisions, divisions, material, Builder.DEFAULT_FLAGS
-    ))
+      )
+    )
 
   def numStoredModels: Int = models.size

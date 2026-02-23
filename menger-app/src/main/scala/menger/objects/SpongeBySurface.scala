@@ -78,12 +78,12 @@ class SpongeBySurface(
   lazy val faces: Seq[Face] = logTime("faces") { surfaces(Face(0, 0, 0, 1, Z)) }
 
   lazy val mesh: Model = logTime("mesh") {
-      Builder.modelBuilder.begin()
+      Builder.modelFactory.begin()
       faces.grouped(MeshBuilder.MAX_VERTICES / 4).foreach(facesPart =>
-        val meshBuilder = Builder.modelBuilder.part("sponge", primitiveType, Builder.DEFAULT_FLAGS, material)
+        val meshBuilder = Builder.modelFactory.part("sponge", primitiveType, Builder.DEFAULT_FLAGS, material)
         facesPart.foreach(face => meshBuilder.rect.tupled(face.vertices))
       )
-      Builder.modelBuilder.end()
+      Builder.modelFactory.end()
     }
 
   // Generate triangle mesh for all 6 cube faces

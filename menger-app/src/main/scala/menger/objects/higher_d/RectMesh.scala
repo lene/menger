@@ -7,10 +7,10 @@ import menger.objects.Builder
 
 trait RectMesh:
   def model(faces: Seq[QuadInfo], primitiveType: Int, material: Material): Model =
-    Builder.modelBuilder.begin()
+    Builder.modelFactory.begin()
     faces.grouped(MeshBuilder.MAX_VERTICES / 4).foreach(part => modelPart(part, primitiveType, material))
-    Builder.modelBuilder.end()
+    Builder.modelFactory.end()
 
   def modelPart(facesPart: Seq[QuadInfo], primitiveType: Int, material: Material): Unit =
-    val meshBuilder = Builder.modelBuilder.part("sponge", primitiveType, Builder.DEFAULT_FLAGS, material)
+    val meshBuilder = Builder.modelFactory.part("sponge", primitiveType, Builder.DEFAULT_FLAGS, material)
     facesPart.foreach(face => meshBuilder.rect(face.v0, face.v1, face.v2, face.v3))
