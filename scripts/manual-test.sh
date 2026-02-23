@@ -308,6 +308,16 @@ run_test "3D Volume vs Surface frac" "-o --objects type=sponge-volume:level=1.5:
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
 run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/57-caustics.png"
 
+# DSL Scenes
+echo -e "${YELLOW}--- DSL Scenes ---${NC}"
+run_test "DSL: SimpleScene" "-o --scene examples.dsl.SimpleScene -s $OUTPUT_DIR/90-dsl-simple.png"
+run_test "DSL: ThreeMaterials" "-o --scene examples.dsl.ThreeMaterials -s $OUTPUT_DIR/91-dsl-three-materials.png"
+run_test "DSL: GlassSphere" "-o --scene examples.dsl.GlassSphere -s $OUTPUT_DIR/92-dsl-glass-sphere.png"
+run_test "DSL: TesseractDemo" "-o --scene examples.dsl.TesseractDemo -s $OUTPUT_DIR/93-dsl-tesseract.png"
+run_test "DSL: FilmSphere" "-o --scene examples.dsl.FilmSphere -s $OUTPUT_DIR/94-dsl-film-sphere.png"
+run_test "DSL: SpongeShowcase" "-o --scene examples.dsl.SpongeShowcase -s $OUTPUT_DIR/95-dsl-sponge-showcase.png"
+run_test "DSL: MengerShowcase" "-o --scene examples.dsl.MengerShowcase -s $OUTPUT_DIR/96-dsl-menger-showcase.png"
+
 # Showcase
 echo -e "${YELLOW}--- Showcase ---${NC}"
 run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/58-showcase.png"
@@ -389,6 +399,17 @@ interactive_tests=(
     "3D Volume vs Surface frac:-o --objects type=sponge-volume:level=1.5:pos=-1.5,0,0 --objects type=sponge-surface:level=1.5:pos=1.5,0,0"
     "Colored lights:-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff"
     "Checkered plane:-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000"
+    "DSL: SimpleScene:-o --scene examples.dsl.SimpleScene"
+    "DSL: ThreeMaterials:-o --scene examples.dsl.ThreeMaterials"
+    "DSL: GlassSphere:-o --scene examples.dsl.GlassSphere"
+    "DSL: TesseractDemo:-o --scene examples.dsl.TesseractDemo"
+    "DSL: FilmSphere:-o --scene examples.dsl.FilmSphere"
+    "DSL: SpongeShowcase:-o --scene examples.dsl.SpongeShowcase"
+    "DSL: MengerShowcase:-o --scene examples.dsl.MengerShowcase"
+    "DSL: CausticsDemo:-o --scene examples.dsl.CausticsDemo"
+    "DSL: CustomMaterials:-o --scene examples.dsl.CustomMaterials"
+    "DSL: ComplexLighting:-o --scene examples.dsl.ComplexLighting"
+    "DSL: ReusableComponents:-o --scene examples.dsl.ReusableComponents"
 )
 
 echo "Available interactive tests:"

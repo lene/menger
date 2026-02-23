@@ -617,6 +617,21 @@ test_headless() {
     run_test_should_fail "headless without save-name" --optix --objects type=sphere --headless --plane y:-2
 }
 
+test_dsl_scenes() {
+    echo "DSL Scenes:"
+    run_test "DSL SimpleScene" --optix --scene examples.dsl.SimpleScene
+    run_test "DSL ThreeMaterials" --optix --scene examples.dsl.ThreeMaterials
+    run_test "DSL GlassSphere" --optix --scene examples.dsl.GlassSphere
+    run_test "DSL TesseractDemo" --optix --scene examples.dsl.TesseractDemo
+    run_test "DSL FilmSphere" --optix --scene examples.dsl.FilmSphere
+    run_test "DSL SpongeShowcase" --optix --scene examples.dsl.SpongeShowcase
+    run_test "DSL MengerShowcase" --optix --scene examples.dsl.MengerShowcase
+    run_test "DSL CausticsDemo" --optix --scene examples.dsl.CausticsDemo
+    run_test "DSL CustomMaterials" --optix --scene examples.dsl.CustomMaterials
+    run_test "DSL ComplexLighting" --optix --scene examples.dsl.ComplexLighting
+    run_test "DSL ReusableComponents" --optix --scene examples.dsl.ReusableComponents
+}
+
 test_error_handling() {
     echo "Error Handling:"
     run_test_should_fail "invalid object type" --optix --objects type=invalid-type --plane y:-2
@@ -658,6 +673,7 @@ export -f test_caustics
 export -f test_tesseract
 export -f test_4d_sponges
 export -f test_3d_fractional_sponges
+export -f test_dsl_scenes
 export -f test_file_output
 export -f test_headless
 export -f test_error_handling
@@ -701,6 +717,7 @@ main() {
             "test_tesseract"
             "test_4d_sponges"
             "test_3d_fractional_sponges"
+            "test_dsl_scenes"
             "test_file_output"
             "test_headless"
             "test_error_handling"
@@ -740,6 +757,7 @@ main() {
         test_tesseract
         test_4d_sponges
         test_3d_fractional_sponges
+        test_dsl_scenes
         test_file_output
         test_headless
         test_error_handling

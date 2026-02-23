@@ -98,6 +98,7 @@ case class Plane(
     (color, checkered) match
       case (Some(c), _)          => PlaneColorSpec(c.toCommonColor, None)
       case (_, Some((c1, c2)))   => PlaneColorSpec(c1.toCommonColor, Some(c2.toCommonColor))
+      case _                     => sys.error("Plane must have either color or checkered defined (caught by require)")
 
 object Plane:
   /** Create a solid-colored plane.

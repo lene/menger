@@ -1178,6 +1178,90 @@ Sponge(
 )
 ```
 
+**Tesseract (4D Hypercube):**
+```scala
+// Basic tesseract with default 4D projection
+Tesseract(Material.Glass)
+
+// With position and size
+Tesseract(
+  pos = (0f, 0f, 0f),
+  material = Material.Chrome,
+  size = 0.8f
+)
+
+// Custom 4D rotation (rotations in XW, YW, ZW planes)
+Tesseract(Material.Glass).copy(
+  projection = Some(Projection4DSpec(
+    eyeW = 3.0f,      // 4D camera distance
+    screenW = 1.5f,   // 4D projection plane
+    rotXW = 30f,      // Rotation in XW plane (degrees)
+    rotYW = 20f,      // Rotation in YW plane (degrees)
+    rotZW = 10f       // Rotation in ZW plane (degrees)
+  ))
+)
+
+// With edge rendering (wireframe overlay)
+Tesseract(Material.Glass).copy(
+  edgeRadius = Some(0.025f),
+  edgeMaterial = Some(Material.Chrome)
+)
+
+// Color instead of material
+Tesseract(
+  pos = (1f, 0f, 0f),
+  color = Some(Color("#4488FF")),
+  size = 1.0f
+)
+```
+
+**TesseractSponge (4D Menger Sponge):**
+```scala
+// Two sponge types
+VolumeRemoving        // 4D volume-removing method (48 sub-tesseracts per level)
+SurfaceSubdividing    // 4D surface subdivision method (16 faces per face)
+
+// Basic tesseract sponge
+TesseractSponge(
+  spongeType = VolumeRemoving,
+  level = 1f,
+  material = Material.Glass
+)
+
+// With 4D rotation and projection
+TesseractSponge(
+  spongeType = SurfaceSubdividing,
+  level = 1f,
+  material = Material.Chrome
+).copy(
+  projection = Some(Projection4DSpec(
+    eyeW = 4.0f,
+    screenW = 2.0f,
+    rotXW = 45f,
+    rotYW = 30f
+  ))
+)
+
+// Fractional level (smooth interpolation)
+TesseractSponge(
+  spongeType = VolumeRemoving,
+  level = 1.5f,
+  material = Material.Glass,
+  size = 0.8f
+)
+
+// With edge rendering
+TesseractSponge(
+  pos = (0f, 0f, 0f),
+  spongeType = VolumeRemoving,
+  level = 1f,
+  material = Material.Glass
+).copy(
+  edgeRadius = Some(0.015f),
+  edgeMaterial = Some(Material.Film)
+)
+```
+
 #### Lights
 
 **Directional Lights:**
@@ -1413,6 +1497,8 @@ All example scenes are in `menger-app/src/main/scala/examples/dsl/`:
 - **ComplexLighting** - Five-light setup (key, fill, rim, warm, cool)
 - **SpongeShowcase** - Three sponge types comparison
 - **MengerShowcase** - Classic Menger Sponge with three-point lighting
+- **TesseractDemo** - 4D hypercube (tesseract) with custom projection and glass material
+- **FilmSphere** - Thin-film interference demonstration with Film material
 - **ReusableComponents** - Demonstrates importing common materials/lighting
 
 **Render an example:**
