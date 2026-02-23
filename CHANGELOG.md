@@ -10,6 +10,21 @@
   - Shift+Scroll adjusts 4D projection distance (`eyeW`) interactively in OptiX mode
   - ESC resets the 4D view (rotation and projection) to its initial state without affecting the 3D camera
   - `--rotation-4d=XW,YW,ZW` CLI shorthand — specifies all three 4D rotation angles in a single option; mutually exclusive with `--rot-x-w`/`--rot-y-w`/`--rot-z-w`
+- **DSL 4D Object Support** (Task 11.9) — Tesseract and TesseractSponge now available in DSL
+  - `Tesseract` case class with projection, edge rendering, material, and position support
+  - `TesseractSponge` case class with `VolumeRemoving` and `SurfaceSubdividing` types
+  - `TesseractDemo` example scene demonstrating 4D object DSL usage
+  - Full test coverage in `SceneObjectSuite`
+
+### Changed
+- **Coverage baseline auto-update** (Task 11.8) — `.coverage_baseline` now updates after successful pre-push hook; baseline updated from 78.01% to 84.90%
+- **USER_GUIDE modernization** (Task 11.10) — All deprecated `--object`, `--radius`, `--ior` examples replaced with `--objects 'type=...:key=value'` syntax; old flags marked as deprecated in reference documentation
+
+### Removed
+- **GdxTest window tests** (Task 11.7) — Removed 12 libGDX window tests from `GeometrySuite` that required display initialization (flaky in CI); kept two pure toString tests
+
+### Fixed
+- **TesseractSponge vertex validation** (Task 11.11) — Added test verifying that all `TesseractSponge2` (surface subdivision) vertices lie within the corresponding `TesseractSponge` (volume removal) region
 
 ## [0.5.1] - 2026-02-19
 

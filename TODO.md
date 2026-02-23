@@ -3,20 +3,16 @@
 Quick notes and ideas captured during development. Review periodically and promote to
 [ROADMAP.md](ROADMAP.md) or sprint plans as appropriate.
 
-- coverage uses old coverage percentage as reference
 - optimize pre-push hook execution time by parallelization - first analyze bottlenecks, then consider parallelizing
 - rotation of objects in 3D, possibly full transform (position, rotation, scale)
-- test which opens libGDX window (GeometrySuite): remove
 - Camera animation (path following)
 - Light animation
 - Property animation (colors, IOR, etc.)
-- validate tesseract sponge generation from surfaces by repeating it with cubes. same result?
 - PBR texture support
 - images as backgrounds
 - Add more procedural textures (wood, marble, etc.) as a texture library
 - do we even support procedural textures? If not, do so
 - better user guide documentation
-    - Update all examples to use --objects syntax (remove outdated --object, --radius, --ior, --scale, --center examples)
     - Guidance for generating good and interesting scenes and animations
 - better developer documentation
 - better agent instructions for updating documentation and changelog, monitoring ci pipelines after
@@ -37,7 +33,6 @@ Quick notes and ideas captured during development. Review periodically and promo
 - Keyframe system with linear interpolation
 - Frame sequence rendering
 - DSL animation syntax (deferred from Sprint 10 - requires keyframe system first)
-- DSL support for 4D objects (tesseract, tesseract-sponge) - deferred from Sprint 10
 
 - Easing functions (ease-in-out, cubic, bounce, elastic)
 - Video output via ffmpeg

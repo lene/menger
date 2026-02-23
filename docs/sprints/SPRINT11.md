@@ -251,7 +251,12 @@ Move completed items and update sprint 12 deferred list.
 | 11.4      | ESC reset 4D view | 1h | High |
 | 11.5      | CLI shortcuts | 2.5h | High |
 | 11.6      | Documentation | 1h | High |
-| **Total** | | **17-19h** | |
+| 11.7      | Remove GdxTest window tests | 0.5h | Medium |
+| 11.8      | Fix coverage baseline | 0.25h | Medium |
+| 11.9      | DSL support for 4D objects | 2h | Medium |
+| 11.10     | Update USER_GUIDE --object examples | 1h | Medium |
+| 11.11     | TesseractSponge cross-validation | 0.5h | Low |
+| **Total** | | **21-23h** | |
 
 ---
 
@@ -282,7 +287,7 @@ Recommended order for minimal dependencies:
 
 ### Testing Strategy
 
-- **Unit tests**: libGDX wrapper boundary, FourDPresets, FourDState serialisation, thin-film colour at known thickness values
+- **Unit tests**: libGDX wrapper boundary, FourDPresets, FourDState serialisation, thin-film color at known thickness values
 - **Integration tests**: CLI option parsing and validation, Film material renders
 - **Manual tests**: Interactive Shift+Scroll and ESC; visual check of thin-film iridescence
 
