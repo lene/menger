@@ -64,6 +64,15 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh with Matchers:
       boundingSponge.isInSponge(v) should be (true)
     }
 
+  "TesseractSponge2 level 1 vertices" should
+    "all lie within TesseractSponge level 1 region" in:
+      pending  // isInSponge not yet implemented for level > 0
+      val surface = TesseractSponge2(1)
+      val volume  = TesseractSponge(1)
+      forAll(surface.faces.flatMap(_.asSeq)) { v =>
+        volume.isInSponge(v) should be(true)
+      }
+
   "All vertices of TesseractSponge(2)" should "be inside or on the boundary of TesseractSponge(1)" in :
     pending
     val sponge = TesseractSponge(2)
