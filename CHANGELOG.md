@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [0.5.1] - 2026-02-19
+## [0.5.1] - 2026-02-24
 
 ### Added
 - **Scala libGDX Wrapper** (`menger.gdx`) — all `var` and `null` for libGDX confined to a dedicated wrapper layer; non-wrapper Scala code uses `val` and `Option` throughout
