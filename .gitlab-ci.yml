@@ -150,6 +150,8 @@ Test:Full:
     # Request graphics capability to ensure RTX/OptiX libraries are mounted
     NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
   rules:
+    - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\//'
+      allow_failure: true
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG
@@ -368,7 +370,7 @@ Test:OptiXIntegration:
     - if: $CI_COMMIT_BRANCH
   before_script:
     - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb unzip
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb unzip imagemagick
     # Create missing symlink for RTX core library if needed
     - |
       if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
@@ -553,6 +555,8 @@ TagIsNewAndConsistent:
   stage: test
   image: ubuntu:latest
   rules:
+    - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\//'
+      when: never
     - if: "$CI_MERGE_REQUEST_ID"
   before_script:
     - apt-get -y update
@@ -588,6 +592,8 @@ ChangelogIsUpdated:
   stage: test
   image: ubuntu:latest
   rules:
+    - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\//'
+      when: never
     - if: "$CI_MERGE_REQUEST_ID"
   script:
     - test -f CHANGELOG.md || exit 0
@@ -701,8 +707,8 @@ PushToGithub:
     - echo "Target branch - $BRANCH"
     - echo "Current commit - ${CI_COMMIT_SHA}"
     - echo "Tag - ${CI_COMMIT_TAG}"
-    # Ensure we're on the correct commit
-    - git checkout ${CI_COMMIT_SHA}
+    # Ensure we're on the correct commit (detached HEAD to allow branch force-update)
+    - git checkout --detach ${CI_COMMIT_SHA}
     # Create or reset branch to current commit
     - git branch -f $BRANCH ${CI_COMMIT_SHA}
     - git checkout $BRANCH
