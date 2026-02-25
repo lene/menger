@@ -15,7 +15,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.4.3 | 4D Fractals | Complete | 4D sponges (tesseract-sponge, tesseract-sponge-2), edge rendering |
 | v0.5 | Advanced 4D | Complete | Interactive 4D manipulation, LibGDX wrapper, thin-film interference |
 | v0.5.1 | Patch Release | Complete | Sprint 11 refinements, CI fixes |
-| v0.6 | Scene Animation | In Progress | t-parameter animation, visual quality |
+| v0.5.2 | Scene Animation | In Progress | t-parameter animation |
+| v0.6 | Visual Quality | Planned | Material enhancements, transparent shadows |
 
 ---
 

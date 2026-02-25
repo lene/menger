@@ -1,6 +1,6 @@
 # Menger User Guide
 
-**Version**: 0.5.1
+**Version**: 0.5.2
 **Last Updated**: February 2026
 
 Welcome to the Menger User Guide! This comprehensive guide will help you install, use, and master the Menger 3D/4D visualization and ray tracing tool.
