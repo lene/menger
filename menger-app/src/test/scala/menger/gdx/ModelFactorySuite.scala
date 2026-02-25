@@ -20,7 +20,7 @@ class ModelFactorySuite extends AnyFlatSpec with Matchers with BeforeAndAfterEac
 
   override def beforeEach(): Unit =
     // Use mock factory for all tests
-    Builder.setModelFactory(ModelFactory.mock)
+    Builder.setModelFactory(MockModelFactory())
     // Clear model caches
     clearModelCaches()
 
@@ -45,18 +45,18 @@ class ModelFactorySuite extends AnyFlatSpec with Matchers with BeforeAndAfterEac
       case _ => ()
 
   "MockModelFactory" should "create stub models without LibGDX initialization" in:
-    val factory = ModelFactory.mock
+    val factory = MockModelFactory()
     val model = factory.createSphere(1f, 1f, 1f, 32, 16, Builder.WHITE_MATERIAL, Builder.DEFAULT_FLAGS)
     model should not be null
     model.nodes.size should be > 0
 
   it should "create stub boxes" in:
-    val factory = ModelFactory.mock
+    val factory = MockModelFactory()
     val model = factory.createBox(1f, 1f, 1f, GL20.GL_TRIANGLES, Builder.WHITE_MATERIAL, Builder.DEFAULT_FLAGS)
     model should not be null
 
   it should "create stub rectangles" in:
-    val factory = ModelFactory.mock
+    val factory = MockModelFactory()
     val model = factory.createRect(
       -0.5f, -0.5f, 0,
       0.5f, -0.5f, 0,
@@ -70,7 +70,7 @@ class ModelFactorySuite extends AnyFlatSpec with Matchers with BeforeAndAfterEac
     model should not be null
 
   it should "support complex model building" in:
-    val factory = ModelFactory.mock
+    val factory = MockModelFactory()
     factory.begin()
     // part() returns null in mock, which is fine for testing caching logic
     factory.end() should not be null
