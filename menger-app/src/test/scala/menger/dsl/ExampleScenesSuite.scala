@@ -12,85 +12,93 @@ import org.scalatest.matchers.should.Matchers
  */
 class ExampleScenesSuite extends AnyFlatSpec with Matchers:
 
+  private def extractStaticScene(result: Either[String, LoadedScene]): Scene =
+    result match
+      case Right(LoadedScene.Static(scene)) => scene
+      case Right(LoadedScene.Animated(_)) => fail("Expected Static scene but got Animated")
+      case Left(error) => fail(s"Failed to load scene: $error")
+
   "Example scenes" should "load GlassSphere via reflection" in:
-    val result = SceneLoader.load("examples.dsl.GlassSphere")
-    result shouldBe a[Right[?, ?]]
-    result.foreach { scene =>
-      scene.objects should have length 1
-      scene.lights should have length 1
-    }
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.GlassSphere"))
+    scene.objects should have length 1
+    scene.lights should have length 1
 
   it should "load MengerShowcase via reflection" in:
-    val result = SceneLoader.load("examples.dsl.MengerShowcase")
-    result shouldBe a[Right[?, ?]]
-    result.foreach { scene =>
-      scene.objects should have length 1
-      scene.lights should have length 3
-      scene.plane shouldBe defined
-    }
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.MengerShowcase"))
+    scene.objects should have length 1
+    scene.lights should have length 3
+    scene.plane shouldBe defined
 
   it should "load SimpleScene via reflection" in:
-    val result = SceneLoader.load("examples.dsl.SimpleScene")
-    result shouldBe a[Right[?, ?]]
-    result.foreach { scene =>
-      scene.objects should have length 1
-      scene.lights should have length 1
-    }
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.SimpleScene"))
+    scene.objects should have length 1
+    scene.lights should have length 1
 
   it should "load ThreeMaterials via reflection" in:
-    val result = SceneLoader.load("examples.dsl.ThreeMaterials")
-    result shouldBe a[Right[?, ?]]
-    result.foreach { scene =>
-      scene.objects should have length 3
-      scene.lights should have length 2
-      scene.plane shouldBe defined
-    }
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.ThreeMaterials"))
+    scene.objects should have length 3
+    scene.lights should have length 2
+    scene.plane shouldBe defined
 
   it should "load CausticsDemo via reflection" in:
-    val result = SceneLoader.load("examples.dsl.CausticsDemo")
-    result shouldBe a[Right[?, ?]]
-    result.foreach { scene =>
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.CausticsDemo"))
+    scene.objects should have length 1
+    scene.lights should have length 1
+    scene.plane shouldBe defined
+    scene.caustics shouldBe defined
+
+  it should "load CustomMaterials via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.CustomMaterials"))
+    scene.objects should have length 5
+    scene.lights should have length 2
+    scene.plane shouldBe defined
+
+  it should "load ComplexLighting via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.ComplexLighting"))
+    scene.objects should have length 3
+    scene.lights should have length 5
+    scene.plane shouldBe defined
+
+  it should "load SpongeShowcase via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.SpongeShowcase"))
+    scene.objects should have length 3
+    scene.lights should have length 2
+    scene.plane shouldBe defined
+
+  it should "load ReusableComponents via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.ReusableComponents"))
+    scene.objects should have length 4
+    scene.lights should have length 3  // ThreePointLighting
+    scene.plane shouldBe defined
+
+  private def extractAnimatedFn(result: Either[String, LoadedScene]): Float => Scene =
+    result match
+      case Right(LoadedScene.Animated(fn)) => fn
+      case Right(LoadedScene.Static(_)) => fail("Expected Animated scene but got Static")
+      case Left(error) => fail(s"Failed to load scene: $error")
+
+  "Animated example scenes" should "load OrbitingSphere as animated" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.OrbitingSphere"))
+    for t <- List(0f, 0.5f, 1f) do
+      val scene = fn(t)
       scene.objects should have length 1
       scene.lights should have length 1
       scene.plane shouldBe defined
-      scene.caustics shouldBe defined
-    }
 
-  it should "load CustomMaterials via reflection" in:
-    val result = SceneLoader.load("examples.dsl.CustomMaterials")
-    result shouldBe a[Right[?, ?]]
-    result.foreach { scene =>
-      scene.objects should have length 5
+  it should "load PulsingSponge as animated" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PulsingSponge"))
+    for t <- List(0f, 0.5f, 1f) do
+      val scene = fn(t)
+      scene.objects should have length 1
       scene.lights should have length 2
       scene.plane shouldBe defined
-    }
 
-  it should "load ComplexLighting via reflection" in:
-    val result = SceneLoader.load("examples.dsl.ComplexLighting")
-    result shouldBe a[Right[?, ?]]
-    result.foreach { scene =>
-      scene.objects should have length 3
-      scene.lights should have length 5
-      scene.plane shouldBe defined
-    }
-
-  it should "load SpongeShowcase via reflection" in:
-    val result = SceneLoader.load("examples.dsl.SpongeShowcase")
-    result shouldBe a[Right[?, ?]]
-    result.foreach { scene =>
-      scene.objects should have length 3
-      scene.lights should have length 2
-      scene.plane shouldBe defined
-    }
-
-  it should "load ReusableComponents via reflection" in:
-    val result = SceneLoader.load("examples.dsl.ReusableComponents")
-    result shouldBe a[Right[?, ?]]
-    result.foreach { scene =>
-      scene.objects should have length 4
-      scene.lights should have length 3  // ThreePointLighting
-      scene.plane shouldBe defined
-    }
+  it should "produce different OrbitingSphere scenes for different t" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.OrbitingSphere"))
+    val scene0 = fn(0f)
+    val scene1 = fn(1f)
+    // Objects should have different positions
+    scene0.objects.head should not be scene1.objects.head
 
   "Scene registry" should "have all registered short names" in:
     val registeredNames = SceneRegistry.list().sorted

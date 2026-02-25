@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Added
+- **t-Parameter Animation System** — animate DSL scenes using a free parameter `t`
+  - Animated scenes define `def scene(t: Float): Scene` instead of `val scene: Scene`
+  - `--t <value>` CLI option: evaluate an animated scene at a fixed t value (freeze-frame)
+  - `--frames N --start-t F --end-t F` CLI options: render multi-frame animations by sweeping t
+  - `AnimatedOptiXEngine`: per-frame scene rebuild with full OptiX re-render
+  - `LoadedScene` ADT (`Static` / `Animated`) for type-safe scene loading
+  - `SceneLoader` auto-detects animated scenes via reflection (`def scene(Float)` vs `val scene`)
+  - `SceneConverter` utility: reusable DSL-to-config conversion for both static and animated paths
+  - `TAnimationConfig` with linear t interpolation across frame sequence
+  - Example animated scenes: `OrbitingSphere` (sphere orbiting origin), `PulsingSponge` (varying fractal level)
+  - CLI validation: `--t` mutually exclusive with `--start-t`/`--end-t`/`--frames`; both require `--scene` and `--optix`
+  - 27 new unit tests (`TAnimationConfigSuite`, `TAnimationCLIOptionsSuite`, animated scene tests)
+  - Integration tests for freeze-frame and multi-frame t-animation
+
 ## [0.5.1] - 2026-02-24
 
 ### Added

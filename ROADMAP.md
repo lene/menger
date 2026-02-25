@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-02-25
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -10,11 +10,12 @@ Strategic feature planning for the Menger ray tracing renderer.
 
 | Version | Name | Status | Key Features |
 |---------|------|--------|--------------|
-| v0.4.1 | Full 3D Support | ✅ Complete | Materials, textures, multi-object scenes |
-| v0.4.2 | 4D Foundation | ✅ Complete | Tesseract, cylinder edges, 4D rotation, metallic reflection |
-| v0.4.3 | 4D Fractals | ✅ Complete | 4D sponges (tesseract-sponge, tesseract-sponge-2), edge rendering |
-| v0.5 | Advanced 4D | Planned | Interactive 4D manipulation, 4D slicing |
-| v0.6 | Scene Language | Planned | Declarative scene files, animation |
+| v0.4.1 | Full 3D Support | Complete | Materials, textures, multi-object scenes |
+| v0.4.2 | 4D Foundation | Complete | Tesseract, cylinder edges, 4D rotation, metallic reflection |
+| v0.4.3 | 4D Fractals | Complete | 4D sponges (tesseract-sponge, tesseract-sponge-2), edge rendering |
+| v0.5 | Advanced 4D | Complete | Interactive 4D manipulation, LibGDX wrapper, thin-film interference |
+| v0.5.1 | Patch Release | Complete | Sprint 11 refinements, CI fixes |
+| v0.6 | Scene Animation | In Progress | t-parameter animation, visual quality |
 
 ---
 
@@ -22,47 +23,24 @@ Strategic feature planning for the Menger ray tracing renderer.
 
 | Sprint | Focus | Status | Archive |
 |--------|-------|--------|---------|
-| 1 | Foundation (ray stats, shadows) | ✅ Complete | - |
-| 2 | Interactivity (mouse control, lights) | ✅ Complete | - |
-| 3 | Quality (antialiasing, color API) | ✅ Complete | - |
-| 4 | Caustics | ⏸️ Deferred | [docs/caustics/](docs/caustics/) |
-| 5 | Triangle Mesh + Cube | ✅ Complete | [archive](docs/archive/sprints/) |
-| 6 | Full Geometry (IAS, sponges) | ✅ Complete | [archive](docs/archive/sprints/) |
-| 7 | Materials & Textures | ✅ Complete | [archive](docs/archive/sprints/) |
-| 8 | 4D Projection + UX | ✅ Complete | [archive](docs/archive/sprints/) |
-| 9 | TesseractSponge & Fractional Levels | ✅ Complete | [archive](docs/archive/sprints/) |
+| 1 | Foundation (ray stats, shadows) | Complete | - |
+| 2 | Interactivity (mouse control, lights) | Complete | - |
+| 3 | Quality (antialiasing, color API) | Complete | - |
+| 4 | Caustics | Deferred | [docs/caustics/](docs/caustics/) |
+| 5 | Triangle Mesh + Cube | Complete | [archive](docs/archive/sprints/) |
+| 6 | Full Geometry (IAS, sponges) | Complete | [archive](docs/archive/sprints/) |
+| 7 | Materials & Textures | Complete | [archive](docs/archive/sprints/) |
+| 8 | 4D Projection + UX | Complete | [archive](docs/archive/sprints/) |
+| 9 | TesseractSponge & Fractional Levels | Complete | [archive](docs/archive/sprints/) |
+| 10 | Scala DSL for Scene Description | Complete | [docs/sprints/](docs/sprints/) |
+| 11 | LibGDX Wrapper & Thin-Film Interference | Complete | [docs/sprints/](docs/sprints/) |
+| 12 | t-Parameter Animation System | Complete | [docs/sprints/SPRINT12.md](docs/sprints/SPRINT12.md) |
 
 ---
 
 ## Planned Sprints
 
-### Sprint 10: Scala DSL for Scene Description (18-23 hours)
-
-**Goal:** Type-safe scene definition DSL
-
-- Scala-based DSL that compiles with project
-- Block-style and case-class syntax
-- Concise object/material/light definitions
-- Scene files can import other files
-- CLI: `--scene scenes.MyScene`
-
-**Note:** Prioritized over 4D features for better scene authoring workflow
-
-### Sprint 11: 4D Framework Enhancements (8-10 hours)
-
-**Goal:** Complete 4D manipulation UX
-
-- Shift+Scroll for 4D projection adjustment
-- ESC to reset 4D view
-- CLI shortcuts: `--4d-rotation`, `--4d-preset`
-- State persistence (save/load 4D view)
-- Per-instance 4D parameters (optional)
-
-**Note:** Core 4D features already complete (Sprints 8-9). This sprint adds convenience features.
-
-**🎯 MILESTONE: v0.5 - Advanced 4D**
-
-### Sprint 12: Visual Quality & Materials (10-14 hours)
+### Sprint 13: Visual Quality & Material Enhancements (10-14 hours)
 
 **Goal:** Material realism and visual polish
 
@@ -70,51 +48,33 @@ Strategic feature planning for the Menger ray tracing renderer.
 - Transparent shadows (colored shadows through glass)
 - Material physical correctness validation
 - Mixed-metallic material examples (0 < metallic < 1)
-- Rounded edges on cubes/sponges (optional)
+- Rounded edges on cubes/sponges (optional stretch goal)
 
-### Sprint 13: Object Animation Foundation (12-18 hours)
+**Note:** This content was originally planned as Sprint 12 but was deferred when Sprint 12 was reprioritized for the t-parameter animation system.
 
-**Goal:** Animated scene rendering
+### Sprint 14: Video Output & Visual Enhancements (15-20 hours)
 
-- Keyframe-based animation system
-- Object transform interpolation (position, rotation, scale)
-- Frame sequence rendering
-- Output to image sequence (PNG)
-- CLI: `--animate-scene`, `--frames`, `--fps`
-- DSL animation syntax (if Sprint 10 complete)
+**Goal:** Video output, animation preview, and rendering quality improvements
 
-### Sprint 14: Advanced Animation (21 hours)
-
-**Goal:** Rich animation capabilities
-
-- Easing functions (linear, ease-in-out, cubic, bounce, elastic)
-- Generic property animation (colors, IOR, camera, lights)
-- Camera animation (path following)
-- Light animation
-- Video output via ffmpeg
-- Animation preview mode
-
-### Sprint 15: Visual Enhancements & Polish (20-25 hours)
-
-**Goal:** Improve visual quality and animation workflow
-
-#### Visual Quality (10-12h)
+- Video output via ffmpeg (MP4/WebM from frame sequences)
+- Animation preview mode (interactive t-parameter scrubbing)
 - Soft shadows with area lights (penumbra)
 - Depth of field (camera aperture, bokeh)
-- Coordinate cross (axis visualization for debugging)
+- Additional primitives (cylinder, cone, torus)
+- Coordinate cross (axis visualization)
 
-#### Animation Workflow (8-10h)
+**Note:** Replaces the original Sprint 14 ("Advanced Animation System") which was built on the keyframe approach. The t-parameter animation system (Sprint 12) made most keyframe features obsolete.
+
+**MILESTONE: v0.6 - Scene Animation & Visual Quality**
+
+### Sprint 15: Polish & Infrastructure (10-15 hours)
+
+**Goal:** Test coverage, animation workflow, and maintenance
+
 - Bezier/spline camera paths
 - Animation export/import (JSON format)
-- Additional primitives for animation demos (cylinder, cone, torus)
-
-#### Maintenance (2-3h)
 - Test coverage analysis and improvement
 - Valgrind standalone test verification
-
-**🎯 MILESTONE: v0.6 - Scene Language & Animation**
-
-**Note:** Sprint 15 continues the original Sprint 14 plan.
 
 ---
 
@@ -127,15 +87,15 @@ Ideas for future consideration, not yet scheduled.
 | Idea | Description | Complexity | Status |
 |------|-------------|------------|--------|
 | Caustics | Progressive Photon Mapping (deferred, algorithm issues) | Very High | Deferred |
-| More primitives | Cylinders, cones, torus | Medium | → Sprint 14 |
-| Soft shadows | Area lights with penumbra | Medium | → Sprint 14 |
+| More primitives | Cylinders, cones, torus | Medium | Sprint 14 |
+| Soft shadows | Area lights with penumbra | Medium | Sprint 14 |
 
 ### Medium Interest
 
 | Idea | Description | Complexity | Status |
 |------|-------------|------------|--------|
 | Mixed geometry scenes | Spheres + cubes/meshes in same scene (multi-GAS IAS) | Medium | Backlog (TD-5) |
-| Depth of field | Camera aperture simulation, bokeh | Medium | → Sprint 14 |
+| Depth of field | Camera aperture simulation, bokeh | Medium | Sprint 14 |
 | HDR environment | Image-based lighting | Medium | Backlog |
 | Subsurface scattering | Advanced material effect | High | Backlog |
 | Real-time preview | Interactive low-quality mode | Medium | Backlog |
@@ -146,7 +106,7 @@ Ideas for future consideration, not yet scheduled.
 |------|-------------|-------|
 | Dynamic window resize | LibGDX/OptiX buffer issues | 15+ hours investigation, no resolution |
 | GPU composites | Render fractals as composites | Needs design |
-| Coordinate cross | Render axis visualization | → Sprint 14 |
+| Coordinate cross | Render axis visualization | Sprint 14 |
 
 ### Project Infrastructure
 
@@ -163,11 +123,12 @@ Ideas for future consideration, not yet scheduled.
 | Phase | Sprints | Estimated Hours |
 |-------|---------|-----------------|
 | Completed (1-9) | 9 sprints | ~140 hours |
-| DSL & 4D UX (10-11) | 2 sprints | 26-33 hours |
-| Visual Quality (12) | 1 sprint | 10-14 hours |
-| Animation (13-14) | 2 sprints | 33-39 hours |
-| Polish (15) | 1 sprint | 20-25 hours |
-| **Total Remaining** | 6 sprints | **89-111 hours** |
+| DSL & 4D UX (10-11) | 2 sprints | ~30 hours |
+| t-Parameter Animation (12) | 1 sprint | ~12 hours |
+| Visual Quality (13) | 1 sprint | 10-14 hours |
+| Video & Enhancements (14) | 1 sprint | 15-20 hours |
+| Polish (15) | 1 sprint | 10-15 hours |
+| **Total Remaining** | 3 sprints | **35-49 hours** |
 
 ---
 

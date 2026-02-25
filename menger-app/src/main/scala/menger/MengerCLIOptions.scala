@@ -209,6 +209,26 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = "Animation spec: frames=N:param=start-end[:param2=...] (mutually exclusive with --timeout)"
   )(using animationSpecificationSequenceConverter)
 
+  // === Scene Animation (t-parameter) ===
+  private val tAnimationGroup = group("Scene Animation (t-parameter):")
+
+  val freezeT: ScallopOption[Float] = opt[Float](
+    name = "t", required = false, group = tAnimationGroup,
+    descr = "Evaluate animated scene at fixed t value (freeze-frame). Requires --scene"
+  )
+  val startT: ScallopOption[Float] = opt[Float](
+    name = "start-t", required = false, default = Some(0f), group = tAnimationGroup,
+    descr = "Start value for t-parameter animation range (default: 0)"
+  )
+  val endT: ScallopOption[Float] = opt[Float](
+    name = "end-t", required = false, default = Some(1f), group = tAnimationGroup,
+    descr = "End value for t-parameter animation range (default: 1)"
+  )
+  val tFrames: ScallopOption[Int] = opt[Int](
+    name = "frames", required = false, validate = _ > 0, group = tAnimationGroup,
+    descr = "Number of frames in t-parameter animation (requires --scene, --save-name with %)"
+  )
+
   // === OptiX Renderer Options ===
   val optix: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(false), group = optixGroup,

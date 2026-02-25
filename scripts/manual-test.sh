@@ -318,6 +318,15 @@ run_test "DSL: FilmSphere" "-o --scene examples.dsl.FilmSphere -s $OUTPUT_DIR/94
 run_test "DSL: SpongeShowcase" "-o --scene examples.dsl.SpongeShowcase -s $OUTPUT_DIR/95-dsl-sponge-showcase.png"
 run_test "DSL: MengerShowcase" "-o --scene examples.dsl.MengerShowcase -s $OUTPUT_DIR/96-dsl-menger-showcase.png"
 
+# Animated DSL Scenes (t-parameter)
+echo -e "${YELLOW}--- Animated DSL Scenes (t-parameter) ---${NC}"
+run_test "OrbitingSphere t=0" "-o --scene examples.dsl.OrbitingSphere --t 0 -s $OUTPUT_DIR/100-orbiting-t0.png"
+run_test "OrbitingSphere t=1.57" "-o --scene examples.dsl.OrbitingSphere --t 1.57 -s $OUTPUT_DIR/101-orbiting-t1.57.png"
+run_test "OrbitingSphere t=3.14" "-o --scene examples.dsl.OrbitingSphere --t 3.14 -s $OUTPUT_DIR/102-orbiting-t3.14.png"
+run_test "PulsingSponge t=0" "-o --scene examples.dsl.PulsingSponge --t 0 -s $OUTPUT_DIR/103-pulsing-t0.png"
+run_test "PulsingSponge t=1.5" "-o --scene examples.dsl.PulsingSponge --t 1.5 -s $OUTPUT_DIR/104-pulsing-t1.5.png"
+run_test "PulsingSponge t=3" "-o --scene examples.dsl.PulsingSponge --t 3 -s $OUTPUT_DIR/105-pulsing-t3.png"
+
 # Showcase
 echo -e "${YELLOW}--- Showcase ---${NC}"
 run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/58-showcase.png"
@@ -410,6 +419,10 @@ interactive_tests=(
     "DSL: CustomMaterials:-o --scene examples.dsl.CustomMaterials"
     "DSL: ComplexLighting:-o --scene examples.dsl.ComplexLighting"
     "DSL: ReusableComponents:-o --scene examples.dsl.ReusableComponents"
+    "DSL: OrbitingSphere (t=0):-o --scene examples.dsl.OrbitingSphere --t 0"
+    "DSL: OrbitingSphere (t=1.57):-o --scene examples.dsl.OrbitingSphere --t 1.57"
+    "DSL: PulsingSponge (t=1):-o --scene examples.dsl.PulsingSponge --t 1"
+    "DSL: PulsingSponge (t=2):-o --scene examples.dsl.PulsingSponge --t 2"
 )
 
 echo "Available interactive tests:"

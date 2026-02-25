@@ -12,10 +12,14 @@ import menger.config.EnvironmentConfig
 import menger.config.ExecutionConfig
 import menger.config.OptiXEngineConfig
 import menger.config.SceneConfig
+import menger.dsl.LoadedScene
+import menger.dsl.SceneConverter
 import menger.engines.AnimatedMengerEngine
+import menger.engines.AnimatedOptiXEngine
 import menger.engines.InteractiveMengerEngine
 import menger.engines.OptiXEngine
 import menger.engines.RenderEngine
+import menger.engines.TAnimationConfig
 import org.slf4j.LoggerFactory
 
 object Main:
@@ -74,62 +78,91 @@ object Main:
       createAnimatedEngine(opts, rotationProjectionParameters)
     else createInteractiveEngine(opts, rotationProjectionParameters)
 
-  private def createOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): OptiXEngine =
-    // Load DSL scene if --scene option is provided
-    val (sceneConfig, cameraConfig, lightsFromScene, causticsFromScene) = opts.scene.toOption match
-      case Some(sceneName) =>
-        // Ensure all example scene objects are initialized so short names are registered
-        val _ = examples.dsl.SceneIndex
+  private def createOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): RenderEngine =
+    opts.scene.toOption match
+      case Some(sceneName) => createSceneBasedEngine(opts, sceneName)
+      case None => createCliBasedOptiXEngine(opts)
 
-        // Load scene via DSL
-        import menger.dsl.SceneLoader
-        SceneLoader.load(sceneName) match
-          case Right(dslScene) =>
-            // Convert DSL scene to configs
-            val scene = dslScene.toSceneConfig
-            val camera = dslScene.toCameraConfig
-            // Convert DSL lights to CLI light specs
-            val lights = dslScene.lights.map { light =>
-              val commonLight = light.toCommonLight
-              menger.cli.LightSpec.fromCommonLight(commonLight)
-            }
-            val caustics = dslScene.caustics.map(_.toCausticsConfig).getOrElse(opts.causticsConfig)
-            (scene, camera, lights, caustics)
-          case Left(error) =>
-            System.err.println(s"Failed to load scene '$sceneName': $error")
-            sys.exit(1)
-      case None =>
-        // Use CLI options for scene/camera/lights
-        val scene = SceneConfig(objectSpecs = opts.objects.toOption)
-        val camera = CameraConfig(
-          position = opts.cameraPos(),
-          lookAt = opts.cameraLookat(),
-          up = opts.cameraUp()
+  private def createSceneBasedEngine(opts: MengerCLIOptions, sceneName: String)(using ProfilingConfig): RenderEngine =
+    // Ensure all example scene objects are initialized so short names are registered
+    val _ = examples.dsl.SceneIndex
+
+    import menger.dsl.SceneLoader
+    SceneLoader.load(sceneName) match
+      case Right(LoadedScene.Animated(fn)) if opts.tFrames.isSupplied =>
+        // Multi-frame animation: create AnimatedOptiXEngine
+        val animConfig = TAnimationConfig(
+          startT = opts.startT(),
+          endT = opts.endT(),
+          frames = opts.tFrames(),
+          savePattern = opts.saveName()
         )
-        val lights = opts.light.toOption.getOrElse(List.empty)
-        val caustics = opts.causticsConfig
-        (scene, camera, lights, caustics)
+        AnimatedOptiXEngine(
+          sceneFunction = fn,
+          animConfig = animConfig,
+          executionConfig = buildExecutionConfig(opts),
+          renderConfig = opts.renderConfig,
+          causticsConfig = opts.causticsConfig,
+          planeSpec = opts.plane(),
+          planeColor = opts.planeColor.toOption
+        )
 
+      case Right(loadedScene) =>
+        // Static scene or animated scene evaluated at fixed t
+        val dslScene = loadedScene match
+          case LoadedScene.Static(scene) => scene
+          case LoadedScene.Animated(fn) =>
+            fn(opts.freezeT.toOption.getOrElse(0f))
+        createOptiXEngineFromDslScene(opts, dslScene)
+
+      case Left(error) =>
+        System.err.println(s"Failed to load scene '$sceneName': $error")
+        sys.exit(1)
+
+  private def createOptiXEngineFromDslScene(opts: MengerCLIOptions, dslScene: menger.dsl.Scene)(using ProfilingConfig): OptiXEngine =
+    val configs = SceneConverter.convert(dslScene, opts.causticsConfig)
     val engineConfig = OptiXEngineConfig(
-      scene = sceneConfig,
-      camera = cameraConfig,
+      scene = configs.scene,
+      camera = configs.camera,
       environment = EnvironmentConfig(
         plane = opts.plane(),
         planeColor = opts.planeColor.toOption,
-        lights = lightsFromScene
+        lights = configs.lights
       ),
-      execution = ExecutionConfig(
-        fpsLogIntervalMs = opts.fpsLogInterval(),
-        timeout = opts.timeout(),
-        saveName = opts.saveName.toOption,
-        enableStats = opts.stats(),
-        maxInstances = opts.maxInstances(),
-        textureDir = opts.textureDir()
-      ),
+      execution = buildExecutionConfig(opts),
       render = opts.renderConfig,
-      caustics = causticsFromScene
+      caustics = configs.caustics
     )
     OptiXEngine(engineConfig, opts.userSetMaxInstances)
+
+  private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): OptiXEngine =
+    val engineConfig = OptiXEngineConfig(
+      scene = SceneConfig(objectSpecs = opts.objects.toOption),
+      camera = CameraConfig(
+        position = opts.cameraPos(),
+        lookAt = opts.cameraLookat(),
+        up = opts.cameraUp()
+      ),
+      environment = EnvironmentConfig(
+        plane = opts.plane(),
+        planeColor = opts.planeColor.toOption,
+        lights = opts.light.toOption.getOrElse(List.empty)
+      ),
+      execution = buildExecutionConfig(opts),
+      render = opts.renderConfig,
+      caustics = opts.causticsConfig
+    )
+    OptiXEngine(engineConfig, opts.userSetMaxInstances)
+
+  private def buildExecutionConfig(opts: MengerCLIOptions): ExecutionConfig =
+    ExecutionConfig(
+      fpsLogIntervalMs = opts.fpsLogInterval(),
+      timeout = opts.timeout(),
+      saveName = opts.saveName.toOption,
+      enableStats = opts.stats(),
+      maxInstances = opts.maxInstances(),
+      textureDir = opts.textureDir()
+    )
 
   private def createAnimatedEngine(
     opts: MengerCLIOptions,

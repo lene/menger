@@ -47,6 +47,10 @@ trait CliValidation:
   protected def causticsAlpha: ScallopOption[Float]
   protected def headless: ScallopOption[Boolean]
   protected def saveName: ScallopOption[String]
+  protected def freezeT: ScallopOption[Float]
+  protected def startT: ScallopOption[Float]
+  protected def endT: ScallopOption[Float]
+  protected def tFrames: ScallopOption[Int]
 
   protected def registerValidationRules(): Unit =
     validationLogger.debug("Registering CLI validation rules")
@@ -57,6 +61,7 @@ trait CliValidation:
     registerAntialiasingValidations()
     registerCausticsValidations()
     registerHeadlessValidations()
+    registerTAnimationValidations()
 
   private def registerProjectionValidations(): Unit =
     mutuallyExclusive(timeout, animate)
@@ -244,5 +249,64 @@ trait CliValidation:
     validateOpt(headless, timeout) { (h, t) =>
       if h.getOrElse(false) && t.getOrElse(0f) > 0f then
         Left("--headless and --timeout are mutually exclusive")
+      else Right(())
+    }
+
+  private def registerTAnimationValidations(): Unit =
+    // --t is mutually exclusive with --start-t, --end-t, --frames
+    validateOpt(freezeT) { _ =>
+      if freezeT.isSupplied && (startT.isSupplied || endT.isSupplied || tFrames.isSupplied) then
+        Left("--t is mutually exclusive with --start-t, --end-t, and --frames")
+      else Right(())
+    }
+
+    // --t requires --scene
+    validateOpt(freezeT, scene) { (ft, sc) =>
+      if ft.isDefined && sc.isEmpty then
+        Left("--t requires --scene (animated DSL scene)")
+      else Right(())
+    }
+
+    // --frames requires --scene
+    validateOpt(tFrames, scene) { (fr, sc) =>
+      if fr.isDefined && sc.isEmpty then
+        Left("--frames requires --scene (animated DSL scene)")
+      else Right(())
+    }
+
+    // --t requires --optix
+    validateOpt(freezeT, optix) { (ft, _) =>
+      if ft.isDefined && !optix() then
+        Left("--t requires --optix flag")
+      else Right(())
+    }
+
+    // --frames requires --optix
+    validateOpt(tFrames, optix) { (fr, _) =>
+      if fr.isDefined && !optix() then
+        Left("--frames requires --optix flag")
+      else Right(())
+    }
+
+    // --t and --frames are mutually exclusive with --animate
+    validateOpt(freezeT, animate) { (ft, an) =>
+      if ft.isDefined && an.isDefined then
+        Left("--t is mutually exclusive with --animate")
+      else Right(())
+    }
+
+    validateOpt(tFrames, animate) { (fr, an) =>
+      if fr.isDefined && an.isDefined then
+        Left("--frames is mutually exclusive with --animate")
+      else Right(())
+    }
+
+    // --frames requires --save-name containing %
+    validateOpt(tFrames, saveName) { (fr, sn) =>
+      if fr.isDefined then
+        sn match
+          case Some(name) if name.contains("%") => Right(())
+          case Some(_) => Left("--frames requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
+          case None => Left("--frames requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
       else Right(())
     }

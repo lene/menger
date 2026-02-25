@@ -1,6 +1,6 @@
 # Code Review Findings
 
-**Last Updated:** 2026-02-18
+**Last Updated:** 2026-02-25
 **Purpose:** Track code quality issues identified during comprehensive pre-release reviews
 
 ---
@@ -9,8 +9,8 @@
 
 | Priority | Open | Completed |
 |----------|------|-----------|
-| High | 0 | 5 |
-| Medium | 0 | 30 |
+| High | 1 | 5 |
+| Medium | 3 | 30 |
 | Low | 4 | 17 |
 
 ---
@@ -51,6 +51,53 @@ in `dsl/Material.scala`. Glass, Water, Diamond, Chrome, Gold, Copper, Film, Parc
 the matte/plastic/metal/glass factory methods all delegate to their `OptixMaterial` counterparts.
 `Plastic` and `Matte` remain inline (no named equivalents in OptixMaterial). Physics values (IOR,
 roughness, specular) now have a single source of truth.
+
+### High Priority
+
+| ID | Description | Location | Est. Hours |
+|----|-------------|----------|------------|
+| H6 | Duplicated scene classification logic between OptiXEngine and AnimatedOptiXEngine | OptiXEngine.scala:199-230, AnimatedOptiXEngine.scala:131-180 | 3-4 |
+
+**H6 - OPEN (2026-02-25):** Sprint 12 introduced `AnimatedOptiXEngine` which duplicates three
+private methods from `OptiXEngine`: `classifyScene()`, `isTriangleMeshType()`, and
+`selectSceneBuilder()` (~50 lines each copy). The copies have diverged slightly —
+`OptiXEngine.classifyScene()` (line 199) handles multi-4D-projected mixed scenes while
+`AnimatedOptiXEngine.classifyScene()` (line 167) uses a simpler heuristic. More critically,
+`OptiXEngine.selectSceneBuilder()` (line 232) supports `TesseractEdgeSceneBuilder` for 4D edge
+rendering, while `AnimatedOptiXEngine.selectSceneBuilder()` (line 158) does not — meaning animated
+scenes with 4D edge rendering will silently fall back to the wrong builder.
+
+**Recommendation:** Extract scene classification and builder selection into a shared utility
+(e.g., `SceneClassifier` object or trait) used by both engines. This eliminates duplication and
+ensures feature parity. The `buildSceneFromConfigs` / `SimpleMixed` handling pattern is also
+duplicated and should be shared.
+
+### Medium Priority (Sprint 12 Findings)
+
+| ID | Description | Location | Est. Hours |
+|----|-------------|----------|------------|
+| M12 | Missing TesseractEdgeSceneBuilder in AnimatedOptiXEngine | AnimatedOptiXEngine.scala:158-165 | 1 |
+| M13 | No Try wrapping around sceneFunction(t) call | AnimatedOptiXEngine.scala:102 | 0.5 |
+| M14 | OptiXEngine exceeds 400-line class size guideline | OptiXEngine.scala (488 lines) | 4-6 |
+
+**M12 - OPEN (2026-02-25):** `AnimatedOptiXEngine.selectSceneBuilder()` (line 158) only handles
+`Spheres`, `TriangleMeshes`, and `CubeSponges`. It is missing the `TesseractEdgeSceneBuilder` path
+that `OptiXEngine.selectSceneBuilder()` (line 232) has for 4D projected objects with edge rendering.
+This means animated scenes using tesseract edge rendering will get the generic
+`TriangleMeshSceneBuilder` instead. This is a functional gap, not just a code quality issue.
+Will be resolved by H6 (shared scene classification utility).
+
+**M13 - OPEN (2026-02-25):** In `AnimatedOptiXEngine.render()` (line 102), the call
+`sceneFunction(t)` is not wrapped in `Try`. If the user's scene function throws an exception for
+a particular `t` value, the entire application crashes. Should wrap in `Try` and log error + skip
+the frame gracefully.
+
+**M14 - OPEN (2026-02-25):** `OptiXEngine.scala` is 488 lines, exceeding the 400-line class size
+guideline. This was already borderline before Sprint 12 but is now more noticeable because
+`AnimatedOptiXEngine` duplicated a subset of its logic rather than sharing it (see H6). Extracting
+the scene classification/builder logic into a shared utility would reduce `OptiXEngine` to ~430
+lines and `AnimatedOptiXEngine` to ~140 lines. Further extraction of the multi-object scene
+building (`createMultiObjectScene`, `rebuildScene`) could bring it under 400.
 
 ### Low Priority
 
@@ -309,11 +356,15 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| Medium priority | 0 |
+| High priority (H6) | 3-4 |
+| Medium priority (M12–M14) | 5.5-7.5 |
 | Low priority (feature ideas L2–L5) | ~36 |
 | Documentation | 0 |
 | C++ Issues | 0 |
-| **Total** | **~36 hours** |
+| **Total** | **~44.5-47.5 hours** |
+
+**Note:** M12 will be automatically resolved when H6 is addressed (shared scene classifier).
+M14 will be partially resolved by H6 as well.
 
 ---
 
@@ -335,11 +386,18 @@ Before each release:
 **Good Practices Already in Place:**
 - No `var` or `throw` in production code (wartremover enforced)
 - Functional style throughout
-- Comprehensive test coverage (~900 tests, 78% statement coverage)
+- Comprehensive test coverage (~1599 tests, ~85% statement coverage)
 - Coverage protection with ratchet mechanism (60% floor, 80% min, 1% drop threshold)
 - Scalafix integration for consistent style
 - DSL types use `require()` for all validated fields (ior, roughness, metallic, specular, emission, size) — runtime validation catches misuse early
 - `TriangleMeshData` cleanly separated in `menger-common` with `menger-app` re-exporting via a one-line `export` (no real duplication)
 - `helpers.cu` `traceContinuationRay` / `COVERAGE_CONTINUATION_OFFSET` and `FractionalLevelSponge.SkinNormalOffset` are well-documented with the coupling between Scala and CUDA constants explained inline
 - DSL `Color` provides an implicit `Conversion[String, Color]` for ergonomic hex literal syntax in scene definitions
-- `SceneLoader` error handling uses `Either[String, Scene]` throughout and distinguishes `ClassNotFoundException` / `NoSuchFieldException` / general exceptions with distinct messages
+- `SceneLoader` error handling uses `Either[String, LoadedScene]` throughout and distinguishes `ClassNotFoundException` / `NoSuchFieldException` / general exceptions with distinct messages
+- **Sprint 12 positives:**
+  - `LoadedScene` ADT cleanly separates `Static` vs `Animated` scenes with pattern matching
+  - `SceneConverter` extracted as a reusable utility, eliminating duplication between `Main` and `AnimatedOptiXEngine`
+  - `TAnimationConfig` is a pure value type with deterministic `tForFrame()` interpolation
+  - `SceneLoader` reflection-based detection of `def scene(t: Float)` is well-encapsulated with proper error handling
+  - CLI validation for t-parameter options is thorough (27 new tests covering mutual exclusivity, requirement chains)
+  - Example animated scenes (`OrbitingSphere`, `PulsingSponge`) are clean and demonstrate the pattern well

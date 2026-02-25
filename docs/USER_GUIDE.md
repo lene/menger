@@ -34,10 +34,11 @@ Welcome to the Menger User Guide! This comprehensive guide will help you install
    - [Lighting Setup](#63-lighting-setup)
 7. [Advanced Features](#7-advanced-features)
    - [Animations](#71-animations)
-   - [Caustics (Light Focusing Effects)](#72-caustics-light-focusing-effects)
-   - [Antialiasing](#73-antialiasing)
-   - [Multiple Objects](#74-multiple-objects)
-   - [Scala DSL for Scene Description](#75-scala-dsl-for-scene-description)
+   - [Animated Scenes (t-Parameter)](#72-animated-scenes-t-parameter)
+   - [Caustics (Light Focusing Effects)](#73-caustics-light-focusing-effects)
+   - [Antialiasing](#74-antialiasing)
+   - [Multiple Objects](#75-multiple-objects)
+   - [Scala DSL for Scene Description](#76-scala-dsl-for-scene-description)
 8. [Examples and Tutorials](#8-examples-and-tutorials)
    - [Tutorial 1: Your First Render](#81-tutorial-1-your-first-render)
    - [Tutorial 2: Creating Glass Objects](#82-tutorial-2-creating-glass-objects)
@@ -803,7 +804,110 @@ sbt "run --optix --objects 'type=sphere' --level 2 \
 ffmpeg -framerate 30 -i frame%03d.png -c:v libx264 -pix_fmt yuv420p output.mp4
 ```
 
-### 7.2 Caustics (Light Focusing Effects)
+### 7.2 Animated Scenes (t-Parameter)
+
+**Introduced in v0.6.0**
+
+The t-parameter animation system lets you create animated scenes by defining a `scene(t: Float)` function in the DSL. The renderer evaluates the function for each frame, performing a full scene rebuild per frame.
+
+#### Defining an Animated Scene
+
+Instead of `val scene: Scene`, define `def scene(t: Float): Scene`:
+
+```scala
+package examples.dsl
+
+import scala.language.implicitConversions
+import menger.dsl._
+
+object OrbitingSphere:
+  def scene(t: Float): Scene =
+    val x = 2f * math.cos(t).toFloat
+    val z = 2f * math.sin(t).toFloat
+    Scene(
+      camera = Camera(position = (0f, 3f, 6f), lookAt = (0f, 0f, 0f)),
+      objects = List(
+        Sphere(pos = Vec3(x, 0f, z), material = Material.Chrome, size = 0.5f)
+      ),
+      lights = List(
+        Directional(direction = (1f, -1f, -1f), intensity = 2.0f)
+      ),
+      plane = Some(Plane(Y at -1.5, color = "#FFFFFF"))
+    )
+```
+
+The `t` parameter is user-defined — it can represent an angle, a time value, a fractal level, or anything else. The scene function maps `t` to a complete scene description.
+
+#### Freeze-Frame Rendering
+
+Evaluate an animated scene at a single `t` value:
+
+```bash
+# Render OrbitingSphere at t=0.5
+sbt "run --optix --scene examples.dsl.OrbitingSphere --t 0.5 --save-name orbit.png --headless"
+
+# Render PulsingSponge at t=2.0 (fractal level 2)
+sbt "run --optix --scene examples.dsl.PulsingSponge --t 2.0 --save-name pulse.png --headless"
+```
+
+Without `--t`, animated scenes default to `t=0`.
+
+#### Multi-Frame Animation
+
+Sweep `t` across a range to generate a frame sequence:
+
+```bash
+# 100-frame orbit animation, t from 0 to 2π
+sbt "run --optix --scene examples.dsl.OrbitingSphere \
+    --frames 100 --start-t 0 --end-t 6.28 \
+    --save-name orbit_%04d.png --headless"
+
+# Pulsing sponge from level 0 to 3
+sbt "run --optix --scene examples.dsl.PulsingSponge \
+    --frames 60 --start-t 0 --end-t 3 \
+    --save-name pulse_%04d.png --headless"
+```
+
+The `t` value is linearly interpolated: `t = startT + frameIndex * (endT - startT) / (frames - 1)`.
+
+#### CLI Options
+
+```bash
+--t <float>            Evaluate animated scene at fixed t (freeze-frame)
+--start-t <float>      Start of t range (default: 0)
+--end-t <float>        End of t range (default: 1)
+--frames <int>         Number of frames to render (requires --save-name with %)
+```
+
+**Validation rules:**
+- `--t` is mutually exclusive with `--start-t`, `--end-t`, `--frames`
+- `--t` and `--frames` require `--scene` and `--optix`
+- `--t` and `--frames` are mutually exclusive with `--animate` (the LibGDX animation system)
+- `--frames` requires `--save-name` containing `%` for frame numbering
+
+#### Creating Videos from Animated Scenes
+
+```bash
+# Generate frames
+sbt "run --optix --scene examples.dsl.OrbitingSphere \
+    --frames 120 --start-t 0 --end-t 6.28 \
+    --save-name /tmp/orbit_%04d.png --headless"
+
+# Convert to MP4
+ffmpeg -framerate 30 -i /tmp/orbit_%04d.png -c:v libx264 -pix_fmt yuv420p orbit.mp4
+```
+
+#### Included Animated Examples
+
+- **OrbitingSphere** — Chrome sphere orbiting the origin in the XZ plane. `t` maps to angle (radians); use `t` from 0 to 2π for a full orbit.
+- **PulsingSponge** — Gold volume-filling sponge with varying fractal level. `t` controls the level (clamped to 0–3).
+
+#### Backward Compatibility
+
+Static scenes (`val scene: Scene`) continue to work unchanged. The `SceneLoader` auto-detects whether a scene object has a `def scene(Float)` method or a `val scene` field via reflection.
+
+### 7.3 Caustics (Light Focusing Effects)
+
 
 Caustics are the patterns of light focused through transparent refractive objects (like the dancing light at the bottom of a pool). Menger implements caustics using **Progressive Photon Mapping (PPM)**.
 
@@ -849,7 +953,7 @@ sbt "run --optix --objects 'type=sponge-surface:level=2' \
 
 For more details, see [docs/caustics/CAUSTICS.md](caustics/CAUSTICS.md).
 
-### 7.3 Antialiasing
+### 7.4 Antialiasing
 
 Reduce jagged edges and improve quality with antialiasing.
 
@@ -900,7 +1004,7 @@ sbt "run --optix --objects 'type=sphere' \
 - Depth 4: ~10-20x slower
 - Lower threshold = more pixels subdivided = slower but better quality
 
-### 7.4 Multiple Objects
+### 7.5 Multiple Objects
 
 Render complex scenes with multiple objects (OptiX v0.4+):
 
@@ -991,7 +1095,7 @@ sbt "run --optix \
     --objects 'type=tesseract:edge-radius=0.025:edge-color=#00FFFF:edge-emission=5.0'"
 ```
 
-### 7.5 Scala DSL for Scene Description
+### 7.6 Scala DSL for Scene Description
 
 **Introduced in v0.5.0**
 
@@ -2090,6 +2194,14 @@ Contributions are welcome! The project follows functional programming principles
                              Parameters: rot-x, rot-y, rot-z,
                              rot-x-w, rot-y-w, rot-z-w,
                              projection-screen-w, projection-eye-w, level
+```
+
+#### Scene Animation (t-Parameter) Options
+```
+--t <float>                  Evaluate animated scene at fixed t (freeze-frame)
+--start-t <float>            Start of t range (default: 0)
+--end-t <float>              End of t range (default: 1)
+--frames <int>               Number of frames (requires --save-name with %)
 ```
 
 ### 10.2 Keyboard Shortcuts

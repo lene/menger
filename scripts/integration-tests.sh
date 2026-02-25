@@ -632,6 +632,45 @@ test_dsl_scenes() {
     run_test "DSL ReusableComponents" --optix --scene examples.dsl.ReusableComponents
 }
 
+test_t_animation() {
+    echo "t-Parameter Animation:"
+    # Freeze-frame: animated scene evaluated at a fixed t value
+    run_test "t-animation freeze-frame OrbitingSphere" \
+        --optix --scene examples.dsl.OrbitingSphere --t 0.5
+    run_test "t-animation freeze-frame PulsingSponge" \
+        --optix --scene examples.dsl.PulsingSponge --t 1.0
+
+    # Multi-frame animation: 3 frames for speed
+    local temp_dir
+    temp_dir=$(mktemp -d)
+    local test_passed=false
+
+    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+        --optix --scene examples.dsl.OrbitingSphere \
+        --frames 3 --start-t 0 --end-t 1 \
+        --save-name "${temp_dir}/orbit_%04d.png" >/dev/null 2>&1; then
+        # Verify all 3 frames were created
+        local frame_count=0
+        for f in "${temp_dir}"/orbit_*.png; do
+            [ -f "$f" ] && ((frame_count++))
+        done
+        if [ "$frame_count" -eq 3 ]; then
+            test_passed=true
+        fi
+    fi
+
+    if $test_passed; then
+        ((PASSED++))
+        echo -e "  t-animation multi-frame (3 frames) ${GREEN}✓${RESET}"
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - t-animation multi-frame (execution or frame count failed)"
+        echo -e "  t-animation multi-frame (3 frames) ${RED}✗${RESET}"
+    fi
+
+    rm -rf "$temp_dir"
+}
+
 test_error_handling() {
     echo "Error Handling:"
     run_test_should_fail "invalid object type" --optix --objects type=invalid-type --plane y:-2
@@ -674,6 +713,7 @@ export -f test_tesseract
 export -f test_4d_sponges
 export -f test_3d_fractional_sponges
 export -f test_dsl_scenes
+export -f test_t_animation
 export -f test_file_output
 export -f test_headless
 export -f test_error_handling
@@ -718,6 +758,7 @@ main() {
             "test_4d_sponges"
             "test_3d_fractional_sponges"
             "test_dsl_scenes"
+            "test_t_animation"
             "test_file_output"
             "test_headless"
             "test_error_handling"
@@ -758,6 +799,7 @@ main() {
         test_4d_sponges
         test_3d_fractional_sponges
         test_dsl_scenes
+        test_t_animation
         test_file_output
         test_headless
         test_error_handling
