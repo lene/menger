@@ -25,9 +25,7 @@ object ScreenshotFactory:
     )
 
     require(sanitized.nonEmpty, "File path becomes empty after sanitization")
-    val withExtension =
-      if sanitized.toLowerCase.endsWith(".png") then sanitized else s"$sanitized.png"
-    if withExtension.startsWith("/") then withExtension.drop(1) else withExtension
+    if sanitized.toLowerCase.endsWith(".png") then sanitized else s"$sanitized.png"
 
   private[menger] def sanitizeFileName(fileName: String): String =
     require(fileName.nonEmpty, "File name cannot be empty")

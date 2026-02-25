@@ -20,8 +20,8 @@ class ScreenshotFactorySuite extends AnyFlatSpec with Matchers:
   it should "reject hidden path traversal" in:
     an[IllegalArgumentException] should be thrownBy ScreenshotFactory.sanitizePath("foo/../bar/test.png")
 
-  it should "strip leading slash to keep paths relative" in:
-    ScreenshotFactory.sanitizePath("/absolute/path.png") should be("absolute/path.png")
+  it should "preserve absolute paths with leading slash" in:
+    ScreenshotFactory.sanitizePath("/absolute/path.png") should be("/absolute/path.png")
 
   it should "add png extension if missing" in:
     ScreenshotFactory.sanitizePath("output/test") should be("output/test.png")

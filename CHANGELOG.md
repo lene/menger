@@ -17,6 +17,12 @@
   - 27 new unit tests (`TAnimationConfigSuite`, `TAnimationCLIOptionsSuite`, animated scene tests)
   - Integration tests for freeze-frame and multi-frame t-animation
 
+### Fixed
+- `ScreenshotFactory.sanitizePath` now preserves absolute paths — was incorrectly stripping the leading `/`, causing multi-frame animation frames to be saved to a relative `tmp/...` path instead of the specified `/tmp/...` absolute path
+
+### Changed
+- `MockModelFactory` moved from `src/main/scala` (production code) to `src/test/scala` (test-only) — test doubles must not be compiled into the production artifact
+
 ## [0.5.1] - 2026-02-24
 
 ### Added

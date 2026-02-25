@@ -2,6 +2,40 @@
 
 ---
 
+## Assessment (2026-02-25) — Sprint 12 Post-Commit Fixes
+
+**Date:** 2026-02-25
+**Branch:** feature/sprint-12
+**Focus:** Two bugs caught by integration test failure on push, plus version bump to 0.5.2
+
+### Summary
+
+The pre-push hook blocked the Sprint 12 push due to a failing integration test:
+`t-animation multi-frame (3 frames) ✗`. Root cause: `ScreenshotFactory.sanitizePath` stripped the
+leading `/` from absolute paths, turning `/tmp/.../orbit_0000.png` into `tmp/.../orbit_0000.png`.
+Frames were rendered but saved to the wrong location. Additionally, `MockModelFactory` was compiled
+into the production jar (should be test-only). Both bugs were fixed.
+
+### Bugs Fixed
+
+| Bug | Location | Root Cause | Impact |
+|-----|----------|------------|--------|
+| Absolute path stripping | `ScreenshotFactory.sanitizePath` | `drop(1)` on leading `/` | Multi-frame animation frames not saved to specified path |
+| MockModelFactory in production | `ModelFactory.scala` → moved to `MockModelFactory.scala` in test tree | Test double in `src/main/scala` | Test code compiled into production jar |
+
+### ScreenshotFactory Fix
+
+`sanitizePath` had `if withExtension.startsWith("/") then withExtension.drop(1)` — a misguided
+"security" measure that made absolute paths relative. The `..` check (which prevents traversal)
+is sufficient; absolute paths are valid and must be preserved for headless/batch rendering.
+
+### Version Bump
+
+All version references updated from `0.5.1` to `0.5.2`:
+`build.sbt`, `.gitlab-ci.yml`, `MengerCLIOptions.scala`, `docs/USER_GUIDE.md`, `ROADMAP.md`
+
+---
+
 ## Assessment (2026-02-25) — Sprint 12: t-Parameter Animation System
 
 **Date:** 2026-02-25
