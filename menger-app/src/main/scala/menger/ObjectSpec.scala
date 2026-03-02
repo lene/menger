@@ -45,7 +45,8 @@ case class ObjectSpec(
   texture: Option[String] = None,
   projection4D: Option[Projection4DSpec] = None,
   edgeRadius: Option[Float] = None,
-  edgeMaterial: Option[Material] = None
+  edgeMaterial: Option[Material] = None,
+  yRotation: Float = 0.0f      // Y-axis rotation in radians (for sponge rotation)
 ):
   /** Returns true if edge rendering parameters are specified */
   def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined

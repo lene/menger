@@ -4,6 +4,7 @@ import menger.cli.Axis
 import menger.cli.LightSpec
 import menger.cli.PlaneColorSpec
 import menger.cli.PlaneSpec
+import menger.common.Color
 
 /**
  * Environment configuration for lighting and ground plane.
@@ -15,7 +16,8 @@ import menger.cli.PlaneSpec
 case class EnvironmentConfig(
   plane: PlaneSpec,
   planeColor: Option[PlaneColorSpec] = None,
-  lights: List[LightSpec] = List.empty
+  lights: List[LightSpec] = List.empty,
+  background: Option[Color] = None
 )
 
 object EnvironmentConfig:

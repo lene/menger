@@ -90,6 +90,10 @@ class SceneConfigurator(
     renderer.setScale(scale)
     logger.debug(s"Configured scale parameter: scale=$scale")
 
+  def setBackgroundColor(renderer: OptiXRenderer, color: Color): Unit =
+    renderer.setBackgroundColor(color.r, color.g, color.b)
+    logger.debug(f"Configured background color: RGB=(${color.r}%.2f, ${color.g}%.2f, ${color.b}%.2f)")
+
   def setShadows(renderer: OptiXRenderer, enabled: Boolean): Unit =
     renderer.setShadows(enabled)
     logger.debug(s"Configured shadow rays: enabled=$enabled")

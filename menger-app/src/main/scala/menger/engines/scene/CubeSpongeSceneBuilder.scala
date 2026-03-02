@@ -4,7 +4,6 @@ import scala.util.Try
 
 import com.badlogic.gdx.math.Vector3
 import menger.ObjectSpec
-import menger.common.Const
 import menger.common.TransformUtil
 import menger.objects.Cube
 import menger.objects.CubeSpongeGenerator
@@ -66,7 +65,7 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
 
   private def addCubeInstancesForSpec(spec: ObjectSpec, renderer: OptiXRenderer): Unit =
     require(spec.level.isDefined, "cube-sponge requires level")
-    val level = spec.level.get.toInt
+    val level = spec.level.get
     val material = MaterialExtractor.extract(spec)
 
     // Generate all cube transforms using CubeSpongeGenerator
@@ -79,8 +78,8 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
     logger.debug(s"Generating ${generator.cubeCount} cube instances for level $level cube-sponge at (${spec.x}, ${spec.y}, ${spec.z})")
 
     // Add each cube as an instance
-    generator.generateTransforms.foreach { case (position, scale) =>
-      addSingleCubeInstance(position, scale, material, renderer)
+    generator.generateTransforms.foreach { case (position, scale, alpha) =>
+      addSingleCubeInstance(position, scale, material, renderer, spec.yRotation, alpha)
     }
 
     logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
@@ -89,13 +88,21 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
     position: Vector3,
     scale: Float,
     material: Material,
-    renderer: OptiXRenderer
+    renderer: OptiXRenderer,
+    yRotation: Float = 0f,
+    alpha: Float = 1f
   ): Unit =
-    val transform = TransformUtil.createScaleTranslation(
-      scale, position.x, position.y, position.z
-    )
+    val effectiveMaterial =
+      if alpha >= 0.9999f then material
+      else material.copy(color = material.color.copy(a = alpha))
 
-    val instanceId = renderer.addTriangleMeshInstance(transform, material)
+    val transform =
+      if yRotation == 0f then
+        TransformUtil.createScaleTranslation(scale, position.x, position.y, position.z)
+      else
+        TransformUtil.createYRotationScaleTranslation(yRotation, scale, position.x, position.y, position.z)
+
+    val instanceId = renderer.addTriangleMeshInstance(transform, effectiveMaterial)
 
     instanceId match
       case None =>
@@ -110,5 +117,5 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
     specs.map { spec =>
       require(spec.level.isDefined, "cube-sponge requires level")
-      Math.pow(Const.Engine.cubesPerSpongeLevel, spec.level.get.toInt).toLong
+      CubeSpongeGenerator(size = spec.size, level = spec.level.get).cubeCount
     }.sum

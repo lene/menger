@@ -127,7 +127,8 @@ object Main:
       environment = EnvironmentConfig(
         plane = opts.plane(),
         planeColor = opts.planeColor.toOption,
-        lights = configs.lights
+        lights = configs.lights,
+        background = configs.background
       ),
       execution = buildExecutionConfig(opts),
       render = opts.renderConfig,

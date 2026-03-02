@@ -16,7 +16,8 @@ case class Scene(
   objects: List[SceneObject] = List.empty,
   lights: List[Light] = List.empty,
   plane: Option[Plane] = None,
-  caustics: Option[Caustics] = None
+  caustics: Option[Caustics] = None,
+  background: Option[Color] = None
 ):
   require(objects.nonEmpty, "Scene must contain at least one object")
 

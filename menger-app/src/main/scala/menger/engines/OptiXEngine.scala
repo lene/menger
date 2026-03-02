@@ -332,6 +332,7 @@ class OptiXEngine(
         renderer.setRenderConfig(config.render)
         renderer.setCausticsConfig(config.caustics)
         environment.planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
+        environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
         finalizeCreate()
       }
     }

@@ -109,6 +109,9 @@ class AnimatedOptiXEngine(
         logger.error(s"Failed to build scene for frame $frame (t=$t): ${e.getMessage}", e)
       }
 
+      // Apply per-scene background color if set
+      configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
+
       // Update camera from this frame's scene
       cameraState.updateCamera(
         renderer, configs.camera.position, configs.camera.lookAt, configs.camera.up

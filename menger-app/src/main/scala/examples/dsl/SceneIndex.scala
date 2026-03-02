@@ -25,4 +25,5 @@ object SceneIndex:
   val animated: List[Float => menger.dsl.Scene] = List(
     OrbitingSphere.scene,
     PulsingSponge.scene,
+    RotatingSilverSponge.scene,
   )

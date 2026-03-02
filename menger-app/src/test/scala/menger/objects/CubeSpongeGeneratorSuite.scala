@@ -58,7 +58,7 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
 
     // At level 1, cubes should be at distance 1.0 from center (3.0 / 3 = 1.0)
     // and have size 1.0
-    transforms.foreach { case (pos, scale) =>
+    transforms.foreach { case (pos, scale, _) =>
       scale shouldBe 1.0f +- 0.001f
       // Each cube should be at a corner or edge position
       val absSum = math.abs(pos.x) + math.abs(pos.y) + math.abs(pos.z)
@@ -70,24 +70,24 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
     val transforms = generator.generateTransforms
 
     // Should not contain center cube
-    transforms.exists { case (pos, _) =>
+    transforms.exists { case (pos, _, _) =>
       pos.x == 0.0f && pos.y == 0.0f && pos.z == 0.0f
     } shouldBe false
 
     // Should not contain face-center cubes (one coordinate is 0, others are not)
-    val faceCenterCount = transforms.count { case (pos, _) =>
+    val faceCenterCount = transforms.count { case (pos, _, _) =>
       val nonZeroCount = Seq(pos.x, pos.y, pos.z).count(_ != 0.0f)
       nonZeroCount == 2  // Face centers have exactly 2 non-zero coordinates
     }
     // At level 1, we expect 12 edge cubes and 8 corner cubes = 20 total
     // Corner cubes have all 3 coordinates non-zero
     // Edge cubes have exactly 2 non-zero coordinates
-    val cornerCount = transforms.count { case (pos, _) =>
+    val cornerCount = transforms.count { case (pos, _, _) =>
       pos.x != 0.0f && pos.y != 0.0f && pos.z != 0.0f
     }
     cornerCount shouldBe CUBE_CORNER_COUNT
 
-    val edgeCount = transforms.count { case (pos, _) =>
+    val edgeCount = transforms.count { case (pos, _, _) =>
       val nonZeroCount = Seq(pos.x, pos.y, pos.z).count(_ != 0.0f)
       nonZeroCount == 2
     }

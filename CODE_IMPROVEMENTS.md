@@ -2252,3 +2252,109 @@ The Scala DSL implementation represents **exemplary software engineering** with 
 **Files Analyzed:** All Sprint 12 files (9 new, 15 modified) + cross-cutting analysis
 **Test Count:** 1599 total (27 new for Sprint 12)
 **Focus Areas:** Clean code, FP patterns, duplication, constants, architecture, tests
+
+---
+
+## Assessment (2026-03-02) — Sprint 12: CubeSponge fractional levels, Y-rotation, background color
+
+**Date:** 2026-03-02
+**Branch:** feature/sprint-12
+**Focus:** Five features: per-scene background color, CubeSponge fractional level animation (with
+ghost-cube alpha transparency), sponge Y-axis rotation per-instance transform, CameraState
+aspect-ratio update fix, coverage-blend shader fix for IAS mode fractional alpha.
+**Overall Grade:** A-
+
+### Summary
+
+This sprint extends the CubeSponge (IAS-based) rendering significantly. Ghost cubes now fade
+correctly between integer sponge levels, the sponge can be rotated around the world Y-axis,
+and individual scenes can override the default background color. One non-trivial shader bug was
+discovered and fixed (ghost cubes in IAS mode were invisible regardless of alpha because the
+fractional-alpha path fell through to the Fresnel/refraction path at IOR=1.0, where Fresnel=0
+makes the material fully transparent). A camera bug was also fixed (aspect-ratio update used
+initial camera state instead of current state). All 1599 tests pass.
+
+### New Files
+
+| File | Lines | Assessment |
+|------|-------|------------|
+| `RotatingSilverSponge.scala` | 55 | Clean example: fixed camera, rotating growing sponge, near-black background |
+
+### Issues Found
+
+**M1 — MEDIUM: `CubeSpongeSceneBuilder.addSingleCubeInstance` has 4 parameters with defaults**
+`menger-app/src/main/scala/menger/engines/scene/CubeSpongeSceneBuilder.scala`
+The private helper `addSingleCubeInstance(position, scale, material, renderer, yRotation=0f, alpha=1f)`
+has grown to 6 parameters. The first four are always required; `yRotation` and `alpha` are always
+supplied together from `generateTransforms`. Consider grouping `yRotation` and `alpha` into the
+3-tuple already returned by `generateTransforms`, so the call site is a direct structural match with
+no separate parameters needed. Effort: Low.
+
+**M2 — MEDIUM: Duplicated scene classification logic (pre-existing, now more severe)**
+`AnimatedOptiXEngine.selectSceneBuilder()` still does not handle `TesseractEdgeSceneBuilder`
+(identified as M12 in the Sprint 12 assessment). No regression, but adding `CubeSponge` support
+to both engines without fixing the shared-classifier gap increases the maintenance risk.
+The `CubeSponge` branch was added consistently to both engines this sprint, which is good —
+but the fix for H6/M12 (extract to `SceneClassifier`) is now more urgent.
+
+**M3 — MEDIUM: `EnvironmentConfig.background` field carries DSL-layer type into engine layer**
+`menger-app/src/main/scala/menger/config/EnvironmentConfig.scala` gains `background: Option[Color]`
+where `Color` is `menger.common.CommonColor`. This is appropriate at the config boundary; however
+`SceneConfigurator.setBackgroundColor` receives a `CommonColor` which it unpacks to `(r, g, b)`
+floats. The path from DSL `Color` → `CommonColor` → `(r, g, b)` → `params.bg_r/g/b` is
+correct but the DSL `Color` → `CommonColor` conversion is performed inside `SceneConverter` via
+a direct `.toCommonColor` call. This is clean. No action required, just document the ownership boundary.
+**Severity reduced to LOW.**
+
+**L1 — LOW: `RotatingSilverSponge` usage comment lists `--max-instances 8000`**
+~~Corrected to `11000` in this sprint.~~ The comment header says `--max-instances 8000` in one
+line and `--max-instances 11000` in another. Verify both usages are correct (8000 for static integer
+levels, 11000 for fractional levels spanning 2–3). The scene comment correctly reflects both.
+No action needed; the two-number situation is intentional.
+
+**L2 — LOW: Coverage-blend IAS condition is order-sensitive**
+`hit_triangle.cu` lines 221-225: The `use_coverage_blend` condition checks
+`!has_vertex_alpha_channel && params.use_ias` for the IAS ghost-cube path. This is correct today,
+but if a future IAS geometry has a per-vertex alpha channel AND fractional material alpha, both
+conditions would be true and `coverage_alpha` would (correctly) use `vertex_alpha` over `mesh_alpha`.
+A brief comment documenting the priority would aid future readers.
+
+**L3 — LOW: `TransformUtil.createYRotationScaleTranslation` is untested**
+`menger-common/src/main/scala/menger/common/TransformUtil.scala`: The new Y-rotation transform
+helper has no unit tests. The existing `createScaleTranslation` is trivially verified by visual
+inspection; the rotation matrix is not. Adding 2–3 tests verifying the 90° and 180° rotation
+cases would protect against future sign errors. Effort: Low.
+
+### Bugs Fixed This Sprint
+
+| Bug | Location | Root Cause | Impact |
+|-----|----------|------------|--------|
+| Ghost cubes fully transparent regardless of alpha | `hit_triangle.cu` | IOR=1.0 + Fresnel path → fresnel=0 → pass-through; coverage-blend path not triggered for IAS mode | Fractional CubeSponge levels appeared identical |
+| Camera aspect-ratio update using stale state | `CameraState.updateCameraAspectRatio` | Used `initialEye/LookAt/Up` instead of `currentEye/LookAt/Up` | Window resize reset camera to initial position |
+
+### Positive Patterns
+
+- **Ghost cube approach**: Fractional level animation using 7 transparent sub-cubes per parent
+  cube (center + 6 face-centers) is mathematically clean and visually smooth.
+- **Y-rotation instance transform**: `createYRotationScaleTranslation` computes full 4×3
+  matrix combining scale + rotation + local→world position rotation in a single call; no
+  intermediate matrix objects allocated.
+- **Per-scene background color**: Background color correctly flows through the full
+  DSL → SceneConverter → EnvironmentConfig → SceneConfigurator → JNI → C++ → GPU path with
+  zero breaking changes to the default dark-purple background for all existing scenes.
+- **Manual test labels**: Interactive test labels for DSL tests now describe what each scene
+  demonstrates rather than just naming the class.
+
+### Test Coverage
+
+- All 1599 existing tests pass (no regressions)
+- `CubeSpongeGeneratorSuite` updated for new 3-tuple return type (10 pattern match changes)
+- New feature not yet unit-tested: `TransformUtil.createYRotationScaleTranslation` (L3 above)
+
+---
+
+**Last Updated:** 2026-03-02
+**Review Type:** Comprehensive code quality assessment (Sprint 12 CubeSponge fractional + rotation + background)
+**Reviewer:** Claude Code (claude-sonnet-4-6)
+**Files Changed:** 25 files (24 modified + 1 new)
+**Test Count:** 1599 total (no new tests; fractional CubeSponge tested visually)

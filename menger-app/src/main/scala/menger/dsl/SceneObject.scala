@@ -107,7 +107,8 @@ case class Sponge(
   color: Option[Color] = None,
   size: Float = 1.0f,
   ior: Float = 1.0f,
-  texture: Option[String] = None
+  texture: Option[String] = None,
+  rotation: Float = 0.0f    // Y-axis rotation in radians
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
   require(size > 0f, s"Size must be positive, got $size")
@@ -124,7 +125,8 @@ case class Sponge(
       color = color.map(_.toCommonColor),
       ior = material.map(_.ior).getOrElse(ior),
       material = material.map(_.toOptixMaterial),
-      texture = texture
+      texture = texture,
+      yRotation = rotation
     )
 
 object Sponge:
