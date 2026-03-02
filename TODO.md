@@ -23,11 +23,11 @@ Quick notes and ideas captured during development. Review periodically and promo
 - multiple planes, as well as zero
 - test on both CUDA 12 and 13 (docker images for both)
 
-- texture/material for plane → **Sprint 12 (Task 12.1)**
-- check materials for real-life correctness → **Sprint 12 (Task 12.3)**
-- shadows with transparent objects → **Sprint 12 (Task 12.2)**
-- examples for mixed-metallic (0 < metallic < 1) materials → **Sprint 12 (Task 12.4)**
-- Rounded edges on cubes/sponges → **Sprint 12 (Task 12.5, stretch goal)**
+- texture/material for plane → **Sprint 13 (Task 13.1)**
+- shadows with transparent objects → **Sprint 13 (Task 13.2)**
+- check materials for real-life correctness → **Sprint 13 (Task 13.3)**
+- examples for mixed-metallic (0 < metallic < 1) materials → **Sprint 13 (Task 13.4)**
+- Rounded edges on cubes/sponges → **Sprint 13 (Task 13.5, stretch goal)**
 
 - Object transform animation (position, rotation, scale)
 - Keyframe system with linear interpolation
