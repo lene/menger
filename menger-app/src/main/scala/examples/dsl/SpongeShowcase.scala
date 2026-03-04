@@ -68,7 +68,7 @@ object SpongeShowcase:
         intensity = 0.6f
       )
     ),
-    plane = Some(Plane(Y at -2, color = "#303030"))
+    planes = List(Plane(Y at -2, color = "#303030"))
   )
 
   SceneRegistry.register("sponge-showcase", scene)

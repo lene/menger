@@ -6,6 +6,7 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import menger.MengerCLIOptions
 import menger.ProfilingConfig
 import menger.RotationProjectionParameters
+import menger.cli.PlaneConfig
 import menger.common.Const
 import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
@@ -102,9 +103,7 @@ object Main:
           animConfig = animConfig,
           executionConfig = buildExecutionConfig(opts),
           renderConfig = opts.renderConfig,
-          causticsConfig = opts.causticsConfig,
-          planeSpec = opts.plane(),
-          planeColor = opts.planeColor.toOption
+          causticsConfig = opts.causticsConfig
         )
 
       case Right(loadedScene) =>
@@ -125,8 +124,7 @@ object Main:
       scene = configs.scene,
       camera = configs.camera,
       environment = EnvironmentConfig(
-        plane = opts.plane(),
-        planeColor = opts.planeColor.toOption,
+        planes = configs.planes,
         lights = configs.lights,
         background = configs.background
       ),
@@ -145,8 +143,7 @@ object Main:
         up = opts.cameraUp()
       ),
       environment = EnvironmentConfig(
-        plane = opts.plane(),
-        planeColor = opts.planeColor.toOption,
+        planes = List(PlaneConfig(opts.plane(), opts.planeColor.toOption)),
         lights = opts.light.toOption.getOrElse(List.empty)
       ),
       execution = buildExecutionConfig(opts),

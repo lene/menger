@@ -63,7 +63,7 @@ object MengerShowcase:
         intensity = 0.8f
       )
     ),
-    plane = Some(Plane(Y at -3, color = "#404040"))
+    planes = List(Plane(Y at -3, color = "#404040"))
   )
 
   SceneRegistry.register("menger-showcase", scene)

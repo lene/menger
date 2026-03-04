@@ -2,6 +2,7 @@ package menger.dsl
 
 import menger.cli.Axis
 import menger.cli.PlaneColorSpec
+import menger.cli.PlaneConfig
 import menger.cli.PlaneSpec
 
 /** Axis position specification for planes.
@@ -99,6 +100,9 @@ case class Plane(
       case (Some(c), _)          => PlaneColorSpec(c.toCommonColor, None)
       case (_, Some((c1, c2)))   => PlaneColorSpec(c1.toCommonColor, Some(c2.toCommonColor))
       case _                     => sys.error("Plane must have either color or checkered defined (caught by require)")
+
+  /** Convert to PlaneConfig for the rendering pipeline. */
+  def toPlaneConfig: PlaneConfig = PlaneConfig(toPlaneSpec, Some(toPlaneColorSpec))
 
 object Plane:
   /** Create a solid-colored plane.

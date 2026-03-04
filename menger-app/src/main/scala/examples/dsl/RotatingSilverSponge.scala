@@ -49,6 +49,6 @@ object RotatingSilverSponge:
         Directional(direction = (-1f, -0.5f, 1f), intensity = 0.5f),
         Directional(direction = (0f, 1f, 0.5f),   intensity = 0.3f)
       ),
-      plane = Some(Plane(Y at -3, color = "#303030")),
+      planes = List(Plane(Y at -3, color = "#303030")),
       background = Some(Color(0.05f, 0.05f, 0.05f))
     )

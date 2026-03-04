@@ -9,8 +9,7 @@ import menger.Vector3Extensions.toVector3
 import menger.cli.Axis
 import menger.cli.LightSpec
 import menger.cli.LightType
-import menger.cli.PlaneColorSpec
-import menger.cli.PlaneSpec
+import menger.cli.PlaneConfig
 import menger.common.Color
 import menger.common.Const
 import menger.common.Light
@@ -21,7 +20,6 @@ class SceneConfigurator(
   cameraPos: Vector3,
   cameraLookat: Vector3,
   cameraUp: Vector3,
-  planeSpec: PlaneSpec,
   lights: List[LightSpec] = List.empty
 ) extends LazyLogging:
 
@@ -30,7 +28,6 @@ class SceneConfigurator(
     configureGeometry.get(renderer)  // Throws on failure - caught by Main
     configureCamera(renderer)
     configureLights(renderer)
-    configurePlane(renderer)
 
   def configureCamera(renderer: OptiXRenderer): Unit =
     val eye = cameraPos.toVector3
@@ -60,16 +57,35 @@ class SceneConfigurator(
       case LightType.DIRECTIONAL => Light.Directional(position, color, spec.intensity)
       case LightType.POINT => Light.Point(position, color, spec.intensity)
 
-  def configurePlane(renderer: OptiXRenderer): Unit =
-    val axisInt = planeSpec.axis match
-      case Axis.X => 0
-      case Axis.Y => 1
-      case Axis.Z => 2
+  def configurePlanes(renderer: OptiXRenderer, planes: List[PlaneConfig]): Unit =
     renderer.clearPlanes()
-    renderer.addPlane(axisInt, planeSpec.positive, planeSpec.value)
-    val axisName = planeSpec.axis.toString.toLowerCase
-    val sign = if planeSpec.positive then "+" else "-"
-    logger.debug(s"Configured plane: ${sign}${axisName}:${planeSpec.value}")
+    planes.foreach { planeConfig =>
+      val axisInt = planeConfig.spec.axis match
+        case Axis.X => 0
+        case Axis.Y => 1
+        case Axis.Z => 2
+      planeConfig.colorSpec match
+        case Some(colorSpec) =>
+          colorSpec.color2 match
+            case Some(c2) =>
+              val c1 = colorSpec.color1
+              renderer.addPlaneCheckerColors(
+                axisInt, planeConfig.spec.positive, planeConfig.spec.value,
+                c1.r, c1.g, c1.b, c2.r, c2.g, c2.b
+              )
+              logger.debug(f"Configured checkered plane: ${planeConfig.spec.axis}@${planeConfig.spec.value}")
+            case None =>
+              val c1 = colorSpec.color1
+              renderer.addPlaneSolidColor(
+                axisInt, planeConfig.spec.positive, planeConfig.spec.value,
+                c1.r, c1.g, c1.b
+              )
+              logger.debug(f"Configured solid-color plane: ${planeConfig.spec.axis}@${planeConfig.spec.value}")
+        case None =>
+          renderer.addPlane(axisInt, planeConfig.spec.positive, planeConfig.spec.value)
+          logger.debug(s"Configured default-color plane: ${planeConfig.spec.axis}@${planeConfig.spec.value}")
+    }
+    if planes.isEmpty then logger.debug("No planes configured")
 
   def setSphereColor(renderer: OptiXRenderer, color: Color): Unit =
     renderer.setSphereColor(color)
@@ -106,18 +122,3 @@ class SceneConfigurator(
   def setCaustics(renderer: OptiXRenderer, enabled: Boolean, photonsPerIter: Int, iterations: Int, initialRadius: Float, alpha: Float): Unit =
     renderer.setCaustics(enabled, photonsPerIter, iterations, initialRadius, alpha)
     logger.debug(s"Configured caustics: enabled=$enabled, photonsPerIter=$photonsPerIter, iterations=$iterations, initialRadius=$initialRadius, alpha=$alpha")
-
-  def setPlaneColor(renderer: OptiXRenderer, spec: PlaneColorSpec): Unit =
-    val axisInt = planeSpec.axis match
-      case Axis.X => 0
-      case Axis.Y => 1
-      case Axis.Z => 2
-    val c1 = spec.color1
-    renderer.clearPlanes()
-    spec.color2 match
-      case Some(c2) =>
-        renderer.addPlaneCheckerColors(axisInt, planeSpec.positive, planeSpec.value, c1.r, c1.g, c1.b, c2.r, c2.g, c2.b)
-        logger.debug(f"Configured checkered plane colors: light=(${c1.r}%.2f, ${c1.g}%.2f, ${c1.b}%.2f), dark=(${c2.r}%.2f, ${c2.g}%.2f, ${c2.b}%.2f)")
-      case None =>
-        renderer.addPlaneSolidColor(axisInt, planeSpec.positive, planeSpec.value, c1.r, c1.g, c1.b)
-        logger.debug(f"Configured solid plane color: RGB=(${c1.r}%.2f, ${c1.g}%.2f, ${c1.b}%.2f)")

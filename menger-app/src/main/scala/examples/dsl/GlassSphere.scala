@@ -43,7 +43,7 @@ object GlassSphere:
         intensity = 2.0f
       )
     ),
-    plane = Some(
+    planes = List(
       // White floor to clearly show caustic patterns
       Plane(Y at -1.5, color = "#FFFFFF")
     ),

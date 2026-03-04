@@ -83,7 +83,7 @@ object ComplexLighting:
         color = "#88CCFF"  // Cool blue
       )
     ),
-    plane = Some(
+    planes = List(
       // Checkered floor for depth perception
       Plane.checkered(Y at -1.5, ("#FFFFFF", "#888888"))
     )

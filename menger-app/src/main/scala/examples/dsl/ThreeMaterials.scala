@@ -55,7 +55,7 @@ object ThreeMaterials:
         intensity = 0.5f
       )
     ),
-    plane = Some(Plane(Y at -1, color = "#606060"))  // Gray floor
+    planes = List(Plane(Y at -1, color = "#606060"))  // Gray floor
   )
 
   SceneRegistry.register("three-materials", scene)

@@ -73,7 +73,7 @@ object CustomMaterials:
         intensity = 0.3f
       )
     ),
-    plane = Some(Plane(Y at -1, color = "#404040"))
+    planes = List(Plane(Y at -1, color = "#404040"))
   )
 
   SceneRegistry.register("custom-materials", scene)

@@ -58,7 +58,7 @@ object ReusableComponents:
     ),
     // Use pre-configured three-point lighting
     lights = ThreePointLighting,
-    plane = Some(Plane(Y at -1, color = "#505050"))
+    planes = List(Plane(Y at -1, color = "#505050"))
   )
 
   SceneRegistry.register("reusable-components", scene)

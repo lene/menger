@@ -43,7 +43,7 @@ object CausticsDemo:
         intensity = 2.0f
       )
     ),
-    plane = Some(
+    planes = List(
       // White floor to show caustic patterns clearly
       Plane(Y at -1, color = Color.White)
     ),

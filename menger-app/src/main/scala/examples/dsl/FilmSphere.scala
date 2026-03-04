@@ -61,7 +61,7 @@ object FilmSphere:
       )
     ),
     // Dark floor to contrast the iridescent colors
-    plane = Some(Plane(Y at -1.2, color = "#101010"))
+    planes = List(Plane(Y at -1.2, color = "#101010"))
   )
 
   SceneRegistry.register("film-sphere", scene)

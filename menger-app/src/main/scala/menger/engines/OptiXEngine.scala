@@ -178,7 +178,6 @@ class OptiXEngine(
     camera.position,
     camera.lookAt,
     camera.up,
-    environment.plane,
     environment.lights
   )
   private val cameraState = CameraState(camera.position, camera.lookAt, camera.up)
@@ -262,7 +261,7 @@ class OptiXEngine(
 
     val renderer = rendererWrapper.renderer
     sceneConfigurator.configureLights(renderer)
-    sceneConfigurator.configurePlane(renderer)
+    sceneConfigurator.configurePlanes(renderer, environment.planes)
     sceneConfigurator.configureCamera(renderer)
 
     // Determine scene type and setup using strategy pattern
@@ -331,7 +330,6 @@ class OptiXEngine(
       Try {
         renderer.setRenderConfig(config.render)
         renderer.setCausticsConfig(config.caustics)
-        environment.planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
         environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
         finalizeCreate()
       }

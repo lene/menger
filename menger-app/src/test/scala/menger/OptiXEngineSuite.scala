@@ -3,6 +3,7 @@ package menger
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import menger.cli.Axis
+import menger.cli.PlaneConfig
 import menger.cli.PlaneSpec
 import menger.common.Const
 import menger.config.CameraConfig
@@ -41,7 +42,7 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
         up = Vector3(0f, 1f, 0f)
       ),
       environment = EnvironmentConfig(
-        plane = PlaneSpec(Axis.Y, false, Const.defaultFloorPlaneY)
+        planes = List(PlaneConfig(PlaneSpec(Axis.Y, false, Const.defaultFloorPlaneY), colorSpec = None))
       ),
       execution = ExecutionConfig(
         fpsLogIntervalMs = 1000,

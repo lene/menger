@@ -1,6 +1,7 @@
 package menger.dsl
 
 import menger.cli.LightSpec
+import menger.cli.PlaneConfig
 import menger.common.{Color => CommonColor}
 import menger.config.CameraConfig
 import menger.config.SceneConfig
@@ -17,7 +18,8 @@ object SceneConverter:
     camera: CameraConfig,
     lights: List[LightSpec],
     caustics: CausticsConfig,
-    background: Option[CommonColor] = None
+    background: Option[CommonColor] = None,
+    planes: List[PlaneConfig] = List.empty
   )
 
   def convert(dslScene: Scene, fallbackCaustics: CausticsConfig): SceneConfigs =
@@ -29,4 +31,5 @@ object SceneConverter:
     }
     val caustics = dslScene.caustics.map(_.toCausticsConfig).getOrElse(fallbackCaustics)
     val background = dslScene.background.map(_.toCommonColor)
-    SceneConfigs(scene, camera, lights, caustics, background)
+    val planes = dslScene.planes.map(_.toPlaneConfig)
+    SceneConfigs(scene, camera, lights, caustics, background, planes)

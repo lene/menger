@@ -26,5 +26,5 @@ object OrbitingSphere:
       lights = List(
         Directional(direction = (1f, -1f, -1f), intensity = 2.0f)
       ),
-      plane = Some(Plane(Y at -1.5, color = "#FFFFFF"))
+      planes = List(Plane(Y at -1.5, color = "#FFFFFF"))
     )

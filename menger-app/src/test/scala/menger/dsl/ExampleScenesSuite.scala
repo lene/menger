@@ -27,7 +27,7 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.MengerShowcase"))
     scene.objects should have length 1
     scene.lights should have length 3
-    scene.plane shouldBe defined
+    scene.planes should not be empty
 
   it should "load SimpleScene via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.SimpleScene"))
@@ -38,38 +38,38 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.ThreeMaterials"))
     scene.objects should have length 3
     scene.lights should have length 2
-    scene.plane shouldBe defined
+    scene.planes should not be empty
 
   it should "load CausticsDemo via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.CausticsDemo"))
     scene.objects should have length 1
     scene.lights should have length 1
-    scene.plane shouldBe defined
+    scene.planes should not be empty
     scene.caustics shouldBe defined
 
   it should "load CustomMaterials via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.CustomMaterials"))
     scene.objects should have length 5
     scene.lights should have length 2
-    scene.plane shouldBe defined
+    scene.planes should not be empty
 
   it should "load ComplexLighting via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.ComplexLighting"))
     scene.objects should have length 3
     scene.lights should have length 5
-    scene.plane shouldBe defined
+    scene.planes should not be empty
 
   it should "load SpongeShowcase via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.SpongeShowcase"))
     scene.objects should have length 3
     scene.lights should have length 2
-    scene.plane shouldBe defined
+    scene.planes should not be empty
 
   it should "load ReusableComponents via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.ReusableComponents"))
     scene.objects should have length 4
     scene.lights should have length 3  // ThreePointLighting
-    scene.plane shouldBe defined
+    scene.planes should not be empty
 
   private def extractAnimatedFn(result: Either[String, LoadedScene]): Float => Scene =
     result match
@@ -83,7 +83,7 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
       val scene = fn(t)
       scene.objects should have length 1
       scene.lights should have length 1
-      scene.plane shouldBe defined
+      scene.planes should not be empty
 
   it should "load PulsingSponge as animated" in:
     val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PulsingSponge"))
@@ -91,7 +91,7 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
       val scene = fn(t)
       scene.objects should have length 1
       scene.lights should have length 2
-      scene.plane shouldBe defined
+      scene.planes should not be empty
 
   it should "produce different OrbitingSphere scenes for different t" in:
     val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.OrbitingSphere"))

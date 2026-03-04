@@ -9,8 +9,6 @@ import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import menger.OptiXRenderResources
 import menger.ProfilingConfig
-import menger.cli.PlaneColorSpec
-import menger.cli.PlaneSpec
 import menger.common.ImageSize
 import menger.config.ExecutionConfig
 import menger.dsl.Scene
@@ -33,17 +31,13 @@ import menger.optix.SceneConfigurator
   * @param executionConfig Runtime settings (maxInstances, etc.)
   * @param renderConfig Rendering quality settings
   * @param causticsConfig Caustics settings
-  * @param planeSpec Ground plane configuration
-  * @param planeColor Optional plane color
   */
 class AnimatedOptiXEngine(
   sceneFunction: Float => Scene,
   animConfig: TAnimationConfig,
   executionConfig: ExecutionConfig,
   renderConfig: RenderConfig,
-  causticsConfig: CausticsConfig,
-  planeSpec: PlaneSpec,
-  planeColor: Option[PlaneColorSpec]
+  causticsConfig: CausticsConfig
 )(using profilingConfig: ProfilingConfig)
   extends RenderEngine with LazyLogging with SavesScreenshots:
 
@@ -60,7 +54,6 @@ class AnimatedOptiXEngine(
     firstConfigs.camera.position,
     firstConfigs.camera.lookAt,
     firstConfigs.camera.up,
-    planeSpec,
     firstConfigs.lights
   )
 
@@ -71,7 +64,6 @@ class AnimatedOptiXEngine(
   override def create(): Unit =
     val renderer = rendererWrapper.renderer
     sceneConfigurator.configureLights(renderer)
-    sceneConfigurator.configurePlane(renderer)
     sceneConfigurator.configureCamera(renderer)
 
     // Build the first frame's scene
@@ -83,7 +75,7 @@ class AnimatedOptiXEngine(
 
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(configs.caustics)
-    planeColor.foreach(sceneConfigurator.setPlaneColor(renderer, _))
+    sceneConfigurator.configurePlanes(renderer, configs.planes)
 
     GdxRuntime.setContinuousRendering(true)
 
@@ -108,6 +100,9 @@ class AnimatedOptiXEngine(
       buildSceneFromConfigs(configs).recover { case e: Exception =>
         logger.error(s"Failed to build scene for frame $frame (t=$t): ${e.getMessage}", e)
       }
+
+      // Reconfigure planes per frame (supports animated plane changes)
+      sceneConfigurator.configurePlanes(renderer, configs.planes)
 
       // Apply per-scene background color if set
       configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))

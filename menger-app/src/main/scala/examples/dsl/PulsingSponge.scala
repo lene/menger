@@ -33,5 +33,5 @@ object PulsingSponge:
         Directional(direction = (1f, -1f, -1f), intensity = 1.5f),
         Directional(direction = (-1f, -0.5f, 1f), intensity = 0.5f)
       ),
-      plane = Some(Plane(Y at -2, color = "#303030"))
+      planes = List(Plane(Y at -2, color = "#303030"))
     )
