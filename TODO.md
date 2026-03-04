@@ -41,7 +41,7 @@ Quick notes and ideas captured during development. Review periodically and promo
 - L-systems in 3D and 4D
 - rotopes for higher-dimensional geometry generation
 - higher dimensional menger sponge and sierpinski tetrahedron analogs 
-- steroscopic 3D rendering (left/right eye cameras)
+- stereoscopic 3D rendering (left/right eye cameras)
 - create a website with feedback button (opening GitHub or GitLab issue pre-filled with template)
 
 ## DSL Deferred Features (from Sprint 10)

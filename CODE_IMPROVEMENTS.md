@@ -2358,3 +2358,317 @@ cases would protect against future sign errors. Effort: Low.
 **Reviewer:** Claude Code (claude-sonnet-4-6)
 **Files Changed:** 25 files (24 modified + 1 new)
 **Test Count:** 1599 total (no new tests; fractional CubeSponge tested visually)
+
+---
+
+## Assessment (2026-03-04) — Sprint 12 Full Codebase Review: Multiple Planes, Full 3D Rotation, Scene Builders, DSL Layer
+
+**Date:** 2026-03-04
+**Branch:** feature/sprint-12
+**Focus:** Comprehensive full-codebase review after Sprint 12 complete: multiple planes, full Euler
+rotation for all DSL objects, CubeSpongeSceneBuilder, TesseractEdgeSceneBuilder, TriangleMeshSceneBuilder,
+and the DSL scene / scene object / converter / configurator layer.
+**Overall Grade:** B+
+
+The Sprint 12 additions themselves are well-made. The issues below are real structural problems
+that have accumulated across several sprints and are now worth resolving. No single issue is
+critical, but issues 1 and 5 are high-priority because they have already caused a latent functional
+bug (animated tesseract-edge scenes silently using wrong builder).
+
+---
+
+### Issue 1 — HIGH: Duplicated `classifyScene` / `isTriangleMeshType` with functional divergence
+
+**Files:**
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/OptiXEngine.scala` lines 198-229
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/AnimatedOptiXEngine.scala` lines 165-178
+
+Both engines contain private copies of `classifyScene` and `isTriangleMeshType`. The copies have
+already diverged: `AnimatedOptiXEngine.selectSceneBuilder` at line 156-163 does not include a case
+for `TesseractEdgeSceneBuilder`, so animated scenes containing tesseract objects with edge rendering
+fall to the `None` branch and fail with `UnsupportedOperationException`. This is a functional bug,
+not just a style issue.
+
+**Recommendation:** Extract to a shared `SceneClassifier` object in the `engines.scene` package with
+the full, authoritative builder selection logic. Both engines call `SceneClassifier.classifyScene`
+and `SceneClassifier.selectBuilder`.
+
+---
+
+### Issue 2 — MEDIUM: Rotation-guard pattern copy-pasted across four scene builders
+
+**Files:**
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/scene/SphereSceneBuilder.scala` lines 46-49
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/scene/TriangleMeshSceneBuilder.scala` lines 82-88
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/scene/TesseractEdgeSceneBuilder.scala` lines 134-140
+
+All four builders contain the same pattern:
+
+```scala
+if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
+  renderer.addInstance(Vector[3](spec.x, spec.y, spec.z), material, ...)
+else
+  val transform = TransformUtil.createEulerRotationScaleTranslation(
+    spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z)
+  renderer.addInstance(transform, material, ...)
+```
+
+The zero-rotation optimization is a good idea but belongs on `ObjectSpec` rather than in every
+call site.
+
+**Recommendation:** Add `def toTransform(scale: Float = 1f): Array[Float]` to `ObjectSpec` that
+encapsulates the zero-check internally. Callers always use the `Array[Float]` overload.
+
+---
+
+### Issue 3 — MEDIUM: `CubeSpongeSceneBuilder` silently ignores `rotX` and `rotZ`
+
+**File:** `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/scene/CubeSpongeSceneBuilder.scala` line 82
+
+```scala
+addSingleCubeInstance(position, scale, material, renderer, spec.rotY, alpha)
+```
+
+The DSL `Sponge` case class accepts a full `Vec3 rotation` and maps all three axes to `ObjectSpec`
+fields `rotX`, `rotY`, `rotZ` (SceneObject.scala lines 40-42). However `addSingleCubeInstance` only
+passes `spec.rotY` and uses `createYRotationScaleTranslation`. A user who sets
+`Sponge(rotation = Vec3(30, 0, 0))` will see no X rotation applied, with no warning.
+
+**Recommendation:** Either upgrade `addSingleCubeInstance` to use full Euler rotation via
+`createEulerRotationScaleTranslation`, or add a validation in `buildScene` that rejects non-zero
+`rotX`/`rotZ` with a clear error message.
+
+---
+
+### Issue 4 — MEDIUM: `require(false, ...)` used as exhaustion marker
+
+**Files:**
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/scene/TesseractEdgeSceneBuilder.scala` lines 67-68, 181-183
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/scene/MeshFactory.scala` lines 107-108
+
+```scala
+// Example from TesseractEdgeSceneBuilder.scala line 67
+require(false, s"Unknown 4D object type: $other")
+Tesseract(size = spec.size)  // Never reached — required to satisfy compiler
+```
+
+`require(false, msg)` throws `IllegalArgumentException`, which is semantically wrong for
+unreachable code. The correct idiom is `throw IllegalStateException(msg)` or `sys.error(msg)`.
+The phantom expression after the `require` (required to satisfy the return type) is confusing.
+These cases exist because the match is on `String` (not a sealed type), so the compiler cannot
+verify exhaustiveness.
+
+**Recommendation:** Replace with `sys.error(msg)` or `throw IllegalStateException(msg)`.
+Consider whether `ObjectType.normalize()` applied before the match would eliminate the need
+for a default branch entirely (see Issue 5).
+
+---
+
+### Issue 5 — HIGH: Deprecated type string aliases used directly in scene builders and engines
+
+**Files (partial list):**
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/scene/TesseractEdgeSceneBuilder.scala` lines 60, 65, 174, 179, 286, 291, 295
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/scene/MeshFactory.scala` lines 76-103
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/OptiXEngine.scala` line 147
+- `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/AnimationSpecification.scala` line 141
+
+`ObjectType.scala` defines canonical names `"tesseract-sponge-volume"` / `"tesseract-sponge-surface"`
+with `DEPRECATED_ALIASES` mapping `"tesseract-sponge"` → `"tesseract-sponge-volume"`. However
+`TesseractEdgeSceneBuilder`, `MeshFactory`, and several other places still pattern-match on the
+deprecated string `"tesseract-sponge"`. If a normalized name reaches `addEdgeCylinders`, the
+match falls to the wrong default case, silently returning an incorrect edge count of 32.
+
+The `ObjectType.normalize()` method exists to solve this problem but is not applied before storage.
+The root fix is to normalize in `ObjectSpec.parseObjectType` (one line) so that all downstream code
+can rely on canonical names only. After that, deprecated alias references in the builders can be
+removed.
+
+**Recommendation:** In `ObjectSpec.parseObjectType`, call `ObjectType.normalize(t)` before
+`ObjectType.isValid(t)` and store the normalized name. Then update all pattern matches to use only
+canonical names. Remove the deprecated-alias map once no callers use it.
+
+---
+
+### Issue 6 — MEDIUM: `Mesh4D` generated twice in `TesseractEdgeSceneBuilder` per spec
+
+**File:** `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/scene/TesseractEdgeSceneBuilder.scala`
+
+`calculateRequiredInstances` (lines 57-70) generates a `Mesh4D` to count edges. `addEdgeCylinders`
+(lines 165-183) generates the same `Mesh4D` again using identical logic to project the edges into
+cylinders. For a high-level tesseract sponge the mesh may have tens of thousands of edges; creating
+it twice doubles the geometry computation.
+
+**Recommendation:** Compute the `Mesh4D` once per spec in `buildScene` and pass it to both
+instance-counting and cylinder-generation steps, or cache the result inside the builder.
+
+---
+
+### Issue 7 — MEDIUM: `SceneRegistry` global mutable state with side-effectful initialisation
+
+**File:** `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/dsl/SceneRegistry.scala` line 11
+
+```scala
+private val scenes = mutable.Map[String, Scene]()
+```
+
+The registry is a global mutable singleton. The only way to populate it is via the side effect of
+initializing `examples.dsl.SceneIndex`, which `Main.scala` triggers via `val _ = examples.dsl.SceneIndex`.
+This creates an invisible ordering dependency: if `SceneLoader.load("glass-sphere")` is called
+before `SceneIndex` is initialized, it returns a `ClassNotFoundException` error instead of finding
+the scene via reflection. The `clear()` method exposes the global state to test isolation.
+
+**Recommendation:** Convert `SceneRegistry` to hold an immutable map built eagerly from a
+`SceneIndex`-provided sequence at application startup. Pass the populated map explicitly to
+`SceneLoader` rather than relying on a global singleton. If a singleton pattern is retained, at
+minimum rename `clear()` to `clearForTesting()` and add a comment explaining the dependency.
+
+---
+
+### Issue 8 — MEDIUM: `SceneObject.toObjectSpec` rotation boilerplate repeated five times
+
+**File:** `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/dsl/SceneObject.scala`
+Lines 40-42, 84-86, 137-139, 213-215, 266-268
+
+Every `toObjectSpec` implementation in every `SceneObject` subtype contains:
+
+```scala
+rotX = rotation.x,
+rotY = rotation.y,
+rotZ = rotation.z
+```
+
+and also repeats the `color`, `ior`, `texture`, and `material` field mappings. A shared
+`baseObjectSpec(objectType: String, level: Option[Float] = None, ...)` helper collecting the
+six common fields would eliminate approximately 30 lines of structural duplication across the
+five implementations.
+
+---
+
+### Issue 9 — LOW-MEDIUM: `ObjectSpec` stores rotation as flat `Float` fields instead of a tuple
+
+**File:** `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/ObjectSpec.scala` lines 49-51
+
+```scala
+rotX: Float = 0.0f,
+rotY: Float = 0.0f,
+rotZ: Float = 0.0f
+```
+
+The DSL `SceneObject` stores rotation as a `Vec3`. `ObjectSpec` (an older type, extended in-place)
+uses three separate named fields. `menger.common.Vec3[Float]` is `(x: Float, y: Float, z: Float)`
+— a named tuple — already available. Unifying `ObjectSpec.rotation` to a single `(Float, Float, Float)`
+named tuple would simplify the five `toObjectSpec` bodies to a single `rotation = rotation` copy.
+
+---
+
+### Issue 10 — LOW: Degenerate named constants in `RenderingConstants` namespace (C++)
+
+**File:** `/home/lepr/workspace/menger/optix-jni/src/main/native/include/OptiXData.h` lines 117-143
+
+Several constants in the `RenderingConstants` namespace are trivially equal to 1.0 or 0.0 with
+comments that imply they are parameterised but they are not:
+
+```cpp
+constexpr float UNIT_CONVERSION_FACTOR = 1.0f;
+constexpr float FRESNEL_BASE = 1.0f;
+constexpr float FRESNEL_ONE_MINUS_R0 = 1.0f;      // comment: (1 - R0)
+constexpr float FRESNEL_ONE_MINUS_COS = 1.0f;      // comment: (1 - cosθ)
+constexpr float DISTANCE_FALLOFF_BASE = 1.0f;
+constexpr float COLOR_BLACK = 0.0f;
+constexpr float COLOR_WHITE = 1.0f;
+constexpr float DOT_PRODUCT_ZERO_THRESHOLD = 0.0f;
+```
+
+`FRESNEL_ONE_MINUS_R0 = 1.0f` with comment `(1 - R0)` is misleading: it only equals `1.0` when
+`R0 = 0`, which is not generally true. These constants encode a specific degenerate case as
+a universal fact. They should either be replaced with literal `1.0f`/`0.0f` at the use sites,
+or renamed to accurately describe what is being represented.
+
+---
+
+### Issue 11 — LOW: Empty `else` branches in JNI bindings are silent no-ops
+
+**File:** `/home/lepr/workspace/menger/optix-jni/src/main/native/JNIBindings.cpp`
+
+Approximately 7 JNI functions have an empty `else` branch when the wrapper handle is null:
+
+```cpp
+if (wrapper != nullptr) {
+    wrapper->setSphere(x, y, z, radius);
+} else {
+    // Empty — silent no-op
+}
+```
+
+A null wrapper when `ensureAvailable()` was not called (or failed silently) would produce
+no diagnostic output, making initialization bugs very hard to trace. The `else` branch should
+at minimum log at WARN level. If the null path is truly unreachable in practice, `assert(wrapper != nullptr)` would make that explicit.
+
+---
+
+### Issue 12 — LOW: `Const.Input` contains two conflicting zoom sensitivity values
+
+**File:** `/home/lepr/workspace/menger/menger-common/src/main/scala/menger/common/Const.scala` lines 52-55
+
+```scala
+val zoomSensitivity: Float = 0.1f            // Added in Sprint 11.x
+val defaultZoomSensitivity = 0.3f            // "merged from duplicate Input object"
+```
+
+Two constants named for the same concept with different values (0.1 vs 0.3) in the same object.
+The comment says "merged from duplicate Input object below", indicating an incomplete merge.
+One of the two is dead code. Determine which value is actually used and remove the other.
+
+---
+
+### Issue 13 — LOW: `calculateRequiredInstances` return type `Int` may overflow for large scenes
+
+**File:** `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/engines/scene/SceneBuilder.scala`
+
+`calculateRequiredInstances` returns `Int`. `CubeSpongeSceneBuilder.calculateInstanceCount` (called
+from it) computes `CubeSpongeGenerator(...).cubeCount.sum` where `cubeCount` returns `Long`. For
+multiple high-level CubeSponge objects the sum could exceed `Int.MaxValue` (2^31 - 1 ≈ 2.1B) and
+silently overflow when cast to `Int`. The existing `Const.maxInstancesLimit = 65536` prevents this
+in practice today, but the type boundary is semantically incorrect.
+
+**Recommendation:** Change `SceneBuilder.calculateRequiredInstances` return type to `Long`.
+
+---
+
+### Issue 14 — LOW: `SceneConverter.SceneConfigs` is nested inside the converter object
+
+**File:** `/home/lepr/workspace/menger/menger-app/src/main/scala/menger/dsl/SceneConverter.scala` lines 16-23
+
+`SceneConfigs` is a pure data record used in `AnimatedOptiXEngine`, `OptiXEngine`, and `Main`.
+Its placement inside `SceneConverter` means callers must reference `SceneConverter.SceneConfigs`,
+coupling the data type to its producer. Moving `SceneConfigs` to the top level of the `menger.dsl`
+package would make it a standalone type with a clear, separate identity.
+
+---
+
+### Priority Ranking
+
+| # | Issue | Severity | Estimated Effort |
+|---|-------|----------|-----------------|
+| 1 | Duplicated `classifyScene` / `isTriangleMeshType` (functional divergence) | High | Low |
+| 5 | Deprecated type string aliases bypassing `ObjectType.normalize()` | High | Medium |
+| 2 | Rotation-guard pattern duplicated across four builders | Medium | Low |
+| 3 | CubeSponge silently ignores `rotX` / `rotZ` | Medium | Low |
+| 6 | Mesh4D generated twice per spec in TesseractEdgeSceneBuilder | Medium | Low |
+| 7 | SceneRegistry mutable global state with side-effectful init | Medium | High |
+| 8 | SceneObject.toObjectSpec rotation boilerplate repeated five times | Medium | Low |
+| 4 | `require(false, ...)` anti-pattern for exhaustion | Medium | Low |
+| 9 | ObjectSpec flat rotation fields vs available `Vec3[Float]` type | Low-Med | Medium |
+| 10 | Degenerate named constants in C++ `RenderingConstants` | Low | Low |
+| 11 | Empty else branches in JNI bindings (silent null no-op) | Low | Low |
+| 12 | Two conflicting zoom sensitivity constants in `Const.Input` | Low | Trivial |
+| 13 | `calculateRequiredInstances` returns `Int` not `Long` | Low | Trivial |
+| 14 | `SceneConfigs` nested inside converter rather than top-level | Very Low | Trivial |
+
+---
+
+**Last Updated:** 2026-03-04
+**Review Type:** Comprehensive full-codebase quality assessment (post Sprint 12 complete)
+**Reviewer:** Claude Code (claude-sonnet-4-6)
+**Scope:** All Scala, C++, and CUDA source files; focused on Sprint 12 additions plus cross-cutting patterns
+**Test Count:** 1599 total
