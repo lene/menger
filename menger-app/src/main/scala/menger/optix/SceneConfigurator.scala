@@ -65,7 +65,8 @@ class SceneConfigurator(
       case Axis.X => 0
       case Axis.Y => 1
       case Axis.Z => 2
-    renderer.setPlane(axisInt, planeSpec.positive, planeSpec.value)
+    renderer.clearPlanes()
+    renderer.addPlane(axisInt, planeSpec.positive, planeSpec.value)
     val axisName = planeSpec.axis.toString.toLowerCase
     val sign = if planeSpec.positive then "+" else "-"
     logger.debug(s"Configured plane: ${sign}${axisName}:${planeSpec.value}")
@@ -107,11 +108,16 @@ class SceneConfigurator(
     logger.debug(s"Configured caustics: enabled=$enabled, photonsPerIter=$photonsPerIter, iterations=$iterations, initialRadius=$initialRadius, alpha=$alpha")
 
   def setPlaneColor(renderer: OptiXRenderer, spec: PlaneColorSpec): Unit =
+    val axisInt = planeSpec.axis match
+      case Axis.X => 0
+      case Axis.Y => 1
+      case Axis.Z => 2
     val c1 = spec.color1
+    renderer.clearPlanes()
     spec.color2 match
       case Some(c2) =>
-        renderer.setPlaneCheckerColors(c1, c2)
+        renderer.addPlaneCheckerColors(axisInt, planeSpec.positive, planeSpec.value, c1.r, c1.g, c1.b, c2.r, c2.g, c2.b)
         logger.debug(f"Configured checkered plane colors: light=(${c1.r}%.2f, ${c1.g}%.2f, ${c1.b}%.2f), dark=(${c2.r}%.2f, ${c2.g}%.2f, ${c2.b}%.2f)")
       case None =>
-        renderer.setPlaneSolidColor(c1)
+        renderer.addPlaneSolidColor(axisInt, planeSpec.positive, planeSpec.value, c1.r, c1.g, c1.b)
         logger.debug(f"Configured solid plane color: RGB=(${c1.r}%.2f, ${c1.g}%.2f, ${c1.b}%.2f)")

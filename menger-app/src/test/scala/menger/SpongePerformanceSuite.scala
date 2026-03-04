@@ -173,7 +173,8 @@ class SpongePerformanceSuite extends AnyFlatSpec
     renderer.setTriangleMesh(mesh)
     renderer.setTriangleMeshColor(Color(0.8f, 0.8f, 0.8f))
     renderer.setTriangleMeshIOR(1.0f)
-    renderer.setPlane(1, true, -2.0f)
+    renderer.clearPlanes()
+    renderer.addPlane(1, true, -2.0f)
 
     val renderSize = STANDARD_IMAGE_SIZE
     val iterations = 10
@@ -202,7 +203,8 @@ class SpongePerformanceSuite extends AnyFlatSpec
     renderer.setTriangleMesh(mesh)
     renderer.setTriangleMeshColor(Color(0.8f, 0.8f, 0.8f))
     renderer.setTriangleMeshIOR(1.0f)
-    renderer.setPlane(1, true, -2.0f)
+    renderer.clearPlanes()
+    renderer.addPlane(1, true, -2.0f)
 
     val renderSize = STANDARD_IMAGE_SIZE
     val iterations = 10
@@ -231,7 +233,8 @@ class SpongePerformanceSuite extends AnyFlatSpec
     renderer.setTriangleMesh(mesh)
     renderer.setTriangleMeshColor(Color(0.9f, 0.9f, 1.0f, 0.5f))
     renderer.setTriangleMeshIOR(1.5f)
-    renderer.setPlane(1, true, -2.0f)
+    renderer.clearPlanes()
+    renderer.addPlane(1, true, -2.0f)
 
     val renderSize = STANDARD_IMAGE_SIZE
     val iterations = 10
