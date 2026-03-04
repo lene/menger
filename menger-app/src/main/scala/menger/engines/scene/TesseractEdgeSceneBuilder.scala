@@ -7,6 +7,7 @@ import menger.ObjectSpec
 import menger.ProfilingConfig
 import menger.Projection4DSpec
 import menger.common.ObjectType
+import menger.common.TransformUtil
 import menger.common.Vector
 import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Projection
@@ -129,7 +130,16 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
         val faceMaterial = MaterialExtractor.extract(spec)
         val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
 
-        renderer.addTriangleMeshInstance(position, faceMaterial, textureIndex) match
+        val faceInstanceId =
+          if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
+            renderer.addTriangleMeshInstance(position, faceMaterial, textureIndex)
+          else
+            val transform = TransformUtil.createEulerRotationScaleTranslation(
+              spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
+            )
+            renderer.addTriangleMeshInstance(transform, faceMaterial, textureIndex)
+
+        faceInstanceId match
           case Some(id) =>
             logger.debug(s"Added tesseract face mesh instance $id at ($position)")
           case None =>

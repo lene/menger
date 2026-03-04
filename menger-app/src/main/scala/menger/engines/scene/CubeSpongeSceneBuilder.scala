@@ -79,7 +79,7 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
 
     // Add each cube as an instance
     generator.generateTransforms.foreach { case (position, scale, alpha) =>
-      addSingleCubeInstance(position, scale, material, renderer, spec.yRotation, alpha)
+      addSingleCubeInstance(position, scale, material, renderer, spec.rotY, alpha)
     }
 
     logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
@@ -89,7 +89,7 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
     scale: Float,
     material: Material,
     renderer: OptiXRenderer,
-    yRotation: Float = 0f,
+    rotY: Float = 0f,
     alpha: Float = 1f
   ): Unit =
     val effectiveMaterial =
@@ -97,10 +97,10 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
       else material.copy(color = material.color.copy(a = alpha))
 
     val transform =
-      if yRotation == 0f then
+      if rotY == 0f then
         TransformUtil.createScaleTranslation(scale, position.x, position.y, position.z)
       else
-        TransformUtil.createYRotationScaleTranslation(yRotation, scale, position.x, position.y, position.z)
+        TransformUtil.createYRotationScaleTranslation(rotY, scale, position.x, position.y, position.z)
 
     val instanceId = renderer.addTriangleMeshInstance(transform, effectiveMaterial)
 

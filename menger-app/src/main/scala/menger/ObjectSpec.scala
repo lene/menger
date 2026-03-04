@@ -46,7 +46,9 @@ case class ObjectSpec(
   projection4D: Option[Projection4DSpec] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
-  yRotation: Float = 0.0f      // Y-axis rotation in radians (for sponge rotation)
+  rotX: Float = 0.0f,          // X-axis rotation in radians
+  rotY: Float = 0.0f,          // Y-axis rotation in radians
+  rotZ: Float = 0.0f           // Z-axis rotation in radians
 ):
   /** Returns true if edge rendering parameters are specified */
   def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined

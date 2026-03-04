@@ -42,7 +42,11 @@ class SphereSceneBuilder extends SceneBuilder:
       val material = MaterialExtractor.extract(spec)
       val scale = spec.size
 
-      val transform = TransformUtil.createScaleTranslation(scale, spec.x, spec.y, spec.z)
+      val transform =
+        if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
+          TransformUtil.createScaleTranslation(scale, spec.x, spec.y, spec.z)
+        else
+          TransformUtil.createEulerRotationScaleTranslation(spec.rotX, spec.rotY, spec.rotZ, scale, spec.x, spec.y, spec.z)
 
       val instanceId = renderer.addSphereInstance(transform, material)
 

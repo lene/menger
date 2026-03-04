@@ -19,7 +19,8 @@ case class Sphere(
   color: Option[Color] = None,
   size: Float = 1.0f,
   ior: Float = 1.0f,
-  texture: Option[String] = None
+  texture: Option[String] = None,
+  rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
@@ -35,7 +36,10 @@ case class Sphere(
       color = color.map(_.toCommonColor),
       ior = material.map(_.ior).getOrElse(ior),
       material = material.map(_.toOptixMaterial),
-      texture = texture
+      texture = texture,
+      rotX = rotation.x,
+      rotY = rotation.y,
+      rotZ = rotation.z
     )
 
 object Sphere:
@@ -59,7 +63,8 @@ case class Cube(
   color: Option[Color] = None,
   size: Float = 1.0f,
   ior: Float = 1.0f,
-  texture: Option[String] = None
+  texture: Option[String] = None,
+  rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
@@ -75,7 +80,10 @@ case class Cube(
       color = color.map(_.toCommonColor),
       ior = material.map(_.ior).getOrElse(ior),
       material = material.map(_.toOptixMaterial),
-      texture = texture
+      texture = texture,
+      rotX = rotation.x,
+      rotY = rotation.y,
+      rotZ = rotation.z
     )
 
 object Cube:
@@ -108,7 +116,7 @@ case class Sponge(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
-  rotation: Float = 0.0f    // Y-axis rotation in radians
+  rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
   require(size > 0f, s"Size must be positive, got $size")
@@ -126,7 +134,9 @@ case class Sponge(
       ior = material.map(_.ior).getOrElse(ior),
       material = material.map(_.toOptixMaterial),
       texture = texture,
-      yRotation = rotation
+      rotX = rotation.x,
+      rotY = rotation.y,
+      rotZ = rotation.z
     )
 
 object Sponge:
@@ -179,7 +189,8 @@ case class Tesseract(
   texture: Option[String] = None,
   projection: Option[Projection4DSpec] = None,
   edgeRadius: Option[Float] = None,
-  edgeMaterial: Option[Material] = None
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
@@ -198,7 +209,10 @@ case class Tesseract(
       texture = texture,
       projection4D = projection,
       edgeRadius = edgeRadius,
-      edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
+      edgeMaterial = edgeMaterial.map(_.toOptixMaterial),
+      rotX = rotation.x,
+      rotY = rotation.y,
+      rotZ = rotation.z
     )
 
 object Tesseract:
@@ -227,7 +241,8 @@ case class TesseractSponge(
   texture: Option[String] = None,
   projection: Option[Projection4DSpec] = None,
   edgeRadius: Option[Float] = None,
-  edgeMaterial: Option[Material] = None
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
   require(size > 0f, s"Size must be positive, got $size")
@@ -247,7 +262,10 @@ case class TesseractSponge(
       texture = texture,
       projection4D = projection,
       edgeRadius = edgeRadius,
-      edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
+      edgeMaterial = edgeMaterial.map(_.toOptixMaterial),
+      rotX = rotation.x,
+      rotY = rotation.y,
+      rotZ = rotation.z
     )
 
 object TesseractSponge:

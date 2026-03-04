@@ -6,6 +6,7 @@ import menger.ObjectSpec
 import menger.ProfilingConfig
 import menger.Projection4DSpec
 import menger.common.ObjectType
+import menger.common.TransformUtil
 import menger.common.TriangleMeshData
 import menger.common.Vector
 import menger.objects.FractionalLevelSponge
@@ -74,11 +75,17 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
       // Upload mesh and add instance
       renderer.setTriangleMesh(mesh)
 
-      val position = Vector[3](spec.x, spec.y, spec.z)
       val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
       val material = MaterialExtractor.extract(spec)
 
-      val instanceId = renderer.addTriangleMeshInstance(position, material, textureIndex)
+      val instanceId =
+        if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
+          renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), material, textureIndex)
+        else
+          val transform = TransformUtil.createEulerRotationScaleTranslation(
+            spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
+          )
+          renderer.addTriangleMeshInstance(transform, material, textureIndex)
       instanceId match
         case Some(id) =>
           val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")

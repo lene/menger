@@ -41,7 +41,7 @@ object RotatingSilverSponge:
           level      = level,
           material   = Some(Matte),
           size       = SpongeSize,
-          rotation   = angle
+          rotation   = Vec3(0, angle, 0)
         )
       ),
       lights = List(

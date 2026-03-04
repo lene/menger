@@ -75,3 +75,34 @@ object TransformUtil:
        0f,           scale, 0f,          ly,
       -scale * sinA, 0f,  scale * cosA, -sinA * lx + cosA * lz
     )
+
+  /**
+   * Creates a 4x3 transform: T · Rz · Ry · Rx · S (ZYX Euler, applied right-to-left).
+   * The object is scaled, rotated in-place at (tx, ty, tz), then translated.
+   *
+   * @param rx X-axis rotation in radians
+   * @param ry Y-axis rotation in radians
+   * @param rz Z-axis rotation in radians
+   * @param scale Uniform scale factor
+   * @param tx Translation on X axis
+   * @param ty Translation on Y axis
+   * @param tz Translation on Z axis
+   * @return 12-element array representing 4x3 row-major transform matrix
+   */
+  def createEulerRotationScaleTranslation(
+      rx: Float, ry: Float, rz: Float,
+      scale: Float,
+      tx: Float, ty: Float, tz: Float
+  ): Array[Float] =
+    val cx = math.cos(rx).toFloat; val sx = math.sin(rx).toFloat
+    val cy = math.cos(ry).toFloat; val sy = math.sin(ry).toFloat
+    val cz = math.cos(rz).toFloat; val sz = math.sin(rz).toFloat
+    // R = Rz · Ry · Rx (columns of the combined rotation matrix)
+    val r00 = cz * cy;             val r01 = cz * sy * sx - sz * cx; val r02 = cz * sy * cx + sz * sx
+    val r10 = sz * cy;             val r11 = sz * sy * sx + cz * cx; val r12 = sz * sy * cx - cz * sx
+    val r20 = -sy;                 val r21 = cy * sx;                 val r22 = cy * cx
+    Array(
+      scale * r00, scale * r01, scale * r02, tx,
+      scale * r10, scale * r11, scale * r12, ty,
+      scale * r20, scale * r21, scale * r22, tz
+    )
