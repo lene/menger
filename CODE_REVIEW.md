@@ -1,6 +1,6 @@
 # Code Review Findings
 
-**Last Updated:** 2026-02-25
+**Last Updated:** 2026-03-05
 **Purpose:** Track code quality issues identified during comprehensive pre-release reviews
 
 ---
@@ -9,8 +9,8 @@
 
 | Priority | Open | Completed |
 |----------|------|-----------|
-| High | 1 | 5 |
-| Medium | 3 | 30 |
+| High | 0 | 6 |
+| Medium | 1 | 33 |
 | Low | 4 | 17 |
 
 ---
@@ -45,59 +45,49 @@ no-op) when length ≤ 0.0f, preventing division by zero.
 `if (count > RayTracingConstants::MAX_LIGHTS) count = RayTracingConstants::MAX_LIGHTS;`. Also added
 null-pointer guard for the case where `lightsArray == nullptr && count > 0`.
 
-**~~M4~~ - RESOLVED (2026-02-18):** `dsl/Material.scala` now delegates all preset values to
-`OptixMaterial`. Added `Color.fromCommon()` to `dsl/Color.scala` and a private `fromOptix()` helper
-in `dsl/Material.scala`. Glass, Water, Diamond, Chrome, Gold, Copper, Film, Parchment presets and
-the matte/plastic/metal/glass factory methods all delegate to their `OptixMaterial` counterparts.
-`Plastic` and `Matte` remain inline (no named equivalents in OptixMaterial). Physics values (IOR,
-roughness, specular) now have a single source of truth.
+**~~M4~~ - RESOLVED (2026-02-18, completed 2026-03-05):** `dsl/Material.scala` now delegates all
+preset values to `OptixMaterial`. Added `Color.fromCommon()` to `dsl/Color.scala` and a private
+`fromOptix()` helper in `dsl/Material.scala`. Glass, Water, Diamond, Chrome, Gold, Copper, Film,
+Parchment presets and the matte/plastic/metal/glass factory methods all delegate to their
+`OptixMaterial` counterparts. `Plastic` and `Matte` now also delegate: named `val Plastic` and
+`val Matte` were added to `optix/Material.scala` companion object and `dsl/Material.scala`
+delegates via `fromOptix(OptixMaterial.Plastic)` / `fromOptix(OptixMaterial.Matte)`. All material
+presets now have a single source of truth.
 
 ### High Priority
 
 | ID | Description | Location | Est. Hours |
 |----|-------------|----------|------------|
-| H6 | Duplicated scene classification logic between OptiXEngine and AnimatedOptiXEngine | OptiXEngine.scala:199-230, AnimatedOptiXEngine.scala:131-180 | 3-4 |
+| ~~H6~~ | ~~Duplicated scene classification logic between OptiXEngine and AnimatedOptiXEngine~~ | ~~OptiXEngine.scala:199-230, AnimatedOptiXEngine.scala:131-180~~ | ~~3-4~~ |
 
-**H6 - OPEN (2026-02-25):** Sprint 12 introduced `AnimatedOptiXEngine` which duplicates three
-private methods from `OptiXEngine`: `classifyScene()`, `isTriangleMeshType()`, and
-`selectSceneBuilder()` (~50 lines each copy). The copies have diverged slightly —
-`OptiXEngine.classifyScene()` (line 199) handles multi-4D-projected mixed scenes while
-`AnimatedOptiXEngine.classifyScene()` (line 167) uses a simpler heuristic. More critically,
-`OptiXEngine.selectSceneBuilder()` (line 232) supports `TesseractEdgeSceneBuilder` for 4D edge
-rendering, while `AnimatedOptiXEngine.selectSceneBuilder()` (line 158) does not — meaning animated
-scenes with 4D edge rendering will silently fall back to the wrong builder.
-
-**Recommendation:** Extract scene classification and builder selection into a shared utility
-(e.g., `SceneClassifier` object or trait) used by both engines. This eliminates duplication and
-ensures feature parity. The `buildSceneFromConfigs` / `SimpleMixed` handling pattern is also
-duplicated and should be shared.
+**~~H6~~ - RESOLVED (2026-03-05):** Created `menger/engines/SceneClassifier.scala` — a standalone
+`object SceneClassifier` in `menger.engines` with `classify`, `isTriangleMeshType`, and
+`selectSceneBuilder` methods. The `SceneType` enum was moved from `OptiXEngine.scala` to
+`SceneClassifier.scala`. Both `OptiXEngine` and `AnimatedOptiXEngine` now delegate to
+`SceneClassifier.*`, removing ~50 lines of duplicated private methods from each engine. The
+animated engine also gained `TesseractEdgeSceneBuilder` support (M12) via the shared classifier.
+15 unit tests added in `SceneClassifierSuite`.
 
 ### Medium Priority (Sprint 12 Findings)
 
 | ID | Description | Location | Est. Hours |
 |----|-------------|----------|------------|
-| M12 | Missing TesseractEdgeSceneBuilder in AnimatedOptiXEngine | AnimatedOptiXEngine.scala:158-165 | 1 |
-| M13 | No Try wrapping around sceneFunction(t) call | AnimatedOptiXEngine.scala:102 | 0.5 |
-| M14 | OptiXEngine exceeds 400-line class size guideline | OptiXEngine.scala (488 lines) | 4-6 |
+| ~~M12~~ | ~~Missing TesseractEdgeSceneBuilder in AnimatedOptiXEngine~~ | ~~AnimatedOptiXEngine.scala:158-165~~ | ~~1~~ |
+| ~~M13~~ | ~~No Try wrapping around sceneFunction(t) call~~ | ~~AnimatedOptiXEngine.scala:102~~ | ~~0.5~~ |
+| M14 | OptiXEngine exceeds 400-line class size guideline | OptiXEngine.scala (~430 lines) | 4-6 |
 
-**M12 - OPEN (2026-02-25):** `AnimatedOptiXEngine.selectSceneBuilder()` (line 158) only handles
-`Spheres`, `TriangleMeshes`, and `CubeSponges`. It is missing the `TesseractEdgeSceneBuilder` path
-that `OptiXEngine.selectSceneBuilder()` (line 232) has for 4D projected objects with edge rendering.
-This means animated scenes using tesseract edge rendering will get the generic
-`TriangleMeshSceneBuilder` instead. This is a functional gap, not just a code quality issue.
-Will be resolved by H6 (shared scene classification utility).
+**~~M12~~ - RESOLVED (2026-03-05):** Resolved by H6. `AnimatedOptiXEngine` now delegates to
+`SceneClassifier.selectSceneBuilder`, which correctly routes tesseract-edge scenes to
+`TesseractEdgeSceneBuilder`. The functional gap is closed.
 
-**M13 - OPEN (2026-02-25):** In `AnimatedOptiXEngine.render()` (line 102), the call
-`sceneFunction(t)` is not wrapped in `Try`. If the user's scene function throws an exception for
-a particular `t` value, the entire application crashes. Should wrap in `Try` and log error + skip
-the frame gracefully.
+**~~M13~~ - RESOLVED (2026-03-05):** `sceneFunction(t)` in `AnimatedOptiXEngine.render()` is now
+wrapped in `Try`. A throwing scene function logs an error with frame/t context and increments the
+frame counter (skipping the frame), allowing the animation to continue to completion.
 
-**M14 - OPEN (2026-02-25):** `OptiXEngine.scala` is 488 lines, exceeding the 400-line class size
-guideline. This was already borderline before Sprint 12 but is now more noticeable because
-`AnimatedOptiXEngine` duplicated a subset of its logic rather than sharing it (see H6). Extracting
-the scene classification/builder logic into a shared utility would reduce `OptiXEngine` to ~430
-lines and `AnimatedOptiXEngine` to ~140 lines. Further extraction of the multi-object scene
-building (`createMultiObjectScene`, `rebuildScene`) could bring it under 400.
+**M14 - PARTIALLY RESOLVED (2026-03-05):** `OptiXEngine.scala` reduced from 488 to ~430 lines
+by extracting `SceneClassifier` (H6) and `computeEffectiveMaxInstances` helper. Still above the
+400-line guideline. Further reduction would require splitting `createMultiObjectScene`/`rebuildScene`
+into a separate class — deferred to a future sprint.
 
 ### Low Priority
 
@@ -314,7 +304,10 @@ make SDK comparison difficult.
 
 - ✅ M2: Zero-vector guards added to `normalize()` and `normalize3f()` in `VectorMath.h`
 - ✅ M3: Defensive bounds clamp and null guard added to `SceneParameters::setLights()`
-- ✅ M4: DSL material presets delegate to `OptixMaterial`; single source of truth for IOR/roughness/alpha values
+- ✅ M4: DSL material presets delegate to `OptixMaterial`; single source of truth for all presets including `Plastic`/`Matte`
+- ✅ H6: `SceneClassifier` object extracted; both engines delegate to it; `SceneType` enum moved to `SceneClassifier.scala`
+- ✅ M12: Resolved by H6 — animated engine now routes tesseract-edge scenes to `TesseractEdgeSceneBuilder`
+- ✅ M13: `sceneFunction(t)` wrapped in `Try`; failed frames are logged and skipped gracefully
 
 ### Low Priority - Completed
 
@@ -356,15 +349,15 @@ The following issues were explicitly deferred or accepted:
 
 | Category | Hours |
 |----------|-------|
-| High priority (H6) | 3-4 |
-| Medium priority (M12–M14) | 5.5-7.5 |
+| ~~High priority (H6)~~ | ~~3-4~~ ✅ |
+| Medium priority (M14 only) | 4-6 |
 | Low priority (feature ideas L2–L5) | ~36 |
 | Documentation | 0 |
 | C++ Issues | 0 |
-| **Total** | **~44.5-47.5 hours** |
+| **Total** | **~40-42 hours** |
 
-**Note:** M12 will be automatically resolved when H6 is addressed (shared scene classifier).
-M14 will be partially resolved by H6 as well.
+**Note:** H6, M12, M13 resolved in Sprint 12 code review fixes. M14 (`OptiXEngine` ~430 lines,
+above 400-line guideline) deferred — would require splitting `createMultiObjectScene`/`rebuildScene`.
 
 ---
 
@@ -386,7 +379,7 @@ Before each release:
 **Good Practices Already in Place:**
 - No `var` or `throw` in production code (wartremover enforced)
 - Functional style throughout
-- Comprehensive test coverage (~1599 tests, ~85% statement coverage)
+- Comprehensive test coverage (~1617 tests, ~85% statement coverage)
 - Coverage protection with ratchet mechanism (60% floor, 80% min, 1% drop threshold)
 - Scalafix integration for consistent style
 - DSL types use `require()` for all validated fields (ior, roughness, metallic, specular, emission, size) — runtime validation catches misuse early
