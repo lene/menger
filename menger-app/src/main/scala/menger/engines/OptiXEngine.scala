@@ -187,6 +187,20 @@ class OptiXEngine(
       GdxRuntime.exit()
     }.get  // Intentional .get - initialization failure should crash (documented)
 
+  private def computeEffectiveMaxInstances(builder: SceneBuilder, specs: List[ObjectSpec]): Int =
+    if userSetMaxInstances then
+      execution.maxInstances
+    else
+      val required = builder.calculateRequiredInstances(specs)
+      if required > 0 && required > execution.maxInstances then
+        val adjusted = Math.min(required * 2, menger.common.Const.maxInstancesLimit)
+        logger.info(
+          s"Auto-adjusting max instances: ${execution.maxInstances} → $adjusted (scene requires $required)"
+        )
+        adjusted
+      else
+        execution.maxInstances
+
   private def selectMeshBuilder(specs: List[ObjectSpec]): SceneBuilder =
     val all4DProjected = specs.forall(s => ObjectType.isProjected4D(s.objectType))
     val hasEdgeRendering = specs.exists(_.hasEdgeRendering)
@@ -219,16 +233,7 @@ class OptiXEngine(
 
           // Calculate effective maxInstances for mesh builder (may need auto-adjustment)
           val meshBuilder = selectMeshBuilder(meshSpecs)
-          val effectiveMaxInstances = if !userSetMaxInstances then
-            val required = meshBuilder.calculateRequiredInstances(meshSpecs)
-            if required > 0 && required > execution.maxInstances then
-              val adjusted = Math.min(required * 2, menger.common.Const.maxInstancesLimit)
-              logger.info(s"Auto-adjusting max instances: ${execution.maxInstances} → $adjusted (scene requires $required)")
-              adjusted
-            else
-              execution.maxInstances
-          else
-            execution.maxInstances
+          val effectiveMaxInstances = computeEffectiveMaxInstances(meshBuilder, meshSpecs)
 
           // Build spheres with SphereSceneBuilder
           if sphereSpecs.nonEmpty then
@@ -252,16 +257,7 @@ class OptiXEngine(
         SceneClassifier.selectSceneBuilder(sceneType, Some(execution.textureDir)) match
           case Some(builder) =>
             // Auto-adjust maxInstances if user didn't explicitly set it
-            val effectiveMaxInstances = if !userSetMaxInstances then
-              val required = builder.calculateRequiredInstances(specs)
-              if required > 0 && required > execution.maxInstances then
-                val adjusted = Math.min(required * 2, menger.common.Const.maxInstancesLimit)
-                logger.info(s"Auto-adjusting max instances: ${execution.maxInstances} → $adjusted (scene requires $required)")
-                adjusted
-              else
-                execution.maxInstances
-            else
-              execution.maxInstances
+            val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
 
             builder.validate(specs, effectiveMaxInstances) match
               case Left(error) => Failure(ValidationException(error, "objectSpecs", specs.map(_.objectType)))
@@ -326,16 +322,7 @@ class OptiXEngine(
 
               // Calculate effective maxInstances for mesh builder
               val meshBuilder = selectMeshBuilder(meshSpecs)
-              val effectiveMaxInstances = if !userSetMaxInstances then
-                val required = meshBuilder.calculateRequiredInstances(meshSpecs)
-                if required > 0 && required > execution.maxInstances then
-                  val adjusted = Math.min(required * 2, menger.common.Const.maxInstancesLimit)
-                  logger.debug(s"Auto-adjusting max instances for rebuild: ${execution.maxInstances} → $adjusted")
-                  adjusted
-                else
-                  execution.maxInstances
-              else
-                execution.maxInstances
+              val effectiveMaxInstances = computeEffectiveMaxInstances(meshBuilder, meshSpecs)
 
               // Rebuild spheres
               if sphereSpecs.nonEmpty then
