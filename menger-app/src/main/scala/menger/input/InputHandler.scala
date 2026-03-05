@@ -1,5 +1,6 @@
 package menger.input
 
+import menger.common.Const
 import menger.common.InputEvent
 import menger.common.Key
 import menger.common.ModifierState
@@ -59,3 +60,6 @@ trait CameraHandler extends InputHandler:
   protected def handleMouseUp(pos: ScreenCoords, button: MouseButton, pointer: Int): Boolean
   protected def handleMouseDrag(pos: ScreenCoords, pointer: Int, button: MouseButton): Boolean
   protected def handleScroll(amountX: Float, amountY: Float): Boolean
+
+  protected def computeEyeW(amountY: Float): Float =
+    Math.pow(Const.Input.eyeScrollBase, amountY.toDouble).toFloat + Const.Input.eyeScrollOffset

@@ -73,7 +73,7 @@ class OptiXCameraHandler(
 
   override protected def handleScroll(amountX: Float, amountY: Float): Boolean =
     if isShiftPressed then
-      val eyeW = Math.pow(Const.Input.eyeScrollBase, amountY.toDouble).toFloat + Const.Input.eyeScrollOffset
+      val eyeW = computeEyeW(amountY)
       dispatcher.notifyObservers(RotationProjectionParameters(0, 0, 0, eyeW))
     else
       handleZoom(amountY)
