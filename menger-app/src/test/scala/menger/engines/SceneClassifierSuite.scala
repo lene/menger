@@ -41,6 +41,9 @@ class SceneClassifierSuite extends AnyFlatSpec with Matchers:
     val specs = List(spec("sphere"), spec("cube"), spec("sponge-volume"))
     SceneClassifier.classify(specs) shouldBe a [SceneType.ComplexMixed]
 
+  it should "throw IllegalArgumentException for empty spec list" in:
+    an [IllegalArgumentException] should be thrownBy SceneClassifier.classify(List.empty)
+
   "SceneClassifier.selectSceneBuilder" should "return SphereSceneBuilder for Spheres" in:
     val result = SceneClassifier.selectSceneBuilder(
       SceneType.Spheres(List(spec("sphere"))), textureDir = None
