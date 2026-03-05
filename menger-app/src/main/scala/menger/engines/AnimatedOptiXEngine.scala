@@ -88,38 +88,44 @@ class AnimatedOptiXEngine(
       val t = animConfig.tForFrame(frame)
       logger.info(s"Rendering frame ${frame + 1}/${animConfig.frames} (t=$t)")
 
-      // Evaluate scene(t) and rebuild
-      val dslScene = sceneFunction(t)
-      val configs = SceneConverter.convert(dslScene, causticsConfig)
+      // Evaluate scene(t) — wrap in Try so a throwing scene function skips the frame
+      Try(sceneFunction(t)) match
+        case Failure(e) =>
+          logger.error(
+            s"Scene function threw for frame ${frame + 1}/${animConfig.frames} (t=$t): ${e.getMessage}", e
+          )
+          frameCounter.incrementAndGet()
+        case scala.util.Success(dslScene) =>
+          val configs = SceneConverter.convert(dslScene, causticsConfig)
 
-      // Rebuild geometry
-      val renderer = rendererWrapper.renderer
-      renderer.clearAllInstances()
-      buildSceneFromConfigs(configs).recover { case e: Exception =>
-        logger.error(s"Failed to build scene for frame $frame (t=$t): ${e.getMessage}", e)
-      }
+          // Rebuild geometry
+          val renderer = rendererWrapper.renderer
+          renderer.clearAllInstances()
+          buildSceneFromConfigs(configs).recover { case e: Exception =>
+            logger.error(s"Failed to build scene for frame $frame (t=$t): ${e.getMessage}", e)
+          }
 
-      // Reconfigure planes per frame (supports animated plane changes)
-      sceneConfigurator.configurePlanes(renderer, configs.planes)
+          // Reconfigure planes per frame (supports animated plane changes)
+          sceneConfigurator.configurePlanes(renderer, configs.planes)
 
-      // Apply per-scene background color if set
-      configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
+          // Apply per-scene background color if set
+          configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
 
-      // Update camera from this frame's scene
-      cameraState.updateCamera(
-        renderer, configs.camera.position, configs.camera.lookAt, configs.camera.up
-      )
-      cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
+          // Update camera from this frame's scene
+          cameraState.updateCamera(
+            renderer, configs.camera.position, configs.camera.lookAt, configs.camera.up
+          )
+          cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
 
-      // Render
-      val rgbaBytes = rendererWrapper.renderScene(ImageSize(width, height))
-      renderResources.renderToScreen(rgbaBytes, width, height)
+          // Render
+          val rgbaBytes = rendererWrapper.renderScene(ImageSize(width, height))
+          renderResources.renderToScreen(rgbaBytes, width, height)
 
-      // Save frame
-      saveImage()
+          // Save frame
+          saveImage()
 
-      frameCounter.incrementAndGet()
-      ()
+          frameCounter.incrementAndGet()
+          ()
     else if frame >= animConfig.frames then
       logger.info(s"Animation complete: ${animConfig.frames} frames rendered")
       GdxRuntime.exit()
