@@ -17,7 +17,6 @@ import menger.common.ImageSize
 import menger.common.ObjectType
 import menger.common.ValidationException
 import menger.config.OptiXEngineConfig
-import menger.engines.scene.CubeSpongeSceneBuilder
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SphereSceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
@@ -188,54 +187,6 @@ class OptiXEngine(
       GdxRuntime.exit()
     }.get  // Intentional .get - initialization failure should crash (documented)
 
-  private def classifyScene(specs: List[ObjectSpec]): SceneType =
-    val types = specs.map(_.objectType.toLowerCase).toSet
-
-    if types.contains("cube-sponge") then
-      SceneType.CubeSponges(specs)
-    else if types.forall(_ == "sphere") then
-      SceneType.Spheres(specs)
-    else if types.forall(isTriangleMeshType) then
-      SceneType.TriangleMeshes(specs)
-    else
-      // Mixed scene - spheres + triangle meshes
-      val hasSpheres = types.contains("sphere")
-      val meshTypes = types.filter(isTriangleMeshType)
-
-      if hasSpheres && meshTypes.size == 1 then
-        // Simple mixed: spheres + one mesh type (SUPPORTED)
-        SceneType.SimpleMixed(specs, meshTypes.head)
-      else if hasSpheres && meshTypes.size > 1 then
-        // Check if all mesh types are 4D projected and compatible
-        val all4DProjected = meshTypes.forall(ObjectType.isProjected4D)
-        if all4DProjected then
-          // All 4D objects can share GAS - treat as SimpleMixed with first type
-          SceneType.SimpleMixed(specs, meshTypes.head)
-        else
-          // Complex mixed: spheres + multiple incompatible mesh types (NOT SUPPORTED)
-          SceneType.ComplexMixed(specs)
-      else
-        // Other mixed scenarios
-        SceneType.ComplexMixed(specs)
-
-  private def isTriangleMeshType(objectType: String): Boolean =
-    objectType == "cube" || ObjectType.isSponge(objectType) || ObjectType.isProjected4D(objectType)
-
-  private def selectSceneBuilder(sceneType: SceneType): Option[SceneBuilder] =
-    sceneType match
-      case SceneType.Spheres(_) => Some(SphereSceneBuilder())
-      case SceneType.TriangleMeshes(specs) =>
-        // Check if 4D projected types with edge rendering - use specialized builder
-        val all4DProjected = specs.forall(s => ObjectType.isProjected4D(s.objectType))
-        val hasEdgeRendering = specs.exists(_.hasEdgeRendering)
-        if all4DProjected && hasEdgeRendering then
-          Some(TesseractEdgeSceneBuilder(execution.textureDir)(using profilingConfig))
-        else
-          Some(TriangleMeshSceneBuilder(execution.textureDir)(using profilingConfig))
-      case SceneType.CubeSponges(_) => Some(CubeSpongeSceneBuilder())
-      case SceneType.SimpleMixed(_, _) => None  // Handled specially in createMultiObjectScene
-      case SceneType.ComplexMixed(_) => None
-
   private def selectMeshBuilder(specs: List[ObjectSpec]): SceneBuilder =
     val firstType = specs.head.objectType.toLowerCase
     val all4DProjected = specs.forall(s => ObjectType.isProjected4D(s.objectType))
@@ -258,7 +209,7 @@ class OptiXEngine(
     sceneConfigurator.configureCamera(renderer)
 
     // Determine scene type and setup using strategy pattern
-    val result = classifyScene(specs) match
+    val result = SceneClassifier.classify(specs) match
       case SceneType.SimpleMixed(specs, meshType) =>
         // Spheres + one triangle mesh type - SUPPORTED
         Try {
@@ -299,7 +250,7 @@ class OptiXEngine(
         ))
 
       case sceneType =>
-        selectSceneBuilder(sceneType) match
+        SceneClassifier.selectSceneBuilder(sceneType, Some(execution.textureDir)) match
           case Some(builder) =>
             // Auto-adjust maxInstances if user didn't explicitly set it
             val effectiveMaxInstances = if !userSetMaxInstances then
@@ -366,7 +317,7 @@ class OptiXEngine(
           renderer.clearAllInstances()
 
           // Rebuild geometry based on scene type using strategy pattern
-          classifyScene(specs) match
+          SceneClassifier.classify(specs) match
             case SceneType.SimpleMixed(specs, meshType) =>
               // Handle mixed scenes specially (spheres + one mesh type)
               val sphereSpecs = specs.filter(_.objectType.toLowerCase == "sphere")
@@ -401,7 +352,7 @@ class OptiXEngine(
               Failure(UnsupportedOperationException("Complex mixed scenes not supported for rebuilding")).get
 
             case sceneType =>
-              selectSceneBuilder(sceneType) match
+              SceneClassifier.selectSceneBuilder(sceneType, Some(execution.textureDir)) match
                 case Some(builder) =>
                   builder.buildScene(specs, renderer, execution.maxInstances).get
                 case None =>
