@@ -13,9 +13,7 @@ import menger.common.ImageSize
 import menger.config.ExecutionConfig
 import menger.dsl.Scene
 import menger.dsl.SceneConverter
-import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SphereSceneBuilder
-import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.gdx.GdxRuntime
 import menger.optix.CameraState
 import menger.optix.CausticsConfig
@@ -128,54 +126,32 @@ class AnimatedOptiXEngine(
 
   private def buildSceneFromConfigs(configs: SceneConverter.SceneConfigs): Try[Unit] =
     val specs = configs.scene.objectSpecs.getOrElse(List.empty)
-    val sceneType = classifyScene(specs)
+    val sceneType = SceneClassifier.classify(specs)
 
     sceneType match
       case SceneType.Spheres(_) =>
         SphereSceneBuilder().buildScene(specs, rendererWrapper.renderer, executionConfig.maxInstances)
       case SceneType.TriangleMeshes(_) =>
-        TriangleMeshSceneBuilder(executionConfig.textureDir)(using profilingConfig)
-          .buildScene(specs, rendererWrapper.renderer, executionConfig.maxInstances)
+        SceneClassifier.selectSceneBuilder(sceneType, Some(executionConfig.textureDir))
+          .get.buildScene(specs, rendererWrapper.renderer, executionConfig.maxInstances)
       case SceneType.SimpleMixed(allSpecs, _) =>
         Try {
           val sphereSpecs = allSpecs.filter(_.objectType.toLowerCase == "sphere")
-          val meshSpecs = allSpecs.filterNot(_.objectType.toLowerCase == "sphere")
+          val meshSpecs   = allSpecs.filterNot(_.objectType.toLowerCase == "sphere")
           if sphereSpecs.nonEmpty then
-            SphereSceneBuilder().buildScene(sphereSpecs, rendererWrapper.renderer, executionConfig.maxInstances).get
+            SphereSceneBuilder()
+              .buildScene(sphereSpecs, rendererWrapper.renderer, executionConfig.maxInstances).get
           if meshSpecs.nonEmpty then
-            TriangleMeshSceneBuilder(executionConfig.textureDir)(using profilingConfig)
-              .buildScene(meshSpecs, rendererWrapper.renderer, executionConfig.maxInstances).get
+            SceneClassifier.selectSceneBuilder(
+              SceneType.TriangleMeshes(meshSpecs), Some(executionConfig.textureDir)
+            ).get.buildScene(meshSpecs, rendererWrapper.renderer, executionConfig.maxInstances).get
         }
       case other =>
-        selectSceneBuilder(other) match
+        SceneClassifier.selectSceneBuilder(other, Some(executionConfig.textureDir)) match
           case Some(builder) =>
             builder.buildScene(specs, rendererWrapper.renderer, executionConfig.maxInstances)
           case None =>
             Failure(UnsupportedOperationException(s"Unsupported scene type: $other"))
-
-  private def selectSceneBuilder(sceneType: SceneType): Option[SceneBuilder] =
-    sceneType match
-      case SceneType.Spheres(_) => Some(SphereSceneBuilder())
-      case SceneType.TriangleMeshes(_) =>
-        Some(TriangleMeshSceneBuilder(executionConfig.textureDir)(using profilingConfig))
-      case SceneType.CubeSponges(_) =>
-        Some(menger.engines.scene.CubeSpongeSceneBuilder())
-      case _ => None
-
-  private def classifyScene(specs: List[menger.ObjectSpec]): SceneType =
-    val types = specs.map(_.objectType.toLowerCase).toSet
-    if types.contains("cube-sponge") then SceneType.CubeSponges(specs)
-    else if types.forall(_ == "sphere") then SceneType.Spheres(specs)
-    else if types.forall(isTriangleMeshType) then SceneType.TriangleMeshes(specs)
-    else
-      val hasSpheres = types.contains("sphere")
-      val meshTypes = types.filter(isTriangleMeshType)
-      if hasSpheres && meshTypes.nonEmpty then SceneType.SimpleMixed(specs, meshTypes.head)
-      else SceneType.ComplexMixed(specs)
-
-  private def isTriangleMeshType(objectType: String): Boolean =
-    objectType == "cube" || menger.common.ObjectType.isSponge(objectType) ||
-      menger.common.ObjectType.isProjected4D(objectType)
 
   // SavesScreenshots implementation -- format pattern with current frame index
   override protected def currentSaveName: Option[String] =
