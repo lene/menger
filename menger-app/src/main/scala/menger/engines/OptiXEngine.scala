@@ -35,13 +35,6 @@ import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 import menger.optix.SceneConfigurator
 
-enum SceneType:
-  case CubeSponges(specs: List[ObjectSpec])
-  case Spheres(specs: List[ObjectSpec])
-  case TriangleMeshes(specs: List[ObjectSpec])
-  case SimpleMixed(specs: List[ObjectSpec], meshType: String)
-  case ComplexMixed(specs: List[ObjectSpec])
-
 class OptiXEngine(
   config: OptiXEngineConfig,
   userSetMaxInstances: Boolean = false
