@@ -188,7 +188,6 @@ class OptiXEngine(
     }.get  // Intentional .get - initialization failure should crash (documented)
 
   private def selectMeshBuilder(specs: List[ObjectSpec]): SceneBuilder =
-    val firstType = specs.head.objectType.toLowerCase
     val all4DProjected = specs.forall(s => ObjectType.isProjected4D(s.objectType))
     val hasEdgeRendering = specs.exists(_.hasEdgeRendering)
 
