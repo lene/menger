@@ -48,9 +48,9 @@ object Material:
   val Film      = fromOptix(OptixMaterial.Film)
   val Parchment = fromOptix(OptixMaterial.Parchment)
 
-  // Opaque presets (no equivalent in OptixMaterial named presets)
-  val Plastic = Material(Color.White, ior = 1.5f, roughness = 0.3f, metallic = 0f, specular = 0.5f)
-  val Matte   = Material(Color.White, ior = 1.0f, roughness = 1.0f, metallic = 0f, specular = 0f)
+  // Opaque presets — delegate to OptixMaterial to maintain single source of truth
+  val Plastic = fromOptix(OptixMaterial.Plastic)
+  val Matte   = fromOptix(OptixMaterial.Matte)
 
   // Factory methods — delegate to OptixMaterial
   def matte(color: Color): Material   = fromOptix(OptixMaterial.matte(color.toCommonColor))
