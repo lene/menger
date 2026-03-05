@@ -79,3 +79,12 @@ class LibGDXConvertersSuite extends AnyFlatSpec with Matchers:
       domainButton should not be a[MouseButton.Unknown]
     }
   }
+
+  "LibGDXConverters.toGdxButton" should "convert Left to Buttons.LEFT" in:
+    LibGDXConverters.toGdxButton(MouseButton.Left) shouldBe com.badlogic.gdx.Input.Buttons.LEFT
+
+  it should "convert Right to Buttons.RIGHT" in:
+    LibGDXConverters.toGdxButton(MouseButton.Right) shouldBe com.badlogic.gdx.Input.Buttons.RIGHT
+
+  it should "pass through Unknown button code" in:
+    LibGDXConverters.toGdxButton(MouseButton.Unknown(99)) shouldBe 99

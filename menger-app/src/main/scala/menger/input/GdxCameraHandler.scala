@@ -48,10 +48,10 @@ class GdxCameraHandler(
 
   override protected def handleMouseDown(pos: ScreenCoords, button: MouseButton, pointer: Int): Boolean =
     dragTracker.start(pos)
-    baseController.touchDown(pos.x, pos.y, pointer, button.toGdxButton)
+    baseController.touchDown(pos.x, pos.y, pointer, LibGDXConverters.toGdxButton(button))
 
   override protected def handleMouseUp(pos: ScreenCoords, button: MouseButton, pointer: Int): Boolean =
-    baseController.touchUp(pos.x, pos.y, pointer, button.toGdxButton)
+    baseController.touchUp(pos.x, pos.y, pointer, LibGDXConverters.toGdxButton(button))
 
   override protected def handleMouseDrag(pos: ScreenCoords, pointer: Int, button: MouseButton): Boolean =
     if isShiftPressed then
@@ -90,10 +90,3 @@ class GdxCameraHandler(
     val w = GdxRuntime.width
     if w > 0 then screen.toFloat / w * degrees else 0f
 
-  /** Extension method to convert domain MouseButton to LibGDX button code */
-  extension (button: MouseButton)
-    def toGdxButton: Int = button match
-      case MouseButton.Left => Buttons.LEFT
-      case MouseButton.Right => Buttons.RIGHT
-      case MouseButton.Middle => Buttons.MIDDLE
-      case MouseButton.Unknown(code) => code

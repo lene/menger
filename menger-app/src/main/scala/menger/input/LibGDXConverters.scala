@@ -32,3 +32,10 @@ object LibGDXConverters:
     case Buttons.RIGHT => MouseButton.Right
     case Buttons.MIDDLE => MouseButton.Middle
     case _ => MouseButton.Unknown(gdxButton)
+
+  /** Convert domain MouseButton to LibGDX button code */
+  def toGdxButton(button: MouseButton): Int = button match
+    case MouseButton.Left        => Buttons.LEFT
+    case MouseButton.Right       => Buttons.RIGHT
+    case MouseButton.Middle      => Buttons.MIDDLE
+    case MouseButton.Unknown(c)  => c
