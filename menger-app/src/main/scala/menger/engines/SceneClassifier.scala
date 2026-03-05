@@ -13,6 +13,7 @@ import menger.engines.scene.TriangleMeshSceneBuilder
 object SceneClassifier:
 
   def classify(specs: List[ObjectSpec]): SceneType =
+    require(specs.nonEmpty, "classify requires at least one ObjectSpec")
     val types = specs.map(_.objectType.toLowerCase).toSet
 
     if types.contains("cube-sponge") then
@@ -22,24 +23,31 @@ object SceneClassifier:
     else if types.forall(isTriangleMeshType) then
       SceneType.TriangleMeshes(specs)
     else
+      // Mixed scene - spheres + triangle meshes
       val hasSpheres  = types.contains("sphere")
       val meshTypes   = types.filter(isTriangleMeshType)
 
       if hasSpheres && meshTypes.size == 1 then
+        // Simple mixed: spheres + one mesh type (SUPPORTED)
         SceneType.SimpleMixed(specs, meshTypes.head)
       else if hasSpheres && meshTypes.size > 1 then
+        // Check if all mesh types are 4D projected and compatible
         val all4DProjected = meshTypes.forall(ObjectType.isProjected4D)
         if all4DProjected then
+          // All 4D objects can share GAS - treat as SimpleMixed with first type
           SceneType.SimpleMixed(specs, meshTypes.head)
         else
+          // Complex mixed: spheres + multiple incompatible mesh types (NOT SUPPORTED)
           SceneType.ComplexMixed(specs)
       else
+        // Other mixed scenarios
         SceneType.ComplexMixed(specs)
 
   def isTriangleMeshType(objectType: String): Boolean =
-    objectType == "cube" ||
-    ObjectType.isSponge(objectType) ||
-    ObjectType.isProjected4D(objectType)
+    val t = objectType.toLowerCase
+    t == "cube" ||
+    ObjectType.isSponge(t) ||
+    ObjectType.isProjected4D(t)
 
   def selectSceneBuilder(
     sceneType: SceneType,
@@ -56,7 +64,7 @@ object SceneClassifier:
           Some(TesseractEdgeSceneBuilder(dir))
         else
           Some(TriangleMeshSceneBuilder(dir))
-      case SceneType.SimpleMixed(_, _) => None
+      case SceneType.SimpleMixed(_, _) => None  // Handled specially in createMultiObjectScene
       case SceneType.ComplexMixed(_)   => None
 
 enum SceneType:

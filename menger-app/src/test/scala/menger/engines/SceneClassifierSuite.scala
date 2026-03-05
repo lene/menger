@@ -74,3 +74,10 @@ class SceneClassifierSuite extends AnyFlatSpec with Matchers:
       SceneType.SimpleMixed(List(spec("sphere")), "cube"), textureDir = None
     )
     result shouldBe None
+
+  it should "return None for ComplexMixed" in:
+    val result = SceneClassifier.selectSceneBuilder(
+      SceneType.ComplexMixed(List(ObjectSpec(objectType = "sphere", x = 0, y = 0, z = 0, size = 1))),
+      textureDir = None
+    )
+    result shouldBe None
