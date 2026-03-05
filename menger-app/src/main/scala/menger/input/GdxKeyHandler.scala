@@ -21,13 +21,13 @@ import menger.gdx.KeyPressTracker
 class GdxKeyHandler(
   camera: PerspectiveCamera,
   dispatcher: EventDispatcher
-) extends KeyHandler:
+) extends KeyHandler with KeyRotation:
 
   private val defaultPos       = camera.position.cpy
   private val defaultDirection = camera.direction.cpy
   private val defaultUp        = camera.up.cpy
-  private val rotateAngle      = Const.Input.defaultRotateAngle
-  private val rotatePressed    = KeyPressTracker()
+  protected val rotateAngle      = Const.Input.defaultRotateAngle
+  protected val rotatePressed    = KeyPressTracker()
 
   override protected def handleKeyPress(key: Key, modifiers: ModifierState): Boolean =
     key match
@@ -79,15 +79,6 @@ class GdxKeyHandler(
         angle(delta, Seq(Key.PageUp, Key.PageDown))
       )
     )
-
-  private val factor = Map(
-    Key.Right -> -1, Key.Left -> 1,
-    Key.Up -> 1, Key.Down -> -1,
-    Key.PageUp -> 1, Key.PageDown -> -1
-  )
-
-  private def angle(delta: Float, keys: Seq[Key]): Float =
-    delta * rotateAngle * keys.find(rotatePressed.isPressed).map(factor(_)).getOrElse(0)
 
   private def resetCamera(): Unit =
     camera.position.set(defaultPos)

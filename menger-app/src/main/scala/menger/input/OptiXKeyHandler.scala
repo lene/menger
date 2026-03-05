@@ -22,10 +22,10 @@ import menger.gdx.KeyPressTracker
 class OptiXKeyHandler(
   dispatcher: EventDispatcher,
   onReset: () => Unit = () => ()
-) extends KeyHandler with LazyLogging:
+) extends KeyHandler with LazyLogging with KeyRotation:
 
-  private val rotateAngle  = Const.Input.defaultRotateAngle
-  private val rotatePressed = KeyPressTracker()
+  protected val rotateAngle  = Const.Input.defaultRotateAngle
+  protected val rotatePressed = KeyPressTracker()
 
   override protected def handleKeyPress(key: Key, modifiers: ModifierState): Boolean =
     key match
@@ -63,11 +63,3 @@ class OptiXKeyHandler(
     logger.debug(s"Dispatching 4D rotation event: rotXW=$rotXW, rotYW=$rotYW, rotZW=$rotZW")
     dispatcher.notifyObservers(RotationProjectionParameters(rotXW, rotYW, rotZW))
 
-  private val factor = Map(
-    Key.Right -> -1, Key.Left -> 1,
-    Key.Up -> 1, Key.Down -> -1,
-    Key.PageUp -> 1, Key.PageDown -> -1
-  )
-
-  private def angle(delta: Float, keys: Seq[Key]): Float =
-    delta * rotateAngle * keys.find(rotatePressed.isPressed).map(factor(_)).getOrElse(0)
