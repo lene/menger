@@ -81,6 +81,9 @@ class OptiXEngine(
           val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
           // Apply eyeW change using same exponential formula as Projection.+
           // Only when event carries an explicit (non-default) eyeW value
+          // Sentinel: Const.defaultEyeW signals "no eyeW change in this event" (rotation-only).
+          // A user cannot intentionally reset eyeW to exactly defaultEyeW via an event — if that
+          // becomes needed, replace the sentinel with Option[Float] in RotationProjectionParameters.
           val newEyeW =
             if event.eyeW != Const.defaultEyeW then
               val updatedProjection = Projection(currentProj.eyeW, currentProj.screenW) + event.projection
