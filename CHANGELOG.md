@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-03-05
+
 ### Added
 - **t-Parameter Animation System** — animate DSL scenes using a free parameter `t`
   - Animated scenes define `def scene(t: Float): Scene` instead of `val scene: Scene`
@@ -16,12 +18,27 @@
   - CLI validation: `--t` mutually exclusive with `--start-t`/`--end-t`/`--frames`; both require `--scene` and `--optix`
   - 27 new unit tests (`TAnimationConfigSuite`, `TAnimationCLIOptionsSuite`, animated scene tests)
   - Integration tests for freeze-frame and multi-frame t-animation
+- **Multiple Ground Planes** — scenes now support up to 4 independent planes (previously one fixed floor)
+  - DSL `planes: List[Plane]` replaces `plane: Plane`; `Plane` objects carry position, normal, and color
+  - JNI API updated to pass a plane array; OptiX shaders iterate all active planes per ray
+- **Vec3 Rotation for All DSL Objects** — `rotation` field on all scene objects now takes `Vec3(xDeg, yDeg, zDeg)` (was `Float` for y-axis only; breaking change for `Sponge.rotation`)
+- `SceneClassifier` object — shared scene classification and builder selection logic extracted from `OptiXEngine` and `AnimatedOptiXEngine`; 15 unit tests in `SceneClassifierSuite`
+- `KeyRotation` trait — shared `factor` map and `angle()` calculation for `GdxKeyHandler` and `OptiXKeyHandler`
+- `LibGDXConverters.toGdxButton` — `MouseButton` → LibGDX button code conversion moved from `GdxCameraHandler` extension method
 
 ### Fixed
 - `ScreenshotFactory.sanitizePath` now preserves absolute paths — was incorrectly stripping the leading `/`, causing multi-frame animation frames to be saved to a relative `tmp/...` path instead of the specified `/tmp/...` absolute path
+- **Emissive transparent triangle meshes** — `getTriangleMaterial` now extracts and passes `mat.emission` through the Fresnel blend path; was silently 0.0f regardless of material settings
+- **Animated 4D edge scenes** — `AnimatedOptiXEngine` now correctly routes tesseract-edge scenes to `TesseractEdgeSceneBuilder` via shared `SceneClassifier`; was silently using `TriangleMeshSceneBuilder`
+- `AnimatedOptiXEngine.render()` wraps `sceneFunction(t)` in `Try`; a throwing scene function now logs and skips the frame instead of crashing the application
+- `Plastic` and `Matte` DSL material presets now delegate to `OptixMaterial.Plastic`/`OptixMaterial.Matte`; previously hardcoded inline (single source of truth completed)
+- Named constants `THIN_FILM_COSINE_CLAMP_MIN`, `THIN_FILM_AIRY_DENOM_GUARD`, `CIE_Y_INTEGRAL_NORM` replace magic literals in `computeThinFilmReflectance`
 
 ### Changed
 - `MockModelFactory` moved from `src/main/scala` (production code) to `src/test/scala` (test-only) — test doubles must not be compiled into the production artifact
+- `computeEffectiveMaxInstances` extracted from three duplicate blocks in `OptiXEngine` to a private helper; `OptiXEngine` reduced from 488 to ~430 lines
+- `computeEyeW` formula extracted to `CameraHandler` trait — shared by `GdxCameraHandler` and `OptiXCameraHandler`
+- `DragTracker`: backing field renamed `_origin` → `dragOrigin` (Scala naming convention)
 
 ## [0.5.1] - 2026-02-24
 
