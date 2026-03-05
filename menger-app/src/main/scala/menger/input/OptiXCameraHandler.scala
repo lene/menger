@@ -77,7 +77,7 @@ class OptiXCameraHandler(
       dispatcher.notifyObservers(RotationProjectionParameters(0, 0, 0, eyeW))
     else
       handleZoom(amountY)
-    true
+    true // Consume all scroll events: single-handler setup, no other handler should act on scroll.
 
   private def handleOrbit(deltaX: Int, deltaY: Int): Unit =
     camera.orbit(deltaX, deltaY)

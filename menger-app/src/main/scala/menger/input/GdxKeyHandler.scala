@@ -36,7 +36,7 @@ class GdxKeyHandler(
         false
       case Key.Escape =>
         resetCamera()
-        false
+        false  // Don't consume: allows the OS/windowing system to handle window-close on Escape.
       case Key.Q if modifiers.ctrl =>
         GdxRuntime.exit()
         true

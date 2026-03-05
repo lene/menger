@@ -60,6 +60,7 @@ class GdxCameraHandler(
       baseController.touchDragged(pos.x, pos.y, pointer)
 
   override protected def handleScroll(amountX: Float, amountY: Float): Boolean =
+    // Returns false: lets other handlers (e.g. camera zoom) still act on this scroll event.
     if isShiftPressed then
       val eyeW = computeEyeW(amountY)
       eventDispatcher.notifyObservers(RotationProjectionParameters(0, 0, 0, eyeW))

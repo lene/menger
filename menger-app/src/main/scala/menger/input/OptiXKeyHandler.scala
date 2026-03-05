@@ -34,7 +34,7 @@ class OptiXKeyHandler(
         false
       case Key.Escape =>
         onReset()
-        true
+        true  // Consume: prevents unintended application exit; ESC only resets the 4D view.
       case Key.Q if modifiers.ctrl =>
         GdxRuntime.exit()
         true
