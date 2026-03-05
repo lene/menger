@@ -47,6 +47,28 @@ class SceneClassifierSuite extends AnyFlatSpec with Matchers:
     )
     result shouldBe defined
 
+  it should "return TesseractEdgeSceneBuilder for 4D projected specs with edge rendering" in:
+    val edgeSpec = ObjectSpec(objectType = "tesseract", x = 0, y = 0, z = 0, size = 1, edgeRadius = Some(0.02f))
+    val result = SceneClassifier.selectSceneBuilder(
+      SceneType.TriangleMeshes(List(edgeSpec)), textureDir = None
+    )
+    result shouldBe defined
+    result.get shouldBe a [menger.engines.scene.TesseractEdgeSceneBuilder]
+
+  it should "return TriangleMeshSceneBuilder for 4D projected specs without edge rendering" in:
+    val result = SceneClassifier.selectSceneBuilder(
+      SceneType.TriangleMeshes(List(spec("tesseract"))), textureDir = None
+    )
+    result shouldBe defined
+    result.get shouldBe a [menger.engines.scene.TriangleMeshSceneBuilder]
+
+  it should "return CubeSpongeSceneBuilder for CubeSponges" in:
+    val result = SceneClassifier.selectSceneBuilder(
+      SceneType.CubeSponges(List(spec("cube-sponge"))), textureDir = None
+    )
+    result shouldBe defined
+    result.get shouldBe a [menger.engines.scene.CubeSpongeSceneBuilder]
+
   it should "return None for SimpleMixed" in:
     val result = SceneClassifier.selectSceneBuilder(
       SceneType.SimpleMixed(List(spec("sphere")), "cube"), textureDir = None
