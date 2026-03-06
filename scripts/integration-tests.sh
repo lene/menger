@@ -42,6 +42,8 @@ TEST_ASSETS_DIR="$SCRIPT_DIR/test-assets"
 REFERENCE_DIR="$SCRIPT_DIR/reference-images"
 DIFF_DIR="$SCRIPT_DIR/test-diffs"
 IMAGE_DIFF_THRESHOLD=0.001  # 0.1% pixel difference tolerance
+TEST_WIDTH=200              # Render at 1/4 width (1/16 pixels) for fast test runs
+TEST_HEIGHT=150
 
 # Test tracking (global counters - will be aggregated from parallel jobs)
 PASSED=0
@@ -63,6 +65,8 @@ export TEST_ASSETS_DIR
 export REFERENCE_DIR
 export DIFF_DIR
 export IMAGE_DIFF_THRESHOLD
+export TEST_WIDTH
+export TEST_HEIGHT
 
 # Colors
 RED='\e[38;5;196m'
@@ -135,7 +139,7 @@ run_test() {
 
     # Run test in headless mode with output file
     local test_passed=false
-    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless --save-name "$temp_output" "$@" >/dev/null 2>&1 && [ -f "$temp_output" ]; then
+    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless --save-name "$temp_output" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" "$@" >/dev/null 2>&1 && [ -f "$temp_output" ]; then
         test_passed=true
     fi
 
@@ -648,6 +652,7 @@ test_t_animation() {
     if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --optix --scene examples.dsl.OrbitingSphere \
         --frames 3 --start-t 0 --end-t 1 \
+        --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
         --save-name "${temp_dir}/orbit_%04d.png" >/dev/null 2>&1; then
         # Verify all 3 frames were created
         local frame_count=0
