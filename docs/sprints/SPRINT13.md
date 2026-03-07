@@ -2,7 +2,7 @@
 
 **Sprint:** 13 - Visual Quality Improvements
 **Status:** Not Started
-**Estimate:** 10-14 hours
+**Estimate:** ~11 hours
 **Branch:** `feature/sprint-13`
 **Dependencies:** Sprint 10 (Scala DSL) - optional
 
@@ -12,7 +12,7 @@
 
 ## Goal
 
-Improve visual quality and material realism with better plane materials, transparent shadows, material validation, and visual enhancements for cubes and sponges.
+Improve visual quality and material realism with better plane materials, transparent shadows, and material validation.
 
 ## Success Criteria
 
@@ -20,7 +20,6 @@ Improve visual quality and material realism with better plane materials, transpa
 - [ ] Shadows work correctly with transparent/glass objects
 - [ ] Material physical correctness validation and documentation
 - [ ] Mixed-metallic material examples (0 < metallic < 1)
-- [ ] Rounded edges on cubes and sponges (optional stretch goal)
 - [ ] Updated USER_GUIDE.md with material best practices
 - [ ] All tests pass (~20-25 new tests)
 
@@ -46,7 +45,6 @@ Improve visual quality and material realism with better plane materials, transpa
 2. **Transparent shadows:** Glass objects should cast colored shadows, not block light completely
 3. **Material validation:** No validation that materials are physically plausible
 4. **Mixed metallic:** No examples of partial metallic values (e.g., 0.5)
-5. **Sharp edges:** Cubes and sponges have perfectly sharp edges (unrealistic)
 
 ---
 
@@ -174,24 +172,7 @@ Current presets only use `metallic=0.0` or `metallic=1.0`. Partial values create
 
 ---
 
-### Task 13.5: Rounded Edges on Cubes/Sponges (Stretch Goal)
-
-**Estimate:** 4 hours
-
-Add optional edge rounding to cube and sponge geometry for more realistic appearance.
-
-**Note:** This is a stretch goal. If time is limited, defer to a future sprint.
-
-#### Approach
-
-Use chamfered/beveled edge vertices:
-- Add parameter: `edge-radius=0.05` (default: 0.0 for sharp edges)
-- Subdivide edges into curved sections
-- Recompute normals for smooth shading
-
----
-
-### Task 13.6: Documentation and Examples
+### Task 13.5: Documentation and Examples
 
 **Estimate:** 1 hour
 
@@ -199,10 +180,10 @@ Update USER_GUIDE.md with material best practices and new features.
 
 #### Sections to Add
 
-1. Material Reference (from Task 13.3)
-2. Partial Metallic Values (from Task 13.4)
-3. Plane Materials (from Task 13.1)
-4. Transparent Shadows (from Task 13.2)
+1. Material Reference (from 13.3)
+2. Partial Metallic Values (from 13.4)
+3. Plane Materials (from 13.1)
+4. Transparent Shadows (from 13.2)
 5. Common Material Mistakes (validation warnings)
 
 ---
@@ -215,9 +196,8 @@ Update USER_GUIDE.md with material best practices and new features.
 | 13.2 | Transparent shadows | 3.5h | High |
 | 13.3 | Material validation | 2h | Medium |
 | 13.4 | Mixed-metallic examples | 1.5h | Medium |
-| 13.5 | Rounded edges (stretch) | 4h | Low |
-| 13.6 | Documentation | 1h | High |
-| **Total** | | **11-15h** | |
+| 13.5 | Documentation | 1h | High |
+| **Total** | | **~11h** | |
 
 ---
 
@@ -242,8 +222,7 @@ Recommended order:
 2. **Task 13.3** (Material validation) - Prevents mistakes early
 3. **Task 13.4** (Mixed-metallic examples) - Simple, high visual impact
 4. **Task 13.2** (Transparent shadows) - Complex but high impact
-5. **Task 13.5** (Rounded edges) - Optional, time permitting
-6. **Task 13.6** (Documentation) - Last
+5. **Task 13.5** (Documentation) - Last
 
 ### Testing Strategy
 
@@ -258,12 +237,11 @@ This sprint focuses on **realism and polish**. Every feature adds subtle but imp
 - Textured floors add environmental context
 - Colored shadows add realism to glass objects
 - Validated materials prevent "uncanny valley" renders
-- Rounded edges soften harsh geometry
 
 ---
 
 ## References
 
-- TODO.md: Transparent shadows, plane materials, mixed-metallic examples
+- TODO.md: Transparent shadows, plane materials, mixed-metallic examples (see Scheduled section)
 - Material physics: PBRT book, Chapter 8 (Materials)
 - OptiX shadow rays: [OptiX Programming Guide](https://raytracing-docs.nvidia.com/optix7/guide/index.html#ray_types)
