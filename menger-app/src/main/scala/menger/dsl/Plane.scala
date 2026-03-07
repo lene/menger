@@ -4,6 +4,7 @@ import menger.cli.Axis
 import menger.cli.PlaneColorSpec
 import menger.cli.PlaneConfig
 import menger.cli.PlaneSpec
+import menger.optix.Material
 
 /** Axis position specification for planes.
   *
@@ -58,7 +59,7 @@ case object Z extends AxisHelper:
 /** Plane definition for scene floor/walls.
   *
   * Planes are infinite surfaces perpendicular to one of the coordinate axes.
-  * They can be solid-colored or checkered.
+  * They can be solid-colored or checkered, with optional material properties.
   *
   * Examples:
   * {{{
@@ -68,18 +69,20 @@ case object Z extends AxisHelper:
   *   // Checkered floor (white and black)
   *   Plane(Y at -2, checkered = (Color.White, Color.Black))
   *
-  *   // Using hex colors for checkered pattern
-  *   Plane(Y at -2, checkered = ("#FFFFFF", "#000000"))
+  *   // Chrome material floor
+  *   Plane(Y at -2, color = "#C0C0C0", material = Some(Material.Chrome))
   * }}}
   *
   * @param axisPosition Position and orientation of the plane
   * @param color Optional solid color for the plane
   * @param checkered Optional pair of colors for checkered pattern
+  * @param material Optional material properties (roughness, metallic, specular, emission)
   */
 case class Plane(
   axisPosition: AxisPosition,
   color: Option[Color] = None,
-  checkered: Option[(Color, Color)] = None
+  checkered: Option[(Color, Color)] = None,
+  material: Option[Material] = None
 ):
   require(
     color.isDefined || checkered.isDefined,
@@ -102,7 +105,7 @@ case class Plane(
       case _                     => sys.error("Plane must have either color or checkered defined (caught by require)")
 
   /** Convert to PlaneConfig for the rendering pipeline. */
-  def toPlaneConfig: PlaneConfig = PlaneConfig(toPlaneSpec, Some(toPlaneColorSpec))
+  def toPlaneConfig: PlaneConfig = PlaneConfig(toPlaneSpec, Some(toPlaneColorSpec), material)
 
 object Plane:
   /** Create a solid-colored plane.

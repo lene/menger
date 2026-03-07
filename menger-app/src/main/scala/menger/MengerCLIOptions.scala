@@ -285,6 +285,11 @@ class MengerCLIOptions(arguments: Seq[String])
     required = false, group = optixSceneGroup,
     descr = "Plane color: RRGGBB or RRGGBB:RRGGBB for checkered"
   )(using planeColorSpecConverter)
+  val planeMaterial: ScallopOption[String] = opt[String](
+    name = "plane-material", required = false, group = optixSceneGroup,
+    validate = name => menger.optix.Material.fromName(name).isDefined,
+    descr = s"Plane material preset name (${menger.optix.Material.presetNames.mkString(", ")})"
+  )
   val maxInstances: ScallopOption[Int] = opt[Int](
     required = false, default = Some(Const.defaultMaxInstances), group = optixSceneGroup,
     validate = n => n > 0 && n <= Const.maxInstancesLimit,

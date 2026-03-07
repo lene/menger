@@ -36,4 +36,8 @@ case class PlaneColorSpec(color1: menger.common.Color, color2: Option[menger.com
   def isSolid: Boolean = color2.isEmpty
   def isCheckered: Boolean = color2.isDefined
 
-case class PlaneConfig(spec: PlaneSpec, colorSpec: Option[PlaneColorSpec])
+case class PlaneConfig(
+  spec: PlaneSpec,
+  colorSpec: Option[PlaneColorSpec],
+  material: Option[menger.optix.Material] = None
+)

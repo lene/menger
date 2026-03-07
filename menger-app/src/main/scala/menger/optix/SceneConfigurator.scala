@@ -69,17 +69,31 @@ class SceneConfigurator(
           colorSpec.color2 match
             case Some(c2) =>
               val c1 = colorSpec.color1
-              renderer.addPlaneCheckerColors(
-                axisInt, planeConfig.spec.positive, planeConfig.spec.value,
-                c1.r, c1.g, c1.b, c2.r, c2.g, c2.b
-              )
+              planeConfig.material match
+                case Some(mat) =>
+                  renderer.addPlaneCheckerColorsWithMaterial(
+                    axisInt, planeConfig.spec.positive, planeConfig.spec.value,
+                    Color(c1.r, c1.g, c1.b, 1.0f), Color(c2.r, c2.g, c2.b, 1.0f), mat
+                  )
+                case None =>
+                  renderer.addPlaneCheckerColors(
+                    axisInt, planeConfig.spec.positive, planeConfig.spec.value,
+                    c1.r, c1.g, c1.b, c2.r, c2.g, c2.b
+                  )
               logger.debug(f"Configured checkered plane: ${planeConfig.spec.axis}@${planeConfig.spec.value}")
             case None =>
               val c1 = colorSpec.color1
-              renderer.addPlaneSolidColor(
-                axisInt, planeConfig.spec.positive, planeConfig.spec.value,
-                c1.r, c1.g, c1.b
-              )
+              planeConfig.material match
+                case Some(mat) =>
+                  renderer.addPlaneSolidColorWithMaterial(
+                    axisInt, planeConfig.spec.positive, planeConfig.spec.value,
+                    Color(c1.r, c1.g, c1.b, 1.0f), mat
+                  )
+                case None =>
+                  renderer.addPlaneSolidColor(
+                    axisInt, planeConfig.spec.positive, planeConfig.spec.value,
+                    c1.r, c1.g, c1.b
+                  )
               logger.debug(f"Configured solid-color plane: ${planeConfig.spec.axis}@${planeConfig.spec.value}")
         case None =>
           renderer.addPlane(axisInt, planeConfig.spec.positive, planeConfig.spec.value)

@@ -143,7 +143,11 @@ object Main:
         up = opts.cameraUp()
       ),
       environment = EnvironmentConfig(
-        planes = List(PlaneConfig(opts.plane(), opts.planeColor.toOption)),
+        planes = List(PlaneConfig(
+          opts.plane(),
+          opts.planeColor.toOption,
+          opts.planeMaterial.toOption.flatMap(menger.optix.Material.fromName)
+        )),
         lights = opts.light.toOption.getOrElse(List.empty)
       ),
       execution = buildExecutionConfig(opts),
