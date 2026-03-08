@@ -634,10 +634,6 @@ test_dsl_scenes() {
     run_test "DSL CustomMaterials" --optix --scene examples.dsl.CustomMaterials
     run_test "DSL ComplexLighting" --optix --scene examples.dsl.ComplexLighting
     run_test "DSL ReusableComponents" --optix --scene examples.dsl.ReusableComponents
-}
-
-test_mixed_metallic() {
-    echo "Mixed-Metallic Showcase:"
     run_test "DSL MixedMetallicShowcase" --optix --scene examples.dsl.MixedMetallicShowcase
 }
 
@@ -723,7 +719,6 @@ export -f test_tesseract
 export -f test_4d_sponges
 export -f test_3d_fractional_sponges
 export -f test_dsl_scenes
-export -f test_mixed_metallic
 export -f test_t_animation
 export -f test_file_output
 export -f test_headless
@@ -769,7 +764,6 @@ main() {
             "test_4d_sponges"
             "test_3d_fractional_sponges"
             "test_dsl_scenes"
-            "test_mixed_metallic"
             "test_t_animation"
             "test_file_output"
             "test_headless"
@@ -811,7 +805,6 @@ main() {
         test_4d_sponges
         test_3d_fractional_sponges
         test_dsl_scenes
-        test_mixed_metallic
         test_t_animation
         test_file_output
         test_headless

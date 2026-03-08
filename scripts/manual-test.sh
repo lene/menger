@@ -317,6 +317,7 @@ run_test "DSL: TesseractDemo" "-o --scene examples.dsl.TesseractDemo -s $OUTPUT_
 run_test "DSL: FilmSphere" "-o --scene examples.dsl.FilmSphere -s $OUTPUT_DIR/94-dsl-film-sphere.png"
 run_test "DSL: SpongeShowcase" "-o --scene examples.dsl.SpongeShowcase -s $OUTPUT_DIR/95-dsl-sponge-showcase.png"
 run_test "DSL: MengerShowcase" "-o --scene examples.dsl.MengerShowcase -s $OUTPUT_DIR/96-dsl-menger-showcase.png"
+run_test "DSL: MixedMetallicShowcase" "-o --scene examples.dsl.MixedMetallicShowcase -s $OUTPUT_DIR/106-dsl-mixed-metallic.png"
 
 # Animated DSL Scenes (t-parameter)
 echo -e "${YELLOW}--- Animated DSL Scenes (t-parameter) ---${NC}"
@@ -326,10 +327,6 @@ run_test "OrbitingSphere t=3.14" "-o --scene examples.dsl.OrbitingSphere --t 3.1
 run_test "PulsingSponge t=0" "-o --scene examples.dsl.PulsingSponge --t 0 -s $OUTPUT_DIR/103-pulsing-t0.png"
 run_test "PulsingSponge t=1.5" "-o --scene examples.dsl.PulsingSponge --t 1.5 -s $OUTPUT_DIR/104-pulsing-t1.5.png"
 run_test "PulsingSponge t=3" "-o --scene examples.dsl.PulsingSponge --t 3 -s $OUTPUT_DIR/105-pulsing-t3.png"
-
-# Mixed Metallic
-echo -e "${YELLOW}--- Mixed Metallic ---${NC}"
-run_test "DSL: MixedMetallicShowcase" "-o --scene examples.dsl.MixedMetallicShowcase -s $OUTPUT_DIR/106-dsl-mixed-metallic.png"
 
 # Showcase
 echo -e "${YELLOW}--- Showcase ---${NC}"
