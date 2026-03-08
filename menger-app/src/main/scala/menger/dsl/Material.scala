@@ -19,6 +19,22 @@ case class Material(
   require(emission >= 0f, s"Emission must be non-negative, got $emission")
   require(filmThickness >= 0f, s"Film thickness must be non-negative, got $filmThickness")
 
+  /** Check material for physical plausibility. Returns advisory warning strings.
+    * Never throws — use the existing require() calls for hard failures. */
+  def validate(): Seq[String] =
+    val w = scala.collection.mutable.ListBuffer[String]()
+    if ior < 1.0f then
+      w += s"IOR $ior is below 1.0 — unphysical except for metamaterials"
+    if metallic > 0.0f && ior > 1.1f then
+      w += s"Metallic materials typically use IOR=1.0 in PBR, got IOR=$ior"
+    if metallic > 0.0f && emission > 0.0f then
+      w += s"Combining metallic=$metallic with emission=$emission is unusual"
+    if roughness > 0.9f && metallic > 0.5f then
+      w += s"High roughness ($roughness) on metallic material may appear muddy"
+    if filmThickness > 0.0f && metallic > 0.5f then
+      w += "Thin-film on metallic surface — visual effect may be minimal"
+    w.toSeq
+
   def toOptixMaterial: OptixMaterial =
     OptixMaterial(
       color = color.toCommonColor,
