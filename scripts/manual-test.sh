@@ -327,6 +327,10 @@ run_test "PulsingSponge t=0" "-o --scene examples.dsl.PulsingSponge --t 0 -s $OU
 run_test "PulsingSponge t=1.5" "-o --scene examples.dsl.PulsingSponge --t 1.5 -s $OUTPUT_DIR/104-pulsing-t1.5.png"
 run_test "PulsingSponge t=3" "-o --scene examples.dsl.PulsingSponge --t 3 -s $OUTPUT_DIR/105-pulsing-t3.png"
 
+# Mixed Metallic
+echo -e "${YELLOW}--- Mixed Metallic ---${NC}"
+run_test "DSL: MixedMetallicShowcase" "-o --scene examples.dsl.MixedMetallicShowcase -s $OUTPUT_DIR/106-dsl-mixed-metallic.png"
+
 # Showcase
 echo -e "${YELLOW}--- Showcase ---${NC}"
 run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/58-showcase.png"
@@ -423,6 +427,7 @@ interactive_tests=(
     "DSL OrbitingSphere t=1.57 (sphere in circular orbit, quarter-turn):-o --scene examples.dsl.OrbitingSphere --t 1.57"
     "DSL PulsingSponge t=1 (sponge growing to level 1):-o --scene examples.dsl.PulsingSponge --t 1"
     "DSL PulsingSponge t=2 (sponge growing to level 2):-o --scene examples.dsl.PulsingSponge --t 2"
+    "DSL MixedMetallicShowcase (metallic 0.0→1.0 across five silver-gray spheres):-o --scene examples.dsl.MixedMetallicShowcase"
 )
 
 echo "Available interactive tests:"

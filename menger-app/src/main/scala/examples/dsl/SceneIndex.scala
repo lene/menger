@@ -19,6 +19,7 @@ object SceneIndex:
     ComplexLighting.scene,
     ReusableComponents.scene,
     TesseractDemo.scene,
+    MixedMetallicShowcase.scene,
   )
 
   /** Animated scene objects (loaded via reflection with def scene(t: Float)). */
