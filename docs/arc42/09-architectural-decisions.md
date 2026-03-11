@@ -214,6 +214,13 @@ scalar shadow pipeline.
 - The `setTransparentShadows(true)` API is a no-op until re-implemented.
 - Triangle and cylinder shadow shaders now correctly encode alpha, fixing a latent bug.
 
+**Update (Sprint 13.2):** Phase 1 of colored transparent shadows has been re-implemented
+using a closesthit-only approach (no anyhit programs), resolving the first two consequences
+above. Shadows are now RGB when `transparent_shadows_enabled = true`, and the
+`setTransparentShadows` API is functional. The anyhit programs and unused overloads from
+the failed attempt have been removed. See `08-crosscutting-concepts.md` §8.1.4 for the
+colored shadow algorithm and TD-6 for remaining Phase 2 work.
+
 ---
 
 ## 9.2 Sprint-Level Decisions

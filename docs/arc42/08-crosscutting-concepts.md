@@ -68,6 +68,33 @@ If ray hits geometry → shadow (ambient only)
 If ray misses → fully lit
 ```
 
+#### Colored Transparent Shadows (Phase 1)
+
+When `--transparent-shadows` is enabled, shadow rays carry RGB attenuation instead of scalar
+alpha. The closesthit shadow program computes per-channel attenuation from the hit object's
+material:
+
+```
+attenuation_rgb = alpha × (1 - material_color_rgb)
+```
+
+| Channel | Effect |
+|---------|--------|
+| attenuation = 0 | No shadow (fully transparent) |
+| attenuation = 1 | Full shadow (fully opaque) |
+| High R, low G/B | Shadow blocks red, passes green/blue (cyan tint) |
+
+The lighting shader applies shadow attenuation per channel to each light contribution:
+
+```
+contribution_c = light_contribution_c × (1 - attenuation_c)    for c ∈ {R, G, B}
+```
+
+When the flag is off, all three channels carry the same scalar alpha value (backward-compatible).
+
+**Limitation (Phase 1):** Only the closest hit object contributes shadow color. Overlapping
+transparent objects require anyhit accumulation (Phase 2, see TD-6).
+
 ## 8.2 Alpha Channel Convention
 
 **CRITICAL: Standard Graphics Alpha (never confuse this)**

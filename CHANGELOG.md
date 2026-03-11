@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- **Colored transparent shadows (Phase 1)** — transparent objects cast color-tinted shadows
+  when `--transparent-shadows` is enabled. Shadow color is derived from the object's material
+  color and opacity. Phase 1 supports single-object shadows; multi-object accumulation
+  deferred to Phase 2.
+
 ### Fixed
 - **SBT offset fix for triangle mesh rendering** — single-object triangle meshes now correctly
   use their own hitgroup records (primary + shadow) instead of accidentally hitting sphere
@@ -14,11 +20,9 @@
   These latent bugs were exposed by the SBT offset fix routing shadow rays to the correct
   geometry-specific hitgroups.
 
-### Reverted
-- **Colored transparent shadows (anyhit RGB system)** — the anyhit-based shadow system that
-  would have enabled colored light transmission through transparent objects was reverted due to
-  6 regression failures across RendererTest and ShadowSuite. See architectural decision AD-8
-  for analysis. The `setTransparentShadows` API surface is retained but currently a no-op.
+### Removed
+- Unused anyhit shadow programs and overloads from reverted colored shadow attempt (dead code
+  cleanup)
 
 ## [0.5.2] - 2026-03-05
 

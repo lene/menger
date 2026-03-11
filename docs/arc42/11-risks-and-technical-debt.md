@@ -36,7 +36,7 @@
 | TD-3 | Window resize not working | Medium | 15+h (deferred) |
 | TD-4 | Caustics algorithm incomplete | High | 20+h (deferred) |
 | TD-5 | Cannot mix spheres with triangle meshes | Medium | 8-12h (multi-GAS IAS) |
-| TD-6 | Colored transparent shadows reverted | Medium | 8-12h (re-implement anyhit RGB shadows) |
+| TD-6 | Colored transparent shadows Phase 2 (multi-object) | Low | 4-8h (anyhit accumulation for overlapping transparent objects) |
 
 ### Deferred Features
 
@@ -46,7 +46,7 @@
 | Caustics (PPM) | Algorithm produces incorrect results | Branch preserved |
 | Soft shadows | Requires area lights | Future sprint |
 | Mixed geometry scenes | Spheres use analytical GAS, meshes use triangle GAS | TD-5 |
-| Colored transparent shadows | Anyhit RGB approach reverted due to regressions (see AD-8) | TD-6 |
+| Colored transparent shadows Phase 2 | Phase 1 (closesthit, single-object) complete; Phase 2 anyhit accumulation for overlapping transparent objects remains | TD-6 |
 
 ## 11.3 Common Issues and Solutions
 
