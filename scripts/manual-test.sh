@@ -328,6 +328,14 @@ run_test "PulsingSponge t=0" "-o --scene examples.dsl.PulsingSponge --t 0 -s $OU
 run_test "PulsingSponge t=1.5" "-o --scene examples.dsl.PulsingSponge --t 1.5 -s $OUTPUT_DIR/104-pulsing-t1.5.png"
 run_test "PulsingSponge t=3" "-o --scene examples.dsl.PulsingSponge --t 3 -s $OUTPUT_DIR/105-pulsing-t3.png"
 
+# Colored Shadows (transparent shadow attenuation)
+echo -e "${YELLOW}--- Colored Shadows ---${NC}"
+run_test "Red sphere colored shadow" "-o --objects type=sphere:color=#FF000080:ior=1.5 --shadows --transparent-shadows --plane y:-2 -s $OUTPUT_DIR/107-colored-shadow-red.png"
+run_test "Green sphere colored shadow" "-o --objects type=sphere:color=#00FF0080:ior=1.5 --shadows --transparent-shadows --plane y:-2 -s $OUTPUT_DIR/108-colored-shadow-green.png"
+run_test "Blue sphere colored shadow" "-o --objects type=sphere:color=#0000FF80:ior=1.5 --shadows --transparent-shadows --plane y:-2 -s $OUTPUT_DIR/109-colored-shadow-blue.png"
+run_test "RGB spheres colored shadows" "-o --objects type=sphere:pos=-2,0,0:color=#FF000080:ior=1.5 --objects type=sphere:pos=0,0,0:color=#00FF0080:ior=1.5 --objects type=sphere:pos=2,0,0:color=#0000FF80:ior=1.5 --shadows --transparent-shadows --plane y:-2 -s $OUTPUT_DIR/110-colored-shadow-rgb.png"
+run_test "Colored shadow vs scalar shadow" "-o --objects type=sphere:color=#FF000080:ior=1.5 --shadows --plane y:-2 -s $OUTPUT_DIR/111-scalar-shadow-red.png"
+
 # Showcase
 echo -e "${YELLOW}--- Showcase ---${NC}"
 run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/58-showcase.png"
@@ -407,6 +415,11 @@ interactive_tests=(
     "3D Fractional chrome:-o --objects type=sponge-surface:level=1.3:material=chrome"
     "3D Mixed frac levels:-o --objects type=sponge-volume:level=1.5:pos=-1.5,0,0:color=#FF8844 --objects type=sponge-volume:level=1:pos=1.5,0,0:color=#4488FF"
     "3D Volume vs Surface frac:-o --objects type=sponge-volume:level=1.5:pos=-1.5,0,0 --objects type=sponge-surface:level=1.5:pos=1.5,0,0"
+    "Red sphere colored shadow:-o --objects type=sphere:color=#FF000080:ior=1.5 --shadows --transparent-shadows --plane y:-2"
+    "Green sphere colored shadow:-o --objects type=sphere:color=#00FF0080:ior=1.5 --shadows --transparent-shadows --plane y:-2"
+    "Blue sphere colored shadow:-o --objects type=sphere:color=#0000FF80:ior=1.5 --shadows --transparent-shadows --plane y:-2"
+    "RGB spheres colored shadows:-o --objects type=sphere:pos=-2,0,0:color=#FF000080:ior=1.5 --objects type=sphere:pos=0,0,0:color=#00FF0080:ior=1.5 --objects type=sphere:pos=2,0,0:color=#0000FF80:ior=1.5 --shadows --transparent-shadows --plane y:-2"
+    "Glass sphere colored shadow:-o --objects type=sphere:material=glass --shadows --transparent-shadows --plane y:-2"
     "Colored lights:-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff"
     "Checkered plane:-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000"
     "DSL SimpleScene (minimal sphere + directional light):-o --scene examples.dsl.SimpleScene"

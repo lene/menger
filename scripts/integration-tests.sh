@@ -677,6 +677,65 @@ test_t_animation() {
     rm -rf "$temp_dir"
 }
 
+test_colored_shadows() {
+    echo "Colored Shadows:"
+
+    # Basic colored shadow tests — verify the feature renders successfully
+    run_test "colored shadow red sphere" --optix --plane y:-2 --shadows --transparent-shadows \
+        --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5
+
+    run_test "colored shadow green sphere" --optix --plane y:-2 --shadows --transparent-shadows \
+        --objects type=sphere:pos=0,0,0:size=0.5:color=#00FF0080:ior=1.5
+
+    run_test "colored shadow blue sphere" --optix --plane y:-2 --shadows --transparent-shadows \
+        --objects type=sphere:pos=0,0,0:size=0.5:color=#0000FF80:ior=1.5
+
+    # Verify transparent-shadows produces different output than scalar shadows
+    # Render same scene WITH and WITHOUT --transparent-shadows, then compare
+    local temp_with="test_cshadow_with_$$_${RANDOM}.png"
+    local temp_without="test_cshadow_without_$$_${RANDOM}.png"
+    rm -f "$temp_with" "$temp_without"
+
+    local rendered_both=true
+
+    if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+        --save-name "$temp_with" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+        --optix --plane y:-2 --shadows --transparent-shadows \
+        --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
+        >/dev/null 2>&1 || [ ! -f "$temp_with" ]; then
+        rendered_both=false
+    fi
+
+    if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+        --save-name "$temp_without" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+        --optix --plane y:-2 --shadows \
+        --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
+        >/dev/null 2>&1 || [ ! -f "$temp_without" ]; then
+        rendered_both=false
+    fi
+
+    if $rendered_both && [ -f "$temp_with" ] && [ -f "$temp_without" ]; then
+        # Compare the two images — they should DIFFER
+        local diff_pixels
+        diff_pixels=$(compare -metric AE "$temp_with" "$temp_without" /dev/null 2>&1) || true
+
+        if [ "$diff_pixels" -gt 0 ] 2>/dev/null; then
+            ((PASSED++))
+            echo -e "  colored vs scalar shadows differ (${diff_pixels}px) ${GREEN}✓${RESET}"
+        else
+            ((FAILED++))
+            FAILED_TESTS="$FAILED_TESTS\n  - colored vs scalar shadows differ (images identical)"
+            echo -e "  colored vs scalar shadows differ - images identical ${RED}✗${RESET}"
+        fi
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - colored vs scalar shadows differ (render failed)"
+        echo -e "  colored vs scalar shadows differ - render failed ${RED}✗${RESET}"
+    fi
+
+    rm -f "$temp_with" "$temp_without"
+}
+
 test_error_handling() {
     echo "Error Handling:"
     run_test_should_fail "invalid object type" --optix --objects type=invalid-type --plane y:-2
@@ -722,6 +781,7 @@ export -f test_dsl_scenes
 export -f test_t_animation
 export -f test_file_output
 export -f test_headless
+export -f test_colored_shadows
 export -f test_error_handling
 
 # ============================================
@@ -767,6 +827,7 @@ main() {
             "test_t_animation"
             "test_file_output"
             "test_headless"
+            "test_colored_shadows"
             "test_error_handling"
         )
 
@@ -808,6 +869,7 @@ main() {
         test_t_animation
         test_file_output
         test_headless
+        test_colored_shadows
         test_error_handling
     fi
 
