@@ -16,30 +16,20 @@ correct hitgroup records. IOR and colour tests now pass (20/20 TriangleMeshSuite
 
 ## High Priority
 
-### H-dead-anyhit — Dead anyhit programs in hit_cylinder.cu
-**Location:** `hit_cylinder.cu:298-308` (`__anyhit__cylinder`), `hit_cylinder.cu:321-331`
-(`__anyhit__cylinder_shadow`)
-**Est. Effort:** 0.5h
-Both anyhit programs exist in the source but are never registered in any hitgroup in
-`PipelineManager.cpp`. They compile into the PTX but are never called at runtime.
-`__anyhit__cylinder_shadow` is a vestige of the reverted anyhit RGB shadow system.
-`__anyhit__cylinder` has a stale comment about being "temporarily disabled to diagnose
-rotation crash". Both should be removed or properly wired up.
+### H-dead-anyhit — RESOLVED (Sprint 13.2 dead code cleanup)
+**Status:** Fixed. Both `__anyhit__cylinder` and `__anyhit__cylinder_shadow` have been removed.
+They were never registered in any hitgroup in PipelineManager.cpp and compiled into PTX as
+unreachable dead code.
 
-### H-dead-overload — Unused createTriangleHitgroupProgramGroup anyhit overload
-**Location:** `OptiXContext.h:79-84`, `OptiXContext.cpp:322-354`
-**Est. Effort:** 0.25h
-The 3-parameter overload accepting an anyhit module+entrypoint was added for the reverted
-colored shadow feature. Never called. Remove.
+### H-dead-overload — RESOLVED (Sprint 13.2 dead code cleanup)
+**Status:** Fixed. The 4-parameter `createTriangleHitgroupProgramGroup` (CH+AH) overload and
+the 6-parameter `createHitgroupProgramGroup` (CH+AH+IS) overload have been removed from
+OptiXContext.cpp and OptiXContext.h. Neither was ever called.
 
-### H-transparent-shadows-dead — transparent_shadows_enabled is a no-op end-to-end
-**Location:** `OptiXData.h:454` (Params field), `OptiXWrapper.cpp:699` (setter),
-`RenderConfig.h:34-35`, `JNIBindings.cpp:277-287`, `OptiXRenderer.scala`,
-`RenderConfig.scala`, `MengerCLIOptions.scala`
-**Est. Effort:** 1h (decision: remove dead plumbing or keep for future re-implementation)
-The field is set from Scala through JNI into the Params struct, but no shader reads it.
-Currently documented in AD-8 as intentionally retained API surface for future use. If the
-feature is not planned for the next sprint, consider removing to avoid dead code.
+### H-transparent-shadows-dead — RESOLVED (Sprint 13.2 colored shadows)
+**Status:** Fixed. The `transparent_shadows_enabled` field in Params is now actively read by
+shaders (`closesthit__shadow`, `closesthit__triangle_shadow`, `closesthit__cylinder_shadow`)
+to gate colored shadow attenuation via Beer-Lambert absorption. No longer dead code.
 
 ---
 
