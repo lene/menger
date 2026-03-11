@@ -275,6 +275,11 @@ class MengerCLIOptions(arguments: Seq[String])
     required = false, default = Some(false), group = optixLightingGroup,
     descr = "Enable shadow rays for realistic shadows"
   )
+  val transparentShadows: ScallopOption[Boolean] = opt[Boolean](
+    name = "transparent-shadows",
+    required = false, default = Some(false), group = optixLightingGroup,
+    descr = "Enable colored light tinting through transparent/glass objects (requires --shadows)"
+  )
 
   // === OptiX Scene Options ===
   val plane: ScallopOption[PlaneSpec] = opt[PlaneSpec](
@@ -354,6 +359,7 @@ class MengerCLIOptions(arguments: Seq[String])
   // Config accessors
   def renderConfig: RenderConfig = RenderConfig(
     shadows = shadows(),
+    transparentShadows = transparentShadows(),
     antialiasing = antialiasing(),
     aaMaxDepth = aaMaxDepth(),
     aaThreshold = aaThreshold()

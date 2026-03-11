@@ -1,8 +1,45 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-03-07
+**Last Updated:** 2026-03-11
 
 Cross-reference with [CODE_REVIEW.md](CODE_REVIEW.md) for resolved items.
+
+---
+
+## Pre-existing Test Failures (non-shadow-related)
+
+### T-triangle-ior — RESOLVED (Sprint 13.2 SBT offset fix)
+**Status:** Fixed. The SBT offset fix ensures triangle meshes in single-object mode use the
+correct hitgroup records. IOR and colour tests now pass (20/20 TriangleMeshSuite).
+
+---
+
+## High Priority
+
+### H-dead-anyhit — Dead anyhit programs in hit_cylinder.cu
+**Location:** `hit_cylinder.cu:298-308` (`__anyhit__cylinder`), `hit_cylinder.cu:321-331`
+(`__anyhit__cylinder_shadow`)
+**Est. Effort:** 0.5h
+Both anyhit programs exist in the source but are never registered in any hitgroup in
+`PipelineManager.cpp`. They compile into the PTX but are never called at runtime.
+`__anyhit__cylinder_shadow` is a vestige of the reverted anyhit RGB shadow system.
+`__anyhit__cylinder` has a stale comment about being "temporarily disabled to diagnose
+rotation crash". Both should be removed or properly wired up.
+
+### H-dead-overload — Unused createTriangleHitgroupProgramGroup anyhit overload
+**Location:** `OptiXContext.h:79-84`, `OptiXContext.cpp:322-354`
+**Est. Effort:** 0.25h
+The 3-parameter overload accepting an anyhit module+entrypoint was added for the reverted
+colored shadow feature. Never called. Remove.
+
+### H-transparent-shadows-dead — transparent_shadows_enabled is a no-op end-to-end
+**Location:** `OptiXData.h:454` (Params field), `OptiXWrapper.cpp:699` (setter),
+`RenderConfig.h:34-35`, `JNIBindings.cpp:277-287`, `OptiXRenderer.scala`,
+`RenderConfig.scala`, `MengerCLIOptions.scala`
+**Est. Effort:** 1h (decision: remove dead plumbing or keep for future re-implementation)
+The field is set from Scala through JNI into the Params struct, but no shader reads it.
+Currently documented in AD-8 as intentionally retained API surface for future use. If the
+feature is not planned for the next sprint, consider removing to avoid dead code.
 
 ---
 
@@ -17,15 +54,31 @@ splitting `createMultiObjectScene`/`rebuildScene` into a separate class. Deferre
 
 ---
 
-### M-emission — Emission ignored for transparent triangle mesh
-**Location:** `hit_triangle.cu` — `getTriangleMaterial()`
-**Est. Effort:** 1h
-`getTriangleMaterial()` has six output parameters (color, ior, roughness, metallic, specular,
-film_thickness) but no `emission`. Both Fresnel blend calls in `hit_triangle.cu` pass
-`emission = 0.0f` (hardcoded default). Any semi-transparent triangle mesh with `emission > 0`
-will not show its glow in the transparent path. The opaque path and sphere/cylinder shaders are
-unaffected.
-**Fix:** Add `emission` as a seventh output parameter to `getTriangleMaterial()`.
+### M-shadow-material-inconsistency — Shadow shaders use inconsistent material accessors
+**Location:** `hit_triangle.cu:303` (`getInstanceMaterial`), `hit_cylinder.cu:316`
+(`getInstanceMaterialPBR`)
+**Est. Effort:** 0.25h
+Both shadow closesthit shaders only need alpha. Triangle uses the basic 2-parameter
+`getInstanceMaterial()`, cylinder uses the 7-parameter `getInstanceMaterialPBR()` fetching
+6 unused fields. Should both use the simpler `getInstanceMaterial()` for consistency and
+to avoid fetching dead values.
+
+---
+
+### M-legacy-shaders — Legacy standalone shader files duplicate main system
+**Location:** `shaders/sphere_combined.cu`, `sphere_raygen.cu`, `sphere_miss.cu`,
+`sphere_closesthit.cu`
+**Est. Effort:** 2-4h (investigate usage, remove or consolidate)
+These files contain an older standalone implementation with their own `Params`, hardcoded
+magic numbers, and incompatible data structures (reference `MissData` fields that no longer
+exist). They are not part of the main `optix_shaders.cu` include chain. If they serve no
+test or demo purpose, they should be removed.
+
+---
+
+### M-emission — RESOLVED (before Sprint 13.2)
+`getTriangleMaterial()` now has `out_emission` as a seventh output parameter.  Both Fresnel
+blend paths in `hit_triangle.cu` use the emission value.  Closed.
 
 ---
 
@@ -56,6 +109,24 @@ than it was before `KeyPressTracker` eliminated the larger duplication.
 **Est. Effort:** 0.5h
 The `toGdxButton` conversion logic belongs in `LibGDXConverters`, not in a handler class.
 Pre-existing, not introduced with the handler refactoring.
+
+---
+
+### M-naming-constants — Overly literal named constants reduce readability
+**Location:** `OptiXData.h` RenderingConstants namespace
+**Est. Effort:** 1h
+Constants like `COLOR_BLACK = 0.0f`, `FRESNEL_BASE = 1.0f`, `DOT_PRODUCT_ZERO_THRESHOLD = 0.0f`,
+`FRESNEL_ONE_MINUS_R0 = 1.0f` add indirection without clarity — they're just restatements of
+`0.0f` and `1.0f` with longer names. Constants should encode domain meaning (e.g., `AMBIENT_WEIGHT`)
+not literal descriptions of their value. Review and consolidate.
+
+---
+
+### M-color-byte-max-dup — COLOR_BYTE_MAX defined in two namespaces
+**Location:** `OptiXData.h` — `RayTracingConstants::COLOR_BYTE_MAX` and
+`RenderingConstants::COLOR_BYTE_MAX`
+**Est. Effort:** 0.25h
+Same constant defined twice. Consolidate to a single definition.
 
 ---
 
@@ -161,11 +232,40 @@ Should either document what OPTION A was and why it was rejected, or drop the "O
 
 ---
 
-### L-cyl-shadow — Empty __closesthit__cylinder_shadow comment misleading
-**Location:** `hit_cylinder.cu`
-**Est. Effort:** 0.1h
-Says "payload already set for blocked" but the shadow payload is actually set by the any-hit
-shader. Comment should clarify the payload convention.
+### L-stale-new-comment — "// NEW" comment in hit_triangle.cu
+**Location:** `hit_triangle.cu:124`
+**Est. Effort:** 0.05h
+Stale comment from when emission output was added. Remove.
+
+---
+
+### L-dead-structs — Unused structs in OptiXData.h
+**Location:** `OptiXData.h` — `Photon` struct (~line 288), `MaterialProperties.normal_texture`
+and `roughness_texture` fields
+**Est. Effort:** 0.25h
+`Photon` is declared but never instantiated. `MaterialProperties` has "(future)" texture fields
+that are never used. Remove or mark with a clear "reserved for future" ifdef.
+
+---
+
+### L-dead-constant — PLANE_SOLID_LIGHT_GRAY unused
+**Location:** `OptiXData.h:46`
+**Est. Effort:** 0.05h
+Defined but never referenced. Remove.
+
+---
+
+### L-caustic-scale — Hardcoded caustic_scale = 1.0f
+**Location:** `caustics_ppm.cu:866`
+**Est. Effort:** 0.25h
+Comment says "adjust". Should be a named constant or configurable parameter.
+
+---
+
+### L-cyl-shadow — RESOLVED (Sprint 13.2)
+`__closesthit__cylinder_shadow` now correctly encodes alpha using `__float_as_uint(alpha)`,
+consistent with the sphere and triangle shadow shaders. The previous no-op implementation
+(which effectively meant cylinders cast no shadows) has been replaced.
 
 ---
 

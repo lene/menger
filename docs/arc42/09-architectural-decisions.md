@@ -155,6 +155,67 @@ This section documents significant architectural decisions. Detailed implementat
 
 ---
 
+### AD-8: Revert Anyhit RGB Shadow System (Sprint 13)
+
+**Status:** Accepted (revert)
+**Date:** 2026-03
+
+**Context:** Sprint 13 attempted to implement colored transparent shadows using an
+anyhit-based RGB shadow system. The implementation replaced the existing
+closesthit-based scalar shadow pipeline with anyhit programs that computed per-channel
+shadow attenuation (`float3` instead of `float`), enabling colored light transmission
+through transparent objects (e.g., red glass casting red-tinted shadows).
+
+**Decision:** Revert the anyhit RGB shadow system back to the original closesthit-based
+scalar shadow pipeline.
+
+**Rationale — why the implementation failed:**
+
+1. **Scope coupling.** The shadow rewrite was mixed into the same working tree as an
+   unrelated SBT offset fix for triangle mesh rendering. The two changes interacted in
+   unexpected ways, making it difficult to isolate and debug each independently.
+
+2. **Six regression failures.** The anyhit system caused failures in RendererTest (3 tests:
+   semi-transparent blending, fully transparent rendering, combined optical effects) and
+   ShadowSuite (3 tests: grazing angle, light-from-below, sphere-below-plane). Root causes
+   included:
+   - The anyhit shader's `optixTerminateRay()` / `optixIgnoreIntersection()` control flow
+     changed shadow behavior for edge cases (grazing angles, degenerate geometries) that
+     the closesthit pipeline handled correctly.
+   - The `float3` shadow color required changes to `calculateLighting()` that altered
+     brightness for semi-transparent and fully transparent spheres, breaking assertions
+     on center brightness and background visibility.
+   - Image size reductions (400x300 → 200x150) in `ThresholdConstants` compounded the
+     brightness discrepancies by reducing pixel counts in validation regions.
+
+3. **Payload encoding inconsistency exposed.** The SBT offset fix correctly routed shadow
+   rays to geometry-specific hitgroups, exposing a latent bug where
+   `__closesthit__triangle_shadow` used `optixSetPayload_0(1)` (raw integer) instead of
+   `__float_as_uint(alpha)`. This was invisible before because triangle meshes in
+   single-object mode accidentally used the sphere shadow shader.
+
+**What was kept from the attempt:**
+- `sbt_base_offset` field in Params and its use in all `optixTrace` calls (the SBT fix)
+- `transparent_shadows_enabled` field in RenderConfig/Params (API surface, currently unused)
+- `setTransparentShadows` JNI binding (dead code, available for future re-implementation)
+- Fixed shadow payload encoding in `__closesthit__triangle_shadow` and
+  `__closesthit__cylinder_shadow` (now use `__float_as_uint(alpha)`)
+
+**Lessons for re-implementation:**
+- Implement colored shadows as an isolated feature branch with no other changes mixed in.
+- The anyhit approach is architecturally sound but requires careful handling of edge cases
+  (grazing angles, degenerate geometry, fully transparent objects).
+- Test against the full ShadowSuite and RendererTest before merging, not just new tests.
+- Do not change test image sizes in the same change as shader behavior modifications.
+
+**Consequences:**
+- Shadows remain scalar (achromatic) — transparent objects cast gray shadows proportional
+  to alpha, not colored shadows.
+- The `setTransparentShadows(true)` API is a no-op until re-implemented.
+- Triangle and cylinder shadow shaders now correctly encode alpha, fixing a latent bug.
+
+---
+
 ## 9.2 Sprint-Level Decisions
 
 Detailed implementation decisions are documented in sprint planning documents and code review files.

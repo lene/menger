@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Fixed
+- **SBT offset fix for triangle mesh rendering** — single-object triangle meshes now correctly
+  use their own hitgroup records (primary + shadow) instead of accidentally hitting sphere
+  hitgroups. Adds `sbt_base_offset` to `Params` struct, computed as
+  `geometry_type * STRIDE_RAY_TYPES`.
+- **Triangle/cylinder shadow payload encoding** — `__closesthit__triangle_shadow` and
+  `__closesthit__cylinder_shadow` now correctly encode alpha using `__float_as_uint(alpha)`,
+  matching the sphere shadow shader. Previously, triangle shadows used raw integer `1`
+  (interpreted as ~0.0 float = no shadow) and cylinder shadows were a no-op (also no shadow).
+  These latent bugs were exposed by the SBT offset fix routing shadow rays to the correct
+  geometry-specific hitgroups.
+
+### Reverted
+- **Colored transparent shadows (anyhit RGB system)** — the anyhit-based shadow system that
+  would have enabled colored light transmission through transparent objects was reverted due to
+  6 regression failures across RendererTest and ShadowSuite. See architectural decision AD-8
+  for analysis. The `setTransparentShadows` API surface is retained but currently a no-op.
+
 ## [0.5.2] - 2026-03-05
 
 ### Added
