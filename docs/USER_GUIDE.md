@@ -1,7 +1,7 @@
 # Menger User Guide
 
 **Version**: 0.5.2
-**Last Updated**: February 2026
+**Last Updated**: March 2026
 
 Welcome to the Menger User Guide! This comprehensive guide will help you install, use, and master the Menger 3D/4D visualization and ray tracing tool.
 
@@ -32,6 +32,8 @@ Welcome to the Menger User Guide! This comprehensive guide will help you install
    - [Material Presets](#61-material-presets)
    - [Custom Materials](#62-custom-materials)
    - [Lighting Setup](#63-lighting-setup)
+   - [Plane Materials](#64-plane-materials)
+   - [Material Reference](#65-material-reference)
 7. [Advanced Features](#7-advanced-features)
    - [Animations](#71-animations)
    - [Animated Scenes (t-Parameter)](#72-animated-scenes-t-parameter)
@@ -326,6 +328,8 @@ sbt "run --optix --objects 'type=sphere'    # Ray-traced sphere
 # Scene
 --plane <spec>               # Ground plane (default: +y:-2)
 --plane-color <spec>         # Plane color (solid: #RRGGBB, checkered: RRGGBB:RRGGBB)
+--plane-material <name>      # Plane material preset (chrome, gold, glass, …)
+--transparent-shadows        # Colored shadow tinting through transparent objects
 ```
 
 ### 3.3 Interactive Controls
@@ -718,11 +722,109 @@ sbt "run --optix --objects 'type=sphere' \
 
 **Note:** Shadows increase render time but add significant realism.
 
+#### Transparent Shadows
+
+By default, transparent (glass) objects cast opaque gray shadows proportional to their alpha.
+Enable `--transparent-shadows` to make glass objects cast color-tinted shadows instead — a red
+glass sphere casts a red-tinted shadow, a blue glass sphere a blue-tinted shadow:
+
+```bash
+sbt "run --optix \
+    --objects 'type=sphere:color=#FF000066:ior=1.5' \
+    --shadows --transparent-shadows \
+    --light directional:-1,1,-1"
+```
+
+**How it works:** The shadow ray records the transparent object's color and opacity and
+attenuates each RGB channel of the light independently. A red sphere with alpha 0.6 passes
+100% of the red channel but only 40% of green and blue, creating a red-tinted shadow.
+
+**Limitation (Phase 1):** Only the closest transparent object along each shadow ray
+contributes color. Multiple overlapping transparent objects are treated as one (multi-object
+accumulation is planned for a future sprint).
+
 #### Default Lighting
 
 If no lights are specified, a default setup is used:
 - One directional light from upper-left
 - Ambient light for basic visibility
+
+---
+
+### 6.4 Plane Materials
+
+The ground plane supports a material preset in addition to the basic color/checkerboard options:
+
+```bash
+# Solid color plane (original behavior)
+sbt "run --optix --plane-color 808080"
+
+# Checkerboard plane (original behavior)
+sbt "run --optix --plane-color ffffff:404040"
+
+# Material preset plane (new in Sprint 13)
+sbt "run --optix --plane-material chrome"   # Mirror-finish chrome floor
+sbt "run --optix --plane-material gold"     # Gold-tinted floor
+```
+
+**Available plane material presets:** `glass`, `water`, `diamond`, `chrome`, `gold`, `copper`,
+`metal`, `plastic`, `matte`, `film`, `parchment`
+
+**Note:** `--plane-material` and `--plane-color` are mutually exclusive — use one or the other.
+
+---
+
+### 6.5 Material Reference
+
+Reference values for physically plausible materials. The DSL's `Material.validate()` method
+returns advisory warnings for combinations that deviate from these ranges.
+
+| Material | IOR | Roughness | Metallic | Notes |
+|----------|-----|-----------|----------|-------|
+| Glass | 1.45–1.90 | 0.0–0.1 | 0.0 | Never metallic |
+| Water | 1.33 | 0.0–0.05 | 0.0 | Very smooth |
+| Diamond | 2.42 | 0.0 | 0.0 | High IOR |
+| Chrome | 1.0 | 0.0–0.2 | 1.0 | Always metallic |
+| Gold | 1.0 | 0.0–0.3 | 1.0 | Always metallic |
+| Copper | 1.0 | 0.0–0.3 | 1.0 | Always metallic |
+| Plastic | 1.4–1.6 | 0.3–0.7 | 0.0 | Never metallic |
+| Matte | 1.0 | 0.8–1.0 | 0.0 | Diffuse only |
+
+#### Mixed Metallic Values
+
+While most real-world materials are either fully metallic or fully dielectric, partial metallic
+values (0 < metallic < 1) are valid in PBR and produce interesting hybrid appearances:
+
+| `metallic` | Visual character |
+|------------|-----------------|
+| 0.0 | Pure dielectric (plastic-like) |
+| 0.25 | Slightly metallic sheen |
+| 0.5 | Equal mix — painted metal, patina |
+| 0.75 | Mostly metallic, softened |
+| 1.0 | Pure metal |
+
+```bash
+# Gradient metallic showcase (DSL)
+val objects = (0 to 4).map { i =>
+  val m = i * 0.25f
+  Sphere(pos = Vec3(i * 2.5f - 5f, 0f, 0f), material = Material(metallic = m, roughness = 0.3f))
+}
+```
+
+See the `MixedMetallicShowcase` example scene for a ready-to-run demonstration.
+
+#### Validation Warnings (DSL)
+
+`Material.validate()` returns advisory strings for suspicious combinations:
+
+```scala
+val mat = Material(ior = 1.5f, metallic = 1.0f)
+mat.validate().foreach(println)
+// "Metallic materials typically use IOR=1.0 in PBR, got IOR=1.5"
+```
+
+Warnings are advisory — they do not prevent rendering. Use them to catch accidental
+misconfigurations in scene scripts.
 
 ---
 
@@ -806,7 +908,7 @@ ffmpeg -framerate 30 -i frame%03d.png -c:v libx264 -pix_fmt yuv420p output.mp4
 
 ### 7.2 Animated Scenes (t-Parameter)
 
-**Introduced in v0.6.0**
+**Introduced in v0.5.2**
 
 The t-parameter animation system lets you create animated scenes by defining a `scene(t: Float)` function in the DSL. The renderer evaluates the function for each frame, performing a full scene rebuild per frame.
 
@@ -1604,6 +1706,7 @@ All example scenes are in `menger-app/src/main/scala/examples/dsl/`:
 - **TesseractDemo** - 4D hypercube (tesseract) with custom projection and glass material
 - **FilmSphere** - Thin-film interference demonstration with Film material
 - **ReusableComponents** - Demonstrates importing common materials/lighting
+- **MixedMetallicShowcase** - Five spheres at metallic 0.0→1.0, same roughness
 
 **Render an example:**
 ```bash
@@ -1681,9 +1784,7 @@ Glass requires careful attention to IOR, lighting, and scene setup.
 
 **Good Glass Setup:**
 ```bash
-sbt "run --optix --objects 'type=sphere' \
-    --ior 1.5 \
-    --radius 1.5 \
+sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' \
     --shadows \
     --antialiasing \
     --plane-color ffffff:d0d0d0 \
@@ -1693,9 +1794,7 @@ sbt "run --optix --objects 'type=sphere' \
 
 **Glass Menger Sponge:**
 ```bash
-sbt "run --optix --objects 'type=sponge-surface' \
-    --level 2 \
-    --ior 1.5 \
+sbt "run --optix --objects 'type=sponge-surface:level=2:ior=1.5' \
     --shadows \
     --antialiasing \
     --camera-pos -2,1.5,-2 \
@@ -1704,8 +1803,7 @@ sbt "run --optix --objects 'type=sponge-surface' \
 
 **Glass with Caustics:**
 ```bash
-sbt "run --optix --objects 'type=sphere' \
-    --ior 1.5 --radius 1.5 \
+sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' \
     --caustics --caustics-photons 200000 --caustics-iterations 20 \
     --shadows --antialiasing \
     --light directional:-1,2,-1:2.0"

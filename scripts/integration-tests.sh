@@ -425,6 +425,9 @@ test_scene_options() {
     run_test "custom camera" --optix --objects type=sphere --camera-pos 0,2,5 --camera-lookat 0,0,0 --plane y:-2
     run_test "plane color solid" --optix --objects type=sphere --plane y:-2 --plane-color '#808080'
     run_test "plane color checkered" --optix --objects type=sphere --plane y:-2 --plane-color '#FFFFFF:#000000'
+    run_test "plane material chrome" --optix --objects type=sphere --plane y:-2 --plane-material chrome
+    run_test "plane material gold" --optix --objects type=sphere --plane y:-2 --plane-material gold
+    run_test "plane material matte" --optix --objects type=sphere --plane y:-2 --plane-material matte
     run_test_with_output "custom size + save" "test_size.png" \
         --optix --objects type=sphere --width 400 --height 300 --headless --save-name test_size.png --plane y:-2
 }

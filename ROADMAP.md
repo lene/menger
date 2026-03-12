@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-03-07
+**Last Updated:** 2026-03-12
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -15,8 +15,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.4.3 | 4D Fractals | Complete | 4D sponges (tesseract-sponge, tesseract-sponge-2), edge rendering |
 | v0.5 | Advanced 4D | Complete | Interactive 4D manipulation, LibGDX wrapper, thin-film interference |
 | v0.5.1 | Patch Release | Complete | Sprint 11 refinements, CI fixes |
-| v0.5.2 | Scene Animation | In Progress | t-parameter animation |
-| v0.6 | Visual Quality + Video | Planned | Material enhancements, transparent shadows, video output |
+| v0.5.2 | Scene Animation + Visual Quality | In Progress | t-parameter animation, material enhancements, colored shadows |
+| v0.6 | Visual Quality + Video | Planned | Video output, soft shadows, depth of field |
 | v0.7 | Textures & Backgrounds | Planned | Procedural textures, PBR maps, environment maps |
 
 ---
@@ -37,24 +37,11 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 10 | Scala DSL for Scene Description | Complete | [docs/sprints/](docs/sprints/) |
 | 11 | LibGDX Wrapper & Thin-Film Interference | Complete | [docs/sprints/](docs/sprints/) |
 | 12 | t-Parameter Animation System | Complete | [docs/sprints/SPRINT12.md](docs/sprints/SPRINT12.md) |
+| 13 | Visual Quality & Material Enhancements | Complete | [docs/sprints/SPRINT13.md](docs/sprints/SPRINT13.md) |
 
 ---
 
 ## Planned Sprints
-
-### Sprint 13: Visual Quality & Material Enhancements (~11h)
-
-**Goal:** Material realism and visual polish
-
-- **13.1** Plane materials/textures (3h)
-- **13.2** Transparent shadows (colored shadows through glass) (3.5h)
-- **13.3** Material physical correctness validation (2h)
-- **13.4** Mixed-metallic material examples (0 < metallic < 1) (1.5h)
-- **13.5** Documentation (1h)
-
-**Note:** This content was originally planned as Sprint 12 but was deferred when Sprint 12 was reprioritized for the t-parameter animation system.
-
-See [docs/sprints/SPRINT13.md](docs/sprints/SPRINT13.md)
 
 ### Sprint 14: Video Output & Visual Enhancements (~19h)
 
@@ -67,6 +54,7 @@ See [docs/sprints/SPRINT13.md](docs/sprints/SPRINT13.md)
 - **14.5** New primitives: cylinder, cone, torus (3h)
 - **14.6** Coordinate cross / axis visualization (1.5h) — depends on 14.5
 - **14.7** Documentation (1.5h)
+- **14.8** Colored shadows Phase 2: multi-object anyhit accumulation (4–8h, Low priority, TD-6)
 
 **Note:** Replaces the original Sprint 14 ("Advanced Animation System") which was built on the keyframe approach. The t-parameter animation system (Sprint 12) made most keyframe features obsolete.
 

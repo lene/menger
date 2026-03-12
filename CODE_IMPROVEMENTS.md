@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-03-11
+**Last Updated:** 2026-03-12
 
 Cross-reference with [CODE_REVIEW.md](CODE_REVIEW.md) for resolved items.
 
@@ -34,6 +34,36 @@ to gate colored shadow attenuation via Beer-Lambert absorption. No longer dead c
 ---
 
 ## Medium Priority
+
+### M-userguide-version-header — USER_GUIDE.md header fields are stale
+**Location:** `docs/USER_GUIDE.md` lines 3–4
+**Est. Effort:** 0.1h
+The guide header reads `**Version**: 0.5.2` and `**Last Updated**: February 2026`. The file was
+modified in Sprint 13 (March 2026) to add colored shadows, plane materials, and the material
+reference section. The "Last Updated" field should be updated to March 2026 whenever the guide
+changes; leaving it stale misleads readers about whether documentation is current.
+
+---
+
+### M-userguide-t-animation-version — t-parameter animation labelled as "v0.6.0"
+**Location:** `docs/USER_GUIDE.md` section 7.2 (line ~911 in current file)
+**Est. Effort:** 0.1h
+Section 7.2 opens with "**Introduced in v0.6.0**". The t-parameter animation system was in fact
+introduced in v0.5.2 (see CHANGELOG.md `[0.5.2]` → Added). The current version string in
+`MengerCLIOptions.scala` is also `0.5.2`. This is an inaccurate version tag that will confuse
+users trying to determine whether a feature is available in their installation.
+
+---
+
+### M-userguide-deprecated-flags — Tutorial 8.2 uses removed CLI flags
+**Location:** `docs/USER_GUIDE.md` section 8.2 "Creating Glass Objects"
+**Est. Effort:** 0.25h
+The "Good Glass Setup" example in Tutorial 8.2 passes `--ior 1.5` and `--radius 1.5` as
+top-level options. Both flags were removed in v0.4.3 (CHANGELOG: "Removed: `--radius`, `--ior`,
+`--scale`, `--center`"). A user following this tutorial will get a parse error. The example
+should be rewritten using `--objects 'type=sphere:ior=1.5:size=1.5'` per the modern syntax.
+
+---
 
 ### M14 — OptiXEngine exceeds 400-line class size guideline
 **Location:** `OptiXEngine.scala` (~430 lines)
@@ -121,6 +151,45 @@ Same constant defined twice. Consolidate to a single definition.
 ---
 
 ## Low Priority
+
+### L-userguide-missing-example-scene — MixedMetallicShowcase absent from DSL example list
+**Location:** `docs/USER_GUIDE.md` section 7.6 "Included Example Scenes"
+**Est. Effort:** 0.1h
+The DSL example scenes list (section 7.6) does not include `MixedMetallicShowcase`, which was
+added in Sprint 13. The integration tests (`test_dsl_scenes`) and the manual test script
+(`interactive_tests`) both include it. The USER_GUIDE list is the canonical reference and should
+stay in sync.
+
+---
+
+### L-roadmap-stale-date — ROADMAP.md "Last Updated" not refreshed in Sprint 13
+**Location:** `ROADMAP.md` line 3
+**Est. Effort:** 0.05h
+ROADMAP.md carries `**Last Updated:** 2026-03-07` but was modified during Sprint 13 (2026-03-12)
+to mark Sprint 13 complete and add Sprint 14 task 14.8. The date should be updated when the
+file changes.
+
+---
+
+### L-arc42-test-count-stale — arc42 section 11.4 monitoring threshold is stale
+**Location:** `docs/arc42/11-risks-and-technical-debt.md` section 11.4 Monitoring
+**Est. Effort:** 0.1h
+The monitoring table reads "Test count | CI | < 1091 (regression)". The project now has 1629+
+tests (SPRINT13.md success criteria, CHANGELOG v0.5.2). The regression threshold should be
+updated to reflect the current baseline; otherwise CI would not alert until the count fell below
+an already-obsolete floor.
+
+---
+
+### L-changelog-duplicate-version — CHANGELOG.md has duplicate [0.4.2] header
+**Location:** `CHANGELOG.md` lines ~212 and ~260
+**Est. Effort:** 0.1h
+The `[0.4.2]` version section header appears twice. The second entry (line ~260) covers
+Tesseract and cylinder edge rendering and should be `[0.4.1]` or `[0.4.2-preview]`. As written,
+the duplicate makes it ambiguous which changes belong to which release, and the diff link at the
+bottom for `[0.4.2]` can only point to one commit range. Pre-existing.
+
+---
 
 ### L-4d-parser — parseFourDRotationValues in wrong trait
 **Location:** `CliValidation.scala`

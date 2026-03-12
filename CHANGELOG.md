@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Added
+- **Plane material presets** — `--plane-material <name>` applies a full PBR material preset
+  (chrome, gold, glass, etc.) to the ground plane, enabling mirror floors, metallic surfaces,
+  and other material-driven plane appearances. Mutually exclusive with `--plane-color`.
+- **Material physical plausibility validation** — `Material.validate()` in the Scala DSL
+  returns advisory warnings for physically implausible combinations (e.g., metallic material
+  with IOR > 1.1, thin-film on metal, high roughness + high metallic).
+- **MixedMetallicShowcase DSL example scene** — demonstrates partial metallic values
+  (0.0, 0.25, 0.5, 0.75, 1.0) side-by-side to visualise the metallic–dielectric continuum.
 - **Colored transparent shadows (Phase 1)** — transparent objects cast color-tinted shadows
   when `--transparent-shadows` is enabled. Shadow color is derived from the object's material
   color and opacity. Phase 1 supports single-object shadows; multi-object accumulation

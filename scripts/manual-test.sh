@@ -221,6 +221,9 @@ echo -e "${YELLOW}--- Ground Plane ---${NC}"
 run_test "Default Plane" "-o --objects type=sphere --plane y:-1 -s $OUTPUT_DIR/26-plane-default.png"
 run_test "Solid Plane" "-o --objects type=sphere --plane y:-1 --plane-color 808080 -s $OUTPUT_DIR/27-plane-solid.png"
 run_test "Checkered Plane" "-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000 -s $OUTPUT_DIR/28-plane-checker.png"
+run_test "Plane Material Chrome" "-o --objects type=sphere --plane y:-1 --plane-material chrome -s $OUTPUT_DIR/112-plane-material-chrome.png"
+run_test "Plane Material Gold" "-o --objects type=sphere --plane y:-1 --plane-material gold -s $OUTPUT_DIR/113-plane-material-gold.png"
+run_test "Plane Material Matte" "-o --objects type=sphere --plane y:-1 --plane-material matte -s $OUTPUT_DIR/114-plane-material-matte.png"
 
 # Camera
 echo -e "${YELLOW}--- Camera ---${NC}"
@@ -422,6 +425,8 @@ interactive_tests=(
     "Glass sphere colored shadow:-o --objects type=sphere:material=glass --shadows --transparent-shadows --plane y:-2"
     "Colored lights:-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff"
     "Checkered plane:-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000"
+    "Chrome plane (mirror floor):-o --objects type=sphere --plane y:-1 --plane-material chrome"
+    "Gold plane (metallic floor):-o --objects type=sphere --plane y:-1 --plane-material gold"
     "DSL SimpleScene (minimal sphere + directional light):-o --scene examples.dsl.SimpleScene"
     "DSL ThreeMaterials (glass / chrome / gold presets side by side):-o --scene examples.dsl.ThreeMaterials"
     "DSL GlassSphere (glass sphere with caustics on white floor):-o --scene examples.dsl.GlassSphere"

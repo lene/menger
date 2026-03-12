@@ -1,7 +1,7 @@
 # Sprint 13: Visual Quality & Material Enhancements
 
 **Sprint:** 13 - Visual Quality Improvements
-**Status:** Not Started
+**Status:** Complete
 **Estimate:** ~11 hours
 **Branch:** `feature/sprint-13`
 **Dependencies:** Sprint 10 (Scala DSL) - optional
@@ -16,12 +16,12 @@ Improve visual quality and material realism with better plane materials, transpa
 
 ## Success Criteria
 
-- [ ] Plane supports textures and materials (not just solid colors)
-- [ ] Shadows work correctly with transparent/glass objects
-- [ ] Material physical correctness validation and documentation
-- [ ] Mixed-metallic material examples (0 < metallic < 1)
-- [ ] Updated USER_GUIDE.md with material best practices
-- [ ] All tests pass (~20-25 new tests)
+- [x] Plane supports textures and materials (not just solid colors)
+- [x] Shadows work correctly with transparent/glass objects (Phase 1: single-object colored shadows)
+- [x] Material physical correctness validation and documentation
+- [x] Mixed-metallic material examples (0 < metallic < 1)
+- [x] Updated USER_GUIDE.md with material best practices
+- [x] All tests pass (1629 tests)
 
 ---
 
@@ -203,12 +203,12 @@ Update USER_GUIDE.md with material best practices and new features.
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing
-- [ ] Code quality checks pass: `sbt "scalafix --check"`
-- [ ] CHANGELOG.md updated
-- [ ] USER_GUIDE.md updated with material reference
-- [ ] Example scenes created and tested
+- [x] All success criteria met
+- [x] All tests passing
+- [x] Code quality checks pass: `sbt "scalafix --check"`
+- [x] CHANGELOG.md updated
+- [x] USER_GUIDE.md updated with material reference
+- [x] Example scenes created and tested (MixedMetallicShowcase)
 
 ---
 

@@ -236,6 +236,45 @@ menger --optix --show-axes --axis-length 5.0  # Custom axis length
 
 ---
 
+### Task 14.8: Colored Transparent Shadows Phase 2 (Multi-Object)
+
+**Estimate:** 4–8 hours
+**Dependency:** TD-6 (see `docs/arc42/11-risks-and-technical-debt.md`)
+
+Enable colored shadow accumulation through multiple overlapping transparent objects. Phase 1
+(Sprint 13.2) handles only the closest transparent object; this task adds anyhit-based
+accumulation so that e.g. a red sphere behind a blue sphere each contribute their tint to
+the shadow.
+
+#### Background
+
+Phase 1 uses a closesthit-only approach: the shadow ray stops at the first hit and returns
+that object's RGB attenuation. Phase 2 requires an anyhit shader that multiplies running
+attenuation across all transparent objects in front of the surface being lit, then terminates
+only when the product is opaque or the ray exits the scene.
+
+A previous anyhit attempt (reverted, see AD-8) failed due to:
+- `optixTerminateRay`/`optixIgnoreIntersection` edge-case behavior at grazing angles
+- Brightness changes when switching `calculateLighting()` from scalar to float3
+
+These must be addressed carefully in isolation (do not mix with other shader changes).
+
+#### Implementation Notes
+
+- Add `__anyhit__shadow()` programs to sphere, triangle, and cylinder hit groups
+- Accumulate per-channel attenuation multiplicatively: `atten *= alpha * (1 - color_rgb)`
+- Terminate early when all channels are effectively opaque (threshold ≈ 0.99)
+- Gate behind `transparent_shadows_enabled` flag — anyhit programs are no-ops when false
+- Run full ShadowSuite + RendererTest before merging (the regression-prone suites from AD-8)
+
+#### Tests to Add
+
+- Two overlapping transparent spheres (different colors) produce combined tint in shadow
+- Order independence: same two spheres reversed produce same shadow tint
+- Opaque object behind transparent sphere still casts full shadow
+
+---
+
 ### Task 14.7: Documentation and Examples
 
 **Estimate:** 1.5 hours
@@ -263,7 +302,8 @@ Update documentation for all new features.
 | 14.5 | Additional primitives | 3h | Medium |
 | 14.6 | Coordinate cross | 1.5h | Low |
 | 14.7 | Documentation | 1.5h | High |
-| **Total** | | **19h** | |
+| 14.8 | Colored shadows Phase 2 (multi-object anyhit) | 4–8h | Low |
+| **Total** | | **23–27h** | |
 
 ---
 
