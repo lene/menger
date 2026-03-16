@@ -13,9 +13,9 @@ default:
 variables:
   DEPLOYABLE_BASE_NAME: menger
   DEPLOYABLE_VERSION: 0.5.3
-  SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25.0.1_8_1.12.0_3.7.4
+  SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25.0.1_8_1.12.5_3.8.2
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
-  SCALA_VERSION: 3.7.4
+  SCALA_VERSION: 3.8.2
   # OptiX Docker image version: {CUDA}-{OptiX}-{Java}-{sbt}
   OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.12.0
   # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow

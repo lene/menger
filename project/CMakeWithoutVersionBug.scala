@@ -15,11 +15,12 @@ class CMakeWithoutVersionBug(protected val configuration: Seq[String])
     "/com/github/sbt/jni/templates/CMakeLists.txt" -> "CMakeLists.txt"
   )
 
-  override def getInstance(baseDir: File, buildDir: File, logger: Logger) = new Instance {
+  override def getInstance(baseDir: File, buildDir: File, logger: Logger, isMultipleOutputs: Boolean) = new Instance {
 
     override def log = logger
     override def baseDirectory = baseDir
     override def buildDirectory = buildDir
+    override def multipleOutputs: Boolean = isMultipleOutputs
 
     def cmakeProcess(args: String*): ProcessBuilder = Process("cmake" +: args, buildDirectory)
 

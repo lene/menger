@@ -1,6 +1,6 @@
 name := "menger-app"
 version := "0.5.3"
-scalaVersion := "3.7.4"
+scalaVersion := "3.8.2"
 
 organization := "io.github.lilacashes"
 maintainer := "lene.preuss@gmail.com"
@@ -50,12 +50,12 @@ coverageExcludedPackages := "menger\\.optix\\..*;menger\\.engines\\..*;" +
 libraryDependencies ++= Seq(
   // Logging
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6",
-  "ch.qos.logback" % "logback-classic" % "1.5.24",
+  "ch.qos.logback" % "logback-classic" % "1.5.32",
   // JUnit
   "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   // ScalaTest
   "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-  "org.scalamock" %% "scalamock" % "7.5.0" % Test,
+  "org.scalamock" %% "scalamock" % "7.5.5" % Test,
   "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test,
   // Scallop command line parser
   "org.rogach" %% "scallop" % "6.0.0",
