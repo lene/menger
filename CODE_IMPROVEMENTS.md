@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-03-12
+**Last Updated:** 2026-03-16
 
 Cross-reference with [CODE_REVIEW.md](CODE_REVIEW.md) for resolved items.
 
@@ -325,6 +325,43 @@ Comment says "adjust". Should be a named constant or configurable parameter.
 `__closesthit__cylinder_shadow` now correctly encodes alpha using `__float_as_uint(alpha)`,
 consistent with the sphere and triangle shadow shaders. The previous no-op implementation
 (which effectively meant cylinders cast no shadows) has been replaced.
+
+---
+
+---
+
+### L-cli-monolith — MengerCLIOptions is a 375-line monolith
+**Location:** `menger-app/src/main/scala/menger/MengerCLIOptions.scala`
+**Est. Effort:** 3h
+All 40+ option definitions live inline. Option groups and their defaults could be extracted into
+separate option-group traits/objects; validation rules already live in `CliValidation` but more
+could move there. Reduces cognitive load when adding new options.
+
+---
+
+### L-cli-validation-density — CliValidation.scala is dense with repetitive validation patterns
+**Location:** `menger-app/src/main/scala/menger/cli/CliValidation.scala` (313 lines)
+**Est. Effort:** 2h
+15+ `validateOpt()` / `requiresOptix()` calls follow the same pattern. A data-driven validation
+builder (e.g., a list of `(option, condition, message)` tuples) would halve the line count and
+make adding new validations trivial.
+
+---
+
+### L-scene-builder-registry — Builder selection is hardcoded in OptiXEngine
+**Location:** `menger-app/src/main/scala/menger/engines/OptiXEngine.scala`
+**Est. Effort:** 1h
+`selectMeshBuilder()` is a match expression that maps object type strings to builder instances.
+A `Map[String, SceneBuilder]` registry would be easier to extend and test independently.
+
+---
+
+### L-converter-duplication — Coordinate parsing repeated across converters
+**Location:** `menger-app/src/main/scala/menger/cli/converters/`
+**Est. Effort:** 1h
+`vector3Converter`, `planeSpecConverter`, and parts of `lightSpecConverter` all parse
+comma-separated floats with similar error-handling boilerplate. A shared
+`parseFloatComponents(input, expectedCount)` helper in `ConverterUtils` would reduce duplication.
 
 ---
 

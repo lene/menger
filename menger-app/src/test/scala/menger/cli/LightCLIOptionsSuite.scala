@@ -147,3 +147,21 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
 
     val opts2 = SafeMengerCLIOptions(Seq("--optix", "--objects", "type=sphere", "--light", "Point:0.0,5.0,0.0"))
     opts2.light().head.lightType shouldBe LightType.POINT
+
+  "LightSpec.fromCommonLight" should "convert a Directional light" in:
+    val light = menger.common.Light.Directional(
+      menger.common.Vector[3](1f, -1f, -1f), menger.common.Color(1f, 1f, 1f), 1.5f
+    )
+    val spec = LightSpec.fromCommonLight(light)
+    spec.lightType shouldBe LightType.DIRECTIONAL
+    spec.position shouldEqual Vector3(1f, -1f, -1f)
+    spec.intensity shouldEqual 1.5f
+
+  it should "convert a Point light" in:
+    val light = menger.common.Light.Point(
+      menger.common.Vector[3](0f, 5f, 0f), menger.common.Color(1f, 0f, 0f), 2.0f
+    )
+    val spec = LightSpec.fromCommonLight(light)
+    spec.lightType shouldBe LightType.POINT
+    spec.position shouldEqual Vector3(0f, 5f, 0f)
+    spec.intensity shouldEqual 2.0f

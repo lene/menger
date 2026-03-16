@@ -200,3 +200,30 @@ class AnimationSpecificationSuite extends AnyFlatSpec with Matchers:
     spec.isTimeSpecValid shouldBe true
     spec.rotationProjectionParameters(0).rotX shouldBe 0f
     spec.rotationProjectionParameters(1).rotX shouldBe 360f
+
+  "AnimationSpecification.toString" should "include frames and animation parameters" in:
+    val spec = AnimationSpecification("frames=10:rot-x=0-90")
+    spec.toString should include ("frames=10")
+    spec.toString should include ("rot-x")
+
+  it should "round-trip for valid spec" in:
+    val spec = AnimationSpecification("frames=5:rot-y=0-180")
+    val asString = spec.toString
+    asString should include ("frames=5")
+
+  "AnimationSpecification.hasRotationAxisConflict" should "return true when animated axis is also current rotation" in:
+    val spec = AnimationSpecification("frames=10:rot-x=0-90")
+    spec.hasRotationAxisConflict(x = 1f, y = 0f, z = 0f, xw = 0f, yw = 0f, zw = 0f) shouldBe true
+
+  it should "return false when animated axis is not current rotation" in:
+    val spec = AnimationSpecification("frames=10:rot-x=0-90")
+    spec.hasRotationAxisConflict(x = 0f, y = 1f, z = 0f, xw = 0f, yw = 0f, zw = 0f) shouldBe false
+
+  "AnimationSpecification.valid" should "return false when animation parameters are invalid for sponge type" in:
+    // rot-x-w is only valid for 4D objects, not plain "cube"
+    val spec = AnimationSpecification("frames=10:rot-x-w=0-90")
+    spec.valid("cube") shouldBe false
+
+  it should "return true when parameters are valid for sponge type" in:
+    val spec = AnimationSpecification("frames=10:rot-x=0-90")
+    spec.valid("cube") shouldBe true

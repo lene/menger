@@ -39,3 +39,15 @@ class SpongeBySurfaceSuite extends AnyFlatSpec with Matchers:
     val sponge: SpongeBySurface = SpongeBySurface(Vector3.Zero, 1f, 1.5f)
     sponge.nextLevelSponge should not be empty
     sponge.nextLevelSponge.get.level shouldBe 2.0f
+
+  it should "generate a toTriangleMesh" in:
+    val sponge: SpongeBySurface = SpongeBySurface(Vector3.Zero, 1f, 1.5f)
+    val mesh = sponge.toTriangleMesh
+    mesh.numTriangles should be > 0
+
+  "SpongeBySurface.toString" should "include level" in:
+    SpongeBySurface(Vector3.Zero, 1f, 2f).toString should include ("level=2")
+
+  it should "include faces count" in:
+    val sponge = SpongeBySurface(Vector3.Zero, 1f, 1f)
+    sponge.toString should include ("faces")

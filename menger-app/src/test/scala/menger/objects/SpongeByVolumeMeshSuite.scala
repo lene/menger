@@ -59,3 +59,16 @@ class SpongeByVolumeMeshSuite extends AnyFlatSpec with Matchers:
       val nz = mesh.vertices(i * stride + 5)
       val lengthSquared = nx * nx + ny * ny + nz * nz
       lengthSquared shouldBe 1.0f +- 0.01f
+
+  it should "generate a mesh at fractional level 0.5" in:
+    val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 0.5f)
+    val mesh = sponge.toTriangleMesh
+    mesh.numTriangles should be > 0
+
+  it should "generate a mesh at fractional level 1.5" in:
+    val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 1.5f)
+    val mesh = sponge.toTriangleMesh
+    mesh.numTriangles should be > 0
+
+  "SpongeByVolume.toString" should "include level" in:
+    SpongeByVolume(Vector3.Zero, 1.0f, level = 1).toString should include ("level=1")

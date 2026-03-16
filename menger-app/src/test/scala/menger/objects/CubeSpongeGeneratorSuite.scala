@@ -138,3 +138,38 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
     // At level 2, smallest cubes should have scale 9.0 / 3 / 3 = 1.0
     val scales = transforms.map(_._2).distinct.sorted
     scales.head shouldBe 1.0f +- 0.001f
+
+  it should "generate 27 instances at fractional level 0.5 (20 solid + 7 ghost)" in:
+    val generator = CubeSpongeGenerator(level = 0.5f)
+    generator.generateTransforms should have length 27
+    generator.cubeCount shouldBe 27L
+
+  it should "generate 540 instances at fractional level 1.5 (400 solid + 140 ghost)" in:
+    val generator = CubeSpongeGenerator(level = 1.5f)
+    generator.generateTransforms should have length 540
+    generator.cubeCount shouldBe 540L
+
+  it should "have solid cubes with alpha 1.0 at fractional level" in:
+    val generator = CubeSpongeGenerator(level = 0.5f)
+    val transforms = generator.generateTransforms
+    val solidCount = transforms.count(_._3 == 1.0f)
+    solidCount shouldBe 20
+
+  it should "have ghost cubes with alpha < 1.0 at fractional level" in:
+    val generator = CubeSpongeGenerator(level = 0.5f)
+    val transforms = generator.generateTransforms
+    val ghostAlpha = 1f - 0.5f
+    val ghostCount = transforms.count(_._3 == ghostAlpha)
+    ghostCount shouldBe 7
+
+  "CubeSpongeGenerator.toString" should "include level" in:
+    val generator = CubeSpongeGenerator(level = 2.0f)
+    generator.toString should include ("level=2.0")
+
+  it should "include cube count" in:
+    val generator = CubeSpongeGenerator(level = 1.0f)
+    generator.toString should include ("cubes=20")
+
+  it should "include fractional level" in:
+    val generator = CubeSpongeGenerator(level = 1.5f)
+    generator.toString should include ("level=1.5")

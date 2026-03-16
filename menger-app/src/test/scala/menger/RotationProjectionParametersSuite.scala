@@ -63,3 +63,30 @@ class RotationProjectionParametersSuite extends AnyFlatSpec with Matchers:
     val p2 = RotationProjectionParameters(0, 0, 0, targetEyeDistance, 1)
     val p3 = p1 + p2
     p3.eyeW should be (originalEyeDistance)
+
+  "RotationProjectionParameters.toString" should "include XYZ rotation when non-zero" in:
+    val p = RotationProjectionParameters(rotX = 1.0f, rotY = 0.5f, rotZ = -0.5f)
+    p.toString should include ("x: 1.0")
+    p.toString should include ("y: 0.5")
+    p.toString should include ("z: -0.5")
+
+  it should "include 4D rotation when non-zero" in:
+    val p = RotationProjectionParameters(rotXW = 1.0f, rotYW = 2.0f, rotZW = 0.5f)
+    p.toString should include ("xw: 1.0")
+    p.toString should include ("yw: 2.0")
+    p.toString should include ("zw: 0.5")
+
+  it should "include eyeW when non-default" in:
+    val p = RotationProjectionParameters(eyeW = 5.0f)
+    p.toString should include ("eyeW=5.0")
+
+  it should "include screenW when non-default" in:
+    val p = RotationProjectionParameters(screenW = 3.0f)
+    p.toString should include ("screenW=3.0")
+
+  it should "not include zero components" in:
+    val p = RotationProjectionParameters()
+    p.toString should not include "x:"
+    p.toString should not include "xw:"
+    p.toString should not include "eyeW="
+    p.toString should not include "screenW="
