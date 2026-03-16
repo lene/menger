@@ -6,30 +6,14 @@ Cross-reference with [CODE_REVIEW.md](CODE_REVIEW.md) for resolved items.
 
 ---
 
-## Pre-existing Test Failures (non-shadow-related)
-
-### T-triangle-ior — RESOLVED (Sprint 13.2 SBT offset fix)
-**Status:** Fixed. The SBT offset fix ensures triangle meshes in single-object mode use the
-correct hitgroup records. IOR and colour tests now pass (20/20 TriangleMeshSuite).
-
----
-
 ## High Priority
 
-### H-dead-anyhit — RESOLVED (Sprint 13.2 dead code cleanup)
-**Status:** Fixed. Both `__anyhit__cylinder` and `__anyhit__cylinder_shadow` have been removed.
-They were never registered in any hitgroup in PipelineManager.cpp and compiled into PTX as
-unreachable dead code.
-
-### H-dead-overload — RESOLVED (Sprint 13.2 dead code cleanup)
-**Status:** Fixed. The 4-parameter `createTriangleHitgroupProgramGroup` (CH+AH) overload and
-the 6-parameter `createHitgroupProgramGroup` (CH+AH+IS) overload have been removed from
-OptiXContext.cpp and OptiXContext.h. Neither was ever called.
-
-### H-transparent-shadows-dead — RESOLVED (Sprint 13.2 colored shadows)
-**Status:** Fixed. The `transparent_shadows_enabled` field in Params is now actively read by
-shaders (`closesthit__shadow`, `closesthit__triangle_shadow`, `closesthit__cylinder_shadow`)
-to gate colored shadow attenuation via Beer-Lambert absorption. No longer dead code.
+### M14 — OptiXEngine exceeds 400-line class size guideline
+**Location:** `OptiXEngine.scala` (~430 lines)
+**Est. Effort:** 4-6h
+**Status:** Partially resolved — extracted `SceneClassifier` and `computeEffectiveMaxInstances`
+reduced it from 488 → ~430. Still above the 400-line guideline. Further reduction requires
+splitting `createMultiObjectScene`/`rebuildScene` into a separate class. Deferred.
 
 ---
 
@@ -65,15 +49,6 @@ should be rewritten using `--objects 'type=sphere:ior=1.5:size=1.5'` per the mod
 
 ---
 
-### M14 — OptiXEngine exceeds 400-line class size guideline
-**Location:** `OptiXEngine.scala` (~430 lines)
-**Est. Effort:** 4-6h
-**Status:** Partially resolved — extracted `SceneClassifier` and `computeEffectiveMaxInstances`
-reduced it from 488 → ~430. Still above the 400-line guideline. Further reduction requires
-splitting `createMultiObjectScene`/`rebuildScene` into a separate class. Deferred.
-
----
-
 ### M-shadow-material-inconsistency — Shadow shaders use inconsistent material accessors
 **Location:** `hit_triangle.cu:303` (`getInstanceMaterial`), `hit_cylinder.cu:316`
 (`getInstanceMaterialPBR`)
@@ -93,12 +68,6 @@ These files contain an older standalone implementation with their own `Params`, 
 magic numbers, and incompatible data structures (reference `MissData` fields that no longer
 exist). They are not part of the main `optix_shaders.cu` include chain. If they serve no
 test or demo purpose, they should be removed.
-
----
-
-### M-emission — RESOLVED (before Sprint 13.2)
-`getTriangleMaterial()` now has `out_emission` as a seventh output parameter.  Both Fresnel
-blend paths in `hit_triangle.cu` use the emission value.  Closed.
 
 ---
 
@@ -174,10 +143,9 @@ file changes.
 ### L-arc42-test-count-stale — arc42 section 11.4 monitoring threshold is stale
 **Location:** `docs/arc42/11-risks-and-technical-debt.md` section 11.4 Monitoring
 **Est. Effort:** 0.1h
-The monitoring table reads "Test count | CI | < 1091 (regression)". The project now has 1629+
-tests (SPRINT13.md success criteria, CHANGELOG v0.5.2). The regression threshold should be
-updated to reflect the current baseline; otherwise CI would not alert until the count fell below
-an already-obsolete floor.
+The monitoring table reads "Test count | CI | < 1091 (regression)". The project now has 1683+
+tests. The regression threshold should be updated to reflect the current baseline; otherwise CI
+would not alert until the count fell below an already-obsolete floor.
 
 ---
 
@@ -318,15 +286,6 @@ Defined but never referenced. Remove.
 **Location:** `caustics_ppm.cu:866`
 **Est. Effort:** 0.25h
 Comment says "adjust". Should be a named constant or configurable parameter.
-
----
-
-### L-cyl-shadow — RESOLVED (Sprint 13.2)
-`__closesthit__cylinder_shadow` now correctly encodes alpha using `__float_as_uint(alpha)`,
-consistent with the sphere and triangle shadow shaders. The previous no-op implementation
-(which effectively meant cylinders cast no shadows) has been replaced.
-
----
 
 ---
 
