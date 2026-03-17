@@ -29,37 +29,6 @@ changes; leaving it stale misleads readers about whether documentation is curren
 
 ---
 
-### M-userguide-t-animation-version — t-parameter animation labelled as "v0.6.0"
-**Location:** `docs/USER_GUIDE.md` section 7.2 (line ~911 in current file)
-**Est. Effort:** 0.1h
-Section 7.2 opens with "**Introduced in v0.6.0**". The t-parameter animation system was in fact
-introduced in v0.5.2 (see CHANGELOG.md `[0.5.2]` → Added). The current version string in
-`MengerCLIOptions.scala` is also `0.5.2`. This is an inaccurate version tag that will confuse
-users trying to determine whether a feature is available in their installation.
-
----
-
-### M-userguide-deprecated-flags — Tutorial 8.2 uses removed CLI flags
-**Location:** `docs/USER_GUIDE.md` section 8.2 "Creating Glass Objects"
-**Est. Effort:** 0.25h
-The "Good Glass Setup" example in Tutorial 8.2 passes `--ior 1.5` and `--radius 1.5` as
-top-level options. Both flags were removed in v0.4.3 (CHANGELOG: "Removed: `--radius`, `--ior`,
-`--scale`, `--center`"). A user following this tutorial will get a parse error. The example
-should be rewritten using `--objects 'type=sphere:ior=1.5:size=1.5'` per the modern syntax.
-
----
-
-### M-shadow-material-inconsistency — Shadow shaders use inconsistent material accessors
-**Location:** `hit_triangle.cu:303` (`getInstanceMaterial`), `hit_cylinder.cu:316`
-(`getInstanceMaterialPBR`)
-**Est. Effort:** 0.25h
-Both shadow closesthit shaders only need alpha. Triangle uses the basic 2-parameter
-`getInstanceMaterial()`, cylinder uses the 7-parameter `getInstanceMaterialPBR()` fetching
-6 unused fields. Should both use the simpler `getInstanceMaterial()` for consistency and
-to avoid fetching dead values.
-
----
-
 ### M-legacy-shaders — Legacy standalone shader files duplicate main system
 **Location:** `shaders/sphere_combined.cu`, `sphere_raygen.cu`, `sphere_miss.cu`,
 `sphere_closesthit.cu`
@@ -68,36 +37,6 @@ These files contain an older standalone implementation with their own `Params`, 
 magic numbers, and incompatible data structures (reference `MissData` fields that no longer
 exist). They are not part of the main `optix_shaders.cu` include chain. If they serve no
 test or demo purpose, they should be removed.
-
----
-
-### M-eyew-dup — eyeW scroll formula duplicated in both camera handlers
-**Location:** `OptiXCameraHandler.scala:76`, `GdxCameraHandler.scala:64`
-**Est. Effort:** 0.5h
-Both handlers contain byte-for-byte identical code:
-```scala
-val eyeW = Math.pow(Const.Input.eyeScrollBase, amountY.toDouble).toFloat + Const.Input.eyeScrollOffset
-dispatcher.notifyObservers(RotationProjectionParameters(0, 0, 0, eyeW))
-```
-Should be extracted to a shared helper (e.g., `CameraHandler` trait method or companion object).
-Formula changes require updating both files with no compile-time enforcement.
-
----
-
-### M-key-dup — factor Map and angle() calculation duplicated between key handlers
-**Location:** `GdxKeyHandler.scala`, `OptiXKeyHandler.scala`
-**Est. Effort:** 0.5h
-Both files contain an identical `factor: Map[Int, Int]` and `angle()` calculation. Should be
-extracted to a shared location (companion object or `KeyRotationCalc` helper). Smaller impact
-than it was before `KeyPressTracker` eliminated the larger duplication.
-
----
-
-### M-btn — MouseButton.toGdxButton extension method in wrong file
-**Location:** `GdxCameraHandler.scala`
-**Est. Effort:** 0.5h
-The `toGdxButton` conversion logic belongs in `LibGDXConverters`, not in a handler class.
-Pre-existing, not introduced with the handler refactoring.
 
 ---
 
@@ -324,6 +263,15 @@ comma-separated floats with similar error-handling boilerplate. A shared
 
 ---
 
+### L-userguide-ior-flag-stale — Sections 6.2 and caustics tutorial use removed --ior flag
+**Location:** `docs/USER_GUIDE.md` section 6.2 (lines ~628–631), caustics tutorial (~line 1045)
+**Est. Effort:** 0.1h
+Section 6.2 "Custom Materials" shows `--ior 1.5` as a standalone CLI flag, and the caustics
+tutorial example passes `--ior 1.5` as a top-level option. Both `--ior` and `--radius` were
+removed in v0.4.3. These should use `ior=1.5` inside `--objects` syntax instead.
+
+---
+
 ## Feature Ideas (Sprint 20+)
 
 These are deferred feature ideas, not defects.
@@ -350,3 +298,9 @@ Issues that were investigated and consciously accepted:
 | Caustics algorithm limitations | Deferred to future sprint |
 | L-film-blend: blendFresnelColorsRGBAndSetPayload duplicates scalar body | GPU perf trade-off; acceptable if documented |
 | OptiX DSL runtime evaluation | Deferred (Sprint 15) |
+| M-shadow-material-inconsistency | Resolved Sprint 13 — both shadow shaders already use getInstanceMaterial |
+| M-eyew-dup | Resolved — computeEyeW extracted to CameraHandler trait (InputHandler.scala) |
+| M-key-dup | Resolved — factor and angle() extracted to KeyRotation trait |
+| M-btn | Resolved — toGdxButton is in LibGDXConverters, not GdxCameraHandler |
+| M-userguide-t-animation-version | Resolved — USER_GUIDE.md section 7.2 already shows v0.5.2 |
+| M-userguide-deprecated-flags | Resolved — section 8.2 already uses --objects syntax |
