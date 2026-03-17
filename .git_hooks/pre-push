@@ -100,6 +100,13 @@ if [ "$VERSION_SBT" != "$VERSION_SOURCE" ]; then
 else
   echo "Version: ${GREEN_TEXT}${VERSION_SBT}${RESET_TEXT}"
 fi
+VERSION_USERGUIDE=$(grep '^\*\*Version\*\*:' docs/USER_GUIDE.md | cut -d ' ' -f 2)
+if [ "$VERSION_SBT" != "$VERSION_USERGUIDE" ]; then
+  echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in docs/USER_GUIDE.md: ${RED_TEXT}${VERSION_USERGUIDE}${RESET_TEXT}"
+  STATUS=1
+else
+  echo "USER_GUIDE.md version: ${GREEN_TEXT}${VERSION_USERGUIDE}${RESET_TEXT}"
+fi
 if git tag | ( grep "^${VERSION_SBT}\$" ); then
   echo "Tag ${RED_TEXT}${VERSION_SBT}${RESET_TEXT} already exists ($(git tag | xargs))"
   if [ "$1" != "github" ]; then STATUS=1

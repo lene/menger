@@ -569,6 +569,10 @@ TagIsNewAndConsistent:
     - test -n "$VERSIONS_CI"
     - echo $VERSIONS_CI
     - test "$VERSION_SBT" = "$VERSIONS_CI"
+    - VERSION_USERGUIDE=$(grep '^\*\*Version\*\*:' docs/USER_GUIDE.md | cut -d ' ' -f 2)
+    - test -n "$VERSION_USERGUIDE"
+    - echo $VERSION_USERGUIDE
+    - test "$VERSION_SBT" = "$VERSION_USERGUIDE"
     - git tag | ( ! grep "^${VERSION_SBT}\$" )
 
 ScalaVersionConsistent:
