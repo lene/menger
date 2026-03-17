@@ -1,32 +1,14 @@
 # Current Sprint
 
-**Sprint:** 10 - Scala DSL for Scene Description
-**Status:** In Progress
-**Started:** 2026-02-09
-**Branch:** `feature/sprint-10`
+**Sprint:** 14 - Video Output & Visual Enhancements
+**Status:** Not Started
+**Branch:** `feature/sprint-14`
 
 ---
 
 ## Goal
 
-Create a Scala DSL that allows concise, type-safe scene definitions that compile with the project and can be loaded via `--scene <classname>`.
-
-## Success Criteria
-
-- [ ] `--scene scenes.MyScene` loads and renders a scene defined in Scala DSL
-- [ ] Case-class style syntax works
-- [ ] Arrow syntax for camera works
-- [ ] All object types, materials, and lights are expressible
-- [ ] Material factory shorthands work
-- [ ] Texture support works
-- [ ] Render settings as flat Scene fields
-- [ ] Caustics configuration works
-- [ ] Comprehensive tests pass
-- [ ] Example scene files created
-
-## Progress
-
-See [SPRINT10.md](SPRINT10.md) for detailed task breakdown and implementation plan.
+See [SPRINT14.md](SPRINT14.md) for detailed task breakdown and implementation plan.
 
 ---
 
