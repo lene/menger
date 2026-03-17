@@ -2,31 +2,32 @@
 
 Active sprint planning documents for ongoing and future development work.
 
-## Current Sprint
-
-- **[SPRINT.md](SPRINT.md)** - Sprint 10: Scala DSL for Scene Description (In Progress)
-- **[SPRINT10.md](SPRINT10.md)** - Detailed planning document
-
 ## Upcoming Sprints
 
 | Sprint | Focus | Status | File |
 |--------|-------|--------|------|
-| 11 | 4D Framework Enhancements | Planned | [SPRINT11.md](SPRINT11.md) |
-| 12 | Visual Quality & Materials | Planned | [SPRINT12.md](SPRINT12.md) |
-| 13 | Object Animation Foundation | Planned | [SPRINT13.md](SPRINT13.md) |
 | 14 | Advanced Animation System | Planned | [SPRINT14.md](SPRINT14.md) |
+| 15 | - | Planned | [SPRINT15.md](SPRINT15.md) |
+| 16 | - | Planned | [SPRINT16.md](SPRINT16.md) |
+| 17 | - | Planned | [SPRINT17.md](SPRINT17.md) |
+| 18 | - | Planned | [SPRINT18.md](SPRINT18.md) |
+| 19 | - | Planned | [SPRINT19.md](SPRINT19.md) |
 
 ## Completed Sprints
 
 See [docs/archive/sprints/](../archive/sprints/) for completed sprint documentation:
 
-| Sprint | Focus | Version | Archived File |
-|--------|-------|---------|---------------|
-| 9 | TesseractSponge (4D Sponges) | v0.4.3 | [SPRINT_9.md](../archive/sprints/SPRINT_9.md) |
-| 8 | 4D Projection + UX Improvements | v0.4.2 | [SPRINT_8.md](../archive/sprints/SPRINT_8.md) |
-| 7 | Materials & Textures | - | [SPRINT_7.md](../archive/sprints/SPRINT_7.md) |
-| 6 | Full Geometry (IAS) | - | [SPRINT_6.md](../archive/sprints/SPRINT_6.md) |
-| 5 | Triangle Mesh + Cube | - | [SPRINT_5.md](../archive/sprints/SPRINT_5.md) |
+| Sprint | Focus | Archived File |
+|--------|-------|---------------|
+| 13 | Visual Quality & Material Enhancements | [SPRINT13.md](../archive/sprints/SPRINT13.md) |
+| 12 | t-Parameter Animation System | [SPRINT12.md](../archive/sprints/SPRINT12.md) |
+| 11 | libGDX Wrapper, Thin-Film Physics, 4D Enhancements | [SPRINT11.md](../archive/sprints/SPRINT11.md) |
+| 10 | Scala DSL for Scene Description | [SPRINT10.md](../archive/sprints/SPRINT10.md) |
+| 9 | TesseractSponge (4D Sponges) | [SPRINT_9.md](../archive/sprints/SPRINT_9.md) |
+| 8 | 4D Projection + UX Improvements | [SPRINT_8.md](../archive/sprints/SPRINT_8.md) |
+| 7 | Materials & Textures | [SPRINT_7.md](../archive/sprints/SPRINT_7.md) |
+| 6 | Full Geometry (IAS) | [SPRINT_6.md](../archive/sprints/SPRINT_6.md) |
+| 5 | Triangle Mesh + Cube | [SPRINT_5.md](../archive/sprints/SPRINT_5.md) |
 
 ## Sprint Lifecycle
 
