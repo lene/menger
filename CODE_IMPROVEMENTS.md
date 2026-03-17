@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-03-17
 
-Cross-reference with [CODE_REVIEW.md](CODE_REVIEW.md) for resolved items.
+Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
 ---
 

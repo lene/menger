@@ -9,7 +9,7 @@ Guidance for Claude Code and other AI agents when working with this repository.
 ### Alpha Channel Convention (NEVER confuse this)
 - **alpha = 0.0** → **FULLY TRANSPARENT** (no opacity, no absorption)
 - **alpha = 1.0** → **FULLY OPAQUE** (full opacity, maximum absorption)
-- Applies to: OptiX shaders (`sphere_combined.cu`), Beer-Lambert absorption, Scala Color objects, all tests
+- Applies to: OptiX shaders, Beer-Lambert absorption, Scala Color objects, all tests
 
 ### Architecture Documentation (arc42)
 - **Single source of truth:** [docs/arc42/README.md](docs/arc42/README.md)
@@ -313,7 +313,7 @@ This project consists of three main capabilities:
 **PTX file not found after `sbt clean`:**
 ```bash
 mkdir -p target/native/x86_64-linux/bin
-cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx target/native/x86_64-linux/bin/
+cp optix-jni/target/classes/native/x86_64-linux/optix_shaders.ptx target/native/x86_64-linux/bin/
 ```
 
 **Permission errors after Docker builds:**
@@ -332,7 +332,7 @@ pkexec chown -R $USER:$USER optix-jni/target/
 |----------|---------|
 | [docs/arc42/README.md](docs/arc42/README.md) | **Architecture (single source of truth)** |
 | [CHANGELOG.md](CHANGELOG.md) | Version history (keepachangelog.com format) |
-| [CODE_IMPROVEMENTS.md](CODE_IMPROVEMENTS.md) | Code quality assessments |
+| [CODE_IMPROVEMENTS.md](CODE_IMPROVEMENTS.md) | Open code quality issues (resolved items are deleted, not archived) |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and solutions |
 
 ### arc42 Architecture Sections
@@ -379,15 +379,16 @@ Menger uses a **fully automated release pipeline** triggered by version bumps me
 
 **Quick reference:**
 
-1. **Update version in 3 files:**
+1. **Update version in 4 files:**
    - `menger-app/build.sbt`
    - `.gitlab-ci.yml` (DEPLOYABLE_VERSION)
    - `menger-app/src/main/scala/menger/MengerCLIOptions.scala`
+   - `docs/USER_GUIDE.md` (Version field in header)
 
 2. **Update documentation:**
    - CHANGELOG.md (keepachangelog.com format)
    - ROADMAP.md (mark sprint complete)
-   - CODE_IMPROVEMENTS.md (run quality assessment)
+   - CODE_IMPROVEMENTS.md (run quality assessment; **delete** resolved items — do not move them to an archive section)
    - arc42 docs (if architecture changed)
 
 3. **Create release branch and merge request:**
@@ -413,8 +414,8 @@ Menger uses a **fully automated release pipeline** triggered by version bumps me
 ### Common Release Issues
 
 **Version mismatch errors:**
-- Pre-push hook validates versions across 3 files
-- Fix all three and commit again
+- Pre-push hook validates versions across 4 files (build.sbt, MengerCLIOptions.scala, .gitlab-ci.yml, USER_GUIDE.md)
+- Fix all four and commit again
 
 **Tag already exists:**
 - If pushing to GitHub after GitLab release: Normal, PushToGithub job handles it
@@ -436,7 +437,7 @@ Menger uses a **fully automated release pipeline** triggered by version bumps me
 The pre-push hook (`.git_hooks/pre-push`) automatically validates:
 - Environment (CUDA_HOME, OPTIX_ROOT)
 - GitLab CI config syntax
-- Version consistency across 3 files
+- Version consistency across 4 files (build.sbt, MengerCLIOptions.scala, .gitlab-ci.yml, USER_GUIDE.md)
 - Full compilation and test suite (1,070 tests)
 - Code quality (scalafix)
 - Test coverage ratchet (≥80%, max 1% drop)
