@@ -390,6 +390,7 @@ Menger uses a **fully automated release pipeline** triggered by version bumps me
    - ROADMAP.md (mark sprint complete)
    - CODE_IMPROVEMENTS.md (run quality assessment; **delete** resolved items — do not move them to an archive section)
    - arc42 docs (if architecture changed)
+   - **Archive sprint docs:** move `docs/sprints/SPRINT_N.md` → `docs/archive/sprints/SPRINT_N.md`, update index tables in `docs/sprints/README.md` and `docs/archive/README.md`, reset `docs/sprints/SPRINT.md` to the next sprint
 
 3. **Create release branch and merge request:**
    ```bash
