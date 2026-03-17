@@ -4,7 +4,7 @@ This document describes the screenshots captured during the window resize bug in
 
 ## Screenshots Overview
 
-All screenshots are stored in `docs/window-resize-bug/screenshots/`
+All screenshots are stored in `docs/archive/investigations/window-resize-bug/screenshots/`
 
 ### Initial Test Sequence (Failed FOV Scaling Attempt)
 

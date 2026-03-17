@@ -39,11 +39,21 @@ menger-app/src/main/scala/
     ├── OptiXRenderResources.scala    # OptiX renderer lifecycle
     ├── cli/                          # CLI types and converters
     ├── config/                       # Configuration classes
+    ├── dsl/                          # Scala DSL for scene description (Sprint 10+)
+    │   ├── Scene.scala               # Scene definition (objects, lights, camera)
+    │   ├── SceneObject.scala         # Base trait for scene objects
+    │   ├── SceneLoader.scala         # Loads scenes by name from registry
+    │   ├── SceneRegistry.scala       # Registry of named scenes
+    │   └── SceneConverter.scala      # Converts DSL scenes to OptiX data
     ├── gdx/                          # LibGDX wrapper layer (all var/null isolated here)
     │   ├── GdxRuntime.scala          # Lifecycle and exit
     │   ├── KeyPressTracker.scala     # Shift/Ctrl/Alt modifier state
     │   ├── DragTracker.scala         # Mouse drag delta tracking
-    │   └── OrbitCamera.scala        # Spherical camera orbit (wraps mutable Vector3)
+    │   └── OrbitCamera.scala         # Spherical camera orbit (wraps mutable Vector3)
+    ├── optix/                        # High-level OptiX helpers (above JNI layer)
+    │   ├── OptiXRendererWrapper.scala # High-level wrapper around native OptiXRenderer
+    │   ├── SceneConfigurator.scala   # Builds OptiX scene from object specs
+    │   └── CameraState.scala         # Camera state machine
     └── engines/
         ├── MengerEngine.scala        # Abstract base, geometry factory
         ├── InteractiveMengerEngine.scala  # Interactive mode
@@ -93,10 +103,11 @@ optix-jni/
     ├── OptiXWrapper.cpp          # Scene state management
     ├── JNIBindings.cpp           # Scala↔C++ bridge
     └── shaders/
-        ├── sphere_combined.cu    # Main entry point (includes all)
+        ├── optix_shaders.cu      # Main entry point (includes all)
         ├── raygen_primary.cu     # Ray generation shader
         ├── hit_sphere.cu         # Sphere intersection/closest hit
         ├── hit_triangle.cu       # Triangle mesh closest hit
+        ├── hit_cylinder.cu       # Cylinder edge intersection (4D edge rendering)
         ├── miss_plane.cu         # Miss shader (plane/background)
         ├── shadows.cu            # Shadow ray handling
         ├── helpers.cu            # Shared utilities

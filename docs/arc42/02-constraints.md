@@ -49,26 +49,25 @@ each with documented justification. All exceptions use `@SuppressWarnings` annot
 |----------|-----|---------------|
 | `OptiXRenderer.scala` | `nativeHandle: Long` | JNI handle pattern - native code reads/writes this field directly via reflection. No functional alternative exists for JNI interop. |
 
-### 2.5.2 LibGDX Camera Integration (OptiXCameraController)
+### 2.5.2 LibGDX Camera Integration (OrbitCamera)
 
 | Location | Var | Justification |
 |----------|-----|---------------|
-| `OptiXCameraController.scala` | `eye`, `lookAt`, `up` | LibGDX `Vector3` is inherently mutable by design. Camera state must be updated in-place for LibGDX framework integration. |
-| `OptiXCameraController.scala` | `spherical: SphericalCoords` | Consolidated orbit state (azimuth, elevation, distance). Required for interactive camera control where state changes on every mouse movement. |
-| `OptiXCameraController.scala` | `dragState: Option[DragState]` | Consolidated mouse tracking state. Tracks drag gestures across touchDown/touchDragged/touchUp events. |
+| `OrbitCamera.scala` (menger.gdx) | `eye`, `lookAt`, `up` | LibGDX `Vector3` is inherently mutable by design. Camera state must be updated in-place for LibGDX framework integration. |
+| `OrbitCamera.scala` (menger.gdx) | `spherical: SphericalCoords` | Consolidated orbit state (azimuth, elevation, distance). Required for interactive camera control where state changes on every mouse movement. |
+| `OrbitCamera.scala` (menger.gdx) | `dragState: Option[CameraDragState]` | Consolidated mouse tracking state. Tracks drag gestures across touchDown/touchDragged/touchUp events. |
 
-### 2.5.3 LibGDX Gesture Tracking (GdxCameraController)
-
-| Location | Var | Justification |
-|----------|-----|---------------|
-| `GdxCameraController.scala` | `shiftStart` | Touch start position for shift+drag gesture. Standard UI gesture tracking pattern. |
-
-### 2.5.4 LibGDX Input State Tracking (BaseKeyController)
+### 2.5.3 LibGDX Gesture Tracking (DragTracker)
 
 | Location | Var | Justification |
 |----------|-----|---------------|
-| `BaseKeyController.scala` | `ctrlPressed`, `altPressed`, `shiftPressed` | Modifier key state tracking. LibGDX InputAdapter receives keyDown/keyUp events asynchronously; state must be cached for use in subsequent update() calls. |
-| `BaseKeyController.scala` | `rotatePressed: Map[Int, Boolean]` | Arrow/page key state tracking. Maps key codes to pressed state for rotation control. Required because GdxKeyController.update() checks which keys are held. |
+| `DragTracker.scala` (menger.gdx) | `dragOrigin: ScreenCoords` | Drag start position for shift+drag gesture. Standard UI gesture tracking pattern. |
+
+### 2.5.4 LibGDX Input State Tracking (KeyPressTracker)
+
+| Location | Var | Justification |
+|----------|-----|---------------|
+| `KeyPressTracker.scala` (menger.gdx) | `pressed: Map[Key, Boolean]` | Unified modifier key state tracking. LibGDX InputAdapter receives keyDown/keyUp events asynchronously; state must be cached for use in subsequent update() calls. Used by GdxKeyHandler and OptiXKeyHandler for both modifier keys and per-key rotation tracking. |
 
 ### Design Rationale
 

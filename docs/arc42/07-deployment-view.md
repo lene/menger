@@ -161,10 +161,10 @@ Custom AMI includes:
 target/
 ├── native/x86_64-linux/bin/
 │   ├── liboptix_jni.so          # Native library
-│   └── sphere_combined.ptx       # Compiled CUDA shaders
+│   └── optix_shaders.ptx       # Compiled CUDA shaders
 └── scala-3.x/classes/
     └── native/x86_64-linux/
-        └── sphere_combined.ptx   # Copied for classpath loading
+        └── optix_shaders.ptx   # Copied for classpath loading
 ```
 
 **Note:** PTX files must be accessible at runtime. sbt build copies to classpath.

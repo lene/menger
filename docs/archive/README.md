@@ -70,7 +70,8 @@ archive/
 
 | Document | Description |
 |----------|-------------|
-| [window-resize-bug/](investigations/window-resize-bug/) | Window resize bug investigation (deferred) |
+| [FRACTIONAL_LEVELS_IMPLEMENTATION.md](investigations/FRACTIONAL_LEVELS_IMPLEMENTATION.md) | Per-vertex alpha implementation (Sprint 9, complete) |
+| [window-resize-bug/](investigations/window-resize-bug/) | Window resize bug investigation (deferred; screenshots co-located) |
 | [GLASS_RENDERING_INVESTIGATION.md](investigations/GLASS_RENDERING_INVESTIGATION.md) | Glass rendering analysis |
 | [SHADOW_*.md](investigations/) | Shadow implementation notes |
 | [CODE_QUALITY_ASSESSMENT.md](investigations/CODE_QUALITY_ASSESSMENT.md) | Nov 2025 code review |
