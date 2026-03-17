@@ -276,3 +276,11 @@ Issues that were investigated and consciously accepted:
 | Caustics algorithm limitations | Deferred to future sprint |
 | L-film-blend: blendFresnelColorsRGBAndSetPayload duplicates scalar body | GPU perf trade-off; acceptable if documented |
 | OptiX DSL runtime evaluation | Deferred (Sprint 15) |
+| M-shadow-material-inconsistency | Resolved — both shadow shaders already use getInstanceMaterial |
+| M-eyew-dup | Resolved — computeEyeW extracted to CameraHandler trait (InputHandler.scala) |
+| M-key-dup | Resolved — factor and angle() extracted to KeyRotation trait |
+| M-btn | Resolved — toGdxButton is in LibGDXConverters, not GdxCameraHandler |
+| M-userguide-t-animation-version | Resolved — USER_GUIDE.md section 7.2 already shows v0.5.2 |
+| M-userguide-deprecated-flags | Resolved — section 8.2 already uses --objects syntax |
+| M-userguide-version-header | Resolved — updated to 0.5.3 to match current version in MengerCLIOptions.scala |
+| M-legacy-shaders | Resolved — 4 orphaned sphere_*.cu files deleted (not compiled by CMakeLists.txt) |
