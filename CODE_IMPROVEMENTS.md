@@ -19,17 +19,6 @@ splitting `createMultiObjectScene`/`rebuildScene` into a separate class. Deferre
 
 ## Medium Priority
 
-### M-legacy-shaders — Legacy standalone shader files duplicate main system
-**Location:** `shaders/sphere_combined.cu`, `sphere_raygen.cu`, `sphere_miss.cu`,
-`sphere_closesthit.cu`
-**Est. Effort:** 2-4h (investigate usage, remove or consolidate)
-These files contain an older standalone implementation with their own `Params`, hardcoded
-magic numbers, and incompatible data structures (reference `MissData` fields that no longer
-exist). They are not part of the main `optix_shaders.cu` include chain. If they serve no
-test or demo purpose, they should be removed.
-
----
-
 ### M-naming-constants — Overly literal named constants reduce readability
 **Location:** `OptiXData.h` RenderingConstants namespace
 **Est. Effort:** 1h
@@ -287,10 +276,3 @@ Issues that were investigated and consciously accepted:
 | Caustics algorithm limitations | Deferred to future sprint |
 | L-film-blend: blendFresnelColorsRGBAndSetPayload duplicates scalar body | GPU perf trade-off; acceptable if documented |
 | OptiX DSL runtime evaluation | Deferred (Sprint 15) |
-| M-shadow-material-inconsistency | Resolved — both shadow shaders already use getInstanceMaterial |
-| M-eyew-dup | Resolved — computeEyeW extracted to CameraHandler trait (InputHandler.scala) |
-| M-key-dup | Resolved — factor and angle() extracted to KeyRotation trait |
-| M-btn | Resolved — toGdxButton is in LibGDXConverters, not GdxCameraHandler |
-| M-userguide-t-animation-version | Resolved — USER_GUIDE.md section 7.2 already shows v0.5.2 |
-| M-userguide-deprecated-flags | Resolved — section 8.2 already uses --objects syntax |
-| M-userguide-version-header | Resolved — updated to 0.5.3 to match current version in MengerCLIOptions.scala |
