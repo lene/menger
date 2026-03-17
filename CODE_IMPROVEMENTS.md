@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-03-16
+**Last Updated:** 2026-03-17
 
 Cross-reference with [CODE_REVIEW.md](CODE_REVIEW.md) for resolved items.
 
@@ -18,16 +18,6 @@ splitting `createMultiObjectScene`/`rebuildScene` into a separate class. Deferre
 ---
 
 ## Medium Priority
-
-### M-userguide-version-header — USER_GUIDE.md header fields are stale
-**Location:** `docs/USER_GUIDE.md` lines 3–4
-**Est. Effort:** 0.1h
-The guide header reads `**Version**: 0.5.2` and `**Last Updated**: February 2026`. The file was
-modified in Sprint 13 (March 2026) to add colored shadows, plane materials, and the material
-reference section. The "Last Updated" field should be updated to March 2026 whenever the guide
-changes; leaving it stale misleads readers about whether documentation is current.
-
----
 
 ### M-legacy-shaders — Legacy standalone shader files duplicate main system
 **Location:** `shaders/sphere_combined.cu`, `sphere_raygen.cu`, `sphere_miss.cu`,
@@ -267,8 +257,7 @@ comma-separated floats with similar error-handling boilerplate. A shared
 **Location:** `docs/USER_GUIDE.md` section 6.2 (lines ~628–631), caustics tutorial (~line 1045)
 **Est. Effort:** 0.1h
 Section 6.2 "Custom Materials" shows `--ior 1.5` as a standalone CLI flag, and the caustics
-tutorial example passes `--ior 1.5` as a top-level option. Both `--ior` and `--radius` were
-removed in v0.4.3. These should use `ior=1.5` inside `--objects` syntax instead.
+tutorial example passes `--ior 1.5` as a top-level option. The `--ior` flag was removed in v0.4.3. These should use `ior=1.5` inside `--objects` syntax instead.
 
 ---
 
@@ -298,9 +287,10 @@ Issues that were investigated and consciously accepted:
 | Caustics algorithm limitations | Deferred to future sprint |
 | L-film-blend: blendFresnelColorsRGBAndSetPayload duplicates scalar body | GPU perf trade-off; acceptable if documented |
 | OptiX DSL runtime evaluation | Deferred (Sprint 15) |
-| M-shadow-material-inconsistency | Resolved Sprint 13 — both shadow shaders already use getInstanceMaterial |
+| M-shadow-material-inconsistency | Resolved — both shadow shaders already use getInstanceMaterial |
 | M-eyew-dup | Resolved — computeEyeW extracted to CameraHandler trait (InputHandler.scala) |
 | M-key-dup | Resolved — factor and angle() extracted to KeyRotation trait |
 | M-btn | Resolved — toGdxButton is in LibGDXConverters, not GdxCameraHandler |
 | M-userguide-t-animation-version | Resolved — USER_GUIDE.md section 7.2 already shows v0.5.2 |
 | M-userguide-deprecated-flags | Resolved — section 8.2 already uses --objects syntax |
+| M-userguide-version-header | Resolved — updated to 0.5.3 to match current version in MengerCLIOptions.scala |
