@@ -29,14 +29,6 @@ not literal descriptions of their value. Review and consolidate.
 
 ---
 
-### M-color-byte-max-dup — COLOR_BYTE_MAX defined in two namespaces
-**Location:** `OptiXData.h` — `RayTracingConstants::COLOR_BYTE_MAX` and
-`RenderingConstants::COLOR_BYTE_MAX`
-**Est. Effort:** 0.25h
-Same constant defined twice. Consolidate to a single definition.
-
----
-
 ## Low Priority
 
 ### L-userguide-missing-example-scene — MixedMetallicShowcase absent from DSL example list
@@ -284,3 +276,4 @@ Issues that were investigated and consciously accepted:
 | M-userguide-deprecated-flags | Resolved — section 8.2 already uses --objects syntax |
 | M-userguide-version-header | Resolved — updated to 0.5.3 to match current version in MengerCLIOptions.scala |
 | M-legacy-shaders | Resolved — 4 orphaned sphere_*.cu files deleted (not compiled by CMakeLists.txt) |
+| M-color-byte-max-dup | Resolved — RenderingConstants::COLOR_BYTE_MAX removed; helpers.cu uses RayTracingConstants::COLOR_BYTE_MAX |
