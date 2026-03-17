@@ -19,16 +19,6 @@ splitting `createMultiObjectScene`/`rebuildScene` into a separate class. Deferre
 
 ## Medium Priority
 
-### M-naming-constants — Overly literal named constants reduce readability
-**Location:** `OptiXData.h` RenderingConstants namespace
-**Est. Effort:** 1h
-Constants like `COLOR_BLACK = 0.0f`, `FRESNEL_BASE = 1.0f`, `DOT_PRODUCT_ZERO_THRESHOLD = 0.0f`,
-`FRESNEL_ONE_MINUS_R0 = 1.0f` add indirection without clarity — they're just restatements of
-`0.0f` and `1.0f` with longer names. Constants should encode domain meaning (e.g., `AMBIENT_WEIGHT`)
-not literal descriptions of their value. Review and consolidate.
-
----
-
 ## Low Priority
 
 ### L-userguide-missing-example-scene — MixedMetallicShowcase absent from DSL example list
@@ -277,3 +267,4 @@ Issues that were investigated and consciously accepted:
 | M-userguide-version-header | Resolved — updated to 0.5.3 to match current version in MengerCLIOptions.scala |
 | M-legacy-shaders | Resolved — 4 orphaned sphere_*.cu files deleted (not compiled by CMakeLists.txt) |
 | M-color-byte-max-dup | Resolved — RenderingConstants::COLOR_BYTE_MAX removed; helpers.cu uses RayTracingConstants::COLOR_BYTE_MAX |
+| M-naming-constants | Resolved — removed 13 overly literal constants from RenderingConstants; replaced with literals or MaterialConstants::IOR_VACUUM |
