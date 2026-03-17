@@ -531,6 +531,7 @@ CheckRunTime:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
+  timeout: 20m  # Override global 15m - runtime tests may need more time
   tags:
     - nvidia
   rules:
@@ -705,21 +706,13 @@ PushToGithub:
     - git remote show github
     # Fetch all from GitLab origin
     - git fetch origin --tags
-    # In tag pipeline, we're in detached HEAD at the tag commit
-    # Find which branch contains this commit (prefer main)
+    # In tag pipeline CI_COMMIT_BRANCH is empty; fall back to main
     - BRANCH=${CI_COMMIT_BRANCH:-main}
     - echo "Target branch - $BRANCH"
     - echo "Current commit - ${CI_COMMIT_SHA}"
     - echo "Tag - ${CI_COMMIT_TAG}"
-    # Ensure we're on the correct commit (detached HEAD to allow branch force-update)
-    - git checkout --detach ${CI_COMMIT_SHA}
-    # Create or reset branch to current commit
-    - git branch -f $BRANCH ${CI_COMMIT_SHA}
-    - git checkout $BRANCH
-    # Fetch GitHub state
-    - git fetch github $BRANCH || echo "Branch does not exist on GitHub yet"
-    # Force push branch and tag to GitHub
-    - git push --force github $BRANCH
+    # Push SHA directly to avoid 'branch used by worktree' error from local branch manipulation
+    - git push --force github ${CI_COMMIT_SHA}:refs/heads/$BRANCH
     - git push --force github $CI_COMMIT_TAG
 
 CreateGithubRelease:
