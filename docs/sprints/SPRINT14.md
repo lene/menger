@@ -80,7 +80,7 @@ These must be addressed carefully in isolation (do not mix with other shader cha
 
 ---
 
-### Task 14.9: Caustics
+### Task 14.9: Caustics ✓ COMPLETE
 
 **Estimate:** 4–8 hours
 **Dependency:** TD-4 (see `docs/arc42/11-risks-and-technical-debt.md`)

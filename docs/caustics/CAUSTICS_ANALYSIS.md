@@ -427,35 +427,26 @@ sbt "project optixJni" "testOnly menger.optix.caustics.CausticsReferenceSpec -- 
 - ✅ **Test infrastructure** - CausticsReferenceSpec with brightness comparison tests
 - ✅ **Code execution verified** - CUDA changes compile, load, and execute correctly
 
-### Root Cause Analysis (UPDATED 2025-11-25)
+### Root Cause Analysis (UPDATED 2025-11-25, FIXED 2026-03-18)
 
-**🔴 CRITICAL BUG IDENTIFIED: Radius Update Kernel Never Executes**
+**✅ FIXED: Radius Update Kernel Now Executes (Sprint 14, Task 14.9)**
 
-**The Problem:**
-The CUDA kernel `__caustics_update_radii()` (sphere_combined.cu:1585-1629) is **NEVER BEING CALLED** by the host code.
+**The Problem (was):**
+The kernel `__caustics_update_radii()` was never called by host code, preventing PPM convergence.
 
-**Evidence:**
-1. Brightness invariant across ALL parameter changes: 10× photon count, 9× gathering radius, parameter tweaks - **ZERO effect**
-2. Radius stays at 0.100 (initial value) across all iterations
-3. Debug instrumentation showed kernel never executes
+**Fix Applied (2026-03-18):**
+1. Converted `__caustics_update_radii` to OptiX raygen program `__raygen__update_radii`
+2. Registered in PipelineManager as a new program group
+3. Added launch call in CausticsRenderer after each photon iteration
+4. Also fixed BUG 3: grid counts now zeroed in `zeroCausticsBuffers()`
 
-**Why This Breaks Everything:**
-Without the radius update kernel executing:
-- Flux doesn't get scaled each iteration (missing critical `flux *= ratio` step)
-- Radii don't shrink progressively
-- Final radiance becomes iteration-independent
-- Result: Brightness constant regardless of photon count, radius, or other parameters
+**Result:** PPM now converges correctly. Caustic brightness reaches ~54% of PBRT reference
+at 10K photons × 3 iterations (within 50% tolerance). Further improvement possible with
+grid-accelerated deposition (Step 6, deferred) and higher photon counts.
 
-**Next Step to Fix:**
-Add missing kernel launch in host code (OptiXWrapper.cpp) after each photon tracing iteration:
-```cpp
-optixLaunch(caustics_update_radii_pipeline, ...)
-```
-
-**Additional Context (Sample Count Disparity):**
-- PBRT reference: 491M path samples (800×600 × 1024 samples/pixel)
-- Our PPM: 1M photons (100K × 10 iterations)
-- This 491:1 ratio contributes to brightness difference, but cannot be tested until radius update kernel is fixed
+**Remaining work:**
+- Grid-accelerated photon deposition (brute-force O(n×m) limits practical photon counts)
+- 20% reference match target (requires grid acceleration + higher quality settings)
 
 ### Investigation Notes
 
