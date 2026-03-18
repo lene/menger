@@ -2,12 +2,13 @@
 
 Comprehensive step-by-step guide for releasing a new version of Menger.
 
-**Estimated total time:** 15-20 minutes from commit to published release
+**Estimated total time:** 30-60 minutes from commit to next sprint opened
 - Pre-release preparation: 15-30 minutes (manual)
 - Pre-push validation: 8-10 minutes (automated)
 - Commit & push: 1-2 minutes (manual)
 - Release pipeline: 12-15 minutes (automated)
 - Post-release verification: 5-10 minutes (manual)
+- Retrospective & sprint opening: 15-30 minutes (interactive)
 
 ---
 
@@ -569,19 +570,120 @@ For critical bugs that need immediate release:
 
 ---
 
-## Release Retrospective
+## Phase 6: Retrospective & Sprint Opening (Interactive - 15-30 minutes)
 
-After each release, consider documenting:
+This phase is **mandatory and fully interactive**. Do not skip it, do not summarise it
+into a checklist tick. Work through it conversationally with the user.
 
-- [ ] What went well?
-- [ ] What could be improved?
-- [ ] Were there any unexpected issues?
-- [ ] Did the timeline estimate match reality?
-- [ ] Should any checklist items be added/modified?
+### Step 6.1: Release Retrospective
 
-**Update this checklist** if you discover missing steps or improvements.
+Open the retrospective explicitly. Ask the user each question in turn and wait for their
+response before moving on. Do not batch all questions into one message.
+
+Suggested opening: *"Now that the release is out, let's do a quick retrospective. I'll
+ask you a few questions — feel free to be brief or go deep on anything that stands out."*
+
+**Questions to work through:**
+
+1. **What went well this sprint?**
+   (Probe: anything that felt smooth, any tools/processes that worked better than expected?)
+
+2. **What was harder than expected?**
+   (Probe: scope creep, technical surprises, estimates that were badly off?)
+
+3. **Did the estimate match reality?** Read the sprint document's estimate aloud, compare
+   to actual time spent, and note the delta.
+
+4. **What would you do differently next time?**
+   (Probe: process changes, different task ordering, things to avoid?)
+
+5. **Should anything be added to or changed in this checklist?**
+   If yes, offer to edit this skill file right now.
+
+**After the retrospective:** Summarise the key takeaways in 2-3 bullet points, then ask
+the user to confirm before proceeding to sprint opening.
 
 ---
 
-*Last updated: 2026-02-05*
+### Step 6.2: Review the Upcoming Sprint Plan
+
+Read `docs/sprints/SPRINT.md` (the pointer) to find the next sprint file, then read it
+in full. Present the sprint to the user:
+
+- Sprint number, title, and total estimate
+- Full task list with estimates
+- Dependencies on other sprints or tasks
+- Any tasks that look under-specified or risky
+
+Then ask: *"Does this sprint plan still look right to you? Is there anything you'd like
+to restructure, re-estimate, or move before we kick it off?"*
+
+**This is a genuine collaborative review — not a rubber-stamp.** If the plan looks too
+heavy (as with Sprint 14 at 27–36h), proactively flag it and suggest restructuring.
+Work through any changes interactively, making edits to the sprint files as agreed.
+
+Common things to discuss:
+- Is the sprint scope realistic given current velocity?
+- Are any tasks better moved to a later sprint or the backlog?
+- Are there deferred tasks from the *completed* sprint that need to be placed somewhere?
+- Does any task need more detail before implementation starts?
+
+---
+
+### Step 6.3: Review the Roadmap
+
+Read `ROADMAP.md` and present the planned sprint table to the user. Check:
+
+- Sprint numbers, titles, and estimates match the sprint files
+- The completed sprint is marked correctly in the Completed Sprints table
+- Milestone assignments still make sense given any restructuring just done
+- The Timeline Estimate table at the bottom is accurate
+
+Ask: *"Does the roadmap look accurate and up to date? Anything to adjust?"*
+
+Make any agreed edits now.
+
+---
+
+### Step 6.4: Update the Sprint Pointer
+
+Confirm that `docs/sprints/SPRINT.md` points to the new sprint file. If it does not,
+update it now.
+
+```bash
+cat docs/sprints/SPRINT.md   # Should show: See SPRINT-N.md
+```
+
+---
+
+### Step 6.5: Commit Sprint Opening Changes
+
+If any files were changed during the sprint review (restructured plan, updated roadmap,
+corrected pointer), commit them now on the new sprint's feature branch:
+
+```bash
+git checkout -b feature/sprint-N
+git add docs/sprints/SPRINT.md docs/sprints/SPRINT-N.md ROADMAP.md
+git commit -m "docs: open Sprint N — [title]
+
+[1-2 sentence summary of any restructuring done during sprint opening]"
+```
+
+If no changes were needed, confirm the branch exists and is ready:
+```bash
+git checkout -b feature/sprint-N
+```
+
+---
+
+### Step 6.6: Final Confirmation
+
+Ask the user: *"Sprint N is now open. Is there anything else you want to sort out before
+we start implementing, or are we good to go?"*
+
+Wait for their response. Only conclude the checklist after they confirm.
+
+---
+
+*Last updated: 2026-03-18*
 *Maintained by: Development team with Claude Code assistance*
