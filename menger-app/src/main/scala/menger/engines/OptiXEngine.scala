@@ -213,40 +213,30 @@ class OptiXEngine(
     else
       TriangleMeshSceneBuilder(execution.textureDir)(using profilingConfig)
 
-  private def createMultiObjectScene(specs: List[ObjectSpec]): Try[Unit] =
-    logger.info(s"Creating OptiXEngine with ${specs.length} objects")
-
-    // Warn about high sponge levels before generating geometry
-    specs.foreach(warnIfHighLevel)
-
-    val renderer = rendererWrapper.renderer
+  private def configureRendererEnvironment(renderer: menger.optix.OptiXRenderer): Unit =
     sceneConfigurator.configureLights(renderer)
     sceneConfigurator.configurePlanes(renderer, environment.planes)
     sceneConfigurator.configureCamera(renderer)
 
-    // Determine scene type and setup using strategy pattern
-    val result = SceneClassifier.classify(specs) match
-      case SceneType.SimpleMixed(specs, meshType) =>
-        // Spheres + one triangle mesh type - SUPPORTED
-        Try {
-          val sphereSpecs = specs.filter(_.objectType.toLowerCase == "sphere")
-          val meshSpecs = specs.filterNot(_.objectType.toLowerCase == "sphere")
+  private def buildMixedSceneObjects(
+    sphereSpecs: List[ObjectSpec],
+    meshSpecs: List[ObjectSpec],
+    renderer: menger.optix.OptiXRenderer
+  ): Unit =
+    val meshBuilder = selectMeshBuilder(meshSpecs)
+    val effectiveMaxInstances = computeEffectiveMaxInstances(meshBuilder, meshSpecs)
+    if sphereSpecs.nonEmpty then
+      SphereSceneBuilder().buildScene(sphereSpecs, renderer, effectiveMaxInstances).get
+    if meshSpecs.nonEmpty then
+      meshBuilder.buildScene(meshSpecs, renderer, effectiveMaxInstances).get
 
-          logger.info(s"Mixed scene: ${sphereSpecs.size} spheres + ${meshSpecs.size} mesh objects")
-
-          // Calculate effective maxInstances for mesh builder (may need auto-adjustment)
-          val meshBuilder = selectMeshBuilder(meshSpecs)
-          val effectiveMaxInstances = computeEffectiveMaxInstances(meshBuilder, meshSpecs)
-
-          // Build spheres with SphereSceneBuilder
-          if sphereSpecs.nonEmpty then
-            val sphereBuilder = SphereSceneBuilder()
-            sphereBuilder.buildScene(sphereSpecs, renderer, effectiveMaxInstances).get
-
-          // Build triangle meshes with appropriate builder
-          if meshSpecs.nonEmpty then
-            meshBuilder.buildScene(meshSpecs, renderer, effectiveMaxInstances).get
-        }
+  private def buildInitialGeometry(specs: List[ObjectSpec], renderer: menger.optix.OptiXRenderer): Try[Unit] =
+    SceneClassifier.classify(specs) match
+      case SceneType.SimpleMixed(specs, _) =>
+        val sphereSpecs = specs.filter(_.objectType.toLowerCase == "sphere")
+        val meshSpecs = specs.filterNot(_.objectType.toLowerCase == "sphere")
+        logger.info(s"Mixed scene: ${sphereSpecs.size} spheres + ${meshSpecs.size} mesh objects")
+        Try(buildMixedSceneObjects(sphereSpecs, meshSpecs, renderer))
 
       case SceneType.ComplexMixed(specs) =>
         val objectTypes = specs.map(_.objectType).distinct
@@ -259,23 +249,28 @@ class OptiXEngine(
       case sceneType =>
         SceneClassifier.selectSceneBuilder(sceneType, Some(execution.textureDir)) match
           case Some(builder) =>
-            // Auto-adjust maxInstances if user didn't explicitly set it
             val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-
             builder.validate(specs, effectiveMaxInstances) match
               case Left(error) => Failure(ValidationException(error, "objectSpecs", specs.map(_.objectType)))
-              case Right(_) => builder.buildScene(specs, renderer, effectiveMaxInstances)
+              case Right(_)    => builder.buildScene(specs, renderer, effectiveMaxInstances)
           case None =>
             Failure(UnsupportedOperationException(s"No builder available for $sceneType"))
 
-    result.flatMap { _ =>
-      Try {
-        renderer.setRenderConfig(config.render)
-        renderer.setCausticsConfig(config.caustics)
-        environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
-        finalizeCreate()
-      }
+  private def applyRenderConfigAndFinalize(renderer: menger.optix.OptiXRenderer): Try[Unit] =
+    Try {
+      renderer.setRenderConfig(config.render)
+      renderer.setCausticsConfig(config.caustics)
+      environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
+      finalizeCreate()
     }
+
+  private def createMultiObjectScene(specs: List[ObjectSpec]): Try[Unit] =
+    logger.info(s"Creating OptiXEngine with ${specs.length} objects")
+    specs.foreach(warnIfHighLevel)
+    val renderer = rendererWrapper.renderer
+    configureRendererEnvironment(renderer)
+    buildInitialGeometry(specs, renderer)
+      .flatMap(_ => applyRenderConfigAndFinalize(renderer))
 
   private def resetTo4DDefaults(): Unit =
     logger.debug("Resetting 4D view to initial state")
@@ -296,62 +291,38 @@ class OptiXEngine(
 
     if execution.timeout > 0 then startExitTimer(execution.timeout)
 
+  private def rebuildGeometry(specs: List[ObjectSpec], renderer: menger.optix.OptiXRenderer): Unit =
+    renderer.clearAllInstances()
+    SceneClassifier.classify(specs) match
+      case SceneType.SimpleMixed(specs, _) =>
+        val sphereSpecs = specs.filter(_.objectType.toLowerCase == "sphere")
+        val meshSpecs = specs.filterNot(_.objectType.toLowerCase == "sphere")
+        logger.debug(s"Rebuilding mixed scene: ${sphereSpecs.size} spheres + ${meshSpecs.size} mesh objects")
+        buildMixedSceneObjects(sphereSpecs, meshSpecs, renderer)
+
+      case SceneType.ComplexMixed(_) =>
+        Failure(UnsupportedOperationException("Complex mixed scenes not supported for rebuilding")).get
+
+      case sceneType =>
+        SceneClassifier.selectSceneBuilder(sceneType, Some(execution.textureDir)) match
+          case Some(builder) =>
+            // Use execution.maxInstances directly: renderer context was already configured at create() time
+            builder.buildScene(specs, renderer, execution.maxInstances).get
+          case None =>
+            logger.warn(s"Cannot rebuild scene type: $sceneType")
+            Failure(UnsupportedOperationException(s"Scene type $sceneType not supported for rebuilding")).get
+
   private def rebuildScene(): Unit =
     currentObjectSpecs.get() match
       case Some(specs) =>
+        val renderer = rendererWrapper.renderer
+        val savedEye = cameraController.currentEye
+        val savedLookAt = cameraController.currentLookAt
+        val savedUp = cameraController.currentUp
+        logger.debug(s"Rebuilding scene with updated rotation; camera: eye=$savedEye, lookAt=$savedLookAt")
         Try {
-          logger.debug("Rebuilding scene with updated rotation")
-
-          val renderer = rendererWrapper.renderer
-
-          // Save current camera state
-          val savedEye = cameraController.currentEye
-          val savedLookAt = cameraController.currentLookAt
-          val savedUp = cameraController.currentUp
-          logger.debug(s"Saving camera state: eye=$savedEye, lookAt=$savedLookAt")
-
-          // Clear geometry without destroying OptiX context
-          // This is much lighter weight than dispose/initialize
-          renderer.clearAllInstances()
-
-          // Rebuild geometry based on scene type using strategy pattern
-          SceneClassifier.classify(specs) match
-            case SceneType.SimpleMixed(specs, meshType) =>
-              // Handle mixed scenes specially (spheres + one mesh type)
-              val sphereSpecs = specs.filter(_.objectType.toLowerCase == "sphere")
-              val meshSpecs = specs.filterNot(_.objectType.toLowerCase == "sphere")
-
-              logger.debug(s"Rebuilding mixed scene: ${sphereSpecs.size} spheres + ${meshSpecs.size} mesh objects")
-
-              // Calculate effective maxInstances for mesh builder
-              val meshBuilder = selectMeshBuilder(meshSpecs)
-              val effectiveMaxInstances = computeEffectiveMaxInstances(meshBuilder, meshSpecs)
-
-              // Rebuild spheres
-              if sphereSpecs.nonEmpty then
-                val sphereBuilder = SphereSceneBuilder()
-                sphereBuilder.buildScene(sphereSpecs, renderer, effectiveMaxInstances).get
-
-              // Rebuild meshes
-              if meshSpecs.nonEmpty then
-                meshBuilder.buildScene(meshSpecs, renderer, effectiveMaxInstances).get
-
-            case SceneType.ComplexMixed(specs) =>
-              logger.warn("Cannot rebuild complex mixed scene type")
-              Failure(UnsupportedOperationException("Complex mixed scenes not supported for rebuilding")).get
-
-            case sceneType =>
-              SceneClassifier.selectSceneBuilder(sceneType, Some(execution.textureDir)) match
-                case Some(builder) =>
-                  builder.buildScene(specs, renderer, execution.maxInstances).get
-                case None =>
-                  logger.warn(s"Cannot rebuild scene type: $sceneType")
-                  Failure(UnsupportedOperationException(s"Scene type $sceneType not supported for rebuilding")).get
-
-          // Restore camera to saved position
+          rebuildGeometry(specs, renderer)
           cameraState.updateCamera(renderer, savedEye, savedLookAt, savedUp)
-          logger.debug(s"Restored camera state: eye=$savedEye, lookAt=$savedLookAt")
-
           logger.debug("Scene rebuild complete")
         }.recover { case e =>
           logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)

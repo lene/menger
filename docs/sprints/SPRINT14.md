@@ -15,7 +15,7 @@ while addressing the most pressing code health issues identified during Sprint 1
 
 ## Success Criteria
 
-- [ ] Code quality: OptiXEngine split below 400-line guideline
+- [x] Code quality: OptiXEngine split below 400-line guideline
 - [ ] Caustics render correctly (progressive photon mapping or alternative algorithm)
 - [ ] Colored shadows Phase 2: multi-object anyhit accumulation works
 - [ ] Documentation for caustics + colored shadows added to USER_GUIDE.md
@@ -25,25 +25,19 @@ while addressing the most pressing code health issues identified during Sprint 1
 
 ## Tasks
 
-### Task 14.0: Code Quality — OptiXEngine Refactor
+### Task 14.0: Code Quality — OptiXEngine Refactor ✓ COMPLETE
 
-**Estimate:** 4–6 hours
+**Estimate:** 4–6 hours | **Actual:** ~1 hour
 
-Split `OptiXEngine.scala` below the 400-line class size guideline. Current size is ~430 lines
-after the partial extraction in Sprint 13 (extracted `SceneClassifier` and
-`computeEffectiveMaxInstances`). Further reduction requires splitting `createMultiObjectScene`
-and `rebuildScene` into a dedicated builder class.
+Split `createMultiObjectScene` (62 lines) and `rebuildScene` (61 lines) into 5 named private
+sub-methods of ≤20 lines each: `configureRendererEnvironment`, `buildMixedSceneObjects`,
+`buildInitialGeometry`, `applyRenderConfigAndFinalize`, `rebuildGeometry`. Everything stays
+in `OptiXEngine.scala` (no new file). File reduced from ~430 → 391 lines. All 1683 tests pass.
 
-#### Plan
+#### Files Modified
 
-- Extract `createMultiObjectScene` / `rebuildScene` into a `SceneAssembler` (or similar)
-- Verify all existing tests pass after the refactor (no behavioral change)
-- Update CODE_IMPROVEMENTS.md: remove M14 entry
-
-#### Files to Modify
-
-- `menger-app/src/main/scala/menger/engines/OptiXEngine.scala`
-- `menger-app/src/main/scala/menger/engines/SceneAssembler.scala` (new)
+- `menger-app/src/main/scala/menger/engines/OptiXEngine.scala` (430 → 391 lines)
+- `CODE_IMPROVEMENTS.md` (M14 removed)
 
 ---
 

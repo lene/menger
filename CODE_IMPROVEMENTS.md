@@ -8,15 +8,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## High Priority
 
-### M14 — OptiXEngine exceeds 400-line class size guideline
-**Location:** `OptiXEngine.scala` (~430 lines)
-**Est. Effort:** 4-6h
-**Status:** Partially resolved — extracted `SceneClassifier` and `computeEffectiveMaxInstances`
-reduced it from 488 → ~430. Still above the 400-line guideline. Further reduction requires
-splitting `createMultiObjectScene`/`rebuildScene` into a separate class. Deferred.
-
----
-
 ## Medium Priority
 
 ## Low Priority
