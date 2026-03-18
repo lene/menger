@@ -1,68 +1,98 @@
-# Sprint 18: GPU 4D & Parametrized 4D Surfaces
+# Sprint 18: Advanced Geometry
 
-**Sprint:** 18 - GPU 4D & Parametrized 4D Surfaces
+**Sprint:** 18 - Advanced Geometry
 **Status:** Not Started
-**Estimate:** ~14 hours
+**Estimate:** ~15.5 hours
 **Branch:** `feature/sprint-18`
-**Dependencies:** Sprint 16 (16.4 — parametrized surfaces in 3D)
+**Dependencies:** Sprint 15 (15.3 — cylinder/cone/torus primitives, for 18.3 surface infra)
+
+> **Note:** 4D and 3D sponge cutaways (originally 16.1) have been moved to the backlog.
+> They require significant clipping-plane infrastructure with uncertain scope.
 
 ---
 
 ## Goal
 
-Implement GPU-side 4D math as the foundation for Sprint 19's higher-dimensional fractal
-analogs. Add parametrized 4D surfaces and a project website.
+Expand the geometry system with additional polytopes in 3D and 4D, parametrized surfaces,
+a coordinate cross visualization, and geometry documentation.
 
 ## Success Criteria
 
-- [ ] CUDA kernel for 4D transform and projection (GPU-side 4D math)
-- [ ] Parametrized surfaces in 4D via `f(u, v) → Vec4` pipeline
-- [ ] Project website with GitHub/GitLab feedback button
+- [ ] Octahedron, dodecahedron, icosahedron available as primitives
+- [ ] 16-cell, 24-cell, and 600-cell available as 4D primitives
+- [ ] Parametrized surfaces in 3D (sphere patches, tori, implicit surfaces) work
+- [ ] Coordinate cross / axis visualization available via CLI
+- [ ] User guide geometry section updated
 - [ ] All tests pass
 
 ---
 
 ## Tasks
 
-### Task 18.1: CUDA 4D Transform and Projection
-
-**Estimate:** 5h
-
-Move 4D rotation, projection, and coordinate transforms to GPU-side CUDA code.
-This is the core prerequisite for Sprint 19 (4D Menger and Sierpinski analogs).
-
-Current state: 4D transforms computed on CPU and passed as geometry to OptiX.
-Target state: 4D transforms evaluated per-ray on the GPU for procedural geometry.
-
----
-
-### Task 18.2: Parametrized Surfaces in 4D
-
-**Estimate:** 4h
-
-Extend the 3D parametrized surface infrastructure (16.4) to 4D:
-- `f(u, v) → Vec4` → project to 3D for rendering
-- Examples: 4D torus, Clifford torus, hypersphere patches
-
-**Depends on:** 16.4 (parametrized surfaces in 3D) + 18.1 (GPU 4D math)
-
----
-
-### Task 18.3: Website with Feedback Button
+### Task 18.1: Additional Polytopes in 3D
 
 **Estimate:** 3h
 
-Create a project website (static, hosted on GitLab Pages or GitHub Pages) with:
-- Project overview and example renders
-- Feedback button that opens a pre-filled GitHub/GitLab issue
+Add octahedron, dodecahedron, and icosahedron as first-class primitives in the DSL and
+rendering engine, alongside the existing cube/sphere/tetrahedron.
 
 ---
 
-### Task 18.4: Documentation
+### Task 18.2: Additional Polytopes in 4D
+
+**Estimate:** 4h
+
+Add 16-cell, 24-cell, and 600-cell as 4D primitives. These are the 4D analogs of the
+octahedron, cuboctahedron, and icosahedron.
+
+---
+
+### Task 18.3: Parametrized Surfaces in 3D
+
+**Estimate:** 4h
+
+Infrastructure for rendering parametrized surfaces defined by `f(u, v) → Vec3`.
+Initial implementations: sphere patches, tori, implicit surfaces.
+
+This is a prerequisite for Sprint 20's parametrized 4D surfaces (20.2).
+
+---
+
+### Task 18.4: Coordinate Cross (Axis Visualization)
+
+**Estimate:** 1.5h
+
+Render XYZ axis lines for debugging scene layout and camera positioning.
+
+#### CLI
+
+```bash
+menger --optix --show-axes          # Show coordinate cross at origin
+menger --optix --show-axes --axis-length 5.0  # Custom axis length
+```
+
+#### Implementation
+
+- Render thin cylinders along X (red), Y (green), Z (blue) axes
+- Configurable length and thickness
+- Toggle on/off via CLI or keyboard shortcut
+
+---
+
+### Task 18.5: User Guide — Geometry Section
+
+**Estimate:** 1h
+
+Update USER_GUIDE.md with documentation for all new geometry primitives and the
+parametrized surface API.
+
+---
+
+### Task 18.6: Documentation
 
 **Estimate:** 2h
 
-Sprint retrospective, CHANGELOG.md update, and developer docs for the GPU 4D math API.
+Sprint retrospective, CHANGELOG.md update, and example scenes for new geometry.
 
 ---
 
@@ -70,11 +100,13 @@ Sprint retrospective, CHANGELOG.md update, and developer docs for the GPU 4D mat
 
 | Task | Description | Estimate | Dependencies |
 |------|-------------|----------|--------------|
-| 18.1 | CUDA 4D transform + projection | 5h | None |
-| 18.2 | Parametrized 4D surfaces | 4h | 16.4, 18.1 |
-| 18.3 | Website with feedback button | 3h | None |
-| 18.4 | Documentation | 2h | All |
-| **Total** | | **~14h** | |
+| 18.1 | Additional polytopes in 3D | 3h | None |
+| 18.2 | Additional polytopes in 4D | 4h | None |
+| 18.3 | Parametrized surfaces in 3D | 4h | None |
+| 18.4 | Coordinate cross / axis visualization | 1.5h | None |
+| 18.5 | User guide: geometry | 1h | 18.1–18.4 |
+| 18.6 | Documentation | 2h | All |
+| **Total** | | **~15.5h** | |
 
 ---
 
@@ -84,11 +116,13 @@ Sprint retrospective, CHANGELOG.md update, and developer docs for the GPU 4D mat
 - [ ] All tests passing
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
-- [ ] GPU 4D math API documented for Sprint 19 implementors
+- [ ] USER_GUIDE.md geometry section updated
+- [ ] Example scenes created for each new primitive
 
 ---
 
-## Notes
+## Backlog Note
 
-Task 18.1 is the critical path for Sprint 19. The GPU 4D math infrastructure it creates
-enables the higher-dimensional Menger and Sierpinski analogs planned for Sprint 19.
+**Sponge cutaways** (clipping-plane cross-section views of 3D and 4D Menger sponges) were
+originally Sprint 16.1. Moved to backlog due to uncertain scope (clipping-plane geometry
+infrastructure is non-trivial and not a prerequisite for other planned work).

@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-03-12
+**Last Updated:** 2026-03-18
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -44,106 +44,119 @@ Strategic feature planning for the Menger ray tracing renderer.
 
 ## Planned Sprints
 
-### Sprint 14: Video Output & Visual Enhancements (~19h)
+### Sprint 14: Rendering Correctness & Code Health (~16–25h)
 
-**Goal:** Video output, animation preview, and rendering quality improvements
+**Goal:** Code quality improvements, caustics, and multi-object colored shadow accumulation
 
-- **14.1** Video output via ffmpeg (MP4/WebM from frame sequences) (4h)
-- **14.2** Animation preview — interactive t scrubbing (3h)
-- **14.3** Soft shadows / area lights (3h)
-- **14.4** Depth of field / aperture / bokeh (3h)
-- **14.5** New primitives: cylinder, cone, torus (3h)
-- **14.6** Coordinate cross / axis visualization (1.5h) — depends on 14.5
-- **14.7** Documentation (1.5h)
-- **14.8** Colored shadows Phase 2: multi-object anyhit accumulation (4–8h, Low priority, TD-6)
-
-**Note:** Replaces the original Sprint 14 ("Advanced Animation System") which was built on the keyframe approach. The t-parameter animation system (Sprint 12) made most keyframe features obsolete.
-
-**MILESTONE: v0.6 — Visual Quality & Video Output**
+- **14.0** Code quality: OptiXEngine refactor below 400-line guideline (4–6h)
+- **14.8** Colored shadows Phase 2: multi-object anyhit accumulation (4–8h, TD-6)
+- **14.9** Caustics: revisit PPM algorithm, fix or document root cause (4–8h, TD-4)
+- **14.10** Documentation for caustics + colored shadows (1h)
 
 See [docs/sprints/SPRINT14.md](docs/sprints/SPRINT14.md)
 
-### Sprint 15: DSL Completeness & Infrastructure (~18h)
+### Sprint 15: Visual Enhancements & Primitives (~10.5h)
 
-**Goal:** Finish deferred DSL features and infrastructure/polish work
+**Goal:** Soft shadows, depth of field, and additional geometric primitives
 
-- **15.1** DSL window/output settings (width, height, saveName, headless) (2h)
-- **15.2** Scene composition helpers (SceneBuilder utilities) (2h)
-- **15.3** Procedural placement helpers in DSL (2h)
-- **15.4** Bezier/spline camera path utility (pure Scala DSL helper) (2h)
-- **15.5** Runtime DSL scene evaluation (compile-time → runtime) (2h)
-- **15.6** Animation export/import — JSON format for t-param configs (2h)
-- **15.7** Optimize pre-push hook (parallelization) (2h)
-- **15.8** Better agent instructions + developer docs (1h)
-- **15.9** Test coverage improvements + Valgrind CI (1h)
+- **15.1** Soft shadows with area lights (3h)
+- **15.2** Depth of field / aperture / bokeh (3h)
+- **15.3** Additional primitives: cylinder, cone, torus (3h)
+- **15.4** Documentation & examples (1.5h)
 
-**Note:** Merges deferred Sprint 10 DSL work with infrastructure/polish items.
+**MILESTONE: v0.6 — Visual Quality + Video**
 
 See [docs/sprints/SPRINT15.md](docs/sprints/SPRINT15.md)
 
-### Sprint 16: Advanced Geometry (~17h)
+### Sprint 16: Developer Infrastructure & Website (~11h)
 
-**Goal:** 4D cutaways, additional polytopes, and parametrized surfaces
+**Goal:** Pre-push hook optimisation, developer docs, CI improvements, website, CUDA compatibility
 
-- **16.1** 4D and 3D sponge cutaways (clipping plane geometry) (3h)
-- **16.2** Other polytopes in 3D (octahedron, dodecahedron, icosahedron) (3h)
-- **16.3** Other polytopes in 4D (16-cell, 24-cell, 600-cell) (4h)
-- **16.4** Parametrized surfaces in 3D (sphere patches, tori, implicit surfaces) (4h)
-- **16.5** User guide: geometry section improvements (1h)
-- **16.6** Documentation (2h)
+- **16.1** Optimise pre-push hook (parallelization) (2h)
+- **16.2** Developer documentation & AGENTS.md refresh (2h)
+- **16.3** Test coverage improvements + Valgrind CI (2h)
+- **16.4** Project website with GitHub/GitLab feedback button (3h)
+- **16.5** Test on CUDA 12 and 13 (CI Docker images) (2h)
 
 See [docs/sprints/SPRINT16.md](docs/sprints/SPRINT16.md)
 
-### Sprint 17: Textures & Backgrounds (~17h)
+### Sprint 17: Animation Tooling & DSL (~19h)
 
-**Goal:** Procedural textures, PBR maps, and environment backgrounds
+**Goal:** Video output, animation preview, and DSL convenience helpers
 
-- **17.1** Background images / environment maps / skybox (3h)
-- **17.2** Procedural texture infrastructure in shaders (4h)
-- **17.3** Wood, marble, noise procedural textures (2h) — depends on 17.2
-- **17.4** Sponge XYZ→RGB procedural texture (1h) — depends on 17.2
-- **17.5** PBR texture maps: normal + roughness maps (3h)
-- **17.6** Test on CUDA 12 and 13 (CI Docker images) (2h)
-- **17.7** User guide: materials/textures section improvements (2h)
-
-**MILESTONE: v0.7 — Textures & Backgrounds**
+- **17.1** Video output via ffmpeg (MP4/WebM from frame sequences) (4h)
+- **17.2** Animation preview — interactive t scrubbing (3h)
+- **17.3** DSL window/output settings (width, height, saveName, headless) (2h)
+- **17.4** Scene composition helpers (SceneBuilder utilities) (2h)
+- **17.5** Procedural placement helpers in DSL (2h)
+- **17.6** Bezier/spline camera path (pure Scala DSL helper) (2h)
+- **17.7** Runtime DSL scene evaluation (compile-time → runtime) (2h)
+- **17.8** Animation export/import — JSON format for t-param configs (2h)
 
 See [docs/sprints/SPRINT17.md](docs/sprints/SPRINT17.md)
 
-### Sprint 18: GPU 4D & Parametrized 4D Surfaces (~14h)
+### Sprint 18: Advanced Geometry (~15.5h)
 
-**Goal:** GPU-side 4D math as prerequisite for higher-dimensional geometry
+**Goal:** Additional polytopes in 3D and 4D, parametrized surfaces, coordinate cross
 
-- **18.1** CUDA 4D transform and projection (GPU-side 4D math) (5h)
-- **18.2** Parametrized surfaces in 4D (4h) — depends on 16.4 + 18.1
-- **18.3** Website with feedback button (GitHub/GitLab issue template) (3h)
-- **18.4** Documentation (2h)
+- **18.1** Additional polytopes in 3D (octahedron, dodecahedron, icosahedron) (3h)
+- **18.2** Additional polytopes in 4D (16-cell, 24-cell, 600-cell) (4h)
+- **18.3** Parametrized surfaces in 3D (sphere patches, tori, implicit surfaces) (4h)
+- **18.4** Coordinate cross / axis visualization (1.5h)
+- **18.5** User guide: geometry section improvements (1h)
+- **18.6** Documentation (2h)
+
+Note: Sponge cutaways moved to backlog.
 
 See [docs/sprints/SPRINT18.md](docs/sprints/SPRINT18.md)
 
-### Sprint 19: Higher-Dimensional Fractal Analogs (~16h)
+### Sprint 19: Materials, Textures & Backgrounds (~15h)
+
+**Goal:** Procedural textures, PBR maps, and environment backgrounds
+
+- **19.1** Background images / environment maps / skybox (3h)
+- **19.2** Procedural texture infrastructure in shaders (4h)
+- **19.3** Wood, marble, noise procedural textures (2h) — depends on 19.2
+- **19.4** Sponge XYZ→RGB procedural texture (1h) — depends on 19.2
+- **19.5** PBR texture maps: normal + roughness maps (3h)
+- **19.6** User guide: materials/textures section improvements (2h)
+
+**MILESTONE: v0.7 — Textures & Backgrounds**
+
+See [docs/sprints/SPRINT19.md](docs/sprints/SPRINT19.md)
+
+### Sprint 20: GPU 4D Infrastructure (~11h)
+
+**Goal:** GPU-side 4D math as prerequisite for higher-dimensional geometry
+
+- **20.1** CUDA 4D transform and projection (GPU-side 4D math) (5h)
+- **20.2** Parametrized surfaces in 4D (4h) — depends on 18.3 + 20.1
+- **20.3** Documentation (2h)
+
+See [docs/sprints/SPRINT20.md](docs/sprints/SPRINT20.md)
+
+### Sprint 21: Higher-Dimensional Fractals (~16h)
 
 **Goal:** Menger and Sierpinski analogs in 4D+
 
-- **19.1** 4D Menger sponge analog (5h) — depends on 18.1
-- **19.2** Higher-dimensional Sierpinski tetrahedron analogs (4h) — depends on 18.1
-- **19.3** 3D Menger cutaway visualization tools (3h) — depends on 16.1
-- **19.4** Exploration / interactive parameter space (2h)
-- **19.5** Documentation (2h)
+- **21.1** 4D Menger sponge analog (5h) — depends on 20.1
+- **21.2** Higher-dimensional Sierpinski tetrahedron analogs (4h) — depends on 20.1
+- **21.3** Exploration / interactive parameter space (3h)
+- **21.4** Documentation (2h)
 
-See [docs/sprints/SPRINT19.md](docs/sprints/SPRINT19.md)
+See [docs/sprints/SPRINT21.md](docs/sprints/SPRINT21.md)
 
 ---
 
 ## Backlog
 
-Ideas for Sprint 20+ consideration.
+Ideas for Sprint 22+ consideration.
 
-### Scheduled (Sprints 13-19)
+### Scheduled (Sprints 13-21)
 
-Items in Sprints 13-19 are no longer in the backlog. See Planned Sprints above.
+Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 
-### Long-Term Backlog (Sprint 20+)
+### Long-Term Backlog (Sprint 22+)
 
 | Idea | Description | Complexity |
 |------|-------------|------------|
@@ -154,6 +167,7 @@ Items in Sprints 13-19 are no longer in the backlog. See Planned Sprints above.
 | Subsurface scattering | Advanced material effect | High |
 | Real-time preview | Interactive low-quality mode | Medium |
 | HDR environment | Image-based lighting | Medium |
+| Sponge cutaways | 4D and 3D sponge cross-sections via clipping planes | Medium |
 
 ### Low Priority / Deferred
 
@@ -181,13 +195,15 @@ Items in Sprints 13-19 are no longer in the backlog. See Planned Sprints above.
 | DSL & 4D UX (10-11) | 2 sprints | ~30 hours |
 | t-Parameter Animation (12) | 1 sprint | ~12 hours |
 | Visual Quality (13) | 1 sprint | ~11 hours |
-| Video & Enhancements (14) | 1 sprint | ~19 hours |
-| DSL + Infrastructure (15) | 1 sprint | ~18 hours |
-| Advanced Geometry (16) | 1 sprint | ~17 hours |
-| Textures & Backgrounds (17) | 1 sprint | ~17 hours |
-| GPU 4D (18) | 1 sprint | ~14 hours |
-| Higher-Dim Fractals (19) | 1 sprint | ~16 hours |
-| **Total Remaining** | 7 sprints | **~112 hours** |
+| Rendering Correctness & Code Health (14) | 1 sprint | ~16–25 hours |
+| Visual Enhancements & Primitives (15) | 1 sprint | ~10.5 hours |
+| Developer Infrastructure & Website (16) | 1 sprint | ~11 hours |
+| Animation Tooling & DSL (17) | 1 sprint | ~19 hours |
+| Advanced Geometry (18) | 1 sprint | ~15.5 hours |
+| Materials, Textures & Backgrounds (19) | 1 sprint | ~15 hours |
+| GPU 4D Infrastructure (20) | 1 sprint | ~11 hours |
+| Higher-Dimensional Fractals (21) | 1 sprint | ~16 hours |
+| **Total Remaining** | 8 sprints | **~114–123 hours** |
 
 ---
 

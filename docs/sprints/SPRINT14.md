@@ -1,238 +1,49 @@
-# Sprint 14: Video Output & Visual Enhancements
+# Sprint 14: Rendering Correctness & Code Health
 
-**Sprint:** 14 - Video Output & Visual Enhancements
-**Status:** Not Started
-**Estimate:** 15-20 hours
+**Sprint:** 14 - Rendering Correctness & Code Health
+**Status:** In Progress
+**Estimate:** 16–25 hours
 **Branch:** `feature/sprint-14`
 **Dependencies:** Sprint 12 (t-Parameter Animation) - required, Sprint 13 (Visual Quality) - optional
-
-> **Note:** This sprint replaces the original Sprint 14 ("Advanced Animation System") which was built on the keyframe-based animation approach from the original Sprint 13. With the t-parameter animation system (Sprint 12), most of the old Sprint 14 content is obsolete:
->
-> **Obsolete** (handled naturally by `scene(t)`):
-> - Easing functions (users implement their own easing in `scene(t)`)
-> - Per-instance color/IOR animation (rebuilt each frame from `scene(t)`)
-> - Generic AnimatableProperty system (unnecessary with functional approach)
-> - Extended DSL animation syntax (users write plain Scala)
-> - Camera/light animation (part of the Scene returned by `scene(t)`)
->
-> **Retained and expanded below:**
-> - Video output via ffmpeg (wrapping frame sequences into MP4/WebM)
-> - Animation preview mode (scrubbing through t values interactively)
-> - Visual enhancements from old Sprint 15 that fit naturally here
 
 ---
 
 ## Goal
 
-Add video output from t-parameter animation frame sequences, an interactive preview mode for scrubbing through t values, and visual enhancements including soft shadows, depth of field, and additional geometric primitives.
+Improve rendering correctness with caustics and multi-object colored shadow accumulation,
+while addressing the most pressing code health issues identified during Sprint 13.
 
 ## Success Criteria
 
-- [ ] Video output via ffmpeg: MP4 and WebM from frame sequences
-- [ ] CLI: `--video output.mp4` to render and encode in one step
-- [ ] Animation preview mode with interactive t scrubbing
-- [ ] Soft shadows with area lights (penumbra)
-- [ ] Depth of field (camera aperture, bokeh)
-- [ ] Additional primitives: cylinder, cone, torus
-- [ ] Coordinate cross (axis visualization for debugging)
-- [ ] All tests pass (~25-30 new tests)
+- [ ] Code quality: OptiXEngine split below 400-line guideline
+- [ ] Caustics render correctly (progressive photon mapping or alternative algorithm)
+- [ ] Colored shadows Phase 2: multi-object anyhit accumulation works
+- [ ] Documentation for caustics + colored shadows added to USER_GUIDE.md
+- [ ] All tests pass
 
 ---
 
 ## Tasks
 
-### Task 14.1: Video Output via ffmpeg
+### Task 14.0: Code Quality — OptiXEngine Refactor
 
-**Estimate:** 4 hours
+**Estimate:** 4–6 hours
 
-Wrap frame sequences produced by `AnimatedOptiXEngine` into video files using ffmpeg.
+Split `OptiXEngine.scala` below the 400-line class size guideline. Current size is ~430 lines
+after the partial extraction in Sprint 13 (extracted `SceneClassifier` and
+`computeEffectiveMaxInstances`). Further reduction requires splitting `createMultiObjectScene`
+and `rebuildScene` into a dedicated builder class.
 
-#### Proposed CLI
+#### Plan
 
-```bash
-# Render animation directly to MP4
-menger --optix --scene examples.dsl.OrbitingSphere \
-  --frames 120 --start-t 0 --end-t 6.28 \
-  --video orbit.mp4
-
-# Render animation directly to WebM
-menger --optix --scene examples.dsl.OrbitingSphere \
-  --frames 120 --start-t 0 --end-t 6.28 \
-  --video orbit.webm --video-quality 28
-
-# Render frames first, then encode separately
-menger --optix --scene examples.dsl.OrbitingSphere \
-  --frames 120 --start-t 0 --end-t 6.28 \
-  --save-name /tmp/frames/orbit_%04d.png
-# Then manually:
-ffmpeg -framerate 30 -i /tmp/frames/orbit_%04d.png -c:v libx264 -pix_fmt yuv420p orbit.mp4
-```
-
-#### Implementation
-
-- `VideoEncoder` class wrapping ffmpeg via `ProcessBuilder`
-- Detect ffmpeg availability at startup
-- Support MP4 (H.264) and WebM (VP9) based on file extension
-- Configurable quality (CRF value)
-- Clean up temporary frame files after encoding (optional `--keep-frames`)
-- Progress reporting during encoding
-
-#### Files to Create
-
-- `menger-app/src/main/scala/menger/engines/VideoEncoder.scala`
+- Extract `createMultiObjectScene` / `rebuildScene` into a `SceneAssembler` (or similar)
+- Verify all existing tests pass after the refactor (no behavioral change)
+- Update CODE_IMPROVEMENTS.md: remove M14 entry
 
 #### Files to Modify
 
-- `menger-app/src/main/scala/menger/MengerCLIOptions.scala` -- add `--video`, `--video-quality`, `--video-fps`, `--keep-frames`
-- `menger-app/src/main/scala/menger/cli/CliValidation.scala` -- validate video options
-- `menger-app/src/main/scala/menger/engines/AnimatedOptiXEngine.scala` -- invoke VideoEncoder after all frames rendered
-
-#### Tests
-
-- VideoEncoder config validation (format detection, quality range)
-- CLI option validation (--video requires --frames, --video requires --scene)
-- ffmpeg availability detection (graceful failure if not installed)
-
----
-
-### Task 14.2: Animation Preview Mode
-
-**Estimate:** 3 hours
-
-Interactive mode where the user can scrub through t values in real-time using keyboard/mouse.
-
-#### Proposed UX
-
-```bash
-# Open interactive preview for an animated scene
-menger --optix --scene examples.dsl.OrbitingSphere --preview
-```
-
-- Left/Right arrow keys: step t by 0.01
-- Shift+Left/Right: step t by 0.1
-- Home/End: jump to start-t / end-t
-- Space: play/pause automatic t sweep
-- Mouse scroll: fine-tune t value
-- On-screen display: current t value, frame number
-
-#### Implementation
-
-- Extend `OptiXKeyHandler` with preview controls
-- On-screen HUD showing current t value
-- Automatic playback mode (step t per frame at configurable speed)
-- Full scene rebuild on each t change (same as AnimatedOptiXEngine)
-
-#### Files to Create
-
-- `menger-app/src/main/scala/menger/engines/PreviewOptiXEngine.scala`
-
-#### Files to Modify
-
-- `menger-app/src/main/scala/menger/input/OptiXKeyHandler.scala` -- add preview key bindings
-- `menger-app/src/main/scala/Main.scala` -- wire --preview option
-- `menger-app/src/main/scala/menger/MengerCLIOptions.scala` -- add `--preview`
-
----
-
-### Task 14.3: Soft Shadows with Area Lights
-
-**Estimate:** 3 hours
-
-Replace point/directional lights with area lights that produce penumbra (soft shadow edges).
-
-#### Implementation
-
-- Add `AreaLight` type to DSL: `AreaLight(position, size, intensity, color)`
-- Multiple shadow rays per pixel sampling the light area
-- Configurable shadow samples (default: 4, max: 16)
-- CLI: `--shadow-samples N`
-
-#### Files to Modify
-
-- `menger-app/src/main/scala/menger/dsl/Light.scala` -- add `AreaLight` case
-- `optix-jni/src/main/native/shaders/shadows.cu` -- multi-sample shadow rays
-- `optix-jni/src/main/native/include/OptiXData.h` -- area light data structure
-
----
-
-### Task 14.4: Depth of Field
-
-**Estimate:** 3 hours
-
-Camera aperture simulation producing bokeh (out-of-focus blur).
-
-#### CLI
-
-```bash
-menger --optix --aperture 0.1 --focus-distance 5.0
-```
-
-#### Implementation
-
-- Jitter camera ray origins within aperture disk
-- Focus plane at specified distance
-- Multiple samples per pixel (reuse AA infrastructure)
-- Configurable aperture size and focus distance
-
-#### Files to Modify
-
-- `optix-jni/src/main/native/shaders/raygen_primary.cu` -- add aperture jitter
-- `menger-app/src/main/scala/menger/MengerCLIOptions.scala` -- add `--aperture`, `--focus-distance`
-
----
-
-### Task 14.5: Additional Primitives
-
-**Estimate:** 3 hours
-
-Add cylinder, cone, and torus geometry types for richer scene composition.
-
-#### DSL Syntax
-
-```scala
-Scene(
-  objects = List(
-    Cylinder(pos = (0f, 0f, 0f), radius = 0.5f, height = 2f, material = Material.Chrome),
-    Cone(pos = (2f, 0f, 0f), radius = 0.5f, height = 1.5f, material = Material.Gold),
-    Torus(pos = (-2f, 0f, 0f), majorRadius = 1f, minorRadius = 0.3f, material = Material.Glass)
-  ),
-  // ...
-)
-```
-
-#### Implementation
-
-- Triangle mesh generation for each primitive
-- Parametric UV coordinates for texturing
-- Normal computation for smooth shading
-- Integration with existing scene builder system
-
-#### Files to Create
-
-- `menger-app/src/main/scala/menger/dsl/Cylinder.scala` (or extend SceneObject)
-- `menger-app/src/main/scala/menger/dsl/Cone.scala`
-- `menger-app/src/main/scala/menger/dsl/Torus.scala`
-
----
-
-### Task 14.6: Coordinate Cross (Axis Visualization)
-
-**Estimate:** 1.5 hours
-
-Render XYZ axis lines for debugging scene layout and camera positioning.
-
-#### CLI
-
-```bash
-menger --optix --show-axes          # Show coordinate cross at origin
-menger --optix --show-axes --axis-length 5.0  # Custom axis length
-```
-
-#### Implementation
-
-- Render thin cylinders along X (red), Y (green), Z (blue) axes
-- Configurable length and thickness
-- Toggle on/off via CLI or keyboard shortcut
+- `menger-app/src/main/scala/menger/engines/OptiXEngine.scala`
+- `menger-app/src/main/scala/menger/engines/SceneAssembler.scala` (new)
 
 ---
 
@@ -275,19 +86,44 @@ These must be addressed carefully in isolation (do not mix with other shader cha
 
 ---
 
-### Task 14.7: Documentation and Examples
+### Task 14.9: Caustics
 
-**Estimate:** 1.5 hours
+**Estimate:** 4–8 hours
+**Dependency:** TD-4 (see `docs/arc42/11-risks-and-technical-debt.md`)
 
-Update documentation for all new features.
+Revisit the caustics implementation from the preserved branch (deferred in Sprint 4).
+Investigate and resolve the algorithm issues that caused incorrect results. If progressive
+photon mapping (PPM) cannot be made correct within budget, document the findings and
+consider an alternative approach (e.g. path-traced caustics, bidirectional path tracing stub).
 
-#### Sections to Add
+#### Background
 
-- Video output guide (ffmpeg setup, format options)
-- Animation preview mode usage
-- Soft shadows examples
-- Depth of field photography guide
-- New primitive reference
+The original caustics branch used Progressive Photon Mapping. It was preserved but not merged
+due to incorrect rendering results. The root cause has not been fully diagnosed.
+
+#### Approach
+
+1. Check out the caustics branch and identify the rendering artifacts
+2. Diagnose: photon emission, gathering radius, or accumulation step?
+3. Fix if feasible within 8h; otherwise document root cause in TD-4 and defer
+
+#### Files (existing, from caustics branch)
+
+- `optix-jni/src/main/native/shaders/caustics_ppm.cu`
+- `docs/caustics/` — design notes from Sprint 4
+
+---
+
+### Task 14.10: Documentation
+
+**Estimate:** 1 hour
+
+Update USER_GUIDE.md and CHANGELOG.md for caustics and colored shadows Phase 2.
+
+#### Sections to Add/Update
+
+- Colored transparent shadows: multi-object accumulation behavior
+- Caustics: usage and known limitations
 
 ---
 
@@ -295,15 +131,11 @@ Update documentation for all new features.
 
 | Task | Description | Estimate | Priority |
 |------|-------------|----------|----------|
-| 14.1 | Video output via ffmpeg | 4h | High |
-| 14.2 | Animation preview mode | 3h | High |
-| 14.3 | Soft shadows (area lights) | 3h | Medium |
-| 14.4 | Depth of field | 3h | Medium |
-| 14.5 | Additional primitives | 3h | Medium |
-| 14.6 | Coordinate cross | 1.5h | Low |
-| 14.7 | Documentation | 1.5h | High |
-| 14.8 | Colored shadows Phase 2 (multi-object anyhit) | 4–8h | Low |
-| **Total** | | **23–27h** | |
+| 14.0 | OptiXEngine refactor (code quality) | 4–6h | High |
+| 14.8 | Colored shadows Phase 2 (multi-object anyhit) | 4–8h | Medium |
+| 14.9 | Caustics | 4–8h | Medium |
+| 14.10 | Documentation | 1h | High |
+| **Total** | | **~13–23h** | |
 
 ---
 
@@ -314,30 +146,20 @@ Update documentation for all new features.
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
 - [ ] USER_GUIDE.md updated
-- [ ] Example scenes created and tested
-- [ ] Integration tests cover new features
+- [ ] CODE_IMPROVEMENTS.md: M14 removed (if 14.0 complete)
 
 ---
 
 ## Notes
 
-### Implementation Order
+### Deferred from This Sprint
 
-Recommended order:
+The following tasks were originally planned for Sprint 14 but moved to later sprints:
 
-1. **Task 14.1** (Video output) - High value, extends Sprint 12 animation
-2. **Task 14.2** (Preview mode) - High value for iterating on animated scenes
-3. **Task 14.5** (Primitives) - Enriches scene composition
-4. **Task 14.3** (Soft shadows) - Visual quality improvement
-5. **Task 14.4** (Depth of field) - Visual quality improvement
-6. **Task 14.6** (Coordinate cross) - Debugging aid
-7. **Task 14.7** (Documentation) - Last
-
-### Relationship to Previous Plans
-
-The t-parameter animation system (Sprint 12) made the original keyframe-based animation approach (old Sprints 13-14) obsolete. With `scene(t)`, users have full control over every aspect of the scene at every point in time using plain Scala code. This is more expressive than a keyframe system and requires no special animation DSL.
-
-What remains valuable from the old plans:
-- **Video output** -- Users still need a convenient way to encode frame sequences
-- **Preview mode** -- Interactive exploration of the t-parameter space
-- **Visual enhancements** -- Soft shadows, depth of field, and new primitives improve rendering quality regardless of animation approach
+- 14.1 Video output via ffmpeg → **Sprint 17**
+- 14.2 Animation preview / t-scrubbing → **Sprint 17**
+- 14.3 Soft shadows / area lights → **Sprint 15**
+- 14.4 Depth of field / aperture → **Sprint 15**
+- 14.5 New primitives: cylinder, cone, torus → **Sprint 15**
+- 14.6 Coordinate cross / axis visualization → **Sprint 18**
+- 14.7 Documentation → superseded by 14.10 (scoped to caustics + colored shadows only)

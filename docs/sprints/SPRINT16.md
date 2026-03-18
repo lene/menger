@@ -1,83 +1,83 @@
-# Sprint 16: Advanced Geometry
+# Sprint 16: Developer Infrastructure & Website
 
-**Sprint:** 16 - Advanced Geometry
+**Sprint:** 16 - Developer Infrastructure & Website
 **Status:** Not Started
-**Estimate:** ~17 hours
+**Estimate:** ~11 hours
 **Branch:** `feature/sprint-16`
-**Dependencies:** None (16.1-16.4 are independent)
+**Dependencies:** None
 
 ---
 
 ## Goal
 
-Expand the geometry system with 4D cutaways, additional polytopes in 3D and 4D,
-and parametrized surfaces. Establishes the surface infrastructure needed for Sprint 18.
+Improve developer experience through pre-push hook optimisation, documentation refresh,
+CI improvements, a project website, and CUDA version compatibility testing.
 
 ## Success Criteria
 
-- [ ] 4D and 3D sponge cutaways via clipping planes work
-- [ ] Octahedron, dodecahedron, icosahedron available as primitives
-- [ ] 16-cell, 24-cell, and 600-cell available as 4D primitives
-- [ ] Parametrized surfaces in 3D (sphere patches, tori, implicit surfaces) work
-- [ ] User guide geometry section updated
+- [ ] Pre-push hook parallelized with measurable wall-clock improvement
+- [ ] AGENTS.md and developer documentation refreshed
+- [ ] Test coverage improved; Valgrind CI added
+- [ ] Project website live with GitHub/GitLab feedback button
+- [ ] Full test suite verified on CUDA 12 and CUDA 13 via CI Docker images
 - [ ] All tests pass
 
 ---
 
 ## Tasks
 
-### Task 16.1: 4D and 3D Sponge Cutaways
-
-**Estimate:** 3h
-
-Implement clipping-plane geometry to create cross-section views of 3D and 4D Menger
-sponges. Standalone feature; no dependencies.
-
----
-
-### Task 16.2: Additional Polytopes in 3D
-
-**Estimate:** 3h
-
-Add octahedron, dodecahedron, and icosahedron as first-class primitives in the DSL and
-rendering engine, alongside the existing cube/sphere/tetrahedron.
-
----
-
-### Task 16.3: Additional Polytopes in 4D
-
-**Estimate:** 4h
-
-Add 16-cell, 24-cell, and 600-cell as 4D primitives. These are the 4D analogs of the
-octahedron, cuboctahedron, and icosahedron.
-
----
-
-### Task 16.4: Parametrized Surfaces in 3D
-
-**Estimate:** 4h
-
-Infrastructure for rendering parametrized surfaces defined by `f(u, v) → Vec3`.
-Initial implementations: sphere patches, tori, implicit surfaces.
-
-This is a prerequisite for Sprint 18's parametrized 4D surfaces (18.2).
-
----
-
-### Task 16.5: User Guide — Geometry Section
-
-**Estimate:** 1h
-
-Update USER_GUIDE.md with documentation for all new geometry primitives and the
-parametrized surface API.
-
----
-
-### Task 16.6: Documentation
+### Task 16.1: Optimise Pre-Push Hook
 
 **Estimate:** 2h
 
-Sprint retrospective, CHANGELOG.md update, and example scenes for new geometry.
+Analyze pre-push hook bottlenecks and parallelize where possible. Target: measurable
+reduction in wall-clock time for a typical push.
+
+#### Approach
+
+- Profile current hook execution to identify slowest steps
+- Parallelize independent checks (compile, lint, test suites)
+- Document the parallelization approach for future maintainers
+
+---
+
+### Task 16.2: Developer Documentation & AGENTS.md Refresh
+
+**Estimate:** 2h
+
+Update AGENTS.md with better instructions for:
+- Updating documentation and changelog
+- Monitoring CI pipelines after push
+- Using `glab` for GitLab operations
+- Sprint lifecycle and commit conventions
+
+---
+
+### Task 16.3: Test Coverage + Valgrind CI Improvements
+
+**Estimate:** 2h
+
+Analyze current test coverage, add tests where coverage is thin, and add Valgrind
+standalone test verification to CI pipeline.
+
+---
+
+### Task 16.4: Project Website with Feedback Button
+
+**Estimate:** 3h
+
+Create a project website (static, hosted on GitLab Pages or GitHub Pages) with:
+- Project overview and example renders
+- Feedback button that opens a pre-filled GitHub/GitLab issue
+
+---
+
+### Task 16.5: Test on CUDA 12 and 13
+
+**Estimate:** 2h
+
+Add CI Docker images for CUDA 12 and CUDA 13, run the full test suite on both.
+Document any version-specific workarounds.
 
 ---
 
@@ -85,21 +85,20 @@ Sprint retrospective, CHANGELOG.md update, and example scenes for new geometry.
 
 | Task | Description | Estimate | Dependencies |
 |------|-------------|----------|--------------|
-| 16.1 | 4D and 3D sponge cutaways | 3h | None |
-| 16.2 | Polytopes in 3D | 3h | None |
-| 16.3 | Polytopes in 4D | 4h | None |
-| 16.4 | Parametrized surfaces in 3D | 4h | None |
-| 16.5 | User guide: geometry | 1h | 16.1–16.4 |
-| 16.6 | Documentation | 2h | All |
-| **Total** | | **~17h** | |
+| 16.1 | Optimise pre-push hook | 2h | None |
+| 16.2 | Developer docs + AGENTS.md refresh | 2h | None |
+| 16.3 | Test coverage + Valgrind CI | 2h | None |
+| 16.4 | Project website with feedback button | 3h | None |
+| 16.5 | Test on CUDA 12 + 13 | 2h | None |
+| **Total** | | **~11h** | |
 
 ---
 
 ## Definition of Done
 
 - [ ] All success criteria met
-- [ ] All tests passing
+- [ ] All tests passing (including CUDA 12 + 13)
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
-- [ ] USER_GUIDE.md geometry section updated
-- [ ] Example scenes created for each new primitive
+- [ ] Developer documentation updated
+- [ ] Website deployed and accessible

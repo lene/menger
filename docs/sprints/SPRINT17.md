@@ -1,140 +1,194 @@
-# Sprint 17: Textures & Backgrounds
+# Sprint 17: Animation Tooling & DSL
 
-**Sprint:** 17 - Textures & Backgrounds
+**Sprint:** 17 - Animation Tooling & DSL
 **Status:** Not Started
-**Estimate:** ~17 hours
+**Estimate:** ~19 hours
 **Branch:** `feature/sprint-17`
-**Dependencies:** Sprint 13 (13.1 — Plane materials, optional), Sprint 16 (16.4 — for PBR maps on surfaces)
-
-> **MILESTONE: v0.7 — Textures & Backgrounds**
+**Dependencies:** Sprint 12 (t-Parameter Animation), Sprint 14 (video/preview deferred here)
 
 ---
 
 ## Goal
 
-Add environment backgrounds, procedural textures, and PBR texture maps. Establishes
-the procedural texture infrastructure that enables wood/marble textures and the sponge
-XYZ→RGB effect.
+Add video output, animation preview, and DSL convenience helpers for animation and scene
+composition. Plain Scala in `scene(t)` already serves as the animation DSL — this sprint
+adds convenience helpers, tooling, and the video/preview pipeline deferred from Sprint 14.
 
 ## Success Criteria
 
-- [ ] Background images / environment maps / skybox supported
-- [ ] Procedural texture infrastructure in shaders (CUDA/OptiX)
-- [ ] Wood, marble, and noise procedural textures available
-- [ ] Sponge XYZ→RGB procedural texture works
-- [ ] PBR normal and roughness maps supported
-- [ ] Tested on both CUDA 12 and CUDA 13 via CI Docker images
-- [ ] USER_GUIDE.md materials/textures section updated
+- [ ] Video output via ffmpeg: MP4 and WebM from frame sequences
+- [ ] CLI: `--video output.mp4` to render and encode in one step
+- [ ] Animation preview mode with interactive t scrubbing
+- [ ] DSL supports setting window width, height, saveName, and headless mode
+- [ ] Scene composition helpers available in DSL (SceneBuilder utilities)
+- [ ] Procedural placement helpers available in DSL
+- [ ] Bezier/spline camera path utility implemented as pure Scala helper
+- [ ] Runtime DSL scene evaluation works (not just compile-time)
+- [ ] Animation export/import (JSON format for t-param frame configs)
 - [ ] All tests pass
 
 ---
 
 ## Tasks
 
-### Task 17.1: Background Images / Environment Maps / Skybox
-
-**Estimate:** 3h
-
-Support for image-based backgrounds:
-- HDR environment maps for image-based lighting
-- Skybox cube maps
-- Simple background images (fallback for miss rays)
-
----
-
-### Task 17.2: Procedural Texture Infrastructure
+### Task 17.1: Video Output via ffmpeg
 
 **Estimate:** 4h
 
-Shader-side infrastructure for procedural textures:
-- Texture coordinate generation (UV, triplanar, world-space)
-- Noise functions (Perlin, Worley/cellular)
-- Compositing utilities
+Wrap frame sequences produced by `AnimatedOptiXEngine` into video files using ffmpeg.
 
-This is a prerequisite for 17.3 and 17.4.
+#### Proposed CLI
+
+```bash
+# Render animation directly to MP4
+menger --optix --scene examples.dsl.OrbitingSphere \
+  --frames 120 --start-t 0 --end-t 6.28 \
+  --video orbit.mp4
+
+# Render animation directly to WebM
+menger --optix --scene examples.dsl.OrbitingSphere \
+  --frames 120 --start-t 0 --end-t 6.28 \
+  --video orbit.webm --video-quality 28
+```
+
+#### Implementation
+
+- `VideoEncoder` class wrapping ffmpeg via `ProcessBuilder`
+- Detect ffmpeg availability at startup
+- Support MP4 (H.264) and WebM (VP9) based on file extension
+- Configurable quality (CRF value)
+- Clean up temporary frame files after encoding (optional `--keep-frames`)
+- Progress reporting during encoding
+
+#### Files to Create
+
+- `menger-app/src/main/scala/menger/engines/VideoEncoder.scala`
+
+#### Files to Modify
+
+- `menger-app/src/main/scala/menger/MengerCLIOptions.scala` — add `--video`, `--video-quality`, `--video-fps`, `--keep-frames`
+- `menger-app/src/main/scala/menger/cli/CliValidation.scala` — validate video options
+- `menger-app/src/main/scala/menger/engines/AnimatedOptiXEngine.scala` — invoke VideoEncoder after all frames rendered
 
 ---
 
-### Task 17.3: Wood, Marble, Noise Procedural Textures
-
-**Estimate:** 2h
-
-Implement wood grain, marble vein, and pure-noise procedural textures using the
-infrastructure from 17.2. Available in DSL as material parameters.
-
-**Depends on:** 17.2
-
----
-
-### Task 17.4: Sponge XYZ→RGB Procedural Texture
-
-**Estimate:** 1h
-
-Map the 3D position of sponge geometry to RGB color (x→R, y→G, z→B or similar),
-creating a colorful cross-section visualization.
-
-**Depends on:** 17.2
-
----
-
-### Task 17.5: PBR Texture Maps (Normal + Roughness)
+### Task 17.2: Animation Preview Mode
 
 **Estimate:** 3h
 
-Support image-based normal maps and roughness maps for PBR materials.
-Requires texture sampling infrastructure.
+Interactive mode where the user can scrub through t values in real-time using keyboard/mouse.
+
+#### Proposed UX
+
+```bash
+menger --optix --scene examples.dsl.OrbitingSphere --preview
+```
+
+- Left/Right arrow keys: step t by 0.01
+- Shift+Left/Right: step t by 0.1
+- Home/End: jump to start-t / end-t
+- Space: play/pause automatic t sweep
+- Mouse scroll: fine-tune t value
+- On-screen display: current t value, frame number
+
+#### Files to Create
+
+- `menger-app/src/main/scala/menger/engines/PreviewOptiXEngine.scala`
+
+#### Files to Modify
+
+- `menger-app/src/main/scala/menger/input/OptiXKeyHandler.scala` — add preview key bindings
+- `menger-app/src/main/scala/Main.scala` — wire --preview option
+- `menger-app/src/main/scala/menger/MengerCLIOptions.scala` — add `--preview`
 
 ---
 
-### Task 17.6: Test on CUDA 12 and 13
+### Task 17.3: DSL Window/Output Settings
 
 **Estimate:** 2h
 
-Add CI Docker images for CUDA 12 and CUDA 13, run the full test suite on both.
-Document any version-specific workarounds.
+Add `width`, `height`, `saveName`, and `headless` to the DSL configuration API
+(currently CLI-only).
 
 ---
 
-### Task 17.7: User Guide — Materials & Textures Section
+### Task 17.4: Scene Composition Helpers
 
 **Estimate:** 2h
 
-Update USER_GUIDE.md with:
-- Environment map / skybox setup
-- Procedural texture usage and parameters
-- PBR texture map pipeline
+Add `SceneBuilder` utilities for common scene construction patterns (grouping, instancing,
+positioning).
+
+---
+
+### Task 17.5: Procedural Placement Helpers in DSL
+
+**Estimate:** 2h
+
+Add helpers for procedural object placement (grids, rings, spirals, random distributions).
+
+---
+
+### Task 17.6: Bezier/Spline Camera Path Utility
+
+**Estimate:** 2h
+
+Pure Scala helper (no engine changes) for building smooth camera paths as a function of `t`.
+Useful with the existing `scene(t)` animation system.
+
+---
+
+### Task 17.7: Runtime DSL Scene Evaluation
+
+**Estimate:** 2h
+
+Allow scenes to be evaluated at runtime (not just compiled in). Enables hot-reload and
+interactive iteration without recompiling.
+
+---
+
+### Task 17.8: Animation Export/Import (JSON)
+
+**Estimate:** 2h
+
+JSON format for saving/loading t-parameter frame configurations (frame count, range, output
+paths). Enables repeatable animation runs from config files.
 
 ---
 
 ## Summary
 
-| Task | Description | Estimate | Dependencies |
-|------|-------------|----------|--------------|
-| 17.1 | Background / environment maps / skybox | 3h | None |
-| 17.2 | Procedural texture infrastructure | 4h | None |
-| 17.3 | Wood, marble, noise textures | 2h | 17.2 |
-| 17.4 | Sponge XYZ→RGB texture | 1h | 17.2 |
-| 17.5 | PBR normal + roughness maps | 3h | None |
-| 17.6 | Test on CUDA 12 + 13 | 2h | None |
-| 17.7 | User guide: materials/textures | 2h | All |
-| **Total** | | **~17h** | |
+| Task | Description | Estimate |
+|------|-------------|----------|
+| 17.1 | Video output via ffmpeg | 4h |
+| 17.2 | Animation preview / t-scrubbing | 3h |
+| 17.3 | DSL window/output settings | 2h |
+| 17.4 | Scene composition helpers | 2h |
+| 17.5 | Procedural placement helpers | 2h |
+| 17.6 | Bezier/spline camera path utility | 2h |
+| 17.7 | Runtime DSL evaluation | 2h |
+| 17.8 | Animation export/import (JSON) | 2h |
+| **Total** | | **~19h** |
 
 ---
 
 ## Definition of Done
 
 - [ ] All success criteria met
-- [ ] All tests passing on CUDA 12 and CUDA 13
+- [ ] All tests passing
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
-- [ ] USER_GUIDE.md materials/textures section updated
-- [ ] Example renders showing procedural textures and environment maps
+- [ ] USER_GUIDE.md updated (video output guide, animation preview, new DSL helpers)
 
 ---
 
-## Dependency Notes
+## Notes
 
-- 17.3 and 17.4 depend on 17.2 (procedural texture infrastructure)
-- 17.5 (PBR maps) can be worked on independently
-- 17.1 (backgrounds) is independent
-- Plane normal/roughness maps (noted in plan as "Sprint 17") follow from 13.1 (plane materials)
+### Background
+
+Tasks 17.1 and 17.2 were deferred from Sprint 14 to keep that sprint focused on rendering
+correctness. Tasks 17.3–17.8 complete the DSL convenience work originally planned for
+Sprint 15, merging deferred Sprint 10 DSL work with the animation pipeline additions.
+
+The t-parameter animation system (Sprint 12) eliminated the need for a separate
+animation DSL — `scene(t)` is the DSL. This sprint adds ergonomic helpers on top.

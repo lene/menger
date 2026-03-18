@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-18
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -28,24 +28,6 @@ The DSL example scenes list (section 7.6) does not include `MixedMetallicShowcas
 added in Sprint 13. The integration tests (`test_dsl_scenes`) and the manual test script
 (`interactive_tests`) both include it. The USER_GUIDE list is the canonical reference and should
 stay in sync.
-
----
-
-### L-roadmap-stale-date — ROADMAP.md "Last Updated" not refreshed in Sprint 13
-**Location:** `ROADMAP.md` line 3
-**Est. Effort:** 0.05h
-ROADMAP.md carries `**Last Updated:** 2026-03-07` but was modified during Sprint 13 (2026-03-12)
-to mark Sprint 13 complete and add Sprint 14 task 14.8. The date should be updated when the
-file changes.
-
----
-
-### L-arc42-test-count-stale — arc42 section 11.4 monitoring threshold is stale
-**Location:** `docs/arc42/11-risks-and-technical-debt.md` section 11.4 Monitoring
-**Est. Effort:** 0.1h
-The monitoring table reads "Test count | CI | < 1091 (regression)". The project now has 1683+
-tests. The regression threshold should be updated to reflect the current baseline; otherwise CI
-would not alert until the count fell below an already-obsolete floor.
 
 ---
 

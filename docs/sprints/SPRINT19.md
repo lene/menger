@@ -1,83 +1,98 @@
-# Sprint 19: Higher-Dimensional Fractal Analogs
+# Sprint 19: Materials, Textures & Backgrounds
 
-**Sprint:** 19 - Higher-Dimensional Fractal Analogs
+**Sprint:** 19 - Materials, Textures & Backgrounds
 **Status:** Not Started
-**Estimate:** ~16 hours
+**Estimate:** ~15 hours
 **Branch:** `feature/sprint-19`
-**Dependencies:** Sprint 16 (16.1 — sponge cutaways), Sprint 18 (18.1 — GPU 4D math)
+**Dependencies:** Sprint 13 (13.1 — Plane materials, optional), Sprint 18 (18.3 — for PBR maps on surfaces)
+
+> **MILESTONE: v0.7 — Textures & Backgrounds**
 
 ---
 
 ## Goal
 
-Implement Menger sponge and Sierpinski tetrahedron analogs in 4D and higher dimensions.
-Promoted from long-term backlog after the GPU 4D infrastructure in Sprint 18 makes this
-tractable.
+Add environment backgrounds, procedural textures, and PBR texture maps. Establishes
+the procedural texture infrastructure that enables wood/marble textures and the sponge
+XYZ→RGB effect.
 
 ## Success Criteria
 
-- [ ] 4D Menger sponge analog renders correctly via GPU 4D math
-- [ ] Higher-dimensional Sierpinski tetrahedron analogs work
-- [ ] 3D Menger cutaway visualization tools available (depends on 16.1)
-- [ ] Interactive parameter space exploration for fractal parameters
+- [ ] Background images / environment maps / skybox supported
+- [ ] Procedural texture infrastructure in shaders (CUDA/OptiX)
+- [ ] Wood, marble, and noise procedural textures available
+- [ ] Sponge XYZ→RGB procedural texture works
+- [ ] PBR normal and roughness maps supported
+- [ ] USER_GUIDE.md materials/textures section updated
 - [ ] All tests pass
 
 ---
 
 ## Tasks
 
-### Task 19.1: 4D Menger Sponge Analog
-
-**Estimate:** 5h
-
-A 4D analog of the Menger sponge, using the GPU 4D transform infrastructure from 18.1.
-Rendered as a 3D cross-section at varying 4D rotation angles.
-
-**Depends on:** 18.1 (GPU 4D math)
-
----
-
-### Task 19.2: Higher-Dimensional Sierpinski Tetrahedron Analogs
-
-**Estimate:** 4h
-
-Sierpinski tetrahedron analogs in 4D (and higher if feasible), using the same GPU
-infrastructure as 19.1.
-
-**Depends on:** 18.1 (GPU 4D math)
-
----
-
-### Task 19.3: 3D Menger Cutaway Visualization Tools
+### Task 19.1: Background Images / Environment Maps / Skybox
 
 **Estimate:** 3h
 
-User-facing tools for exploring 3D Menger sponge cross-sections via clipping planes,
-building on the cutaway infrastructure from 16.1.
-
-**Depends on:** 16.1 (sponge cutaways)
-
----
-
-### Task 19.4: Interactive Parameter Space Exploration
-
-**Estimate:** 2h
-
-Allow real-time or animation-based exploration of fractal parameters:
-- Fractal level (depth)
-- 4D rotation angle(s)
-- Cross-section position
-
-Using the existing `scene(t)` animation system.
+Support for image-based backgrounds:
+- HDR environment maps for image-based lighting
+- Skybox cube maps
+- Simple background images (fallback for miss rays)
 
 ---
 
-### Task 19.5: Documentation
+### Task 19.2: Procedural Texture Infrastructure
+
+**Estimate:** 4h
+
+Shader-side infrastructure for procedural textures:
+- Texture coordinate generation (UV, triplanar, world-space)
+- Noise functions (Perlin, Worley/cellular)
+- Compositing utilities
+
+This is a prerequisite for 19.3 and 19.4.
+
+---
+
+### Task 19.3: Wood, Marble, Noise Procedural Textures
 
 **Estimate:** 2h
 
-Sprint retrospective, CHANGELOG.md update, and user guide section on higher-dimensional
-fractal analogs.
+Implement wood grain, marble vein, and pure-noise procedural textures using the
+infrastructure from 19.2. Available in DSL as material parameters.
+
+**Depends on:** 19.2
+
+---
+
+### Task 19.4: Sponge XYZ→RGB Procedural Texture
+
+**Estimate:** 1h
+
+Map the 3D position of sponge geometry to RGB color (x→R, y→G, z→B or similar),
+creating a colorful cross-section visualization.
+
+**Depends on:** 19.2
+
+---
+
+### Task 19.5: PBR Texture Maps (Normal + Roughness)
+
+**Estimate:** 3h
+
+Support image-based normal maps and roughness maps for PBR materials.
+Requires texture sampling infrastructure.
+
+---
+
+### Task 19.6: User Guide — Materials & Textures Section
+
+**Estimate:** 2h
+
+Update USER_GUIDE.md with:
+- Environment map / skybox setup
+- Procedural texture usage and parameters
+- PBR texture map pipeline
 
 ---
 
@@ -85,12 +100,13 @@ fractal analogs.
 
 | Task | Description | Estimate | Dependencies |
 |------|-------------|----------|--------------|
-| 19.1 | 4D Menger sponge analog | 5h | 18.1 |
-| 19.2 | Higher-dim Sierpinski analogs | 4h | 18.1 |
-| 19.3 | 3D Menger cutaway tools | 3h | 16.1 |
-| 19.4 | Interactive parameter exploration | 2h | 19.1, 19.2 |
-| 19.5 | Documentation | 2h | All |
-| **Total** | | **~16h** | |
+| 19.1 | Background / environment maps / skybox | 3h | None |
+| 19.2 | Procedural texture infrastructure | 4h | None |
+| 19.3 | Wood, marble, noise textures | 2h | 19.2 |
+| 19.4 | Sponge XYZ→RGB texture | 1h | 19.2 |
+| 19.5 | PBR normal + roughness maps | 3h | None |
+| 19.6 | User guide: materials/textures | 2h | All |
+| **Total** | | **~15h** | |
 
 ---
 
@@ -100,15 +116,15 @@ fractal analogs.
 - [ ] All tests passing
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
-- [ ] Example renders of 4D fractal cross-sections
+- [ ] USER_GUIDE.md materials/textures section updated
+- [ ] Example renders showing procedural textures and environment maps
 
 ---
 
-## Notes
+## Dependency Notes
 
-### Long-Term Backlog (Sprint 20+)
-
-Items that depend on this sprint or extend it further:
-- L-systems in 3D and 4D
-- Rotopes (higher-dimensional geometry via rotation of lower-dimensional shapes)
-- Stereoscopic 3D rendering
+- 19.3 and 19.4 depend on 19.2 (procedural texture infrastructure)
+- 19.5 (PBR maps) can be worked on independently
+- 19.1 (backgrounds) is independent
+- Plane normal/roughness maps (noted in plan as "Sprint 19") follow from 13.1 (plane materials)
+- CUDA 12 + 13 CI testing moved to Sprint 16
