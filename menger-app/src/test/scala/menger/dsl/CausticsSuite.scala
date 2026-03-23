@@ -10,7 +10,7 @@ class CausticsSuite extends AnyFlatSpec with Matchers:
     caustics.enabled shouldBe true
     caustics.photonsPerIteration shouldBe 100000
     caustics.iterations shouldBe 10
-    caustics.initialRadius shouldBe 0.1f
+    caustics.initialRadius shouldBe 1.0f
     caustics.alpha shouldBe 0.7f
 
   it should "be constructible with custom parameters" in:
@@ -56,6 +56,7 @@ class CausticsSuite extends AnyFlatSpec with Matchers:
     caustics.enabled shouldBe true
     caustics.photonsPerIteration shouldBe 500000
     caustics.iterations shouldBe 20
+    caustics.initialRadius shouldBe 1.0f
     caustics.alpha shouldBe 0.8f
 
   "Caustics.toCausticsConfig" should "convert to OptiX CausticsConfig correctly" in:

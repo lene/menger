@@ -117,25 +117,15 @@ constexpr int MAX_PHOTON_BOUNCES = 10;
 
 ## Known Issues
 
-### 1. Brute-Force Photon Deposition (CRITICAL)
+### 1. ~~Brute-Force Photon Deposition~~ ✅ FIXED (Grid Acceleration)
 
-**Location:** `sphere_combined.cu:1239-1270`
-
-```cpp
-// Current implementation - O(n × m) where n=photons, m=hit_points
-for (unsigned int hp_idx = 0; hp_idx < num_hp; hp_idx += 1) {
-    HitPoint& hp = params.caustics.hit_points[hp_idx];
-    // Check distance, deposit if within radius
-}
-```
-
-**Impact:** For 100k photons × 500k hit points = 50 billion distance checks per iteration.
-
-**Solution:** Implement spatial hash grid (structures already defined):
-- `getCausticsGridCell()` - Already implemented
-- `getCausticsGridIndex()` - Already implemented
-- `__caustics_count_grid_cells()` - Already implemented
-- Missing: Grid building pass and grid-accelerated lookup in `depositPhoton()`
+**Fix (2026-03-19):** Implemented grid-accelerated photon deposition.
+- Converted `__caustics_count_grid_cells` to OptiX raygen `__raygen__grid_count`
+- Added `__raygen__grid_scatter` kernel for sorted index building
+- `depositPhoton()` now checks only 3×3×3 cell neighborhood via `grid[]`, `grid_offsets[]`, `grid_counts[]`
+- Cell size = `initial_radius` ensures neighborhood covers gather radius
+- Grid built once after hit point collection (count → CPU prefix sum → scatter)
+- Performance: O(n × 27 × avg_per_cell) instead of O(n × m)
 
 ### 2. Energy Normalization and Scale Factor ⚠️ NEEDS CALIBRATION
 
@@ -271,9 +261,9 @@ Stats accessible via `OptiXRenderer.getCausticsStats()`.
 - `ReferenceMatchSpec.scala` - Image comparison for C8 ✅
 - `ImageComparison.scala` - SSIM implementation ✅
 
-### Remaining Work: Spatial Grid Performance Fix
-- `sphere_combined.cu` - Implement grid-accelerated `depositPhoton()` for O(1) lookup
-- `OptiXWrapper.cpp` - Add grid building pass before photon tracing
+### ~~Remaining Work: Spatial Grid Performance Fix~~ ✅ COMPLETE (2026-03-19)
+- Grid-accelerated `depositPhoton()` implemented in `caustics_ppm.cu`
+- Grid building orchestrated in `CausticsRenderer.cpp`
 
 ## Reference Scene and Image
 
@@ -444,9 +434,14 @@ The kernel `__caustics_update_radii()` was never called by host code, preventing
 at 10K photons × 3 iterations (within 50% tolerance). Further improvement possible with
 grid-accelerated deposition (Step 6, deferred) and higher photon counts.
 
+**Grid acceleration (2026-03-19):**
+Grid-accelerated photon deposition implemented. Converted brute-force O(n×m) deposition to
+grid-based O(n × 27 × avg_per_cell) lookup. Cell size = initial_radius ensures 3×3×3
+neighborhood covers gather radius. Grid built once after hit point collection via count →
+prefix sum → scatter pipeline.
+
 **Remaining work:**
-- Grid-accelerated photon deposition (brute-force O(n×m) limits practical photon counts)
-- 20% reference match target (requires grid acceleration + higher quality settings)
+- 20% reference match target (requires higher quality settings / more photon iterations)
 
 ### Investigation Notes
 

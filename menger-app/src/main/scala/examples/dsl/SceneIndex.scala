@@ -20,6 +20,7 @@ object SceneIndex:
     ReusableComponents.scene,
     TesseractDemo.scene,
     MixedMetallicShowcase.scene,
+    CausticsReference.scene,
   )
 
   /** Animated scene objects (loaded via reflection with def scene(t: Float)). */

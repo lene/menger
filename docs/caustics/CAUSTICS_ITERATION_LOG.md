@@ -125,17 +125,55 @@ Tracking all parameter choices and outcomes to prevent re-doing work after conte
 - **Outcome**: Caustic still massively blown out white ellipse
 - **Issues**: Same as caustics-v1
 
+### caustics-v3: scale=0.3, two directional lights
+- Camera: (0, 0.5, 10), directional (0,-1,0) i=1.0 + (0,1,0) i=0.8
+- caustic_scale: 0.3
+- **Outcome**: Still blown out white ellipse
+
+### caustics-v4: scale=0.01, two directional lights
+- **Outcome**: No visible caustic (too dim). Also floor too dark (second light i=0.8)
+
+### caustics-v5: scale=0.3, directional (0,-1,0) i=0.3 + directional (0,1,0) i=1.0
+- **Outcome**: Still blown out. Directional light i=0.3 still produces too much caustic flux
+
+### caustics-v6: scale=0.01, directional (0,-1,0) i=1.0 + directional (0,1,0) i=0.8
+- **Outcome**: Floor too dark (0.8 intensity directional). Caustic not visible at 0.01.
+
+### caustics-v7: scale=0.1, point light base (CURRENT SETUP)
+- Camera: (0, 1.5, 10), lookAt (0, -0.5, 0)
+- Lights: directional (0,-1,0) i=1.0 (photon emitter) + point (0,10,0) i=180
+- Caustics: HighQuality (500k photons, 20 iter, alpha 0.8)
+- caustic_scale: 0.1
+- **Outcome**: Caustic visible as bright circular area. Still a bit too bright/spread.
+
+### caustics-v8: scale=0.03
+- Same as v7 but caustic_scale=0.03
+- **Outcome**: More subtle caustic with concentric ring pattern. Brightness reasonable.
+  Still more spread out than PBRT's tight focal spot. Good brightness level.
+
 ---
 
 ## Key Findings
 - Camera (0, 4, 8) does NOT work because infinite plane covers all rays (no horizon)
-- Camera (0, 0.5, 10) gives good composition with visible horizon + black background
+- Camera (0, 1.5, 10) gives good composition (committed as base scene)
 - Background Color.Black DOES work — it was hidden by the infinite plane at high camera angles
-- Glass sphere shows no shadow — likely because shadow rays pass through transparent objects
-- caustic_scale = 1.0 is WAY too high, needs significant reduction (try 0.01–0.1)
+- Glass sphere shows no shadow from shadow rays: alpha*(1-color)=0 for white glass.
+  Shadow in PBRT reference IS the caustic effect (light redistribution via BDPT).
+- Point light at (0,10,0) i=180 gives good floor illumination matching PBRT
+- Directional light (0,-1,0) at i=1.0 drives photon emitter (N·L<0 for floor, no shading effect)
+- caustic_scale needs to be ~0.03–0.05 range for reasonable brightness
+- Caustic pattern is too spread out vs PBRT (rings vs tight focal spot) — may need
+  smaller initial radius or more PPM iterations for convergence
+
+### caustics-v9: scale=1.0, grid-accelerated deposition (2026-03-19)
+- Same scene as v7/v8 but with grid-accelerated photon deposition
+- caustic_scale: 1.0 (physics-based, no arbitrary scaling)
+- Grid: 60³ cells, cell_size = initial_radius (0.1), bounds (-3,3)³
+- **Outcome**: Brightness 54% of PBRT reference at 10K × 3 iterations. Passes 50% test.
+  Grid acceleration enables higher photon counts for future quality improvement.
 
 ## Next Steps
-- Investigate missing shadow (glass sphere + shadow rays interaction)
-- Investigate black bottom half of sphere (refraction issue?)
-- Reduce caustic_scale dramatically
-- Adjust floor brightness to match PBRT reference
+- Consider reducing initial_radius to get tighter caustic focus
+- Consider more iterations or photons for better convergence
+- Make caustic_scale configurable (not hardcoded)
+- Target 20% reference match with higher photon counts (now practical with grid)

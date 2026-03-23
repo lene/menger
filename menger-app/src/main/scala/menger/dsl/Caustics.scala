@@ -14,7 +14,7 @@ case class Caustics(
   enabled: Boolean = true,
   photonsPerIteration: Int = 100000,
   iterations: Int = 10,
-  initialRadius: Float = 0.1f,
+  initialRadius: Float = 1.0f,
   alpha: Float = 0.7f
 ):
   require(photonsPerIteration > 0 && photonsPerIteration <= 10000000,
@@ -40,5 +40,6 @@ object Caustics:
   val HighQuality: Caustics = Caustics(
     photonsPerIteration = 500000,
     iterations = 20,
+    initialRadius = 1.0f,
     alpha = 0.8f
   )
