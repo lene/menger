@@ -172,8 +172,47 @@ Tracking all parameter choices and outcomes to prevent re-doing work after conte
 - **Outcome**: Brightness 54% of PBRT reference at 10K × 3 iterations. Passes 50% test.
   Grid acceleration enables higher photon counts for future quality improvement.
 
+### caustics-v10: Gaussian kernel + exponential tone mapping (2026-03-23)
+- Same scene as v9 (grid-accelerated, scale=1.0)
+- **Changes from v9:**
+  1. Gaussian kernel weighting in `depositPhoton()`: sigma = radius/4, weight = exp(-d²/(2*sigma²))
+  2. Exponential tone mapping: `1 - exp(-L * exposure)` with exposure=0.06 (replaced Reinhard)
+  3. Screen blending: `1 - (1-base)*(1-caustic)` (unchanged from v9)
+  4. Removed min radius clamp — natural PPM convergence only
+- **Outcome**: Brightness ratio 38.3% of PBRT reference at 10K × 3 iterations.
+  Gaussian kernel reduces effective energy (distant photons contribute less) but improves
+  visual quality: smoother center-to-edge falloff, no hard cutoff at radius boundary.
+  Exponential tone mapping preserves more contrast than Reinhard in the bright focal center.
+- **Final tuned parameters:**
+  - `caustic_exposure`: 0.06
+  - Tone mapping: exponential `1 - exp(-L * exposure)`
+  - Blending: screen `1 - (1-base)*(1-caustic)`
+  - Gaussian sigma: radius/4 (sigma_sq = radius_sq / 16)
+  - Min radius clamp: none
+  - `initialRadius`: 1.0 (HighQuality preset)
+  - `alpha`: 0.8 (HighQuality preset)
+  - Point light: y=10, intensity=200
+
+## Sphere-Specific Limitations
+
+The current implementation is **heavily sphere-specific**. The refraction physics (Snell's law,
+Fresnel, Beer-Lambert, TIR) is fully general, but geometry handling is hard-coded for a single sphere:
+
+| Component | How it's sphere-specific |
+|-----------|-------------------------|
+| Photon tracing | Manual `intersectSphere()` — does NOT use OptiX ray tracing |
+| Surface normals | `normalize(hit_point - sphere_center)` — only valid for spheres |
+| Photon emission | Importance-sampled cone toward `sphere_center`/`sphere_radius` |
+| IOR | Global `params.sphere_ior` — single value for one sphere |
+| Absorption | Reads from global `params.sphere_color` |
+| Refraction guard | `hit_sphere` boolean — assumes one refracting object |
+| Grid bounds | Hard-coded +/-3.0 |
+
+Generalizing to arbitrary geometry would require: OptiX-traced photon rays, per-instance
+material lookup, generalized photon emission targeting all glass objects, dynamic grid bounds.
+This would be a significant refactor (future sprint). The physics core wouldn't change.
+
 ## Next Steps
-- Consider reducing initial_radius to get tighter caustic focus
-- Consider more iterations or photons for better convergence
-- Make caustic_scale configurable (not hardcoded)
 - Target 20% reference match with higher photon counts (now practical with grid)
+- Consider generalizing beyond sphere-specific geometry (future sprint)
+- Consider per-instance material lookup for multi-object scenes

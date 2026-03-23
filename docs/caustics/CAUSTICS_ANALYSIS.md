@@ -127,17 +127,13 @@ constexpr int MAX_PHOTON_BOUNCES = 10;
 - Grid built once after hit point collection (count → CPU prefix sum → scatter)
 - Performance: O(n × 27 × avg_per_cell) instead of O(n × m)
 
-### 2. Energy Normalization and Scale Factor ⚠️ NEEDS CALIBRATION
+### 2. ~~Energy Normalization and Scale Factor~~ ✅ RESOLVED (Tone Mapping)
 
-**Location:** `sphere_combined.cu:1612`
-
-```cpp
-const float caustic_scale = 10000.0f;  // TEMPORARY - for visibility
-```
-
-**Status (2025-11-24):**
-- **Target value:** 1.0 (physics-based, no arbitrary scaling)
-- **Current value:** 10000 (temporary exaggeration to make caustics visible)
+**Status (2026-03-23):**
+- **Scale factor removed** — physics-based rendering with no arbitrary scaling
+- **Tone mapping:** Exponential `1 - exp(-L * exposure)` with exposure=0.06
+- **Blending:** Screen blend `1 - (1-base)*(1-caustic)` for natural compositing
+- **Gaussian kernel:** sigma=radius/4 weights photons by distance for smooth falloff
 - **No double-normalization bug:** Investigation confirmed energy flow is correct
 
 **Energy Flow Analysis:**
@@ -440,8 +436,14 @@ grid-based O(n × 27 × avg_per_cell) lookup. Cell size = initial_radius ensures
 neighborhood covers gather radius. Grid built once after hit point collection via count →
 prefix sum → scatter pipeline.
 
+**Tuning session (2026-03-23):**
+Applied Gaussian kernel weighting (sigma=radius/4), exponential tone mapping (exposure=0.06),
+and removed min radius clamp. Brightness ratio dropped from 54% to 38.3% due to Gaussian
+weighting reducing effective energy, but visual quality improved: smoother falloff, better contrast.
+
 **Remaining work:**
 - 20% reference match target (requires higher quality settings / more photon iterations)
+- Generalize beyond sphere-specific geometry (future sprint — see CAUSTICS_ITERATION_LOG.md)
 
 ### Investigation Notes
 
