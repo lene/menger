@@ -1,6 +1,6 @@
 # Menger User Guide
 
-**Version**: 0.5.3
+**Version**: 0.5.4
 **Last Updated**: March 2026
 
 Welcome to the Menger User Guide! This comprehensive guide will help you install, use, and master the Menger 3D/4D visualization and ray tracing tool.
@@ -739,9 +739,10 @@ sbt "run --optix \
 attenuates each RGB channel of the light independently. A red sphere with alpha 0.6 passes
 100% of the red channel but only 40% of green and blue, creating a red-tinted shadow.
 
-**Limitation (Phase 1):** Only the closest transparent object along each shadow ray
-contributes color. Multiple overlapping transparent objects are treated as one (multi-object
-accumulation is planned for a future sprint).
+**Multi-object accumulation (Phase 2):** Shadow rays accumulate color tinting through all
+transparent objects multiplicatively. Two overlapping glass spheres — one red, one blue — cast
+a combined purple shadow. An opaque object behind them still casts a fully dark shadow
+(the opaque closest-hit overwrites the accumulated tint).
 
 #### Default Lighting
 
