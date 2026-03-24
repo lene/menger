@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-03-18
+**Last Updated:** 2026-03-24
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -108,30 +108,6 @@ a meaningful assertion (e.g., minimum expected spread when film is active) or co
 
 ---
 
-### L-cyl-literals — Raw 255.0f/255.99f literals in cylinder fallback path
-**Location:** `hit_cylinder.cu`
-**Est. Effort:** 0.25h
-The diffuse fallback path uses unnamed literals. Named constants `COLOR_SCALE_FACTOR` /
-`COLOR_BYTE_MAX` exist elsewhere in the codebase and should be used here.
-
----
-
-### L-cyl-film — Cylinder thin-film silently skipped without comment
-**Location:** `hit_cylinder.cu`
-**Est. Effort:** 0.1h
-The shader retrieves `film_thickness` via `getInstanceMaterialPBR()` but never uses it (no
-thin-film branch exists for the diffuse-only cylinder shader). This known limitation should be
-documented with a comment so future developers understand the behaviour.
-
----
-
-### L-cyl-optb — OPTION B comment implies unresolved design decision
-**Location:** `hit_cylinder.cu`
-**Est. Effort:** 0.1h
-Should either document what OPTION A was and why it was rejected, or drop the "OPTION B" framing.
-
----
-
 ### L-stale-new-comment — "// NEW" comment in hit_triangle.cu
 **Location:** `hit_triangle.cu:124`
 **Est. Effort:** 0.05h
@@ -152,13 +128,6 @@ that are never used. Remove or mark with a clear "reserved for future" ifdef.
 **Location:** `OptiXData.h:46`
 **Est. Effort:** 0.05h
 Defined but never referenced. Remove.
-
----
-
-### L-caustic-scale — Hardcoded caustic_scale = 1.0f
-**Location:** `caustics_ppm.cu:866`
-**Est. Effort:** 0.25h
-Comment says "adjust". Should be a named constant or configurable parameter.
 
 ---
 
@@ -197,6 +166,26 @@ comma-separated floats with similar error-handling boilerplate. A shared
 
 ---
 
+### L-caustics-docstring-order — setShadowPayload docstring misplaced above wrong function
+**Location:** `helpers.cu` lines ~20–31
+**Est. Effort:** 0.1h
+The `/** Set shadow ray payload... */` docblock describing `setShadowPayload` appears immediately
+before `accumulateShadowAttenuation`, not above `setShadowPayload` (line 58). The two functions
+are in the wrong order relative to their docstrings, so readers see the wrong doc for the first
+function they encounter. Swap the functions or move the docstring.
+
+---
+
+### L-caustics-duplicate-config — CausticsConfig and dsl.Caustics duplicate fields and validation
+**Location:** `optix-jni/.../RenderConfig.scala` and `menger-app/.../dsl/Caustics.scala`
+**Est. Effort:** 0.5h
+Both case classes carry identical fields (`photonsPerIteration`, `iterations`, `initialRadius`,
+`alpha`) and the same `require` guards. The `Caustics.toCausticsConfig` bridge means any change
+to limits must be made in two places. Consider extracting validation constants to a shared object
+or letting the DSL type own the constraints and stripping them from `CausticsConfig`.
+
+---
+
 ### L-userguide-ior-flag-stale — Sections 6.2 and caustics tutorial use removed --ior flag
 **Location:** `docs/USER_GUIDE.md` section 6.2 (lines ~628–631), caustics tutorial (~line 1045)
 **Est. Effort:** 0.1h
@@ -228,6 +217,6 @@ Issues that were investigated and consciously accepted:
 | M11: Input controller mutable state | Well-structured; encapsulation adds complexity without benefit |
 | L11: Exceptions in CudaBuffer (CudaBuffer.h:77,89) | Correct pattern at JNI boundaries |
 | OptiX cache management | Works correctly |
-| Caustics algorithm limitations | Deferred to future sprint |
+| Caustics algorithm limitations | Resolved in Sprint 14 (PPM implemented; remaining limits documented in USER_GUIDE §7.3) |
 | L-film-blend: blendFresnelColorsRGBAndSetPayload duplicates scalar body | GPU perf trade-off; acceptable if documented |
 | OptiX DSL runtime evaluation | Deferred (Sprint 15) |

@@ -613,6 +613,7 @@ BuildDeployable:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: build
   needs: []
+  timeout: 15m
   tags:
     - nvidia
   rules:

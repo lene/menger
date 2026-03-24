@@ -39,21 +39,11 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 11 | LibGDX Wrapper & Thin-Film Interference | Complete | [docs/sprints/](docs/sprints/) |
 | 12 | t-Parameter Animation System | Complete | [docs/sprints/SPRINT12.md](docs/sprints/SPRINT12.md) |
 | 13 | Visual Quality & Material Enhancements | Complete | [docs/sprints/SPRINT13.md](docs/sprints/SPRINT13.md) |
+| 14 | Rendering Correctness & Code Health | Complete | [docs/sprints/SPRINT14.md](docs/sprints/SPRINT14.md) |
 
 ---
 
 ## Planned Sprints
-
-### Sprint 14: Rendering Correctness & Code Health (~16–25h)
-
-**Goal:** Code quality improvements, caustics, and multi-object colored shadow accumulation
-
-- **14.0** Code quality: OptiXEngine refactor below 400-line guideline (4–6h)
-- **14.8** Colored shadows Phase 2: multi-object anyhit accumulation (4–8h, TD-6)
-- **14.9** Caustics: revisit PPM algorithm, fix or document root cause (4–8h, TD-4)
-- **14.10** Documentation for caustics + colored shadows (1h)
-
-See [docs/sprints/SPRINT14.md](docs/sprints/SPRINT14.md)
 
 ### Sprint 15: Visual Enhancements & Primitives (~10.5h)
 

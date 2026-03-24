@@ -1,14 +1,14 @@
 # Current Sprint
 
-**Sprint:** 14 - Video Output & Visual Enhancements
+**Sprint:** 15 - Visual Enhancements & Primitives
 **Status:** Not Started
-**Branch:** `feature/sprint-14`
+**Branch:** `feature/sprint-15`
 
 ---
 
 ## Goal
 
-See [SPRINT14.md](SPRINT14.md) for detailed task breakdown and implementation plan.
+See [SPRINT15.md](SPRINT15.md) for detailed task breakdown and implementation plan.
 
 ---
 
