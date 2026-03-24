@@ -1,23 +1,23 @@
-# Sprint 15: Visual Enhancements & Primitives
+# Sprint 15: Visual Enhancements & Parametric Geometry
 
-**Sprint:** 15 - Visual Enhancements & Primitives
+**Sprint:** 15 - Visual Enhancements & Parametric Geometry
 **Status:** Not Started
-**Estimate:** ~10.5 hours
+**Estimate:** ~13 hours
 **Branch:** `feature/sprint-15`
-**Dependencies:** Sprint 14 (rendering correctness baseline)
+**Dependencies:** Sprint 14 (rendering correctness baseline, caustics PPM foundation)
 
 ---
 
 ## Goal
 
-Add soft shadows with area lights, depth of field, and additional geometric primitives
-(cylinder, cone, torus) to enrich scene composition and visual quality.
+Add soft shadows with area lights, a general parametric surface infrastructure, and extend
+caustics to work with complex geometry beyond spheres.
 
 ## Success Criteria
 
 - [ ] Soft shadows with area lights (penumbra visible)
-- [ ] Depth of field (camera aperture, bokeh)
-- [ ] Additional primitives: cylinder, cone, torus available in DSL
+- [ ] Parametrized surfaces `f(u,v) → Vec3` renderable in DSL and OptiX
+- [ ] Caustics work correctly for parametric geometry (not just spheres)
 - [ ] Documentation and examples updated
 - [ ] All tests pass
 
@@ -38,6 +38,18 @@ Replace point/directional lights with area lights that produce penumbra (soft sh
 - Configurable shadow samples (default: 4, max: 16)
 - CLI: `--shadow-samples N`
 
+#### Interaction with Colored Shadows
+
+Area lights cast multiple shadow rays per pixel. Each ray independently accumulates
+transparent attenuation through the existing anyhit program chain. The final shadow
+contribution is the average of all per-ray attenuations. This means:
+
+- Colored shadow tinting is preserved under area lights
+- The anyhit accumulation path (`accumulateShadowAttenuation`) is unchanged
+- Performance cost: O(shadow_samples) anyhit evaluations per lit surface point
+- **Spec alignment required before implementation:** confirm averaging strategy
+  (per-channel average vs. per-ray boolean then average) with user before starting.
+
 #### Files to Modify
 
 - `menger-app/src/main/scala/menger/dsl/Light.scala` — add `AreaLight` case
@@ -46,78 +58,88 @@ Replace point/directional lights with area lights that produce penumbra (soft sh
 
 ---
 
-### Task 15.2: Depth of Field
+### Task 15.2: Parametrized Surfaces in 3D
 
-**Estimate:** 3h
+**Estimate:** 4h
 
-Camera aperture simulation producing bokeh (out-of-focus blur).
-
-#### CLI
-
-```bash
-menger --optix --aperture 0.1 --focus-distance 5.0
-```
-
-#### Implementation
-
-- Jitter camera ray origins within aperture disk
-- Focus plane at specified distance
-- Multiple samples per pixel (reuse AA infrastructure)
-- Configurable aperture size and focus distance
-
-#### Files to Modify
-
-- `optix-jni/src/main/native/shaders/raygen_primary.cu` — add aperture jitter
-- `menger-app/src/main/scala/menger/MengerCLIOptions.scala` — add `--aperture`, `--focus-distance`
-
----
-
-### Task 15.3: Additional Primitives: Cylinder, Cone, Torus
-
-**Estimate:** 3h
-
-Add cylinder, cone, and torus geometry types for richer scene composition.
+Infrastructure for rendering parametric surfaces defined by `f(u, v) → Vec3`.
+Cylinder, cone, torus, sphere patches, and implicit surfaces can all be expressed
+this way — no separate DSL types needed at this stage.
 
 #### DSL Syntax
 
 ```scala
 Scene(
   objects = List(
-    Cylinder(pos = (0f, 0f, 0f), radius = 0.5f, height = 2f, material = Material.Chrome),
-    Cone(pos = (2f, 0f, 0f), radius = 0.5f, height = 1.5f, material = Material.Gold),
-    Torus(pos = (-2f, 0f, 0f), majorRadius = 1f, minorRadius = 0.3f, material = Material.Glass)
-  ),
-  // ...
+    ParametricSurface(
+      f = (u, v) => Vec3(cos(u) * sin(v), sin(u) * sin(v), cos(v)),  // sphere
+      uRange = (0f, 2f * Pi),
+      vRange = (0f, Pi),
+      uSteps = 64,
+      vSteps = 32,
+      material = Material.Glass
+    )
+  )
 )
 ```
 
 #### Implementation
 
-- Triangle mesh generation for each primitive
-- Parametric UV coordinates for texturing
-- Normal computation for smooth shading
-- Integration with existing scene builder system
+- `f(u, v) → Vec3` evaluated on CPU, tessellated to triangle mesh
+- UV coordinates passed through for future texturing
+- Normal computation: cross product of partial derivatives
+- Integration with existing triangle mesh / IAS scene builder
 
-#### Files to Create
+#### Files to Create / Modify
 
-- `menger-app/src/main/scala/menger/dsl/Cylinder.scala` (or extend SceneObject)
-- `menger-app/src/main/scala/menger/dsl/Cone.scala`
-- `menger-app/src/main/scala/menger/dsl/Torus.scala`
+- `menger-app/src/main/scala/menger/dsl/ParametricSurface.scala`
+- `menger-app/src/main/scala/menger/objects/ParametricSurfaceBuilder.scala`
+
+**Spec alignment required before implementation:** agree on tessellation resolution API,
+closed vs. open surfaces, and seam handling.
+
+---
+
+### Task 15.3: Caustics for General Geometry
+
+**Estimate:** 4h
+
+Extend caustics (PPM) beyond sphere-only refractive objects to work with parametric
+surfaces and other triangle-mesh geometry.
+
+#### Background
+
+Sprint 14 caustics use sphere-specific refraction logic in `caustics_ppm.cu`. The photon
+tracing pass hard-codes Snell's law for a sphere refractive object. General mesh geometry
+requires surface normals from the triangle hit programs instead.
+
+#### Implementation
+
+- Replace sphere-specific refraction in photon tracing with generic normal-based Snell's law
+- Photon hits on any refractive triangle mesh (e.g. parametric torus) should refract correctly
+- Validate with a parametric surface from Task 15.2 as the refractive object
+
+**Spec alignment required before implementation:** review the sphere-specific code paths
+in `caustics_ppm.cu` together with the user before starting, to agree on scope and approach.
+
+#### Files to Modify
+
+- `optix-jni/src/main/native/shaders/caustics_ppm.cu` — generalize photon refraction
+- `optix-jni/src/main/native/CausticsRenderer.cpp` — if hit-point generation needs updating
 
 ---
 
 ### Task 15.4: Documentation & Examples
 
-**Estimate:** 1.5h
+**Estimate:** 2h
 
 Update USER_GUIDE.md and CHANGELOG.md for all new features.
 
 #### Sections to Add
 
-- Soft shadows examples with area lights
-- Depth of field photography guide
-- New primitive reference (cylinder, cone, torus)
-- Example scenes showcasing each feature
+- Soft shadows with area lights (including note on colored shadow interaction)
+- Parametric surface API reference with examples (sphere, torus, cylinder)
+- Caustics — update Known Limitations to reflect general geometry support
 
 ---
 
@@ -126,10 +148,10 @@ Update USER_GUIDE.md and CHANGELOG.md for all new features.
 | Task | Description | Estimate | Priority |
 |------|-------------|----------|----------|
 | 15.1 | Soft shadows (area lights) | 3h | High |
-| 15.2 | Depth of field | 3h | High |
-| 15.3 | Additional primitives (cylinder, cone, torus) | 3h | High |
-| 15.4 | Documentation & examples | 1.5h | High |
-| **Total** | | **~10.5h** | |
+| 15.2 | Parametrized surfaces `f(u,v)` | 4h | High |
+| 15.3 | Caustics for general geometry | 4h | High |
+| 15.4 | Documentation & examples | 2h | High |
+| **Total** | | **~13h** | |
 
 ---
 
@@ -141,3 +163,10 @@ Update USER_GUIDE.md and CHANGELOG.md for all new features.
 - [ ] CHANGELOG.md updated
 - [ ] USER_GUIDE.md updated
 - [ ] Example scenes created and tested
+
+---
+
+## Deferred from This Sprint
+
+- **Depth of field / aperture / bokeh** → Backlog (not urgent)
+- **Cylinder, cone, torus as explicit DSL types** → delivered implicitly via Task 15.2

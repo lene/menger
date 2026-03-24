@@ -4,7 +4,7 @@
 **Status:** Not Started
 **Estimate:** ~15.5 hours
 **Branch:** `feature/sprint-18`
-**Dependencies:** Sprint 15 (15.3 — cylinder/cone/torus primitives, for 18.3 surface infra)
+**Dependencies:** Sprint 15 (15.2 — parametric surface infrastructure)
 
 > **Note:** 4D and 3D sponge cutaways (originally 16.1) have been moved to the backlog.
 > They require significant clipping-plane infrastructure with uncertain scope.
@@ -20,7 +20,7 @@ a coordinate cross visualization, and geometry documentation.
 
 - [ ] Octahedron, dodecahedron, icosahedron available as primitives
 - [ ] 16-cell, 24-cell, and 600-cell available as 4D primitives
-- [ ] Parametrized surfaces in 3D (sphere patches, tori, implicit surfaces) work
+- [ ] Cone and torus available as DSL primitives (backed by parametric surfaces from Sprint 15)
 - [ ] Coordinate cross / axis visualization available via CLI
 - [ ] User guide geometry section updated
 - [ ] All tests pass
@@ -47,14 +47,13 @@ octahedron, cuboctahedron, and icosahedron.
 
 ---
 
-### Task 18.3: Parametrized Surfaces in 3D
+### Task 18.3: DSL Primitives — Cone, Torus (Cylinder TBC)
 
-**Estimate:** 4h
+**Estimate:** 2h
 
-Infrastructure for rendering parametrized surfaces defined by `f(u, v) → Vec3`.
-Initial implementations: sphere patches, tori, implicit surfaces.
-
-This is a prerequisite for Sprint 20's parametrized 4D surfaces (20.2).
+Add cone and torus as first-class DSL scene objects, backed by the parametric surface
+infrastructure from Sprint 15.2. Cylinder DSL type to be decided based on whether the
+existing custom intersection cylinder (hit_cylinder.cu) covers the use case.
 
 ---
 
@@ -102,7 +101,7 @@ Sprint retrospective, CHANGELOG.md update, and example scenes for new geometry.
 |------|-------------|----------|--------------|
 | 18.1 | Additional polytopes in 3D | 3h | None |
 | 18.2 | Additional polytopes in 4D | 4h | None |
-| 18.3 | Parametrized surfaces in 3D | 4h | None |
+| 18.3 | DSL primitives: cone, torus (cylinder TBC) | 2h | Sprint 15.2 |
 | 18.4 | Coordinate cross / axis visualization | 1.5h | None |
 | 18.5 | User guide: geometry | 1h | 18.1–18.4 |
 | 18.6 | Documentation | 2h | All |

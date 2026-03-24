@@ -45,14 +45,14 @@ Strategic feature planning for the Menger ray tracing renderer.
 
 ## Planned Sprints
 
-### Sprint 15: Visual Enhancements & Primitives (~10.5h)
+### Sprint 15: Visual Enhancements & Parametric Geometry (~13h)
 
-**Goal:** Soft shadows, depth of field, and additional geometric primitives
+**Goal:** Soft shadows, parametric surface infrastructure, and caustics for general geometry
 
 - **15.1** Soft shadows with area lights (3h)
-- **15.2** Depth of field / aperture / bokeh (3h)
-- **15.3** Additional primitives: cylinder, cone, torus (3h)
-- **15.4** Documentation & examples (1.5h)
+- **15.2** Parametrized surfaces `f(u,v) → Vec3` (4h) — prerequisite for Sprint 18.3 and 20.2
+- **15.3** Caustics for general geometry, deferred from Sprint 14 (4h)
+- **15.4** Documentation & examples (2h)
 
 **MILESTONE: v0.6 — Visual Quality + Video**
 
@@ -85,13 +85,13 @@ See [docs/sprints/SPRINT16.md](docs/sprints/SPRINT16.md)
 
 See [docs/sprints/SPRINT17.md](docs/sprints/SPRINT17.md)
 
-### Sprint 18: Advanced Geometry (~15.5h)
+### Sprint 18: Advanced Geometry (~13.5h)
 
-**Goal:** Additional polytopes in 3D and 4D, parametrized surfaces, coordinate cross
+**Goal:** Additional polytopes in 3D and 4D, DSL primitives (cone, torus), coordinate cross
 
 - **18.1** Additional polytopes in 3D (octahedron, dodecahedron, icosahedron) (3h)
 - **18.2** Additional polytopes in 4D (16-cell, 24-cell, 600-cell) (4h)
-- **18.3** Parametrized surfaces in 3D (sphere patches, tori, implicit surfaces) (4h)
+- **18.3** DSL primitives: cone, torus (cylinder TBC) — backed by Sprint 15.2 parametrics (2h)
 - **18.4** Coordinate cross / axis visualization (1.5h)
 - **18.5** User guide: geometry section improvements (1h)
 - **18.6** Documentation (2h)
@@ -120,7 +120,7 @@ See [docs/sprints/SPRINT19.md](docs/sprints/SPRINT19.md)
 **Goal:** GPU-side 4D math as prerequisite for higher-dimensional geometry
 
 - **20.1** CUDA 4D transform and projection (GPU-side 4D math) (5h)
-- **20.2** Parametrized surfaces in 4D (4h) — depends on 18.3 + 20.1
+- **20.2** Parametrized surfaces in 4D (4h) — depends on 15.2 + 20.1
 - **20.3** Documentation (2h)
 
 See [docs/sprints/SPRINT20.md](docs/sprints/SPRINT20.md)
@@ -153,7 +153,7 @@ Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 | L-systems in 3D and 4D | Lindenmayer system fractal generation | High |
 | Rotopes | Higher-dimensional geometry generation via rotation | Very High |
 | Stereoscopic 3D rendering | Left/right eye cameras for VR/3D output | Medium |
-| Caustics | Progressive Photon Mapping (deferred, algorithm issues) | Very High |
+| Depth of field | Camera aperture simulation, bokeh blur | Medium |
 | Subsurface scattering | Advanced material effect | High |
 | Real-time preview | Interactive low-quality mode | Medium |
 | HDR environment | Image-based lighting | Medium |

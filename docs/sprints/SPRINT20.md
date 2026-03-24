@@ -4,7 +4,7 @@
 **Status:** Not Started
 **Estimate:** ~11 hours
 **Branch:** `feature/sprint-20`
-**Dependencies:** Sprint 18 (18.3 — parametrized surfaces in 3D)
+**Dependencies:** Sprint 18 (15.2 — parametrized surfaces in 3D)
 
 ---
 
@@ -39,11 +39,11 @@ Target state: 4D transforms evaluated per-ray on the GPU for procedural geometry
 
 **Estimate:** 4h
 
-Extend the 3D parametrized surface infrastructure (18.3) to 4D:
+Extend the 3D parametrized surface infrastructure (15.2) to 4D:
 - `f(u, v) → Vec4` → project to 3D for rendering
 - Examples: 4D torus, Clifford torus, hypersphere patches
 
-**Depends on:** 18.3 (parametrized surfaces in 3D) + 20.1 (GPU 4D math)
+**Depends on:** 15.2 (parametrized surfaces in 3D) + 20.1 (GPU 4D math)
 
 ---
 
@@ -60,7 +60,7 @@ Sprint retrospective, CHANGELOG.md update, and developer docs for the GPU 4D mat
 | Task | Description | Estimate | Dependencies |
 |------|-------------|----------|--------------|
 | 20.1 | CUDA 4D transform + projection | 5h | None |
-| 20.2 | Parametrized 4D surfaces | 4h | 18.3, 20.1 |
+| 20.2 | Parametrized 4D surfaces | 4h | 15.2, 20.1 |
 | 20.3 | Documentation | 2h | All |
 | **Total** | | **~11h** | |
 
