@@ -1,7 +1,7 @@
 # Sprint 14: Rendering Correctness & Code Health
 
 **Sprint:** 14 - Rendering Correctness & Code Health
-**Status:** In Progress
+**Status:** Complete
 **Estimate:** 16–25 hours
 **Branch:** `feature/sprint-14`
 **Dependencies:** Sprint 12 (t-Parameter Animation) - required, Sprint 13 (Visual Quality) - optional
@@ -16,9 +16,9 @@ while addressing the most pressing code health issues identified during Sprint 1
 ## Success Criteria
 
 - [x] Code quality: OptiXEngine split below 400-line guideline
-- [ ] Caustics render correctly (progressive photon mapping or alternative algorithm)
-- [ ] Colored shadows Phase 2: multi-object anyhit accumulation works
-- [ ] Documentation for caustics + colored shadows added to USER_GUIDE.md
+- [x] Caustics render correctly (progressive photon mapping or alternative algorithm)
+- [x] Colored shadows Phase 2: multi-object anyhit accumulation works
+- [x] Documentation for caustics + colored shadows added to USER_GUIDE.md
 - [ ] All tests pass
 
 ---
@@ -108,7 +108,7 @@ due to incorrect rendering results. The root cause has not been fully diagnosed.
 
 ---
 
-### Task 14.10: Documentation
+### Task 14.10: Documentation ✓ COMPLETE
 
 **Estimate:** 1 hour
 

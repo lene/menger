@@ -744,6 +744,10 @@ transparent objects multiplicatively. Two overlapping glass spheres — one red,
 a combined purple shadow. An opaque object behind them still casts a fully dark shadow
 (the opaque closest-hit overwrites the accumulated tint).
 
+**Limitation:** Transparent shadows through **cylinder** objects may double-count opacity because
+a ray can intersect both the cylinder body and its end caps. Use transparent cylinders with caution;
+sphere and mesh objects behave correctly.
+
 #### Default Lighting
 
 If no lights are specified, a default setup is used:
@@ -1055,6 +1059,20 @@ sbt "run --optix --objects 'type=sponge-surface:level=2' \
 - Caustics significantly increase render time (10x-100x slower)
 
 For more details, see [docs/caustics/CAUSTICS.md](caustics/CAUSTICS.md).
+
+#### Known Limitations
+
+- **Non-deterministic results:** PPM uses stochastic photon tracing. Each render produces slightly
+  different caustic patterns; pixel-exact reproduction is not guaranteed between runs.
+- **Sphere-optimized geometry:** Caustics are most accurate for simple spherical refractive objects.
+  Complex geometry (Menger sponges, tesseracts) may show weaker or irregular caustic patterns
+  depending on surface normals and photon distribution.
+- **No interaction with colored shadows:** Caustics are computed in a separate PPM pass and do not
+  interact with `--transparent-shadows` attenuation. Enabling both simultaneously is valid but
+  the two effects are computed independently.
+- **Interactive mode:** In interactive (non-headless) mode, caustics quality improves progressively —
+  each rendered frame adds one PPM iteration. Full convergence requires `--caustics-iterations`
+  frames to elapse.
 
 ### 7.4 Antialiasing
 
