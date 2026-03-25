@@ -346,6 +346,14 @@ run_test "Blue+Red spheres overlapping (combined magenta tint)" "-o --objects ty
 run_test "Transparent blue + opaque behind (opaque wins)" "-o --objects type=sphere:pos=-0.6,0,0:color=#0000FF80:ior=1.5 --objects type=sphere:pos=0.6,0,0:color=#888888FF:ior=1.0 --shadows --transparent-shadows --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0 -s $OUTPUT_DIR/117-colored-shadow-transparent-opaque.png"
 run_test "Three stacked transparent (RGB triple accumulation)" "-o --objects type=sphere:pos=-2,0,0:color=#FF000080:ior=1.5 --objects type=sphere:pos=0,0,0:color=#00FF0080:ior=1.5 --objects type=sphere:pos=2,0,0:color=#0000FF80:ior=1.5 --shadows --transparent-shadows --plane y:-2 --camera-pos 0,4,8 --camera-lookat 0,-1,0 -s $OUTPUT_DIR/118-colored-shadow-triple.png"
 
+# Area Lights (Soft Shadows)
+echo -e "${YELLOW}--- Area Lights (Soft Shadows) ---${NC}"
+run_test "Area light basic" "-o --objects type=sphere --shadows --light area:0,2,2:0,-1,0:1.5:4:10 --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0 -s $OUTPUT_DIR/119-area-light-basic.png"
+run_test "Area light large radius (wide penumbra)" "-o --objects type=sphere --shadows --light area:0,2,2:0,-1,0:3.0:8:10 --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0 -s $OUTPUT_DIR/120-area-light-large.png"
+run_test "Area light colored orange" "-o --objects type=sphere --shadows --light area:0,2,2:0,-1,0:1.5:4:10:ff8800 --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0 -s $OUTPUT_DIR/121-area-light-colored.png"
+run_test "Area light colored soft shadow" "-o --objects type=sphere:color=#FF000066:ior=1.5 --shadows --transparent-shadows --light area:0,2,2:0,-1,0:1.5:4:10 --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0 -s $OUTPUT_DIR/122-area-light-colored-shadow.png"
+run_test "Point light hard shadow (compare with area)" "-o --objects type=sphere --shadows --light point:0,2,2:10 --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0 -s $OUTPUT_DIR/123-point-light-hard-shadow.png"
+
 # Showcase
 echo -e "${YELLOW}--- Showcase ---${NC}"
 run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:material=glass --antialiasing --aa-max-depth 3 --shadows --light point:3,5,3:1.2 --width 1920 --height 1080 -s $OUTPUT_DIR/58-showcase.png"
@@ -433,6 +441,11 @@ interactive_tests=(
     "Blue+Red side-by-side shadows (Phase 2):-o --objects type=sphere:pos=-1.2,0,0:color=#0000FF80:ior=1.5 --objects type=sphere:pos=1.2,0,0:color=#FF000080:ior=1.5 --shadows --transparent-shadows --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
     "Blue+Red overlapping combined tint (Phase 2):-o --objects type=sphere:pos=0,0,-0.5:color=#0000FF80:ior=1.5:size=0.6 --objects type=sphere:pos=0,0,0.5:color=#FF000080:ior=1.5:size=0.6 --shadows --transparent-shadows --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
     "Transparent+opaque pair (opaque wins, Phase 2):-o --objects type=sphere:pos=-0.6,0,0:color=#0000FF80:ior=1.5 --objects type=sphere:pos=0.6,0,0:color=#888888FF:ior=1.0 --shadows --transparent-shadows --plane y:-2"
+    "Area light basic (soft shadow):-o --objects type=sphere --shadows --light area:0,2,2:0,-1,0:1.5:4:10 --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
+    "Area light large radius (wide penumbra):-o --objects type=sphere --shadows --light area:0,2,2:0,-1,0:3.0:8:10 --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
+    "Area light colored orange:-o --objects type=sphere --shadows --light area:0,2,2:0,-1,0:1.5:4:10:ff8800 --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
+    "Area light colored soft shadow (red sphere):-o --objects type=sphere:color=#FF000066:ior=1.5 --shadows --transparent-shadows --light area:0,2,2:0,-1,0:1.5:4:10 --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
+    "Point light hard shadow (compare with area):-o --objects type=sphere --shadows --light point:0,2,2:10 --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
     "Colored lights:-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff"
     "Checkered plane:-o --objects type=sphere --plane y:-1 --plane-color ffffff:000000"
     "Chrome plane (mirror floor):-o --objects type=sphere --plane y:-1 --plane-material chrome"

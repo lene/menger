@@ -739,6 +739,56 @@ test_colored_shadows() {
     rm -f "$temp_with" "$temp_without"
 }
 
+test_area_lights() {
+    echo "Area Lights (Soft Shadows):"
+    # Basic area light renders successfully
+    run_test "area light basic" --optix \
+        --objects type=sphere --shadows \
+        --light "area:0,2,2:0,-1,0:1.5:4:10" \
+        --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
+
+    # Larger radius → broader penumbra
+    run_test "area light large radius" --optix \
+        --objects type=sphere --shadows \
+        --light "area:0,2,2:0,-1,0:3.0:8:10" \
+        --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
+
+    # Colored area light
+    run_test "area light colored orange" --optix \
+        --objects type=sphere --shadows \
+        --light "area:0,2,2:0,-1,0:1.5:4:10:ff8800" \
+        --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
+
+    # Area light with transparent sphere — colored soft shadow
+    run_test "area light colored shadow" --optix \
+        --objects "type=sphere:color=#FF000066:ior=1.5" --shadows --transparent-shadows \
+        --light "area:0,2,2:0,-1,0:1.5:4:10" \
+        --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
+
+    # Verify soft shadow is visually distinct from hard point shadow
+    local soft_png="test_area_soft_$$.png"
+    local hard_png="test_area_hard_$$.png"
+    local base_args="--optix --objects type=sphere --shadows --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
+
+    if $MENGER_BIN $base_args --light "area:0,2,2:0,-1,0:2.0:8:10" \
+            --headless --save-name "$soft_png" 2>/dev/null ; then
+        if $MENGER_BIN $base_args --light "point:0,2,2:10" \
+                --headless --save-name "$hard_png" 2>/dev/null ; then
+            local diff_pixels
+            diff_pixels=$(compare -metric AE "$soft_png" "$hard_png" /dev/null 2>&1) || true
+            if [ "${diff_pixels:-0}" -gt 100 ] 2>/dev/null; then
+                ((PASSED++))
+                echo -e "  soft vs hard shadow differ (${diff_pixels}px) ${GREEN}✓${RESET}"
+            else
+                ((FAILED++))
+                FAILED_TESTS="$FAILED_TESTS\n  - soft vs hard shadow differ (images identical or compare failed)"
+                echo -e "  soft vs hard shadow — images identical or compare failed ${RED}✗${RESET}"
+            fi
+        fi
+    fi
+    rm -f "$soft_png" "$hard_png"
+}
+
 test_error_handling() {
     echo "Error Handling:"
     run_test_should_fail "invalid object type" --optix --objects type=invalid-type --plane y:-2
@@ -785,6 +835,7 @@ export -f test_t_animation
 export -f test_file_output
 export -f test_headless
 export -f test_colored_shadows
+export -f test_area_lights
 export -f test_error_handling
 
 # ============================================
@@ -831,6 +882,7 @@ main() {
             "test_file_output"
             "test_headless"
             "test_colored_shadows"
+            "test_area_lights"
             "test_error_handling"
         )
 
@@ -873,6 +925,7 @@ main() {
         test_file_output
         test_headless
         test_colored_shadows
+        test_area_lights
         test_error_handling
     fi
 
