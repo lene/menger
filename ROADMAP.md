@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-03-18
+**Last Updated:** 2026-03-25
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -17,7 +17,9 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.5.1 | Patch Release | Complete | Sprint 11 refinements, CI fixes |
 | v0.5.2 | t-Parameter Animation | Complete | t-parameter animation system |
 | v0.5.3 | Visual Quality | Complete | material enhancements, colored shadows |
-| v0.6 | Visual Quality + Video | Planned | Video output, soft shadows, depth of field |
+| v0.5.4 | Rendering Correctness & Code Health | Complete | shadow fixes, caustic improvements, code health (Sprint 14) |
+| v0.5.5 | Visual Enhancements | In Progress | area lights, soft shadows, parametric surfaces, caustics (Sprint 15) |
+| v0.6 | Full 3D Rendering | Planned | video output, full DSL/CLI control, animation tooling (Sprints 15–17) |
 | v0.7 | Textures & Backgrounds | Planned | Procedural textures, PBR maps, environment maps |
 
 ---
@@ -49,16 +51,21 @@ Strategic feature planning for the Menger ray tracing renderer.
 
 **Goal:** Soft shadows, parametric surface infrastructure, and caustics for general geometry
 
-- **15.1** Soft shadows with area lights (3h)
+- **15.1** Soft shadows with area lights (3h) ✅
 - **15.2** Parametrized surfaces `f(u,v) → Vec3` (4h) — prerequisite for Sprint 18.3 and 20.2
 - **15.3** Caustics for general geometry, deferred from Sprint 14 (4h)
 - **15.4** Documentation & examples (2h)
 
-**MILESTONE: v0.6 — Visual Quality + Video**
+**MILESTONE: v0.5.5 — Visual Enhancements**
 
 See [docs/sprints/SPRINT15.md](docs/sprints/SPRINT15.md)
 
 ### Sprint 16: Developer Infrastructure & Website (~11h)
+
+> ⚠️ **Foundation brainstorm at sprint start:** Before Sprint 18 (higher-dimensional polytopes),
+> run a brainstorming session to identify any missing foundations: rendering quality, developer
+> tools, DSL/CLI control, materials, textures, backgrounds, etc. Any gaps found here can be
+> scheduled into Sprints 16–17 or as new sprints before 18, while there is still time to plan.
 
 **Goal:** Pre-push hook optimisation, developer docs, CI improvements, website, CUDA compatibility
 
@@ -82,6 +89,10 @@ See [docs/sprints/SPRINT16.md](docs/sprints/SPRINT16.md)
 - **17.6** Bezier/spline camera path (pure Scala DSL helper) (2h)
 - **17.7** Runtime DSL scene evaluation (compile-time → runtime) (2h)
 - **17.8** Animation export/import — JSON format for t-param configs (2h)
+
+**MILESTONE: v0.6 — Full 3D Rendering**
+
+**MILESTONE: v0.6 — Full 3D Rendering**
 
 See [docs/sprints/SPRINT17.md](docs/sprints/SPRINT17.md)
 
@@ -186,14 +197,14 @@ Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 | t-Parameter Animation (12) | 1 sprint | ~12 hours |
 | Visual Quality (13) | 1 sprint | ~11 hours |
 | Rendering Correctness & Code Health (14) | 1 sprint | ~16–25 hours |
-| Visual Enhancements & Primitives (15) | 1 sprint | ~10.5 hours |
+| Visual Enhancements & Primitives (15) | 1 sprint | ~13 hours |
 | Developer Infrastructure & Website (16) | 1 sprint | ~11 hours |
 | Animation Tooling & DSL (17) | 1 sprint | ~19 hours |
 | Advanced Geometry (18) | 1 sprint | ~15.5 hours |
 | Materials, Textures & Backgrounds (19) | 1 sprint | ~15 hours |
 | GPU 4D Infrastructure (20) | 1 sprint | ~11 hours |
 | Higher-Dimensional Fractals (21) | 1 sprint | ~16 hours |
-| **Total Remaining** | 8 sprints | **~114–123 hours** |
+| **Total Remaining** | 8 sprints | **~116–126 hours** |
 
 ---
 
