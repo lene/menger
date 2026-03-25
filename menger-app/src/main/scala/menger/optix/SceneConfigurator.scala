@@ -10,6 +10,7 @@ import menger.cli.Axis
 import menger.cli.LightSpec
 import menger.cli.LightType
 import menger.cli.PlaneConfig
+import menger.common.AreaLightShape
 import menger.common.Color
 import menger.common.Const
 import menger.common.Light
@@ -56,6 +57,9 @@ class SceneConfigurator(
     spec.lightType match
       case LightType.DIRECTIONAL => Light.Directional(position, color, spec.intensity)
       case LightType.POINT => Light.Point(position, color, spec.intensity)
+      case LightType.AREA =>
+        val normal = spec.normal.toVector3
+        Light.Area(position, normal, spec.radius, AreaLightShape.Disk, color, spec.intensity, spec.shadowSamples)
 
   def configurePlanes(renderer: OptiXRenderer, planes: List[PlaneConfig]): Unit =
     renderer.clearPlanes()

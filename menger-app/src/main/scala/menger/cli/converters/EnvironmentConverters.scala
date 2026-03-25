@@ -5,6 +5,7 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import menger.ColorConversions
+import menger.cli.AreaLightShape
 import menger.cli.Axis
 import menger.cli.LightSpec
 import menger.cli.LightType
@@ -100,24 +101,25 @@ given lightSpecConverter: ValueConverter[List[LightSpec]] with
   private def parseLightSpecs(
     specStrings: List[String]
   ): Either[String, Option[List[LightSpec]]] =
-    // Light spec pattern: <type>:x,y,z[:intensity[:color]]
-    // - (?i): case-insensitive matching
-    // - (directional|point): light type (captured group 1)
-    // - (-?\d+\.?\d*): x,y,z coordinates, can be negative floats (groups 2-4)
-    // - (?::([^:]*)): optional intensity (group 5)
-    // - (?::([^:]+)): optional color as hex or RGB (group 6)
-    // Example: "directional:0,1,-1:2.0:ffffff" or "point:0,5,0"
-    val pattern =
+    // Light spec patterns:
+    //   directional/point: <type>:x,y,z[:intensity[:color]]
+    //   area: area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color[:shape]]]]
+    val pointDirPattern =
       """(?i)(directional|point):(-?\d+\.?\d*),(-?\d+\.?\d*),(-?\d+\.?\d*)(?::([^:]*))?(?::([^:]+))?""".r
+    val areaPattern =
+      """(?i)area:(-?\d+\.?\d*),(-?\d+\.?\d*),(-?\d+\.?\d*):(-?\d+\.?\d*),(-?\d+\.?\d*),(-?\d+\.?\d*):(\d+\.?\d*)(?::(\d+))?(?::([^:]*))?(?::([^:]*))?(?::([^:]+))?""".r
     specStrings.map { input =>
       input.trim match
-        case pattern(typeStr, x, y, z, intensityStr, colorStr) =>
+        case pointDirPattern(typeStr, x, y, z, intensityStr, colorStr) =>
           parseSingleLightSpec(input, typeStr, x, y, z, intensityStr, colorStr)
+        case areaPattern(px, py, pz, nx, ny, nz, radius, samplesStr, intensityStr, colorStr, shapeStr) =>
+          parseAreaLightSpec(input, px, py, pz, nx, ny, nz, radius, samplesStr, intensityStr, colorStr, shapeStr)
         case _ =>
           Left(
             s"Light spec '$input' has invalid format. " +
-            "Expected: <type>:x,y,z[:intensity[:color]] where type is 'directional' or 'point'. " +
-            "Examples: directional:0,1,-1 or point:0,5,0:2.0:ffffff"
+            "Expected: directional:x,y,z[:intensity[:color]], point:x,y,z[:intensity[:color]], " +
+            "or area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color[:shape]]]]. " +
+            "Examples: directional:0,1,-1, point:0,5,0:2.0:ffffff, area:0,5,0:0,-1,0:1.5:8"
           )
     }.foldLeft[Either[String, List[LightSpec]]](Right(List.empty)) {
       case (Right(acc), Right(spec)) => Right(acc :+ spec)
@@ -146,6 +148,41 @@ given lightSpecConverter: ValueConverter[List[LightSpec]] with
       s"Light spec '$input' parse error: ${e.getMessage}. " +
         "Check that coordinates and intensity are valid numbers"
     }
+
+  private def parseAreaLightShape(shapeStr: String): Either[String, AreaLightShape] =
+    Option(shapeStr).filter(_.nonEmpty).map(_.toLowerCase) match
+      case Some("disk") | None => Right(AreaLightShape.DISK)
+      case Some(s) => Left(s"Unknown area light shape '$s' (supported: disk)")
+
+  private def parseAreaLightSpec(
+    input: String,
+    px: String, py: String, pz: String,
+    nx: String, ny: String, nz: String,
+    radiusStr: String,
+    samplesStr: String,
+    intensityStr: String,
+    colorStr: String,
+    shapeStr: String
+  ): Either[String, LightSpec] =
+    for
+      coords <- Try {
+        val position = Vector3(px.toFloat, py.toFloat, pz.toFloat)
+        val normal = Vector3(nx.toFloat, ny.toFloat, nz.toFloat)
+        val radius = radiusStr.toFloat
+        val samples = Option(samplesStr).filter(_.nonEmpty).map(_.toInt).getOrElse(4)
+        val intensity = Option(intensityStr).filter(_.nonEmpty).map(_.toFloat).getOrElse(1.0f)
+        val color = Option(colorStr).filter(_.nonEmpty).map(parseColor).getOrElse(Color.WHITE)
+        (position, normal, radius, samples, intensity, color)
+      }.toEither.left.map { e =>
+        s"Area light spec '$input' parse error: ${e.getMessage}. " +
+          "Expected: area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color[:shape]]]]"
+      }
+      shape <- parseAreaLightShape(shapeStr).left.map { e =>
+        s"Area light spec '$input': $e"
+      }
+    yield
+      val (position, normal, radius, samples, intensity, color) = coords
+      LightSpec(LightType.AREA, position, intensity, color, normal, radius, shape, samples)
 
   private def parseColor(colorStr: String): Color =
     if colorStr.contains(',') then

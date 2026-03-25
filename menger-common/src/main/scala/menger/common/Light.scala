@@ -1,7 +1,10 @@
 package menger.common
 
+enum AreaLightShape(val id: Int):
+  case Disk extends AreaLightShape(0)
+
 enum LightType:
-  case Directional, Point
+  case Directional, Point, Area
 
 sealed trait Light:
   def lightType: LightType
@@ -33,3 +36,17 @@ object Light:
   ) extends Light:
     val lightType = LightType.Point
     require(intensity >= 0.0f, s"intensity must be non-negative, got $intensity")
+
+  case class Area(
+    position: Vector[3],
+    normal: Vector[3],
+    radius: Float,
+    shape: AreaLightShape = AreaLightShape.Disk,
+    color: Color = Color(1.0f, 1.0f, 1.0f),
+    intensity: Float = 1.0f,
+    shadowSamples: Int = 4
+  ) extends Light:
+    val lightType = LightType.Area
+    require(intensity >= 0.0f, s"intensity must be non-negative, got $intensity")
+    require(radius > 0.0f, s"radius must be positive, got $radius")
+    require(shadowSamples >= 1 && shadowSamples <= 16, s"shadowSamples must be 1-16, got $shadowSamples")
