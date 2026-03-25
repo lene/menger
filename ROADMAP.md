@@ -169,6 +169,7 @@ Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 | Real-time preview | Interactive low-quality mode | Medium |
 | HDR environment | Image-based lighting | Medium |
 | Sponge cutaways | 4D and 3D sponge cross-sections via clipping planes | Medium |
+| Analytical ray intersection | Custom OptiX intersection programs for cylinder, cone, torus (exact, no tessellation) | Medium |
 
 ### Low Priority / Deferred
 
