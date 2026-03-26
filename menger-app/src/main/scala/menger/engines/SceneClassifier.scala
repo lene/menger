@@ -46,6 +46,7 @@ object SceneClassifier:
   def isTriangleMeshType(objectType: String): Boolean =
     val t = objectType.toLowerCase
     t == "cube" ||
+    t == "parametric" ||
     ObjectType.isSponge(t) ||
     ObjectType.isProjected4D(t)
 

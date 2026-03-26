@@ -18,6 +18,9 @@ class SceneClassifierSuite extends AnyFlatSpec with Matchers:
     SceneClassifier.isTriangleMeshType("sponge-volume") shouldBe true
     SceneClassifier.isTriangleMeshType("sponge-surface") shouldBe true
 
+  it should "return true for parametric" in:
+    SceneClassifier.isTriangleMeshType("parametric") shouldBe true
+
   it should "return false for sphere" in:
     SceneClassifier.isTriangleMeshType("sphere") shouldBe false
 
@@ -31,6 +34,10 @@ class SceneClassifierSuite extends AnyFlatSpec with Matchers:
 
   it should "classify all-cube scene as TriangleMeshes" in:
     val specs = List(spec("cube"), spec("cube"))
+    SceneClassifier.classify(specs) shouldBe a [SceneType.TriangleMeshes]
+
+  it should "classify parametric scene as TriangleMeshes" in:
+    val specs = List(spec("parametric"))
     SceneClassifier.classify(specs) shouldBe a [SceneType.TriangleMeshes]
 
   it should "classify sphere + cube as SimpleMixed" in:

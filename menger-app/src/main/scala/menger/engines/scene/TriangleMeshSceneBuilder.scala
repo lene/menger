@@ -178,7 +178,7 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
     specs.length.toLong
 
   private def isTriangleMeshType(spec: ObjectSpec): Boolean =
-    spec.objectType == "cube" || ObjectType.isSponge(spec.objectType) || ObjectType.isProjected4D(spec.objectType)
+    spec.objectType == "cube" || spec.objectType == "parametric" || ObjectType.isSponge(spec.objectType) || ObjectType.isProjected4D(spec.objectType)
 
   /**
    * Check if a spec is a 4D sponge with fractional level.
