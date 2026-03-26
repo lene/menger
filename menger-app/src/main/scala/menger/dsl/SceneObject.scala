@@ -301,3 +301,65 @@ object TesseractSponge:
 
 // Export TesseractSpongeType values for convenient imports
 export TesseractSpongeType.{VolumeRemoving, SurfaceSubdividing}
+
+
+/** Parametric surface defined by f(u,v) -> Vec3, tessellated into a triangle mesh.
+  *
+  * @param f        Surface function mapping (u,v) parameters to a 3D point
+  * @param uRange   Parameter range for u (default: (0, 2π))
+  * @param vRange   Parameter range for v (default: (0, π))
+  * @param uSteps   Grid resolution in u direction (default: 64)
+  * @param vSteps   Grid resolution in v direction (default: 32)
+  * @param closedU  Whether to weld seam in u direction (first == last column)
+  * @param closedV  Whether to weld seam in v direction (first == last row)
+  * @param pos      Object position in world space
+  * @param size     Uniform scale factor
+  * @param ior      Index of refraction (for glass/transparent materials)
+  * @param material Optional material override
+  * @param color    Optional color override
+  * @param texture  Optional texture name
+  * @param rotation Rotation in radians around each axis
+  */
+case class ParametricSurface(
+  f: (Float, Float) => Vec3,
+  uRange: (Float, Float) = (0f, 2f * math.Pi.toFloat),
+  vRange: (Float, Float) = (0f, math.Pi.toFloat),
+  uSteps: Int = 64,
+  vSteps: Int = 32,
+  closedU: Boolean = false,
+  closedV: Boolean = false,
+  pos: Vec3 = Vec3.Zero,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  texture: Option[String] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(uSteps >= 1, s"uSteps must be >= 1, got $uSteps")
+  require(vSteps >= 1, s"vSteps must be >= 1, got $vSteps")
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec =
+    val tupleF: (Float, Float) => (Float, Float, Float) =
+      (u, v) => { val p = f(u, v); (p.x, p.y, p.z) }
+    val mesh = menger.objects.ParametricTessellator.tessellate(
+      tupleF, uRange, vRange, uSteps, vSteps, closedU, closedV
+    )
+    ObjectSpec(
+      objectType = "parametric",
+      x = pos.x,
+      y = pos.y,
+      z = pos.z,
+      size = size,
+      level = None,
+      color = color.map(_.toCommonColor),
+      ior = material.map(_.ior).getOrElse(ior),
+      material = material.map(_.toOptixMaterial),
+      texture = texture,
+      rotX = rotation.x,
+      rotY = rotation.y,
+      rotZ = rotation.z,
+      meshData = Some(mesh)
+    )

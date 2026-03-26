@@ -131,6 +131,21 @@ class ParametricTessellatorSuite extends AnyFlatSpec with Matchers:
     menger.common.ObjectType.isSponge("parametric") shouldBe false
     menger.common.ObjectType.isProjected4D("parametric") shouldBe false
 
+  "ParametricSurface" should "produce an ObjectSpec with meshData" in:
+    import menger.dsl._
+    val surface = ParametricSurface(
+      f = (u, v) => Vec3(u, 0f, v),
+      uRange = (0f, 1f),
+      vRange = (0f, 1f),
+      uSteps = 4,
+      vSteps = 4
+    )
+    val spec = surface.toObjectSpec
+    spec.objectType shouldBe "parametric"
+    spec.meshData shouldBe defined
+    spec.meshData.get.numVertices shouldBe 25
+    spec.meshData.get.numTriangles shouldBe 32
+
   "ParametricTessellator" should "handle degenerate normals at sphere poles" in:
     import scala.math._
     val sphereF: (Float, Float) => (Float, Float, Float) = (u, v) =>

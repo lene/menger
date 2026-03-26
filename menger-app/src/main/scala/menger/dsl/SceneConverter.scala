@@ -47,6 +47,7 @@ object SceneConverter extends LazyLogging:
       case obj: TesseractSponge =>
         obj.material.foreach(warnMaterial)
         obj.edgeMaterial.foreach(warnMaterial)
+      case obj: ParametricSurface => obj.material.foreach(warnMaterial)
     }
 
   private def warnMaterial(material: Material): Unit =
