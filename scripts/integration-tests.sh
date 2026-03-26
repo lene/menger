@@ -739,6 +739,41 @@ test_colored_shadows() {
     rm -f "$temp_with" "$temp_without"
 }
 
+test_parametric_caustics_comparison() {
+    echo "Parametric caustics comparison:"
+
+    local prim_out="test_prim_caustics_$$.png"
+    local para_out="test_para_caustics_$$.png"
+
+    TIMEOUT=$CAUSTICS_TIMEOUT xvfb-run -a $MENGER_BIN --headless \
+        --save-name "$prim_out" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+        --optix --scene examples.dsl.GlassSphere > /dev/null 2>&1 || true
+
+    TIMEOUT=$CAUSTICS_TIMEOUT xvfb-run -a $MENGER_BIN --headless \
+        --save-name "$para_out" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+        --optix --scene examples.dsl.ParametricSphereCaustics > /dev/null 2>&1 || true
+
+    if [ ! -f "$prim_out" ] || [ ! -f "$para_out" ]; then
+        echo -e "  ${YELLOW}SKIP${RESET}: could not render one or both caustic images"
+        rm -f "$prim_out" "$para_out"
+        return
+    fi
+
+    local pass_threshold=5
+    local diff_pixels total_pixels diff_pct ok
+    diff_pixels=$(compare -metric AE "$prim_out" "$para_out" /dev/null 2>&1) || diff_pixels=0
+    total_pixels=$(identify -format "%[fx:w*h]" "$prim_out" 2>/dev/null) || total_pixels=1
+    diff_pct=$(echo "scale=2; $diff_pixels * 100 / $total_pixels" | bc 2>/dev/null) || diff_pct=0
+    ok=$(echo "$diff_pct <= $pass_threshold" | bc 2>/dev/null) || ok=0
+    if [ "$ok" -eq 1 ]; then
+        echo -e "  ${GREEN}PASS${RESET}: parametric sphere caustics match primitive (diff: ${diff_pct}%)"
+    else
+        echo -e "  ${RED}FAIL${RESET}: caustic mismatch between primitive and parametric sphere (diff: ${diff_pct}%)"
+        ((FAILURES++))
+    fi
+    rm -f "$prim_out" "$para_out"
+}
+
 test_area_lights() {
     echo "Area Lights (Soft Shadows):"
     # Basic area light renders successfully
@@ -835,6 +870,7 @@ export -f test_t_animation
 export -f test_file_output
 export -f test_headless
 export -f test_colored_shadows
+export -f test_parametric_caustics_comparison
 export -f test_area_lights
 export -f test_error_handling
 
@@ -882,6 +918,7 @@ main() {
             "test_file_output"
             "test_headless"
             "test_colored_shadows"
+            "test_parametric_caustics_comparison"
             "test_area_lights"
             "test_error_handling"
         )
@@ -925,6 +962,7 @@ main() {
         test_file_output
         test_headless
         test_colored_shadows
+        test_parametric_caustics_comparison
         test_area_lights
         test_error_handling
     fi

@@ -151,3 +151,30 @@ object ParametricKleinBottleFilm:
     ))
   )
   SceneRegistry.register("parametric-klein-bottle-film", scene)
+
+/** Parametric sphere with identical view parameters to GlassSphere,
+  * used to validate that caustics through a tessellated sphere match
+  * caustics through the analytic primitive.
+  * Usage: --scene examples.dsl.ParametricSphereCaustics
+  */
+object ParametricSphereCaustics:
+  private val TwoPi = 2f * Pi.toFloat
+  val scene: Scene = Scene(
+    camera = Camera(
+      position = (0f, 2f, 5f),
+      lookAt = (0f, 0f, 0f)
+    ),
+    objects = List(ParametricSurface(
+      f = (u, v) => Vec3(cos(u).toFloat * sin(v).toFloat, cos(v).toFloat, sin(u).toFloat * sin(v).toFloat),
+      uRange = (0f, TwoPi), vRange = (0f, Pi.toFloat),
+      closedU = true, closedV = false,
+      material = Some(Material.Glass)
+    )),
+    lights = List(Directional(
+      direction = (1f, -1f, -1f),
+      intensity = 2.0f
+    )),
+    planes = List(Plane(Y at -1.5, color = "#FFFFFF")),
+    caustics = Some(Caustics.HighQuality)
+  )
+  SceneRegistry.register("parametric-sphere-caustics", scene)
