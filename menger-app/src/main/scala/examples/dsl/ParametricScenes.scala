@@ -20,7 +20,7 @@ object ParametricSphere:
       direction = (1f, -1f, -1f),
       intensity = 2.0f
     )),
-    planes = List(Plane(Y at -1.5))
+    planes = List(Plane(Y at -1.5, color = "#FFFFFF"))
   )
   SceneRegistry.register("parametric-sphere", scene)
 
@@ -45,7 +45,7 @@ object ParametricTorus:
       direction = (1f, -1f, -1f),
       intensity = 2.0f
     )),
-    planes = List(Plane(Y at -1.5))
+    planes = List(Plane(Y at -1.5, color = "#FFFFFF"))
   )
   SceneRegistry.register("parametric-torus", scene)
 
@@ -63,7 +63,7 @@ object ParametricWavySheet:
       direction = (1f, -1f, -1f),
       intensity = 2.0f
     )),
-    planes = List(Plane(Y at -1.5))
+    planes = List(Plane(Y at -1.5, color = "#FFFFFF"))
   )
   SceneRegistry.register("parametric-wavy-sheet", scene)
 
