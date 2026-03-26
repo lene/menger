@@ -100,6 +100,39 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     // Objects should have different positions
     scene0.objects.head should not be scene1.objects.head
 
+  "Parametric example scenes" should "load ParametricSphere via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.ParametricSphere"))
+    scene.objects should have length 1
+    scene.lights should have length 1
+    scene.planes should not be empty
+
+  it should "load ParametricTorus via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.ParametricTorus"))
+    scene.objects should have length 1
+    scene.lights should have length 1
+    scene.planes should not be empty
+
+  it should "load ParametricWavySheet via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.ParametricWavySheet"))
+    scene.objects should have length 1
+    scene.lights should have length 1
+    scene.planes should not be empty
+
+  it should "load ParametricMoebius via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.ParametricMoebius"))
+    scene.objects should have length 1
+    scene.lights should have length 1
+
+  it should "load ParametricKleinBottle via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.ParametricKleinBottle"))
+    scene.objects should have length 1
+    scene.lights should have length 1
+
+  it should "load ParametricKleinBottleFilm via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.ParametricKleinBottleFilm"))
+    scene.objects should have length 1
+    scene.lights should have length 1
+
   "Scene registry" should "have all registered short names" in:
     val registeredNames = SceneRegistry.list().sorted
 
@@ -113,3 +146,9 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     registeredNames should contain("complex-lighting")
     registeredNames should contain("sponge-showcase")
     registeredNames should contain("reusable-components")
+    registeredNames should contain("parametric-sphere")
+    registeredNames should contain("parametric-torus")
+    registeredNames should contain("parametric-wavy-sheet")
+    registeredNames should contain("parametric-moebius")
+    registeredNames should contain("parametric-klein-bottle")
+    registeredNames should contain("parametric-klein-bottle-film")
