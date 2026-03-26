@@ -5,7 +5,9 @@ import scala.math._
 
 import menger.dsl._
 
-/** Parametric sphere — compare to built-in Sphere for visual validation. */
+/** Parametric sphere — compare to built-in Sphere for visual validation.
+  * Usage: --scene examples.dsl.ParametricSphere
+  */
 object ParametricSphere:
   private val TwoPi = 2f * Pi.toFloat
 
@@ -24,7 +26,9 @@ object ParametricSphere:
   )
   SceneRegistry.register("parametric-sphere", scene)
 
-/** Parametric torus — closed in both u and v, glass material. */
+/** Parametric torus — closed in both u and v, glass material.
+  * Usage: --scene examples.dsl.ParametricTorus
+  */
 object ParametricTorus:
   private val TwoPi = 2f * Pi.toFloat
   private val R = 1.0f
@@ -49,7 +53,9 @@ object ParametricTorus:
   )
   SceneRegistry.register("parametric-torus", scene)
 
-/** Parametric wavy sheet — open surface with IOR. */
+/** Parametric wavy sheet — open surface with IOR.
+  * Usage: --scene examples.dsl.ParametricWavySheet
+  */
 object ParametricWavySheet:
   val scene: Scene = Scene(
     objects = List(ParametricSurface(
@@ -67,7 +73,12 @@ object ParametricWavySheet:
   )
   SceneRegistry.register("parametric-wavy-sheet", scene)
 
-/** Parametric Moebius strip — film material. */
+/** Parametric Moebius strip — film material.
+  * Usage: --scene examples.dsl.ParametricMoebius
+  *
+  * Note: closedU=false is geometrically correct. The strip wraps in u but with a half-twist,
+  * so the first and last columns do not meet at the same position — closing them creates a seam.
+  */
 object ParametricMoebius:
   private val TwoPi = 2f * Pi.toFloat
 
@@ -93,7 +104,9 @@ object ParametricMoebius:
   )
   SceneRegistry.register("parametric-moebius", scene)
 
-/** Figure-8 Klein bottle with IOR. */
+/** Figure-8 Klein bottle with IOR (non-orientable surface).
+  * Usage: --scene examples.dsl.ParametricKleinBottle
+  */
 object ParametricKleinBottle:
   private val TwoPi = 2f * Pi.toFloat
   private val a = 2.0f
@@ -120,7 +133,9 @@ object ParametricKleinBottle:
   )
   SceneRegistry.register("parametric-klein-bottle", scene)
 
-/** Figure-8 Klein bottle with film material. */
+/** Figure-8 Klein bottle with film material (thin-film interference on non-orientable surface).
+  * Usage: --scene examples.dsl.ParametricKleinBottleFilm
+  */
 object ParametricKleinBottleFilm:
   val scene: Scene = Scene(
     objects = List(ParametricSurface(

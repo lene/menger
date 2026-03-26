@@ -114,14 +114,12 @@ class ParametricTessellatorSuite extends AnyFlatSpec with Matchers:
     // All triangles should wind the same way
     (crossYValues.forall(_ > 0) || crossYValues.forall(_ < 0)) shouldBe true
 
-  it should "log warning for very high resolution" in:
-    // We can't easily test logging, but we can verify the tessellator
-    // accepts high resolution without crashing. The warning is logged
-    // at WARN level — visual verification in test output.
+  it should "accept resolution well below warning threshold without crashing" in:
+    // The memory warning fires at uSteps*vSteps > 1,000,000. This test uses a small grid
+    // to verify basic operation; the warning itself is verified visually at WARN level.
     val mesh = ParametricTessellator.tessellate(
       flatPlane, (0f, 1f), (0f, 1f), 2, 2, closedU = false, closedV = false
     )
-    // Just verify it produces valid output (warning test is a smoke test)
     mesh.numVertices shouldBe 9
 
   "ObjectType" should "recognize 'parametric' as valid" in:

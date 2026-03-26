@@ -21,7 +21,7 @@ object ParametricTessellator extends LazyLogging:
 
     val totalCells = uSteps.toLong * vSteps.toLong
     if totalCells > MemoryWarningThreshold then
-      val approxMB = totalCells * 8 * 4 / (1024 * 1024)
+      val approxMB = totalCells * 8 * 4 / 1_048_576L
       logger.warn(
         "Parametric surface tessellation is very high resolution " +
         s"($uSteps x $vSteps = $totalCells grid cells). " +

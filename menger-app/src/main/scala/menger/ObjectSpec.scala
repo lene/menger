@@ -144,6 +144,9 @@ object ObjectSpec extends LazyLogging:
 
   private def parseObjectType(kvPairs: Map[String, String]): Either[String, String] =
     kvPairs.get("type") match
+      case Some(t) if t.toLowerCase == "parametric" =>
+        Left("'parametric' objects can only be created via the Scala DSL, not the --object CLI flag. " +
+          "See examples.dsl.ParametricScenes for usage examples.")
       case Some(t) if ObjectType.isValid(t) => Right(t.toLowerCase)
       case Some(t) =>
         Left(s"Invalid object type: '$t'. Valid types: ${ObjectType.validTypesString}. " +
