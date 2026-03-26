@@ -140,6 +140,13 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.planes should not be empty
     scene.caustics shouldBe defined
 
+  it should "load ParametricTorusCaustics via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.ParametricTorusCaustics"))
+    scene.objects should have length 1
+    scene.lights should have length 1
+    scene.planes should not be empty
+    scene.caustics shouldBe defined
+
   "Scene registry" should "have all registered short names" in:
     val registeredNames = SceneRegistry.list().sorted
 
@@ -160,3 +167,4 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     registeredNames should contain("parametric-klein-bottle")
     registeredNames should contain("parametric-klein-bottle-film")
     registeredNames should contain("parametric-sphere-caustics")
+    registeredNames should contain("parametric-torus-caustics")
