@@ -466,6 +466,12 @@ interactive_tests=(
     "DSL PulsingSponge t=1 (sponge growing to level 1):-o --scene examples.dsl.PulsingSponge --t 1"
     "DSL PulsingSponge t=2 (sponge growing to level 2):-o --scene examples.dsl.PulsingSponge --t 2"
     "DSL MixedMetallicShowcase (metallic 0.0→1.0 across five silver-gray spheres):-o --scene examples.dsl.MixedMetallicShowcase"
+    "DSL ParametricTorus (glass, closed in both u and v):-o --scene examples.dsl.ParametricTorus --shadows"
+    "DSL ParametricWavySheet (IOR on open surface):-o --scene examples.dsl.ParametricWavySheet --shadows"
+    "DSL ParametricMoebius (Moebius strip, film material):-o --scene examples.dsl.ParametricMoebius --shadows"
+    "DSL ParametricKleinBottle (figure-8 Klein bottle, IOR, non-orientable):-o --scene examples.dsl.ParametricKleinBottle --shadows"
+    "DSL ParametricKleinBottleFilm (figure-8 Klein bottle, film material):-o --scene examples.dsl.ParametricKleinBottleFilm --shadows"
+    "DSL ParametricSphere (parametric sphere, compare to built-in):-o --scene examples.dsl.ParametricSphere --shadows"
 )
 
 echo "Available interactive tests:"
