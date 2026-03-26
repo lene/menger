@@ -759,7 +759,7 @@ test_parametric_caustics_comparison() {
         return
     fi
 
-    local pass_threshold=5
+    local pass_threshold=5  # allow up to 5% pixel difference due to tessellation approximation
     local diff_pixels total_pixels diff_pct ok
     diff_pixels=$(compare -metric AE "$prim_out" "$para_out" /dev/null 2>&1) || diff_pixels=0
     total_pixels=$(identify -format "%[fx:w*h]" "$prim_out" 2>/dev/null) || total_pixels=1
@@ -769,7 +769,8 @@ test_parametric_caustics_comparison() {
         echo -e "  ${GREEN}PASS${RESET}: parametric sphere caustics match primitive (diff: ${diff_pct}%)"
     else
         echo -e "  ${RED}FAIL${RESET}: caustic mismatch between primitive and parametric sphere (diff: ${diff_pct}%)"
-        ((FAILURES++))
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - parametric sphere caustics: mismatch between primitive and parametric sphere (diff: ${diff_pct}%)"
     fi
     rm -f "$prim_out" "$para_out"
 }
