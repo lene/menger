@@ -103,6 +103,14 @@ object MeshFactory:
         )
         sponge.toTriangleMesh
 
+      case "parametric" =>
+        // Missing meshData is a programming error: parametric specs must have pre-tessellated data.
+        @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+        def getMesh = spec.meshData.getOrElse(
+          throw new IllegalStateException("Parametric surface missing pre-tessellated mesh data")
+        )
+        getMesh
+
       case other =>
         require(false, s"Unknown mesh type: $other")
         ???  // Never reached due to require, but needed for type checker

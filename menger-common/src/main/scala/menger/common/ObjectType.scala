@@ -5,6 +5,7 @@ object ObjectType:
   val VALID_TYPES: Set[String] = Set(
     "sphere",
     "cube",
+    "parametric",
     "sponge-volume",
     "sponge-surface",
     "cube-sponge",

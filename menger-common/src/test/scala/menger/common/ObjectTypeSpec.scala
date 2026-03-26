@@ -109,6 +109,7 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     validStr should include("sponge-surface")
     validStr should include("cube-sponge")
     validStr should include("tesseract")
+    validStr should include("parametric")
     validStr should include("tesseract-sponge-volume")
     validStr should include("tesseract-sponge-surface")
 
@@ -145,9 +146,10 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.VALID_TYPES should contain("sponge-surface")
     ObjectType.VALID_TYPES should contain("cube-sponge")
     ObjectType.VALID_TYPES should contain("tesseract")
+    ObjectType.VALID_TYPES should contain("parametric")
     ObjectType.VALID_TYPES should contain("tesseract-sponge-volume")
     ObjectType.VALID_TYPES should contain("tesseract-sponge-surface")
-    ObjectType.VALID_TYPES.size shouldBe 8
+    ObjectType.VALID_TYPES.size shouldBe 9
 
   "ObjectType.SPONGE_TYPES" should "contain only 3D sponge types" in:
     ObjectType.SPONGE_TYPES should contain("sponge-volume")

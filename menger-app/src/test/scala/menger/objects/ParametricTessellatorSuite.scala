@@ -124,7 +124,14 @@ class ParametricTessellatorSuite extends AnyFlatSpec with Matchers:
     // Just verify it produces valid output (warning test is a smoke test)
     mesh.numVertices shouldBe 9
 
-  it should "handle degenerate normals at sphere poles" in:
+  "ObjectType" should "recognize 'parametric' as valid" in:
+    menger.common.ObjectType.isValid("parametric") shouldBe true
+
+  it should "not classify 'parametric' as sponge or 4D" in:
+    menger.common.ObjectType.isSponge("parametric") shouldBe false
+    menger.common.ObjectType.isProjected4D("parametric") shouldBe false
+
+  "ParametricTessellator" should "handle degenerate normals at sphere poles" in:
     import scala.math._
     val sphereF: (Float, Float) => (Float, Float, Float) = (u, v) =>
       (cos(u).toFloat * sin(v).toFloat, cos(v).toFloat, sin(u).toFloat * sin(v).toFloat)

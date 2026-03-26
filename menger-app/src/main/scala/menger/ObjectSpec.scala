@@ -5,6 +5,7 @@ import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Color
 import menger.common.ObjectType
+import menger.common.TriangleMeshData
 import menger.optix.Material
 
 /**
@@ -48,7 +49,8 @@ case class ObjectSpec(
   edgeMaterial: Option[Material] = None,
   rotX: Float = 0.0f,          // X-axis rotation in radians
   rotY: Float = 0.0f,          // Y-axis rotation in radians
-  rotZ: Float = 0.0f           // Z-axis rotation in radians
+  rotZ: Float = 0.0f,          // Z-axis rotation in radians
+  meshData: Option[TriangleMeshData] = None
 ):
   /** Returns true if edge rendering parameters are specified */
   def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined
