@@ -21,6 +21,12 @@ object SceneIndex:
     TesseractDemo.scene,
     MixedMetallicShowcase.scene,
     CausticsReference.scene,
+    ParametricSphere.scene,
+    ParametricTorus.scene,
+    ParametricWavySheet.scene,
+    ParametricMoebius.scene,
+    ParametricKleinBottle.scene,
+    ParametricKleinBottleFilm.scene,
   )
 
   /** Animated scene objects (loaded via reflection with def scene(t: Float)). */
