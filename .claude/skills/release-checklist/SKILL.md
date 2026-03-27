@@ -641,7 +641,8 @@ Read `ROADMAP.md` and present the planned sprint table to the user. Check:
 
 Ask: *"Does the roadmap look accurate and up to date? Anything to adjust?"*
 
-Make any agreed edits now.
+Make any agreed edits now. **All edits in Phase 6 (roadmap, sprint plan, pointer, CODE_IMPROVEMENTS,
+CHANGELOG, etc.) must be committed to `feature/sprint-N` — never directly to `main`.**
 
 ---
 
@@ -658,12 +659,15 @@ cat docs/sprints/SPRINT.md   # Should show: See SPRINT-N.md
 
 ### Step 6.5: Commit Sprint Opening Changes
 
-If any files were changed during the sprint review (restructured plan, updated roadmap,
-corrected pointer), commit them now on the new sprint's feature branch:
+**All changes from Phase 6 belong on `feature/sprint-N`, not on `main`.** The new sprint
+branch is the correct home for roadmap updates, CODE_IMPROVEMENTS housekeeping, sprint pointer
+changes, and any sprint plan restructuring.
+
+Create the branch first (if not already on it), then commit:
 
 ```bash
 git checkout -b feature/sprint-N
-git add docs/sprints/SPRINT.md docs/sprints/SPRINT-N.md ROADMAP.md
+git add docs/sprints/SPRINT.md docs/sprints/SPRINT-N.md ROADMAP.md CODE_IMPROVEMENTS.md
 git commit -m "docs: open Sprint N — [title]
 
 [1-2 sentence summary of any restructuring done during sprint opening]"
@@ -685,5 +689,5 @@ Wait for their response. Only conclude the checklist after they confirm.
 
 ---
 
-*Last updated: 2026-03-18*
+*Last updated: 2026-03-24*
 *Maintained by: Development team with Claude Code assistance*
