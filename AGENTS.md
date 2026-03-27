@@ -415,7 +415,7 @@ Menger uses a **fully automated release pipeline** triggered by version bumps me
 ### Common Release Issues
 
 **Version mismatch errors:**
-- Pre-push hook validates versions across 4 files (build.sbt, MengerCLIOptions.scala, .gitlab-ci.yml, USER_GUIDE.md)
+- Pre-push hook validates versions across 4 files (build.sbt, MengerCLIOptions.scala, .gitlab-ci.yml, docs/guide/user-guide.md)
 - Fix all four and commit again
 
 **Tag already exists:**
@@ -438,7 +438,7 @@ Menger uses a **fully automated release pipeline** triggered by version bumps me
 The pre-push hook (`.git_hooks/pre-push`) automatically validates:
 - Environment (CUDA_HOME, OPTIX_ROOT)
 - GitLab CI config syntax
-- Version consistency across 4 files (build.sbt, MengerCLIOptions.scala, .gitlab-ci.yml, USER_GUIDE.md)
+- Version consistency across 4 files (build.sbt, MengerCLIOptions.scala, .gitlab-ci.yml, docs/guide/user-guide.md)
 - Full compilation and test suite (1,070 tests)
 - Code quality (scalafix)
 - Test coverage ratchet (≥80%, max 1% drop)
