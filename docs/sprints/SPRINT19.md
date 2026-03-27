@@ -23,7 +23,7 @@ XYZ→RGB effect.
 - [ ] Wood, marble, and noise procedural textures available
 - [ ] Sponge XYZ→RGB procedural texture works
 - [ ] PBR normal and roughness maps supported
-- [ ] USER_GUIDE.md materials/textures section updated
+- [ ] `docs/guide/user-guide.md` materials/textures section updated
 - [ ] All tests pass
 
 ---
@@ -89,7 +89,7 @@ Requires texture sampling infrastructure.
 
 **Estimate:** 2h
 
-Update USER_GUIDE.md with:
+Update `docs/guide/user-guide.md` with:
 - Environment map / skybox setup
 - Procedural texture usage and parameters
 - PBR texture map pipeline
@@ -116,7 +116,7 @@ Update USER_GUIDE.md with:
 - [ ] All tests passing
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
-- [ ] USER_GUIDE.md materials/textures section updated
+- [ ] `docs/guide/user-guide.md` materials/textures section updated
 - [ ] Example renders showing procedural textures and environment maps
 
 ---

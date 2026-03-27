@@ -383,7 +383,7 @@ Menger uses a **fully automated release pipeline** triggered by version bumps me
    - `menger-app/build.sbt`
    - `.gitlab-ci.yml` (DEPLOYABLE_VERSION)
    - `menger-app/src/main/scala/menger/MengerCLIOptions.scala`
-   - `docs/USER_GUIDE.md` (Version field in header)
+   - `docs/guide/user-guide.md` (Version field in header of all `docs/guide/*.md` files)
 
 2. **Update documentation:**
    - CHANGELOG.md (keepachangelog.com format)

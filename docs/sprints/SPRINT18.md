@@ -82,7 +82,7 @@ menger --optix --show-axes --axis-length 5.0  # Custom axis length
 
 **Estimate:** 1h
 
-Update USER_GUIDE.md with documentation for all new geometry primitives and the
+Update `docs/guide/user-guide.md` with documentation for all new geometry primitives and the
 parametrized surface API.
 
 ---
@@ -115,7 +115,7 @@ Sprint retrospective, CHANGELOG.md update, and example scenes for new geometry.
 - [ ] All tests passing
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
-- [ ] USER_GUIDE.md geometry section updated
+- [ ] `docs/guide/user-guide.md` geometry section updated
 - [ ] Example scenes created for each new primitive
 
 ---

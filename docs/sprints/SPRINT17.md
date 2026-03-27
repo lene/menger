@@ -178,7 +178,7 @@ paths). Enables repeatable animation runs from config files.
 - [ ] All tests passing
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
-- [ ] USER_GUIDE.md updated (video output guide, animation preview, new DSL helpers)
+- [ ] `docs/guide/advanced.md` and `docs/guide/dsl-reference.md` updated (video output guide, animation preview, new DSL helpers)
 
 ---
 

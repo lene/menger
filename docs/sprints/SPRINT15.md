@@ -133,7 +133,7 @@ in `caustics_ppm.cu` together with the user before starting, to agree on scope a
 
 **Estimate:** 2h
 
-Update USER_GUIDE.md and CHANGELOG.md for all new features.
+Update `docs/guide/user-guide.md`, `docs/guide/advanced.md`, and CHANGELOG.md for all new features.
 
 #### Sections to Add
 
@@ -161,7 +161,7 @@ Update USER_GUIDE.md and CHANGELOG.md for all new features.
 - [x] All tests passing
 - [x] Code quality checks pass: `sbt "scalafix --check"`
 - [x] CHANGELOG.md updated
-- [x] USER_GUIDE.md updated
+- [x] `docs/guide/` updated
 - [x] Example scenes created and tested
 
 ---

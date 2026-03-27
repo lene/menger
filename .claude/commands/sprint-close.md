@@ -142,7 +142,7 @@ Remove confirmed ones. Do not touch deferred or in-progress items.
 grep "version" menger-app/build.sbt
 grep "DEPLOYABLE_VERSION" .gitlab-ci.yml
 grep "menger v" menger-app/src/main/scala/menger/MengerCLIOptions.scala
-grep -m1 "version" docs/USER_GUIDE.md
+grep -m1 "version" docs/guide/user-guide.md
 ```
 
 All four must agree on VERSION. Report any mismatches as ❌.

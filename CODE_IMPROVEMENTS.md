@@ -13,11 +13,11 @@ Resolved items are removed from this file entirely — git history is the record
 ## Low Priority
 
 ### L-userguide-missing-example-scene — MixedMetallicShowcase absent from DSL example list
-**Location:** `docs/USER_GUIDE.md` section 7.6 "Included Example Scenes"
+**Location:** `docs/guide/dsl-reference.md` "Included Example Scenes"
 **Est. Effort:** 0.1h
 The DSL example scenes list (section 7.6) does not include `MixedMetallicShowcase`, which was
 added in Sprint 13. The integration tests (`test_dsl_scenes`) and the manual test script
-(`interactive_tests`) both include it. The USER_GUIDE list is the canonical reference and should
+(`interactive_tests`) both include it. The `docs/guide/dsl-reference.md` list is the canonical reference and should
 stay in sync.
 
 ---
@@ -198,7 +198,7 @@ or letting the DSL type own the constraints and stripping them from `CausticsCon
 ---
 
 ### L-userguide-ior-flag-stale — Sections 6.2 and caustics tutorial use removed --ior flag
-**Location:** `docs/USER_GUIDE.md` section 6.2 (lines ~628–631), caustics tutorial (~line 1045)
+**Location:** `docs/guide/user-guide.md` section 6.2 (Custom Materials), `docs/guide/advanced.md` (caustics tutorial)
 **Est. Effort:** 0.1h
 Section 6.2 "Custom Materials" shows `--ior 1.5` as a standalone CLI flag, and the caustics
 tutorial example passes `--ior 1.5` as a top-level option. The `--ior` flag was removed in v0.4.3. These should use `ior=1.5` inside `--objects` syntax instead.
@@ -228,6 +228,6 @@ Issues that were investigated and consciously accepted:
 | M11: Input controller mutable state | Well-structured; encapsulation adds complexity without benefit |
 | L11: Exceptions in CudaBuffer (CudaBuffer.h:77,89) | Correct pattern at JNI boundaries |
 | OptiX cache management | Works correctly |
-| Caustics algorithm limitations | Resolved in Sprint 14 (PPM implemented; remaining limits documented in USER_GUIDE §7.3) |
+| Caustics algorithm limitations | Resolved in Sprint 14 (PPM implemented; remaining limits documented in `docs/guide/advanced.md` §Caustics) |
 | L-film-blend: blendFresnelColorsRGBAndSetPayload duplicates scalar body | GPU perf trade-off; acceptable if documented |
 | OptiX DSL runtime evaluation | Deferred (Sprint 15) |

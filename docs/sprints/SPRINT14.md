@@ -18,7 +18,7 @@ while addressing the most pressing code health issues identified during Sprint 1
 - [x] Code quality: OptiXEngine split below 400-line guideline
 - [x] Caustics render correctly (progressive photon mapping or alternative algorithm)
 - [x] Colored shadows Phase 2: multi-object anyhit accumulation works
-- [x] Documentation for caustics + colored shadows added to USER_GUIDE.md
+- [x] Documentation for caustics + colored shadows added to `docs/guide/advanced.md`
 - [ ] All tests pass
 
 ---
@@ -112,7 +112,7 @@ due to incorrect rendering results. The root cause has not been fully diagnosed.
 
 **Estimate:** 1 hour
 
-Update USER_GUIDE.md and CHANGELOG.md for caustics and colored shadows Phase 2.
+Update `docs/guide/advanced.md` and CHANGELOG.md for caustics and colored shadows Phase 2.
 
 #### Sections to Add/Update
 
@@ -139,7 +139,7 @@ Update USER_GUIDE.md and CHANGELOG.md for caustics and colored shadows Phase 2.
 - [ ] All tests passing
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
-- [ ] USER_GUIDE.md updated
+- [ ] `docs/guide/advanced.md` updated
 - [ ] CODE_IMPROVEMENTS.md: M14 removed (if 14.0 complete)
 
 ---
