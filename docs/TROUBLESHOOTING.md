@@ -1,3 +1,5 @@
+← [User Guide Index](USER_GUIDE.md)
+
 # Troubleshooting
 
 ## OptiX JNI Build Issues
@@ -167,3 +169,222 @@ xvfb-run -a sbt "run --optix ..."
 ### Packaged app can't find optixjni library
 
 **Expected behavior:** Known issue - packaged app tries loading from system path not bundled location. Doesn't affect code correctness. Only impacts distribution.
+
+---
+
+## User-Facing Common Issues
+
+> This section covers runtime issues when using the rendered application.
+> For build and JNI issues, see the sections above.
+
+### Common Issues
+
+#### "CUDA Error 718: Invalid Program Counter"
+
+**Problem:** OptiX SDK version doesn't match NVIDIA driver version.
+
+**Diagnosis:**
+```bash
+# Check driver version
+nvidia-smi
+
+# Check driver's OptiX version
+strings /usr/lib/x86_64-linux-gnu/libnvoptix.so.* | grep "OptiX Version"
+
+# Check SDK version used to build
+grep "OptiX SDK:" optix-jni/target/native/x86_64-linux/build/CMakeCache.txt
+```
+
+**Solution:**
+1. Driver 580.x+ requires OptiX SDK 9.0+
+2. Driver 535-575.x requires OptiX SDK 8.0
+3. Install matching SDK version
+4. Clean and rebuild:
+```bash
+rm -rf optix-jni/target/native
+sbt compile
+```
+
+For more details, see [INSTALLATION_FROM_SCRATCH.md](INSTALLATION_FROM_SCRATCH.md#check-optixdriver-compatibility).
+
+#### "PTX File Not Found" or Solid Red Rendering
+
+**Problem:** Compiled PTX shaders not found after `sbt clean`.
+
+**Solution:**
+```bash
+# Rebuild project
+sbt compile
+
+# Or manually copy PTX
+mkdir -p target/native/x86_64-linux/bin
+cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx \
+    target/native/x86_64-linux/bin/
+```
+
+#### Stale PTX After Shader Changes
+
+**Problem:** Shader modifications don't take effect.
+
+**Diagnosis:**
+```bash
+# Check PTX file timestamps
+ls -lah */target/native/x86_64-linux/bin/sphere_combined.ptx \
+    target/native/x86_64-linux/bin/sphere_combined.ptx
+```
+
+**Solution:**
+```bash
+# Remove stale PTX
+rm -f target/native/x86_64-linux/bin/sphere_combined.ptx
+
+# Or force-copy fresh PTX
+cp optix-jni/target/native/x86_64-linux/bin/sphere_combined.ptx \
+    target/native/x86_64-linux/bin/
+```
+
+#### "UnsatisfiedLinkError: no optixjni in java.library.path"
+
+**Problem:** JNI library not found.
+
+**Solution:**
+```bash
+# Check library exists
+ls optix-jni/target/native/x86_64-linux/bin/liboptixjni.so
+
+# Rebuild if missing
+sbt "project optixJni" nativeCompile
+```
+
+#### SIGBUS Crash During Window Cleanup (Headless Mode)
+
+**Problem:** JVM crashes with `SIGBUS` in `libnvidia-glcore.so` when using `xvfb-run`.
+
+**Solution:**
+```bash
+# Set environment variable before running
+export __GL_THREADED_OPTIMIZATIONS=0
+xvfb-run sbt "run --optix ..."
+```
+
+This is already set in CI/CD configurations and git hooks.
+
+#### Permission Errors After Docker Build
+
+**Problem:** Files owned by root after Docker build.
+
+**Solution:**
+```bash
+# Use pkexec (not sudo) per project guidelines
+pkexec chown -R $USER:$USER optix-jni/target/
+```
+
+#### Out of Memory During Compilation
+
+**Problem:** Compilation fails with OOM errors.
+
+**Solution:**
+```bash
+# Limit sbt heap
+sbt -J-Xmx4G compile
+
+# Or add swap space
+sudo fallocate -l 8G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
+
+For a complete troubleshooting guide, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
+### Performance Tips
+
+#### Optimizing Render Speed
+
+**1. Choose the Right Geometry Type**
+- For levels 0-4: Use surface subdivision (`sponge-surface`)
+- For levels 5+: Use volume subdivision (`sponge-volume` with IAS)
+
+**2. Reduce Quality for Previews**
+```bash
+# Fast preview (no AA, no shadows)
+sbt "run --optix --objects 'type=sponge-surface:level=2'"
+
+# Medium quality (AA only)
+sbt "run --optix --objects 'type=sponge-surface:level=2' --antialiasing"
+
+# Full quality (AA + shadows)
+sbt "run --optix --objects 'type=sponge-surface:level=2' --antialiasing --shadows"
+```
+
+**3. Use LibGDX for Exploration**
+```bash
+# Quick interactive preview
+sbt "run --sponge-type square-sponge --level 2"
+
+# Then render final version with OptiX
+sbt "run --optix --objects 'type=sponge-surface:level=2' --antialiasing --shadows"
+```
+
+**4. Limit Caustics Quality**
+```bash
+# Fast caustics preview
+sbt "run --optix --objects 'type=sphere:ior=1.5' \
+    --caustics --caustics-photons 50000 --caustics-iterations 5"
+
+# Production caustics
+sbt "run --optix --objects 'type=sphere:ior=1.5' \
+    --caustics --caustics-photons 500000 --caustics-iterations 50"
+```
+
+**5. Optimize Antialiasing**
+```bash
+# Fastest AA
+--antialiasing --aa-max-depth 1 --aa-threshold 0.2
+
+# Balanced
+--antialiasing --aa-max-depth 2 --aa-threshold 0.1
+
+# Best quality
+--antialiasing --aa-max-depth 4 --aa-threshold 0.05
+```
+
+**6. Headless Rendering for Batch Jobs**
+```bash
+export __GL_THREADED_OPTIMIZATIONS=0
+xvfb-run sbt "run --optix ... --timeout 2.0"
+```
+
+#### Benchmarking
+
+Check render statistics:
+```bash
+sbt "run --optix --objects 'type=sphere' --stats"
+```
+
+This displays ray counts, intersection tests, and timing information.
+
+### Getting Help
+
+#### Documentation Resources
+
+- **Architecture**: [docs/arc42/README.md](arc42/README.md) - Full arc42 architecture documentation
+- **Installation**: [docs/INSTALLATION_FROM_SCRATCH.md](INSTALLATION_FROM_SCRATCH.md) - Complete installation guide
+- **Troubleshooting**: [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Detailed troubleshooting
+- **Caustics**: [docs/caustics/CAUSTICS.md](caustics/CAUSTICS.md) - Caustics implementation details
+
+#### Reporting Issues
+
+If you encounter a bug or have a feature request:
+
+1. Check existing issues: https://gitlab.com/lilacashes/menger/issues
+2. Create a new issue with:
+   - Clear description of the problem
+   - Steps to reproduce
+   - Expected vs actual behavior
+   - Environment details (OS, GPU, driver version)
+   - Relevant error messages
+
+#### Contributing
+
+Contributions are welcome! The project follows functional programming principles in Scala 3. See [AGENTS.md](../AGENTS.md) for code standards and development workflow.
