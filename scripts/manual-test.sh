@@ -472,6 +472,7 @@ interactive_tests=(
     "DSL ParametricKleinBottle (figure-8 Klein bottle, IOR, non-orientable):-o --scene examples.dsl.ParametricKleinBottle --shadows"
     "DSL ParametricKleinBottleFilm (figure-8 Klein bottle, film material):-o --scene examples.dsl.ParametricKleinBottleFilm --shadows"
     "DSL ParametricSphere (parametric sphere, compare to built-in):-o --scene examples.dsl.ParametricSphere --shadows"
+    "DSL CausticsReferenceDefault (primitive sphere, default caustics quality — compare to ParametricSphereCaustics):-o --scene examples.dsl.CausticsReferenceDefault"
     "DSL ParametricSphereCaustics (parametric sphere with PPM caustics on floor):-o --scene examples.dsl.ParametricSphereCaustics"
     "DSL ParametricTorusCaustics (glass torus with PPM caustics on floor):-o --scene examples.dsl.ParametricTorusCaustics"
 )

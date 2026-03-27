@@ -47,3 +47,13 @@ object CausticsReference:
   )
 
   SceneRegistry.register("caustics-reference", scene)
+
+/** Same as CausticsReference but with Caustics.Default quality — used in the manual
+  * test menu alongside ParametricSphereCaustics (which also uses Caustics.Default)
+  * for a fair visual comparison between analytic and tessellated sphere caustics.
+  *
+  * Usage: --scene examples.dsl.CausticsReferenceDefault
+  */
+object CausticsReferenceDefault:
+  val scene: Scene = CausticsReference.scene.copy(caustics = Some(Caustics.Default))
+  SceneRegistry.register("caustics-reference-default", scene)
