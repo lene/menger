@@ -316,7 +316,8 @@ sbt "run --optix --objects 'type=sphere'    # Ray-traced sphere
 
 # Lighting
 --light <spec>               # Add light (repeatable, max 8)
-                             # Format: type:x,y,z[:intensity[:color]]
+                             # Types: directional:x,y,z[:i[:c]], point:x,y,z[:i[:c]],
+                             #        area:px,py,pz:nx,ny,nz:radius[:samples[:i[:c]]]
 --shadows                    # Enable shadow rays
 
 # Quality
@@ -684,6 +685,16 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
 - Intensity falls off with distance (inverse square law)
 - Example: `--light point:0,5,0:2.0`
 
+**Area Light** (`area`)
+- Disk emitter — produces soft shadows with visible penumbra
+- Configurable shadow sample count per light (1–16, default 4)
+- Format: `area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color]]]`
+  - `px,py,pz` — center position of the disk
+  - `nx,ny,nz` — normal direction (toward the scene), auto-normalized
+  - `radius` — disk radius in world units
+  - `samples` — shadow rays per light (default 4; more = softer but slower)
+- Example: `--light area:0,4,0:0,-1,0:1.5:8`  (disk above, facing down, 8 samples)
+
 **Light Parameters:**
 
 ```bash
@@ -698,6 +709,15 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
 
 # Colored point light with intensity
 --light point:2,3,2:1.5:ffd700    # Gold-colored light
+
+# Area light: disk above the scene, 4 shadow samples (default)
+--light area:0,4,0:0,-1,0:1.5
+
+# Area light with 8 shadow samples for softer penumbra
+--light area:0,4,0:0,-1,0:1.5:8
+
+# Combine area light with shadows for soft shadow rendering
+--shadows --light area:0,4,0:0,-1,0:2.0:8
 ```
 
 #### Multi-Light Setup
@@ -998,10 +1018,10 @@ The `t` value is linearly interpolated: `t = startT + frameIndex * (endT - start
 # Generate frames
 sbt "run --optix --scene examples.dsl.OrbitingSphere \
     --frames 120 --start-t 0 --end-t 6.28 \
-    --save-name /tmp/orbit_%04d.png --headless"
+    --save-name orbit_%04d.png --headless"
 
 # Convert to MP4
-ffmpeg -framerate 30 -i /tmp/orbit_%04d.png -c:v libx264 -pix_fmt yuv420p orbit.mp4
+ffmpeg -framerate 30 -i orbit_%04d.png -c:v libx264 -pix_fmt yuv420p orbit.mp4
 ```
 
 #### Included Animated Examples
@@ -1064,9 +1084,12 @@ For more details, see [docs/caustics/CAUSTICS.md](caustics/CAUSTICS.md).
 
 - **Non-deterministic results:** PPM uses stochastic photon tracing. Each render produces slightly
   different caustic patterns; pixel-exact reproduction is not guaranteed between runs.
-- **Sphere-optimized geometry:** Caustics are most accurate for simple spherical refractive objects.
-  Complex geometry (Menger sponges, tesseracts) may show weaker or irregular caustic patterns
-  depending on surface normals and photon distribution.
+- **General geometry supported:** Caustics work correctly for spheres, parametric surfaces
+  (torus, Klein bottle, etc.), and any other refractive triangle mesh. Complex geometry
+  (Menger sponges, tesseracts) may show weaker caustic patterns due to photon distribution.
+- **Single light source:** Photons are emitted from the first light only; multi-light caustics
+  are not yet supported.
+- **Single plane deposition:** Caustic photons are deposited on the first ground plane only.
 - **No interaction with colored shadows:** Caustics are computed in a separate PPM pass and do not
   interact with `--transparent-shadows` attenuation. Enabling both simultaneously is valid but
   the two effects are computed independently.
@@ -1520,6 +1543,88 @@ Point(
   color = "#FF0000"  // Red
 )
 ```
+
+**Area Lights:**
+```scala
+// Disk light above the scene, facing down
+AreaLight(
+  position = (0f, 4f, 0f),
+  normal = (0f, -1f, 0f),
+  radius = 1.5f
+)
+
+// Brighter light with more shadow samples for softer penumbra
+AreaLight(
+  position = (2f, 5f, 1f),
+  normal = (0f, -1f, 0f),
+  radius = 2.0f,
+  intensity = 1.5f,
+  shadowSamples = 8
+)
+```
+
+#### Parametric Surfaces
+
+Define arbitrary 3D surfaces using a Scala function `f(u, v) => Vec3`. The surface is
+CPU-tessellated into a triangle mesh and rendered through the full OptiX pipeline.
+
+```scala
+// Parametric sphere (closed in U, open in V — seam-welded at poles)
+ParametricSurface(
+  f = (u, v) => Vec3(
+    math.cos(u).toFloat * math.sin(v).toFloat,
+    math.cos(v).toFloat,
+    math.sin(u).toFloat * math.sin(v).toFloat
+  ),
+  uRange = (0f, 2f * math.Pi.toFloat),
+  vRange = (0f, math.Pi.toFloat),
+  closedU = true,
+  material = Some(Material.Glass)
+)
+
+// Torus (closed in both U and V)
+val R = 1.0f; val r = 0.35f
+ParametricSurface(
+  f = (u, v) => Vec3(
+    (R + r * math.cos(v).toFloat) * math.cos(u).toFloat,
+    r * math.sin(v).toFloat,
+    (R + r * math.cos(v).toFloat) * math.sin(u).toFloat
+  ),
+  uRange = (0f, 2f * math.Pi.toFloat),
+  vRange = (0f, 2f * math.Pi.toFloat),
+  closedU = true, closedV = true,
+  material = Some(Material.Glass)
+)
+
+// Wavy sheet (open surface, higher resolution)
+ParametricSurface(
+  f = (u, v) => Vec3(u, 0.3f * math.sin(u * 2).toFloat * math.cos(v * 2).toFloat, v),
+  uRange = (-2f, 2f),
+  vRange = (-2f, 2f),
+  uSteps = 64, vSteps = 64,
+  ior = 1.5f
+)
+```
+
+**Parameters:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `f` | required | Surface function `(u, v) => Vec3` |
+| `uRange` | `(0, 2π)` | Range of u parameter |
+| `vRange` | `(0, π)` | Range of v parameter |
+| `uSteps` | `64` | Tessellation resolution along u |
+| `vSteps` | `32` | Tessellation resolution along v |
+| `closedU` | `false` | Weld the seam at u boundaries (e.g. cylinder, torus) |
+| `closedV` | `false` | Weld the seam at v boundaries |
+| `material` | `None` | Material preset (Glass, Chrome, etc.) |
+| `color` | `None` | RGBA color |
+| `ior` | `1.0` | Index of refraction |
+| `size` | `1.0` | Uniform scale |
+| `pos` | `(0,0,0)` | Position offset |
+
+**Built-in example scenes** (load with `--dsl <name>`): `parametric-sphere`,
+`parametric-torus`, `parametric-wavy-sheet`, `parametric-moebius`, `parametric-klein-bottle`.
 
 #### Camera and Plane
 
@@ -2255,8 +2360,10 @@ Contributions are welcome! The project follows functional programming principles
 #### OptiX Lighting Options
 ```
 --light <spec>               Add light source (repeatable, max 8)
-                             Format: type:x,y,z[:intensity[:color]]
-                             Types: directional, point
+                             Types:
+                               directional:x,y,z[:intensity[:color]]
+                               point:x,y,z[:intensity[:color]]
+                               area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color]]]
 --shadows                    Enable shadow rays
 ```
 

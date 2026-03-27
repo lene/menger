@@ -172,10 +172,10 @@ The `t` value is linearly interpolated: `t = startT + frameIndex * (endT - start
 # Generate frames
 sbt "run --optix --scene examples.dsl.OrbitingSphere \
     --frames 120 --start-t 0 --end-t 6.28 \
-    --save-name /tmp/orbit_%04d.png --headless"
+    --save-name orbit_%04d.png --headless"
 
 # Convert to MP4
-ffmpeg -framerate 30 -i /tmp/orbit_%04d.png -c:v libx264 -pix_fmt yuv420p orbit.mp4
+ffmpeg -framerate 30 -i orbit_%04d.png -c:v libx264 -pix_fmt yuv420p orbit.mp4
 ```
 
 #### Included Animated Examples
