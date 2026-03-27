@@ -1,7 +1,7 @@
 # Sprint 15: Visual Enhancements & Parametric Geometry
 
 **Sprint:** 15 - Visual Enhancements & Parametric Geometry
-**Status:** Not Started
+**Status:** In Progress
 **Estimate:** ~13 hours
 **Branch:** `feature/sprint-15`
 **Dependencies:** Sprint 14 (rendering correctness baseline, caustics PPM foundation)
@@ -15,11 +15,11 @@ caustics to work with complex geometry beyond spheres.
 
 ## Success Criteria
 
-- [ ] Soft shadows with area lights (penumbra visible)
-- [ ] Parametrized surfaces `f(u,v) → Vec3` renderable in DSL and OptiX
-- [ ] Caustics work correctly for parametric geometry (not just spheres)
-- [ ] Documentation and examples updated
-- [ ] All tests pass
+- [x] Soft shadows with area lights (penumbra visible)
+- [x] Parametrized surfaces `f(u,v) → Vec3` renderable in DSL and OptiX
+- [x] Caustics work correctly for parametric geometry (not just spheres)
+- [x] Documentation and examples updated
+- [x] All tests pass
 
 ---
 
@@ -157,12 +157,12 @@ Update USER_GUIDE.md and CHANGELOG.md for all new features.
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing
-- [ ] Code quality checks pass: `sbt "scalafix --check"`
-- [ ] CHANGELOG.md updated
-- [ ] USER_GUIDE.md updated
-- [ ] Example scenes created and tested
+- [x] All success criteria met
+- [x] All tests passing
+- [x] Code quality checks pass: `sbt "scalafix --check"`
+- [x] CHANGELOG.md updated
+- [x] USER_GUIDE.md updated
+- [x] Example scenes created and tested
 
 ---
 
@@ -170,3 +170,29 @@ Update USER_GUIDE.md and CHANGELOG.md for all new features.
 
 - **Depth of field / aperture / bokeh** → Backlog (not urgent)
 - **Cylinder, cone, torus as explicit DSL types** → delivered implicitly via Task 15.2
+
+---
+
+## Implementation Notes (Actual vs. Planned)
+
+### Task 15.1: Shadow samples are per-light, not a global flag
+
+The sprint plan specified `--shadow-samples N` as a top-level CLI flag. The actual
+implementation embeds samples inside the `--light` spec:
+```
+--light area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color]]]
+```
+This is more flexible (different lights can have different sample counts) and avoids
+a global flag that would only apply to area lights.
+
+### Task 15.2: ParametricSurface lives in SceneObject.scala, not a new file
+
+The plan listed `dsl/ParametricSurface.scala` and `objects/ParametricSurfaceBuilder.scala`
+as new files. In practice, `ParametricSurface` was added as a new `case class` inside the
+existing `SceneObject.scala`, and tessellation lives in `ParametricTessellator.scala`
+(not `ParametricSurfaceBuilder`).
+
+### Task 15.3: Multi-light and multi-plane caustics still deferred
+
+Photon emission only reads `params.lights[0]` and only deposits on `params.planes[0]`.
+These are pre-existing TODOs in `caustics_ppm.cu` — not regressions from the generalization.

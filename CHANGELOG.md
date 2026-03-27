@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added
+- **Soft shadows with area lights** — a new `AreaLight` type (disk emitter) casts soft shadows
+  with visible penumbra. Shadow samples are configurable per-light (1–16, default 4). Available
+  in the Scala DSL (`AreaLight(position, normal, radius, shadowSamples = 4)`) and via the CLI
+  (`--light area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color]]]`).
+- **Parametric surfaces `f(u,v) → Vec3`** — arbitrary surfaces defined by a Scala function are
+  CPU-tessellated into triangle meshes and rendered through the full OptiX pipeline. Supports
+  open and closed (seam-welded) surfaces, configurable resolution (`uSteps`, `vSteps`), automatic
+  normal computation from partial derivatives, and all existing material types including glass and
+  PBR. Built-in example scenes: sphere, torus, wavy sheet, Möbius strip, Klein bottle.
+  DSL: `ParametricSurface(f = (u, v) => Vec3(...), uRange, vRange, uSteps, vSteps, closedU, closedV)`.
+- **Caustics for arbitrary geometry** — photon tracing now dispatches through the SBT to
+  geometry-specific closest-hit programs, generalizing beyond sphere-only refraction. Parametric
+  meshes (torus, Klein bottle, etc.) and any other refractive triangle geometry now produce
+  physically correct caustics.
+
 ## [0.5.4] - 2026-03-24
 
 ### Added

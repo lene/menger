@@ -1,7 +1,7 @@
 # Current Sprint
 
-**Sprint:** 15 - Visual Enhancements & Primitives
-**Status:** Not Started
+**Sprint:** 15 - Visual Enhancements & Parametric Geometry
+**Status:** In Progress
 **Branch:** `feature/sprint-15`
 
 ---

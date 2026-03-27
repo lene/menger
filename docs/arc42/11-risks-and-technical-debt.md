@@ -34,7 +34,7 @@
 | TD-1 | Single PTX file growing large | Low | 2-4h (split into modules) |
 | TD-2 | Hardcoded MAX_LIGHTS = 8 | Low | 1h (make configurable) |
 | TD-3 | Window resize not working | Medium | 15+h (deferred) |
-| TD-4 | Caustics algorithm incomplete | High | 20+h (deferred) |
+| TD-4 | Caustics: multi-light and multi-plane not yet supported | Low | 4-8h (single light[0] and plane[0] only) |
 | TD-5 | Cannot mix spheres with triangle meshes | Medium | 8-12h (multi-GAS IAS) |
 | TD-6 | Colored transparent shadows Phase 2 (multi-object) | Low | 4-8h (anyhit accumulation for overlapping transparent objects) |
 
@@ -44,7 +44,6 @@
 |---------|--------|--------|
 | Dynamic window resize | Complex timing issues | Backlog |
 | Caustics (PPM) | Algorithm produces incorrect results | Branch preserved |
-| Soft shadows | Requires area lights | Future sprint |
 | Mixed geometry scenes | Spheres use analytical GAS, meshes use triangle GAS | TD-5 |
 | Colored transparent shadows Phase 2 | Phase 1 (closesthit, single-object) complete; Phase 2 anyhit accumulation for overlapping transparent objects remains | TD-6 |
 
@@ -69,7 +68,7 @@ Detailed troubleshooting: [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)
 
 | Metric | Source | Alert Threshold |
 |--------|--------|-----------------|
-| Test count | CI | < 1683 (regression) |
+| Test count | CI | < 1683 (regression floor; current: 1,710) |
 | Build time | CI | > 10 minutes |
 | Render time | RayStats | > 2× baseline |
 | GPU memory | nvidia-smi | > 80% |

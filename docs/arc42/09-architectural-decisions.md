@@ -232,9 +232,7 @@ Historical sprint plans (5, 6, 7) have been archived after completion.
 
 Decisions to be made in upcoming sprints:
 
-| Sprint | Topic | Options |
-|--------|-------|---------|
-| 12-13 | Animation keyframe format | Linear vs Bezier interpolation |
+No pending future decisions at this time.
 
 ### Resolved Future Decisions
 
@@ -242,3 +240,5 @@ Decisions to be made in upcoming sprints:
 |--------|-------|----------|
 | 8-10 | 4D projection method | Perspective projection (implemented in `RotatedProjection`) |
 | 11 | Scene file format | Scala DSL (implemented in Sprint 10; Sprint 11 used existing DSL) |
+| 12-13 | Animation keyframe format | Deferred indefinitely (animation not yet scheduled) |
+| 15 | Area light shadow sampling | Per-light `shadowSamples` in `area:` CLI spec (not global `--shadow-samples` flag) |

@@ -105,7 +105,7 @@ For reproducible validation, use this fixed configuration:
 
 | ID | Scenario | Measure | Target | Status |
 |----|----------|---------|--------|--------|
-| R1 | All tests pass | Count | 1,070 tests passing | ✅ Current |
+| R1 | All tests pass | Count | 1,710 tests passing | ✅ Current |
 | R2 | GPU error recovery | Cache corruption | Auto-recover | ✅ Validated |
 | R3 | Invalid CLI args | Error message | Clear, actionable | ✅ Validated |
 | R4 | Missing GPU | Graceful degradation | LibGDX fallback | ✅ Existing |
@@ -127,7 +127,7 @@ For reproducible validation, use this fixed configuration:
 |-----------|-------|----------------|
 | menger.objects | ~50 | Geometry generation, subdivision |
 | menger.input | ~20 | Event handling, camera |
-| optix-jni (Scala) | ~950 | Renderer API, materials, integration |
+| optix-jni (Scala) | ~1,610 | Renderer API, materials, integration |
 | optix-jni (C++) | 27 | OptiXContext primitives |
 | CLI | ~30 | Argument parsing, validation |
 

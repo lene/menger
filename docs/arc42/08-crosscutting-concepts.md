@@ -56,7 +56,35 @@ I(d) = I₀ · exp(-α · d)
 α_b = -log(color.b) × color.a × scale
 ```
 
-### 8.1.4 Shadow Rays
+### 8.1.4 Area Lights and Soft Shadows
+
+Area lights model extended light sources (disks) that produce soft shadow penumbras by
+casting multiple shadow rays per shading point and averaging the results.
+
+```
+For each shadow sample i ∈ [1..N]:
+    sample_point = area_light_center + random_disk_point(radius)
+    shadow_ray_i → sample_point
+    visibility_i = 1.0 if unoccluded, 0.0 if blocked
+
+soft_shadow_factor = sum(visibility_i) / N
+```
+
+| Parameter | Meaning |
+|-----------|---------|
+| `position` | Center of the disk light |
+| `normal` | Orientation of the disk (emission direction) |
+| `radius` | Disk radius in scene units |
+| `shadowSamples` | Number of shadow rays per shading point (1–16) |
+
+**Design choice:** `shadowSamples` is specified per light in the `area:` CLI format rather than
+as a global `--shadow-samples` flag. This allows different area lights in the same scene to use
+different sampling densities (e.g., a large soft key light at 16 samples, a small fill at 4).
+
+When `shadowSamples = 1`, area lights behave identically to point lights but with an
+extended emission position (no soft shadow). The penumbra width scales with `radius / distance`.
+
+### 8.1.5 Shadow Rays
 
 Cast shadow rays from hit points to light sources:
 
@@ -106,7 +134,42 @@ transparent objects require anyhit accumulation (Phase 2, see TD-6).
 
 Applies to: OptiX shaders, Beer-Lambert absorption, Scala Color objects, all tests.
 
-## 8.3 Color Handling
+## 8.3 Parametric Surface Tessellation
+
+Parametric surfaces are defined by a continuous mapping `f : (u, v) → ℝ³` over a rectangular
+parameter domain `[u_min, u_max] × [v_min, v_max]`.
+
+```
+f(u, v) = Vec3(x(u,v), y(u,v), z(u,v))
+```
+
+`ParametricTessellator` discretises this function into a triangle mesh:
+
+1. **Sample grid:** Evaluate `f` at each `(u_i, v_j)` of an `(uSteps+1) × (vSteps+1)` grid.
+2. **Build quads:** For each interior grid cell, form two triangles from the four corner samples.
+3. **Seam welding:** When `closedU = true`, the last column wraps to column 0. Same for `closedV`.
+4. **Normal estimation:** Per-vertex normals are computed via cross product of adjacent edge vectors
+   using central differences where interior vertices exist, forward/backward at boundaries.
+
+| Parameter | Effect |
+|-----------|--------|
+| `uSteps` / `vSteps` | Mesh resolution; higher = smoother, more triangles |
+| `closedU` | Connects last u column to first (cylinder, torus, Klein bottle) |
+| `closedV` | Connects last v row to first (torus, Klein bottle) |
+
+**Example functions (built-in scenes):**
+
+| Scene | `f(u, v)` |
+|-------|-----------|
+| `parametric-sphere` | `r(sin u cos v, cos u, sin u sin v)` |
+| `parametric-torus` | `((R + r cos v) cos u, (R + r cos v) sin u, r sin v)` |
+| `parametric-klein-bottle` | Non-orientable; self-intersecting at seam |
+| `parametric-moebius` | Half-twist strip; `closedU`, `closedV=false` |
+
+The resulting mesh is treated as a standard `TriangleMesh` scene object and passes through the
+same BVH build and OptiX hit-group pipeline as any other triangle geometry.
+
+## 8.4 Color Handling
 
 ### Unified Color API
 
@@ -129,7 +192,7 @@ object Color:
 #RRGGBBAA → RGBA, alpha from AA byte
 ```
 
-## 8.4 Error Handling
+## 8.5 Error Handling
 
 ### Scala Layer
 
@@ -162,7 +225,7 @@ Macro-based error checking:
   // Similar pattern for OptixResult
 ```
 
-## 8.5 Functional Style Enforcement
+## 8.6 Functional Style Enforcement
 
 ### Wartremover Rules
 
@@ -182,7 +245,7 @@ DisableSyntax.noNulls    // No null literals
 DisableSyntax.noReturns  // No return statements
 ```
 
-## 8.6 Testing Strategy
+## 8.7 Testing Strategy
 
 ### Test Categories
 
@@ -205,7 +268,7 @@ class FooTest extends AnyFlatSpec with Matchers:
     // ...
 ```
 
-## 8.7 Performance Patterns
+## 8.8 Performance Patterns
 
 ### GPU Optimization
 

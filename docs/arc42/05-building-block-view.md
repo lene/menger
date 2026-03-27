@@ -40,11 +40,19 @@ menger-app/src/main/scala/
     ├── cli/                          # CLI types and converters
     ├── config/                       # Configuration classes
     ├── dsl/                          # Scala DSL for scene description (Sprint 10+)
+    │   ├── Camera.scala              # DSL camera definition
+    │   ├── Caustics.scala            # DSL caustics config
+    │   ├── Color.scala               # DSL color helpers
+    │   ├── Light.scala               # PointLight, DirectionalLight, AreaLight
+    │   ├── LoadedScene.scala         # Loaded scene wrapper
+    │   ├── Material.scala            # DSL material definitions
+    │   ├── Plane.scala               # Plane scene object
     │   ├── Scene.scala               # Scene definition (objects, lights, camera)
-    │   ├── SceneObject.scala         # Base trait for scene objects
+    │   ├── SceneConverter.scala      # Converts DSL scenes to OptiX data
     │   ├── SceneLoader.scala         # Loads scenes by name from registry
+    │   ├── SceneObject.scala         # SceneObject trait + ParametricSurface case class
     │   ├── SceneRegistry.scala       # Registry of named scenes
-    │   └── SceneConverter.scala      # Converts DSL scenes to OptiX data
+    │   └── Vec3.scala                # DSL 3D vector helpers
     ├── gdx/                          # LibGDX wrapper layer (all var/null isolated here)
     │   ├── GdxRuntime.scala          # Lifecycle and exit
     │   ├── KeyPressTracker.scala     # Shift/Ctrl/Alt modifier state
@@ -70,11 +78,15 @@ menger-app/src/main/scala/
 ```
 menger.objects/
 ├── Geometry (trait)              # Base trait for renderable objects
+├── Builder (trait)               # Triangle mesh construction protocol
+├── Composite                     # Multi-object composite geometry
 ├── Face, Direction               # Face representation for subdivision
 ├── Square, Cube                  # Basic 2D/3D primitives
+├── Sphere                        # Sphere primitive
 ├── SpongeBySurface               # 3D Menger (12 faces/face)
 ├── SpongeByVolume                # 3D Menger (20 cubes/cube)
 ├── FractionalLevelSponge         # Fractional level support
+├── ParametricTessellator         # f(u,v) → triangle mesh tessellation (Sprint 15)
 └── higher_d/
     ├── Tesseract                 # 4D hypercube
     ├── TesseractSponge           # 4D sponge (48 tesseracts/tesseract)
