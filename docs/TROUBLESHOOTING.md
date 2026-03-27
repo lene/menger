@@ -295,7 +295,7 @@ sudo mkswap /swapfile
 sudo swapon /swapfile
 ```
 
-For a complete troubleshooting guide, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+For performance tips and further help, see [Performance Tips](#performance-tips) and [Getting Help](#getting-help) below.
 
 ### Performance Tips
 
