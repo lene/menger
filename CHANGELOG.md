@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- Project website at https://lilacashes.gitlab.io/menger/ — MkDocs site with render gallery and feedback links
+
 ## [0.5.5] - 2026-03-28
 
 ### Added
