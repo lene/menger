@@ -86,7 +86,7 @@ Your bash tool has known limitations. Follow these workarounds:
 ```bash
 # Core commands
 sbt compile                          # Compile all modules (includes C++/CUDA)
-sbt test                             # Run all tests (~1,070 total: 27 C++ + 1,043 Scala)
+sbt test                             # Run all tests (~1,080 total: 27 C++ + 1,053 Scala)
 sbt "testOnly ClassName"             # Run specific Scala test
 sbt run                              # Run application
 
@@ -233,15 +233,14 @@ the end-to-end CLI surface and catch regressions in argument parsing, GPU dispat
 1. **Make code changes**
    - Follow code standards above
    - Update CHANGELOG.md (keepachangelog.com format)
-     - don't document every single commit. instead give a concise, but complete of the features that hae been added and the bugs that  
-       have been fixed. but only preexistig bugs, bugs that were introduced during the development of 0.4.1 and have bee fixed do not  
-       get mentioned.
+     - Give a concise but complete description of features added and pre-existing bugs fixed.
+       Do not document every individual commit. Do not mention bugs that were introduced and
+       fixed within the same development cycle.
 
    - Update arc42 documentation if affecting architecture, quality, or risks
 
 2. **Test changes**
    ```bash
-   sbt compile
    sbt test
    ```
 
@@ -259,6 +258,12 @@ the end-to-end CLI surface and catch regressions in argument parsing, GPU dispat
    - User decides when to commit
 
 6. **Monitor pipeline** after pushing
+   ```bash
+   glab ci list                         # List recent pipelines
+   glab ci view                         # Watch the latest pipeline in real time
+   glab ci status                       # Check current pipeline status
+   glab api --method POST "projects/lilacashes%2Fmenger/jobs/<id>/retry"  # Retry a specific job
+   ```
 
 ---
 
@@ -347,14 +352,13 @@ pkexec chown -R $USER:$USER optix-jni/target/
 
 ### Module Documentation
 - [optix-jni/README.md](optix-jni/README.md) - OptiX JNI module details
-- [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md) - Sprint roadmap
 
 ---
 
 ## DEVELOPMENT STATUS
 
 For current sprint status, completed features, and roadmap, see:
-- **Sprint roadmap:** [optix-jni/ENHANCEMENT_PLAN.md](optix-jni/ENHANCEMENT_PLAN.md)
+- **Current sprint:** [docs/sprints/SPRINT.md](docs/sprints/SPRINT.md) (pointer to active sprint file)
 - **Recent changes:** [CHANGELOG.md](CHANGELOG.md)
 - **Code quality:** [CODE_IMPROVEMENTS.md](CODE_IMPROVEMENTS.md)
 
@@ -439,10 +443,10 @@ The pre-push hook (`.git_hooks/pre-push`) automatically validates:
 - Environment (CUDA_HOME, OPTIX_ROOT)
 - GitLab CI config syntax
 - Version consistency across 4 files (build.sbt, MengerCLIOptions.scala, .gitlab-ci.yml, docs/guide/user-guide.md)
-- Full compilation and test suite (1,070 tests)
-- Code quality (scalafix)
-- Test coverage ratchet (≥80%, max 1% drop)
-- Memory leaks (compute-sanitizer, valgrind)
+- Full test suite (1,080 tests) — in parallel with scalafix
+- Code quality (scalafix) — in parallel with test suite
+- Test coverage ratchet (≥80%, max 1% drop) — in parallel with Valgrind
+- Memory leaks (compute-sanitizer, Valgrind) — Valgrind in parallel with coverage; compute-sanitizer sequential after coverage
 - Integration tests (27 scenarios)
 
 **Manual run:**
