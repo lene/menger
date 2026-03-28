@@ -4,6 +4,7 @@
 
 ### Added
 - Project website at https://lilacashes.gitlab.io/menger/ — MkDocs site with render gallery and feedback links
+- CUDA 13 parallel CI jobs (`Test:Full:Cuda13`, `Test:OptiXJni:Cuda13`) run alongside CUDA 12.8 jobs as `allow_failure` to catch version compatibility issues early
 
 ## [0.5.5] - 2026-03-28
 
