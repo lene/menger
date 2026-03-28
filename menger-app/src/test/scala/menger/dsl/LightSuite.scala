@@ -116,3 +116,62 @@ class LightSuite extends AnyFlatSpec with Matchers:
         point.intensity shouldBe 1.5f
         point.color shouldBe Color("#FFFFCC").toCommonColor
       case _ => fail("Expected Point light")
+
+  "AreaLight" should "be constructible with position, normal, and radius" in:
+    val light = AreaLight(Vec3(0f, 5f, 0f), Vec3(0f, -1f, 0f), radius = 1.0f)
+    light.position shouldBe Vec3(0f, 5f, 0f)
+    light.normal shouldBe Vec3(0f, -1f, 0f)
+    light.radius shouldBe 1.0f
+    light.intensity shouldBe 1.0f
+    light.color shouldBe Color.White
+    light.shadowSamples shouldBe 4
+
+  it should "be constructible with custom intensity and color" in:
+    val light = AreaLight(Vec3(1f, 3f, 0f), Vec3(0f, -1f, 0f), radius = 0.5f, intensity = 2.0f, color = Color.Red)
+    light.intensity shouldBe 2.0f
+    light.color shouldBe Color.Red
+
+  it should "be constructible with custom shadowSamples" in:
+    val light = AreaLight(Vec3(0f, 5f, 0f), Vec3(0f, -1f, 0f), radius = 1.0f, shadowSamples = 8)
+    light.shadowSamples shouldBe 8
+
+  it should "accept Float tuple for position and normal" in:
+    val light = AreaLight((0f, 5f, 0f), (0f, -1f, 0f), radius = 1.0f)
+    light.position shouldBe Vec3(0f, 5f, 0f)
+    light.normal shouldBe Vec3(0f, -1f, 0f)
+
+  it should "validate non-negative intensity" in:
+    an[IllegalArgumentException] should be thrownBy
+      AreaLight(Vec3.Zero, Vec3.UnitY, radius = 1.0f, intensity = -0.1f)
+
+  it should "validate positive radius" in:
+    an[IllegalArgumentException] should be thrownBy
+      AreaLight(Vec3.Zero, Vec3.UnitY, radius = 0f)
+
+  it should "validate shadowSamples range lower bound" in:
+    an[IllegalArgumentException] should be thrownBy
+      AreaLight(Vec3.Zero, Vec3.UnitY, radius = 1.0f, shadowSamples = 0)
+
+  it should "validate shadowSamples range upper bound" in:
+    an[IllegalArgumentException] should be thrownBy
+      AreaLight(Vec3.Zero, Vec3.UnitY, radius = 1.0f, shadowSamples = 17)
+
+  "AreaLight.toCommonLight" should "convert to common Area light" in:
+    val dsl = AreaLight(Vec3(0f, 5f, 0f), Vec3(0f, -1f, 0f), radius = 1.5f, intensity = 2.0f, color = Color.Blue, shadowSamples = 8)
+    val common = dsl.toCommonLight
+
+    common shouldBe a[menger.common.Light.Area]
+    common match
+      case area: menger.common.Light.Area =>
+        area.position(0) shouldBe 0f
+        area.position(1) shouldBe 5f
+        area.position(2) shouldBe 0f
+        area.normal(0) shouldBe 0f
+        area.normal(1) shouldBe -1f
+        area.normal(2) shouldBe 0f
+        area.radius shouldBe 1.5f
+        area.intensity shouldBe 2.0f
+        area.color shouldBe Color.Blue.toCommonColor
+        area.shadowSamples shouldBe 8
+        area.shape shouldBe menger.common.AreaLightShape.Disk
+      case _ => fail("Expected Area light")

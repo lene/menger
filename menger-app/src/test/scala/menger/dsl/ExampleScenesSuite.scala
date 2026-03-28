@@ -176,3 +176,43 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     registeredNames should contain("parametric-sphere-caustics")
     registeredNames should contain("parametric-torus-caustics")
     registeredNames should contain("caustics-reference-default")
+
+  it should "load TesseractDemo via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.TesseractDemo"))
+    scene.objects should have length 1
+    scene.lights should have length 1
+
+  it should "load MixedMetallicShowcase via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.MixedMetallicShowcase"))
+    scene.objects should have length 5
+    scene.lights should have length 1
+    scene.planes should not be empty
+
+  it should "load FilmSphere via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.FilmSphere"))
+    scene.objects should have length 3
+    scene.lights should have length 2
+    scene.planes should not be empty
+
+  it should "load RotatingSilverSponge as animated" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.RotatingSilverSponge"))
+    for t <- List(0f, 1.5f, 3f) do
+      val scene = fn(t)
+      scene.objects should have length 1
+      scene.lights should have length 3
+      scene.planes should not be empty
+
+  it should "produce different RotatingSilverSponge scenes for different t" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.RotatingSilverSponge"))
+    val scene0 = fn(0f)
+    val scene3 = fn(3f)
+    scene0.objects.head should not be scene3.objects.head
+
+  "SceneIndex" should "contain all static scenes" in:
+    val all = examples.dsl.SceneIndex.all
+    all should not be empty
+    all.length should be >= 10
+
+  it should "contain all animated scenes" in:
+    val animated = examples.dsl.SceneIndex.animated
+    animated should not be empty
