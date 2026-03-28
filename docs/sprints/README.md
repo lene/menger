@@ -6,9 +6,7 @@ Active sprint planning documents for ongoing and future development work.
 
 | Sprint | Focus | Status | File |
 |--------|-------|--------|------|
-| 14 | Rendering Correctness & Code Health | In Progress | [SPRINT14.md](SPRINT14.md) |
-| 15 | Visual Enhancements & Primitives | Planned | [SPRINT15.md](SPRINT15.md) |
-| 16 | Developer Infrastructure & Website | Planned | [SPRINT16.md](SPRINT16.md) |
+| 16 | Developer Infrastructure & Website | In Progress | [SPRINT16.md](SPRINT16.md) |
 | 17 | Animation Tooling & DSL | Planned | [SPRINT17.md](SPRINT17.md) |
 | 18 | Advanced Geometry | Planned | [SPRINT18.md](SPRINT18.md) |
 | 19 | Materials, Textures & Backgrounds | Planned | [SPRINT19.md](SPRINT19.md) |
@@ -21,6 +19,8 @@ See [docs/archive/sprints/](../archive/sprints/) for completed sprint documentat
 
 | Sprint | Focus | Archived File |
 |--------|-------|---------------|
+| 15 | Visual Enhancements & Primitives | [SPRINT15.md](../archive/sprints/SPRINT15.md) |
+| 14 | Rendering Correctness & Code Health | [SPRINT14.md](../archive/sprints/SPRINT14.md) |
 | 13 | Visual Quality & Material Enhancements | [SPRINT13.md](../archive/sprints/SPRINT13.md) |
 | 12 | t-Parameter Animation System | [SPRINT12.md](../archive/sprints/SPRINT12.md) |
 | 11 | libGDX Wrapper, Thin-Film Physics, 4D Enhancements | [SPRINT11.md](../archive/sprints/SPRINT11.md) |

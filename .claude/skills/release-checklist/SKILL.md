@@ -1,3 +1,8 @@
+---
+name: release-checklist
+description: Step-by-step guide for releasing a new Menger version — version bumps, changelog, CI pipeline, post-release verification, retrospective, and sprint opening.
+---
+
 # Menger Release Checklist
 
 Comprehensive step-by-step guide for releasing a new version of Menger.

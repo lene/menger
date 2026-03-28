@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-03-25
+**Last Updated:** 2026-03-28
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -18,8 +18,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.5.2 | t-Parameter Animation | Complete | t-parameter animation system |
 | v0.5.3 | Visual Quality | Complete | material enhancements, colored shadows |
 | v0.5.4 | Rendering Correctness & Code Health | Complete | shadow fixes, caustic improvements, code health (Sprint 14) |
-| v0.5.5 | Visual Enhancements | In Progress | area lights, soft shadows, parametric surfaces, caustics (Sprint 15) |
-| v0.6 | Full 3D Rendering | Planned | video output, full DSL/CLI control, animation tooling (Sprints 15–17) |
+| v0.5.5 | Visual Enhancements | Complete | area lights, soft shadows, parametric surfaces, caustics (Sprint 15) |
+| v0.6 | Full 3D Rendering | Planned | video output, full DSL/CLI control, animation tooling (Sprints 16–17) |
 | v0.7 | Textures & Backgrounds | Planned | Procedural textures, PBR maps, environment maps |
 
 ---
@@ -42,38 +42,27 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 12 | t-Parameter Animation System | Complete | [docs/sprints/SPRINT12.md](docs/sprints/SPRINT12.md) |
 | 13 | Visual Quality & Material Enhancements | Complete | [docs/sprints/SPRINT13.md](docs/sprints/SPRINT13.md) |
 | 14 | Rendering Correctness & Code Health | Complete | [docs/sprints/SPRINT14.md](docs/sprints/SPRINT14.md) |
+| 15 | Visual Enhancements & Primitives | Complete | [docs/archive/sprints/SPRINT15.md](docs/archive/sprints/SPRINT15.md) |
 
 ---
 
 ## Planned Sprints
 
-### Sprint 15: Visual Enhancements & Parametric Geometry (~13h)
-
-**Goal:** Soft shadows, parametric surface infrastructure, and caustics for general geometry
-
-- **15.1** Soft shadows with area lights (3h) ✅
-- **15.2** Parametrized surfaces `f(u,v) → Vec3` (4h) — prerequisite for Sprint 18.3 and 20.2
-- **15.3** Caustics for general geometry, deferred from Sprint 14 (4h)
-- **15.4** Documentation & examples (2h)
-
-**MILESTONE: v0.5.5 — Visual Enhancements**
-
-See [docs/sprints/SPRINT15.md](docs/sprints/SPRINT15.md)
-
-### Sprint 16: Developer Infrastructure & Website (~11h)
+### Sprint 16: Developer Infrastructure & Website (~16h)
 
 > ⚠️ **Foundation brainstorm at sprint start:** Before Sprint 18 (higher-dimensional polytopes),
 > run a brainstorming session to identify any missing foundations: rendering quality, developer
 > tools, DSL/CLI control, materials, textures, backgrounds, etc. Any gaps found here can be
 > scheduled into Sprints 16–17 or as new sprints before 18, while there is still time to plan.
 
-**Goal:** Pre-push hook optimisation, developer docs, CI improvements, website, CUDA compatibility
+**Goal:** Pre-push hook optimisation, developer docs, CI improvements, website, CUDA compatibility, AWS spot rendering
 
 - **16.1** Optimise pre-push hook (parallelization) (2h)
 - **16.2** Developer documentation & AGENTS.md refresh (2h)
 - **16.3** Test coverage improvements + Valgrind CI (2h)
 - **16.4** Project website with GitHub/GitLab feedback button (3h)
 - **16.5** Test on CUDA 12 and 13 (CI Docker images) (2h)
+- **16.6** AWS spot instance rendering (spike + implementation) (~5h, open-ended)
 
 See [docs/sprints/SPRINT16.md](docs/sprints/SPRINT16.md)
 
@@ -89,8 +78,6 @@ See [docs/sprints/SPRINT16.md](docs/sprints/SPRINT16.md)
 - **17.6** Bezier/spline camera path (pure Scala DSL helper) (2h)
 - **17.7** Runtime DSL scene evaluation (compile-time → runtime) (2h)
 - **17.8** Animation export/import — JSON format for t-param configs (2h)
-
-**MILESTONE: v0.6 — Full 3D Rendering**
 
 **MILESTONE: v0.6 — Full 3D Rendering**
 
@@ -199,7 +186,7 @@ Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 | Visual Quality (13) | 1 sprint | ~11 hours |
 | Rendering Correctness & Code Health (14) | 1 sprint | ~16–25 hours |
 | Visual Enhancements & Primitives (15) | 1 sprint | ~13 hours |
-| Developer Infrastructure & Website (16) | 1 sprint | ~11 hours |
+| Developer Infrastructure & Website (16) | 1 sprint | ~16 hours |
 | Animation Tooling & DSL (17) | 1 sprint | ~19 hours |
 | Advanced Geometry (18) | 1 sprint | ~15.5 hours |
 | Materials, Textures & Backgrounds (19) | 1 sprint | ~15 hours |

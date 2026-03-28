@@ -1,7 +1,7 @@
 # Sprint 15: Visual Enhancements & Parametric Geometry
 
 **Sprint:** 15 - Visual Enhancements & Parametric Geometry
-**Status:** In Progress
+**Status:** Complete
 **Estimate:** ~13 hours
 **Branch:** `feature/sprint-15`
 **Dependencies:** Sprint 14 (rendering correctness baseline, caustics PPM foundation)

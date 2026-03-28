@@ -1,14 +1,14 @@
 # Current Sprint
 
-**Sprint:** 15 - Visual Enhancements & Parametric Geometry
+**Sprint:** 16 - Developer Infrastructure & Website
 **Status:** In Progress
-**Branch:** `feature/sprint-15`
+**Branch:** `feature/sprint-16`
 
 ---
 
 ## Goal
 
-See [SPRINT15.md](SPRINT15.md) for detailed task breakdown and implementation plan.
+See [SPRINT16.md](SPRINT16.md) for detailed task breakdown and implementation plan.
 
 ---
 

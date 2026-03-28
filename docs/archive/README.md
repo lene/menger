@@ -48,6 +48,8 @@ archive/
 
 | Sprint | Focus | File |
 |--------|-------|------|
+| 15 | Visual Enhancements & Primitives | [sprints/SPRINT15.md](sprints/SPRINT15.md) |
+| 14 | Rendering Correctness & Code Health | [sprints/SPRINT14.md](sprints/SPRINT14.md) |
 | 13 | Visual Quality & Material Enhancements | [sprints/SPRINT13.md](sprints/SPRINT13.md) |
 | 12 | t-Parameter Animation System | [sprints/SPRINT12.md](sprints/SPRINT12.md) |
 | 11 | libGDX Wrapper, Thin-Film Physics, 4D Enhancements | [sprints/SPRINT11.md](sprints/SPRINT11.md) |
