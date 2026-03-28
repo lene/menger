@@ -18,6 +18,8 @@ variables:
   SCALA_VERSION: 3.8.2
   # OptiX Docker image version: {CUDA}-{OptiX}-{Java}-{sbt}
   OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.12.0
+  # CUDA 13 variant image — allow_failure jobs, not an MR gate
+  OPTIX_DOCKER_VERSION_CUDA13: 13.2-9.0-25-1.12.0
   # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
   # See: https://forums.developer.nvidia.com/t/crash-on-launching-game-with-plasma-problematic-frame-libnvidia-glcore-so-570-144-0xa5966c/332304
   __GL_THREADED_OPTIMIZATIONS: "0"
@@ -187,6 +189,56 @@ Test:Full:
         - menger-common/target/test-reports/**/TEST-*.xml
         - optix-jni/target/test-reports/**/TEST-*.xml
 
+# Full test suite on CUDA 13 - informational only (allow_failure)
+# Runs in parallel with Test:Full to catch CUDA version compatibility issues early
+Test:Full:Cuda13:
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION_CUDA13
+  stage: test
+  needs: []
+  tags:
+    - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
+  variables:
+    # Request graphics capability to ensure RTX/OptiX libraries are mounted
+    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
+  rules:
+    - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\//'
+      allow_failure: true
+    - if: "$CI_MERGE_REQUEST_ID"
+      allow_failure: true
+    - if: $CI_COMMIT_BRANCH == "main"
+      allow_failure: true
+    - if: $CI_COMMIT_TAG
+      allow_failure: true
+    - if: $CI_COMMIT_BRANCH
+      allow_failure: true
+  before_script:
+    # Verify GPU is available - fail fast if not configured
+    - nvidia-smi
+    # Create missing symlink for RTX core library if needed (OptiX looks for .so.1)
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    # Update library cache
+    - ldconfig || true
+    # Install xvfb for headless LibGDX tests
+    - apt-get -y update
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb
+  script:
+    # Run FULL test suite on CUDA 13
+    - xvfb-run sbt test
+  after_script:
+    - chmod -R 777 menger-app/target/ || true
+    - chmod -R 777 menger-common/target/ || true
+    - chmod -R 777 optix-jni/target/ || true
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - menger-app/target/test-reports/**/TEST-*.xml
+        - menger-common/target/test-reports/**/TEST-*.xml
+        - optix-jni/target/test-reports/**/TEST-*.xml
+
 # OptiX JNI tests - Uses pre-built Docker image with CUDA, OptiX, Java 25, and sbt
 # The image is built and pushed manually (see optix-jni/README.md and optix-jni/Dockerfile)
 # IMPORTANT: Requires runner with GPU support configured (see optix-jni/RUNNER_SETUP.md)
@@ -220,6 +272,43 @@ Test:OptiXJni:
   after_script:
     # Fix permissions on generated files so they can be cleaned up locally without sudo
     # Docker containers run as root, creating root-owned files that cause permission issues
+    - chmod -R 777 optix-jni/target/ || true
+  artifacts:
+    when: always
+    reports:
+      junit: optix-jni/target/test-reports/**/TEST-*.xml
+
+# OptiX JNI tests on CUDA 13 - informational only (allow_failure)
+Test:OptiXJni:Cuda13:
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION_CUDA13
+  stage: test
+  needs: []
+  tags:
+    - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
+  variables:
+    # Request graphics capability to ensure RTX/OptiX libraries are mounted
+    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+      allow_failure: true
+    - if: $CI_COMMIT_BRANCH == "main"
+      allow_failure: true
+    - if: $CI_COMMIT_BRANCH
+      allow_failure: true
+  before_script:
+    # Verify GPU is available - fail fast if not configured
+    - nvidia-smi
+    # Create missing symlink for RTX core library if needed (OptiX looks for .so.1)
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    # Update library cache
+    - ldconfig || true
+  script:
+    # Run OptiX JNI tests on CUDA 13
+    - sbt "project optixJni" test
+  after_script:
     - chmod -R 777 optix-jni/target/ || true
   artifacts:
     when: always
