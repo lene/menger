@@ -127,6 +127,7 @@ INSTANCE_ID=$(aws ec2 run-instances \
 echo "Instance ID: $INSTANCE_ID"
 
 # Cleanup function
+BUILD_STATUS="failed: script exited unexpectedly"
 cleanup() {
   echo "=== Cleaning up ==="
   aws ec2 terminate-instances --region "$REGION" --instance-ids "$INSTANCE_ID" 2>/dev/null || true
@@ -134,6 +135,10 @@ cleanup() {
   rm -f "$KEY_FILE"
   echo "Note: Security group $SG_ID left for reuse. Delete manually if needed:"
   echo "  aws ec2 delete-security-group --region $REGION --group-id $SG_ID"
+  echo ""
+  echo "========================================"
+  echo "$BUILD_STATUS"
+  echo "========================================"
 }
 trap cleanup EXIT
 
@@ -324,6 +329,7 @@ if [ $? -ne 0 ]; then
     echo "=== ERROR: OptiX verification failed ==="
     echo "AMI build aborted. Please review the verification output above."
     echo ""
+    BUILD_STATUS="FAILED: OptiX verification failed. Review the output above for details."
     exit 1
 fi
 
@@ -347,21 +353,42 @@ AMI_ID=$(aws ec2 create-image \
   --output text)
 
 echo "AMI ID: $AMI_ID"
-echo "=== Waiting for AMI to be available (this may take several minutes) ==="
-aws ec2 wait image-available --region "$REGION" --image-ids "$AMI_ID"
+echo "=== Waiting for AMI to be available (up to 20 minutes) ==="
+AMI_READY=false
+for i in $(seq 1 80); do
+  AMI_STATE=$(aws ec2 describe-images --region "$REGION" --image-ids "$AMI_ID" \
+    --query 'Images[0].State' --output text 2>/dev/null || echo "unknown")
+  if [ "$AMI_STATE" = "available" ]; then
+    AMI_READY=true
+    break
+  elif [ "$AMI_STATE" = "failed" ]; then
+    BUILD_STATUS="FAILED: AMI $AMI_ID entered failed state. Check AWS console for details."
+    exit 1
+  fi
+  echo -n "."
+  sleep 15
+done
+echo ""
+
+if [ "$AMI_READY" = false ]; then
+  BUILD_STATUS="TIMED OUT: AMI $AMI_ID was created but did not reach 'available' state within 20 minutes.
+  The AMI may still become available. Check with:
+    aws ec2 describe-images --region $REGION --image-ids $AMI_ID --query 'Images[0].State'
+  Once available, add it to the registry manually:
+    printf '$REGION\\t$AMI_ID\\t$AMI_NAME\\t\$(date -u +%Y-%m-%dT%H:%M:%SZ)\\n' >> scripts/ami-registry.tsv"
+  exit 1
+fi
 
 # Record AMI ID in version-controlled registry
 AMI_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 AMI_REGISTRY="$(dirname "$0")/ami-registry.tsv"
 printf '%s\t%s\t%s\t%s\n' "$REGION" "$AMI_ID" "$AMI_NAME" "$AMI_TIMESTAMP" >> "$AMI_REGISTRY"
-echo "AMI ID recorded in $AMI_REGISTRY"
 
 echo ""
 echo "=== AMI Build Complete ==="
-echo "AMI ID: $AMI_ID"
+echo "AMI ID:   $AMI_ID"
 echo "AMI Name: $AMI_NAME"
-echo "Region: $REGION"
+echo "Region:   $REGION"
+echo "Registry: $AMI_REGISTRY"
 echo ""
-echo "To use this AMI, update terraform/terraform.tfvars:"
-echo "  ami_id = \"$AMI_ID\""
-echo ""
+BUILD_STATUS="SUCCESS: AMI $AMI_ID ($AMI_NAME) is available in $REGION."
