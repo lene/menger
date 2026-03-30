@@ -22,6 +22,10 @@ LIST_INSTANCES=false
 LIST_RUNNING=false
 TERMINATE=false
 LIST_STATES=false
+LIST_AMIS=false
+MENGER_BRANCH="main"
+RETRIEVE_GLOB=""
+RETRIEVE_TO="./artifacts"
 RESTORE_STATE=""
 SAVE_STATE=""
 NO_AUTO_RESTORE=false
@@ -45,11 +49,15 @@ OPTIONS:
   --instance-type TYPE       Instance type (default: g4dn.xlarge)
   --max-price PRICE          Maximum spot price per hour (default: 0.50)
   --max-cost COST            Maximum total session cost (default: 10.00)
-  --ami-id AMI_ID            Custom AMI ID (required for launch)
+  --ami-id AMI_ID            Custom AMI ID (optional if ami-registry.tsv has an entry for this region)
   --list-instances           List available NVIDIA instances and spot prices
   --list-running             Show currently running instances managed by this script
   --terminate                Terminate all running instances and clean up resources
   --list-states              List all saved instance states
+  --list-amis                List AMIs built for this project (from ami-registry.tsv)
+  --menger-branch BRANCH     Git branch to clone on the instance (default: main)
+  --retrieve GLOB            After --command, rsync files matching GLOB from ~/GLOB on instance
+  --retrieve-to DIR          Local destination for --retrieve (default: ./artifacts)
   --restore-state NAME       Restore specific saved state on launch
   --save-state NAME          Save instance state with given name before shutdown
   --no-auto-restore          Don't automatically restore 'last' state on launch
@@ -59,14 +67,14 @@ OPTIONS:
   -h, --help                 Show this help message
 
 EXAMPLES:
-  # List available instance types
-  $0 --list-instances
+  # Launch with defaults (AMI ID read from registry automatically)
+  $0
 
-  # Launch with defaults
-  $0 --ami-id ami-xxxxxxxxxxxx
+  # Launch with a specific branch
+  $0 --menger-branch feature/my-branch
 
   # Launch in specific availability zone (useful for GPU availability, region derived)
-  $0 --ami-id ami-xxxxxxxxxxxx --availability-zone eu-central-1b
+  $0 --availability-zone eu-central-1b
 
   # Check running instances
   $0 --list-running
@@ -77,26 +85,33 @@ EXAMPLES:
   # List saved states
   $0 --list-states
 
+  # List all AMIs built for this project
+  $0 --list-amis
+
   # Restore from specific state
-  $0 --ami-id ami-xxxxxxxxxxxx --restore-state before-refactor
+  $0 --restore-state before-refactor
 
   # Save state before shutdown
-  $0 --ami-id ami-xxxxxxxxxxxx --save-state my-checkpoint
+  $0 --save-state my-checkpoint
 
   # Specify instance type and max price
-  $0 --ami-id ami-xxxxxxxxxxxx --instance-type g5.xlarge --max-price 0.75
+  $0 --instance-type g5.xlarge --max-price 0.75
 
-  # Run command and terminate
-  $0 --ami-id ami-xxxxxxxxxxxx --command "cd menger && sbt test"
+  # Run a render and retrieve the output image
+  $0 --command "menger-app --optix --sponge-type cube-sponge --level 3 --save-name out.png" --retrieve "*.png"
+
+  # Launch a specific branch
+  $0 --menger-branch feature/my-branch
 
 BEFORE FIRST USE:
   1. Build custom AMI:
      scripts/build-ami.sh /path/to/NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64.sh
 
-  2. Note the AMI ID from the build output
+  2. AMI ID is saved automatically to scripts/ami-registry.tsv
+     Run: $0 --list-amis
 
-  3. Launch instance with the AMI ID:
-     $0 --ami-id ami-xxxxxxxxxxxx
+  3. Launch instance (AMI ID is read from registry automatically):
+     $0
 
 EOF
   exit 1
@@ -157,6 +172,22 @@ while [[ $# -gt 0 ]]; do
       NO_AUTO_RESTORE=true
       shift
       ;;
+    --list-amis)
+      LIST_AMIS=true
+      shift
+      ;;
+    --menger-branch)
+      MENGER_BRANCH="$2"
+      shift 2
+      ;;
+    --retrieve)
+      RETRIEVE_GLOB="$2"
+      shift 2
+      ;;
+    --retrieve-to)
+      RETRIEVE_TO="$2"
+      shift 2
+      ;;
     --command)
       COMMAND="$2"
       AUTO_TERMINATE="true"
@@ -197,6 +228,23 @@ fi
 # List saved states if requested
 if [ "$LIST_STATES" = true ]; then
   bash "$SCRIPT_DIR/list-spot-states.sh"
+  exit 0
+fi
+
+# List AMIs if requested
+if [ "$LIST_AMIS" = true ]; then
+  AMI_REGISTRY="$SCRIPT_DIR/ami-registry.tsv"
+  if [ ! -f "$AMI_REGISTRY" ] || [ "$(grep -c '^[^#]' "$AMI_REGISTRY" 2>/dev/null || echo 0)" -eq 0 ]; then
+    echo -e "${YELLOW}No AMIs found in registry.${NC}"
+    echo "Build an AMI first: scripts/build-ami.sh /path/to/NVIDIA-OptiX-SDK-installer.sh"
+    exit 0
+  fi
+  echo -e "${GREEN}=== Menger AMI Registry ===${NC}"
+  printf "%-15s %-25s %-40s %s\n" "REGION" "AMI ID" "NAME" "BUILT"
+  echo "$(printf '%0.s-' {1..95})"
+  grep '^[^#]' "$AMI_REGISTRY" | while IFS=$'\t' read -r reg id name ts; do
+    printf "%-15s %-25s %-40s %s\n" "$reg" "$id" "$name" "$ts"
+  done
   exit 0
 fi
 
@@ -296,16 +344,26 @@ if [ "$TERMINATE" = true ]; then
   exit 0
 fi
 
-# Validate AMI ID
+# Resolve AMI ID — use explicit --ami-id or look up registry for current region
+AMI_REGISTRY="$SCRIPT_DIR/ami-registry.tsv"
 if [ -z "$AMI_ID" ]; then
-  echo -e "${RED}Error: AMI ID is required${NC}"
-  echo ""
-  echo "Build AMI first:"
-  echo "  scripts/build-ami.sh /path/to/NVIDIA-OptiX-SDK-installer.sh"
-  echo ""
-  echo "Or list available instances to choose instance type:"
-  echo "  $0 --list-instances --region $REGION"
-  exit 1
+  if [ -f "$AMI_REGISTRY" ]; then
+    AMI_ID=$(grep '^[^#]' "$AMI_REGISTRY" | awk -F'\t' -v region="$REGION" '$1==region{id=$2} END{print id}')
+  fi
+  if [ -z "$AMI_ID" ]; then
+    echo -e "${RED}Error: No AMI found for region '$REGION'${NC}"
+    echo ""
+    echo "Build an AMI first:"
+    echo "  scripts/build-ami.sh /path/to/NVIDIA-OptiX-SDK-installer.sh"
+    echo ""
+    echo "Or pass an explicit AMI ID:"
+    echo "  $0 --ami-id ami-xxxxxxxxxxxx"
+    echo ""
+    echo "To see AMIs built for other regions:"
+    echo "  $0 --list-amis"
+    exit 1
+  fi
+  echo -e "${YELLOW}Using AMI from registry: $AMI_ID (region: $REGION)${NC}"
 fi
 
 # Validate SSH key
@@ -336,6 +394,7 @@ echo "Instance Type:     $INSTANCE_TYPE"
 echo "Max Spot Price:    \$${MAX_SPOT_PRICE}/hour"
 echo "Max Session Cost:  \$${MAX_SESSION_COST}"
 echo "AMI ID:            $AMI_ID"
+echo "Menger Branch:     $MENGER_BRANCH"
 echo "Auto-terminate:    $AUTO_TERMINATE"
 [ -n "$COMMAND" ] && echo "Command:           $COMMAND"
 echo ""
@@ -353,6 +412,7 @@ max_session_cost   = $MAX_SESSION_COST
 ami_id             = "$AMI_ID"
 user_public_key    = "$SSH_PUBLIC_KEY"
 auto_terminate     = $AUTO_TERMINATE
+menger_branch      = "$MENGER_BRANCH"
 EOF
 
 # Initialize terraform if needed
@@ -383,16 +443,29 @@ echo "Instance ID: $INSTANCE_ID"
 echo "Public IP:   $INSTANCE_IP"
 echo ""
 
-# Wait for SSH to be ready
+# Wait for SSH to be ready (up to 5 minutes / 30 attempts)
 echo -e "${YELLOW}Waiting for SSH to be ready...${NC}"
+SSH_READY=false
 for i in {1..30}; do
   if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes ubuntu@$INSTANCE_IP exit 2>/dev/null; then
+    SSH_READY=true
     break
   fi
   echo -n "."
   sleep 10
 done
 echo ""
+if [ "$SSH_READY" = false ]; then
+  echo -e "${RED}Error: Instance did not become reachable after 5 minutes.${NC}"
+  echo "Instance ID: $INSTANCE_ID   IP: $INSTANCE_IP"
+  echo ""
+  echo "Diagnose with:"
+  echo "  aws ec2 get-console-output --instance-id $INSTANCE_ID --region $REGION"
+  echo ""
+  echo "Destroy with:"
+  echo "  cd $TERRAFORM_DIR && terraform destroy"
+  exit 1
+fi
 
 # Wait for user-data to complete
 echo -e "${YELLOW}Waiting for instance initialization...${NC}"
@@ -447,6 +520,23 @@ if [ -n "$COMMAND" ]; then
   ssh -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP "bash -c $(printf '%q' "$COMMAND")"
   echo ""
   echo -e "${GREEN}Command completed${NC}"
+
+  # Retrieve artifacts if requested
+  if [ -n "$RETRIEVE_GLOB" ]; then
+    echo -e "${YELLOW}Retrieving artifacts matching: $RETRIEVE_GLOB${NC}"
+    mkdir -p "$RETRIEVE_TO"
+    if rsync -az -e "ssh -o StrictHostKeyChecking=no" \
+        "ubuntu@$INSTANCE_IP:/home/ubuntu/$RETRIEVE_GLOB" \
+        "$RETRIEVE_TO/"; then
+      echo -e "${GREEN}✓ Artifacts saved to $RETRIEVE_TO/${NC}"
+      ls -lh "$RETRIEVE_TO/"
+    else
+      echo -e "${RED}Warning: Artifact retrieval failed${NC}"
+      echo "Retrieve manually:"
+      echo "  rsync -az ubuntu@$INSTANCE_IP:/home/ubuntu/$RETRIEVE_GLOB $RETRIEVE_TO/"
+    fi
+  fi
+
   echo -e "${YELLOW}Instance will auto-terminate after grace period${NC}"
   exit 0
 fi
