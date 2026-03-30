@@ -350,6 +350,12 @@ echo "AMI ID: $AMI_ID"
 echo "=== Waiting for AMI to be available (this may take several minutes) ==="
 aws ec2 wait image-available --region "$REGION" --image-ids "$AMI_ID"
 
+# Record AMI ID in version-controlled registry
+AMI_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+AMI_REGISTRY="$(dirname "$0")/ami-registry.tsv"
+printf '%s\t%s\t%s\t%s\n' "$REGION" "$AMI_ID" "$AMI_NAME" "$AMI_TIMESTAMP" >> "$AMI_REGISTRY"
+echo "AMI ID recorded in $AMI_REGISTRY"
+
 echo ""
 echo "=== AMI Build Complete ==="
 echo "AMI ID: $AMI_ID"
