@@ -90,18 +90,20 @@ resource "aws_key_pair" "deployer" {
 
 # Spot instance request
 resource "aws_spot_instance_request" "nvidia_dev" {
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  spot_price             = var.max_spot_price
-  wait_for_fulfillment   = true
-  spot_type              = "one-time"
+  ami                            = var.ami_id
+  instance_type                  = var.instance_type
+  spot_price                     = var.max_spot_price
+  wait_for_fulfillment           = true
+  spot_type                      = "one-time"
   instance_interruption_behavior = "terminate"
 
   key_name               = aws_key_pair.deployer.key_name
   vpc_security_group_ids = [aws_security_group.nvidia_dev.id]
   subnet_id              = local.subnet_id
 
-  user_data = file("${path.module}/user-data.sh")
+  user_data = templatefile("${path.module}/user-data.sh", {
+    menger_branch = var.menger_branch
+  })
 
   root_block_device {
     volume_size           = 100
@@ -110,10 +112,10 @@ resource "aws_spot_instance_request" "nvidia_dev" {
   }
 
   tags = {
-    Name              = "${var.project_name}-spot"
-    Project           = var.project_name
-    AutoTerminate     = var.auto_terminate
-    MaxSessionCost    = var.max_session_cost
+    Name           = "${var.project_name}-spot"
+    Project        = var.project_name
+    AutoTerminate  = var.auto_terminate
+    MaxSessionCost = var.max_session_cost
   }
 }
 

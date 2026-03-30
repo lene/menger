@@ -55,3 +55,9 @@ variable "project_name" {
   type        = string
   default     = "menger-nvidia-dev"
 }
+
+variable "menger_branch" {
+  description = "Git branch of menger to clone and build on the instance"
+  type        = string
+  default     = "main"
+}

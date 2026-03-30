@@ -23,7 +23,26 @@ sudo -u ubuntu mkdir -p /home/ubuntu/workspace
 
 # Clone menger repository
 cd /home/ubuntu/workspace
-sudo -u ubuntu git clone https://gitlab.com/lilacashes/menger.git
+sudo -u ubuntu git clone --branch "${menger_branch}" https://gitlab.com/lilacashes/menger.git
+
+# Build menger-app and install to ~/bin so it is on PATH
+echo "=== Building menger-app (sbt stage) ==="
+cd /home/ubuntu/workspace/menger
+sudo -u ubuntu bash -c "cd /home/ubuntu/workspace/menger && sbt stage"
+sudo -u ubuntu mkdir -p /home/ubuntu/bin
+sudo -u ubuntu ln -sf \
+  /home/ubuntu/workspace/menger/menger-app/target/universal/stage/bin/menger-app \
+  /home/ubuntu/bin/menger-app
+
+# Add ~/bin to PATH for Bash
+grep -q 'HOME/bin' /home/ubuntu/.bashrc || \
+  sudo -u ubuntu bash -c "echo 'export PATH=\$HOME/bin:\$PATH' >> /home/ubuntu/.bashrc"
+
+# Add ~/bin to PATH for Fish
+grep -q 'fish_add_path.*bin' /home/ubuntu/.config/fish/config.fish 2>/dev/null || \
+  sudo -u ubuntu bash -c "echo 'fish_add_path ~/bin' >> /home/ubuntu/.config/fish/config.fish"
+
+echo "=== menger-app installed to ~/bin/menger-app ==="
 
 # Create welcome message
 cat > /home/ubuntu/WELCOME.txt <<'EOF'
@@ -39,23 +58,20 @@ CUDA:
 OptiX:
   Location: /opt/optix
 
-Development Tools:
-  - Scala/sbt: Run 'sbt' in the menger directory
-  - IntelliJ IDEA: Run 'intellij-idea-community'
-  - Fish shell: Already set as default
-  - Git: Configured with your local identity, menger repo at ~/workspace/menger
+menger-app:
+  Already built and on your PATH.
+  Run: menger-app --help
+  Example: menger-app --optix --sponge-type cube-sponge --level 3 --save-name out.png
+
+Development:
+  Source code:  ~/workspace/menger  (branch: ${menger_branch})
+  Rebuild:      cd ~/workspace/menger && sbt stage
+  Run tests:    cd ~/workspace/menger && xvfb-run sbt test
+  IntelliJ:     intellij-idea-community
 
 X11 Forwarding:
   Already configured. Connect with: ssh -X ubuntu@<instance-ip>
   Test with: xclock
-
-Useful Commands:
-  - Check GPU: nvidia-smi
-  - Check git config: git config --list
-  - Build menger: cd ~/workspace/menger && sbt compile
-  - Run tests: cd ~/workspace/menger && sbt test
-
-Project directory: ~/workspace/menger
 EOF
 
 chown ubuntu:ubuntu /home/ubuntu/WELCOME.txt
