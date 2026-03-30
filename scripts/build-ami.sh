@@ -314,9 +314,9 @@ export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH
 export CUDA_HOME=/usr/local/cuda-12.8
 export OPTIX_ROOT=/opt/optix
 
-# Run verification
+# Run verification (--no-gpu: build instance has no GPU driver; checks are warnings not failures)
 chmod +x /tmp/verify-optix.sh
-/tmp/verify-optix.sh
+/tmp/verify-optix.sh --no-gpu
 VERIFY_SCRIPT
 
 if [ $? -ne 0 ]; then

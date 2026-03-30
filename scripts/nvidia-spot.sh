@@ -234,14 +234,19 @@ fi
 # List AMIs if requested
 if [ "$LIST_AMIS" = true ]; then
   AMI_REGISTRY="$SCRIPT_DIR/ami-registry.tsv"
-  if [ ! -f "$AMI_REGISTRY" ] || [ "$(grep -c '^[^#]' "$AMI_REGISTRY" 2>/dev/null || echo 0)" -eq 0 ]; then
+  AMI_COUNT=0
+  if [ -f "$AMI_REGISTRY" ]; then
+    AMI_COUNT=$(grep -c '^[^#]' "$AMI_REGISTRY" 2>/dev/null || true)
+    AMI_COUNT=${AMI_COUNT:-0}
+  fi
+  if [ "$AMI_COUNT" -eq 0 ] 2>/dev/null || [ -z "$AMI_COUNT" ]; then
     echo -e "${YELLOW}No AMIs found in registry.${NC}"
     echo "Build an AMI first: scripts/build-ami.sh /path/to/NVIDIA-OptiX-SDK-installer.sh"
     exit 0
   fi
   echo -e "${GREEN}=== Menger AMI Registry ===${NC}"
   printf "%-15s %-25s %-40s %s\n" "REGION" "AMI ID" "NAME" "BUILT"
-  echo "$(printf '%0.s-' {1..95})"
+  printf '%0.s-' {1..95}; echo
   grep '^[^#]' "$AMI_REGISTRY" | while IFS=$'\t' read -r reg id name ts; do
     printf "%-15s %-25s %-40s %s\n" "$reg" "$id" "$name" "$ts"
   done

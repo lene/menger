@@ -16,6 +16,22 @@ PASSED=0
 FAILED=0
 WARNINGS=0
 
+# Options
+NO_GPU=false
+for arg in "$@"; do
+  case "$arg" in
+    --no-gpu) NO_GPU=true ;;
+  esac
+done
+
+gpu_fail() {
+  if [ "$NO_GPU" = true ]; then
+    print_warning "$1 (expected on GPU-less build instance)"
+  else
+    print_fail "$1"
+  fi
+}
+
 print_header() {
     echo -e "\n${BLUE}=== $1 ===${NC}"
 }
@@ -71,7 +87,7 @@ if command -v nvidia-smi &> /dev/null; then
         print_fail "NVIDIA driver found but failed to query version"
     fi
 else
-    print_fail "nvidia-smi not found"
+    gpu_fail "nvidia-smi not found"
 fi
 
 # 2. Check GPU
@@ -91,7 +107,7 @@ if command -v nvidia-smi &> /dev/null; then
         print_fail "No GPUs detected by nvidia-smi"
     fi
 else
-    print_fail "Cannot detect GPU (nvidia-smi not available)"
+    gpu_fail "Cannot detect GPU (nvidia-smi not available)"
 fi
 
 # 3. Check CUDA
@@ -250,7 +266,7 @@ EOF
         print_success "OptiX headers compile successfully"
         rm -f "$TEST_OBJ"
     else
-        print_fail "Failed to compile test program with OptiX headers"
+        gpu_fail "Failed to compile test program with OptiX headers"
     fi
     rm -f "$TEST_FILE"
 else
