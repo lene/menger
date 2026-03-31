@@ -209,15 +209,12 @@ sudo sed -i 's/#X11Forwarding yes/X11Forwarding yes/' /etc/ssh/sshd_config
 sudo sed -i 's/#X11DisplayOffset 10/X11DisplayOffset 10/' /etc/ssh/sshd_config
 sudo sed -i 's/#X11UseLocalhost yes/X11UseLocalhost no/' /etc/ssh/sshd_config
 
-# Install NVIDIA drivers
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-drivers-common
-sudo ubuntu-drivers install --gpgpu
-
-# Install CUDA 12.8
+# Install CUDA 12.8 + NVIDIA driver from CUDA repository
+# Install driver via CUDA repo (not ubuntu-drivers, which requires a GPU to autodetect)
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
 sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt-get update
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cuda-toolkit-12-8
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cuda-toolkit-12-8 cuda-drivers
 rm cuda-keyring_1.1-1_all.deb
 
 # Install OptiX
