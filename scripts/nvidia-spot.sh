@@ -569,7 +569,31 @@ echo -e "${GREEN}Connecting to instance with X11 forwarding...${NC}"
 echo -e "${YELLOW}Note: Instance will auto-terminate after you log out (if enabled)${NC}"
 echo ""
 
+# Poll for spot termination notice in background; trigger backup immediately if detected
+SPOT_INTERRUPTED=false
+(
+  while true; do
+    sleep 5
+    termination=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 -o BatchMode=yes \
+      ubuntu@$INSTANCE_IP \
+      'curl -sf -H "X-aws-ec2-metadata-token: $(curl -sf -X PUT -H "X-aws-ec2-metadata-token-ttl-seconds: 30" http://169.254.169.254/latest/api/token 2>/dev/null)" http://169.254.169.254/latest/meta-data/spot/termination-time 2>/dev/null' \
+      2>/dev/null)
+    if [ -n "$termination" ]; then
+      echo "" >&2
+      echo -e "${RED}⚠ Spot termination notice received! Termination at: $termination${NC}" >&2
+      echo -e "${YELLOW}Starting emergency state backup...${NC}" >&2
+      bash "$SCRIPT_DIR/backup-spot-state.sh" "last" "$INSTANCE_IP" >&2 && \
+        echo -e "${GREEN}✓ Emergency backup complete${NC}" >&2 || \
+        echo -e "${RED}Emergency backup failed — instance may already be gone${NC}" >&2
+      break
+    fi
+  done
+) &
+SPOT_POLLER_PID=$!
+
 ssh -X -o StrictHostKeyChecking=no ubuntu@$INSTANCE_IP
+
+kill $SPOT_POLLER_PID 2>/dev/null || true
 
 # After disconnection
 echo ""
