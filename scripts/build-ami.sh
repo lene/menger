@@ -481,7 +481,7 @@ if [ "$AMI_READY" = false ]; then
   The AMI may still become available. Check with:
     aws ec2 describe-images --region $REGION --image-ids $AMI_ID --query 'Images[0].State'
   Once available, add it to the registry manually:
-    printf '$REGION\\t$AMI_ID\\t$AMI_NAME\\t\$(date -u +%Y-%m-%dT%H:%M:%SZ)\\n' >> scripts/ami-registry.tsv"
+    ts=\$(date -u +%Y-%m-%dT%H:%M:%SZ) ; printf '%s\t%s\t%s\t%s\n' '$REGION' '$AMI_ID' '$AMI_NAME' \"\$ts\" >> scripts/ami-registry.tsv"
   exit 1
 fi
 
