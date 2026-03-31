@@ -4,15 +4,124 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AMI_REGISTRY="$SCRIPT_DIR/ami-registry.tsv"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
 # Configuration
 REGION="${AWS_REGION:-us-east-1}"
 INSTANCE_TYPE="${INSTANCE_TYPE:-g4dn.xlarge}"
-OPTIX_INSTALLER="${1:-}"
+OPTIX_INSTALLER=""
+DEREGISTER_OLD=false
+DEREGISTER_ID=""
+
+usage() {
+  cat <<EOF
+Usage: $0 [OPTIONS] <path-to-optix-installer.sh>
+       $0 --deregister <ami-id>
+       $0 --list
+
+Build a custom AMI with CUDA 12.8, OptiX, Scala, and dev tools.
+
+OPTIONS:
+  --region REGION          AWS region (default: \$AWS_REGION or us-east-1)
+  --deregister-old         Deregister previous AMIs for this region after successful build
+  --deregister AMI-ID      Deregister a specific AMI and remove it from the registry
+  --list                   List AMIs in the registry (same as nvidia-spot.sh --list-amis)
+  -h, --help               Show this help message
+
+Download OptiX SDK from: https://developer.nvidia.com/optix
+EOF
+  exit 1
+}
+
+# --- Helper: deregister one AMI and its snapshots, remove from registry ---
+deregister_ami() {
+  local ami_id="$1"
+  local region="$2"
+  echo -e "${YELLOW}Deregistering AMI $ami_id in $region...${NC}"
+
+  # Get snapshot IDs before deregistering
+  local snapshots
+  snapshots=$(aws ec2 describe-images --region "$region" --image-ids "$ami_id" \
+    --query 'Images[0].BlockDeviceMappings[].Ebs.SnapshotId' --output text 2>/dev/null || true)
+
+  # Deregister
+  if aws ec2 deregister-image --region "$region" --image-id "$ami_id" 2>/dev/null; then
+    echo -e "${GREEN}✓ AMI $ami_id deregistered${NC}"
+  else
+    echo -e "${YELLOW}⚠ AMI $ami_id not found in AWS (may already be deregistered)${NC}"
+  fi
+
+  # Delete snapshots
+  for snap in $snapshots; do
+    if [ -n "$snap" ] && [ "$snap" != "None" ] && [ "$snap" != "null" ]; then
+      if aws ec2 delete-snapshot --region "$region" --snapshot-id "$snap" 2>/dev/null; then
+        echo -e "${GREEN}✓ Snapshot $snap deleted${NC}"
+      else
+        echo -e "${YELLOW}⚠ Could not delete snapshot $snap${NC}"
+      fi
+    fi
+  done
+
+  # Remove from registry
+  if [ -f "$AMI_REGISTRY" ]; then
+    local tmp
+    tmp=$(mktemp)
+    grep -v "	$ami_id	" "$AMI_REGISTRY" > "$tmp" || true
+    mv "$tmp" "$AMI_REGISTRY"
+    echo "Removed $ami_id from registry."
+  fi
+}
+
+# --- Argument parsing ---
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --region)
+      REGION="$2"; shift 2 ;;
+    --deregister-old)
+      DEREGISTER_OLD=true; shift ;;
+    --deregister)
+      DEREGISTER_ID="$2"; shift 2 ;;
+    --list)
+      if [ ! -f "$AMI_REGISTRY" ] || [ "$(grep -c '^[^#]' "$AMI_REGISTRY" 2>/dev/null || true)" -eq 0 ]; then
+        echo "No AMIs in registry."
+      else
+        printf "%-15s %-25s %-40s %s\n" "REGION" "AMI ID" "NAME" "BUILT"
+        printf '%0.s-' {1..95}; echo
+        grep '^[^#]' "$AMI_REGISTRY" | while IFS=$'\t' read -r reg id name ts; do
+          printf "%-15s %-25s %-40s %s\n" "$reg" "$id" "$name" "$ts"
+        done
+      fi
+      exit 0 ;;
+    -h|--help)
+      usage ;;
+    -*)
+      echo "Unknown option: $1"; usage ;;
+    *)
+      OPTIX_INSTALLER="$1"; shift ;;
+  esac
+done
+
+# --- Standalone --deregister ---
+if [ -n "$DEREGISTER_ID" ]; then
+  # Look up region from registry if not overridden
+  if [ -f "$AMI_REGISTRY" ]; then
+    REG_REGION=$(grep "	$DEREGISTER_ID	" "$AMI_REGISTRY" | cut -f1 | head -1)
+    [ -n "$REG_REGION" ] && REGION="$REG_REGION"
+  fi
+  deregister_ami "$DEREGISTER_ID" "$REGION"
+  exit 0
+fi
 
 if [ -z "$OPTIX_INSTALLER" ]; then
-  echo "Usage: $0 <path-to-optix-installer.sh>"
-  echo "Download OptiX SDK from: https://developer.nvidia.com/optix"
-  exit 1
+  echo "Error: OptiX installer path is required."
+  usage
 fi
 
 if [ ! -f "$OPTIX_INSTALLER" ]; then
@@ -378,8 +487,16 @@ fi
 
 # Record AMI ID in version-controlled registry
 AMI_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-AMI_REGISTRY="$(dirname "$0")/ami-registry.tsv"
 printf '%s\t%s\t%s\t%s\n' "$REGION" "$AMI_ID" "$AMI_NAME" "$AMI_TIMESTAMP" >> "$AMI_REGISTRY"
+
+# Deregister previous AMIs for this region if requested
+if [ "$DEREGISTER_OLD" = true ]; then
+  echo "=== Deregistering previous AMIs for region $REGION ==="
+  grep '^[^#]' "$AMI_REGISTRY" | grep "^$REGION	" | grep -v "	$AMI_ID	" | \
+  while IFS=$'\t' read -r reg old_id old_name old_ts; do
+    deregister_ami "$old_id" "$reg"
+  done
+fi
 
 echo ""
 echo "=== AMI Build Complete ==="
