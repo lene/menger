@@ -450,10 +450,12 @@ fi
 
 # Apply terraform configuration
 echo -e "${YELLOW}Launching spot instance...${NC}"
-if ! terraform apply -auto-approve -compact-warnings > /dev/null 2>&1; then
+TF_OUTPUT=$(terraform apply -auto-approve -compact-warnings 2>&1)
+TF_EXIT=$?
+if [ $TF_EXIT -ne 0 ]; then
   echo -e "${RED}Error: Terraform apply failed${NC}"
-  echo "Retrying with output for debugging..."
-  terraform apply -auto-approve
+  # Extract just the error block (lines starting with │ or "Error:")
+  echo "$TF_OUTPUT" | grep -E '^\s*(│|Error:|╷|╵)' | grep -v '^[[:space:]]*╷[[:space:]]*$' | grep -v '^[[:space:]]*╵[[:space:]]*$' | sed 's/^[[:space:]]*│ *//'
   exit 1
 fi
 
