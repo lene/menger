@@ -28,7 +28,13 @@ sudo -u ubuntu git clone --branch "${menger_branch}" https://gitlab.com/lilacash
 # Build menger-app and install to ~/bin so it is on PATH
 echo "=== Building menger-app (sbt stage) ==="
 cd /home/ubuntu/workspace/menger
-sudo -u ubuntu bash -c "cd /home/ubuntu/workspace/menger && sbt stage"
+sudo -u ubuntu bash -c "
+  export CUDA_HOME=/usr/local/cuda-12.8
+  export OPTIX_ROOT=/opt/optix
+  export PATH=\$CUDA_HOME/bin:\$PATH
+  export LD_LIBRARY_PATH=\$CUDA_HOME/lib64:\$LD_LIBRARY_PATH
+  cd /home/ubuntu/workspace/menger && sbt stage
+"
 sudo -u ubuntu mkdir -p /home/ubuntu/bin
 sudo -u ubuntu ln -sf \
   /home/ubuntu/workspace/menger/menger-app/target/universal/stage/bin/menger-app \
