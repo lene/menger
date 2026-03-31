@@ -132,7 +132,7 @@ restore_dir() {
     # Create parent directory on remote
     ssh ubuntu@$INSTANCE_IP "mkdir -p $dst" 2>/dev/null || true
 
-    rsync -az --delete --progress \
+    rsync -az --delete --info=progress2 \
       -e "ssh -o StrictHostKeyChecking=no" \
       "$src/" \
       ubuntu@$INSTANCE_IP:$dst/ 2>&1 | grep -v "^[[:space:]]*$" || true
