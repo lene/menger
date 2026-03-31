@@ -16,7 +16,13 @@ MAX_SPOT_PRICE="0.50"
 MAX_SESSION_COST="10.00"
 AUTO_TERMINATE="true"
 AMI_ID=""
-SSH_KEY="${HOME}/.ssh/id_rsa.pub"
+SSH_KEY=""
+for _candidate in "${HOME}/.ssh/id_ed25519.pub" "${HOME}/.ssh/id_ecdsa.pub" "${HOME}/.ssh/id_rsa.pub"; do
+  if [ -f "$_candidate" ]; then
+    SSH_KEY="$_candidate"
+    break
+  fi
+done
 COMMAND=""
 LIST_INSTANCES=false
 LIST_RUNNING=false
