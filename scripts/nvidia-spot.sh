@@ -450,12 +450,12 @@ fi
 
 # Apply terraform configuration
 echo -e "${YELLOW}Launching spot instance...${NC}"
+# Capture stdout; suppress plan/refresh noise but show error blocks on failure
 TF_OUTPUT=$(terraform apply -auto-approve -compact-warnings 2>&1)
 TF_EXIT=$?
 if [ $TF_EXIT -ne 0 ]; then
   echo -e "${RED}Error: Terraform apply failed${NC}"
-  # Extract just the error block (lines starting with │ or "Error:")
-  echo "$TF_OUTPUT" | grep -E '^\s*(│|Error:|╷|╵)' | grep -v '^[[:space:]]*╷[[:space:]]*$' | grep -v '^[[:space:]]*╵[[:space:]]*$' | sed 's/^[[:space:]]*│ *//'
+  echo "$TF_OUTPUT" | grep -E '(^\s*(│|Error:|╷|╵)|^Error )' | sed 's/^[[:space:]]*│ *//'
   exit 1
 fi
 
