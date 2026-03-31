@@ -10,6 +10,7 @@ TERRAFORM_DIR="$PROJECT_ROOT/terraform"
 
 # Default configuration
 REGION="${AWS_REGION:-us-east-1}"
+AWS_PROFILE="${AWS_PROFILE:-}"
 AVAILABILITY_ZONE=""
 INSTANCE_TYPE="g4dn.xlarge"
 MAX_SPOT_PRICE="0.50"
@@ -69,7 +70,8 @@ OPTIONS:
   --no-auto-restore          Don't automatically restore 'last' state on launch
   --command "CMD"            Run command and auto-terminate
   --no-auto-terminate        Disable auto-termination on logout
-  --ssh-key PATH             Path to SSH public key (default: ~/.ssh/id_rsa.pub)
+  --ssh-key PATH             Path to SSH public key (auto-detected from ~/.ssh/)
+  --aws-profile PROFILE      AWS credentials profile (default: $AWS_PROFILE env var)
   -h, --help                 Show this help message
 
 EXAMPLES:
@@ -205,6 +207,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --ssh-key)
       SSH_KEY="$2"
+      shift 2
+      ;;
+    --aws-profile)
+      AWS_PROFILE="$2"
       shift 2
       ;;
     -h|--help)
@@ -407,11 +413,17 @@ echo "Max Session Cost:  \$${MAX_SESSION_COST}"
 echo "AMI ID:            $AMI_ID"
 echo "Menger Branch:     $MENGER_BRANCH"
 echo "Auto-terminate:    $AUTO_TERMINATE"
+[ -n "$AWS_PROFILE" ] && echo "AWS Profile:       $AWS_PROFILE"
 [ -n "$COMMAND" ] && echo "Command:           $COMMAND"
 echo ""
 
 # Change to terraform directory
 cd "$TERRAFORM_DIR"
+
+# Export AWS_PROFILE so Terraform and all AWS CLI calls use the right credentials
+if [ -n "$AWS_PROFILE" ]; then
+  export AWS_PROFILE
+fi
 
 # Create terraform.tfvars
 cat > terraform.tfvars <<EOF
