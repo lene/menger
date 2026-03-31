@@ -5,8 +5,17 @@ Infrastructure-as-code scripts for AWS GPU development workflow and local enviro
 ## Quick Reference
 
 ```bash
-# Launch GPU spot instance
-./nvidia-spot.sh launch
+# Launch GPU spot instance (AMI looked up from registry automatically)
+./nvidia-spot.sh
+
+# Or specify a branch
+./nvidia-spot.sh --menger-branch feature/my-branch
+
+# Run a render non-interactively and retrieve the output
+./nvidia-spot.sh --command "menger-app --optix --sponge-type cube-sponge --level 3 --save-name out.png" --retrieve "*.png"
+
+# See all AMIs built for this project
+./nvidia-spot.sh --list-amis
 
 # Setup local development environment
 ./setup-optix-local.sh
@@ -28,6 +37,9 @@ Infrastructure-as-code scripts for AWS GPU development workflow and local enviro
 
 **Primary CLI Tool:**
 - `nvidia-spot.sh` (16 KB) - **Main entry point** for all spot instance operations
+  - AMI registry lookup (no need to pass `--ami-id` manually)
+  - Branch selection with `--menger-branch`
+  - Artifact retrieval with `--retrieve`
   - Launch instances with custom AMIs
   - SSH connection management
   - Instance termination
@@ -133,15 +145,27 @@ Infrastructure-as-code scripts for AWS GPU development workflow and local enviro
 # 3. Build custom AMI (one-time, ~20 minutes)
 ./build-ami.sh
 
-# 4. Launch your first spot instance
-./nvidia-spot.sh launch
+# 4. Launch your first spot instance (AMI ID is read from registry automatically)
+./nvidia-spot.sh
+
+# Or with a non-default branch
+./nvidia-spot.sh --menger-branch feature/my-branch
 ```
 
 ### Daily Development Workflow
 
 ```bash
-# Launch instance (auto-restores last state)
-./nvidia-spot.sh launch
+# Launch instance (AMI looked up from registry, auto-restores last state)
+./nvidia-spot.sh
+
+# Launch a specific branch
+./nvidia-spot.sh --menger-branch feature/my-branch
+
+# Run a render and retrieve output images
+./nvidia-spot.sh \
+  --command "menger-app --optix --sponge-type cube-sponge --level 3 --save-name out.png" \
+  --retrieve "*.png"
+# Output saved to ./artifacts/out.png
 
 # Work on instance via SSH...
 
@@ -151,7 +175,7 @@ Infrastructure-as-code scripts for AWS GPU development workflow and local enviro
 ./list-spot-states.sh
 
 # Restore specific state
-./nvidia-spot.sh launch --restore-state my-feature-branch
+./nvidia-spot.sh --restore-state my-feature-branch
 
 # Cleanup old states
 ./cleanup-spot-states.sh --keep-recent 5 --dry-run
@@ -254,7 +278,7 @@ All scripts support `--help` flag for detailed usage:
 
 ## Maintenance
 
-**Last Updated:** November 2025 (all scripts)
+**Last Updated:** March 2026 (nvidia-spot.sh, build-ami.sh, user-data.sh)
 
 **Active Development:**
 - All scripts actively maintained
