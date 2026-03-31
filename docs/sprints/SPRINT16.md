@@ -20,7 +20,7 @@ CI improvements, a project website, and CUDA version compatibility testing.
 - [ ] Test coverage critical gaps filled; Valgrind CI job added
 - [ ] Project website live on GitLab Pages (MkDocs, full gallery, dual feedback buttons)
 - [ ] Full test suite verified on CUDA 12.8 and CUDA 13 via parallel CI jobs
-- [ ] AWS spot instance workflow polished (error handling, UX, docs)
+- [x] AWS spot instance workflow polished (error handling, UX, docs)
 - [ ] All tests pass
 
 ---

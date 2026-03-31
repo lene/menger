@@ -5,6 +5,7 @@
 ### Added
 - Project website at https://lilacashes.gitlab.io/menger/ — MkDocs site with render gallery and feedback links
 - CUDA 13 parallel CI jobs (`Test:Full:Cuda13`, `Test:OptiXJni:Cuda13`) run alongside CUDA 12.8 jobs as `allow_failure` to catch version compatibility issues early
+- AWS spot instance workflow polish: AMI IDs persisted in `scripts/ami-registry.tsv` (version-controlled, region-aware); `--ami-id` is now optional when an AMI exists for the active region; `--list-amis` subcommand shows all built AMIs; `--menger-branch` sets the git branch cloned and built on the instance; `--retrieve GLOB` retrieves artifacts from `~/GLOB` on the instance after `--command` completes; SSH polling now exits with a clear error and recovery instructions on timeout; `menger-app` is built via `sbt stage` and installed to `~/bin` during instance initialisation
 
 ## [0.5.5] - 2026-03-28
 
