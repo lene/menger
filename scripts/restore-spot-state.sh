@@ -133,6 +133,12 @@ restore_dir() {
     ssh ubuntu@$INSTANCE_IP "mkdir -p $dst" 2>/dev/null || true
 
     rsync -az --delete --info=progress2 \
+      --exclude='target/' \
+      --exclude='project/target/' \
+      --exclude='project/project/' \
+      --exclude='.bsp/' \
+      --exclude='.metals/' \
+      --exclude='.bloop/' \
       -e "ssh -o StrictHostKeyChecking=no" \
       "$src/" \
       ubuntu@$INSTANCE_IP:$dst/ 2>&1 | grep -v "^[[:space:]]*$" || true
