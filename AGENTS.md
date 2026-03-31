@@ -45,6 +45,7 @@ Your bash tool has known limitations. Follow these workarounds:
 ### Git Workflow
 - **Never `git add -A`** - add files explicitly
 - **Never commit automatically** - always show diff for user review first
+- **Never push without explicit user confirmation** - commit locally, then wait for the user to say "push" before running `git push`
 - **Never commit failing tests** - all tests must pass before commit (run `sbt test`)
 - **Never commit test changes without investigation** - follow TEST FAILURE PROTOCOL
 - when fetching, always use the --all --tags options
@@ -82,6 +83,9 @@ Your bash tool has known limitations. Follow these workarounds:
 ---
 
 ## BUILD & TEST COMMANDS
+
+**Note that the user is using the fish shell, which has some differences from bash. Always use the 
+correct syntax for fish when providing any commands.**
 
 ```bash
 # Core commands
