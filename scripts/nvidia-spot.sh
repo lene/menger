@@ -451,8 +451,11 @@ fi
 # Apply terraform configuration
 echo -e "${YELLOW}Launching spot instance...${NC}"
 # Capture stdout; suppress plan/refresh noise but show error blocks on failure
+# Use 'set +e' so a non-zero exit doesn't trigger set -e before we can capture $?
+set +e
 TF_OUTPUT=$(terraform apply -auto-approve -compact-warnings 2>&1)
 TF_EXIT=$?
+set -e
 if [ $TF_EXIT -ne 0 ]; then
   echo -e "${RED}Error: Terraform apply failed${NC}"
   echo "$TF_OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep -E '(^\s*(│|Error:|╷|╵)|^Error )' | sed 's/^[[:space:]]*│ *//'
