@@ -81,6 +81,8 @@ Infrastructure-as-code scripts for AWS GPU development workflow and local enviro
     - `--list` — list all AMIs in registry
     - `--deregister <ami-id>` — deregister one AMI from AWS and remove from registry
     - `--deregister-old` — deregister previous AMIs for the region after a fresh build
+    - `--copy <ami-id> --to-regions REGION[,...]` — copy an existing AMI to other regions
+    - `--copy-to-regions REGION[,...]` — after a fresh build, also copy to these regions
   - See [docs/guide/cloud.md](../docs/guide/cloud.md) for usage
 
 **Local Development Setup:**

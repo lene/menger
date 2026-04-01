@@ -263,6 +263,20 @@ AWS_PROFILE=personal ./scripts/build-ami.sh --deregister ami-0123456789abcdef0
 
 # Deregister old AMIs after a new build
 AWS_PROFILE=personal ./scripts/build-ami.sh /path/to/installer.sh --deregister-old
+
+# Copy an existing AMI to additional regions
+AWS_PROFILE=personal ./scripts/build-ami.sh \
+  --copy ami-0618c45ee9f73c83d \
+  --to-regions eu-central-1,ap-southeast-1
+
+# Build and immediately copy to other regions
+AWS_PROFILE=personal ./scripts/build-ami.sh /path/to/installer.sh \
+  --copy-to-regions eu-central-1,ap-southeast-1
+
+# Combine: build, copy to other regions, and deregister old AMIs everywhere
+AWS_PROFILE=personal ./scripts/build-ami.sh /path/to/installer.sh \
+  --copy-to-regions eu-central-1,ap-southeast-1 \
+  --deregister-old
 ```
 
 ### When to rebuild the AMI

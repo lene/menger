@@ -19,21 +19,27 @@ INSTANCE_TYPE="${INSTANCE_TYPE:-g4dn.xlarge}"
 OPTIX_INSTALLER=""
 DEREGISTER_OLD=false
 DEREGISTER_ID=""
+COPY_AMI_ID=""
+COPY_TO_REGIONS=""
 
 usage() {
   cat <<EOF
 Usage: $0 [OPTIONS] <path-to-optix-installer.sh>
        $0 --deregister <ami-id>
+       $0 --copy <ami-id> --to-regions REGION[,REGION...]
        $0 --list
 
 Build a custom AMI with CUDA 12.8, OptiX, Scala, and dev tools.
 
 OPTIONS:
-  --region REGION          AWS region (default: \$AWS_REGION or us-east-1)
-  --deregister-old         Deregister previous AMIs for this region after successful build
-  --deregister AMI-ID      Deregister a specific AMI and remove it from the registry
-  --list                   List AMIs in the registry (same as nvidia-spot.sh --list-amis)
-  -h, --help               Show this help message
+  --region REGION                  AWS region for build (default: \$AWS_REGION or us-east-1)
+  --deregister-old                 Deregister previous AMIs for each affected region after build/copy
+  --deregister AMI-ID              Deregister a specific AMI and remove it from the registry
+  --copy AMI-ID                    Copy an existing AMI to one or more other regions
+  --to-regions REGION[,REGION...]  Comma-separated list of destination regions for --copy
+  --copy-to-regions REGION[,...]   After a fresh build, also copy the new AMI to these regions
+  --list                           List AMIs in the registry (same as nvidia-spot.sh --list-amis)
+  -h, --help                       Show this help message
 
 Download OptiX SDK from: https://developer.nvidia.com/optix
 EOF
@@ -79,6 +85,64 @@ deregister_ami() {
   fi
 }
 
+# --- Helper: copy one AMI to a destination region and register it ---
+copy_ami_to_region() {
+  local src_ami_id="$1"
+  local src_region="$2"
+  local dst_region="$3"
+  local ami_name="$4"
+
+  echo -e "${YELLOW}Copying $src_ami_id from $src_region to $dst_region...${NC}"
+
+  local dst_ami_id
+  dst_ami_id=$(aws ec2 copy-image \
+    --source-region "$src_region" \
+    --source-image-id "$src_ami_id" \
+    --region "$dst_region" \
+    --name "$ami_name" \
+    --description "Menger NVIDIA dev environment (copied from $src_region)" \
+    --query 'ImageId' \
+    --output text)
+
+  echo "Copy AMI ID: $dst_ami_id (waiting for available state...)"
+  local ready=false
+  for i in $(seq 1 80); do
+    local state
+    state=$(aws ec2 describe-images --region "$dst_region" --image-ids "$dst_ami_id" \
+      --query 'Images[0].State' --output text 2>/dev/null || echo "unknown")
+    if [ "$state" = "available" ]; then
+      ready=true
+      break
+    elif [ "$state" = "failed" ]; then
+      echo -e "${RED}ERROR: Copied AMI $dst_ami_id in $dst_region entered failed state.${NC}"
+      return 1
+    fi
+    echo -n "."
+    sleep 15
+  done
+  echo ""
+
+  if [ "$ready" = false ]; then
+    echo -e "${RED}TIMEOUT: Copied AMI $dst_ami_id in $dst_region did not become available within 20 minutes.${NC}"
+    echo "Check status: aws ec2 describe-images --region $dst_region --image-ids $dst_ami_id --query 'Images[0].State'"
+    return 1
+  fi
+
+  # Add to registry
+  local ts
+  ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  printf '%s\t%s\t%s\t%s\n' "$dst_region" "$dst_ami_id" "$ami_name" "$ts" >> "$AMI_REGISTRY"
+  echo -e "${GREEN}✓ $dst_ami_id available in $dst_region and added to registry${NC}"
+
+  # Deregister old AMIs in destination region if requested
+  if [ "$DEREGISTER_OLD" = true ]; then
+    grep '^[^#]' "$AMI_REGISTRY" | grep "^${dst_region}	" | grep -v "	${dst_ami_id}	" | \
+    while IFS=$'\t' read -r reg old_id old_name old_ts; do
+      deregister_ami "$old_id" "$reg"
+    done
+  fi
+}
+
 # --- Argument parsing ---
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -88,6 +152,10 @@ while [[ $# -gt 0 ]]; do
       DEREGISTER_OLD=true; shift ;;
     --deregister)
       DEREGISTER_ID="$2"; shift 2 ;;
+    --copy)
+      COPY_AMI_ID="$2"; shift 2 ;;
+    --to-regions|--copy-to-regions)
+      COPY_TO_REGIONS="$2"; shift 2 ;;
     --list)
       if [ ! -f "$AMI_REGISTRY" ] || [ "$(grep -c '^[^#]' "$AMI_REGISTRY" 2>/dev/null || true)" -eq 0 ]; then
         echo "No AMIs in registry."
@@ -116,6 +184,38 @@ if [ -n "$DEREGISTER_ID" ]; then
     [ -n "$REG_REGION" ] && REGION="$REG_REGION"
   fi
   deregister_ami "$DEREGISTER_ID" "$REGION"
+  exit 0
+fi
+
+# --- Standalone --copy ---
+if [ -n "$COPY_AMI_ID" ]; then
+  if [ -z "$COPY_TO_REGIONS" ]; then
+    echo "Error: --copy requires --to-regions REGION[,REGION...]"
+    usage
+  fi
+  # Look up source region from registry if not explicitly set
+  SRC_REGION="$REGION"
+  if [ -f "$AMI_REGISTRY" ]; then
+    REG_REGION=$(grep "	$COPY_AMI_ID	" "$AMI_REGISTRY" | cut -f1 | head -1)
+    [ -n "$REG_REGION" ] && SRC_REGION="$REG_REGION"
+  fi
+  # Look up AMI name for consistent naming
+  COPY_AMI_NAME=$(aws ec2 describe-images --region "$SRC_REGION" --image-ids "$COPY_AMI_ID" \
+    --query 'Images[0].Name' --output text 2>/dev/null || echo "menger-nvidia-dev-copy")
+  echo "=== Copying AMI $COPY_AMI_ID ($COPY_AMI_NAME) from $SRC_REGION ==="
+  IFS=',' read -ra DST_REGIONS <<< "$COPY_TO_REGIONS"
+  COPY_ERRORS=0
+  for dst in "${DST_REGIONS[@]}"; do
+    dst="${dst// /}"  # trim spaces
+    [ "$dst" = "$SRC_REGION" ] && echo "Skipping $dst (same as source region)" && continue
+    copy_ami_to_region "$COPY_AMI_ID" "$SRC_REGION" "$dst" "$COPY_AMI_NAME" || COPY_ERRORS=$((COPY_ERRORS + 1))
+  done
+  if [ "$COPY_ERRORS" -gt 0 ]; then
+    echo -e "${RED}$COPY_ERRORS region(s) failed. Review output above.${NC}"
+    exit 1
+  fi
+  echo ""
+  echo "=== Copy complete. Registry updated: $AMI_REGISTRY ==="
   exit 0
 fi
 
@@ -496,6 +596,22 @@ if [ "$DEREGISTER_OLD" = true ]; then
   while IFS=$'\t' read -r reg old_id old_name old_ts; do
     deregister_ami "$old_id" "$reg"
   done
+fi
+
+# Copy to additional regions if requested
+if [ -n "$COPY_TO_REGIONS" ]; then
+  echo ""
+  echo "=== Copying AMI to additional regions ==="
+  IFS=',' read -ra DST_REGIONS <<< "$COPY_TO_REGIONS"
+  COPY_ERRORS=0
+  for dst in "${DST_REGIONS[@]}"; do
+    dst="${dst// /}"  # trim spaces
+    [ "$dst" = "$REGION" ] && echo "Skipping $dst (same as build region)" && continue
+    copy_ami_to_region "$AMI_ID" "$REGION" "$dst" "$AMI_NAME" || COPY_ERRORS=$((COPY_ERRORS + 1))
+  done
+  if [ "$COPY_ERRORS" -gt 0 ]; then
+    echo -e "${RED}$COPY_ERRORS region copy/copies failed — build AMI itself succeeded.${NC}"
+  fi
 fi
 
 echo ""
