@@ -81,42 +81,50 @@ See [Deployment View](07-deployment-view.md#manual-setup) below for step-by-step
 
 ## 7.3 AWS Cloud Development
 
-For developers without local NVIDIA GPU, use AWS EC2 spot instances.
+For developers without a local NVIDIA GPU, use AWS EC2 spot instances managed by
+`scripts/nvidia-spot.sh`. See [docs/guide/cloud.md](../guide/cloud.md) for a full usage guide.
 
 ### Instance Types
 
-| Type | GPU | vCPU | RAM | Spot Price |
-|------|-----|------|-----|------------|
-| g4dn.xlarge | T4 (16GB) | 4 | 16GB | ~$0.16/hr |
-| g4dn.2xlarge | T4 (16GB) | 8 | 32GB | ~$0.24/hr |
-| p3.2xlarge | V100 (16GB) | 8 | 61GB | ~$0.92/hr |
+| Type | GPU | vCPU | RAM | Spot Price (us-east-1) |
+|------|-----|------|-----|------------------------|
+| g4dn.xlarge | T4 (16 GB) | 4 | 16 GB | ~$0.215/hr |
+| g4dn.2xlarge | T4 (16 GB) | 8 | 32 GB | ~$0.35/hr |
+| g5.xlarge | A10G (24 GB) | 4 | 16 GB | ~$0.44/hr |
+
+**Region note:** `us-east-1` is the recommended region. `eu-central-1` has persistent GPU spot
+capacity shortages for both g4dn and g5 families and should not be relied upon.
 
 ### Quick Start
 
 ```bash
-# Launch spot instance (creates if needed)
-./scripts/nvidia-spot.sh launch
+# Launch instance (AMI looked up from registry automatically)
+./scripts/nvidia-spot.sh
 
-# Connect with X11 forwarding
-./scripts/nvidia-spot.sh connect
+# Launch a specific branch
+./scripts/nvidia-spot.sh --menger-branch feature/my-branch
 
-# Work on instance...
+# Run a headless render and retrieve output images
+./scripts/nvidia-spot.sh \
+  --command "menger-app --optix --sponge-type cube-sponge --level 3 --save-name out.png" \
+  --retrieve "*.png"
 
-# Save state and stop
-./scripts/nvidia-spot.sh stop
+# List running instances
+./scripts/nvidia-spot.sh --list-running
 
-# Terminate when done
-./scripts/nvidia-spot.sh terminate
+# Terminate all running instances
+./scripts/nvidia-spot.sh --terminate
 ```
 
 ### Pre-configured AMI
 
-Custom AMI includes:
-- CUDA 12.8
+The custom AMI (built once with `scripts/build-ami.sh`) includes:
+- CUDA 12.8 + NVIDIA drivers (580.x+)
 - OptiX SDK 9.0
 - JVM 21, sbt, Scala
-- IntelliJ IDEA
-- Fish shell
+- Fish shell, nvtop, htop
+- `menger-app` pre-staged via `sbt stage` at launch (from the requested branch)
+- AMI ID auto-registered in `scripts/ami-registry.tsv`
 
 ## 7.4 CI/CD Configuration
 

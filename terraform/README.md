@@ -2,7 +2,7 @@
 
 Terraform infrastructure-as-code for AWS EC2 spot instances with NVIDIA GPUs.
 
-**For usage instructions, see [GPU_DEVELOPMENT.md](../GPU_DEVELOPMENT.md).**
+**For usage instructions, see [docs/guide/cloud.md](../docs/guide/cloud.md).**
 
 ## File Structure
 
@@ -36,9 +36,10 @@ instance_type    = "g4dn.xlarge"
 max_spot_price   = "0.50"
 max_session_cost = 10.00
 ami_id           = "ami-xxxxxxxxxxxx"
-user_public_key  = "ssh-rsa AAAA..."
+user_public_key  = "ssh-ed25519 AAAA... your-key"
 auto_terminate   = true
 availability_zone = ""  # Optional, defaults to cheapest AZ
+menger_branch    = "main"
 ```
 
 ## Manual Terraform Usage
@@ -49,15 +50,16 @@ cd terraform
 # Initialize
 terraform init
 
-# Create terraform.tfvars
+# Create terraform.tfvars (replace key and AMI with real values)
 cat > terraform.tfvars <<EOF
 region           = "us-east-1"
 instance_type    = "g4dn.xlarge"
 max_spot_price   = "0.50"
 max_session_cost = 10.00
 ami_id           = "ami-xxxxxxxxxxxx"
-user_public_key  = "$(cat ~/.ssh/id_rsa.pub)"
+user_public_key  = "ssh-ed25519 AAAA... your-key"
 auto_terminate   = true
+menger_branch    = "main"
 EOF
 
 # Plan and apply
