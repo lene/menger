@@ -2,11 +2,15 @@
 
 ## [Unreleased]
 
+## [0.5.6] - 2026-04-01
+
 ### Added
 - Project website at https://lilacashes.gitlab.io/menger/ — MkDocs site with render gallery and feedback links
 - CUDA 13 parallel CI jobs (`Test:Full:Cuda13`, `Test:OptiXJni:Cuda13`) run alongside CUDA 12.8 jobs as `allow_failure` to catch version compatibility issues early
 - AWS spot instance workflow polish: AMI IDs persisted in `scripts/ami-registry.tsv` (version-controlled, region-aware); `--ami-id` is now optional when an AMI exists for the active region; `--list-amis` subcommand shows all built AMIs; `--menger-branch` sets the git branch cloned and built on the instance; `--retrieve GLOB` retrieves artifacts from `~/GLOB` on the instance after `--command` completes; SSH polling now exits with a clear error and recovery instructions on timeout; `menger-app` is built via `sbt stage` and installed to `~/bin` during instance initialisation
 - `nvtop` installed in AMI for GPU monitoring on spot instances
+- `build-ami.sh` multi-region AMI distribution: `--copy <ami-id> --to-regions REGION[,...]` copies an existing AMI to additional regions; `--copy-to-regions` copies immediately after a fresh build; copied AMIs are registered in `ami-registry.tsv` automatically
+- Cloud GPU development guide (`docs/guide/cloud.md`) covering full spot instance workflow: prerequisites, first-time setup, launching, headless renders, state management, spot termination protection, cost control, AMI registry management, and troubleshooting
 
 ## [0.5.5] - 2026-03-28
 

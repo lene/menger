@@ -1,14 +1,25 @@
 # Current Sprint
 
-**Sprint:** 16 - Developer Infrastructure & Website
-**Status:** In Progress
-**Branch:** `feature/sprint-16`
+**Sprint:** 17 - Animation Tooling & DSL
+**Status:** Planned
+**Branch:** `feature/sprint-17`
 
 ---
 
 ## Goal
 
-See [SPRINT16.md](SPRINT16.md) for detailed task breakdown and implementation plan.
+See [SPRINT17.md](SPRINT17.md) for detailed task breakdown and implementation plan.
+
+---
+
+## Sprint Archive
+
+When a sprint completes:
+
+1. Update status to ✅ Complete
+2. Move file to `docs/archive/sprints/SPRINT_N.md`
+3. Update ROADMAP.md completed sprints table
+4. Reset this file for next sprint
 
 ---
 

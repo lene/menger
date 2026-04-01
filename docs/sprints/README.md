@@ -6,7 +6,6 @@ Active sprint planning documents for ongoing and future development work.
 
 | Sprint | Focus | Status | File |
 |--------|-------|--------|------|
-| 16 | Developer Infrastructure & Website | In Progress | [SPRINT16.md](SPRINT16.md) |
 | 17 | Animation Tooling & DSL | Planned | [SPRINT17.md](SPRINT17.md) |
 | 18 | Advanced Geometry | Planned | [SPRINT18.md](SPRINT18.md) |
 | 19 | Materials, Textures & Backgrounds | Planned | [SPRINT19.md](SPRINT19.md) |
@@ -19,6 +18,7 @@ See [docs/archive/sprints/](../archive/sprints/) for completed sprint documentat
 
 | Sprint | Focus | Archived File |
 |--------|-------|---------------|
+| 16 | Developer Infrastructure & Website | [SPRINT16.md](../archive/sprints/SPRINT16.md) |
 | 15 | Visual Enhancements & Primitives | [SPRINT15.md](../archive/sprints/SPRINT15.md) |
 | 14 | Rendering Correctness & Code Health | [SPRINT14.md](../archive/sprints/SPRINT14.md) |
 | 13 | Visual Quality & Material Enhancements | [SPRINT13.md](../archive/sprints/SPRINT13.md) |

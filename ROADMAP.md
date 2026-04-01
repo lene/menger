@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-03-28
+**Last Updated:** 2026-04-01
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -19,7 +19,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.5.3 | Visual Quality | Complete | material enhancements, colored shadows |
 | v0.5.4 | Rendering Correctness & Code Health | Complete | shadow fixes, caustic improvements, code health (Sprint 14) |
 | v0.5.5 | Visual Enhancements | Complete | area lights, soft shadows, parametric surfaces, caustics (Sprint 15) |
-| v0.6 | Full 3D Rendering | Planned | video output, full DSL/CLI control, animation tooling (Sprints 16–17) |
+| v0.5.6 | Developer Infrastructure | Complete | pre-push optimisation, website, CI improvements, AWS spot workflow (Sprint 16) |
+| v0.6 | Full 3D Rendering | Planned | video output, full DSL/CLI control, animation tooling (Sprints 17+) |
 | v0.7 | Textures & Backgrounds | Planned | Procedural textures, PBR maps, environment maps |
 
 ---
@@ -43,28 +44,11 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 13 | Visual Quality & Material Enhancements | Complete | [docs/sprints/SPRINT13.md](docs/sprints/SPRINT13.md) |
 | 14 | Rendering Correctness & Code Health | Complete | [docs/sprints/SPRINT14.md](docs/sprints/SPRINT14.md) |
 | 15 | Visual Enhancements & Primitives | Complete | [docs/archive/sprints/SPRINT15.md](docs/archive/sprints/SPRINT15.md) |
+| 16 | Developer Infrastructure & Website | Complete | [docs/archive/sprints/SPRINT16.md](docs/archive/sprints/SPRINT16.md) |
 
 ---
 
 ## Planned Sprints
-
-### Sprint 16: Developer Infrastructure & Website (~16h)
-
-> ⚠️ **Foundation brainstorm at sprint start:** Before Sprint 18 (higher-dimensional polytopes),
-> run a brainstorming session to identify any missing foundations: rendering quality, developer
-> tools, DSL/CLI control, materials, textures, backgrounds, etc. Any gaps found here can be
-> scheduled into Sprints 16–17 or as new sprints before 18, while there is still time to plan.
-
-**Goal:** Pre-push hook optimisation, developer docs, CI improvements, website, CUDA compatibility, AWS spot rendering
-
-- **16.1** Optimise pre-push hook (parallelization) (2h)
-- **16.2** Developer documentation & AGENTS.md refresh (2h)
-- **16.3** Test coverage improvements + Valgrind CI (2h)
-- **16.4** Project website with GitHub/GitLab feedback button (3h)
-- **16.5** Test on CUDA 12 and 13 (CI Docker images) (2h)
-- **16.6** AWS spot instance rendering (spike + implementation) (~5h, open-ended)
-
-See [docs/sprints/SPRINT16.md](docs/sprints/SPRINT16.md)
 
 ### Sprint 17: Animation Tooling & DSL (~19h)
 

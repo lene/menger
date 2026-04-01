@@ -48,6 +48,7 @@ archive/
 
 | Sprint | Focus | File |
 |--------|-------|------|
+| 16 | Developer Infrastructure & Website | [sprints/SPRINT16.md](sprints/SPRINT16.md) |
 | 15 | Visual Enhancements & Primitives | [sprints/SPRINT15.md](sprints/SPRINT15.md) |
 | 14 | Rendering Correctness & Code Health | [sprints/SPRINT14.md](sprints/SPRINT14.md) |
 | 13 | Visual Quality & Material Enhancements | [sprints/SPRINT13.md](sprints/SPRINT13.md) |
