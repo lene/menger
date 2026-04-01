@@ -1,6 +1,6 @@
 # Menger — Quick Start
 
-**Version**: 0.5.5
+**Version**: 0.5.6
 **Last Updated**: March 2026
 
 ← [User Guide Index](../USER_GUIDE.md)
@@ -111,6 +111,8 @@ See the interactive window open with a rotating Menger sponge, or wait a few sec
 - **OS**: Linux only (macOS and Windows not yet supported for OptiX)
 
 **Note**: LibGDX mode works without NVIDIA GPU and provides real-time preview. OptiX mode requires NVIDIA GPU for ray tracing.
+
+**No local NVIDIA GPU?** Use AWS EC2 GPU spot instances — see [Cloud GPU Development](cloud.md) for a managed workflow that handles launch, rendering, and cost control.
 
 ### Installation
 
