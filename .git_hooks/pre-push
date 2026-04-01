@@ -255,6 +255,7 @@ run_coverage() {
 # --- Valgrind (background, CPU-only) ---
 run_valgrind() {
   echo "=== Running Valgrind for host memory leak detection ===" > /tmp/valgrind-phase-prepush.log
+  > /tmp/valgrind-prepush.log  # Clear log so grep matches only this run
   if ! command -v valgrind >/dev/null 2>&1; then
     echo "Warning: valgrind not installed, skipping host memory check" >> /tmp/valgrind-phase-prepush.log
     return 0
