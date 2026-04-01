@@ -455,7 +455,7 @@ TF_OUTPUT=$(terraform apply -auto-approve -compact-warnings 2>&1)
 TF_EXIT=$?
 if [ $TF_EXIT -ne 0 ]; then
   echo -e "${RED}Error: Terraform apply failed${NC}"
-  echo "$TF_OUTPUT" | grep -E '(^\s*(│|Error:|╷|╵)|^Error )' | sed 's/^[[:space:]]*│ *//'
+  echo "$TF_OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep -E '(^\s*(│|Error:|╷|╵)|^Error )' | sed 's/^[[:space:]]*│ *//'
   exit 1
 fi
 
