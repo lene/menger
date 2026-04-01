@@ -289,7 +289,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 
 # Basic tools
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  build-essential git curl wget vim htop tmux unzip jq software-properties-common cmake
+  build-essential git curl wget vim htop nvtop tmux unzip jq software-properties-common cmake
 
 # Install AWS CLI (required for auto-terminate daemon)
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
