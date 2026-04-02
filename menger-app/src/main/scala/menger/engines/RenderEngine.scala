@@ -1,9 +1,6 @@
 package menger.engines
 
-import com.badlogic.gdx.Game
-
-trait RenderEngine extends Game:
-  // LibGDX lifecycle methods - concrete implementations required
+trait RenderEngine:
   def create(): Unit
   def render(): Unit
   def resize(width: Int, height: Int): Unit

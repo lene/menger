@@ -12,13 +12,12 @@ import menger.config.ExecutionConfig
 import menger.config.MaterialConfig
 import menger.config.OptiXEngineConfig
 import menger.config.SceneConfig
-import menger.engines.OptiXEngine
+import menger.engines.InteractiveEngine
 import menger.optix.RenderConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-
-class OptiXEngineSuite extends AnyFlatSpec with Matchers:
+class InteractiveEngineSuite extends AnyFlatSpec with Matchers:
 
   private def createConfig(
     radius: Float = Const.defaultSphereRadius,
@@ -29,10 +28,14 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
     enableStats: Boolean = false,
     renderConfig: RenderConfig = RenderConfig.Default
   ): OptiXEngineConfig =
-    val colorHex = f"#${(color.r * 255).toInt}%02X${(color.g * 255).toInt}%02X${(color.b * 255).toInt}%02X"
-    val objectSpec = ObjectSpec.parse(s"type=sphere:pos=0,0,0:size=${radius * 2}:scale=$scale:color=$colorHex:ior=$ior") match
-      case Left(error) => sys.error(s"Failed to parse object spec: $error")
-      case Right(spec) => List(spec)
+    val colorHex =
+      f"#${(color.r * 255).toInt}%02X${(color.g * 255).toInt}%02X${(color.b * 255).toInt}%02X"
+    val objectSpec =
+      ObjectSpec.parse(
+        s"type=sphere:pos=0,0,0:size=${radius * 2}:scale=$scale:color=$colorHex:ior=$ior"
+      ) match
+        case Left(error) => sys.error(s"Failed to parse object spec: $error")
+        case Right(spec) => List(spec)
 
     OptiXEngineConfig(
       scene = SceneConfig(objectSpecs = Some(objectSpec)),
@@ -42,7 +45,9 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
         up = Vector3(0f, 1f, 0f)
       ),
       environment = EnvironmentConfig(
-        planes = List(PlaneConfig(PlaneSpec(Axis.Y, false, Const.defaultFloorPlaneY), colorSpec = None))
+        planes = List(
+          PlaneConfig(PlaneSpec(Axis.Y, false, Const.defaultFloorPlaneY), colorSpec = None)
+        )
       ),
       execution = ExecutionConfig(
         fpsLogIntervalMs = 1000,
@@ -52,14 +57,14 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
       render = renderConfig
     )
 
-  private def createEngine(config: OptiXEngineConfig): OptiXEngine =
+  private def createEngine(config: OptiXEngineConfig): InteractiveEngine =
     given ProfilingConfig = ProfilingConfig.disabled
-    OptiXEngine(config)
+    InteractiveEngine(config)
 
-  "OptiXEngine" should "be instantiated" in:
+  "InteractiveEngine" should "be instantiated" in:
     val config = createConfig()
     val engine = createEngine(config)
-    engine shouldBe a[OptiXEngine]
+    engine shouldBe a[InteractiveEngine]
 
   it should "store timeout in config" in:
     val config = createConfig(timeout = 5.0f)
@@ -69,7 +74,7 @@ class OptiXEngineSuite extends AnyFlatSpec with Matchers:
     createConfig(radius = 0.1f)
     createConfig(radius = 10.0f)
     createConfig(radius = 1.5f)
-    // No assertions - just verify parsing works
+    succeed
 
   it should "have default timeout 0" in:
     val config = createConfig()

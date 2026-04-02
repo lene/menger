@@ -1,6 +1,7 @@
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
+import com.badlogic.gdx.ApplicationListener
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import menger.MengerCLIOptions
@@ -14,8 +15,8 @@ import menger.config.OptiXEngineConfig
 import menger.config.SceneConfig
 import menger.dsl.LoadedScene
 import menger.dsl.SceneConverter
-import menger.engines.AnimatedOptiXEngine
-import menger.engines.OptiXEngine
+import menger.engines.AnimationEngine
+import menger.engines.InteractiveEngine
 import menger.engines.RenderEngine
 import menger.engines.TAnimationConfig
 import org.slf4j.LoggerFactory
@@ -27,7 +28,9 @@ object Main:
     val config = getConfig(opts)
     try
       val rendering = createEngine(opts)
-      Lwjgl3Application(rendering, config)
+      rendering match
+        case app: ApplicationListener => Lwjgl3Application(app, config)
+        case _ => sys.error("Engine must implement ApplicationListener")
     catch
       case e: Exception =>
         System.err.println(s"Error: ${e.getMessage}")
@@ -79,14 +82,14 @@ object Main:
     import menger.dsl.SceneLoader
     SceneLoader.load(sceneName) match
       case Right(LoadedScene.Animated(fn)) if opts.tFrames.isSupplied =>
-        // Multi-frame animation: create AnimatedOptiXEngine
+        // Multi-frame animation: create AnimationEngine
         val animConfig = TAnimationConfig(
           startT = opts.startT(),
           endT = opts.endT(),
           frames = opts.tFrames(),
           savePattern = opts.saveName()
         )
-        AnimatedOptiXEngine(
+        AnimationEngine(
           sceneFunction = fn,
           animConfig = animConfig,
           executionConfig = buildExecutionConfig(opts),
@@ -106,7 +109,7 @@ object Main:
         System.err.println(s"Failed to load scene '$sceneName': $error")
         sys.exit(1)
 
-  private def createOptiXEngineFromDslScene(opts: MengerCLIOptions, dslScene: menger.dsl.Scene)(using ProfilingConfig): OptiXEngine =
+  private def createOptiXEngineFromDslScene(opts: MengerCLIOptions, dslScene: menger.dsl.Scene)(using ProfilingConfig): InteractiveEngine =
     val configs = SceneConverter.convert(dslScene, opts.causticsConfig)
     val engineConfig = OptiXEngineConfig(
       scene = configs.scene,
@@ -120,9 +123,9 @@ object Main:
       render = opts.renderConfig,
       caustics = configs.caustics
     )
-    OptiXEngine(engineConfig, opts.userSetMaxInstances)
+    InteractiveEngine(engineConfig, opts.userSetMaxInstances)
 
-  private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): OptiXEngine =
+  private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): InteractiveEngine =
     val engineConfig = OptiXEngineConfig(
       scene = SceneConfig(objectSpecs = opts.objects.toOption),
       camera = CameraConfig(
@@ -142,7 +145,7 @@ object Main:
       render = opts.renderConfig,
       caustics = opts.causticsConfig
     )
-    OptiXEngine(engineConfig, opts.userSetMaxInstances)
+    InteractiveEngine(engineConfig, opts.userSetMaxInstances)
 
   private def buildExecutionConfig(opts: MengerCLIOptions): ExecutionConfig =
     ExecutionConfig(
