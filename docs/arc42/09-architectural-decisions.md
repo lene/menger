@@ -26,7 +26,7 @@ This section documents significant architectural decisions. Detailed implementat
 
 ### AD-2: Dual Rendering Pipeline (LibGDX + OptiX)
 
-**Status:** Accepted
+**Status:** Superseded by AD-16 (OptiX-only from v0.6)
 **Date:** 2025
 
 **Context:** Need both interactive preview and high-quality output.
@@ -220,6 +220,38 @@ above. Shadows are now RGB when `transparent_shadows_enabled = true`, and the
 `setTransparentShadows` API is functional. The anyhit programs and unused overloads from
 the failed attempt have been removed. See `08-crosscutting-concepts.md` §8.1.4 for the
 colored shadow algorithm and TD-6 for remaining Phase 2 work.
+
+---
+
+### AD-16: OptiX as Sole Renderer (Remove LibGDX 3D Rendering)
+
+**Status:** Accepted
+**Date:** 2026-04 (Sprint 17)
+
+**Context:** The dual rendering pipeline (AD-2) was originally adopted to maintain both a real-time
+LibGDX/OpenGL preview and a high-quality OptiX path. As OptiX has matured to provide interactive
+frame rates (>100 FPS for typical scenes), the LibGDX 3D rendering path became redundant. It added
+maintenance burden, code complexity, and required a separate `--optix` flag to access the higher
+quality renderer.
+
+**Decision:** Remove the LibGDX 3D rendering path entirely. OptiX is now the sole renderer.
+LibGDX is retained as the windowing/GL framework (LWJGL3 application lifecycle, input handling),
+but the LibGDX 3D scene graph, `ModelFactory`, `MengerEngine`, `InteractiveMengerEngine`, and
+`AnimatedMengerEngine` are deleted. The `--optix` CLI flag is removed; all rendering always uses
+OptiX.
+
+**Rationale:**
+- OptiX achieves interactive frame rates making a fast-preview mode unnecessary
+- Eliminates duplicated geometry export code and engine branching
+- Simplifies the CLI (no `--optix` flag required)
+- Reduces maintenance surface by removing ~2,000 lines of LibGDX 3D code
+- Improves render quality for all users by default
+
+**Consequences:**
+- Users must provide `--objects` or `--scene` to render (no default object)
+- All rendering is physically-based ray tracing; no fast OpenGL fallback
+- `menger.gdx` package removed; classes moved to `menger.input` or `menger.objects`
+- Supersedes AD-2
 
 ---
 

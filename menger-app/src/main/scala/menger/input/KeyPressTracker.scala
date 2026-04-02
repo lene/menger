@@ -1,12 +1,12 @@
-package menger.gdx
+package menger.input
 
 import menger.common.Key
 
 /**
  * Tracks which keys are currently held down.
  *
- * Encapsulates the mutable Map[Key, Boolean] pattern used in both
- * OptiXKeyHandler and GdxKeyHandler, eliminating duplicate var declarations.
+ * Encapsulates the mutable Map[Key, Boolean] pattern used in
+ * OptiXKeyHandler, eliminating duplicate var declarations.
  */
 class KeyPressTracker:
   @SuppressWarnings(Array("org.wartremover.warts.Var"))

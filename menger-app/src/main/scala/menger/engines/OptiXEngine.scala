@@ -21,8 +21,8 @@ import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SphereSceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
-import menger.gdx.GdxRuntime
 import menger.input.EventDispatcher
+import menger.input.GdxRuntime
 import menger.input.Observer
 import menger.input.OptiXCameraHandler
 import menger.input.OptiXInputMultiplexer

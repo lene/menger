@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Removed
+- **LibGDX 3D rendering path** — the OpenGL/LibGDX 3D scene graph (`MengerEngine`,
+  `InteractiveMengerEngine`, `AnimatedMengerEngine`, `ModelFactory`, `DragTracker`) has been
+  removed. OptiX is now the sole renderer. LibGDX is retained as the windowing framework.
+- **`--optix` CLI flag** — no longer needed; all rendering uses OptiX by default. The flag was
+  previously required to access OptiX rendering; now `--objects` or `--scene` suffice.
+- `proguard-base` dependency removed from build (was only needed by the LibGDX 3D path).
+
 ## [0.5.6] - 2026-04-01
 
 ### Added

@@ -37,7 +37,7 @@ class GeometryFactorySuite extends AnyFlatSpec with Matchers:
     result shouldBe a[Failure[?]]
     result.failed.get shouldBe a[UnknownGeometryException]
 
-  it should "fail for sphere type (requires --optix flag)" in:
+  it should "fail for sphere type (use --objects type=sphere for OptiX sphere rendering)" in:
     val result = GeometryFactory.create("sphere", 1f, null, 0, menger.RotationProjectionParameters())
     result shouldBe a[Failure[?]]
     result.failed.get shouldBe a[UnsupportedOperationException]

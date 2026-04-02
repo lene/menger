@@ -1,4 +1,4 @@
-package menger.gdx
+package menger.input
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.InputProcessor

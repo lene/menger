@@ -5,8 +5,6 @@ import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.Key
 import menger.common.ModifierState
-import menger.gdx.GdxRuntime
-import menger.gdx.KeyPressTracker
 
 /**
  * Keyboard input handler for OptiX ray-traced rendering mode.

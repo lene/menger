@@ -41,11 +41,8 @@ Test / scalacOptions += "-experimental"
 // Also exclude LibGDX adapter handlers that require native library initialization for testing
 coverageExcludedPackages := "menger\\.optix\\..*;menger\\.engines\\..*;" +
   "menger\\.input\\.LibGDXInputAdapter;" +
-  "menger\\.input\\.GdxKeyHandler;" +
-  "menger\\.input\\.GdxCameraHandler;" +
   "menger\\.input\\.OptiXCameraHandler;" +
-  "menger\\.input\\.OptiXKeyHandler;" +
-  "menger\\.gdx\\..*"
+  "menger\\.input\\.OptiXKeyHandler"
 
 libraryDependencies ++= Seq(
   // Logging
@@ -61,7 +58,6 @@ libraryDependencies ++= Seq(
   "org.rogach" %% "scallop" % "6.0.0",
   // libGDX
   "com.badlogicgames.gdx" % "gdx" % "1.14.0",
-  "net.sf.proguard" % "proguard-base" % "6.2.2" % "provided",
   "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.14.0",
   "com.badlogicgames.gdx" % "gdx-platform" % "1.14.0" classifier "natives-desktop"
 )

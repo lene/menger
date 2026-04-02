@@ -1,4 +1,4 @@
-package menger.gdx
+package menger.input
 
 import menger.common.Key
 import org.scalatest.flatspec.AnyFlatSpec

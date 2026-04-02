@@ -1,9 +1,7 @@
 package menger.input
 
 import menger.common.Key
-import menger.gdx.KeyPressTracker
-
-/** Shared key-rotation angle calculation used by GdxKeyHandler and OptiXKeyHandler. */
+/** Shared key-rotation angle calculation used by OptiXKeyHandler. */
 trait KeyRotation:
   protected def rotatePressed: KeyPressTracker
   protected def rotateAngle: Float

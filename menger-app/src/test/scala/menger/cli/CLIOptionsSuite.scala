@@ -351,32 +351,12 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
   it should "succeed with --color and --lines together" in:
     SafeMengerCLIOptions(Seq("--color", "ff0000", "--lines"))
 
-  "--objects type=sphere" should "be accepted with --optix" in:
-    val options = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--optix"))
-    options.objects.toOption.flatMap(_.headOption.map(_.objectType)) shouldEqual Some("sphere")
-
-  "--optix" should "parse correctly and default to false" in:
-    val options1 = SafeMengerCLIOptions(Seq())
-    options1.optix() shouldEqual false
-
-    val options2 = SafeMengerCLIOptions(Seq("--optix", "--objects", "type=sphere"))
-    options2.optix() shouldEqual true
-
-  "OptiX validation" should "fail when --objects without --optix" in:
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--objects", "type=sphere"))
-
-  it should "fail when --optix without --objects" in:
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--optix"))
-
-  it should "succeed when both --optix and --objects type=sphere" in:
-    val options = SafeMengerCLIOptions(Seq("--optix", "--objects", "type=sphere"))
-    options.optix() shouldEqual true
+  "--objects type=sphere" should "be accepted standalone" in:
+    val options = SafeMengerCLIOptions(Seq("--objects", "type=sphere"))
     options.objects.toOption.flatMap(_.headOption.map(_.objectType)) shouldEqual Some("sphere")
 
   "MengerCLIOptions --stats" should "parse when provided" in :
-    val opts = SafeMengerCLIOptions(List("--optix", "--objects", "type=sphere", "--stats"))
+    val opts = SafeMengerCLIOptions(List("--objects", "type=sphere", "--stats"))
     opts.stats() shouldBe true
 
   it should "be optional" in :
@@ -388,17 +368,17 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     opts.stats() shouldBe false
 
   it should "be false without explicit flag" in :
-    val opts = SafeMengerCLIOptions(List("--optix", "--objects", "type=sphere"))
+    val opts = SafeMengerCLIOptions(List("--objects", "type=sphere"))
     opts.stats() shouldBe false
 
   "Main.createEngine" should "create OptiXEngine with stats disabled when option not provided" in :
-    val opts = SafeMengerCLIOptions(List("--optix", "--objects", "type=sphere"))
+    val opts = SafeMengerCLIOptions(List("--objects", "type=sphere"))
     val enableStats = opts.stats()
 
     enableStats shouldBe false
 
   it should "create OptiXEngine with stats enabled when option provided" in :
-    val opts = SafeMengerCLIOptions(List("--optix", "--objects", "type=sphere", "--stats"))
+    val opts = SafeMengerCLIOptions(List("--objects", "type=sphere", "--stats"))
     val enableStats = opts.stats()
 
     enableStats shouldBe true
@@ -422,13 +402,12 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     an[ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--headless"))
 
-  it should "work with --optix mode" in:
+  it should "work with --objects mode" in:
     val opts = SafeMengerCLIOptions(Seq(
-      "--optix", "--objects", "type=sphere",
+      "--objects", "type=sphere",
       "--headless", "--save-name", "output.png"
     ))
     opts.headless() shouldBe true
-    opts.optix() shouldBe true
 
   it should "work with --animate mode" in:
     val opts = SafeMengerCLIOptions(Seq(

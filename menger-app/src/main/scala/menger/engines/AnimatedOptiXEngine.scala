@@ -14,7 +14,7 @@ import menger.config.ExecutionConfig
 import menger.dsl.Scene
 import menger.dsl.SceneConverter
 import menger.engines.scene.SphereSceneBuilder
-import menger.gdx.GdxRuntime
+import menger.input.GdxRuntime
 import menger.optix.CameraState
 import menger.optix.CausticsConfig
 import menger.optix.OptiXRendererWrapper

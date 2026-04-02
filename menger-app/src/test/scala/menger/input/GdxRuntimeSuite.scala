@@ -1,4 +1,4 @@
-package menger.gdx
+package menger.input
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

@@ -9,7 +9,6 @@ import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.attributes.IntAttribute
-import menger.gdx.ModelFactory
 
 object Builder:
   // Injected ModelFactory - use default (LibGDX) for production, mock for tests

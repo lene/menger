@@ -1,7 +1,7 @@
 # Sprint 17: Animation Tooling, DSL & Architecture Foundations
 
 **Sprint:** 17 - Animation Tooling, DSL & Architecture Foundations
-**Status:** Not Started
+**Status:** In Progress
 **Estimate:** ~32 hours
 **Branch:** `feature/sprint-17`
 **Dependencies:** Sprint 12 (t-Parameter Animation), Sprint 14 (video/preview deferred here)
@@ -17,7 +17,7 @@ library separation.
 
 ## Success Criteria
 
-- [ ] LibGDX rendering path fully removed; OptiX is the only renderer
+- [x] LibGDX rendering path fully removed; OptiX is the only renderer
 - [ ] Engine uses trait composition (base + `WithAnimation`, `WithPreview`, `WithVideoExport`)
 - [ ] Scene graph supports transform hierarchy and per-node material inheritance
 - [ ] Video output via ffmpeg: MP4 and WebM from frame sequences
@@ -37,6 +37,7 @@ library separation.
 
 ### Task 17.1: Remove LibGDX Rendering Path
 
+**Status:** Complete
 **Estimate:** 5h
 
 Remove the dual rendering pipeline. OptiX becomes the sole renderer.

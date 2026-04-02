@@ -230,11 +230,6 @@ class MengerCLIOptions(arguments: Seq[String])
   )
 
   // === OptiX Renderer Options ===
-  val optix: ScallopOption[Boolean] = opt[Boolean](
-    required = false, default = Some(false), group = optixGroup,
-    descr = "Use OptiX GPU ray tracing (requires --objects)"
-  )
-
   val scene: ScallopOption[String] = opt[String](
     name = "scene", required = false, group = optixGroup,
     descr = "Load pre-compiled DSL scene by name (e.g., 'glass-sphere') or fully-qualified class name (e.g., 'examples.dsl.GlassSphere'). " +

@@ -1,11 +1,8 @@
-package menger.gdx
+package menger.input
 
 import com.badlogic.gdx.math.Vector3
 import menger.common.MouseButton
 import menger.common.ScreenCoords
-import menger.input.OrbitConfig
-import menger.input.SphericalCoords
-import menger.input.SphericalOrbit
 
 /** Consolidated drag state — reduces multiple vars to a single Option */
 private case class CameraDragState(lastPos: ScreenCoords, button: MouseButton)

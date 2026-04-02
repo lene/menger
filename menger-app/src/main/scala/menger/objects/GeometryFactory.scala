@@ -47,7 +47,7 @@ object GeometryFactory:
         material, primitiveType
       ))
       case "sphere" =>
-        Failure(UnsupportedOperationException("Sphere rendering requires --optix flag"))
+        Failure(UnsupportedOperationException("Sphere rendering requires --objects type=sphere"))
       case composite if composite.startsWith("composite[") =>
         Composite.parseCompositeFromCLIOption(
           composite, level, material, primitiveType, rotationProjection,

@@ -30,7 +30,6 @@ trait CliValidation:
   protected def faceColor: ScallopOption[?]
   protected def lineColor: ScallopOption[?]
   protected def lines: ScallopOption[Boolean]
-  protected def optix: ScallopOption[Boolean]
   protected def scene: ScallopOption[String]
   protected def objects: ScallopOption[List[ObjectSpec]]
   protected def shadows: ScallopOption[Boolean]
@@ -129,48 +128,14 @@ trait CliValidation:
     // Validate scene and objects are mutually exclusive
     mutuallyExclusive(scene, objects)
 
-    validateOpt(optix, scene, objects) { (ox, sc, objs) =>
-      val isOptiXEnabled = ox.getOrElse(false)
-      val hasScene = sc.isDefined
-      val hasObjects = objs.isDefined
-      validationLogger.debug(
-        s"OptiX validation: enabled=$isOptiXEnabled, hasScene=$hasScene, hasObjects=$hasObjects"
-      )
-
-      if isOptiXEnabled && !hasScene && !hasObjects then
-        Left("--optix flag requires either --scene or --objects option. " +
-          "Add --scene <scene-name> or --objects \"type=sphere:pos=0,0,0:size=1\"")
-      else if (hasScene || hasObjects) && !isOptiXEnabled then
-        Left("--scene/--objects option requires --optix flag. Add --optix to enable OptiX rendering")
+    validateOpt(light) { l =>
+      if l.exists(_.length > Const.maxLights) then
+        Left(s"Maximum ${Const.maxLights} lights allowed (MAX_LIGHTS=${Const.maxLights}). " +
+          s"You specified ${l.get.length} lights. Reduce the number of --light options")
       else Right(())
     }
 
-    validateOpt(shadows, optix) { (sh, _) =>
-      requiresOptix("shadows", sh.getOrElse(false))
-    }
-
-    validateOpt(light, optix) { (l, _) =>
-      requiresOptix("light", l).flatMap { _ =>
-        if l.exists(_.length > Const.maxLights) then
-          Left(s"Maximum ${Const.maxLights} lights allowed (MAX_LIGHTS=${Const.maxLights}). " +
-            s"You specified ${l.get.length} lights. Reduce the number of --light options")
-        else Right(())
-      }
-    }
-
-    validateOpt(planeColor, optix) { (pc, _) =>
-      requiresOptix("plane-color", pc)
-    }
-
-    validateOpt(maxInstances, optix) { (_, ox) =>
-      requires("max-instances", maxInstances.isSupplied, "optix", ox.getOrElse(false))
-    }
-
   private def registerAntialiasingValidations(): Unit =
-    validateOpt(antialiasing, optix) { (aa, _) =>
-      requiresOptix("antialiasing", aa.getOrElse(false))
-    }
-
     validateOpt(aaMaxDepth, antialiasing) { (_, aa) =>
       requires("aa-max-depth", aaMaxDepth.isSupplied, "antialiasing", aa.getOrElse(false))
     }
@@ -180,10 +145,6 @@ trait CliValidation:
     }
 
   private def registerCausticsValidations(): Unit =
-    validateOpt(caustics, optix) { (c, _) =>
-      requiresOptix("caustics", c.getOrElse(false))
-    }
-
     validateOpt(causticsPhotons, caustics) { (_, c) =>
       requires("caustics-photons", causticsPhotons.isSupplied, "caustics", c.getOrElse(false))
     }
@@ -233,12 +194,6 @@ trait CliValidation:
     if isSupplied && !parentEnabled then Left(s"--$optionName requires --$parentName flag")
     else Right(())
 
-  private def requiresOptix(flagName: String, flagValue: Boolean): Either[String, Unit] =
-    requires(flagName, flagValue, "optix", optix())
-
-  private def requiresOptix[T](flagName: String, optionValue: Option[T]): Either[String, Unit] =
-    requires(flagName, optionValue.isDefined, "optix", optix())
-
   private def registerHeadlessValidations(): Unit =
     validateOpt(headless, saveName) { (h, s) =>
       if h.getOrElse(false) && s.isEmpty then
@@ -271,20 +226,6 @@ trait CliValidation:
     validateOpt(tFrames, scene) { (fr, sc) =>
       if fr.isDefined && sc.isEmpty then
         Left("--frames requires --scene (animated DSL scene)")
-      else Right(())
-    }
-
-    // --t requires --optix
-    validateOpt(freezeT, optix) { (ft, _) =>
-      if ft.isDefined && !optix() then
-        Left("--t requires --optix flag")
-      else Right(())
-    }
-
-    // --frames requires --optix
-    validateOpt(tFrames, optix) { (fr, _) =>
-      if fr.isDefined && !optix() then
-        Left("--frames requires --optix flag")
       else Right(())
     }
 

@@ -1,9 +1,8 @@
-package menger.gdx
+package menger.input
 
 import com.badlogic.gdx.math.Vector3
 import menger.common.MouseButton
 import menger.common.ScreenCoords
-import menger.input.OrbitConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

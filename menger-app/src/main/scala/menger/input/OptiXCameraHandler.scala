@@ -8,8 +8,6 @@ import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.MouseButton
 import menger.common.ScreenCoords
-import menger.gdx.GdxRuntime
-import menger.gdx.OrbitCamera
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 

@@ -5,7 +5,6 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import menger.MengerCLIOptions
 import menger.ProfilingConfig
-import menger.RotationProjectionParameters
 import menger.cli.PlaneConfig
 import menger.common.Const
 import menger.config.CameraConfig
@@ -15,9 +14,7 @@ import menger.config.OptiXEngineConfig
 import menger.config.SceneConfig
 import menger.dsl.LoadedScene
 import menger.dsl.SceneConverter
-import menger.engines.AnimatedMengerEngine
 import menger.engines.AnimatedOptiXEngine
-import menger.engines.InteractiveMengerEngine
 import menger.engines.OptiXEngine
 import menger.engines.RenderEngine
 import menger.engines.TAnimationConfig
@@ -58,9 +55,8 @@ object Main:
       Const.Display.depthBits, Const.Display.stencilBits,
       opts.antialiasSamples()
     )
-    // Disable window resizing for OptiX mode to prevent expensive buffer reallocation
     // OptiX rendering requires fixed resolution for optimal performance
-    if opts.optix() then config.setResizable(false)
+    config.setResizable(false)
     // Headless mode: render without displaying window (for CI/CD, batch processing)
     if opts.headless() then
       config.setInitialVisible(false)
@@ -72,14 +68,6 @@ object Main:
       case Some(minMs) => ProfilingConfig.enabled(minMs)
       case None => ProfilingConfig.disabled
 
-    val rotationProjectionParameters = RotationProjectionParameters(opts)
-
-    if opts.optix() then createOptiXEngine(opts)
-    else if opts.animate.toOption.exists(_.parts.nonEmpty) then
-      createAnimatedEngine(opts, rotationProjectionParameters)
-    else createInteractiveEngine(opts, rotationProjectionParameters)
-
-  private def createOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): RenderEngine =
     opts.scene.toOption match
       case Some(sceneName) => createSceneBasedEngine(opts, sceneName)
       case None => createCliBasedOptiXEngine(opts)
@@ -164,24 +152,4 @@ object Main:
       enableStats = opts.stats(),
       maxInstances = opts.maxInstances(),
       textureDir = opts.textureDir()
-    )
-
-  private def createAnimatedEngine(
-    opts: MengerCLIOptions,
-    rotationProjectionParams: RotationProjectionParameters
-  )(using ProfilingConfig): AnimatedMengerEngine =
-    AnimatedMengerEngine(
-      opts.spongeType(), opts.level(), rotationProjectionParams, opts.lines(), opts.color(),
-      opts.animate(), opts.saveName.toOption, opts.faceColor.toOption, opts.lineColor.toOption,
-      opts.fpsLogInterval()
-    )
-
-  private def createInteractiveEngine(
-    opts: MengerCLIOptions,
-    rotationProjectionParams: RotationProjectionParameters
-  )(using ProfilingConfig): InteractiveMengerEngine =
-    InteractiveMengerEngine(
-      opts.spongeType(), opts.level(), rotationProjectionParams, opts.lines(), opts.color(),
-      opts.timeout(), opts.faceColor.toOption, opts.lineColor.toOption,
-      opts.fpsLogInterval()
     )
