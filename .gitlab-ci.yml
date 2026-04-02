@@ -195,6 +195,11 @@ Test:Full:Cuda13:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION_CUDA13
   stage: test
   needs: []
+  timeout: 20m
+  retry:
+    max: 2
+    when:
+      - stuck_or_timeout_failure
   tags:
     - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
   variables:
