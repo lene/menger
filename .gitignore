@@ -31,6 +31,9 @@ scripts/test-diffs/
 # log files
 *.log
 
+# git worktrees
+.worktrees/
+
 # local dev tools
 .jvmopts
 
