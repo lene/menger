@@ -1,6 +1,6 @@
 # Menger — Quick Start
 
-**Version**: 0.5.6
+**Version**: 0.5.5
 **Last Updated**: March 2026
 
 ← [User Guide Index](../USER_GUIDE.md)

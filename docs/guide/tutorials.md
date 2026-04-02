@@ -1,6 +1,6 @@
 # Menger — Tutorials
 
-**Version**: 0.5.6
+**Version**: 0.5.5
 **Last Updated**: March 2026
 
 ← [DSL Reference](dsl-reference.md) | [User Guide Index](../USER_GUIDE.md)

@@ -1,8 +1,8 @@
-# Sprint 17: Animation Tooling & DSL
+# Sprint 17: Animation Tooling, DSL & Architecture Foundations
 
-**Sprint:** 17 - Animation Tooling & DSL
+**Sprint:** 17 - Animation Tooling, DSL & Architecture Foundations
 **Status:** Not Started
-**Estimate:** ~19 hours
+**Estimate:** ~32 hours
 **Branch:** `feature/sprint-17`
 **Dependencies:** Sprint 12 (t-Parameter Animation), Sprint 14 (video/preview deferred here)
 
@@ -10,43 +10,170 @@
 
 ## Goal
 
-Add video output, animation preview, and DSL convenience helpers for animation and scene
-composition. Plain Scala in `scene(t)` already serves as the animation DSL — this sprint
-adds convenience helpers, tooling, and the video/preview pipeline deferred from Sprint 14.
+Remove the LibGDX rendering path (OptiX-only going forward), introduce a scene graph with
+material inheritance, refactor engines to trait composition, add video output, animation
+preview, and DSL convenience helpers. Define the optix-jni API boundary for future
+library separation.
 
 ## Success Criteria
 
+- [ ] LibGDX rendering path fully removed; OptiX is the only renderer
+- [ ] Engine uses trait composition (base + `WithAnimation`, `WithPreview`, `WithVideoExport`)
+- [ ] Scene graph supports transform hierarchy and per-node material inheritance
 - [ ] Video output via ffmpeg: MP4 and WebM from frame sequences
 - [ ] CLI: `--video output.mp4` to render and encode in one step
 - [ ] Animation preview mode with interactive t scrubbing
-- [ ] DSL supports setting window width, height, saveName, and headless mode
-- [ ] Scene composition helpers available in DSL (SceneBuilder utilities)
-- [ ] Procedural placement helpers available in DSL
+- [ ] DSL supports ALL current render settings (width, height, saveName, headless, antialiasing,
+  ray depth, camera FOV, caustics parameters, etc.)
+- [ ] Procedural placement helpers available in DSL (grids, rings, spirals)
 - [ ] Bezier/spline camera path utility implemented as pure Scala helper
 - [ ] Runtime DSL scene evaluation works (not just compile-time)
-- [ ] Animation export/import (JSON format for t-param frame configs)
+- [ ] optix-jni API boundary documented (general vs. Menger-specific)
 - [ ] All tests pass
 
 ---
 
 ## Tasks
 
-### Task 17.1: Video Output via ffmpeg
+### Task 17.1: Remove LibGDX Rendering Path
+
+**Estimate:** 5h
+
+Remove the dual rendering pipeline. OptiX becomes the sole renderer.
+
+#### What to Remove
+
+- `menger.gdx` package (`GdxRuntime`, `KeyPressTracker`, `DragTracker`, `OrbitCamera`)
+- `GdxKeyHandler`, `GdxCameraHandler`
+- `MengerEngine`, `InteractiveMengerEngine`
+- LibGDX dependency from `build.sbt`
+- `--optix` CLI flag (OptiX is now the only mode; flag becomes a no-op or is removed)
+- LibGDX-specific code paths in `Main.scala`
+- CLI validation rules that reference LibGDX
+
+#### What to Keep
+
+- `OptiXEngine`, `AnimatedOptiXEngine` (refactored in 17.2)
+- `OptiXKeyHandler`, `OptiXCameraHandler`
+- Camera orbit logic (extract from `OrbitCamera` if needed by OptiX path)
+
+#### Architecture Decision
+
+Update AD-2 (Dual Rendering Pipeline) to "Superseded" — OptiX-only from v0.6.
+
+---
+
+### Task 17.2: Engine Refactor to Trait Composition
+
+**Estimate:** 4h
+**Depends on:** 17.1
+
+Replace `OptiXEngine` / `AnimatedOptiXEngine` class hierarchy with a base engine
+and composable mix-in traits.
+
+#### Target Design
+
+```scala
+// Base engine with render loop, camera, scene setup
+trait RenderEngine { ... }
+
+// Mix-in traits for capabilities
+trait WithAnimation extends RenderEngine { ... }  // t-parameter sweep, frame export
+trait WithPreview extends RenderEngine { ... }    // interactive t-scrubbing
+trait WithVideoExport extends RenderEngine { ... } // ffmpeg pipeline
+
+// Composed engines
+class InteractiveEngine extends RenderEngine
+class AnimationEngine extends RenderEngine with WithAnimation
+class PreviewEngine extends RenderEngine with WithPreview
+class VideoEngine extends RenderEngine with WithAnimation with WithVideoExport
+```
+
+#### Files to Modify
+
+- `menger-app/src/main/scala/menger/engines/OptiXEngine.scala` — extract base trait
+- `menger-app/src/main/scala/menger/engines/AnimatedOptiXEngine.scala` — convert to trait
+- `menger-app/src/main/scala/Main.scala` — compose engines from traits
+
+#### Files to Create
+
+- Trait files for `WithAnimation`, `WithPreview`, `WithVideoExport`
+
+---
+
+### Task 17.3: Scene Graph
+
+**Estimate:** 5h
+
+Replace the flat `List[SceneObject]` with a tree of scene nodes supporting transform
+hierarchy and per-node material inheritance.
+
+#### Data Model
+
+```scala
+case class SceneNode(
+  transform: Transform = Transform.identity,  // local position, rotation, scale
+  material: Option[Material] = None,          // overrides parent if present
+  geometry: Option[Geometry] = None,          // leaf node geometry
+  children: List[SceneNode] = Nil
+)
+```
+
+Children inherit the nearest ancestor's material unless they specify their own.
+Transforms accumulate down the tree (child's world transform = parent's world * local).
+
+#### Files to Create
+
+- `menger-app/src/main/scala/menger/dsl/SceneNode.scala`
+- `menger-app/src/main/scala/menger/dsl/Transform.scala`
+
+#### Files to Modify
+
+- `menger-app/src/main/scala/menger/dsl/Scene.scala` — root node instead of object list
+- `menger-app/src/main/scala/menger/dsl/SceneConverter.scala` — tree traversal, transform
+  accumulation, material resolution
+- DSL syntax for nesting/grouping
+
+---
+
+### Task 17.4: All Render Settings in DSL
 
 **Estimate:** 4h
 
-Wrap frame sequences produced by `AnimatedOptiXEngine` into video files using ffmpeg.
+Make ALL current CLI render settings expressible in the Scala DSL. Precedence:
+CLI overrides DSL (CLI is the "I know what I want right now" path).
+
+#### Settings to Add
+
+- Window: `width`, `height`, `saveName`, `headless`
+- Rendering: `antialiasing` (samples), `maxRayDepth`, `backgroundColor`
+- Camera: `fov`, `position`, `lookAt`, `up`
+- Caustics: `photonsPerIteration`, `iterations`, `initialRadius`, `alpha`
+- Materials: default material settings
+- Any other current CLI-only settings
+
+#### Precedence Model
+
+```
+Final setting = CLI value if provided, else DSL value if provided, else default
+```
+
+---
+
+### Task 17.5: Video Output via ffmpeg
+
+**Estimate:** 4h
+
+Wrap frame sequences produced by the animation engine into video files using ffmpeg.
 
 #### Proposed CLI
 
 ```bash
-# Render animation directly to MP4
-menger --optix --scene examples.dsl.OrbitingSphere \
+menger --scene examples.dsl.OrbitingSphere \
   --frames 120 --start-t 0 --end-t 6.28 \
   --video orbit.mp4
 
-# Render animation directly to WebM
-menger --optix --scene examples.dsl.OrbitingSphere \
+menger --scene examples.dsl.OrbitingSphere \
   --frames 120 --start-t 0 --end-t 6.28 \
   --video orbit.webm --video-quality 28
 ```
@@ -58,30 +185,20 @@ menger --optix --scene examples.dsl.OrbitingSphere \
 - Support MP4 (H.264) and WebM (VP9) based on file extension
 - Configurable quality (CRF value)
 - Clean up temporary frame files after encoding (optional `--keep-frames`)
-- Progress reporting during encoding
-
-#### Files to Create
-
-- `menger-app/src/main/scala/menger/engines/VideoEncoder.scala`
-
-#### Files to Modify
-
-- `menger-app/src/main/scala/menger/MengerCLIOptions.scala` — add `--video`, `--video-quality`, `--video-fps`, `--keep-frames`
-- `menger-app/src/main/scala/menger/cli/CliValidation.scala` — validate video options
-- `menger-app/src/main/scala/menger/engines/AnimatedOptiXEngine.scala` — invoke VideoEncoder after all frames rendered
 
 ---
 
-### Task 17.2: Animation Preview Mode
+### Task 17.6: Animation Preview Mode
 
 **Estimate:** 3h
+**Depends on:** 17.2
 
-Interactive mode where the user can scrub through t values in real-time using keyboard/mouse.
+Interactive mode where the user can scrub through t values in real-time.
 
 #### Proposed UX
 
 ```bash
-menger --optix --scene examples.dsl.OrbitingSphere --preview
+menger --scene examples.dsl.OrbitingSphere --preview
 ```
 
 - Left/Right arrow keys: step t by 0.01
@@ -91,50 +208,7 @@ menger --optix --scene examples.dsl.OrbitingSphere --preview
 - Mouse scroll: fine-tune t value
 - On-screen display: current t value, frame number
 
-#### Files to Create
-
-- `menger-app/src/main/scala/menger/engines/PreviewOptiXEngine.scala`
-
-#### Files to Modify
-
-- `menger-app/src/main/scala/menger/input/OptiXKeyHandler.scala` — add preview key bindings
-- `menger-app/src/main/scala/Main.scala` — wire --preview option
-- `menger-app/src/main/scala/menger/MengerCLIOptions.scala` — add `--preview`
-
----
-
-### Task 17.3: DSL Window/Output Settings
-
-**Estimate:** 2h
-
-Add `width`, `height`, `saveName`, and `headless` to the DSL configuration API
-(currently CLI-only).
-
----
-
-### Task 17.4: Scene Composition Helpers
-
-**Estimate:** 2h
-
-Add `SceneBuilder` utilities for common scene construction patterns (grouping, instancing,
-positioning).
-
----
-
-### Task 17.5: Procedural Placement Helpers in DSL
-
-**Estimate:** 2h
-
-Add helpers for procedural object placement (grids, rings, spirals, random distributions).
-
----
-
-### Task 17.6: Bezier/Spline Camera Path Utility
-
-**Estimate:** 2h
-
-Pure Scala helper (no engine changes) for building smooth camera paths as a function of `t`.
-Useful with the existing `scene(t)` animation system.
+Implemented as the `WithPreview` trait from 17.2.
 
 ---
 
@@ -142,33 +216,71 @@ Useful with the existing `scene(t)` animation system.
 
 **Estimate:** 2h
 
-Allow scenes to be evaluated at runtime (not just compiled in). Enables hot-reload and
-interactive iteration without recompiling.
+Allow `.scala` scene files to be compiled and evaluated at runtime, enabling hot-reload
+and interactive iteration without recompiling the application.
+
+#### Mechanism
+
+- Add `scala-compiler` dependency
+- `SceneLoader` gains ability to compile a `.scala` file at runtime
+- Extract the `Scene` object from the compiled class
+- Error reporting for compilation failures
 
 ---
 
-### Task 17.8: Animation Export/Import (JSON)
+### Task 17.8: Bezier/Spline Camera Path Utility
 
 **Estimate:** 2h
 
-JSON format for saving/loading t-parameter frame configurations (frame count, range, output
-paths). Enables repeatable animation runs from config files.
+Pure Scala helper for building smooth camera paths as a function of `t`.
+Useful with the existing `scene(t)` animation system.
+
+---
+
+### Task 17.9: Procedural Placement Helpers in DSL
+
+**Estimate:** 2h
+**Depends on:** 17.3 (scene graph)
+
+Helpers for procedural object placement using the scene graph:
+- Grids, rings, spirals, random distributions
+- Each placement creates a subtree of `SceneNode`s with appropriate transforms
+
+---
+
+### Task 17.10: Define optix-jni API Boundary
+
+**Estimate:** 1h
+
+Design-only task. Document which current optix-jni methods are general-purpose OptiX
+operations vs. Menger-specific convenience methods.
+
+#### Deliverable
+
+A document (in `optix-jni/docs/` or `docs/arc42/`) classifying current API surface:
+- **General:** `initialize()`, `dispose()`, `render()`, `setCamera()`, `setLight()`
+- **Menger-specific:** `setSphere()`, `setSphereColor()`, `setSphereIOR()`
+- **To generalize:** `setMesh()` (general concept, Menger-specific parameters)
+
+New features from Sprint 17+ should be added on the correct side of this boundary.
 
 ---
 
 ## Summary
 
-| Task | Description | Estimate |
-|------|-------------|----------|
-| 17.1 | Video output via ffmpeg | 4h |
-| 17.2 | Animation preview / t-scrubbing | 3h |
-| 17.3 | DSL window/output settings | 2h |
-| 17.4 | Scene composition helpers | 2h |
-| 17.5 | Procedural placement helpers | 2h |
-| 17.6 | Bezier/spline camera path utility | 2h |
-| 17.7 | Runtime DSL evaluation | 2h |
-| 17.8 | Animation export/import (JSON) | 2h |
-| **Total** | | **~19h** |
+| Task | Description | Estimate | Dependencies |
+|------|-------------|----------|--------------|
+| 17.1 | Remove LibGDX rendering path | 5h | None |
+| 17.2 | Engine refactor to trait composition | 4h | 17.1 |
+| 17.3 | Scene graph (transforms + material inheritance) | 5h | None |
+| 17.4 | All render settings in DSL | 4h | None |
+| 17.5 | Video output via ffmpeg | 4h | 17.2 |
+| 17.6 | Animation preview / t-scrubbing | 3h | 17.2 |
+| 17.7 | Runtime DSL scene evaluation | 2h | None |
+| 17.8 | Bezier/spline camera path utility | 2h | None |
+| 17.9 | Procedural placement helpers | 2h | 17.3 |
+| 17.10 | Define optix-jni API boundary | 1h | None |
+| **Total** | | **~32h** | |
 
 ---
 
@@ -178,7 +290,8 @@ paths). Enables repeatable animation runs from config files.
 - [ ] All tests passing
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
-- [ ] `docs/guide/advanced.md` and `docs/guide/dsl-reference.md` updated (video output guide, animation preview, new DSL helpers)
+- [ ] arc42 updated: AD-2 superseded, new AD for scene graph and engine traits
+- [ ] `docs/guide/advanced.md` and `docs/guide/dsl-reference.md` updated
 
 ---
 
@@ -186,9 +299,21 @@ paths). Enables repeatable animation runs from config files.
 
 ### Background
 
-Tasks 17.1 and 17.2 were deferred from Sprint 14 to keep that sprint focused on rendering
-correctness. Tasks 17.3–17.8 complete the DSL convenience work originally planned for
-Sprint 15, merging deferred Sprint 10 DSL work with the animation pipeline additions.
+Sprint 17 combines animation tooling (deferred from Sprint 14) with architectural
+foundations that simplify all future work:
 
-The t-parameter animation system (Sprint 12) eliminated the need for a separate
-animation DSL — `scene(t)` is the DSL. This sprint adds ergonomic helpers on top.
+- **LibGDX removal** eliminates the dual-pipeline complexity that pervades the engine,
+  input handling, and camera systems.
+- **Engine traits** prevent the class hierarchy from growing with each new rendering mode.
+- **Scene graph** enables composition, grouping, and material inheritance needed by
+  Sprint 19+ (advanced geometry, procedural placement).
+- **optix-jni boundary** ensures future features land on the correct side of the
+  library separation.
+
+### Removed from Original Plan
+
+- **17.8 (Animation JSON export/import)** — dropped. Runtime Scala DSL evaluation (17.7)
+  provides a more expressive alternative. If crash recovery for partial animations is
+  needed, a simple checkpoint file (last completed frame number) suffices.
+
+**MILESTONE: v0.6 — Animation & Architecture Foundations**

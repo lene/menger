@@ -1,6 +1,6 @@
 # Menger — Advanced Features
 
-**Version**: 0.5.6
+**Version**: 0.5.5
 **Last Updated**: March 2026
 
 ← [Usage & Rendering](user-guide.md) | [User Guide Index](../USER_GUIDE.md)

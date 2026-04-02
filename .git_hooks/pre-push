@@ -110,7 +110,9 @@ if [ "$VERSION_SBT" != "$VERSION_USERGUIDE" ]; then
 else
   echo "docs/guide/user-guide.md version: ${GREEN_TEXT}${VERSION_USERGUIDE}${RESET_TEXT}"
 fi
-if git tag | ( grep "^${VERSION_SBT}\$" ); then
+if [ "${NO_RELEASE:-0}" = "1" ]; then
+  echo "Tag check skipped (${GREEN_TEXT}NO_RELEASE=1${RESET_TEXT})"
+elif git tag | ( grep "^${VERSION_SBT}\$" ); then
   echo "Tag ${RED_TEXT}${VERSION_SBT}${RESET_TEXT} already exists ($(git tag | xargs))"
   if [ "$1" != "github" ]; then STATUS=1
   else echo "Pushing anyway due to github argument"

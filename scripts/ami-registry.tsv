@@ -1,4 +1,4 @@
 # Menger AMI registry — one line per build, newest last
 # Format: region<TAB>ami-id<TAB>name<TAB>timestamp-UTC
-eu-central-1	ami-0b5724ccccbd29751	menger-nvidia-dev-20260331-103218	2026-03-31T10:32:18Z
 us-east-1	ami-0618c45ee9f73c83d	menger-nvidia-dev-20260331-103218	2026-03-31T10:32:18Z
+eu-central-1	ami-0c38fdd3d7b622e3b	menger-nvidia-dev-20260401-163642	2026-04-01T14:58:23Z

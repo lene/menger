@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-04-01
+**Last Updated:** 2026-04-02
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -20,8 +20,11 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.5.4 | Rendering Correctness & Code Health | Complete | shadow fixes, caustic improvements, code health (Sprint 14) |
 | v0.5.5 | Visual Enhancements | Complete | area lights, soft shadows, parametric surfaces, caustics (Sprint 15) |
 | v0.5.6 | Developer Infrastructure | Complete | pre-push optimisation, website, CI improvements, AWS spot workflow (Sprint 16) |
-| v0.6 | Full 3D Rendering | Planned | video output, full DSL/CLI control, animation tooling (Sprints 17+) |
-| v0.7 | Textures & Backgrounds | Planned | Procedural textures, PBR maps, environment maps |
+| v0.6 | Animation & Architecture Foundations | Planned | LibGDX removal, scene graph, engine traits, animation tooling, DSL (Sprint 17) |
+| v0.7 | GPU Infrastructure | Planned | Multi-GAS IAS, IS programs, GPU 4D math (Sprint 18) |
+| v0.8 | Advanced Geometry | Planned | 3D/4D polytopes, analytical primitives, geometry registry (Sprint 19) |
+| v0.9 | Textures & Materials | Planned | Image textures, procedural textures, PBR maps, environment maps (Sprint 20) |
+| v1.0 | Higher-Dimensional Fractals | Planned | 4D Menger/Sierpinski analogs, parameter exploration (Sprint 21) |
 
 ---
 
@@ -50,70 +53,74 @@ Strategic feature planning for the Menger ray tracing renderer.
 
 ## Planned Sprints
 
-### Sprint 17: Animation Tooling & DSL (~19h)
+### Sprint 17: Animation Tooling, DSL & Architecture Foundations (~32h)
 
-**Goal:** Video output, animation preview, and DSL convenience helpers
+**Goal:** Remove LibGDX, introduce scene graph, refactor engines to traits, add animation tooling
 
-- **17.1** Video output via ffmpeg (MP4/WebM from frame sequences) (4h)
-- **17.2** Animation preview — interactive t scrubbing (3h)
-- **17.3** DSL window/output settings (width, height, saveName, headless) (2h)
-- **17.4** Scene composition helpers (SceneBuilder utilities) (2h)
-- **17.5** Procedural placement helpers in DSL (2h)
-- **17.6** Bezier/spline camera path (pure Scala DSL helper) (2h)
-- **17.7** Runtime DSL scene evaluation (compile-time → runtime) (2h)
-- **17.8** Animation export/import — JSON format for t-param configs (2h)
+- **17.1** Remove LibGDX rendering path (5h)
+- **17.2** Engine refactor to trait composition (4h)
+- **17.3** Scene graph (transforms + material inheritance) (5h)
+- **17.4** All render settings in DSL (4h)
+- **17.5** Video output via ffmpeg (MP4/WebM from frame sequences) (4h)
+- **17.6** Animation preview — interactive t scrubbing (3h)
+- **17.7** Runtime DSL scene evaluation (compile-time → runtime via scala-compiler) (2h)
+- **17.8** Bezier/spline camera path (pure Scala DSL helper) (2h)
+- **17.9** Procedural placement helpers in DSL (2h)
+- **17.10** Define optix-jni API boundary (design only) (1h)
 
-**MILESTONE: v0.6 — Full 3D Rendering**
+**MILESTONE: v0.6 — Animation & Architecture Foundations**
 
 See [docs/sprints/SPRINT17.md](docs/sprints/SPRINT17.md)
 
-### Sprint 18: Advanced Geometry (~13.5h)
+### Sprint 18: GPU Infrastructure (~19h)
 
-**Goal:** Additional polytopes in 3D and 4D, DSL primitives (cone, torus), coordinate cross
+**Goal:** Multi-GAS IAS, intersection program infrastructure, GPU-side 4D math
 
-- **18.1** Additional polytopes in 3D (octahedron, dodecahedron, icosahedron) (3h)
-- **18.2** Additional polytopes in 4D (16-cell, 24-cell, 600-cell) (4h)
-- **18.3** DSL primitives: cone, torus (cylinder TBC) — backed by Sprint 15.2 parametrics (2h)
-- **18.4** Coordinate cross / axis visualization (1.5h)
-- **18.5** User guide: geometry section improvements (1h)
-- **18.6** Documentation (2h)
-
-Note: Sponge cutaways moved to backlog.
+- **18.1** Multi-GAS Instance Acceleration Structure / TD-5 (8h)
+- **18.2** Intersection program infrastructure (4h)
+- **18.3** GPU 4D transform and projection (5h)
+- **18.4** Documentation (2h)
 
 See [docs/sprints/SPRINT18.md](docs/sprints/SPRINT18.md)
 
-### Sprint 19: Materials, Textures & Backgrounds (~15h)
+### Sprint 19: Advanced Geometry (~16.5h)
 
-**Goal:** Procedural textures, PBR maps, and environment backgrounds
+**Goal:** 3D/4D polytopes, analytical primitives, planes as geometry, geometry registry
 
-- **19.1** Background images / environment maps / skybox (3h)
-- **19.2** Procedural texture infrastructure in shaders (4h)
-- **19.3** Wood, marble, noise procedural textures (2h) — depends on 19.2
-- **19.4** Sponge XYZ→RGB procedural texture (1h) — depends on 19.2
-- **19.5** PBR texture maps: normal + roughness maps (3h)
-- **19.6** User guide: materials/textures section improvements (2h)
-
-**MILESTONE: v0.7 — Textures & Backgrounds**
+- **19.1** Additional polytopes in 3D (octahedron, dodecahedron, icosahedron) (3h)
+- **19.2** Additional polytopes in 4D (16-cell, 24-cell, 600-cell) (4h)
+- **19.3** Analytical primitives: cone, torus (2h)
+- **19.4** Planes as first-class geometry (2h)
+- **19.5** Coordinate cross / axis visualization (1.5h)
+- **19.6** Geometry registry (2h)
+- **19.7** Documentation (2h)
 
 See [docs/sprints/SPRINT19.md](docs/sprints/SPRINT19.md)
 
-### Sprint 20: GPU 4D Infrastructure (~11h)
+### Sprint 20: Materials, Textures & Backgrounds (~21h)
 
-**Goal:** GPU-side 4D math as prerequisite for higher-dimensional geometry
+**Goal:** Image textures, procedural textures, PBR maps, environment backgrounds
 
-- **20.1** CUDA 4D transform and projection (GPU-side 4D math) (5h)
-- **20.2** Parametrized surfaces in 4D (4h) — depends on 15.2 + 20.1
-- **20.3** Documentation (2h)
+- **20.1** Image texture loading infrastructure (3h)
+- **20.2** UV generation for all geometry (3h)
+- **20.3** Background / environment maps / skybox (3h)
+- **20.4** Procedural texture infrastructure in shaders (4h)
+- **20.5** Wood, marble, noise procedural textures (2h)
+- **20.6** Sponge XYZ→RGB procedural texture (1h)
+- **20.7** PBR texture maps: normal + roughness maps (3h)
+- **20.8** Documentation (2h)
+
+**MILESTONE: v0.8 — Textures & Materials**
 
 See [docs/sprints/SPRINT20.md](docs/sprints/SPRINT20.md)
 
-### Sprint 21: Higher-Dimensional Fractals (~16h)
+### Sprint 21: Higher-Dimensional Fractals (~14h)
 
 **Goal:** Menger and Sierpinski analogs in 4D+
 
-- **21.1** 4D Menger sponge analog (5h) — depends on 20.1
-- **21.2** Higher-dimensional Sierpinski tetrahedron analogs (4h) — depends on 20.1
-- **21.3** Exploration / interactive parameter space (3h)
+- **21.1** 4D Menger sponge analog (5h)
+- **21.2** Higher-dimensional Sierpinski tetrahedron analogs (4h)
+- **21.3** Interactive parameter exploration (1D via scene(t)) (3h)
 - **21.4** Documentation (2h)
 
 See [docs/sprints/SPRINT21.md](docs/sprints/SPRINT21.md)
@@ -130,33 +137,55 @@ Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 
 ### Long-Term Backlog (Sprint 22+)
 
-| Idea | Description | Complexity |
-|------|-------------|------------|
-| L-systems in 3D and 4D | Lindenmayer system fractal generation | High |
-| Rotopes | Higher-dimensional geometry generation via rotation | Very High |
-| Stereoscopic 3D rendering | Left/right eye cameras for VR/3D output | Medium |
-| Depth of field | Camera aperture simulation, bokeh blur | Medium |
-| Subsurface scattering | Advanced material effect | High |
-| Real-time preview | Interactive low-quality mode | Medium |
-| HDR environment | Image-based lighting | Medium |
-| Sponge cutaways | 4D and 3D sponge cross-sections via clipping planes | Medium |
-| Analytical ray intersection | Custom OptiX intersection programs for cylinder, cone, torus (exact, no tessellation) | Medium |
+#### Geometry & Rendering (Medium Priority)
 
-### Low Priority / Deferred
+| Idea | Description | Complexity | Priority |
+|------|-------------|------------|----------|
+| Depth of field | Camera aperture simulation, bokeh blur in raygen shader | Medium | Medium |
+| Wireframe rendering | Stylistic wireframe via OptiX edge geometry (thin cylinders) | Medium | Medium |
+| Fog / depth cue | Distance-based attenuation in shader | Low | Medium |
+| Sponge cutaways | 3D/4D sponge cross-sections via clipping planes | Medium | Medium |
+| Fractal subdivision on polychora | Use 16-cell, 24-cell, 600-cell as subdivision bases | High | Medium |
+| Parametric surface specializations | Spherical coordinates, spherical harmonics | Low | Medium |
+| Color by intensity / colormaps | Scalar-to-color mapping for fields and surfaces | Medium | Medium |
+| 4D parametrized surfaces | `f(u,v) -> Vec4` on GPU (Clifford torus, hypersphere) | High | Medium |
+
+#### Geometry & Rendering (Low Priority)
+
+| Idea | Description | Complexity | Priority |
+|------|-------------|------------|----------|
+| L-systems in 3D and 4D | Lindenmayer system fractal generation | High | Low |
+| Rotopes | Higher-dimensional geometry generation via rotation | Very High | Low |
+| Stereoscopic 3D rendering | Side-by-side/over-under + separate image pairs for VR/3D | Medium | Low |
+| Subsurface scattering | Advanced material BSDF effect | High | Low |
+| Schläfli polytope generator | Algorithmic construction from `{p,q}` or `{p,q,r}` symbols | Medium (8-12h) | Low |
+| Wythoff construction | Full uniform polytopes (Archimedeans, prisms, antiprisms) | Very High (40+h) | Low |
+
+#### Data Visualization
+
+| Idea | Description | Complexity | Priority |
+|------|-------------|------------|----------|
+| Scalar/vector fields (functions) | GPU evaluation of `f(x,y,z)`, isosurfaces or volume rendering | High | Medium |
+| Scalar/vector fields (datasets) | Import VTK/NetCDF files, 3D texture upload | High | Low |
+| Multi-dimensional parameter exploration | Independently vary 2-3+ fractal parameters in real-time | Medium | Low |
+
+#### Low Priority / Deferred
 
 | Idea | Description | Notes |
 |------|-------------|-------|
-| Dynamic window resize | LibGDX/OptiX buffer issues | 15+ hours investigation, no resolution |
+| Dynamic window resize | OptiX buffer resize timing issues | 15+ hours investigation, no resolution; LibGDX removed |
 | GPU composites | Render fractals as composites | Needs design |
-| Mixed geometry scenes | Spheres + cubes/meshes in same scene (multi-GAS IAS) | Backlog (TD-5) |
 
-### Project Infrastructure
+#### Project Infrastructure
 
 | Idea | Description | Complexity |
 |------|-------------|------------|
+| optix-jni full decoupling | Move Menger-specific methods to adapter layer, generalize Params | Medium (ongoing) |
+| optix-jni publication | Full OptiX API wrapper as standalone JVM library | High |
 | GitLab Package Registry | Publish artifacts for cross-project dependencies | Low (1-2 hours) |
 | Maven Central (optix-jni) | Publish optix-jni as standalone JNI library | Medium (4-6 hours) |
 | Repository split | Separate repos for menger-common, optix-jni, menger-app | Medium (depends on above) |
+| Remove legacy CPU 4D path | Delete `Mesh4D`, `RotatedProjection` after GPU migration complete | Low |
 
 ---
 
@@ -168,15 +197,15 @@ Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 | DSL & 4D UX (10-11) | 2 sprints | ~30 hours |
 | t-Parameter Animation (12) | 1 sprint | ~12 hours |
 | Visual Quality (13) | 1 sprint | ~11 hours |
-| Rendering Correctness & Code Health (14) | 1 sprint | ~16–25 hours |
+| Rendering Correctness & Code Health (14) | 1 sprint | ~16-25 hours |
 | Visual Enhancements & Primitives (15) | 1 sprint | ~13 hours |
 | Developer Infrastructure & Website (16) | 1 sprint | ~16 hours |
-| Animation Tooling & DSL (17) | 1 sprint | ~19 hours |
-| Advanced Geometry (18) | 1 sprint | ~15.5 hours |
-| Materials, Textures & Backgrounds (19) | 1 sprint | ~15 hours |
-| GPU 4D Infrastructure (20) | 1 sprint | ~11 hours |
-| Higher-Dimensional Fractals (21) | 1 sprint | ~16 hours |
-| **Total Remaining** | 8 sprints | **~116–126 hours** |
+| Animation, DSL & Architecture (17) | 1 sprint | ~32 hours |
+| GPU Infrastructure (18) | 1 sprint | ~19 hours |
+| Advanced Geometry (19) | 1 sprint | ~16.5 hours |
+| Materials, Textures & Backgrounds (20) | 1 sprint | ~21 hours |
+| Higher-Dimensional Fractals (21) | 1 sprint | ~14 hours |
+| **Total Remaining** | 5 sprints | **~102.5 hours** |
 
 ---
 

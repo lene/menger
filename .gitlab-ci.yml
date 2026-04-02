@@ -12,7 +12,7 @@ default:
 
 variables:
   DEPLOYABLE_BASE_NAME: menger
-  DEPLOYABLE_VERSION: 0.5.6
+  DEPLOYABLE_VERSION: 0.5.5
   SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25.0.1_8_1.12.5_3.8.2
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.8.2
@@ -666,6 +666,8 @@ TagIsNewAndConsistent:
   rules:
     - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\//'
       when: never
+    - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_TITLE =~ /#norelease/'
+      when: never
     - if: "$CI_MERGE_REQUEST_ID"
   before_script:
     - apt-get -y update
@@ -707,6 +709,8 @@ ChangelogIsUpdated:
   rules:
     - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\//'
       when: never
+    - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_TITLE =~ /#norelease/'
+      when: never
     - if: "$CI_MERGE_REQUEST_ID"
   script:
     - test -f CHANGELOG.md || exit 0
@@ -736,9 +740,11 @@ BuildDeployable:
     paths:
       - menger-*.*.*.zip
 
-# Creates GitLab release AND tag in one job using the release: keyword.
-# This automatically triggers a tag pipeline where Upload, PushToGithub, and
-# CreateGithubRelease jobs run.
+# Creates GitLab release AND tag in one job.
+# Checks the MR title via the GitLab API: if it contains #norelease, the release
+# is skipped (no tag created, no downstream tag pipeline). This works with
+# fast-forward merges where the MR title never appears in any commit message.
+# Triggers a tag pipeline where Upload, PushToGithub, and CreateGithubRelease run.
 CreateRelease:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
@@ -751,13 +757,24 @@ CreateRelease:
       when: never
     # Run on main branch after MR merge
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE != "schedule"
+  before_script:
+    - apk add --quiet curl jq
   script:
-    - echo "Creating release for version ${DEPLOYABLE_VERSION}"
-  release:
-    name: 'Release ${DEPLOYABLE_VERSION}'
-    description: 'Released ${DEPLOYABLE_VERSION}'
-    tag_name: '${DEPLOYABLE_VERSION}'
-    ref: '$CI_COMMIT_SHA'
+    - |
+      MR_TITLE=$(curl --silent --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHA}/merge_requests" \
+        | jq -r '.[0].title // ""')
+      echo "MR title: ${MR_TITLE}"
+      if echo "${MR_TITLE}" | grep -q '#norelease'; then
+        echo "Skipping release (#norelease in MR title)"
+      else
+        echo "Creating release for version ${DEPLOYABLE_VERSION}"
+        release-cli create \
+          --name "Release ${DEPLOYABLE_VERSION}" \
+          --description "Released ${DEPLOYABLE_VERSION}" \
+          --tag-name "${DEPLOYABLE_VERSION}" \
+          --ref "${CI_COMMIT_SHA}"
+      fi
 
 Upload:
   stage: release

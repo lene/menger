@@ -1,6 +1,6 @@
 # Menger — Scala DSL Reference
 
-**Version**: 0.5.6
+**Version**: 0.5.5
 **Last Updated**: March 2026
 
 ← [Advanced Features](advanced.md) | [User Guide Index](../USER_GUIDE.md)
