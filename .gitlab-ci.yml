@@ -586,7 +586,8 @@ pages:coverage:
   stage: package
   needs:
     - CheckCoverage
-    - ScalaVersionConsistent
+    - job: ScalaVersionConsistent
+      optional: true
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
   script:
@@ -601,7 +602,8 @@ pages:
   needs:
     - job: CheckCoverage
       artifacts: true
-    - ScalaVersionConsistent
+    - job: ScalaVersionConsistent
+      optional: true
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
