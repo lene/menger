@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+- **Scene graph with transform hierarchy and per-node material inheritance** — scenes can now be
+  composed as a tree of `SceneNode`s, each carrying a local `Transform` (translation, rotation,
+  scale) and an optional inherited `Material`. Transforms accumulate down the tree; materials
+  propagate to descendants unless overridden. The flat `List[SceneObject]` API remains fully
+  supported for backward compatibility; `Scene.root: Option[SceneNode]` enables the new tree API.
+  `Vec3` gains `+` and `*` operators to support transform composition.
+- **Engine trait composition** — `OptiXEngine` / `AnimatedOptiXEngine` class hierarchy replaced
+  with a composable trait system: `RenderEngine` (base), `WithAnimation`, `WithPreview`,
+  `WithVideoExport`. Concrete classes `InteractiveEngine`, `AnimationEngine`, `PreviewEngine`,
+  and `VideoEngine` are composed from these traits, eliminating the need for deep inheritance.
+
 ### Removed
 - **LibGDX 3D rendering path** — the OpenGL/LibGDX 3D scene graph (`MengerEngine`,
   `InteractiveMengerEngine`, `AnimatedMengerEngine`, `ModelFactory`, `DragTracker`) has been

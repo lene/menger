@@ -377,105 +377,105 @@ print_summary() {
 
 test_basic_objects() {
     echo "Basic OptiX Objects:"
-    run_test "sphere" --optix --objects type=sphere:size=0.5 --plane y:-2
-    run_test "cube" --optix --objects type=cube:size=0.5 --plane y:-2
-    run_test "sponge-volume" --optix --objects type=sponge-volume:level=1:size=0.5 --plane y:-2
-    run_test "sponge-surface" --optix --objects type=sponge-surface:level=1:size=0.5 --plane y:-2
-    run_test "tesseract" --optix --objects type=tesseract:size=0.5 --plane y:-2
+    run_test "sphere" --objects type=sphere:size=0.5 --plane y:-2
+    run_test "cube" --objects type=cube:size=0.5 --plane y:-2
+    run_test "sponge-volume" --objects type=sponge-volume:level=1:size=0.5 --plane y:-2
+    run_test "sponge-surface" --objects type=sponge-surface:level=1:size=0.5 --plane y:-2
+    run_test "tesseract" --objects type=tesseract:size=0.5 --plane y:-2
 }
 
 test_multi_object() {
     echo "Multi-Object (IAS):"
-    run_test "multiple spheres" --optix --plane y:-2 \
+    run_test "multiple spheres" --plane y:-2 \
         --objects type=sphere:pos=-1,0,0:size=0.5 \
         --objects type=sphere:pos=1,0,0:size=0.5
-    run_test "multiple cubes" --optix --plane y:-2 \
+    run_test "multiple cubes" --plane y:-2 \
         --objects type=cube:pos=-1,0,0:size=0.5 \
         --objects type=cube:pos=1,0,0:size=0.5
-    run_test "mixed sphere+cube" --optix --plane y:-2 \
+    run_test "mixed sphere+cube" --plane y:-2 \
         --objects type=sphere:pos=-1,0,0:size=0.5 \
         --objects type=cube:pos=1,0,0:size=0.5
-    run_test "object with color" --optix --plane y:-2 \
+    run_test "object with color" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#FF0000
-    run_test "object with IOR" --optix --plane y:-2 \
+    run_test "object with IOR" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:ior=1.5
-    run_test "sponge-volume instance" --optix --plane y:-2 \
+    run_test "sponge-volume instance" --plane y:-2 \
         --objects type=sponge-volume:pos=0,0,0:size=0.5:level=1
-    run_test "cube-sponge instance" --optix --plane y:-2 \
+    run_test "cube-sponge instance" --plane y:-2 \
         --objects type=cube-sponge:pos=0,0,0:size=0.5:level=1
 }
 
 test_antialiasing() {
     echo "Antialiasing:"
-    run_test "AA basic" --optix --objects type=sphere --antialiasing --plane y:-2
-    run_test "AA custom depth" --optix --objects type=sphere --antialiasing --aa-max-depth 2 --plane y:-2
-    run_test "AA custom threshold" --optix --objects type=sphere --antialiasing --aa-threshold 0.05 --plane y:-2
+    run_test "AA basic" --objects type=sphere --antialiasing --plane y:-2
+    run_test "AA custom depth" --objects type=sphere --antialiasing --aa-max-depth 2 --plane y:-2
+    run_test "AA custom threshold" --objects type=sphere --antialiasing --aa-threshold 0.05 --plane y:-2
 }
 
 test_lighting() {
     echo "Lighting:"
-    run_test "point light" --optix --objects type=sphere --light point:0,3,0:2.0 --plane y:-2
-    run_test "directional light" --optix --objects type=sphere --light directional:1,-1,-1:1.5 --plane y:-2
-    run_test "colored light" --optix --objects type=sphere --light point:2,2,2:1.5:#FF0000 --plane y:-2
-    run_test "shadows" --optix --objects type=sphere --shadows --light directional:1,-1,-1:2.0 --plane y:-2
+    run_test "point light" --objects type=sphere --light point:0,3,0:2.0 --plane y:-2
+    run_test "directional light" --objects type=sphere --light directional:1,-1,-1:1.5 --plane y:-2
+    run_test "colored light" --objects type=sphere --light point:2,2,2:1.5:#FF0000 --plane y:-2
+    run_test "shadows" --objects type=sphere --shadows --light directional:1,-1,-1:2.0 --plane y:-2
 }
 
 test_scene_options() {
     echo "Scene Options:"
-    run_test "custom camera" --optix --objects type=sphere --camera-pos 0,2,5 --camera-lookat 0,0,0 --plane y:-2
-    run_test "plane color solid" --optix --objects type=sphere --plane y:-2 --plane-color '#808080'
-    run_test "plane color checkered" --optix --objects type=sphere --plane y:-2 --plane-color '#FFFFFF:#000000'
-    run_test "plane material chrome" --optix --objects type=sphere --plane y:-2 --plane-material chrome
-    run_test "plane material gold" --optix --objects type=sphere --plane y:-2 --plane-material gold
-    run_test "plane material matte" --optix --objects type=sphere --plane y:-2 --plane-material matte
+    run_test "custom camera" --objects type=sphere --camera-pos 0,2,5 --camera-lookat 0,0,0 --plane y:-2
+    run_test "plane color solid" --objects type=sphere --plane y:-2 --plane-color '#808080'
+    run_test "plane color checkered" --objects type=sphere --plane y:-2 --plane-color '#FFFFFF:#000000'
+    run_test "plane material chrome" --objects type=sphere --plane y:-2 --plane-material chrome
+    run_test "plane material gold" --objects type=sphere --plane y:-2 --plane-material gold
+    run_test "plane material matte" --objects type=sphere --plane y:-2 --plane-material matte
     run_test_with_output "custom size + save" "test_size.png" \
-        --optix --objects type=sphere --width 400 --height 300 --headless --save-name test_size.png --plane y:-2
+        --objects type=sphere --width 400 --height 300 --headless --save-name test_size.png --plane y:-2
 }
 
 test_materials() {
     echo "Materials:"
-    run_test "material preset glass" --optix --plane y:-2 \
+    run_test "material preset glass" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=glass
-    run_test "material preset chrome" --optix --plane y:-2 \
+    run_test "material preset chrome" --plane y:-2 \
         --objects type=cube:pos=0,0,0:size=0.5:material=chrome
-    run_test "material preset matte" --optix --plane y:-2 \
+    run_test "material preset matte" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=matte
-    run_test "material with color override" --optix --plane y:-2 \
+    run_test "material with color override" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=metal:color=#FFD700
 }
 
 test_film_materials() {
     echo "Film Materials (Thin-Film Interference):"
     # Default Film preset (500nm, IOR 1.33)
-    run_test "film sphere default" --optix --plane y:-2 \
+    run_test "film sphere default" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=film
     # Explicit thickness overrides
-    run_test "film thickness 300nm" --optix --plane y:-2 \
+    run_test "film thickness 300nm" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=film:film-thickness=300
-    run_test "film thickness 700nm" --optix --plane y:-2 \
+    run_test "film thickness 700nm" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=film:film-thickness=700
     # Coated metal (chrome with oily film)
-    run_test "chrome with film coating 300nm" --optix --plane y:-2 \
+    run_test "chrome with film coating 300nm" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=chrome:film-thickness=300
     # Three thicknesses side by side
-    run_test "three film thicknesses" --optix --plane y:-2 \
+    run_test "three film thicknesses" --plane y:-2 \
         --objects type=sphere:pos=-2,0,0:size=0.5:material=film:film-thickness=300 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=film \
         --objects type=sphere:pos=2,0,0:size=0.5:material=film:film-thickness=700
     # Regression: zero thickness behaves like standard dielectric
-    run_test "film zero thickness (regression)" --optix --plane y:-2 \
+    run_test "film zero thickness (regression)" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=glass
     # Standalone film-thickness without material preset
-    run_test "standalone film-thickness parameter" --optix --plane y:-2 \
+    run_test "standalone film-thickness parameter" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:film-thickness=500
     # Film on tesseract edges
-    run_test "tesseract with film edge material" --optix --plane y:-2 \
+    run_test "tesseract with film edge material" --plane y:-2 \
         --objects type=tesseract:size=0.8:edge-material=film:edge-radius=0.025
 }
 
 test_textures() {
     echo "Textures:"
-    run_test "texture on cube" --optix --plane y:-2 \
+    run_test "texture on cube" --plane y:-2 \
         --texture-dir "$TEST_ASSETS_DIR" \
         --objects type=cube:pos=0,0,0:size=0.5:texture=test_checker.png
 }
@@ -483,76 +483,76 @@ test_textures() {
 test_caustics() {
     echo "Caustics:"
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "caustics minimal" \
-        --optix --objects type=sphere:ior=1.5 --caustics \
+        --objects type=sphere:ior=1.5 --caustics \
         --caustics-photons 1000 --caustics-iterations 1 --plane y:-2
 }
 
 test_tesseract() {
     echo "Tesseract (4D Hypercube):"
-    run_test "tesseract default rotation" --optix --plane y:-2 \
+    run_test "tesseract default rotation" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8
-    run_test "tesseract custom XW rotation" --optix --plane y:-2 \
+    run_test "tesseract custom XW rotation" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:rot-xw=45
-    run_test "tesseract custom YW rotation" --optix --plane y:-2 \
+    run_test "tesseract custom YW rotation" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:rot-yw=30
-    run_test "tesseract custom ZW rotation" --optix --plane y:-2 \
+    run_test "tesseract custom ZW rotation" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:rot-zw=60
-    run_test "tesseract all rotations" --optix --plane y:-2 \
+    run_test "tesseract all rotations" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:rot-xw=30:rot-yw=20:rot-zw=10
-    run_test "tesseract custom projection" --optix --plane y:-2 \
+    run_test "tesseract custom projection" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:eye-w=5.0:screen-w=2.0
-    run_test "tesseract with color" --optix --plane y:-2 \
+    run_test "tesseract with color" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:color=#4488FF
-    run_test "tesseract with material" --optix --plane y:-2 \
+    run_test "tesseract with material" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:material=glass
-    run_test "tesseract transparent" --optix --plane y:-2 \
+    run_test "tesseract transparent" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:ior=1.5
-    run_test "multiple tesseracts" --optix --plane y:-2 \
+    run_test "multiple tesseracts" --plane y:-2 \
         --objects type=tesseract:pos=-1,0,0:size=0.5 \
         --objects type=tesseract:pos=1,0,0:size=0.5
 }
 
 test_4d_sponges() {
     echo "4D Menger Sponges:"
-    run_test "tesseract-sponge level 0" --optix --plane y:-2 \
+    run_test "tesseract-sponge level 0" --plane y:-2 \
         --objects type=tesseract-sponge:level=0:pos=0,0,0:size=0.8
-    run_test "tesseract-sponge level 1" --optix --plane y:-2 \
+    run_test "tesseract-sponge level 1" --plane y:-2 \
         --objects type=tesseract-sponge:level=1:pos=0,0,0:size=0.8
-    run_test "tesseract-sponge-2 level 0" --optix --plane y:-2 \
+    run_test "tesseract-sponge-2 level 0" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=0:pos=0,0,0:size=0.8
-    run_test "tesseract-sponge-2 level 1" --optix --plane y:-2 \
+    run_test "tesseract-sponge-2 level 1" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=1:pos=0,0,0:size=0.8
-    run_test "tesseract-sponge with rotation" --optix --plane y:-2 \
+    run_test "tesseract-sponge with rotation" --plane y:-2 \
         --objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30:size=0.8
-    run_test "tesseract-sponge with material" --optix --plane y:-2 \
+    run_test "tesseract-sponge with material" --plane y:-2 \
         --objects type=tesseract-sponge:level=1:material=glass:size=0.8
-    run_test "tesseract-sponge-2 with color" --optix --plane y:-2 \
+    run_test "tesseract-sponge-2 with color" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=1:color=#FF4488:size=0.8
-    run_test "tesseract-sponge with edges" --optix --plane y:-2 \
+    run_test "tesseract-sponge with edges" --plane y:-2 \
         --objects type=tesseract-sponge:level=1:edge-material=chrome:edge-radius=0.015:size=0.8
-    run_test "mixed 4D sponge + tesseract" --optix --plane y:-2 \
+    run_test "mixed 4D sponge + tesseract" --plane y:-2 \
         --objects type=tesseract-sponge:level=1:pos=-1.5,0,0:size=0.5 \
         --objects type=tesseract:pos=1.5,0,0:size=0.5
-    run_test "mixed 4D sponge + 3D sphere" --optix --plane y:-2 \
+    run_test "mixed 4D sponge + 3D sphere" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=1:pos=-1.5,0,0:size=0.5 \
         --objects type=sphere:pos=1.5,0,0:size=0.5
 
     # Fractional level tests (per-vertex alpha blending)
-    run_test "fractional level 0.5 (tesseract-sponge)" --optix --plane y:-2 \
+    run_test "fractional level 0.5 (tesseract-sponge)" --plane y:-2 \
         --objects type=tesseract-sponge:level=0.5:size=0.8
-    run_test "fractional level 1.25 (tesseract-sponge)" --optix --plane y:-2 \
+    run_test "fractional level 1.25 (tesseract-sponge)" --plane y:-2 \
         --objects type=tesseract-sponge:level=1.25:size=0.8
-    run_test "fractional level 1.5 (tesseract-sponge)" --optix --plane y:-2 \
+    run_test "fractional level 1.5 (tesseract-sponge)" --plane y:-2 \
         --objects type=tesseract-sponge:level=1.5:size=0.8
-    run_test "fractional level 1.75 (tesseract-sponge-2)" --optix --plane y:-2 \
+    run_test "fractional level 1.75 (tesseract-sponge-2)" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=1.75:size=0.8
-    run_test "fractional level 0.9 (tesseract-sponge-2)" --optix --plane y:-2 \
+    run_test "fractional level 0.9 (tesseract-sponge-2)" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=0.9:size=0.8
-    run_test "fractional level with material" --optix --plane y:-2 \
+    run_test "fractional level with material" --plane y:-2 \
         --objects type=tesseract-sponge:level=1.5:material=glass:size=0.8
-    run_test "fractional level with rotation" --optix --plane y:-2 \
+    run_test "fractional level with rotation" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=1.3:rot-xw=30:rot-yw=20:size=0.8
-    run_test "mixed fractional + integer levels" --optix --plane y:-2 \
+    run_test "mixed fractional + integer levels" --plane y:-2 \
         --objects type=tesseract-sponge:level=1.5:pos=-1.2,0,0:size=0.5 \
         --objects type=tesseract-sponge:level=1:pos=1.2,0,0:size=0.5
 }
@@ -560,93 +560,93 @@ test_4d_sponges() {
 test_3d_fractional_sponges() {
     echo "3D Fractional Sponges:"
     # SpongeByVolume fractional levels
-    run_test "sponge-volume fractional level 0.5" --optix --plane y:-2 \
+    run_test "sponge-volume fractional level 0.5" --plane y:-2 \
         --objects type=sponge-volume:level=0.5:size=0.8
-    run_test "sponge-volume fractional level 1.25" --optix --plane y:-2 \
+    run_test "sponge-volume fractional level 1.25" --plane y:-2 \
         --objects type=sponge-volume:level=1.25:size=0.8
-    run_test "sponge-volume fractional level 1.5" --optix --plane y:-2 \
+    run_test "sponge-volume fractional level 1.5" --plane y:-2 \
         --objects type=sponge-volume:level=1.5:size=0.8
-    run_test "sponge-volume fractional level 1.75" --optix --plane y:-2 \
+    run_test "sponge-volume fractional level 1.75" --plane y:-2 \
         --objects type=sponge-volume:level=1.75:size=0.8
 
     # SpongeBySurface fractional levels
-    run_test "sponge-surface fractional level 0.5" --optix --plane y:-2 \
+    run_test "sponge-surface fractional level 0.5" --plane y:-2 \
         --objects type=sponge-surface:level=0.5:size=0.8
-    run_test "sponge-surface fractional level 1.25" --optix --plane y:-2 \
+    run_test "sponge-surface fractional level 1.25" --plane y:-2 \
         --objects type=sponge-surface:level=1.25:size=0.8
-    run_test "sponge-surface fractional level 1.5" --optix --plane y:-2 \
+    run_test "sponge-surface fractional level 1.5" --plane y:-2 \
         --objects type=sponge-surface:level=1.5:size=0.8
-    run_test "sponge-surface fractional level 1.75" --optix --plane y:-2 \
+    run_test "sponge-surface fractional level 1.75" --plane y:-2 \
         --objects type=sponge-surface:level=1.75:size=0.8
 
     # Fractional levels with materials
-    run_test "sponge-volume fractional with glass" --optix --plane y:-2 \
+    run_test "sponge-volume fractional with glass" --plane y:-2 \
         --objects type=sponge-volume:level=1.5:material=glass:size=0.8
-    run_test "sponge-surface fractional with chrome" --optix --plane y:-2 \
+    run_test "sponge-surface fractional with chrome" --plane y:-2 \
         --objects type=sponge-surface:level=1.5:material=chrome:size=0.8
-    run_test "sponge-volume fractional with color" --optix --plane y:-2 \
+    run_test "sponge-volume fractional with color" --plane y:-2 \
         --objects type=sponge-volume:level=1.3:color=#FF4488:size=0.8
 
     # Mixed fractional and integer levels
-    run_test "mixed sponge-volume fractional + integer" --optix --plane y:-2 \
+    run_test "mixed sponge-volume fractional + integer" --plane y:-2 \
         --objects type=sponge-volume:level=1.5:pos=-1.2,0,0:size=0.5 \
         --objects type=sponge-volume:level=1:pos=1.2,0,0:size=0.5
-    run_test "mixed sponge-surface types different levels" --optix --plane y:-2 \
+    run_test "mixed sponge-surface types different levels" --plane y:-2 \
         --objects type=sponge-surface:level=1.25:pos=-1.2,0,0:size=0.5 \
         --objects type=sponge-surface:level=1.75:pos=1.2,0,0:size=0.5
 
     # Edge cases
-    run_test "sponge-volume very small fractional part" --optix --plane y:-2 \
+    run_test "sponge-volume very small fractional part" --plane y:-2 \
         --objects type=sponge-volume:level=1.01:size=0.8
-    run_test "sponge-surface fractional near 1.0" --optix --plane y:-2 \
+    run_test "sponge-surface fractional near 1.0" --plane y:-2 \
         --objects type=sponge-surface:level=1.99:size=0.8
 }
 
 test_file_output() {
     echo "File Output:"
     run_test_with_output "save PNG" "test_output.png" \
-        --optix --objects type=sphere --headless --save-name test_output.png --plane y:-2
+        --objects type=sphere --headless --save-name test_output.png --plane y:-2
     run_test_with_output "save with AA" "test_aa.png" \
-        --optix --objects type=sphere --antialiasing --headless --save-name test_aa.png --plane y:-2
+        --objects type=sphere --antialiasing --headless --save-name test_aa.png --plane y:-2
 }
 
 test_headless() {
     echo "Headless Mode:"
     run_test_with_output "headless sphere" "test_headless_sphere.png" \
-        --optix --objects type=sphere --headless --save-name test_headless_sphere.png --plane y:-2
+        --objects type=sphere --headless --save-name test_headless_sphere.png --plane y:-2
     run_test_with_output "headless cube" "test_headless_cube.png" \
-        --optix --objects type=cube --headless --save-name test_headless_cube.png --plane y:-2
+        --objects type=cube --headless --save-name test_headless_cube.png --plane y:-2
     run_test_with_output "headless tesseract" "test_headless_tesseract.png" \
-        --optix --objects type=tesseract --headless --save-name test_headless_tesseract.png --plane y:-2
+        --objects type=tesseract --headless --save-name test_headless_tesseract.png --plane y:-2
     run_test_with_output "headless multi-object" "test_headless_multi.png" \
-        --optix --objects type=sphere:pos=-1,0,0 --objects type=cube:pos=1,0,0 \
+        --objects type=sphere:pos=-1,0,0 --objects type=cube:pos=1,0,0 \
         --headless --save-name test_headless_multi.png --plane y:-2
-    run_test_should_fail "headless without save-name" --optix --objects type=sphere --headless --plane y:-2
+    run_test_should_fail "headless without save-name" --objects type=sphere --headless --plane y:-2
 }
 
 test_dsl_scenes() {
     echo "DSL Scenes:"
-    run_test "DSL SimpleScene" --optix --scene examples.dsl.SimpleScene
-    run_test "DSL ThreeMaterials" --optix --scene examples.dsl.ThreeMaterials
-    run_test "DSL GlassSphere" --optix --scene examples.dsl.GlassSphere
-    run_test "DSL TesseractDemo" --optix --scene examples.dsl.TesseractDemo
-    run_test "DSL FilmSphere" --optix --scene examples.dsl.FilmSphere
-    run_test "DSL SpongeShowcase" --optix --scene examples.dsl.SpongeShowcase
-    run_test "DSL MengerShowcase" --optix --scene examples.dsl.MengerShowcase
-    run_test "DSL CausticsDemo" --optix --scene examples.dsl.CausticsDemo
-    run_test "DSL CustomMaterials" --optix --scene examples.dsl.CustomMaterials
-    run_test "DSL ComplexLighting" --optix --scene examples.dsl.ComplexLighting
-    run_test "DSL ReusableComponents" --optix --scene examples.dsl.ReusableComponents
-    run_test "DSL MixedMetallicShowcase" --optix --scene examples.dsl.MixedMetallicShowcase
+    run_test "DSL SimpleScene" --scene examples.dsl.SimpleScene
+    run_test "DSL ThreeMaterials" --scene examples.dsl.ThreeMaterials
+    run_test "DSL GlassSphere" --scene examples.dsl.GlassSphere
+    run_test "DSL TesseractDemo" --scene examples.dsl.TesseractDemo
+    run_test "DSL FilmSphere" --scene examples.dsl.FilmSphere
+    run_test "DSL SpongeShowcase" --scene examples.dsl.SpongeShowcase
+    run_test "DSL MengerShowcase" --scene examples.dsl.MengerShowcase
+    run_test "DSL CausticsDemo" --scene examples.dsl.CausticsDemo
+    run_test "DSL CustomMaterials" --scene examples.dsl.CustomMaterials
+    run_test "DSL ComplexLighting" --scene examples.dsl.ComplexLighting
+    run_test "DSL ReusableComponents" --scene examples.dsl.ReusableComponents
+    run_test "DSL MixedMetallicShowcase" --scene examples.dsl.MixedMetallicShowcase
 }
 
 test_t_animation() {
     echo "t-Parameter Animation:"
     # Freeze-frame: animated scene evaluated at a fixed t value
     run_test "t-animation freeze-frame OrbitingSphere" \
-        --optix --scene examples.dsl.OrbitingSphere --t 0.5
+        --scene examples.dsl.OrbitingSphere --t 0.5
     run_test "t-animation freeze-frame PulsingSponge" \
-        --optix --scene examples.dsl.PulsingSponge --t 1.0
+        --scene examples.dsl.PulsingSponge --t 1.0
 
     # Multi-frame animation: 3 frames for speed
     local temp_dir
@@ -654,7 +654,7 @@ test_t_animation() {
     local test_passed=false
 
     if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
-        --optix --scene examples.dsl.OrbitingSphere \
+        --scene examples.dsl.OrbitingSphere \
         --frames 3 --start-t 0 --end-t 1 \
         --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
         --save-name "${temp_dir}/orbit_%04d.png" >/dev/null 2>&1; then
@@ -684,13 +684,13 @@ test_colored_shadows() {
     echo "Colored Shadows:"
 
     # Basic colored shadow tests — verify the feature renders successfully
-    run_test "colored shadow red sphere" --optix --plane y:-2 --shadows --transparent-shadows \
+    run_test "colored shadow red sphere" --plane y:-2 --shadows --transparent-shadows \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5
 
-    run_test "colored shadow green sphere" --optix --plane y:-2 --shadows --transparent-shadows \
+    run_test "colored shadow green sphere" --plane y:-2 --shadows --transparent-shadows \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#00FF0080:ior=1.5
 
-    run_test "colored shadow blue sphere" --optix --plane y:-2 --shadows --transparent-shadows \
+    run_test "colored shadow blue sphere" --plane y:-2 --shadows --transparent-shadows \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#0000FF80:ior=1.5
 
     # Verify transparent-shadows produces different output than scalar shadows
@@ -703,7 +703,7 @@ test_colored_shadows() {
 
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_with" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
-        --optix --plane y:-2 --shadows --transparent-shadows \
+        --plane y:-2 --shadows --transparent-shadows \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
         >/dev/null 2>&1 || [ ! -f "$temp_with" ]; then
         rendered_both=false
@@ -711,7 +711,7 @@ test_colored_shadows() {
 
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_without" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
-        --optix --plane y:-2 --shadows \
+        --plane y:-2 --shadows \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
         >/dev/null 2>&1 || [ ! -f "$temp_without" ]; then
         rendered_both=false
@@ -747,11 +747,11 @@ test_parametric_caustics_comparison() {
 
     TIMEOUT=$CAUSTICS_TIMEOUT xvfb-run -a $MENGER_BIN --headless \
         --save-name "$prim_out" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
-        --optix --scene examples.dsl.GlassSphere > /dev/null 2>&1 || true
+        --scene examples.dsl.GlassSphere > /dev/null 2>&1 || true
 
     TIMEOUT=$CAUSTICS_TIMEOUT xvfb-run -a $MENGER_BIN --headless \
         --save-name "$para_out" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
-        --optix --scene examples.dsl.ParametricSphereCaustics > /dev/null 2>&1 || true
+        --scene examples.dsl.ParametricSphereCaustics > /dev/null 2>&1 || true
 
     if [ ! -f "$prim_out" ] || [ ! -f "$para_out" ]; then
         echo -e "  ${YELLOW}SKIP${RESET}: could not render one or both caustic images"
@@ -778,25 +778,25 @@ test_parametric_caustics_comparison() {
 test_area_lights() {
     echo "Area Lights (Soft Shadows):"
     # Basic area light renders successfully
-    run_test "area light basic" --optix \
+    run_test "area light basic" \
         --objects type=sphere --shadows \
         --light "area:0,2,2:0,-1,0:1.5:4:10" \
         --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
 
     # Larger radius → broader penumbra
-    run_test "area light large radius" --optix \
+    run_test "area light large radius" \
         --objects type=sphere --shadows \
         --light "area:0,2,2:0,-1,0:3.0:8:10" \
         --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
 
     # Colored area light
-    run_test "area light colored orange" --optix \
+    run_test "area light colored orange" \
         --objects type=sphere --shadows \
         --light "area:0,2,2:0,-1,0:1.5:4:10:ff8800" \
         --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
 
     # Area light with transparent sphere — colored soft shadow
-    run_test "area light colored shadow" --optix \
+    run_test "area light colored shadow" \
         --objects "type=sphere:color=#FF000066:ior=1.5" --shadows --transparent-shadows \
         --light "area:0,2,2:0,-1,0:1.5:4:10" \
         --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
@@ -804,7 +804,7 @@ test_area_lights() {
     # Verify soft shadow is visually distinct from hard point shadow
     local soft_png="test_area_soft_$$.png"
     local hard_png="test_area_hard_$$.png"
-    local base_args="--optix --objects type=sphere --shadows --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
+    local base_args="--objects type=sphere --shadows --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
 
     if $MENGER_BIN $base_args --light "area:0,2,2:0,-1,0:2.0:8:10" \
             --headless --save-name "$soft_png" 2>/dev/null ; then
@@ -827,21 +827,21 @@ test_area_lights() {
 
 test_error_handling() {
     echo "Error Handling:"
-    run_test_should_fail "invalid object type" --optix --objects type=invalid-type --plane y:-2
+    run_test_should_fail "invalid object type" --objects type=invalid-type --plane y:-2
     run_test_should_fail "invalid multi-object type" \
-        --optix --objects type=invalid:pos=0,0,0:size=1 --plane y:-2
+        --objects type=invalid:pos=0,0,0:size=1 --plane y:-2
     run_test_should_fail "invalid material preset" \
-        --optix --objects type=sphere:pos=0,0,0:size=0.5:material=unobtanium --plane y:-2
+        --objects type=sphere:pos=0,0,0:size=0.5:material=unobtanium --plane y:-2
     run_test_should_fail "tesseract invalid eye-w <= screen-w" \
-        --optix --objects type=tesseract:eye-w=1.0:screen-w=2.0 --plane y:-2
+        --objects type=tesseract:eye-w=1.0:screen-w=2.0 --plane y:-2
     run_test_should_fail "tesseract-sponge missing level" \
-        --optix --objects type=tesseract-sponge:pos=0,0,0 --plane y:-2
+        --objects type=tesseract-sponge:pos=0,0,0 --plane y:-2
     run_test_should_fail "tesseract-sponge-2 missing level" \
-        --optix --objects type=tesseract-sponge-2:pos=0,0,0 --plane y:-2
+        --objects type=tesseract-sponge-2:pos=0,0,0 --plane y:-2
     run_test_should_fail "tesseract-sponge negative level" \
-        --optix --objects type=tesseract-sponge:level=-1 --plane y:-2
+        --objects type=tesseract-sponge:level=-1 --plane y:-2
     run_test_should_fail "headless with timeout" \
-        --optix --objects type=sphere --headless --save-name test.png --timeout 5 --plane y:-2
+        --objects type=sphere --headless --save-name test.png --timeout 5 --plane y:-2
 }
 
 # ============================================

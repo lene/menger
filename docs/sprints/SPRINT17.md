@@ -18,8 +18,8 @@ library separation.
 ## Success Criteria
 
 - [x] LibGDX rendering path fully removed; OptiX is the only renderer
-- [ ] Engine uses trait composition (base + `WithAnimation`, `WithPreview`, `WithVideoExport`)
-- [ ] Scene graph supports transform hierarchy and per-node material inheritance
+- [x] Engine uses trait composition (base + `WithAnimation`, `WithPreview`, `WithVideoExport`)
+- [x] Scene graph supports transform hierarchy and per-node material inheritance
 - [ ] Video output via ffmpeg: MP4 and WebM from frame sequences
 - [ ] CLI: `--video output.mp4` to render and encode in one step
 - [ ] Animation preview mode with interactive t scrubbing
@@ -66,6 +66,7 @@ Update AD-2 (Dual Rendering Pipeline) to "Superseded" — OptiX-only from v0.6.
 
 ### Task 17.2: Engine Refactor to Trait Composition
 
+**Status:** Complete
 **Estimate:** 4h
 **Depends on:** 17.1
 
@@ -104,6 +105,7 @@ class VideoEngine extends RenderEngine with WithAnimation with WithVideoExport
 
 ### Task 17.3: Scene Graph
 
+**Status:** Complete
 **Estimate:** 5h
 
 Replace the flat `List[SceneObject]` with a tree of scene nodes supporting transform
