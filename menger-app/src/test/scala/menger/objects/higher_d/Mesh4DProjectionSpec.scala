@@ -180,3 +180,52 @@ class Mesh4DProjectionSpec extends AnyFlatSpec with Matchers:
     val mesh = projection.toTriangleMesh
 
     mesh.indices.length shouldBe mesh.numTriangles * 3
+
+  // === Normal Orientation Tests ===
+
+  "Mesh4DProjection with TesseractSponge2" should
+    "have all face normals pointing outward from the mesh centroid" in:
+      val sponge = TesseractSponge2(level = 1, size = 1.0f)
+      val projection = Mesh4DProjection(
+        mesh4D = sponge,
+        rotXW = 0f,
+        rotYW = 0f,
+        rotZW = 0f
+      )
+      val mesh = projection.toTriangleMesh
+      val verts = mesh.vertices
+      val stride = mesh.vertexStride // 8
+
+      // Mesh centroid: average of all vertex positions
+      val cx = (0 until mesh.numVertices).map(i => verts(i * stride + 0)).sum / mesh.numVertices
+      val cy = (0 until mesh.numVertices).map(i => verts(i * stride + 1)).sum / mesh.numVertices
+      val cz = (0 until mesh.numVertices).map(i => verts(i * stride + 2)).sum / mesh.numVertices
+
+      // Check per quad (2 triangles per quad, 4 vertices per quad).
+      // The implementation guarantees normal · (quad_centroid - mesh_centroid) >= 0,
+      // using all 4 vertices of the quad as the centroid, not per-triangle.
+      // Quads are stored consecutively: quad q has vertices [4q..4q+3] and
+      // triangles [2q, 2q+1] with indices [4q,4q+1,4q+2] and [4q,4q+2,4q+3].
+      val numQuads = mesh.numTriangles / 2
+      val invertedQuads = (0 until numQuads).filter { q =>
+        val t0 = q * 2
+        val t1 = q * 2 + 1
+        val i0 = mesh.indices(t0 * 3 + 0) // = 4q
+        val i1 = mesh.indices(t0 * 3 + 1) // = 4q+1
+        val i2 = mesh.indices(t0 * 3 + 2) // = 4q+2
+        val i3 = mesh.indices(t1 * 3 + 2) // = 4q+3 (4th unique vertex)
+        // Quad centroid (all 4 vertex positions)
+        val qx = (verts(i0*stride+0) + verts(i1*stride+0) + verts(i2*stride+0) + verts(i3*stride+0)) / 4f
+        val qy = (verts(i0*stride+1) + verts(i1*stride+1) + verts(i2*stride+1) + verts(i3*stride+1)) / 4f
+        val qz = (verts(i0*stride+2) + verts(i1*stride+2) + verts(i2*stride+2) + verts(i3*stride+2)) / 4f
+        // Normal stored in vertex data (same for all 4 vertices of the quad)
+        val nx = verts(i0 * stride + 3)
+        val ny = verts(i0 * stride + 4)
+        val nz = verts(i0 * stride + 5)
+        // Dot of normal with (quad_centroid - mesh_centroid) must be >= 0
+        val dot = nx * (qx - cx) + ny * (qy - cy) + nz * (qz - cz)
+        dot < 0f
+      }
+      withClue(s"${invertedQuads.length} quads have inward-pointing normals: ") {
+        invertedQuads shouldBe empty
+      }
