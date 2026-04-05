@@ -50,10 +50,10 @@ class TriangleMeshSceneBuilderSpec extends AnyFlatSpec with Matchers:
     val spec2 = ObjectSpec.parse("type=sponge-volume:level=2").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
-  it should "reject sponges of different levels" in:
+  it should "allow sponges of different levels" in:
     val spec1 = ObjectSpec.parse("type=sponge-volume:level=1").toOption.get
     val spec2 = ObjectSpec.parse("type=sponge-volume:level=2").toOption.get
-    builder.isCompatible(spec1, spec2) shouldBe false
+    builder.isCompatible(spec1, spec2) shouldBe true
 
   // === ObjectType classification for 4D types ===
 

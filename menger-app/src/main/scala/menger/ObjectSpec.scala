@@ -112,6 +112,15 @@ object ObjectSpec extends LazyLogging:
    *   type=tesseract:material=film:edge-material=film:edge-emission=3.0
    *   type=tesseract:material=glass:edge-color=#00FFFF:edge-emission=5.0:edge-radius=0.03
    */
+  private val ValidKeys: Set[String] = Set(
+    "type", "pos", "size", "level", "color", "ior",
+    "material", "roughness", "metallic", "specular",
+    "emission", "film-thickness", "texture",
+    "eye-w", "screen-w", "rot-xw", "rot-yw", "rot-zw",
+    "edge-radius", "edge-material", "edge-color",
+    "edge-emission"
+  )
+
   def parse(spec: String): Either[String, ObjectSpec] =
     logger.debug(s"Parsing object spec: $spec")
     val parts = spec.split(":").map(_.trim)
@@ -123,6 +132,7 @@ object ObjectSpec extends LazyLogging:
     logger.debug(s"Parsed key-value pairs: $kvPairs")
 
     val result = for
+      _ <- validateKeys(kvPairs)
       objType <- parseObjectType(kvPairs)
       (x, y, z) <- parsePosition(kvPairs)
       size <- parseSize(kvPairs)
@@ -141,6 +151,19 @@ object ObjectSpec extends LazyLogging:
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")
       case Left(err) => logger.debug(s"Parse failed: $err")
     result
+
+  private def validateKeys(
+    kvPairs: Map[String, String]
+  ): Either[String, Unit] =
+    val unknownKeys = kvPairs.keySet -- ValidKeys
+    if unknownKeys.nonEmpty then
+      val sorted = unknownKeys.toList.sorted.mkString("', '")
+      Left(
+        s"Unknown key(s): '$sorted'. " +
+          s"Valid keys: ${ValidKeys.toList.sorted.mkString(", ")}"
+      )
+    else
+      Right(())
 
   private def parseObjectType(kvPairs: Map[String, String]): Either[String, String] =
     kvPairs.get("type") match

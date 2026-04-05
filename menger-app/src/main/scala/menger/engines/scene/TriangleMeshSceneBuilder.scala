@@ -21,11 +21,11 @@ import menger.optix.OptiXRenderer
  * - All instances must use compatible geometry (same type + parameters)
  *
  * Key characteristics:
- * - Base mesh set once (shared by all instances)
- * - Strict compatibility validation - all specs must match geometry type/params
+ * - Each spec gets its own base mesh (via setTriangleMesh per instance)
+ * - Compatibility validation ensures all specs are triangle mesh types
  * - Instance count = specs.length (1:1 mapping)
  * - Optional texture support per instance
- * - Sponges must have same level
+ * - 3D sponges: different levels and types (volume/surface) may be mixed
  * - Hypercubes must have same 4D projection parameters
  *
  * Ported from OptiXEngine.setupMultipleTriangleMeshes() (lines 299-335)
@@ -140,10 +140,9 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
       case (t1, t2) if t1 == t2 =>
         // Same type - check if parameters match
         if ObjectType.isSponge(t1) then
-          // 3D sponges: Must have same level (shared geometry)
-          (spec1.level, spec2.level) match
-            case (Some(l1), Some(l2)) => l1 == l2
-            case _ => false  // Missing level
+          // 3D sponges: each spec gets its own mesh via setTriangleMesh,
+          // so different levels are compatible
+          spec1.level.isDefined && spec2.level.isDefined
         else if ObjectType.is4DSponge(t1) then
           // 4D sponges: Compatible if both have levels (any levels ok)
           // Different levels and fractional levels handled via multiple geometries
@@ -155,6 +154,10 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
           matchingProjectionParams(spec1, spec2)
         else
           true  // Other types (cube) always compatible with same type
+
+      // Allow mixing different 3D sponge types (volume + surface)
+      case (t1, t2) if ObjectType.isSponge(t1) && ObjectType.isSponge(t2) =>
+        spec1.level.isDefined && spec2.level.isDefined
 
       // Allow mixing different 4D projected types if projection params match
       case (t1, t2) if ObjectType.isProjected4D(t1) && ObjectType.isProjected4D(t2) =>

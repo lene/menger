@@ -172,6 +172,22 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
     builder.isCompatible(spec1, spec2) shouldBe true
 
+  it should "allow 3D sponges with different levels" in:
+    val builder = TriangleMeshSceneBuilder(".")
+    val spec1 = ObjectSpec.parse("type=sponge-volume:level=1.5").toOption.get
+    val spec2 = ObjectSpec.parse("type=sponge-volume:level=1").toOption.get
+
+    builder.isCompatible(spec1, spec2) shouldBe true
+
+  it should "allow mixing sponge-volume and sponge-surface" in:
+    val builder = TriangleMeshSceneBuilder(".")
+    val spec1 =
+      ObjectSpec.parse("type=sponge-volume:level=1.5").toOption.get
+    val spec2 =
+      ObjectSpec.parse("type=sponge-surface:level=1.5").toOption.get
+
+    builder.isCompatible(spec1, spec2) shouldBe true
+
   it should "reject 4D sponge without level parameter" in:
     val builder = TriangleMeshSceneBuilder(".")
     // These should fail at parsing, but let's test the compatibility logic

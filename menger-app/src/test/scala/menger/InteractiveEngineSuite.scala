@@ -23,7 +23,6 @@ class InteractiveEngineSuite extends AnyFlatSpec with Matchers:
     radius: Float = Const.defaultSphereRadius,
     ior: Float = Const.iorVacuum,
     color: Color = Color.WHITE,
-    scale: Float = 1.0f,
     timeout: Float = 0f,
     enableStats: Boolean = false,
     renderConfig: RenderConfig = RenderConfig.Default
@@ -32,7 +31,7 @@ class InteractiveEngineSuite extends AnyFlatSpec with Matchers:
       f"#${(color.r * 255).toInt}%02X${(color.g * 255).toInt}%02X${(color.b * 255).toInt}%02X"
     val objectSpec =
       ObjectSpec.parse(
-        s"type=sphere:pos=0,0,0:size=${radius * 2}:scale=$scale:color=$colorHex:ior=$ior"
+        s"type=sphere:pos=0,0,0:size=${radius * 2}:color=$colorHex:ior=$ior"
       ) match
         case Left(error) => sys.error(s"Failed to parse object spec: $error")
         case Right(spec) => List(spec)

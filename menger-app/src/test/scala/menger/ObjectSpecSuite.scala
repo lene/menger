@@ -272,6 +272,44 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
     result shouldBe a[Left[?, ?]]
     result.left.map(_ should include("cannot be empty"))
 
+  // Unknown key validation tests
+  "ObjectSpec unknown key validation" should "reject unknown keys" in:
+    val result = ObjectSpec.parse("type=sphere:x=10")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Unknown"))
+    result.left.map(_ should include("x"))
+
+  it should "reject multiple unknown keys" in:
+    val result = ObjectSpec.parse("type=sphere:x=10:y=20:z=30")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Unknown"))
+
+  it should "reject mix of valid and unknown keys" in:
+    val result = ObjectSpec.parse(
+      "type=sphere:pos=1,2,3:bogus=42"
+    )
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Unknown"))
+    result.left.map(_ should include("bogus"))
+
+  it should "accept all valid keys without error" in:
+    val result = ObjectSpec.parse(
+      "type=sphere:pos=0,0,0:size=1:color=#FF0000:ior=1.5" +
+        ":material=glass:roughness=0.5:metallic=0.5" +
+        ":specular=0.5:emission=1.0:film-thickness=500" +
+        ":texture=brick.png"
+    )
+    result shouldBe a[Right[?, ?]]
+
+  it should "accept all valid 4D keys without error" in:
+    val result = ObjectSpec.parse(
+      "type=tesseract:eye-w=4:screen-w=1:rot-xw=30" +
+        ":rot-yw=15:rot-zw=0:edge-radius=0.05" +
+        ":edge-material=film:edge-color=#FF0000" +
+        ":edge-emission=3.0"
+    )
+    result shouldBe a[Right[?, ?]]
+
   // 4D Projection tests (Sprint 8)
   "ObjectSpec 4D projection parsing" should "create Projection4DSpec for tesseract type" in:
     val result = ObjectSpec.parse("type=tesseract:pos=0,0,0:size=2.0")
