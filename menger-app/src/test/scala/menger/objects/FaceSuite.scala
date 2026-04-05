@@ -79,13 +79,16 @@ class FaceSuite extends AnyFlatSpec with Matchers:
     forAll(subfaces.filter(_.normal == Z)) { f => f.zCen should be (-0.5) }
     forAll(subfaces.filter(_.normal == -Z)) { f => f.zCen should be (0.5) }
 
+  // Tunnel wall normals point INTO the tunnel for both positive and
+  // negative starting faces, so the position-to-normal mapping is the
+  // same as for +X: Y-wall at y=-0.5 faces into tunnel (+Y direction).
   it should "point in correct direction for each location for -x normal" in:
     val face = Face(0, 0, 0, 3, -X)
     val subfaces = face.subdivide()
-    forAll(subfaces.filter(_.normal == Y)) { f => f.yCen should be (0.5) }
-    forAll(subfaces.filter(_.normal == -Y)) { f => f.yCen should be (-0.5) }
-    forAll(subfaces.filter(_.normal == Z)) { f => f.zCen should be (0.5) }
-    forAll(subfaces.filter(_.normal == -Z)) { f => f.zCen should be (-0.5) }
+    forAll(subfaces.filter(_.normal == Y)) { f => f.yCen should be (-0.5) }
+    forAll(subfaces.filter(_.normal == -Y)) { f => f.yCen should be (0.5) }
+    forAll(subfaces.filter(_.normal == Z)) { f => f.zCen should be (-0.5) }
+    forAll(subfaces.filter(_.normal == -Z)) { f => f.zCen should be (0.5) }
 
   it should "point in correct direction for each location for y normal" in:
     val face = Face(0, 0, 0, 3, Y)
@@ -95,13 +98,16 @@ class FaceSuite extends AnyFlatSpec with Matchers:
     forAll(subfaces.filter(_.normal == Z)) { f => f.zCen should be (-0.5) }
     forAll(subfaces.filter(_.normal == -Z)) { f => f.zCen should be (0.5) }
 
+  // Tunnel wall normals point INTO the tunnel for both positive and
+  // negative starting faces, so the position-to-normal mapping is the
+  // same as for +Y: X-wall at x=-0.5 faces into tunnel (+X direction).
   it should "point in correct direction for each location for -y normal" in:
     val face = Face(0, 0, 0, 3, -Y)
     val subfaces = face.subdivide()
-    forAll(subfaces.filter(_.normal == X)) { f => f.xCen should be (0.5) }
-    forAll(subfaces.filter(_.normal == -X)) { f => f.xCen should be (-0.5) }
-    forAll(subfaces.filter(_.normal == Z)) { f => f.zCen should be (0.5) }
-    forAll(subfaces.filter(_.normal == -Z)) { f => f.zCen should be (-0.5) }
+    forAll(subfaces.filter(_.normal == X)) { f => f.xCen should be (-0.5) }
+    forAll(subfaces.filter(_.normal == -X)) { f => f.xCen should be (0.5) }
+    forAll(subfaces.filter(_.normal == Z)) { f => f.zCen should be (-0.5) }
+    forAll(subfaces.filter(_.normal == -Z)) { f => f.zCen should be (0.5) }
 
   it should "point in correct direction for each location for z normal" in:
     val face = Face(0, 0, 0, 3, Z)
@@ -111,13 +117,16 @@ class FaceSuite extends AnyFlatSpec with Matchers:
     forAll(subfaces.filter(_.normal == X)) { f => f.xCen should be(-0.5) }
     forAll(subfaces.filter(_.normal == -X)) { f => f.xCen should be(0.5) }
 
+  // Tunnel wall normals point INTO the tunnel for both positive and
+  // negative starting faces, so the position-to-normal mapping is the
+  // same as for +Z: Y-wall at y=-0.5 faces into tunnel (+Y direction).
   it should "point in correct direction for each location for -z normal" in:
     val face = Face(0, 0, 0, 3, -Z)
     val subfaces = face.subdivide()
-    forAll(subfaces.filter(_.normal == Y)) { f => f.yCen should be(0.5) }
-    forAll(subfaces.filter(_.normal == -Y)) { f => f.yCen should be(-0.5) }
-    forAll(subfaces.filter(_.normal == X)) { f => f.xCen should be(0.5) }
-    forAll(subfaces.filter(_.normal == -X)) { f => f.xCen should be(-0.5) }
+    forAll(subfaces.filter(_.normal == Y)) { f => f.yCen should be(-0.5) }
+    forAll(subfaces.filter(_.normal == -Y)) { f => f.yCen should be(0.5) }
+    forAll(subfaces.filter(_.normal == X)) { f => f.xCen should be(-0.5) }
+    forAll(subfaces.filter(_.normal == -X)) { f => f.xCen should be(0.5) }
 
   it should "have correct x positions for x normal" in:
     val face = Face(0, 0, 0, 1, X)

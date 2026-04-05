@@ -71,17 +71,30 @@ case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Dir
       yield Face(runningCoordinates(x/3f, y/3f, scale), scale / 3f, normal)
 
   // 4 sub-faces perpendicular to the original, forming tunnel walls
-  // Each is positioned at a cardinal direction from center, rotated 90 degrees around that axis
-  // fold1/fold2 are the two axes perpendicular to this face's normal
+  // Each is positioned at a cardinal direction from center, rotated 90
+  // degrees around that axis.
+  // fold1/fold2 are the two axes perpendicular to this face's normal.
+  // For negative normals, rotation axes are negated so tunnel wall
+  // normals consistently point INTO the tunnel (outward from solid).
+  // Without this correction, negative-normal faces produce inverted
+  // tunnel wall normals, causing sub-tunnel geometry to shift into
+  // tunnels instead of into solid material at deeper recursion levels.
   private lazy val rotatedSubFaces: Seq[Face] =
-    for(
-      (x, y, axis) <- Seq(
-        (0f, -1/3f, normal.fold1), (1/3f, 0f, normal.fold2),
-        (0f, 1/3f, -normal.fold1), (-1/3f, 0f, -normal.fold2)
-      )
-    ) yield Face(
-      runningCoordinatesShifted(x, y, scale, -scale/3f), scale / 3f, normal.rotate90(axis)
+    val f1 = normal.fold1
+    val f2 = normal.fold2
+    val axes =
+      if normal.sign > 0 then Seq(f1, f2, -f1, -f2)
+      else Seq(-f1, -f2, f1, f2)
+    val positions = Seq(
+      (0f, -1/3f), (1/3f, 0f), (0f, 1/3f), (-1/3f, 0f)
     )
+    positions.zip(axes).map { case ((x, y), axis) =>
+      Face(
+        runningCoordinatesShifted(x, y, scale, -scale/3f),
+        scale / 3f,
+        normal.rotate90(axis)
+      )
+    }
 
   private def runningCoordinates(x1: Float, x2: Float, add: Float): Vec3[Float] =
     normal match

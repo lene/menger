@@ -14,6 +14,17 @@
   `WithVideoExport`. Concrete classes `InteractiveEngine`, `AnimationEngine`, `PreviewEngine`,
   and `VideoEngine` are composed from these traits, eliminating the need for deep inheritance.
 
+### Fixed
+- **Menger sponge tunnel intrusion at level 2+** — faces with negative normals (-X,
+  -Y, -Z) produced tunnel wall sub-faces whose normals pointed into the solid instead
+  of into the tunnel. At deeper recursion levels this caused sub-tunnel geometry to be
+  placed inside the parent tunnel, creating visible artifacts. Fixed by negating the
+  rotation axes in `Face.rotatedSubFaces` for negative-normal parent faces.
+- **Fractional sponge cross-fade making entire sponge transparent** — at fractional
+  levels (e.g. 1.5), both the next-level mesh and the skin mesh were given reduced
+  alpha, making the whole sponge see-through. Corrected so only the skin fades out
+  while the next-level mesh remains fully opaque.
+
 ### Removed
 - **LibGDX 3D rendering path** — the OpenGL/LibGDX 3D scene graph (`MengerEngine`,
   `InteractiveMengerEngine`, `AnimatedMengerEngine`, `ModelFactory`, `DragTracker`) has been

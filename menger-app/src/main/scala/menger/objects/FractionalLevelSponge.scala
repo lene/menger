@@ -12,7 +12,8 @@ trait FractionalLevelSponge extends FractionalLevelObject:
 
   /** Merge next-level and current-level meshes into a single fractional-level mesh.
    *  Expands currentLevelMesh outward along normals to prevent z-fighting, then
-   *  blends the two meshes using per-vertex alpha based on the fractional part of level. */
+   *  blends the two meshes using per-vertex alpha based on the fractional part of level:
+   *  nextLevel is fully opaque, currentLevel (skin) alpha = 1 - fractionalPart. */
   protected def buildFractionalMesh(
     nextLevelMesh: TriangleMeshData,
     currentLevelMesh: TriangleMeshData

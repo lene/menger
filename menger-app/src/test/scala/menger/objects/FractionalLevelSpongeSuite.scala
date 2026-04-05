@@ -162,8 +162,8 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
   // === Alpha Calculation Tests ===
 
   "Alpha calculation" should "follow formula: alpha = 1.0 - fractionalPart for SpongeByVolume" in:
-    // The alpha for level N is: 1.0 - (level - floor(level))
-    // Level N+1 always has alpha = 1.0
+    // Cross-fade: nextLevel alpha = fractionalPart, currentLevel (skin) alpha = 1 - fractionalPart
+    // At level 1.25: nextLevel (L2) alpha=0.25, currentLevel (L1 skin) alpha=0.75
     val testCases = List(
       (1.25f, 0.75f), // 25% -> current level alpha = 75%
       (1.5f, 0.5f),   // 50% -> current level alpha = 50%
@@ -196,6 +196,34 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
       mesh.numTriangles should be > 0
       mesh.vertices.length % 9 shouldBe 0
     }
+
+  it should "set nextLevel alpha = 1.0 and skin alpha = 1 - frac for SpongeBySurface" in:
+    // At fractional level 1.25: nextLevel (L2) gets alpha=1.0, currentLevel skin gets alpha=0.75
+    // Only the skin fades out; the sponge structure is always fully opaque
+    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 1.25f)
+    val mesh = sponge.toTriangleMesh
+
+    val stride = mesh.vertexStride
+    val alphas = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride + 8))
+    val maxAlpha = alphas.max
+    val minAlpha = alphas.min
+
+    // nextLevel (L2) should have alpha=1.0 (opaque), currentLevel skin should have alpha=0.75
+    maxAlpha shouldBe 1.0f +- 0.01f
+    minAlpha shouldBe 0.75f +- 0.01f
+
+  it should "set nextLevel alpha = 1.0 and skin alpha = 1 - frac for SpongeByVolume" in:
+    // SpongeByVolume uses the same logic: at level 1.25, nextLevel alpha=1.0, skin alpha=0.75
+    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 1.25f)
+    val mesh = sponge.toTriangleMesh
+
+    val stride = mesh.vertexStride
+    val alphas = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride + 8))
+    val maxAlpha = alphas.max
+    val minAlpha = alphas.min
+
+    maxAlpha shouldBe 1.0f +- 0.01f
+    minAlpha shouldBe 0.75f +- 0.01f
 
   // === Comparison Tests ===
 
