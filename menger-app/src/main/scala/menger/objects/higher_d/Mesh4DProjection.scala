@@ -47,23 +47,11 @@ case class Mesh4DProjection(
 
   override def toTriangleMesh: TriangleMeshData =
     val quads = projectedQuads
-    // Compute mesh centroid from all projected quad vertices so each quad
-    // can check whether its normal points outward or inward
-    val allVertices = quads.flatMap(q => Seq(q(0), q(1), q(2), q(3)))
-    val n = allVertices.length
-    val meshCentroid = (
-      allVertices.map(_.x).sum / n,
-      allVertices.map(_.y).sum / n,
-      allVertices.map(_.z).sum / n
-    )
-    val meshDataList = quads.map(quadToTriangleMesh(_, meshCentroid))
+    val meshDataList = quads.map(quadToTriangleMesh)
     val merged = TriangleMeshData.merge(meshDataList)
     translateMesh(merged, center)
 
-  private def quadToTriangleMesh(
-    quad: Quad3D,
-    meshCentroid: (Float, Float, Float)
-  ): TriangleMeshData =
+  private def quadToTriangleMesh(quad: Quad3D): TriangleMeshData =
     val v0 = quad(0)
     val v1 = quad(1)
     val v2 = quad(2)
@@ -72,41 +60,19 @@ case class Mesh4DProjection(
     // Calculate face normal (cross product of two edges)
     val edge1 = new Vector3(v1).sub(v0)
     val edge2 = new Vector3(v3).sub(v0)
-    val normalVec = new Vector3(edge1).crs(edge2).nor()
+    val normal = new Vector3(edge1).crs(edge2).nor()
 
     // Handle degenerate faces (zero-area when projected edge-on)
-    val isDegenerate = normalVec.len2() < 0.0001f
-    val (rawNx, rawNy, rawNz) =
-      if isDegenerate then (0f, 1f, 0f)
-      else (normalVec.x, normalVec.y, normalVec.z)
-
-    // Ensure the normal points outward from the mesh centroid.
-    // Perspective projection of 4D faces does not guarantee consistent winding,
-    // so we check and flip if the normal points toward the centroid instead.
-    val (fnx, fny, fnz, pa, pb, pc, pd) =
-      if isDegenerate then
-        (rawNx, rawNy, rawNz, v0, v1, v2, v3)
-      else
-        val (mcx, mcy, mcz) = meshCentroid
-        val quadCx = (v0.x + v1.x + v2.x + v3.x) / 4f
-        val quadCy = (v0.y + v1.y + v2.y + v3.y) / 4f
-        val quadCz = (v0.z + v1.z + v2.z + v3.z) / 4f
-        val outwardDot =
-          rawNx * (quadCx - mcx) +
-          rawNy * (quadCy - mcy) +
-          rawNz * (quadCz - mcz)
-        if outwardDot >= 0f then
-          (rawNx, rawNy, rawNz, v0, v1, v2, v3)
-        else
-          // Flip normal and reverse winding: swap v1 <-> v3
-          (-rawNx, -rawNy, -rawNz, v0, v3, v2, v1)
+    val (nx, ny, nz) =
+      if normal.len2() < 0.0001f then (0f, 1f, 0f)
+      else (normal.x, normal.y, normal.z)
 
     // Vertex format: position(3) + normal(3) + uv(2) = 8 floats
     val vertices = Array(
-      pa.x, pa.y, pa.z, fnx, fny, fnz, 0f, 0f,
-      pb.x, pb.y, pb.z, fnx, fny, fnz, 1f, 0f,
-      pc.x, pc.y, pc.z, fnx, fny, fnz, 1f, 1f,
-      pd.x, pd.y, pd.z, fnx, fny, fnz, 0f, 1f
+      v0.x, v0.y, v0.z, nx, ny, nz, 0f, 0f,
+      v1.x, v1.y, v1.z, nx, ny, nz, 1f, 0f,
+      v2.x, v2.y, v2.z, nx, ny, nz, 1f, 1f,
+      v3.x, v3.y, v3.z, nx, ny, nz, 0f, 1f
     )
 
     // Two triangles: (v0,v1,v2) and (v0,v2,v3)
