@@ -15,11 +15,11 @@ import menger.optix.RenderConfig
   * @param maxRayDepth Maximum ray bounce depth — NOT YET IMPLEMENTED, must be None
   */
 case class RenderSettings(
-  shadows: Boolean = RenderConfig.Default.shadows,
-  transparentShadows: Boolean = RenderConfig.Default.transparentShadows,
-  antialiasing: Boolean = RenderConfig.Default.antialiasing,
-  aaMaxDepth: Int = RenderConfig.Default.aaMaxDepth,
-  aaThreshold: Float = RenderConfig.Default.aaThreshold,
+  shadows: Boolean = false,
+  transparentShadows: Boolean = false,
+  antialiasing: Boolean = false,
+  aaMaxDepth: Int = 2,
+  aaThreshold: Float = 0.1f,
   maxRayDepth: Option[Int] = None
 ):
   require(aaMaxDepth >= 1 && aaMaxDepth <= 4, s"aaMaxDepth must be 1-4, got $aaMaxDepth")
@@ -42,8 +42,8 @@ object RenderSettings:
   val Default: RenderSettings = RenderSettings()
 
   val HighQuality: RenderSettings = RenderSettings(
-    shadows = RenderConfig.HighQuality.shadows,
-    antialiasing = RenderConfig.HighQuality.antialiasing,
-    aaMaxDepth = RenderConfig.HighQuality.aaMaxDepth,
-    aaThreshold = RenderConfig.HighQuality.aaThreshold
+    shadows = true,
+    antialiasing = true,
+    aaMaxDepth = 3,
+    aaThreshold = 0.05f
   )
