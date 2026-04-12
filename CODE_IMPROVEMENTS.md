@@ -1,12 +1,96 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-03-24 (Sprint 15.1 area lights)
+**Last Updated:** 2026-04-12 (Sprint 17 — maxRayDepth hypothesis added to glass sponge bug)
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
 ---
 
 ## High Priority
+
+### H-tesseract-sponge-dark — TesseractSponge2 renders as solid dark cube at all integer levels
+
+**Location:** `menger-app/src/main/scala/menger/objects/higher_d/TesseractSponge2.scala`,
+`menger-app/src/main/scala/menger/objects/higher_d/Mesh4DProjection.scala`,
+`optix-jni/src/main/native/shaders/hit_triangle.cu`
+**Est. Effort:** 4h
+**Reproducer:** `--objects type=tesseract-sponge-2:level=1` or any integer level
+
+**Symptom:** `TesseractSponge2` at integer levels (1, 2, …) renders as a nearly solid dark cube.
+Fractional levels (e.g. 1.3) show the expected additional protrusions but both the base cube and
+protrusions are dark. The object is geometrically correct (vertex counts, triangle counts, UVs all
+pass unit tests) but visually wrong.
+
+**Investigation summary (Sprint 17):**
+
+*Hypothesis 1 — Inverted normals (REJECTED):* Commit 586de54 added centroid-based outward normal
+checking in `Mesh4DProjection.quadToTriangleMesh`. The shader at line 90 of `hit_triangle.cu`
+already flips the stored normal to face the incoming ray
+(`geom.normal = geom.entering ? normal : -normal`), so inverted winding cannot cause darkness.
+Reference render taken at d5ef369 (before 586de54) shows the same darkness. Reverted in 48e1eeb.
+
+*Hypothesis 2 — Self-shadowing / shadow occlusion (UNTESTED):* The projected 4D faces may produce
+geometry that causes shadow rays to hit the object's own interior faces, resulting in perpetual
+shadow. Requires per-face shadow-bias investigation in the shader.
+
+*Hypothesis 3 — Lighting angle (UNTESTED):* The projected faces may happen to be nearly
+perpendicular to the default light direction, producing near-zero `dot(N, L)` for most faces.
+
+*Hypothesis 4 — Face normals near zero after projection (UNTESTED):* Degenerate projected faces
+(area ≈ 0) get normal `(0, 1, 0)` — may be the majority of faces when viewed from certain angles.
+
+**Known state:** Darkness is pre-existing and unaffected by the Sprint 17 reverts. Manual test 45
+("TesseractSponge2 L1.3 fractional") is not passing (dark output), but the fractional geometry
+(protrusions) is present — the render is dark but structurally correct. Root cause still unknown.
+
+---
+
+### H-glass-sponge-skin-diffuse — Glass sponge skin faces use diffuse shading instead of Fresnel/refraction
+
+**Location:** `optix-jni/src/main/native/shaders/hit_triangle.cu`
+**Est. Effort:** 6h
+**Reproducer:** `--objects type=sponge-volume:level=1.5:material=glass`
+
+**Symptom:** The skin faces of a fractional glass sponge (those with vertex alpha < 1.0, which
+represent the partially-exposed cross-section at the fractional boundary) are shaded as diffuse
+surfaces with dark banding, rather than with Fresnel reflection/refraction matching the fully
+solid inner faces. Manual test 53 ("3D Fractional glass") shows this as dark bands on the skin
+layer.
+
+**Investigation summary (Sprint 17):**
+
+*Attempt 1 — Refractive coverage blend (INTRODUCED BUG, REVERTED):* Commit edb941f added a
+`use_refractive_coverage_blend` shader path for faces with `has_vertex_alpha_channel=true`. It
+traced 3 independent rays (reflected, refracted, continuation) from each glass skin face and
+blended the colors using vertex alpha as the coverage weight. This produced geometrically
+incoherent color samples when the independent rays traversed the complex sponge interior
+separately, resulting in chaotic pink/magenta distortion many times brighter than expected.
+Reverted in 5bd8d38.
+
+*Root cause of attempt 1 failure:* The three independent rays (reflected, refracted, continuation)
+do not agree on which part of the sponge interior they are traversing. When blended, colors from
+opposite sides of the geometry mix, producing incoherent results. A correct implementation would
+need to trace a single ray that accounts for the partial coverage in a physically consistent way
+(e.g. Russian roulette between refraction and continuation based on the coverage fraction).
+
+*Current state:* Skin faces use the diffuse coverage blend path (`use_coverage_blend`), which
+gives correct geometry but wrong material appearance. The dark banding is the shadow of the sponge
+geometry falling on the diffuse skin faces.
+
+**Correct approach (not yet implemented):** Skin faces should use Russian roulette path selection:
+with probability = (1 - vertex_alpha), treat as continuation ray (transparent, passing through
+the skin boundary); with probability = vertex_alpha, treat as refractive glass. This keeps the
+light transport physically consistent without blending three incoherent radiance samples.
+
+*Hypothesis 3 — Insufficient ray depth (UNTESTED):* `maxRayDepth` is not yet implemented in the
+OptiX renderer — there is no configurable ray recursion limit. Glass rendering requires multiple
+bounces (reflection → refraction → exit). If the implicit hard-coded depth is too shallow, glass
+faces may terminate early and return black. Discovered during Sprint 17 task 17.4 (DSL render
+settings). **Blocked until `maxRayDepth` is implemented** (planned for a future sprint, see also
+`H-glass-sponge-skin-diffuse` scope discussion). Test with both the Russian roulette fix and
+an increased ray depth limit to isolate contributions.
+
+---
 
 ## Medium Priority
 

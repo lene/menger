@@ -158,4 +158,13 @@ Sprint 19 (Advanced Geometry) directly consumes all three capabilities:
 ### Formerly
 
 Content originally in Sprint 18 (Advanced Geometry) has moved to Sprint 19.
+
+### Backlog Items for Future Sprints
+
+- **maxRayDepth** — Configurable ray recursion depth for the OptiX renderer. Currently there is
+  no per-ray bounce limit; adding this would allow scenes to trade render quality for speed and
+  may unblock the glass sponge skin darkness bug (manual test 53, see
+  `CODE_IMPROVEMENTS.md:H-glass-sponge-skin-diffuse`). DSL stub added in Sprint 17 task 17.4;
+  backend implementation required in `optix-jni` shaders and `RenderConfig`. Consider adding to
+  Sprint 19 or as a standalone task once Sprint 18 GPU infrastructure is complete.
 Content originally in Sprint 20 (GPU 4D Infrastructure) has moved here as 18.3.
