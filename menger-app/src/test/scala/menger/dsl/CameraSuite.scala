@@ -82,3 +82,9 @@ class CameraSuite extends AnyFlatSpec with Matchers:
     config.lookAt.x shouldBe 0f
     config.lookAt.y shouldBe 0f
     config.lookAt.z shouldBe 0f
+
+  "Camera.fov" should "default to None" in:
+    Camera.Default.fov shouldBe None
+
+  it should "throw NotImplementedError when set" in:
+    a[NotImplementedError] should be thrownBy Camera(fov = Some(60f))
