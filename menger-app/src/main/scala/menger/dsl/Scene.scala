@@ -15,6 +15,7 @@ import menger.config.SceneConfig
   * @param planes Floor/wall planes (up to 4 simultaneous planes)
   * @param caustics Optional caustics configuration for photon mapping
   * @param root Optional scene graph root node (overrides objects when set)
+  * @param render Optional render settings (quality, shadows, ray depth, etc.)
   */
 case class Scene(
   camera: Camera = Camera.Default,
@@ -23,7 +24,8 @@ case class Scene(
   planes: List[Plane] = List.empty,
   caustics: Option[Caustics] = None,
   background: Option[Color] = None,
-  root: Option[SceneNode] = None
+  root: Option[SceneNode] = None,
+  render: Option[RenderSettings] = None
 ):
   require(objects.nonEmpty || root.isDefined, "Scene must contain at least one object or a root node")
 

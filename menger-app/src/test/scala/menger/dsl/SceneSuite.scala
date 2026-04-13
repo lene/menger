@@ -90,3 +90,26 @@ class SceneSuite extends AnyFlatSpec with Matchers:
     specs should have length 1
     specs(0).objectType shouldBe "sponge-volume"
     specs(0).level shouldBe Some(2f)
+
+  "Scene.render" should "default to None" in:
+    val sphere = Sphere(Material.Glass)
+    val scene = Scene(Camera.Default, sphere)
+    scene.render shouldBe None
+
+  it should "accept Some(RenderSettings(shadows = true))" in:
+    val sphere = Sphere(Material.Glass)
+    val settings = RenderSettings(shadows = true)
+    val scene = Scene(Camera.Default, List(sphere), render = Some(settings))
+    scene.render shouldBe Some(settings)
+    scene.render.get.shadows shouldBe true
+
+  it should "be None when constructed via convenience apply methods" in:
+    val sphere = Sphere(Material.Glass)
+    val light = Directional(Vec3(1f, -1f, -1f))
+    val root = SceneNode.leaf(sphere)
+
+    Scene(Camera.Default, sphere).render shouldBe None
+    Scene(Camera.Default, sphere, List(light)).render shouldBe None
+    Scene(Camera.Default, List(sphere), List(light), Caustics.Default).render shouldBe None
+    Scene(Camera.Default, root).render shouldBe None
+    Scene(Camera.Default, root, List(light)).render shouldBe None
