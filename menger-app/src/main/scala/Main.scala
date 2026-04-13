@@ -19,6 +19,7 @@ import menger.engines.AnimationEngine
 import menger.engines.InteractiveEngine
 import menger.engines.RenderEngine
 import menger.engines.TAnimationConfig
+import menger.optix.RenderConfig
 import org.slf4j.LoggerFactory
 
 object Main:
@@ -111,6 +112,14 @@ object Main:
 
   private def createOptiXEngineFromDslScene(opts: MengerCLIOptions, dslScene: menger.dsl.Scene)(using ProfilingConfig): InteractiveEngine =
     val configs = SceneConverter.convert(dslScene, opts.causticsConfig)
+    val baseRender = configs.render.getOrElse(RenderConfig.Default)
+    val mergedRender = RenderConfig(
+      shadows            = if opts.shadows.isSupplied            then opts.shadows()            else baseRender.shadows,
+      transparentShadows = if opts.transparentShadows.isSupplied then opts.transparentShadows() else baseRender.transparentShadows,
+      antialiasing       = if opts.antialiasing.isSupplied       then opts.antialiasing()       else baseRender.antialiasing,
+      aaMaxDepth         = if opts.aaMaxDepth.isSupplied         then opts.aaMaxDepth()         else baseRender.aaMaxDepth,
+      aaThreshold        = if opts.aaThreshold.isSupplied        then opts.aaThreshold()        else baseRender.aaThreshold,
+    )
     val engineConfig = OptiXEngineConfig(
       scene = configs.scene,
       camera = configs.camera,
@@ -120,7 +129,7 @@ object Main:
         background = configs.background
       ),
       execution = buildExecutionConfig(opts),
-      render = opts.renderConfig,
+      render = mergedRender,
       caustics = configs.caustics
     )
     InteractiveEngine(engineConfig, opts.userSetMaxInstances)

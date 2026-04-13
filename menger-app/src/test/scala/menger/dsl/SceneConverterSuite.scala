@@ -51,6 +51,17 @@ class SceneConverterSuite extends AnyFlatSpec with Matchers:
     val scene = Scene(Camera.Default, List(sphere, cube, sponge, tesseract, tesseractSponge))
     noException should be thrownBy SceneConverter.convert(scene, fallbackCaustics)
 
+  it should "default render to None when scene has no render field" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass))
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.render shouldBe None
+
+  it should "include render config when scene has render set" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass)).copy(render = Some(RenderSettings(shadows = true)))
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.render shouldBe defined
+    result.render.get.shadows shouldBe true
+
   it should "handle objects without materials" in:
     val sphere = Sphere()
     val cube = Cube()
