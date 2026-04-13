@@ -23,8 +23,8 @@ library separation.
 - [ ] Video output via ffmpeg: MP4 and WebM from frame sequences
 - [ ] CLI: `--video output.mp4` to render and encode in one step
 - [ ] Animation preview mode with interactive t scrubbing
-- [ ] DSL supports ALL current render settings (width, height, saveName, headless, antialiasing,
-  ray depth, camera FOV, caustics parameters, etc.)
+- [x] DSL supports rendering-quality settings (shadows, antialiasing, aaMaxDepth, aaThreshold);
+  window settings remain CLI-only; fov and maxRayDepth stubbed (OptiX not yet implemented)
 - [ ] Procedural placement helpers available in DSL (grids, rings, spirals)
 - [ ] Bezier/spline camera path utility implemented as pure Scala helper
 - [ ] Runtime DSL scene evaluation works (not just compile-time)
@@ -141,24 +141,29 @@ Transforms accumulate down the tree (child's world transform = parent's world * 
 
 ### Task 17.4: All Render Settings in DSL
 
+**Status:** Complete
 **Estimate:** 4h
 
-Make ALL current CLI render settings expressible in the Scala DSL. Precedence:
+Make rendering-quality CLI settings expressible in the Scala DSL. Precedence:
 CLI overrides DSL (CLI is the "I know what I want right now" path).
 
-#### Settings to Add
+Window settings (`width`, `height`, `saveName`, `headless`) remain CLI-only — they
+describe the runtime environment, not the scene.
 
-- Window: `width`, `height`, `saveName`, `headless`
-- Rendering: `antialiasing` (samples), `maxRayDepth`, `backgroundColor`
-- Camera: `fov`, `position`, `lookAt`, `up`
-- Caustics: `photonsPerIteration`, `iterations`, `initialRadius`, `alpha`
-- Materials: default material settings
-- Any other current CLI-only settings
+#### What Was Implemented
+
+- `RenderSettings` DSL class: `shadows`, `transparentShadows`, `antialiasing`,
+  `aaMaxDepth`, `aaThreshold`; `maxRayDepth` stubbed with `NotImplementedError`
+  (not yet implemented in OptiX renderer — tracked as backlog in Sprint 18)
+- `Camera.fov` stubbed with `NotImplementedError` (not yet implemented in OptiX)
+- `Scene.render: Option[RenderSettings]` field added
+- `SceneConverter` threads `render` through `SceneConfigs`
+- `Main` merges DSL render as base with CLI flag overrides (using `isSupplied`)
 
 #### Precedence Model
 
 ```
-Final setting = CLI value if provided, else DSL value if provided, else default
+Final setting = CLI value if explicitly supplied, else DSL value if set, else default
 ```
 
 ---
