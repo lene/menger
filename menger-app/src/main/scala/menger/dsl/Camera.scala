@@ -7,6 +7,7 @@ import menger.config.CameraConfig
   * @param position Camera eye position in world space
   * @param lookAt Point the camera is looking at
   * @param up Camera up vector (typically (0, 1, 0))
+  * @param fov Camera field of view in degrees — NOT YET IMPLEMENTED, must be None
   */
 case class Camera(
   position: Vec3 = Vec3(0f, 0f, 3f),
