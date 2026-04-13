@@ -321,6 +321,9 @@ run_test "DSL: FilmSphere" "-o --scene examples.dsl.FilmSphere -s $OUTPUT_DIR/94
 run_test "DSL: SpongeShowcase" "-o --scene examples.dsl.SpongeShowcase -s $OUTPUT_DIR/95-dsl-sponge-showcase.png"
 run_test "DSL: MengerShowcase" "-o --scene examples.dsl.MengerShowcase -s $OUTPUT_DIR/96-dsl-menger-showcase.png"
 run_test "DSL: MixedMetallicShowcase" "-o --scene examples.dsl.MixedMetallicShowcase -s $OUTPUT_DIR/106-dsl-mixed-metallic.png"
+run_test "DSL: RenderSettingsDemo (DSL shadows + AA)" "-o --scene examples.dsl.RenderSettingsDemo -s $OUTPUT_DIR/124-dsl-render-settings-demo.png"
+run_test "DSL: RenderSettingsDemo (CLI shadows overrides DSL)" "-o --scene examples.dsl.RenderSettingsDemo --shadows -s $OUTPUT_DIR/125-dsl-render-settings-cli-shadows.png"
+run_test "DSL: RenderSettingsDemo (no DSL, CLI shadows only)" "-o --objects type=sphere:pos=-1,0,0:material=chrome:size=0.8 --objects type=sphere:pos=1,0,0:material=glass:size=0.8 --shadows --light directional:1,-1,-1 --light point:0,3,2:1.5 --plane y:-1 --camera-pos 0,1,4 --camera-lookat 0,0,0 -s $OUTPUT_DIR/126-cli-shadows-no-dsl.png"
 
 # Animated DSL Scenes (t-parameter)
 echo -e "${YELLOW}--- Animated DSL Scenes (t-parameter) ---${NC}"
@@ -466,6 +469,8 @@ interactive_tests=(
     "DSL PulsingSponge t=1 (sponge growing to level 1):-o --scene examples.dsl.PulsingSponge --t 1"
     "DSL PulsingSponge t=2 (sponge growing to level 2):-o --scene examples.dsl.PulsingSponge --t 2"
     "DSL MixedMetallicShowcase (metallic 0.0→1.0 across five silver-gray spheres):-o --scene examples.dsl.MixedMetallicShowcase"
+    "DSL RenderSettingsDemo (shadows + AA from DSL — no CLI flags needed):-o --scene examples.dsl.RenderSettingsDemo"
+    "DSL RenderSettingsDemo + CLI AA override (verify CLI takes precedence):-o --scene examples.dsl.RenderSettingsDemo --antialiasing"
     "DSL ParametricTorus (glass, closed in both u and v):-o --scene examples.dsl.ParametricTorus --shadows"
     "DSL ParametricWavySheet (IOR on open surface):-o --scene examples.dsl.ParametricWavySheet --shadows"
     "DSL ParametricMoebius (Moebius strip, film material):-o --scene examples.dsl.ParametricMoebius --shadows"

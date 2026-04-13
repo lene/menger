@@ -184,3 +184,37 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
       spec.objectType should not be empty
       spec.size should be > 0f
     }
+
+  "DSL render settings" should "flow through SceneConverter when set" in:
+    val fallbackCaustics = Caustics.Disabled.toCausticsConfig
+    val scene = Scene(
+      camera = Camera.Default,
+      objects = List(Sphere(Material.Chrome)),
+      lights = List(Directional((1f, -1f, -1f))),
+      render = Some(RenderSettings(shadows = true, antialiasing = true))
+    )
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.render shouldBe defined
+    result.render.get.shadows shouldBe true
+    result.render.get.antialiasing shouldBe true
+
+  it should "be None in SceneConfigs when not set" in:
+    val fallbackCaustics = Caustics.Disabled.toCausticsConfig
+    val scene = Scene(
+      camera = Camera.Default,
+      objects = List(Sphere(Material.Chrome)),
+      lights = List(Directional((1f, -1f, -1f)))
+    )
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.render shouldBe None
+
+  it should "flow HighQuality preset through correctly" in:
+    val fallbackCaustics = Caustics.Disabled.toCausticsConfig
+    val scene = Scene(
+      camera = Camera.Default,
+      objects = List(Sphere(Material.Chrome)),
+      lights = List(Directional((1f, -1f, -1f))),
+      render = Some(RenderSettings.HighQuality)
+    )
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.render shouldBe Some(RenderSettings.HighQuality.toRenderConfig)
