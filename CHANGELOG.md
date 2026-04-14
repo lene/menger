@@ -13,6 +13,14 @@
   with a composable trait system: `RenderEngine` (base), `WithAnimation`, `WithPreview`,
   `WithVideoExport`. Concrete classes `InteractiveEngine`, `AnimationEngine`, `PreviewEngine`,
   and `VideoEngine` are composed from these traits, eliminating the need for deep inheritance.
+- **DSL render settings** — all current render-quality settings are now expressible in the Scala
+  DSL via `RenderSettings` (shadows, transparent shadows, antialiasing, AA depth/threshold) and
+  `Camera.fov`. CLI flags override DSL values; DSL values override built-in defaults.
+- **Video output via ffmpeg** — `--video output.mp4` (H.264/libx264) or `--video output.mkv`
+  (HEVC/hevc_nvenc) encodes the frame sequence produced by `--frames` into a video file. Quality
+  is controlled by `--video-quality` (QP, default 12 = master quality). Frame PNG files are
+  deleted after encoding by default; `--keep-frames` retains them. ffmpeg availability and encoder
+  support are validated at CLI parse time.
 
 ### Fixed
 - **Menger sponge tunnel intrusion at level 2+** — faces with negative normals (-X,
