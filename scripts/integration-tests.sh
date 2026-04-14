@@ -704,6 +704,7 @@ test_colored_shadows() {
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_with" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
         --plane y:-2 --shadows --transparent-shadows \
+        --light directional:0,1,0:2.0 \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
         >/dev/null 2>&1 || [ ! -f "$temp_with" ]; then
         rendered_both=false
@@ -712,6 +713,7 @@ test_colored_shadows() {
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_without" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
         --plane y:-2 --shadows \
+        --light directional:0,1,0:2.0 \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
         >/dev/null 2>&1 || [ ! -f "$temp_without" ]; then
         rendered_both=false
