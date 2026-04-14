@@ -7,3 +7,4 @@ trait RenderEngine:
   def dispose(): Unit
   def pause(): Unit
   def resume(): Unit
+  protected def onAnimationComplete(): Unit = ()

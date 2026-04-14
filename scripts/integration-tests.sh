@@ -852,6 +852,83 @@ test_error_handling() {
 
 # Export all helper functions and test categories so they're available in background subshells
 export -f compare_images
+test_video_output() {
+    echo "Video Output (ffmpeg):"
+
+    # Skip entire category if ffmpeg is not available
+    if ! command -v ffmpeg >/dev/null 2>&1; then
+        echo -e "  ${YELLOW}SKIP${RESET}: ffmpeg not found on PATH — skipping video output tests"
+        return
+    fi
+
+    local temp_dir
+    temp_dir=$(mktemp -d)
+
+    # Test 1: MP4 output with frame cleanup (default --keep-frames=false)
+    local mp4_out="${temp_dir}/test_orbit.mp4"
+    local mp4_passed=false
+
+    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+        --scene examples.dsl.OrbitingSphere \
+        --frames 3 --start-t 0 --end-t 1 \
+        --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+        --save-name "${temp_dir}/orbit_mp4_%04d.png" \
+        --video "$mp4_out" >/dev/null 2>&1; then
+        if [ -f "$mp4_out" ] && [ -s "$mp4_out" ]; then
+            # Frames should have been cleaned up
+            local remaining_frames=0
+            for f in "${temp_dir}"/orbit_mp4_*.png; do
+                [ -f "$f" ] && ((remaining_frames++))
+            done
+            if [ "$remaining_frames" -eq 0 ]; then
+                mp4_passed=true
+            fi
+        fi
+    fi
+
+    if $mp4_passed; then
+        ((PASSED++))
+        echo -e "  video output MP4 (3 frames, frames cleaned up) ${GREEN}✓${RESET}"
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - video output MP4 (failed or frames not cleaned up)"
+        echo -e "  video output MP4 (3 frames, frames cleaned up) ${RED}✗${RESET}"
+    fi
+
+    # Test 2: MKV output with --keep-frames
+    local mkv_out="${temp_dir}/test_orbit.mkv"
+    local mkv_passed=false
+
+    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+        --scene examples.dsl.OrbitingSphere \
+        --frames 3 --start-t 0 --end-t 1 \
+        --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+        --save-name "${temp_dir}/orbit_mkv_%04d.png" \
+        --video "$mkv_out" --keep-frames >/dev/null 2>&1; then
+        if [ -f "$mkv_out" ] && [ -s "$mkv_out" ]; then
+            # Frames should still exist
+            local kept_frames=0
+            for f in "${temp_dir}"/orbit_mkv_*.png; do
+                [ -f "$f" ] && ((kept_frames++))
+            done
+            if [ "$kept_frames" -eq 3 ]; then
+                mkv_passed=true
+            fi
+        fi
+    fi
+
+    if $mkv_passed; then
+        ((PASSED++))
+        echo -e "  video output MKV/hevc_nvenc (3 frames, --keep-frames) ${GREEN}✓${RESET}"
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - video output MKV/hevc_nvenc (failed or frame count wrong)"
+        echo -e "  video output MKV/hevc_nvenc (3 frames, --keep-frames) ${RED}✗${RESET}"
+    fi
+
+    rm -rf "$temp_dir"
+}
+
 export -f run_test
 export -f run_test_should_fail
 export -f run_test_with_output
@@ -876,6 +953,7 @@ export -f test_colored_shadows
 export -f test_parametric_caustics_comparison
 export -f test_area_lights
 export -f test_error_handling
+export -f test_video_output
 
 # ============================================
 # Main
@@ -924,6 +1002,7 @@ main() {
             "test_parametric_caustics_comparison"
             "test_area_lights"
             "test_error_handling"
+            "test_video_output"
         )
 
         # Run categories in parallel with job control
@@ -968,6 +1047,7 @@ main() {
         test_parametric_caustics_comparison
         test_area_lights
         test_error_handling
+        test_video_output
     fi
 
     print_summary

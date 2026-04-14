@@ -50,6 +50,9 @@ trait CliValidation:
   protected def startT: ScallopOption[Float]
   protected def endT: ScallopOption[Float]
   protected def tFrames: ScallopOption[Int]
+  protected def video: ScallopOption[String]
+  protected def videoQuality: ScallopOption[Int]
+  protected def keepFrames: ScallopOption[Boolean]
 
   protected def registerValidationRules(): Unit =
     validationLogger.debug("Registering CLI validation rules")
@@ -61,6 +64,7 @@ trait CliValidation:
     registerCausticsValidations()
     registerHeadlessValidations()
     registerTAnimationValidations()
+    registerVideoValidations()
 
   private def registerProjectionValidations(): Unit =
     mutuallyExclusive(timeout, animate)
@@ -250,4 +254,51 @@ trait CliValidation:
           case Some(_) => Left("--frames requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
           case None => Left("--frames requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
       else Right(())
+    }
+
+  private def registerVideoValidations(): Unit =
+    // --video-quality and --keep-frames require --video
+    validateOpt(videoQuality, video) { (_, v) =>
+      requires("video-quality", videoQuality.isSupplied, "video", v.isDefined)
+    }
+    validateOpt(keepFrames, video) { (_, v) =>
+      requires("keep-frames", keepFrames.isSupplied, "video", v.isDefined)
+    }
+
+    // --video requires --frames
+    validateOpt(video, tFrames) { (v, fr) =>
+      if v.isDefined && fr.isEmpty then
+        Left("--video requires --frames (animation must be specified)")
+      else Right(())
+    }
+
+    // --video requires --save-name with %
+    validateOpt(video, saveName) { (v, sn) =>
+      if v.isDefined then
+        sn match
+          case Some(name) if name.contains("%") => Right(())
+          case Some(_) => Left("--video requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
+          case None => Left("--video requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
+      else Right(())
+    }
+
+    // --video extension must be .mp4 or .mkv
+    validateOpt(video) { v =>
+      v match
+        case Some(path) if path.toLowerCase.endsWith(".mp4") || path.toLowerCase.endsWith(".mkv") =>
+          Right(())
+        case Some(path) =>
+          Left(s"--video '$path': unsupported format. Use .mp4 (H.264) or .mkv (HEVC/hevc_nvenc)")
+        case None => Right(())
+    }
+
+    // --video requires ffmpeg and the encoder for the chosen format
+    validateOpt(video) { v =>
+      v match
+        case None => Right(())
+        case Some(outputPath) =>
+          try
+            menger.engines.VideoEncoder.checkAvailable(outputPath)
+            Right(())
+          catch case e: IllegalStateException => Left(e.getMessage)
     }

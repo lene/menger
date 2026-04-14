@@ -229,6 +229,23 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = "Number of frames in t-parameter animation (requires --scene, --save-name with %)"
   )
 
+  // === Video Output Options ===
+  private val videoGroup = group("Video Output:")
+
+  val video: ScallopOption[String] = opt[String](
+    name = "video", required = false, group = videoGroup,
+    descr = "Encode frame sequence into video file. Supported formats: .mp4 (H.264/libx264), .mkv (HEVC/hevc_nvenc). Requires --frames and --save-name"
+  )
+  val videoQuality: ScallopOption[Int] = opt[Int](
+    name = "video-quality", required = false, default = Some(12), group = videoGroup,
+    validate = q => q >= 0 && q <= 51,
+    descr = "Video QP quality value (0=lossless, 51=worst; default 12 = master quality)"
+  )
+  val keepFrames: ScallopOption[Boolean] = opt[Boolean](
+    name = "keep-frames", required = false, default = Some(false), group = videoGroup,
+    descr = "Keep individual frame PNG files after video encoding (default: delete frames)"
+  )
+
   // === OptiX Renderer Options ===
   val scene: ScallopOption[String] = opt[String](
     name = "scene", required = false, group = optixGroup,

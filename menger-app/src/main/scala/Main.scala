@@ -19,6 +19,7 @@ import menger.engines.AnimationEngine
 import menger.engines.InteractiveEngine
 import menger.engines.RenderEngine
 import menger.engines.TAnimationConfig
+import menger.engines.VideoEngine
 import menger.optix.RenderConfig
 import org.slf4j.LoggerFactory
 
@@ -83,20 +84,32 @@ object Main:
     import menger.dsl.SceneLoader
     SceneLoader.load(sceneName) match
       case Right(LoadedScene.Animated(fn)) if opts.tFrames.isSupplied =>
-        // Multi-frame animation: create AnimationEngine
+        // Multi-frame animation: create VideoEngine (with ffmpeg) or AnimationEngine (frames only)
         val animConfig = TAnimationConfig(
           startT = opts.startT(),
           endT = opts.endT(),
           frames = opts.tFrames(),
           savePattern = opts.saveName()
         )
-        AnimationEngine(
-          sceneFunction = fn,
-          animConfig = animConfig,
-          executionConfig = buildExecutionConfig(opts),
-          renderConfig = opts.renderConfig,
-          causticsConfig = opts.causticsConfig
-        )
+        if opts.video.isSupplied then
+          VideoEngine(
+            sceneFunction = fn,
+            animConfig = animConfig,
+            executionConfig = buildExecutionConfig(opts),
+            renderConfig = opts.renderConfig,
+            causticsConfig = opts.causticsConfig,
+            videoOutputPath = opts.video(),
+            videoQuality = opts.videoQuality(),
+            keepFrames = opts.keepFrames()
+          )
+        else
+          AnimationEngine(
+            sceneFunction = fn,
+            animConfig = animConfig,
+            executionConfig = buildExecutionConfig(opts),
+            renderConfig = opts.renderConfig,
+            causticsConfig = opts.causticsConfig
+          )
 
       case Right(loadedScene) =>
         // Static scene or animated scene evaluated at fixed t

@@ -11,17 +11,20 @@ import menger.optix.CausticsConfig
 import menger.optix.RenderConfig
 import menger.optix.SceneConfigurator
 
-// Stub: video encoding is a no-op until Task 17.5
 class VideoEngine(
   val sceneFunction: Float => Scene,
   val animConfig: TAnimationConfig,
   executionConfig: ExecutionConfig,
   val renderConfig: RenderConfig,
   val causticsConfig: CausticsConfig,
-  private val videoOutputPath: String
+  val videoOutputPath: String,
+  val videoQuality: Int,
+  val keepFrames: Boolean
 )(using ProfilingConfig)
     extends BaseEngine(executionConfig.maxInstances)
     with WithAnimation with WithVideoExport with SavesScreenshots:
+
+  VideoEncoder.checkAvailable(videoOutputPath)
 
   override protected def textureDir: String = executionConfig.textureDir
 

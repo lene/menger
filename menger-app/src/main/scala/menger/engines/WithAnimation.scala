@@ -75,4 +75,5 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
           ()
     else if frame >= animConfig.frames then
       logger.info(s"Animation complete: ${animConfig.frames} frames rendered")
+      onAnimationComplete()
       GdxRuntime.exit()
