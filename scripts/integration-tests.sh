@@ -964,7 +964,7 @@ main() {
     echo "=== Menger Integration Tests ==="
     # Clear OptiX disk cache before any renders to avoid corrupted-state failures
     # from previous runs. OptiX will rebuild the cache during the first render.
-    rm -rf /var/tmp/OptixCache_lene 2>/dev/null || true
+    rm -rf /var/tmp/OptixCache_* 2>/dev/null || true
     echo "Binary: $MENGER_BIN"
     if [ "$UPDATE_REFERENCES" = true ]; then
         echo -e "Mode: ${YELLOW}UPDATE REFERENCES${RESET}"
