@@ -48,9 +48,23 @@ class VideoEncoderSuite extends AnyFlatSpec with Matchers:
       VideoEncoder.buildArgs("frame_%04d.png", "output", fps = 24, quality = 12)
 
   "VideoEncoder.checkAvailable" should "succeed for .mp4 on this system (ffmpeg + libx264 present)" in:
+    import scala.sys.process._
+    import scala.util.Try
+    val ffmpegFound = Try("ffmpeg -version" !! ProcessLogger(_ => ())).isSuccess
+    assume(ffmpegFound, "ffmpeg not found on this system — skipping encoder availability check")
+    val libx264Found = Try("ffmpeg -encoders" !! ProcessLogger(_ => ())).toOption
+      .exists(_.contains("libx264"))
+    assume(libx264Found, "libx264 not available in ffmpeg on this system — skipping")
     noException should be thrownBy VideoEncoder.checkAvailable("output.mp4")
 
   it should "succeed for .mkv on this system (ffmpeg + hevc_nvenc present)" in:
+    import scala.sys.process._
+    import scala.util.Try
+    val ffmpegFound = Try("ffmpeg -version" !! ProcessLogger(_ => ())).isSuccess
+    assume(ffmpegFound, "ffmpeg not found on this system — skipping encoder availability check")
+    val hevcFound = Try("ffmpeg -encoders" !! ProcessLogger(_ => ())).toOption
+      .exists(_.contains("hevc_nvenc"))
+    assume(hevcFound, "hevc_nvenc not available in ffmpeg on this system — skipping")
     noException should be thrownBy VideoEncoder.checkAvailable("output.mkv")
 
   it should "throw for unsupported extension" in:
