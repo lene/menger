@@ -147,10 +147,7 @@ Test:Full:
   stage: test
   needs: []
   timeout: 20m
-  retry:
-    max: 2
-    when:
-      - stuck_or_timeout_failure
+  retry: 2
   tags:
     - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
   variables:
@@ -257,10 +254,7 @@ Test:OptiXJni:
   stage: test
   needs: []
   timeout: 20m
-  retry:
-    max: 2
-    when:
-      - stuck_or_timeout_failure
+  retry: 2
   tags:
     - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
   variables:
@@ -299,10 +293,7 @@ Test:OptiXJni:Cuda13:
   stage: test
   needs: []
   timeout: 20m
-  retry:
-    max: 2
-    when:
-      - stuck_or_timeout_failure
+  retry: 2
   tags:
     - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
   variables:
@@ -342,10 +333,7 @@ Test:ComputeSanitizer:
   stage: test
   needs: []
   timeout: 20m
-  retry:
-    max: 2
-    when:
-      - stuck_or_timeout_failure
+  retry: 2
   tags:
     - nvidia  # Requires runner with NVIDIA GPU
   variables:
@@ -406,10 +394,7 @@ Test:Valgrind:
   stage: test
   needs: []
   timeout: 20m
-  retry:
-    max: 2
-    when:
-      - stuck_or_timeout_failure
+  retry: 2
   tags:
     - nvidia  # Requires runner with NVIDIA GPU
   variables:
@@ -762,10 +747,7 @@ BuildDeployable:
   stage: build
   needs: []
   timeout: 20m
-  retry:
-    max: 2
-    when:
-      - stuck_or_timeout_failure
+  retry: 2
   tags:
     - nvidia
   rules:
