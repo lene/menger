@@ -19,7 +19,7 @@ variables:
   # OptiX Docker image version: {CUDA}-{OptiX}-{Java}-{sbt}
   OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.12.0
   # CUDA 13 variant image — allow_failure jobs, not an MR gate
-  OPTIX_DOCKER_VERSION_CUDA13: 13.2-9.1-25-1.12.0
+  OPTIX_DOCKER_VERSION_CUDA13: 13.2-9.0-25-1.12.0
   # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
   # See: https://forums.developer.nvidia.com/t/crash-on-launching-game-with-plasma-problematic-frame-libnvidia-glcore-so-570-144-0xa5966c/332304
   __GL_THREADED_OPTIMIZATIONS: "0"
