@@ -400,7 +400,7 @@ else echo "Status after build: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 echo "=== Running integration tests ==="
-./scripts/integration-tests.sh "./menger-app-${VERSION}/bin/menger-app" || STATUS=1
+MAX_PARALLEL_JOBS=1 ./scripts/integration-tests.sh "./menger-app-${VERSION}/bin/menger-app" || STATUS=1
 if [ $STATUS -gt 0 ]
 then echo "Status after integration tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after integration tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
