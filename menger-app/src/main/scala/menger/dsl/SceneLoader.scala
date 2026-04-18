@@ -45,14 +45,66 @@ object SceneLoader extends LazyLogging:
   def load(sceneName: String): Either[String, LoadedScene] =
     logger.info(s"Loading scene: $sceneName")
 
-    // Try registry first (registry only stores static scenes)
-    SceneRegistry.get(sceneName) match
-      case Some(scene) =>
-        logger.info(s"Loaded scene from registry: $sceneName")
-        Right(LoadedScene.Static(scene))
-      case None =>
-        // Try reflection
-        loadByReflection(sceneName)
+    if isFilePath(sceneName) then
+      loadFromFile(new java.io.File(sceneName))
+    else
+      // Try registry first (registry only stores static scenes)
+      SceneRegistry.get(sceneName) match
+        case Some(scene) =>
+          logger.info(s"Loaded scene from registry: $sceneName")
+          Right(LoadedScene.Static(scene))
+        case None =>
+          // Try reflection
+          loadByReflection(sceneName)
+
+  private def isFilePath(name: String): Boolean =
+    name.endsWith(".scala") && new java.io.File(name).isFile
+
+  private def loadFromFile(file: java.io.File): Either[String, LoadedScene] =
+    if !file.exists() then Left(s"Scene file not found: ${file.getAbsolutePath}")
+    else SceneCompiler.compile(file) match
+      case Left(err) => Left(err)
+      case Right(loader) =>
+        detectObjectName(file) match
+          case None =>
+            Left(s"Could not find a top-level 'object' declaration in '${file.getName}'")
+          case Some((pkg, objName)) =>
+            val className = if pkg.isEmpty then objName else s"$pkg.$objName"
+            loadByReflectionWithLoader(className, loader)
+
+  private def detectObjectName(file: java.io.File): Option[(String, String)] =
+    val lines = scala.io.Source.fromFile(file).getLines().take(60).toSeq
+    val pkg = lines.collectFirst {
+      case l if l.trim.startsWith("package ") => l.trim.stripPrefix("package ").trim
+    }.getOrElse("")
+    val obj = lines.collectFirst {
+      case l if l.trim.startsWith("object ") =>
+        l.trim.stripPrefix("object ").takeWhile(c => c.isLetterOrDigit || c == '_')
+    }
+    obj.map(o => (pkg, o))
+
+  private def loadByReflectionWithLoader(
+    className: String,
+    loader: ClassLoader
+  ): Either[String, LoadedScene] =
+    Try {
+      val cls = loader.loadClass(s"$className$$")
+      val moduleField = cls.getDeclaredField("MODULE$")
+      moduleField.setAccessible(true)
+      // scalafix:off DisableSyntax.null
+      val module = moduleField.get(null)
+      // scalafix:on DisableSyntax.null
+      tryLoadStaticScene(cls, module)
+        .orElse(tryLoadAnimatedScene(cls, module))
+        .getOrElse(Left(
+          s"Object '$className' has neither a 'scene' field of type Scene " +
+          "nor a 'scene(Float)' method returning Scene"))
+    }.toEither match
+      case Right(result) =>
+        logger.info(s"Successfully loaded compiled scene: $className")
+        result
+      case Left(ex) =>
+        Left(s"Failed to load compiled scene '$className': ${ex.getMessage}")
 
   /** Load a scene by fully-qualified class name using reflection.
     *

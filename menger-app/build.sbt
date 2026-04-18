@@ -59,5 +59,7 @@ libraryDependencies ++= Seq(
   // libGDX
   "com.badlogicgames.gdx" % "gdx" % "1.14.0",
   "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.14.0",
-  "com.badlogicgames.gdx" % "gdx-platform" % "1.14.0" classifier "natives-desktop"
+  "com.badlogicgames.gdx" % "gdx-platform" % "1.14.0" classifier "natives-desktop",
+  // Scala 3 compiler for runtime .scala scene file evaluation (Task 17.7)
+  "org.scala-lang" %% "scala3-compiler" % scalaVersion.value
 )

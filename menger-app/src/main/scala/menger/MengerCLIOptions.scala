@@ -253,8 +253,8 @@ class MengerCLIOptions(arguments: Seq[String])
   // === OptiX Renderer Options ===
   val scene: ScallopOption[String] = opt[String](
     name = "scene", required = false, group = optixGroup,
-    descr = "Load pre-compiled DSL scene by name (e.g., 'glass-sphere') or fully-qualified class name (e.g., 'examples.dsl.GlassSphere'). " +
-      "Mutually exclusive with --objects"
+    descr = "Load scene by short name (e.g., 'glass-sphere'), fully-qualified class name (e.g., 'examples.dsl.GlassSphere'), " +
+      "or path to a .scala file for runtime compilation (e.g., 'my_scene.scala'). Mutually exclusive with --objects"
   )
 
   val objects: ScallopOption[List[ObjectSpec]] = opt[List[ObjectSpec]](
