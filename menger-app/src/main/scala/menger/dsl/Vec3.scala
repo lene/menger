@@ -6,6 +6,7 @@ import menger.common.Vector
 /** 3D vector for DSL with convenient tuple conversions */
 case class Vec3(x: Float, y: Float, z: Float):
   def +(other: Vec3): Vec3 = Vec3(x + other.x, y + other.y, z + other.z)
+  def -(other: Vec3): Vec3 = Vec3(x - other.x, y - other.y, z - other.z)
   def *(scalar: Float): Vec3 = Vec3(x * scalar, y * scalar, z * scalar)
   def toGdxVector3: GdxVector3 = GdxVector3(x, y, z)
   def toCommonVector: Vector[3] = Vector[3](x, y, z)
