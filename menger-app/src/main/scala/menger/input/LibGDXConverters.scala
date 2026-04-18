@@ -22,6 +22,9 @@ object LibGDXConverters:
     case Keys.DOWN => Key.Down
     case Keys.PAGE_UP => Key.PageUp
     case Keys.PAGE_DOWN => Key.PageDown
+    case Keys.HOME => Key.Home
+    case Keys.END => Key.End
+    case Keys.SPACE => Key.Space
     case Keys.ESCAPE => Key.Escape
     case Keys.Q => Key.Q
     case _ => Key.Unknown(gdxKeyCode)

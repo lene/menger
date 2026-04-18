@@ -228,6 +228,10 @@ class MengerCLIOptions(arguments: Seq[String])
     name = "frames", required = false, validate = _ > 0, group = tAnimationGroup,
     descr = "Number of frames in t-parameter animation (requires --scene, --save-name with %)"
   )
+  val preview: ScallopOption[Boolean] = opt[Boolean](
+    name = "preview", required = false, default = Some(false), group = tAnimationGroup,
+    descr = "Interactive animation preview: scrub t with Left/Right, Shift+Left/Right for larger steps, Space to play/pause, Home/End to jump. Requires --scene with an animated scene"
+  )
 
   // === Video Output Options ===
   private val videoGroup = group("Video Output:")

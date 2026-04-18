@@ -22,6 +22,7 @@ object GdxRuntime:
   def width: Int                                    = graphics.map(_.getWidth).getOrElse(0)
   def height: Int                                   = graphics.map(_.getHeight).getOrElse(0)
   def glClear(mask: Int): Unit                      = gl.foreach(_.glClear(mask))
+  def setWindowTitle(title: String): Unit            = graphics.foreach(_.setTitle(title))
   def setInputProcessor(p: InputProcessor): Unit    = input.foreach(_.setInputProcessor(p))
   def isKeyPressed(keycode: Int): Boolean           = input.exists(_.isKeyPressed(keycode))
   def isButtonPressed(button: Int): Boolean         = input.exists(_.isButtonPressed(button))

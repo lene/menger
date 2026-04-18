@@ -17,6 +17,7 @@ import menger.dsl.LoadedScene
 import menger.dsl.SceneConverter
 import menger.engines.AnimationEngine
 import menger.engines.InteractiveEngine
+import menger.engines.PreviewEngine
 import menger.engines.RenderEngine
 import menger.engines.TAnimationConfig
 import menger.engines.VideoEngine
@@ -83,6 +84,21 @@ object Main:
 
     import menger.dsl.SceneLoader
     SceneLoader.load(sceneName) match
+      case Right(LoadedScene.Animated(fn)) if opts.preview() =>
+        val animConfig = TAnimationConfig(
+          startT      = opts.startT(),
+          endT        = opts.endT(),
+          frames      = opts.tFrames.toOption.getOrElse(100),
+          savePattern = ""
+        )
+        PreviewEngine(
+          sceneFunction   = fn,
+          previewConfig   = animConfig,
+          executionConfig = buildExecutionConfig(opts),
+          renderConfig    = opts.renderConfig,
+          causticsConfig  = opts.causticsConfig
+        )
+
       case Right(LoadedScene.Animated(fn)) if opts.tFrames.isSupplied =>
         // Multi-frame animation: create VideoEngine (with ffmpeg) or AnimationEngine (frames only)
         val animConfig = TAnimationConfig(

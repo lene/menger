@@ -7,6 +7,7 @@ enum Key:
   case ShiftLeft, ShiftRight
   case Left, Right, Up, Down
   case PageUp, PageDown
+  case Home, End, Space
   case Escape, Q
   case Unknown(code: Int)
 

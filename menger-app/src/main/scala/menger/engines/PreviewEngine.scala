@@ -1,20 +1,58 @@
 package menger.engines
 
+import scala.util.Failure
+
 import menger.ProfilingConfig
+import menger.config.ExecutionConfig
+import menger.dsl.Scene
+import menger.dsl.SceneConverter
+import menger.input.GdxRuntime
+import menger.input.LibGDXInputAdapter
+import menger.input.PreviewKeyHandler
 import menger.optix.CameraState
+import menger.optix.CausticsConfig
+import menger.optix.RenderConfig
 import menger.optix.SceneConfigurator
 
-// Stub: constructor signature and implementation are provided by Task 17.6
-class PreviewEngine()(using ProfilingConfig)
-    extends BaseEngine(0) with WithPreview:
+class PreviewEngine(
+  val sceneFunction: Float => Scene,
+  val previewConfig: TAnimationConfig,
+  executionConfig: ExecutionConfig,
+  val renderConfig: RenderConfig,
+  val causticsConfig: CausticsConfig
+)(using ProfilingConfig)
+    extends BaseEngine(executionConfig.maxInstances)
+    with WithPreview:
 
-  override protected def textureDir: String = "."
+  override protected def textureDir: String = executionConfig.textureDir
 
-  override protected val sceneConfigurator: SceneConfigurator =
-    sys.error("PreviewEngine not yet implemented (Task 17.6)")
+  private val _firstScene = sceneFunction(previewConfig.startT)
 
-  override protected val cameraState: CameraState =
-    sys.error("PreviewEngine not yet implemented (Task 17.6)")
+  override protected val firstFrameConfigs: SceneConverter.SceneConfigs =
+    SceneConverter.convert(_firstScene, causticsConfig)
 
-  override def create(): Unit = sys.error("PreviewEngine not yet implemented (Task 17.6)")
-  override def render(): Unit = {}
+  override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
+    Failure(UnsupportedOperationException("Not used in preview engine")),
+    firstFrameConfigs.camera.position,
+    firstFrameConfigs.camera.lookAt,
+    firstFrameConfigs.camera.up,
+    firstFrameConfigs.lights
+  )
+
+  override protected val cameraState: CameraState = CameraState(
+    firstFrameConfigs.camera.position,
+    firstFrameConfigs.camera.lookAt,
+    firstFrameConfigs.camera.up
+  )
+
+  override def create(): Unit =
+    super.create()
+    val keyHandler = PreviewKeyHandler(
+      onStep       = stepT,
+      onTogglePlay = togglePlay,
+      onJumpStart  = jumpToStart,
+      onJumpEnd    = jumpToEnd
+    )
+    GdxRuntime.setInputProcessor(LibGDXInputAdapter(Seq(keyHandler)))
+
+  override def render(): Unit = super.render()
