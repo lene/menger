@@ -22,13 +22,13 @@ library separation.
 - [x] Scene graph supports transform hierarchy and per-node material inheritance
 - [ ] Video output via ffmpeg: MP4 and WebM from frame sequences
 - [ ] CLI: `--video output.mp4` to render and encode in one step
-- [ ] Animation preview mode with interactive t scrubbing
+- [x] Animation preview mode with interactive t scrubbing
 - [x] DSL supports rendering-quality settings (shadows, antialiasing, aaMaxDepth, aaThreshold);
   window settings remain CLI-only; fov and maxRayDepth stubbed (OptiX not yet implemented)
-- [ ] Procedural placement helpers available in DSL (grids, rings, spirals)
-- [ ] Bezier/spline camera path utility implemented as pure Scala helper
-- [ ] Runtime DSL scene evaluation works (not just compile-time)
-- [ ] optix-jni API boundary documented (general vs. Menger-specific)
+- [x] Procedural placement helpers available in DSL (grids, rings, spirals)
+- [x] Bezier/spline camera path utility implemented as pure Scala helper
+- [x] Runtime DSL scene evaluation works (not just compile-time)
+- [x] optix-jni API boundary documented (general vs. Menger-specific)
 - [ ] All tests pass
 
 ---
