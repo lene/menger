@@ -49,16 +49,6 @@ perpendicular to the default light direction, producing near-zero `dot(N, L)` fo
 
 ## Low Priority
 
-### L-changelog-duplicate-version — CHANGELOG.md has duplicate [0.4.2] header
-**Location:** `CHANGELOG.md` lines ~212 and ~260
-**Est. Effort:** 0.1h
-The `[0.4.2]` version section header appears twice. The second entry (line ~260) covers
-Tesseract and cylinder edge rendering and should be `[0.4.1]` or `[0.4.2-preview]`. As written,
-the duplicate makes it ambiguous which changes belong to which release, and the diff link at the
-bottom for `[0.4.2]` can only point to one commit range. Pre-existing.
-
----
-
 ### L-scroll-test — Missing Shift+Scroll tests for OptiXCameraHandler
 **Location:** `OptiXCameraHandler.scala`
 **Est. Effort:** 1h
