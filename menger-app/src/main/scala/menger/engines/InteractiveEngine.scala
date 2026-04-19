@@ -2,7 +2,6 @@ package menger.engines
 
 import java.util.concurrent.atomic.AtomicReference
 
-import scala.util.Failure
 import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
@@ -69,9 +68,6 @@ class InteractiveEngine(
     currentObjectSpecs.get().exists(_.exists(spec => ObjectType.isProjected4D(spec.objectType)))
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    Failure(UnsupportedOperationException(
-      "Legacy geometry generator removed. Use objectSpecs instead."
-    )),
     camera.position,
     camera.lookAt,
     camera.up,

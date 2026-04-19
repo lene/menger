@@ -1,7 +1,5 @@
 package menger.engines
 
-import scala.util.Failure
-
 import menger.ProfilingConfig
 import menger.config.ExecutionConfig
 import menger.dsl.Scene
@@ -30,7 +28,6 @@ class AnimationEngine(
     SceneConverter.convert(_firstScene, causticsConfig)
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    Failure(UnsupportedOperationException("Legacy geometry generator not used in animated engine")),
     firstFrameConfigs.camera.position,
     firstFrameConfigs.camera.lookAt,
     firstFrameConfigs.camera.up,

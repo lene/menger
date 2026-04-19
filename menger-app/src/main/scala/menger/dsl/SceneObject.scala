@@ -10,7 +10,40 @@ import menger.common.ObjectType
 sealed trait SceneObject:
   def pos: Vec3
   def size: Float
+  def material: Option[Material]
+  def color: Option[Color]
+  def ior: Float
+  def texture: Option[String]
+  def rotation: Vec3
   def toObjectSpec: ObjectSpec
+
+  protected def baseObjectSpec(
+    objectType: String,
+    level: Option[Float] = None,
+    projection4D: Option[menger.Projection4DSpec] = None,
+    edgeRadius: Option[Float] = None,
+    edgeMaterial: Option[menger.optix.Material] = None,
+    meshData: Option[menger.common.TriangleMeshData] = None
+  ): ObjectSpec =
+    ObjectSpec(
+      objectType = objectType,
+      x = pos.x,
+      y = pos.y,
+      z = pos.z,
+      size = size,
+      level = level,
+      color = color.map(_.toCommonColor),
+      ior = material.map(_.ior).getOrElse(ior),
+      material = material.map(_.toOptixMaterial),
+      texture = texture,
+      projection4D = projection4D,
+      edgeRadius = edgeRadius,
+      edgeMaterial = edgeMaterial,
+      rotX = rotation.x,
+      rotY = rotation.y,
+      rotZ = rotation.z,
+      meshData = meshData
+    )
 
 /** Sphere object */
 case class Sphere(
@@ -25,22 +58,7 @@ case class Sphere(
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
-  def toObjectSpec: ObjectSpec =
-    ObjectSpec(
-      objectType = "sphere",
-      x = pos.x,
-      y = pos.y,
-      z = pos.z,
-      size = size,
-      level = None,
-      color = color.map(_.toCommonColor),
-      ior = material.map(_.ior).getOrElse(ior),
-      material = material.map(_.toOptixMaterial),
-      texture = texture,
-      rotX = rotation.x,
-      rotY = rotation.y,
-      rotZ = rotation.z
-    )
+  def toObjectSpec: ObjectSpec = baseObjectSpec("sphere")
 
 object Sphere:
   // Material-only constructor (at origin)
@@ -69,22 +87,7 @@ case class Cube(
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
-  def toObjectSpec: ObjectSpec =
-    ObjectSpec(
-      objectType = "cube",
-      x = pos.x,
-      y = pos.y,
-      z = pos.z,
-      size = size,
-      level = None,
-      color = color.map(_.toCommonColor),
-      ior = material.map(_.ior).getOrElse(ior),
-      material = material.map(_.toOptixMaterial),
-      texture = texture,
-      rotX = rotation.x,
-      rotY = rotation.y,
-      rotZ = rotation.z
-    )
+  def toObjectSpec: ObjectSpec = baseObjectSpec("cube")
 
 object Cube:
   // Material-only constructor (at origin)
@@ -123,21 +126,7 @@ case class Sponge(
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec =
-    ObjectSpec(
-      objectType = ObjectType.normalize(spongeType.objectTypeName),
-      x = pos.x,
-      y = pos.y,
-      z = pos.z,
-      size = size,
-      level = Some(level),
-      color = color.map(_.toCommonColor),
-      ior = material.map(_.ior).getOrElse(ior),
-      material = material.map(_.toOptixMaterial),
-      texture = texture,
-      rotX = rotation.x,
-      rotY = rotation.y,
-      rotZ = rotation.z
-    )
+    baseObjectSpec(ObjectType.normalize(spongeType.objectTypeName), level = Some(level))
 
 object Sponge:
   // Type + level (at origin, no material)
@@ -196,23 +185,11 @@ case class Tesseract(
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec =
-    ObjectSpec(
-      objectType = "tesseract",
-      x = pos.x,
-      y = pos.y,
-      z = pos.z,
-      size = size,
-      level = None,
-      color = color.map(_.toCommonColor),
-      ior = material.map(_.ior).getOrElse(ior),
-      material = material.map(_.toOptixMaterial),
-      texture = texture,
+    baseObjectSpec(
+      "tesseract",
       projection4D = projection,
       edgeRadius = edgeRadius,
-      edgeMaterial = edgeMaterial.map(_.toOptixMaterial),
-      rotX = rotation.x,
-      rotY = rotation.y,
-      rotZ = rotation.z
+      edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
     )
 
 object Tesseract:
@@ -249,23 +226,12 @@ case class TesseractSponge(
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec =
-    ObjectSpec(
-      objectType = ObjectType.normalize(spongeType.objectTypeName),
-      x = pos.x,
-      y = pos.y,
-      z = pos.z,
-      size = size,
+    baseObjectSpec(
+      ObjectType.normalize(spongeType.objectTypeName),
       level = Some(level),
-      color = color.map(_.toCommonColor),
-      ior = material.map(_.ior).getOrElse(ior),
-      material = material.map(_.toOptixMaterial),
-      texture = texture,
       projection4D = projection,
       edgeRadius = edgeRadius,
-      edgeMaterial = edgeMaterial.map(_.toOptixMaterial),
-      rotX = rotation.x,
-      rotY = rotation.y,
-      rotZ = rotation.z
+      edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
     )
 
 object TesseractSponge:
@@ -347,19 +313,4 @@ case class ParametricSurface(
     val mesh = menger.objects.ParametricTessellator.tessellate(
       tupleF, uRange, vRange, uSteps, vSteps, closedU, closedV
     )
-    ObjectSpec(
-      objectType = "parametric",
-      x = pos.x,
-      y = pos.y,
-      z = pos.z,
-      size = size,
-      level = None,
-      color = color.map(_.toCommonColor),
-      ior = material.map(_.ior).getOrElse(ior),
-      material = material.map(_.toOptixMaterial),
-      texture = texture,
-      rotX = rotation.x,
-      rotY = rotation.y,
-      rotZ = rotation.z,
-      meshData = Some(mesh)
-    )
+    baseObjectSpec("parametric", meshData = Some(mesh))

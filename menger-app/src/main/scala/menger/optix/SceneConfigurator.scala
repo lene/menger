@@ -1,7 +1,5 @@
 package menger.optix
 
-import scala.util.Try
-
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.ColorConversions.toCommonColor
@@ -17,18 +15,11 @@ import menger.common.Light
 import menger.common.Vector
 
 class SceneConfigurator(
-  configureGeometry: Try[OptiXRenderer => Unit],
   cameraPos: Vector3,
   cameraLookat: Vector3,
   cameraUp: Vector3,
   lights: List[LightSpec] = List.empty
 ) extends LazyLogging:
-
-  def configureScene(renderer: OptiXRenderer): Unit =
-    logger.debug("Configuring OptiX scene")
-    configureGeometry.get(renderer)  // Throws on failure - caught by Main
-    configureCamera(renderer)
-    configureLights(renderer)
 
   def configureCamera(renderer: OptiXRenderer): Unit =
     val eye = cameraPos.toVector3
@@ -105,38 +96,7 @@ class SceneConfigurator(
     }
     if planes.isEmpty then logger.debug("No planes configured")
 
-  def setSphereColor(renderer: OptiXRenderer, color: Color): Unit =
-    renderer.setSphereColor(color)
-    logger.debug(s"Configured sphere color: RGBA=(${color.r}, ${color.g}, ${color.b}, ${color.a})")
-
-  def setTriangleMeshColor(renderer: OptiXRenderer, color: Color): Unit =
-    renderer.setTriangleMeshColor(color)
-    logger.debug(s"Configured triangle mesh color: RGBA=(${color.r}, ${color.g}, ${color.b}, ${color.a})")
-
-  def setTriangleMeshIOR(renderer: OptiXRenderer, ior: Float): Unit =
-    renderer.setTriangleMeshIOR(ior)
-    logger.debug(s"Configured triangle mesh IOR: $ior")
-
-  def setIOR(renderer: OptiXRenderer, ior: Float): Unit =
-    renderer.setIOR(ior)
-    logger.debug(s"Configured index of refraction: IOR=$ior")
-
-  def setScale(renderer: OptiXRenderer, scale: Float): Unit =
-    renderer.setScale(scale)
-    logger.debug(s"Configured scale parameter: scale=$scale")
-
   def setBackgroundColor(renderer: OptiXRenderer, color: Color): Unit =
     renderer.setBackgroundColor(color.r, color.g, color.b)
     logger.debug(f"Configured background color: RGB=(${color.r}%.2f, ${color.g}%.2f, ${color.b}%.2f)")
 
-  def setShadows(renderer: OptiXRenderer, enabled: Boolean): Unit =
-    renderer.setShadows(enabled)
-    logger.debug(s"Configured shadow rays: enabled=$enabled")
-
-  def setAntialiasing(renderer: OptiXRenderer, enabled: Boolean, maxDepth: Int, threshold: Float): Unit =
-    renderer.setAntialiasing(enabled, maxDepth, threshold)
-    logger.debug(s"Configured antialiasing: enabled=$enabled, maxDepth=$maxDepth, threshold=$threshold")
-
-  def setCaustics(renderer: OptiXRenderer, enabled: Boolean, photonsPerIter: Int, iterations: Int, initialRadius: Float, alpha: Float): Unit =
-    renderer.setCaustics(enabled, photonsPerIter, iterations, initialRadius, alpha)
-    logger.debug(s"Configured caustics: enabled=$enabled, photonsPerIter=$photonsPerIter, iterations=$iterations, initialRadius=$initialRadius, alpha=$alpha")

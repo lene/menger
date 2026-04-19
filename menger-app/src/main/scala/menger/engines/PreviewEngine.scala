@@ -1,7 +1,5 @@
 package menger.engines
 
-import scala.util.Failure
-
 import menger.ProfilingConfig
 import menger.config.ExecutionConfig
 import menger.dsl.Scene
@@ -32,7 +30,6 @@ class PreviewEngine(
     SceneConverter.convert(_firstScene, causticsConfig)
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    Failure(UnsupportedOperationException("Not used in preview engine")),
     firstFrameConfigs.camera.position,
     firstFrameConfigs.camera.lookAt,
     firstFrameConfigs.camera.up,
