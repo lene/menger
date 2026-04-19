@@ -56,17 +56,17 @@ object SceneClassifier:
   )(using ProfilingConfig): Option[SceneBuilder] =
     val dir = textureDir.getOrElse(".")
     sceneType match
-      case SceneType.Spheres(_)       => Some(SphereSceneBuilder())
-      case SceneType.CubeSponges(_)   => Some(CubeSpongeSceneBuilder())
-      case SceneType.TriangleMeshes(specs) =>
-        val all4DProjected   = specs.forall(s => ObjectType.isProjected4D(s.objectType))
-        val hasEdgeRendering = specs.exists(_.hasEdgeRendering)
-        if all4DProjected && hasEdgeRendering then
-          Some(TesseractEdgeSceneBuilder(dir))
-        else
-          Some(TriangleMeshSceneBuilder(dir))
-      case SceneType.SimpleMixed(_, _) => None  // Handled specially in createMultiObjectScene
-      case SceneType.ComplexMixed(_)   => None
+      case SceneType.Spheres(_)            => Some(SphereSceneBuilder())
+      case SceneType.CubeSponges(_)        => Some(CubeSpongeSceneBuilder())
+      case SceneType.TriangleMeshes(specs) => Some(selectTriangleMeshBuilder(specs, dir))
+      case SceneType.SimpleMixed(_, _)     => None  // Handled specially in createMultiObjectScene
+      case SceneType.ComplexMixed(_)       => None
+
+  private def selectTriangleMeshBuilder(specs: List[ObjectSpec], dir: String)(using ProfilingConfig): SceneBuilder =
+    val all4DProjected   = specs.forall(s => ObjectType.isProjected4D(s.objectType))
+    val hasEdgeRendering = specs.exists(_.hasEdgeRendering)
+    if all4DProjected && hasEdgeRendering then TesseractEdgeSceneBuilder(dir)
+    else TriangleMeshSceneBuilder(dir)
 
 enum SceneType:
   case CubeSponges(specs: List[ObjectSpec])

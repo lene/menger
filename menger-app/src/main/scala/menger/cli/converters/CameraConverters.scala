@@ -1,9 +1,6 @@
 package menger.cli.converters
 
-import scala.util.Try
-
 import com.badlogic.gdx.math.Vector3
-import menger.cli.converters.ConverterUtils.unwrapTryEither
 import org.rogach.scallop.ArgType
 import org.rogach.scallop.ValueConverter
 
@@ -14,18 +11,6 @@ given vector3Converter: ValueConverter[Vector3] with
     if s.isEmpty || s.head._2.isEmpty then Right(None)
     else
       val input = s.head._2.head.trim
-      unwrapTryEither(Try {
-        val parts = input.split(",").map(_.trim.toFloat)
-        if parts.length != 3 then
-          Left(s"Vector3 '$input' must have exactly 3 components (x,y,z). " +
-            "Example: 0,0,3 or 1.5,-2.0,0")
-        else
-          Right(Some(Vector3(parts(0), parts(1), parts(2))))
-      }.recover {
-        case e: NumberFormatException =>
-          Left(s"Vector3 '$input' contains non-numeric values. " +
-            "All components must be valid numbers (e.g., 0,0,3 or 1.5,-2.0,0)")
-        case e: Exception =>
-          Left(s"Vector3 '$input' not recognized: ${e.getMessage}. " +
-            "Expected format: x,y,z (e.g., 0,0,3)")
-      })
+      ConverterUtils.parseFloatComponents(input, 3)
+        .map(f => Some(Vector3(f(0), f(1), f(2))))
+        .left.map(msg => s"Vector3 '$input': $msg. Expected format: x,y,z (e.g., 0,0,3)")

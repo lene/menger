@@ -49,19 +49,6 @@ perpendicular to the default light direction, producing near-zero `dot(N, L)` fo
 
 ## Low Priority
 
-### L-scroll-test — Missing Shift+Scroll tests for OptiXCameraHandler
-**Location:** `OptiXCameraHandler.scala`
-**Est. Effort:** 1h
-Sprint 11 plan called for "adjust eyeW on Shift+Scroll" and "clamp eyeW above screenW" tests
-that were never written. `OptiXCameraHandler` is in `coverageExcludedPackages` (requires LibGDX
-runtime), making unit tests difficult. The boundary case where large negative scroll produces
-`eyeW ≈ 1.016f` close to `screenW = 1.0f` is a latent crash risk if `Projection` ever receives
-`eyeW ≤ screenW`.
-
----
-
-
-
 ### L-cli-monolith — MengerCLIOptions is a 375-line monolith
 **Location:** `menger-app/src/main/scala/menger/MengerCLIOptions.scala`
 **Est. Effort:** 3h
@@ -77,23 +64,6 @@ could move there. Reduces cognitive load when adding new options.
 15+ `validateOpt()` / `requiresOptix()` calls follow the same pattern. A data-driven validation
 builder (e.g., a list of `(option, condition, message)` tuples) would halve the line count and
 make adding new validations trivial.
-
----
-
-### L-scene-builder-registry — Builder selection is hardcoded in SceneClassifier
-**Location:** `menger-app/src/main/scala/menger/engines/SceneClassifier.scala` — `selectSceneBuilder()`
-**Est. Effort:** 1h
-`selectSceneBuilder()` is a match expression that maps SceneType variants to builder instances.
-A `Map[SceneType, SceneBuilder]` registry would be easier to extend and test independently.
-
----
-
-### L-converter-duplication — Coordinate parsing repeated across converters
-**Location:** `menger-app/src/main/scala/menger/cli/converters/`
-**Est. Effort:** 1h
-`vector3Converter`, `planeSpecConverter`, and parts of `lightSpecConverter` all parse
-comma-separated floats with similar error-handling boilerplate. A shared
-`parseFloatComponents(input, expectedCount)` helper in `ConverterUtils` would reduce duplication.
 
 ---
 
