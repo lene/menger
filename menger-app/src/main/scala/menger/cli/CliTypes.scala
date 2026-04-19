@@ -44,6 +44,8 @@ object LightSpec:
           new Color(clr.r, clr.g, clr.b, clr.a)
         )
       case menger.common.Light.Area(position, normal, radius, shape, clr, intensity, samples) =>
+        val cliShape = shape match
+          case menger.common.AreaLightShape.Disk => AreaLightShape.DISK
         LightSpec(
           LightType.AREA,
           new Vector3(position(0), position(1), position(2)),
@@ -51,7 +53,7 @@ object LightSpec:
           new Color(clr.r, clr.g, clr.b, clr.a),
           normal = new Vector3(normal(0), normal(1), normal(2)),
           radius = radius,
-          shape = AreaLightShape.DISK,
+          shape = cliShape,
           shadowSamples = samples
         )
 

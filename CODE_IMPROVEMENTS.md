@@ -97,17 +97,6 @@ comma-separated floats with similar error-handling boilerplate. A shared
 
 ---
 
-### L-area-shape-hardcoded — CliTypes.fromCommonLight hardcodes DISK for area light shape
-**Location:** `menger-app/src/main/scala/menger/cli/CliTypes.scala` — `LightSpec.fromCommonLight`
-**Est. Effort:** 0.25h
-The `Area` case always maps `shape = AreaLightShape.DISK` regardless of the actual
-`menger.common.AreaLightShape` value. Since `DISK` is the only shape, this is currently correct,
-but when `RECT` or `SPHERE` are added the mapping will silently produce the wrong shape.
-Add an exhaustive match from `menger.common.AreaLightShape` → `menger.cli.AreaLightShape` when
-new shapes are introduced.
-
----
-
 ### L-caustics-duplicate-config — CausticsConfig and dsl.Caustics duplicate fields and validation
 **Location:** `optix-jni/.../RenderConfig.scala` and `menger-app/.../dsl/Caustics.scala`
 **Est. Effort:** 0.5h
