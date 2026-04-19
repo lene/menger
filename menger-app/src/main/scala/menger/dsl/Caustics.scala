@@ -17,12 +17,12 @@ case class Caustics(
   initialRadius: Float = 1.0f,
   alpha: Float = 0.7f
 ):
-  require(photonsPerIteration > 0 && photonsPerIteration <= 10000000,
-    s"photonsPerIteration must be 1-10000000, got $photonsPerIteration")
-  require(iterations > 0 && iterations <= 1000,
-    s"iterations must be 1-1000, got $iterations")
-  require(initialRadius > 0.0f && initialRadius <= 10.0f,
-    s"initialRadius must be 0.0-10.0, got $initialRadius")
+  require(photonsPerIteration > 0 && photonsPerIteration <= OptiXCausticsConfig.MaxPhotonsPerIteration,
+    s"photonsPerIteration must be 1-${OptiXCausticsConfig.MaxPhotonsPerIteration}, got $photonsPerIteration")
+  require(iterations > 0 && iterations <= OptiXCausticsConfig.MaxIterations,
+    s"iterations must be 1-${OptiXCausticsConfig.MaxIterations}, got $iterations")
+  require(initialRadius > 0.0f && initialRadius <= OptiXCausticsConfig.MaxInitialRadius,
+    s"initialRadius must be 0.0-${OptiXCausticsConfig.MaxInitialRadius}, got $initialRadius")
   require(alpha > 0.0f && alpha < 1.0f,
     s"alpha must be 0.0-1.0 exclusive, got $alpha")
 

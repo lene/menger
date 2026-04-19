@@ -97,16 +97,6 @@ comma-separated floats with similar error-handling boilerplate. A shared
 
 ---
 
-### L-caustics-duplicate-config — CausticsConfig and dsl.Caustics duplicate fields and validation
-**Location:** `optix-jni/.../RenderConfig.scala` and `menger-app/.../dsl/Caustics.scala`
-**Est. Effort:** 0.5h
-Both case classes carry identical fields (`photonsPerIteration`, `iterations`, `initialRadius`,
-`alpha`) and the same `require` guards. The `Caustics.toCausticsConfig` bridge means any change
-to limits must be made in two places. Consider extracting validation constants to a shared object
-or letting the DSL type own the constraints and stripping them from `CausticsConfig`.
-
----
-
 ## Feature Ideas (Sprint 20+)
 
 These are deferred feature ideas, not defects.
