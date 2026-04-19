@@ -208,17 +208,20 @@ object ObjectSpec extends LazyLogging:
         }.map(Some(_))
       case None => Right(None)
 
-  private def parseColor(kvPairs: Map[String, String]): Either[String, Option[menger.common.Color]] =
-    kvPairs.get("color") match
+  private def parseColorField(kvPairs: Map[String, String], key: String): Either[String, Option[menger.common.Color]] =
+    kvPairs.get(key) match
       case Some(colorStr) =>
         Try {
           val hexStr = if colorStr.startsWith("#") then colorStr.substring(1) else colorStr
           menger.common.Color.fromHex(hexStr)
         }.toEither.left.map { e =>
-          s"Invalid color value '$colorStr': ${e.getMessage}. " +
-            "Color must be hex format (e.g., color=#FF0000 or color=FF0000)"
+          s"Invalid $key value '$colorStr': ${e.getMessage}. " +
+            s"Color must be hex format (e.g., $key=#FF0000)"
         }.map(Some(_))
       case None => Right(None)
+
+  private def parseColor(kvPairs: Map[String, String]): Either[String, Option[menger.common.Color]] =
+    parseColorField(kvPairs, "color")
 
   private def parseIOR(kvPairs: Map[String, String]): Either[String, Float] =
     kvPairs.get("ior") match
@@ -431,13 +434,4 @@ object ObjectSpec extends LazyLogging:
             None
 
   private def parseEdgeColor(kvPairs: Map[String, String]): Either[String, Option[Color]] =
-    kvPairs.get("edge-color") match
-      case Some(colorStr) =>
-        Try {
-          val hexStr = if colorStr.startsWith("#") then colorStr.substring(1) else colorStr
-          Color.fromHex(hexStr)
-        }.toEither.left.map { e =>
-          s"Invalid edge-color value '$colorStr': ${e.getMessage}. " +
-            "Color must be hex format (e.g., edge-color=#00FFFF)"
-        }.map(Some(_))
-      case None => Right(None)
+    parseColorField(kvPairs, "edge-color")

@@ -280,40 +280,6 @@ tutorial example passes `--ior 1.5` as a top-level option. The `--ior` flag was 
 
 ---
 
-### L-dead-setSphereColor-overload — Private float-overload of setSphereColor never called
-**Location:** `optix-jni/src/main/scala/menger/optix/OptiXRenderer.scala:197`
-**Est. Effort:** 0.05h
-`private def setSphereColor(r: Float, g: Float, b: Float, a: Float)` is declared but never
-called. All call sites use the `Color` overload above it. Remove the float overload.
-
----
-
-### L-stale-phase-comments — Stale Phase 1-4 build plan comments in OptiXRenderer
-**Location:** `optix-jni/src/main/scala/menger/optix/OptiXRenderer.scala:166-169`
-**Est. Effort:** 0.05h
-The four "Phase N: ..." comments above the class definition document a long-completed
-implementation plan. All phases are done; the comments are noise.
-
----
-
-### L-require-false — require(false, ...) used as unreachable branch guard
-**Location:** `menger-app/src/main/scala/menger/engines/scene/TesseractEdgeSceneBuilder.scala:67,181`,
-`menger-app/src/main/scala/menger/engines/scene/MeshFactory.scala:115`
-**Est. Effort:** 0.25h
-Three `require(false, msg)` calls mark impossible match arms. `require` is for precondition
-validation, not impossible states. Replace with `sys.error(msg)` or `throw
-IllegalStateException(msg)` to express intent correctly.
-
----
-
-### L-parsecolor-duplication — parseColor and parseEdgeColor share identical logic
-**Location:** `menger-app/src/main/scala/menger/ObjectSpec.scala:188-198` and `:410-420`
-**Est. Effort:** 0.25h
-`parseColor` and `parseEdgeColor` are identical except for the error-message key name
-(`"color"` vs `"edge-color"`). Extract to a shared `parseColorField(kvPairs, key)` helper.
-
----
-
 ## Feature Ideas (Sprint 20+)
 
 These are deferred feature ideas, not defects.

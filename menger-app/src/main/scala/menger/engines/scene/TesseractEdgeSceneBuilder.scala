@@ -64,8 +64,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
             require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
             TesseractSponge2(spec.level.get, spec.size)
           case other =>
-            require(false, s"Unknown 4D object type: $other")
-            Tesseract(size = spec.size)  // Never reached, but needed for type checker
+            sys.error(s"Unknown 4D object type: $other")
 
         val edges = extractEdges(mesh4D)
         edges.size
@@ -178,9 +177,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
         require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
         TesseractSponge2(spec.level.get, spec.size)
       case other =>
-        require(false, s"Unsupported hypercube type for edge rendering: $other")
-        // Never reached due to require, but needed for type checker
-        Tesseract(size = spec.size)
+        sys.error(s"Unsupported hypercube type for edge rendering: $other")
 
     // Create rotation and projection (same as TesseractMesh)
     val rotation: Rotation =

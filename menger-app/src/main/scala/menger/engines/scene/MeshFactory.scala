@@ -112,5 +112,4 @@ object MeshFactory:
         getMesh
 
       case other =>
-        require(false, s"Unknown mesh type: $other")
-        ???  // Never reached due to require, but needed for type checker
+        sys.error(s"Unknown mesh type: $other")
