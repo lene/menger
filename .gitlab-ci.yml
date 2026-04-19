@@ -191,8 +191,10 @@ Test:Full:
         - menger-common/target/test-reports/**/TEST-*.xml
         - optix-jni/target/test-reports/**/TEST-*.xml
 
-# Full test suite on CUDA 13 - informational only (allow_failure)
-# Runs in parallel with Test:Full to catch CUDA version compatibility issues early
+# Full test suite on CUDA 13 - DISABLED pending proper CUDA 13 support
+# The CI runner's libnvoptix.so is CUDA 12.8-era (ABI 105); optixDeviceContextCreate()
+# hangs when the CUDA 13 runtime creates the primary context before libnvoptix.so
+# initialises it via the driver API. See TODO.md for the backlog item.
 Test:Full:Cuda13:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION_CUDA13
   stage: test
@@ -208,16 +210,7 @@ Test:Full:Cuda13:
     # Request graphics capability to ensure RTX/OptiX libraries are mounted
     NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
   rules:
-    - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\//'
-      allow_failure: true
-    - if: "$CI_MERGE_REQUEST_ID"
-      allow_failure: true
-    - if: $CI_COMMIT_BRANCH == "main"
-      allow_failure: true
-    - if: $CI_COMMIT_TAG
-      allow_failure: true
-    - if: $CI_COMMIT_BRANCH
-      allow_failure: true
+    - when: never
   before_script:
     # Verify GPU is available - fail fast if not configured
     - nvidia-smi
@@ -287,7 +280,8 @@ Test:OptiXJni:
     reports:
       junit: optix-jni/target/test-reports/**/TEST-*.xml
 
-# OptiX JNI tests on CUDA 13 - informational only (allow_failure)
+# OptiX JNI tests on CUDA 13 - DISABLED pending proper CUDA 13 support
+# See Test:Full:Cuda13 comment and TODO.md for context.
 Test:OptiXJni:Cuda13:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION_CUDA13
   stage: test
@@ -300,12 +294,7 @@ Test:OptiXJni:Cuda13:
     # Request graphics capability to ensure RTX/OptiX libraries are mounted
     NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
   rules:
-    - if: "$CI_MERGE_REQUEST_ID"
-      allow_failure: true
-    - if: $CI_COMMIT_BRANCH == "main"
-      allow_failure: true
-    - if: $CI_COMMIT_BRANCH
-      allow_failure: true
+    - when: never
   before_script:
     # Verify GPU is available - fail fast if not configured
     - nvidia-smi
