@@ -49,24 +49,6 @@ perpendicular to the default light direction, producing near-zero `dot(N, L)` fo
 
 ## Low Priority
 
-### L-cli-monolith — MengerCLIOptions is a 375-line monolith
-**Location:** `menger-app/src/main/scala/menger/MengerCLIOptions.scala`
-**Est. Effort:** 3h
-All 40+ option definitions live inline. Option groups and their defaults could be extracted into
-separate option-group traits/objects; validation rules already live in `CliValidation` but more
-could move there. Reduces cognitive load when adding new options.
-
----
-
-### L-cli-validation-density — CliValidation.scala is dense with repetitive validation patterns
-**Location:** `menger-app/src/main/scala/menger/cli/CliValidation.scala` (313 lines)
-**Est. Effort:** 2h
-15+ `validateOpt()` / `requiresOptix()` calls follow the same pattern. A data-driven validation
-builder (e.g., a list of `(option, condition, message)` tuples) would halve the line count and
-make adding new validations trivial.
-
----
-
 ## Feature Ideas (Sprint 20+)
 
 These are deferred feature ideas, not defects.
@@ -94,3 +76,5 @@ Issues that were investigated and consciously accepted:
 | L-film-blend: blendFresnelColorsRGBAndSetPayload duplicates scalar body | GPU perf trade-off; acceptable if documented |
 | OptiX DSL runtime evaluation | Deferred (Sprint 15) |
 | H-glass-sponge-skin-diffuse | Sprint 17: `use_coverage_blend` now excludes refractive materials; `use_refractive_coverage_blend` path added (vertex_alpha × Fresnel + (1−α) × continuation); `maxRayDepth` implemented in JNI/shader. Full investigation (glass-sponge-investigation.md) found remaining visible artifacts are physically correct Fresnel reflection of the pink background at grazing angles — not a code bug. Closed. |
+| L-cli-monolith: MengerCLIOptions is a 375-line monolith | Scallop registers options during construction; extracting groups into separate `self: ScallopConf =>` traits risks initialization-order issues. File is already organized with clear group separators; accept as-is. |
+| L-cli-validation-density: CliValidation repetitive requires-pattern | `isSupplied` must be evaluated lazily inside `validateOpt` lambdas (after argument parsing), not eagerly in a data-driven list. The repetition is load-bearing; accept as-is. The `case Some(_)/None` branches were simplified to `case _` where safe. |

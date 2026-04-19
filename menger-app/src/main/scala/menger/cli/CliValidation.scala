@@ -251,8 +251,7 @@ trait CliValidation:
       if fr.isDefined then
         sn match
           case Some(name) if name.contains("%") => Right(())
-          case Some(_) => Left("--frames requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
-          case None => Left("--frames requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
+          case _ => Left("--frames requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
       else Right(())
     }
 
@@ -277,8 +276,7 @@ trait CliValidation:
       if v.isDefined then
         sn match
           case Some(name) if name.contains("%") => Right(())
-          case Some(_) => Left("--video requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
-          case None => Left("--video requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
+          case _ => Left("--video requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")
       else Right(())
     }
 
