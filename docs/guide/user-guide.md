@@ -69,7 +69,7 @@ sbt "run --optix --objects 'type=sphere'    # Ray-traced sphere
 --radius <float>             # Object radius (default: 1.0)
 --scale <float>              # Object scale factor (default: 1.0)
 --center <x,y,z>             # Object center position
---ior <float>                # Index of refraction (1.0=opaque, 1.5=glass, 2.42=diamond)
+--objects type=sphere:ior=1.5  # Index of refraction via --objects (1.0=opaque, 1.5=glass, 2.42=diamond)
 
 # Camera
 --camera-pos <x,y,z>         # Camera position (default: 0,0.5,3)
@@ -387,13 +387,12 @@ sbt "run --optix \
 Create custom materials by specifying individual parameters:
 
 ```bash
-# Index of refraction (IOR)
---ior 1.5                    # Glass
---ior 1.33                   # Water
---ior 2.42                   # Diamond
---ior 1.0                    # Opaque (no refraction)
+# Index of refraction (IOR) via --objects
+--objects type=sphere:ior=1.5      # Glass
+--objects type=sphere:ior=1.33     # Water
+--objects type=sphere:ior=2.42     # Diamond
+--objects type=sphere:ior=1.0      # Opaque (no refraction)
 
-# With --objects syntax
 roughness=0.1                # Surface roughness (0.0-1.0)
 metallic=0.8                 # Metallic property (0.0-1.0)
 specular=0.5                 # Specular reflection intensity (0.0-1.0)

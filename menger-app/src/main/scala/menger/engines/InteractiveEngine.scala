@@ -91,6 +91,8 @@ class InteractiveEngine(
         if ObjectType.isProjected4D(spec.objectType) then
           val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
           val newEyeW =
+            // defaultEyeW acts as a sentinel: a rotation-only event leaves eyeW unchanged.
+            // A user who genuinely wants to reset eyeW to exactly defaultEyeW cannot do so here.
             if event.eyeW != Const.defaultEyeW then
               val updatedProjection =
                 Projection(currentProj.eyeW, currentProj.screenW) + event.projection

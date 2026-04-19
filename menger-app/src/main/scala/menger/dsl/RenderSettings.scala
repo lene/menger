@@ -12,7 +12,7 @@ import menger.optix.RenderConfig
   * @param antialiasing Enable recursive adaptive antialiasing
   * @param aaMaxDepth Maximum AA recursion depth (1-4)
   * @param aaThreshold AA edge detection threshold (0.0-1.0)
-  * @param maxRayDepth Maximum ray bounce depth — NOT YET IMPLEMENTED, must be None
+  * @param maxRayDepth Maximum ray bounce depth (1 to RenderLimits.MaxRayDepth)
   */
 case class RenderSettings(
   shadows: Boolean = false,
@@ -24,18 +24,18 @@ case class RenderSettings(
 ):
   require(aaMaxDepth >= 1 && aaMaxDepth <= 4, s"aaMaxDepth must be 1-4, got $aaMaxDepth")
   require(aaThreshold >= 0.0f && aaThreshold <= 1.0f, s"aaThreshold must be 0.0-1.0, got $aaThreshold")
-  maxRayDepth.foreach(_ => failMaxRayDepth())
-
-  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-  private def failMaxRayDepth(): Nothing =
-    throw new NotImplementedError("maxRayDepth is not yet implemented in the OptiX renderer")
+  maxRayDepth.foreach(d => require(
+    d >= 1 && d <= RenderConfig.Default.maxRayDepth,
+    s"maxRayDepth must be 1-${RenderConfig.Default.maxRayDepth}, got $d"
+  ))
 
   def toRenderConfig: RenderConfig = RenderConfig(
     shadows = shadows,
     transparentShadows = transparentShadows,
     antialiasing = antialiasing,
     aaMaxDepth = aaMaxDepth,
-    aaThreshold = aaThreshold
+    aaThreshold = aaThreshold,
+    maxRayDepth = maxRayDepth.getOrElse(RenderConfig.Default.maxRayDepth)
   )
 
 object RenderSettings:

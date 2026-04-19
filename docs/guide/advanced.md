@@ -220,8 +220,8 @@ sbt "run --optix --objects 'type=sphere:ior=1.5' \
 **Caustics with Complex Geometry:**
 ```bash
 # Menger sponge with caustics (computationally intensive!)
-sbt "run --optix --objects 'type=sponge-surface:level=2' \
-    --ior 1.5 --caustics --caustics-photons 200000"
+sbt "run --optix --objects 'type=sponge-surface:level=2:ior=1.5' \
+    --caustics --caustics-photons 200000"
 ```
 
 #### Performance Tips

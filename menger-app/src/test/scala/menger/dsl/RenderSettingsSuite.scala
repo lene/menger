@@ -36,8 +36,9 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
     an[IllegalArgumentException] should be thrownBy RenderSettings(aaThreshold = -0.1f)
     an[IllegalArgumentException] should be thrownBy RenderSettings(aaThreshold = 1.1f)
 
-  it should "throw NotImplementedError when maxRayDepth is set" in:
-    a[NotImplementedError] should be thrownBy RenderSettings(maxRayDepth = Some(10))
+  it should "reject maxRayDepth out of range" in:
+    an[IllegalArgumentException] should be thrownBy RenderSettings(maxRayDepth = Some(0))
+    an[IllegalArgumentException] should be thrownBy RenderSettings(maxRayDepth = Some(100))
 
   "RenderSettings.toRenderConfig" should "map all fields to RenderConfig" in:
     val rs = RenderSettings(
@@ -53,6 +54,14 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
     config.antialiasing shouldBe true
     config.aaMaxDepth shouldBe 3
     config.aaThreshold shouldBe 0.05f
+
+  it should "pass maxRayDepth through to RenderConfig" in:
+    val config = RenderSettings(maxRayDepth = Some(3)).toRenderConfig
+    config.maxRayDepth shouldBe 3
+
+  it should "use RenderConfig default for maxRayDepth when None" in:
+    val config = RenderSettings().toRenderConfig
+    config.maxRayDepth shouldBe menger.optix.RenderConfig.Default.maxRayDepth
 
   it should "map defaults correctly" in:
     val config = RenderSettings().toRenderConfig

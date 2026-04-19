@@ -347,8 +347,6 @@
 - **Edge Extraction**: Canonical ordering deduplicates edges from quad faces
 - **Backward Compatibility**: Existing `TesseractMesh` usage unaffected
 
-## [0.4.2] - 2026-01-26
-
 ### Added
 - **Tesseract (4D Hypercube)** - Render 4D geometry projected to 3D via OptiX
   - `--objects type=tesseract` for 4D hypercube rendering (16 vertices, 24 faces projected to 3D)
