@@ -144,7 +144,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
       ).toTriangleMesh
 
     logger.info(f"Level 1 volume sponge: ${mesh.numTriangles} triangles in $genTimeMs%.2fms")
-    mesh.numTriangles shouldBe 240
+    mesh.numTriangles shouldBe 144
     genTimeMs should be < 200.0
 
   it should "generate level 2 volume sponge within 1 second" taggedAs Slow in:
@@ -158,7 +158,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
       ).toTriangleMesh
 
     logger.info(f"Level 2 volume sponge: ${mesh.numTriangles} triangles in $genTimeMs%.2fms")
-    mesh.numTriangles shouldBe 4800
+    mesh.numTriangles shouldBe 2112
     genTimeMs should be < 1000.0
 
   "Sponge rendering performance" should "render level 2 surface sponge at >1 FPS (800x600)" taggedAs Slow in:

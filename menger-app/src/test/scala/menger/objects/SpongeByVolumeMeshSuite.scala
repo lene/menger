@@ -19,17 +19,17 @@ class SpongeByVolumeMeshSuite extends AnyFlatSpec with Matchers:
     mesh.numTriangles shouldBe 12
     mesh.numVertices shouldBe 24
 
-  it should "generate 20 cubes at level 1 (240 triangles)" in:
+  it should "generate exterior-only faces at level 1 (144 triangles after culling interior shared faces)" in:
     val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 1)
     val mesh = sponge.toTriangleMesh
-    mesh.numTriangles shouldBe 240
-    mesh.numVertices shouldBe 480
+    mesh.numTriangles shouldBe 144
+    mesh.numVertices shouldBe 288
 
-  it should "generate 400 cubes at level 2 (4800 triangles)" taggedAs Slow in:
+  it should "generate exterior-only faces at level 2 (2112 triangles after culling interior shared faces)" taggedAs Slow in:
     val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 2)
     val mesh = sponge.toTriangleMesh
-    mesh.numTriangles shouldBe 4800
-    mesh.numVertices shouldBe 9600
+    mesh.numTriangles shouldBe 2112
+    mesh.numVertices shouldBe 4224
 
   it should "position cubes correctly at level 1" in:
     val sponge = SpongeByVolume(Vector3.Zero, 3.0f, level = 1)

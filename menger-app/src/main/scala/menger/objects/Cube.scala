@@ -23,7 +23,9 @@ case class Cube(
     instance.transform.setToTranslationAndScaling(center, Vector3(scale, scale, scale))
     instance :: Nil
 
-  def toTriangleMesh: TriangleMeshData =
+  def toTriangleMesh: TriangleMeshData = toTriangleMeshExcluding(Set.empty)
+
+  def toTriangleMeshExcluding(excluded: Set[Direction]): TriangleMeshData =
     val half = scale / 2
     val faces = Seq(
       Face(center.x + half, center.y, center.z, scale, Direction.X),
@@ -32,7 +34,7 @@ case class Cube(
       Face(center.x, center.y - half, center.z, scale, Direction.negY),
       Face(center.x, center.y, center.z + half, scale, Direction.Z),
       Face(center.x, center.y, center.z - half, scale, Direction.negZ)
-    )
+    ).filterNot(f => excluded.contains(f.normal))
     TriangleMeshData.merge(faces.map(_.toTriangleMesh))
 
 

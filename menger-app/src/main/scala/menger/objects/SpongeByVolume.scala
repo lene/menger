@@ -44,33 +44,41 @@ class SpongeByVolume(
 
     subCubeList.flatten.toList
 
-  override def toTriangleMesh: TriangleMeshData =
-    if level <= 0 then super.toTriangleMesh
-    else if level.isValidInt then getIntegerMesh
-    else getFractionalMesh
+  override def toTriangleMesh: TriangleMeshData = toTriangleMeshExcluding(Set.empty)
 
-  private def getFractionalMesh: TriangleMeshData =
+  override def toTriangleMeshExcluding(excluded: Set[Direction]): TriangleMeshData =
+    if level <= 0 then super.toTriangleMeshExcluding(excluded)
+    else if level.isValidInt then
+      if excluded.isEmpty then getIntegerMesh else getIntegerMeshExcluding(excluded)
+    else getFractionalMeshExcluding(excluded)
+
+  private def getFractionalMeshExcluding(excluded: Set[Direction]): TriangleMeshData =
     buildFractionalMesh(
-      nextLevelMesh    = SpongeByVolume(center, scale, (level + 1).floor, material, primitiveType).toTriangleMesh,
-      currentLevelMesh = SpongeByVolume(center, scale, level.floor, material, primitiveType).toTriangleMesh
+      nextLevelMesh    = SpongeByVolume(center, scale, (level + 1).floor, material, primitiveType).toTriangleMeshExcluding(excluded),
+      currentLevelMesh = SpongeByVolume(center, scale, level.floor, material, primitiveType).toTriangleMeshExcluding(excluded)
     )
 
-  private lazy val getIntegerMesh: TriangleMeshData =
-    val shift = scale / 3f
-    val subMeshes = for
-      xx <- -1 to 1
-      yy <- -1 to 1
-      zz <- -1 to 1
-      if abs(xx) + abs(yy) + abs(zz) > 1
-    yield SpongeByVolume(
-      Vector3(center.x + xx * shift, center.y + yy * shift, center.z + zz * shift),
-      scale / 3f,
-      level - 1,
-      material,
-      primitiveType
-    ).toTriangleMesh
+  private lazy val getIntegerMesh: TriangleMeshData = getIntegerMeshExcluding(Set.empty)
 
-    TriangleMeshData.merge(subMeshes)
+  private def getIntegerMeshExcluding(excluded: Set[Direction]): TriangleMeshData =
+    val shift = scale / 3f
+    val filledPositions: Set[(Int, Int, Int)] =
+      (for xx <- -1 to 1; yy <- -1 to 1; zz <- -1 to 1 if abs(xx) + abs(yy) + abs(zz) > 1
+        yield (xx, yy, zz)).toSet
+
+    val subMeshes = for (xx, yy, zz) <- filledPositions.toSeq yield
+      val neighborExclude = Direction.values.filter { d =>
+        filledPositions.contains((xx + d.x, yy + d.y, zz + d.z))
+      }.toSet
+      val inheritedExclude = excluded.filter { d =>
+        d.x * xx + d.y * yy + d.z * zz == 1
+      }
+      SpongeByVolume(
+        Vector3(center.x + xx * shift, center.y + yy * shift, center.z + zz * shift),
+        scale / 3f, level - 1, material, primitiveType
+      ).toTriangleMeshExcluding(neighborExclude ++ inheritedExclude)
+
+    TriangleMeshData.merge(subMeshes.filter(_.numVertices > 0))
 
   override def toString: String =
     s"SpongeByVolume(level=${float2string(level)}, ${6 * Math.pow(20, level.toInt).toLong} faces)"
