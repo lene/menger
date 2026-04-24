@@ -245,39 +245,39 @@ class Face4DSuite extends AnyFlatSpec with RectMesh with Matchers:
     val cornersToRemove = Seq(Vector[4](-2, -2, 0, 0), Vector[4](1, -1, 0, 0))
     an [IllegalArgumentException] should be thrownBy remainingCorners(seqXY, cornersToRemove)
 
-  "rotate around an edge" should "return a Face4D at all" in:
-    val rotated = faceXY.rotate(Edge(Vector[4](-1, -1, 0, 0), Vector[4](1, -1, 0, 0)))
+  "extrude along an edge" should "return a Face4D at all" in:
+    val rotated = faceXY.extrude(Edge(Vector[4](-1, -1, 0, 0), Vector[4](1, -1, 0, 0)))
     rotated should not be empty
 
   it should "actually return 2 Face4Ds" in:
-    val rotated = faceXY.rotate(Edge(Vector[4](-1, -1, 0, 0), Vector[4](1, -1, 0, 0)))
+    val rotated = faceXY.extrude(Edge(Vector[4](-1, -1, 0, 0), Vector[4](1, -1, 0, 0)))
     rotated should have length 2
 
   it should "rotate a selected Face4D correctly" in:
     val face = faceXY + Vector[4](0, 0, -3, -3)
     face.normals should contain (Vector.Z)
-    val rotated = face.rotate(Edge(Vector[4](-1, -1, -3, -3), Vector[4](1, -1, -3, -3)))
+    val rotated = face.extrude(Edge(Vector[4](-1, -1, -3, -3), Vector[4](1, -1, -3, -3)))
     rotated should contain (Face4D(Vector[4](-1, -1, -3, -3), Vector[4](1, -1, -3, -3), Vector[4](1, -1, -1, -3), Vector[4](-1, -1, -1, -3)))
 
   it should "rotate another selected Face4D correctly" in:
     val face = Face4D(Vector[4](1, 1, 3, 3), Vector[4](-1, 1, 3, 3), Vector[4](-1, -1, 3, 3), Vector[4](1, -1, 3, 3))
     face.normals should contain (-Vector.Z)
-    val rotated = face.rotate(Edge(Vector[4](1, 1, 3, 3), Vector[4](-1, 1, 3, 3)))
+    val rotated = face.extrude(Edge(Vector[4](1, 1, 3, 3), Vector[4](-1, 1, 3, 3)))
     rotated should contain (Face4D(Vector[4](1, 1, 3, 3), Vector[4](-1, 1, 3, 3), Vector[4](-1, 1, 1, 3), Vector[4](1, 1, 1, 3)))
 
   it should "throw exception when corners are not in the face" in:
     val face = Face4D(Vector[4](-1, -1, 0, 0), Vector[4](1, -1, 0, 0), Vector[4](1, 1, 0, 0), Vector[4](-1, 1, 0, 0))
-    an [IllegalArgumentException] should be thrownBy face.rotate(Edge(Vector[4](-2, -2, 0, 0), Vector[4](2, -2, 0, 0)))
+    an [IllegalArgumentException] should be thrownBy face.extrude(Edge(Vector[4](-2, -2, 0, 0), Vector[4](2, -2, 0, 0)))
 
-  "rotate" should "return 8 Face4Ds" in:
-    val rotated = faceXY.rotate()
+  "extrude" should "return 8 Face4Ds" in:
+    val rotated = faceXY.extrude()
     rotated should have length 8
 
   it should "cover all edges of the original Face4D" in:
-    val rotated = faceXY.rotate()
+    val rotated = faceXY.extrude()
     val rotatedEdges = rotated.flatMap(_.edges)
     rotatedEdges should contain allElementsOf faceXY.edges
 
   it should "all have the same area as the original" in:
-    val rotated = faceXY.rotate()
+    val rotated = faceXY.extrude()
     rotated.map(_.area) should contain only faceXY.area

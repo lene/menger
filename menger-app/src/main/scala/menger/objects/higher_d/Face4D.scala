@@ -41,10 +41,10 @@ case class Face4D(a: Vector[4], b: Vector[4], c: Vector[4], d: Vector[4]):
   def edges: Seq[Edge] = Seq(Edge(a, b), Edge(b, c), Edge(c, d), Edge(d, a))
   def plane: Plane = Plane(asSeq)
 
-  def rotate(): Seq[Face4D] =
-    edges.flatMap { edge => rotate(edge) }
+  def extrude(): Seq[Face4D] =
+    edges.flatMap { edge => extrude(edge) }
 
-  def rotate(edge: Edge): Seq[Face4D] =
+  def extrude(edge: Edge): Seq[Face4D] =
     val allCorners = asSeq
     val corners = edge.asSeq
     val oppositeCorners = remainingCorners(allCorners, corners)
@@ -57,9 +57,27 @@ case class Face4D(a: Vector[4], b: Vector[4], c: Vector[4], d: Vector[4]):
       distance.dst(oppositeCorners.last - corners.head) < Const.epsilon,
       s"Corners must be opposite - got ${corners.map(_.toString)} in $this}"
     )
-    normals.map { normal =>
-      val newOpposites = corners.map(_ + normal * distance.len)
-      Face4D(edge.v0, edge.v1, newOpposites.last, newOpposites.head)
+    val parentCentre = (a + b + c + d) / 4f
+    val edgeMid = (edge.v0 + edge.v1) / 2f
+    val qOffset = edgeMid - parentCentre
+    val qAxisOpt = (0 until Face4D.dimension).find(i => qOffset(i).abs > Const.epsilon)
+    require(qAxisOpt.isDefined, s"edge midpoint coincides with parent centre in $this")
+    val qAxis = qAxisOpt.get
+    val qNormal = Vector.unit[4](qAxis) * -qOffset(qAxis).sign
+    val parentNormals = normals
+    parentNormals.zipWithIndex.map { case (extrusionNormal, i) =>
+      val siblingNormal = parentNormals(1 - i)
+      val expected = Set(qNormal, siblingNormal)
+      val newOpposites = corners.map(_ + extrusionNormal * distance.len)
+      val base = Seq(edge.v0, edge.v1, newOpposites.last, newOpposites.head)
+      val chosen = (0 until 4).iterator.map { k =>
+        val r = (0 until 4).map(j => base((j + k) % 4))
+        Face4D(r(0), r(1), r(2), r(3))
+      }.find(_.normals.toSet == expected)
+      require(chosen.isDefined,
+        s"No cyclic ordering of $base produces expected normals $expected " +
+          s"(parent=$this, edge=${edge.asSeq}, extrusionNormal=$extrusionNormal)")
+      chosen.get
     }
 
 
@@ -74,7 +92,7 @@ def vectorIndices(v: Vector[4]): Seq[Int] =
 
 def normalSigns(edgeVectors: Seq[Vector[4]]): Seq[Float] =
   val sum = edgeVectors.reduce(_ + _)
-  sum.filter(_.abs > 0).map(_.sign)
+  sum.filter(_.abs > Const.epsilon).map(_.sign)
 
 object Face4D:
   private val VERTICES_PER_FACE = 4

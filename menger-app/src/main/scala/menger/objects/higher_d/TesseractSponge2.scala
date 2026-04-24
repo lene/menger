@@ -12,8 +12,15 @@ class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) w
 
   lazy val faces: Seq[Face4D] = if level.toInt == 0 then Tesseract(size).faces else nestedFaces
 
+  private def mergeVertices(faces: Seq[Face4D], epsilon: Float = 1e-4f): Seq[Face4D] =
+    val canonicalMap = scala.collection.mutable.HashMap[(Long, Long, Long, Long), Vector[4]]()
+    def vkey(v: Vector[4]): (Long, Long, Long, Long) =
+      ((v(0) / epsilon).round, (v(1) / epsilon).round, (v(2) / epsilon).round, (v(3) / epsilon).round)
+    def canonical(v: Vector[4]): Vector[4] = canonicalMap.getOrElseUpdate(vkey(v), v)
+    faces.map(f => Face4D(canonical(f.a), canonical(f.b), canonical(f.c), canonical(f.d)))
+
   private[higher_d] def nestedFaces: Seq[Face4D] =
-    TesseractSponge2(level - 1).faces.flatMap(faceGenerator)
+    mergeVertices(TesseractSponge2(level - 1).faces.flatMap(faceGenerator))
 
   private[higher_d] def faceGenerator(face: Face4D): Seq[Face4D] =
     generateFlatParts(face) ++ generatePerpendicularParts(face)
@@ -35,7 +42,7 @@ class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) w
   private[higher_d] def generatePerpendicularParts(face: Face4D): Seq[Face4D] =
     val c = cornerPoints(face)
     val centralPart = Face4D(c("da2bc11"), c("da2bc12"), c("da1bc22"), c("da1bc21"))
-    centralPart.rotate()
+    centralPart.extrude()
 
   private[higher_d] def cornerPoints(face: Face4D): CornerMap =
     val (a, b, c, d) = face.asTuple

@@ -165,8 +165,15 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     flatSubfaces.toSet.intersect(perpendicularSubfaces.toSet) shouldBe empty
 
   it should "all have the same base lines" in new Sponge2:
+    def undirectedEquals(line1: (Vector[4], Vector[4]), line2: (Vector[4], Vector[4])): Boolean =
+      (line1._1 === line2._1 && line1._2 === line2._2) ||
+        (line1._1 === line2._2 && line1._2 === line2._1)
     forAll (perpendicularSubfaces) { subface =>
-      centerSubfaceEdges.exists(line => lineRoughlyEquals(line, (subface.a, subface.b))) shouldBe true
+      val subEdges = Seq(
+        (subface.a, subface.b), (subface.b, subface.c),
+        (subface.c, subface.d), (subface.d, subface.a)
+      )
+      centerSubfaceEdges.exists(c => subEdges.exists(se => undirectedEquals(c, se))) shouldBe true
     }
 
   it should "all be 1/3 of the original side length long" in new Sponge2:

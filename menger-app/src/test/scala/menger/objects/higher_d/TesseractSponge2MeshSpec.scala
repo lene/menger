@@ -171,6 +171,24 @@ class TesseractSponge2MeshSpec extends AnyFlatSpec with Matchers:
 
   // === Comparison with TesseractSponge Tests ===
 
+  // === Manifoldness Tests ===
+
+  "TesseractSponge2 faces" should "be manifold (no boundary edges) at level 0" in:
+    MeshTopology.checkFace4D(TesseractSponge2(0).faces).boundaryEdgeCount shouldBe 0
+
+  it should "be manifold (no boundary edges) at level 1" in:
+    MeshTopology.checkFace4D(TesseractSponge2(1).faces).boundaryEdgeCount shouldBe 0
+
+  // Level 2 is not strictly 2-manifold by this metric: ~1920 boundary edges
+  // and ~2112 triple-shared edges remain after the Sprint-17 normals fix.
+  // Visible "flap" artifacts are gone (see investigation doc 2026-04-21), but
+  // the containment bug (768 faces with corners in removed sub-cubes) is a
+  // separate issue tracked in CODE_IMPROVEMENTS.md. Pinned as a regression
+  // guard against backsliding below the current count.
+  it should "have at most 2000 boundary edges at level 2 (partial fix)" in:
+    val count = MeshTopology.checkFace4D(TesseractSponge2(2).faces).boundaryEdgeCount
+    count should be <= 2000
+
   "TesseractSponge2" should "have fewer faces than TesseractSponge at same level" in:
     // TesseractSponge grows as 48^level (volume-based)
     // TesseractSponge2 grows as 16^level (surface-based)
