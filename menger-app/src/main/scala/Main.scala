@@ -192,5 +192,6 @@ object Main:
       saveName = opts.saveName.toOption,
       enableStats = opts.stats(),
       maxInstances = opts.maxInstances(),
-      textureDir = opts.textureDir()
+      textureDir = opts.textureDir(),
+      allowUniformRender = opts.allowUniformRender()
     )

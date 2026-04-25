@@ -7,7 +7,6 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 - publish OptiX JNI as a separate project - should cover the full OptiX API, not just the ray tracing pipeline.
 - Library layer for other Java/Scala clients to use OptiX JNI without Menger's scene graph or rendering pipeline.
 - Guidance for generating good and interesting scenes and animations (user guide)
-- Diagnostic log messages for failed (all-red) renderings and cancel the render with a failure
 - More 3- and higher dimensional objects:
   - construction methods listed in https://hi.gher.space/wiki/Shape
   - Regular polytopes
@@ -16,26 +15,7 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
   - construction from Schläfli symbols (algorithmic generator for `{p,q}` / `{p,q,r}`)
   - gaussian splats
   - 4D spacetime trace of a person (or any object)
-- IAS-driven infinite level of detail for 3D sponge:
-  The "Holy Grail" for OptiX: Recursive Instancing
-  If you are using OptiX for a Menger Sponge, you shouldn't be generating millions of vertices at 
-  all. You should use Hardware Instancing.Because the Menger Sponge is perfectly self-similar, you 
-  can exploit the Instance Acceleration Structure (IAS) to reduce your memory usage from Gigabytes 
-  to Kilobytes.
-  How it works: Instead of unwrapping the geometry in your script, you unwrap the scenegraph in 
-  OptiX. 
-  - Level 1 (The Atom): Create a single Geometry Acceleration Structure (GAS) containing just 
-    the 20 squares of the generator. Upload this to VRAM once. (Size: Tiny).
-  - Level 2 (The Node): Create an Instance Acceleration Structure (IAS). It contains 20 Instances. 
-    Each instance points to the Level 1 GAS. Each instance has a transformation matrix 
-    (Scale $1/3$, Translate to corner).
-  - Level 3: Create an IAS containing 20 instances that point to the Level 2 IAS. 
-  - Level $N$: Create an IAS containing 20 instances pointing to Level $N-1$. 
-  The Math: Traditional Method (Level 6): Store $20^6 = 64,000,000$ squares. (~3 GB VRAM).
-  Instancing Method (Level 6): Store 6 levels $\times$ 20 matrices. (~10 KB VRAM).
-  Result:You can render a Level 15 Menger Sponge on a standard GPU. The limit is no longer VRAM; it 
-  is the floating point precision of the matrices and the traversal stack depth (which you can 
-  configure in OptiX).
+- IAS-driven infinite level of detail for 3D sponge: scheduled as Sprint 18.4 (recursive IAS sponge).
 - The Real "Smart Idea": Procedural Intersection (SDFs)
   Since you cannot store the vertices (memory limit) and you cannot instance the geometry (4D 
   limit), the only robust solution for high-dimensional fractals in OptiX is Procedural Primitives.

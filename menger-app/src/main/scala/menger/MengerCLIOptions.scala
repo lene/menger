@@ -20,6 +20,7 @@ import menger.common.Const
 import menger.common.ObjectType
 import menger.optix.CausticsConfig
 import menger.optix.RenderConfig
+import menger.optix.RenderLimits
 import org.rogach.scallop._
 import org.rogach.scallop.exceptions._
 
@@ -341,6 +342,15 @@ class MengerCLIOptions(arguments: Seq[String])
     validate = t => t >= 0.0f && t <= 1.0f,
     descr = "AA edge detection threshold (0.0-1.0, default: 0.1)"
   )
+  val maxRayDepth: ScallopOption[Int] = opt[Int](
+    required = false, default = Some(RenderLimits.MaxRayDepth), group = optixQualityGroup,
+    validate = d => d >= 1 && d <= RenderLimits.MaxRayDepth,
+    descr = s"Maximum ray bounce depth (1-${RenderLimits.MaxRayDepth}, default: ${RenderLimits.MaxRayDepth})"
+  )
+  val allowUniformRender: ScallopOption[Boolean] = opt[Boolean](
+    required = false, default = Some(false), group = optixQualityGroup,
+    descr = "Allow renders where >=99% of pixels are the same colour (otherwise treated as a failure)"
+  )
 
   // === OptiX Caustics Options ===
   val caustics: ScallopOption[Boolean] = opt[Boolean](
@@ -378,7 +388,8 @@ class MengerCLIOptions(arguments: Seq[String])
     transparentShadows = transparentShadows(),
     antialiasing = antialiasing(),
     aaMaxDepth = aaMaxDepth(),
-    aaThreshold = aaThreshold()
+    aaThreshold = aaThreshold(),
+    maxRayDepth = maxRayDepth()
   )
 
   def causticsConfig: CausticsConfig = CausticsConfig(

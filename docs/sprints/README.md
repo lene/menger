@@ -6,7 +6,7 @@ Active sprint planning documents for ongoing and future development work.
 
 | Sprint | Focus | Status | File |
 |--------|-------|--------|------|
-| 17 | Animation Tooling & DSL | Planned | [SPRINT17.md](SPRINT17.md) |
+| 17 | Animation Tooling & DSL | Planned | [SPRINT17.md](../archive/sprints/SPRINT17.md) |
 | 18 | Advanced Geometry | Planned | [SPRINT18.md](SPRINT18.md) |
 | 19 | Materials, Textures & Backgrounds | Planned | [SPRINT19.md](SPRINT19.md) |
 | 20 | GPU 4D Infrastructure | Planned | [SPRINT20.md](SPRINT20.md) |

@@ -8,7 +8,7 @@
 
 ## Goal
 
-See [SPRINT17.md](SPRINT17.md) for detailed task breakdown and implementation plan.
+See [SPRINT17.md](../archive/sprints/SPRINT17.md) for detailed task breakdown and implementation plan.
 
 ---
 

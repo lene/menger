@@ -629,7 +629,9 @@ test_dsl_scenes() {
     run_test "DSL SimpleScene" --scene examples.dsl.SimpleScene
     run_test "DSL ThreeMaterials" --scene examples.dsl.ThreeMaterials
     run_test "DSL GlassSphere" --scene examples.dsl.GlassSphere
-    run_test "DSL TesseractDemo" --scene examples.dsl.TesseractDemo
+    # TesseractDemo is a wireframe scene: thin edges leave a near-uniform background
+    # that legitimately trips the all-red-render detector. Allow uniform output.
+    run_test "DSL TesseractDemo" --allow-uniform-render --scene examples.dsl.TesseractDemo
     run_test "DSL FilmSphere" --scene examples.dsl.FilmSphere
     run_test "DSL SpongeShowcase" --scene examples.dsl.SpongeShowcase
     run_test "DSL MengerShowcase" --scene examples.dsl.MengerShowcase

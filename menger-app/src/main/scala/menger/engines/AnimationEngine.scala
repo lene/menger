@@ -42,3 +42,5 @@ class AnimationEngine(
 
   override protected def currentSaveName: Option[String] =
     Some(String.format(animConfig.savePattern, Integer.valueOf(frameCounter.get())))
+
+  override protected def allowUniformRender: Boolean = executionConfig.allowUniformRender

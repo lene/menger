@@ -36,7 +36,7 @@ archive/
 
 - [ROADMAP.md](../../ROADMAP.md) - Strategic feature planning (Sprints 8-13)
 - [docs/sprints/](../sprints/) - Active sprint planning documents
-  - [SPRINT14.md](../sprints/SPRINT14.md) through [SPRINT19.md](../sprints/SPRINT19.md) - Future sprint plans
+  - [SPRINT14.md](sprints/SPRINT14.md) through [SPRINT19.md](../sprints/SPRINT19.md) - Future sprint plans
 - [docs/plans/](../plans/) - Feature implementation plans
 - [docs/investigations/](../investigations/) - Active investigations (unresolved; completed ones move to `docs/archive/investigations/`)
 - [TODO.md](../../TODO.md) - Quick notes and ideas

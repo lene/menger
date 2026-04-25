@@ -276,6 +276,7 @@ class InteractiveEngine(
     execution.saveName.isDefined && !renderResources.hasSaved && execution.timeout == 0
 
   override protected def currentSaveName: Option[String] = execution.saveName
+  override protected def allowUniformRender: Boolean = execution.allowUniformRender
 
   private def renderWithStats(width: Int, height: Int): Array[Byte] =
     val result = rendererWrapper.renderSceneWithStats(ImageSize(width, height))

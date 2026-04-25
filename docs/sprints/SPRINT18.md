@@ -2,7 +2,7 @@
 
 **Sprint:** 18 - GPU Infrastructure
 **Status:** Not Started
-**Estimate:** ~19 hours
+**Estimate:** ~27 hours
 **Branch:** `feature/sprint-18`
 **Dependencies:** Sprint 17 (engine refactor, scene graph)
 
@@ -15,12 +15,20 @@ for mixing geometry types, custom intersection (IS) program support, and GPU-sid
 These three capabilities are tightly related (all involve SBT construction and program group
 management) and benefit from being implemented together.
 
+Ship at least one user-visible feature per infrastructure piece (recursive IAS sponge as
+the first consumer of multi-GAS IAS), close out the half-implemented `maxRayDepth` work
+from Sprint 17, and add a failed-render diagnostic so silent rendering failures stop
+producing useless reference images.
+
 ## Success Criteria
 
 - [ ] Multiple geometry types coexist in a single scene (spheres + meshes + cylinders)
 - [ ] Custom intersection programs can be registered and used
 - [ ] GPU-side 4D rotation, projection, and coordinate transforms work
 - [ ] TD-5 (cannot mix spheres with triangle meshes) resolved
+- [ ] Recursive-IAS Menger sponge renders at level 6 with VRAM ~ level-1 baseline
+- [ ] `--max-ray-depth` CLI flag exposed and demonstrably affects glass-stack output
+- [ ] All-uniform-pixel renders fail loudly with a diagnostic instead of silently saving
 - [ ] All tests pass
 
 ---
@@ -103,15 +111,109 @@ is ported to the GPU path.
 
 ---
 
-### Task 18.4: Documentation
+### Task 18.4: Recursive IAS Menger Sponge
+
+**Estimate:** 4h
+**Depends on:** 18.1
+
+A 3D Menger sponge built as nested IAS rather than tessellated triangles: one
+Level-1 GAS containing the 20 sub-cubes, then a Level-N IAS that references the
+Level-(N−1) IAS 20 times with scale-1/3 + translate transforms. VRAM drops from
+O(20ᴺ) triangles to O(N · 20) matrices, enabling level 10+ renders that are
+otherwise impossible.
+
+This is the first end-user feature consuming the 18.1 multi-GAS infrastructure;
+without it, 18.1 ships as pure plumbing.
+
+#### What Changes
+
+- `menger-app/src/main/scala/menger/objects/SpongeRecursiveIAS.scala` (new) —
+  scene description: emits the 20 generator transforms, requests N levels.
+- `menger-app/src/main/scala/menger/optix/SceneConfigurator.scala` — recognise
+  the `sponge-ias` object type and call the multi-level IAS builder.
+- `optix-jni/src/main/native/OptiXContext.cpp` — IAS-of-IAS support if not
+  already provided by 18.1.
+- CLI: `--objects type=sponge-ias:level=N` parameter handling.
+- Reference image + integration-test entry.
+
+#### Out of scope
+
+4D variant of recursive IAS — that is Sprint 21's job.
+
+---
+
+### Task 18.5: `maxRayDepth` CLI + verification
 
 **Estimate:** 2h
 
+The runtime path is **already wired** end-to-end (Scala `RenderConfig` →
+`OptiXRenderer.setMaxRayDepth` → JNI → C++ `OptiXWrapper` → `params.max_ray_depth`
+in shaders, all shipped before this sprint). What is missing:
+
+- No `--max-ray-depth` CLI flag.
+- Pipeline ceiling `MAX_TRACE_DEPTH = 5` is too low to test realistic glass
+  stacks.
+- No regression test proving the parameter actually changes rendered output.
+
+#### What Changes
+
+- `menger-app/src/main/scala/menger/MengerCLIOptions.scala` — add
+  `--max-ray-depth` Scallop option, default `None`, range 1..ceiling.
+- Wire CLI through `RenderSettings.maxRayDepth` to `RenderConfig`.
+- `optix-jni/src/main/native/include/OptiXData.h` and `RenderConfig.scala` —
+  raise `MAX_TRACE_DEPTH` / `RenderLimits.MaxRayDepth` (target 8) if the OptiX
+  pipeline absorbs it without a stack-size change.
+- `optix-jni/src/test/scala/menger/optix/MaxRayDepthSuite.scala` (new) — render
+  a glass-stack scene at depths 2/4/8 and assert pixel-difference > epsilon
+  between each pair.
+- Integration-test entry exercising `--max-ray-depth` end-to-end.
+
+#### Success Criterion
+
+`--max-ray-depth N` produces visibly different renders across N for a
+glass-stack scene; existing reference images unchanged at the default.
+
+---
+
+### Task 18.6: Failed-render diagnostic
+
+**Estimate:** 1h
+
+Detect frames that are uniformly one colour (typical failure modes: all-red
+error fill, all-black no-trace, all-blue clear-colour) at save time, log a
+diagnostic that includes the offending command, and exit non-zero so CI
+catches the failure instead of saving a useless reference image.
+
+#### What Changes
+
+- `optix-jni/src/main/scala/menger/optix/RenderHealth.scala` (new) — pure
+  helper: `check(pixels, width, height): Either[String, Unit]` flags a frame
+  when ≥ 99 % of pixels are within ε of a single RGB value.
+- Call site at PNG save: log `Failed render: all pixels are approximately
+  (R,G,B); CLI args: ...`, delete the partial PNG, exit with status 2.
+- Bypass: `--allow-uniform-render` CLI flag for legitimate uniform scenes
+  (clear-colour smoke tests).
+- Unit test: synthetic uniform pixel buffer triggers; varied buffer does not.
+
+#### Success Criterion
+
+A deliberately broken scene (no geometry, no background) produces a clear
+error message and non-zero exit; existing integration tests unaffected.
+
+---
+
+### Task 18.7: Documentation
+
+**Estimate:** 3h
+
 - Sprint retrospective
 - CHANGELOG.md update
-- arc42 updates: AD for multi-GAS IAS, IS program architecture, GPU 4D strategy
+- arc42 updates: ADs for multi-GAS IAS, IS program architecture, GPU 4D
+  strategy, recursive instancing
 - Developer docs for IS program registration API
-- Document GPU 4D math API for use in later sprints
+- GPU 4D math API doc for later sprints
+- User-guide entry for `--max-ray-depth`
+- Failed-render-detector note in `docs/guide/debugging-rendering-bugs.md`
 
 ---
 
@@ -122,8 +224,11 @@ is ported to the GPU path.
 | 18.1 | Multi-GAS IAS (TD-5) | 8h | None |
 | 18.2 | Intersection program infrastructure | 4h | 18.1 |
 | 18.3 | GPU 4D transform and projection | 5h | 18.2 |
-| 18.4 | Documentation | 2h | All |
-| **Total** | | **~19h** | |
+| 18.4 | Recursive IAS Menger sponge | 4h | 18.1 |
+| 18.5 | `maxRayDepth` CLI + verification | 2h | None |
+| 18.6 | Failed-render diagnostic | 1h | None |
+| 18.7 | Documentation | 3h | All |
+| **Total** | | **~27h** | |
 
 ---
 
@@ -136,6 +241,8 @@ is ported to the GPU path.
 - [ ] arc42 updated with new architectural decisions
 - [ ] IS program API documented for Sprint 19 implementors
 - [ ] GPU 4D math API documented for future sprint implementors
+- [ ] `--max-ray-depth` documented in user guide
+- [ ] Failed-render diagnostic documented in `docs/guide/debugging-rendering-bugs.md`
 
 ---
 
@@ -159,12 +266,7 @@ Sprint 19 (Advanced Geometry) directly consumes all three capabilities:
 
 Content originally in Sprint 18 (Advanced Geometry) has moved to Sprint 19.
 
-### Backlog Items for Future Sprints
+### Formerly Backlog
 
-- **maxRayDepth** — Configurable ray recursion depth for the OptiX renderer. Currently there is
-  no per-ray bounce limit; adding this would allow scenes to trade render quality for speed and
-  may unblock the glass sponge skin darkness bug (manual test 53, see
-  `CODE_IMPROVEMENTS.md:H-glass-sponge-skin-diffuse`). DSL stub added in Sprint 17 task 17.4;
-  backend implementation required in `optix-jni` shaders and `RenderConfig`. Consider adding to
-  Sprint 19 or as a standalone task once Sprint 18 GPU infrastructure is complete.
-Content originally in Sprint 20 (GPU 4D Infrastructure) has moved here as 18.3.
+- **maxRayDepth** — Promoted into this sprint as task 18.5.
+- Content originally in Sprint 20 (GPU 4D Infrastructure) has moved here as 18.3.

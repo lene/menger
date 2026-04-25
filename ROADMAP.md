@@ -45,7 +45,7 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 11 | LibGDX Wrapper & Thin-Film Interference | Complete | [docs/sprints/](docs/sprints/) |
 | 12 | t-Parameter Animation System | Complete | [docs/sprints/SPRINT12.md](docs/sprints/SPRINT12.md) |
 | 13 | Visual Quality & Material Enhancements | Complete | [docs/sprints/SPRINT13.md](docs/sprints/SPRINT13.md) |
-| 14 | Rendering Correctness & Code Health | Complete | [docs/sprints/SPRINT14.md](docs/sprints/SPRINT14.md) |
+| 14 | Rendering Correctness & Code Health | Complete | [docs/sprints/SPRINT14.md](docs/archive/sprints/SPRINT14.md) |
 | 15 | Visual Enhancements & Primitives | Complete | [docs/archive/sprints/SPRINT15.md](docs/archive/sprints/SPRINT15.md) |
 | 16 | Developer Infrastructure & Website | Complete | [docs/archive/sprints/SPRINT16.md](docs/archive/sprints/SPRINT16.md) |
 
@@ -70,16 +70,21 @@ Strategic feature planning for the Menger ray tracing renderer.
 
 **MILESTONE: v0.6 — Animation & Architecture Foundations**
 
-See [docs/sprints/SPRINT17.md](docs/sprints/SPRINT17.md)
+See [docs/sprints/SPRINT17.md](docs/archive/sprints/SPRINT17.md)
 
-### Sprint 18: GPU Infrastructure (~19h)
+### Sprint 18: GPU Infrastructure (~27h)
 
-**Goal:** Multi-GAS IAS, intersection program infrastructure, GPU-side 4D math
+**Goal:** Multi-GAS IAS, intersection program infrastructure, GPU-side 4D math,
+plus a recursive-IAS sponge demo, `maxRayDepth` CLI completion, and a
+failed-render diagnostic.
 
 - **18.1** Multi-GAS Instance Acceleration Structure / TD-5 (8h)
 - **18.2** Intersection program infrastructure (4h)
 - **18.3** GPU 4D transform and projection (5h)
-- **18.4** Documentation (2h)
+- **18.4** Recursive IAS Menger sponge (4h)
+- **18.5** `maxRayDepth` CLI + verification (2h)
+- **18.6** Failed-render diagnostic (1h)
+- **18.7** Documentation (3h)
 
 See [docs/sprints/SPRINT18.md](docs/sprints/SPRINT18.md)
 
@@ -201,11 +206,11 @@ Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 | Visual Enhancements & Primitives (15) | 1 sprint | ~13 hours |
 | Developer Infrastructure & Website (16) | 1 sprint | ~16 hours |
 | Animation, DSL & Architecture (17) | 1 sprint | ~32 hours |
-| GPU Infrastructure (18) | 1 sprint | ~19 hours |
+| GPU Infrastructure (18) | 1 sprint | ~27 hours |
 | Advanced Geometry (19) | 1 sprint | ~16.5 hours |
 | Materials, Textures & Backgrounds (20) | 1 sprint | ~21 hours |
 | Higher-Dimensional Fractals (21) | 1 sprint | ~14 hours |
-| **Total Remaining** | 5 sprints | **~102.5 hours** |
+| **Total Remaining** | 5 sprints | **~110.5 hours** |
 
 ---
 

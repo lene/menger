@@ -433,3 +433,28 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     val opts = SafeMengerCLIOptions(Seq("--headless", "--save-name", "test.png"))
     opts.headless() shouldBe true
     opts.timeout() shouldBe 0f
+
+  "--max-ray-depth" should "default to RenderLimits.MaxRayDepth" in:
+    val opts = SafeMengerCLIOptions(Seq[String]())
+    opts.maxRayDepth() shouldBe menger.optix.RenderLimits.MaxRayDepth
+    opts.renderConfig.maxRayDepth shouldBe menger.optix.RenderLimits.MaxRayDepth
+
+  it should "accept values within range" in:
+    val opts = SafeMengerCLIOptions(Seq("--max-ray-depth", "2"))
+    opts.maxRayDepth() shouldBe 2
+    opts.renderConfig.maxRayDepth shouldBe 2
+
+  it should "reject values below 1" in:
+    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--max-ray-depth", "0"))
+
+  it should "reject values above the ceiling" in:
+    val tooDeep = menger.optix.RenderLimits.MaxRayDepth + 1
+    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--max-ray-depth", tooDeep.toString))
+
+  "--allow-uniform-render" should "default to false" in:
+    val opts = SafeMengerCLIOptions(Seq[String]())
+    opts.allowUniformRender() shouldBe false
+
+  it should "be enabled when supplied" in:
+    val opts = SafeMengerCLIOptions(Seq("--allow-uniform-render"))
+    opts.allowUniformRender() shouldBe true
