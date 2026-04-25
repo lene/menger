@@ -621,6 +621,15 @@ test_headless() {
     run_test_with_output "headless multi-object" "test_headless_multi.png" \
         --objects type=sphere:pos=-1,0,0 --objects type=cube:pos=1,0,0 \
         --headless --save-name test_headless_multi.png --plane y:-2
+    # Sprint 18.1 / TD-5: distinct triangle-mesh types coexist in one scene
+    run_test_with_output "headless cube + tesseract" "test_headless_cube_tesseract.png" \
+        --objects type=cube:pos=-1.2,0,0 --objects type=tesseract:pos=1.2,0,0 \
+        --headless --save-name test_headless_cube_tesseract.png --plane y:-2
+    run_test_with_output "headless sphere + cube + sponge" "test_headless_three_types.png" \
+        --objects type=sphere:pos=-1.8,0,0 \
+        --objects type=cube:pos=0,0,0 \
+        --objects type=sponge-volume:level=1:pos=1.8,0,0 \
+        --headless --save-name test_headless_three_types.png --plane y:-2
     run_test_should_fail "headless without save-name" --objects type=sphere --headless --plane y:-2
 }
 

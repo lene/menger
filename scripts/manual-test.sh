@@ -197,6 +197,8 @@ echo -e "${YELLOW}--- Multi-Object Scenes ---${NC}"
 run_test "Two Spheres" "-o --objects type=sphere:pos=-1.5,0,0 --objects type=sphere:pos=1.5,0,0 -s $OUTPUT_DIR/14-two-spheres.png"
 run_test "Two Cubes" "-o --objects type=cube:pos=-1.5,0,0:material=glass --objects type=cube:pos=1.5,0,0 -s $OUTPUT_DIR/15-two-cubes.png"
 run_test "RGB Cubes" "-o --objects type=cube:pos=-2,0,0:color=#ff0000 --objects type=cube:pos=0,0,0:color=#00ff00 --objects type=cube:pos=2,0,0:color=#0000ff -s $OUTPUT_DIR/16-rgb-cubes.png"
+run_test "Cube + Tesseract (TD-5)" "-o --objects type=cube:pos=-1.2,0,0:color=#ff8844 --objects type=tesseract:pos=1.2,0,0:color=#4488ff --plane y:-1.5 -s $OUTPUT_DIR/16a-cube-tesseract.png"
+run_test "Sphere + Cube + Sponge (TD-5)" "-o --objects type=sphere:pos=-1.8,0,0:material=chrome --objects type=cube:pos=0,0,0:color=#44ff44 --objects type=sponge-volume:level=1:pos=1.8,0,0:color=#ff8844 --plane y:-1.5 -s $OUTPUT_DIR/16b-three-types.png"
 
 # Lighting
 echo -e "${YELLOW}--- Lighting ---${NC}"
