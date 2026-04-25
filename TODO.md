@@ -7,6 +7,7 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 - publish OptiX JNI as a separate project - should cover the full OptiX API, not just the ray tracing pipeline.
 - Library layer for other Java/Scala clients to use OptiX JNI without Menger's scene graph or rendering pipeline.
 - Guidance for generating good and interesting scenes and animations (user guide)
+- Diagnostic log messages for failed (all-red) renderings and cancel the render with a failure
 - More 3- and higher dimensional objects:
   - construction methods listed in https://hi.gher.space/wiki/Shape
   - Regular polytopes
