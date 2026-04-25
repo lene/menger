@@ -208,6 +208,66 @@ Always run visual tests when changing rendering code:
 sbt test  # Includes visual regression tests in IntegrationSuite
 ```
 
+### Rendering Changes Require the Full Integration Suite
+
+**Whenever a commit changes anything that can affect rendered pixel output,
+the full integration image suite (`scripts/integration-tests.sh`) MUST be
+run on the same commit, and any reference-image diffs MUST be resolved
+before that commit lands.**
+
+What counts as a rendering change:
+
+- Geometry generators (anything under `menger.objects.*`, `menger.objects.higher_d.*`)
+- Mesh construction, vertex deduplication, face culling
+- Shader code under `optix-jni/src/main/native/shaders/`
+- Material, lighting, camera, or projection logic
+- Any change to default values that flow into rendered output
+- Library or build flag changes that affect numerics (e.g. CUDA flags, sqrt
+  approximations, precision modes)
+
+The pre-push hook runs the integration suite, but **do not rely on the
+hook as the discovery mechanism**. By the time a stale reference is
+caught at push, the offending commit may be days old and tangled with
+unrelated work, making bisection and review harder. The discipline is:
+
+1. Make the rendering change.
+2. Run the integration suite locally on that change (sequential mode is
+   safest — see below).
+3. Inspect each diff:
+   - If the new render is correct → refresh the reference and **bundle
+     that refresh in the same commit as the rendering change** (or in an
+     immediately-following test-only commit on the same branch). Either
+     way, leave a one-line note in the commit message saying which
+     references were refreshed and why.
+   - If the new render is wrong → fix it before committing.
+4. Re-run; only commit when the suite is green on this commit.
+
+#### Sequential vs parallel test mode
+
+`scripts/integration-tests.sh` defaults to `PARALLEL_MODE=true` with two
+concurrent categories. GPU contention under that load occasionally
+produces 1–2 pixel differences that look like real failures but
+disappear when the test runs alone. **For local verification of
+rendering changes, prefer sequential mode** to avoid being misled by
+load-induced flakes:
+
+```bash
+PARALLEL_MODE=false ./scripts/integration-tests.sh ./menger-app-${VERSION}/bin/menger-app
+```
+
+If a test passes in sequential mode but fails under parallel load,
+treat it as a flake (file an issue if it recurs) rather than refreshing
+the reference.
+
+#### Why this matters
+
+Stale references are silent technical debt. They accumulate on a
+feature branch, surface at the worst moment (e.g. during an unrelated
+push), and turn one logical change into a forensic exercise of *which
+of the last N commits actually moved the pixels*. A reference refresh
+that ships with the rendering change has zero ambiguity; one that ships
+later is a hazard for whoever finds it.
+
 ---
 
 ## DEVELOPMENT WORKFLOW
