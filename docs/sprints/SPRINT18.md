@@ -69,28 +69,45 @@ purely a Scala-side over-conservative validation guard.
 
 ---
 
-### Task 18.2: Intersection Program Infrastructure
+### Task 18.2: Intersection Program Infrastructure — RESOLVED (doc-only)
 
-**Estimate:** 4h
-**Depends on:** 18.1
+**Estimate:** 4h (actual: ~1h — infrastructure already in place)
 
-Add support for custom OptiX intersection programs (IS programs). This is the shared
-infrastructure used by both 3D analytical primitives (Sprint 19) and 4D parametric
-surfaces (Sprint 20+).
+Investigation during this sprint revealed that the OptiX IS-program
+infrastructure required for Sprint 19's analytical primitives is **already
+implemented** in the cylinder pipeline:
 
-#### What Changes
+- IS-program compilation lives in the umbrella shader module
+  (`optix_shaders.cu` includes `hit_cylinder.cu`); CMake compiles it into
+  the main PTX. No separate-module support is needed for new primitives.
+- `PipelineManager` already registers IS + closesthit program-group pairs
+  per geometry type (sphere, cylinder, triangle, plus shadow/photon
+  variants).
+- Per-primitive parameter passing already supports both styles: SBT-data
+  (sphere) and `params.X_data[mat.texture_index]` indirection (cylinder).
+  The latter is the recommended pattern for many-instance dynamic
+  primitives.
+- `HitGroupData` extensibility is provided by the per-primitive struct
+  pattern (`CylinderData`, soon `ConeData`/`TorusData`/etc.).
 
-- `OptiXContext`: IS program compilation and registration
-- SBT: support IS + closesthit program pairs per geometry type
-- `HitGroupData`: extensible per-primitive parameter passing
-- Define `PrimitiveParameters` structure for analytical shapes (center, radius, axis, etc.)
+Unifying these into a generic `PrimitiveParameters` abstraction was
+considered and **deferred**: with only two existing patterns (sphere,
+cylinder) the abstraction has no second data point to validate against.
+Sprint 19's first new primitive will provide that data point and the
+extraction can happen then.
 
-#### Design Constraint
+#### What Changed
 
-This infrastructure must be general enough for:
-- 3D analytical primitives: cylinder, cone, torus, plane (Sprint 19)
-- 4D parametric surfaces: `f(u,v) -> Vec4` projected per-ray (future)
-- Volume intersection: ray marching for scalar fields (future)
+- `docs/dev/adding-analytical-primitives.md` (new) — recipe-style
+  developer doc capturing the canonical params-indirection pattern
+  (cylinder) as the reference for adding cone, torus, plane, parametric
+  surfaces, etc. Includes step-by-step file-by-file recipe and a
+  pre-PR checklist.
+
+#### Out of scope
+
+`PrimitiveParameters` unification — deferred until Sprint 19's second
+analytical primitive lands and confirms the abstraction.
 
 ---
 
@@ -233,7 +250,7 @@ error message and non-zero exit; existing integration tests unaffected.
 | Task | Description | Estimate | Dependencies |
 |------|-------------|----------|--------------|
 | 18.1 | Multi-GAS IAS (TD-5) | 8h | None |
-| 18.2 | Intersection program infrastructure | 4h | 18.1 |
+| 18.2 | Intersection program infrastructure (doc-only — RESOLVED) | 1h | 18.1 |
 | 18.3 | GPU 4D transform and projection | 5h | 18.2 |
 | 18.4 | Recursive IAS Menger sponge | 4h | 18.1 |
 | 18.5 | `maxRayDepth` CLI + verification | 2h | None |
