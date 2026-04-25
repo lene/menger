@@ -35,7 +35,7 @@
 | TD-2 | Hardcoded MAX_LIGHTS = 8 | Low | 1h (make configurable) |
 | TD-3 | Window resize not working | Medium | 15+h (deferred) |
 | TD-4 | Caustics: multi-light and multi-plane not yet supported | Low | 4-8h (single light[0] and plane[0] only) |
-| TD-5 | Cannot mix spheres with triangle meshes | Medium | 8-12h (multi-GAS IAS) |
+| TD-5 | ~~Cannot mix spheres with triangle meshes~~ — resolved Sprint 18.1 | Resolved | — |
 | TD-6 | Colored transparent shadows Phase 2 (multi-object) | Low | 4-8h (anyhit accumulation for overlapping transparent objects) |
 
 ### Deferred Features
@@ -44,7 +44,7 @@
 |---------|--------|--------|
 | Dynamic window resize | Complex timing issues | Backlog |
 | Caustics (PPM) | Algorithm produces incorrect results | Branch preserved |
-| Mixed geometry scenes | Spheres use analytical GAS, meshes use triangle GAS | TD-5 |
+| ~~Mixed geometry scenes~~ | Spheres + any triangle-mesh combination supported via per-instance multi-GAS IAS | Resolved (Sprint 18.1, TD-5) |
 | Colored transparent shadows Phase 2 | Phase 1 (closesthit, single-object) complete; Phase 2 anyhit accumulation for overlapping transparent objects remains | TD-6 |
 
 ## 11.3 Common Issues and Solutions

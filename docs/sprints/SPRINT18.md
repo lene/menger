@@ -35,26 +35,37 @@ producing useless reference images.
 
 ## Tasks
 
-### Task 18.1: Multi-GAS Instance Acceleration Structure (TD-5)
+### Task 18.1: Multi-GAS Instance Acceleration Structure (TD-5) — RESOLVED
 
-**Estimate:** 8h
+**Estimate:** 8h (actual: ~1h — native side already in place)
 
-Build an IAS (Instance Acceleration Structure) containing multiple GAS instances,
-each with potentially different geometry types and program groups.
+Investigation during this sprint revealed that the native OptiX layer already
+supported per-instance GAS handles: `OptiXWrapper::setTriangleMesh` appends to a
+`triangle_meshes` vector, `addTriangleMeshInstance` builds a fresh GAS for each
+appended mesh, and `buildIAS` already routes each instance to its own GAS via
+`inst.gas_handle` and `inst.mesh_index`. The TD-5 limitation was therefore
+purely a Scala-side over-conservative validation guard.
 
-#### What Changes
+#### What Changed
 
-- `OptiXContext`: support building multiple GAS (one per geometry type)
-- `OptiXContext`: build IAS from GAS instances with transforms
-- `OptiXWrapper`: scene state management for heterogeneous geometry
-- SBT construction: multiple hitgroup entries (one per geometry type per ray type)
-- `SceneConfigurator`: build multi-GAS scenes from scene graph
-- `JNIBindings`: expose multi-geometry scene setup
+- `menger-app/src/main/scala/menger/engines/scene/TriangleMeshSceneBuilder.scala`
+  — `isCompatible` simplified: distinct triangle-mesh types coexist; only
+  4D-projected pairs still require matching projection params (since projection
+  is a global render setting).
+- `menger-app/src/main/scala/menger/engines/SceneClassifier.scala` —
+  sphere + multiple triangle-mesh types now classifies as `SimpleMixed`
+  instead of `ComplexMixed`. The per-spec `setTriangleMesh +
+  addTriangleMeshInstance` loop already does the right thing.
+- Existing tests asserting the old rejection behaviour flipped to assert
+  acceptance; new positive coverage added.
+- `docs/arc42/11-risks-and-technical-debt.md` — TD-5 marked resolved.
+- `scripts/manual-test.sh` — outdated TD-5 caveats removed.
 
 #### Resolves
 
-- **TD-5:** Cannot mix spheres with triangle meshes
-- Enables: planes as first-class geometry, coordinate cross, mixed scenes
+- **TD-5:** Cannot mix spheres with triangle meshes — RESOLVED
+- Enables: scenes mixing spheres + cubes + sponges + tesseracts in a single
+  render
 
 ---
 

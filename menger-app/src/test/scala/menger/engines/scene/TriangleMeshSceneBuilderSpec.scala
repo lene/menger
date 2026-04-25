@@ -35,10 +35,15 @@ class TriangleMeshSceneBuilderSpec extends AnyFlatSpec with Matchers:
     val spec2 = ObjectSpec.parse("type=tesseract-sponge:level=1:rot-xw=30").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe false
 
-  it should "reject mixed 4D and non-4D types" in:
+  it should "allow mixed 4D and non-4D types (TD-5: each spec gets its own mesh+GAS)" in:
     val spec1 = ObjectSpec.parse("type=tesseract").toOption.get
     val spec2 = ObjectSpec.parse("type=cube").toOption.get
-    builder.isCompatible(spec1, spec2) shouldBe false
+    builder.isCompatible(spec1, spec2) shouldBe true
+
+  it should "allow cube + sponge (TD-5: distinct triangle-mesh types coexist)" in:
+    val spec1 = ObjectSpec.parse("type=cube").toOption.get
+    val spec2 = ObjectSpec.parse("type=sponge-volume:level=1").toOption.get
+    builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow multiple cubes" in:
     val spec1 = ObjectSpec.parse("type=cube").toOption.get
@@ -77,10 +82,17 @@ class TriangleMeshSceneBuilderSpec extends AnyFlatSpec with Matchers:
     )
     builder.validate(specs, 100) shouldBe Right(())
 
-  it should "reject incompatible types" in:
+  it should "accept cube + tesseract (TD-5 resolved: distinct mesh types coexist)" in:
     val specs = List(
       ObjectSpec.parse("type=cube").toOption.get,
       ObjectSpec.parse("type=tesseract").toOption.get
+    )
+    builder.validate(specs, 100) shouldBe Right(())
+
+  it should "reject 4D specs with mismatched projection parameters" in:
+    val specs = List(
+      ObjectSpec.parse("type=tesseract:rot-xw=45").toOption.get,
+      ObjectSpec.parse("type=tesseract-sponge:level=1:rot-xw=30").toOption.get
     )
     val result = builder.validate(specs, 100)
     result shouldBe a[Left[?, ?]]

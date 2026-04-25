@@ -44,9 +44,9 @@ class SceneClassifierSuite extends AnyFlatSpec with Matchers:
     val specs = List(spec("sphere"), spec("cube"))
     SceneClassifier.classify(specs) shouldBe a [SceneType.SimpleMixed]
 
-  it should "classify sphere + cube + sponge as ComplexMixed" in:
+  it should "classify sphere + cube + sponge as SimpleMixed (TD-5 resolved)" in:
     val specs = List(spec("sphere"), spec("cube"), spec("sponge-volume"))
-    SceneClassifier.classify(specs) shouldBe a [SceneType.ComplexMixed]
+    SceneClassifier.classify(specs) shouldBe a [SceneType.SimpleMixed]
 
   it should "throw IllegalArgumentException for empty spec list" in:
     an [IllegalArgumentException] should be thrownBy SceneClassifier.classify(List.empty)

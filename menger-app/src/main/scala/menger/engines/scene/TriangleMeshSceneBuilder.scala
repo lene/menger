@@ -133,43 +133,25 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
     TriangleMeshData.merge(Seq(nextWithAlpha, currentWithAlpha))
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
+    // TD-5 resolution (Sprint 18.1): each spec gets its own mesh + GAS via per-spec
+    // setTriangleMesh + addTriangleMeshInstance, so distinct triangle-mesh types coexist
+    // naturally in the IAS. The only remaining cross-spec constraint is that 4D-projected
+    // specs must share projection parameters, since projection is a global render setting.
     val t1 = spec1.objectType.toLowerCase
     val t2 = spec2.objectType.toLowerCase
 
-    (t1, t2) match
-      case (t1, t2) if t1 == t2 =>
-        // Same type - check if parameters match
-        if ObjectType.isSponge(t1) then
-          // 3D sponges: each spec gets its own mesh via setTriangleMesh,
-          // so different levels are compatible
-          spec1.level.isDefined && spec2.level.isDefined
-        else if ObjectType.is4DSponge(t1) then
-          // 4D sponges: Compatible if both have levels (any levels ok)
-          // Different levels and fractional levels handled via multiple geometries
-          (spec1.level, spec2.level) match
-            case (Some(_), Some(_)) => matchingProjectionParams(spec1, spec2)
-            case _ => false  // Missing level
-        else if ObjectType.isProjected4D(t1) then
-          // Other 4D objects (tesseract): must have matching projection parameters
-          matchingProjectionParams(spec1, spec2)
-        else
-          true  // Other types (cube) always compatible with same type
+    val spongeLevelsOk =
+      (!ObjectType.isSponge(t1) || spec1.level.isDefined) &&
+      (!ObjectType.isSponge(t2) || spec2.level.isDefined) &&
+      (!ObjectType.is4DSponge(t1) || spec1.level.isDefined) &&
+      (!ObjectType.is4DSponge(t2) || spec2.level.isDefined)
 
-      // Allow mixing different 3D sponge types (volume + surface)
-      case (t1, t2) if ObjectType.isSponge(t1) && ObjectType.isSponge(t2) =>
-        spec1.level.isDefined && spec2.level.isDefined
+    val projectionOk =
+      if ObjectType.isProjected4D(t1) && ObjectType.isProjected4D(t2) then
+        matchingProjectionParams(spec1, spec2)
+      else true
 
-      // Allow mixing different 4D projected types if projection params match
-      case (t1, t2) if ObjectType.isProjected4D(t1) && ObjectType.isProjected4D(t2) =>
-        // Both must have levels if they're sponges
-        val levelsOk = (ObjectType.is4DSponge(t1), ObjectType.is4DSponge(t2)) match
-          case (true, true) => spec1.level.isDefined && spec2.level.isDefined
-          case (true, false) => spec1.level.isDefined
-          case (false, true) => spec2.level.isDefined
-          case (false, false) => true
-        levelsOk && matchingProjectionParams(spec1, spec2)
-
-      case _ => false  // Different types
+    spongeLevelsOk && projectionOk
 
   private def matchingProjectionParams(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     val p1 = spec1.projection4D.getOrElse(Projection4DSpec.default)

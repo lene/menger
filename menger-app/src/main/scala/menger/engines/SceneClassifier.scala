@@ -27,20 +27,14 @@ object SceneClassifier:
       val hasSpheres  = types.contains("sphere")
       val meshTypes   = types.filter(isTriangleMeshType)
 
-      if hasSpheres && meshTypes.size == 1 then
-        // Simple mixed: spheres + one mesh type (SUPPORTED)
+      if hasSpheres && meshTypes.nonEmpty then
+        // TD-5 resolution (Sprint 18.1): per-spec setTriangleMesh +
+        // addTriangleMeshInstance creates one GAS per mesh in the IAS, so spheres
+        // can coexist with any combination of triangle-mesh types in a single scene.
         SceneType.SimpleMixed(specs, meshTypes.head)
-      else if hasSpheres && meshTypes.size > 1 then
-        // Check if all mesh types are 4D projected and compatible
-        val all4DProjected = meshTypes.forall(ObjectType.isProjected4D)
-        if all4DProjected then
-          // All 4D objects can share GAS - treat as SimpleMixed with first type
-          SceneType.SimpleMixed(specs, meshTypes.head)
-        else
-          // Complex mixed: spheres + multiple incompatible mesh types (NOT SUPPORTED)
-          SceneType.ComplexMixed(specs)
       else
-        // Other mixed scenarios
+        // Catch-all: scene contains a non-sphere, non-triangle-mesh, non-cube-sponge
+        // type that doesn't fit any builder.
         SceneType.ComplexMixed(specs)
 
   def isTriangleMeshType(objectType: String): Boolean =

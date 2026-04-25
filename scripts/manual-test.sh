@@ -192,7 +192,7 @@ echo -e "${YELLOW}--- Textures ---${NC}"
 run_test "Textured Cube" "-o --texture-dir scripts/test-assets --objects type=cube:texture=test_checker.png -s $OUTPUT_DIR/12-textured-cube.png"
 run_test "Textured Cube + Glass" "-o --texture-dir scripts/test-assets --objects type=cube:texture=test_checker.png:material=glass -s $OUTPUT_DIR/13-textured-glass.png"
 
-# Multi-Object Scenes (note: cannot mix spheres with cubes/meshes yet - TD-5)
+# Multi-Object Scenes (TD-5 resolved in Sprint 18.1: spheres mix with any triangle mesh types)
 echo -e "${YELLOW}--- Multi-Object Scenes ---${NC}"
 run_test "Two Spheres" "-o --objects type=sphere:pos=-1.5,0,0 --objects type=sphere:pos=1.5,0,0 -s $OUTPUT_DIR/14-two-spheres.png"
 run_test "Two Cubes" "-o --objects type=cube:pos=-1.5,0,0:material=glass --objects type=cube:pos=1.5,0,0 -s $OUTPUT_DIR/15-two-cubes.png"
@@ -205,7 +205,7 @@ run_test "Directional Light" "-o --objects type=sphere --light directional:-1,-1
 run_test "Colored Light (orange)" "-o --objects type=sphere --light point:2,3,2:1.0:ff8800 -s $OUTPUT_DIR/19-colored-light.png"
 run_test "Two Colored Lights" "-o --objects type=sphere --light point:-3,3,2:1.0:ff0000 --light point:3,3,2:1.0:0000ff -s $OUTPUT_DIR/20-two-lights.png"
 
-# Shadows (using homogeneous scenes - cannot mix spheres with cubes yet)
+# Shadows
 echo -e "${YELLOW}--- Shadows ---${NC}"
 run_test "Shadows On (spheres)" "-o --objects type=sphere:pos=-1,0.5,0 --objects type=sphere:pos=1,0,0:size=0.5 --shadows -s $OUTPUT_DIR/21-shadows-on.png"
 run_test "Shadows Off (spheres)" "-o --objects type=sphere:pos=-1,0.5,0 --objects type=sphere:pos=1,0,0:size=0.5 -s $OUTPUT_DIR/22-shadows-off.png"
