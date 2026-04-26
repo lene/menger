@@ -4,8 +4,14 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 
 ## Unscheduled
 
-- publish OptiX JNI as a separate project - should cover the full OptiX API, not just the ray tracing pipeline.
-- Library layer for other Java/Scala clients to use OptiX JNI without Menger's scene graph or rendering pipeline.
+- add render time per frame and per ray to stats (also: what does the "primary" ray stat mean, 
+  exactly? looks like it's always 0)
+- fractional levels with IAS sponges
+- seems like metallic materials are transparent? they should not
+- publish OptiX JNI as a separate project - should cover the full OptiX API, not just the ray 
+  tracing pipeline.
+- Library layer for other Java/Scala clients to use OptiX JNI without Menger's scene graph or 
+  rendering pipeline.
 - Guidance for generating good and interesting scenes and animations (user guide)
 - More 3- and higher dimensional objects:
   - construction methods listed in https://hi.gher.space/wiki/Shape
@@ -15,7 +21,9 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
   - construction from Schläfli symbols (algorithmic generator for `{p,q}` / `{p,q,r}`)
   - gaussian splats
   - 4D spacetime trace of a person (or any object)
-- IAS-driven infinite level of detail for 3D sponge: shipped in Sprint 18.4 as `--objects type=sponge-recursive-ias:level=N` (integer 1..14, capped by OptiX MAX_TRAVERSABLE_GRAPH_DEPTH).
+- IAS-driven infinite level of detail for 3D sponge: shipped in Sprint 18.4 as 
+  `--objects type=sponge-recursive-ias:level=N` (integer 1..14, capped by OptiX 
+  MAX_TRAVERSABLE_GRAPH_DEPTH).
 - The Real "Smart Idea": Procedural Intersection (SDFs)
   Since you cannot store the vertices (memory limit) and you cannot instance the geometry (4D 
   limit), the only robust solution for high-dimensional fractals in OptiX is Procedural Primitives.
