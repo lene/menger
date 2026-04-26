@@ -86,6 +86,8 @@ sbt "run --optix --objects 'type=sphere'    # Ray-traced sphere
 --antialiasing               # Enable recursive adaptive antialiasing
 --aa-max-depth <int>         # AA recursion depth (1-4, default: 2)
 --aa-threshold <float>       # AA edge threshold (0.0-1.0, default: 0.1)
+--max-ray-depth <int>        # Bounce / refraction recursion depth (1..8, default: 5)
+--allow-uniform-render       # Disable the failed-render diagnostic (see "Render health checks")
 --stats                      # Display ray tracing statistics
 
 # Scene
@@ -216,6 +218,43 @@ sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5'"
 sbt "run --optix --objects 'type=sponge-surface:level=2' \
     --shadows --antialiasing --plane-color ffffff:808080"
 ```
+
+#### Recursion Depth (`--max-ray-depth`, Sprint 18.5)
+
+`--max-ray-depth N` controls how many bounce / refraction recursions a single
+camera ray may take inside the OptiX pipeline. Default is 5; the supported
+range is 1..8. Increase the value when rendering deep glass stacks or chains
+of internal reflections that would otherwise terminate as black:
+
+```bash
+# Five stacked glass spheres — needs depth ≥ 6 to see through all of them
+menger --objects 'type=sphere:ior=1.5:x=-1' \
+       --objects 'type=sphere:ior=1.5:x=-0.5' \
+       --objects 'type=sphere:ior=1.5:x=0' \
+       --objects 'type=sphere:ior=1.5:x=0.5' \
+       --objects 'type=sphere:ior=1.5:x=1' \
+       --max-ray-depth 8
+```
+
+Lower values render faster but truncate refractive light paths sooner.
+Existing reference images are unchanged at the default; the flag only opts in
+to a deeper traversal.
+
+#### Render Health Checks (Sprint 18.6)
+
+When a frame is saved, Menger inspects the pixel buffer and refuses to write
+a PNG that consists entirely of one colour (≥ 99 % of pixels within ε of a
+single RGB value). This catches the "all-red error fill / all-black no-trace
+/ all-blue clear-colour" failure modes that otherwise produce silently broken
+reference images. The CLI exits with status 2 and logs:
+
+```
+Failed render: all pixels are approximately (R,G,B); CLI args: …
+```
+
+Pass `--allow-uniform-render` if a uniform output is intentional (e.g. a
+clear-colour smoke test). See `docs/guide/debugging-rendering-bugs.md` for
+the broader debugging method.
 
 ---
 

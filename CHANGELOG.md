@@ -1,5 +1,47 @@
 # Changelog
 
+## [Unreleased] — Sprint 18
+
+### Added
+- **Multi-GAS Instance Acceleration Structure** (Sprint 18.1) — the top-level
+  traversable is now an IAS; each scene object owns a private GAS referenced
+  by an `OptixInstance`. Per-object materials, per-object IS programs, and
+  nested instancing all become possible. See AD-17.
+- **Recursive IAS Menger sponge** (Sprint 18.4) —
+  `--objects type=sponge-recursive-ias:level=N` builds the sponge as nested
+  IAS layers (one Level-1 GAS of 20 sub-cubes referenced 20 times per
+  recursion). VRAM scales as O(N · 20) matrices instead of O(20ᴺ) triangles,
+  enabling levels 6..14 (capped by `OPTIX_MAX_TRAVERSABLE_GRAPH_DEPTH`).
+  See AD-20.
+- **GPU 4D projection** (Sprint 18.3) — opt-in `--gpu-project-4d` runs the
+  rotate / project / face-normal step on the GPU as a plain CUDA kernel
+  (`project4d_quads_kernel`). Animation drivers detect "only 4D-projection
+  params changed frame-to-frame" and re-project + refit the GAS+IAS
+  in-place via `updateMesh4DProjection` instead of rebuilding the scene.
+  Measured on `tesseract-sponge level=2`: ~30× setup, ~270× animation
+  speed-up; equivalence with the CPU path is L∞ = 0/255 on static frames.
+  See AD-19.
+- **`--max-ray-depth N` CLI flag** (Sprint 18.5) — exposes the per-ray
+  bounce/refraction recursion ceiling (1..8, default 5). Wired all the
+  way through `RenderConfig` → JNI → `params.max_ray_depth` (the runtime
+  path was already in place; 18.5 added the CLI surface and a regression
+  test that asserts pixel-difference > epsilon across depths 2/4/8 on a
+  glass-stack scene).
+- **Render-health diagnostic** (Sprint 18.6) —
+  `RenderHealth.check(pixels, w, h)` detects frames that are uniformly
+  one colour (≥ 99 % of pixels within ε of a single RGB). On detection
+  the CLI logs the offending invocation, refuses to write the PNG, and
+  exits with status 2. Bypass with `--allow-uniform-render` for
+  legitimate uniform scenes.
+
+### Changed
+- Sprint 18 architectural decisions documented as AD-17 through AD-20 in
+  `docs/arc42/09-architectural-decisions.md`.
+- User guide gains "Recursion Depth" and "Render Health Checks"
+  subsections under OptiX Mode.
+- Debugging guide (`docs/guide/debugging-rendering-bugs.md`) gains a
+  "Render-health diagnostic" section.
+
 ## [0.5.7] - 2026-04-14
 
 ### Added

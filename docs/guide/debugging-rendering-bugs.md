@@ -152,3 +152,28 @@ A rendering-bug investigation is considered complete when:
 
 If any of these is missing, the next person to look at this code area pays
 the cost.
+
+## Render-health diagnostic (Sprint 18.6)
+
+A failed render is sometimes louder than a subtle one: an all-red error
+fill, an all-black no-trace, an all-blue clear-colour buffer. Before
+Sprint 18.6, these failures were saved to disk like any other render and
+silently became the next reference image — a bug class that the regression
+suite could not catch on its own.
+
+The render-health check sits at PNG save time. It samples the pixel buffer
+and, if ≥ 99 % of pixels are within ε of a single RGB value, it:
+
+1. Logs `Failed render: all pixels are approximately (R,G,B); CLI args: …`
+   so the offending invocation is captured in the log.
+2. Refuses to write the PNG (no partial file is left behind).
+3. Exits with status 2 so CI catches the failure.
+
+The implementation lives in `optix-jni/src/main/scala/menger/optix/RenderHealth.scala`
+as a pure helper `check(pixels, width, height): Either[String, Unit]`,
+covered by `RenderHealthSuite`.
+
+**Bypass.** Pass `--allow-uniform-render` for legitimate uniform scenes
+(clear-colour smoke tests, deliberately-empty geometry checks). All other
+failures should be investigated, not silenced — that is what this document
+is for.

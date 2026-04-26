@@ -282,15 +282,53 @@ error message and non-zero exit; existing integration tests unaffected.
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing
-- [ ] Code quality checks pass: `sbt "scalafix --check"`
-- [ ] CHANGELOG.md updated
-- [ ] arc42 updated with new architectural decisions
-- [ ] IS program API documented for Sprint 19 implementors
-- [ ] GPU 4D math API documented for future sprint implementors
-- [ ] `--max-ray-depth` documented in user guide
-- [ ] Failed-render diagnostic documented in `docs/guide/debugging-rendering-bugs.md`
+- [x] All success criteria met
+- [x] All tests passing
+- [x] Code quality checks pass: `sbt "scalafix --check"`
+- [x] CHANGELOG.md updated (Unreleased — Sprint 18 entry covering 18.1, 18.3, 18.4, 18.5, 18.6)
+- [x] arc42 updated with new architectural decisions (AD-17 multi-GAS IAS, AD-18 IS infra doc-only, AD-19 GPU 4D, AD-20 recursive IAS sponge)
+- [x] IS program API documented for Sprint 19 implementors (AD-18; `OptiXContext::addProgramGroup` flagged as the public extension point)
+- [x] GPU 4D math API documented for future sprint implementors (AD-19; user-guide §"GPU 4D Projection")
+- [x] `--max-ray-depth` documented in user guide (§ Recursion Depth)
+- [x] Failed-render diagnostic documented in `docs/guide/debugging-rendering-bugs.md` (§ Render-health diagnostic)
+
+---
+
+## Retrospective
+
+**What went well**
+- The two-stage 18.3 delivery (one-shot upload first, per-frame update second)
+  paid off: the forward-compat hooks baked in Cut A (resident `d_quads_4d`,
+  `ALLOW_UPDATE` GAS, per-mesh `Projection4DParams`) survived contact with the
+  actual animation refit path in Cut F without rework. ~270× animation speed-up
+  on `tesseract-sponge level=2` (5.5 ms vs ≈1500 ms for 10 frames) validated
+  the choice to land both stages in the same sprint.
+- Multi-GAS IAS (18.1) shipped as quiet plumbing and immediately unlocked two
+  user-visible features (recursive IAS sponge, GPU 4D refit). Sequencing
+  infra-first was the right call.
+- The render-health diagnostic (18.6) caught at least one bad reference image
+  that would otherwise have entered the regression suite — it earned its keep
+  in the same sprint it landed.
+- Per-cut commits with the pre-commit hook running the full Scala suite kept
+  every commit shippable; no rollbacks needed.
+
+**What could go better**
+- Sprint scope stretched to seven tasks (vs the original three in the
+  "Why These Three Together" section). The expansion was justified ad-hoc;
+  next time, surface the scope change explicitly when it happens rather than
+  retrofitting the rationale.
+- 18.2 ended as doc-only after audit. Worth flagging earlier: the audit could
+  have been a one-day spike before the sprint planning lock-in.
+- Manual-test entry numbering remains a live hazard (lesson burned in 18.4).
+  We mitigated by appending; a stable-key scheme is worth a small dedicated
+  task in a future sprint.
+
+**Lessons carried forward**
+- For continuous-update GPU APIs, ship the upload-time and update-time paths
+  in the same sprint — the upload-time API design only firms up under
+  pressure from the update-time consumer.
+- Doc-only sprints (18.2, 18.7) earn their keep when they precede or finalise
+  a code-heavy sprint; standalone doc sprints risk drift.
 
 ---
 

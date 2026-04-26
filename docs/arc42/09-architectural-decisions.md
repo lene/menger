@@ -255,6 +255,155 @@ OptiX.
 
 ---
 
+### AD-17: Multi-GAS Instance Acceleration Structure (Sprint 18.1)
+
+**Status:** Accepted
+**Date:** 2026-04 (Sprint 18.1)
+
+**Context:** Up to Sprint 17 the renderer compiled every scene object into a
+single Geometry Acceleration Structure (GAS). Heterogeneous scenes (mixed
+triangle and procedural geometry, mixed materials, recursive sponges) had
+to be flattened into one builder, which prevented per-object material
+inheritance, per-object IS programs, and any form of geometry instancing.
+
+**Decision:** Promote the top-level traversable from a single GAS to an
+Instance Acceleration Structure (IAS). Each scene object owns a private GAS
+that is referenced from the IAS by an `OptixInstance` carrying its
+transform and SBT-offset. The IAS is rebuilt when the scene changes; GASes
+are reused across frames.
+
+**Rationale:**
+- Decouples per-object data from the global SBT — each instance can carry
+  its own material slot.
+- Enables nested instancing (Sprint 18.4 recursive sponge — IAS-of-IAS).
+- Required for any per-object procedural geometry (Sprint 18.2 IS programs)
+  without exploding the SBT.
+- Standard OptiX pattern; no novel mechanics.
+
+**Consequences:**
+- The hit shaders look up material data via `optixGetInstanceId()` instead
+  of a single global pointer.
+- A small constant per-frame cost (IAS build) added; amortised by GAS
+  reuse and dwarfed by triangle counts.
+- Opens the door for AD-18 (IS programs) and AD-20 (recursive IAS sponge),
+  which would not be feasible on a flat single-GAS layout.
+
+---
+
+### AD-18: Intersection Program Infrastructure (Sprint 18.2 — doc-only)
+
+**Status:** Accepted (infrastructure-only, no end-user feature)
+**Date:** 2026-04 (Sprint 18.2)
+
+**Context:** Procedural primitives in OptiX (spheres, cylinders, custom
+SDFs) require user-supplied intersection (IS) programs registered as
+program groups in the SBT. Sprint 18.2 audited what the existing pipeline
+already supports.
+
+**Decision:** No code change in 18.2. The Sprint 18.1 multi-GAS IAS
+together with the existing program-group registration path already covers
+heterogeneous IS programs per object. The audit ships as a developer-doc
+ADR rather than a code commit; future procedural geometry sprints
+(Sprint 19 n-gon Mesh4D, future SDF work) plug into the same
+`OptiXContext::addProgramGroup` API used by the built-in sphere and
+cylinder IS programs.
+
+**Rationale:**
+- Avoids speculative infrastructure that no end-user feature was ready to
+  consume.
+- Keeps the SBT layout decision visible (one program group per IS variant)
+  for the implementor of the first new procedural primitive.
+
+**Consequences:**
+- Sprint 19 owns the first new IS program registration; no abstractions
+  invented in advance.
+- The `OptiXContext` SBT layout is documented as the public extension
+  point.
+
+---
+
+### AD-19: GPU-Side 4D Projection Strategy (Sprint 18.3)
+
+**Status:** Accepted
+**Date:** 2026-04 (Sprint 18.3)
+
+**Context:** Until Sprint 18.3 every 4D-to-3D projection (rotate XW/YW/ZW,
+perspective divide, face-normal recompute) was performed on the CPU at
+scene-build time. For deep tesseract sponges (level 3+) this dominated
+setup time; per-frame animation of 4D rotation forced a full scene rebuild.
+
+**Decision:** Add a plain `__global__` CUDA kernel
+(`project4d_quads_kernel`) that runs **once per quad in parallel**,
+reusing the resident `d_quads_4d` device buffer. The kernel produces the
+same stride-8 vertex layout as the CPU path, then feeds the GAS builder
+unchanged. Two API surfaces:
+
+- `setTriangleMesh4DQuads` — one-shot upload + projection, produces a
+  GAS with `OPTIX_BUILD_FLAG_ALLOW_UPDATE` set on top of the existing
+  flags.
+- `updateMesh4DProjection` — re-launch the kernel against the same
+  buffers, then refit the GAS and parent IAS in-place
+  (`OPTIX_BUILD_OPERATION_UPDATE`).
+
+The flag `--gpu-project-4d` opts in. Default behaviour stays bit-for-bit
+identical to the CPU path. Animation drivers detect "frame-to-frame only
+the 4D-projection params changed" and call the update kernel instead of
+rebuilding the scene.
+
+**Rationale:**
+- Quads (not arbitrary 4D triangles) preserve bit-for-bit equivalence
+  with the existing CPU pipeline as the cheapest correctness oracle.
+- One CUDA thread per quad → embarrassingly parallel, no atomics, no
+  SBT involvement.
+- Forward-compatible: variable-arity polygons (Sprint 19) plug in via a
+  sibling kernel; the animation-refit path is shape-agnostic.
+
+**Consequences:**
+- First non-OptiX CUDA kernel in the codebase (`project4d.cu`); CMake
+  picks it up automatically alongside the OptiX shader compile.
+- 4D-projected meshes carry an extra `Projection4DParams` sub-struct in
+  `triangle_meshes[i]`; CPU-uploaded meshes are unaffected
+  (sentinel `num_quads == 0`).
+- Measured speed-up on `tesseract-sponge level=2`: ~30× setup, ~270×
+  animation (10-frame XW rotation). Equivalence verified L∞ = 0/255 on
+  static frames, ≤ 6/255 over the animation envelope.
+
+---
+
+### AD-20: Recursive IAS for Menger Sponge (Sprint 18.4)
+
+**Status:** Accepted
+**Date:** 2026-04 (Sprint 18.4)
+
+**Context:** A Menger sponge of recursion level N tessellates to O(20ᴺ)
+triangles. Levels above 5 are unrenderable on any GPU (24+ GB of
+triangles). The 18.1 multi-GAS IAS exposes nested instancing as an
+alternative.
+
+**Decision:** Add a `sponge-recursive-ias:level=N` object type that
+builds the sponge as nested IAS layers: one Level-1 GAS containing the
+20 sub-cubes, then a Level-N IAS that references the Level-(N−1) IAS
+20 times with scale-1/3 + translate transforms. VRAM scales as
+O(N · 20) matrices instead of O(20ᴺ) triangles.
+
+**Rationale:**
+- Enables levels 6..14 (capped by `OPTIX_MAX_TRAVERSABLE_GRAPH_DEPTH`)
+  that the triangle path cannot represent at all.
+- Reuses the multi-GAS IAS infrastructure shipped in 18.1 — no new
+  builder, no new SBT layout.
+
+**Consequences:**
+- The first end-user feature consuming AD-17. Without 18.4, AD-17 would
+  ship as pure plumbing.
+- Lighting/shadow appearance differs subtly from the tessellated path
+  because nested IAS instances do not share triangle-level normals; this
+  is documented in the user-guide and accepted as part of the trade-off
+  for unbounded depth.
+- Recursive 4D variant (tesseract-sponge as IAS) is deferred to a later
+  sprint.
+
+---
+
 ## 9.2 Sprint-Level Decisions
 
 Detailed implementation decisions are documented in sprint planning documents and code review files.
