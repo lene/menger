@@ -314,7 +314,7 @@ Render complex scenes with multiple objects (OptiX v0.4+):
 
 **Basic Parameters (all types):**
 ```bash
-type=<type>                  # sphere, cube, sponge-volume, sponge-surface, cube-sponge, tesseract
+type=<type>                  # sphere, cube, sponge-volume, sponge-surface, cube-sponge, sponge-recursive-ias, tesseract
 pos=<x,y,z>                  # Position (default: 0,0,0)
 size=<float>                 # Size/scale factor (default: 1.0)
 color=#RRGGBB[AA]            # Color with optional alpha

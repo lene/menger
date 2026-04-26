@@ -106,7 +106,7 @@
 --objects "<spec>"           Add object (repeatable)
                              Format: param=value:param2=value2:...
                              Parameters:
-                             - type: sphere|cube|sponge-volume|sponge-surface
+                             - type: sphere|cube|sponge-volume|sponge-surface|sponge-recursive-ias
                              - pos: x,y,z
                              - size: float
                              - level: float (for sponges)

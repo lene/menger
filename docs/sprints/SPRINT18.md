@@ -139,10 +139,11 @@ is ported to the GPU path.
 
 ---
 
-### Task 18.4: Recursive IAS Menger Sponge
+### Task 18.4: Recursive IAS Menger Sponge ✅ DONE
 
-**Estimate:** 4h
+**Estimate:** 4h (actual: ~4h)
 **Depends on:** 18.1
+**Commits:** 71c892a (Cut A1 native scaffold), 7802530 (Cut A2 native bodies + JNI + Scala wrapper + smoke tests), 407c80a (Cut B CLI/scene-builder wiring), this commit (Cut C integration test + docs).
 
 A 3D Menger sponge built as nested IAS rather than tessellated triangles: one
 Level-1 GAS containing the 20 sub-cubes, then a Level-N IAS that references the

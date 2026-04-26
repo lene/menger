@@ -252,9 +252,19 @@ sbt "run --optix --objects 'type=sponge-surface:level=2' \
 - Efficient for high levels (5+) in OptiX mode
 - Example: `sbt "run --optix --objects 'type=sponge-volume:level=5'"`
 
+**Recursive IAS** (`--objects 'type=sponge-recursive-ias'`, OptiX only)
+- One unit-cube GAS reused at every level via N nested instance acceleration
+  structures driven by the 20 Menger sub-cube transforms
+- Memory cost is O(level × 20) instead of O(20^level), so deep sponges that
+  would otherwise exceed VRAM remain practical
+- Integer levels 1..14 (capped by OptiX's MAX_TRAVERSABLE_GRAPH_DEPTH=16)
+- Example: `sbt "run --optix --objects 'type=sponge-recursive-ias:level=6'"`
+
 **Which to use?**
 - **Surface subdivision**: Better for low to medium levels (0-4), more geometric detail, works in both modes
 - **Volume subdivision**: Better for high levels (5+) in OptiX mode, faster with IAS optimization
+- **Recursive IAS**: Use for very deep levels (6+) where the explicit volume mesh
+  no longer fits in VRAM; renders the same shape with constant per-level memory
 
 ### 4D Objects
 

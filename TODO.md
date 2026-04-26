@@ -15,7 +15,7 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
   - construction from Schläfli symbols (algorithmic generator for `{p,q}` / `{p,q,r}`)
   - gaussian splats
   - 4D spacetime trace of a person (or any object)
-- IAS-driven infinite level of detail for 3D sponge: scheduled as Sprint 18.4 (recursive IAS sponge).
+- IAS-driven infinite level of detail for 3D sponge: shipped in Sprint 18.4 as `--objects type=sponge-recursive-ias:level=N` (integer 1..14, capped by OptiX MAX_TRAVERSABLE_GRAPH_DEPTH).
 - The Real "Smart Idea": Procedural Intersection (SDFs)
   Since you cannot store the vertices (memory limit) and you cannot instance the geometry (4D 
   limit), the only robust solution for high-dimensional fractals in OptiX is Procedural Primitives.

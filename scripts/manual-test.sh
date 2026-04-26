@@ -177,6 +177,8 @@ run_test "Cube" "-o --objects type=cube -s $OUTPUT_DIR/02-cube.png"
 run_test "Sponge Surface L1" "-o --objects type=sponge-surface:level=1 -s $OUTPUT_DIR/03-sponge-surface.png"
 run_test "Sponge Volume L1" "-o --objects type=sponge-volume:level=1 -s $OUTPUT_DIR/04-sponge-volume.png"
 run_test "Cube Sponge L1" "-o --objects type=cube-sponge:level=1 --max-instances 64 -s $OUTPUT_DIR/05-cube-sponge.png"
+run_test "Recursive IAS Sponge L2" "-o --objects type=sponge-recursive-ias:level=2 -s $OUTPUT_DIR/05b-sponge-recursive-ias-l2.png"
+run_test "Recursive IAS Sponge L6" "-o --objects type=sponge-recursive-ias:level=6 -s $OUTPUT_DIR/05c-sponge-recursive-ias-l6.png"
 
 # Materials (use material= preset for transparency)
 echo -e "${YELLOW}--- Materials ---${NC}"
