@@ -17,6 +17,7 @@ import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
+import menger.optix.RenderConfig
 import menger.optix.SceneConfigurator
 
 abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig: ProfilingConfig)
@@ -26,6 +27,9 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
   protected val renderResources: OptiXRenderResources = OptiXRenderResources(0, 0)
   protected def sceneConfigurator: SceneConfigurator
   protected def cameraState: CameraState
+  /** Concrete engines provide their effective `RenderConfig`; used by
+    * scene-build to honour render-quality flags such as `--gpu-project-4d`. */
+  protected def renderConfig: RenderConfig
 
   // Override in concrete engines that need auto-adjustment (e.g. InteractiveEngine)
   protected def computeEffectiveMaxInstances(builder: SceneBuilder, specs: List[ObjectSpec]): Int =
@@ -37,7 +41,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     if all4DProjected && hasEdgeRendering then
       TesseractEdgeSceneBuilder(textureDir)(using profilingConfig)
     else
-      TriangleMeshSceneBuilder(textureDir)(using profilingConfig)
+      TriangleMeshSceneBuilder(textureDir, renderConfig.gpuProject4D)(using profilingConfig)
 
   // Must be provided by concrete engine — where texture assets live
   protected def textureDir: String
@@ -62,7 +66,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
         ))
 
       case sceneType =>
-        SceneClassifier.selectSceneBuilder(sceneType, Some(textureDir)) match
+        SceneClassifier.selectSceneBuilder(sceneType, Some(textureDir), renderConfig.gpuProject4D) match
           case Some(builder) =>
             val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
             builder.validate(specs, effectiveMaxInstances) match
@@ -83,7 +87,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
       case SceneType.Spheres(_) =>
         SphereSceneBuilder().buildScene(specs, renderer, maxInstances)
       case SceneType.TriangleMeshes(_) =>
-        SceneClassifier.selectSceneBuilder(sceneType, Some(textureDir)) match
+        SceneClassifier.selectSceneBuilder(sceneType, Some(textureDir), renderConfig.gpuProject4D) match
           case Some(builder) => builder.buildScene(specs, renderer, maxInstances)
           case None          => Failure(UnsupportedOperationException(s"No builder for $sceneType"))
       case SceneType.SimpleMixed(allSpecs, _) =>
@@ -125,7 +129,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
         sys.error("Complex mixed scenes not supported for rebuilding")
 
       case sceneType =>
-        SceneClassifier.selectSceneBuilder(sceneType, Some(textureDir)) match
+        SceneClassifier.selectSceneBuilder(sceneType, Some(textureDir), renderConfig.gpuProject4D) match
           case Some(builder) =>
             builder.buildScene(specs, renderer, maxInstances).get
           case None =>

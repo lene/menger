@@ -46,21 +46,24 @@ object SceneClassifier:
 
   def selectSceneBuilder(
     sceneType: SceneType,
-    textureDir: Option[String]
+    textureDir: Option[String],
+    gpuProject4D: Boolean = false
   )(using ProfilingConfig): Option[SceneBuilder] =
     val dir = textureDir.getOrElse(".")
     sceneType match
       case SceneType.Spheres(_)            => Some(SphereSceneBuilder())
       case SceneType.CubeSponges(_)        => Some(CubeSpongeSceneBuilder())
-      case SceneType.TriangleMeshes(specs) => Some(selectTriangleMeshBuilder(specs, dir))
+      case SceneType.TriangleMeshes(specs) => Some(selectTriangleMeshBuilder(specs, dir, gpuProject4D))
       case SceneType.SimpleMixed(_, _)     => None  // Handled specially in createMultiObjectScene
       case SceneType.ComplexMixed(_)       => None
 
-  private def selectTriangleMeshBuilder(specs: List[ObjectSpec], dir: String)(using ProfilingConfig): SceneBuilder =
+  private def selectTriangleMeshBuilder(
+    specs: List[ObjectSpec], dir: String, gpuProject4D: Boolean
+  )(using ProfilingConfig): SceneBuilder =
     val all4DProjected   = specs.forall(s => ObjectType.isProjected4D(s.objectType))
     val hasEdgeRendering = specs.exists(_.hasEdgeRendering)
     if all4DProjected && hasEdgeRendering then TesseractEdgeSceneBuilder(dir)
-    else TriangleMeshSceneBuilder(dir)
+    else TriangleMeshSceneBuilder(dir, gpuProject4D)
 
 enum SceneType:
   case CubeSponges(specs: List[ObjectSpec])

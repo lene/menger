@@ -31,7 +31,10 @@ import menger.optix.OptiXRenderer
  * Ported from OptiXEngine.setupMultipleTriangleMeshes() (lines 299-335)
  * and isCompatibleMesh() (lines 345-363).
  */
-class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: ProfilingConfig)
+class TriangleMeshSceneBuilder(
+  textureDir: String,
+  gpuProject4D: Boolean = false
+)(using profilingConfig: ProfilingConfig)
   extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
@@ -66,16 +69,27 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
 
     // For each spec, create either a single mesh or a merged fractional mesh
     specs.foreach { spec =>
-      val mesh = if isFractional4DSponge(spec) then
-        // Fractional level: merge both levels with per-vertex alpha
+      val plan: MeshUploadPlan = if isFractional4DSponge(spec) then
+        // Fractional level: merge both levels with per-vertex alpha. Always
+        // CPU-projected — GPU path doesn't support fractional skin yet.
         logger.debug(s"Creating fractional mesh for ${spec.objectType} level=${spec.level.get}")
-        createFractionalMesh(spec)
+        MeshUploadPlan.Cpu(createFractionalMesh(spec))
       else
-        // Integer level or non-sponge: single mesh
-        MeshFactory.create(spec)
+        // Integer level or non-sponge: single mesh, possibly GPU-projected.
+        MeshFactory.createUpload(spec, gpuProject4D)
 
       // Upload mesh and add instance
-      renderer.setTriangleMesh(mesh)
+      plan match
+        case MeshUploadPlan.Cpu(data) =>
+          renderer.setTriangleMesh(data)
+        case MeshUploadPlan.Gpu4D(quads4D, proj) =>
+          renderer.setTriangleMesh4DQuads(
+            quads4D, uvs = None,
+            eyeW = proj.eyeW, screenW = proj.screenW,
+            rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW,
+            centerX = 0f, centerY = 0f, centerZ = 0f
+          )
+          ()
 
       val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
       val material = MaterialExtractor.extract(spec)

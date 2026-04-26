@@ -42,6 +42,8 @@ class InteractiveEngine(
 
   override protected def textureDir: String = execution.textureDir
 
+  override protected def renderConfig: menger.optix.RenderConfig = config.render
+
   // Required by TimeoutSupport trait
   override def timeout: Float = execution.timeout
 

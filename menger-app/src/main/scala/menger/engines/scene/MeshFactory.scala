@@ -4,10 +4,13 @@ import com.badlogic.gdx.math.Vector3
 import menger.ObjectSpec
 import menger.ProfilingConfig
 import menger.Projection4DSpec
+import menger.common.ObjectType
 import menger.common.TriangleMeshData
 import menger.objects.Cube
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
+import menger.objects.higher_d.Mesh4DGpuFlatten
+import menger.objects.higher_d.Mesh4DProjection
 import menger.objects.higher_d.TesseractMesh
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
@@ -120,3 +123,49 @@ object MeshFactory:
 
       case other =>
         sys.error(s"Unknown mesh type: $other")
+
+  /** Build a `MeshUploadPlan` for the given spec. When `gpuProject4D` is true
+    * and the spec is a 4D-projected type, return a `Gpu4D` plan carrying the
+    * flat 4D-quad buffer + projection params; otherwise fall back to the
+    * existing CPU `create(spec)` path. */
+  def createUpload(
+    spec: ObjectSpec,
+    gpuProject4D: Boolean
+  )(using profilingConfig: ProfilingConfig): MeshUploadPlan =
+    if gpuProject4D && ObjectType.isProjected4D(spec.objectType) then
+      gpu4DPlan(spec) match
+        case Some(plan) => plan
+        case None       => MeshUploadPlan.Cpu(create(spec))
+    else
+      MeshUploadPlan.Cpu(create(spec))
+
+  private def gpu4DPlan(spec: ObjectSpec): Option[MeshUploadPlan.Gpu4D] =
+    val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
+    val projection: Option[Mesh4DProjection] = spec.objectType match
+      case "tesseract" =>
+        Some(TesseractMesh(
+          center = Vector3(0f, 0f, 0f), size = spec.size,
+          eyeW = proj.eyeW, screenW = proj.screenW,
+          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+        ))
+      case "tesseract-sponge" if spec.level.isDefined =>
+        Some(TesseractSpongeMesh(
+          center = Vector3(0f, 0f, 0f), size = spec.size,
+          level = spec.level.get,
+          eyeW = proj.eyeW, screenW = proj.screenW,
+          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+        ))
+      case "tesseract-sponge-2" if spec.level.isDefined =>
+        Some(TesseractSponge2Mesh(
+          center = Vector3(0f, 0f, 0f), size = spec.size,
+          level = spec.level.get,
+          eyeW = proj.eyeW, screenW = proj.screenW,
+          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+        ))
+      case _ => None
+    projection.map { p =>
+      MeshUploadPlan.Gpu4D(
+        quads4D = Mesh4DGpuFlatten.quadsBuffer(p.mesh4D),
+        proj = proj
+      )
+    }

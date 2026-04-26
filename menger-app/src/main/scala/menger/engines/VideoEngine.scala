@@ -13,7 +13,7 @@ class VideoEngine(
   val sceneFunction: Float => Scene,
   val animConfig: TAnimationConfig,
   executionConfig: ExecutionConfig,
-  val renderConfig: RenderConfig,
+  override val renderConfig: RenderConfig,
   val causticsConfig: CausticsConfig,
   val videoOutputPath: String,
   val videoQuality: Int,

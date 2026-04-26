@@ -20,7 +20,9 @@ case class RenderSettings(
   antialiasing: Boolean = false,
   aaMaxDepth: Int = 2,
   aaThreshold: Float = 0.1f,
-  maxRayDepth: Option[Int] = None
+  maxRayDepth: Option[Int] = None,
+  // Sprint 18.3: opt-in GPU 4D rotation + projection.
+  gpuProject4D: Option[Boolean] = None
 ):
   require(aaMaxDepth >= 1 && aaMaxDepth <= 4, s"aaMaxDepth must be 1-4, got $aaMaxDepth")
   require(aaThreshold >= 0.0f && aaThreshold <= 1.0f, s"aaThreshold must be 0.0-1.0, got $aaThreshold")
@@ -35,7 +37,8 @@ case class RenderSettings(
     antialiasing = antialiasing,
     aaMaxDepth = aaMaxDepth,
     aaThreshold = aaThreshold,
-    maxRayDepth = maxRayDepth.getOrElse(RenderConfig.Default.maxRayDepth)
+    maxRayDepth = maxRayDepth.getOrElse(RenderConfig.Default.maxRayDepth),
+    gpuProject4D = gpuProject4D.getOrElse(RenderConfig.Default.gpuProject4D)
   )
 
 object RenderSettings:
