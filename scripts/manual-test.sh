@@ -407,9 +407,6 @@ interactive_tests=(
     "Two spheres + shadows:-o --objects type=sphere:pos=-1.5,0,0:material=glass --objects type=sphere:pos=1.5,0,0 --shadows"
     "Sponge surface L1:-o --objects type=sponge-surface:level=1"
     "Cube Sponge L1:-o --objects type=cube-sponge:level=1:color=#00ffff --max-instances 64"
-    "Recursive IAS Sponge L2:-o --objects type=sponge-recursive-ias:level=2"
-    "Recursive IAS Sponge L4 (deep):-o --objects type=sponge-recursive-ias:level=4"
-    "Recursive IAS Sponge L6 + glass:-o --objects type=sponge-recursive-ias:level=6:material=glass"
     "Tesseract (4D hypercube):-o --objects type=tesseract"
     "Tesseract (4D rotated):-o --objects type=tesseract:rot-xw=45:rot-yw=30:rot-zw=15"
     "Tesseract (glass):-o --objects type=tesseract:material=glass"
@@ -487,6 +484,9 @@ interactive_tests=(
     "DSL CausticsReferenceDefault (primitive sphere, default caustics quality — compare to ParametricSphereCaustics):-o --scene examples.dsl.CausticsReferenceDefault"
     "DSL ParametricSphereCaustics (parametric sphere with PPM caustics on floor):-o --scene examples.dsl.ParametricSphereCaustics"
     "DSL ParametricTorusCaustics (glass torus with PPM caustics on floor):-o --scene examples.dsl.ParametricTorusCaustics"
+    "Recursive IAS Sponge L2:-o --objects type=sponge-recursive-ias:level=2"
+    "Recursive IAS Sponge L4 (deep):-o --objects type=sponge-recursive-ias:level=4"
+    "Recursive IAS Sponge L6 + glass:-o --objects type=sponge-recursive-ias:level=6:material=glass"
 )
 
 echo "Available interactive tests:"
