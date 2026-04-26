@@ -9,6 +9,7 @@ object ObjectType:
     "sponge-volume",
     "sponge-surface",
     "cube-sponge",
+    "sponge-recursive-ias",
     "tesseract",
     "tesseract-sponge-volume",
     "tesseract-sponge-surface"
@@ -17,7 +18,8 @@ object ObjectType:
   val SPONGE_TYPES: Set[String] = Set(
     "sponge-volume",
     "sponge-surface",
-    "cube-sponge"
+    "cube-sponge",
+    "sponge-recursive-ias"
   )
 
   val PROJECTED_4D_TYPES: Set[String] = Set(
@@ -62,6 +64,9 @@ object ObjectType:
   def is4DSponge(objectType: String): Boolean =
     val normalized = normalize(objectType)
     normalized == "tesseract-sponge-volume" || normalized == "tesseract-sponge-surface"
+
+  def isRecursiveIASSponge(objectType: String): Boolean =
+    normalize(objectType) == "sponge-recursive-ias"
 
   def validTypesString: String =
     VALID_TYPES.toSeq.sorted.mkString(", ")

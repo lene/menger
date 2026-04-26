@@ -39,6 +39,8 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
       Left("Object specs list cannot be empty")
     else if !specs.forall(isTriangleMeshType) then
       Left("All objects must be triangle mesh types (cube, sponge-*, tesseract)")
+    else if specs.exists(invalidRecursiveIASLevel) then
+      Left("sponge-recursive-ias requires integer level in [1, 14]")
     else
       // Check instance count (accounting for fractional levels creating 2 instances)
       val instanceCount = calculateInstanceCount(specs)
@@ -79,7 +81,17 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
       val material = MaterialExtractor.extract(spec)
 
       val instanceId =
-        if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
+        if ObjectType.isRecursiveIASSponge(spec.objectType) then
+          // Recursive-IAS sponge: leaf is the unit cube uploaded above; the
+          // outer transform scales by spec.size and applies euler rotation +
+          // translation. Level is required and validated in `validate()`.
+          val transform = TransformUtil.createEulerRotationScaleTranslation(
+            spec.rotX, spec.rotY, spec.rotZ, spec.size, spec.x, spec.y, spec.z
+          )
+          renderer.addRecursiveIASSpongeInstance(
+            spec.level.get.toInt, transform, material, textureIndex
+          )
+        else if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
           renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), material, textureIndex)
         else
           val transform = TransformUtil.createEulerRotationScaleTranslation(
@@ -179,3 +191,9 @@ class TriangleMeshSceneBuilder(textureDir: String)(using profilingConfig: Profil
    */
   private def isFractional(level: Float): Boolean =
     level != level.floor
+
+  private def invalidRecursiveIASLevel(spec: ObjectSpec): Boolean =
+    if !ObjectType.isRecursiveIASSponge(spec.objectType) then false
+    else spec.level match
+      case Some(l) => isFractional(l) || l < 1f || l > 14f
+      case None => true

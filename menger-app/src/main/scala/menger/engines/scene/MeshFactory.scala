@@ -51,6 +51,13 @@ object MeshFactory:
         )
         sponge.toTriangleMesh
 
+      case "sponge-recursive-ias" =>
+        // The leaf of a recursive-IAS sponge is always a unit cube; the sponge
+        // shape comes from N nested IAS layers wrapping that cube via the 20
+        // Menger generator transforms (see addRecursiveIASSpongeInstance).
+        // spec.size is applied via the outer instance transform, not the mesh.
+        Cube(center = Vector3(0f, 0f, 0f), scale = 1f).toTriangleMesh
+
       case "sponge-surface" =>
         require(spec.level.isDefined, "sponge-surface requires level parameter")
         val sponge = SpongeBySurface(
