@@ -111,10 +111,29 @@ analytical primitive lands and confirms the abstraction.
 
 ---
 
-### Task 18.3: GPU 4D Transform and Projection
+### Task 18.3: GPU 4D Transform and Projection ✅ DONE
 
 **Estimate:** 5h
 **Depends on:** 18.2
+
+**Status:** Shipped on `feature/sprint-18` in six cuts:
+- Cut A `0637af1` — native CUDA kernel + `setTriangleMesh4DQuads` setter (with
+  ALLOW_UPDATE GAS flag and resident `d_quads_4d` for forward-compat).
+- Cut B `d95f831` — `OptiXRenderer.setTriangleMesh4DQuads` Scala wrapper +
+  `Mesh4DGpuFlatten` quad-buffer utility.
+- Cut C `387101f` — `--gpu-project-4d` opt-in flag, `MeshUploadPlan`
+  ADT, `MeshFactory.createUpload`, threaded through `TriangleMeshSceneBuilder`.
+- Cut D `2930f6e` — `Project4DGpuSuite` static tests (CPU/GPU equivalence
+  L∞ = 0/255 on tesseract no-rot + rotated; handcrafted non-tesseract
+  Mesh4D generality; `tesseract-sponge level=2` setup ≈4s CPU vs ≈130ms
+  GPU).
+- Cut F `b463aaa` (API) + `84a91fe` (animation) — `updateMesh4DProjection`
+  with in-place GAS+IAS refit; `WithAnimation` fast-path detects "only
+  4D-projection params changed" frame-to-frame and re-projects via the
+  update kernel instead of clearAllInstances+rebuild. 10-frame animation
+  on tesseract-sponge level=2 = 5.5ms via update vs ≈1500ms via rebuild
+  (~270×).
+- Cut E (this commit) — integration/manual test entries + user-guide docs.
 
 Move 4D rotation, projection, and coordinate transforms to GPU-side CUDA code.
 

@@ -487,6 +487,10 @@ interactive_tests=(
     "Recursive IAS Sponge L2:-o --objects type=sponge-recursive-ias:level=2"
     "Recursive IAS Sponge L4 (deep):-o --objects type=sponge-recursive-ias:level=4"
     "Recursive IAS Sponge L6 + glass:-o --objects type=sponge-recursive-ias:level=6:material=glass"
+    "Tesseract (GPU project):-o --gpu-project-4d --objects type=tesseract:size=0.8 --plane y:-2"
+    "TesseractSponge L2 (GPU project):-o --gpu-project-4d --objects type=tesseract-sponge:level=2 --plane y:-2"
+    "TesseractSponge L3 (GPU project):-o --gpu-project-4d --objects type=tesseract-sponge:level=3 --plane y:-2"
+    "TesseractSponge L2 (animated XW, GPU update):-o --animate frames=60:rot-x-w=0-360 --gpu-project-4d --objects type=tesseract-sponge:level=2 --plane y:-2"
 )
 
 echo "Available interactive tests:"

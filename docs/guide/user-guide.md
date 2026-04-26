@@ -304,6 +304,36 @@ Control the 4D→3D projection:
 --rotation-4d 45,30,15       # XW,YW,ZW in degrees (mutually exclusive with --rot-x-w/y-w/z-w)
 ```
 
+#### GPU 4D Projection (Sprint 18.3)
+
+By default the 4D rotation + perspective projection runs on the CPU at
+scene-build time. For larger 4D meshes (especially `tesseract-sponge`
+at level ≥ 2) and for animated 4D viewpoints this is the dominant cost.
+
+```bash
+--gpu-project-4d             # opt-in: run rotation+projection on the GPU
+```
+
+When the flag is set:
+
+- **Setup time** — `tesseract-sponge level=2` drops from ≈4s on the CPU
+  to ≈130ms (~30× faster); larger levels scale better.
+- **Animation** — when an animation only changes 4D rotation
+  (`--animate rot-x-w/y-w/z-w`) or projection eye/screen depth
+  (`projection-eye-w`, `projection-screen-w`), the engine refits the
+  existing GPU mesh in place via `updateMesh4DProjection` instead of
+  rebuilding the scene. A 10-frame XW-rotation animation on
+  tesseract-sponge level=2 is ≈300× faster (5.5ms vs 1500ms).
+  Animations that change other parameters (size, material, position,
+  level…) fall back to the rebuild path automatically.
+
+The flag is purely opt-in: with the default off, behaviour and image
+output are unchanged. Output of the GPU path matches the CPU path to
+L∞ ≤ 6/255 (typically L∞ = 0). For arbitrary 4D meshes that are not
+quad-based, decompose each polygon into a fan of degenerate quads
+`(a, b, c, c)` — the kernel handles the degenerate-normal fallback
+identically to the CPU path.
+
 ### Fractional Levels
 
 All sponge types support fractional recursion levels (e.g., `--level 1.5`), which creates a smooth transition between integer levels using alpha blending.
