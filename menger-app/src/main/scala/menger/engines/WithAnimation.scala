@@ -1,17 +1,24 @@
 package menger.engines
 
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Failure
 import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
+import menger.ObjectSpec
+import menger.Projection4DSpec
 import menger.common.ImageSize
+import menger.common.ObjectType
 import menger.dsl.Scene
 import menger.dsl.SceneConverter
+import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.GdxRuntime
 import menger.optix.CausticsConfig
+import menger.optix.OptiXRenderer
 import menger.optix.RenderConfig
 
 trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
@@ -24,6 +31,14 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   protected def firstFrameConfigs: SceneConverter.SceneConfigs
 
   protected val frameCounter: AtomicInteger = new AtomicInteger(0)
+
+  /** Cached state for the GPU 4D-projection animation fast path: when the only
+    * frame-to-frame change is `Projection4DSpec` on 4D-projected specs, we
+    * call `renderer.updateMesh4DProjection` instead of clearAllInstances+rebuild.
+    * Set only when `renderConfig.gpuProject4D` is on AND the scene is purely
+    * 4D-projected triangle meshes. */
+  private val anim4DState: AtomicReference[Option[WithAnimation.Anim4DState]] =
+    new AtomicReference(None)
 
   abstract override def create(): Unit =
     val renderer = rendererWrapper.renderer
@@ -58,10 +73,13 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
         case scala.util.Success(dslScene) =>
           val configs  = SceneConverter.convert(dslScene, causticsConfig)
           val renderer = rendererWrapper.renderer
-          renderer.clearAllInstances()
-          buildSceneFromConfigs(configs, renderer).recover { case e: Exception =>
-            logger.error(s"Failed to build scene for frame $frame (t=$t): ${e.getMessage}", e)
-          }
+          val newSpecs = configs.scene.objectSpecs.getOrElse(List.empty)
+          val fastPathTaken = tryAnim4DFastPath(newSpecs, renderer)
+          if !fastPathTaken then
+            renderer.clearAllInstances()
+            buildAnim4DTrackedOrFallback(configs, newSpecs, renderer).recover { case e: Exception =>
+              logger.error(s"Failed to build scene for frame $frame (t=$t): ${e.getMessage}", e)
+            }
           sceneConfigurator.configurePlanes(renderer, configs.planes)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           cameraState.updateCamera(
@@ -77,3 +95,77 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       logger.info(s"Animation complete: ${animConfig.frames} frames rendered")
       onAnimationComplete()
       GdxRuntime.exit()
+
+  /** If conditions are met, drive frame N from frame N−1 via per-mesh
+    * `updateMesh4DProjection` calls and return true. Otherwise return false
+    * and let the caller take the rebuild path. */
+  private def tryAnim4DFastPath(newSpecs: List[ObjectSpec], renderer: OptiXRenderer): Boolean =
+    if !renderConfig.gpuProject4D then false
+    else anim4DState.get match
+      case None => false
+      case Some(prev) =>
+        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
+        else
+          prev.specs.lazyZip(newSpecs).lazyZip(prev.slots).foreach {
+            case (prevSpec, newSpec, slot) =>
+              if prevSpec.projection4D != newSpec.projection4D then
+                val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
+                renderer.updateMesh4DProjection(
+                  slot,
+                  eyeW = proj.eyeW, screenW = proj.screenW,
+                  rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+                )
+          }
+          anim4DState.set(Some(prev.copy(specs = newSpecs)))
+          true
+
+  /** Rebuild path: when the scene is 4D-only triangle-mesh AND `gpuProject4D`
+    * is on, build via a recorder-equipped TriangleMeshSceneBuilder so
+    * subsequent frames can attempt the fast path. Otherwise fall back to the
+    * generic `buildSceneFromConfigs` path and clear any cached fast-path
+    * state. */
+  private def buildAnim4DTrackedOrFallback(
+    configs: SceneConverter.SceneConfigs,
+    newSpecs: List[ObjectSpec],
+    renderer: OptiXRenderer
+  ): Try[Unit] =
+    if renderConfig.gpuProject4D && WithAnimation.is4DOnlyTriangleMeshScene(newSpecs) then
+      val slotBuf = ArrayBuffer.empty[Int]
+      val builder = TriangleMeshSceneBuilder(
+        textureDir, gpuProject4D = true,
+        mesh4DRecorder = (idx: Int) => { slotBuf += idx; () }
+      )(using profilingConfig)
+      val result = builder.buildScene(newSpecs, renderer, newSpecs.length)
+      result.foreach { _ =>
+        if slotBuf.size == newSpecs.size then
+          anim4DState.set(Some(WithAnimation.Anim4DState(newSpecs, slotBuf.toVector)))
+        else
+          anim4DState.set(None)
+      }
+      result.recover { case _ => anim4DState.set(None) }
+      result
+    else
+      anim4DState.set(None)
+      buildSceneFromConfigs(configs, renderer)
+
+object WithAnimation:
+  /** Per-mesh-slot bookkeeping for the GPU 4D projection animation fast path. */
+  final case class Anim4DState(specs: List[ObjectSpec], slots: Vector[Int])
+
+  /** Eligibility: every spec is a 4D-projected type (tesseract, tesseract-sponge,
+    * tesseract-sponge-2). Recursive-IAS sponges and non-4D meshes block the
+    * fast path because their slot mapping isn't 1:1. */
+  def is4DOnlyTriangleMeshScene(specs: List[ObjectSpec]): Boolean =
+    specs.nonEmpty && specs.forall(s => ObjectType.isProjected4D(s.objectType))
+
+  /** True iff the two spec lists have the same length and differ only in
+    * `Projection4DSpec` (and at least one element actually differs there). */
+  def specsDifferOnlyIn4DProjection(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
+    if prev.length != next.length then false
+    else
+      val pairs = prev.zip(next)
+      val anyDiffs = pairs.exists { case (a, b) => a.projection4D != b.projection4D }
+      val onlyProjDiffs = pairs.forall { case (a, b) =>
+        a.copy(projection4D = None) == b.copy(projection4D = None)
+      }
+      anyDiffs && onlyProjDiffs

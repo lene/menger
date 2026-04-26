@@ -33,7 +33,8 @@ import menger.optix.OptiXRenderer
  */
 class TriangleMeshSceneBuilder(
   textureDir: String,
-  gpuProject4D: Boolean = false
+  gpuProject4D: Boolean = false,
+  mesh4DRecorder: Int => Unit = _ => ()
 )(using profilingConfig: ProfilingConfig)
   extends SceneBuilder:
 
@@ -83,13 +84,13 @@ class TriangleMeshSceneBuilder(
         case MeshUploadPlan.Cpu(data) =>
           renderer.setTriangleMesh(data)
         case MeshUploadPlan.Gpu4D(quads4D, proj) =>
-          renderer.setTriangleMesh4DQuads(
+          val meshIdx = renderer.setTriangleMesh4DQuads(
             quads4D, uvs = None,
             eyeW = proj.eyeW, screenW = proj.screenW,
             rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW,
             centerX = 0f, centerY = 0f, centerZ = 0f
           )
-          ()
+          mesh4DRecorder(meshIdx)
 
       val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
       val material = MaterialExtractor.extract(spec)
