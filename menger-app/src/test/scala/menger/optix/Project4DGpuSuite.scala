@@ -193,6 +193,79 @@ class Project4DGpuSuite extends AnyFlatSpec
     // path even before the kernel launch is amortised.
     gpuFlattenMs should be <= cpuMs
 
+  // --- Test 4: update equivalence — frame B via update vs from-scratch ------
+
+  it should "match from-scratch render after updateMesh4DProjection rotates" taggedAs Slow in:
+    val rotA = (0f, 0f, 0f)
+    val rotB = (12f, 18f, 7f)
+    val tess = TesseractMesh(
+      center = Vector3(0f, 0f, 0f), size = 1.0f,
+      rotXW = rotB._1, rotYW = rotB._2, rotZW = rotB._3
+    )
+    val quads = Mesh4DGpuFlatten.quadsBuffer(tess.mesh4D)
+    // frame A then update to B
+    val meshIdx = renderer.setTriangleMesh4DQuads(
+      quads, uvs = None, eyeW = tess.eyeW, screenW = tess.screenW,
+      rotXW = rotA._1, rotYW = rotA._2, rotZW = rotA._3,
+      centerX = 0f, centerY = 0f, centerZ = 0f
+    )
+    renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
+    val _ = renderer.render(ImgSize).getOrElse(fail("frame A render returned None"))
+    renderer.updateMesh4DProjection(
+      meshIdx, eyeW = tess.eyeW, screenW = tess.screenW,
+      rotXW = rotB._1, rotYW = rotB._2, rotZW = rotB._3
+    )
+    val updatedPixels = renderer.render(ImgSize).getOrElse(fail("frame B render returned None"))
+    afterEach()
+    beforeEach()
+    val freshPixels = renderGpu(
+      tess.mesh4D, eyeW = tess.eyeW, screenW = tess.screenW,
+      rotXW = rotB._1, rotYW = rotB._2, rotZW = rotB._3
+    )
+    val diff = maxAbsRgbDiff(updatedPixels, freshPixels)
+    logger.info(f"update-equivalence L∞ diff: $diff")
+    diff should be <= MaxAbsPixelDiff
+
+  // --- Test 5: update perf — animation update vs rebuild --------------------
+
+  it should "animate 4D rotation faster via updateMesh4DProjection than via rebuild" taggedAs Slow in:
+    val frames = 10
+    val proj0 = TesseractSpongeMesh(
+      center = Vector3(0f, 0f, 0f), size = 1.0f, level = 2f,
+      rotXW = 0f, rotYW = 0f, rotZW = 0f
+    )
+    val quads = Mesh4DGpuFlatten.quadsBuffer(proj0.mesh4D)
+    val meshIdx = renderer.setTriangleMesh4DQuads(
+      quads, uvs = None, eyeW = proj0.eyeW, screenW = proj0.screenW,
+      rotXW = 0f, rotYW = 0f, rotZW = 0f,
+      centerX = 0f, centerY = 0f, centerZ = 0f
+    )
+    renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
+    val (_, updateMs) = measureMs:
+      (0 until frames).foreach { i =>
+        val angle = (i + 1) * 9f
+        renderer.updateMesh4DProjection(
+          meshIdx, eyeW = proj0.eyeW, screenW = proj0.screenW,
+          rotXW = angle, rotYW = 0f, rotZW = 0f
+        )
+      }
+    val (_, rebuildMs) = measureMs:
+      (0 until frames).foreach { i =>
+        val angle = (i + 1) * 9f
+        val proj = TesseractSpongeMesh(
+          center = Vector3(0f, 0f, 0f), size = 1.0f, level = 2f,
+          rotXW = angle, rotYW = 0f, rotZW = 0f
+        )
+        val q = Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D)
+        val _ = renderer.setTriangleMesh4DQuads(
+          q, uvs = None, eyeW = proj.eyeW, screenW = proj.screenW,
+          rotXW = angle, rotYW = 0f, rotZW = 0f,
+          centerX = 0f, centerY = 0f, centerZ = 0f
+        )
+      }
+    logger.info(f"animation $frames frames — update=${updateMs}%.1fms, rebuild=${rebuildMs}%.1fms")
+    updateMs should be < rebuildMs
+
   private def measureMs[T](block: => T): (T, Double) =
     val start = System.nanoTime()
     val result = block
