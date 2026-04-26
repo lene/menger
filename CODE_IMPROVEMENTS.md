@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-04-19 (Sprint 17 post-sprint review)
+**Last Updated:** 2026-04-26 (Sprint 18 post-sprint review)
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -10,7 +10,64 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
+### M-project4d-cuda-error-paths — kernel launch failure is logged but mesh is still registered
+**Category:** `POOR_ERROR_HANDLING`
+**Location:** `optix-jni/src/main/native/OptiXWrapper.cpp:494-535` (`setTriangleMesh4DQuads`)
+**Est. Effort:** 1h
+On a `launchProject4DQuadsKernel` error in `setTriangleMesh4DQuads`, the code prints to `std::cerr` but
+then continues into AABB readback, `triangle_meshes.push_back`, and returns `mesh_index >= 0`. The
+caller treats success as "mesh uploaded"; subsequent IAS/render calls touch undefined vertex memory.
+The companion `updateMesh4DProjection` (same file, line 584) gets this right: it returns `-3` on
+launch failure. Apply the same pattern in `setTriangleMesh4DQuads`: on `err != cudaSuccess`, free the
+just-allocated buffers and return `-1`. The Scala wrapper already requires `meshIdx >= 0` via the
+existing JNI return-code convention, so the fix surfaces the failure to callers without API changes.
+Same comment for missing `cudaMalloc` / `cudaMemcpy` return-code checks at lines 428–447 — they
+silently leak on OOM. Pre-existing in `setTriangleMesh`; new code matched the prior pattern. Worth
+fixing both call sites in one pass.
+
+---
+
 ## Low Priority
+
+### L-anim4d-recovery-discarded — `result.recover` side-effect discarded
+**Category:** `POOR_ERROR_HANDLING`
+**Location:** `menger-app/src/main/scala/menger/engines/WithAnimation.scala:145`
+**Est. Effort:** 0.25h
+`buildAnim4DTrackedOrFallback` does `result.recover { case _ => anim4DState.set(None) }` and then
+returns `result` — the `Try` produced by `recover` is discarded. The `anim4DState.set(None)` side
+effect still fires (because `recover`'s body is evaluated when the Try is *consumed*, but here it
+is materialised then thrown away). Today this happens to work because `recover` materialises the
+new Try eagerly, but a reader has to convince themselves that it does. Refactor as
+`result.fold(_ => anim4DState.set(None), _ => ())` followed by `result`, or as
+`result.transform(s => Success(s), e => { anim4DState.set(None); Failure(e) })`. Same intent,
+explicit about the side effect.
+
+---
+
+### L-mesh4d-plan-duplication — TesseractMesh / TesseractSpongeMesh / TesseractSponge2Mesh constructed twice
+**Category:** `DUPLICATION`
+**Location:** `menger-app/src/main/scala/menger/engines/scene/MeshFactory.scala:73-114` and `:142-165`
+**Est. Effort:** 0.5h
+`MeshFactory.create` and `MeshFactory.gpu4DPlan` each switch on the same three 4D object types
+(`tesseract`, `tesseract-sponge`, `tesseract-sponge-2`) and construct the same `Mesh4DProjection`
+subclass with identical argument lists. Adding a fourth 4D-projected type means editing both
+match expressions. Extract a private helper `mesh4DProjection(spec): Option[Mesh4DProjection]`
+that returns the projection object (None for non-4D specs); have `create` call
+`.toTriangleMesh` on it and `gpu4DPlan` call `Mesh4DGpuFlatten.quadsBuffer(p.mesh4D)` on it.
+
+---
+
+### L-render4d-require-null-message — null branching in the require message itself
+**Category:** `NAMING`
+**Location:** `optix-jni/src/main/scala/menger/optix/OptiXRenderer.scala:423-424`
+**Est. Effort:** 0.1h
+`require(quads4D != null && quads4D.length % 16 == 0, s"… got ${if quads4D == null then "null" else quads4D.length.toString}")`
+combines the null check with the modulus check in the predicate, then re-checks null inside the
+message string. Split into two requires: `require(quads4D != null, "quads4D must not be null")`
+followed by `require(quads4D.length % 16 == 0, …)`. Half the `// scalafix:ok` annotations needed
+and the message becomes unconditional.
+
+---
 
 ### L-tesseract-sponge-2-containment — level-2 faces straddle removed sub-cubes
 **Location:** `menger-app/src/main/scala/menger/objects/higher_d/TesseractSponge2.scala`
