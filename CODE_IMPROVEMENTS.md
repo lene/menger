@@ -1,12 +1,245 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-04-26 (Sprint 18 post-sprint review)
+**Last Updated:** 2026-04-27 (post-sprint 18 manual test review)
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
 ---
 
 ## High Priority
+
+### H-plane-material-ignored — `--plane-material chrome/gold` has no visual effect; chrome and gold plane renders are pixel-identical
+
+**Location:** `menger-app/src/main/scala/menger/MengerCLIOptions.scala` (`--plane-material` option),
+`menger-app/src/main/scala/menger/cli/CliValidation.scala` or the plane-spec wiring,
+`optix-jni/src/main/native/shaders/hit_triangle.cu` (plane shading path)
+**Est. Effort:** 2h
+**Reproducers (interactive tests 72 and 73):**
+- `--objects type=sphere --plane y:-1 --plane-material chrome`
+- `--objects type=sphere --plane y:-1 --plane-material gold`
+
+**Symptom:** Both commands produce pixel-identical renders — a large dark-grey diffuse sphere against a
+standard black-and-white checkered plane. The `--plane-material chrome` and `--plane-material gold`
+flags produce exactly the same output as each other and as the bare `--plane y:-1` default. No
+chrome-mirror or gold-metallic effect is visible on the floor plane, and the sphere shows no
+reflections of the floor that a metallic plane would produce. The sphere itself also appears
+unexpectedly dark and flat (see separate note below).
+
+**Expected:**
+- Chrome floor: mirror-reflective plane that reflects the sphere and background; sphere shows
+  reflections of the chrome floor.
+- Gold floor: warm gold/metallic sheen on the plane. The two should look visually distinct from each
+  other and from the default checkered floor.
+
+**Investigation notes (2026-04-27, first observation):**
+The `--plane-material` flag is accepted without error, ruling out a parse failure. Either (a) the
+parsed material value is silently discarded and never wired to the plane's material slot, or (b) the
+plane material is set but the shader's plane-hit branch ignores the material and always applies the
+default checkered pattern. Check whether the parsed `planeMaterial` option is propagated through
+`RenderConfig` → `OptiXWrapper.setPlane` → the plane's `MaterialProperties` struct. Note also that the
+sphere itself renders as a dark flat grey in both tests — no ambient or diffuse shading is visible —
+which may indicate a separate default-lighting deficiency or may be an artefact of the same material
+pipeline being broken for this command path.
+
+---
+
+### H-dsl-tesseract-demo-blank — DSL TesseractDemo renders as solid uniform background; glass tesseract completely invisible
+
+**Location:** `menger-app/src/main/scala/examples/dsl/TesseractDemo.scala` (Projection4DSpec),
+`menger-app/src/main/scala/menger/engines/scene/MeshFactory.scala` or DSL→spec translation,
+`optix-jni/src/main/native/shaders/hit_triangle.cu` (glass path)
+**Est. Effort:** 3h
+**Reproducer (interactive test 77):** `--scene examples.dsl.TesseractDemo`
+(equivalent: `--scene examples.dsl.TesseractDemo -s out.png --headless` — health check confirms
+99.91% of pixels = RGB(76, 25, 51), the default background colour)
+
+**Symptom:** The render is a completely uniform maroon background. The render health check reports
+99.91% of pixels matching the background colour, meaning the glass tesseract occupies at most 0.09%
+of the image (a handful of pixels) or is entirely absent. No glass refraction, reflection, or edge
+is visible.
+
+**Expected:** A visible glass tesseract projected from 4D to 3D, showing Fresnel reflections and
+refractions of the background, positioned in the centre of the frame.
+
+**Investigation notes (2026-04-27, first observation):**
+The DSL scene specifies a custom `Projection4DSpec(eyeW=3.0, screenW=1.5, rotXW=15, rotYW=10,
+rotZW=0)` and `Material.Glass`. Three hypotheses:
+1. *Custom Projection4DSpec places geometry outside camera frustum:* The default camera is at
+   `(0, 2, 5)` looking at origin. If `eyeW=3.0 / screenW=1.5` produces a projection that shifts the
+   tesseract too far from the origin, it may fall outside the view. Compare with the CLI equivalent
+   `--objects type=tesseract:material=glass` (no custom projection) — if that renders correctly, the
+   bug is in the Projection4DSpec wiring.
+2. *DSL Projection4DSpec not propagated to the OptiX scene builder:* The `projection` field on the
+   Tesseract DSL object may not be translated to the CLI/native projection parameters.
+3. *Glass on a uniform-colour background renders transparent:* A glass object in a scene with only a
+   single directional light and a uniform maroon background may produce near-zero Fresnel contrast at
+   most angles. However, a completely blank 99.91% render is unlikely from pure glass transparency
+   alone — some refraction distortion should be visible.
+Note: The static suite also includes a TesseractDemo headless test (static test 93); check whether
+that test has a passing or blank reference image to determine if this is a recent regression.
+
+---
+
+### H-sponge-showcase-crash — DSL SpongeShowcase crashes: CubeSpongeSceneBuilder rejects mixed sponge types
+
+**Location:** `menger-app/src/main/scala/menger/engines/BaseEngine.scala:74` (`buildSceneFromSpecs`),
+`menger-app/src/main/scala/menger/engines/scene/MeshFactory.scala` or scene-builder selection logic
+**Est. Effort:** 2h
+**Reproducer (interactive test 79):** `--scene examples.dsl.SpongeShowcase`
+
+**Symptom:** The application crashes immediately on startup with:
+```
+ValidationException: All objects must be cube-sponges for CubeSpongeSceneBuilder.
+  Field: 'objectSpecs', Value: 'List(sponge-volume, sponge-surface, cube-sponge)'
+```
+The SpongeShowcase scene contains three objects: one `sponge-volume`, one `sponge-surface`, and one
+`cube-sponge`. The engine selects `CubeSpongeSceneBuilder` despite only one of the three objects
+being a cube-sponge, and that builder then correctly rejects the mixed list.
+
+**Expected:** The scene should render all three sponge types simultaneously in one frame, demonstrating
+the difference between the three 3D sponge variants (VolumeFilling, SurfaceOnly, CubeSponge).
+
+**Investigation notes (2026-04-27, first observation):**
+The builder selection in `buildSceneFromSpecs` (`BaseEngine.scala:74`) appears to dispatch to
+`CubeSpongeSceneBuilder` whenever a `cube-sponge` object is present in the spec list, rather than
+requiring *all* objects to be cube-sponges. The fix should check whether the selected builder is
+compatible with all object types in the scene; if not, fall back to the generic triangle-mesh builder
+(which handled mixed scenes in Sprint 18.1 per the TD-5 resolution). Reproduces on every startup —
+not intermittent.
+
+---
+
+### H-parametric-film-invisible — ParametricMoebius and ParametricKleinBottleFilm render as blank; no geometry visible
+
+**Location:** `menger-app/src/main/scala/examples/dsl/ParametricMoebius.scala`,
+`menger-app/src/main/scala/examples/dsl/ParametricKleinBottleFilm.scala`,
+parametric surface tessellation / DSL→mesh pipeline,
+`optix-jni/src/main/native/shaders/hit_triangle.cu` (film material path)
+**Est. Effort:** 4h
+**Reproducers (interactive tests 94 and 96):**
+- `--scene examples.dsl.ParametricMoebius --shadows`
+- `--scene examples.dsl.ParametricKleinBottleFilm --shadows`
+
+**Symptom:** Both scenes render as a completely uniform maroon background. Render health checks:
+- ParametricMoebius: 100.00% of pixels = RGB(76, 25, 51)
+- ParametricKleinBottleFilm: 99.39% of pixels ≈ RGB(75, 24, 51)
+No parametric surface geometry is visible in either case.
+
+**Expected:** A visible Möbius strip (one-sided, film-material, with shadows) and a Klein bottle
+(figure-8 form, film-material, with shadows) each centered in the frame.
+
+**Investigation notes (2026-04-27, first observation):**
+Both scenes use parametric surface geometry with `Material.Film`. Three failure modes to investigate:
+1. *Parametric geometry not generated / zero triangles:* The tessellation may produce an empty mesh
+   silently. Add a triangle-count diagnostic after mesh build to confirm geometry is present.
+2. *Film material renders transparent at all angles when no environment is present:* Film material
+   relies on Fresnel reflectance; if the specular term is zero at all angles (e.g. due to degenerate
+   normals from a non-orientable surface like the Klein bottle), the surface could be fully
+   transparent. Check whether removing `Material.Film` and using `Material.Chrome` or a diffuse
+   colour makes the surface visible.
+3. *Scene geometry placed outside camera frustum:* The camera and object positions may not be set up
+   correctly in these DSL scenes, placing the objects behind or to the side of the camera.
+The 100% blank Möbius result vs 99.39% nearly-blank Klein bottle is consistent with the Klein bottle
+having a small amount of visible self-intersection geometry.
+Test both scenes with `Material.Chrome` (which is always visible) to isolate material vs geometry.
+
+---
+
+### H-animate-gpu4d-invalid — `--animate` with `--gpu-project-4d` produces "Invalid animation specification"; test never runs
+
+**Location:** `menger-app/src/main/scala/menger/MengerCLIOptions.scala` (`--animate` option parser),
+animation spec validation in CLI layer
+**Est. Effort:** 1h
+**Reproducer (interactive test 107):**
+```
+--animate frames=60:rot-x-w=0-360 --gpu-project-4d --objects type=tesseract-sponge:level=2 --plane y:-2
+```
+
+**Symptom:** The application exits immediately with:
+```
+Error: Invalid animation specification. Check that: (1) animation parameters are valid for the
+object type, (2) time format is correct (frames=N or fps=N), (3) parameter values are within valid
+ranges.
+```
+No window opens, no render is produced. The test as written in `scripts/manual-test.sh` has never
+produced any output.
+
+**Expected:** A 60-frame XW rotation animation (0°→360°) of a level-2 TesseractSponge projected via
+the GPU 4D pipeline, with the animation playing back interactively.
+
+**Investigation notes (2026-04-27, first observation):**
+The `rot-x-w=0-360` parameter key in the animation spec is the suspected cause. Either:
+1. The key name is wrong — check the `--animate` parser for the accepted rotation-parameter names
+   (it may expect `xw=0-360`, `rot-xw=0-360`, or `rotXW=0-360`).
+2. The `--animate` flag is incompatible with `--gpu-project-4d` mode and the combination is not
+   supported (triggering the "not valid for object type" error).
+3. The value range `0-360` uses a dash separator that is parsed incorrectly when the parameter name
+   itself contains a dash (`rot-x-w`).
+Check the `AnimationSpec` parser and cross-reference with other working animation tests in the static
+suite to identify the accepted syntax.
+
+---
+
+### H-mixed-frac-int-offscreen — Mixed fractional+integer sponge scene: objects at x=±1.5 appear at frame edges, not in view
+
+**Location:** Default camera position / FOV in `menger-app/src/main/scala/menger/engines/OptiXEngine.scala`
+or the camera-setup path used when no explicit `--camera-pos` is given
+**Est. Effort:** 1h
+**Reproducer (interactive test 48, static aspect):**
+```
+--objects type=tesseract-sponge:level=1.5:pos=-1.5,0,0 --objects type=tesseract-sponge:level=1:pos=1.5,0,0
+```
+
+**Symptom:** The two sponge objects appear at the extreme left and right edges of the rendered frame,
+each only partially in view — roughly the inner 15–20% of each object is visible, with the rest
+clipped by the frame boundary. The centre of the frame is entirely empty (only the checkered floor is
+visible). No useful comparison between the fractional-level and integer-level sponge is possible at
+this framing.
+
+**Expected:** Both objects fully visible and roughly symmetric about the centre of the frame,
+demonstrating the visual difference between level 1.5 (fractional) and level 1 (integer) TesseractSponge.
+
+**Investigation notes (2026-04-27, first observation):**
+The default camera has a fixed position and field-of-view that was calibrated for single-object scenes.
+Multi-object scenes at ±1.5 X offset fall near or beyond the horizontal extent of the default frustum.
+Other multi-object static tests (e.g., "Mixed 4D sponges" test 55) also use pos=±1.5 and may exhibit
+the same issue. The fix is either to widen the default FOV, move the default camera back, or
+automatically compute a camera position that fits all objects in the scene.
+
+---
+
+### H-mixed-frac-int-interactive-hang — App hangs permanently when changing 4D viewpoint on mixed fractional+integer sponge scene
+
+**Location:** `menger-app/src/main/scala/menger/engines/OptiXEngine.scala` (4D rotation event handler),
+`optix-jni/src/main/native/OptiXWrapper.cpp` (`updateMesh4DProjection`),
+`menger-app/src/main/scala/menger/objects/higher_d/TesseractSponge.scala`
+**Est. Effort:** 3h
+**Reproducer (interactive test 48):**
+1. Launch: `--objects type=tesseract-sponge:level=1.5:pos=-1.5,0,0 --objects type=tesseract-sponge:level=1:pos=1.5,0,0` (interactive, no `--headless`)
+2. Once the initial render appears, press any 4D rotation key (XW / YW / ZW rotation input)
+3. Application becomes unresponsive and does not recover
+
+**Symptom:** The app renders the initial frame (with the objects at frame edges per `H-mixed-frac-int-offscreen`)
+but hangs permanently as soon as a 4D viewpoint change is requested. No crash is reported, no error
+is logged, and `ESC`/`Ctrl+Q` do not terminate the session.
+
+**Expected:** 4D rotation input should re-project both sponge objects and update the render within
+one or two frames, matching the behaviour of single-object TesseractSponge scenes under the same input.
+
+**Investigation notes (2026-04-27, first observation):**
+The hang occurs only for multi-object 4D scenes, suggesting the issue is specific to updating two
+meshes simultaneously via `updateMesh4DProjection`. Hypotheses:
+1. *Second-object update blocks on first:* The engine may update the first sponge's GAS and wait for
+   confirmation before updating the second, but the IAS rebuild triggered by the first update races
+   with or blocks the second GAS update.
+2. *Fractional-level sponge mesh update not implemented:* `updateMesh4DProjection` may not handle
+   fractional levels correctly (level=1.5 uses the coverage-blend path, which may require a different
+   vertex buffer layout than integer levels). If the update fails silently (cf. `M-project4d-cuda-error-paths`),
+   the engine may spin indefinitely.
+Reproduce with two integer-level sponges (e.g., level=1 and level=2) as control to isolate whether
+the fractional level is load-bearing.
+
+---
 
 ## Medium Priority
 
