@@ -39,8 +39,7 @@
   `docs/arc42/09-architectural-decisions.md`.
 - User guide gains "Recursion Depth" and "Render Health Checks"
   subsections under OptiX Mode.
-- Debugging guide (`docs/guide/debugging-rendering-bugs.md`) gains a
-  "Render-health diagnostic" section.
+- Render-health diagnostic methodology moved to `debugging-rendering-bugs` skill.
 
 ## [0.5.7] - 2026-04-14
 

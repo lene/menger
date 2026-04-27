@@ -261,7 +261,7 @@ error message and non-zero exit; existing integration tests unaffected.
 - Developer docs for IS program registration API
 - GPU 4D math API doc for later sprints
 - User-guide entry for `--max-ray-depth`
-- Failed-render-detector note in `docs/guide/debugging-rendering-bugs.md`
+- Failed-render-detector note in `debugging-rendering-bugs` skill (render-health section)
 
 ---
 
@@ -290,7 +290,7 @@ error message and non-zero exit; existing integration tests unaffected.
 - [x] IS program API documented for Sprint 19 implementors (AD-18; `OptiXContext::addProgramGroup` flagged as the public extension point)
 - [x] GPU 4D math API documented for future sprint implementors (AD-19; user-guide §"GPU 4D Projection")
 - [x] `--max-ray-depth` documented in user guide (§ Recursion Depth)
-- [x] Failed-render diagnostic documented in `docs/guide/debugging-rendering-bugs.md` (§ Render-health diagnostic)
+- [x] Failed-render diagnostic in `debugging-rendering-bugs` skill (render-health section)
 
 ---
 

@@ -253,8 +253,8 @@ Failed render: all pixels are approximately (R,G,B); CLI args: …
 ```
 
 Pass `--allow-uniform-render` if a uniform output is intentional (e.g. a
-clear-colour smoke test). See `docs/guide/debugging-rendering-bugs.md` for
-the broader debugging method.
+clear-colour smoke test). For the broader debugging method, use the
+`debugging-rendering-bugs` skill.
 
 ---
 
