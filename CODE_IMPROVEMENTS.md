@@ -8,42 +8,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## High Priority
 
-### ~~H-plane-material-ignored~~ — RESOLVED 2026-04-28 — `--plane-material chrome/gold` has no visual effect; chrome and gold plane renders are pixel-identical
-
-Two root causes fixed: (1) `SceneConfigurator.configurePlanes()` `case None` branch silently dropped material — fixed to check `planeConfig.material` and call `addPlaneCheckerColorsWithMaterial` with default gray. (2) `miss_plane.cu` Phong-only model — added metallic reflection path via `traceReflectedRay()`, matching sphere `handleMetallicOpaque()`. See `docs/superpowers/investigations/2026-04-28-plane-material-ignored.md`.
-
-**Location:** `menger-app/src/main/scala/menger/MengerCLIOptions.scala` (`--plane-material` option),
-`menger-app/src/main/scala/menger/cli/CliValidation.scala` or the plane-spec wiring,
-`optix-jni/src/main/native/shaders/hit_triangle.cu` (plane shading path)
-**Est. Effort:** 2h
-**Reproducers (interactive tests 72 and 73):**
-- `--objects type=sphere --plane y:-1 --plane-material chrome`
-- `--objects type=sphere --plane y:-1 --plane-material gold`
-
-**Symptom:** Both commands produce pixel-identical renders — a large dark-grey diffuse sphere against a
-standard black-and-white checkered plane. The `--plane-material chrome` and `--plane-material gold`
-flags produce exactly the same output as each other and as the bare `--plane y:-1` default. No
-chrome-mirror or gold-metallic effect is visible on the floor plane, and the sphere shows no
-reflections of the floor that a metallic plane would produce. The sphere itself also appears
-unexpectedly dark and flat (see separate note below).
-
-**Expected:**
-- Chrome floor: mirror-reflective plane that reflects the sphere and background; sphere shows
-  reflections of the chrome floor.
-- Gold floor: warm gold/metallic sheen on the plane. The two should look visually distinct from each
-  other and from the default checkered floor.
-
-**Investigation notes (2026-04-27, first observation):**
-The `--plane-material` flag is accepted without error, ruling out a parse failure. Either (a) the
-parsed material value is silently discarded and never wired to the plane's material slot, or (b) the
-plane material is set but the shader's plane-hit branch ignores the material and always applies the
-default checkered pattern. Check whether the parsed `planeMaterial` option is propagated through
-`RenderConfig` → `OptiXWrapper.setPlane` → the plane's `MaterialProperties` struct. Note also that the
-sphere itself renders as a dark flat grey in both tests — no ambient or diffuse shading is visible —
-which may indicate a separate default-lighting deficiency or may be an artefact of the same material
-pipeline being broken for this command path.
-
----
 
 ### H-dsl-tesseract-demo-blank — DSL TesseractDemo renders as solid uniform background; glass tesseract completely invisible
 

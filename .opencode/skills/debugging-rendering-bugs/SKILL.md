@@ -83,6 +83,8 @@ Make the detector a **permanent regression test** — it already exists at this 
 
 Rewrite any stale bug report. Replace the prior description with v-final wording (or delete if fully resolved).
 
+**Remove the resolved entry from `CODE_IMPROVEMENTS.md` entirely.** The file header states: "Resolved items are removed from this file entirely — git history is the record of what was fixed." Do not mark it with strikethrough or add a RESOLVED annotation — delete the whole entry.
+
 ---
 
 ## Red Flags — STOP and Follow the Process
@@ -129,6 +131,7 @@ An investigation is complete when:
 - The fix commit passes that test
 - The investigation note records per-stage commands, measurements, images, and root-cause narrative
 - Any prior incorrect description has been corrected or removed
+- The entry in `CODE_IMPROVEMENTS.md` has been **deleted** (not struck through — see file header)
 - Residual defects discovered during the investigation have their own low-priority tickets
 
 ---
