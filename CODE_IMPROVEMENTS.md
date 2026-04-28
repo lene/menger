@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-04-27 (post-sprint 18 manual test review)
+**Last Updated:** 2026-04-28
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -208,6 +208,19 @@ the fractional level is load-bearing.
 ---
 
 ## Medium Priority
+
+### M-plane-phong-spec-squared — `miss_plane.cu` Phong specular contribution is `spec²` not `spec`
+**Category:** `CORRECTNESS`
+**Location:** `optix-jni/src/main/native/shaders/miss_plane.cu:197-199`
+**Est. Effort:** 0.25h
+Non-metallic plane Phong path:
+```cpp
+const float spec = powf(...) * plane.specular;
+total_color = total_color + make_float3(spec, spec, spec) * spec;
+```
+The specular value is squared (`spec * spec`) instead of being added linearly. Standard Phong adds `specular_color * spec_intensity`; here `spec` serves as both color and intensity. The highlight is more pinched and dimmer than intended, but visually benign for the default scene (light position produces no on-screen highlight). Pre-existing since Sprint 13.1. Fix: `total_color = total_color + make_float3(spec, spec, spec);`
+
+---
 
 ### M-project4d-cuda-error-paths — kernel launch failure is logged but mesh is still registered
 **Category:** `POOR_ERROR_HANDLING`
