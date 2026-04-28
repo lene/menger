@@ -8,7 +8,9 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## High Priority
 
-### H-plane-material-ignored — `--plane-material chrome/gold` has no visual effect; chrome and gold plane renders are pixel-identical
+### ~~H-plane-material-ignored~~ — RESOLVED 2026-04-28 — `--plane-material chrome/gold` has no visual effect; chrome and gold plane renders are pixel-identical
+
+Two root causes fixed: (1) `SceneConfigurator.configurePlanes()` `case None` branch silently dropped material — fixed to check `planeConfig.material` and call `addPlaneCheckerColorsWithMaterial` with default gray. (2) `miss_plane.cu` Phong-only model — added metallic reflection path via `traceReflectedRay()`, matching sphere `handleMetallicOpaque()`. See `docs/superpowers/investigations/2026-04-28-plane-material-ignored.md`.
 
 **Location:** `menger-app/src/main/scala/menger/MengerCLIOptions.scala` (`--plane-material` option),
 `menger-app/src/main/scala/menger/cli/CliValidation.scala` or the plane-spec wiring,

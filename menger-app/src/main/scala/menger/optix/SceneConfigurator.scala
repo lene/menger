@@ -91,7 +91,16 @@ class SceneConfigurator(
                   )
               logger.debug(f"Configured solid-color plane: ${planeConfig.spec.axis}@${planeConfig.spec.value}")
         case None =>
-          renderer.addPlane(axisInt, planeConfig.spec.positive, planeConfig.spec.value)
+          planeConfig.material match
+            case Some(mat) =>
+              // No explicit colour: use the material's own colour as a solid floor.
+              // Checker pattern is opt-in via --plane-color RRGGBB:RRGGBB.
+              renderer.addPlaneSolidColorWithMaterial(
+                axisInt, planeConfig.spec.positive, planeConfig.spec.value,
+                mat.color, mat
+              )
+            case None =>
+              renderer.addPlane(axisInt, planeConfig.spec.positive, planeConfig.spec.value)
           logger.debug(s"Configured default-color plane: ${planeConfig.spec.axis}@${planeConfig.spec.value}")
     }
     if planes.isEmpty then logger.debug("No planes configured")
