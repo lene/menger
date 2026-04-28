@@ -8,9 +8,11 @@
 # Options:
 #   --update-references  Regenerate reference images instead of comparing
 #
-# Environment variables:
-#   PARALLEL_MODE=true|false      Enable/disable parallel execution (default: true)
-#   MAX_PARALLEL_JOBS=N           Max concurrent test categories (default: 2, reduces GPU contention)
+# NOTE: Tests run SEQUENTIALLY on purpose. Parallel execution was tried and
+# abandoned: concurrent OptiX renders on a single GPU produce unpredictable
+# rendering errors (corrupted frames, wrong pixels) that are not reproducible
+# in isolation. Do not add a parallel mode — the root cause is GPU context
+# sharing under concurrent CUDA/OptiX load, not a code bug that can be fixed.
 
 # Parse arguments
 UPDATE_REFERENCES=false
@@ -45,35 +47,17 @@ IMAGE_DIFF_THRESHOLD=0.001  # 0.1% pixel difference tolerance
 TEST_WIDTH=200              # Render at 1/4 width (1/16 pixels) for fast test runs
 TEST_HEIGHT=150
 
-# Test tracking (global counters - will be aggregated from parallel jobs)
+# Test tracking (global counters)
 PASSED=0
 FAILED=0
 FAILED_TESTS=""
 IMAGE_COMPARISON_FAILURES=0
-
-# Parallelization support
-PARALLEL_MODE="${PARALLEL_MODE:-true}"  # Can be disabled with PARALLEL_MODE=false
-MAX_PARALLEL_JOBS="${MAX_PARALLEL_JOBS:-2}"  # Number of test categories to run in parallel (2 for GPU stability)
-
-# Export variables needed by subshells
-export MENGER_BIN
-export UPDATE_REFERENCES
-export DEFAULT_TIMEOUT
-export CAUSTICS_TIMEOUT
-export SCRIPT_DIR
-export TEST_ASSETS_DIR
-export REFERENCE_DIR
-export DIFF_DIR
-export IMAGE_DIFF_THRESHOLD
-export TEST_WIDTH
-export TEST_HEIGHT
 
 # Colors
 RED='\e[38;5;196m'
 GREEN='\e[38;5;46m'
 YELLOW='\e[38;5;226m'
 RESET='\e[0m'
-export RED GREEN YELLOW RESET
 
 # Create directories if they don't exist
 mkdir -p "$REFERENCE_DIR"
@@ -133,7 +117,7 @@ run_test() {
     local name="$1"
     shift
 
-    # Generate temporary output filename (unique even in parallel mode)
+    # Generate temporary output filename
     local temp_output="test_temp_$$_${RANDOM}_$(date +%N).png"
     rm -f "$temp_output"
 
@@ -190,7 +174,6 @@ run_test_should_fail() {
     local name="$1"
     shift
 
-    # Don't use rm -f test_*.png in parallel mode - could delete other tests' files
     # These tests don't produce output anyway
 
     # Check if --headless is in the arguments (headless and timeout are mutually exclusive)
@@ -290,64 +273,6 @@ run_test_with_output() {
     rm -f "$output_file"
 }
 
-# Run a test category in parallel mode (writes results to temp file)
-run_category_parallel() {
-    local category_name="$1"
-    local category_func="$2"
-    local result_file="$3"
-
-    # Reset counters for this category
-    PASSED=0
-    FAILED=0
-    FAILED_TESTS=""
-    IMAGE_COMPARISON_FAILURES=0
-
-    # Run the category function
-    $category_func
-
-    # Write results to file
-    echo "$PASSED" > "${result_file}.passed"
-    echo "$FAILED" > "${result_file}.failed"
-    echo -e "$FAILED_TESTS" > "${result_file}.failed_tests"
-    echo "$IMAGE_COMPARISON_FAILURES" > "${result_file}.image_failures"
-}
-
-# Aggregate results from parallel runs
-aggregate_results() {
-    local result_dir="$1"
-
-    PASSED=0
-    FAILED=0
-    FAILED_TESTS=""
-    IMAGE_COMPARISON_FAILURES=0
-
-    for result_file in "$result_dir"/*.passed; do
-        if [ -f "$result_file" ]; then
-            PASSED=$((PASSED + $(cat "$result_file")))
-        fi
-    done
-
-    for result_file in "$result_dir"/*.failed; do
-        if [ -f "$result_file" ]; then
-            FAILED=$((FAILED + $(cat "$result_file")))
-        fi
-    done
-
-    for result_file in "$result_dir"/*.failed_tests; do
-        if [ -f "$result_file" ]; then
-            local tests=$(cat "$result_file")
-            if [ -n "$tests" ]; then
-                FAILED_TESTS="${FAILED_TESTS}${tests}"
-            fi
-        fi
-    done
-
-    for result_file in "$result_dir"/*.image_failures; do
-        if [ -f "$result_file" ]; then
-            IMAGE_COMPARISON_FAILURES=$((IMAGE_COMPARISON_FAILURES + $(cat "$result_file")))
-        fi
-    done
-}
 
 print_summary() {
     local total=$((PASSED + FAILED))
@@ -860,12 +785,7 @@ test_error_handling() {
         --objects type=sphere --headless --save-name test.png --timeout 5 --plane y:-2
 }
 
-# ============================================
-# Export functions for parallel execution
-# ============================================
 
-# Export all helper functions and test categories so they're available in background subshells
-export -f compare_images
 test_video_output() {
     echo "Video Output (ffmpeg):"
 
@@ -944,31 +864,6 @@ test_video_output() {
     rm -rf "$temp_dir"
 }
 
-export -f run_test
-export -f run_test_should_fail
-export -f run_test_with_output
-export -f run_category_parallel
-export -f test_basic_objects
-export -f test_multi_object
-export -f test_antialiasing
-export -f test_lighting
-export -f test_scene_options
-export -f test_materials
-export -f test_film_materials
-export -f test_textures
-export -f test_caustics
-export -f test_tesseract
-export -f test_4d_sponges
-export -f test_3d_fractional_sponges
-export -f test_dsl_scenes
-export -f test_t_animation
-export -f test_file_output
-export -f test_headless
-export -f test_colored_shadows
-export -f test_parametric_caustics_comparison
-export -f test_area_lights
-export -f test_error_handling
-export -f test_video_output
 
 # ============================================
 # Main
@@ -986,87 +881,29 @@ main() {
         echo "Mode: Test with image comparison"
     fi
 
-    if [ "$PARALLEL_MODE" = "true" ]; then
-        echo -e "Parallelization: ${GREEN}Enabled${RESET} (max $MAX_PARALLEL_JOBS concurrent categories)"
-    else
-        echo "Parallelization: Disabled"
-    fi
     echo ""
 
-    if [ "$PARALLEL_MODE" = "true" ]; then
-        # Parallel execution mode
-        local result_dir=$(mktemp -d)
-        local job_count=0
-
-        # Define all test categories
-        local categories=(
-            "test_basic_objects"
-            "test_multi_object"
-            "test_antialiasing"
-            "test_lighting"
-            "test_scene_options"
-            "test_materials"
-            "test_film_materials"
-            "test_textures"
-            "test_caustics"
-            "test_tesseract"
-            "test_4d_sponges"
-            "test_3d_fractional_sponges"
-            "test_dsl_scenes"
-            "test_t_animation"
-            "test_file_output"
-            "test_headless"
-            "test_colored_shadows"
-            "test_parametric_caustics_comparison"
-            "test_area_lights"
-            "test_error_handling"
-            "test_video_output"
-        )
-
-        # Run categories in parallel with job control
-        for category in "${categories[@]}"; do
-            # Wait if we've reached max parallel jobs
-            while [ $(jobs -r | wc -l) -ge $MAX_PARALLEL_JOBS ]; do
-                sleep 0.1
-            done
-
-            # Run category in background
-            run_category_parallel "$category" "$category" "$result_dir/$category" &
-            ((job_count++))
-        done
-
-        # Wait for all background jobs to complete
-        wait
-
-        # Aggregate results
-        aggregate_results "$result_dir"
-
-        # Cleanup
-        rm -rf "$result_dir"
-    else
-        # Sequential execution mode (original behavior)
-        test_basic_objects
-        test_multi_object
-        test_antialiasing
-        test_lighting
-        test_scene_options
-        test_materials
-        test_film_materials
-        test_textures
-        test_caustics
-        test_tesseract
-        test_4d_sponges
-        test_3d_fractional_sponges
-        test_dsl_scenes
-        test_t_animation
-        test_file_output
-        test_headless
-        test_colored_shadows
-        test_parametric_caustics_comparison
-        test_area_lights
-        test_error_handling
-        test_video_output
-    fi
+    test_basic_objects
+    test_multi_object
+    test_antialiasing
+    test_lighting
+    test_scene_options
+    test_materials
+    test_film_materials
+    test_textures
+    test_caustics
+    test_tesseract
+    test_4d_sponges
+    test_3d_fractional_sponges
+    test_dsl_scenes
+    test_t_animation
+    test_file_output
+    test_headless
+    test_colored_shadows
+    test_parametric_caustics_comparison
+    test_area_lights
+    test_error_handling
+    test_video_output
 
     print_summary
 
