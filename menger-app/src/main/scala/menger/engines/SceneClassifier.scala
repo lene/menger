@@ -16,25 +16,29 @@ object SceneClassifier:
     require(specs.nonEmpty, "classify requires at least one ObjectSpec")
     val types = specs.map(_.objectType.toLowerCase).toSet
 
-    if types.contains("cube-sponge") then
+    if types == Set("cube-sponge") then
       SceneType.CubeSponges(specs)
     else if types.forall(_ == "sphere") then
       SceneType.Spheres(specs)
-    else if types.forall(isTriangleMeshType) then
+    else if !types.contains("sphere") && !types.contains("cube-sponge") &&
+            types.forall(isTriangleMeshType) then
       SceneType.TriangleMeshes(specs)
     else
-      // Mixed scene - spheres + triangle meshes
-      val hasSpheres  = types.contains("sphere")
-      val meshTypes   = types.filter(isTriangleMeshType)
+      // Mixed scene — spheres and/or cube-sponges combined with triangle meshes.
+      // Sprint 18.1 TD-5 resolution lets per-spec setTriangleMesh +
+      // addTriangleMeshInstance create one GAS per mesh in the IAS; the engine
+      // splits SimpleMixed into spheres / cube-sponges / other meshes and runs
+      // the matching builder on each group (H-sponge-showcase-crash fix).
+      val hasSpheres     = types.contains("sphere")
+      val hasCubeSponge  = types.contains("cube-sponge")
+      val otherMeshTypes = types - "sphere" - "cube-sponge"
 
-      if hasSpheres && meshTypes.nonEmpty then
-        // TD-5 resolution (Sprint 18.1): per-spec setTriangleMesh +
-        // addTriangleMeshInstance creates one GAS per mesh in the IAS, so spheres
-        // can coexist with any combination of triangle-mesh types in a single scene.
-        SceneType.SimpleMixed(specs, meshTypes.head)
+      if (hasSpheres || hasCubeSponge) && otherMeshTypes.forall(isTriangleMeshType) then
+        val tag = otherMeshTypes.headOption.getOrElse(
+          if hasCubeSponge then "cube-sponge" else "sphere"
+        )
+        SceneType.SimpleMixed(specs, tag)
       else
-        // Catch-all: scene contains a non-sphere, non-triangle-mesh, non-cube-sponge
-        // type that doesn't fit any builder.
         SceneType.ComplexMixed(specs)
 
   def isTriangleMeshType(objectType: String): Boolean =

@@ -32,6 +32,22 @@ class SceneClassifierSuite extends AnyFlatSpec with Matchers:
     val specs = List(spec("cube-sponge"))
     SceneClassifier.classify(specs) shouldBe a [SceneType.CubeSponges]
 
+  it should "classify pure multi-cube-sponge scene as CubeSponges" in:
+    val specs = List(spec("cube-sponge"), spec("cube-sponge"))
+    SceneClassifier.classify(specs) shouldBe a [SceneType.CubeSponges]
+
+  it should "classify cube-sponge + sponge-volume as SimpleMixed (H-sponge-showcase-crash)" in:
+    val specs = List(spec("cube-sponge"), spec("sponge-volume"))
+    SceneClassifier.classify(specs) shouldBe a [SceneType.SimpleMixed]
+
+  it should "classify SpongeShowcase mix (cube-sponge + sponge-volume + sponge-surface) as SimpleMixed" in:
+    val specs = List(spec("sponge-volume"), spec("sponge-surface"), spec("cube-sponge"))
+    SceneClassifier.classify(specs) shouldBe a [SceneType.SimpleMixed]
+
+  it should "classify sphere + cube-sponge as SimpleMixed" in:
+    val specs = List(spec("sphere"), spec("cube-sponge"))
+    SceneClassifier.classify(specs) shouldBe a [SceneType.SimpleMixed]
+
   it should "classify all-cube scene as TriangleMeshes" in:
     val specs = List(spec("cube"), spec("cube"))
     SceneClassifier.classify(specs) shouldBe a [SceneType.TriangleMeshes]

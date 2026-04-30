@@ -200,6 +200,12 @@ class InteractiveEngine(
     logger.info(s"Creating InteractiveEngine with ${objectSpecs.length} objects")
     objectSpecs.foreach(warnIfHighLevel)
     val renderer = rendererWrapper.renderer
+    // Resize the native instance buffer up-front when auto-adjust says we need
+    // more than the constructor-time budget — otherwise large cube-sponge / mixed
+    // scenes silently drop instances past the cap.
+    val requiredMax = requiredMaxInstancesFor(objectSpecs)
+    if requiredMax > execution.maxInstances then
+      renderer.reinitialize(requiredMax)
     sceneConfigurator.configureLights(renderer)
     sceneConfigurator.configurePlanes(renderer, environment.planes)
     sceneConfigurator.configureCamera(renderer)

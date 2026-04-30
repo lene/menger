@@ -11,6 +11,7 @@ import menger.ProfilingConfig
 import menger.common.ObjectType
 import menger.common.ValidationException
 import menger.dsl.SceneConverter
+import menger.engines.scene.CubeSpongeSceneBuilder
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SphereSceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
@@ -34,6 +35,25 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
   // Override in concrete engines that need auto-adjustment (e.g. InteractiveEngine)
   protected def computeEffectiveMaxInstances(builder: SceneBuilder, specs: List[ObjectSpec]): Int =
     maxInstances
+
+  /** Compute the max-instances budget required to host `specs`, accounting for
+    * mixed-scene splits (sphere / cube-sponge / other-mesh groups). Mirrors
+    * the dispatch logic in `buildMixedSceneObjects` so the renderer can be
+    * reinitialised at the right size before scene construction. */
+  protected def requiredMaxInstancesFor(specs: List[ObjectSpec]): Int =
+    if specs.isEmpty then maxInstances
+    else
+      val sphereSpecs     = specs.filter(_.objectType.toLowerCase == "sphere")
+      val cubeSpongeSpecs = specs.filter(_.objectType.toLowerCase == "cube-sponge")
+      val otherMeshSpecs  = specs.filterNot(s =>
+        s.objectType.toLowerCase == "sphere" || s.objectType.toLowerCase == "cube-sponge")
+      val sphereMax     = if sphereSpecs.nonEmpty then
+        computeEffectiveMaxInstances(SphereSceneBuilder(), sphereSpecs) else 0
+      val cubeSpongeMax = if cubeSpongeSpecs.nonEmpty then
+        computeEffectiveMaxInstances(CubeSpongeSceneBuilder(), cubeSpongeSpecs) else 0
+      val otherMeshMax  = if otherMeshSpecs.nonEmpty then
+        computeEffectiveMaxInstances(selectMeshBuilder(otherMeshSpecs), otherMeshSpecs) else 0
+      Math.max(sphereMax, Math.max(cubeSpongeMax, otherMeshMax))
 
   protected def selectMeshBuilder(specs: List[ObjectSpec]): SceneBuilder =
     val all4DProjected = specs.forall(s => ObjectType.isProjected4D(s.objectType))
@@ -92,17 +112,21 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
           case None          => Failure(UnsupportedOperationException(s"No builder for $sceneType"))
       case SceneType.SimpleMixed(allSpecs, _) =>
         Try {
-          val sphereSpecs = allSpecs.filter(_.objectType.toLowerCase == "sphere")
-          val meshSpecs   = allSpecs.filterNot(_.objectType.toLowerCase == "sphere")
+          val sphereSpecs     = allSpecs.filter(_.objectType.toLowerCase == "sphere")
+          val nonSphereSpecs  = allSpecs.filterNot(_.objectType.toLowerCase == "sphere")
+          val cubeSpongeSpecs = nonSphereSpecs.filter(_.objectType.toLowerCase == "cube-sponge")
+          val otherMeshSpecs  = nonSphereSpecs.filterNot(_.objectType.toLowerCase == "cube-sponge")
           if sphereSpecs.nonEmpty then
             SphereSceneBuilder().buildScene(sphereSpecs, renderer, maxInstances).get
-          if meshSpecs.nonEmpty then
+          if cubeSpongeSpecs.nonEmpty then
+            CubeSpongeSceneBuilder().buildScene(cubeSpongeSpecs, renderer, maxInstances).get
+          if otherMeshSpecs.nonEmpty then
             SceneClassifier.selectSceneBuilder(
-              SceneType.TriangleMeshes(meshSpecs), Some(textureDir)
+              SceneType.TriangleMeshes(otherMeshSpecs), Some(textureDir)
             ) match
-              case Some(builder) => builder.buildScene(meshSpecs, renderer, maxInstances).get
+              case Some(builder) => builder.buildScene(otherMeshSpecs, renderer, maxInstances).get
               case None =>
-                val types = meshSpecs.map(_.objectType).distinct.mkString(", ")
+                val types = otherMeshSpecs.map(_.objectType).distinct.mkString(", ")
                 sys.error(s"No mesh builder found for types: $types")
         }
       case other =>
@@ -141,12 +165,27 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     meshSpecs: List[ObjectSpec],
     renderer: menger.optix.OptiXRenderer
   ): Unit =
-    val meshBuilder = selectMeshBuilder(meshSpecs)
-    val effectiveMaxInstances = computeEffectiveMaxInstances(meshBuilder, meshSpecs)
+    // cube-sponge specs need CubeSpongeSceneBuilder (instance-explosion path);
+    // other triangle-mesh types go through TriangleMeshSceneBuilder
+    // (H-sponge-showcase-crash fix).
+    val cubeSpongeSpecs = meshSpecs.filter(_.objectType.toLowerCase == "cube-sponge")
+    val otherMeshSpecs  = meshSpecs.filterNot(_.objectType.toLowerCase == "cube-sponge")
+    // Auto-adjust budget across groups: each builder may have a very different
+    // instance footprint (cube-sponge expands by 20^level, mesh builders are
+    // 1:1). Take the max so cube-sponge dominance lifts the limit when needed.
+    val sphereMax     = if sphereSpecs.nonEmpty then
+      computeEffectiveMaxInstances(SphereSceneBuilder(), sphereSpecs) else 0
+    val cubeSpongeMax = if cubeSpongeSpecs.nonEmpty then
+      computeEffectiveMaxInstances(CubeSpongeSceneBuilder(), cubeSpongeSpecs) else 0
+    val otherMeshMax  = if otherMeshSpecs.nonEmpty then
+      computeEffectiveMaxInstances(selectMeshBuilder(otherMeshSpecs), otherMeshSpecs) else 0
+    val effectiveMaxInstances = Math.max(sphereMax, Math.max(cubeSpongeMax, otherMeshMax))
     if sphereSpecs.nonEmpty then
       SphereSceneBuilder().buildScene(sphereSpecs, renderer, effectiveMaxInstances).get
-    if meshSpecs.nonEmpty then
-      meshBuilder.buildScene(meshSpecs, renderer, effectiveMaxInstances).get
+    if cubeSpongeSpecs.nonEmpty then
+      CubeSpongeSceneBuilder().buildScene(cubeSpongeSpecs, renderer, effectiveMaxInstances).get
+    if otherMeshSpecs.nonEmpty then
+      selectMeshBuilder(otherMeshSpecs).buildScene(otherMeshSpecs, renderer, effectiveMaxInstances).get
 
   // Default lifecycle — concrete engines override what they need
   override def create(): Unit = {}

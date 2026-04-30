@@ -46,35 +46,6 @@ that test has a passing or blank reference image to determine if this is a recen
 
 ---
 
-### H-sponge-showcase-crash — DSL SpongeShowcase crashes: CubeSpongeSceneBuilder rejects mixed sponge types
-
-**Location:** `menger-app/src/main/scala/menger/engines/BaseEngine.scala:74` (`buildSceneFromSpecs`),
-`menger-app/src/main/scala/menger/engines/scene/MeshFactory.scala` or scene-builder selection logic
-**Est. Effort:** 2h
-**Reproducer (interactive test 79):** `--scene examples.dsl.SpongeShowcase`
-
-**Symptom:** The application crashes immediately on startup with:
-```
-ValidationException: All objects must be cube-sponges for CubeSpongeSceneBuilder.
-  Field: 'objectSpecs', Value: 'List(sponge-volume, sponge-surface, cube-sponge)'
-```
-The SpongeShowcase scene contains three objects: one `sponge-volume`, one `sponge-surface`, and one
-`cube-sponge`. The engine selects `CubeSpongeSceneBuilder` despite only one of the three objects
-being a cube-sponge, and that builder then correctly rejects the mixed list.
-
-**Expected:** The scene should render all three sponge types simultaneously in one frame, demonstrating
-the difference between the three 3D sponge variants (VolumeFilling, SurfaceOnly, CubeSponge).
-
-**Investigation notes (2026-04-27, first observation):**
-The builder selection in `buildSceneFromSpecs` (`BaseEngine.scala:74`) appears to dispatch to
-`CubeSpongeSceneBuilder` whenever a `cube-sponge` object is present in the spec list, rather than
-requiring *all* objects to be cube-sponges. The fix should check whether the selected builder is
-compatible with all object types in the scene; if not, fall back to the generic triangle-mesh builder
-(which handled mixed scenes in Sprint 18.1 per the TD-5 resolution). Reproduces on every startup —
-not intermittent.
-
----
-
 ### H-parametric-film-invisible — ParametricMoebius and ParametricKleinBottleFilm render as blank; no geometry visible
 
 **Location:** `menger-app/src/main/scala/examples/dsl/ParametricMoebius.scala`,

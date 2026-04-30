@@ -119,3 +119,10 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
       require(spec.level.isDefined, "cube-sponge requires level")
       CubeSpongeGenerator(size = spec.size, level = spec.level.get).cubeCount
     }.sum
+
+  // Used by InteractiveEngine.computeEffectiveMaxInstances to auto-adjust the
+  // instance budget. For mixed scenes (e.g. SpongeShowcase) the cube-sponge
+  // group is usually the dominant consumer; without this override the default
+  // 64-instance limit is exceeded silently.
+  override def calculateRequiredInstances(specs: List[ObjectSpec]): Int =
+    if specs.forall(_.level.isDefined) then calculateInstanceCount(specs).toInt else 0
