@@ -737,8 +737,6 @@ BuildDeployable:
   needs: []
   timeout: 20m
   retry: 2
-  tags:
-    - nvidia
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
