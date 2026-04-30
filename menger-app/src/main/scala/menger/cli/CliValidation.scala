@@ -82,9 +82,14 @@ trait CliValidation:
     }
 
   private def registerAnimationValidations(): Unit =
-    validateOpt(animate, spongeType) {
-      case (Some(spec), Some(sponge)) => validateAnimationSpecification(spec, sponge)
-      case _ => Right(())
+    validateOpt(animate, spongeType, objects) { (specOpt, spongeOpt, objsOpt) =>
+      specOpt match
+        case Some(spec) =>
+          val types: Set[String] = objsOpt match
+            case Some(objs) if objs.nonEmpty => objs.map(_.objectType).toSet
+            case _ => spongeOpt.toSet
+          validateAnimationSpecification(spec, types)
+        case None => Right(())
     }
 
     validateOpt(animate, rotX, rotY, rotZ, rotXW, rotYW, rotZW) { (spec, x, y, z, xw, yw, zw) =>
@@ -175,10 +180,10 @@ trait CliValidation:
     lines.isSupplied && (faceColor.isSupplied || lineColor.isSupplied)
 
   private def validateAnimationSpecification(
-    spec: AnimationSpecificationSequence, spongeType: String
+    spec: AnimationSpecificationSequence, spongeTypes: Set[String]
   ): Either[String, Unit] =
-    validationLogger.debug(s"Validating animation spec for spongeType='$spongeType': $spec")
-    val isValid = spec.valid(spongeType)
+    validationLogger.debug(s"Validating animation spec for spongeTypes=$spongeTypes: $spec")
+    val isValid = spec.valid(spongeTypes)
     val timeValid = spec.isTimeSpecValid
     validationLogger.debug(s"Animation validation result: isValid=$isValid, timeValid=$timeValid")
     if isValid && timeValid then Right(())

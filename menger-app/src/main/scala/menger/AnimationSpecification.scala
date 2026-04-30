@@ -46,11 +46,13 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
     logger.debug(s"Time spec valid: $valid (frames=$frames)")
     valid
 
-  def valid(spongeType: String): Boolean =
+  def valid(spongeType: String): Boolean = valid(Set(spongeType))
+
+  def valid(spongeTypes: Set[String]): Boolean =
     val timeValid = isTimeSpecValid
-    val paramsValid = animationParametersValid(spongeType)
+    val paramsValid = animationParametersValid(spongeTypes)
     val result = timeValid && paramsValid
-    logger.debug(s"Animation valid for '$spongeType': $result (timeValid=$timeValid, paramsValid=$paramsValid)")
+    logger.debug(s"Animation valid for $spongeTypes: $result (timeValid=$timeValid, paramsValid=$paramsValid)")
     result
 
   override def toString: String =
@@ -112,14 +114,14 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
     require(parts.last.toFloatOption.isDefined, s"End ${parts.last} not a Float")
     (parts.head.toFloat, parts.last.toFloat)
 
-  private def animationParametersValid(spongeType: String): Boolean =
-    val validParams = AnimationSpecification.validParameters(spongeType)
+  private def animationParametersValid(spongeTypes: Set[String]): Boolean =
+    val validParams = spongeTypes.flatMap(AnimationSpecification.validParameters)
     val providedParams = animationParameters.keySet
     val hasParams = animationParameters.nonEmpty
     val allValid = providedParams.subsetOf(validParams)
     if !allValid then
       val invalidParams = providedParams -- validParams
-      logger.debug(s"Invalid animation parameters for '$spongeType': $invalidParams. Valid: $validParams")
+      logger.debug(s"Invalid animation parameters for $spongeTypes: $invalidParams. Valid: $validParams")
     hasParams && allValid
 
 object AnimationSpecification:

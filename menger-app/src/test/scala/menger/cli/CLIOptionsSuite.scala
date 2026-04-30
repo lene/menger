@@ -194,6 +194,21 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
       SafeMengerCLIOptions(Seq("--sponge-type", sponge, "--animate", "frames=10:rot-x-w=0-10"))
   }
 
+  Seq("tesseract", "tesseract-sponge", "tesseract-sponge-2").foreach { obj =>
+    it should s"succeed if a 4D parameter is specified for --objects type=$obj" in:
+      SafeMengerCLIOptions(Seq(
+        "--objects", s"type=$obj:level=2",
+        "--animate", "frames=60:rot-x-w=0-360"
+      ))
+  }
+
+  it should "fail if a 4D parameter is specified for non-4D --objects type" in:
+    an[ScallopException] should be thrownBy
+      SafeMengerCLIOptions(Seq(
+        "--objects", "type=cube",
+        "--animate", "frames=60:rot-x-w=0-360"
+      ))
+
   Seq("tesseract").foreach { sponge =>
     it should s"fail when level is specified for non-fractal sponge type $sponge" in:
       an[ScallopException] should be thrownBy

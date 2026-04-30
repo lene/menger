@@ -227,3 +227,16 @@ class AnimationSpecificationSuite extends AnyFlatSpec with Matchers:
   it should "return true when parameters are valid for sponge type" in:
     val spec = AnimationSpecification("frames=10:rot-x=0-90")
     spec.valid("cube") shouldBe true
+
+  "AnimationSpecification.valid(Set)" should "accept rot-x-w when any type in set is 4D-capable" in:
+    val spec = AnimationSpecification("frames=60:rot-x-w=0-360")
+    spec.valid(Set("tesseract-sponge")) shouldBe true
+    spec.valid(Set("cube", "tesseract-sponge")) shouldBe true
+
+  it should "reject rot-x-w when no type in set is 4D-capable" in:
+    val spec = AnimationSpecification("frames=10:rot-x-w=0-90")
+    spec.valid(Set("cube", "square")) shouldBe false
+
+  it should "accept level when at least one type is fractal-capable" in:
+    val spec = AnimationSpecification("frames=10:level=0-2")
+    spec.valid(Set("tesseract-sponge")) shouldBe true

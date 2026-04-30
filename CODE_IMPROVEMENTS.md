@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-04-28
+**Last Updated:** 2026-04-30
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -108,41 +108,6 @@ Both scenes use parametric surface geometry with `Material.Film`. Three failure 
 The 100% blank Möbius result vs 99.39% nearly-blank Klein bottle is consistent with the Klein bottle
 having a small amount of visible self-intersection geometry.
 Test both scenes with `Material.Chrome` (which is always visible) to isolate material vs geometry.
-
----
-
-### H-animate-gpu4d-invalid — `--animate` with `--gpu-project-4d` produces "Invalid animation specification"; test never runs
-
-**Location:** `menger-app/src/main/scala/menger/MengerCLIOptions.scala` (`--animate` option parser),
-animation spec validation in CLI layer
-**Est. Effort:** 1h
-**Reproducer (interactive test 107):**
-```
---animate frames=60:rot-x-w=0-360 --gpu-project-4d --objects type=tesseract-sponge:level=2 --plane y:-2
-```
-
-**Symptom:** The application exits immediately with:
-```
-Error: Invalid animation specification. Check that: (1) animation parameters are valid for the
-object type, (2) time format is correct (frames=N or fps=N), (3) parameter values are within valid
-ranges.
-```
-No window opens, no render is produced. The test as written in `scripts/manual-test.sh` has never
-produced any output.
-
-**Expected:** A 60-frame XW rotation animation (0°→360°) of a level-2 TesseractSponge projected via
-the GPU 4D pipeline, with the animation playing back interactively.
-
-**Investigation notes (2026-04-27, first observation):**
-The `rot-x-w=0-360` parameter key in the animation spec is the suspected cause. Either:
-1. The key name is wrong — check the `--animate` parser for the accepted rotation-parameter names
-   (it may expect `xw=0-360`, `rot-xw=0-360`, or `rotXW=0-360`).
-2. The `--animate` flag is incompatible with `--gpu-project-4d` mode and the combination is not
-   supported (triggering the "not valid for object type" error).
-3. The value range `0-360` uses a dash separator that is parsed incorrectly when the parameter name
-   itself contains a dash (`rot-x-w`).
-Check the `AnimationSpec` parser and cross-reference with other working animation tests in the static
-suite to identify the accepted syntax.
 
 ---
 

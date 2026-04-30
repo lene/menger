@@ -11,6 +11,7 @@ case class AnimationSpecificationSequence(specification: List[String] = List.emp
   require(parts.forall(_.isTimeSpecValid), "AnimationSpecification.frames not defined")
 
   def valid(spongeType: String): Boolean = parts.forall(_.valid(spongeType))
+  def valid(spongeTypes: Set[String]): Boolean = parts.forall(_.valid(spongeTypes))
   def isTimeSpecValid: Boolean = parts.forall(_.isTimeSpecValid)
 
   def level(frame: Int): Option[Float] =
