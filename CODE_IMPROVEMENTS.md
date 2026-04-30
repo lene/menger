@@ -9,43 +9,6 @@ Resolved items are removed from this file entirely — git history is the record
 ## High Priority
 
 
-### H-dsl-tesseract-demo-blank — DSL TesseractDemo renders as solid uniform background; glass tesseract completely invisible
-
-**Location:** `menger-app/src/main/scala/examples/dsl/TesseractDemo.scala` (Projection4DSpec),
-`menger-app/src/main/scala/menger/engines/scene/MeshFactory.scala` or DSL→spec translation,
-`optix-jni/src/main/native/shaders/hit_triangle.cu` (glass path)
-**Est. Effort:** 3h
-**Reproducer (interactive test 77):** `--scene examples.dsl.TesseractDemo`
-(equivalent: `--scene examples.dsl.TesseractDemo -s out.png --headless` — health check confirms
-99.91% of pixels = RGB(76, 25, 51), the default background colour)
-
-**Symptom:** The render is a completely uniform maroon background. The render health check reports
-99.91% of pixels matching the background colour, meaning the glass tesseract occupies at most 0.09%
-of the image (a handful of pixels) or is entirely absent. No glass refraction, reflection, or edge
-is visible.
-
-**Expected:** A visible glass tesseract projected from 4D to 3D, showing Fresnel reflections and
-refractions of the background, positioned in the centre of the frame.
-
-**Investigation notes (2026-04-27, first observation):**
-The DSL scene specifies a custom `Projection4DSpec(eyeW=3.0, screenW=1.5, rotXW=15, rotYW=10,
-rotZW=0)` and `Material.Glass`. Three hypotheses:
-1. *Custom Projection4DSpec places geometry outside camera frustum:* The default camera is at
-   `(0, 2, 5)` looking at origin. If `eyeW=3.0 / screenW=1.5` produces a projection that shifts the
-   tesseract too far from the origin, it may fall outside the view. Compare with the CLI equivalent
-   `--objects type=tesseract:material=glass` (no custom projection) — if that renders correctly, the
-   bug is in the Projection4DSpec wiring.
-2. *DSL Projection4DSpec not propagated to the OptiX scene builder:* The `projection` field on the
-   Tesseract DSL object may not be translated to the CLI/native projection parameters.
-3. *Glass on a uniform-colour background renders transparent:* A glass object in a scene with only a
-   single directional light and a uniform maroon background may produce near-zero Fresnel contrast at
-   most angles. However, a completely blank 99.91% render is unlikely from pure glass transparency
-   alone — some refraction distortion should be visible.
-Note: The static suite also includes a TesseractDemo headless test (static test 93); check whether
-that test has a passing or blank reference image to determine if this is a recent regression.
-
----
-
 ### H-parametric-film-invisible — ParametricMoebius and ParametricKleinBottleFilm render as blank; no geometry visible
 
 **Location:** `menger-app/src/main/scala/examples/dsl/ParametricMoebius.scala`,

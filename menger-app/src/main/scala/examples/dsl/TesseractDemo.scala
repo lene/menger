@@ -42,7 +42,8 @@ object TesseractDemo:
         direction = (1f, -1f, -1f),
         intensity = 1.5f
       )
-    )
+    ),
+    planes = List(Plane(Y at -1.5, color = "#FFFFFF"))
   )
 
   SceneRegistry.register("tesseract-demo", scene)
