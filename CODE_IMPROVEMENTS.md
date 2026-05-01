@@ -205,14 +205,6 @@ comment.
 
 ---
 
-### L-film-indent — Indentation regression in helpers.cu (cosmetic)
-**Location:** `helpers.cu` — `calculateLighting()` comment block
-**Est. Effort:** 0.1h
-The `// Add ambient lighting` comment block lost its 4-space indentation, leaving it at column 0
-while surrounding code is at 4-space indent. Editing artifact from adding thin-film.
-
----
-
 ### L-film-magic — Three unnamed magic numbers in computeThinFilmReflectance
 **Location:** `helpers.cu`
 **Est. Effort:** 0.5h
@@ -288,16 +280,6 @@ A `Map[String, SceneBuilder]` registry would be easier to extend and test indepe
 `vector3Converter`, `planeSpecConverter`, and parts of `lightSpecConverter` all parse
 comma-separated floats with similar error-handling boilerplate. A shared
 `parseFloatComponents(input, expectedCount)` helper in `ConverterUtils` would reduce duplication.
-
----
-
-### L-caustics-docstring-order — setShadowPayload docstring misplaced above wrong function
-**Location:** `helpers.cu` lines ~20–31
-**Est. Effort:** 0.1h
-The `/** Set shadow ray payload... */` docblock describing `setShadowPayload` appears immediately
-before `accumulateShadowAttenuation`, not above `setShadowPayload` (line 58). The two functions
-are in the wrong order relative to their docstrings, so readers see the wrong doc for the first
-function they encounter. Swap the functions or move the docstring.
 
 ---
 
