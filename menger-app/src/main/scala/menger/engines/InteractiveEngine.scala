@@ -44,18 +44,7 @@ class InteractiveEngine(
 
   override protected def textureDir: String = execution.textureDir
 
-  /** For 4D-only triangle-mesh scenes we force `gpuProject4D` on so 4D-rotation
-    * key events can use the per-mesh `updateMesh4DProjection` fast path instead
-    * of a full geometry rebuild. The full-rebuild path hangs in multi-object 4D
-    * scenes (H-mixed-frac-int-interactive-hang). User-facing flag is left as-is
-    * for non-4D scenes. */
-  override protected def renderConfig: menger.optix.RenderConfig =
-    if shouldForceGpuProject4D then config.render.copy(gpuProject4D = true)
-    else config.render
-
-  private def shouldForceGpuProject4D: Boolean =
-    val specs = scene.objectSpecs.getOrElse(List.empty)
-    specs.nonEmpty && specs.forall(s => ObjectType.isProjected4D(s.objectType))
+  override protected def renderConfig: menger.optix.RenderConfig = config.render
 
   // Required by TimeoutSupport trait
   override def timeout: Float = execution.timeout
