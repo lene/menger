@@ -9,42 +9,6 @@ Resolved items are removed from this file entirely — git history is the record
 ## High Priority
 
 
-### H-parametric-film-invisible — ParametricMoebius and ParametricKleinBottleFilm render as blank; no geometry visible
-
-**Location:** `menger-app/src/main/scala/examples/dsl/ParametricMoebius.scala`,
-`menger-app/src/main/scala/examples/dsl/ParametricKleinBottleFilm.scala`,
-parametric surface tessellation / DSL→mesh pipeline,
-`optix-jni/src/main/native/shaders/hit_triangle.cu` (film material path)
-**Est. Effort:** 4h
-**Reproducers (interactive tests 94 and 96):**
-- `--scene examples.dsl.ParametricMoebius --shadows`
-- `--scene examples.dsl.ParametricKleinBottleFilm --shadows`
-
-**Symptom:** Both scenes render as a completely uniform maroon background. Render health checks:
-- ParametricMoebius: 100.00% of pixels = RGB(76, 25, 51)
-- ParametricKleinBottleFilm: 99.39% of pixels ≈ RGB(75, 24, 51)
-No parametric surface geometry is visible in either case.
-
-**Expected:** A visible Möbius strip (one-sided, film-material, with shadows) and a Klein bottle
-(figure-8 form, film-material, with shadows) each centered in the frame.
-
-**Investigation notes (2026-04-27, first observation):**
-Both scenes use parametric surface geometry with `Material.Film`. Three failure modes to investigate:
-1. *Parametric geometry not generated / zero triangles:* The tessellation may produce an empty mesh
-   silently. Add a triangle-count diagnostic after mesh build to confirm geometry is present.
-2. *Film material renders transparent at all angles when no environment is present:* Film material
-   relies on Fresnel reflectance; if the specular term is zero at all angles (e.g. due to degenerate
-   normals from a non-orientable surface like the Klein bottle), the surface could be fully
-   transparent. Check whether removing `Material.Film` and using `Material.Chrome` or a diffuse
-   colour makes the surface visible.
-3. *Scene geometry placed outside camera frustum:* The camera and object positions may not be set up
-   correctly in these DSL scenes, placing the objects behind or to the side of the camera.
-The 100% blank Möbius result vs 99.39% nearly-blank Klein bottle is consistent with the Klein bottle
-having a small amount of visible self-intersection geometry.
-Test both scenes with `Material.Chrome` (which is always visible) to isolate material vs geometry.
-
----
-
 ### H-mixed-frac-int-offscreen — Mixed fractional+integer sponge scene: objects at x=±1.5 appear at frame edges, not in view
 
 **Location:** Default camera position / FOV in `menger-app/src/main/scala/menger/engines/OptiXEngine.scala`
@@ -99,8 +63,8 @@ meshes simultaneously via `updateMesh4DProjection`. Hypotheses:
    with or blocks the second GAS update.
 2. *Fractional-level sponge mesh update not implemented:* `updateMesh4DProjection` may not handle
    fractional levels correctly (level=1.5 uses the coverage-blend path, which may require a different
-   vertex buffer layout than integer levels). If the update fails silently (cf. `M-project4d-cuda-error-paths`),
-   the engine may spin indefinitely.
+   vertex buffer layout than integer levels). If the update fails silently (cf. 
+   `M-project4d-cuda-error-paths`), the engine may spin indefinitely.
 Reproduce with two integer-level sponges (e.g., level=1 and level=2) as control to isolate whether
 the fractional level is load-bearing.
 
@@ -117,7 +81,11 @@ Non-metallic plane Phong path:
 const float spec = powf(...) * plane.specular;
 total_color = total_color + make_float3(spec, spec, spec) * spec;
 ```
-The specular value is squared (`spec * spec`) instead of being added linearly. Standard Phong adds `specular_color * spec_intensity`; here `spec` serves as both color and intensity. The highlight is more pinched and dimmer than intended, but visually benign for the default scene (light position produces no on-screen highlight). Pre-existing since Sprint 13.1. Fix: `total_color = total_color + make_float3(spec, spec, spec);`
+The specular value is squared (`spec * spec`) instead of being added linearly. Standard Phong adds 
+`specular_color * spec_intensity`; here `spec` serves as both color and intensity. The highlight is 
+more pinched and dimmer than intended, but visually benign for the default scene (light position 
+produces no on-screen highlight). Pre-existing since Sprint 13.1. Fix: 
+`total_color = total_color + make_float3(spec, spec, spec);`
 
 ---
 
@@ -135,6 +103,49 @@ existing JNI return-code convention, so the fix surfaces the failure to callers 
 Same comment for missing `cudaMalloc` / `cudaMemcpy` return-code checks at lines 428–447 — they
 silently leak on OOM. Pre-existing in `setTriangleMesh`; new code matched the prior pattern. Worth
 fixing both call sites in one pass.
+
+---
+
+### M-film-maxdepth-opaque-fallback — Film material may render fully opaque at `max_ray_depth` instead of preserving alpha blend
+
+**Category:** `INVESTIGATION`
+**Location:** `optix-jni/src/main/native/shaders/hit_triangle.cu:332-376`
+**Est. Effort:** 2h (investigation + targeted fix if confirmed)
+
+**Hypothesis:** The `use_refractive_coverage_blend` branch (Film with alpha=0.2 + IOR=1.33 passes
+`is_refractive` check) calls `handleFullyOpaque(...)` and returns when `depth >= max_ray_depth`.
+Correct for glass-sponge skin geometry (intended target of that fallback), but Film material's
+80%-transparent design needs the continuation-ray blend even at depth cutoff — otherwise Film at
+ray-depth limit becomes incorrectly opaque.
+
+**Reproducer to confirm:**
+1. Render `examples.dsl.FilmSphere` and `examples.dsl.ParametricKleinBottleFilm` with
+   `--max-ray-depth 1` and `--max-ray-depth 8` (or whatever flag wires through to `params.max_ray_depth`).
+2. Compare visible transparency. If depth=1 image shows opaque film vs depth=8 transparent, the
+   fallback is wrong for Film.
+
+**Code path:**
+```cpp
+const bool use_refractive_coverage_blend = is_refractive && has_vertex_alpha_channel
+    && geom.vertex_alpha < ALPHA_FULLY_OPAQUE_THRESHOLD;  // line 342-343
+if (use_refractive_coverage_blend) {
+    if (depth >= static_cast<unsigned int>(params.max_ray_depth)) {  // line 373
+        handleFullyOpaque(geom.hit_point, geom.normal, mesh_color);
+        return;  // <-- skips continuation-ray transparency blend
+    }
+    // ... refractive coverage blend with continuation ray ...
+}
+```
+
+**Likely fix:** Distinguish glass-sponge skin (alpha encoded as coverage) from Film (alpha=fixed
+0.2 transparency) — possibly via filmThickness sentinel or a dedicated material flag. Apply
+opaque fallback only for the sponge case; for Film, fall through to continuation-ray blend with
+fixed Fresnel mix at the depth cutoff.
+
+**Discovery context:** Surfaced during investigation of `H-parametric-film-invisible` (resolved
+via scene-composition fix in commit ${SHA}). Symptom of that bug was *fully blank* (no geometry),
+not *fully opaque*, so this hypothesis was not load-bearing for the original fix. Filing here so
+it gets verified empirically rather than left as a lurking issue.
 
 ---
 
@@ -200,8 +211,8 @@ edges and 2112 triple-shared edges in the level-2 manifold histogram. Activate t
 **Est. Effort:** 0.1h
 The DSL example scenes list (section 7.6) does not include `MixedMetallicShowcase`, which was
 added in Sprint 13. The integration tests (`test_dsl_scenes`) and the manual test script
-(`interactive_tests`) both include it. The `docs/guide/dsl-reference.md` list is the canonical reference and should
-stay in sync.
+(`interactive_tests`) both include it. The `docs/guide/dsl-reference.md` list is the canonical
+reference and should stay in sync.
 
 ---
 
@@ -381,10 +392,12 @@ or letting the DSL type own the constraints and stripping them from `CausticsCon
 ---
 
 ### L-userguide-ior-flag-stale — Sections 6.2 and caustics tutorial use removed --ior flag
-**Location:** `docs/guide/user-guide.md` section 6.2 (Custom Materials), `docs/guide/advanced.md` (caustics tutorial)
+**Location:** `docs/guide/user-guide.md` section 6.2 (Custom Materials), `docs/guide/advanced.md` 
+(caustics tutorial)
 **Est. Effort:** 0.1h
 Section 6.2 "Custom Materials" shows `--ior 1.5` as a standalone CLI flag, and the caustics
-tutorial example passes `--ior 1.5` as a top-level option. The `--ior` flag was removed in v0.4.3. These should use `ior=1.5` inside `--objects` syntax instead.
+tutorial example passes `--ior 1.5` as a top-level option. The `--ior` flag was removed in v0.4.3. 
+These should use `ior=1.5` inside `--objects` syntax instead.
 
 ---
 

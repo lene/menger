@@ -121,6 +121,11 @@ object ParametricMoebius:
   private val TwoPi = 2f * Pi.toFloat
 
   val scene: Scene = Scene(
+    camera = Camera(
+      position = (3f, 4f, 4f),
+      lookAt = (0f, 0f, 0f),
+      up = (0f, 1f, 0f)
+    ),
     objects = List(ParametricSurface(
       f = (u, v) =>
         val halfU = u / 2f
@@ -138,7 +143,9 @@ object ParametricMoebius:
     lights = List(Directional(
       direction = (1f, -1f, -1f),
       intensity = 2.0f
-    ))
+    )),
+    planes = List(Plane(Y at -1.5, color = Color(0.8f, 0.8f, 0.8f))),
+    background = Some(Color.Black)
   )
   SceneRegistry.register("parametric-moebius", scene)
 
@@ -176,6 +183,11 @@ object ParametricKleinBottle:
   */
 object ParametricKleinBottleFilm:
   val scene: Scene = Scene(
+    camera = Camera(
+      position = (0f, 2f, 12f),
+      lookAt = (0f, 0f, 0f),
+      up = (0f, 1f, 0f)
+    ),
     objects = List(ParametricSurface(
       f = ParametricKleinBottle.f,
       uRange = (0f, 2f * Pi.toFloat), vRange = (0f, 2f * Pi.toFloat),
@@ -186,7 +198,9 @@ object ParametricKleinBottleFilm:
     lights = List(Directional(
       direction = (1f, -1f, -1f),
       intensity = 2.0f
-    ))
+    )),
+    planes = List(Plane(Y at -3, color = Color(0.8f, 0.8f, 0.8f))),
+    background = Some(Color.Black)
   )
   SceneRegistry.register("parametric-klein-bottle-film", scene)
 
