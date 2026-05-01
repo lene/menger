@@ -9,34 +9,6 @@ Resolved items are removed from this file entirely — git history is the record
 ## High Priority
 
 
-### H-mixed-frac-int-offscreen — Mixed fractional+integer sponge scene: objects at x=±1.5 appear at frame edges, not in view
-
-**Location:** Default camera position / FOV in `menger-app/src/main/scala/menger/engines/OptiXEngine.scala`
-or the camera-setup path used when no explicit `--camera-pos` is given
-**Est. Effort:** 1h
-**Reproducer (interactive test 48, static aspect):**
-```
---objects type=tesseract-sponge:level=1.5:pos=-1.5,0,0 --objects type=tesseract-sponge:level=1:pos=1.5,0,0
-```
-
-**Symptom:** The two sponge objects appear at the extreme left and right edges of the rendered frame,
-each only partially in view — roughly the inner 15–20% of each object is visible, with the rest
-clipped by the frame boundary. The centre of the frame is entirely empty (only the checkered floor is
-visible). No useful comparison between the fractional-level and integer-level sponge is possible at
-this framing.
-
-**Expected:** Both objects fully visible and roughly symmetric about the centre of the frame,
-demonstrating the visual difference between level 1.5 (fractional) and level 1 (integer) TesseractSponge.
-
-**Investigation notes (2026-04-27, first observation):**
-The default camera has a fixed position and field-of-view that was calibrated for single-object scenes.
-Multi-object scenes at ±1.5 X offset fall near or beyond the horizontal extent of the default frustum.
-Other multi-object static tests (e.g., "Mixed 4D sponges" test 55) also use pos=±1.5 and may exhibit
-the same issue. The fix is either to widen the default FOV, move the default camera back, or
-automatically compute a camera position that fits all objects in the scene.
-
----
-
 ---
 
 

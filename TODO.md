@@ -8,6 +8,7 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
   exactly? looks like it's always 0)
 - fractional levels with IAS sponges
 - higher max trace depth
+- rot for x/y/z rotation
 - seems like metallic materials are transparent? they should not
 - publish OptiX JNI as a separate project - should cover the full OptiX API, not just the ray 
   tracing pipeline.
