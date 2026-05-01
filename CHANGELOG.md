@@ -42,6 +42,12 @@
   bypassing `clearAllInstances()` + full scene rebuild which deadlocked the
   IAS rebuild path. The new `tryRotation4DCpuFastPath` mirrors the existing
   GPU fast path for all 4D-only CPU-projected scenes.
+- **Edge rendering broken for tesseract/tesseract-sponge** — the CPU 4D fast
+  path in `InteractiveEngine` was routing edge-rendering scenes to
+  `TriangleMeshSceneBuilder` instead of `TesseractEdgeSceneBuilder`, causing
+  cylinder edges to disappear. The fast path now correctly excludes scenes
+  with `hasEdgeRendering`, allowing them to fall through to the normal scene
+  classifier which selects the correct builder.
 
 ### Changed
 - Sprint 18 architectural decisions documented as AD-17 through AD-20 in

@@ -334,7 +334,8 @@ class InteractiveEngine(
     specs: List[ObjectSpec],
     renderer: menger.optix.OptiXRenderer
   ): Try[Unit] =
-    if renderConfig.gpuProject4D && WithAnimation.is4DOnlyTriangleMeshScene(specs) then
+    if renderConfig.gpuProject4D && WithAnimation.is4DOnlyTriangleMeshScene(specs)
+        && !specs.exists(_.hasEdgeRendering) then
       val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
         scala.collection.mutable.Map.empty
       val builder = TriangleMeshSceneBuilder(
@@ -377,9 +378,10 @@ class InteractiveEngine(
   /** True iff this scene is eligible for the CPU 4D fast path:
     * all specs are 4D-projected triangle-mesh types. Fractional specs are
     * allowed because the CPU path merges them into a single mesh (1 slot/spec).
-    * Mixed scenes (4D + non-4D) are excluded. */
+    * Mixed scenes (4D + non-4D) are excluded.
+    * Scenes with edge rendering are excluded — those must use TesseractEdgeSceneBuilder. */
   private def isCpu4DFastPathEligible(specs: List[ObjectSpec]): Boolean =
-    WithAnimation.is4DOnlyTriangleMeshScene(specs)
+    WithAnimation.is4DOnlyTriangleMeshScene(specs) && !specs.exists(_.hasEdgeRendering)
 
   private def rebuildScene(): Unit =
     currentObjectSpecs.get() match
