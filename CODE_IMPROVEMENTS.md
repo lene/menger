@@ -37,38 +37,6 @@ automatically compute a camera position that fits all objects in the scene.
 
 ---
 
-### H-mixed-frac-int-interactive-hang — App hangs permanently when changing 4D viewpoint on mixed fractional+integer sponge scene
-
-**Location:** `menger-app/src/main/scala/menger/engines/InteractiveEngine.scala` (4D rotation event handler),
-`optix-jni/src/main/native/OptiXWrapper.cpp` (multi-mesh IAS rebuild path)
-**Est. Effort:** 3h
-**Reproducer (interactive test 48):**
-1. Launch: `--objects type=tesseract-sponge:level=1.5:pos=-0.8,0,0 --objects type=tesseract-sponge:level=1:pos=0.8,0,0` (interactive, no `--headless`)
-2. Once the initial render appears, press any 4D rotation key (XW / YW / ZW rotation input)
-3. Application becomes unresponsive and does not recover
-
-**Symptom:** App renders the initial frame but hangs permanently as soon as a 4D viewpoint change is
-requested. No crash, no error log, ESC/Ctrl+Q do not terminate.
-
-**Status (2026-05-01):** Partial fix exists — `tryRotation4DFastPath` mirrors the `WithAnimation` fast
-path and uses `updateMesh4DProjection` per cached GPU slot instead of `rebuildScene()`. Active **only
-when user passes `--gpu-project-4d`**. Default (CPU-projected) path still hangs because there is no
-analogous fast path for CPU-uploaded meshes — every rotation triggers full `clearAllInstances()` +
-sequential `setTriangleMesh` calls which appears to deadlock at the IAS-rebuild boundary.
-
-**Workaround:** Add `--gpu-project-4d` to the command line for multi-object 4D scenes.
-
-**Investigation notes:**
-1. *Hang only in default CPU mode:* with `--gpu-project-4d` the new fast path bypasses rebuild entirely
-   and the hang does not occur, confirming the issue is in `rebuildGeometry` for CPU-projected meshes.
-2. *CPU fast path candidates:* (a) re-project on CPU and call `setTriangleMesh` per spec without
-   `clearAllInstances`; (b) batch all uploads then trigger a single IAS rebuild; (c) make
-   `gpuProject4D=true` the default for InteractiveEngine — rejected since it changes rendering
-   for single-object 4D scenes (verified 2026-05-01: GPU and CPU projection produce visually distinct
-   renders, see manual test #37).
-3. *M-project4d-cuda-error-paths possibly involved:* if `setTriangleMesh4DQuads` ever fails silently,
-   subsequent operations wait on invalid GPU state. Not the primary hypothesis but worth checking.
-
 ---
 
 

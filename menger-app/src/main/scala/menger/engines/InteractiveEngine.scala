@@ -15,6 +15,7 @@ import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ObjectType
 import menger.config.OptiXEngineConfig
+import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.EventDispatcher
@@ -79,6 +80,13 @@ class InteractiveEngine(
   private val anim4DState: AtomicReference[Option[WithAnimation.Anim4DState]] =
     new AtomicReference(None)
 
+  /** Cached per-spec CPU mesh slot indices for the CPU 4D-rotation fast path.
+    * Populated when the scene is 4D-only and `gpuProject4D` is off.
+    * On rotation, each spec is re-projected on CPU and its mesh is updated
+    * in-place via `updateCpuTriangleMesh` — no `clearAllInstances` needed. */
+  private val cpu4DState: AtomicReference[Option[WithAnimation.Anim4DState]] =
+    new AtomicReference(None)
+
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
     camera.position,
     camera.lookAt,
@@ -128,7 +136,8 @@ class InteractiveEngine(
       currentObjectSpecs.set(updatedSpecs)
 
       val fastPathTaken = updatedSpecs.exists(specs =>
-        tryRotation4DFastPath(specs, rendererWrapper.renderer)
+        tryRotation4DFastPath(specs, rendererWrapper.renderer) ||
+        tryRotation4DCpuFastPath(specs, rendererWrapper.renderer)
       )
       if !fastPathTaken then
         rebuildScene()
@@ -164,6 +173,37 @@ class InteractiveEngine(
           }
           anim4DState.set(Some(prev.copy(specs = newSpecs)))
           true
+
+  /** Per-mesh CPU re-projection update path. Mirrors `tryRotation4DFastPath` but
+    * for CPU-projected meshes. Re-projects each spec on CPU via `MeshFactory.create`
+    * and updates the existing mesh slot via `renderer.updateCpuTriangleMesh` —
+    * avoiding the full `clearAllInstances()` + rebuild that causes a hang when
+    * `gpuProject4D` is off (H-mixed-frac-int-interactive-hang).
+    * Returns true iff the cpu4DState slot map is populated and every spec is
+    * a 4D-projected type (non-fractional, since fractional merging complicates
+    * slot mapping for now). */
+  private def tryRotation4DCpuFastPath(
+    newSpecs: List[ObjectSpec],
+    renderer: menger.optix.OptiXRenderer
+  ): Boolean =
+    if renderConfig.gpuProject4D then false  // GPU path handles this
+    else cpu4DState.get match
+      case None => false
+      case Some(prev) =>
+        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
+        else
+          val success = prev.specs.lazyZip(newSpecs).lazyZip(prev.slotsPerSpec).forall {
+            case (prevSpec, newSpec, slots) =>
+              if prevSpec.projection4D == newSpec.projection4D then true
+              else
+                val meshData = MeshFactory.create(newSpec)
+                slots.forall { slot =>
+                  Try(renderer.updateCpuTriangleMesh(slot, meshData)).isSuccess
+                }
+          }
+          if success then
+            cpu4DState.set(Some(prev.copy(specs = newSpecs)))
+          success
 
   // Level thresholds for warnings (based on triangle counts and performance)
   private val VolumeLevelWarning = Const.Engine.spongeLevelWarningThreshold
@@ -286,8 +326,10 @@ class InteractiveEngine(
 
   /** Build the initial scene; if it is 4D-only triangle meshes and `gpuProject4D`
     * is on, capture per-spec slot indices so subsequent rotation events can hit
-    * the fast path. Otherwise fall back to the generic build and clear cached
-    * fast-path state. Mirrors `WithAnimation.buildAnim4DTrackedOrFallback`. */
+    * the fast path. When `gpuProject4D` is off and the scene is 4D-only and
+    * non-fractional, record CPU mesh slots for the analogous CPU fast path.
+    * Otherwise fall back to the generic build and clear cached fast-path state.
+    * Mirrors `WithAnimation.buildAnim4DTrackedOrFallback`. */
   private def buildScene4DTrackedOrFallback(
     specs: List[ObjectSpec],
     renderer: menger.optix.OptiXRenderer
@@ -312,10 +354,32 @@ class InteractiveEngine(
           anim4DState.set(None)
       }
       result.recover { case _ => anim4DState.set(None) }
+      cpu4DState.set(None)
+      result
+    else if !renderConfig.gpuProject4D && isCpu4DFastPathEligible(specs) then
+      anim4DState.set(None)
+      val builder = TriangleMeshSceneBuilder(textureDir, gpuProject4D = false)(using profilingConfig)
+      val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
+      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      result.foreach { _ =>
+        // CPU path: one mesh per spec (fractional = merged single mesh),
+        // slots are assigned sequentially starting from 0 after clearAllInstances.
+        val slotsPerSpec = specs.indices.map(i => Vector(i)).toVector
+        cpu4DState.set(Some(WithAnimation.Anim4DState(specs, slotsPerSpec)))
+      }
+      result.recover { case _ => cpu4DState.set(None) }
       result
     else
       anim4DState.set(None)
+      cpu4DState.set(None)
       buildSceneFromSpecs(specs, renderer)
+
+  /** True iff this scene is eligible for the CPU 4D fast path:
+    * all specs are 4D-projected triangle-mesh types. Fractional specs are
+    * allowed because the CPU path merges them into a single mesh (1 slot/spec).
+    * Mixed scenes (4D + non-4D) are excluded. */
+  private def isCpu4DFastPathEligible(specs: List[ObjectSpec]): Boolean =
+    WithAnimation.is4DOnlyTriangleMeshScene(specs)
 
   private def rebuildScene(): Unit =
     currentObjectSpecs.get() match
@@ -330,8 +394,16 @@ class InteractiveEngine(
         Try {
           rebuildGeometry(specs, renderer)
           cameraState.updateCamera(renderer, savedEye, savedLookAt, savedUp)
+          // After a full rebuild the CPU mesh slots are reset to 0..N-1.
+          // Update cpu4DState so the fast path remains valid for subsequent rotations.
+          if !renderConfig.gpuProject4D && isCpu4DFastPathEligible(specs) then
+            val slotsPerSpec = specs.indices.map(i => Vector(i)).toVector
+            cpu4DState.set(Some(WithAnimation.Anim4DState(specs, slotsPerSpec)))
+          else
+            cpu4DState.set(None)
           logger.debug("Scene rebuild complete")
         }.recover { case e =>
+          cpu4DState.set(None)
           logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
         }
       case None =>

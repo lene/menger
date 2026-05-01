@@ -7,6 +7,7 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 - add render time per frame and per ray to stats (also: what does the "primary" ray stat mean, 
   exactly? looks like it's always 0)
 - fractional levels with IAS sponges
+- higher max trace depth
 - seems like metallic materials are transparent? they should not
 - publish OptiX JNI as a separate project - should cover the full OptiX API, not just the ray 
   tracing pipeline.
@@ -67,17 +68,11 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
       reportIntersection(t_hit, 0);
     }
     ```
-  - Why this beats everything else:
-    This is how modern fractal renderers (like **Marble Marcher** or **Mandelbulb3D**) work.
-    1.  **Infinite Resolution:** You are limited only by the `float` precision, not vertex RAM. You 
-        can zoom in until the universe ends.
-    2.  **4D Native:** Because the math happens in your CUDA code (not the RT core's fixed-function 
-        hardware), you can use 5x5 matrices, quaternions, or any 4D logic you want.
-    3.  **Zero Memory:** Your VRAM usage is essentially 0MB.
 
 - movie with steadily increasing level with 360 degree background
   - movies as textures instead of png
 - PBR Textures
+- capture background by reading the desktop below the window, and render objects on top of that
 
 ## Scheduled (see ROADMAP.md)
 

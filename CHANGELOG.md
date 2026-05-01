@@ -34,6 +34,15 @@
   exits with status 2. Bypass with `--allow-uniform-render` for
   legitimate uniform scenes.
 
+### Fixed
+- **Multi-object 4D interactive hang** — pressing any 4D rotation key on a
+  multi-object CPU-projected scene (e.g. mixed fractional+integer tesseract
+  sponge) no longer hangs the application. A new `updateCpuTriangleMesh` JNI
+  call rebuilds only the affected GAS in-place and re-links the IAS instance,
+  bypassing `clearAllInstances()` + full scene rebuild which deadlocked the
+  IAS rebuild path. The new `tryRotation4DCpuFastPath` mirrors the existing
+  GPU fast path for all 4D-only CPU-projected scenes.
+
 ### Changed
 - Sprint 18 architectural decisions documented as AD-17 through AD-20 in
   `docs/arc42/09-architectural-decisions.md`.
