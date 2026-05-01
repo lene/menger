@@ -106,15 +106,17 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       case Some(prev) =>
         if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
         else
-          prev.specs.lazyZip(newSpecs).lazyZip(prev.slots).foreach {
-            case (prevSpec, newSpec, slot) =>
+          prev.specs.lazyZip(newSpecs).lazyZip(prev.slotsPerSpec).foreach {
+            case (prevSpec, newSpec, slots) =>
               if prevSpec.projection4D != newSpec.projection4D then
                 val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
-                renderer.updateMesh4DProjection(
-                  slot,
-                  eyeW = proj.eyeW, screenW = proj.screenW,
-                  rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-                )
+                slots.foreach { slot =>
+                  renderer.updateMesh4DProjection(
+                    slot,
+                    eyeW = proj.eyeW, screenW = proj.screenW,
+                    rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+                  )
+                }
           }
           anim4DState.set(Some(prev.copy(specs = newSpecs)))
           true
@@ -130,15 +132,20 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     renderer: OptiXRenderer
   ): Try[Unit] =
     if renderConfig.gpuProject4D && WithAnimation.is4DOnlyTriangleMeshScene(newSpecs) then
-      val slotBuf = ArrayBuffer.empty[Int]
+      val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
+        scala.collection.mutable.Map.empty
       val builder = TriangleMeshSceneBuilder(
         textureDir, gpuProject4D = true,
-        mesh4DRecorder = (idx: Int) => { slotBuf += idx; () }
+        mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
+          slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
       )(using profilingConfig)
       val result = builder.buildScene(newSpecs, renderer, newSpecs.length)
       result.foreach { _ =>
-        if slotBuf.size == newSpecs.size then
-          anim4DState.set(Some(WithAnimation.Anim4DState(newSpecs, slotBuf.toVector)))
+        if slotsBuf.size == newSpecs.size then
+          val slotsPerSpec = newSpecs.indices.map(i =>
+            slotsBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
+          ).toVector
+          anim4DState.set(Some(WithAnimation.Anim4DState(newSpecs, slotsPerSpec)))
         else
           anim4DState.set(None)
       }
@@ -149,8 +156,10 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       buildSceneFromConfigs(configs, renderer)
 
 object WithAnimation:
-  /** Per-mesh-slot bookkeeping for the GPU 4D projection animation fast path. */
-  final case class Anim4DState(specs: List[ObjectSpec], slots: Vector[Int])
+  /** Per-mesh-slot bookkeeping for the GPU 4D projection animation fast path.
+    * `slotsPerSpec(i)` lists the renderer slot indices that belong to spec i —
+    * usually a single slot, but two for fractional 4D sponges (level n + level n+1). */
+  final case class Anim4DState(specs: List[ObjectSpec], slotsPerSpec: Vector[Vector[Int]])
 
   /** Eligibility: every spec is a 4D-projected type (tesseract, tesseract-sponge,
     * tesseract-sponge-2). Recursive-IAS sponges and non-4D meshes block the

@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-04-30
+**Last Updated:** 2026-05-01
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -37,40 +37,31 @@ automatically compute a camera position that fits all objects in the scene.
 
 ---
 
-### H-mixed-frac-int-interactive-hang — App hangs permanently when changing 4D viewpoint on mixed fractional+integer sponge scene
-
-**Location:** `menger-app/src/main/scala/menger/engines/OptiXEngine.scala` (4D rotation event handler),
-`optix-jni/src/main/native/OptiXWrapper.cpp` (`updateMesh4DProjection`),
-`menger-app/src/main/scala/menger/objects/higher_d/TesseractSponge.scala`
-**Est. Effort:** 3h
-**Reproducer (interactive test 48):**
-1. Launch: `--objects type=tesseract-sponge:level=1.5:pos=-1.5,0,0 --objects type=tesseract-sponge:level=1:pos=1.5,0,0` (interactive, no `--headless`)
-2. Once the initial render appears, press any 4D rotation key (XW / YW / ZW rotation input)
-3. Application becomes unresponsive and does not recover
-
-**Symptom:** The app renders the initial frame (with the objects at frame edges per `H-mixed-frac-int-offscreen`)
-but hangs permanently as soon as a 4D viewpoint change is requested. No crash is reported, no error
-is logged, and `ESC`/`Ctrl+Q` do not terminate the session.
-
-**Expected:** 4D rotation input should re-project both sponge objects and update the render within
-one or two frames, matching the behaviour of single-object TesseractSponge scenes under the same input.
-
-**Investigation notes (2026-04-27, first observation):**
-The hang occurs only for multi-object 4D scenes, suggesting the issue is specific to updating two
-meshes simultaneously via `updateMesh4DProjection`. Hypotheses:
-1. *Second-object update blocks on first:* The engine may update the first sponge's GAS and wait for
-   confirmation before updating the second, but the IAS rebuild triggered by the first update races
-   with or blocks the second GAS update.
-2. *Fractional-level sponge mesh update not implemented:* `updateMesh4DProjection` may not handle
-   fractional levels correctly (level=1.5 uses the coverage-blend path, which may require a different
-   vertex buffer layout than integer levels). If the update fails silently (cf. 
-   `M-project4d-cuda-error-paths`), the engine may spin indefinitely.
-Reproduce with two integer-level sponges (e.g., level=1 and level=2) as control to isolate whether
-the fractional level is load-bearing.
-
----
 
 ## Medium Priority
+
+### M-frac-gpu-skin-zfight — GPU fractional 4D sponge: no skin-offset expansion → possible z-fighting
+
+**Category:** `VISUAL`
+**Location:** `menger-app/src/main/scala/menger/engines/scene/TriangleMeshSceneBuilder.scala:buildFractionalGpuOps`
+**Est. Effort:** 1h
+
+**Symptom:** The GPU fractional path emits two integer-level 4D sponge meshes (level n+1 opaque +
+level n with alpha = 1 − fractional). Unlike the CPU path (`createFractionalMesh`), it does not call
+`TriangleMeshData.expandAlongNormals` on the lower-level mesh — the skin faces of level n and level
+n+1 share the same surface, causing z-fighting at the boundary.
+
+**CPU path (reference):** `createFractionalMesh` calls
+`TriangleMeshData.expandAlongNormals(currentLevel, FractionalLevelSponge.SkinNormalOffset)` before
+merging. The GPU path skips this because `expandAlongNormals` operates on CPU `TriangleMeshData`
+before upload, while GPU 4D quads are projected on the GPU after upload.
+
+**Fix direction:** Either apply `expandAlongNormals` to the CPU-space 4D quad vertices before
+calling `setTriangleMesh4DQuads` (the offset is small enough that 3D skin offset ≈ 4D skin offset
+for typical projection parameters), or implement a per-vertex normal offset pass in the GPU projection
+shader. The first option is simpler.
+
+---
 
 ### M-plane-phong-spec-squared — `miss_plane.cu` Phong specular contribution is `spec²` not `spec`
 **Category:** `CORRECTNESS`

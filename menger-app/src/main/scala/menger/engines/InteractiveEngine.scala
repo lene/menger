@@ -2,6 +2,7 @@ package menger.engines
 
 import java.util.concurrent.atomic.AtomicReference
 
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
@@ -15,6 +16,7 @@ import menger.common.ImageSize
 import menger.common.ObjectType
 import menger.config.OptiXEngineConfig
 import menger.engines.scene.SceneBuilder
+import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.EventDispatcher
 import menger.input.GdxRuntime
 import menger.input.Observer
@@ -42,7 +44,18 @@ class InteractiveEngine(
 
   override protected def textureDir: String = execution.textureDir
 
-  override protected def renderConfig: menger.optix.RenderConfig = config.render
+  /** For 4D-only triangle-mesh scenes we force `gpuProject4D` on so 4D-rotation
+    * key events can use the per-mesh `updateMesh4DProjection` fast path instead
+    * of a full geometry rebuild. The full-rebuild path hangs in multi-object 4D
+    * scenes (H-mixed-frac-int-interactive-hang). User-facing flag is left as-is
+    * for non-4D scenes. */
+  override protected def renderConfig: menger.optix.RenderConfig =
+    if shouldForceGpuProject4D then config.render.copy(gpuProject4D = true)
+    else config.render
+
+  private def shouldForceGpuProject4D: Boolean =
+    val specs = scene.objectSpecs.getOrElse(List.empty)
+    specs.nonEmpty && specs.forall(s => ObjectType.isProjected4D(s.objectType))
 
   // Required by TimeoutSupport trait
   override def timeout: Float = execution.timeout
@@ -69,6 +82,14 @@ class InteractiveEngine(
   private lazy val has4DObjects: Boolean =
     currentObjectSpecs.get().exists(_.exists(spec => ObjectType.isProjected4D(spec.objectType)))
 
+  /** Cached per-spec slot mapping enabling the GPU 4D-rotation fast path.
+    * Populated by `buildScene4DTracked` when the scene is 4D-only and
+    * `gpuProject4D` is on; cleared on any rebuild path that does not record
+    * slot indices. See `WithAnimation.Anim4DState` for the symmetric animation
+    * fast path. */
+  private val anim4DState: AtomicReference[Option[WithAnimation.Anim4DState]] =
+    new AtomicReference(None)
+
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
     camera.position,
     camera.lookAt,
@@ -89,7 +110,7 @@ class InteractiveEngine(
       s"Received rotation event: rotXW=${event.rotXW}, rotYW=${event.rotYW}, rotZW=${event.rotZW}"
     )
     if has4DObjects then
-      currentObjectSpecs.set(currentObjectSpecs.get().map(_.map { spec =>
+      val updatedSpecs = currentObjectSpecs.get().map(_.map { spec =>
         if ObjectType.isProjected4D(spec.objectType) then
           val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
           val newEyeW =
@@ -114,10 +135,46 @@ class InteractiveEngine(
           spec.copy(projection4D = Some(newProj))
         else
           spec
-      }))
-      rebuildScene()
+      })
+      currentObjectSpecs.set(updatedSpecs)
+
+      val fastPathTaken = updatedSpecs.exists(specs =>
+        tryRotation4DFastPath(specs, rendererWrapper.renderer)
+      )
+      if !fastPathTaken then
+        rebuildScene()
       renderResources.markNeedsRender()
       GdxRuntime.requestRendering()
+
+  /** Per-mesh GPU 4D-projection update path. Mirrors `WithAnimation.tryAnim4DFastPath`.
+    * Returns true iff every spec is 4D-projected, slot mapping is cached, and the
+    * change is purely a `Projection4DSpec` delta — in which case we call
+    * `renderer.updateMesh4DProjection` per slot and skip the full geometry rebuild
+    * (whose multi-object path hangs, per H-mixed-frac-int-interactive-hang). */
+  private def tryRotation4DFastPath(
+    newSpecs: List[ObjectSpec],
+    renderer: menger.optix.OptiXRenderer
+  ): Boolean =
+    if !renderConfig.gpuProject4D then false
+    else anim4DState.get match
+      case None => false
+      case Some(prev) =>
+        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
+        else
+          prev.specs.lazyZip(newSpecs).lazyZip(prev.slotsPerSpec).foreach {
+            case (prevSpec, newSpec, slots) =>
+              if prevSpec.projection4D != newSpec.projection4D then
+                val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
+                slots.foreach { slot =>
+                  renderer.updateMesh4DProjection(
+                    slot,
+                    eyeW = proj.eyeW, screenW = proj.screenW,
+                    rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+                  )
+                }
+          }
+          anim4DState.set(Some(prev.copy(specs = newSpecs)))
+          true
 
   // Level thresholds for warnings (based on triangle counts and performance)
   private val VolumeLevelWarning = Const.Engine.spongeLevelWarningThreshold
@@ -209,10 +266,10 @@ class InteractiveEngine(
     sceneConfigurator.configureLights(renderer)
     sceneConfigurator.configurePlanes(renderer, environment.planes)
     sceneConfigurator.configureCamera(renderer)
-    buildSceneFromSpecs(objectSpecs, renderer)
+    buildScene4DTrackedOrFallback(objectSpecs, renderer)
       .flatMap { _ =>
         Try {
-          renderer.setRenderConfig(config.render)
+          renderer.setRenderConfig(renderConfig)
           renderer.setCausticsConfig(config.caustics)
           environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
           finalizeCreate()
@@ -237,6 +294,39 @@ class InteractiveEngine(
     GdxRuntime.setContinuousRendering(false)
     GdxRuntime.requestRendering()
     if execution.timeout > 0 then startExitTimer(execution.timeout)
+
+  /** Build the initial scene; if it is 4D-only triangle meshes and `gpuProject4D`
+    * is on, capture per-spec slot indices so subsequent rotation events can hit
+    * the fast path. Otherwise fall back to the generic build and clear cached
+    * fast-path state. Mirrors `WithAnimation.buildAnim4DTrackedOrFallback`. */
+  private def buildScene4DTrackedOrFallback(
+    specs: List[ObjectSpec],
+    renderer: menger.optix.OptiXRenderer
+  ): Try[Unit] =
+    if renderConfig.gpuProject4D && WithAnimation.is4DOnlyTriangleMeshScene(specs) then
+      val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
+        scala.collection.mutable.Map.empty
+      val builder = TriangleMeshSceneBuilder(
+        textureDir, gpuProject4D = true,
+        mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
+          slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
+      )(using profilingConfig)
+      val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
+      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      result.foreach { _ =>
+        if slotsBuf.size == specs.size then
+          val slotsPerSpec = specs.indices.map(i =>
+            slotsBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
+          ).toVector
+          anim4DState.set(Some(WithAnimation.Anim4DState(specs, slotsPerSpec)))
+        else
+          anim4DState.set(None)
+      }
+      result.recover { case _ => anim4DState.set(None) }
+      result
+    else
+      anim4DState.set(None)
+      buildSceneFromSpecs(specs, renderer)
 
   private def rebuildScene(): Unit =
     currentObjectSpecs.get() match

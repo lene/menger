@@ -34,7 +34,7 @@ import menger.optix.OptiXRenderer
 class TriangleMeshSceneBuilder(
   textureDir: String,
   gpuProject4D: Boolean = false,
-  mesh4DRecorder: Int => Unit = _ => ()
+  mesh4DRecorder: (Int, Int) => Unit = (_, _) => ()
 )(using profilingConfig: ProfilingConfig)
   extends SceneBuilder:
 
@@ -68,59 +68,94 @@ class TriangleMeshSceneBuilder(
     // Load textures once
     val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
 
-    // For each spec, create either a single mesh or a merged fractional mesh
-    specs.foreach { spec =>
-      val plan: MeshUploadPlan = if isFractional4DSponge(spec) then
-        // Fractional level: merge both levels with per-vertex alpha. Always
-        // CPU-projected — GPU path doesn't support fractional skin yet.
-        logger.debug(s"Creating fractional mesh for ${spec.objectType} level=${spec.level.get}")
-        MeshUploadPlan.Cpu(createFractionalMesh(spec))
-      else
-        // Integer level or non-sponge: single mesh, possibly GPU-projected.
-        MeshFactory.createUpload(spec, gpuProject4D)
-
-      // Upload mesh and add instance
-      plan match
-        case MeshUploadPlan.Cpu(data) =>
-          renderer.setTriangleMesh(data)
-        case MeshUploadPlan.Gpu4D(quads4D, proj) =>
-          val meshIdx = renderer.setTriangleMesh4DQuads(
-            quads4D, uvs = None,
-            eyeW = proj.eyeW, screenW = proj.screenW,
-            rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW,
-            centerX = 0f, centerY = 0f, centerZ = 0f
-          )
-          mesh4DRecorder(meshIdx)
-
-      val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
-      val material = MaterialExtractor.extract(spec)
-
-      val instanceId =
-        if ObjectType.isRecursiveIASSponge(spec.objectType) then
-          // Recursive-IAS sponge: leaf is the unit cube uploaded above; the
-          // outer transform scales by spec.size and applies euler rotation +
-          // translation. Level is required and validated in `validate()`.
-          val transform = TransformUtil.createEulerRotationScaleTranslation(
-            spec.rotX, spec.rotY, spec.rotZ, spec.size, spec.x, spec.y, spec.z
-          )
-          renderer.addRecursiveIASSpongeInstance(
-            spec.level.get.toInt, transform, material, textureIndex
-          )
-        else if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
-          renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), material, textureIndex)
+    // For each spec, emit one or more (upload-plan, material-override?) pairs.
+    // Fractional 4D sponges in GPU mode produce two GPU meshes (level n+1 opaque,
+    // level n with alpha=1-frac). All other specs produce one entry.
+    specs.zipWithIndex.foreach { case (spec, specIdx) =>
+      val baseMaterial = MaterialExtractor.extract(spec)
+      val ops: List[FractionalOp] =
+        if isFractional4DSponge(spec) then
+          if gpuProject4D then
+            buildFractionalGpuOps(spec, baseMaterial)
+          else
+            // Legacy CPU-merged path: single mesh with per-vertex alpha.
+            logger.debug(s"Creating fractional mesh for ${spec.objectType} level=${spec.level.get}")
+            List(FractionalOp(MeshUploadPlan.Cpu(createFractionalMesh(spec)), baseMaterial))
         else
-          val transform = TransformUtil.createEulerRotationScaleTranslation(
-            spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
-          )
-          renderer.addTriangleMeshInstance(transform, material, textureIndex)
-      instanceId match
-        case Some(id) =>
-          val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
-          val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
-          logger.debug(s"Added ${spec.objectType} instance $id ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
-        case None =>
-          logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
+          List(FractionalOp(MeshFactory.createUpload(spec, gpuProject4D), baseMaterial))
+
+      ops.foreach { op =>
+        // Upload mesh and add instance
+        op.plan match
+          case MeshUploadPlan.Cpu(data) =>
+            renderer.setTriangleMesh(data)
+          case MeshUploadPlan.Gpu4D(quads4D, proj) =>
+            val meshIdx = renderer.setTriangleMesh4DQuads(
+              quads4D, uvs = None,
+              eyeW = proj.eyeW, screenW = proj.screenW,
+              rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW,
+              centerX = 0f, centerY = 0f, centerZ = 0f
+            )
+            mesh4DRecorder(specIdx, meshIdx)
+
+        val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
+
+        val instanceId =
+          if ObjectType.isRecursiveIASSponge(spec.objectType) then
+            // Recursive-IAS sponge: leaf is the unit cube uploaded above; the
+            // outer transform scales by spec.size and applies euler rotation +
+            // translation. Level is required and validated in `validate()`.
+            val transform = TransformUtil.createEulerRotationScaleTranslation(
+              spec.rotX, spec.rotY, spec.rotZ, spec.size, spec.x, spec.y, spec.z
+            )
+            renderer.addRecursiveIASSpongeInstance(
+              spec.level.get.toInt, transform, op.material, textureIndex
+            )
+          else if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
+            renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), op.material, textureIndex)
+          else
+            val transform = TransformUtil.createEulerRotationScaleTranslation(
+              spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
+            )
+            renderer.addTriangleMeshInstance(transform, op.material, textureIndex)
+        instanceId match
+          case Some(id) =>
+            val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
+            val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
+            logger.debug(s"Added ${spec.objectType} instance $id ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
+          case None =>
+            logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
+      }
     }
+
+  /** GPU-projected fractional 4D sponge: emit two integer-level meshes
+    * (level n+1 fully opaque, level n with alpha = 1 - fractional). Both
+    * share projection params; per-mesh material alpha differs. Skin-offset
+    * expansion (CPU path's expandAlongNormals) is not yet implemented here —
+    * see CODE_IMPROVEMENTS.md M-frac-gpu-skin-zfight. */
+  private def buildFractionalGpuOps(
+    spec: ObjectSpec,
+    baseMaterial: menger.optix.Material
+  )(using profilingConfig: ProfilingConfig): List[FractionalOp] =
+    val level = spec.level.get
+    val fractionalPart = level - level.floor
+    val alphaTransparent = 1.0f - fractionalPart
+    val nextLevelSpec = spec.copy(level = Some((level + 1).floor))
+    val currentLevelSpec = spec.copy(level = Some(level.floor))
+    logger.debug(
+      s"GPU fractional split: ${spec.objectType} level=$level → " +
+      s"slot[opaque level ${(level + 1).floor}] + slot[level ${level.floor} alpha=$alphaTransparent]"
+    )
+    val opaqueMaterial = baseMaterial
+    val transparentMaterial = baseMaterial.copy(
+      color = baseMaterial.color.copy(a = baseMaterial.color.a * alphaTransparent)
+    )
+    List(
+      FractionalOp(MeshFactory.createUpload(nextLevelSpec, gpuProject4D = true), opaqueMaterial),
+      FractionalOp(MeshFactory.createUpload(currentLevelSpec, gpuProject4D = true), transparentMaterial)
+    )
+
+  private final case class FractionalOp(plan: MeshUploadPlan, material: menger.optix.Material)
 
   /**
    * Create a merged mesh for fractional level rendering.
@@ -186,8 +221,11 @@ class TriangleMeshSceneBuilder(
     p1 == p2
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
-    // Per-vertex alpha implementation: all specs create 1 instance (fractional levels are merged)
-    specs.length.toLong
+    // CPU-merged fractional path: 1 instance per spec.
+    // GPU fractional path: 2 instances per fractional spec (level n + level n+1).
+    specs.iterator.map { spec =>
+      if isFractional4DSponge(spec) && gpuProject4D then 2L else 1L
+    }.sum
 
   private def isTriangleMeshType(spec: ObjectSpec): Boolean =
     spec.objectType == "cube" ||
