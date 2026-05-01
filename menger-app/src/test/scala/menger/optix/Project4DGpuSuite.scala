@@ -266,6 +266,21 @@ class Project4DGpuSuite extends AnyFlatSpec
     logger.info(f"animation $frames frames — update=${updateMs}%.1fms, rebuild=${rebuildMs}%.1fms")
     updateMs should be < rebuildMs
 
+  // --- Test 6: return-code contract — setTriangleMesh4DQuads ---
+
+  it should "return a non-negative mesh index for a valid upload" in:
+    val proj = TesseractMesh(
+      center = Vector3(0f, 0f, 0f), size = 1.0f,
+      rotXW = 0f, rotYW = 0f, rotZW = 0f
+    )
+    val quads = Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D)
+    val meshIdx = renderer.setTriangleMesh4DQuads(
+      quads, uvs = None,
+      eyeW = proj.eyeW, screenW = proj.screenW,
+      rotXW = 0f, rotYW = 0f, rotZW = 0f
+    )
+    meshIdx should be >= 0
+
   private def measureMs[T](block: => T): (T, Double) =
     val start = System.nanoTime()
     val result = block

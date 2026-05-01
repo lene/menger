@@ -37,40 +37,6 @@ shader. The first option is simpler.
 
 ---
 
-### M-plane-phong-spec-squared — `miss_plane.cu` Phong specular contribution is `spec²` not `spec`
-**Category:** `CORRECTNESS`
-**Location:** `optix-jni/src/main/native/shaders/miss_plane.cu:197-199`
-**Est. Effort:** 0.25h
-Non-metallic plane Phong path:
-```cpp
-const float spec = powf(...) * plane.specular;
-total_color = total_color + make_float3(spec, spec, spec) * spec;
-```
-The specular value is squared (`spec * spec`) instead of being added linearly. Standard Phong adds 
-`specular_color * spec_intensity`; here `spec` serves as both color and intensity. The highlight is 
-more pinched and dimmer than intended, but visually benign for the default scene (light position 
-produces no on-screen highlight). Pre-existing since Sprint 13.1. Fix: 
-`total_color = total_color + make_float3(spec, spec, spec);`
-
----
-
-### M-project4d-cuda-error-paths — kernel launch failure is logged but mesh is still registered
-**Category:** `POOR_ERROR_HANDLING`
-**Location:** `optix-jni/src/main/native/OptiXWrapper.cpp:494-535` (`setTriangleMesh4DQuads`)
-**Est. Effort:** 1h
-On a `launchProject4DQuadsKernel` error in `setTriangleMesh4DQuads`, the code prints to `std::cerr` but
-then continues into AABB readback, `triangle_meshes.push_back`, and returns `mesh_index >= 0`. The
-caller treats success as "mesh uploaded"; subsequent IAS/render calls touch undefined vertex memory.
-The companion `updateMesh4DProjection` (same file, line 584) gets this right: it returns `-3` on
-launch failure. Apply the same pattern in `setTriangleMesh4DQuads`: on `err != cudaSuccess`, free the
-just-allocated buffers and return `-1`. The Scala wrapper already requires `meshIdx >= 0` via the
-existing JNI return-code convention, so the fix surfaces the failure to callers without API changes.
-Same comment for missing `cudaMalloc` / `cudaMemcpy` return-code checks at lines 428–447 — they
-silently leak on OOM. Pre-existing in `setTriangleMesh`; new code matched the prior pattern. Worth
-fixing both call sites in one pass.
-
----
-
 ### M-film-maxdepth-opaque-fallback — Film material may render fully opaque at `max_ray_depth` instead of preserving alpha blend
 
 **Category:** `INVESTIGATION`

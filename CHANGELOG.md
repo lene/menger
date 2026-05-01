@@ -386,24 +386,6 @@
   - Dynamic edge extraction from any `Mesh4D` (not limited to 32 edges)
   - Edge count grows with sponge level (e.g., level 1 sponge has ~1,152 edges)
   - Instance budget calculation accounts for variable edge counts
-
-### Changed
-- **MeshFactory** - Added 4D sponge cases
-  - `tesseract-sponge` and `tesseract-sponge-2` now supported in `MeshFactory.create()`
-  - Both use 4D projection parameters from `ObjectSpec.projection4D`
-- **OptiX Engine** - Integrated performance warnings
-  - `warnIfHighLevel()` now handles 4D sponge types with triangle estimates
-- **CLI Help** - Updated `--objects` description
-  - Clarified level requirement for 4D sponges: `level=L (required)`
-  - Generalized 4D parameter descriptions
-
-### Technical Details
-- **Architecture**: All 4D meshes (Tesseract, TesseractSponge, TesseractSponge2) implement `Mesh4D` trait
-- **Projection**: 4D faces → 3D quads → 2 triangles per quad
-- **Edge Extraction**: Canonical ordering deduplicates edges from quad faces
-- **Backward Compatibility**: Existing `TesseractMesh` usage unaffected
-
-### Added
 - **Tesseract (4D Hypercube)** - Render 4D geometry projected to 3D via OptiX
   - `--objects type=tesseract` for 4D hypercube rendering (16 vertices, 24 faces projected to 3D)
   - 4D projection parameters: `eye-w=W`, `screen-w=W` (default: 3.0, 1.5)
@@ -468,6 +450,14 @@
   - Used by ObjectSpec for tesseract configuration
 
 ### Changed
+- **MeshFactory** - Added 4D sponge cases
+  - `tesseract-sponge` and `tesseract-sponge-2` now supported in `MeshFactory.create()`
+  - Both use 4D projection parameters from `ObjectSpec.projection4D`
+- **OptiX Engine** - Integrated performance warnings
+  - `warnIfHighLevel()` now handles 4D sponge types with triangle estimates
+- **CLI Help** - Updated `--objects` description
+  - Clarified level requirement for 4D sponges: `level=L (required)`
+  - Generalized 4D parameter descriptions
 - OptiX pipeline now includes cylinder custom primitive hit groups
 - Stack size increased from 32KB to 48KB for metallic cylinder shaders
 - Shader file renamed from `sphere_combined.cu` to `optix_shaders.cu`
@@ -476,6 +466,12 @@
 - Scene building logic extracted from OptiXEngine to dedicated builder classes
 - Material extraction logic moved to `MaterialExtractor` utility
 - Texture loading logic moved to `TextureManager` utility
+
+### Technical Details
+- **Architecture**: All 4D meshes (Tesseract, TesseractSponge, TesseractSponge2) implement `Mesh4D` trait
+- **Projection**: 4D faces → 3D quads → 2 triangles per quad
+- **Edge Extraction**: Canonical ordering deduplicates edges from quad faces
+- **Backward Compatibility**: Existing `TesseractMesh` usage unaffected
 
 ### Fixed
 - Screenshot vertical flip bug - images now saved with correct orientation

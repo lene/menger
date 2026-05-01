@@ -149,8 +149,8 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
         else
           anim4DState.set(None)
       }
-      result.recover { case _ => anim4DState.set(None) }
-      result
+      val recovered = result.recover { case _ => anim4DState.set(None) }
+      recovered
     else
       anim4DState.set(None)
       buildSceneFromConfigs(configs, renderer)
