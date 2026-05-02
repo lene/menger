@@ -48,6 +48,8 @@ archive/
 
 | Sprint | Focus | File |
 |--------|-------|------|
+| 18 | GPU Infrastructure | [sprints/SPRINT18.md](sprints/SPRINT18.md) |
+| 17 | Engine Refactor & Scene Graph | [sprints/SPRINT17.md](sprints/SPRINT17.md) |
 | 16 | Developer Infrastructure & Website | [sprints/SPRINT16.md](sprints/SPRINT16.md) |
 | 15 | Visual Enhancements & Primitives | [sprints/SPRINT15.md](sprints/SPRINT15.md) |
 | 14 | Rendering Correctness & Code Health | [sprints/SPRINT14.md](sprints/SPRINT14.md) |

@@ -94,10 +94,13 @@ Decide on version number following semantic versioning (MAJOR.MINOR.PATCH):
 - [ ] Mark completed sprint as "✅ Complete"
 - [ ] Update milestone status if version completes a milestone
 - [ ] Remove obsolete items from TODO.md (move to ROADMAP backlog or delete)
-- [ ] Archive completed sprint plan if needed:
+- [ ] Archive completed sprint plan — **always required**:
   ```bash
-  mv docs/sprints/SPRINT.md docs/archive/sprints/sprint-N.md
+  git mv docs/sprints/SPRINT_N.md docs/archive/sprints/SPRINT_N.md
   ```
+  Where `SPRINT_N.md` is the completed sprint's file (e.g. `SPRINT18.md`).
+  Update the index tables in `docs/sprints/README.md` and `docs/archive/README.md`.
+  Verify no copy of the file remains in `docs/sprints/` afterwards.
 
 #### arc42 Documentation (If Applicable)
 
@@ -462,7 +465,7 @@ file /tmp/smoke-test.png
 ### Cleanup & Next Steps
 
 - [ ] Update `.coverage_baseline` if coverage improved significantly
-- [ ] Archive sprint documentation (if not already done)
+- [ ] Archive sprint documentation — **always required, verify with `ls docs/sprints/`** that no completed sprint file remains there
 - [ ] Create next sprint planning document (if ready)
 - [ ] Clean up release branch:
   ```bash
