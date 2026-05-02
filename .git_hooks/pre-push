@@ -2,9 +2,9 @@
 
 GITLAB_PROJECT_ID=53243565
 CI_LINT_OUTPUT=/tmp/gitlab-ci-lint.json
-RED_TEXT='\e[38;5;196m'
-GREEN_TEXT='\e[38;5;46m'
-RESET_TEXT='\e[0m'
+RED_TEXT=$'\e[38;5;196m'
+GREEN_TEXT=$'\e[38;5;46m'
+RESET_TEXT=$'\e[0m'
 
 # ---------------------------------------------------------------------------
 # Phase 1: Fast pre-flight checks (env, CI lint, version consistency)
