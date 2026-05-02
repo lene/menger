@@ -17,14 +17,8 @@ case class Caustics(
   initialRadius: Float = 1.0f,
   alpha: Float = 0.7f
 ):
-  require(photonsPerIteration > 0 && photonsPerIteration <= OptiXCausticsConfig.MaxPhotonsPerIteration,
-    s"photonsPerIteration must be 1-${OptiXCausticsConfig.MaxPhotonsPerIteration}, got $photonsPerIteration")
-  require(iterations > 0 && iterations <= OptiXCausticsConfig.MaxIterations,
-    s"iterations must be 1-${OptiXCausticsConfig.MaxIterations}, got $iterations")
-  require(initialRadius > 0.0f && initialRadius <= OptiXCausticsConfig.MaxInitialRadius,
-    s"initialRadius must be 0.0-${OptiXCausticsConfig.MaxInitialRadius}, got $initialRadius")
-  require(alpha > 0.0f && alpha < 1.0f,
-    s"alpha must be 0.0-1.0 exclusive, got $alpha")
+  // Delegate validation to CausticsConfig — single source of constraint definitions.
+  toCausticsConfig
 
   def toCausticsConfig: OptiXCausticsConfig =
     OptiXCausticsConfig(enabled, photonsPerIteration, iterations, initialRadius, alpha)

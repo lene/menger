@@ -71,47 +71,15 @@ object MeshFactory:
         sponge.toTriangleMesh
 
       case "tesseract" =>
-        val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
-        val tesseract = TesseractMesh(
-          center = Vector3(0f, 0f, 0f),
-          size = spec.size,
-          eyeW = proj.eyeW,
-          screenW = proj.screenW,
-          rotXW = proj.rotXW,
-          rotYW = proj.rotYW,
-          rotZW = proj.rotZW
-        )
-        tesseract.toTriangleMesh
+        mesh4DProjection(spec).get.toTriangleMesh
 
       case "tesseract-sponge" =>
         require(spec.level.isDefined, "tesseract-sponge requires level parameter")
-        val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
-        val sponge = TesseractSpongeMesh(
-          center = Vector3(0f, 0f, 0f),
-          size = spec.size,
-          level = spec.level.get,
-          eyeW = proj.eyeW,
-          screenW = proj.screenW,
-          rotXW = proj.rotXW,
-          rotYW = proj.rotYW,
-          rotZW = proj.rotZW
-        )
-        sponge.toTriangleMesh
+        mesh4DProjection(spec).get.toTriangleMesh
 
       case "tesseract-sponge-2" =>
         require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
-        val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
-        val sponge = TesseractSponge2Mesh(
-          center = Vector3(0f, 0f, 0f),
-          size = spec.size,
-          level = spec.level.get,
-          eyeW = proj.eyeW,
-          screenW = proj.screenW,
-          rotXW = proj.rotXW,
-          rotYW = proj.rotYW,
-          rotZW = proj.rotZW
-        )
-        sponge.toTriangleMesh
+        mesh4DProjection(spec).get.toTriangleMesh
 
       case "parametric" =>
         // Missing meshData is a programming error: parametric specs must have pre-tessellated data.
@@ -145,8 +113,16 @@ object MeshFactory:
       MeshUploadPlan.Cpu(create(spec))
 
   private def gpu4DPlan(spec: ObjectSpec, skinOffset: Float = 0f): Option[MeshUploadPlan.Gpu4D] =
+    mesh4DProjection(spec).map { p =>
+      MeshUploadPlan.Gpu4D(
+        quads4D = Mesh4DGpuFlatten.quadsBuffer(p.mesh4D, skinOffset),
+        proj = spec.projection4D.getOrElse(Projection4DSpec.default)
+      )
+    }
+
+  private def mesh4DProjection(spec: ObjectSpec): Option[Mesh4DProjection] =
     val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
-    val projection: Option[Mesh4DProjection] = spec.objectType match
+    spec.objectType match
       case "tesseract" =>
         Some(TesseractMesh(
           center = Vector3(0f, 0f, 0f), size = spec.size,
@@ -168,9 +144,3 @@ object MeshFactory:
           rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
         ))
       case _ => None
-    projection.map { p =>
-      MeshUploadPlan.Gpu4D(
-        quads4D = Mesh4DGpuFlatten.quadsBuffer(p.mesh4D, skinOffset),
-        proj = proj
-      )
-    }

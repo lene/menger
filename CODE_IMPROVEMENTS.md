@@ -16,19 +16,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Low Priority
 
-### L-mesh4d-plan-duplication — TesseractMesh / TesseractSpongeMesh / TesseractSponge2Mesh constructed twice
-**Category:** `DUPLICATION`
-**Location:** `menger-app/src/main/scala/menger/engines/scene/MeshFactory.scala:73-114` and `:142-165`
-**Est. Effort:** 0.5h
-`MeshFactory.create` and `MeshFactory.gpu4DPlan` each switch on the same three 4D object types
-(`tesseract`, `tesseract-sponge`, `tesseract-sponge-2`) and construct the same `Mesh4DProjection`
-subclass with identical argument lists. Adding a fourth 4D-projected type means editing both
-match expressions. Extract a private helper `mesh4DProjection(spec): Option[Mesh4DProjection]`
-that returns the projection object (None for non-4D specs); have `create` call
-`.toTriangleMesh` on it and `gpu4DPlan` call `Mesh4DGpuFlatten.quadsBuffer(p.mesh4D)` on it.
-
----
-
 ### L-tesseract-sponge-2-containment — level-2 faces straddle removed sub-cubes
 **Location:** `menger-app/src/main/scala/menger/objects/higher_d/TesseractSponge2.scala`
 **Est. Effort:** 4–8h
@@ -42,16 +29,6 @@ but the mesh is still not a strict boundary of the 4D Menger solid. Related: 192
 edges and 2112 triple-shared edges in the level-2 manifold histogram. A regression guard
 (`TesseractSponge2MeshSpec`: "have at most 2000 boundary edges at level 2") is already active;
 investigate the containment root cause in `TesseractSponge2.scala`.
-
----
-
-### L-caustics-duplicate-config — CausticsConfig and dsl.Caustics duplicate fields and validation
-**Location:** `optix-jni/.../RenderConfig.scala` and `menger-app/.../dsl/Caustics.scala`
-**Est. Effort:** 0.5h
-Both case classes carry identical fields (`photonsPerIteration`, `iterations`, `initialRadius`,
-`alpha`) and the same `require` guards. The `Caustics.toCausticsConfig` bridge means any change
-to limits must be made in two places. Consider extracting validation constants to a shared object
-or letting the DSL type own the constraints and stripping them from `CausticsConfig`.
 
 ---
 
