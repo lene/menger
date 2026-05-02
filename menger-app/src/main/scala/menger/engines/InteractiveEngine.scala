@@ -443,7 +443,8 @@ class InteractiveEngine(
     val result = rendererWrapper.renderSceneWithStats(ImageSize(width, height))
     val stats  = result.stats
     logger.info(
-      s"Ray stats: primary=${stats.primaryRays} total=${stats.totalRays} " +
+      f"Frame: ${stats.frameMs}%.1f ms (${stats.msPerMray}%.2f ms/Mray) | " +
+      s"primary=${stats.primaryRays} total=${stats.totalRays} " +
       s"reflected=${stats.reflectedRays} refracted=${stats.refractedRays} " +
       s"shadow=${stats.shadowRays} aa=${stats.aaRays} " +
       s"depth=${stats.minDepthReached}-${stats.maxDepthReached}"
