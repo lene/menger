@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-04-02
+**Last Updated:** 2026-05-02
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -20,8 +20,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.5.4 | Rendering Correctness & Code Health | Complete | shadow fixes, caustic improvements, code health (Sprint 14) |
 | v0.5.5 | Visual Enhancements | Complete | area lights, soft shadows, parametric surfaces, caustics (Sprint 15) |
 | v0.5.6 | Developer Infrastructure | Complete | pre-push optimisation, website, CI improvements, AWS spot workflow (Sprint 16) |
-| v0.6 | Animation & Architecture Foundations | Planned | LibGDX removal, scene graph, engine traits, animation tooling, DSL (Sprint 17) |
-| v0.7 | GPU Infrastructure | Planned | Multi-GAS IAS, IS programs, GPU 4D math (Sprint 18) |
+| v0.5.7 | Animation & Architecture Foundations | Complete | LibGDX removal, scene graph, engine traits, animation tooling, DSL (Sprint 17) |
+| v0.5.8 | GPU Infrastructure | Complete | Multi-GAS IAS, IS programs, GPU 4D math, recursive IAS sponge, maxRayDepth CLI (Sprint 18) |
 | v0.8 | Advanced Geometry | Planned | 3D/4D polytopes, analytical primitives, geometry registry (Sprint 19) |
 | v0.9 | Textures & Materials | Planned | Image textures, procedural textures, PBR maps, environment maps (Sprint 20) |
 | v1.0 | Higher-Dimensional Fractals | Planned | 4D Menger/Sierpinski analogs, parameter exploration (Sprint 21) |
@@ -48,57 +48,28 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 14 | Rendering Correctness & Code Health | Complete | [docs/sprints/SPRINT14.md](docs/archive/sprints/SPRINT14.md) |
 | 15 | Visual Enhancements & Primitives | Complete | [docs/archive/sprints/SPRINT15.md](docs/archive/sprints/SPRINT15.md) |
 | 16 | Developer Infrastructure & Website | Complete | [docs/archive/sprints/SPRINT16.md](docs/archive/sprints/SPRINT16.md) |
+| 17 | Animation Tooling, DSL & Architecture Foundations | Complete | [docs/archive/sprints/SPRINT17.md](docs/archive/sprints/SPRINT17.md) |
+| 18 | GPU Infrastructure | Complete | [docs/archive/sprints/SPRINT18.md](docs/archive/sprints/SPRINT18.md) |
 
 ---
 
 ## Planned Sprints
 
-### Sprint 17: Animation Tooling, DSL & Architecture Foundations (~32h)
+### Sprint 19: Advanced Geometry (~26.5h)
 
-**Goal:** Remove LibGDX, introduce scene graph, refactor engines to traits, add animation tooling
+**Goal:** 3D/4D polytopes, analytical primitives, planes as geometry, geometry registry, per-object rotation, render stats, spikes
 
-- **17.1** Remove LibGDX rendering path (5h)
-- **17.2** Engine refactor to trait composition (4h)
-- **17.3** Scene graph (transforms + material inheritance) (5h)
-- **17.4** All render settings in DSL (4h)
-- **17.5** Video output via ffmpeg (MP4/WebM from frame sequences) (4h)
-- **17.6** Animation preview — interactive t scrubbing (3h)
-- **17.7** Runtime DSL scene evaluation (compile-time → runtime via scala-compiler) (2h)
-- **17.8** Bezier/spline camera path (pure Scala DSL helper) (2h)
-- **17.9** Procedural placement helpers in DSL (2h)
-- **17.10** Define optix-jni API boundary (design only) (1h)
-
-**MILESTONE: v0.6 — Animation & Architecture Foundations**
-
-See [docs/sprints/SPRINT17.md](docs/archive/sprints/SPRINT17.md)
-
-### Sprint 18: GPU Infrastructure (~27h)
-
-**Goal:** Multi-GAS IAS, intersection program infrastructure, GPU-side 4D math,
-plus a recursive-IAS sponge demo, `maxRayDepth` CLI completion, and a
-failed-render diagnostic.
-
-- **18.1** Multi-GAS Instance Acceleration Structure / TD-5 (8h)
-- **18.2** Intersection program infrastructure (4h)
-- **18.3** GPU 4D transform and projection (5h)
-- **18.4** Recursive IAS Menger sponge (4h)
-- **18.5** `maxRayDepth` CLI + verification (2h)
-- **18.6** Failed-render diagnostic (1h)
-- **18.7** Documentation (3h)
-
-See [docs/sprints/SPRINT18.md](docs/sprints/SPRINT18.md)
-
-### Sprint 19: Advanced Geometry (~16.5h)
-
-**Goal:** 3D/4D polytopes, analytical primitives, planes as geometry, geometry registry
-
-- **19.1** Additional polytopes in 3D (octahedron, dodecahedron, icosahedron) (3h)
-- **19.2** Additional polytopes in 4D (16-cell, 24-cell, 600-cell) (4h)
+- **19.1** Additional polytopes in 3D (tetrahedron, octahedron, dodecahedron, icosahedron) (4h)
+- **19.2** Additional polytopes in 4D (pentachoron, 16-cell, 24-cell, 120-cell, 600-cell) (6h)
 - **19.3** Analytical primitives: cone, torus (2h)
 - **19.4** Planes as first-class geometry (2h)
 - **19.5** Coordinate cross / axis visualization (1.5h)
 - **19.6** Geometry registry (2h)
-- **19.7** Documentation (2h)
+- **19.7** Per-object 3D rotation via scene graph (3h)
+- **19.8** Render time stats per frame and per ray (1h)
+- **19.9** Spike: max trace depth above 8 (1h)
+- **19.10** Spike: fractional levels with IAS sponges (2h)
+- **19.11** Documentation (2h)
 
 See [docs/sprints/SPRINT19.md](docs/sprints/SPRINT19.md)
 

@@ -37,6 +37,8 @@ Pause and confirm with user before continuing past each gate:
 
 **Never skip a checkpoint because "the evidence is unambiguous."** That is the rationalization that causes wrong-invariant chasing.
 
+**These are hard stops. Do not proceed past a checkpoint without an explicit user response in the current conversation. A prior message from the user does not count — ask again at the checkpoint.**
+
 ---
 
 ## Stopping Criteria

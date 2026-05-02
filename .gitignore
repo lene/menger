@@ -25,6 +25,9 @@ local.sbt
 scripts/test-output/
 scripts/test-diffs/
 
+.opencode/package-lock.json
+native/
+
 # object files
 *.o
 

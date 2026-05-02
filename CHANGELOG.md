@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Sprint 18
+## [0.5.8] - 2026-05-02
 
 ### Added
 - **Multi-GAS Instance Acceleration Structure** (Sprint 18.1) — the top-level
@@ -799,6 +799,7 @@
 
 
 [Unreleased]: https://gitlab.com/lilacashes/menger/-/compare/0.5.7...HEAD
+[0.5.8]: https://gitlab.com/lilacashes/menger/-/compare/0.5.7...0.5.8
 [0.5.7]: https://gitlab.com/lilacashes/menger/-/compare/0.5.6...0.5.7
 [0.5.6]: https://gitlab.com/lilacashes/menger/-/compare/0.5.5...0.5.6
 [0.5.5]: https://gitlab.com/lilacashes/menger/-/compare/0.5.4...0.5.5

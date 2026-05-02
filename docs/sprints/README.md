@@ -6,10 +6,8 @@ Active sprint planning documents for ongoing and future development work.
 
 | Sprint | Focus | Status | File |
 |--------|-------|--------|------|
-| 17 | Animation Tooling & DSL | Planned | [SPRINT17.md](../archive/sprints/SPRINT17.md) |
-| 18 | Advanced Geometry | Planned | [SPRINT18.md](SPRINT18.md) |
-| 19 | Materials, Textures & Backgrounds | Planned | [SPRINT19.md](SPRINT19.md) |
-| 20 | GPU 4D Infrastructure | Planned | [SPRINT20.md](SPRINT20.md) |
+| 19 | Advanced Geometry | Planned | [SPRINT19.md](SPRINT19.md) |
+| 20 | Materials, Textures & Backgrounds | Planned | [SPRINT20.md](SPRINT20.md) |
 | 21 | Higher-Dimensional Fractals | Planned | [SPRINT21.md](SPRINT21.md) |
 
 ## Completed Sprints
@@ -18,6 +16,8 @@ See [docs/archive/sprints/](../archive/sprints/) for completed sprint documentat
 
 | Sprint | Focus | Archived File |
 |--------|-------|---------------|
+| 18 | GPU Infrastructure | [SPRINT18.md](../archive/sprints/SPRINT18.md) |
+| 17 | Animation Tooling & DSL | [SPRINT17.md](../archive/sprints/SPRINT17.md) |
 | 16 | Developer Infrastructure & Website | [SPRINT16.md](../archive/sprints/SPRINT16.md) |
 | 15 | Visual Enhancements & Primitives | [SPRINT15.md](../archive/sprints/SPRINT15.md) |
 | 14 | Rendering Correctness & Code Health | [SPRINT14.md](../archive/sprints/SPRINT14.md) |

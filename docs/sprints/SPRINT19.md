@@ -2,7 +2,7 @@
 
 **Sprint:** 19 - Advanced Geometry
 **Status:** Not Started
-**Estimate:** ~16.5 hours
+**Estimate:** ~30h
 **Branch:** `feature/sprint-19`
 **Dependencies:** Sprint 18 (multi-GAS IAS, IS programs, GPU 4D math)
 
@@ -16,12 +16,15 @@ for extensibility.
 
 ## Success Criteria
 
-- [ ] Octahedron, dodecahedron, icosahedron available as 3D primitives
-- [ ] 16-cell, 24-cell, and 600-cell available as 4D primitives (standalone, no subdivision)
+- [ ] Tetrahedron, octahedron, dodecahedron, icosahedron available as 3D primitives
+- [ ] Pentachoron (5-cell), 16-cell, 24-cell, 120-cell, and 600-cell available as 4D primitives (standalone, no subdivision)
 - [ ] Cone and torus available as analytical primitives (IS programs from Sprint 18)
 - [ ] Planes are first-class scene geometry with materials (not miss shader)
 - [ ] Coordinate cross / axis visualization works alongside other geometry
 - [ ] Geometry registry: adding a new type requires registration, not engine modification
+- [ ] Per-object 3D rotation (X/Y/Z) works via scene graph and CLI
+- [ ] Render time per frame and per ray reported in stats output
+- [ ] Spike findings documented for max trace depth and fractional IAS sponges
 - [ ] All tests pass
 
 ---
@@ -30,10 +33,11 @@ for extensibility.
 
 ### Task 19.1: Additional Polytopes in 3D
 
-**Estimate:** 3h
+**Estimate:** 4h
 
-Add octahedron, dodecahedron, and icosahedron as first-class primitives in the DSL and
-rendering engine, alongside the existing cube/sphere/tetrahedron.
+Add tetrahedron, octahedron, dodecahedron, and icosahedron as first-class primitives in
+the DSL and rendering engine, alongside the existing cube and sphere. None of these are
+currently implemented.
 
 Implemented as triangle meshes via the existing `Builder` trait.
 
@@ -41,18 +45,19 @@ Implemented as triangle meshes via the existing `Builder` trait.
 
 ### Task 19.2: Additional Polytopes in 4D
 
-**Estimate:** 4h
+**Estimate:** 6h
 **Depends on:** Sprint 18.3 (GPU 4D math)
 
-Add 16-cell, 24-cell, and 600-cell as 4D primitives. These are rendered using the GPU 4D
-math from Sprint 18.3, avoiding the legacy CPU projection path.
+Add pentachoron (5-cell), 16-cell, 24-cell, 120-cell, and 600-cell as 4D primitives.
+None of these are currently implemented. These are rendered using the GPU 4D math from
+Sprint 18.3, avoiding the legacy CPU projection path.
 
 **Scope:** Standalone polytopes only (rotate, project, view). Fractal subdivision on these
 bases is deferred to a later sprint.
 
-**Note:** The 600-cell has 120 vertices and 600 tetrahedral cells. Performance is expected
-to be acceptable for standalone rendering; a level guard will be added if these are later
-used as subdivision bases.
+**Notes:**
+- The pentachoron (5-cell) is the 4D analog of the tetrahedron: 5 vertices, 10 edges, 10 triangular faces, 5 tetrahedral cells.
+- The 120-cell has 600 vertices and 120 dodecahedral cells; the 600-cell has 120 vertices and 600 tetrahedral cells. Both are compute-heavy at higher rotation counts — a level guard will be added if used as subdivision bases.
 
 ---
 
@@ -121,7 +126,77 @@ Scene graph nodes reference geometry by registered type. The registry provides:
 
 ---
 
-### Task 19.7: Documentation
+### Task 19.7: Per-Object 3D Rotation via Scene Graph
+
+**Estimate:** 3h
+**Depends on:** Sprint 17.3 (scene graph)
+
+Expose per-object 3D rotation (X, Y, Z Euler angles or axis-angle) through the scene
+graph `Transform` node and the CLI `--objects` syntax. This is the primary reason the
+scene graph was introduced — objects should be positionable and orientable in world space
+without hardcoding transforms in geometry constructors.
+
+**What changes:**
+- `Transform` already carries translation, rotation, scale; verify rotation is wired
+  through to the OptiX instance transform matrix.
+- CLI: `--objects type=sphere:rotX=30:rotY=45:rotZ=0` (degrees).
+- DSL: `rotate(x=30.deg, y=45.deg)` wrapper on `SceneNode`.
+- Integration test: two cubes at different orientations produce distinguishable renders.
+
+**Success criterion:** A cube rotated 45° around Y looks like a rotated cube, not an
+axis-aligned one.
+
+---
+
+### Task 19.8: Render Time Stats per Frame and per Ray
+
+**Estimate:** 1h
+
+Add GPU render time (ms/frame) and estimated ms/ray to the stats output printed after
+each headless render and displayed in the interactive overlay. The primary ray count
+is already tracked; divide elapsed GPU time by ray count.
+
+**What changes:**
+- Record wall time around the OptiX launch call in `OptiXRenderer`.
+- Compute ms/frame and ms/Mray; include in `RenderStats`.
+- Print in CLI summary and interactive HUD.
+- Unit test: `RenderStats` arithmetic is correct.
+
+---
+
+### Task 19.9: Spike — Max Trace Depth Above 8
+
+**Estimate:** 1h (spike only — no feature commitment)
+
+Investigate whether `MAX_TRACE_DEPTH` can be raised beyond 8 without requiring an
+OptiX pipeline stack-size change. Document findings:
+- What is the OptiX limit?
+- What stack size does each additional depth level require?
+- Is there a visible quality difference beyond depth 8 for glass stacks?
+- Recommendation: raise to N, or accept 8 as the practical ceiling?
+
+Output: a short findings note added to `docs/dev/` and a recommendation for whether
+to schedule a follow-up task.
+
+---
+
+### Task 19.10: Spike — Fractional Levels with IAS Sponges
+
+**Estimate:** 2h (spike only — no feature commitment)
+
+Investigate whether fractional sponge levels (alpha-blended transition between integer
+levels) can be applied to the recursive IAS sponge (`sponge-recursive-ias`). The
+tessellated sponge already supports fractional levels via vertex alpha. Key questions:
+- Can IAS instances be alpha-blended at the instance level, or does it require
+  per-face vertex alpha in the leaf GAS?
+- Is the alpha-blend approach compatible with the O(N·20) VRAM advantage?
+- What is the implementation complexity vs. the tessellated approach?
+
+Output: findings note in `docs/dev/` and a recommendation for Sprint 21.
+
+---
+
+### Task 19.11: Documentation
 
 **Estimate:** 2h
 
@@ -137,14 +212,18 @@ Scene graph nodes reference geometry by registered type. The registry provides:
 
 | Task | Description | Estimate | Dependencies |
 |------|-------------|----------|--------------|
-| 19.1 | Additional polytopes in 3D | 3h | None |
-| 19.2 | Additional polytopes in 4D | 4h | Sprint 18.3 |
+| 19.1 | Additional polytopes in 3D (tetrahedron + 3 others) | 4h | None |
+| 19.2 | Additional polytopes in 4D (pentachoron + 4 others) | 6h | Sprint 18.3 |
 | 19.3 | Analytical primitives: cone, torus | 2h | Sprint 18.2 |
 | 19.4 | Planes as first-class geometry | 2h | Sprint 18.1, 18.2 |
 | 19.5 | Coordinate cross / axis visualization | 1.5h | Sprint 18.1, 18.2 |
 | 19.6 | Geometry registry | 2h | Sprint 17.3 |
-| 19.7 | Documentation | 2h | All |
-| **Total** | | **~16.5h** | |
+| 19.7 | Per-object 3D rotation via scene graph | 3h | Sprint 17.3 |
+| 19.8 | Render time stats per frame and per ray | 1h | None |
+| 19.9 | Spike: max trace depth above 8 | 1h | None |
+| 19.10 | Spike: fractional levels with IAS sponges | 2h | Sprint 18.4 |
+| 19.11 | Documentation | 2h | All |
+| **Total** | | **~26.5h** | |
 
 ---
 

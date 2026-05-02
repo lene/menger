@@ -21,6 +21,12 @@ Guidance for Claude Code and other AI agents when working with this repository.
 - **Never delete data without user permission**
 - Always confirm before destructive operations
 
+### Ask Before Acting on Ambiguous Inputs
+- **When a skill or instruction says "confirm with user", treat it as a hard stop.** Do not proceed until the user replies in the current conversation.
+- **Never infer values that the user should provide** (version numbers, branch names, file paths, etc.). Ask explicitly.
+- **When instructions conflict or are unclear, ask for clarification before proceeding.** Guessing and correcting later wastes more tokens than asking upfront.
+- **A prior message does not satisfy a checkpoint.** If a skill says "ask the user", ask again at that point even if the topic came up earlier.
+
 ---
 
 ## TOOL LIMITATIONS & WORKAROUNDS

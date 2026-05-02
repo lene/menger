@@ -19,6 +19,18 @@ Comprehensive step-by-step guide for releasing a new version of Menger.
 
 ## Phase 1: Pre-Release Preparation (Manual - 15-30 minutes)
 
+### 0. Confirm Release Version With User
+
+**Before touching any files, ask the user:**
+
+> "What version number should this release be? (current version is X.Y.Z)"
+
+**Wait for an explicit answer. Do not infer, guess, or derive the version from sprint numbers, roadmap labels, or any other source.** The user decides the version.
+
+Only proceed to step 1 once you have the version number confirmed in this conversation.
+
+---
+
 ### 1. Version Management
 
 Decide on version number following semantic versioning (MAJOR.MINOR.PATCH):
@@ -632,6 +644,22 @@ Common things to discuss:
 - Are any tasks better moved to a later sprint or the backlog?
 - Are there deferred tasks from the *completed* sprint that need to be placed somewhere?
 - Does any task need more detail before implementation starts?
+
+---
+
+### Step 6.2b: Review TODO.md and ROADMAP.md for Sprint Candidates
+
+Read `TODO.md` in full. For each unscheduled item, consider whether it belongs in the
+upcoming sprint. Present any candidates to the user and ask whether to promote them.
+
+Also scan `ROADMAP.md` planned sprints beyond the next one — check whether any task
+originally planned for a later sprint has become relevant now (e.g. a dependency was
+resolved early, or the team has momentum in that area).
+
+Ask: *"Are there any items from TODO.md or the roadmap backlog you'd like to pull into
+Sprint N before we kick it off?"*
+
+Make any agreed edits to `TODO.md`, the sprint file, and `ROADMAP.md` now.
 
 ---
 
