@@ -59,8 +59,9 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
   "A TesseractSponge2 level 1" should "have 16 * 24 faces" in:
     TesseractSponge2(1).faces should have size (16 * 24)
 
-  "A TesseractSponge2 level 2" should "have 16 * 16 * 24 faces" in :
-    TesseractSponge2(2).faces should have size (16 * 16 * 24)
+  "A TesseractSponge2 level 2" should "have 5376 faces" in :
+    // 5376 = 6144 - 768: containment filter removes 768 faces with vertices in removed sub-cubes
+    TesseractSponge2(2).faces should have size 5376
 
   "A subdivided face's corner points" should "contain the original face's corners" in new Sponge2:
     forAll (face.asSeq) { v => sponge2.cornerPoints(face).values should containEpsilon (v) }

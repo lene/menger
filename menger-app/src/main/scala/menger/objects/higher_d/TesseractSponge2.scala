@@ -20,7 +20,37 @@ class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) w
     faces.map(f => Face4D(canonical(f.a), canonical(f.b), canonical(f.c), canonical(f.d)))
 
   private[higher_d] def nestedFaces: Seq[Face4D] =
-    mergeVertices(TesseractSponge2(level - 1).faces.flatMap(faceGenerator))
+    val prevLevel = level.toInt - 1
+    val raw = TesseractSponge2(level - 1).faces.flatMap(faceGenerator)
+    val filtered = raw.filter(f => f.asSeq.forall(v => isInsideKthSponge(v, prevLevel)))
+    mergeVertices(filtered)
+
+  // A vertex is inside the level-k Menger sponge iff, at each scale level 1..k,
+  // the number of coordinates with digit==1 (in base-3 decomposition) is at most 1.
+  // Boundary vertices are treated as valid: if the vertex is within eps of a sub-cube
+  // boundary, both adjacent sub-cube digits are tried (vertex is valid if any combination
+  // has count <= 1).
+  private def isInsideKthSponge(v: Vector[4], k: Int, eps: Float = 1e-4f): Boolean =
+    (1 to k).forall { lvl =>
+      val scale = math.pow(3.0, lvl)
+      val epsScaled = eps.toDouble * scale
+      val possibleDigits = (0 until 4).map { dim =>
+        val x = (v(dim) + 0.5f).toDouble * scale
+        val fl = math.floor(x).toInt
+        val frac = x - fl
+        if frac < epsScaled then
+          Seq(((fl - 1) % 3 + 3) % 3, fl % 3).distinct
+        else if (1.0 - frac) < epsScaled then
+          Seq(fl % 3, (fl + 1) % 3).distinct
+        else
+          Seq(fl % 3)
+      }
+      def anyValidCombo(dim: Int, count1: Int): Boolean =
+        if count1 >= 2 then false
+        else if dim == 4 then true
+        else possibleDigits(dim).exists(d => anyValidCombo(dim + 1, if d == 1 then count1 + 1 else count1))
+      anyValidCombo(0, 0)
+    }
 
   private[higher_d] def faceGenerator(face: Face4D): Seq[Face4D] =
     generateFlatParts(face) ++ generatePerpendicularParts(face)

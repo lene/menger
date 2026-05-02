@@ -28,15 +28,15 @@ class TesseractSponge2MeshSpec extends AnyFlatSpec with Matchers:
     val mesh = TesseractSponge2Mesh(level = 2)
     val triangleMesh = mesh.toTriangleMesh
 
-    // Level 2: 6,144 faces = 12,288 triangles
-    triangleMesh.numTriangles shouldBe 12288
+    // Level 2: 5,376 faces = 10,752 triangles (768 faces filtered: in removed sub-cubes)
+    triangleMesh.numTriangles shouldBe 10752
 
   it should "create level 3 mesh" in:
     val mesh = TesseractSponge2Mesh(level = 3)
     val triangleMesh = mesh.toTriangleMesh
 
-    // Level 3: 98,304 faces = 196,608 triangles
-    triangleMesh.numTriangles shouldBe 196608
+    // Level 3: 67,584 faces = 135,168 triangles (containment filter applied at each level)
+    triangleMesh.numTriangles shouldBe 135168
 
   it should "accept fractional levels" in:
     val mesh = TesseractSponge2Mesh(level = 1.5f)
@@ -179,15 +179,13 @@ class TesseractSponge2MeshSpec extends AnyFlatSpec with Matchers:
   it should "be manifold (no boundary edges) at level 1" in:
     MeshTopology.checkFace4D(TesseractSponge2(1).faces).boundaryEdgeCount shouldBe 0
 
-  // Level 2 is not strictly 2-manifold by this metric: ~1920 boundary edges
-  // and ~2112 triple-shared edges remain after the Sprint-17 normals fix.
-  // Visible "flap" artifacts are gone (see investigation doc 2026-04-21), but
-  // the containment bug (768 faces with corners in removed sub-cubes) is a
-  // separate issue tracked in CODE_IMPROVEMENTS.md. Pinned as a regression
-  // guard against backsliding below the current count.
-  it should "have at most 2000 boundary edges at level 2 (partial fix)" in:
+  // Level 2 is not strictly 2-manifold: ~1536 boundary edges and ~1344 triple-shared
+  // edges remain after filtering the 768 containment-violating faces (Sprint 18).
+  // Visible "flap" artifacts are gone (see investigation doc 2026-04-21).
+  // Pinned as a regression guard against backsliding.
+  it should "have at most 1600 boundary edges at level 2" in:
     val count = MeshTopology.checkFace4D(TesseractSponge2(2).faces).boundaryEdgeCount
-    count should be <= 2000
+    count should be <= 1600
 
   "TesseractSponge2" should "have fewer faces than TesseractSponge at same level" in:
     // TesseractSponge grows as 48^level (volume-based)

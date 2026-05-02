@@ -16,20 +16,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Low Priority
 
-### L-tesseract-sponge-2-containment — level-2 faces straddle removed sub-cubes
-**Location:** `menger-app/src/main/scala/menger/objects/higher_d/TesseractSponge2.scala`
-**Est. Effort:** 4–8h
-At level 2, 768 faces (out of 6144) have at least one corner inside a level-1 sub-cube that
-should be removed (count-of-middle-indices ≥ 2). The number `768 = 16 × 48` is suspiciously
-systemic, suggesting a construction flaw in `generateFlatParts` / `generatePerpendicularParts`
-or in how `cornerPoints` is derived from parent faces that themselves straddle a sub-cube
-boundary. This is **visually benign** — the surface renders cleanly after the 2026-04-24
-normals fix (see `docs/superpowers/investigations/2026-04-21-tesseract-sponge-2-flap.md`) —
-but the mesh is still not a strict boundary of the 4D Menger solid. Related: 1920 boundary
-edges and 2112 triple-shared edges in the level-2 manifold histogram. A regression guard
-(`TesseractSponge2MeshSpec`: "have at most 2000 boundary edges at level 2") is already active;
-investigate the containment root cause in `TesseractSponge2.scala`.
-
 ---
 
 ## Feature Ideas (Sprint 20+)
