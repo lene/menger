@@ -466,6 +466,14 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     val tooDeep = menger.optix.RenderLimits.MaxRayDepth + 1
     an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--max-ray-depth", tooDeep.toString))
 
+  "ObjectSpec" should "parse rot-x rot-y rot-z in degrees and convert to radians" in:
+    val result = menger.ObjectSpec.parse("type=cube:rot-x=45:rot-y=90:rot-z=30")
+    result should be a Symbol("right")
+    val spec = result.getOrElse(fail("parse error"))
+    spec.rotX shouldBe (Math.PI.toFloat / 4f) +- 0.001f   // 45° → π/4
+    spec.rotY shouldBe (Math.PI.toFloat / 2f) +- 0.001f   // 90° → π/2
+    spec.rotZ shouldBe (Math.PI.toFloat / 6f) +- 0.001f   // 30° → π/6
+
   "--allow-uniform-render" should "default to false" in:
     val opts = SafeMengerCLIOptions(Seq[String]())
     opts.allowUniformRender() shouldBe false

@@ -98,10 +98,15 @@ object ObjectSpec extends LazyLogging:
    * 4D projection keywords (only for tesseract type):
    *   eye-w=VALUE     - 4D eye W-coordinate (default: 3.0)
    *   screen-w=VALUE  - 4D screen W-coordinate (default: 1.5)
-   *   rot-xw=DEGREES  - XW plane rotation angle (default: 15)
-   *   rot-yw=DEGREES  - YW plane rotation angle (default: 10)
-   *   rot-zw=DEGREES  - ZW plane rotation angle (default: 0)
-   *
+    *   rot-xw=DEGREES  - XW plane rotation angle (default: 15)
+    *   rot-yw=DEGREES  - YW plane rotation angle (default: 10)
+    *   rot-zw=DEGREES  - ZW plane rotation angle (default: 0)
+    *
+    * 3D rotation keywords (for all object types):
+    *   rot-x=DEGREES  - X-axis rotation (default: 0)
+    *   rot-y=DEGREES  - Y-axis rotation (default: 0)
+    *   rot-z=DEGREES  - Z-axis rotation (default: 0)
+    *
    * Edge rendering keywords (only for tesseract type):
    *   edge-radius=VALUE     - Radius of cylinder edges (default: 0.02)
    *   edge-material=PRESET  - Material preset for edges (film, parchment, etc.)
@@ -117,6 +122,7 @@ object ObjectSpec extends LazyLogging:
     "material", "roughness", "metallic", "specular",
     "emission", "film-thickness", "texture",
     "eye-w", "screen-w", "rot-xw", "rot-yw", "rot-zw",
+    "rot-x", "rot-y", "rot-z",
     "edge-radius", "edge-material", "edge-color",
     "edge-emission"
   )
@@ -143,9 +149,15 @@ object ObjectSpec extends LazyLogging:
       texture <- parseTexture(kvPairs)
       projection4D <- parse4DProjection(kvPairs, objType)
       edgeParams <- parseEdgeParameters(kvPairs, objType)
+      rotXDeg <- parseFloatParam(kvPairs, "rot-x", 0f, "X-axis rotation in degrees")
+      rotYDeg <- parseFloatParam(kvPairs, "rot-y", 0f, "Y-axis rotation in degrees")
+      rotZDeg <- parseFloatParam(kvPairs, "rot-z", 0f, "Z-axis rotation in degrees")
       _ <- validateSpongeLevel(objType, level)
     yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D,
-      edgeParams._1, edgeParams._2)
+      edgeParams._1, edgeParams._2,
+      math.toRadians(rotXDeg.toDouble).toFloat,
+      math.toRadians(rotYDeg.toDouble).toFloat,
+      math.toRadians(rotZDeg.toDouble).toFloat)
 
     result match
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")
