@@ -127,19 +127,24 @@ object MeshFactory:
   /** Build a `MeshUploadPlan` for the given spec. When `gpuProject4D` is true
     * and the spec is a 4D-projected type, return a `Gpu4D` plan carrying the
     * flat 4D-quad buffer + projection params; otherwise fall back to the
-    * existing CPU `create(spec)` path. */
+    * existing CPU `create(spec)` path.
+    *
+    * `skinOffset` is passed to `Mesh4DGpuFlatten.quadsBuffer` to expand
+    * vertices along face normals — use `FractionalLevelSponge.SkinNormalOffset`
+    * for the lower-level mesh in a fractional pair to prevent z-fighting. */
   def createUpload(
     spec: ObjectSpec,
-    gpuProject4D: Boolean
+    gpuProject4D: Boolean,
+    skinOffset: Float = 0f
   )(using profilingConfig: ProfilingConfig): MeshUploadPlan =
     if gpuProject4D && ObjectType.isProjected4D(spec.objectType) then
-      gpu4DPlan(spec) match
+      gpu4DPlan(spec, skinOffset) match
         case Some(plan) => plan
         case None       => MeshUploadPlan.Cpu(create(spec))
     else
       MeshUploadPlan.Cpu(create(spec))
 
-  private def gpu4DPlan(spec: ObjectSpec): Option[MeshUploadPlan.Gpu4D] =
+  private def gpu4DPlan(spec: ObjectSpec, skinOffset: Float = 0f): Option[MeshUploadPlan.Gpu4D] =
     val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
     val projection: Option[Mesh4DProjection] = spec.objectType match
       case "tesseract" =>
@@ -165,7 +170,7 @@ object MeshFactory:
       case _ => None
     projection.map { p =>
       MeshUploadPlan.Gpu4D(
-        quads4D = Mesh4DGpuFlatten.quadsBuffer(p.mesh4D),
+        quads4D = Mesh4DGpuFlatten.quadsBuffer(p.mesh4D, skinOffset),
         proj = proj
       )
     }

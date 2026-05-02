@@ -130,9 +130,12 @@ class TriangleMeshSceneBuilder(
 
   /** GPU-projected fractional 4D sponge: emit two integer-level meshes
     * (level n+1 fully opaque, level n with alpha = 1 - fractional). Both
-    * share projection params; per-mesh material alpha differs. Skin-offset
-    * expansion (CPU path's expandAlongNormals) is not yet implemented here —
-    * see CODE_IMPROVEMENTS.md M-frac-gpu-skin-zfight. */
+    * share projection params; per-mesh material alpha differs.
+    *
+    * The lower-level (currentLevel) quads are expanded along their 4D face
+    * normals by `SkinNormalOffset` before upload — equivalent to the CPU
+    * path's `expandAlongNormals` — so that the level-n skin faces do not
+    * perfectly overlap the level-(n+1) surface, preventing z-fighting. */
   private def buildFractionalGpuOps(
     spec: ObjectSpec,
     baseMaterial: menger.optix.Material
@@ -152,7 +155,11 @@ class TriangleMeshSceneBuilder(
     )
     List(
       FractionalOp(MeshFactory.createUpload(nextLevelSpec, gpuProject4D = true), opaqueMaterial),
-      FractionalOp(MeshFactory.createUpload(currentLevelSpec, gpuProject4D = true), transparentMaterial)
+      FractionalOp(
+        MeshFactory.createUpload(currentLevelSpec, gpuProject4D = true,
+          skinOffset = FractionalLevelSponge.SkinNormalOffset),
+        transparentMaterial
+      )
     )
 
   private final case class FractionalOp(plan: MeshUploadPlan, material: menger.optix.Material)
