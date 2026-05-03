@@ -8,14 +8,9 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.ObjectSpec
 import menger.OptiXRenderResources
 import menger.ProfilingConfig
-import menger.common.ObjectType
 import menger.common.ValidationException
 import menger.dsl.SceneConverter
-import menger.engines.scene.CubeSpongeSceneBuilder
 import menger.engines.scene.SceneBuilder
-import menger.engines.scene.SphereSceneBuilder
-import menger.engines.scene.TesseractEdgeSceneBuilder
-import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 import menger.optix.RenderConfig
@@ -47,21 +42,16 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
       val cubeSpongeSpecs = specs.filter(_.objectType.toLowerCase == "cube-sponge")
       val otherMeshSpecs  = specs.filterNot(s =>
         s.objectType.toLowerCase == "sphere" || s.objectType.toLowerCase == "cube-sponge")
-      val sphereMax     = if sphereSpecs.nonEmpty then
-        computeEffectiveMaxInstances(SphereSceneBuilder(), sphereSpecs) else 0
+      val sphereMax = if sphereSpecs.nonEmpty then
+        GeometryRegistry.builderFor(sphereSpecs, textureDir, renderConfig.gpuProject4D)
+          .map(b => computeEffectiveMaxInstances(b, sphereSpecs)).getOrElse(0) else 0
       val cubeSpongeMax = if cubeSpongeSpecs.nonEmpty then
-        computeEffectiveMaxInstances(CubeSpongeSceneBuilder(), cubeSpongeSpecs) else 0
-      val otherMeshMax  = if otherMeshSpecs.nonEmpty then
-        computeEffectiveMaxInstances(selectMeshBuilder(otherMeshSpecs), otherMeshSpecs) else 0
+        GeometryRegistry.builderFor(cubeSpongeSpecs, textureDir, renderConfig.gpuProject4D)
+          .map(b => computeEffectiveMaxInstances(b, cubeSpongeSpecs)).getOrElse(0) else 0
+      val otherMeshMax = if otherMeshSpecs.nonEmpty then
+        GeometryRegistry.builderFor(otherMeshSpecs, textureDir, renderConfig.gpuProject4D)
+          .map(b => computeEffectiveMaxInstances(b, otherMeshSpecs)).getOrElse(0) else 0
       Math.max(sphereMax, Math.max(cubeSpongeMax, otherMeshMax))
-
-  protected def selectMeshBuilder(specs: List[ObjectSpec]): SceneBuilder =
-    val all4DProjected = specs.forall(s => ObjectType.isProjected4D(s.objectType))
-    val hasEdgeRendering = specs.exists(_.hasEdgeRendering)
-    if all4DProjected && hasEdgeRendering then
-      TesseractEdgeSceneBuilder(textureDir)(using profilingConfig)
-    else
-      TriangleMeshSceneBuilder(textureDir, renderConfig.gpuProject4D)(using profilingConfig)
 
   // Must be provided by concrete engine — where texture assets live
   protected def textureDir: String
@@ -70,14 +60,14 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     specs: List[ObjectSpec],
     renderer: menger.optix.OptiXRenderer
   ): Try[Unit] =
-    SceneClassifier.classify(specs) match
+    RenderModeSelector.classify(specs) match
       case SceneType.SimpleMixed(allSpecs, _) =>
         val sphereSpecs = allSpecs.filter(_.objectType.toLowerCase == "sphere")
         val meshSpecs   = allSpecs.filterNot(_.objectType.toLowerCase == "sphere")
         logger.info(s"Mixed scene: ${sphereSpecs.size} spheres + ${meshSpecs.size} mesh objects")
         Try(buildMixedSceneObjects(sphereSpecs, meshSpecs, renderer))
 
-      case SceneType.ComplexMixed(allSpecs) =>
+      case SceneType.Unsupported(allSpecs) =>
         val objectTypes = allSpecs.map(_.objectType).distinct
         Failure(UnsupportedOperationException(
           "Cannot mix spheres with multiple different triangle mesh types. " +
@@ -86,7 +76,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
         ))
 
       case sceneType =>
-        SceneClassifier.selectSceneBuilder(sceneType, Some(textureDir), renderConfig.gpuProject4D) match
+        GeometryRegistry.builderFor(specs, textureDir, renderConfig.gpuProject4D) match
           case Some(builder) =>
             val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
             builder.validate(specs, effectiveMaxInstances) match
@@ -102,12 +92,10 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     renderer: menger.optix.OptiXRenderer
   ): Try[Unit] =
     val specs = configs.scene.objectSpecs.getOrElse(List.empty)
-    val sceneType = SceneClassifier.classify(specs)
+    val sceneType = RenderModeSelector.classify(specs)
     sceneType match
-      case SceneType.Spheres(_) =>
-        SphereSceneBuilder().buildScene(specs, renderer, maxInstances)
       case SceneType.TriangleMeshes(_) =>
-        SceneClassifier.selectSceneBuilder(sceneType, Some(textureDir), renderConfig.gpuProject4D) match
+        GeometryRegistry.builderFor(specs, textureDir, renderConfig.gpuProject4D) match
           case Some(builder) => builder.buildScene(specs, renderer, maxInstances)
           case None          => Failure(UnsupportedOperationException(s"No builder for $sceneType"))
       case SceneType.SimpleMixed(allSpecs, _) =>
@@ -117,20 +105,22 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
           val cubeSpongeSpecs = nonSphereSpecs.filter(_.objectType.toLowerCase == "cube-sponge")
           val otherMeshSpecs  = nonSphereSpecs.filterNot(_.objectType.toLowerCase == "cube-sponge")
           if sphereSpecs.nonEmpty then
-            SphereSceneBuilder().buildScene(sphereSpecs, renderer, maxInstances).get
+            GeometryRegistry.builderFor(sphereSpecs, textureDir, renderConfig.gpuProject4D)
+              .map(_.buildScene(sphereSpecs, renderer, maxInstances).get)
+              .getOrElse(sys.error("No builder for sphere specs"))
           if cubeSpongeSpecs.nonEmpty then
-            CubeSpongeSceneBuilder().buildScene(cubeSpongeSpecs, renderer, maxInstances).get
+            GeometryRegistry.builderFor(cubeSpongeSpecs, textureDir, renderConfig.gpuProject4D)
+              .map(_.buildScene(cubeSpongeSpecs, renderer, maxInstances).get)
+              .getOrElse(sys.error("No builder for cube-sponge specs"))
           if otherMeshSpecs.nonEmpty then
-            SceneClassifier.selectSceneBuilder(
-              SceneType.TriangleMeshes(otherMeshSpecs), Some(textureDir)
-            ) match
+            GeometryRegistry.builderFor(otherMeshSpecs, textureDir, renderConfig.gpuProject4D) match
               case Some(builder) => builder.buildScene(otherMeshSpecs, renderer, maxInstances).get
               case None =>
                 val types = otherMeshSpecs.map(_.objectType).distinct.mkString(", ")
                 sys.error(s"No mesh builder found for types: $types")
         }
       case other =>
-        SceneClassifier.selectSceneBuilder(other, Some(textureDir)) match
+        GeometryRegistry.builderFor(specs, textureDir, renderConfig.gpuProject4D) match
           case Some(builder) => builder.buildScene(specs, renderer, maxInstances)
           case None          =>
             Failure(UnsupportedOperationException(s"Unsupported scene type: $other"))
@@ -140,7 +130,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     renderer: menger.optix.OptiXRenderer
   ): Unit =
     renderer.clearAllInstances()
-    SceneClassifier.classify(specs) match
+    RenderModeSelector.classify(specs) match
       case SceneType.SimpleMixed(allSpecs, _) =>
         val sphereSpecs = allSpecs.filter(_.objectType.toLowerCase == "sphere")
         val meshSpecs   = allSpecs.filterNot(_.objectType.toLowerCase == "sphere")
@@ -149,11 +139,11 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
         )
         buildMixedSceneObjects(sphereSpecs, meshSpecs, renderer)
 
-      case SceneType.ComplexMixed(_) =>
+      case SceneType.Unsupported(_) =>
         sys.error("Complex mixed scenes not supported for rebuilding")
 
       case sceneType =>
-        SceneClassifier.selectSceneBuilder(sceneType, Some(textureDir), renderConfig.gpuProject4D) match
+        GeometryRegistry.builderFor(specs, textureDir, renderConfig.gpuProject4D) match
           case Some(builder) =>
             builder.buildScene(specs, renderer, maxInstances).get
           case None =>
@@ -173,19 +163,31 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     // Auto-adjust budget across groups: each builder may have a very different
     // instance footprint (cube-sponge expands by 20^level, mesh builders are
     // 1:1). Take the max so cube-sponge dominance lifts the limit when needed.
-    val sphereMax     = if sphereSpecs.nonEmpty then
-      computeEffectiveMaxInstances(SphereSceneBuilder(), sphereSpecs) else 0
+    val sphereMax = if sphereSpecs.nonEmpty then
+      GeometryRegistry.builderFor(sphereSpecs, textureDir, renderConfig.gpuProject4D)
+        .map(b => computeEffectiveMaxInstances(b, sphereSpecs)).getOrElse(0) else 0
     val cubeSpongeMax = if cubeSpongeSpecs.nonEmpty then
-      computeEffectiveMaxInstances(CubeSpongeSceneBuilder(), cubeSpongeSpecs) else 0
-    val otherMeshMax  = if otherMeshSpecs.nonEmpty then
-      computeEffectiveMaxInstances(selectMeshBuilder(otherMeshSpecs), otherMeshSpecs) else 0
+      GeometryRegistry.builderFor(cubeSpongeSpecs, textureDir, renderConfig.gpuProject4D)
+        .map(b => computeEffectiveMaxInstances(b, cubeSpongeSpecs)).getOrElse(0) else 0
+    val otherMeshMax = if otherMeshSpecs.nonEmpty then
+      GeometryRegistry.builderFor(otherMeshSpecs, textureDir, renderConfig.gpuProject4D)
+        .map(b => computeEffectiveMaxInstances(b, otherMeshSpecs)).getOrElse(0) else 0
     val effectiveMaxInstances = Math.max(sphereMax, Math.max(cubeSpongeMax, otherMeshMax))
     if sphereSpecs.nonEmpty then
-      SphereSceneBuilder().buildScene(sphereSpecs, renderer, effectiveMaxInstances).get
+      GeometryRegistry.builderFor(sphereSpecs, textureDir, renderConfig.gpuProject4D)
+        .map(_.buildScene(sphereSpecs, renderer, effectiveMaxInstances).get)
+        .getOrElse(sys.error("No builder for sphere specs"))
     if cubeSpongeSpecs.nonEmpty then
-      CubeSpongeSceneBuilder().buildScene(cubeSpongeSpecs, renderer, effectiveMaxInstances).get
+      GeometryRegistry.builderFor(cubeSpongeSpecs, textureDir, renderConfig.gpuProject4D)
+        .map(_.buildScene(cubeSpongeSpecs, renderer, effectiveMaxInstances).get)
+        .getOrElse(sys.error("No builder for cube-sponge specs"))
     if otherMeshSpecs.nonEmpty then
-      selectMeshBuilder(otherMeshSpecs).buildScene(otherMeshSpecs, renderer, effectiveMaxInstances).get
+      GeometryRegistry.builderFor(otherMeshSpecs, textureDir, renderConfig.gpuProject4D)
+        .map(_.buildScene(otherMeshSpecs, renderer, effectiveMaxInstances).get)
+        .getOrElse {
+          val types = otherMeshSpecs.map(_.objectType).distinct.mkString(", ")
+          sys.error(s"No mesh builder found for types: $types")
+        }
 
   // Default lifecycle — concrete engines override what they need
   override def create(): Unit = {}
