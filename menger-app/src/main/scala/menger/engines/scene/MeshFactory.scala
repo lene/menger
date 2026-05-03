@@ -7,8 +7,12 @@ import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.TriangleMeshData
 import menger.objects.Cube
+import menger.objects.Dodecahedron
+import menger.objects.Icosahedron
+import menger.objects.Octahedron
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
+import menger.objects.Tetrahedron
 import menger.objects.higher_d.Mesh4DGpuFlatten
 import menger.objects.higher_d.Mesh4DProjection
 import menger.objects.higher_d.TesseractMesh
@@ -25,6 +29,10 @@ import menger.objects.higher_d.TesseractSpongeMesh
  * - tesseract: 4D hypercube projected to 3D
  * - tesseract-sponge: 4D Menger sponge (volume-based) projected to 3D
  * - tesseract-sponge-2: 4D Menger sponge (surface-based) projected to 3D
+ * - tetrahedron: Regular tetrahedron (4 triangular faces)
+ * - octahedron: Regular octahedron (8 triangular faces)
+ * - icosahedron: Regular icosahedron (20 triangular faces)
+ * - dodecahedron: Regular dodecahedron (12 pentagonal faces, triangulated)
  *
  * All meshes are created centered at origin (0, 0, 0) with the specified size.
  * Positioning is handled separately via instance transforms.
@@ -81,8 +89,19 @@ object MeshFactory:
         require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
         mesh4DProjection(spec).get.toTriangleMesh
 
+      case "tetrahedron" =>
+        Tetrahedron(center = Vector3(0f, 0f, 0f), scale = spec.size).toTriangleMesh
+
+      case "octahedron" =>
+        Octahedron(center = Vector3(0f, 0f, 0f), scale = spec.size).toTriangleMesh
+
+      case "icosahedron" =>
+        Icosahedron(center = Vector3(0f, 0f, 0f), scale = spec.size).toTriangleMesh
+
+      case "dodecahedron" =>
+        Dodecahedron(center = Vector3(0f, 0f, 0f), scale = spec.size).toTriangleMesh
+
       case "parametric" =>
-        // Missing meshData is a programming error: parametric specs must have pre-tessellated data.
         @SuppressWarnings(Array("org.wartremover.warts.Throw"))
         def getMesh = spec.meshData.getOrElse(
           throw new IllegalStateException("Parametric surface missing pre-tessellated mesh data")
