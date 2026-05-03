@@ -472,6 +472,32 @@ file /tmp/smoke-test.png
   git branch -d release/vX.Y.Z
   git push origin --delete release/vX.Y.Z
   ```
+
+- [ ] Clean up old worktrees — **interactive, required**:
+  1. List all worktrees and their branches:
+     ```bash
+     git worktree list
+     ```
+  2. For each worktree that is not the main workspace, show the user the path, branch name,
+     and whether the branch is merged into main:
+     ```bash
+     git branch --merged main | grep <branch-name>
+     ```
+     Present a summary like:
+     > `.worktrees/feature-sprint-17` → branch `feature/sprint-17` (merged into main)
+     > `.worktrees/feature-foo` → branch `feature/foo` (NOT merged)
+  3. Ask the user: *"Which of these worktrees should I remove?"* Wait for explicit confirmation.
+  4. For each confirmed worktree, check for uncommitted changes first:
+     ```bash
+     git -C <path> status --short
+     ```
+     If there are changes, tell the user and ask whether to force-remove or rescue files first.
+  5. Remove confirmed worktrees:
+     ```bash
+     git worktree remove <path>        # or --force if user confirmed discarding changes
+     git worktree prune                 # clean up stale .git/worktrees entries
+     ```
+
 - [ ] Announce release (if applicable):
   - GitLab/GitHub release notes
   - Internal team notification
