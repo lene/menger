@@ -6,6 +6,10 @@ object ObjectType:
     "sphere",
     "cube",
     "parametric",
+    "tetrahedron",
+    "octahedron",
+    "dodecahedron",
+    "icosahedron",
     "sponge-volume",
     "sponge-surface",
     "cube-sponge",
@@ -27,6 +31,11 @@ object ObjectType:
     "tesseract-sponge-volume",
     "tesseract-sponge-surface"
   )
+
+  val TRIANGLE_MESH_TYPES: Set[String] =
+    Set("cube", "parametric", "tetrahedron", "octahedron", "dodecahedron", "icosahedron") ++
+    SPONGE_TYPES.filter(_ != "cube-sponge") ++
+    PROJECTED_4D_TYPES
 
   // Deprecated names map to new canonical names
   private val DEPRECATED_ALIASES: Map[String, String] = Map(
@@ -69,10 +78,7 @@ object ObjectType:
     normalize(objectType) == "sponge-recursive-ias"
 
   def isTriangleMesh(objectType: String): Boolean =
-    val t = normalize(objectType)
-    t == "cube" || t == "parametric" ||
-    (isSponge(t) && t != "cube-sponge") ||
-    isProjected4D(t)
+    TRIANGLE_MESH_TYPES.contains(normalize(objectType))
 
   def validTypesString: String =
     VALID_TYPES.toSeq.sorted.mkString(", ")

@@ -82,3 +82,42 @@ class ObjectTypeSuite extends AnyFlatSpec with Matchers:
 
   it should "return false for cube-sponge" in:
     ObjectType.isTriangleMesh("cube-sponge") shouldBe false
+
+  "ObjectType.TRIANGLE_MESH_TYPES" should "contain cube" in:
+    ObjectType.TRIANGLE_MESH_TYPES should contain ("cube")
+
+  it should "contain all four new polytopes" in:
+    ObjectType.TRIANGLE_MESH_TYPES should contain ("tetrahedron")
+    ObjectType.TRIANGLE_MESH_TYPES should contain ("octahedron")
+    ObjectType.TRIANGLE_MESH_TYPES should contain ("dodecahedron")
+    ObjectType.TRIANGLE_MESH_TYPES should contain ("icosahedron")
+
+  it should "not contain sphere" in:
+    ObjectType.TRIANGLE_MESH_TYPES should not contain "sphere"
+
+  it should "not contain cube-sponge" in:
+    ObjectType.TRIANGLE_MESH_TYPES should not contain "cube-sponge"
+
+  "ObjectType.isTriangleMesh" should "return true for tetrahedron" in:
+    ObjectType.isTriangleMesh("tetrahedron") shouldBe true
+
+  it should "return true for octahedron" in:
+    ObjectType.isTriangleMesh("octahedron") shouldBe true
+
+  it should "return true for dodecahedron" in:
+    ObjectType.isTriangleMesh("dodecahedron") shouldBe true
+
+  it should "return true for icosahedron" in:
+    ObjectType.isTriangleMesh("icosahedron") shouldBe true
+
+  "ObjectType.isValid" should "return true for tetrahedron" in:
+    ObjectType.isValid("tetrahedron") shouldBe true
+
+  it should "return true for octahedron" in:
+    ObjectType.isValid("octahedron") shouldBe true
+
+  it should "return true for dodecahedron" in:
+    ObjectType.isValid("dodecahedron") shouldBe true
+
+  it should "return true for icosahedron" in:
+    ObjectType.isValid("icosahedron") shouldBe true
