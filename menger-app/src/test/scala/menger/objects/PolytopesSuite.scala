@@ -66,7 +66,11 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
   it should "translate vertices by center parameter" in:
     val center = Vector3(1f, 2f, 3f)
     val data = Tetrahedron(center, 1f).toTriangleMesh
-    hasVertexAtUnitDistanceFromCenter(data, center)
+    val coords = data.vertices
+    val stride = TriangleMeshData.LegacyVertexStride
+    for i <- coords.indices by stride do
+      val d = norm(coords(i) - 1f, coords(i + 1) - 2f, coords(i + 2) - 3f)
+      d shouldBe (1f +- Eps)
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private def hasVertexAtUnitDistanceFromCenter(data: TriangleMeshData, center: Vector3): Unit =
