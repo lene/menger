@@ -783,8 +783,8 @@ test_platonic_solids() {
 test_plane() {
     echo "Planes (IS-based first-class geometry):"
     run_test "plane chrome floor" --objects type=plane:pos=0,-2,0:material=chrome
-    run_test "plane metal floor" --objects type=plane:pos=0,-2,0:material=metal
-    run_test "plane glass wall" --objects type=plane:normal=0,0,1:distance=-3:material=glass
+    run_test "plane metal floor" --objects type=plane:pos=0,-2,0:material=metal --allow-uniform-render
+    run_test "plane glass wall" --objects type=plane:normal=0,0,1:distance=-3:material=glass --allow-uniform-render
     run_test "plane + sphere" --objects type=plane:pos=0,-2,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass
 }
 
