@@ -115,9 +115,9 @@ class MengerCLIOptions(arguments: Seq[String])
     required = false, default = Some(Const.fpsLogIntervalMs), validate = _ > 0, group = generalGroup,
     descr = "FPS logging interval in ms"
   )
-  val stats: ScallopOption[Boolean] = opt[Boolean](
-    required = false, default = Some(false), group = generalGroup,
-    descr = "Show ray tracing statistics"
+  val stats: ScallopOption[Boolean] = toggle(
+    default = Some(false), group = generalGroup,
+    descrYes = "Show ray tracing statistics"
   )
   val headless: ScallopOption[Boolean] = opt[Boolean](
     name = "headless", default = Some(false), group = generalGroup,
