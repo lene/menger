@@ -59,6 +59,17 @@ class InteractiveEngine(
     sys.error("SceneConfig must provide objectSpecs")
   }
 
+  // Coordinate cross visibility (togglable via 'C' key)
+  private val crossVisible = new java.util.concurrent.atomic.AtomicBoolean(config.cross.enabled)
+
+  private val CrossConeLength  = 0.2f
+  private val CrossConeRadius  = 0.05f
+  private val CrossAxisColors  = Map(
+    0 -> menger.optix.Material(menger.common.Color(1, 0, 0), metallic = 1.0f, roughness = 0.3f),
+    1 -> menger.optix.Material(menger.common.Color(0, 1, 0), metallic = 1.0f, roughness = 0.3f),
+    2 -> menger.optix.Material(menger.common.Color(0, 0, 1), metallic = 1.0f, roughness = 0.3f)
+  )
+
   // Event dispatcher for 4D rotation events
   private val eventDispatcher = EventDispatcher().withObserver(this)
 
@@ -301,6 +312,7 @@ class InteractiveEngine(
           renderer.setRenderConfig(renderConfig)
           renderer.setCausticsConfig(config.caustics)
           environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
+          if crossVisible.get then addCrossGeometry(renderer)
           finalizeCreate()
         }
       }
@@ -308,6 +320,37 @@ class InteractiveEngine(
         logger.error(s"Failed to create OptiX scene: ${e.getMessage}", e)
         GdxRuntime.exit()
       }.get
+
+  private def addCrossGeometry(renderer: menger.optix.OptiXRenderer): Unit =
+    val length    = config.cross.length
+    val thickness = config.cross.thickness
+    val baseMat   = config.cross.material.getOrElse(
+      menger.optix.Material(menger.common.Color(1f, 1f, 1f), roughness = 0.3f, metallic = 1.0f)
+    )
+    val axes = List(
+      (menger.common.Vector[3](-length, 0f, 0f), menger.common.Vector[3](+length, 0f, 0f), 0),
+      (menger.common.Vector[3](0f, -length, 0f), menger.common.Vector[3](0f, +length, 0f), 1),
+      (menger.common.Vector[3](0f, 0f, -length), menger.common.Vector[3](0f, 0f, +length), 2)
+    )
+    axes.foreach { case (p0, p1, axisIdx) =>
+      val mat = baseMat.copy(
+        color = CrossAxisColors(axisIdx).color,
+        ior   = 1.0f
+      )
+      renderer.addCylinderInstance(p0, p1, thickness, mat)
+      val coneApex = menger.common.Vector[3](
+        if axisIdx == 0 then length + CrossConeLength else p1(0),
+        if axisIdx == 1 then length + CrossConeLength else p1(1),
+        if axisIdx == 2 then length + CrossConeLength else p1(2)
+      )
+      renderer.addConeInstance(coneApex, p1, CrossConeRadius, mat)
+    }
+
+  private def toggleCross(): Unit =
+    crossVisible.set(!crossVisible.get)
+    rebuildScene()
+    renderResources.markNeedsRender()
+    GdxRuntime.requestRendering()
 
   private def resetTo4DDefaults(): Unit =
     logger.debug("Resetting 4D view to initial state")
@@ -317,7 +360,11 @@ class InteractiveEngine(
     GdxRuntime.requestRendering()
 
   private def finalizeCreate(): Unit =
-    val handler = OptiXKeyHandler(eventDispatcher, onReset = () => resetTo4DDefaults())
+    val handler = OptiXKeyHandler(
+      eventDispatcher,
+      onReset = () => resetTo4DDefaults(),
+      onToggleCross = () => toggleCross()
+    )
     keyHandler.set(Some(handler))
     GdxRuntime.setInputProcessor(OptiXInputMultiplexer(cameraController, handler))
     GdxRuntime.setContinuousRendering(false)
@@ -395,6 +442,7 @@ class InteractiveEngine(
         )
         Try {
           rebuildGeometry(specs, renderer)
+          if crossVisible.get then addCrossGeometry(renderer)
           cameraState.updateCamera(renderer, savedEye, savedLookAt, savedUp)
           // After a full rebuild the CPU mesh slots are reset to 0..N-1.
           // Update cpu4DState so the fast path remains valid for subsequent rotations.

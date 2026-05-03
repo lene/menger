@@ -788,6 +788,13 @@ test_plane() {
     run_test "plane + sphere" --objects type=plane:pos=0,-2,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass
 }
 
+test_cross() {
+    echo "Coordinate Cross:"
+    run_test "cross default" --objects type=sphere --cross
+    run_test "cross custom length" --objects type=sphere --cross --cross-length 3.0
+    run_test "cross material" --objects type=sphere --cross --cross-material chrome
+}
+
 test_cone() {
     echo "Analytical Primitives (Cone):"
     run_test "cone default" --objects type=cone --plane y:-2
@@ -928,6 +935,7 @@ main() {
     test_platonic_solids
     test_cone
     test_plane
+    test_cross
     test_dsl_scenes
     test_t_animation
     test_file_output

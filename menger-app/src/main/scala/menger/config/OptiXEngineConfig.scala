@@ -22,7 +22,8 @@ case class OptiXEngineConfig(
   environment: EnvironmentConfig,
   execution: ExecutionConfig,
   render: RenderConfig = RenderConfig.Default,
-  caustics: CausticsConfig = CausticsConfig.Disabled
+  caustics: CausticsConfig = CausticsConfig.Disabled,
+  cross: CrossConfig = CrossConfig.Disabled
 )
 
 object OptiXEngineConfig:
@@ -35,7 +36,8 @@ object OptiXEngineConfig:
     environment = EnvironmentConfig.Default,
     execution = ExecutionConfig.Default,
     render = RenderConfig.Default,
-    caustics = CausticsConfig.Disabled
+    caustics = CausticsConfig.Disabled,
+    cross = CrossConfig.Disabled
   )
 
   /**
@@ -47,5 +49,6 @@ object OptiXEngineConfig:
     environment = EnvironmentConfig.Default,
     execution = ExecutionConfig.Testing,
     render = RenderConfig.Default,
-    caustics = CausticsConfig.Disabled
+    caustics = CausticsConfig.Disabled,
+    cross = CrossConfig.Disabled
   )

@@ -18,6 +18,7 @@ import menger.cli.converters.planeSpecConverter
 import menger.cli.converters.vector3Converter
 import menger.common.Const
 import menger.common.ObjectType
+import menger.config.CrossConfig
 import menger.optix.CausticsConfig
 import menger.optix.RenderConfig
 import menger.optix.RenderLimits
@@ -122,6 +123,24 @@ class MengerCLIOptions(arguments: Seq[String])
   val headless: ScallopOption[Boolean] = opt[Boolean](
     name = "headless", default = Some(false), group = generalGroup,
     descr = "Render without displaying window (requires --save-name)"
+  )
+
+  // === Coordinate Cross ===
+  val cross: ScallopOption[Boolean] = opt[Boolean](
+    required = false, default = Some(false), group = generalGroup,
+    descr = "Show coordinate cross (XYZ axis visualization)"
+  )
+  val crossLength: ScallopOption[Double] = opt[Double](
+    required = false, default = Some(2.0), group = generalGroup,
+    descr = "Coordinate cross half-length from origin (default: 2.0)"
+  )
+  val crossThickness: ScallopOption[Double] = opt[Double](
+    required = false, default = Some(0.03), group = generalGroup,
+    descr = "Coordinate cross cylinder radius (default: 0.03)"
+  )
+  val crossMaterial: ScallopOption[String] = opt[String](
+    required = false, group = generalGroup,
+    descr = "Material preset for coordinate cross (chrome, metal, gold, etc.)"
   )
 
   // === Sponge Rendering Options ===
@@ -405,4 +424,11 @@ class MengerCLIOptions(arguments: Seq[String])
     iterations = causticsIterations(),
     initialRadius = causticsRadius(),
     alpha = causticsAlpha()
+  )
+
+  def crossConfig: CrossConfig = CrossConfig(
+    enabled = cross(),
+    length = crossLength().toFloat,
+    thickness = crossThickness().toFloat,
+    material = crossMaterial.toOption.flatMap(menger.optix.Material.fromName)
   )

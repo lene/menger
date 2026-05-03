@@ -27,6 +27,7 @@ object LibGDXConverters:
     case Keys.SPACE => Key.Space
     case Keys.ESCAPE => Key.Escape
     case Keys.Q => Key.Q
+    case Keys.C => Key.C
     case _ => Key.Unknown(gdxKeyCode)
 
   /** Convert LibGDX button code to domain MouseButton enum */

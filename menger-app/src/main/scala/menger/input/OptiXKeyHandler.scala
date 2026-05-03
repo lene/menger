@@ -19,7 +19,8 @@ import menger.common.ModifierState
  */
 class OptiXKeyHandler(
   dispatcher: EventDispatcher,
-  onReset: () => Unit = () => ()
+  onReset: () => Unit = () => (),
+  onToggleCross: () => Unit = () => ()
 ) extends KeyHandler with LazyLogging with KeyRotation:
 
   protected val rotateAngle  = Const.Input.defaultRotateAngle
@@ -35,6 +36,9 @@ class OptiXKeyHandler(
         true  // Consume: prevents unintended application exit; ESC only resets the 4D view.
       case Key.Q if modifiers.ctrl =>
         GdxRuntime.exit()
+        true
+      case Key.C if !modifiers.ctrl =>
+        onToggleCross()
         true
       case _ => false
 

@@ -159,7 +159,8 @@ object Main:
       ),
       execution = buildExecutionConfig(opts),
       render = mergedRender,
-      caustics = configs.caustics
+      caustics = configs.caustics,
+      cross = opts.crossConfig
     )
     InteractiveEngine(engineConfig, opts.userSetMaxInstances)
 
@@ -181,7 +182,8 @@ object Main:
       ),
       execution = buildExecutionConfig(opts),
       render = opts.renderConfig,
-      caustics = opts.causticsConfig
+      caustics = opts.causticsConfig,
+      cross = opts.crossConfig
     )
     InteractiveEngine(engineConfig, opts.userSetMaxInstances)
 

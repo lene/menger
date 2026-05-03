@@ -8,7 +8,7 @@ enum Key:
   case Left, Right, Up, Down
   case PageUp, PageDown
   case Home, End, Space
-  case Escape, Q
+  case Escape, Q, C
   case Unknown(code: Int)
 
 /** Mouse button enumeration */

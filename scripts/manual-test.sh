@@ -329,6 +329,11 @@ run_test "Plane (default floor)" "-o --objects type=plane:pos=0,-2,0:material=ch
 run_test "Plane metal" "-o --objects type=plane:pos=0,-2,0:material=metal --plane y:-2 -s $OUTPUT_DIR/137-plane-is-metal.png"
 run_test "Plane + sphere" "-o --objects type=plane:pos=0,-2,0:normal=0,1,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass -s $OUTPUT_DIR/138-plane-is-with-sphere.png"
 
+# Coordinate Cross
+echo -e "${YELLOW}--- Coordinate Cross ---${NC}"
+run_test "Cross default" "-o --objects type=sphere --cross -s $OUTPUT_DIR/139-cross-default.png"
+run_test "Cross custom" "-o --objects type=sphere --cross --cross-length 3.0 --cross-material chrome -s $OUTPUT_DIR/140-cross-custom.png"
+
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
 run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/57-caustics.png"
 
@@ -520,6 +525,7 @@ interactive_tests=(
     "Cone chrome:-o --objects type=cone:radius=0.3:material=chrome --plane y:-2"
     "Plane IS (chrome floor):-o --objects type=plane:pos=0,-2,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass"
     "Plane IS (metal wall):-o --objects type=plane:pos=0,0,-3:normal=0,0,1:material=metal --objects type=sphere:pos=0,0,0:material=glass"
+    "Coordinate cross:-o --objects type=sphere --cross"
 )
 
 echo "Available interactive tests:"
