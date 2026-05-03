@@ -780,6 +780,14 @@ test_platonic_solids() {
         --objects type=icosahedron:pos=1.5,0,0:size=0.5
 }
 
+test_plane() {
+    echo "Planes (IS-based first-class geometry):"
+    run_test "plane chrome floor" --objects type=plane:pos=0,-2,0:material=chrome
+    run_test "plane metal floor" --objects type=plane:pos=0,-2,0:material=metal
+    run_test "plane glass wall" --objects type=plane:normal=0,0,1:distance=-3:material=glass
+    run_test "plane + sphere" --objects type=plane:pos=0,-2,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass
+}
+
 test_cone() {
     echo "Analytical Primitives (Cone):"
     run_test "cone default" --objects type=cone --plane y:-2
@@ -919,6 +927,7 @@ main() {
     test_3d_fractional_sponges
     test_platonic_solids
     test_cone
+    test_plane
     test_dsl_scenes
     test_t_animation
     test_file_output

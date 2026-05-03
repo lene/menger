@@ -5,6 +5,7 @@ object ObjectType:
   val VALID_TYPES: Set[String] = Set(
     "sphere",
     "cone",
+    "plane",
     "cube",
     "parametric",
     "tetrahedron",
@@ -20,7 +21,7 @@ object ObjectType:
     "tesseract-sponge-surface"
   )
 
-  val ANALYTICAL_PRIMITIVE_TYPES: Set[String] = Set("sphere", "cone")
+  val ANALYTICAL_PRIMITIVE_TYPES: Set[String] = Set("sphere", "cone", "plane")
 
   val SPONGE_TYPES: Set[String] = Set(
     "sponge-volume",

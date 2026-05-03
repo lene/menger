@@ -322,6 +322,13 @@ run_test "Octahedron chrome" "-o --objects type=octahedron:size=0.8:material=chr
 run_test "Icosahedron colored" "-o --objects type=icosahedron:size=0.8:color=#FF8844 --plane y:-2 -s $OUTPUT_DIR/133-icosahedron-colored.png"
 run_test "Dodecahedron gold" "-o --objects type=dodecahedron:size=0.8:material=gold --plane y:-2 -s $OUTPUT_DIR/134-dodecahedron-gold.png"
 run_test "Mixed platonic solids" "-o --objects type=tetrahedron:pos=-1.5,0,0:size=0.5 --objects type=icosahedron:pos=1.5,0,0:size=0.5 --plane y:-2 -s $OUTPUT_DIR/135-mixed-platonic.png"
+
+# Planes (IS-based first-class geometry)
+echo -e "${YELLOW}--- Planes (IS-based) ---${NC}"
+run_test "Plane (default floor)" "-o --objects type=plane:pos=0,-2,0:material=chrome -s $OUTPUT_DIR/136-plane-is-chrome.png"
+run_test "Plane metal" "-o --objects type=plane:pos=0,-2,0:material=metal --plane y:-2 -s $OUTPUT_DIR/137-plane-is-metal.png"
+run_test "Plane + sphere" "-o --objects type=plane:pos=0,-2,0:normal=0,1,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass -s $OUTPUT_DIR/138-plane-is-with-sphere.png"
+
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
 run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/57-caustics.png"
 
@@ -511,6 +518,8 @@ interactive_tests=(
     "Cone (analytical primitive):-o --objects type=cone:radius=0.3 --plane y:-2"
     "Cone glass:-o --objects type=cone:radius=0.3:material=glass --plane y:-2"
     "Cone chrome:-o --objects type=cone:radius=0.3:material=chrome --plane y:-2"
+    "Plane IS (chrome floor):-o --objects type=plane:pos=0,-2,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass"
+    "Plane IS (metal wall):-o --objects type=plane:pos=0,0,-3:normal=0,0,1:material=metal --objects type=sphere:pos=0,0,0:material=glass"
 )
 
 echo "Available interactive tests:"

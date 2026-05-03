@@ -5,6 +5,7 @@ import menger.ProfilingConfig
 import menger.common.ObjectType
 import menger.engines.scene.ConeSceneBuilder
 import menger.engines.scene.CubeSpongeSceneBuilder
+import menger.engines.scene.PlaneSceneBuilder
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SphereSceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
@@ -50,5 +51,7 @@ object GeometryRegistry:
           Some(TriangleMeshSceneBuilder(textureDir, gpuProject4D))
       else if types.forall(_ == "cone") then
         Some(ConeSceneBuilder())
+      else if types.forall(_ == "plane") then
+        Some(PlaneSceneBuilder())
       else
         None
