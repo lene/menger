@@ -55,3 +55,30 @@ class ObjectTypeSuite extends AnyFlatSpec with Matchers:
     typesString should include("cube")
     typesString should include("tesseract")
     typesString should include("sponge-volume")
+
+  "ObjectType.isTriangleMesh" should "return true for cube" in:
+    ObjectType.isTriangleMesh("cube") shouldBe true
+
+  it should "return true for parametric" in:
+    ObjectType.isTriangleMesh("parametric") shouldBe true
+
+  it should "return true for sponge-volume" in:
+    ObjectType.isTriangleMesh("sponge-volume") shouldBe true
+
+  it should "return true for sponge-surface" in:
+    ObjectType.isTriangleMesh("sponge-surface") shouldBe true
+
+  it should "return true for sponge-recursive-ias" in:
+    ObjectType.isTriangleMesh("sponge-recursive-ias") shouldBe true
+
+  it should "return true for tesseract" in:
+    ObjectType.isTriangleMesh("tesseract") shouldBe true
+
+  it should "return true for tesseract-sponge-volume" in:
+    ObjectType.isTriangleMesh("tesseract-sponge-volume") shouldBe true
+
+  it should "return false for sphere" in:
+    ObjectType.isTriangleMesh("sphere") shouldBe false
+
+  it should "return false for cube-sponge" in:
+    ObjectType.isTriangleMesh("cube-sponge") shouldBe false

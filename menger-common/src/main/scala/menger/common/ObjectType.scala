@@ -68,6 +68,12 @@ object ObjectType:
   def isRecursiveIASSponge(objectType: String): Boolean =
     normalize(objectType) == "sponge-recursive-ias"
 
+  def isTriangleMesh(objectType: String): Boolean =
+    val t = normalize(objectType)
+    t == "cube" || t == "parametric" ||
+    (isSponge(t) && t != "cube-sponge") ||
+    isProjected4D(t)
+
   def validTypesString: String =
     VALID_TYPES.toSeq.sorted.mkString(", ")
 
