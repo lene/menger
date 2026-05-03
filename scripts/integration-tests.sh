@@ -766,6 +766,20 @@ test_area_lights() {
     rm -f "$soft_png" "$hard_png"
 }
 
+test_platonic_solids() {
+    echo "Platonic Solids:"
+    # TODO: add reference image comparison after first run
+    run_test "tetrahedron" --objects type=tetrahedron:size=0.8 --plane y:-2
+    run_test "octahedron" --objects type=octahedron:size=0.8 --plane y:-2
+    run_test "icosahedron" --objects type=icosahedron:size=0.8 --plane y:-2
+    run_test "dodecahedron" --objects type=dodecahedron:size=0.8 --plane y:-2
+    run_test "tetrahedron with material" --objects type=tetrahedron:size=0.8:material=glass --plane y:-2
+    run_test "octahedron with color" --objects type=octahedron:size=0.8:color=#FF8844 --plane y:-2
+    run_test "mixed platonic solids" --plane y:-2 \
+        --objects type=tetrahedron:pos=-1.5,0,0:size=0.5 \
+        --objects type=icosahedron:pos=1.5,0,0:size=0.5
+}
+
 test_error_handling() {
     echo "Error Handling:"
     run_test_should_fail "invalid object type" --objects type=invalid-type --plane y:-2
@@ -895,6 +909,7 @@ main() {
     test_tesseract
     test_4d_sponges
     test_3d_fractional_sponges
+    test_platonic_solids
     test_dsl_scenes
     test_t_animation
     test_file_output

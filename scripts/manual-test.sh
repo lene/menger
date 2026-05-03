@@ -311,7 +311,17 @@ run_test "3D Fractional (chrome)" "-o --objects type=sponge-surface:level=1.3:ma
 run_test "3D Mixed fractional + integer" "-o --objects type=sponge-volume:level=1.5:pos=-0.8,0,0:color=#FF8844 --objects type=sponge-volume:level=1:pos=0.8,0,0:color=#4488FF -s $OUTPUT_DIR/81-3d-mixed-frac-int.png"
 run_test "3D Volume vs Surface frac" "-o --objects type=sponge-volume:level=1.5:pos=-0.8,0,0 --objects type=sponge-surface:level=1.5:pos=0.8,0,0 -s $OUTPUT_DIR/82-volume-vs-surface-frac.png"
 
-# Caustics
+# Platonic Solids
+echo -e "${YELLOW}--- Platonic Solids ---${NC}"
+run_test "Tetrahedron" "-o --objects type=tetrahedron:size=0.8 --plane y:-2 -s $OUTPUT_DIR/127-tetrahedron.png"
+run_test "Octahedron" "-o --objects type=octahedron:size=0.8 --plane y:-2 -s $OUTPUT_DIR/128-octahedron.png"
+run_test "Icosahedron" "-o --objects type=icosahedron:size=0.8 --plane y:-2 -s $OUTPUT_DIR/129-icosahedron.png"
+run_test "Dodecahedron" "-o --objects type=dodecahedron:size=0.8 --plane y:-2 -s $OUTPUT_DIR/130-dodecahedron.png"
+run_test "Tetrahedron glass" "-o --objects type=tetrahedron:size=0.8:material=glass --plane y:-2 -s $OUTPUT_DIR/131-tetrahedron-glass.png"
+run_test "Octahedron chrome" "-o --objects type=octahedron:size=0.8:material=chrome --plane y:-2 -s $OUTPUT_DIR/132-octahedron-chrome.png"
+run_test "Icosahedron colored" "-o --objects type=icosahedron:size=0.8:color=#FF8844 --plane y:-2 -s $OUTPUT_DIR/133-icosahedron-colored.png"
+run_test "Dodecahedron gold" "-o --objects type=dodecahedron:size=0.8:material=gold --plane y:-2 -s $OUTPUT_DIR/134-dodecahedron-gold.png"
+run_test "Mixed platonic solids" "-o --objects type=tetrahedron:pos=-1.5,0,0:size=0.5 --objects type=icosahedron:pos=1.5,0,0:size=0.5 --plane y:-2 -s $OUTPUT_DIR/135-mixed-platonic.png"
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
 run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/57-caustics.png"
 
@@ -491,6 +501,13 @@ interactive_tests=(
     "TesseractSponge L2 (GPU project):-o --gpu-project-4d --objects type=tesseract-sponge:level=2 --plane y:-2"
     "TesseractSponge L3 (GPU project):-o --gpu-project-4d --objects type=tesseract-sponge:level=3 --plane y:-2"
     "TesseractSponge L2 (animated XW, GPU update):-o --animate frames=60:rot-x-w=0-360 --gpu-project-4d --objects type=tesseract-sponge:level=2 --plane y:-2"
+    "Tetrahedron (platonic solid):-o --objects type=tetrahedron:size=0.8 --plane y:-2"
+    "Octahedron (platonic solid):-o --objects type=octahedron:size=0.8 --plane y:-2"
+    "Icosahedron (platonic solid):-o --objects type=icosahedron:size=0.8 --plane y:-2"
+    "Dodecahedron (platonic solid):-o --objects type=dodecahedron:size=0.8 --plane y:-2"
+    "Tetrahedron glass (platonic solid):-o --objects type=tetrahedron:size=0.8:material=glass --plane y:-2"
+    "Octahedron chrome (platonic solid):-o --objects type=octahedron:size=0.8:material=chrome --plane y:-2"
+    "Mixed platonic solids (tetrahedron + icosahedron):-o --objects type=tetrahedron:pos=-1.5,0,0:size=0.5 --objects type=icosahedron:pos=1.5,0,0:size=0.5 --plane y:-2"
 )
 
 echo "Available interactive tests:"
