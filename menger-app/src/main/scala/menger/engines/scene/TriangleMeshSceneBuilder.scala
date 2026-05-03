@@ -42,7 +42,7 @@ class TriangleMeshSceneBuilder(
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
     else if !specs.forall(isTriangleMeshType) then
-      Left("All objects must be triangle mesh types (cube, sponge-*, tesseract)")
+      Left("All objects must be triangle mesh types (cube, sponge-*, tesseract, tetrahedron, octahedron, icosahedron, dodecahedron, parametric)")
     else if specs.exists(invalidRecursiveIASLevel) then
       Left("sponge-recursive-ias requires integer level in [1, 14]")
     else
@@ -235,10 +235,7 @@ class TriangleMeshSceneBuilder(
     }.sum
 
   private def isTriangleMeshType(spec: ObjectSpec): Boolean =
-    spec.objectType == "cube" ||
-    spec.objectType == "parametric" ||
-    ObjectType.isSponge(spec.objectType) ||
-    ObjectType.isProjected4D(spec.objectType)
+    ObjectType.isTriangleMesh(spec.objectType)
 
   /**
    * Check if a spec is a 4D sponge with fractional level.

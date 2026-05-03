@@ -15,15 +15,17 @@ object RenderModeSelector:
     require(specs.nonEmpty, "classify requires at least one ObjectSpec")
     val types = specs.map(s => ObjectType.normalize(s.objectType)).toSet
 
-    val hasSpheres    = types.contains("sphere")
+    val hasAnalytical = types.exists(ObjectType.isAnalyticalPrimitive)
     val hasCubeSponge = types.contains("cube-sponge")
-    val otherTypes    = types - "sphere" - "cube-sponge"
+    val otherTypes    = types.filterNot(t =>
+      ObjectType.isAnalyticalPrimitive(t) || t == "cube-sponge")
 
-    if !hasSpheres && !hasCubeSponge && otherTypes.forall(ObjectType.isTriangleMesh) then
+    if !hasAnalytical && !hasCubeSponge && otherTypes.forall(ObjectType.isTriangleMesh) then
       SceneType.TriangleMeshes(specs)
-    else if (hasSpheres || hasCubeSponge) && otherTypes.forall(ObjectType.isTriangleMesh) then
+    else if (hasAnalytical || hasCubeSponge) && otherTypes.forall(ObjectType.isTriangleMesh) then
       val tag = otherTypes.headOption.getOrElse(
-        if hasCubeSponge then "cube-sponge" else "sphere"
+        if hasCubeSponge then "cube-sponge"
+        else types.find(ObjectType.isAnalyticalPrimitive).get
       )
       SceneType.SimpleMixed(specs, tag)
     else

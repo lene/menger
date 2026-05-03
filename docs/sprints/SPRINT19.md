@@ -18,7 +18,7 @@ for extensibility.
 
 - [ ] Tetrahedron, octahedron, dodecahedron, icosahedron available as 3D primitives
 - [ ] Pentachoron (5-cell), 16-cell, 24-cell, 120-cell, and 600-cell available as 4D primitives (standalone, no subdivision)
-- [ ] Cone and torus available as analytical primitives (IS programs from Sprint 18)
+- [x] Cone available as analytical primitive (IS program from Sprint 18); torus cancelled — tesselated version remains
 - [ ] Planes are first-class scene geometry with materials (not miss shader)
 - [ ] Coordinate cross / axis visualization works alongside other geometry
 - [ ] Geometry registry: adding a new type requires registration, not engine modification
@@ -61,20 +61,26 @@ bases is deferred to a later sprint.
 
 ---
 
-### Task 19.3: Analytical Primitives — Cone, Torus
+### Task 19.3: Analytical Primitives — Cone (Torus cancelled)
 
 **Estimate:** 2h
 **Depends on:** Sprint 18.2 (IS program infrastructure)
 
-Add cone and torus as analytical primitives using custom OptiX intersection programs.
-Coexists with tessellated versions (via `ParametricTessellator`) — the analytical versions
-provide exact intersection without tessellation artifacts.
+Add cone as analytical primitive using a custom OptiX intersection program.
+The analytical torus was cancelled due to intractable normal-sign issues in the
+quartic solver; the tesselated `ParametricTorus` remains available.
+
+**Torus cancellation rationale:** The Schwarze quartic solver produced correct
+intersection distances but the surface normals were inverted (geometric normals
+pointed outward from the solid, but the renderer treated them as inward-facing).
+Despite extensive debugging (gradient-based normals, root validation), the sign
+could not be corrected. The tesselated torus (`ParametricTorus`) renders correctly
+and is the recommended approach.
 
 DSL usage:
 ```scala
 scene(
-  cone(height = 2.0, radius = 1.0, material = gold),
-  torus(majorRadius = 2.0, minorRadius = 0.5, material = glass)
+  cone(height = 2.0, radius = 1.0, material = gold)
 )
 ```
 
@@ -214,7 +220,7 @@ Output: findings note in `docs/dev/` and a recommendation for Sprint 21.
 |------|-------------|----------|--------------|
 | 19.1 | Additional polytopes in 3D (tetrahedron + 3 others) | 4h | None |
 | 19.2 | Additional polytopes in 4D (pentachoron + 4 others) | 6h | Sprint 18.3 |
-| 19.3 | Analytical primitives: cone, torus | 2h | Sprint 18.2 |
+| 19.3 | Analytical primitives: cone (torus cancelled) | 2h | Sprint 18.2 |
 | 19.4 | Planes as first-class geometry | 2h | Sprint 18.1, 18.2 |
 | 19.5 | Coordinate cross / axis visualization | 1.5h | Sprint 18.1, 18.2 |
 | 19.6 | Geometry registry | 2h | Sprint 17.3 |

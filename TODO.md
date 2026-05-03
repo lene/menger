@@ -9,12 +9,18 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 - Library layer for other Java/Scala clients to use OptiX JNI without Menger's scene graph or 
   rendering pipeline.
 - Guidance for generating good and interesting scenes and animations (user guide)
+- scaling objects in all dimensions
+- shearing
 - More 3- and higher dimensional objects:
+  - surface of rotation (sor)
   - regular star 4-polytopes
   - Semiregular polyhedra and polytopes
   - construction from Schläfli symbols (algorithmic generator for `{p,q}` / `{p,q,r}`)
   - gaussian splats
   - 4D spacetime trace of a person (or any object)
+  - 3-sphere (but how to visualize?)
+    - Hopf fibration https://en.wikipedia.org/wiki/Hopf_fibration
+    - complex-valued functions
 - The Real "Smart Idea": Procedural Intersection (SDFs)
   Since you cannot store the vertices (memory limit) and you cannot instance the geometry (4D 
   limit), the only robust solution for high-dimensional fractals in OptiX is Procedural Primitives.

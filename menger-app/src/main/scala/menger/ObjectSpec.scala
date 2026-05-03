@@ -50,6 +50,9 @@ case class ObjectSpec(
   rotX: Float = 0.0f,          // X-axis rotation in radians
   rotY: Float = 0.0f,          // Y-axis rotation in radians
   rotZ: Float = 0.0f,          // Z-axis rotation in radians
+  apex: Option[(Float, Float, Float)] = None,   // Cone apex position
+  base: Option[(Float, Float, Float)] = None,   // Cone base center position
+  radius: Option[Float] = None,                 // Cone base radius (overrides size/2)
   meshData: Option[TriangleMeshData] = None
 ):
   /** Returns true if edge rendering parameters are specified */
@@ -124,7 +127,8 @@ object ObjectSpec extends LazyLogging:
     "eye-w", "screen-w", "rot-xw", "rot-yw", "rot-zw",
     "rot-x", "rot-y", "rot-z",
     "edge-radius", "edge-material", "edge-color",
-    "edge-emission"
+    "edge-emission",
+    "apex", "base", "radius", "major-radius", "minor-radius"
   )
 
   def parse(spec: String): Either[String, ObjectSpec] =
@@ -152,12 +156,16 @@ object ObjectSpec extends LazyLogging:
       rotXDeg <- parseFloatParam(kvPairs, "rot-x", 0f, "X-axis rotation in degrees")
       rotYDeg <- parseFloatParam(kvPairs, "rot-y", 0f, "Y-axis rotation in degrees")
       rotZDeg <- parseFloatParam(kvPairs, "rot-z", 0f, "Z-axis rotation in degrees")
+      apex <- parseVector3(kvPairs, "apex")
+      base <- parseVector3(kvPairs, "base")
+      radius <- parseOptionalFloat(kvPairs, "radius", "cone base radius")
       _ <- validateSpongeLevel(objType, level)
     yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D,
       edgeParams._1, edgeParams._2,
       math.toRadians(rotXDeg.toDouble).toFloat,
       math.toRadians(rotYDeg.toDouble).toFloat,
-      math.toRadians(rotZDeg.toDouble).toFloat)
+      math.toRadians(rotZDeg.toDouble).toFloat,
+      apex, base, radius)
 
     result match
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")
@@ -354,6 +362,26 @@ object ObjectSpec extends LazyLogging:
       Left("eye-w and screen-w must be positive values for 4D projection")
     else
       Right(())
+
+  private def parseVector3(
+    kvPairs: Map[String, String],
+    key: String
+  ): Either[String, Option[(Float, Float, Float)]] =
+    kvPairs.get(key) match
+      case None => Right(None)
+      case Some(v) =>
+        v.split(",").map(_.trim) match
+          case Array(xStr, yStr, zStr) =>
+            for
+              fx <- Try(xStr.toFloat).toEither.left.map(_ =>
+                s"Invalid $key format: '$v'. Expected: x,y,z (three comma-separated numbers)")
+              fy <- Try(yStr.toFloat).toEither.left.map(_ =>
+                s"Invalid $key format: '$v'. Expected: x,y,z (three comma-separated numbers)")
+              fz <- Try(zStr.toFloat).toEither.left.map(_ =>
+                s"Invalid $key format: '$v'. Expected: x,y,z (three comma-separated numbers)")
+            yield Some((fx, fy, fz))
+          case _ =>
+            Left(s"Invalid $key format: '$v'. Expected: x,y,z (three comma-separated numbers)")
 
   /**
    * Validate multiple object specifications.

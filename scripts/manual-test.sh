@@ -508,6 +508,9 @@ interactive_tests=(
     "Tetrahedron glass (platonic solid):-o --objects type=tetrahedron:size=0.8:material=glass --plane y:-2"
     "Octahedron chrome (platonic solid):-o --objects type=octahedron:size=0.8:material=chrome --plane y:-2"
     "Mixed platonic solids (tetrahedron + icosahedron):-o --objects type=tetrahedron:pos=-1.5,0,0:size=0.5 --objects type=icosahedron:pos=1.5,0,0:size=0.5 --plane y:-2"
+    "Cone (analytical primitive):-o --objects type=cone:radius=0.3 --plane y:-2"
+    "Cone glass:-o --objects type=cone:radius=0.3:material=glass --plane y:-2"
+    "Cone chrome:-o --objects type=cone:radius=0.3:material=chrome --plane y:-2"
 )
 
 echo "Available interactive tests:"

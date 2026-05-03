@@ -39,9 +39,11 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       val dot = nx * centX + ny * centY + nz * centZ
       dot should be > 0f
 
-  "Tetrahedron" should "have 4 vertices" in:
+  // Flat-shaded meshes duplicate vertices per face so each triangle has 3 dedicated
+  // vertices carrying the face normal. numVertices = numFaces * 3.
+  "Tetrahedron" should "have 12 vertex entries (4 faces × 3)" in:
     val data = Tetrahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
-    data.numVertices shouldBe 4
+    data.numVertices shouldBe 12
 
   it should "have 4 triangles (12 indices)" in:
     val data = Tetrahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
@@ -82,9 +84,9 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       if math.abs(d - 1f) < Eps then found = true
     found shouldBe true
 
-  "Octahedron" should "have 6 vertices" in:
+  "Octahedron" should "have 24 vertex entries (8 faces × 3)" in:
     val data = Octahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
-    data.vertices.length / TriangleMeshData.LegacyVertexStride shouldBe 6
+    data.vertices.length / TriangleMeshData.LegacyVertexStride shouldBe 24
 
   it should "have 8 triangles (24 indices)" in:
     val data = Octahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
@@ -115,9 +117,9 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       val d = norm(coords(i) - 1f, coords(i + 1) - 2f, coords(i + 2) - 3f)
       d shouldBe (1f +- Eps)
 
-  "Icosahedron" should "have 12 vertices" in:
+  "Icosahedron" should "have 60 vertex entries (20 faces × 3)" in:
     val data = Icosahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
-    data.vertices.length / TriangleMeshData.LegacyVertexStride shouldBe 12
+    data.vertices.length / TriangleMeshData.LegacyVertexStride shouldBe 60
 
   it should "have 20 triangles (60 indices)" in:
     val data = Icosahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
@@ -148,9 +150,9 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       val d = norm(coords(i) - 1f, coords(i + 1) - 2f, coords(i + 2) - 3f)
       d shouldBe (1f +- Eps)
 
-  "Dodecahedron" should "have 20 vertices" in:
+  "Dodecahedron" should "have 108 vertex entries (36 faces × 3)" in:
     val data = Dodecahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
-    data.vertices.length / TriangleMeshData.LegacyVertexStride shouldBe 20
+    data.vertices.length / TriangleMeshData.LegacyVertexStride shouldBe 108
 
   it should "have 36 triangles (108 indices)" in:
     val data = Dodecahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh

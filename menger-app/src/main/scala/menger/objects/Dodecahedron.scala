@@ -114,13 +114,10 @@ case class Dodecahedron(
     val cx = center.x
     val cy = center.y
     val cz = center.z
-    val rawVertices: Array[Float] = dodVerts.flatMap { (nx, ny, nz) =>
-      Array(nx * scale + cx, ny * scale + cy, nz * scale + cz, nx, ny, nz)
-    }
 
     // Fan-triangulate pentagons: (p0,p1,p2), (p0,p2,p3), (p0,p3,p4)
-    val indices: Array[Int] = pentagons.flatMap { p =>
-      Array(p(0), p(1), p(2), p(0), p(2), p(3), p(0), p(3), p(4))
+    val faces: Array[(Int, Int, Int)] = pentagons.flatMap { p =>
+      Array((p(0), p(1), p(2)), (p(0), p(2), p(3)), (p(0), p(3), p(4)))
     }
 
-    TriangleMeshData(rawVertices, indices, TriangleMeshData.LegacyVertexStride)
+    PolytopeUtil.flatShaded(faces, dodVerts, scale, cx, cy, cz)

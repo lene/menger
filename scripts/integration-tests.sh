@@ -780,6 +780,14 @@ test_platonic_solids() {
         --objects type=icosahedron:pos=1.5,0,0:size=0.5
 }
 
+test_cone() {
+    echo "Analytical Primitives (Cone):"
+    run_test "cone default" --objects type=cone --plane y:-2
+    run_test "cone with radius" --objects type=cone:radius=0.3 --plane y:-2
+    run_test "cone with apex/base" --objects type=cone:apex=0,0.5,0:base=0,-0.5,0:radius=0.4 --plane y:-2
+    run_test "cone glass" --objects type=cone:material=glass --plane y:-2
+}
+
 test_error_handling() {
     echo "Error Handling:"
     run_test_should_fail "invalid object type" --objects type=invalid-type --plane y:-2
@@ -910,6 +918,7 @@ main() {
     test_4d_sponges
     test_3d_fractional_sponges
     test_platonic_solids
+    test_cone
     test_dsl_scenes
     test_t_animation
     test_file_output

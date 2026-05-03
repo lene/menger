@@ -4,6 +4,7 @@ object ObjectType:
 
   val VALID_TYPES: Set[String] = Set(
     "sphere",
+    "cone",
     "cube",
     "parametric",
     "tetrahedron",
@@ -18,6 +19,8 @@ object ObjectType:
     "tesseract-sponge-volume",
     "tesseract-sponge-surface"
   )
+
+  val ANALYTICAL_PRIMITIVE_TYPES: Set[String] = Set("sphere", "cone")
 
   val SPONGE_TYPES: Set[String] = Set(
     "sponge-volume",
@@ -76,6 +79,9 @@ object ObjectType:
 
   def isRecursiveIASSponge(objectType: String): Boolean =
     normalize(objectType) == "sponge-recursive-ias"
+
+  def isAnalyticalPrimitive(objectType: String): Boolean =
+    ANALYTICAL_PRIMITIVE_TYPES.contains(normalize(objectType))
 
   def isTriangleMesh(objectType: String): Boolean =
     TRIANGLE_MESH_TYPES.contains(normalize(objectType))
