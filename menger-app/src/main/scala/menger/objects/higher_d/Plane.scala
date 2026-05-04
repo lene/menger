@@ -35,7 +35,7 @@ object Plane extends LazyLogging:
     )
     Plane(setIndices.head, setIndices.last)
 
-  def apply(cornerPoints: Face4D): Plane = apply(cornerPoints.asSeq)
+  def apply(cornerPoints: Face4D[?]): Plane = apply(cornerPoints.asSeq)
 
   def differenceVectors(cornerPoints: Seq[Vector[4]]): Seq[Vector[4]] =
     differences(cornerPoints :+ cornerPoints.head)

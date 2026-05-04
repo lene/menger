@@ -13,8 +13,10 @@ import menger.objects.Octahedron
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
 import menger.objects.Tetrahedron
+import menger.objects.higher_d.Hexadecachoron
 import menger.objects.higher_d.Mesh4DGpuFlatten
 import menger.objects.higher_d.Mesh4DProjection
+import menger.objects.higher_d.Pentachoron
 import menger.objects.higher_d.TesseractMesh
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
@@ -89,6 +91,9 @@ object MeshFactory:
         require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
         mesh4DProjection(spec).get.toTriangleMesh
 
+      case "pentachoron" | "16-cell" | "24-cell" | "120-cell" | "600-cell" =>
+        mesh4DProjection(spec).get.toTriangleMesh
+
       case "tetrahedron" =>
         Tetrahedron(center = Vector3(0f, 0f, 0f), scale = spec.size).toTriangleMesh
 
@@ -133,8 +138,10 @@ object MeshFactory:
 
   private def gpu4DPlan(spec: ObjectSpec, skinOffset: Float = 0f): Option[MeshUploadPlan.Gpu4D] =
     mesh4DProjection(spec).map { p =>
+      val (buffer, vpf) = Mesh4DGpuFlatten.facesBuffer(p.mesh4D)
       MeshUploadPlan.Gpu4D(
-        quads4D = Mesh4DGpuFlatten.quadsBuffer(p.mesh4D, skinOffset),
+        quads4D = buffer,
+        vertsPerFace = vpf,
         proj = spec.projection4D.getOrElse(Projection4DSpec.default)
       )
     }
@@ -159,6 +166,18 @@ object MeshFactory:
         Some(TesseractSponge2Mesh(
           center = Vector3(0f, 0f, 0f), size = spec.size,
           level = spec.level.get,
+          eyeW = proj.eyeW, screenW = proj.screenW,
+          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+        ))
+      case "pentachoron" =>
+        Some(Mesh4DProjection(
+          mesh4D = Pentachoron(size = spec.size),
+          eyeW = proj.eyeW, screenW = proj.screenW,
+          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+        ))
+      case "16-cell" =>
+        Some(Mesh4DProjection(
+          mesh4D = Hexadecachoron(size = spec.size),
           eyeW = proj.eyeW, screenW = proj.screenW,
           rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
         ))

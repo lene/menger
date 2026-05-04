@@ -89,9 +89,9 @@ class TriangleMeshSceneBuilder(
         op.plan match
           case MeshUploadPlan.Cpu(data) =>
             renderer.setTriangleMesh(data)
-          case MeshUploadPlan.Gpu4D(quads4D, proj) =>
-            val meshIdx = renderer.setTriangleMesh4DQuads(
-              quads4D, uvs = None,
+          case MeshUploadPlan.Gpu4D(quads4D, vertsPerFace, proj) =>
+            val meshIdx = renderer.setProjectedMesh(
+              quads4D, vertsPerFace, uvs = None,
               eyeW = proj.eyeW, screenW = proj.screenW,
               rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW,
               centerX = 0f, centerY = 0f, centerZ = 0f

@@ -35,11 +35,21 @@ case class RotatedProjection(
   def projection: Projection = currentState.projection
   def rotation: Rotation = currentState.rotation
 
-  def projectedFaceVertices: Seq[Quad3D] =
+  def projectedFaceVertices: Seq[Seq[Vector3]] =
     val s = currentState
-    object4D.faces.map {s.rotation(_)}.map {s.projection(_)}
+    object4D.faces.map { face =>
+      val vpf = face.vertsPerFace
+      (0 until vpf).map(i =>
+        s.projection(s.rotation(face(i)))
+      )
+    }
 
-  def projectedFaceInfo: Seq[QuadInfo] = projectedFaceVertices.map {
+  def projectedQuadVertices: Seq[Quad3D] =
+    projectedFaceVertices.map { verts =>
+      Quad3D(verts(0), verts(1), verts(2), verts(3))
+    }
+
+  def projectedFaceInfo: Seq[QuadInfo] = projectedQuadVertices.map {
     rv => QuadInfo(VertexInfo(rv(0)), VertexInfo(rv(1)), VertexInfo(rv(2)), VertexInfo(rv(3)))
   }
 

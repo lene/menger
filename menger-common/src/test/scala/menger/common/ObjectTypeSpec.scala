@@ -156,7 +156,12 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.VALID_TYPES should contain("icosahedron")
     ObjectType.VALID_TYPES should contain("cone")
     ObjectType.VALID_TYPES should contain("plane")
-    ObjectType.VALID_TYPES.size shouldBe 16
+    ObjectType.VALID_TYPES should contain("pentachoron")
+    ObjectType.VALID_TYPES should contain("16-cell")
+    ObjectType.VALID_TYPES should contain("24-cell")
+    ObjectType.VALID_TYPES should contain("120-cell")
+    ObjectType.VALID_TYPES should contain("600-cell")
+    ObjectType.VALID_TYPES.size shouldBe 21
 
   "ObjectType.SPONGE_TYPES" should "contain only 3D sponge types" in:
     ObjectType.SPONGE_TYPES should contain("sponge-volume")
@@ -167,9 +172,14 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
 
   "ObjectType.PROJECTED_4D_TYPES" should "contain all 4D types" in:
     ObjectType.PROJECTED_4D_TYPES should contain("tesseract")
+    ObjectType.PROJECTED_4D_TYPES should contain("pentachoron")
+    ObjectType.PROJECTED_4D_TYPES should contain("16-cell")
+    ObjectType.PROJECTED_4D_TYPES should contain("24-cell")
+    ObjectType.PROJECTED_4D_TYPES should contain("120-cell")
+    ObjectType.PROJECTED_4D_TYPES should contain("600-cell")
     ObjectType.PROJECTED_4D_TYPES should contain("tesseract-sponge-volume")
     ObjectType.PROJECTED_4D_TYPES should contain("tesseract-sponge-surface")
-    ObjectType.PROJECTED_4D_TYPES.size shouldBe 3
+    ObjectType.PROJECTED_4D_TYPES.size shouldBe 8
 
   // === Deprecated Aliases Tests ===
 

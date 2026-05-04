@@ -232,7 +232,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
   private def extractEdges(mesh4D: Mesh4D): Seq[(Vector[4], Vector[4])] =
     mesh4D.faces.flatMap { face =>
       // Each quad face has 4 edges: (a,b), (b,c), (c,d), (d,a)
-      val vertices = Seq(face.a, face.b, face.c, face.d)
+      val vertices = Seq(face(0), face(1), face(2), face(3))
       vertices.zip(vertices.tail :+ vertices.head)
     }.map { case (v1, v2) =>
       // Use canonical ordering to deduplicate edges (smaller vector first)

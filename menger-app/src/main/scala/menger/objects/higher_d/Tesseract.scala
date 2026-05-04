@@ -10,14 +10,16 @@ case class Tesseract(
   size: Float = 1.0,
   material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
 ) extends Mesh4D:
-  
+
+  type V = 4
+
   lazy val vertices: Seq[Vector[4]] =
     val coords = Seq(-size / 2, size / 2)
     for (
       xx <- coords; yy <- coords; zz <- coords; ww <- coords
     ) yield Vector[4](xx, yy, zz, ww)
 
-  
+
   lazy val faceIndices: Seq[RectIndices] = RectIndices.fromTuples(
     ( 0, 1, 3, 2), ( 0, 1, 5, 4), ( 0, 1, 9, 8), ( 0, 2, 6, 4),
     ( 0, 2,10, 8), ( 0, 4,12, 8), ( 3, 1, 5, 7), ( 3, 1, 9,11),
@@ -27,11 +29,11 @@ case class Tesseract(
     (12, 8,10,14), (15,11, 9,13), (15,11,10,14), (15,13,12,14)
   )
 
-  lazy val faces: Seq[Face4D] = faceIndices.map { _.toFace4D(vertices) }
+  lazy val faces: Seq[Face4D[V]] = faceIndices.map { _.toFace4D(vertices) }
 
-  lazy val edges: Seq[(Vector[4], Vector[4])] = faces.flatMap {
-    // sets instead of tuples so edges are equal regardless of direction
-    case Face4D(a, b, c, d) => Seq(Set(a, b), Set(b, c), Set(c, d), Set(d, a))
+  lazy val edges: Seq[(Vector[4], Vector[4])] = faces.flatMap { f =>
+    val vs = Seq(f.a, f.b, f.c, f.d)
+    Seq(Set(vs(0), vs(1)), Set(vs(1), vs(2)), Set(vs(2), vs(3)), Set(vs(3), vs(0)))
   }.distinct.map(set => (set.head, set.last))
 
 

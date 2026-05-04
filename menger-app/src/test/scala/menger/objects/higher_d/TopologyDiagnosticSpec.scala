@@ -46,7 +46,7 @@ class TopologyDiagnosticSpec extends AnyFlatSpec with Matchers:
     // 2. For boundary faces: does any other face in the mesh share the same 4 vertex positions?
     //    If yes → wrong vertex ordering ("flipped"). If no → structural gap.
     type VSet = Set[(Float,Float,Float,Float)]
-    def vset(f: Face4D): VSet = f.asSeq.map(v => (v(0), v(1), v(2), v(3))).toSet
+    def vset(f: Face4D[4]): VSet = f.asSeq.map(v => (v(0), v(1), v(2), v(3))).toSet
     val allVSets = faces.map(vset)
     val bfSample = report.boundaryFaces.take(5).map(faces(_))
     println(s"\n  Vertex-position check on first ${bfSample.size} boundary faces:")
@@ -82,7 +82,7 @@ class TopologyDiagnosticSpec extends AnyFlatSpec with Matchers:
     v(3) >= c._7-eps && v(3) <= c._8+eps
 
   private def faceInsideSponge(
-      face: Face4D,
+      face: Face4D[4],
       subCubes: Seq[(Float,Float,Float,Float,Float,Float,Float,Float)]
   ): Boolean =
     face.asSeq.forall(v => subCubes.exists(c => isInsideCube(v, c)))

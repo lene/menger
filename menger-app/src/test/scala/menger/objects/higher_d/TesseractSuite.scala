@@ -71,5 +71,5 @@ class TesseractSuite extends AnyFlatSpec with Matchers:
       tesseract.faces(2).normals should contain only (Vector.Y, Vector.Z)
     }
 
-  def faceClue(face: Face4D): String =
+  def faceClue(face: Face4D[4]): String =
     s"Face in ${face.plane} plane has ${face.plane.neg} normals:\n${face.normals}"

@@ -13,5 +13,6 @@ object MeshUploadPlan:
   final case class Cpu(data: TriangleMeshData) extends MeshUploadPlan
   final case class Gpu4D(
     quads4D: Array[Float],
+    vertsPerFace: Int,
     proj: Projection4DSpec
   ) extends MeshUploadPlan

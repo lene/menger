@@ -795,6 +795,12 @@ test_cross() {
     run_test "cross material" --objects type=sphere --cross --cross-material chrome
 }
 
+test_4d_polytopes() {
+    echo "4D Polytopes:"
+    run_test "pentachoron" --objects type=pentachoron:size=0.8 --allow-uniform-render
+    run_test "16-cell" --objects type=16-cell:size=0.8 --allow-uniform-render
+}
+
 test_cone() {
     echo "Analytical Primitives (Cone):"
     run_test "cone default" --objects type=cone --plane y:-2
@@ -936,6 +942,7 @@ main() {
     test_cone
     test_plane
     test_cross
+    test_4d_polytopes
     test_dsl_scenes
     test_t_animation
     test_file_output

@@ -389,6 +389,10 @@ run_test "High Quality Render" "-o --objects type=sponge-surface:level=1:materia
 run_test "Tesseract Showcase (glass with emissive edges)" "-o --objects type=tesseract:material=glass:edge-color=#00ffff:edge-emission=5.0:edge-radius=0.025:rot-xw=20:rot-yw=15 --antialiasing --shadows --width 1920 --height 1080 -s $OUTPUT_DIR/59-tesseract-showcase.png"
 run_test "4D Sponge Showcase (glass with edges)" "-o --objects type=tesseract-sponge-2:level=2:material=glass:edge-material=chrome:edge-radius=0.015:rot-xw=30:rot-yw=20 --antialiasing --shadows --width 1920 --height 1080 -s $OUTPUT_DIR/60-tesseract-sponge-showcase.png"
 
+echo -e "${YELLOW}--- 4D Polytopes (Sprint 19.2) ---${NC}"
+run_test "Pentachoron (5-cell)" "-o --objects type=pentachoron:size=0.8:material=film --cross -s $OUTPUT_DIR/141-pentachoron.png"
+run_test "16-cell" "-o --objects type=16-cell:size=0.8:material=film --cross -s $OUTPUT_DIR/142-16-cell.png"
+
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
 if [ "$UPDATE_REFERENCES" = true ]; then
@@ -526,6 +530,8 @@ interactive_tests=(
     "Plane IS (chrome floor):-o --objects type=plane:pos=0,-2,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass"
     "Plane IS (metal wall):-o --objects type=plane:pos=0,0,-3:normal=0,0,1:material=metal --objects type=sphere:pos=0,0,0:material=glass"
     "Coordinate cross:-o --objects type=sphere --cross"
+    "Pentachoron (5-cell):-o --objects type=pentachoron:size=0.8:material=film --cross"
+    "16-cell:-o --objects type=16-cell:size=0.8:material=film --cross"
 )
 
 echo "Available interactive tests:"

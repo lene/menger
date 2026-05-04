@@ -38,13 +38,13 @@ class TesseractSpongeSuite extends AnyFlatSpec with RectMesh with Matchers:
   it should "contain the number of faces" in new Sponge:
     sponge.toString should include(s"${sponge.faces.size} faces")
 
-  private def isCenterOfOriginalFace(face: Face4D): Boolean =
+  private def isCenterOfOriginalFace(face: Face4D[4]): Boolean =
     // A face is a center face if 2 of its coordinates are +/- 1/6 and the other 2 are 0.5
     face.asSeq.forall({ v =>
       v.count(_.abs == 0.5) == 2 && v.count(_.abs == 1 / 6f) == 2
     })
 
-  private def isCenterOfOriginalTesseract(face: Face4D): Boolean =
+  private def isCenterOfOriginalTesseract(face: Face4D[4]): Boolean =
     // A face is a center face if all of its coordinates are +/- 1/6
     face.asSeq.forall { _.count(_.abs == 1 / 6f) == 4 }
 

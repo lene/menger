@@ -10,7 +10,7 @@ class TesseractSponge(level: Float) extends Fractal4D(level):
 
   require(level >= 0, "Level must be non-negative")
 
-  lazy val faces: Seq[Face4D] = if level.toInt == 0 then Tesseract().faces else nestedFaces.flatten
+  lazy val faces: Seq[Face4D[V]] = if level.toInt == 0 then Tesseract().faces else nestedFaces.flatten
 
   private def nestedFaces =
     for (
@@ -18,9 +18,9 @@ class TesseractSponge(level: Float) extends Fractal4D(level):
       if abs(xx) + abs(yy) + abs(zz) + abs(ww) > 2
     ) yield shrunkSubSponge.map(_ + Vector[4](xx / 3f, yy / 3f, zz / 3f, ww / 3f))
 
-  private def shrunkSubSponge: Seq[Face4D] = subSponge.map { _ / 3 }
+  private def shrunkSubSponge: Seq[Face4D[V]] = subSponge.map { _ / 3 }
 
-  private def subSponge: Seq[Face4D] = TesseractSponge(level - 1).faces
+  private def subSponge: Seq[Face4D[V]] = TesseractSponge(level - 1).faces
 
   def isInSponge(point: Vector[4]): Boolean =
     if level <= 0 then

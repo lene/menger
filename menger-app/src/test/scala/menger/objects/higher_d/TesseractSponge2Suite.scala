@@ -13,11 +13,11 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
   trait Sponge2:
     val tesseract: Tesseract = Tesseract(2)
     val sponge2: TesseractSponge2 = TesseractSponge2(1)
-    val face: Face4D = tesseract.faces.head
+    val face: Face4D[4] = tesseract.faces.head
     require(
       face == Face4D(Vector[4](-1, -1, -1, -1), Vector[4](-1, -1, -1, 1), Vector[4](-1, -1, 1, 1), Vector[4](-1, -1, 1, -1))
     )
-    val subfaces: Seq[Face4D] = sponge2.faceGenerator(face)
+    val subfaces: Seq[Face4D[4]] = sponge2.faceGenerator(face)
     val centerSubface: List[Vector[4]] = List(
       Vector[4](-1, -1, -1/3f, 1/3f), Vector[4](-1, -1, 1/3f, 1/3f),
       Vector[4](-1, -1, 1/3f, -1/3f), Vector[4](-1, -1, -1/3f, -1/3f)
@@ -27,13 +27,13 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
       (centerSubface(2), centerSubface(3)), (centerSubface(3), centerSubface(0))
     )
     val subfacesString: String = subfaces.toString.replace("),", "),\n")
-    val flatSubfaces: Seq[Face4D] = sponge2.generateFlatParts(face)
+    val flatSubfaces: Seq[Face4D[4]] = sponge2.generateFlatParts(face)
     val flatSubfacesString: String = flatSubfaces.toString.replace("),", "),\n")
-    val perpendicularSubfaces: Seq[Face4D] = sponge2.generatePerpendicularParts(face)
+    val perpendicularSubfaces: Seq[Face4D[4]] = sponge2.generatePerpendicularParts(face)
     val perpendicularSubfacesString: String =
       perpendicularSubfaces.map(rect2str).mkString(", ").replace("),", "),\n")
 
-    def diffToFaces(faces: Seq[Face4D], face2: List[Vector[4]]): String =
+    def diffToFaces(faces: Seq[Face4D[4]], face2: List[Vector[4]]): String =
       def diffBetweenFaces(face1: List[Vector[4]], face2: List[Vector[4]]): List[Vector[4]] =
         face1.zip(face2).map((vertex1, vertex2) => vertex2 - vertex1)
       val facesAsList: Seq[List[Vector[4]]] = faces.map(_.asSeq.toList)
@@ -44,9 +44,9 @@ class TesseractSponge2Suite extends AnyFlatSpec with RectMesh with Matchers:
     def lineRoughlyEquals(line1: (Vector[4], Vector[4]), line2: (Vector[4], Vector[4])): Boolean =
       line1._1 === line2._1 && line1._2 === line2._2
 
-  def rect2str(rect: Face4D): String = rect.asSeq.map(_.toString).mkString("(", ", ", ")")
+  def rect2str(rect: Face4D[4]): String = rect.asSeq.map(_.toString).mkString("(", ", ", ")")
 
-  def seq2str(seq: Seq[Face4D]): String = seq.map(rect2str).mkString(",\n")
+  def seq2str(seq: Seq[Face4D[4]]): String = seq.map(rect2str).mkString(",\n")
 
   def sponge2str(sponge: TesseractSponge2): String = seq2str(sponge.faces) + "\n"
 
@@ -348,8 +348,8 @@ diff: ${diffToFaces(perpendicularSubfaces, expected)}\n"""
     sponge2.toString should include(s"${sponge2.faces.size} faces")
 
   private def checkCoordinatesOfSubdividedSpongeFace(sponge: TesseractSponge2, i: Int) =
-    val subface: Face4D = sponge.faces(i)
-    val subdividedFace: Seq[Face4D] = sponge.faceGenerator(subface)
+    val subface: Face4D[4] = sponge.faces(i)
+    val subdividedFace: Seq[Face4D[4]] = sponge.faceGenerator(subface)
     val cornerPoints: Seq[Vector[4]] = subdividedFace.flatMap(_.asSeq)
     val cornerCoordinateValues: Set[Float] = cornerPoints.toSet.flatMap(_.v).map(math.abs).map(round)
     val coords = seq2str(subdividedFace).replace("0.83", s"${Console.YELLOW}0.83${Console.RED}")

@@ -17,11 +17,14 @@ object ObjectType:
     "cube-sponge",
     "sponge-recursive-ias",
     "tesseract",
+    "pentachoron",
+    "16-cell",
+    "24-cell",
+    "120-cell",
+    "600-cell",
     "tesseract-sponge-volume",
     "tesseract-sponge-surface"
   )
-
-  val ANALYTICAL_PRIMITIVE_TYPES: Set[String] = Set("sphere", "cone", "plane")
 
   val SPONGE_TYPES: Set[String] = Set(
     "sponge-volume",
@@ -32,9 +35,16 @@ object ObjectType:
 
   val PROJECTED_4D_TYPES: Set[String] = Set(
     "tesseract",
+    "pentachoron",
+    "16-cell",
+    "24-cell",
+    "120-cell",
+    "600-cell",
     "tesseract-sponge-volume",
     "tesseract-sponge-surface"
   )
+
+  val ANALYTICAL_PRIMITIVE_TYPES: Set[String] = Set("sphere", "cone", "plane")
 
   val TRIANGLE_MESH_TYPES: Set[String] =
     Set("cube", "parametric", "tetrahedron", "octahedron", "dodecahedron", "icosahedron") ++

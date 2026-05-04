@@ -44,8 +44,8 @@ trait CustomMatchers:
 
   def containEpsilon(expected: Vector[4]) = new ContainerContainsVector4Matcher(expected)
 
-  class FaceContainsAllVector4Matcher(expected: Iterable[Vector[4]]) extends Matcher[Seq[Face4D]]:
-    def apply(left: Seq[Face4D]): MatchResult =
+  class FaceContainsAllVector4Matcher(expected: Iterable[Vector[4]]) extends Matcher[Seq[Face4D[4]]]:
+    def apply(left: Seq[Face4D[4]]): MatchResult =
       MatchResult(
         containsAllEpsilon(left, expected.toSeq),
         s"""${left.map(_.toString)} does not contain all ${expected.map(_.toString)}""",
@@ -54,7 +54,7 @@ trait CustomMatchers:
 
   def containAllEpsilon(expected: Iterable[Vector[4]]) = new FaceContainsAllVector4Matcher(expected)
 
-  private def containsAllEpsilon(rects: Seq[Face4D], expected: Seq[Vector[4]]): Boolean =
+  private def containsAllEpsilon(rects: Seq[Face4D[4]], expected: Seq[Vector[4]]): Boolean =
     rects.map(_.asSeq).exists(rect => rect.forall(v => containsEpsilon(expected, v)))
 
   class Vector4SeqsMatcher(expected: Iterable[Vector[4]]) extends Matcher[Iterable[Vector[4]]]:

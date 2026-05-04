@@ -16,7 +16,8 @@ case class Rotation(transformationMatrix: Matrix[4], pivotPoint: Vector[4]) exte
 
   def apply(points: Seq[Vector[4]]): Seq[Vector[4]] = if isZero then points else points.map(apply)
 
-  def apply(points: Face4D): Face4D = Face4D(apply(points.asSeq))
+  def apply[V <: Int & Singleton](points: Face4D[V])(using ValueOf[V]): Face4D[V] =
+    Face4D[V](points.vertices.map(apply))
 
   @targetName("plus")
   def +(r: Rotation): Rotation = Rotation(transformationMatrix * r.transformationMatrix, pivotPoint)

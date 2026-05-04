@@ -21,14 +21,14 @@ object MeshTopology:
     def isManifold: Boolean = edgeUseHistogram.keys.forall(_ == 2)
     def boundaryEdgeCount: Int = edgeUseHistogram.getOrElse(1, 0)
 
-  /** Check manifoldness of a Seq[Face4D] at the 4D level.
+  /** Check manifoldness of a Seq[Face4D[4]] at the 4D level.
     *
     * Edges are keyed by exact float coordinates — valid because 4D vertices are
     * computed from the same rational-fraction arithmetic so shared vertices are
     * bit-identical. Returns boundary face indices (faces with >= 1 edge used
     * by only one face).
     */
-  def checkFace4D(faces: Seq[Face4D]): TopologyReport =
+  def checkFace4D(faces: Seq[Face4D[4]]): TopologyReport =
     type VKey = (Float, Float, Float, Float)
     type EKey = (VKey, VKey)
 

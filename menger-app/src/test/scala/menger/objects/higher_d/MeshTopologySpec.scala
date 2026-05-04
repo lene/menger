@@ -52,7 +52,7 @@ class MeshTopologySpec extends AnyFlatSpec with Matchers:
     v(0,0,0), v(1,0,0), v(1,1,0), v(0,1,0),  // 0-3: z=0 corners
     v(0,0,1), v(1,0,1), v(1,1,1), v(0,1,1)   // 4-7: z=1 corners
   )
-  private val cube4DFaces: Seq[Face4D] = Seq(
+  private val cube4DFaces: Seq[Face4D[4]] = Seq(
     Face4D(p(0), p(1), p(2), p(3)),  // 0: bottom z=0
     Face4D(p(4), p(5), p(6), p(7)),  // 1: top    z=1
     Face4D(p(0), p(1), p(5), p(4)),  // 2: front  y=0
@@ -62,7 +62,7 @@ class MeshTopologySpec extends AnyFlatSpec with Matchers:
   )
   // Each of the 12 edges is shared by exactly 2 faces → isManifold.
 
-  private val brokenCube4D: Seq[Face4D] = cube4DFaces.tail  // drop face 0
+  private val brokenCube4D: Seq[Face4D[4]] = cube4DFaces.tail  // drop face 0
 
   // -------------------------------------------------------------------------
   // checkTriangleMesh — known-good (unit cube)

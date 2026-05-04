@@ -10,16 +10,16 @@ class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) w
 
   require(level >= 0, "Level must be non-negative")
 
-  lazy val faces: Seq[Face4D] = if level.toInt == 0 then Tesseract(size).faces else nestedFaces
+  lazy val faces: Seq[Face4D[V]] = if level.toInt == 0 then Tesseract(size).faces else nestedFaces
 
-  private def mergeVertices(faces: Seq[Face4D], epsilon: Float = 1e-4f): Seq[Face4D] =
+  private def mergeVertices(faces: Seq[Face4D[V]], epsilon: Float = 1e-4f): Seq[Face4D[V]] =
     val canonicalMap = scala.collection.mutable.HashMap[(Long, Long, Long, Long), Vector[4]]()
     def vkey(v: Vector[4]): (Long, Long, Long, Long) =
       ((v(0) / epsilon).round, (v(1) / epsilon).round, (v(2) / epsilon).round, (v(3) / epsilon).round)
     def canonical(v: Vector[4]): Vector[4] = canonicalMap.getOrElseUpdate(vkey(v), v)
     faces.map(f => Face4D(canonical(f.a), canonical(f.b), canonical(f.c), canonical(f.d)))
 
-  private[higher_d] def nestedFaces: Seq[Face4D] =
+  private[higher_d] def nestedFaces: Seq[Face4D[V]] =
     val prevLevel = level.toInt - 1
     val raw = TesseractSponge2(level - 1).faces.flatMap(faceGenerator)
     val filtered = raw.filter(f => f.asSeq.forall(v => isInsideKthSponge(v, prevLevel)))
@@ -52,10 +52,10 @@ class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) w
       anyValidCombo(0, 0)
     }
 
-  private[higher_d] def faceGenerator(face: Face4D): Seq[Face4D] =
+  private[higher_d] def faceGenerator(face: Face4D[V]): Seq[Face4D[V]] =
     generateFlatParts(face) ++ generatePerpendicularParts(face)
 
-  private[higher_d] def generateFlatParts(face: Face4D): Seq[Face4D] =
+  private[higher_d] def generateFlatParts(face: Face4D[V]): Seq[Face4D[V]] =
     // split the face into 9 smaller squares and return all except the center one
     val c = cornerPoints(face)
     Seq(
@@ -69,12 +69,12 @@ class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) w
       Face4D(c("da1bc22"), c("bc2"), c("c"), c("cd1")) // 8 // bottom right
     )
 
-  private[higher_d] def generatePerpendicularParts(face: Face4D): Seq[Face4D] =
+  private[higher_d] def generatePerpendicularParts(face: Face4D[V]): Seq[Face4D[V]] =
     val c = cornerPoints(face)
     val centralPart = Face4D(c("da2bc11"), c("da2bc12"), c("da1bc22"), c("da1bc21"))
     centralPart.extrude()
 
-  private[higher_d] def cornerPoints(face: Face4D): CornerMap =
+  private[higher_d] def cornerPoints(face: Face4D[V]): CornerMap =
     val (a, b, c, d) = face.asTuple
 
     val edgeAB = (b - a) / 3

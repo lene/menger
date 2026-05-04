@@ -34,51 +34,62 @@ case class Mesh4DProjection(
 
   private val projection = Projection(eyeW, screenW)
 
-  private def projectedQuads: Seq[Quad3D] =
+  private def projectedVertices: Seq[IndexedSeq[Vector3]] =
     mesh4D.faces.map { face4d =>
-      val rotatedFace = Face4D(
-        rotation(face4d.a),
-        rotation(face4d.b),
-        rotation(face4d.c),
-        rotation(face4d.d)
-      )
-      projection(rotatedFace)
+      val vpf = face4d.vertsPerFace
+      (0 until vpf).map(i => projection(rotation(face4d(i)))).toIndexedSeq
     }
 
   override def toTriangleMesh: TriangleMeshData =
-    val quads = projectedQuads
-    val meshDataList = quads.map(quadToTriangleMesh)
-    val merged = TriangleMeshData.merge(meshDataList)
-    translateMesh(merged, center)
+    if mesh4D.vertsPerFace < 3 then
+      TriangleMeshData(Array.emptyFloatArray, Array.emptyIntArray, vertexStride = 8)
+    else
+      val faces = projectedVertices
+      val meshDataList = faces.map(faceToTriangleMesh)
+      val merged = TriangleMeshData.merge(meshDataList)
+      translateMesh(merged, center)
 
-  private def quadToTriangleMesh(quad: Quad3D): TriangleMeshData =
-    val v0 = quad(0)
-    val v1 = quad(1)
-    val v2 = quad(2)
-    val v3 = quad(3)
+  private def faceToTriangleMesh(face: IndexedSeq[Vector3]): TriangleMeshData =
+    val vpf = face.size
+    val triCount = vpf - 2
 
-    // Calculate face normal (cross product of two edges)
-    val edge1 = new Vector3(v1).sub(v0)
-    val edge2 = new Vector3(v3).sub(v0)
-    val normal = new Vector3(edge1).crs(edge2).nor()
+    // Newell's method for face normal
+    val (nxAcc, nyAcc, nzAcc) = (0 until vpf).foldLeft((0.0, 0.0, 0.0)) {
+      case ((nx, ny, nz), i) =>
+        val cur = face(i)
+        val nxt = face((i + 1) % vpf)
+        (nx + (cur.y - nxt.y).toDouble * (cur.z + nxt.z).toDouble,
+         ny + (cur.z - nxt.z).toDouble * (cur.x + nxt.x).toDouble,
+         nz + (cur.x - nxt.x).toDouble * (cur.y + nxt.y).toDouble)
+    }
+    val nl = math.sqrt(nxAcc * nxAcc + nyAcc * nyAcc + nzAcc * nzAcc).toFloat
+    val (ennX, ennY, ennZ) =
+      if nl < 0.0001f then (0f, 1f, 0f)
+      else ((nxAcc / nl).toFloat, (nyAcc / nl).toFloat, (nzAcc / nl).toFloat)
 
-    // Handle degenerate faces (zero-area when projected edge-on)
-    val (nx, ny, nz) =
-      if normal.len2() < 0.0001f then (0f, 1f, 0f)
-      else (normal.x, normal.y, normal.z)
+    val verts = Array.tabulate(vpf * 8) { idx =>
+      val j = idx / 8
+      val v = face(j)
+      idx % 8 match
+        case 0 => v.x
+        case 1 => v.y
+        case 2 => v.z
+        case 3 => ennX
+        case 4 => ennY
+        case 5 => ennZ
+        case 6 => if j == 0 || j == 3 then 0f else 1f
+        case _ => if j < 2 then 0f else 1f
+    }
 
-    // Vertex format: position(3) + normal(3) + uv(2) = 8 floats
-    val vertices = Array(
-      v0.x, v0.y, v0.z, nx, ny, nz, 0f, 0f,
-      v1.x, v1.y, v1.z, nx, ny, nz, 1f, 0f,
-      v2.x, v2.y, v2.z, nx, ny, nz, 1f, 1f,
-      v3.x, v3.y, v3.z, nx, ny, nz, 0f, 1f
-    )
+    val indices = Array.tabulate(triCount * 3) { i =>
+      val k = i / 3 + 2
+      i % 3 match
+        case 0 => 0
+        case 1 => k - 1
+        case _ => k
+    }
 
-    // Two triangles: (v0,v1,v2) and (v0,v2,v3)
-    val indices = Array(0, 1, 2, 0, 2, 3)
-
-    TriangleMeshData(vertices, indices, vertexStride = 8)
+    TriangleMeshData(verts, indices, vertexStride = 8)
 
   private def translateMesh(mesh: TriangleMeshData, offset: Vector3): TriangleMeshData =
     if offset.x == 0f && offset.y == 0f && offset.z == 0f then mesh
