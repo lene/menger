@@ -31,7 +31,7 @@ case class Tesseract(
 
   lazy val faces: Seq[Face4D[V]] = faceIndices.map { _.toFace4D(vertices) }
 
-  def cells: Seq[Cell4D] =
+  override def cells: Seq[Cell4D] =
     for
       dim  <- 0 until 4
       sign <- Seq(-1, 1)

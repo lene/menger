@@ -43,7 +43,7 @@ class TesseractSuite extends AnyFlatSpec with Matchers:
     tesseract.edges should have size 32
 
   it should "have only edges of unit length" in:
-    val edgeLengths: Seq[Float] = tesseract.edges.map { case (a, b) => a.dst(b) }
+    val edgeLengths = tesseract.edges.toSeq.map { case (a, b) => a.dst(b) }
     edgeLengths should contain only 1.0f
 
   it should "have all faces lying in specific planes" in :
