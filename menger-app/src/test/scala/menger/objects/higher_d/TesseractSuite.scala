@@ -71,5 +71,28 @@ class TesseractSuite extends AnyFlatSpec with Matchers:
       tesseract.faces(2).normals should contain only (Vector.Y, Vector.Z)
     }
 
+  it should "have 8 cells (one per face of the hypercube)" in:
+    tesseract.cells should have size 8
+
+  it should "satisfy Euler-Poincaré: V - E + F - C = 0" in:
+    val v = tesseract.vertices.size
+    val e = tesseract.edges.size
+    val f = tesseract.faceIndices.size
+    val c = tesseract.cells.size
+    withClue(s"V=$v E=$e F=$f C=$c → ${v - e + f - c}") {
+      (v - e + f - c) shouldBe 0
+    }
+
+  it should "have a manifold face mesh" in:
+    val report = MeshTopology.checkFace4D(tesseract.faces)
+    withClue(s"boundary edges: ${report.boundaryEdgeCount}, histogram: ${report.edgeUseHistogram}") {
+      report.isManifold shouldBe true
+    }
+
+  it should "have cubic cells (each cell has 8 vertices)" in:
+    tesseract.cells.foreach { cell =>
+      cell should have size 8
+    }
+
   def faceClue(face: Face4D[4]): String =
     s"Face in ${face.plane} plane has ${face.plane.neg} normals:\n${face.normals}"
