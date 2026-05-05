@@ -33,6 +33,8 @@ case class Icositetrachoron(size: Float = 1f) extends Mesh4D:
          (if c2 > 0f then 4 else 0) |
          (if c3 > 0f then 8 else 0))
 
+  def cells: Seq[Cell4D] = Seq.empty  // TODO: derive 24 octahedral cells
+
   lazy val faces: Seq[Face4D[V]] =
     val builder = Seq.newBuilder[Face4D[V]]
     for

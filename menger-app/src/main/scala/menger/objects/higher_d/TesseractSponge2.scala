@@ -10,7 +10,9 @@ class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) w
 
   require(level >= 0, "Level must be non-negative")
 
+  lazy val vertices: Seq[Vector[4]] = faces.flatMap(_.asSeq).distinct
   lazy val faces: Seq[Face4D[V]] = if level.toInt == 0 then Tesseract(size).faces else nestedFaces
+  def cells: Seq[Cell4D] = Seq.empty
 
   private def mergeVertices(faces: Seq[Face4D[V]], epsilon: Float = 1e-4f): Seq[Face4D[V]] =
     val canonicalMap = scala.collection.mutable.HashMap[(Long, Long, Long, Long), Vector[4]]()

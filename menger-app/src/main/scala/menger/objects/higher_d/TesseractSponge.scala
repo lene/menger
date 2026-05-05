@@ -10,7 +10,9 @@ class TesseractSponge(level: Float) extends Fractal4D(level):
 
   require(level >= 0, "Level must be non-negative")
 
+  lazy val vertices: Seq[Vector[4]] = faces.flatMap(_.asSeq).distinct
   lazy val faces: Seq[Face4D[V]] = if level.toInt == 0 then Tesseract().faces else nestedFaces.flatten
+  def cells: Seq[Cell4D] = Seq.empty
 
   private def nestedFaces =
     for (

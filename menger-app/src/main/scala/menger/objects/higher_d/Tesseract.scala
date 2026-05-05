@@ -31,9 +31,11 @@ case class Tesseract(
 
   lazy val faces: Seq[Face4D[V]] = faceIndices.map { _.toFace4D(vertices) }
 
-  lazy val edges: Seq[(Vector[4], Vector[4])] = faces.flatMap { f =>
-    val vs = Seq(f.a, f.b, f.c, f.d)
-    Seq(Set(vs(0), vs(1)), Set(vs(1), vs(2)), Set(vs(2), vs(3)), Set(vs(3), vs(0)))
-  }.distinct.map(set => (set.head, set.last))
+  def cells: Seq[Cell4D] =
+    for
+      dim  <- 0 until 4
+      sign <- Seq(-1, 1)
+      fixedCoord = sign * size / 2
+    yield vertices.filter(v => v(dim) == fixedCoord)
 
 

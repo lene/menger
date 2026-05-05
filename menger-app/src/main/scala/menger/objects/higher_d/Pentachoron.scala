@@ -21,15 +21,16 @@ case class Pentachoron(size: Float = 1f) extends Mesh4D:
       Vector[4]( 0f,  0f,  0f, 4f * r5)
     )
 
+  private val cellIndices: Seq[Seq[Int]] = Seq(
+    Seq(0, 1, 2, 4), Seq(0, 1, 3, 4), Seq(0, 2, 3, 4),
+    Seq(1, 2, 3, 4), Seq(0, 1, 2, 3)
+  )
+
+  def cells: Seq[Cell4D] = cellIndices.map(c => c.map(vertices))
+
   lazy val faces: Seq[Face4D[V]] =
     // 5 tetrahedral cells, each with 4 triangular faces
-    // Cell vertex indices: (0,1,2,4), (0,1,3,4), (0,2,3,4), (1,2,3,4), (0,1,2,3)
-    val cells = Seq(
-      Seq(0, 1, 2, 4), Seq(0, 1, 3, 4), Seq(0, 2, 3, 4),
-      Seq(1, 2, 3, 4), Seq(0, 1, 2, 3)
-    )
-    cells.flatMap { cell =>
-      // Each tetrahedron has 4 triangular faces
+    cellIndices.flatMap { cell =>
       val c = cell
       Seq(
         Face4D[3](IndexedSeq(vertices(c(0)), vertices(c(1)), vertices(c(2)))),

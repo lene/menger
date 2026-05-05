@@ -16,15 +16,18 @@ case class Hexadecachoron(size: Float = 1f) extends Mesh4D:
       Vector[4](0f, 0f, 0f,  s), Vector[4](0f, 0f, 0f, -s)
     )
 
+  private val cellIndices: Seq[Seq[Int]] = Seq(
+    Seq(0,2,4,6), Seq(0,2,4,7), Seq(0,2,5,6), Seq(0,2,5,7),
+    Seq(0,3,4,6), Seq(0,3,4,7), Seq(0,3,5,6), Seq(0,3,5,7),
+    Seq(1,2,4,6), Seq(1,2,4,7), Seq(1,2,5,6), Seq(1,2,5,7),
+    Seq(1,3,4,6), Seq(1,3,4,7), Seq(1,3,5,6), Seq(1,3,5,7)
+  )
+
+  def cells: Seq[Cell4D] = cellIndices.map(c => c.map(vertices))
+
   lazy val faces: Seq[Face4D[V]] =
     // 16 tetrahedral cells: each cell uses 1 vertex from each opposite pair
-    val cells = Seq(
-      Seq(0,2,4,6), Seq(0,2,4,7), Seq(0,2,5,6), Seq(0,2,5,7),
-      Seq(0,3,4,6), Seq(0,3,4,7), Seq(0,3,5,6), Seq(0,3,5,7),
-      Seq(1,2,4,6), Seq(1,2,4,7), Seq(1,2,5,6), Seq(1,2,5,7),
-      Seq(1,3,4,6), Seq(1,3,4,7), Seq(1,3,5,6), Seq(1,3,5,7)
-    )
-    cells.flatMap { cell =>
+    cellIndices.flatMap { cell =>
       val c = cell
       Seq(
         Face4D[3](IndexedSeq(vertices(c(0)), vertices(c(1)), vertices(c(2)))),

@@ -43,6 +43,30 @@ object MeshTopology:
 
     buildReport(faces.size, faceEdges)
 
+  /** Check manifoldness of a Seq[Face4D[3]] at the 4D level (triangle variant).
+    *
+    * Edges are the 3 vertex pairs per triangle face. Canonicalization and
+    * exact-float keying are identical to checkFace4D.
+    */
+  def checkTriangle4D(faces: Seq[Face4D[3]]): TopologyReport =
+    type VKey = (Float, Float, Float, Float)
+    type EKey = (VKey, VKey)
+
+    def vkey(v: menger.common.Vector[4]): VKey = (v(0), v(1), v(2), v(3))
+    def ekey(a: VKey, b: VKey): EKey =
+      if summon[Ordering[VKey]].lteq(a, b) then (a, b) else (b, a)
+
+    val faceEdges: Seq[(EKey, Int)] =
+      faces.zipWithIndex.flatMap { case (f, fi) =>
+        Seq(
+          ekey(vkey(f(0)), vkey(f(1))) -> fi,
+          ekey(vkey(f(1)), vkey(f(2))) -> fi,
+          ekey(vkey(f(2)), vkey(f(0))) -> fi
+        )
+      }
+
+    buildReport(faces.size, faceEdges)
+
   /** Check manifoldness of a TriangleMeshData at the 3D level.
     *
     * Two vertices are considered the same edge endpoint if their XYZ positions
