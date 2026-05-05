@@ -799,6 +799,7 @@ test_4d_polytopes() {
     echo "4D Polytopes:"
     run_test "pentachoron" --objects type=pentachoron:size=0.8 --allow-uniform-render
     run_test "16-cell" --objects type=16-cell:size=0.8 --allow-uniform-render
+    run_test "24-cell" --objects type=24-cell:size=0.8 --allow-uniform-render
 }
 
 test_cone() {

@@ -14,6 +14,7 @@ import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
 import menger.objects.Tetrahedron
 import menger.objects.higher_d.Hexadecachoron
+import menger.objects.higher_d.Icositetrachoron
 import menger.objects.higher_d.Mesh4DGpuFlatten
 import menger.objects.higher_d.Mesh4DProjection
 import menger.objects.higher_d.Pentachoron
@@ -178,6 +179,12 @@ object MeshFactory:
       case "16-cell" =>
         Some(Mesh4DProjection(
           mesh4D = Hexadecachoron(size = spec.size),
+          eyeW = proj.eyeW, screenW = proj.screenW,
+          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+        ))
+      case "24-cell" =>
+        Some(Mesh4DProjection(
+          mesh4D = Icositetrachoron(size = spec.size),
           eyeW = proj.eyeW, screenW = proj.screenW,
           rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
         ))

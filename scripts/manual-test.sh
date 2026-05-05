@@ -392,6 +392,7 @@ run_test "4D Sponge Showcase (glass with edges)" "-o --objects type=tesseract-sp
 echo -e "${YELLOW}--- 4D Polytopes (Sprint 19.2) ---${NC}"
 run_test "Pentachoron (5-cell)" "-o --objects type=pentachoron:size=0.8:material=film --cross -s $OUTPUT_DIR/141-pentachoron.png"
 run_test "16-cell" "-o --objects type=16-cell:size=0.8:material=film --cross -s $OUTPUT_DIR/142-16-cell.png"
+run_test "24-cell" "-o --objects type=24-cell:size=0.8:material=film --cross -s $OUTPUT_DIR/143-24-cell.png"
 
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
@@ -532,6 +533,7 @@ interactive_tests=(
     "Coordinate cross:-o --objects type=sphere --cross"
     "Pentachoron (5-cell):-o --objects type=pentachoron:size=0.8:material=film --cross"
     "16-cell:-o --objects type=16-cell:size=0.8:material=film --cross"
+    "24-cell:-o --objects type=24-cell:size=0.8:material=film --cross"
 )
 
 echo "Available interactive tests:"
