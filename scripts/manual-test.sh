@@ -396,6 +396,10 @@ run_test "24-cell" "-o --objects type=24-cell:size=0.8:material=film --cross -s 
 run_test "Pentachoron gold edges" "-o --objects type=pentachoron:size=0.8:material=film:edge-material=gold:edge-radius=0.02 -s $OUTPUT_DIR/144-pentachoron-edges.png"
 run_test "16-cell chrome edges" "-o --objects type=16-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.02 -s $OUTPUT_DIR/145-16-cell-edges.png"
 run_test "24-cell gold edges" "-o --objects type=24-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.02 -s $OUTPUT_DIR/146-24-cell-edges.png"
+run_test "600-cell" "-o --objects type=600-cell:size=0.8:material=film --cross -s $OUTPUT_DIR/147-600-cell.png"
+run_test "120-cell" "-o --objects type=120-cell:size=0.8:material=film --cross -s $OUTPUT_DIR/148-120-cell.png"
+run_test "600-cell gold edges" "-o --objects type=600-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.01 -s $OUTPUT_DIR/149-600-cell-edges.png"
+run_test "120-cell chrome edges" "-o --objects type=120-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.015 -s $OUTPUT_DIR/150-120-cell-edges.png"
 
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
@@ -540,6 +544,10 @@ interactive_tests=(
     "Pentachoron gold edges:-o --objects type=pentachoron:size=0.8:material=film:edge-material=gold:edge-radius=0.02"
     "16-cell chrome edges:-o --objects type=16-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.02"
     "24-cell gold edges:-o --objects type=24-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.02"
+    "600-cell:-o --objects type=600-cell:size=0.8:material=film --cross"
+    "120-cell:-o --objects type=120-cell:size=0.8:material=film --cross"
+    "600-cell gold edges:-o --objects type=600-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.01"
+    "120-cell chrome edges:-o --objects type=120-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.015"
 )
 
 echo "Available interactive tests:"

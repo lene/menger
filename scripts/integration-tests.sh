@@ -811,6 +811,12 @@ test_4d_polytopes() {
     run_test "pentachoron" --objects type=pentachoron:size=0.8 --allow-uniform-render
     run_test "16-cell" --objects type=16-cell:size=0.8 --allow-uniform-render
     run_test "24-cell" --objects type=24-cell:size=0.8 --allow-uniform-render
+    run_test "600-cell" --objects type=600-cell:size=0.8 --allow-uniform-render
+    run_test "120-cell" --objects type=120-cell:size=0.8 --allow-uniform-render
+    run_test "600-cell with edges" --plane y:-2 \
+        --objects type=600-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.01
+    run_test "120-cell with edges" --plane y:-2 \
+        --objects type=120-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.015
 }
 
 test_cone() {
