@@ -9,7 +9,10 @@ import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.TransformUtil
 import menger.common.Vector
+import menger.objects.higher_d.Hexadecachoron
+import menger.objects.higher_d.Icositetrachoron
 import menger.objects.higher_d.Mesh4D
+import menger.objects.higher_d.Pentachoron
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
 import menger.objects.higher_d.Tesseract
@@ -53,21 +56,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
     specs.foldLeft(0) { (total, spec) =>
       val meshInstances = 1  // The main mesh
       val edgeInstances = if spec.hasEdgeRendering then
-        // Generate 4D mesh to get actual edge count
-        val mesh4D: Mesh4D = spec.objectType.toLowerCase match
-          case "tesseract" =>
-            Tesseract(size = spec.size)
-          case "tesseract-sponge" =>
-            require(spec.level.isDefined, "tesseract-sponge requires level parameter")
-            TesseractSponge(spec.level.get)
-          case "tesseract-sponge-2" =>
-            require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
-            TesseractSponge2(spec.level.get, spec.size)
-          case other =>
-            sys.error(s"Unknown 4D object type: $other")
-
-        val edges = extractEdges(mesh4D)
-        edges.size
+        extractEdges(createMesh4D(spec)).size
       else
         0
       total + meshInstances + edgeInstances
@@ -77,7 +66,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
     else if !specs.forall(s => ObjectType.isProjected4D(s.objectType)) then
-      Left("TesseractEdgeSceneBuilder only supports 4D projected types (tesseract, tesseract-sponge, tesseract-sponge-2)")
+      Left("TesseractEdgeSceneBuilder only supports 4D projected types")
     else if !specs.forall(_.hasEdgeRendering) then
       Left("TesseractEdgeSceneBuilder requires edge rendering parameters on all specs")
     else
@@ -166,18 +155,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
     val edgeRadius = spec.edgeRadius.getOrElse(0.02f)
     val edgeMaterial = spec.edgeMaterial.getOrElse(defaultEdgeMaterial)
 
-    // Create the appropriate 4D mesh based on object type
-    val mesh4D: Mesh4D = spec.objectType.toLowerCase match
-      case "tesseract" =>
-        Tesseract(size = spec.size)
-      case "tesseract-sponge" =>
-        require(spec.level.isDefined, "tesseract-sponge requires level parameter")
-        TesseractSponge(spec.level.get)
-      case "tesseract-sponge-2" =>
-        require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
-        TesseractSponge2(spec.level.get, spec.size)
-      case other =>
-        sys.error(s"Unsupported hypercube type for edge rendering: $other")
+    val mesh4D: Mesh4D = createMesh4D(spec)
 
     // Create rotation and projection (same as TesseractMesh)
     val rotation: Rotation =
@@ -220,6 +198,25 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
 
     logger.debug(s"Added $edgeCount edge cylinders for ${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
 
+  private def createMesh4D(spec: ObjectSpec): Mesh4D =
+    spec.objectType.toLowerCase match
+      case "tesseract" =>
+        Tesseract(size = spec.size)
+      case "tesseract-sponge" | "tesseract-sponge-volume" =>
+        require(spec.level.isDefined, "tesseract-sponge requires level parameter")
+        TesseractSponge(spec.level.get)
+      case "tesseract-sponge-2" | "tesseract-sponge-surface" =>
+        require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
+        TesseractSponge2(spec.level.get, spec.size)
+      case "pentachoron" =>
+        Pentachoron(size = spec.size)
+      case "16-cell" =>
+        Hexadecachoron(size = spec.size)
+      case "24-cell" =>
+        Icositetrachoron(size = spec.size)
+      case other =>
+        sys.error(s"Unsupported 4D type for edge rendering: $other")
+
   /**
    * Extract all unique edges from a 4D mesh.
    *
@@ -231,11 +228,10 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
    */
   private def extractEdges(mesh4D: Mesh4D): Seq[(Vector[4], Vector[4])] =
     mesh4D.faces.flatMap { face =>
-      // Each quad face has 4 edges: (a,b), (b,c), (c,d), (d,a)
-      val vertices = Seq(face(0), face(1), face(2), face(3))
-      vertices.zip(vertices.tail :+ vertices.head)
+      val vpf = face.vertsPerFace
+      val verts = (0 until vpf).map(face(_))
+      verts.zip(verts.tail :+ verts.head)
     }.map { case (v1, v2) =>
-      // Use canonical ordering to deduplicate edges (smaller vector first)
       if compareVectors(v1, v2) < 0 then (v1, v2) else (v2, v1)
     }.distinct
 
@@ -272,23 +268,19 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       1L + edgeCount  // 1 face mesh + N edge cylinders
     }.sum
 
-  /**
-   * Estimate the number of edges for a given hypercube spec.
-   * Uses the face count as a proxy (each quad face has 4 edges, but edges are shared).
-   */
+  /** Estimate edge count for quick instance budget checks (no mesh instantiation). */
   private def estimateEdgeCount(spec: ObjectSpec): Long =
     spec.objectType.toLowerCase match
-      case "tesseract" =>
-        32L  // Known constant
-      case "tesseract-sponge" =>
+      case "tesseract"                                     => 32L
+      case "pentachoron"                                   => 10L
+      case "16-cell"                                       => 24L
+      case "24-cell"                                       => 96L
+      case "tesseract-sponge" | "tesseract-sponge-volume" =>
         val level = spec.level.map(_.toInt).getOrElse(0)
-        // Approximate: each face has 4 edges, edges are shared 2:1
         import menger.objects.higher_d.TesseractSpongeMesh
         TesseractSpongeMesh.estimatedFaces(level) * 2
-      case "tesseract-sponge-2" =>
+      case "tesseract-sponge-2" | "tesseract-sponge-surface" =>
         val level = spec.level.map(_.toInt).getOrElse(0)
-        // Approximate: each face has 4 edges, edges are shared 2:1
         import menger.objects.higher_d.TesseractSponge2Mesh
         TesseractSponge2Mesh.estimatedFaces(level) * 2
-      case _ =>
-        32L  // Default conservative estimate
+      case _ => 32L

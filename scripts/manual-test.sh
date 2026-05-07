@@ -393,6 +393,9 @@ echo -e "${YELLOW}--- 4D Polytopes (Sprint 19.2) ---${NC}"
 run_test "Pentachoron (5-cell)" "-o --objects type=pentachoron:size=0.8:material=film --cross -s $OUTPUT_DIR/141-pentachoron.png"
 run_test "16-cell" "-o --objects type=16-cell:size=0.8:material=film --cross -s $OUTPUT_DIR/142-16-cell.png"
 run_test "24-cell" "-o --objects type=24-cell:size=0.8:material=film --cross -s $OUTPUT_DIR/143-24-cell.png"
+run_test "Pentachoron gold edges" "-o --objects type=pentachoron:size=0.8:material=film:edge-material=gold:edge-radius=0.02 -s $OUTPUT_DIR/144-pentachoron-edges.png"
+run_test "16-cell chrome edges" "-o --objects type=16-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.02 -s $OUTPUT_DIR/145-16-cell-edges.png"
+run_test "24-cell gold edges" "-o --objects type=24-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.02 -s $OUTPUT_DIR/146-24-cell-edges.png"
 
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
@@ -534,6 +537,9 @@ interactive_tests=(
     "Pentachoron (5-cell):-o --objects type=pentachoron:size=0.8:material=film --cross"
     "16-cell:-o --objects type=16-cell:size=0.8:material=film --cross"
     "24-cell:-o --objects type=24-cell:size=0.8:material=film --cross"
+    "Pentachoron gold edges:-o --objects type=pentachoron:size=0.8:material=film:edge-material=gold:edge-radius=0.02"
+    "16-cell chrome edges:-o --objects type=16-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.02"
+    "24-cell gold edges:-o --objects type=24-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.02"
 )
 
 echo "Available interactive tests:"
