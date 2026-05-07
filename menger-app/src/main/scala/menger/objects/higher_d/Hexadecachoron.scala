@@ -26,7 +26,6 @@ case class Hexadecachoron(size: Float = 1f) extends Mesh4D:
   override def cells: Seq[Cell4D] = cellIndices.map(c => c.map(vertices))
 
   lazy val faces: Seq[Face4D[V]] =
-    // 16 tetrahedral cells: each cell uses 1 vertex from each opposite pair
     cellIndices.flatMap { cell =>
       val c = cell
       Seq(
@@ -35,4 +34,4 @@ case class Hexadecachoron(size: Float = 1f) extends Mesh4D:
         Face4D[3](IndexedSeq(vertices(c(0)), vertices(c(2)), vertices(c(3)))),
         Face4D[3](IndexedSeq(vertices(c(1)), vertices(c(2)), vertices(c(3))))
       )
-    }
+    }.distinctBy(f => f.asSeq.map(v => (v(0), v(1), v(2), v(3))).toSet)

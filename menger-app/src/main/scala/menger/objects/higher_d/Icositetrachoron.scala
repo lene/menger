@@ -26,14 +26,30 @@ case class Icositetrachoron(size: Float = 1f) extends Mesh4D:
 
   lazy val vertices: Seq[Vector[4]] = axialVertices ++ halfVertices
 
-  // Bit index for half vertex: bits encode sign of each coord (0=neg, 1=pos)
+  // Bit index for half vertex: c0 is outermost loop (weight 8), c3 innermost (weight 1)
   private def halfIdx(c0: Float, c1: Float, c2: Float, c3: Float): Int =
-    8 + ((if c0 > 0f then 1 else 0) |
-         (if c1 > 0f then 2 else 0) |
-         (if c2 > 0f then 4 else 0) |
-         (if c3 > 0f then 8 else 0))
+    8 + ((if c0 > 0f then 8 else 0) |
+         (if c1 > 0f then 4 else 0) |
+         (if c2 > 0f then 2 else 0) |
+         (if c3 > 0f then 1 else 0))
 
-  override def cells: Seq[Cell4D] = Seq.empty  // TODO: derive 24 octahedral cells
+  override def cells: Seq[Cell4D] =
+    for
+      i  <- 0 until 4
+      j  <- (i + 1) until 4
+      si <- Seq(-1, 1)
+      sj <- Seq(-1, 1)
+    yield
+      val pole0 = axialVertices(i * 2 + (if si > 0 then 1 else 0))
+      val pole1 = axialVertices(j * 2 + (if sj > 0 then 1 else 0))
+      val free  = (0 until 4).filter(k => k != i && k != j).toIndexedSeq
+      val d0 = free(0); val d1 = free(1)
+      val ring =
+        for s0 <- Seq(-h, h); s1 <- Seq(-h, h) yield
+          val a = Array(0f, 0f, 0f, 0f)
+          a(i) = si * h; a(j) = sj * h; a(d0) = s0; a(d1) = s1
+          Vector[4](a*)
+      Seq(pole0, pole1) ++ ring
 
   lazy val faces: Seq[Face4D[V]] =
     val builder = Seq.newBuilder[Face4D[V]]
@@ -44,8 +60,8 @@ case class Icositetrachoron(size: Float = 1f) extends Mesh4D:
       si <- Seq(-1, 1)
       sj <- Seq(-1, 1)
     do
-      val pole0Idx = i * 2 + (if si > 0 then 0 else 1)
-      val pole1Idx = j * 2 + (if sj > 0 then 0 else 1)
+      val pole0Idx = i * 2 + (if si > 0 then 1 else 0)
+      val pole1Idx = j * 2 + (if sj > 0 then 1 else 0)
       val free = (0 until 4).filter(k => k != i && k != j).toIndexedSeq
       val d0 = free(0)
       val d1 = free(1)
@@ -73,4 +89,4 @@ case class Icositetrachoron(size: Float = 1f) extends Mesh4D:
       builder += Face4D[3](IndexedSeq(p1, v2, v1))
       builder += Face4D[3](IndexedSeq(p1, v3, v2))
       builder += Face4D[3](IndexedSeq(p1, v0, v3))
-    builder.result()
+    builder.result().distinctBy(f => f.asSeq.map(v => (v(0), v(1), v(2), v(3))).toSet)

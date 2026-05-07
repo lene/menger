@@ -11,7 +11,7 @@ case class Pentachoron(size: Float = 1f) extends Mesh4D:
   lazy val vertices: Seq[Vector[4]] =
     val s = size * 0.5f
     // Regular simplex coordinates (unit edge length, centered at origin)
-    val r5 = scala.math.sqrt(0.4).toFloat * s     // √(2/5)
+    val r5 = scala.math.sqrt(0.2).toFloat * s     // √(1/5) — restores regular simplex
     val r0 = s                                     // 1
     Seq(
       Vector[4]( r0,  r0,  r0, -r5),
@@ -29,7 +29,6 @@ case class Pentachoron(size: Float = 1f) extends Mesh4D:
   override def cells: Seq[Cell4D] = cellIndices.map(c => c.map(vertices))
 
   lazy val faces: Seq[Face4D[V]] =
-    // 5 tetrahedral cells, each with 4 triangular faces
     cellIndices.flatMap { cell =>
       val c = cell
       Seq(
@@ -38,4 +37,4 @@ case class Pentachoron(size: Float = 1f) extends Mesh4D:
         Face4D[3](IndexedSeq(vertices(c(0)), vertices(c(2)), vertices(c(3)))),
         Face4D[3](IndexedSeq(vertices(c(1)), vertices(c(2)), vertices(c(3))))
       )
-    }
+    }.distinctBy(f => f.asSeq.map(v => (v(0), v(1), v(2), v(3))).toSet)
