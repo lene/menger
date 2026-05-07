@@ -169,6 +169,17 @@ run_test() {
     rm -f "$temp_output"
 }
 
+# Run a test at 2x resolution (400x300) with antialiasing — for glass/refractive renders
+# where 200x150 is too small to visually verify correctness.
+run_test_hd() {
+    local saved_w=$TEST_WIDTH saved_h=$TEST_HEIGHT
+    TEST_WIDTH=400
+    TEST_HEIGHT=300
+    run_test "$1" --antialiasing "${@:2}"
+    TEST_WIDTH=$saved_w
+    TEST_HEIGHT=$saved_h
+}
+
 # Run a test that should FAIL (uses --timeout unless --headless is present)
 run_test_should_fail() {
     local name="$1"
@@ -431,7 +442,7 @@ test_tesseract() {
         --objects type=tesseract:pos=0,0,0:size=0.8:eye-w=5.0:screen-w=2.0
     run_test "tesseract with color" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:color=#4488FF
-    run_test "tesseract with material" --plane y:-2 \
+    run_test_hd "tesseract with material" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:material=glass
     run_test "tesseract transparent" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:ior=1.5
@@ -452,7 +463,7 @@ test_4d_sponges() {
         --objects type=tesseract-sponge-2:level=1:pos=0,0,0:size=0.8
     run_test "tesseract-sponge with rotation" --plane y:-2 \
         --objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30:size=0.8
-    run_test "tesseract-sponge with material" --plane y:-2 \
+    run_test_hd "tesseract-sponge with material" --plane y:-2 \
         --objects type=tesseract-sponge:level=1:material=glass:size=0.8
     run_test "tesseract-sponge-2 with color" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=1:color=#FF4488:size=0.8
@@ -476,7 +487,7 @@ test_4d_sponges() {
         --objects type=tesseract-sponge-2:level=1.75:size=0.8
     run_test "fractional level 0.9 (tesseract-sponge-2)" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=0.9:size=0.8
-    run_test "fractional level with material" --plane y:-2 \
+    run_test_hd "fractional level with material" --plane y:-2 \
         --objects type=tesseract-sponge:level=1.5:material=glass:size=0.8
     run_test "fractional level with rotation" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=1.3:rot-xw=30:rot-yw=20:size=0.8
@@ -568,7 +579,7 @@ test_dsl_scenes() {
     run_test "DSL GlassSphere" --scene examples.dsl.GlassSphere
     # TesseractDemo is a wireframe scene: thin edges leave a near-uniform background
     # that legitimately trips the all-red-render detector. Allow uniform output.
-    run_test "DSL TesseractDemo" --allow-uniform-render --scene examples.dsl.TesseractDemo
+    run_test_hd "DSL TesseractDemo" --allow-uniform-render --scene examples.dsl.TesseractDemo
     run_test "DSL FilmSphere" --scene examples.dsl.FilmSphere
     run_test "DSL SpongeShowcase" --scene examples.dsl.SpongeShowcase
     run_test "DSL MengerShowcase" --scene examples.dsl.MengerShowcase
