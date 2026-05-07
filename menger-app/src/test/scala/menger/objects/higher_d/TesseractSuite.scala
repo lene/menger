@@ -83,10 +83,10 @@ class TesseractSuite extends AnyFlatSpec with Matchers:
       (v - e + f - c) shouldBe 0
     }
 
-  it should "have a manifold face mesh" in:
+  it should "have no boundary edges (closed 4D polytope, 3 quad-faces per edge)" in:
     val report = MeshTopology.checkFace4D(tesseract.faces)
     withClue(s"boundary edges: ${report.boundaryEdgeCount}, histogram: ${report.edgeUseHistogram}") {
-      report.isManifold shouldBe true
+      report.boundaryEdgeCount shouldBe 0
     }
 
   it should "have cubic cells (each cell has 8 vertices)" in:

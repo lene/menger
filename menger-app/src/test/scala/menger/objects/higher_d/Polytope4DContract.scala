@@ -9,7 +9,7 @@ import org.scalatest.matchers.should.Matchers
   * Concrete suites extend AnyFlatSpec with Matchers with Polytope4DContract
   * and call registerPolytopeTests() at end of constructor. */
 trait Polytope4DContract:
-  this: AnyFlatSpec with Matchers =>
+  this: AnyFlatSpec & Matchers =>
 
   val polytope: Mesh4D
   val polytopeLabel: String

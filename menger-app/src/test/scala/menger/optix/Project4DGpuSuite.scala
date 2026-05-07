@@ -150,6 +150,7 @@ class Project4DGpuSuite extends AnyFlatSpec
   it should "render a handcrafted non-tesseract 4D mesh to non-uniform pixels" taggedAs Slow in:
     val mesh4D = new Mesh4D:
       type V = 4
+      override def vertices: Seq[menger.common.Vector[4]] = faces.flatMap(_.asSeq).distinct
       override lazy val faces: Seq[Face4D[4]] = Seq(
         // Quad in the XY plane (z=0, w=0)
         Face4D(

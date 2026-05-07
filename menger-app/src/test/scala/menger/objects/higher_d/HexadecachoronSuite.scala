@@ -1,6 +1,5 @@
 package menger.objects.higher_d
 
-import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -37,9 +36,9 @@ class HexadecachoronSuite extends AnyFlatSpec with Matchers with Polytope4DContr
       edgeSet should not contain canon
     }
 
-  it should "pass manifold check on triangular faces after fix" in:
-    val report = MeshTopology.checkTriangle4D(
-      Hexadecachoron().faces.asInstanceOf[Seq[Face4D[3]]])
+  it should "have no boundary edges (closed 4D polytope)" in:
+    val tris = Hexadecachoron().faces.map(f => Face4D[3](IndexedSeq(f(0), f(1), f(2))))
+    val report = MeshTopology.checkTriangle4D(tris)
     withClue(s"boundary edges: ${report.boundaryEdgeCount}, histogram: ${report.edgeUseHistogram}") {
-      report.isManifold shouldBe true
+      report.boundaryEdgeCount shouldBe 0
     }

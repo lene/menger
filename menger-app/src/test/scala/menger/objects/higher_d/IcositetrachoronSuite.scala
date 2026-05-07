@@ -35,9 +35,9 @@ class IcositetrachoronSuite extends AnyFlatSpec with Matchers with Polytope4DCon
       nonzero.head.abs should be(0.5f +- 1e-4f)
     }
 
-  it should "pass manifold check on triangular faces after fix" in:
-    val report = MeshTopology.checkTriangle4D(
-      Icositetrachoron().faces.asInstanceOf[Seq[Face4D[3]]])
+  it should "have no boundary edges (closed 4D polytope)" in:
+    val tris = Icositetrachoron().faces.map(f => Face4D[3](IndexedSeq(f(0), f(1), f(2))))
+    val report = MeshTopology.checkTriangle4D(tris)
     withClue(s"boundary edges: ${report.boundaryEdgeCount}, histogram: ${report.edgeUseHistogram}") {
-      report.isManifold shouldBe true
+      report.boundaryEdgeCount shouldBe 0
     }

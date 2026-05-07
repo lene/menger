@@ -4,6 +4,7 @@ trait Mesh4D extends RectMesh:
   type V <: Int & Singleton
   type Cell4D = Seq[menger.common.Vector[4]]
 
+  def vertices: Seq[menger.common.Vector[4]]
   lazy val faces: Seq[Face4D[V]]
   def vertsPerFace: Int = faces.headOption.map(_.vertsPerFace).getOrElse(4)
 
