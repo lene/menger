@@ -9,6 +9,8 @@ import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.TransformUtil
 import menger.common.Vector
+import menger.objects.higher_d.Hecatonicosachoron
+import menger.objects.higher_d.Hexacosichoron
 import menger.objects.higher_d.Hexadecachoron
 import menger.objects.higher_d.Icositetrachoron
 import menger.objects.higher_d.Mesh4D
@@ -214,6 +216,10 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
         Hexadecachoron(size = spec.size)
       case "24-cell" =>
         Icositetrachoron(size = spec.size)
+      case "600-cell" =>
+        Hexacosichoron(size = spec.size)
+      case "120-cell" =>
+        Hecatonicosachoron(size = spec.size)
       case other =>
         sys.error(s"Unsupported 4D type for edge rendering: $other")
 
@@ -275,6 +281,8 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       case "pentachoron"                                   => 10L
       case "16-cell"                                       => 24L
       case "24-cell"                                       => 96L
+      case "600-cell"                                      => 720L
+      case "120-cell"                                      => 1200L
       case "tesseract-sponge" | "tesseract-sponge-volume" =>
         val level = spec.level.map(_.toInt).getOrElse(0)
         import menger.objects.higher_d.TesseractSpongeMesh
