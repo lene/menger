@@ -2,7 +2,7 @@
 
 **Sprint:** 21 - Higher-Dimensional Fractals
 **Status:** Not Started
-**Estimate:** ~14 hours
+**Estimate:** ~16 hours
 **Branch:** `feature/sprint-21`
 **Dependencies:** Sprint 18 (18.3 — GPU 4D math), Sprint 19 (4D polychora as standalone)
 
@@ -18,6 +18,7 @@ using the GPU 4D math infrastructure from Sprint 18.
 - [ ] 4D Menger sponge analog renders correctly via GPU 4D math
 - [ ] Higher-dimensional Sierpinski tetrahedron analogs work
 - [ ] Interactive parameter space exploration (1D, using existing `scene(t)` system)
+- [ ] Fractional levels work for `sponge-recursive-ias` (visual transition between integer levels)
 - [ ] All tests pass
 
 ---
@@ -62,7 +63,44 @@ parameters) is in the backlog.
 
 ---
 
-### Task 21.4: Documentation
+### Task 21.4: Fractional Levels for IAS Sponge
+
+**Estimate:** 2h  
+**Depends on:** Sprint 19.10 spike findings (`docs/dev/sprint-19-spike-fractional-ias.md`)
+
+Implement fractional sponge levels for `sponge-recursive-ias` using Approach B from the
+Sprint 19.10 spike: two IAS trees at adjacent integer levels, with the coarser level
+fading out.
+
+**Approach (from spike findings):**
+
+For fractional level `L = N + f` (0 < f < 1):
+- Tree 1: level `N` at opacity 1.0 (fine structure, fully opaque)
+- Tree 2: level `N−1` at transparency `f` → opacity `1−f` (coarser skin, fading out)
+
+At `f=0` Tree 2 is fully opaque → looks like level N−1.  
+At `f=1` Tree 2 is fully transparent → looks like level N.  
+The transition reveals the finer structure progressively.
+
+**Key facts from spike:**
+- No shader or compositor changes needed — overlapping transparent IAS sponges work
+  correctly today (`hit_triangle.cu:197`, `accumulateShadowAttenuation` in `helpers.cu`)
+- Per-instance alpha already in `ObjectInstance.color[3]`
+- Instance budget: two level-N sponges use ~40 of 64 slots — within budget for N ≤ 13
+
+**Implementation steps:**
+1. Add `fractionalLevel: Float` overload (or extend existing) to
+   `addRecursiveIASSpongeInstance` in `OptiXRenderer.scala:586–732`.  
+   When `fractionalLevel` is fractional: call `addRecursiveIASSpongeInstance` twice —
+   once for `floor(L)` at opacity 1.0, once for `floor(L)−1` at opacity `1 − frac(L)`.  
+   When `fractionalLevel` is integer: single call (existing behavior unchanged).
+2. Wire through `TriangleMeshSceneBuilder.scala:104–113` and DSL (`SceneObject` / spec).
+3. Add smoke test to `RecursiveIASSpongeSuite`: render two overlapping IAS sponges at
+   fractional level, assert no exception and pixel output is non-trivial.
+
+---
+
+### Task 21.5: Documentation
 
 **Estimate:** 2h
 
@@ -80,8 +118,9 @@ parameters) is in the backlog.
 | 21.1 | 4D Menger sponge analog | 5h | Sprint 18.3 |
 | 21.2 | Higher-dim Sierpinski analogs | 4h | Sprint 18.3 |
 | 21.3 | Interactive parameter exploration (1D) | 3h | 21.1, 21.2 |
-| 21.4 | Documentation | 2h | All |
-| **Total** | | **~14h** | |
+| 21.4 | Fractional levels for IAS sponge | 2h | Sprint 19.10 |
+| 21.5 | Documentation | 2h | All |
+| **Total** | | **~16h** | |
 
 ---
 

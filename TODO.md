@@ -5,6 +5,7 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 ## Unscheduled
 
 - investigate pending tests
+- contract similar to Polytope4DContract for Polyhedra
 - publish OptiX JNI as a separate project - should cover the full OptiX API, not just the ray 
   tracing pipeline.
 - Library layer for other Java/Scala clients to use OptiX JNI without Menger's scene graph or 

@@ -25,7 +25,7 @@ for extensibility.
 - [x] Per-object 3D rotation (X/Y/Z) works via scene graph and CLI
 - [x] Render time per frame and per ray reported in stats output
 - [x] Spike findings documented for max trace depth
-- [ ] Spike findings documented for fractional IAS sponges
+- [x] Spike findings documented for fractional IAS sponges
 - [ ] All tests pass
 
 ---
