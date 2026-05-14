@@ -1,6 +1,6 @@
 # Menger — Reference
 
-**Version**: 0.5.8
+**Version**: 0.6.0
 **Last Updated**: May 2026
 
 ← [Tutorials](tutorials.md) | [User Guide Index](../USER_GUIDE.md)
