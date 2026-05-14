@@ -192,7 +192,7 @@ object Main:
       fpsLogIntervalMs = opts.fpsLogInterval(),
       timeout = opts.timeout(),
       saveName = opts.saveName.toOption,
-      enableStats = opts.stats(),
+      enableStats = opts.stats() || opts.headless(),
       maxInstances = opts.maxInstances(),
       textureDir = opts.textureDir(),
       allowUniformRender = opts.allowUniformRender()
