@@ -16,15 +16,16 @@ for extensibility.
 
 ## Success Criteria
 
-- [ ] Tetrahedron, octahedron, dodecahedron, icosahedron available as 3D primitives
-- [ ] Pentachoron (5-cell), 16-cell, 24-cell, 120-cell, and 600-cell available as 4D primitives (standalone, no subdivision)
+- [x] Tetrahedron, octahedron, dodecahedron, icosahedron available as 3D primitives
+- [x] Pentachoron (5-cell), 16-cell, 24-cell, 120-cell, and 600-cell available as 4D primitives (standalone, no subdivision)
 - [x] Cone available as analytical primitive (IS program from Sprint 18); torus cancelled — tesselated version remains
-- [ ] Planes are first-class scene geometry with materials (not miss shader)
-- [ ] Coordinate cross / axis visualization works alongside other geometry
-- [ ] Geometry registry: adding a new type requires registration, not engine modification
-- [ ] Per-object 3D rotation (X/Y/Z) works via scene graph and CLI
-- [ ] Render time per frame and per ray reported in stats output
-- [ ] Spike findings documented for max trace depth and fractional IAS sponges
+- [x] Planes are first-class scene geometry with materials (not miss shader)
+- [x] Coordinate cross / axis visualization works alongside other geometry
+- [x] Geometry registry: adding a new type requires registration, not engine modification
+- [x] Per-object 3D rotation (X/Y/Z) works via scene graph and CLI
+- [x] Render time per frame and per ray reported in stats output
+- [x] Spike findings documented for max trace depth
+- [ ] Spike findings documented for fractional IAS sponges
 - [ ] All tests pass
 
 ---

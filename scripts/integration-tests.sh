@@ -180,6 +180,17 @@ run_test_hd() {
     TEST_HEIGHT=$saved_h
 }
 
+# Run a test at 4x resolution (800x600) — for complex geometry (e.g. 120-cell, 600-cell)
+# where 200x150 is too small to verify fine structure.
+run_test_hires() {
+    local saved_w=$TEST_WIDTH saved_h=$TEST_HEIGHT
+    TEST_WIDTH=800
+    TEST_HEIGHT=600
+    run_test "$@"
+    TEST_WIDTH=$saved_w
+    TEST_HEIGHT=$saved_h
+}
+
 # Run a test that should FAIL (uses --timeout unless --headless is present)
 run_test_should_fail() {
     local name="$1"
@@ -811,11 +822,11 @@ test_4d_polytopes() {
     run_test "pentachoron" --objects type=pentachoron:size=0.8 --allow-uniform-render
     run_test "16-cell" --objects type=16-cell:size=0.8 --allow-uniform-render
     run_test "24-cell" --objects type=24-cell:size=0.8 --allow-uniform-render
-    run_test "600-cell" --objects type=600-cell:size=0.8 --allow-uniform-render
-    run_test "120-cell" --objects type=120-cell:size=0.8 --allow-uniform-render
-    run_test "600-cell with edges" --plane y:-2 \
+    run_test_hires "600-cell" --objects type=600-cell:size=0.8 --allow-uniform-render
+    run_test_hires "120-cell" --objects type=120-cell:size=0.8 --allow-uniform-render
+    run_test_hires "600-cell with edges" --plane y:-2 \
         --objects type=600-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.01
-    run_test "120-cell with edges" --plane y:-2 \
+    run_test_hires "120-cell with edges" --plane y:-2 \
         --objects type=120-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.015
 }
 

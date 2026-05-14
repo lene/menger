@@ -308,6 +308,8 @@ the end-to-end CLI surface and catch regressions in argument parsing, GPU dispat
        fixed within the same development cycle.
 
    - Update arc42 documentation if affecting architecture, quality, or risks
+   - **Mark completed tasks done in sprint doc** (`docs/sprints/SPRINT_N.md`): check off the
+     success criterion checkbox (`[ ]` → `[x]`) for the task just completed
 
 2. **Test changes**
    ```bash
