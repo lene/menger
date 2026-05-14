@@ -7,89 +7,126 @@ GREEN_TEXT=$'\e[38;5;46m'
 RESET_TEXT=$'\e[0m'
 
 # ---------------------------------------------------------------------------
+# Detect which file categories are being pushed
+# ---------------------------------------------------------------------------
+CHANGED_FILES=""
+while read local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    BASE=$(git merge-base origin/main "$local_sha" 2>/dev/null)
+    if [ -n "$BASE" ]; then
+      CHANGED_FILES="$CHANGED_FILES"$'\n'"$(git diff --name-only "$BASE" "$local_sha")"
+    fi
+  else
+    CHANGED_FILES="$CHANGED_FILES"$'\n'"$(git diff --name-only "$remote_sha" "$local_sha")"
+  fi
+done
+
+HAS_SCALA=$(echo "$CHANGED_FILES" | grep -cE '\.(scala|sbt)$|^project/')
+HAS_NATIVE=$(echo "$CHANGED_FILES" | grep -cE '^optix-jni/src/main/native/.*\.(cpp|cu|cuh|h)$|CMakeLists\.txt')
+HAS_CI=$(echo "$CHANGED_FILES" | grep -c '\.gitlab-ci\.yml$')
+HAS_INTEGRATION=$(echo "$CHANGED_FILES" | grep -c '^scripts/integration-tests\.sh$')
+
+skip_section() {
+  echo "  [skipped — no relevant files changed]"
+}
+
+# ---------------------------------------------------------------------------
 # Phase 1: Fast pre-flight checks (env, CI lint, version consistency)
 # These are instant and must pass before we spend time on compilation.
 # ---------------------------------------------------------------------------
-echo "=== Validating Environment ==="
 
-if [ -z "$CUDA_HOME" ]; then
-  echo "${RED_TEXT}Error: CUDA_HOME is not set${RESET_TEXT}"
-  echo "Please set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)"
-  exit 1
+# Env validation only needed when sbt compile will run (CUDA always linked)
+if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
+  echo "=== Validating Environment ==="
+
+  if [ -z "$CUDA_HOME" ]; then
+    echo "${RED_TEXT}Error: CUDA_HOME is not set${RESET_TEXT}"
+    echo "Please set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)"
+    exit 1
+  fi
+
+  if [ ! -d "$CUDA_HOME" ]; then
+    echo "${RED_TEXT}Error: CUDA_HOME points to non-existent directory: $CUDA_HOME${RESET_TEXT}"
+    exit 1
+  fi
+
+  if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
+    echo "${RED_TEXT}Error: nvcc not found at $CUDA_HOME/bin/nvcc${RESET_TEXT}"
+    echo "Please verify CUDA_HOME is set correctly"
+    exit 1
+  fi
+
+  if [ -z "$OPTIX_ROOT" ]; then
+    echo "${RED_TEXT}Error: OPTIX_ROOT is not set${RESET_TEXT}"
+    echo "Please set OPTIX_ROOT to your OptiX SDK directory (e.g., /usr/local/optix)"
+    exit 1
+  fi
+
+  if [ ! -d "$OPTIX_ROOT" ]; then
+    echo "${RED_TEXT}Error: OPTIX_ROOT points to non-existent directory: $OPTIX_ROOT${RESET_TEXT}"
+    exit 1
+  fi
+
+  if [ ! -f "$OPTIX_ROOT/include/optix.h" ]; then
+    echo "${RED_TEXT}Error: optix.h not found at $OPTIX_ROOT/include/optix.h${RESET_TEXT}"
+    echo "Please verify OPTIX_ROOT is set correctly"
+    exit 1
+  fi
+
+  echo "CUDA_HOME: ${GREEN_TEXT}$CUDA_HOME${RESET_TEXT}"
+  echo "OPTIX_ROOT: ${GREEN_TEXT}$OPTIX_ROOT${RESET_TEXT}"
+  echo ""
+else
+  echo "=== Validating Environment ===" ; skip_section
 fi
-
-if [ ! -d "$CUDA_HOME" ]; then
-  echo "${RED_TEXT}Error: CUDA_HOME points to non-existent directory: $CUDA_HOME${RESET_TEXT}"
-  exit 1
-fi
-
-if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
-  echo "${RED_TEXT}Error: nvcc not found at $CUDA_HOME/bin/nvcc${RESET_TEXT}"
-  echo "Please verify CUDA_HOME is set correctly"
-  exit 1
-fi
-
-if [ -z "$OPTIX_ROOT" ]; then
-  echo "${RED_TEXT}Error: OPTIX_ROOT is not set${RESET_TEXT}"
-  echo "Please set OPTIX_ROOT to your OptiX SDK directory (e.g., /usr/local/optix)"
-  exit 1
-fi
-
-if [ ! -d "$OPTIX_ROOT" ]; then
-  echo "${RED_TEXT}Error: OPTIX_ROOT points to non-existent directory: $OPTIX_ROOT${RESET_TEXT}"
-  exit 1
-fi
-
-if [ ! -f "$OPTIX_ROOT/include/optix.h" ]; then
-  echo "${RED_TEXT}Error: optix.h not found at $OPTIX_ROOT/include/optix.h${RESET_TEXT}"
-  echo "Please verify OPTIX_ROOT is set correctly"
-  exit 1
-fi
-
-echo "CUDA_HOME: ${GREEN_TEXT}$CUDA_HOME${RESET_TEXT}"
-echo "OPTIX_ROOT: ${GREEN_TEXT}$OPTIX_ROOT${RESET_TEXT}"
-echo ""
 
 if [ -r .set-gitlab-token.sh ]; then
   . ./.set-gitlab-token.sh
 fi
 
 STATUS=0
-if [ -n "${GITLAB_ACCESS_TOKEN}" ]; then
-  CONTENT="$(cat .gitlab-ci.yml)"
-  jq --null-input --arg yaml "$CONTENT" '.content=$yaml' | \
-  curl -s "https://gitlab.com/api/v4/projects/${GITLAB_PROJECT_ID}/ci/lint" \
-    --header 'Content-Type: application/json' --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" \
-    --data @- > $CI_LINT_OUTPUT
-  VALID=$(jq -r .valid < "$CI_LINT_OUTPUT")
-  if [ "$VALID" = "true" ]; then
-        echo "GitLab CI valid: ${GREEN_TEXT}$VALID${RESET_TEXT}"
+
+# CI lint only needed when .gitlab-ci.yml changed
+if [ "$HAS_CI" -gt 0 ]; then
+  if [ -n "${GITLAB_ACCESS_TOKEN}" ]; then
+    CONTENT="$(cat .gitlab-ci.yml)"
+    jq --null-input --arg yaml "$CONTENT" '.content=$yaml' | \
+    curl -s "https://gitlab.com/api/v4/projects/${GITLAB_PROJECT_ID}/ci/lint" \
+      --header 'Content-Type: application/json' --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" \
+      --data @- > $CI_LINT_OUTPUT
+    VALID=$(jq -r .valid < "$CI_LINT_OUTPUT")
+    if [ "$VALID" = "true" ]; then
+          echo "GitLab CI valid: ${GREEN_TEXT}$VALID${RESET_TEXT}"
+    else
+    #  STATUS=1
+      echo "GitLab CI valid: ${RED_TEXT}$VALID${RESET_TEXT}"
+      echo "message: $(jq .message < "$CI_LINT_OUTPUT")"
+      echo "errors: $(jq .errors < "$CI_LINT_OUTPUT")"
+      echo "warnings: $(jq .warnings < "$CI_LINT_OUTPUT")"
+    fi
   else
-  #  STATUS=1
-    echo "GitLab CI valid: ${RED_TEXT}$VALID${RESET_TEXT}"
-    echo "message: $(jq .message < "$CI_LINT_OUTPUT")"
-    echo "errors: $(jq .errors < "$CI_LINT_OUTPUT")"
-    echo "warnings: $(jq .warnings < "$CI_LINT_OUTPUT")"
+    echo "please export GITLAB_ACCESS_TOKEN, possibly by editing .set-gitlab-token.sh"
+    exit 1
+  fi
+  if [ $STATUS -gt 0 ]
+  then echo "Status after gitlab lint: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after gitlab lint: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+
+  SCALA_VERSION=$(egrep 'scalaVersion := ".*"' menger-app/build.sbt | head -n 1 | cut -d \" -f 2)
+  GITLAB_SCALA_VERSION=$(egrep 'SCALA_VERSION. .*' .gitlab-ci.yml | head -n 1 | cut -d: -f 2 | xargs)
+  if [ "$SCALA_VERSION" != "$GITLAB_SCALA_VERSION" ]
+  then
+    echo "Scala in build.sbt: ${RED_TEXT}${SCALA_VERSION}${RESET_TEXT}, in .gitlab-ci.yml: ${RED_TEXT}${GITLAB_SCALA_VERSION}${RESET_TEXT}"
+    STATUS=1
+  else
+    echo "Scala version: ${GREEN_TEXT}${SCALA_VERSION}${RESET_TEXT}"
   fi
 else
-  echo "please export GITLAB_ACCESS_TOKEN, possibly by editing .set-gitlab-token.sh"
-  exit 1
-fi
-if [ $STATUS -gt 0 ]
-then echo "Status after gitlab lint: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after gitlab lint: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  echo "=== GitLab CI lint ===" ; skip_section
 fi
 
-SCALA_VERSION=$(egrep 'scalaVersion := ".*"' menger-app/build.sbt | head -n 1 | cut -d \" -f 2)
-GITLAB_SCALA_VERSION=$(egrep 'SCALA_VERSION. .*' .gitlab-ci.yml | head -n 1 | cut -d: -f 2 | xargs)
-if [ "$SCALA_VERSION" != "$GITLAB_SCALA_VERSION" ]
-then
-  echo "Scala in build.sbt: ${RED_TEXT}${SCALA_VERSION}${RESET_TEXT}, in .gitlab-ci.yml: ${RED_TEXT}${GITLAB_SCALA_VERSION}${RESET_TEXT}"
-  STATUS=1
-else
-  echo "Scala version: ${GREEN_TEXT}${SCALA_VERSION}${RESET_TEXT}"
-fi
-
+# Version consistency and tag check — always run (fast grep, critical release safety)
 VERSION_SBT=$(egrep 'version := ".*"' menger-app/build.sbt | cut -d \" -f 2)
 VERSIONS_CI=$(egrep 'DEPLOYABLE_VERSION.*' .gitlab-ci.yml | head -n 1 | cut -d ':' -f 2 | xargs)
 VERSION_SOURCE=$(egrep 'version\("menger v.* ' menger-app/src/main/scala/menger/MengerCLIOptions.scala | cut -d 'v' -f 3 | cut -d ' ' -f 1)
@@ -134,8 +171,12 @@ fi
 # Phase 2: Compile (once — subsequent phases reuse the compiled artifacts)
 # Note: sbt compile also runs nativeCompile for optix-jni (C++/CUDA).
 # ---------------------------------------------------------------------------
-echo "=== Compiling ==="
-sbt compile || exit 1
+if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
+  echo "=== Compiling ==="
+  sbt compile || exit 1
+else
+  echo "=== Compiling ===" ; skip_section
+fi
 
 # ---------------------------------------------------------------------------
 # Phase 3: Run sbt test and scalafix --check in parallel.
@@ -145,39 +186,51 @@ sbt compile || exit 1
 #
 # Both write to separate log files; results are merged below.
 # ---------------------------------------------------------------------------
-echo "=== Running tests and scalafix in parallel ==="
+if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
+  echo "=== Running tests and scalafix in parallel ==="
 
-__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt test --warn > /tmp/sbt-test-prepush.log 2>&1 &
-SBT_TEST_PID=$!
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt test --warn > /tmp/sbt-test-prepush.log 2>&1 &
+  SBT_TEST_PID=$!
 
-sbt "scalafix --check" --warn > /tmp/scalafix-prepush.log 2>&1 &
-SCALAFIX_PID=$!
+  if [ "$HAS_SCALA" -gt 0 ]; then
+    sbt "scalafix --check" --warn > /tmp/scalafix-prepush.log 2>&1 &
+    SCALAFIX_PID=$!
+  fi
 
-wait $SBT_TEST_PID
-SBT_TEST_STATUS=$?
-cat /tmp/sbt-test-prepush.log
+  wait $SBT_TEST_PID
+  SBT_TEST_STATUS=$?
+  cat /tmp/sbt-test-prepush.log
 
-wait $SCALAFIX_PID
-SCALAFIX_STATUS=$?
-cat /tmp/scalafix-prepush.log
+  if [ "$HAS_SCALA" -gt 0 ]; then
+    wait $SCALAFIX_PID
+    SCALAFIX_STATUS=$?
+    cat /tmp/scalafix-prepush.log
+  else
+    SCALAFIX_STATUS=0
+  fi
 
-if [ $SBT_TEST_STATUS -ne 0 ]; then
-  echo "sbt test: ${RED_TEXT}FAILED${RESET_TEXT}"
-  STATUS=1
+  if [ $SBT_TEST_STATUS -ne 0 ]; then
+    echo "sbt test: ${RED_TEXT}FAILED${RESET_TEXT}"
+    STATUS=1
+  else
+    echo "sbt test: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+  fi
+
+  if [ "$HAS_SCALA" -gt 0 ]; then
+    if [ $SCALAFIX_STATUS -ne 0 ]; then
+      echo "scalafix: ${RED_TEXT}FAILED${RESET_TEXT}"
+      STATUS=1
+    else
+      echo "scalafix: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+    fi
+  fi
+
+  if [ $STATUS -gt 0 ]
+  then echo "Status after test+scalafix: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after test+scalafix: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
 else
-  echo "sbt test: ${GREEN_TEXT}PASSED${RESET_TEXT}"
-fi
-
-if [ $SCALAFIX_STATUS -ne 0 ]; then
-  echo "scalafix: ${RED_TEXT}FAILED${RESET_TEXT}"
-  STATUS=1
-else
-  echo "scalafix: ${GREEN_TEXT}PASSED${RESET_TEXT}"
-fi
-
-if [ $STATUS -gt 0 ]
-then echo "Status after test+scalafix: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after test+scalafix: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  echo "=== Tests and scalafix ===" ; skip_section
 fi
 
 # ---------------------------------------------------------------------------
@@ -192,6 +245,11 @@ fi
 
 # --- Coverage (background) ---
 run_coverage() {
+  if [ "${HAS_SCALA:-0}" -eq 0 ]; then
+    echo "=== Coverage ===" > /tmp/coverage-prepush.log
+    echo "Skipped — no Scala changes" >> /tmp/coverage-prepush.log
+    return 0
+  fi
   if [ "${SKIP_COVERAGE:-0}" = "1" ]; then
     echo "=== Skipping Coverage Check (SKIP_COVERAGE=1) ===" > /tmp/coverage-prepush.log
     return 0
@@ -256,6 +314,11 @@ run_coverage() {
 
 # --- Valgrind (background, CPU-only) ---
 run_valgrind() {
+  if [ "${HAS_NATIVE:-0}" -eq 0 ]; then
+    echo "=== Valgrind ===" > /tmp/valgrind-phase-prepush.log
+    echo "Skipped — no native changes" >> /tmp/valgrind-phase-prepush.log
+    return 0
+  fi
   echo "=== Running Valgrind for host memory leak detection ===" > /tmp/valgrind-phase-prepush.log
   > /tmp/valgrind-prepush.log  # Clear log so grep matches only this run
   if ! command -v valgrind >/dev/null 2>&1; then
@@ -316,6 +379,8 @@ export -f run_valgrind
 export SKIP_COVERAGE
 export OPTIX_ROOT
 export CUDA_HOME
+export HAS_SCALA
+export HAS_NATIVE
 
 echo "=== Running coverage (GPU) and Valgrind (CPU) in parallel ==="
 
@@ -338,7 +403,7 @@ if [ $COVERAGE_STATUS -ne 0 ]; then
   STATUS=1
 else
   # Re-print the key line with colour
-  grep "Statement coverage\|Coverage:\|Skipping" /tmp/coverage-prepush.log | while IFS= read -r line; do
+  grep "Statement coverage\|Coverage:\|Skipping\|Skipped" /tmp/coverage-prepush.log | while IFS= read -r line; do
     echo "  ${GREEN_TEXT}${line}${RESET_TEXT}"
   done
 fi
@@ -356,54 +421,62 @@ else echo "Status after coverage+Valgrind: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 # --- compute-sanitizer (runs after coverage to avoid GPU contention) ---
-echo "=== Running compute-sanitizer for GPU memory leak detection ==="
-COMPUTE_SANITIZER="${CUDA_HOME}/compute-sanitizer/compute-sanitizer"
-if [ ! -x "$COMPUTE_SANITIZER" ]; then
-  echo "${RED_TEXT}Error: compute-sanitizer not found at ${COMPUTE_SANITIZER}${RESET_TEXT}"
-  echo "Please check your CUDA installation"
-  STATUS=1
-else
-  env RUNNING_UNDER_COMPUTE_SANITIZER=true "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" "testOnly -- -l Slow" --warn > /tmp/compute-sanitizer-prepush.log 2>&1 || \
-    env RUNNING_UNDER_COMPUTE_SANITIZER=true "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" "testOnly -- -l Slow" --warn > /tmp/compute-sanitizer-prepush.log 2>&1
-  SANITIZER_STATUS=$?
-  ERROR_COUNT=$(grep "ERROR SUMMARY:" /tmp/compute-sanitizer-prepush.log | tail -1 | awk '{print $4}')
-  if [ "$SANITIZER_STATUS" -eq 0 ] && [ "$ERROR_COUNT" = "0" ]; then
-    echo "compute-sanitizer: ${GREEN_TEXT}No GPU memory leaks detected${RESET_TEXT}"
-  else
-    if [ "$ERROR_COUNT" != "0" ] && [ -n "$ERROR_COUNT" ]; then
-      echo "compute-sanitizer: ${RED_TEXT}GPU memory leaks detected! (${ERROR_COUNT} errors)${RESET_TEXT}"
-    elif [ "$SANITIZER_STATUS" -ne 0 ]; then
-      echo "compute-sanitizer: ${RED_TEXT}OptiX tests failed (but no GPU memory leaks: ${ERROR_COUNT:-0} errors)${RESET_TEXT}"
-    else
-      echo "compute-sanitizer: ${RED_TEXT}Unknown failure${RESET_TEXT}"
-    fi
-    echo "See /tmp/compute-sanitizer-prepush.log for details"
-    tail -50 /tmp/compute-sanitizer-prepush.log
+if [ "$HAS_NATIVE" -gt 0 ]; then
+  echo "=== Running compute-sanitizer for GPU memory leak detection ==="
+  COMPUTE_SANITIZER="${CUDA_HOME}/compute-sanitizer/compute-sanitizer"
+  if [ ! -x "$COMPUTE_SANITIZER" ]; then
+    echo "${RED_TEXT}Error: compute-sanitizer not found at ${COMPUTE_SANITIZER}${RESET_TEXT}"
+    echo "Please check your CUDA installation"
     STATUS=1
+  else
+    env RUNNING_UNDER_COMPUTE_SANITIZER=true "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" "testOnly -- -l Slow" --warn > /tmp/compute-sanitizer-prepush.log 2>&1 || \
+      env RUNNING_UNDER_COMPUTE_SANITIZER=true "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" "testOnly -- -l Slow" --warn > /tmp/compute-sanitizer-prepush.log 2>&1
+    SANITIZER_STATUS=$?
+    ERROR_COUNT=$(grep "ERROR SUMMARY:" /tmp/compute-sanitizer-prepush.log | tail -1 | awk '{print $4}')
+    if [ "$SANITIZER_STATUS" -eq 0 ] && [ "$ERROR_COUNT" = "0" ]; then
+      echo "compute-sanitizer: ${GREEN_TEXT}No GPU memory leaks detected${RESET_TEXT}"
+    else
+      if [ "$ERROR_COUNT" != "0" ] && [ -n "$ERROR_COUNT" ]; then
+        echo "compute-sanitizer: ${RED_TEXT}GPU memory leaks detected! (${ERROR_COUNT} errors)${RESET_TEXT}"
+      elif [ "$SANITIZER_STATUS" -ne 0 ]; then
+        echo "compute-sanitizer: ${RED_TEXT}OptiX tests failed (but no GPU memory leaks: ${ERROR_COUNT:-0} errors)${RESET_TEXT}"
+      else
+        echo "compute-sanitizer: ${RED_TEXT}Unknown failure${RESET_TEXT}"
+      fi
+      echo "See /tmp/compute-sanitizer-prepush.log for details"
+      tail -50 /tmp/compute-sanitizer-prepush.log
+      STATUS=1
+    fi
   fi
-fi
-if [ $STATUS -gt 0 ]
-then echo "Status after compute-sanitizer: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after compute-sanitizer: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  if [ $STATUS -gt 0 ]
+  then echo "Status after compute-sanitizer: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after compute-sanitizer: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+else
+  echo "=== compute-sanitizer ===" ; skip_section
 fi
 
 # ---------------------------------------------------------------------------
 # Phase 5: Package and integration tests
 # ---------------------------------------------------------------------------
-echo "=== Building release package ==="
-sbt "mengerApp / Universal / packageBin" --warn || STATUS=1
-VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
-unzip -oq ./menger-app/target/universal/menger-app-${VERSION}.zip || STATUS=1
-if [ $STATUS -gt 0 ]
-then echo "Status after build: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after build: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-fi
+if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ] || [ "$HAS_INTEGRATION" -gt 0 ]; then
+  echo "=== Building release package ==="
+  sbt "mengerApp / Universal / packageBin" --warn || STATUS=1
+  VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
+  unzip -oq ./menger-app/target/universal/menger-app-${VERSION}.zip || STATUS=1
+  if [ $STATUS -gt 0 ]
+  then echo "Status after build: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after build: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
 
-echo "=== Running integration tests ==="
-MAX_PARALLEL_JOBS=1 ./scripts/integration-tests.sh "./menger-app-${VERSION}/bin/menger-app" || STATUS=1
-if [ $STATUS -gt 0 ]
-then echo "Status after integration tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after integration tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  echo "=== Running integration tests ==="
+  MAX_PARALLEL_JOBS=1 ./scripts/integration-tests.sh "./menger-app-${VERSION}/bin/menger-app" || STATUS=1
+  if [ $STATUS -gt 0 ]
+  then echo "Status after integration tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after integration tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+else
+  echo "=== Package and integration tests ===" ; skip_section
 fi
 
 if [ $STATUS -gt 0 ]; then

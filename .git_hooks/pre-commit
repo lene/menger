@@ -4,76 +4,105 @@ RED_TEXT='\e[38;5;196m'
 GREEN_TEXT='\e[38;5;46m'
 RESET_TEXT='\e[0m'
 
-# Validate required environment variables for OptiX/CUDA development
-echo "=== Validating Environment ==="
+# ---------------------------------------------------------------------------
+# Detect which file categories are staged
+# ---------------------------------------------------------------------------
+STAGED=$(git diff --cached --name-only)
+HAS_SCALA=$(echo "$STAGED" | grep -cE '\.(scala|sbt)$|^project/')
+HAS_NATIVE=$(echo "$STAGED" | grep -cE '^optix-jni/src/main/native/.*\.(cpp|cu|cuh|h)$|CMakeLists\.txt')
 
-if [ -z "$CUDA_HOME" ]; then
-  echo "${RED_TEXT}Error: CUDA_HOME is not set${RESET_TEXT}"
-  echo "Please set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)"
-  exit 1
+if [ "$HAS_SCALA" -eq 0 ] && [ "$HAS_NATIVE" -eq 0 ]; then
+  echo "No code changes staged — skipping compilation and tests."
+  exit 0
 fi
-
-if [ ! -d "$CUDA_HOME" ]; then
-  echo "${RED_TEXT}Error: CUDA_HOME points to non-existent directory: $CUDA_HOME${RESET_TEXT}"
-  exit 1
-fi
-
-if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
-  echo "${RED_TEXT}Error: nvcc not found at $CUDA_HOME/bin/nvcc${RESET_TEXT}"
-  echo "Please verify CUDA_HOME is set correctly"
-  exit 1
-fi
-
-if [ -z "$OPTIX_ROOT" ]; then
-  echo "${RED_TEXT}Error: OPTIX_ROOT is not set${RESET_TEXT}"
-  echo "Please set OPTIX_ROOT to your OptiX SDK directory (e.g., /usr/local/optix)"
-  exit 1
-fi
-
-if [ ! -d "$OPTIX_ROOT" ]; then
-  echo "${RED_TEXT}Error: OPTIX_ROOT points to non-existent directory: $OPTIX_ROOT${RESET_TEXT}"
-  exit 1
-fi
-
-if [ ! -f "$OPTIX_ROOT/include/optix.h" ]; then
-  echo "${RED_TEXT}Error: optix.h not found at $OPTIX_ROOT/include/optix.h${RESET_TEXT}"
-  echo "Please verify OPTIX_ROOT is set correctly"
-  exit 1
-fi
-
-echo "CUDA_HOME: ${GREEN_TEXT}$CUDA_HOME${RESET_TEXT}"
-echo "OPTIX_ROOT: ${GREEN_TEXT}$OPTIX_ROOT${RESET_TEXT}"
-echo ""
 
 STATUS=0
 
-sbt compile || STATUS=1
+# ---------------------------------------------------------------------------
+# Validate CUDA/OptiX environment (only needed for C++/CUDA builds)
+# ---------------------------------------------------------------------------
+if [ "$HAS_NATIVE" -gt 0 ]; then
+  echo "=== Validating Environment ==="
 
-echo "Compiling OptiX JNI..."
-sbt "project optixJni" compile || STATUS=1
+  if [ -z "$CUDA_HOME" ]; then
+    echo "${RED_TEXT}Error: CUDA_HOME is not set${RESET_TEXT}"
+    echo "Please set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)"
+    exit 1
+  fi
+  if [ ! -d "$CUDA_HOME" ]; then
+    echo "${RED_TEXT}Error: CUDA_HOME points to non-existent directory: $CUDA_HOME${RESET_TEXT}"
+    exit 1
+  fi
+  if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
+    echo "${RED_TEXT}Error: nvcc not found at $CUDA_HOME/bin/nvcc${RESET_TEXT}"
+    echo "Please verify CUDA_HOME is set correctly"
+    exit 1
+  fi
+  if [ -z "$OPTIX_ROOT" ]; then
+    echo "${RED_TEXT}Error: OPTIX_ROOT is not set${RESET_TEXT}"
+    echo "Please set OPTIX_ROOT to your OptiX SDK directory (e.g., /usr/local/optix)"
+    exit 1
+  fi
+  if [ ! -d "$OPTIX_ROOT" ]; then
+    echo "${RED_TEXT}Error: OPTIX_ROOT points to non-existent directory: $OPTIX_ROOT${RESET_TEXT}"
+    exit 1
+  fi
+  if [ ! -f "$OPTIX_ROOT/include/optix.h" ]; then
+    echo "${RED_TEXT}Error: optix.h not found at $OPTIX_ROOT/include/optix.h${RESET_TEXT}"
+    echo "Please verify OPTIX_ROOT is set correctly"
+    exit 1
+  fi
+  echo "CUDA_HOME: ${GREEN_TEXT}$CUDA_HOME${RESET_TEXT}"
+  echo "OPTIX_ROOT: ${GREEN_TEXT}$OPTIX_ROOT${RESET_TEXT}"
+  echo ""
+fi
+
+# ---------------------------------------------------------------------------
+# Compile (sbt compile covers all subprojects incl. native build)
+# ---------------------------------------------------------------------------
+if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
+  sbt compile || STATUS=1
+fi
+
+if [ "$HAS_NATIVE" -gt 0 ]; then
+  echo "Compiling OptiX JNI..."
+  sbt "project optixJni" compile || STATUS=1
   if [ $STATUS -gt 0 ]
   then echo "Status after OptiX JNI: ${RED_TEXT}${STATUS}${RESET_TEXT}"
   else echo "Status after OptiX JNI: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
   fi
+fi
 
-echo "Compiling Menger Common..."
-sbt "project mengerCommon" compile || STATUS=1
+if [ "$HAS_SCALA" -gt 0 ]; then
+  echo "Compiling Menger Common..."
+  sbt "project mengerCommon" compile || STATUS=1
   if [ $STATUS -gt 0 ]
   then echo "Status after Menger Common: ${RED_TEXT}${STATUS}${RESET_TEXT}"
   else echo "Status after Menger Common: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
   fi
+fi
 
-echo "Running full tests..."
-sbt test --warn || STATUS=1
+# ---------------------------------------------------------------------------
+# Tests (Scala or C++/CUDA changed)
+# ---------------------------------------------------------------------------
+if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
+  echo "Running full tests..."
+  sbt test --warn || STATUS=1
   if [ $STATUS -gt 0 ]
-  then echo "Status after Menger Common: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-  else echo "Status after Menger Common: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  then echo "Status after tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
   fi
+fi
 
-sbt "scalafix --check" --warn || STATUS=1
-if [ $STATUS -gt 0 ]
-then echo "Status after scalafix: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after scalafix: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+# ---------------------------------------------------------------------------
+# Scalafix (Scala only)
+# ---------------------------------------------------------------------------
+if [ "$HAS_SCALA" -gt 0 ]; then
+  sbt "scalafix --check" --warn || STATUS=1
+  if [ $STATUS -gt 0 ]
+  then echo "Status after scalafix: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after scalafix: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
 fi
 
 if [ $STATUS -gt 0 ]; then

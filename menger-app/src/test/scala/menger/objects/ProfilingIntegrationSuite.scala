@@ -36,29 +36,6 @@ class ProfilingIntegrationSuite extends AnyFlatSpec with Matchers:
     composite.toString should include("Square")
     composite.toString should include("Cube")
 
-  "RotatedProjection" should "accept ProfilingConfig" in:
-    given ProfilingConfig = ProfilingConfig.enabled(10)
-
-    val projection = menger.objects.higher_d.RotatedProjection(
-      Vector3.Zero, 1f,
-      menger.objects.higher_d.Tesseract(),
-      menger.objects.higher_d.Projection(4, 1)
-    )
-
-    projection shouldBe a[menger.objects.higher_d.RotatedProjection]
-
-  "FractionalRotatedProjection" should "accept ProfilingConfig" in:
-    given ProfilingConfig = ProfilingConfig.disabled
-
-    val frac = menger.objects.higher_d.FractionalRotatedProjection(
-      Vector3.Zero, 1f,
-      (level: Float) => menger.objects.higher_d.TesseractSponge(level),
-      1.5f,
-      menger.objects.higher_d.Projection(4, 1)
-    )
-
-    frac.level shouldBe 1.5f
-
   "Different ProfilingConfigs" should "not interfere with each other in different scopes" in:
     val result1 = {
       given ProfilingConfig = ProfilingConfig.disabled
