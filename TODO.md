@@ -4,6 +4,8 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 
 ## Unscheduled
 
+- sbt-updates plugin (com.timushev.sbt:sbt-updates) incompatible with sbt 1.12.6 — NPE on load. Find alternative or wait for upstream fix before enabling dependency update checks.
+
 - investigate pending tests
 - contract similar to Polytope4DContract for Polyhedra
 - publish OptiX JNI as a separate project - should cover the full OptiX API, not just the ray 
