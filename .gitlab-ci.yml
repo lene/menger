@@ -770,9 +770,9 @@ CreateRelease:
     - apk add --quiet curl jq
   script:
     - |
-      MR_TITLE=$(curl --silent --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" \
+      MR_TITLE=$(curl --silent --header "JOB-TOKEN: $CI_JOB_TOKEN" \
         "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHA}/merge_requests" \
-        | jq -r '.[0].title // ""')
+        | jq -r 'if type == "array" then (.[0].title // "") else "" end')
       echo "MR title: ${MR_TITLE}"
       if echo "${MR_TITLE}" | grep -q '#norelease'; then
         echo "Skipping release (#norelease in MR title)"
