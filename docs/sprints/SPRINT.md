@@ -1,14 +1,14 @@
 # Current Sprint
 
-**Sprint:** 19 - Advanced Geometry
-**Status:** Planned
-**Branch:** `feature/sprint-19`
+**Sprint:** 20 - Materials, Textures & Backgrounds
+**Status:** In Progress
+**Branch:** `feature/sprint-20`
 
 ---
 
 ## Goal
 
-See [SPRINT19.md](SPRINT19.md) for detailed task breakdown and implementation plan.
+See [SPRINT20.md](SPRINT20.md) for detailed task breakdown and implementation plan.
 
 ---
 
