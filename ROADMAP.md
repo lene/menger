@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-05-02
+**Last Updated:** 2026-05-14
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -22,7 +22,7 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.5.6 | Developer Infrastructure | Complete | pre-push optimisation, website, CI improvements, AWS spot workflow (Sprint 16) |
 | v0.5.7 | Animation & Architecture Foundations | Complete | LibGDX removal, scene graph, engine traits, animation tooling, DSL (Sprint 17) |
 | v0.5.8 | GPU Infrastructure | Complete | Multi-GAS IAS, IS programs, GPU 4D math, recursive IAS sponge, maxRayDepth CLI (Sprint 18) |
-| v0.8 | Advanced Geometry | Planned | 3D/4D polytopes, analytical primitives, geometry registry (Sprint 19) |
+| v0.6.0 | Advanced Geometry | Complete | Platonic solids, 4-polychora, cone, coordinate cross, geometry registry, 3D rotation, render stats (Sprint 19) |
 | v0.9 | Textures & Materials | Planned | Image textures, procedural textures, PBR maps, environment maps (Sprint 20) |
 | v1.0 | Higher-Dimensional Fractals | Planned | 4D Menger/Sierpinski analogs, parameter exploration (Sprint 21) |
 
@@ -49,29 +49,12 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 15 | Visual Enhancements & Primitives | Complete | [docs/archive/sprints/SPRINT15.md](docs/archive/sprints/SPRINT15.md) |
 | 16 | Developer Infrastructure & Website | Complete | [docs/archive/sprints/SPRINT16.md](docs/archive/sprints/SPRINT16.md) |
 | 17 | Animation Tooling, DSL & Architecture Foundations | Complete | [docs/archive/sprints/SPRINT17.md](docs/archive/sprints/SPRINT17.md) |
+| 19 | Advanced Geometry | Complete | [docs/archive/sprints/SPRINT19.md](docs/archive/sprints/SPRINT19.md) |
 | 18 | GPU Infrastructure | Complete | [docs/archive/sprints/SPRINT18.md](docs/archive/sprints/SPRINT18.md) |
 
 ---
 
 ## Planned Sprints
-
-### Sprint 19: Advanced Geometry (~26.5h)
-
-**Goal:** 3D/4D polytopes, analytical primitives, planes as geometry, geometry registry, per-object rotation, render stats, spikes
-
-- **19.1** Additional polytopes in 3D (tetrahedron, octahedron, dodecahedron, icosahedron) (4h)
-- **19.2** Additional polytopes in 4D (pentachoron, 16-cell, 24-cell, 120-cell, 600-cell) (6h)
-- **19.3** Analytical primitives: cone, torus (2h)
-- **19.4** Planes as first-class geometry (2h)
-- **19.5** Coordinate cross / axis visualization (1.5h)
-- **19.6** Geometry registry (2h)
-- **19.7** Per-object 3D rotation via scene graph (3h)
-- **19.8** Render time stats per frame and per ray (1h)
-- **19.9** Spike: max trace depth above 8 (1h)
-- **19.10** Spike: fractional levels with IAS sponges (2h)
-- **19.11** Documentation (2h)
-
-See [docs/sprints/SPRINT19.md](docs/sprints/SPRINT19.md)
 
 ### Sprint 20: Materials, Textures & Backgrounds (~21h)
 
@@ -90,14 +73,15 @@ See [docs/sprints/SPRINT19.md](docs/sprints/SPRINT19.md)
 
 See [docs/sprints/SPRINT20.md](docs/sprints/SPRINT20.md)
 
-### Sprint 21: Higher-Dimensional Fractals (~14h)
+### Sprint 21: Higher-Dimensional Fractals (~16h)
 
-**Goal:** Menger and Sierpinski analogs in 4D+
+**Goal:** Menger and Sierpinski analogs in 4D+, fractional IAS sponge levels
 
 - **21.1** 4D Menger sponge analog (5h)
 - **21.2** Higher-dimensional Sierpinski tetrahedron analogs (4h)
 - **21.3** Interactive parameter exploration (1D via scene(t)) (3h)
-- **21.4** Documentation (2h)
+- **21.4** Fractional levels for IAS sponge — Approach B: two IAS trees (2h)
+- **21.5** Documentation (2h)
 
 See [docs/sprints/SPRINT21.md](docs/sprints/SPRINT21.md)
 
@@ -178,9 +162,9 @@ Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 | Developer Infrastructure & Website (16) | 1 sprint | ~16 hours |
 | Animation, DSL & Architecture (17) | 1 sprint | ~32 hours |
 | GPU Infrastructure (18) | 1 sprint | ~27 hours |
-| Advanced Geometry (19) | 1 sprint | ~16.5 hours |
+| Advanced Geometry (19) | 1 sprint | ~30 hours |
 | Materials, Textures & Backgrounds (20) | 1 sprint | ~21 hours |
-| Higher-Dimensional Fractals (21) | 1 sprint | ~14 hours |
+| Higher-Dimensional Fractals (21) | 1 sprint | ~16 hours |
 | **Total Remaining** | 5 sprints | **~110.5 hours** |
 
 ---

@@ -1,5 +1,5 @@
 name := "menger-app"
-version := "0.5.8"
+version := "0.6.0"
 scalaVersion := "3.8.2"
 
 organization := "io.github.lilacashes"

@@ -6,7 +6,6 @@ Active sprint planning documents for ongoing and future development work.
 
 | Sprint | Focus | Status | File |
 |--------|-------|--------|------|
-| 19 | Advanced Geometry | Planned | [SPRINT19.md](SPRINT19.md) |
 | 20 | Materials, Textures & Backgrounds | Planned | [SPRINT20.md](SPRINT20.md) |
 | 21 | Higher-Dimensional Fractals | Planned | [SPRINT21.md](SPRINT21.md) |
 
@@ -16,6 +15,7 @@ See [docs/archive/sprints/](../archive/sprints/) for completed sprint documentat
 
 | Sprint | Focus | Archived File |
 |--------|-------|---------------|
+| 19 | Advanced Geometry | [SPRINT19.md](../archive/sprints/SPRINT19.md) |
 | 18 | GPU Infrastructure | [SPRINT18.md](../archive/sprints/SPRINT18.md) |
 | 17 | Animation Tooling & DSL | [SPRINT17.md](../archive/sprints/SPRINT17.md) |
 | 16 | Developer Infrastructure & Website | [SPRINT16.md](../archive/sprints/SPRINT16.md) |

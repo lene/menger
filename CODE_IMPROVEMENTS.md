@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-05-02
+**Last Updated:** 2026-05-14
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
