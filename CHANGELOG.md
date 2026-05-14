@@ -1,5 +1,37 @@
 # Changelog
 
+## [Unreleased] — Sprint 19
+
+### Added
+- **Platonic solids** (Sprint 19.1) — tetrahedron, octahedron, dodecahedron, icosahedron
+  available as 3D primitives via `--objects type=tetrahedron|octahedron|dodecahedron|icosahedron`
+- **Regular 4-polychora** (Sprint 19.2) — pentachoron (5-cell), hexadecachoron (16-cell),
+  icositetrachoron (24-cell), hecatonicosachoron (120-cell), hexacosichoron (600-cell)
+  via `--objects type=pentachoron|16-cell|24-cell|120-cell|600-cell`; share the same 4D
+  projection parameters (`eye-w`, `screen-w`, `rot-x-w`, `rot-y-w`, `rot-z-w`) as tesseract
+- **Cone** (Sprint 19.3) — analytical cone primitive (IS program, no triangle mesh) via
+  `--objects type=cone`
+- **Planes as first-class geometry** (Sprint 19.4) — planes rendered as scene objects with
+  full material support (`--plane`, `--plane-material`)
+- **Coordinate cross** (Sprint 19.5) — XYZ axis visualization as analytical cylinders;
+  `--cross`, `--cross-length`, `--cross-thickness`, `--cross-material`; toggle with 'C' key
+- **Geometry registry** (Sprint 19.6) — `ObjectType` central registry; adding a new geometry
+  type requires registration only, not engine modification. See AD-21.
+- **Per-object 3D rotation** (Sprint 19.7) — `rot-x`, `rot-y`, `rot-z` params in `--objects`
+  spec (degrees); also exposed as `rotation: Vec3` on all DSL `SceneObject` types
+- **Render time statistics** (Sprint 19.8) — `--stats` now reports ms/frame and ms/Mray
+  in addition to ray counts
+
+### Research Spikes
+- **Max trace depth** (Sprint 19.9) — depth 8 is the practical ceiling for glass stacks at
+  levels ≤ 5; no visual benefit beyond it. No follow-up scheduled.
+  Findings: `docs/dev/sprint-19-spike-max-depth.md`
+- **Fractional IAS sponge levels** (Sprint 19.10) — Approach B (two IAS trees: level N opaque
+  + level N−1 at transparency f) confirmed viable; no shader or compositor changes needed.
+  Scheduled for Sprint 21.4. Findings: `docs/dev/sprint-19-spike-fractional-ias.md`
+
+---
+
 ## [0.5.8] - 2026-05-02
 
 ### Added

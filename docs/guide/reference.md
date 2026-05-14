@@ -1,7 +1,7 @@
 # Menger — Reference
 
-**Version**: 0.5.5
-**Last Updated**: March 2026
+**Version**: 0.5.8
+**Last Updated**: May 2026
 
 ← [Tutorials](tutorials.md) | [User Guide Index](../USER_GUIDE.md)
 
@@ -90,7 +90,17 @@
 --aa-max-depth <int>         AA recursion depth (1-4, default: 2)
 --aa-threshold <float>       AA threshold (0.0-1.0, default: 0.1)
 --stats                      Display ray tracing statistics
+                             Output: ms/frame, ms/Mray, total ray count
 ```
+
+#### OptiX Coordinate Cross Options
+```
+--cross                      Show coordinate cross (XYZ axis visualization)
+--cross-length <float>       Half-length from origin (default: 2.0)
+--cross-thickness <float>    Cylinder radius (default: 0.03)
+--cross-material <preset>    Material preset (chrome, metal, gold, glass, ...)
+```
+Interactive toggle: press **C** in OptiX mode.
 
 #### OptiX Caustics Options
 ```
@@ -105,11 +115,11 @@
 ```
 --objects "<spec>"           Add object (repeatable)
                              Format: param=value:param2=value2:...
-                             Parameters:
-                             - type: sphere|cube|sponge-volume|sponge-surface|sponge-recursive-ias
+
+                             Common parameters (all types):
+                             - type: see type list below
                              - pos: x,y,z
                              - size: float
-                             - level: float (for sponges)
                              - color: #RRGGBB[AA]
                              - ior: float
                              - material: preset name
@@ -117,6 +127,43 @@
                              - roughness: 0.0-1.0
                              - metallic: 0.0-1.0
                              - specular: 0.0-1.0
+                             - rot-x: float  (3D rotation around X axis, degrees)
+                             - rot-y: float  (3D rotation around Y axis, degrees)
+                             - rot-z: float  (3D rotation around Z axis, degrees)
+
+                             3D geometry types:
+                             - sphere         Analytical sphere (IS program)
+                             - cone           Analytical cone (IS program)
+                             - cube           Triangle mesh cube
+                             - tetrahedron    Regular tetrahedron (Platonic solid)
+                             - octahedron     Regular octahedron (Platonic solid)
+                             - dodecahedron   Regular dodecahedron (Platonic solid)
+                             - icosahedron    Regular icosahedron (Platonic solid)
+                             - plane          Analytical plane (IS program)
+
+                             Menger sponge types (add: level=float):
+                             - sponge-volume        Volume subdivision O(20^n)
+                             - sponge-surface       Surface subdivision O(12^n)
+                             - cube-sponge          Cube-based sponge pattern
+                             - sponge-recursive-ias IAS sponge O(n·20) VRAM
+
+                             4D projected types (add: eye-w, screen-w, rot-x-w,
+                             rot-y-w, rot-z-w for 4D projection control):
+                             - tesseract            4D hypercube (8 cubic cells)
+                             - pentachoron          5-cell  {3,3,3}  — 5V 10E 10F 5C
+                             - 16-cell              16-cell {3,3,4}  — 8V 24E 32F 16C
+                             - 24-cell              24-cell {3,4,3}  — 24V 96E 96F 24C
+                             - 120-cell             120-cell{5,3,3}  — 600V 1200E 720F 120C
+                             - 600-cell             600-cell{3,3,5}  — 120V 720E 1200F 600C
+                             - tesseract-sponge-volume   4D sponge (48 sub-tesseracts/level)
+                             - tesseract-sponge-surface  4D sponge (16 faces/face)
+
+                             4D projection parameters (for 4D types only):
+                             - eye-w: float     Eye position in W (default: 3.0)
+                             - screen-w: float  Projection screen distance in W (default: 1.5)
+                             - rot-x-w: float   4D rotation XW plane (degrees)
+                             - rot-y-w: float   4D rotation YW plane (degrees)
+                             - rot-z-w: float   4D rotation ZW plane (degrees)
 ```
 
 #### Animation Options
@@ -163,6 +210,7 @@
 |-----|--------|
 | ESC | Reset 4D view to initial state |
 | Ctrl + Q | Exit application |
+| C | Toggle coordinate cross visibility |
 | Shift + Left/Right arrows | Rotate 4D object in XW plane |
 | Shift + Up/Down arrows | Rotate 4D object in YW plane |
 | Shift + Page Up/Down | Rotate 4D object in ZW plane |

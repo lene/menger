@@ -1,7 +1,7 @@
 # Sprint 19: Advanced Geometry
 
 **Sprint:** 19 - Advanced Geometry
-**Status:** Not Started
+**Status:** Complete
 **Estimate:** ~30h
 **Branch:** `feature/sprint-19`
 **Dependencies:** Sprint 18 (multi-GAS IAS, IS programs, GPU 4D math)
@@ -26,7 +26,7 @@ for extensibility.
 - [x] Render time per frame and per ray reported in stats output
 - [x] Spike findings documented for max trace depth
 - [x] Spike findings documented for fractional IAS sponges
-- [ ] All tests pass
+- [x] All tests pass
 
 ---
 
@@ -236,13 +236,13 @@ Output: findings note in `docs/dev/` and a recommendation for Sprint 21.
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing
-- [ ] Code quality checks pass: `sbt "scalafix --check"`
-- [ ] CHANGELOG.md updated
-- [ ] `docs/guide/user-guide.md` geometry section updated
-- [ ] Example scenes created for each new primitive
-- [ ] Geometry registry documented for contributors
+- [x] All success criteria met
+- [x] All tests passing
+- [x] Code quality checks pass: `sbt "scalafix --check"`
+- [x] CHANGELOG.md updated
+- [x] `docs/guide/user-guide.md` geometry section updated
+- [ ] Example scenes created for each new primitive (deferred: new types CLI-only, no DSL case classes yet)
+- [x] Geometry registry documented for contributors
 
 ---
 

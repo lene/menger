@@ -1,7 +1,7 @@
 # Menger — Scala DSL Reference
 
-**Version**: 0.5.5
-**Last Updated**: March 2026
+**Version**: 0.5.8
+**Last Updated**: May 2026
 
 ← [Advanced Features](advanced.md) | [User Guide Index](../USER_GUIDE.md)
 
@@ -137,6 +137,33 @@ Material(
 
 ### Scene Objects
 
+All scene objects share a common `rotation: Vec3` field for 3D rotation in degrees
+(Sprint 19.7). Default is `Vec3.Zero` (no rotation):
+
+```scala
+// Rotate a sphere 45° around X and 30° around Y
+Sphere(
+  pos = (0f, 0f, 0f),
+  material = Material.Chrome,
+  size = 1.0f,
+  rotation = Vec3(45f, 30f, 0f)
+)
+
+// Rotate a cube
+Cube(
+  material = Material.Gold,
+  rotation = Vec3(0f, 60f, 0f)
+)
+```
+
+The `rotation` field is available on: `Sphere`, `Cube`, `Sponge`, `Tesseract`,
+`TesseractSponge`, `ParametricSurface`.
+
+> **CLI-only types:** Platonic solids (tetrahedron, octahedron, dodecahedron, icosahedron),
+> cone, and 4D polytopes (pentachoron, 16-cell, 24-cell, 120-cell, 600-cell) do not yet have
+> Scala DSL constructors. Use the CLI `--objects type=<name>:...` syntax for those types.
+> See [reference.md](reference.md) for the full parameter list.
+
 **Sphere:**
 ```scala
 // Material only (at origin, default size)
@@ -148,11 +175,12 @@ Sphere(
   material = Material.Chrome
 )
 
-// All parameters
+// All parameters including rotation (Sprint 19.7)
 Sphere(
   pos = (1f, 0f, 0f),
   material = Material.Gold,
-  size = 1.5f
+  size = 1.5f,
+  rotation = Vec3(0f, 45f, 0f)
 )
 
 // Color instead of material

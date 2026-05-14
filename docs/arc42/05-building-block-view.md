@@ -50,7 +50,9 @@ menger-app/src/main/scala/
     │   ├── Scene.scala               # Scene definition (objects, lights, camera)
     │   ├── SceneConverter.scala      # Converts DSL scenes to OptiX data
     │   ├── SceneLoader.scala         # Loads scenes by name from registry
-    │   ├── SceneObject.scala         # SceneObject trait + ParametricSurface case class
+    │   ├── SceneObject.scala         # SceneObject trait (incl. rotation: Vec3, Sprint 19.7)
+    │   │                             #   + case classes: Sphere, Cube, Sponge, Tesseract,
+    │   │                             #     TesseractSponge, ParametricSurface
     │   ├── SceneRegistry.scala       # Registry of named scenes
     │   └── Vec3.scala                # DSL 3D vector helpers
     ├── gdx/                          # LibGDX wrapper layer (all var/null isolated here)
@@ -79,21 +81,39 @@ menger-app/src/main/scala/
 menger.objects/
 ├── Geometry (trait)              # Base trait for renderable objects
 ├── Builder (trait)               # Triangle mesh construction protocol
+├── GeometryRegistry              # Central type registry (Sprint 19.6): new geometry
+│                                 #   type requires registration here only, not engine
+│                                 #   changes. See ObjectType in menger-common.
 ├── Composite                     # Multi-object composite geometry
 ├── Face, Direction               # Face representation for subdivision
 ├── Square, Cube                  # Basic 2D/3D primitives
-├── Sphere                        # Sphere primitive
+├── Sphere                        # Analytical sphere (IS program)
+├── Cone                          # Analytical cone (IS program, Sprint 19.3)
+├── Tetrahedron                   # Regular tetrahedron — Platonic solid (Sprint 19.1)
+├── Octahedron                    # Regular octahedron — Platonic solid (Sprint 19.1)
+├── Dodecahedron                  # Regular dodecahedron — Platonic solid (Sprint 19.1)
+├── Icosahedron                   # Regular icosahedron — Platonic solid (Sprint 19.1)
 ├── SpongeBySurface               # 3D Menger (12 faces/face)
 ├── SpongeByVolume                # 3D Menger (20 cubes/cube)
 ├── FractionalLevelSponge         # Fractional level support
 ├── ParametricTessellator         # f(u,v) → triangle mesh tessellation (Sprint 15)
 └── higher_d/
-    ├── Tesseract                 # 4D hypercube
+    ├── Tesseract                 # 4D hypercube {4,3,3}
+    ├── Pentachoron               # 5-cell {3,3,3} (Sprint 19.2)
+    ├── Hexadecachoron            # 16-cell {3,3,4} (Sprint 19.2)
+    ├── Icositetrachoron          # 24-cell {3,4,3} (Sprint 19.2)
+    ├── Hecatonicosachoron        # 120-cell {5,3,3} (Sprint 19.2)
+    ├── Hexacosichoron            # 600-cell {3,3,5} (Sprint 19.2)
     ├── TesseractSponge           # 4D sponge (48 tesseracts/tesseract)
     ├── TesseractSponge2          # 4D sponge (16 faces/face)
-    ├── Mesh4D                    # 4D mesh data structure
+    ├── Mesh4D                    # 4D mesh data structure and Mesh4D trait
     └── RotatedProjection         # 4D→3D projection wrapper
 ```
+
+**CoordinateCross** (Sprint 19.5): Not a `SceneObject`. Rendered as three analytical
+cylinders along the X, Y, Z axes from the origin. Controlled via `--cross*` CLI flags
+and the 'C' key in interactive mode. Wired through `MengerCLIOptions` and
+`InteractiveEngine`.
 
 ### 5.2.3 optix-jni (Ray Tracing Layer)
 

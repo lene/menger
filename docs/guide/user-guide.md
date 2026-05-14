@@ -133,6 +133,7 @@ When running in OptiX mode, use these controls:
 **Keyboard Shortcuts:**
 - **ESC**: Reset 4D view to initial state (rotation and projection)
 - **Ctrl + Q**: Exit application
+- **C**: Toggle coordinate cross visibility
 
 **4D Rotation (Tesseract/4D objects):**
 
@@ -265,15 +266,48 @@ clear-colour smoke test). For the broader debugging method, use the
 #### Basic Primitives
 
 **Sphere** (`--objects 'type=sphere'`)
-- Perfect sphere primitive
+- Analytical sphere (IS program — no triangle mesh, arbitrary precision)
 - Supports all material properties
-- Fast rendering
 - Example: `sbt "run --optix --objects 'type=sphere:size=1.5'"`
+
+**Cone** (`--objects 'type=cone'`) — *Sprint 19.3*
+- Analytical cone (IS program — no triangle mesh)
+- Apex at origin, opens along +Y axis by default
+- Supports all material properties and 3D rotation
+- Example: `sbt "run --optix --objects 'type=cone:size=1.0:material=chrome'"`
 
 **Cube** (`--objects 'type=cube'`)
 - Triangle mesh cube
 - Supports textures and all materials
 - Example: `sbt "run --optix --objects 'type=cube:size=0.5'"`
+
+#### Platonic Solids — *Sprint 19.1*
+
+All four remaining Platonic solids are available as triangle mesh primitives.
+Each is unit-sphere normalized (vertices on sphere of radius `size`).
+
+**Tetrahedron** (`--objects 'type=tetrahedron'`)
+- 4 triangular faces, 4 vertices, 6 edges
+- Example: `sbt "run --optix --objects 'type=tetrahedron:size=1.2:material=gold'"`
+
+**Octahedron** (`--objects 'type=octahedron'`)
+- 8 triangular faces, 6 vertices, 12 edges
+- Example: `sbt "run --optix --objects 'type=octahedron:size=1.0:material=chrome'"`
+
+**Dodecahedron** (`--objects 'type=dodecahedron'`)
+- 12 pentagonal faces, 20 vertices, 30 edges
+- Example: `sbt "run --optix --objects 'type=dodecahedron:size=1.0:material=glass'"`
+
+**Icosahedron** (`--objects 'type=icosahedron'`)
+- 20 triangular faces, 12 vertices, 30 edges
+- Example: `sbt "run --optix --objects 'type=icosahedron:size=1.0:material=copper'"`
+
+**Per-object 3D rotation** (all types, Sprint 19.7): use `rot-x`, `rot-y`, `rot-z`
+in degrees within the `--objects` spec:
+```bash
+sbt "run --optix --objects 'type=tetrahedron:rot-x=45:rot-y=30'"
+sbt "run --optix --objects 'type=dodecahedron:rot-y=60:material=gold'"
+```
 
 #### Menger Sponges
 
@@ -324,6 +358,34 @@ clear-colour smoke test). For the broader debugging method, use the
 - Alternative generation (16 faces per face)
 - More efficient: O(16^n) vs O(48^n)
 - Example: `sbt "run --sponge-type tesseract-sponge-surface --level 2"`
+
+#### Regular 4-Polychora — *Sprint 19.2*
+
+All six convex regular 4-dimensional polytopes are available, projected to 3D using the
+same 4D perspective projection as the tesseract. Use `--objects type=<name>` in OptiX mode.
+
+| Type string | Name | Schläfli | V | E | F | Cells |
+|-------------|------|----------|---|---|---|-------|
+| `pentachoron` | Pentachoron (5-cell) | {3,3,3} | 5 | 10 | 10 | 5 tetrahedra |
+| `16-cell` | Hexadecachoron | {3,3,4} | 8 | 24 | 32 | 16 tetrahedra |
+| `24-cell` | Icositetrachoron | {3,4,3} | 24 | 96 | 96 | 24 octahedra |
+| `120-cell` | Hecatonicosachoron | {5,3,3} | 600 | 1200 | 720 | 120 dodecahedra |
+| `600-cell` | Hexacosichoron | {3,3,5} | 120 | 720 | 1200 | 600 tetrahedra |
+| `tesseract` | Tesseract | {4,3,3} | 16 | 32 | 24 | 8 cubes |
+
+All accept the same 4D projection and rotation parameters:
+```bash
+# Pentachoron with custom 4D rotation
+sbt "run --optix --objects 'type=pentachoron:size=1.0:eye-w=3.0:rot-x-w=30'"
+
+# 600-cell (most complex: 1200 triangular faces)
+sbt "run --optix --objects 'type=600-cell:size=1.0:screen-w=1.5:rot-y-w=20'"
+
+# 24-cell with glass material
+sbt "run --optix --objects 'type=24-cell:size=1.0:material=glass:rot-x-w=15:rot-z-w=10'"
+```
+
+Use `--gpu-project-4d` for faster projection on large polytopes (120-cell, 600-cell).
 
 #### 4D Projection Controls
 
@@ -398,6 +460,40 @@ sbt "run --level 2.95"
 - Creating smooth level transitions in animations
 - Visualizing the generation process
 - Artistic effects with partial transparency
+
+### Coordinate Cross — *Sprint 19.5*
+
+Display XYZ axis cylinders from the origin to help orient the scene:
+
+```bash
+# Default cross (chrome, half-length 2.0, radius 0.03)
+sbt "run --optix --cross --objects 'type=tesseract'"
+
+# Custom appearance
+sbt "run --optix --cross --cross-length 3.0 --cross-thickness 0.05 --cross-material gold"
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--cross` | off | Enable coordinate cross |
+| `--cross-length` | 2.0 | Half-length of each axis arm |
+| `--cross-thickness` | 0.03 | Cylinder radius |
+| `--cross-material` | chrome | Material preset |
+
+**Interactive toggle:** press **C** in OptiX mode to show/hide the cross without restarting.
+
+### Render Statistics — *Sprint 19.8*
+
+`--stats` now reports timing alongside ray counts:
+
+```bash
+sbt "run --optix --objects 'type=sphere' --stats"
+```
+
+Output includes:
+- **ms/frame** — total render time per frame
+- **ms/Mray** — time per million rays (useful for comparing scene complexity)
+- Ray counts (primary, shadow, etc.)
 
 ---
 
