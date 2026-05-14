@@ -38,7 +38,7 @@ Decide on version number following semantic versioning (MAJOR.MINOR.PATCH):
 - MINOR: New features, backwards compatible
 - PATCH: Bug fixes only
 
-**Update version in 3 locations (must match):**
+**Update version in 4 locations (must match):**
 
 - [ ] `menger-app/build.sbt` (line 2):
   ```scala
@@ -55,13 +55,22 @@ Decide on version number following semantic versioning (MAJOR.MINOR.PATCH):
   version("menger vX.Y.Z ...")
   ```
 
-**Automated validation:** Pre-push hook verifies version consistency
+- [ ] `docs/USER_GUIDE.md` (line 3) — checked by `TagIsNewAndConsistent` CI job:
+  ```markdown
+  **Version**: X.Y.Z
+  **Last Updated**: Month YYYY
+  ```
+
+**Automated validation:** Pre-push hook verifies version consistency in the first 3 files.
+`TagIsNewAndConsistent` CI job additionally checks `docs/USER_GUIDE.md` — pre-push hook
+does NOT catch this mismatch, so update it manually during this step.
 
 ### 2. Documentation Updates
 
 #### CHANGELOG.md (Required)
 
 - [ ] Update `[Unreleased]` section to `[X.Y.Z] - YYYY-MM-DD`
+- [ ] **Remove any remaining `## [Unreleased]` block** — `ChangelogIsUpdated` CI job fails if stale content remains after the release entry
 - [ ] Follow keepachangelog.com format:
   - **Added**: New features
   - **Changed**: Changes to existing functionality

@@ -88,16 +88,6 @@
   subsections under OptiX Mode.
 - Render-health diagnostic methodology moved to `debugging-rendering-bugs` skill.
 
-## [Unreleased]
-
-### Added
-- **Platonic solids** (Sprint 19.1) — tetrahedron, octahedron, icosahedron, and
-  dodecahedron are available as `type=tetrahedron`, `type=octahedron`,
-  `type=icosahedron`, `type=dodecahedron` with flat-shaded face normals.
-- **Analytical cone primitive** (Sprint 19.3) — `type=cone` supports
-  `apex=x,y,z`, `base=x,y,z`, and `radius=R` parameters; implements a
-  capped quadratic body as an intersection-shader geometry.
-
 ## [0.5.7] - 2026-04-14
 
 ### Added
