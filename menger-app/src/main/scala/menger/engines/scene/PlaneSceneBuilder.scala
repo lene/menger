@@ -28,7 +28,7 @@ class PlaneSceneBuilder extends SceneBuilder:
         dot
       }
       val normal = Vector[3](nx, ny, nz)
-      renderer.addPlaneInstance(normal, d, material) match
+      renderer.addPlaneInstance(normal, d, material, spec.color2, spec.checkerSize) match
         case Some(id) =>
           logger.debug(s"Added plane instance $id normal=($nx,$ny,$nz) distance=$d")
         case None =>

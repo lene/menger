@@ -812,6 +812,7 @@ test_plane() {
     run_test "plane glass wall" --objects type=plane:normal=0,0,1:distance=-3:material=glass --allow-uniform-render
     run_test "plane + sphere" --objects type=plane:pos=0,-2,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass
     run_test "plane IS ceiling double-sided" --objects type=plane:normal=0,-1,0:distance=-3:material=matte --allow-uniform-render
+    run_test "plane IS checker" --objects "type=plane:pos=0,-2,0:color=#FFFFFF:color2=#333333:checker-size=0.5:material=matte"
 }
 
 test_cross() {

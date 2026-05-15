@@ -55,6 +55,8 @@ case class ObjectSpec(
   radius: Option[Float] = None,                 // Cone base radius (overrides size/2)
   normal: Option[(Float, Float, Float)] = None,   // Plane normal vector
   distance: Option[Float] = None,                  // Plane distance from origin
+  color2: Option[Color] = None,                    // Checker secondary color (plane IS only)
+  checkerSize: Float = 1.0f,                       // Checker cell size in world units (plane IS only)
   meshData: Option[TriangleMeshData] = None
 ):
   /** Returns true if edge rendering parameters are specified */
@@ -131,7 +133,7 @@ object ObjectSpec extends LazyLogging:
     "edge-radius", "edge-material", "edge-color",
     "edge-emission",
     "apex", "base", "radius", "major-radius", "minor-radius",
-    "normal", "distance"
+    "normal", "distance", "color2", "checker-size"
   )
 
   def parse(spec: String): Either[String, ObjectSpec] =
@@ -164,13 +166,15 @@ object ObjectSpec extends LazyLogging:
       radius <- parseOptionalFloat(kvPairs, "radius", "cone base radius")
       normal <- parseVector3(kvPairs, "normal")
       distance <- parseOptionalFloat(kvPairs, "distance", "plane distance from origin")
+      color2 <- parseColorField(kvPairs, "color2")
+      checkerSize <- parseFloatParam(kvPairs, "checker-size", 1.0f, "checker cell size in world units")
       _ <- validateSpongeLevel(objType, level)
     yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D,
       edgeParams._1, edgeParams._2,
       math.toRadians(rotXDeg.toDouble).toFloat,
       math.toRadians(rotYDeg.toDouble).toFloat,
       math.toRadians(rotZDeg.toDouble).toFloat,
-      apex, base, radius, normal, distance)
+      apex, base, radius, normal, distance, color2, checkerSize)
 
     result match
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")
