@@ -428,6 +428,9 @@ test_textures() {
     run_test "texture on cube" --plane y:-2 \
         --texture-dir "$TEST_ASSETS_DIR" \
         --objects type=cube:pos=0,0,0:size=0.5:texture=test_checker.png
+    run_test "hdr texture on cube" --plane y:-2 \
+        --texture-dir "$TEST_ASSETS_DIR" \
+        --objects type=cube:pos=0,0,0:size=0.5:texture=test_hdr.hdr
 }
 
 test_caustics() {
@@ -808,6 +811,7 @@ test_plane() {
     run_test "plane metal floor" --objects type=plane:pos=0,-2,0:material=metal --allow-uniform-render
     run_test "plane glass wall" --objects type=plane:normal=0,0,1:distance=-3:material=glass --allow-uniform-render
     run_test "plane + sphere" --objects type=plane:pos=0,-2,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass
+    run_test "plane IS ceiling double-sided" --objects type=plane:normal=0,-1,0:distance=-3:material=matte --allow-uniform-render
 }
 
 test_cross() {
