@@ -312,6 +312,14 @@ class InteractiveEngine(
           renderer.setRenderConfig(renderConfig)
           renderer.setCausticsConfig(config.caustics)
           environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
+          environment.envMap.foreach { path =>
+            val resolvedPath =
+              if java.nio.file.Paths.get(path).isAbsolute then path
+              else java.nio.file.Paths.get(config.execution.textureDir).resolve(path).toString
+            val idx = renderer.uploadTextureFromFile(resolvedPath)
+            if idx >= 0 then renderer.setEnvironmentMap(idx)
+            else logger.error(s"Failed to load environment map: $path")
+          }
           if crossVisible.get then addCrossGeometry(renderer)
           finalizeCreate()
         }

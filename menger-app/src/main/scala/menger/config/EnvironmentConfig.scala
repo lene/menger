@@ -16,7 +16,8 @@ import menger.common.Color
 case class EnvironmentConfig(
   planes: List[PlaneConfig] = List.empty,
   lights: List[LightSpec] = List.empty,
-  background: Option[Color] = None
+  background: Option[Color] = None,
+  envMap: Option[String] = None
 )
 
 object EnvironmentConfig:

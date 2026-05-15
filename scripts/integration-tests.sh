@@ -431,6 +431,9 @@ test_textures() {
     run_test "hdr texture on cube" --plane y:-2 \
         --texture-dir "$TEST_ASSETS_DIR" \
         --objects type=cube:pos=0,0,0:size=0.5:texture=test_hdr.hdr
+    run_test "env map background" \
+        --objects type=sphere:pos=0,0,0:size=0.3 \
+        --env-map "$TEST_ASSETS_DIR/test_hdr.hdr"
 }
 
 test_caustics() {

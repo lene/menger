@@ -346,6 +346,11 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = "Base directory for texture files (default: current directory)"
   )
 
+  val envMap: ScallopOption[String] = opt[String](
+    required = false, group = optixSceneGroup,
+    descr = "Path to HDR equirectangular environment map (.hdr)"
+  )
+
   // === OptiX Quality Options ===
   val antialiasing: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(false), group = optixQualityGroup,

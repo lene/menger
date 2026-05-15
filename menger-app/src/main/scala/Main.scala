@@ -178,7 +178,8 @@ object Main:
           opts.planeColor.toOption,
           opts.planeMaterial.toOption.flatMap(menger.optix.Material.fromName)
         )),
-        lights = opts.light.toOption.getOrElse(List.empty)
+        lights = opts.light.toOption.getOrElse(List.empty),
+        envMap = opts.envMap.toOption
       ),
       execution = buildExecutionConfig(opts),
       render = opts.renderConfig,
