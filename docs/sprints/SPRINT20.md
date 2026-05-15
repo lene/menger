@@ -19,18 +19,18 @@ intersection, CPU 4D projection) and adds triplanar UV mapping and heat map text
 
 ## Success Criteria
 
-- [ ] HDR/EXR texture loading works via stb_image (PNG/JPG already working)
+- [x] HDR/EXR texture loading works via stb_image (PNG/JPG already working)
 - [ ] UV coordinates generated for all geometry types (parametric, mesh, sphere, sponge)
-- [ ] Full IBL: environment map contributes to object shading, not just skybox background
-- [ ] Procedural texture infrastructure in shaders (CUDA/OptiX)
+- [x] Full IBL: environment map contributes to object shading, not just skybox background
+- [x] Procedural texture infrastructure in shaders (CUDA/OptiX)
 - [ ] Wood, marble, and noise procedural textures available
 - [ ] Sponge XYZ->RGB procedural texture works
 - [ ] PBR normal and roughness maps supported
 - [ ] DSL syntax for specifying textures per object/material
 - [ ] Triplanar UV mapping available for sponges and polytopes
 - [ ] Heat map / color-by-intensity procedural texture available
-- [ ] Legacy miss_plane.cu plane intersection path removed
-- [ ] Legacy CPU 4D path (Mesh4D, RotatedProjection) removed
+- [x] Legacy miss_plane.cu plane intersection path removed
+- [x] Legacy CPU 4D path (Mesh4D, RotatedProjection) removed
 - [ ] `docs/guide/user-guide.md` materials/textures section updated
 - [ ] All tests pass
 
