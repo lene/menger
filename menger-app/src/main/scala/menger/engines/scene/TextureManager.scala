@@ -1,5 +1,7 @@
 package menger.engines.scene
 
+import java.nio.file.Paths
+
 import scala.util.Failure
 import scala.util.Success
 
@@ -44,21 +46,33 @@ object TextureManager extends LazyLogging:
       logger.info(s"Loading ${textureFilenames.length} texture(s)")
 
       textureFilenames.flatMap { filename =>
-        TextureLoader.load(filename, textureDir) match
-          case Success(textureData) =>
-            renderer.uploadTexture(
-              textureData.name,
-              textureData.data,
-              textureData.width,
-              textureData.height
-            ) match
-              case Success(index) =>
-                logger.debug(s"Uploaded texture '$filename' as index $index")
-                Some(filename -> index)
-              case Failure(e) =>
-                logger.error(s"Failed to upload texture '$filename': ${e.getMessage}")
-                None
-          case Failure(e) =>
-            logger.error(s"Failed to load texture '$filename': ${e.getMessage}")
+        if filename.toLowerCase.endsWith(".hdr") then
+          val resolvedPath =
+            if Paths.get(filename).isAbsolute then filename
+            else Paths.get(textureDir).resolve(filename).toString
+          val idx = renderer.uploadTextureFromFile(resolvedPath)
+          if idx >= 0 then
+            logger.debug(s"Uploaded HDR texture '$filename' as index $idx")
+            Some(filename -> idx)
+          else
+            logger.error(s"Failed to upload HDR texture '$filename'")
             None
+        else
+          TextureLoader.load(filename, textureDir) match
+            case Success(textureData) =>
+              renderer.uploadTexture(
+                textureData.name,
+                textureData.data,
+                textureData.width,
+                textureData.height
+              ) match
+                case Success(index) =>
+                  logger.debug(s"Uploaded texture '$filename' as index $index")
+                  Some(filename -> index)
+                case Failure(e) =>
+                  logger.error(s"Failed to upload texture '$filename': ${e.getMessage}")
+                  None
+            case Failure(e) =>
+              logger.error(s"Failed to load texture '$filename': ${e.getMessage}")
+              None
       }.toMap
