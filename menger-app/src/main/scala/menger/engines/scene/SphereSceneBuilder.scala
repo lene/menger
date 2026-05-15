@@ -52,6 +52,8 @@ class SphereSceneBuilder extends SceneBuilder:
 
       instanceId match
         case Some(id) =>
+          if spec.proceduralType != 0 then
+            renderer.setProceduralTexture(id, spec.proceduralType, spec.proceduralScale)
           logger.debug(s"Added sphere instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, material=$material")
         case None =>
           logger.error(s"Failed to add sphere instance at position=(${spec.x}, ${spec.y}, ${spec.z})")

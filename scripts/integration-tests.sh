@@ -435,7 +435,13 @@ test_textures() {
         --objects type=sphere:pos=0,0,0:size=0.3 \
         --env-map "$TEST_ASSETS_DIR/test_hdr.hdr"
     run_test "procedural noise sphere" \
-        --objects type=sphere:pos=0,0,0:size=0.5:color=#CCCCCC \
+        --objects "type=sphere:pos=0,0,0:size=0.5:color=#CCCCCC:procedural=value_noise:proc-scale=3.0" \
+        --plane y:-2
+    run_test "procedural wood sphere" \
+        --objects "type=sphere:pos=0,0,0:size=0.5:color=#AA7744:procedural=wood:proc-scale=2.0" \
+        --plane y:-2
+    run_test "procedural marble sphere" \
+        --objects "type=sphere:pos=0,0,0:size=0.5:color=#DDCCBB:procedural=marble:proc-scale=1.5" \
         --plane y:-2
 }
 

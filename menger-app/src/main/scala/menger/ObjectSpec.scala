@@ -57,7 +57,9 @@ case class ObjectSpec(
   distance: Option[Float] = None,                  // Plane distance from origin
   color2: Option[Color] = None,                    // Checker secondary color (plane IS only)
   checkerSize: Float = 1.0f,                       // Checker cell size in world units (plane IS only)
-  meshData: Option[TriangleMeshData] = None
+  meshData: Option[TriangleMeshData] = None,
+  proceduralType: Int = 0,                          // 0=none, 1=value_noise, 2=fbm, 3=worley, 4=gradient, 5=wood, 6=marble, 7=layered_noise
+  proceduralScale: Float = 1.0f                     // Noise coordinate scale
 ):
   /** Returns true if edge rendering parameters are specified */
   def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined
@@ -133,7 +135,8 @@ object ObjectSpec extends LazyLogging:
     "edge-radius", "edge-material", "edge-color",
     "edge-emission",
     "apex", "base", "radius", "major-radius", "minor-radius",
-    "normal", "distance", "color2", "checker-size"
+    "normal", "distance", "color2", "checker-size",
+    "procedural", "proc-scale"
   )
 
   def parse(spec: String): Either[String, ObjectSpec] =
@@ -168,13 +171,17 @@ object ObjectSpec extends LazyLogging:
       distance <- parseOptionalFloat(kvPairs, "distance", "plane distance from origin")
       color2 <- parseColorField(kvPairs, "color2")
       checkerSize <- parseFloatParam(kvPairs, "checker-size", 1.0f, "checker cell size in world units")
+      proceduralType <- parseProceduralType(kvPairs)
+      proceduralScale <- parseFloatParam(kvPairs, "proc-scale", 1.0f, "procedural noise scale must be positive")
+      _ <- if proceduralScale <= 0f then Left("proc-scale must be positive") else Right(())
       _ <- validateSpongeLevel(objType, level)
     yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D,
       edgeParams._1, edgeParams._2,
       math.toRadians(rotXDeg.toDouble).toFloat,
       math.toRadians(rotYDeg.toDouble).toFloat,
       math.toRadians(rotZDeg.toDouble).toFloat,
-      apex, base, radius, normal, distance, color2, checkerSize)
+      apex, base, radius, normal, distance, color2, checkerSize,
+      proceduralType = proceduralType, proceduralScale = proceduralScale)
 
     result match
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")
@@ -363,6 +370,26 @@ object ObjectSpec extends LazyLogging:
           s"Invalid $key value '$valueStr': ${e.getMessage}. Expected a valid $description (e.g., $key=$default)"
         }
       case None => Right(default)
+
+  private val ProceduralTypeNames: Map[String, Int] = Map(
+    "none"         -> 0,
+    "value_noise"  -> 1,
+    "fbm"          -> 2,
+    "worley"       -> 3,
+    "gradient"     -> 4,
+    "wood"         -> 5,
+    "marble"       -> 6,
+    "layered_noise" -> 7
+  )
+
+  private def parseProceduralType(kvPairs: Map[String, String]): Either[String, Int] =
+    kvPairs.get("procedural") match
+      case None => Right(0)
+      case Some(name) =>
+        ProceduralTypeNames.get(name.toLowerCase) match
+          case Some(id) => Right(id)
+          case None =>
+            Left(s"Unknown procedural type '$name'. Valid: ${ProceduralTypeNames.keys.mkString(", ")}")
 
   private def validate4DParams(eyeW: Float, screenW: Float): Either[String, Unit] =
     if eyeW <= screenW then

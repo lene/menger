@@ -120,6 +120,8 @@ class TriangleMeshSceneBuilder(
             renderer.addTriangleMeshInstance(transform, op.material, textureIndex)
         instanceId match
           case Some(id) =>
+            if spec.proceduralType != 0 then
+              renderer.setProceduralTexture(id, spec.proceduralType, spec.proceduralScale)
             val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
             val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
             logger.debug(s"Added ${spec.objectType} instance $id ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")

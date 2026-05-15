@@ -532,3 +532,36 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
         spec.material shouldBe defined
         spec.material.get.filmThickness shouldBe 400.0f
       case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse procedural=wood and default proc-scale" in:
+    ObjectSpec.parse("type=sphere:procedural=wood") match
+      case Right(spec) =>
+        spec.proceduralType shouldBe 5
+        spec.proceduralScale shouldBe 1.0f
+      case Left(err) => fail(err)
+
+  it should "parse procedural=marble with custom proc-scale" in:
+    ObjectSpec.parse("type=sphere:procedural=marble:proc-scale=2.5") match
+      case Right(spec) =>
+        spec.proceduralType shouldBe 6
+        spec.proceduralScale shouldBe 2.5f
+      case Left(err) => fail(err)
+
+  it should "parse all procedural type names" in:
+    val names = Map("value_noise" -> 1, "fbm" -> 2, "worley" -> 3,
+                    "gradient" -> 4, "wood" -> 5, "marble" -> 6, "layered_noise" -> 7)
+    names.foreach { (name, expected) =>
+      ObjectSpec.parse(s"type=sphere:procedural=$name") match
+        case Right(spec) => spec.proceduralType shouldBe expected
+        case Left(err)   => fail(s"Failed for '$name': $err")
+    }
+
+  it should "reject unknown procedural type name" in:
+    ObjectSpec.parse("type=sphere:procedural=lava") match
+      case Left(err) => err should include("lava")
+      case Right(_)  => fail("Expected Left for unknown procedural type")
+
+  it should "reject non-positive proc-scale" in:
+    ObjectSpec.parse("type=sphere:procedural=wood:proc-scale=0") match
+      case Left(_)  => succeed
+      case Right(_) => fail("Expected Left for zero proc-scale")

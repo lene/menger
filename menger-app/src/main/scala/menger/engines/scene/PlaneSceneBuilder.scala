@@ -30,6 +30,8 @@ class PlaneSceneBuilder extends SceneBuilder:
       val normal = Vector[3](nx, ny, nz)
       renderer.addPlaneInstance(normal, d, material, spec.color2, spec.checkerSize) match
         case Some(id) =>
+          if spec.proceduralType != 0 then
+            renderer.setProceduralTexture(id, spec.proceduralType, spec.proceduralScale)
           logger.debug(s"Added plane instance $id normal=($nx,$ny,$nz) distance=$d")
         case None =>
           logger.error(s"Failed to add plane instance normal=($nx,$ny,$nz) distance=$d")
