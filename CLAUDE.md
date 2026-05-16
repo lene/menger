@@ -12,3 +12,12 @@ Please strictly follow the project rules and standards defined in @AGENTS.md.
   Use that worktree rather than the main checkout when iterating.
 - `main` is updated only by merging a feature branch (via PR/MR), not by
   direct commits.
+
+## After Every Task — Mandatory DoD Check
+
+**After every task, run `git push` without being asked.** The pre-push hook is the single authoritative DoD gate — it runs unit tests, scalafix, packaging, integration tests, and all other checks. Do not run checks individually as a substitute; the hook is the source of truth and changes over time.
+
+Binary path (needed for manual renders / reference image generation only):
+- Stage dir: `menger-app-0.6.0/` (workspace root)
+- Binary: `./menger-app-0.6.0/bin/menger-app`
+- Headless: `__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-app-0.6.0/bin/menger-app --headless ...`
