@@ -549,7 +549,8 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
 
   it should "parse all procedural type names" in:
     val names = Map("value_noise" -> 1, "fbm" -> 2, "worley" -> 3,
-                    "gradient" -> 4, "wood" -> 5, "marble" -> 6, "layered_noise" -> 7, "xyz_rgb" -> 8, "heatmap" -> 9)
+                    "gradient" -> 4, "wood" -> 5, "marble" -> 6, "layered_noise" -> 7, "xyz_rgb" -> 8, "heatmap" -> 9,
+                    "triplanar" -> 10)
     names.foreach { (name, expected) =>
       ObjectSpec.parse(s"type=sphere:procedural=$name") match
         case Right(spec) => spec.proceduralType shouldBe expected

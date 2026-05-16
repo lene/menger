@@ -449,6 +449,9 @@ test_textures() {
     run_test "procedural heatmap sphere" \
         --objects "type=sphere:pos=0,0,0:size=0.5:color=#FFFFFF:procedural=heatmap:proc-scale=2.0" \
         --plane y:-2
+    run_test "procedural triplanar sphere" \
+        --objects "type=sphere:pos=0,0,0:size=0.5:color=#FFFFFF:procedural=triplanar:proc-scale=2.0" \
+        --plane y:-2
 }
 
 test_caustics() {
