@@ -27,7 +27,7 @@ intersection, CPU 4D projection) and adds triplanar UV mapping and heat map text
 - [x] Sponge XYZ->RGB procedural texture works
 - [ ] PBR normal and roughness maps supported
 - [ ] DSL syntax for specifying textures per object/material
-- [ ] Triplanar UV mapping available for sponges and polytopes
+- [x] Triplanar UV mapping available for sponges and polytopes
 - [x] Heat map / color-by-intensity procedural texture available
 - [x] Legacy miss_plane.cu plane intersection path removed
 - [x] Legacy CPU 4D path (Mesh4D, RotatedProjection) removed
