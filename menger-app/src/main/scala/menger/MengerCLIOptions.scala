@@ -174,6 +174,8 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = "OpenGL antialiasing samples"
   )
 
+  private val isDegree: Float => Boolean = a => a >= 0 && a < 360
+
   // === 4D Projection Options ===
   val projectionScreenW: ScallopOption[Float] = opt[Float](
     required = false, default = Some(Const.defaultScreenW), validate = _ > 0, group = projectionGroup,
@@ -184,27 +186,27 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = "4D projection eye W coordinate"
   )
   val rotX: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    required = false, default = Some(0), validate = isDegree, group = projectionGroup,
     descr = "Rotation around X axis (degrees)"
   )
   val rotY: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    required = false, default = Some(0), validate = isDegree, group = projectionGroup,
     descr = "Rotation around Y axis (degrees)"
   )
   val rotZ: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    required = false, default = Some(0), validate = isDegree, group = projectionGroup,
     descr = "Rotation around Z axis (degrees)"
   )
   val rotXW: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    required = false, default = Some(0), validate = isDegree, group = projectionGroup,
     descr = "Rotation in X-W plane (degrees)"
   )
   val rotYW: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    required = false, default = Some(0), validate = isDegree, group = projectionGroup,
     descr = "Rotation in Y-W plane (degrees)"
   )
   val rotZW: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0), validate = a => a >= 0 && a < 360, group = projectionGroup,
+    required = false, default = Some(0), validate = isDegree, group = projectionGroup,
     descr = "Rotation in Z-W plane (degrees)"
   )
   val fourDRotation: ScallopOption[String] = opt[String](

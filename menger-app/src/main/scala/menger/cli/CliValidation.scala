@@ -153,22 +153,16 @@ trait CliValidation:
       requires("aa-threshold", aaThreshold.isSupplied, "antialiasing", aa.getOrElse(false))
     }
 
+  private def requiresCausticsFlag[A](optName: String, opt: ScallopOption[A]): Unit =
+    validateOpt(opt, caustics) { (_, c) =>
+      requires(optName, opt.isSupplied, "caustics", c.getOrElse(false))
+    }
+
   private def registerCausticsValidations(): Unit =
-    validateOpt(causticsPhotons, caustics) { (_, c) =>
-      requires("caustics-photons", causticsPhotons.isSupplied, "caustics", c.getOrElse(false))
-    }
-
-    validateOpt(causticsIterations, caustics) { (_, c) =>
-      requires("caustics-iterations", causticsIterations.isSupplied, "caustics", c.getOrElse(false))
-    }
-
-    validateOpt(causticsRadius, caustics) { (_, c) =>
-      requires("caustics-radius", causticsRadius.isSupplied, "caustics", c.getOrElse(false))
-    }
-
-    validateOpt(causticsAlpha, caustics) { (_, c) =>
-      requires("caustics-alpha", causticsAlpha.isSupplied, "caustics", c.getOrElse(false))
-    }
+    requiresCausticsFlag("caustics-photons", causticsPhotons)
+    requiresCausticsFlag("caustics-iterations", causticsIterations)
+    requiresCausticsFlag("caustics-radius", causticsRadius)
+    requiresCausticsFlag("caustics-alpha", causticsAlpha)
 
   private def hasConflictingColorOptions: Boolean =
     color.isSupplied && (faceColor.isSupplied || lineColor.isSupplied)

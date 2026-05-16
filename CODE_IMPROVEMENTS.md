@@ -66,17 +66,6 @@ Adding image + PBR map support requires:
 
 ---
 
-### Issue M-cli-option-data-clumps: DATA_CLUMPS — MengerCLIOptions repeated option groups + copied validation
-
-**Location**: `menger-app/src/main/scala/menger/MengerCLIOptions.scala` (rotation ~186–209, caustics ~390–409, colors ~160–171); related repetition in `CliValidation.scala:~156–171`
-**Impact**: Medium
-**Debt Cost**: Minor
-
-Rotation: 6 options each carrying the identical `a >= 0 && a < 360` validator (copied 5×). Caustics: 4 options each repeating the parent `requires()`. Colors: 3 options with hand-written mutual-exclusivity.
-
-**Recommendation**: Extract cohesive builders (`Rotation3DOpts`, `Rotation4DOpts`, `CausticsOpts`) that encapsulate the shared validator; collapse the repeated `requires()`. Scope this to the *validator duplication* only — the accepted items `L-cli-monolith` / `L-cli-validation-density` document why option registration order and lazy `isSupplied` evaluation must stay as-is.
-
----
 
 ## Low Priority
 
