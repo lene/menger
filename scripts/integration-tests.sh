@@ -446,6 +446,9 @@ test_textures() {
     run_test "procedural xyz_rgb sponge" \
         --objects "type=sponge-volume:level=1:pos=0,0,0:size=0.5:procedural=xyz_rgb:proc-scale=1.0" \
         --plane y:-2
+    run_test "procedural heatmap sphere" \
+        --objects "type=sphere:pos=0,0,0:size=0.5:color=#FFFFFF:procedural=heatmap:proc-scale=2.0" \
+        --plane y:-2
 }
 
 test_caustics() {
