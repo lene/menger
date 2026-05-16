@@ -14,6 +14,10 @@ sealed trait SceneObject:
   def color: Option[Color]
   def ior: Float
   def texture: Option[String]
+  def normalMap: Option[String]
+  def roughnessMap: Option[String]
+  def proceduralType: Int
+  def proceduralScale: Float
   def rotation: Vec3
   def toObjectSpec: ObjectSpec
 
@@ -36,6 +40,10 @@ sealed trait SceneObject:
       ior = material.map(_.ior).getOrElse(ior),
       material = material.map(_.toOptixMaterial),
       texture = texture,
+      normalMap = normalMap,
+      roughnessMap = roughnessMap,
+      proceduralType = proceduralType,
+      proceduralScale = proceduralScale,
       projection4D = projection4D,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial,
@@ -53,6 +61,10 @@ case class Sphere(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
@@ -82,6 +94,10 @@ case class Cube(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
@@ -119,6 +135,10 @@ case class Sponge(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
@@ -176,6 +196,10 @@ case class Tesseract(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
   projection: Option[Projection4DSpec] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
@@ -216,6 +240,10 @@ case class TesseractSponge(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
   projection: Option[Projection4DSpec] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
@@ -300,6 +328,10 @@ case class ParametricSurface(
   material: Option[Material] = None,
   color: Option[Color] = None,
   texture: Option[String] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(uSteps >= 1, s"uSteps must be >= 1, got $uSteps")

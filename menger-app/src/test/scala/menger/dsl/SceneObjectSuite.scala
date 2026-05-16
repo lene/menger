@@ -292,3 +292,42 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     val sponge = TesseractSponge(VolumeRemoving, level = 1f, projection = Some(projection))
     val spec = sponge.toObjectSpec
     spec.projection4D shouldBe Some(projection)
+
+  // Task 20.10: DSL texture syntax
+  "Sphere" should "support normalMap in DSL" in:
+    val sphere = Sphere(normalMap = Some("wall_n.png"))
+    sphere.toObjectSpec.normalMap shouldBe Some("wall_n.png")
+
+  it should "support roughnessMap in DSL" in:
+    val sphere = Sphere(roughnessMap = Some("wall_r.png"))
+    sphere.toObjectSpec.roughnessMap shouldBe Some("wall_r.png")
+
+  it should "support proceduralType in DSL" in:
+    val sphere = Sphere(proceduralType = 5)
+    sphere.toObjectSpec.proceduralType shouldBe 5
+
+  it should "support proceduralScale in DSL" in:
+    val sphere = Sphere(proceduralScale = 3.0f)
+    sphere.toObjectSpec.proceduralScale shouldBe 3.0f
+
+  it should "default normalMap and roughnessMap to None" in:
+    val sphere = Sphere()
+    sphere.toObjectSpec.normalMap shouldBe None
+    sphere.toObjectSpec.roughnessMap shouldBe None
+
+  it should "default proceduralType to 0 and proceduralScale to 1.0" in:
+    val sphere = Sphere()
+    sphere.toObjectSpec.proceduralType shouldBe 0
+    sphere.toObjectSpec.proceduralScale shouldBe 1.0f
+
+  "Cube" should "support normalMap in DSL" in:
+    val cube = Cube(normalMap = Some("brick_n.png"))
+    cube.toObjectSpec.normalMap shouldBe Some("brick_n.png")
+
+  "Sponge" should "support normalMap in DSL" in:
+    val sponge = Sponge(VolumeFilling, level = 2f, normalMap = Some("rock_n.png"))
+    sponge.toObjectSpec.normalMap shouldBe Some("rock_n.png")
+
+  it should "support proceduralType in DSL" in:
+    val sponge = Sponge(VolumeFilling, level = 2f, proceduralType = 8)
+    sponge.toObjectSpec.proceduralType shouldBe 8
