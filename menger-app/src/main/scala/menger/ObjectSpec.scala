@@ -59,7 +59,9 @@ case class ObjectSpec(
   checkerSize: Float = 1.0f,                       // Checker cell size in world units (plane IS only)
   meshData: Option[TriangleMeshData] = None,
   proceduralType: Int = 0,                          // 0=none, 1=value_noise, 2=fbm, 3=worley, 4=gradient, 5=wood, 6=marble, 7=layered_noise
-  proceduralScale: Float = 1.0f                     // Noise coordinate scale
+  proceduralScale: Float = 1.0f,                    // Noise coordinate scale
+  normalMap: Option[String] = None,                 // Normal map texture filename (Task 20.7)
+  roughnessMap: Option[String] = None               // Roughness map texture filename (Task 20.7)
 ):
   /** Returns true if edge rendering parameters are specified */
   def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined
@@ -136,7 +138,8 @@ object ObjectSpec extends LazyLogging:
     "edge-emission",
     "apex", "base", "radius", "major-radius", "minor-radius",
     "normal", "distance", "color2", "checker-size",
-    "procedural", "proc-scale"
+    "procedural", "proc-scale",
+    "normal-map", "roughness-map"
   )
 
   def parse(spec: String): Either[String, ObjectSpec] =
@@ -175,13 +178,16 @@ object ObjectSpec extends LazyLogging:
       proceduralScale <- parseFloatParam(kvPairs, "proc-scale", 1.0f, "procedural noise scale must be positive")
       _ <- if proceduralScale <= 0f then Left("proc-scale must be positive") else Right(())
       _ <- validateSpongeLevel(objType, level)
+      normalMap <- parseMapTexture(kvPairs, "normal-map")
+      roughnessMap <- parseMapTexture(kvPairs, "roughness-map")
     yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D,
       edgeParams._1, edgeParams._2,
       math.toRadians(rotXDeg.toDouble).toFloat,
       math.toRadians(rotYDeg.toDouble).toFloat,
       math.toRadians(rotZDeg.toDouble).toFloat,
       apex, base, radius, normal, distance, color2, checkerSize,
-      proceduralType = proceduralType, proceduralScale = proceduralScale)
+      proceduralType = proceduralType, proceduralScale = proceduralScale,
+      normalMap = normalMap, roughnessMap = roughnessMap)
 
     result match
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")
@@ -328,6 +334,12 @@ object ObjectSpec extends LazyLogging:
     kvPairs.get("texture") match
       case Some(filename) if filename.nonEmpty => Right(Some(filename))
       case Some(_) => Left("Texture filename cannot be empty. Provide a valid filename (e.g., texture=brick.png)")
+      case None => Right(None)
+
+  private def parseMapTexture(kvPairs: Map[String, String], key: String): Either[String, Option[String]] =
+    kvPairs.get(key) match
+      case Some(filename) if filename.nonEmpty => Right(Some(filename))
+      case Some(_) => Left(s"$key filename cannot be empty. Provide a valid filename (e.g., $key=brick_n.png)")
       case None => Right(None)
 
   private def validateSpongeLevel(objType: String, level: Option[Float]): Either[String, Unit] =

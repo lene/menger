@@ -37,8 +37,12 @@ object TextureManager extends LazyLogging:
     renderer: OptiXRenderer,
     textureDir: String
   ): Map[String, Int] =
-    // Collect unique texture filenames from all specs
-    val textureFilenames = specs.flatMap(_.texture).distinct
+    // Collect unique texture filenames from all specs (albedo + PBR maps)
+    val textureFilenames = (
+      specs.flatMap(_.texture) ++
+      specs.flatMap(_.normalMap) ++
+      specs.flatMap(_.roughnessMap)
+    ).distinct
 
     if textureFilenames.isEmpty then
       Map.empty

@@ -21,7 +21,7 @@ import menger.optix.OptiXRenderer
  *
  * Ported from OptiXEngine.setupMultipleSpheres() (lines 280-297).
  */
-class SphereSceneBuilder extends SceneBuilder:
+class SphereSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
     if specs.isEmpty then
@@ -36,6 +36,8 @@ class SphereSceneBuilder extends SceneBuilder:
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up ${specs.length} sphere instances")
+
+    val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
 
     // addSphereInstance() automatically enables IAS mode - do NOT call setSphere() first!
     specs.foreach { spec =>
@@ -54,6 +56,10 @@ class SphereSceneBuilder extends SceneBuilder:
         case Some(id) =>
           if spec.proceduralType != 0 then
             renderer.setProceduralTexture(id, spec.proceduralType, spec.proceduralScale)
+          val normalIdx    = spec.normalMap.flatMap(textureIndices.get).getOrElse(-1)
+          val roughnessIdx = spec.roughnessMap.flatMap(textureIndices.get).getOrElse(-1)
+          if normalIdx >= 0 || roughnessIdx >= 0 then
+            renderer.setMapTextures(id, normalIdx, roughnessIdx)
           logger.debug(s"Added sphere instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, material=$material")
         case None =>
           logger.error(s"Failed to add sphere instance at position=(${spec.x}, ${spec.y}, ${spec.z})")

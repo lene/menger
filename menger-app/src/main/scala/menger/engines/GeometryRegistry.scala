@@ -39,7 +39,7 @@ object GeometryRegistry:
     else
       val types = specs.map(s => ObjectType.normalize(s.objectType)).toSet
       if types.forall(_ == "sphere") then
-        Some(SphereSceneBuilder())
+        Some(SphereSceneBuilder(textureDir))
       else if types.forall(_ == "cube-sponge") then
         Some(CubeSpongeSceneBuilder())
       else if types.forall(ObjectType.isTriangleMesh) then

@@ -565,4 +565,34 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
   it should "reject non-positive proc-scale" in:
     ObjectSpec.parse("type=sphere:procedural=wood:proc-scale=0") match
       case Left(_)  => succeed
+
+  // Task 20.7: PBR texture maps
+  it should "parse normal-map filename" in:
+    ObjectSpec.parse("type=sphere:normal-map=brick_n.png") match
+      case Right(spec) => spec.normalMap shouldBe Some("brick_n.png")
+      case Left(err)   => fail(err)
+
+  it should "parse roughness-map filename" in:
+    ObjectSpec.parse("type=sphere:roughness-map=brick_r.png") match
+      case Right(spec) => spec.roughnessMap shouldBe Some("brick_r.png")
+      case Left(err)   => fail(err)
+
+  it should "parse normal-map and roughness-map together" in:
+    ObjectSpec.parse("type=sphere:normal-map=wall_n.png:roughness-map=wall_r.png") match
+      case Right(spec) =>
+        spec.normalMap    shouldBe Some("wall_n.png")
+        spec.roughnessMap shouldBe Some("wall_r.png")
+      case Left(err) => fail(err)
+
+  it should "default normalMap and roughnessMap to None" in:
+    ObjectSpec.parse("type=sphere") match
+      case Right(spec) =>
+        spec.normalMap    shouldBe None
+        spec.roughnessMap shouldBe None
+      case Left(err) => fail(err)
+
+  it should "reject empty normal-map filename" in:
+    ObjectSpec.parse("type=sphere:normal-map=") match
+      case Left(err) => err should include("normal-map")
+      case Right(_)  => fail("Expected Left for empty normal-map")
       case Right(_) => fail("Expected Left for zero proc-scale")
