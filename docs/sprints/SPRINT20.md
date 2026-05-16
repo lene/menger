@@ -20,7 +20,7 @@ intersection, CPU 4D projection) and adds triplanar UV mapping and heat map text
 ## Success Criteria
 
 - [x] HDR/EXR texture loading works via stb_image (PNG/JPG already working)
-- [ ] UV coordinates generated for all geometry types (parametric, mesh, sphere, sponge)
+- [x] UV coordinates generated for all geometry types (parametric, mesh, sphere, sponge)
 - [x] Full IBL: environment map contributes to object shading, not just skybox background
 - [x] Procedural texture infrastructure in shaders (CUDA/OptiX)
 - [x] Wood, marble, and noise procedural textures available
@@ -255,6 +255,7 @@ a color gradient. Useful for visualization and debugging, and as an artistic eff
 
 - [ ] All success criteria met
 - [ ] All tests passing
+- [ ] Full pre-push hook passes
 - [ ] Code quality checks pass: `sbt "scalafix --check"`
 - [ ] CHANGELOG.md updated
 - [ ] `docs/guide/user-guide.md` materials/textures section updated
