@@ -31,17 +31,89 @@ Adding image + PBR map support requires:
 
 ---
 
+### Issue M-objectspec-god-class: LARGE_CLASS / DATA_CLUMPS — ObjectSpec is a 528-line god class
+
+**Location**: `menger-app/src/main/scala/menger/ObjectSpec.scala`
+**Impact**: Medium
+**Debt Cost**: Moderate (1–3 days)
+
+~30-field case class plus a 297-line monolithic `parse()` (parse entry at line 145, helper parsers run to ~441). The same primitive groups repeat throughout the class and parser as data clumps:
+
+- position `(x, y, z)`
+- rotation 3D `(rotX, rotY, rotZ)`
+- rotation 4D `(rotXW, rotYW, rotZW)` + `projection4D`
+- material — appears 3× (main, edges, color2)
+- cone/plane geometry `(apex, base, radius, normal, distance, checkerSize)`
+- procedural `(proceduralType, proceduralScale)`
+- texture maps `(texture, normalMap, roughnessMap)`
+
+`parse()` is one long for-comprehension chaining 20+ validators with no typed intermediate stages, so an early failure blocks all later checks.
+
+**Recommendation**: Extract value objects (`Position3D`, `Rotation3D`, `Rotation4D`/`ProjectionSpec`, `MaterialSpec`, `ProceduralSpec`, `TextureMaps`) and split `parse()` into per-aspect parsers composed at the top level. Supersedes the previously-closed `L-objectspec-parse-length` with broader scope (the parser remains a monolith).
+
+---
+
+### Issue M-scenebuilder-texture-orchestration-dup: DUPLICATION — texture load+apply loop copied across scene builders
+
+**Location**: `SphereSceneBuilder.scala:~40`, `ConeSceneBuilder.scala:~28`, `PlaneSceneBuilder.scala:~21`, `TriangleMeshSceneBuilder.scala:~69`
+**Impact**: Medium
+**Debt Cost**: Minor (2–8 h)
+
+The same orchestration is copy-pasted across four builders: `TextureManager.loadTextures(...)` → iterate specs → `MaterialExtractor.extract` → `applyInstanceTextures(...)`. `CubeSpongeSceneBuilder` omits it entirely (missing feature, not just duplication).
+
+The earlier `M-texture-wiring-duplication` was closed by hoisting `applyInstanceTextures` into the `SceneBuilder` trait; the surrounding load + iteration wrapper is still duplicated — partial regression.
+
+**Recommendation**: Hoist `loadAndApplyTextures(specs, renderer, textureDir)` into the `SceneBuilder` trait alongside the existing `applyInstanceTextures`, and wire `CubeSpongeSceneBuilder` through it.
+
+---
+
+### Issue M-interactiveengine-state-dup: DUPLICATION / LONG_METHOD — InteractiveEngine duplicate 4D state + repeated warning logic
+
+**Location**: `menger-app/src/main/scala/menger/engines/InteractiveEngine.scala`
+**Impact**: Medium
+**Debt Cost**: Minor–Moderate
+
+`anim4DState` (line 91) and `cpu4DState` (line 98) are two `AtomicReference[Option[WithAnimation.Anim4DState]]` with identical structure, differing only GPU vs CPU. `warnIfHighLevel()` (line 225, ~51 L) repeats the same warning body across geometry types via match arms; `handleEvent()` (line 116, ~41 L) and `buildScene4DTrackedOrFallback()` (~44 L) are long with GPU/CPU branching.
+
+**Recommendation**: Merge the two references into a single `Scene4DCache(gpu, cpu)`; replace the repeated warning match arms with a data-driven `LevelWarningConfig` registry.
+
+---
+
+### Issue M-cli-option-data-clumps: DATA_CLUMPS — MengerCLIOptions repeated option groups + copied validation
+
+**Location**: `menger-app/src/main/scala/menger/MengerCLIOptions.scala` (rotation ~186–209, caustics ~390–409, colors ~160–171); related repetition in `CliValidation.scala:~156–171`
+**Impact**: Medium
+**Debt Cost**: Minor
+
+Rotation: 6 options each carrying the identical `a >= 0 && a < 360` validator (copied 5×). Caustics: 4 options each repeating the parent `requires()`. Colors: 3 options with hand-written mutual-exclusivity.
+
+**Recommendation**: Extract cohesive builders (`Rotation3DOpts`, `Rotation4DOpts`, `CausticsOpts`) that encapsulate the shared validator; collapse the repeated `requires()`. Scope this to the *validator duplication* only — the accepted items `L-cli-monolith` / `L-cli-validation-density` document why option registration order and lazy `isSupplied` evaluation must stay as-is.
+
+---
+
 ## Low Priority
 
-### Issue L-optixrenderer-size: LARGE_CLASS — OptiXRenderer at 995 lines, 65 public methods
+### Issue L-plane-checker-params: PARAMETERS / LONG_METHOD — addPlaneCheckerColorsWithMaterial: 7 params, ~68 lines
+
+**Location**: `optix-jni/src/main/scala/menger/optix/OptiXRenderer.scala:339`
+**Impact**: Low
+**Debt Cost**: Trivial–Minor
+
+Signature mixes plane geometry `(axis, positive, value)` + two colors + `Material` + `textureIndex` — a data clump spread over a long body.
+
+**Recommendation**: Introduce `PlaneSpec(axis, positive, value)` and `CheckerPattern(color1, color2)`; reduces params 7→4 and shrinks the body.
+
+---
+
+### Issue L-optixrenderer-size: LARGE_CLASS — OptiXRenderer at 995 lines, ~65 public methods
 
 **Location**: `optix-jni/src/main/scala/menger/optix/OptiXRenderer.scala`
 **Impact**: Low
 **Debt Cost**: Major (split across several sprints)
 
-Single class wraps the entire OptiX JNI surface: geometry upload, instance management, camera, lights, render params, texture upload, stats, caustics. Every new feature adds public methods. The class is already hard to navigate.
+Re-measured 2026-05-16: 995 lines, ~65 public methods, 2 long methods (both justified Scala→C++ marshalling). Single class wraps the entire OptiX JNI surface: geometry upload, instance management, camera, lights, render params, texture upload, stats, caustics. Growth since last review is organic — no anomalous increase.
 
-**Recommendation**: Consider splitting by concern into focused facades (e.g. `TextureFacade`, `InstanceFacade`, `RenderFacade`) that delegate to the underlying JNI class. The JNI native methods can stay in one class; the Scala API is where grouping helps. Low urgency — the JNI boundary is inherently monolithic — but worth tracking.
+**Recommendation**: Consider splitting by concern into focused facades (e.g. `SphereRenderer`, `MeshRenderer`, `PlaneRenderer`, `TextureFacade`, `IASInstanceManager`) that delegate to the underlying JNI class. The JNI native methods can stay in one class; the Scala API is where grouping helps. Non-blocking — revisit only if the public method count exceeds ~80.
 
 ---
 
