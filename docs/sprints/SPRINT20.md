@@ -25,8 +25,8 @@ intersection, CPU 4D projection) and adds triplanar UV mapping and heat map text
 - [x] Procedural texture infrastructure in shaders (CUDA/OptiX)
 - [x] Wood, marble, and noise procedural textures available
 - [x] Sponge XYZ->RGB procedural texture works
-- [ ] PBR normal and roughness maps supported
-- [ ] DSL syntax for specifying textures per object/material
+- [x] PBR normal and roughness maps supported
+- [x] DSL syntax for specifying textures per object/material
 - [x] Triplanar UV mapping available for sponges and polytopes
 - [x] Heat map / color-by-intensity procedural texture available
 - [x] Legacy miss_plane.cu plane intersection path removed
