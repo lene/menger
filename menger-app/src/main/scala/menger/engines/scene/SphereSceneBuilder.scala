@@ -54,12 +54,7 @@ class SphereSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
       instanceId match
         case Some(id) =>
-          if spec.proceduralType != 0 then
-            renderer.setProceduralTexture(id, spec.proceduralType, spec.proceduralScale)
-          val normalIdx    = spec.normalMap.flatMap(textureIndices.get).getOrElse(-1)
-          val roughnessIdx = spec.roughnessMap.flatMap(textureIndices.get).getOrElse(-1)
-          if normalIdx >= 0 || roughnessIdx >= 0 then
-            renderer.setMapTextures(id, normalIdx, roughnessIdx)
+          applyInstanceTextures(id, spec, textureIndices, renderer)
           logger.debug(s"Added sphere instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, material=$material")
         case None =>
           logger.error(s"Failed to add sphere instance at position=(${spec.x}, ${spec.y}, ${spec.z})")

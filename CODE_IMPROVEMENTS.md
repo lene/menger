@@ -14,43 +14,21 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### Issue M-texture-builder-gap: MISSING FEATURE — Cone and plane builders silently drop texture params
+### Issue M-texture-builder-gap: MISSING FEATURE — Cone and plane shaders don't support procedural/PBR textures
 
-**Location**: `menger-app/src/main/scala/menger/engines/scene/ConeSceneBuilder.scala:23–37`, `PlaneSceneBuilder.scala:33–38`
+**Location**: `optix-jni/src/main/native/shaders/hit_cone.cu`, `hit_plane.cu`
 **Impact**: Medium
-**Debt Cost**: Trivial (30 min)
+**Debt Cost**: Moderate (1–2 days per geometry type: UV generation + shader sampling + Scala builder wiring)
 
-`ConeSceneBuilder.buildScene` never calls `setProceduralTexture`, `setMapTextures`, or `TextureManager`. `PlaneSceneBuilder` calls `setProceduralTexture` but skips `setMapTextures`. Any `normal-map`, `roughness-map`, `texture`, or `proc-type` param on a cone or normal-map on a plane is silently ignored — data loss with no error.
+`hit_cone.cu` calls no texture functions at all. `hit_plane.cu` reads `texture_index` for the base color but does not call `getInstanceProceduralParams`, `applyProceduralTexture`, `applyNormalMap`, or `applyRoughnessMap`. Note: `PlaneSceneBuilder` already calls `setProceduralTexture` on the Scala side — but the shader silently ignores it (data written, never read).
 
-**Recommendation**: Apply the same texture wiring block used in `SphereSceneBuilder:55–62` to both builders. Also extract the repeated 6-line block (procedural + normalIdx + roughnessIdx) into a helper in `SceneBuilder` trait or `TextureManager` to eliminate the duplication across Sphere, TriangleMesh, Plane, and Cone builders.
+Adding texture support requires:
+1. UV coordinate generation in the intersection/hit shader for each geometry type
+2. Calling `getInstanceProceduralParams` + `applyProceduralTexture` in the closest-hit shader
+3. Calling `applyNormalMap` + `applyRoughnessMap` with the generated UVs
+4. Wiring `ConeSceneBuilder` through `TextureManager` and `applyInstanceTextures` (helper already in `SceneBuilder`)
 
----
-
-### Issue M-texture-wiring-duplication: DUPLICATION — PBR texture wiring block copied across builders
-
-**Location**: `SphereSceneBuilder.scala:57–62`, `TriangleMeshSceneBuilder.scala:123–128`
-**Impact**: Medium
-**Debt Cost**: Minor (2–3 h)
-
-Identical 6-line block:
-```scala
-if spec.proceduralType != 0 then
-  renderer.setProceduralTexture(id, spec.proceduralType, spec.proceduralScale)
-val normalIdx    = spec.normalMap.flatMap(textureIndices.get).getOrElse(-1)
-val roughnessIdx = spec.roughnessMap.flatMap(textureIndices.get).getOrElse(-1)
-if normalIdx >= 0 || roughnessIdx >= 0 then
-  renderer.setMapTextures(id, normalIdx, roughnessIdx)
-```
-Repeated verbatim in every builder that supports PBR maps. Adding a new map type (e.g. emissive map) requires editing every builder.
-
-**Recommendation**: Extract to `SceneBuilder`:
-```scala
-protected def applyInstanceTextures(
-  id: Int, spec: ObjectSpec,
-  textureIndices: Map[String, Int],
-  renderer: OptiXRenderer
-): Unit = ...
-```
+**Recommendation**: Implement per geometry type as needed, following `hit_sphere.cu` as the reference implementation. Plane UV generation is straightforward (planar XZ mapping). Cone UV requires cylindrical mapping.
 
 ---
 

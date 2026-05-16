@@ -97,3 +97,18 @@ trait SceneBuilder extends LazyLogging:
    * @return Exact number of instances required
    */
   def calculateRequiredInstances(specs: List[ObjectSpec]): Int = 0
+
+  /** Apply procedural texture and PBR map textures to an already-created instance.
+    * Centralises the wiring that was previously duplicated in every builder. */
+  protected final def applyInstanceTextures(
+    id: Int,
+    spec: ObjectSpec,
+    textureIndices: Map[String, Int],
+    renderer: OptiXRenderer
+  ): Unit =
+    if spec.proceduralType != 0 then
+      renderer.setProceduralTexture(id, spec.proceduralType, spec.proceduralScale)
+    val normalIdx    = spec.normalMap.flatMap(textureIndices.get).getOrElse(-1)
+    val roughnessIdx = spec.roughnessMap.flatMap(textureIndices.get).getOrElse(-1)
+    if normalIdx >= 0 || roughnessIdx >= 0 then
+      renderer.setMapTextures(id, normalIdx, roughnessIdx)
