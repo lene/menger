@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-05-14
+**Last Updated:** 2026-05-16
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -14,7 +14,69 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
+### Issue M-texture-builder-gap: MISSING FEATURE — Cone and plane builders silently drop texture params
+
+**Location**: `menger-app/src/main/scala/menger/engines/scene/ConeSceneBuilder.scala:23–37`, `PlaneSceneBuilder.scala:33–38`
+**Impact**: Medium
+**Debt Cost**: Trivial (30 min)
+
+`ConeSceneBuilder.buildScene` never calls `setProceduralTexture`, `setMapTextures`, or `TextureManager`. `PlaneSceneBuilder` calls `setProceduralTexture` but skips `setMapTextures`. Any `normal-map`, `roughness-map`, `texture`, or `proc-type` param on a cone or normal-map on a plane is silently ignored — data loss with no error.
+
+**Recommendation**: Apply the same texture wiring block used in `SphereSceneBuilder:55–62` to both builders. Also extract the repeated 6-line block (procedural + normalIdx + roughnessIdx) into a helper in `SceneBuilder` trait or `TextureManager` to eliminate the duplication across Sphere, TriangleMesh, Plane, and Cone builders.
+
+---
+
+### Issue M-texture-wiring-duplication: DUPLICATION — PBR texture wiring block copied across builders
+
+**Location**: `SphereSceneBuilder.scala:57–62`, `TriangleMeshSceneBuilder.scala:123–128`
+**Impact**: Medium
+**Debt Cost**: Minor (2–3 h)
+
+Identical 6-line block:
+```scala
+if spec.proceduralType != 0 then
+  renderer.setProceduralTexture(id, spec.proceduralType, spec.proceduralScale)
+val normalIdx    = spec.normalMap.flatMap(textureIndices.get).getOrElse(-1)
+val roughnessIdx = spec.roughnessMap.flatMap(textureIndices.get).getOrElse(-1)
+if normalIdx >= 0 || roughnessIdx >= 0 then
+  renderer.setMapTextures(id, normalIdx, roughnessIdx)
+```
+Repeated verbatim in every builder that supports PBR maps. Adding a new map type (e.g. emissive map) requires editing every builder.
+
+**Recommendation**: Extract to `SceneBuilder`:
+```scala
+protected def applyInstanceTextures(
+  id: Int, spec: ObjectSpec,
+  textureIndices: Map[String, Int],
+  renderer: OptiXRenderer
+): Unit = ...
+```
+
+---
+
 ## Low Priority
+
+### Issue L-objectspec-parse-length: LONG_METHOD — ObjectSpec.parse() is 297 lines
+
+**Location**: `menger-app/src/main/scala/menger/ObjectSpec.scala:145–441`
+**Impact**: Low
+**Debt Cost**: Minor (3–4 h)
+
+The `parse()` for-comprehension is 297 lines. While each step delegates to a private helper, the chain is so long it's difficult to find where a specific field is parsed. New fields always go at the bottom, making the ordering arbitrary.
+
+**Recommendation**: Group related parse steps into named intermediate helpers that return `Either[String, PartialSpec]` (e.g. `parseTextureParams`, `parsePBRParams`, `parse4DParams`), then compose those in the top-level `parse()`. No functional change — purely organizational.
+
+---
+
+### Issue L-optixrenderer-size: LARGE_CLASS — OptiXRenderer at 995 lines, 65 public methods
+
+**Location**: `optix-jni/src/main/scala/menger/optix/OptiXRenderer.scala`
+**Impact**: Low
+**Debt Cost**: Major (split across several sprints)
+
+Single class wraps the entire OptiX JNI surface: geometry upload, instance management, camera, lights, render params, texture upload, stats, caustics. Every new feature adds public methods. The class is already hard to navigate.
+
+**Recommendation**: Consider splitting by concern into focused facades (e.g. `TextureFacade`, `InstanceFacade`, `RenderFacade`) that delegate to the underlying JNI class. The JNI native methods can stay in one class; the Scala API is where grouping helps. Low urgency — the JNI boundary is inherently monolithic — but worth tracking.
 
 ---
 

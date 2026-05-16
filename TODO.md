@@ -41,6 +41,25 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 - movie with steadily increasing level with 360 degree background
   - movies as textures instead of png
 - PBR Textures
+- MaterialX (.mtlx) support — Layers 1-3 (~3 sprints):
+  - **Layer 1 — File parsing**: Add MaterialX C++ SDK (github.com/AcademySoftwareFoundation/MaterialX)
+    as CMake dep in `optix-jni/CMakeLists.txt`. Write `MtlxLoader.cpp` that uses
+    `MaterialX::readFromFile()`, walks the document tree, and extracts Standard Surface /
+    OpenPBR Surface parameter values (base_color, roughness, metallic, specular_ior, emission,
+    opacity, normal/roughness/albedo image node filenames). Add JNI binding + Scala
+    `MtlxMaterial` case class mirroring these fields.
+  - **Layer 2 — Standard Surface → Material mapping**: Map extracted params to existing
+    `InstanceMaterial` fields in `OptiXData.h` (base_color→color, specular_roughness→roughness,
+    metallic→metallic, specular_ior→IOR, emission→emission). Wire through
+    `MaterialExtractor.scala` and scene builders so `--object type=sphere:mtlx=path/to/mat.mtlx`
+    loads the material. Already-supported fields need no shader changes.
+  - **Layer 3 — Image node resolution**: MTLX `<image filename="...">` nodes need search-path
+    resolution. Extend `TextureManager.scala` to accept an `MtlxMaterial` image list alongside
+    the existing `ObjectSpec.texture` path. Resolve relative paths against a configurable
+    `--mtlx-texture-dir`. Upload via existing `uploadTextureFromFile` pipeline; assign resulting
+    indices to normal/roughness/albedo texture slots in `InstanceMaterial`.
+  - Out of scope for this milestone: coat, sheen, subsurface, anisotropy, node graph
+    evaluation, color space management. Unsupported inputs: warn + ignore.
 - capture background by reading the desktop below the window, and render objects on top of that
 
 ## Scheduled (see ROADMAP.md)
