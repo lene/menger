@@ -23,7 +23,7 @@ intersection, CPU 4D projection) and adds triplanar UV mapping and heat map text
 - [ ] UV coordinates generated for all geometry types (parametric, mesh, sphere, sponge)
 - [x] Full IBL: environment map contributes to object shading, not just skybox background
 - [x] Procedural texture infrastructure in shaders (CUDA/OptiX)
-- [ ] Wood, marble, and noise procedural textures available
+- [x] Wood, marble, and noise procedural textures available
 - [ ] Sponge XYZ->RGB procedural texture works
 - [ ] PBR normal and roughness maps supported
 - [ ] DSL syntax for specifying textures per object/material
