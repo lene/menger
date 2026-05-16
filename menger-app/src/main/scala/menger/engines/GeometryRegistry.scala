@@ -50,7 +50,7 @@ object GeometryRegistry:
         else
           Some(TriangleMeshSceneBuilder(textureDir, gpuProject4D))
       else if types.forall(_ == "cone") then
-        Some(ConeSceneBuilder())
+        Some(ConeSceneBuilder(textureDir))
       else if types.forall(_ == "plane") then
         Some(PlaneSceneBuilder())
       else

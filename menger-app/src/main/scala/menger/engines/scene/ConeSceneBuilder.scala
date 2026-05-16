@@ -12,7 +12,7 @@ import menger.optix.OptiXRenderer
  * Cones are specified with apex, base center, and radius.
  * If apex/base are not given, they are derived from pos and size.
  */
-class ConeSceneBuilder extends SceneBuilder:
+class ConeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
     if specs.isEmpty then Left("Object specs list cannot be empty")
@@ -25,6 +25,7 @@ class ConeSceneBuilder extends SceneBuilder:
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up ${specs.length} cone instances")
+    val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
     specs.foreach { spec =>
       val material = MaterialExtractor.extract(spec)
       val (ax, ay, az) = spec.apex.getOrElse((spec.x, spec.y + spec.size / 2f, spec.z))
@@ -34,6 +35,7 @@ class ConeSceneBuilder extends SceneBuilder:
       val base = Vector[3](bx, by, bz)
       renderer.addConeInstance(apex, base, r, material) match
         case Some(id) =>
+          applyInstanceTextures(id, spec, textureIndices, renderer)
           logger.debug(s"Added cone instance $id at apex=($ax,$ay,$az) base=($bx,$by,$bz) radius=$r")
         case None =>
           logger.error(s"Failed to add cone instance at apex=($ax,$ay,$az)")

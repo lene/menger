@@ -14,37 +14,24 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### Issue M-texture-builder-gap: MISSING FEATURE — Cone and plane shaders don't support procedural/PBR textures
+### Issue M-texture-builder-gap: MISSING FEATURE — Cone and plane shaders don't support PBR map textures
 
 **Location**: `optix-jni/src/main/native/shaders/hit_cone.cu`, `hit_plane.cu`
 **Impact**: Medium
-**Debt Cost**: Moderate (1–2 days per geometry type: UV generation + shader sampling + Scala builder wiring)
+**Debt Cost**: Moderate (1–2 days per geometry type: UV generation + shader sampling)
 
-`hit_cone.cu` calls no texture functions at all. `hit_plane.cu` reads `texture_index` for the base color but does not call `getInstanceProceduralParams`, `applyProceduralTexture`, `applyNormalMap`, or `applyRoughnessMap`. Note: `PlaneSceneBuilder` already calls `setProceduralTexture` on the Scala side — but the shader silently ignores it (data written, never read).
+Procedural textures now work for both cone and plane (fixed in refactor commit). Image textures and PBR maps (normal map, roughness map) are still missing because `texture_index` is repurposed on both geometry types to index geometry data arrays (`cone_data` / `plane_data`), leaving no slot for image texture lookup. `applyNormalMap` / `applyRoughnessMap` also require UV coordinates which are not generated for these geometries.
 
-Adding texture support requires:
-1. UV coordinate generation in the intersection/hit shader for each geometry type
-2. Calling `getInstanceProceduralParams` + `applyProceduralTexture` in the closest-hit shader
-3. Calling `applyNormalMap` + `applyRoughnessMap` with the generated UVs
-4. Wiring `ConeSceneBuilder` through `TextureManager` and `applyInstanceTextures` (helper already in `SceneBuilder`)
+Adding image + PBR map support requires:
+1. UV coordinate generation in the hit shader (planar XZ for plane, cylindrical for cone)
+2. A separate image-texture index field (since `texture_index` is taken by geometry data)
+3. Calling `sampleInstanceTexture`, `applyNormalMap`, `applyRoughnessMap` with generated UVs
 
-**Recommendation**: Implement per geometry type as needed, following `hit_sphere.cu` as the reference implementation. Plane UV generation is straightforward (planar XZ mapping). Cone UV requires cylindrical mapping.
+**Recommendation**: Implement per geometry type when needed. Follow `hit_sphere.cu` as reference.
 
 ---
 
 ## Low Priority
-
-### Issue L-objectspec-parse-length: LONG_METHOD — ObjectSpec.parse() is 297 lines
-
-**Location**: `menger-app/src/main/scala/menger/ObjectSpec.scala:145–441`
-**Impact**: Low
-**Debt Cost**: Minor (3–4 h)
-
-The `parse()` for-comprehension is 297 lines. While each step delegates to a private helper, the chain is so long it's difficult to find where a specific field is parsed. New fields always go at the bottom, making the ordering arbitrary.
-
-**Recommendation**: Group related parse steps into named intermediate helpers that return `Either[String, PartialSpec]` (e.g. `parseTextureParams`, `parsePBRParams`, `parse4DParams`), then compose those in the top-level `parse()`. No functional change — purely organizational.
-
----
 
 ### Issue L-optixrenderer-size: LARGE_CLASS — OptiXRenderer at 995 lines, 65 public methods
 
