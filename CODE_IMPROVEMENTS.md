@@ -53,19 +53,6 @@ Adding image + PBR map support requires:
 
 ---
 
-### Issue M-scenebuilder-texture-orchestration-dup: DUPLICATION — texture load+apply loop copied across scene builders
-
-**Location**: `SphereSceneBuilder.scala:~40`, `ConeSceneBuilder.scala:~28`, `PlaneSceneBuilder.scala:~21`, `TriangleMeshSceneBuilder.scala:~69`
-**Impact**: Medium
-**Debt Cost**: Minor (2–8 h)
-
-The same orchestration is copy-pasted across four builders: `TextureManager.loadTextures(...)` → iterate specs → `MaterialExtractor.extract` → `applyInstanceTextures(...)`. `CubeSpongeSceneBuilder` omits it entirely (missing feature, not just duplication).
-
-The earlier `M-texture-wiring-duplication` was closed by hoisting `applyInstanceTextures` into the `SceneBuilder` trait; the surrounding load + iteration wrapper is still duplicated — partial regression.
-
-**Recommendation**: Hoist `loadAndApplyTextures(specs, renderer, textureDir)` into the `SceneBuilder` trait alongside the existing `applyInstanceTextures`, and wire `CubeSpongeSceneBuilder` through it.
-
----
 
 ### Issue M-interactiveengine-state-dup: DUPLICATION / LONG_METHOD — InteractiveEngine duplicate 4D state + repeated warning logic
 

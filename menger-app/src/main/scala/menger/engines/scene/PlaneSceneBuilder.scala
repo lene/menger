@@ -6,7 +6,7 @@ import menger.ObjectSpec
 import menger.common.Vector
 import menger.optix.OptiXRenderer
 
-class PlaneSceneBuilder extends SceneBuilder:
+class PlaneSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
     if specs.isEmpty then Left("Object specs list cannot be empty")
@@ -19,6 +19,7 @@ class PlaneSceneBuilder extends SceneBuilder:
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up ${specs.length} plane instances")
+    val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
     specs.foreach { spec =>
       val material = MaterialExtractor.extract(spec)
       val (nx, ny, nz) = spec.normal.getOrElse((0f, 1f, 0f))
@@ -30,7 +31,7 @@ class PlaneSceneBuilder extends SceneBuilder:
       val normal = Vector[3](nx, ny, nz)
       renderer.addPlaneInstance(normal, d, material, spec.color2, spec.checkerSize) match
         case Some(id) =>
-          applyInstanceTextures(id, spec, Map.empty, renderer)
+          applyInstanceTextures(id, spec, textureIndices, renderer)
           logger.debug(s"Added plane instance $id normal=($nx,$ny,$nz) distance=$d")
         case None =>
           logger.error(s"Failed to add plane instance normal=($nx,$ny,$nz) distance=$d")

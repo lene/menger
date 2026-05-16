@@ -31,7 +31,7 @@ import menger.optix.OptiXRenderer
  * addCubeInstancesForSpec() (lines 449-472),
  * addSingleCubeInstance() (lines 474-490).
  */
-class CubeSpongeSceneBuilder extends SceneBuilder:
+class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
     if specs.isEmpty then
@@ -52,18 +52,19 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] =
     val totalInstances = calculateInstanceCount(specs)
     logger.debug(s"Setting up ${specs.length} cube-sponge(s) generating $totalInstances total cube instances")
+    val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
 
     for
       _ <- setupBaseCubeMesh(renderer)
     yield
-      specs.foreach(addCubeInstancesForSpec(_, renderer))
+      specs.foreach(addCubeInstancesForSpec(_, renderer, textureIndices))
 
   private def setupBaseCubeMesh(renderer: OptiXRenderer): Try[Unit] = Try:
     // Create base cube mesh centered at origin with scale 1.0 (shared by all instances)
     val baseCube = Cube(center = Vector3(0f, 0f, 0f), scale = 1.0f)
     renderer.setTriangleMesh(baseCube.toTriangleMesh)
 
-  private def addCubeInstancesForSpec(spec: ObjectSpec, renderer: OptiXRenderer): Unit =
+  private def addCubeInstancesForSpec(spec: ObjectSpec, renderer: OptiXRenderer, textureIndices: Map[String, Int]): Unit =
     require(spec.level.isDefined, "cube-sponge requires level")
     val level = spec.level.get
     val material = MaterialExtractor.extract(spec)
@@ -79,7 +80,7 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
 
     // Add each cube as an instance
     generator.generateTransforms.foreach { case (position, scale, alpha) =>
-      addSingleCubeInstance(position, scale, material, renderer, spec.rotY, alpha, spec.proceduralType, spec.proceduralScale)
+      addSingleCubeInstance(position, scale, material, renderer, spec, textureIndices, spec.rotY, alpha)
     }
 
     logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
@@ -89,10 +90,10 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
     scale: Float,
     material: Material,
     renderer: OptiXRenderer,
+    spec: ObjectSpec,
+    textureIndices: Map[String, Int],
     rotY: Float = 0f,
-    alpha: Float = 1f,
-    proceduralType: Int = 0,
-    proceduralScale: Float = 1.0f
+    alpha: Float = 1f
   ): Unit =
     val effectiveMaterial =
       if alpha >= 0.9999f then material
@@ -110,8 +111,7 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
       case None =>
         logger.error(s"Failed to add cube instance at position=($position), scale=$scale")
       case Some(id) =>
-        if proceduralType != 0 then
-          renderer.setProceduralTexture(id, proceduralType, proceduralScale)
+        applyInstanceTextures(id, spec, textureIndices, renderer)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // All cube-sponges are compatible with each other

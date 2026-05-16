@@ -41,7 +41,7 @@ object GeometryRegistry:
       if types.forall(_ == "sphere") then
         Some(SphereSceneBuilder(textureDir))
       else if types.forall(_ == "cube-sponge") then
-        Some(CubeSpongeSceneBuilder())
+        Some(CubeSpongeSceneBuilder(textureDir))
       else if types.forall(ObjectType.isTriangleMesh) then
         val all4DProjected = types.forall(ObjectType.isProjected4D)
         val hasEdge        = specs.exists(_.hasEdgeRendering)
@@ -52,6 +52,6 @@ object GeometryRegistry:
       else if types.forall(_ == "cone") then
         Some(ConeSceneBuilder(textureDir))
       else if types.forall(_ == "plane") then
-        Some(PlaneSceneBuilder())
+        Some(PlaneSceneBuilder(textureDir))
       else
         None
