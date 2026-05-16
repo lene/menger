@@ -80,17 +80,6 @@ Rotation: 6 options each carrying the identical `a >= 0 && a < 360` validator (c
 
 ## Low Priority
 
-### Issue L-plane-checker-params: PARAMETERS / LONG_METHOD — addPlaneCheckerColorsWithMaterial: 7 params, ~68 lines
-
-**Location**: `optix-jni/src/main/scala/menger/optix/OptiXRenderer.scala:339`
-**Impact**: Low
-**Debt Cost**: Trivial–Minor
-
-Signature mixes plane geometry `(axis, positive, value)` + two colors + `Material` + `textureIndex` — a data clump spread over a long body.
-
-**Recommendation**: Introduce `PlaneSpec(axis, positive, value)` and `CheckerPattern(color1, color2)`; reduces params 7→4 and shrinks the body.
-
----
 
 ### Issue L-optixrenderer-size: LARGE_CLASS — OptiXRenderer at 995 lines, ~65 public methods
 
