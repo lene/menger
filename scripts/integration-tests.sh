@@ -443,6 +443,9 @@ test_textures() {
     run_test "procedural marble sphere" \
         --objects "type=sphere:pos=0,0,0:size=0.5:color=#DDCCBB:procedural=marble:proc-scale=1.5" \
         --plane y:-2
+    run_test "procedural xyz_rgb sponge" \
+        --objects "type=sponge-volume:level=1:pos=0,0,0:size=0.5:procedural=xyz_rgb:proc-scale=1.0" \
+        --plane y:-2
 }
 
 test_caustics() {

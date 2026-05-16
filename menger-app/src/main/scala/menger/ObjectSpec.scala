@@ -379,7 +379,8 @@ object ObjectSpec extends LazyLogging:
     "gradient"     -> 4,
     "wood"         -> 5,
     "marble"       -> 6,
-    "layered_noise" -> 7
+    "layered_noise" -> 7,
+    "xyz_rgb"       -> 8
   )
 
   private def parseProceduralType(kvPairs: Map[String, String]): Either[String, Int] =

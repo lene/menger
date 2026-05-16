@@ -79,7 +79,7 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
 
     // Add each cube as an instance
     generator.generateTransforms.foreach { case (position, scale, alpha) =>
-      addSingleCubeInstance(position, scale, material, renderer, spec.rotY, alpha)
+      addSingleCubeInstance(position, scale, material, renderer, spec.rotY, alpha, spec.proceduralType, spec.proceduralScale)
     }
 
     logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
@@ -90,7 +90,9 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
     material: Material,
     renderer: OptiXRenderer,
     rotY: Float = 0f,
-    alpha: Float = 1f
+    alpha: Float = 1f,
+    proceduralType: Int = 0,
+    proceduralScale: Float = 1.0f
   ): Unit =
     val effectiveMaterial =
       if alpha >= 0.9999f then material
@@ -107,8 +109,9 @@ class CubeSpongeSceneBuilder extends SceneBuilder:
     instanceId match
       case None =>
         logger.error(s"Failed to add cube instance at position=($position), scale=$scale")
-      case Some(_) =>
-        // Success - don't log each instance (too verbose for 8000+ cubes)
+      case Some(id) =>
+        if proceduralType != 0 then
+          renderer.setProceduralTexture(id, proceduralType, proceduralScale)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // All cube-sponges are compatible with each other
