@@ -54,17 +54,6 @@ Adding image + PBR map support requires:
 ---
 
 
-### Issue M-interactiveengine-state-dup: DUPLICATION / LONG_METHOD — InteractiveEngine duplicate 4D state + repeated warning logic
-
-**Location**: `menger-app/src/main/scala/menger/engines/InteractiveEngine.scala`
-**Impact**: Medium
-**Debt Cost**: Minor–Moderate
-
-`anim4DState` (line 91) and `cpu4DState` (line 98) are two `AtomicReference[Option[WithAnimation.Anim4DState]]` with identical structure, differing only GPU vs CPU. `warnIfHighLevel()` (line 225, ~51 L) repeats the same warning body across geometry types via match arms; `handleEvent()` (line 116, ~41 L) and `buildScene4DTrackedOrFallback()` (~44 L) are long with GPU/CPU branching.
-
-**Recommendation**: Merge the two references into a single `Scene4DCache(gpu, cpu)`; replace the repeated warning match arms with a data-driven `LevelWarningConfig` registry.
-
----
 
 
 ## Low Priority

@@ -83,20 +83,15 @@ class InteractiveEngine(
   private lazy val has4DObjects: Boolean =
     currentObjectSpecs.get().exists(_.exists(spec => ObjectType.isProjected4D(spec.objectType)))
 
-  /** Cached per-spec slot mapping enabling the GPU 4D-rotation fast path.
-    * Populated by `buildScene4DTracked` when the scene is 4D-only and
-    * `gpuProject4D` is on; cleared on any rebuild path that does not record
-    * slot indices. See `WithAnimation.Anim4DState` for the symmetric animation
-    * fast path. */
-  private val anim4DState: AtomicReference[Option[WithAnimation.Anim4DState]] =
-    new AtomicReference(None)
-
-  /** Cached per-spec CPU mesh slot indices for the CPU 4D-rotation fast path.
-    * Populated when the scene is 4D-only and `gpuProject4D` is off.
-    * On rotation, each spec is re-projected on CPU and its mesh is updated
-    * in-place via `updateCpuTriangleMesh` — no `clearAllInstances` needed. */
-  private val cpu4DState: AtomicReference[Option[WithAnimation.Anim4DState]] =
-    new AtomicReference(None)
+  /** Cached slot indices for the GPU (gpu) and CPU (cpu) 4D-rotation fast paths.
+    * Exactly one field is Some at a time: gpu when gpuProject4D is on,
+    * cpu when off. Both are None outside of a 4D-only scene. */
+  private case class Scene4DCache(
+    gpu: Option[WithAnimation.Anim4DState] = None,
+    cpu: Option[WithAnimation.Anim4DState] = None
+  )
+  private val scene4DCache: AtomicReference[Scene4DCache] =
+    new AtomicReference(Scene4DCache())
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
     camera.position,
@@ -165,7 +160,7 @@ class InteractiveEngine(
     renderer: menger.optix.OptiXRenderer
   ): Boolean =
     if !renderConfig.gpuProject4D then false
-    else anim4DState.get match
+    else scene4DCache.get.gpu match
       case None => false
       case Some(prev) =>
         if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
@@ -182,7 +177,7 @@ class InteractiveEngine(
                   )
                 }
           }
-          anim4DState.set(Some(prev.copy(specs = newSpecs)))
+          scene4DCache.set(scene4DCache.get.copy(gpu = Some(prev.copy(specs = newSpecs))))
           true
 
   /** Per-mesh CPU re-projection update path. Mirrors `tryRotation4DFastPath` but
@@ -198,7 +193,7 @@ class InteractiveEngine(
     renderer: menger.optix.OptiXRenderer
   ): Boolean =
     if renderConfig.gpuProject4D then false  // GPU path handles this
-    else cpu4DState.get match
+    else scene4DCache.get.cpu match
       case None => false
       case Some(prev) =>
         if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
@@ -213,65 +208,35 @@ class InteractiveEngine(
                 }
           }
           if success then
-            cpu4DState.set(Some(prev.copy(specs = newSpecs)))
+            scene4DCache.set(scene4DCache.get.copy(cpu = Some(prev.copy(specs = newSpecs))))
           success
 
-  // Level thresholds for warnings (based on triangle counts and performance)
-  private val VolumeLevelWarning = Const.Engine.spongeLevelWarningThreshold
-  private val SurfaceLevelWarning = Const.Engine.spongeLevelWarningThreshold
-  private val VolumeLevelMax = Const.Engine.cubeSpongeMaxLevel
-  private val SurfaceLevelMax = Const.Engine.cubeSpongeMaxLevel
+  private case class LevelConfig(warnLevel: Int, maxLevel: Int, estimateTriangles: Int => Long)
+  private val levelConfigs: Map[String, LevelConfig] = Map(
+    "sponge-volume"      -> LevelConfig(
+      Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel,
+      lvl => math.pow(Const.Engine.cubesPerSpongeLevel, lvl).toLong * Const.Engine.trianglesPerCube),
+    "sponge-surface"     -> LevelConfig(
+      Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel,
+      lvl => math.pow(Const.Engine.trianglesPerCube, lvl).toLong * 6 * 2),
+    "tesseract-sponge"   -> LevelConfig(
+      Const.Engine.tesseractSpongeWarnLevel, Const.Engine.tesseractSpongeMaxLevel,
+      TesseractSpongeMesh.estimatedTriangles),
+    "tesseract-sponge-2" -> LevelConfig(
+      Const.Engine.tesseractSponge2WarnLevel, Const.Engine.tesseractSponge2MaxLevel,
+      TesseractSponge2Mesh.estimatedTriangles),
+  )
 
   private def warnIfHighLevel(spec: ObjectSpec): Unit =
     spec.level.foreach { level =>
       val intLevel = level.toInt
-      spec.objectType match
-        case "sponge-volume" =>
-          if intLevel >= VolumeLevelWarning then
-            val estimatedTriangles =
-              math.pow(Const.Engine.cubesPerSpongeLevel, intLevel).toLong *
-              Const.Engine.trianglesPerCube
-            logger.warn(
-              s"Sponge level $intLevel may be slow " +
-              s"(~${estimatedTriangles / 1000}K triangles)"
-            )
-          if intLevel > VolumeLevelMax then
-            logger.error(s"Sponge level $intLevel exceeds recommended maximum ($VolumeLevelMax)")
-        case "sponge-surface" =>
-          if intLevel >= SurfaceLevelWarning then
-            val estimatedTriangles =
-              math.pow(Const.Engine.trianglesPerCube, intLevel).toLong * 6 * 2
-            logger.warn(
-              s"Sponge level $intLevel may be slow " +
-              s"(~${estimatedTriangles / 1000}K triangles)"
-            )
-          if intLevel > SurfaceLevelMax then
-            logger.error(s"Sponge level $intLevel exceeds recommended maximum ($SurfaceLevelMax)")
-        case "tesseract-sponge" =>
-          if intLevel >= Const.Engine.tesseractSpongeWarnLevel then
-            val triangles = TesseractSpongeMesh.estimatedTriangles(intLevel)
-            logger.warn(
-              s"tesseract-sponge level $intLevel may be slow " +
-              s"(~${triangles / 1000}K triangles)"
-            )
-          if intLevel > Const.Engine.tesseractSpongeMaxLevel then
-            logger.error(
-              s"tesseract-sponge level $intLevel exceeds recommended maximum " +
-              s"(${Const.Engine.tesseractSpongeMaxLevel})"
-            )
-        case "tesseract-sponge-2" =>
-          if intLevel >= Const.Engine.tesseractSponge2WarnLevel then
-            val triangles = TesseractSponge2Mesh.estimatedTriangles(intLevel)
-            logger.warn(
-              s"tesseract-sponge-2 level $intLevel may be slow " +
-              s"(~${triangles / 1000}K triangles)"
-            )
-          if intLevel > Const.Engine.tesseractSponge2MaxLevel then
-            logger.error(
-              s"tesseract-sponge-2 level $intLevel exceeds recommended maximum " +
-              s"(${Const.Engine.tesseractSponge2MaxLevel})"
-            )
-        case _ => // No warning for other types
+      levelConfigs.get(spec.objectType).foreach { cfg =>
+        val triangles = cfg.estimateTriangles(intLevel)
+        if intLevel >= cfg.warnLevel then
+          logger.warn(s"${spec.objectType} level $intLevel may be slow (~${triangles / 1000}K triangles)")
+        if intLevel > cfg.maxLevel then
+          logger.error(s"${spec.objectType} level $intLevel exceeds recommended maximum (${cfg.maxLevel})")
+      }
     }
 
   // Override BaseEngine default: auto-adjust maxInstances when user did not set it explicitly
@@ -405,15 +370,13 @@ class InteractiveEngine(
           val slotsPerSpec = specs.indices.map(i =>
             slotsBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
           ).toVector
-          anim4DState.set(Some(WithAnimation.Anim4DState(specs, slotsPerSpec)))
+          scene4DCache.set(Scene4DCache(gpu = Some(WithAnimation.Anim4DState(specs, slotsPerSpec))))
         else
-          anim4DState.set(None)
+          scene4DCache.set(Scene4DCache())
       }
-      result.recover { case _ => anim4DState.set(None) }
-      cpu4DState.set(None)
+      result.recover { case _ => scene4DCache.set(Scene4DCache()) }
       result
     else if !renderConfig.gpuProject4D && isCpu4DFastPathEligible(specs) then
-      anim4DState.set(None)
       val builder = TriangleMeshSceneBuilder(textureDir, gpuProject4D = false)(using profilingConfig)
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
       val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
@@ -421,13 +384,12 @@ class InteractiveEngine(
         // CPU path: one mesh per spec (fractional = merged single mesh),
         // slots are assigned sequentially starting from 0 after clearAllInstances.
         val slotsPerSpec = specs.indices.map(i => Vector(i)).toVector
-        cpu4DState.set(Some(WithAnimation.Anim4DState(specs, slotsPerSpec)))
+        scene4DCache.set(Scene4DCache(cpu = Some(WithAnimation.Anim4DState(specs, slotsPerSpec))))
       }
-      result.recover { case _ => cpu4DState.set(None) }
+      result.recover { case _ => scene4DCache.set(Scene4DCache()) }
       result
     else
-      anim4DState.set(None)
-      cpu4DState.set(None)
+      scene4DCache.set(Scene4DCache())
       buildSceneFromSpecs(specs, renderer)
 
   /** True iff this scene is eligible for the CPU 4D fast path:
@@ -453,15 +415,15 @@ class InteractiveEngine(
           if crossVisible.get then addCrossGeometry(renderer)
           cameraState.updateCamera(renderer, savedEye, savedLookAt, savedUp)
           // After a full rebuild the CPU mesh slots are reset to 0..N-1.
-          // Update cpu4DState so the fast path remains valid for subsequent rotations.
+          // Update scene4DCache.cpu so the fast path remains valid for subsequent rotations.
           if !renderConfig.gpuProject4D && isCpu4DFastPathEligible(specs) then
             val slotsPerSpec = specs.indices.map(i => Vector(i)).toVector
-            cpu4DState.set(Some(WithAnimation.Anim4DState(specs, slotsPerSpec)))
+            scene4DCache.set(scene4DCache.get.copy(cpu = Some(WithAnimation.Anim4DState(specs, slotsPerSpec))))
           else
-            cpu4DState.set(None)
+            scene4DCache.set(scene4DCache.get.copy(cpu = None))
           logger.debug("Scene rebuild complete")
         }.recover { case e =>
-          cpu4DState.set(None)
+          scene4DCache.set(scene4DCache.get.copy(cpu = None))
           logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
         }
       case None =>
