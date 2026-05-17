@@ -1,7 +1,7 @@
 # Sprint 21: Higher-Dimensional Fractals
 
 **Sprint:** 21 - Higher-Dimensional Fractals
-**Status:** Not Started
+**Status:** In Progress
 **Estimate:** ~16 hours
 **Branch:** `feature/sprint-21`
 **Dependencies:** Sprint 18 (18.3 — GPU 4D math), Sprint 19 (4D polychora as standalone)
@@ -19,6 +19,7 @@ using the GPU 4D math infrastructure from Sprint 18.
 - [ ] Higher-dimensional Sierpinski tetrahedron analogs work
 - [ ] Interactive parameter space exploration (1D, using existing `scene(t)` system)
 - [ ] Fractional levels work for `sponge-recursive-ias` (visual transition between integer levels)
+- [ ] Cone and plane geometry support image textures and PBR maps (normal-map, roughness-map)
 - [ ] All tests pass
 
 ---
@@ -111,6 +112,32 @@ The transition reveals the finer structure progressively.
 
 ---
 
+### Task 21.6: Cone and Plane Image Texture + PBR Map Support
+
+**Estimate:** 4h (CUDA)
+**Risk:** Moderate — requires CUDA shader changes and new struct fields
+**Resolves:** CODE_IMPROVEMENTS.md M-texture-builder-gap
+
+Cone and plane hit shaders currently support procedural textures but not image textures
+or PBR maps (`normal-map`, `roughness-map`). The blocker is that `texture_index` on both
+geometry types is repurposed to index the geometry data arrays (`cone_data` / `plane_data`),
+leaving no slot for an image texture lookup.
+
+**Implementation:**
+1. Add `image_texture_index` field to cone and plane instance data in `OptiXData.h`
+   (separate from `texture_index` which remains the geometry data index)
+2. `hit_plane.cu`: generate planar XZ UV coordinates; call `sampleInstanceTexture`,
+   `applyNormalMap`, `applyRoughnessMap` — follow `hit_sphere.cu` as reference
+3. `hit_cone.cu`: generate cylindrical UV coordinates; same calls
+4. Wire new field through `OptiXWrapper.cpp` and `JNIBindings.cpp`
+5. Expose via `addConeInstance` / `addPlaneInstance` in `OptiXMeshApi.scala` /
+   `OptiXPlaneApi.scala`; update scene builders to pass `textureIndex`
+
+**Verification:** Integration tests in `optix-jni/src/test/scala/menger/optix/TextureSuite.scala`
+covering cone + plane image texture and PBR maps; reference images committed.
+
+---
+
 ## Summary
 
 | Task | Description | Estimate | Dependencies |
@@ -120,7 +147,8 @@ The transition reveals the finer structure progressively.
 | 21.3 | Interactive parameter exploration (1D) | 3h | 21.1, 21.2 |
 | 21.4 | Fractional levels for IAS sponge | 2h | Sprint 19.10 |
 | 21.5 | Documentation | 2h | All |
-| **Total** | | **~16h** | |
+| 21.6 | Cone/plane image texture + PBR maps (CUDA) | 4h | Sprint 20 |
+| **Total** | | **~20h** | |
 
 ---
 
