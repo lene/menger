@@ -8,6 +8,25 @@ import menger.common.ObjectType
 import menger.common.TriangleMeshData
 import menger.optix.Material
 
+case class ObjectRotation(x: Float = 0f, y: Float = 0f, z: Float = 0f)
+
+case class ConeGeometry(
+  apex: Option[(Float, Float, Float)] = None,
+  base: Option[(Float, Float, Float)] = None,
+  radius: Option[Float] = None
+)
+
+case class PlaneGeometry(
+  normal: Option[(Float, Float, Float)] = None,
+  distance: Option[Float] = None,
+  color2: Option[Color] = None,
+  checkerSize: Float = 1.0f
+)
+
+case class ProceduralSpec(proceduralType: Int = 0, scale: Float = 1.0f)
+
+case class TextureMaps(normalMap: Option[String] = None, roughnessMap: Option[String] = None)
+
 /**
  * Object specification parsed from CLI --object flag.
  * Format: type=TYPE:key=value:key=value...
@@ -47,24 +66,28 @@ case class ObjectSpec(
   projection4D: Option[Projection4DSpec] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
-  rotX: Float = 0.0f,          // X-axis rotation in radians
-  rotY: Float = 0.0f,          // Y-axis rotation in radians
-  rotZ: Float = 0.0f,          // Z-axis rotation in radians
-  apex: Option[(Float, Float, Float)] = None,   // Cone apex position
-  base: Option[(Float, Float, Float)] = None,   // Cone base center position
-  radius: Option[Float] = None,                 // Cone base radius (overrides size/2)
-  normal: Option[(Float, Float, Float)] = None,   // Plane normal vector
-  distance: Option[Float] = None,                  // Plane distance from origin
-  color2: Option[Color] = None,                    // Checker secondary color (plane IS only)
-  checkerSize: Float = 1.0f,                       // Checker cell size in world units (plane IS only)
-  meshData: Option[TriangleMeshData] = None,
-  proceduralType: Int = 0,                          // 0=none, 1=value_noise, 2=fbm, 3=worley, 4=gradient, 5=wood, 6=marble, 7=layered_noise
-  proceduralScale: Float = 1.0f,                    // Noise coordinate scale
-  normalMap: Option[String] = None,                 // Normal map texture filename (Task 20.7)
-  roughnessMap: Option[String] = None               // Roughness map texture filename (Task 20.7)
+  rotation: ObjectRotation = ObjectRotation(),
+  cone: ConeGeometry = ConeGeometry(),
+  plane: PlaneGeometry = PlaneGeometry(),
+  procedural: ProceduralSpec = ProceduralSpec(),
+  textureMaps: TextureMaps = TextureMaps(),
+  meshData: Option[TriangleMeshData] = None
 ):
-  /** Returns true if edge rendering parameters are specified */
   def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined
+  def rotX: Float = rotation.x
+  def rotY: Float = rotation.y
+  def rotZ: Float = rotation.z
+  def proceduralType: Int = procedural.proceduralType
+  def proceduralScale: Float = procedural.scale
+  def normalMap: Option[String] = textureMaps.normalMap
+  def roughnessMap: Option[String] = textureMaps.roughnessMap
+  def apex: Option[(Float, Float, Float)] = cone.apex
+  def base: Option[(Float, Float, Float)] = cone.base
+  def radius: Option[Float] = cone.radius
+  def normal: Option[(Float, Float, Float)] = plane.normal
+  def distance: Option[Float] = plane.distance
+  def color2: Option[Color] = plane.color2
+  def checkerSize: Float = plane.checkerSize
 
 /**
  * 4D projection parameters for hypercube objects (tesseract, etc.).
@@ -164,30 +187,16 @@ object ObjectSpec extends LazyLogging:
       texture <- parseTexture(kvPairs)
       projection4D <- parse4DProjection(kvPairs, objType)
       edgeParams <- parseEdgeParameters(kvPairs, objType)
-      rotXDeg <- parseFloatParam(kvPairs, "rot-x", 0f, "X-axis rotation in degrees")
-      rotYDeg <- parseFloatParam(kvPairs, "rot-y", 0f, "Y-axis rotation in degrees")
-      rotZDeg <- parseFloatParam(kvPairs, "rot-z", 0f, "Z-axis rotation in degrees")
-      apex <- parseVector3(kvPairs, "apex")
-      base <- parseVector3(kvPairs, "base")
-      radius <- parseOptionalFloat(kvPairs, "radius", "cone base radius")
-      normal <- parseVector3(kvPairs, "normal")
-      distance <- parseOptionalFloat(kvPairs, "distance", "plane distance from origin")
-      color2 <- parseColorField(kvPairs, "color2")
-      checkerSize <- parseFloatParam(kvPairs, "checker-size", 1.0f, "checker cell size in world units")
-      proceduralType <- parseProceduralType(kvPairs)
-      proceduralScale <- parseFloatParam(kvPairs, "proc-scale", 1.0f, "procedural noise scale must be positive")
-      _ <- if proceduralScale <= 0f then Left("proc-scale must be positive") else Right(())
+      rotation <- parseRotation3DDeg(kvPairs)
+      coneGeom <- parseConeGeometry(kvPairs)
+      planeGeom <- parsePlaneGeometry(kvPairs)
+      procSpec <- parseProceduralSpec(kvPairs)
       _ <- validateSpongeLevel(objType, level)
-      normalMap <- parseMapTexture(kvPairs, "normal-map")
-      roughnessMap <- parseMapTexture(kvPairs, "roughness-map")
+      texMaps <- parseTextureMaps(kvPairs)
     yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D,
       edgeParams._1, edgeParams._2,
-      math.toRadians(rotXDeg.toDouble).toFloat,
-      math.toRadians(rotYDeg.toDouble).toFloat,
-      math.toRadians(rotZDeg.toDouble).toFloat,
-      apex, base, radius, normal, distance, color2, checkerSize,
-      proceduralType = proceduralType, proceduralScale = proceduralScale,
-      normalMap = normalMap, roughnessMap = roughnessMap)
+      rotation = rotation, cone = coneGeom, plane = planeGeom,
+      procedural = procSpec, textureMaps = texMaps)
 
     result match
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")
@@ -526,3 +535,42 @@ object ObjectSpec extends LazyLogging:
 
   private def parseEdgeColor(kvPairs: Map[String, String]): Either[String, Option[Color]] =
     parseColorField(kvPairs, "edge-color")
+
+  private def parseRotation3DDeg(kvPairs: Map[String, String]): Either[String, ObjectRotation] =
+    for
+      rotXDeg <- parseFloatParam(kvPairs, "rot-x", 0f, "X-axis rotation in degrees")
+      rotYDeg <- parseFloatParam(kvPairs, "rot-y", 0f, "Y-axis rotation in degrees")
+      rotZDeg <- parseFloatParam(kvPairs, "rot-z", 0f, "Z-axis rotation in degrees")
+    yield ObjectRotation(
+      math.toRadians(rotXDeg.toDouble).toFloat,
+      math.toRadians(rotYDeg.toDouble).toFloat,
+      math.toRadians(rotZDeg.toDouble).toFloat
+    )
+
+  private def parseConeGeometry(kvPairs: Map[String, String]): Either[String, ConeGeometry] =
+    for
+      apex <- parseVector3(kvPairs, "apex")
+      base <- parseVector3(kvPairs, "base")
+      radius <- parseOptionalFloat(kvPairs, "radius", "cone base radius")
+    yield ConeGeometry(apex, base, radius)
+
+  private def parsePlaneGeometry(kvPairs: Map[String, String]): Either[String, PlaneGeometry] =
+    for
+      normal <- parseVector3(kvPairs, "normal")
+      distance <- parseOptionalFloat(kvPairs, "distance", "plane distance from origin")
+      color2 <- parseColorField(kvPairs, "color2")
+      checkerSize <- parseFloatParam(kvPairs, "checker-size", 1.0f, "checker cell size in world units")
+    yield PlaneGeometry(normal, distance, color2, checkerSize)
+
+  private def parseProceduralSpec(kvPairs: Map[String, String]): Either[String, ProceduralSpec] =
+    for
+      proceduralType <- parseProceduralType(kvPairs)
+      proceduralScale <- parseFloatParam(kvPairs, "proc-scale", 1.0f, "procedural noise scale must be positive")
+      _ <- if proceduralScale <= 0f then Left("proc-scale must be positive") else Right(())
+    yield ProceduralSpec(proceduralType, proceduralScale)
+
+  private def parseTextureMaps(kvPairs: Map[String, String]): Either[String, TextureMaps] =
+    for
+      normalMap <- parseMapTexture(kvPairs, "normal-map")
+      roughnessMap <- parseMapTexture(kvPairs, "roughness-map")
+    yield TextureMaps(normalMap, roughnessMap)

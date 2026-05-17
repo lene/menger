@@ -2,8 +2,11 @@ package menger.dsl
 
 import scala.annotation.targetName
 
+import menger.ObjectRotation
 import menger.ObjectSpec
+import menger.ProceduralSpec
 import menger.Projection4DSpec
+import menger.TextureMaps
 import menger.common.ObjectType
 
 /** Base trait for all scene objects */
@@ -40,16 +43,12 @@ sealed trait SceneObject:
       ior = material.map(_.ior).getOrElse(ior),
       material = material.map(_.toOptixMaterial),
       texture = texture,
-      normalMap = normalMap,
-      roughnessMap = roughnessMap,
-      proceduralType = proceduralType,
-      proceduralScale = proceduralScale,
       projection4D = projection4D,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial,
-      rotX = rotation.x,
-      rotY = rotation.y,
-      rotZ = rotation.z,
+      rotation = ObjectRotation(rotation.x, rotation.y, rotation.z),
+      procedural = ProceduralSpec(proceduralType, proceduralScale),
+      textureMaps = TextureMaps(normalMap = normalMap, roughnessMap = roughnessMap),
       meshData = meshData
     )
 

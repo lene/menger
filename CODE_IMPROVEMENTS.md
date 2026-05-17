@@ -31,27 +31,6 @@ Adding image + PBR map support requires:
 
 ---
 
-### Issue M-objectspec-god-class: LARGE_CLASS / DATA_CLUMPS — ObjectSpec is a 528-line god class
-
-**Location**: `menger-app/src/main/scala/menger/ObjectSpec.scala`
-**Impact**: Medium
-**Debt Cost**: Moderate (1–3 days)
-
-~30-field case class plus a 297-line monolithic `parse()` (parse entry at line 145, helper parsers run to ~441). The same primitive groups repeat throughout the class and parser as data clumps:
-
-- position `(x, y, z)`
-- rotation 3D `(rotX, rotY, rotZ)`
-- rotation 4D `(rotXW, rotYW, rotZW)` + `projection4D`
-- material — appears 3× (main, edges, color2)
-- cone/plane geometry `(apex, base, radius, normal, distance, checkerSize)`
-- procedural `(proceduralType, proceduralScale)`
-- texture maps `(texture, normalMap, roughnessMap)`
-
-`parse()` is one long for-comprehension chaining 20+ validators with no typed intermediate stages, so an early failure blocks all later checks.
-
-**Recommendation**: Extract value objects (`Position3D`, `Rotation3D`, `Rotation4D`/`ProjectionSpec`, `MaterialSpec`, `ProceduralSpec`, `TextureMaps`) and split `parse()` into per-aspect parsers composed at the top level. Supersedes the previously-closed `L-objectspec-parse-length` with broader scope (the parser remains a monolith).
-
----
 
 
 

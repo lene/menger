@@ -1,5 +1,6 @@
 package menger.engines.scene
 
+import menger.ConeGeometry
 import menger.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -9,8 +10,7 @@ class ConeSceneBuilderTest extends AnyFlatSpec with Matchers:
   "ConeSceneBuilder.validate" should "accept a valid cone spec" in:
     val spec = ObjectSpec(
       objectType = "cone",
-      apex = Some((0f, 0.5f, 0f)),
-      base = Some((0f, -0.5f, 0f))
+      cone = ConeGeometry(apex = Some((0f, 0.5f, 0f)), base = Some((0f, -0.5f, 0f)))
     )
     val builder = ConeSceneBuilder()
     builder.validate(List(spec), 64) shouldBe Right(())

@@ -1,6 +1,7 @@
 package menger.dsl
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.ObjectRotation
 import menger.ObjectSpec
 import menger.cli.LightSpec
 import menger.cli.PlaneConfig
@@ -80,9 +81,11 @@ object SceneConverter extends LazyLogging:
       y    = world.translation.y + world.scale * spec.y,
       z    = world.translation.z + world.scale * spec.z,
       size = world.scale * spec.size,
-      rotX = world.rotation.x + spec.rotX,
-      rotY = world.rotation.y + spec.rotY,
-      rotZ = world.rotation.z + spec.rotZ
+      rotation = ObjectRotation(
+        world.rotation.x + spec.rotX,
+        world.rotation.y + spec.rotY,
+        world.rotation.z + spec.rotZ
+      )
     )
 
   private def applyInheritedMaterial(spec: ObjectSpec, inherited: Option[Material]): ObjectSpec =
