@@ -16,7 +16,7 @@
 |----|------|--------|------------|
 | TR-4 | Large sponge BVH build time | Poor UX | Cache geometry; async build |
 | TR-5 | JNI memory leaks | Gradual OOM | RAII patterns; dispose() enforcement |
-| TR-6 | LibGDX/OptiX input conflict | UI issues | Separate InputProcessors |
+| TR-6 | LibGDX input processor ordering | UI issues | Separate InputProcessors via OptiXInputMultiplexer |
 
 ### Low Risk
 
@@ -37,6 +37,7 @@
 | TD-4 | Caustics: multi-light and multi-plane not yet supported | Low | 4-8h (single light[0] and plane[0] only) |
 | TD-5 | ~~Cannot mix spheres with triangle meshes~~ — resolved Sprint 18.1 | Resolved | — |
 | TD-6 | Colored transparent shadows Phase 2 (multi-object) | Low | 4-8h (anyhit accumulation for overlapping transparent objects) |
+| TD-7 | Cone and plane shaders lack image texture + PBR map support | Medium | 1-2 days per geometry type (UV generation + shader sampling; see CODE_IMPROVEMENTS M-texture-builder-gap) |
 
 ### Deferred Features
 
@@ -46,6 +47,7 @@
 | Caustics (PPM) | Algorithm produces incorrect results | Branch preserved |
 | ~~Mixed geometry scenes~~ | Spheres + any triangle-mesh combination supported via per-instance multi-GAS IAS | Resolved (Sprint 18.1, TD-5) |
 | Colored transparent shadows Phase 2 | Phase 1 (closesthit, single-object) complete; Phase 2 anyhit accumulation for overlapping transparent objects remains | TD-6 |
+| Cone/plane image + PBR map textures | `texture_index` field repurposed for geometry data; UV coords not generated. Procedural textures work. Image textures and normal/roughness maps deferred. | TD-7 |
 
 ## 11.3 Common Issues and Solutions
 
@@ -93,9 +95,9 @@ sbt test --warn
 
 ### GPU Unavailable
 
-1. Fall back to LibGDX rendering (automatic)
-2. Skip OptiX tests (CI skips if no GPU)
-3. Use AWS EC2 spot instance
+1. Skip OptiX tests (CI skips if no GPU)
+2. Use AWS EC2 spot instance with GPU
+3. No software fallback renderer — OptiX is the sole renderer (AD-16)
 
 ### CI Failure
 

@@ -51,6 +51,8 @@ menger-app/src/main/scala/
     │   ├── SceneConverter.scala      # Converts DSL scenes to OptiX data
     │   ├── SceneLoader.scala         # Loads scenes by name from registry
     │   ├── SceneObject.scala         # SceneObject trait (incl. rotation: Vec3, Sprint 19.7)
+    │   │                             #   + normalMap, roughnessMap, proceduralType,
+    │   │                             #     proceduralScale on all objects (Sprint 20)
     │   │                             #   + case classes: Sphere, Cube, Sponge, Tesseract,
     │   │                             #     TesseractSponge, ParametricSurface
     │   ├── SceneRegistry.scala       # Registry of named scenes
@@ -66,10 +68,22 @@ menger-app/src/main/scala/
     │   └── CameraState.scala         # Camera state machine
     └── engines/
         ├── MengerEngine.scala        # Abstract base, geometry factory
-        ├── InteractiveMengerEngine.scala  # Interactive mode
+        ├── InteractiveMengerEngine.scala  # Interactive mode (uses Scene4DCache)
         ├── AnimatedMengerEngine.scala     # Animation mode
         ├── OptiXEngine.scala         # OptiX-based rendering engine
-        └── RenderEngine.scala        # Common engine trait
+        ├── RenderEngine.scala        # Common engine trait
+        └── scene/                    # Scene builder strategy layer
+            ├── SceneBuilder.scala         # Strategy trait; applyInstanceTextures helper
+            ├── SphereSceneBuilder.scala   # Sphere scene wiring
+            ├── ConeSceneBuilder.scala     # Cone scene wiring (procedural textures)
+            ├── PlaneSceneBuilder.scala    # Plane scene wiring (procedural textures)
+            ├── CubeSpongeSceneBuilder.scala
+            ├── TriangleMeshSceneBuilder.scala
+            ├── TesseractEdgeSceneBuilder.scala
+            ├── MaterialExtractor.scala
+            ├── MeshFactory.scala
+            ├── MeshUploadPlan.scala
+            └── TextureManager.scala
 ```
 
 ### 5.2.2 menger.objects (Geometry Layer)
@@ -122,9 +136,15 @@ and the 'C' key in interactive mode. Wired through `MengerCLIOptions` and
 ```
 optix-jni/
 ├── src/main/scala/menger/optix/
-│   ├── OptiXRenderer.scala       # Scala JNI interface
+│   ├── OptiXRenderer.scala       # Thin class — mixes in all 5 Api traits; holds nativeHandle
+│   ├── OptiXSphereApi.scala      # Sphere add/configure JNI bindings (private[optix] trait)
+│   ├── OptiXMeshApi.scala        # Triangle mesh upload/configure JNI bindings
+│   ├── OptiXPlaneApi.scala       # Plane add/configure JNI bindings
+│   ├── OptiXTextureApi.scala     # Texture upload, procedural texture, PBR map JNI bindings
+│   ├── OptiXRenderApi.scala      # Render, camera, lights, scene management JNI bindings
 │   ├── Material.scala            # Material definitions
-│   └── RenderConfig.scala        # Render configuration
+│   ├── RenderConfig.scala        # Render configuration (RenderConfig, RenderLimits, CausticsConfig)
+│   └── RenderHealth.scala        # GPU health / availability checks
 │
 └── src/main/native/
     ├── include/
@@ -137,8 +157,10 @@ optix-jni/
     └── shaders/
         ├── optix_shaders.cu      # Main entry point (includes all)
         ├── raygen_primary.cu     # Ray generation shader
-        ├── hit_sphere.cu         # Sphere intersection/closest hit
+        ├── hit_sphere.cu         # Sphere intersection/closest hit; PBR maps, spherical UV
         ├── hit_triangle.cu       # Triangle mesh closest hit
+        ├── hit_cone.cu           # Cone intersection/closest hit; procedural textures
+        ├── hit_plane.cu          # Plane closest hit; procedural textures
         ├── hit_cylinder.cu       # Cylinder edge intersection (4D edge rendering)
         ├── miss_plane.cu         # Miss shader (plane/background)
         ├── shadows.cu            # Shadow ray handling
@@ -154,10 +176,13 @@ optix-jni/
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         Scala Layer                                  │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  OptiXRenderer.scala                                          │   │
-│  │  - Native method declarations                                 │   │
-│  │  - Type-safe Scala API                                        │   │
-│  │  - Color/Material wrappers                                    │   │
+│  │  OptiXRenderer  (thin class — mixes in 5 responsibility       │   │
+│  │  traits, holds nativeHandle)                                  │   │
+│  │   ├── OptiXSphereApi   — sphere add/configure                 │   │
+│  │   ├── OptiXMeshApi     — triangle mesh upload/configure       │   │
+│  │   ├── OptiXPlaneApi    — plane add/configure                  │   │
+│  │   ├── OptiXTextureApi  — texture upload, procedural, PBR maps │   │
+│  │   └── OptiXRenderApi   — render, camera, lights, scene mgmt   │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └────────────────────────────────┬────────────────────────────────────┘
                                  │ JNI

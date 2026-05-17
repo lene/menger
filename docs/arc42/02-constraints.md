@@ -47,7 +47,7 @@ each with documented justification. All exceptions use `@SuppressWarnings` annot
 
 | Location | Var | Justification |
 |----------|-----|---------------|
-| `OptiXRenderer.scala` | `nativeHandle: Long` | JNI handle pattern - native code reads/writes this field directly via reflection. No functional alternative exists for JNI interop. |
+| `OptiXRenderer.scala` | `@volatile nativeHandle: Long` | JNI handle pattern — `@volatile` required so the JVM does not cache the value in a register; native code reads/writes this field directly via reflection. No functional alternative exists for JNI interop. |
 
 ### 2.5.2 LibGDX Camera Integration (OrbitCamera)
 

@@ -11,7 +11,10 @@
 | **GAS** | Geometry Acceleration Structure - OptiX structure for geometry traversal |
 | **IAS** | Instance Acceleration Structure - OptiX structure for multiple object instances |
 | **IOR** | Index of Refraction - ratio of light speed in vacuum vs medium |
+| **Normal Map** | Texture encoding per-texel surface normals to simulate fine surface detail without extra geometry |
 | **PBR** | Physically Based Rendering - materials based on physical properties |
+| **Procedural Texture** | GPU-computed texture pattern (e.g. checker, marble, wood) requiring no image file |
+| **Roughness Map** | Texture encoding per-texel surface roughness for PBR materials |
 | **PTX** | Parallel Thread Execution - NVIDIA intermediate shader format |
 | **Ray Tracing** | Rendering by simulating light ray paths |
 | **SBT** | Shader Binding Table - OptiX structure linking geometry to shaders |
@@ -46,11 +49,15 @@
 | Term | Definition |
 |------|------------|
 | **FractionalLevel** | Non-integer sponge level using alpha blending |
-| **LibGDX** | Cross-platform Java game framework (OpenGL) |
+| **LibGDX** | Cross-platform Java game framework (OpenGL); used for windowing and input only (AD-16) |
+| **ObjectSpec** | Parsed representation of a `--object` CLI flag; contains typed value objects for rotation, geometry, textures, procedural config |
 | **OptiX JNI** | Subproject containing native OptiX code |
+| **ProceduralSpec** | Value object holding `proceduralType` (int) and `scale` (float) for procedural textures |
 | **RotatedProjection** | Wrapper applying 4D rotation + projection |
+| **SceneBuilder** | Strategy trait for wiring a specific geometry type into the OptiX scene; provides `applyInstanceTextures` helper |
 | **SpongeBySurface** | Surface-subdivision sponge generator |
 | **SpongeByVolume** | Volume-subdivision sponge generator |
+| **TextureMaps** | Value object holding optional `normalMap` and `roughnessMap` file paths |
 
 ## Abbreviations
 

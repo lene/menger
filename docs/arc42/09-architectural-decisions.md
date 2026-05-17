@@ -250,7 +250,7 @@ OptiX.
 **Consequences:**
 - Users must provide `--objects` or `--scene` to render (no default object)
 - All rendering is physically-based ray tracing; no fast OpenGL fallback
-- `menger.gdx` package removed; classes moved to `menger.input` or `menger.objects`
+- LibGDX 3D scene graph and `ModelFactory` deleted; `menger.gdx` retained for windowing/input wrappers
 - Supersedes AD-2
 
 ---
@@ -401,6 +401,71 @@ O(N · 20) matrices instead of O(20ᴺ) triangles.
   for unbounded depth.
 - Recursive 4D variant (tesseract-sponge as IAS) is deferred to a later
   sprint.
+
+---
+
+### AD-21: OptiXRenderer Facade Split into Responsibility Traits (Sprint 20)
+
+**Status:** Accepted
+**Date:** 2026-05 (Sprint 20)
+
+**Context:** `OptiXRenderer.scala` had grown to ~995 lines, mixing JNI bindings for
+sphere management, mesh upload, plane configuration, texture handling, and render
+control into a single class. This violated the single-responsibility principle and
+made it hard to locate bindings for a specific subsystem.
+
+**Decision:** Extract five `private[optix]` traits, each covering one responsibility
+area, and reduce `OptiXRenderer` to a thin class that mixes them all in:
+- `OptiXSphereApi` — sphere add/configure JNI bindings
+- `OptiXMeshApi` — triangle mesh upload/configure
+- `OptiXPlaneApi` — plane add/configure
+- `OptiXTextureApi` — texture upload, procedural textures, PBR map wiring
+- `OptiXRenderApi` — render, camera, lights, scene management
+
+**Rationale:**
+- Each trait is locatable in one file; navigation time drops sharply.
+- `private[optix]` visibility keeps the split internal; external callers see
+  `OptiXRenderer` unchanged.
+- No JNI binding changes — purely a Scala-layer reorganization.
+
+**Consequences:**
+- `OptiXRenderer.scala` is now ~180 lines; each Api trait ~60–150 lines.
+- New JNI bindings go in the matching trait, not the catch-all class.
+- Section 2.5.1 constraint (`nativeHandle` var) still applies to `OptiXRenderer`.
+
+---
+
+### AD-22: ObjectSpec Value Object Extraction (Sprint 20)
+
+**Status:** Accepted
+**Date:** 2026-05 (Sprint 20)
+
+**Context:** `ObjectSpec` accumulated flat fields for rotation angles, cone geometry,
+plane geometry, procedural spec, and texture maps — 15+ fields in a single case class
+with no grouping. Adding new fields (e.g., Sprint 20 PBR maps) required touching the
+main constructor and every callsite.
+
+**Decision:** Extract five typed value objects as nested members of `ObjectSpec`:
+- `ObjectRotation(x, y, z: Float)` — 3D rotation angles in degrees
+- `ConeGeometry(apex, base, radius)` — cone shape parameters
+- `PlaneGeometry(normal, distance, color2, checkerSize)` — plane shape/material
+- `ProceduralSpec(proceduralType: Int, scale: Float)` — procedural texture config
+- `TextureMaps(normalMap, roughnessMap: Option[String])` — PBR map file references
+
+`ObjectSpec` exposes convenience forwarders (`def rotX`, `def normalMap`, etc.) so
+existing callsites compile unchanged.
+
+**Rationale:**
+- Grouped semantics reduce constructor length and cognitive load.
+- New fields in a group require a single value-object change, not an `ObjectSpec` diff.
+- Per-aspect private parse helpers (`parseRotation3DDeg`, `parseConeGeometry`, …)
+  align with the value objects, making `parse()` a straightforward composition.
+
+**Consequences:**
+- `ObjectSpec.parse()` delegates to per-aspect helpers; error messages carry context.
+- `SceneObject` DSL case classes expose the same fields (`normalMap`, `roughnessMap`,
+  `proceduralType`, `proceduralScale`) via `baseObjectSpec()`, which wraps them into
+  `ProceduralSpec` / `TextureMaps` at the boundary.
 
 ---
 
