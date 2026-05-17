@@ -27,6 +27,7 @@ scripts/test-diffs/
 
 .opencode/package-lock.json
 native/
+archive/
 
 # object files
 *.o
