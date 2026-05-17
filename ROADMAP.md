@@ -57,15 +57,18 @@ Strategic feature planning for the Menger ray tracing renderer.
 
 ## Planned Sprints
 
-### Sprint 21: Higher-Dimensional Fractals (~16h)
+### Sprint 21: Higher-Dimensional Fractals (~27h)
 
-**Goal:** Menger and Sierpinski analogs in 4D+, fractional IAS sponge levels
+**Goal:** Menger and Sierpinski analogs in 4D+, fractional IAS sponge levels, fog, animation demo
 
 - **21.1** 4D Menger sponge analog (5h)
 - **21.2** Higher-dimensional Sierpinski tetrahedron analogs (4h)
 - **21.3** Interactive parameter exploration (1D via scene(t)) (3h)
 - **21.4** Fractional levels for IAS sponge — Approach B: two IAS trees (2h)
 - **21.5** Documentation (2h)
+- **21.6** Cone/plane image texture + PBR maps (4h)
+- **21.7** Fog / depth cue (4h)
+- **21.8** Fractional-level sponge animation (3h)
 
 See [docs/sprints/SPRINT21.md](docs/sprints/SPRINT21.md)
 
@@ -87,7 +90,7 @@ Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 |------|-------------|------------|----------|
 | Depth of field | Camera aperture simulation, bokeh blur in raygen shader | Medium | Medium |
 | Wireframe rendering | Stylistic wireframe via OptiX edge geometry (thin cylinders) | Medium | Medium |
-| Fog / depth cue | Distance-based attenuation in shader | Low | Medium |
+| ~~Fog / depth cue~~ | Distance-based attenuation in shader — **moved to Sprint 21.7** | Low | Medium |
 | Sponge cutaways | 3D/4D sponge cross-sections via clipping planes | Medium | Medium |
 | Fractal subdivision on polychora | Use 16-cell, 24-cell, 600-cell as subdivision bases | High | Medium |
 | Parametric surface specializations | Spherical coordinates, spherical harmonics | Low | Medium |

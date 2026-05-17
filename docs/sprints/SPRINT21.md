@@ -2,7 +2,7 @@
 
 **Sprint:** 21 - Higher-Dimensional Fractals
 **Status:** In Progress
-**Estimate:** ~16 hours
+**Estimate:** ~27 hours
 **Branch:** `feature/sprint-21`
 **Dependencies:** Sprint 18 (18.3 — GPU 4D math), Sprint 19 (4D polychora as standalone)
 
@@ -20,6 +20,8 @@ using the GPU 4D math infrastructure from Sprint 18.
 - [ ] Interactive parameter space exploration (1D, using existing `scene(t)` system)
 - [ ] Fractional levels work for `sponge-recursive-ias` (visual transition between integer levels)
 - [ ] Cone and plane geometry support image textures and PBR maps (normal-map, roughness-map)
+- [ ] Fog/depth cue renders distance-based attenuation for all geometry
+- [ ] Fractional-level animation demo renders smooth level transition via `scene(t)`
 - [ ] All tests pass
 
 ---
@@ -138,6 +140,43 @@ covering cone + plane image texture and PBR maps; reference images committed.
 
 ---
 
+### Task 21.7: Fog / Depth Cue
+
+**Estimate:** 4h
+
+Distance-based attenuation in the raygen or closest-hit shader. Makes dense fractal
+cross-sections and deep sponge structures legible by fading geometry with distance.
+
+**Implementation:**
+1. Add `fog_density: Float` and `fog_color: Vec3` fields to scene/camera params
+   (or a top-level `fog { density=... color=... }` DSL block)
+2. In `raygen.cu` or `hit_triangle.cu`: apply exponential fog after shading —
+   `color = mix(fog_color, shaded_color, exp(-fog_density * hit_distance))`
+3. Expose via CLI (`--fog density=0.05:color=0.8,0.8,0.9`) and DSL
+4. Smoke test: render with fog enabled, assert pixel values differ from fog-off baseline
+
+**Notes:** No geometry changes. Pure shader addition. Low risk.
+
+---
+
+### Task 21.8: Fractional-Level Sponge Animation
+
+**Estimate:** 3h
+**Depends on:** 21.3, 21.4
+
+Demo animation using `scene(t)` to sweep `fractionalLevel` from 1.0 to 4.0,
+producing a smooth visual transition through sponge levels. Natural showcase of both
+the fractional-level blending (21.4) and the animation system (21.3).
+
+**Implementation:**
+1. Ensure `fractionalLevel` is exposed as a `scene(t)`-bindable parameter on
+   `sponge-recursive-ias` objects (same wiring as rotation angles in 21.3)
+2. Write example scene file `examples/sponge-level-animation.menger` that sweeps level
+   1.0 → 4.0 over t ∈ [0,1]
+3. Add to user guide as example animation
+
+---
+
 ## Summary
 
 | Task | Description | Estimate | Dependencies |
@@ -148,7 +187,9 @@ covering cone + plane image texture and PBR maps; reference images committed.
 | 21.4 | Fractional levels for IAS sponge | 2h | Sprint 19.10 |
 | 21.5 | Documentation | 2h | All |
 | 21.6 | Cone/plane image texture + PBR maps (CUDA) | 4h | Sprint 20 |
-| **Total** | | **~20h** | |
+| 21.7 | Fog / depth cue | 4h | — |
+| 21.8 | Fractional-level sponge animation | 3h | 21.3, 21.4 |
+| **Total** | | **~27h** | |
 
 ---
 
