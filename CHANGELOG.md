@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.6.1] - 2026-05-17
+
+### Added
+- **Image textures** (Sprint 20.1/20.2) — PNG/JPG/HDR/EXR texture loading for spheres and mesh
+  geometry; spherical UV mapping for sphere hit shader; `--texture-dir` flag for base path
+- **PBR normal and roughness maps** (Sprint 20.7) — `normal-map` and `roughness-map` per-object
+  parameters; applied via `setMapTextures` in OptiX hit shaders
+- **Procedural textures** (Sprint 20.4/20.8/20.12/20.13) — 11 GPU-computed types: ValueNoise,
+  FBM, Worley, Gradient, Wood, Marble, LayeredNoise, XYZToRGB, HeatMap, Triplanar; all available
+  for sphere, cone, plane, and mesh geometry via `procedural-type` / `procedural-scale` params
+- **Environment map / IBL** (Sprint 20.3) — equirectangular HDR/EXR environment maps via
+  `--env-map`; contributes to scene lighting (IBL) and background skybox
+- **DSL texture syntax** (Sprint 20.10) — `texture`, `normalMap`, `roughnessMap`,
+  `proceduralType`, `proceduralScale` exposed on all `SceneObject` DSL types
+
+### Changed
+- **ObjectSpec value objects** — grouped flat fields into typed value objects: `ObjectRotation`,
+  `ConeGeometry`, `PlaneGeometry`, `ProceduralSpec`, `TextureMaps`; backward-compatible via
+  forwarding accessors
+- **OptiXRenderer facade split** — 995-line god class refactored into 5 responsibility traits
+  (`OptiXSphereApi`, `OptiXMeshApi`, `OptiXPlaneApi`, `OptiXTextureApi`, `OptiXRenderApi`);
+  external API unchanged
+- **PlaneSpec / CheckerPattern value objects** — `addPlaneCheckerColorsWithMaterial` now accepts
+  `PlaneSpec(axis, positive, value)` and `CheckerPattern(color1, color2)` overloads
+- **Scene4DCache** — merged `anim4DState` / `cpu4DState` `AtomicReference` pair into single
+  `Scene4DCache` in `InteractiveEngine`
+- **CLI validator consolidation** — extracted `isDegree` validator and `requiresCausticsFlag`
+  helper in `MengerCLIOptions`
+
+### Removed
+- Legacy `miss_plane.cu` plane intersection path (Sprint 20.5)
+- Legacy CPU 4D projection path (`Mesh4D`, `RotatedProjection`) (Sprint 20.6)
+
+---
+
 ## [0.6.0] - 2026-05-14
 
 ### Added

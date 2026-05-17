@@ -1,14 +1,14 @@
 # Current Sprint
 
-**Sprint:** 20 - Materials, Textures & Backgrounds
+**Sprint:** 21
 **Status:** In Progress
-**Branch:** `feature/sprint-20`
+**Branch:** `feature/sprint-21`
 
 ---
 
 ## Goal
 
-See [SPRINT20.md](SPRINT20.md) for detailed task breakdown and implementation plan.
+See [SPRINT21.md](SPRINT21.md) for detailed task breakdown and implementation plan.
 
 ---
 

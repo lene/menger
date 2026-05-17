@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-05-14
+**Last Updated:** 2026-05-17
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -23,8 +23,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.5.7 | Animation & Architecture Foundations | Complete | LibGDX removal, scene graph, engine traits, animation tooling, DSL (Sprint 17) |
 | v0.5.8 | GPU Infrastructure | Complete | Multi-GAS IAS, IS programs, GPU 4D math, recursive IAS sponge, maxRayDepth CLI (Sprint 18) |
 | v0.6.0 | Advanced Geometry | Complete | Platonic solids, 4-polychora, cone, coordinate cross, geometry registry, 3D rotation, render stats (Sprint 19) |
-| v0.9 | Textures & Materials | Planned | Image textures, procedural textures, PBR maps, environment maps (Sprint 20) |
-| v1.0 | Higher-Dimensional Fractals | Planned | 4D Menger/Sierpinski analogs, parameter exploration (Sprint 21) |
+| v0.6.1 | Textures & Materials | ✅ Complete | Image textures, procedural textures, PBR maps, environment maps (Sprint 20) |
+| v0.7.0 | Higher-Dimensional Fractals | 🔄 In Progress | 4D Menger/Sierpinski analogs, fractional IAS sponge levels (Sprint 21) |
 
 ---
 
@@ -51,27 +51,11 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 17 | Animation Tooling, DSL & Architecture Foundations | Complete | [docs/archive/sprints/SPRINT17.md](docs/archive/sprints/SPRINT17.md) |
 | 19 | Advanced Geometry | Complete | [docs/archive/sprints/SPRINT19.md](docs/archive/sprints/SPRINT19.md) |
 | 18 | GPU Infrastructure | Complete | [docs/archive/sprints/SPRINT18.md](docs/archive/sprints/SPRINT18.md) |
+| 20 | Materials, Textures & Backgrounds | Complete | [docs/archive/sprints/SPRINT20.md](docs/archive/sprints/SPRINT20.md) |
 
 ---
 
 ## Planned Sprints
-
-### Sprint 20: Materials, Textures & Backgrounds (~21h)
-
-**Goal:** Image textures, procedural textures, PBR maps, environment backgrounds
-
-- **20.1** Image texture loading infrastructure (3h)
-- **20.2** UV generation for all geometry (3h)
-- **20.3** Background / environment maps / skybox (3h)
-- **20.4** Procedural texture infrastructure in shaders (4h)
-- **20.5** Wood, marble, noise procedural textures (2h)
-- **20.6** Sponge XYZ→RGB procedural texture (1h)
-- **20.7** PBR texture maps: normal + roughness maps (3h)
-- **20.8** Documentation (2h)
-
-**MILESTONE: v0.8 — Textures & Materials**
-
-See [docs/sprints/SPRINT20.md](docs/sprints/SPRINT20.md)
 
 ### Sprint 21: Higher-Dimensional Fractals (~16h)
 

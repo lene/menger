@@ -1,7 +1,7 @@
 # Sprint 20: Materials, Textures & Backgrounds
 
 **Sprint:** 20 - Materials, Textures & Backgrounds
-**Status:** In Progress
+**Status:** Complete — released as v0.6.1
 **Estimate:** ~29 hours
 **Branch:** `feature/sprint-20`
 **Dependencies:** Sprint 19 (geometry registry, analytical primitives), Sprint 18 (IS programs)
@@ -31,8 +31,8 @@ intersection, CPU 4D projection) and adds triplanar UV mapping and heat map text
 - [x] Heat map / color-by-intensity procedural texture available
 - [x] Legacy miss_plane.cu plane intersection path removed
 - [x] Legacy CPU 4D path (Mesh4D, RotatedProjection) removed
-- [ ] `docs/guide/user-guide.md` materials/textures section updated
-- [ ] All tests pass
+- [x] `docs/guide/user-guide.md` materials/textures section updated
+- [x] All tests pass
 
 ---
 
@@ -253,12 +253,12 @@ a color gradient. Useful for visualization and debugging, and as an artistic eff
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing
-- [ ] Full pre-push hook passes
-- [ ] Code quality checks pass: `sbt "scalafix --check"`
-- [ ] CHANGELOG.md updated
-- [ ] `docs/guide/user-guide.md` materials/textures section updated
+- [x] All success criteria met
+- [x] All tests passing
+- [x] Full pre-push hook passes
+- [x] Code quality checks pass: `sbt "scalafix --check"`
+- [x] CHANGELOG.md updated
+- [x] `docs/guide/user-guide.md` materials/textures section updated
 - [ ] Example renders showing procedural textures and environment maps
 
 ---

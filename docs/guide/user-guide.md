@@ -1,6 +1,6 @@
 # Menger — Usage & Rendering
 
-**Version**: 0.6.0
+**Version**: 0.6.1
 **Last Updated**: May 2026
 
 ← [Quick Start](quickstart.md) | [User Guide Index](../USER_GUIDE.md)
@@ -594,6 +594,101 @@ sbt "run --optix --objects 'type=sphere:metallic=1.0:roughness=0.5'"
 # Semi-transparent colored sphere
 sbt "run --optix --objects 'type=sphere:color=#FF000080:ior=1.3'"
 ```
+
+### Textures — *Sprint 20*
+
+#### Image Textures
+
+Assign an image texture (PNG, JPG, HDR, EXR) to any object via the `texture` parameter:
+
+```bash
+--objects 'type=sphere:texture=path/to/texture.png'
+--objects 'type=cube:texture=path/to/texture.jpg'
+--objects 'type=sponge:texture=path/to/texture.hdr'
+```
+
+Textures are loaded relative to the working directory unless an absolute path is given.
+The `--texture-dir` flag sets a base directory for all relative texture paths.
+
+```bash
+sbt "run --optix --texture-dir assets/textures \
+    --objects 'type=sphere:texture=marble.png'"
+```
+
+#### PBR Map Textures
+
+Normal maps and roughness maps can be applied to spheres and mesh geometry:
+
+```bash
+--objects 'type=sphere:normal-map=surface_normal.png:roughness-map=surface_rough.png'
+```
+
+| Parameter | Effect |
+|-----------|--------|
+| `normal-map=FILE` | Per-texel surface normals — simulates fine geometric detail |
+| `roughness-map=FILE` | Per-texel roughness — varies surface reflectivity across the surface |
+
+Both maps use the same `--texture-dir` base path as image textures.
+
+#### Procedural Textures
+
+11 GPU-computed procedural textures require no image files:
+
+```bash
+--objects 'type=sphere:procedural-type=2:procedural-scale=1.5'
+```
+
+| `procedural-type` | Name | Description |
+|-------------------|------|-------------|
+| 0 | None | No procedural texture |
+| 1 | ValueNoise | Smooth value noise |
+| 2 | FBM | Fractional Brownian Motion layered noise |
+| 3 | Worley | Cellular / Voronoi noise |
+| 4 | Gradient | Linear gradient |
+| 5 | Wood | Concentric ring pattern |
+| 6 | Marble | Veined marble pattern |
+| 7 | LayeredNoise | Multi-octave layered noise |
+| 8 | XYZToRGB | Position → RGB (useful for sponges) |
+| 9 | HeatMap | Intensity → color ramp (blue→red) |
+| 10 | Triplanar | Triplanar blend of value noise (no seams on polytopes) |
+
+`procedural-scale` controls the feature size (default 1.0; larger = coarser pattern).
+
+#### Environment Maps — IBL
+
+Set an HDR/EXR equirectangular environment map for image-based lighting:
+
+```bash
+sbt "run --optix --env-map path/to/environment.hdr"
+```
+
+The environment map contributes to both scene lighting (IBL) and the background skybox.
+
+#### DSL Texture Syntax
+
+All texture parameters are available in the Scala DSL:
+
+```scala
+Sphere(
+  pos = Vec3(0, 0, 0),
+  material = Material(roughness = 0.1f),
+  texture = Some("marble.png"),
+  normalMap = Some("marble_normal.png"),
+  roughnessMap = Some("marble_rough.png")
+)
+
+// Procedural texture
+Cube(
+  pos = Vec3(2, 0, 0),
+  proceduralType = ProceduralType.FBM,
+  proceduralScale = 2.0f
+)
+
+// Environment map
+scene.envMap = "studio.hdr"
+```
+
+---
 
 ### Lighting Setup
 

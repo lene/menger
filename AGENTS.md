@@ -52,7 +52,7 @@ Your bash tool has known limitations. Follow these workarounds:
 - **Never `git add -A`** - add files explicitly
 - **Never commit automatically** - always show diff for user review first
 - **Never push without explicit user confirmation** - commit locally, then wait for the user to say "push" before running `git push`
-- **Never commit failing tests** - all tests must pass before commit (run `sbt test`)
+- **Never commit failing tests** - all tests must pass before commit (ensured by commit hook)
 - **Never commit test changes without investigation** - follow TEST FAILURE PROTOCOL
 - when fetching, always use the --all --tags options
 
