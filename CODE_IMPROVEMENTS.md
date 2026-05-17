@@ -38,17 +38,6 @@ Adding image + PBR map support requires:
 ## Low Priority
 
 
-### Issue L-optixrenderer-size: LARGE_CLASS — OptiXRenderer at 995 lines, ~65 public methods
-
-**Location**: `optix-jni/src/main/scala/menger/optix/OptiXRenderer.scala`
-**Impact**: Low
-**Debt Cost**: Major (split across several sprints)
-
-Re-measured 2026-05-16: 995 lines, ~65 public methods, 2 long methods (both justified Scala→C++ marshalling). Single class wraps the entire OptiX JNI surface: geometry upload, instance management, camera, lights, render params, texture upload, stats, caustics. Growth since last review is organic — no anomalous increase.
-
-**Recommendation**: Consider splitting by concern into focused facades (e.g. `SphereRenderer`, `MeshRenderer`, `PlaneRenderer`, `TextureFacade`, `IASInstanceManager`) that delegate to the underlying JNI class. The JNI native methods can stay in one class; the Scala API is where grouping helps. Non-blocking — revisit only if the public method count exceeds ~80.
-
----
 
 ## Feature Ideas (Sprint 20+)
 
