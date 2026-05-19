@@ -548,6 +548,10 @@ interactive_tests=(
     "120-cell:-o --objects type=120-cell:size=0.8:material=film --cross"
     "600-cell gold edges:-o --objects type=600-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.01"
     "120-cell chrome edges:-o --objects type=120-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.015"
+    "Menger4D L1 glass:-o --objects type=menger4d:level=1:material=glass"
+    "Menger4D L3 chrome:-o --objects type=menger4d:level=3:material=chrome"
+    "Menger4D L4 matte:-o --objects type=menger4d:level=4:material=matte"
+    "Menger4D two objects (L2+L3):-o --objects type=menger4d:level=2:pos=-0.8,0,0 --objects type=menger4d:level=3:pos=0.8,0,0"
 )
 
 echo "Available interactive tests:"
