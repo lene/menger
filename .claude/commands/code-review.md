@@ -1,669 +1,291 @@
-# Claude Code Quality Review Command
+# Code Review (Scala + JNI + CUDA)
 
-This is a comprehensive code quality review command for analyzing the entire codebase in a Git repository, focusing on clean code principles, architectural patterns, and maintainability.
+A review procedure for this project's stack: Scala 3 business logic, a JNI bridge, and C++/CUDA (including OptiX) on the native side.
 
-## Command Metadata
+The goal is **depth over breadth**. A short review that names two real architectural problems with concrete evidence is more valuable than a long review of style smells. You are not a linter — Scalafix, WartRemover, and clang-tidy already exist. Your job is what they can't do: reason across the seam, across files, and about the architecture as a whole.
 
-| Field | Value |
-|-------|-------|
-| **Allowed Tools** | Bash (git status, git log, git diff, git ls-files), Read, Glob, Grep, LSP, Task |
-| **Purpose** | Perform enterprise-grade code quality assessment of the entire codebase |
+## Output
 
-## Core Functionality
+Write findings to `CODE_IMPROVEMENTS.md`. See the "Reporting" section at the end. **Do not read it until step 4** — see "Why" in that section.
 
-You are a senior software architect and code quality expert conducting a comprehensive codebase review.
+---
 
-### Git Context Gathering
+## Phase 0 — Run the deterministic tools first
 
-```bash
-!`git status`                    # Current branch status
-!`git log -10 --oneline`         # Recent commit history
-!`git ls-files '*.scala' '*.java' '*.cpp' '*.cu' '*.h'` # All source files
-!`git diff --stat origin/main...` # Changes from main (if applicable)
-```
-
-### Existing Review File Check
-
-**CRITICAL FIRST STEP**: Before starting the review, read `CODE_IMPROVEMENTS.md` if it exists:
+Before reading any source code, run whatever's available. You are layering on top of these tools, not duplicating them.
 
 ```bash
-!`test -f CODE_IMPROVEMENTS.md && echo "EXISTS" || echo "NEW"`
+# Scala side — run whichever exist in the project
+sbt scalafixAll --check 2>&1 | tee /tmp/review-scalafix.log     || true
+sbt 'set ThisBuild / scalacOptions += "-Wunused:all"' compile 2>&1 | tee /tmp/review-scalac.log || true
+sbt scapegoat 2>&1 | tee /tmp/review-scapegoat.log              || true
+# WartRemover usually runs as part of compile; capture its output above.
+
+# ArchUnit — if the project has architecture tests, run them. They enforce
+# package/layer rules, cycle detection, etc. as failing JUnit tests.
+# Detect by searching for ArchUnit imports in test sources.
+grep -rln 'com.tngtech.archunit' src/test 2>/dev/null && \
+  sbt 'testOnly *Arch*' 2>&1 | tee /tmp/review-archunit.log || \
+  echo "no ArchUnit tests found" | tee /tmp/review-archunit.log
+
+# Native side
+find . -name '*.cpp' -o -name '*.cu' -o -name '*.h' | head -1 >/dev/null && {
+  # If a compile_commands.json exists, prefer it; otherwise skip and note it.
+  test -f compile_commands.json && \
+    clang-tidy -p . $(git ls-files '*.cpp' '*.cu') 2>&1 | tee /tmp/review-clangtidy.log || \
+    echo "no compile_commands.json — clang-tidy skipped" | tee /tmp/review-clangtidy.log
+  cppcheck --enable=warning,performance,portability --inline-suppr \
+    $(git ls-files '*.cpp' '*.h') 2>&1 | tee /tmp/review-cppcheck.log || true
+}
+
+# Sizes — used later, not as findings themselves
+git ls-files '*.scala' '*.cpp' '*.cu' '*.h' | xargs wc -l 2>/dev/null | sort -rn > /tmp/review-sizes.txt
 ```
 
-**If CODE_IMPROVEMENTS.md exists**:
-1. **Read the entire file** using the Read tool
-2. **Extract existing issues**: Note all issue IDs, descriptions, and current status
-3. **Understand context**: Review historical findings and priorities
-4. **Plan update strategy**: You will UPDATE the file, not replace it
+If a tool is missing or not configured, note it in the report under "Tooling gaps" and move on. **Do not re-implement what these tools do.** Anything they already flag goes into a single summary line in the report (e.g., "Scalafix: 47 violations, see scalafix output") — not as individual findings.
 
-**During the review**:
-- Cross-reference new findings with existing issues
-- Remove resolved issues entirely (git history is the record)
-- Update issue severity/priority if changed
-- Add new issues with new IDs (continue numbering)
+If a tool fails to run for environmental reasons (missing `compile_commands.json`, no GPU, sbt task missing), that's itself a finding: the project has gaps in its deterministic review layer.
 
-**If CODE_IMPROVEMENTS.md does not exist**:
-- Create a new file from scratch
-- Start issue numbering at 1
+---
 
-## Objective
+## Phase 1 — Map the architecture (don't review yet)
 
-Perform **holistic code quality assessment** of the **ENTIRE CODEBASE** to identify architectural improvements, code smells, and maintainability issues. Assess both existing code and recent changes, as new introductions may reveal:
-1. Previously overlooked problematic patterns
-2. New opportunities for abstraction or refactoring
-3. Architectural inefficiencies that weren't apparent before
-4. Inconsistencies in implementation patterns
+Spend the first pass building a mental model, not finding issues. Write nothing to the report yet.
 
-### Critical Instructions
+```bash
+# Module layout
+git ls-files | sed 's|/[^/]*$||' | sort -u | head -50
 
-1. **WHOLE-CODEBASE ANALYSIS**: Review ALL source files, not just recent changes
-2. **ACTIONABLE FINDINGS**: Provide specific, actionable recommendations with file:line references
-3. **IMPACT-FOCUSED**: Prioritize issues by maintainability impact and technical debt cost
-4. **PATTERN RECOGNITION**: Identify recurring anti-patterns across the codebase
-5. **BALANCE**: Highlight both problems AND well-implemented patterns to learn from
+# Scala package structure
+git ls-files '*.scala' | sed 's|/[^/]*\.scala$||' | sort -u
 
-## Code Quality Dimensions
+# JNI surface — both sides
+grep -rn 'extern "C"' --include='*.cpp' --include='*.h' .
+grep -rn '@native' --include='*.scala' .
+grep -rn 'JNIEXPORT\|JNICALL' --include='*.cpp' --include='*.h' .
 
-### 1. Clean Code Principles
+# CUDA kernel launches and the OptiX surface
+grep -rn '<<<' --include='*.cu' --include='*.cpp' .
+grep -rn 'optix\(Launch\|PipelineCreate\|ProgramGroupCreate\)' --include='*.cpp' --include='*.cu' .
 
-#### Naming & Clarity
-- **Descriptive naming**: Functions, classes, variables clearly express intent
-- **Avoid abbreviations**: Except domain-standard acronyms (HTTP, URL, etc.)
-- **Consistent terminology**: Same concepts use same names throughout
-- **Business language**: Code reflects domain vocabulary (ubiquitous language)
+# Resource lifetimes
+grep -rn 'cudaMalloc\|cudaFree\|cuMemAlloc' --include='*.cpp' --include='*.cu' --include='*.h' .
+grep -rn 'NewGlobalRef\|DeleteGlobalRef\|NewLocalRef' --include='*.cpp' .
+```
 
-#### Function Design
-- **Single Responsibility Principle (SRP)**: Each function does ONE thing
-- **Small functions**: Target <20 lines, max 50 lines
-- **Few parameters**: Prefer <4 parameters, max 6
-- **Command-Query Separation**: Functions either DO something or RETURN something, not both
-- **No side effects**: Pure functions preferred, side effects isolated and explicit
+Identify:
+- The **JNI surface area**: which Scala classes have `@native` methods, which C++ functions implement them. List them.
+- The **ownership model**: who allocates GPU memory, who frees it, how that responsibility crosses the JNI boundary.
+- The **error-propagation path**: how a `cudaError_t` or OptiX error becomes something Scala sees.
+- The **threading model**: are JNI calls made from one thread or many? Is the CUDA context per-thread or shared?
 
-#### Class Design
-- **Single Responsibility**: Each class has one reason to change
-- **Small classes**: Target <200 lines, max 400 lines
-- **High cohesion**: Related functionality grouped together
-- **Low coupling**: Minimal dependencies between classes
-- **Encapsulation**: Internal state properly hidden
+Write this map down in scratch (your own notes, not the report). It is the frame for everything that follows.
 
-### 2. Code Smells
+---
 
-#### Bloaters
-- **Long Method**: Functions >50 lines
-- **Large Class**: Classes >400 lines or >10 public methods
-- **Primitive Obsession**: Using primitives instead of domain objects
-- **Long Parameter List**: >4 parameters in function signature
-- **Data Clumps**: Same group of variables appearing together repeatedly
+## Phase 2 — Review the seams (this is where the value is)
 
-#### Object-Oriented Abusers (for OO code)
-- **Switch Statements**: Large switch/match expressions that should be polymorphism
-- **Temporary Field**: Fields only used in certain circumstances
-- **Refused Bequest**: Subclasses not using inherited methods
-- **Alternative Classes with Different Interfaces**: Classes doing similar things with different method names
+Use the `Task` tool to spawn focused sub-agents in parallel, one per seam. Each gets a narrow remit and a small set of files. Do **not** ask any sub-agent to "review the codebase."
 
-#### Change Preventers
-- **Divergent Change**: One class changed for many different reasons
-- **Shotgun Surgery**: One change requires modifying many classes
-- **Parallel Inheritance Hierarchies**: Adding subclass forces adding another elsewhere
+### Seam 1 — The JNI boundary
 
-#### Dispensables
-- **Comments**: Excessive comments explaining what code does (code should be self-explanatory)
-- **Duplicate Code**: Identical or very similar code in multiple places
-- **Lazy Class**: Classes not doing enough to justify existence
-- **Data Class**: Classes with only fields and getters/setters, no behavior
-- **Dead Code**: Unused functions, classes, parameters, variables
-- **Speculative Generality**: Unused abstraction "for future needs"
+This is the single highest-value review surface and the one no linter checks well. Focused checklist:
 
-#### Couplers
-- **Feature Envy**: Method more interested in other class than its own
-- **Inappropriate Intimacy**: Classes knowing too much about each other's internals
-- **Message Chains**: `a.getB().getC().getD()` - Law of Demeter violations
-- **Middle Man**: Classes that only delegate to others
+**On the C++ side, for every JNI function:**
+- After every JNI call that can throw (`Find*`, `Get*`, `Call*`, `NewObject`, `*ArrayElements`, etc.) — is there an `ExceptionCheck`/`ExceptionOccurred` before the next JNI call or before returning to Java? Missing checks here cause subtle, hard-to-debug crashes much later.
+- Every `NewGlobalRef` paired with `DeleteGlobalRef`? Every `NewLocalRef` either deleted explicitly or known to fit in the local-frame budget (default 16)? Long-running native code without `PushLocalFrame`/`PopLocalFrame` is a smell.
+- `GetPrimitiveArrayCritical` / `GetStringCritical` regions: are they short, free of JNI calls, free of blocking? Calling back into Java inside a critical region can deadlock.
+- Mode argument to `Release*ArrayElements` — using `0` vs `JNI_ABORT` vs `JNI_COMMIT` correctly? Wrong mode = silent data loss or wasted copies.
+- Thread attachment: any native thread calling into Java without `AttachCurrentThread` / `DetachCurrentThread`?
+- Pinned vs. unified memory: if `cudaHostAlloc`/`cudaMallocManaged` is used, who owns the lifetime, and is that lifetime tied to Java GC behavior in a way that could surprise?
 
-### 3. Functional Programming Principles
+**At the Scala/C++ boundary contract:**
+- Are native methods returning raw `Int` error codes that Scala ignores, or are errors translated into Scala's error type? (The skill memory mentions "Error propagation: consistent error handling between JNI boundary" — verify this is actually true, don't trust it.)
+- Are GPU resource handles (kernel handles, OptiX pipelines, device pointers) modeled in Scala in a way that survives GC unpredictability? A `Long` field holding a `CUdeviceptr` with no `Closeable`/`Using` discipline is a leak waiting to happen.
+- Is there a single ownership model, or do different parts of the codebase use different conventions? Inconsistency here is worse than either convention alone.
 
-#### Immutability
-- **Prefer `val` over `var`**: No mutable state unless necessary
-- **Immutable data structures**: Use immutable collections
-- **Value objects**: Use case classes for data
-- **No side effects**: Functions return new values instead of modifying
+**Specific things to grep for:**
+```bash
+# JNI calls without subsequent ExceptionCheck — rough heuristic
+grep -n 'env->\(Find\|Get\|Call\|New\)' src/**/*.cpp | head -50
+# Then for each, check the next ~10 lines for an exception check.
 
-#### Pure Functions
-- **Deterministic**: Same input always produces same output
-- **No side effects**: No I/O, mutation, exceptions within pure logic
-- **Referential transparency**: Can replace function call with its result
-- **Total functions**: Handle all possible inputs (no exceptions for invalid data)
+# Possible global ref leaks
+grep -c NewGlobalRef src/**/*.cpp
+grep -c DeleteGlobalRef src/**/*.cpp
+# Counts should be in the same ballpark, modulo program-lifetime singletons.
+```
 
-#### Composition
-- **Function composition**: Build complex behavior from simple functions
-- **Higher-order functions**: Functions taking/returning functions
-- **Avoid deep nesting**: Use flatMap, for-comprehensions, or early returns
-- **Monadic error handling**: Use `Option`, `Either`, `Try` instead of exceptions
+### Seam 2 — CUDA correctness and resource lifetime
 
-#### Expression-Oriented
-- **Everything is an expression**: Prefer expressions over statements
-- **Pattern matching**: Use instead of if-else chains
-- **No `return` statements**: Last expression is the result
-- **No null**: Use `Option` or sentinel values
+For each kernel launch site and each device allocation:
 
-### 4. Separation of Concerns
+- **Launch error handling**: is `cudaGetLastError()` called after `<<<...>>>`? Is `cudaDeviceSynchronize()` (or stream sync) used where the next operation depends on completion? Common bug: kernel launch fails silently, the next `cudaMemcpy` "succeeds," and you get garbage data.
+- **Stream discipline**: are all operations on the same data on the same stream, or properly synchronized between streams?
+- **Memory lifetime**: every `cudaMalloc` paired with `cudaFree` on every exit path including exceptions. RAII wrappers in use? If not, that's a finding.
+- **OptiX pipelines / programs / SBT records**: lifetime tied to what? Reloaded how? Are there leaks across reloads (common during dev iteration).
+- **Shared memory bank conflicts, register pressure, occupancy** — only flag if you can see evidence; don't speculate. If Nsight Compute output exists, read it.
+- **Determinism**: any use of atomics on floats, non-deterministic reductions, or undefined ordering that would make results irreproducible? Often invisible in code review until it bites.
 
-#### Layered Architecture
-- **Clear layers**: Presentation, business logic, data access properly separated
-- **Dependency direction**: Higher layers depend on lower, not vice versa
-- **No layer skipping**: Don't bypass intermediate layers
+If `compute-sanitizer` output is available (memcheck, racecheck, initcheck, synccheck), summarize it in one block — don't restate it as individual findings.
 
-#### Module Boundaries
-- **Well-defined interfaces**: Clear contracts between modules
-- **Information hiding**: Implementation details not exposed
-- **Minimal coupling**: Modules depend on abstractions, not concrete implementations
+### Seam 3 — Scala architecture and FP discipline
 
-#### Cross-Cutting Concerns
-- **Logging**: Consistent logging strategy, not scattered throughout
-- **Error handling**: Centralized error handling patterns
-- **Validation**: Validation logic not duplicated across layers
-- **Configuration**: Configuration not hardcoded, centrally managed
+**Skip everything WartRemover and Scalafix already cover.** No findings for `var`, `null`, `asInstanceOf`, `while`, missing explicit types — these are linter territory. If they appear in code, that means the linter isn't running or is misconfigured: report that as one finding, not many.
 
-### 5. SOLID Principles
+What to actually review:
 
-- **S - Single Responsibility**: One reason to change
-- **O - Open/Closed**: Open for extension, closed for modification
-- **L - Liskov Substitution**: Subtypes must be substitutable for base types
-- **I - Interface Segregation**: Many specific interfaces better than one general
-- **D - Dependency Inversion**: Depend on abstractions, not concretions
+- **Module dependencies**: does the package structure express the intended architecture? Are there cycles? Does the JNI-facing module leak its types upward into pure business logic?
 
-### 6. Architectural Patterns
+  *If the project has no ArchUnit (or equivalent) tests enforcing these rules, that's itself a finding under "Tooling gaps" — architectural invariants maintained by review are unreliable; they should be tests that fail builds. ArchUnit works on Scala bytecode and can express cycle detection, layer dependencies, and "module X must not depend on module Y" rules as failing JUnit tests. The Scala-side API is awkward (it's a Java fluent DSL) but the rules survive Scala/Java/Kotlin mixing because it operates on bytecode.*
+- **Effect discipline**: where do effects live (IO, Future, Try, Either)? Are they pushed to the edges or scattered? Is there a single error type or many ad-hoc ones?
+- **Type-level expression of invariants**: are GPU resource handles, color spaces, coordinate systems, etc. distinguished at the type level (opaque types, phantom types, refined types), or all `Double`/`Long`? "Consistent color representation" is the kind of thing that is easy to claim and hard to enforce without types.
+- **Abstraction match**: places where the same concept is re-implemented (e.g., several ad-hoc resource-management patterns instead of one `Resource[F, A]` or `Using` pattern).
+- **The shape of the public API**: what does a caller have to know to use this correctly? If the answer is "a lot of conventions that aren't in the type signature," that's a finding.
 
-#### Design Patterns Usage
-- **Appropriate patterns**: Patterns solve real problems, not applied speculatively
-- **Pattern consistency**: Similar problems solved similarly
-- **No anti-patterns**: Singleton abuse, God objects, etc.
+### Seam 4 — Cross-cutting concerns
 
-#### Architectural Cohesion
-- **Consistent abstractions**: Similar concepts at similar abstraction levels
-- **Clear boundaries**: Module/package structure reflects architecture
-- **Dependency management**: Dependencies flow in consistent direction
+One pass, deliberately looking for patterns that span files:
 
-#### Technical Debt
-- **Workarounds**: Temporary solutions that became permanent
-- **Incomplete refactorings**: Half-migrated patterns
-- **Copy-paste code**: Duplicated instead of abstracted
-- **TODO comments**: Unresolved technical debt markers
+- **Error handling**: count the distinct ways errors are represented. If it's >2, that's a finding.
+- **Logging**: consistent? Or `println` in one place, SLF4J elsewhere, swallowed exceptions in a third?
+- **Configuration**: where do magic numbers live? Compiled in, or in a config? Are GPU-specific tunables (block size, stream count, batch size) discoverable?
+- **Resource cleanup discipline**: is there one pattern (`Using`, `Resource`, try-finally) or several?
+- **Test coverage gaps**: not coverage *percentage* — gaps in *kinds* of tests. Is there anything that exercises the JNI boundary under load, fault injection, or long-running scenarios?
 
-### 7. Testability & Maintainability
+### Seam 5 — Recent changes (only if a diff is meaningful)
 
-#### Testability
-- **Dependency injection**: Dependencies passed in, not created internally
-- **Small units**: Functions/classes easy to test in isolation
-- **No hidden dependencies**: No global state or singletons
-- **Deterministic**: No random values or timestamps in business logic
+If `git diff origin/main...` shows substantive changes, do a targeted pass on them. But this is the *last* seam, not the first — anchoring on recent code is exactly the trap that makes reviews superficial. Often the most important architectural issues predate any specific PR.
 
-#### Readability
-- **Self-documenting code**: Code explains itself without comments
-- **Consistent formatting**: Style consistent across codebase
-- **Logical organization**: Related code grouped together
-- **Appropriate abstraction level**: Not too abstract, not too concrete
+---
 
-#### Changeability
-- **Low coupling**: Changes don't ripple through codebase
-- **High cohesion**: Related changes in same place
-- **No shotgun surgery**: One feature change in one place
+## Phase 3 — Synthesize
 
-### 8. Performance & Efficiency
+Now collect findings from all seams. Apply the following filters in order:
 
-#### Algorithmic Efficiency
-- **Appropriate algorithms**: O(n²) where O(n log n) would work
-- **Unnecessary iterations**: Multiple passes where one would suffice
-- **Premature optimization**: Complex code without measured benefit
+1. **Drop anything a linter would catch.** If WartRemover would flag it, it doesn't belong here.
+2. **Drop anything you can't ground.** Every finding needs a `file:line` reference *and* a concrete example. "Possible coupling issue in the renderer module" is not a finding; "RenderingContext.scala:142 reaches into PipelineState's internal `_kernels` field, bypassing the public API, in 4 places" is.
+3. **Merge related findings.** Three instances of the same pattern is one finding ("inconsistent JNI error handling, 3 instances: A.cpp:12, B.cpp:88, C.cpp:201"), not three.
+4. **Rank by architectural blast radius**, not by line count. A single missing `ExceptionCheck` in JNI code is worse than a 600-line class.
 
-#### Resource Management
-- **Resource leaks**: Files, connections, GPU resources not released
-- **Excessive allocations**: Creating objects unnecessarily
-- **Memory inefficiency**: Keeping references to large objects unnecessarily
+Aim for **5–15 findings total**. If you have more than 15, you're either reporting linter-territory items or not merging. If you have fewer than 3, either the codebase is in great shape (say so) or you didn't look hard enough (re-examine the seams).
 
-### 9. Project-Specific Standards
+---
 
-#### Scala 3 Best Practices
-- **Using clauses**: Proper context parameters instead of implicits
-- **Extension methods**: Clean extension syntax
-- **Enums**: Modern enum syntax for ADTs
-- **Opaque types**: Type safety without runtime overhead
-- **Union types**: Precise type definitions
+## Phase 4 — Reconcile with prior review
 
-#### Functional Scala Style
-- **No `null`**: Use `Option`, `Either`, `Try` (enforced by project)
-- **No exceptions in business logic**: Use `Try` or `Either`
-- **No `var`**: Immutability enforced (Wartremover)
-- **No `while`**: Functional loops (enforced by Wartremover)
-- **No `asInstanceOf`**: Proper type design (enforced by Wartremover)
+**Now**, and not before, read `CODE_IMPROVEMENTS.md` if it exists.
 
-#### Domain-Specific
-- **Ray tracing conventions**: Follow established patterns for OptiX/CUDA code
-- **Color space handling**: Consistent color representation (alpha 0.0=transparent, 1.0=opaque)
-- **Coordinate systems**: Consistent 3D/4D coordinate conventions
-- **Error propagation**: Consistent error handling between JNI boundary
+**Why this ordering**: reading prior findings first anchors the review on yesterday's agenda. A finding that survives a no-prior-context review is, by construction, one a fresh reviewer would flag. That makes the issue list a stronger signal over time.
 
-## Analysis Methodology
+Reconciliation:
 
-### Phase 1: Codebase Reconnaissance (15-20 minutes)
-1. **Review existing CODE_IMPROVEMENTS.md** (if it exists):
-   - Read the entire file to understand previous findings
-   - Note all existing issue IDs and their current status
-   - Identify areas of focus from previous reviews
-   - Understand historical context and trends
+- **Overlap** between a new finding and an old one → merge. Keep the new finding's framing (it's based on current code); incorporate any context from the old one (history of the issue, prior decisions).
+- **Old finding no longer appears in your new review** → it's a candidate for "Resolved." Before declaring resolution, look at the specific file:line from the old finding and verify the pattern is actually gone, not just moved. If unsure, mark as "Likely resolved — verify."
+- **Old finding still real but didn't make your priority list** → carry forward under "Carried forward." This is normal; not everything gets addressed every sprint.
+- **New finding** → just include it.
 
-2. **Map the architecture**:
-   - Identify main modules/packages
-   - Understand dependency structure
-   - Find entry points and main workflows
+---
 
-3. **Identify code patterns**:
-   - Common abstractions used
-   - Error handling approaches
-   - Testing patterns
-   - Configuration management
+## Reporting — `CODE_IMPROVEMENTS.md`
 
-4. **Gather metrics**:
-   - File sizes (find files >400 lines)
-   - Function sizes (find functions >50 lines)
-   - Cyclomatic complexity indicators
-   - Code duplication hotspots
-
-### Phase 2: Systematic File Review (30-45 minutes)
-1. **Review all source files** in priority order:
-   - Core domain logic (highest priority)
-   - API/interface boundaries
-   - Infrastructure code
-   - Utility/helper code
-   - Test code (for test quality)
-
-2. **For each file**, assess:
-   - Overall structure and organization
-   - Function/class size and complexity
-   - Naming quality
-   - Code smells presence
-   - Adherence to project standards
-   - Opportunities for refactoring
-
-### Phase 3: Cross-Cutting Analysis (15-20 minutes)
-1. **Identify patterns across files**:
-   - Recurring code duplication
-   - Inconsistent implementations of similar features
-   - Architectural violations
-   - Missing abstractions
-
-2. **Assess technical debt**:
-   - TODO/FIXME comments
-   - Workarounds and hacks
-   - Incomplete migrations
-   - Outdated patterns
-
-### Phase 4: Prioritization & Reporting (10-15 minutes)
-1. **Categorize findings** by impact:
-   - Critical: Major architectural issues, severe code smells
-   - High: Significant maintainability problems
-   - Medium: Moderate improvements, minor smells
-   - Low: Nice-to-have refactorings
-
-2. **Provide actionable recommendations**:
-   - Specific refactoring suggestions
-   - Example implementations where helpful
-   - Links to relevant patterns/principles
-
-## Output Format
-
-### Updating Existing vs Creating New Review
-
-**If CODE_IMPROVEMENTS.md already exists** (you read it in the pre-review step):
-
-1. **Preserve structure**: Maintain existing sections and organization
-2. **Remove resolved issues**: Delete them entirely — git history is the record
-3. **Add new issues**:
-   - Continue issue ID numbering from existing issues (e.g., if M11 exists, start at M12)
-   - Add to appropriate priority sections
-4. **Update existing issues**:
-   - If severity/priority changed, note the change and reason
-   - Add updated estimates if scope changed
-   - Add progress notes if partially addressed
-5. **Refresh date**: Update "Last Updated" timestamp
-
-**If CODE_IMPROVEMENTS.md does not exist**:
-
-Create a new file with the following structure:
+Renumber findings each review from 1, ordered by priority. Do not preserve old IDs across runs — file:line + title is the stable identifier, not the ID.
 
 ```markdown
-# Code Quality Review - [Date]
+# Code Quality Review — YYYY-MM-DD
 
-## Executive Summary
+## Summary
 
-Brief overview of codebase health, highlighting major themes and priorities.
+2–4 sentences. Most important architectural observation, overall health, biggest single
+risk. No buzzwords. Reader should know whether to keep reading after this paragraph.
 
-## Overall Assessment
+## Tooling status
 
-**Strengths**: What's working well
-**Concerns**: Primary areas needing attention
-**Technical Debt Level**: Low/Medium/High with justification
+- Scalafix: ran / not configured / N violations (see scalafix log)
+- WartRemover: ran / not configured / N violations
+- Scapegoat: ran / not configured / N warnings
+- ArchUnit: N rules, all passing / N rules, M failing / no rules defined
+- clang-tidy: ran / no compile_commands.json / N warnings
+- cppcheck: ran / N warnings
+- Compute Sanitizer: results from last run available / not run
+- Tooling gaps: <anything missing that should be wired up>
 
-## Critical Issues
+## Findings
 
-### Issue N: [Category] - [Brief Title]
+### 1. <Concise title naming the actual problem>
 
-**Location**: `path/to/file.scala:line`
-**Impact**: Critical/High/Medium/Low
-**Debt Cost**: Estimated effort to fix (hours/days)
+**Where**: `path/file.scala:120`, `path/file2.cpp:88`
+**Impact**: Critical / High / Medium / Low — and one sentence on why this severity.
+**Effort**: rough order of magnitude (hours / days / weeks)
 
-**Description**:
-[Detailed explanation of the problem]
+**What**: Specific description with concrete evidence. Quote 1–5 lines of code if it
+clarifies. No generic definitions of code smells.
 
-**Current Code**:
-```scala
-// Problematic code snippet
+**Why it matters**: The actual consequence — not "reduces maintainability" but
+"every new kernel launch site has to re-implement the same five-line error check,
+and three of the existing seven have it subtly wrong."
+
+**Suggested direction**: Not a full refactoring plan — the direction. "Introduce a
+single `withCudaErrorCheck` combinator and migrate callers" is enough. The team
+will figure out the rest.
+
+### 2. ...
+
+## Carried forward from prior review
+
+Items still present but not in this review's priority set. One line each with
+file:line reference.
+
+## Resolved since last review
+
+Items from prior review no longer present. One line each with brief verification
+note ("verified — `RenderingContext` no longer exposes `_kernels`").
+
+## Positive patterns worth preserving
+
+0–3 items, only if there's something genuinely worth pointing out. Don't pad.
 ```
 
-**Impact**:
-- Maintainability: How this affects code maintainability
-- Testability: How this affects testing
-- Performance: Any performance implications
+### Severity calibration
 
-**Recommendation**:
-[Specific actionable steps to resolve]
+- **Critical**: causes correctness bugs, data loss, or memory safety issues (especially at the JNI/CUDA seam). Or blocks a known upcoming change.
+- **High**: significantly slows development of every new feature in this area, or makes the system noticeably hard to reason about.
+- **Medium**: real problem but localized; will become high if not addressed within a couple of months.
+- **Low**: real but minor; address opportunistically. Don't generate Low findings just to fill space — if a finding is genuinely Low, consider whether it belongs in the report at all.
 
-**Better Approach**:
-```scala
-// Suggested refactoring
-```
+### What does *not* belong
+
+- Style issues a linter catches.
+- Generic restatements of clean code or SOLID principles without a specific instance.
+- Speculative concerns ("this *might* become a problem if you ever do X").
+- Findings without a file:line reference.
+- Aesthetic preferences disguised as architectural concerns.
+- Long lists of "Long Method" or "Large Class" findings — pick the worst 1–2 instances if size is genuinely the problem; otherwise size alone isn't a finding.
 
 ---
 
-## High Priority Issues
+## Project-specific notes
 
-[Same structure as Critical Issues]
+**Out of scope as findings, but in scope for understanding:**
+- OptiX/CUDA code using imperative style — this is correct for the domain. Only flag if the *Scala-side* code mimics it without need.
+- JNI code using imperative style and explicit lifetime management — same.
+- Test code using mutable setup — acceptable.
 
-## Medium Priority Issues
-
-[Same structure, can be more concise]
-
-## Low Priority Issues
-
-[Brief list format acceptable]
-
-## Positive Patterns
-
-Highlight well-implemented code as learning examples:
-
-### Pattern: [Name]
-**Location**: `path/to/file.scala:line`
-**Why It Works**: [Explanation]
-**Code Example**:
-```scala
-// Good example
-```
-
-## Refactoring Opportunities
-
-### Opportunity N: [Title]
-**Scope**: Files affected
-**Benefit**: What improvement this brings
-**Approach**: High-level refactoring strategy
-**Effort**: Estimated time
-
-## Metrics Summary
-
-- Total source files reviewed: X
-- Files with critical issues: Y
-- Functions >50 lines: Z
-- Classes >400 lines: W
-- Duplicated code blocks: V
-
-## Recommendations
-
-1. **Immediate Actions** (this sprint):
-   - [Prioritized list]
-
-2. **Short-term Improvements** (next 2-3 sprints):
-   - [Prioritized list]
-
-3. **Long-term Refactoring** (strategic):
-   - [Architectural improvements]
-
-## Conclusion
-
-Summary of overall code health and roadmap for improvement.
-```
-
-## Issue Categories
-
-Use these standardized categories for consistency:
-
-### Clean Code Issues
-- `NAMING` - Poor variable/function/class names
-- `FUNCTION_SIZE` - Functions exceeding size guidelines
-- `CLASS_SIZE` - Classes exceeding size guidelines
-- `COMPLEXITY` - High cyclomatic complexity
-- `PARAMETERS` - Too many function parameters
-
-### Code Smells
-- `DUPLICATION` - Duplicated code
-- `LONG_METHOD` - Methods that are too long
-- `LARGE_CLASS` - Classes with too many responsibilities
-- `FEATURE_ENVY` - Methods using other classes more than their own
-- `DATA_CLUMPS` - Related data not grouped into objects
-- `PRIMITIVE_OBSESSION` - Using primitives instead of domain objects
-- `DEAD_CODE` - Unused code
-- `SPECULATIVE_GENERALITY` - Unused abstractions
-- `SHOTGUN_SURGERY` - Changes requiring many file edits
-
-### Functional Programming Issues
-- `MUTABILITY` - Unnecessary mutable state
-- `SIDE_EFFECTS` - Impure functions
-- `NULL_USAGE` - Using null instead of Option
-- `EXCEPTION_CONTROL_FLOW` - Using exceptions for flow control
-- `VAR_USAGE` - Using var instead of val
-
-### Architectural Issues
-- `LAYER_VIOLATION` - Breaking architectural boundaries
-- `CIRCULAR_DEPENDENCY` - Circular module dependencies
-- `GOD_OBJECT` - Classes knowing/doing too much
-- `TIGHT_COUPLING` - High coupling between modules
-- `MISSING_ABSTRACTION` - Repeated concept not abstracted
-- `WRONG_ABSTRACTION` - Abstraction doesn't match domain
-
-### SOLID Violations
-- `SRP_VIOLATION` - Single Responsibility Principle
-- `OCP_VIOLATION` - Open/Closed Principle
-- `LSP_VIOLATION` - Liskov Substitution Principle
-- `ISP_VIOLATION` - Interface Segregation Principle
-- `DIP_VIOLATION` - Dependency Inversion Principle
-
-### Maintainability Issues
-- `HARDCODED_VALUES` - Magic numbers or strings
-- `POOR_ERROR_HANDLING` - Inadequate error handling
-- `LOW_COHESION` - Unrelated functionality in same module
-- `POOR_TESTABILITY` - Code difficult to test
-- `INCONSISTENT_STYLE` - Inconsistent coding patterns
-
-## Impact Assessment Guidelines
-
-### Critical Impact
-- Blocks new feature development
-- Causes frequent bugs or incidents
-- Major architectural violations
-- Severe performance problems
-- Security vulnerabilities
-
-### High Impact
-- Significantly slows feature development
-- Makes testing difficult or impossible
-- Creates strong coupling between modules
-- Noticeable performance degradation
-- Will cause problems within 2-3 sprints
-
-### Medium Impact
-- Moderately affects development speed
-- Reduces code readability
-- Minor architectural concerns
-- Technical debt accumulating
-- Will cause problems within 6 months
-
-### Low Impact
-- Minor readability issues
-- Small optimization opportunities
-- Style inconsistencies
-- Nice-to-have improvements
-- Can be addressed opportunistically
-
-## Technical Debt Cost Estimation
-
-| Cost Level | Time Range | Description |
-|------------|-----------|-------------|
-| **Trivial** | <2 hours | Simple rename, extract method |
-| **Minor** | 2-8 hours | Extract class, small refactoring |
-| **Moderate** | 1-3 days | Module restructuring, pattern introduction |
-| **Major** | 1-2 weeks | Architectural changes, large refactoring |
-| **Severe** | >2 weeks | System redesign, major rewrites |
-
-## Best Practices for Analysis
-
-### DO:
-- ✅ **Read existing CODE_IMPROVEMENTS.md FIRST** if it exists - critical for continuity
-- ✅ **Update existing issues** rather than duplicating findings
-- ✅ Review the ENTIRE codebase systematically
-- ✅ Use LSP tools (goToDefinition, findReferences) to understand code flow
-- ✅ Look for patterns, not just individual issues
-- ✅ Provide concrete examples and recommendations
-- ✅ Balance criticism with highlighting good patterns
-- ✅ Consider the project context (performance-critical rendering code)
-- ✅ Check adherence to project's CLAUDE.md standards
-- ✅ Measure actual file/function sizes with grep/wc
-- ✅ Identify opportunities for abstraction revealed by recent changes
-
-### DON'T:
-- ❌ **Overwrite existing CODE_IMPROVEMENTS.md** - always update, never replace
-- ❌ **Duplicate existing issues** - cross-reference first
-- ❌ **Move resolved issues to a "completed" section** - delete them; git history is the record
-- ❌ Focus only on recent changes or specific files
-- ❌ Report style issues handled by linters (Scalafix, Wartremover)
-- ❌ Suggest premature optimization without evidence
-- ❌ Ignore domain-specific requirements (GPU programming idioms)
-- ❌ Propose theoretical refactorings without clear benefit
-- ❌ Overwhelm with low-priority issues; prioritize ruthlessly
-- ❌ Criticize without providing constructive alternatives
-- ❌ Ignore existing good patterns in the codebase
-
-## Project-Specific Exclusions
-
-**DO NOT flag as issues**:
-- GPU/CUDA specific patterns (memory management, kernel launches)
-- JNI boundary code that necessarily uses imperative patterns
-- Test code using mutable state for test setup (acceptable trade-off)
-- Performance-critical code using imperative style (if justified)
-- OptiX shader code (CUDA) - different paradigm from Scala
-- Build configuration files (SBT build definitions)
-- Documentation markdown files
-- Generated code or vendored dependencies
-
-**DO flag for special consideration**:
-- Inconsistent patterns between similar features
-- Missing error handling at JNI boundaries
-- Resource leaks (GPU memory, file handles)
-- Hardcoded constants that should be configurable
-- Test code quality issues that reduce test value
-
-## Example Analysis Commands
-
-```bash
-# Find large files (>400 lines)
-git ls-files '*.scala' | xargs wc -l | sort -rn | head -20
-
-# Find long functions (functions with many lines)
-grep -r "def " --include="*.scala" -A 100 . | grep -B 1 "^.*}$" | less
-
-# Find TODO/FIXME comments
-grep -r "TODO\|FIXME" --include="*.scala" .
-
-# Find var usage (mutability)
-grep -r "var " --include="*.scala" . | wc -l
-
-# Find null usage
-grep -r "null" --include="*.scala" . | wc -l
-
-# Find files by size
-find . -name "*.scala" -exec wc -l {} + | sort -rn
-
-# Count classes
-grep -r "class\|object\|trait" --include="*.scala" . | wc -l
-```
-
-## Analysis Process
-
-### Sub-Task Breakdown
-
-1. **Sub-task 1: Codebase Mapping** (15-20 min)
-   - **First: Check and read CODE_IMPROVEMENTS.md if it exists**
-   - Review previous findings and extract existing issue IDs
-   - Gather file list and sizes
-   - Identify module structure
-   - Understand architecture
-   - Run metric collection commands
-
-2. **Sub-task 2-N: File Reviews** (30-45 min)
-   - Review each source file systematically
-   - Document issues found with file:line references
-   - Note positive patterns
-   - Use parallel sub-tasks for different modules if large codebase
-
-3. **Sub-task N+1: Cross-Cutting Analysis** (15-20 min)
-   - Identify recurring patterns
-   - Analyze technical debt
-   - Find duplication across files
-   - Check architectural consistency
-
-4. **Sub-task N+2: Prioritization** (10-15 min)
-   - Categorize all findings by impact
-   - Estimate technical debt cost
-   - Group related issues
-   - Identify refactoring opportunities
-
-5. **Final Output: Generate/Update CODE_IMPROVEMENTS.md**
-   - If updating existing file: preserve structure, remove resolved issues, add new issues with continued numbering
-   - If creating new file: compile all findings into structured markdown
-   - Cross-reference findings with existing issues (remove resolved ones, update changed)
-   - Include executive summary
-   - Provide actionable recommendations
-   - Add metrics summary
-
-## Confidence & Certainty
-
-Unlike security reviews, code quality issues are more subjective. Use these guidelines:
-
-- **Certain**: Clear violation of stated project standards (CLAUDE.md, wartremover rules)
-- **High Confidence**: Well-known code smell or anti-pattern
-- **Medium Confidence**: Architectural concern requiring judgment
-- **Low Confidence**: Style preference or marginal improvement
-
-**Report all confidence levels** but clearly label uncertainty. Code review is about improvement discussion, not just defect reporting.
-
-## Final Checklist
-
-Before outputting CODE_IMPROVEMENTS.md, verify:
-
-- [ ] **Read existing CODE_IMPROVEMENTS.md if it exists** (critical first step)
-- [ ] **Cross-referenced all findings with existing issues** (removed resolved, updated changed)
-- [ ] **Continued issue numbering from existing file** (e.g., M11 → M12)
-- [ ] Reviewed ALL source files (not just recent changes)
-- [ ] Checked files >400 lines, functions >50 lines
-- [ ] Identified code duplication patterns
-- [ ] Assessed adherence to Scala 3 and functional programming standards
-- [ ] Verified no violations of project CLAUDE.md standards
-- [ ] Provided specific file:line references for all issues
-- [ ] Included concrete refactoring suggestions
-- [ ] Highlighted positive patterns to learn from
-- [ ] Prioritized findings by impact
-- [ ] Estimated technical debt costs
-- [ ] Considered opportunities revealed by recent changes
-- [ ] Updated "Last Updated" timestamp
-- [ ] Generated/updated complete CODE_IMPROVEMENTS.md with all sections
+**Specifically in scope and high-value:**
+- Anything at the JNI seam (error handling, ref management, ownership, threading).
+- GPU resource lifetime visible from Scala.
+- Type-level expression of GPU/rendering invariants (color spaces, coordinate frames, handles).
+- Consistency of error propagation across the seam.
+- Any place where Scala code makes assumptions about native-side state that aren't enforced by types.
 
 ---
 
-**Remember**: The goal is to provide a **comprehensive, actionable roadmap** for improving code quality across the entire codebase, not just point out problems. Be thorough, be specific, and be constructive.
+## A note on uncertainty
+
+Findings vary in confidence. Use these labels sparingly, only when relevant:
+
+- **(certain)** — the issue is unambiguous; no judgment call.
+- **(judgment)** — the issue is real but reasonable engineers might prioritize differently.
+- **(needs verification)** — the pattern looks wrong but the codebase context might justify it; check with the team before acting.
+
+Default to no label. Apply only when the call is genuinely contested.
