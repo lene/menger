@@ -1,6 +1,7 @@
 package menger.objects.higher_d
 
-import menger.common.{TriangleMeshData, Vector}
+import menger.common.TriangleMeshData
+import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

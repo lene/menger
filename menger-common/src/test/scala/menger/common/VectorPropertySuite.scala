@@ -1,6 +1,5 @@
 package menger.common
 
-import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

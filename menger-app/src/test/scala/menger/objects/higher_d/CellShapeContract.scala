@@ -1,6 +1,7 @@
 package menger.objects.higher_d
 
-import menger.common.{Const, Vector}
+import menger.common.Const
+import menger.common.Vector
 
 object CellShapeContract:
 
