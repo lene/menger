@@ -5,6 +5,7 @@ import menger.ProfilingConfig
 import menger.common.ObjectType
 import menger.engines.scene.ConeSceneBuilder
 import menger.engines.scene.CubeSpongeSceneBuilder
+import menger.engines.scene.Menger4DSceneBuilder
 import menger.engines.scene.PlaneSceneBuilder
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SphereSceneBuilder
@@ -53,5 +54,7 @@ object GeometryRegistry:
         Some(ConeSceneBuilder(textureDir))
       else if types.forall(_ == "plane") then
         Some(PlaneSceneBuilder(textureDir))
+      else if types.forall(ObjectType.isMenger4D) then
+        Some(Menger4DSceneBuilder(textureDir))
       else
         None

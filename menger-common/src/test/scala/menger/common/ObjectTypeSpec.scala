@@ -16,6 +16,7 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.isValid("tesseract") shouldBe true
     ObjectType.isValid("tesseract-sponge") shouldBe true
     ObjectType.isValid("tesseract-sponge-2") shouldBe true
+    ObjectType.isValid("menger4d") shouldBe true
 
   it should "be case-insensitive" in:
     ObjectType.isValid("SPHERE") shouldBe true
@@ -161,7 +162,8 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.VALID_TYPES should contain("24-cell")
     ObjectType.VALID_TYPES should contain("120-cell")
     ObjectType.VALID_TYPES should contain("600-cell")
-    ObjectType.VALID_TYPES.size shouldBe 21
+    ObjectType.VALID_TYPES should contain("menger4d")
+    ObjectType.VALID_TYPES.size shouldBe 22
 
   "ObjectType.SPONGE_TYPES" should "contain only 3D sponge types" in:
     ObjectType.SPONGE_TYPES should contain("sponge-volume")
@@ -208,3 +210,17 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.isDeprecated("sponge-volume") shouldBe false
     ObjectType.isDeprecated("tesseract-sponge-volume") shouldBe false
     ObjectType.isDeprecated("sphere") shouldBe false
+
+  // === Menger4D Type Tests ===
+
+  "ObjectType.isMenger4D" should "identify menger4d" in:
+    ObjectType.isMenger4D("menger4d") shouldBe true
+    ObjectType.isMenger4D("MENGER4D") shouldBe true
+
+  it should "not classify other types as menger4d" in:
+    ObjectType.isMenger4D("sphere") shouldBe false
+    ObjectType.isMenger4D("tesseract-sponge-volume") shouldBe false
+    ObjectType.isMenger4D("sponge-recursive-ias") shouldBe false
+
+  "ObjectType.is4DSponge" should "include menger4d" in:
+    ObjectType.is4DSponge("menger4d") shouldBe true

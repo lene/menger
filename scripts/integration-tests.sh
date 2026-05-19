@@ -534,6 +534,22 @@ test_4d_sponges() {
         --objects type=tesseract-sponge:level=1:pos=1.2,0,0:size=0.5
 }
 
+test_menger4d() {
+    echo "4D Menger Sponge (IFS intersection shader):"
+    run_test "menger4d level 1" --plane y:-2 \
+        --objects type=menger4d:level=1:pos=0,0,0:size=0.8
+    run_test "menger4d level 2" --plane y:-2 \
+        --objects type=menger4d:level=2:pos=0,0,0:size=0.8
+    run_test "menger4d with rotation" --plane y:-2 \
+        --objects type=menger4d:level=2:rot-xw=45:rot-yw=30:size=0.8
+    run_test "menger4d dist-threshold 3" --plane y:-2 \
+        --objects type=menger4d:level=2:dist-threshold=3:size=0.8
+    run_test "menger4d with color" --plane y:-2 \
+        --objects type=menger4d:level=1:color=#4488FF:size=0.8
+    run_test "menger4d with material" --plane y:-2 \
+        --objects type=menger4d:level=1:material=chrome:size=0.8
+}
+
 test_3d_fractional_sponges() {
     echo "3D Fractional Sponges:"
     # SpongeByVolume fractional levels
@@ -995,6 +1011,7 @@ main() {
     test_caustics
     test_tesseract
     test_4d_sponges
+    test_menger4d
     test_3d_fractional_sponges
     test_platonic_solids
     test_cone

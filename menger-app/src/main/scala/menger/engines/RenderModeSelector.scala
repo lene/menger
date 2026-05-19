@@ -28,10 +28,13 @@ object RenderModeSelector:
         else types.find(ObjectType.isAnalyticalPrimitive).get
       )
       SceneType.SimpleMixed(specs, tag)
+    else if types.forall(ObjectType.isMenger4D) then
+      SceneType.Menger4D(specs)
     else
       SceneType.Unsupported(specs)
 
 enum SceneType:
   case TriangleMeshes(specs: List[ObjectSpec])
   case SimpleMixed(specs: List[ObjectSpec], meshType: String)
+  case Menger4D(specs: List[ObjectSpec])
   case Unsupported(specs: List[ObjectSpec])

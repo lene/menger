@@ -71,7 +71,8 @@ case class ObjectSpec(
   plane: PlaneGeometry = PlaneGeometry(),
   procedural: ProceduralSpec = ProceduralSpec(),
   textureMaps: TextureMaps = TextureMaps(),
-  meshData: Option[TriangleMeshData] = None
+  meshData: Option[TriangleMeshData] = None,
+  distanceThreshold: Option[Int] = None
 ):
   def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined
   def rotX: Float = rotation.x
@@ -162,7 +163,8 @@ object ObjectSpec extends LazyLogging:
     "apex", "base", "radius", "major-radius", "minor-radius",
     "normal", "distance", "color2", "checker-size",
     "procedural", "proc-scale",
-    "normal-map", "roughness-map"
+    "normal-map", "roughness-map",
+    "dist-threshold"
   )
 
   def parse(spec: String): Either[String, ObjectSpec] =
@@ -193,10 +195,11 @@ object ObjectSpec extends LazyLogging:
       procSpec <- parseProceduralSpec(kvPairs)
       _ <- validateSpongeLevel(objType, level)
       texMaps <- parseTextureMaps(kvPairs)
+      distThreshold <- parseDistanceThreshold(kvPairs)
     yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D,
       edgeParams._1, edgeParams._2,
       rotation = rotation, cone = coneGeom, plane = planeGeom,
-      procedural = procSpec, textureMaps = texMaps)
+      procedural = procSpec, textureMaps = texMaps, distanceThreshold = distThreshold)
 
     result match
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")
@@ -256,6 +259,14 @@ object ObjectSpec extends LazyLogging:
       case Some(levelStr) =>
         Try(levelStr.toFloat).toEither.left.map { e =>
           s"Invalid level value '$levelStr': ${e.getMessage}. Level must be a valid number (e.g., level=2)"
+        }.map(Some(_))
+      case None => Right(None)
+
+  private def parseDistanceThreshold(kvPairs: Map[String, String]): Either[String, Option[Int]] =
+    kvPairs.get("dist-threshold") match
+      case Some(s) =>
+        Try(s.toInt).toEither.left.map { e =>
+          s"Invalid dist-threshold value '$s': ${e.getMessage}. Must be a positive integer (e.g., dist-threshold=2)"
         }.map(Some(_))
       case None => Right(None)
 
@@ -367,7 +378,7 @@ object ObjectSpec extends LazyLogging:
     kvPairs: Map[String, String],
     objType: String
   ): Either[String, Option[Projection4DSpec]] =
-    if ObjectType.isProjected4D(objType) then
+    if ObjectType.isProjected4D(objType) || ObjectType.isMenger4D(objType) then
       for
         eyeW <- parseFloatParam(kvPairs, "eye-w", Projection4DSpec.DefaultEyeW, "4D eye W-coordinate")
         screenW <- parseFloatParam(kvPairs, "screen-w", Projection4DSpec.DefaultScreenW, "4D screen W-coordinate")
