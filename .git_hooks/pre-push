@@ -189,11 +189,11 @@ fi
 if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
   echo "=== Running tests and scalafix in parallel ==="
 
-  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt test --warn > /tmp/sbt-test-prepush.log 2>&1 &
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt --no-server test --warn > /tmp/sbt-test-prepush.log 2>&1 &
   SBT_TEST_PID=$!
 
   if [ "$HAS_SCALA" -gt 0 ]; then
-    sbt "scalafix --check" --warn > /tmp/scalafix-prepush.log 2>&1 &
+    sbt --no-server "scalafix --check" --warn > /tmp/scalafix-prepush.log 2>&1 &
     SCALAFIX_PID=$!
   fi
 
