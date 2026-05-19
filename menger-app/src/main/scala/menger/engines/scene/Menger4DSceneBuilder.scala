@@ -8,7 +8,10 @@ import menger.common.ObjectType
 import menger.common.Vector
 import menger.optix.OptiXRenderer
 
-class Menger4DSceneBuilder(textureDir: String = ".") extends SceneBuilder:
+class Menger4DSceneBuilder(
+  textureDir: String = ".",
+  menger4DRecorder: (Int, Int) => Unit = (_, _) => ()
+) extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
     if specs.isEmpty then Left("Object specs list cannot be empty")
@@ -20,7 +23,7 @@ class Menger4DSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up ${specs.length} menger4d instances")
-    specs.foreach { spec =>
+    specs.zipWithIndex.foreach { case (spec, specIdx) =>
       val level     = spec.level.get.toInt
       val threshold = spec.distanceThreshold.getOrElse(2)
       val proj      = spec.projection4D.getOrElse(Projection4DSpec.default)
@@ -32,6 +35,7 @@ class Menger4DSceneBuilder(textureDir: String = ".") extends SceneBuilder:
         material
       ) match
         case Some(id) =>
+          menger4DRecorder(specIdx, id)
           logger.debug(s"Added menger4d instance $id level=$level threshold=$threshold")
         case None =>
           logger.error(s"Failed to add menger4d instance at (${spec.x},${spec.y},${spec.z})")
