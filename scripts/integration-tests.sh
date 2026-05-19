@@ -548,6 +548,12 @@ test_menger4d() {
         --objects type=menger4d:level=1:color=#4488FF:size=0.8
     run_test "menger4d with material" --plane y:-2 \
         --objects type=menger4d:level=1:material=chrome:size=0.8
+    run_test "menger4d fractional level 1.5" --plane y:-2 \
+        --objects type=menger4d:level=1.5:pos=0,0,0:size=0.8
+    run_test "menger4d fractional level 2.5" --plane y:-2 \
+        --objects type=menger4d:level=2.5:pos=0,0,0:size=0.8
+    run_test "menger4d fractional level 1.5 with color" --plane y:-2 \
+        --objects type=menger4d:level=1.5:color=#4488FF:size=0.8
 }
 
 test_3d_fractional_sponges() {
