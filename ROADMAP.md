@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-05-17
+**Last Updated:** 2026-05-20
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -24,7 +24,10 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.5.8 | GPU Infrastructure | Complete | Multi-GAS IAS, IS programs, GPU 4D math, recursive IAS sponge, maxRayDepth CLI (Sprint 18) |
 | v0.6.0 | Advanced Geometry | Complete | Platonic solids, 4-polychora, cone, coordinate cross, geometry registry, 3D rotation, render stats (Sprint 19) |
 | v0.6.1 | Textures & Materials | ✅ Complete | Image textures, procedural textures, PBR maps, environment maps (Sprint 20) |
-| v0.7.0 | Higher-Dimensional Fractals | 🔄 In Progress | 4D Menger/Sierpinski analogs, fractional IAS sponge levels (Sprint 21) |
+| v0.7.0 | Higher-Dimensional Fractals | 🔄 In Progress | 4D Menger/Sierpinski analogs, fractional IAS sponge levels, fog (Sprint 21) |
+| v0.7.1 | HDR Environment Maps | Planned | HDR background, equirectangular env map, tone mapping (Sprint 22) |
+| v0.8.0 | Image-Based Lighting | Planned | IBL with importance sampling + MIS, env map illuminates objects (Sprint 23) |
+| v0.8.1 | Video Backgrounds | Planned | Animated .mp4 backgrounds via ffmpeg, per-frame GPU texture swap (Sprint 24) |
 
 ---
 
@@ -74,13 +77,56 @@ See [docs/sprints/SPRINT21.md](docs/sprints/SPRINT21.md)
 
 ---
 
+### Sprint 22: HDR Environment Maps (~9h)
+
+**Goal:** Wire existing GPU env map infrastructure to DSL; tone mapping; fractal animation examples
+
+- **22.1** Wire DSL environment map (2h)
+- **22.2** Tone mapping — Reinhard + ACES, exposure control (3h)
+- **22.3** Fractal animation example scenes with HDR background (2h)
+- **22.4** Documentation (2h)
+
+See [docs/sprints/SPRINT22.md](docs/sprints/SPRINT22.md)
+
+---
+
+### Sprint 23: Image-Based Lighting (~22h)
+
+**Goal:** HDR environment map illuminates objects via importance-sampled IBL with MIS
+
+- **23.1** Env map CDF precomputation — marginal + conditional PDFs (4h)
+- **23.2** `sampleEnvLight()` shader function (5h)
+- **23.3** MIS combining env and BSDF sampling (5h)
+- **23.4** DSL `IBL` type + `Scene.ibl` wiring (3h)
+- **23.5** Accumulation frames (optional, 3h)
+- **23.6** Documentation (2h)
+
+See [docs/sprints/SPRINT23.md](docs/sprints/SPRINT23.md)
+
+---
+
+### Sprint 24: Video Backgrounds (~15h)
+
+**Goal:** Animated `.mp4` video as environment map background, synchronized to animation t
+
+- **24.1** ffmpeg/libav CMake dependency + VideoLoader skeleton (3h)
+- **24.2** VideoLoader C++ frame decoder with cache (4h)
+- **24.3** JNI binding + Scala VideoLoader (2h)
+- **24.4** Per-frame texture swap in animation loop (3h)
+- **24.5** DSL `EnvMapVideo` type (1h)
+- **24.6** Documentation (2h)
+
+See [docs/sprints/SPRINT24.md](docs/sprints/SPRINT24.md)
+
+---
+
 ## Backlog
 
 Ideas for Sprint 22+ consideration.
 
-### Scheduled (Sprints 13-21)
+### Scheduled (Sprints 13-24)
 
-Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
+Items in Sprints 13-24 are no longer in the backlog. See Planned Sprints above.
 
 ### Long-Term Backlog (Sprint 22+)
 
@@ -151,8 +197,11 @@ Items in Sprints 13-21 are no longer in the backlog. See Planned Sprints above.
 | GPU Infrastructure (18) | 1 sprint | ~27 hours |
 | Advanced Geometry (19) | 1 sprint | ~30 hours |
 | Materials, Textures & Backgrounds (20) | 1 sprint | ~21 hours |
-| Higher-Dimensional Fractals (21) | 1 sprint | ~16 hours |
-| **Total Remaining** | 5 sprints | **~110.5 hours** |
+| Higher-Dimensional Fractals (21) | 1 sprint | ~27 hours |
+| HDR Environment Maps (22) | 1 sprint | ~9 hours |
+| Image-Based Lighting (23) | 1 sprint | ~22 hours |
+| Video Backgrounds (24) | 1 sprint | ~15 hours |
+| **Total Remaining** | 7 sprints | **~146.5 hours** |
 
 ---
 
