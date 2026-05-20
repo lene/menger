@@ -19,6 +19,8 @@ class Sierpinski4DSceneBuilder(
       Left("All objects must be sierpinski4d for Sierpinski4DSceneBuilder")
     else if specs.exists(_.level.isEmpty) then
       Left("All sierpinski4d objects require a level parameter")
+    else if specs.exists(s => s.level.exists(l => l != l.toInt)) then
+      Left("Sierpinski4D does not support fractional levels")
     else Right(())
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
