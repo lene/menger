@@ -4,6 +4,7 @@ import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Const
+import menger.common.ObjectType
 
 case class AnimationSpecification(specString: String) extends LazyLogging:
 
@@ -114,6 +115,33 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
     require(parts.last.toFloatOption.isDefined, s"End ${parts.last} not a Float")
     (parts.head.toFloat, parts.last.toFloat)
 
+  def applyToSpec(spec: ObjectSpec, frame: Int): ObjectSpec =
+    import AnimationSpecification.*
+    val withLevel = level(frame).map(l => spec.copy(level = Some(l))).getOrElse(spec)
+    val has4D = animationParameters.keys.exists(FOUR_D_VALID_PARAMETERS.contains)
+    val has3D = animationParameters.keys.exists(Set(RotX, RotY, RotZ).contains)
+    if !has4D && !has3D then withLevel
+    else
+      val r = rotationProjectionParameters(frame)
+      val base = spec.projection4D.getOrElse(Projection4DSpec.default)
+      val with4D = if has4D then
+        withLevel.copy(projection4D = Some(Projection4DSpec(
+          rotXW   = if animationParameters.contains(RotXW) then r.rotXW else base.rotXW,
+          rotYW   = if animationParameters.contains(RotYW) then r.rotYW else base.rotYW,
+          rotZW   = if animationParameters.contains(RotZW) then r.rotZW else base.rotZW,
+          eyeW    = if animationParameters.contains(ProjectionEyeW) then r.eyeW else base.eyeW,
+          screenW = if animationParameters.contains(ProjectionScreenW) then r.screenW else base.screenW
+        )))
+      else withLevel
+      if has3D then
+        val toRad = math.Pi.toFloat / 180f
+        with4D.copy(rotation = ObjectRotation(
+          x = if animationParameters.contains(RotX) then r.rotX * toRad else with4D.rotation.x,
+          y = if animationParameters.contains(RotY) then r.rotY * toRad else with4D.rotation.y,
+          z = if animationParameters.contains(RotZ) then r.rotZ * toRad else with4D.rotation.z
+        ))
+      else with4D
+
   private def animationParametersValid(spongeTypes: Set[String]): Boolean =
     val validParams = spongeTypes.flatMap(AnimationSpecification.validParameters)
     val providedParams = animationParameters.keySet
@@ -140,13 +168,12 @@ object AnimationSpecification:
   final val ALWAYS_VALID_PARAMETERS = Set(RotX, RotY, RotZ)
   final val FOUR_D_VALID_PARAMETERS = Set(RotXW, RotYW, RotZW, ProjectionScreenW, ProjectionEyeW)
   final val FRACTAL_VALID_PARAMETERS = Set(Level)
-  final val FOUR_D_OBJECTS = Set("tesseract", "tesseract-sponge", "tesseract-sponge-2")
-  final val FRACTAL_OBJECTS = Set("tesseract-sponge", "tesseract-sponge-2", "square", "cube")
-
   def validParameters(spongeType: String): Set[String] =
-    ALWAYS_VALID_PARAMETERS ++ (
-      if FOUR_D_OBJECTS.contains(spongeType) then FOUR_D_VALID_PARAMETERS else Set.empty) ++ (
-      if FRACTAL_OBJECTS.contains(spongeType) then FRACTAL_VALID_PARAMETERS else Set.empty
-    )
+    ALWAYS_VALID_PARAMETERS ++
+      (if ObjectType.isProjected4D(spongeType) || ObjectType.is4DSponge(spongeType)
+       then FOUR_D_VALID_PARAMETERS else Set.empty) ++
+      (if ObjectType.isSponge(spongeType) || ObjectType.is4DSponge(spongeType) ||
+          spongeType == "cube" || spongeType == "square"
+       then FRACTAL_VALID_PARAMETERS else Set.empty)
 
 

@@ -556,6 +556,58 @@ test_menger4d() {
         --objects type=menger4d:level=1.5:color=#4488FF:size=0.8
 }
 
+test_cli_animation() {
+    echo "CLI Animation (--animate flag):"
+    local temp_dir
+    temp_dir=$(mktemp -d)
+
+    local rot_passed=false
+    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+        --objects type=menger4d:level=2:size=0.8 --plane y:-2 \
+        --animate "frames=3:rot-x-w=0-90" \
+        --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+        --save-name "${temp_dir}/rot_%03d.png" >/dev/null 2>&1; then
+        local frame_count=0
+        for f in "${temp_dir}"/rot_*.png; do
+            [ -f "$f" ] && ((frame_count++))
+        done
+        [ "$frame_count" -eq 3 ] && rot_passed=true
+    fi
+
+    if $rot_passed; then
+        ((PASSED++))
+        echo -e "  CLI animate menger4d rot-x-w (3 frames) ${GREEN}✓${RESET}"
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - CLI animate menger4d rot-x-w (execution or frame count failed)"
+        echo -e "  CLI animate menger4d rot-x-w (3 frames) ${RED}✗${RESET}"
+    fi
+
+    local level_passed=false
+    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+        --objects type=menger4d:level=2:size=0.8 --plane y:-2 \
+        --animate "frames=3:level=1-3" \
+        --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+        --save-name "${temp_dir}/level_%03d.png" >/dev/null 2>&1; then
+        local frame_count=0
+        for f in "${temp_dir}"/level_*.png; do
+            [ -f "$f" ] && ((frame_count++))
+        done
+        [ "$frame_count" -eq 3 ] && level_passed=true
+    fi
+
+    if $level_passed; then
+        ((PASSED++))
+        echo -e "  CLI animate menger4d level sweep (3 frames) ${GREEN}✓${RESET}"
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - CLI animate menger4d level sweep (execution or frame count failed)"
+        echo -e "  CLI animate menger4d level sweep (3 frames) ${RED}✗${RESET}"
+    fi
+
+    rm -rf "$temp_dir"
+}
+
 test_3d_fractional_sponges() {
     echo "3D Fractional Sponges:"
     # SpongeByVolume fractional levels
@@ -1018,6 +1070,7 @@ main() {
     test_tesseract
     test_4d_sponges
     test_menger4d
+    test_cli_animation
     test_3d_fractional_sponges
     test_platonic_solids
     test_cone

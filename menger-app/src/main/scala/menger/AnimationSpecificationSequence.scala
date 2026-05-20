@@ -27,6 +27,34 @@ case class AnimationSpecificationSequence(specification: List[String] = List.emp
       previousPlusCurrentRotation(specs, frameOffset)
     }
 
+  def applyToSpec(spec: ObjectSpec, frame: Int): ObjectSpec =
+    import AnimationSpecification.*
+    val withLevel = level(frame).map(l => spec.copy(level = Some(l))).getOrElse(spec)
+    val animatedParams = parts.flatMap(_.animationParameters.keys).toSet
+    val has4D = animatedParams.exists(FOUR_D_VALID_PARAMETERS.contains)
+    val has3D = animatedParams.exists(Set(RotX, RotY, RotZ).contains)
+    if !has4D && !has3D then withLevel
+    else
+      val r = rotationProjectionParameters(frame).getOrElse(RotationProjectionParameters())
+      val base = spec.projection4D.getOrElse(Projection4DSpec.default)
+      val with4D = if has4D then
+        withLevel.copy(projection4D = Some(Projection4DSpec(
+          rotXW   = if animatedParams.contains(RotXW) then r.rotXW else base.rotXW,
+          rotYW   = if animatedParams.contains(RotYW) then r.rotYW else base.rotYW,
+          rotZW   = if animatedParams.contains(RotZW) then r.rotZW else base.rotZW,
+          eyeW    = if animatedParams.contains(ProjectionEyeW) then r.eyeW else base.eyeW,
+          screenW = if animatedParams.contains(ProjectionScreenW) then r.screenW else base.screenW
+        )))
+      else withLevel
+      if has3D then
+        val toRad = math.Pi.toFloat / 180f
+        with4D.copy(rotation = ObjectRotation(
+          x = if animatedParams.contains(RotX) then r.rotX * toRad else with4D.rotation.x,
+          y = if animatedParams.contains(RotY) then r.rotY * toRad else with4D.rotation.y,
+          z = if animatedParams.contains(RotZ) then r.rotZ * toRad else with4D.rotation.z
+        ))
+      else with4D
+
   def isRotationAxisSet(x: Float, y: Float, z: Float, xw: Float, yw: Float, zw: Float): Boolean =
     parts.exists(_.isRotationAxisSet(x, y, z, xw, yw, zw))
 

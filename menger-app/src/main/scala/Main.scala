@@ -16,6 +16,7 @@ import menger.config.SceneConfig
 import menger.dsl.LoadedScene
 import menger.dsl.SceneConverter
 import menger.engines.AnimationEngine
+import menger.engines.CliAnimationEngine
 import menger.engines.InteractiveEngine
 import menger.engines.PreviewEngine
 import menger.engines.RenderEngine
@@ -164,7 +165,7 @@ object Main:
     )
     InteractiveEngine(engineConfig, opts.userSetMaxInstances)
 
-  private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): InteractiveEngine =
+  private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): RenderEngine =
     val engineConfig = OptiXEngineConfig(
       scene = SceneConfig(objectSpecs = opts.objects.toOption),
       camera = CameraConfig(
@@ -186,7 +187,11 @@ object Main:
       caustics = opts.causticsConfig,
       cross = opts.crossConfig
     )
-    InteractiveEngine(engineConfig, opts.userSetMaxInstances)
+    opts.animate.toOption match
+      case Some(animSpec) =>
+        CliAnimationEngine(engineConfig, animSpec, opts.saveName())
+      case None =>
+        InteractiveEngine(engineConfig, opts.userSetMaxInstances)
 
   private def buildExecutionConfig(opts: MengerCLIOptions): ExecutionConfig =
     ExecutionConfig(
