@@ -19,8 +19,6 @@ class Hexadecachoron4DSceneBuilder(
       Left("All objects must be hexadecachoron4d for Hexadecachoron4DSceneBuilder")
     else if specs.exists(_.level.isEmpty) then
       Left("All hexadecachoron4d objects require a level parameter")
-    else if specs.exists(s => s.level.exists(l => l != l.toInt)) then
-      Left("Hexadecachoron4D does not support fractional levels")
     else Right(())
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
@@ -29,22 +27,33 @@ class Hexadecachoron4DSceneBuilder(
       val proj     = spec.projection4D.getOrElse(Projection4DSpec.default)
       val material = MaterialExtractor.extract(spec)
       val position = Vector[3](spec.x, spec.y, spec.z)
-      val level    = spec.level.get.toInt
+      val rawLevel = spec.level.get
 
-      renderer.addHexadecachoron4DInstance(
-        level, position, spec.size,
-        proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
-        material
-      ) match
-        case Some(id) =>
-          hexadecachoron4DRecorder(specIdx, id)
-          logger.debug(s"Added hexadecachoron4d instance $id level=$level")
-        case None =>
-          logger.error(s"Failed to add hexadecachoron4d instance at (${spec.x},${spec.y},${spec.z})")
+      def addInstance(level: Int, mat: menger.optix.Material): Unit =
+        renderer.addHexadecachoron4DInstance(
+          level, position, spec.size,
+          proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
+          mat
+        ) match
+          case Some(id) =>
+            hexadecachoron4DRecorder(specIdx, id)
+            logger.debug(s"Added hexadecachoron4d instance $id level=$level")
+          case None =>
+            logger.error(s"Failed to add hexadecachoron4d instance at (${spec.x},${spec.y},${spec.z})")
+
+      if isFractional(rawLevel) then
+        val frac      = rawLevel - rawLevel.floor
+        val coarseMat = material.copy(color = material.color.copy(a = material.color.a * (1f - frac)))
+        addInstance(rawLevel.floor.toInt + 1, material)
+        addInstance(rawLevel.floor.toInt,     coarseMat)
+      else
+        addInstance(rawLevel.toInt, material)
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     ObjectType.isHexadecachoron4D(spec1.objectType) && ObjectType.isHexadecachoron4D(spec2.objectType)
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
-    specs.length.toLong
+    specs.iterator.map(s => if s.level.exists(isFractional) then 2L else 1L).sum
+
+  private def isFractional(level: Float): Boolean = level != level.floor

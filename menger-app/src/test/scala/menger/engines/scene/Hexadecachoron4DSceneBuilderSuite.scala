@@ -18,26 +18,31 @@ class Hexadecachoron4DSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val noLevel = spec("type=hexadecachoron4d:level=1").copy(level = None)
     builder.validate(List(noLevel), maxInstances = 10) shouldBe a[Left[String, Unit]]
 
-  it should "reject fractional level" in:
+  it should "accept fractional level" in:
     val builder = Hexadecachoron4DSceneBuilder()
-    // ObjectSpec.parse accepts fractional at parse time; Hexadecachoron4DSceneBuilder.validate rejects it
     val fracLevel = spec("type=hexadecachoron4d:level=1").copy(level = Some(1.5f))
-    builder.validate(List(fracLevel), maxInstances = 10) shouldBe a[Left[String, Unit]]
+    builder.validate(List(fracLevel), maxInstances = 10) shouldBe Right(())
 
   it should "reject wrong object type" in:
     val builder = Hexadecachoron4DSceneBuilder()
     val wrongType = spec("type=menger4d:level=2")
     builder.validate(List(wrongType), maxInstances = 10) shouldBe a[Left[String, Unit]]
 
-  "Hexadecachoron4DSceneBuilder.calculateInstanceCount" should "return 1 for a single spec" in:
+  "Hexadecachoron4DSceneBuilder.calculateInstanceCount" should "return 1 for integer level" in:
     val builder = Hexadecachoron4DSceneBuilder()
     builder.calculateInstanceCount(List(spec("type=hexadecachoron4d:level=2"))) shouldBe 1L
 
-  it should "return N for N specs" in:
+  it should "return 2 for fractional level" in:
     val builder = Hexadecachoron4DSceneBuilder()
+    val fracLevel = spec("type=hexadecachoron4d:level=1").copy(level = Some(1.5f))
+    builder.calculateInstanceCount(List(fracLevel)) shouldBe 2L
+
+  it should "return correct total for mixed integer and fractional levels" in:
+    val builder = Hexadecachoron4DSceneBuilder()
+    val fracLevel = spec("type=hexadecachoron4d:level=1").copy(level = Some(1.5f))
     val specs = List(
-      spec("type=hexadecachoron4d:level=1"),
-      spec("type=hexadecachoron4d:level=2"),
-      spec("type=hexadecachoron4d:level=3"),
+      spec("type=hexadecachoron4d:level=1"),  // integer → 1
+      fracLevel,                               // fractional → 2
+      spec("type=hexadecachoron4d:level=3"),  // integer → 1
     )
-    builder.calculateInstanceCount(specs) shouldBe 3L
+    builder.calculateInstanceCount(specs) shouldBe 4L
