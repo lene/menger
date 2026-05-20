@@ -163,7 +163,8 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.VALID_TYPES should contain("120-cell")
     ObjectType.VALID_TYPES should contain("600-cell")
     ObjectType.VALID_TYPES should contain("menger4d")
-    ObjectType.VALID_TYPES.size shouldBe 22
+    ObjectType.VALID_TYPES should contain("sierpinski4d")
+    ObjectType.VALID_TYPES.size shouldBe 23
 
   "ObjectType.SPONGE_TYPES" should "contain only 3D sponge types" in:
     ObjectType.SPONGE_TYPES should contain("sponge-volume")
@@ -224,3 +225,21 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
 
   "ObjectType.is4DSponge" should "include menger4d" in:
     ObjectType.is4DSponge("menger4d") shouldBe true
+
+  // === Sierpinski4D Type Tests ===
+
+  "ObjectType.isSierpinski4D" should "identify sierpinski4d" in:
+    ObjectType.isSierpinski4D("sierpinski4d") shouldBe true
+    ObjectType.isSierpinski4D("SIERPINSKI4D") shouldBe true
+
+  it should "not classify other types as sierpinski4d" in:
+    ObjectType.isSierpinski4D("sphere") shouldBe false
+    ObjectType.isSierpinski4D("menger4d") shouldBe false
+    ObjectType.isSierpinski4D("tesseract-sponge-volume") shouldBe false
+
+  "ObjectType.is4DSponge" should "include sierpinski4d" in:
+    ObjectType.is4DSponge("sierpinski4d") shouldBe true
+
+  "ObjectType.isValid" should "accept sierpinski4d" in:
+    ObjectType.isValid("sierpinski4d") shouldBe true
+    ObjectType.isValid("SIERPINSKI4D") shouldBe true

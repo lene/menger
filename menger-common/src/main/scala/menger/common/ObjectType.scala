@@ -24,10 +24,13 @@ object ObjectType:
     "600-cell",
     "tesseract-sponge-volume",
     "tesseract-sponge-surface",
-    "menger4d"
+    "menger4d",
+    "sierpinski4d"
   )
 
   val MENGER4D_TYPES: Set[String] = Set("menger4d")
+
+  val SIERPINSKI4D_TYPES: Set[String] = Set("sierpinski4d")
 
   val SPONGE_TYPES: Set[String] = Set(
     "sponge-volume",
@@ -90,10 +93,13 @@ object ObjectType:
   def is4DSponge(objectType: String): Boolean =
     val normalized = normalize(objectType)
     normalized == "tesseract-sponge-volume" || normalized == "tesseract-sponge-surface" ||
-    MENGER4D_TYPES.contains(normalized)
+    MENGER4D_TYPES.contains(normalized) || SIERPINSKI4D_TYPES.contains(normalized)
 
   def isMenger4D(objectType: String): Boolean =
     MENGER4D_TYPES.contains(normalize(objectType))
+
+  def isSierpinski4D(objectType: String): Boolean =
+    SIERPINSKI4D_TYPES.contains(normalize(objectType))
 
   def isRecursiveIASSponge(objectType: String): Boolean =
     normalize(objectType) == "sponge-recursive-ias"
