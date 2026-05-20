@@ -15,6 +15,7 @@ import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ObjectType
 import menger.config.OptiXEngineConfig
+import menger.engines.scene.Hexadecachoron4DSceneBuilder
 import menger.engines.scene.Menger4DSceneBuilder
 import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneBuilder
@@ -81,11 +82,11 @@ class InteractiveEngine(
   // Keyboard handler for 4D rotation (initialized in finalizeCreate)
   private val keyHandler = new AtomicReference[Option[OptiXKeyHandler]](None)
 
-  // Track if we have 4D objects (projected triangle mesh OR menger4d OR sierpinski4d) that need rebuild on rotation
+  // Track if we have 4D objects (projected triangle mesh OR menger4d OR sierpinski4d OR hexadecachoron4d) that need rebuild on rotation
   private lazy val has4DObjects: Boolean =
     currentObjectSpecs.get().exists(_.exists(spec =>
       ObjectType.isProjected4D(spec.objectType) || ObjectType.isMenger4D(spec.objectType) ||
-      ObjectType.isSierpinski4D(spec.objectType)
+      ObjectType.isSierpinski4D(spec.objectType) || ObjectType.isHexadecachoron4D(spec.objectType)
     ))
 
   /** Per-spec instanceId mapping for the menger4d rotation fast path. */
@@ -94,13 +95,17 @@ class InteractiveEngine(
   /** Per-spec instanceId mapping for the sierpinski4d rotation fast path. */
   private case class Sierpinski4DState(specs: List[ObjectSpec], instancesPerSpec: Vector[Vector[Int]])
 
+  /** Per-spec instanceId mapping for the hexadecachoron4d rotation fast path. */
+  private case class Hexadecachoron4DState(specs: List[ObjectSpec], instancesPerSpec: Vector[Vector[Int]])
+
   /** Cached slot/instance indices for 4D-rotation fast paths.
-    * gpu/cpu: triangle mesh paths. menger4d/sierpinski4d: IFS instance paths. */
+    * gpu/cpu: triangle mesh paths. menger4d/sierpinski4d/hexadecachoron4d: IFS instance paths. */
   private case class Scene4DCache(
-    gpu:          Option[WithAnimation.Anim4DState] = None,
-    cpu:          Option[WithAnimation.Anim4DState] = None,
-    menger4d:     Option[Menger4DState]             = None,
-    sierpinski4d: Option[Sierpinski4DState]         = None
+    gpu:              Option[WithAnimation.Anim4DState] = None,
+    cpu:              Option[WithAnimation.Anim4DState] = None,
+    menger4d:         Option[Menger4DState]             = None,
+    sierpinski4d:     Option[Sierpinski4DState]         = None,
+    hexadecachoron4d: Option[Hexadecachoron4DState]     = None
   )
   private val scene4DCache: AtomicReference[Scene4DCache] =
     new AtomicReference(Scene4DCache())
@@ -127,7 +132,7 @@ class InteractiveEngine(
     if has4DObjects then
       val updatedSpecs = currentObjectSpecs.get().map(_.map { spec =>
         if ObjectType.isProjected4D(spec.objectType) || ObjectType.isMenger4D(spec.objectType) ||
-           ObjectType.isSierpinski4D(spec.objectType) then
+           ObjectType.isSierpinski4D(spec.objectType) || ObjectType.isHexadecachoron4D(spec.objectType) then
           val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
           val newEyeW =
             // defaultEyeW acts as a sentinel: a rotation-only event leaves eyeW unchanged.
@@ -158,7 +163,8 @@ class InteractiveEngine(
         tryRotation4DFastPath(specs, rendererWrapper.renderer) ||
         tryRotation4DCpuFastPath(specs, rendererWrapper.renderer) ||
         tryMenger4DFastPath(specs, rendererWrapper.renderer) ||
-        trySierpinski4DFastPath(specs, rendererWrapper.renderer)
+        trySierpinski4DFastPath(specs, rendererWrapper.renderer) ||
+        tryHexadecachoron4DFastPath(specs, rendererWrapper.renderer)
       )
       if !fastPathTaken then
         rebuildScene()
@@ -275,6 +281,30 @@ class InteractiveEngine(
                 }
           }
           scene4DCache.set(scene4DCache.get.copy(sierpinski4d = Some(prev.copy(specs = newSpecs))))
+          true
+
+  private def tryHexadecachoron4DFastPath(
+    newSpecs: List[ObjectSpec],
+    renderer: menger.optix.OptiXRenderer
+  ): Boolean =
+    scene4DCache.get.hexadecachoron4d match
+      case None => false
+      case Some(prev) =>
+        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
+        else
+          prev.specs.lazyZip(newSpecs).lazyZip(prev.instancesPerSpec).foreach {
+            case (prevSpec, newSpec, instanceIds) =>
+              if prevSpec.projection4D != newSpec.projection4D then
+                val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
+                instanceIds.foreach { instanceId =>
+                  renderer.updateHexadecachoron4DProjection(
+                    instanceId,
+                    eyeW = proj.eyeW, screenW = proj.screenW,
+                    rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+                  )
+                }
+          }
+          scene4DCache.set(scene4DCache.get.copy(hexadecachoron4d = Some(prev.copy(specs = newSpecs))))
           true
 
   private case class LevelConfig(warnLevel: Int, maxLevel: Int, estimateTriangles: Int => Long)
@@ -496,6 +526,27 @@ class InteractiveEngine(
       }
       result.recover { case _ => scene4DCache.set(Scene4DCache()) }
       result
+    else if specs.forall(s => ObjectType.isHexadecachoron4D(s.objectType)) then
+      val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
+        scala.collection.mutable.Map.empty
+      val builder = Hexadecachoron4DSceneBuilder(
+        textureDir,
+        hexadecachoron4DRecorder = (specIdx: Int, instanceId: Int) =>
+          instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += instanceId
+      )
+      val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
+      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      result.foreach { _ =>
+        if instancesBuf.size == specs.size then
+          val instancesPerSpec = specs.indices.map(i =>
+            instancesBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
+          ).toVector
+          scene4DCache.set(Scene4DCache(hexadecachoron4d = Some(Hexadecachoron4DState(specs, instancesPerSpec))))
+        else
+          scene4DCache.set(Scene4DCache())
+      }
+      result.recover { case _ => scene4DCache.set(Scene4DCache()) }
+      result
     else
       scene4DCache.set(Scene4DCache())
       buildSceneFromSpecs(specs, renderer)
@@ -527,29 +578,40 @@ class InteractiveEngine(
           if !renderConfig.gpuProject4D && isCpu4DFastPathEligible(specs) then
             val slotsPerSpec = specs.indices.map(i => Vector(i)).toVector
             scene4DCache.set(scene4DCache.get.copy(
-              cpu          = Some(WithAnimation.Anim4DState(specs, slotsPerSpec)),
-              menger4d     = None,
-              sierpinski4d = None
+              cpu              = Some(WithAnimation.Anim4DState(specs, slotsPerSpec)),
+              menger4d         = None,
+              sierpinski4d     = None,
+              hexadecachoron4d = None
             ))
           else if specs.forall(s => ObjectType.isMenger4D(s.objectType)) then
             val instancesPerSpec = specs.indices.map(i => Vector(i)).toVector
             scene4DCache.set(scene4DCache.get.copy(
-              cpu          = None,
-              menger4d     = Some(Menger4DState(specs, instancesPerSpec)),
-              sierpinski4d = None
+              cpu              = None,
+              menger4d         = Some(Menger4DState(specs, instancesPerSpec)),
+              sierpinski4d     = None,
+              hexadecachoron4d = None
             ))
           else if specs.forall(s => ObjectType.isSierpinski4D(s.objectType)) then
             val instancesPerSpec = specs.indices.map(i => Vector(i)).toVector
             scene4DCache.set(scene4DCache.get.copy(
-              cpu          = None,
-              menger4d     = None,
-              sierpinski4d = Some(Sierpinski4DState(specs, instancesPerSpec))
+              cpu              = None,
+              menger4d         = None,
+              sierpinski4d     = Some(Sierpinski4DState(specs, instancesPerSpec)),
+              hexadecachoron4d = None
+            ))
+          else if specs.forall(s => ObjectType.isHexadecachoron4D(s.objectType)) then
+            val instancesPerSpec = specs.indices.map(i => Vector(i)).toVector
+            scene4DCache.set(scene4DCache.get.copy(
+              cpu              = None,
+              menger4d         = None,
+              sierpinski4d     = None,
+              hexadecachoron4d = Some(Hexadecachoron4DState(specs, instancesPerSpec))
             ))
           else
-            scene4DCache.set(scene4DCache.get.copy(cpu = None, menger4d = None, sierpinski4d = None))
+            scene4DCache.set(scene4DCache.get.copy(cpu = None, menger4d = None, sierpinski4d = None, hexadecachoron4d = None))
           logger.debug("Scene rebuild complete")
         }.recover { case e =>
-          scene4DCache.set(scene4DCache.get.copy(cpu = None, menger4d = None, sierpinski4d = None))
+          scene4DCache.set(scene4DCache.get.copy(cpu = None, menger4d = None, sierpinski4d = None, hexadecachoron4d = None))
           logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
         }
       case None =>
