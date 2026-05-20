@@ -562,6 +562,7 @@ interactive_tests=(
     "Hexadecachoron4D L2 rotated (rot-xw=45):-o --objects type=hexadecachoron4d:level=2:rot-xw=45"
     "Sierpinski4D fractional L2.5:-o --objects type=sierpinski4d:level=2.5"
     "Hexadecachoron4D fractional L2.5:-o --objects type=hexadecachoron4d:level=2.5"
+    "Sponge-recursive-ias fractional L2.5:-o --objects type=sponge-recursive-ias:level=2.5"
 )
 
 echo "Available interactive tests:"

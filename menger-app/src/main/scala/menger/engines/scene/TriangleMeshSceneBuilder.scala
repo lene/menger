@@ -44,7 +44,7 @@ class TriangleMeshSceneBuilder(
     else if !specs.forall(isTriangleMeshType) then
       Left("All objects must be triangle mesh types (cube, sponge-*, tesseract, tetrahedron, octahedron, icosahedron, dodecahedron, parametric)")
     else if specs.exists(invalidRecursiveIASLevel) then
-      Left("sponge-recursive-ias requires integer level in [1, 14]")
+      Left("sponge-recursive-ias requires level in [1, 14)")
     else
       // Check instance count (accounting for fractional levels creating 2 instances)
       val instanceCount = calculateInstanceCount(specs)
@@ -102,15 +102,18 @@ class TriangleMeshSceneBuilder(
 
         val instanceId =
           if ObjectType.isRecursiveIASSponge(spec.objectType) then
-            // Recursive-IAS sponge: leaf is the unit cube uploaded above; the
-            // outer transform scales by spec.size and applies euler rotation +
-            // translation. Level is required and validated in `validate()`.
             val transform = TransformUtil.createEulerRotationScaleTranslation(
               spec.rotX, spec.rotY, spec.rotZ, spec.size, spec.x, spec.y, spec.z
             )
-            renderer.addRecursiveIASSpongeInstance(
-              spec.level.get.toInt, transform, op.material, textureIndex
-            )
+            val rawLevel = spec.level.get
+            if isFractional(rawLevel) then
+              val frac      = rawLevel - rawLevel.floor
+              val coarseMat = op.material.copy(color = op.material.color.copy(a = op.material.color.a * (1f - frac)))
+              val coarseId  = renderer.addRecursiveIASSpongeInstance(rawLevel.floor.toInt, transform, coarseMat, textureIndex)
+              coarseId.foreach(id => applyInstanceTextures(id, spec, textureIndices, renderer))
+              renderer.addRecursiveIASSpongeInstance(rawLevel.floor.toInt + 1, transform, op.material, textureIndex)
+            else
+              renderer.addRecursiveIASSpongeInstance(rawLevel.toInt, transform, op.material, textureIndex)
           else if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
             renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), op.material, textureIndex)
           else
@@ -232,7 +235,9 @@ class TriangleMeshSceneBuilder(
     // CPU-merged fractional path: 1 instance per spec.
     // GPU fractional path: 2 instances per fractional spec (level n + level n+1).
     specs.iterator.map { spec =>
-      if isFractional4DSponge(spec) && gpuProject4D then 2L else 1L
+      if ObjectType.isRecursiveIASSponge(spec.objectType) && spec.level.exists(isFractional) then 2L
+      else if isFractional4DSponge(spec) && gpuProject4D then 2L
+      else 1L
     }.sum
 
   private def isTriangleMeshType(spec: ObjectSpec): Boolean =
@@ -253,5 +258,5 @@ class TriangleMeshSceneBuilder(
   private def invalidRecursiveIASLevel(spec: ObjectSpec): Boolean =
     if !ObjectType.isRecursiveIASSponge(spec.objectType) then false
     else spec.level match
-      case Some(l) => isFractional(l) || l < 1f || l > 14f
+      case Some(l) => l < 1f || l >= 14f
       case None => true

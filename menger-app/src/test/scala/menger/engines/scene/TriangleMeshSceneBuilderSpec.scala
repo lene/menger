@@ -98,7 +98,28 @@ class TriangleMeshSceneBuilderSpec extends AnyFlatSpec with Matchers:
     result shouldBe a[Left[?, ?]]
     result.left.getOrElse("") should include("Incompatible")
 
-  it should "reject too many instances" in:
+  it should "accept fractional level for sponge-recursive-ias" in:
+    val spec = ObjectSpec.parse("type=sponge-recursive-ias:level=2.5").toOption.get
+    builder.validate(List(spec), 100) shouldBe Right(())
+
+  it should "reject level >= 14 for sponge-recursive-ias" in:
+    val spec = ObjectSpec.parse("type=sponge-recursive-ias:level=14").toOption.get
+    val result = builder.validate(List(spec), 100)
+    result shouldBe a[Left[?, ?]]
+
+  // === calculateInstanceCount Tests ===
+
+  "TriangleMeshSceneBuilder.calculateInstanceCount" should "return 2 for fractional sponge-recursive-ias" in:
+    val spec = ObjectSpec.parse("type=sponge-recursive-ias:level=2.5").toOption.get
+    builder.calculateInstanceCount(List(spec)) shouldBe 2L
+
+  it should "return 1 for integer sponge-recursive-ias" in:
+    val spec = ObjectSpec.parse("type=sponge-recursive-ias:level=2").toOption.get
+    builder.calculateInstanceCount(List(spec)) shouldBe 1L
+
+  // === validate: instance count ===
+
+  "TriangleMeshSceneBuilder.validate" should "reject too many instances" in:
     val specs = List.fill(100)(ObjectSpec.parse("type=cube").toOption.get)
     val result = builder.validate(specs, 50)
     result shouldBe a[Left[?, ?]]
