@@ -1,11 +1,27 @@
 # Changelog
 
-## [0.6.2] - 2026-05-18
+## [0.6.2] - 2026-05-20
 
 ### Added
 - **4D Menger sponge analog** (`menger4d`) — iterative IFS ray traversal via custom OptiX
   intersection shader; O(1) VRAM regardless of level (level 10+ supported). Parameters:
   `level`, `dist-threshold`, `rot-xw`/`rot-yw`/`rot-zw`, `eye-w`, `screen-w`.
+- **4D Sierpinski tetrahedron analog** (`sierpinski4d`) — IFS intersection shader; 4D
+  recursive tetrahedral self-similar structure projected to 3D.
+- **4D hexadecachoron sponge** (`hexadecachoron4d`) — IFS intersection shader based on the
+  16-cell; distinct cross-section topology from `menger4d`.
+- **Fractional levels for `sponge-recursive-ias`** — fractional `level` values (e.g. `2.5`)
+  produce a cross-fade between adjacent integer IAS trees; smooth visual transition matching
+  the menger4d/sierpinski4d fractional-level behaviour.
+- **CLI animation via `--animate`** — `--objects` scenes now support `--animate
+  "frames=N:param=start-end"` for headless multi-frame rendering; parameters include
+  `rot-x-w`, `rot-y-w`, `rot-z-w`, `rot-x/y/z`, `level`, `projection-eye-w`,
+  `projection-screen-w`. All 4D IFS types (`menger4d`, `sierpinski4d`, `hexadecachoron4d`,
+  `sponge-recursive-ias`) are valid animation targets.
+- **`RecursiveIAS` DSL sponge type** — `Sponge(spongeType = RecursiveIAS, level = ...)` in
+  DSL scenes.
+- **`SpongeLevelAnimation` example scene** — DSL animated scene sweeping `sponge-recursive-ias`
+  level 1→4; demonstrates fractional-level cross-fade via `scene(t)`.
 
 ## [0.6.1] - 2026-05-17
 

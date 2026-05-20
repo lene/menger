@@ -35,4 +35,5 @@ object SceneIndex:
     OrbitingSphere.scene,
     PulsingSponge.scene,
     RotatingSilverSponge.scene,
+    SpongeLevelAnimation.scene,
   )

@@ -123,6 +123,7 @@ enum SpongeType(val objectTypeName: String):
   case VolumeFilling extends SpongeType("sponge-volume")
   case SurfaceUnfolding extends SpongeType("sponge-surface")
   case CubeSponge extends SpongeType("cube-sponge")
+  case RecursiveIAS extends SpongeType("sponge-recursive-ias")
 
 /** Menger sponge fractal object */
 case class Sponge(
@@ -179,7 +180,7 @@ object Sponge:
 
 
 // Export SpongeType values for convenient imports
-export SpongeType.{VolumeFilling, SurfaceUnfolding, CubeSponge}
+export SpongeType.{VolumeFilling, SurfaceUnfolding, CubeSponge, RecursiveIAS}
 
 
 /** Tesseract sponge type enumeration for DSL */

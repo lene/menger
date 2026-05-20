@@ -387,6 +387,42 @@ sbt "run --optix --objects 'type=24-cell:size=1.0:material=glass:rot-x-w=15:rot-
 
 Use `--gpu-project-4d` for faster projection on large polytopes (120-cell, 600-cell).
 
+#### 4D IFS Fractal Analogs — *Sprint 21*
+
+Three 4D fractal analogs rendered via iterative IFS intersection shaders (O(1) VRAM):
+
+| Type string | Description |
+|-------------|-------------|
+| `menger4d` | 4D Menger sponge analog — 48-fold self-similar structure |
+| `sierpinski4d` | 4D Sierpinski tetrahedron analog |
+| `hexadecachoron4d` | Hexadecachoron (16-cell) based IFS fractal |
+
+All three share the same parameters as `menger4d`:
+
+```bash
+# Menger 4D sponge, level 3, rotated in XW plane
+--objects type=menger4d:level=3:rot-xw=45
+
+# Sierpinski 4D tetrahedron
+--objects type=sierpinski4d:level=4:rot-xw=30:rot-yw=20
+
+# Hexadecachoron 4D fractal with fractional level
+--objects type=hexadecachoron4d:level=2.5:size=0.8
+```
+
+**Fractional levels** produce a smooth cross-fade between adjacent integer levels (same
+mechanism as `sponge-recursive-ias`). Practical level ceiling: ~7 before render time
+exceeds 400 ms/frame.
+
+**CLI animation example** — sweep rotXW over 60 frames:
+```bash
+menger-app --headless --objects type=menger4d:level=3 \
+  --animate "frames=60:rot-x-w=0-360" \
+  --save-name frame_%04d.png
+```
+
+**DSL example** — see `examples.dsl.SpongeLevelAnimation` (recursive IAS level sweep).
+
 #### 4D Projection Controls
 
 Control the 4D→3D projection:

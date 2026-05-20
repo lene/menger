@@ -709,6 +709,8 @@ test_t_animation() {
         --scene examples.dsl.OrbitingSphere --t 0.5
     run_test "t-animation freeze-frame PulsingSponge" \
         --scene examples.dsl.PulsingSponge --t 1.0
+    run_test "t-animation freeze-frame SpongeLevelAnimation" \
+        --scene examples.dsl.SpongeLevelAnimation --t 0.5
 
     # Multi-frame animation: 3 frames for speed
     local temp_dir
