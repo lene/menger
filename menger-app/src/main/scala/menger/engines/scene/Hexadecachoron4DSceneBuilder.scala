@@ -29,9 +29,9 @@ class Hexadecachoron4DSceneBuilder(
       val position = Vector[3](spec.x, spec.y, spec.z)
       val rawLevel = spec.level.get
 
-      def addInstance(level: Int, mat: menger.optix.Material): Unit =
+      def addInstance(level: Int, mat: menger.optix.Material, scale: Float): Unit =
         renderer.addHexadecachoron4DInstance(
-          level, position, spec.size,
+          level, position, scale,
           proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
           mat
         ) match
@@ -44,10 +44,10 @@ class Hexadecachoron4DSceneBuilder(
       if isFractional(rawLevel) then
         val frac      = rawLevel - rawLevel.floor
         val coarseMat = material.copy(color = material.color.copy(a = material.color.a * (1f - frac)))
-        addInstance(rawLevel.floor.toInt + 1, material)
-        addInstance(rawLevel.floor.toInt,     coarseMat)
+        addInstance(rawLevel.floor.toInt + 1, material,  spec.size)
+        addInstance(rawLevel.floor.toInt,     coarseMat, spec.size * (1f - CoarseScaleOffset))
       else
-        addInstance(rawLevel.toInt, material)
+        addInstance(rawLevel.toInt, material, spec.size)
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
@@ -56,4 +56,5 @@ class Hexadecachoron4DSceneBuilder(
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
     specs.iterator.map(s => if s.level.exists(isFractional) then 2L else 1L).sum
 
+  private val CoarseScaleOffset = 0.001f
   private def isFractional(level: Float): Boolean = level != level.floor

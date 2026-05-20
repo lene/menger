@@ -30,9 +30,9 @@ class Menger4DSceneBuilder(
       val position  = Vector[3](spec.x, spec.y, spec.z)
       val rawLevel  = spec.level.get
 
-      def addInstance(level: Int, mat: menger.optix.Material): Unit =
+      def addInstance(level: Int, mat: menger.optix.Material, scale: Float): Unit =
         renderer.addMenger4DInstance(
-          level, threshold, position, spec.size,
+          level, threshold, position, scale,
           proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
           mat
         ) match
@@ -43,13 +43,12 @@ class Menger4DSceneBuilder(
             logger.error(s"Failed to add menger4d instance at (${spec.x},${spec.y},${spec.z})")
 
       if isFractional(rawLevel) then
-        val frac          = rawLevel - rawLevel.floor
-        val coarseAlpha   = 1.0f - frac
-        val coarseMat     = material.copy(color = material.color.copy(a = material.color.a * coarseAlpha))
-        addInstance(rawLevel.floor.toInt + 1, material)   // fine level — fully opaque
-        addInstance(rawLevel.floor.toInt,     coarseMat)  // coarse skin — fading out
+        val frac      = rawLevel - rawLevel.floor
+        val coarseMat = material.copy(color = material.color.copy(a = material.color.a * (1f - frac)))
+        addInstance(rawLevel.floor.toInt + 1, material,  spec.size)
+        addInstance(rawLevel.floor.toInt,     coarseMat, spec.size * (1f - CoarseScaleOffset))
       else
-        addInstance(rawLevel.toInt, material)
+        addInstance(rawLevel.toInt, material, spec.size)
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
@@ -60,4 +59,5 @@ class Menger4DSceneBuilder(
       if spec.level.exists(isFractional) then 2L else 1L
     }.sum
 
+  private val CoarseScaleOffset = 0.001f
   private def isFractional(level: Float): Boolean = level != level.floor
