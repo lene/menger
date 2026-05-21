@@ -3,6 +3,7 @@ package menger
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
+import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -31,4 +32,12 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
     noClasses().that().resideInAPackage("menger.optix..")
       .should().dependOnClassesThat()
         .resideInAnyPackage("menger.engines..", "menger.config..", "menger.dsl..")
+      .check(allClasses)
+
+  // Blocked by cli→engines→config→cli cycle: EnvironmentConfig holds LightSpec/PlaneConfig
+  // from menger.cli. Un-ignore after Task 8 (P0.A) moves those types to menger.common.
+  ignore should "be free of dependency cycles" in:
+    SlicesRuleDefinition.slices()
+      .matching("menger.(*)..")
+      .should().beFreeOfCycles()
       .check(allClasses)
