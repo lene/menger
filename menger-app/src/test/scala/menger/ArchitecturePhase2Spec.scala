@@ -5,16 +5,14 @@ import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests
 import com.tngtech.archunit.core.importer.Location
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
-import org.scalatest.Ignore
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 /**
- * Phase 2 architectural rules — blocked on Phase 0 refactors.
- * P0.A (dsl→cli decoupling) and P0.B (objects→input decoupling) must complete first.
- * Remove @Ignore from each test once the corresponding blocker is resolved.
+ * Phase 2 architectural rules.
+ * P0.B (objects→input decoupling) is resolved; per-test ignore marks remaining blockers.
+ * Remove ignore from each test once the corresponding blocker is resolved.
  */
-@Ignore
 class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
 
   private val doNotIncludeSbtTestClasses: ImportOption =
@@ -26,16 +24,16 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
       .withImportOption(doNotIncludeSbtTestClasses)
       .importPackages("menger")
 
-  // Blocked by P0.B: menger.objects currently imports menger.input
-  "menger.objects" should "depend only on menger.common (P0.B blocker)" in:
+  // P0.B resolved: menger.objects no longer imports menger.input
+  "menger.objects" should "depend only on menger.common (P0.B resolved)" in:
     noClasses().that().resideInAPackage("menger.objects..")
       .should().dependOnClassesThat()
         .resideInAnyPackage("menger.input..", "menger.engines..",
                             "menger.dsl..", "menger.cli..", "menger.config..")
       .check(allClasses)
 
-  // Blocked by P0.A: menger.dsl currently imports menger.cli
-  "menger.dsl" should "depend only on menger.common and menger.objects (P0.A blocker)" in:
+  // Blocked by P0.A: menger.dsl still imports menger.config
+  ignore should "depend only on menger.common and menger.objects (P0.A blocker)" in:
     noClasses().that().resideInAPackage("menger.dsl..")
       .should().dependOnClassesThat()
         .resideInAnyPackage("menger.engines..", "menger.cli..",
@@ -54,32 +52,35 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
         .resideInAnyPackage("menger.engines..", "menger.dsl..", "menger.config..")
       .check(allClasses)
 
-  "menger.cli" should "not depend on engines or optix" in:
+  // Blocked: menger.cli.CliValidation calls menger.engines.VideoEncoder.checkAvailable
+  ignore should "not depend on engines or optix in menger.cli" in:
     noClasses().that().resideInAPackage("menger.cli..")
       .should().dependOnClassesThat()
         .resideInAnyPackage("menger.engines..", "menger.optix..")
       .check(allClasses)
 
   // Immutability — audit required before un-ignoring
-  "menger.common types" should "not contain mutable fields" in:
+  ignore should "have only final fields in menger.common" in:
     noClasses().that().resideInAPackage("menger.common..")
       .should().haveOnlyFinalFields()
       .check(allClasses)
 
-  "menger.dsl types" should "not use mutable collections" in:
+  // Blocked by P0.A: dsl→config violation and mutable usage not yet resolved
+  ignore should "not use mutable collections in menger.dsl (P0.A blocker)" in:
     noClasses().that().resideInAPackage("menger.dsl..")
       .should().dependOnClassesThat()
         .resideInAPackage("scala.collection.mutable..")
       .check(allClasses)
 
   // Purity — audit required before un-ignoring
-  "menger.common" should "not use file IO" in:
+  ignore should "not use file IO in menger.common" in:
     noClasses().that().resideInAPackage("menger.common..")
       .should().dependOnClassesThat()
         .resideInAnyPackage("java.io..", "java.nio.file..")
       .check(allClasses)
 
-  "menger.objects" should "not use file IO or logging" in:
+  // Blocked: Scala case classes implement java.io.Serializable implicitly; ParametricTessellator and Rotation use slf4j
+  ignore should "not use file IO or logging in menger.objects" in:
     noClasses().that().resideInAPackage("menger.objects..")
       .should().dependOnClassesThat()
         .resideInAnyPackage("java.io..", "java.nio.file..", "org.slf4j..")

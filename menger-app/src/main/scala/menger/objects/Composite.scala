@@ -9,23 +9,16 @@ import menger.ProfilingConfig
 import menger.RotationProjectionParameters
 import menger.common.Patterns
 import menger.common.UnknownGeometryException
-import menger.input.Observer
 
 class Composite(
   center: Vector3 = Vector3.Zero,
   scale: Float = 1f,
   geometries: List[Geometry]
-)(using val profilingConfig: ProfilingConfig) extends Geometry(center, scale) with Observer:
+)(using val profilingConfig: ProfilingConfig) extends Geometry(center, scale):
 
   override def getModel: List[ModelInstance] =
     logTime("getModel()") {
       geometries.flatMap(_.getModel)
-    }
-
-  override def handleEvent(event: RotationProjectionParameters): Unit =
-    geometries.foreach {
-      case obs: Observer => obs.handleEvent(event)
-      case _ => // Non-observer geometries don't need events
     }
 
   override def toString: String =

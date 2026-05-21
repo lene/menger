@@ -17,12 +17,6 @@ class CompositeSuite extends AnyFlatSpec with Matchers:
     val composite = Composite(geometries = List(sphere, cube))
     composite.toString should be("Composite(Sphere, Cube)")
 
-  "Composite.handleEvent" should "not throw for non-observer geometries" in:
-    val sphere = Sphere()
-    val cube = Cube()
-    val composite = Composite(geometries = List(sphere, cube))
-    noException should be thrownBy composite.handleEvent(RotationProjectionParameters())
-
   "Composite.parseCompositeFromCLIOption" should "succeed for composite[cube,sphere] type" in:
     val alwaysSucceed = (_: String, _: Float, _: Any, _: Int, _: RotationProjectionParameters) =>
       Try(Sphere(): Geometry)
