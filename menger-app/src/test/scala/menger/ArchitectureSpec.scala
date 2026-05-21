@@ -4,7 +4,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests
 import com.tngtech.archunit.core.importer.Location
-import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.{classes, noClasses}
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -148,6 +148,33 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       com.tngtech.archunit.core.domain.JavaCall.Predicates.target(
         com.tngtech.archunit.core.domain.properties.HasName.Predicates
           .name("$qmark$qmark$qmark")))
+      .check(allClasses)
+
+  "naming conventions" should "place *Engine classes in menger.engines" in:
+    classes().that().haveSimpleNameEndingWith("Engine")
+      .should().resideInAPackage("menger.engines..")
+      .check(allClasses)
+
+  // Blocked by structural conflicts:
+  //   menger.cli.PlaneConfig (cli→config cycle, blocked by same issue as dependency-cycle test)
+  //   menger.engines.InteractiveEngine$LevelConfig (inner class, cannot move without major refactor)
+  //   menger.engines.TAnimationConfig, menger.input.OrbitConfig, menger.optix.CausticsConfig/RenderConfig
+  //   menger.ProfilingConfig — not yet migrated to menger.config.
+  // Un-ignore after Task 8 (P0.A) resolves the cli cycle and migrates misplaced configs.
+  ignore should "place *Config classes in menger.config or menger.common" in:
+    classes().that().haveSimpleNameEndingWith("Config")
+      .should().resideInAnyPackage("menger.config..", "menger.common..")
+      .check(allClasses)
+
+  // Blocked by structural conflicts: moving OptiX* classes to menger.optix would violate
+  // existing enforced rules — OptiXRenderResources/State use LibGDX (banned from menger.optix),
+  // OptiXCameraHandler/Multiplexer/KeyHandler use LibGDX Input (same constraint),
+  // OptiXEngineConfig aggregates menger.config types (would create optix→config dependency,
+  // banned by "optix should not depend on app layer").
+  // Un-ignore after restructuring OptiX integration layer (post-Task 8).
+  ignore should "keep OptiX-prefixed classes in menger.optix packages" in:
+    classes().that().haveSimpleNameStartingWith("OptiX")
+      .should().resideInAPackage("menger.optix..")
       .check(allClasses)
 
   // Blocked by cli→engines→config→cli cycle: EnvironmentConfig holds LightSpec/PlaneConfig
