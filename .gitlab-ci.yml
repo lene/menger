@@ -470,6 +470,28 @@ Test:Cppcheck:
         - optix-jni/src/main/native/**/*.h
         - .cppcheck-suppress
 
+# Native static analysis with clang-tidy (requires compile_commands.json from build)
+Test:ClangTidy:
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
+  stage: test
+  tags: [nvidia]
+  needs: []
+  timeout: 15m
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq clang-tidy
+  script:
+    - sbt "project optixJni" nativeCompile --warn
+    - |
+      BUILD_DIR="optix-jni/target/native/x86_64-linux/build"
+      CPP_FILES=$(git ls-files '*.cpp' | grep 'optix-jni/src/main/native/')
+      # shellcheck disable=SC2086
+      clang-tidy -p "${BUILD_DIR}" --config-file=.clang-tidy ${CPP_FILES}
+  rules:
+    - changes:
+        - optix-jni/src/main/native/**/*.cpp
+        - optix-jni/src/main/native/**/*.h
+        - .clang-tidy
+
 # OptiX integration tests - comprehensive CLI and rendering tests
 # Uses scripts/integration-tests.sh which runs 27 test scenarios
 Test:OptiXIntegration:

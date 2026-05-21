@@ -401,9 +401,39 @@ run_cppcheck() {
   echo "cppcheck: PASSED" >> /tmp/cppcheck-prepush.log
 }
 
+run_clang_tidy() {
+  if [ "${HAS_NATIVE:-0}" -eq 0 ]; then
+    echo "clang-tidy: skipped (no native changes)" > /tmp/clangtidy-prepush.log
+    return 0
+  fi
+  if ! command -v clang-tidy >/dev/null 2>&1; then
+    echo "Warning: clang-tidy not installed, skipping" > /tmp/clangtidy-prepush.log
+    return 0
+  fi
+  BUILD_DIR="optix-jni/target/native/x86_64-linux/build"
+  if [ ! -f "${BUILD_DIR}/compile_commands.json" ]; then
+    echo "Warning: compile_commands.json not found at ${BUILD_DIR} (run sbt compile first)" > /tmp/clangtidy-prepush.log
+    return 0
+  fi
+  echo "=== clang-tidy ===" > /tmp/clangtidy-prepush.log
+  CPP_FILES=$(git ls-files '*.cpp' | grep 'optix-jni/src/main/native/')
+  # shellcheck disable=SC2086
+  clang-tidy \
+    -p "${BUILD_DIR}" \
+    --config-file=.clang-tidy \
+    ${CPP_FILES} >> /tmp/clangtidy-prepush.log 2>&1
+  STATUS_CT=$?
+  if [ "${STATUS_CT}" -ne 0 ]; then
+    echo "clang-tidy: FAILED" >> /tmp/clangtidy-prepush.log
+    return 1
+  fi
+  echo "clang-tidy: PASSED" >> /tmp/clangtidy-prepush.log
+}
+
 export -f run_coverage
 export -f run_valgrind
 export -f run_cppcheck
+export -f run_clang_tidy
 export SKIP_COVERAGE
 export OPTIX_ROOT
 export CUDA_HOME
@@ -494,6 +524,22 @@ if [ $CPPCHECK_STATUS -ne 0 ]; then
   STATUS=1
 else
   echo "Cppcheck: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+fi
+
+# --- clang-tidy (sequential, after cppcheck) ---
+echo "=== Running clang-tidy ==="
+run_clang_tidy
+CLANGTIDY_STATUS=$?
+cat /tmp/clangtidy-prepush.log
+if [ $CLANGTIDY_STATUS -ne 0 ]; then
+  echo "clang-tidy: ${RED_TEXT}FAILED${RESET_TEXT}"
+  STATUS=1
+else
+  echo "clang-tidy: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+fi
+if [ $STATUS -gt 0 ]
+then echo "Status after clang-tidy: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after clang-tidy: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 # ---------------------------------------------------------------------------
