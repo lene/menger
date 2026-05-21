@@ -289,13 +289,5 @@ trait CliValidation:
         case None => Right(())
     }
 
-    // --video requires ffmpeg and the encoder for the chosen format
-    validateOpt(video) { v =>
-      v match
-        case None => Right(())
-        case Some(outputPath) =>
-          try
-            menger.engines.VideoEncoder.checkAvailable(outputPath)
-            Right(())
-          catch case e: IllegalStateException => Left(e.getMessage)
-    }
+    // Note: ffmpeg / encoder availability is checked at VideoEngine construction time
+    // (VideoEncoder.checkAvailable), so no engine-layer call is needed here.
