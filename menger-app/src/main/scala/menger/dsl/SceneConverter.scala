@@ -5,9 +5,9 @@ import menger.ObjectRotation
 import menger.ObjectSpec
 import menger.cli.LightSpec
 import menger.cli.PlaneConfig
+import menger.common.FogConfig
 import menger.common.{Color => CommonColor}
 import menger.config.CameraConfig
-import menger.config.FogConfig
 import menger.config.SceneConfig
 import menger.optix.CausticsConfig
 import menger.optix.RenderConfig

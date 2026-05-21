@@ -11,9 +11,9 @@ import menger.cli.PlaneConfig
 import menger.common.AreaLightShape
 import menger.common.Color
 import menger.common.Const
+import menger.common.FogConfig
 import menger.common.Light
 import menger.common.Vector
-import menger.config.FogConfig
 
 class SceneConfigurator(
   cameraPos: Vector3,

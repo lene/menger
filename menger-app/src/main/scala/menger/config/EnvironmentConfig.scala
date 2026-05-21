@@ -5,6 +5,7 @@ import menger.cli.LightSpec
 import menger.cli.PlaneConfig
 import menger.cli.PlaneSpec
 import menger.common.Color
+import menger.common.FogConfig
 
 /**
  * Environment configuration for lighting and ground planes.

@@ -8,10 +8,10 @@ import menger.MengerCLIOptions
 import menger.ProfilingConfig
 import menger.cli.PlaneConfig
 import menger.common.Const
+import menger.common.FogConfig
 import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
 import menger.config.ExecutionConfig
-import menger.config.FogConfig
 import menger.config.OptiXEngineConfig
 import menger.config.SceneConfig
 import menger.dsl.LoadedScene
