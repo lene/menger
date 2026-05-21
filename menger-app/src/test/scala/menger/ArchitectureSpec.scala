@@ -215,9 +215,7 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .should().callConstructorWhere(constructsRawRuntimeException)
       .check(allClasses)
 
-  // Blocked by cli→engines→config→cli cycle: EnvironmentConfig holds LightSpec/PlaneConfig
-  // from menger.cli. Un-ignore after Task 8 (P0.A) moves those types to menger.common.
-  ignore should "be free of dependency cycles" in:
+  it should "be free of dependency cycles" in:
     SlicesRuleDefinition.slices()
       .matching("menger.(*)..")
       .should().beFreeOfCycles()

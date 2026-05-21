@@ -83,7 +83,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
     }.get
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
-    sceneConfigurator.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
+    PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
     GdxRuntime.setContinuousRendering(false)
     updateTitle()
 
@@ -114,7 +114,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
           buildSceneFromConfigs(configs, renderer).recover { case e: Exception =>
             logger.error(s"Failed to build preview scene for t=$t: ${e.getMessage}", e)
           }
-          sceneConfigurator.configurePlanes(renderer, configs.planes.toArray)
+          PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
           cameraState.updateCamera(

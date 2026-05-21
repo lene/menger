@@ -3,11 +3,11 @@ package menger.dsl
 import com.typesafe.scalalogging.LazyLogging
 import menger.ObjectRotation
 import menger.ObjectSpec
-import menger.cli.LightSpec
-import menger.cli.PlaneConfig
 import menger.common.FogConfig
+import menger.common.Light
 import menger.common.{Color => CommonColor}
 import menger.config.CameraConfig
+import menger.config.PlaneConfig
 import menger.config.SceneConfig
 import menger.optix.CausticsConfig
 import menger.optix.RenderConfig
@@ -21,7 +21,7 @@ object SceneConverter extends LazyLogging:
   case class SceneConfigs(
     scene: SceneConfig,
     camera: CameraConfig,
-    lights: List[LightSpec],
+    lights: List[Light],
     caustics: CausticsConfig,
     background: Option[CommonColor] = None,
     planes: List[PlaneConfig] = List.empty,
@@ -36,10 +36,7 @@ object SceneConverter extends LazyLogging:
       case None       => dslScene.objects.map(_.toObjectSpec)
     val scene     = SceneConfig.multiObject(objectSpecs)
     val camera    = dslScene.toCameraConfig
-    val lights    = dslScene.lights.map { light =>
-      val commonLight = light.toCommonLight
-      LightSpec.fromCommonLight(commonLight)
-    }
+    val lights    = dslScene.lights.map(_.toCommonLight)
     val caustics   = dslScene.caustics.map(_.toCausticsConfig).getOrElse(fallbackCaustics)
     val background = dslScene.background.map(_.toCommonColor)
     val planes     = dslScene.planes.map(_.toPlaneConfig)

@@ -1,8 +1,6 @@
 package menger.optix
 
 import com.typesafe.scalalogging.LazyLogging
-import menger.cli.Axis
-import menger.cli.PlaneConfig
 import menger.common.Color
 import menger.common.Const
 import menger.common.FogConfig
@@ -31,59 +29,6 @@ class SceneConfigurator(
       val lightIntensity = 1.0f
       renderer.setLight(lightDirection, lightIntensity)
       logger.debug(s"Configured default light: direction=(${lightDirection(0)},${lightDirection(1)},${lightDirection(2)}), intensity=$lightIntensity")
-
-  def configurePlanes(renderer: OptiXRenderer, planes: Array[PlaneConfig]): Unit =
-    renderer.clearPlanes()
-    planes.foreach { planeConfig =>
-      val axisInt = planeConfig.spec.axis match
-        case Axis.X => 0
-        case Axis.Y => 1
-        case Axis.Z => 2
-      planeConfig.colorSpec match
-        case Some(colorSpec) =>
-          colorSpec.color2 match
-            case Some(c2) =>
-              val c1 = colorSpec.color1
-              planeConfig.material match
-                case Some(mat) =>
-                  renderer.addPlaneCheckerColorsWithMaterial(
-                    axisInt, planeConfig.spec.positive, planeConfig.spec.value,
-                    Color(c1.r, c1.g, c1.b, 1.0f), Color(c2.r, c2.g, c2.b, 1.0f), mat
-                  )
-                case None =>
-                  renderer.addPlaneCheckerColors(
-                    axisInt, planeConfig.spec.positive, planeConfig.spec.value,
-                    c1.r, c1.g, c1.b, c2.r, c2.g, c2.b
-                  )
-              logger.debug(f"Configured checkered plane: ${planeConfig.spec.axis}@${planeConfig.spec.value}")
-            case None =>
-              val c1 = colorSpec.color1
-              planeConfig.material match
-                case Some(mat) =>
-                  renderer.addPlaneSolidColorWithMaterial(
-                    axisInt, planeConfig.spec.positive, planeConfig.spec.value,
-                    Color(c1.r, c1.g, c1.b, 1.0f), mat
-                  )
-                case None =>
-                  renderer.addPlaneSolidColor(
-                    axisInt, planeConfig.spec.positive, planeConfig.spec.value,
-                    c1.r, c1.g, c1.b
-                  )
-              logger.debug(f"Configured solid-color plane: ${planeConfig.spec.axis}@${planeConfig.spec.value}")
-        case None =>
-          planeConfig.material match
-            case Some(mat) =>
-              // No explicit colour: use the material's own colour as a solid floor.
-              // Checker pattern is opt-in via --plane-color RRGGBB:RRGGBB.
-              renderer.addPlaneSolidColorWithMaterial(
-                axisInt, planeConfig.spec.positive, planeConfig.spec.value,
-                mat.color, mat
-              )
-            case None =>
-              renderer.addPlane(axisInt, planeConfig.spec.positive, planeConfig.spec.value)
-          logger.debug(s"Configured default-color plane: ${planeConfig.spec.axis}@${planeConfig.spec.value}")
-    }
-    if planes.isEmpty then logger.debug("No planes configured")
 
   def setBackgroundColor(renderer: OptiXRenderer, color: Color): Unit =
     renderer.setBackgroundColor(color.r, color.g, color.b)

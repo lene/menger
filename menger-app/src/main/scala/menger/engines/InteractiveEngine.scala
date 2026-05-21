@@ -12,7 +12,6 @@ import menger.ProfilingConfig
 import menger.Projection4DSpec
 import menger.RotationProjectionParameters
 import menger.Vector3Extensions.toVector3
-import menger.cli.LightSpec
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ObjectType
@@ -116,7 +115,7 @@ class InteractiveEngine(
     camera.position.toVector3,
     camera.lookAt.toVector3,
     camera.up.toVector3,
-    environment.lights.map(LightSpec.toCommonLight).toArray
+    environment.lights.toArray
   )
 
   override protected val cameraState: CameraState =
@@ -367,7 +366,7 @@ class InteractiveEngine(
     if requiredMax > execution.maxInstances then
       renderer.reinitialize(requiredMax)
     sceneConfigurator.configureLights(renderer)
-    sceneConfigurator.configurePlanes(renderer, environment.planes.toArray)
+    PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
     sceneConfigurator.configureCamera(renderer)
     buildScene4DTrackedOrFallback(objectSpecs, renderer)
       .flatMap { _ =>

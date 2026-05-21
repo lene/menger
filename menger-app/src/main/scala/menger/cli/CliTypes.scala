@@ -3,10 +3,12 @@ package menger.cli
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 
-enum Axis:
-  case X, Y, Z
-
-case class PlaneSpec(axis: Axis, positive: Boolean, value: Float)
+// Domain types moved to menger.common — re-exported here for backward compatibility
+// within the cli package (converters, CliValidation, etc. use unqualified names).
+export menger.common.Axis
+export menger.common.PlaneSpec
+export menger.common.PlaneColorSpec
+export menger.common.FogSpec
 
 enum LightType:
   case DIRECTIONAL, POINT, AREA
@@ -40,7 +42,7 @@ object LightSpec:
         menger.common.Light.Area(pos, normal, spec.radius,
           menger.common.AreaLightShape.Disk, clr, spec.intensity, spec.shadowSamples)
 
-  /** Convert common.Light to CLI LightSpec for rendering. */
+  /** Convert common.Light to CLI LightSpec (e.g. for round-trip tests). */
   def fromCommonLight(light: menger.common.Light): LightSpec =
     light match
       case menger.common.Light.Directional(direction, clr, intensity) =>
@@ -71,14 +73,8 @@ object LightSpec:
           shadowSamples = samples
         )
 
-case class FogSpec(density: Float, color: menger.common.Color = menger.common.Color(0.8f, 0.8f, 0.9f))
 
-case class PlaneColorSpec(color1: menger.common.Color, color2: Option[menger.common.Color]):
-  def isSolid: Boolean = color2.isEmpty
-  def isCheckered: Boolean = color2.isDefined
+// PlaneConfig moved to menger.config — re-exported here so that cli-internal code
+// that references PlaneConfig by unqualified name continues to compile.
+export menger.config.PlaneConfig
 
-case class PlaneConfig(
-  spec: PlaneSpec,
-  colorSpec: Option[PlaneColorSpec],
-  material: Option[menger.optix.Material] = None
-)

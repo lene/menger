@@ -9,13 +9,14 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import menger.MengerCLIOptions
 import menger.MengerExitException
 import menger.ProfilingConfig
-import menger.cli.PlaneConfig
+import menger.cli.LightSpec
 import menger.common.Const
 import menger.common.FogConfig
 import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
 import menger.config.ExecutionConfig
 import menger.config.OptiXEngineConfig
+import menger.config.PlaneConfig
 import menger.config.SceneConfig
 import menger.dsl.LoadedScene
 import menger.dsl.SceneConverter
@@ -185,7 +186,7 @@ object Main:
           opts.planeColor.toOption,
           opts.planeMaterial.toOption.flatMap(s => menger.optix.Material.fromName(s).toScala)
         )),
-        lights = opts.light.toOption.getOrElse(List.empty),
+        lights = opts.light.toOption.getOrElse(List.empty).map(LightSpec.toCommonLight),
         envMap = opts.envMap.toOption,
         fog = opts.fog.toOption.map(f => FogConfig(f.density, f.color))
       ),

@@ -1,11 +1,10 @@
 package menger.config
 
-import menger.cli.Axis
-import menger.cli.LightSpec
-import menger.cli.PlaneConfig
-import menger.cli.PlaneSpec
+import menger.common.Axis
 import menger.common.Color
 import menger.common.FogConfig
+import menger.common.Light
+import menger.common.PlaneSpec
 
 /**
  * Environment configuration for lighting and ground planes.
@@ -16,7 +15,7 @@ import menger.common.FogConfig
  */
 case class EnvironmentConfig(
   planes: List[PlaneConfig] = List.empty,
-  lights: List[LightSpec] = List.empty,
+  lights: List[Light] = List.empty,
   background: Option[Color] = None,
   envMap: Option[String] = None,
   fog: Option[FogConfig] = None

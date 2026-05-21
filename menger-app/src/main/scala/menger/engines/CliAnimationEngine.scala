@@ -7,7 +7,6 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.AnimationSpecificationSequence
 import menger.ProfilingConfig
 import menger.Vector3Extensions.toVector3
-import menger.cli.LightSpec
 import menger.common.ImageSize
 import menger.config.OptiXEngineConfig
 import menger.input.GdxRuntime
@@ -36,7 +35,7 @@ class CliAnimationEngine(
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
     camera.position.toVector3, camera.lookAt.toVector3, camera.up.toVector3,
-    environment.lights.map(LightSpec.toCommonLight).toArray
+    environment.lights.toArray
   )
 
   override protected val cameraState: CameraState =
@@ -49,7 +48,7 @@ class CliAnimationEngine(
     logger.info(s"CliAnimationEngine: $totalFrames frames, ${baseSpecs.length} objects")
     val renderer = rendererWrapper.renderer
     sceneConfigurator.configureLights(renderer)
-    sceneConfigurator.configurePlanes(renderer, environment.planes.toArray)
+    PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
     sceneConfigurator.configureCamera(renderer)
     val firstSpecs = baseSpecs.map(spec => animSpec.applyToSpec(spec, 0))
     buildSceneFromSpecs(firstSpecs, renderer).recover { case e =>
