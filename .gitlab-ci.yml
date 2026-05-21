@@ -484,8 +484,12 @@ Test:ClangTidy:
     - |
       BUILD_DIR="optix-jni/target/native/x86_64-linux/build"
       CPP_FILES=$(git ls-files '*.cpp' | grep 'optix-jni/src/main/native/')
+      GCC_VER=$(gcc -dumpversion | cut -d. -f1)
       # shellcheck disable=SC2086
-      clang-tidy -p "${BUILD_DIR}" --config-file=.clang-tidy ${CPP_FILES}
+      clang-tidy -p "${BUILD_DIR}" --config-file=.clang-tidy \
+        --extra-arg=-I/usr/include/c++/${GCC_VER} \
+        --extra-arg=-I/usr/include/x86_64-linux-gnu/c++/${GCC_VER} \
+        ${CPP_FILES}
   rules:
     - changes:
         - optix-jni/src/main/native/**/*.cpp

@@ -417,10 +417,18 @@ run_clang_tidy() {
   fi
   echo "=== clang-tidy ===" > /tmp/clangtidy-prepush.log
   CPP_FILES=$(git ls-files '*.cpp' | grep 'optix-jni/src/main/native/')
+  # Detect GCC stdlib version; clang's frontend needs these paths to parse
+  # cuda_runtime.h which transitively includes C++ standard headers.
+  GCC_VER=$(gcc -dumpversion 2>/dev/null | cut -d. -f1)
+  GCC_ARGS=""
+  if [ -d "/usr/include/c++/${GCC_VER}" ]; then
+    GCC_ARGS="--extra-arg=-I/usr/include/c++/${GCC_VER} --extra-arg=-I/usr/include/x86_64-linux-gnu/c++/${GCC_VER}"
+  fi
   # shellcheck disable=SC2086
   clang-tidy \
     -p "${BUILD_DIR}" \
     --config-file=.clang-tidy \
+    ${GCC_ARGS} \
     ${CPP_FILES} >> /tmp/clangtidy-prepush.log 2>&1
   STATUS_CT=$?
   if [ "${STATUS_CT}" -ne 0 ]; then

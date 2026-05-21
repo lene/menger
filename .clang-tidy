@@ -12,9 +12,3 @@ Checks: >
 WarningsAsErrors: ""
 HeaderFilterRegex: "optix-jni/src/main/native/include/.*\\.h"
 FormatStyle: none
-# GCC stdlib paths are required so clang's frontend can parse cuda_runtime.h,
-# which transitively includes C++ standard headers that clang can't locate
-# via the g++-generated compile_commands.json alone.
-ExtraArgs:
-  - -I/usr/include/c++/13
-  - -I/usr/include/x86_64-linux-gnu/c++/13
