@@ -26,6 +26,16 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .withImportOption(doNotIncludeSbtTestClasses)
       .importPackages("menger")
 
+  private val onlyOptixJniTarget: ImportOption =
+    (location: Location) => location.matches(java.util.regex.Pattern.compile(".*/optix-jni/.*"))
+
+  private lazy val optixJniClasses =
+    ClassFileImporter()
+      .withImportOption(DoNotIncludeTests())
+      .withImportOption(doNotIncludeSbtTestClasses)
+      .withImportOption(onlyOptixJniTarget)
+      .importPackages("menger.optix")
+
   "menger.common" should "not depend on menger.optix" in:
     noClasses().that().resideInAPackage("menger.common..")
       .should().dependOnClassesThat().resideInAPackage("menger.optix..")
@@ -166,16 +176,10 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .should().resideInAnyPackage("menger.config..", "menger.common..")
       .check(allClasses)
 
-  // Blocked by structural conflicts: moving OptiX* classes to menger.optix would violate
-  // existing enforced rules — OptiXRenderResources/State use LibGDX (banned from menger.optix),
-  // OptiXCameraHandler/Multiplexer/KeyHandler use LibGDX Input (same constraint),
-  // OptiXEngineConfig aggregates menger.config types (would create optix→config dependency,
-  // banned by "optix should not depend on app layer").
-  // Un-ignore after restructuring OptiX integration layer (post-Task 8).
-  ignore should "keep OptiX-prefixed classes in menger.optix packages" in:
+  it should "keep OptiX-prefixed classes in menger.optix within optix-jni" in:
     classes().that().haveSimpleNameStartingWith("OptiX")
       .should().resideInAPackage("menger.optix..")
-      .check(allClasses)
+      .check(optixJniClasses)
 
   // Blocked by cli→engines→config→cli cycle: EnvironmentConfig holds LightSpec/PlaneConfig
   // from menger.cli. Un-ignore after Task 8 (P0.A) moves those types to menger.common.
