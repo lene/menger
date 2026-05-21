@@ -13,7 +13,7 @@ class SceneConfigurator(
   cameraPos: Vector[3],
   cameraLookat: Vector[3],
   cameraUp: Vector[3],
-  lights: List[Light] = List.empty
+  lights: Array[Light] = Array.empty
 ) extends LazyLogging:
 
   def configureCamera(renderer: OptiXRenderer): Unit =
@@ -23,7 +23,7 @@ class SceneConfigurator(
 
   def configureLights(renderer: OptiXRenderer): Unit =
     if lights.nonEmpty then
-      renderer.setLights(lights.toArray)
+      renderer.setLights(lights)
       logger.debug(s"Configured ${lights.length} light(s) from specification")
     else
       // Default single directional light (backward compatibility)
@@ -32,7 +32,7 @@ class SceneConfigurator(
       renderer.setLight(lightDirection, lightIntensity)
       logger.debug(s"Configured default light: direction=(${lightDirection(0)},${lightDirection(1)},${lightDirection(2)}), intensity=$lightIntensity")
 
-  def configurePlanes(renderer: OptiXRenderer, planes: List[PlaneConfig]): Unit =
+  def configurePlanes(renderer: OptiXRenderer, planes: Array[PlaneConfig]): Unit =
     renderer.clearPlanes()
     planes.foreach { planeConfig =>
       val axisInt = planeConfig.spec.axis match

@@ -77,7 +77,7 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
   "optix-jni public API" should "not expose Scala-specific types in method signatures" in:
     import com.tngtech.archunit.lang.{ArchCondition, ConditionEvents, SimpleConditionEvent}
     import com.tngtech.archunit.core.domain.JavaMethod
-    import scala.jdk.CollectionConverters.*
+    import scala.jdk.CollectionConverters._
 
     val scalaSpecificPrefixes = Set(
       "scala.Option", "scala.collection", "scala.util.Try",
@@ -87,17 +87,22 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       scalaSpecificPrefixes.exists(typeName.startsWith)
 
     // Scala compiler generates Product methods (productElement, productIterator,
-    // productElementNames, canEqual) on every case class; these are not hand-written
-    // API and should not trigger the rule.
+    // productElementNames, canEqual) on every case class; PartialFunction generates
+    // applyOrElse; these are not hand-written API and should not trigger the rule.
+    // Methods whose name contains '$' are compiler-internal bridge/synthetic methods.
     val scalaGeneratedMethodNames = Set(
       "productElement", "productIterator", "productElementNames",
-      "productArity", "canEqual", "copy", "apply", "unapply"
+      "productArity", "canEqual", "copy", "apply", "unapply",
+      "applyOrElse", "isDefinedAt", "orElse"
     )
+    def isCompilerGenerated(name: String): Boolean =
+      name.contains("$")
 
     val noScalaTypesInSignature: ArchCondition[JavaMethod] =
       new ArchCondition[JavaMethod]("not expose Scala-specific types in signatures"):
         override def check(method: JavaMethod, events: ConditionEvents): Unit =
           if scalaGeneratedMethodNames.contains(method.getName) then return
+          if isCompilerGenerated(method.getName) then return
           val allTypes = method.getRawParameterTypes.asScala.toList :+ method.getRawReturnType
           allTypes.foreach: t =>
             if isScalaSpecific(t.getFullName) then
@@ -106,11 +111,12 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
                 s"uses Scala-specific type '${t.getFullName}'"))
 
     import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods
-    // Check only OptiXRenderer — the hand-written public JNI entry point.
-    // Private[optix] traits (OptiXSphereApi, OptiXMeshApi, etc.) are implementation
-    // details not accessible outside the package; they are excluded by name.
+    // Check all public methods in the menger.optix package.
+    // Exclude Scala compiler-generated synthetic classes (companions end with "$",
+    // anonymous classes contain "$anon$") which are not hand-written public API.
     methods().that()
-      .areDeclaredInClassesThat().haveSimpleName("OptiXRenderer")
+      .areDeclaredInClassesThat().resideInAPackage("menger.optix..")
+      .and().areDeclaredInClassesThat().haveSimpleNameNotEndingWith("$")
       .and().arePublic()
       .should(noScalaTypesInSignature)
       .check(allClasses)

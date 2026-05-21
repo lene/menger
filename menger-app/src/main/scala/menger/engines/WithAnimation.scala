@@ -51,7 +51,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     }.get
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
-    sceneConfigurator.configurePlanes(renderer, firstFrameConfigs.planes)
+    sceneConfigurator.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
     GdxRuntime.setContinuousRendering(true)
 
   abstract override def render(): Unit =
@@ -81,7 +81,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
             buildAnim4DTrackedOrFallback(configs, newSpecs, renderer).recover { case e: Exception =>
               logger.error(s"Failed to build scene for frame $frame (t=$t): ${e.getMessage}", e)
             }
-          sceneConfigurator.configurePlanes(renderer, configs.planes)
+          sceneConfigurator.configurePlanes(renderer, configs.planes.toArray)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
           cameraState.updateCamera(

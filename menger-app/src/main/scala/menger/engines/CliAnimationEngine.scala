@@ -36,7 +36,7 @@ class CliAnimationEngine(
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
     camera.position.toVector3, camera.lookAt.toVector3, camera.up.toVector3,
-    environment.lights.map(LightSpec.toCommonLight)
+    environment.lights.map(LightSpec.toCommonLight).toArray
   )
 
   override protected val cameraState: CameraState =
@@ -49,7 +49,7 @@ class CliAnimationEngine(
     logger.info(s"CliAnimationEngine: $totalFrames frames, ${baseSpecs.length} objects")
     val renderer = rendererWrapper.renderer
     sceneConfigurator.configureLights(renderer)
-    sceneConfigurator.configurePlanes(renderer, environment.planes)
+    sceneConfigurator.configurePlanes(renderer, environment.planes.toArray)
     sceneConfigurator.configureCamera(renderer)
     val firstSpecs = baseSpecs.map(spec => animSpec.applyToSpec(spec, 0))
     buildSceneFromSpecs(firstSpecs, renderer).recover { case e =>

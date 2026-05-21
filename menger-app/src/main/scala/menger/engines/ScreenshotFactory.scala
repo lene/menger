@@ -8,10 +8,7 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
 import com.typesafe.scalalogging.LazyLogging
 import menger.optix.RenderHealth
-
-/** Raised when [[ScreenshotFactory.saveScreenshot]] detects a uniform-pixel
- *  render and the caller has not opted in via `allowUniformRender`. */
-final case class UniformRenderException(message: String) extends RuntimeException(message)
+import menger.optix.UniformRenderException
 
 object ScreenshotFactory extends LazyLogging:
 
@@ -30,13 +27,14 @@ object ScreenshotFactory extends LazyLogging:
     val width  = pixmap.getWidth
     val height = pixmap.getHeight
     val rgba   = pixmapToRgbaBytes(pixmap)
-    RenderHealth.checkRgba(rgba, width, height) match
-      case Right(_) => ()
-      case Left(msg) =>
+    try
+      RenderHealth.checkRgba(rgba, width, height)
+    catch
+      case e: UniformRenderException =>
         if allow then
-          logger.warn(s"render health check: $msg (allowed for $path)")
+          logger.warn(s"render health check: ${e.getMessage} (allowed for $path)")
         else
-          val full = s"render health check failed for $path: $msg. " +
+          val full = s"render health check failed for $path: ${e.getMessage}. " +
             "Pass --allow-uniform-render to permit uniform output."
           logger.error(full)
           throw UniformRenderException(full)

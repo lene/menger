@@ -1,5 +1,8 @@
 package menger
 
+import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
+
 import menger.optix.Material
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -206,7 +209,7 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
     result.left.map(_ should include("Unknown material preset"))
 
   it should "parse all known material presets" in:
-    Material.presetNames.foreach { presetName =>
+    Material.presetNames.asScala.foreach { presetName =>
       val result = ObjectSpec.parse(s"type=sphere:material=$presetName")
       result match
         case Right(spec) =>
@@ -224,18 +227,18 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
       case Left(error) => fail(s"Expected Right but got Left: $error")
 
   "Material.fromName" should "return Glass for 'glass'" in:
-    Material.fromName("glass") shouldBe Some(Material.Glass)
+    Material.fromName("glass").toScala shouldBe Some(Material.Glass)
 
   it should "return Diamond for 'diamond'" in:
-    Material.fromName("diamond") shouldBe Some(Material.Diamond)
+    Material.fromName("diamond").toScala shouldBe Some(Material.Diamond)
 
   it should "return None for unknown preset" in:
-    Material.fromName("unobtanium") shouldBe None
+    Material.fromName("unobtanium").toScala shouldBe None
 
   it should "be case insensitive" in:
-    Material.fromName("GLASS") shouldBe Some(Material.Glass)
-    Material.fromName("Glass") shouldBe Some(Material.Glass)
-    Material.fromName("gLaSs") shouldBe Some(Material.Glass)
+    Material.fromName("GLASS").toScala shouldBe Some(Material.Glass)
+    Material.fromName("Glass").toScala shouldBe Some(Material.Glass)
+    Material.fromName("gLaSs").toScala shouldBe Some(Material.Glass)
 
   // Texture tests (Step 7.5)
   "ObjectSpec texture parsing" should "parse texture filename" in:

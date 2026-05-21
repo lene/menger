@@ -116,7 +116,7 @@ class InteractiveEngine(
     camera.position.toVector3,
     camera.lookAt.toVector3,
     camera.up.toVector3,
-    environment.lights.map(LightSpec.toCommonLight)
+    environment.lights.map(LightSpec.toCommonLight).toArray
   )
 
   override protected val cameraState: CameraState =
@@ -367,7 +367,7 @@ class InteractiveEngine(
     if requiredMax > execution.maxInstances then
       renderer.reinitialize(requiredMax)
     sceneConfigurator.configureLights(renderer)
-    sceneConfigurator.configurePlanes(renderer, environment.planes)
+    sceneConfigurator.configurePlanes(renderer, environment.planes.toArray)
     sceneConfigurator.configureCamera(renderer)
     buildScene4DTrackedOrFallback(objectSpecs, renderer)
       .flatMap { _ =>

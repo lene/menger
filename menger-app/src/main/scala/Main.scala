@@ -1,4 +1,6 @@
 
+import scala.jdk.OptionConverters._
+
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import com.badlogic.gdx.ApplicationListener
@@ -179,7 +181,7 @@ object Main:
         planes = List(PlaneConfig(
           opts.plane(),
           opts.planeColor.toOption,
-          opts.planeMaterial.toOption.flatMap(menger.optix.Material.fromName)
+          opts.planeMaterial.toOption.flatMap(s => menger.optix.Material.fromName(s).toScala)
         )),
         lights = opts.light.toOption.getOrElse(List.empty),
         envMap = opts.envMap.toOption,

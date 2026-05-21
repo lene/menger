@@ -1,5 +1,7 @@
 package menger
 
+import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
 import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
@@ -301,11 +303,11 @@ object ObjectSpec extends LazyLogging:
   ): Either[String, Option[Material]] =
     kvPairs.get("material") match
       case Some(presetName) =>
-        Material.fromName(presetName) match
+        Material.fromName(presetName).toScala match
           case Some(baseMaterial) =>
             parseMaterialOverrides(kvPairs, baseMaterial, color, ior)
           case None =>
-            Left(s"Unknown material preset: '$presetName'. Valid presets: ${Material.presetNames.mkString(", ")}")
+            Left(s"Unknown material preset: '$presetName'. Valid presets: ${Material.presetNames.asScala.mkString(", ")}")
       case None =>
         // Allow film-thickness without explicit material preset (creates default material with thin film)
         kvPairs.get("film-thickness") match
@@ -328,14 +330,15 @@ object ObjectSpec extends LazyLogging:
       emission <- parseOptionalFloat(kvPairs, "emission", "emission value (0.0-10.0)")
       filmThickness <- parseOptionalFloat(kvPairs, "film-thickness", "film thickness in nm (e.g., 500)")
     yield Some(
-      baseMaterial
-        .withColorOpt(color)
-        .withIorOpt(Option.when(kvPairs.contains("ior"))(ior))
-        .withRoughnessOpt(roughness)
-        .withMetallicOpt(metallic)
-        .withSpecularOpt(specular)
-        .withEmissionOpt(emission)
-        .withFilmThicknessOpt(filmThickness)
+      baseMaterial.copy(
+        color         = color.getOrElse(baseMaterial.color),
+        ior           = if kvPairs.contains("ior") then ior else baseMaterial.ior,
+        roughness     = roughness.getOrElse(baseMaterial.roughness),
+        metallic      = metallic.getOrElse(baseMaterial.metallic),
+        specular      = specular.getOrElse(baseMaterial.specular),
+        emission      = emission.getOrElse(baseMaterial.emission),
+        filmThickness = filmThickness.getOrElse(baseMaterial.filmThickness)
+      )
     )
 
   private def parseOptionalFloat(
@@ -520,18 +523,19 @@ object ObjectSpec extends LazyLogging:
 
     kvPairs.get("edge-material") match
       case Some(presetName) =>
-        Material.fromName(presetName) match
+        Material.fromName(presetName).toScala match
           case Some(baseMaterial) =>
             for
               color <- edgeColor
               emission <- edgeEmission
             yield Some(
-              baseMaterial
-                .withColorOpt(color)
-                .withEmissionOpt(emission)
+              baseMaterial.copy(
+                color    = color.getOrElse(baseMaterial.color),
+                emission = emission.getOrElse(baseMaterial.emission)
+              )
             )
           case None =>
-            Left(s"Unknown edge material preset: '$presetName'. Valid presets: ${Material.presetNames.mkString(", ")}")
+            Left(s"Unknown edge material preset: '$presetName'. Valid presets: ${Material.presetNames.asScala.mkString(", ")}")
       case None =>
         // If edge-color or edge-emission specified without edge-material, create a default material
         for
