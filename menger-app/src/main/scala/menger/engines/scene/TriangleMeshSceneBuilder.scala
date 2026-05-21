@@ -91,7 +91,7 @@ class TriangleMeshSceneBuilder(
             renderer.setTriangleMesh(data)
           case MeshUploadPlan.Gpu4D(quads4D, vertsPerFace, proj) =>
             val meshIdx = renderer.setProjectedMesh(
-              quads4D, vertsPerFace, uvs = None,
+              quads4D, vertsPerFace, uvs = null, // scalafix:ok DisableSyntax.null
               eyeW = proj.eyeW, screenW = proj.screenW,
               rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW,
               centerX = 0f, centerY = 0f, centerZ = 0f
@@ -110,7 +110,7 @@ class TriangleMeshSceneBuilder(
               val frac      = rawLevel - rawLevel.floor
               val coarseMat = op.material.copy(color = op.material.color.copy(a = op.material.color.a * (1f - frac)))
               val coarseId  = renderer.addRecursiveIASSpongeInstance(rawLevel.floor.toInt, transform, coarseMat, textureIndex)
-              coarseId.foreach(id => applyInstanceTextures(id, spec, textureIndices, renderer))
+              if coarseId >= 0 then applyInstanceTextures(coarseId, spec, textureIndices, renderer)
               renderer.addRecursiveIASSpongeInstance(rawLevel.floor.toInt + 1, transform, op.material, textureIndex)
             else
               renderer.addRecursiveIASSpongeInstance(rawLevel.toInt, transform, op.material, textureIndex)
@@ -121,14 +121,13 @@ class TriangleMeshSceneBuilder(
               spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
             )
             renderer.addTriangleMeshInstance(transform, op.material, textureIndex)
-        instanceId match
-          case Some(id) =>
-            applyInstanceTextures(id, spec, textureIndices, renderer)
-            val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
-            val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
-            logger.debug(s"Added ${spec.objectType} instance $id ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
-          case None =>
-            logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
+        if instanceId >= 0 then
+          applyInstanceTextures(instanceId, spec, textureIndices, renderer)
+          val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
+          val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
+          logger.debug(s"Added ${spec.objectType} instance $instanceId ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
+        else
+          logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
       }
     }
 

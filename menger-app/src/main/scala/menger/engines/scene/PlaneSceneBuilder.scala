@@ -29,12 +29,12 @@ class PlaneSceneBuilder(textureDir: String = ".") extends SceneBuilder:
         dot
       }
       val normal = Vector[3](nx, ny, nz)
-      renderer.addPlaneInstance(normal, d, material, spec.color2, spec.checkerSize) match
-        case Some(id) =>
-          applyInstanceTextures(id, spec, textureIndices, renderer)
-          logger.debug(s"Added plane instance $id normal=($nx,$ny,$nz) distance=$d")
-        case None =>
-          logger.error(s"Failed to add plane instance normal=($nx,$ny,$nz) distance=$d")
+      val instanceId = renderer.addPlaneInstance(normal, d, material, spec.color2.orNull, spec.checkerSize)
+      if instanceId >= 0 then
+        applyInstanceTextures(instanceId, spec, textureIndices, renderer)
+        logger.debug(s"Added plane instance $instanceId normal=($nx,$ny,$nz) distance=$d")
+      else
+        logger.error(s"Failed to add plane instance normal=($nx,$ny,$nz) distance=$d")
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =

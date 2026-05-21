@@ -23,7 +23,7 @@ class SceneConfigurator(
 
   def configureLights(renderer: OptiXRenderer): Unit =
     if lights.nonEmpty then
-      renderer.setLights(lights)
+      renderer.setLights(lights.toArray)
       logger.debug(s"Configured ${lights.length} light(s) from specification")
     else
       // Default single directional light (backward compatibility)

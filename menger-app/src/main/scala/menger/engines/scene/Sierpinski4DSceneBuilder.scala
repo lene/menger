@@ -30,16 +30,16 @@ class Sierpinski4DSceneBuilder(
       val rawLevel = spec.level.get
 
       def addInstance(level: Int, mat: menger.optix.Material, scale: Float): Unit =
-        renderer.addSierpinski4DInstance(
+        val instanceId = renderer.addSierpinski4DInstance(
           level, position, scale,
           proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
           mat
-        ) match
-          case Some(id) =>
-            sierpinski4DRecorder(specIdx, id)
-            logger.debug(s"Added sierpinski4d instance $id level=$level")
-          case None =>
-            logger.error(s"Failed to add sierpinski4d instance at (${spec.x},${spec.y},${spec.z})")
+        )
+        if instanceId >= 0 then
+          sierpinski4DRecorder(specIdx, instanceId)
+          logger.debug(s"Added sierpinski4d instance $instanceId level=$level")
+        else
+          logger.error(s"Failed to add sierpinski4d instance at (${spec.x},${spec.y},${spec.z})")
 
       if isFractional(rawLevel) then
         val frac      = rawLevel - rawLevel.floor

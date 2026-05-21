@@ -107,11 +107,10 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
     val instanceId = renderer.addTriangleMeshInstance(transform, effectiveMaterial)
 
-    instanceId match
-      case None =>
-        logger.error(s"Failed to add cube instance at position=($position), scale=$scale")
-      case Some(id) =>
-        applyInstanceTextures(id, spec, textureIndices, renderer)
+    if instanceId < 0 then
+      logger.error(s"Failed to add cube instance at position=($position), scale=$scale")
+    else
+      applyInstanceTextures(instanceId, spec, textureIndices, renderer)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // All cube-sponges are compatible with each other

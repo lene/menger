@@ -64,16 +64,17 @@ object TextureManager extends LazyLogging:
         else
           TextureLoader.load(filename, textureDir) match
             case Success(textureData) =>
-              renderer.uploadTexture(
-                textureData.name,
-                textureData.data,
-                textureData.width,
-                textureData.height
-              ) match
-                case Success(index) =>
-                  logger.debug(s"Uploaded texture '$filename' as index $index")
-                  Some(filename -> index)
-                case Failure(e) =>
+              try
+                val index = renderer.uploadTexture(
+                  textureData.name,
+                  textureData.data,
+                  textureData.width,
+                  textureData.height
+                )
+                logger.debug(s"Uploaded texture '$filename' as index $index")
+                Some(filename -> index)
+              catch
+                case e: Exception =>
                   logger.error(s"Failed to upload texture '$filename': ${e.getMessage}")
                   None
             case Failure(e) =>

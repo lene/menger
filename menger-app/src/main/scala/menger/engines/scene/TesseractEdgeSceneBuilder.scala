@@ -129,11 +129,10 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
             )
             renderer.addTriangleMeshInstance(transform, faceMaterial, textureIndex)
 
-        faceInstanceId match
-          case Some(id) =>
-            logger.debug(s"Added tesseract face mesh instance $id at ($position)")
-          case None =>
-            logger.error(s"Failed to add tesseract face mesh instance at ($position)")
+        if faceInstanceId >= 0 then
+          logger.debug(s"Added tesseract face mesh instance $faceInstanceId at ($position)")
+        else
+          logger.error(s"Failed to add tesseract face mesh instance at ($position)")
 
       // Add edge cylinder instances if edge material or edge radius specified
       if hasEdgeMaterial || spec.edgeRadius.isDefined then
@@ -189,13 +188,13 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       val p1 = Vector[3](p1_3d.x + offset.x, p1_3d.y + offset.y, p1_3d.z + offset.z)
 
       // Add cylinder instance
-      renderer.addCylinderInstance(p0, p1, edgeRadius, edgeMaterial) match
-        case Some(id) =>
-          logger.trace(s"Added edge cylinder $id from $p0 to $p1")
-          true
-        case None =>
-          logger.warn(s"Failed to add edge cylinder from $p0 to $p1")
-          false
+      val cylinderId = renderer.addCylinderInstance(p0, p1, edgeRadius, edgeMaterial)
+      if cylinderId >= 0 then
+        logger.trace(s"Added edge cylinder $cylinderId from $p0 to $p1")
+        true
+      else
+        logger.warn(s"Failed to add edge cylinder from $p0 to $p1")
+        false
     }
 
     logger.debug(s"Added $edgeCount edge cylinders for ${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")

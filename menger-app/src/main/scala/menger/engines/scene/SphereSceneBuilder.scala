@@ -52,12 +52,11 @@ class SphereSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
       val instanceId = renderer.addSphereInstance(transform, material)
 
-      instanceId match
-        case Some(id) =>
-          applyInstanceTextures(id, spec, textureIndices, renderer)
-          logger.debug(s"Added sphere instance $id at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, material=$material")
-        case None =>
-          logger.error(s"Failed to add sphere instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
+      if instanceId >= 0 then
+        applyInstanceTextures(instanceId, spec, textureIndices, renderer)
+        logger.debug(s"Added sphere instance $instanceId at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, material=$material")
+      else
+        logger.error(s"Failed to add sphere instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =

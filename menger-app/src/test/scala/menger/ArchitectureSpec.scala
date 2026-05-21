@@ -74,6 +74,47 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
         .resideInAPackage("com.badlogic.gdx..")
       .check(allClasses)
 
+  "optix-jni public API" should "not expose Scala-specific types in method signatures" in:
+    import com.tngtech.archunit.lang.{ArchCondition, ConditionEvents, SimpleConditionEvent}
+    import com.tngtech.archunit.core.domain.JavaMethod
+    import scala.jdk.CollectionConverters.*
+
+    val scalaSpecificPrefixes = Set(
+      "scala.Option", "scala.collection", "scala.util.Try",
+      "scala.util.Either", "scala.Function"
+    )
+    def isScalaSpecific(typeName: String): Boolean =
+      scalaSpecificPrefixes.exists(typeName.startsWith)
+
+    // Scala compiler generates Product methods (productElement, productIterator,
+    // productElementNames, canEqual) on every case class; these are not hand-written
+    // API and should not trigger the rule.
+    val scalaGeneratedMethodNames = Set(
+      "productElement", "productIterator", "productElementNames",
+      "productArity", "canEqual", "copy", "apply", "unapply"
+    )
+
+    val noScalaTypesInSignature: ArchCondition[JavaMethod] =
+      new ArchCondition[JavaMethod]("not expose Scala-specific types in signatures"):
+        override def check(method: JavaMethod, events: ConditionEvents): Unit =
+          if scalaGeneratedMethodNames.contains(method.getName) then return
+          val allTypes = method.getRawParameterTypes.asScala.toList :+ method.getRawReturnType
+          allTypes.foreach: t =>
+            if isScalaSpecific(t.getFullName) then
+              events.add(SimpleConditionEvent.violated(method,
+                s"Public method '${method.getOwner.getSimpleName}.${method.getName}' " +
+                s"uses Scala-specific type '${t.getFullName}'"))
+
+    import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods
+    // Check only OptiXRenderer — the hand-written public JNI entry point.
+    // Private[optix] traits (OptiXSphereApi, OptiXMeshApi, etc.) are implementation
+    // details not accessible outside the package; they are excluded by name.
+    methods().that()
+      .areDeclaredInClassesThat().haveSimpleName("OptiXRenderer")
+      .and().arePublic()
+      .should(noScalaTypesInSignature)
+      .check(allClasses)
+
   // Blocked by cli→engines→config→cli cycle: EnvironmentConfig holds LightSpec/PlaneConfig
   // from menger.cli. Un-ignore after Task 8 (P0.A) moves those types to menger.common.
   ignore should "be free of dependency cycles" in:

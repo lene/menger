@@ -76,7 +76,8 @@ class Project4DGpuSuite extends AnyFlatSpec
     renderer.setTriangleMesh(mesh)
     renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
     val img = renderer.render(ImgSize)
-    img.getOrElse(fail(s"CPU render returned None for ${ImgSize.width}x${ImgSize.height}"))
+    if img == null then fail(s"CPU render returned null for ${ImgSize.width}x${ImgSize.height}") // scalafix:ok DisableSyntax.null
+    img
 
   private def renderGpu(
     mesh4D: Mesh4D, eyeW: Float, screenW: Float,
@@ -84,13 +85,14 @@ class Project4DGpuSuite extends AnyFlatSpec
   ): Array[Byte] =
     val quads = Mesh4DGpuFlatten.quadsBuffer(mesh4D)
     renderer.setTriangleMesh4DQuads(
-      quads, uvs = None, eyeW = eyeW, screenW = screenW,
+      quads, uvs = null, eyeW = eyeW, screenW = screenW, // scalafix:ok DisableSyntax.null
       rotXW = rotXW, rotYW = rotYW, rotZW = rotZW,
       centerX = 0f, centerY = 0f, centerZ = 0f
     )
     renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
     val img = renderer.render(ImgSize)
-    img.getOrElse(fail(s"GPU render returned None for ${ImgSize.width}x${ImgSize.height}"))
+    if img == null then fail(s"GPU render returned null for ${ImgSize.width}x${ImgSize.height}") // scalafix:ok DisableSyntax.null
+    img
 
   private def maxAbsRgbDiff(a: Array[Byte], b: Array[Byte]): Int =
     require(a.length == b.length, s"image size mismatch: ${a.length} vs ${b.length}")
@@ -207,17 +209,17 @@ class Project4DGpuSuite extends AnyFlatSpec
     val quads = Mesh4DGpuFlatten.quadsBuffer(tess.mesh4D)
     // frame A then update to B
     val meshIdx = renderer.setTriangleMesh4DQuads(
-      quads, uvs = None, eyeW = tess.eyeW, screenW = tess.screenW,
+      quads, uvs = null, eyeW = tess.eyeW, screenW = tess.screenW, // scalafix:ok DisableSyntax.null
       rotXW = rotA._1, rotYW = rotA._2, rotZW = rotA._3,
       centerX = 0f, centerY = 0f, centerZ = 0f
     )
     renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
-    val _ = renderer.render(ImgSize).getOrElse(fail("frame A render returned None"))
+    val _ = renderer.render(ImgSize)
     renderer.updateMesh4DProjection(
       meshIdx, eyeW = tess.eyeW, screenW = tess.screenW,
       rotXW = rotB._1, rotYW = rotB._2, rotZW = rotB._3
     )
-    val updatedPixels = renderer.render(ImgSize).getOrElse(fail("frame B render returned None"))
+    val updatedPixels = renderer.render(ImgSize)
     afterEach()
     beforeEach()
     val freshPixels = renderGpu(
@@ -238,7 +240,7 @@ class Project4DGpuSuite extends AnyFlatSpec
     )
     val quads = Mesh4DGpuFlatten.quadsBuffer(proj0.mesh4D)
     val meshIdx = renderer.setTriangleMesh4DQuads(
-      quads, uvs = None, eyeW = proj0.eyeW, screenW = proj0.screenW,
+      quads, uvs = null, eyeW = proj0.eyeW, screenW = proj0.screenW, // scalafix:ok DisableSyntax.null
       rotXW = 0f, rotYW = 0f, rotZW = 0f,
       centerX = 0f, centerY = 0f, centerZ = 0f
     )
@@ -260,7 +262,7 @@ class Project4DGpuSuite extends AnyFlatSpec
         )
         val q = Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D)
         val _ = renderer.setTriangleMesh4DQuads(
-          q, uvs = None, eyeW = proj.eyeW, screenW = proj.screenW,
+          q, uvs = null, eyeW = proj.eyeW, screenW = proj.screenW, // scalafix:ok DisableSyntax.null
           rotXW = angle, rotYW = 0f, rotZW = 0f,
           centerX = 0f, centerY = 0f, centerZ = 0f
         )
@@ -277,7 +279,7 @@ class Project4DGpuSuite extends AnyFlatSpec
     )
     val quads = Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D)
     val meshIdx = renderer.setTriangleMesh4DQuads(
-      quads, uvs = None,
+      quads, uvs = null, // scalafix:ok DisableSyntax.null
       eyeW = proj.eyeW, screenW = proj.screenW,
       rotXW = 0f, rotYW = 0f, rotZW = 0f
     )

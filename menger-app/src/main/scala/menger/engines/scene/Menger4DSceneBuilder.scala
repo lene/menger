@@ -31,16 +31,16 @@ class Menger4DSceneBuilder(
       val rawLevel  = spec.level.get
 
       def addInstance(level: Int, mat: menger.optix.Material, scale: Float): Unit =
-        renderer.addMenger4DInstance(
+        val instanceId = renderer.addMenger4DInstance(
           level, threshold, position, scale,
           proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
           mat
-        ) match
-          case Some(id) =>
-            menger4DRecorder(specIdx, id)
-            logger.debug(s"Added menger4d instance $id level=$level threshold=$threshold")
-          case None =>
-            logger.error(s"Failed to add menger4d instance at (${spec.x},${spec.y},${spec.z})")
+        )
+        if instanceId >= 0 then
+          menger4DRecorder(specIdx, instanceId)
+          logger.debug(s"Added menger4d instance $instanceId level=$level threshold=$threshold")
+        else
+          logger.error(s"Failed to add menger4d instance at (${spec.x},${spec.y},${spec.z})")
 
       if isFractional(rawLevel) then
         val frac      = rawLevel - rawLevel.floor

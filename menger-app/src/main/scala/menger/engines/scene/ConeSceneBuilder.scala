@@ -33,12 +33,12 @@ class ConeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
       val r = spec.radius.getOrElse(spec.size / 2f)
       val apex = Vector[3](ax, ay, az)
       val base = Vector[3](bx, by, bz)
-      renderer.addConeInstance(apex, base, r, material) match
-        case Some(id) =>
-          applyInstanceTextures(id, spec, textureIndices, renderer)
-          logger.debug(s"Added cone instance $id at apex=($ax,$ay,$az) base=($bx,$by,$bz) radius=$r")
-        case None =>
-          logger.error(s"Failed to add cone instance at apex=($ax,$ay,$az)")
+      val instanceId = renderer.addConeInstance(apex, base, r, material)
+      if instanceId >= 0 then
+        applyInstanceTextures(instanceId, spec, textureIndices, renderer)
+        logger.debug(s"Added cone instance $instanceId at apex=($ax,$ay,$az) base=($bx,$by,$bz) radius=$r")
+      else
+        logger.error(s"Failed to add cone instance at apex=($ax,$ay,$az)")
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
