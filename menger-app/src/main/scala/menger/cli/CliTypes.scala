@@ -57,6 +57,8 @@ object LightSpec:
           shadowSamples = samples
         )
 
+case class FogSpec(density: Float, color: menger.common.Color = menger.common.Color(0.8f, 0.8f, 0.9f))
+
 case class PlaneColorSpec(color1: menger.common.Color, color2: Option[menger.common.Color]):
   def isSolid: Boolean = color2.isEmpty
   def isCheckered: Boolean = color2.isDefined

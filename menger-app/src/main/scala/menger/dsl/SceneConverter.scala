@@ -7,6 +7,7 @@ import menger.cli.LightSpec
 import menger.cli.PlaneConfig
 import menger.common.{Color => CommonColor}
 import menger.config.CameraConfig
+import menger.config.FogConfig
 import menger.config.SceneConfig
 import menger.optix.CausticsConfig
 import menger.optix.RenderConfig
@@ -24,7 +25,8 @@ object SceneConverter extends LazyLogging:
     caustics: CausticsConfig,
     background: Option[CommonColor] = None,
     planes: List[PlaneConfig] = List.empty,
-    render: Option[RenderConfig] = None
+    render: Option[RenderConfig] = None,
+    fog: Option[FogConfig] = None
   )
 
   def convert(dslScene: Scene, fallbackCaustics: CausticsConfig): SceneConfigs =
@@ -42,7 +44,8 @@ object SceneConverter extends LazyLogging:
     val background = dslScene.background.map(_.toCommonColor)
     val planes     = dslScene.planes.map(_.toPlaneConfig)
     val render     = dslScene.render.map(_.toRenderConfig)
-    SceneConfigs(scene, camera, lights, caustics, background, planes, render)
+    val fog        = dslScene.fog.map(f => FogConfig(f.density, f.color.toCommonColor))
+    SceneConfigs(scene, camera, lights, caustics, background, planes, render, fog)
 
   /** Flatten a SceneNode tree to a list of ObjectSpecs.
     *

@@ -17,7 +17,8 @@ case class EnvironmentConfig(
   planes: List[PlaneConfig] = List.empty,
   lights: List[LightSpec] = List.empty,
   background: Option[Color] = None,
-  envMap: Option[String] = None
+  envMap: Option[String] = None,
+  fog: Option[FogConfig] = None
 )
 
 object EnvironmentConfig:

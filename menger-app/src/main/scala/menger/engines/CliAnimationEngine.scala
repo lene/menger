@@ -56,6 +56,7 @@ class CliAnimationEngine(
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(config.caustics)
     environment.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
+    environment.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
     GdxRuntime.setContinuousRendering(true)
 
   override def render(): Unit =

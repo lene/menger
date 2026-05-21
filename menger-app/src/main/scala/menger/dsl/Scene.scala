@@ -17,6 +17,8 @@ import menger.config.SceneConfig
   * @param root Optional scene graph root node (overrides objects when set)
   * @param render Optional render settings (quality, shadows, ray depth, etc.)
   */
+case class Fog(density: Float, color: Color = Color(0.8f, 0.8f, 0.9f))
+
 case class Scene(
   camera: Camera = Camera.Default,
   objects: List[SceneObject] = List.empty,
@@ -24,6 +26,7 @@ case class Scene(
   planes: List[Plane] = List.empty,
   caustics: Option[Caustics] = None,
   background: Option[Color] = None,
+  fog: Option[Fog] = None,
   root: Option[SceneNode] = None,
   render: Option[RenderSettings] = None
 ):
@@ -53,8 +56,8 @@ object Scene:
 
   /** Create a scene from a scene graph root node */
   def apply(camera: Camera, root: SceneNode): Scene =
-    new Scene(camera, List.empty, List.empty, List.empty, None, None, Some(root))
+    new Scene(camera, List.empty, List.empty, List.empty, None, None, None, Some(root))
 
   /** Create a scene from a scene graph root node with lights */
   def apply(camera: Camera, root: SceneNode, lights: List[Light]): Scene =
-    new Scene(camera, List.empty, lights, List.empty, None, None, Some(root))
+    new Scene(camera, List.empty, lights, List.empty, None, None, None, Some(root))

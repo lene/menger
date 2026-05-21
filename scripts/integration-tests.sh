@@ -1041,6 +1041,35 @@ test_video_output() {
     rm -rf "$temp_dir"
 }
 
+test_fog() {
+    echo "Fog / Depth Cue:"
+
+    run_test "fog sphere" \
+        --objects type=sphere --fog density=0.15:color=0.8,0.8,0.9
+
+    # Verify fog render differs from no-fog baseline
+    local no_fog_img="/tmp/nofog_sphere_$$.png"
+    __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+        --objects type=sphere --save-name "$no_fog_img" >/dev/null 2>&1
+
+    local fog_img="/tmp/fog_sphere_$$.png"
+    __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+        --objects type=sphere --fog density=0.15:color=0.8,0.8,0.9 \
+        --save-name "$fog_img" >/dev/null 2>&1
+
+    if [ -f "$no_fog_img" ] && [ -f "$fog_img" ]; then
+        # compare_images returns 0=match, 1=different; we WANT different (fog changed the image)
+        if ! compare_images "fog-vs-nofog" "$fog_img" "$no_fog_img" "/tmp/fog_diff_$$.png"; then
+            echo -e "  fog vs no-fog: images differ (fog applied) ${GREEN}✓${RESET}"
+            ((PASSED++))
+        else
+            echo -e "  fog vs no-fog: images unexpectedly identical ${RED}✗${RESET}"
+            ((FAILED++))
+        fi
+    fi
+    rm -f "$no_fog_img" "$fog_img" "/tmp/fog_diff_$$.png"
+}
+
 
 # ============================================
 # Main
@@ -1088,6 +1117,7 @@ main() {
     test_area_lights
     test_error_handling
     test_video_output
+    test_fog
 
     print_summary
 

@@ -373,6 +373,7 @@ class InteractiveEngine(
           renderer.setRenderConfig(renderConfig)
           renderer.setCausticsConfig(config.caustics)
           environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
+          environment.fog.foreach(sceneConfigurator.setFog(renderer, _))
           environment.envMap.foreach { path =>
             val resolvedPath =
               if java.nio.file.Paths.get(path).isAbsolute then path

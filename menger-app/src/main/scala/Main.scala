@@ -11,6 +11,7 @@ import menger.common.Const
 import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
 import menger.config.ExecutionConfig
+import menger.config.FogConfig
 import menger.config.OptiXEngineConfig
 import menger.config.SceneConfig
 import menger.dsl.LoadedScene
@@ -156,7 +157,8 @@ object Main:
       environment = EnvironmentConfig(
         planes = configs.planes,
         lights = configs.lights,
-        background = configs.background
+        background = configs.background,
+        fog = configs.fog
       ),
       execution = buildExecutionConfig(opts),
       render = mergedRender,
@@ -180,7 +182,8 @@ object Main:
           opts.planeMaterial.toOption.flatMap(menger.optix.Material.fromName)
         )),
         lights = opts.light.toOption.getOrElse(List.empty),
-        envMap = opts.envMap.toOption
+        envMap = opts.envMap.toOption,
+        fog = opts.fog.toOption.map(f => FogConfig(f.density, f.color))
       ),
       execution = buildExecutionConfig(opts),
       render = opts.renderConfig,

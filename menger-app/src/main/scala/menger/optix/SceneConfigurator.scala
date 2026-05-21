@@ -13,6 +13,7 @@ import menger.common.Color
 import menger.common.Const
 import menger.common.Light
 import menger.common.Vector
+import menger.config.FogConfig
 
 class SceneConfigurator(
   cameraPos: Vector3,
@@ -108,4 +109,8 @@ class SceneConfigurator(
   def setBackgroundColor(renderer: OptiXRenderer, color: Color): Unit =
     renderer.setBackgroundColor(color.r, color.g, color.b)
     logger.debug(f"Configured background color: RGB=(${color.r}%.2f, ${color.g}%.2f, ${color.b}%.2f)")
+
+  def setFog(renderer: OptiXRenderer, fog: FogConfig): Unit =
+    renderer.setFog(fog.density, fog.color.r, fog.color.g, fog.color.b)
+    logger.debug(f"Configured fog: density=${fog.density}%.3f RGB=(${fog.color.r}%.2f, ${fog.color.g}%.2f, ${fog.color.b}%.2f)")
 

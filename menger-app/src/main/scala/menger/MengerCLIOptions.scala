@@ -5,12 +5,14 @@ import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.cli.Axis
 import menger.cli.CliValidation
+import menger.cli.FogSpec
 import menger.cli.LightSpec
 import menger.cli.PlaneColorSpec
 import menger.cli.PlaneSpec
 import menger.cli.converters.ConverterUtils
 import menger.cli.converters.animationSpecificationSequenceConverter
 import menger.cli.converters.colorConverter
+import menger.cli.converters.fogSpecConverter
 import menger.cli.converters.lightSpecConverter
 import menger.cli.converters.objectSpecConverter
 import menger.cli.converters.planeColorSpecConverter
@@ -352,6 +354,11 @@ class MengerCLIOptions(arguments: Seq[String])
     required = false, group = optixSceneGroup,
     descr = "Path to HDR equirectangular environment map (.hdr)"
   )
+
+  val fog: ScallopOption[FogSpec] = opt[FogSpec](
+    name = "fog", required = false, group = optixSceneGroup,
+    descr = "Fog/depth cue: density=0.05:color=0.8,0.8,0.9"
+  )(using fogSpecConverter)
 
   // === OptiX Quality Options ===
   val antialiasing: ScallopOption[Boolean] = opt[Boolean](

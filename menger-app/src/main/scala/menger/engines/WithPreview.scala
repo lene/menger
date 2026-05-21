@@ -115,6 +115,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
           }
           sceneConfigurator.configurePlanes(renderer, configs.planes)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
+          configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
           cameraState.updateCamera(
             renderer, configs.camera.position, configs.camera.lookAt, configs.camera.up
           )
