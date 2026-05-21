@@ -478,6 +478,22 @@ Some(Caustics(
 None
 ```
 
+### Fog
+
+```scala
+// Light blue-gray haze (default color)
+fog = Some(Fog(density = 0.05f))
+
+// Custom color and density
+fog = Some(Fog(density = 0.15f, color = Color(0.9f, 0.9f, 0.95f)))
+
+// Disabled (default)
+fog = None
+```
+
+`density` controls attenuation rate: `exp(-density × distance)`.
+At density=0.05 and distance=20, fog is ~37% of scene color.
+
 ### Complete Scene Example
 
 ```scala

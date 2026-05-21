@@ -22,6 +22,9 @@
   DSL scenes.
 - **`SpongeLevelAnimation` example scene** — DSL animated scene sweeping `sponge-recursive-ias`
   level 1→4; demonstrates fractional-level cross-fade via `scene(t)`.
+- **Fog / depth cue** (Task 21.7) — exponential distance-based attenuation for all geometry
+  types. CLI: `--fog density=0.05:color=0.8,0.8,0.9`. DSL: `fog = Some(Fog(density = 0.05f))`.
+  Zero overhead when disabled (`fog_density == 0`).
 
 ## [0.6.1] - 2026-05-17
 

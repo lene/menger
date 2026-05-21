@@ -920,4 +920,37 @@ misconfigurations in scene scripts.
 
 ---
 
+### Fog / Depth Cue — *Sprint 21.7*
+
+Exponential distance-based attenuation blends the shaded color toward a fog color:
+`color_out = lerp(fog_color, shaded_color, exp(-density × distance))`.
+
+Works on all geometry types (spheres, mesh, 4D IFS fractals, planes, cones, cylinders).
+
+```bash
+# CLI: fog with gray-blue haze (density 0.05, default color)
+menger-app --headless --objects type=menger4d:level=4 \
+  --fog density=0.05:color=0.8,0.8,0.9 \
+  --save-name fog_fractal.png --timeout 10000
+
+# Heavier fog (density 0.3 ≈ 50% attenuation at distance 2.3)
+menger-app --headless --objects type=sphere \
+  --fog density=0.3:color=0.9,0.9,0.95 \
+  --save-name fog_heavy.png --timeout 5000
+```
+
+DSL:
+```scala
+Scene(
+  objects = List(Menger4D(level = 4f, rotXW = 30f)),
+  fog = Some(Fog(density = 0.05f, color = Color(0.8f, 0.8f, 0.9f))),
+  lights = List(Directional(direction = (1f, -1f, -1f), intensity = 1.5f))
+)
+```
+
+`Fog.color` defaults to `Color(0.8f, 0.8f, 0.9f)` (light blue-gray haze).
+No performance overhead when fog is disabled (`density = 0`).
+
+---
+
 ← [Quick Start](quickstart.md) | [User Guide Index](../USER_GUIDE.md) | → [Advanced Features](advanced.md)

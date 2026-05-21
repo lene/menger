@@ -1,7 +1,7 @@
 # Sprint 21: Higher-Dimensional Fractals
 
 **Sprint:** 21 - Higher-Dimensional Fractals
-**Status:** Partially Complete (21.6 Cone/Plane Textures and 21.7 Fog deferred)
+**Status:** Partially Complete (21.6 Cone/Plane Textures deferred)
 **Estimate:** ~27 hours
 **Branch:** `feature/sprint-21`
 **Dependencies:** Sprint 18 (18.3 — GPU 4D math), Sprint 19 (4D polychora as standalone)
@@ -20,7 +20,7 @@ using the GPU 4D math infrastructure from Sprint 18.
 - [x] Interactive parameter space exploration (1D, using existing `scene(t)` system)
 - [x] Fractional levels work for `sponge-recursive-ias` (visual transition between integer levels)
 - [ ] Cone and plane geometry support image textures and PBR maps (normal-map, roughness-map) — deferred to Sprint 22
-- [ ] Fog/depth cue renders distance-based attenuation for all geometry — deferred to Sprint 22
+- [x] Fog/depth cue renders distance-based attenuation for all geometry
 - [x] Fractional-level animation demo renders smooth level transition via `scene(t)`
 - [x] All tests pass
 
