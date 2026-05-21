@@ -24,12 +24,15 @@ class TesseractSponge(level: Float) extends Fractal4D(level):
 
   private def subSponge: Seq[Face4D[V]] = TesseractSponge(level - 1).faces
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def isInSponge(point: Vector[4]): Boolean =
     if level <= 0 then
       val cubeVertices: Seq[Vector[4]] = faces.flatMap(_.asSeq)
       isInCube(point, cubeVertices)
     else
-      ???
+      throw new UnsupportedOperationException(
+        s"isInSponge not yet implemented for level $level > 0"
+      )
 
   private[higher_d] def isInCube(point: Vector[4], cubeVertices: Seq[Vector[4]]): Boolean =
     // Get unique vertices (faces may share vertices)

@@ -30,6 +30,12 @@ import menger.optix.RenderLimits
 import org.rogach.scallop._
 import org.rogach.scallop.exceptions._
 
+/** Thrown by [[MengerCLIOptions.onError]] instead of calling sys.exit directly.
+ *  [[Main]] catches this and exits with the given code.
+ */
+final class MengerExitException(val code: Int, message: String)
+    extends RuntimeException(message)
+
 class MengerCLIOptions(arguments: Seq[String])
     extends ScallopConf(arguments)
     with CliValidation
@@ -42,27 +48,26 @@ class MengerCLIOptions(arguments: Seq[String])
            |Run with --help for full options list.
            |""".stripMargin)
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   override def onError(e: Throwable): Unit = e match
     case Help("") =>
       builder.printHelp()
-      sys.exit(0)
+      throw MengerExitException(0, "help requested")
     case Version =>
-      builder.vers.foreach(println)
-      sys.exit(0)
+      builder.vers.foreach(v => logger.info(v))
+      throw MengerExitException(0, "version requested")
     case Exit() =>
-      sys.exit(0)
+      throw MengerExitException(0, "exit requested")
     case ScallopException(message) =>
-      Console.err.println(s"Error: $message")
-      Console.err.println()
-      Console.err.println("Usage: menger [options]")
-      Console.err.println("Run with --help for full options list.")
-      sys.exit(1)
+      logger.error(s"Error: $message")
+      logger.error("Usage: menger [options]")
+      logger.error("Run with --help for full options list.")
+      throw MengerExitException(1, s"CLI error: $message")
     case other =>
-      Console.err.println(s"Error: ${other.getMessage}")
-      Console.err.println()
-      Console.err.println("Usage: menger [options]")
-      Console.err.println("Run with --help for full options list.")
-      sys.exit(1)
+      logger.error(s"Error: ${other.getMessage}")
+      logger.error("Usage: menger [options]")
+      logger.error("Run with --help for full options list.")
+      throw MengerExitException(1, s"Unexpected CLI error: ${other.getMessage}")
 
   // Option groups for organized help output
   private val generalGroup = group("General:")

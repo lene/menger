@@ -121,6 +121,35 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .should(noScalaTypesInSignature)
       .check(allClasses)
 
+  "production code" should "not write to standard streams (use SLF4J instead)" in:
+    noClasses().that().haveNameNotMatching(".*Main.*")
+      .should().accessClassesThat()
+        .haveFullyQualifiedName("java.io.PrintStream")
+      .check(allClasses)
+
+  it should "not call System.exit outside Main" in:
+    import com.tngtech.archunit.core.domain.JavaCall
+    import com.tngtech.archunit.core.domain.AccessTarget
+    import com.tngtech.archunit.base.DescribedPredicate
+    // Only flag exit() declared on java.lang.System or scala.sys.package$,
+    // not GDX's Application.exit() or internal GdxRuntime.exit().
+    val sysExitTarget =
+      new DescribedPredicate[AccessTarget.CodeUnitCallTarget]("exit on System or scala.sys"):
+        override def test(t: AccessTarget.CodeUnitCallTarget): Boolean =
+          t.getName == "exit" &&
+            (t.getOwner.getFullName == "java.lang.System" ||
+             t.getOwner.getFullName == "scala.sys.package$")
+    noClasses().that().haveNameNotMatching(".*Main.*")
+      .should().callMethodWhere(JavaCall.Predicates.target(sysExitTarget))
+      .check(allClasses)
+
+  it should "not contain unimplemented placeholders (???)" in:
+    noClasses().should().callMethodWhere(
+      com.tngtech.archunit.core.domain.JavaCall.Predicates.target(
+        com.tngtech.archunit.core.domain.properties.HasName.Predicates
+          .name("$qmark$qmark$qmark")))
+      .check(allClasses)
+
   // Blocked by cli→engines→config→cli cycle: EnvironmentConfig holds LightSpec/PlaneConfig
   // from menger.cli. Un-ignore after Task 8 (P0.A) moves those types to menger.common.
   ignore should "be free of dependency cycles" in:

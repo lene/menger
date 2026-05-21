@@ -7,6 +7,7 @@ import com.badlogic.gdx.ApplicationListener
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import menger.MengerCLIOptions
+import menger.MengerExitException
 import menger.ProfilingConfig
 import menger.cli.PlaneConfig
 import menger.common.Const
@@ -30,15 +31,16 @@ import org.slf4j.LoggerFactory
 
 object Main:
   def main(args: Array[String]): Unit =
-    val opts = MengerCLIOptions(args.toList)
-    configureLogging(opts.logLevel().toUpperCase)
-    val config = getConfig(opts)
     try
+      val opts = MengerCLIOptions(args.toList)
+      configureLogging(opts.logLevel().toUpperCase)
+      val config = getConfig(opts)
       val rendering = createEngine(opts)
       rendering match
         case app: ApplicationListener => Lwjgl3Application(app, config)
         case _ => sys.error("Engine must implement ApplicationListener")
     catch
+      case e: MengerExitException => sys.exit(e.code)
       case e: Exception =>
         System.err.println(s"Error: ${e.getMessage}")
         sys.exit(1)
