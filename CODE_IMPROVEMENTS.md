@@ -127,9 +127,13 @@ If a headless test or CLI module ever wants to validate or manipulate `ObjectSpe
 
 ## Tooling Gaps
 
-- **No ArchUnit** (or equivalent): Module boundary rules (e.g., "menger-jni must not import menger-app") are enforced by review convention, not by a failing test. Finding M-objectspec-optix-coupling would have been caught automatically. ArchUnit operates on JVM bytecode and works with Scala; rules can be expressed as JUnit tests wired into `sbt test`.
-- **cppcheck not installed**: Native-side static analysis has no automated layer beyond compiler warnings. Consider `apt install cppcheck` or adding it to the project's dev-environment setup.
-- **No compile_commands.json**: clang-tidy cannot run. CMake can generate one with `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`.
+*(none — all three gaps identified in the 2026-05-21 review have been closed)*
+
+| Tool | Status | Where |
+|------|--------|--------|
+| ArchUnit | Closed — 3 rules in `ArchitectureSpec.scala`; wired into `sbt test` | `menger-app/src/test/scala/menger/ArchitectureSpec.scala` |
+| cppcheck | Closed — runs in pre-push hook + CI `Test:Cppcheck` job | `.cppcheck-suppress`, `.git_hooks/pre-push`, `.gitlab-ci.yml` |
+| clang-tidy | Closed — `compile_commands.json` enabled via CMake; runs in pre-push hook + CI `Test:ClangTidy` job | `.clang-tidy`, `CMakeLists.txt`, `.git_hooks/pre-push`, `.gitlab-ci.yml` |
 
 ---
 
