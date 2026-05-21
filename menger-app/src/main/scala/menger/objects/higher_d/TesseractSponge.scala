@@ -3,6 +3,7 @@ package menger.objects.higher_d
 import scala.math.abs
 
 import menger.common.Const
+import menger.common.NotYetImplementedException
 import menger.common.Vector
 
 
@@ -30,9 +31,7 @@ class TesseractSponge(level: Float) extends Fractal4D(level):
       val cubeVertices: Seq[Vector[4]] = faces.flatMap(_.asSeq)
       isInCube(point, cubeVertices)
     else
-      throw new UnsupportedOperationException(
-        s"isInSponge not yet implemented for level $level > 0"
-      )
+      throw NotYetImplementedException(s"isInSponge for level $level > 0")
 
   private[higher_d] def isInCube(point: Vector[4], cubeVertices: Seq[Vector[4]]): Boolean =
     // Get unique vertices (faces may share vertices)

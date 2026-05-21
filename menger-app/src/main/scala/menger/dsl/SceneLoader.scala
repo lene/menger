@@ -3,6 +3,7 @@ package menger.dsl
 import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.common.ConfigurationException
 
 /** Loader for pre-compiled DSL scenes.
   *
@@ -167,7 +168,7 @@ object SceneLoader extends LazyLogging:
   private def invokeSceneMethod(method: java.lang.reflect.Method, module: AnyRef, t: Float): Scene =
     method.invoke(module, java.lang.Float.valueOf(t)) match
       case s: Scene => s
-      case other => throw IllegalStateException(
+      case other => throw ConfigurationException(
         s"scene(Float) unexpectedly returned ${other.getClass.getName} instead of Scene"
       )
 

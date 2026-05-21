@@ -181,6 +181,40 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .should().resideInAPackage("menger.optix..")
       .check(optixJniClasses)
 
+  "JNI resource wrappers" should "implement AutoCloseable" in:
+    import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
+    classes().that().haveSimpleNameContaining("Wrapper")
+      .should().implement(classOf[java.lang.AutoCloseable])
+      .check(allClasses)
+
+  "domain layers" should "throw only MengerException subclasses, not raw RuntimeException" in:
+    import com.tngtech.archunit.base.DescribedPredicate
+    import com.tngtech.archunit.core.domain.JavaConstructorCall
+    // Compiler-generated method names that legitimately call JDK exceptions:
+    //   productElement / productElementName → IndexOutOfBoundsException (Scala case class synthesis)
+    //   fromOrdinal / valueOf → NoSuchElementException / IllegalArgumentException (Scala enum synthesis)
+    //   <init> → RuntimeException (MengerException base class calling super constructor)
+    // Exclude these to avoid flagging Scala-synthesized bytecode.
+    val compilerGeneratedCallerMethods = Set(
+      "productElement", "productElementName", "fromOrdinal", "valueOf", "<init>"
+    )
+    // Flag constructor calls whose target class is a RuntimeException subtype but not a MengerException.
+    val constructsRawRuntimeException: DescribedPredicate[JavaConstructorCall] =
+      new DescribedPredicate[JavaConstructorCall](
+        "construct RuntimeException but not a MengerException subtype"):
+        override def test(call: JavaConstructorCall): Boolean =
+          val callerMethod = call.getOrigin.getName
+          if compilerGeneratedCallerMethods.contains(callerMethod) then return false
+          val owner = call.getTarget.getOwner
+          // scala.MatchError is compiler-generated for non-exhaustive patterns
+          if owner.getFullName == "scala.MatchError" then return false
+          owner.isAssignableTo(classOf[RuntimeException]) &&
+          !owner.isAssignableTo(classOf[menger.common.MengerException])
+    noClasses().that()
+      .resideInAnyPackage("menger.common..", "menger.dsl..", "menger.objects..")
+      .should().callConstructorWhere(constructsRawRuntimeException)
+      .check(allClasses)
+
   // Blocked by cli→engines→config→cli cycle: EnvironmentConfig holds LightSpec/PlaneConfig
   // from menger.cli. Un-ignore after Task 8 (P0.A) moves those types to menger.common.
   ignore should "be free of dependency cycles" in:

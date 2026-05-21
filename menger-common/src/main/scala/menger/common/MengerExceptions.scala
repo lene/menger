@@ -116,3 +116,12 @@ case class InvalidDirectionException(
   z: Float,
   reason: String = "invalid direction vector"
 ) extends MengerException(s"Invalid direction ($x, $y, $z): $reason")
+
+/**
+ * Exception thrown when a feature or operation is not yet implemented.
+ *
+ * @param feature Description of the unimplemented feature
+ */
+case class NotYetImplementedException(
+  feature: String
+) extends MengerException(s"Not yet implemented: $feature")

@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicReference
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.ImageSize
 
-class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging:
+class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with AutoCloseable:
 
   private val _rendererRef = new AtomicReference[Option[OptiXRenderer]](None)
 
@@ -46,3 +46,5 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging:
       logger.debug("Disposing OptiX renderer")
       r.dispose()
     }
+
+  override def close(): Unit = dispose()

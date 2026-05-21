@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
+import menger.common.NotYetImplementedException
 import menger.common.TriangleMeshData
 import menger.common.TriangleMeshSource
 
@@ -16,7 +17,7 @@ case class Octahedron(
 
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def getModel: List[ModelInstance] =
-    throw UnsupportedOperationException("Octahedron is OptiX-only; getModel not supported")
+    throw NotYetImplementedException("Octahedron is OptiX-only; getModel not supported")
 
   def toTriangleMesh: TriangleMeshData =
     val verts = Array(
