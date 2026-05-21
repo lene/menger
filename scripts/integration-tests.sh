@@ -915,6 +915,16 @@ test_plane() {
     run_test "plane IS checker" --objects "type=plane:pos=0,-2,0:color=#FFFFFF:color2=#333333:checker-size=0.5:material=matte"
 }
 
+test_cone_plane_textures() {
+    echo "Cone and Plane Image Textures (Task 21.6):"
+    run_test "cone with image texture" \
+        --texture-dir "$TEST_ASSETS_DIR" \
+        --objects "type=cone:apex=0,1,0:base=0,-1,0:radius=0.5:texture=test_checker.png" \
+        --plane y:-2
+    run_test "plane IS with image texture" \
+        --objects "type=plane:pos=0,-2,0:texture=scripts/test-assets/test_checker.png:material=matte"
+}
+
 test_cross() {
     echo "Coordinate Cross:"
     run_test "cross default" --objects type=sphere --cross
@@ -1106,6 +1116,7 @@ main() {
     test_platonic_solids
     test_cone
     test_plane
+    test_cone_plane_textures
     test_cross
     test_4d_polytopes
     test_dsl_scenes

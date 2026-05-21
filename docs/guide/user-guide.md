@@ -953,4 +953,45 @@ No performance overhead when fog is disabled (`density = 0`).
 
 ---
 
+### Image Textures and PBR Maps for Cone and Plane — *Sprint 21.6*
+
+Cone and plane geometry now support the same `texture`, `normal-map`, and `roughness-map`
+parameters as spheres and mesh objects.
+
+**UV mapping:**
+- **Cone** — cylindrical UV: `u` = angle around axis (0–1), `v` = position along axis (0 = base, 1 = apex).
+- **Plane** — axis-aligned planar UV: coordinates taken from the two non-dominant world axes,
+  repeating per world unit.
+
+```bash
+# CLI: cone with image texture
+menger-app --headless \
+  --texture-dir /path/to/textures \
+  --objects "type=cone:apex=0,1,0:base=0,-1,0:radius=0.5:texture=wood.png:normal-map=wood_n.png" \
+  --save-name cone_textured.png --timeout 5000
+
+# CLI: plane with image texture and roughness map
+menger-app --headless \
+  --texture-dir /path/to/textures \
+  --objects "type=plane:pos=0,-1,0:texture=stone.png:roughness-map=stone_r.png:material=matte" \
+  --save-name plane_textured.png --timeout 5000
+```
+
+DSL — texture fields on `Cone` and `Plane` work the same as on `Sphere`:
+```scala
+Scene(
+  objects = List(
+    Cone(apex = (0f, 1f, 0f), base = (0f, -1f, 0f), radius = 0.5f,
+         texture = Some("wood.png"), normalMap = Some("wood_n.png")),
+    Plane(position = (0f, -1f, 0f), normal = (0f, 1f, 0f),
+          texture = Some("stone.png"))
+  ),
+  lights = List(Directional(direction = (1f, -1f, -1f), intensity = 1.5f))
+)
+```
+
+The `texture-dir` base path (CLI) or DSL texture path applies the same way as for spheres.
+
+---
+
 ← [Quick Start](quickstart.md) | [User Guide Index](../USER_GUIDE.md) | → [Advanced Features](advanced.md)

@@ -455,6 +455,10 @@ Plane.checkered(Y at -1, ("#FFFFFF", "#000000"))
 // X or Z planes
 Plane(X at 5, color = "#FF0000")   // Vertical wall
 Plane(Z at -3, color = "#00FF00")  // Back wall
+
+// Image texture and PBR maps (Task 21.6) — planar UV, repeating per world unit
+Plane(Y at -1, texture = Some("stone.png"), normalMap = Some("stone_n.png"))
+Plane(Y at -1, texture = Some("tile.png"), roughnessMap = Some("tile_r.png"))
 ```
 
 ### Caustics

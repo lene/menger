@@ -1,7 +1,7 @@
 # Sprint 21: Higher-Dimensional Fractals
 
 **Sprint:** 21 - Higher-Dimensional Fractals
-**Status:** Partially Complete (21.6 Cone/Plane Textures deferred)
+**Status:** Complete
 **Estimate:** ~27 hours
 **Branch:** `feature/sprint-21`
 **Dependencies:** Sprint 18 (18.3 — GPU 4D math), Sprint 19 (4D polychora as standalone)
@@ -19,7 +19,7 @@ using the GPU 4D math infrastructure from Sprint 18.
 - [x] Higher-dimensional Sierpinski tetrahedron analogs work
 - [x] Interactive parameter space exploration (1D, using existing `scene(t)` system)
 - [x] Fractional levels work for `sponge-recursive-ias` (visual transition between integer levels)
-- [ ] Cone and plane geometry support image textures and PBR maps (normal-map, roughness-map) — deferred to Sprint 22
+- [x] Cone and plane geometry support image textures and PBR maps (normal-map, roughness-map)
 - [x] Fog/depth cue renders distance-based attenuation for all geometry
 - [x] Fractional-level animation demo renders smooth level transition via `scene(t)`
 - [x] All tests pass
@@ -195,11 +195,11 @@ the fractional-level blending (21.4) and the animation system (21.3).
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing
-- [ ] Code quality checks pass: `sbt "scalafix --check"`
-- [ ] CHANGELOG.md updated
-- [ ] Example renders of 4D fractal cross-sections
+- [x] All success criteria met
+- [x] All tests passing
+- [x] Code quality checks pass: `sbt "scalafix --check"`
+- [x] CHANGELOG.md updated
+- [x] Example renders of 4D fractal cross-sections
 
 ---
 

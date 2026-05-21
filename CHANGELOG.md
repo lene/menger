@@ -25,6 +25,11 @@
 - **Fog / depth cue** (Task 21.7) — exponential distance-based attenuation for all geometry
   types. CLI: `--fog density=0.05:color=0.8,0.8,0.9`. DSL: `fog = Some(Fog(density = 0.05f))`.
   Zero overhead when disabled (`fog_density == 0`).
+- **Image textures and PBR maps for cone and plane** (Task 21.6) — cone and plane geometry
+  now support `texture`, `normal-map`, and `roughness-map` parameters. Cone uses cylindrical
+  UV mapping; plane uses axis-aligned planar UV repeating per world unit. Wired via new
+  `image_texture_index` field in `InstanceMaterial` (separate from `texture_index`, which
+  indexes geometry data arrays for these types).
 
 ## [0.6.1] - 2026-05-17
 
