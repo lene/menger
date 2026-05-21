@@ -374,8 +374,36 @@ run_valgrind() {
   fi
 }
 
+run_cppcheck() {
+  if [ "${HAS_NATIVE:-0}" -eq 0 ]; then
+    echo "Cppcheck: skipped (no native changes)" > /tmp/cppcheck-prepush.log
+    return 0
+  fi
+  if ! command -v cppcheck >/dev/null 2>&1; then
+    echo "Warning: cppcheck not installed, skipping" > /tmp/cppcheck-prepush.log
+    return 0
+  fi
+  echo "=== cppcheck ===" > /tmp/cppcheck-prepush.log
+  CPP_FILES=$(git ls-files '*.cpp' | grep 'optix-jni/src/main/native/')
+  # shellcheck disable=SC2086
+  cppcheck \
+    --enable=warning,performance,portability \
+    --inline-suppr \
+    --suppressions-list=.cppcheck-suppress \
+    --error-exitcode=1 \
+    --quiet \
+    ${CPP_FILES} >> /tmp/cppcheck-prepush.log 2>&1
+  STATUS_CPC=$?
+  if [ "${STATUS_CPC}" -ne 0 ]; then
+    echo "cppcheck: FAILED" >> /tmp/cppcheck-prepush.log
+    return 1
+  fi
+  echo "cppcheck: PASSED" >> /tmp/cppcheck-prepush.log
+}
+
 export -f run_coverage
 export -f run_valgrind
+export -f run_cppcheck
 export SKIP_COVERAGE
 export OPTIX_ROOT
 export CUDA_HOME
@@ -454,6 +482,18 @@ if [ "$HAS_NATIVE" -gt 0 ]; then
   fi
 else
   echo "=== compute-sanitizer ===" ; skip_section
+fi
+
+# --- cppcheck (fast, sequential, after compute-sanitizer) ---
+echo "=== Running cppcheck ==="
+run_cppcheck
+CPPCHECK_STATUS=$?
+cat /tmp/cppcheck-prepush.log
+if [ $CPPCHECK_STATUS -ne 0 ]; then
+  echo "Cppcheck: ${RED_TEXT}FAILED${RESET_TEXT}"
+  STATUS=1
+else
+  echo "Cppcheck: ${GREEN_TEXT}PASSED${RESET_TEXT}"
 fi
 
 # ---------------------------------------------------------------------------

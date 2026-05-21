@@ -444,6 +444,32 @@ Test:Valgrind:
     paths:
       - optix-jni/valgrind.log
 
+# Native static analysis with cppcheck
+Test:Cppcheck:
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
+  stage: test
+  tags: [nvidia]
+  needs: []
+  timeout: 10m
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq cppcheck
+  script:
+    - |
+      CPP_FILES=$(git ls-files '*.cpp' | grep 'optix-jni/src/main/native/')
+      # shellcheck disable=SC2086
+      cppcheck \
+        --enable=warning,performance,portability \
+        --inline-suppr \
+        --suppressions-list=.cppcheck-suppress \
+        --error-exitcode=1 \
+        --quiet \
+        ${CPP_FILES}
+  rules:
+    - changes:
+        - optix-jni/src/main/native/**/*.cpp
+        - optix-jni/src/main/native/**/*.h
+        - .cppcheck-suppress
+
 # OptiX integration tests - comprehensive CLI and rendering tests
 # Uses scripts/integration-tests.sh which runs 27 test scenarios
 Test:OptiXIntegration:
