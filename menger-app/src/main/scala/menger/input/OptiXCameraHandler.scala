@@ -5,6 +5,7 @@ import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.OptiXRenderResources
 import menger.RotationProjectionParameters
+import menger.Vector3Extensions.toVector3
 import menger.common.Const
 import menger.common.MouseButton
 import menger.common.ScreenCoords
@@ -90,7 +91,8 @@ class OptiXCameraHandler(
     updateCamera()
 
   private def updateCamera(): Unit =
-    cameraState.updateCamera(rendererWrapper.renderer, camera.currentEye, camera.currentLookAt, camera.currentUp)
+    cameraState.updateCamera(rendererWrapper.renderer,
+      camera.currentEye.toVector3, camera.currentLookAt.toVector3, camera.currentUp.toVector3)
     renderResources.markNeedsRender()
     GdxRuntime.requestRendering()
     logger.debug(s"Camera updated: eye=${camera.currentEye}, lookAt=${camera.currentLookAt}")

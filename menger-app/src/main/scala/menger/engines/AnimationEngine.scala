@@ -1,6 +1,8 @@
 package menger.engines
 
 import menger.ProfilingConfig
+import menger.Vector3Extensions.toVector3
+import menger.cli.LightSpec
 import menger.config.ExecutionConfig
 import menger.dsl.Scene
 import menger.dsl.SceneConverter
@@ -28,16 +30,16 @@ class AnimationEngine(
     SceneConverter.convert(_firstScene, causticsConfig)
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    firstFrameConfigs.camera.position,
-    firstFrameConfigs.camera.lookAt,
-    firstFrameConfigs.camera.up,
-    firstFrameConfigs.lights
+    firstFrameConfigs.camera.position.toVector3,
+    firstFrameConfigs.camera.lookAt.toVector3,
+    firstFrameConfigs.camera.up.toVector3,
+    firstFrameConfigs.lights.map(LightSpec.toCommonLight)
   )
 
   override protected val cameraState: CameraState = CameraState(
-    firstFrameConfigs.camera.position,
-    firstFrameConfigs.camera.lookAt,
-    firstFrameConfigs.camera.up
+    firstFrameConfigs.camera.position.toVector3,
+    firstFrameConfigs.camera.lookAt.toVector3,
+    firstFrameConfigs.camera.up.toVector3
   )
 
   override protected def currentSaveName: Option[String] =

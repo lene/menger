@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import menger.AnimationSpecificationSequence
 import menger.ProfilingConfig
+import menger.Vector3Extensions.toVector3
+import menger.cli.LightSpec
 import menger.common.ImageSize
 import menger.config.OptiXEngineConfig
 import menger.input.GdxRuntime
@@ -33,11 +35,12 @@ class CliAnimationEngine(
   override protected def renderConfig: RenderConfig = config.render
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    camera.position, camera.lookAt, camera.up, environment.lights
+    camera.position.toVector3, camera.lookAt.toVector3, camera.up.toVector3,
+    environment.lights.map(LightSpec.toCommonLight)
   )
 
   override protected val cameraState: CameraState =
-    CameraState(camera.position, camera.lookAt, camera.up)
+    CameraState(camera.position.toVector3, camera.lookAt.toVector3, camera.up.toVector3)
 
   override protected def currentSaveName: Option[String] =
     Some(String.format(savePattern, Integer.valueOf(frameCounter.get())))

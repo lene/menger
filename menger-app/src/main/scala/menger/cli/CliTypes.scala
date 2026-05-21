@@ -26,6 +26,20 @@ case class LightSpec(
 )
 
 object LightSpec:
+  /** Convert CLI LightSpec to menger.common.Light. */
+  def toCommonLight(spec: LightSpec): menger.common.Light =
+    val pos   = menger.common.Vector[3](spec.position.x, spec.position.y, spec.position.z)
+    val clr   = menger.common.Color(spec.color.r, spec.color.g, spec.color.b, spec.color.a)
+    spec.lightType match
+      case LightType.DIRECTIONAL =>
+        menger.common.Light.Directional(pos, clr, spec.intensity)
+      case LightType.POINT =>
+        menger.common.Light.Point(pos, clr, spec.intensity)
+      case LightType.AREA =>
+        val normal = menger.common.Vector[3](spec.normal.x, spec.normal.y, spec.normal.z)
+        menger.common.Light.Area(pos, normal, spec.radius,
+          menger.common.AreaLightShape.Disk, clr, spec.intensity, spec.shadowSamples)
+
   /** Convert common.Light to CLI LightSpec for rendering. */
   def fromCommonLight(light: menger.common.Light): LightSpec =
     light match

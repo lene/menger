@@ -11,6 +11,8 @@ import menger.ObjectSpec
 import menger.ProfilingConfig
 import menger.Projection4DSpec
 import menger.RotationProjectionParameters
+import menger.Vector3Extensions.toVector3
+import menger.cli.LightSpec
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ObjectType
@@ -111,14 +113,14 @@ class InteractiveEngine(
     new AtomicReference(Scene4DCache())
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    camera.position,
-    camera.lookAt,
-    camera.up,
-    environment.lights
+    camera.position.toVector3,
+    camera.lookAt.toVector3,
+    camera.up.toVector3,
+    environment.lights.map(LightSpec.toCommonLight)
   )
 
   override protected val cameraState: CameraState =
-    CameraState(camera.position, camera.lookAt, camera.up)
+    CameraState(camera.position.toVector3, camera.lookAt.toVector3, camera.up.toVector3)
 
   private lazy val cameraController: OptiXCameraHandler =
     OptiXCameraHandler(rendererWrapper, cameraState, renderResources,
@@ -573,7 +575,7 @@ class InteractiveEngine(
         Try {
           rebuildGeometry(specs, renderer)
           if crossVisible.get then addCrossGeometry(renderer)
-          cameraState.updateCamera(renderer, savedEye, savedLookAt, savedUp)
+          cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
           // After a full rebuild, instance/slot IDs restart from 0 sequentially.
           // Re-populate fast path caches so subsequent rotations stay on the fast path.
           if !renderConfig.gpuProject4D && isCpu4DFastPathEligible(specs) then

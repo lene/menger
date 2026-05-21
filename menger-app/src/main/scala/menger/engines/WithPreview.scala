@@ -8,6 +8,7 @@ import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
+import menger.Vector3Extensions.toVector3
 import menger.common.ImageSize
 import menger.dsl.Scene
 import menger.dsl.SceneConverter
@@ -117,7 +118,10 @@ trait WithPreview extends RenderEngine with LazyLogging:
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
           cameraState.updateCamera(
-            renderer, configs.camera.position, configs.camera.lookAt, configs.camera.up
+            renderer,
+            configs.camera.position.toVector3,
+            configs.camera.lookAt.toVector3,
+            configs.camera.up.toVector3
           )
           cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
           val rgbaBytes = rendererWrapper.renderScene(ImageSize(width, height))

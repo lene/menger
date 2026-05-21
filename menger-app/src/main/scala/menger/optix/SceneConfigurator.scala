@@ -1,14 +1,8 @@
 package menger.optix
 
-import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
-import menger.ColorConversions.toCommonColor
-import menger.Vector3Extensions.toVector3
 import menger.cli.Axis
-import menger.cli.LightSpec
-import menger.cli.LightType
 import menger.cli.PlaneConfig
-import menger.common.AreaLightShape
 import menger.common.Color
 import menger.common.Const
 import menger.common.FogConfig
@@ -16,42 +10,27 @@ import menger.common.Light
 import menger.common.Vector
 
 class SceneConfigurator(
-  cameraPos: Vector3,
-  cameraLookat: Vector3,
-  cameraUp: Vector3,
-  lights: List[LightSpec] = List.empty
+  cameraPos: Vector[3],
+  cameraLookat: Vector[3],
+  cameraUp: Vector[3],
+  lights: List[Light] = List.empty
 ) extends LazyLogging:
 
   def configureCamera(renderer: OptiXRenderer): Unit =
-    val eye = cameraPos.toVector3
-    val lookAt = cameraLookat.toVector3
-    val up = cameraUp.toVector3
     val horizontalFov = Const.Renderer.horizontalFov
-    renderer.setCamera(eye, lookAt, up, horizontalFovDegrees = horizontalFov)
-    logger.debug(s"Configured camera: eye=(${eye(0)},${eye(1)},${eye(2)}), lookAt=(${lookAt(0)},${lookAt(1)},${lookAt(2)}), up=(${up(0)},${up(1)},${up(2)}), horizontalFOV=$horizontalFov")
+    renderer.setCamera(cameraPos, cameraLookat, cameraUp, horizontalFovDegrees = horizontalFov)
+    logger.debug(s"Configured camera: eye=(${cameraPos(0)},${cameraPos(1)},${cameraPos(2)}), lookAt=(${cameraLookat(0)},${cameraLookat(1)},${cameraLookat(2)}), up=(${cameraUp(0)},${cameraUp(1)},${cameraUp(2)}), horizontalFOV=$horizontalFov")
 
   def configureLights(renderer: OptiXRenderer): Unit =
     if lights.nonEmpty then
-      val lightSeq = lights.map(convertLightSpec)
-      renderer.setLights(lightSeq)
-      logger.debug(s"Configured ${lightSeq.length} light(s) from CLI specification")
+      renderer.setLights(lights)
+      logger.debug(s"Configured ${lights.length} light(s) from specification")
     else
       // Default single directional light (backward compatibility)
       val lightDirection = Vector[3](-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
       val lightIntensity = 1.0f
       renderer.setLight(lightDirection, lightIntensity)
       logger.debug(s"Configured default light: direction=(${lightDirection(0)},${lightDirection(1)},${lightDirection(2)}), intensity=$lightIntensity")
-
-  private def convertLightSpec(spec: LightSpec): Light =
-    val position = spec.position.toVector3
-    val color = spec.color.toCommonColor
-
-    spec.lightType match
-      case LightType.DIRECTIONAL => Light.Directional(position, color, spec.intensity)
-      case LightType.POINT => Light.Point(position, color, spec.intensity)
-      case LightType.AREA =>
-        val normal = spec.normal.toVector3
-        Light.Area(position, normal, spec.radius, AreaLightShape.Disk, color, spec.intensity, spec.shadowSamples)
 
   def configurePlanes(renderer: OptiXRenderer, planes: List[PlaneConfig]): Unit =
     renderer.clearPlanes()
