@@ -53,21 +53,15 @@ each with documented justification. All exceptions use `@SuppressWarnings` annot
 
 | Location | Var | Justification |
 |----------|-----|---------------|
-| `OrbitCamera.scala` (menger.gdx) | `eye`, `lookAt`, `up` | LibGDX `Vector3` is inherently mutable by design. Camera state must be updated in-place for LibGDX framework integration. |
-| `OrbitCamera.scala` (menger.gdx) | `spherical: SphericalCoords` | Consolidated orbit state (azimuth, elevation, distance). Required for interactive camera control where state changes on every mouse movement. |
-| `OrbitCamera.scala` (menger.gdx) | `dragState: Option[CameraDragState]` | Consolidated mouse tracking state. Tracks drag gestures across touchDown/touchDragged/touchUp events. |
+| `menger-app/src/main/scala/menger/input/OrbitCamera.scala` | `eye`, `lookAt`, `up` | LibGDX `Vector3` is inherently mutable by design. Camera state must be updated in-place for LibGDX framework integration. |
+| `menger-app/src/main/scala/menger/input/OrbitCamera.scala` | `spherical: SphericalCoords` | Consolidated orbit state (azimuth, elevation, distance). Required for interactive camera control where state changes on every mouse movement. |
+| `menger-app/src/main/scala/menger/input/OrbitCamera.scala` | `dragState: Option[CameraDragState]` | Consolidated mouse tracking state. Tracks drag gestures across touchDown/touchDragged/touchUp events. |
 
-### 2.5.3 LibGDX Gesture Tracking (DragTracker)
-
-| Location | Var | Justification |
-|----------|-----|---------------|
-| `DragTracker.scala` (menger.gdx) | `dragOrigin: ScreenCoords` | Drag start position for shift+drag gesture. Standard UI gesture tracking pattern. |
-
-### 2.5.4 LibGDX Input State Tracking (KeyPressTracker)
+### 2.5.3 LibGDX Input State Tracking (KeyPressTracker)
 
 | Location | Var | Justification |
 |----------|-----|---------------|
-| `KeyPressTracker.scala` (menger.gdx) | `pressed: Map[Key, Boolean]` | Unified modifier key state tracking. LibGDX InputAdapter receives keyDown/keyUp events asynchronously; state must be cached for use in subsequent update() calls. Used by GdxKeyHandler and OptiXKeyHandler for both modifier keys and per-key rotation tracking. |
+| `menger-app/src/main/scala/menger/input/KeyPressTracker.scala` | `pressed: Map[Key, Boolean]` | Unified modifier key state tracking. LibGDX InputAdapter receives keyDown/keyUp events asynchronously; state must be cached for use in subsequent update() calls. Used by GdxKeyHandler and OptiXKeyHandler for both modifier keys and per-key rotation tracking. |
 
 ### Design Rationale
 

@@ -129,20 +129,20 @@ This section documents significant architectural decisions. Detailed implementat
 
 ---
 
-### AD-7: libGDX Wrapper Layer (`menger.gdx`)
+### AD-7: libGDX Wrapper Layer (`menger.input`)
 
 **Status:** Accepted
-**Date:** 2026-02
+**Date:** 2026-02 (package renamed from the former `menger` `gdx` subpackage to `menger.input` in 2026-05)
 
 **Context:** LibGDX requires mutable state (`var` fields, `null` initialization) for camera objects, input tracking, and lifecycle management. This conflicted with the project's functional Scala style (Wartremover enforces no `var`/`null` outside wrappers).
 
-**Decision:** Introduce `menger.gdx` as the sole package permitted to hold `var` and `null` for libGDX concerns. All Scala code outside this package interacts with immutable values and `Option[T]` instead of nullable references.
+**Decision:** Introduce `menger.input` as the sole package permitted to hold `var` and `null` for libGDX concerns. All Scala code outside this package interacts with immutable values and `Option[T]` instead of nullable references. The package was renamed (originally named after the LibGDX subpackage) in Sprint 21 to reflect its role as the input / windowing adapter rather than a generic LibGDX namespace.
 
 **Wrapper classes:**
 - `GdxRuntime` — `Gdx.app` exit, rendering requests
-- `KeyPressTracker` — Shift/Ctrl/Alt modifier state as `Boolean` vals
-- `DragTracker` — mouse drag delta as immutable `(Float, Float)` snapshots
-- `OrbitCamera` — spherical orbit math wrapping mutable libGDX `Vector3`
+- `KeyPressTracker` — Shift/Ctrl/Alt + per-key modifier state as `Boolean` vals
+- `OrbitCamera` — spherical orbit math wrapping mutable libGDX `Vector3`; absorbs the former `DragTracker` as its `dragState` field
+- `LibGDXInputAdapter`, `LibGDXConverters` — LibGDX-side bridge to the Menger input model
 
 **Rationale:**
 - Single, auditable boundary for mutability; easy to find all `var`s
@@ -151,7 +151,8 @@ This section documents significant architectural decisions. Detailed implementat
 
 **Consequences:**
 - Small overhead of wrapper delegation (negligible at interactive frame rates)
-- New libGDX features must first be wrapped before use in non-`menger.gdx` code
+- New libGDX features must first be wrapped before use in non-`menger.input` code
+- The L3 adapter slot in the onion model (see AD-23) is owned by `menger.input` for windowing/input, paired with `menger.optix` for the JNI side
 
 ---
 
@@ -250,7 +251,7 @@ OptiX.
 **Consequences:**
 - Users must provide `--objects` or `--scene` to render (no default object)
 - All rendering is physically-based ray tracing; no fast OpenGL fallback
-- LibGDX 3D scene graph and `ModelFactory` deleted; `menger.gdx` retained for windowing/input wrappers
+- LibGDX 3D scene graph and `ModelFactory` deleted; `menger.input` (formerly the LibGDX wrapper subpackage) retained for windowing/input wrappers
 - Supersedes AD-2
 
 ---
@@ -466,6 +467,74 @@ existing callsites compile unchanged.
 - `SceneObject` DSL case classes expose the same fields (`normalMap`, `roughnessMap`,
   `proceduralType`, `proceduralScale`) via `baseObjectSpec()`, which wraps them into
   `ProceduralSpec` / `TextureMaps` at the boundary.
+
+---
+
+### AD-23: Onion Layering Enforced by ArchUnit
+
+**Status:** Accepted (with documented in-flight technical debt)
+**Date:** 2026-05
+
+**Context:** Up to Sprint 20, the package structure (`menger.common`,
+`menger.objects`, `menger.dsl`, `menger.config`, `menger.optix`,
+`menger.input`, `menger.engines`, `menger.cli`, `Main`) implied a layered
+architecture, but nothing prevented an outer-layer change from quietly
+importing across or back into the wrong layer. Several drifts had already
+occurred (DSL reaching into config/optix, geometry classes pulling in
+SLF4J, `*Config` types scattered across packages, mutable `Map` in the
+DSL).
+
+**Decision:** Adopt ArchUnit as the build-time fitness function for the
+onion layering described in §4.2 / §5.2 / §5.5. The rules live in:
+
+- `menger-app/src/test/scala/menger/ArchitectureSpec.scala` — 14 active
+  Phase 1 rules covering JNI-method placement (only in `optix-jni`),
+  LibGDX-import containment to `menger.input`, `loadLibrary` placement,
+  `menger.common` purity, and the DSL→objects/common limit.
+- `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` —
+  4 active + 5 `@Ignore`d rules covering the strict onion (`menger.cli`
+  must not reach into `engines`/`optix`, `*Config` naming convention,
+  no `mutable.*` in `dsl`, no logging in `objects`, case-class field
+  immutability).
+
+The five ignored rules represent technical debt that is **accepted for
+the current sprint** and tracked in `CODE_IMPROVEMENTS.md` as:
+
+| ID | Rule | Summary |
+|----|------|---------|
+| `M-arch-config-naming` | `*Config` classes must live in `menger.config`/`menger.common` | Five misplaced `*Config` types under `engines`/`input`/`optix`/root. |
+| `M-arch-dsl-layer` | `menger.dsl` may depend only on `common` + `objects` | `SceneConverter` and `Material` in `dsl` reach into `config` and `optix`. |
+| `M-arch-dsl-mutable` | No `mutable.*` in `menger.dsl` | `SceneRegistry` uses `mutable.Map`. |
+| `M-arch-objects-logging` | No file IO / logging in `menger.objects` | 4 geometry classes use SLF4J. |
+| `M-arch-archunit-case-class-field` | Common/objects immutability rules | ArchUnit's `haveOnlyFinalFields` false-positives on Scala case-class `val` fields; needs a custom predicate. |
+
+Each entry has the corresponding rule wired up but `@Ignore`d so it does
+not block the build. Fixing the violation flips the rule on; the rule
+then prevents regression.
+
+**Rationale:**
+- Codifies the layering as executable specification — outlasts any
+  individual reviewer.
+- Catches drift on the next `sbt test` rather than at code-review time
+  weeks later.
+- Splitting into Phase 1 (active) and Phase 2 (mixed active/ignored)
+  lets the strict-onion intent ship before every last violation is
+  cleaned up.
+- ArchUnit was already a transitive dep via existing tooling; zero new
+  external surface.
+
+**Consequences:**
+- Two new test specs run on every build. They are fast (analyse compiled
+  bytecode of `menger-app`) and add negligible CI time.
+- Adding a new package requires deciding which layer it belongs in and,
+  if it crosses a boundary, either updating the rule or routing through
+  an existing adapter.
+- The five `M-arch-*` items above are now first-class backlog work; new
+  violations on top of them must not extend the existing exception
+  (treat each ignored rule as a freeze, not a free pass).
+- The single-page snapshot in `docs/ARCHITECTURE_MODULES.md` and the
+  per-package tables in §5.2 are kept in sync with the rules — if you
+  change one, change the others.
 
 ---
 

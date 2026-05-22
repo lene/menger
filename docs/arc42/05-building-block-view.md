@@ -25,148 +25,117 @@
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## 5.2 Level 2: Component Details
+## 5.2 Level 2: Package-Level Components
 
-### 5.2.1 menger-app (Application Layer)
+Each package below names the **interface** types neighbouring packages
+depend on, the allowed inward dependencies, and any currently-accepted
+violations (tracked in `CODE_IMPROVEMENTS.md` as `M-arch-*` and gated by
+`@Ignore`d ArchUnit rules). See §5.5 for the layered diagram and AD-23
+(§9) for the enforcement mechanism.
 
-**Purpose:** Entry point, CLI parsing, engine orchestration.
+### 5.2.1 `menger.common` (L0 — `menger-common` module)
 
-```
-menger-app/src/main/scala/
-├── Main.scala                        # Entry point, LibGDX config
-└── menger/
-    ├── MengerCLIOptions.scala        # CLI argument parsing (Scallop)
-    ├── OptiXRenderResources.scala    # OptiX renderer lifecycle
-    ├── cli/                          # CLI types and converters
-    ├── config/                       # Configuration classes
-    ├── dsl/                          # Scala DSL for scene description (Sprint 10+)
-    │   ├── Camera.scala              # DSL camera definition
-    │   ├── Caustics.scala            # DSL caustics config
-    │   ├── Color.scala               # DSL color helpers
-    │   ├── Light.scala               # PointLight, DirectionalLight, AreaLight
-    │   ├── LoadedScene.scala         # Loaded scene wrapper
-    │   ├── Material.scala            # DSL material definitions
-    │   ├── Plane.scala               # Plane scene object
-    │   ├── Scene.scala               # Scene definition (objects, lights, camera)
-    │   ├── SceneConverter.scala      # Converts DSL scenes to OptiX data
-    │   ├── SceneLoader.scala         # Loads scenes by name from registry
-    │   ├── SceneObject.scala         # SceneObject trait (incl. rotation: Vec3, Sprint 19.7)
-    │   │                             #   + normalMap, roughnessMap, proceduralType,
-    │   │                             #     proceduralScale on all objects (Sprint 20)
-    │   │                             #   + case classes: Sphere, Cube, Sponge, Tesseract,
-    │   │                             #     TesseractSponge, ParametricSurface
-    │   ├── SceneRegistry.scala       # Registry of named scenes
-    │   └── Vec3.scala                # DSL 3D vector helpers
-    ├── gdx/                          # LibGDX wrapper layer (all var/null isolated here)
-    │   ├── GdxRuntime.scala          # Lifecycle and exit
-    │   ├── KeyPressTracker.scala     # Shift/Ctrl/Alt modifier state
-    │   ├── DragTracker.scala         # Mouse drag delta tracking
-    │   └── OrbitCamera.scala         # Spherical camera orbit (wraps mutable Vector3)
-    ├── optix/                        # High-level OptiX helpers (above JNI layer)
-    │   ├── OptiXRendererWrapper.scala # High-level wrapper around native OptiXRenderer
-    │   ├── SceneConfigurator.scala   # Builds OptiX scene from object specs
-    │   └── CameraState.scala         # Camera state machine
-    └── engines/
-        ├── MengerEngine.scala        # Abstract base, geometry factory
-        ├── InteractiveMengerEngine.scala  # Interactive mode (uses Scene4DCache)
-        ├── AnimatedMengerEngine.scala     # Animation mode
-        ├── OptiXEngine.scala         # OptiX-based rendering engine
-        ├── RenderEngine.scala        # Common engine trait
-        └── scene/                    # Scene builder strategy layer
-            ├── SceneBuilder.scala         # Strategy trait; applyInstanceTextures helper
-            ├── SphereSceneBuilder.scala   # Sphere scene wiring
-            ├── ConeSceneBuilder.scala     # Cone scene wiring (procedural textures)
-            ├── PlaneSceneBuilder.scala    # Plane scene wiring (procedural textures)
-            ├── CubeSpongeSceneBuilder.scala
-            ├── TriangleMeshSceneBuilder.scala
-            ├── TesseractEdgeSceneBuilder.scala
-            ├── MaterialExtractor.scala
-            ├── MeshFactory.scala
-            ├── MeshUploadPlan.scala
-            └── TextureManager.scala
-```
+| Aspect | Detail |
+|--------|--------|
+| Purpose | Pure data types shared by every other layer. The most stable layer. |
+| Interface | `Color`, `Vec3`, `Vector[N]`, `ImageSize`, `Light`, `Axis`, `PlaneSpec`, `PlaneColorSpec`, `FogSpec`, `FogConfig`, `TriangleMeshData`, `ObjectType`, `Const`, `Patterns`, `InputEvent`, `MengerException` and subtypes. |
+| Allowed dependencies | Java/Scala stdlib only. |
+| Known violations | None. |
 
-### 5.2.2 menger.objects (Geometry Layer)
+`SceneSpecs` (Axis, PlaneSpec, PlaneColorSpec, FogSpec) and `FogConfig`
+were promoted into `menger.common` so the DSL and CLI can share them
+without crossing layer boundaries.
 
-**Purpose:** Fractal geometry generation via surface subdivision.
-**Location:** `menger-app/src/main/scala/menger/objects/`
+### 5.2.2 `menger.objects` (L1 — `menger-app`)
 
-```
-menger.objects/
-├── Geometry (trait)              # Base trait for renderable objects
-├── Builder (trait)               # Triangle mesh construction protocol
-├── GeometryRegistry              # Central type registry (Sprint 19.6): new geometry
-│                                 #   type requires registration here only, not engine
-│                                 #   changes. See ObjectType in menger-common.
-├── Composite                     # Multi-object composite geometry
-├── Face, Direction               # Face representation for subdivision
-├── Square, Cube                  # Basic 2D/3D primitives
-├── Sphere                        # Analytical sphere (IS program)
-├── Cone                          # Analytical cone (IS program, Sprint 19.3)
-├── Tetrahedron                   # Regular tetrahedron — Platonic solid (Sprint 19.1)
-├── Octahedron                    # Regular octahedron — Platonic solid (Sprint 19.1)
-├── Dodecahedron                  # Regular dodecahedron — Platonic solid (Sprint 19.1)
-├── Icosahedron                   # Regular icosahedron — Platonic solid (Sprint 19.1)
-├── SpongeBySurface               # 3D Menger (12 faces/face)
-├── SpongeByVolume                # 3D Menger (20 cubes/cube)
-├── FractionalLevelSponge         # Fractional level support
-├── ParametricTessellator         # f(u,v) → triangle mesh tessellation (Sprint 15)
-└── higher_d/
-    ├── Tesseract                 # 4D hypercube {4,3,3}
-    ├── Pentachoron               # 5-cell {3,3,3} (Sprint 19.2)
-    ├── Hexadecachoron            # 16-cell {3,3,4} (Sprint 19.2)
-    ├── Icositetrachoron          # 24-cell {3,4,3} (Sprint 19.2)
-    ├── Hecatonicosachoron        # 120-cell {5,3,3} (Sprint 19.2)
-    ├── Hexacosichoron            # 600-cell {3,3,5} (Sprint 19.2)
-    ├── TesseractSponge           # 4D sponge (48 tesseracts/tesseract)
-    ├── TesseractSponge2          # 4D sponge (16 faces/face)
-    ├── Mesh4D                    # 4D mesh data structure and Mesh4D trait
-    └── RotatedProjection         # 4D→3D projection wrapper
-```
+| Aspect | Detail |
+|--------|--------|
+| Purpose | Fractal geometry generation; analytical primitives; 4D polytopes. |
+| Interface | `Geometry` trait, `Builder` trait, `Composite`, all primitive case classes (`Cube`, `Sphere`, `Cone`, `Tetrahedron`, `Octahedron`, `Dodecahedron`, `Icosahedron`), `SpongeBySurface`, `SpongeByVolume`, `FractionalLevelSponge`, `ParametricTessellator`, `higher_d.{Tesseract, Pentachoron, Hexadecachoron, Icositetrachoron, Hecatonicosachoron, Hexacosichoron, TesseractSponge, TesseractSponge2, Mesh4D, RotatedProjection}`. |
+| Allowed dependencies | `menger.common`. |
+| Known violations | 4 classes import SLF4J (`M-arch-objects-logging`). |
 
-**CoordinateCross** (Sprint 19.5): Not a `SceneObject`. Rendered as three analytical
-cylinders along the X, Y, Z axes from the origin. Controlled via `--cross*` CLI flags
-and the 'C' key in interactive mode. Wired through `MengerCLIOptions` and
-`InteractiveEngine`.
+**CoordinateCross** (Sprint 19.5): Not a `SceneObject`. Rendered as three
+analytical cylinders along the X, Y, Z axes from the origin. Controlled
+via `--cross*` CLI flags and the 'C' key in interactive mode.
 
-### 5.2.3 optix-jni (Ray Tracing Layer)
+### 5.2.3 `menger.dsl` (L1 — `menger-app`)
 
-**Purpose:** GPU-accelerated ray tracing via NVIDIA OptiX.
+| Aspect | Detail |
+|--------|--------|
+| Purpose | Scala DSL for scene description. Builds DSL types that the converter turns into engine configs. |
+| Interface | `Scene`, `SceneObject` (case classes: `Sphere`, `Cube`, `Sponge`, `Tesseract`, `TesseractSponge`, `ParametricSurface`, `Plane`, with `rotation: Vec3`, `normalMap`, `roughnessMap`, `proceduralType`, `proceduralScale`), `Camera`, `Light` (point / directional / area), `Material`, `Color`, `Vec3`, `Placement`, `Transform`, `Caustics`, `RenderSettings`, `CameraPath`, `SceneLoader`, `SceneRegistry`, `SceneCompiler`, `LoadedScene`. |
+| Allowed dependencies (target) | `menger.common`, `menger.objects`. |
+| Known violations | `SceneConverter` imports `menger.config` and `menger.optix`; `Material` imports `menger.optix.Material`; `SceneRegistry` uses `mutable.Map` (`M-arch-dsl-layer`, `M-arch-dsl-mutable`). |
 
-```
-optix-jni/
-├── src/main/scala/menger/optix/
-│   ├── OptiXRenderer.scala       # Thin class — mixes in all 5 Api traits; holds nativeHandle
-│   ├── OptiXSphereApi.scala      # Sphere add/configure JNI bindings (private[optix] trait)
-│   ├── OptiXMeshApi.scala        # Triangle mesh upload/configure JNI bindings
-│   ├── OptiXPlaneApi.scala       # Plane add/configure JNI bindings
-│   ├── OptiXTextureApi.scala     # Texture upload, procedural texture, PBR map JNI bindings
-│   ├── OptiXRenderApi.scala      # Render, camera, lights, scene management JNI bindings
-│   ├── Material.scala            # Material definitions
-│   ├── RenderConfig.scala        # Render configuration (RenderConfig, RenderLimits, CausticsConfig)
-│   └── RenderHealth.scala        # GPU health / availability checks
-│
-└── src/main/native/
-    ├── include/
-    │   ├── OptiXContext.h        # Low-level OptiX wrapper
-    │   ├── OptiXWrapper.h        # High-level scene API
-    │   └── OptiXData.h           # Data structures, Params
-    ├── OptiXContext.cpp          # OptiX API implementation
-    ├── OptiXWrapper.cpp          # Scene state management
-    ├── JNIBindings.cpp           # Scala↔C++ bridge
-    └── shaders/
-        ├── optix_shaders.cu      # Main entry point (includes all)
-        ├── raygen_primary.cu     # Ray generation shader
-        ├── hit_sphere.cu         # Sphere intersection/closest hit; PBR maps, spherical UV
-        ├── hit_triangle.cu       # Triangle mesh closest hit
-        ├── hit_cone.cu           # Cone intersection/closest hit; procedural textures
-        ├── hit_plane.cu          # Plane closest hit; procedural textures
-        ├── hit_cylinder.cu       # Cylinder edge intersection (4D edge rendering)
-        ├── miss_plane.cu         # Miss shader (plane/background)
-        ├── shadows.cu            # Shadow ray handling
-        ├── helpers.cu            # Shared utilities
-        └── caustics_ppm.cu       # Photon mapping (experimental)
-```
+### 5.2.4 `menger.config` (L2 — `menger-app`)
+
+| Aspect | Detail |
+|--------|--------|
+| Purpose | Case-class configuration types passed from the CLI/DSL down into engines. |
+| Interface | `CameraConfig`, `SceneConfig`, `EnvironmentConfig`, `ExecutionConfig`, `OptiXEngineConfig`, `PlaneConfig`, `MaterialConfig`, `CrossConfig`. |
+| Allowed dependencies | `menger.common`, `menger.dsl`. May reference `menger.optix.Material` because `PlaneConfig`/`MaterialConfig` carry render-time material data — accepted as a controlled cross-cut. |
+| Known violations | Five misplaced `*Config` types still live under `engines`/`input`/`optix`/root (`M-arch-config-naming`). |
+
+`PlaneConfig` was moved here from `menger.cli` so engines and the DSL can
+share the configuration type without depending on the CLI layer.
+
+### 5.2.5 `menger.optix` (L3 wrapper — `menger-app`)
+
+| Aspect | Detail |
+|--------|--------|
+| Purpose | Adapter from the JNI module to engine-friendly types. Owns the renderer lifecycle. |
+| Interface | `OptiXRendererWrapper` (`extends AutoCloseable` — Sprint 20 lifecycle hardening), `SceneConfigurator` (camera, lights, fog, background), `CameraState`. |
+| Allowed dependencies | `menger.common`, `optix-jni` types. Must not depend on `menger.engines`, `menger.config`, `menger.cli`, `menger.dsl`. |
+| Enforced rules | No LibGDX imports (`ArchitectureSpec`). No `native` methods (those live only in `optix-jni`). |
+
+### 5.2.6 `menger.input` (L3 adapter — `menger-app`)
+
+| Aspect | Detail |
+|--------|--------|
+| Purpose | Adapter for LibGDX input + GDX runtime lifecycle. All `var`/`null` mutable LibGDX surface area lives here (see §2.5 and AD-7). |
+| Interface | `InputHandler`, `KeyHandler` family (`GdxKeyHandler`, `OptiXKeyHandler`, `PreviewKeyHandler`, `KeyRotation`), `EventDispatcher`, `OrbitCamera`, `SphericalOrbit`, `KeyPressTracker`, `GdxRuntime`, `LibGDXInputAdapter`, `LibGDXConverters`, `OptiXCameraHandler`, `OptiXInputMultiplexer`. |
+| Allowed dependencies | `menger.common`, `menger.optix` (wrapper), LibGDX. Must not depend on `menger.engines`, `menger.dsl`, `menger.config`. |
+
+Renamed from the former `menger` `gdx` subpackage in Sprint 21 to reflect
+its role as the input / windowing adapter rather than a generic LibGDX
+namespace. `DragTracker` was folded into `OrbitCamera`'s `dragState`
+(see §2.5.2).
+
+### 5.2.7 `menger.engines` (L4 — `menger-app`)
+
+| Aspect | Detail |
+|--------|--------|
+| Purpose | Render-loop orchestration: interactive, preview, animation, video export. Bridges DSL/config/input/optix into a running engine. |
+| Interface | `RenderEngine` trait, `BaseEngine`, `InteractiveEngine`, `PreviewEngine`, `AnimationEngine`, `CliAnimationEngine`, `VideoEngine`, `RenderModeSelector`, `GeometryRegistry`, `PlaneConfigurer` (extracted from `optix.SceneConfigurator`), `VideoEncoder`, `WithAnimation` / `WithPreview` / `WithVideoExport` traits, `scene.SceneBuilder` strategy family (`SphereSceneBuilder`, `ConeSceneBuilder`, `PlaneSceneBuilder`, `CubeSpongeSceneBuilder`, `TriangleMeshSceneBuilder`, `TesseractEdgeSceneBuilder`, `MaterialExtractor`, `MeshFactory`, `MeshUploadPlan`, `TextureManager`). |
+| Allowed dependencies | All inner layers; LibGDX (via `menger.input`); FFmpeg (via `VideoEncoder`). |
+| Known violations | None active. |
+
+### 5.2.8 `menger.cli` + `Main.scala` (L5 — `menger-app`)
+
+| Aspect | Detail |
+|--------|--------|
+| Purpose | Process boundary. Parses CLI args, builds configs, hands off to an engine. The sole permitted exit path is `MengerExitException`, caught in `Main.scala` (no other `sys.exit` calls). |
+| Interface | `MengerCLIOptions` (Scallop), `CliTypes` (re-exports common/config types), `CliValidation`, `cli.converters.*`, `Main.main`. |
+| Allowed dependencies | `menger.common`, `menger.config`, `menger.dsl`, `menger.engines` (for `Main` only), Scallop. |
+| Enforced rules | `menger.cli` itself must not depend on `menger.engines` or `menger.optix` (`ArchitecturePhase2Spec`). `Main` may. |
+
+### 5.2.9 `optix-jni` module (ext — `menger.optix` production sources)
+
+| Aspect | Detail |
+|--------|--------|
+| Purpose | NVIDIA OptiX/CUDA ray tracer; JNI bindings; PTX shaders. |
+| Interface | `OptiXRenderer` (thin class — mixes in five `private[optix]` API traits — `OptiXSphereApi`, `OptiXMeshApi`, `OptiXPlaneApi`, `OptiXTextureApi`, `OptiXRenderApi`; holds `@volatile nativeHandle: Long`), `Material`, `RenderConfig`, `RenderLimits`, `CausticsConfig`, `RenderHealth`. |
+| Allowed dependencies | `menger.common`, JDK only. No LibGDX, no Scala-specific types in public method signatures. |
+| Enforced rules | `loadLibrary` and `native` methods only inside this module (`ArchitectureSpec`). Java-friendly API surface (no `scala.Option`, `scala.collection`, etc. on public methods). |
+
+**Native sources** (`optix-jni/src/main/native/`): `OptiXContext.{h,cpp}`
+(low-level OptiX wrapper), `OptiXWrapper.{h,cpp}` (scene state, `setSphere`,
+`setCamera`, `render`), `OptiXData.h` (`Params`, `HitGroupData`, `Light`,
+`RayStats`), `JNIBindings.cpp`. Shaders under `shaders/`: `raygen_primary.cu`,
+`hit_sphere.cu`, `hit_triangle.cu`, `hit_cone.cu`, `hit_plane.cu`,
+`hit_cylinder.cu`, `miss_plane.cu`, `shadows.cu`, `helpers.cu`,
+`caustics_ppm.cu`, `optix_shaders.cu` (umbrella).
 
 ## 5.3 OptiX JNI Architecture (Level 3)
 
@@ -216,17 +185,113 @@ optix-jni/
 ## 5.4 Input Handling
 
 ```
-menger.input/  (in menger-app)
+menger.input/  (in menger-app — formerly the menger gdx subpackage)
 ├── EventDispatcher           # Publishes rotation/projection/eyeW events
 ├── InputHandler              # Abstract base keyboard+mouse handler
-├── KeyHandler                # Abstract keyboard handler (uses KeyPressTracker from menger.gdx)
+├── KeyHandler                # Abstract keyboard handler (uses KeyPressTracker)
 ├── GdxKeyHandler             # LibGDX keyboard controls (3D rotation, zoom)
 ├── OptiXKeyHandler           # OptiX keyboard: 4D rotation, ESC resets 4D view
-├── GdxCameraHandler          # Camera movement (LibGDX)
+├── KeyRotation               # Per-key rotation accumulation
+├── PreviewKeyHandler         # Preview-mode keyboard handler
 ├── OptiXCameraHandler        # Camera + 4D controls: Shift+Scroll adjusts eyeW
 ├── SphericalOrbit            # Spherical camera orbit logic
-├── MengerInputMultiplexer    # Combines LibGDX input processors
+├── OrbitCamera               # Spherical orbit wrapping mutable LibGDX Vector3
+├── GdxRuntime                # LibGDX lifecycle and exit
+├── KeyPressTracker           # Shift/Ctrl/Alt + per-key modifier state
+├── LibGDXConverters          # Adapter helpers between LibGDX types and menger.common
+├── LibGDXInputAdapter        # Mengers' LibGDX InputAdapter implementation
 └── OptiXInputMultiplexer     # Combines OptiX input processors
 ```
 
-**Pattern:** Observer pattern for 4D parameter changes. `EventDispatcher` notifies geometry objects of `RotationProjectionParameters` changes (rotation angles and `eyeW`). All mutable state (`var`, `null`) is delegated to `menger.gdx` wrapper classes.
+**Pattern:** Observer pattern for 4D parameter changes. `EventDispatcher`
+notifies geometry objects of `RotationProjectionParameters` changes
+(rotation angles and `eyeW`). All mutable state (`var`, `null`) is
+delegated to `menger.input` wrapper classes (see §2.5 and AD-7).
+
+## 5.5 Layered Dependency Diagram
+
+The diagram below is the canonical onion-layer view enforced by
+`ArchitectureSpec` / `ArchitecturePhase2Spec`. Solid edges are
+compile-time imports. Edges that target an `External services` node are
+runtime calls to that service.
+
+```mermaid
+graph TD
+    classDef external fill:#fae,stroke:#a39,color:#000;
+    classDef common fill:#cfe,stroke:#093,color:#000;
+    classDef domain fill:#cef,stroke:#039,color:#000;
+    classDef config fill:#fec,stroke:#960,color:#000;
+    classDef adapter fill:#fcf,stroke:#909,color:#000;
+    classDef engines fill:#fec,stroke:#960,color:#000;
+    classDef boundary fill:#fdc,stroke:#a30,color:#000;
+    classDef jni fill:#dcf,stroke:#609,color:#000;
+
+    subgraph EXT["External services"]
+      OPTIX["NVIDIA OptiX + CUDA"]:::external
+      GDX["LibGDX / LWJGL3"]:::external
+      FFMPEG["FFmpeg binary"]:::external
+      FS["File system"]:::external
+      SLF["SLF4J / Logback"]:::external
+      SCALLOP["Scallop"]:::external
+    end
+
+    subgraph L5["L5 — Boundary (menger-app)"]
+      MAIN["Main.scala"]:::boundary
+      CLI["menger.cli"]:::boundary
+    end
+
+    subgraph L4["L4 — Orchestration (menger-app)"]
+      ENGINES["menger.engines"]:::engines
+    end
+
+    subgraph L3["L3 — Adapters (menger-app)"]
+      OPTIXW["menger.optix (wrapper)"]:::adapter
+      INPUT["menger.input"]:::adapter
+    end
+
+    subgraph L2["L2 — Configuration (menger-app)"]
+      CONFIG["menger.config"]:::config
+    end
+
+    subgraph L1["L1 — Domain (menger-app)"]
+      OBJECTS["menger.objects"]:::domain
+      DSL["menger.dsl"]:::domain
+    end
+
+    subgraph L0["L0 — Primitives (menger-common)"]
+      COMMON["menger.common"]:::common
+    end
+
+    subgraph JNI["JNI adapter (optix-jni artifact)"]
+      OPTIXJ["menger.optix (native)"]:::jni
+    end
+
+    MAIN --> ENGINES
+    MAIN --> CLI
+    MAIN --> GDX
+    MAIN --> SLF
+    CLI --> CONFIG
+    CLI --> DSL
+    CLI --> COMMON
+    CLI --> SCALLOP
+    ENGINES --> OPTIXW
+    ENGINES --> INPUT
+    ENGINES --> CONFIG
+    ENGINES --> DSL
+    ENGINES --> OBJECTS
+    ENGINES --> COMMON
+    ENGINES --> FFMPEG
+    ENGINES --> FS
+    OPTIXW --> OPTIXJ
+    OPTIXW --> COMMON
+    INPUT --> GDX
+    INPUT --> COMMON
+    CONFIG --> COMMON
+    CONFIG --> DSL
+    DSL --> OBJECTS
+    DSL --> COMMON
+    DSL --> FS
+    OBJECTS --> COMMON
+    OPTIXJ --> OPTIX
+    OPTIXJ --> COMMON
+```

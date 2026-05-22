@@ -51,6 +51,30 @@
    - Lazy evaluation for expensive geometry
    - Sponge mesh caching per level
 
+### Layered Architecture
+
+The application is organised as an onion of six layers (L0 inward, L5
+outward). Dependencies must point inward only — outer layers may import
+from inner layers, never the reverse. The full per-package interface
+breakdown lives in §5 (Building Block View); this is the strategy-level
+overview.
+
+| Layer | Packages | Module | Purpose |
+|------:|----------|--------|---------|
+| L0 | `menger.common` | `menger-common` | Shared primitive types. The most stable layer. |
+| L1 | `menger.objects`, `menger.dsl` | `menger-app` | Pure geometry and the scene-description DSL. |
+| L2 | `menger.config` | `menger-app` | Configuration case classes assembled from CLI input and DSL output. |
+| L3 | `menger.optix` (wrapper), `menger.input` | `menger-app` | Ports / adapters. The wrapper adapts the JNI module to engines; `menger.input` adapts LibGDX. |
+| L4 | `menger.engines` | `menger-app` | Orchestration of the render loop, animation, video export. |
+| L5 | `menger.cli`, `Main.scala` | `menger-app` | Application boundary — argument parsing and process entry. |
+| ext | `menger.optix.*` (native) | `optix-jni` | External adapter: native OptiX/CUDA bindings. |
+| ext | LibGDX, LWJGL3 | external jars | External adapter: windowing and input. |
+
+The layering is enforced at test time by `ArchitectureSpec` and
+`ArchitecturePhase2Spec` in `menger-app/src/test/scala/menger/`. Currently
+accepted deviations are tracked in `CODE_IMPROVEMENTS.md` under `M-arch-*`
+entries (see AD-23 in §9).
+
 ## 4.3 Quality Strategy
 
 | Quality Goal | Strategy |
