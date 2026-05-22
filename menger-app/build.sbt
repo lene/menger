@@ -63,5 +63,5 @@ libraryDependencies ++= Seq(
   // Scala 3 compiler for runtime .scala scene file evaluation (Task 17.7)
   "org.scala-lang" %% "scala3-compiler" % scalaVersion.value,
   // ArchUnit — architecture rule enforcement
-  "com.tngtech.archunit" % "archunit" % "1.3.0" % Test
+  "com.tngtech.archunit" % "archunit" % "1.4.2" % Test
 )
