@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.6.2] - 2026-05-20
+## [0.6.2] - 2026-05-22
 
 ### Added
 - **4D Menger sponge analog** (`menger4d`) — iterative IFS ray traversal via custom OptiX
