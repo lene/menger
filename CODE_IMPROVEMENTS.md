@@ -100,6 +100,79 @@ Adding a third geometry type that needs both a geometry-data index AND an image 
 
 ---
 
+### M-arch-config-naming: *Config naming rule cannot be enabled — misplaced Config types
+
+**Location**: `menger-app/src/test/scala/menger/ArchitectureSpec.scala` (ignored rule), multiple source files
+**Impact**: Medium — misplaced types impede `optix-jni` extraction and future module splits.
+**Effort**: 1–2 days
+
+The ArchUnit rule enforcing `*Config` → `menger.config` or `menger.common` is ignored because these types are in the wrong packages:
+
+| Type | Current | Correct |
+|------|---------|---------|
+| `InteractiveEngine.LevelConfig` | Inner class in `menger.engines` | Extract to top-level `menger.config` |
+| `TAnimationConfig` | `menger.engines` | `menger.config` |
+| `OrbitConfig` | `menger.input` | `menger.config` |
+| `CausticsConfig`, `RenderConfig` | `menger.optix` | `menger.config` (optix imports from config, not vice versa) |
+| `ProfilingConfig` | root `menger` | `menger.common` |
+
+**Direction**: Migrate each type to its correct package (move + fix imports). `InteractiveEngine.LevelConfig` requires extracting it to a standalone file. After all are moved, remove the `ignore` from the rule in `ArchitectureSpec`.
+
+---
+
+### M-arch-dsl-layer: menger.dsl imports menger.config and menger.optix (layer violation)
+
+**Location**: `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored rule), `menger/dsl/SceneConverter.scala`, `menger/dsl/Material.scala`
+**Impact**: Medium — `menger.dsl` (inner layer L1) reaches into `menger.config` and `menger.optix` (outer layers), preventing independent testing and future modular packaging.
+**Effort**: 1 day
+
+`SceneConverter` (currently in `menger.dsl`) imports `menger.config.{PlaneConfig, CameraConfig, SceneConfig}` and `menger.optix.{CausticsConfig, RenderConfig}`. `Material.scala` in `menger.dsl` delegates to `menger.optix.Material` for preset lookup.
+
+**Direction**: Move `SceneConverter` to `menger.engines` (outer layer, allowed to see both dsl and config). `menger.dsl.Material` delegation can use a string key that `menger.engines` resolves to `menger.optix.Material`. Once done, un-ignore the dsl layer rule and the mutable-collections-in-dsl rule in `ArchitecturePhase2Spec`.
+
+---
+
+### M-arch-archunit-case-class-field: ArchUnit haveOnlyFinalFields fires on Scala case class val fields
+
+**Location**: `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored immutability rules)
+**Impact**: Low — ArchUnit rule cannot be enabled even though there are no `var` fields; rule produces false positives.
+**Effort**: 2–3 hours
+
+Scala `val` fields in case classes compile to non-final JVM fields (the backing field is accessed via a getter, not declared `final`). ArchUnit's `haveOnlyFinalFields()` therefore flags every case class, making the immutability rule unusable as written.
+
+Affected ignored rules:
+- `menger.common` should have only final fields
+- `menger.objects` should not use file IO or logging (Scala case classes implicitly implement `java.io.Serializable`, triggering the `java.io..` package check)
+- `menger.common` should not use file IO (same Serializable issue)
+
+**Direction**: Replace `haveOnlyFinalFields()` with a custom `DescribedPredicate[JavaField]` that checks for `var` fields by inspecting whether the field has a setter method in the same class. For the Serializable false-positives: add a `notSerializable` predicate to exclude `java.io.Serializable` specifically from the `java.io..` package check.
+
+---
+
+### M-arch-objects-logging: menger.objects uses SLF4J in geometry classes
+
+**Location**: `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored rule), `menger/objects/higher_d/`
+**Impact**: Low — logging in inner-layer geometry classes pulls infrastructure into the domain, complicating pure unit testing.
+**Effort**: 2 hours
+
+Four classes in `menger.objects` use SLF4J directly: `ParametricTessellator`, `higher_d/Rotation`, `higher_d/Plane`, `higher_d/TesseractSponge2`. These are geometry-computation classes that should be pure (no I/O, no side effects). Logging is used for progress/debug output during tessellation.
+
+**Direction**: Remove `LazyLogging` from these classes. If progress reporting is needed, return metadata (e.g. triangle count, elapsed time) from the computation methods so callers (in `menger.engines`) can log it. Once removed, un-ignore the objects-logging rule in `ArchitecturePhase2Spec` (after also fixing the Serializable false-positive per M-arch-archunit-case-class-field).
+
+---
+
+### M-arch-dsl-mutable: SceneRegistry uses mutable.Map in menger.dsl
+
+**Location**: `menger-app/src/main/scala/menger/dsl/SceneRegistry.scala`, `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored rule)
+**Impact**: Low — mutable state in an inner domain layer; risk of race conditions if scene loading is ever parallelised.
+**Effort**: 30 minutes
+
+`SceneRegistry` uses a `scala.collection.mutable.Map` for the scene name registry. The ArchUnit rule banning `scala.collection.mutable.*` in `menger.dsl` is kept ignored.
+
+**Direction**: Replace with `AtomicReference[Map[String, Scene]]` using an immutable `Map` and compare-and-swap on registration. Once fixed, un-ignore the mutable-collections rule in `ArchitecturePhase2Spec` (independent of the dsl-layer violation; can be done sooner).
+
+---
+
 ### M-objectspec-optix-coupling: ObjectSpec (core domain) imports menger.optix.Material
 
 **Location**: `menger-app/src/main/scala/menger/ObjectSpec.scala:9`
@@ -131,7 +204,7 @@ If a headless test or CLI module ever wants to validate or manipulate `ObjectSpe
 
 | Tool | Status | Where |
 |------|--------|--------|
-| ArchUnit | Closed — 3 rules in `ArchitectureSpec.scala`; wired into `sbt test` | `menger-app/src/test/scala/menger/ArchitectureSpec.scala` |
+| ArchUnit | Closed — Phase 1: 14 active rules in `ArchitectureSpec.scala`; Phase 2: 4 active + 5 ignored-with-blockers in `ArchitecturePhase2Spec.scala`; wired into `sbt test` | `menger-app/src/test/scala/menger/ArchitectureSpec.scala`, `ArchitecturePhase2Spec.scala` |
 | cppcheck | Closed — runs in pre-push hook + CI `Test:Cppcheck` job | `.cppcheck-suppress`, `.git_hooks/pre-push`, `.gitlab-ci.yml` |
 | clang-tidy | Closed — `compile_commands.json` enabled via CMake; runs in pre-push hook + CI `Test:ClangTidy` job | `.clang-tidy`, `CMakeLists.txt`, `.git_hooks/pre-push`, `.gitlab-ci.yml` |
 

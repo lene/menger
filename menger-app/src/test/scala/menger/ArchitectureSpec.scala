@@ -165,12 +165,11 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .should().resideInAPackage("menger.engines..")
       .check(allClasses)
 
-  // Blocked by structural conflicts:
-  //   menger.cli.PlaneConfig (cli→config cycle, blocked by same issue as dependency-cycle test)
-  //   menger.engines.InteractiveEngine$LevelConfig (inner class, cannot move without major refactor)
-  //   menger.engines.TAnimationConfig, menger.input.OrbitConfig, menger.optix.CausticsConfig/RenderConfig
-  //   menger.ProfilingConfig — not yet migrated to menger.config.
-  // Un-ignore after Task 8 (P0.A) resolves the cli cycle and migrates misplaced configs.
+  // Blocked by remaining misplaced *Config types (see CODE_IMPROVEMENTS.md arch-config-naming):
+  //   menger.engines.InteractiveEngine$LevelConfig — inner class; moving requires extracting to top-level
+  //   menger.engines.TAnimationConfig, menger.input.OrbitConfig — wrong layer
+  //   menger.optix.CausticsConfig, menger.optix.RenderConfig — optix-specific; should be menger.config
+  //   menger.ProfilingConfig — root menger package, should be menger.common
   ignore should "place *Config classes in menger.config or menger.common" in:
     classes().that().haveSimpleNameEndingWith("Config")
       .should().resideInAnyPackage("menger.config..", "menger.common..")
