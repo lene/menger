@@ -227,13 +227,24 @@ Present the agreed task list and ask:
 
 ### 4e. Ensure Sprint Branch Exists
 
-We should already be on `feature/sprint-NEXT_SPRINT_NUM`. If not:
+**IMPORTANT:** The completed sprint MR has already been merged. Do NOT commit directly to
+the old sprint branch (`feature/sprint-SPRINT_NUM`) — it is done. All archiving work and
+the sprint kickoff commit must go on `feature/sprint-NEXT_SPRINT_NUM`.
+
+Create the new sprint branch from `origin/main` and cherry-pick any archiving commits
+that were made on the old branch after the merge:
 
 ```bash
+git log --oneline feature/sprint-SPRINT_NUM ^origin/main
+# lists commits NOT on main yet — cherry-pick these onto the new branch
+
 git fetch origin main
 git checkout -b feature/sprint-NEXT_SPRINT_NUM origin/main
+git cherry-pick <sha1> <sha2> ...   # cherry-pick archiving commits from old branch
 git push -u origin feature/sprint-NEXT_SPRINT_NUM
 ```
+
+If you haven't committed any archiving work yet, simply create the branch and proceed.
 
 ### 4f. Commit Sprint Kickoff
 
@@ -244,7 +255,7 @@ git add docs/sprints/SPRINTNEXT_SPRINT_NUM.md
 Commit: `docs: kick off sprint NEXT_SPRINT_NUM — TITLE`
 
 ```bash
-git push
+git push -u origin feature/sprint-NEXT_SPRINT_NUM
 ```
 
 ---
