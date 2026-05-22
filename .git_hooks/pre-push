@@ -173,41 +173,33 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
   echo "=== Compiling ==="
-  sbt compile || exit 1
+  sbt --no-server compile || exit 1
 else
   echo "=== Compiling ===" ; skip_section
 fi
 
 # ---------------------------------------------------------------------------
-# Phase 3: Run sbt test and scalafix --check in parallel.
+# Phase 3: Run scalafix then sbt test.
 #
 # scalafix only reads source files and compiled semanticdb; it does not need
-# the test suite to have run. Starting it alongside sbt test saves ~30 seconds.
-#
-# Both write to separate log files; results are merged below.
+# the test suite to have run. It runs first (~10s) so it releases the sbt
+# BootServerSocket before sbt test starts — both bind the same socket path
+# (derived from the project directory hash) and cannot run concurrently.
 # ---------------------------------------------------------------------------
 if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
-  echo "=== Running tests and scalafix in parallel ==="
-
-  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt --no-server test --warn > /tmp/sbt-test-prepush.log 2>&1 &
-  SBT_TEST_PID=$!
+  echo "=== Running scalafix then tests ==="
 
   if [ "$HAS_SCALA" -gt 0 ]; then
-    sbt --no-server "scalafix --check" --warn > /tmp/scalafix-prepush.log 2>&1 &
-    SCALAFIX_PID=$!
-  fi
-
-  wait $SBT_TEST_PID
-  SBT_TEST_STATUS=$?
-  cat /tmp/sbt-test-prepush.log
-
-  if [ "$HAS_SCALA" -gt 0 ]; then
-    wait $SCALAFIX_PID
+    sbt --no-server "scalafix --check" --warn > /tmp/scalafix-prepush.log 2>&1
     SCALAFIX_STATUS=$?
     cat /tmp/scalafix-prepush.log
   else
     SCALAFIX_STATUS=0
   fi
+
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt --no-server test --warn > /tmp/sbt-test-prepush.log 2>&1
+  SBT_TEST_STATUS=$?
+  cat /tmp/sbt-test-prepush.log
 
   if [ $SBT_TEST_STATUS -ne 0 ]; then
     echo "sbt test: ${RED_TEXT}FAILED${RESET_TEXT}"
