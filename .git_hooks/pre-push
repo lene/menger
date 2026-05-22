@@ -173,7 +173,7 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
   echo "=== Compiling ==="
-  sbt --no-server compile || exit 1
+  sbt compile || exit 1
 else
   echo "=== Compiling ===" ; skip_section
 fi
@@ -190,14 +190,14 @@ if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
   echo "=== Running scalafix then tests ==="
 
   if [ "$HAS_SCALA" -gt 0 ]; then
-    sbt --no-server "scalafix --check" --warn > /tmp/scalafix-prepush.log 2>&1
+    sbt "scalafix --check" --warn > /tmp/scalafix-prepush.log 2>&1
     SCALAFIX_STATUS=$?
     cat /tmp/scalafix-prepush.log
   else
     SCALAFIX_STATUS=0
   fi
 
-  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt --no-server test --warn > /tmp/sbt-test-prepush.log 2>&1
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt test --warn > /tmp/sbt-test-prepush.log 2>&1
   SBT_TEST_STATUS=$?
   cat /tmp/sbt-test-prepush.log
 
