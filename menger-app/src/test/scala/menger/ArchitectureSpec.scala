@@ -182,8 +182,10 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
 
   "JNI resource wrappers" should "implement AutoCloseable" in:
     import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
+    // Use string overload to avoid loading AutoCloseable.class from JDK 25 classpath,
+    // which ArchUnit 1.3.0 cannot parse (class file major version 69).
     classes().that().haveSimpleNameContaining("Wrapper")
-      .should().implement(classOf[java.lang.AutoCloseable])
+      .should().beAssignableTo("java.lang.AutoCloseable")
       .check(allClasses)
 
   "domain layers" should "throw only MengerException subclasses, not raw RuntimeException" in:
