@@ -197,14 +197,35 @@ grep -E "^### [HM][0-9]" CODE_IMPROVEMENTS.md
 grep -A2 "^### TD-" docs/arc42/11-risks-and-technical-debt.md
 ```
 
-Present the agreed task list and ask:
-> "Confirm final Sprint NEXT_SPRINT_NUM scope? (y/n)"
+### 4c. Dependency Upgrade Check
 
-### 4c. Update Sprint Plan if Changed
+Check all subprojects for outdated dependencies:
+
+```bash
+grep -E '"%' menger-app/build.sbt menger-common/build.sbt optix-jni/build.sbt project/plugins.sbt 2>/dev/null | grep -v '//'
+```
+
+Also check any non-sbt package managers present (npm, pip, etc.):
+
+```bash
+find . -name "package.json" -not -path "*/node_modules/*" | head -5
+```
+
+Ask the user:
+> "Upgrade all dependencies to newest compatible versions now? (y/n)"
+
+If yes, for each dependency look up the latest version and update the relevant build file. After all updates:
+- Run `./.git_hooks/pre-push` to verify CI gates pass
+- Commit: `chore(deps): upgrade all dependencies to latest versions`
+
+### 4d. Update Sprint Plan if Changed
 
 If the user approved any changes, update `docs/sprints/SPRINTNEXT_SPRINT_NUM.md` to reflect the agreed scope.
 
-### 4d. Ensure Sprint Branch Exists
+Present the agreed task list and ask:
+> "Confirm final Sprint NEXT_SPRINT_NUM scope? (y/n)"
+
+### 4e. Ensure Sprint Branch Exists
 
 We should already be on `feature/sprint-NEXT_SPRINT_NUM`. If not:
 
@@ -214,7 +235,7 @@ git checkout -b feature/sprint-NEXT_SPRINT_NUM origin/main
 git push -u origin feature/sprint-NEXT_SPRINT_NUM
 ```
 
-### 4e. Commit Sprint Kickoff
+### 4f. Commit Sprint Kickoff
 
 ```bash
 git add docs/sprints/SPRINTNEXT_SPRINT_NUM.md

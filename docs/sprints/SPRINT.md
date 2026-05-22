@@ -1,14 +1,14 @@
 # Current Sprint
 
-**Sprint:** 21
+**Sprint:** 22
 **Status:** In Progress
-**Branch:** `feature/sprint-21`
+**Branch:** `feature/sprint-22`
 
 ---
 
 ## Goal
 
-See [SPRINT21.md](SPRINT21.md) for detailed task breakdown and implementation plan.
+See [SPRINT22.md](SPRINT22.md) for detailed task breakdown and implementation plan.
 
 ---
 

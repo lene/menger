@@ -19,7 +19,7 @@
                               ▼
                     ┌─────────────────────────────┐
                     │    Interactive Window       │
-                    │  (LibGDX + OptiX views)     │
+                    │  (LibGDX/LWJGL3 + OptiX)   │
                     └─────────────────────────────┘
 ```
 
@@ -27,7 +27,7 @@
 
 | Partner | Interface | Data |
 |---------|-----------|------|
-| **User** | CLI arguments | `--level`, `--optix`, `--shadows`, etc. |
+| **User** | CLI arguments | `--level`, `--shadows`, `--objects`, `--scene`, etc. |
 | **User** | Keyboard/Mouse | Camera control, 4D rotation |
 | **File System** | PNG/JPEG files | Rendered frames, animation sequences |
 | **GPU** | CUDA/OptiX API | Geometry, shaders, rendered pixels |
@@ -39,15 +39,16 @@
 │                         Menger Application                       │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────────┐   │
-│  │   LibGDX     │    │  Scala Core  │    │   OptiX JNI      │   │
-│  │  (OpenGL)    │◄──►│  (Geometry)  │◄──►│  (Ray Tracing)   │   │
+│  │   LibGDX /   │    │  Scala Core  │    │   OptiX JNI      │   │
+│  │  LWJGL3      │◄──►│  (Geometry)  │◄──►│  (Ray Tracing)   │   │
+│  │  (windowing) │    │              │    │                  │   │
 │  └──────────────┘    └──────────────┘    └──────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
          │                                          │
          ▼                                          ▼
 ┌─────────────────┐                      ┌─────────────────────┐
-│  OpenGL Driver  │                      │   NVIDIA Driver     │
-│                 │                      │   + OptiX Runtime   │
+│  OpenGL/LWJGL3  │                      │   NVIDIA Driver     │
+│  (window only)  │                      │   + OptiX Runtime   │
 └─────────────────┘                      └─────────────────────┘
          │                                          │
          ▼                                          ▼
@@ -60,7 +61,7 @@
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| **Application** | Scala 3, LibGDX | Core logic, rasterization |
+| **Application** | Scala 3, LibGDX/LWJGL3 | Core logic, windowing, input |
 | **Native** | C++17, CUDA, OptiX | GPU ray tracing |
 | **Build** | sbt, CMake | Compilation, native integration |
 | **Runtime** | JVM 21+, NVIDIA Driver | Execution environment |

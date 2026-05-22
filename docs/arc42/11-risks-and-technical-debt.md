@@ -37,7 +37,7 @@
 | TD-4 | Caustics: multi-light and multi-plane not yet supported | Low | 4-8h (single light[0] and plane[0] only) |
 | TD-5 | ~~Cannot mix spheres with triangle meshes~~ — resolved Sprint 18.1 | Resolved | — |
 | TD-6 | Colored transparent shadows Phase 2 (multi-object) | Low | 4-8h (anyhit accumulation for overlapping transparent objects) |
-| TD-7 | Cone and plane shaders lack image texture + PBR map support | Medium | 1-2 days per geometry type (UV generation + shader sampling; see CODE_IMPROVEMENTS M-texture-builder-gap) |
+| TD-7 | ~~Cone and plane shaders lack image texture + PBR map support~~ — resolved Sprint 21.6 | Resolved | — |
 
 ### Deferred Features
 
@@ -47,7 +47,7 @@
 | Caustics (PPM) | Algorithm produces incorrect results | Branch preserved |
 | ~~Mixed geometry scenes~~ | Spheres + any triangle-mesh combination supported via per-instance multi-GAS IAS | Resolved (Sprint 18.1, TD-5) |
 | Colored transparent shadows Phase 2 | Phase 1 (closesthit, single-object) complete; Phase 2 anyhit accumulation for overlapping transparent objects remains | TD-6 |
-| Cone/plane image + PBR map textures | `texture_index` field repurposed for geometry data; UV coords not generated. Procedural textures work. Image textures and normal/roughness maps deferred. | TD-7 |
+| ~~Cone/plane image + PBR map textures~~ | UV generation + shader sampling implemented for cone and plane | Resolved (Sprint 21.6, TD-7) |
 
 ## 11.3 Common Issues and Solutions
 
@@ -70,7 +70,7 @@ Detailed troubleshooting: [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)
 
 | Metric | Source | Alert Threshold |
 |--------|--------|-----------------|
-| Test count | CI | < 1683 (regression floor; current: 1,710) |
+| Test count | CI | < 2500 (regression floor; current: 2,823) |
 | Build time | CI | > 10 minutes |
 | Render time | RayStats | > 2× baseline |
 | GPU memory | nvidia-smi | > 80% |

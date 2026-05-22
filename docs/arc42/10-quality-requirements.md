@@ -105,7 +105,7 @@ For reproducible validation, use this fixed configuration:
 
 | ID | Scenario | Measure | Target | Status |
 |----|----------|---------|--------|--------|
-| R1 | All tests pass | Count | 1,710 tests passing | ✅ Current |
+| R1 | All tests pass | Count | 2,823 tests passing | ✅ Current |
 | R2 | GPU error recovery | Cache corruption | Auto-recover | ✅ Validated |
 | R3 | Invalid CLI args | Error message | Clear, actionable | ✅ Validated |
 | R4 | Missing GPU | Graceful degradation | LibGDX fallback | ✅ Existing |

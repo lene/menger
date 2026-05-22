@@ -487,30 +487,40 @@ DSL).
 **Decision:** Adopt ArchUnit as the build-time fitness function for the
 onion layering described in §4.2 / §5.2 / §5.5. The rules live in:
 
-- `menger-app/src/test/scala/menger/ArchitectureSpec.scala` — 14 active
-  Phase 1 rules covering JNI-method placement (only in `optix-jni`),
-  LibGDX-import containment to `menger.input`, `loadLibrary` placement,
-  `menger.common` purity, and the DSL→objects/common limit.
+- `menger-app/src/test/scala/menger/ArchitectureSpec.scala` — Phase 1
+  rules (all active except one) covering JNI-method placement (only in
+  `optix-jni`), LibGDX-import containment to `menger.input`,
+  `loadLibrary` placement, `menger.common` purity, the DSL→objects/common
+  limit, and naming conventions. One rule (`*Config` placement) uses
+  ScalaTest `ignore` pending cleanup of misplaced `*Config` types.
 - `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` —
-  4 active + 5 `@Ignore`d rules covering the strict onion (`menger.cli`
-  must not reach into `engines`/`optix`, `*Config` naming convention,
-  no `mutable.*` in `dsl`, no logging in `objects`, case-class field
-  immutability).
+  5 active + 4 ScalaTest `ignore`d rules covering the strict onion
+  (`menger.cli` must not reach into `engines`/`optix`, `menger.config`
+  not reach into `engines`/`cli`, `menger.input` isolation, no
+  `mutable.*` in `dsl`, case-class field immutability, file IO purity).
 
-The five ignored rules represent technical debt that is **accepted for
-the current sprint** and tracked in `CODE_IMPROVEMENTS.md` as:
+Note: ScalaTest `ignore` (not JUnit `@Ignore`) is used — ignored tests
+are reported as "pending" not "skipped" in the test output.
 
-| ID | Rule | Summary |
-|----|------|---------|
-| `M-arch-config-naming` | `*Config` classes must live in `menger.config`/`menger.common` | Five misplaced `*Config` types under `engines`/`input`/`optix`/root. |
-| `M-arch-dsl-layer` | `menger.dsl` may depend only on `common` + `objects` | `SceneConverter` and `Material` in `dsl` reach into `config` and `optix`. |
-| `M-arch-dsl-mutable` | No `mutable.*` in `menger.dsl` | `SceneRegistry` uses `mutable.Map`. |
-| `M-arch-objects-logging` | No file IO / logging in `menger.objects` | 4 geometry classes use SLF4J. |
-| `M-arch-archunit-case-class-field` | Common/objects immutability rules | ArchUnit's `haveOnlyFinalFields` false-positives on Scala case-class `val` fields; needs a custom predicate. |
+The currently-ignored rules represent accepted technical debt tracked
+in `CODE_IMPROVEMENTS.md`:
 
-Each entry has the corresponding rule wired up but `@Ignore`d so it does
-not block the build. Fixing the violation flips the rule on; the rule
-then prevents regression.
+| ID | Spec | Rule | Summary |
+|----|------|------|---------|
+| `M-arch-config-naming` | Phase 1 | `*Config` classes must live in `menger.config`/`menger.common` | Five misplaced `*Config` types under `engines`/`input`/`optix`/root. |
+| `M-arch-dsl-layer` | Phase 2 | `menger.dsl` may depend only on `common` + `objects` (P0.A) | `SceneConverter` and `Material` in `dsl` reach into `config` and `optix`. |
+| `M-arch-objects-logging` | Phase 2 | No file IO / logging in `menger.objects` | 4 geometry classes use SLF4J; Serializable false-positive from case classes complicates the rule. |
+| `M-arch-archunit-case-class-field` | Phase 2 | Common/objects immutability rules | ArchUnit's `haveOnlyFinalFields` false-positives on Scala case-class `val` fields; needs custom predicate. |
+| `M-arch-common-file-io` | Phase 2 | `menger.common` must not use file IO | `java.io.Serializable` implicit from case classes fires the rule; fix: exclude `Serializable` via custom predicate. |
+
+Resolved: `M-arch-dsl-mutable` — `SceneRegistry` migrated to
+`scala.collection.concurrent.TrieMap`; the `no mutable.*` rule now
+passes. `M-arch-objects-input` (P0.B) — `menger.objects` no longer
+imports `menger.input`; rule now active and green.
+
+Each remaining entry has the rule wired up but `ignore`d so it does not
+block the build. Fixing the violation activates the rule as a regression
+guard.
 
 **Rationale:**
 - Codifies the layering as executable specification — outlasts any

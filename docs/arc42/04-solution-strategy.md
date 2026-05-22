@@ -5,35 +5,38 @@
 | Decision | Rationale |
 |----------|-----------|
 | **Scala 3** | Functional programming, immutability, pattern matching, strong type system |
-| **LibGDX** | Cross-platform OpenGL abstraction, proven game engine |
+| **LibGDX/LWJGL3** | Cross-platform windowing, input handling (3D rendering removed in AD-16) |
 | **OptiX** | Hardware-accelerated ray tracing, physically-based rendering |
 | **JNI** | Bridge Scala to native C++/CUDA code |
 | **Surface Subdivision** | O(12^n) complexity vs O(20^n) volume-based |
 
 ## 4.2 Architecture Approach
 
-### Dual Rendering Pipeline
+### Rendering Pipeline (OptiX-only since v0.5.7 / AD-16)
 
 ```
                     ┌─────────────────────┐
                     │   Scala Geometry    │
                     │   (Menger, Cube,    │
-                    │    Tesseract)       │
+                    │    Tesseract, 4D)   │
                     └──────────┬──────────┘
                                │
-              ┌────────────────┴────────────────┐
-              ▼                                 ▼
-    ┌─────────────────────┐           ┌─────────────────────┐
-    │   LibGDX Path       │           │   OptiX Path        │
-    │   (Rasterization)   │           │   (Ray Tracing)     │
-    └─────────────────────┘           └─────────────────────┘
-              │                                 │
-              ▼                                 ▼
-    ┌─────────────────────┐           ┌─────────────────────┐
-    │   ModelInstance     │           │   Triangle Mesh     │
-    │   (OpenGL)          │           │   (GPU Buffers)     │
-    └─────────────────────┘           └─────────────────────┘
+                               ▼
+                    ┌─────────────────────┐
+                    │   OptiX Path        │
+                    │   (Ray Tracing)     │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │   Triangle Mesh /   │
+                    │   IS programs       │
+                    │   (GPU Buffers)     │
+                    └─────────────────────┘
 ```
+
+LibGDX/LWJGL3 is retained solely for windowing and input (keyboard,
+mouse, orbit camera). All rendering is OptiX ray tracing (see AD-16).
 
 ### Key Design Principles
 
@@ -81,7 +84,7 @@ entries (see AD-23 in §9).
 |--------------|----------|
 | **Performance** | Surface subdivision, GPU acceleration, BVH optimization |
 | **Visual Quality** | Fresnel reflection, Beer-Lambert absorption, adaptive AA |
-| **Testability** | 1091+ tests, separate unit/integration tests |
+| **Testability** | 2,823+ tests, separate unit/integration tests, ArchUnit architecture enforcement |
 | **Maintainability** | Wartremover, Scalafix enforcement |
 
 ## 4.4 Organizational Strategy

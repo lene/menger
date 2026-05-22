@@ -29,9 +29,9 @@
 
 Each package below names the **interface** types neighbouring packages
 depend on, the allowed inward dependencies, and any currently-accepted
-violations (tracked in `CODE_IMPROVEMENTS.md` as `M-arch-*` and gated by
-`@Ignore`d ArchUnit rules). See §5.5 for the layered diagram and AD-23
-(§9) for the enforcement mechanism.
+violations (tracked in `CODE_IMPROVEMENTS.md` as `M-arch-*`). See §5.5
+for the layered diagram and AD-23 (§9) for the enforcement mechanism.
+All ArchUnit rules are active — no `@Ignore` annotations remain.
 
 ### 5.2.1 `menger.common` (L0 — `menger-common` module)
 
@@ -64,9 +64,9 @@ via `--cross*` CLI flags and the 'C' key in interactive mode.
 | Aspect | Detail |
 |--------|--------|
 | Purpose | Scala DSL for scene description. Builds DSL types that the converter turns into engine configs. |
-| Interface | `Scene`, `SceneObject` (case classes: `Sphere`, `Cube`, `Sponge`, `Tesseract`, `TesseractSponge`, `ParametricSurface`, `Plane`, with `rotation: Vec3`, `normalMap`, `roughnessMap`, `proceduralType`, `proceduralScale`), `Camera`, `Light` (point / directional / area), `Material`, `Color`, `Vec3`, `Placement`, `Transform`, `Caustics`, `RenderSettings`, `CameraPath`, `SceneLoader`, `SceneRegistry`, `SceneCompiler`, `LoadedScene`. |
+| Interface | `Scene`, `SceneObject` (case classes: `Sphere`, `Cube`, `Sponge`, `Tesseract`, `TesseractSponge`, `ParametricSurface`, `Plane`, with `rotation: Vec3`, `normalMap`, `roughnessMap`, `proceduralType`, `proceduralScale`), `Fog`, `Camera`, `Light` (point / directional / area), `Material`, `Color`, `Vec3`, `Placement`, `Transform`, `Caustics`, `RenderSettings`, `CameraPath`, `SceneLoader`, `SceneRegistry`, `SceneCompiler`, `LoadedScene`. |
 | Allowed dependencies (target) | `menger.common`, `menger.objects`. |
-| Known violations | `SceneConverter` imports `menger.config` and `menger.optix`; `Material` imports `menger.optix.Material`; `SceneRegistry` uses `mutable.Map` (`M-arch-dsl-layer`, `M-arch-dsl-mutable`). |
+| Known violations | `SceneConverter` imports `menger.config` and `menger.optix`; `Material` imports `menger.optix.Material`; `SceneRegistry` uses `concurrent.TrieMap` (`M-arch-dsl-layer`, `M-arch-dsl-mutable`). |
 
 ### 5.2.4 `menger.config` (L2 — `menger-app`)
 
@@ -107,7 +107,7 @@ namespace. `DragTracker` was folded into `OrbitCamera`'s `dragState`
 | Aspect | Detail |
 |--------|--------|
 | Purpose | Render-loop orchestration: interactive, preview, animation, video export. Bridges DSL/config/input/optix into a running engine. |
-| Interface | `RenderEngine` trait, `BaseEngine`, `InteractiveEngine`, `PreviewEngine`, `AnimationEngine`, `CliAnimationEngine`, `VideoEngine`, `RenderModeSelector`, `GeometryRegistry`, `PlaneConfigurer` (extracted from `optix.SceneConfigurator`), `VideoEncoder`, `WithAnimation` / `WithPreview` / `WithVideoExport` traits, `scene.SceneBuilder` strategy family (`SphereSceneBuilder`, `ConeSceneBuilder`, `PlaneSceneBuilder`, `CubeSpongeSceneBuilder`, `TriangleMeshSceneBuilder`, `TesseractEdgeSceneBuilder`, `MaterialExtractor`, `MeshFactory`, `MeshUploadPlan`, `TextureManager`). |
+| Interface | `RenderEngine` trait, `BaseEngine`, `InteractiveEngine`, `PreviewEngine`, `AnimationEngine`, `CliAnimationEngine`, `VideoEngine`, `RenderModeSelector`, `GeometryRegistry`, `PlaneConfigurer` (extracted from `optix.SceneConfigurator`), `VideoEncoder`, `WithAnimation` / `WithPreview` / `WithVideoExport` traits, `scene.SceneBuilder` strategy family (`SphereSceneBuilder`, `ConeSceneBuilder`, `PlaneSceneBuilder`, `CubeSpongeSceneBuilder`, `TriangleMeshSceneBuilder`, `TesseractEdgeSceneBuilder`, `Menger4DSceneBuilder`, `Sierpinski4DSceneBuilder`, `Hexadecachoron4DSceneBuilder`, `MaterialExtractor`, `MeshFactory`, `MeshUploadPlan`, `TextureManager`). |
 | Allowed dependencies | All inner layers; LibGDX (via `menger.input`); FFmpeg (via `VideoEncoder`). |
 | Known violations | None active. |
 
@@ -134,7 +134,8 @@ namespace. `DragTracker` was folded into `OrbitCamera`'s `dragState`
 `setCamera`, `render`), `OptiXData.h` (`Params`, `HitGroupData`, `Light`,
 `RayStats`), `JNIBindings.cpp`. Shaders under `shaders/`: `raygen_primary.cu`,
 `hit_sphere.cu`, `hit_triangle.cu`, `hit_cone.cu`, `hit_plane.cu`,
-`hit_cylinder.cu`, `miss_plane.cu`, `shadows.cu`, `helpers.cu`,
+`hit_cylinder.cu`, `hit_menger4d.cu`, `hit_sierpinski4d.cu`,
+`hit_hexadecachoron4d.cu`, `miss_plane.cu`, `shadows.cu`, `helpers.cu`,
 `caustics_ppm.cu`, `optix_shaders.cu` (umbrella).
 
 ## 5.3 OptiX JNI Architecture (Level 3)

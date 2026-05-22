@@ -5,6 +5,7 @@
 | Term | Definition |
 |------|------------|
 | **Beer-Lambert Law** | Physical law describing light absorption in a medium: I = I₀ exp(-αd) |
+| **Fog** | Exponential depth cue: `exp(-density × t)` blends hit color toward fog color over distance |
 | **BVH** | Bounding Volume Hierarchy - spatial acceleration structure for ray tracing |
 | **Caustics** | Bright patterns formed by light focused through transparent objects |
 | **Fresnel Equations** | Formulas for light reflection/transmission at material boundaries |
@@ -27,10 +28,13 @@
 | Term | Definition |
 |------|------------|
 | **Face** | Planar polygon surface (quad or triangle) |
+| **Hexadecachoron** | 4D regular polytope (16-cell); 4D analog of the octahedron; used as a higher-dimensional fractal base |
 | **Menger Sponge** | Fractal 3D shape with self-similar holes |
+| **Menger4D** | 4D analog of the Menger sponge, evaluated via GPU IS program (Sprint 21) |
 | **Surface Subdivision** | Recursive face splitting (12 faces per face) |
 | **Tesseract** | 4D hypercube (8 cubic cells) |
-| **TesseractSponge** | 4D analog of Menger sponge |
+| **Sierpinski4D** | 4D analog of the Sierpinski tetrahedron, evaluated via GPU IS program (Sprint 21) |
+| **TesseractSponge** | 4D analog of Menger sponge (CPU 4D path via Mesh4DProjection) |
 | **Volume Subdivision** | Recursive cube splitting (20 cubes per cube) |
 
 ## OptiX/CUDA Terms
@@ -38,6 +42,7 @@
 | Term | Definition |
 |------|------------|
 | **Closest Hit** | Shader executed when ray finds nearest intersection |
+| **Intersection Program (IS)** | Custom OptiX shader defining hit geometry analytically (sphere, cone, 4D fractals) |
 | **Miss** | Shader executed when ray hits nothing |
 | **optixTrace** | OptiX function to trace a ray through scene |
 | **Params** | Launch parameters passed to GPU shaders |

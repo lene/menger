@@ -106,7 +106,7 @@ capacity shortages for both g4dn and g5 families and should not be relied upon.
 
 # Run a headless render and retrieve output images
 ./scripts/nvidia-spot.sh \
-  --command "menger-app --optix --sponge-type cube-sponge --level 3 --save-name out.png" \
+  --command "menger-app --sponge-type cube-sponge --level 3 --save-name out.png" \
   --retrieve "*.png"
 
 # List running instances

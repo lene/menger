@@ -123,6 +123,23 @@ When the flag is off, all three channels carry the same scalar alpha value (back
 **Limitation (Phase 1):** Only the closest hit object contributes shadow color. Overlapping
 transparent objects require anyhit accumulation (Phase 2, see TD-6).
 
+### 8.1.6 Fog / Depth Cue
+
+Exponential distance attenuation applied to each ray hit in `helpers.cu`:
+
+```
+fog_factor = exp(-fog_density × t)
+pixel_color = pixel_color × fog_factor + fog_color × (1 - fog_factor)
+```
+
+| Parameter | Type | Meaning |
+|-----------|------|---------|
+| `fog_density` | `float` (Params) | Attenuation rate; 0 disables fog (no-op branch) |
+| `fog_r/g/b` | `float` (Params) | Fog blend color |
+
+DSL: `Fog(density: Float, color: Color)`. When `density <= 0` the shader
+skips the fog calculation entirely (zero overhead).
+
 ## 8.2 Alpha Channel Convention
 
 **CRITICAL: Standard Graphics Alpha (never confuse this)**
@@ -252,9 +269,13 @@ DisableSyntax.noReturns  // No return statements
 | Category | Location | Framework | Purpose |
 |----------|----------|-----------|---------|
 | Scala Unit | `src/test/scala/` | ScalaTest | Logic, parsing |
+| Architecture | `src/test/scala/menger/ArchitectureSpec.scala` | ArchUnit | Layer dependency enforcement |
 | OptiX Unit | `optix-jni/src/test/scala/` | ScalaTest | Renderer API |
 | C++ Unit | `optix-jni/src/main/native/tests/` | Google Test | OptiX context |
 | Visual | Manual | - | Render comparison |
+
+All ArchUnit rules in `ArchitectureSpec` and `ArchitecturePhase2Spec` are active
+(no `@Ignore` annotations). Rules enforce the layered dependency graph from §5.5.
 
 ### Test Patterns
 
@@ -382,3 +403,38 @@ than `-1/6 ≈ -0.167`, confirming it intrudes into the tunnel. The value
 lie inside any of the three axis-aligned tunnels. The test checks all faces of a
 `SpongeBySurface(2)` against the tunnel boundaries `|coordinate| < 1/6` for each
 pair of non-normal axes.
+
+## 8.10 Static Analysis
+
+Three layers of static analysis run in CI:
+
+### Scala: Scalafix + WartRemover
+
+See §8.6. Runs on every push via `.git_hooks/pre-push` and CI `Scalafix` job.
+
+### Scala: ArchUnit (Architecture Tests)
+
+`ArchitectureSpec` and `ArchitecturePhase2Spec` enforce the layered dependency graph
+(§5.5) at the bytecode level. All rules active — see §8.7.
+
+### C++/CUDA: cppcheck
+
+```yaml
+# .gitlab-ci.yml — StaticAnalysis:Cppcheck job
+cppcheck --enable=all --error-exitcode=1 \
+  --suppressions-list=.cppcheck-suppress \
+  optix-jni/src/main/native/
+```
+
+Suppressions tracked in `.cppcheck-suppress` (false positives from CUDA macros).
+
+### C++/CUDA: clang-tidy
+
+```yaml
+# .gitlab-ci.yml — StaticAnalysis:ClangTidy job
+clang-tidy -p "${BUILD_DIR}" --config-file=.clang-tidy \
+  optix-jni/src/main/native/**/*.cpp
+```
+
+Rules configured in `.clang-tidy`. Requires `compile_commands.json` from a prior
+CMake build step.

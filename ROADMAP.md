@@ -24,8 +24,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.5.8 | GPU Infrastructure | Complete | Multi-GAS IAS, IS programs, GPU 4D math, recursive IAS sponge, maxRayDepth CLI (Sprint 18) |
 | v0.6.0 | Advanced Geometry | Complete | Platonic solids, 4-polychora, cone, coordinate cross, geometry registry, 3D rotation, render stats (Sprint 19) |
 | v0.6.1 | Textures & Materials | ✅ Complete | Image textures, procedural textures, PBR maps, environment maps (Sprint 20) |
-| v0.7.0 | Higher-Dimensional Fractals | 🔄 In Progress | 4D Menger/Sierpinski analogs, fractional IAS sponge levels, fog (Sprint 21) |
-| v0.7.1 | HDR Environment Maps | Planned | HDR background, equirectangular env map, tone mapping (Sprint 22) |
+| v0.7.0 | Higher-Dimensional Fractals | ✅ Complete | 4D Menger/Sierpinski analogs, fractional IAS sponge levels, fog (Sprint 21) |
+| v0.7.1 | HDR Environment Maps | 🔄 In Progress | HDR background, equirectangular env map, tone mapping (Sprint 22) |
 | v0.8.0 | Image-Based Lighting | Planned | IBL with importance sampling + MIS, env map illuminates objects (Sprint 23) |
 | v0.8.1 | Video Backgrounds | Planned | Animated .mp4 backgrounds via ffmpeg, per-frame GPU texture swap (Sprint 24) |
 

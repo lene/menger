@@ -42,6 +42,7 @@
 │  - Beer-Lambert absorption       │
 │  - Recursive ray tracing         │
 │  - Shadow rays                   │
+│  - Fog (exponential attenuation) │
 └──────────────────────────────────┘
 ```
 
@@ -55,7 +56,8 @@
    └─► optixTrace(handle, origin, direction, ...)
 
 3. Intersection test
-   ├─► Sphere: Custom __intersection__sphere (analytical)
+   ├─► Sphere/Cone/Cylinder: Custom IS programs (analytical)
+   ├─► Menger4D/Sierpinski4D/Hexadecachoron4D: Custom IS + hit (GPU fractal eval)
    └─► Mesh: Built-in triangle intersection
 
 4. Closest hit evaluation
@@ -72,13 +74,16 @@
        ├─► Apply Beer-Lambert absorption
        └─► Blend reflection + refraction
 
-5. Miss (no hit)
+5. Fog attenuation (if fog_density > 0)
+   └─► `applyFogInPlace()`: exp(-density * t), blend toward fog color
+
+6. Miss (no hit)
    ├─► Check plane intersection
    │   ├─► Solid color or checkerboard
    │   └─► Shadow test
    └─► Return background color
 
-6. Accumulate into pixel buffer
+7. Accumulate into pixel buffer
 ```
 
 ## 6.3 Scene Configuration Flow
@@ -131,6 +136,10 @@ CLI Arguments                 Scala Layer                 C++ Layer
 
 ## 6.5 4D Rendering Flow
 
+Two paths depending on geometry type:
+
+### CPU 4D Path (Tesseract, TesseractSponge, Polychora)
+
 ```
 ┌─────────────────┐
 │ TesseractSponge │
@@ -139,21 +148,74 @@ CLI Arguments                 Scala Layer                 C++ Layer
          │
          ▼
 ┌─────────────────────┐
-│ RotatedProjection   │
+│ Mesh4DProjection    │
 │ - Apply 4D rotation │
 │   (XW, YW, ZW)      │
+│ - 4D→3D perspective │
 └────────┬────────────┘
          │
          ▼
 ┌─────────────────────┐
-│ 4D→3D Projection    │
-│ - Perspective or    │
-│   orthographic      │
-└────────┬────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│ 3D ModelInstance    │
-│ (LibGDX rendering)  │
+│ Triangle mesh       │
+│ uploaded to GPU     │
+│ via OptiX BVH (GAS) │
 └─────────────────────┘
 ```
+
+### GPU 4D Path (Menger4D, Sierpinski4D, Hexadecachoron4D — Sprint 18+)
+
+```
+┌──────────────────────┐
+│ 4D Fractal DSL node  │
+│ (Menger4D, etc.)     │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│ Custom IS program    │
+│ hit_menger4d.cu /    │
+│ hit_sierpinski4d.cu  │
+│ Evaluates fractal    │
+│ SDF on GPU per ray   │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────┐
+│ Closest hit shader   │
+│ (material, shading)  │
+└──────────────────────┘
+```
+
+## 6.6 Animation Flow (`--animate`)
+
+```
+CLI --animate <spec>
+       │
+       ▼
+┌─────────────────────────┐
+│ CliAnimationEngine      │
+│ - Parse frame spec      │
+│   (start:end:step)      │
+└──────────┬──────────────┘
+           │
+           ▼ (for each frame)
+┌─────────────────────────┐
+│ Update rotation/level   │
+│ parameters              │
+└──────────┬──────────────┘
+           │
+           ▼
+┌─────────────────────────┐
+│ Rebuild geometry if     │
+│ level changed           │
+└──────────┬──────────────┘
+           │
+           ▼
+┌─────────────────────────┐
+│ render() → PNG output   │
+│ frame_NNNN.png          │
+└─────────────────────────┘
+```
+
+DSL animation uses `scene(t: Double)` — each frame calls `scene(t)`,
+rebuilds the scene graph, and renders.
