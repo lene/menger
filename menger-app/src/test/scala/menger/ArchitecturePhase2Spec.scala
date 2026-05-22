@@ -72,10 +72,7 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
       .should().haveOnlyFinalFields()
       .check(allClasses)
 
-  // Blocked: menger.dsl.SceneRegistry uses scala.collection.mutable.Map for the scene registry.
-  // Fix: replace with an immutable approach (AtomicReference[Map[String,Scene]] or move the
-  // registry to a higher layer). Independent of P0.A — can be fixed without moving SceneConverter.
-  ignore should "not use mutable collections in menger.dsl" in:
+  "menger.dsl" should "not use mutable collections" in:
     noClasses().that().resideInAPackage("menger.dsl..")
       .should().dependOnClassesThat()
         .resideInAPackage("scala.collection.mutable..")

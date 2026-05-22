@@ -1,6 +1,6 @@
 package menger.dsl
 
-import scala.collection.mutable
+import scala.collection.concurrent.TrieMap
 
 /** Registry for pre-compiled DSL scenes.
   *
@@ -8,7 +8,7 @@ import scala.collection.mutable
   * Usage: SceneRegistry.register("my-scene", myScene)
   */
 object SceneRegistry:
-  private val scenes = mutable.Map[String, Scene]()
+  private val scenes = TrieMap[String, Scene]()
 
   /** Register a scene with a name for CLI access.
     *

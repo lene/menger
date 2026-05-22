@@ -1,10 +1,9 @@
 package menger.objects.higher_d
 
-import com.typesafe.scalalogging.LazyLogging
 import menger.common.Vector
 
 
-class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level) with LazyLogging:
+class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level):
 
   private type CornerMap = Map[String, Vector[4]]
 

@@ -155,21 +155,9 @@ Affected ignored rules:
 **Impact**: Low — logging in inner-layer geometry classes pulls infrastructure into the domain, complicating pure unit testing.
 **Effort**: 2 hours
 
-Four classes in `menger.objects` use SLF4J directly: `ParametricTessellator`, `higher_d/Rotation`, `higher_d/Plane`, `higher_d/TesseractSponge2`. These are geometry-computation classes that should be pure (no I/O, no side effects). Logging is used for progress/debug output during tessellation.
+Two classes in `menger.objects` use SLF4J directly: `ParametricTessellator`, `higher_d/Rotation`. These are geometry-computation classes that should be pure (no I/O, no side effects). Logging is used for progress/debug output during tessellation. (`higher_d/Plane` and `higher_d/TesseractSponge2` had dead LazyLogging imports that have been removed.)
 
-**Direction**: Remove `LazyLogging` from these classes. If progress reporting is needed, return metadata (e.g. triangle count, elapsed time) from the computation methods so callers (in `menger.engines`) can log it. Once removed, un-ignore the objects-logging rule in `ArchitecturePhase2Spec` (after also fixing the Serializable false-positive per M-arch-archunit-case-class-field).
-
----
-
-### M-arch-dsl-mutable: SceneRegistry uses mutable.Map in menger.dsl
-
-**Location**: `menger-app/src/main/scala/menger/dsl/SceneRegistry.scala`, `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored rule)
-**Impact**: Low — mutable state in an inner domain layer; risk of race conditions if scene loading is ever parallelised.
-**Effort**: 30 minutes
-
-`SceneRegistry` uses a `scala.collection.mutable.Map` for the scene name registry. The ArchUnit rule banning `scala.collection.mutable.*` in `menger.dsl` is kept ignored.
-
-**Direction**: Replace with `AtomicReference[Map[String, Scene]]` using an immutable `Map` and compare-and-swap on registration. Once fixed, un-ignore the mutable-collections rule in `ArchitecturePhase2Spec` (independent of the dsl-layer violation; can be done sooner).
+**Direction**: Remove `LazyLogging` from `ParametricTessellator` and `Rotation`. If progress reporting is needed, return metadata (e.g. triangle count, elapsed time) from the computation methods so callers (in `menger.engines`) can log it. Once removed, un-ignore the objects-logging rule in `ArchitecturePhase2Spec` (after also fixing the Serializable false-positive per M-arch-archunit-case-class-field).
 
 ---
 
@@ -204,7 +192,7 @@ If a headless test or CLI module ever wants to validate or manipulate `ObjectSpe
 
 | Tool | Status | Where |
 |------|--------|--------|
-| ArchUnit | Closed — Phase 1: 14 active rules in `ArchitectureSpec.scala`; Phase 2: 4 active + 5 ignored-with-blockers in `ArchitecturePhase2Spec.scala`; wired into `sbt test` | `menger-app/src/test/scala/menger/ArchitectureSpec.scala`, `ArchitecturePhase2Spec.scala` |
+| ArchUnit | Closed — Phase 1: 14 active rules in `ArchitectureSpec.scala`; Phase 2: 5 active + 4 ignored-with-blockers in `ArchitecturePhase2Spec.scala`; wired into `sbt test` | `menger-app/src/test/scala/menger/ArchitectureSpec.scala`, `ArchitecturePhase2Spec.scala` |
 | cppcheck | Closed — runs in pre-push hook + CI `Test:Cppcheck` job | `.cppcheck-suppress`, `.git_hooks/pre-push`, `.gitlab-ci.yml` |
 | clang-tidy | Closed — `compile_commands.json` enabled via CMake; runs in pre-push hook + CI `Test:ClangTidy` job | `.clang-tidy`, `CMakeLists.txt`, `.git_hooks/pre-push`, `.gitlab-ci.yml` |
 

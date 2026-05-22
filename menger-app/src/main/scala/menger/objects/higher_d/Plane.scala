@@ -1,6 +1,5 @@
 package menger.objects.higher_d
 
-import com.typesafe.scalalogging.LazyLogging
 import menger.common.Const
 import menger.common.Vector
 
@@ -15,7 +14,7 @@ case class Plane(i: Int, j: Int):
     Plane(unusedIndices.head, unusedIndices.last)
   def units: Seq[Vector[4]] = Seq(Plane.units(i), Plane.units(j))
 
-object Plane extends LazyLogging:
+object Plane:
   val xy: Plane = Plane(0, 1)
   val xz: Plane = Plane(0, 2)
   val xw: Plane = Plane(0, 3)
