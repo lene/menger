@@ -4,6 +4,11 @@ Interactive workflow to close a completed sprint, verify the release, and collab
 
 **Usage:** `/sprint-close` — run after the sprint MR has been merged in the GitLab web UI.
 
+**Required skill:** Invoke the `release-checklist` skill at the start of this command.
+The release was already cut (Phases 1–4 of the skill are complete). Pick up from
+**Phase 5 (Post-Release Verification)** and **Phase 6 (Retrospective & Sprint Opening)**,
+then continue below with the sprint-close archiving phases.
+
 ---
 
 ## Phase 1: Gather Context
