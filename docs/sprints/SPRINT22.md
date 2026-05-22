@@ -1,8 +1,8 @@
-# Sprint 22: HDR Environment Maps
+# Sprint 22: HDR Environment Maps + Code Health
 
-**Sprint:** 22 - HDR Environment Maps
-**Status:** Not Started
-**Estimate:** ~9 hours
+**Sprint:** 22 - HDR Environment Maps + Code Health
+**Status:** In Progress
+**Estimate:** ~20-24 hours
 **Branch:** `feature/sprint-22`
 **Dependencies:** Sprint 20 (texture pipeline, HDR float upload), Sprint 21 (4D fractals)
 
@@ -14,6 +14,8 @@ Make the existing equirectangular environment map GPU infrastructure usable from
 A user should be able to specify a `.hdr` file as the scene background and render fractals
 (including 4D fractals from Sprint 21) animated in front of it via `scene(t)`.
 
+Additionally: resolve JNI safety issues and the P0.A architectural layer violation.
+
 The env map is background only in this sprint — it does not illuminate objects.
 Image-based lighting (IBL) is Sprint 23.
 
@@ -24,6 +26,10 @@ Image-based lighting (IBL) is Sprint 23.
 - [ ] Tone mapping operator and exposure configurable in DSL
 - [ ] 4D Menger sponge and Sierpinski analogs (Sprint 21) animate in front of HDR background
 - [ ] Example scene files demonstrate 3D rotation + 4D rotation + fractional level sweep with HDR background
+- [ ] Colored transparent shadows work for overlapping transparent objects (TD-6)
+- [ ] `initializeNative` propagates C++ exceptions to Java (no more silent failures)
+- [ ] JNI buffer pin leak fixed in `renderWithStats` exception path
+- [ ] `SceneConverter` moved to `menger.engines`; `M-arch-dsl-layer` rule active and green
 - [ ] All tests pass
 
 ---
@@ -120,15 +126,88 @@ end-to-end with the new env map feature.
 
 ---
 
+### Task 22.5: Colored Transparent Shadows Phase 2 (TD-6)
+
+**Estimate:** 4-8h
+**Tracks:** `TD-6` in arc42 §11.2
+
+Phase 1 (Sprint 13.2) implemented colored shadows via closesthit-only approach — only the
+closest transparent object contributes shadow color. Phase 2 adds anyhit accumulation so
+overlapping transparent objects (e.g. two colored glass spheres in a stack) each contribute
+their attenuation to the shadow.
+
+**Implementation:**
+- Add anyhit program for shadow rays that accumulates RGB attenuation per channel
+- Handle `optixTerminateRay()` / `optixIgnoreIntersection()` edge cases (see AD-8 lessons)
+- Test: two overlapping transparent spheres — shadow should blend both colors
+- Keep Phase 1 behavior when `transparent_shadows_enabled = false`
+
+**Risk:** AD-8 documents a prior failed attempt. Work in isolation; do not mix with other
+shader changes. Run full ShadowSuite + RendererTest before merging.
+
+---
+
+### Task 22.6: P0.A — Move SceneConverter to menger.engines (M-arch-dsl-layer)
+
+**Estimate:** 4h
+**Tracks:** `M-arch-dsl-layer` in CODE_IMPROVEMENTS.md
+
+`SceneConverter` currently lives in `menger.dsl` but imports `menger.config` and
+`menger.optix` — outer-layer imports from an inner-layer class, violating the onion model.
+
+**Implementation:**
+1. Move `menger.dsl.SceneConverter` → `menger.engines.SceneConverter`
+2. `menger.dsl.Material` delegation to `menger.optix.Material`: replace direct delegation
+   with a string key; resolve to `menger.optix.Material` in `menger.engines`
+3. Fix all import sites
+4. Un-ignore the `M-arch-dsl-layer` rule in `ArchitecturePhase2Spec`
+5. Verify all 2,823+ tests pass
+
+---
+
+### Task 22.7: Fix initializeNative Swallowed Exception (M-jni-init-swallowed-exception)
+
+**Estimate:** 30min
+**Tracks:** `M-jni-init-swallowed-exception` in CODE_IMPROVEMENTS.md
+**Location:** `optix-jni/src/main/native/JNIBindings.cpp:71–76`
+
+`initializeNative` catches C++ exceptions and returns `JNI_FALSE` without calling
+`env->ThrowNew(...)`. Callers see `false` with no diagnostic message; actual OptiX error
+is lost to stderr.
+
+**Fix:** Add `env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what())` before
+returning, matching the pattern used by every other function in the file.
+
+---
+
+### Task 22.8: Fix JNI Buffer Pin Leak (M-jni-buffer-pin-leak)
+
+**Estimate:** 1h
+**Tracks:** `M-jni-buffer-pin-leak` in CODE_IMPROVEMENTS.md
+**Location:** `optix-jni/src/main/native/JNIBindings.cpp:832–863`
+
+`GetByteArrayElements` pins the render output array. If `wrapper->render()` throws, the
+`catch` block returns `nullptr` without calling `ReleaseByteArrayElements` — pinned array
+leaks proportional to image size per render failure.
+
+**Fix:** Call `env->ReleaseByteArrayElements(imageArray, buffer, JNI_ABORT)` in the catch
+block before returning. Alternatively wrap in RAII scope guard.
+
+---
+
 ## Summary
 
-| Task | Description | Estimate | Dependencies |
-|------|-------------|----------|--------------|
-| 22.1 | Wire DSL environment map | 2h | Sprint 20 texture pipeline |
-| 22.2 | Tone mapping (Reinhard + ACES, exposure) | 3h | — |
-| 22.3 | Fractal animation example scenes | 2h | 22.1, Sprint 21 |
-| 22.4 | Documentation | 2h | All |
-| **Total** | | **~9h** | |
+| Task | Description | Estimate |
+|------|-------------|----------|
+| 22.1 | Wire DSL environment map | 2h |
+| 22.2 | Tone mapping (Reinhard + ACES, exposure) | 3h |
+| 22.3 | Fractal animation example scenes | 2h |
+| 22.4 | Documentation | 2h |
+| 22.5 | Colored transparent shadows Phase 2 (TD-6) | 4-8h |
+| 22.6 | P0.A: move SceneConverter to menger.engines | 4h |
+| 22.7 | Fix initializeNative swallowed exception | 30min |
+| 22.8 | Fix JNI buffer pin leak | 1h |
+| **Total** | | **~20-24h** |
 
 ---
 
@@ -158,7 +237,7 @@ Only `.hdr` (Radiance RGBE) is supported. The `uploadTextureFloat()` function
 (`OptiXWrapper.cpp:2477–2532`) already handles this via `stbi_loadf()`. EXR is not supported
 (would require OpenEXR SDK).
 
-### Existing GPU Infrastructure (No Changes Needed)
+### Existing GPU Infrastructure (No Changes Needed for 22.1)
 
 - `miss_plane.cu:sampleEnvMap()` — equirectangular UV mapping from ray direction
 - `Params.env_map_enabled`, `Params.env_map_texture` — already in `OptiXData.h`
