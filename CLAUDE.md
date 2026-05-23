@@ -25,3 +25,13 @@ the current version:
 - Stage dir: `menger-app-X.Y.Z/` (workspace root)
 - Binary: `./menger-app-X.Y.Z/bin/menger-app`
 - Headless: `__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-app-X.Y.Z/bin/menger-app --headless ...`
+
+## Long-Running Commands
+
+Always tee output to a file when running long commands (builds, test runs, render suites):
+
+```bash
+some-long-command 2>&1 | tee /tmp/output.log
+```
+
+Examine `/tmp/output.log` afterward if needed — avoids re-running expensive commands to inspect failures.

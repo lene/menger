@@ -163,7 +163,8 @@ object Main:
         planes = configs.planes,
         lights = configs.lights,
         background = configs.background,
-        fog = configs.fog
+        fog = configs.fog,
+        envMap = configs.envMap
       ),
       execution = buildExecutionConfig(opts),
       render = mergedRender,
@@ -181,8 +182,8 @@ object Main:
         up = opts.cameraUp()
       ),
       environment = EnvironmentConfig(
-        planes = List(PlaneConfig(
-          opts.plane(),
+        planes = opts.plane.toOption.toList.map(p => PlaneConfig(
+          p,
           opts.planeColor.toOption,
           opts.planeMaterial.toOption.flatMap(s => menger.optix.Material.fromName(s).toScala)
         )),

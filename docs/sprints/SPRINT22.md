@@ -27,8 +27,6 @@ Image-based lighting (IBL) is Sprint 23.
 - [ ] 4D Menger sponge and Sierpinski analogs (Sprint 21) animate in front of HDR background
 - [ ] Example scene files demonstrate 3D rotation + 4D rotation + fractional level sweep with HDR background
 - [ ] Colored transparent shadows work for overlapping transparent objects (TD-6)
-- [ ] `initializeNative` propagates C++ exceptions to Java (no more silent failures)
-- [ ] JNI buffer pin leak fixed in `renderWithStats` exception path
 - [ ] `SceneConverter` moved to `menger.engines`; `M-arch-dsl-layer` rule active and green
 - [ ] All tests pass
 
@@ -165,36 +163,6 @@ shader changes. Run full ShadowSuite + RendererTest before merging.
 
 ---
 
-### Task 22.7: Fix initializeNative Swallowed Exception (M-jni-init-swallowed-exception)
-
-**Estimate:** 30min
-**Tracks:** `M-jni-init-swallowed-exception` in CODE_IMPROVEMENTS.md
-**Location:** `optix-jni/src/main/native/JNIBindings.cpp:71–76`
-
-`initializeNative` catches C++ exceptions and returns `JNI_FALSE` without calling
-`env->ThrowNew(...)`. Callers see `false` with no diagnostic message; actual OptiX error
-is lost to stderr.
-
-**Fix:** Add `env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what())` before
-returning, matching the pattern used by every other function in the file.
-
----
-
-### Task 22.8: Fix JNI Buffer Pin Leak (M-jni-buffer-pin-leak)
-
-**Estimate:** 1h
-**Tracks:** `M-jni-buffer-pin-leak` in CODE_IMPROVEMENTS.md
-**Location:** `optix-jni/src/main/native/JNIBindings.cpp:832–863`
-
-`GetByteArrayElements` pins the render output array. If `wrapper->render()` throws, the
-`catch` block returns `nullptr` without calling `ReleaseByteArrayElements` — pinned array
-leaks proportional to image size per render failure.
-
-**Fix:** Call `env->ReleaseByteArrayElements(imageArray, buffer, JNI_ABORT)` in the catch
-block before returning. Alternatively wrap in RAII scope guard.
-
----
-
 ## Summary
 
 | Task | Description | Estimate |
@@ -205,9 +173,9 @@ block before returning. Alternatively wrap in RAII scope guard.
 | 22.4 | Documentation | 2h |
 | 22.5 | Colored transparent shadows Phase 2 (TD-6) | 4-8h |
 | 22.6 | P0.A: move SceneConverter to menger.engines | 4h |
-| 22.7 | Fix initializeNative swallowed exception | 30min |
-| 22.8 | Fix JNI buffer pin leak | 1h |
-| **Total** | | **~20-24h** |
+| ~~22.7~~ | ~~Fix initializeNative swallowed exception~~ | ~~Already fixed~~ |
+| ~~22.8~~ | ~~Fix JNI buffer pin leak~~ | ~~Already fixed~~ |
+| **Total** | | **~17-21h** |
 
 ---
 

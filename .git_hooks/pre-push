@@ -10,16 +10,27 @@ RESET_TEXT=$'\e[0m'
 # Detect which file categories are being pushed
 # ---------------------------------------------------------------------------
 CHANGED_FILES=""
-while read local_ref local_sha remote_ref remote_sha; do
-  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
-    BASE=$(git merge-base origin/main "$local_sha" 2>/dev/null)
-    if [ -n "$BASE" ]; then
-      CHANGED_FILES="$CHANGED_FILES"$'\n'"$(git diff --name-only "$BASE" "$local_sha")"
-    fi
+if [ -t 0 ]; then
+  # Running manually (stdin is a TTY) — detect changed files from current branch vs main
+  LOCAL_SHA=$(git rev-parse HEAD)
+  BASE=$(git merge-base origin/main "$LOCAL_SHA" 2>/dev/null || git merge-base main "$LOCAL_SHA" 2>/dev/null)
+  if [ -n "$BASE" ]; then
+    CHANGED_FILES=$(git diff --name-only "$BASE" "$LOCAL_SHA")
   else
-    CHANGED_FILES="$CHANGED_FILES"$'\n'"$(git diff --name-only "$remote_sha" "$local_sha")"
+    CHANGED_FILES=$(git diff --name-only HEAD)
   fi
-done
+else
+  while read local_ref local_sha remote_ref remote_sha; do
+    if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+      BASE=$(git merge-base origin/main "$local_sha" 2>/dev/null)
+      if [ -n "$BASE" ]; then
+        CHANGED_FILES="$CHANGED_FILES"$'\n'"$(git diff --name-only "$BASE" "$local_sha")"
+      fi
+    else
+      CHANGED_FILES="$CHANGED_FILES"$'\n'"$(git diff --name-only "$remote_sha" "$local_sha")"
+    fi
+  done
+fi
 
 HAS_SCALA=$(echo "$CHANGED_FILES" | grep -cE '\.(scala|sbt)$|^project/')
 HAS_NATIVE=$(echo "$CHANGED_FILES" | grep -cE '^optix-jni/src/main/native/.*\.(cpp|cu|cuh|h)$|CMakeLists\.txt')

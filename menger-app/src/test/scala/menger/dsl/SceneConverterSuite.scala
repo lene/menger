@@ -62,6 +62,16 @@ class SceneConverterSuite extends AnyFlatSpec with Matchers:
     result.render shouldBe defined
     result.render.get.shadows shouldBe true
 
+  it should "default envMap to None when scene has no envMap set" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass))
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.envMap shouldBe None
+
+  it should "propagate envMap from scene to SceneConfigs" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass)).copy(envMap = Some("panorama.hdr"))
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.envMap shouldBe Some("panorama.hdr")
+
   it should "handle objects without materials" in:
     val sphere = Sphere()
     val cube = Cube()

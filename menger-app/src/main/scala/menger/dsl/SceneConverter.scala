@@ -26,7 +26,8 @@ object SceneConverter extends LazyLogging:
     background: Option[CommonColor] = None,
     planes: List[PlaneConfig] = List.empty,
     render: Option[RenderConfig] = None,
-    fog: Option[FogConfig] = None
+    fog: Option[FogConfig] = None,
+    envMap: Option[String] = None
   )
 
   def convert(dslScene: Scene, fallbackCaustics: CausticsConfig): SceneConfigs =
@@ -42,7 +43,8 @@ object SceneConverter extends LazyLogging:
     val planes     = dslScene.planes.map(_.toPlaneConfig)
     val render     = dslScene.render.map(_.toRenderConfig)
     val fog        = dslScene.fog.map(f => FogConfig(f.density, f.color.toCommonColor))
-    SceneConfigs(scene, camera, lights, caustics, background, planes, render, fog)
+    val envMap     = dslScene.envMap
+    SceneConfigs(scene, camera, lights, caustics, background, planes, render, fog, envMap)
 
   /** Flatten a SceneNode tree to a list of ObjectSpecs.
     *

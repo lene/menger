@@ -182,8 +182,8 @@ run_test "Recursive IAS Sponge L6" "-o --objects type=sponge-recursive-ias:level
 
 # Materials (use material= preset for transparency)
 echo -e "${YELLOW}--- Materials ---${NC}"
-run_test "Glass" "-o --objects type=sphere:material=glass -s $OUTPUT_DIR/06-glass.png"
-run_test "Diamond" "-o --objects type=sphere:material=diamond -s $OUTPUT_DIR/07-diamond.png"
+run_test "Glass" "-o --objects type=sphere:material=glass --plane y:-2 -s $OUTPUT_DIR/06-glass.png"
+run_test "Diamond" "-o --objects type=sphere:material=diamond --plane y:-2 -s $OUTPUT_DIR/07-diamond.png"
 run_test "Chrome" "-o --objects type=sphere:material=chrome -s $OUTPUT_DIR/08-chrome.png"
 run_test "Custom Color (red)" "-o --objects type=sphere:color=#ff0000 -s $OUTPUT_DIR/09-red.png"
 run_test "Custom Color (green)" "-o --objects type=sphere:color=#00ff00 -s $OUTPUT_DIR/10-green.png"
@@ -244,7 +244,7 @@ echo -e "${YELLOW}--- 4D Tesseract ---${NC}"
 run_test "Tesseract (default)" "-o --objects type=tesseract -s $OUTPUT_DIR/33-tesseract.png"
 run_test "Tesseract (rotated)" "-o --objects type=tesseract:rot-xw=45:rot-yw=30 -s $OUTPUT_DIR/34-tesseract-rot.png"
 run_test "Tesseract (projection)" "-o --objects type=tesseract:eye-w=4.0:screen-w=2.0 -s $OUTPUT_DIR/35-tesseract-proj.png"
-run_test "Tesseract (glass)" "-o --objects type=tesseract:material=glass -s $OUTPUT_DIR/36-tesseract-glass.png"
+run_test "Tesseract (glass)" "-o --objects type=tesseract:material=glass --plane y:-2 -s $OUTPUT_DIR/36-tesseract-glass.png"
 run_test "Tesseract (chrome)" "-o --objects type=tesseract:material=chrome -s $OUTPUT_DIR/37-tesseract-chrome.png"
 
 # Tesseract Edge Rendering (Phase 4 feature)
@@ -257,7 +257,7 @@ run_test "Tesseract film with emissive edges" "-o --objects type=tesseract:mater
 
 # Film and Parchment Materials
 echo -e "${YELLOW}--- Film and Parchment Materials ---${NC}"
-run_test "Film sphere" "-o --objects type=sphere:material=film -s $OUTPUT_DIR/43-film-sphere.png"
+run_test "Film sphere" "-o --objects type=sphere:material=film --plane y:-2 -s $OUTPUT_DIR/43-film-sphere.png"
 run_test "Parchment cube" "-o --objects type=cube:material=parchment -s $OUTPUT_DIR/44-parchment-cube.png"
 run_test "Film with emission" "-o --objects type=sphere:material=film:emission=3.0 -s $OUTPUT_DIR/45-film-emissive.png"
 
@@ -277,7 +277,7 @@ run_test "TesseractSponge Level 1" "-o --objects type=tesseract-sponge:level=1 -
 run_test "TesseractSponge2 Level 1" "-o --objects type=tesseract-sponge-2:level=1 -s $OUTPUT_DIR/48-tesseract-sponge2-l1.png"
 run_test "TesseractSponge2 Level 2" "-o --objects type=tesseract-sponge-2:level=2 -s $OUTPUT_DIR/49-tesseract-sponge2-l2.png"
 run_test "TesseractSponge (rotated)" "-o --objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30 -s $OUTPUT_DIR/50-tesseract-sponge-rot.png"
-run_test "TesseractSponge (glass)" "-o --objects type=tesseract-sponge:level=1:material=glass -s $OUTPUT_DIR/51-tesseract-sponge-glass.png"
+run_test "TesseractSponge (glass)" "-o --objects type=tesseract-sponge:level=1:material=glass --plane y:-2 -s $OUTPUT_DIR/51-tesseract-sponge-glass.png"
 run_test "TesseractSponge2 (chrome)" "-o --objects type=tesseract-sponge-2:level=1:material=chrome -s $OUTPUT_DIR/52-tesseract-sponge2-chrome.png"
 run_test "TesseractSponge with chrome edges" "-o --objects type=tesseract-sponge:level=1:edge-material=chrome:edge-radius=0.015 -s $OUTPUT_DIR/53-tesseract-sponge-edges.png"
 run_test "TesseractSponge2 glass + gold edges" "-o --objects type=tesseract-sponge-2:level=1:material=glass:edge-material=gold:edge-radius=0.02 -s $OUTPUT_DIR/54-tesseract-sponge2-glass-gold.png"
@@ -326,7 +326,7 @@ run_test "Mixed platonic solids" "-o --objects type=tetrahedron:pos=-1.5,0,0:siz
 # Planes (IS-based first-class geometry)
 echo -e "${YELLOW}--- Planes (IS-based) ---${NC}"
 run_test "Plane (default floor)" "-o --objects type=plane:pos=0,-2,0:material=chrome -s $OUTPUT_DIR/136-plane-is-chrome.png"
-run_test "Plane metal" "-o --objects type=plane:pos=0,-2,0:material=metal --plane y:-2 -s $OUTPUT_DIR/137-plane-is-metal.png"
+run_test "Plane metal" "-o --objects type=plane:pos=0,-2,0:material=metal --objects type=sphere:pos=0,0,0:size=0.5:material=chrome -s $OUTPUT_DIR/137-plane-is-metal.png"
 run_test "Plane + sphere" "-o --objects type=plane:pos=0,-2,0:normal=0,1,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass -s $OUTPUT_DIR/138-plane-is-with-sphere.png"
 
 # Coordinate Cross
@@ -335,7 +335,7 @@ run_test "Cross default" "-o --objects type=sphere --cross -s $OUTPUT_DIR/139-cr
 run_test "Cross custom" "-o --objects type=sphere --cross --cross-length 3.0 --cross-material chrome -s $OUTPUT_DIR/140-cross-custom.png"
 
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
-run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 -s $OUTPUT_DIR/57-caustics.png"
+run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 --plane y:-2 -s $OUTPUT_DIR/57-caustics.png"
 
 # DSL Scenes
 echo -e "${YELLOW}--- DSL Scenes ---${NC}"
@@ -563,6 +563,12 @@ interactive_tests=(
     "Sierpinski4D fractional L2.5:-o --objects type=sierpinski4d:level=2.5"
     "Hexadecachoron4D fractional L2.5:-o --objects type=hexadecachoron4d:level=2.5"
     "Sponge-recursive-ias fractional L2.5:-o --objects type=sponge-recursive-ias:level=2.5"
+    "DSL EnvMapDemo (HDR env map — sunset panorama should be visible as background):-o --scene examples.dsl.EnvMapDemo --texture-dir menger-app/src/test/resources/"
+    "EnvMapDemo glass sphere (HDR sunset background):-o --objects type=sphere:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
+    "EnvMapDemo glass tetrahedron (HDR sunset background):-o --objects type=tetrahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
+    "EnvMapDemo glass octahedron (HDR sunset background):-o --objects type=octahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
+    "EnvMapDemo glass icosahedron (HDR sunset background):-o --objects type=icosahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
+    "EnvMapDemo glass dodecahedron (HDR sunset background):-o --objects type=dodecahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
 )
 
 echo "Available interactive tests:"

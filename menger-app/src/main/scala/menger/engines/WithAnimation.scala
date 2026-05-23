@@ -52,6 +52,14 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
+    firstFrameConfigs.envMap.foreach { path =>
+      val resolvedPath =
+        if java.nio.file.Paths.get(path).isAbsolute then path
+        else java.nio.file.Paths.get(textureDir).resolve(path).toString
+      val idx = renderer.uploadTextureFromFile(resolvedPath)
+      if idx >= 0 then renderer.setEnvironmentMap(idx)
+      else logger.error(s"Failed to load environment map: $path")
+    }
     GdxRuntime.setContinuousRendering(true)
 
   abstract override def render(): Unit =

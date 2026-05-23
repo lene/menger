@@ -27,6 +27,7 @@ case class Scene(
   caustics: Option[Caustics] = None,
   background: Option[Color] = None,
   fog: Option[Fog] = None,
+  envMap: Option[String] = None,
   root: Option[SceneNode] = None,
   render: Option[RenderSettings] = None
 ):
@@ -44,20 +45,20 @@ case class Scene(
 object Scene:
   /** Create a scene with a single object */
   def apply(camera: Camera, obj: SceneObject): Scene =
-    new Scene(camera, List(obj), List.empty, List.empty, None)
+    new Scene(camera = camera, objects = List(obj))
 
   /** Create a scene with a single object and lights */
   def apply(camera: Camera, obj: SceneObject, lights: List[Light]): Scene =
-    new Scene(camera, List(obj), lights, List.empty, None)
+    new Scene(camera = camera, objects = List(obj), lights = lights)
 
   /** Create a scene with objects, lights, and caustics */
   def apply(camera: Camera, objects: List[SceneObject], lights: List[Light], caustics: Caustics): Scene =
-    new Scene(camera, objects, lights, List.empty, Some(caustics))
+    new Scene(camera = camera, objects = objects, lights = lights, caustics = Some(caustics))
 
   /** Create a scene from a scene graph root node */
   def apply(camera: Camera, root: SceneNode): Scene =
-    new Scene(camera, List.empty, List.empty, List.empty, None, None, None, Some(root))
+    new Scene(camera = camera, root = Some(root))
 
   /** Create a scene from a scene graph root node with lights */
   def apply(camera: Camera, root: SceneNode, lights: List[Light]): Scene =
-    new Scene(camera, List.empty, lights, List.empty, None, None, None, Some(root))
+    new Scene(camera = camera, lights = lights, root = Some(root))

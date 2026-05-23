@@ -6,7 +6,6 @@ import scala.jdk.OptionConverters._
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
-import menger.cli.Axis
 import menger.cli.CliValidation
 import menger.cli.FogSpec
 import menger.cli.LightSpec
@@ -331,7 +330,7 @@ class MengerCLIOptions(arguments: Seq[String])
 
   // === OptiX Scene Options ===
   val plane: ScallopOption[PlaneSpec] = opt[PlaneSpec](
-    required = false, default = Some(PlaneSpec(Axis.Y, positive = true, -2.0f)), group = optixSceneGroup,
+    required = false, group = optixSceneGroup,
     descr = "Ground plane: [+-]x|y|z:value (e.g., y:-2)"
   )(using planeSpecConverter)
   val planeColor: ScallopOption[PlaneColorSpec] = opt[PlaneColorSpec](

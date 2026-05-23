@@ -14,48 +14,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-jni-buffer-pin-leak: JNI array pinning leak in renderWithStats exception path
-
-**Location**: `optix-jni/src/main/native/JNIBindings.cpp:832–863`
-**Impact**: Medium — memory-safety issue on the render error path; repeated render failures leak JVM heap.
-**Effort**: 1 hour
-
-`GetByteArrayElements` pins the render output array so the GPU can write into it. If `wrapper->render()` throws a C++ exception, control jumps to the `catch` block at line 863 and returns `nullptr` — without calling `ReleaseByteArrayElements`. The JVM's pinned array is never unpinned and never GC'd.
-
-```cpp
-jbyte* buffer = env->GetByteArrayElements(imageArray, nullptr);
-// ...
-wrapper->render(width, height, reinterpret_cast<unsigned char*>(buffer), &stats);
-// ← if this throws, ReleaseByteArrayElements is never called
-env->ReleaseByteArrayElements(imageArray, buffer, 0);
-```
-
-Render failures are uncommon in steady-state operation but do happen (OptiX pipeline rebuild, VRAM exhaustion), and the leak is proportional to image size (width × height × 4 bytes per leak). In long-running interactive sessions this will silently exhaust JVM heap.
-
-**Direction**: Wrap the `GetByteArrayElements`/`render`/`Release` block in RAII or use `GetPrimitiveArrayCritical` with a scoped release. Simplest fix: call `ReleaseByteArrayElements(imageArray, buffer, JNI_ABORT)` in the catch block before returning.
-
----
-
-### M-jni-init-swallowed-exception: initializeNative swallows C++ exception, no Java exception thrown
-
-**Location**: `optix-jni/src/main/native/JNIBindings.cpp:71–76`
-**Impact**: Medium — diagnosis gap; on OptiX initialization failure, Scala sees `false` but no exception message.
-**Effort**: 30 minutes
-
-Every other JNI function in JNIBindings.cpp converts C++ exceptions to Java exceptions via `env->ThrowNew(...)`. `initializeNative` is the sole exception: its catch block logs to stderr and returns `JNI_FALSE` silently.
-
-```cpp
-} catch (const std::exception& e) {
-    std::cerr << "[JNI] Error in initializeNative: " << e.what() << std::endl;
-    return JNI_FALSE;  // ← no ThrowNew; Scala gets false with no exception
-}
-```
-
-Callers that check `ensureAvailable()` get `OptiXNotAvailableException("Failed to initialize OptiX renderer")` with no root cause. The actual OptiX error (device not found, driver mismatch, etc.) is lost unless someone is watching stderr.
-
-**Direction**: Call `env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what())` before returning, matching the pattern of every other function in this file.
-
----
 
 ### M-render-null-type-contract: renderWithStats declares RenderResult but may return null
 
