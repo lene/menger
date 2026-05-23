@@ -296,6 +296,41 @@ object TesseractSponge:
 // Export TesseractSpongeType values for convenient imports
 export TesseractSpongeType.{VolumeRemoving, SurfaceSubdividing}
 
+/** 4D Sierpinski pentachoron analog (IFS fractal) */
+case class Sierpinski4D(
+  pos: Vec3 = Vec3.Zero,
+  level: Float,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(level >= 0f, s"Level must be non-negative, got $level")
+  require(size > 0f, s"Size must be positive, got $size")
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      "sierpinski4d",
+      level = Some(level),
+      projection4D = projection,
+      edgeRadius = edgeRadius,
+      edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
+    )
+
+object Sierpinski4D:
+  def apply(level: Float): Sierpinski4D = Sierpinski4D(Vec3.Zero, level)
+  def apply(level: Float, material: Material): Sierpinski4D =
+    Sierpinski4D(Vec3.Zero, level, Some(material))
+
 
 /** Parametric surface defined by f(u,v) -> Vec3, tessellated into a triangle mesh.
   *

@@ -38,7 +38,8 @@ object EnvMapDemo:
     lights = List(
       Directional(direction = (1f, -1f, -1f), intensity = 1.5f)
     ),
-    envMap = Some("rogland_sunset_2k.hdr")
+    envMap = Some("rogland_sunset_2k.hdr"),
+    toneMapping = ToneMapping.Reinhard(exposure = 1.5f)
   )
 
   SceneRegistry.register("env-map-demo", scene)

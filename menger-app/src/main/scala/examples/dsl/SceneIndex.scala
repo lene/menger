@@ -36,4 +36,6 @@ object SceneIndex:
     PulsingSponge.scene,
     RotatingSilverSponge.scene,
     SpongeLevelAnimation.scene,
+    FractalWithHDR.scene,
+    SierpinskiHDRRotation.scene,
   )

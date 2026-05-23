@@ -52,6 +52,8 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
+    if firstFrameConfigs.toneMappingOperator != 0 then
+      renderer.setToneMapping(firstFrameConfigs.toneMappingOperator, firstFrameConfigs.toneMappingExposure)
     firstFrameConfigs.envMap.foreach { path =>
       val resolvedPath =
         if java.nio.file.Paths.get(path).isAbsolute then path

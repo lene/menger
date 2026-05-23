@@ -350,6 +350,7 @@ run_test "DSL: MixedMetallicShowcase" "-o --scene examples.dsl.MixedMetallicShow
 run_test "DSL: RenderSettingsDemo (DSL shadows + AA)" "-o --scene examples.dsl.RenderSettingsDemo -s $OUTPUT_DIR/124-dsl-render-settings-demo.png"
 run_test "DSL: RenderSettingsDemo (CLI shadows overrides DSL)" "-o --scene examples.dsl.RenderSettingsDemo --shadows -s $OUTPUT_DIR/125-dsl-render-settings-cli-shadows.png"
 run_test "DSL: RenderSettingsDemo (no DSL, CLI shadows only)" "-o --objects type=sphere:pos=-1,0,0:material=chrome:size=0.8 --objects type=sphere:pos=1,0,0:material=glass:size=0.8 --shadows --light directional:1,-1,-1 --light point:0,3,2:1.5 --plane y:-1 --camera-pos 0,1,4 --camera-lookat 0,0,0 -s $OUTPUT_DIR/126-cli-shadows-no-dsl.png"
+run_test "DSL: EnvMapDemo (HDR + Reinhard tone mapping)" "-o --scene examples.dsl.EnvMapDemo --texture-dir menger-app/src/test/resources/ -s $OUTPUT_DIR/141-envmap-demo-reinhard.png"
 
 # Animated DSL Scenes (t-parameter)
 echo -e "${YELLOW}--- Animated DSL Scenes (t-parameter) ---${NC}"
@@ -563,7 +564,8 @@ interactive_tests=(
     "Sierpinski4D fractional L2.5:-o --objects type=sierpinski4d:level=2.5"
     "Hexadecachoron4D fractional L2.5:-o --objects type=hexadecachoron4d:level=2.5"
     "Sponge-recursive-ias fractional L2.5:-o --objects type=sponge-recursive-ias:level=2.5"
-    "DSL EnvMapDemo (HDR env map — sunset panorama should be visible as background):-o --scene examples.dsl.EnvMapDemo --texture-dir menger-app/src/test/resources/"
+    "DSL EnvMapDemo (Reinhard tone mapping — sunset panorama, no blown-out highlights):-o --scene examples.dsl.EnvMapDemo --texture-dir menger-app/src/test/resources/"
+    "Cliffside HDR no tone mapping (expect clipped/white sky):-o --objects type=sphere:material=chrome --env-map cliffside_2k.hdr --texture-dir menger-app/src/test/resources/"
     "EnvMapDemo glass sphere (HDR sunset background):-o --objects type=sphere:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
     "EnvMapDemo glass tetrahedron (HDR sunset background):-o --objects type=tetrahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
     "EnvMapDemo glass octahedron (HDR sunset background):-o --objects type=octahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"

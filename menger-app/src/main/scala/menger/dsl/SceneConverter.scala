@@ -27,7 +27,9 @@ object SceneConverter extends LazyLogging:
     planes: List[PlaneConfig] = List.empty,
     render: Option[RenderConfig] = None,
     fog: Option[FogConfig] = None,
-    envMap: Option[String] = None
+    envMap: Option[String] = None,
+    toneMappingOperator: Int = 0,
+    toneMappingExposure: Float = 1.0f
   )
 
   def convert(dslScene: Scene, fallbackCaustics: CausticsConfig): SceneConfigs =
@@ -44,7 +46,8 @@ object SceneConverter extends LazyLogging:
     val render     = dslScene.render.map(_.toRenderConfig)
     val fog        = dslScene.fog.map(f => FogConfig(f.density, f.color.toCommonColor))
     val envMap     = dslScene.envMap
-    SceneConfigs(scene, camera, lights, caustics, background, planes, render, fog, envMap)
+    val (tmOp, tmExp) = toToneMappingParams(dslScene.toneMapping)
+    SceneConfigs(scene, camera, lights, caustics, background, planes, render, fog, envMap, tmOp, tmExp)
 
   /** Flatten a SceneNode tree to a list of ObjectSpecs.
     *
@@ -113,3 +116,8 @@ object SceneConverter extends LazyLogging:
 
   private def warnMaterial(material: Material): Unit =
     material.validate().foreach(w => logger.warn(s"[Material] $w"))
+
+  private def toToneMappingParams(tm: ToneMapping): (Int, Float) = tm match
+    case ToneMapping.None              => (0, 1.0f)
+    case ToneMapping.Reinhard(exp)     => (1, exp)
+    case ToneMapping.ACES(exp)         => (2, exp)

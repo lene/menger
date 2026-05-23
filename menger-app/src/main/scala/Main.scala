@@ -155,6 +155,8 @@ object Main:
       antialiasing       = if opts.antialiasing.isSupplied       then opts.antialiasing()       else baseRender.antialiasing,
       aaMaxDepth         = if opts.aaMaxDepth.isSupplied         then opts.aaMaxDepth()         else baseRender.aaMaxDepth,
       aaThreshold        = if opts.aaThreshold.isSupplied        then opts.aaThreshold()        else baseRender.aaThreshold,
+      toneMappingOperator = configs.toneMappingOperator,
+      toneMappingExposure = configs.toneMappingExposure,
     )
     val engineConfig = OptiXEngineConfig(
       scene = configs.scene,

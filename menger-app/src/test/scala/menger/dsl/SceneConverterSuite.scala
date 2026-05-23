@@ -72,6 +72,24 @@ class SceneConverterSuite extends AnyFlatSpec with Matchers:
     val result = SceneConverter.convert(scene, fallbackCaustics)
     result.envMap shouldBe Some("panorama.hdr")
 
+  it should "default toneMappingOperator to 0 (none) when scene has no toneMapping set" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass))
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.toneMappingOperator shouldBe 0
+    result.toneMappingExposure shouldBe 1.0f
+
+  it should "propagate Reinhard toneMapping to operator=1 and correct exposure" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass)).copy(toneMapping = ToneMapping.Reinhard(2.0f))
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.toneMappingOperator shouldBe 1
+    result.toneMappingExposure shouldBe 2.0f
+
+  it should "propagate ACES toneMapping to operator=2 and correct exposure" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass)).copy(toneMapping = ToneMapping.ACES(1.5f))
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.toneMappingOperator shouldBe 2
+    result.toneMappingExposure shouldBe 1.5f
+
   it should "handle objects without materials" in:
     val sphere = Sphere()
     val cube = Cube()
