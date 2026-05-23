@@ -86,11 +86,11 @@ object MeshFactory:
       case "tesseract" =>
         mesh4DProjection(spec).get.toTriangleMesh
 
-      case "tesseract-sponge" =>
+      case "tesseract-sponge" | "tesseract-sponge-volume" =>
         require(spec.level.isDefined, "tesseract-sponge requires level parameter")
         mesh4DProjection(spec).get.toTriangleMesh
 
-      case "tesseract-sponge-2" =>
+      case "tesseract-sponge-2" | "tesseract-sponge-surface" =>
         require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
         mesh4DProjection(spec).get.toTriangleMesh
 
@@ -158,14 +158,14 @@ object MeshFactory:
           eyeW = proj.eyeW, screenW = proj.screenW,
           rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
         ))
-      case "tesseract-sponge" if spec.level.isDefined =>
+      case "tesseract-sponge" | "tesseract-sponge-volume" if spec.level.isDefined =>
         Some(TesseractSpongeMesh(
           center = Vector3(0f, 0f, 0f), size = spec.size,
           level = spec.level.get,
           eyeW = proj.eyeW, screenW = proj.screenW,
           rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
         ))
-      case "tesseract-sponge-2" if spec.level.isDefined =>
+      case "tesseract-sponge-2" | "tesseract-sponge-surface" if spec.level.isDefined =>
         Some(TesseractSponge2Mesh(
           center = Vector3(0f, 0f, 0f), size = spec.size,
           level = spec.level.get,

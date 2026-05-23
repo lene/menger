@@ -316,10 +316,16 @@ class InteractiveEngine(
     "sponge-surface"     -> LevelConfig(
       Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel,
       lvl => math.pow(Const.Engine.trianglesPerCube, lvl).toLong * 6 * 2),
-    "tesseract-sponge"   -> LevelConfig(
+    "tesseract-sponge"        -> LevelConfig(
       Const.Engine.tesseractSpongeWarnLevel, Const.Engine.tesseractSpongeMaxLevel,
       TesseractSpongeMesh.estimatedTriangles),
-    "tesseract-sponge-2" -> LevelConfig(
+    "tesseract-sponge-volume" -> LevelConfig(
+      Const.Engine.tesseractSpongeWarnLevel, Const.Engine.tesseractSpongeMaxLevel,
+      TesseractSpongeMesh.estimatedTriangles),
+    "tesseract-sponge-2"       -> LevelConfig(
+      Const.Engine.tesseractSponge2WarnLevel, Const.Engine.tesseractSponge2MaxLevel,
+      TesseractSponge2Mesh.estimatedTriangles),
+    "tesseract-sponge-surface" -> LevelConfig(
       Const.Engine.tesseractSponge2WarnLevel, Const.Engine.tesseractSponge2MaxLevel,
       TesseractSponge2Mesh.estimatedTriangles),
   )
