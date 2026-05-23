@@ -498,6 +498,40 @@ fog = None
 `density` controls attenuation rate: `exp(-density × distance)`.
 At density=0.05 and distance=20, fog is ~37% of scene color.
 
+### Environment Map
+
+An equirectangular `.hdr` file rendered as the scene background (miss-shader background only;
+does not illuminate objects — IBL is Sprint 23):
+
+```scala
+// Enable HDR background
+envMap = Some("cliffside_2k.hdr")   // resolved relative to --texture-dir
+
+// Disabled (default — solid background color)
+envMap = None
+```
+
+The path is resolved relative to `--texture-dir` at render time. Only `.hdr` (Radiance RGBE)
+is supported.
+
+### Tone Mapping
+
+Controls how HDR values (> 1.0) are mapped to display range [0,1]:
+
+```scala
+// No tone mapping — clamp (default, fine for non-HDR scenes)
+toneMapping = ToneMapping.None
+
+// Reinhard — smooth roll-off, recommended with HDR backgrounds
+toneMapping = ToneMapping.Reinhard(exposure = 1.2f)
+
+// ACES Narkowicz 2015 filmic — stronger contrast S-curve
+toneMapping = ToneMapping.ACES(exposure = 0.9f)
+```
+
+`exposure` is a pre-tone-map multiplier. Values above 1.0 brighten; below 1.0 darken.
+Tone mapping applies only to the env map sample; scene geometry colors pass through unchanged.
+
 ### Complete Scene Example
 
 ```scala

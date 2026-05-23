@@ -31,6 +31,28 @@
   `image_texture_index` field in `InstanceMaterial` (separate from `texture_index`, which
   indexes geometry data arrays for these types).
 
+- **HDR environment maps in DSL** (Sprint 22.1) — `Scene(..., envMap = Some("panorama.hdr"))`
+  renders an equirectangular HDR file as the scene background. Path resolved relative to
+  `--texture-dir`. Background only; IBL is Sprint 23.
+- **Tone mapping** (Sprint 22.2) — `Scene.toneMapping` controls HDR-to-display mapping:
+  `ToneMapping.None` (clamp, default), `ToneMapping.Reinhard(exposure)` (smooth roll-off),
+  `ToneMapping.ACES(exposure)` (Narkowicz 2015 filmic S-curve). Applied in miss shader to
+  env map samples; exposure is a pre-tone-map multiplier (default 1.0).
+- **`Sierpinski4D` DSL type** (Sprint 22.3) — `Sierpinski4D(level, material, projection, ...)`:
+  4D pentachoron IFS fractal usable in DSL scenes, supports `edgeRadius`/`edgeMaterial`.
+- **`FractalWithHDR` example scene** — animated glass `TesseractSponge` with level 1→4,
+  XW/YW/ZW 4D rotation schedule, cliffside HDR background, Reinhard tone mapping.
+- **`SierpinskiHDRRotation` example scene** — animated film `Sierpinski4D` with copper edges,
+  simultaneous 3D Y-axis rotation + 4D XW rotation, cliffside HDR, Reinhard tone mapping.
+
+### Fixed
+- Default plane no longer injected when `--plane` is omitted from CLI (was leaking a `y:-2`
+  floor plane into every render). Integration tests updated with explicit `--plane y:-2` where
+  the floor is intentional.
+- `MeshFactory` and `InteractiveEngine` now accept canonical tesseract-sponge type names
+  (`tesseract-sponge-volume`, `tesseract-sponge-surface`) in addition to legacy aliases,
+  fixing `FractalWithHDR` failing at runtime with "Unknown mesh type".
+
 ## [0.6.1] - 2026-05-17
 
 ### Added

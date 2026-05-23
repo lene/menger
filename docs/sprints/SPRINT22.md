@@ -179,13 +179,43 @@ shader changes. Run full ShadowSuite + RendererTest before merging.
 
 ---
 
+## Retrospective (Tasks 22.1–22.4)
+
+### What Went Well
+
+- GPU infrastructure from Sprint 20 was complete; DSL wiring was straightforward.
+- Tone mapping (Reinhard + ACES) integrated cleanly as a single `applyToneMapping()` device
+  function in `miss_plane.cu`, replacing a raw `fminf` clamp.
+- `Sierpinski4D` DSL type followed the existing `TesseractSponge` pattern with no surprises.
+- `FractalWithHDR` and `SierpinskiHDRRotation` demonstrate all Sprint 22 features end-to-end.
+
+### Issues Encountered
+
+- **Default plane injection bug** was masked by existing reference images — only caught when
+  integration tests failed after removal. Fixed by adding explicit `--plane y:-2` to affected
+  tests rather than regenerating reference images to match plane-free renders.
+- **`TesseractSpongeType` canonical name mismatch** — DSL enum used `"tesseract-sponge-volume"`
+  / `"tesseract-sponge-surface"` but `MeshFactory` only matched old aliases `"tesseract-sponge"`
+  / `"tesseract-sponge-2"`. Fixed by making `MeshFactory` and `InteractiveEngine` accept both.
+- **Pre-push hook TTY hang** when run manually (fixed: added TTY detection for stdin).
+- Long-running commands were run without `tee` several times, violating CLAUDE.md; corrected
+  mid-session.
+
+### Remaining Tasks
+
+- **22.5** — Colored transparent shadows Phase 2 (TD-6): anyhit accumulation for overlapping
+  transparent objects. Deferred; AD-8 risk noted.
+- **22.6** — P0.A: move `SceneConverter` to `menger.engines`. Architecture debt.
+
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing
-- [ ] Code quality checks pass: `sbt "scalafix --check"`
-- [ ] CHANGELOG.md updated
+- [x] All success criteria met (22.1–22.4)
+- [x] All tests passing (2175/2175)
+- [x] Code quality checks pass: `sbt "scalafix --check"`
+- [x] CHANGELOG.md updated
 - [ ] Example renders committed showing fractals against HDR backgrounds
+- [ ] 22.5 Colored transparent shadows Phase 2
+- [ ] 22.6 SceneConverter moved to menger.engines
 
 ---
 

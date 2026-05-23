@@ -994,4 +994,65 @@ The `texture-dir` base path (CLI) or DSL texture path applies the same way as fo
 
 ---
 
+### HDR Environment Maps — *Sprint 22*
+
+An equirectangular `.hdr` file can be used as the scene background. The HDR texture is
+sampled by the miss shader when a ray escapes the scene, replacing the solid background color.
+
+> **Note:** The env map is background only in this release. It does not illuminate objects.
+> Image-based lighting (IBL) is planned for Sprint 23.
+
+**Supported format:** `.hdr` (Radiance RGBE, 32-bit float per channel). EXR is not supported.
+
+DSL:
+```scala
+Scene(
+  objects = List(TesseractSponge(SurfaceSubdividing, level = 2f, material = Some(Material.Glass))),
+  envMap  = Some("cliffside_2k.hdr"),         // resolved relative to --texture-dir
+  toneMapping = ToneMapping.Reinhard(exposure = 1.2f),
+  lights  = List(Directional(direction = (1f, -1f, -1f), intensity = 1.5f))
+)
+```
+
+Pass the directory containing the `.hdr` file via `--texture-dir`:
+```bash
+menger-app --scene examples.dsl.FractalWithHDR \
+  --texture-dir /path/to/hdri/ \
+  --save-name fractal.png --timeout 5000
+```
+
+For animated scenes the env map is loaded once from the first frame's `Scene` and held for
+the full animation — it does not change frame to frame.
+
+---
+
+### Tone Mapping — *Sprint 22*
+
+HDR environment maps contain values > 1.0 for bright areas (sun, sky). Without tone mapping
+these clip to white. Three operators are available via `Scene.toneMapping`:
+
+| DSL value | Operator | Notes |
+|-----------|----------|-------|
+| `ToneMapping.None` | Clamp to [0,1] | Default. Fine for non-HDR scenes. |
+| `ToneMapping.Reinhard(exposure)` | `c·e / (1 + c·e)` | Smooth roll-off. Recommended for HDR. |
+| `ToneMapping.ACES(exposure)` | Narkowicz 2015 filmic | Higher contrast S-curve. |
+
+`exposure` is a pre-tone-map multiplier (default 1.0). Increase to brighten, decrease to darken.
+
+```scala
+// No tone mapping (default)
+toneMapping = ToneMapping.None
+
+// Reinhard with 1.2× exposure (recommended starting point for HDR backgrounds)
+toneMapping = ToneMapping.Reinhard(exposure = 1.2f)
+
+// ACES filmic — stronger contrast
+toneMapping = ToneMapping.ACES(exposure = 0.9f)
+```
+
+Tone mapping is applied to the HDR env map sample before writing to the output buffer.
+Non-HDR scene colors (already in [0,1]) are minimally affected by Reinhard at exposure 1.0.
+
+---
+
 ← [Quick Start](quickstart.md) | [User Guide Index](../USER_GUIDE.md) | → [Advanced Features](advanced.md)
