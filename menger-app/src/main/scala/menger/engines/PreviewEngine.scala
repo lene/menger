@@ -4,7 +4,6 @@ import menger.ProfilingConfig
 import menger.Vector3Extensions.toVector3
 import menger.config.ExecutionConfig
 import menger.dsl.Scene
-import menger.dsl.SceneConverter
 import menger.input.GdxRuntime
 import menger.input.LibGDXInputAdapter
 import menger.input.PreviewKeyHandler

@@ -32,11 +32,9 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
                             "menger.dsl..", "menger.cli..", "menger.config..")
       .check(allClasses)
 
-  // Blocked by P0.A: menger.dsl.SceneConverter imports menger.config.{PlaneConfig,CameraConfig,SceneConfig}
-  // and menger.optix.{CausticsConfig,RenderConfig}. Fix: move SceneConverter to menger.engines.
-  // Also blocked by P0.B: menger.dsl.Material imports menger.optix.Material for preset delegation.
-  // Unblocking requires moving all dsl→optix conversions to the engines layer.
-  ignore should "depend only on menger.common and menger.objects (P0.A blocker)" in:
+  // P0.A resolved: SceneConverter moved to menger.engines; Camera/Plane/Scene config methods inlined there.
+  // menger.dsl.Material still imports menger.optix.Material (P0.B) — allowed by this rule (optix not restricted).
+  it should "depend only on menger.common and menger.objects (P0.A resolved)" in:
     noClasses().that().resideInAPackage("menger.dsl..")
       .should().dependOnClassesThat()
         .resideInAnyPackage("menger.engines..", "menger.cli..",

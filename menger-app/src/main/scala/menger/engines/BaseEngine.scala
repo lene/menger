@@ -10,7 +10,6 @@ import menger.OptiXRenderResources
 import menger.ProfilingConfig
 import menger.common.ObjectType
 import menger.common.ValidationException
-import menger.dsl.SceneConverter
 import menger.engines.scene.SceneBuilder
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper

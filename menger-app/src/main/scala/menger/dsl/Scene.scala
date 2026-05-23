@@ -1,8 +1,5 @@
 package menger.dsl
 
-import menger.config.CameraConfig
-import menger.config.SceneConfig
-
 /** Complete scene definition with camera, objects, and lighting.
   *
   * Objects can be specified in two ways (mutually usable, root takes precedence):
@@ -34,14 +31,6 @@ case class Scene(
 ):
   require(objects.nonEmpty || root.isDefined, "Scene must contain at least one object or a root node")
 
-  /** Convert scene to SceneConfig for rendering */
-  def toSceneConfig: SceneConfig =
-    val objectSpecs = objects.map(_.toObjectSpec)
-    SceneConfig.multiObject(objectSpecs)
-
-  /** Convert camera to CameraConfig for rendering */
-  def toCameraConfig: CameraConfig =
-    camera.toCameraConfig
 
 object Scene:
   /** Create a scene with a single object */

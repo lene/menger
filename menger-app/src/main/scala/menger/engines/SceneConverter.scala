@@ -1,4 +1,4 @@
-package menger.dsl
+package menger.engines
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.ObjectRotation
@@ -9,6 +9,18 @@ import menger.common.{Color => CommonColor}
 import menger.config.CameraConfig
 import menger.config.PlaneConfig
 import menger.config.SceneConfig
+import menger.dsl.Cube
+import menger.dsl.Material
+import menger.dsl.ParametricSurface
+import menger.dsl.Scene
+import menger.dsl.SceneNode
+import menger.dsl.Sierpinski4D
+import menger.dsl.Sphere
+import menger.dsl.Sponge
+import menger.dsl.Tesseract
+import menger.dsl.TesseractSponge
+import menger.dsl.ToneMapping
+import menger.dsl.Transform
 import menger.optix.CausticsConfig
 import menger.optix.RenderConfig
 
@@ -37,12 +49,16 @@ object SceneConverter extends LazyLogging:
     val objectSpecs = dslScene.root match
       case Some(node) => flattenNode(node, Transform.Identity, None)
       case None       => dslScene.objects.map(_.toObjectSpec)
-    val scene     = SceneConfig.multiObject(objectSpecs)
-    val camera    = dslScene.toCameraConfig
-    val lights    = dslScene.lights.map(_.toCommonLight)
+    val scene      = SceneConfig.multiObject(objectSpecs)
+    val camera     = CameraConfig(
+      position = dslScene.camera.position.toGdxVector3,
+      lookAt   = dslScene.camera.lookAt.toGdxVector3,
+      up       = dslScene.camera.up.toGdxVector3
+    )
+    val lights     = dslScene.lights.map(_.toCommonLight)
     val caustics   = dslScene.caustics.map(_.toCausticsConfig).getOrElse(fallbackCaustics)
     val background = dslScene.background.map(_.toCommonColor)
-    val planes     = dslScene.planes.map(_.toPlaneConfig)
+    val planes     = dslScene.planes.map(p => PlaneConfig(p.toPlaneSpec, Some(p.toPlaneColorSpec), p.material))
     val render     = dslScene.render.map(_.toRenderConfig)
     val fog        = dslScene.fog.map(f => FogConfig(f.density, f.color.toCommonColor))
     val envMap     = dslScene.envMap
@@ -102,13 +118,16 @@ object SceneConverter extends LazyLogging:
 
   private def validateSceneMaterials(dslScene: Scene): Unit =
     dslScene.objects.foreach {
-      case obj: Sphere         => obj.material.foreach(warnMaterial)
-      case obj: Cube           => obj.material.foreach(warnMaterial)
-      case obj: Sponge         => obj.material.foreach(warnMaterial)
-      case obj: Tesseract      =>
+      case obj: Sphere          => obj.material.foreach(warnMaterial)
+      case obj: Cube            => obj.material.foreach(warnMaterial)
+      case obj: Sponge          => obj.material.foreach(warnMaterial)
+      case obj: Tesseract       =>
         obj.material.foreach(warnMaterial)
         obj.edgeMaterial.foreach(warnMaterial)
       case obj: TesseractSponge =>
+        obj.material.foreach(warnMaterial)
+        obj.edgeMaterial.foreach(warnMaterial)
+      case obj: Sierpinski4D =>
         obj.material.foreach(warnMaterial)
         obj.edgeMaterial.foreach(warnMaterial)
       case obj: ParametricSurface => obj.material.foreach(warnMaterial)
@@ -118,6 +137,6 @@ object SceneConverter extends LazyLogging:
     material.validate().foreach(w => logger.warn(s"[Material] $w"))
 
   private def toToneMappingParams(tm: ToneMapping): (Int, Float) = tm match
-    case ToneMapping.None              => (0, 1.0f)
-    case ToneMapping.Reinhard(exp)     => (1, exp)
-    case ToneMapping.ACES(exp)         => (2, exp)
+    case ToneMapping.None          => (0, 1.0f)
+    case ToneMapping.Reinhard(exp) => (1, exp)
+    case ToneMapping.ACES(exp)     => (2, exp)

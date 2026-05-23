@@ -4,9 +4,14 @@ import scala.language.implicitConversions
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import menger.engines.SceneConverter
 
 /** Integration tests demonstrating end-to-end scene creation and rendering preparation. */
 class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
+
+  private val fallback = Caustics.Disabled.toCausticsConfig
+  private def convert(scene: Scene) = SceneConverter.convert(scene, fallback)
+
 
   "DSL Scene" should "create a complete glass sphere scene ready for rendering" in:
     // Define scene using DSL
@@ -21,8 +26,9 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
     )
 
     // Convert to rendering configuration
-    val sceneConfig = scene.toSceneConfig
-    val cameraConfig = scene.toCameraConfig
+    val converted = convert(scene)
+    val sceneConfig = converted.scene
+    val cameraConfig = converted.camera
 
     // Verify scene is properly configured
     sceneConfig.isMultiObject shouldBe true
@@ -52,7 +58,7 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
       caustics = Caustics.Default
     )
 
-    val sceneConfig = scene.toSceneConfig
+    val sceneConfig = convert(scene).scene
     val specs = sceneConfig.objectSpecs.get
 
     specs should have length 3
@@ -74,7 +80,7 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
       )
     )
 
-    val sceneConfig = scene.toSceneConfig
+    val sceneConfig = convert(scene).scene
     val specs = sceneConfig.objectSpecs.get
 
     specs should have length 1
@@ -94,7 +100,7 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
       )
     )
 
-    val sceneConfig = scene.toSceneConfig
+    val sceneConfig = convert(scene).scene
     val specs = sceneConfig.objectSpecs.get
 
     specs should have length 2
@@ -113,7 +119,7 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
       )
     )
 
-    val sceneConfig = scene.toSceneConfig
+    val sceneConfig = convert(scene).scene
     val specs = sceneConfig.objectSpecs.get
 
     specs(0).texture shouldBe Some("brick.png")
@@ -140,8 +146,9 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
       caustics = Caustics.HighQuality
     )
 
-    val sceneConfig = scene.toSceneConfig
-    val cameraConfig = scene.toCameraConfig
+    val converted = convert(scene)
+    val sceneConfig = converted.scene
+    val cameraConfig = converted.camera
 
     // Verify all objects are present
     val specs = sceneConfig.objectSpecs.get
@@ -173,7 +180,7 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
       lights = List(Directional((1f, -1f, -1f)))
     )
 
-    val sceneConfig = scene.toSceneConfig
+    val sceneConfig = convert(scene).scene
     val specs = sceneConfig.objectSpecs.get
 
     // All objects should be converted

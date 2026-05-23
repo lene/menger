@@ -4,6 +4,7 @@ import scala.language.implicitConversions
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import menger.engines.SceneConverter
 
 class SceneConverterSuite extends AnyFlatSpec with Matchers:
 

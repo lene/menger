@@ -4,8 +4,14 @@ import scala.language.implicitConversions
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import menger.engines.SceneConverter
 
 class CameraSuite extends AnyFlatSpec with Matchers:
+
+  private val fallback = Caustics.Disabled.toCausticsConfig
+  private def camConf(camera: Camera) =
+    SceneConverter.convert(Scene(camera, Sphere(Material.Glass)), fallback).camera
+
 
   "Camera" should "have correct defaults" in:
     val camera = new Camera()
@@ -58,9 +64,9 @@ class CameraSuite extends AnyFlatSpec with Matchers:
     camera.lookAt shouldBe Vec3.Zero
     camera.up shouldBe Vec3(0f, 1f, 0f)
 
-  "Camera.toCameraConfig" should "convert to CameraConfig correctly" in:
+  "Camera" should "convert to CameraConfig correctly via SceneConverter" in:
     val camera = Camera(Vec3(1f, 2f, 3f), Vec3(4f, 5f, 6f), Vec3(0f, 1f, 0f))
-    val config = camera.toCameraConfig
+    val config = camConf(camera)
 
     config.position.x shouldBe 1f
     config.position.y shouldBe 2f
@@ -72,9 +78,8 @@ class CameraSuite extends AnyFlatSpec with Matchers:
     config.up.y shouldBe 1f
     config.up.z shouldBe 0f
 
-  it should "convert default camera correctly" in:
-    val camera = Camera.Default
-    val config = camera.toCameraConfig
+  it should "convert default camera correctly via SceneConverter" in:
+    val config = camConf(Camera.Default)
 
     config.position.x shouldBe 0f
     config.position.y shouldBe 0f

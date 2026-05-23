@@ -2,6 +2,7 @@ package menger.dsl
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import menger.engines.SceneConverter
 
 class SceneNodeConverterSuite extends AnyFlatSpec with Matchers:
 

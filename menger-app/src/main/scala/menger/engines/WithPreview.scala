@@ -11,7 +11,6 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.Vector3Extensions.toVector3
 import menger.common.ImageSize
 import menger.dsl.Scene
-import menger.dsl.SceneConverter
 import menger.input.GdxRuntime
 import menger.optix.CausticsConfig
 import menger.optix.RenderConfig

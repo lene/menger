@@ -4,8 +4,14 @@ import scala.language.implicitConversions
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import menger.engines.SceneConverter
 
 class SceneSuite extends AnyFlatSpec with Matchers:
+
+  private val fallback = Caustics.Disabled.toCausticsConfig
+  private def sceneConf(scene: Scene) = SceneConverter.convert(scene, fallback).scene
+  private def cameraConf(scene: Scene) = SceneConverter.convert(scene, fallback).camera
+
 
   "Scene" should "be constructible with camera and single object" in:
     val sphere = Sphere(Material.Glass)
@@ -47,11 +53,11 @@ class SceneSuite extends AnyFlatSpec with Matchers:
   it should "require at least one object" in:
     an[IllegalArgumentException] should be thrownBy Scene(Camera.Default, List.empty)
 
-  "Scene.toSceneConfig" should "convert objects to SceneConfig correctly" in:
+  "Scene" should "convert objects to SceneConfig correctly via SceneConverter" in:
     val sphere = Sphere(Vec3(1f, 2f, 3f), Material.Glass, 0.5f)
     val cube = Cube(Vec3(-2f, 0f, 0f), Material.Copper, 1.5f)
     val scene = Scene(Camera.Default, List(sphere, cube))
-    val config = scene.toSceneConfig
+    val config = sceneConf(scene)
 
     config.isMultiObject shouldBe true
     config.objectSpecs shouldBe defined
@@ -68,11 +74,11 @@ class SceneSuite extends AnyFlatSpec with Matchers:
     specs(1).x shouldBe -2f
     specs(1).size shouldBe 1.5f
 
-  "Scene.toCameraConfig" should "convert camera correctly" in:
+  it should "convert camera correctly via SceneConverter" in:
     val camera = new Camera(Vec3(1f, 2f, 3f), Vec3(4f, 5f, 6f))
     val sphere = Sphere(Material.Glass)
     val scene = Scene(camera, sphere)
-    val cameraConfig = scene.toCameraConfig
+    val cameraConfig = cameraConf(scene)
 
     cameraConfig.position.x shouldBe 1f
     cameraConfig.position.y shouldBe 2f
@@ -84,7 +90,7 @@ class SceneSuite extends AnyFlatSpec with Matchers:
   "Scene with sponges" should "convert correctly" in:
     val sponge = Sponge(VolumeFilling, level = 2f, Material.Chrome)
     val scene = Scene(Camera.Default, List(sponge))
-    val config = scene.toSceneConfig
+    val config = sceneConf(scene)
 
     val specs = config.objectSpecs.get
     specs should have length 1

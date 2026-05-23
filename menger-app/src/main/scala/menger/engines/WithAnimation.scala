@@ -15,7 +15,6 @@ import menger.Vector3Extensions.toVector3
 import menger.common.ImageSize
 import menger.common.ObjectType
 import menger.dsl.Scene
-import menger.dsl.SceneConverter
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.GdxRuntime
 import menger.optix.CausticsConfig

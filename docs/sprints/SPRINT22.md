@@ -213,9 +213,9 @@ shader changes. Run full ShadowSuite + RendererTest before merging.
 - [x] All tests passing (2175/2175)
 - [x] Code quality checks pass: `sbt "scalafix --check"`
 - [x] CHANGELOG.md updated
-- [ ] Example renders committed showing fractals against HDR backgrounds
+- [x] Example renders committed showing fractals against HDR backgrounds
 - [ ] 22.5 Colored transparent shadows Phase 2
-- [ ] 22.6 SceneConverter moved to menger.engines
+- [x] 22.6 SceneConverter moved to menger.engines
 
 ---
 
