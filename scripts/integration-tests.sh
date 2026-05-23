@@ -930,18 +930,18 @@ test_cone_plane_textures() {
 
 test_cross() {
     echo "Coordinate Cross:"
-    run_test "cross default" --objects type=sphere --cross
-    run_test "cross custom length" --objects type=sphere --cross --cross-length 3.0
-    run_test "cross material" --objects type=sphere --cross --cross-material chrome
+    run_test "cross default" --objects type=sphere --cross --plane y:-2
+    run_test "cross custom length" --objects type=sphere --cross --cross-length 3.0 --plane y:-2
+    run_test "cross material" --objects type=sphere --cross --cross-material chrome --plane y:-2
 }
 
 test_4d_polytopes() {
     echo "4D Polytopes:"
-    run_test "pentachoron" --objects type=pentachoron:size=0.8 --allow-uniform-render
-    run_test "16-cell" --objects type=16-cell:size=0.8 --allow-uniform-render
-    run_test "24-cell" --objects type=24-cell:size=0.8 --allow-uniform-render
-    run_test_hires "600-cell" --objects type=600-cell:size=0.8 --allow-uniform-render
-    run_test_hires "120-cell" --objects type=120-cell:size=0.8 --allow-uniform-render
+    run_test "pentachoron" --objects type=pentachoron:size=0.8 --allow-uniform-render --plane y:-2
+    run_test "16-cell" --objects type=16-cell:size=0.8 --allow-uniform-render --plane y:-2
+    run_test "24-cell" --objects type=24-cell:size=0.8 --allow-uniform-render --plane y:-2
+    run_test_hires "600-cell" --objects type=600-cell:size=0.8 --allow-uniform-render --plane y:-2
+    run_test_hires "120-cell" --objects type=120-cell:size=0.8 --allow-uniform-render --plane y:-2
     run_test_hires "600-cell with edges" --plane y:-2 \
         --objects type=600-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.01
     run_test_hires "120-cell with edges" --plane y:-2 \
