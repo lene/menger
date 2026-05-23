@@ -29,6 +29,39 @@ Store SPRINT_NUM and VERSION. Derive:
 
 ---
 
+## Phase 1b: Code Review
+
+Run `/code-review` on the sprint branch before proceeding. This catches architectural drift,
+dead code, and style issues while the work is still fresh and before the branch is archived.
+
+```
+/code-review
+```
+
+Wait for the review to complete. Categorise findings into three tiers:
+
+- **Blockers** — must fix before archiving (security issues, broken contracts, data loss risk, broken invariants)
+- **Should-fix** — worth fixing but not urgent (design problems, significant tech debt introduced, missing test coverage for tricky paths)
+- **Notes** — informational (style, minor nits, speculative improvements)
+
+If blockers exist, fix them on the feature branch before continuing to Phase 2.
+
+For non-blocking items, build a prioritised list ordered by **impact ÷ effort** (highest wins
+first). For each item evaluate:
+- *Impact*: correctness risk, maintenance burden added, user-visible effect
+- *Effort*: estimated time to fix (quick = minutes, medium = <1h, heavy = multiple hours)
+
+Present the prioritised list to the user:
+
+> "Here are the non-blocking review findings, ranked by impact vs effort. Which should we
+> fix now before closing the sprint?"
+
+For each item the user confirms, fix it immediately on the feature branch and commit.
+Remaining items go into `CODE_IMPROVEMENTS.md` (for tech debt) or the next sprint plan
+(for features/larger refactors).
+
+---
+
 ## Phase 2: Post-Merge CI Verification
 
 ### 2a. GitLab Pipeline Status
