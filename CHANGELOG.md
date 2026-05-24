@@ -3,6 +3,37 @@
 ## [0.7.0] - 2026-05-23
 
 ### Added
+- **HDR environment maps in DSL** (Sprint 22.1) — `Scene(..., envMap = Some("panorama.hdr"))`
+  renders an equirectangular HDR file as the scene background. Path resolved relative to
+  `--texture-dir`. Background only; IBL is Sprint 23.
+- **Tone mapping** (Sprint 22.2) — `Scene.toneMapping` controls HDR-to-display mapping:
+  `ToneMapping.None` (clamp, default), `ToneMapping.Reinhard(exposure)` (smooth roll-off),
+  `ToneMapping.ACES(exposure)` (Narkowicz 2015 filmic S-curve). Applied in miss shader to
+  env map samples; exposure is a pre-tone-map multiplier (default 1.0).
+- **`Sierpinski4D` DSL type** (Sprint 22.3) — `Sierpinski4D(level, material, projection, ...)`:
+  4D pentachoron IFS fractal usable in DSL scenes, supports `edgeRadius`/`edgeMaterial`.
+- **`FractalWithHDR` example scene** — animated glass `TesseractSponge` with level 1→4,
+  XW/YW/ZW 4D rotation schedule, cliffside HDR background, Reinhard tone mapping.
+- **`SierpinskiHDRRotation` example scene** — animated film `Sierpinski4D` with copper edges,
+  simultaneous 3D Y-axis rotation + 4D XW rotation, cliffside HDR, Reinhard tone mapping.
+- **`SceneConverter` moved to `menger.engines`** (Task 22.6) — resolves P0.A architecture
+  layer violation; `menger.dsl` no longer imports `menger.config` or `menger.optix`.
+
+### Fixed
+- JNI `ThrowNew` no longer silently no-ops when `FindClass` returns null; all 11 throw sites
+  now use a safe helper that guards against null class.
+- JNI `setLights` loop now deletes 4 local refs per iteration, preventing local ref table
+  exhaustion (JVM abort) with ≥4 lights.
+- `setTriangleMeshNative` catch block now releases pinned JVM arrays on C++ exception, preventing
+  pinned memory leak on mesh upload failure.
+- `SceneObject.validateSceneMaterials` replaced by exhaustive `materialsToValidate` method on
+  the sealed trait; new geometry types are now compile-time checked rather than silently skipped.
+
+---
+
+## [0.6.2] - 2026-05-22
+
+### Added
 - **4D Menger sponge analog** (`menger4d`) — iterative IFS ray traversal via custom OptiX
   intersection shader; O(1) VRAM regardless of level (level 10+ supported). Parameters:
   `level`, `dist-threshold`, `rot-xw`/`rot-yw`/`rot-zw`, `eye-w`, `screen-w`.
@@ -31,35 +62,14 @@
   `image_texture_index` field in `InstanceMaterial` (separate from `texture_index`, which
   indexes geometry data arrays for these types).
 
-- **HDR environment maps in DSL** (Sprint 22.1) — `Scene(..., envMap = Some("panorama.hdr"))`
-  renders an equirectangular HDR file as the scene background. Path resolved relative to
-  `--texture-dir`. Background only; IBL is Sprint 23.
-- **Tone mapping** (Sprint 22.2) — `Scene.toneMapping` controls HDR-to-display mapping:
-  `ToneMapping.None` (clamp, default), `ToneMapping.Reinhard(exposure)` (smooth roll-off),
-  `ToneMapping.ACES(exposure)` (Narkowicz 2015 filmic S-curve). Applied in miss shader to
-  env map samples; exposure is a pre-tone-map multiplier (default 1.0).
-- **`Sierpinski4D` DSL type** (Sprint 22.3) — `Sierpinski4D(level, material, projection, ...)`:
-  4D pentachoron IFS fractal usable in DSL scenes, supports `edgeRadius`/`edgeMaterial`.
-- **`FractalWithHDR` example scene** — animated glass `TesseractSponge` with level 1→4,
-  XW/YW/ZW 4D rotation schedule, cliffside HDR background, Reinhard tone mapping.
-- **`SierpinskiHDRRotation` example scene** — animated film `Sierpinski4D` with copper edges,
-  simultaneous 3D Y-axis rotation + 4D XW rotation, cliffside HDR, Reinhard tone mapping.
-
 ### Fixed
 - Default plane no longer injected when `--plane` is omitted from CLI (was leaking a `y:-2`
   floor plane into every render). Integration tests updated with explicit `--plane y:-2` where
   the floor is intentional.
 - `MeshFactory` and `InteractiveEngine` now accept canonical tesseract-sponge type names
-  (`tesseract-sponge-volume`, `tesseract-sponge-surface`) in addition to legacy aliases,
-  fixing `FractalWithHDR` failing at runtime with "Unknown mesh type".
-- JNI `ThrowNew` no longer silently no-ops when `FindClass` returns null; all 11 throw sites
-  now use a safe helper that guards against null class.
-- JNI `setLights` loop now deletes 4 local refs per iteration, preventing local ref table
-  exhaustion (JVM abort) with ≥4 lights.
-- `setTriangleMeshNative` catch block now releases pinned JVM arrays on C++ exception, preventing
-  pinned memory leak on mesh upload failure.
-- `SceneObject.validateSceneMaterials` replaced by exhaustive `materialsToValidate` method on
-  the sealed trait; new geometry types are now compile-time checked rather than silently skipped.
+  (`tesseract-sponge-volume`, `tesseract-sponge-surface`) in addition to legacy aliases.
+
+---
 
 ## [0.6.1] - 2026-05-17
 
