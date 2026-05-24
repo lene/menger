@@ -2,7 +2,7 @@
 
 **Sprint:** 23 - Image-Based Lighting
 **Status:** Not Started
-**Estimate:** ~22 hours
+**Estimate:** ~42 hours
 **Branch:** `feature/sprint-23`
 **Dependencies:** Sprint 22 (HDR env map in DSL, tone mapping)
 
@@ -175,6 +175,84 @@ Denoiser deferred to later sprint.
 
 ---
 
+### Task 23.7: Fix M-cuda-gas-buffer-leak
+
+**Estimate:** 2h
+
+`d_gas_output_buffer` in `buildCompactedBVH` and `buildTriangleGAS` is allocated via `cudaMalloc` then leaked if `OPTIX_CHECK` throws before it is registered with `BufferManager`.
+
+**Fix**: Wrap with a scope guard (`ScopeGuard` or `std::unique_ptr` with `cudaFree` deleter) immediately after allocation.
+
+---
+
+### Task 23.8: Fix M-cuda-texture-array-leak
+
+**Estimate:** 2h
+
+`cudaArray_t cuArray` in `uploadTextureFloat` / `uploadTexture` is allocated then leaked if `cudaCreateTextureObject` fails before it is pushed to `m_textures`.
+
+**Fix**: Push `{nullptr, cuArray}` to `m_textures` immediately after `cudaMalloc3DArray`; `releaseTextures` will clean it up on any exit path.
+
+---
+
+### Task 23.9: Fix M-render-null-type-contract
+
+**Estimate:** 2h
+
+`OptiXRenderApi.renderWithStats` declares return type `RenderResult` but returns `null` on JNI failure. Two callers wrap defensively with `Option(...)`; a third does not.
+
+**Fix**: Change return type to `Option[RenderResult]`. Update all three callers. Removes one `Option(...)` layer at existing defensive callers; fixes the unguarded one.
+
+---
+
+### Task 23.10: Fix M-texture-index-overloading
+
+**Estimate:** 1 day
+
+`texture_index` in `InstanceMaterial` means image-texture index for mesh/sphere but geometry-data index for cone/plane. `image_texture_index` was added to patch cone/plane, leaving two fields with overlapping semantics.
+
+**Fix**: Rename `texture_index` to `geometry_data_index` for cone/plane instances; use `image_texture_index` uniformly for all image texture references. Audit all hit shaders.
+
+---
+
+### Task 23.11: Fix M-arch-config-naming
+
+**Estimate:** 1 day
+
+Five `*Config` types live outside `menger.config`/`menger.common`, blocking the ArchUnit naming rule. Migrate: `InteractiveEngine.LevelConfig` → extract to `menger.config`; `TAnimationConfig`, `OrbitConfig`, `CausticsConfig`, `RenderConfig` → `menger.config`; `ProfilingConfig` → `menger.common`. Remove `ignore` from rule in `ArchitectureSpec`.
+
+---
+
+### Task 23.12: Fix M-arch-archunit-case-class-field
+
+**Estimate:** 3h
+
+ArchUnit `haveOnlyFinalFields()` fires on Scala `val` fields (non-final JVM bytecode). Three immutability/IO rules are ignored as a result.
+
+**Fix**: Replace `haveOnlyFinalFields()` with a custom predicate checking for setter methods (i.e. `var`). Add `notSerializable` exclusion for `java.io.Serializable` false-positives. Un-ignore affected rules.
+
+---
+
+### Task 23.13: Fix M-arch-objects-logging
+
+**Estimate:** 2h
+
+`ParametricTessellator` and `higher_d/Rotation` in `menger.objects` use SLF4J directly. Geometry classes should be pure; logging belongs in callers.
+
+**Fix**: Remove `LazyLogging` from both classes. Return progress metadata (triangle count, elapsed time) from computation methods so callers in `menger.engines` can log. Un-ignore the objects-logging ArchUnit rule (after 23.12 fixes the Serializable false-positive).
+
+---
+
+### Task 23.14: Fix M-objectspec-optix-coupling
+
+**Estimate:** 1 day
+
+`ObjectSpec` (core domain) imports `menger.optix.Material`, creating an inverted dependency from app domain into the JNI layer.
+
+**Fix**: Move `Material` (pure Scala sealed trait) to `menger-common`. `menger-jni` imports from there. No native changes needed.
+
+---
+
 ## Summary
 
 | Task | Description | Estimate | Dependencies |
@@ -185,7 +263,15 @@ Denoiser deferred to later sprint.
 | 23.4 | DSL `IBL` type + `Scene.ibl` wiring | 3h | 23.2, 23.3 |
 | 23.5 | Accumulation frames (optional) | 3h | 23.2 |
 | 23.6 | Documentation | 2h | All |
-| **Total** | | **~22h** | |
+| 23.7 | Fix M-cuda-gas-buffer-leak: scope guard for d_gas_output_buffer | 2h | — |
+| 23.8 | Fix M-cuda-texture-array-leak: track cuArray before CreateTextureObject | 2h | — |
+| 23.9 | Fix M-render-null-type-contract: change renderWithStats to Option[RenderResult] | 2h | — |
+| 23.10 | Fix M-texture-index-overloading: rename texture_index to geometry_data_index | 1d | — |
+| 23.11 | Fix M-arch-config-naming: migrate *Config types to menger.config | 1d | — |
+| 23.12 | Fix M-arch-archunit-case-class-field: custom DescribedPredicate for val fields | 3h | — |
+| 23.13 | Fix M-arch-objects-logging: remove SLF4J from menger.objects geometry classes | 2h | — |
+| 23.14 | Fix M-objectspec-optix-coupling: move Material to menger-common | 1d | — |
+| **Total** | | **~42h** | |
 
 ---
 
