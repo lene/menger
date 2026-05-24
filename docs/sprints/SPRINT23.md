@@ -175,7 +175,7 @@ Denoiser deferred to later sprint.
 
 ---
 
-### Task 23.7: Fix M-cuda-gas-buffer-leak
+### Task 23.7: Fix M-cuda-gas-buffer-leak ✅
 
 **Estimate:** 2h
 
@@ -185,7 +185,7 @@ Denoiser deferred to later sprint.
 
 ---
 
-### Task 23.8: Fix M-cuda-texture-array-leak
+### Task 23.8: Fix M-cuda-texture-array-leak ✅
 
 **Estimate:** 2h
 
@@ -195,7 +195,7 @@ Denoiser deferred to later sprint.
 
 ---
 
-### Task 23.9: Fix M-render-null-type-contract
+### Task 23.9: Fix M-render-null-type-contract ✅
 
 **Estimate:** 2h
 
@@ -205,7 +205,7 @@ Denoiser deferred to later sprint.
 
 ---
 
-### Task 23.10: Fix M-texture-index-overloading
+### Task 23.10: Fix M-texture-index-overloading ❌
 
 **Estimate:** 1 day
 
@@ -215,7 +215,7 @@ Denoiser deferred to later sprint.
 
 ---
 
-### Task 23.11: Fix M-arch-config-naming
+### Task 23.11: Fix M-arch-config-naming 🔶
 
 **Estimate:** 1 day
 
@@ -223,7 +223,7 @@ Five `*Config` types live outside `menger.config`/`menger.common`, blocking the 
 
 ---
 
-### Task 23.12: Fix M-arch-archunit-case-class-field
+### Task 23.12: Fix M-arch-archunit-case-class-field ✅
 
 **Estimate:** 3h
 
@@ -233,7 +233,7 @@ ArchUnit `haveOnlyFinalFields()` fires on Scala `val` fields (non-final JVM byte
 
 ---
 
-### Task 23.13: Fix M-arch-objects-logging
+### Task 23.13: Fix M-arch-objects-logging ✅
 
 **Estimate:** 2h
 
@@ -243,7 +243,7 @@ ArchUnit `haveOnlyFinalFields()` fires on Scala `val` fields (non-final JVM byte
 
 ---
 
-### Task 23.14: Fix M-objectspec-optix-coupling
+### Task 23.14: Fix M-objectspec-optix-coupling ✅
 
 **Estimate:** 1 day
 
@@ -255,23 +255,23 @@ ArchUnit `haveOnlyFinalFields()` fires on Scala `val` fields (non-final JVM byte
 
 ## Summary
 
-| Task | Description | Estimate | Dependencies |
-|------|-------------|----------|--------------|
-| 23.1 | Env map CDF precomputation (CPU + GPU upload) | 4h | Sprint 22 HDR load |
-| 23.2 | `sampleEnvLight()` shader function | 5h | 23.1 |
-| 23.3 | MIS combining env and BSDF sampling | 5h | 23.2 |
-| 23.4 | DSL `IBL` type + `Scene.ibl` wiring | 3h | 23.2, 23.3 |
-| 23.5 | Accumulation frames (optional) | 3h | 23.2 |
-| 23.6 | Documentation | 2h | All |
-| 23.7 | Fix M-cuda-gas-buffer-leak: scope guard for d_gas_output_buffer | 2h | — |
-| 23.8 | Fix M-cuda-texture-array-leak: track cuArray before CreateTextureObject | 2h | — |
-| 23.9 | Fix M-render-null-type-contract: change renderWithStats to Option[RenderResult] | 2h | — |
-| 23.10 | Fix M-texture-index-overloading: rename texture_index to geometry_data_index | 1d | — |
-| 23.11 | Fix M-arch-config-naming: migrate *Config types to menger.config | 1d | — |
-| 23.12 | Fix M-arch-archunit-case-class-field: custom DescribedPredicate for val fields | 3h | — |
-| 23.13 | Fix M-arch-objects-logging: remove SLF4J from menger.objects geometry classes | 2h | — |
-| 23.14 | Fix M-objectspec-optix-coupling: move Material to menger-common | 1d | — |
-| **Total** | | **~42h** | |
+| Task | Description | Estimate | Dependencies | Status |
+|------|-------------|----------|--------------|--------|
+| 23.1 | Env map CDF precomputation (CPU + GPU upload) | 4h | Sprint 22 HDR load | ❌ |
+| 23.2 | `sampleEnvLight()` shader function | 5h | 23.1 | ❌ |
+| 23.3 | MIS combining env and BSDF sampling | 5h | 23.2 | ❌ |
+| 23.4 | DSL `IBL` type + `Scene.ibl` wiring | 3h | 23.2, 23.3 | ❌ |
+| 23.5 | Accumulation frames (optional) | 3h | 23.2 | ❌ |
+| 23.6 | Documentation | 2h | All | ❌ |
+| 23.7 | Fix M-cuda-gas-buffer-leak: scope guard for d_gas_output_buffer | 2h | — | ✅ |
+| 23.8 | Fix M-cuda-texture-array-leak: track cuArray before CreateTextureObject | 2h | — | ✅ |
+| 23.9 | Fix M-render-null-type-contract: change renderWithStats to Option[RenderResult] | 2h | — | ✅ |
+| 23.10 | Fix M-texture-index-overloading: rename texture_index to geometry_data_index | 1d | — | ❌ |
+| 23.11 | Fix M-arch-config-naming: migrate *Config types to menger.config | 1d | — | 🔶 |
+| 23.12 | Fix M-arch-archunit-case-class-field: custom DescribedPredicate for val fields | 3h | — | ✅ |
+| 23.13 | Fix M-arch-objects-logging: remove SLF4J from menger.objects geometry classes | 2h | — | ✅ |
+| 23.14 | Fix M-objectspec-optix-coupling: move Material to menger-common | 1d | — | ✅ |
+| **Total** | | **~42h** | | |
 
 ---
 
