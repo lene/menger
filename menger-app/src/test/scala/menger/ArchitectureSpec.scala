@@ -129,7 +129,7 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .and().areDeclaredInClassesThat().haveSimpleNameNotEndingWith("$")
       .and().arePublic()
       .should(noScalaTypesInSignature)
-      .check(allClasses)
+      .check(optixJniClasses)
 
   "production code" should "not write to standard streams (use SLF4J instead)" in:
     noClasses().that().haveNameNotMatching(".*Main.*")

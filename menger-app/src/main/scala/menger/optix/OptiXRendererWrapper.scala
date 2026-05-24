@@ -38,8 +38,8 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
       logger.error("OptiX rendering failed - returned null")
       Array.emptyByteArray
 
-  def renderSceneWithStats(size: ImageSize): RenderResult =
-    renderer.renderWithStats(size)
+  def renderSceneWithStats(size: ImageSize): Option[RenderResult] =
+    Option(renderer.renderWithStats(size))
 
   def dispose(): Unit =
     _rendererRef.get().foreach { r =>

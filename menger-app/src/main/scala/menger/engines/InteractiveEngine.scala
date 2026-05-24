@@ -654,16 +654,20 @@ class InteractiveEngine(
   override protected def allowUniformRender: Boolean = execution.allowUniformRender
 
   private def renderWithStats(width: Int, height: Int): Array[Byte] =
-    val result = rendererWrapper.renderSceneWithStats(ImageSize(width, height))
-    val stats  = result.stats
-    logger.info(
-      f"Frame: ${stats.frameMs}%.1f ms (${stats.msPerMray}%.2f ms/Mray) | " +
-      s"primary=${stats.primaryRays} total=${stats.totalRays} " +
-      s"reflected=${stats.reflectedRays} refracted=${stats.refractedRays} " +
-      s"shadow=${stats.shadowRays} aa=${stats.aaRays} " +
-      s"depth=${stats.minDepthReached}-${stats.maxDepthReached}"
-    )
-    result.image
+    rendererWrapper.renderSceneWithStats(ImageSize(width, height)) match
+      case None =>
+        logger.error("OptiX rendering failed - renderWithStats returned None")
+        Array.emptyByteArray
+      case Some(result) =>
+        val stats = result.stats
+        logger.info(
+          f"Frame: ${stats.frameMs}%.1f ms (${stats.msPerMray}%.2f ms/Mray) | " +
+          s"primary=${stats.primaryRays} total=${stats.totalRays} " +
+          s"reflected=${stats.reflectedRays} refracted=${stats.refractedRays} " +
+          s"shadow=${stats.shadowRays} aa=${stats.aaRays} " +
+          s"depth=${stats.minDepthReached}-${stats.maxDepthReached}"
+        )
+        result.image
 
   override def resize(width: Int, height: Int): Unit = {}
 
