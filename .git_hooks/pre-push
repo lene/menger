@@ -262,7 +262,7 @@ run_coverage() {
   COVERAGE_DROP_THRESHOLD="1.0"
   COVERAGE_MIN="80"
   COVERAGE_FLOOR="60"
-  REPORT_FILE="menger-app/target/scala-3.8.2/scoverage-report/scoverage.xml"
+  REPORT_FILE="menger-app/target/scala-3.8.3/scoverage-report/scoverage.xml"
 
   # Clean separately to avoid ClassNotFoundException with scoverage instrumented classes
   sbt "project mengerApp" clean --warn >> /tmp/coverage-prepush.log 2>&1
