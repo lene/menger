@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-05-21
+**Last Updated:** 2026-05-23
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -8,12 +8,117 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## High Priority
 
-*(none)*
+### H-jni-thrownew-null-class: ThrowNew called with null class on JNI FindClass failure
+
+**Location**: `optix-jni/src/main/native/JNIBindings.cpp:73, 190, 200, 219, 273, 278, 534, 551, 560, 574, 594` (~11 sites)
+**Impact**: High — if `FindClass` returns null (class not on classpath, OOM), the subsequent `ThrowNew(null, msg)` silently no-ops; the native function returns normally; Scala caller sees no exception, gets garbage results.
+**Effort**: 2–3 hours (systematic — same fix pattern at every site)
+
+Every JNI function that throws uses the pattern:
+```cpp
+env->ThrowNew(env->FindClass("java/lang/RuntimeException"), "msg");
+return 0;
+```
+`FindClass` can return null (and sets a pending exception itself), but `ThrowNew` with a null `jclass` is undefined behavior / no-op depending on JVM. The pending FindClass exception is also cleared if `ThrowNew` is called without first checking `ExceptionOccurred`.
+
+**Direction**: Extract a helper:
+```cpp
+static void throwRuntimeException(JNIEnv* env, const char* msg) {
+    jclass cls = env->FindClass("java/lang/RuntimeException");
+    if (cls) env->ThrowNew(cls, msg);
+    // else FindClass already threw OutOfMemoryError — leave it
+}
+```
+Replace all 11 call sites. Takes 30 min once the helper exists.
 
 ---
 
 ## Medium Priority
 
+
+### M-jni-array-not-released-on-exception: GetPrimitiveArrayElements not released in catch block
+
+**Location**: `optix-jni/src/main/native/JNIBindings.cpp:568–596` (`setTriangleMeshNative`)
+**Impact**: Medium — pinned JVM memory not returned on C++ exception path; repeated mesh uploads with exceptions leak pinned memory until GC pressure triggers a JVM crash.
+**Effort**: Quick (30 min)
+
+```cpp
+jfloat* vertices = env->GetFloatArrayElements(vertexArr, nullptr);
+jint*   indices  = env->GetIntArrayElements(indexArr, nullptr);
+// ... OPTIX_CHECK throws here ...
+// catch block does env->ThrowNew() but never calls:
+//   env->ReleaseFloatArrayElements(vertexArr, vertices, JNI_ABORT)
+//   env->ReleaseIntArrayElements(indexArr, indices, JNI_ABORT)
+```
+
+**Direction**: Add both `Release*ArrayElements` calls at the top of the catch block before `ThrowNew`. Use `JNI_ABORT` (no writeback needed — native code doesn't modify these arrays).
+
+---
+
+### M-jni-local-ref-leak-setlights: 4 jfloatArray local refs per light not freed in loop
+
+**Location**: `optix-jni/src/main/native/JNIBindings.cpp:237–257` (`setLights`)
+**Impact**: Medium — JNI local ref table has a default limit of 16 entries. Scenes with ≥4 lights exhaust the table, causing a JVM abort on the next JNI call.
+**Effort**: 1 hour
+
+Each iteration allocates 4 `jfloatArray` refs via `NewFloatArray`; none are freed with `DeleteLocalRef`. At 4 lights the table fills; at 5+ lights the JVM aborts.
+
+**Direction**: Add `env->DeleteLocalRef(arr)` after each `SetFloatArrayRegion` call inside the loop, or wrap the loop body in `PushLocalFrame`/`PopLocalFrame`.
+
+---
+
+### M-cuda-gas-buffer-leak: d_gas_output_buffer leaks if OPTIX_CHECK throws after cudaMalloc
+
+**Location**: `optix-jni/src/main/native/OptiXContext.cpp:516–546` (buildCompactedBVH), same pattern in buildTriangleGAS
+**Impact**: Medium — GPU memory leak on every failed BVH build. Failure path is uncommon in production but hits in tests and OOM scenarios.
+**Effort**: 2–3 hours (RAII wrapper or scope guard)
+
+```cpp
+CUdeviceptr d_gas_output_buffer;
+cudaMalloc(reinterpret_cast<void**>(&d_gas_output_buffer), gasBufferSizes.outputSizeInBytes);
+OPTIX_CHECK(optixAccelBuild(...));  // ← if this throws, d_gas_output_buffer leaks
+```
+
+**Direction**: Wrap in a scope guard (`ScopeGuard` or `std::unique_ptr` with custom deleter calling `cudaFree`). The project already has `BufferManager`; use it or extend it.
+
+---
+
+### M-cuda-texture-array-leak: cudaArray_t leaked if cudaCreateTextureObject fails
+
+**Location**: `optix-jni/src/main/native/OptiXWrapper.cpp:2953–2978` (uploadTextureFloat / uploadTexture)
+**Impact**: Medium — GPU texture array memory leaks on upload failure. Surfaces in resource-constrained renders or malformed HDR file paths.
+**Effort**: 2–3 hours
+
+```cpp
+cudaArray_t cuArray;
+cudaMalloc3DArray(&cuArray, &channelDesc, extent, 0);
+// cuArray not yet in m_textures / not tracked anywhere
+cudaCreateTextureObject(&texObj, &resDesc, &texDesc, nullptr);
+// ← on failure: cuArray leaked; cudaFreeArray never called
+m_textures.push_back({texObj, cuArray});  // ← only added on success
+```
+
+**Direction**: Track `cuArray` immediately after allocation (before `CreateTextureObject`) so `releaseTextures` cleans it up regardless. Or use a local scope guard that calls `cudaFreeArray` on early exit.
+
+---
+
+### M-scene-validate-non-exhaustive: validateSceneMaterials partial match on sealed SceneObject
+
+**Location**: `menger-app/src/main/scala/menger/engines/SceneConverter.scala:119–134`
+**Impact**: Medium — compile-time gap: adding a new `SceneObject` subtype silently skips material validation. Proved by Sierpinski4D MatchError bug in Sprint 22.
+**Effort**: Quick (1–2 hours)
+
+```scala
+dslScene.objects.foreach {
+  case obj: Sphere    => obj.material.foreach(warnMaterial)
+  // ... 5 more cases ...
+  // new subtype: no compile error, silently skipped
+}
+```
+
+**Direction**: Move `warnMaterial` call into `SceneObject` trait as `def validateMaterials(): Unit` (or `def materials: List[Material]`). Then `dslScene.objects.foreach(_.validateMaterials())` — exhaustiveness enforced at compile time. Each subtype implements it; the sealed trait guarantees coverage.
+
+---
 
 ### M-render-null-type-contract: renderWithStats declares RenderResult but may return null
 
@@ -78,18 +183,6 @@ The ArchUnit rule enforcing `*Config` → `menger.config` or `menger.common` is 
 
 ---
 
-### M-arch-dsl-layer: menger.dsl imports menger.config and menger.optix (layer violation)
-
-**Location**: `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored rule), `menger/dsl/SceneConverter.scala`, `menger/dsl/Material.scala`
-**Impact**: Medium — `menger.dsl` (inner layer L1) reaches into `menger.config` and `menger.optix` (outer layers), preventing independent testing and future modular packaging.
-**Effort**: 1 day
-
-`SceneConverter` (currently in `menger.dsl`) imports `menger.config.{PlaneConfig, CameraConfig, SceneConfig}` and `menger.optix.{CausticsConfig, RenderConfig}`. `Material.scala` in `menger.dsl` delegates to `menger.optix.Material` for preset lookup.
-
-**Direction**: Move `SceneConverter` to `menger.engines` (outer layer, allowed to see both dsl and config). `menger.dsl.Material` delegation can use a string key that `menger.engines` resolves to `menger.optix.Material`. Once done, un-ignore the dsl layer rule and the mutable-collections-in-dsl rule in `ArchitecturePhase2Spec`.
-
----
-
 ### M-arch-archunit-case-class-field: ArchUnit haveOnlyFinalFields fires on Scala case class val fields
 
 **Location**: `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored immutability rules)
@@ -142,6 +235,10 @@ If a headless test or CLI module ever wants to validate or manipulate `ObjectSpe
 | L-m4d-error-codes | `updateMenger4DProjection` returns -1/-2/-3 with no enum or comment mapping; future callers will guess | `OptiXWrapper.cpp`, `JNIBindings.cpp` |
 | L-m4d-scene4d-sumtype | `Scene4DCache(gpu, cpu, menger4d)` are mutually exclusive but stored as three Options; a sealed trait would prevent multi-branch population at compile time | `InteractiveEngine.scala` |
 | L-m4d-builder-validation | `Menger4DSceneBuilder` validates `level.isEmpty` but not out-of-range values; relies silently on `OptiXWrapper` to reject with -1 | `Menger4DSceneBuilder.scala` |
+| L-jni-release-mode-readonly | `Release*ArrayElements` called with mode `0` (copy-back) for read-only arrays in `setCameraNative`, `setLights`, `setTriangleMeshNative`. Should use `JNI_ABORT`. No correctness bug, but wastes a copy. | `JNIBindings.cpp` (multiple sites) |
+| L-cuda-synchronize-unchecked | `cudaDeviceSynchronize()` return value ignored at two call sites; errors silently discarded | `OptiXWrapper.cpp:628, ~718` |
+| L-cuda-dispose-swallows | `dispose()` single try-catch swallows all exceptions, causing subsequent cleanup steps to be skipped if first step throws | `OptiXWrapper.cpp:3099` |
+| L-tonemapping-magic-ints | ToneMapping operator encoded as magic int (0/1/2) split between `SceneConverter.scala:139–142` and `miss_plane.cu:92–97`; no compile-time sync between Scala enum and CUDA switch | `SceneConverter.scala`, `miss_plane.cu` |
 
 
 ## Tooling Gaps

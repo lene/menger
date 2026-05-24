@@ -9,16 +9,9 @@ import menger.common.{Color => CommonColor}
 import menger.config.CameraConfig
 import menger.config.PlaneConfig
 import menger.config.SceneConfig
-import menger.dsl.Cube
 import menger.dsl.Material
-import menger.dsl.ParametricSurface
 import menger.dsl.Scene
 import menger.dsl.SceneNode
-import menger.dsl.Sierpinski4D
-import menger.dsl.Sphere
-import menger.dsl.Sponge
-import menger.dsl.Tesseract
-import menger.dsl.TesseractSponge
 import menger.dsl.ToneMapping
 import menger.dsl.Transform
 import menger.optix.CausticsConfig
@@ -117,21 +110,7 @@ object SceneConverter extends LazyLogging:
         else spec.copy(material = Some(material.toOptixMaterial))
 
   private def validateSceneMaterials(dslScene: Scene): Unit =
-    dslScene.objects.foreach {
-      case obj: Sphere          => obj.material.foreach(warnMaterial)
-      case obj: Cube            => obj.material.foreach(warnMaterial)
-      case obj: Sponge          => obj.material.foreach(warnMaterial)
-      case obj: Tesseract       =>
-        obj.material.foreach(warnMaterial)
-        obj.edgeMaterial.foreach(warnMaterial)
-      case obj: TesseractSponge =>
-        obj.material.foreach(warnMaterial)
-        obj.edgeMaterial.foreach(warnMaterial)
-      case obj: Sierpinski4D =>
-        obj.material.foreach(warnMaterial)
-        obj.edgeMaterial.foreach(warnMaterial)
-      case obj: ParametricSurface => obj.material.foreach(warnMaterial)
-    }
+    dslScene.objects.foreach(_.materialsToValidate.foreach(warnMaterial))
 
   private def warnMaterial(material: Material): Unit =
     material.validate().foreach(w => logger.warn(s"[Material] $w"))

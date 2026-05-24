@@ -22,7 +22,7 @@ head -5 docs/sprints/SPRINT.md
 ```
 
 Then ask the user:
-> "Which sprint was just closed and what version was released (e.g. Sprint 13 / v0.5.3)?"
+> "Which sprint are we closing and what version is to be released (e.g. Sprint 13 / v0.5.3)?"
 
 Store SPRINT_NUM and VERSION. Derive:
 - NEXT_SPRINT_NUM = SPRINT_NUM + 1
@@ -62,9 +62,14 @@ Remaining items go into `CODE_IMPROVEMENTS.md` (for tech debt) or the next sprin
 
 ---
 
-## Phase 2: Post-Merge CI Verification
+## Phase 2: Pre-Merge CI Verification
 
-### 2a. GitLab Pipeline Status
+### 2a. Next-To-Last Pre-merge push
+
+If any files are still uncommitted, commit them. If there is any commit on the branch
+that is not yet on `origin`, push and monitor the resulting pipeline.
+
+### 2b. GitLab Pipeline Status
 
 Get the main SHA and recent pipelines:
 
@@ -88,35 +93,6 @@ Look for and verify these pipelines all show `success` on the main SHA:
 - Main branch pipeline (`main`)
 
 If any pipeline is `running` or `pending`, wait and retry. If `failed`, stop and report the failing job before proceeding.
-
-### 2b. PushToGithub Job
-
-Find the tag pipeline ID from the output above, then inspect its jobs:
-
-```bash
-curl -s --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" \
-  "https://gitlab.com/api/v4/projects/lilacashes%2Fmenger/pipelines/PIPELINE_ID/jobs" \
-  | python3 -c "
-import sys, json
-jobs = json.load(sys.stdin)
-for j in jobs:
-    print(f\"{j['name']:<30s}  {j['status']:<10s}  {j.get('failure_reason','') or ''}\")"
-```
-
-Report the status of each job. The `PushToGithub` and `CreateGithubRelease` jobs must be `success`.
-
-### 2c. GitHub Mirror Verification
-
-```bash
-git ls-remote github refs/heads/main
-git ls-remote github refs/tags/vVERSION
-```
-
-Verify:
-- `refs/heads/main` SHA matches `origin/main`
-- `refs/tags/vVERSION` exists and points to same SHA
-
-Report ✅ or ❌ for each. If GitHub mirror is wrong, suggest re-running the PushToGithub job from the GitLab UI.
 
 ---
 
@@ -258,7 +234,74 @@ If the user approved any changes, update `docs/sprints/SPRINTNEXT_SPRINT_NUM.md`
 Present the agreed task list and ask:
 > "Confirm final Sprint NEXT_SPRINT_NUM scope? (y/n)"
 
-### 4e. Ensure Sprint Branch Exists
+## Phase 5: Final Push and Merge
+
+### 5a. Last Pre-merge push
+
+If any files are still uncommitted, commit them. If there is any commit on the branch
+that is not yet on `origin`, push and monitor the resulting pipeline.
+
+### 5b. GitLab Pipeline Status
+
+Get the main SHA and recent pipelines:
+
+```bash
+git rev-parse origin/main
+```
+
+```bash
+curl -s --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" \
+  "https://gitlab.com/api/v4/projects/lilacashes%2Fmenger/pipelines?per_page=10" \
+  | python3 -c "
+import sys, json
+ps = json.load(sys.stdin)
+for p in ps:
+    print(f\"{p['iid']:4d}  {p['sha'][:8]}  {p['ref']:<45s}  {p['status']:<10s}  {p['created_at'][:16]}\")"
+```
+
+Look for and verify these pipelines all show `success` on the main SHA:
+- MR pipeline (`refs/merge-requests/N/head`)
+- Tag pipeline (`refs/tags/vVERSION`)
+- Main branch pipeline (`main`)
+
+If any pipeline is `running` or `pending`, wait and retry. If `failed`, stop and report the failing job before proceeding.
+
+### 5c. Merge MR
+
+Ask the user to merge the MR and wait for confirmation.
+
+### 5d. PushToGithub Job
+
+Find the tag pipeline ID from the output above, then inspect its jobs:
+
+```bash
+curl -s --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" \
+  "https://gitlab.com/api/v4/projects/lilacashes%2Fmenger/pipelines/PIPELINE_ID/jobs" \
+  | python3 -c "
+import sys, json
+jobs = json.load(sys.stdin)
+for j in jobs:
+    print(f\"{j['name']:<30s}  {j['status']:<10s}  {j.get('failure_reason','') or ''}\")"
+```
+
+Report the status of each job. The `PushToGithub` and `CreateGithubRelease` jobs must be `success`.
+
+### 5e. GitHub Mirror Verification
+
+```bash
+git ls-remote github refs/heads/main
+git ls-remote github refs/tags/vVERSION
+```
+
+Verify:
+- `refs/heads/main` SHA matches `origin/main`
+- `refs/tags/vVERSION` exists and points to same SHA
+
+Report ✅ or ❌ for each. If GitHub mirror is wrong, suggest re-running the PushToGithub job from the GitLab UI.
+
+## Phase 6: Create New Sprint
+
+### 6a. Ensure Sprint Branch Exists
 
 **IMPORTANT:** The completed sprint MR has already been merged. Do NOT commit directly to
 the old sprint branch (`feature/sprint-SPRINT_NUM`) — it is done. All archiving work and
@@ -279,7 +322,7 @@ git push -u origin feature/sprint-NEXT_SPRINT_NUM
 
 If you haven't committed any archiving work yet, simply create the branch and proceed.
 
-### 4f. Commit Sprint Kickoff
+### 6b. Commit Sprint Kickoff
 
 ```bash
 git add docs/sprints/SPRINTNEXT_SPRINT_NUM.md
@@ -293,7 +336,7 @@ git push -u origin feature/sprint-NEXT_SPRINT_NUM
 
 ---
 
-## Phase 5: Summary Report
+## Phase 7: Summary Report
 
 Print this report, filling in ✅ or ❌ for each item:
 

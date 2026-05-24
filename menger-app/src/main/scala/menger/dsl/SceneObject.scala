@@ -23,6 +23,7 @@ sealed trait SceneObject:
   def proceduralScale: Float
   def rotation: Vec3
   def toObjectSpec: ObjectSpec
+  def materialsToValidate: List[Material] = material.toList
 
   protected def baseObjectSpec(
     objectType: String,
@@ -216,6 +217,8 @@ case class Tesseract(
       edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
     )
 
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
 object Tesseract:
   // Material-only constructor (at origin)
   def apply(material: Material): Tesseract =
@@ -261,6 +264,8 @@ case class TesseractSponge(
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
     )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
 
 object TesseractSponge:
   // Type + level (at origin, no material)
@@ -325,6 +330,8 @@ case class Sierpinski4D(
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
     )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
 
 object Sierpinski4D:
   def apply(level: Float): Sierpinski4D = Sierpinski4D(Vec3.Zero, level)
