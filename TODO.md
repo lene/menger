@@ -22,21 +22,31 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
   - construction from Schläfli symbols (algorithmic generator for `{p,q}` / `{p,q,r}`)
   - gaussian splats
   - 4D spacetime trace of a person (or any object)
+  - Parametric 2- and 3-surfaces in 4-space
   - 3-sphere (but how to visualize?)
     - Hopf fibration https://en.wikipedia.org/wiki/Hopf_fibration
     - complex-valued functions
-- The Real "Smart Idea": Procedural Intersection (SDFs)
-  Since you cannot store the vertices (memory limit) and you cannot instance the geometry (4D 
-  limit), the only robust solution for high-dimensional fractals in OptiX is Procedural Primitives.
-  You don't upload any mesh data (no vertices, no indices). Instead, you upload the Logic.
-  = The Setup (Custom Primitive)
-    You create a single Custom Primitive (an Axis-Aligned Bounding Box) that represents the bounding
-    volume of your entire 4D object in 3D space.
-  = The Intersection Shader (`__intersection__`)
-    This is where the magic happens. Instead of testing "Ray vs. Triangle," you write a loop that 
-    mathematically checks "Ray vs. Fractal."
-    Because Menger Sponges are Iterated Function Systems (IFS), you can reverse the logic. Instead 
-    of generating the geometry, you "fold the space".
+  - julia sets over C
+  
+    - 2. A 3D generalization of the torus: in this case, one can imagine gluing together the opposite faces of a cube.
+
+      A half-twist torus: same as #2, but one pair of surfaces is twisted by 180 degrees, like a Möbius strip.
+
+      A quarter-twist torus: same as #2, but a pair of surfaces is joined by twisting them by 90 degrees.
+
+      A third-twist prism: instead of looking at the faces of a cube, one can also use a six-sided prism. Here, opposite faces are also glued together, but one face is rotated by 120 degrees.
+
+      A sixth-twist prism: same as #5, but one side is rotated by 60 degrees.
+
+      A shape called a Hantzsche-Wendt manifold that consists of two cubes stacked on top of each other, with the faces of the cubes joined together in a complex way.
+
+      A space consisting of infinitely many flat planes that can be twisted relative to each other.
+
+      A space consisting of an infinitely tall “chimney”: four surfaces arranged as the sides of a parallelogram. Opposite surfaces are glued together.
+
+      Same as #9, but one of the pairs of surfaces is rotated by 180 degrees.
+
+
 
 - movie with steadily increasing level with 360 degree background
   - movies as textures instead of png
@@ -66,13 +76,9 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 
 Items moved to sprint plans:
 
-- Wireframe rendering → backlog (stylistic, OptiX edge geometry)
-- Multiple planes → Sprint 19.4 (planes as first-class geometry)
 - Scalar and vector fields → backlog (functions first, datasets later)
 - Depth cue/Fog → backlog
 - Parametric surface specializations → backlog
 - Color by intensity → backlog (general, including volumes)
-- rot for x/y/z rotation → Sprint 19.7 (per-object 3D rotation via scene graph)
-- render time per frame and per ray → Sprint 19.8
 - higher max trace depth → Sprint 19.9 (spike)
 - fractional levels with IAS sponges → Sprint 19.10 (spike)
