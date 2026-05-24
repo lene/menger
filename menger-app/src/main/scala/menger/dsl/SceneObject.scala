@@ -2,6 +2,7 @@ package menger.dsl
 
 import scala.annotation.targetName
 
+import com.typesafe.scalalogging.LazyLogging
 import menger.ObjectRotation
 import menger.ObjectSpec
 import menger.ProceduralSpec
@@ -375,15 +376,26 @@ case class ParametricSurface(
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
   rotation: Vec3 = Vec3.Zero
-) extends SceneObject:
+) extends SceneObject with LazyLogging:
   require(uSteps >= 1, s"uSteps must be >= 1, got $uSteps")
   require(vSteps >= 1, s"vSteps must be >= 1, got $vSteps")
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
+  private val MemoryWarningThreshold = 1_000_000
+
   def toObjectSpec: ObjectSpec =
     val tupleF: (Float, Float) => (Float, Float, Float) =
       (u, v) => { val p = f(u, v); (p.x, p.y, p.z) }
+    val totalCells = uSteps.toLong * vSteps.toLong
+    if totalCells > MemoryWarningThreshold then
+      val approxMB = totalCells * 8 * 4 / 1_048_576L
+      logger.warn(
+        "Parametric surface tessellation is very high resolution " +
+        s"($uSteps x $vSteps = $totalCells grid cells). " +
+        s"This will use approximately $approxMB MB of GPU memory. " +
+        "Consider reducing resolution."
+      )
     val mesh = menger.objects.ParametricTessellator.tessellate(
       tupleF, uRange, vRange, uSteps, vSteps, closedU, closedV
     )

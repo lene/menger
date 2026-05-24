@@ -1,11 +1,8 @@
 package menger.objects
 
-import com.typesafe.scalalogging.LazyLogging
 import menger.common.TriangleMeshData
 
-object ParametricTessellator extends LazyLogging:
-
-  private val MemoryWarningThreshold = 1_000_000
+object ParametricTessellator:
 
   def tessellate(
     f: (Float, Float) => (Float, Float, Float),
@@ -20,15 +17,6 @@ object ParametricTessellator extends LazyLogging:
     require(vSteps >= 1, s"vSteps must be >= 1, got $vSteps")
 
     val totalCells = uSteps.toLong * vSteps.toLong
-    if totalCells > MemoryWarningThreshold then
-      val approxMB = totalCells * 8 * 4 / 1_048_576L
-      logger.warn(
-        "Parametric surface tessellation is very high resolution " +
-        s"($uSteps x $vSteps = $totalCells grid cells). " +
-        s"This will use approximately $approxMB MB of GPU memory. " +
-        "Consider reducing resolution."
-      )
-
     val (uMin, uMax) = uRange
     val (vMin, vMax) = vRange
     val du = (uMax - uMin) / uSteps

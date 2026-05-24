@@ -1,17 +1,20 @@
 package menger
 
+import com.tngtech.archunit.base.DescribedPredicate
+import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests
 import com.tngtech.archunit.core.importer.Location
+import com.tngtech.archunit.lang.ArchCondition
+import com.tngtech.archunit.lang.ConditionEvents
+import com.tngtech.archunit.lang.SimpleConditionEvent
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 /**
  * Phase 2 architectural rules.
- * P0.B (objects→input decoupling) is resolved; per-test ignore marks remaining blockers.
- * Remove ignore from each test once the corresponding blocker is resolved.
  */
 class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
 
@@ -23,6 +26,38 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
       .withImportOption(DoNotIncludeTests())
       .withImportOption(doNotIncludeSbtTestClasses)
       .importPackages("menger")
+
+  // Scala `val` fields compile to non-final JVM fields, so haveOnlyFinalFields() fires even
+  // with no `var` fields. This condition checks for var-generated setter methods instead:
+  // Scala compiles `var foo` into a getter `foo()` and setter `foo_$eq(x)`. A class with no
+  // methods ending in `_$eq` has no mutable fields at the Scala source level.
+  private val haveNoVarFields: ArchCondition[JavaClass] =
+    new ArchCondition[JavaClass]("have no var fields (no Scala setter methods)"):
+      override def check(clazz: JavaClass, events: ConditionEvents): Unit =
+        val setters = clazz.getMethods.stream()
+          .filter(m => m.getName.endsWith("_$eq"))
+          .toList
+        if !setters.isEmpty then
+          events.add(SimpleConditionEvent.violated(
+            clazz,
+            s"${clazz.getName} has var-generated setter(s): " +
+              setters.stream().map(_.getName).toList.toString
+          ))
+
+  // Scala case classes implement java.io.Serializable implicitly at the bytecode level,
+  // so checking for java.io dependencies fires even without explicit java.io imports.
+  // This predicate matches java.io classes excluding Serializable (a false-positive).
+  private val ioExcludingSerializable: DescribedPredicate[JavaClass] =
+    new DescribedPredicate[JavaClass]("reside in java.io (excluding Serializable) or java.nio.file"):
+      override def test(c: JavaClass): Boolean =
+        val name = c.getName
+        val pkg  = c.getPackageName
+        (pkg.startsWith("java.io") && name != "java.io.Serializable") ||
+          pkg.startsWith("java.nio.file")
+
+  private val inSlf4j: DescribedPredicate[JavaClass] =
+    new DescribedPredicate[JavaClass]("reside in org.slf4j"):
+      override def test(c: JavaClass): Boolean = c.getPackageName.startsWith("org.slf4j")
 
   // P0.B resolved: menger.objects no longer imports menger.input
   "menger.objects" should "depend only on menger.common (P0.B resolved)" in:
@@ -60,14 +95,11 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
         .resideInAnyPackage("menger.engines..", "menger.optix..")
       .check(allClasses)
 
-  // Blocked: Scala `val` fields in case classes compile to non-final JVM fields,
-  // so haveOnlyFinalFields() fires on all case classes even with no `var` fields.
-  // Fix: rewrite the rule using a custom DescribedPredicate that checks Scala-level
-  // mutability (inspect @scala.annotation.varargs or use ArchUnit field.isFinal + filter
-  // companion modules), or wait for ArchUnit native Scala support.
-  ignore should "have only final fields in menger.common" in:
+  // Fixed: replaced haveOnlyFinalFields() with a Scala-aware var-setter check.
+  // Scala val fields compile to non-final JVM fields; only var fields generate setter methods.
+  "menger.common" should "have only final fields (no var)" in:
     noClasses().that().resideInAPackage("menger.common..")
-      .should().haveOnlyFinalFields()
+      .should(haveNoVarFields)
       .check(allClasses)
 
   "menger.dsl" should "not use mutable collections" in:
@@ -76,31 +108,17 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
         .resideInAPackage("scala.collection.mutable..")
       .check(allClasses)
 
-  // Blocked: Scala case classes and companions implement java.io.Serializable implicitly at
-  // the bytecode level, so resideInAnyPackage("java.io..") fires even though no source file
-  // in menger.common has an explicit java.io import. Fix: rewrite the rule to exclude
-  // java.io.Serializable specifically using a custom DescribedPredicate, e.g.:
-  //   dependOnClassesThat(not(name("java.io.Serializable")).and(resideInAnyPackage("java.io..")))
-  ignore should "not use file IO in menger.common" in:
+  // Fixed: Scala case classes implement java.io.Serializable implicitly; excluded from the rule.
+  "menger.common" should "not use file IO" in:
     noClasses().that().resideInAPackage("menger.common..")
-      .should().dependOnClassesThat()
-        .resideInAnyPackage("java.io..", "java.nio.file..")
+      .should().dependOnClassesThat(ioExcludingSerializable)
       .check(allClasses)
 
-  // Blocked: 4 classes use slf4j via LazyLogging:
-  //   - ParametricTessellator: logs a memory warning for very large tessellations (justified)
-  //   - higher_d/Rotation: one debug log for rotation computation
-  //   - higher_d/Plane: imports LazyLogging but never calls logger (dead import)
-  //   - higher_d/TesseractSponge2: imports LazyLogging but never calls logger (dead import)
-  // Fix: remove dead LazyLogging from Plane and TesseractSponge2; move ParametricTessellator
-  // warning to caller; replace Rotation debug with a comment or remove it.
-  // Note: java.io.Serializable IS a problem — Scala case classes implement it implicitly at
-  // bytecode level, so resideInAnyPackage("java.io..") fires. Rule must be rewritten to
-  // exclude java.io.Serializable (same fix as the menger.common file IO rule above).
-  ignore should "not use file IO or logging in menger.objects" in:
+  // Fixed: removed LazyLogging from Rotation (debug) and ParametricTessellator (moved to dsl layer).
+  // Fixed: Scala case classes implement java.io.Serializable implicitly; excluded from the rule.
+  "menger.objects" should "not use file IO or logging" in:
     noClasses().that().resideInAPackage("menger.objects..")
-      .should().dependOnClassesThat()
-        .resideInAnyPackage("java.io..", "java.nio.file..", "org.slf4j..")
+      .should().dependOnClassesThat(ioExcludingSerializable.or(inSlf4j))
       .check(allClasses)
 
   // Rule 2.4 (sealed hierarchies) is not expressible in ArchUnit — enforced by code review.

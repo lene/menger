@@ -2,7 +2,6 @@ package menger.objects.higher_d
 
 import scala.annotation.targetName
 
-import com.typesafe.scalalogging.LazyLogging
 import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.Vector
@@ -28,7 +27,7 @@ case class Rotation(transformationMatrix: Matrix[4], pivotPoint: Vector[4]) exte
   def ===(r: Rotation): Boolean =
     transformationMatrix === r.transformationMatrix && pivotPoint === r.pivotPoint
 
-object Rotation extends LazyLogging:
+object Rotation:
 
   val identity: Rotation = Rotation(Matrix.identity[4], Vector.Zero[4])
 
@@ -57,7 +56,7 @@ object Rotation extends LazyLogging:
     )
     val sign = math.signum(u(direction))
     val realAngle = sign * angle
-    logger.debug(s"from $plane around ${Seq('x', 'y', 'z', 'w')(direction)} at ${pivotPoint.toString} by $realAngle°")
+    // rotation: from $plane around axis at $pivotPoint by $realAngle degrees
     direction match
       case plane.i => plane.normalIndices.map(idx => apply(Plane(plane.j, idx), realAngle, pivotPoint))
       case plane.j => plane.normalIndices.map(idx => apply(Plane(idx, plane.i), realAngle, pivotPoint))
