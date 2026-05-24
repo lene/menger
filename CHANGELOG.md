@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.0] - 2026-05-23
+## [0.7.0] - 2026-05-24
 
 ### Added
 - **HDR environment maps in DSL** (Sprint 22.1) — `Scene(..., envMap = Some("panorama.hdr"))`

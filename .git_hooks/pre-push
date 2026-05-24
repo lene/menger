@@ -158,6 +158,13 @@ if [ "$VERSION_SBT" != "$VERSION_USERGUIDE" ]; then
 else
   echo "docs/guide/user-guide.md version: ${GREEN_TEXT}${VERSION_USERGUIDE}${RESET_TEXT}"
 fi
+VERSION_INDEX=$(grep '^\*\*Version\*\*:' docs/USER_GUIDE.md | cut -d ' ' -f 2)
+if [ "$VERSION_SBT" != "$VERSION_INDEX" ]; then
+  echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in docs/USER_GUIDE.md: ${RED_TEXT}${VERSION_INDEX}${RESET_TEXT}"
+  STATUS=1
+else
+  echo "docs/USER_GUIDE.md version: ${GREEN_TEXT}${VERSION_INDEX}${RESET_TEXT}"
+fi
 if [ "${NO_RELEASE:-0}" = "1" ]; then
   echo "Tag check skipped (${GREEN_TEXT}NO_RELEASE=1${RESET_TEXT})"
 elif git tag | ( grep "^${VERSION_SBT}\$" ); then

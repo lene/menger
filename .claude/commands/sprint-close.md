@@ -156,10 +156,12 @@ Remove confirmed ones. Do not touch deferred or in-progress items.
 grep "version" menger-app/build.sbt
 grep "DEPLOYABLE_VERSION" .gitlab-ci.yml
 grep "menger v" menger-app/src/main/scala/menger/MengerCLIOptions.scala
-grep -m1 "version" docs/guide/user-guide.md
+grep '^\*\*Version\*\*:' docs/guide/user-guide.md
+grep '^\*\*Version\*\*:' docs/USER_GUIDE.md
+grep "^\## \[" CHANGELOG.md | head -1
 ```
 
-All four must agree on VERSION. Report any mismatches as ❌.
+All six must agree on VERSION and CHANGELOG top entry must be `[VERSION] - TODAY`. Report any mismatches as ❌.
 
 ### 3g. Commit Archiving Work
 

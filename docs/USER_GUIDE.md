@@ -1,6 +1,6 @@
 # Menger User Guide
 
-**Version**: 0.6.2
+**Version**: 0.7.0
 **Last Updated**: May 2026
 
 Menger is a 3D/4D fractal visualization and GPU ray tracing tool. This index links to each part
