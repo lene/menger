@@ -32,7 +32,7 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
   // Scala compiles `var foo` into a getter `foo()` and setter `foo_$eq(x)`. A class with no
   // methods ending in `_$eq` has no mutable fields at the Scala source level.
   private val haveNoVarFields: ArchCondition[JavaClass] =
-    new ArchCondition[JavaClass]("have no var fields (no Scala setter methods)"):
+    new ArchCondition[JavaClass]("have var fields (Scala setter methods)"):
       override def check(clazz: JavaClass, events: ConditionEvents): Unit =
         val setters = clazz.getMethods.stream()
           .filter(m => m.getName.endsWith("_$eq"))
@@ -68,7 +68,7 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
       .check(allClasses)
 
   // P0.A resolved: SceneConverter moved to menger.engines; Camera/Plane/Scene config methods inlined there.
-  // menger.dsl.Material still imports menger.optix.Material (P0.B) — allowed by this rule (optix not restricted).
+  // menger.dsl.Material imports menger.common.Material (allowed — common is not restricted by this rule).
   it should "depend only on menger.common and menger.objects (P0.A resolved)" in:
     noClasses().that().resideInAPackage("menger.dsl..")
       .should().dependOnClassesThat()

@@ -3,7 +3,7 @@ package menger
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
-import menger.optix.Material
+import menger.common.Material
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

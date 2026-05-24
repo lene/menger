@@ -57,7 +57,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     spec.z shouldBe 3f
     spec.size shouldBe 0.5f
     spec.level shouldBe None
-    spec.material shouldBe Some(Material.Glass.toOptixMaterial)
+    spec.material shouldBe Some(Material.Glass.toCoreMaterial)
 
   it should "include color when specified" in:
     val sphere = Sphere(color = Some(Color.Red))
@@ -152,7 +152,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     spec.z shouldBe 0f
     spec.size shouldBe 2.0f
     spec.level shouldBe Some(2f)
-    spec.material shouldBe Some(Material.Glass.toOptixMaterial)
+    spec.material shouldBe Some(Material.Glass.toCoreMaterial)
 
   it should "normalize deprecated sponge type names" in:
     val sponge = Sponge(VolumeFilling, level = 2f)
@@ -219,7 +219,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     spec.z shouldBe 3f
     spec.size shouldBe 0.5f
     spec.level shouldBe None
-    spec.material shouldBe Some(Material.Glass.toOptixMaterial)
+    spec.material shouldBe Some(Material.Glass.toCoreMaterial)
 
   it should "include projection when specified" in:
     import menger.Projection4DSpec
@@ -232,7 +232,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     val tesseract = Tesseract(edgeRadius = Some(0.02f), edgeMaterial = Some(Material.Chrome))
     val spec = tesseract.toObjectSpec
     spec.edgeRadius shouldBe Some(0.02f)
-    spec.edgeMaterial shouldBe Some(Material.Chrome.toOptixMaterial)
+    spec.edgeMaterial shouldBe Some(Material.Chrome.toCoreMaterial)
 
   "TesseractSponge" should "be constructible with type and level" in:
     val sponge = TesseractSponge(VolumeRemoving, level = 1f)
@@ -279,7 +279,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     spec.z shouldBe 0f
     spec.size shouldBe 2.0f
     spec.level shouldBe Some(1f)
-    spec.material shouldBe Some(Material.Glass.toOptixMaterial)
+    spec.material shouldBe Some(Material.Glass.toCoreMaterial)
 
   it should "create correct ObjectSpec with SurfaceSubdividing type" in:
     val sponge = TesseractSponge(SurfaceSubdividing, level = 2f)

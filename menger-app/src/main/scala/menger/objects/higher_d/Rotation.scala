@@ -56,7 +56,7 @@ object Rotation:
     )
     val sign = math.signum(u(direction))
     val realAngle = sign * angle
-    // rotation: from $plane around axis at $pivotPoint by $realAngle degrees
+    // rotation: from plane around axis at pivotPoint by realAngle degrees
     direction match
       case plane.i => plane.normalIndices.map(idx => apply(Plane(plane.j, idx), realAngle, pivotPoint))
       case plane.j => plane.normalIndices.map(idx => apply(Plane(idx, plane.i), realAngle, pivotPoint))

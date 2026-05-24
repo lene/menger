@@ -69,9 +69,9 @@ class InteractiveEngine(
   private val CrossConeLength  = 0.2f
   private val CrossConeRadius  = 0.05f
   private val CrossAxisColors  = Map(
-    0 -> menger.optix.Material(menger.common.Color(1, 0, 0), metallic = 1.0f, roughness = 0.3f),
-    1 -> menger.optix.Material(menger.common.Color(0, 1, 0), metallic = 1.0f, roughness = 0.3f),
-    2 -> menger.optix.Material(menger.common.Color(0, 0, 1), metallic = 1.0f, roughness = 0.3f)
+    0 -> menger.common.Material(menger.common.Color(1, 0, 0), metallic = 1.0f, roughness = 0.3f),
+    1 -> menger.common.Material(menger.common.Color(0, 1, 0), metallic = 1.0f, roughness = 0.3f),
+    2 -> menger.common.Material(menger.common.Color(0, 0, 1), metallic = 1.0f, roughness = 0.3f)
   )
 
   // Event dispatcher for 4D rotation events
@@ -402,7 +402,7 @@ class InteractiveEngine(
     val length    = config.cross.length
     val thickness = config.cross.thickness
     val baseMat   = config.cross.material.getOrElse(
-      menger.optix.Material(menger.common.Color(1f, 1f, 1f), roughness = 0.3f, metallic = 1.0f)
+      menger.common.Material(menger.common.Color(1f, 1f, 1f), roughness = 0.3f, metallic = 1.0f)
     )
     val axes = List(
       (menger.common.Vector[3](-length, 0f, 0f), menger.common.Vector[3](+length, 0f, 0f), 0),

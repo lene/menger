@@ -1,6 +1,6 @@
 package menger.config
 
-import menger.optix.Material
+import menger.common.Material
 
 case class CrossConfig(
   enabled: Boolean = false,

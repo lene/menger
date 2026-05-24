@@ -4,10 +4,10 @@ import scala.util.Try
 
 import com.badlogic.gdx.math.Vector3
 import menger.ObjectSpec
+import menger.common.Material
 import menger.common.TransformUtil
 import menger.objects.Cube
 import menger.objects.CubeSpongeGenerator
-import menger.optix.Material
 import menger.optix.OptiXRenderer
 
 /**

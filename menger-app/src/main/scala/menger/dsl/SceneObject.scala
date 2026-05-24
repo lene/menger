@@ -31,7 +31,7 @@ sealed trait SceneObject:
     level: Option[Float] = None,
     projection4D: Option[menger.Projection4DSpec] = None,
     edgeRadius: Option[Float] = None,
-    edgeMaterial: Option[menger.optix.Material] = None,
+    edgeMaterial: Option[menger.common.Material] = None,
     meshData: Option[menger.common.TriangleMeshData] = None
   ): ObjectSpec =
     ObjectSpec(
@@ -43,7 +43,7 @@ sealed trait SceneObject:
       level = level,
       color = color.map(_.toCommonColor),
       ior = material.map(_.ior).getOrElse(ior),
-      material = material.map(_.toOptixMaterial),
+      material = material.map(_.toCoreMaterial),
       texture = texture,
       projection4D = projection4D,
       edgeRadius = edgeRadius,
@@ -215,7 +215,7 @@ case class Tesseract(
       "tesseract",
       projection4D = projection,
       edgeRadius = edgeRadius,
-      edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
+      edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
     )
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
@@ -263,7 +263,7 @@ case class TesseractSponge(
       level = Some(level),
       projection4D = projection,
       edgeRadius = edgeRadius,
-      edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
+      edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
     )
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
@@ -329,7 +329,7 @@ case class Sierpinski4D(
       level = Some(level),
       projection4D = projection,
       edgeRadius = edgeRadius,
-      edgeMaterial = edgeMaterial.map(_.toOptixMaterial)
+      edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
     )
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList

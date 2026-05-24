@@ -1,9 +1,9 @@
 package menger.dsl
 
 import menger.common.Axis
+import menger.common.Material
 import menger.common.PlaneColorSpec
 import menger.common.PlaneSpec
-import menger.optix.Material
 
 /** Axis position specification for planes.
   *

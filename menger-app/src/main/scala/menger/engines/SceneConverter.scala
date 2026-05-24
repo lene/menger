@@ -107,7 +107,7 @@ object SceneConverter extends LazyLogging:
       case None           => spec
       case Some(material) =>
         if spec.material.isDefined then spec
-        else spec.copy(material = Some(material.toOptixMaterial))
+        else spec.copy(material = Some(material.toCoreMaterial))
 
   private def validateSceneMaterials(dslScene: Scene): Unit =
     dslScene.objects.foreach(_.materialsToValidate.foreach(warnMaterial))

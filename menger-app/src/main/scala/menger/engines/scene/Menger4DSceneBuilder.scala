@@ -30,7 +30,7 @@ class Menger4DSceneBuilder(
       val position  = Vector[3](spec.x, spec.y, spec.z)
       val rawLevel  = spec.level.get
 
-      def addInstance(level: Int, mat: menger.optix.Material, scale: Float): Unit =
+      def addInstance(level: Int, mat: menger.common.Material, scale: Float): Unit =
         val instanceId = renderer.addMenger4DInstance(
           level, threshold, position, scale,
           proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,

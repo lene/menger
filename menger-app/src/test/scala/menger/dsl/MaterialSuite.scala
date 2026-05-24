@@ -95,7 +95,7 @@ class MaterialSuite extends AnyFlatSpec with Matchers:
     m.color.a should be < (0.1f)
     m.specular shouldBe 1f
 
-  "Material.toOptixMaterial" should "convert to optix Material" in:
+  "Material.toCoreMaterial" should "convert to menger.common.Material" in:
     val dsl = Material(
       color = Color(1f, 0.5f, 0.25f, 0.8f),
       ior = 1.5f,
@@ -103,7 +103,7 @@ class MaterialSuite extends AnyFlatSpec with Matchers:
       metallic = 0.8f,
       specular = 0.9f
     )
-    val optix = dsl.toOptixMaterial
+    val optix = dsl.toCoreMaterial
     optix.ior shouldBe 1.5f
     optix.roughness shouldBe 0.3f
     optix.metallic shouldBe 0.8f
@@ -113,5 +113,5 @@ class MaterialSuite extends AnyFlatSpec with Matchers:
 
   it should "preserve color alpha in conversion" in:
     val dsl = Material.Glass
-    val optix = dsl.toOptixMaterial
+    val optix = dsl.toCoreMaterial
     optix.color.a should be < (0.1f)

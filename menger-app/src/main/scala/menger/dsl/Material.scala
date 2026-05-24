@@ -1,6 +1,6 @@
 package menger.dsl
 
-import menger.optix.{Material => OptixMaterial}
+import menger.common.{Material => CoreMaterial}
 
 /** Material definition for DSL with presets and factory methods */
 case class Material(
@@ -30,8 +30,8 @@ case class Material(
       Option.when(filmThickness > 0.0f && metallic > 0.5f)("Thin-film on metallic surface — visual effect may be minimal")
     ).flatten
 
-  def toOptixMaterial: OptixMaterial =
-    OptixMaterial(
+  def toCoreMaterial: CoreMaterial =
+    CoreMaterial(
       color = color.toCommonColor,
       ior = ior,
       roughness = roughness,
@@ -42,29 +42,29 @@ case class Material(
     )
 
 object Material:
-  private def fromOptix(m: OptixMaterial): Material =
+  private def fromOptix(m: CoreMaterial): Material =
     Material(Color.fromCommon(m.color), m.ior, m.roughness, m.metallic, m.specular, m.emission, m.filmThickness)
 
-  // Dielectric presets — delegate to OptixMaterial to avoid duplication
-  val Glass   = fromOptix(OptixMaterial.Glass)
-  val Water   = fromOptix(OptixMaterial.Water)
-  val Diamond = fromOptix(OptixMaterial.Diamond)
+  // Dielectric presets — delegate to CoreMaterial to avoid duplication
+  val Glass   = fromOptix(CoreMaterial.Glass)
+  val Water   = fromOptix(CoreMaterial.Water)
+  val Diamond = fromOptix(CoreMaterial.Diamond)
 
-  // Metal presets — delegate to OptixMaterial
-  val Chrome = fromOptix(OptixMaterial.Chrome)
-  val Gold   = fromOptix(OptixMaterial.Gold)
-  val Copper = fromOptix(OptixMaterial.Copper)
+  // Metal presets — delegate to CoreMaterial
+  val Chrome = fromOptix(CoreMaterial.Chrome)
+  val Gold   = fromOptix(CoreMaterial.Gold)
+  val Copper = fromOptix(CoreMaterial.Copper)
 
-  // Semi-transparent presets — delegate to OptixMaterial
-  val Film      = fromOptix(OptixMaterial.Film)
-  val Parchment = fromOptix(OptixMaterial.Parchment)
+  // Semi-transparent presets — delegate to CoreMaterial
+  val Film      = fromOptix(CoreMaterial.Film)
+  val Parchment = fromOptix(CoreMaterial.Parchment)
 
-  // Opaque presets — delegate to OptixMaterial to maintain single source of truth
-  val Plastic = fromOptix(OptixMaterial.Plastic)
-  val Matte   = fromOptix(OptixMaterial.Matte)
+  // Opaque presets — delegate to CoreMaterial to maintain single source of truth
+  val Plastic = fromOptix(CoreMaterial.Plastic)
+  val Matte   = fromOptix(CoreMaterial.Matte)
 
-  // Factory methods — delegate to OptixMaterial
-  def matte(color: Color): Material   = fromOptix(OptixMaterial.matte(color.toCommonColor))
-  def plastic(color: Color): Material = fromOptix(OptixMaterial.plastic(color.toCommonColor))
-  def metal(color: Color): Material   = fromOptix(OptixMaterial.metal(color.toCommonColor))
-  def glass(color: Color): Material   = fromOptix(OptixMaterial.glass(color.toCommonColor))
+  // Factory methods — delegate to CoreMaterial
+  def matte(color: Color): Material   = fromOptix(CoreMaterial.matte(color.toCommonColor))
+  def plastic(color: Color): Material = fromOptix(CoreMaterial.plastic(color.toCommonColor))
+  def metal(color: Color): Material   = fromOptix(CoreMaterial.metal(color.toCommonColor))
+  def glass(color: Color): Material   = fromOptix(CoreMaterial.glass(color.toCommonColor))

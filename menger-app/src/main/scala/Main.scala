@@ -187,7 +187,7 @@ object Main:
         planes = opts.plane.toOption.toList.map(p => PlaneConfig(
           p,
           opts.planeColor.toOption,
-          opts.planeMaterial.toOption.flatMap(s => menger.optix.Material.fromName(s).toScala)
+          opts.planeMaterial.toOption.flatMap(s => menger.common.Material.fromName(s).toScala)
         )),
         lights = opts.light.toOption.getOrElse(List.empty).map(LightSpec.toCommonLight),
         envMap = opts.envMap.toOption,

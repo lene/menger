@@ -141,7 +141,7 @@ class TriangleMeshSceneBuilder(
     * perfectly overlap the level-(n+1) surface, preventing z-fighting. */
   private def buildFractionalGpuOps(
     spec: ObjectSpec,
-    baseMaterial: menger.optix.Material
+    baseMaterial: menger.common.Material
   )(using profilingConfig: ProfilingConfig): List[FractionalOp] =
     val level = spec.level.get
     val fractionalPart = level - level.floor
@@ -165,7 +165,7 @@ class TriangleMeshSceneBuilder(
       )
     )
 
-  private final case class FractionalOp(plan: MeshUploadPlan, material: menger.optix.Material)
+  private final case class FractionalOp(plan: MeshUploadPlan, material: menger.common.Material)
 
   /**
    * Create a merged mesh for fractional level rendering.

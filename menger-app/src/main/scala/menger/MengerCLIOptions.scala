@@ -339,8 +339,8 @@ class MengerCLIOptions(arguments: Seq[String])
   )(using planeColorSpecConverter)
   val planeMaterial: ScallopOption[String] = opt[String](
     name = "plane-material", required = false, group = optixSceneGroup,
-    validate = name => menger.optix.Material.fromName(name).isPresent,
-    descr = s"Plane material preset name (${menger.optix.Material.presetNames.asScala.mkString(", ")})"
+    validate = name => menger.common.Material.fromName(name).isPresent,
+    descr = s"Plane material preset name (${menger.common.Material.presetNames.asScala.mkString(", ")})"
   )
   val maxInstances: ScallopOption[Int] = opt[Int](
     required = false, default = Some(Const.defaultMaxInstances), group = optixSceneGroup,
@@ -451,5 +451,5 @@ class MengerCLIOptions(arguments: Seq[String])
     enabled = cross(),
     length = crossLength().toFloat,
     thickness = crossThickness().toFloat,
-    material = crossMaterial.toOption.flatMap(s => menger.optix.Material.fromName(s).toScala)
+    material = crossMaterial.toOption.flatMap(s => menger.common.Material.fromName(s).toScala)
   )

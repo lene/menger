@@ -16,7 +16,6 @@ object ParametricTessellator:
     require(uSteps >= 1, s"uSteps must be >= 1, got $uSteps")
     require(vSteps >= 1, s"vSteps must be >= 1, got $vSteps")
 
-    val totalCells = uSteps.toLong * vSteps.toLong
     val (uMin, uMax) = uRange
     val (vMin, vMax) = vRange
     val du = (uMax - uMin) / uSteps
