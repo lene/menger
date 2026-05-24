@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-05-20
+**Last Updated:** 2026-05-24
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -24,10 +24,10 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.5.8 | GPU Infrastructure | Complete | Multi-GAS IAS, IS programs, GPU 4D math, recursive IAS sponge, maxRayDepth CLI (Sprint 18) |
 | v0.6.0 | Advanced Geometry | Complete | Platonic solids, 4-polychora, cone, coordinate cross, geometry registry, 3D rotation, render stats (Sprint 19) |
 | v0.6.1 | Textures & Materials | ✅ Complete | Image textures, procedural textures, PBR maps, environment maps (Sprint 20) |
-| v0.7.0 | Higher-Dimensional Fractals | ✅ Complete | 4D Menger/Sierpinski analogs, fractional IAS sponge levels, fog (Sprint 21) |
-| v0.7.1 | HDR Environment Maps | 🔄 In Progress | HDR background, equirectangular env map, tone mapping (Sprint 22) |
-| v0.8.0 | Image-Based Lighting | Planned | IBL with importance sampling + MIS, env map illuminates objects (Sprint 23) |
-| v0.8.1 | Video Backgrounds | Planned | Animated .mp4 backgrounds via ffmpeg, per-frame GPU texture swap (Sprint 24) |
+| v0.6.2 | Higher-Dimensional Fractals | ✅ Complete | 4D Menger/Sierpinski analogs, fractional IAS sponge levels, fog, CLI --animate (Sprint 21) |
+| v0.7.0 | HDR Environment Maps | ✅ Complete | HDR background, equirectangular env map, tone mapping, Sierpinski4D DSL, JNI safety hardening (Sprint 22) |
+| v0.7.1 | Image-Based Lighting | Planned | IBL with importance sampling + MIS, env map illuminates objects (Sprint 23) |
+| v0.8.0 | Video Backgrounds | Planned | Animated .mp4 backgrounds via ffmpeg, per-frame GPU texture swap (Sprint 24) |
 
 ---
 
@@ -55,40 +55,12 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 19 | Advanced Geometry | Complete | [docs/archive/sprints/SPRINT19.md](docs/archive/sprints/SPRINT19.md) |
 | 18 | GPU Infrastructure | Complete | [docs/archive/sprints/SPRINT18.md](docs/archive/sprints/SPRINT18.md) |
 | 20 | Materials, Textures & Backgrounds | Complete | [docs/archive/sprints/SPRINT20.md](docs/archive/sprints/SPRINT20.md) |
+| 21 | Higher-Dimensional Fractals | ✅ Complete | [docs/archive/sprints/SPRINT21.md](docs/archive/sprints/SPRINT21.md) |
+| 22 | HDR Environment Maps | ✅ Complete | [docs/archive/sprints/SPRINT22.md](docs/archive/sprints/SPRINT22.md) |
 
 ---
 
 ## Planned Sprints
-
-### Sprint 21: Higher-Dimensional Fractals (~27h)
-
-**Goal:** Menger and Sierpinski analogs in 4D+, fractional IAS sponge levels, fog, animation demo
-
-- **21.1** 4D Menger sponge analog (5h)
-- **21.2** Higher-dimensional Sierpinski tetrahedron analogs (4h)
-- **21.3** Interactive parameter exploration (1D via scene(t)) (3h)
-- **21.4** Fractional levels for IAS sponge — Approach B: two IAS trees (2h)
-- **21.5** Documentation (2h)
-- **21.6** Cone/plane image texture + PBR maps (4h)
-- **21.7** Fog / depth cue (4h)
-- **21.8** Fractional-level sponge animation (3h)
-
-See [docs/sprints/SPRINT21.md](docs/sprints/SPRINT21.md)
-
----
-
-### Sprint 22: HDR Environment Maps (~9h)
-
-**Goal:** Wire existing GPU env map infrastructure to DSL; tone mapping; fractal animation examples
-
-- **22.1** Wire DSL environment map (2h)
-- **22.2** Tone mapping — Reinhard + ACES, exposure control (3h)
-- **22.3** Fractal animation example scenes with HDR background (2h)
-- **22.4** Documentation (2h)
-
-See [docs/sprints/SPRINT22.md](docs/sprints/SPRINT22.md)
-
----
 
 ### Sprint 23: Image-Based Lighting (~22h)
 
@@ -122,13 +94,13 @@ See [docs/sprints/SPRINT24.md](docs/sprints/SPRINT24.md)
 
 ## Backlog
 
-Ideas for Sprint 22+ consideration.
+Ideas for Sprint 23+ consideration.
 
-### Scheduled (Sprints 13-24)
+### Scheduled (Sprints 13-24, completed through 22)
 
 Items in Sprints 13-24 are no longer in the backlog. See Planned Sprints above.
 
-### Long-Term Backlog (Sprint 22+)
+### Long-Term Backlog (Sprint 23+)
 
 #### Geometry & Rendering (Medium Priority)
 
