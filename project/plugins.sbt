@@ -5,7 +5,7 @@ addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.11.7")
 addSbtPlugin("com.github.sbt" % "sbt-jni" % "1.7.1")
 
 // JUnit5/Jupiter
-addSbtPlugin("com.github.sbt.junit" % "sbt-jupiter-interface" % "0.14.0")
+addSbtPlugin("com.github.sbt.junit" % "sbt-jupiter-interface" % "0.19.0")
 // Test coverage (see https://www.baeldung.com/scala/sbt-scoverage-code-analysis)
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.4.4")
 // Code quality and refactoring

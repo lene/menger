@@ -1,6 +1,6 @@
 name := "menger-common"
 version := "0.4.1"
-scalaVersion := "3.8.2"
+scalaVersion := "3.8.3"
 
 organization := "io.github.lilacashes"
 description := "Common types and utilities for Menger ray tracer"
@@ -27,6 +27,6 @@ Compile / wartremoverErrors ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "3.2.19" % Test,
-  "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
+  "org.scalatest" %% "scalatest" % "3.2.20" % Test,
+  "org.scalatestplus" %% "scalacheck-1-19" % "3.2.20.0" % Test
 )

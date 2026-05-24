@@ -1,6 +1,6 @@
 name := "menger-app"
 version := "0.7.0"
-scalaVersion := "3.8.2"
+scalaVersion := "3.8.3"
 
 organization := "io.github.lilacashes"
 maintainer := "lene.preuss@gmail.com"
@@ -51,15 +51,15 @@ libraryDependencies ++= Seq(
   // JUnit
   "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   // ScalaTest
-  "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+  "org.scalatest" %% "scalatest" % "3.2.20" % Test,
   "org.scalamock" %% "scalamock" % "7.5.5" % Test,
-  "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test,
+  "org.scalatestplus" %% "scalacheck-1-19" % "3.2.20.0" % Test,
   // Scallop command line parser
   "org.rogach" %% "scallop" % "6.0.0",
   // libGDX
-  "com.badlogicgames.gdx" % "gdx" % "1.14.0",
-  "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.14.0",
-  "com.badlogicgames.gdx" % "gdx-platform" % "1.14.0" classifier "natives-desktop",
+  "com.badlogicgames.gdx" % "gdx" % "1.14.1",
+  "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.14.1",
+  "com.badlogicgames.gdx" % "gdx-platform" % "1.14.1" classifier "natives-desktop",
   // Scala 3 compiler for runtime .scala scene file evaluation (Task 17.7)
   "org.scala-lang" %% "scala3-compiler" % scalaVersion.value,
   // ArchUnit — architecture rule enforcement
