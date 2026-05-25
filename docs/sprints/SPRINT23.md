@@ -205,7 +205,7 @@ Denoiser deferred to later sprint.
 
 ---
 
-### Task 23.10: Fix M-texture-index-overloading ❌
+### Task 23.10: Fix M-texture-index-overloading ✅
 
 **Estimate:** 1 day
 
@@ -215,7 +215,7 @@ Denoiser deferred to later sprint.
 
 ---
 
-### Task 23.11: Fix M-arch-config-naming 🔶
+### Task 23.11: Fix M-arch-config-naming ✅
 
 **Estimate:** 1 day
 
@@ -266,8 +266,8 @@ ArchUnit `haveOnlyFinalFields()` fires on Scala `val` fields (non-final JVM byte
 | 23.7 | Fix M-cuda-gas-buffer-leak: scope guard for d_gas_output_buffer | 2h | — | ✅ |
 | 23.8 | Fix M-cuda-texture-array-leak: track cuArray before CreateTextureObject | 2h | — | ✅ |
 | 23.9 | Fix M-render-null-type-contract: change renderWithStats to Option[RenderResult] | 2h | — | ✅ |
-| 23.10 | Fix M-texture-index-overloading: rename texture_index to geometry_data_index | 1d | — | ❌ |
-| 23.11 | Fix M-arch-config-naming: migrate *Config types to menger.config | 1d | — | 🔶 |
+| 23.10 | Fix M-texture-index-overloading: rename texture_index to geometry_data_index | 1d | — | ✅ |
+| 23.11 | Fix M-arch-config-naming: migrate *Config types to menger.config | 1d | — | ✅ |
 | 23.12 | Fix M-arch-archunit-case-class-field: custom DescribedPredicate for val fields | 3h | — | ✅ |
 | 23.13 | Fix M-arch-objects-logging: remove SLF4J from menger.objects geometry classes | 2h | — | ✅ |
 | 23.14 | Fix M-objectspec-optix-coupling: move Material to menger-common | 1d | — | ✅ |
