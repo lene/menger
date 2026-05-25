@@ -5,8 +5,9 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 ## Unscheduled
 
 - sbt-updates plugin (com.timushev.sbt:sbt-updates) incompatible with sbt 1.12.6 — NPE on load. Find alternative or wait for upstream fix before enabling dependency update checks.
-
-- investigate pending tests
+- investigate hs_err*.log files
+- investigate pending/ignored tests
+- is the scala version used verbatim instead of as variable anywhere?
 - contract similar to Polytope4DContract for Polyhedra
 - publish OptiX JNI as a separate project - should cover the full OptiX API, not just the ray 
   tracing pipeline.
@@ -23,6 +24,7 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
   - gaussian splats
   - 4D spacetime trace of a person (or any object)
   - Parametric 2- and 3-surfaces in 4-space
+    - functions C->C 
   - 3-sphere (but how to visualize?)
     - Hopf fibration https://en.wikipedia.org/wiki/Hopf_fibration
     - complex-valued functions

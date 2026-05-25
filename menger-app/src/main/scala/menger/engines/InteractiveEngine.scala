@@ -389,6 +389,12 @@ class InteractiveEngine(
             if idx >= 0 then renderer.setEnvironmentMap(idx)
             else logger.error(s"Failed to load environment map: $path")
           }
+          if environment.iblEnabled then
+            renderer.setIBL(
+              enabled  = true,
+              strength = environment.iblStrength,
+              samples  = environment.iblSamples
+            )
           if crossVisible.get then addCrossGeometry(renderer)
           finalizeCreate()
         }

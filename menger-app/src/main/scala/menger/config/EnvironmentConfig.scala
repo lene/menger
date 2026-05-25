@@ -12,13 +12,19 @@ import menger.common.PlaneSpec
  * @param planes list of ground/wall planes (up to 4 simultaneous planes)
  * @param lights list of light sources (empty = use default lighting)
  * @param background optional background color
+ * @param iblEnabled whether to use the env map as a diffuse IBL light source
+ * @param iblStrength IBL light multiplier (1.0 = physically neutral)
+ * @param iblSamples number of IBL shadow rays per hit (more = less noise)
  */
 case class EnvironmentConfig(
   planes: List[PlaneConfig] = List.empty,
   lights: List[Light] = List.empty,
   background: Option[Color] = None,
   envMap: Option[String] = None,
-  fog: Option[FogConfig] = None
+  fog: Option[FogConfig] = None,
+  iblEnabled: Boolean = false,
+  iblStrength: Float = 1.0f,
+  iblSamples: Int = 1
 )
 
 object EnvironmentConfig:

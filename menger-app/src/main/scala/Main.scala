@@ -166,7 +166,10 @@ object Main:
         lights = configs.lights,
         background = configs.background,
         fog = configs.fog,
-        envMap = configs.envMap
+        envMap = configs.envMap,
+        iblEnabled = configs.iblEnabled,
+        iblStrength = configs.iblStrength,
+        iblSamples = configs.iblSamples
       ),
       execution = buildExecutionConfig(opts),
       render = mergedRender,
