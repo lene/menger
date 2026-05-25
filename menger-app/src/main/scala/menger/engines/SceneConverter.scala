@@ -34,7 +34,11 @@ object SceneConverter extends LazyLogging:
     fog: Option[FogConfig] = None,
     envMap: Option[String] = None,
     toneMappingOperator: Int = 0,
-    toneMappingExposure: Float = 1.0f
+    toneMappingExposure: Float = 1.0f,
+    iblEnabled: Boolean = false,
+    iblStrength: Float = 1.0f,
+    iblSamples: Int = 1,
+    accumulationFrames: Int = 1,
   )
 
   def convert(dslScene: Scene, fallbackCaustics: CausticsConfig): SceneConfigs =
@@ -56,7 +60,17 @@ object SceneConverter extends LazyLogging:
     val fog        = dslScene.fog.map(f => FogConfig(f.density, f.color.toCommonColor))
     val envMap     = dslScene.envMap
     val (tmOp, tmExp) = toToneMappingParams(dslScene.toneMapping)
-    SceneConfigs(scene, camera, lights, caustics, background, planes, render, fog, envMap, tmOp, tmExp)
+    val (iblEnabled, iblStrength, iblSamples) = dslScene.ibl match
+      case Some(ibl) if dslScene.envMap.isDefined =>
+        (true, ibl.strength, ibl.samples)
+      case Some(_) =>
+        logger.warn("IBL requested but no envMap set — IBL disabled")
+        (false, 1.0f, 1)
+      case None =>
+        (false, 1.0f, 1)
+    val accumulationFrames = dslScene.render.map(_.accumulation).getOrElse(1)
+    SceneConfigs(scene, camera, lights, caustics, background, planes, render, fog, envMap, tmOp, tmExp,
+      iblEnabled, iblStrength, iblSamples, accumulationFrames)
 
   /** Flatten a SceneNode tree to a list of ObjectSpecs.
     *
