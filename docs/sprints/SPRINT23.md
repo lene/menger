@@ -1,7 +1,7 @@
 # Sprint 23: Image-Based Lighting (IBL)
 
 **Sprint:** 23 - Image-Based Lighting
-**Status:** Not Started
+**Status:** Complete
 **Estimate:** ~42 hours
 **Branch:** `feature/sprint-23`
 **Dependencies:** Sprint 22 (HDR env map in DSL, tone mapping)
@@ -20,12 +20,12 @@ Multiple Importance Sampling (MIS) to balance env light sampling against BSDF sa
 
 ## Success Criteria
 
-- [ ] Objects receive diffuse illumination from HDR environment (no separate DSL lights needed)
-- [ ] Specular highlights from bright HDR regions appear on metallic/glass objects
-- [ ] IBL integrates with existing DSL lights (additive: DSL lights + env map both contribute)
-- [ ] Importance sampling reduces noise vs naive uniform sampling at equal sample count
-- [ ] `ibl: Option[IBL] = None` DSL field controls IBL strength and sampling
-- [ ] All tests pass
+- [x] Objects receive diffuse illumination from HDR environment (no separate DSL lights needed)
+- [x] Specular highlights from bright HDR regions appear on metallic/glass objects
+- [x] IBL integrates with existing DSL lights (additive: DSL lights + env map both contribute)
+- [x] Importance sampling reduces noise vs naive uniform sampling at equal sample count
+- [x] `ibl: Option[IBL] = None` DSL field controls IBL strength and sampling
+- [x] All tests pass
 
 ---
 
@@ -257,12 +257,12 @@ ArchUnit `haveOnlyFinalFields()` fires on Scala `val` fields (non-final JVM byte
 
 | Task | Description | Estimate | Dependencies | Status |
 |------|-------------|----------|--------------|--------|
-| 23.1 | Env map CDF precomputation (CPU + GPU upload) | 4h | Sprint 22 HDR load | ❌ |
-| 23.2 | `sampleEnvLight()` shader function | 5h | 23.1 | ❌ |
-| 23.3 | MIS combining env and BSDF sampling | 5h | 23.2 | ❌ |
-| 23.4 | DSL `IBL` type + `Scene.ibl` wiring | 3h | 23.2, 23.3 | ❌ |
-| 23.5 | Accumulation frames (optional) | 3h | 23.2 | ❌ |
-| 23.6 | Documentation | 2h | All | ❌ |
+| 23.1 | Env map CDF precomputation (CPU + GPU upload) | 4h | Sprint 22 HDR load | ✅ |
+| 23.2 | `sampleEnvLight()` shader function | 5h | 23.1 | ✅ |
+| 23.3 | MIS combining env and BSDF sampling | 5h | 23.2 | ✅ |
+| 23.4 | DSL `IBL` type + `Scene.ibl` wiring | 3h | 23.2, 23.3 | ✅ |
+| 23.5 | Accumulation frames (optional) | 3h | 23.2 | ✅ |
+| 23.6 | Documentation | 2h | All | ✅ |
 | 23.7 | Fix M-cuda-gas-buffer-leak: scope guard for d_gas_output_buffer | 2h | — | ✅ |
 | 23.8 | Fix M-cuda-texture-array-leak: track cuArray before CreateTextureObject | 2h | — | ✅ |
 | 23.9 | Fix M-render-null-type-contract: change renderWithStats to Option[RenderResult] | 2h | — | ✅ |
@@ -277,11 +277,11 @@ ArchUnit `haveOnlyFinalFields()` fires on Scala `val` fields (non-final JVM byte
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing
-- [ ] Code quality checks pass: `sbt "scalafix --check"`
-- [ ] CHANGELOG.md updated
-- [ ] Reference renders: IBL enabled vs disabled comparison committed
+- [x] All success criteria met
+- [x] All tests passing
+- [x] Code quality checks pass: `sbt "scalafix --check"`
+- [x] CHANGELOG.md updated
+- [x] Reference renders: IBL enabled vs disabled comparison committed
 
 ---
 

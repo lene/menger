@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Image-Based Lighting (IBL)** (Sprint 23.1–23.4) — HDR env map illuminates objects via
+  importance sampling and MIS balance heuristic. Enable with `Scene(ibl = Some(IBL(...)))`;
+  requires `envMap` to also be set. `IBL(strength, samples)` controls intensity (default 1.0)
+  and samples per shading point (1–8, default 1).
+- **Multi-frame accumulation** (Sprint 23.5) — `RenderSettings(accumulation = N)` averages N
+  independent renders with different random seeds, reducing IBL noise. Only applies in
+  headless/render mode; interactive preview uses a single frame (zero performance regression).
+
+---
+
 ## [0.7.0] - 2026-05-24
 
 ### Added

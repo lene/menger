@@ -999,9 +999,6 @@ The `texture-dir` base path (CLI) or DSL texture path applies the same way as fo
 An equirectangular `.hdr` file can be used as the scene background. The HDR texture is
 sampled by the miss shader when a ray escapes the scene, replacing the solid background color.
 
-> **Note:** The env map is background only in this release. It does not illuminate objects.
-> Image-based lighting (IBL) is planned for Sprint 23.
-
 **Supported format:** `.hdr` (Radiance RGBE, 32-bit float per channel). EXR is not supported.
 
 DSL:
@@ -1023,6 +1020,50 @@ menger-app --scene examples.dsl.FractalWithHDR \
 
 For animated scenes the env map is loaded once from the first frame's `Scene` and held for
 the full animation — it does not change frame to frame.
+
+---
+
+### Image-Based Lighting (IBL) — *Sprint 23*
+
+IBL uses the HDR environment map as an area light source, illuminating objects with
+realistic sky/environment light via importance sampling. It works in addition to any
+DSL lights you define. An `envMap` must also be set.
+
+```scala
+Scene(
+  objects = List(Cube(material = Material.Glass)),
+  envMap      = Some("rogland_sunset_2k.hdr"),
+  ibl         = Some(IBL(strength = 1.0f, samples = 2)),
+  toneMapping = ToneMapping.Reinhard(exposure = 1.5f),
+)
+```
+
+`IBL` parameters:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `strength` | `Float` | `1.0` | Scales env map contribution. `0.0` = off, `1.0` = physical. |
+| `samples` | `Int` | `1` | IBL samples per shading point. Range 1–8. More samples = less noise. |
+
+Without `ibl`, the env map is background only (Sprint 22 behaviour, backward-compatible).
+
+#### Noise Reduction via Accumulation
+
+IBL with `samples=1` produces stochastic noise. Average multiple renders for a cleaner result:
+
+```scala
+Scene(
+  ...,
+  ibl    = Some(IBL(samples = 2)),
+  render = Some(RenderSettings(accumulation = 8)),
+)
+```
+
+Total light samples per pixel = `ibl.samples × accumulation`. Example: `samples=2, accumulation=8`
+→ 16 samples/pixel, much smoother result at ~8× render time.
+
+Accumulation renders N independent frames with different random seeds, then averages them.
+It only applies in headless/render mode; the interactive preview uses a single frame.
 
 ---
 
