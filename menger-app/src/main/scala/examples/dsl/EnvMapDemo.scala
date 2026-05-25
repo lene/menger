@@ -6,10 +6,12 @@ import menger.dsl._
 
 /**
  * Manual interactive test for HDR environment map DSL wiring (Task 22.1).
+ * Extended with IBL (Image-Based Lighting) in Sprint 23.
  *
  * What to verify:
  *   - Background shows equirectangular panorama instead of solid color
  *   - Sphere reflects/refracts against panorama (visible in glass material)
+ *   - IBL variant: objects are lit by the env map (brighter, coloured by sky)
  *   - No crash on startup or scene load
  *
  * Prerequisites:
@@ -38,8 +40,10 @@ object EnvMapDemo:
     lights = List(
       Directional(direction = (1f, -1f, -1f), intensity = 1.5f)
     ),
-    envMap = Some("rogland_sunset_2k.hdr"),
-    toneMapping = ToneMapping.Reinhard(exposure = 1.5f)
+    envMap      = Some("rogland_sunset_2k.hdr"),
+    ibl         = Some(IBL(strength = 1.0f, samples = 2)),
+    toneMapping = ToneMapping.Reinhard(exposure = 1.5f),
+    render      = Some(RenderSettings(accumulation = 4))
   )
 
   SceneRegistry.register("env-map-demo", scene)

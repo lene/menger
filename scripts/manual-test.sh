@@ -351,6 +351,7 @@ run_test "DSL: RenderSettingsDemo (DSL shadows + AA)" "-o --scene examples.dsl.R
 run_test "DSL: RenderSettingsDemo (CLI shadows overrides DSL)" "-o --scene examples.dsl.RenderSettingsDemo --shadows -s $OUTPUT_DIR/125-dsl-render-settings-cli-shadows.png"
 run_test "DSL: RenderSettingsDemo (no DSL, CLI shadows only)" "-o --objects type=sphere:pos=-1,0,0:material=chrome:size=0.8 --objects type=sphere:pos=1,0,0:material=glass:size=0.8 --shadows --light directional:1,-1,-1 --light point:0,3,2:1.5 --plane y:-1 --camera-pos 0,1,4 --camera-lookat 0,0,0 -s $OUTPUT_DIR/126-cli-shadows-no-dsl.png"
 run_test "DSL: EnvMapDemo (HDR + Reinhard tone mapping)" "-o --scene examples.dsl.EnvMapDemo --texture-dir menger-app/src/test/resources/ -s $OUTPUT_DIR/141-envmap-demo-reinhard.png"
+run_test "DSL: EnvMapDemo IBL (importance-sampled env lighting)" "-o --scene examples.dsl.EnvMapDemo --texture-dir menger-app/src/test/resources/ -s $OUTPUT_DIR/142-envmap-demo-ibl.png"
 
 # Animated DSL Scenes (t-parameter)
 echo -e "${YELLOW}--- Animated DSL Scenes (t-parameter) ---${NC}"
