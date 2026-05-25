@@ -31,7 +31,7 @@ import menger.objects.Direction.Z
 class SpongeBySurface(
   val center: Vector3 = Vector3.Zero, val scale: Float = 1f,
   val level: Float, val material: Material = Builder.WHITE_MATERIAL, val primitiveType: Int = GL20.GL_TRIANGLES
-)(using val profilingConfig: menger.ProfilingConfig) extends Geometry(center, scale) with FractionalLevelSponge with TriangleMeshSource:
+)(using val profilingConfig: menger.common.ProfilingConfig) extends Geometry(center, scale) with FractionalLevelSponge with TriangleMeshSource:
   require(level >= 0, "Level must be non-negative")
 
   override protected def createInstance(

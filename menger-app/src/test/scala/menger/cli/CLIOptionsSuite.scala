@@ -451,8 +451,8 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
 
   "--max-ray-depth" should "default to RenderLimits.MaxRayDepth" in:
     val opts = SafeMengerCLIOptions(Seq[String]())
-    opts.maxRayDepth() shouldBe menger.optix.RenderLimits.MaxRayDepth
-    opts.renderConfig.maxRayDepth shouldBe menger.optix.RenderLimits.MaxRayDepth
+    opts.maxRayDepth() shouldBe menger.common.RenderLimits.MaxRayDepth
+    opts.renderConfig.maxRayDepth shouldBe menger.common.RenderLimits.MaxRayDepth
 
   it should "accept values within range" in:
     val opts = SafeMengerCLIOptions(Seq("--max-ray-depth", "2"))
@@ -463,7 +463,7 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--max-ray-depth", "0"))
 
   it should "reject values above the ceiling" in:
-    val tooDeep = menger.optix.RenderLimits.MaxRayDepth + 1
+    val tooDeep = menger.common.RenderLimits.MaxRayDepth + 1
     an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--max-ray-depth", tooDeep.toString))
 
   "ObjectSpec" should "parse rot-x rot-y rot-z in degrees and convert to radians" in:

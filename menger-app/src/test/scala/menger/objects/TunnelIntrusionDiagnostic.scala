@@ -9,7 +9,7 @@ import org.scalatest.matchers.should.Matchers
 // faces produced tunnel walls with inverted normals, causing level-2
 // sub-tunnel geometry to shift TOWARD the tunnel center instead of away.
 class TunnelIntrusionDiagnostic extends AnyFlatSpec with Matchers:
-  given menger.ProfilingConfig = menger.ProfilingConfig.disabled
+  given menger.common.ProfilingConfig = menger.common.ProfilingConfig.disabled
 
   private val tunnelMin = -1f / 6
   private val tunnelMax = 1f / 6

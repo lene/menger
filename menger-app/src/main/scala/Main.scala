@@ -8,16 +8,18 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import menger.MengerCLIOptions
 import menger.MengerExitException
-import menger.ProfilingConfig
 import menger.cli.LightSpec
 import menger.common.Const
 import menger.common.FogConfig
+import menger.common.ProfilingConfig
+import menger.common.RenderConfig
 import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
 import menger.config.ExecutionConfig
 import menger.config.OptiXEngineConfig
 import menger.config.PlaneConfig
 import menger.config.SceneConfig
+import menger.config.TAnimationConfig
 import menger.dsl.LoadedScene
 import menger.engines.AnimationEngine
 import menger.engines.CliAnimationEngine
@@ -25,9 +27,7 @@ import menger.engines.InteractiveEngine
 import menger.engines.PreviewEngine
 import menger.engines.RenderEngine
 import menger.engines.SceneConverter
-import menger.engines.TAnimationConfig
 import menger.engines.VideoEngine
-import menger.optix.RenderConfig
 import org.slf4j.LoggerFactory
 
 object Main:

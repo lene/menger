@@ -2,7 +2,7 @@ package menger.optix
 
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
-import menger.ProfilingConfig
+import menger.common.ProfilingConfig
 import menger.common.Color
 import menger.common.ImageSize
 import menger.common.Vector

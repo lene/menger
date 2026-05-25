@@ -4,6 +4,7 @@ import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Color
 import menger.common.ImageSize
+import menger.common.ProfilingConfig
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
 import menger.optix.OptiXRenderer

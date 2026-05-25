@@ -3,9 +3,9 @@ package menger.engines.scene
 import scala.util.Try
 
 import menger.ObjectSpec
-import menger.ProfilingConfig
 import menger.Projection4DSpec
 import menger.common.ObjectType
+import menger.common.ProfilingConfig
 import menger.common.TransformUtil
 import menger.common.TriangleMeshData
 import menger.common.Vector

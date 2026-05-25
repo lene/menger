@@ -2,6 +2,7 @@ package menger.input
 
 import com.badlogic.gdx.math.Vector3
 import menger.common.MouseButton
+import menger.common.OrbitConfig
 import menger.common.ScreenCoords
 
 /** Consolidated drag state — reduces multiple vars to a single Option */

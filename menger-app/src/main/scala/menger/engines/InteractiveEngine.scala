@@ -8,13 +8,14 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import menger.ObjectSpec
-import menger.ProfilingConfig
 import menger.Projection4DSpec
 import menger.RotationProjectionParameters
 import menger.Vector3Extensions.toVector3
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ObjectType
+import menger.common.ProfilingConfig
+import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
 import menger.engines.scene.Hexadecachoron4DSceneBuilder
 import menger.engines.scene.Menger4DSceneBuilder
@@ -49,7 +50,7 @@ class InteractiveEngine(
 
   override protected def textureDir: String = execution.textureDir
 
-  override protected def renderConfig: menger.optix.RenderConfig = config.render
+  override protected def renderConfig: menger.common.RenderConfig = config.render
 
   // Required by TimeoutSupport trait
   override def timeout: Float = execution.timeout
@@ -308,7 +309,6 @@ class InteractiveEngine(
           scene4DCache.set(scene4DCache.get.copy(hexadecachoron4d = Some(prev.copy(specs = newSpecs))))
           true
 
-  private case class LevelConfig(warnLevel: Int, maxLevel: Int, estimateTriangles: Int => Long)
   private val levelConfigs: Map[String, LevelConfig] = Map(
     "sponge-volume"      -> LevelConfig(
       Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel,

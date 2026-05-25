@@ -7,7 +7,7 @@ import org.scalatest.tagobjects.Slow
 
 class SpongeBySurfaceMeshSuite extends AnyFlatSpec with Matchers:
 
-  given menger.ProfilingConfig = menger.ProfilingConfig.disabled
+  given menger.common.ProfilingConfig = menger.common.ProfilingConfig.disabled
 
   private val QUAD_TRIANGLE_COUNT = 2
   private val QUAD_VERTEX_COUNT = 4

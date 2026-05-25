@@ -1,7 +1,7 @@
 package menger.config
 
-import menger.optix.CausticsConfig
-import menger.optix.RenderConfig
+import menger.common.CausticsConfig
+import menger.common.RenderConfig
 
 /**
  * Complete configuration for OptiXEngine.

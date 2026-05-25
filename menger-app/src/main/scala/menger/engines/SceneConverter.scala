@@ -3,8 +3,10 @@ package menger.engines
 import com.typesafe.scalalogging.LazyLogging
 import menger.ObjectRotation
 import menger.ObjectSpec
+import menger.common.CausticsConfig
 import menger.common.FogConfig
 import menger.common.Light
+import menger.common.RenderConfig
 import menger.common.{Color => CommonColor}
 import menger.config.CameraConfig
 import menger.config.PlaneConfig
@@ -14,8 +16,6 @@ import menger.dsl.Scene
 import menger.dsl.SceneNode
 import menger.dsl.ToneMapping
 import menger.dsl.Transform
-import menger.optix.CausticsConfig
-import menger.optix.RenderConfig
 
 /** Extracted conversion from DSL Scene to rendering configs.
   *

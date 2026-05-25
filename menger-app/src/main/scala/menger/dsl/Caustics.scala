@@ -1,6 +1,6 @@
 package menger.dsl
 
-import menger.optix.{CausticsConfig => OptiXCausticsConfig}
+import menger.common.{CausticsConfig => OptiXCausticsConfig}
 
 /** Caustics rendering configuration for photon mapping effects.
   *

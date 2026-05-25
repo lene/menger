@@ -2,6 +2,8 @@
 
 Guidance for Claude Code and other AI agents when working with this repository.
 
+Important: Always also consult CLAUDE.md.
+
 ---
 
 ## ⚠️ CRITICAL CONVENTIONS
@@ -96,7 +98,7 @@ correct syntax for fish when providing any commands.**
 ```bash
 # Core commands
 sbt compile                          # Compile all modules (includes C++/CUDA)
-sbt test                             # Run all tests (~1,080 total: 27 C++ + 1,053 Scala)
+sbt test                             # Run all tests (~2,200 total: 27 C++ + ~2,170 Scala)
 sbt "testOnly ClassName"             # Run specific Scala test
 sbt run                              # Run application
 
@@ -347,7 +349,7 @@ the end-to-end CLI surface and catch regressions in argument parsing, GPU dispat
 - CMake 3.18+
 - C++17 compiler
 - Java 21+
-- sbt 1.11+
+- sbt 1.12+
 
 ### OptiX SDK Version Matching (CRITICAL)
 OptiX SDK version **MUST match driver**:
@@ -374,7 +376,7 @@ This project consists of three main capabilities:
 
 ### Components
 - **menger-app** - LibGDX-based renderer, CLI, input handling
-- **menger-common** - Domain primitives (Color, Vector, Light), constants
+- **menger-common** - Domain primitives (Color, Vector, Light, Material), config types (OrbitConfig, ProfilingConfig, RenderConfig, CausticsConfig), constants
 - **optix-jni** - CUDA/OptiX GPU ray tracing (JNI bindings)
 
 ---
@@ -440,119 +442,15 @@ For current sprint status, completed features, and roadmap, see:
 
 ## RELEASE WORKFLOW
 
-### Overview
+Invoke the `/release-checklist` skill for the full step-by-step release process. It covers version bumps across 4 files, documentation updates, branch/MR creation, and post-merge verification.
 
-Menger uses a **fully automated release pipeline** triggered by version bumps merged to the main branch via merge requests.
+**Quick reference — version must be updated in all 4 files:**
+- `menger-app/build.sbt`
+- `.gitlab-ci.yml` (DEPLOYABLE_VERSION)
+- `menger-app/src/main/scala/menger/MengerCLIOptions.scala`
+- `docs/guide/user-guide.md` (all files in `docs/guide/`)
 
-**Total time from commit to published release: ~30-40 minutes**
-
-**Process:**
-1. Pre-release prep (manual: 15-30 min) → 2. Pre-push validation (automated: 8-10 min) → 3. Create MR (manual: 5-10 min) → 4. Release pipeline (automated: 12-15 min) → 5. Verification (manual: 5-10 min)
-
-### Quick Start
-
-**For detailed step-by-step instructions, invoke:** `/release-checklist` skill
-
-**Quick reference:**
-
-1. **Update version in 4 files:**
-   - `menger-app/build.sbt`
-   - `.gitlab-ci.yml` (DEPLOYABLE_VERSION)
-   - `menger-app/src/main/scala/menger/MengerCLIOptions.scala`
-   - `docs/guide/user-guide.md` (Version field in header of all `docs/guide/*.md` files)
-
-2. **Update documentation:**
-   - CHANGELOG.md (keepachangelog.com format)
-   - ROADMAP.md (mark sprint complete)
-   - CODE_IMPROVEMENTS.md (run quality assessment; **delete** resolved items — do not move them to an archive section)
-   - arc42 docs (if architecture changed)
-   - **Archive sprint docs:** move `docs/sprints/SPRINT_N.md` → `docs/archive/sprints/SPRINT_N.md`, update index tables in `docs/sprints/README.md` and `docs/archive/README.md`, reset `docs/sprints/SPRINT.md` to the next sprint
-
-3. **Create release branch and merge request:**
-   ```bash
-   git checkout -b release/vX.Y.Z
-   git add [files]
-   git commit -m "release: Version X.Y.Z"
-   git push origin release/vX.Y.Z
-   glab mr create --title "Release vX.Y.Z" --target-branch main
-   ```
-   Pre-push hook validates automatically (8-10 minutes)
-
-4. **Merge MR after pipeline passes:**
-   - GitLab CI: https://gitlab.com/lilacashes/menger/-/pipelines
-   - All jobs must pass (green checkmarks)
-   - Merge triggers release pipeline automatically
-
-5. **Verify releases:**
-   - GitLab: https://gitlab.com/lilacashes/menger/-/releases
-   - GitHub: https://github.com/lene/menger/releases
-   - Download and test packaged artifact
-
-### Common Release Issues
-
-**Version mismatch errors:**
-- Pre-push hook validates versions across 4 files (build.sbt, MengerCLIOptions.scala, .gitlab-ci.yml, docs/guide/user-guide.md)
-- Fix all four and commit again
-
-**Tag already exists:**
-- If pushing to GitHub after GitLab release: Normal, PushToGithub job handles it
-- If genuine duplicate: Increment version number
-
-**Protected branch error:**
-- Expected - main branch is protected
-- Always use feature/release branches with merge requests
-- Never push directly to main
-
-**Pipeline failures:**
-- Check pipeline logs for specific job failure
-- Most common: test failures, coverage drops, memory leaks
-- Follow TEST FAILURE PROTOCOL for test issues
-- Never bypass tests for releases
-
-### Pre-Push Validation
-
-The pre-push hook (`.git_hooks/pre-push`) automatically validates:
-- Environment (CUDA_HOME, OPTIX_ROOT)
-- GitLab CI config syntax
-- Version consistency across 4 files (build.sbt, MengerCLIOptions.scala, .gitlab-ci.yml, docs/guide/user-guide.md)
-- Full test suite (1,080 tests) — in parallel with scalafix
-- Code quality (scalafix) — in parallel with test suite
-- Test coverage ratchet (≥80%, max 1% drop) — in parallel with Valgrind
-- Memory leaks (compute-sanitizer, Valgrind) — Valgrind in parallel with coverage; compute-sanitizer sequential after coverage
-- Integration tests (27 scenarios)
-
-**Manual run:**
-```bash
-.git_hooks/pre-push
-```
-
-### Release Pipeline Stages
-
-**Automatic on main branch merge:**
-
-1. **Build Stage** - All tests and quality checks
-2. **CreateRelease** - Creates GitLab release and git tag
-3. **Tag Pipeline** - Uploads artifact, mirrors to GitHub, creates GitHub release
-
-**No manual intervention required** - entire process is automated
-
-### Emergency Hotfix
-
-For critical production bugs:
-
-1. Create hotfix branch from main
-2. Make minimal fix
-3. Run full pre-push hook: `.git_hooks/pre-push`
-4. Bump PATCH version (e.g., 0.4.3 → 0.4.4)
-5. Update CHANGELOG.md
-6. Create MR and merge to main after pipeline passes
-
-**Hotfix criteria:**
-- Production is broken or severely degraded
-- Security vulnerability
-- Data loss risk
-
-Invoke `/release-checklist` skill for detailed emergency hotfix process.
+**Pre-push hook** (`.git_hooks/pre-push`) validates: environment, CI config syntax, version consistency across the 4 files above, full test suite (~2,200 tests), scalafix, coverage ratchet (≥80%, max 1% drop), memory leaks (Valgrind + compute-sanitizer), integration tests (27 scenarios). Takes ~8–10 minutes.
 
 ---
 

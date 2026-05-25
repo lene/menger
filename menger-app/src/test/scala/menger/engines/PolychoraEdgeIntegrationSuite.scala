@@ -78,7 +78,7 @@ class PolychoraEdgeIntegrationSuite extends AnyFlatSpec with Matchers:
   // === TesseractEdgeSceneBuilder.calculateRequiredInstances ===
   // Verifies no crash and correct edge counts for triangular polychora faces.
 
-  given menger.ProfilingConfig = menger.ProfilingConfig.disabled
+  given menger.common.ProfilingConfig = menger.common.ProfilingConfig.disabled
 
   "TesseractEdgeSceneBuilder.calculateRequiredInstances" should "handle pentachoron with edges" in:
     val spec = ObjectSpec.parse("type=pentachoron:size=0.8:edge-material=gold:edge-radius=0.02")

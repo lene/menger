@@ -8,6 +8,7 @@ import menger.RotationProjectionParameters
 import menger.Vector3Extensions.toVector3
 import menger.common.Const
 import menger.common.MouseButton
+import menger.common.OrbitConfig
 import menger.common.ScreenCoords
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper

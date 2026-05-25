@@ -1,5 +1,6 @@
 package menger
 
+import menger.common.ProfilingConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -61,7 +61,7 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
 
   it should "use RenderConfig default for maxRayDepth when None" in:
     val config = RenderSettings().toRenderConfig
-    config.maxRayDepth shouldBe menger.optix.RenderConfig.Default.maxRayDepth
+    config.maxRayDepth shouldBe menger.common.RenderConfig.Default.maxRayDepth
 
   it should "map defaults correctly" in:
     val config = RenderSettings().toRenderConfig

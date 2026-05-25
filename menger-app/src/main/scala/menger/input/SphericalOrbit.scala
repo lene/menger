@@ -4,16 +4,7 @@ import scala.math._
 
 import com.badlogic.gdx.math.Vector3
 import menger.common.Const
-
-case class OrbitConfig(
-  orbitSensitivity: Float = Const.Input.defaultZoomSensitivity,
-  panSensitivity: Float = Const.Input.defaultPanSensitivity,
-  zoomSensitivity: Float = Const.Input.zoomSensitivity,
-  minDistance: Float = Const.Input.defaultMinDistance,
-  maxDistance: Float = Const.Input.defaultMaxDistance,
-  minElevation: Float = Const.Input.defaultMinElevation,
-  maxElevation: Float = Const.Input.defaultMaxElevation
-)
+import menger.common.OrbitConfig
 
 // Consolidated spherical coordinate state - reduces multiple vars to one
 case class SphericalCoords(azimuth: Float, elevation: Float, distance: Float)

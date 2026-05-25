@@ -6,7 +6,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class SpongeBySurfaceSuite extends AnyFlatSpec with Matchers:
-  given menger.ProfilingConfig = menger.ProfilingConfig.disabled
+  given menger.common.ProfilingConfig = menger.common.ProfilingConfig.disabled
   trait StartFace:
     val face: Face = Face(0, 0, 0, 1, Z)
 

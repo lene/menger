@@ -4,10 +4,10 @@ import scala.util.Try
 
 import com.badlogic.gdx.math.Vector3
 import menger.ObjectSpec
-import menger.ProfilingConfig
 import menger.Projection4DSpec
 import menger.common.Material
 import menger.common.ObjectType
+import menger.common.ProfilingConfig
 import menger.common.TransformUtil
 import menger.common.Vector
 import menger.objects.higher_d.Hecatonicosachoron

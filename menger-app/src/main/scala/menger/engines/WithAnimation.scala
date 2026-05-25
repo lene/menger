@@ -12,14 +12,15 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.Vector3Extensions.toVector3
+import menger.common.CausticsConfig
 import menger.common.ImageSize
 import menger.common.ObjectType
+import menger.common.RenderConfig
+import menger.config.TAnimationConfig
 import menger.dsl.Scene
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.GdxRuntime
-import menger.optix.CausticsConfig
 import menger.optix.OptiXRenderer
-import menger.optix.RenderConfig
 
 trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   self: BaseEngine =>

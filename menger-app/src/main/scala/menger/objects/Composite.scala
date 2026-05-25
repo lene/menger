@@ -5,9 +5,9 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.g3d.Material
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
-import menger.ProfilingConfig
 import menger.RotationProjectionParameters
 import menger.common.Patterns
+import menger.common.ProfilingConfig
 import menger.common.UnknownGeometryException
 
 class Composite(

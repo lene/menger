@@ -20,12 +20,12 @@ import menger.cli.converters.objectSpecConverter
 import menger.cli.converters.planeColorSpecConverter
 import menger.cli.converters.planeSpecConverter
 import menger.cli.converters.vector3Converter
+import menger.common.CausticsConfig
 import menger.common.Const
 import menger.common.ObjectType
+import menger.common.RenderConfig
+import menger.common.RenderLimits
 import menger.config.CrossConfig
-import menger.optix.CausticsConfig
-import menger.optix.RenderConfig
-import menger.optix.RenderLimits
 import org.rogach.scallop._
 import org.rogach.scallop.exceptions._
 

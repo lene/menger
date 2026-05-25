@@ -1,15 +1,16 @@
 package menger.engines
 
-import menger.ProfilingConfig
 import menger.Vector3Extensions.toVector3
+import menger.common.CausticsConfig
+import menger.common.ProfilingConfig
+import menger.common.RenderConfig
 import menger.config.ExecutionConfig
+import menger.config.TAnimationConfig
 import menger.dsl.Scene
 import menger.input.GdxRuntime
 import menger.input.LibGDXInputAdapter
 import menger.input.PreviewKeyHandler
 import menger.optix.CameraState
-import menger.optix.CausticsConfig
-import menger.optix.RenderConfig
 import menger.optix.SceneConfigurator
 
 class PreviewEngine(

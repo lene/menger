@@ -2,9 +2,9 @@ package menger.engines.scene
 
 import com.badlogic.gdx.math.Vector3
 import menger.ObjectSpec
-import menger.ProfilingConfig
 import menger.Projection4DSpec
 import menger.common.ObjectType
+import menger.common.ProfilingConfig
 import menger.common.TriangleMeshData
 import menger.objects.Cube
 import menger.objects.Dodecahedron

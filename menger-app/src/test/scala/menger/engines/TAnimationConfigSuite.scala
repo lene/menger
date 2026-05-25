@@ -1,5 +1,6 @@
 package menger.engines
 
+import menger.config.TAnimationConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

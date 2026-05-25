@@ -1,6 +1,6 @@
 package menger.dsl
 
-import menger.optix.RenderConfig
+import menger.common.RenderConfig
 
 /** Rendering quality settings for a DSL scene.
   *

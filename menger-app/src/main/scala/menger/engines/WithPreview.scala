@@ -9,11 +9,12 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import menger.Vector3Extensions.toVector3
+import menger.common.CausticsConfig
 import menger.common.ImageSize
+import menger.common.RenderConfig
+import menger.config.TAnimationConfig
 import menger.dsl.Scene
 import menger.input.GdxRuntime
-import menger.optix.CausticsConfig
-import menger.optix.RenderConfig
 
 trait WithPreview extends RenderEngine with LazyLogging:
   self: BaseEngine =>

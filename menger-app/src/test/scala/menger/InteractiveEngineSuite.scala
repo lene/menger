@@ -13,7 +13,8 @@ import menger.config.MaterialConfig
 import menger.config.OptiXEngineConfig
 import menger.config.SceneConfig
 import menger.engines.InteractiveEngine
-import menger.optix.RenderConfig
+import menger.common.ProfilingConfig
+import menger.common.RenderConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

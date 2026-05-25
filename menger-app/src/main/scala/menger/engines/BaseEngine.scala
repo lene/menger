@@ -7,13 +7,13 @@ import com.badlogic.gdx.Game
 import com.typesafe.scalalogging.LazyLogging
 import menger.ObjectSpec
 import menger.OptiXRenderResources
-import menger.ProfilingConfig
 import menger.common.ObjectType
+import menger.common.ProfilingConfig
+import menger.common.RenderConfig
 import menger.common.ValidationException
 import menger.engines.scene.SceneBuilder
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
-import menger.optix.RenderConfig
 import menger.optix.SceneConfigurator
 
 abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig: ProfilingConfig)

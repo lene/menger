@@ -1,8 +1,8 @@
 package menger.engines
 
 import menger.ObjectSpec
-import menger.ProfilingConfig
 import menger.common.ObjectType
+import menger.common.ProfilingConfig
 import menger.engines.scene.ConeSceneBuilder
 import menger.engines.scene.CubeSpongeSceneBuilder
 import menger.engines.scene.Menger4DSceneBuilder

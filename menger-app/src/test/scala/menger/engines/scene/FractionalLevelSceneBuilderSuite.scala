@@ -1,7 +1,7 @@
 package menger.engines.scene
 
 import menger.ObjectSpec
-import menger.ProfilingConfig
+import menger.common.ProfilingConfig
 import menger.common.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

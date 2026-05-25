@@ -3,7 +3,7 @@ package menger.objects
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
-import menger.ProfilingConfig
+import menger.common.ProfilingConfig
 
 trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f):
   def getModel: List[ModelInstance]
