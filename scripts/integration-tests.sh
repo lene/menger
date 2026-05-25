@@ -1054,6 +1054,59 @@ test_video_output() {
     rm -rf "$temp_dir"
 }
 
+test_ibl() {
+    echo "Image-Based Lighting (IBL):"
+
+    # Reference image: matte sphere lit only by env map via IBL (no explicit lights)
+    run_test "IBL sphere (env-lit no explicit lights)" \
+        --scene examples.dsl.IblSphereDemo \
+        --texture-dir menger-app/src/test/resources/
+
+    # Verify IBL produces visibly different output from background-only mode.
+    # IBL-on:  sphere receives diffuse illumination from the env map → bright
+    # IBL-off: env map is background only, no lights → sphere is near-black
+    local ibl_img="test_ibl_on_$$.png"
+    local no_ibl_img="test_ibl_off_$$.png"
+
+    local renders_ok=true
+
+    if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+            --scene examples.dsl.IblSphereDemo \
+            --texture-dir menger-app/src/test/resources/ \
+            --save-name "$ibl_img" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+            >/dev/null 2>&1 || [ ! -f "$ibl_img" ]; then
+        renders_ok=false
+    fi
+
+    if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
+            --objects type=sphere:material=matte \
+            --env-map "$TEST_ASSETS_DIR/test_hdr.hdr" \
+            --save-name "$no_ibl_img" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+            >/dev/null 2>&1 || [ ! -f "$no_ibl_img" ]; then
+        renders_ok=false
+    fi
+
+    if $renders_ok; then
+        local diff_pixels
+        diff_pixels=$(compare -metric AE "$ibl_img" "$no_ibl_img" /dev/null 2>&1) || true
+        # Expect a large number of differing pixels: sphere lit vs near-black
+        if [ "${diff_pixels:-0}" -gt 500 ] 2>/dev/null; then
+            ((PASSED++))
+            echo -e "  IBL vs background-only differ (${diff_pixels}px) ${GREEN}✓${RESET}"
+        else
+            ((FAILED++))
+            FAILED_TESTS="$FAILED_TESTS\n  - IBL vs background-only: images too similar (diff=${diff_pixels}px)"
+            echo -e "  IBL vs background-only: images too similar (diff=${diff_pixels}px) ${RED}✗${RESET}"
+        fi
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - IBL vs background-only: render failed"
+        echo -e "  IBL vs background-only: render failed ${RED}✗${RESET}"
+    fi
+
+    rm -f "$ibl_img" "$no_ibl_img"
+}
+
 test_fog() {
     echo "Fog / Depth Cue:"
 
@@ -1131,6 +1184,7 @@ main() {
     test_area_lights
     test_error_handling
     test_video_output
+    test_ibl
     test_fog
 
     print_summary
