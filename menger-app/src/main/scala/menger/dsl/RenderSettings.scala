@@ -22,7 +22,9 @@ case class RenderSettings(
   aaThreshold: Float = 0.1f,
   maxRayDepth: Option[Int] = None,
   // Sprint 18.3: opt-in GPU 4D rotation + projection.
-  gpuProject4D: Option[Boolean] = None
+  gpuProject4D: Option[Boolean] = None,
+  // Sprint 23.5: multi-frame accumulation for noise reduction.
+  accumulation: Int = 1,
 ):
   require(aaMaxDepth >= 1 && aaMaxDepth <= 4, s"aaMaxDepth must be 1-4, got $aaMaxDepth")
   require(aaThreshold >= 0.0f && aaThreshold <= 1.0f, s"aaThreshold must be 0.0-1.0, got $aaThreshold")
@@ -30,6 +32,7 @@ case class RenderSettings(
     d >= 1 && d <= RenderConfig.Default.maxRayDepth,
     s"maxRayDepth must be 1-${RenderConfig.Default.maxRayDepth}, got $d"
   ))
+  require(accumulation >= 1, s"RenderSettings.accumulation must be ≥ 1, got $accumulation")
 
   def toRenderConfig: RenderConfig = RenderConfig(
     shadows = shadows,

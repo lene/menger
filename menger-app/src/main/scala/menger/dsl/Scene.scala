@@ -25,6 +25,7 @@ case class Scene(
   background: Option[Color] = None,
   fog: Option[Fog] = None,
   envMap: Option[String] = None,
+  ibl: Option[IBL] = None,
   toneMapping: ToneMapping = ToneMapping.None,
   root: Option[SceneNode] = None,
   render: Option[RenderSettings] = None
