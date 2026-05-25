@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-25
 **Sprint:** 23
-**Tasks:** 23.1, 23.2, 23.3, 23.4
+**Tasks:** 23.1, 23.2, 23.3, 23.4, 23.5, 23.6
 
 ---
 
@@ -202,24 +202,103 @@ a later sprint if time allows.
 **CLI:** No new CLI flag in Sprint 23. IBL is DSL-only. `EnvMapDemo` example scene
 extended with `ibl = Some(IBL())`.
 
+## Task 23.5 — Accumulation Frames
+
+IBL with `ibl_samples=1` is inherently noisy. Rendering N passes of the same static scene
+with different random seeds and averaging gives noise proportional to `1/√N`.
+
+**DSL:**
+
+```scala
+// menger/dsl/RenderSettings.scala — add field
+case class RenderSettings(
+  ...,
+  accumulation: Int = 1,   // ≥1; 1 = off (single pass, current behavior)
+)
+```
+
+**C++ (`RenderConfig.h`):**
+
+```cpp
+int accumulation_frames = 1;
+```
+
+**Implementation in `OptiXWrapper.cpp`:**
+
+New internal float accumulation buffer (`float* d_accum_buffer`, width × height × 3
+floats, device-side). Managed alongside the existing `unsigned char* image` output:
+
+```
+renderScene(w, h, seed):
+  if accumulation_frames == 1:
+    render as before (existing path, no regression)
+  else:
+    allocate d_accum_buffer (w×h×3 float32, zero-init)
+    for frame in 0..accumulation_frames-1:
+      vary seed: frame_seed = seed ^ (frame * 0x9e3779b9)  // hash spread
+      launch OptiX kernel → writes to d_accum_buffer (accumulate, not overwrite)
+    divide d_accum_buffer by accumulation_frames
+    convert float RGB → unsigned char RGBA (existing image buffer)
+```
+
+The OptiX kernel gains an `accumulate` boolean param. When true it adds to
+`d_accum_buffer` instead of writing to `image`. The existing `image` write path is
+unchanged when `accumulation_frames == 1`.
+
+**`Params` additions:**
+
+```cpp
+float*  accum_buffer;        // device pointer; null when accumulation_frames == 1
+int     accumulation_frames; // ≥1
+bool    accumulate;          // true = add to accum_buffer; false = write image directly
+```
+
+**Memory management:** `d_accum_buffer` is allocated per render call and freed after
+the final conversion step. It is not retained between renders.
+
+**Seed variation:** XOR-hash the base seed with a per-frame constant to ensure each
+pass samples distinct light paths. The existing `tea<4>` seed per pixel remains; only
+the per-launch seed offset changes.
+
+**Constraints:**
+- Only meaningful for static scenes (no animation between passes)
+- `accumulation=1` is the default; no behavior change for existing scenes
+- Integration tests: run with `accumulation=4`; image should be less noisy than
+  `accumulation=1` (visual check only — no pixel-exact reference for stochastic output;
+  the uniform-render check still applies to the averaged result)
+
 ---
 
-## Testing
+## Task 23.6 — Documentation
+
+- User guide: "Image-Based Lighting" section
+  - IBL concept, `ibl = Some(IBL(strength, samples))` DSL usage
+  - Interaction with DSL lights (additive)
+  - Noise reduction: `render = Some(RenderSettings(accumulation = 8))`
+  - Performance trade-offs: `ibl.samples × accumulation` total samples per pixel
+- Example renders: metallic/glass object under HDR illumination (with and without IBL)
+- CHANGELOG.md, sprint retrospective
+
+---
+
+
 
 **Unit (Scala):**
 - `IBL` case class: default values, field validation (samples ∈ [1,8])
 - `SceneConverter`: `ibl = None` → `ibl_enabled = false`; `ibl = Some(IBL(0.5f, 2))`
   → `ibl_enabled = true`, correct values forwarded
+- `RenderSettings.accumulation`: default = 1; value is forwarded to `RenderConfig`
 
 **C++ (Google Test):**
 - `computeEnvMapCDF`: CDF is monotonically non-decreasing, final value = 1.0, all
   values ∈ [0,1]
 - CDF for a uniform luminance map is linear
+- Accumulation with N=1 produces identical output to the non-accumulation path
 
 **Integration:**
-- `EnvMapDemo` scene: IBL enabled renders without crash, output is non-uniform (fails
-  uniform-render check)
-- Reference image committed after visual inspection
+- `EnvMapDemo` scene (IBL enabled): renders without crash, output is non-uniform
+- `EnvMapDemo` with `accumulation=4`: visually less noisy than `accumulation=1`
+- Reference images committed after visual inspection
 
 ---
 
@@ -239,4 +318,4 @@ extended with `ibl = Some(IBL())`.
 - OptiX AI Denoiser (`optixDenoiserCreate`)
 - Specular MIS beyond diffuse approximation
 - CLI `--ibl` flag
-- Accumulation frames (Task 23.5 is optional)
+- Temporal accumulation across interactive frames (accumulation is headless/render-only)
