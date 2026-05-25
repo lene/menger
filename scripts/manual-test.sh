@@ -569,7 +569,7 @@ interactive_tests=(
     "Sponge-recursive-ias fractional L2.5:-o --objects type=sponge-recursive-ias:level=2.5"
     "DSL EnvMapDemo (Reinhard tone mapping — sunset panorama, no blown-out highlights):-o --scene examples.dsl.EnvMapDemo --texture-dir menger-app/src/test/resources/"
     "IBL on — matte sphere lit by env map, no explicit lights (should be brightly lit by sky):-o --scene examples.dsl.IblSphereDemo --texture-dir menger-app/src/test/resources/"
-    "IBL off — same sphere, background only, no lights (sphere should be near-black):-o --objects type=sphere:material=matte --env-map rogland_sunset_2k.hdr --tone-mapping reinhard:1.0 --texture-dir menger-app/src/test/resources/"
+    "IBL off — same sphere, background only, no lights (sphere should be near-black):-o --objects type=sphere:material=matte --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
     "Cliffside HDR no tone mapping (expect clipped/white sky):-o --objects type=sphere:material=chrome --env-map cliffside_2k.hdr --texture-dir menger-app/src/test/resources/"
     "EnvMapDemo glass sphere (HDR sunset background):-o --objects type=sphere:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
     "EnvMapDemo glass tetrahedron (HDR sunset background):-o --objects type=tetrahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
