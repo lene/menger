@@ -62,6 +62,14 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       if idx >= 0 then renderer.setEnvironmentMap(idx)
       else logger.error(s"Failed to load environment map: $path")
     }
+    if firstFrameConfigs.iblEnabled then
+      renderer.setIBL(
+        enabled  = true,
+        strength = firstFrameConfigs.iblStrength,
+        samples  = firstFrameConfigs.iblSamples,
+      )
+    if firstFrameConfigs.accumulationFrames > 1 then
+      renderer.setAccumulationFrames(firstFrameConfigs.accumulationFrames)
     GdxRuntime.setContinuousRendering(true)
 
   abstract override def render(): Unit =
