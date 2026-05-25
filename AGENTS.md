@@ -1,469 +1,183 @@
-# AGENTS.md - Development Guidelines
+# AGENTS.md
 
-Guidance for Claude Code and other AI agents when working with this repository.
+Guidance for AI coding agents (Claude Code, opencode, etc.) working in this repository.
 
-Important: Always also consult CLAUDE.md.
+This is a Scala 3 ray tracer using NVIDIA OptiX (via a C++/CUDA JNI bridge) and LibGDX. Showcase: Menger sponges (3D) and tesseract sponges (4D). Three modules: `menger-app` (renderer, CLI), `menger-common` (domain primitives, config), `optix-jni` (GPU ray tracing).
 
----
-
-## ⚠️ CRITICAL CONVENTIONS
-
-### Alpha Channel Convention (NEVER confuse this)
-- **alpha = 0.0** → **FULLY TRANSPARENT** (no opacity, no absorption)
-- **alpha = 1.0** → **FULLY OPAQUE** (full opacity, maximum absorption)
-- Applies to: OptiX shaders, Beer-Lambert absorption, Scala Color objects, all tests
-
-### Architecture Documentation (arc42)
-- **Single source of truth:** [docs/arc42/README.md](docs/arc42/README.md)
-- **Before architectural decisions:** Consult [Section 9](docs/arc42/09-architectural-decisions.md), [Section 10](docs/arc42/10-quality-requirements.md), [Section 11](docs/arc42/11-risks-and-technical-debt.md)
-- **After changes:** Update arc42 if affecting architecture, quality requirements, or risks
-- **Documentation must stay current** - outdated documentation is worse than no documentation
-
-### Data Safety
-- **Never delete data without user permission**
-- Always confirm before destructive operations
-
-### Ask Before Acting on Ambiguous Inputs
-- **When a skill or instruction says "confirm with user", treat it as a hard stop.** Do not proceed until the user replies in the current conversation.
-- **Never infer values that the user should provide** (version numbers, branch names, file paths, etc.). Ask explicitly.
-- **When instructions conflict or are unclear, ask for clarification before proceeding.** Guessing and correcting later wastes more tokens than asking upfront.
-- **A prior message does not satisfy a checkpoint.** If a skill says "ask the user", ask again at that point even if the topic came up earlier.
+The user runs **fish shell** on Ubuntu. Most build commands are shell-agnostic; the difference matters only for ad-hoc scripting and env-var syntax.
 
 ---
 
-## TOOL LIMITATIONS & WORKAROUNDS
+## Critical rules
 
-### Bash Tool Issues (CRITICAL)
-Your bash tool has known limitations. Follow these workarounds:
+These are non-negotiable. Violating any of them causes real harm.
 
-**Use `pkexec` instead of `sudo`:**
-- `sudo` requires password entry on terminal and doesn't work with the bash tool
-- Always use `pkexec` for privileged operations
-- Example: `pkexec chown -R $USER:$USER optix-jni/target/`
-
-**Command chaining:**
-- ❌ **DO NOT use `&&`** - it makes the bash tool fail
-- ✅ **Use `;` instead** - chains commands correctly
-- Example: `sbt compile ; sbt test` (not `sbt compile && sbt test`)
-
-**Command substitution:**
-- ❌ **DO NOT use `$()`** - it fails with the bash tool
-- ✅ **Run substituted commands separately** instead
-
-### Git Workflow
-- **Never `git add -A`** - add files explicitly
-- **Never commit automatically** - always show diff for user review first
-- **Never push without explicit user confirmation** - commit locally, then wait for the user to say "push" before running `git push`
-- **Never commit failing tests** - all tests must pass before commit (ensured by commit hook)
-- **Never commit test changes without investigation** - follow TEST FAILURE PROTOCOL
-- when fetching, always use the --all --tags options
+1. **Never commit directly to `main`.** Check `git branch --show-current` before any change. If on `main`, switch to (or create) a feature branch first. The active feature branch may live in a worktree under `.worktrees/`.
+2. **Never push without explicit user confirmation.** Commit locally, show the diff, wait for "push."
+3. **Never `git add -A`.** Add files explicitly.
+4. **Never commit failing tests.** The pre-push hook enforces this; do not bypass it.
+5. **Never rewrite a test to make it pass without investigation.** Failing tests usually catch real bugs. See `docs/TESTING.md`.
+6. **Never delete data without explicit user confirmation.** This includes generated artifacts, caches, and reference images.
+7. **Never infer values the user should provide** (version numbers, branch names, paths). Ask.
+8. **When a skill or instruction says "confirm with user," it is a hard stop.** A prior message in the conversation does not satisfy a fresh checkpoint — ask again.
 
 ---
 
-## CODE STANDARDS & CONVENTIONS
+## Definition of Done
 
-### Language & Style
-- **Scala 3 only** - never Scala 2 syntax
-- **Line length:** max 100 characters
-- **Imports:** one per line, organized per .scalafix.conf
-- **No null:** Use `Option`, `Try`, or `Either` - null is forbidden in all Scala code
-- **No docstrings:** Use descriptive function/parameter names instead
-- **Comments:** Only for domain-specific problems not expressible in code
-- **No magic numbers:** Introduce named constants with a clear name instead
+After every task, run the pre-push hook:
 
-### Functional Programming (Enforced)
-- **Immutability:** Avoid mutable state, use `val` not `var`
-- **Error handling:** Use `Try`/`Either`/`Option` instead of exceptions
-- **No side effects:** Pure functions preferred
+```
+./.git_hooks/pre-push 2>&1 | tee /tmp/pre-push.log
+```
 
-### Code Quality Tools (Enforced)
-- **Wartremover:** No `var`, `while`, `asInstanceOf`, `throw` in production code
-- **Scalafix:** OrganizeImports, DisableSyntax (noNulls, noReturns), no unused imports
-- **Test framework:** AnyFlatSpec for Scala tests
+It is the single authoritative DoD gate — unit tests, scalafix, packaging, integration tests (~27 scenarios, ~2,200 unit tests), coverage ratchet (≥80%, max 1% drop), memory leak checks (Valgrind + compute-sanitizer), version consistency. Takes ~8–10 minutes.
 
-### Editing Conventions
-- **Manual edits only:** Never use scripts or sed for bulk code changes (proven unreliable and corrupt code)
-- **LibGDX compatibility:** `@SuppressWarnings` allowed for necessary vars in LibGDX integration
+Do **not** run individual checks (`sbt test`, `sbt "scalafix --check"`, etc.) as a substitute. The hook is the source of truth and evolves over time.
 
-### Runtime Environment
-- **xvfb-run:** Set `__GL_THREADED_OPTIMIZATIONS=0` to avoid crashes in libnvidia-glcore.so
+Always `tee` long-running commands (builds, test runs, render suites) to `/tmp/output.log` so you can re-examine without re-running.
 
 ---
 
-## BUILD & TEST COMMANDS
+## Conventions
 
-**Note that the user is using the fish shell, which has some differences from bash. Always use the 
-correct syntax for fish when providing any commands.**
+### Alpha channel (do not get this wrong)
 
-```bash
-# Core commands
-sbt compile                          # Compile all modules (includes C++/CUDA)
-sbt test                             # Run all tests (~2,200 total: 27 C++ + ~2,170 Scala)
-sbt "testOnly ClassName"             # Run specific Scala test
+- `alpha = 0.0` → **fully transparent** (no opacity, no absorption)
+- `alpha = 1.0` → **fully opaque** (full opacity, maximum absorption)
+
+Applies everywhere: OptiX shaders, Beer-Lambert absorption, Scala `Color`, all tests.
+
+### Architecture documentation: arc42
+
+Single source of truth: `docs/arc42/README.md`. Consult sections 9 (decisions), 10 (quality), 11 (risks) before architectural changes. Update arc42 if a change affects architecture, quality requirements, or technical debt. Outdated docs are worse than no docs.
+
+### Code style
+
+Scala 3 only. Enforced by Scalafix (`OrganizeImports`, `DisableSyntax` for nulls/returns, no unused imports) and WartRemover (no `var`, `while`, `asInstanceOf`, `throw` in production code). Don't restate these rules in review or commits — trust the tools.
+
+In addition:
+- Max line length 100.
+- No docstrings; use descriptive names. Comments only for domain-specific reasoning not expressible in code.
+- No magic numbers; introduce named constants.
+- Tests use `AnyFlatSpec`.
+- `@SuppressWarnings` is acceptable in LibGDX integration where the API requires `var`.
+
+### Editing
+
+Manual edits only. Never use `sed` or shell scripts for bulk Scala/C++ refactors — has corrupted code in the past.
+
+### Runtime
+
+Headless rendering needs `__GL_THREADED_OPTIMIZATIONS=0` to avoid crashes in `libnvidia-glcore.so` under `xvfb-run`.
+
+---
+
+## Test failures: investigate first
+
+When a test fails, the default assumption is that the test is catching a real bug. Investigation order:
+
+1. Run the failing test alone, read the actual failure.
+2. Check the test's git history and recent changes to the code under test.
+3. Decide which is wrong: implementation, test expectation, or both.
+4. Document the investigation in the commit message.
+
+Full protocol with decision tree, example commit message, and red flags: `docs/TESTING.md`.
+
+**Red flags that require asking the user:** multiple tests failing after a "simple" refactor, visual tests fail but unit tests pass, only some similar tests fail, a long-stable test starts failing.
+
+---
+
+## Rendering changes
+
+If a commit changes anything that can affect rendered pixel output, the integration suite (`scripts/integration-tests.sh`) must run on the same commit, and any reference-image diffs must be resolved in that same commit (or an immediately-following test-only commit on the same branch).
+
+**Do not let the pre-push hook be the discovery mechanism.** Stale references accumulating across multiple commits make bisection painful later.
+
+What counts as a rendering change, the sequential-vs-parallel-mode trap, and the full discipline: `docs/RENDERING.md`.
+
+Quick rule for local verification of rendering changes: run sequential mode to avoid GPU-contention flakes:
+```
+PARALLEL_MODE=false ./scripts/integration-tests.sh ./menger-app-$VERSION/bin/menger-app
+```
+
+Every new rendering feature (material preset, object type, shader path, CLI parameter) must be added to **both** `scripts/integration-tests.sh` (headless regression) and `scripts/manual-test.sh` (human visual verification). Verify both scripts have at least one test exercising the new code before considering the feature done.
+
+---
+
+## Common commands
+
+```
+sbt compile                          # All modules (includes C++/CUDA)
+sbt test                             # All tests
+sbt "testOnly ClassName"             # Specific Scala test
 sbt run                              # Run application
-
-# Code quality
-sbt "scalafix --check"               # Verify code quality rules
-
-# OptiX JNI specific
-sbt "project optixJni" nativeCompile # Compile C++/CUDA only
-sbt "project optixJni" nativeTest    # Run C++ Google Test suite
-rm -rf optix-jni/target/native ; sbt "project optixJni" compile  # Clean rebuild
+sbt "scalafix --check"               # Code quality check
+sbt "project optixJni" nativeCompile # C++/CUDA only
+sbt "project optixJni" nativeTest    # C++ Google Test suite
+rm -rf optix-jni/target/native ; sbt "project optixJni" compile  # Clean rebuild of native
 ```
+
+Pipeline monitoring after push:
+```
+glab ci view       # Watch latest pipeline
+glab ci status     # Current status
+```
+
+Detailed troubleshooting (CUDA error 718, OptiX SDK/driver matching, PTX-not-found, Docker permissions): `docs/TROUBLESHOOTING.md`.
 
 ---
 
-## TEST FAILURE PROTOCOL
+## Release workflow
 
-### ⚠️ CRITICAL: When Tests Fail
-
-**NEVER rewrite tests to make them pass without thorough investigation first.**
-
-Failing tests are often catching real bugs. Follow this protocol:
-
-#### 1. **Investigate Root Cause FIRST**
-
-Before changing ANY test code, determine WHY it failed:
-
-```bash
-# Run the specific failing test to see exact failure
-sbt "testOnly ClassName -- -z \"test name pattern\""
-
-# Check git history of the test
-git log --oneline --follow -- path/to/TestFile.scala
-
-# Check recent changes to code under test
-git log --oneline --since="1 week ago" -- path/to/implementation/
-
-# Check if the test passed before recent changes
-git checkout <previous-commit>
-sbt "testOnly ClassName -- -z \"test name\""
-git checkout -
-```
-
-#### 2. **Determine Correct Behavior**
-
-Ask these questions:
-
-- **Is the test expectation correct?** Review test logic and assertions
-- **Did code behavior change intentionally?** Check commit messages
-- **Is this catching a regression?** Compare with previous working versions
-- **Does visual output match expectations?** Run visual regression tests if applicable
-
-#### 3. **Decision Tree**
-
-```
-Test Fails
-    ├─> Bug in IMPLEMENTATION
-    │   └─> FIX THE CODE, keep test unchanged
-    │
-    ├─> Bug in TEST (wrong expectation)
-    │   └─> Verify with git history that test was ALWAYS wrong
-    │       └─> Document WHY test was wrong in commit message
-    │       └─> Fix test expectations
-    │
-    ├─> Intentional behavior change
-    │   └─> Verify change is documented and approved
-    │       └─> Update test to match NEW correct behavior
-    │       └─> Document in commit: "test: Update for behavior change in <commit>"
-    │
-    └─> Test became flaky/brittle
-        └─> Improve test robustness
-        └─> Don't just widen tolerances without understanding WHY
-```
-
-#### 4. **Document Your Investigation**
-
-When fixing a test, the commit message MUST explain:
-
-```
-test: Fix incorrect expectation in ShadowRayTest
-
-Root cause investigation:
-- Test expected 0 shadow rays for light direction (0,0,-1)
-- Test passed with commit 7d0e2fc (buggy - missing negation)
-- Test failed with commit bb92d30 (fixed - restored negation)
-- Analysis: Test expectation was wrong, written for buggy behavior
-
-The test assumed light direction (0,0,-1) would not illuminate
-sphere front, but correct shader behavior negates direction,
-making it (0,0,+1) which DOES illuminate front faces.
-
-Fix: Change light direction to actually point away from sphere.
-```
-
-#### 5. **Red Flags - STOP and Ask User**
-
-These situations require user consultation:
-
-- **Multiple tests failing after "simple" refactor** → Likely introduced bug
-- **Visual tests fail but unit tests pass** → Visual tests caught rendering bug
-- **Integration tests fail but unit tests pass** → System behavior changed
-- **Only some similar tests fail** → Likely edge case bug
-- **Test has been stable for months** → Respect test's history
-
-### Visual Regression Testing Value
-
-**Lesson from directional light bug:**
-
-- Unit tests PASSED with buggy code (no negation)
-- Visual regression tests CAUGHT the bug (42x threshold exceeded)
-- Demonstrates: visual tests catch bugs that unit tests miss
-
-Always run visual tests when changing rendering code:
-
-```bash
-sbt test  # Includes visual regression tests in IntegrationSuite
-```
-
-### Rendering Changes Require the Full Integration Suite
-
-**Whenever a commit changes anything that can affect rendered pixel output,
-the full integration image suite (`scripts/integration-tests.sh`) MUST be
-run on the same commit, and any reference-image diffs MUST be resolved
-before that commit lands.**
-
-What counts as a rendering change:
-
-- Geometry generators (anything under `menger.objects.*`, `menger.objects.higher_d.*`)
-- Mesh construction, vertex deduplication, face culling
-- Shader code under `optix-jni/src/main/native/shaders/`
-- Material, lighting, camera, or projection logic
-- Any change to default values that flow into rendered output
-- Library or build flag changes that affect numerics (e.g. CUDA flags, sqrt
-  approximations, precision modes)
-
-The pre-push hook runs the integration suite, but **do not rely on the
-hook as the discovery mechanism**. By the time a stale reference is
-caught at push, the offending commit may be days old and tangled with
-unrelated work, making bisection and review harder. The discipline is:
-
-1. Make the rendering change.
-2. Run the integration suite locally on that change (sequential mode is
-   safest — see below).
-3. Inspect each diff:
-   - If the new render is correct → refresh the reference and **bundle
-     that refresh in the same commit as the rendering change** (or in an
-     immediately-following test-only commit on the same branch). Either
-     way, leave a one-line note in the commit message saying which
-     references were refreshed and why.
-   - If the new render is wrong → fix it before committing.
-4. Re-run; only commit when the suite is green on this commit.
-
-#### Sequential vs parallel test mode
-
-`scripts/integration-tests.sh` defaults to `PARALLEL_MODE=true` with two
-concurrent categories. GPU contention under that load occasionally
-produces 1–2 pixel differences that look like real failures but
-disappear when the test runs alone. **For local verification of
-rendering changes, prefer sequential mode** to avoid being misled by
-load-induced flakes:
-
-```bash
-PARALLEL_MODE=false ./scripts/integration-tests.sh ./menger-app-${VERSION}/bin/menger-app
-```
-
-If a test passes in sequential mode but fails under parallel load,
-treat it as a flake (file an issue if it recurs) rather than refreshing
-the reference.
-
-#### Why this matters
-
-Stale references are silent technical debt. They accumulate on a
-feature branch, surface at the worst moment (e.g. during an unrelated
-push), and turn one logical change into a forensic exercise of *which
-of the last N commits actually moved the pixels*. A reference refresh
-that ships with the rendering change has zero ambiguity; one that ships
-later is a hazard for whoever finds it.
+Use the `/release-checklist` skill. Version must be updated in four files: `menger-app/build.sbt`, `.gitlab-ci.yml` (DEPLOYABLE_VERSION), `menger-app/src/main/scala/menger/MengerCLIOptions.scala`, `docs/guide/user-guide.md`. The pre-push hook validates consistency across all four.
 
 ---
 
-## DEVELOPMENT WORKFLOW
+## Pointers
 
-### Shell Test Coverage (REQUIRED for every new rendering feature)
-
-Every new rendering feature **must** be covered in both shell test scripts:
-
-- **`scripts/integration-tests.sh`** — headless regression tests run as part of the pre-push hook.
-  Add a `test_<feature>()` function, export it with `export -f test_<feature>`, add it to the
-  `categories` array (parallel mode), and add the call to the sequential fallback in `main()`.
-
-- **`scripts/manual-test.sh`** — static and interactive visual tests for human verification.
-  Add static `run_test` entries with numbered output filenames (continue the existing sequence).
-  Add interactive entries in the `interactive_tests` array so developers can explore the feature live.
-
-**The check: if you add a new material preset, object type, shader path, or CLI parameter,
-open both scripts and verify they have at least one test exercising the new code.**
-
-Rationale: unit tests and `sbt test` verify correctness at the Scala/C++ level; shell tests verify
-the end-to-end CLI surface and catch regressions in argument parsing, GPU dispatch, and image output.
+| Where | What |
+|---|---|
+| `docs/arc42/README.md` | Architecture (authoritative) |
+| `docs/TESTING.md` | Test failure protocol, investigation procedure |
+| `docs/RENDERING.md` | Rendering-change discipline, integration suite |
+| `docs/TROUBLESHOOTING.md` | Common environment/build issues |
+| `docs/sprints/SPRINT.md` | Current sprint pointer |
+| `CHANGELOG.md` | Version history (keepachangelog format) |
+| `CODE_IMPROVEMENTS.md` | Open code-quality findings (resolved items deleted, not archived) |
+| `optix-jni/README.md` | OptiX JNI module details |
 
 ---
 
-### Standard Development Cycle
+## Agent tool notes
 
-1. **Make code changes**
-   - Follow code standards above
-   - Update CHANGELOG.md (keepachangelog.com format)
-     - Give a concise but complete description of features added and pre-existing bugs fixed.
-       Do not document every individual commit. Do not mention bugs that were introduced and
-       fixed within the same development cycle.
+### Bash tool — **needs verification, do not trust until confirmed**
 
-   - Update arc42 documentation if affecting architecture, quality, or risks
-   - **Mark completed tasks done in sprint doc** (`docs/sprints/SPRINT_N.md`): check off the
-     success criterion checkbox (`[ ]` → `[x]`) for the task just completed
+These workarounds were documented for an older agent setup and may no longer apply. Verify on first use; remove from this file if obsolete.
 
-2. **Test changes**
-   ```bash
-   sbt test
-   ```
+- `pkexec` instead of `sudo` — sudo prompts for a password on a TTY the agent doesn't have.
+- Command chaining with `;` instead of `&&` — was reported to fail. Test with `echo a && echo b` before relying on this rule.
+- `$()` command substitution — was reported to fail. Test before relying on this rule.
 
-   **If tests fail:** Follow TEST FAILURE PROTOCOL above (investigate BEFORE fixing tests)
+### Output style for routine tasks
 
-3. **Verify code quality**
-   ```bash
-   sbt "scalafix --check"
-   ```
+For straightforward edits, status reports, and short answers, prefer a dense style:
+- One atomic fact per line. Abbreviations OK (fn, cfg, impl, deps, req, res, ctx, err, ret).
+- Diff lines only (`+`/`-`/`~`); never repeat unchanged code.
+- Symbols welcome: → (causes), + (adds), − (removes), ~ (modifies), ∴ (therefore).
+- No narration, no hedging.
 
-4. **Run pre-push hook** (can take up to 10 minutes)
-
-5. **Show diff to user**
-   - User reviews all changes
-   - User decides when to commit
-
-6. **Monitor pipeline** after pushing
-   ```bash
-   glab ci list                         # List recent pipelines
-   glab ci view                         # Watch the latest pipeline in real time
-   glab ci status                       # Check current pipeline status
-   glab api --method POST "projects/lilacashes%2Fmenger/jobs/<id>/retry"  # Retry a specific job
-   ```
+This style is **not appropriate** for code review, architecture discussion, test-failure investigation, design tradeoff analysis, or anywhere a clarifying question would be more useful than a terse answer. For those, write prose at whatever length the situation needs.
 
 ---
 
-## BUILD REQUIREMENTS
+## Miscellaneous
 
-### Required Software
-- CUDA Toolkit 12.0+
-- NVIDIA OptiX SDK 9.0+
-- CMake 3.18+
-- C++17 compiler
-- Java 21+
-- sbt 1.12+
-
-### OptiX SDK Version Matching (CRITICAL)
-OptiX SDK version **MUST match driver**:
-- Driver 580.x+ → OptiX SDK 9.0+
-- Driver 535-575.x → OptiX SDK 8.0
-
-**Check your setup:**
-```bash
-strings /usr/lib/x86_64-linux-gnu/libnvoptix.so.* | grep "OptiX Version"
-```
+- Capture screenshots with `scrot` if needed.
+- When fetching from git, use `--all --tags`.
 
 ---
 
-## PROJECT STRUCTURE
+## A note on this file's length
 
-### Project Overview
-This project consists of three main capabilities:
-
-1. **OptiX JNI Wrapper** - Java Native Interface bindings for NVIDIA's OptiX ray tracing library
-2. **Ray Tracing Renderer** - Scala 3 implementation with LibGDX integration for interactive rendering
-3. **3D/4D Visualization Tool** - Supports rendering and exploration of three and four dimensional objects
-
-**Current showcase application:** Menger sponges (3D) and tesseract sponges (4D) generated via surface subdivision, with support for interactive exploration, animations, and fractional levels with alpha blending.
-
-### Components
-- **menger-app** - LibGDX-based renderer, CLI, input handling
-- **menger-common** - Domain primitives (Color, Vector, Light, Material), config types (OrbitConfig, ProfilingConfig, RenderConfig, CausticsConfig), constants
-- **optix-jni** - CUDA/OptiX GPU ray tracing (JNI bindings)
-
----
-
-## TROUBLESHOOTING
-
-### Common Issues
-
-**CUDA error 718:**
-- Cause: OptiX SDK/driver version mismatch
-- Fix: Reinstall matching SDK, `rm -rf optix-jni/target/native`, rebuild
-
-**PTX file not found after `sbt clean`:**
-```bash
-mkdir -p target/native/x86_64-linux/bin
-cp optix-jni/target/classes/native/x86_64-linux/optix_shaders.ptx target/native/x86_64-linux/bin/
-```
-
-**Permission errors after Docker builds:**
-```bash
-pkexec chown -R $USER:$USER optix-jni/target/
-```
-
-**More troubleshooting:** See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-
----
-
-## DOCUMENTATION
-
-### Primary Documentation
-| Document | Purpose |
-|----------|---------|
-| [docs/arc42/README.md](docs/arc42/README.md) | **Architecture (single source of truth)** |
-| [CHANGELOG.md](CHANGELOG.md) | Version history (keepachangelog.com format) |
-| [CODE_IMPROVEMENTS.md](CODE_IMPROVEMENTS.md) | Open code quality issues (resolved items are deleted, not archived) |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and solutions |
-
-### arc42 Architecture Sections
-| Section | Update When |
-|---------|-------------|
-| [05 - Building Blocks](docs/arc42/05-building-block-view.md) | New components/modules |
-| [07 - Deployment](docs/arc42/07-deployment-view.md) | Infrastructure changes |
-| [08 - Concepts](docs/arc42/08-crosscutting-concepts.md) | Algorithm/physics changes |
-| [09 - Decisions](docs/arc42/09-architectural-decisions.md) | Any architectural decision |
-| [10 - Quality](docs/arc42/10-quality-requirements.md) | New performance baselines |
-| [11 - Risks](docs/arc42/11-risks-and-technical-debt.md) | New technical debt |
-
-### Module Documentation
-- [optix-jni/README.md](optix-jni/README.md) - OptiX JNI module details
-
----
-
-## DEVELOPMENT STATUS
-
-For current sprint status, completed features, and roadmap, see:
-- **Current sprint:** [docs/sprints/SPRINT.md](docs/sprints/SPRINT.md) (pointer to active sprint file)
-- **Recent changes:** [CHANGELOG.md](CHANGELOG.md)
-- **Code quality:** [CODE_IMPROVEMENTS.md](CODE_IMPROVEMENTS.md)
-
-**Note:** Development status details are intentionally kept in separate files to avoid this document becoming stale.
-
----
-
-## RELEASE WORKFLOW
-
-Invoke the `/release-checklist` skill for the full step-by-step release process. It covers version bumps across 4 files, documentation updates, branch/MR creation, and post-merge verification.
-
-**Quick reference — version must be updated in all 4 files:**
-- `menger-app/build.sbt`
-- `.gitlab-ci.yml` (DEPLOYABLE_VERSION)
-- `menger-app/src/main/scala/menger/MengerCLIOptions.scala`
-- `docs/guide/user-guide.md` (all files in `docs/guide/`)
-
-**Pre-push hook** (`.git_hooks/pre-push`) validates: environment, CI config syntax, version consistency across the 4 files above, full test suite (~2,200 tests), scalafix, coverage ratchet (≥80%, max 1% drop), memory leaks (Valgrind + compute-sanitizer), integration tests (27 scenarios). Takes ~8–10 minutes.
-
----
-
-## Miscellaneous notes
-
-- you can capture screenshots of the rendering window with `scrot` if needed.
-
-<!-- lean-ctx-compression -->
-OUTPUT STYLE: dense
-- Each statement = one atomic fact line
-- Use abbreviations: fn, cfg, impl, deps, req, res, ctx, err, ret
-- Diff lines only (+/-/~), never repeat unchanged code
-- Symbols: → (causes), + (adds), − (removes), ~ (modifies), ∴ (therefore)
-- No narration, no filler, no hedging
-- BUDGET: ≤200 tokens per response unless code block required
-<!-- /lean-ctx-compression -->
+This file is intentionally short. Agents reliably internalize ~200-line instruction files; beyond that, attention drops and rules are selectively ignored. If you (a future maintainer or agent) feel the urge to add a section, ask first whether the content is *policy* (belongs here) or *reference* (belongs in a linked doc, skill, or troubleshooting file).
