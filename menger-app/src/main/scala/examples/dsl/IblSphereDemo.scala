@@ -36,7 +36,7 @@ object IblSphereDemo:
     ),
     lights      = List.empty,          // deliberately no explicit lights
     envMap      = Some("rogland_sunset_2k.hdr"),
-    ibl         = Some(IBL(strength = 1.0f, samples = 1)),
+    ibl         = Some(IBL(strength = 1.0f, samples = 8)),
     toneMapping = ToneMapping.Reinhard(exposure = 1.0f)
     // accumulation intentionally omitted (defaults to 1) — keeps integration
     // test fast while still producing a deterministic reference image
