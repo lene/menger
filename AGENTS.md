@@ -14,6 +14,7 @@ These are non-negotiable. Violating any of them causes real harm.
 
 1. **Never commit directly to `main`.** Check `git branch --show-current` before any change. If on `main`, switch to (or create) a feature branch first. The active feature branch may live in a worktree under `.worktrees/`.
 2. **Never push without explicit user confirmation.** Commit locally, show the diff, wait for "push."
+3. **Always monitor the CI pipeline after pushing.** If any failure occur, fix the failures.
 3. **Never `git add -A`.** Add files explicitly.
 4. **Never commit failing tests.** The pre-push hook enforces this; do not bypass it.
 5. **Never rewrite a test to make it pass without investigation.** Failing tests usually catch real bugs. See `docs/TESTING.md`.
