@@ -2,7 +2,7 @@
 
 **Sprint:** 26 - Repository Split & Code Health
 **Status:** Not Started
-**Estimate:** ~18 hours
+**Estimate:** ~21 hours
 **Branch:** `feature/sprint-26`
 **Dependencies:** Sprint 25 (published optix-jni and menger-common artifacts must exist)
 
@@ -21,7 +21,7 @@ items. Remove the obsolete legacy CPU 4D path.
 - [ ] `menger-common` and `optix-jni` live in separate repositories, published independently
 - [ ] `menger` repo retains only `menger-geometry` and `menger-app`
 - [ ] CI/CD updated for cross-repo dependency resolution
-- [ ] All 5 CODE_IMPROVEMENTS medium-priority items resolved and removed from CODE_IMPROVEMENTS.md
+- [ ] All 6 CODE_IMPROVEMENTS medium-priority items resolved and removed from CODE_IMPROVEMENTS.md
 - [ ] `Mesh4D` and `RotatedProjection` deleted
 - [ ] All tests pass
 
@@ -116,6 +116,31 @@ deleting.
 
 ---
 
+### Task 26.8: Test LibGDX Wrapper Paths
+
+**Estimate:** 3h
+
+`SceneConfigurator`, `OptiXRendererWrapper`, and `CameraState` (all in
+`io.github.lene.optix` under `menger-app`) are 0–17% covered because they are
+only instantiated inside the LibGDX `ApplicationListener` lifecycle, which
+requires a live display. These paths are responsible for connecting OptiX
+rendering to the interactive engine — exactly the kind of glue code that hides
+erratic bugs.
+
+**Approach:**
+- Evaluate LibGDX headless backend (`HeadlessApplication`) for unit test use
+- If headless backend is viable: add unit tests for `SceneConfigurator` scene
+  setup, `OptiXRendererWrapper` init/render/dispose lifecycle, `CameraState`
+  update logic
+- If not viable: extract testable logic from each class behind interfaces so
+  it can be exercised without a running `Application`
+
+**Validation:** `SceneConfigurator`, `OptiXRendererWrapper`, `CameraState`
+each reach ≥70% statement coverage. Remove `L-libgdx-wrapper-untested` from
+`CODE_IMPROVEMENTS.md`.
+
+---
+
 ## Summary
 
 | Task | Description | Estimate |
@@ -127,7 +152,8 @@ deleting.
 | 26.5 | Fix texture_index semantic overloading | 2h |
 | 26.6 | Fix Config naming rule | 1h |
 | 26.7 | Remove legacy CPU 4D path | 2h |
-| **Total** | | **~18h** |
+| 26.8 | Test LibGDX wrapper paths | 3h |
+| **Total** | | **~21h** |
 
 ---
 
