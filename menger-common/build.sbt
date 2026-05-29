@@ -14,6 +14,27 @@ developers := List(
   Developer("lene", "Lene Preuss", "lene.preuss@gmail.com", url("https://gitlab.com/lilacashes"))
 )
 
+// Publication targets
+// Primary: GitLab Package Registry (CI_JOB_TOKEN, no GPG required)
+// Secondary: Maven Central via sbt-sonatype (requires GPG — see docs/sprints/SPRINT24.md Notes)
+publishTo := {
+  val gitlabRegistry = "https://gitlab.com/api/v4/projects/53243565/packages/maven"
+  if (isSnapshot.value)
+    Some("GitLab Snapshots" at gitlabRegistry)
+  else
+    Some("GitLab Releases" at gitlabRegistry)
+}
+
+credentials += Credentials(
+  "GitLab Package Registry",
+  "gitlab.com",
+  "Job-Token",
+  sys.env.getOrElse("CI_JOB_TOKEN", "")
+)
+
+sonatypeCredentialHost := "central.sonatype.com"
+publishMavenStyle := true
+
 scalacOptions ++= Seq("-deprecation", "-explain", "-feature", "-Wunused:imports")
 
 Compile / semanticdbEnabled := true

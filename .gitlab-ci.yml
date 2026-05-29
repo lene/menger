@@ -935,3 +935,14 @@ CreateGithubRelease:
          -H "X-GitHub-Api-Version: 2022-11-28" 
          -H "Authorization: Bearer ${GITHUB_API_TOKEN}"
          ${RELEASE_API_URL} -d "${POST_DATA}"'
+
+PublishCommon:
+  image: $SBT_IMAGE
+  stage: release
+  needs:
+    - CreateRelease
+  rules:
+    - if: "$CI_COMMIT_TAG"
+      when: on_success
+  script:
+    - sbt "project mengerCommon" publish
