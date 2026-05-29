@@ -36,10 +36,10 @@ lazy val optixJni = project
   .enablePlugins(JniNative)
 
 // Menger-specific geometry layer — 4D fractals, caustics (not published)
-// JniNative enabled in Task 24.5 when first CUDA shader is added
 lazy val mengerGeometry = project
   .in(file("menger-geometry"))
   .dependsOn(optixJni)
+  .enablePlugins(JniNative)
 
 // Main application - depends on menger-geometry and common
 lazy val mengerApp = project

@@ -16,6 +16,13 @@ Test / javaOptions ++= Seq(
 )
 Test / fork := true
 
+nativeCompile / sourceDirectory := sourceDirectory.value / "main" / "native"
+nativeBuildTool := CMakeWithoutVersionBug.make(Seq(
+  "-Wno-dev",
+  "--log-level=WARNING",
+  "-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc"
+))
+
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6",
   "ch.qos.logback" % "logback-classic" % "1.5.32",
