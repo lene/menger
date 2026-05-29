@@ -7,6 +7,8 @@ import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.CameraState
+import io.github.lene.optix.SceneConfigurator
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.RotationProjectionParameters
@@ -32,8 +34,6 @@ import menger.input.OptiXKeyHandler
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
-import menger.optix.CameraState
-import menger.optix.SceneConfigurator
 
 class InteractiveEngine(
   config: OptiXEngineConfig,
@@ -180,7 +180,7 @@ class InteractiveEngine(
     * (whose multi-object path hangs, per H-mixed-frac-int-interactive-hang). */
   private def tryRotation4DFastPath(
     newSpecs: List[ObjectSpec],
-    renderer: menger.optix.OptiXRenderer
+    renderer: io.github.lene.optix.OptiXRenderer
   ): Boolean =
     if !renderConfig.gpuProject4D then false
     else scene4DCache.get.gpu match
@@ -213,7 +213,7 @@ class InteractiveEngine(
     * slot mapping for now). */
   private def tryRotation4DCpuFastPath(
     newSpecs: List[ObjectSpec],
-    renderer: menger.optix.OptiXRenderer
+    renderer: io.github.lene.optix.OptiXRenderer
   ): Boolean =
     if renderConfig.gpuProject4D then false  // GPU path handles this
     else scene4DCache.get.cpu match
@@ -239,7 +239,7 @@ class InteractiveEngine(
     * a Projection4DSpec delta — skipping the full geometry rebuild. */
   private def tryMenger4DFastPath(
     newSpecs: List[ObjectSpec],
-    renderer: menger.optix.OptiXRenderer
+    renderer: io.github.lene.optix.OptiXRenderer
   ): Boolean =
     scene4DCache.get.menger4d match
       case None => false
@@ -263,7 +263,7 @@ class InteractiveEngine(
 
   private def trySierpinski4DFastPath(
     newSpecs: List[ObjectSpec],
-    renderer: menger.optix.OptiXRenderer
+    renderer: io.github.lene.optix.OptiXRenderer
   ): Boolean =
     scene4DCache.get.sierpinski4d match
       case None => false
@@ -287,7 +287,7 @@ class InteractiveEngine(
 
   private def tryHexadecachoron4DFastPath(
     newSpecs: List[ObjectSpec],
-    renderer: menger.optix.OptiXRenderer
+    renderer: io.github.lene.optix.OptiXRenderer
   ): Boolean =
     scene4DCache.get.hexadecachoron4d match
       case None => false
@@ -404,7 +404,7 @@ class InteractiveEngine(
         GdxRuntime.exit()
       }.get
 
-  private def addCrossGeometry(renderer: menger.optix.OptiXRenderer): Unit =
+  private def addCrossGeometry(renderer: io.github.lene.optix.OptiXRenderer): Unit =
     val length    = config.cross.length
     val thickness = config.cross.thickness
     val baseMat   = config.cross.material.getOrElse(
@@ -462,7 +462,7 @@ class InteractiveEngine(
     * Mirrors `WithAnimation.buildAnim4DTrackedOrFallback`. */
   private def buildScene4DTrackedOrFallback(
     specs: List[ObjectSpec],
-    renderer: menger.optix.OptiXRenderer
+    renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
     if renderConfig.gpuProject4D && WithAnimation.is4DOnlyTriangleMeshScene(specs)
         && !specs.exists(_.hasEdgeRendering) then

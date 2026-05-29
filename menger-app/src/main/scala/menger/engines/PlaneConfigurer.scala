@@ -1,10 +1,10 @@
 package menger.engines
 
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.OptiXRenderer
 import menger.common.Axis
 import menger.common.Color
 import menger.config.PlaneConfig
-import menger.optix.OptiXRenderer
 
 /** Applies plane configurations to an OptiX renderer.
   *

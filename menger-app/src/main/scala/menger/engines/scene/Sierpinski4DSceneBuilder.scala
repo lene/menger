@@ -2,11 +2,11 @@ package menger.engines.scene
 
 import scala.util.Try
 
+import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.Vector
-import menger.optix.OptiXRenderer
 
 class Sierpinski4DSceneBuilder(
   textureDir: String = ".",

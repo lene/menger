@@ -9,7 +9,7 @@ import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-/** Architecture rules enforcing module boundaries across menger.common / menger.optix / menger-app. */
+/** Architecture rules enforcing module boundaries across menger.common / io.github.lene.optix / menger-app. */
 class ArchitectureSpec extends AnyFlatSpec with Matchers:
 
   // sbt places test-classes at target/scala-X.Y.Z/test-classes/ — the extra scala version segment
@@ -24,7 +24,7 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
     ClassFileImporter()
       .withImportOption(DoNotIncludeTests())
       .withImportOption(doNotIncludeSbtTestClasses)
-      .importPackages("menger")
+      .importPackages("menger", "io.github.lene.optix")
 
   private val onlyOptixJniTarget: ImportOption =
     (location: Location) => location.matches(java.util.regex.Pattern.compile(".*/optix-jni/.*"))
@@ -34,11 +34,11 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .withImportOption(DoNotIncludeTests())
       .withImportOption(doNotIncludeSbtTestClasses)
       .withImportOption(onlyOptixJniTarget)
-      .importPackages("menger.optix")
+      .importPackages("io.github.lene.optix")
 
-  "menger.common" should "not depend on menger.optix" in:
+  "menger.common" should "not depend on io.github.lene.optix" in:
     noClasses().that().resideInAPackage("menger.common..")
-      .should().dependOnClassesThat().resideInAPackage("menger.optix..")
+      .should().dependOnClassesThat().resideInAPackage("io.github.lene.optix..")
       .check(allClasses)
 
   it should "not depend on menger application layer" in:
@@ -47,13 +47,13 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
         .resideInAnyPackage("menger.engines..", "menger.config..", "menger.dsl..")
       .check(allClasses)
 
-  "menger.optix" should "not depend on menger application layer" in:
-    noClasses().that().resideInAPackage("menger.optix..")
+  "io.github.lene.optix" should "not depend on menger application layer" in:
+    noClasses().that().resideInAPackage("io.github.lene.optix..")
       .should().dependOnClassesThat()
         .resideInAnyPackage("menger.engines..", "menger.config..", "menger.dsl..")
       .check(allClasses)
 
-  "menger.optix JNI boundary" should "not have native methods outside optix-jni module" in:
+  "io.github.lene.optix JNI boundary" should "not have native methods outside optix-jni module" in:
     import com.tngtech.archunit.lang.{ArchCondition, ConditionEvents, SimpleConditionEvent}
     import com.tngtech.archunit.core.domain.{JavaClass, JavaModifier}
     val hasNativeMethod: ArchCondition[JavaClass] =
@@ -62,9 +62,9 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
           clazz.getMethods.forEach: m =>
             if m.getModifiers.contains(JavaModifier.NATIVE) then
               events.add(SimpleConditionEvent.violated(clazz,
-                s"${clazz.getName}.${m.getName} is a native method outside menger.optix"))
+                s"${clazz.getName}.${m.getName} is a native method outside io.github.lene.optix"))
     noClasses().that()
-      .resideOutsideOfPackage("menger.optix..")
+      .resideOutsideOfPackage("io.github.lene.optix..")
       .should(hasNativeMethod)
       .check(allClasses)
 
@@ -72,14 +72,14 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
     import com.tngtech.archunit.core.domain.JavaCall
     import com.tngtech.archunit.core.domain.properties.HasName
     noClasses().that()
-      .resideOutsideOfPackage("menger.optix..")
+      .resideOutsideOfPackage("io.github.lene.optix..")
       .should().callMethodWhere(
         JavaCall.Predicates.target(HasName.Predicates.name("loadLibrary")))
       .check(allClasses)
 
   it should "not couple to LibGDX" in:
     noClasses().that()
-      .resideInAPackage("menger.optix..")
+      .resideInAPackage("io.github.lene.optix..")
       .should().dependOnClassesThat()
         .resideInAPackage("com.badlogic.gdx..")
       .check(allClasses)
@@ -121,11 +121,11 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
                 s"uses Scala-specific type '${t.getFullName}'"))
 
     import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods
-    // Check all public methods in the menger.optix package.
+    // Check all public methods in the io.github.lene.optix package.
     // Exclude Scala compiler-generated synthetic classes (companions end with "$",
     // anonymous classes contain "$anon$") which are not hand-written public API.
     methods().that()
-      .areDeclaredInClassesThat().resideInAPackage("menger.optix..")
+      .areDeclaredInClassesThat().resideInAPackage("io.github.lene.optix..")
       .and().areDeclaredInClassesThat().haveSimpleNameNotEndingWith("$")
       .and().arePublic()
       .should(noScalaTypesInSignature)
@@ -170,9 +170,9 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .should().resideInAnyPackage("menger.config..", "menger.common..")
       .check(allClasses)
 
-  it should "keep OptiX-prefixed classes in menger.optix within optix-jni" in:
+  it should "keep OptiX-prefixed classes in io.github.lene.optix within optix-jni" in:
     classes().that().haveSimpleNameStartingWith("OptiX")
-      .should().resideInAPackage("menger.optix..")
+      .should().resideInAPackage("io.github.lene.optix..")
       .check(optixJniClasses)
 
   "JNI resource wrappers" should "implement AutoCloseable" in:

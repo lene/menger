@@ -9,6 +9,7 @@ import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.Vector3Extensions.toVector3
@@ -20,7 +21,6 @@ import menger.config.TAnimationConfig
 import menger.dsl.Scene
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.GdxRuntime
-import menger.optix.OptiXRenderer
 
 trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   self: BaseEngine =>

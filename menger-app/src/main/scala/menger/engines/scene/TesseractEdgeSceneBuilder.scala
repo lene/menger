@@ -3,6 +3,7 @@ package menger.engines.scene
 import scala.util.Try
 
 import com.badlogic.gdx.math.Vector3
+import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.common.Material
@@ -21,7 +22,6 @@ import menger.objects.higher_d.Rotation
 import menger.objects.higher_d.Tesseract
 import menger.objects.higher_d.TesseractSponge
 import menger.objects.higher_d.TesseractSponge2
-import menger.optix.OptiXRenderer
 
 /**
  * Scene builder for 4D hypercube objects with cylinder edge rendering.

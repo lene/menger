@@ -9,7 +9,7 @@ inThisBuild(List(
 // Root project - aggregator only, no source code
 lazy val root = project
   .in(file("."))
-  .aggregate(mengerCommon, optixJni, mengerApp)
+  .aggregate(mengerCommon, optixJni, mengerGeometry, mengerApp)
   .settings(
     name := "menger-root",
     publish / skip := true,
@@ -20,6 +20,7 @@ lazy val root = project
     Test / test := {
       (mengerCommon / Test / test).value
       (optixJni / Test / test).value
+      (mengerGeometry / Test / test).value
       (mengerApp / Test / test).value
     }
   )
@@ -34,14 +35,20 @@ lazy val optixJni = project
   .dependsOn(mengerCommon)
   .enablePlugins(JniNative)
 
-// Main application - depends on both common and optix-jni
+// Menger-specific geometry layer — 4D fractals, caustics (not published)
+// JniNative enabled in Task 24.5 when first CUDA shader is added
+lazy val mengerGeometry = project
+  .in(file("menger-geometry"))
+  .dependsOn(optixJni)
+
+// Main application - depends on menger-geometry and common
 lazy val mengerApp = project
   .in(file("menger-app"))
-  .dependsOn(optixJni, mengerCommon)
+  .dependsOn(mengerGeometry, mengerCommon)
   .enablePlugins(JavaAppPackaging)
   .settings(
     // Set library path for run to find native library and CUDA libraries
-    run / javaOptions += s"-Djava.library.path=${(optixJni / Compile / classDirectory).value / "native" / "x86_64-linux"}:${(optixJni / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
+    run / javaOptions += s"-Djava.library.path=${(optixJni / Compile / classDirectory).value / "native" / "x86_64-linux"}:${(optixJni / target).value / "native" / "x86_64-linux" / "bin"}:${(mengerGeometry / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
     run / fork := true,
     // Use project root as working directory so file paths match packaged executable behavior
     run / baseDirectory := (ThisBuild / baseDirectory).value

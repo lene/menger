@@ -3,8 +3,8 @@ package menger.engines.scene
 import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
-import menger.optix.OptiXRenderer
 
 /**
  * Strategy trait for building different scene types in OptiX.

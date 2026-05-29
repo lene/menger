@@ -4,6 +4,8 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.CameraState
+import io.github.lene.optix.SceneConfigurator
 import menger.AnimationSpecificationSequence
 import menger.Vector3Extensions.toVector3
 import menger.common.ImageSize
@@ -11,8 +13,6 @@ import menger.common.ProfilingConfig
 import menger.common.RenderConfig
 import menger.config.OptiXEngineConfig
 import menger.input.GdxRuntime
-import menger.optix.CameraState
-import menger.optix.SceneConfigurator
 
 class CliAnimationEngine(
   config: OptiXEngineConfig,

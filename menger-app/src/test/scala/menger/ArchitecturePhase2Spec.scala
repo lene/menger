@@ -92,7 +92,7 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
   "menger.cli" should "not depend on engines or optix in menger.cli" in:
     noClasses().that().resideInAPackage("menger.cli..")
       .should().dependOnClassesThat()
-        .resideInAnyPackage("menger.engines..", "menger.optix..")
+        .resideInAnyPackage("menger.engines..", "io.github.lene.optix..")
       .check(allClasses)
 
   // Fixed: replaced haveOnlyFinalFields() with a Scala-aware var-setter check.

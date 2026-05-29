@@ -2,7 +2,7 @@ name := "menger-common"
 version := "0.4.1"
 scalaVersion := "3.8.3"
 
-organization := "io.github.lilacashes"
+organization := "io.github.lene"
 description := "Common types and utilities for Menger ray tracer"
 homepage := Some(url("https://gitlab.com/lilacashes/menger"))
 licenses := Seq("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0"))

@@ -3,12 +3,12 @@ package menger.engines.scene
 import scala.util.Try
 
 import com.badlogic.gdx.math.Vector3
+import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.common.Material
 import menger.common.TransformUtil
 import menger.objects.Cube
 import menger.objects.CubeSpongeGenerator
-import menger.optix.OptiXRenderer
 
 /**
  * Scene builder for cube-sponge fractals.

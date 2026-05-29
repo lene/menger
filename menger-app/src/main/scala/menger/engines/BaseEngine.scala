@@ -5,6 +5,9 @@ import scala.util.Try
 
 import com.badlogic.gdx.Game
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.CameraState
+import io.github.lene.optix.OptiXRendererWrapper
+import io.github.lene.optix.SceneConfigurator
 import menger.ObjectSpec
 import menger.OptiXRenderResources
 import menger.common.ObjectType
@@ -12,9 +15,6 @@ import menger.common.ProfilingConfig
 import menger.common.RenderConfig
 import menger.common.ValidationException
 import menger.engines.scene.SceneBuilder
-import menger.optix.CameraState
-import menger.optix.OptiXRendererWrapper
-import menger.optix.SceneConfigurator
 
 abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig: ProfilingConfig)
     extends Game with RenderEngine with LazyLogging:
@@ -62,7 +62,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
 
   protected def buildSceneFromSpecs(
     specs: List[ObjectSpec],
-    renderer: menger.optix.OptiXRenderer
+    renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
     RenderModeSelector.classify(specs) match
       case SceneType.SimpleMixed(allSpecs, _) =>
@@ -95,7 +95,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
 
   protected def buildSceneFromConfigs(
     configs: SceneConverter.SceneConfigs,
-    renderer: menger.optix.OptiXRenderer
+    renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
     val specs = configs.scene.objectSpecs.getOrElse(List.empty)
     val sceneType = RenderModeSelector.classify(specs)
@@ -137,7 +137,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
 
   protected def rebuildGeometry(
     specs: List[ObjectSpec],
-    renderer: menger.optix.OptiXRenderer
+    renderer: io.github.lene.optix.OptiXRenderer
   ): Unit =
     renderer.clearAllInstances()
     RenderModeSelector.classify(specs) match
@@ -163,7 +163,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
   private def buildMixedSceneObjects(
     analyticalSpecs: List[ObjectSpec],
     meshSpecs: List[ObjectSpec],
-    renderer: menger.optix.OptiXRenderer
+    renderer: io.github.lene.optix.OptiXRenderer
   ): Unit =
     // cube-sponge specs need CubeSpongeSceneBuilder (instance-explosion path);
     // other triangle-mesh types go through TriangleMeshSceneBuilder

@@ -2,9 +2,9 @@ package menger.engines.scene
 
 import scala.util.Try
 
+import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.common.Vector
-import menger.optix.OptiXRenderer
 
 /**
  * Scene builder for cone primitives.

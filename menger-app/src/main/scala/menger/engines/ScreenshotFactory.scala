@@ -7,8 +7,8 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
 import com.typesafe.scalalogging.LazyLogging
-import menger.optix.RenderHealth
-import menger.optix.UniformRenderException
+import io.github.lene.optix.RenderHealth
+import io.github.lene.optix.UniformRenderException
 
 object ScreenshotFactory extends LazyLogging:
 

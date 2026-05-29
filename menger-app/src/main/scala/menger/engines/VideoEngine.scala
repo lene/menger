@@ -1,5 +1,7 @@
 package menger.engines
 
+import io.github.lene.optix.CameraState
+import io.github.lene.optix.SceneConfigurator
 import menger.Vector3Extensions.toVector3
 import menger.common.CausticsConfig
 import menger.common.ProfilingConfig
@@ -7,8 +9,6 @@ import menger.common.RenderConfig
 import menger.config.ExecutionConfig
 import menger.config.TAnimationConfig
 import menger.dsl.Scene
-import menger.optix.CameraState
-import menger.optix.SceneConfigurator
 
 class VideoEngine(
   val sceneFunction: Float => Scene,

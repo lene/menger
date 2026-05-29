@@ -6,9 +6,9 @@ import scala.util.Failure
 import scala.util.Success
 
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.TextureLoader
-import menger.optix.OptiXRenderer
 
 /**
  * Manager for loading and uploading textures to OptiX renderer.

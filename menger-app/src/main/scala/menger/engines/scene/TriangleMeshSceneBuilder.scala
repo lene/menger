@@ -2,6 +2,7 @@ package menger.engines.scene
 
 import scala.util.Try
 
+import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.common.ObjectType
@@ -10,7 +11,6 @@ import menger.common.TransformUtil
 import menger.common.TriangleMeshData
 import menger.common.Vector
 import menger.objects.FractionalLevelSponge
-import menger.optix.OptiXRenderer
 
 /**
  * Scene builder for multiple triangle mesh instances with optional textures.

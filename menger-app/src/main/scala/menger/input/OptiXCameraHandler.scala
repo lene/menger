@@ -3,6 +3,8 @@ package menger.input
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.CameraState
+import io.github.lene.optix.OptiXRendererWrapper
 import menger.OptiXRenderResources
 import menger.RotationProjectionParameters
 import menger.Vector3Extensions.toVector3
@@ -10,8 +12,6 @@ import menger.common.Const
 import menger.common.MouseButton
 import menger.common.OrbitConfig
 import menger.common.ScreenCoords
-import menger.optix.CameraState
-import menger.optix.OptiXRendererWrapper
 
 /**
  * Camera/mouse input handler for OptiX ray-traced rendering mode.

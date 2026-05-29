@@ -7,7 +7,7 @@ import menger.common.ImageSize
 import menger.common.ProfilingConfig
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
-import menger.optix.OptiXRenderer
+import io.github.lene.optix.OptiXRenderer
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Tag
 import org.scalatest.flatspec.AnyFlatSpec
