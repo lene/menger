@@ -9,10 +9,6 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 - investigate pending/ignored tests
 - is the scala version used verbatim instead of as variable anywhere?
 - contract similar to Polytope4DContract for Polyhedra
-- publish OptiX JNI as a separate project - should cover the full OptiX API, not just the ray 
-  tracing pipeline.
-- Library layer for other Java/Scala clients to use OptiX JNI without Menger's scene graph or 
-  rendering pipeline.
 - Guidance for generating good and interesting scenes and animations (user guide)
 - scaling objects in all dimensions
 - shearing
@@ -20,10 +16,9 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
   - surface of rotation (sor)
   - regular star 4-polytopes
   - Semiregular polyhedra and polytopes
-  - construction from Schläfli symbols (algorithmic generator for `{p,q}` / `{p,q,r}`)
   - gaussian splats
   - 4D spacetime trace of a person (or any object)
-  - Parametric 2- and 3-surfaces in 4-space
+  - Parametric 2- and 3-surfaces in 4-space (see Sprint 30)
     - functions C->C 
   - 3-sphere (but how to visualize?)
     - Hopf fibration https://en.wikipedia.org/wiki/Hopf_fibration
@@ -51,7 +46,6 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 
 
 - movie with steadily increasing level with 360 degree background
-  - movies as textures instead of png
 - PBR Textures
 - MaterialX (.mtlx) support — Layers 1-3 (~3 sprints):
   - **Layer 1 — File parsing**: Add MaterialX C++ SDK (github.com/AcademySoftwareFoundation/MaterialX)
@@ -78,9 +72,19 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 
 Items moved to sprint plans:
 
-- Scalar and vector fields → backlog (functions first, datasets later)
-- Depth cue/Fog → backlog
-- Parametric surface specializations → backlog
-- Color by intensity → backlog (general, including volumes)
-- higher max trace depth → Sprint 19.9 (spike)
-- fractional levels with IAS sponges → Sprint 19.10 (spike)
+- optix-jni decoupling + publication → Sprint 24/25
+- Schläfli polytope generator → Sprint 31
+- Sponge cutaways (clipping planes) → Sprint 31
+- Fractal subdivision on polychora → Sprint 31
+- Depth of field → Sprint 28
+- Wireframe rendering → Sprint 28
+- Color by intensity / colormaps → Sprint 29
+- Scalar/vector fields (functions) → Sprint 29
+- 4D parametric surfaces → Sprint 30
+- Parametric surface specializations → Sprint 30
+- Video backgrounds → Sprint 27
+- Repository split → Sprint 26
+- Scalar and vector fields (datasets) → backlog
+- Depth cue/Fog → Sprint 21.7 (done)
+- higher max trace depth → Sprint 19.9 (done)
+- fractional levels with IAS sponges → Sprint 19.10 (done)

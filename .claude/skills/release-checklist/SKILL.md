@@ -155,7 +155,22 @@ Run comprehensive codebase assessment and document in CODE_IMPROVEMENTS.md:
 
 ### 4. Dependency Updates (Required)
 
-- [ ] Check for outdated dependencies:
+- [ ] Check Scala and sbt versions — compare against latest releases:
+  - Scala: https://www.scala-lang.org/download/
+  - sbt: https://www.scala-sbt.org/download/
+  - Current versions in `build.sbt` and `project/build.properties`
+
+- [ ] Check CUDA Toolkit version — compare against latest driver-compatible release:
+  ```bash
+  nvcc --version
+  ```
+  Check: https://developer.nvidia.com/cuda-downloads
+
+- [ ] Check OptiX SDK version — compare against latest:
+  - Current version in `optix-jni/README.md` or `CUDA_HOME`/`OPTIX_ROOT` paths
+  - Check: https://developer.nvidia.com/designworks/optix/download
+
+- [ ] Check for outdated Scala/Java dependencies:
   ```bash
   sbt dependencyUpdates
   ```
@@ -660,10 +675,30 @@ the user to confirm before proceeding to sprint opening.
 
 ---
 
-### Step 6.2: Review the Upcoming Sprint Plan
+### Step 6.2: Review the Roadmap
 
-Read `docs/sprints/SPRINT.md` (the pointer) to find the next sprint file, then read it
-in full. Present the sprint to the user:
+**Always do this before reviewing the next sprint plan.** The roadmap determines which
+sprint comes next and may have changed since the sprint file was written.
+
+Read `ROADMAP.md` and present the planned sprint table to the user. Check:
+
+- Sprint numbers, titles, and estimates match the sprint files
+- The completed sprint is marked correctly in the Completed Sprints table
+- The next sprint in the roadmap is still the right one to start
+- Milestone assignments still make sense
+- The Timeline Estimate table at the bottom is accurate
+
+Ask: *"Does the roadmap look accurate and up to date? Do you want to do a different sprint next, or make any other changes before we look at the sprint plan?"*
+
+Make any agreed edits now. **All edits in Phase 6 (roadmap, sprint plan, pointer, CODE_IMPROVEMENTS,
+CHANGELOG, etc.) must be committed to `feature/sprint-N` — never directly to `main`.**
+
+---
+
+### Step 6.3: Review the Upcoming Sprint Plan
+
+After the roadmap is confirmed, read `docs/sprints/SPRINT.md` (the pointer) to find the
+next sprint file, then read it in full. Present the sprint to the user:
 
 - Sprint number, title, and total estimate
 - Full task list with estimates
@@ -685,35 +720,14 @@ Common things to discuss:
 
 ---
 
-### Step 6.2b: Review TODO.md and ROADMAP.md for Sprint Candidates
+### Step 6.3b: Review TODO.md for Sprint Candidates
 
 Read `TODO.md` in full. For each unscheduled item, consider whether it belongs in the
 upcoming sprint. Present any candidates to the user and ask whether to promote them.
 
-Also scan `ROADMAP.md` planned sprints beyond the next one — check whether any task
-originally planned for a later sprint has become relevant now (e.g. a dependency was
-resolved early, or the team has momentum in that area).
-
-Ask: *"Are there any items from TODO.md or the roadmap backlog you'd like to pull into
-Sprint N before we kick it off?"*
+Ask: *"Are there any items from TODO.md you'd like to pull into Sprint N before we kick it off?"*
 
 Make any agreed edits to `TODO.md`, the sprint file, and `ROADMAP.md` now.
-
----
-
-### Step 6.3: Review the Roadmap
-
-Read `ROADMAP.md` and present the planned sprint table to the user. Check:
-
-- Sprint numbers, titles, and estimates match the sprint files
-- The completed sprint is marked correctly in the Completed Sprints table
-- Milestone assignments still make sense given any restructuring just done
-- The Timeline Estimate table at the bottom is accurate
-
-Ask: *"Does the roadmap look accurate and up to date? Anything to adjust?"*
-
-Make any agreed edits now. **All edits in Phase 6 (roadmap, sprint plan, pointer, CODE_IMPROVEMENTS,
-CHANGELOG, etc.) must be committed to `feature/sprint-N` — never directly to `main`.**
 
 ---
 
