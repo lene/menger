@@ -15,21 +15,19 @@ developers := List(
 )
 
 // Publication targets
-// Primary: GitLab Package Registry (CI_JOB_TOKEN, no GPG required)
-// Secondary: Maven Central via sbt-sonatype (requires GPG — see docs/sprints/SPRINT24.md Notes)
+// Primary: GitLab Package Registry
+// CI uses CI_JOB_TOKEN; local use requires GITLAB_PAT env var
 publishTo := {
-  val gitlabRegistry = "https://gitlab.com/api/v4/projects/53243565/packages/maven"
-  if (isSnapshot.value)
-    Some("GitLab Snapshots" at gitlabRegistry)
-  else
-    Some("GitLab Releases" at gitlabRegistry)
+  val base = "https://gitlab.com/api/v4/projects/lilacashes%2Fmenger/packages/maven"
+  if (isSnapshot.value) Some("GitLab Snapshots" at base)
+  else                  Some("GitLab Releases"  at base)
 }
 
 credentials += Credentials(
-  "GitLab Package Registry",
+  "GitLab Packages Registry",
   "gitlab.com",
-  "Job-Token",
-  sys.env.getOrElse("CI_JOB_TOKEN", "")
+  if (sys.env.contains("CI_JOB_TOKEN")) "gitlab-ci-token" else "Private-Token",
+  sys.env.getOrElse("CI_JOB_TOKEN", sys.env.getOrElse("GITLAB_PAT", ""))
 )
 
 sonatypeCredentialHost := "central.sonatype.com"
