@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- **Package rename** (Sprint 24.2) — `menger.optix` → `io.github.lene.optix` in all Scala
+  sources and JNI C++ symbols. Existing consumers of `optix-jni` must update imports.
+- **`Params` → `BaseParams`** (Sprint 24.3) — OptiX launch parameter struct renamed in
+  `OptiXData.h` and all C++ consumers. `MengerParams` (Sprint 24.5) extends `BaseParams`
+  with 4D geometry and caustics fields; struct extension is layout-safe (offset 0 guarantee).
+
+### Added
+- **`menger-geometry` module** (Sprint 24.4–24.5) — new in-repo sbt subproject for
+  Menger-specific geometry. Defines `MengerParams`, validates CUDA compilation of the
+  extension pattern. Not published; depends on `optix-jni`.
+- **Publication pipeline** (Sprint 24.6–24.7) — `menger-common` and `optix-jni` are now
+  publishable to GitLab Package Registry and Maven Central (Sonatype Central Portal).
+  CI jobs `PublishCommon` and `PublishOptixJni` trigger on tag. GPG signing via sbt-pgp.
+
+---
+
 ## [0.7.1] - 2026-05-28
 
 ### Added

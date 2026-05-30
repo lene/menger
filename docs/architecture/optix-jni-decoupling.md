@@ -1,7 +1,7 @@
 # optix-jni Decoupling: Architecture Decision
 
 **Sprint:** 24–25
-**Status:** In Progress
+**Status:** Complete (Sprint 24)
 **Decision Date:** 2026-05-29
 
 ---
@@ -180,10 +180,10 @@ publication. Their versions should not be tied to Menger's feature release cycle
 Plugin: `sbt-sonatype` 3.12+ (uses Central Portal API, not legacy OSSRH)
 
 Requirements:
-- GPG key: `8B6C0B7606ADABA090FC1E81B3CAC5324421818C` (DSA 3072, confirmed present)
-- Namespace claim: `io.github.lene` requires GitHub account `lene` — already owned
-- Sonatype Central Portal account: register at central.sonatype.com with GitHub login
-- Signed artifacts: `sbt-pgp` with key above
+- GPG key: `043ADC824F884F3AE1CD5C8A11ED440B00A22863` (RSA 4096, created 2026-05-29)
+- Namespace claim: `io.github.lene` — already verified on Central Portal
+- Sonatype Central Portal account: registered at central.sonatype.com (username Yec7o3)
+- Signed artifacts: `sbt-pgp` with key above; key published to keyserver.ubuntu.com
 
 CI secrets required (GitLab CI variables):
 - `PGP_PASSPHRASE` — GPG key passphrase
@@ -213,8 +213,8 @@ Platform note: initial publication is Linux x86_64 only. Document this clearly.
 
 | Question | Resolution |
 |----------|-----------|
-| GPG key available? | ✅ Yes — `8B6C0B7606ADABA090FC1E81B3CAC5324421818C` |
-| `io.github.lene` namespace on Maven Central? | ⬜ Verify Sonatype Central Portal account in Task 24.7 |
+| GPG key available? | ✅ Yes — `043ADC824F884F3AE1CD5C8A11ED440B00A22863` (RSA 4096, 2026-05-29) |
+| `io.github.lene` namespace on Maven Central? | ✅ Verified — already claimed on Central Portal |
 | Full OptiX API: thin vs builder? | ✅ Thin JNI bindings (like LWJGL) |
 | MengerParams layout safety? | ✅ Prototype validates struct extension pattern |
 | Versioning: sync or independent? | ✅ Independent versioning starting at 1.0.0 |

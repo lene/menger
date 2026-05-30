@@ -1,7 +1,7 @@
 # Sprint 24: optix-jni Architecture, Design & Foundation
 
 **Sprint:** 24 - optix-jni Decoupling: Architecture & Foundation
-**Status:** Not Started
+**Status:** ✅ Complete
 **Estimate:** ~20 hours
 **Branch:** `feature/sprint-24`
 **Dependencies:** None (refactoring only, no new features)
@@ -51,14 +51,14 @@ layout-safe because `BaseParams` is at offset 0 in `MengerParams`.
 
 ## Success Criteria
 
-- [ ] Architecture review complete and design doc written (see Task 24.1)
-- [ ] Package renamed to `io.github.lene.optix` — compiles and all tests pass
-- [ ] `Params` renamed to `BaseParams` — all base shaders updated, tests pass
-- [ ] `menger-geometry` sbt subproject scaffolded (compiles, empty)
-- [ ] `MengerParams` struct defined and CUDA compilation validated
-- [ ] `menger-common` publishable to GitLab Package Registry + Maven Central (CI job green)
-- [ ] `optix-jni` publishable to GitLab Package Registry + Maven Central (CI job green)
-- [ ] All existing tests pass
+- [x] Architecture review complete and design doc written (see Task 24.1)
+- [x] Package renamed to `io.github.lene.optix` — compiles and all tests pass
+- [x] `Params` renamed to `BaseParams` — all base shaders updated, tests pass
+- [x] `menger-geometry` sbt subproject scaffolded (compiles, empty)
+- [x] `MengerParams` struct defined and CUDA compilation validated
+- [x] `menger-common` publishable to GitLab Package Registry + Maven Central (CI job green)
+- [x] `optix-jni` publishable to GitLab Package Registry + Maven Central (CI job green)
+- [x] All existing tests pass
 
 ---
 
@@ -265,12 +265,12 @@ Add CI jobs to `.gitlab-ci.yml`:
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] All tests passing (pre-push hook green)
-- [ ] `sbt "project optixJni" publishLocal` and `sbt "project mengerCommon" publishLocal` succeed
-- [ ] Design document committed at `docs/architecture/optix-jni-decoupling.md`
-- [ ] `menger-geometry` module compiles (even if empty of real logic)
-- [ ] CHANGELOG.md updated
+- [x] All success criteria met
+- [x] All tests passing (pre-push hook green)
+- [x] `sbt "project optixJni" publishLocal` and `sbt "project mengerCommon" publishLocal` succeed
+- [x] Design document committed at `docs/architecture/optix-jni-decoupling.md`
+- [x] `menger-geometry` module compiles (even if empty of real logic)
+- [x] CHANGELOG.md updated
 
 ---
 

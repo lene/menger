@@ -62,26 +62,11 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 21 | Higher-Dimensional Fractals | ✅ Complete | [docs/archive/sprints/SPRINT21.md](docs/archive/sprints/SPRINT21.md) |
 | 22 | HDR Environment Maps | ✅ Complete | [docs/archive/sprints/SPRINT22.md](docs/archive/sprints/SPRINT22.md) |
 | 23 | Image-Based Lighting | ✅ Complete | [docs/archive/sprints/SPRINT23.md](docs/archive/sprints/SPRINT23.md) |
+| 24 | optix-jni Architecture & Foundation | ✅ Complete | [docs/sprints/SPRINT24.md](docs/sprints/SPRINT24.md) |
 
 ---
 
 ## Planned Sprints
-
-### Sprint 24: optix-jni Architecture & Foundation (~21h)
-
-**Goal:** Package rename, BaseParams/MengerParams split, menger-geometry scaffold, publication setup
-
-- **24.1** Architecture review + design document (4h)
-- **24.2** Package rename `menger.optix` → `io.github.lene.optix` (4h)
-- **24.3** Rename `Params` → `BaseParams`, remove 4D/caustics fields (3h)
-- **24.4** Create `menger-geometry` sbt subproject skeleton (2h)
-- **24.5** Define `MengerParams` struct + validate CUDA compilation (3h)
-- **24.6** Publication setup: menger-common (2h)
-- **24.7** Publication setup: optix-jni (3h)
-
-See [docs/sprints/SPRINT24.md](docs/sprints/SPRINT24.md)
-
----
 
 ### Sprint 25: optix-jni Implementation (~28h)
 
