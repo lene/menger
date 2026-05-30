@@ -798,6 +798,7 @@ BuildDeployable:
     # Build deployable package with full OptiX JNI
     - sbt "mengerApp / Universal / packageBin"
     - mv menger-app/target/universal/${DEPLOYABLE_BASE_NAME}-app-${DEPLOYABLE_VERSION}.zip ./${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip
+    - ls -lh menger-*.*.*.zip
   artifacts:
     paths:
       - menger-*.*.*.zip
