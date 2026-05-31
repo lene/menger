@@ -27,8 +27,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.6.2 | Higher-Dimensional Fractals | ✅ Complete | 4D Menger/Sierpinski analogs, fractional IAS sponge levels, fog, CLI --animate (Sprint 21) |
 | v0.7.0 | HDR Environment Maps | ✅ Complete | HDR background, equirectangular env map, tone mapping, Sierpinski4D DSL, JNI safety hardening (Sprint 22) |
 | v0.7.1 | Image-Based Lighting | ✅ Complete | IBL with importance sampling + MIS, env map illuminates objects (Sprint 23) |
-| v0.8.0 | optix-jni Library | Planned | Generic OptiX JNI library published to Maven Central, menger-geometry layer (Sprints 24-25) |
-| v0.8.1 | Repo Split & Code Health | Planned | Separate repos, CUDA leak fixes, legacy code removal (Sprint 26) |
+| v0.7.2 | optix-jni Decoupling | ✅ Complete | optix-jni generic library, menger-geometry layer, MengerRenderer, NativeOptiXApi (Sprints 24-25) |
+| v0.8.0 | Repo Split & Code Health | Planned | Separate repos, CUDA leak fixes, legacy code removal (Sprint 26) |
 | v0.9.0 | Video Backgrounds | Planned | Animated .mp4 backgrounds via ffmpeg, per-frame GPU texture swap (Sprint 27) |
 | v0.9.1 | Visual Quality | Planned | Depth of field, wireframe rendering (Sprint 28) |
 | v1.0.0 | Data Visualization I | Planned | Colormaps, scalar fields, isosurfaces, volume rendering (Sprint 29) |
@@ -62,7 +62,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | 21 | Higher-Dimensional Fractals | ✅ Complete | [docs/archive/sprints/SPRINT21.md](docs/archive/sprints/SPRINT21.md) |
 | 22 | HDR Environment Maps | ✅ Complete | [docs/archive/sprints/SPRINT22.md](docs/archive/sprints/SPRINT22.md) |
 | 23 | Image-Based Lighting | ✅ Complete | [docs/archive/sprints/SPRINT23.md](docs/archive/sprints/SPRINT23.md) |
-| 24 | optix-jni Architecture & Foundation | ✅ Complete | [docs/sprints/SPRINT24.md](docs/sprints/SPRINT24.md) |
+| 24 | optix-jni Architecture & Foundation | ✅ Complete | [docs/archive/sprints/SPRINT24.md](docs/archive/sprints/SPRINT24.md) |
+| 25 | optix-jni Implementation | ✅ Complete | [docs/archive/sprints/SPRINT25.md](docs/archive/sprints/SPRINT25.md) |
 
 ---
 

@@ -1,8 +1,8 @@
 # Current Sprint
 
-**Sprint:** 25
+**Sprint:** 26
 **Status:** 🔄 In Progress
-**Branch:** `feature/sprint-25`
+**Branch:** `feature/sprint-26`
 
 ---
 
