@@ -548,6 +548,46 @@ guard.
 
 ---
 
+### AD-24: Three-Layer Module Architecture (Sprint 25)
+
+**Status:** Accepted
+**Date:** 2026-05 (Sprint 25)
+
+**Context:** `optix-jni` originally contained Menger-specific 4D geometry
+(shaders, data structs, JNI bindings for Menger4D, Sierpiński4D,
+Hexadecachoron4D) and the `CausticsRenderer`. This prevented publishing
+`optix-jni` as a generic reusable GPU ray tracing library. Any external
+consumer would pull in Menger-specific types with no relevant semantics.
+
+**Decision:** Split into three layers:
+
+1. **`optix-jni`** — generic GPU ray tracing library. No Menger-specific types.
+   Published as `io.github.lene:optix-jni`. `OptiXRenderer` is the public API.
+2. **`menger-geometry`** — in-repo extension. All 4D geometry, caustics, and
+   `MengerRenderer`. Depends on `optix-jni`. Not published externally.
+3. **`menger-app`** — application. Depends on `menger-geometry` (and transitively
+   `optix-jni`). All 4D API calls route through `MengerRenderer`.
+
+**Rationale:**
+- `optix-jni` can be published and used by projects that have nothing to do with
+  Menger sponges or 4D geometry.
+- `menger-geometry` keeps the Menger-specific extension co-located with the app
+  without polluting the generic library.
+- `menger-app` gains a single `MengerRenderer` entry point for all GPU calls,
+  replacing scattered direct calls to `OptiXRenderer`.
+
+**Consequences:**
+- `optix-jni` published JAR contains zero Menger-specific types.
+- `menger-geometry` native library (`libmengergeometry.so`) must be extracted from
+  its JAR and loaded before use; loading order matters (`liboptixjni.so` promoted
+  to `RTLD_GLOBAL` so symbols are visible to `libmengergeometry.so`).
+- `javaOptions` in `build.sbt` lists both native output directories on
+  `java.library.path`.
+- AD-3 (Two-Layer OptiX Architecture) is unchanged; this decision adds a layer
+  above it.
+
+---
+
 ## 9.2 Sprint-Level Decisions
 
 Detailed implementation decisions are documented in sprint planning documents and code review files.
