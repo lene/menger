@@ -7,19 +7,20 @@
 │                           Menger System                              │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐   │
-│  │                  │  │                  │  │                  │   │
-│  │   menger-app     │  │  menger.objects  │  │   optix-jni      │   │
-│  │   (Application)  │  │   (Geometry)     │  │   (Ray Tracing)  │   │
-│  │                  │  │   in menger-app  │  │                  │   │
-│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘   │
-│           │                     │                     │              │
-│           └─────────────────────┴─────────────────────┘              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
+│  │              │  │              │  │              │               │
+│  │  menger-app  │  │menger-geometry│  │  optix-jni   │               │
+│  │ (Application)│  │ (4D/caustics)│  │(Ray Tracing) │               │
+│  │              │  │  not published│  │  published   │               │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘               │
+│         │                 │                  │                       │
+│         └─────────────────┴──────────────────┘                       │
 │                                 │                                    │
 │                                 ▼                                    │
 │                    ┌────────────────────────┐                        │
 │                    │     menger-common      │                        │
 │                    │   (Shared utilities)   │                        │
+│                    │       published        │                        │
 │                    └────────────────────────┘                        │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
@@ -120,23 +121,37 @@ namespace. `DragTracker` was folded into `OrbitCamera`'s `dragState`
 | Allowed dependencies | `menger.common`, `menger.config`, `menger.dsl`, `menger.engines` (for `Main` only), Scallop. |
 | Enforced rules | `menger.cli` itself must not depend on `menger.engines` or `menger.optix` (`ArchitecturePhase2Spec`). `Main` may. |
 
-### 5.2.9 `optix-jni` module (ext — `menger.optix` production sources)
+### 5.2.9 `optix-jni` module (published — `io.github.lene.optix`)
 
 | Aspect | Detail |
 |--------|--------|
-| Purpose | NVIDIA OptiX/CUDA ray tracer; JNI bindings; PTX shaders. |
-| Interface | `OptiXRenderer` (thin class — mixes in five `private[optix]` API traits — `OptiXSphereApi`, `OptiXMeshApi`, `OptiXPlaneApi`, `OptiXTextureApi`, `OptiXRenderApi`; holds `@volatile nativeHandle: Long`), `Material`, `RenderConfig`, `RenderLimits`, `CausticsConfig`, `RenderHealth`. |
-| Allowed dependencies | `menger.common`, JDK only. No LibGDX, no Scala-specific types in public method signatures. |
-| Enforced rules | `loadLibrary` and `native` methods only inside this module (`ArchitectureSpec`). Java-friendly API surface (no `scala.Option`, `scala.collection`, etc. on public methods). |
+| Purpose | Generic GPU ray tracing library. NVIDIA OptiX/CUDA JNI bindings; PTX shaders for sphere and generic geometry. No Menger-specific types. Published as `io.github.lene:optix-jni`. |
+| Interface | `OptiXRenderer` (thin class — mixes in five `private[optix]` API traits — `OptiXSphereApi`, `OptiXMeshApi`, `OptiXPlaneApi`, `OptiXTextureApi`, `OptiXRenderApi`; holds `@volatile nativeHandle: Long`), `NativeOptiXApi` (thin context/module/pipeline lifecycle), `Material`, `RenderConfig`, `RenderLimits`, `RenderHealth`. |
+| Allowed dependencies | `menger-common`, JDK only. No LibGDX, no Scala-specific types in public method signatures. |
+| Enforced rules | `loadLibrary` and `native` methods in `optix-jni` or `menger-geometry` only (`ArchitectureSpec`). Java-friendly API surface (no `scala.Option`, `scala.collection`, etc. on public methods). |
 
 **Native sources** (`optix-jni/src/main/native/`): `OptiXContext.{h,cpp}`
 (low-level OptiX wrapper), `OptiXWrapper.{h,cpp}` (scene state, `setSphere`,
-`setCamera`, `render`), `OptiXData.h` (`Params`, `HitGroupData`, `Light`,
-`RayStats`), `JNIBindings.cpp`. Shaders under `shaders/`: `raygen_primary.cu`,
-`hit_sphere.cu`, `hit_triangle.cu`, `hit_cone.cu`, `hit_plane.cu`,
-`hit_cylinder.cu`, `hit_menger4d.cu`, `hit_sierpinski4d.cu`,
-`hit_hexadecachoron4d.cu`, `miss_plane.cu`, `shadows.cu`, `helpers.cu`,
-`caustics_ppm.cu`, `optix_shaders.cu` (umbrella).
+`setCamera`, `render`), `OptiXData.h` (`BaseParams`, `HitGroupData`, `Light`,
+`RayStats`), `JNIBindings.cpp`, `OptiXApiBindings.cpp` (thin NativeOptiXApi
+bindings). Shaders under `shaders/`: `raygen_primary.cu`, `hit_sphere.cu`,
+`hit_triangle.cu`, `hit_cone.cu`, `hit_plane.cu`, `hit_cylinder.cu`,
+`miss_plane.cu`, `shadows.cu`, `helpers.cu`, `optix_shaders.cu` (umbrella).
+
+### 5.2.10 `menger-geometry` module (in-repo — `io.github.lene.optix`)
+
+| Aspect | Detail |
+|--------|--------|
+| Purpose | Menger-specific 4D geometry and caustics extension of `optix-jni`. Not published. |
+| Interface | `MengerRenderer` (extends `OptiXRenderer`; overrides all 4D geometry `@native` methods to dispatch to `libmengergeometry.so`). |
+| Allowed dependencies | `optix-jni`, `menger-common`. |
+| Enforced rules | `@native` methods and `loadLibrary` permitted here (same ArchUnit rule as `optix-jni`). |
+
+**Native sources** (`menger-geometry/src/main/native/`): `MengerJNIBindings.cpp`
+(4D geometry JNI dispatch), `CausticsRenderer.{h,cpp}`, `Project4D.{h,cu}`.
+Shaders: `hit_menger4d.cu`, `hit_sierpinski4d.cu`, `hit_hexadecachoron4d.cu`,
+`caustics_ppm.cu`, `optix_shaders_menger.cu` (umbrella). `MengerParams.h`
+extends `BaseParams` with 4D geometry fields.
 
 ## 5.3 OptiX JNI Architecture (Level 3)
 
@@ -178,10 +193,11 @@ namespace. `DragTracker` was folded into `OrbitCamera`'s `dragState`
 
 | Structure | Location | Purpose |
 |-----------|----------|---------|
-| `Params` | OptiXData.h | Launch parameters (scene, camera, lights) |
-| `HitGroupData` | OptiXData.h | Per-geometry SBT data |
-| `Light` | OptiXData.h | Light source definition |
-| `RayStats` | OptiXData.h | Ray tracing statistics |
+| `BaseParams` | `optix-jni`: `OptiXData.h` | Launch parameters (scene, camera, lights) |
+| `MengerParams` | `menger-geometry`: `MengerParams.h` | Extends `BaseParams` with 4D geometry fields |
+| `HitGroupData` | `optix-jni`: `OptiXData.h` | Per-geometry SBT data |
+| `Light` | `optix-jni`: `OptiXData.h` | Light source definition |
+| `RayStats` | `optix-jni`: `OptiXData.h` | Ray tracing statistics |
 
 ## 5.4 Input Handling
 
@@ -263,8 +279,9 @@ graph TD
       COMMON["menger.common"]:::common
     end
 
-    subgraph JNI["JNI adapter (optix-jni artifact)"]
-      OPTIXJ["menger.optix (native)"]:::jni
+    subgraph JNI["JNI modules"]
+      OPTIXJ["io.github.lene.optix (optix-jni)"]:::jni
+      MENGERGEO["io.github.lene.optix (menger-geometry)"]:::jni
     end
 
     MAIN --> ENGINES
@@ -283,7 +300,7 @@ graph TD
     ENGINES --> COMMON
     ENGINES --> FFMPEG
     ENGINES --> FS
-    OPTIXW --> OPTIXJ
+    OPTIXW --> MENGERGEO
     OPTIXW --> COMMON
     INPUT --> GDX
     INPUT --> COMMON
@@ -293,6 +310,8 @@ graph TD
     DSL --> COMMON
     DSL --> FS
     OBJECTS --> COMMON
+    MENGERGEO --> OPTIXJ
+    MENGERGEO --> COMMON
     OPTIXJ --> OPTIX
     OPTIXJ --> COMMON
 ```

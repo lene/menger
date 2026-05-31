@@ -438,3 +438,30 @@ clang-tidy -p "${BUILD_DIR}" --config-file=.clang-tidy \
 
 Rules configured in `.clang-tidy`. Requires `compile_commands.json` from a prior
 CMake build step.
+
+## 8.11 Two-Library Native Loading (Sprint 25)
+
+`menger-geometry` introduces a second native library (`libmengergeometry.so`)
+that depends on symbols from `liboptixjni.so`. Because shared library lookup
+is name-based and both libraries are bundled inside JARs, the loading sequence
+must be managed explicitly.
+
+**Load order:**
+
+1. `OptiXRenderer` companion object loads `liboptixjni.so` at class-load time
+   (via `System.loadLibrary` or JAR extraction to a temp file).
+2. `MengerRenderer` companion object loads `libmengergeometry.so`.
+3. A `__attribute__((constructor))` function in `libmengergeometry.so` walks
+   `dl_iterate_phdr` to find the already-loaded `liboptixjni.so` and re-opens
+   it with `RTLD_GLOBAL`, promoting its symbols to the global symbol table.
+   This allows lazy binding in `libmengergeometry.so` to resolve
+   `OptiXWrapper::*` symbols without a link-time `DT_NEEDED` dependency.
+
+**Why not `DT_NEEDED`:** `liboptixjni.so` is not on `LD_LIBRARY_PATH` when the
+JVM starts; its path is only known at runtime after JAR extraction. The
+`RTLD_GLOBAL` promotion approach avoids hardcoding paths.
+
+**PTX resources:** `libmengergeometry.so` bundles `optix_shaders_menger.ptx`
+as a Java classpath resource (`/native/x86_64-linux/optix_shaders_menger.ptx`).
+`MengerRenderer` extracts this to `target/native/x86_64-linux/bin/` at load time
+so the OptiX pipeline can find it.
