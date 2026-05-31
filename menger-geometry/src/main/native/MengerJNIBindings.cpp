@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cstring>
 #include <string>
+#include <dlfcn.h>
+#include <link.h>
 
 /**
  * JNI bindings for MengerRenderer Scala class (io.github.lene.optix.MengerRenderer).
@@ -10,7 +12,25 @@
  * MengerRenderer extends OptiXRenderer and overrides the 4D geometry @native methods.
  * The nativeHandle field is inherited from OptiXRenderer; JNI GetFieldID walks the
  * superclass hierarchy to find it.
+ *
+ * libmengergeometry.so is built with --allow-shlib-undefined so it has no link-time
+ * dependency on liboptixjni.so. At load time the constructor below finds liboptixjni.so
+ * in the already-loaded library list (it is always loaded first by OptiXRenderer) and
+ * promotes it to RTLD_GLOBAL so that lazy symbol binding for OptiXWrapper calls succeeds.
  */
+
+static int promoteCallback(struct dl_phdr_info* info, size_t /*size*/, void* /*data*/) {
+    if (info->dlpi_name && std::strstr(info->dlpi_name, "optixjni")) {
+        dlopen(info->dlpi_name, RTLD_LAZY | RTLD_GLOBAL);
+        return 1;
+    }
+    return 0;
+}
+
+__attribute__((constructor))
+static void promoteOptixJniToGlobal() {
+    dl_iterate_phdr(promoteCallback, nullptr);
+}
 
 extern "C" {
 
