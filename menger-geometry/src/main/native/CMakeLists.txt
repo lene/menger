@@ -80,17 +80,22 @@ set_target_properties(menger_shaders PROPERTIES
 )
 
 #=============================================================================
-# menger-geometry shared library: project4d.cu CUDA kernel + future JNI bindings
+# menger-geometry shared library: project4d.cu + CausticsRenderer
+# CausticsRenderer calls symbols from liboptixjni.so — resolved at runtime
+# when both JNI libraries are loaded by the JVM.
 #=============================================================================
 add_library(mengergeometry SHARED
     project4d.cu
+    CausticsRenderer.cpp
 )
 target_include_directories(mengergeometry PRIVATE
     ${CUDAToolkit_INCLUDE_DIRS}
+    ${OptiX_INCLUDE_DIR}
     ${OPTIX_JNI_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_link_libraries(mengergeometry PRIVATE CUDA::cudart)
+target_link_options(mengergeometry PRIVATE "LINKER:--allow-shlib-undefined")
 set_target_properties(mengergeometry PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
