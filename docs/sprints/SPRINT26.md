@@ -2,7 +2,7 @@
 
 **Sprint:** 26 - Repository Split & Code Health
 **Status:** Not Started
-**Estimate:** ~21 hours
+**Estimate:** ~28 hours
 **Branch:** `feature/sprint-26`
 **Dependencies:** Sprint 25 (published optix-jni and menger-common artifacts must exist)
 
@@ -18,6 +18,7 @@ items. Remove the obsolete legacy CPU 4D path.
 
 ## Success Criteria
 
+- [ ] `optix-jni` and `menger-common` published to registry; external project verified
 - [ ] `menger-common` and `optix-jni` live in separate repositories, published independently
 - [ ] `menger` repo retains only `menger-geometry` and `menger-app`
 - [ ] CI/CD updated for cross-repo dependency resolution
@@ -28,6 +29,69 @@ items. Remove the obsolete legacy CPU 4D path.
 ---
 
 ## Tasks
+
+### Task 26.0: Publish optix-jni and menger-common
+
+**Estimate:** 3h
+**Depends on:** Sprint 25 (3-layer architecture complete, CI green on 0.7.2 tag)
+
+The publication CI jobs (`PublishOptixJni`, `PublishCommon`) were wired up in
+Sprint 24.7 but never triggered for a real release. This task verifies the
+full publish path end-to-end.
+
+**Steps:**
+1. Trigger the 0.7.2 tag pipeline on GitLab and confirm `PublishOptixJni` and
+   `PublishCommon` jobs complete successfully.
+2. Verify artifacts appear in the GitLab Package Registry and/or Maven Central
+   (depending on which registry the CI is configured to publish to).
+3. Create a minimal external `build.sbt` outside the menger repo:
+   ```scala
+   libraryDependencies += "io.github.lene" %% "optix-jni" % "0.1.0"
+   ```
+   Verify it compiles and `new OptiXRenderer().initialize()` links correctly.
+4. If any publish step fails, fix the CI/signing/credential configuration before
+   proceeding to 26.1.
+
+**Validation:** External project compiles against the published artifact.
+
+---
+
+### Task 26.0a: optix-jni API Documentation
+
+**Estimate:** 2h
+**Depends on:** 26.0 (publish path confirmed working)
+
+Add Scaladoc to all public API types in `optix-jni`:
+- `OptiXRenderer` — lifecycle (`initialize`, `dispose`), render loop
+- `NativeOptiXApi` — handle semantics, 0L failure convention, ownership model
+- All five API traits (`OptiXSphereApi`, `OptiXMeshApi`, etc.) — what each method
+  does, parameter units, error conditions
+- `RenderResult`, `RenderHealth`, `Material` — field semantics
+
+Also update `optix-jni/README.md` with: minimum JVM flags (`-Djava.library.path`),
+sbt / Maven / Gradle dependency snippet, GPU/driver requirements.
+
+**Validation:** `sbt doc` produces Scaladoc with no missing-doc warnings on public API.
+
+---
+
+### Task 26.0b: optix-jni Non-GPU Unit Tests
+
+**Estimate:** 2h
+**Depends on:** none (pure Scala, no GPU needed)
+
+Add unit tests that run without a GPU (all guarded with `assume(OptiXRenderer.isLibraryLoaded, ...)`):
+- Library loading: `isLibraryLoaded` returns non-exception result
+- Handle safety: `destroyContext(0L)`, `destroyModule(0L, 0L)`, `destroyPipeline(0L, 0L)` do not crash
+- `createContext()` → `0L` path handled gracefully by `NativeOptiXApi`
+- `OptiXRenderer.initialize()` idempotence: calling twice returns same result
+
+Existing `NativeOptiXApiTest` already covers some of this — move and expand it
+into a proper `optix-jni` test module (not `menger-app`).
+
+**Validation:** Tests run in CI without GPU (`Test:Full` job); 0 failures.
+
+---
 
 ### Task 26.1: Repository Split
 
@@ -145,6 +209,9 @@ each reach ≥70% statement coverage. Remove `L-libgdx-wrapper-untested` from
 
 | Task | Description | Estimate |
 |------|-------------|----------|
+| 26.0 | Publish optix-jni + menger-common; verify external project | 3h |
+| 26.0a | optix-jni API documentation (Scaladoc + README) | 2h |
+| 26.0b | optix-jni non-GPU unit tests | 2h |
 | 26.1 | Repository split | 8h |
 | 26.2 | Fix CUDA GAS buffer leak | 2h |
 | 26.3 | Fix CUDA texture array leak | 2h |
@@ -153,7 +220,7 @@ each reach ≥70% statement coverage. Remove `L-libgdx-wrapper-untested` from
 | 26.6 | Fix Config naming rule | 1h |
 | 26.7 | Remove legacy CPU 4D path | 2h |
 | 26.8 | Test LibGDX wrapper paths | 3h |
-| **Total** | | **~21h** |
+| **Total** | | **~24h** |
 
 ---
 

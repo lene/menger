@@ -486,6 +486,30 @@ file /tmp/smoke-test.png
 - [ ] README.md installation instructions still accurate
 - [ ] Version number appears correctly in docs
 
+### Close GitLab Issues and Milestone
+
+- [ ] Close all issues linked to this sprint/version:
+  ```bash
+  # List open issues for this milestone
+  glab issue list --milestone "vX.Y.Z"
+  # Close each resolved issue
+  glab issue close <issue-id>
+  ```
+
+- [ ] Close the GitLab milestone for vX.Y.Z:
+  ```bash
+  # List milestones to find the ID
+  glab api projects/:fullpath/milestones --method GET | python3 -c "
+  import sys, json
+  for m in json.load(sys.stdin):
+      print(f\"{m['id']:4d}  {m['title']:<20s}  {m['state']}\")"
+  # Close the milestone
+  glab api projects/:fullpath/milestones/<milestone-id> --method PUT -f state_event=close
+  ```
+
+  Alternatively: close via GitLab UI at
+  https://gitlab.com/lilacashes/menger/-/milestones
+
 ### Cleanup & Next Steps
 
 - [ ] Update `.coverage_baseline` if coverage improved significantly
@@ -774,5 +798,5 @@ Wait for their response. Only conclude the checklist after they confirm.
 
 ---
 
-*Last updated: 2026-03-24*
+*Last updated: 2026-05-31*
 *Maintained by: Development team with Claude Code assistance*

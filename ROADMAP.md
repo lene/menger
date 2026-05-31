@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-05-29
+**Last Updated:** 2026-05-31
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -28,10 +28,25 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.7.0 | HDR Environment Maps | ✅ Complete | HDR background, equirectangular env map, tone mapping, Sierpinski4D DSL, JNI safety hardening (Sprint 22) |
 | v0.7.1 | Image-Based Lighting | ✅ Complete | IBL with importance sampling + MIS, env map illuminates objects (Sprint 23) |
 | v0.7.2 | optix-jni Decoupling | ✅ Complete | optix-jni generic library, menger-geometry layer, MengerRenderer, NativeOptiXApi (Sprints 24-25) |
-| v0.8.0 | Repo Split & Code Health | Planned | Separate repos, CUDA leak fixes, legacy code removal (Sprint 26) |
+| v0.8.0 | Repo Split & Code Health | Planned | Publish optix-jni, separate repos, CUDA leak fixes, legacy code removal (Sprint 26) |
 | v0.9.0 | Video Backgrounds | Planned | Animated .mp4 backgrounds via ffmpeg, per-frame GPU texture swap (Sprint 27) |
 | v0.9.1 | Visual Quality | Planned | Depth of field, wireframe rendering (Sprint 28) |
 | v1.0.0 | Data Visualization I | Planned | Colormaps, scalar fields, isosurfaces, volume rendering (Sprint 29) |
+
+---
+
+## optix-jni Library Releases
+
+Separate versioning track for the standalone `io.github.lene:optix-jni` library.
+The library version is independent of the menger app version.
+
+| Version | Status | Description | Sprint |
+|---------|--------|-------------|--------|
+| 0.1.0 | 🔜 Sprint 26 | First real standalone release: publication verified, Scaladoc, non-GPU test module, external project validated | 26.0–26.0b |
+| 1.0.0 | Planned | Stable public API; own repository; full test suite; SemVer stability guarantee | 26.1+ |
+
+**Pre-1.0 contract:** API may change between minor versions.
+**1.0 contract:** SemVer stability on `OptiXRenderer`, `NativeOptiXApi`, and all public traits.
 
 ---
 
@@ -68,22 +83,6 @@ Strategic feature planning for the Menger ray tracing renderer.
 ---
 
 ## Planned Sprints
-
-### Sprint 25: optix-jni Implementation (~28h)
-
-**Goal:** Move 4D geometry + caustics to menger-geometry; begin full OptiX API wrapping
-
-- **25.1** Move 4D C++ to menger-geometry (6h)
-- **25.2** Move CausticsRenderer to menger-geometry (3h)
-- **25.3** Move 4D + caustics Scala/JNI to menger-geometry (4h)
-- **25.4** Begin full OptiX API wrapping — core launch path (8h)
-- **25.5** Update menger-app dependencies (2h)
-- **25.6** Tests + integration validation (3h)
-- **25.7** Documentation (2h)
-
-See [docs/sprints/SPRINT25.md](docs/sprints/SPRINT25.md)
-
----
 
 ### Sprint 26: Repository Split & Code Health (~18h)
 
@@ -216,7 +215,7 @@ Ideas not yet scheduled.
 | Image-Based Lighting (23) | 1 sprint | ~42 hours |
 | optix-jni Architecture & Foundation (24) | 1 sprint | ~21 hours |
 | optix-jni Implementation (25) | 1 sprint | ~28 hours |
-| Repository Split & Code Health (26) | 1 sprint | ~18 hours |
+| Repository Split & Code Health (26) | 1 sprint | ~28 hours |
 | Video Backgrounds (27) | 1 sprint | ~15 hours |
 | Visual Quality (28) | 1 sprint | ~20 hours |
 | Data Visualization I (29) | 1 sprint | ~25 hours |
