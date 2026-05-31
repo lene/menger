@@ -2,6 +2,7 @@ import com.github.sbt.jni.build.CMakeWithoutVersionBug
 
 // Global settings applied to all projects
 inThisBuild(List(
+  semanticdbEnabled := true,
   semanticdbVersion := scalafixSemanticdb.revision,
   Test / parallelExecution := true
 ))

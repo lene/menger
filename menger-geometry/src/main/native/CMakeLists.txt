@@ -50,6 +50,12 @@ endif()
 message(STATUS "✓ OptiX: ${OptiX_INSTALL_DIR}")
 
 #=============================================================================
+# JNI (required for MengerJNIBindings)
+#=============================================================================
+find_package(JNI REQUIRED)
+message(STATUS "✓ JNI: ${JNI_INCLUDE_DIRS}")
+
+#=============================================================================
 # optix-jni source paths (project reference — headers replaced by published artifact post-Sprint 25)
 #=============================================================================
 set(OPTIX_JNI_INCLUDE_DIR
@@ -87,8 +93,10 @@ set_target_properties(menger_shaders PROPERTIES
 add_library(mengergeometry SHARED
     project4d.cu
     CausticsRenderer.cpp
+    MengerJNIBindings.cpp
 )
 target_include_directories(mengergeometry PRIVATE
+    ${JNI_INCLUDE_DIRS}
     ${CUDAToolkit_INCLUDE_DIRS}
     ${OptiX_INCLUDE_DIR}
     ${OPTIX_JNI_INCLUDE_DIR}

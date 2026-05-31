@@ -18,15 +18,16 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
         r
 
   private def initializeRenderer: OptiXRenderer =
-    // CRITICAL: Force companion object initialization before creating instance
-    // Without this, the companion object's static initializer (which loads the native library)
-    // may not run until after we try to call native methods, causing UnsatisfiedLinkError
     if !OptiXRenderer.isLibraryLoaded then
       val msg = "OptiX native library failed to load"
       logger.error(msg)
       scala.sys.error(msg)
+    if !MengerRenderer.isLibraryLoaded then
+      val msg = "Menger native library failed to load"
+      logger.error(msg)
+      scala.sys.error(msg)
 
-    val r = OptiXRenderer()
+    val r = MengerRenderer()
     r.initialize(maxInstances)
     r.ensureAvailable()  // Throws OptiXNotAvailableException on failure - caught by Main
 
