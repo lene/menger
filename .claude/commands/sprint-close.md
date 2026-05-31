@@ -2,12 +2,13 @@
 
 Interactive workflow to close a completed sprint, verify the release, and collaboratively plan the next sprint.
 
-**Usage:** `/sprint-close` — run after the sprint MR has been merged in the GitLab web UI.
+**Usage:** `/sprint-close` — run when sprint work is complete, all commits are on the feature branch, and CI is green. The skill handles version bumps, archiving, MR creation and merge, and sprint opening.
 
 **Required skill:** Invoke the `release-checklist` skill at the start of this command.
-The release was already cut (Phases 1–4 of the skill are complete). Pick up from
-**Phase 5 (Post-Release Verification)** and **Phase 6 (Retrospective & Sprint Opening)**,
-then continue below with the sprint-close archiving phases.
+Phases 1–4 of the release-checklist (version bump, changelog, pre-push validation, commit/push)
+are performed during Phase 3 of this skill (Sprint Archiving). Pick up the release-checklist
+from **Phase 5 (Post-Release Verification)** and **Phase 6 (Retrospective & Sprint Opening)**
+after the MR is merged in Phase 5c below.
 
 ---
 
@@ -268,9 +269,33 @@ Look for and verify these pipelines all show `success` on the main SHA:
 
 If any pipeline is `running` or `pending`, wait and retry. If `failed`, stop and report the failing job before proceeding.
 
-### 5c. Merge MR
+### 5c. Create and Merge MR
 
-Ask the user to merge the MR and wait for confirmation.
+Create the MR if it doesn't exist yet:
+
+```bash
+glab mr create \
+  --title "Sprint SPRINT_NUM: TITLE (vVERSION)" \
+  --description "Closes Sprint SPRINT_NUM. See CHANGELOG.md for release notes." \
+  --target-branch main \
+  --squash=false \
+  --remove-source-branch=false
+```
+
+Then wait for the MR pipeline to pass (`glab ci status`). Once green, merge:
+
+```bash
+glab mr merge --yes --squash=false
+```
+
+Confirm the merge completed:
+
+```bash
+git fetch origin main
+git log origin/main --oneline -3
+```
+
+The merge triggers the release pipeline (CreateRelease → tag → PushToGithub).
 
 ### 5d. PushToGithub Job
 
