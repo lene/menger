@@ -60,25 +60,31 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addRecursiveIASS
             jclass exc = env->FindClass("java/lang/IllegalArgumentException");
             std::string msg = "Transform array must have 12 elements (4x3 matrix), got " +
                 std::to_string(transformLen);
-            env->ThrowNew(exc, msg.c_str());
+            if (exc) env->ThrowNew(exc, msg.c_str());
             return -1;
         }
         jfloat* transformArr = env->GetFloatArrayElements(transform, nullptr);
         if (transformArr == nullptr) {
             jclass exc = env->FindClass("java/lang/RuntimeException");
-            env->ThrowNew(exc, "Failed to get transform array elements");
+            if (exc) env->ThrowNew(exc, "Failed to get transform array elements");
             return -1;
         }
-        int instanceId = wrapper->addRecursiveIASSpongeInstance(
-            level, transformArr, r, g, b, a, ior,
-            roughness, metallic, specular, emission, textureIndex, filmThickness
-        );
+        int instanceId = -1;
+        try {
+            instanceId = wrapper->addRecursiveIASSpongeInstance(
+                level, transformArr, r, g, b, a, ior,
+                roughness, metallic, specular, emission, textureIndex, filmThickness
+            );
+        } catch (...) {
+            env->ReleaseFloatArrayElements(transform, transformArr, 0);
+            throw;
+        }
         env->ReleaseFloatArrayElements(transform, transformArr, 0);
         return instanceId;
     } catch (const std::exception& e) {
         std::cerr << "[MengerJNI] Error in addRecursiveIASSpongeInstance: " << e.what() << std::endl;
         jclass exc = env->FindClass("java/lang/RuntimeException");
-        env->ThrowNew(exc, e.what());
+        if (exc) env->ThrowNew(exc, e.what());
         return -1;
     }
 }
@@ -103,7 +109,7 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addMenger4DInsta
     } catch (const std::exception& e) {
         std::cerr << "[MengerJNI] Error in addMenger4DInstance: " << e.what() << std::endl;
         jclass exc = env->FindClass("java/lang/RuntimeException");
-        env->ThrowNew(exc, e.what());
+        if (exc) env->ThrowNew(exc, e.what());
         return -1;
     }
 }
@@ -120,7 +126,7 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_updateMenger4DPr
     } catch (const std::exception& e) {
         std::cerr << "[MengerJNI] Error in updateMenger4DProjection: " << e.what() << std::endl;
         jclass exc = env->FindClass("java/lang/RuntimeException");
-        env->ThrowNew(exc, e.what());
+        if (exc) env->ThrowNew(exc, e.what());
         return -1;
     }
 }
@@ -144,7 +150,7 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addSierpinski4DI
     } catch (const std::exception& e) {
         std::cerr << "[MengerJNI] Error in addSierpinski4DInstance: " << e.what() << std::endl;
         jclass exc = env->FindClass("java/lang/RuntimeException");
-        env->ThrowNew(exc, e.what());
+        if (exc) env->ThrowNew(exc, e.what());
         return -1;
     }
 }
@@ -161,7 +167,7 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_updateSierpinski
     } catch (const std::exception& e) {
         std::cerr << "[MengerJNI] Error in updateSierpinski4DProjection: " << e.what() << std::endl;
         jclass exc = env->FindClass("java/lang/RuntimeException");
-        env->ThrowNew(exc, e.what());
+        if (exc) env->ThrowNew(exc, e.what());
         return -1;
     }
 }
@@ -185,7 +191,7 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addHexadecachoro
     } catch (const std::exception& e) {
         std::cerr << "[MengerJNI] Error in addHexadecachoron4DInstance: " << e.what() << std::endl;
         jclass exc = env->FindClass("java/lang/RuntimeException");
-        env->ThrowNew(exc, e.what());
+        if (exc) env->ThrowNew(exc, e.what());
         return -1;
     }
 }
@@ -202,7 +208,7 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_updateHexadecach
     } catch (const std::exception& e) {
         std::cerr << "[MengerJNI] Error in updateHexadecachoron4DProjection: " << e.what() << std::endl;
         jclass exc = env->FindClass("java/lang/RuntimeException");
-        env->ThrowNew(exc, e.what());
+        if (exc) env->ThrowNew(exc, e.what());
         return -1;
     }
 }

@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-05-24
+**Last Updated:** 2026-05-31
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -8,7 +8,12 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## High Priority
 
-*(none — H-jni-thrownew-null-class fixed in Sprint 22, commit fb48d8f)*
+### H-jni-thrownew-null-class: FindClass not null-checked before ThrowNew in MengerJNIBindings.cpp
+
+**Location**: `menger-geometry/src/main/native/MengerJNIBindings.cpp` — every catch block (7 sites)
+**Impact**: High — `ThrowNew(nullptr, …)` is undefined behaviour; crashes in any environment where `java/lang/RuntimeException` is not on the class path (custom ClassLoader, stripped runtime).
+**Effort**: 15 minutes (already fixed in sprint 25 via `if (exc)` guard on all sites)
+**Status**: Fixed in sprint 25 — carried as note; pattern must not recur in new JNI files.
 
 ---
 
