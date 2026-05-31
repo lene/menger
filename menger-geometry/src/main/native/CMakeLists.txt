@@ -102,8 +102,20 @@ target_include_directories(mengergeometry PRIVATE
     ${OPTIX_JNI_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-target_link_libraries(mengergeometry PRIVATE CUDA::cudart)
-target_link_options(mengergeometry PRIVATE "LINKER:--allow-shlib-undefined")
+# Link against liboptixjni.so from build output so the linker adds a DT_NEEDED
+# entry. At runtime the dynamic linker resolves DT_NEEDED by SONAME against
+# already-loaded libraries (set via LINKER:-soname in optix-jni's CMakeLists),
+# so this works whether liboptixjni.so was loaded from java.library.path or
+# extracted from the classpath jar to a temp file.
+set(OPTIXJNI_LIB
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../optix-jni/target/native/x86_64-linux/bin/liboptixjni.so")
+if(EXISTS "${OPTIXJNI_LIB}")
+    target_link_libraries(mengergeometry PRIVATE CUDA::cudart "${OPTIXJNI_LIB}")
+else()
+    message(WARNING "liboptixjni.so not found at ${OPTIXJNI_LIB} — falling back to --allow-shlib-undefined")
+    target_link_libraries(mengergeometry PRIVATE CUDA::cudart)
+    target_link_options(mengergeometry PRIVATE "LINKER:--allow-shlib-undefined")
+endif()
 set_target_properties(mengergeometry PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
