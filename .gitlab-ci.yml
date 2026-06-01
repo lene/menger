@@ -941,6 +941,10 @@ PublishLibraries:GitLabSmoke:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: release
   timeout: 30m
+  tags:
+    - nvidia
+  variables:
+    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: manual
