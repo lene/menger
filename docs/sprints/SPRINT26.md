@@ -1,8 +1,8 @@
 # Sprint 26: Repository Split & Code Health
 
 **Sprint:** 26 - Repository Split & Code Health
-**Status:** Not Started
-**Estimate:** ~28 hours
+**Status:** In Progress
+**Estimate:** ~51 hours
 **Branch:** `feature/sprint-26`
 **Dependencies:** Sprint 25 (published optix-jni and menger-common artifacts must exist)
 
@@ -11,8 +11,9 @@
 ## Goal
 
 Split the published artifacts (menger-common, optix-jni) into separate repositories now
-that they are independent libraries. Fix all open medium-priority CODE_IMPROVEMENTS
-items. Remove the obsolete legacy CPU 4D path.
+that they are independent libraries. Fix every open issue in CODE_IMPROVEMENTS.md,
+including high-priority carried notes, medium-priority issues, and low-priority cleanup.
+Remove the obsolete legacy CPU 4D path.
 
 ---
 
@@ -22,7 +23,8 @@ items. Remove the obsolete legacy CPU 4D path.
 - [ ] `menger-common` and `optix-jni` live in separate repositories, published independently
 - [ ] `menger` repo retains only `menger-geometry` and `menger-app`
 - [ ] CI/CD updated for cross-repo dependency resolution
-- [ ] All 6 CODE_IMPROVEMENTS medium-priority items resolved and removed from CODE_IMPROVEMENTS.md
+- [ ] All open High/Medium/Low Priority CODE_IMPROVEMENTS issues resolved and removed
+- [ ] CODE_IMPROVEMENTS.md retains only Feature Ideas and Accepted/Deferred decisions
 - [ ] `Mesh4D` and `RotatedProjection` deleted
 - [ ] All tests pass
 
@@ -200,8 +202,76 @@ erratic bugs.
   it can be exercised without a running `Application`
 
 **Validation:** `SceneConfigurator`, `OptiXRendererWrapper`, `CameraState`
-each reach ≥70% statement coverage. Remove `L-libgdx-wrapper-untested` from
+each reach ≥70% statement coverage. Remove `M-libgdx-wrapper-untested` from
 `CODE_IMPROVEMENTS.md`.
+
+---
+
+### Task 26.9: Fix M-arch-archunit-case-class-field
+
+**Estimate:** 3h
+
+ArchUnit `haveOnlyFinalFields` reports false positives for Scala case class `val`
+fields, and package checks treat synthetic `java.io.Serializable` inheritance as
+domain file-IO usage.
+
+Fix: replace the brittle final-field rule with a Scala-aware predicate that detects
+mutable `var` fields, and exclude `java.io.Serializable` from file-IO package checks.
+
+**Validation:** Re-enable the affected ignored ArchitecturePhase2Spec rules.
+
+---
+
+### Task 26.10: Fix M-arch-objects-logging
+
+**Estimate:** 2h
+
+`ParametricTessellator` and `higher_d/Rotation` use SLF4J from the pure geometry
+layer.
+
+Fix: remove direct logging from `menger.objects`. If callers need progress metadata,
+return it from the computation and let outer layers log.
+
+**Validation:** Re-enable the objects-logging ArchitecturePhase2Spec rule.
+
+---
+
+### Task 26.11: Fix M-objectspec-optix-coupling
+
+**Estimate:** 8h
+
+`ObjectSpec` imports `menger.optix.Material`, coupling core scene description to the
+JNI layer.
+
+Fix: move `Material` to `menger-common` or introduce a pure common material model that
+`optix-jni` consumes. Update imports and verify no domain model requires native library
+loading.
+
+**Validation:** `ObjectSpec` and scene-building tests compile without depending on
+`menger.optix`.
+
+---
+
+### Task 26.12: Resolve Low-Priority CODE_IMPROVEMENTS Sweep
+
+**Estimate:** 10h
+
+Fix every remaining open low-priority CODE_IMPROVEMENTS item rather than carrying a
+second backlog into the split repositories:
+- `L-upload-texture-file-raw-int`
+- `L-m4d-level-const`
+- `L-m4d-error-codes`
+- `L-m4d-scene4d-sumtype`
+- `L-m4d-builder-validation`
+- `L-jni-release-mode-readonly`
+- `L-cuda-synchronize-unchecked`
+- `L-cuda-dispose-swallows`
+- `L-tonemapping-magic-ints`
+
+Also remove any stale carried note in the High Priority section after verifying the
+pattern has not recurred.
+
+**Validation:** CODE_IMPROVEMENTS.md has no High/Medium/Low Priority open issues.
 
 ---
 
@@ -220,7 +290,11 @@ each reach ≥70% statement coverage. Remove `L-libgdx-wrapper-untested` from
 | 26.6 | Fix Config naming rule | 1h |
 | 26.7 | Remove legacy CPU 4D path | 2h |
 | 26.8 | Test LibGDX wrapper paths | 3h |
-| **Total** | | **~24h** |
+| 26.9 | Fix ArchUnit Scala case-class false positives | 3h |
+| 26.10 | Remove logging from pure geometry classes | 2h |
+| 26.11 | Decouple ObjectSpec from optix Material | 8h |
+| 26.12 | Resolve low-priority CODE_IMPROVEMENTS sweep | 10h |
+| **Total** | | **~51h** |
 
 ---
 
@@ -228,5 +302,7 @@ each reach ≥70% statement coverage. Remove `L-libgdx-wrapper-untested` from
 
 - [ ] All success criteria met
 - [ ] Pre-push hook green
-- [ ] CODE_IMPROVEMENTS.md: all 5 medium-priority items removed
+- [ ] CODE_IMPROVEMENTS.md: no open High/Medium/Low Priority issues remain
+- [ ] Any retained CODE_IMPROVEMENTS.md entry is either a Feature Idea or an
+      Accepted/Deferred decision with an explicit rationale
 - [ ] CHANGELOG.md updated

@@ -41,6 +41,8 @@ node_modules/
 
 # local dev tools
 .jvmopts
+.claude/scheduled_tasks.lock
+.lean-ctx/
 
 # Bloop
 .bsp

@@ -8,7 +8,7 @@
 
 ## Goal
 
-See [SPRINT25.md](SPRINT25.md) for detailed task breakdown and implementation plan.
+See [SPRINT26.md](SPRINT26.md) for detailed task breakdown and implementation plan.
 
 ---
 
