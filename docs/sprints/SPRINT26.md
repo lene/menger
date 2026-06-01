@@ -2,7 +2,7 @@
 
 **Sprint:** 26 - Repository Split & Code Health
 **Status:** In Progress
-**Estimate:** ~51 hours
+**Estimate:** ~56 hours
 **Branch:** `feature/sprint-26`
 **Dependencies:** Sprint 25 (published optix-jni and menger-common artifacts must exist)
 
@@ -13,14 +13,17 @@
 Split the published artifacts (menger-common, optix-jni) into separate repositories now
 that they are independent libraries. Fix every open issue in CODE_IMPROVEMENTS.md,
 including high-priority carried notes, medium-priority issues, and low-priority cleanup.
-Remove the obsolete legacy CPU 4D path.
+Remove the obsolete legacy CPU 4D path. Use GitLab Package Registry as the first
+publication target for testing, then publish the standalone libraries to Maven Central
+after the quality work is complete.
 
 ---
 
 ## Success Criteria
 
-- [ ] `optix-jni` and `menger-common` published to registry; external project verified
+- [ ] `optix-jni` and `menger-common` published to GitLab Package Registry; external project verified
 - [ ] `menger-common` and `optix-jni` live in separate repositories, published independently
+- [ ] `menger-common` and `optix-jni` published to Maven Central after all quality fixes
 - [ ] `menger` repo retains only `menger-geometry` and `menger-app`
 - [ ] CI/CD updated for cross-repo dependency resolution
 - [ ] All open High/Medium/Low Priority CODE_IMPROVEMENTS issues resolved and removed
@@ -32,27 +35,29 @@ Remove the obsolete legacy CPU 4D path.
 
 ## Tasks
 
-### Task 26.0: Publish optix-jni and menger-common
+### Task 26.0: Publish optix-jni and menger-common to GitLab Package Registry
 
 **Estimate:** 3h
 **Depends on:** Sprint 25 (3-layer architecture complete, CI green on 0.7.2 tag)
 
 The publication CI jobs (`PublishOptixJni`, `PublishCommon`) were wired up in
 Sprint 24.7 but never triggered for a real release. This task verifies the
-full publish path end-to-end.
+GitLab Package Registry publish path end-to-end as the first external-consumption
+target.
 
 **Steps:**
 1. Trigger the 0.7.3 tag pipeline on GitLab and confirm `PublishOptixJni` and
    `PublishCommon` jobs complete successfully.
-2. Verify artifacts appear in the GitLab Package Registry and/or Maven Central
-   (depending on which registry the CI is configured to publish to).
+2. Verify artifacts appear in the GitLab Package Registry for the `lilacashes/menger`
+   project.
 3. Create a minimal external `build.sbt` outside the menger repo:
    ```scala
    libraryDependencies += "io.github.lene" %% "optix-jni" % "0.1.0"
    ```
    Verify it compiles and `new OptiXRenderer().initialize()` links correctly.
-4. If any publish step fails, fix the CI/signing/credential configuration before
-   proceeding to 26.1.
+4. If any publish step fails, fix the CI/credential configuration before proceeding
+   to 26.1. Maven Central signing/release setup is intentionally deferred to 26.13
+   after the code-quality cleanup.
 
 **Validation:** External project compiles against the published artifact.
 
@@ -275,6 +280,30 @@ pattern has not recurred.
 
 ---
 
+### Task 26.13: Publish Libraries to Maven Central
+
+**Estimate:** 5h
+**Depends on:** 26.12 (all CODE_IMPROVEMENTS issues resolved), 26.1 (repositories split)
+
+Publish the standalone `menger-common` and `optix-jni` libraries to Maven Central after
+the repository split and quality cleanup are complete. GitLab Package Registry remains
+the first test target; Central publication is the public distribution target once the
+libraries are stable.
+
+**Steps:**
+1. Configure the split repositories for Sonatype Central Portal publication, including
+   credentials, signing, metadata, and release automation.
+2. Publish `io.github.lene:menger-common_3` and `io.github.lene:optix-jni_3` to
+   Maven Central with their library versions.
+3. Verify both artifacts appear on Maven Central and resolve without GitLab registry
+   credentials.
+4. Create a clean external project that depends on the Central artifacts and verifies
+   `menger-common` compilation plus `OptiXRenderer` loading/initialization.
+
+**Validation:** External project resolves both artifacts from Maven Central only.
+
+---
+
 ## Summary
 
 | Task | Description | Estimate |
@@ -294,7 +323,8 @@ pattern has not recurred.
 | 26.10 | Remove logging from pure geometry classes | 2h |
 | 26.11 | Decouple ObjectSpec from optix Material | 8h |
 | 26.12 | Resolve low-priority CODE_IMPROVEMENTS sweep | 10h |
-| **Total** | | **~51h** |
+| 26.13 | Publish libraries to Maven Central | 5h |
+| **Total** | | **~56h** |
 
 ---
 
@@ -302,6 +332,7 @@ pattern has not recurred.
 
 - [ ] All success criteria met
 - [ ] Pre-push hook green
+- [ ] Maven Central publication verified from a clean external project
 - [ ] CODE_IMPROVEMENTS.md: no open High/Medium/Low Priority issues remain
 - [ ] Any retained CODE_IMPROVEMENTS.md entry is either a Feature Idea or an
       Accepted/Deferred decision with an explicit rationale
