@@ -972,7 +972,7 @@ PublishLibraries:GitLabSmoke:
 
       libraryDependencies ++= Seq(
         "io.github.lene" %% "menger-common" % sys.env("LIB_SMOKE_VERSION"),
-        "io.github.lene" %% "optix-jni" % sys.env("LIB_SMOKE_VERSION")
+        "io.github.lene" % "optix-jni" % sys.env("LIB_SMOKE_VERSION")
       )
 
       Compile / run / fork := true
