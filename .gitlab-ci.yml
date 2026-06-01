@@ -147,6 +147,7 @@ Test:Full:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
+  resource_group: nvidia-gpu
   timeout: 20m
   retry: 2
   tags:
@@ -200,6 +201,7 @@ Test:Full:Cuda13:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION_CUDA13
   stage: test
   needs: []
+  resource_group: nvidia-gpu
   timeout: 20m
   retry:
     max: 2
@@ -247,6 +249,7 @@ Test:OptiXJni:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
+  resource_group: nvidia-gpu
   timeout: 20m
   retry: 2
   tags:
@@ -287,6 +290,7 @@ Test:OptiXJni:Cuda13:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION_CUDA13
   stage: test
   needs: []
+  resource_group: nvidia-gpu
   timeout: 20m
   retry: 2
   tags:
@@ -322,6 +326,7 @@ Test:ComputeSanitizer:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
+  resource_group: nvidia-gpu
   timeout: 20m
   retry: 2
   tags:
@@ -383,6 +388,7 @@ Test:Valgrind:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
+  resource_group: nvidia-gpu
   timeout: 20m
   retry: 2
   tags:
@@ -503,6 +509,7 @@ Test:OptiXIntegration:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
+  resource_group: nvidia-gpu
   tags:
     - nvidia
   timeout: 20m  # Override global 15m - integration tests need more time
@@ -672,6 +679,7 @@ Run:UseDocker:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
+  resource_group: nvidia-gpu
   timeout: 20m  # Override global 15m - animation tests need more time
   tags:
     - nvidia
@@ -702,6 +710,7 @@ CheckRunTime:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
+  resource_group: nvidia-gpu
   timeout: 20m  # Override global 15m - runtime tests may need more time
   tags:
     - nvidia
@@ -940,6 +949,7 @@ CreateGithubRelease:
 PublishLibraries:GitLabSmoke:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: release
+  resource_group: nvidia-gpu
   timeout: 30m
   tags:
     - nvidia
@@ -949,6 +959,13 @@ PublishLibraries:GitLabSmoke:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: manual
       allow_failure: true
+  before_script:
+    - nvidia-smi
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    - ldconfig || true
   script:
     - export LIB_SMOKE_VERSION="0.1.0-smoke.${CI_PIPELINE_IID}.${CI_JOB_ID}"
     - echo "Publishing library smoke artifacts with version ${LIB_SMOKE_VERSION}"
