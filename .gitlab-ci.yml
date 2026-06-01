@@ -999,6 +999,7 @@ PublishLibraries:GitLabSmoke:
       EOF
     - cd "${SMOKE_PROJECT_DIR}"
     - export COURSIER_CACHE="${SMOKE_PROJECT_DIR}/coursier-cache"
+    - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
     - sbt clean update compile run
 
 PublishCommon:
