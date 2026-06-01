@@ -42,7 +42,7 @@ Sprint 24.7 but never triggered for a real release. This task verifies the
 full publish path end-to-end.
 
 **Steps:**
-1. Trigger the 0.7.2 tag pipeline on GitLab and confirm `PublishOptixJni` and
+1. Trigger the 0.7.3 tag pipeline on GitLab and confirm `PublishOptixJni` and
    `PublishCommon` jobs complete successfully.
 2. Verify artifacts appear in the GitLab Package Registry and/or Maven Central
    (depending on which registry the CI is configured to publish to).
