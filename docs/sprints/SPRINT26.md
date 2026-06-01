@@ -4,7 +4,7 @@
 **Status:** In Progress
 **Estimate:** ~56 hours
 **Branch:** `feature/sprint-26`
-**Dependencies:** Sprint 25 (published optix-jni and menger-common artifacts must exist)
+**Dependencies:** Sprint 25 (3-layer architecture complete; CI green on 0.7.2 tag)
 
 ---
 
@@ -21,7 +21,7 @@ after the quality work is complete.
 
 ## Success Criteria
 
-- [ ] `optix-jni` and `menger-common` published to GitLab Package Registry; external project verified
+- [ ] `optix-jni` and `menger-common` published to GitLab Package Registry with a CI smoke version; external project verified
 - [ ] `menger-common` and `optix-jni` live in separate repositories, published independently
 - [ ] `menger-common` and `optix-jni` published to Maven Central after all quality fixes
 - [ ] `menger` repo retains only `menger-geometry` and `menger-app`
@@ -35,31 +35,33 @@ after the quality work is complete.
 
 ## Tasks
 
-### Task 26.0: Publish optix-jni and menger-common to GitLab Package Registry
+### Task 26.0: GitLab Package Registry Publish Smoke Test
 
 **Estimate:** 3h
 **Depends on:** Sprint 25 (3-layer architecture complete, CI green on 0.7.2 tag)
 
-The publication CI jobs (`PublishOptixJni`, `PublishCommon`) were wired up in
-Sprint 24.7 but never triggered for a real release. This task verifies the
-GitLab Package Registry publish path end-to-end as the first external-consumption
-target.
+The publication CI jobs (`PublishOptixJni`, `PublishCommon`) are tied to real app
+release tags. Do not create a dummy app release just to test publication. Instead,
+verify the GitLab Package Registry path with a manual MR CI job that publishes
+unique, pipeline-scoped smoke versions of `menger-common` and `optix-jni`, then
+consumes them from a clean external sbt project.
 
 **Steps:**
-1. Trigger the 0.7.3 tag pipeline on GitLab and confirm `PublishOptixJni` and
-   `PublishCommon` jobs complete successfully.
-2. Verify artifacts appear in the GitLab Package Registry for the `lilacashes/menger`
-   project.
-3. Create a minimal external `build.sbt` outside the menger repo:
-   ```scala
-   libraryDependencies += "io.github.lene" %% "optix-jni" % "0.1.0"
-   ```
-   Verify it compiles and `new OptiXRenderer().initialize()` links correctly.
-4. If any publish step fails, fix the CI/credential configuration before proceeding
-   to 26.1. Maven Central signing/release setup is intentionally deferred to 26.13
-   after the code-quality cleanup.
+1. Run the manual `PublishLibraries:GitLabSmoke` job from the Sprint 26 MR pipeline.
+2. Confirm the job publishes both libraries to the GitLab Package Registry with a
+   version like `0.1.0-smoke.<pipeline-iid>.<job-id>`.
+3. Confirm the same job creates a clean external sbt project outside the menger repo,
+   resolves both smoke artifacts from the GitLab registry, compiles, and runs the
+   verifier.
+4. Confirm the verifier imports `menger.common.Color`, loads `OptiXRenderer` from the
+   published `optix-jni` artifact, calls `initialize()`, and disposes the renderer.
+5. If publication or consumption fails, fix the CI credentials, Maven metadata, native
+   resource packaging, or resolver setup before proceeding to 26.1. Maven Central
+   signing/release setup is intentionally deferred to 26.13 after the code-quality
+   cleanup.
 
-**Validation:** External project compiles against the published artifact.
+**Validation:** `PublishLibraries:GitLabSmoke` succeeds, and its external project
+compiles and initializes `OptiXRenderer` using only published GitLab registry artifacts.
 
 ---
 

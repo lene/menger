@@ -13,7 +13,7 @@ default:
 
 variables:
   DEPLOYABLE_BASE_NAME: menger
-  DEPLOYABLE_VERSION: 0.7.3
+  DEPLOYABLE_VERSION: 0.7.2
   SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25.0.1_8_1.12.5_3.8.2
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.8.3
@@ -936,6 +936,70 @@ CreateGithubRelease:
          -H "X-GitHub-Api-Version: 2022-11-28" 
          -H "Authorization: Bearer ${GITHUB_API_TOKEN}"
          ${RELEASE_API_URL} -d "${POST_DATA}"'
+
+PublishLibraries:GitLabSmoke:
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
+  stage: release
+  timeout: 30m
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
+  script:
+    - export LIB_SMOKE_VERSION="0.1.0-smoke.${CI_PIPELINE_IID}.${CI_JOB_ID}"
+    - echo "Publishing library smoke artifacts with version ${LIB_SMOKE_VERSION}"
+    - >
+      sbt
+      "set mengerCommon / version := \"${LIB_SMOKE_VERSION}\""
+      "set optixJni / version := \"${LIB_SMOKE_VERSION}\""
+      "mengerCommon / publish"
+      "optixJni / publish"
+    - export SMOKE_PROJECT_DIR="/tmp/menger-publish-smoke-${CI_PIPELINE_ID}-${CI_JOB_ID}"
+    - mkdir -p "${SMOKE_PROJECT_DIR}/project" "${SMOKE_PROJECT_DIR}/src/main/scala"
+    - printf 'sbt.version=1.12.11\n' > "${SMOKE_PROJECT_DIR}/project/build.properties"
+    - |
+      cat > "${SMOKE_PROJECT_DIR}/build.sbt" <<EOF
+      ThisBuild / scalaVersion := "${SCALA_VERSION}"
+
+      resolvers += "GitLab Menger" at "https://gitlab.com/api/v4/projects/lilacashes%2Fmenger/packages/maven"
+
+      credentials += Credentials(
+        "GitLab Packages Registry",
+        "gitlab.com",
+        "gitlab-ci-token",
+        sys.env("CI_JOB_TOKEN")
+      )
+
+      libraryDependencies ++= Seq(
+        "io.github.lene" %% "menger-common" % sys.env("LIB_SMOKE_VERSION"),
+        "io.github.lene" %% "optix-jni" % sys.env("LIB_SMOKE_VERSION")
+      )
+
+      Compile / run / fork := true
+      EOF
+    - |
+      cat > "${SMOKE_PROJECT_DIR}/src/main/scala/Smoke.scala" <<'EOF'
+      import io.github.lene.optix.OptiXRenderer
+      import menger.common.Color
+
+      @main def verifyPublishedLibraries(): Unit =
+        val color = Color(1f, 0f, 0f)
+        if color.a != 1.0f then
+          sys.error("menger-common Color alpha default was not available")
+
+        if !OptiXRenderer.isLibraryLoaded then
+          sys.error("Published optix-jni artifact did not load liboptixjni.so")
+
+        val renderer = new OptiXRenderer()
+        try
+          if !renderer.initialize() then
+            sys.error("Published optix-jni artifact loaded but failed to initialize OptiX")
+        finally
+          renderer.dispose()
+      EOF
+    - cd "${SMOKE_PROJECT_DIR}"
+    - export COURSIER_CACHE="${SMOKE_PROJECT_DIR}/coursier-cache"
+    - sbt clean update compile run
 
 PublishCommon:
   image: $SBT_IMAGE
