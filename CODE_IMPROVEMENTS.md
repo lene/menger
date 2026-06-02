@@ -19,29 +19,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-texture-index-overloading: texture_index field has two incompatible semantics in InstanceMaterial
-
-**Location**: `optix-jni/src/main/native/include/OptiXData.h:173–181`, `hit_cone.cu`, `hit_plane.cu`
-**Impact**: Medium — semantic inconsistency; next developer adding a geometry type will copy the wrong precedent. **(judgment)**
-**Effort**: 1–2 days (rename + audit all callsites)
-
-`texture_index` in `InstanceMaterial` means different things for different geometry types:
-- **Mesh/sphere**: image texture array index
-- **Cone/plane**: geometry data array index (`cone_data[texture_index]` / `plane_data[texture_index]`)
-
-The new `image_texture_index` field (added in Task 21.6) correctly separates image texture from geometry data for cone/plane — but `texture_index` itself remains semantically overloaded and the comment only partially explains the distinction:
-
-```cpp
-int texture_index;        // ← means image texture for mesh, geometry data for cone/plane
-int image_texture_index;  // ← needed for cone/plane because texture_index is repurposed
-```
-
-Adding a third geometry type that needs both a geometry-data index AND an image texture index will require discovering this constraint by reading hit shaders.
-
-**Direction**: Rename `texture_index` to `geometry_data_index` for cone/plane instances (it's only meaningful there), and use `image_texture_index` uniformly. Alternatively, split into typed fields: `cone_data_index`, `plane_data_index`, `image_texture_index`. Either path removes the semantic overload.
-
----
-
 ### M-arch-config-naming: *Config naming rule cannot be enabled — misplaced Config types
 
 **Location**: `menger-app/src/test/scala/menger/ArchitectureSpec.scala` (ignored rule), multiple source files
