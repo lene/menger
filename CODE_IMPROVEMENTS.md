@@ -19,26 +19,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-arch-config-naming: *Config naming rule cannot be enabled — misplaced Config types
-
-**Location**: `menger-app/src/test/scala/menger/ArchitectureSpec.scala` (ignored rule), multiple source files
-**Impact**: Medium — misplaced types impede `optix-jni` extraction and future module splits.
-**Effort**: 1–2 days
-
-The ArchUnit rule enforcing `*Config` → `menger.config` or `menger.common` is ignored because these types are in the wrong packages:
-
-| Type | Current | Correct |
-|------|---------|---------|
-| `InteractiveEngine.LevelConfig` | Inner class in `menger.engines` | Extract to top-level `menger.config` |
-| `TAnimationConfig` | `menger.engines` | `menger.config` |
-| `OrbitConfig` | `menger.input` | `menger.config` |
-| `CausticsConfig`, `RenderConfig` | `menger.optix` | `menger.config` (optix imports from config, not vice versa) |
-| `ProfilingConfig` | root `menger` | `menger.common` |
-
-**Direction**: Migrate each type to its correct package (move + fix imports). `InteractiveEngine.LevelConfig` requires extracting it to a standalone file. After all are moved, remove the `ignore` from the rule in `ArchitectureSpec`.
-
----
-
 ### M-arch-archunit-case-class-field: ArchUnit haveOnlyFinalFields fires on Scala case class val fields
 
 **Location**: `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored immutability rules)
