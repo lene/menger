@@ -19,25 +19,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-cuda-texture-array-leak: cudaArray_t leaked if cudaCreateTextureObject fails
-
-**Location**: `optix-jni/src/main/native/OptiXWrapper.cpp:2953–2978` (uploadTextureFloat / uploadTexture)
-**Impact**: Medium — GPU texture array memory leaks on upload failure. Surfaces in resource-constrained renders or malformed HDR file paths.
-**Effort**: 2–3 hours
-
-```cpp
-cudaArray_t cuArray;
-cudaMalloc3DArray(&cuArray, &channelDesc, extent, 0);
-// cuArray not yet in m_textures / not tracked anywhere
-cudaCreateTextureObject(&texObj, &resDesc, &texDesc, nullptr);
-// ← on failure: cuArray leaked; cudaFreeArray never called
-m_textures.push_back({texObj, cuArray});  // ← only added on success
-```
-
-**Direction**: Track `cuArray` immediately after allocation (before `CreateTextureObject`) so `releaseTextures` cleans it up regardless. Or use a local scope guard that calls `cudaFreeArray` on early exit.
-
----
-
 ### M-render-null-type-contract: renderWithStats declares RenderResult but may return null
 
 **Location**: `optix-jni/src/main/scala/menger/optix/OptiXRenderApi.scala:33–38`
