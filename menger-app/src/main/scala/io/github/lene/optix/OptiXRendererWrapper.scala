@@ -2,6 +2,8 @@ package io.github.lene.optix
 
 import java.util.concurrent.atomic.AtomicReference
 
+import scala.jdk.OptionConverters._
+
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.ImageSize
 
@@ -40,7 +42,7 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
       Array.emptyByteArray
 
   def renderSceneWithStats(size: ImageSize): Option[RenderResult] =
-    Option(renderer.renderWithStats(size))
+    renderer.renderWithStats(size).toScala
 
   def dispose(): Unit =
     _rendererRef.get().foreach { r =>

@@ -19,26 +19,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-render-null-type-contract: renderWithStats declares RenderResult but may return null
-
-**Location**: `optix-jni/src/main/scala/menger/optix/OptiXRenderApi.scala:33–38`
-**Impact**: Medium — type contract violation; callers without defensive wrapping NPE silently.
-**Effort**: 2–3 hours
-
-The Scala return type is `RenderResult` (non-nullable by convention), but the method returns `null` on JNI failure:
-
-```scala
-def renderWithStats(size: ImageSize): RenderResult =
-  // ...
-  Option(raw).map(_.copy(frameMs = elapsedMs)).orNull  // ← null leaks into typed API
-```
-
-Two callers handle this defensively (`Option(renderWithStats(size)).map(...)`) but any future caller using the result directly will NPE. The type signature gives no indication that null is possible.
-
-**Direction**: Change return type to `Option[RenderResult]` and update all callers. The two existing defensive callers already do `Option(...)` so the change mechanically removes one layer. The third call site (in `InteractiveEngine`) needs inspection to confirm it handles None correctly.
-
----
-
 ### M-texture-index-overloading: texture_index field has two incompatible semantics in InstanceMaterial
 
 **Location**: `optix-jni/src/main/native/include/OptiXData.h:173–181`, `hit_cone.cu`, `hit_plane.cu`
