@@ -19,23 +19,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-arch-archunit-case-class-field: ArchUnit haveOnlyFinalFields fires on Scala case class val fields
-
-**Location**: `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored immutability rules)
-**Impact**: Low — ArchUnit rule cannot be enabled even though there are no `var` fields; rule produces false positives.
-**Effort**: 2–3 hours
-
-Scala `val` fields in case classes compile to non-final JVM fields (the backing field is accessed via a getter, not declared `final`). ArchUnit's `haveOnlyFinalFields()` therefore flags every case class, making the immutability rule unusable as written.
-
-Affected ignored rules:
-- `menger.common` should have only final fields
-- `menger.objects` should not use file IO or logging (Scala case classes implicitly implement `java.io.Serializable`, triggering the `java.io..` package check)
-- `menger.common` should not use file IO (same Serializable issue)
-
-**Direction**: Replace `haveOnlyFinalFields()` with a custom `DescribedPredicate[JavaField]` that checks for `var` fields by inspecting whether the field has a setter method in the same class. For the Serializable false-positives: add a `notSerializable` predicate to exclude `java.io.Serializable` specifically from the `java.io..` package check.
-
----
-
 ### M-arch-objects-logging: menger.objects uses SLF4J in geometry classes
 
 **Location**: `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored rule), `menger/objects/higher_d/`
