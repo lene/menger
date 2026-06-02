@@ -19,20 +19,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-objectspec-optix-coupling: ObjectSpec (core domain) imports menger.optix.Material
-
-**Location**: `menger-app/src/main/scala/menger/ObjectSpec.scala:9`
-**Impact**: Medium — inverted module dependency; app's core domain type cannot be used without the JNI layer. **(judgment)**
-**Effort**: 1–2 days (move Material to menger-common or define a mirror)
-
-`ObjectSpec` is the primary app-side scene description type. It imports `menger.optix.Material`, placing a hard dependency from `menger-app`'s core domain into `menger-jni`. The intended direction is `menger-app → menger-jni`, but `ObjectSpec` specifically should be pure of JNI concerns — it's passed around in scene builders, test fixtures, and DSL converters, none of which need GPU types.
-
-If a headless test or CLI module ever wants to validate or manipulate `ObjectSpec` without loading the native library, it can't.
-
-**Direction**: Move `Material` (which is already a pure Scala enum/sealed trait) into `menger-common`. `menger-jni` can then import it from there. No native code changes needed.
-
----
-
 ### M-libgdx-wrapper-untested: LibGDX wrapper layer has no unit test coverage
 
 **Location**: `menger-app/src/main/scala/io/github/lene/optix/` (`SceneConfigurator`, `OptiXRendererWrapper`, `CameraState`)
