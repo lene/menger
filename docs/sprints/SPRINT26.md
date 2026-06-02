@@ -21,7 +21,7 @@ after the quality work is complete.
 
 ## Success Criteria
 
-- [ ] `optix-jni` and `menger-common` published to GitLab Package Registry with a CI smoke version; external project verified
+- [x] `optix-jni` and `menger-common` published to GitLab Package Registry with a CI smoke version; external project verified
 - [ ] `menger-common` and `optix-jni` live in separate repositories, published independently
 - [ ] `menger-common` and `optix-jni` published to Maven Central after all quality fixes
 - [ ] `menger` repo retains only `menger-geometry` and `menger-app`
@@ -39,6 +39,9 @@ after the quality work is complete.
 
 **Estimate:** 3h
 **Depends on:** Sprint 25 (3-layer architecture complete, CI green on 0.7.2 tag)
+**Status:** Done - MR pipeline 1388, job `PublishLibraries:GitLabSmoke`
+published `0.1.0-smoke.1388.14646578275` and verified a clean external sbt
+consumer.
 
 The publication CI jobs (`PublishOptixJni`, `PublishCommon`) are tied to real app
 release tags. Do not create a dummy app release just to test publication. Instead,
@@ -69,6 +72,8 @@ compiles and initializes `OptiXRenderer` using only published GitLab registry ar
 
 **Estimate:** 2h
 **Depends on:** 26.0 (publish path confirmed working)
+**Status:** Done - public API Scaladoc added for `optix-jni` and shared `Material`;
+README covers sbt, Maven, Gradle, runtime requirements, and native loading.
 
 Add Scaladoc to all public API types in `optix-jni`:
 - `OptiXRenderer` — lifecycle (`initialize`, `dispose`), render loop
@@ -126,6 +131,8 @@ registry, not from local project references.
 ### Task 26.2: Fix M-cuda-gas-buffer-leak
 
 **Estimate:** 2h
+**Status:** Done - fixed in `ea9cd0f` (`fix(cuda): guard d_aabb against leak in
+buildCustomPrimitiveGAS`)
 
 `d_gas_output_buffer` is allocated with `cudaMalloc` before `OPTIX_CHECK`. If
 `OPTIX_CHECK` throws, the buffer is leaked.
@@ -138,6 +145,8 @@ catch block.
 ### Task 26.3: Fix M-cuda-texture-array-leak
 
 **Estimate:** 2h
+**Status:** Done - fixed in `5e79e17` (`fix(cuda): track CDF texture array before
+memcpy to prevent leak`)
 
 `cudaArray_t` is created before `cudaCreateTextureObject`. If texture object creation
 fails, the array is leaked.

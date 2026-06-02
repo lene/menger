@@ -1,5 +1,22 @@
 package menger.common
 
+/** Surface material parameters shared by scene descriptions and renderers.
+  *
+  * Alpha follows the repository convention: `0.0f` is fully transparent and
+  * `1.0f` is fully opaque. Texture indices use `-1` when the corresponding
+  * texture slot is not bound.
+  *
+  * @param color base RGBA color used by diffuse, transmissive, and emissive paths
+  * @param ior index of refraction; `1.0f` means no refraction
+  * @param roughness microfacet roughness in `[0, 1]`, where `0` is mirror-smooth
+  * @param metallic metalness in `[0, 1]`; metal materials do not refract
+  * @param specular specular reflection strength in `[0, 1]`
+  * @param emission emissive intensity multiplier; `0` disables emission
+  * @param filmThickness thin-film interference thickness in nanometres
+  * @param baseColorTexture texture index for base color, or `-1` when unset
+  * @param normalTexture texture index for normal mapping, or `-1` when unset
+  * @param roughnessTexture texture index for roughness mapping, or `-1` when unset
+  */
 case class Material(
     color: Color,
     ior: Float = 1.0f,
@@ -13,11 +30,13 @@ case class Material(
     roughnessTexture: Int = -1
 )
 
+/** Built-in material presets and Java-friendly lookup helpers. */
 object Material:
 
   private val White = Color(1.0f, 1.0f, 1.0f, 1.0f)
 
   // Dielectric presets (transparent materials with refraction)
+  /** Clear dielectric preset with glass-like refraction. */
   val Glass = Material(
     color = White.copy(a = 0.02f),
     ior = 1.5f,
@@ -27,6 +46,7 @@ object Material:
     emission = 0.0f
   )
 
+  /** Clear dielectric preset with water-like refraction. */
   val Water = Material(
     color = White.copy(a = 0.02f),
     ior = 1.33f,
@@ -36,6 +56,7 @@ object Material:
     emission = 0.0f
   )
 
+  /** Clear dielectric preset with diamond-like refraction. */
   val Diamond = Material(
     color = White.copy(a = 0.02f),
     ior = 2.42f,
@@ -46,6 +67,7 @@ object Material:
   )
 
   // Metal presets (colored reflections, no refraction)
+  /** Opaque mirror-like metal preset. */
   val Chrome = Material(
     color = Color(0.9f, 0.9f, 0.9f, 1.0f),
     ior = 1.0f,
@@ -55,6 +77,7 @@ object Material:
     emission = 0.0f
   )
 
+  /** Opaque gold-colored metal preset. */
   val Gold = Material(
     color = Color(1.0f, 0.84f, 0.0f, 1.0f),
     ior = 1.0f,
@@ -64,6 +87,7 @@ object Material:
     emission = 0.0f
   )
 
+  /** Opaque copper-colored metal preset. */
   val Copper = Material(
     color = Color(0.72f, 0.45f, 0.20f, 1.0f),
     ior = 1.0f,
@@ -75,6 +99,7 @@ object Material:
 
   // Thin-film interference material (soap bubbles, oil slicks, anti-reflective coatings)
   // Uses Airy thin-film reflectance with wavelength-dependent Fresnel for iridescent colors
+  /** Transparent thin-film preset for soap-film or oil-slick effects. */
   val Film = Material(
     color = White.copy(a = 0.2f),  // 20% opaque (80% transparent)
     ior = 1.33f,                   // Soap film IOR (similar to water)
@@ -88,6 +113,7 @@ object Material:
   // Parchment is translucent (light passes through) but NOT refractive
   // IOR = 1.0 means no refraction - light passes straight through
   // Alpha controls light attenuation via Beer-Lambert absorption
+  /** Semi-transparent non-refractive material for parchment-like absorption. */
   val Parchment = Material(
     color = Color(245f/255f, 222f/255f, 179f/255f, 0.4f),  // Beige/tan, 40% opaque
     ior = 1.0f,  // No refraction (unlike glass/water)
@@ -98,19 +124,26 @@ object Material:
   )
 
   // Opaque presets
+  /** Opaque glossy dielectric preset. */
   val Plastic = plastic(White)   // ior=1.5, roughness=0.3, metallic=0, specular=0.5
+
+  /** Opaque fully diffuse preset. */
   val Matte   = matte(White)     // ior=1.0, roughness=1.0, metallic=0, specular=0.0
 
   // Factory methods for custom colors
+  /** Creates an opaque diffuse material from the supplied base color. */
   def matte(color: Color): Material =
     Material(color, ior = 1.0f, roughness = 1.0f, metallic = 0.0f, specular = 0.0f)
 
+  /** Creates an opaque glossy dielectric material from the supplied base color. */
   def plastic(color: Color): Material =
     Material(color, ior = 1.5f, roughness = 0.3f, metallic = 0.0f, specular = 0.5f)
 
+  /** Creates an opaque metallic material from the supplied base color. */
   def metal(color: Color): Material =
     Material(color, ior = 1.0f, roughness = 0.1f, metallic = 1.0f, specular = 1.0f)
 
+  /** Creates a transparent glass material from the supplied base color. */
   def glass(color: Color): Material =
     Material(color.copy(a = 0.02f), ior = 1.5f, roughness = 0.0f, metallic = 0.0f, specular = 1.0f)
 
