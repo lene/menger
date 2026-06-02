@@ -19,18 +19,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-arch-objects-logging: menger.objects uses SLF4J in geometry classes
-
-**Location**: `menger-app/src/test/scala/menger/ArchitecturePhase2Spec.scala` (ignored rule), `menger/objects/higher_d/`
-**Impact**: Low — logging in inner-layer geometry classes pulls infrastructure into the domain, complicating pure unit testing.
-**Effort**: 2 hours
-
-Two classes in `menger.objects` use SLF4J directly: `ParametricTessellator`, `higher_d/Rotation`. These are geometry-computation classes that should be pure (no I/O, no side effects). Logging is used for progress/debug output during tessellation. (`higher_d/Plane` and `higher_d/TesseractSponge2` had dead LazyLogging imports that have been removed.)
-
-**Direction**: Remove `LazyLogging` from `ParametricTessellator` and `Rotation`. If progress reporting is needed, return metadata (e.g. triangle count, elapsed time) from the computation methods so callers (in `menger.engines`) can log it. Once removed, un-ignore the objects-logging rule in `ArchitecturePhase2Spec` (after also fixing the Serializable false-positive per M-arch-archunit-case-class-field).
-
----
-
 ### M-objectspec-optix-coupling: ObjectSpec (core domain) imports menger.optix.Material
 
 **Location**: `menger-app/src/main/scala/menger/ObjectSpec.scala:9`
