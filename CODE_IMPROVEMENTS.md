@@ -19,22 +19,6 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-cuda-gas-buffer-leak: d_gas_output_buffer leaks if OPTIX_CHECK throws after cudaMalloc
-
-**Location**: `optix-jni/src/main/native/OptiXContext.cpp:516–546` (buildCompactedBVH), same pattern in buildTriangleGAS
-**Impact**: Medium — GPU memory leak on every failed BVH build. Failure path is uncommon in production but hits in tests and OOM scenarios.
-**Effort**: 2–3 hours (RAII wrapper or scope guard)
-
-```cpp
-CUdeviceptr d_gas_output_buffer;
-cudaMalloc(reinterpret_cast<void**>(&d_gas_output_buffer), gasBufferSizes.outputSizeInBytes);
-OPTIX_CHECK(optixAccelBuild(...));  // ← if this throws, d_gas_output_buffer leaks
-```
-
-**Direction**: Wrap in a scope guard (`ScopeGuard` or `std::unique_ptr` with custom deleter calling `cudaFree`). The project already has `BufferManager`; use it or extend it.
-
----
-
 ### M-cuda-texture-array-leak: cudaArray_t leaked if cudaCreateTextureObject fails
 
 **Location**: `optix-jni/src/main/native/OptiXWrapper.cpp:2953–2978` (uploadTextureFloat / uploadTexture)
