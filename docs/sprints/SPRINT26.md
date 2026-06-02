@@ -93,6 +93,9 @@ sbt / Maven / Gradle dependency snippet, GPU/driver requirements.
 
 **Estimate:** 2h
 **Depends on:** none (pure Scala, no GPU needed)
+**Status:** Done - added `NativeOptiXNoGpuSuite` covering library-load checks,
+zero-handle destruction, no-context `createContext` behavior, and `initialize()`
+idempotence without requiring a GPU context.
 
 Add unit tests that run without a GPU (all guarded with `assume(OptiXRenderer.isLibraryLoaded, ...)`):
 - Library loading: `isLibraryLoaded` returns non-exception result
