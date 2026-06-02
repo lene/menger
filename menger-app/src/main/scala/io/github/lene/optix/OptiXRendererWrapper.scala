@@ -19,7 +19,7 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
         _rendererRef.set(Some(r))
         r
 
-  private def initializeRenderer: OptiXRenderer =
+  protected def initializeRenderer: OptiXRenderer =
     if !OptiXRenderer.isLibraryLoaded then
       val msg = "OptiX native library failed to load"
       logger.error(msg)

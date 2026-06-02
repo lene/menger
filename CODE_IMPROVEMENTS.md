@@ -19,13 +19,7 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-libgdx-wrapper-untested: LibGDX wrapper layer has no unit test coverage
-
-**Location**: `menger-app/src/main/scala/io/github/lene/optix/` (`SceneConfigurator`, `OptiXRendererWrapper`, `CameraState`)
-**Impact**: Medium — 0–17% coverage on the glue layer between OptiX and LibGDX; erratic lifecycle bugs are hard to reproduce and pin down. **(scheduled: Sprint 26, Task 26.8)**
-**Effort**: 3h (headless LibGDX backend or interface extraction)
-
-These classes are only instantiated inside `ApplicationListener.create()` / `render()`, so unit tests never touch them. Use LibGDX headless backend or extract testable logic behind interfaces. Target: ≥70% statement coverage on all three.
+*(none — all medium-priority issues resolved)*
 
 ---
 
