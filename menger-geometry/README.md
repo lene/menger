@@ -24,4 +24,5 @@ pipeline infrastructure) and `menger-common` (for domain primitives).
 This module is intentionally not published. It contains Menger-specific geometry
 types (`Menger4DData`, `Sierpinski4DData`, `Hexadecachoron4DData`) that have no
 meaning outside this project. External projects that want GPU ray tracing should
-depend on `io.github.lene:optix-jni` directly — see `optix-jni/README.md`.
+depend on `io.github.lene:optix-jni` directly:
+<https://github.com/lene/optix-jni>

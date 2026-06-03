@@ -33,7 +33,7 @@ else
 fi
 
 HAS_SCALA=$(echo "$CHANGED_FILES" | grep -cE '\.(scala|sbt)$|^project/')
-HAS_NATIVE=$(echo "$CHANGED_FILES" | grep -cE '^optix-jni/src/main/native/.*\.(cpp|cu|cuh|h)$|CMakeLists\.txt')
+HAS_NATIVE=$(echo "$CHANGED_FILES" | grep -cE '^menger-geometry/src/main/native/.*\.(cpp|cu|cuh|h)$|CMakeLists\.txt')
 HAS_CI=$(echo "$CHANGED_FILES" | grep -c '\.gitlab-ci\.yml$')
 HAS_INTEGRATION=$(echo "$CHANGED_FILES" | grep -c '^scripts/integration-tests\.sh$')
 
@@ -187,7 +187,7 @@ fi
 
 # ---------------------------------------------------------------------------
 # Phase 2: Compile (once — subsequent phases reuse the compiled artifacts)
-# Note: sbt compile also runs nativeCompile for optix-jni (C++/CUDA).
+# Note: sbt compile also runs nativeCompile for menger-geometry (C++/CUDA).
 # ---------------------------------------------------------------------------
 if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
   echo "=== Compiling ==="
@@ -244,13 +244,11 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Phase 4: Coverage, compute-sanitizer, and Valgrind.
+# Phase 4: Coverage and native static analysis.
 #
 # Parallelization strategy:
-#   - Coverage and Valgrind run in parallel: coverage uses the GPU, Valgrind
-#     uses the CPU (standalone_test via JNI, no GPU contention).
-#   - compute-sanitizer runs after coverage completes (both use the GPU
-#     heavily; running them simultaneously causes contention and flakiness).
+#   - Coverage uses the parent test suite.
+#   - optix-jni host/GPU memory checks run in the standalone lene/optix-jni repo.
 # ---------------------------------------------------------------------------
 
 # --- Coverage (background) ---
@@ -324,64 +322,9 @@ run_coverage() {
 
 # --- Valgrind (background, CPU-only) ---
 run_valgrind() {
-  if [ "${HAS_NATIVE:-0}" -eq 0 ]; then
-    echo "=== Valgrind ===" > /tmp/valgrind-phase-prepush.log
-    echo "Skipped — no native changes" >> /tmp/valgrind-phase-prepush.log
-    return 0
-  fi
-  echo "=== Running Valgrind for host memory leak detection ===" > /tmp/valgrind-phase-prepush.log
-  > /tmp/valgrind-prepush.log  # Clear log so grep matches only this run
-  if ! command -v valgrind >/dev/null 2>&1; then
-    echo "Warning: valgrind not installed, skipping host memory check" >> /tmp/valgrind-phase-prepush.log
-    return 0
-  fi
-
-  sbt "project optixJni" nativeCompile --warn >> /tmp/valgrind-phase-prepush.log 2>&1
-
-  echo "Compiling standalone_test..." >> /tmp/valgrind-phase-prepush.log
-  (cd optix-jni/src/main/native
-    rm -f standalone_test
-    g++ -std=c++17 \
-      -I./include -I/usr/local/cuda/include -I${OPTIX_ROOT:-/usr/local}/include \
-      -L/usr/local/cuda/lib64 -L../../../target/native/x86_64-linux/bin \
-      standalone_test.cpp -loptixjni -lcudart -o standalone_test >> /tmp/valgrind-phase-prepush.log 2>&1
-  )
-  COMPILE_STATUS=$?
-
-  if [ $COMPILE_STATUS -ne 0 ]; then
-    echo "Failed to compile standalone test" >> /tmp/valgrind-phase-prepush.log
-    return 1
-  fi
-
-  (
-    cd optix-jni/src/main/native
-    LD_LIBRARY_PATH=../../../target/native/x86_64-linux/bin:/usr/local/cuda/lib64 \
-      valgrind --leak-check=full --error-exitcode=1 \
-      --errors-for-leak-kinds=definite,indirect \
-      --suppressions=../../../valgrind.supp \
-      ./standalone_test >> /tmp/valgrind-prepush.log 2>&1
-  )
-  VALGRIND_STATUS=$?
-
-  if grep -q "All heap blocks were freed -- no leaks are possible" /tmp/valgrind-prepush.log; then
-    DEFINITELY_LOST=0
-    INDIRECTLY_LOST=0
-  else
-    DEFINITELY_LOST=$(grep "definitely lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g' || echo "0")
-    INDIRECTLY_LOST=$(grep "indirectly lost:" /tmp/valgrind-prepush.log | awk '{print $4}' | sed 's/,//g' || echo "0")
-    [ -z "$DEFINITELY_LOST" ] && DEFINITELY_LOST=0
-    [ -z "$INDIRECTLY_LOST" ] && INDIRECTLY_LOST=0
-  fi
-
-  if [ "$VALGRIND_STATUS" -eq 0 ] && [ "$DEFINITELY_LOST" = "0" ] && [ "$INDIRECTLY_LOST" = "0" ]; then
-    echo "Valgrind: No host memory leaks detected" >> /tmp/valgrind-phase-prepush.log
-    return 0
-  else
-    echo "Valgrind: Host memory leaks detected!" >> /tmp/valgrind-phase-prepush.log
-    echo "definitely lost: ${DEFINITELY_LOST} bytes, indirectly lost: ${INDIRECTLY_LOST} bytes" >> /tmp/valgrind-phase-prepush.log
-    tail -50 /tmp/valgrind-prepush.log >> /tmp/valgrind-phase-prepush.log
-    return 1
-  fi
+  echo "=== Valgrind ===" > /tmp/valgrind-phase-prepush.log
+  echo "Skipped — optix-jni memory checks run in the standalone repository" >> /tmp/valgrind-phase-prepush.log
+  return 0
 }
 
 run_cppcheck() {
@@ -394,7 +337,11 @@ run_cppcheck() {
     return 0
   fi
   echo "=== cppcheck ===" > /tmp/cppcheck-prepush.log
-  CPP_FILES=$(git ls-files '*.cpp' | grep 'optix-jni/src/main/native/')
+  CPP_FILES=$(git ls-files '*.cpp' | grep 'menger-geometry/src/main/native/')
+  if [ -z "$CPP_FILES" ]; then
+    echo "cppcheck: skipped (no C++ source files)" >> /tmp/cppcheck-prepush.log
+    return 0
+  fi
   # shellcheck disable=SC2086
   cppcheck \
     --enable=warning,performance,portability \
@@ -420,13 +367,17 @@ run_clang_tidy() {
     echo "Warning: clang-tidy not installed, skipping" > /tmp/clangtidy-prepush.log
     return 0
   fi
-  BUILD_DIR="optix-jni/target/native/x86_64-linux/build"
+  BUILD_DIR="menger-geometry/target/native/x86_64-linux/build"
   if [ ! -f "${BUILD_DIR}/compile_commands.json" ]; then
     echo "Warning: compile_commands.json not found at ${BUILD_DIR} (run sbt compile first)" > /tmp/clangtidy-prepush.log
     return 0
   fi
   echo "=== clang-tidy ===" > /tmp/clangtidy-prepush.log
-  CPP_FILES=$(git ls-files '*.cpp' | grep 'optix-jni/src/main/native/')
+  CPP_FILES=$(git ls-files '*.cpp' | grep 'menger-geometry/src/main/native/')
+  if [ -z "$CPP_FILES" ]; then
+    echo "clang-tidy: skipped (no C++ source files)" >> /tmp/clangtidy-prepush.log
+    return 0
+  fi
   # Detect GCC stdlib version; clang's frontend needs these paths to parse
   # cuda_runtime.h which transitively includes C++ standard headers.
   GCC_VER=$(gcc -dumpversion 2>/dev/null | cut -d. -f1)
@@ -496,41 +447,9 @@ then echo "Status after coverage+Valgrind: ${RED_TEXT}${STATUS}${RESET_TEXT}"
 else echo "Status after coverage+Valgrind: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
-# --- compute-sanitizer (runs after coverage to avoid GPU contention) ---
-if [ "$HAS_NATIVE" -gt 0 ]; then
-  echo "=== Running compute-sanitizer for GPU memory leak detection ==="
-  COMPUTE_SANITIZER="${CUDA_HOME}/compute-sanitizer/compute-sanitizer"
-  if [ ! -x "$COMPUTE_SANITIZER" ]; then
-    echo "${RED_TEXT}Error: compute-sanitizer not found at ${COMPUTE_SANITIZER}${RESET_TEXT}"
-    echo "Please check your CUDA installation"
-    STATUS=1
-  else
-    env RUNNING_UNDER_COMPUTE_SANITIZER=true "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" "testOnly -- -l Slow" --warn > /tmp/compute-sanitizer-prepush.log 2>&1 || \
-      env RUNNING_UNDER_COMPUTE_SANITIZER=true "$COMPUTE_SANITIZER" --tool memcheck sbt "project optixJni" "testOnly -- -l Slow" --warn > /tmp/compute-sanitizer-prepush.log 2>&1
-    SANITIZER_STATUS=$?
-    ERROR_COUNT=$(grep "ERROR SUMMARY:" /tmp/compute-sanitizer-prepush.log | tail -1 | awk '{print $4}')
-    if [ "$SANITIZER_STATUS" -eq 0 ] && [ "$ERROR_COUNT" = "0" ]; then
-      echo "compute-sanitizer: ${GREEN_TEXT}No GPU memory leaks detected${RESET_TEXT}"
-    else
-      if [ "$ERROR_COUNT" != "0" ] && [ -n "$ERROR_COUNT" ]; then
-        echo "compute-sanitizer: ${RED_TEXT}GPU memory leaks detected! (${ERROR_COUNT} errors)${RESET_TEXT}"
-      elif [ "$SANITIZER_STATUS" -ne 0 ]; then
-        echo "compute-sanitizer: ${RED_TEXT}OptiX tests failed (but no GPU memory leaks: ${ERROR_COUNT:-0} errors)${RESET_TEXT}"
-      else
-        echo "compute-sanitizer: ${RED_TEXT}Unknown failure${RESET_TEXT}"
-      fi
-      echo "See /tmp/compute-sanitizer-prepush.log for details"
-      tail -50 /tmp/compute-sanitizer-prepush.log
-      STATUS=1
-    fi
-  fi
-  if [ $STATUS -gt 0 ]
-  then echo "Status after compute-sanitizer: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-  else echo "Status after compute-sanitizer: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-  fi
-else
-  echo "=== compute-sanitizer ===" ; skip_section
-fi
+# --- compute-sanitizer ---
+echo "=== compute-sanitizer ==="
+echo "  [skipped — optix-jni GPU memory checks run in the standalone repository]"
 
 # --- cppcheck (fast, sequential, after compute-sanitizer) ---
 echo "=== Running cppcheck ==="

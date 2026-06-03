@@ -1,4 +1,8 @@
 import com.github.sbt.jni.build.CMakeWithoutVersionBug
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.util.jar.JarFile
+import scala.jdk.CollectionConverters._
 
 name := "menger-geometry"
 version := "0.7.1"
@@ -16,12 +20,57 @@ Test / javaOptions ++= Seq(
 )
 Test / fork := true
 
+lazy val optixJniNativeApiDir =
+  settingKey[File]("Directory containing native API files extracted from optix-jni")
+lazy val extractOptixJniNativeApi =
+  taskKey[File]("Extract optix-jni native headers and shader includes from its published jar")
+
+optixJniNativeApiDir := target.value / "optix-jni-native-api"
+
+extractOptixJniNativeApi := {
+  val log = streams.value.log
+  val outputDir = optixJniNativeApiDir.value
+  val optixJar = (Compile / dependencyClasspath).value
+    .map(_.data)
+    .find(_.getName.matches("optix-jni-.*\\.jar"))
+    .getOrElse(sys.error("optix-jni dependency jar not found on menger-geometry classpath"))
+
+  IO.delete(outputDir)
+  val jar = new JarFile(optixJar)
+  try {
+    val extractedFiles = jar.entries.asScala
+      .filter(entry => !entry.isDirectory && entry.getName.startsWith("optix-jni-native/"))
+      .map { entry =>
+        val relativePath = entry.getName.stripPrefix("optix-jni-native/")
+        val targetFile = outputDir / relativePath
+        IO.createDirectory(targetFile.getParentFile)
+        val inputStream = jar.getInputStream(entry)
+        try Files.copy(inputStream, targetFile.toPath, StandardCopyOption.REPLACE_EXISTING)
+        finally inputStream.close()
+        targetFile
+      }
+      .toSeq
+
+    if (extractedFiles.isEmpty) {
+      sys.error(s"No optix-jni-native resources found in ${optixJar.getAbsolutePath}")
+    }
+
+    log.info(s"Extracted ${extractedFiles.size} optix-jni native API files to $outputDir")
+    outputDir
+  } finally {
+    jar.close()
+  }
+}
+
 nativeCompile / sourceDirectory := sourceDirectory.value / "main" / "native"
 nativeBuildTool := CMakeWithoutVersionBug.make(Seq(
   "-Wno-dev",
   "--log-level=WARNING",
-  "-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc"
+  "-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc",
+  s"-DOPTIX_JNI_INCLUDE_DIR=${(optixJniNativeApiDir.value / "include").getAbsolutePath}",
+  s"-DOPTIX_JNI_SHADER_DIR=${(optixJniNativeApiDir.value / "shaders").getAbsolutePath}"
 ))
+nativeCompile := (nativeCompile dependsOn extractOptixJniNativeApi).value
 
 // Bundle the menger PTX shader into the JAR as a managed resource.
 // nativeCompile must run first (it produces the PTX via CMake).

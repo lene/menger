@@ -22,7 +22,7 @@ after the quality work is complete.
 ## Success Criteria
 
 - [x] `optix-jni` and `menger-common` published to GitLab Package Registry with a CI smoke version; external project verified
-- [ ] `menger-common` and `optix-jni` live in separate repositories, published independently
+- [x] `menger-common` and `optix-jni` live in separate repositories, published independently
   (`menger-common` first, `optix-jni` second)
 - [ ] `menger-common` and `optix-jni` published to Maven Central after all quality fixes
 - [ ] `menger` repo retains only `menger-geometry` and `menger-app`
@@ -114,8 +114,8 @@ into a proper `optix-jni` test module (not `menger-app`).
 ### Task 26.1: Repository Split
 
 **Estimate:** 8h
-**Status:** In Progress - staged split; `menger-common` is extracted first, then
-`optix-jni`.
+**Status:** Done - `menger-common` and `optix-jni` extracted, published to the
+GitLab Package Registry, and consumed by `menger`.
 
 Extract `menger-common` and `optix-jni` into separate GitHub repositories while keeping
 the main `menger` repository GitLab-primary. Do the split in two contained stages.
@@ -138,9 +138,10 @@ the main `menger` repository GitLab-primary. Do the split in two contained stage
 5. Update `menger` to consume the published `optix-jni` artifact and remove tracked
    `optix-jni/` sources.
 
-**Validation:** Stage 1 passes when `sbt compile` in `menger` resolves `menger-common`
-from the registry while `optix-jni` remains local. Final task validation passes when
-both libraries resolve from published artifacts and no local project references remain.
+**Validation:** `menger` resolves `io.github.lene:menger-common_3:0.1.0` and
+`io.github.lene:optix-jni:0.1.0` from the GitLab Package Registry; `menger-geometry`
+extracts `optix-jni-native/**` from the `optix-jni` jar for native compilation;
+no local project references remain.
 
 ---
 
@@ -320,7 +321,7 @@ libraries are stable.
 **Steps:**
 1. Configure the split repositories for Sonatype Central Portal publication, including
    credentials, signing, metadata, and release automation.
-2. Publish `io.github.lene:menger-common_3` and `io.github.lene:optix-jni_3` to
+2. Publish `io.github.lene:menger-common_3` and `io.github.lene:optix-jni` to
    Maven Central with their library versions.
 3. Verify both artifacts appear on Maven Central and resolve without GitLab registry
    credentials.

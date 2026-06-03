@@ -1,7 +1,7 @@
 # optix-jni Decoupling: Architecture Decision
 
-**Sprint:** 24–25
-**Status:** Complete (Sprint 24)
+**Sprint:** 24–26
+**Status:** Complete (Sprint 26)
 **Decision Date:** 2026-05-29
 
 ---
@@ -197,16 +197,18 @@ GitLab Maven endpoint as `publishTo`.
 
 CI: `CI_JOB_TOKEN` available automatically in all CI jobs.
 
-Sprint 26 splits the repositories in stages. Stage 1 publishes
+Sprint 26 split the repositories in stages. Stage 1 published
 `io.github.lene:menger-common_3:0.1.0` from the standalone `menger-common` repo to the
-GitLab Package Registry and updates `menger` to resolve that artifact. `optix-jni`
-remains a local project until Stage 2.
+GitLab Package Registry and updated `menger` to resolve that artifact. Stage 2
+published `io.github.lene:optix-jni:0.1.0` from the standalone `optix-jni` repo and
+updated `menger` to consume both libraries from published artifacts.
 
 ### Native artifact in published JAR
 
-The `.so` (shared library) and `.ptx` (PTX shader) are already bundled via
-`resourceGenerators` in the current `optix-jni/build.sbt`. They will be included in
-the published JAR automatically. External consumers load the native library via
+The `.so` (shared library), `.ptx` (PTX shader), and native development API
+(`optix-jni-native/include/**`, `optix-jni-native/shaders/**`) are bundled via
+`resourceGenerators` in the standalone `optix-jni/build.sbt`. External consumers
+load the native library via
 `System.load(extractedPath)` using the JAR resource extraction pattern already
 implemented in `OptiXRenderer.scala`.
 

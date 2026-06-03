@@ -10,5 +10,5 @@ Checks: >
   performance-unnecessary-copy-initialization,
   -clang-analyzer-*
 WarningsAsErrors: ""
-HeaderFilterRegex: "optix-jni/src/main/native/include/.*\\.h"
+HeaderFilterRegex: "menger-geometry/src/main/native/include/.*\\.h"
 FormatStyle: none

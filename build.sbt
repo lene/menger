@@ -19,11 +19,12 @@ inThisBuild(List(
 ))
 
 lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.0"
+lazy val optixJniDependency = "io.github.lene" % "optix-jni" % "0.1.0"
 
 // Root project - aggregator only, no source code
 lazy val root = project
   .in(file("."))
-  .aggregate(optixJni, mengerGeometry, mengerApp)
+  .aggregate(mengerGeometry, mengerApp)
   .settings(
     name := "menger-root",
     publish / skip := true,
@@ -32,24 +33,16 @@ lazy val root = project
     Compile / run := (mengerApp / Compile / run).evaluated,
     // Run all tests across all subprojects
     Test / test := {
-      (optixJni / Test / test).value
       (mengerGeometry / Test / test).value
       (mengerApp / Test / test).value
     }
   )
 
-// OptiX JNI bindings - depends on common
-lazy val optixJni = project
-  .in(file("optix-jni"))
-  .enablePlugins(JniNative)
-  .settings(libraryDependencies += mengerCommonDependency)
-
 // Menger-specific geometry layer — 4D fractals, caustics (not published)
 lazy val mengerGeometry = project
   .in(file("menger-geometry"))
-  .dependsOn(optixJni)
   .enablePlugins(JniNative)
-  .settings(libraryDependencies += mengerCommonDependency)
+  .settings(libraryDependencies ++= Seq(mengerCommonDependency, optixJniDependency))
 
 // Main application - depends on menger-geometry and common
 lazy val mengerApp = project
@@ -59,7 +52,7 @@ lazy val mengerApp = project
   .settings(
     libraryDependencies += mengerCommonDependency,
     // Set library path for run to find native library and CUDA libraries
-    run / javaOptions += s"-Djava.library.path=${(optixJni / Compile / classDirectory).value / "native" / "x86_64-linux"}:${(optixJni / target).value / "native" / "x86_64-linux" / "bin"}:${(mengerGeometry / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
+    run / javaOptions += s"-Djava.library.path=${(mengerGeometry / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
     run / fork := true,
     // Use project root as working directory so file paths match packaged executable behavior
     run / baseDirectory := (ThisBuild / baseDirectory).value

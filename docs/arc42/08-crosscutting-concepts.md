@@ -270,8 +270,8 @@ DisableSyntax.noReturns  // No return statements
 |----------|----------|-----------|---------|
 | Scala Unit | `src/test/scala/` | ScalaTest | Logic, parsing |
 | Architecture | `src/test/scala/menger/ArchitectureSpec.scala` | ArchUnit | Layer dependency enforcement |
-| OptiX Unit | `optix-jni/src/test/scala/` | ScalaTest | Renderer API |
-| C++ Unit | `optix-jni/src/main/native/tests/` | Google Test | OptiX context |
+| OptiX Unit | `github.com/lene/optix-jni/src/test/scala/` | ScalaTest | Renderer API |
+| C++ Unit | `github.com/lene/optix-jni/src/main/native/tests/` | Google Test | OptiX context |
 | Visual | Manual | - | Render comparison |
 
 All ArchUnit rules in `ArchitectureSpec` and `ArchitecturePhase2Spec` are active

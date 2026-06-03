@@ -56,12 +56,24 @@ find_package(JNI REQUIRED)
 message(STATUS "✓ JNI: ${JNI_INCLUDE_DIRS}")
 
 #=============================================================================
-# optix-jni source paths (project reference — headers replaced by published artifact post-Sprint 25)
+# optix-jni native API from the published artifact
 #=============================================================================
-set(OPTIX_JNI_INCLUDE_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../optix-jni/src/main/native/include")
-set(OPTIX_JNI_SHADER_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../optix-jni/src/main/native/shaders")
+if(NOT DEFINED OPTIX_JNI_INCLUDE_DIR)
+  message(FATAL_ERROR "OPTIX_JNI_INCLUDE_DIR is required; run through sbt nativeCompile.")
+endif()
+if(NOT EXISTS "${OPTIX_JNI_INCLUDE_DIR}/OptiXData.h")
+  message(FATAL_ERROR "OptiXData.h not found in OPTIX_JNI_INCLUDE_DIR: ${OPTIX_JNI_INCLUDE_DIR}")
+endif()
+
+if(NOT DEFINED OPTIX_JNI_SHADER_DIR)
+  message(FATAL_ERROR "OPTIX_JNI_SHADER_DIR is required; run through sbt nativeCompile.")
+endif()
+if(NOT EXISTS "${OPTIX_JNI_SHADER_DIR}/helpers.cu")
+  message(FATAL_ERROR "helpers.cu not found in OPTIX_JNI_SHADER_DIR: ${OPTIX_JNI_SHADER_DIR}")
+endif()
+
+message(STATUS "✓ optix-jni include API: ${OPTIX_JNI_INCLUDE_DIR}")
+message(STATUS "✓ optix-jni shader API: ${OPTIX_JNI_SHADER_DIR}")
 
 #=============================================================================
 # Full menger PTX shader: base OptiX shaders + 4D fractal shaders + caustics

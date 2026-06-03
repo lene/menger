@@ -9,7 +9,7 @@ RESET_TEXT='\e[0m'
 # ---------------------------------------------------------------------------
 STAGED=$(git diff --cached --name-only)
 HAS_SCALA=$(echo "$STAGED" | grep -cE '\.(scala|sbt)$|^project/')
-HAS_NATIVE=$(echo "$STAGED" | grep -cE '^optix-jni/src/main/native/.*\.(cpp|cu|cuh|h)$|CMakeLists\.txt')
+HAS_NATIVE=$(echo "$STAGED" | grep -cE '^menger-geometry/src/main/native/.*\.(cpp|cu|cuh|h)$|CMakeLists\.txt')
 
 if [ "$HAS_SCALA" -eq 0 ] && [ "$HAS_NATIVE" -eq 0 ]; then
   echo "No code changes staged — skipping compilation and tests."
@@ -62,15 +62,6 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
   sbt compile || STATUS=1
-fi
-
-if [ "$HAS_NATIVE" -gt 0 ]; then
-  echo "Compiling OptiX JNI..."
-  sbt "project optixJni" compile || STATUS=1
-  if [ $STATUS -gt 0 ]
-  then echo "Status after OptiX JNI: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-  else echo "Status after OptiX JNI: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-  fi
 fi
 
 # ---------------------------------------------------------------------------

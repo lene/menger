@@ -130,13 +130,11 @@ namespace. `DragTracker` was folded into `OrbitCamera`'s `dragState`
 | Allowed dependencies | `menger-common`, JDK only. No LibGDX, no Scala-specific types in public method signatures. |
 | Enforced rules | `loadLibrary` and `native` methods in `optix-jni` or `menger-geometry` only (`ArchitectureSpec`). Java-friendly API surface (no `scala.Option`, `scala.collection`, etc. on public methods). |
 
-**Native sources** (`optix-jni/src/main/native/`): `OptiXContext.{h,cpp}`
-(low-level OptiX wrapper), `OptiXWrapper.{h,cpp}` (scene state, `setSphere`,
-`setCamera`, `render`), `OptiXData.h` (`BaseParams`, `HitGroupData`, `Light`,
-`RayStats`), `JNIBindings.cpp`, `OptiXApiBindings.cpp` (thin NativeOptiXApi
-bindings). Shaders under `shaders/`: `raygen_primary.cu`, `hit_sphere.cu`,
-`hit_triangle.cu`, `hit_cone.cu`, `hit_plane.cu`, `hit_cylinder.cu`,
-`miss_plane.cu`, `shadows.cu`, `helpers.cu`, `optix_shaders.cu` (umbrella).
+**Native sources** live in the external repository
+`github.com/lene/optix-jni`. Its published jar contains runtime resources
+(`native/x86_64-linux/liboptixjni.so`, `native/x86_64-linux/optix_shaders.ptx`)
+and native development resources (`optix-jni-native/include/**`,
+`optix-jni-native/shaders/**`) consumed by `menger-geometry`.
 
 ### 5.2.10 `menger-geometry` module (in-repo — `io.github.lene.optix`)
 
@@ -146,6 +144,7 @@ bindings). Shaders under `shaders/`: `raygen_primary.cu`, `hit_sphere.cu`,
 | Interface | `MengerRenderer` (extends `OptiXRenderer`; overrides all 4D geometry `@native` methods to dispatch to `libmengergeometry.so`). |
 | Allowed dependencies | `optix-jni`, `menger-common`. |
 | Enforced rules | `@native` methods and `loadLibrary` permitted here (same ArchUnit rule as `optix-jni`). |
+| Native dependency handling | `menger-geometry/build.sbt` extracts `optix-jni-native/**` from the `optix-jni` dependency jar into `target/optix-jni-native-api` and passes those include/shader directories to CMake. |
 
 **Native sources** (`menger-geometry/src/main/native/`): `MengerJNIBindings.cpp`
 (4D geometry JNI dispatch), `CausticsRenderer.{h,cpp}`, `Project4D.{h,cu}`.

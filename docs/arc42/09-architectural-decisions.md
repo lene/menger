@@ -580,15 +580,17 @@ consumer would pull in Menger-specific types with no relevant semantics.
   replacing scattered direct calls to `OptiXRenderer`.
 
 **Consequences:**
-- During the Sprint 26 repository split, `menger-common` is extracted first and
-  consumed as `io.github.lene:menger-common_3:0.1.0`; `optix-jni` remains local until
-  the second split stage.
-- `optix-jni` published JAR contains zero Menger-specific types.
+- `menger` consumes `io.github.lene:menger-common_3:0.1.0` and
+  `io.github.lene:optix-jni:0.1.0` from the GitLab Package Registry.
+- `optix-jni` published JAR contains zero Menger-specific types and includes
+  native development resources under `optix-jni-native/**`.
+- `menger-geometry` extracts the `optix-jni-native/**` resources from the
+  dependency jar during `nativeCompile` and passes those directories to CMake.
 - `menger-geometry` native library (`libmengergeometry.so`) must be extracted from
   its JAR and loaded before use; loading order matters (`liboptixjni.so` promoted
   to `RTLD_GLOBAL` so symbols are visible to `libmengergeometry.so`).
-- `javaOptions` in `build.sbt` lists both native output directories on
-  `java.library.path`.
+- `javaOptions` in `build.sbt` lists only the `menger-geometry` native output
+  directory; `optix-jni` loads its native library from classpath resources.
 - AD-3 (Two-Layer OptiX Architecture) is unchanged; this decision adds a layer
   above it.
 
