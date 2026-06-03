@@ -27,15 +27,8 @@ Resolved items are removed from this file entirely — git history is the record
 
 | ID | Issue | Location |
 |----|-------|----------|
-| L-upload-texture-file-raw-int | `uploadTextureFromFile` returns raw `Int` (callers must check for negative); `uploadTexture` wraps in `Try`. Inconsistent error model at the same API boundary. | `optix-jni/src/main/scala/menger/optix/OptiXTextureApi.scala:45` |
-| L-m4d-level-const | `addMenger4DInstance` hardcodes level bounds `0–14`; should be a named constant synced with Scala-side warnings | `OptiXWrapper.cpp:2313` |
-| L-m4d-error-codes | `updateMenger4DProjection` returns -1/-2/-3 with no enum or comment mapping; future callers will guess | `OptiXWrapper.cpp`, `JNIBindings.cpp` |
-| L-m4d-scene4d-sumtype | `Scene4DCache(gpu, cpu, menger4d)` are mutually exclusive but stored as three Options; a sealed trait would prevent multi-branch population at compile time | `InteractiveEngine.scala` |
-| L-m4d-builder-validation | `Menger4DSceneBuilder` validates `level.isEmpty` but not out-of-range values; relies silently on `OptiXWrapper` to reject with -1 | `Menger4DSceneBuilder.scala` |
-| L-jni-release-mode-readonly | `Release*ArrayElements` called with mode `0` (copy-back) for read-only arrays in `setCameraNative`, `setLights`, `setTriangleMeshNative`. Should use `JNI_ABORT`. No correctness bug, but wastes a copy. | `JNIBindings.cpp` (multiple sites) |
-| L-cuda-synchronize-unchecked | `cudaDeviceSynchronize()` return value ignored at two call sites; errors silently discarded | `OptiXWrapper.cpp:628, ~718` |
-| L-cuda-dispose-swallows | `dispose()` single try-catch swallows all exceptions, causing subsequent cleanup steps to be skipped if first step throws | `OptiXWrapper.cpp:3099` |
-| L-tonemapping-magic-ints | ToneMapping operator encoded as magic int (0/1/2) split between `SceneConverter.scala:139–142` and `miss_plane.cu:92–97`; no compile-time sync between Scala enum and CUDA switch | `SceneConverter.scala`, `miss_plane.cu` |
+| L-upload-texture-file-raw-int | `uploadTextureFromFile` returns a raw negative `Int` on failure while `uploadTexture` throws `TextureUploadException`. Making them consistent (throw) is a **behavior change**: the three production callers (`TextureManager`, `InteractiveEngine`, `WithAnimation`) currently treat a negative index as "skip this texture and continue". Deferred — needs a decision on fail-fast vs graceful-skip before changing the error model. | `optix-jni/.../OptiXTextureApi.scala:67` |
+| L-m4d-scene4d-sumtype | `Scene4DCache(gpu, cpu, menger4d, sierpinski4d, hexadecachoron4d)` are mutually exclusive but stored as five Options; a sealed trait would prevent multi-branch population at compile time. Deferred — structural refactor of the interactive-engine cache state machine (paths weakly covered by the headless suite); warrants focused review. | `InteractiveEngine.scala` |
 
 
 ## Tooling Gaps

@@ -129,7 +129,14 @@ object SceneConverter extends LazyLogging:
   private def warnMaterial(material: Material): Unit =
     material.validate().foreach(w => logger.warn(s"[Material] $w"))
 
+  // Tone-mapping operator ids passed to the GPU. These MUST stay in sync with the
+  // switch in optix-jni/src/main/native/shaders/miss_plane.cu (applyToneMapping).
+  private object ToneMapOp:
+    val None     = 0
+    val Reinhard = 1
+    val Aces     = 2
+
   private def toToneMappingParams(tm: ToneMapping): (Int, Float) = tm match
-    case ToneMapping.None          => (0, 1.0f)
-    case ToneMapping.Reinhard(exp) => (1, exp)
-    case ToneMapping.ACES(exp)     => (2, exp)
+    case ToneMapping.None          => (ToneMapOp.None, 1.0f)
+    case ToneMapping.Reinhard(exp) => (ToneMapOp.Reinhard, exp)
+    case ToneMapping.ACES(exp)     => (ToneMapOp.Aces, exp)

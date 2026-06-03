@@ -19,7 +19,17 @@ class Menger4DSceneBuilder(
       Left("All objects must be menger4d for Menger4DSceneBuilder")
     else if specs.exists(_.level.isEmpty) then
       Left("All menger4d objects require a level parameter")
+    else if specs.exists(levelOutOfRange) then
+      Left(s"menger4d level must be in [$MinLevel, $MaxLevel]")
     else Right(())
+
+  /** A fractional level renders two instances (floor and floor+1), so the
+    * effective maximum int level handed to the native layer is floor+1. */
+  private def levelOutOfRange(spec: ObjectSpec): Boolean =
+    spec.level.exists { level =>
+      val maxIntLevel = if isFractional(level) then level.floor.toInt + 1 else level.toInt
+      level < MinLevel || maxIntLevel > MaxLevel
+    }
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up ${specs.length} menger4d instances")
@@ -60,4 +70,7 @@ class Menger4DSceneBuilder(
     }.sum
 
   private val CoarseScaleOffset = 0.001f
+  // Recursion-depth bounds; must match MIN_4D_LEVEL / MAX_4D_LEVEL in OptiXWrapper.cpp.
+  private val MinLevel = 0
+  private val MaxLevel = 14
   private def isFractional(level: Float): Boolean = level != level.floor
