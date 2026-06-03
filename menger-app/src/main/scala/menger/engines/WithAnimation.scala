@@ -36,8 +36,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   /** Cached state for the GPU 4D-projection animation fast path: when the only
     * frame-to-frame change is `Projection4DSpec` on 4D-projected specs, we
     * call `renderer.updateMesh4DProjection` instead of clearAllInstances+rebuild.
-    * Set only when `renderConfig.gpuProject4D` is on AND the scene is purely
-    * 4D-projected triangle meshes. */
+    * Set only when the scene is purely 4D-projected triangle meshes. */
   private val anim4DState: AtomicReference[Option[WithAnimation.Anim4DState]] =
     new AtomicReference(None)
 
@@ -123,8 +122,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     * `updateMesh4DProjection` calls and return true. Otherwise return false
     * and let the caller take the rebuild path. */
   private def tryAnim4DFastPath(newSpecs: List[ObjectSpec], renderer: OptiXRenderer): Boolean =
-    if !renderConfig.gpuProject4D then false
-    else anim4DState.get match
+    anim4DState.get match
       case None => false
       case Some(prev) =>
         if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
@@ -144,21 +142,20 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
           anim4DState.set(Some(prev.copy(specs = newSpecs)))
           true
 
-  /** Rebuild path: when the scene is 4D-only triangle-mesh AND `gpuProject4D`
-    * is on, build via a recorder-equipped TriangleMeshSceneBuilder so
-    * subsequent frames can attempt the fast path. Otherwise fall back to the
-    * generic `buildSceneFromConfigs` path and clear any cached fast-path
-    * state. */
+  /** Rebuild path: when the scene is 4D-only triangle-mesh, build via a
+    * recorder-equipped TriangleMeshSceneBuilder so subsequent frames can attempt
+    * the fast path. Otherwise fall back to the generic `buildSceneFromConfigs`
+    * path and clear any cached fast-path state. */
   private def buildAnim4DTrackedOrFallback(
     configs: SceneConverter.SceneConfigs,
     newSpecs: List[ObjectSpec],
     renderer: OptiXRenderer
   ): Try[Unit] =
-    if renderConfig.gpuProject4D && WithAnimation.is4DOnlyTriangleMeshScene(newSpecs) then
+    if WithAnimation.is4DOnlyTriangleMeshScene(newSpecs) then
       val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
         scala.collection.mutable.Map.empty
       val builder = TriangleMeshSceneBuilder(
-        textureDir, gpuProject4D = true,
+        textureDir,
         mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
           slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
       )(using profilingConfig)

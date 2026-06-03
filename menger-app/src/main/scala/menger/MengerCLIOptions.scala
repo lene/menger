@@ -391,13 +391,6 @@ class MengerCLIOptions(arguments: Seq[String])
     required = false, default = Some(false), group = optixQualityGroup,
     descr = "Allow renders where >=99% of pixels are the same colour (otherwise treated as a failure)"
   )
-  // Sprint 18.3: opt-in GPU 4D rotation + projection.
-  val gpuProject4D: ScallopOption[Boolean] = opt[Boolean](
-    name = "gpu-project-4d",
-    required = false, default = Some(false), group = optixQualityGroup,
-    descr = "Run 4D rotation + perspective projection on the GPU (default: CPU)"
-  )
-
   // === OptiX Caustics Options ===
   val caustics: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(false), group = optixCausticsGroup,
@@ -435,8 +428,7 @@ class MengerCLIOptions(arguments: Seq[String])
     antialiasing = antialiasing(),
     aaMaxDepth = aaMaxDepth(),
     aaThreshold = aaThreshold(),
-    maxRayDepth = maxRayDepth(),
-    gpuProject4D = gpuProject4D()
+    maxRayDepth = maxRayDepth()
   )
 
   def causticsConfig: CausticsConfig = CausticsConfig(

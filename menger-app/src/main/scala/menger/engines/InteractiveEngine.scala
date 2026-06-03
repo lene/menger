@@ -21,7 +21,6 @@ import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
 import menger.engines.scene.Hexadecachoron4DSceneBuilder
 import menger.engines.scene.Menger4DSceneBuilder
-import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.Sierpinski4DSceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
@@ -101,10 +100,9 @@ class InteractiveEngine(
   private case class Hexadecachoron4DState(specs: List[ObjectSpec], instancesPerSpec: Vector[Vector[Int]])
 
   /** Cached slot/instance indices for 4D-rotation fast paths.
-    * gpu/cpu: triangle mesh paths. menger4d/sierpinski4d/hexadecachoron4d: IFS instance paths. */
+    * gpu: triangle mesh path. menger4d/sierpinski4d/hexadecachoron4d: IFS instance paths. */
   private case class Scene4DCache(
     gpu:              Option[WithAnimation.Anim4DState] = None,
-    cpu:              Option[WithAnimation.Anim4DState] = None,
     menger4d:         Option[Menger4DState]             = None,
     sierpinski4d:     Option[Sierpinski4DState]         = None,
     hexadecachoron4d: Option[Hexadecachoron4DState]     = None
@@ -163,7 +161,6 @@ class InteractiveEngine(
 
       val fastPathTaken = updatedSpecs.exists(specs =>
         tryRotation4DFastPath(specs, rendererWrapper.renderer) ||
-        tryRotation4DCpuFastPath(specs, rendererWrapper.renderer) ||
         tryMenger4DFastPath(specs, rendererWrapper.renderer) ||
         trySierpinski4DFastPath(specs, rendererWrapper.renderer) ||
         tryHexadecachoron4DFastPath(specs, rendererWrapper.renderer)
@@ -182,8 +179,7 @@ class InteractiveEngine(
     newSpecs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Boolean =
-    if !renderConfig.gpuProject4D then false
-    else scene4DCache.get.gpu match
+    scene4DCache.get.gpu match
       case None => false
       case Some(prev) =>
         if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
@@ -202,37 +198,6 @@ class InteractiveEngine(
           }
           scene4DCache.set(scene4DCache.get.copy(gpu = Some(prev.copy(specs = newSpecs))))
           true
-
-  /** Per-mesh CPU re-projection update path. Mirrors `tryRotation4DFastPath` but
-    * for CPU-projected meshes. Re-projects each spec on CPU via `MeshFactory.create`
-    * and updates the existing mesh slot via `renderer.updateCpuTriangleMesh` —
-    * avoiding the full `clearAllInstances()` + rebuild that causes a hang when
-    * `gpuProject4D` is off (H-mixed-frac-int-interactive-hang).
-    * Returns true iff the cpu4DState slot map is populated and every spec is
-    * a 4D-projected type (non-fractional, since fractional merging complicates
-    * slot mapping for now). */
-  private def tryRotation4DCpuFastPath(
-    newSpecs: List[ObjectSpec],
-    renderer: io.github.lene.optix.OptiXRenderer
-  ): Boolean =
-    if renderConfig.gpuProject4D then false  // GPU path handles this
-    else scene4DCache.get.cpu match
-      case None => false
-      case Some(prev) =>
-        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
-        else
-          val success = prev.specs.lazyZip(newSpecs).lazyZip(prev.slotsPerSpec).forall {
-            case (prevSpec, newSpec, slots) =>
-              if prevSpec.projection4D == newSpec.projection4D then true
-              else
-                val meshData = MeshFactory.create(newSpec)
-                slots.forall { slot =>
-                  Try(renderer.updateCpuTriangleMesh(slot, meshData)).isSuccess
-                }
-          }
-          if success then
-            scene4DCache.set(scene4DCache.get.copy(cpu = Some(prev.copy(specs = newSpecs))))
-          success
 
   /** Menger4D fast path: update projection params on each recorded instance directly.
     * Returns true iff the menger4d slot map is populated and the change is purely
@@ -454,22 +419,20 @@ class InteractiveEngine(
     GdxRuntime.requestRendering()
     if execution.timeout > 0 then startExitTimer(execution.timeout)
 
-  /** Build the initial scene; if it is 4D-only triangle meshes and `gpuProject4D`
-    * is on, capture per-spec slot indices so subsequent rotation events can hit
-    * the fast path. When `gpuProject4D` is off and the scene is 4D-only and
-    * non-fractional, record CPU mesh slots for the analogous CPU fast path.
+  /** Build the initial scene; if it is 4D-only triangle meshes, capture per-spec
+    * slot indices so subsequent rotation events can hit the GPU fast path.
     * Otherwise fall back to the generic build and clear cached fast-path state.
     * Mirrors `WithAnimation.buildAnim4DTrackedOrFallback`. */
   private def buildScene4DTrackedOrFallback(
     specs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
-    if renderConfig.gpuProject4D && WithAnimation.is4DOnlyTriangleMeshScene(specs)
+    if WithAnimation.is4DOnlyTriangleMeshScene(specs)
         && !specs.exists(_.hasEdgeRendering) then
       val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
         scala.collection.mutable.Map.empty
       val builder = TriangleMeshSceneBuilder(
-        textureDir, gpuProject4D = true,
+        textureDir,
         mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
           slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
       )(using profilingConfig)
@@ -483,18 +446,6 @@ class InteractiveEngine(
           scene4DCache.set(Scene4DCache(gpu = Some(WithAnimation.Anim4DState(specs, slotsPerSpec))))
         else
           scene4DCache.set(Scene4DCache())
-      }
-      result.recover { case _ => scene4DCache.set(Scene4DCache()) }
-      result
-    else if !renderConfig.gpuProject4D && isCpu4DFastPathEligible(specs) then
-      val builder = TriangleMeshSceneBuilder(textureDir, gpuProject4D = false)(using profilingConfig)
-      val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
-      result.foreach { _ =>
-        // CPU path: one mesh per spec (fractional = merged single mesh),
-        // slots are assigned sequentially starting from 0 after clearAllInstances.
-        val slotsPerSpec = specs.indices.map(i => Vector(i)).toVector
-        scene4DCache.set(Scene4DCache(cpu = Some(WithAnimation.Anim4DState(specs, slotsPerSpec))))
       }
       result.recover { case _ => scene4DCache.set(Scene4DCache()) }
       result
@@ -565,14 +516,6 @@ class InteractiveEngine(
       scene4DCache.set(Scene4DCache())
       buildSceneFromSpecs(specs, renderer)
 
-  /** True iff this scene is eligible for the CPU 4D fast path:
-    * all specs are 4D-projected triangle-mesh types. Fractional specs are
-    * allowed because the CPU path merges them into a single mesh (1 slot/spec).
-    * Mixed scenes (4D + non-4D) are excluded.
-    * Scenes with edge rendering are excluded — those must use TesseractEdgeSceneBuilder. */
-  private def isCpu4DFastPathEligible(specs: List[ObjectSpec]): Boolean =
-    WithAnimation.is4DOnlyTriangleMeshScene(specs) && !specs.exists(_.hasEdgeRendering)
-
   private def rebuildScene(): Unit =
     currentObjectSpecs.get() match
       case Some(specs) =>
@@ -589,18 +532,9 @@ class InteractiveEngine(
           cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
           // After a full rebuild, instance/slot IDs restart from 0 sequentially.
           // Re-populate fast path caches so subsequent rotations stay on the fast path.
-          if !renderConfig.gpuProject4D && isCpu4DFastPathEligible(specs) then
-            val slotsPerSpec = specs.indices.map(i => Vector(i)).toVector
-            scene4DCache.set(scene4DCache.get.copy(
-              cpu              = Some(WithAnimation.Anim4DState(specs, slotsPerSpec)),
-              menger4d         = None,
-              sierpinski4d     = None,
-              hexadecachoron4d = None
-            ))
-          else if specs.forall(s => ObjectType.isMenger4D(s.objectType)) then
+          if specs.forall(s => ObjectType.isMenger4D(s.objectType)) then
             val instancesPerSpec = specs.indices.map(i => Vector(i)).toVector
             scene4DCache.set(scene4DCache.get.copy(
-              cpu              = None,
               menger4d         = Some(Menger4DState(specs, instancesPerSpec)),
               sierpinski4d     = None,
               hexadecachoron4d = None
@@ -608,7 +542,6 @@ class InteractiveEngine(
           else if specs.forall(s => ObjectType.isSierpinski4D(s.objectType)) then
             val instancesPerSpec = specs.indices.map(i => Vector(i)).toVector
             scene4DCache.set(scene4DCache.get.copy(
-              cpu              = None,
               menger4d         = None,
               sierpinski4d     = Some(Sierpinski4DState(specs, instancesPerSpec)),
               hexadecachoron4d = None
@@ -616,16 +549,15 @@ class InteractiveEngine(
           else if specs.forall(s => ObjectType.isHexadecachoron4D(s.objectType)) then
             val instancesPerSpec = specs.indices.map(i => Vector(i)).toVector
             scene4DCache.set(scene4DCache.get.copy(
-              cpu              = None,
               menger4d         = None,
               sierpinski4d     = None,
               hexadecachoron4d = Some(Hexadecachoron4DState(specs, instancesPerSpec))
             ))
           else
-            scene4DCache.set(scene4DCache.get.copy(cpu = None, menger4d = None, sierpinski4d = None, hexadecachoron4d = None))
+            scene4DCache.set(scene4DCache.get.copy(menger4d = None, sierpinski4d = None, hexadecachoron4d = None))
           logger.debug("Scene rebuild complete")
         }.recover { case e =>
-          scene4DCache.set(scene4DCache.get.copy(cpu = None, menger4d = None, sierpinski4d = None, hexadecachoron4d = None))
+          scene4DCache.set(scene4DCache.get.copy(menger4d = None, sierpinski4d = None, hexadecachoron4d = None))
           logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
         }
       case None =>

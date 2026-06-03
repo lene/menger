@@ -8,7 +8,6 @@ import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.TransformUtil
-import menger.common.TriangleMeshData
 import menger.common.Vector
 import menger.objects.FractionalLevelSponge
 
@@ -33,7 +32,6 @@ import menger.objects.FractionalLevelSponge
  */
 class TriangleMeshSceneBuilder(
   textureDir: String,
-  gpuProject4D: Boolean = false,
   mesh4DRecorder: (Int, Int) => Unit = (_, _) => ()
 )(using profilingConfig: ProfilingConfig)
   extends SceneBuilder:
@@ -75,14 +73,9 @@ class TriangleMeshSceneBuilder(
       val baseMaterial = MaterialExtractor.extract(spec)
       val ops: List[FractionalOp] =
         if isFractional4DSponge(spec) then
-          if gpuProject4D then
-            buildFractionalGpuOps(spec, baseMaterial)
-          else
-            // Legacy CPU-merged path: single mesh with per-vertex alpha.
-            logger.debug(s"Creating fractional mesh for ${spec.objectType} level=${spec.level.get}")
-            List(FractionalOp(MeshUploadPlan.Cpu(createFractionalMesh(spec)), baseMaterial))
+          buildFractionalGpuOps(spec, baseMaterial)
         else
-          List(FractionalOp(MeshFactory.createUpload(spec, gpuProject4D), baseMaterial))
+          List(FractionalOp(MeshFactory.createUpload(spec), baseMaterial))
 
       ops.foreach { op =>
         // Upload mesh and add instance
@@ -157,52 +150,15 @@ class TriangleMeshSceneBuilder(
       color = baseMaterial.color.copy(a = baseMaterial.color.a * alphaTransparent)
     )
     List(
-      FractionalOp(MeshFactory.createUpload(nextLevelSpec, gpuProject4D = true), opaqueMaterial),
+      FractionalOp(MeshFactory.createUpload(nextLevelSpec), opaqueMaterial),
       FractionalOp(
-        MeshFactory.createUpload(currentLevelSpec, gpuProject4D = true,
+        MeshFactory.createUpload(currentLevelSpec,
           skinOffset = FractionalLevelSponge.SkinNormalOffset),
         transparentMaterial
       )
     )
 
   private final case class FractionalOp(plan: MeshUploadPlan, material: menger.common.Material)
-
-  /**
-   * Create a merged mesh for fractional level rendering.
-   *
-   * For level=1.5:
-   * - Generates level 2 geometry with vertex alpha = 1.0 (opaque)
-   * - Generates level 1 geometry with vertex alpha = 0.5 (1.0 - frac)
-   * - Merges both into a single mesh
-   *
-   * The shader will interpolate per-vertex alpha and multiply with material alpha:
-   * - Level 2 triangles: final_alpha = 1.0 × material.alpha
-   * - Level 1 triangles: final_alpha = 0.5 × material.alpha
-   */
-  private def createFractionalMesh(spec: ObjectSpec): TriangleMeshData =
-    val level = spec.level.get
-    val fractionalPart = level - level.floor
-    val alphaTransparent = 1.0f - fractionalPart
-
-    // Generate both level geometries
-    val nextLevelSpec = spec.copy(level = Some((level + 1).floor))
-    val currentLevelSpec = spec.copy(level = Some(level.floor))
-
-    val nextLevel = MeshFactory.create(nextLevelSpec)
-    // Expand skin faces outward along normals to prevent z-fighting with the underlying sponge
-    // faces (same fix as SpongeByVolume.getFractionalMesh — see there for detailed rationale).
-    val currentLevel = TriangleMeshData.expandAlongNormals(
-      MeshFactory.create(currentLevelSpec),
-      FractionalLevelSponge.SkinNormalOffset
-    )
-
-    // Assign per-vertex alpha
-    val nextWithAlpha = TriangleMeshData.withAlpha(nextLevel, 1.0f)
-    val currentWithAlpha = TriangleMeshData.withAlpha(currentLevel, alphaTransparent)
-
-    // Merge into single mesh
-    logger.debug(s"Merging fractional mesh: level ${level.floor} (alpha=$alphaTransparent) + level ${(level+1).floor} (alpha=1.0)")
-    TriangleMeshData.merge(Seq(nextWithAlpha, currentWithAlpha))
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // TD-5 resolution (Sprint 18.1): each spec gets its own mesh + GAS via per-spec
@@ -231,11 +187,10 @@ class TriangleMeshSceneBuilder(
     p1 == p2
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
-    // CPU-merged fractional path: 1 instance per spec.
     // GPU fractional path: 2 instances per fractional spec (level n + level n+1).
     specs.iterator.map { spec =>
       if ObjectType.isRecursiveIASSponge(spec.objectType) && spec.level.exists(isFractional) then 2L
-      else if isFractional4DSponge(spec) && gpuProject4D then 2L
+      else if isFractional4DSponge(spec) then 2L
       else 1L
     }.sum
 

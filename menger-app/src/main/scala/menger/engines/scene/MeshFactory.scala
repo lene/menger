@@ -119,29 +119,36 @@ object MeshFactory:
       case other =>
         sys.error(s"Unknown mesh type: $other")
 
-  /** Build a `MeshUploadPlan` for the given spec. When `gpuProject4D` is true
-    * and the spec is a 4D-projected type, return a `Gpu4D` plan carrying the
-    * flat 4D-quad buffer + projection params; otherwise fall back to the
-    * existing CPU `create(spec)` path.
+  /** Build a `MeshUploadPlan` for the given spec. 4D-projected types always use
+    * the GPU path: a `Gpu4D` plan carrying the flat 4D-quad buffer + projection
+    * params, projected on the GPU. All other (3D) types use the CPU `create(spec)`
+    * triangle mesh.
     *
-    * `skinOffset` is passed to `Mesh4DGpuFlatten.quadsBuffer` to expand
-    * vertices along face normals — use `FractionalLevelSponge.SkinNormalOffset`
-    * for the lower-level mesh in a fractional pair to prevent z-fighting. */
+    * `skinOffset` is reserved for expanding the lower-level mesh of a fractional
+    * pair along face normals (`FractionalLevelSponge.SkinNormalOffset`). */
   def createUpload(
     spec: ObjectSpec,
-    gpuProject4D: Boolean,
     skinOffset: Float = 0f
   )(using profilingConfig: ProfilingConfig): MeshUploadPlan =
-    if gpuProject4D && ObjectType.isProjected4D(spec.objectType) then
-      gpu4DPlan(spec, skinOffset) match
-        case Some(plan) => plan
-        case None       => MeshUploadPlan.Cpu(create(spec))
+    if ObjectType.isProjected4D(spec.objectType) then
+      gpu4DPlan(spec, skinOffset).getOrElse(
+        sys.error(s"No GPU 4D projection available for type: ${spec.objectType}")
+      )
     else
       MeshUploadPlan.Cpu(create(spec))
 
   private def gpu4DPlan(spec: ObjectSpec, skinOffset: Float = 0f): Option[MeshUploadPlan.Gpu4D] =
     mesh4DProjection(spec).map { p =>
-      val (buffer, vpf) = Mesh4DGpuFlatten.facesBuffer(p.mesh4D)
+      // A non-zero skinOffset expands the lower-level mesh of a fractional pair
+      // outward along its 4D face normals before projection, so its surface does
+      // not land coincident with the higher-level surface and z-fight. This is the
+      // GPU equivalent of the CPU path's TriangleMeshData.expandAlongNormals; only
+      // quad meshes (the 4D sponges that take a skin offset) support it.
+      val (buffer, vpf) =
+        if skinOffset != 0f then
+          (Mesh4DGpuFlatten.quadsBuffer(p.mesh4D, skinOffset), p.mesh4D.vertsPerFace)
+        else
+          Mesh4DGpuFlatten.facesBuffer(p.mesh4D)
       MeshUploadPlan.Gpu4D(
         quads4D = buffer,
         vertsPerFace = vpf,

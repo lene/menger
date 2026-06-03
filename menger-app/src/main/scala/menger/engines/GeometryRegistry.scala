@@ -33,8 +33,7 @@ object GeometryRegistry:
    */
   def builderFor(
     specs: List[ObjectSpec],
-    textureDir: String = ".",
-    gpuProject4D: Boolean = false
+    textureDir: String = "."
   )(using ProfilingConfig): Option[SceneBuilder] =
     if specs.isEmpty then None
     else
@@ -49,7 +48,7 @@ object GeometryRegistry:
         if all4DProjected && hasEdge then
           Some(TesseractEdgeSceneBuilder(textureDir))
         else
-          Some(TriangleMeshSceneBuilder(textureDir, gpuProject4D))
+          Some(TriangleMeshSceneBuilder(textureDir))
       else if types.forall(_ == "cone") then
         Some(ConeSceneBuilder(textureDir))
       else if types.forall(_ == "plane") then

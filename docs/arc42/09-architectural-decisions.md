@@ -346,10 +346,13 @@ unchanged. Two API surfaces:
   buffers, then refit the GAS and parent IAS in-place
   (`OPTIX_BUILD_OPERATION_UPDATE`).
 
-The flag `--gpu-project-4d` opts in. Default behaviour stays bit-for-bit
-identical to the CPU path. Animation drivers detect "frame-to-frame only
-the 4D-projection params changed" and call the update kernel instead of
-rebuilding the scene.
+Originally opt-in via `--gpu-project-4d` alongside an equivalent CPU
+projection path. Sprint 26 removed the flag and the CPU production path:
+GPU projection is now the only 4D rendering path. Animation drivers detect
+"frame-to-frame only the 4D-projection params changed" and call the update
+kernel instead of rebuilding the scene. The CPU projection
+(`Mesh4DProjection`) is retained only as the test oracle that
+`Project4DGpuSuite` validates the GPU kernel against.
 
 **Rationale:**
 - Quads (not arbitrary 4D triangles) preserve bit-for-bit equivalence

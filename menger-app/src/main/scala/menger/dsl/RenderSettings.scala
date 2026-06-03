@@ -21,8 +21,6 @@ case class RenderSettings(
   aaMaxDepth: Int = 2,
   aaThreshold: Float = 0.1f,
   maxRayDepth: Option[Int] = None,
-  // Sprint 18.3: opt-in GPU 4D rotation + projection.
-  gpuProject4D: Option[Boolean] = None,
   // Sprint 23.5: multi-frame accumulation for noise reduction.
   accumulation: Int = 1,
 ):
@@ -40,8 +38,7 @@ case class RenderSettings(
     antialiasing = antialiasing,
     aaMaxDepth = aaMaxDepth,
     aaThreshold = aaThreshold,
-    maxRayDepth = maxRayDepth.getOrElse(RenderConfig.Default.maxRayDepth),
-    gpuProject4D = gpuProject4D.getOrElse(RenderConfig.Default.gpuProject4D)
+    maxRayDepth = maxRayDepth.getOrElse(RenderConfig.Default.maxRayDepth)
   )
 
 object RenderSettings:

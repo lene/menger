@@ -385,7 +385,7 @@ sbt "run --optix --objects 'type=600-cell:size=1.0:screen-w=1.5:rot-y-w=20'"
 sbt "run --optix --objects 'type=24-cell:size=1.0:material=glass:rot-x-w=15:rot-z-w=10'"
 ```
 
-Use `--gpu-project-4d` for faster projection on large polytopes (120-cell, 600-cell).
+4D rotation and projection always run on the GPU, so even large polytopes (120-cell, 600-cell) project quickly.
 
 #### 4D IFS Fractal Analogs — *Sprint 21*
 
@@ -441,15 +441,14 @@ Control the 4D→3D projection:
 --rotation-4d 45,30,15       # XW,YW,ZW in degrees (mutually exclusive with --rot-x-w/y-w/z-w)
 ```
 
-#### GPU 4D Projection (Sprint 18.3)
+#### GPU 4D Projection
 
-By default the 4D rotation + perspective projection runs on the CPU at
-scene-build time. For larger 4D meshes (especially `tesseract-sponge`
-at level ≥ 2) and for animated 4D viewpoints this is the dominant cost.
-
-```bash
---gpu-project-4d             # opt-in: run rotation+projection on the GPU
-```
+4D rotation + perspective projection always runs on the GPU at scene-build
+time (and per-frame for animated 4D viewpoints, via an in-place projection
+kernel + GAS refit). This keeps even large 4D meshes (`tesseract-sponge`
+at level ≥ 2, 120-cell, 600-cell) and animated viewpoints fast. The earlier
+opt-in `--gpu-project-4d` flag and the legacy CPU projection path were removed
+in Sprint 26 — there is no longer a CPU rendering mode to select.
 
 When the flag is set:
 
