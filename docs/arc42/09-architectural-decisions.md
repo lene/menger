@@ -577,6 +577,9 @@ consumer would pull in Menger-specific types with no relevant semantics.
   replacing scattered direct calls to `OptiXRenderer`.
 
 **Consequences:**
+- During the Sprint 26 repository split, `menger-common` is extracted first and
+  consumed as `io.github.lene:menger-common_3:0.1.0`; `optix-jni` remains local until
+  the second split stage.
 - `optix-jni` published JAR contains zero Menger-specific types.
 - `menger-geometry` native library (`libmengergeometry.so`) must be extracted from
   its JAR and loaded before use; loading order matters (`liboptixjni.so` promoted

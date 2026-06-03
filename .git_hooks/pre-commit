@@ -73,15 +73,6 @@ if [ "$HAS_NATIVE" -gt 0 ]; then
   fi
 fi
 
-if [ "$HAS_SCALA" -gt 0 ]; then
-  echo "Compiling Menger Common..."
-  sbt "project mengerCommon" compile || STATUS=1
-  if [ $STATUS -gt 0 ]
-  then echo "Status after Menger Common: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-  else echo "Status after Menger Common: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-  fi
-fi
-
 # ---------------------------------------------------------------------------
 # Tests (Scala or C++/CUDA changed)
 # ---------------------------------------------------------------------------

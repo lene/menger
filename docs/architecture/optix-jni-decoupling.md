@@ -29,7 +29,7 @@ standalone JVM library because:
 │  - Generic geometry: sphere, cylinder, cone, plane, mesh│
 │  - BaseParams struct (no Menger-specific fields)        │
 │  - Published: GitLab Package Registry + Maven Central   │
-│  - Depends on: io.github.lene:menger-common             │
+│  - Depends on: io.github.lene:menger-common_3           │
 └───────────────────────┬─────────────────────────────────┘
                         │ dependsOn (published artifact)
 ┌───────────────────────▼─────────────────────────────────┐
@@ -47,7 +47,7 @@ standalone JVM library because:
 └─────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────┐
-│  io.github.lene:menger-common                           │
+│  io.github.lene:menger-common_3                         │
 │  Rendering primitives                                   │
 │  - Color, Vector, Vec3, ImageSize, Light, Material      │
 │  - Published: GitLab Package Registry + Maven Central   │
@@ -160,8 +160,8 @@ This compiles and runs correctly under g++ and clang++.
 |----------|----------------|
 | `menger-app` | Follows menger release (0.7.x, 0.8.x ...) |
 | `menger-geometry` | Tracks menger-app (internal, same version) |
-| `optix-jni` | Independent: starts at 1.0.0 on first Maven Central release |
-| `menger-common` | Independent: starts at 1.0.0 on first Maven Central release |
+| `optix-jni` | Independent: starts at 0.1.0 on first external publication |
+| `menger-common` | Independent: starts at 0.1.0 on first external publication |
 
 Rationale: `optix-jni` and `menger-common` will have independent consumers after
 publication. Their versions should not be tied to Menger's feature release cycle.
@@ -196,6 +196,11 @@ Uses standard Maven protocol. No extra plugin needed — same `publish` command 
 GitLab Maven endpoint as `publishTo`.
 
 CI: `CI_JOB_TOKEN` available automatically in all CI jobs.
+
+Sprint 26 splits the repositories in stages. Stage 1 publishes
+`io.github.lene:menger-common_3:0.1.0` from the standalone `menger-common` repo to the
+GitLab Package Registry and updates `menger` to resolve that artifact. `optix-jni`
+remains a local project until Stage 2.
 
 ### Native artifact in published JAR
 

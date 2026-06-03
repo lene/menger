@@ -183,14 +183,12 @@ Test:Full:
     # Fix permissions on generated files so they can be cleaned up locally without sudo
     # Docker containers run as root, creating root-owned files that cause permission issues
     - chmod -R 777 menger-app/target/ || true
-    - chmod -R 777 menger-common/target/ || true
     - chmod -R 777 optix-jni/target/ || true
   artifacts:
     when: always
     reports:
       junit:
         - menger-app/target/test-reports/**/TEST-*.xml
-        - menger-common/target/test-reports/**/TEST-*.xml
         - optix-jni/target/test-reports/**/TEST-*.xml
 
 # Full test suite on CUDA 13 - DISABLED pending proper CUDA 13 support
@@ -232,14 +230,12 @@ Test:Full:Cuda13:
     - xvfb-run sbt test
   after_script:
     - chmod -R 777 menger-app/target/ || true
-    - chmod -R 777 menger-common/target/ || true
     - chmod -R 777 optix-jni/target/ || true
   artifacts:
     when: always
     reports:
       junit:
         - menger-app/target/test-reports/**/TEST-*.xml
-        - menger-common/target/test-reports/**/TEST-*.xml
         - optix-jni/target/test-reports/**/TEST-*.xml
 
 # OptiX JNI tests - Uses pre-built Docker image with CUDA, OptiX, Java 25, and sbt
@@ -967,13 +963,11 @@ PublishLibraries:GitLabSmoke:
       fi
     - ldconfig || true
   script:
-    - export LIB_SMOKE_VERSION="0.1.0-smoke.${CI_PIPELINE_IID}.${CI_JOB_ID}"
-    - echo "Publishing library smoke artifacts with version ${LIB_SMOKE_VERSION}"
+    - export OPTIX_SMOKE_VERSION="0.1.0-smoke.${CI_PIPELINE_IID}.${CI_JOB_ID}"
+    - echo "Publishing optix-jni smoke artifact with version ${OPTIX_SMOKE_VERSION}"
     - >
       sbt
-      "set mengerCommon / version := \"${LIB_SMOKE_VERSION}\""
-      "set optixJni / version := \"${LIB_SMOKE_VERSION}\""
-      "mengerCommon / publish"
+      "set optixJni / version := \"${OPTIX_SMOKE_VERSION}\""
       "optixJni / publish"
     - export SMOKE_PROJECT_DIR="/tmp/menger-publish-smoke-${CI_PIPELINE_ID}-${CI_JOB_ID}"
     - mkdir -p "${SMOKE_PROJECT_DIR}/project" "${SMOKE_PROJECT_DIR}/src/main/scala"
@@ -992,8 +986,8 @@ PublishLibraries:GitLabSmoke:
       )
 
       libraryDependencies ++= Seq(
-        "io.github.lene" %% "menger-common" % sys.env("LIB_SMOKE_VERSION"),
-        "io.github.lene" % "optix-jni" % sys.env("LIB_SMOKE_VERSION")
+        "io.github.lene" %% "menger-common" % "0.1.0",
+        "io.github.lene" % "optix-jni" % sys.env("OPTIX_SMOKE_VERSION")
       )
 
       Compile / run / fork := true
@@ -1022,17 +1016,6 @@ PublishLibraries:GitLabSmoke:
     - export COURSIER_CACHE="${SMOKE_PROJECT_DIR}/coursier-cache"
     - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
     - sbt clean update compile run
-
-PublishCommon:
-  image: $SBT_IMAGE
-  stage: release
-  needs:
-    - CreateRelease
-  rules:
-    - if: "$CI_COMMIT_TAG"
-      when: on_success
-  script:
-    - sbt "project mengerCommon" publish
 
 PublishOptixJni:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION

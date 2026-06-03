@@ -23,6 +23,7 @@ after the quality work is complete.
 
 - [x] `optix-jni` and `menger-common` published to GitLab Package Registry with a CI smoke version; external project verified
 - [ ] `menger-common` and `optix-jni` live in separate repositories, published independently
+  (`menger-common` first, `optix-jni` second)
 - [ ] `menger-common` and `optix-jni` published to Maven Central after all quality fixes
 - [ ] `menger` repo retains only `menger-geometry` and `menger-app`
 - [ ] CI/CD updated for cross-repo dependency resolution
@@ -113,21 +114,33 @@ into a proper `optix-jni` test module (not `menger-app`).
 ### Task 26.1: Repository Split
 
 **Estimate:** 8h
+**Status:** In Progress - staged split; `menger-common` is extracted first, then
+`optix-jni`.
 
-Extract `menger-common` and `optix-jni` into separate GitLab/GitHub repositories.
+Extract `menger-common` and `optix-jni` into separate GitHub repositories while keeping
+the main `menger` repository GitLab-primary. Do the split in two contained stages.
 
-**Steps:**
-1. Create new repos: `github.com/lene/menger-common`, `github.com/lene/optix-jni`
-2. Use `git filter-repo` to extract history for each module
-3. Set up CI/CD in each new repo (compile, test, publish on tag)
-4. Update `menger` root `build.sbt`: replace project references with published artifact
-   dependencies for `menger-common` and `optix-jni`
-5. Update `.gitlab-ci.yml` and GitHub Actions in the new repos
-6. Archive the `menger-common/` and `optix-jni/` directories in the menger repo
-   (or remove entirely once CI is green)
+**Stage 1 - `menger-common`:**
+1. Create a standalone local repo at `../menger-common` from `menger-common/` history.
+2. Configure standalone build metadata and GitHub Actions for compile, Scalafix, and tests.
+3. Publish `io.github.lene:menger-common_3:0.1.0` to the GitLab Package Registry as the
+   interim test target.
+4. Update `menger` root `build.sbt` so local projects consume the published
+   `menger-common` artifact.
+5. Remove tracked `menger-common/` sources from the `menger` repo.
 
-**Validation:** `sbt compile` in menger repo resolves menger-common and optix-jni from
-registry, not from local project references.
+**Stage 2 - `optix-jni`:**
+1. Create `github.com/lene/optix-jni` from `optix-jni/` history.
+2. Add an explicit dependency on `io.github.lene:menger-common_3:0.1.0`.
+3. Move native/GPU CI to a GitHub self-hosted NVIDIA runner.
+4. Publish the standalone `optix-jni` artifact to the GitLab Package Registry as the
+   interim test target.
+5. Update `menger` to consume the published `optix-jni` artifact and remove tracked
+   `optix-jni/` sources.
+
+**Validation:** Stage 1 passes when `sbt compile` in `menger` resolves `menger-common`
+from the registry while `optix-jni` remains local. Final task validation passes when
+both libraries resolve from published artifacts and no local project references remain.
 
 ---
 
