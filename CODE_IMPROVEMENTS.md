@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-05-31
+**Last Updated:** 2026-06-04
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -36,7 +36,6 @@ Resolved items are removed from this file entirely — git history is the record
 | ID | Issue | Location |
 |----|-------|----------|
 | L-upload-texture-file-raw-int | `uploadTextureFromFile` returns a raw negative `Int` on failure while `uploadTexture` throws `TextureUploadException`. Making them consistent (throw) is a **behavior change**: the three production callers (`TextureManager`, `InteractiveEngine`, `WithAnimation`) currently treat a negative index as "skip this texture and continue". Deferred — needs a decision on fail-fast vs graceful-skip before changing the error model. | `optix-jni/.../OptiXTextureApi.scala:67` |
-| L-m4d-scene4d-sumtype | `Scene4DCache(gpu, menger4d, sierpinski4d, hexadecachoron4d)` are mutually exclusive but stored as four Options; a sealed trait would prevent multi-branch population at compile time. Deferred — structural refactor of the interactive-engine cache state machine (paths weakly covered by the headless suite); warrants focused review. | `InteractiveEngine.scala` |
 | L-menger-common-gpuproject4d-field | `RenderConfig.gpuProject4D` is unused after task 26.7 (GPU 4D projection is now the only path; all `menger-app` usages were removed). The field still ships in the published `menger-common_3:0.1.0` artifact. Remove it from `RenderConfig` in the menger-common repository, publish a new version, and bump the menger consumer to it. | menger-common `RenderConfig.scala` (split-out repository) |
 
 
