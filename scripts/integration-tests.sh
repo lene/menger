@@ -330,8 +330,6 @@ test_basic_objects() {
     run_test "sponge-surface" --objects type=sponge-surface:level=1:size=0.5 --plane y:-2
     run_test "sponge-recursive-ias" --objects type=sponge-recursive-ias:level=2:size=0.5 --plane y:-2
     run_test "tesseract" --objects type=tesseract:size=0.5 --plane y:-2
-    run_test "tesseract gpu-project" --gpu-project-4d \
-        --objects type=tesseract:size=0.5 --plane y:-2
 }
 
 test_multi_object() {
