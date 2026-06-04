@@ -13,7 +13,7 @@ default:
 
 variables:
   DEPLOYABLE_BASE_NAME: menger
-  DEPLOYABLE_VERSION: 0.7.2
+  DEPLOYABLE_VERSION: 0.7.3
   SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25.0.1_8_1.12.5_3.8.2
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.8.3
@@ -411,6 +411,8 @@ Run:UseDocker:
   timeout: 20m  # Override global 15m - animation tests need more time
   tags:
     - nvidia
+  variables:
+    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -418,6 +420,11 @@ Run:UseDocker:
   before_script:
     - apt-get -y update
     - apt-get -y install mesa-utils x11-xserver-utils xvfb
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    - ldconfig || true
   script:
     # Smoke-test each sponge type via --objects (OptiX renderer)
     - xvfb-run -a sbt "mengerApp / run --objects type=cube-sponge:level=1 --timeout 0.1"
@@ -442,6 +449,8 @@ CheckRunTime:
   timeout: 20m  # Override global 15m - runtime tests may need more time
   tags:
     - nvidia
+  variables:
+    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -449,6 +458,11 @@ CheckRunTime:
   before_script:
     - apt-get -y update
     - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    - ldconfig || true
   script:
     - sbt compile
     # Test if OPTIX_ROOT is needed for running (unset to check)

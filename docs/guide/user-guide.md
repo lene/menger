@@ -1,6 +1,6 @@
 # Menger — Usage & Rendering
 
-**Version**: 0.7.2
+**Version**: 0.7.3
 **Last Updated**: May 2026
 
 ← [Quick Start](quickstart.md) | [User Guide Index](../USER_GUIDE.md)
