@@ -8,6 +8,10 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## High Priority
 
+### Get CI for optix-jni and menger-common up to the same standard as menger-app 
+
+### Develop concept for managing three projects at once in one Agentic AI project
+
 ### H-jni-thrownew-null-class: FindClass not null-checked before ThrowNew in MengerJNIBindings.cpp
 
 **Location**: `menger-geometry/src/main/native/MengerJNIBindings.cpp` — every catch block (7 sites)
@@ -19,7 +23,11 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-*(none — all medium-priority issues resolved)*
+### Split long running CI tasks
+
+### Review and revise task execution scaffold 
+- ensure tasks are set to in progress and don as appropriate
+- use gitlab/github for issues and task tracking, not in-repository .md files 
 
 ---
 
