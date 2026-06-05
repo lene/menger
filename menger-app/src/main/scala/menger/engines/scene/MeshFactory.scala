@@ -17,10 +17,14 @@ import menger.objects.higher_d.Hecatonicosachoron
 import menger.objects.higher_d.Hexacosichoron
 import menger.objects.higher_d.Hexadecachoron
 import menger.objects.higher_d.Icositetrachoron
+import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Mesh4DGpuFlatten
 import menger.objects.higher_d.Mesh4DProjection
 import menger.objects.higher_d.Pentachoron
+import menger.objects.higher_d.Tesseract
 import menger.objects.higher_d.TesseractMesh
+import menger.objects.higher_d.TesseractSponge
+import menger.objects.higher_d.TesseractSponge2
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
 
@@ -138,7 +142,7 @@ object MeshFactory:
       MeshUploadPlan.Cpu(create(spec))
 
   private def gpu4DPlan(spec: ObjectSpec, skinOffset: Float = 0f): Option[MeshUploadPlan.Gpu4D] =
-    mesh4DProjection(spec).map { p =>
+    mesh4D(spec).map { m =>
       // A non-zero skinOffset expands the lower-level mesh of a fractional pair
       // outward along its 4D face normals before projection, so its surface does
       // not land coincident with the higher-level surface and z-fight. This is the
@@ -146,15 +150,35 @@ object MeshFactory:
       // quad meshes (the 4D sponges that take a skin offset) support it.
       val (buffer, vpf) =
         if skinOffset != 0f then
-          (Mesh4DGpuFlatten.quadsBuffer(p.mesh4D, skinOffset), p.mesh4D.vertsPerFace)
+          (Mesh4DGpuFlatten.quadsBuffer(m, skinOffset), m.vertsPerFace)
         else
-          Mesh4DGpuFlatten.facesBuffer(p.mesh4D)
+          Mesh4DGpuFlatten.facesBuffer(m)
       MeshUploadPlan.Gpu4D(
         quads4D = buffer,
         vertsPerFace = vpf,
         proj = spec.projection4D.getOrElse(Projection4DSpec.default)
       )
     }
+
+  private def mesh4D(spec: ObjectSpec): Option[Mesh4D] =
+    spec.objectType match
+      case "tesseract" =>
+        Some(Tesseract(size = spec.size))
+      case "tesseract-sponge" | "tesseract-sponge-volume" if spec.level.isDefined =>
+        Some(TesseractSponge(spec.level.get))
+      case "tesseract-sponge-2" | "tesseract-sponge-surface" if spec.level.isDefined =>
+        Some(TesseractSponge2(spec.level.get, size = spec.size))
+      case "pentachoron" =>
+        Some(Pentachoron(size = spec.size))
+      case "16-cell" =>
+        Some(Hexadecachoron(size = spec.size))
+      case "24-cell" =>
+        Some(Icositetrachoron(size = spec.size))
+      case "600-cell" =>
+        Some(Hexacosichoron(size = spec.size))
+      case "120-cell" =>
+        Some(Hecatonicosachoron(size = spec.size))
+      case _ => None
 
   private def mesh4DProjection(spec: ObjectSpec): Option[Mesh4DProjection] =
     val proj = spec.projection4D.getOrElse(Projection4DSpec.default)

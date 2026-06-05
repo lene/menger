@@ -29,7 +29,8 @@ after the quality work is complete.
 - [ ] CI/CD updated for cross-repo dependency resolution
 - [ ] All open High/Medium/Low Priority CODE_IMPROVEMENTS issues resolved and removed
 - [ ] CODE_IMPROVEMENTS.md retains only Feature Ideas and Accepted/Deferred decisions
-- [ ] `Mesh4D` and `RotatedProjection` deleted (26.7 incomplete — only gpuProject4D removed)
+- [x] `RotatedProjection` deleted; `gpuProject4D` flag removed; GPU path decoupled from `Mesh4DProjection`
+      (`Mesh4DProjection` retained for cylinder-edge rendering via `TesseractEdgeSceneBuilder`)
 - [ ] All tests pass
 
 ---
@@ -211,9 +212,12 @@ enable the rule.
 ### Task 26.7: Remove Legacy CPU 4D Path
 
 **Estimate:** 2h
-**Status:** Incomplete - `fc8fd79` removed `gpuProject4D` only; `Mesh4D.scala`,
-`Mesh4DProjection.scala`, `Mesh4DGpuFlatten.scala`, and associated tests still exist.
-Success criterion `[ ] Mesh4D and RotatedProjection deleted` is not met.
+**Status:** Done - `fc8fd79` removed `gpuProject4D` flag and all CPU/GPU path selection
+logic. `Mesh4DProjection` intentionally retained: `TesseractEdgeSceneBuilder` uses
+`MeshFactory.create()` → `Mesh4DProjection.toTriangleMesh` for cylinder-edge rendering
+(active production path). `RotatedProjection` already gone. GPU path (`gpu4DPlan`)
+refactored to use `mesh4D()` helper directly, removing its unnecessary dependency on
+`Mesh4DProjection`.
 
 Delete `Mesh4D`, `RotatedProjection`, and any other CPU-side 4D projection code that
 has been superseded by the GPU path (Sprint 18+). Verify no callers remain before
