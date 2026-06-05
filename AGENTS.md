@@ -26,13 +26,17 @@ These are non-negotiable. Violating any of them causes real harm.
 
 ## Definition of Done
 
-After every task, run the pre-push hook:
+**Every task requires both steps — neither alone is sufficient:**
+
+**Step 1: Mark the task done in the sprint doc.** Find the current sprint file via `docs/sprints/SPRINT.md`, open the linked sprint file, check the task's box and update its status. Do this before declaring the task complete.
+
+**Step 2: Run the pre-push hook:**
 
 ```
 ./.git_hooks/pre-push 2>&1 | tee /tmp/pre-push.log
 ```
 
-It is the single authoritative DoD gate — unit tests, scalafix, packaging, integration tests (~27 scenarios, ~2,200 unit tests), coverage ratchet (≥80%, max 1% drop), memory leak checks (Valgrind + compute-sanitizer), version consistency. Takes ~8–10 minutes.
+It is the single authoritative code-quality gate — unit tests, scalafix, packaging, integration tests (~27 scenarios, ~2,200 unit tests), coverage ratchet (≥80%, max 1% drop), memory leak checks (Valgrind + compute-sanitizer), version consistency. Takes ~8–10 minutes.
 
 Do **not** run individual checks (`sbt test`, `sbt "scalafix --check"`, etc.) as a substitute. The hook is the source of truth and evolves over time.
 

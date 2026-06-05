@@ -29,7 +29,7 @@ after the quality work is complete.
 - [ ] CI/CD updated for cross-repo dependency resolution
 - [ ] All open High/Medium/Low Priority CODE_IMPROVEMENTS issues resolved and removed
 - [ ] CODE_IMPROVEMENTS.md retains only Feature Ideas and Accepted/Deferred decisions
-- [ ] `Mesh4D` and `RotatedProjection` deleted
+- [ ] `Mesh4D` and `RotatedProjection` deleted (26.7 incomplete — only gpuProject4D removed)
 - [ ] All tests pass
 
 ---
@@ -175,6 +175,7 @@ Fix: RAII pattern or explicit `cudaFreeArray` in error path.
 ### Task 26.4: Fix M-render-null-type-contract
 
 **Estimate:** 1h
+**Status:** Done - `f9a66dd` (`fix(api): renderWithStats returns Optional[RenderResult], not nullable`)
 
 `renderWithStats` is typed `RenderResult` but can return null in error paths (already
 partially fixed in Sprint 23.9). Audit all code paths; ensure return type is
@@ -185,6 +186,7 @@ partially fixed in Sprint 23.9). Audit all code paths; ensure return type is
 ### Task 26.5: Fix M-texture-index-overloading
 
 **Estimate:** 2h
+**Status:** Done - `78de2c8` (already resolved prior to sprint; docs closed the issue)
 
 `texture_index` in `InstanceMaterial` is used for both geometry data indexing and
 image texture indexing — two incompatible semantics. Rename to disambiguate:
@@ -198,6 +200,7 @@ Update all shaders and C++ code that reads this field.
 ### Task 26.6: Fix M-arch-config-naming
 
 **Estimate:** 1h
+**Status:** Done - `4bee370` (already resolved prior to sprint; docs closed the issue)
 
 The `*Config` ArchUnit naming rule cannot be enabled because some Config types live
 outside the `menger.common.config` package. Move them to the correct package and
@@ -208,6 +211,9 @@ enable the rule.
 ### Task 26.7: Remove Legacy CPU 4D Path
 
 **Estimate:** 2h
+**Status:** Incomplete - `fc8fd79` removed `gpuProject4D` only; `Mesh4D.scala`,
+`Mesh4DProjection.scala`, `Mesh4DGpuFlatten.scala`, and associated tests still exist.
+Success criterion `[ ] Mesh4D and RotatedProjection deleted` is not met.
 
 Delete `Mesh4D`, `RotatedProjection`, and any other CPU-side 4D projection code that
 has been superseded by the GPU path (Sprint 18+). Verify no callers remain before
@@ -218,6 +224,7 @@ deleting.
 ### Task 26.8: Test LibGDX Wrapper Paths
 
 **Estimate:** 3h
+**Status:** Done - `d0c6ac1` (`test: cover LibGDX/OptiX wrapper layer`)
 
 `SceneConfigurator`, `OptiXRendererWrapper`, and `CameraState` (all in
 `io.github.lene.optix` under `menger-app`) are 0–17% covered because they are
@@ -243,6 +250,7 @@ each reach ≥70% statement coverage. Remove `M-libgdx-wrapper-untested` from
 ### Task 26.9: Fix M-arch-archunit-case-class-field
 
 **Estimate:** 3h
+**Status:** Done - `8526584` (already resolved prior to sprint; docs closed the issue)
 
 ArchUnit `haveOnlyFinalFields` reports false positives for Scala case class `val`
 fields, and package checks treat synthetic `java.io.Serializable` inheritance as
@@ -258,6 +266,7 @@ mutable `var` fields, and exclude `java.io.Serializable` from file-IO package ch
 ### Task 26.10: Fix M-arch-objects-logging
 
 **Estimate:** 2h
+**Status:** Done - `60e55c5` (already resolved prior to sprint; docs closed the issue)
 
 `ParametricTessellator` and `higher_d/Rotation` use SLF4J from the pure geometry
 layer.
@@ -272,6 +281,7 @@ return it from the computation and let outer layers log.
 ### Task 26.11: Fix M-objectspec-optix-coupling
 
 **Estimate:** 8h
+**Status:** Done - `a738cd6` (already resolved prior to sprint; docs closed the issue)
 
 `ObjectSpec` imports `menger.optix.Material`, coupling core scene description to the
 JNI layer.
@@ -288,6 +298,10 @@ loading.
 ### Task 26.12: Resolve Low-Priority CODE_IMPROVEMENTS Sweep
 
 **Estimate:** 10h
+**Status:** Done - `82b44ad` (`refactor: resolve low-priority CODE_IMPROVEMENTS sweep`)
+Note: High/Medium priority CODE_IMPROVEMENTS items remain open — these are separate
+from this task's scope but block success criterion "All open High/Medium/Low Priority
+issues resolved".
 
 Fix every remaining open low-priority CODE_IMPROVEMENTS item rather than carrying a
 second backlog into the split repositories:
