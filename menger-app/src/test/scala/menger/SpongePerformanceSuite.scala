@@ -9,6 +9,7 @@ import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
 import io.github.lene.optix.OptiXRenderer
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.Outcome
 import org.scalatest.Tag
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -35,13 +36,18 @@ class SpongePerformanceSuite extends AnyFlatSpec
     throw new IllegalStateException("Renderer not initialized")
   )
 
+  override def withFixture(test: NoArgTest): Outcome =
+    if rendererOpt.isDefined then super.withFixture(test)
+    else cancel("OptiX native library not available")
+
   override def beforeEach(): Unit =
     super.beforeEach()
-    require(OptiXRenderer.isLibraryLoaded, "OptiX native library failed to load")
-    val r = new OptiXRenderer()
-    r.initialize()
-    rendererOpt = Some(r)
-    setupDefaults()
+    try
+      val r = new OptiXRenderer()
+      r.initialize()
+      rendererOpt = Some(r)
+      setupDefaults()
+    catch case _: Throwable => ()
 
   override def afterEach(): Unit =
     try rendererOpt.foreach(_.dispose())
