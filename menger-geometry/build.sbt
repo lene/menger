@@ -32,7 +32,7 @@ extractOptixJniNativeApi := {
   val outputDir = optixJniNativeApiDir.value
   val optixJar = (Compile / dependencyClasspath).value
     .map(_.data)
-    .find(_.getName.matches("optix-jni-.*\\.jar"))
+    .find(_.getName.matches("optix-jni.*\\.jar"))
     .getOrElse(sys.error("optix-jni dependency jar not found on menger-geometry classpath"))
 
   IO.delete(outputDir)
