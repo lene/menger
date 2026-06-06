@@ -1,16 +1,12 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-06-04
+**Last Updated:** 2026-06-06
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
 ---
 
 ## High Priority
-
-### Get CI for optix-jni and menger-common up to the same standard as menger-app 
-
-### Develop concept for managing three projects at once in one Agentic AI project
 
 ### H-jni-thrownew-null-class: FindClass not null-checked before ThrowNew in MengerJNIBindings.cpp
 
@@ -20,24 +16,6 @@ Resolved items are removed from this file entirely — git history is the record
 **Status**: Fixed in sprint 25 — carried as note; pattern must not recur in new JNI files.
 
 ---
-
-## Medium Priority
-
-### Split long running CI tasks
-
-### Review and revise task execution scaffold 
-- ensure tasks are set to in progress and don as appropriate
-- use gitlab/github for issues and task tracking, not in-repository .md files 
-
----
-
-## Low Priority
-
-| ID | Issue | Location |
-|----|-------|----------|
-| L-upload-texture-file-raw-int | `uploadTextureFromFile` returns a raw negative `Int` on failure while `uploadTexture` throws `TextureUploadException`. Making them consistent (throw) is a **behavior change**: the three production callers (`TextureManager`, `InteractiveEngine`, `WithAnimation`) currently treat a negative index as "skip this texture and continue". Deferred — needs a decision on fail-fast vs graceful-skip before changing the error model. | `optix-jni/.../OptiXTextureApi.scala:67` |
-| L-menger-common-gpuproject4d-field | `RenderConfig.gpuProject4D` is unused after task 26.7 (GPU 4D projection is now the only path; all `menger-app` usages were removed). The field still ships in the published `menger-common_3:0.1.0` artifact. Remove it from `RenderConfig` in the menger-common repository, publish a new version, and bump the menger consumer to it. | menger-common `RenderConfig.scala` (split-out repository) |
-
 
 ## Tooling Gaps
 
@@ -81,3 +59,8 @@ Issues that were investigated and consciously accepted:
 | L-cli-monolith: MengerCLIOptions is a 375-line monolith | Scallop registers options during construction; extracting groups into separate `self: ScallopConf =>` traits risks initialization-order issues. File is already organized with clear group separators; accept as-is. |
 | L-cli-validation-density: CliValidation repetitive requires-pattern | `isSupplied` must be evaluated lazily inside `validateOpt` lambdas (after argument parsing), not eagerly in a data-driven list. The repetition is load-bearing; accept as-is. The `case Some(_)/None` branches were simplified to `case _` where safe. |
 | M-film-maxdepth-opaque-fallback: Film opaque at max_ray_depth | Unconfirmed. `use_refractive_coverage_blend` requires `has_vertex_alpha_channel`; plain Film geometry (spheres, parametric) has no vertex alpha and never enters that branch. No existing scene combines Film + vertex-alpha geometry to trigger the hypothesised fallback. |
+| L-upload-texture-file-raw-int | `uploadTextureFromFile` returns raw negative `Int` on failure vs `uploadTexture` which throws. Changing is a behaviour break: three callers treat negative index as "skip and continue". Deferred until fail-fast vs graceful-skip decision is made. |
+| CI parity: optix-jni and menger-common | Sprint 26: pre-commit + pre-push hooks added to both repos (`feat/git-hooks` branches). ArchUnit moved to nvidia runner in optix-jni. All three repos now have equivalent quality gates: scalafix, ArchUnit, cppcheck (where applicable), clang-tidy (where applicable), coverage, smoke/integration tests, CLAUDE.md, pre-commit, pre-push. |
+| Three-repo agentic management concept | Sprint 26: CLAUDE.md in all three repos defines branch/PR workflow, hook install, and incident protocols. Sprint docs in menger are the cross-repo coordination record. This is the accepted model — no further tooling needed at this stage. |
+| Split long running CI tasks | Pre-push hook already runs coverage and static analysis in parallel (background jobs). Further splitting needs profiling data to justify; premature without evidence of bottleneck. |
+| Task execution scaffold | GitHub/GitLab issue trackers are the right tool per CLAUDE.md. In-repo .md sprint files remain as planning artifacts but are not the tracking system. No code change needed. |
