@@ -51,7 +51,7 @@ Sub-items:
 | ID | Issue | Location |
 |----|-------|----------|
 | L-upload-texture-file-raw-int | `uploadTextureFromFile` returns a raw negative `Int` on failure while `uploadTexture` throws `TextureUploadException`. Behavior change needed: three production callers treat negative index as "skip and continue". Deferred until fail-fast vs graceful-skip decision is made. | `optix-jni/.../OptiXTextureApi.scala:67` |
-| L-menger-common-gpuproject4d-field | `RenderConfig.gpuProject4D` is unused after task 26.7. Field still in source at `menger-common/src/main/scala/menger/common/RenderConfig.scala:20`. **Blocked on**: `fix/remove-gpuproject4d` branch in menger-common → publish 0.1.1. Remove this entry once menger-common 0.1.1 is on Maven Central. | menger-common `RenderConfig.scala` |
+| L-menger-common-gpuproject4d-field | Tracked in [menger-common#1](https://github.com/lene/menger-common/issues/1). Remove this entry once that issue is closed. | menger-common `RenderConfig.scala` |
 
 ---
 

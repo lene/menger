@@ -25,8 +25,8 @@ after the quality work is complete.
 - [x] `menger-common` and `optix-jni` live in separate repositories, published independently
   (`menger-common` first, `optix-jni` second)
 - [ ] `menger-common` and `optix-jni` published to Maven Central after all quality fixes
-- [ ] `menger` repo retains only `menger-geometry` and `menger-app`
-- [ ] CI/CD updated for cross-repo dependency resolution
+- [x] `menger` repo retains only `menger-geometry` and `menger-app`
+- [x] CI/CD updated for cross-repo dependency resolution
 - [ ] All open High/Medium/Low Priority CODE_IMPROVEMENTS issues resolved and removed
 - [ ] CODE_IMPROVEMENTS.md retains only Feature Ideas and Accepted/Deferred decisions
 - [x] `RotatedProjection` deleted; `gpuProject4D` flag removed; GPU path decoupled from `Mesh4DProjection`
@@ -329,6 +329,7 @@ pattern has not recurred.
 ### Task 26.13: Publish Libraries to Maven Central
 
 **Estimate:** 5h
+**Status:** In Progress
 **Depends on:** 26.12 (all CODE_IMPROVEMENTS issues resolved), 26.1 (repositories split)
 
 Publish the standalone `menger-common` and `optix-jni` libraries to Maven Central after

@@ -409,13 +409,19 @@ export CUDA_HOME
 export HAS_SCALA
 export HAS_NATIVE
 
-echo "=== Running coverage (GPU) and Valgrind (CPU) in parallel ==="
+echo "=== Running coverage, Valgrind, cppcheck, clang-tidy in parallel ==="
 
 run_coverage &
 COVERAGE_PID=$!
 
 run_valgrind &
 VALGRIND_PID=$!
+
+run_cppcheck &
+CPPCHECK_PID=$!
+
+run_clang_tidy &
+CLANGTIDY_PID=$!
 
 wait $COVERAGE_PID
 COVERAGE_STATUS=$?
@@ -425,11 +431,18 @@ wait $VALGRIND_PID
 VALGRIND_STATUS=$?
 cat /tmp/valgrind-phase-prepush.log
 
+wait $CPPCHECK_PID
+CPPCHECK_STATUS=$?
+cat /tmp/cppcheck-prepush.log
+
+wait $CLANGTIDY_PID
+CLANGTIDY_STATUS=$?
+cat /tmp/clangtidy-prepush.log
+
 if [ $COVERAGE_STATUS -ne 0 ]; then
   echo "Coverage: ${RED_TEXT}FAILED${RESET_TEXT}"
   STATUS=1
 else
-  # Re-print the key line with colour
   grep "Statement coverage\|Coverage:\|Skipping\|Skipped" /tmp/coverage-prepush.log | while IFS= read -r line; do
     echo "  ${GREEN_TEXT}${line}${RESET_TEXT}"
   done
@@ -442,20 +455,6 @@ else
   echo "Valgrind: ${GREEN_TEXT}PASSED${RESET_TEXT}"
 fi
 
-if [ $STATUS -gt 0 ]
-then echo "Status after coverage+Valgrind: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after coverage+Valgrind: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
-fi
-
-# --- compute-sanitizer ---
-echo "=== compute-sanitizer ==="
-echo "  [skipped — optix-jni GPU memory checks run in the standalone repository]"
-
-# --- cppcheck (fast, sequential, after compute-sanitizer) ---
-echo "=== Running cppcheck ==="
-run_cppcheck
-CPPCHECK_STATUS=$?
-cat /tmp/cppcheck-prepush.log
 if [ $CPPCHECK_STATUS -ne 0 ]; then
   echo "Cppcheck: ${RED_TEXT}FAILED${RESET_TEXT}"
   STATUS=1
@@ -463,20 +462,20 @@ else
   echo "Cppcheck: ${GREEN_TEXT}PASSED${RESET_TEXT}"
 fi
 
-# --- clang-tidy (sequential, after cppcheck) ---
-echo "=== Running clang-tidy ==="
-run_clang_tidy
-CLANGTIDY_STATUS=$?
-cat /tmp/clangtidy-prepush.log
 if [ $CLANGTIDY_STATUS -ne 0 ]; then
   echo "clang-tidy: ${RED_TEXT}FAILED${RESET_TEXT}"
   STATUS=1
 else
   echo "clang-tidy: ${GREEN_TEXT}PASSED${RESET_TEXT}"
 fi
+
+# --- compute-sanitizer ---
+echo "=== compute-sanitizer ==="
+echo "  [skipped — optix-jni GPU memory checks run in the standalone repository]"
+
 if [ $STATUS -gt 0 ]
-then echo "Status after clang-tidy: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-else echo "Status after clang-tidy: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+then echo "Status after parallel checks: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after parallel checks: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
 fi
 
 # ---------------------------------------------------------------------------
