@@ -10,10 +10,13 @@ inThisBuild(List(
   credentials += Credentials(
     "GitLab Packages Registry",
     "gitlab.com",
-    if (sys.env.contains("CI_JOB_TOKEN")) "gitlab-ci-token" else "Private-Token",
+    if (sys.env.contains("CI_JOB_TOKEN")) "gitlab-ci-token"
+    else if (sys.env.contains("GITLAB_OAUTH_TOKEN")) "oauth2"
+    else "Private-Token",
     sys.env.getOrElse(
       "CI_JOB_TOKEN",
-      sys.env.getOrElse("GITLAB_PAT", sys.env.getOrElse("GITLAB_ACCESS_TOKEN", ""))
+      sys.env.getOrElse("GITLAB_OAUTH_TOKEN",
+        sys.env.getOrElse("GITLAB_PAT", sys.env.getOrElse("GITLAB_ACCESS_TOKEN", "")))
     )
   )
 ))
