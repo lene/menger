@@ -5,24 +5,10 @@ inThisBuild(List(
   semanticdbEnabled := true,
   semanticdbVersion := scalafixSemanticdb.revision,
   Test / parallelExecution := true,
-  resolvers += "GitLab Menger" at
-    "https://gitlab.com/api/v4/projects/lilacashes%2Fmenger/packages/maven",
-  credentials += Credentials(
-    "GitLab Packages Registry",
-    "gitlab.com",
-    if (sys.env.contains("CI_JOB_TOKEN")) "gitlab-ci-token"
-    else if (sys.env.contains("GITLAB_OAUTH_TOKEN")) "oauth2"
-    else "Private-Token",
-    sys.env.getOrElse(
-      "CI_JOB_TOKEN",
-      sys.env.getOrElse("GITLAB_OAUTH_TOKEN",
-        sys.env.getOrElse("GITLAB_PAT", sys.env.getOrElse("GITLAB_ACCESS_TOKEN", "")))
-    )
-  )
 ))
 
-lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.0"
-lazy val optixJniDependency = "io.github.lene" % "optix-jni" % "0.1.1"
+lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.1"
+lazy val optixJniDependency = "io.github.lene" % "optix-jni" % "0.1.2"
 
 // Root project - aggregator only, no source code
 lazy val root = project
