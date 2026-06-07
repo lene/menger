@@ -102,8 +102,11 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     sceneType match
       case SceneType.TriangleMeshes(_) =>
         GeometryRegistry.builderFor(specs, textureDir) match
-          case Some(builder) => builder.buildScene(specs, renderer, maxInstances)
-          case None          => Failure(UnsupportedOperationException(s"No builder for $sceneType"))
+          case Some(builder) =>
+            builder.validate(specs, maxInstances) match
+              case Left(error) => Failure(ValidationException(error, "objectSpecs", specs.map(_.objectType)))
+              case Right(_)    => builder.buildScene(specs, renderer, maxInstances)
+          case None => Failure(UnsupportedOperationException(s"No builder for $sceneType"))
       case SceneType.SimpleMixed(allSpecs, _) =>
         Try {
           val analyticalSpecs = allSpecs.filter(s => ObjectType.isAnalyticalPrimitive(s.objectType))
@@ -131,8 +134,11 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
         }
       case other =>
         GeometryRegistry.builderFor(specs, textureDir) match
-          case Some(builder) => builder.buildScene(specs, renderer, maxInstances)
-          case None          =>
+          case Some(builder) =>
+            builder.validate(specs, maxInstances) match
+              case Left(error) => Failure(ValidationException(error, "objectSpecs", specs.map(_.objectType)))
+              case Right(_)    => builder.buildScene(specs, renderer, maxInstances)
+          case None =>
             Failure(UnsupportedOperationException(s"Unsupported scene type: $other"))
 
   protected def rebuildGeometry(

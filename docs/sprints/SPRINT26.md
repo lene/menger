@@ -1,7 +1,7 @@
 # Sprint 26: Repository Split & Code Health
 
 **Sprint:** 26 - Repository Split & Code Health
-**Status:** In Progress
+**Status:** Done
 **Estimate:** ~56 hours
 **Branch:** `feature/sprint-26`
 **Dependencies:** Sprint 25 (3-layer architecture complete; CI green on 0.7.2 tag)
@@ -24,14 +24,14 @@ after the quality work is complete.
 - [x] `optix-jni` and `menger-common` published to GitLab Package Registry with a CI smoke version; external project verified
 - [x] `menger-common` and `optix-jni` live in separate repositories, published independently
   (`menger-common` first, `optix-jni` second)
-- [ ] `menger-common` and `optix-jni` published to Maven Central after all quality fixes
+- [x] `menger-common` and `optix-jni` published to Maven Central after all quality fixes
 - [x] `menger` repo retains only `menger-geometry` and `menger-app`
 - [x] CI/CD updated for cross-repo dependency resolution
-- [ ] All open High/Medium/Low Priority CODE_IMPROVEMENTS issues resolved and removed
-- [ ] CODE_IMPROVEMENTS.md retains only Feature Ideas and Accepted/Deferred decisions
+- [x] All open High/Medium/Low Priority CODE_IMPROVEMENTS issues resolved and removed
+- [x] CODE_IMPROVEMENTS.md retains only Feature Ideas and Accepted/Deferred decisions
 - [x] `RotatedProjection` deleted; `gpuProject4D` flag removed; GPU path decoupled from `Mesh4DProjection`
       (`Mesh4DProjection` retained for cylinder-edge rendering via `TesseractEdgeSceneBuilder`)
-- [ ] All tests pass
+- [x] All tests pass
 
 ---
 
@@ -329,7 +329,7 @@ pattern has not recurred.
 ### Task 26.13: Publish Libraries to Maven Central
 
 **Estimate:** 5h
-**Status:** In Progress
+**Status:** Done — `menger-common 0.1.1` and `optix-jni 0.1.2` published; GitLab CI pipeline 2583081729 resolved both from Maven Central only (no GitLab registry)
 **Depends on:** 26.12 (all CODE_IMPROVEMENTS issues resolved), 26.1 (repositories split)
 
 Publish the standalone `menger-common` and `optix-jni` libraries to Maven Central after
@@ -377,10 +377,10 @@ libraries are stable.
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] Pre-push hook green
-- [ ] Maven Central publication verified from a clean external project
-- [ ] CODE_IMPROVEMENTS.md: no open High/Medium/Low Priority issues remain
-- [ ] Any retained CODE_IMPROVEMENTS.md entry is either a Feature Idea or an
+- [x] All success criteria met
+- [x] Pre-push hook green (182/182 integration tests)
+- [x] Maven Central publication verified from clean external project (GitLab CI pipeline 2583081729)
+- [x] CODE_IMPROVEMENTS.md: no open High/Medium/Low Priority issues remain
+- [x] Any retained CODE_IMPROVEMENTS.md entry is either a Feature Idea or an
       Accepted/Deferred decision with an explicit rationale
 - [ ] CHANGELOG.md updated

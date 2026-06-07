@@ -39,7 +39,8 @@ static OptiXWrapper* getWrapper(JNIEnv* env, jobject obj) {
     jfieldID fid = env->GetFieldID(cls, "nativeHandle", "J");
     if (fid == nullptr) {
         std::cerr << "[MengerJNI] Failed to get nativeHandle field" << std::endl;
-        return nullptr;
+        env->ExceptionClear();  // GetFieldID sets a pending NoSuchFieldError; clear it so
+        return nullptr;         // returning nullptr to caller doesn't trigger JNI UB
     }
     jlong handle = env->GetLongField(obj, fid);
     return reinterpret_cast<OptiXWrapper*>(handle);
@@ -76,7 +77,7 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addRecursiveIASS
                 roughness, metallic, specular, emission, textureIndex, filmThickness
             );
         } catch (...) {
-            env->ReleaseFloatArrayElements(transform, transformArr, 0);
+            env->ReleaseFloatArrayElements(transform, transformArr, JNI_ABORT);
             throw;
         }
         env->ReleaseFloatArrayElements(transform, transformArr, 0);

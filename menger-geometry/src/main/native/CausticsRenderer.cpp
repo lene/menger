@@ -35,6 +35,12 @@ void CausticsRenderer::launchCausticsPass(
         raygen_group,
         scene
     );
+    // RAII guard: freeTempRaygenSBTRecord must run even if launch() throws
+    struct RaygenRecordGuard {
+        PipelineManager& mgr;
+        CUdeviceptr& rec;
+        ~RaygenRecordGuard() { mgr.freeTempRaygenSBTRecord(rec); }
+    } guard{pipeline_manager, temp_raygen_record};
 
     temp_sbt.raygenRecord = temp_raygen_record;
 
@@ -46,9 +52,6 @@ void CausticsRenderer::launchCausticsPass(
         launch_width,
         launch_height
     );
-
-    // Clean up temporary SBT record
-    pipeline_manager.freeTempRaygenSBTRecord(temp_raygen_record);
 }
 
 void CausticsRenderer::renderWithCaustics(

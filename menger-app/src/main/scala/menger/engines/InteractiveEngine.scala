@@ -107,6 +107,10 @@ class InteractiveEngine(
     case Menger4D(state: Menger4DState)
     case Sierpinski4D(state: Sierpinski4DState)
     case Hexadecachoron4D(state: Hexadecachoron4DState)
+  // AtomicReference for cross-thread visibility only. All reads and writes happen on the
+  // LibGDX GL thread (render() and key handlers are both dispatched there), so the
+  // non-atomic get+set compound operations in tryXxx4DFastPath are safe — do not
+  // add a second thread that writes this without converting to synchronized or CAS loops.
   private val scene4DCache: AtomicReference[Scene4DCache] =
     new AtomicReference(Scene4DCache.Empty)
 

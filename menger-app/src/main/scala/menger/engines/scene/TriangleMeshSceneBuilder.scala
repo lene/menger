@@ -104,6 +104,7 @@ class TriangleMeshSceneBuilder(
               val coarseMat = op.material.copy(color = op.material.color.copy(a = op.material.color.a * (1f - frac)))
               val coarseId  = renderer.addRecursiveIASSpongeInstance(rawLevel.floor.toInt, transform, coarseMat, textureIndex)
               if coarseId >= 0 then applyInstanceTextures(coarseId, spec, textureIndices, renderer)
+              else logger.error(s"Failed to add coarse fractional sponge instance (level=${rawLevel.floor.toInt}) for ${spec.objectType}")
               renderer.addRecursiveIASSpongeInstance(rawLevel.floor.toInt + 1, transform, op.material, textureIndex)
             else
               renderer.addRecursiveIASSpongeInstance(rawLevel.toInt, transform, op.material, textureIndex)
