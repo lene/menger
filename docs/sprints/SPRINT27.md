@@ -90,10 +90,10 @@ Frame cache: `std::unordered_map<int, std::vector<float>>`, max 8 frames (ring e
 **Estimate:** 2h
 **Depends on:** 27.2
 
-- `VideoLoader.scala` in `menger-geometry` (or optix-jni if kept generic)
+- `VideoLoader.scala` in `menger-geometry` (VideoLoader is menger-specific; ffmpeg stays out of optix-jni)
 - Native methods: `openVideo(path)`, `videoWidth()`, `videoHeight()`, `frameCount()`,
   `getFrameAt(timestamp): Array[Float]`, `closeVideo()`
-- `OptiXVideoApi` trait following existing pattern
+- `MengerVideoApi` trait following existing JNI pattern
 
 ---
 
@@ -146,6 +146,23 @@ case class EnvMapVideo(
 
 ---
 
+### Task 27.7: Fix M-instanceid-raw-int — Opaque InstanceId type
+
+**Estimate:** 4h
+**Depends on:** none (pure Scala refactor)
+
+Replace raw `Int` instance IDs from native `add*Instance` methods with an opaque type to enforce -1-to-failure translation at the API boundary instead of each caller.
+
+**Changes:**
+- Introduce `opaque type InstanceId = Int` (or a value class wrapper) in the engine/scene layer
+- Return `Option[InstanceId]` or `Try[InstanceId]` from public `add*` wrappers
+- Remove scattered `-1` checks across `CubeSpongeSceneBuilder`, `ConeSceneBuilder`, `Menger4DSceneBuilder`, etc.
+- Update `update*4DProjection` callers to use typed IDs — eliminates mid-frame `IllegalArgumentException` risk
+
+See `CODE_IMPROVEMENTS.md` `M-instanceid-raw-int`.
+
+---
+
 ## Summary
 
 | Task | Description | Estimate |
@@ -156,7 +173,8 @@ case class EnvMapVideo(
 | 27.4 | Per-frame texture swap in animation loop | 3h |
 | 27.5 | DSL EnvMapVideo type | 1h |
 | 27.6 | Documentation | 2h |
-| **Total** | | **~15h** |
+| 27.7 | Fix M-instanceid-raw-int (opaque InstanceId type) | 4h |
+| **Total** | | **~19h** |
 
 ---
 

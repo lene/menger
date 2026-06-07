@@ -47,7 +47,7 @@ coverageExcludedPackages := "menger\\.optix\\..*;menger\\.engines\\..*;" +
 libraryDependencies ++= Seq(
   // Logging
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6",
-  "ch.qos.logback" % "logback-classic" % "1.5.32",
+  "ch.qos.logback" % "logback-classic" % "1.5.34",
   // JUnit
   "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   // ScalaTest
@@ -57,9 +57,9 @@ libraryDependencies ++= Seq(
   // Scallop command line parser
   "org.rogach" %% "scallop" % "6.0.0",
   // libGDX
-  "com.badlogicgames.gdx" % "gdx" % "1.14.1",
-  "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.14.1",
-  "com.badlogicgames.gdx" % "gdx-platform" % "1.14.1" classifier "natives-desktop",
+  "com.badlogicgames.gdx" % "gdx" % "1.14.2",
+  "com.badlogicgames.gdx" % "gdx-backend-lwjgl3" % "1.14.2",
+  "com.badlogicgames.gdx" % "gdx-platform" % "1.14.2" classifier "natives-desktop",
   // Scala 3 compiler for runtime .scala scene file evaluation (Task 17.7)
   "org.scala-lang" %% "scala3-compiler" % scalaVersion.value,
   // ArchUnit — architecture rule enforcement
