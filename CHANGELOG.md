@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.3] - 2026-06-04
+## [0.7.3] - 2026-06-07
 
 ### Fixed
 - **GitLab OptiX runtime jobs** — `Run:UseDocker` and `CheckRunTime` now request
