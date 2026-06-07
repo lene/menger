@@ -1,24 +1,12 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-06-06
+**Last Updated:** 2026-06-07
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
 ---
 
 ## High Priority
-
-### Get CI for optix-jni and menger-common up to the same standard as menger-app
-
-Pre-commit and pre-push hooks created in Sprint 26 (`feat/git-hooks` branches in both repos).
-**Blocked on**: merging those branches to main in optix-jni and menger-common.
-Once merged: parity is achieved — scalafix, ArchUnit, cppcheck (where applicable), CLAUDE.md, pre-commit, pre-push in all three repos. Remove this item then.
-
-### Develop concept for managing three projects at once in one Agentic AI project
-
-CLAUDE.md files authored in Sprint 26 for optix-jni and menger-common.
-**Blocked on**: merging CLAUDE.md to main in optix-jni and menger-common.
-Once merged: the concept is documented and in force. Remove this item then.
 
 ### H-jni-thrownew-null-class: FindClass not null-checked before ThrowNew in MengerJNIBindings.cpp
 
