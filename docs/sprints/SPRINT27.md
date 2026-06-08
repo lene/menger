@@ -6,6 +6,7 @@
 **Branch:** `feature/sprint-27`
 **Dependencies:** Sprint 21.6 (image texture support), Sprint 22 (env map DSL wiring),
 Sprint 24-26 repository/module split
+**Implementation guide:** [SPRINT27_IMPLEMENTATION_PLAN.md](SPRINT27_IMPLEMENTATION_PLAN.md)
 
 ---
 
