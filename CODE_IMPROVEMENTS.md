@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-06-07 (Sprint 26 review)
+**Last Updated:** 2026-06-08
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -8,27 +8,7 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## High Priority
 
-### H-jni-pending-exception-ub: GetFieldID failure leaves pending JNI exception; returning -1 with it is UB
-
-**Location**: `menger-geometry/src/main/native/MengerJNIBindings.cpp:39–44` (`getWrapper`)
-**Impact**: High — per JNI spec, calling further JNI functions or returning to Java with a pending exception is undefined behaviour. `GetFieldID` on a missing field sets a `NoSuchFieldError` pending and returns `nullptr`; `getWrapper` checks for `nullptr` and returns `nullptr` to the caller, which returns `-1` to Java. The pending exception is never cleared (`ExceptionClear`) or propagated explicitly. Some JVMs will crash on re-entry.
-**Fix**: After `GetFieldID` returns `nullptr`, call `env->ExceptionDescribe(); env->ExceptionClear();` before returning `nullptr` from `getWrapper`. Or rethrow as a C++ exception that the outer `catch` block will re-raise through `ThrowNew`.
-
----
-
-### H-jni-release-array-mode: ReleaseFloatArrayElements uses mode `0` on exception path
-
-**Location**: `menger-geometry/src/main/native/MengerJNIBindings.cpp:79`
-**Impact**: High — mode `0` copies native memory back to the Java array before freeing. On the exception path inside `addRecursiveIASSpongeInstanceNative`, the buffer may be partially written by the interrupted operation. The correct mode on error paths is `JNI_ABORT` (2), which discards without write-back and avoids corrupting the caller's array.
-**Fix**: Change `env->ReleaseFloatArrayElements(transform, transformArr, 0)` in the inner `catch (...)` rethrow block (line 79) to `env->ReleaseFloatArrayElements(transform, transformArr, JNI_ABORT)`.
-
----
-
-### H-caustics-raygen-leak: temp_raygen_record leaks on exception in launchCausticsPass
-
-**Location**: `menger-geometry/src/main/native/CausticsRenderer.cpp:34–51`
-**Impact**: High — `temp_raygen_record` is allocated at line 34 via `createTempRaygenSBTRecord`. `optix_context.launch()` at line 42 can throw (it wraps OptiX calls via `CUDA_CHECK` which throws `std::runtime_error`). If it does, execution jumps past `freeTempRaygenSBTRecord` at line 51, permanently leaking the GPU allocation. Each render frame with caustics allocates this record; repeated throws would exhaust GPU memory.
-**Fix**: Wrap `temp_raygen_record` in a RAII guard (e.g., a scoped `auto _ = std::unique_ptr` with a custom deleter calling `freeTempRaygenSBTRecord`) or add a `try/catch` that frees it on exception before rethrowing.
+*(none)*
 
 ---
 
