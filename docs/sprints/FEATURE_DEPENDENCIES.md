@@ -1,8 +1,36 @@
 # Feature Dependency Map
 
 **Last Updated:** 2026-06-10
-**Status:** First deliverable of feature planning round (brainstorm 2026-06-10);
-open questions resolved same day — see §5
+**Status:** Feature planning round complete: brainstormed, dependencies mapped, open
+questions resolved (§5), priorities selected and sprint plans written (§0)
+
+---
+
+## 0. Prioritization Outcome (2026-06-10)
+
+Selected for the next sprints, in user priority order: finish Sprint 27, F14, F13
+(both phases, F1 included as Phase 1), F9, F4, T-PBRTEX, F16. All other candidates
+moved to the ROADMAP backlog ("Evaluated 2026-06-10, not prioritized").
+
+The previously planned Sprints 28–31 were pushed back and renumbered. **Sprint-task
+IDs in this document (S28.x–S31.x) refer to the pre-renumbering plans** — mapping:
+
+| This document | Renumbered to | Focus |
+|---------------|---------------|-------|
+| S28.x | Sprint 35 | Visual Quality (DoF, wireframe) |
+| S29.x | Sprint 36 | Data Visualization I |
+| S30.x | Sprint 37 | 4D Geometry II |
+| S31.x | Sprint 38 | Advanced Geometry |
+
+New sprint sequence: 28 = F14 Release & QA, 29 = F13 Phase 1 (denoiser + curves),
+30 = F13 Phase 2 (motion blur, API audit, 1.0 prep), 31 = F9 L-systems,
+32 = F4 spectral dispersion, 33 = T-PBRTEX PBR texture sets,
+34 = F16 production caustics (incl. dispersive caustics, which needs Sprint 32).
+Full plans in `SPRINT28.md`–`SPRINT34.md`.
+
+Dependency notes honored by this ordering: curves (Sprint 29) land before L-systems
+(Sprint 31); dispersion (Sprint 32) lands before dispersive caustics (Sprint 34);
+QA hardening (Sprint 28) front-loads so every later sprint ships through it.
 **Purpose:** Dependency-aware catalog of all planned, backlogged, and newly proposed
 features. Items that are dependencies for others are identified so they can be
 scheduled first. Next step: generate full sprint plans from this list.

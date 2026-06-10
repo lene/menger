@@ -46,8 +46,8 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 
 
 - movie with steadily increasing level with 360 degree background
-- PBR Textures
-- MaterialX (.mtlx) support — Layers 1-3 (~3 sprints):
+- MaterialX (.mtlx) support — Layers 1-3 (~3 sprints) — note: the metallic/AO/height
+  map slots it needs land with PBR texture sets in Sprint 33:
   - **Layer 1 — File parsing**: Add MaterialX C++ SDK (github.com/AcademySoftwareFoundation/MaterialX)
     as CMake dep in `optix-jni/CMakeLists.txt`. Write `MtlxLoader.cpp` that uses
     `MaterialX::readFromFile()`, walks the document tree, and extracts Standard Surface /
@@ -73,15 +73,22 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 Items moved to sprint plans:
 
 - optix-jni decoupling + publication → Sprint 24/25
-- Schläfli polytope generator → Sprint 31
-- Sponge cutaways (clipping planes) → Sprint 31
-- Fractal subdivision on polychora → Sprint 31
-- Depth of field → Sprint 28
-- Wireframe rendering → Sprint 28
-- Color by intensity / colormaps → Sprint 29
-- Scalar/vector fields (functions) → Sprint 29
-- 4D parametric surfaces → Sprint 30
-- Parametric surface specializations → Sprint 30
+- Release & QA hardening → Sprint 28
+- OptiX denoiser + curves primitive → Sprint 29
+- Motion blur + OptiX API audit + optix-jni 1.0 prep → Sprint 30
+- L-systems in 3D and 4D → Sprint 31
+- Spectral dispersion → Sprint 32
+- PBR texture sets → Sprint 33
+- Production-quality caustics (incl. dispersive) → Sprint 34
+- Depth of field → Sprint 35 (pushed back 2026-06-10)
+- Wireframe rendering → Sprint 35 (pushed back 2026-06-10)
+- Color by intensity / colormaps → Sprint 36 (pushed back 2026-06-10)
+- Scalar/vector fields (functions) → Sprint 36 (pushed back 2026-06-10)
+- 4D parametric surfaces → Sprint 37 (pushed back 2026-06-10)
+- Parametric surface specializations → Sprint 37 (pushed back 2026-06-10)
+- Schläfli polytope generator → Sprint 38 (pushed back 2026-06-10)
+- Sponge cutaways (clipping planes) → Sprint 38 (pushed back 2026-06-10)
+- Fractal subdivision on polychora → Sprint 38 (pushed back 2026-06-10)
 - Video backgrounds → Sprint 27
 - Repository split → Sprint 26
 - Scalar and vector fields (datasets) → backlog

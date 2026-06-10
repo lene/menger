@@ -4,10 +4,23 @@ Active sprint planning documents for ongoing and future development work.
 
 ## Upcoming Sprints
 
+Reordered 2026-06-10 after the feature-prioritization round — see
+[FEATURE_DEPENDENCIES.md](FEATURE_DEPENDENCIES.md) for the dependency analysis.
+
 | Sprint | Focus | Status | File |
 |--------|-------|--------|------|
-| 20 | Materials, Textures & Backgrounds | Planned | [SPRINT20.md](SPRINT20.md) |
-| 21 | Higher-Dimensional Fractals | Planned | [SPRINT21.md](SPRINT21.md) |
+| 27 | Video Textures and 360 Video Backgrounds | In Progress | [SPRINT27.md](SPRINT27.md) |
+| 28 | Industrial-Strength Release & QA | Planned | [SPRINT28.md](SPRINT28.md) |
+| 29 | OptiX API Coverage I — Denoiser & Curves | Planned | [SPRINT29.md](SPRINT29.md) |
+| 30 | OptiX API Coverage II — Motion Blur & 1.0 Prep | Planned | [SPRINT30.md](SPRINT30.md) |
+| 31 | L-Systems in 3D and 4D | Planned | [SPRINT31.md](SPRINT31.md) |
+| 32 | Spectral Dispersion | Planned | [SPRINT32.md](SPRINT32.md) |
+| 33 | PBR Texture Sets | Planned | [SPRINT33.md](SPRINT33.md) |
+| 34 | Production-Quality Caustics | Planned | [SPRINT34.md](SPRINT34.md) |
+| 35 | Visual Quality (DoF, wireframe) | Pushed back | [SPRINT35.md](SPRINT35.md) |
+| 36 | Data Visualization I | Pushed back | [SPRINT36.md](SPRINT36.md) |
+| 37 | 4D Geometry II | Pushed back | [SPRINT37.md](SPRINT37.md) |
+| 38 | Advanced Geometry | Pushed back | [SPRINT38.md](SPRINT38.md) |
 
 ## Completed Sprints
 

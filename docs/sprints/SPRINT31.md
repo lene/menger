@@ -1,119 +1,140 @@
-# Sprint 31: Advanced Geometry
+# Sprint 31: L-Systems in 3D and 4D
 
-**Sprint:** 31 - Advanced Geometry
+**Sprint:** 31 - L-Systems
 **Status:** Not Started
-**Estimate:** ~27 hours
+**Estimate:** ~28 hours
 **Branch:** `feature/sprint-31`
-**Dependencies:** None
+**Dependencies:** Sprint 29 (curves primitive — stems render as swept curves;
+cylinder chains are the fallback if curves are unavailable)
+**Feature ID:** F9 in [FEATURE_DEPENDENCIES.md](FEATURE_DEPENDENCIES.md)
+(promoted from ROADMAP backlog)
 
 ---
 
 ## Goal
 
-Three advanced geometry features: sponge cross-sections via clipping planes, Schläfli
-polytope generation from `{p,q}` symbols, and fractal subdivision using polychora
-(16-cell, 24-cell, 600-cell) as bases instead of the cube.
+Lindenmayer-system fractals: string-rewriting grammar engine, 3D turtle interpretation
+producing curve/tube geometry, DSL and CLI integration with classic presets, and a 4D
+turtle extension that runs the same grammars through the existing 4D projection
+pipeline — L-system fractals rotating in 4D are something almost no other renderer
+shows.
 
 ---
 
 ## Success Criteria
 
-- [ ] `clipPlane { normal = Vec3(1,0,0), distance = 0.5 }` clips any geometry revealing cross-section
-- [ ] `addPolytope { schlafli = "{3,5}" }` generates an icosahedron mesh
-- [ ] `addFractal4D { base = Polychoron.Cell600, level = 2 }` renders correctly
-- [ ] All features integration-tested
+- [ ] `--objects type=lsystem:preset=tree:level=5` renders a recognizable 3D tree
+- [ ] Custom grammars definable in the DSL (axiom + rules + angle)
+- [ ] Stochastic rules supported with a fixed seed (deterministic renders)
+- [ ] A 4D L-system (e.g. 4D Hilbert curve) renders and responds to
+      `rot-x-w / rot-y-w / rot-z-w` like other 4D objects
+- [ ] String-rewriting engine fully unit-tested against published ABOP examples
+- [ ] All tests pass
 
 ---
 
 ## Tasks
 
-### Task 31.1: Sponge Cutaways via Clipping Planes
+### Task 31.1: L-System Grammar Engine
 
 **Estimate:** 6h
 
-Clip any geometry along one or more planes to reveal internal cross-section structure.
-Particularly useful for visualizing the interior of Menger sponges and 4D fractals.
-
-**DSL:**
-```scala
-scene {
-  clipPlanes = List(
-    ClipPlane(normal = Vec3(1, 0, 0), distance = 0.0f)  // clip at x=0
-  )
-}
-```
+Pure Scala, no GPU involvement — lives in `menger-app` objects layer (promote to
+`menger-common` only if optix-jni-independent reuse appears).
 
 **Implementation:**
-- In raygen or hit shader: after hit, check if hit point is on the clipped side of any
-  plane; if so, treat as miss (or recurse for interior surface)
-- Pass up to 4 clip planes as `Params` fields (already have `PlaneParams` pattern)
-- Interior surface: either show the cross-section color or use a fixed "cut" material
+- `LSystemGrammar(axiom: String, rules: Map[Char, Seq[(Double, String)]])` —
+  deterministic rules are the single-entry weight-1.0 case; stochastic rules select
+  by weight from a seeded RNG
+- `rewrite(n: Int): String` with a hard output-length guard (~10⁷ symbols → fail
+  fast with a clear error instead of OOM; growth is exponential in `n`)
+- Turtle alphabet (ABOP standard): `F` draw forward, `f` move forward, `+ -` yaw,
+  `& ^` pitch, `\ /` roll, `|` turn around, `[ ]` push/pop state, `!` decrement
+  width, `'` increment color index; unknown symbols ignored (they exist for grammar
+  bookkeeping)
+- Validation: rules referencing symbols not in the alphabet+rule set produce
+  warnings, not errors (standard L-system practice)
+
+**Tests:** algae (A→AB, B→A: assert Fibonacci lengths), Koch curve string equality
+at n=3, branch push/pop balance checker, stochastic determinism under fixed seed.
 
 ---
 
-### Task 31.2: Schläfli Polytope Generator
-
-**Estimate:** 10h
-
-Algorithmically construct regular polytopes from their Schläfli symbol `{p,q}` (3D)
-or `{p,q,r}` (4D projected to 3D), producing a triangle mesh.
-
-**Supported symbols (3D):**
-- `{3,3}` tetrahedron, `{4,3}` cube, `{3,4}` octahedron
-- `{5,3}` dodecahedron, `{3,5}` icosahedron
-
-**Supported symbols (4D, project to 3D):**
-- `{3,3,3}` 5-cell, `{4,3,3}` 8-cell (tesseract), `{3,3,4}` 16-cell
-- `{3,4,3}` 24-cell, `{5,3,3}` 120-cell, `{3,3,5}` 600-cell
-
-**DSL:**
-```scala
-addPolytope {
-  schlafli = "{3,5}"    // icosahedron
-  scale = 1.0f
-  material { ... }
-}
-```
-
-**Implementation:**
-- Wythoff construction for 3D: reflection group algorithm
-- 4D: generate vertices via root systems, project to 3D using existing Project4D
-- Output: triangle mesh → existing `setTriangleMesh` pipeline
-
----
-
-### Task 31.3: Fractal Subdivision on Polychora
+### Task 31.2: 3D Turtle Interpretation
 
 **Estimate:** 8h
 
-Use 16-cell, 24-cell, or 600-cell as the subdivision base for IFS fractals instead of
-the cube (current Menger4D base). Enables new fractal shapes with different symmetry.
-
-**DSL:**
-```scala
-addFractal4D {
-  base = FractalBase4D.Cell16    // or Cell24, Cell600
-  level = 2
-  rotation4d = Rotation4D.identity
-  material { ... }
-}
-```
-
 **Implementation:**
-- Define IFS rules for each polychoron base (contractive affine maps preserving the
-  symmetry group)
-- Implement new intersection shaders `hit_cell16_fractal4d.cu`, etc.
-- Reuse `Menger4DData` pattern from `menger-geometry` (MengerParams extension)
+- Turtle state: position `Vec3`, orthonormal frame (heading H, left L, up U) as a
+  3×3 matrix, current width, color index; branch stack of states
+- Rotations: `+ -` rotate about U, `& ^` about L, `\ /` about H, by the grammar's
+  angle parameter (matrix multiply — no quaternions needed at this scale)
+- Geometry emission: consecutive `F` segments accumulate into control-point
+  polylines → one `Curve` (Sprint 29) per branch run, with per-vertex widths from
+  `!` decay; fallback path emits cylinder-per-segment when curves are disabled
+- Optional leaf symbol `L` → small sphere or cone at turtle position (preset-defined
+  material)
+- Presets (`LSystemPreset` enum): `Tree` (ABOP fig 1.24-style), `Bush`, `Fern3D`,
+  `HilbertCurve3D`, `KochIsland` — each a named grammar + angle + width decay +
+  default materials
+- Scale normalization: after generation, fit bounding box to `size` parameter so
+  presets compose with existing scene conventions
 
 ---
 
-### Task 31.4: Tests + Documentation
+### Task 31.3: DSL + CLI Integration
 
-**Estimate:** 3h
+**Estimate:** 4h
 
-- Integration tests: clip plane on Menger sponge, icosahedron, 16-cell fractal
-- User guide: Clipping Planes, Schläfli Generator, Polychora Fractals sections
-- CHANGELOG.md entry
+**Implementation:**
+- DSL:
+  ```scala
+  LSystem(
+    axiom = "F", rules = Map('F' -> "F[+F]F[-F]F"),
+    angleDegrees = 25.7f, iterations = 4,
+    segmentLength = 0.1f, widthDecay = 0.7f,
+    seed = 42L, material = Material.Matte,
+  )
+  ```
+  plus `LSystem.preset(LSystemPreset.Tree, iterations = 5)`
+- CLI: `--objects type=lsystem:preset=tree:level=5:size=1.5` (presets only on the
+  CLI; custom grammars are DSL-only — rule maps don't fit the `key=value` syntax)
+- Geometry registry entry following the Sprint 19 pattern
+
+---
+
+### Task 31.4: 4D Turtle Extension
+
+**Estimate:** 6h
+
+**Implementation:**
+- Turtle frame becomes four orthonormal `Vec4` axes (H, L, U, W); rotations are
+  Rotations in the six coordinate planes — extend the alphabet with `> <` (HW-plane)
+  and reuse `& ^ \ /` semantics within the 4D frame
+- Generation happens in 4D coordinates; segments are projected to 3D through the
+  existing 4D rotation + perspective projection pipeline (same parameters as
+  tesseract: `eye-w`, `screen-w`, `rot-x-w/y-w/z-w`), then emitted as curves
+- Projection note: per-segment endpooints project independently; curve control
+  points are projected, not the swept surface — acceptable approximation at typical
+  segment lengths, documented
+- Presets: `HilbertCurve4D`, `Tree4D` (3D tree grammar with one 4D-rotation symbol
+  injected per branch level)
+- Animation: 4D-rotation animations re-project control points per frame; this is the
+  rebuild path (no GAS refit for curves initially — note as a future optimization)
+
+---
+
+### Task 31.5: Tests + Documentation
+
+**Estimate:** 4h
+
+- Unit: grammar tests (31.1), turtle-state tests (frame stays orthonormal after long
+  command sequences — accumulate 10⁴ rotations, assert determinant ≈ 1), 4D frame
+  tests
+- Integration: tree preset reference image, 4D Hilbert curve reference image
+- `scripts/manual-test.sh`: tree + 4D Hilbert rotating (append at end)
+- User guide: L-Systems section (alphabet table, presets, custom grammar example,
+  4D extension); CHANGELOG.md entry
 
 ---
 
@@ -121,11 +142,12 @@ addFractal4D {
 
 | Task | Description | Estimate |
 |------|-------------|----------|
-| 31.1 | Sponge cutaways via clipping planes | 6h |
-| 31.2 | Schläfli polytope generator | 10h |
-| 31.3 | Fractal subdivision on polychora | 8h |
-| 31.4 | Tests + documentation | 3h |
-| **Total** | | **~27h** |
+| 31.1 | Grammar engine (rewriting, stochastic, validation) | 6h |
+| 31.2 | 3D turtle → curve geometry + presets | 8h |
+| 31.3 | DSL + CLI integration | 4h |
+| 31.4 | 4D turtle extension | 6h |
+| 31.5 | Tests + documentation | 4h |
+| **Total** | | **~28h** |
 
 ---
 
@@ -134,3 +156,4 @@ addFractal4D {
 - [ ] All success criteria met
 - [ ] Pre-push hook green
 - [ ] CHANGELOG.md updated
+- [ ] Integration + manual test scripts cover 3D preset and 4D L-system

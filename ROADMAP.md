@@ -1,6 +1,6 @@
 # Menger Roadmap
 
-**Last Updated:** 2026-05-31
+**Last Updated:** 2026-06-10
 
 Strategic feature planning for the Menger ray tracing renderer.
 
@@ -30,8 +30,20 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.7.2 | optix-jni Decoupling | ✅ Complete | optix-jni generic library, menger-geometry layer, MengerRenderer, NativeOptiXApi (Sprints 24-25) |
 | v0.7.3 | Repo Split & Code Health | ✅ Complete | menger-common + optix-jni separate repos, Maven Central, all CODE_IMPROVEMENTS resolved (Sprint 26) |
 | v0.8.0 | Video Backgrounds | 🔄 In Progress | Animated .mp4 backgrounds via ffmpeg, per-frame GPU texture swap (Sprint 27) |
-| v0.9.1 | Visual Quality | Planned | Depth of field, wireframe rendering (Sprint 28) |
-| v1.0.0 | Data Visualization I | Planned | Colormaps, scalar fields, isosurfaces, volume rendering (Sprint 29) |
+| TBD | Release & QA Hardening | Planned | Release automation, sanitizer CI, perf-regression tracking, SBOM (Sprint 28) |
+| TBD | OptiX API Coverage I | Planned | AI denoiser, curves primitive, optix-jni release (Sprint 29) |
+| TBD | OptiX API Coverage II | Planned | Motion blur, API audit, validation mode, optix-jni 1.0 prep (Sprint 30) |
+| TBD | L-Systems | Planned | 3D/4D Lindenmayer systems, turtle geometry, presets (Sprint 31) |
+| TBD | Spectral Dispersion | Planned | Wavelength-dependent IOR, hero-wavelength sampling, diamond fire (Sprint 32) |
+| TBD | PBR Texture Sets | Planned | Shared texture sets (ambientCG/Poly Haven), metallic/AO maps (Sprint 33) |
+| TBD | Production Caustics | Planned | PPM defaults, auto-tuning, dispersive caustics (Sprint 34) |
+| TBD | Visual Quality | Pushed back 2026-06-10 | Depth of field, wireframe rendering (Sprint 35) |
+| TBD | Data Visualization I | Pushed back 2026-06-10 | Colormaps, scalar fields, isosurfaces, volume rendering (Sprint 36) |
+| TBD | 4D Geometry II | Pushed back 2026-06-10 | 4D parametric surfaces, spherical harmonics (Sprint 37) |
+| TBD | Advanced Geometry | Pushed back 2026-06-10 | Sponge cutaways, Schläfli generator, polychora fractals (Sprint 38) |
+
+Version numbers for planned milestones are assigned at release time (see release
+checklist); they are deliberately not pre-assigned here.
 
 ---
 
@@ -102,55 +114,77 @@ See [docs/sprints/SPRINT27.md](docs/sprints/SPRINT27.md)
 
 ---
 
-### Sprint 28: Visual Quality (~20h)
+### Sprint 28: Industrial-Strength Release & QA (~26h)
 
-**Goal:** Depth of field (bokeh) and wireframe rendering
-
-- **28.1** Depth of field — lens sampling in raygen (8h)
-- **28.2** Wireframe rendering — edge cylinders (6h)
-- **28.3** Integration tests + reference images (3h)
-- **28.4** Documentation (3h)
+**Goal:** Release automation, sanitizer CI, performance-regression tracking, SBOM,
+nightly pipeline, flaky-test policy
 
 See [docs/sprints/SPRINT28.md](docs/sprints/SPRINT28.md)
 
 ---
 
-### Sprint 29: Data Visualization I (~25h)
+### Sprint 29: OptiX API Coverage I — Denoiser & Curves (~30h)
 
-**Goal:** Colormaps, scalar field `f(x,y,z)` GPU evaluation, isosurfaces, volume rendering
-
-- **29.1** Color by intensity / colormaps (5h)
-- **29.2** Scalar field GPU evaluation + isosurface (8h)
-- **29.3** Volume rendering (ray marching) (8h)
-- **29.4** Tests + documentation (4h)
+**Goal:** OptiX AI denoiser (optix-jni API + DSL/CLI) and curves primitive (swept
+tubes); next optix-jni minor release
 
 See [docs/sprints/SPRINT29.md](docs/sprints/SPRINT29.md)
 
 ---
 
-### Sprint 30: 4D Geometry II (~20h)
+### Sprint 30: OptiX API Coverage II — Motion Blur & 1.0 Prep (~26h)
 
-**Goal:** 4D parametric surfaces `f(u,v)→Vec4`; spherical harmonics; parametric specializations
-
-- **30.1** 4D parametric surfaces on GPU (8h)
-- **30.2** Parametric surface specializations — spherical harmonics (5h)
-- **30.3** DSL integration (4h)
-- **30.4** Tests + documentation (3h)
+**Goal:** Full OptiX API audit with expose/defer decisions, transform motion blur,
+validation mode + SER, optix-jni 1.0 readiness checklist
 
 See [docs/sprints/SPRINT30.md](docs/sprints/SPRINT30.md)
 
 ---
 
-### Sprint 31: Advanced Geometry (~27h)
+### Sprint 31: L-Systems in 3D and 4D (~28h)
 
-**Goal:** Sponge cutaways, Schläfli polytope generator, fractal subdivision on polychora
-
-- **31.1** Sponge cutaways via clipping planes (6h)
-- **31.2** Schläfli polytope generator (10h)
-- **31.3** Fractal subdivision on polychora (8h)
-- **31.4** Tests + documentation (3h)
+**Goal:** Lindenmayer grammar engine, 3D turtle → curve geometry with presets,
+DSL/CLI integration, 4D turtle extension
 
 See [docs/sprints/SPRINT31.md](docs/sprints/SPRINT31.md)
+
+---
+
+### Sprint 32: Spectral Dispersion (~22h)
+
+**Goal:** Wavelength-dependent IOR (Cauchy/Abbe model), hero-wavelength sampling,
+dispersive material presets — rainbow refraction and diamond fire
+
+See [docs/sprints/SPRINT32.md](docs/sprints/SPRINT32.md)
+
+---
+
+### Sprint 33: PBR Texture Sets (~24h)
+
+**Goal:** Load shared/downloadable PBR texture sets (ambientCG, Poly Haven) by folder
+convention; metallic/AO/height map slots; set metadata (IOR, UV scale)
+
+See [docs/sprints/SPRINT33.md](docs/sprints/SPRINT33.md)
+
+---
+
+### Sprint 34: Production-Quality Caustics (~24h)
+
+**Goal:** Conclude PPM tuning, auto-tuned defaults, finalized CLI/DSL surface,
+dispersive caustics, reference ladder gated in the integration suite
+
+See [docs/sprints/SPRINT34.md](docs/sprints/SPRINT34.md)
+
+---
+
+### Pushed back 2026-06-10 (planned, after Sprint 34)
+
+| Sprint | Focus | Plan |
+|--------|-------|------|
+| 35 | Visual Quality — depth of field, wireframe (~20h) | [SPRINT35.md](docs/sprints/SPRINT35.md) |
+| 36 | Data Visualization I — colormaps, scalar fields, volumes (~25h) | [SPRINT36.md](docs/sprints/SPRINT36.md) |
+| 37 | 4D Geometry II — 4D parametric surfaces, spherical harmonics (~20h) | [SPRINT37.md](docs/sprints/SPRINT37.md) |
+| 38 | Advanced Geometry — cutaways, Schläfli generator, polychora fractals (~27h) | [SPRINT38.md](docs/sprints/SPRINT38.md) |
 
 ---
 
@@ -158,13 +192,37 @@ See [docs/sprints/SPRINT31.md](docs/sprints/SPRINT31.md)
 
 Ideas not yet scheduled.
 
+### Evaluated 2026-06-10, not prioritized
+
+Candidates from the 2026-06-10 feature-planning round that were considered and
+deliberately deprioritized. Dependencies, effort estimates, and scoping for each are in
+[docs/sprints/FEATURE_DEPENDENCIES.md](docs/sprints/FEATURE_DEPENDENCIES.md).
+
+| ID | Idea | Notes |
+|----|------|-------|
+| F2 | 4D cross-sections (w-slicing) | Low priority per evaluation |
+| F3 | Distance-estimator fractals (Mandelbulb, quaternion Julia) | Unblocks F20 |
+| F5 | Procedural sun-sky (Hosek-Wilkie) | Feeds existing IBL pipeline |
+| F6 | Audio-reactive animation — offline | libav already available (Sprint 27) |
+| F7 | Audio-reactive animation — real-time | Needs F17; mic + loopback via PipeWire |
+| F8 | Adaptive variance-based sampling | Pairs with the Sprint 29 denoiser |
+| F10 | Vector field visualization | Needs scalar-field work (Sprint 36) |
+| F11 | Desktop lens window | Needs Sprint 27 in-place texture updates |
+| F12a | Stereoscopic still/video rendering | Independent |
+| F12b | VR live preview (OpenXR) | Needs F17 + F12a |
+| F15 | Volumetric lighting / god rays | Co-design with Sprint 36 ray marching |
+| F17 | Real-time progressive preview | Needs denoiser (Sprint 29) — hub for live features |
+| F18 | Non-Euclidean / quotient-space rendering | Covers TODO's flat 3-manifolds list |
+| F19 | Quasicrystals via cut-and-project | 6D→3D projection of aperiodic lattices |
+| F20 | SDF combinators: CSG + fractal morphing | Needs F3 |
+| F21 | Gravitational lensing / black hole rendering | Reuses Sprint 36 marching loop |
+
 ### Long-Term Backlog
 
 #### Geometry & Rendering (Low Priority)
 
 | Idea | Description | Complexity | Priority |
 |------|-------------|------------|----------|
-| L-systems in 3D and 4D | Lindenmayer system fractal generation | High | Low |
 | Rotopes | Higher-dimensional geometry generation via rotation | Very High | Low |
 | Stereoscopic 3D rendering | Side-by-side/over-under + separate image pairs for VR/3D | Medium | Low |
 | Subsurface scattering | Advanced material BSDF effect | High | Low |
@@ -207,12 +265,19 @@ Ideas not yet scheduled.
 | optix-jni Architecture & Foundation (24) | 1 sprint | ~21 hours |
 | optix-jni Implementation (25) | 1 sprint | ~28 hours |
 | Repository Split & Code Health (26) | 1 sprint | ~28 hours |
-| Video Backgrounds (27) | 1 sprint | ~15 hours |
-| Visual Quality (28) | 1 sprint | ~20 hours |
-| Data Visualization I (29) | 1 sprint | ~25 hours |
-| 4D Geometry II (30) | 1 sprint | ~20 hours |
-| Advanced Geometry (31) | 1 sprint | ~27 hours |
-| **Total Remaining (24–31)** | 8 sprints | **~174 hours** |
+| Video Backgrounds (27) | 1 sprint | ~32 hours |
+| Release & QA Hardening (28) | 1 sprint | ~26 hours |
+| OptiX API Coverage I — Denoiser & Curves (29) | 1 sprint | ~30 hours |
+| OptiX API Coverage II — Motion Blur & 1.0 Prep (30) | 1 sprint | ~26 hours |
+| L-Systems in 3D and 4D (31) | 1 sprint | ~28 hours |
+| Spectral Dispersion (32) | 1 sprint | ~22 hours |
+| PBR Texture Sets (33) | 1 sprint | ~24 hours |
+| Production-Quality Caustics (34) | 1 sprint | ~24 hours |
+| Visual Quality (35, pushed back) | 1 sprint | ~20 hours |
+| Data Visualization I (36, pushed back) | 1 sprint | ~25 hours |
+| 4D Geometry II (37, pushed back) | 1 sprint | ~20 hours |
+| Advanced Geometry (38, pushed back) | 1 sprint | ~27 hours |
+| **Total Remaining (27–38)** | 12 sprints | **~304 hours** |
 
 ---
 
