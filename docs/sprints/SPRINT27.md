@@ -118,6 +118,7 @@ cache behavior remain Task 27.2.
 
 **Estimate:** 4h
 **Depends on:** 27.1
+**Status:** Complete
 
 `VideoLoader` decodes video frames on demand and caches a sliding window.
 
@@ -153,6 +154,11 @@ Frame cache: `std::unordered_map<int, std::vector<uint8_t>>`, max 8 frames (ring
 Videos without alpha decode with `alpha = 255`. Frame orientation must match existing
 `TextureLoader` image texture orientation. Invalid, unsupported, zero-frame, or
 zero-duration videos fail fast during open/decode.
+
+**Result:** `VideoLoader.frameAt` decodes SDR video frames to top-to-bottom RGBA8 through
+libavcodec/libswscale, clamps timestamps to the first/last decodable frames, and keeps a
+bounded eight-frame decoded cache. A tiny deterministic PNG-in-MOV fixture verifies exact
+RGBA bytes through the Scala/JNI path.
 
 ---
 
