@@ -9,6 +9,7 @@ import menger.common.Color
 import menger.common.Material
 import menger.common.ObjectType
 import menger.common.TriangleMeshData
+import menger.video.VideoTexture
 
 case class ObjectRotation(x: Float = 0f, y: Float = 0f, z: Float = 0f)
 
@@ -65,6 +66,7 @@ case class ObjectSpec(
   ior: Float = 1.0f,
   material: Option[Material] = None,
   texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
   projection4D: Option[Projection4DSpec] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
@@ -76,6 +78,8 @@ case class ObjectSpec(
   meshData: Option[TriangleMeshData] = None,
   distanceThreshold: Option[Int] = None
 ):
+  require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
+
   def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined
   def rotX: Float = rotation.x
   def rotY: Float = rotation.y
@@ -198,10 +202,27 @@ object ObjectSpec extends LazyLogging:
       _ <- validateSpongeLevel(objType, level)
       texMaps <- parseTextureMaps(kvPairs)
       distThreshold <- parseDistanceThreshold(kvPairs)
-    yield ObjectSpec(objType, x, y, z, size, level, color, ior, material, texture, projection4D,
-      edgeParams._1, edgeParams._2,
-      rotation = rotation, cone = coneGeom, plane = planeGeom,
-      procedural = procSpec, textureMaps = texMaps, distanceThreshold = distThreshold)
+    yield ObjectSpec(
+      objectType = objType,
+      x = x,
+      y = y,
+      z = z,
+      size = size,
+      level = level,
+      color = color,
+      ior = ior,
+      material = material,
+      texture = texture,
+      projection4D = projection4D,
+      edgeRadius = edgeParams._1,
+      edgeMaterial = edgeParams._2,
+      rotation = rotation,
+      cone = coneGeom,
+      plane = planeGeom,
+      procedural = procSpec,
+      textureMaps = texMaps,
+      distanceThreshold = distThreshold
+    )
 
     result match
       case Right(obj) => logger.debug(s"Successfully parsed: $obj")

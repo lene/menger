@@ -187,6 +187,7 @@ must use the `AutoCloseable` loader ownership point when wiring video textures.
 
 **Estimate:** 2h
 **Depends on:** 27.3
+**Status:** Complete
 
 Add a DSL type for animated rectangular videos used as object textures. This is the first
 user-facing video feature and must land before 360-degree backgrounds.
@@ -222,6 +223,12 @@ Validation:
 - `VideoTexture` is supported for every object that already accepts image textures.
 - `fpsOverride`, when set, must be positive. Without it, source timestamps/native fps
   drive frame selection.
+
+**Result:** Added the shared `VideoPlayback`, `VideoTimeMapping`, `VideoRepeat`, and
+`VideoTexture` DSL model, exported it through `menger.dsl`, and propagated
+`SceneObject.videoTexture` into `ObjectSpec` for every DSL object that already accepts
+image textures. `ObjectSpec` rejects simultaneous `texture` and `videoTexture`, and
+focused tests cover default playback, FPS validation, conversion, and object support.
 
 ---
 
