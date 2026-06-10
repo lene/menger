@@ -16,6 +16,12 @@ This module adds 4D geometry and caustics rendering on top of the generic
 `menger-geometry` depends on `optix-jni` (for `OptiXRenderer` and the OptiX
 pipeline infrastructure) and `menger-common` (for domain primitives).
 
+Native video texture support links dynamically against FFmpeg/libav. Build and
+runtime hosts need the shared libraries provided by Ubuntu packages
+`libavcodec-dev`, `libavformat-dev`, `libavutil-dev`, and `libswscale-dev`
+or equivalent distribution packages. Static FFmpeg linking is intentionally not
+used.
+
 `menger-app` depends on `menger-geometry` and routes all 4D API calls through
 `MengerRenderer`.
 

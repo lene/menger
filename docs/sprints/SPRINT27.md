@@ -83,6 +83,7 @@ native dependency surface before implementation.
 ### Task 27.1: ffmpeg/libav CMake Dependency in `menger-geometry`
 
 **Estimate:** 2h
+**Status:** Complete
 
 Add `libavcodec` / `libavformat` / `libavutil` / `libswscale` as a CMake dependency
 in `menger-geometry/src/main/native/CMakeLists.txt`.
@@ -98,11 +99,16 @@ tests must run. Missing native dependencies should fail the build with a clear C
 error, not silently disable the feature.
 
 **Implementation:**
-1. Add `find_package` to CMakeLists.txt
-2. Create `VideoLoader.h` / `VideoLoader.cpp` in `menger-geometry/src/main/native/` —
+1. [x] Add `find_package` to CMakeLists.txt
+2. [x] Create `VideoLoader.h` / `VideoLoader.cpp` in `menger-geometry/src/main/native/` —
    C++ class wrapping libav for sequential frame decode
-3. JNI binding: `VideoLoader` exposed via existing JNI boundary pattern
-4. Ensure packaging/docs identify the runtime shared-library dependency
+3. [x] JNI binding: `VideoLoader` exposed via existing JNI boundary pattern
+4. [x] Ensure packaging/docs identify the runtime shared-library dependency
+
+**Result:** CMake now requires and dynamically links `avcodec`, `avformat`, `avutil`,
+and `swscale`; CI installs the corresponding Ubuntu dev packages before native builds.
+`VideoLoader` opens videos and exposes metadata through JNI/Scala. RGBA frame decode and
+cache behavior remain Task 27.2.
 
 ---
 

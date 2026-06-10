@@ -1,7 +1,10 @@
 #include <jni.h>
 #include "OptiXWrapper.h"
+#include "VideoLoader.h"
 #include <iostream>
+#include <cstddef>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <dlfcn.h>
 #include <link.h>
@@ -44,6 +47,21 @@ static OptiXWrapper* getWrapper(JNIEnv* env, jobject obj) {
     }
     jlong handle = env->GetLongField(obj, fid);
     return reinterpret_cast<OptiXWrapper*>(handle);
+}
+
+static void throwJavaException(JNIEnv* env, const char* className, const std::string& message) {
+    jclass exc = env->FindClass(className);
+    if (exc != nullptr) {
+        env->ThrowNew(exc, message.c_str());
+    }
+}
+
+static menger::geometry::VideoLoader* getVideoLoader(JNIEnv* env, jlong handle) {
+    if (handle == 0) {
+        throwJavaException(env, "java/lang/IllegalStateException", "Video loader is closed");
+        return nullptr;
+    }
+    return reinterpret_cast<menger::geometry::VideoLoader*>(handle);
 }
 
 JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addRecursiveIASSpongeInstanceNative(
@@ -212,6 +230,101 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_updateHexadecach
         if (exc) env->ThrowNew(exc, e.what());
         return -1;
     }
+}
+
+JNIEXPORT jlong JNICALL Java_menger_geometry_VideoLoader_openVideoNative(
+    JNIEnv* env, jobject /*obj*/, jstring path) {
+    try {
+        if (path == nullptr) {
+            throwJavaException(env, "java/lang/IllegalArgumentException", "Video path is null");
+            return 0;
+        }
+
+        const char* nativePath = env->GetStringUTFChars(path, nullptr);
+        if (nativePath == nullptr) {
+            throwJavaException(env, "java/lang/RuntimeException", "Failed to read video path");
+            return 0;
+        }
+
+        try {
+            auto* loader = new menger::geometry::VideoLoader(nativePath);
+            env->ReleaseStringUTFChars(path, nativePath);
+            return reinterpret_cast<jlong>(loader);
+        } catch (...) {
+            env->ReleaseStringUTFChars(path, nativePath);
+            throw;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[MengerJNI] Error in openVideo: " << e.what() << std::endl;
+        throwJavaException(env, "java/lang/RuntimeException", e.what());
+        return 0;
+    }
+}
+
+JNIEXPORT jint JNICALL Java_menger_geometry_VideoLoader_videoWidthNative(
+    JNIEnv* env, jobject /*obj*/, jlong handle) {
+    auto* loader = getVideoLoader(env, handle);
+    return loader == nullptr ? 0 : loader->width();
+}
+
+JNIEXPORT jint JNICALL Java_menger_geometry_VideoLoader_videoHeightNative(
+    JNIEnv* env, jobject /*obj*/, jlong handle) {
+    auto* loader = getVideoLoader(env, handle);
+    return loader == nullptr ? 0 : loader->height();
+}
+
+JNIEXPORT jint JNICALL Java_menger_geometry_VideoLoader_frameCountNative(
+    JNIEnv* env, jobject /*obj*/, jlong handle) {
+    auto* loader = getVideoLoader(env, handle);
+    return loader == nullptr ? 0 : loader->frameCount();
+}
+
+JNIEXPORT jdouble JNICALL Java_menger_geometry_VideoLoader_videoDurationSecondsNative(
+    JNIEnv* env, jobject /*obj*/, jlong handle) {
+    auto* loader = getVideoLoader(env, handle);
+    return loader == nullptr ? 0.0 : loader->durationSeconds();
+}
+
+JNIEXPORT jdouble JNICALL Java_menger_geometry_VideoLoader_nativeFpsNative(
+    JNIEnv* env, jobject /*obj*/, jlong handle) {
+    auto* loader = getVideoLoader(env, handle);
+    return loader == nullptr ? 0.0 : loader->nativeFps();
+}
+
+JNIEXPORT jbyteArray JNICALL Java_menger_geometry_VideoLoader_getFrameAtNative(
+    JNIEnv* env, jobject /*obj*/, jlong handle, jdouble timestampSeconds) {
+    try {
+        auto* loader = getVideoLoader(env, handle);
+        if (loader == nullptr) {
+            return nullptr;
+        }
+
+        const auto frame = loader->frameAt(timestampSeconds);
+        if (frame.rgba.size() > static_cast<size_t>(std::numeric_limits<jsize>::max())) {
+            throw std::runtime_error("Decoded video frame is too large for a JVM byte array");
+        }
+
+        jbyteArray result = env->NewByteArray(static_cast<jsize>(frame.rgba.size()));
+        if (result == nullptr) {
+            throw std::runtime_error("Failed to allocate JVM byte array for decoded video frame");
+        }
+        env->SetByteArrayRegion(
+            result,
+            0,
+            static_cast<jsize>(frame.rgba.size()),
+            reinterpret_cast<const jbyte*>(frame.rgba.data())
+        );
+        return result;
+    } catch (const std::exception& e) {
+        std::cerr << "[MengerJNI] Error in getFrameAt: " << e.what() << std::endl;
+        throwJavaException(env, "java/lang/RuntimeException", e.what());
+        return nullptr;
+    }
+}
+
+JNIEXPORT void JNICALL Java_menger_geometry_VideoLoader_closeVideoNative(
+    JNIEnv* /*env*/, jobject /*obj*/, jlong handle) {
+    delete reinterpret_cast<menger::geometry::VideoLoader*>(handle);
 }
 
 } // extern "C"

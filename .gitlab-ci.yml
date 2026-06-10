@@ -17,6 +17,7 @@ variables:
   SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25.0.1_8_1.12.5_3.8.2
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.8.3
+  LIBAV_DEV_PACKAGES: "libavcodec-dev libavformat-dev libavutil-dev libswscale-dev"
   # OptiX Docker image version: {CUDA}-{OptiX}-{Java}-{sbt}
   OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.12.0
   # CUDA 13 variant image — allow_failure jobs, not an MR gate
@@ -93,7 +94,7 @@ Test:Debian:
     - curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
     - apt-get -y update
     - apt-get -y install sbt
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++ $LIBAV_DEV_PACKAGES
   script:
     # Skip OptiX JNI compilation (no CUDA installed) by setting ENABLE_OPTIX_JNI=false
     - export ENABLE_OPTIX_JNI=false
@@ -115,7 +116,7 @@ Test:SbtImage:
       allow_failure: true
   before_script:
     - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++ curl
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb cmake g++ curl $LIBAV_DEV_PACKAGES
     # Install CUDA Toolkit (this takes ~10 minutes)
     - curl -o cuda-keyring_1.1-1_all.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
     - dpkg -i cuda-keyring_1.1-1_all.deb
@@ -174,7 +175,7 @@ Test:Full:
     - ldconfig || true
     # Install xvfb for headless LibGDX tests
     - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb $LIBAV_DEV_PACKAGES
   script:
     # Run full parent test suite. Standalone optix-jni tests run in lene/optix-jni.
     # Java 25, sbt, CUDA 12.8, and OptiX SDK 9.0 are pre-installed in the Docker image
@@ -221,7 +222,7 @@ Test:Full:Cuda13:
     - ldconfig || true
     # Install xvfb for headless LibGDX tests
     - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb $LIBAV_DEV_PACKAGES
   script:
     # Run FULL test suite on CUDA 13
     - xvfb-run sbt test
@@ -252,7 +253,7 @@ Test:OptiXIntegration:
     - if: $CI_COMMIT_BRANCH
   before_script:
     - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb unzip imagemagick
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb unzip imagemagick $LIBAV_DEV_PACKAGES
     # Create missing symlink for RTX core library if needed
     - |
       if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
@@ -289,7 +290,7 @@ CheckCoverage:
     - if: $CI_COMMIT_BRANCH
   before_script:
     - apt-get -y update
-    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb curl
+    - apt-get -y install bc mesa-utils x11-xserver-utils xvfb curl $LIBAV_DEV_PACKAGES
   script:
     # Fetch previous coverage from artifacts (if available)
     - 'curl -o coverage.log --location --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/jobs/artifacts/${CI_COMMIT_REF_NAME}/raw/coverage.log?job=${CI_JOB_NAME}"'
@@ -347,6 +348,9 @@ Scalafix:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH
+  before_script:
+    - apt-get -y update
+    - apt-get -y install $LIBAV_DEV_PACKAGES
   script:
     # Scalafix only checks Scala code style, no GPU needed
     - sbt "scalafix --check"
@@ -419,7 +423,7 @@ Run:UseDocker:
     - if: $CI_COMMIT_TAG
   before_script:
     - apt-get -y update
-    - apt-get -y install mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install mesa-utils x11-xserver-utils xvfb $LIBAV_DEV_PACKAGES
     - |
       if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
         ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
@@ -457,7 +461,7 @@ CheckRunTime:
     - if: $CI_COMMIT_TAG
   before_script:
     - apt-get -y update
-    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb
+    - apt-get -y install bc time mesa-utils x11-xserver-utils xvfb $LIBAV_DEV_PACKAGES
     - |
       if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
         ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
@@ -547,6 +551,8 @@ BuildDeployable:
     - if: $CI_COMMIT_TAG
   script:
     # Build deployable package with full OptiX JNI
+    - apt-get -y update
+    - apt-get -y install $LIBAV_DEV_PACKAGES
     - sbt "mengerApp / Universal / packageBin"
     - mv menger-app/target/universal/${DEPLOYABLE_BASE_NAME}-app-${DEPLOYABLE_VERSION}.zip ./${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip
     - ls -lh menger-*.*.*.zip

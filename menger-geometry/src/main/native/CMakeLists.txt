@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(mengergeometry CXX)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INSTALL_MESSAGE LAZY)
@@ -56,6 +58,12 @@ find_package(JNI REQUIRED)
 message(STATUS "✓ JNI: ${JNI_INCLUDE_DIRS}")
 
 #=============================================================================
+# FFmpeg/libav (required for video texture decoding)
+#=============================================================================
+find_package(FFmpeg REQUIRED COMPONENTS avcodec avformat avutil swscale)
+message(STATUS "✓ FFmpeg/libav: avcodec ${FFmpeg_avcodec_VERSION}")
+
+#=============================================================================
 # optix-jni native API from the published artifact
 #=============================================================================
 if(NOT DEFINED OPTIX_JNI_INCLUDE_DIR)
@@ -105,6 +113,7 @@ set_target_properties(menger_shaders PROPERTIES
 add_library(mengergeometry SHARED
     project4d.cu
     CausticsRenderer.cpp
+    VideoLoader.cpp
     MengerJNIBindings.cpp
 )
 target_include_directories(mengergeometry PRIVATE
@@ -114,7 +123,13 @@ target_include_directories(mengergeometry PRIVATE
     ${OPTIX_JNI_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-target_link_libraries(mengergeometry PRIVATE CUDA::cudart)
+target_link_libraries(mengergeometry PRIVATE
+    CUDA::cudart
+    FFmpeg::avcodec
+    FFmpeg::avformat
+    FFmpeg::avutil
+    FFmpeg::swscale
+)
 # libmengergeometry.so calls OptiXWrapper symbols from liboptixjni.so.
 # --allow-shlib-undefined avoids a hard build-time dependency on liboptixjni.so.
 # At runtime, MengerJNIBindings.cpp's constructor promotes liboptixjni.so to
