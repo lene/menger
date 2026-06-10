@@ -107,6 +107,8 @@ error, not silently disable the feature.
 
 **Result:** CMake now requires and dynamically links `avcodec`, `avformat`, `avutil`,
 and `swscale`; CI installs the corresponding Ubuntu dev packages before native builds.
+The OptiX integration job timeout is raised to 30 minutes because the package build plus
+integration suite exceeded the previous 20-minute limit after adding the dependency.
 `VideoLoader` opens videos and exposes metadata through JNI/Scala. RGBA frame decode and
 cache behavior remain Task 27.2.
 

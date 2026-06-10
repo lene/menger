@@ -242,7 +242,7 @@ Test:OptiXIntegration:
   resource_group: nvidia-gpu
   tags:
     - nvidia
-  timeout: 20m  # Override global 15m - integration tests need more time
+  timeout: 30m  # Override global 15m - package build plus integration tests need more time
   variables:
     NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
     # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
