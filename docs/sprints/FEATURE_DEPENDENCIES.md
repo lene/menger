@@ -3,6 +3,8 @@
 **Last Updated:** 2026-06-10
 **Status:** Feature planning round complete: brainstormed, dependencies mapped, open
 questions resolved (§5), priorities selected and sprint plans written (§0)
+**Companion:** [BACKLOG_FEATURES.md](BACKLOG_FEATURES.md) — detailed specifications
+and task-level estimates for every item evaluated but not scheduled
 
 ---
 

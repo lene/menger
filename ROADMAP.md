@@ -195,8 +195,11 @@ Ideas not yet scheduled.
 ### Evaluated 2026-06-10, not prioritized
 
 Candidates from the 2026-06-10 feature-planning round that were considered and
-deliberately deprioritized. Dependencies, effort estimates, and scoping for each are in
-[docs/sprints/FEATURE_DEPENDENCIES.md](docs/sprints/FEATURE_DEPENDENCIES.md).
+deliberately deprioritized. Dependencies and tier analysis are in
+[docs/sprints/FEATURE_DEPENDENCIES.md](docs/sprints/FEATURE_DEPENDENCIES.md);
+detailed per-feature specifications with implementation notes and task-level
+estimates are in
+[docs/sprints/BACKLOG_FEATURES.md](docs/sprints/BACKLOG_FEATURES.md).
 
 | ID | Idea | Notes |
 |----|------|-------|
