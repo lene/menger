@@ -20,7 +20,13 @@ and must keep GPU texture memory bounded.
 - Current `optix-jni` dependency: `io.github.lene:optix-jni:0.1.2`.
 - Current `optix-jni` texture API exposes `uploadTexture`, `uploadTextureFromFile`,
   `setImageTexture`, `setEnvironmentMap`, and `releaseTextures`.
-- Current `optix-jni` texture API does not expose update-in-place texture replacement.
+- The consumed `optix-jni:0.1.2` artifact was verified with `javap`; it does not
+  expose update-in-place texture replacement.
+- Local libav dev packages are installed and visible to `pkg-config`:
+  `libavcodec 60.31.102`, `libavformat 60.16.100`, `libavutil 58.29.100`,
+  `libswscale 7.5.100`.
+- CI jobs must install `libavcodec-dev`, `libavformat-dev`, `libavutil-dev`, and
+  `libswscale-dev` before native video builds/tests.
 - Static image textures are currently loaded once by `TextureManager` during scene
   build.
 - `WithAnimation` currently rebuilds scene geometry unless it can use the existing 4D

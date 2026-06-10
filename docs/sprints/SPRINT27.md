@@ -47,23 +47,36 @@ DSL-only scope. No CLI options needed.
 ### Task 27.0: Sprint Plan and Dependency Preflight
 
 **Estimate:** 1h
+**Status:** Complete
 
 Keep this sprint plan aligned with the current three-module architecture and verify the
 native dependency surface before implementation.
 
 **Implementation:**
-1. Mark Sprint 27 as in progress in this file.
-2. Confirm all native video work is scoped to `menger-geometry`, not the split
+1. [x] Mark Sprint 27 as in progress in this file.
+2. [x] Confirm all native video work is scoped to `menger-geometry`, not the split
    `optix-jni` repository.
-3. Verify local and CI availability for `libavcodec-dev`, `libavformat-dev`,
+3. [x] Verify local and CI availability for `libavcodec-dev`, `libavformat-dev`,
    `libavutil-dev`, and `libswscale-dev`.
-4. Verify whether the current `optix-jni` dependency exposes an update-in-place texture
+4. [x] Verify whether the current `optix-jni` dependency exposes an update-in-place texture
    API. If it does not, add that generic renderer API before task 27.6.
 5. [x] Harden standalone `optix-jni` CI/release policy so follow-up texture API work can
    be gated on every branch push/PR and published through Maven Central.
 6. [x] Harden standalone `menger-common` CI/release policy with branch/PR gates,
    coverage ratchet, Scaladoc, MiMa, Java consumer smoke, `main` release gate,
    tag publication, and Maven Central post-publish smoke.
+
+**Preflight result:**
+- Native video decode belongs in `menger-geometry`; `optix-jni` remains the generic
+  renderer/texture API dependency.
+- Local libav dev headers are installed and visible to `pkg-config`:
+  `libavcodec 60.31.102`, `libavformat 60.16.100`, `libavutil 58.29.100`,
+  `libswscale 7.5.100`.
+- CI jobs use apt-capable Ubuntu/CUDA images; task 27.1 installs the same libav dev
+  packages before native build/test jobs.
+- The consumed `io.github.lene:optix-jni:0.1.2` artifact does not expose
+  `updateTexture`; task 27.6 remains blocked until a new `optix-jni` release with
+  update-in-place texture API is published and this repo bumps to it.
 
 ---
 
