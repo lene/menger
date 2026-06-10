@@ -322,6 +322,20 @@ JNIEXPORT jbyteArray JNICALL Java_menger_geometry_VideoLoader_getFrameAtNative(
     }
 }
 
+JNIEXPORT void JNICALL Java_menger_geometry_VideoLoader_prefetchVideoNative(
+    JNIEnv* env, jobject /*obj*/, jlong handle, jdouble timestampSeconds, jint nFrames) {
+    try {
+        auto* loader = getVideoLoader(env, handle);
+        if (loader == nullptr) {
+            return;
+        }
+        loader->prefetch(timestampSeconds, nFrames);
+    } catch (const std::exception& e) {
+        std::cerr << "[MengerJNI] Error in prefetchVideo: " << e.what() << std::endl;
+        throwJavaException(env, "java/lang/RuntimeException", e.what());
+    }
+}
+
 JNIEXPORT void JNICALL Java_menger_geometry_VideoLoader_closeVideoNative(
     JNIEnv* /*env*/, jobject /*obj*/, jlong handle) {
     delete reinterpret_cast<menger::geometry::VideoLoader*>(handle);

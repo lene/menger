@@ -29,6 +29,22 @@ class VideoLoaderSuite extends AnyFlatSpec with Matchers:
       unsigned(loader.frameAt(100.0)) shouldBe SecondFrame
     }
 
+  it should "prefetch frames without changing decoded output" in:
+    withLoader { loader =>
+      loader.prefetch(0.0, 2)
+
+      unsigned(loader.frameAt(0.0)) shouldBe FirstFrame
+      unsigned(loader.frameAt(0.5)) shouldBe SecondFrame
+    }
+
+  it should "close idempotently and reject later access" in:
+    val loader = new VideoLoader(fixturePath)
+
+    loader.close()
+    loader.close()
+
+    an[IllegalArgumentException] shouldBe thrownBy(loader.frameAt(0.0))
+
   private def withLoader(test: VideoLoader => Unit): Unit =
     val loader = new VideoLoader(fixturePath)
     try test(loader)

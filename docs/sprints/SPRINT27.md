@@ -166,6 +166,7 @@ RGBA bytes through the Scala/JNI path.
 
 **Estimate:** 2h
 **Depends on:** 27.2
+**Status:** Complete
 
 - `VideoLoader.scala` in `menger-geometry`
 - Native methods: `openVideo(path)`, `videoWidth()`, `videoHeight()`, `frameCount()`,
@@ -174,6 +175,11 @@ RGBA bytes through the Scala/JNI path.
 - `MengerVideoApi` trait following existing JNI pattern
 - Scala loader implements `AutoCloseable`; every engine path that opens videos closes
   them during renderer disposal or failure cleanup
+
+**Result:** `VideoLoader` now extends a `MengerVideoApi` native-boundary trait,
+exposes metadata, RGBA frame decode, prefetch, and idempotent close through Scala/JNI,
+and rejects access after close. No renderer/engine path opens videos yet; later tasks
+must use the `AutoCloseable` loader ownership point when wiring video textures.
 
 ---
 
