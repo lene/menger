@@ -61,6 +61,9 @@ native dependency surface before implementation.
    API. If it does not, add that generic renderer API before task 27.6.
 5. [x] Harden standalone `optix-jni` CI/release policy so follow-up texture API work can
    be gated on every branch push/PR and published through Maven Central.
+6. [x] Harden standalone `menger-common` CI/release policy with branch/PR gates,
+   coverage ratchet, Scaladoc, MiMa, Java consumer smoke, `main` release gate,
+   tag publication, and Maven Central post-publish smoke.
 
 ---
 
