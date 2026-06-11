@@ -768,6 +768,7 @@ PushToGithub:
   needs:
     - Run:UseDocker
     - CheckRunTime
+    - Test:InstallSmoke
   retry:
     max: 2
     when:

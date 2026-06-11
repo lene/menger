@@ -105,7 +105,7 @@ layer is **scripts and config files, not CI YAML**.
 ### Task 28.2: Tiered Hooks with Agentic Policy Checks
 
 **Estimate:** 8h
-**Status:** 🔄 In Progress (started 2026-06-11)
+**Status:** ✅ Done (2026-06-11)
 
 Progress:
 - [x] New fast pre-commit (0.11 s measured): branch guard, staged hygiene
@@ -166,7 +166,7 @@ Friction proportional to risk; policies enforced, not trusted.
 ### Task 28.3: Local Runner Hardening
 
 **Estimate:** 5h
-**Status:** 🔄 In Progress (started 2026-06-11)
+**Status:** ✅ Done (2026-06-11)
 
 Progress:
 - [x] Survey: gitlab-runner (system service, Restart=always, enabled) and one
@@ -278,7 +278,7 @@ signal, not noise.
 ### Task 28.5: Release-on-Merge + Installable-Package Proof
 
 **Estimate:** 8h
-**Status:** 🔄 In Progress (started 2026-06-11)
+**Status:** ✅ Done (2026-06-11)
 
 Progress:
 - [x] `scripts/release.sh --prepare --version X.Y.Z` — bumps all four version
@@ -295,9 +295,9 @@ Progress:
       runner, runs `xvfb-run menger-app --objects type=cube-sponge:level=1
       --timeout 0.1` (headless smoke render proving the installed package runs
       on the user's GPU).
-- [ ] Wire `Test:InstallSmoke` as a required gate before `PushToGithub` (add
-      to `PushToGithub.needs` once a release has run smoke-green at least once)
-- [ ] Add `Test:Debian`/`Test:Ubuntu` automatic rules for tag pipelines
+- [x] Wire `Test:InstallSmoke` as a required gate before `PushToGithub` (added
+      to `PushToGithub.needs` — 2026-06-11)
+- [~] Add `Test:Debian`/`Test:Ubuntu` automatic rules for tag pipelines
       (deferred: smoke + existing manual jobs sufficient until external users
       materialize — revisit per BACKLOG_FEATURES.md)
 
