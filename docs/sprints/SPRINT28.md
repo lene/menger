@@ -244,8 +244,10 @@ Progress:
       (ai-review job added to menger-common and optix-jni ci.yml — 2026-06-11)
 - [ ] Promote `allow_failure: false` once a sprint of reviews shows low
       false-positive rate (conscious decision at sprint 29 close)
+- [x] review.sh skips gracefully (exit 0 + empty JSON) when no API keys set;
+      ci.yml key-check step gates Run/Post on key availability (2026-06-11)
 - [ ] Add DEEPSEEK_API_KEY as masked+protected CI variable (user action
-      required: Settings → CI/CD → Variables)
+      required: Settings → CI/CD → Variables) — deferred
 
 ≥2 model families per review to minimize single-model bias; disagreements are
 signal, not noise.
