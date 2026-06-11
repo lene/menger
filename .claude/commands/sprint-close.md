@@ -169,7 +169,16 @@ Ask the user:
 
 If yes, apply edits and stage for the archiving commit (3i).
 
-### 3g. Clean CODE_IMPROVEMENTS.md
+### 3g. Run Standards Drift Check
+
+```bash
+./scripts/check-standards-drift.sh --local
+```
+
+Fix any drift found before archiving. If sibling repos have diverged, run
+`./scripts/sync-standards.sh` and open PRs in the affected repos.
+
+### 3h. Clean CODE_IMPROVEMENTS.md
 
 Read `CODE_IMPROVEMENTS.md` in full. Identify issues marked as resolved, complete, or fixed (look for ✅, "Resolved:", "Fixed in", "Closed"). Present the list:
 
@@ -177,7 +186,7 @@ Read `CODE_IMPROVEMENTS.md` in full. Identify issues marked as resolved, complet
 
 Remove confirmed ones. Do not touch deferred or in-progress items.
 
-### 3h. Version Consistency Check
+### 3i. Version Consistency Check
 
 ```bash
 grep "version" menger-app/build.sbt
@@ -190,7 +199,7 @@ grep "^\## \[" CHANGELOG.md | head -1
 
 All six must agree on VERSION and CHANGELOG top entry must be `[VERSION] - TODAY`. Report any mismatches as ❌.
 
-### 3i. Commit Archiving Work
+### 3j. Commit Archiving Work
 
 ```bash
 git add docs/archive/sprints/

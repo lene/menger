@@ -65,7 +65,7 @@ system from the package.
 ### Task 28.1: Cross-Repo Quality Standards + Drift Detection
 
 **Estimate:** 6h
-**Status:** 🔄 In Progress (started 2026-06-11)
+**Status:** ✅ Done (2026-06-11)
 
 Progress:
 - [x] `standards/` canonical directory (README, manifest, scalafix.conf); root
@@ -78,9 +78,9 @@ Progress:
 - [x] CI jobs `StandardsParity` (every pipeline) and `StandardsDrift` (scheduled)
 - [x] Commit + push the synced `.scalafix.conf` in menger-common and optix-jni
       (menger-common@59d43c3, optix-jni@96d3af9 — 2026-06-11)
-- [ ] Create the GitLab pipeline schedule — **deferred to end of sprint** (user
-      decision 2026-06-11): set up together with 28.3's runner resource limits and
-      the nightly deep tier, after those exist
+- [~] Create the GitLab pipeline schedule — **dropped** (user decision 2026-06-11):
+      drift check runs on sprint close instead of on a schedule; added to
+      sprint-close skill
 - [x] Document the canonical rule in the sibling repos' CONTRIBUTING/README
       (README.md sections added in same commits — 2026-06-11)
 
