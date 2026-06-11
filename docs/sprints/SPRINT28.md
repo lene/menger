@@ -175,9 +175,12 @@ Progress:
       install script, README (architecture, limitations, update policy)
 - [x] `RunnerHeartbeat` CI job (schedule-gated; alive when the deferred
       nightly schedule is created)
-- [ ] Apply config.toml fix (`limit = 1`, container cpus/memory) — pkexec
-- [ ] Install slice + drop-ins, daemon-reload — pkexec
-- [ ] Restart services in an idle window; verify Slice= took effect
+- [x] Apply config.toml fix (`limit = 1`, container cpus/memory; backup at
+      config.toml.bak-sprint28) — applied + verified 2026-06-11
+- [x] Install slice + drop-ins, daemon-reload — applied + verified 2026-06-11
+      (`systemctl show` confirms Slice= and Restart= on both services)
+- [ ] Restart services in an idle window (end of sprint, with schedule
+      creation); verify runtime slice membership via `systemd-cgls`
 - [ ] GitHub-side heartbeat (with sibling hook-wiring PRs, 28.2 follow-up)
 
 Accepted limitation (documented): GitLab and GitHub GPU jobs can still run
