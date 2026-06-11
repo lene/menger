@@ -7,6 +7,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INSTALL_MESSAGE LAZY)
 
+# ccache compiler launcher — speeds up repeated native rebuilds (sprint 28.2).
+# No-op when ccache is not installed.
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  set(CMAKE_CUDA_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+endif()
+
 #=============================================================================
 # CUDA (required for PTX shader compilation)
 #=============================================================================

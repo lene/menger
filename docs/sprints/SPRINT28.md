@@ -123,7 +123,9 @@ Progress:
       expensive; graceful skip on branches predating standards/hooks.
 - [x] Wire shared policy checks into menger-common/optix-jni hooks (PRs there)
       (menger-common@3db7606, optix-jni@130a703 — 2026-06-11)
-- [ ] ccache for the CUDA side (cheap native rebuilds)
+- [x] ccache for the CUDA side: CMAKE_CXX/CUDA_COMPILER_LAUNCHER in
+      menger-geometry/src/main/native/CMakeLists.txt; no-op when ccache
+      absent, transparent speedup once installed (`apt install ccache`)
 - [x] Scala-only pre-push timing tier: HAS_RENDERING flag reads
       standards/rendering-paths.txt; Phase 5 (package + integration suite)
       now gated on HAS_RENDERING || HAS_NATIVE || HAS_INTEGRATION — pure
