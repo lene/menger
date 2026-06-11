@@ -14,21 +14,7 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-sceneb-validate-bypass: buildSceneFromConfigs skips validate(); SceneBuilder has split error types
-
-**Location**: `menger-app/src/main/scala/menger/engines/BaseEngine.scala:104–106`, `menger-app/src/main/scala/menger/engines/scene/SceneBuilder.scala:47,62`
-**Impact**: Medium — two related issues in the same seam:
-1. `buildSceneFromConfigs` (BaseEngine.scala:104) calls `builder.buildScene(...)` directly without calling `validate()` first. `buildSceneFromSpecs` at line 88 does call `validate()`. The trait's contract says validate must succeed before buildScene; one caller respects this, the other doesn't. Unvalidated input reaches GPU instance allocation.
-2. `SceneBuilder.validate` returns `Either[String, Unit]` (string error, no stack trace) while `buildScene` returns `Try[Unit]`. Callers in BaseEngine must bridge these incompatible types; the string error from `validate` is swallowed into a `RuntimeException` message without structured context.
-**Fix**: Call `validate()` inside `buildSceneFromConfigs` before `buildScene`, or make `buildScene` call `validate` internally as a precondition. Unify the error type (`Try` or `Either` — pick one).
-
----
-
-### M-instanceid-raw-int: Inconsistent -1 handling for native instance IDs across scene builders
-
-**Location**: `menger-app/src/main/scala/menger/engines/scene/` (CubeSpongeSceneBuilder.scala, ConeSceneBuilder.scala, Menger4DSceneBuilder.scala and others), `io.github.lene.optix.OptiXMeshApi` (in optix-jni)
-**Impact**: Medium — `add*Instance` methods return raw `Int` where -1 means failure. Each builder handles this differently: some raise on -1, some silently skip, some check but don't propagate. If `add*4DInstance` returns -1 at scene-build time and the value flows to `update*4DProjection` in the render loop, a `require` fires mid-frame (`IllegalArgumentException`).
-**Fix**: Wrap native instance IDs in an opaque type (`opaque type InstanceId = Int`) and return `Option[InstanceId]` or `Try[InstanceId]` from the Scala API layer. Enforce the -1→failure translation once at the boundary rather than in every caller.
+*(none — M-sceneb-validate-bypass and M-instanceid-raw-int scheduled as Task 29.7)*
 
 ---
 

@@ -1,9 +1,5 @@
 # Current Sprint
 
-**Sprint:** 27
-**Status:** 🔄 In Progress
-**Branch:** `feature/sprint-27`
-
 **Sprint:** 29
 **Status:** 📋 Planned
 **Branch:** `feature/sprint-29` (not yet created)
@@ -12,8 +8,7 @@
 
 ## Goal
 
-See [SPRINT27.md](SPRINT27.md) (video textures) and [SPRINT29.md](SPRINT29.md)
-(OptiX API Coverage I) for detailed task breakdowns.
+See [SPRINT29.md](SPRINT29.md) (OptiX API Coverage I) for detailed task breakdown.
 
 ---
 

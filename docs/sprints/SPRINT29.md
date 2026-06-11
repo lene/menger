@@ -140,6 +140,29 @@ Wrap the OptiX built-in curve primitive.
 
 ---
 
+### Task 29.7: Code Quality — Scene Validation + InstanceId Safety
+
+**Estimate:** 3h
+
+Two medium-priority findings from CODE_IMPROVEMENTS.md carried forward from Sprint 28.
+
+**29.7a — M-sceneb-validate-bypass** (`BaseEngine.scala:104–106`, `SceneBuilder.scala:47,62`):
+- `buildSceneFromConfigs` calls `buildScene` without calling `validate()` first;
+  `buildSceneFromSpecs` does call it. Unvalidated input reaches GPU instance allocation.
+- `SceneBuilder.validate` returns `Either[String, Unit]`; `buildScene` returns `Try[Unit]`.
+  String error swallowed into `RuntimeException` without structured context.
+- Fix: call `validate()` inside `buildSceneFromConfigs`, or make `buildScene` call it as
+  a precondition. Unify error type (`Try` or `Either` — pick one).
+
+**29.7b — M-instanceid-raw-int** (`menger-app/src/main/scala/menger/engines/scene/`):
+- `add*Instance` methods return raw `Int` where -1 means failure. Builders handle it
+  inconsistently: some raise, some skip silently, some check but don't propagate.
+  If -1 flows to `update*4DProjection` in render loop, `require` fires mid-frame.
+- Fix: wrap in `opaque type InstanceId = Int`; return `Option[InstanceId]` or
+  `Try[InstanceId]` from Scala API layer. Enforce -1→failure once at the boundary.
+
+---
+
 ## Summary
 
 | Task | Description | Estimate |
@@ -150,7 +173,8 @@ Wrap the OptiX built-in curve primitive.
 | 29.4 | DSL Curve type + demo | 4h |
 | 29.5 | Tests + reference images | 3h |
 | 29.6 | Docs + optix-jni release | 2h |
-| **Total** | | **~30h** |
+| 29.7 | Code quality: scene validate + InstanceId | 3h |
+| **Total** | | **~33h** |
 
 ---
 
