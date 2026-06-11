@@ -30,8 +30,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.7.2 | optix-jni Decoupling | ✅ Complete | optix-jni generic library, menger-geometry layer, MengerRenderer, NativeOptiXApi (Sprints 24-25) |
 | v0.7.3 | Repo Split & Code Health | ✅ Complete | menger-common + optix-jni separate repos, Maven Central, all CODE_IMPROVEMENTS resolved (Sprint 26) |
 | v0.8.0 | Video Backgrounds | 🔄 In Progress | Animated .mp4 backgrounds via ffmpeg, per-frame GPU texture swap (Sprint 27) |
-| TBD | Agentic Guardrails & Release Automation | Planned | Cross-repo standards, tiered hooks, multi-model reviews, release-on-merge (Sprint 28) |
-| TBD | OptiX API Coverage I | Planned | AI denoiser, curves primitive, optix-jni release (Sprint 29) |
+| v0.7.5 | Agentic Guardrails & Release Automation | ✅ Complete | Cross-repo standards, tiered hooks, multi-model reviews, release-on-merge, stats JSON, benchmarks, Renovate (Sprint 28) |
+| TBD | OptiX API Coverage I | 🔄 In Progress | AI denoiser, curves primitive, optix-jni release (Sprint 29) |
 | TBD | OptiX API Coverage II | Planned | Motion blur, API audit, validation mode, optix-jni 1.0 prep (Sprint 30) |
 | TBD | L-Systems | Planned | 3D/4D Lindenmayer systems, turtle geometry, presets (Sprint 31) |
 | TBD | Spectral Dispersion | Planned | Wavelength-dependent IOR, hero-wavelength sampling, diamond fire (Sprint 32) |

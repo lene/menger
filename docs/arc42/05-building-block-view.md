@@ -107,7 +107,7 @@ namespace. `DragTracker` was folded into `OrbitCamera`'s `dragState`
 
 | Aspect | Detail |
 |--------|--------|
-| Purpose | Render-loop orchestration: interactive, preview, animation, video export. Bridges DSL/config/input/optix into a running engine. |
+| Purpose | Render-loop orchestration: interactive, preview, animation, video export. Bridges DSL/config/input/optix into a running engine. Writes per-frame render statistics as JSON on exit (`--stats-json`). |
 | Interface | `RenderEngine` trait, `BaseEngine`, `InteractiveEngine`, `PreviewEngine`, `AnimationEngine`, `CliAnimationEngine`, `VideoEngine`, `RenderModeSelector`, `GeometryRegistry`, `PlaneConfigurer` (extracted from `optix.SceneConfigurator`), `VideoEncoder`, `WithAnimation` / `WithPreview` / `WithVideoExport` traits, `scene.SceneBuilder` strategy family (`SphereSceneBuilder`, `ConeSceneBuilder`, `PlaneSceneBuilder`, `CubeSpongeSceneBuilder`, `TriangleMeshSceneBuilder`, `TesseractEdgeSceneBuilder`, `Menger4DSceneBuilder`, `Sierpinski4DSceneBuilder`, `Hexadecachoron4DSceneBuilder`, `MaterialExtractor`, `MeshFactory`, `MeshUploadPlan`, `TextureManager`). |
 | Allowed dependencies | All inner layers; LibGDX (via `menger.input`); FFmpeg (via `VideoEncoder`). |
 | Known violations | None active. |
@@ -140,8 +140,8 @@ and native development resources (`optix-jni-native/include/**`,
 
 | Aspect | Detail |
 |--------|--------|
-| Purpose | Menger-specific 4D geometry and caustics extension of `optix-jni`. Not published. |
-| Interface | `MengerRenderer` (extends `OptiXRenderer`; overrides all 4D geometry `@native` methods to dispatch to `libmengergeometry.so`). |
+| Purpose | Menger-specific 4D geometry, caustics, and video-frame loading extension of `optix-jni`. Not published. |
+| Interface | `MengerRenderer` (extends `OptiXRenderer`; overrides all 4D geometry `@native` methods to dispatch to `libmengergeometry.so`), `VideoLoader` (Scala/JNI wrapper; decodes video frames from `.mp4`/`.mkv` via libav; returns raw RGBA byte arrays for GPU texture upload — Sprint 27 skeleton). |
 | Allowed dependencies | `optix-jni`, `menger-common`. |
 | Enforced rules | `@native` methods and `loadLibrary` permitted here (same ArchUnit rule as `optix-jni`). |
 | Native dependency handling | `menger-geometry/build.sbt` extracts `optix-jni-native/**` from the `optix-jni` dependency jar into `target/optix-jni-native-api` and passes those include/shader directories to CMake. |

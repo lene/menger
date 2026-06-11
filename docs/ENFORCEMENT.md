@@ -80,7 +80,7 @@ resolve by implementing a gate or consciously accepting the gap.
 | GitLab CI YAML valid | AGENTS.md §Release workflow | pre-push Phase 1: CI lint via API (`.gitlab-ci.yml` changes) | ✅ |
 | Release triggers on MR merge (unless `NORELEASE` label) | Sprint 28.5 | GitLab CI `CreateRelease` job on main-branch pipeline | ✅ |
 | Released package installs and renders on user's OS | Sprint 28.5 | `InstallProof` CI job on tag pipeline | ✅ |
-| CHANGELOG.md updated at release | AGENTS.md §Release workflow | Unenforced | ❌ [#7] |
+| CHANGELOG.md updated at release | AGENTS.md §Release workflow | CI `ChangelogIsUpdated` job: checks top entry matches current tag and date | ✅ |
 
 ---
 
@@ -109,7 +109,7 @@ resolve by implementing a gate or consciously accepting the gap.
 
 | Policy | Source | Mechanism | Status |
 |--------|--------|-----------|--------|
-| No silent performance regressions (> 15 % ms/frame) | Sprint 28.7 | Planned: pre-merge benchmark comparison + nightly baseline | ❌ [#8] |
+| No silent performance regressions (> 15 % ms/frame) | Sprint 28.7 | CI `PerfCheck` job (`allow_failure: true`): `benchmark.sh` compares 4 scenes against `perf-baseline.json` (15 % threshold) | ⚠️ advisory |
 
 ---
 

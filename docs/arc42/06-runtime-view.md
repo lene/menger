@@ -219,3 +219,42 @@ CLI --animate <spec>
 
 DSL animation uses `scene(t: Double)` — each frame calls `scene(t)`,
 rebuilds the scene graph, and renders.
+
+## 6.7 Stats JSON Export Flow (`--stats-json`)
+
+```
+render() [each frame]
+       │
+       ▼
+renderWithStats(w, h)
+       │
+       ├─► rendererWrapper.renderSceneWithStats()
+       │         │
+       │         ▼ JNI
+       │   optixLaunch() + RenderResult
+       │   (frameMs, totalRays, primaryRays,
+       │    reflectedRays, refractedRays,
+       │    shadowRays, aaRays, msPerMray)
+       │
+       └─► lastRenderResult.set(Some(result))
+               [AtomicReference — GL thread write]
+
+dispose() [on exit]
+       │
+       ▼
+execution.statsJsonPath.foreach(writeStatsJson)
+       │
+       ├─► lastRenderResult.get() → None?
+       │       └─► logger.warn (no render completed)
+       │
+       └─► lastRenderResult.get() → Some(result)
+               │
+               ├─► extract scalar fields to locals
+               ├─► Paths.get(path).toAbsolutePath
+               ├─► Files.createDirectories(parent)
+               ├─► Files.writeString(p, json)
+               └─► Try / logger.error on IOException
+```
+
+Used by `scripts/benchmark.sh` to collect `frameMs` across 3 runs per scene
+and compare against `scripts/perf-baseline.json` (15% regression threshold).

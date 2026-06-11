@@ -1,21 +1,19 @@
 # Current Sprint
 
-Two sprints are active in parallel (decision 2026-06-11):
-
 **Sprint:** 27
 **Status:** 🔄 In Progress
 **Branch:** `feature/sprint-27`
 
-**Sprint:** 28
-**Status:** 🔄 In Progress
-**Branch:** `feature/sprint-28` (worktree `.worktrees/sprint-28`)
+**Sprint:** 29
+**Status:** 📋 Planned
+**Branch:** `feature/sprint-29` (not yet created)
 
 ---
 
 ## Goal
 
-See [SPRINT27.md](SPRINT27.md) (video textures) and [SPRINT28.md](SPRINT28.md)
-(agentic development guardrails) for detailed task breakdowns.
+See [SPRINT27.md](SPRINT27.md) (video textures) and [SPRINT29.md](SPRINT29.md)
+(OptiX API Coverage I) for detailed task breakdowns.
 
 ---
 
