@@ -40,10 +40,19 @@ discipline.
 ## Currently tracked
 
 - `.scalafix.conf` ← `scalafix.conf`
+- `standards/hooks/*.sh` — shared hook policy checks (Sprint 28.2): branch guard,
+  staged hygiene, test-change justification, rendering discipline. Per-repo hooks
+  in `.git_hooks/` stay thin wrappers calling these.
+
+## Repo-specific (in standards/, not parity-tracked)
+
+- `rendering-paths.txt` — grep patterns defining rendering-relevant paths for the
+  rendering-discipline check; each repo maintains its own (the check skips cleanly
+  when absent).
 
 ## Not yet tracked (known gaps)
 
 - WartRemover options live in each repo's `build.sbt` (build definitions are
   repo-specific); parity is by convention until extracted into a shared plugin.
-- Git hooks (`.git_hooks/`) legitimately differ per repo today; Sprint 28.2 factors
-  the shared policy checks into tracked scripts sourced by thin per-repo hooks.
+- Wiring the shared policy checks into the sibling repos' hooks happens via
+  follow-up PRs there (tracked in SPRINT28.md task 28.2).

@@ -103,6 +103,34 @@ layer is **scripts and config files, not CI YAML**.
 ### Task 28.2: Tiered Hooks with Agentic Policy Checks
 
 **Estimate:** 8h
+**Status:** 🔄 In Progress (started 2026-06-11)
+
+Progress:
+- [x] New fast pre-commit (0.11 s measured): branch guard, staged hygiene
+      (conflict markers, debug println, >5 MB files), version consistency
+      (extracted to `scripts/check-version-consistency.sh`, shared with
+      pre-push), local standards parity. No compile, no tests.
+- [x] Shared policy checks in `standards/hooks/` (parity-tracked in manifest):
+      `check-test-justification.sh` (modified/deleted `src/test/` files need a
+      `Test-Change:` trailer; added tests exempt) and
+      `check-rendering-discipline.sh` (pushes touching
+      `standards/rendering-paths.txt` patterns need reference-image updates in
+      the push or `No-Render-Impact:` trailers). Both verified positive and
+      negative against real history.
+- [x] pre-push Phase 0 runs the policy checks per push range before anything
+      expensive; graceful skip on branches predating standards/hooks.
+- [ ] Wire shared policy checks into menger-common/optix-jni hooks (PRs there)
+- [ ] ccache for the CUDA side (cheap native rebuilds)
+- [ ] Scala-only pre-push timing tier (requires deciding whether integration
+      tests may be skipped for non-rendering Scala changes — discuss)
+
+**Finding (for 28.6/28.9):** `docs/TESTING.md` and `docs/RENDERING.md` are
+referenced by AGENTS.md but do not exist — the policies the hooks now enforce
+lack their authoritative documents. Write them in 28.9.
+
+Note: hooks are wired via `.git/hooks` symlinks into the **main checkout's**
+`.git_hooks/`, so the new hooks take effect when this branch reaches the main
+checkout; worktree pushes until then use the old hooks.
 
 Friction proportional to risk; policies enforced, not trusted.
 

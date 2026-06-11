@@ -1,3 +1,8 @@
 # Parity-tracked standards files: <path-in-repo> <canonical-file-in-standards/>
 # Lines starting with # and blank lines are ignored.
 .scalafix.conf scalafix.conf
+standards/hooks/lib.sh hooks/lib.sh
+standards/hooks/check-branch.sh hooks/check-branch.sh
+standards/hooks/check-staged-hygiene.sh hooks/check-staged-hygiene.sh
+standards/hooks/check-test-justification.sh hooks/check-test-justification.sh
+standards/hooks/check-rendering-discipline.sh hooks/check-rendering-discipline.sh

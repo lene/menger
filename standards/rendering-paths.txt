@@ -1,0 +1,7 @@
+# grep -E patterns for rendering-relevant paths (menger repo).
+# A push touching these must update scripts/reference-images/ or carry
+# No-Render-Impact trailers — see standards/hooks/check-rendering-discipline.sh.
+^menger-geometry/src/main/native/
+^menger-app/src/main/scala/menger/engines/scene/
+^menger-app/src/main/scala/menger/objects/
+^menger-app/src/main/scala/menger/optix/

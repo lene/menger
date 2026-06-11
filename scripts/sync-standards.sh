@@ -30,6 +30,7 @@ for target in $TARGETS; do
         if cmp -s "$STANDARDS_DIR/$canon_name" "$target/$repo_path"; then
             echo "unchanged: $repo_path"
         else
+            mkdir -p "$(dirname "$target/$repo_path")"
             cp "$STANDARDS_DIR/$canon_name" "$target/$repo_path"
             echo "updated:   $repo_path"
         fi

@@ -10,24 +10,31 @@ RESET_TEXT=$'\e[0m'
 # Detect which file categories are being pushed
 # ---------------------------------------------------------------------------
 CHANGED_FILES=""
+RANGES=()
 if [ -t 0 ]; then
   # Running manually (stdin is a TTY) — detect changed files from current branch vs main
   LOCAL_SHA=$(git rev-parse HEAD)
   BASE=$(git merge-base origin/main "$LOCAL_SHA" 2>/dev/null || git merge-base main "$LOCAL_SHA" 2>/dev/null)
   if [ -n "$BASE" ]; then
     CHANGED_FILES=$(git diff --name-only "$BASE" "$LOCAL_SHA")
+    RANGES+=("$BASE..$LOCAL_SHA")
   else
     CHANGED_FILES=$(git diff --name-only HEAD)
   fi
 else
   while read local_ref local_sha remote_ref remote_sha; do
+    if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+      continue  # branch deletion — nothing to check
+    fi
     if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
       BASE=$(git merge-base origin/main "$local_sha" 2>/dev/null)
       if [ -n "$BASE" ]; then
         CHANGED_FILES="$CHANGED_FILES"$'\n'"$(git diff --name-only "$BASE" "$local_sha")"
+        RANGES+=("$BASE..$local_sha")
       fi
     else
       CHANGED_FILES="$CHANGED_FILES"$'\n'"$(git diff --name-only "$remote_sha" "$local_sha")"
+      RANGES+=("$remote_sha..$local_sha")
     fi
   done
 fi
@@ -40,6 +47,26 @@ HAS_INTEGRATION=$(echo "$CHANGED_FILES" | grep -c '^scripts/integration-tests\.s
 skip_section() {
   echo "  [skipped — no relevant files changed]"
 }
+
+# ---------------------------------------------------------------------------
+# Phase 0: Agentic policy checks (Sprint 28.2) — instant, run before anything
+# expensive. Policies from AGENTS.md enforced mechanically: test changes need
+# justification trailers; rendering changes need reference updates or
+# No-Render-Impact trailers.
+# ---------------------------------------------------------------------------
+if [ ${#RANGES[@]} -gt 0 ] && [ -x ./standards/hooks/check-test-justification.sh ]; then
+  echo "=== Agentic policy checks ==="
+  POLICY_STATUS=0
+  ./standards/hooks/check-test-justification.sh "${RANGES[@]}" || POLICY_STATUS=1
+  ./standards/hooks/check-rendering-discipline.sh "${RANGES[@]}" || POLICY_STATUS=1
+  if [ $POLICY_STATUS -gt 0 ]; then
+    echo "${RED_TEXT}Policy checks failed. Fix the issues above before pushing.${RESET_TEXT}"
+    exit 1
+  fi
+else
+  # standards/hooks absent on branches predating Sprint 28.2 — skip gracefully
+  echo "=== Agentic policy checks ===" ; skip_section
+fi
 
 # ---------------------------------------------------------------------------
 # Phase 1: Fast pre-flight checks (env, CI lint, version consistency)
@@ -137,34 +164,9 @@ else
   echo "=== GitLab CI lint ===" ; skip_section
 fi
 
-# Version consistency and tag check — always run (fast grep, critical release safety)
+# Version consistency (shared with pre-commit) and tag check — always run
+./scripts/check-version-consistency.sh || STATUS=1
 VERSION_SBT=$(egrep 'version := ".*"' menger-app/build.sbt | cut -d \" -f 2)
-VERSIONS_CI=$(egrep 'DEPLOYABLE_VERSION.*' .gitlab-ci.yml | head -n 1 | cut -d ':' -f 2 | xargs)
-VERSION_SOURCE=$(egrep 'version\("menger v.* ' menger-app/src/main/scala/menger/MengerCLIOptions.scala | cut -d 'v' -f 3 | cut -d ' ' -f 1)
-if [ "$VERSION_SBT" != "$VERSIONS_CI" ]; then
-  echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in .gitlab-ci.yml: ${RED_TEXT}${VERSIONS_CI}${RESET_TEXT}"
-  STATUS=1
-fi
-if [ "$VERSION_SBT" != "$VERSION_SOURCE" ]; then
-  echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in MengerCLIOptions.scala: ${RED_TEXT}${VERSION_SOURCE}${RESET_TEXT}"
-  STATUS=1
-else
-  echo "Version: ${GREEN_TEXT}${VERSION_SBT}${RESET_TEXT}"
-fi
-VERSION_USERGUIDE=$(grep '^\*\*Version\*\*:' docs/guide/user-guide.md | cut -d ' ' -f 2)
-if [ "$VERSION_SBT" != "$VERSION_USERGUIDE" ]; then
-  echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in docs/guide/user-guide.md: ${RED_TEXT}${VERSION_USERGUIDE}${RESET_TEXT}"
-  STATUS=1
-else
-  echo "docs/guide/user-guide.md version: ${GREEN_TEXT}${VERSION_USERGUIDE}${RESET_TEXT}"
-fi
-VERSION_INDEX=$(grep '^\*\*Version\*\*:' docs/USER_GUIDE.md | cut -d ' ' -f 2)
-if [ "$VERSION_SBT" != "$VERSION_INDEX" ]; then
-  echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in docs/USER_GUIDE.md: ${RED_TEXT}${VERSION_INDEX}${RESET_TEXT}"
-  STATUS=1
-else
-  echo "docs/USER_GUIDE.md version: ${GREEN_TEXT}${VERSION_INDEX}${RESET_TEXT}"
-fi
 if [ "${NO_RELEASE:-0}" = "1" ]; then
   echo "Tag check skipped (${GREEN_TEXT}NO_RELEASE=1${RESET_TEXT})"
 elif git tag | ( grep "^${VERSION_SBT}\$" ); then
