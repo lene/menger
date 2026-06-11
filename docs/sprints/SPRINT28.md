@@ -204,6 +204,36 @@ bites.
 ### Task 28.4: Multi-Model Review Automation
 
 **Estimate:** 10h
+**Status:** 🔄 In Progress (started 2026-06-11)
+
+Progress:
+- [x] `standards/review-guidelines.md` — versioned code review guidelines: what
+      to flag (alpha convention, JNI boundary, agentic anti-patterns, arch
+      violations) and what NOT to flag (scalafix/WartRemover already handles)
+- [x] `standards/architecture-review-guidelines.md` — arc42-conformance layer:
+      module boundary table, JNI contract rules, build/CI change checks
+- [x] `standards/architecture-paths.txt` — paths that trigger architecture
+      review (build defs, JNI native, module public APIs, CI YAML, arc42 docs)
+- [x] `scripts/review.sh` — platform-agnostic core: Claude (claude-sonnet-4-6)
+      + DeepSeek (deepseek-chat) via respective APIs → consolidated findings
+      JSON with agreed/single-model labels; 4000-line diff truncation guard
+- [x] `scripts/adapters/gitlab-mr-review.sh` — idempotent bot note on MR
+      (create or update using `<!-- menger-ai-review-v1 -->` marker)
+- [x] `scripts/adapters/github-pr-review.sh` — idempotent bot review on PR
+      (COMMENT event, dismisses prior review before posting fresh)
+- [x] `AIReview` CI job in `review` stage (new stage between preconditions and
+      test): runs on every MR, `skip-review` label skips it,
+      `allow_failure: true` (advisory until confidence built), auto-detects
+      architecture-relevant diffs, posts findings to MR
+- [x] arc42 §11: added TR-9 (DeepSeek data flow risk) and TR-10 (GPU
+      contention risk from 28.3)
+- [x] Guidelines added to `standards/manifest.txt` for cross-repo parity
+      tracking
+- [ ] Wire GitHub sibling repos to use the adapter (with 28.2 hook-wiring PRs)
+- [ ] Promote `allow_failure: false` once a sprint of reviews shows low
+      false-positive rate (conscious decision at sprint 29 close)
+- [ ] Add DEEPSEEK_API_KEY as masked+protected CI variable (user action
+      required: Settings → CI/CD → Variables)
 
 ≥2 model families per review to minimize single-model bias; disagreements are
 signal, not noise.

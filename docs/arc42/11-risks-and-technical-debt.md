@@ -17,6 +17,8 @@
 | TR-4 | Large sponge BVH build time | Poor UX | Cache geometry; async build |
 | TR-5 | JNI memory leaks | Gradual OOM | RAII patterns; dispose() enforcement |
 | TR-6 | LibGDX input processor ordering | UI issues | Separate InputProcessors via OptiXInputMultiplexer |
+| TR-9 | AI review diffs sent to DeepSeek API | MR diff content leaves the local environment | Accepted: this is a public codebase; revisit if proprietary code appears. Diffs are not stored by DeepSeek beyond the API session per their privacy policy. `DEEPSEEK_API_KEY` stored as masked+protected CI variable; never echoed to logs. |
+| TR-10 | Single GPU shared between interactive use and CI runners | CI GPU job starves rendering work (or vice versa); flaky integration tests under contention | `limit = 1` serializes menger GPU jobs; GPU-tagged jobs from other pipelines are independent. Known flakes documented in `docs/TESTING.md`. |
 
 ### Low Risk
 

@@ -6,3 +6,6 @@ standards/hooks/check-branch.sh hooks/check-branch.sh
 standards/hooks/check-staged-hygiene.sh hooks/check-staged-hygiene.sh
 standards/hooks/check-test-justification.sh hooks/check-test-justification.sh
 standards/hooks/check-rendering-discipline.sh hooks/check-rendering-discipline.sh
+standards/review-guidelines.md review-guidelines.md
+standards/architecture-review-guidelines.md architecture-review-guidelines.md
+standards/architecture-paths.txt architecture-paths.txt
