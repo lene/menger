@@ -3,6 +3,7 @@ package menger.engines
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.config.TAnimationConfig
+import menger.video.VideoTexture
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -64,4 +65,28 @@ class WithAnimationSuite extends AnyFlatSpec with Matchers:
     WithAnimation.specsDifferOnlyIn4DProjection(List(tess0), List(tess0)) shouldBe false
 
   it should "be false when lengths differ" in:
-    WithAnimation.specsDifferOnlyIn4DProjection(List(tess0), List(tess0, tessRotated)) shouldBe false
+    WithAnimation.specsDifferOnlyIn4DProjection(
+      List(tess0),
+      List(tess0, tessRotated)
+    ) shouldBe false
+
+  "specsCanReuseVideoTextureSlots" should "be true for identical video-textured specs" in:
+    val videoTexture = VideoTexture("clips/checker.mov")
+    val texturedCube = ObjectSpec("cube", videoTexture = Some(videoTexture))
+
+    WithAnimation.specsCanReuseVideoTextureSlots(List(texturedCube), List(texturedCube)) shouldBe
+      true
+
+  it should "be false when specs changed" in:
+    val videoTexture = VideoTexture("clips/checker.mov")
+    val texturedCube = ObjectSpec("cube", videoTexture = Some(videoTexture))
+
+    WithAnimation.specsCanReuseVideoTextureSlots(
+      List(texturedCube),
+      List(texturedCube.copy(x = 1f))
+    ) shouldBe false
+
+  it should "be false when unchanged specs have no video texture" in:
+    val cube = ObjectSpec("cube")
+
+    WithAnimation.specsCanReuseVideoTextureSlots(List(cube), List(cube)) shouldBe false

@@ -21,16 +21,16 @@ DSL-only scope. No CLI options needed.
 
 ## Success Criteria
 
-- [ ] `videoTexture = Some(VideoTexture("texture.mp4"))` in DSL plays a rectangular
+- [x] `videoTexture = Some(VideoTexture("texture.mp4"))` in DSL plays a rectangular
       video on any object that already supports image textures
 - [ ] `VideoTexture` and `EnvMapVideo` share playback config for time mapping,
       start offset, optional fps override, and repeat mode
-- [ ] Video frame selection is deterministic from animation `t`, source timestamps,
+- [x] Video frame selection is deterministic from animation `t`, source timestamps,
       optional `fpsOverride`, and repeat mode
-- [ ] Render `t` exceeding source duration is handled by repeat mode:
+- [x] Render `t` exceeding source duration is handled by repeat mode:
       loop, freeze, or ping-pong
-- [ ] Video frames decode to RGBA8 textures for SDR video
-- [ ] Per-frame object texture updates use stable GPU texture slots and avoid full
+- [x] Video frames decode to RGBA8 textures for SDR video
+- [x] Per-frame object texture updates use stable GPU texture slots and avoid full
       scene rebuild when only the video frame changes
 - [ ] Memory is bounded: decoded CPU frames and uploaded GPU texture state are limited
       by explicit cache/slot ownership
@@ -258,6 +258,7 @@ frames.
 
 **Estimate:** 4h
 **Depends on:** 27.5
+**Status:** Complete
 
 Extend `WithAnimation.scala` to update object textures each frame when the only texture
 change is a video frame.
@@ -287,6 +288,13 @@ existing native texture memory instead of allocating a new texture.
 Frame-stability rule: each rendered output frame samples one video frame. Accumulation
 samples for that output frame must reuse the same video frame. Interactive video frame
 advancement resets accumulation before sampling the next video frame.
+
+**Result:** Root `build.sbt` now consumes `optix-jni:0.1.3` with update-in-place texture
+support. `WithAnimation` records video texture slots from the existing scene-builder
+upload path, updates those slots with `renderer.updateTexture` for stable video-textured
+specs, and skips full scene rebuilds when only the sampled video frame changes. Added
+deterministic playback timing/repeat helpers plus unit tests for `VideoTimeMapping`,
+`VideoRepeat`, `fpsOverride`, and `t` values beyond the source duration.
 
 ---
 
@@ -422,13 +430,13 @@ See `CODE_IMPROVEMENTS.md` `M-instanceid-raw-int`.
 - [ ] All success criteria met
 - [ ] `./.git_hooks/pre-push 2>&1 | tee /tmp/pre-push.log` passes
 - [ ] CHANGELOG.md updated
-- [ ] Small rectangular test video committed for video texture integration tests
+- [x] Small rectangular test video committed for video texture integration tests
 - [ ] Small equirectangular/360 test video committed for env-map video integration tests
 - [ ] Test videos are deterministic, tiny, SDR RGBA-visible patterns generated from
       repo-owned source or documented commands
 - [ ] `scripts/integration-tests.sh` covers at least one video texture and one env-map video
 - [ ] `scripts/manual-test.sh` covers at least one video texture and one env-map video
-- [ ] Unit tests cover `VideoTimeMapping`, `VideoRepeat`, `fpsOverride`, and `t`
+- [x] Unit tests cover `VideoTimeMapping`, `VideoRepeat`, `fpsOverride`, and `t`
       exceeding source duration
 - [ ] CI installs FFmpeg/libav dev packages and runs the video integration scenarios
 - [ ] arc42 sections 9, 10, and 11 updated for video decode, texture update, and risks

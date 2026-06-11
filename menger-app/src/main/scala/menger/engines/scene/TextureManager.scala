@@ -28,6 +28,16 @@ import menger.video.VideoTexture
  * objects without textures will use materials only.
  */
 object TextureManager extends LazyLogging:
+  type VideoTextureSlotObserver = (VideoTexture, Int) => Unit
+
+  private val videoTextureSlotObserver = new ThreadLocal[Option[VideoTextureSlotObserver]]:
+    override def initialValue(): Option[VideoTextureSlotObserver] = None
+
+  def withVideoTextureSlotObserver[A](observer: VideoTextureSlotObserver)(body: => A): A =
+    val previousObserver = videoTextureSlotObserver.get()
+    videoTextureSlotObserver.set(Some(observer))
+    try body
+    finally videoTextureSlotObserver.set(previousObserver)
 
   /**
    * Load all textures referenced by object specs and upload to renderer.
@@ -90,7 +100,11 @@ object TextureManager extends LazyLogging:
   ): Option[(String, Int)] =
     loadInitialVideoTextureData(videoTexture, textureDir) match
       case Success(textureData) =>
-        uploadTextureData(textureData, renderer)
+        val uploadedTexture = uploadTextureData(textureData, renderer)
+        uploadedTexture.foreach { case (_, textureIndex) =>
+          recordVideoTextureSlot(videoTexture, textureIndex)
+        }
+        uploadedTexture
       case Failure(e) =>
         logger.error(s"Failed to load video texture '${videoTexture.path}': ${e.getMessage}")
         None
@@ -133,3 +147,6 @@ object TextureManager extends LazyLogging:
     val filePath = Paths.get(filename)
     if filePath.isAbsolute then filePath
     else Paths.get(textureDir).resolve(filename)
+
+  private def recordVideoTextureSlot(videoTexture: VideoTexture, textureIndex: Int): Unit =
+    videoTextureSlotObserver.get().foreach(_(videoTexture, textureIndex))

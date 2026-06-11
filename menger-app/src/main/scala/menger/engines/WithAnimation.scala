@@ -1,10 +1,13 @@
 package menger.engines
 
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
@@ -19,8 +22,13 @@ import menger.common.ObjectType
 import menger.common.RenderConfig
 import menger.config.TAnimationConfig
 import menger.dsl.Scene
+import menger.engines.scene.TextureManager
 import menger.engines.scene.TriangleMeshSceneBuilder
+import menger.geometry.VideoLoader
 import menger.input.GdxRuntime
+import menger.video.AnimationTimeRange
+import menger.video.VideoPlaybackTime
+import menger.video.VideoTexture
 
 trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   self: BaseEngine =>
@@ -39,14 +47,18 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     * Set only when the scene is purely 4D-projected triangle meshes. */
   private val anim4DState: AtomicReference[Option[WithAnimation.Anim4DState]] =
     new AtomicReference(None)
+  private val videoTextureState: AtomicReference[Option[WithAnimation.VideoTextureState]] =
+    new AtomicReference(None)
 
   abstract override def create(): Unit =
     val renderer = rendererWrapper.renderer
     sceneConfigurator.configureLights(renderer)
     sceneConfigurator.configureCamera(renderer)
-    buildSceneFromConfigs(firstFrameConfigs, renderer).recover { case e: Exception =>
-      logger.error(s"Failed to create initial scene: ${e.getMessage}", e)
-      GdxRuntime.exit()
+    val firstSpecs = firstFrameConfigs.scene.objectSpecs.getOrElse(List.empty)
+    buildSceneTrackingVideoTextures(firstFrameConfigs, firstSpecs, renderer).recover {
+      case e: Exception =>
+        logger.error(s"Failed to create initial scene: ${e.getMessage}", e)
+        GdxRuntime.exit()
     }.get
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
@@ -92,7 +104,8 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
           val configs  = SceneConverter.convert(dslScene, causticsConfig)
           val renderer = rendererWrapper.renderer
           val newSpecs = configs.scene.objectSpecs.getOrElse(List.empty)
-          val fastPathTaken = tryAnim4DFastPath(newSpecs, renderer)
+          val videoFastPathTaken = tryVideoTextureFastPath(newSpecs, renderer, t)
+          val fastPathTaken = videoFastPathTaken || tryAnim4DFastPath(newSpecs, renderer)
           if !fastPathTaken then
             renderer.clearAllInstances()
             buildAnim4DTrackedOrFallback(configs, newSpecs, renderer).recover { case e: Exception =>
@@ -117,6 +130,83 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       logger.info(s"Animation complete: ${animConfig.frames} frames rendered")
       onAnimationComplete()
       GdxRuntime.exit()
+
+  private def tryVideoTextureFastPath(
+    newSpecs: List[ObjectSpec],
+    renderer: OptiXRenderer,
+    t: Float
+  ): Boolean =
+    videoTextureState.get match
+      case Some(state) if WithAnimation.specsCanReuseVideoTextureSlots(state.specs, newSpecs) =>
+        updateVideoTextureSlots(state.slots, renderer, t) match
+          case Success(_) =>
+            videoTextureState.set(Some(state.copy(specs = newSpecs)))
+            true
+          case Failure(e) =>
+            logger.error(s"Failed to update video texture frame for t=$t: ${e.getMessage}", e)
+            false
+      case _ => false
+
+  private def updateVideoTextureSlots(
+    slots: Vector[WithAnimation.VideoTextureSlot],
+    renderer: OptiXRenderer,
+    t: Float
+  ): Try[Unit] = Try:
+    val animationRange = AnimationTimeRange(animConfig.startT, animConfig.endT)
+    slots.foreach { slot =>
+      val resolvedPath = resolveVideoPath(slot.videoTexture)
+      val loader = new VideoLoader(resolvedPath.toString)
+      try
+        val frameTime = VideoPlaybackTime.sampleTime(
+          slot.videoTexture.playback,
+          t,
+          animationRange,
+          loader.durationSeconds
+        )
+        val frameData = loader.frameAt(frameTime)
+        slot.textureIndices.foreach { textureIndex =>
+          renderer.updateTexture(textureIndex, frameData, loader.width, loader.height)
+        }
+      finally loader.close()
+    }
+
+  private def resolveVideoPath(videoTexture: VideoTexture): Path =
+    val videoPath = Paths.get(videoTexture.path)
+    if videoPath.isAbsolute then videoPath else Paths.get(textureDir).resolve(videoPath)
+
+  private def buildSceneTrackingVideoTextures(
+    configs: SceneConverter.SceneConfigs,
+    newSpecs: List[ObjectSpec],
+    renderer: OptiXRenderer
+  ): Try[Unit] =
+    buildWithVideoTextureTracking(newSpecs):
+      buildSceneFromConfigs(configs, renderer)
+
+  private def buildWithVideoTextureTracking(
+    newSpecs: List[ObjectSpec]
+  )(body: => Try[Unit]): Try[Unit] =
+    val observedSlots =
+      scala.collection.mutable.LinkedHashMap.empty[String, (VideoTexture, ArrayBuffer[Int])]
+    val result = TextureManager.withVideoTextureSlotObserver { (videoTexture, textureIndex) =>
+      observedSlots.get(videoTexture.textureKey) match
+        case Some((_, textureIndices)) =>
+          textureIndices += textureIndex
+        case None =>
+          observedSlots.update(videoTexture.textureKey, videoTexture -> ArrayBuffer(textureIndex))
+    } {
+      body
+    }
+    result match
+      case Success(_) =>
+        val slots = observedSlots.valuesIterator.map { case (videoTexture, textureIndices) =>
+          WithAnimation.VideoTextureSlot(videoTexture, textureIndices.toVector)
+        }.toVector
+        videoTextureState.set(
+          if slots.nonEmpty then Some(WithAnimation.VideoTextureState(newSpecs, slots)) else None
+        )
+      case Failure(_) =>
+        videoTextureState.set(None)
+    result
 
   /** If conditions are met, drive frame N from frame N−1 via per-mesh
     * `updateMesh4DProjection` calls and return true. Otherwise return false
@@ -159,7 +249,8 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
         mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
           slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
       )(using profilingConfig)
-      val result = builder.buildScene(newSpecs, renderer, newSpecs.length)
+      val result = buildWithVideoTextureTracking(newSpecs):
+        builder.buildScene(newSpecs, renderer, newSpecs.length)
       result.foreach { _ =>
         if slotsBuf.size == newSpecs.size then
           val slotsPerSpec = newSpecs.indices.map(i =>
@@ -173,13 +264,15 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       recovered
     else
       anim4DState.set(None)
-      buildSceneFromConfigs(configs, renderer)
+      buildSceneTrackingVideoTextures(configs, newSpecs, renderer)
 
 object WithAnimation:
   /** Per-mesh-slot bookkeeping for the GPU 4D projection animation fast path.
     * `slotsPerSpec(i)` lists the renderer slot indices that belong to spec i —
     * usually a single slot, but two for fractional 4D sponges (level n + level n+1). */
   final case class Anim4DState(specs: List[ObjectSpec], slotsPerSpec: Vector[Vector[Int]])
+  final case class VideoTextureSlot(videoTexture: VideoTexture, textureIndices: Vector[Int])
+  final case class VideoTextureState(specs: List[ObjectSpec], slots: Vector[VideoTextureSlot])
 
   /** Eligibility: every spec is a 4D-projected type (tesseract, tesseract-sponge,
     * tesseract-sponge-2). Recursive-IAS sponges and non-4D meshes block the
@@ -198,3 +291,6 @@ object WithAnimation:
         a.copy(projection4D = None) == b.copy(projection4D = None)
       }
       anyDiffs && onlyProjDiffs
+
+  def specsCanReuseVideoTextureSlots(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
+    prev == next && prev.exists(_.videoTexture.nonEmpty)
