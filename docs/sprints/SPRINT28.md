@@ -124,8 +124,12 @@ Progress:
 - [x] Wire shared policy checks into menger-common/optix-jni hooks (PRs there)
       (menger-common@3db7606, optix-jni@130a703 — 2026-06-11)
 - [ ] ccache for the CUDA side (cheap native rebuilds)
-- [ ] Scala-only pre-push timing tier (requires deciding whether integration
-      tests may be skipped for non-rendering Scala changes — discuss)
+- [x] Scala-only pre-push timing tier: HAS_RENDERING flag reads
+      standards/rendering-paths.txt; Phase 5 (package + integration suite)
+      now gated on HAS_RENDERING || HAS_NATIVE || HAS_INTEGRATION — pure
+      non-rendering Scala pushes skip the ~20 min integration suite
+      (user decision 2026-06-11: integration tests skippable if no
+      rendering-relevant Scala changes)
 
 **Finding (for 28.6/28.9):** `docs/TESTING.md` and `docs/RENDERING.md` are
 referenced by AGENTS.md but do not exist — the policies the hooks now enforce

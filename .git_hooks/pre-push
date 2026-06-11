@@ -44,6 +44,19 @@ HAS_NATIVE=$(echo "$CHANGED_FILES" | grep -cE '^menger-geometry/src/main/native/
 HAS_CI=$(echo "$CHANGED_FILES" | grep -c '\.gitlab-ci\.yml$')
 HAS_INTEGRATION=$(echo "$CHANGED_FILES" | grep -c '^scripts/integration-tests\.sh$')
 
+# Detect rendering-relevant Scala changes: shaders, scene builders, geometry.
+# Integration tests are only needed when rendering output could change —
+# confirmed policy (2026-06-11): Scala-only pushes without rendering impact
+# skip the package build + integration suite.
+_RENDERING_PATHS_FILE="${RENDERING_PATHS_FILE:-./standards/rendering-paths.txt}"
+HAS_RENDERING=0
+if [ -r "$_RENDERING_PATHS_FILE" ]; then
+  _RENDERING_PATTERNS=$(grep -v '^[[:space:]]*\(#\|$\)' "$_RENDERING_PATHS_FILE" | paste -sd'|' -)
+  if [ -n "$_RENDERING_PATTERNS" ]; then
+    HAS_RENDERING=$(echo "$CHANGED_FILES" | grep -cE "$_RENDERING_PATTERNS" 2>/dev/null || echo 0)
+  fi
+fi
+
 skip_section() {
   echo "  [skipped — no relevant files changed]"
 }
@@ -410,6 +423,7 @@ export OPTIX_ROOT
 export CUDA_HOME
 export HAS_SCALA
 export HAS_NATIVE
+export HAS_RENDERING
 
 echo "=== Running coverage, Valgrind, cppcheck, clang-tidy in parallel ==="
 
@@ -483,7 +497,7 @@ fi
 # ---------------------------------------------------------------------------
 # Phase 5: Package and integration tests
 # ---------------------------------------------------------------------------
-if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ] || [ "$HAS_INTEGRATION" -gt 0 ]; then
+if [ "$HAS_RENDERING" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ] || [ "$HAS_INTEGRATION" -gt 0 ]; then
   echo "=== Building release package ==="
   sbt "mengerApp / Universal / packageBin" --warn || STATUS=1
   VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
