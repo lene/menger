@@ -13,6 +13,7 @@ import menger.ObjectSpec
 import menger.TextureData
 import menger.TextureLoader
 import menger.geometry.VideoLoader
+import menger.video.EnvMapVideo
 import menger.video.VideoTexture
 
 /**
@@ -109,6 +110,18 @@ object TextureManager extends LazyLogging:
         logger.error(s"Failed to load video texture '${videoTexture.path}': ${e.getMessage}")
         None
 
+  def loadInitialEnvMapVideo(
+    envMapVideo: EnvMapVideo,
+    renderer: OptiXRenderer,
+    textureDir: String
+  ): Option[Int] =
+    loadInitialEnvMapVideoData(envMapVideo, textureDir) match
+      case Success(textureData) =>
+        uploadTextureData(textureData, renderer).map(_._2)
+      case Failure(e) =>
+        logger.error(s"Failed to load environment-map video '${envMapVideo.path}': ${e.getMessage}")
+        None
+
   private[scene] def loadInitialVideoTextureData(
     videoTexture: VideoTexture,
     textureDir: String
@@ -120,6 +133,27 @@ object TextureManager extends LazyLogging:
         TextureData(
           videoTexture.textureKey,
           loader.frameAt(videoTexture.playback.startOffset),
+          loader.width,
+          loader.height
+        )
+      finally loader.close()
+
+  private[scene] def loadInitialEnvMapVideoData(
+    envMapVideo: EnvMapVideo,
+    textureDir: String
+  ): Try[TextureData] =
+    val resolvedPath = resolveTexturePath(envMapVideo.path, textureDir)
+    Try:
+      val loader = new VideoLoader(resolvedPath.toString)
+      try
+        validateEquirectangularDimensions(
+          loader.width,
+          loader.height,
+          envMapVideo.path
+        )
+        TextureData(
+          envMapVideo.textureKey,
+          loader.frameAt(envMapVideo.playback.startOffset),
           loader.width,
           loader.height
         )
@@ -150,3 +184,13 @@ object TextureManager extends LazyLogging:
 
   private def recordVideoTextureSlot(videoTexture: VideoTexture, textureIndex: Int): Unit =
     videoTextureSlotObserver.get().foreach(_(videoTexture, textureIndex))
+
+  private[engines] def validateEquirectangularDimensions(
+    width: Int,
+    height: Int,
+    path: String
+  ): Unit =
+    require(
+      width == height * 2,
+      s"Environment-map video '$path' must be equirectangular 2:1, got ${width}x$height"
+    )

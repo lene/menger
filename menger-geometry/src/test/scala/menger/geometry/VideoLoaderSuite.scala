@@ -16,6 +16,16 @@ class VideoLoaderSuite extends AnyFlatSpec with Matchers:
       loader.durationSeconds should be > 0.0
     }
 
+  it should "read metadata from a deterministic equirectangular MOV fixture" in:
+    withLoader(equirectFixturePath) { loader =>
+      loader.width shouldBe 4
+      loader.height shouldBe 2
+      loader.frameCount shouldBe 2
+      loader.nativeFps shouldBe 2.0 +- Tolerance
+      loader.durationSeconds should be > 0.0
+      loader.frameAt(0.0).toSeq should not be loader.frameAt(0.5).toSeq
+    }
+
   it should "decode the requested frame as top-to-bottom RGBA bytes" in:
     withLoader { loader =>
       unsigned(loader.frameAt(0.0)) shouldBe FirstFrame
@@ -46,13 +56,22 @@ class VideoLoaderSuite extends AnyFlatSpec with Matchers:
     an[IllegalArgumentException] shouldBe thrownBy(loader.frameAt(0.0))
 
   private def withLoader(test: VideoLoader => Unit): Unit =
-    val loader = new VideoLoader(fixturePath)
+    withLoader(fixturePath)(test)
+
+  private def withLoader(path: String)(test: VideoLoader => Unit): Unit =
+    val loader = new VideoLoader(path)
     try test(loader)
     finally loader.close()
 
   private def fixturePath: String =
-    val resource = getClass.getResource("/video/two-frame-rgba.mov")
-    require(resource != null, "Missing video fixture resource")
+    resourcePath("/video/two-frame-rgba.mov")
+
+  private def equirectFixturePath: String =
+    resourcePath("/video/two-frame-equirect-rgba.mov")
+
+  private def resourcePath(name: String): String =
+    val resource = getClass.getResource(name)
+    require(resource != null, s"Missing video fixture resource: $name")
     Paths.get(resource.toURI).toString
 
   private def unsigned(bytes: Array[Byte]): Seq[Int] = bytes.map(_ & ByteMask).toSeq

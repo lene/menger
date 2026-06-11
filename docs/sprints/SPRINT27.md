@@ -34,9 +34,9 @@ DSL-only scope. No CLI options needed.
       scene rebuild when only the video frame changes
 - [ ] Memory is bounded: decoded CPU frames and uploaded GPU texture state are limited
       by explicit cache/slot ownership
-- [ ] `envMapVideo = Some(EnvMapVideo("background_360.mp4"))` plays an equirectangular
+- [x] `envMapVideo = Some(EnvMapVideo("background_360.mp4"))` plays an equirectangular
       360-degree video as the environment background after video textures are complete
-- [ ] `EnvMapVideo` updates IBL lighting when the scene enables `ibl`
+- [x] `EnvMapVideo` updates IBL lighting when the scene enables `ibl`
 - [ ] FFmpeg/libav is installed and exercised in CI; video tests must not silently skip
 - [ ] All tests pass
 
@@ -329,6 +329,7 @@ conversion, IBL config propagation for `envMapVideo`, and the mutual-exclusion e
 
 **Estimate:** 3h
 **Depends on:** 27.7
+**Status:** Complete
 
 Reuse `VideoLoader` and the stable texture-slot update path to update the renderer
 environment map from an equirectangular 360-degree video.
@@ -339,6 +340,16 @@ sampled video frame. When `ibl` is absent, `EnvMapVideo` is visible-background o
 **Validation:** A DSL animation with `envMapVideo` renders a changing background without
 changing scene geometry, and an `ibl` scene shows lighting changes from the same video
 frames.
+
+**Result:** `WithAnimation` now uploads one stable texture slot for `envMapVideo`, validates
+that the decoded video dimensions are equirectangular 2:1, updates that slot in place
+before each animation frame, binds the slot with `setEnvironmentMap`, and reapplies IBL
+against the same slot when `ibl` is enabled. Static DSL rendering through `InteractiveEngine`
+uses the deterministic initial frame as the environment map. Added the deterministic
+`video/two-frame-equirect-rgba.mov` 4x2 fixture, generated with:
+`ffmpeg -y -f lavfi -i color=c=red:s=4x2:r=2:d=0.5 -f lavfi -i color=c=blue:s=4x2:r=2:d=0.5 -filter_complex '[0:v][1:v]concat=n=2:v=1:a=0,format=rgba' -c:v qtrle -pix_fmt argb menger-geometry/src/test/resources/video/two-frame-equirect-rgba.mov`.
+Focused tests cover fixture decode, 2:1 validation, env-video slot reuse eligibility, and
+video-source detection.
 
 ---
 
@@ -439,7 +450,7 @@ See `CODE_IMPROVEMENTS.md` `M-instanceid-raw-int`.
 - [ ] `./.git_hooks/pre-push 2>&1 | tee /tmp/pre-push.log` passes
 - [ ] CHANGELOG.md updated
 - [x] Small rectangular test video committed for video texture integration tests
-- [ ] Small equirectangular/360 test video committed for env-map video integration tests
+- [x] Small equirectangular/360 test video committed for env-map video integration tests
 - [ ] Test videos are deterministic, tiny, SDR RGBA-visible patterns generated from
       repo-owned source or documented commands
 - [ ] `scripts/integration-tests.sh` covers at least one video texture and one env-map video

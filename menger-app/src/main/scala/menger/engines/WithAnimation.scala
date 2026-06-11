@@ -27,6 +27,7 @@ import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.geometry.VideoLoader
 import menger.input.GdxRuntime
 import menger.video.AnimationTimeRange
+import menger.video.EnvMapVideo
 import menger.video.VideoPlaybackTime
 import menger.video.VideoTexture
 
@@ -49,6 +50,8 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     new AtomicReference(None)
   private val videoTextureState: AtomicReference[Option[WithAnimation.VideoTextureState]] =
     new AtomicReference(None)
+  private val envMapVideoState: AtomicReference[Option[WithAnimation.EnvMapVideoState]] =
+    new AtomicReference(None)
 
   abstract override def create(): Unit =
     val renderer = rendererWrapper.renderer
@@ -65,20 +68,16 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
     if firstFrameConfigs.toneMappingOperator != 0 then
       renderer.setToneMapping(firstFrameConfigs.toneMappingOperator, firstFrameConfigs.toneMappingExposure)
-    firstFrameConfigs.envMap.foreach { path =>
-      val resolvedPath =
-        if java.nio.file.Paths.get(path).isAbsolute then path
-        else java.nio.file.Paths.get(textureDir).resolve(path).toString
-      val idx = renderer.uploadTextureFromFile(resolvedPath)
-      if idx >= 0 then renderer.setEnvironmentMap(idx)
-      else logger.error(s"Failed to load environment map: $path")
+    configureStaticEnvironmentMap(firstFrameConfigs, renderer)
+    configureEnvMapVideoForFrame(
+      firstFrameConfigs,
+      firstSpecs,
+      renderer,
+      animConfig.tForFrame(0)
+    ).recover { case e: Exception =>
+      logger.error(s"Failed to load environment-map video: ${e.getMessage}", e)
     }
-    if firstFrameConfigs.iblEnabled then
-      renderer.setIBL(
-        enabled  = true,
-        strength = firstFrameConfigs.iblStrength,
-        samples  = firstFrameConfigs.iblSamples,
-      )
+    configureIBL(renderer, firstFrameConfigs)
     if firstFrameConfigs.accumulationFrames > 1 then
       renderer.setAccumulationFrames(firstFrameConfigs.accumulationFrames)
     GdxRuntime.setContinuousRendering(true)
@@ -104,12 +103,20 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
           val configs  = SceneConverter.convert(dslScene, causticsConfig)
           val renderer = rendererWrapper.renderer
           val newSpecs = configs.scene.objectSpecs.getOrElse(List.empty)
-          val videoFastPathTaken = tryVideoTextureFastPath(newSpecs, renderer, t)
-          val fastPathTaken = videoFastPathTaken || tryAnim4DFastPath(newSpecs, renderer)
+          val videoSourcesPresent = WithAnimation.hasVideoSources(configs, newSpecs)
+          val videoFastPathTaken = tryVideoFastPath(configs, newSpecs, renderer, t)
+          val geometryFastPathTaken =
+            if videoSourcesPresent && !videoFastPathTaken then false
+            else tryAnim4DFastPath(newSpecs, renderer)
+          val fastPathTaken = videoFastPathTaken || geometryFastPathTaken
           if !fastPathTaken then
             renderer.clearAllInstances()
             buildAnim4DTrackedOrFallback(configs, newSpecs, renderer).recover { case e: Exception =>
               logger.error(s"Failed to build scene for frame $frame (t=$t): ${e.getMessage}", e)
+            }
+            configureEnvMapVideoForFrame(configs, newSpecs, renderer, t).recover {
+              case e: Exception =>
+                logger.error(s"Failed to update environment-map video for t=$t: ${e.getMessage}", e)
             }
           PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
@@ -131,21 +138,56 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       onAnimationComplete()
       GdxRuntime.exit()
 
-  private def tryVideoTextureFastPath(
+  private def tryVideoFastPath(
+    configs: SceneConverter.SceneConfigs,
     newSpecs: List[ObjectSpec],
     renderer: OptiXRenderer,
     t: Float
   ): Boolean =
-    videoTextureState.get match
-      case Some(state) if WithAnimation.specsCanReuseVideoTextureSlots(state.specs, newSpecs) =>
-        updateVideoTextureSlots(state.slots, renderer, t) match
-          case Success(_) =>
-            videoTextureState.set(Some(state.copy(specs = newSpecs)))
+    val needsVideoTextures = newSpecs.exists(_.videoTexture.nonEmpty)
+    val needsEnvMapVideo = configs.envMapVideo.nonEmpty
+    if !needsVideoTextures && !needsEnvMapVideo then false
+    else
+      val reusableVideoTextureState = videoTextureState.get.filter { state =>
+        WithAnimation.specsCanReuseVideoTextureSlots(state.specs, newSpecs)
+      }
+      val reusableEnvMapVideoState = configs.envMapVideo.flatMap { envMapVideo =>
+        envMapVideoState.get.filter { state =>
+          WithAnimation.configsCanReuseEnvMapVideoSlot(
+            state.specs,
+            newSpecs,
+            state.envMapVideo,
+            envMapVideo
+          )
+        }
+      }
+      val videoTexturesReady = !needsVideoTextures || reusableVideoTextureState.nonEmpty
+      val envMapVideoReady = !needsEnvMapVideo || reusableEnvMapVideoState.nonEmpty
+      if !videoTexturesReady || !envMapVideoReady then false
+      else
+        val textureUpdate = reusableVideoTextureState
+          .filter(_ => needsVideoTextures)
+          .map(state => updateVideoTextureSlots(state.slots, renderer, t))
+          .getOrElse(Success(()))
+        val envMapUpdate = reusableEnvMapVideoState
+          .filter(_ => needsEnvMapVideo)
+          .map(state => updateEnvMapVideoSlot(state, configs, renderer, t))
+          .getOrElse(Success(()))
+        (textureUpdate, envMapUpdate) match
+          case (Success(_), Success(_)) =>
+            reusableVideoTextureState
+              .filter(_ => needsVideoTextures)
+              .foreach(state => videoTextureState.set(Some(state.copy(specs = newSpecs))))
+            reusableEnvMapVideoState
+              .filter(_ => needsEnvMapVideo)
+              .foreach(state => envMapVideoState.set(Some(state.copy(specs = newSpecs))))
             true
-          case Failure(e) =>
+          case (Failure(e), _) =>
             logger.error(s"Failed to update video texture frame for t=$t: ${e.getMessage}", e)
             false
-      case _ => false
+          case (_, Failure(e)) =>
+            logger.error(s"Failed to update environment-map video for t=$t: ${e.getMessage}", e)
+            false
 
   private def updateVideoTextureSlots(
     slots: Vector[WithAnimation.VideoTextureSlot],
@@ -171,8 +213,103 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     }
 
   private def resolveVideoPath(videoTexture: VideoTexture): Path =
-    val videoPath = Paths.get(videoTexture.path)
+    resolveVideoPath(videoTexture.path)
+
+  private def resolveVideoPath(path: String): Path =
+    val videoPath = Paths.get(path)
     if videoPath.isAbsolute then videoPath else Paths.get(textureDir).resolve(videoPath)
+
+  private def resolveEnvMapVideoPath(envMapVideo: EnvMapVideo): Path =
+    resolveVideoPath(envMapVideo.path)
+
+  private def configureStaticEnvironmentMap(
+    configs: SceneConverter.SceneConfigs,
+    renderer: OptiXRenderer
+  ): Unit =
+    configs.envMap.foreach { path =>
+      val resolvedPath =
+        if Paths.get(path).isAbsolute then path
+        else Paths.get(textureDir).resolve(path).toString
+      val idx = renderer.uploadTextureFromFile(resolvedPath)
+      if idx >= 0 then renderer.setEnvironmentMap(idx)
+      else logger.error(s"Failed to load environment map: $path")
+    }
+
+  private def configureIBL(
+    renderer: OptiXRenderer,
+    configs: SceneConverter.SceneConfigs
+  ): Unit =
+    if configs.iblEnabled || configs.envMapVideo.nonEmpty then
+      renderer.setIBL(
+        enabled  = configs.iblEnabled,
+        strength = configs.iblStrength,
+        samples  = configs.iblSamples,
+      )
+
+  private def configureEnvMapVideoForFrame(
+    configs: SceneConverter.SceneConfigs,
+    newSpecs: List[ObjectSpec],
+    renderer: OptiXRenderer,
+    t: Float
+  ): Try[Unit] =
+    configs.envMapVideo match
+      case None =>
+        envMapVideoState.set(None)
+        Success(())
+      case Some(envMapVideo) =>
+        val existingState = envMapVideoState.get.filter { state =>
+          state.envMapVideo.textureKey == envMapVideo.textureKey
+        }
+        val state = existingState
+          .map(existing => Success(existing.copy(specs = newSpecs, envMapVideo = envMapVideo)))
+          .getOrElse(uploadEnvMapVideoSlot(envMapVideo, renderer).map { textureIndex =>
+            WithAnimation.EnvMapVideoState(newSpecs, envMapVideo, textureIndex)
+          })
+        state.flatMap { activeState =>
+          updateEnvMapVideoSlot(activeState, configs, renderer, t).map { _ =>
+            envMapVideoState.set(Some(activeState))
+          }
+        }
+
+  private def uploadEnvMapVideoSlot(
+    envMapVideo: EnvMapVideo,
+    renderer: OptiXRenderer
+  ): Try[Int] =
+    TextureManager.loadInitialEnvMapVideo(envMapVideo, renderer, textureDir) match
+      case Some(textureIndex) =>
+        renderer.setEnvironmentMap(textureIndex)
+        Success(textureIndex)
+      case None =>
+        Failure(IllegalStateException(
+          s"Failed to upload environment-map video '${envMapVideo.path}'"
+        ))
+
+  private def updateEnvMapVideoSlot(
+    state: WithAnimation.EnvMapVideoState,
+    configs: SceneConverter.SceneConfigs,
+    renderer: OptiXRenderer,
+    t: Float
+  ): Try[Unit] = Try:
+    val resolvedPath = resolveEnvMapVideoPath(state.envMapVideo)
+    val loader = new VideoLoader(resolvedPath.toString)
+    try
+      TextureManager.validateEquirectangularDimensions(
+        loader.width,
+        loader.height,
+        state.envMapVideo.path
+      )
+      val animationRange = AnimationTimeRange(animConfig.startT, animConfig.endT)
+      val frameTime = VideoPlaybackTime.sampleTime(
+        state.envMapVideo.playback,
+        t,
+        animationRange,
+        loader.durationSeconds
+      )
+      val frameData = loader.frameAt(frameTime)
+      renderer.updateTexture(state.textureIndex, frameData, loader.width, loader.height)
+      renderer.setEnvironmentMap(state.textureIndex)
+      configureIBL(renderer, configs)
+    finally loader.close()
 
   private def buildSceneTrackingVideoTextures(
     configs: SceneConverter.SceneConfigs,
@@ -273,6 +410,11 @@ object WithAnimation:
   final case class Anim4DState(specs: List[ObjectSpec], slotsPerSpec: Vector[Vector[Int]])
   final case class VideoTextureSlot(videoTexture: VideoTexture, textureIndices: Vector[Int])
   final case class VideoTextureState(specs: List[ObjectSpec], slots: Vector[VideoTextureSlot])
+  final case class EnvMapVideoState(
+    specs: List[ObjectSpec],
+    envMapVideo: EnvMapVideo,
+    textureIndex: Int
+  )
 
   /** Eligibility: every spec is a 4D-projected type (tesseract, tesseract-sponge,
     * tesseract-sponge-2). Recursive-IAS sponges and non-4D meshes block the
@@ -294,3 +436,17 @@ object WithAnimation:
 
   def specsCanReuseVideoTextureSlots(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
     prev == next && prev.exists(_.videoTexture.nonEmpty)
+
+  def configsCanReuseEnvMapVideoSlot(
+    prevSpecs: List[ObjectSpec],
+    nextSpecs: List[ObjectSpec],
+    prevEnvMapVideo: EnvMapVideo,
+    nextEnvMapVideo: EnvMapVideo
+  ): Boolean =
+    prevSpecs == nextSpecs && prevEnvMapVideo.textureKey == nextEnvMapVideo.textureKey
+
+  def hasVideoSources(
+    configs: SceneConverter.SceneConfigs,
+    specs: List[ObjectSpec]
+  ): Boolean =
+    specs.exists(_.videoTexture.nonEmpty) || configs.envMapVideo.nonEmpty

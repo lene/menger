@@ -23,6 +23,7 @@ import menger.engines.scene.Hexadecachoron4DSceneBuilder
 import menger.engines.scene.Menger4DSceneBuilder
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.Sierpinski4DSceneBuilder
+import menger.engines.scene.TextureManager
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.EventDispatcher
 import menger.input.GdxRuntime
@@ -357,6 +358,13 @@ class InteractiveEngine(
             val idx = renderer.uploadTextureFromFile(resolvedPath)
             if idx >= 0 then renderer.setEnvironmentMap(idx)
             else logger.error(s"Failed to load environment map: $path")
+          }
+          environment.envMapVideo.foreach { envMapVideo =>
+            TextureManager.loadInitialEnvMapVideo(
+              envMapVideo,
+              renderer,
+              config.execution.textureDir
+            ).foreach(renderer.setEnvironmentMap)
           }
           if environment.iblEnabled then
             renderer.setIBL(
