@@ -182,9 +182,11 @@ Progress:
       config.toml.bak-sprint28) — applied + verified 2026-06-11
 - [x] Install slice + drop-ins, daemon-reload — applied + verified 2026-06-11
       (`systemctl show` confirms Slice= and Restart= on both services)
-- [ ] Restart services in an idle window (end of sprint, with schedule
+- [x] Restart services in an idle window (end of sprint, with schedule
       creation); verify runtime slice membership via `systemd-cgls`
-- [ ] GitHub-side heartbeat (with sibling hook-wiring PRs, 28.2 follow-up)
+      (both services now in ci-runners.slice, confirmed 2026-06-11)
+- [x] GitHub-side heartbeat (with sibling hook-wiring PRs, 28.2 follow-up)
+      (optix-jni runner-heartbeat.yml: nightly 02:00 UTC on self-hosted runner)
 
 Accepted limitation (documented): GitLab and GitHub GPU jobs can still run
 simultaneously (independent queues, one GPU); revisit with a GPU lock if it
