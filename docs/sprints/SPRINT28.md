@@ -264,6 +264,28 @@ signal, not noise.
 ### Task 28.5: Release-on-Merge + Installable-Package Proof
 
 **Estimate:** 8h
+**Status:** 🔄 In Progress (started 2026-06-11)
+
+Progress:
+- [x] `scripts/release.sh --prepare --version X.Y.Z` — bumps all four version
+      files (build.sbt, .gitlab-ci.yml, MengerCLIOptions.scala,
+      docs/guide/user-guide.md + docs/USER_GUIDE.md) and inserts CHANGELOG
+      stub. Never infers version — user provides it. `--check` delegates to
+      `check-version-consistency.sh`.
+- [x] `NORELEASE` label support — `TagIsNewAndConsistent` and
+      `ChangelogIsUpdated` now also skip on `$CI_MERGE_REQUEST_LABELS =~
+      /NORELEASE/`; `CreateRelease` checks both `#norelease` in title AND
+      `NORELEASE` in MR labels via the same commits API call.
+- [x] `Test:InstallSmoke` CI job in `release` stage — runs on tag pipeline,
+      needs `BuildDeployable` artifact, unzips the package on the local nvidia
+      runner, runs `xvfb-run menger-app --objects type=cube-sponge:level=1
+      --timeout 0.1` (headless smoke render proving the installed package runs
+      on the user's GPU).
+- [ ] Wire `Test:InstallSmoke` as a required gate before `PushToGithub` (add
+      to `PushToGithub.needs` once a release has run smoke-green at least once)
+- [ ] Add `Test:Debian`/`Test:Ubuntu` automatic rules for tag pipelines
+      (deferred: smoke + existing manual jobs sufficient until external users
+      materialize — revisit per BACKLOG_FEATURES.md)
 
 A merge **is** the release decision unless labeled otherwise.
 
