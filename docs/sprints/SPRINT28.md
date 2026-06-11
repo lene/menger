@@ -215,7 +215,7 @@ bites.
 ### Task 28.4: Multi-Model Review Automation
 
 **Estimate:** 10h
-**Status:** 🔄 In Progress (started 2026-06-11)
+**Status:** ✅ Done (2026-06-11)
 
 Progress:
 - [x] `standards/review-guidelines.md` — versioned code review guidelines: what
@@ -242,12 +242,12 @@ Progress:
       tracking
 - [x] Wire GitHub sibling repos to use the adapter (with 28.2 hook-wiring PRs)
       (ai-review job added to menger-common and optix-jni ci.yml — 2026-06-11)
-- [ ] Promote `allow_failure: false` once a sprint of reviews shows low
-      false-positive rate (conscious decision at sprint 29 close)
+- [~] Promote `allow_failure: false` — deferred to sprint 29 close after
+      observing false-positive rate in production
 - [x] review.sh skips gracefully (exit 0 + empty JSON) when no API keys set;
       ci.yml key-check step gates Run/Post on key availability (2026-06-11)
-- [ ] Add DEEPSEEK_API_KEY as masked+protected CI variable (user action
-      required: Settings → CI/CD → Variables) — deferred
+- [~] Add DEEPSEEK_API_KEY as masked+protected CI variable — deferred (user
+      action; DeepSeek review skips cleanly when key absent)
 
 ≥2 model families per review to minimize single-model bias; disagreements are
 signal, not noise.
