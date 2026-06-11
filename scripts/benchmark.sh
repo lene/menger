@@ -48,13 +48,23 @@ for entry in "${SCENES[@]}"; do
   RUN_FRAMES=""
   for i in $(seq 1 $RUNS); do
     stats_file="$TMPDIR/${label}-run${i}.json"
+    stderr_file="$TMPDIR/${label}-run${i}.err"
     # shellcheck disable=SC2086
-    xvfb-run -a "$BINARY" \
+    __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a "$BINARY" \
       $args \
       --headless \
       --timeout 0.5 \
       --stats-json "$stats_file" \
-      2>/dev/null
+      2>"$stderr_file" || {
+        echo "ERROR: scene $label run $i failed:" >&2
+        cat "$stderr_file" >&2
+        exit 1
+      }
+    if [ ! -f "$stats_file" ]; then
+      echo "ERROR: stats file not written for $label run $i (app exited before first render)" >&2
+      cat "$stderr_file" >&2
+      exit 1
+    fi
     frame_ms=$(python3 -c "import json; print(json.load(open('$stats_file'))['frameMs'])")
     echo "  run $i: ${frame_ms} ms"
     RUN_FRAMES="$RUN_FRAMES $frame_ms"

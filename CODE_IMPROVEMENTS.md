@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-06-08
+**Last Updated:** 2026-06-11
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -61,7 +61,7 @@ These are deferred feature ideas, not defects.
 |----|------|----------|------------|
 | L2 | Metrics and Telemetry | New feature | 6-8 |
 | L3 | Scene graph abstraction | Architecture | 10-12 |
-| L4 | Comprehensive benchmarking suite | Tests | 8-10 |
+| L4 | Comprehensive benchmarking suite | Tests | 8-10 | Partially addressed by `scripts/benchmark.sh` (sprint-28). |
 | L5 | Plugin system for geometry types | Architecture | 12-15 |
 
 ---

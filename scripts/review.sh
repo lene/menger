@@ -124,7 +124,7 @@ if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
       system: $sys,
       messages: [{"role": "user", "content": $user}]
     }')
-  HTTP_CODE=$(curl -sf -o "$WORK/claude_raw.json" -w "%{http_code}" \
+  HTTP_CODE=$(curl -s -o "$WORK/claude_raw.json" -w "%{http_code}" \
     -X POST "https://api.anthropic.com/v1/messages" \
     -H "x-api-key: $ANTHROPIC_API_KEY" \
     -H "anthropic-version: 2023-06-01" \
@@ -135,11 +135,14 @@ if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
     if [ -n "$TEXT" ]; then
       printf '%s' "$TEXT" > "$CLAUDE_OUT"
     else
+      echo "Warning: Claude API returned HTTP 200 but empty text content; raw response:" >&2
+      cat "$WORK/claude_raw.json" >&2
       echo '{"findings":[],"summary":"Claude returned empty response"}' > "$CLAUDE_OUT"
     fi
   else
-    echo "Warning: Claude API returned HTTP $HTTP_CODE" >&2
-    echo '{"findings":[],"summary":"Claude API error"}' > "$CLAUDE_OUT"
+    echo "Warning: Claude API returned HTTP $HTTP_CODE; raw response:" >&2
+    cat "$WORK/claude_raw.json" >&2
+    echo '{"findings":[],"summary":"Claude API error (HTTP '"$HTTP_CODE"')"}' > "$CLAUDE_OUT"
   fi
 else
   echo "[review] ANTHROPIC_API_KEY not set; skipping Claude" >&2
@@ -162,7 +165,7 @@ if [ -n "${DEEPSEEK_API_KEY:-}" ]; then
         {"role": "user",   "content": $user}
       ]
     }')
-  HTTP_CODE=$(curl -sf -o "$WORK/deepseek_raw.json" -w "%{http_code}" \
+  HTTP_CODE=$(curl -s -o "$WORK/deepseek_raw.json" -w "%{http_code}" \
     -X POST "https://api.deepseek.com/v1/chat/completions" \
     -H "Authorization: Bearer $DEEPSEEK_API_KEY" \
     -H "content-type: application/json" \
@@ -172,11 +175,14 @@ if [ -n "${DEEPSEEK_API_KEY:-}" ]; then
     if [ -n "$TEXT" ]; then
       printf '%s' "$TEXT" > "$DEEPSEEK_OUT"
     else
+      echo "Warning: DeepSeek API returned HTTP 200 but empty content; raw response:" >&2
+      cat "$WORK/deepseek_raw.json" >&2
       echo '{"findings":[],"summary":"DeepSeek returned empty response"}' > "$DEEPSEEK_OUT"
     fi
   else
-    echo "Warning: DeepSeek API returned HTTP $HTTP_CODE" >&2
-    echo '{"findings":[],"summary":"DeepSeek API error"}' > "$DEEPSEEK_OUT"
+    echo "Warning: DeepSeek API returned HTTP $HTTP_CODE; raw response:" >&2
+    cat "$WORK/deepseek_raw.json" >&2
+    echo '{"findings":[],"summary":"DeepSeek API error (HTTP '"$HTTP_CODE"')"}' > "$DEEPSEEK_OUT"
   fi
 else
   echo "[review] DEEPSEEK_API_KEY not set; skipping DeepSeek" >&2

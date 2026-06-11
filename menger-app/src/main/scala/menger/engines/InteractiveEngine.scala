@@ -610,22 +610,37 @@ class InteractiveEngine(
         result.image
 
   private def writeStatsJson(path: String): Unit =
-    lastRenderResult.get().foreach { result =>
-      val stats = result.stats
-      val json =
-        s"""|{
-            |  "frameMs": ${stats.frameMs},
-            |  "totalRays": ${stats.totalRays},
-            |  "primaryRays": ${stats.primaryRays},
-            |  "reflectedRays": ${stats.reflectedRays},
-            |  "refractedRays": ${stats.refractedRays},
-            |  "shadowRays": ${stats.shadowRays},
-            |  "aaRays": ${stats.aaRays},
-            |  "msPerMray": ${stats.msPerMray}
-            |}""".stripMargin
-      Files.writeString(Paths.get(path), json)
-      logger.info(s"Stats written to $path")
-    }
+    lastRenderResult.get() match
+      case None =>
+        logger.warn(s"No render result available; stats file not written: $path")
+      case Some(result) =>
+        val frameMs       = result.stats.frameMs
+        val totalRays     = result.stats.totalRays
+        val primaryRays   = result.stats.primaryRays
+        val reflectedRays = result.stats.reflectedRays
+        val refractedRays = result.stats.refractedRays
+        val shadowRays    = result.stats.shadowRays
+        val aaRays        = result.stats.aaRays
+        val msPerMray     = result.stats.msPerMray
+        val json =
+          s"""|{
+              |  "frameMs": $frameMs,
+              |  "totalRays": $totalRays,
+              |  "primaryRays": $primaryRays,
+              |  "reflectedRays": $reflectedRays,
+              |  "refractedRays": $refractedRays,
+              |  "shadowRays": $shadowRays,
+              |  "aaRays": $aaRays,
+              |  "msPerMray": $msPerMray
+              |}""".stripMargin
+        Try {
+          val p = Paths.get(path).toAbsolutePath
+          Option(p.getParent).foreach(parent => Files.createDirectories(parent))
+          Files.writeString(p, json)
+          logger.info(s"Stats written to $p")
+        }.failed.foreach { e =>
+          logger.error(s"Failed to write stats to $path: ${e.getMessage}", e)
+        }
 
   override def resize(width: Int, height: Int): Unit = {}
 
