@@ -144,6 +144,32 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
     specs(0).texture shouldBe None
     specs(0).videoTexture shouldBe Some(videoTexture)
 
+  it should "create a scene with an environment-map video" in:
+    val envMapVideo = EnvMapVideo(
+      "clips/panorama.mov",
+      VideoPlayback(timeMapping = TProgress, repeat = PingPong, fpsOverride = Some(24.0))
+    )
+    val scene = Scene(
+      camera = Camera.Default,
+      objects = List(Sphere(Material.Chrome)),
+      envMapVideo = Some(envMapVideo)
+    )
+
+    val configs = convert(scene)
+
+    configs.envMap shouldBe None
+    configs.envMapVideo shouldBe Some(envMapVideo)
+
+  it should "reject scenes that set both static and video environment maps" in:
+    val scene = Scene(
+      camera = Camera.Default,
+      objects = List(Sphere(Material.Chrome)),
+      envMap = Some("sky.hdr"),
+      envMapVideo = Some(EnvMapVideo("clips/panorama.mov"))
+    )
+
+    an[IllegalArgumentException] shouldBe thrownBy(convert(scene))
+
   it should "create a complex scene with mixed object types" in:
     val scene = Scene(
       camera = Camera((5f, 5f, 5f), (0f, 0f, 0f)),

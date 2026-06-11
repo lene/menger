@@ -1,5 +1,7 @@
 package menger.dsl
 
+import menger.video.EnvMapVideo
+
 /** Complete scene definition with camera, objects, and lighting.
   *
   * Objects can be specified in two ways (mutually usable, root takes precedence):
@@ -25,6 +27,7 @@ case class Scene(
   background: Option[Color] = None,
   fog: Option[Fog] = None,
   envMap: Option[String] = None,
+  envMapVideo: Option[EnvMapVideo] = None,
   ibl: Option[IBL] = None,
   toneMapping: ToneMapping = ToneMapping.None,
   root: Option[SceneNode] = None,

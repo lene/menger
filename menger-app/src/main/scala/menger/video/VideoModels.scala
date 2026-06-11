@@ -28,3 +28,14 @@ case class VideoTexture(
     val fps = playback.fpsOverride.map(_.toString).getOrElse("source")
     s"video:$path|time=${playback.timeMapping}|repeat=${playback.repeat}|" +
       s"offset=${playback.startOffset}|fps=$fps"
+
+case class EnvMapVideo(
+  path: String,
+  playback: VideoPlayback = VideoPlayback()
+):
+  require(path.trim.nonEmpty, "Environment-map video path cannot be empty")
+
+  def textureKey: String =
+    val fps = playback.fpsOverride.map(_.toString).getOrElse("source")
+    s"env-video:$path|time=${playback.timeMapping}|repeat=${playback.repeat}|" +
+      s"offset=${playback.startOffset}|fps=$fps"

@@ -23,7 +23,7 @@ DSL-only scope. No CLI options needed.
 
 - [x] `videoTexture = Some(VideoTexture("texture.mp4"))` in DSL plays a rectangular
       video on any object that already supports image textures
-- [ ] `VideoTexture` and `EnvMapVideo` share playback config for time mapping,
+- [x] `VideoTexture` and `EnvMapVideo` share playback config for time mapping,
       start offset, optional fps override, and repeat mode
 - [x] Video frame selection is deterministic from animation `t`, source timestamps,
       optional `fpsOverride`, and repeat mode
@@ -302,6 +302,7 @@ deterministic playback timing/repeat helpers plus unit tests for `VideoTimeMappi
 
 **Estimate:** 2h
 **Depends on:** 27.6
+**Status:** Complete
 
 ```scala
 case class EnvMapVideo(
@@ -314,6 +315,13 @@ case class EnvMapVideo(
 `SceneConverter` emits an error if both `envMap` and `envMapVideo` are set. `EnvMapVideo`
 expects equirectangular 2:1 360-degree video; ordinary rectangular videos remain object
 textures. The same `VideoPlayback` rules apply to object videos and environment videos.
+
+**Result:** Added `EnvMapVideo` to the shared video model with the same `VideoPlayback`
+configuration used by `VideoTexture`, exported it through `menger.dsl`, added
+`Scene.envMapVideo`, and propagated it through `SceneConverter.SceneConfigs` and
+`EnvironmentConfig`. `SceneConverter` now rejects scenes that set both `envMap` and
+`envMapVideo`. Focused tests cover the model defaults/keying/path validation,
+conversion, IBL config propagation for `envMapVideo`, and the mutual-exclusion error.
 
 ---
 

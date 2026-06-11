@@ -16,6 +16,7 @@ import menger.dsl.Scene
 import menger.dsl.SceneNode
 import menger.dsl.ToneMapping
 import menger.dsl.Transform
+import menger.video.EnvMapVideo
 
 /** Extracted conversion from DSL Scene to rendering configs.
   *
@@ -33,6 +34,7 @@ object SceneConverter extends LazyLogging:
     render: Option[RenderConfig] = None,
     fog: Option[FogConfig] = None,
     envMap: Option[String] = None,
+    envMapVideo: Option[EnvMapVideo] = None,
     toneMappingOperator: Int = 0,
     toneMappingExposure: Float = 1.0f,
     iblEnabled: Boolean = false,
@@ -42,6 +44,7 @@ object SceneConverter extends LazyLogging:
   )
 
   def convert(dslScene: Scene, fallbackCaustics: CausticsConfig): SceneConfigs =
+    validateEnvironmentMaps(dslScene)
     validateSceneMaterials(dslScene)
     val objectSpecs = dslScene.root match
       case Some(node) => flattenNode(node, Transform.Identity, None)
@@ -59,9 +62,10 @@ object SceneConverter extends LazyLogging:
     val render     = dslScene.render.map(_.toRenderConfig)
     val fog        = dslScene.fog.map(f => FogConfig(f.density, f.color.toCommonColor))
     val envMap     = dslScene.envMap
+    val envMapVideo = dslScene.envMapVideo
     val (tmOp, tmExp) = toToneMappingParams(dslScene.toneMapping)
     val (iblEnabled, iblStrength, iblSamples) = dslScene.ibl match
-      case Some(ibl) if dslScene.envMap.isDefined =>
+      case Some(ibl) if dslScene.envMap.isDefined || dslScene.envMapVideo.isDefined =>
         (true, ibl.strength, ibl.samples)
       case Some(_) =>
         logger.warn("IBL requested but no envMap set — IBL disabled")
@@ -69,8 +73,24 @@ object SceneConverter extends LazyLogging:
       case None =>
         (false, 1.0f, 1)
     val accumulationFrames = dslScene.render.map(_.accumulation).getOrElse(1)
-    SceneConfigs(scene, camera, lights, caustics, background, planes, render, fog, envMap, tmOp, tmExp,
-      iblEnabled, iblStrength, iblSamples, accumulationFrames)
+    SceneConfigs(
+      scene,
+      camera,
+      lights,
+      caustics,
+      background,
+      planes,
+      render,
+      fog,
+      envMap,
+      envMapVideo,
+      tmOp,
+      tmExp,
+      iblEnabled,
+      iblStrength,
+      iblSamples,
+      accumulationFrames
+    )
 
   /** Flatten a SceneNode tree to a list of ObjectSpecs.
     *
@@ -125,6 +145,12 @@ object SceneConverter extends LazyLogging:
 
   private def validateSceneMaterials(dslScene: Scene): Unit =
     dslScene.objects.foreach(_.materialsToValidate.foreach(warnMaterial))
+
+  private def validateEnvironmentMaps(dslScene: Scene): Unit =
+    require(
+      dslScene.envMap.isEmpty || dslScene.envMapVideo.isEmpty,
+      "envMap and envMapVideo are mutually exclusive"
+    )
 
   private def warnMaterial(material: Material): Unit =
     material.validate().foreach(w => logger.warn(s"[Material] $w"))

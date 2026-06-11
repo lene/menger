@@ -47,3 +47,31 @@ class VideoModelsSuite extends AnyFlatSpec with Matchers:
   it should "reject blank paths" in:
     an[IllegalArgumentException] should be thrownBy VideoTexture("")
     an[IllegalArgumentException] should be thrownBy VideoTexture("   ")
+
+  "EnvMapVideo" should "default to default playback" in:
+    val video = EnvMapVideo("clips/panorama.mov")
+
+    video.path shouldBe "clips/panorama.mov"
+    video.playback shouldBe VideoPlayback()
+
+  it should "create a stable key from path and playback config" in:
+    val first = EnvMapVideo(
+      "clips/panorama.mov",
+      VideoPlayback(
+        timeMapping = VideoTimeMapping.TProgress,
+        repeat = VideoRepeat.PingPong,
+        startOffset = 1.0,
+        fpsOverride = Some(30.0)
+      )
+    )
+    val second = first.copy()
+
+    second.textureKey shouldBe first.textureKey
+    first.textureKey should include("clips/panorama.mov")
+    first.textureKey should include("TProgress")
+    first.textureKey should include("PingPong")
+    first.textureKey should include("30.0")
+
+  it should "reject blank environment video paths" in:
+    an[IllegalArgumentException] should be thrownBy EnvMapVideo("")
+    an[IllegalArgumentException] should be thrownBy EnvMapVideo("   ")
