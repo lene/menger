@@ -30,7 +30,7 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.7.2 | optix-jni Decoupling | ✅ Complete | optix-jni generic library, menger-geometry layer, MengerRenderer, NativeOptiXApi (Sprints 24-25) |
 | v0.7.3 | Repo Split & Code Health | ✅ Complete | menger-common + optix-jni separate repos, Maven Central, all CODE_IMPROVEMENTS resolved (Sprint 26) |
 | v0.8.0 | Video Backgrounds | 🔄 In Progress | Animated .mp4 backgrounds via ffmpeg, per-frame GPU texture swap (Sprint 27) |
-| TBD | Release & QA Hardening | Planned | Release automation, sanitizer CI, perf-regression tracking, SBOM (Sprint 28) |
+| TBD | Agentic Guardrails & Release Automation | Planned | Cross-repo standards, tiered hooks, multi-model reviews, release-on-merge (Sprint 28) |
 | TBD | OptiX API Coverage I | Planned | AI denoiser, curves primitive, optix-jni release (Sprint 29) |
 | TBD | OptiX API Coverage II | Planned | Motion blur, API audit, validation mode, optix-jni 1.0 prep (Sprint 30) |
 | TBD | L-Systems | Planned | 3D/4D Lindenmayer systems, turtle geometry, presets (Sprint 31) |
@@ -114,10 +114,12 @@ See [docs/sprints/SPRINT27.md](docs/sprints/SPRINT27.md)
 
 ---
 
-### Sprint 28: Industrial-Strength Release & QA (~26h)
+### Sprint 28: Agentic Development Guardrails & Release Automation (~45h)
 
-**Goal:** Release automation, sanitizer CI, performance-regression tracking, SBOM,
-nightly pipeline, flaky-test policy
+**Goal:** Structural quality enforcement for AI-delivered code: cross-repo standards
+with drift detection, tiered hooks with agentic policy checks, hardened local runners,
+multi-model (Claude + DeepSeek) MR reviews, release-on-merge with installable-package
+proof, enforcement audit
 
 See [docs/sprints/SPRINT28.md](docs/sprints/SPRINT28.md)
 
@@ -269,7 +271,7 @@ estimates are in
 | optix-jni Implementation (25) | 1 sprint | ~28 hours |
 | Repository Split & Code Health (26) | 1 sprint | ~28 hours |
 | Video Backgrounds (27) | 1 sprint | ~32 hours |
-| Release & QA Hardening (28) | 1 sprint | ~26 hours |
+| Agentic Guardrails & Release Automation (28) | 1 sprint | ~45 hours |
 | OptiX API Coverage I — Denoiser & Curves (29) | 1 sprint | ~30 hours |
 | OptiX API Coverage II — Motion Blur & 1.0 Prep (30) | 1 sprint | ~26 hours |
 | L-Systems in 3D and 4D (31) | 1 sprint | ~28 hours |
@@ -280,7 +282,7 @@ estimates are in
 | Data Visualization I (36, pushed back) | 1 sprint | ~25 hours |
 | 4D Geometry II (37, pushed back) | 1 sprint | ~20 hours |
 | Advanced Geometry (38, pushed back) | 1 sprint | ~27 hours |
-| **Total Remaining (27–38)** | 12 sprints | **~304 hours** |
+| **Total Remaining (27–38)** | 12 sprints | **~323 hours** |
 
 ---
 

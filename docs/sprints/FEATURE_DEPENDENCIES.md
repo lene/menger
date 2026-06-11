@@ -24,7 +24,8 @@ IDs in this document (S28.x–S31.x) refer to the pre-renumbering plans** — ma
 | S30.x | Sprint 37 | 4D Geometry II |
 | S31.x | Sprint 38 | Advanced Geometry |
 
-New sprint sequence: 28 = F14 Release & QA, 29 = F13 Phase 1 (denoiser + curves),
+New sprint sequence: 28 = F14 agentic-development guardrails & release automation
+(rescoped 2026-06-10 after discussion), 29 = F13 Phase 1 (denoiser + curves),
 30 = F13 Phase 2 (motion blur, API audit, 1.0 prep), 31 = F9 L-systems,
 32 = F4 spectral dispersion, 33 = T-PBRTEX PBR texture sets,
 34 = F16 production caustics (incl. dispersive caustics, which needs Sprint 32).
