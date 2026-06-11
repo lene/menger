@@ -212,8 +212,9 @@ object Main:
       fpsLogIntervalMs = opts.fpsLogInterval(),
       timeout = opts.timeout(),
       saveName = opts.saveName.toOption,
-      enableStats = opts.stats() || opts.headless(),
+      enableStats = opts.stats() || opts.headless() || opts.statsJson.isSupplied,
       maxInstances = opts.maxInstances(),
       textureDir = opts.textureDir(),
-      allowUniformRender = opts.allowUniformRender()
+      allowUniformRender = opts.allowUniformRender(),
+      statsJsonPath = opts.statsJson.toOption
     )

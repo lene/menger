@@ -596,6 +596,32 @@ consumer would pull in Menger-specific types with no relevant semantics.
 
 ---
 
+### AD-25: Renovate for Dependency-Update Automation (Sprint 28)
+
+**Status:** Accepted
+**Date:** 2026-06-11 (Sprint 28)
+
+**Context:** `sbt-updates` is incompatible with sbt 1.12.6 (NPE on load). Dependency
+updates were done manually at sprint close, with no enforcement that they happened.
+
+**Decision:** Use Renovate for automated dependency bump PRs/MRs across all three repos.
+Configured in `renovate.json` (canonical in `standards/`, synced to sibling repos).
+GitLab: self-hosted via `renovate/renovate` Docker image in a CI-scheduled job.
+GitHub: Renovate GitHub App installed on `menger-common` and `optix-jni`.
+
+**Rationale:**
+- Handles sbt, Docker image tags, GitHub Actions pins — one tool, all dep types.
+- `renovate.json` tracked in `standards/` → enforced via drift detection (AD-28.1).
+- Native deps (CUDA, OptiX SDK, libav) excluded; driver/SDK matching stays manual.
+- Renovate run triggered at sprint close to surface dependency PRs early in the sprint.
+
+**Consequences:**
+- `RENOVATE_TOKEN` (GitLab PAT, api+read_api scope) required as masked CI variable.
+- `allow_failure: true` on the CI job — missing token skips gracefully.
+- GitHub App installation is a user action (Settings → Apps → Renovate).
+
+---
+
 ## 9.2 Sprint-Level Decisions
 
 Detailed implementation decisions are documented in sprint planning documents and code review files.

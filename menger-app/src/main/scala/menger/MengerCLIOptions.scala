@@ -129,6 +129,10 @@ class MengerCLIOptions(arguments: Seq[String])
     default = Some(false), group = generalGroup,
     descrYes = "Show ray tracing statistics"
   )
+  val statsJson: ScallopOption[String] = opt[String](
+    name = "stats-json", required = false, group = generalGroup,
+    descr = "Write last-frame render stats as JSON to this file (implies --stats)"
+  )
   val headless: ScallopOption[Boolean] = opt[Boolean](
     name = "headless", default = Some(false), group = generalGroup,
     descr = "Render without displaying window (requires --save-name)"

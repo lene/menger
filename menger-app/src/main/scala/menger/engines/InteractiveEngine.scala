@@ -1,5 +1,7 @@
 package menger.engines
 
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.collection.mutable.ArrayBuffer
@@ -8,6 +10,7 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.CameraState
+import io.github.lene.optix.RenderResult
 import io.github.lene.optix.SceneConfigurator
 import menger.ObjectSpec
 import menger.Projection4DSpec
@@ -587,12 +590,15 @@ class InteractiveEngine(
   override protected def currentSaveName: Option[String] = execution.saveName
   override protected def allowUniformRender: Boolean = execution.allowUniformRender
 
+  private val lastRenderResult = new AtomicReference[Option[RenderResult]](None)
+
   private def renderWithStats(width: Int, height: Int): Array[Byte] =
     rendererWrapper.renderSceneWithStats(ImageSize(width, height)) match
       case None =>
         logger.error("OptiX rendering failed - renderWithStats returned None")
         Array.emptyByteArray
       case Some(result) =>
+        lastRenderResult.set(Some(result))
         val stats = result.stats
         logger.info(
           f"Frame: ${stats.frameMs}%.1f ms (${stats.msPerMray}%.2f ms/Mray) | " +
@@ -603,8 +609,27 @@ class InteractiveEngine(
         )
         result.image
 
+  private def writeStatsJson(path: String): Unit =
+    lastRenderResult.get().foreach { result =>
+      val stats = result.stats
+      val json =
+        s"""|{
+            |  "frameMs": ${stats.frameMs},
+            |  "totalRays": ${stats.totalRays},
+            |  "primaryRays": ${stats.primaryRays},
+            |  "reflectedRays": ${stats.reflectedRays},
+            |  "refractedRays": ${stats.refractedRays},
+            |  "shadowRays": ${stats.shadowRays},
+            |  "aaRays": ${stats.aaRays},
+            |  "msPerMray": ${stats.msPerMray}
+            |}""".stripMargin
+      Files.writeString(Paths.get(path), json)
+      logger.info(s"Stats written to $path")
+    }
+
   override def resize(width: Int, height: Int): Unit = {}
 
   override def dispose(): Unit =
     logger.debug("Disposing InteractiveEngine")
+    execution.statsJsonPath.foreach(writeStatsJson)
     super.dispose()

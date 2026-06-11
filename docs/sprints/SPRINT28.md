@@ -347,6 +347,7 @@ A merge **is** the release decision unless labeled otherwise.
 ### Task 28.7: Performance-Regression Guard (slim)
 
 **Estimate:** 4h
+**Status:** ✅ Done (2026-06-11)
 
 "The AI made it slower" is an agentic failure mode like any other.
 
@@ -362,6 +363,7 @@ A merge **is** the release decision unless labeled otherwise.
 ### Task 28.8: Dependency-Update Automation
 
 **Estimate:** 3h
+**Status:** ✅ Done (2026-06-11)
 
 - sbt-updates is broken on sbt 1.12.6 (TODO.md): use Renovate (native GitHub app
   for the two GitHub repos; self-hosted/CI-scheduled for GitLab) or Scala Steward —

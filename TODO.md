@@ -4,7 +4,7 @@ Quick notes and ideas. Promote to ROADMAP.md or a sprint plan when ready to sche
 
 ## Unscheduled
 
-- sbt-updates plugin (com.timushev.sbt:sbt-updates) incompatible with sbt 1.12.6 — NPE on load. Find alternative or wait for upstream fix before enabling dependency update checks.
+- sbt-updates plugin (com.timushev.sbt:sbt-updates) incompatible with sbt 1.12.6 — NPE on load. Replaced by Renovate (Sprint 28.8).
 - investigate hs_err*.log files
 - investigate pending/ignored tests
 - is the scala version used verbatim instead of as variable anywhere?

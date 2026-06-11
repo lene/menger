@@ -535,6 +535,49 @@ AIReview:
       - review-findings.json
     expire_in: 7 days
 
+# Sprint 28.7: performance-regression guard.
+# Runs 4 benchmark scenes 3 times each, computes median frameMs, compares
+# against scripts/perf-baseline.json. >15% regression fails.
+# Run benchmark.sh --update-baseline after intentional performance changes.
+PerfCheck:
+  stage: test built
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
+  needs:
+    - job: BuildDeployable
+      artifacts: true
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+      when: on_success
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: on_success
+  resource_group: nvidia-gpu
+  timeout: 25m
+  tags:
+    - nvidia
+  variables:
+    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
+    __GL_THREADED_OPTIMIZATIONS: "0"
+  allow_failure: true
+  before_script:
+    - apt-get -y update -qq
+    - apt-get -y install -qq mesa-utils x11-xserver-utils xvfb python3 $LIBAV_DEV_PACKAGES
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && \
+         [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* \
+               /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    - ldconfig || true
+  script:
+    - unzip -oq menger-${DEPLOYABLE_VERSION}.zip
+    - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
+    - ./scripts/benchmark.sh "./menger-app-${DEPLOYABLE_VERSION}/bin/menger-app"
+  artifacts:
+    when: always
+    paths:
+      - perf-results.json
+    expire_in: 30 days
+
 # Sprint 28.1: this repo's copies of shared standards files must match the
 # canonical versions in standards/ (see standards/README.md).
 StandardsParity:
@@ -573,6 +616,34 @@ StandardsDrift:
     - apt-get -y install curl ca-certificates
   script:
     - ./scripts/check-standards-drift.sh --remote
+
+# Sprint 28.8: dependency-update automation via Renovate.
+# Requires RENOVATE_TOKEN (GitLab PAT, api+read_api scope) as a masked
+# CI variable. GITHUB_COM_TOKEN optional (improves changelog lookups).
+# Runs on schedule (weekly) and can be triggered manually or at sprint close.
+# For GitHub repos, install the Renovate GitHub App and add renovate.json.
+Renovate:
+  stage: preconditions
+  image: renovate/renovate:latest
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: on_success
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
+      allow_failure: true
+  variables:
+    RENOVATE_PLATFORM: gitlab
+    RENOVATE_ENDPOINT: $CI_API_V4_URL
+    RENOVATE_GIT_AUTHOR: "Renovate Bot <bot@renovateapp.com>"
+    LOG_LEVEL: info
+  script:
+    - |
+      if [ -z "${RENOVATE_TOKEN:-}" ]; then
+        echo "RENOVATE_TOKEN not set; skipping Renovate run"
+        exit 0
+      fi
+    - renovate $CI_PROJECT_PATH
 
 TagIsNewAndConsistent:
   stage: preconditions

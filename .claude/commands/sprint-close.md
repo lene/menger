@@ -178,7 +178,22 @@ If yes, apply edits and stage for the archiving commit (3i).
 Fix any drift found before archiving. If sibling repos have diverged, run
 `./scripts/sync-standards.sh` and open PRs in the affected repos.
 
-### 3h. Clean CODE_IMPROVEMENTS.md
+### 3h. Trigger Dependency Updates
+
+Trigger a Renovate run so fresh dependency bump MRs/PRs are ready at the start of the new sprint:
+
+```bash
+glab pipeline run --ref main --variables "RUN_RENOVATE=true"
+```
+
+For the GitHub repos, the Renovate app runs on its own schedule; open the Renovate dashboard to trigger immediately if needed. Check for open dependency PRs in both GitHub repos before closing:
+
+```bash
+gh pr list --repo lene/menger-common --label dependencies
+gh pr list --repo lene/optix-jni --label dependencies
+```
+
+### 3i. Clean CODE_IMPROVEMENTS.md
 
 Read `CODE_IMPROVEMENTS.md` in full. Identify issues marked as resolved, complete, or fixed (look for ✅, "Resolved:", "Fixed in", "Closed"). Present the list:
 
@@ -186,7 +201,7 @@ Read `CODE_IMPROVEMENTS.md` in full. Identify issues marked as resolved, complet
 
 Remove confirmed ones. Do not touch deferred or in-progress items.
 
-### 3i. Version Consistency Check
+### 3j. Version Consistency Check
 
 ```bash
 grep "version" menger-app/build.sbt
@@ -199,7 +214,7 @@ grep "^\## \[" CHANGELOG.md | head -1
 
 All six must agree on VERSION and CHANGELOG top entry must be `[VERSION] - TODAY`. Report any mismatches as ❌.
 
-### 3j. Commit Archiving Work
+### 3k. Commit Archiving Work
 
 ```bash
 git add docs/archive/sprints/

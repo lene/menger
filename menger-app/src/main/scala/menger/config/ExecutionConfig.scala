@@ -11,6 +11,7 @@ package menger.config
  * @param textureDir base directory for loading texture files
  * @param allowUniformRender accept renders where >=99% of pixels share a colour
  *                           (default: false; otherwise the save aborts with an error)
+ * @param statsJsonPath if set, write last-frame render stats as JSON to this path on exit
  */
 case class ExecutionConfig(
   fpsLogIntervalMs: Int = 5000,
@@ -19,7 +20,8 @@ case class ExecutionConfig(
   enableStats: Boolean = false,
   maxInstances: Int = 64,
   textureDir: String = ".",
-  allowUniformRender: Boolean = false
+  allowUniformRender: Boolean = false,
+  statsJsonPath: Option[String] = None
 )
 
 object ExecutionConfig:
