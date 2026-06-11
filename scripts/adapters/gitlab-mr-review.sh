@@ -37,10 +37,10 @@ sev_icon() {
 }
 models_label() {
   case "$1" in
-    '["claude","deepseek"]') echo "Claude+DeepSeek" ;;
-    '["claude"]')            echo "Claude" ;;
-    '["deepseek"]')          echo "DeepSeek" ;;
-    *)                       echo "$1" ;;
+    claude,deepseek|deepseek,claude) echo "Claude+DeepSeek" ;;
+    claude)   echo "Claude" ;;
+    deepseek) echo "DeepSeek" ;;
+    *)        echo "$1" ;;
   esac
 }
 
@@ -67,7 +67,7 @@ if [ "$TOTAL" -gt 0 ]; then
       (.models | join(",")) ]
     | @tsv' "$FINDINGS_FILE" | while IFS="$(printf '\t')" read -r file line sev cat msg models; do
     icon=$(sev_icon "$sev")
-    mlabel=$(models_label "$(printf '["%s"]' "$(echo "$models" | sed 's/,/","/g')")")
+    mlabel=$(models_label "$models")
     printf '| `%s` | %s | %s | %s | %s | %s |\n' \
       "$file" "$line" "$icon" "$cat" "$msg" "$mlabel" >> "$BODY_FILE"
   done
