@@ -698,6 +698,9 @@ test_dsl_scenes() {
     run_test "DSL ComplexLighting" --scene examples.dsl.ComplexLighting
     run_test "DSL ReusableComponents" --scene examples.dsl.ReusableComponents
     run_test "DSL MixedMetallicShowcase" --scene examples.dsl.MixedMetallicShowcase
+    run_test "DSL VideoTextureCube" \
+        --scene examples.dsl.VideoTextureCube \
+        --texture-dir menger-geometry/src/test/resources/
     run_test "DSL EnvMapDemo (IBL importance-sampled env lighting + accumulation)" \
         --scene examples.dsl.EnvMapDemo \
         --texture-dir menger-app/src/test/resources/

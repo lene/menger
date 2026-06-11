@@ -91,7 +91,7 @@ class TriangleMeshSceneBuilder(
             )
             mesh4DRecorder(specIdx, meshIdx)
 
-        val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
+        val textureIndex = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
 
         val instanceId =
           if ObjectType.isRecursiveIASSponge(spec.objectType) then

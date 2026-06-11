@@ -236,6 +236,7 @@ focused tests cover default playback, FPS validation, conversion, and object sup
 
 **Estimate:** 2h
 **Depends on:** 27.4
+**Status:** Complete
 
 Decode the initial playback frame of a rectangular video and upload it through the
 existing texture path for objects that already support image textures. This proves the
@@ -243,6 +244,13 @@ decoder, JNI, Scala wrapper, and OptiX texture upload path before animation is i
 
 **Validation:** A DSL scene with a video-textured plane or cube renders the initial
 playback frame as a stable still texture.
+
+**Result:** `TextureManager` now decodes a `VideoTexture` playback start frame through
+`menger.geometry.VideoLoader`, uploads the RGBA bytes through the existing texture upload
+path, and binds the resulting stable texture slot through the same image-texture wiring
+used by static textures. Added `examples.dsl.VideoTextureCube`, integration/manual test
+entries, a committed reference image, and focused tests for decoded initial/start-offset
+frames.
 
 ---
 

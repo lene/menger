@@ -20,6 +20,7 @@ object SceneIndex:
     ReusableComponents.scene,
     TesseractDemo.scene,
     MixedMetallicShowcase.scene,
+    VideoTextureCube.scene,
     RenderSettingsDemo.scene,
     CausticsReference.scene,
     ParametricSphere.scene,

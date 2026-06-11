@@ -26,6 +26,24 @@ class VideoModelsSuite extends AnyFlatSpec with Matchers:
     texture.path shouldBe "clips/checker.mov"
     texture.playback shouldBe VideoPlayback()
 
+  it should "create a stable key from path and playback config" in:
+    val first = VideoTexture(
+      "clips/checker.mov",
+      VideoPlayback(
+        timeMapping = VideoTimeMapping.TSeconds,
+        repeat = VideoRepeat.Freeze,
+        startOffset = 0.5,
+        fpsOverride = Some(24.0)
+      )
+    )
+    val second = first.copy()
+
+    second.textureKey shouldBe first.textureKey
+    first.textureKey should include("clips/checker.mov")
+    first.textureKey should include("TSeconds")
+    first.textureKey should include("Freeze")
+    first.textureKey should include("24.0")
+
   it should "reject blank paths" in:
     an[IllegalArgumentException] should be thrownBy VideoTexture("")
     an[IllegalArgumentException] should be thrownBy VideoTexture("   ")

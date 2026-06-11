@@ -86,6 +86,7 @@ case class ObjectSpec(
   def rotZ: Float = rotation.z
   def proceduralType: Int = procedural.proceduralType
   def proceduralScale: Float = procedural.scale
+  def imageTextureKey: Option[String] = texture.orElse(videoTexture.map(_.textureKey))
   def normalMap: Option[String] = textureMaps.normalMap
   def roughnessMap: Option[String] = textureMaps.roughnessMap
   def apex: Option[(Float, Float, Float)] = cone.apex

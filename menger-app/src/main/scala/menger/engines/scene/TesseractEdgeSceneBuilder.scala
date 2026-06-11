@@ -118,7 +118,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       // Only add face mesh instance if face material is specified (not just edge material)
       if hasFaceMaterial then
         val faceMaterial = MaterialExtractor.extract(spec)
-        val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
+        val textureIndex = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
 
         val faceInstanceId =
           if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then

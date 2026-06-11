@@ -113,6 +113,6 @@ trait SceneBuilder extends LazyLogging:
     val roughnessIdx = spec.roughnessMap.flatMap(textureIndices.get).getOrElse(-1)
     if normalIdx >= 0 || roughnessIdx >= 0 then
       renderer.setMapTextures(id, normalIdx, roughnessIdx)
-    val imageIdx = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
+    val imageIdx = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
     if imageIdx >= 0 then
       renderer.setImageTexture(id, imageIdx)
