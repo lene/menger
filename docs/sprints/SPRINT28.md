@@ -76,11 +76,13 @@ Progress:
       local checkouts — found real drift in optix-jni (comments stripped) and a
       one-byte drift in menger-common; both synced, uncommitted, awaiting review
 - [x] CI jobs `StandardsParity` (every pipeline) and `StandardsDrift` (scheduled)
-- [ ] Commit + push the synced `.scalafix.conf` in menger-common and optix-jni
+- [x] Commit + push the synced `.scalafix.conf` in menger-common and optix-jni
+      (menger-common@59d43c3, optix-jni@96d3af9 — 2026-06-11)
 - [ ] Create the GitLab pipeline schedule — **deferred to end of sprint** (user
       decision 2026-06-11): set up together with 28.3's runner resource limits and
       the nightly deep tier, after those exist
-- [ ] Document the canonical rule in the sibling repos' CONTRIBUTING/README
+- [x] Document the canonical rule in the sibling repos' CONTRIBUTING/README
+      (README.md sections added in same commits — 2026-06-11)
 
 GitLab `include:` and GitHub reusable workflows are incompatible, so the portable
 layer is **scripts and config files, not CI YAML**.
