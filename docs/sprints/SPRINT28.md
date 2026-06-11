@@ -309,6 +309,14 @@ A merge **is** the release decision unless labeled otherwise.
 ### Task 28.6: Enforcement Audit — Policy → Mechanism Map
 
 **Estimate:** 3h
+**Status:** ✅ Done (2026-06-11)
+
+**Deliverables:**
+- `docs/ENFORCEMENT.md`: all policies from AGENTS.md and the release checklist
+  mapped to their enforcing mechanism; 8 ❌ gaps identified
+- GitLab issues #155–#162 opened for every unenforced row
+- GitLab merge checks configured: *Pipelines must succeed* + *All discussions
+  must be resolved* (confirmed via API — both now true)
 
 **Implementation:**
 - Table in `docs/ENFORCEMENT.md`: every policy from AGENTS.md, TESTING.md,

@@ -144,6 +144,7 @@ Use the `/release-checklist` skill. Version must be updated in four files: `meng
 | Where | What |
 |---|---|
 | `docs/arc42/README.md` | Architecture (authoritative) |
+| `docs/ENFORCEMENT.md` | Policy → mechanism map; open enforcement gaps |
 | `docs/TESTING.md` | Test failure protocol, investigation procedure |
 | `docs/RENDERING.md` | Rendering-change discipline, integration suite |
 | `docs/TROUBLESHOOTING.md` | Common environment/build issues |
