@@ -490,6 +490,18 @@ StandardsParity:
   script:
     - ./scripts/check-standards-drift.sh --local
 
+# Sprint 28.3: runner heartbeat — a trivial scheduled job; if no local runner
+# picks it up the scheduled pipeline fails visibly (pipeline-failure email is
+# the alert). Inert until the nightly schedule exists (end of Sprint 28).
+RunnerHeartbeat:
+  stage: preconditions
+  image: ubuntu:latest
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - echo "runner alive on $(hostname) at $(date -u)"
+
 # Sprint 28.1: scheduled cross-repo drift detection — the GitHub sibling repos
 # (menger-common, optix-jni) must carry byte-identical standards files.
 # Fails loudly on divergence; opens an issue when GITLAB_API_TOKEN is set.

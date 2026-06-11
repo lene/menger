@@ -1,0 +1,16 @@
+# Resource envelope for local CI runners (menger Sprint 28.3).
+# Caps CI so it never makes the desktop unusable: half the cores, 12 of 30 GB,
+# reduced IO priority. Installed to /etc/systemd/system/ci-runners.slice.
+#
+# Scope note: this slice caps the GitHub Actions runner AND its jobs (child
+# processes), but for the GitLab runner only the runner process itself — GitLab
+# jobs run in docker containers under docker's cgroups and are capped via
+# cpus/memory in /etc/gitlab-runner/config.toml instead (see README.md).
+[Unit]
+Description=Local CI runners resource envelope
+
+[Slice]
+CPUQuota=1000%
+MemoryHigh=10G
+MemoryMax=12G
+IOWeight=50

@@ -157,6 +157,32 @@ Friction proportional to risk; policies enforced, not trusted.
 ### Task 28.3: Local Runner Hardening
 
 **Estimate:** 5h
+**Status:** 🔄 In Progress (started 2026-06-11)
+
+Progress:
+- [x] Survey: gitlab-runner (system service, Restart=always, enabled) and one
+      GitHub Actions runner (optix-jni; enabled, **no Restart=**) both exist.
+      Machine: 20 cores / 30 GB.
+- [x] Found misconfiguration: the GPU runner entry used `concurrent = 1`,
+      which is not a valid per-runner key (correct: `limit = 1`) — GPU jobs
+      were never actually serialized (global `concurrent = 2`)
+- [x] Design correction vs. plan: GitLab jobs run in **docker containers**, so
+      a systemd slice cannot cap them — job caps go through `cpus`/`memory` in
+      the runner's docker config; the slice caps the GitHub runner + its jobs
+      (child processes) and the runner daemons themselves
+- [x] `infra/ci-runners/`: ci-runners.slice (CPUQuota 1000 %, MemoryHigh 10 G,
+      MemoryMax 12 G, IOWeight 50), service drop-ins, idempotent pkexec
+      install script, README (architecture, limitations, update policy)
+- [x] `RunnerHeartbeat` CI job (schedule-gated; alive when the deferred
+      nightly schedule is created)
+- [ ] Apply config.toml fix (`limit = 1`, container cpus/memory) — pkexec
+- [ ] Install slice + drop-ins, daemon-reload — pkexec
+- [ ] Restart services in an idle window; verify Slice= took effect
+- [ ] GitHub-side heartbeat (with sibling hook-wiring PRs, 28.2 follow-up)
+
+Accepted limitation (documented): GitLab and GitHub GPU jobs can still run
+simultaneously (independent queues, one GPU); revisit with a GPU lock if it
+bites.
 
 **Implementation:**
 - gitlab-runner **and** GitHub Actions self-hosted runner (for menger-common /
