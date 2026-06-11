@@ -1,14 +1,21 @@
 # Current Sprint
 
+Two sprints are active in parallel (decision 2026-06-11):
+
 **Sprint:** 27
 **Status:** 🔄 In Progress
 **Branch:** `feature/sprint-27`
+
+**Sprint:** 28
+**Status:** 🔄 In Progress
+**Branch:** `feature/sprint-28` (worktree `.worktrees/sprint-28`)
 
 ---
 
 ## Goal
 
-See [SPRINT27.md](SPRINT27.md) for detailed task breakdown and implementation plan.
+See [SPRINT27.md](SPRINT27.md) (video textures) and [SPRINT28.md](SPRINT28.md)
+(agentic development guardrails) for detailed task breakdowns.
 
 ---
 

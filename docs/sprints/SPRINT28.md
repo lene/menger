@@ -1,7 +1,7 @@
 # Sprint 28: Agentic Development Guardrails & Release Automation
 
 **Sprint:** 28 - Agentic Development Guardrails & Release Automation
-**Status:** Not Started
+**Status:** 🔄 In Progress (started 2026-06-11)
 **Estimate:** ~45 hours
 **Branch:** `feature/sprint-28`
 **Dependencies:** None. Builds on Sprint 27.0's CI hardening of the standalone
@@ -65,6 +65,22 @@ system from the package.
 ### Task 28.1: Cross-Repo Quality Standards + Drift Detection
 
 **Estimate:** 6h
+**Status:** 🔄 In Progress (started 2026-06-11)
+
+Progress:
+- [x] `standards/` canonical directory (README, manifest, scalafix.conf); root
+      `.scalafix.conf` aligned byte-identical (was missing trailing newline)
+- [x] `scripts/check-standards-drift.sh` (`--local`/`--remote`), drift path
+      negative-tested
+- [x] `scripts/sync-standards.sh` (worktree-safe sibling resolution); run against
+      local checkouts — found real drift in optix-jni (comments stripped) and a
+      one-byte drift in menger-common; both synced, uncommitted, awaiting review
+- [x] CI jobs `StandardsParity` (every pipeline) and `StandardsDrift` (scheduled)
+- [ ] Commit + push the synced `.scalafix.conf` in menger-common and optix-jni
+- [ ] Create the GitLab pipeline schedule — **deferred to end of sprint** (user
+      decision 2026-06-11): set up together with 28.3's runner resource limits and
+      the nightly deep tier, after those exist
+- [ ] Document the canonical rule in the sibling repos' CONTRIBUTING/README
 
 GitLab `include:` and GitHub reusable workflows are incompatible, so the portable
 layer is **scripts and config files, not CI YAML**.

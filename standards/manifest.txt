@@ -1,0 +1,3 @@
+# Parity-tracked standards files: <path-in-repo> <canonical-file-in-standards/>
+# Lines starting with # and blank lines are ignored.
+.scalafix.conf scalafix.conf

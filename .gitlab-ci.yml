@@ -478,6 +478,33 @@ CheckRunTime:
     paths:
       - runtime.log
 
+# Sprint 28.1: this repo's copies of shared standards files must match the
+# canonical versions in standards/ (see standards/README.md).
+StandardsParity:
+  stage: preconditions
+  image: ubuntu:latest
+  needs: []
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - ./scripts/check-standards-drift.sh --local
+
+# Sprint 28.1: scheduled cross-repo drift detection — the GitHub sibling repos
+# (menger-common, optix-jni) must carry byte-identical standards files.
+# Fails loudly on divergence; opens an issue when GITLAB_API_TOKEN is set.
+StandardsDrift:
+  stage: preconditions
+  image: ubuntu:latest
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  before_script:
+    - apt-get -y update
+    - apt-get -y install curl ca-certificates
+  script:
+    - ./scripts/check-standards-drift.sh --remote
+
 TagIsNewAndConsistent:
   stage: preconditions
   image: ubuntu:latest
