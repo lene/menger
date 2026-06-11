@@ -732,10 +732,9 @@ Test:InstallSmoke:
     - ls -lh menger-*.*.*.zip
     - unzip -oq menger-${DEPLOYABLE_VERSION}.zip
     - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-    - echo "=== smoke render: cube-sponge level 1 ==="
-    - xvfb-run -a ./menger-app-${DEPLOYABLE_VERSION}/bin/menger-app
-        --objects type=cube-sponge:level=1 --timeout 0.1
-    - echo "=== smoke render: passed ==="
+    - 'echo "=== smoke render: cube-sponge level 1 ==="'
+    - xvfb-run -a ./menger-app-${DEPLOYABLE_VERSION}/bin/menger-app --objects type=cube-sponge:level=1 --timeout 0.1
+    - 'echo "=== smoke render: passed ==="'
 
 Upload:
   stage: release
