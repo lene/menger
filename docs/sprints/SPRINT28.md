@@ -360,6 +360,7 @@ A merge **is** the release decision unless labeled otherwise.
 ### Task 28.9: Documentation + Process Wiring
 
 **Estimate:** 3h
+**Status:** ✅ Done (2026-06-11)
 
 - arc42 §10: quality scenarios for the guardrail system; §11: risks (DeepSeek data
   flow, single-GPU queueing, runner availability)

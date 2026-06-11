@@ -119,6 +119,18 @@ For reproducible validation, use this fixed configuration:
 | M3 | Line length | Characters | ≤ 100 | ✅ Enforced |
 | M4 | New geometry type | Implementation time | < 1 day | ✅ Validated |
 
+### Guardrail System (Sprint 28)
+
+| ID | Scenario | Measure | Target | Status |
+|----|----------|---------|--------|--------|
+| G1 | pre-commit on docs-only change | Wall time | < 5 s | ✅ Enforced |
+| G2 | Commit modifying test without `Test-Change:` trailer | Hook outcome | Push rejected | ✅ Enforced |
+| G3 | Rendering-relevant push without reference-image update | Hook outcome | Push rejected | ✅ Enforced |
+| G4 | Standards file diverges from canonical across repos | CI outcome | Drift-check job fails | ✅ Enforced |
+| G5 | MR pipeline red at merge attempt | Merge outcome | GitLab blocks merge | ✅ Enforced |
+| G6 | MR with open discussion at merge attempt | Merge outcome | GitLab blocks merge | ✅ Enforced |
+| G7 | MR merged without `NORELEASE` label | Release outcome | Published release within CI run | ✅ Enforced |
+
 ## 10.3 Test Coverage
 
 ### By Component

@@ -143,7 +143,33 @@ git log --after="ARC42_DATE" --oneline -- menger-app/src optix-jni/src
 
 (Use the date from the arc42 README.) If significant source changes exist since the last arc42 update, list the affected files and ask the user which sections may need updating. Do not update arc42 automatically.
 
-### 3e. Clean CODE_IMPROVEMENTS.md
+### 3e. Refresh Review Guidelines
+
+Read `standards/review-guidelines.md` and `standards/architecture-review-guidelines.md`.
+Check whether any sprint findings revealed gaps or outdated guidance. If updates are
+needed, edit and commit them now while the sprint work is fresh.
+
+Ask the user:
+> "Did this sprint surface anything that should update the review guidelines? (y/n)"
+
+If yes, apply the edits and stage them for the archiving commit (3i).
+
+### 3f. Review ENFORCEMENT.md
+
+```bash
+cat docs/ENFORCEMENT.md | grep "❌"
+```
+
+Check the open-issues table. For each ❌ row:
+1. Has it been resolved since ENFORCEMENT.md was last updated? If yes, update the row to ✅ and close the linked GitLab issue.
+2. Is the linked GitLab issue still open and accurate?
+
+Ask the user:
+> "Any enforcement gaps closed this sprint that we should mark ✅? (y/n)"
+
+If yes, apply edits and stage for the archiving commit (3i).
+
+### 3g. Clean CODE_IMPROVEMENTS.md
 
 Read `CODE_IMPROVEMENTS.md` in full. Identify issues marked as resolved, complete, or fixed (look for ✅, "Resolved:", "Fixed in", "Closed"). Present the list:
 
@@ -151,7 +177,7 @@ Read `CODE_IMPROVEMENTS.md` in full. Identify issues marked as resolved, complet
 
 Remove confirmed ones. Do not touch deferred or in-progress items.
 
-### 3f. Version Consistency Check
+### 3h. Version Consistency Check
 
 ```bash
 grep "version" menger-app/build.sbt
@@ -164,7 +190,7 @@ grep "^\## \[" CHANGELOG.md | head -1
 
 All six must agree on VERSION and CHANGELOG top entry must be `[VERSION] - TODAY`. Report any mismatches as ❌.
 
-### 3g. Commit Archiving Work
+### 3i. Commit Archiving Work
 
 ```bash
 git add docs/archive/sprints/

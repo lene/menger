@@ -31,7 +31,7 @@ resolve by implementing a gate or consciously accepting the gap.
 | Tests must pass before commit | AGENTS.md §Critical rules | pre-commit: `sbt test` (Scala/native changes) | ✅ |
 | Tests must pass before push | AGENTS.md §Critical rules | pre-push Phase 3: `sbt test` | ✅ |
 | Modified/deleted test files require `Test-Change:` trailer | AGENTS.md §Test failures | `standards/hooks/check-test-justification.sh` (pre-push Phase 0) | ✅ |
-| Test failure investigation protocol documented | AGENTS.md §Test failures | See `docs/TESTING.md` (task 28.9) | ❌ [#1] |
+| Test failure investigation protocol documented | AGENTS.md §Test failures | `docs/TESTING.md` | ✅ |
 | Coverage ≥ 80 %, max 1 % drop | AGENTS.md §Definition of Done | pre-push Phase 4: coverage ratchet | ✅ |
 
 ---
@@ -45,7 +45,7 @@ resolve by implementing a gate or consciously accepting the gap.
 | New rendering feature added to `integration-tests.sh` | AGENTS.md §Rendering changes | Unenforced | ❌ [#2] |
 | New rendering feature added to `scripts/manual-test.sh` | AGENTS.md §Rendering changes | Unenforced | ❌ [#3] |
 | Alpha: 0.0 = transparent, 1.0 = opaque (never inverted) | AGENTS.md §Conventions | Unenforced | ❌ [#4] |
-| Rendering discipline fully documented | AGENTS.md §Rendering changes | See `docs/RENDERING.md` (task 28.9) | ❌ [#5] |
+| Rendering discipline fully documented | AGENTS.md §Rendering changes | `docs/RENDERING.md` | ✅ |
 
 ---
 
@@ -131,11 +131,9 @@ consciously accepted.
 
 | # | Policy gap | Action |
 |---|-----------|--------|
-| 1 | `docs/TESTING.md` does not exist; test-failure protocol unlinked | Task 28.9: create doc — [#155](https://gitlab.com/lilacashes/menger/-/work_items/155) |
 | 2 | No check that a new rendering feature is added to `integration-tests.sh` | Implement hook or CI check — [#156](https://gitlab.com/lilacashes/menger/-/work_items/156) |
 | 3 | No check that a new rendering feature is added to `manual-test.sh` | Implement hook or CI check — [#157](https://gitlab.com/lilacashes/menger/-/work_items/157) |
 | 4 | Alpha-channel convention (0.0 = transparent) has no static check | Add WartRemover rule or comment-linter — [#158](https://gitlab.com/lilacashes/menger/-/work_items/158) |
-| 5 | `docs/RENDERING.md` does not exist; rendering discipline unlinked | Task 28.9: create doc — [#159](https://gitlab.com/lilacashes/menger/-/work_items/159) |
 | 6 | No check that arc42 is updated when architecture-relevant files change | Implement hook using `standards/architecture-paths.txt` — [#160](https://gitlab.com/lilacashes/menger/-/work_items/160) |
 | 7 | CHANGELOG.md update not enforced at release time | Add pre-push or CI check for CHANGELOG date/entry — [#161](https://gitlab.com/lilacashes/menger/-/work_items/161) |
 | 8 | Performance regression guard not yet implemented | Task 28.7 — [#162](https://gitlab.com/lilacashes/menger/-/work_items/162) |

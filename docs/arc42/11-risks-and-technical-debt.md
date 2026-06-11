@@ -19,6 +19,7 @@
 | TR-6 | LibGDX input processor ordering | UI issues | Separate InputProcessors via OptiXInputMultiplexer |
 | TR-9 | AI review diffs sent to DeepSeek API | MR diff content leaves the local environment | Accepted: this is a public codebase; revisit if proprietary code appears. Diffs are not stored by DeepSeek beyond the API session per their privacy policy. `DEEPSEEK_API_KEY` stored as masked+protected CI variable; never echoed to logs. |
 | TR-10 | Single GPU shared between interactive use and CI runners | CI GPU job starves rendering work (or vice versa); flaky integration tests under contention | `limit = 1` serializes menger GPU jobs; GPU-tagged jobs from other pipelines are independent. Known flakes documented in `docs/TESTING.md`. |
+| TR-11 | Local CI runner unavailable (host off, OOM, service crash) | All pipelines queue indefinitely; MR merge blocked | systemd `Restart=on-failure` + heartbeat alert job (28.3); nightly alert fires if no job picked up in 24 h. |
 
 ### Low Risk
 

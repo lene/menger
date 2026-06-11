@@ -1,5 +1,33 @@
 # Changelog
 
+## [Unreleased] - Sprint 28: Agentic Development Guardrails
+
+### Added
+- **Cross-repo quality standards** (`standards/`) — canonical scalafix, scalafmt,
+  and hook scripts shared across menger, menger-common, and optix-jni; daily drift
+  detection fails loudly when configs diverge.
+- **Tiered hooks** — fast pre-commit (< 5 s for non-code changes) with branch guard,
+  staged hygiene, and local standards parity; pre-push Phase 0 policy checks
+  (`Test-Change:` trailer enforcement and rendering-discipline check) run before
+  any compilation.
+- **Local CI runner hardening** — gitlab-runner and GitHub Actions runner run as
+  systemd services with auto-restart and resource caps; GPU jobs serialised with
+  `limit = 1`; heartbeat alert fires if no runner picks up work in 24 h.
+- **Multi-model AI review** — every MR receives structured reviews from Claude and
+  DeepSeek posted as GitLab comments; disagreements preserved.
+- **Release-on-merge automation** — merging an MR without `NORELEASE` label
+  triggers `CreateRelease` → tag pipeline → GitHub mirror → install-smoke proof.
+- **Enforcement audit** (`docs/ENFORCEMENT.md`) — every policy in AGENTS.md mapped
+  to its enforcing mechanism; 8 gaps tracked as GitLab issues #155–#162.
+- **GitLab merge checks** — pipelines must succeed and all discussions must be
+  resolved before the merge button is enabled.
+- **`docs/TESTING.md`** — test-failure protocol, flaky-test policy, and
+  `Test-Change:` trailer requirement.
+- **`docs/RENDERING.md`** — rendering-change discipline, sequential-mode rule,
+  alpha-channel invariant, and new-feature checklist.
+- **arc42 §10 G1–G7** — quality scenarios for the guardrail system.
+- **arc42 §11 TR-11** — runner-availability risk and mitigations.
+
 ## [0.7.4] - 2026-06-08
 
 ### Fixed
