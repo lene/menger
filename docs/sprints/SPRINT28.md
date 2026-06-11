@@ -121,7 +121,8 @@ Progress:
       negative against real history.
 - [x] pre-push Phase 0 runs the policy checks per push range before anything
       expensive; graceful skip on branches predating standards/hooks.
-- [ ] Wire shared policy checks into menger-common/optix-jni hooks (PRs there)
+- [x] Wire shared policy checks into menger-common/optix-jni hooks (PRs there)
+      (menger-common@3db7606, optix-jni@130a703 — 2026-06-11)
 - [ ] ccache for the CUDA side (cheap native rebuilds)
 - [ ] Scala-only pre-push timing tier (requires deciding whether integration
       tests may be skipped for non-rendering Scala changes — discuss)
@@ -231,7 +232,8 @@ Progress:
       contention risk from 28.3)
 - [x] Guidelines added to `standards/manifest.txt` for cross-repo parity
       tracking
-- [ ] Wire GitHub sibling repos to use the adapter (with 28.2 hook-wiring PRs)
+- [x] Wire GitHub sibling repos to use the adapter (with 28.2 hook-wiring PRs)
+      (ai-review job added to menger-common and optix-jni ci.yml — 2026-06-11)
 - [ ] Promote `allow_failure: false` once a sprint of reviews shows low
       false-positive rate (conscious decision at sprint 29 close)
 - [ ] Add DEEPSEEK_API_KEY as masked+protected CI variable (user action

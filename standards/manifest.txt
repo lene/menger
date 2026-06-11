@@ -9,3 +9,5 @@ standards/hooks/check-rendering-discipline.sh hooks/check-rendering-discipline.s
 standards/review-guidelines.md review-guidelines.md
 standards/architecture-review-guidelines.md architecture-review-guidelines.md
 standards/architecture-paths.txt architecture-paths.txt
+standards/scripts/review.sh scripts/review.sh
+standards/scripts/github-pr-review.sh scripts/github-pr-review.sh
