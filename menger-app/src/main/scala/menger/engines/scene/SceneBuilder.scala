@@ -1,10 +1,12 @@
 package menger.engines.scene
 
+import scala.util.Failure
 import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
+import menger.common.ValidationException
 
 /**
  * Strategy trait for building different scene types in OptiX.
@@ -23,9 +25,7 @@ import menger.ObjectSpec
  * Usage:
  * {{{
  *   val builder = SphereSceneBuilder()
- *   builder.validate(specs, maxInstances) match
- *     case Left(error) => // Handle validation error
- *     case Right(_) => builder.buildScene(specs, renderer)
+ *   builder.validateAndBuild(specs, renderer, maxInstances)
  * }}}
  */
 trait SceneBuilder extends LazyLogging:
@@ -60,6 +60,17 @@ trait SceneBuilder extends LazyLogging:
    * @return Try[Unit] - Success if scene built successfully, Failure otherwise
    */
   def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit]
+
+  final def validateAndBuild(
+    specs: List[ObjectSpec],
+    renderer: OptiXRenderer,
+    maxInstances: Int
+  ): Try[Unit] =
+    validate(specs, maxInstances) match
+      case Left(error) =>
+        Failure(ValidationException(error, "objectSpecs", specs.map(_.objectType)))
+      case Right(_) =>
+        buildScene(specs, renderer, maxInstances)
 
   /**
    * Checks if two object specs are compatible for this scene type.

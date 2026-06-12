@@ -13,6 +13,8 @@
 - Removed stale solved High Priority findings from `CODE_IMPROVEMENTS.md`.
 - GitLab GPU jobs now install FFmpeg/libav packages without recommended dependencies,
   avoiding distro `libcuda1` shadowing the NVIDIA driver-mounted CUDA library.
+- Scene builders now validate config-based, mixed-scene, and optimized 4D tracked
+  build paths before any renderer instance allocation, closing `M-sceneb-validate-bypass`.
 
 ## [0.7.3] - 2026-06-08
 

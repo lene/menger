@@ -449,7 +449,7 @@ class InteractiveEngine(
           slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
       )(using profilingConfig)
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
       result.foreach { _ =>
         if slotsBuf.size == specs.size then
           val slotsPerSpec = specs.indices.map(i =>
@@ -470,7 +470,7 @@ class InteractiveEngine(
           instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += instanceId
       )
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
       result.foreach { _ =>
         if instancesBuf.size == specs.size then
           val instancesPerSpec = specs.indices.map(i =>
@@ -491,7 +491,7 @@ class InteractiveEngine(
           instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += instanceId
       )
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
       result.foreach { _ =>
         if instancesBuf.size == specs.size then
           val instancesPerSpec = specs.indices.map(i =>
@@ -512,7 +512,7 @@ class InteractiveEngine(
           instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += instanceId
       )
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
       result.foreach { _ =>
         if instancesBuf.size == specs.size then
           val instancesPerSpec = specs.indices.map(i =>

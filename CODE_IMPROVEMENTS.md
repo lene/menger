@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-06-08
+**Last Updated:** 2026-06-12
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -13,16 +13,6 @@ Resolved items are removed from this file entirely — git history is the record
 ---
 
 ## Medium Priority
-
-### M-sceneb-validate-bypass: buildSceneFromConfigs skips validate(); SceneBuilder has split error types
-
-**Location**: `menger-app/src/main/scala/menger/engines/BaseEngine.scala:104–106`, `menger-app/src/main/scala/menger/engines/scene/SceneBuilder.scala:47,62`
-**Impact**: Medium — two related issues in the same seam:
-1. `buildSceneFromConfigs` (BaseEngine.scala:104) calls `builder.buildScene(...)` directly without calling `validate()` first. `buildSceneFromSpecs` at line 88 does call `validate()`. The trait's contract says validate must succeed before buildScene; one caller respects this, the other doesn't. Unvalidated input reaches GPU instance allocation.
-2. `SceneBuilder.validate` returns `Either[String, Unit]` (string error, no stack trace) while `buildScene` returns `Try[Unit]`. Callers in BaseEngine must bridge these incompatible types; the string error from `validate` is swallowed into a `RuntimeException` message without structured context.
-**Fix**: Call `validate()` inside `buildSceneFromConfigs` before `buildScene`, or make `buildScene` call `validate` internally as a precondition. Unify the error type (`Try` or `Either` — pick one).
-
----
 
 ### M-instanceid-raw-int: Inconsistent -1 handling for native instance IDs across scene builders
 

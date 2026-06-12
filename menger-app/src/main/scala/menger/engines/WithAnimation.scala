@@ -454,8 +454,9 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
         mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
           slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
       )(using profilingConfig)
+      val effectiveMaxInstances = computeEffectiveMaxInstances(builder, newSpecs)
       val result = buildWithVideoTextureTracking(newSpecs):
-        builder.buildScene(newSpecs, renderer, newSpecs.length)
+        builder.validateAndBuild(newSpecs, renderer, effectiveMaxInstances)
       result.foreach { _ =>
         if slotsBuf.size == newSpecs.size then
           val slotsPerSpec = newSpecs.indices.map(i =>

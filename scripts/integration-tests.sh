@@ -1171,13 +1171,15 @@ test_fog() {
         --save-name "$fog_img" >/dev/null 2>&1
 
     if [ -f "$no_fog_img" ] && [ -f "$fog_img" ]; then
-        # compare_images returns 0=match, 1=different; we WANT different (fog changed the image)
-        if ! compare_images "fog-vs-nofog" "$fog_img" "$no_fog_img" "/tmp/fog_diff_$$.png"; then
+        local diff_pixels
+        diff_pixels=$(compare -metric AE "$fog_img" "$no_fog_img" /dev/null 2>&1) || true
+        if [ "${diff_pixels:-0}" -gt 0 ] 2>/dev/null; then
             echo -e "  fog vs no-fog: images differ (fog applied) ${GREEN}✓${RESET}"
             ((PASSED++))
         else
             echo -e "  fog vs no-fog: images unexpectedly identical ${RED}✗${RESET}"
             ((FAILED++))
+            FAILED_TESTS="$FAILED_TESTS\n  - fog vs no-fog: images unexpectedly identical"
         fi
     fi
     rm -f "$no_fog_img" "$fog_img" "/tmp/fog_diff_$$.png"

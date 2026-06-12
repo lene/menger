@@ -410,6 +410,7 @@ keep using the driver-mounted `libcuda.so.1`.
 
 **Estimate:** 4h
 **Depends on:** none (pure Scala refactor)
+**Status:** Complete
 
 Fix `CODE_IMPROVEMENTS.md` `M-sceneb-validate-bypass` before or alongside video texture
 work so invalid scene input cannot reach GPU instance allocation.
@@ -417,6 +418,13 @@ work so invalid scene input cannot reach GPU instance allocation.
 **Changes:**
 - Ensure `buildSceneFromConfigs` validates before build for all scene paths.
 - Unify or consistently bridge `SceneBuilder.validate` and `buildScene` error types.
+
+**Result:** Added `SceneBuilder.validateAndBuild` to bridge validation failures into the
+existing `Try[Unit]` build contract via `ValidationException`. Routed config-based,
+mixed-scene, rebuild, interactive 4D tracked, and animated 4D tracked builds through the
+validated path before renderer allocation. Added engine-level regression coverage for
+invalid triangle-mesh configs and mixed-scene groups, and removed the resolved
+`M-sceneb-validate-bypass` item from `CODE_IMPROVEMENTS.md`.
 
 ---
 
