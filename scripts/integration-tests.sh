@@ -112,6 +112,35 @@ compare_images() {
     fi
 }
 
+sanitize_test_name() {
+    echo "$1" | sed 's/[^a-zA-Z0-9-]/_/g' | sed 's/__*/_/g'
+}
+
+failure_log_file() {
+    local sanitized_name
+    sanitized_name=$(sanitize_test_name "$1")
+    echo "$DIFF_DIR/${sanitized_name}_failure.log"
+}
+
+run_menger_to_log() {
+    local log_file="$1"
+    shift
+    __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a "$MENGER_BIN" "$@" >"$log_file" 2>&1
+}
+
+print_failure_log() {
+    local name="$1"
+    local log_file="$2"
+
+    if [ -s "$log_file" ]; then
+        echo "    ${name} command output (last 40 lines):"
+        tail -40 "$log_file" | sed 's/^/      /'
+        echo "    full log: $log_file"
+    else
+        echo "    ${name} produced no command output; log: $log_file"
+    fi
+}
+
 # Run a test, track result, clean up
 run_test() {
     local name="$1"
@@ -119,17 +148,22 @@ run_test() {
 
     # Generate temporary output filename
     local temp_output="test_temp_$$_${RANDOM}_$(date +%N).png"
+    local failure_log
+    failure_log=$(failure_log_file "$name")
     rm -f "$temp_output"
+    rm -f "$failure_log"
 
     # Run test in headless mode with output file
     local test_passed=false
-    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless --save-name "$temp_output" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" "$@" >/dev/null 2>&1 && [ -f "$temp_output" ]; then
+    if run_menger_to_log "$failure_log" --headless --save-name "$temp_output" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" "$@" && [ -f "$temp_output" ]; then
         test_passed=true
+        rm -f "$failure_log"
     fi
 
     if $test_passed; then
         # Sanitize test name for filename (replace spaces and special chars with underscores)
-        local sanitized_name=$(echo "$name" | sed 's/[^a-zA-Z0-9-]/_/g' | sed 's/__*/_/g')
+        local sanitized_name
+        sanitized_name=$(sanitize_test_name "$name")
         local reference_file="$REFERENCE_DIR/${sanitized_name}.png"
         local diff_file="$DIFF_DIR/${sanitized_name}_diff.png"
 
@@ -163,6 +197,7 @@ run_test() {
         ((FAILED++))
         FAILED_TESTS="$FAILED_TESTS\n  - $name (execution failed)"
         echo -e "  ${name} - execution failed ${RED}✗${RESET}"
+        print_failure_log "$name" "$failure_log"
     fi
 
     # Clean up temporary file
@@ -232,7 +267,10 @@ run_test_with_output() {
     local output_file="$2"
     shift 2
 
+    local failure_log
+    failure_log=$(failure_log_file "$name")
     rm -f "$output_file"
+    rm -f "$failure_log"
 
     # Check if --headless is in the arguments (headless and timeout are mutually exclusive)
     local use_timeout=true
@@ -245,18 +283,21 @@ run_test_with_output() {
 
     local test_passed=false
     if $use_timeout; then
-        if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --timeout $DEFAULT_TIMEOUT "$@" >/dev/null 2>&1 && [ -f "$output_file" ]; then
+        if run_menger_to_log "$failure_log" --timeout "$DEFAULT_TIMEOUT" "$@" && [ -f "$output_file" ]; then
             test_passed=true
+            rm -f "$failure_log"
         fi
     else
-        if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN "$@" >/dev/null 2>&1 && [ -f "$output_file" ]; then
+        if run_menger_to_log "$failure_log" "$@" && [ -f "$output_file" ]; then
             test_passed=true
+            rm -f "$failure_log"
         fi
     fi
 
     if $test_passed; then
         # Sanitize test name for filename (replace spaces and special chars with underscores)
-        local sanitized_name=$(echo "$name" | sed 's/[^a-zA-Z0-9-]/_/g' | sed 's/__*/_/g')
+        local sanitized_name
+        sanitized_name=$(sanitize_test_name "$name")
         local reference_file="$REFERENCE_DIR/${sanitized_name}.png"
         local diff_file="$DIFF_DIR/${sanitized_name}_diff.png"
 
@@ -290,6 +331,7 @@ run_test_with_output() {
         ((FAILED++))
         FAILED_TESTS="$FAILED_TESTS\n  - $name (execution failed)"
         echo -e "  ${name} - execution failed ${RED}✗${RESET}"
+        print_failure_log "$name" "$failure_log"
     fi
 
     rm -f "$output_file"

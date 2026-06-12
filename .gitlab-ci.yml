@@ -20,7 +20,8 @@ variables:
   LIBAV_DEV_PACKAGES: "libavcodec-dev libavformat-dev libavutil-dev libswscale-dev"
   # OptiX Docker image version: {CUDA}-{OptiX}-{Java}-{sbt}
   OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.12.0
-  # CUDA 13 variant image — allow_failure jobs, not an MR gate
+  # CUDA 13 variant image. Required for packaged app jobs that execute the published
+  # optix-jni artifact, because optix-jni 0.1.3 is linked against CUDA 13.
   OPTIX_DOCKER_VERSION_CUDA13: 13.2-9.0-25-1.12.0
   # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
   # See: https://forums.developer.nvidia.com/t/crash-on-launching-game-with-plasma-problematic-frame-libnvidia-glcore-so-570-144-0xa5966c/332304
@@ -236,7 +237,7 @@ Test:Full:Cuda13:
 # OptiX integration tests - comprehensive CLI and rendering tests
 # Uses scripts/integration-tests.sh which runs 27 test scenarios
 Test:OptiXIntegration:
-  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION_CUDA13
   stage: test
   needs: []
   resource_group: nvidia-gpu
