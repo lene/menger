@@ -17,6 +17,8 @@
 | TR-4 | Large sponge BVH build time | Poor UX | Cache geometry; async build |
 | TR-5 | JNI memory leaks | Gradual OOM | RAII patterns; dispose() enforcement |
 | TR-6 | LibGDX input processor ordering | UI issues | Separate InputProcessors via OptiXInputMultiplexer |
+| TR-9 | FFmpeg/libav runtime mismatch | Video decode failure | CI installs shared libav packages; fail video tests clearly |
+| TR-10 | Large video inputs | CPU/GPU memory pressure | 8-frame CPU cache and one stable GPU slot per active source |
 
 ### Low Risk
 
@@ -63,6 +65,8 @@ Detailed troubleshooting: [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)
 | Cache corruption | OptiX crash | Delete `~/.cache/nvidia-optix-cache` |
 | Gimbal lock | 90° elevation | Clamp to ±89° |
 | libnvidia-glcore crash | Threading | Set `__GL_THREADED_OPTIMIZATIONS=0` |
+| Video texture fails to load | Missing/incompatible libav codec or bad path | Install FFmpeg/libav runtime packages; check `--texture-dir` |
+| Env-map video rejected | Video is not equirectangular 2:1 | Use a 360-degree equirectangular source |
 
 ## 11.4 Monitoring
 

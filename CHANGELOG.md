@@ -2,8 +2,17 @@
 
 ## [0.7.4] - 2026-06-08
 
+### Added
+- **Video texture documentation and examples** (Sprint 27.10) — user guide and DSL
+  reference coverage for rectangular video textures, 360-degree `EnvMapVideo`
+  backgrounds, playback timing/repeat controls, IBL interaction, and performance
+  recommendations. Added `examples.dsl.EnvMapVideoSponge` plus integration/manual
+  coverage for env-map video playback.
+
 ### Fixed
 - Removed stale solved High Priority findings from `CODE_IMPROVEMENTS.md`.
+- GitLab GPU jobs now install FFmpeg/libav packages without recommended dependencies,
+  avoiding distro `libcuda1` shadowing the NVIDIA driver-mounted CUDA library.
 
 ## [0.7.3] - 2026-06-08
 

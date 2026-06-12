@@ -37,8 +37,8 @@ DSL-only scope. No CLI options needed.
 - [x] `envMapVideo = Some(EnvMapVideo("background_360.mp4"))` plays an equirectangular
       360-degree video as the environment background after video textures are complete
 - [x] `EnvMapVideo` updates IBL lighting when the scene enables `ibl`
-- [ ] FFmpeg/libav is installed and exercised in CI; video tests must not silently skip
-- [ ] All tests pass
+- [x] FFmpeg/libav is installed and exercised in CI; video tests must not silently skip
+- [x] All tests pass
 
 ---
 
@@ -382,6 +382,7 @@ stable texture slots, and animation disposal closes active decoders.
 ### Task 27.10: Documentation and Examples
 
 **Estimate:** 2h
+**Status:** Complete
 
 - User guide: "Video Textures" section — rectangular video textures, supported formats,
   source fps vs `fpsOverride`, playback time mapping, repeat modes, and performance
@@ -393,6 +394,15 @@ stable texture slots, and animation disposal closes active decoders.
 - arc42 update: native libav dependency, stable texture update API, video-memory risk,
   and dynamic env-map/IBL behavior
 - CHANGELOG.md entry
+
+**Result:** Added user-guide and DSL-reference coverage for `VideoTexture`,
+`EnvMapVideo`, `VideoPlayback`, time mapping, repeat modes, `fpsOverride`, 2:1
+equirectangular requirements, IBL behavior, accumulation behavior, and performance
+recommendations. Added `examples.dsl.EnvMapVideoSponge`, integration/manual coverage for
+one rectangular video texture and one env-map video, fixture-generation documentation,
+arc42 updates for native libav/stable texture slots/video memory risk, and a changelog
+entry. CI libav package installs now avoid recommended distro CUDA packages so GPU jobs
+keep using the driver-mounted `libcuda.so.1`.
 
 ---
 
@@ -453,19 +463,19 @@ See `CODE_IMPROVEMENTS.md` `M-instanceid-raw-int`.
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] `./.git_hooks/pre-push 2>&1 | tee /tmp/pre-push.log` passes
-- [ ] CHANGELOG.md updated
+- [x] All success criteria met
+- [x] `./.git_hooks/pre-push 2>&1 | tee /tmp/pre-push.log` passes
+- [x] CHANGELOG.md updated
 - [x] Small rectangular test video committed for video texture integration tests
 - [x] Small equirectangular/360 test video committed for env-map video integration tests
-- [ ] Test videos are deterministic, tiny, SDR RGBA-visible patterns generated from
+- [x] Test videos are deterministic, tiny, SDR RGBA-visible patterns generated from
       repo-owned source or documented commands
-- [ ] `scripts/integration-tests.sh` covers at least one video texture and one env-map video
-- [ ] `scripts/manual-test.sh` covers at least one video texture and one env-map video
+- [x] `scripts/integration-tests.sh` covers at least one video texture and one env-map video
+- [x] `scripts/manual-test.sh` covers at least one video texture and one env-map video
 - [x] Unit tests cover `VideoTimeMapping`, `VideoRepeat`, `fpsOverride`, and `t`
       exceeding source duration
-- [ ] CI installs FFmpeg/libav dev packages and runs the video integration scenarios
-- [ ] arc42 sections 9, 10, and 11 updated for video decode, texture update, and risks
+- [x] CI installs FFmpeg/libav dev packages and runs the video integration scenarios
+- [x] arc42 sections 9, 10, and 11 updated for video decode, texture update, and risks
 
 ---
 

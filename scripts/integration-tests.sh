@@ -743,6 +743,10 @@ test_dsl_scenes() {
     run_test "DSL VideoTextureCube" \
         --scene examples.dsl.VideoTextureCube \
         --texture-dir menger-geometry/src/test/resources/
+    run_test "DSL EnvMapVideoSponge" \
+        --scene examples.dsl.EnvMapVideoSponge \
+        --texture-dir menger-geometry/src/test/resources/ \
+        --t 0.5
     run_test "DSL EnvMapDemo (IBL importance-sampled env lighting + accumulation)" \
         --scene examples.dsl.EnvMapDemo \
         --texture-dir menger-app/src/test/resources/

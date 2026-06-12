@@ -37,6 +37,7 @@ Speed    Efficiency      Quality    Accuracy       Coverage   Handling
 | P3 | OptiX render with shadows | Overhead | < 30% | ✅ Validated |
 | P4 | Adaptive AA (depth 2) | Samples vs uniform | 5-20× fewer | ✅ Validated |
 | P5 | Statistics collection | Overhead | < 5% | ✅ Validated |
+| P6 | Animated video texture update | GPU allocation | Stable slot, no per-frame allocation | ✅ Validated |
 
 ### Visual Quality
 
@@ -109,6 +110,7 @@ For reproducible validation, use this fixed configuration:
 | R2 | GPU error recovery | Cache corruption | Auto-recover | ✅ Validated |
 | R3 | Invalid CLI args | Error message | Clear, actionable | ✅ Validated |
 | R4 | Missing GPU | Graceful degradation | LibGDX fallback | ✅ Existing |
+| R5 | Missing or invalid video input | Failure mode | Clear build/test/runtime error | ✅ Validated |
 
 ### Maintainability
 
@@ -130,6 +132,7 @@ For reproducible validation, use this fixed configuration:
 | optix-jni (Scala) | ~1,610 | Renderer API, materials, integration |
 | optix-jni (C++) | 27 | OptiXContext primitives |
 | CLI | ~30 | Argument parsing, validation |
+| Video decode/playback | ~20 | libav metadata/frame decode, playback timing, texture updates |
 
 ### Test Types
 
@@ -166,6 +169,7 @@ For reproducible validation, use this fixed configuration:
 | GAS (sponge L3) | < 50 MB | Depends on algorithm |
 | AA samples buffer | < 10 MB | Adaptive allocation |
 | Textures | Varies | User-dependent |
+| Active video source | 1 GPU texture slot + 8 decoded CPU frames | Shared by identical source/playback |
 
 ### Performance Baselines
 

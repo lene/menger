@@ -39,4 +39,5 @@ object SceneIndex:
     SpongeLevelAnimation.scene,
     FractalWithHDR.scene,
     SierpinskiHDRRotation.scene,
+    EnvMapVideoSponge.scene,
   )
