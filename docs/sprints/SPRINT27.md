@@ -32,7 +32,7 @@ DSL-only scope. No CLI options needed.
 - [x] Video frames decode to RGBA8 textures for SDR video
 - [x] Per-frame object texture updates use stable GPU texture slots and avoid full
       scene rebuild when only the video frame changes
-- [ ] Memory is bounded: decoded CPU frames and uploaded GPU texture state are limited
+- [x] Memory is bounded: decoded CPU frames and uploaded GPU texture state are limited
       by explicit cache/slot ownership
 - [x] `envMapVideo = Some(EnvMapVideo("background_360.mp4"))` plays an equirectangular
       360-degree video as the environment background after video textures are complete
@@ -357,6 +357,7 @@ video-source detection.
 
 **Estimate:** 3h
 **Depends on:** 27.6, 27.8
+**Status:** Complete
 
 Keep decoded CPU frames and uploaded GPU texture state bounded.
 
@@ -369,6 +370,12 @@ Keep decoded CPU frames and uploaded GPU texture state bounded.
 
 **CPU cache:** start with a small decoded-frame cache, max 8 frames per active video
 source. Expand only if profiling shows avoidable seek/decode stalls.
+
+**Result:** Animated video playback now owns reusable per-source decoder/cache state with an
+8-frame LRU decoded-frame cache. Object video texture rebuilds use a TextureManager slot provider
+to reuse active texture indices instead of re-uploading the same video source, including repeated
+loads during mixed-scene builds. Object and environment video updates both use `updateTexture` on
+stable texture slots, and animation disposal closes active decoders.
 
 ---
 

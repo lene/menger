@@ -6,6 +6,7 @@ import java.nio.file.Paths
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
@@ -30,15 +31,25 @@ import menger.video.VideoTexture
  */
 object TextureManager extends LazyLogging:
   type VideoTextureSlotObserver = (VideoTexture, Int) => Unit
+  type VideoTextureSlotProvider = VideoTexture => Option[Int]
 
   private val videoTextureSlotObserver = new ThreadLocal[Option[VideoTextureSlotObserver]]:
     override def initialValue(): Option[VideoTextureSlotObserver] = None
+
+  private val videoTextureSlotProvider = new ThreadLocal[Option[VideoTextureSlotProvider]]:
+    override def initialValue(): Option[VideoTextureSlotProvider] = None
 
   def withVideoTextureSlotObserver[A](observer: VideoTextureSlotObserver)(body: => A): A =
     val previousObserver = videoTextureSlotObserver.get()
     videoTextureSlotObserver.set(Some(observer))
     try body
     finally videoTextureSlotObserver.set(previousObserver)
+
+  def withVideoTextureSlotProvider[A](provider: VideoTextureSlotProvider)(body: => A): A =
+    val previousProvider = videoTextureSlotProvider.get()
+    videoTextureSlotProvider.set(Some(provider))
+    try body
+    finally videoTextureSlotProvider.set(previousProvider)
 
   /**
    * Load all textures referenced by object specs and upload to renderer.
@@ -99,16 +110,21 @@ object TextureManager extends LazyLogging:
     renderer: OptiXRenderer,
     textureDir: String
   ): Option[(String, Int)] =
-    loadInitialVideoTextureData(videoTexture, textureDir) match
-      case Success(textureData) =>
-        val uploadedTexture = uploadTextureData(textureData, renderer)
-        uploadedTexture.foreach { case (_, textureIndex) =>
-          recordVideoTextureSlot(videoTexture, textureIndex)
-        }
-        uploadedTexture
-      case Failure(e) =>
-        logger.error(s"Failed to load video texture '${videoTexture.path}': ${e.getMessage}")
-        None
+    videoTextureSlotProvider.get().flatMap(_(videoTexture)) match
+      case Some(textureIndex) =>
+        recordVideoTextureSlot(videoTexture, textureIndex)
+        Some(videoTexture.textureKey -> textureIndex)
+      case None =>
+        loadInitialVideoTextureData(videoTexture, textureDir) match
+          case Success(textureData) =>
+            val uploadedTexture = uploadTextureData(textureData, renderer)
+            uploadedTexture.foreach { case (_, textureIndex) =>
+              recordVideoTextureSlot(videoTexture, textureIndex)
+            }
+            uploadedTexture
+          case Failure(e) =>
+            logger.error(s"Failed to load video texture '${videoTexture.path}': ${e.getMessage}")
+            None
 
   def loadInitialEnvMapVideo(
     envMapVideo: EnvMapVideo,
@@ -127,7 +143,7 @@ object TextureManager extends LazyLogging:
     textureDir: String
   ): Try[TextureData] =
     val resolvedPath = resolveTexturePath(videoTexture.path, textureDir)
-    Try:
+    loadVideoTextureData:
       val loader = new VideoLoader(resolvedPath.toString)
       try
         TextureData(
@@ -143,7 +159,7 @@ object TextureManager extends LazyLogging:
     textureDir: String
   ): Try[TextureData] =
     val resolvedPath = resolveTexturePath(envMapVideo.path, textureDir)
-    Try:
+    loadVideoTextureData:
       val loader = new VideoLoader(resolvedPath.toString)
       try
         validateEquirectangularDimensions(
@@ -184,6 +200,12 @@ object TextureManager extends LazyLogging:
 
   private def recordVideoTextureSlot(videoTexture: VideoTexture, textureIndex: Int): Unit =
     videoTextureSlotObserver.get().foreach(_(videoTexture, textureIndex))
+
+  private def loadVideoTextureData(body: => TextureData): Try[TextureData] =
+    try Success(body)
+    catch
+      case NonFatal(e)      => Failure(e)
+      case e: LinkageError => Failure(e)
 
   private[engines] def validateEquirectangularDimensions(
     width: Int,

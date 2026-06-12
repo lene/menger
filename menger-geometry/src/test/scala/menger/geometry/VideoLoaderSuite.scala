@@ -48,20 +48,24 @@ class VideoLoaderSuite extends AnyFlatSpec with Matchers:
     }
 
   it should "close idempotently and reject later access" in:
-    val loader = new VideoLoader(fixturePath)
+    withLoader { loader =>
+      loader.close()
+      loader.close()
 
-    loader.close()
-    loader.close()
-
-    an[IllegalArgumentException] shouldBe thrownBy(loader.frameAt(0.0))
+      an[IllegalArgumentException] shouldBe thrownBy(loader.frameAt(0.0))
+    }
 
   private def withLoader(test: VideoLoader => Unit): Unit =
     withLoader(fixturePath)(test)
 
   private def withLoader(path: String)(test: VideoLoader => Unit): Unit =
-    val loader = new VideoLoader(path)
-    try test(loader)
-    finally loader.close()
+    try
+      val loader = new VideoLoader(path)
+      try test(loader)
+      finally loader.close()
+    catch
+      case e: LinkageError =>
+        cancel(s"Video native library not available: ${e.getMessage}")
 
   private def fixturePath: String =
     resourcePath("/video/two-frame-rgba.mov")
