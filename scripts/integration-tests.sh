@@ -596,6 +596,34 @@ test_menger4d() {
         --objects type=menger4d:level=1.5:color=#4488FF:size=0.8
 }
 
+test_sierpinski4d() {
+    echo "4D Sierpinski (IFS shader):"
+    run_test "sierpinski4d level 1" --plane y:-2 \
+        --objects type=sierpinski4d:level=1:pos=0,0,0:size=0.8
+    run_test "sierpinski4d level 2" --plane y:-2 \
+        --objects type=sierpinski4d:level=2:pos=0,0,0:size=0.8
+    run_test "sierpinski4d with rotation" --plane y:-2 \
+        --objects type=sierpinski4d:level=2:rot-xw=45:rot-yw=30:size=0.8
+    run_test "sierpinski4d with color" --plane y:-2 \
+        --objects type=sierpinski4d:level=1:color=#4488FF:size=0.8
+    run_test "sierpinski4d with material" --plane y:-2 \
+        --objects type=sierpinski4d:level=1:material=chrome:size=0.8
+}
+
+test_hexadecachoron4d() {
+    echo "4D Hexadecachoron (IFS shader):"
+    run_test "hexadecachoron4d level 1" --plane y:-2 \
+        --objects type=hexadecachoron4d:level=1:pos=0,0,0:size=0.8
+    run_test "hexadecachoron4d level 2" --plane y:-2 \
+        --objects type=hexadecachoron4d:level=2:pos=0,0,0:size=0.8
+    run_test "hexadecachoron4d with rotation" --plane y:-2 \
+        --objects type=hexadecachoron4d:level=2:rot-xw=45:rot-yw=30:size=0.8
+    run_test "hexadecachoron4d with color" --plane y:-2 \
+        --objects type=hexadecachoron4d:level=1:color=#4488FF:size=0.8
+    run_test "hexadecachoron4d with material" --plane y:-2 \
+        --objects type=hexadecachoron4d:level=1:material=chrome:size=0.8
+}
+
 test_cli_animation() {
     echo "CLI Animation (--animate flag):"
     local temp_dir
@@ -1216,6 +1244,8 @@ main() {
     test_tesseract
     test_4d_sponges
     test_menger4d
+    test_sierpinski4d
+    test_hexadecachoron4d
     test_cli_animation
     test_3d_fractional_sponges
     test_platonic_solids

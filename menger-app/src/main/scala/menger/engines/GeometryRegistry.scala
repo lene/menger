@@ -5,9 +5,11 @@ import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.engines.scene.ConeSceneBuilder
 import menger.engines.scene.CubeSpongeSceneBuilder
+import menger.engines.scene.Hexadecachoron4DSceneBuilder
 import menger.engines.scene.Menger4DSceneBuilder
 import menger.engines.scene.PlaneSceneBuilder
 import menger.engines.scene.SceneBuilder
+import menger.engines.scene.Sierpinski4DSceneBuilder
 import menger.engines.scene.SphereSceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
@@ -55,5 +57,9 @@ object GeometryRegistry:
         Some(PlaneSceneBuilder(textureDir))
       else if types.forall(ObjectType.isMenger4D) then
         Some(Menger4DSceneBuilder(textureDir))
+      else if types.forall(ObjectType.isSierpinski4D) then
+        Some(Sierpinski4DSceneBuilder(textureDir))
+      else if types.forall(ObjectType.isHexadecachoron4D) then
+        Some(Hexadecachoron4DSceneBuilder(textureDir))
       else
         None
