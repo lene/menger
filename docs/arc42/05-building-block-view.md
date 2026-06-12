@@ -34,7 +34,7 @@ violations (tracked in `CODE_IMPROVEMENTS.md` as `M-arch-*`). See §5.5
 for the layered diagram and AD-23 (§9) for the enforcement mechanism.
 All ArchUnit rules are active — no `@Ignore` annotations remain.
 
-### 5.2.1 `menger.common` (L0 — `menger-common` module)
+### 5.2.1 `menger.common` (L0 — external published artifact `io.github.lene:menger-common`)
 
 | Aspect | Detail |
 |--------|--------|

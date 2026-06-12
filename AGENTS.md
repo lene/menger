@@ -2,7 +2,7 @@
 
 Guidance for AI coding agents (Claude Code, opencode, etc.) working in this repository.
 
-This is a Scala 3 ray tracer using NVIDIA OptiX (via a C++/CUDA JNI bridge) and LibGDX. Showcase: Menger sponges (3D) and tesseract sponges (4D). Three modules: `menger-app` (renderer, CLI), `menger-common` (domain primitives, config), `optix-jni` (GPU ray tracing).
+This is a Scala 3 ray tracer using NVIDIA OptiX (via a C++/CUDA JNI bridge) and LibGDX. Showcase: Menger sponges (3D) and tesseract sponges (4D). Two in-repo modules: `menger-app` (application — CLI, engines, DSL, geometry objects, input, OptiX wrapper) *dependsOn* `menger-geometry` (Menger-specific 4D geometry + caustics; extends `optix-jni` via JNI/CUDA native code; not published). Two domain layers are consumed as separate **published Maven artifacts** maintained in their own repos: `io.github.lene:menger-common` (domain primitives, config) and `io.github.lene:optix-jni` (generic GPU ray tracing, no Menger types).
 
 The user runs **fish shell** on Ubuntu. Most build commands are shell-agnostic; the difference matters only for ad-hoc scripting and env-var syntax.
 

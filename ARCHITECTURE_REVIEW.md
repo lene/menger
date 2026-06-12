@@ -86,15 +86,16 @@ describe governance that does not exist, so the docs actively mislead.
 **What:** The dimension distinction that *defines* this project (3D sponge vs 4D tesseract), GPU handle identity, and instance ids all collapse to primitives across the seam. This is also the one place the otherwise-unified error model frays (`Either[String,Unit]` vs `Try[Unit]` vs raw `-1`).
 **Suggested direction:** Opaque types at the Scala side of the bridge (`opaque type GpuHandle = Long`, `InstanceId`, phantom-typed `Vector[Dim]`) + an ArchUnit rule that scene-builder return types do not expose raw native ids.
 
-### 5. Module structure in CLAUDE.md and arc42 §5 contradicts reality
+### 5. CLAUDE.md's module map contradicts reality (FIXED 2026-06-12)
 
 **Axis:** Maturity (doc coherence)
-**Where:** `CLAUDE.md` ("Three modules: menger-app, menger-common, optix-jni"); `docs/arc42/05-building-block-view.md` §5.2.
-**Impact:** Medium — every onboarding human and agent is told a false module map; this review's own subagents had to be corrected mid-flight.
-**Effort:** hours
+**Where:** `CLAUDE.md` opening line ("Three modules: menger-app, menger-common, optix-jni").
+**Impact:** Medium — the false map misled this review's own subagents mid-flight.
+**Effort:** hours (done)
 **Enforcement:** unguarded (no doc-vs-build check)
-**What:** `build.sbt` shows two in-repo modules (`menger-app` → `menger-geometry`) consuming `io.github.lene:optix-jni:0.1.2` and `io.github.lene:menger-common` as **external published Maven artifacts**. `menger-common` and `optix-jni` are not in-repo modules; `menger-geometry` (the actual in-repo module) is undocumented or mislabeled (§5.2.10 calls it "4D geometry" though its only `menger.geometry` file is an FFmpeg video JNI loader).
-**Suggested direction:** Correct CLAUDE.md's opening module description and arc42 §5 to the real two-module + external-artifact graph; optionally a lightweight test asserting the documented module names match `build.sbt`.
+**What:** `build.sbt` shows two in-repo modules (`menger-app` → `menger-geometry`) consuming `io.github.lene:optix-jni:0.1.2` and `io.github.lene:menger-common:0.1.1` as **external published Maven artifacts**. CLAUDE.md presented the two external artifacts as in-repo modules and omitted `menger-geometry` entirely.
+**Correction to this review's first draft:** the original wording also blamed arc42 §5. That was an over-claim — arc42 §5 is substantially *accurate* (§5.1 diagram marks `optix-jni`/`menger-common` "published" and §5.2.9/§5.2.10 correctly distinguish published `optix-jni` from in-repo `menger-geometry`). The defect was CLAUDE.md only.
+**Status:** CLAUDE.md fixed to the real two-module + external-artifact graph; arc42 §5.2.1 header clarified that `menger-common` is an external artifact. Remaining: a lightweight test asserting documented module names match `build.sbt` (backlog).
 
 ### 6. ArchUnit native-binding rule is package-scoped, not module-scoped — and `menger.geometry` is misnamed
 
@@ -136,7 +137,7 @@ describe governance that does not exist, so the docs actively mislead.
 
 ## arc42 coherence
 
-- **§5 Building Blocks** — drifted. Documents `menger-common` as an in-repo module and omits/mislabels `menger-geometry`; reality is two in-repo modules over external artifacts (F5).
+- **§5 Building Blocks** — accurate. Correctly marks `optix-jni`/`menger-common` as published and distinguishes in-repo `menger-geometry`. The module-map drift was in CLAUDE.md, not here (F5, fixed).
 - **§9 Decisions** — mostly honored. AD-16 (OptiX-only) matches the code; AD-2 correctly marked superseded; LibGDX correctly scoped to windowing/input. The stale claim is in §10, not §9.
 - **§10 Quality** — over-claims. `M4` "< 1 day ✅" contradicted by F1; caustics ladder 0/8 (F7); perf budgets "Validated" with no executing check (F2).
 - **§11 Risks** — §11.4 advertises a JNI-leak mitigation that pre-push/CI stub out (F3).
