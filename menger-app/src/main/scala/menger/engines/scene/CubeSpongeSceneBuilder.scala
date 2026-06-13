@@ -105,12 +105,11 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
       else
         TransformUtil.createYRotationScaleTranslation(rotY, scale, position.x, position.y, position.z)
 
-    val instanceId = renderer.addTriangleMeshInstance(transform, effectiveMaterial)
-
-    if instanceId < 0 then
-      logger.error(s"Failed to add cube instance at position=($position), scale=$scale")
-    else
-      applyInstanceTextures(instanceId, spec, textureIndices, renderer)
+    val instanceId = requireInstanceId(
+      renderer.addTriangleMeshInstance(transform, effectiveMaterial),
+      s"cube instance at position=($position), scale=$scale"
+    )
+    applyInstanceTextures(instanceId, spec, textureIndices, renderer)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // All cube-sponges are compatible with each other

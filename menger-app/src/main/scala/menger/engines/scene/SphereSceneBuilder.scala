@@ -50,13 +50,13 @@ class SphereSceneBuilder(textureDir: String = ".") extends SceneBuilder:
         else
           TransformUtil.createEulerRotationScaleTranslation(spec.rotX, spec.rotY, spec.rotZ, scale, spec.x, spec.y, spec.z)
 
-      val instanceId = renderer.addSphereInstance(transform, material)
+      val instanceId = requireInstanceId(
+        renderer.addSphereInstance(transform, material),
+        s"sphere instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
+      )
 
-      if instanceId >= 0 then
-        applyInstanceTextures(instanceId, spec, textureIndices, renderer)
-        logger.debug(s"Added sphere instance $instanceId at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, material=$material")
-      else
-        logger.error(s"Failed to add sphere instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
+      applyInstanceTextures(instanceId, spec, textureIndices, renderer)
+      logger.debug(s"Added sphere instance $instanceId at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, material=$material")
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =

@@ -113,17 +113,21 @@ trait SceneBuilder extends LazyLogging:
     * Centralises the wiring that was previously duplicated in every builder.
     * The imageTexture field is used by cone/plane via image_texture_index (Task 21.6). */
   protected final def applyInstanceTextures(
-    id: Int,
+    id: InstanceId,
     spec: ObjectSpec,
     textureIndices: Map[String, Int],
     renderer: OptiXRenderer
   ): Unit =
+    val rawId = InstanceId.raw(id)
     if spec.proceduralType != 0 then
-      renderer.setProceduralTexture(id, spec.proceduralType, spec.proceduralScale)
+      renderer.setProceduralTexture(rawId, spec.proceduralType, spec.proceduralScale)
     val normalIdx    = spec.normalMap.flatMap(textureIndices.get).getOrElse(-1)
     val roughnessIdx = spec.roughnessMap.flatMap(textureIndices.get).getOrElse(-1)
     if normalIdx >= 0 || roughnessIdx >= 0 then
-      renderer.setMapTextures(id, normalIdx, roughnessIdx)
+      renderer.setMapTextures(rawId, normalIdx, roughnessIdx)
     val imageIdx = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
     if imageIdx >= 0 then
-      renderer.setImageTexture(id, imageIdx)
+      renderer.setImageTexture(rawId, imageIdx)
+
+  protected final def requireInstanceId(rawId: Int, operation: => String): InstanceId =
+    InstanceId.fromNative(rawId, operation)

@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-06-13
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -14,13 +14,7 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-### M-instanceid-raw-int: Inconsistent -1 handling for native instance IDs across scene builders
-
-**Location**: `menger-app/src/main/scala/menger/engines/scene/` (CubeSpongeSceneBuilder.scala, ConeSceneBuilder.scala, Menger4DSceneBuilder.scala and others), `io.github.lene.optix.OptiXMeshApi` (in optix-jni)
-**Impact**: Medium — `add*Instance` methods return raw `Int` where -1 means failure. Each builder handles this differently: some raise on -1, some silently skip, some check but don't propagate. If `add*4DInstance` returns -1 at scene-build time and the value flows to `update*4DProjection` in the render loop, a `require` fires mid-frame (`IllegalArgumentException`).
-**Fix**: Wrap native instance IDs in an opaque type (`opaque type InstanceId = Int`) and return `Option[InstanceId]` or `Try[InstanceId]` from the Scala API layer. Enforce the -1→failure translation once at the boundary rather than in every caller.
-
----
+*(none)*
 
 ## Low Priority
 

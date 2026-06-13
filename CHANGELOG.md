@@ -17,6 +17,9 @@
   fail fast when the GPU driver mount is missing instead of cascading render crashes.
 - Scene builders now validate config-based, mixed-scene, and optimized 4D tracked
   build paths before any renderer instance allocation, closing `M-sceneb-validate-bypass`.
+- Native scene instance IDs are now wrapped in an opaque app-level `InstanceId`;
+  `-1` allocation failures fail scene builds at the boundary instead of being
+  handled inconsistently by individual builders.
 
 ## [0.7.3] - 2026-06-08
 

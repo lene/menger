@@ -432,6 +432,7 @@ invalid triangle-mesh configs and mixed-scene groups, and removed the resolved
 
 **Estimate:** 4h
 **Depends on:** none (pure Scala refactor)
+**Status:** Complete
 
 Replace raw `Int` instance IDs from native `add*Instance` methods with an opaque type to
 enforce -1-to-failure translation at the API boundary instead of each caller.
@@ -445,6 +446,15 @@ enforce -1-to-failure translation at the API boundary instead of each caller.
   `IllegalArgumentException` risk
 
 See `CODE_IMPROVEMENTS.md` `M-instanceid-raw-int`.
+
+**Result:** Added an opaque scene-layer `InstanceId` and centralized native `-1`
+translation through `SceneBuilder.requireInstanceId`. Updated primitive, mesh, cube-sponge,
+edge-rendered tesseract, and direct 4D builders to fail scene construction instead of
+logging and continuing after failed instance allocation. Interactive direct-4D fast-path
+caches now store typed instance IDs and unwrap only at native `update*4DProjection` calls;
+full rebuilds reuse tracked builders instead of synthesizing IDs from sequential indices.
+Added regression coverage for native Menger4D allocation failure and removed the resolved
+`M-instanceid-raw-int` item from `CODE_IMPROVEMENTS.md`.
 
 ---
 

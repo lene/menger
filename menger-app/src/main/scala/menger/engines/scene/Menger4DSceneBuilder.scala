@@ -10,7 +10,7 @@ import menger.common.Vector
 
 class Menger4DSceneBuilder(
   textureDir: String = ".",
-  menger4DRecorder: (Int, Int) => Unit = (_, _) => ()
+  menger4DRecorder: (Int, InstanceId) => Unit = (_, _) => ()
 ) extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
@@ -41,16 +41,16 @@ class Menger4DSceneBuilder(
       val rawLevel  = spec.level.get
 
       def addInstance(level: Int, mat: menger.common.Material, scale: Float): Unit =
-        val instanceId = renderer.addMenger4DInstance(
-          level, threshold, position, scale,
-          proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
-          mat
+        val instanceId = requireInstanceId(
+          renderer.addMenger4DInstance(
+            level, threshold, position, scale,
+            proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
+            mat
+          ),
+          s"menger4d instance at (${spec.x},${spec.y},${spec.z})"
         )
-        if instanceId >= 0 then
-          menger4DRecorder(specIdx, instanceId)
-          logger.debug(s"Added menger4d instance $instanceId level=$level threshold=$threshold")
-        else
-          logger.error(s"Failed to add menger4d instance at (${spec.x},${spec.y},${spec.z})")
+        menger4DRecorder(specIdx, instanceId)
+        logger.debug(s"Added menger4d instance $instanceId level=$level threshold=$threshold")
 
       if isFractional(rawLevel) then
         val frac      = rawLevel - rawLevel.floor

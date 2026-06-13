@@ -102,26 +102,43 @@ class TriangleMeshSceneBuilder(
             if isFractional(rawLevel) then
               val frac      = rawLevel - rawLevel.floor
               val coarseMat = op.material.copy(color = op.material.color.copy(a = op.material.color.a * (1f - frac)))
-              val coarseId  = renderer.addRecursiveIASSpongeInstance(rawLevel.floor.toInt, transform, coarseMat, textureIndex)
-              if coarseId >= 0 then applyInstanceTextures(coarseId, spec, textureIndices, renderer)
-              else logger.error(s"Failed to add coarse fractional sponge instance (level=${rawLevel.floor.toInt}) for ${spec.objectType}")
-              renderer.addRecursiveIASSpongeInstance(rawLevel.floor.toInt + 1, transform, op.material, textureIndex)
+              val coarseId = requireInstanceId(
+                renderer.addRecursiveIASSpongeInstance(
+                  rawLevel.floor.toInt, transform, coarseMat, textureIndex
+                ),
+                s"coarse fractional sponge instance level=${rawLevel.floor.toInt} for ${spec.objectType}"
+              )
+              applyInstanceTextures(coarseId, spec, textureIndices, renderer)
+              requireInstanceId(
+                renderer.addRecursiveIASSpongeInstance(
+                  rawLevel.floor.toInt + 1, transform, op.material, textureIndex
+                ),
+                s"fractional sponge instance level=${rawLevel.floor.toInt + 1} for ${spec.objectType}"
+              )
             else
-              renderer.addRecursiveIASSpongeInstance(rawLevel.toInt, transform, op.material, textureIndex)
+              requireInstanceId(
+                renderer.addRecursiveIASSpongeInstance(
+                  rawLevel.toInt, transform, op.material, textureIndex
+                ),
+                s"recursive-IAS sponge instance level=${rawLevel.toInt} for ${spec.objectType}"
+              )
           else if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
-            renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), op.material, textureIndex)
+            requireInstanceId(
+              renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), op.material, textureIndex),
+              s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
+            )
           else
             val transform = TransformUtil.createEulerRotationScaleTranslation(
               spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
             )
-            renderer.addTriangleMeshInstance(transform, op.material, textureIndex)
-        if instanceId >= 0 then
-          applyInstanceTextures(instanceId, spec, textureIndices, renderer)
-          val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
-          val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
-          logger.debug(s"Added ${spec.objectType} instance $instanceId ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
-        else
-          logger.error(s"Failed to add ${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})")
+            requireInstanceId(
+              renderer.addTriangleMeshInstance(transform, op.material, textureIndex),
+              s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
+            )
+        applyInstanceTextures(instanceId, spec, textureIndices, renderer)
+        val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
+        val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
+        logger.debug(s"Added ${spec.objectType} instance $instanceId ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
       }
     }
 

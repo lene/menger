@@ -10,7 +10,7 @@ import menger.common.Vector
 
 class Sierpinski4DSceneBuilder(
   textureDir: String = ".",
-  sierpinski4DRecorder: (Int, Int) => Unit = (_, _) => ()
+  sierpinski4DRecorder: (Int, InstanceId) => Unit = (_, _) => ()
 ) extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
@@ -30,16 +30,16 @@ class Sierpinski4DSceneBuilder(
       val rawLevel = spec.level.get
 
       def addInstance(level: Int, mat: menger.common.Material, scale: Float): Unit =
-        val instanceId = renderer.addSierpinski4DInstance(
-          level, position, scale,
-          proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
-          mat
+        val instanceId = requireInstanceId(
+          renderer.addSierpinski4DInstance(
+            level, position, scale,
+            proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
+            mat
+          ),
+          s"sierpinski4d instance at (${spec.x},${spec.y},${spec.z})"
         )
-        if instanceId >= 0 then
-          sierpinski4DRecorder(specIdx, instanceId)
-          logger.debug(s"Added sierpinski4d instance $instanceId level=$level")
-        else
-          logger.error(s"Failed to add sierpinski4d instance at (${spec.x},${spec.y},${spec.z})")
+        sierpinski4DRecorder(specIdx, instanceId)
+        logger.debug(s"Added sierpinski4d instance $instanceId level=$level")
 
       if isFractional(rawLevel) then
         val frac      = rawLevel - rawLevel.floor
