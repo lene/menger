@@ -2,7 +2,12 @@ package menger.engines
 
 import menger.ObjectSpec
 import menger.Projection4DSpec
+import menger.common.CausticsConfig
+import menger.config.CameraConfig
+import menger.config.SceneConfig
 import menger.config.TAnimationConfig
+import menger.video.EnvMapVideo
+import menger.video.VideoTexture
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -64,4 +69,82 @@ class WithAnimationSuite extends AnyFlatSpec with Matchers:
     WithAnimation.specsDifferOnlyIn4DProjection(List(tess0), List(tess0)) shouldBe false
 
   it should "be false when lengths differ" in:
-    WithAnimation.specsDifferOnlyIn4DProjection(List(tess0), List(tess0, tessRotated)) shouldBe false
+    WithAnimation.specsDifferOnlyIn4DProjection(
+      List(tess0),
+      List(tess0, tessRotated)
+    ) shouldBe false
+
+  "specsCanReuseVideoTextureSlots" should "be true for identical video-textured specs" in:
+    val videoTexture = VideoTexture("clips/checker.mov")
+    val texturedCube = ObjectSpec("cube", videoTexture = Some(videoTexture))
+
+    WithAnimation.specsCanReuseVideoTextureSlots(List(texturedCube), List(texturedCube)) shouldBe
+      true
+
+  it should "be false when specs changed" in:
+    val videoTexture = VideoTexture("clips/checker.mov")
+    val texturedCube = ObjectSpec("cube", videoTexture = Some(videoTexture))
+
+    WithAnimation.specsCanReuseVideoTextureSlots(
+      List(texturedCube),
+      List(texturedCube.copy(x = 1f))
+    ) shouldBe false
+
+  it should "be false when unchanged specs have no video texture" in:
+    val cube = ObjectSpec("cube")
+
+    WithAnimation.specsCanReuseVideoTextureSlots(List(cube), List(cube)) shouldBe false
+
+  "configsCanReuseEnvMapVideoSlot" should "be true for unchanged specs and video" in:
+    val cube = ObjectSpec("cube")
+    val envMapVideo = EnvMapVideo("clips/panorama.mov")
+
+    WithAnimation.configsCanReuseEnvMapVideoSlot(
+      List(cube),
+      List(cube),
+      envMapVideo,
+      envMapVideo
+    ) shouldBe true
+
+  it should "be false when specs changed" in:
+    val cube = ObjectSpec("cube")
+    val envMapVideo = EnvMapVideo("clips/panorama.mov")
+
+    WithAnimation.configsCanReuseEnvMapVideoSlot(
+      List(cube),
+      List(cube.copy(x = 1f)),
+      envMapVideo,
+      envMapVideo
+    ) shouldBe false
+
+  it should "be false when the environment-map video changed" in:
+    val cube = ObjectSpec("cube")
+
+    WithAnimation.configsCanReuseEnvMapVideoSlot(
+      List(cube),
+      List(cube),
+      EnvMapVideo("clips/first.mov"),
+      EnvMapVideo("clips/second.mov")
+    ) shouldBe false
+
+  "hasVideoSources" should "detect object video textures" in:
+    val videoTexture = VideoTexture("clips/checker.mov")
+    val texturedCube = ObjectSpec("cube", videoTexture = Some(videoTexture))
+
+    WithAnimation.hasVideoSources(emptyConfigs, List(texturedCube)) shouldBe true
+
+  it should "detect environment-map videos" in:
+    val configs = emptyConfigs.copy(envMapVideo = Some(EnvMapVideo("clips/panorama.mov")))
+
+    WithAnimation.hasVideoSources(configs, List(ObjectSpec("cube"))) shouldBe true
+
+  it should "be false without video sources" in:
+    WithAnimation.hasVideoSources(emptyConfigs, List(ObjectSpec("cube"))) shouldBe false
+
+  private def emptyConfigs: SceneConverter.SceneConfigs =
+    SceneConverter.SceneConfigs(
+      scene = SceneConfig.Default,
+      camera = CameraConfig.Default,
+      lights = List.empty,
+      caustics = CausticsConfig()
+    )

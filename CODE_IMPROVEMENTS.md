@@ -1,6 +1,6 @@
 # Code Quality Improvements — Open Issues
 
-**Last Updated:** 2026-06-11
+**Last Updated:** 2026-06-14
 
 Resolved items are removed from this file entirely — git history is the record of what was fixed.
 
@@ -14,7 +14,7 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-*(none — M-sceneb-validate-bypass and M-instanceid-raw-int scheduled as Task 29.7)*
+*(none)*
 
 ---
 

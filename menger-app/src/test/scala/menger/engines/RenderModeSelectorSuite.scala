@@ -55,5 +55,14 @@ class RenderModeSelectorSuite extends AnyFlatSpec with Matchers:
     val specs = List(spec("sponge-volume"), spec("sponge-surface"), spec("cube-sponge"))
     RenderModeSelector.classify(specs) shouldBe a [SceneType.SimpleMixed]
 
+  it should "classify menger4d scene as Menger4D" in:
+    RenderModeSelector.classify(List(spec("menger4d"))) shouldBe a [SceneType.Menger4D]
+
+  it should "classify sierpinski4d scene as Sierpinski4D (not Unsupported)" in:
+    RenderModeSelector.classify(List(spec("sierpinski4d"))) shouldBe a [SceneType.Sierpinski4D]
+
+  it should "classify hexadecachoron4d scene as Hexadecachoron4D (not Unsupported)" in:
+    RenderModeSelector.classify(List(spec("hexadecachoron4d"))) shouldBe a [SceneType.Hexadecachoron4D]
+
   it should "throw IllegalArgumentException for empty spec list" in:
     an [IllegalArgumentException] should be thrownBy RenderModeSelector.classify(List.empty)

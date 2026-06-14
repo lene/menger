@@ -3,7 +3,7 @@ package menger
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import menger.common.CausticsConfig
-import menger.dsl.{IBL, RenderSettings, Scene, Sphere}
+import menger.dsl.{EnvMapVideo, IBL, RenderSettings, Scene, Sphere}
 import menger.engines.SceneConverter
 
 class IBLSuite extends AnyFlatSpec with Matchers:
@@ -63,6 +63,16 @@ class IBLSuite extends AnyFlatSpec with Matchers:
     val scene   = minimalScene.copy(
       envMap = Some("sky.hdr"),
       ibl    = Some(IBL(strength = 0.5f, samples = 3)),
+    )
+    val configs = SceneConverter.convert(scene, noCaustics)
+    configs.iblEnabled  shouldBe true
+    configs.iblStrength shouldBe 0.5f
+    configs.iblSamples  shouldBe 3
+
+  it should "produce iblEnabled=true when ibl is set with envMapVideo" in:
+    val scene   = minimalScene.copy(
+      envMapVideo = Some(EnvMapVideo("sky.mov")),
+      ibl         = Some(IBL(strength = 0.5f, samples = 3)),
     )
     val configs = SceneConverter.convert(scene, noCaustics)
     configs.iblEnabled  shouldBe true

@@ -459,6 +459,9 @@ Plane(Z at -3, color = "#00FF00")  // Back wall
 // Image texture and PBR maps (Task 21.6) — planar UV, repeating per world unit
 Plane(Y at -1, texture = Some("stone.png"), normalMap = Some("stone_n.png"))
 Plane(Y at -1, texture = Some("tile.png"), roughnessMap = Some("tile_r.png"))
+
+// Rectangular video texture (resolved relative to --texture-dir)
+Cube(videoTexture = Some(VideoTexture("video/two-frame-rgba.mov")))
 ```
 
 ### Caustics
@@ -513,6 +516,25 @@ envMap = None
 
 The path is resolved relative to `--texture-dir` at render time. Only `.hdr` (Radiance RGBE)
 is supported.
+
+### Environment Map Video
+
+An equirectangular 2:1 video can be used as the animated background. It uses the same
+`VideoPlayback` controls as object video textures:
+
+```scala
+envMapVideo = Some(EnvMapVideo(
+  "video/two-frame-equirect-rgba.mov",
+  VideoPlayback(
+    timeMapping = VideoTimeMapping.TProgress,
+    repeat = VideoRepeat.Loop,
+    fpsOverride = Some(2.0)
+  )
+))
+```
+
+`envMap` and `envMapVideo` are mutually exclusive. When `ibl` is enabled, the same
+sampled video frame lights the scene.
 
 ### Tone Mapping
 

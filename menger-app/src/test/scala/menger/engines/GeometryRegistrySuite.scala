@@ -1,8 +1,12 @@
 package menger.engines
 
 import menger.ObjectSpec
+import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.engines.scene.CubeSpongeSceneBuilder
+import menger.engines.scene.Hexadecachoron4DSceneBuilder
+import menger.engines.scene.Menger4DSceneBuilder
+import menger.engines.scene.Sierpinski4DSceneBuilder
 import menger.engines.scene.SphereSceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
@@ -57,6 +61,32 @@ class GeometryRegistrySuite extends AnyFlatSpec with Matchers:
     val result = GeometryRegistry.builderFor(List(edgeSpec))
     result shouldBe defined
     result.get shouldBe a [TesseractEdgeSceneBuilder]
+
+  it should "return Menger4DSceneBuilder for menger4d specs" in:
+    val result = GeometryRegistry.builderFor(List(spec("menger4d")))
+    result shouldBe defined
+    result.get shouldBe a [Menger4DSceneBuilder]
+
+  it should "return Sierpinski4DSceneBuilder for sierpinski4d specs" in:
+    val result = GeometryRegistry.builderFor(List(spec("sierpinski4d")))
+    result shouldBe defined
+    result.get shouldBe a [Sierpinski4DSceneBuilder]
+
+  it should "return Hexadecachoron4DSceneBuilder for hexadecachoron4d specs" in:
+    val result = GeometryRegistry.builderFor(List(spec("hexadecachoron4d")))
+    result shouldBe defined
+    result.get shouldBe a [Hexadecachoron4DSceneBuilder]
+
+  // Fitness function: every instanced-4D type must resolve to a dedicated builder.
+  // Guards against the dispatch drift where sierpinski4d/hexadecachoron4d were wired
+  // in InteractiveEngine but fell through to None here (non-interactive render path).
+  it should "resolve every instanced-4D valid type to a builder" in:
+    val instanced4D = ObjectType.VALID_TYPES.filter(t =>
+      ObjectType.isMenger4D(t) || ObjectType.isSierpinski4D(t) || ObjectType.isHexadecachoron4D(t))
+    instanced4D should not be empty
+    instanced4D.foreach: t =>
+      withClue(s"no builder for instanced-4D type '$t': "):
+        GeometryRegistry.builderFor(List(spec(t))) shouldBe defined
 
   it should "return None for mixed sphere + cube specs" in:
     val result = GeometryRegistry.builderFor(List(spec("sphere"), spec("cube")))

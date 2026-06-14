@@ -17,9 +17,11 @@
 | TR-4 | Large sponge BVH build time | Poor UX | Cache geometry; async build |
 | TR-5 | JNI memory leaks | Gradual OOM | RAII patterns; dispose() enforcement |
 | TR-6 | LibGDX input processor ordering | UI issues | Separate InputProcessors via OptiXInputMultiplexer |
-| TR-9 | AI review diffs sent to DeepSeek API | MR diff content leaves the local environment | Accepted: this is a public codebase; revisit if proprietary code appears. Diffs are not stored by DeepSeek beyond the API session per their privacy policy. `DEEPSEEK_API_KEY` stored as masked+protected CI variable; never echoed to logs. |
-| TR-10 | Single GPU shared between interactive use and CI runners | CI GPU job starves rendering work (or vice versa); flaky integration tests under contention | `limit = 1` serializes menger GPU jobs; GPU-tagged jobs from other pipelines are independent. Known flakes documented in `docs/TESTING.md`. |
-| TR-11 | Local CI runner unavailable (host off, OOM, service crash) | All pipelines queue indefinitely; MR merge blocked | systemd `Restart=on-failure` + heartbeat alert job (28.3); nightly alert fires if no job picked up in 24 h. |
+| TR-9 | FFmpeg/libav runtime mismatch | Video decode failure | CI installs shared libav packages; fail video tests clearly |
+| TR-10 | Large video inputs | CPU/GPU memory pressure | 8-frame CPU cache and one stable GPU slot per active source |
+| TR-11 | AI review diffs sent to DeepSeek API | MR diff content leaves the local environment | Accepted: this is a public codebase; revisit if proprietary code appears. Diffs are not stored by DeepSeek beyond the API session per their privacy policy. `DEEPSEEK_API_KEY` stored as masked+protected CI variable; never echoed to logs. |
+| TR-12 | Single GPU shared between interactive use and CI runners | CI GPU job starves rendering work (or vice versa); flaky integration tests under contention | `limit = 1` serializes menger GPU jobs; GPU-tagged jobs from other pipelines are independent. Known flakes documented in `docs/TESTING.md`. |
+| TR-13 | Local CI runner unavailable (host off, OOM, service crash) | All pipelines queue indefinitely; MR merge blocked | systemd `Restart=on-failure` + heartbeat alert job (28.3); nightly alert fires if no job picked up in 24 h. |
 
 ### Low Risk
 
@@ -66,6 +68,8 @@ Detailed troubleshooting: [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)
 | Cache corruption | OptiX crash | Delete `~/.cache/nvidia-optix-cache` |
 | Gimbal lock | 90° elevation | Clamp to ±89° |
 | libnvidia-glcore crash | Threading | Set `__GL_THREADED_OPTIMIZATIONS=0` |
+| Video texture fails to load | Missing/incompatible libav codec or bad path | Install FFmpeg/libav runtime packages; check `--texture-dir` |
+| Env-map video rejected | Video is not equirectangular 2:1 | Use a 360-degree equirectangular source |
 
 ## 11.4 Monitoring
 

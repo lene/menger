@@ -23,9 +23,11 @@ import menger.common.ProfilingConfig
 import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
 import menger.engines.scene.Hexadecachoron4DSceneBuilder
+import menger.engines.scene.InstanceId
 import menger.engines.scene.Menger4DSceneBuilder
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.Sierpinski4DSceneBuilder
+import menger.engines.scene.TextureManager
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.EventDispatcher
 import menger.input.GdxRuntime
@@ -94,13 +96,22 @@ class InteractiveEngine(
     ))
 
   /** Per-spec instanceId mapping for the menger4d rotation fast path. */
-  private case class Menger4DState(specs: List[ObjectSpec], instancesPerSpec: Vector[Vector[Int]])
+  private case class Menger4DState(
+    specs: List[ObjectSpec],
+    instancesPerSpec: Vector[Vector[InstanceId]]
+  )
 
   /** Per-spec instanceId mapping for the sierpinski4d rotation fast path. */
-  private case class Sierpinski4DState(specs: List[ObjectSpec], instancesPerSpec: Vector[Vector[Int]])
+  private case class Sierpinski4DState(
+    specs: List[ObjectSpec],
+    instancesPerSpec: Vector[Vector[InstanceId]]
+  )
 
   /** Per-spec instanceId mapping for the hexadecachoron4d rotation fast path. */
-  private case class Hexadecachoron4DState(specs: List[ObjectSpec], instancesPerSpec: Vector[Vector[Int]])
+  private case class Hexadecachoron4DState(
+    specs: List[ObjectSpec],
+    instancesPerSpec: Vector[Vector[InstanceId]]
+  )
 
   /** Cached slot/instance indices for 4D-rotation fast paths.
     * Exactly one variant is active at a time; Empty when no fast path is available. */
@@ -223,7 +234,7 @@ class InteractiveEngine(
                 val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
                 instanceIds.foreach { instanceId =>
                   renderer.updateMenger4DProjection(
-                    instanceId,
+                    InstanceId.raw(instanceId),
                     eyeW = proj.eyeW, screenW = proj.screenW,
                     rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
                   )
@@ -247,7 +258,7 @@ class InteractiveEngine(
                 val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
                 instanceIds.foreach { instanceId =>
                   renderer.updateSierpinski4DProjection(
-                    instanceId,
+                    InstanceId.raw(instanceId),
                     eyeW = proj.eyeW, screenW = proj.screenW,
                     rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
                   )
@@ -271,7 +282,7 @@ class InteractiveEngine(
                 val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
                 instanceIds.foreach { instanceId =>
                   renderer.updateHexadecachoron4DProjection(
-                    instanceId,
+                    InstanceId.raw(instanceId),
                     eyeW = proj.eyeW, screenW = proj.screenW,
                     rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
                   )
@@ -361,6 +372,13 @@ class InteractiveEngine(
             if idx >= 0 then renderer.setEnvironmentMap(idx)
             else logger.error(s"Failed to load environment map: $path")
           }
+          environment.envMapVideo.foreach { envMapVideo =>
+            TextureManager.loadInitialEnvMapVideo(
+              envMapVideo,
+              renderer,
+              config.execution.textureDir
+            ).foreach(renderer.setEnvironmentMap)
+          }
           if environment.iblEnabled then
             renderer.setIBL(
               enabled  = true,
@@ -392,13 +410,19 @@ class InteractiveEngine(
         color = CrossAxisColors(axisIdx).color,
         ior   = 1.0f
       )
-      renderer.addCylinderInstance(p0, p1, thickness, mat)
+      InstanceId.fromNative(
+        renderer.addCylinderInstance(p0, p1, thickness, mat),
+        s"coordinate cross cylinder for axis $axisIdx"
+      )
       val coneApex = menger.common.Vector[3](
         if axisIdx == 0 then length + CrossConeLength else p1(0),
         if axisIdx == 1 then length + CrossConeLength else p1(1),
         if axisIdx == 2 then length + CrossConeLength else p1(2)
       )
-      renderer.addConeInstance(coneApex, p1, CrossConeRadius, mat)
+      InstanceId.fromNative(
+        renderer.addConeInstance(coneApex, p1, CrossConeRadius, mat),
+        s"coordinate cross cone for axis $axisIdx"
+      )
     }
 
   private def toggleCross(): Unit =
@@ -444,7 +468,7 @@ class InteractiveEngine(
           slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
       )(using profilingConfig)
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
       result.foreach { _ =>
         if slotsBuf.size == specs.size then
           val slotsPerSpec = specs.indices.map(i =>
@@ -457,19 +481,19 @@ class InteractiveEngine(
       result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
       result
     else if specs.forall(s => ObjectType.isMenger4D(s.objectType)) then
-      val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
+      val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[InstanceId]] =
         scala.collection.mutable.Map.empty
       val builder = Menger4DSceneBuilder(
         textureDir,
-        menger4DRecorder = (specIdx: Int, instanceId: Int) =>
-          instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += instanceId
+        menger4DRecorder = (specIdx: Int, instanceId: InstanceId) =>
+          instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[InstanceId]) += instanceId
       )
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
       result.foreach { _ =>
         if instancesBuf.size == specs.size then
           val instancesPerSpec = specs.indices.map(i =>
-            instancesBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
+            instancesBuf.getOrElse(i, ArrayBuffer.empty[InstanceId]).toVector
           ).toVector
           scene4DCache.set(Scene4DCache.Menger4D(Menger4DState(specs, instancesPerSpec)))
         else
@@ -478,19 +502,19 @@ class InteractiveEngine(
       result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
       result
     else if specs.forall(s => ObjectType.isSierpinski4D(s.objectType)) then
-      val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
+      val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[InstanceId]] =
         scala.collection.mutable.Map.empty
       val builder = Sierpinski4DSceneBuilder(
         textureDir,
-        sierpinski4DRecorder = (specIdx: Int, instanceId: Int) =>
-          instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += instanceId
+        sierpinski4DRecorder = (specIdx: Int, instanceId: InstanceId) =>
+          instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[InstanceId]) += instanceId
       )
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
       result.foreach { _ =>
         if instancesBuf.size == specs.size then
           val instancesPerSpec = specs.indices.map(i =>
-            instancesBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
+            instancesBuf.getOrElse(i, ArrayBuffer.empty[InstanceId]).toVector
           ).toVector
           scene4DCache.set(Scene4DCache.Sierpinski4D(Sierpinski4DState(specs, instancesPerSpec)))
         else
@@ -499,19 +523,19 @@ class InteractiveEngine(
       result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
       result
     else if specs.forall(s => ObjectType.isHexadecachoron4D(s.objectType)) then
-      val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
+      val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[InstanceId]] =
         scala.collection.mutable.Map.empty
       val builder = Hexadecachoron4DSceneBuilder(
         textureDir,
-        hexadecachoron4DRecorder = (specIdx: Int, instanceId: Int) =>
-          instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += instanceId
+        hexadecachoron4DRecorder = (specIdx: Int, instanceId: InstanceId) =>
+          instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[InstanceId]) += instanceId
       )
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.buildScene(specs, renderer, effectiveMaxInstances)
+      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
       result.foreach { _ =>
         if instancesBuf.size == specs.size then
           val instancesPerSpec = specs.indices.map(i =>
-            instancesBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
+            instancesBuf.getOrElse(i, ArrayBuffer.empty[InstanceId]).toVector
           ).toVector
           scene4DCache.set(Scene4DCache.Hexadecachoron4D(Hexadecachoron4DState(specs, instancesPerSpec)))
         else
@@ -534,29 +558,13 @@ class InteractiveEngine(
           s"Rebuilding scene with updated rotation; camera: eye=$savedEye, lookAt=$savedLookAt"
         )
         Try {
-          rebuildGeometry(specs, renderer)
+          renderer.clearAllInstances()
+          buildScene4DTrackedOrFallback(specs, renderer).get
           if crossVisible.get then addCrossGeometry(renderer)
           cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
-          // After a full rebuild, instance/slot IDs restart from 0 sequentially.
-          // Re-populate fast path caches so subsequent rotations stay on the fast path.
-          if specs.forall(s => ObjectType.isMenger4D(s.objectType)) then
-            val instancesPerSpec = specs.indices.map(i => Vector(i)).toVector
-            scene4DCache.set(Scene4DCache.Menger4D(Menger4DState(specs, instancesPerSpec)))
-          else if specs.forall(s => ObjectType.isSierpinski4D(s.objectType)) then
-            val instancesPerSpec = specs.indices.map(i => Vector(i)).toVector
-            scene4DCache.set(Scene4DCache.Sierpinski4D(Sierpinski4DState(specs, instancesPerSpec)))
-          else if specs.forall(s => ObjectType.isHexadecachoron4D(s.objectType)) then
-            val instancesPerSpec = specs.indices.map(i => Vector(i)).toVector
-            scene4DCache.set(Scene4DCache.Hexadecachoron4D(Hexadecachoron4DState(specs, instancesPerSpec)))
-          else
-            scene4DCache.get match
-              case Scene4DCache.Gpu(state) => () // preserve gpu fast path
-              case _                       => scene4DCache.set(Scene4DCache.Empty)
           logger.debug("Scene rebuild complete")
         }.recover { case e =>
-          scene4DCache.get match
-            case Scene4DCache.Gpu(state) => ()
-            case _                       => scene4DCache.set(Scene4DCache.Empty)
+          scene4DCache.set(Scene4DCache.Empty)
           logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
         }
       case None =>

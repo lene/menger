@@ -7,7 +7,8 @@
 | **TC-1: Scala 3** | All application code must use Scala 3 syntax | Modern FP features, no Scala 2 compatibility |
 | **TC-2: NVIDIA GPU** | OptiX rendering requires NVIDIA GPU with RTX support | OptiX is NVIDIA-proprietary |
 | **TC-3: OptiX SDK 9.0+** | Must match driver version (580.x+ → SDK 9.0) | Version mismatch causes CUDA error 718 |
-| **TC-4: CUDA 12.0+** | Required for OptiX compilation | Shader compilation depends on CUDA toolkit |
+| **TC-4: CUDA 13.x toolkit** | Build toolkit for native compilation. The published `optix-jni` artifact (≥0.1.3) and `menger-geometry` native code link the CUDA 13 runtime (`libcudart.so.13`). Source compiles with CUDA ≥12.0, but the distributed binaries require a CUDA 13 toolchain to reproduce. | Standardized on CUDA 13 in Sprint 27; pin the toolkit in `optix-jni` CI so releases stay reproducible |
+| **TC-9: NVIDIA driver ≥580.65** | Runtime requirement. The packaged distribution loads CUDA-13-linked native libs; older drivers fail with CUDA error 35 ("driver version is insufficient for CUDA runtime version"). Verified on driver 595.71 / CUDA 13.2. | CUDA 13.0 requires driver ≥580.65; 13.2 raises this further. GPU runner host also needs `nvidia-persistenced` active for the NVIDIA container toolkit |
 | **TC-5: No null** | Scala code must use `Option`, `Try`, `Either`. Exception: JNI boundary validation (defensive null checks before native calls) | Enforced by Scalafix; JNI exceptions use `// scalafix:ok` |
 | **TC-6: No var/while** | Immutable-only Scala style. See Section 2.5 for documented exceptions | Enforced by Wartremover |
 | **TC-7: No throw** | Use `Try` or `Either` for error handling | Enforced by Scalafix |

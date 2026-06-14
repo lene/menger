@@ -236,7 +236,7 @@ Progress:
       test): runs on every MR, `skip-review` label skips it,
       `allow_failure: true` (advisory until confidence built), auto-detects
       architecture-relevant diffs, posts findings to MR
-- [x] arc42 §11: added TR-9 (DeepSeek data flow risk) and TR-10 (GPU
+- [x] arc42 §11: added TR-11 (DeepSeek data flow risk) and TR-12 (GPU
       contention risk from 28.3)
 - [x] Guidelines added to `standards/manifest.txt` for cross-repo parity
       tracking

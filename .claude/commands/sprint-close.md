@@ -4,6 +4,11 @@ Interactive workflow to close a completed sprint, verify the release, and collab
 
 **Usage:** `/sprint-close` — run when sprint work is complete, all commits are on the feature branch, and CI is green. The skill handles version bumps, archiving, MR creation and merge, and sprint opening.
 
+**Multi-repo:** this project spans three independently-versioned repositories
+(`menger-common`, `optix-jni`, `menger`). Up to three versions may need releasing, in the
+order `menger-common` → `optix-jni` → `menger`. See release-checklist §0b for the matrix and
+per-library publish flow. Most sprints change only `menger` (single-version).
+
 **Required skill:** Invoke the `release-checklist` skill at the start of this command.
 Phases 1–4 of the release-checklist (version bump, changelog, pre-push validation, commit/push)
 are performed during Phase 3 of this skill (Sprint Archiving). Pick up the release-checklist
@@ -27,6 +32,19 @@ Then ask the user:
 
 Store SPRINT_NUM and VERSION. Derive:
 - NEXT_SPRINT_NUM = SPRINT_NUM + 1
+
+**Multi-repo check.** This project spans three independently-versioned repos
+(`menger-common`, `optix-jni`, `menger`). Determine which changed this sprint — up to three
+versions may need bumping, released in order `menger-common` → `optix-jni` → `menger`. See
+release-checklist **§0b "Multi-Repo Version Matrix"** for the per-library publish flow. Most
+sprints touch only `menger` (single-version release); confirm with the user which libraries,
+if any, changed:
+
+```bash
+git -C ../menger-common log --oneline -5 2>/dev/null || echo "menger-common repo not local"
+git -C ../optix-jni    log --oneline -5 2>/dev/null || echo "optix-jni repo not local"
+grep -E 'mengerCommonDependency|optixJniDependency' build.sbt
+```
 
 ---
 
@@ -203,6 +221,8 @@ Remove confirmed ones. Do not touch deferred or in-progress items.
 
 ### 3j. Version Consistency Check
 
+**menger application version** (all six must agree; CHANGELOG top entry must be `[VERSION] - TODAY`):
+
 ```bash
 grep "version" menger-app/build.sbt
 grep "DEPLOYABLE_VERSION" .gitlab-ci.yml
@@ -212,7 +232,18 @@ grep '^\*\*Version\*\*:' docs/USER_GUIDE.md
 grep "^\## \[" CHANGELOG.md | head -1
 ```
 
-All six must agree on VERSION and CHANGELOG top entry must be `[VERSION] - TODAY`. Report any mismatches as ❌.
+**Cross-repo dependency versions** (this project spans three repos — see release-checklist
+§0b "Multi-Repo Version Matrix"). `menger`'s declared library deps must match what is
+published on Maven Central, with no local override masking them:
+
+```bash
+grep -E 'mengerCommonDependency|optixJniDependency' build.sbt
+ls ~/.ivy2/local/io.github.lene/ 2>/dev/null && echo "❌ local publishLocal override present — purge before release" || echo "✅ no local override"
+```
+
+Report any mismatches as ❌. If a library changed this cycle, follow release-checklist §0b to
+publish it (correct order: `menger-common` → `optix-jni` → `menger`) **before** bumping the
+dependency here.
 
 ### 3k. Commit Archiving Work
 

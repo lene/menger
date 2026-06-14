@@ -9,6 +9,7 @@ import menger.ProceduralSpec
 import menger.Projection4DSpec
 import menger.TextureMaps
 import menger.common.ObjectType
+import menger.video.VideoTexture
 
 /** Base trait for all scene objects */
 sealed trait SceneObject:
@@ -18,6 +19,7 @@ sealed trait SceneObject:
   def color: Option[Color]
   def ior: Float
   def texture: Option[String]
+  def videoTexture: Option[VideoTexture]
   def normalMap: Option[String]
   def roughnessMap: Option[String]
   def proceduralType: Int
@@ -45,6 +47,7 @@ sealed trait SceneObject:
       ior = material.map(_.ior).getOrElse(ior),
       material = material.map(_.toCoreMaterial),
       texture = texture,
+      videoTexture = videoTexture,
       projection4D = projection4D,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial,
@@ -62,6 +65,7 @@ case class Sphere(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
   normalMap: Option[String] = None,
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
@@ -95,6 +99,7 @@ case class Cube(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
   normalMap: Option[String] = None,
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
@@ -137,6 +142,7 @@ case class Sponge(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
   normalMap: Option[String] = None,
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
@@ -198,6 +204,7 @@ case class Tesseract(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
   normalMap: Option[String] = None,
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
@@ -244,6 +251,7 @@ case class TesseractSponge(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
   normalMap: Option[String] = None,
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
@@ -311,6 +319,7 @@ case class Sierpinski4D(
   size: Float = 1.0f,
   ior: Float = 1.0f,
   texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
   normalMap: Option[String] = None,
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
@@ -371,6 +380,7 @@ case class ParametricSurface(
   material: Option[Material] = None,
   color: Option[Color] = None,
   texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
   normalMap: Option[String] = None,
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,

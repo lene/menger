@@ -167,6 +167,7 @@ object Main:
         background = configs.background,
         fog = configs.fog,
         envMap = configs.envMap,
+        envMapVideo = configs.envMapVideo,
         iblEnabled = configs.iblEnabled,
         iblStrength = configs.iblStrength,
         iblSamples = configs.iblSamples

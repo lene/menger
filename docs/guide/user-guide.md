@@ -650,6 +650,66 @@ sbt "run --optix --texture-dir assets/textures \
     --objects 'type=sphere:texture=marble.png'"
 ```
 
+#### Video Textures -- *Sprint 27*
+
+Rectangular video textures are available in the Scala DSL through `VideoTexture`.
+They are intended for object surfaces that already support image textures, such as
+spheres, cubes, sponges, cones, planes, and parametric surfaces.
+
+```scala
+Cube(
+  pos = Vec3(0, 0, 0),
+  size = 1.4f,
+  videoTexture = Some(VideoTexture(
+    "video/two-frame-rgba.mov",
+    VideoPlayback(
+      timeMapping = VideoTimeMapping.TProgress,
+      repeat = VideoRepeat.Loop,
+      fpsOverride = Some(24.0)
+    )
+  ))
+)
+```
+
+Video paths use the same `--texture-dir` base path as image textures. `texture` and
+`videoTexture` are mutually exclusive on the same object.
+
+Supported input is whatever the system FFmpeg/libav runtime can decode, with decoded
+frames uploaded as SDR RGBA8 textures. Prefer short SDR clips in common containers
+such as MOV or MP4. HDR video and color-managed video playback are not supported.
+
+Playback controls:
+
+| Field | Meaning |
+|-------|---------|
+| `timeMapping = AnimationRange` | Default. Maps `--start-t` to the first source frame and `--end-t` to the source duration. If the range is invalid, falls back to progress mapping. |
+| `timeMapping = TSeconds` | Treats render `t` as seconds in the source clip. |
+| `timeMapping = TProgress` | Treats render `t` as normalized progress, so `0.5` samples halfway through the source duration. |
+| `startOffset` | Adds a source-time offset before repeat handling. |
+| `repeat = Loop` | Wraps source time at the clip duration. |
+| `repeat = Freeze` | Clamps before the first frame and after the final frame. |
+| `repeat = PingPong` | Alternates forward and backward across the source duration. |
+| `fpsOverride` | Quantizes source sampling to the requested FPS. Leave unset to use source timestamps. |
+
+Performance recommendations:
+
+- Keep texture videos small; each active source has one decoder, an 8-frame CPU cache,
+  and one stable GPU texture slot.
+- Reuse the same path and playback settings when multiple objects need the same video.
+  Identical `VideoTexture` values share the decoder/cache/slot state.
+- Set `fpsOverride` when the render frame rate is higher than the source cadence. This
+  avoids redundant frame seeks and uploads.
+- Avoid using video playback as a workaround for large image sequences; the renderer
+  updates one texture slot in place, but decoding is still CPU-side libav work.
+
+Example scene:
+
+```bash
+menger-app --scene examples.dsl.VideoTextureCube \
+  --texture-dir menger-geometry/src/test/resources/ \
+  --frames 8 --start-t 0 --end-t 1 --save-name video_cube_%04d.png
+```
+
 #### PBR Map Textures
 
 Normal maps and roughness maps can be applied to spheres and mesh geometry:
@@ -1022,11 +1082,63 @@ the full animation — it does not change frame to frame.
 
 ---
 
+### 360 Video Backgrounds -- *Sprint 27*
+
+Use `EnvMapVideo` for animated equirectangular environment backgrounds. This is not an
+object texture: the video is sampled by the miss shader when a ray leaves the scene,
+so the clip must be a 2:1 equirectangular 360-degree video.
+
+```scala
+Scene(
+  objects = List(
+    TesseractSponge(
+      SurfaceSubdividing,
+      level = 2f,
+      material = Some(Material.Glass)
+    )
+  ),
+  envMapVideo = Some(EnvMapVideo(
+    "video/two-frame-equirect-rgba.mov",
+    VideoPlayback(
+      timeMapping = VideoTimeMapping.TProgress,
+      repeat = VideoRepeat.Loop,
+      fpsOverride = Some(2.0)
+    )
+  )),
+  ibl = Some(IBL(strength = 0.7f, samples = 1)),
+  toneMapping = ToneMapping.Reinhard(exposure = 1.0f)
+)
+```
+
+`envMap` and `envMapVideo` are mutually exclusive. Use static `envMap` for HDR stills;
+use `envMapVideo` when the background must advance with animation `t`.
+
+IBL behavior:
+
+- Without `ibl`, `EnvMapVideo` is visible as the background only.
+- With `ibl`, the same sampled video frame also updates the environment light source.
+  Objects are lit from the current video frame rather than from a stale first frame.
+- `RenderSettings(accumulation = N)` averages multiple renders of the current animation
+  frame. It reduces IBL noise but does not advance video time inside the accumulation.
+
+Example scene:
+
+```bash
+menger-app --scene examples.dsl.EnvMapVideoSponge \
+  --texture-dir menger-geometry/src/test/resources/ \
+  --frames 24 --start-t 0 --end-t 1 --save-name env_video_%04d.png
+```
+
+The fixture above is intentionally tiny for tests. For production renders, use a
+higher-resolution SDR equirectangular clip and keep the frame rate no higher than needed.
+
+---
+
 ### Image-Based Lighting (IBL) — *Sprint 23*
 
 IBL uses the HDR environment map as an area light source, illuminating objects with
 realistic sky/environment light via importance sampling. It works in addition to any
-DSL lights you define. An `envMap` must also be set.
+DSL lights you define. A static `envMap` or animated `envMapVideo` must also be set.
 
 ```scala
 Scene(

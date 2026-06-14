@@ -37,12 +37,47 @@
 - **`Test:InstallSmoke` CI job** — unpacks the release zip and verifies `--version`
   and a headless render succeed on the packaged binary.
 - **arc42 §10 G1–G7** — quality scenarios for the guardrail system.
-- **arc42 §11 TR-11** — runner-availability risk and mitigations.
+- **arc42 §11 TR-13** — runner-availability risk and mitigations.
 
-## [0.7.4] - 2026-06-08
+## [0.7.4] - 2026-06-14
+
+### Added
+- **`/arch-review`** — architectural review command (four axes: soundness, maturity,
+  evolvability, performance architecture) with fitness-function nomination; first review
+  in `ARCHITECTURE_REVIEW.md` and actionable backlog in `docs/ARCHITECTURE_BACKLOG.md`.
+- **Video texture documentation and examples** (Sprint 27.10) — user guide and DSL
+  reference coverage for rectangular video textures, 360-degree `EnvMapVideo`
+  backgrounds, playback timing/repeat controls, IBL interaction, and performance
+  recommendations. Added `examples.dsl.EnvMapVideoSponge` plus integration/manual
+  coverage for env-map video playback.
+
+### Changed
+- **Minimum NVIDIA driver raised to ≥580.65 (CUDA 13).** The published `optix-jni`
+  artifact (≥0.1.3) and `menger-geometry` native libs link the CUDA 13 runtime
+  (`libcudart.so.13`). Older drivers fail at startup with CUDA error 35
+  ("driver version is insufficient for CUDA runtime version"). See arc42 §2 (TC-4, TC-9)
+  and `docs/TROUBLESHOOTING.md`. GPU CI runner hosts must also have `nvidia-persistenced`
+  active (not masked) for the NVIDIA container toolkit to mount its socket.
+- Bumped `optix-jni` dependency to **0.1.4** (CUDA 13.x toolkit pin — reproducible
+  runtime ABI, deliberate minimum-driver floor).
 
 ### Fixed
+- **4D dispatch in the non-interactive render path** — `sierpinski4d` and
+  `hexadecachoron4d` were dispatched only in `InteractiveEngine`; `GeometryRegistry` /
+  `RenderModeSelector` classified them as `Unsupported`, so Animation/Preview/Video
+  engines (incl. `--animate`) failed with a misleading error. Added the missing dispatch
+  branches + a completeness test; closed the `integration-tests.sh` / `manual-test.sh`
+  parity gap for both types.
 - Removed stale solved High Priority findings from `CODE_IMPROVEMENTS.md`.
+- GitLab GPU jobs now install FFmpeg/libav packages without recommended dependencies,
+  avoiding distro `libcuda1` shadowing the NVIDIA driver-mounted CUDA library.
+- GitLab OptiX runtime jobs now explicitly request visible NVIDIA devices and
+  fail fast when the GPU driver mount is missing instead of cascading render crashes.
+- Scene builders now validate config-based, mixed-scene, and optimized 4D tracked
+  build paths before any renderer instance allocation, closing `M-sceneb-validate-bypass`.
+- Native scene instance IDs are now wrapped in an opaque app-level `InstanceId`;
+  `-1` allocation failures fail scene builds at the boundary instead of being
+  handled inconsistently by individual builders.
 
 ## [0.7.3] - 2026-06-08
 

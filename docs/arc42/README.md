@@ -36,5 +36,5 @@ This directory contains the architecture documentation for the Menger fractal re
 
 ## Version
 
-- **Last Updated:** 2026-06-11
+- **Last Updated:** 2026-06-14
 - **arc42 Template Version:** 8.2

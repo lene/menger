@@ -596,7 +596,49 @@ consumer would pull in Menger-specific types with no relevant semantics.
 
 ---
 
-### AD-25: Renovate for Dependency-Update Automation (Sprint 28)
+### AD-25: Native libav Video Decode with Stable Texture Slots (Sprint 27)
+
+**Status:** Accepted
+**Date:** 2026-06
+
+**Context:** Sprint 27 adds animated rectangular object textures and animated
+equirectangular environment backgrounds. The renderer already has GPU texture upload
+and update APIs, while video container/codec support is best delegated to FFmpeg/libav.
+The split module architecture from AD-24 requires generic `optix-jni` to remain free of
+Menger-specific video policy.
+
+**Decision:** Decode video in `menger-geometry` through dynamically linked libav
+(`libavcodec`, `libavformat`, `libavutil`, `libswscale`). Keep the playback model in
+Scala (`VideoTexture`, `EnvMapVideo`, `VideoPlayback`) and upload decoded SDR RGBA8
+frames through the existing renderer texture API.
+
+Object and environment videos use stable GPU texture slots. The first frame is uploaded
+once; later animation frames call the update-in-place texture API for the same slot.
+Identical source path plus playback configuration shares decoder/cache/slot state.
+`EnvMapVideo` binds the same updated slot as both visible background and IBL source
+when IBL is enabled.
+
+**Rationale:**
+- FFmpeg/libav provides broad container/codec support without implementing codecs in
+  this project.
+- Stable texture slots keep GPU memory bounded and avoid one texture allocation per
+  video frame.
+- Keeping video decode in `menger-geometry` preserves `optix-jni` as a reusable generic
+  ray tracing library.
+- A single sampled frame for background and IBL avoids lighting/background drift.
+
+**Consequences:**
+- Runtime environments need compatible shared FFmpeg/libav libraries. CI installs the
+  dev packages without recommended CUDA/NVENC packages so distro `libcuda1` does not
+  shadow the host driver inside GPU jobs.
+- Video playback is SDR RGBA8. HDR video and color-management pipelines are deferred.
+- Each active video source owns a bounded CPU frame cache and one GPU texture slot.
+- `envMap` and `envMapVideo` are mutually exclusive. `texture` and `videoTexture` are
+  mutually exclusive per object.
+- 360-degree video must be equirectangular 2:1; ordinary rectangular video remains an
+  object-texture feature.
+
+### AD-26: Renovate for Dependency-Update Automation (Sprint 28)
 
 **Status:** Accepted
 **Date:** 2026-06-11 (Sprint 28)

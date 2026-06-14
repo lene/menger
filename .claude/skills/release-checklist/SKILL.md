@@ -31,7 +31,47 @@ Only proceed to step 1 once you have the version number confirmed in this conver
 
 ---
 
-### 1. Version Management
+### 0b. Multi-Repo Version Matrix
+
+This project spans **three independently-versioned repositories**, released in dependency
+order. Determine which changed this cycle and bump only those — up to three versions.
+
+| Repo | Maven artifact | Versions | Release vehicle |
+|------|----------------|----------|-----------------|
+| `menger-common` | `io.github.lene:menger-common` (library) | own SemVer (e.g. `0.1.1`) | publish to Maven Central |
+| `optix-jni` | `io.github.lene:optix-jni` (library) | own SemVer (e.g. `0.1.3`) | publish to Maven Central |
+| `menger` (this repo) | application (sprint release) | sprint SemVer (e.g. `0.7.4`) | GitLab tag → GitHub mirror |
+
+**Release order — a consumer can only bump to an already-published version:**
+`menger-common` → `optix-jni` → `menger`.
+
+**For each library that changed this cycle:**
+1. In its repo: bump version + CHANGELOG, run its pre-push gate, merge to its `main`; CI
+   publishes to Maven Central. **`optix-jni` requires a CUDA 13.x toolchain** to build
+   (`find_package(CUDAToolkit 13.0)`; see menger arc42 §2 TC-4) — `/usr/local/cuda` must
+   point to a 13.x toolkit.
+2. **Wait for Maven Central propagation** (often 10–30 min) before the consumer resolves it.
+   Do NOT rely on a local `publishLocal` override to satisfy the release — that only fixes
+   the local machine, not CI or other developers.
+3. In the consumer's `build.sbt`, bump the dependency to the newly published version.
+
+**If a library did not change this cycle, leave its dependency pin untouched.** Most sprints
+change only `menger` → single-version release.
+
+**Cross-repo consistency:** `menger`'s declared dependency versions must equal what is
+actually published on Maven Central — verify (see "Version Consistency", Phase 2):
+```bash
+grep -E 'mengerCommonDependency|optixJniDependency' build.sbt
+# confirm each resolves from Central (not an ~/.ivy2/local publishLocal override)
+ls ~/.ivy2/local/io.github.lene/ 2>/dev/null && echo "WARNING: local override present — purge before release"
+```
+
+---
+
+### 1. Version Management (menger application)
+
+These four files version the **menger application** (the sprint release). Library versions
+(`menger-common`, `optix-jni`) live in their own repos per §0b.
 
 Decide on version number following semantic versioning (MAJOR.MINOR.PATCH):
 - MAJOR: Breaking changes
@@ -211,6 +251,9 @@ The pre-push hook (`.git_hooks/pre-push`) runs automatically on `git push`. You 
 - [x] Scala version matches between `build.sbt` and `.gitlab-ci.yml`
 - [x] Version number consistent across all 3 files
 - [x] Git tag for version doesn't already exist
+- [x] **Cross-repo (§0b):** `menger`'s `optixJniDependency` / `mengerCommonDependency` in
+  `build.sbt` equal the versions published on Maven Central, with **no `~/.ivy2/local`
+  override** masking them (`ls ~/.ivy2/local/io.github.lene/` must be empty)
 
 ### Build & Tests (~8 minutes)
 - [x] Full compilation: `sbt compile`

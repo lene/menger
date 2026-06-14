@@ -118,7 +118,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       // Only add face mesh instance if face material is specified (not just edge material)
       if hasFaceMaterial then
         val faceMaterial = MaterialExtractor.extract(spec)
-        val textureIndex = spec.texture.flatMap(textureIndices.get).getOrElse(-1)
+        val textureIndex = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
 
         val faceInstanceId =
           if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
@@ -129,10 +129,11 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
             )
             renderer.addTriangleMeshInstance(transform, faceMaterial, textureIndex)
 
-        if faceInstanceId >= 0 then
-          logger.debug(s"Added tesseract face mesh instance $faceInstanceId at ($position)")
-        else
-          logger.error(s"Failed to add tesseract face mesh instance at ($position)")
+        val validFaceInstanceId = requireInstanceId(
+          faceInstanceId,
+          s"tesseract face mesh instance at ($position)"
+        )
+        logger.debug(s"Added tesseract face mesh instance $validFaceInstanceId at ($position)")
 
       // Add edge cylinder instances if edge material or edge radius specified
       if hasEdgeMaterial || spec.edgeRadius.isDefined then
@@ -174,7 +175,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
     val edges = extractEdges(mesh4D)
 
     // Project each edge and create cylinder
-    val edgeCount = edges.count { case (v0_4d, v1_4d) =>
+    edges.foreach { case (v0_4d, v1_4d) =>
       // Apply 4D rotation
       val rotatedV0 = rotation(v0_4d)
       val rotatedV1 = rotation(v1_4d)
@@ -188,16 +189,14 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       val p1 = Vector[3](p1_3d.x + offset.x, p1_3d.y + offset.y, p1_3d.z + offset.z)
 
       // Add cylinder instance
-      val cylinderId = renderer.addCylinderInstance(p0, p1, edgeRadius, edgeMaterial)
-      if cylinderId >= 0 then
-        logger.trace(s"Added edge cylinder $cylinderId from $p0 to $p1")
-        true
-      else
-        logger.warn(s"Failed to add edge cylinder from $p0 to $p1")
-        false
+      val cylinderId = requireInstanceId(
+        renderer.addCylinderInstance(p0, p1, edgeRadius, edgeMaterial),
+        s"edge cylinder from $p0 to $p1"
+      )
+      logger.trace(s"Added edge cylinder $cylinderId from $p0 to $p1")
     }
 
-    logger.debug(s"Added $edgeCount edge cylinders for ${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
+    logger.debug(s"Added ${edges.size} edge cylinders for ${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
 
   private def createMesh4D(spec: ObjectSpec): Mesh4D =
     spec.objectType.toLowerCase match

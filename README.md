@@ -76,7 +76,8 @@ cmake, filtering out the annoying "Ignoring extra path from command line" warnin
 ## CUDA and OptiX
 
 For GPU acceleration features (optional), you need:
-- CUDA Toolkit 12.0 or later
+- **NVIDIA driver ≥ 580.65** (required to run the distributed build — its native libs link the CUDA 13 runtime; older drivers fail with CUDA error 35)
+- CUDA Toolkit 13.x (build toolchain; source compiles with ≥12.0, but the published binaries use CUDA 13)
 - NVIDIA OptiX SDK 9.0+
 
 **Installation guides:**

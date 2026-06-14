@@ -17,11 +17,11 @@ and must keep GPU texture memory bounded.
 ## Current Facts
 
 - Branch: `feature/sprint-27`.
-- Current `optix-jni` dependency: `io.github.lene:optix-jni:0.1.2`.
-- Current `optix-jni` texture API exposes `uploadTexture`, `uploadTextureFromFile`,
-  `setImageTexture`, `setEnvironmentMap`, and `releaseTextures`.
-- The consumed `optix-jni:0.1.2` artifact was verified with `javap`; it does not
-  expose update-in-place texture replacement.
+- Current `optix-jni` dependency: `io.github.lene:optix-jni:0.1.3`.
+- Current `optix-jni` texture API exposes `uploadTexture`, `updateTexture`,
+  `uploadTextureFromFile`, `setImageTexture`, `setEnvironmentMap`, and
+  `releaseTextures`.
+- The consumed `optix-jni:0.1.3` artifact exposes update-in-place texture replacement.
 - Local libav dev packages are installed and visible to `pkg-config`:
   `libavcodec 60.31.102`, `libavformat 60.16.100`, `libavutil 58.29.100`,
   `libswscale 7.5.100`.

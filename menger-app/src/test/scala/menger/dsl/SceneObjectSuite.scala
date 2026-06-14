@@ -69,6 +69,22 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     val spec = sphere.toObjectSpec
     spec.texture shouldBe Some("brick.png")
 
+  it should "include video texture when specified" in:
+    val videoTexture = VideoTexture("clips/checker.mov")
+    val sphere = Sphere(videoTexture = Some(videoTexture))
+    val spec = sphere.toObjectSpec
+
+    spec.videoTexture shouldBe Some(videoTexture)
+    spec.texture shouldBe None
+
+  it should "reject objects with both image and video textures" in:
+    val sphere = Sphere(
+      texture = Some("brick.png"),
+      videoTexture = Some(VideoTexture("clips/checker.mov"))
+    )
+
+    an[IllegalArgumentException] should be thrownBy sphere.toObjectSpec
+
   "Cube" should "be constructible with defaults" in:
     val cube = Cube()
     cube.pos shouldBe Vec3.Zero
@@ -164,6 +180,25 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     val sponge = Sponge(VolumeFilling, level = 2f, color = Some(Color("#00FF00")))
     val spec = sponge.toObjectSpec
     spec.color shouldBe Some(Color("#00FF00").toCommonColor)
+
+  "VideoTexture" should "be supported by every textured DSL object" in:
+    val videoTexture = VideoTexture("clips/checker.mov")
+    val objects = List(
+      Sphere(videoTexture = Some(videoTexture)),
+      Cube(videoTexture = Some(videoTexture)),
+      Sponge(VolumeFilling, level = 1f, videoTexture = Some(videoTexture)),
+      Tesseract(videoTexture = Some(videoTexture)),
+      TesseractSponge(VolumeRemoving, level = 1f, videoTexture = Some(videoTexture)),
+      Sierpinski4D(level = 1f, videoTexture = Some(videoTexture)),
+      ParametricSurface(
+        f = (_, _) => Vec3.Zero,
+        uSteps = 1,
+        vSteps = 1,
+        videoTexture = Some(videoTexture)
+      )
+    )
+
+    objects.map(_.toObjectSpec.videoTexture) should contain only Some(videoTexture)
 
   "TesseractSpongeType" should "have correct type names" in:
     TesseractSpongeType.VolumeRemoving.objectTypeName shouldBe "tesseract-sponge-volume"

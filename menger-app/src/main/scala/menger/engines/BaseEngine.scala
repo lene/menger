@@ -13,7 +13,6 @@ import menger.OptiXRenderResources
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
-import menger.common.ValidationException
 import menger.engines.scene.SceneBuilder
 
 abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig: ProfilingConfig)
@@ -85,11 +84,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
         GeometryRegistry.builderFor(specs, textureDir) match
           case Some(builder) =>
             val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-            builder.validate(specs, effectiveMaxInstances) match
-              case Left(error) =>
-                Failure(ValidationException(error, "objectSpecs", specs.map(_.objectType)))
-              case Right(_) =>
-                builder.buildScene(specs, renderer, effectiveMaxInstances)
+            builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
           case None =>
             Failure(UnsupportedOperationException(s"No builder available for $sceneType"))
 
@@ -103,41 +98,18 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
       case SceneType.TriangleMeshes(_) =>
         GeometryRegistry.builderFor(specs, textureDir) match
           case Some(builder) =>
-            builder.validate(specs, maxInstances) match
-              case Left(error) => Failure(ValidationException(error, "objectSpecs", specs.map(_.objectType)))
-              case Right(_)    => builder.buildScene(specs, renderer, maxInstances)
+            val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
+            builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
           case None => Failure(UnsupportedOperationException(s"No builder for $sceneType"))
       case SceneType.SimpleMixed(allSpecs, _) =>
-        Try {
-          val analyticalSpecs = allSpecs.filter(s => ObjectType.isAnalyticalPrimitive(s.objectType))
-          val nonAnalyticalSpecs  = allSpecs.filterNot(s =>
-            ObjectType.isAnalyticalPrimitive(s.objectType))
-          val cubeSpongeSpecs = nonAnalyticalSpecs.filter(_.objectType.toLowerCase == "cube-sponge")
-          val otherMeshSpecs  = nonAnalyticalSpecs.filterNot(
-            _.objectType.toLowerCase == "cube-sponge")
-          if analyticalSpecs.nonEmpty then
-            analyticalSpecs.groupBy(_.objectType.toLowerCase).foreach { (objType, group) =>
-              GeometryRegistry.builderFor(group, textureDir)
-                .map(_.buildScene(group, renderer, maxInstances).get)
-                .getOrElse(sys.error(s"No builder for analytical primitive type: $objType"))
-            }
-          if cubeSpongeSpecs.nonEmpty then
-            GeometryRegistry.builderFor(cubeSpongeSpecs, textureDir)
-              .map(_.buildScene(cubeSpongeSpecs, renderer, maxInstances).get)
-              .getOrElse(sys.error("No builder for cube-sponge specs"))
-          if otherMeshSpecs.nonEmpty then
-            GeometryRegistry.builderFor(otherMeshSpecs, textureDir) match
-              case Some(builder) => builder.buildScene(otherMeshSpecs, renderer, maxInstances).get
-              case None =>
-                val types = otherMeshSpecs.map(_.objectType).distinct.mkString(", ")
-                sys.error(s"No mesh builder found for types: $types")
-        }
+        val analyticalSpecs = allSpecs.filter(s => ObjectType.isAnalyticalPrimitive(s.objectType))
+        val meshSpecs = allSpecs.filterNot(s => ObjectType.isAnalyticalPrimitive(s.objectType))
+        Try(buildMixedSceneObjects(analyticalSpecs, meshSpecs, renderer))
       case other =>
         GeometryRegistry.builderFor(specs, textureDir) match
           case Some(builder) =>
-            builder.validate(specs, maxInstances) match
-              case Left(error) => Failure(ValidationException(error, "objectSpecs", specs.map(_.objectType)))
-              case Right(_)    => builder.buildScene(specs, renderer, maxInstances)
+            val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
+            builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
           case None =>
             Failure(UnsupportedOperationException(s"Unsupported scene type: $other"))
 
@@ -161,7 +133,8 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
       case sceneType =>
         GeometryRegistry.builderFor(specs, textureDir) match
           case Some(builder) =>
-            builder.buildScene(specs, renderer, maxInstances).get
+            val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
+            builder.validateAndBuild(specs, renderer, effectiveMaxInstances).get
           case None =>
             logger.warn(s"Cannot rebuild scene type: $sceneType")
             sys.error(s"Scene type $sceneType not supported for rebuilding")
@@ -195,16 +168,16 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     if analyticalSpecs.nonEmpty then
       analyticalSpecs.groupBy(_.objectType.toLowerCase).foreach { (objType, group) =>
         GeometryRegistry.builderFor(group, textureDir)
-          .map(_.buildScene(group, renderer, effectiveMaxInstances).get)
+          .map(_.validateAndBuild(group, renderer, effectiveMaxInstances).get)
           .getOrElse(sys.error(s"No builder for analytical primitive type: $objType"))
       }
     if cubeSpongeSpecs.nonEmpty then
       GeometryRegistry.builderFor(cubeSpongeSpecs, textureDir)
-        .map(_.buildScene(cubeSpongeSpecs, renderer, effectiveMaxInstances).get)
+        .map(_.validateAndBuild(cubeSpongeSpecs, renderer, effectiveMaxInstances).get)
         .getOrElse(sys.error("No builder for cube-sponge specs"))
     if otherMeshSpecs.nonEmpty then
       GeometryRegistry.builderFor(otherMeshSpecs, textureDir)
-        .map(_.buildScene(otherMeshSpecs, renderer, effectiveMaxInstances).get)
+        .map(_.validateAndBuild(otherMeshSpecs, renderer, effectiveMaxInstances).get)
         .getOrElse {
           val types = otherMeshSpecs.map(_.objectType).distinct.mkString(", ")
           sys.error(s"No mesh builder found for types: $types")

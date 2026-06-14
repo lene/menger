@@ -10,7 +10,7 @@ import menger.common.Vector
 
 class Hexadecachoron4DSceneBuilder(
   textureDir: String = ".",
-  hexadecachoron4DRecorder: (Int, Int) => Unit = (_, _) => ()
+  hexadecachoron4DRecorder: (Int, InstanceId) => Unit = (_, _) => ()
 ) extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
@@ -30,16 +30,16 @@ class Hexadecachoron4DSceneBuilder(
       val rawLevel = spec.level.get
 
       def addInstance(level: Int, mat: menger.common.Material, scale: Float): Unit =
-        val instanceId = renderer.addHexadecachoron4DInstance(
-          level, position, scale,
-          proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
-          mat
+        val instanceId = requireInstanceId(
+          renderer.addHexadecachoron4DInstance(
+            level, position, scale,
+            proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
+            mat
+          ),
+          s"hexadecachoron4d instance at (${spec.x},${spec.y},${spec.z})"
         )
-        if instanceId >= 0 then
-          hexadecachoron4DRecorder(specIdx, instanceId)
-          logger.debug(s"Added hexadecachoron4d instance $instanceId level=$level")
-        else
-          logger.error(s"Failed to add hexadecachoron4d instance at (${spec.x},${spec.y},${spec.z})")
+        hexadecachoron4DRecorder(specIdx, instanceId)
+        logger.debug(s"Added hexadecachoron4d instance $instanceId level=$level")
 
       if isFractional(rawLevel) then
         val frac      = rawLevel - rawLevel.floor

@@ -112,6 +112,35 @@ compare_images() {
     fi
 }
 
+sanitize_test_name() {
+    echo "$1" | sed 's/[^a-zA-Z0-9-]/_/g' | sed 's/__*/_/g'
+}
+
+failure_log_file() {
+    local sanitized_name
+    sanitized_name=$(sanitize_test_name "$1")
+    echo "$DIFF_DIR/${sanitized_name}_failure.log"
+}
+
+run_menger_to_log() {
+    local log_file="$1"
+    shift
+    __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a "$MENGER_BIN" "$@" >"$log_file" 2>&1
+}
+
+print_failure_log() {
+    local name="$1"
+    local log_file="$2"
+
+    if [ -s "$log_file" ]; then
+        echo "    ${name} command output (last 40 lines):"
+        tail -40 "$log_file" | sed 's/^/      /'
+        echo "    full log: $log_file"
+    else
+        echo "    ${name} produced no command output; log: $log_file"
+    fi
+}
+
 # Run a test, track result, clean up
 run_test() {
     local name="$1"
@@ -119,17 +148,22 @@ run_test() {
 
     # Generate temporary output filename
     local temp_output="test_temp_$$_${RANDOM}_$(date +%N).png"
+    local failure_log
+    failure_log=$(failure_log_file "$name")
     rm -f "$temp_output"
+    rm -f "$failure_log"
 
     # Run test in headless mode with output file
     local test_passed=false
-    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless --save-name "$temp_output" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" "$@" >/dev/null 2>&1 && [ -f "$temp_output" ]; then
+    if run_menger_to_log "$failure_log" --headless --save-name "$temp_output" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" "$@" && [ -f "$temp_output" ]; then
         test_passed=true
+        rm -f "$failure_log"
     fi
 
     if $test_passed; then
         # Sanitize test name for filename (replace spaces and special chars with underscores)
-        local sanitized_name=$(echo "$name" | sed 's/[^a-zA-Z0-9-]/_/g' | sed 's/__*/_/g')
+        local sanitized_name
+        sanitized_name=$(sanitize_test_name "$name")
         local reference_file="$REFERENCE_DIR/${sanitized_name}.png"
         local diff_file="$DIFF_DIR/${sanitized_name}_diff.png"
 
@@ -163,6 +197,7 @@ run_test() {
         ((FAILED++))
         FAILED_TESTS="$FAILED_TESTS\n  - $name (execution failed)"
         echo -e "  ${name} - execution failed ${RED}✗${RESET}"
+        print_failure_log "$name" "$failure_log"
     fi
 
     # Clean up temporary file
@@ -232,7 +267,10 @@ run_test_with_output() {
     local output_file="$2"
     shift 2
 
+    local failure_log
+    failure_log=$(failure_log_file "$name")
     rm -f "$output_file"
+    rm -f "$failure_log"
 
     # Check if --headless is in the arguments (headless and timeout are mutually exclusive)
     local use_timeout=true
@@ -245,18 +283,21 @@ run_test_with_output() {
 
     local test_passed=false
     if $use_timeout; then
-        if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --timeout $DEFAULT_TIMEOUT "$@" >/dev/null 2>&1 && [ -f "$output_file" ]; then
+        if run_menger_to_log "$failure_log" --timeout "$DEFAULT_TIMEOUT" "$@" && [ -f "$output_file" ]; then
             test_passed=true
+            rm -f "$failure_log"
         fi
     else
-        if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN "$@" >/dev/null 2>&1 && [ -f "$output_file" ]; then
+        if run_menger_to_log "$failure_log" "$@" && [ -f "$output_file" ]; then
             test_passed=true
+            rm -f "$failure_log"
         fi
     fi
 
     if $test_passed; then
         # Sanitize test name for filename (replace spaces and special chars with underscores)
-        local sanitized_name=$(echo "$name" | sed 's/[^a-zA-Z0-9-]/_/g' | sed 's/__*/_/g')
+        local sanitized_name
+        sanitized_name=$(sanitize_test_name "$name")
         local reference_file="$REFERENCE_DIR/${sanitized_name}.png"
         local diff_file="$DIFF_DIR/${sanitized_name}_diff.png"
 
@@ -290,6 +331,7 @@ run_test_with_output() {
         ((FAILED++))
         FAILED_TESTS="$FAILED_TESTS\n  - $name (execution failed)"
         echo -e "  ${name} - execution failed ${RED}✗${RESET}"
+        print_failure_log "$name" "$failure_log"
     fi
 
     rm -f "$output_file"
@@ -554,6 +596,34 @@ test_menger4d() {
         --objects type=menger4d:level=1.5:color=#4488FF:size=0.8
 }
 
+test_sierpinski4d() {
+    echo "4D Sierpinski (IFS shader):"
+    run_test "sierpinski4d level 1" --plane y:-2 \
+        --objects type=sierpinski4d:level=1:pos=0,0,0:size=0.8
+    run_test "sierpinski4d level 2" --plane y:-2 \
+        --objects type=sierpinski4d:level=2:pos=0,0,0:size=0.8
+    run_test "sierpinski4d with rotation" --plane y:-2 \
+        --objects type=sierpinski4d:level=2:rot-xw=45:rot-yw=30:size=0.8
+    run_test "sierpinski4d with color" --plane y:-2 \
+        --objects type=sierpinski4d:level=1:color=#4488FF:size=0.8
+    run_test "sierpinski4d with material" --plane y:-2 \
+        --objects type=sierpinski4d:level=1:material=chrome:size=0.8
+}
+
+test_hexadecachoron4d() {
+    echo "4D Hexadecachoron (IFS shader):"
+    run_test "hexadecachoron4d level 1" --plane y:-2 \
+        --objects type=hexadecachoron4d:level=1:pos=0,0,0:size=0.8
+    run_test "hexadecachoron4d level 2" --plane y:-2 \
+        --objects type=hexadecachoron4d:level=2:pos=0,0,0:size=0.8
+    run_test "hexadecachoron4d with rotation" --plane y:-2 \
+        --objects type=hexadecachoron4d:level=2:rot-xw=45:rot-yw=30:size=0.8
+    run_test "hexadecachoron4d with color" --plane y:-2 \
+        --objects type=hexadecachoron4d:level=1:color=#4488FF:size=0.8
+    run_test "hexadecachoron4d with material" --plane y:-2 \
+        --objects type=hexadecachoron4d:level=1:material=chrome:size=0.8
+}
+
 test_cli_animation() {
     echo "CLI Animation (--animate flag):"
     local temp_dir
@@ -698,6 +768,13 @@ test_dsl_scenes() {
     run_test "DSL ComplexLighting" --scene examples.dsl.ComplexLighting
     run_test "DSL ReusableComponents" --scene examples.dsl.ReusableComponents
     run_test "DSL MixedMetallicShowcase" --scene examples.dsl.MixedMetallicShowcase
+    run_test "DSL VideoTextureCube" \
+        --scene examples.dsl.VideoTextureCube \
+        --texture-dir menger-geometry/src/test/resources/
+    run_test "DSL EnvMapVideoSponge" \
+        --scene examples.dsl.EnvMapVideoSponge \
+        --texture-dir menger-geometry/src/test/resources/ \
+        --t 0.5
     run_test "DSL EnvMapDemo (IBL importance-sampled env lighting + accumulation)" \
         --scene examples.dsl.EnvMapDemo \
         --texture-dir menger-app/src/test/resources/
@@ -1122,13 +1199,15 @@ test_fog() {
         --save-name "$fog_img" >/dev/null 2>&1
 
     if [ -f "$no_fog_img" ] && [ -f "$fog_img" ]; then
-        # compare_images returns 0=match, 1=different; we WANT different (fog changed the image)
-        if ! compare_images "fog-vs-nofog" "$fog_img" "$no_fog_img" "/tmp/fog_diff_$$.png"; then
+        local diff_pixels
+        diff_pixels=$(compare -metric AE "$fog_img" "$no_fog_img" /dev/null 2>&1) || true
+        if [ "${diff_pixels:-0}" -gt 0 ] 2>/dev/null; then
             echo -e "  fog vs no-fog: images differ (fog applied) ${GREEN}✓${RESET}"
             ((PASSED++))
         else
             echo -e "  fog vs no-fog: images unexpectedly identical ${RED}✗${RESET}"
             ((FAILED++))
+            FAILED_TESTS="$FAILED_TESTS\n  - fog vs no-fog: images unexpectedly identical"
         fi
     fi
     rm -f "$no_fog_img" "$fog_img" "/tmp/fog_diff_$$.png"
@@ -1165,6 +1244,8 @@ main() {
     test_tesseract
     test_4d_sponges
     test_menger4d
+    test_sierpinski4d
+    test_hexadecachoron4d
     test_cli_animation
     test_3d_fractional_sponges
     test_platonic_solids

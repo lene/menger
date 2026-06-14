@@ -21,24 +21,24 @@ DSL-only scope. No CLI options needed.
 
 ## Success Criteria
 
-- [ ] `videoTexture = Some(VideoTexture("texture.mp4"))` in DSL plays a rectangular
+- [x] `videoTexture = Some(VideoTexture("texture.mp4"))` in DSL plays a rectangular
       video on any object that already supports image textures
-- [ ] `VideoTexture` and `EnvMapVideo` share playback config for time mapping,
+- [x] `VideoTexture` and `EnvMapVideo` share playback config for time mapping,
       start offset, optional fps override, and repeat mode
-- [ ] Video frame selection is deterministic from animation `t`, source timestamps,
+- [x] Video frame selection is deterministic from animation `t`, source timestamps,
       optional `fpsOverride`, and repeat mode
-- [ ] Render `t` exceeding source duration is handled by repeat mode:
+- [x] Render `t` exceeding source duration is handled by repeat mode:
       loop, freeze, or ping-pong
-- [ ] Video frames decode to RGBA8 textures for SDR video
-- [ ] Per-frame object texture updates use stable GPU texture slots and avoid full
+- [x] Video frames decode to RGBA8 textures for SDR video
+- [x] Per-frame object texture updates use stable GPU texture slots and avoid full
       scene rebuild when only the video frame changes
-- [ ] Memory is bounded: decoded CPU frames and uploaded GPU texture state are limited
+- [x] Memory is bounded: decoded CPU frames and uploaded GPU texture state are limited
       by explicit cache/slot ownership
-- [ ] `envMapVideo = Some(EnvMapVideo("background_360.mp4"))` plays an equirectangular
+- [x] `envMapVideo = Some(EnvMapVideo("background_360.mp4"))` plays an equirectangular
       360-degree video as the environment background after video textures are complete
-- [ ] `EnvMapVideo` updates IBL lighting when the scene enables `ibl`
-- [ ] FFmpeg/libav is installed and exercised in CI; video tests must not silently skip
-- [ ] All tests pass
+- [x] `EnvMapVideo` updates IBL lighting when the scene enables `ibl`
+- [x] FFmpeg/libav is installed and exercised in CI; video tests must not silently skip
+- [x] All tests pass
 
 ---
 
@@ -118,6 +118,7 @@ cache behavior remain Task 27.2.
 
 **Estimate:** 4h
 **Depends on:** 27.1
+**Status:** Complete
 
 `VideoLoader` decodes video frames on demand and caches a sliding window.
 
@@ -154,12 +155,18 @@ Videos without alpha decode with `alpha = 255`. Frame orientation must match exi
 `TextureLoader` image texture orientation. Invalid, unsupported, zero-frame, or
 zero-duration videos fail fast during open/decode.
 
+**Result:** `VideoLoader.frameAt` decodes SDR video frames to top-to-bottom RGBA8 through
+libavcodec/libswscale, clamps timestamps to the first/last decodable frames, and keeps a
+bounded eight-frame decoded cache. A tiny deterministic PNG-in-MOV fixture verifies exact
+RGBA bytes through the Scala/JNI path.
+
 ---
 
 ### Task 27.3: JNI Binding + Scala VideoLoader
 
 **Estimate:** 2h
 **Depends on:** 27.2
+**Status:** Complete
 
 - `VideoLoader.scala` in `menger-geometry`
 - Native methods: `openVideo(path)`, `videoWidth()`, `videoHeight()`, `frameCount()`,
@@ -169,12 +176,18 @@ zero-duration videos fail fast during open/decode.
 - Scala loader implements `AutoCloseable`; every engine path that opens videos closes
   them during renderer disposal or failure cleanup
 
+**Result:** `VideoLoader` now extends a `MengerVideoApi` native-boundary trait,
+exposes metadata, RGBA frame decode, prefetch, and idempotent close through Scala/JNI,
+and rejects access after close. No renderer/engine path opens videos yet; later tasks
+must use the `AutoCloseable` loader ownership point when wiring video textures.
+
 ---
 
 ### Task 27.4: DSL `VideoTexture` Type for Rectangular Object Textures
 
 **Estimate:** 2h
 **Depends on:** 27.3
+**Status:** Complete
 
 Add a DSL type for animated rectangular videos used as object textures. This is the first
 user-facing video feature and must land before 360-degree backgrounds.
@@ -211,12 +224,19 @@ Validation:
 - `fpsOverride`, when set, must be positive. Without it, source timestamps/native fps
   drive frame selection.
 
+**Result:** Added the shared `VideoPlayback`, `VideoTimeMapping`, `VideoRepeat`, and
+`VideoTexture` DSL model, exported it through `menger.dsl`, and propagated
+`SceneObject.videoTexture` into `ObjectSpec` for every DSL object that already accepts
+image textures. `ObjectSpec` rejects simultaneous `texture` and `videoTexture`, and
+focused tests cover default playback, FPS validation, conversion, and object support.
+
 ---
 
 ### Task 27.5: Static Initial-Frame Video Texture
 
 **Estimate:** 2h
 **Depends on:** 27.4
+**Status:** Complete
 
 Decode the initial playback frame of a rectangular video and upload it through the
 existing texture path for objects that already support image textures. This proves the
@@ -225,12 +245,20 @@ decoder, JNI, Scala wrapper, and OptiX texture upload path before animation is i
 **Validation:** A DSL scene with a video-textured plane or cube renders the initial
 playback frame as a stable still texture.
 
+**Result:** `TextureManager` now decodes a `VideoTexture` playback start frame through
+`menger.geometry.VideoLoader`, uploads the RGBA bytes through the existing texture upload
+path, and binds the resulting stable texture slot through the same image-texture wiring
+used by static textures. Added `examples.dsl.VideoTextureCube`, integration/manual test
+entries, a committed reference image, and focused tests for decoded initial/start-offset
+frames.
+
 ---
 
 ### Task 27.6: Animated Rectangular Video Texture Updates
 
 **Estimate:** 4h
 **Depends on:** 27.5
+**Status:** Complete
 
 Extend `WithAnimation.scala` to update object textures each frame when the only texture
 change is a video frame.
@@ -261,12 +289,20 @@ Frame-stability rule: each rendered output frame samples one video frame. Accumu
 samples for that output frame must reuse the same video frame. Interactive video frame
 advancement resets accumulation before sampling the next video frame.
 
+**Result:** Root `build.sbt` now consumes `optix-jni:0.1.3` with update-in-place texture
+support. `WithAnimation` records video texture slots from the existing scene-builder
+upload path, updates those slots with `renderer.updateTexture` for stable video-textured
+specs, and skips full scene rebuilds when only the sampled video frame changes. Added
+deterministic playback timing/repeat helpers plus unit tests for `VideoTimeMapping`,
+`VideoRepeat`, `fpsOverride`, and `t` values beyond the source duration.
+
 ---
 
 ### Task 27.7: DSL `EnvMapVideo` Type for 360-Degree Video Backgrounds
 
 **Estimate:** 2h
 **Depends on:** 27.6
+**Status:** Complete
 
 ```scala
 case class EnvMapVideo(
@@ -280,12 +316,20 @@ case class EnvMapVideo(
 expects equirectangular 2:1 360-degree video; ordinary rectangular videos remain object
 textures. The same `VideoPlayback` rules apply to object videos and environment videos.
 
+**Result:** Added `EnvMapVideo` to the shared video model with the same `VideoPlayback`
+configuration used by `VideoTexture`, exported it through `menger.dsl`, added
+`Scene.envMapVideo`, and propagated it through `SceneConverter.SceneConfigs` and
+`EnvironmentConfig`. `SceneConverter` now rejects scenes that set both `envMap` and
+`envMapVideo`. Focused tests cover the model defaults/keying/path validation,
+conversion, IBL config propagation for `envMapVideo`, and the mutual-exclusion error.
+
 ---
 
 ### Task 27.8: Animated 360-Degree Environment Backgrounds
 
 **Estimate:** 3h
 **Depends on:** 27.7
+**Status:** Complete
 
 Reuse `VideoLoader` and the stable texture-slot update path to update the renderer
 environment map from an equirectangular 360-degree video.
@@ -297,12 +341,23 @@ sampled video frame. When `ibl` is absent, `EnvMapVideo` is visible-background o
 changing scene geometry, and an `ibl` scene shows lighting changes from the same video
 frames.
 
+**Result:** `WithAnimation` now uploads one stable texture slot for `envMapVideo`, validates
+that the decoded video dimensions are equirectangular 2:1, updates that slot in place
+before each animation frame, binds the slot with `setEnvironmentMap`, and reapplies IBL
+against the same slot when `ibl` is enabled. Static DSL rendering through `InteractiveEngine`
+uses the deterministic initial frame as the environment map. Added the deterministic
+`video/two-frame-equirect-rgba.mov` 4x2 fixture, generated with:
+`ffmpeg -y -f lavfi -i color=c=red:s=4x2:r=2:d=0.5 -f lavfi -i color=c=blue:s=4x2:r=2:d=0.5 -filter_complex '[0:v][1:v]concat=n=2:v=1:a=0,format=rgba' -c:v qtrle -pix_fmt argb menger-geometry/src/test/resources/video/two-frame-equirect-rgba.mov`.
+Focused tests cover fixture decode, 2:1 validation, env-video slot reuse eligibility, and
+video-source detection.
+
 ---
 
 ### Task 27.9: Memory Bound and Texture Update Performance
 
 **Estimate:** 3h
 **Depends on:** 27.6, 27.8
+**Status:** Complete
 
 Keep decoded CPU frames and uploaded GPU texture state bounded.
 
@@ -316,11 +371,18 @@ Keep decoded CPU frames and uploaded GPU texture state bounded.
 **CPU cache:** start with a small decoded-frame cache, max 8 frames per active video
 source. Expand only if profiling shows avoidable seek/decode stalls.
 
+**Result:** Animated video playback now owns reusable per-source decoder/cache state with an
+8-frame LRU decoded-frame cache. Object video texture rebuilds use a TextureManager slot provider
+to reuse active texture indices instead of re-uploading the same video source, including repeated
+loads during mixed-scene builds. Object and environment video updates both use `updateTexture` on
+stable texture slots, and animation disposal closes active decoders.
+
 ---
 
 ### Task 27.10: Documentation and Examples
 
 **Estimate:** 2h
+**Status:** Complete
 
 - User guide: "Video Textures" section — rectangular video textures, supported formats,
   source fps vs `fpsOverride`, playback time mapping, repeat modes, and performance
@@ -333,12 +395,22 @@ source. Expand only if profiling shows avoidable seek/decode stalls.
   and dynamic env-map/IBL behavior
 - CHANGELOG.md entry
 
+**Result:** Added user-guide and DSL-reference coverage for `VideoTexture`,
+`EnvMapVideo`, `VideoPlayback`, time mapping, repeat modes, `fpsOverride`, 2:1
+equirectangular requirements, IBL behavior, accumulation behavior, and performance
+recommendations. Added `examples.dsl.EnvMapVideoSponge`, integration/manual coverage for
+one rectangular video texture and one env-map video, fixture-generation documentation,
+arc42 updates for native libav/stable texture slots/video memory risk, and a changelog
+entry. CI libav package installs now avoid recommended distro CUDA packages so GPU jobs
+keep using the driver-mounted `libcuda.so.1`.
+
 ---
 
 ### Task 27.11: Fix M-sceneb-validate-bypass
 
 **Estimate:** 4h
 **Depends on:** none (pure Scala refactor)
+**Status:** Complete
 
 Fix `CODE_IMPROVEMENTS.md` `M-sceneb-validate-bypass` before or alongside video texture
 work so invalid scene input cannot reach GPU instance allocation.
@@ -347,12 +419,20 @@ work so invalid scene input cannot reach GPU instance allocation.
 - Ensure `buildSceneFromConfigs` validates before build for all scene paths.
 - Unify or consistently bridge `SceneBuilder.validate` and `buildScene` error types.
 
+**Result:** Added `SceneBuilder.validateAndBuild` to bridge validation failures into the
+existing `Try[Unit]` build contract via `ValidationException`. Routed config-based,
+mixed-scene, rebuild, interactive 4D tracked, and animated 4D tracked builds through the
+validated path before renderer allocation. Added engine-level regression coverage for
+invalid triangle-mesh configs and mixed-scene groups, and removed the resolved
+`M-sceneb-validate-bypass` item from `CODE_IMPROVEMENTS.md`.
+
 ---
 
 ### Task 27.12: Fix M-instanceid-raw-int — Opaque InstanceId type
 
 **Estimate:** 4h
 **Depends on:** none (pure Scala refactor)
+**Status:** Complete
 
 Replace raw `Int` instance IDs from native `add*Instance` methods with an opaque type to
 enforce -1-to-failure translation at the API boundary instead of each caller.
@@ -366,6 +446,15 @@ enforce -1-to-failure translation at the API boundary instead of each caller.
   `IllegalArgumentException` risk
 
 See `CODE_IMPROVEMENTS.md` `M-instanceid-raw-int`.
+
+**Result:** Added an opaque scene-layer `InstanceId` and centralized native `-1`
+translation through `SceneBuilder.requireInstanceId`. Updated primitive, mesh, cube-sponge,
+edge-rendered tesseract, and direct 4D builders to fail scene construction instead of
+logging and continuing after failed instance allocation. Interactive direct-4D fast-path
+caches now store typed instance IDs and unwrap only at native `update*4DProjection` calls;
+full rebuilds reuse tracked builders instead of synthesizing IDs from sequential indices.
+Added regression coverage for native Menger4D allocation failure and removed the resolved
+`M-instanceid-raw-int` item from `CODE_IMPROVEMENTS.md`.
 
 ---
 
@@ -392,19 +481,19 @@ See `CODE_IMPROVEMENTS.md` `M-instanceid-raw-int`.
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] `./.git_hooks/pre-push 2>&1 | tee /tmp/pre-push.log` passes
-- [ ] CHANGELOG.md updated
-- [ ] Small rectangular test video committed for video texture integration tests
-- [ ] Small equirectangular/360 test video committed for env-map video integration tests
-- [ ] Test videos are deterministic, tiny, SDR RGBA-visible patterns generated from
+- [x] All success criteria met
+- [x] `./.git_hooks/pre-push 2>&1 | tee /tmp/pre-push.log` passes
+- [x] CHANGELOG.md updated
+- [x] Small rectangular test video committed for video texture integration tests
+- [x] Small equirectangular/360 test video committed for env-map video integration tests
+- [x] Test videos are deterministic, tiny, SDR RGBA-visible patterns generated from
       repo-owned source or documented commands
-- [ ] `scripts/integration-tests.sh` covers at least one video texture and one env-map video
-- [ ] `scripts/manual-test.sh` covers at least one video texture and one env-map video
-- [ ] Unit tests cover `VideoTimeMapping`, `VideoRepeat`, `fpsOverride`, and `t`
+- [x] `scripts/integration-tests.sh` covers at least one video texture and one env-map video
+- [x] `scripts/manual-test.sh` covers at least one video texture and one env-map video
+- [x] Unit tests cover `VideoTimeMapping`, `VideoRepeat`, `fpsOverride`, and `t`
       exceeding source duration
-- [ ] CI installs FFmpeg/libav dev packages and runs the video integration scenarios
-- [ ] arc42 sections 9, 10, and 11 updated for video decode, texture update, and risks
+- [x] CI installs FFmpeg/libav dev packages and runs the video integration scenarios
+- [x] arc42 sections 9, 10, and 11 updated for video decode, texture update, and risks
 
 ---
 

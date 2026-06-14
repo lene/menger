@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 import io.github.lene.optix.MengerRenderer
 
-final class VideoLoader(path: String) extends AutoCloseable:
+final class VideoLoader(path: String) extends MengerVideoApi, AutoCloseable:
   require(Option(path).exists(_.nonEmpty), "Video path must not be empty")
   require(VideoLoader.isNativeLibraryLoaded, "Menger native library failed to load")
 
@@ -25,6 +25,9 @@ final class VideoLoader(path: String) extends AutoCloseable:
   def frameAt(timestampSeconds: Double): Array[Byte] =
     getFrameAtNative(openHandle, timestampSeconds)
 
+  def prefetch(timestampSeconds: Double, nFrames: Int): Unit =
+    prefetchVideoNative(openHandle, timestampSeconds, nFrames)
+
   override def close(): Unit =
     val handle = nativeHandle.getAndSet(VideoLoader.ClosedHandle)
     if handle != VideoLoader.ClosedHandle then closeVideoNative(handle)
@@ -34,21 +37,30 @@ final class VideoLoader(path: String) extends AutoCloseable:
     require(handle != VideoLoader.ClosedHandle, "Video loader is closed")
     handle
 
-  @native private def openVideoNative(path: String): Long
+  @native override protected def openVideoNative(path: String): Long
 
-  @native private def videoWidthNative(handle: Long): Int
+  @native override protected def videoWidthNative(handle: Long): Int
 
-  @native private def videoHeightNative(handle: Long): Int
+  @native override protected def videoHeightNative(handle: Long): Int
 
-  @native private def frameCountNative(handle: Long): Int
+  @native override protected def frameCountNative(handle: Long): Int
 
-  @native private def videoDurationSecondsNative(handle: Long): Double
+  @native override protected def videoDurationSecondsNative(handle: Long): Double
 
-  @native private def nativeFpsNative(handle: Long): Double
+  @native override protected def nativeFpsNative(handle: Long): Double
 
-  @native private def getFrameAtNative(handle: Long, timestampSeconds: Double): Array[Byte]
+  @native override protected def getFrameAtNative(
+      handle: Long,
+      timestampSeconds: Double
+  ): Array[Byte]
 
-  @native private def closeVideoNative(handle: Long): Unit
+  @native override protected def prefetchVideoNative(
+      handle: Long,
+      timestampSeconds: Double,
+      nFrames: Int
+  ): Unit
+
+  @native override protected def closeVideoNative(handle: Long): Unit
 
 object VideoLoader:
   private val ClosedHandle = 0L

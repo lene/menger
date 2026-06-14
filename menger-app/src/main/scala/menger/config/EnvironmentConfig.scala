@@ -5,6 +5,7 @@ import menger.common.Color
 import menger.common.FogConfig
 import menger.common.Light
 import menger.common.PlaneSpec
+import menger.video.EnvMapVideo
 
 /**
  * Environment configuration for lighting and ground planes.
@@ -12,6 +13,8 @@ import menger.common.PlaneSpec
  * @param planes list of ground/wall planes (up to 4 simultaneous planes)
  * @param lights list of light sources (empty = use default lighting)
  * @param background optional background color
+ * @param envMap optional static equirectangular environment map
+ * @param envMapVideo optional animated equirectangular environment map
  * @param iblEnabled whether to use the env map as a diffuse IBL light source
  * @param iblStrength IBL light multiplier (1.0 = physically neutral)
  * @param iblSamples number of IBL shadow rays per hit (more = less noise)
@@ -21,6 +24,7 @@ case class EnvironmentConfig(
   lights: List[Light] = List.empty,
   background: Option[Color] = None,
   envMap: Option[String] = None,
+  envMapVideo: Option[EnvMapVideo] = None,
   fog: Option[FogConfig] = None,
   iblEnabled: Boolean = false,
   iblStrength: Float = 1.0f,
