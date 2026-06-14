@@ -7,11 +7,16 @@ to convert convention-maintained invariants into automated guards.
 
 Effort key: **XS** < 1h · **S** ≈ half-day · **M** ≈ 1–2 d · **L** ≈ 2–4 d.
 
-Already actioned outside this backlog (2026-06-12):
-- **F5** (CLAUDE.md module-map drift) — fixed.
+Already actioned outside this backlog:
+- **F5** (CLAUDE.md module-map drift) — fixed (2026-06-12).
 - **F1 symptom** (4D dispatch gap) — `sierpinski4d`/`hexadecachoron4d` wired into `GeometryRegistry`
-  + `RenderModeSelector`, completeness test added, integration coverage added. The *root-cause*
-  unification remains below as **T1**.
+  + `RenderModeSelector`, completeness test added, integration coverage added (2026-06-12). The
+  *root-cause* unification remains below as **T1**.
+- **F4** (opaque types across the JNI seam) — done in **Sprint 27.12** (`InstanceId.scala`,
+  `-1` allocation failures fail builds at the boundary). Removed from the backlog.
+- **F9** (DSL/scene-config trust-boundary validation) — done in **Sprint 27.11**
+  (`M-sceneb-validate-bypass` closed; scene builders validate before renderer allocation).
+  Removed from the backlog.
 
 ---
 
@@ -23,15 +28,13 @@ Already actioned outside this backlog (2026-06-12):
 | T2 | Performance governance (PerfCheck + benchmark baselines) | F2 | M (1 d) | High |
 | T3 | In-repo native memory-leak gate | F3 | M (1 d) | High |
 | T9 | Script-parity fitness function | F1 | S (2–4 h) | Med-High |
-| T4 | Opaque types across the JNI seam | F4 | L (2–4 d) | Medium |
 | T5 | Module-scoped ArchUnit native rule + rename `menger.geometry` | F6 | M (4–8 h) | Medium |
 | T6 | Caustics ladder analytic rungs C1–C4 | F7 | L (2–3 d) | Medium |
 | T7 | Determinism + JNI fault-injection test kinds | F8 | S (~1 d) | Medium |
-| T8 | DSL trust-boundary validation | F9 | S–M (4–8 h) | Medium |
 | T10 | Fast-path regression guard | Pos.1 | S (3–5 h) | Medium |
 | T11 | Record OptiX-as-sole-backend as a deliberate ADR | F-backend | XS (~30 m) | Low |
 
-Total if all scheduled: **~11–16 dev-days.**
+Total if all scheduled: **~7–10 dev-days** (T4/T8 completed in Sprint 27 and removed).
 
 ---
 
@@ -82,17 +85,6 @@ recurrence).
 **Fitness function:** the parity test itself.
 **Done when:** adding a type to only one script fails CI.
 
-### T4 — Opaque types across the JNI seam (Medium, L 2–4 d) — Finding 4
-
-**Problem:** GPU handles (`Long`), instance ids (`Int`), and dimensions (3D/4D) cross the seam as raw
-primitives; the dimension distinction that defines the project exists nowhere in the type system.
-Also resolves `M-instanceid-raw-int`.
-**Do:** `opaque type GpuHandle = Long`, `opaque type InstanceId = Int`, phantom-typed
-`Vector[Dim3/Dim4]` on the Scala side of the bridge; an ArchUnit rule that scene-builder return types
-do not expose raw native ids.
-**Fitness function:** ArchUnit rule forbidding raw native-id leakage past the bridge.
-**Done when:** a swapped id/dimension is a compile error, not a runtime CUDA fault.
-
 ### T5 — Module-scoped ArchUnit native rule + rename `menger.geometry` (Medium, M 4–8 h) — Finding 6
 
 **Problem:** Two ArchUnit rules use disagreeing scopes (package whitelist `io.github.lene.optix..`
@@ -124,16 +116,6 @@ and JNI-seam fault injection.
 `instanceId = -1` mid-frame failure path and assert graceful handling.
 **Fitness function:** the determinism test (cheap; locks down the reproducibility arc42 §10 claims).
 **Done when:** a non-deterministic render or an unhandled `-1` id fails CI.
-
-### T8 — DSL trust-boundary validation (Medium, S–M 4–8 h) — Finding 9
-
-**Problem:** The CLI validates input (Scallop `validate`), but the DSL/`examples.dsl` scene path has
-no enforced range/consistency validation before reaching the native bridge. Resolves
-`M-sceneb-validate-bypass`.
-**Do:** Audit DSL range validation; add a validated gate (or wrap in a validated type) before any
-`io.github.lene.optix` call; pin the invariant "parsed external input is validated before use."
-**Fitness function:** a rule/test that DSL output is validated before crossing the seam.
-**Done when:** out-of-range DSL geometry is rejected before the native call.
 
 ### T10 — Fast-path regression guard (Medium, S 3–5 h) — Positive Pattern 1
 
