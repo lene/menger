@@ -1,6 +1,16 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.4] - 2026-06-14
+
+### Added
+- **`/arch-review`** — architectural review command (four axes: soundness, maturity,
+  evolvability, performance architecture) with fitness-function nomination; first review
+  in `ARCHITECTURE_REVIEW.md` and actionable backlog in `docs/ARCHITECTURE_BACKLOG.md`.
+- **Video texture documentation and examples** (Sprint 27.10) — user guide and DSL
+  reference coverage for rectangular video textures, 360-degree `EnvMapVideo`
+  backgrounds, playback timing/repeat controls, IBL interaction, and performance
+  recommendations. Added `examples.dsl.EnvMapVideoSponge` plus integration/manual
+  coverage for env-map video playback.
 
 ### Changed
 - **Minimum NVIDIA driver raised to ≥580.65 (CUDA 13).** The published `optix-jni`
@@ -9,11 +19,8 @@
   ("driver version is insufficient for CUDA runtime version"). See arc42 §2 (TC-4, TC-9)
   and `docs/TROUBLESHOOTING.md`. GPU CI runner hosts must also have `nvidia-persistenced`
   active (not masked) for the NVIDIA container toolkit to mount its socket.
-
-### Added
-- **`/arch-review`** — architectural review command (four axes: soundness, maturity,
-  evolvability, performance architecture) with fitness-function nomination; first review
-  in `ARCHITECTURE_REVIEW.md` and actionable backlog in `docs/ARCHITECTURE_BACKLOG.md`.
+- Bumped `optix-jni` dependency to **0.1.4** (CUDA 13.x toolkit pin — reproducible
+  runtime ABI, deliberate minimum-driver floor).
 
 ### Fixed
 - **4D dispatch in the non-interactive render path** — `sierpinski4d` and
@@ -22,17 +29,6 @@
   engines (incl. `--animate`) failed with a misleading error. Added the missing dispatch
   branches + a completeness test; closed the `integration-tests.sh` / `manual-test.sh`
   parity gap for both types.
-
-## [0.7.4] - 2026-06-08
-
-### Added
-- **Video texture documentation and examples** (Sprint 27.10) — user guide and DSL
-  reference coverage for rectangular video textures, 360-degree `EnvMapVideo`
-  backgrounds, playback timing/repeat controls, IBL interaction, and performance
-  recommendations. Added `examples.dsl.EnvMapVideoSponge` plus integration/manual
-  coverage for env-map video playback.
-
-### Fixed
 - Removed stale solved High Priority findings from `CODE_IMPROVEMENTS.md`.
 - GitLab GPU jobs now install FFmpeg/libav packages without recommended dependencies,
   avoiding distro `libcuda1` shadowing the NVIDIA driver-mounted CUDA library.

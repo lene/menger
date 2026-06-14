@@ -29,8 +29,8 @@ Strategic feature planning for the Menger ray tracing renderer.
 | v0.7.1 | Image-Based Lighting | ✅ Complete | IBL with importance sampling + MIS, env map illuminates objects (Sprint 23) |
 | v0.7.2 | optix-jni Decoupling | ✅ Complete | optix-jni generic library, menger-geometry layer, MengerRenderer, NativeOptiXApi (Sprints 24-25) |
 | v0.7.3 | Repo Split & Code Health | ✅ Complete | menger-common + optix-jni separate repos, Maven Central, all CODE_IMPROVEMENTS resolved (Sprint 26) |
-| v0.8.0 | Video Backgrounds | 🔄 In Progress | Animated .mp4 backgrounds via ffmpeg, per-frame GPU texture swap (Sprint 27) |
-| v0.9.1 | Visual Quality | Planned | Depth of field, wireframe rendering (Sprint 28) |
+| v0.7.4 | Video Textures & Backgrounds | ✅ Complete | Animated .mp4 video textures + 360° env-map backgrounds via ffmpeg, per-frame GPU texture swap; CUDA 13 / driver ≥580.65 (Sprint 27) |
+| v0.9.1 | Visual Quality | 🔄 In Progress | Depth of field, wireframe rendering (Sprint 28) |
 | v1.0.0 | Data Visualization I | Planned | Colormaps, scalar fields, isosurfaces, volume rendering (Sprint 29) |
 
 ---
