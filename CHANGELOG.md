@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- **Minimum NVIDIA driver raised to ≥580.65 (CUDA 13).** The published `optix-jni`
+  artifact (≥0.1.3) and `menger-geometry` native libs link the CUDA 13 runtime
+  (`libcudart.so.13`). Older drivers fail at startup with CUDA error 35
+  ("driver version is insufficient for CUDA runtime version"). See arc42 §2 (TC-4, TC-9)
+  and `docs/TROUBLESHOOTING.md`. GPU CI runner hosts must also have `nvidia-persistenced`
+  active (not masked) for the NVIDIA container toolkit to mount its socket.
+
+### Added
+- **`/arch-review`** — architectural review command (four axes: soundness, maturity,
+  evolvability, performance architecture) with fitness-function nomination; first review
+  in `ARCHITECTURE_REVIEW.md` and actionable backlog in `docs/ARCHITECTURE_BACKLOG.md`.
+
+### Fixed
+- **4D dispatch in the non-interactive render path** — `sierpinski4d` and
+  `hexadecachoron4d` were dispatched only in `InteractiveEngine`; `GeometryRegistry` /
+  `RenderModeSelector` classified them as `Unsupported`, so Animation/Preview/Video
+  engines (incl. `--animate`) failed with a misleading error. Added the missing dispatch
+  branches + a completeness test; closed the `integration-tests.sh` / `manual-test.sh`
+  parity gap for both types.
+
 ## [0.7.4] - 2026-06-08
 
 ### Added

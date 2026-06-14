@@ -46,6 +46,41 @@ sbt "project optixJni" compile
 
 **Root cause:** OptiX strict ABI compatibility - SDK must match driver runtime
 
+### CUDA error 35 ("driver version is insufficient for CUDA runtime version")
+
+**Cause:** NVIDIA driver too old for the CUDA 13 runtime that the distributed native
+libraries (`optix-jni` ≥0.1.3, `menger-geometry`) link against (`libcudart.so.13`).
+
+**Symptom:** `cudaFree(0) failed: CUDA driver version is insufficient for CUDA runtime
+version (35)` and `OptiXNotAvailableException: Failed to initialize OptiX renderer` — every
+GPU render fails at startup, including a plain sphere.
+
+**Diagnosis:**
+```bash
+nvidia-smi | grep -iE 'Driver Version|CUDA Version'   # need driver >= 580.65 / CUDA 13
+ldd <jar-extracted>/native/x86_64-linux/liboptixjni.so | grep cudart   # libcudart.so.13
+```
+
+**Fix:** upgrade the NVIDIA driver to ≥580.65 (`pkexec apt install nvidia-driver-595`),
+reboot. CUDA drivers are backward-compatible, so existing CUDA 12 builds keep working.
+
+**Note:** the project standardized on CUDA 13 in Sprint 27 (arc42 §2 TC-4/TC-9). To stay on
+an older driver, you would have to rebuild `optix-jni` against CUDA 12 and `publishLocal` it.
+
+### CI GPU job "system failure": `open /run/nvidia-persistenced/socket: no such file or directory`
+
+**Cause:** on a self-hosted GitLab GPU runner, the NVIDIA container toolkit mounts the
+`nvidia-persistenced` socket; if the daemon is masked/inactive the job fails to start
+(`OCI runtime create failed`) in seconds, before any test runs.
+
+**Fix (on the runner host):**
+```bash
+pkexec systemctl unmask nvidia-persistenced
+pkexec systemctl enable --now nvidia-persistenced
+ls -la /run/nvidia-persistenced/socket   # confirm socket exists
+```
+Then retry the job (`glab ci retry <job-id>`).
+
 ### "UnsatisfiedLinkError: no optixjni in java.library.path"
 
 - Check `optix-jni/target/native/x86_64-linux/bin/liboptixjni.so` exists
