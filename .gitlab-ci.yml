@@ -18,11 +18,9 @@ variables:
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.8.3
   LIBAV_DEV_PACKAGES: "libavcodec-dev libavformat-dev libavutil-dev libswscale-dev"
-  # OptiX Docker image version: {CUDA}-{OptiX}-{Java}-{sbt}
-  OPTIX_DOCKER_VERSION: 12.8-9.0-25-1.12.0
-  # CUDA 13 variant image. Required for packaged app jobs that execute the published
-  # optix-jni artifact, because optix-jni 0.1.3 is linked against CUDA 13.
-  OPTIX_DOCKER_VERSION_CUDA13: 13.2-9.0-25-1.12.0
+  # OptiX Docker image version: {CUDA}-{OptiX}-{Java}-{sbt}. CUDA 13 only — the published
+  # optix-jni artifact and menger-geometry native libs link the CUDA 13 runtime.
+  OPTIX_DOCKER_VERSION: 13.2-9.0-25-1.12.0
   # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
   # See: https://forums.developer.nvidia.com/t/crash-on-launching-game-with-plasma-problematic-frame-libnvidia-glcore-so-570-144-0xa5966c/332304
   __GL_THREADED_OPTIMIZATIONS: "0"
@@ -122,7 +120,7 @@ Test:SbtImage:
     - curl -o cuda-keyring_1.1-1_all.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
     - dpkg -i cuda-keyring_1.1-1_all.deb
     - apt-get -y update
-    - apt-get -y install cuda-toolkit-12-8
+    - apt-get -y install cuda-toolkit-13-2
     # Download OptiX SDK from GitLab Package Registry
     - curl --header "JOB-TOKEN:${CI_JOB_TOKEN}" -o NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/optix-sdk/9.0.0/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh"
     # Install OptiX SDK
@@ -180,7 +178,7 @@ Test:Full:
     - apt-get -y install --no-install-recommends mesa-utils x11-xserver-utils xvfb $LIBAV_DEV_PACKAGES
   script:
     # Run full parent test suite. Standalone optix-jni tests run in lene/optix-jni.
-    # Java 25, sbt, CUDA 12.8, and OptiX SDK 9.0 are pre-installed in the Docker image
+    # Java 25, sbt, CUDA 13.2, and OptiX SDK 9.0 are pre-installed in the Docker image
     - xvfb-run sbt test
   after_script:
     # Fix permissions on generated files so they can be cleaned up locally without sudo
@@ -191,55 +189,10 @@ Test:Full:
     reports:
       junit: menger-app/target/test-reports/**/TEST-*.xml
 
-# Full test suite on CUDA 13 - DISABLED pending proper CUDA 13 support
-# The CI runner's libnvoptix.so is CUDA 12.8-era (ABI 105); optixDeviceContextCreate()
-# hangs when the CUDA 13 runtime creates the primary context before libnvoptix.so
-# initialises it via the driver API. See TODO.md for the backlog item.
-Test:Full:Cuda13:
-  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION_CUDA13
-  stage: test
-  needs: []
-  resource_group: nvidia-gpu
-  timeout: 20m
-  retry:
-    max: 2
-    when:
-      - stuck_or_timeout_failure
-  tags:
-    - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
-  variables:
-    NVIDIA_VISIBLE_DEVICES: "all"
-    # Request graphics capability to ensure RTX/OptiX libraries are mounted
-    NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
-  rules:
-    - when: never
-  before_script:
-    # Verify GPU is available - fail fast if not configured
-    - nvidia-smi
-    # Create missing symlink for RTX core library if needed (OptiX looks for .so.1)
-    - |
-      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
-        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
-      fi
-    # Update library cache
-    - ldconfig || true
-    # Install xvfb for headless LibGDX tests
-    - apt-get -y update
-    - apt-get -y install --no-install-recommends mesa-utils x11-xserver-utils xvfb $LIBAV_DEV_PACKAGES
-  script:
-    # Run FULL test suite on CUDA 13
-    - xvfb-run sbt test
-  after_script:
-    - chmod -R 777 menger-app/target/ || true
-  artifacts:
-    when: always
-    reports:
-      junit: menger-app/target/test-reports/**/TEST-*.xml
-
 # OptiX integration tests - comprehensive CLI and rendering tests
 # Uses scripts/integration-tests.sh for packaged-app render coverage
 Test:OptiXIntegration:
-  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION_CUDA13
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
   needs: []
   resource_group: nvidia-gpu
