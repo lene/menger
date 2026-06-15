@@ -1,7 +1,7 @@
 # Sprint 29: OptiX API Coverage I — Denoiser & Curves
 
 **Sprint:** 29 - OptiX API Coverage I
-**Status:** Not Started
+**Status:** In Progress
 **Estimate:** ~30 hours
 **Branch:** `feature/sprint-29`
 **Dependencies:** Sprint 27 (the optix-jni release that adds `updateTexture` — combine
@@ -41,6 +41,7 @@ and ship in the next optix-jni minor release.
 ### Task 29.1: optix-jni — Denoiser API
 
 **Estimate:** 8h
+**Status:** Done
 
 Wrap `OptixDenoiser` in the generic library.
 
@@ -142,15 +143,15 @@ Wrap the OptiX built-in curve primitive.
 
 ## Summary
 
-| Task | Description | Estimate |
-|------|-------------|----------|
-| 29.1 | optix-jni denoiser API | 8h |
-| 29.2 | menger-app denoiser integration | 5h |
-| 29.3 | optix-jni curves primitive | 8h |
-| 29.4 | DSL Curve type + demo | 4h |
-| 29.5 | Tests + reference images | 3h |
-| 29.6 | Docs + optix-jni release | 2h |
-| **Total** | | **~30h** |
+| Task | Description | Estimate | Status |
+|------|-------------|----------|--------|
+| 29.1 | optix-jni denoiser API | 8h | [x] Done |
+| 29.2 | menger-app denoiser integration | 5h | [ ] Planned |
+| 29.3 | optix-jni curves primitive | 8h | [ ] Planned |
+| 29.4 | DSL Curve type + demo | 4h | [ ] Planned |
+| 29.5 | Tests + reference images | 3h | [ ] Planned |
+| 29.6 | Docs + optix-jni release | 2h | [ ] Planned |
+| **Total** | | **~30h** | |
 
 ---
 
