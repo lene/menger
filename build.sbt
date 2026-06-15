@@ -52,27 +52,37 @@ lazy val mengerApp = project
   )
 
 Global / excludeLintKeys += root / cleanKeepFiles
+optixJniProject / cleanKeepFiles +=
+  (optixJniProject / baseDirectory).value / "target" / "compiler_plugins"
+Global / excludeLintKeys += optixJniProject / cleanKeepFiles
 
 // Temporary source-dependency bridge for Sprint 29.2:
 // optix-jni has crossPaths := false, so its wartremover option points at
 // target/compiler_plugins while Menger materializes the Scala 3 plugin under
-// target/scala-2.12/compiler_plugins. Root clean preserves the copied directory
-// because CI coverage runs `clean coverage test` in one sbt session. Remove this
-// with the Sprint 29.6 artifact bump.
+// target/scala-2.12/compiler_plugins. Copy into both the root build and the
+// staged optix-jni source dependency because scalac resolves the relative path
+// from the project currently compiling. Remove this with the Sprint 29.6 artifact
+// bump.
 Global / onLoad := {
   val previous = (Global / onLoad).value
   state =>
     val loaded = previous(state)
     val extracted = Project.extract(loaded)
     val baseDir = extracted.get(ThisBuild / baseDirectory)
+    val optixJniBaseDir = extracted.get(optixJniProject / baseDirectory)
     extracted.get(mengerApp / Compile / scalacOptions)
     val mainCompilerPluginDir = baseDir / "target" / "scala-2.12" / "compiler_plugins"
-    val sourceDependencyPluginDir = baseDir / "target" / "compiler_plugins"
+    val sourceDependencyPluginDirs = Seq(
+      baseDir / "target" / "compiler_plugins",
+      optixJniBaseDir / "target" / "compiler_plugins"
+    ).distinct
     val wartremoverJars = (mainCompilerPluginDir * "wartremover_3.8.3-*.jar").get
     if (wartremoverJars.nonEmpty) {
-      IO.createDirectory(sourceDependencyPluginDir)
-      wartremoverJars.foreach { jar =>
-        IO.copyFile(jar, sourceDependencyPluginDir / jar.getName)
+      sourceDependencyPluginDirs.foreach { sourceDependencyPluginDir =>
+        IO.createDirectory(sourceDependencyPluginDir)
+        wartremoverJars.foreach { jar =>
+          IO.copyFile(jar, sourceDependencyPluginDir / jar.getName)
+        }
       }
     }
     loaded
