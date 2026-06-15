@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder
 import com.badlogic.gdx.math.Vector3
 import menger.common.TriangleMeshData
+import menger.common.TriangleMeshSource
 import menger.common.float2string
 import menger.objects.Direction.Z
 

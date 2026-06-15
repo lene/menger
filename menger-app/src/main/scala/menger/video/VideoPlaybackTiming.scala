@@ -2,6 +2,9 @@ package menger.video
 
 final case class AnimationTimeRange(start: Float, end: Float)
 
+private def isUsableDuration(durationSeconds: Double): Boolean =
+  java.lang.Double.isFinite(durationSeconds) && durationSeconds > 0.0
+
 object VideoPlaybackTime:
   private val MinimumRangeSpan = 1.0e-9
 
@@ -62,9 +65,6 @@ object VideoPlaybackTime:
     if isUsableDuration(durationSeconds) then renderT.toDouble * durationSeconds
     else 0.0
 
-  private def isUsableDuration(durationSeconds: Double): Boolean =
-    java.lang.Double.isFinite(durationSeconds) && durationSeconds > 0.0
-
 object VideoRepeatPolicy:
   def resolve(rawTime: Double, durationSeconds: Double, repeat: VideoRepeat): Double =
     if !isUsableDuration(durationSeconds) then 0.0
@@ -82,6 +82,3 @@ object VideoRepeatPolicy:
   private def positiveModulo(value: Double, modulus: Double): Double =
     val remainder = value % modulus
     if remainder < 0.0 then remainder + modulus else remainder
-
-  private def isUsableDuration(durationSeconds: Double): Boolean =
-    java.lang.Double.isFinite(durationSeconds) && durationSeconds > 0.0

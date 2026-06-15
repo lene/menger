@@ -3,6 +3,8 @@ package menger.objects
 import scala.math.abs
 
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
+import menger.common.TriangleMeshData
+import menger.common.TriangleMeshSource
 import menger.common.Vec3
 import menger.objects.Direction.X
 import menger.objects.Direction.Y

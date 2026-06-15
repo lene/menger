@@ -41,15 +41,3 @@ object ExecutionConfig:
     maxInstances = 64,
     textureDir = "."
   )
-
-  /**
-   * Configuration for benchmarking: statistics enabled, no logging
-   */
-  val Benchmarking: ExecutionConfig = ExecutionConfig(
-    fpsLogIntervalMs = 0,
-    timeout = 0f,
-    saveName = None,
-    enableStats = true,
-    maxInstances = 64,
-    textureDir = "."
-  )

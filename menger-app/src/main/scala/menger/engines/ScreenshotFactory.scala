@@ -64,14 +64,6 @@ object ScreenshotFactory extends LazyLogging:
     require(sanitized.nonEmpty, "File path becomes empty after sanitization")
     if sanitized.toLowerCase.endsWith(".png") then sanitized else s"$sanitized.png"
 
-  private[menger] def sanitizeFileName(fileName: String): String =
-    require(fileName.nonEmpty, "File name cannot be empty")
-
-    val sanitized = fileName.filter(c => c.isLetterOrDigit || c == '_' || c == '-' || c == '.')
-
-    require(sanitized.nonEmpty, "File name becomes empty after sanitization")
-    if sanitized.toLowerCase.endsWith(".png") then sanitized else s"$sanitized.png"
-
   // OpenGL framebuffer has Y=0 at bottom, but PNG format has Y=0 at top.
   // LibGDX handles this internally for display, but we must flip when saving.
   private def getScreenshot(x: Int, y: Int, w: Int, h: Int): Pixmap =

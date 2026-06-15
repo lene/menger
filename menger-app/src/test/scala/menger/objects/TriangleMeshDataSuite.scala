@@ -1,5 +1,6 @@
 package menger.objects
 
+import menger.common.TriangleMeshData
 import menger.objects.Direction.X
 import menger.objects.Direction.Y
 import menger.objects.Direction.Z
