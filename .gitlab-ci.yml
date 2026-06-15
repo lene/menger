@@ -15,7 +15,6 @@ default:
 variables:
   DEPLOYABLE_BASE_NAME: menger
   DEPLOYABLE_VERSION: 0.7.6
-  SBT_IMAGE: sbtscala/scala-sbt:eclipse-temurin-25.0.1_8_1.12.5_3.8.2
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.8.3
   LIBAV_DEV_PACKAGES: "libavcodec-dev libavformat-dev libavutil-dev libswscale-dev"
@@ -64,82 +63,6 @@ code_quality:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
-
-# This job installs sbt by itself. It is somewhat slower than the ones based on scala-sbt below.
-# Tests installation from minimal Debian/Ubuntu base images (without CUDA/OptiX).
-# Run manually only for documentation purposes - will fail on OptiX JNI compilation.
-Test:Debian:
-  retry: 1
-  tags:
-    - nvidia
-  parallel:
-    matrix:
-      - IMAGE:
-        - ubuntu:latest
-        - ubuntu:22.04
-        - debian:stable-slim
-        - debian:testing-slim
-  image: $IMAGE
-  stage: test
-  needs: []
-  rules:
-    - when: manual
-      allow_failure: true
-  before_script:
-    - apt-get -y update
-    - apt-get -y upgrade
-    - apt-get -y install curl gnupg openjdk-17-jdk # 17 is the latest openjdk version in debian stable
-    - echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" > /etc/apt/sources.list.d/sbt.list
-    - echo "deb https://repo.scala-sbt.org/scalasbt/debian /" > /etc/apt/sources.list.d/sbt_old.list
-    - curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | apt-key add
-    - apt-get -y update
-    - apt-get -y install sbt
-    - apt-get -y install --no-install-recommends mesa-utils x11-xserver-utils xvfb cmake g++ $LIBAV_DEV_PACKAGES
-  script:
-    # Skip OptiX JNI compilation (no CUDA installed) by setting ENABLE_OPTIX_JNI=false
-    - export ENABLE_OPTIX_JNI=false
-    - xvfb-run sbt test
-
-# The following ones use a prepared docker image for sbt.
-# Validates that installation instructions in docs/INSTALLATION_FROM_SCRATCH.md work
-# from a fresh sbt image. Installation takes ~10 minutes (CUDA toolkit download).
-# Run manually only to avoid blocking MRs.
-Test:SbtImage:
-  retry: 1
-  image: $SBT_IMAGE
-  stage: test
-  needs: []
-  tags:
-    - nvidia
-  rules:
-    - when: manual
-      allow_failure: true
-  before_script:
-    - apt-get -y update
-    - apt-get -y install --no-install-recommends mesa-utils x11-xserver-utils xvfb cmake g++ curl $LIBAV_DEV_PACKAGES
-    # Install CUDA Toolkit (this takes ~10 minutes)
-    - curl -o cuda-keyring_1.1-1_all.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
-    - dpkg -i cuda-keyring_1.1-1_all.deb
-    - apt-get -y update
-    - apt-get -y install cuda-toolkit-13-2
-    # Download OptiX SDK from GitLab Package Registry
-    - curl --header "JOB-TOKEN:${CI_JOB_TOKEN}" -o NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/optix-sdk/9.0.0/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh"
-    # Install OptiX SDK
-    - chmod +x NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh
-    - mkdir -p /usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64
-    - sh NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh --skip-license --prefix=/usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64
-    - ln -s /usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64 /usr/local/optix
-  script:
-    # Set environment variables for build (must be in script section to persist)
-    - export CUDA_HOME=/usr/local/cuda
-    - export OPTIX_ROOT=/usr/local/optix
-    - export PATH=$CUDA_HOME/bin:$PATH
-    # Run all tests including OptiX JNI
-    - xvfb-run sbt test
-  artifacts:
-    when: always
-    reports:
-      junit: menger-app/target/test-reports/**/TEST-*.xml
 
 # Full test suite - Runs on MR, main, and tag pipelines
 # Uses pre-built Docker image with CUDA, OptiX, Java 25, and sbt

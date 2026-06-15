@@ -48,7 +48,7 @@ apt-get -y install \
 
 ## Install CUDA Toolkit
 
-CUDA Toolkit 12.8 is required for OptiX 9.0 compatibility.
+CUDA Toolkit 13.2 is required for OptiX 9.0 compatibility.
 
 ### Add NVIDIA Repository
 
@@ -60,11 +60,11 @@ dpkg -i cuda-keyring_1.1-1_all.deb
 apt-get -y update
 ```
 
-### Install CUDA Toolkit 12.8
+### Install CUDA Toolkit 13.2
 
 ```bash
 # This takes ~10 minutes and downloads ~3 GB
-apt-get -y install cuda-toolkit-12-8
+apt-get -y install cuda-toolkit-13-2
 ```
 
 ### Set Environment Variables
@@ -88,7 +88,7 @@ source ~/.bashrc
 
 ```bash
 nvcc --version
-# Should output: Cuda compilation tools, release 12.8
+# Should output: Cuda compilation tools, release 13.2
 ```
 
 ## Install OptiX SDK
@@ -276,7 +276,7 @@ fatal error: cuda.h: No such file or directory
 **Solution**:
 ```bash
 # Ensure CUDA toolkit (not just runtime) is installed
-apt-get install cuda-toolkit-12-8
+apt-get install cuda-toolkit-13-2
 
 # Set environment variable
 export CUDA_HOME=/usr/local/cuda
@@ -377,7 +377,3 @@ sbt run                  # Run application
 sbt clean                # Clean build artifacts
 xvfb-run sbt test        # Headless test execution
 ```
-
-## Automated Validation
-
-This installation procedure is automatically validated by the `Test:SbtImage` CI job, which runs weekly to ensure these instructions remain accurate. See `.gitlab-ci.yml` for the automated version.
