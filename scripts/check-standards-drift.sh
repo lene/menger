@@ -42,6 +42,19 @@ check_local() {
     done
 }
 
+check_doc_versions() {
+    # OPTIX_DOCKER_VERSION encodes "{CUDA}-{OptiX}-{Java}-{sbt}"; first field is CUDA.
+    docker_ver=$(grep 'OPTIX_DOCKER_VERSION:' "$REPO_ROOT/.gitlab-ci.yml" \
+        | sed 's/.*OPTIX_DOCKER_VERSION: *//' | sed 's/-.*//')
+    apt_pkg="cuda-toolkit-$(echo "$docker_ver" | tr '.' '-')"
+    if ! grep -q "$apt_pkg" "$REPO_ROOT/docs/INSTALLATION_FROM_SCRATCH.md"; then
+        echo "DRIFT (local): CUDA version mismatch — CI uses CUDA $docker_ver but $apt_pkg not in docs/INSTALLATION_FROM_SCRATCH.md" >&2
+        echo "fail" >> "$DRIFT_FLAG"
+    else
+        echo "ok (local): CUDA toolkit version consistent ($apt_pkg)"
+    fi
+}
+
 check_remote() {
     for repo in $GITHUB_REPOS; do
         manifest_entries | while read -r repo_path canon_name; do
@@ -78,8 +91,8 @@ DRIFT_FLAG=$(mktemp)
 trap 'rm -f "$DRIFT_FLAG"' EXIT
 
 case "$MODE" in
-    --local)  check_local ;;
-    --remote) check_local; check_remote ;;
+    --local)  check_local; check_doc_versions ;;
+    --remote) check_local; check_doc_versions; check_remote ;;
     *) usage ;;
 esac
 
