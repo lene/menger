@@ -19,6 +19,7 @@ lazy val root = project
   .settings(
     name := "menger-root",
     publish / skip := true,
+    cleanKeepFiles += (ThisBuild / baseDirectory).value / "target" / "compiler_plugins",
     // Delegate run to mengerApp so `sbt "run --args"` works from root
     Compile / run / aggregate := false,
     Compile / run := (mengerApp / Compile / run).evaluated,
@@ -50,10 +51,14 @@ lazy val mengerApp = project
     run / baseDirectory := (ThisBuild / baseDirectory).value
   )
 
+Global / excludeLintKeys += root / cleanKeepFiles
+
 // Temporary source-dependency bridge for Sprint 29.2:
 // optix-jni has crossPaths := false, so its wartremover option points at
 // target/compiler_plugins while Menger materializes the Scala 3 plugin under
-// target/scala-2.12/compiler_plugins. Remove this with the Sprint 29.6 artifact bump.
+// target/scala-2.12/compiler_plugins. Root clean preserves the copied directory
+// because CI coverage runs `clean coverage test` in one sbt session. Remove this
+// with the Sprint 29.6 artifact bump.
 Global / onLoad := {
   val previous = (Global / onLoad).value
   state =>
