@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.5] - 2026-06-11
+## [0.7.5] - 2026-06-15
 
 ### Added
 - **Cross-repo quality standards** (`standards/`) — canonical scalafix, scalafmt,
