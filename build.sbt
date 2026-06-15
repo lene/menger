@@ -8,7 +8,7 @@ inThisBuild(List(
 ))
 
 lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.1"
-lazy val optixJniUri = uri("https://github.com/lene/optix-jni.git#ecbcd78")
+lazy val optixJniUri = uri("https://github.com/lene/optix-jni.git#c618caf")
 lazy val optixJniProject =
   ProjectRef(optixJniUri, "optix-jni")
 

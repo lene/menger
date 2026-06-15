@@ -585,7 +585,7 @@ consumer would pull in Menger-specific types with no relevant semantics.
 - `optix-jni` published JAR contains zero Menger-specific types and includes
   native development resources under `optix-jni-native/**`.
 - Sprint 29.2 temporarily consumes `optix-jni` as a source dependency pinned to
-  commit `ecbcd78` so `menger-app` can integrate denoising before the Sprint 29.6
+  commit `c618caf` so `menger-app` can integrate denoising before the Sprint 29.6
   artifact release. The dependency must return to the published Maven artifact
   when that release is available.
 - `menger-geometry` extracts the `optix-jni-native/**` resources from the

@@ -132,7 +132,7 @@ namespace. `DragTracker` was folded into `OrbitCamera`'s `dragState`
 
 **Native sources** live in the external repository
 `github.com/lene/optix-jni`. Sprint 29.2 temporarily pins a source dependency to
-commit `ecbcd78` until the Sprint 29.6 release publishes the denoiser API. The
+commit `c618caf` until the Sprint 29.6 release publishes the denoiser API. The
 published jar contains runtime resources
 (`native/x86_64-linux/liboptixjni.so`, `native/x86_64-linux/optix_shaders.ptx`)
 and native development resources (`optix-jni-native/include/**`,

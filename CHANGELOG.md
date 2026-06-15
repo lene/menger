@@ -8,7 +8,7 @@
 
 ### Changed
 - **Temporary `optix-jni` source dependency** — Sprint 29.2 pins `optix-jni` commit
-  `ecbcd78` until the Sprint 29.6 release publishes the denoiser API.
+  `c618caf` until the Sprint 29.6 release publishes the denoiser API.
 
 ## [0.7.5] - 2026-06-15
 
