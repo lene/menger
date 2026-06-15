@@ -19,7 +19,6 @@ lazy val root = project
   .settings(
     name := "menger-root",
     publish / skip := true,
-    cleanKeepFiles += (ThisBuild / baseDirectory).value / "target" / "compiler_plugins",
     // Delegate run to mengerApp so `sbt "run --args"` works from root
     Compile / run / aggregate := false,
     Compile / run := (mengerApp / Compile / run).evaluated,
@@ -51,39 +50,10 @@ lazy val mengerApp = project
     run / baseDirectory := (ThisBuild / baseDirectory).value
   )
 
-Global / excludeLintKeys += root / cleanKeepFiles
-optixJniProject / cleanKeepFiles +=
-  (optixJniProject / baseDirectory).value / "target" / "compiler_plugins"
-Global / excludeLintKeys += optixJniProject / cleanKeepFiles
-
 // Temporary source-dependency bridge for Sprint 29.2:
-// optix-jni has crossPaths := false, so its wartremover option points at
-// target/compiler_plugins while Menger materializes the Scala 3 plugin under
-// target/scala-2.12/compiler_plugins. Copy into both the root build and the
-// staged optix-jni source dependency because scalac resolves the relative path
-// from the project currently compiling. Remove this with the Sprint 29.6 artifact
-// bump.
-Global / onLoad := {
-  val previous = (Global / onLoad).value
-  state =>
-    val loaded = previous(state)
-    val extracted = Project.extract(loaded)
-    val baseDir = extracted.get(ThisBuild / baseDirectory)
-    val optixJniBaseDir = extracted.get(optixJniProject / baseDirectory)
-    extracted.get(mengerApp / Compile / scalacOptions)
-    val mainCompilerPluginDir = baseDir / "target" / "scala-2.12" / "compiler_plugins"
-    val sourceDependencyPluginDirs = Seq(
-      baseDir / "target" / "compiler_plugins",
-      optixJniBaseDir / "target" / "compiler_plugins"
-    ).distinct
-    val wartremoverJars = (mainCompilerPluginDir * "wartremover_3.8.3-*.jar").get
-    if (wartremoverJars.nonEmpty) {
-      sourceDependencyPluginDirs.foreach { sourceDependencyPluginDir =>
-        IO.createDirectory(sourceDependencyPluginDir)
-        wartremoverJars.foreach { jar =>
-          IO.copyFile(jar, sourceDependencyPluginDir / jar.getName)
-        }
-      }
-    }
-    loaded
-}
+// optix-jni is consumed from a Git source dependency until the Sprint 29.6
+// release. Its standalone repo already runs WartRemover, so keep Menger's build
+// from re-running optix-jni WartRemover with a compiler-plugin path resolved
+// relative to the staged dependency checkout.
+optixJniProject / Compile / wartremoverErrors := Nil
+optixJniProject / Compile / wartremoverWarnings := Nil
