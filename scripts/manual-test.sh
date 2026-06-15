@@ -407,6 +407,10 @@ run_test "120-cell" "-o --objects type=120-cell:size=0.8:material=film --cross -
 run_test "600-cell gold edges" "-o --objects type=600-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.01 -s $OUTPUT_DIR/149-600-cell-edges.png"
 run_test "120-cell chrome edges" "-o --objects type=120-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.015 -s $OUTPUT_DIR/150-120-cell-edges.png"
 
+echo -e "${YELLOW}--- Denoising ---${NC}"
+run_test "Denoise IBL baseline" "-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ -s $OUTPUT_DIR/151-denoise-ibl-baseline.png"
+run_test "Denoise IBL final" "-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ --denoise -s $OUTPUT_DIR/152-denoise-ibl-final.png"
+
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
 if [ "$UPDATE_REFERENCES" = true ]; then
@@ -581,6 +585,8 @@ interactive_tests=(
     "EnvMapDemo glass octahedron (HDR sunset background):-o --objects type=octahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
     "EnvMapDemo glass icosahedron (HDR sunset background):-o --objects type=icosahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
     "EnvMapDemo glass dodecahedron (HDR sunset background):-o --objects type=dodecahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
+    "Denoise IBL baseline:-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/"
+    "Denoise IBL final:-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ --denoise"
 )
 
 echo "Available interactive tests:"

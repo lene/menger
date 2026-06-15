@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **OptiX final-frame denoising** — DSL `RenderSettings(denoise = DenoiseMode.Final)`
+  and CLI `--denoise` denoise the final accumulated linear HDR frame before tone mapping.
+
+### Changed
+- **Temporary `optix-jni` source dependency** — Sprint 29.2 pins `optix-jni` commit
+  `ecbcd78` until the Sprint 29.6 release publishes the denoiser API.
+
 ## [0.7.5] - 2026-06-15
 
 ### Added

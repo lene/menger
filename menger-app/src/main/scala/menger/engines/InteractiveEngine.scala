@@ -22,6 +22,7 @@ import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
+import menger.dsl.DenoiseMode
 import menger.engines.scene.Hexadecachoron4DSceneBuilder
 import menger.engines.scene.InstanceId
 import menger.engines.scene.Menger4DSceneBuilder
@@ -55,6 +56,8 @@ class InteractiveEngine(
   override protected def textureDir: String = execution.textureDir
 
   override protected def renderConfig: menger.common.RenderConfig = config.render
+  override protected def denoiseMode: DenoiseMode = config.denoiseMode
+  override protected def accumulationFrames: Int = config.accumulationFrames
 
   // Required by TimeoutSupport trait
   override def timeout: Float = execution.timeout
@@ -362,6 +365,7 @@ class InteractiveEngine(
         Try {
           renderer.setRenderConfig(renderConfig)
           renderer.setCausticsConfig(config.caustics)
+          configureOutputMode(renderer)
           environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
           environment.fog.foreach(sceneConfigurator.setFog(renderer, _))
           environment.envMap.foreach { path =>

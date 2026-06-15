@@ -27,6 +27,16 @@ object ScreenshotFactory extends LazyLogging:
     val width  = pixmap.getWidth
     val height = pixmap.getHeight
     val rgba   = pixmapToRgbaBytes(pixmap)
+    checkRgbaForSave(rgba, width, height, path, allow)
+
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+  private[menger] def checkRgbaForSave(
+    rgba: Array[Byte],
+    width: Int,
+    height: Int,
+    path: String,
+    allow: Boolean
+  ): Unit =
     try
       RenderHealth.checkRgba(rgba, width, height)
     catch

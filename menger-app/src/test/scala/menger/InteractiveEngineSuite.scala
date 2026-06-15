@@ -15,6 +15,7 @@ import menger.config.SceneConfig
 import menger.engines.InteractiveEngine
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
+import menger.dsl.DenoiseMode
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -93,6 +94,12 @@ class InteractiveEngineSuite extends AnyFlatSpec with Matchers:
     config.execution.timeout shouldBe 0f
     config.execution.enableStats shouldBe false
     config.render shouldBe RenderConfig.Default
+    config.denoiseMode shouldBe DenoiseMode.Off
+    config.accumulationFrames shouldBe 1
+
+  it should "reject invalid accumulation frame counts" in:
+    an[IllegalArgumentException] should be thrownBy
+      OptiXEngineConfig.Testing.copy(accumulationFrames = 0)
 
   "MaterialConfig" should "have useful presets" in:
     MaterialConfig.Glass.ior shouldBe 1.5f

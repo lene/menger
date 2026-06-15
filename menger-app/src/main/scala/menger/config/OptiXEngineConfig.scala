@@ -2,6 +2,7 @@ package menger.config
 
 import menger.common.CausticsConfig
 import menger.common.RenderConfig
+import menger.dsl.DenoiseMode
 
 /**
  * Complete configuration for OptiXEngine.
@@ -23,8 +24,11 @@ case class OptiXEngineConfig(
   execution: ExecutionConfig,
   render: RenderConfig = RenderConfig.Default,
   caustics: CausticsConfig = CausticsConfig.Disabled,
-  cross: CrossConfig = CrossConfig.Disabled
-)
+  cross: CrossConfig = CrossConfig.Disabled,
+  denoiseMode: DenoiseMode = DenoiseMode.Off,
+  accumulationFrames: Int = 1
+):
+  require(accumulationFrames >= 1, s"accumulationFrames must be >= 1, got $accumulationFrames")
 
 object OptiXEngineConfig:
   /**
@@ -37,7 +41,9 @@ object OptiXEngineConfig:
     execution = ExecutionConfig.Default,
     render = RenderConfig.Default,
     caustics = CausticsConfig.Disabled,
-    cross = CrossConfig.Disabled
+    cross = CrossConfig.Disabled,
+    denoiseMode = DenoiseMode.Off,
+    accumulationFrames = 1
   )
 
   /**
@@ -50,5 +56,7 @@ object OptiXEngineConfig:
     execution = ExecutionConfig.Testing,
     render = RenderConfig.Default,
     caustics = CausticsConfig.Disabled,
-    cross = CrossConfig.Disabled
+    cross = CrossConfig.Disabled,
+    denoiseMode = DenoiseMode.Off,
+    accumulationFrames = 1
   )

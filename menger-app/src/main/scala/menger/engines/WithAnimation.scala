@@ -64,9 +64,10 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       .recover { case e: Exception =>
         logger.error(s"Failed to create initial scene: ${e.getMessage}", e)
         GdxRuntime.exit()
-      }.get
+    }.get
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
+    configureOutputMode(renderer)
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
     if firstFrameConfigs.toneMappingOperator != 0 then
       renderer.setToneMapping(firstFrameConfigs.toneMappingOperator, firstFrameConfigs.toneMappingExposure)
@@ -80,8 +81,6 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       logger.error(s"Failed to load environment-map video: ${e.getMessage}", e)
     }
     configureIBL(renderer, firstFrameConfigs)
-    if firstFrameConfigs.accumulationFrames > 1 then
-      renderer.setAccumulationFrames(firstFrameConfigs.accumulationFrames)
     GdxRuntime.setContinuousRendering(true)
 
   abstract override def render(): Unit =

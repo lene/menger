@@ -23,6 +23,7 @@ object SceneIndex:
     VideoTextureCube.scene,
     RenderSettingsDemo.scene,
     CausticsReference.scene,
+    DenoiseIblDemo.scene,
     ParametricSphere.scene,
     ParametricTorus.scene,
     ParametricWavySheet.scene,

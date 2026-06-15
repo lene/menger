@@ -69,6 +69,11 @@ if ! command -v compare &> /dev/null; then
     echo "Please install ImageMagick: sudo apt-get install imagemagick"
     exit 1
 fi
+if ! command -v convert &> /dev/null; then
+    echo -e "${RED}ERROR: ImageMagick 'convert' command not found${RESET}"
+    echo "Please install ImageMagick: sudo apt-get install imagemagick"
+    exit 1
+fi
 
 # Compare images using ImageMagick
 # Returns 0 if images match within threshold, 1 otherwise
@@ -1182,6 +1187,69 @@ test_ibl() {
     rm -f "$ibl_img" "$no_ibl_img"
 }
 
+test_denoising() {
+    echo "OptiX Denoising:"
+
+    local baseline_img="test_denoise_off_$$.png"
+    local denoised_img="test_denoise_on_$$.png"
+    local baseline_log
+    local denoised_log
+    baseline_log=$(failure_log_file "denoise baseline")
+    denoised_log=$(failure_log_file "denoise final")
+    rm -f "$baseline_img" "$denoised_img" "$baseline_log" "$denoised_log"
+
+    local renders_ok=true
+    if ! run_menger_to_log "$baseline_log" --headless \
+            --scene examples.dsl.DenoiseIblDemo \
+            --texture-dir menger-app/src/test/resources/ \
+            --save-name "$baseline_img" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+            || [ ! -f "$baseline_img" ]; then
+        renders_ok=false
+    fi
+
+    if ! run_menger_to_log "$denoised_log" --headless \
+            --scene examples.dsl.DenoiseIblDemo \
+            --texture-dir menger-app/src/test/resources/ \
+            --denoise \
+            --save-name "$denoised_img" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
+            || [ ! -f "$denoised_img" ]; then
+        renders_ok=false
+    fi
+
+    if $renders_ok; then
+        local diff_pixels
+        diff_pixels=$(compare -metric AE "$baseline_img" "$denoised_img" /dev/null 2>&1) || true
+
+        local baseline_noise
+        local denoised_noise
+        baseline_noise=$(convert "$baseline_img" -colorspace Gray \
+            \( +clone -blur 0x1.5 \) -compose difference -composite \
+            -format "%[fx:standard_deviation]" info:)
+        denoised_noise=$(convert "$denoised_img" -colorspace Gray \
+            \( +clone -blur 0x1.5 \) -compose difference -composite \
+            -format "%[fx:standard_deviation]" info:)
+
+        local noise_improved
+        noise_improved=$(echo "$denoised_noise < ($baseline_noise * 0.98)" | bc -l 2>/dev/null) || noise_improved=0
+        if [ "${diff_pixels:-0}" -gt 0 ] 2>/dev/null && [ "$noise_improved" -eq 1 ]; then
+            ((PASSED++))
+            echo -e "  denoise lowers high-pass noise (${baseline_noise} -> ${denoised_noise}) ${GREEN}✓${RESET}"
+        else
+            ((FAILED++))
+            FAILED_TESTS="$FAILED_TESTS\n  - denoise final image did not lower noise"
+            echo -e "  denoise noise check failed (diff=${diff_pixels}px, ${baseline_noise} -> ${denoised_noise}) ${RED}✗${RESET}"
+        fi
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - denoise render failed"
+        echo -e "  denoise render failed ${RED}✗${RESET}"
+        print_failure_log "denoise baseline" "$baseline_log"
+        print_failure_log "denoise final" "$denoised_log"
+    fi
+
+    rm -f "$baseline_img" "$denoised_img" "$baseline_log" "$denoised_log"
+}
+
 test_fog() {
     echo "Fog / Depth Cue:"
 
@@ -1264,6 +1332,7 @@ main() {
     test_error_handling
     test_video_output
     test_ibl
+    test_denoising
     test_fog
 
     print_summary

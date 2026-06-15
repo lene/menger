@@ -3,7 +3,7 @@ package menger
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import menger.common.CausticsConfig
-import menger.dsl.{EnvMapVideo, IBL, RenderSettings, Scene, Sphere}
+import menger.dsl.{DenoiseMode, EnvMapVideo, IBL, RenderSettings, Scene, Sphere}
 import menger.engines.SceneConverter
 
 class IBLSuite extends AnyFlatSpec with Matchers:
@@ -81,11 +81,17 @@ class IBLSuite extends AnyFlatSpec with Matchers:
 
   it should "produce accumulationFrames=1 by default" in:
     SceneConverter.convert(minimalScene, noCaustics).accumulationFrames shouldBe 1
+    SceneConverter.convert(minimalScene, noCaustics).denoiseMode shouldBe DenoiseMode.Off
 
   it should "forward accumulation from RenderSettings" in:
     val scene   = minimalScene.copy(render = Some(RenderSettings(accumulation = 4)))
     val configs = SceneConverter.convert(scene, noCaustics)
     configs.accumulationFrames shouldBe 4
+
+  it should "forward denoise mode from RenderSettings" in:
+    val scene   = minimalScene.copy(render = Some(RenderSettings(denoise = DenoiseMode.Final)))
+    val configs = SceneConverter.convert(scene, noCaustics)
+    configs.denoiseMode shouldBe DenoiseMode.Final
 
   it should "warn and produce iblEnabled=false when ibl is set but envMap is absent" in:
     // no assertion on log output; just ensure no exception and iblEnabled=false

@@ -140,6 +140,15 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.planes should not be empty
     scene.caustics shouldBe defined
 
+  it should "load DenoiseIblDemo via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.DenoiseIblDemo"))
+    scene.objects should have length 1
+    scene.lights shouldBe empty
+    scene.ibl shouldBe defined
+    scene.ibl.get.samples shouldBe 1
+    scene.render.map(_.accumulation) shouldBe Some(2)
+    scene.render.map(_.denoise) shouldBe Some(DenoiseMode.Off)
+
   it should "load ParametricTorusCaustics via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.ParametricTorusCaustics"))
     scene.objects should have length 1
@@ -176,6 +185,7 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     registeredNames should contain("parametric-sphere-caustics")
     registeredNames should contain("parametric-torus-caustics")
     registeredNames should contain("caustics-reference-default")
+    registeredNames should contain("denoise-ibl-demo")
 
   it should "load TesseractDemo via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.TesseractDemo"))

@@ -65,6 +65,7 @@ Wrap `OptixDenoiser` in the generic library.
 ### Task 29.2: menger-app — Denoiser Integration
 
 **Estimate:** 5h
+**Status:** Done
 
 **Implementation:**
 - DSL: `RenderSettings(denoise: DenoiseMode = DenoiseMode.Off)` with
@@ -146,7 +147,7 @@ Wrap the OptiX built-in curve primitive.
 | Task | Description | Estimate | Status |
 |------|-------------|----------|--------|
 | 29.1 | optix-jni denoiser API | 8h | [x] Done |
-| 29.2 | menger-app denoiser integration | 5h | [ ] Planned |
+| 29.2 | menger-app denoiser integration | 5h | [x] Done |
 | 29.3 | optix-jni curves primitive | 8h | [ ] Planned |
 | 29.4 | DSL Curve type + demo | 4h | [ ] Planned |
 | 29.5 | Tests + reference images | 3h | [ ] Planned |

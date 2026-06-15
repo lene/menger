@@ -8,7 +8,9 @@ inThisBuild(List(
 ))
 
 lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.1"
-lazy val optixJniDependency = "io.github.lene" % "optix-jni" % "0.1.4"
+lazy val optixJniUri = uri("https://github.com/lene/optix-jni.git#ecbcd78")
+lazy val optixJniProject =
+  ProjectRef(optixJniUri, "optix-jni")
 
 // Root project - aggregator only, no source code
 lazy val root = project
@@ -31,7 +33,8 @@ lazy val root = project
 lazy val mengerGeometry = project
   .in(file("menger-geometry"))
   .enablePlugins(JniNative)
-  .settings(libraryDependencies ++= Seq(mengerCommonDependency, optixJniDependency))
+  .dependsOn(optixJniProject)
+  .settings(libraryDependencies += mengerCommonDependency)
 
 // Main application - depends on menger-geometry and common
 lazy val mengerApp = project
@@ -46,3 +49,26 @@ lazy val mengerApp = project
     // Use project root as working directory so file paths match packaged executable behavior
     run / baseDirectory := (ThisBuild / baseDirectory).value
   )
+
+// Temporary source-dependency bridge for Sprint 29.2:
+// optix-jni has crossPaths := false, so its wartremover option points at
+// target/compiler_plugins while Menger materializes the Scala 3 plugin under
+// target/scala-2.12/compiler_plugins. Remove this with the Sprint 29.6 artifact bump.
+Global / onLoad := {
+  val previous = (Global / onLoad).value
+  state =>
+    val loaded = previous(state)
+    val extracted = Project.extract(loaded)
+    val baseDir = extracted.get(ThisBuild / baseDirectory)
+    extracted.get(mengerApp / Compile / scalacOptions)
+    val mainCompilerPluginDir = baseDir / "target" / "scala-2.12" / "compiler_plugins"
+    val sourceDependencyPluginDir = baseDir / "target" / "compiler_plugins"
+    val wartremoverJars = (mainCompilerPluginDir * "wartremover_3.8.3-*.jar").get
+    if (wartremoverJars.nonEmpty) {
+      IO.createDirectory(sourceDependencyPluginDir)
+      wartremoverJars.foreach { jar =>
+        IO.copyFile(jar, sourceDependencyPluginDir / jar.getName)
+      }
+    }
+    loaded
+}

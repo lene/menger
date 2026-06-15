@@ -2,6 +2,7 @@ package menger.cli
 
 import com.badlogic.gdx.graphics.Color
 import menger.AnimationSpecification
+import menger.dsl.DenoiseMode
 import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -64,6 +65,23 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
   "--antialias-samples" should "set antialias samples" in:
     val options = SafeMengerCLIOptions(Seq("--antialias-samples", "1"))
     options.antialiasSamples() shouldEqual 1
+
+  "--denoise" should "default to off" in:
+    val options = SafeMengerCLIOptions(Seq[String]())
+    options.denoise() shouldBe false
+    options.denoiseMode shouldBe DenoiseMode.Off
+
+  it should "map to final-frame denoising when supplied" in:
+    val options = SafeMengerCLIOptions(Seq("--denoise"))
+    options.denoise() shouldBe true
+    options.denoiseMode shouldBe DenoiseMode.Final
+
+  it should "map --no-denoise to off" in:
+    val options = SafeMengerCLIOptions(Seq("--no-denoise"))
+    options.noDenoise() shouldBe true
+    options.denoiseModeSupplied shouldBe true
+    options.denoise() shouldBe false
+    options.denoiseMode shouldBe DenoiseMode.Off
 
   "--projection-screen-w" should "be valid with matching --projection-eye-w" in:
     val options = SafeMengerCLIOptions(Seq("--projection-screen-w", "1", "--projection-eye-w", "2"))

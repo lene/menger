@@ -12,6 +12,7 @@ import menger.common.ImageSize
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
 import menger.config.OptiXEngineConfig
+import menger.dsl.DenoiseMode
 import menger.input.GdxRuntime
 
 class CliAnimationEngine(
@@ -32,6 +33,8 @@ class CliAnimationEngine(
 
   override protected def textureDir: String       = execution.textureDir
   override protected def renderConfig: RenderConfig = config.render
+  override protected def denoiseMode: DenoiseMode = config.denoiseMode
+  override protected def accumulationFrames: Int  = config.accumulationFrames
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
     camera.position.toVector3, camera.lookAt.toVector3, camera.up.toVector3,
@@ -57,6 +60,7 @@ class CliAnimationEngine(
     }.get
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(config.caustics)
+    configureOutputMode(renderer)
     environment.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
     environment.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
     GdxRuntime.setContinuousRendering(true)

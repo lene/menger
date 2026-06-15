@@ -8,6 +8,7 @@ import menger.common.ProfilingConfig
 import menger.common.RenderConfig
 import menger.config.ExecutionConfig
 import menger.config.TAnimationConfig
+import menger.dsl.DenoiseMode
 import menger.dsl.Scene
 import menger.input.GdxRuntime
 import menger.input.LibGDXInputAdapter
@@ -18,7 +19,8 @@ class PreviewEngine(
   val previewConfig: TAnimationConfig,
   executionConfig: ExecutionConfig,
   override val renderConfig: RenderConfig,
-  val causticsConfig: CausticsConfig
+  val causticsConfig: CausticsConfig,
+  denoiseModeOverride: Option[DenoiseMode] = None
 )(using ProfilingConfig)
     extends BaseEngine(executionConfig.maxInstances)
     with WithPreview:
@@ -29,6 +31,11 @@ class PreviewEngine(
 
   override protected val firstFrameConfigs: SceneConverter.SceneConfigs =
     SceneConverter.convert(_firstScene, causticsConfig)
+
+  override protected def denoiseMode: DenoiseMode =
+    denoiseModeOverride.getOrElse(firstFrameConfigs.denoiseMode)
+
+  override protected def accumulationFrames: Int = firstFrameConfigs.accumulationFrames
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
     firstFrameConfigs.camera.position.toVector3,

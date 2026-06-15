@@ -13,6 +13,7 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
     rs.aaMaxDepth shouldBe 2
     rs.aaThreshold shouldBe 0.1f
     rs.maxRayDepth shouldBe None
+    rs.denoise shouldBe DenoiseMode.Off
 
   it should "be constructible with all fields" in:
     val rs = RenderSettings(
@@ -20,13 +21,15 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
       transparentShadows = true,
       antialiasing = true,
       aaMaxDepth = 3,
-      aaThreshold = 0.05f
+      aaThreshold = 0.05f,
+      denoise = DenoiseMode.Final
     )
     rs.shadows shouldBe true
     rs.transparentShadows shouldBe true
     rs.antialiasing shouldBe true
     rs.aaMaxDepth shouldBe 3
     rs.aaThreshold shouldBe 0.05f
+    rs.denoise shouldBe DenoiseMode.Final
 
   it should "validate aaMaxDepth range" in:
     an[IllegalArgumentException] should be thrownBy RenderSettings(aaMaxDepth = 0)
@@ -80,3 +83,4 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
     hq.antialiasing shouldBe true
     hq.aaMaxDepth shouldBe 3
     hq.aaThreshold shouldBe 0.05f
+    hq.denoise shouldBe DenoiseMode.Off

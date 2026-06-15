@@ -23,43 +23,60 @@ Test / fork := true
 lazy val optixJniNativeApiDir =
   settingKey[File]("Directory containing native API files extracted from optix-jni")
 lazy val extractOptixJniNativeApi =
-  taskKey[File]("Extract optix-jni native headers and shader includes from its published jar")
+  taskKey[File]("Extract optix-jni native headers and shader includes from dependency resources")
 
 optixJniNativeApiDir := target.value / "optix-jni-native-api"
 
 extractOptixJniNativeApi := {
   val log = streams.value.log
   val outputDir = optixJniNativeApiDir.value
-  val optixJar = (Compile / dependencyClasspath).value
-    .map(_.data)
-    .find(_.getName.matches("optix-jni.*\\.jar"))
-    .getOrElse(sys.error("optix-jni dependency jar not found on menger-geometry classpath"))
 
-  IO.delete(outputDir)
-  val jar = new JarFile(optixJar)
-  try {
-    val extractedFiles = jar.entries.asScala
-      .filter(entry => !entry.isDirectory && entry.getName.startsWith("optix-jni-native/"))
-      .map { entry =>
-        val relativePath = entry.getName.stripPrefix("optix-jni-native/")
+  def copyFromDirectory(classpathEntry: File): Seq[File] = {
+    val nativeRoot = classpathEntry / "optix-jni-native"
+    if (nativeRoot.exists()) {
+      (nativeRoot ** "*").get.filter(_.isFile).map { sourceFile =>
+        val relativePath = sourceFile.relativeTo(nativeRoot).fold(sourceFile.getName)(_.getPath)
         val targetFile = outputDir / relativePath
         IO.createDirectory(targetFile.getParentFile)
-        val inputStream = jar.getInputStream(entry)
-        try Files.copy(inputStream, targetFile.toPath, StandardCopyOption.REPLACE_EXISTING)
-        finally inputStream.close()
+        IO.copyFile(sourceFile, targetFile)
         targetFile
       }
-      .toSeq
-
-    if (extractedFiles.isEmpty) {
-      sys.error(s"No optix-jni-native resources found in ${optixJar.getAbsolutePath}")
-    }
-
-    log.info(s"Extracted ${extractedFiles.size} optix-jni native API files to $outputDir")
-    outputDir
-  } finally {
-    jar.close()
+    } else Seq.empty
   }
+
+  def copyFromJar(classpathEntry: File): Seq[File] = {
+    if (classpathEntry.isFile && classpathEntry.getName.matches("optix-jni.*\\.jar")) {
+      val jar = new JarFile(classpathEntry)
+      try {
+        jar.entries.asScala
+          .filter(entry => !entry.isDirectory && entry.getName.startsWith("optix-jni-native/"))
+          .map { entry =>
+            val relativePath = entry.getName.stripPrefix("optix-jni-native/")
+            val targetFile = outputDir / relativePath
+            IO.createDirectory(targetFile.getParentFile)
+            val inputStream = jar.getInputStream(entry)
+            try Files.copy(inputStream, targetFile.toPath, StandardCopyOption.REPLACE_EXISTING)
+            finally inputStream.close()
+            targetFile
+          }
+          .toSeq
+      } finally jar.close()
+    } else Seq.empty
+  }
+
+  IO.delete(outputDir)
+  val classpathEntries = (Compile / dependencyClasspath).value.map(_.data)
+  val extractedFiles = classpathEntries.flatMap(entry =>
+    copyFromDirectory(entry) ++ copyFromJar(entry)
+  )
+
+  if (extractedFiles.isEmpty) {
+    val searched = classpathEntries.map(_.getAbsolutePath).mkString("\n  ")
+    sys.error(s"No optix-jni-native resources found on menger-geometry classpath:\n  $searched")
+  }
+
+  log.info(s"Extracted ${extractedFiles.size} optix-jni native API files to $outputDir")
+  outputDir
 }
 
 nativeCompile / sourceDirectory := sourceDirectory.value / "main" / "native"

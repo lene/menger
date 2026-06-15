@@ -11,6 +11,7 @@ import menger.common.{Color => CommonColor}
 import menger.config.CameraConfig
 import menger.config.PlaneConfig
 import menger.config.SceneConfig
+import menger.dsl.DenoiseMode
 import menger.dsl.Material
 import menger.dsl.Scene
 import menger.dsl.SceneNode
@@ -41,6 +42,7 @@ object SceneConverter extends LazyLogging:
     iblStrength: Float = 1.0f,
     iblSamples: Int = 1,
     accumulationFrames: Int = 1,
+    denoiseMode: DenoiseMode = DenoiseMode.Off,
   )
 
   def convert(dslScene: Scene, fallbackCaustics: CausticsConfig): SceneConfigs =
@@ -73,6 +75,7 @@ object SceneConverter extends LazyLogging:
       case None =>
         (false, 1.0f, 1)
     val accumulationFrames = dslScene.render.map(_.accumulation).getOrElse(1)
+    val denoiseMode        = dslScene.render.map(_.denoise).getOrElse(DenoiseMode.Off)
     SceneConfigs(
       scene,
       camera,
@@ -89,7 +92,8 @@ object SceneConverter extends LazyLogging:
       iblEnabled,
       iblStrength,
       iblSamples,
-      accumulationFrames
+      accumulationFrames,
+      denoiseMode
     )
 
   /** Flatten a SceneNode tree to a list of ObjectSpecs.

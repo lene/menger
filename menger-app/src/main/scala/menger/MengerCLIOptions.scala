@@ -26,6 +26,7 @@ import menger.common.ObjectType
 import menger.common.RenderConfig
 import menger.common.RenderLimits
 import menger.config.CrossConfig
+import menger.dsl.DenoiseMode
 import org.rogach.scallop._
 import org.rogach.scallop.exceptions._
 
@@ -391,6 +392,20 @@ class MengerCLIOptions(arguments: Seq[String])
     validate = d => d >= 1 && d <= RenderLimits.MaxRayDepth,
     descr = s"Maximum ray bounce depth (1-${RenderLimits.MaxRayDepth}, default: ${RenderLimits.MaxRayDepth})"
   )
+  val denoise: ScallopOption[Boolean] = toggle(
+    name = "denoise",
+    default = Some(false),
+    group = optixQualityGroup,
+    descrYes = "Denoise the final accumulated frame",
+    descrNo = "Disable final-frame denoising"
+  )
+  val noDenoise: ScallopOption[Boolean] = opt[Boolean](
+    name = "no-denoise",
+    required = false,
+    default = Some(false),
+    group = optixQualityGroup,
+    descr = "Disable final-frame denoising, overriding DSL scenes"
+  )
   val allowUniformRender: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(false), group = optixQualityGroup,
     descr = "Allow renders where >=99% of pixels are the same colour (otherwise treated as a failure)"
@@ -434,6 +449,13 @@ class MengerCLIOptions(arguments: Seq[String])
     aaThreshold = aaThreshold(),
     maxRayDepth = maxRayDepth()
   )
+
+  def denoiseMode: DenoiseMode =
+    if noDenoise() then DenoiseMode.Off
+    else if denoise() then DenoiseMode.Final
+    else DenoiseMode.Off
+
+  def denoiseModeSupplied: Boolean = denoise.isSupplied || noDenoise.isSupplied
 
   def causticsConfig: CausticsConfig = CausticsConfig(
     enabled = caustics(),
