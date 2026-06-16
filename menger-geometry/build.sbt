@@ -33,13 +33,17 @@ optixJniNativeApiDir := target.value / "optix-jni-native-api"
 
 verifyOptixJniSourceCommit := {
   val log = streams.value.log
-  val actual = Process(Seq("git", "rev-parse", "HEAD"), OptixJniSource.checkout).!!.trim
-  if (actual != OptixJniSource.commit) {
-    sys.error(
-      s"optix-jni source checkout is at $actual, expected ${OptixJniSource.commit}"
-    )
+  if (OptixJniSource.usesLocalCheckout) {
+    val actual = Process(Seq("git", "rev-parse", "HEAD"), OptixJniSource.checkout).!!.trim
+    if (actual != OptixJniSource.commit) {
+      sys.error(
+        s"optix-jni source checkout is at $actual, expected ${OptixJniSource.commit}"
+      )
+    }
+    log.info(s"Verified local optix-jni source commit ${actual.take(12)}")
+  } else {
+    log.info(s"Using pinned optix-jni Git source ${OptixJniSource.commit.take(12)}")
   }
-  log.info(s"Verified optix-jni source commit ${actual.take(12)}")
 }
 
 def copyOptixJniNativeApiFromDirectory(nativeRoot: File, outputDir: File): Seq[File] =
