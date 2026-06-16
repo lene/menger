@@ -82,8 +82,12 @@ Wrap `OptixDenoiser` in the generic library.
 ### Task 29.3: optix-jni — Curves Primitive
 
 **Estimate:** 8h
+**Status:** Done
 
 Wrap the OptiX built-in curve primitive.
+
+**Result:** Implemented in optix-jni commit
+`7371676deca5e028c325c73186e27e427c5ee39d`.
 
 **Implementation:**
 - Build input `OPTIX_BUILD_INPUT_TYPE_CURVES`, primitive type
@@ -147,7 +151,7 @@ Wrap the OptiX built-in curve primitive.
 |------|-------------|----------|--------|
 | 29.1 | optix-jni denoiser API | 8h | [x] Done |
 | 29.2 | menger-app denoiser integration | 5h | [ ] Planned |
-| 29.3 | optix-jni curves primitive | 8h | [ ] Planned |
+| 29.3 | optix-jni curves primitive | 8h | [x] Done |
 | 29.4 | DSL Curve type + demo | 4h | [ ] Planned |
 | 29.5 | Tests + reference images | 3h | [ ] Planned |
 | 29.6 | Docs + optix-jni release | 2h | [ ] Planned |

@@ -1,4 +1,4 @@
-import com.github.sbt.jni.build.CMakeWithoutVersionBug
+import menger.build.CMakeWithoutVersionBug
 
 // Global settings applied to all projects
 inThisBuild(List(
@@ -8,7 +8,7 @@ inThisBuild(List(
 ))
 
 lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.1"
-lazy val optixJniDependency = "io.github.lene" % "optix-jni" % "0.1.4"
+lazy val optixJniSource = OptixJniSource.projectRef
 
 // Root project - aggregator only, no source code
 lazy val root = project
@@ -31,7 +31,8 @@ lazy val root = project
 lazy val mengerGeometry = project
   .in(file("menger-geometry"))
   .enablePlugins(JniNative)
-  .settings(libraryDependencies ++= Seq(mengerCommonDependency, optixJniDependency))
+  .dependsOn(optixJniSource)
+  .settings(libraryDependencies += mengerCommonDependency)
 
 // Main application - depends on menger-geometry and common
 lazy val mengerApp = project

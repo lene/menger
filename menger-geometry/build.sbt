@@ -1,8 +1,9 @@
-import com.github.sbt.jni.build.CMakeWithoutVersionBug
+import menger.build.CMakeWithoutVersionBug
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.jar.JarFile
 import scala.jdk.CollectionConverters._
+import scala.sys.process._
 
 name := "menger-geometry"
 version := "0.7.1"
@@ -24,21 +25,40 @@ lazy val optixJniNativeApiDir =
   settingKey[File]("Directory containing native API files extracted from optix-jni")
 lazy val extractOptixJniNativeApi =
   taskKey[File]("Extract optix-jni native headers and shader includes from its published jar")
+lazy val optixJniPinnedSource = OptixJniSource.projectRef
+lazy val verifyOptixJniSourceCommit =
+  taskKey[Unit]("Verify checked-out optix-jni source matches the pinned commit")
 
 optixJniNativeApiDir := target.value / "optix-jni-native-api"
 
-extractOptixJniNativeApi := {
+verifyOptixJniSourceCommit := {
   val log = streams.value.log
-  val outputDir = optixJniNativeApiDir.value
-  val optixJar = (Compile / dependencyClasspath).value
-    .map(_.data)
-    .find(_.getName.matches("optix-jni.*\\.jar"))
-    .getOrElse(sys.error("optix-jni dependency jar not found on menger-geometry classpath"))
+  val actual = Process(Seq("git", "rev-parse", "HEAD"), OptixJniSource.checkout).!!.trim
+  if (actual != OptixJniSource.commit) {
+    sys.error(
+      s"optix-jni source checkout is at $actual, expected ${OptixJniSource.commit}"
+    )
+  }
+  log.info(s"Verified optix-jni source commit ${actual.take(12)}")
+}
 
-  IO.delete(outputDir)
+def copyOptixJniNativeApiFromDirectory(nativeRoot: File, outputDir: File): Seq[File] =
+  if (!nativeRoot.exists()) {
+    Seq.empty
+  } else {
+    (nativeRoot ** "*").get.filter(_.isFile).map { sourceFile =>
+      val relativePath = sourceFile.relativeTo(nativeRoot).fold(sourceFile.getName)(_.getPath)
+      val targetFile = outputDir / relativePath
+      IO.createDirectory(targetFile.getParentFile)
+      IO.copyFile(sourceFile, targetFile)
+      targetFile
+    }
+  }
+
+def copyOptixJniNativeApiFromJar(optixJar: File, outputDir: File): Seq[File] = {
   val jar = new JarFile(optixJar)
   try {
-    val extractedFiles = jar.entries.asScala
+    jar.entries.asScala
       .filter(entry => !entry.isDirectory && entry.getName.startsWith("optix-jni-native/"))
       .map { entry =>
         val relativePath = entry.getName.stripPrefix("optix-jni-native/")
@@ -50,16 +70,44 @@ extractOptixJniNativeApi := {
         targetFile
       }
       .toSeq
-
-    if (extractedFiles.isEmpty) {
-      sys.error(s"No optix-jni-native resources found in ${optixJar.getAbsolutePath}")
-    }
-
-    log.info(s"Extracted ${extractedFiles.size} optix-jni native API files to $outputDir")
-    outputDir
   } finally {
     jar.close()
   }
+}
+
+extractOptixJniNativeApi := {
+  val log = streams.value.log
+  val outputDir = optixJniNativeApiDir.value
+
+  IO.delete(outputDir)
+  verifyOptixJniSourceCommit.value
+  (optixJniPinnedSource / Compile / resources).value
+
+  val classpathFiles = (Compile / dependencyClasspath).value.map(_.data)
+  val optixJar = classpathFiles.find(_.getName.matches("optix-jni.*\\.jar"))
+  val optixSourceNativeRoots = Seq(
+    (optixJniPinnedSource / Compile / classDirectory).value / "optix-jni-native",
+    (optixJniPinnedSource / Compile / resourceManaged).value / "optix-jni-native"
+  )
+
+  val extractedFiles = optixJar match {
+    case Some(jarFile) =>
+      copyOptixJniNativeApiFromJar(jarFile, outputDir)
+    case None =>
+      optixSourceNativeRoots
+        .iterator
+        .map(copyOptixJniNativeApiFromDirectory(_, outputDir))
+        .find(_.nonEmpty)
+        .getOrElse(Seq.empty)
+  }
+
+  if (extractedFiles.isEmpty) {
+    val searched = (classpathFiles ++ optixSourceNativeRoots).map(_.getAbsolutePath).mkString(", ")
+    sys.error(s"No optix-jni-native resources found. Searched: $searched")
+  }
+
+  log.info(s"Extracted ${extractedFiles.size} optix-jni native API files to $outputDir")
+  outputDir
 }
 
 nativeCompile / sourceDirectory := sourceDirectory.value / "main" / "native"

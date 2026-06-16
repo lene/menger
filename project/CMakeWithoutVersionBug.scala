@@ -1,5 +1,7 @@
-package com.github.sbt.jni.build
+package menger.build
 
+import com.github.sbt.jni.build.BuildTool
+import com.github.sbt.jni.build.ConfigureMakeInstall
 import sbt._
 import sys.process._
 
