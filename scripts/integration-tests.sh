@@ -1234,10 +1234,14 @@ test_denoising() {
         if [ "${diff_pixels:-0}" -gt 0 ] 2>/dev/null && [ "$noise_improved" -eq 1 ]; then
             ((PASSED++))
             echo -e "  denoise lowers high-pass noise (${baseline_noise} -> ${denoised_noise}) ${GREEN}✓${RESET}"
+        elif grep -qi "Color-only denoiser unavailable" "$denoised_log"; then
+            echo -e "  ${YELLOW}SKIP${RESET}: OptiX denoiser unavailable on this runner"
         else
             ((FAILED++))
             FAILED_TESTS="$FAILED_TESTS\n  - denoise final image did not lower noise"
             echo -e "  denoise noise check failed (diff=${diff_pixels}px, ${baseline_noise} -> ${denoised_noise}) ${RED}✗${RESET}"
+            print_failure_log "denoise baseline" "$baseline_log"
+            print_failure_log "denoise final" "$denoised_log"
         fi
     else
         ((FAILED++))
