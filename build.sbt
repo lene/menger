@@ -8,7 +8,7 @@ inThisBuild(List(
 ))
 
 lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.1"
-lazy val optixJniUri = uri("https://github.com/lene/optix-jni.git#c618caf")
+lazy val optixJniUri = uri("https://github.com/lene/optix-jni.git#7cfabdd")
 lazy val optixJniProject =
   ProjectRef(optixJniUri, "optix-jni")
 
@@ -49,11 +49,3 @@ lazy val mengerApp = project
     // Use project root as working directory so file paths match packaged executable behavior
     run / baseDirectory := (ThisBuild / baseDirectory).value
   )
-
-// Temporary source-dependency bridge for Sprint 29.2:
-// optix-jni is consumed from a Git source dependency until the Sprint 29.6
-// release. Its standalone repo already runs WartRemover, so keep Menger's build
-// from re-running optix-jni WartRemover with a compiler-plugin path resolved
-// relative to the staged dependency checkout.
-optixJniProject / Compile / wartremoverErrors := Nil
-optixJniProject / Compile / wartremoverWarnings := Nil
