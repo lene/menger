@@ -11,10 +11,6 @@ stages:
 default:
   timeout: 15m
   retry: 2
-  # Keep non-GPU jobs off project NVIDIA runners. Those runners are only needed for
-  # OptiX/LibGDX execution jobs and may have host-driver-specific container hooks.
-  tags:
-    - saas-linux-small-amd64
 
 variables:
   DEPLOYABLE_BASE_NAME: menger
