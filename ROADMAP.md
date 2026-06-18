@@ -3,6 +3,7 @@
 **Last Updated:** 2026-06-10
 
 Strategic feature planning for the Menger ray tracing renderer.
+Unscheduled feature ideas: [docs/BACKLOG.md](docs/BACKLOG.md).
 
 ---
 

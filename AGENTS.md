@@ -151,6 +151,7 @@ Use the `/release-checklist` skill. Version must be updated in four files: `meng
 | `docs/sprints/SPRINT.md` | Current sprint pointer |
 | `CHANGELOG.md` | Version history (keepachangelog format) |
 | `CODE_IMPROVEMENTS.md` | Open code-quality findings (resolved items deleted, not archived) |
+| `docs/BACKLOG.md` | Unscheduled feature ideas not yet sprint-assigned |
 | `optix-jni/README.md` | OptiX JNI module details |
 
 ---
