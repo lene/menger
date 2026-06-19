@@ -584,8 +584,13 @@ consumer would pull in Menger-specific types with no relevant semantics.
   `io.github.lene:optix-jni:0.1.0` from the GitLab Package Registry.
 - `optix-jni` published JAR contains zero Menger-specific types and includes
   native development resources under `optix-jni-native/**`.
+- Sprint 29.2 temporarily consumes `optix-jni` as a source dependency pinned to
+  commit `c618caf` so `menger-app` can integrate denoising before the Sprint 29.6
+  artifact release. The dependency must return to the published Maven artifact
+  when that release is available.
 - `menger-geometry` extracts the `optix-jni-native/**` resources from the
-  dependency jar during `nativeCompile` and passes those directories to CMake.
+  dependency jar or source-dependency resource directories during `nativeCompile`
+  and passes those directories to CMake.
 - `menger-geometry` native library (`libmengergeometry.so`) must be extracted from
   its JAR and loaded before use; loading order matters (`liboptixjni.so` promoted
   to `RTLD_GLOBAL` so symbols are visible to `libmengergeometry.so`).

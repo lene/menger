@@ -20,6 +20,7 @@ import menger.config.OptiXEngineConfig
 import menger.config.PlaneConfig
 import menger.config.SceneConfig
 import menger.config.TAnimationConfig
+import menger.dsl.DenoiseMode
 import menger.dsl.LoadedScene
 import menger.engines.AnimationEngine
 import menger.engines.CliAnimationEngine
@@ -103,7 +104,8 @@ object Main:
           previewConfig   = animConfig,
           executionConfig = buildExecutionConfig(opts),
           renderConfig    = opts.renderConfig,
-          causticsConfig  = opts.causticsConfig
+          causticsConfig  = opts.causticsConfig,
+          denoiseModeOverride = cliDenoiseOverride(opts)
         )
 
       case Right(LoadedScene.Animated(fn)) if opts.tFrames.isSupplied =>
@@ -123,7 +125,8 @@ object Main:
             causticsConfig = opts.causticsConfig,
             videoOutputPath = opts.video(),
             videoQuality = opts.videoQuality(),
-            keepFrames = opts.keepFrames()
+            keepFrames = opts.keepFrames(),
+            denoiseModeOverride = cliDenoiseOverride(opts)
           )
         else
           AnimationEngine(
@@ -131,7 +134,8 @@ object Main:
             animConfig = animConfig,
             executionConfig = buildExecutionConfig(opts),
             renderConfig = opts.renderConfig,
-            causticsConfig = opts.causticsConfig
+            causticsConfig = opts.causticsConfig,
+            denoiseModeOverride = cliDenoiseOverride(opts)
           )
 
       case Right(loadedScene) =>
@@ -158,6 +162,7 @@ object Main:
       toneMappingOperator = configs.toneMappingOperator,
       toneMappingExposure = configs.toneMappingExposure,
     )
+    val mergedDenoise = cliDenoiseOverride(opts).getOrElse(configs.denoiseMode)
     val engineConfig = OptiXEngineConfig(
       scene = configs.scene,
       camera = configs.camera,
@@ -175,7 +180,9 @@ object Main:
       execution = buildExecutionConfig(opts),
       render = mergedRender,
       caustics = configs.caustics,
-      cross = opts.crossConfig
+      cross = opts.crossConfig,
+      denoiseMode = mergedDenoise,
+      accumulationFrames = configs.accumulationFrames
     )
     InteractiveEngine(engineConfig, opts.userSetMaxInstances)
 
@@ -200,7 +207,9 @@ object Main:
       execution = buildExecutionConfig(opts),
       render = opts.renderConfig,
       caustics = opts.causticsConfig,
-      cross = opts.crossConfig
+      cross = opts.crossConfig,
+      denoiseMode = opts.denoiseMode,
+      accumulationFrames = 1
     )
     opts.animate.toOption match
       case Some(animSpec) =>
@@ -219,3 +228,6 @@ object Main:
       allowUniformRender = opts.allowUniformRender(),
       statsJsonPath = opts.statsJson.toOption
     )
+
+  private def cliDenoiseOverride(opts: MengerCLIOptions): Option[DenoiseMode] =
+    if opts.denoiseModeSupplied then Some(opts.denoiseMode) else None

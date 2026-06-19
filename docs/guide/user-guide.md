@@ -1176,6 +1176,25 @@ Total light samples per pixel = `ibl.samples × accumulation`. Example: `samples
 Accumulation renders N independent frames with different random seeds, then averages them.
 It only applies in headless/render mode; the interactive preview uses a single frame.
 
+#### Denoising
+
+Final-frame denoising is off by default. Enable it from the CLI with `--denoise`, or
+from DSL scenes with `RenderSettings(denoise = DenoiseMode.Final)`.
+
+```scala
+Scene(
+  ...,
+  ibl    = Some(IBL(samples = 1)),
+  render = Some(RenderSettings(accumulation = 2, denoise = DenoiseMode.Final)),
+)
+```
+
+The renderer accumulates linear HDR color first, denoises the final accumulated frame,
+then tone maps to PNG output. Denoising allocates extra OptiX/CUDA buffers, typically
+about 100-400 MB depending on resolution, and adds a small final-frame latency cost.
+Use it for noisy IBL, area-light, and future depth-of-field renders; leave it off when
+you need byte-stable reference images or want to inspect raw sampling noise.
+
 ---
 
 ### Tone Mapping — *Sprint 22*

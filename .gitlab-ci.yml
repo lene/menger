@@ -60,7 +60,7 @@ code_quality:
   image: docker:27
   services:
     - docker:27-dind
-  timeout: 20m
+  timeout: 30m
   retry:
     max: 2
     when:
@@ -185,7 +185,8 @@ CheckCoverage:
     - statement_rate_old=${statement_rate:-0}
     - branch_rate_old=${branch_rate:-0}
     # Run tests with coverage
-    - xvfb-run sbt clean coverage test || true
+    - sbt clean
+    - xvfb-run sbt coverage test || true
     - sbt coverageReport
     # Extract coverage from report
     - REPORT=$(head -n 2 menger-app/target/scala-3.*.*/scoverage-report/scoverage.xml | tail -n 1 | xargs)

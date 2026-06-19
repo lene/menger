@@ -83,6 +83,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
     }.get
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
+    configureOutputMode(renderer)
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
     GdxRuntime.setContinuousRendering(false)
     updateTitle()

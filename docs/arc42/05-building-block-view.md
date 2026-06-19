@@ -126,12 +126,14 @@ namespace. `DragTracker` was folded into `OrbitCamera`'s `dragState`
 | Aspect | Detail |
 |--------|--------|
 | Purpose | Generic GPU ray tracing library. NVIDIA OptiX/CUDA JNI bindings; PTX shaders for sphere and generic geometry. No Menger-specific types. Published as `io.github.lene:optix-jni`. |
-| Interface | `OptiXRenderer` (thin class — mixes in five `private[optix]` API traits — `OptiXSphereApi`, `OptiXMeshApi`, `OptiXPlaneApi`, `OptiXTextureApi`, `OptiXRenderApi`; holds `@volatile nativeHandle: Long`), `NativeOptiXApi` (thin context/module/pipeline lifecycle), `Material`, `RenderConfig`, `RenderLimits`, `RenderHealth`. |
+| Interface | `OptiXRenderer` (thin class — mixes in five `private[optix]` API traits — `OptiXSphereApi`, `OptiXMeshApi`, `OptiXPlaneApi`, `OptiXTextureApi`, `OptiXRenderApi`; holds `@volatile nativeHandle: Long`; exposes final-frame denoising through `setDenoisingEnabled`), `NativeOptiXApi` (thin context/module/pipeline/denoiser lifecycle), `OptiXDenoiser`, `Material`, `RenderConfig`, `RenderLimits`, `RenderHealth`. |
 | Allowed dependencies | `menger-common`, JDK only. No LibGDX, no Scala-specific types in public method signatures. |
 | Enforced rules | `loadLibrary` and `native` methods in `optix-jni` or `menger-geometry` only (`ArchitectureSpec`). Java-friendly API surface (no `scala.Option`, `scala.collection`, etc. on public methods). |
 
 **Native sources** live in the external repository
-`github.com/lene/optix-jni`. Its published jar contains runtime resources
+`github.com/lene/optix-jni`. Sprint 29.2 temporarily pins a source dependency to
+commit `c618caf` until the Sprint 29.6 release publishes the denoiser API. The
+published jar contains runtime resources
 (`native/x86_64-linux/liboptixjni.so`, `native/x86_64-linux/optix_shaders.ptx`)
 and native development resources (`optix-jni-native/include/**`,
 `optix-jni-native/shaders/**`) consumed by `menger-geometry`.
@@ -144,7 +146,7 @@ and native development resources (`optix-jni-native/include/**`,
 | Interface | `MengerRenderer` (extends `OptiXRenderer`; overrides all 4D geometry `@native` methods to dispatch to `libmengergeometry.so`), `VideoLoader` (Scala/JNI wrapper; decodes video frames from `.mp4`/`.mkv` via libav; returns raw RGBA byte arrays for GPU texture upload — Sprint 27 skeleton). |
 | Allowed dependencies | `optix-jni`, `menger-common`. |
 | Enforced rules | `@native` methods and `loadLibrary` permitted here (same ArchUnit rule as `optix-jni`). |
-| Native dependency handling | `menger-geometry/build.sbt` extracts `optix-jni-native/**` from the `optix-jni` dependency jar into `target/optix-jni-native-api` and passes those include/shader directories to CMake. |
+| Native dependency handling | `menger-geometry/build.sbt` extracts `optix-jni-native/**` from the `optix-jni` dependency jar or source-dependency resource directories into `target/optix-jni-native-api` and passes those include/shader directories to CMake. |
 
 **Native sources** (`menger-geometry/src/main/native/`): `MengerJNIBindings.cpp`
 (4D geometry JNI dispatch), `CausticsRenderer.{h,cpp}`, `Project4D.{h,cu}`.

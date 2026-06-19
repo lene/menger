@@ -23,6 +23,7 @@ case class RenderSettings(
   maxRayDepth: Option[Int] = None,
   // Sprint 23.5: multi-frame accumulation for noise reduction.
   accumulation: Int = 1,
+  denoise: DenoiseMode = DenoiseMode.Off,
 ):
   require(aaMaxDepth >= 1 && aaMaxDepth <= 4, s"aaMaxDepth must be 1-4, got $aaMaxDepth")
   require(aaThreshold >= 0.0f && aaThreshold <= 1.0f, s"aaThreshold must be 0.0-1.0, got $aaThreshold")

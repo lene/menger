@@ -1,5 +1,6 @@
 package menger
 
+import io.github.lene.optix.UniformRenderException
 import menger.engines.ScreenshotFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -32,3 +33,25 @@ class ScreenshotFactorySuite extends AnyFlatSpec with Matchers:
 
   it should "remove dangerous characters but keep path separators" in:
     ScreenshotFactory.sanitizePath("output/test<script>.png") should be("output/testscript.png")
+
+  "checkRgbaForSave" should "still reject a uniform denoised render" in:
+    val pixels = Array.fill[Byte](4 * 4 * 4)(127.toByte)
+    val ex = intercept[UniformRenderException]:
+      ScreenshotFactory.checkRgbaForSave(
+        pixels,
+        width = 4,
+        height = 4,
+        path = "denoised.png",
+        allow = false
+      )
+    ex.getMessage should include("Pass --allow-uniform-render")
+
+  it should "allow a uniform denoised render when explicitly configured" in:
+    val pixels = Array.fill[Byte](4 * 4 * 4)(127.toByte)
+    noException should be thrownBy ScreenshotFactory.checkRgbaForSave(
+      pixels,
+      width = 4,
+      height = 4,
+      path = "denoised.png",
+      allow = true
+    )

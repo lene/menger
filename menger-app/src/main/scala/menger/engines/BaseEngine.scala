@@ -6,6 +6,7 @@ import scala.util.Try
 import com.badlogic.gdx.Game
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.CameraState
+import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.OptiXRendererWrapper
 import io.github.lene.optix.SceneConfigurator
 import menger.ObjectSpec
@@ -13,6 +14,7 @@ import menger.OptiXRenderResources
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
+import menger.dsl.DenoiseMode
 import menger.engines.scene.SceneBuilder
 
 abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig: ProfilingConfig)
@@ -25,6 +27,12 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
   /** Concrete engines provide their effective `RenderConfig`; used by
     * scene-build to honour render-quality flags such as `--gpu-project-4d`. */
   protected def renderConfig: RenderConfig
+  protected def denoiseMode: DenoiseMode = DenoiseMode.Off
+  protected def accumulationFrames: Int = 1
+
+  protected def configureOutputMode(renderer: OptiXRenderer): Unit =
+    renderer.setDenoisingEnabled(denoiseMode == DenoiseMode.Final)
+    if accumulationFrames > 1 then renderer.setAccumulationFrames(accumulationFrames)
 
   // Override in concrete engines that need auto-adjustment (e.g. InteractiveEngine)
   protected def computeEffectiveMaxInstances(builder: SceneBuilder, specs: List[ObjectSpec]): Int =
