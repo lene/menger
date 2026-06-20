@@ -4,8 +4,8 @@ import menger.ObjectSpec
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.engines.scene.ConeSceneBuilder
-import menger.engines.scene.CurveSceneBuilder
 import menger.engines.scene.CubeSpongeSceneBuilder
+import menger.engines.scene.CurveSceneBuilder
 import menger.engines.scene.Hexadecachoron4DSceneBuilder
 import menger.engines.scene.Menger4DSceneBuilder
 import menger.engines.scene.PlaneSceneBuilder
