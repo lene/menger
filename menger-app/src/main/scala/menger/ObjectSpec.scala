@@ -28,6 +28,8 @@ case class PlaneGeometry(
 
 case class ProceduralSpec(proceduralType: Int = 0, scale: Float = 1.0f)
 
+case class CurveData(points: Vector[Float], widths: Vector[Float])
+
 case class TextureMaps(normalMap: Option[String] = None, roughnessMap: Option[String] = None)
 
 /**
@@ -76,7 +78,8 @@ case class ObjectSpec(
   procedural: ProceduralSpec = ProceduralSpec(),
   textureMaps: TextureMaps = TextureMaps(),
   meshData: Option[TriangleMeshData] = None,
-  distanceThreshold: Option[Int] = None
+  distanceThreshold: Option[Int] = None,
+  curveData: Option[CurveData] = None
 ):
   require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
 

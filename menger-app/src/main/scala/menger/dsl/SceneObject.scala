@@ -3,6 +3,7 @@ package menger.dsl
 import scala.annotation.targetName
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.CurveData
 import menger.ObjectRotation
 import menger.ObjectSpec
 import menger.ProceduralSpec
@@ -34,7 +35,8 @@ sealed trait SceneObject:
     projection4D: Option[menger.Projection4DSpec] = None,
     edgeRadius: Option[Float] = None,
     edgeMaterial: Option[menger.common.Material] = None,
-    meshData: Option[menger.common.TriangleMeshData] = None
+    meshData: Option[menger.common.TriangleMeshData] = None,
+    curveData: Option[CurveData] = None
   ): ObjectSpec =
     ObjectSpec(
       objectType = objectType,
@@ -54,7 +56,8 @@ sealed trait SceneObject:
       rotation = ObjectRotation(rotation.x, rotation.y, rotation.z),
       procedural = ProceduralSpec(proceduralType, proceduralScale),
       textureMaps = TextureMaps(normalMap = normalMap, roughnessMap = roughnessMap),
-      meshData = meshData
+      meshData = meshData,
+      curveData = curveData
     )
 
 /** Sphere object */
@@ -410,3 +413,78 @@ case class ParametricSurface(
       tupleF, uRange, vRange, uSteps, vSteps, closedU, closedV
     )
     baseObjectSpec("parametric", meshData = Some(mesh))
+
+/** Round cubic B-spline tube rendered via the OptiX built-in curves primitive.
+  *
+  * Control points are in world space. `closed = true` wraps the spline by
+  * appending the first 3 points so the curve joins smoothly at the seam.
+  *
+  * @param points   Sequence of at least 4 control points in world space
+  * @param radius   Uniform tube radius (used when `radii` is None)
+  * @param radii    Optional per-control-point radii (must match `points.size`)
+  * @param closed   Whether to close the loop (appends 3 wrap points)
+  * @param material Optional material override
+  */
+case class Curve(
+  points: Seq[Vec3],
+  radius: Float = 0.05f,
+  radii: Option[Seq[Float]] = None,
+  closed: Boolean = false,
+  pos: Vec3 = Vec3.Zero,
+  size: Float = 1.0f,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[menger.video.VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(points.size >= 4, s"Curve requires at least 4 control points, got ${points.size}")
+  require(radius > 0f, s"Curve radius must be positive, got $radius")
+  radii.foreach(r =>
+    require(r.size == points.size,
+      s"radii length (${r.size}) must equal points length (${points.size})")
+    require(r.forall(_ > 0f), "All per-point radii must be positive")
+  )
+
+  def toObjectSpec: ObjectSpec =
+    val allPoints = if closed then points ++ points.take(3) else points
+    val flatPoints = Vector.from(allPoints.flatMap(p => Seq(p.x, p.y, p.z)))
+    val effectiveWidths: Seq[Float] = radii.getOrElse(Seq.fill(points.size)(radius))
+    val allWidths = if closed then effectiveWidths ++ effectiveWidths.take(3) else effectiveWidths
+    val flatWidths = Vector.from(allWidths)
+    baseObjectSpec("curve", curveData = Some(CurveData(flatPoints, flatWidths)))
+
+object Curve:
+  /** Closed ring of control points in the XZ plane. */
+  def circle(
+    radius: Float,
+    tubeRadius: Float,
+    segments: Int = 64,
+    material: Option[Material] = None
+  ): Curve =
+    val pts = (0 until segments).map { i =>
+      val angle = 2f * math.Pi.toFloat * i / segments
+      Vec3(radius * math.cos(angle).toFloat, 0f, radius * math.sin(angle).toFloat)
+    }
+    Curve(points = pts, radius = tubeRadius, closed = true, material = material)
+
+  /** Open helix along the Y axis. */
+  def helix(
+    turns: Int,
+    radius: Float,
+    pitch: Float,
+    tubeRadius: Float,
+    pointsPerTurn: Int = 32,
+    material: Option[Material] = None
+  ): Curve =
+    val total = turns * pointsPerTurn
+    val pts = (0 to total).map { i =>
+      val t = 2f * math.Pi.toFloat * i / pointsPerTurn
+      Vec3(radius * math.cos(t).toFloat, pitch * i / pointsPerTurn, radius * math.sin(t).toFloat)
+    }
+    Curve(points = pts, radius = tubeRadius, closed = false, material = material)

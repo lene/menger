@@ -20,7 +20,9 @@ object RenderModeSelector:
     val otherTypes    = types.filterNot(t =>
       ObjectType.isAnalyticalPrimitive(t) || t == "cube-sponge")
 
-    if !hasAnalytical && !hasCubeSponge && otherTypes.forall(ObjectType.isTriangleMesh) then
+    if types.forall(_ == "curve") then
+      SceneType.Curves(specs)
+    else if !hasAnalytical && !hasCubeSponge && otherTypes.forall(ObjectType.isTriangleMesh) then
       SceneType.TriangleMeshes(specs)
     else if (hasAnalytical || hasCubeSponge) && otherTypes.forall(ObjectType.isTriangleMesh) then
       val tag = otherTypes.headOption.getOrElse(
@@ -43,4 +45,5 @@ enum SceneType:
   case Menger4D(specs: List[ObjectSpec])
   case Sierpinski4D(specs: List[ObjectSpec])
   case Hexadecachoron4D(specs: List[ObjectSpec])
+  case Curves(specs: List[ObjectSpec])
   case Unsupported(specs: List[ObjectSpec])

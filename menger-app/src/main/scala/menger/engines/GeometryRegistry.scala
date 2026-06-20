@@ -4,6 +4,7 @@ import menger.ObjectSpec
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.engines.scene.ConeSceneBuilder
+import menger.engines.scene.CurveSceneBuilder
 import menger.engines.scene.CubeSpongeSceneBuilder
 import menger.engines.scene.Hexadecachoron4DSceneBuilder
 import menger.engines.scene.Menger4DSceneBuilder
@@ -42,6 +43,8 @@ object GeometryRegistry:
       val types = specs.map(s => ObjectType.normalize(s.objectType)).toSet
       if types.forall(_ == "sphere") then
         Some(SphereSceneBuilder(textureDir))
+      else if types.forall(_ == "curve") then
+        Some(CurveSceneBuilder(textureDir))
       else if types.forall(_ == "cube-sponge") then
         Some(CubeSpongeSceneBuilder(textureDir))
       else if types.forall(ObjectType.isTriangleMesh) then

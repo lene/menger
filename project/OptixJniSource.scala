@@ -4,7 +4,7 @@ import sbt.ProjectRef
 import sbt.uri
 
 object OptixJniSource {
-  val commit = "7cfabdd7e5df7362d226d5e0ec59267422c98454"
+  val commit = "7371676deca5e028c325c73186e27e427c5ee39d"
   val checkout: File = new File("../optix-jni").getCanonicalFile
   val usesGitSource: Boolean =
     sys.env.get("MENGER_OPTIX_JNI_SOURCE").exists(_.equalsIgnoreCase("git"))

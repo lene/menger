@@ -110,6 +110,7 @@ Wrap the OptiX built-in curve primitive.
 ### Task 29.4: menger-geometry / DSL — Curve Type
 
 **Estimate:** 4h
+**Status:** Done
 
 **Implementation:**
 - DSL: `Curve(points: Seq[Vec3], radius: Float | per-point radii, material)`
@@ -153,7 +154,7 @@ Wrap the OptiX built-in curve primitive.
 | 29.1 | optix-jni denoiser API | 8h | [x] Done |
 | 29.2 | menger-app denoiser integration | 5h | [x] Done |
 | 29.3 | optix-jni curves primitive | 8h | [x] Done |
-| 29.4 | DSL Curve type + demo | 4h | [ ] Planned |
+| 29.4 | DSL Curve type + demo | 4h | [x] Done |
 | 29.5 | Tests + reference images | 3h | [ ] Planned |
 | 29.6 | Docs + optix-jni release | 2h | [ ] Planned |
 | **Total** | | **~30h** | |
