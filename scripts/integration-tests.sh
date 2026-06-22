@@ -783,6 +783,7 @@ test_dsl_scenes() {
     run_test "DSL EnvMapDemo (IBL importance-sampled env lighting + accumulation)" \
         --scene examples.dsl.EnvMapDemo \
         --texture-dir menger-app/src/test/resources/
+    run_test "DSL TrefoilKnot" --scene examples.dsl.TrefoilKnot
 }
 
 test_t_animation() {

@@ -411,6 +411,9 @@ echo -e "${YELLOW}--- Denoising ---${NC}"
 run_test "Denoise IBL baseline" "-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ -s $OUTPUT_DIR/151-denoise-ibl-baseline.png"
 run_test "Denoise IBL final" "-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ --denoise -s $OUTPUT_DIR/152-denoise-ibl-final.png"
 
+echo -e "${YELLOW}--- Curves ---${NC}"
+run_test "Trefoil knot" "-o --scene examples.dsl.TrefoilKnot -s $OUTPUT_DIR/153-trefoil-knot.png"
+
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
 if [ "$UPDATE_REFERENCES" = true ]; then
@@ -587,6 +590,7 @@ interactive_tests=(
     "EnvMapDemo glass dodecahedron (HDR sunset background):-o --objects type=dodecahedron:size=0.8:material=glass --env-map rogland_sunset_2k.hdr --texture-dir menger-app/src/test/resources/"
     "Denoise IBL baseline:-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/"
     "Denoise IBL final:-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ --denoise"
+    "Trefoil knot:-o --scene examples.dsl.TrefoilKnot"
 )
 
 echo "Available interactive tests:"

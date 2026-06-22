@@ -23,6 +23,17 @@ class CurveSuite extends AnyFlatSpec with Matchers:
     an[IllegalArgumentException] should be thrownBy Curve(points = fourPoints, radius = 0f)
     an[IllegalArgumentException] should be thrownBy Curve(points = fourPoints, radius = -0.1f)
 
+  it should "reject NaN in control point coordinates" in:
+    val nanPoint = fourPoints.updated(1, Vec3(Float.NaN, 0f, 0f))
+    an[IllegalArgumentException] should be thrownBy Curve(points = nanPoint)
+
+  it should "reject Inf in control point coordinates" in:
+    val infPoint = fourPoints.updated(2, Vec3(0f, Float.PositiveInfinity, 0f))
+    an[IllegalArgumentException] should be thrownBy Curve(points = infPoint)
+
+  it should "reject NaN radius" in:
+    an[IllegalArgumentException] should be thrownBy Curve(points = fourPoints, radius = Float.NaN)
+
   "Curve.toObjectSpec" should "produce objectType curve" in:
     val spec = Curve(points = fourPoints).toObjectSpec
     spec.objectType shouldBe "curve"

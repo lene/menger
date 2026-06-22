@@ -30,6 +30,7 @@ object SceneIndex:
     ParametricMoebius.scene,
     ParametricKleinBottle.scene,
     ParametricKleinBottleFilm.scene,
+    TrefoilKnot.scene,
   )
 
   /** Animated scene objects (loaded via reflection with def scene(t: Float)). */

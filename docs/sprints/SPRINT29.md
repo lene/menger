@@ -155,7 +155,7 @@ Wrap the OptiX built-in curve primitive.
 | 29.2 | menger-app denoiser integration | 5h | [x] Done |
 | 29.3 | optix-jni curves primitive | 8h | [x] Done |
 | 29.4 | DSL Curve type + demo | 4h | [x] Done |
-| 29.5 | Tests + reference images | 3h | [ ] Planned |
+| 29.5 | Tests + reference images | 3h | [x] Done |
 | 29.6 | Docs + optix-jni release | 2h | [ ] Planned |
 | **Total** | | **~30h** | |
 

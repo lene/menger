@@ -71,6 +71,12 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.lights should have length 3  // ThreePointLighting
     scene.planes should not be empty
 
+  it should "load TrefoilKnot via reflection" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.TrefoilKnot"))
+    scene.objects should have length 1
+    scene.lights should have length 2
+    scene.planes should not be empty
+
   private def extractAnimatedFn(result: Either[String, LoadedScene]): Float => Scene =
     result match
       case Right(LoadedScene.Animated(fn)) => fn
@@ -186,6 +192,7 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     registeredNames should contain("parametric-torus-caustics")
     registeredNames should contain("caustics-reference-default")
     registeredNames should contain("denoise-ibl-demo")
+    registeredNames should contain("trefoil-knot")
 
   it should "load TesseractDemo via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.TesseractDemo"))

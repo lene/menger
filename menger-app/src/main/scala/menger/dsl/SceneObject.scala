@@ -444,11 +444,13 @@ case class Curve(
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(points.size >= 4, s"Curve requires at least 4 control points, got ${points.size}")
-  require(radius > 0f, s"Curve radius must be positive, got $radius")
+  require(java.lang.Float.isFinite(radius) && radius > 0f, s"Curve radius must be finite and positive, got $radius")
+  require(points.forall(p => java.lang.Float.isFinite(p.x) && java.lang.Float.isFinite(p.y) && java.lang.Float.isFinite(p.z)),
+    "Curve control points must have finite coordinates (no NaN or Inf)")
   radii.foreach(r =>
     require(r.size == points.size,
       s"radii length (${r.size}) must equal points length (${points.size})")
-    require(r.forall(_ > 0f), "All per-point radii must be positive")
+    require(r.forall(v => java.lang.Float.isFinite(v) && v > 0f), "All per-point radii must be finite and positive")
   )
 
   def toObjectSpec: ObjectSpec =
