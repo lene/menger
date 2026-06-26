@@ -40,7 +40,7 @@ def copyOptixJniNativeApiFromJar(optixJar: File, outputDir: File): Seq[File] = {
         finally inputStream.close()
         targetFile
       }
-      .toSeq
+      .toVector  // strict; dont let lazy Stream survive jar.close()
   } finally {
     jar.close()
   }
