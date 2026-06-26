@@ -1,8 +1,8 @@
-# Sprint 30: OptiX API Coverage II — Motion Blur, API Audit, 1.0 Prep
+# Sprint 30: OptiX API Coverage II — Architecture, API Audit, 1.0 Prep
 
 **Sprint:** 30 - OptiX API Coverage II
-**Status:** Not Started
-**Estimate:** ~26 hours
+**Status:** 📋 Planned
+**Estimate:** ~27 hours
 **Branch:** `feature/sprint-30`
 **Dependencies:** Sprint 29 (denoiser + curves establish the API-expansion pattern)
 **Feature ID:** F13 Phase 2 in [FEATURE_DEPENDENCIES.md](FEATURE_DEPENDENCIES.md)
@@ -11,20 +11,22 @@
 
 ## Goal
 
-Second phase of OptiX API coverage: a systematic audit of the remaining OptiX API
-surface with an expose/defer decision per feature, transform motion blur (the most
-valuable audited item — it upgrades every animation render), and the concrete
-readiness plan for optix-jni 1.0 (SemVer stability contract).
+Architecture hardening sprint: thorough architectural review across all 4 axes with
+concrete follow-through on findings, systematic arc42 audit and coherence pass,
+OptiX API surface audit with expose/defer decisions, and the concrete readiness
+plan for optix-jni 1.0 (SemVer stability contract). Motion blur deferred to
+Sprint 31 (or later) to make room for architectural debt resolution.
 
 ---
 
 ## Success Criteria
 
+- [ ] Architectural review completed against the 4-axis framework (Soundness,
+      Maturity, Evolvability, Performance Architecture); report in ARCHITECTURE_REVIEW.md
+- [ ] arc42 all 12 sections reviewed for accuracy and completeness; drift from code
+      identified and corrected; stale claims replaced with current state
 - [ ] Audit document lists every OptiX 8.x/9.x feature group with status
       exposed / planned / deliberately-not-exposed + rationale
-- [ ] `MotionBlur(shutter = 0.5)` in an animated DSL scene produces visible,
-      physically plausible motion blur on rotating geometry
-- [ ] Motion blur off by default; reference images unchanged
 - [ ] optix-jni 1.0 readiness checklist complete (API review, Scaladoc, MiMa baseline)
 - [ ] All tests pass
 
@@ -32,7 +34,49 @@ readiness plan for optix-jni 1.0 (SemVer stability contract).
 
 ## Tasks
 
-### Task 30.1: OptiX API Audit
+### Task 30.1: Architectural Review
+
+**Estimate:** 6h
+
+Full architectural review using the 4-axis framework (Soundness, Maturity,
+Evolvability, Performance Architecture) from `arch-review` skill.
+Output: `ARCHITECTURE_REVIEW.md` at repo root.
+
+Scope: whole-system structure across menger-app, menger-geometry, optix-jni,
+and menger-common. Anchored to arc42 §5, §9, §10, §11. Each finding must
+include a fitness-function verdict: is the invariant guarded, partially
+guarded, or unguarded by an automated check?
+
+Top-priority follow-through on findings that can be resolved within the sprint
+(fitness functions, docs, minor refactors). Larger findings become backlog items.
+
+---
+
+### Task 30.2: arc42 Review and Coherence Pass
+
+**Estimate:** 3h
+
+Systematic read-through of all 12 arc42 sections against current codebase:
+
+- §1 Introduction: stakeholder interests still accurate?
+- §2 Constraints: TC-* still match reality?
+- §3 Context: external system boundaries unchanged?
+- §4 Solution Strategy: still the approach?
+- §5 Building Block View: module graph, interfaces, dependencies current?
+- §6 Runtime View: key scenarios (startup, render, animation, publish)?
+- §7 Deployment: Docker, CI, cloud still accurate?
+- §8 Cross-cutting Concepts: all conventions documented?
+- §9 Architectural Decisions: new ADs from Sprint 28-29 present?
+- §10 Quality: fitness functions current? Caustics ladder still 0/8?
+- §11 Risks: new risks from arch review captured?
+- §12 Glossary: terms up to date?
+
+Fix errors and stale claims. Flag sections needing major rework as backlog items.
+Update "Last Updated" dates. Goal: arc42 is once again a trustworthy source.
+
+---
+
+### Task 30.3: OptiX API Audit
 
 **Estimate:** 4h
 
@@ -51,29 +95,7 @@ we chose to expose is stable".
 
 ---
 
-### Task 30.2: Transform Motion Blur
-
-**Estimate:** 8h
-
-**Implementation:**
-- `OptixMotionOptions` on the IAS (numKeys=2, t0=0, t1=1); per-instance
-  `OptixMatrixMotionTransform` with begin/end transforms
-- Animation integration: for each output frame at animation time `t`, the engine
-  computes transforms at `t` and `t + shutter·Δt` and feeds both keys; rays sample
-  `optixTrace` time uniformly per sample — accumulation frames stratify the shutter
-  interval, so motion blur quality scales with existing `accumulation` setting
-- Scope: transform (rigid-body) motion blur only. Deformation/vertex motion blur
-  (e.g. for morphing parametric surfaces) is deferred — audit notes it
-- DSL: `RenderSettings(motionBlur: Option[MotionBlur])`, `MotionBlur(shutter: Float)`
-  (shutter as fraction of frame interval, 0..1)
-- 4D note: 4D-rotation animations currently refit projected vertices per frame
-  (in-place projection kernel). Vertex refit + motion transforms don't compose —
-  for 4D objects, motion blur falls back to camera/object 3D-transform blur only;
-  document the limitation
-
----
-
-### Task 30.3: Validation Mode + SER
+### Task 30.4: Validation Mode + SER
 
 **Estimate:** 6h
 
@@ -91,7 +113,7 @@ Two audited items worth implementing immediately:
 
 ---
 
-### Task 30.4: optix-jni 1.0 Readiness
+### Task 30.5: optix-jni 1.0 Readiness
 
 **Estimate:** 5h
 
@@ -108,14 +130,13 @@ Two audited items worth implementing immediately:
 
 ---
 
-### Task 30.5: Tests + Documentation
+### Task 30.6: Tests + Documentation
 
 **Estimate:** 3h
 
-- Integration: motion-blurred rotating sponge reference image (fixed seed +
-  accumulation makes it deterministic); validation-mode smoke test (assert clean run)
-- `scripts/manual-test.sh`: motion blur on/off pair (append at end)
-- User guide: Motion Blur section; TROUBLESHOOTING.md validation-mode section
+- Validation-mode smoke test (assert clean run)
+- `scripts/manual-test.sh`: SER on/off entry if gains measurable
+- User guide: Validation Mode section; update TROUBLESHOOTING.md
 - CHANGELOG.md entry
 
 ---
@@ -124,12 +145,13 @@ Two audited items worth implementing immediately:
 
 | Task | Description | Estimate |
 |------|-------------|----------|
-| 30.1 | OptiX API audit + 1.0 scope definition | 4h |
-| 30.2 | Transform motion blur | 8h |
-| 30.3 | Validation mode + SER | 6h |
-| 30.4 | optix-jni 1.0 readiness | 5h |
-| 30.5 | Tests + documentation | 3h |
-| **Total** | | **~26h** |
+| 30.1 | Architectural review (4-axis) | 6h |
+| 30.2 | arc42 coherence pass (all 12 sections) | 3h |
+| 30.3 | OptiX API audit + 1.0 scope definition | 4h |
+| 30.4 | Validation mode + SER | 6h |
+| 30.5 | optix-jni 1.0 readiness | 5h |
+| 30.6 | Tests + documentation | 3h |
+| **Total** | | **~27h** |
 
 ---
 
@@ -139,3 +161,4 @@ Two audited items worth implementing immediately:
 - [ ] Pre-push hook green
 - [ ] CHANGELOG.md updated
 - [ ] arc42 §9 decision record for the API audit
+- [ ] CODE_IMPROVEMENTS.md findings from arch review captured

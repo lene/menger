@@ -33,7 +33,7 @@ Unscheduled feature ideas: [docs/BACKLOG.md](docs/BACKLOG.md).
 | v0.7.4 | Video Textures & Backgrounds | ✅ Complete | Animated .mp4 video textures + 360° env-map backgrounds via ffmpeg, per-frame GPU texture swap; CUDA 13 / driver ≥580.65 (Sprint 27) |
 | v0.7.5 | Agentic Guardrails & Release Automation | ✅ Complete | Cross-repo standards, tiered hooks, multi-model reviews, release-on-merge, stats JSON, benchmarks, Renovate (Sprint 28) |
 | v0.7.6 | OptiX API Coverage I | ✅ Complete | AI denoiser, curves primitive, optix-jni release (Sprint 29) |
-| TBD | OptiX API Coverage II | 🔄 In Progress | Motion blur, API audit, validation mode, optix-jni 1.0 prep (Sprint 30) |
+| TBD | OptiX API Coverage II | 🔄 In Progress | Architecture hardening — arch review, arc42 audit, API audit, validation mode, SER, 1.0 prep (Sprint 30) |
 | TBD | L-Systems | Planned | 3D/4D Lindenmayer systems, turtle geometry, presets (Sprint 31) |
 | TBD | Spectral Dispersion | Planned | Wavelength-dependent IOR, hero-wavelength sampling, diamond fire (Sprint 32) |
 | TBD | PBR Texture Sets | Planned | Shared texture sets (ambientCG/Poly Haven), metallic/AO maps (Sprint 33) |
