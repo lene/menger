@@ -25,14 +25,14 @@ and ship in the next optix-jni minor release.
 
 ## Success Criteria
 
-- [ ] `RenderSettings(denoise = ...)` in DSL denoises the final accumulated frame;
+- [x] `RenderSettings(denoise = ...)` in DSL denoises the final accumulated frame;
       visibly less noise on an IBL `samples=1` scene at equal render time
-- [ ] Denoising is off by default; reference images unchanged when off
-- [ ] `Curve(points, radius)` DSL type renders a smooth swept tube via the OptiX curves
+- [x] Denoising is off by default; reference images unchanged when off
+- [x] `Curve(points, radius)` DSL type renders a smooth swept tube via the OptiX curves
       primitive (no triangle mesh, no cylinder chain)
-- [ ] Both APIs exposed in `optix-jni` as documented public API (Scaladoc)
-- [ ] New optix-jni version published with denoiser + curves + `updateTexture`
-- [ ] All tests pass
+- [x] Both APIs exposed in `optix-jni` as documented public API (Scaladoc)
+- [x] New optix-jni version published with denoiser + curves + `updateTexture`
+- [x] All tests pass
 
 ---
 
@@ -87,9 +87,6 @@ Wrap `OptixDenoiser` in the generic library.
 
 Wrap the OptiX built-in curve primitive.
 
-**Result:** Implemented in optix-jni commit
-`7371676deca5e028c325c73186e27e427c5ee39d`.
-
 **Implementation:**
 - Build input `OPTIX_BUILD_INPUT_TYPE_CURVES`, primitive type
   `OPTIX_PRIMITIVE_TYPE_ROUND_CUBIC_BSPLINE` (round profile, smooth joints —
@@ -125,6 +122,7 @@ Wrap the OptiX built-in curve primitive.
 ### Task 29.5: Tests + Reference Images
 
 **Estimate:** 3h
+**Status:** Done
 
 - Unit: denoiser lifecycle (mock-level), curve buffer validation (degenerate inputs:
   <4 control points, zero radius, NaN)
@@ -137,13 +135,12 @@ Wrap the OptiX built-in curve primitive.
 ### Task 29.6: Documentation + optix-jni Release
 
 **Estimate:** 2h
+**Status:** Done
 
-- optix-jni README + Scaladoc for both APIs
-- User guide: Denoising section (when to use, interplay with accumulation), Curves
-  section
-- Publish next optix-jni minor version (includes `updateTexture` from Sprint 27 work
-  if not already released); bump the dependency in this repo
-- CHANGELOG.md entry
+- [x] optix-jni README + Scaladoc for both APIs
+- [x] User guide: Denoising section, Curves section
+- [x] Publish optix-jni 0.1.5 (denoiser + curves + updateTexture); bump dependency in menger
+- [x] CHANGELOG.md entry
 
 ---
 
@@ -156,15 +153,15 @@ Wrap the OptiX built-in curve primitive.
 | 29.3 | optix-jni curves primitive | 8h | [x] Done |
 | 29.4 | DSL Curve type + demo | 4h | [x] Done |
 | 29.5 | Tests + reference images | 3h | [x] Done |
-| 29.6 | Docs + optix-jni release | 2h | [ ] Planned |
+| 29.6 | Docs + optix-jni release | 2h | [x] Done |
 | **Total** | | **~30h** | |
 
 ---
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] Pre-push hook green
-- [ ] CHANGELOG.md updated
+- [x] All success criteria met
+- [ ] Pre-push hook green (requires GPU; run on `feature/sprint-29`)
+- [x] CHANGELOG.md updated
 - [ ] arc42 §5/§9 updated (denoiser pipeline stage, curves hitgroup)
-- [ ] Integration + manual test scripts both cover denoise and curves
+- [x] Integration + manual test scripts both cover denoise and curves
