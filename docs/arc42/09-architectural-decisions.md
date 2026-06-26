@@ -688,3 +688,72 @@ No pending future decisions at this time.
 | 11 | Scene file format | Scala DSL (implemented in Sprint 10; Sprint 11 used existing DSL) |
 | 12-13 | Animation keyframe format | Deferred indefinitely (animation not yet scheduled) |
 | 15 | Area light shadow sampling | Per-light `shadowSamples` in `area:` CLI spec (not global `--shadow-samples` flag) |
+
+---
+
+### AD-24: OptiX AI Denoiser Integration (Sprint 29)
+
+**Status:** Accepted
+**Date:** 2026-06 (Sprint 29)
+
+**Context:** Noisy renders from low-sample IBL, area lights, and multi-frame
+accumulation need denoising to be visually acceptable. The OptiX SDK ships
+a hardware-accelerated HDR denoiser (`OPTIX_DENOISER_MODEL_KIND_HDR`) with
+optional guide AOVs (albedo, normal) that improve edge preservation.
+
+**Decision:** Add an opt-in final-frame denoising stage in the render pipeline,
+placed after accumulation and before tone mapping so the denoiser operates on
+linear radiance values. Expose it as:
+- CLI: `--denoise`
+- DSL: `RenderSettings(denoise = DenoiseMode.Final)`
+- Library API: `OptiXDenoiser` Scala wrapper with `AutoCloseable` lifecycle
+
+**Rationale:**
+- Linear HDR denoising produces better results than post-tone-map approaches
+  because the model expects physical radiance values.
+- Guide AOVs (albedo + normal) measurably improve edge quality around silhouettes
+  and textured surfaces; they are zero-cost when denoising is disabled.
+- Opt-in by default: denoising slightly changes pixel values, which would break
+  byte-stable reference images in integration tests.
+
+**Consequences:**
+- ~100–400 MB additional GPU memory per denoiser instance.
+- Small final-frame latency cost for the denoiser invocation.
+- The `OptiXDenoiser` owns its own OptiX context, independent of the renderer.
+- Denoised uniform images still trigger render-health diagnostics.
+
+---
+
+### AD-25: OptiX Built-In Curves Primitive (Sprint 29)
+
+**Status:** Accepted
+**Date:** 2026-06 (Sprint 29)
+
+**Context:** Next-generation geometry types (L-system stems in Sprint 31,
+streamtubes, Hopf fibration fibers) need smooth swept curves without the
+artifacts of cylinder-chain or triangle-tessellation approaches. OptiX
+provides a built-in round cubic B-spline primitive
+(`OPTIX_PRIMITIVE_TYPE_ROUND_CUBIC_BSPLINE`) with automatic smooth joints.
+
+**Decision:** Wrap the OptiX built-in curve primitive as a new IAS instance
+type alongside existing primitives. Expose it as:
+- CLI: `type=curve:control-points=...:radius=...`
+- DSL: `Curve(points: Seq[Vec3], radius: Float, material)`
+- Library API: `addCurveInstance(points, widths, material)`
+
+Use the built-in `optixGetCurveParameter()` for normals and share the existing
+PBR material pipeline — no separate curve material model.
+
+**Rationale:**
+- Built-in intersector avoids writing and maintaining a custom curve IS program.
+- Round cubic B-splines produce G¹-continuous joints automatically; no seam
+  artifacts at control points.
+- Sharing the `InstanceMaterial` pipeline means curves immediately benefit from
+  future material features (PBR texture sets, spectral dispersion, etc.)
+  with no curve-specific work.
+
+**Consequences:**
+- Curves use a dedicated SBT hitgroup slot (slot 5 in §5.3).
+- Minimum 4 control points per curve (cubic B-spline segment constraint).
+- Per-control-point radius support enables tapered tubes.
+- Reference: `optix-jni/src/main/native/shaders/hit_curve.cu`.

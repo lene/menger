@@ -161,7 +161,7 @@ Wrap the OptiX built-in curve primitive.
 ## Definition of Done
 
 - [x] All success criteria met
-- [ ] Pre-push hook green (requires GPU; run on `feature/sprint-29`)
+- [x] Pre-push hook green (requires GPU; run on `feature/sprint-29`)
 - [x] CHANGELOG.md updated
 - [ ] arc42 §5/§9 updated (denoiser pipeline stage, curves hitgroup)
 - [x] Integration + manual test scripts both cover denoise and curves

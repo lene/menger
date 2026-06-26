@@ -130,10 +130,10 @@ namespace. `DragTracker` was folded into `OrbitCamera`'s `dragState`
 | Allowed dependencies | `menger-common`, JDK only. No LibGDX, no Scala-specific types in public method signatures. |
 | Enforced rules | `loadLibrary` and `native` methods in `optix-jni` or `menger-geometry` only (`ArchitectureSpec`). Java-friendly API surface (no `scala.Option`, `scala.collection`, etc. on public methods). |
 
+### 5.2.10
 **Native sources** live in the external repository
-`github.com/lene/optix-jni`. Sprint 29.2 temporarily pins a source dependency to
-commit `c618caf` until the Sprint 29.6 release publishes the denoiser API. The
-published jar contains runtime resources
+`github.com/lene/optix-jni`. Published to Maven Central as `io.github.lene:optix-jni:0.1.5`
+(Sprint 29: denoiser + curves). The published jar contains runtime resources
 (`native/x86_64-linux/liboptixjni.so`, `native/x86_64-linux/optix_shaders.ptx`)
 and native development resources (`optix-jni-native/include/**`,
 `optix-jni-native/shaders/**`) consumed by `menger-geometry`.
@@ -189,6 +189,34 @@ extends `BaseParams` with 4D geometry fields.
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+### Pipeline Stage Order (since Sprint 29)
+
+```
+render frame N → accumulate (linear HDR)  → [denoise] → tone map → PNG
+                      ↑                              ↑
+                 IBL / soft shadows           OptiX AI denoiser
+                 area lights / samples         (opt-in, --denoise)
+```
+
+The denoiser stage is opt-in and runs before tone mapping on the linear HDR
+accumulated frame. When disabled (default), the accumulate → tone-map path
+is unchanged. Denoiser memory: ~100–400 MB GPU, allocated lazily on first use.
+
+### SBT Hitgroup Layout (since Sprint 29)
+
+| Slot | Hitgroup | IS Program | OptiX Primitive |
+|------|----------|------------|-----------------|
+| 0 | Sphere | Built-in sphere IS | `OPTIX_PRIMITIVE_TYPE_SPHERE` |
+| 1 | Triangle mesh | Built-in triangle IS | `OPTIX_PRIMITIVE_TYPE_TRIANGLE` |
+| 2 | Procedural cylinder | Custom IS | `OPTIX_PRIMITIVE_TYPE_CUSTOM` |
+| 3 | Procedural cone | Custom IS | `OPTIX_PRIMITIVE_TYPE_CUSTOM` |
+| 4 | 4D projected mesh | Custom IS | `OPTIX_PRIMITIVE_TYPE_CUSTOM` |
+| 5 | **Curves (Sprint 29)** | Built-in curve IS | `OPTIX_PRIMITIVE_TYPE_ROUND_CUBIC_BSPLINE` |
+
+Curve hitgroups use OptiX's built-in `optixGetCurveParameter` for normals
+and share the same material model (`InstanceMaterial`) as all other hit types.
+Shader reference: `optix-jni/src/main/native/shaders/hit_curve.cu`.
 
 ### Key Data Structures
 
