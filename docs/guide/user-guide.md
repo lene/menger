@@ -88,6 +88,7 @@ sbt "run --optix --objects 'type=sphere'    # Ray-traced sphere
 --aa-threshold <float>       # AA edge threshold (0.0-1.0, default: 0.1)
 --max-ray-depth <int>        # Bounce / refraction recursion depth (1..8, default: 5)
 --allow-uniform-render       # Disable the failed-render diagnostic (see "Render health checks")
+--denoise                    # Apply OptiX AI denoiser to accumulated frame before tone mapping
 --stats                      # Display ray tracing statistics
 
 # Scene
@@ -516,6 +517,46 @@ sbt "run --optix --cross --cross-length 3.0 --cross-thickness 0.05 --cross-mater
 | `--cross-material` | chrome | Material preset |
 
 **Interactive toggle:** press **C** in OptiX mode to show/hide the cross without restarting.
+
+#### Curves — *Sprint 29*
+
+Renders smooth swept tubes using OptiX's built-in round cubic B-spline primitive
+(no triangle tessellation). Supports all material properties including textures,
+refraction, and metallic.
+
+```bash
+# Simple arc segment (4 control points, constant radius)
+sbt "run --optix --objects 'type=curve:control-points=0,0,0:1,1,0:2,1,0:3,0,0:radius=0.05'"
+
+# Trefoil knot demo scene
+sbt "run --optix --scene examples.dsl.TrefoilKnot"
+```
+
+Or from DSL scenes:
+
+```scala
+Scene(
+  objects = List(
+    Curve(
+      points = Seq(
+        (0f, 0f, 0f), (1f, 1f, 0f), (2f, 1f, 0f), (3f, 0f, 0f)
+      ),
+      radius = 0.05f,
+      material = Material.Glass
+    )
+  ),
+  ...
+)
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `control-points` | Comma-separated x,y,z world-space control points (≥ 4 required) |
+| `radius` | Constant radius for all control points (supports per-point radii in DSL) |
+
+Curve shading uses the same PBR material pipeline as all other geometry types — the
+built-in intersector provides normals from `optixGetCurveParameter`. Shader
+reference: `optix-jni/src/main/native/shaders/hit_curve.cu`.
 
 ### Render Statistics — *Sprint 19.8*
 
