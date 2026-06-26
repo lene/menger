@@ -32,8 +32,8 @@ Unscheduled feature ideas: [docs/BACKLOG.md](docs/BACKLOG.md).
 | v0.7.3 | Repo Split & Code Health | ✅ Complete | menger-common + optix-jni separate repos, Maven Central, all CODE_IMPROVEMENTS resolved (Sprint 26) |
 | v0.7.4 | Video Textures & Backgrounds | ✅ Complete | Animated .mp4 video textures + 360° env-map backgrounds via ffmpeg, per-frame GPU texture swap; CUDA 13 / driver ≥580.65 (Sprint 27) |
 | v0.7.5 | Agentic Guardrails & Release Automation | ✅ Complete | Cross-repo standards, tiered hooks, multi-model reviews, release-on-merge, stats JSON, benchmarks, Renovate (Sprint 28) |
-| TBD | OptiX API Coverage I | 🔄 In Progress | AI denoiser, curves primitive, optix-jni release (Sprint 29) |
-| TBD | OptiX API Coverage II | Planned | Motion blur, API audit, validation mode, optix-jni 1.0 prep (Sprint 30) |
+| v0.7.6 | OptiX API Coverage I | ✅ Complete | AI denoiser, curves primitive, optix-jni release (Sprint 29) |
+| TBD | OptiX API Coverage II | 🔄 In Progress | Motion blur, API audit, validation mode, optix-jni 1.0 prep (Sprint 30) |
 | TBD | L-Systems | Planned | 3D/4D Lindenmayer systems, turtle geometry, presets (Sprint 31) |
 | TBD | Spectral Dispersion | Planned | Wavelength-dependent IOR, hero-wavelength sampling, diamond fire (Sprint 32) |
 | TBD | PBR Texture Sets | Planned | Shared texture sets (ambientCG/Poly Haven), metallic/AO maps (Sprint 33) |
@@ -95,6 +95,9 @@ The library version is independent of the menger app version.
 | 24 | optix-jni Architecture & Foundation | ✅ Complete | [docs/archive/sprints/SPRINT24.md](docs/archive/sprints/SPRINT24.md) |
 | 25 | optix-jni Implementation | ✅ Complete | [docs/archive/sprints/SPRINT25.md](docs/archive/sprints/SPRINT25.md) |
 | 26 | Repository Split & Code Health | ✅ Complete | [docs/archive/sprints/SPRINT26.md](docs/archive/sprints/SPRINT26.md) |
+| 27 | Video Backgrounds | ✅ Complete | [docs/archive/sprints/SPRINT27.md](docs/archive/sprints/SPRINT27.md) |
+| 28 | Agentic Guardrails & Release Automation | ✅ Complete | [docs/archive/sprints/SPRINT28.md](docs/archive/sprints/SPRINT28.md) |
+| 29 | OptiX API Coverage I | ✅ Complete | [docs/archive/sprints/SPRINT29.md](docs/archive/sprints/SPRINT29.md) |
 
 ---
 

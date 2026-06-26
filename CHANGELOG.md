@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.6] - 2026-06-26
 
 ### Added
 - **OptiX final-frame denoising** — DSL `RenderSettings(denoise = DenoiseMode.Final)`
@@ -1092,6 +1092,7 @@
 
 
 [0.7.5]: https://gitlab.com/lilacashes/menger/-/compare/0.7.4...0.7.5
+[0.7.6]: https://gitlab.com/lilacashes/menger/-/compare/0.7.5...0.7.6
 [0.7.4]: https://gitlab.com/lilacashes/menger/-/compare/0.7.3...0.7.4
 [0.7.3]: https://gitlab.com/lilacashes/menger/-/compare/0.7.2...0.7.3
 [0.7.2]: https://gitlab.com/lilacashes/menger/-/compare/v0.7.1...0.7.2
