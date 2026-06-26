@@ -5,10 +5,15 @@
 ### Added
 - **OptiX final-frame denoising** — DSL `RenderSettings(denoise = DenoiseMode.Final)`
   and CLI `--denoise` denoise the final accumulated linear HDR frame before tone mapping.
+- **OptiX curves primitive** — DSL `Curve(points, radius, material)` and CLI
+  `type=curve:control-points=...:radius=...` render smooth swept tubes via the
+  built-in round cubic B-spline primitive. Includes `TrefoilKnot` demo scene.
+  Available in `optix-jni >= 0.1.5`.
 
 ### Changed
-- **Temporary `optix-jni` source dependency** — Sprint 29.2 pins `optix-jni` commit
-  `c618caf` until the Sprint 29.6 release publishes the denoiser API.
+- **`optix-jni` 0.1.5** — switched from temporary source pin to published
+  Maven Central artifact (includes denoiser API, curves primitive, and
+  `updateTexture` from Sprint 27).
 
 ## [0.7.5] - 2026-06-15
 
