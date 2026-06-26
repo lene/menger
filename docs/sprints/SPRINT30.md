@@ -2,7 +2,7 @@
 
 **Sprint:** 30 - OptiX API Coverage II
 **Status:** 📋 Planned
-**Estimate:** ~27 hours
+**Estimate:** ~37 hours
 **Branch:** `feature/sprint-30`
 **Dependencies:** Sprint 29 (denoiser + curves establish the API-expansion pattern)
 **Feature ID:** F13 Phase 2 in [FEATURE_DEPENDENCIES.md](FEATURE_DEPENDENCIES.md)
@@ -141,6 +141,31 @@ Two audited items worth implementing immediately:
 
 ---
 
+### Task 30.7: CODE_IMPROVEMENTS Resolution
+
+**Estimate:** 10h
+
+Address findings from the Sprint 29 close code review. Ordered by priority:
+
+**Medium:**
+- **M-per-frame-denoise** (2h): Call `configureOutputMode` per-frame in
+  `WithAnimation.render()`, `WithPreview.render()`, `CliAnimationEngine.render()`.
+  Denoise/accumulation from per-frame `SceneConfigs` currently ignored during animation.
+- **M-cli-accumulation-flag** (2h): Add `--accumulation-frames <int>` CLI option to
+  `MengerCLIOptions`, thread through `--object` path in `Main.scala`. Currently hardcoded to 1.
+- **M-curve-ignores-fields** (3h): Either guard against or implement texture/rotation/
+  normalMap support in `CurveSceneBuilder`. Currently silently ignores these DSL fields.
+- **M-native-no-guard** (1h): Add `isInitialized` precondition checks to
+  `setDenoisingEnabled` and `setAccumulationFrames` to prevent native SIGSEGV.
+
+**Low:**
+- **L-curve-error-untested** (1h): Add scalamock test for `CurveSceneBuilder.buildScene`
+  GPU-failure path.
+- **L-curves-scenetype-asymmetry** (1h): Add explicit `SceneType.Curves` dispatch branches
+  in `BaseEngine` alongside `TriangleMeshes` branches.
+
+---
+
 ## Summary
 
 | Task | Description | Estimate |
@@ -151,7 +176,8 @@ Two audited items worth implementing immediately:
 | 30.4 | Validation mode + SER | 6h |
 | 30.5 | optix-jni 1.0 readiness | 5h |
 | 30.6 | Tests + documentation | 3h |
-| **Total** | | **~27h** |
+| 30.7 | CODE_IMPROVEMENTS resolution | 10h |
+| **Total** | | **~37h** |
 
 ---
 
