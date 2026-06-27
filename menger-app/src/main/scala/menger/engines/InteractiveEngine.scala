@@ -202,22 +202,11 @@ class InteractiveEngine(
   ): Boolean =
     scene4DCache.get match
       case Scene4DCache.Gpu(prev) =>
-        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
-        else
-          prev.specs.lazyZip(newSpecs).lazyZip(prev.slotsPerSpec).foreach {
-            case (prevSpec, newSpec, slots) =>
-              if prevSpec.projection4D != newSpec.projection4D then
-                val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
-                slots.foreach { slot =>
-                  renderer.updateMesh4DProjection(
-                    slot,
-                    eyeW = proj.eyeW, screenW = proj.screenW,
-                    rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-                  )
-                }
-          }
-          scene4DCache.set(Scene4DCache.Gpu(prev.copy(specs = newSpecs)))
-          true
+        val took = RotationFastPath.tryGpuProjectionFastPath(
+          newSpecs, renderer, prev.specs, prev.slotsPerSpec
+        )
+        if took then scene4DCache.set(Scene4DCache.Gpu(prev.copy(specs = newSpecs)))
+        took
       case _ => false
 
   /** Menger4D fast path: update projection params on each recorded instance directly.
@@ -229,22 +218,12 @@ class InteractiveEngine(
   ): Boolean =
     scene4DCache.get match
       case Scene4DCache.Menger4D(prev) =>
-        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
-        else
-          prev.specs.lazyZip(newSpecs).lazyZip(prev.instancesPerSpec).foreach {
-            case (prevSpec, newSpec, instanceIds) =>
-              if prevSpec.projection4D != newSpec.projection4D then
-                val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
-                instanceIds.foreach { instanceId =>
-                  renderer.updateMenger4DProjection(
-                    InstanceId.raw(instanceId),
-                    eyeW = proj.eyeW, screenW = proj.screenW,
-                    rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-                  )
-                }
-          }
-          scene4DCache.set(Scene4DCache.Menger4D(prev.copy(specs = newSpecs)))
-          true
+        val took = RotationFastPath.tryFastPath(
+          newSpecs, renderer, prev.specs, prev.instancesPerSpec,
+          RotationFastPath.menger4DUpdater
+        )
+        if took then scene4DCache.set(Scene4DCache.Menger4D(prev.copy(specs = newSpecs)))
+        took
       case _ => false
 
   private def trySierpinski4DFastPath(
@@ -253,22 +232,12 @@ class InteractiveEngine(
   ): Boolean =
     scene4DCache.get match
       case Scene4DCache.Sierpinski4D(prev) =>
-        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
-        else
-          prev.specs.lazyZip(newSpecs).lazyZip(prev.instancesPerSpec).foreach {
-            case (prevSpec, newSpec, instanceIds) =>
-              if prevSpec.projection4D != newSpec.projection4D then
-                val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
-                instanceIds.foreach { instanceId =>
-                  renderer.updateSierpinski4DProjection(
-                    InstanceId.raw(instanceId),
-                    eyeW = proj.eyeW, screenW = proj.screenW,
-                    rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-                  )
-                }
-          }
-          scene4DCache.set(Scene4DCache.Sierpinski4D(prev.copy(specs = newSpecs)))
-          true
+        val took = RotationFastPath.tryFastPath(
+          newSpecs, renderer, prev.specs, prev.instancesPerSpec,
+          RotationFastPath.sierpinski4DUpdater
+        )
+        if took then scene4DCache.set(Scene4DCache.Sierpinski4D(prev.copy(specs = newSpecs)))
+        took
       case _ => false
 
   private def tryHexadecachoron4DFastPath(
@@ -277,22 +246,12 @@ class InteractiveEngine(
   ): Boolean =
     scene4DCache.get match
       case Scene4DCache.Hexadecachoron4D(prev) =>
-        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
-        else
-          prev.specs.lazyZip(newSpecs).lazyZip(prev.instancesPerSpec).foreach {
-            case (prevSpec, newSpec, instanceIds) =>
-              if prevSpec.projection4D != newSpec.projection4D then
-                val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
-                instanceIds.foreach { instanceId =>
-                  renderer.updateHexadecachoron4DProjection(
-                    InstanceId.raw(instanceId),
-                    eyeW = proj.eyeW, screenW = proj.screenW,
-                    rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-                  )
-                }
-          }
-          scene4DCache.set(Scene4DCache.Hexadecachoron4D(prev.copy(specs = newSpecs)))
-          true
+        val took = RotationFastPath.tryFastPath(
+          newSpecs, renderer, prev.specs, prev.instancesPerSpec,
+          RotationFastPath.hexadecachoron4DUpdater
+        )
+        if took then scene4DCache.set(Scene4DCache.Hexadecachoron4D(prev.copy(specs = newSpecs)))
+        took
       case _ => false
 
   private val levelConfigs: Map[String, LevelConfig] = Map(
@@ -454,102 +413,87 @@ class InteractiveEngine(
     GdxRuntime.requestRendering()
     if execution.timeout > 0 then startExitTimer(execution.timeout)
 
-  /** Build the initial scene; if it is 4D-only triangle meshes, capture per-spec
-    * slot indices so subsequent rotation events can hit the GPU fast path.
-    * Otherwise fall back to the generic build and clear cached fast-path state.
-    * Mirrors `WithAnimation.buildAnim4DTrackedOrFallback`. */
+  /** Build the initial scene with builder from [[GeometryRegistry.builderFor]] — the single
+    * source of truth for type → builder dispatch. Captures per-spec instance/slot indices
+    * for 4D-rotation fast paths where applicable. */
   private def buildScene4DTrackedOrFallback(
     specs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
-    if WithAnimation.is4DOnlyTriangleMeshScene(specs)
-        && !specs.exists(_.hasEdgeRendering) then
-      val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
-        scala.collection.mutable.Map.empty
-      val builder = TriangleMeshSceneBuilder(
-        textureDir,
-        mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
-          slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
-      )(using profilingConfig)
-      val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
-      result.foreach { _ =>
-        if slotsBuf.size == specs.size then
-          val slotsPerSpec = specs.indices.map(i =>
-            slotsBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
-          ).toVector
-          scene4DCache.set(Scene4DCache.Gpu(WithAnimation.Anim4DState(specs, slotsPerSpec)))
-        else
-          scene4DCache.set(Scene4DCache.Empty)
-      }
-      result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
-      result
-    else if specs.forall(s => ObjectType.isMenger4D(s.objectType)) then
-      val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[InstanceId]] =
-        scala.collection.mutable.Map.empty
-      val builder = Menger4DSceneBuilder(
-        textureDir,
-        menger4DRecorder = (specIdx: Int, instanceId: InstanceId) =>
-          instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[InstanceId]) += instanceId
-      )
-      val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
-      result.foreach { _ =>
-        if instancesBuf.size == specs.size then
-          val instancesPerSpec = specs.indices.map(i =>
-            instancesBuf.getOrElse(i, ArrayBuffer.empty[InstanceId]).toVector
-          ).toVector
-          scene4DCache.set(Scene4DCache.Menger4D(Menger4DState(specs, instancesPerSpec)))
-        else
-          scene4DCache.set(Scene4DCache.Empty)
-      }
-      result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
-      result
-    else if specs.forall(s => ObjectType.isSierpinski4D(s.objectType)) then
-      val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[InstanceId]] =
-        scala.collection.mutable.Map.empty
-      val builder = Sierpinski4DSceneBuilder(
-        textureDir,
-        sierpinski4DRecorder = (specIdx: Int, instanceId: InstanceId) =>
-          instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[InstanceId]) += instanceId
-      )
-      val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
-      result.foreach { _ =>
-        if instancesBuf.size == specs.size then
-          val instancesPerSpec = specs.indices.map(i =>
-            instancesBuf.getOrElse(i, ArrayBuffer.empty[InstanceId]).toVector
-          ).toVector
-          scene4DCache.set(Scene4DCache.Sierpinski4D(Sierpinski4DState(specs, instancesPerSpec)))
-        else
-          scene4DCache.set(Scene4DCache.Empty)
-      }
-      result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
-      result
-    else if specs.forall(s => ObjectType.isHexadecachoron4D(s.objectType)) then
-      val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[InstanceId]] =
-        scala.collection.mutable.Map.empty
-      val builder = Hexadecachoron4DSceneBuilder(
-        textureDir,
-        hexadecachoron4DRecorder = (specIdx: Int, instanceId: InstanceId) =>
-          instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[InstanceId]) += instanceId
-      )
-      val effectiveMaxInstances = computeEffectiveMaxInstances(builder, specs)
-      val result = builder.validateAndBuild(specs, renderer, effectiveMaxInstances)
-      result.foreach { _ =>
-        if instancesBuf.size == specs.size then
-          val instancesPerSpec = specs.indices.map(i =>
-            instancesBuf.getOrElse(i, ArrayBuffer.empty[InstanceId]).toVector
-          ).toVector
-          scene4DCache.set(Scene4DCache.Hexadecachoron4D(Hexadecachoron4DState(specs, instancesPerSpec)))
-        else
-          scene4DCache.set(Scene4DCache.Empty)
-      }
-      result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
-      result
-    else
-      scene4DCache.set(Scene4DCache.Empty)
-      buildSceneFromSpecs(specs, renderer)
+    val builderOpt = GeometryRegistry.builderFor(specs, textureDir)
+    builderOpt match
+      case Some(builder) =>
+        builder match
+          case _: TriangleMeshSceneBuilder =>
+            buildTriangleMesh4DTracked(specs, renderer)
+          case _: Menger4DSceneBuilder =>
+            build4DTracked(specs, renderer, (recorder: (Int, InstanceId) => Unit) =>
+              new Menger4DSceneBuilder(textureDir, menger4DRecorder = recorder),
+              (specs, ids) => Scene4DCache.Menger4D(Menger4DState(specs, ids)))
+          case _: Sierpinski4DSceneBuilder =>
+            build4DTracked(specs, renderer, (recorder: (Int, InstanceId) => Unit) =>
+              new Sierpinski4DSceneBuilder(textureDir, sierpinski4DRecorder = recorder),
+              (specs, ids) => Scene4DCache.Sierpinski4D(Sierpinski4DState(specs, ids)))
+          case _: Hexadecachoron4DSceneBuilder =>
+            build4DTracked(specs, renderer, (recorder: (Int, InstanceId) => Unit) =>
+              new Hexadecachoron4DSceneBuilder(textureDir, hexadecachoron4DRecorder = recorder),
+              (specs, ids) => Scene4DCache.Hexadecachoron4D(Hexadecachoron4DState(specs, ids)))
+          case _ =>
+            scene4DCache.set(Scene4DCache.Empty)
+            builder.validateAndBuild(
+              specs, renderer, computeEffectiveMaxInstances(builder, specs))
+      case None =>
+        scene4DCache.set(Scene4DCache.Empty)
+        buildSceneFromSpecs(specs, renderer)
+
+  private def buildTriangleMesh4DTracked(
+    specs: List[ObjectSpec],
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): Try[Unit] =
+    val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
+      scala.collection.mutable.Map.empty
+    val builder = TriangleMeshSceneBuilder(
+      textureDir,
+      mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
+        slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
+    )(using profilingConfig)
+    val maxInst = computeEffectiveMaxInstances(builder, specs)
+    val result = builder.validateAndBuild(specs, renderer, maxInst)
+    result.foreach { _ =>
+      if slotsBuf.size == specs.size then
+        val slotsPerSpec = specs.indices.map(i =>
+          slotsBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
+        ).toVector
+        scene4DCache.set(Scene4DCache.Gpu(WithAnimation.Anim4DState(specs, slotsPerSpec)))
+      else scene4DCache.set(Scene4DCache.Empty)
+    }
+    result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
+    result
+
+  private def build4DTracked(
+    specs: List[ObjectSpec],
+    renderer: io.github.lene.optix.OptiXRenderer,
+    makeBuilder: ((Int, InstanceId) => Unit) => SceneBuilder,
+    makeCache: (List[ObjectSpec], Vector[Vector[InstanceId]]) => Scene4DCache
+  ): Try[Unit] =
+    val instancesBuf: scala.collection.mutable.Map[Int, ArrayBuffer[InstanceId]] =
+      scala.collection.mutable.Map.empty
+    val recorder: (Int, InstanceId) => Unit =
+      (specIdx, instanceId) =>
+        instancesBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[InstanceId]) += instanceId
+    val builder = makeBuilder(recorder)
+    val maxInst = computeEffectiveMaxInstances(builder, specs)
+    val result = builder.validateAndBuild(specs, renderer, maxInst)
+    result.foreach { _ =>
+      if instancesBuf.size == specs.size then
+        val ids = specs.indices.map(i =>
+          instancesBuf.getOrElse(i, ArrayBuffer.empty[InstanceId]).toVector
+        ).toVector
+        scene4DCache.set(makeCache(specs, ids))
+      else scene4DCache.set(Scene4DCache.Empty)
+    }
+    result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
+    result
 
   private def rebuildScene(): Unit =
     currentObjectSpecs.get() match
