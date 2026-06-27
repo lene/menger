@@ -14,7 +14,10 @@ UPDATE_BASELINE=${2:-}
 SCRIPT_DIR="$(cd "$(dirname "$0")" ; pwd)"
 BASELINE_FILE="$SCRIPT_DIR/perf-baseline.json"
 RUNS=3
-THRESHOLD=1.15
+# Threshold relaxed to 25% until real baselines are measured on the CI GPU runner
+# (perf-baseline.json currently contains placeholder values from Sprint 28).
+# After baselines are measured, reduce to 1.15.
+THRESHOLD=1.25
 
 if [ ! -x "$BINARY" ]; then
   echo "ERROR: binary not found or not executable: $BINARY" >&2

@@ -428,8 +428,7 @@ AIReview:
 
 # Sprint 28.7: performance-regression guard.
 # Runs 4 benchmark scenes 3 times each, computes median frameMs, compares
-# against scripts/perf-baseline.json. >15% regression fails.
-# Run benchmark.sh --update-baseline after intentional performance changes.
+# against scripts/perf-baseline.json. >25% regression fails (threshold to be\n# tightened to 15% after real baselines are measured per Sprint 30.9).\n# Run benchmark.sh --update-baseline after intentional performance changes.
 PerfCheck:
   stage: test built
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
@@ -448,7 +447,7 @@ PerfCheck:
   variables:
     NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
     __GL_THREADED_OPTIMIZATIONS: "0"
-  allow_failure: true
+  allow_failure: false   # Sprint 30.9: blocking gate
   before_script:
     - apt-get -y update -qq
     - apt-get -y install -qq mesa-utils x11-xserver-utils xvfb python3 $LIBAV_DEV_PACKAGES
