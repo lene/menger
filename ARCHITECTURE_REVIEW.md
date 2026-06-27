@@ -1,28 +1,27 @@
-# Architectural Review — 2026-06-12
+# Architectural Review — 2026-06-27
 
-Branch reviewed: `feature/sprint-27`. First run of `/arch-review`. Disjoint from `/code-review`
+Branch reviewed: `feature/sprint-30`. Second run of `/arch-review`. Disjoint from `/code-review`
 (this report contains no per-call seam-correctness or linter items by design).
 
 ## Summary
 
-The architecture is structurally simple (two in-repo modules, `menger-app → menger-geometry`, over
-external `io.github.lene:optix-jni` + `menger-common` artifacts) and has a genuinely good JNI seam:
-upload-once 4D animation, a single native-exception helper, coherent logging. The weaknesses are not
-in the code's correctness but in its **governance**: the project's two most-stated strengths —
-"add a geometry type in < 1 day" (evolvability) and the performance budgets — are *unguarded and
-already drifting*. Adding an object type is shotgun surgery that has silently broken in two places,
-and there is no executing performance fitness function on this branch at all. Biggest single risk:
-several arc42/CLAUDE.md claims (module structure, caustics ladder, leak checks, perf "Validated")
-describe governance that does not exist, so the docs actively mislead.
+The architecture's core strength — clean JNI seam with single-crossing-per-render — holds. The
+main problems are **governance**: the project's two most-stated strengths ("add a geometry type in
+<1 day" and performance budgets) remain unguarded from the prior review, and a **shipped feature is
+broken** (`type=curve` not in `VALID_TYPES`). Native governance is still aspirational: Valgrind and
+compute-sanitizer return unconditional success, CUDA error checking is absent from
+`menger-geometry` native code, and performance baselines are unmeasured placeholders. Biggest single
+risk: three concrete bugs are visible this sprint but invisible to CI (curve CLI broken, native
+handle unsafe, per-frame buffer churn) — and CI is designed not to catch any of them.
 
 ## Axis scorecard
 
 | Axis | Health | Headline finding |
 |------|--------|------------------|
-| Soundness          | 🟡 yellow | Raw primitives across the JNI seam; ArchUnit rule has a module-scope hole. |
-| Maturity           | 🟡 yellow | Good gates, but the in-repo native leak check is a no-op stub and the caustics ladder is 0/8. |
-| Evolvability       | 🔴 red    | "Add a geometry type" is triplicated dispatch + unenforced script parity — already drifted. |
-| Performance Arch.  | 🔴 red    | No executing perf fitness function; `benchmark.sh` absent on this branch. Budgets are hope. |
+| Soundness          | 🟡 yellow | Raw primitives across JNI seam; ArchUnit has module-scope holes; InteractiveEngine is a 662-line god-object |
+| Maturity           | 🔴 red    | Valgrind/compute-sanitizer completely stubbed; CUDA error checks absent from menger-geometry; caustics ladder 0/8 |
+| Evolvability       | 🔴 red    | `"curve"` is missing from `VALID_TYPES` — CLI `type=curve` silently broken; object-type dispatch is 6 unguarded edits |
+| Performance Arch.  | 🔴 red    | PerfCheck is advisory with placeholder baselines; all GPU tunables are compile-time constants; per-frame buffer re-allocations in hot path |
 
 ## Fitness-function status
 
@@ -32,129 +31,217 @@ describe governance that does not exist, so the docs actively mislead.
 | coverage ratchet ≥80% / floor 60% | pre-push + CI | ✅ guarded | — |
 | scalafix / WartRemover clean | pre-push | ✅ guarded | — |
 | integration suite passes | pre-push (enforcing) | ✅ guarded | — |
-| no native `@native` outside `io.github.lene.optix` | ArchitectureSpec | 🟡 partial | package-scoped, not module-scoped (F6) |
-| every `ObjectType.VALID_TYPES` → exactly one builder | — | 🔴 unguarded | nominate resolver-completeness test (F1) |
-| integration/manual script feature parity | — | 🔴 unguarded | nominate parity test (F1) |
-| perf budgets P1/P2 hold | — | 🔴 unguarded | nominate PerfCheck job + harness (F2) |
-| in-repo native (`menger-geometry`) leak-free | pre-push/CI stub | 🔴 unguarded | restore/relocate compute-sanitizer (F3) |
-| no raw native id past the scene-builder bridge | — | 🔴 unguarded | nominate opaque-type + ArchUnit rule (F4) |
-| render determinism (same scene → byte-stable) | — | 🔴 unguarded | nominate determinism test (F8) |
-| caustics C1–C8 / SSIM acceptance | pixel-diff only | 🔴 unguarded | implement analytic rungs C1–C4 (F7) |
-| 4D fast-path stays O(1) instance builds | unit test (correctness only) | 🟡 partial | nominate call-count assertion (positive #1) |
+| no native `@native` outside `io.github.lene.optix` | ArchitectureSpec | 🟡 partial | package-scoped, not module-scoped (F2) |
+| every `ObjectType.VALID_TYPES` → builder dispatches | — | 🔴 unguarded | `"curve"` missing from VALID_TYPES (F1); nominate resolver-completeness test |
+| integration/manual script feature parity | — | 🔴 unguarded | 4D types missing from manual-test.sh static; caustics absent from manual |
+| perf budgets P1/P2 hold | PerfCheck (allow_failure: true) | 🔴 unguarded | all baselines are unmeasured placeholder 5000.0ms (F4) |
+| in-repo native (`menger-geometry`) leak-free | pre-push/CI stub | 🔴 unguarded | Valgrind + compute-sanitizer return unconditional success (F3) |
+| no raw native id past the scene-builder bridge | — | 🔴 unguarded | `InstanceId` exists but is stripped before every JNI call (F2) |
+| render determinism (same scene → byte-stable) | — | 🔴 unguarded | still absent |
+| caustics C1–C8 / SSIM acceptance | pixel-diff only | 🔴 unguarded | 0/8 analytic rungs; SSIM never computed |
+| GPU tunables configurable at runtime | — | 🔴 unguarded | all compile-time constants; zero BLOCK_SIZE/stream/batch runtime knobs (F5) |
 
 ## Findings
 
-### 1. Adding an object type is unguarded shotgun surgery — and has already drifted twice
+### 1. `"curve"` is missing from `ObjectType.VALID_TYPES` — CLI `type=curve` silently broken
 
 **Axis:** Evolvability
-**Where:** `menger-app/.../engines/GeometryRegistry.scala:34-59` vs `menger-app/.../engines/InteractiveEngine.scala:438-545`; `scripts/integration-tests.sh` vs `scripts/manual-test.sh`; DSL string `menger-app/.../dsl/SceneObject.scala:328`; external `menger/common/ObjectType.scala`.
-**Impact:** High — the project's #3 quality goal ("Extensibility") and its `M4` fitness target ("new geometry type < 1 day, ✅ Validated") are structurally optimistic; coverage has already been lost.
-**Effort:** Medium
+**Where:** `menger-common/.../ObjectType.scala` (VALID_TYPES Set) vs `menger-app/.../dsl/SceneObject.scala:462` (Curve DSL type), `menger-app/.../cli/ObjectSpec.scala:254` (CLI parse gate)
+**Impact:** Critical — a Sprint 29 feature does not work through its documented CLI interface.
+The user guide documents `type=curve:control-points=…` but the CLI parser rejects `"curve"` as
+"Invalid object type." The DSL path works because it bypasses the parse gate. Zero integration
+tests exercise the CLI curve path.
+**Effort:** minutes (add `"curve"` to `VALID_TYPES`)
 **Enforcement:** unguarded
-**What:** A new type touches ~6–7 files across two modules. Two independent dispatch chains over the same `ObjectType.is*` predicates exist (`GeometryRegistry.builderFor` and `InteractiveEngine`), and they have **diverged**: `Sierpinski4DSceneBuilder` and `Hexadecachoron4DSceneBuilder` are wired in `InteractiveEngine` (477-545) but **absent from `GeometryRegistry.builderFor`**. The same two types appear in `manual-test.sh` but are **absent from `integration-tests.sh`** — so two shipping fractal types have zero headless regression coverage, despite CLAUDE.md mandating both scripts cover every rendering feature.
-**Why it matters:** Two of the newest features are silently under-dispatched and under-tested. The "add to both scripts + registry" rule is enforced only by human discipline, and it has already failed.
-**Suggested direction:** (a) Single source of truth — `Map[predicate → builder factory]` consumed by both `GeometryRegistry` and `InteractiveEngine`, plus a test asserting every `ObjectType.VALID_TYPES` resolves to exactly one builder (unwired type → CI failure, not runtime). (b) A parity test grepping both scripts for `type=<...>` tokens and asserting `manual ⊇ integration` over `VALID_TYPES`.
+**What:** `ObjectType.VALID_TYPES` is the gate for every `ObjectSpec.parse()` call. `"curve"` was
+defined in DSL `SceneObject` and wired into `GeometryRegistry.builderFor()`, `RenderModeSelector`,
+and `CurveSceneBuilder` — but the set of valid CLI types was never updated. The `CurveSuite` tests
+only the DSL path.
+**Why it matters:** A feature shipped in Sprint 29 that users cannot invoke from the CLI. Worse:
+zero tests catch it because integration tests use the `--scene` DSL path, not the CLI `type=` path.
+**Suggested direction:** Add `"curve"` to `VALID_TYPES`. Add `type=curve` CLI tests to both
+integration-tests.sh and manual-test.sh. Nominate a fitness function: for every type in
+`VALID_TYPES`, assert at least one integration test exercises it via `type=<name>`.
 
-### 2. Performance is ungoverned: no executing fitness function, harness absent on this branch
+### 2. JNI/GPU boundary: raw primitives, unguarded native calls, and absent CUDA error checking
 
-**Axis:** Performance Architecture
-**Where:** `docs/arc42/10-quality-requirements.md:35-36` (P1 <5s, P2 <500ms, marked "Validated"); `.gitlab-ci.yml` (no perf job); `scripts/` (no `benchmark.sh`).
-**Impact:** High — a multiple-× regression in subdivision or render time merges green.
-**Effort:** Medium
-**Enforcement:** unguarded
-**What:** No timing job, no advisory `PerfCheck`, no baseline artifact, no `benchmark.sh` on `feature/sprint-27`. The only "performance" token in the gate is a cppcheck *static* category. Budgets defer all numbers to sprint docs and are never re-measured. *(Note: the sprint-28 worktree reportedly introduces `benchmark.sh` + a `PerfCheck` job; verify they land on the integration branch and are wired to §10.4 — until then performance governance is zero here.)*
-**Why it matters:** Budgets that are never executed drift silently; "Validated ✅" rots into fiction the moment the validating sprint ends.
-**Suggested direction:** Land `benchmark.sh` (host sponge-L3 gen time + an 800×600 GPU render, machine-readable + committed baseline) and an `allow_failure: true` `PerfCheck` job asserting P1/P2 against baseline; promote to blocking once stable.
-
-### 3. In-repo native code has no memory-leak gate — the advertised one is a stub
-
-**Axis:** Maturity
-**Where:** `.git_hooks/pre-push:324-326, 472-474`; `.gitlab-ci.yml` (no valgrind/sanitizer job); claim in `docs/arc42/11-risks-and-technical-debt.md` §11.4.
-**Impact:** High — the JNI/CUDA code that actually ships (`menger-geometry/src/main/native/`, `libmengergeometry.so`) is the highest-risk surface, with no leak gate in either pre-push or CI.
-**Effort:** Medium
-**Enforcement:** unguarded (the gate is a no-op stub)
-**What:** Both Valgrind and compute-sanitizer steps print "skipped — run in the standalone repository." That standalone repo is the *external* optix-jni artifact; the Menger-specific bindings in this repo are never checked. arc42 §11.4 lists "JNI memory leaks → gradual OOM" as tracked-and-mitigated — the mitigation is stubbed out for the one module it should cover.
-**Suggested direction:** A CI job running `compute-sanitizer --leak-check` over `menger-geometry` `nativeTest`, or restore the pre-push body gated on `HAS_NATIVE` changes.
-
-### 4. GPU handles, instance ids, and dimensions cross the JNI seam as raw primitives
-
-**Axis:** Soundness (with Maturity: `M-instanceid-raw-int`)
-**Where:** `menger-geometry/.../io/github/lene/optix/MengerRenderer.scala:28-84` (`level: Int`, `instanceId: Int`, returns `Int`); `VideoLoader.scala` (`nativeHandle: AtomicLong`); scene-builder seam (`CODE_IMPROVEMENTS.md` M-instanceid-raw-int).
-**Impact:** Medium-High — a 3D/4D mismatch, a swapped `instanceId`/`textureIndex`, or a stale handle is a runtime CUDA fault, not a compile error — at the project's highest-risk boundary, which has the least type safety.
+**Axis:** Soundness + Maturity
+**Where:** `OptiXRenderer.scala:228` (`nativeHandle: Long`), `MengerRenderer.scala:28-84` (raw `Int` instance IDs), `BaseEngine.scala:34-35` (unguarded `setDenoisingEnabled`/`setAccumulationFrames`), `menger-geometry/src/main/native/project4d.cu` (zero `cudaGetLastError`), `menger-geometry/src/main/native/caustics_ppm.cu` (1059 lines, zero CUDA checks)
+**Impact:** High — the project's highest-risk boundary (JNI × CUDA × OptiX) carries the least type safety. A 3D/4D mismatch, a swapped instance ID, or an unguarded native call produces native SIGSEGV or silent geometry corruption — not a Scala-level error.
 **Effort:** days
 **Enforcement:** unguarded
-**What:** The dimension distinction that *defines* this project (3D sponge vs 4D tesseract), GPU handle identity, and instance ids all collapse to primitives across the seam. This is also the one place the otherwise-unified error model frays (`Either[String,Unit]` vs `Try[Unit]` vs raw `-1`).
-**Suggested direction:** Opaque types at the Scala side of the bridge (`opaque type GpuHandle = Long`, `InstanceId`, phantom-typed `Vector[Dim]`) + an ArchUnit rule that scene-builder return types do not expose raw native ids.
+**What:** Three sub-problems form one boundary-integrity finding: (a) `nativeHandle`, instance IDs,
+and texture indices are bare `Long`/`Int` — the `InstanceId` opaque type exists within
+menger-app's scene-builder layer but is stripped before every JNI call; (b) `setDenoisingEnabled`
+and `setAccumulationFrames` are `public native` with no Scala `isInitialized` precondition check
+(CODE_IMPROVEMENTS `M-native-no-guard`); (c) `project4d.cu` and `caustics_ppm.cu` — the
+menger-geometry native code that ships with the app — have zero CUDA error checking, while the
+optix-jni library's native code uses `CUDA_CHECK` macros consistently (asymmetric governance).
+**Why it matters:** An async CUDA error from `project4d.cu` corrupts geometry silently. An
+unguarded call to `setDenoisingEnabled` before `initialize()` causes SIGSEGV. Both bypass every
+gate.
+**Suggested direction:** (a) Opaque types at the JNI bridge (`opaque type GpuHandle`, phantom-typed
+`InstanceId`) enforced by ArchUnit rule. (b) Scala wrapper methods with `require(isInitialized)`
+for all native-accessed state mutators. (c) Add `CUDA_CHECK` macros to menger-geometry native
+code, mirroring optix-jni's discipline.
 
-### 5. CLAUDE.md's module map contradicts reality (FIXED 2026-06-12)
-
-**Axis:** Maturity (doc coherence)
-**Where:** `CLAUDE.md` opening line ("Three modules: menger-app, menger-common, optix-jni").
-**Impact:** Medium — the false map misled this review's own subagents mid-flight.
-**Effort:** hours (done)
-**Enforcement:** unguarded (no doc-vs-build check)
-**What:** `build.sbt` shows two in-repo modules (`menger-app` → `menger-geometry`) consuming `io.github.lene:optix-jni:0.1.2` and `io.github.lene:menger-common:0.1.1` as **external published Maven artifacts**. CLAUDE.md presented the two external artifacts as in-repo modules and omitted `menger-geometry` entirely.
-**Correction to this review's first draft:** the original wording also blamed arc42 §5. That was an over-claim — arc42 §5 is substantially *accurate* (§5.1 diagram marks `optix-jni`/`menger-common` "published" and §5.2.9/§5.2.10 correctly distinguish published `optix-jni` from in-repo `menger-geometry`). The defect was CLAUDE.md only.
-**Status:** CLAUDE.md fixed to the real two-module + external-artifact graph; arc42 §5.2.1 header clarified that `menger-common` is an external artifact. Remaining: a lightweight test asserting documented module names match `build.sbt` (backlog).
-
-### 6. ArchUnit native-binding rule is package-scoped, not module-scoped — and `menger.geometry` is misnamed
-
-**Axis:** Soundness
-**Where:** `menger-app/src/test/scala/menger/ArchitectureSpec.scala:31-37` (path filter `.*/optix-jni/.*`), `:56-69` (native rule, package whitelist `io.github.lene.optix..`), `:173-177`; `menger-geometry/.../VideoLoader.scala` (`menger.geometry` package, 8 `@native` methods).
-**Impact:** Medium — the JNI-boundary invariant ("native bindings live only where they should") is not actually enforced for in-repo code.
-**Effort:** hours
-**Enforcement:** partially guarded
-**What:** Two rules use disagreeing scope mechanisms: a package whitelist vs a path filter that excludes `menger-geometry`'s output dir. A stray `@native` under `io.github.lene.optix` in *any* module passes; `MengerRenderer`'s 7 native overrides (in menger-geometry) are invisible to the optix-jni-scoped rule. Separately, the `menger.geometry` package — named for pure geometry — contains only a native video loader, so the "native methods outside io.github.lene.optix" rule has a latent hole.
-**Suggested direction:** Make the native-binding rule module-path-based (assert bindings originate from expected module locations and only *extend* the published optix-jni surface). Rename `menger.geometry` to `menger.video` or assert it has no `@native` methods.
-
-### 7. Caustics quality ladder C1–C8 is governance theater — 0/8 implemented, no SSIM
+### 3. Native governance is a no-op: Valgrind + compute-sanitizer stubbed, CUDA errors unchecked
 
 **Axis:** Maturity
-**Where:** `docs/caustics/CAUSTICS_TEST_LADDER.md:654-661` (all 8 "⬜ Not implemented"); `docs/arc42/10-quality-requirements.md` C1–C8 + canonical scene.
-**Impact:** Medium — arc42 §10 presents the ladder + canonical scene as the validation strategy for the flagship physics feature; the only real safety net is two pixel-diff integration checks (`integration-tests.sh:458, 809`), and **no SSIM is computed anywhere** despite C8's "SSIM > 0.90" gate.
-**Effort:** Medium–Large
-**Enforcement:** unguarded
-**What:** A quality scenario you cannot fail is decoration. Energy-conservation/convergence (C5/C6) are exactly the regressions pixel-diff misses.
-**Suggested direction:** Implement at least the analytic rungs C1–C4 as `AnyFlatSpec` determinism tests (no GPU needed; catches refraction-math regressions); mark the rest "not implemented" in arc42 §10 so the doc stops over-claiming.
-
-### 8. No determinism or JNI-fault-injection test *kinds*
-
-**Axis:** Maturity
-**Where:** test dirs (no soak/fault/seed-determinism specs); `integration-tests.sh` uses ImageMagick AE-diff only.
-**Impact:** Medium — the safety net is broad in unit/integration/visual KINDS but missing two that matter for a GPU/JNI system: render determinism and JNI-seam fault injection (the `M-instanceid-raw-int` `-1`→mid-frame failure has no test forcing it).
+**Where:** `.git_hooks/pre-push:324-326, 472-474` (stubbed gate functions), `.gitlab-ci.yml` (no Valgrind/compute-sanitizer jobs), `CODE_IMPROVEMENTS.md` `L-project4d-async-error` (carried forward since Sprint 26), `ARCHITECTURE_BACKLOG.md` Task T3 (unscheduled since 2026-06-12)
+**Impact:** High — arc42 §11.4 lists JNI memory leaks as "tracked and mitigated" (TR-5). The
+pre-push hook prints "Valgrind: PASSED." Both claims are false: the gate returns 0 unconditionally.
+The in-repo native code (`menger-geometry/src/main/native/`) has never been leak-checked.
 **Effort:** Medium
-**Enforcement:** partially guarded (visual regression exists; the other two kinds unguarded)
-**Suggested direction:** A determinism fitness function (render canonical scene twice → assert identical PNG) is cheap and locks down the reproducibility arc42 §10 claims.
+**Enforcement:** unguarded (the gate is a lie)
+**What:** `run_valgrind()` and the compute-sanitizer step both immediate-return with "skipped"
+messages. The optix-jni standalone repo has its own checks, but menger-geometry's 12 JNIEXPORT
+functions and two CUDA kernels are the highest-risk surface and have zero protection. The gap has
+been known since Sprint 26 (`ARCHITECTURE_BACKLOG.md` T3, ~2 dev-days) and remains unscheduled.
+**Why it matters:** The docs assert a safety net that does not exist. A native leak in
+`MengerJNIBindings.cpp` would reach production undetected.
+**Suggested direction:** Either (a) wire real Valgrind + compute-sanitizer checks for
+menger-geometry native code, or (b) remove the stub and update arc42 §11.4 to reflect actual
+coverage. Option (a) is the intended fix per ARCHITECTURE_BACKLOG T3.
 
-### 9. DSL scene path lacks the trust-boundary validation the CLI has
+### 4. Performance governance: advisory gates, unmeasured baselines, no runtime GPU tunables
+
+**Axis:** Performance Architecture
+**Where:** `.gitlab-ci.yml:451` (`PerfCheck` `allow_failure: true`), `scripts/perf-baseline.json` (all four entries = `5000.0` ms), `OptiXContext.cpp:904-924` (hardcoded stream 0, 2D launch, no block-size control)
+**Impact:** High — a multiple-× regression merges green. All GPU tunables require recompilation.
+arc42 §10.4 claims "✅ Baseline established" for scenes whose baseline has never been measured.
+**Effort:** Medium
+**Enforcement:** unguarded
+**What:** The PerfCheck job landed in Sprint 28 but is advisory only. `perf-baseline.json`
+contains four identical placeholder values — a sphere render at 800×600 on OptiX takes ~5-20ms,
+not 5 seconds. The `benchmark.sh` `THRESHOLD=1.15` is meaningless against placeholder data. On the
+GPU side, block size, stream count, batch size, and tile dimensions are all hardcoded — there is
+zero runtime configurability for different GPUs or workloads.
+**Why it matters:** Budgets that are never executed drift silently. arc42's "Validated ✅" marks
+are fiction. Every GPU optimization requires a source-code change and recompilation of the native
+library.
+**Suggested direction:** (a) Measure real baselines on the CI GPU runner and commit them. (b)
+Promote PerfCheck to blocking after 3 stable green runs. (c) Add environment-variable overrides
+for block size and stream count (`MENGER_OPTIX_BLOCK_SIZE`, `MENGER_OPTIX_STREAMS`).
+
+### 5. Per-frame buffer re-allocation in render hot path (IAS mode)
+
+**Axis:** Performance Architecture
+**Where:** `OptiXWrapper.cpp` render path (lines ~1400-1575): texture objects, cylinder_data, cone_data, plane_data, curve_data, menger4d_data, sierpinski4d_data, hexadecachoron4d_data
+**Impact:** Medium — conditional-free `cudaFree` + `cudaMalloc` + `cudaMemcpy` on every frame for
+static geometry. Comment says "if size changed" but code frees unconditionally.
+**Effort:** hours
+**Enforcement:** unguarded
+**What:** Eight geometry-data arrays are freed and re-allocated every frame in the IAS render path.
+The comment `// Reallocate GPU buffer if size changed` implies the design was to track sizes, but
+the implementation unconditionally frees when `d_*_data` is non-null. For static scenes this is
+unnecessary GPU allocation churn in the render hot path.
+**Why it matters:** While O(1) overhead per frame and not dominant, it contradicts the comment's
+design intent and wastes PCI-e bandwidth. Future higher-instance-count scenes will amplify the
+waste.
+**Suggested direction:** Guard re-allocation on actual size changes (track `last_*_count` and
+compare before free/alloc).
+
+### 6. InteractiveEngine is a 662-line god-object with triplicated dispatch chains
+
+**Axis:** Soundness + Evolvability
+**Where:** `menger-app/.../engines/InteractiveEngine.scala` (662 lines, 8 concerns)
+**Impact:** Medium — any change to scene construction, 4D rotation fast paths, cross geometry,
+screenshots, or stats risks regression across unrelated areas. The 5 4D fast-path methods are
+copy-paste variants.
+**Effort:** days
+**Enforcement:** unguarded
+**What:** Eight distinct concerns co-located with no delegation boundaries: scene construction
+(lines 51-109, 457-552), 5 variant 4D rotation fast paths (lines 199-296), coordinate-cross
+geometry (401-436), level validation (298-329), stats JSON (624-655), screenshot saving
+(inherited), camera controller (delegated ✅), LibGDX lifecycle (required ✅). The
+`buildScene4DTrackedOrFallback` dispatch chain duplicates the `GeometryRegistry.builderFor` chain
+— both are if-else chains over `ObjectType` predicates with no single source of truth.
+**Why it matters:** Two of the newest features (Sierpinski4D + Hexadecachoron4D) are wired in
+`InteractiveEngine` but absent from `GeometryRegistry.builderFor`. A refactor to one dispatch chain
+without the other silently breaks features. No ArchUnit rule or test catches this.
+**Suggested direction:** Extract a `RotationFastPath` strategy object from the 5 copy-paste
+methods. Single source of truth for object-type → builder dispatch (a `Map` consumed by both
+InteractiveEngine and GeometryRegistry). ArchUnit rule: no class > 300 lines in the engines
+package.
+
+### 7. arc42 §9 has duplicate AD numbers; §10 quality scenarios overstate governance
+
+**Axis:** Soundness (documentation)
+**Where:** `docs/arc42/09-architectural-decisions.md` (AD-24/AD-25 each assigned to two unrelated decisions), `docs/arc42/10-quality-requirements.md` (caustics C1-C8 "placeholder" but implies validation)
+**Impact:** Medium — documentation as source-of-truth is compromised when numbers conflict and
+quality claims misrepresent actual gates.
+**Effort:** hours
+**Enforcement:** unguarded
+**What:** (a) AD-24 refers to both Three-Layer Module Architecture (Sprint 25) and OptiX AI
+Denoiser (Sprint 29). AD-25 refers to both libav Video Decode (Sprint 27) and Curves Primitive
+(Sprint 29). Sprint 29 decisions should be AD-27 and AD-28. (b) arc42 §10 presents a detailed
+C1-C8 caustics quality ladder with specific acceptance criteria — but all 8 rungs are "⬜ Not
+implemented" and the only protection is an AE-diff smoke test. The phrase "to be validated" is
+buried in a note while the formatting implies active governance.
+**Why it matters:** Trustworthy architecture documentation is a quality goal. Duplicate AD numbers
+break traceability; over-stated quality gates teach readers to disregard arc42.
+**Suggested direction:** Renumber Sprint 29 ADs to 27/28. Add explicit "❌ Not Implemented"
+markers to each C1-C8 rung in §10. Add a `doc-lint.sh` check for duplicate AD numbers.
+
+### 8. DSL scene files have unrestricted JVM classpath access
 
 **Axis:** Soundness
-**Where:** `menger-app/.../cli/CliValidation.scala` (validated via Scallop) vs `menger.dsl` / `examples/dsl` (no equivalent gate); `CODE_IMPROVEMENTS.md` M-sceneb-validate-bypass.
-**Impact:** Low–Medium — the second untrusted-input path reaches the native bridge with no enforced range/consistency validation.
-**Effort:** hours to audit
-**Enforcement:** partially guarded (CLI by convention; DSL unguarded)
-**Suggested direction:** Confirm the DSL validates ranges; pin the invariant "parsed external input is validated (or wrapped in a validated type) before any `io.github.lene.optix` call."
+**Where:** `menger-app/.../dsl/` (runtime-compiled scenes share classpath with menger-app)
+**Impact:** Low-Medium — a malicious or erroneous DSL scene can call `System.exit`,
+`System.loadLibrary`, or access `OptiXRenderer` natives directly, bypassing all architectural
+layering. CLI validation (293 lines of `CliValidation.scala`) provides strong counterpart.
+**Effort:** days (for full sandboxing)
+**Enforcement:** partially guarded (ArchUnit checks DSL framework packages at compile time; runtime
+scenes are unrestricted)
+**Why it matters:** The second untrusted-input path has no boundary enforcement. In practice, DSL
+scenes are author-controlled, so the risk is low for typical usage — but undocumented.
+**Suggested direction:** Document in arc42 §11 risks section. A `SecurityManager` or Java module
+restriction is the proper fix but low-priority given the threat model.
 
 ## arc42 coherence
 
-- **§5 Building Blocks** — accurate. Correctly marks `optix-jni`/`menger-common` as published and distinguishes in-repo `menger-geometry`. The module-map drift was in CLAUDE.md, not here (F5, fixed).
-- **§9 Decisions** — mostly honored. AD-16 (OptiX-only) matches the code; AD-2 correctly marked superseded; LibGDX correctly scoped to windowing/input. The stale claim is in §10, not §9.
-- **§10 Quality** — over-claims. `M4` "< 1 day ✅" contradicted by F1; caustics ladder 0/8 (F7); perf budgets "Validated" with no executing check (F2).
-- **§11 Risks** — §11.4 advertises a JNI-leak mitigation that pre-push/CI stub out (F3).
+- **§5 Building Blocks** — Mostly accurate. Module graph correct; §5.2 tables list allowed
+  dependencies but 3 are documented as `M-arch-*` violations with `ignore`d ArchUnit rules (AD-23).
+  Layered dependency diagram is aspirational, not enforced.
+- **§9 Decisions** — Duplicate AD-24/AD-25 numbers (Sprint 29 denoiser + curves need new numbers).
+  Sprint 28-29 ADs are present and accurate in content.
+- **§10 Quality** — Over-claims. Perf P1/P2 "Validated" are aspirational. Caustics C1-C8 ladder
+  presented as active but 0/8 implemented. `M4` "<1 day to add geometry type" contradicted by the
+  6-file shotgun surgery measurement (F6).
+- **§11 Risks** — §11.4 JNI memory leak is tracked-and-mitigated per the text; in reality
+  Valgrind + compute-sanitizer are stubbed.
 
 ## Carried forward from prior review
 
-None — first run.
+| Prior F# | Status | Notes |
+|----------|--------|-------|
+| F1 (evolvability shotgun surgery) | 🟡 Still real | 6-file surgery quantified in this review F6. `"curve"` missing from VALID_TYPES makes it worse. |
+| F2 (performance ungoverned) | 🔴 Still ungoverned | PerfCheck landed sprint 28 but advisory; baselines still placeholders |
+| F3 (native leak gate stubbed) | 🔴 Still stubbed | No change. T3 unscheduled since 2026-06-12. |
+| F4 (raw JNI primitives) | 🔴 Still unguarded | Remains the JNI boundary's single biggest gap. F2 in this review. |
+| F5 (CLAUDE.md module map) | ✅ Resolved | Fixed 2026-06-12. |
+| F6 (ArchUnit package-scoped) | 🟡 Still partial | Now subsumed under F2 in this review. |
+| F7 (caustics ladder 0/8) | 🔴 Still 0/8 | Governance theater continues. F7 in this review. |
+| F8 (no determinism/JNI fault tests) | 🔴 Still absent | Carried forward. ARCHITECTURE_BACKLOG T7 unscheduled. |
+| F9 (DSL trust boundary) | 🟡 Still partial | Documented gap, not fixed. F8 in this review. |
 
 ## Resolved since last review
 
-None — first run.
+- F5 (CLAUDE.md module map) — CLAUDE.md now correctly describes two in-repo modules + two external
+  artifacts. arc42 §5.2.1 header updated. No doc-vs-build parity test exists yet, but the false
+  claim is removed.
 
 ## Positive patterns worth preserving
 
-1. **JNI 4D-animation fast path is correctly upload-once** (`MengerRenderer.scala:48-84`, `InteractiveEngine.scala:222-270`, `MeshUploadPlan.scala`): per-frame animation marshals ~6 scalars per instance via `updateMenger4DProjection`, reusing recorded `instanceIds` instead of rebuilding geometry. The strongest part of the design. Guard it: assert an N-frame animation issues O(frames×instances) projection calls and O(1) instance builds.
-2. **Unified native-exception handling + coherent logging**: native code routes through one `throwJavaException` helper; the Scala bridge wraps results in `Try`/`Option` with a typed `OptiXNotAvailableException`; 29 files use SLF4J vs only 4 stray `println`.
-3. **Well-maintained tech-debt ledger**: `CODE_IMPROVEMENTS.md` deletes resolved items, reasons about accepted ones, and closes tooling gaps — rare discipline.
+1. **JNI seam is structurally sound**: single `renderWithStats` call per frame; all CUDA work stays
+   in native code; `MengerRenderer` extends cleanly from `OptiXRenderer` without breaking the
+   abstraction. Per-frame 4D animation stays upload-once.
+2. **Material preset system**: Adding a new material type touches exactly one file
+   (`Material.scala`) with ~3 lines — the project's best evolvability story.
+3. **CODE_IMPROVEMENTS.md discipline**: Resolved items are deleted, not archived; findings carry
+   specific file:line locations; the process actively closes tooling gaps — rare and valuable.
 
 ---
-*Generated by `/arch-review` (see `.claude/commands/arch-review.md`).*
+
+*Generated by `/arch-review` (see `.claude/commands/arch-review.md`). Prior review: 2026-06-12.*
