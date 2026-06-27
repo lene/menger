@@ -209,7 +209,7 @@ object Main:
       caustics = opts.causticsConfig,
       cross = opts.crossConfig,
       denoiseMode = opts.denoiseMode,
-      accumulationFrames = 1
+      accumulationFrames = opts.accumulationFrames()
     )
     opts.animate.toOption match
       case Some(animSpec) =>

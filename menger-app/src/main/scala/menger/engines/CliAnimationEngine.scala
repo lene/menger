@@ -75,6 +75,7 @@ class CliAnimationEngine(
       logger.info(s"Rendering frame ${frame + 1}/$totalFrames")
       val animatedSpecs = baseSpecs.map(spec => animSpec.applyToSpec(spec, frame))
       val renderer = rendererWrapper.renderer
+      configureOutputMode(renderer)
       renderer.clearAllInstances()
       buildSceneFromSpecs(animatedSpecs, renderer).recover { case e =>
         logger.error(s"Failed to build frame $frame: ${e.getMessage}", e)
