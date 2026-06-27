@@ -32,12 +32,14 @@ Speed    Efficiency      Quality    Accuracy       Coverage   Handling
 
 | ID | Scenario | Measure | Target | Status |
 |----|----------|---------|--------|--------|
-| P1 | Sponge level 3 generation | Time | < 5s | See performance docs |
-| P2 | OptiX render 800×600 | Time | < 500ms | See performance docs |
-| P3 | OptiX render with shadows | Overhead | < 30% | ✅ Validated |
-| P4 | Adaptive AA (depth 2) | Samples vs uniform | 5-20× fewer | ✅ Validated |
-| P5 | Statistics collection | Overhead | < 5% | ✅ Validated |
-| P6 | Animated video texture update | GPU allocation | Stable slot, no per-frame allocation | ✅ Validated |
+| P1 | Sponge level 3 generation | Time | < 5s | ⚠️ Advisory PerfCheck (Sprint 30.9); baselines unmeasured |
+| P2 | OptiX render 800×600 | Time | < 500ms | ⚠️ Advisory PerfCheck (Sprint 30.9); baselines unmeasured |
+| P3 | OptiX render with shadows | Overhead | < 30% | ⚠️ Advisory PerfCheck (Sprint 30.9) |
+| P4 | Adaptive AA (depth 2) | Samples vs uniform | 5-20× fewer | ✅ Code review validated |
+| P5 | Statistics collection | Overhead | < 5% | ✅ Code review validated |
+| P6 | Animated video texture update | GPU allocation | Stable slot, no per-frame allocation | ✅ Code review validated |
+| P7 | Shader execution reordering | Coherence gain | > 5% on divergent scenes | 🔬 Benchmark pending (Sprint 30.4, opt-in via MENGER_OPTIX_SER=1) |
+| P8 | Validation mode | Debug cycle time | Catches errors at call site | ✅ Available via MENGER_OPTIX_VALIDATION=1 (Sprint 30.4) |
 
 ### Visual Quality
 
@@ -57,14 +59,14 @@ Speed    Efficiency      Quality    Accuracy       Coverage   Handling
 
 | ID | Scenario | Measure | Target | Test Type |
 |----|----------|---------|--------|-----------|
-| C1 | Photon emission | Count & direction | Matches requested, uniform distribution | Analytic |
-| C2 | Sphere hit rate | Photons hitting sphere | Within 5% of geometric cross-section | Analytic |
-| C3 | Refraction accuracy | Exit angle vs Snell's law | < 0.01 rad error for known angles | Analytic |
-| C4 | Focal point position | Caustic centroid location | Within 0.1 units of predicted focal point | Analytic |
-| C5 | Energy conservation | Flux in vs flux deposited | Within 5% (accounting for absorption) | Statistical |
-| C6 | PPM convergence | Variance over iterations | Monotonic decrease after iteration 3 | Statistical |
-| C7 | Caustic brightness | Peak vs ambient | > 1.5× brighter at focal point | Statistical |
-| C8 | Reference match | SSIM to known-good render | > 0.90 for canonical scene | Image comparison |
+| C1 | Photon emission | Count & direction | Matches requested, uniform distribution | Analytic | ❌ Not implemented |
+| C2 | Sphere hit rate | Photons hitting sphere | Within 5% of geometric cross-section | Analytic | ❌ Not implemented |
+| C3 | Refraction accuracy | Exit angle vs Snell's law | < 0.01 rad error for known angles | Analytic | ❌ Not implemented |
+| C4 | Focal point position | Caustic centroid location | Within 0.1 units of predicted focal point | Analytic | ❌ Not implemented |
+| C5 | Energy conservation | Flux in vs flux deposited | Within 5% (accounting for absorption) | Statistical | ❌ Not implemented |
+| C6 | PPM convergence | Variance over iterations | Monotonic decrease after iteration 3 | Statistical | ❌ Not implemented |
+| C7 | Caustic brightness | Peak vs ambient | > 1.5× brighter at focal point | Statistical | ❌ Not implemented |
+| C8 | Reference match | SSIM to known-good render | > 0.90 for canonical scene | Image comparison | ❌ Not implemented |
 
 #### Caustics Test Ladder
 

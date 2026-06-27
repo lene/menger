@@ -19,8 +19,8 @@
 
 ### Rendering Modes
 
-1. **LibGDX Mode** - OpenGL rasterization for real-time preview
-2. **OptiX Mode** - GPU ray tracing for high-quality output with refraction, shadows, caustics, fog
+1. **OptiX Mode (sole renderer since v0.6.0 / Sprint 17)** — GPU ray tracing for all rendering: refraction, shadows, caustics, fog, IBL, AI denoising. LibGDX is retained for windowing/input only (no OpenGL 3D rendering).
+2. **Headless Mode** — CLI-driven rendering for batch/animation output without a display.
 
 ## 1.2 Quality Goals
 

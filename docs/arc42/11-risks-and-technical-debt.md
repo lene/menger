@@ -15,7 +15,7 @@
 | ID | Risk | Impact | Mitigation |
 |----|------|--------|------------|
 | TR-4 | Large sponge BVH build time | Poor UX | Cache geometry; async build |
-| TR-5 | JNI memory leaks | Gradual OOM | RAII patterns; dispose() enforcement |
+| TR-5 | JNI memory leaks | Gradual OOM | ⚠️ Aspirational: pre-push Valgrind/compute-sanitizer gates are stubbed (return 0 unconditionally). Only the external optix-jni repo has real leak checks. menger-geometry native code (`project4d.cu`, `MengerJNIBindings.cpp`) is unchecked. ARCHITECTURE_BACKLOG T3 tracks the fix (~2 dev-days). |
 | TR-6 | LibGDX input processor ordering | UI issues | Separate InputProcessors via OptiXInputMultiplexer |
 | TR-9 | FFmpeg/libav runtime mismatch | Video decode failure | CI installs shared libav packages; fail video tests clearly |
 | TR-10 | Large video inputs | CPU/GPU memory pressure | 8-frame CPU cache and one stable GPU slot per active source |
