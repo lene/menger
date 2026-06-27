@@ -89,6 +89,7 @@ sbt "run --optix --objects 'type=sphere'    # Ray-traced sphere
 --max-ray-depth <int>        # Bounce / refraction recursion depth (1..8, default: 5)
 --allow-uniform-render       # Disable the failed-render diagnostic (see "Render health checks")
 --denoise                    # Apply OptiX AI denoiser to accumulated frame before tone mapping
+--accumulation-frames <int>   # Temporal accumulation count (default: 1, >=1). >1 averages N frames
 --stats                      # Display ray tracing statistics
 
 # Scene

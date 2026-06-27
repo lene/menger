@@ -46,6 +46,20 @@ sbt "project optixJni" compile
 
 **Root cause:** OptiX strict ABI compatibility - SDK must match driver runtime
 
+### OptiX Validation Mode
+
+**When to use:** Debugging SBT mismatches, payload size errors, or buffer
+alignment issues that produce opaque CUDA error 718. Validation mode catches
+these at the exact call site with a descriptive error.
+
+**Usage:**
+```bash
+MENGER_OPTIX_VALIDATION=1 sbt run
+MENGER_OPTIX_VALIDATION=1 menger-app --objects type=sphere
+```
+
+**Performance note:** Adds ~10-30% runtime overhead — debugging only, not production.
+
 ### CUDA error 35 ("driver version is insufficient for CUDA runtime version")
 
 **Cause:** NVIDIA driver too old for the CUDA 13 runtime that the distributed native
@@ -398,6 +412,20 @@ sbt "run --optix --objects 'type=sphere' --stats"
 ```
 
 This displays ray counts, intersection tests, and timing information.
+
+#### Shader Execution Reordering (SER)
+
+**Ada Lovelace+ GPUs (RTX 40xx+):** Enable `MENGER_OPTIX_SER=1` to use OptiX
+shader execution reordering, which improves SIMT coherence for divergent rays
+(e.g., sponges with mixed materials). Enabling SER requires a pipeline rebuild
+on next render — expect 5-20% frame-time improvement on divergent scenes.
+
+```bash
+MENGER_OPTIX_SER=1 menger-app --objects type=sponge-volume:level=4
+```
+
+Disabled by default pending benchmarking. Use `scripts/benchmark.sh` to
+compare on/off timing on your GPU.
 
 ### Getting Help
 

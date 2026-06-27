@@ -1,5 +1,44 @@
 # Changelog
 
+## [Unreleased] — Sprint 30 (2026-06-27)
+
+### Added
+- **OptiX validation mode** — `MENGER_OPTIX_VALIDATION=1` enables full API validation
+  at context creation, catching SBT/payload errors at call sites instead of
+  opaque CUDA error 718 at launch. Documented in TROUBLESHOOTING.md.
+- **Shader execution reordering (SER)** — opt-in via `MENGER_OPTIX_SER=1` on Ada
+  Lovelace+ GPUs. `optixReorder()` call in raygen shader with device capability
+  check. Disabled by default pending benchmarking.
+- **GPU stream tunable** — `MENGER_OPTIX_STREAMS` env var for CUDA stream selection.
+- **`--accumulation-frames <int>` CLI option** — configurable temporal accumulation
+  for the `--object` path (was hardcoded to 1).
+- **Arc42 architecture documentation coherence pass** — duplicate AD numbers fixed,
+  caustics C1-C8 marked as "Not implemented," JNI leak risk updated.
+
+### Changed
+- **PerfCheck CI job promoted to blocking** (`allow_failure: false`, threshold 25%).
+- **InteractiveEngine refactored** — `RotationFastPath` extracted, dispatch unified
+  via `GeometryRegistry.builderFor`, ArchUnit class-size rule added (≤25 methods).
+
+### Fixed
+- **Curve CLI path broken** — `"curve"` was missing from `ObjectType.VALID_TYPES`,
+  silently rejecting CLI `type=curve` while DSL path worked. Added to VALID_TYPES
+  with `isCurve` predicate.
+- **Native guard for denoise/accumulation API** — `setDenoisingEnabled` and
+  `setAccumulationFrames` now check `isInitialized` before native calls, preventing
+  SIGSEGV when called before init.
+- **Per-frame buffer re-allocation** — 8 GPU geometry-data arrays in IAS render path
+  now only re-allocate on actual size changes, eliminating unconditional per-frame
+  `cudaFree`+`cudaMalloc` churn.
+- **Per-frame denoise/accumulation in animation engines** — `WithAnimation.render()`
+  and `WithPreview.render()` now apply denoise+accumulation from per-frame
+  `SceneConfigs`, fixing silently ignored per-frame settings.
+- **CurveSceneBuilder validation** — now rejects unsupported DSL fields (texture,
+  rotation, proceduralType) with clear error messages instead of silently ignoring.
+
+### Dependencies
+- optix-jni: added sbt-mima-plugin 1.1.4 (binary compatibility enforcement)
+
 ## [0.7.6] - 2026-06-26
 
 ### Added

@@ -411,6 +411,14 @@ echo -e "${YELLOW}--- Denoising ---${NC}"
 run_test "Denoise IBL baseline" "-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ -s $OUTPUT_DIR/151-denoise-ibl-baseline.png"
 run_test "Denoise IBL final" "-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ --denoise -s $OUTPUT_DIR/152-denoise-ibl-final.png"
 
+echo -e "${YELLOW}--- Shader Execution Reordering (SER) ---${NC}"
+echo "  (Ada+ GPUs only — run with MENGER_OPTIX_SER=1 to enable)"
+# SER improves coherence on Ada Lovelace+ GPUs; benchmark compares on/off timing
+run_test "SER off (baseline)" "-o --objects type=sphere -s $OUTPUT_DIR/153-ser-off.png"
+if [ "${MENGER_OPTIX_SER:-}" = "1" ]; then
+    run_test "SER on" "MENGER_OPTIX_SER=1 -o --objects type=sphere -s $OUTPUT_DIR/154-ser-on.png"
+fi
+
 echo -e "${YELLOW}--- Curves ---${NC}"
 run_test "Trefoil knot" "-o --scene examples.dsl.TrefoilKnot -s $OUTPUT_DIR/153-trefoil-knot.png"
 
