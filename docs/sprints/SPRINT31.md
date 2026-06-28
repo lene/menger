@@ -210,6 +210,23 @@ From ARCHITECTURE_BACKLOG.md, identified in Sprint 30 architecture review:
   `caustics_ppm.cu`) must pass leak checks on every push. This is the
   highest-impact unguarded invariant from the Sprint 30 arch review.
 
+### Task 31.8: AI Review Cleanup (deferred from Sprint 30)
+
+**Estimate:** 2h
+
+Items flagged by the multi-model AI code review during Sprint 30 close that
+are valid, low-risk, and deferred:
+
+- **`ser_enabled` bool in `BaseParams` (OptiXData.h:561)** — C++ `bool` may
+  cause struct padding differences vs CUDA. Change to `uint32_t` for explicit ABI.
+- **`last_*_count` reset on re-init (OptiXWrapper.cpp:144)** — 8 per-geometry
+  count tracking fields (last_texture_count through last_hexadecachoron4d_count)
+  should reset to 0 during `dispose()`/`reInitialize()` to prevent stale counts.
+- **Dead code: `isSerSupported` (OptiXWrapper.cpp:1286)** — method defined but
+  never called. Remove.
+- **MiMa filter comment (build.sbt:186)** — add justification comment explaining
+  why DirectMissingMethodProblem filters are there and how to update them when API changes.
+
 ---
 
 ## Summary
@@ -223,7 +240,8 @@ From ARCHITECTURE_BACKLOG.md, identified in Sprint 30 architecture review:
 | 31.5 | Tests + documentation | 6h |
 | 31.6 | CODE_IMPROVEMENTS (L-upload-texture, L-project4d-async) | 2h |
 | 31.7 | Architecture backlog (T7 determinism tests + T3 leak gate) | 18h |
-| **Total** | | **~60h** |
+| 31.8 | AI review cleanup (ser_enabled bool, count reset, dead code, MiMa comment) | 2h |
+| **Total** | | **~62h** |
 
 ---
 
