@@ -138,6 +138,40 @@ at n=3, branch push/pop balance checker, stochastic determinism under fixed seed
 
 ---
 
+### Task 31.6: CODE_IMPROVEMENTS Resolution
+
+**Estimate:** 2h
+
+Carried-forward low-priority items from Sprint 29–30:
+
+- **L-upload-texture-file-raw-int** (1h): Decide fail-fast vs graceful-skip semantics
+  for `uploadTextureFromFile` returning raw negative `Int`. Three production callers
+  treat negative as "skip and continue." Either change to throw `TextureUploadException`
+  (consistent with `uploadTexture`) or document the divergence.
+- **L-project4d-async-error** (1h): Document the CUDA error-handling contract in
+  `project4d.cu`. `cudaGetLastError()` at line 147 only captures launch-configuration
+  errors; `cudaDeviceSynchronize` lives in the caller. Either move the sync inside
+  or document the caller-responsibility contract explicitly.
+
+### Task 31.7: Architecture Backlog Items
+
+**Estimate:** 2h (T7) + 16h (T3) = 18h
+
+From ARCHITECTURE_BACKLOG.md, identified in Sprint 30 architecture review:
+
+- **T7 (2h): Render determinism + JNI fault-injection tests.**
+  Render canonical scene twice → assert identical PNG output. Add scalamock tests
+  forcing `-1` return from instance-adding JNI calls (sphere, mesh, curve, cylinder,
+  cone) and verify `Try`→`Failure` propagation. Locks down reproducibility claims.
+- **T3 (16h): Native memory-leak gate for menger-geometry.**
+  Restore real Valgrind + compute-sanitizer checks in pre-push hook (currently
+  stubbed — return 0 unconditionally). Wire to CI on the NVIDIA GPU runner.
+  Target: in-repo native code (`MengerJNIBindings.cpp`, `project4d.cu`,
+  `caustics_ppm.cu`) must pass leak checks on every push. This is the
+  highest-impact unguarded invariant from the Sprint 30 arch review.
+
+---
+
 ## Summary
 
 | Task | Description | Estimate |
@@ -147,7 +181,9 @@ at n=3, branch push/pop balance checker, stochastic determinism under fixed seed
 | 31.3 | DSL + CLI integration | 4h |
 | 31.4 | 4D turtle extension | 6h |
 | 31.5 | Tests + documentation | 4h |
-| **Total** | | **~28h** |
+| 31.6 | CODE_IMPROVEMENTS (L-upload-texture, L-project4d-async) | 2h |
+| 31.7 | Architecture backlog (T7 determinism tests + T3 leak gate) | 18h |
+| **Total** | | **~48h** |
 
 ---
 
