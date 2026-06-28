@@ -1,14 +1,14 @@
 # Current Sprint
 
-**Sprint:** 30
+**Sprint:** 31
 **Status:** 🔄 In Progress
-**Branch:** `feature/sprint-30`
+**Branch:** `feature/sprint-31`
 
 ---
 
 ## Goal
 
-See [SPRINT30.md](SPRINT30.md) (OptiX API Coverage II — Motion Blur, API Audit, 1.0 Prep) for detailed task breakdown.
+See [SPRINT31.md](SPRINT31.md) (L-Systems in 3D and 4D) for detailed task breakdown.
 
 ---
 
