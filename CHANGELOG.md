@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **L-Systems** — Lindenmayer grammar engine with 3D/4D turtle interpretation
+- DSL `LSystem(axiom, rules, iterations, angle, ...)` type extending SceneObject
+- CLI `type=lsystem:preset=tree:level=5:size=1.5` with preset selection
+- Presets: Tree (ABOP fig 1.24), Bush, Fern3D, HilbertCurve3D, KochIsland
+- 4D turtle with 6-plane rotations — `HilbertCurve4D`, `Tree4D`
+- Per-segment material control: `M(name)` and `T(filename)` in grammar strings
+- Material inheritance through `[ ]` push/pop stack
+- Parameterized `F(len, width, shape)` segment shapes with auto-taper
+- Primitives: `@O(diameter)` spheres, `@c(diameter)` disks, `J(name, scale)` mesh stamps
+- Pruning `%(n)` and width scaling `!(w)` commands
+
+### Fixed
+- **uploadTextureFromFile fail-fast** — now throws `TextureUploadException` (consistent with `uploadTexture`)
+- **project4d.cu async error contract** — documented caller-responsibility for `cudaDeviceSynchronize`
+- **AI review cleanup** — `ser_enabled` bool→uint32_t, `last_*_count` reset on dispose, dead `isSerSupported` removed
+
 ## [0.7.6] - 2026-06-26
 
 ### Added

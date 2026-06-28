@@ -591,6 +591,11 @@ interactive_tests=(
     "Denoise IBL baseline:-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/"
     "Denoise IBL final:-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ --denoise"
     "Trefoil knot:-o --scene examples.dsl.TrefoilKnot"
+    "L-System Tree Level 4:-o --objects type=lsystem:preset=tree:level=4:size=0.8 --plane y:-2"
+    "L-System Bush Level 3:-o --objects type=lsystem:preset=bush:level=3:size=0.8 --plane y:-2"
+    "L-System Fern3D Level 3:-o --objects type=lsystem:preset=fern3d:level=3:size=0.8 --plane y:-2"
+    "L-System Hilbert3D Level 4:-o --objects type=lsystem:preset=hilbert3d:level=4:size=1.2 --plane y:-2"
+    "L-System Koch Island Level 2:-o --objects type=lsystem:preset=kochisland:level=2:size=1.5 --plane y:-2"
 )
 
 echo "Available interactive tests:"

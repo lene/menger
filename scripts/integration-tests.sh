@@ -1286,6 +1286,20 @@ test_fog() {
     rm -f "$no_fog_img" "$fog_img" "/tmp/fog_diff_$$.png"
 }
 
+test_lsystem() {
+    echo "L-Systems:"
+    run_test "lsystem tree level 4" --plane y:-2 \
+        --objects type=lsystem:preset=tree:level=4:size=0.8
+    run_test "lsystem bush level 3" --plane y:-2 \
+        --objects type=lsystem:preset=bush:level=3:size=0.8
+    run_test "lsystem fern3d level 3" --plane y:-2 \
+        --objects type=lsystem:preset=fern3d:level=3:size=0.8
+    run_test "lsystem hilbert3d level 4" --plane y:-2 \
+        --objects type=lsystem:preset=hilbert3d:level=4:size=1.2
+    run_test "lsystem kochisland level 2" --plane y:-2 \
+        --objects type=lsystem:preset=kochisland:level=2:size=1.5
+}
+
 
 # ============================================
 # Main
@@ -1339,6 +1353,7 @@ main() {
     test_ibl
     test_denoising
     test_fog
+    test_lsystem
 
     print_summary
 
