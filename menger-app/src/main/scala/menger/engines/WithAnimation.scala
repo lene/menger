@@ -13,6 +13,7 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureUploadException
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.Vector3Extensions.toVector3
@@ -230,9 +231,12 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       val resolvedPath =
         if Paths.get(path).isAbsolute then path
         else Paths.get(textureDir).resolve(path).toString
-      val idx = renderer.uploadTextureFromFile(resolvedPath)
-      if idx >= 0 then renderer.setEnvironmentMap(idx)
-      else logger.error(s"Failed to load environment map: $path")
+      try
+        val idx = renderer.uploadTextureFromFile(resolvedPath)
+        renderer.setEnvironmentMap(idx)
+      catch
+        case e: TextureUploadException =>
+          logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
     }
 
   private def configureIBL(

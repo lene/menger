@@ -12,6 +12,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.CameraState
 import io.github.lene.optix.RenderResult
 import io.github.lene.optix.SceneConfigurator
+import io.github.lene.optix.TextureUploadException
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.RotationProjectionParameters
@@ -372,9 +373,12 @@ class InteractiveEngine(
             val resolvedPath =
               if java.nio.file.Paths.get(path).isAbsolute then path
               else java.nio.file.Paths.get(config.execution.textureDir).resolve(path).toString
-            val idx = renderer.uploadTextureFromFile(resolvedPath)
-            if idx >= 0 then renderer.setEnvironmentMap(idx)
-            else logger.error(s"Failed to load environment map: $path")
+            try
+              val idx = renderer.uploadTextureFromFile(resolvedPath)
+              renderer.setEnvironmentMap(idx)
+            catch
+              case e: TextureUploadException =>
+                logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
           }
           environment.envMapVideo.foreach { envMapVideo =>
             TextureManager.loadInitialEnvMapVideo(

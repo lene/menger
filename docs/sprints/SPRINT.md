@@ -2,6 +2,7 @@
 
 **Sprint:** 31
 **Status:** 🔄 In Progress
+**Started:** 2026-06-28
 **Branch:** `feature/sprint-31`
 
 ---

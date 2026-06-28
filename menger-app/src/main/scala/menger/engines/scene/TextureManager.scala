@@ -10,6 +10,7 @@ import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureUploadException
 import menger.ObjectSpec
 import menger.TextureData
 import menger.TextureLoader
@@ -90,13 +91,14 @@ object TextureManager extends LazyLogging:
   ): Option[(String, Int)] =
     if filename.toLowerCase.endsWith(".hdr") then
       val resolvedPath = resolveTexturePath(filename, textureDir).toString
-      val idx = renderer.uploadTextureFromFile(resolvedPath)
-      if idx >= 0 then
+      try
+        val idx = renderer.uploadTextureFromFile(resolvedPath)
         logger.debug(s"Uploaded HDR texture '$filename' as index $idx")
         Some(filename -> idx)
-      else
-        logger.error(s"Failed to upload HDR texture '$filename'")
-        None
+      catch
+        case e: TextureUploadException =>
+          logger.error(s"Failed to upload HDR texture '$filename': ${e.getMessage}")
+          None
     else
       TextureLoader.load(filename, textureDir) match
         case Success(textureData) =>
