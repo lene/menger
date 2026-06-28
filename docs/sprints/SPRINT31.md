@@ -23,12 +23,14 @@ shows.
 
 ## Success Criteria
 
-- [ ] `--objects type=lsystem:preset=tree:level=5` renders a recognizable 3D tree
-- [ ] Custom grammars definable in the DSL (axiom + rules + angle)
+- [ ] `--objects type=lsystem:preset=tree:level=5` renders a recognizable 3D tree with tapered branches
+- [ ] Custom grammars definable in the DSL (axiom + rules + angle + material bindings)
+- [ ] Per-segment material control: `M("bark")` and `T("leaf.png")` in grammar strings
 - [ ] Stochastic rules supported with a fixed seed (deterministic renders)
 - [ ] A 4D L-system (e.g. 4D Hilbert curve) renders and responds to
       `rot-x-w / rot-y-w / rot-z-w` like other 4D objects
 - [ ] String-rewriting engine fully unit-tested against published ABOP examples
+- [ ] Sphere joints (`@O`) and surface primitives stamp at turtle positions
 - [ ] All tests pass
 
 ---
@@ -62,44 +64,82 @@ at n=3, branch push/pop balance checker, stochastic determinism under fixed seed
 
 ### Task 31.2: 3D Turtle Interpretation
 
-**Estimate:** 8h
+**Estimate:** 15h (8h + 3h + 4h)
 
-**Implementation:**
+Interprets turtle commands into 3D geometry. State-of-the-art implementation drawing on
+ABOP extensions (Měch, Prusinkiewicz, Hanan 1997) and Houdini's L-System SOP.
+
+**31.2a — Basic turtle + segment generation (8h):**
 - Turtle state: position `Vec3`, orthonormal frame (heading H, left L, up U) as a
-  3×3 matrix, current width, color index; branch stack of states
-- Rotations: `+ -` rotate about U, `& ^` about L, `\ /` about H, by the grammar's
+  3×3 matrix, current width, material stack; branch stack of states
+- Rotations: `+ -` rotate about U, `& ^` about L, `\\ /` about H, by the grammar's
   angle parameter (matrix multiply — no quaternions needed at this scale)
 - Geometry emission: consecutive `F` segments accumulate into control-point
-  polylines → one `Curve` (Sprint 29) per branch run, with per-vertex widths from
-  `!` decay; fallback path emits cylinder-per-segment when curves are disabled
-- Optional leaf symbol `L` → small sphere or cone at turtle position (preset-defined
-  material)
-- Presets (`LSystemPreset` enum): `Tree` (ABOP fig 1.24-style), `Bush`, `Fern3D`,
-  `HilbertCurve3D`, `KochIsland` — each a named grammar + angle + width decay +
-  default materials
-- Scale normalization: after generation, fit bounding box to `size` parameter so
-  presets compose with existing scene conventions
+  polylines → one `Curve` (Sprint 29) per branch run, with per-vertex widths;
+  fallback path emits cylinder-per-segment when curves are disabled
+- `!(w)` — multiply current width by w; `!(s)` — divide width by s
+- `%(n)` — cut off branch after n more symbols (pruning)
+- Presets: `Tree` (ABOP fig 1.24-style), `Bush`, `Fern3D`,
+  `HilbertCurve3D`, `KochIsland` — each a named grammar + angle + width decay
+- Scale normalization: after generation, fit bounding box to `size` parameter
+
+**31.2b — Parameterized segment shapes (3h):**
+- `F(length, width)` — explicit per-segment dimensions; width interpolated between
+  consecutive F commands. When widths differ, the segment is automatically tapered
+  (cone) rather than uniform (cylinder).
+- Optional third parameter: `F(len, width, shape)` where shape = `"cylinder"`,
+  `"cone"`, or `"sphere"` selects the geometry type for that segment.
+- Implicit taper: any width change between consecutive F commands produces a cone
+  segment automatically — no separate cone command needed.
+
+**31.2c — Surface & decorative primitives (4h):**
+- `@O(diameter)` — sphere at turtle position (branch joints, caps, molecular models).
+  Uses existing `SphereSceneBuilder`.
+- `@c(diameter)` — disk in heading-left plane (branch caps). Uses existing
+  `CylinderSceneBuilder` with near-zero height.
+- `J(specName, scale)` — stamp a pre-defined mesh from the geometry registry at the
+  turtle position, e.g. `J("leaf-maple", 1.5)`. Reuses `--scene` DSL loader for
+  mesh definitions. Leaves rotate to turtle frame.
+- `{` `}` — start/end polygon surface tracing for leaf blades and petals (future:
+  emit as triangle mesh via `TriangleMeshSceneBuilder`)
 
 ---
 
-### Task 31.3: DSL + CLI Integration
+### Task 31.3: DSL + CLI + Material Integration
 
-**Estimate:** 4h
+**Estimate:** 7h (4h + 3h)
 
-**Implementation:**
+**31.3a — DSL + CLI grammar definition (4h):**
 - DSL:
   ```scala
   LSystem(
     axiom = "F", rules = Map('F' -> "F[+F]F[-F]F"),
     angleDegrees = 25.7f, iterations = 4,
     segmentLength = 0.1f, widthDecay = 0.7f,
-    seed = 42L, material = Material.Matte,
+    seed = 42L,
+    materials = Map("bark" -> Material.Wood, "leaf" -> Material.Leaf),
   )
   ```
   plus `LSystem.preset(LSystemPreset.Tree, iterations = 5)`
 - CLI: `--objects type=lsystem:preset=tree:level=5:size=1.5` (presets only on the
   CLI; custom grammars are DSL-only — rule maps don't fit the `key=value` syntax)
 - Geometry registry entry following the Sprint 19 pattern
+
+**31.3b — Full material control (3h):**
+- **Material stack in turtle state:** The turtle carries a material binding map
+  `String → Material` defined in the DSL. Symbols modify the active material:
+  - `M("bark")` — switch to named material preset
+  - `M(roughness=0.8, metallic=0, color=#553311)` — set explicit material params
+  - `T("bark.png")` — set texture (UV coords auto-generated along segment length)
+- Material inheritance: branches inherit the parent's material unless overridden by
+  a `M()` symbol inside the branch `[ ]` block.
+- Per-segment material: when `F` emits geometry, it uses the turtle's current
+  material. Tapered segments carry the same material across the full sweep.
+- Material pool: DSL defines named materials in a `Map[String, Material]`; grammar
+  symbols reference them by name. Backward compatible: if no materials defined,
+  defaults to the DSL's `material` parameter (same as Sprint 29 curves).
+- Resets to existing Material infrastructure — `MaterialExtractor`, `Material`
+  case class, PBR pipeline. No new GPU shader work.
 
 ---
 
@@ -177,13 +217,13 @@ From ARCHITECTURE_BACKLOG.md, identified in Sprint 30 architecture review:
 | Task | Description | Estimate |
 |------|-------------|----------|
 | 31.1 | Grammar engine (rewriting, stochastic, validation) | 6h |
-| 31.2 | 3D turtle → curve geometry + presets | 8h |
-| 31.3 | DSL + CLI integration | 4h |
+| 31.2 | 3D turtle → parameterized segments + surfaces (31.2a-c) | 15h |
+| 31.3 | DSL + CLI + full material control (31.3a-b) | 7h |
 | 31.4 | 4D turtle extension | 6h |
-| 31.5 | Tests + documentation | 4h |
+| 31.5 | Tests + documentation | 6h |
 | 31.6 | CODE_IMPROVEMENTS (L-upload-texture, L-project4d-async) | 2h |
 | 31.7 | Architecture backlog (T7 determinism tests + T3 leak gate) | 18h |
-| **Total** | | **~48h** |
+| **Total** | | **~60h** |
 
 ---
 
