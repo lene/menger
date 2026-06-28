@@ -174,7 +174,8 @@ object ObjectSpec extends LazyLogging:
     "normal", "distance", "color2", "checker-size",
     "procedural", "proc-scale",
     "normal-map", "roughness-map",
-    "dist-threshold"
+    "dist-threshold",
+    "control-points", "curve-widths"
   )
 
   def parse(spec: String): Either[String, ObjectSpec] =
@@ -206,6 +207,7 @@ object ObjectSpec extends LazyLogging:
       _ <- validateSpongeLevel(objType, level)
       texMaps <- parseTextureMaps(kvPairs)
       distThreshold <- parseDistanceThreshold(kvPairs)
+      curveData <- parseCurveData(kvPairs)
     yield ObjectSpec(
       objectType = objType,
       x = x,
@@ -225,7 +227,8 @@ object ObjectSpec extends LazyLogging:
       plane = planeGeom,
       procedural = procSpec,
       textureMaps = texMaps,
-      distanceThreshold = distThreshold
+      distanceThreshold = distThreshold,
+      curveData = curveData
     )
 
     result match
@@ -296,6 +299,25 @@ object ObjectSpec extends LazyLogging:
           s"Invalid dist-threshold value '$s': ${e.getMessage}. Must be a positive integer (e.g., dist-threshold=2)"
         }.map(Some(_))
       case None => Right(None)
+
+  private def parseCurveData(kvPairs: Map[String, String]): Either[String, Option[CurveData]] =
+    val points = kvPairs.get("control-points").map(parseFloatList).getOrElse(Right(Vector.empty))
+    val widths = kvPairs.get("curve-widths").map(parseFloatList).getOrElse(Right(Vector.empty))
+    (points, widths) match
+      case (Right(Vector()), Right(Vector())) => Right(None)
+      case (Right(pts), Right(wds)) =>
+        if pts.isEmpty then Left("control-points must contain at least one 3D point (multiple of 3 floats)")
+        else if pts.length < 12 then Left(s"control-points requires at least 4 3D points (12 floats), got ${pts.length}")
+        else Right(Some(CurveData(pts, wds)))
+      case (Left(e), _) => Left(e)
+      case (_, Left(e)) => Left(e)
+
+  private def parseFloatList(s: String): Either[String, Vector[Float]] =
+    val parts = s.split(",").map(_.trim).filter(_.nonEmpty)
+    if parts.isEmpty then Right(Vector.empty)
+    else
+      Try(parts.map(_.toFloat).toVector).toEither.left.map(_ =>
+        s"Invalid float list '$s': values must be numeric")
 
   private def parseColorField(kvPairs: Map[String, String], key: String): Either[String, Option[menger.common.Color]] =
     kvPairs.get(key) match

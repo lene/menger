@@ -56,6 +56,7 @@ for entry in "${SCENES[@]}"; do
     __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a "$BINARY" \
       $args \
       --headless \
+      --save-name "$TMPDIR/${label}.png" \
       --timeout 0.5 \
       --stats-json "$stats_file" \
       2>"$stderr_file" || {
