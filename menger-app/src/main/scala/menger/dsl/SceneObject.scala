@@ -490,3 +490,79 @@ object Curve:
       Vec3(radius * math.cos(t).toFloat, pitch * i / pointsPerTurn, radius * math.sin(t).toFloat)
     }
     Curve(points = pts, radius = tubeRadius, closed = false, material = material)
+
+/** L-system (Lindenmayer system) fractal object.
+  *
+  * Generates a 3D branching structure using a grammar string, turtle interpreter,
+  * and geometry primitives (curves, spheres, etc.). Supports CLI presets and full
+  * DSL parameterization.
+  *
+  * @param axiom          Starting string for L-system grammar
+  * @param rules          Production rules mapping symbols to weighted replacement strings
+  * @param iterations     Number of rewriting iterations (0-12)
+  * @param angleDegrees   Turtle turn angle in degrees
+  * @param segmentLength  Length of each forward segment
+  * @param initialWidth   Starting width for curve segments
+  * @param widthDecay     Width multiplier per branching step
+  * @param seed           Random seed for stochastic rules
+  * @param normalizeScale Whether to normalize output to unit cube
+  */
+case class LSystem(
+  axiom: String,
+  rules: Map[Char, String],
+  iterations: Int = 4,
+  angleDegrees: Float = 25.7f,
+  segmentLength: Float = 0.1f,
+  initialWidth: Float = 0.1f,
+  widthDecay: Float = 0.7f,
+  seed: Long = 42L,
+  normalizeScale: Boolean = true,
+  pos: Vec3 = Vec3.Zero,
+  size: Float = 1.0f,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[menger.video.VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(iterations >= 0 && iterations <= 12,
+    s"iterations must be 0-12, got $iterations")
+  require(angleDegrees > 0, s"angle must be positive, got $angleDegrees")
+  require(segmentLength > 0, s"segmentLength must be positive")
+  require(initialWidth > 0, s"initialWidth must be positive")
+  require(rules.nonEmpty, "rules must not be empty")
+  require(axiom.nonEmpty, "axiom must not be empty")
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec("lsystem",
+      level = Some(iterations.toFloat),
+      curveData = None
+    )
+
+object LSystem:
+  def preset(name: String, iterations: Int = 4, size: Float = 1.0f,
+    seed: Long = 42L): LSystem =
+    val lowerName = name.toLowerCase
+    val presets = Map(
+      "tree" -> ("F", Map('F' -> "F[+F]F[-F]F"), 25.7f, 0.3f, 0.08f, 0.7f, 4),
+      "bush" -> ("F", Map('F' -> "FF+[+F-F-F]-[-F+F+F]"), 22.5f, 0.15f, 0.05f, 0.8f, 3),
+      "fern3d" -> ("F", Map('F' -> "F[&F]F[^F][&F]"), 30.0f, 0.2f, 0.06f, 0.75f, 3),
+      "hilbert3d" -> ("X", Map(
+        'X' -> "^<XF^<XFX-F^>>XFX&F+>>XFX-F>X->",
+        'F' -> "F"
+      ), 90.0f, 0.1f, 0.05f, 1.0f, 4),
+      "kochisland" -> ("F+F+F+F",
+        Map('F' -> "F+f-FF+F+FF+Ff+FF-f+FF-F-FF-Ff-FFF"),
+        90.0f, 0.05f, 0.03f, 1.0f, 2)
+    )
+    require(presets.contains(lowerName), s"Unknown preset: $name")
+    val (axiom, rules, angle, segLen, initWidth, decay, defaultIters) =
+      presets(lowerName)
+    val iters = if iterations > 0 then iterations else defaultIters
+    LSystem(axiom, rules, iters, angle, segLen, initWidth, decay,
+      seed = seed, size = size)

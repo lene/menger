@@ -20,7 +20,7 @@ object RenderModeSelector:
     val otherTypes    = types.filterNot(t =>
       ObjectType.isAnalyticalPrimitive(t) || t == "cube-sponge")
 
-    if types.forall(_ == "curve") then
+    if types.forall(t => t == "curve" || t == "lsystem") then
       SceneType.Curves(specs)
     else if !hasAnalytical && !hasCubeSponge && otherTypes.forall(ObjectType.isTriangleMesh) then
       SceneType.TriangleMeshes(specs)

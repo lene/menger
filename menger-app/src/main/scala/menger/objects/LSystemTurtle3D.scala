@@ -15,7 +15,8 @@ private case class TurtleState3D(
   left: Vec3,
   up: Vec3,
   width: Float,
-  materialIndex: Int
+  materialIndex: Int,
+  currentTexture: Option[String] = None
 )
 
 private case class StepResult(
@@ -55,6 +56,12 @@ class LSystemTurtle3D(
   private val materialList: Vector[Material] =
     if materials.nonEmpty then materials.values.toVector
     else Vector(defaultMaterial)
+
+  private val materialNameToIndex: Map[String, Int] =
+    if materials.nonEmpty then
+      materials.keys.zipWithIndex.toMap
+    else
+      Map.empty
 
   def generate(): List[ObjectSpec] =
     val rawSpecs = process(grammarString, 0, initialState, List.empty,
@@ -106,6 +113,8 @@ class LSystemTurtle3D(
       case '@' => stepAt(s, i, state, specs, runPoints, runWidths, stack)
       case 'J' => stepMeshStamp(s, i, state, specs, runPoints, runWidths, stack)
       case '{' | '}' => stepBrace(state, specs, runPoints, runWidths, stack, i)
+      case 'M' => stepMaterial(s, i, state, specs, runPoints, runWidths, stack)
+      case 'T' => stepTexture(s, i, state, specs, runPoints, runWidths, stack)
       case _ => stepSkip(state, specs, runPoints, runWidths, stack, i)
 
   private def stepF(
@@ -121,7 +130,8 @@ class LSystemTurtle3D(
         val mat = currentMaterial(state)
         val sphereSpec = ObjectSpec(
           objectType = "sphere", x = newPos.x, y = newPos.y, z = newPos.z,
-          size = segWidth * 2f, material = Some(mat)
+          size = segWidth * 2f, material = Some(mat),
+          texture = state.currentTexture
         )
         StepResult(nextIdx, newState, sphereSpec :: newSpecs,
           Vector.empty, Vector.empty, stack, 0)
@@ -252,7 +262,8 @@ class LSystemTurtle3D(
       val mat = currentMaterial(state)
       val sphereSpec = ObjectSpec(
         objectType = "sphere", x = state.pos.x, y = state.pos.y, z = state.pos.z,
-        size = dia, material = Some(mat)
+        size = dia, material = Some(mat),
+        texture = state.currentTexture
       )
       StepResult(nextIdx, state, sphereSpec :: specs,
         runPoints, runWidths, stack, 0)
@@ -267,7 +278,7 @@ class LSystemTurtle3D(
       val (args, nextIdx) = parseParenArgs(s, idx + 2)
       val dia = args.headOption.flatMap(a => Try(a.toFloat).toOption).getOrElse(1f)
       val mat = currentMaterial(state)
-      val diskSpec = makeDiskSpec(state.pos, state.up, dia, mat)
+      val diskSpec = makeDiskSpec(state.pos, state.up, dia, mat, state.currentTexture)
       StepResult(nextIdx, state, diskSpec :: specs,
         runPoints, runWidths, stack, 0)
     else
@@ -286,12 +297,39 @@ class LSystemTurtle3D(
           val mat = currentMaterial(state)
           val stampSpec = ObjectSpec(
             objectType = cleanName, x = state.pos.x, y = state.pos.y, z = state.pos.z,
-            size = scale, material = Some(mat)
+            size = scale, material = Some(mat),
+            texture = state.currentTexture
           )
           StepResult(nextIdx, state, stampSpec :: specs,
             runPoints, runWidths, stack, 0)
         case _ =>
           StepResult(nextIdx, state, specs, runPoints, runWidths, stack, 0)
+    else
+      StepResult(i + 1, state, specs, runPoints, runWidths, stack, 0)
+
+  private def stepMaterial(
+    s: String, i: Int, state: TurtleState3D, specs: List[ObjectSpec],
+    runPoints: Vector[Vec3], runWidths: Vector[Float], stack: List[TurtleState3D]
+  ): StepResult =
+    if i + 1 < s.length && s(i + 1) == '(' then
+      val (args, nextIdx) = parseParenArgs(s, i + 2)
+      val name = args.headOption.getOrElse("")
+      val idx = materialNameToIndex.getOrElse(name, state.materialIndex)
+      StepResult(nextIdx, state.copy(materialIndex = idx),
+        specs, runPoints, runWidths, stack, 0)
+    else
+      StepResult(i + 1, state, specs, runPoints, runWidths, stack, 0)
+
+  private def stepTexture(
+    s: String, i: Int, state: TurtleState3D, specs: List[ObjectSpec],
+    runPoints: Vector[Vec3], runWidths: Vector[Float], stack: List[TurtleState3D]
+  ): StepResult =
+    if i + 1 < s.length && s(i + 1) == '(' then
+      val (args, nextIdx) = parseParenArgs(s, i + 2)
+      val filename = args.headOption
+        .map(f => f.stripPrefix("\"").stripSuffix("\""))
+      StepResult(nextIdx, state.copy(currentTexture = filename),
+        specs, runPoints, runWidths, stack, 0)
     else
       StepResult(i + 1, state, specs, runPoints, runWidths, stack, 0)
 
@@ -321,11 +359,13 @@ class LSystemTurtle3D(
       val spec = ObjectSpec(
         objectType = "curve",
         curveData = Some(CurveData(flatPoints, flatWidths)),
-        material = Some(mat)
+        material = Some(mat),
+        texture = state.currentTexture
       )
       (spec :: specs, (Vector.empty, Vector.empty))
 
-  private def makeDiskSpec(pos: Vec3, up: Vec3, diameter: Float, mat: Material): ObjectSpec =
+  private def makeDiskSpec(pos: Vec3, up: Vec3, diameter: Float, mat: Material,
+    texture: Option[String] = None): ObjectSpec =
     val halfHeight = 0.001f * diameter
     val apexPt = (pos.x + up.x * halfHeight, pos.y + up.y * halfHeight, pos.z + up.z * halfHeight)
     val basePt = (pos.x - up.x * halfHeight, pos.y - up.y * halfHeight, pos.z - up.z * halfHeight)
@@ -338,7 +378,8 @@ class LSystemTurtle3D(
         base = Some(basePt),
         radius = Some(diameter / 2f)
       ),
-      material = Some(mat)
+      material = Some(mat),
+      texture = texture
     )
 
   private def parseFParams(s: String, i: Int, currentWidth: Float): (Float, Float, String, Int) =

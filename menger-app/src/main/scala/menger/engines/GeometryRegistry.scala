@@ -7,6 +7,7 @@ import menger.engines.scene.ConeSceneBuilder
 import menger.engines.scene.CubeSpongeSceneBuilder
 import menger.engines.scene.CurveSceneBuilder
 import menger.engines.scene.Hexadecachoron4DSceneBuilder
+import menger.engines.scene.LSystemSceneBuilder
 import menger.engines.scene.Menger4DSceneBuilder
 import menger.engines.scene.PlaneSceneBuilder
 import menger.engines.scene.SceneBuilder
@@ -45,6 +46,8 @@ object GeometryRegistry:
         Some(SphereSceneBuilder(textureDir))
       else if types.forall(_ == "curve") then
         Some(CurveSceneBuilder(textureDir))
+      else if types.forall(_ == "lsystem") then
+        Some(LSystemSceneBuilder(textureDir))
       else if types.forall(_ == "cube-sponge") then
         Some(CubeSpongeSceneBuilder(textureDir))
       else if types.forall(ObjectType.isTriangleMesh) then

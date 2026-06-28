@@ -174,7 +174,8 @@ object ObjectSpec extends LazyLogging:
     "normal", "distance", "color2", "checker-size",
     "procedural", "proc-scale",
     "normal-map", "roughness-map",
-    "dist-threshold"
+    "dist-threshold",
+    "preset", "angle", "seed"
   )
 
   def parse(spec: String): Either[String, ObjectSpec] =

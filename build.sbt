@@ -7,7 +7,7 @@ inThisBuild(List(
   Test / parallelExecution := true,
 ))
 
-lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.1"
+lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.2"
 lazy val optixJniDependency = "io.github.lene" % "optix-jni" % "0.1.5"
 
 // Root project - aggregator only, no source code
