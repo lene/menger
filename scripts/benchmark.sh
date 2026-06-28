@@ -57,7 +57,6 @@ for entry in "${SCENES[@]}"; do
       $args \
       --headless \
       --save-name "$TMPDIR/${label}.png" \
-      --timeout 0.5 \
       --stats-json "$stats_file" \
       2>"$stderr_file" || {
         echo "ERROR: scene $label run $i failed:" >&2
