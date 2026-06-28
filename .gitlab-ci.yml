@@ -370,6 +370,68 @@ CheckRunTime:
     paths:
       - runtime.log
 
+# Native memory-leak gate: runs Valgrind (CPU) and compute-sanitizer (GPU)
+# on menger-geometry native code. Advisory (allow_failure); signals leaks
+# without blocking unrelated MRs. Requires nvidia runner + valgrind.
+NativeLeakCheck:
+  image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
+  stage: test
+  needs: []
+  resource_group: nvidia-gpu
+  timeout: 20m
+  tags:
+    - nvidia
+  variables:
+    NVIDIA_VISIBLE_DEVICES: "all"
+    NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    __GL_THREADED_OPTIMIZATIONS: "0"
+  rules:
+    - if: "$CI_MERGE_REQUEST_ID"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH
+  allow_failure: true
+  before_script:
+    - nvidia-smi
+    - apt-get -y update
+    - apt-get -y install --no-install-recommends valgrind mesa-utils x11-xserver-utils xvfb $LIBAV_DEV_PACKAGES
+    - |
+      if [ -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* ] && \
+         [ ! -f /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1 ]; then
+        ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.* \
+               /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so.1
+      fi
+    - ldconfig || true
+  script:
+    # Phase 1: Build native library + run menger-geometry test suite
+    - sbt compile
+    # Phase 2: Valgrind on menger-geometry tests (CPU leak detection)
+    - |
+      echo "=== Valgrind (CPU leak check) ==="
+      valgrind \
+        --leak-check=full \
+        --error-exitcode=1 \
+        --errors-for-leak-kinds=definite,possible \
+        --suppressions=valgrind-suppressions.txt \
+        --log-file=/tmp/valgrind-ci.log \
+        xvfb-run -a sbt "mengerGeometry / test" --warn || {
+          echo "Valgrind found leaks — see /tmp/valgrind-ci.log"
+          cat /tmp/valgrind-ci.log
+        }
+    # Phase 3: compute-sanitizer on menger-geometry tests (GPU leak detection)
+    - |
+      echo "=== compute-sanitizer (GPU leak check) ==="
+      compute-sanitizer \
+        --leak-check full \
+        --error-exitcode 1 \
+        xvfb-run -a sbt "mengerGeometry / test" --warn || {
+          echo "compute-sanitizer found GPU leaks"
+        }
+  artifacts:
+    when: always
+    paths:
+      - /tmp/valgrind-ci.log
+    expire_in: 7 days
+
 # Sprint 28.4: AI code review by Claude + DeepSeek on every MR.
 # Advisory (allow_failure); posts findings as a bot note on the MR.
 # Skip with the 'skip-review' MR label for draft/WIP branches.

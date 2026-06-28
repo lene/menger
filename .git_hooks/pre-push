@@ -338,8 +338,36 @@ run_coverage() {
 # --- Valgrind (background, CPU-only) ---
 run_valgrind() {
   echo "=== Valgrind ===" > /tmp/valgrind-phase-prepush.log
-  echo "Skipped — optix-jni memory checks run in the standalone repository" >> /tmp/valgrind-phase-prepush.log
-  return 0
+
+  if [ "${HAS_NATIVE:-0}" -eq 0 ]; then
+    echo "Valgrind: skipped (no native changes)" >> /tmp/valgrind-phase-prepush.log
+    return 0
+  fi
+
+  if ! command -v valgrind >/dev/null 2>&1; then
+    echo "Warning: valgrind not installed, skipping native memory checks" >> /tmp/valgrind-phase-prepush.log
+    return 0
+  fi
+
+  echo "Running valgrind on menger-geometry native code (via sbt test)..." >> /tmp/valgrind-phase-prepush.log
+
+  # Phase 2 (sbt compile) already built the native library.
+  # Run menger-geometry tests under valgrind to catch leaks in JNI native code.
+  # JVM and driver false positives are suppressed via valgrind-suppressions.txt.
+  __GL_THREADED_OPTIMIZATIONS=0 valgrind \
+    --leak-check=full \
+    --error-exitcode=1 \
+    --errors-for-leak-kinds=definite,possible \
+    --suppressions=valgrind-suppressions.txt \
+    --log-file=/tmp/valgrind-detail-prepush.log \
+    xvfb-run -a sbt "mengerGeometry / test" --warn >> /tmp/valgrind-phase-prepush.log 2>&1
+
+  STATUS_VG=$?
+  if [ "$STATUS_VG" -ne 0 ]; then
+    echo "Valgrind: FAILED (see /tmp/valgrind-detail-prepush.log)" >> /tmp/valgrind-phase-prepush.log
+    return 1
+  fi
+  echo "Valgrind: PASSED" >> /tmp/valgrind-phase-prepush.log
 }
 
 run_cppcheck() {
@@ -486,8 +514,34 @@ else
 fi
 
 # --- compute-sanitizer ---
-echo "=== compute-sanitizer ==="
-echo "  [skipped — optix-jni GPU memory checks run in the standalone repository]"
+if [ "${HAS_NATIVE:-0}" -gt 0 ]; then
+  if command -v compute-sanitizer >/dev/null 2>&1; then
+    echo "=== compute-sanitizer ==="
+    # Phase 2 (sbt compile) already built the native library.
+    # compute-sanitizer wraps the JVM process and instruments CUDA API calls
+    # made through JNI, catching GPU memory leaks (cudaMalloc without cudaFree).
+    NATIVE_LIB="menger-geometry/target/native/x86_64-linux/bin/libmengergeometry.so"
+    if [ -f "$NATIVE_LIB" ]; then
+      __GL_THREADED_OPTIMIZATIONS=0 compute-sanitizer \
+        --leak-check full \
+        --error-exitcode 1 \
+        xvfb-run -a sbt "mengerGeometry / test" --warn > /tmp/cs-prepush.log 2>&1
+      CS_STATUS=$?
+      if [ $CS_STATUS -ne 0 ]; then
+        echo "  compute-sanitizer: ${RED_TEXT}FAILED${RESET_TEXT} (see /tmp/cs-prepush.log)"
+        STATUS=1
+      else
+        echo "  compute-sanitizer: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+      fi
+    else
+      echo "  compute-sanitizer: ${RED_TEXT}SKIPPED${RESET_TEXT} (libmengergeometry.so not built)"
+    fi
+  else
+    echo "  [skipped — compute-sanitizer not installed]"
+  fi
+else
+  echo "  [skipped — no native changes]"
+fi
 
 if [ $STATUS -gt 0 ]
 then echo "Status after parallel checks: ${RED_TEXT}${STATUS}${RESET_TEXT}"
