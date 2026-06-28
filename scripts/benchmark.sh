@@ -32,7 +32,7 @@ SCENES=(
   "sphere:--objects type=sphere"
   "sponge-volume-L4:--objects type=sponge-volume:level=4"
   "menger4d-L3:--objects type=menger4d:level=3"
-  "sphere-IBL-accum:--objects type=sphere --accumulate"
+  "sphere-IBL-accum:--objects type=sphere --accumulation-frames 8"
 )
 
 echo "=== Menger Performance Benchmark ==="
