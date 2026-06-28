@@ -1,8 +1,8 @@
 package menger.engines
 
+import io.github.lene.optix.OptiXRenderer
 import menger.Projection4DSpec
 import menger.engines.scene.InstanceId
-import io.github.lene.optix.OptiXRenderer
 
 /** Strategy object for 4D-rotation fast paths in interactive and animation engines.
   *

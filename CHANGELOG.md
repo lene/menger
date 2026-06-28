@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Sprint 30 (2026-06-27)
+## [0.7.7] - 2026-06-28
 
 ### Added
 - **OptiX validation mode** — `MENGER_OPTIX_VALIDATION=1` enables full API validation
