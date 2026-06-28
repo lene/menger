@@ -110,12 +110,7 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
-| ID | Issue | Location |
-|----|-------|----------|
-| M-per-frame-denoise | `configureOutputMode` not called per-frame in `WithAnimation.render()`, `WithPreview.render()`, `CliAnimationEngine.render()`. Denoise/accumulation settings from per-frame `SceneConfigs` are silently ignored during animation. | `WithAnimation.scala:104`, `WithPreview.scala:112`, `CliAnimationEngine.scala:79` |
-| M-cli-accumulation-flag | CLI `--object` path hardcodes `accumulationFrames = 1` with no `--accumulation-frames` flag exposed to users. `--denoise` help text promises accumulation but there's no way to set it from the CLI. | `Main.scala:211-212`, `MengerCLIOptions.scala:395-408` |
-| M-curve-ignores-fields | `CurveSceneBuilder.buildScene` ignores texture, rotation, normal/roughness map, procedural texture, and position/size fields from `ObjectSpec`. Users who set these on DSL `Curve` types see no effect and no warning. | `CurveSceneBuilder.scala:22-30`, `SceneObject.scala:428-462` |
-| M-native-no-guard | `setDenoisingEnabled` and `setAccumulationFrames` are `public native` with no Scala precondition checks. Calling before `initialize()` or after `dispose()` causes native SIGSEGV. | `BaseEngine.scala:33-35`, `OptiXRenderer.scala:269-271` |
+*(all resolved — Sprint 30)*
 
 ---
 
@@ -125,8 +120,6 @@ Resolved items are removed from this file entirely — git history is the record
 |----|-------|----------|
 | L-upload-texture-file-raw-int | `uploadTextureFromFile` returns raw negative `Int` on failure while `uploadTexture` throws `TextureUploadException`. Behavior change needed: three production callers treat negative index as "skip and continue". Deferred until fail-fast vs graceful-skip decision is made. | `optix-jni/.../OptiXTextureApi.scala:67` |
 | L-project4d-async-error | `cudaGetLastError()` at `project4d.cu:147` only captures launch-configuration errors, not async kernel execution errors. The required `cudaDeviceSynchronize` is in the caller, not the callee — document the contract or move the sync inside. | `menger-geometry/src/main/native/project4d.cu:147` |
-| L-curve-error-untested | `CurveSceneBuilder.buildScene` error path (GPU failure returning `-1` from `addCurveInstance`) has no test exercising the `Try`→`Failure` path. | `CurveSceneBuilder.scala:26-28` |
-| L-curves-scenetype-asymmetry | `SceneType.Curves` exists in `RenderModeSelector.classify` but has no matching `case SceneType.Curves(specs) =>` branch in `BaseEngine.buildSceneFromSpecs`/`buildSceneFromConfigs`. Works today via generic fallthrough but adds future coupling risk. | `RenderModeSelector.scala:23-24`, `BaseEngine.scala:91,116` |
 
 ---
 
@@ -136,7 +129,7 @@ Resolved items are removed from this file entirely — git history is the record
 
 | Tool | Status | Where |
 |------|--------|--------|
-| ArchUnit | Closed — 14+5 active rules | `ArchitectureSpec.scala`, `ArchitecturePhase2Spec.scala` |
+| ArchUnit | Closed — 14+6 active rules | `ArchitectureSpec.scala`, `ArchitecturePhase2Spec.scala` |
 | cppcheck | Closed — pre-push + CI | `.cppcheck-suppress`, `.git_hooks/pre-push`, `.gitlab-ci.yml` |
 | clang-tidy | Closed — pre-push + CI | `.clang-tidy`, `.git_hooks/pre-push`, `.gitlab-ci.yml` |
 
