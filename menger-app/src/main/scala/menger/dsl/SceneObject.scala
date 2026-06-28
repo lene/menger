@@ -533,8 +533,8 @@ case class LSystem(
   require(iterations >= 0 && iterations <= 12,
     s"iterations must be 0-12, got $iterations")
   require(angleDegrees > 0, s"angle must be positive, got $angleDegrees")
-  require(segmentLength > 0, s"segmentLength must be positive")
-  require(initialWidth > 0, s"initialWidth must be positive")
+  require(segmentLength > 0, "segmentLength must be positive")
+  require(initialWidth > 0, "initialWidth must be positive")
   require(rules.nonEmpty, "rules must not be empty")
   require(axiom.nonEmpty, "axiom must not be empty")
 

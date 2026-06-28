@@ -1,4 +1,4 @@
-package menger.objects
+package menger.engines.scene
 
 import scala.annotation.tailrec
 import scala.util.Try
@@ -8,6 +8,7 @@ import menger.ObjectSpec
 import menger.common.Color
 import menger.common.Material
 import menger.dsl.Vec3
+import menger.objects.LSystemGrammar
 
 private case class TurtleState3D(
   pos: Vec3,

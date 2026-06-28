@@ -5,7 +5,6 @@ import scala.util.Try
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.objects.LSystemGrammar
-import menger.objects.LSystemTurtle3D
 
 class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 

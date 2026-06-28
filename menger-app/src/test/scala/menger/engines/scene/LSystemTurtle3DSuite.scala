@@ -1,4 +1,4 @@
-package menger.objects
+package menger.engines.scene
 
 import menger.dsl.Vec3
 import org.scalatest.flatspec.AnyFlatSpec

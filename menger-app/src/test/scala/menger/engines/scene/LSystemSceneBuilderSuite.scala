@@ -1,4 +1,4 @@
-package menger.objects
+package menger.engines.scene
 
 import menger.ObjectSpec
 import menger.common.Color
