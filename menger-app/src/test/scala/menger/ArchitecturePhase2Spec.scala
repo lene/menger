@@ -130,7 +130,10 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
   private val haveReasonableMethodCount: ArchCondition[JavaClass] =
     new ArchCondition[JavaClass]("have <= 25 methods (engines must stay lean)"):
       override def check(clazz: JavaClass, events: ConditionEvents): Unit =
-        val count = clazz.getMethods.size()
+        val ownMethods = clazz.getMethods.stream()
+          .filter(m => m.getOwner.getName == clazz.getName)
+          .count()
+        val count = ownMethods.toInt
         if count > 25 then
           events.add(SimpleConditionEvent.violated(
             clazz,

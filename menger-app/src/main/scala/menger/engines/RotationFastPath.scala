@@ -33,7 +33,9 @@ object RotationFastPath:
   ): Boolean =
     if !WithAnimation.specsDifferOnlyIn4DProjection(prevSpecs, newSpecs) then false
     else
-      prevSpecs.lazyZip(newSpecs).lazyZip(prevIds).foreach {
+      require(prevSpecs.size == prevIds.size,
+      s"prevSpecs.size (${prevSpecs.size}) != prevIds.size (${prevIds.size})")
+    prevSpecs.lazyZip(newSpecs).lazyZip(prevIds).foreach {
         case (prevSpec, newSpec, ids) =>
           if prevSpec.projection4D != newSpec.projection4D then
             val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
