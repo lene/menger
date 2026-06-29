@@ -11,6 +11,10 @@ RESET_TEXT=$'\e[0m'
 # ---------------------------------------------------------------------------
 CHANGED_FILES=""
 RANGES=()
+# Ensure origin/main is fresh so the merge-base calculation below uses
+# the true branch point rather than a stale local ref.  Degrade
+# gracefully (no error exit) when the network is unavailable.
+git fetch origin --quiet 2>/dev/null || true
 if [ -t 0 ]; then
   # Running manually (stdin is a TTY) — detect changed files from current branch vs main
   LOCAL_SHA=$(git rev-parse HEAD)
