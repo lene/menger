@@ -406,6 +406,11 @@ class MengerCLIOptions(arguments: Seq[String])
     group = optixQualityGroup,
     descr = "Disable final-frame denoising, overriding DSL scenes"
   )
+  val accumulationFrames: ScallopOption[Int] = opt[Int](
+    required = false, default = Some(1), group = optixQualityGroup,
+    descr = "Temporal accumulation frame count (>=1). >1 averages N frames for noise reduction.",
+    validate = _ >= 1
+  )
   val allowUniformRender: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(false), group = optixQualityGroup,
     descr = "Allow renders where >=99% of pixels are the same colour (otherwise treated as a failure)"
