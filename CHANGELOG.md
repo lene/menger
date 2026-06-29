@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.8] - 2026-06-29
 
 ### Added
 - **L-Systems** — Lindenmayer grammar engine with 3D/4D turtle interpretation
@@ -1117,6 +1117,8 @@
 [0.7.2]: https://gitlab.com/lilacashes/menger/-/compare/v0.7.1...0.7.2
 [0.7.1]: https://gitlab.com/lilacashes/menger/-/compare/v0.7.0...0.7.1
 [0.7.0]: https://gitlab.com/lilacashes/menger/-/compare/v0.6.2...0.7.0
+[0.7.7]: https://gitlab.com/lilacashes/menger/-/compare/0.7.6...0.7.7
+[0.7.8]: https://gitlab.com/lilacashes/menger/-/compare/0.7.7...0.7.8
 [0.6.1]: https://gitlab.com/lilacashes/menger/-/compare/0.6.0...0.6.1
 [0.6.0]: https://gitlab.com/lilacashes/menger/-/compare/0.5.8...0.6.0
 [0.5.8]: https://gitlab.com/lilacashes/menger/-/compare/0.5.7...0.5.8

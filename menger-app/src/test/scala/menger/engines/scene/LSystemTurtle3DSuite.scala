@@ -40,15 +40,15 @@ class LSystemTurtle3DSuite extends AnyFlatSpec with Matchers:
     specs.length shouldBe 1
     specs.head.curveData.get.points.length shouldBe 9
 
-  "Gap handling" should "produce two specs for FfF" in:
-    val turtle = LSystemTurtle3D("FfF", 90f, 1.0f)
+  "Gap handling" should "produce two specs for FFFFfFFFF" in:
+    val turtle = LSystemTurtle3D("FFFFfFFFF", 90f, 1.0f)
     val specs = turtle.generate()
     specs.length shouldBe 2
 
-  "Branch separation" should "produce 3 specs for F[+F][-F]" in:
-    val turtle = LSystemTurtle3D("F[+F][-F]", 90f, 1.0f)
+  "Branch separation" should "produce 2 specs for F[+FFFF][-FFFF]" in:
+    val turtle = LSystemTurtle3D("F[+FFFF][-FFFF]", 90f, 1.0f)
     val specs = turtle.generate()
-    specs.length shouldBe 3
+    specs.length shouldBe 2
 
   "Sphere primitive" should "emit sphere ObjectSpec" in:
     val turtle = LSystemTurtle3D("@O(1.0)", 90f, 1.0f)

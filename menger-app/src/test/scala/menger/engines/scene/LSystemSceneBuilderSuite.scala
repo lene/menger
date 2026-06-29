@@ -98,7 +98,7 @@ class LSystemSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val mat1 = Material(Color(1f, 0f, 0f))
     val mat2 = Material(Color(0f, 1f, 0f))
     val turtle = new LSystemTurtle3D(
-      "M(a)F", 90f, 1.0f, 0.1f, 0.7f, 42L,
+      "M(a)FFFF", 90f, 1.0f, 0.1f, 0.7f, 42L,
       materials = Map("a" -> mat1, "b" -> mat2)
     )
     val specs = turtle.generate()
@@ -109,7 +109,7 @@ class LSystemSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val mat1 = Material(Color(1f, 0f, 0f))
     val mat2 = Material(Color(0f, 1f, 0f))
     val turtle = new LSystemTurtle3D(
-      "M(a)F[M(b)F]F", 90f, 1.0f, 0.1f, 0.7f, 42L,
+      "M(a)FFFF[M(b)FFFF]FFFF", 90f, 1.0f, 0.1f, 0.7f, 42L,
       materials = Map("a" -> mat1, "b" -> mat2)
     )
     val specs = turtle.generate()
@@ -117,7 +117,7 @@ class LSystemSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   "Texture command in turtle" should "set texture via T(filename)" in:
     val turtle = new LSystemTurtle3D(
-      "T(bark.png)F", 90f, 1.0f, 0.1f, 0.7f, 42L
+      "T(bark.png)FFFF", 90f, 1.0f, 0.1f, 0.7f, 42L
     )
     val specs = turtle.generate()
     specs should not be empty

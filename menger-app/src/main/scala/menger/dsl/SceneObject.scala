@@ -10,8 +10,8 @@ import menger.ProceduralSpec
 import menger.Projection4DSpec
 import menger.TextureMaps
 import menger.common.ObjectType
-import menger.video.VideoTexture
 import menger.objects.LSystemPresets
+import menger.video.VideoTexture
 
 /** Base trait for all scene objects */
 sealed trait SceneObject:
