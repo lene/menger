@@ -152,6 +152,41 @@ unified table and one new builder class.
 - Generate reference image via integration test
 - Add to both `integration-tests.sh` and `manual-test.sh`
 
+### Task 32.7: Enum-Typed Builder Dispatch — A4
+
+**Estimate:** 2h
+**Priority:** Low
+**Finding:** A4 (from Sprint 31 architecture review)
+
+**Problem:** `LSystemSceneBuilder.resolveSubBuilder` dispatches on `"curve"`, `"sphere"`,
+`"cone"` strings with a wildcard default. No compile-time safety.
+
+**Implementation:**
+- Introduce a sealed trait/enum for sub-builder types
+- Change `emitRun` to tag ObjectSpecs with the enum instead of raw strings
+- Convert `resolveSubBuilder` to a pattern match on the enum
+- Remove the wildcard default
+
+**Done when:** Mis-spelling a builder type in `emitRun` fails at compile time.
+
+### Task 32.8: Move 4D Presets into LSystemPresets — A5
+
+**Estimate:** 1h
+**Priority:** Low
+**Finding:** A5 (from Sprint 31 architecture review)
+
+**Problem:** 3D presets live in `menger.objects.LSystemPresets`; 4D presets (`HilbertCurve4D`,
+`Tree4D`) are hardcoded in `LSystemTurtle4D` companion object.
+
+**Implementation:**
+- Add 4D preset entries to `LSystemPresets` (or a separate `LSystemPresets4D`)
+- Update `LSystemSceneBuilder.generateFromSpec` to look up 4D presets when `dim=4`
+- Make the preset lookup interface consistent: `LSystemPresets(name)` returns the
+  same `(axiom, rules, angle, segLen, initWidth, decay, defaultIters)` tuple
+
+**Done when:** Adding a new 4D preset touches the same file as adding a 3D preset.
+
+
 ---
 
 ## Summary
@@ -164,7 +199,9 @@ unified table and one new builder class.
 | 32.4 | T5 (ArchUnit) + T10 (fast-path guard) | 10h |
 | 32.5 | T6 — Caustics ladder C1-C4 | 20h |
 | 32.6 | 4D Hilbert curve preset + ref image | 2h |
-| **Total** | | **~71h** |
+| 32.7 | A4: Enum-typed builder dispatch (replace strings) | 2h |
+| 32.8 | A5: Move 4D presets into LSystemPresets | 1h |
+| **Total** | | **~74h** |
 
 ---
 
