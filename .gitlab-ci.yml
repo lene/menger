@@ -12,6 +12,7 @@ stages:
 default:
   timeout: 15m
   retry: 2
+  interruptible: true
 
 variables:
   DEPLOYABLE_BASE_NAME: menger
