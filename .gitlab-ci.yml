@@ -1,6 +1,7 @@
 stages:
   - preconditions
   - review
+  - check
   - test
   - build
   - test built
@@ -69,28 +70,38 @@ code_quality:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
 
-# Full test suite - Runs on MR, main, and tag pipelines
-# Uses pre-built Docker image with CUDA, OptiX, Java 25, and sbt
-# IMPORTANT: Requires runner with GPU support configured for native menger-geometry.
+# Full test suite — runs ONLY on MR pipelines (the authoritative quality gate).
+# GPU-required: serialized on the single self-hosted NVIDIA runner.
+# Uses pre-built Docker image with CUDA, OptiX, Java 25, and sbt.
+#
+# Skipped for merge-to-main and tag pipelines — GPU tests were already validated
+# when the MR passed.  Only BuildDeployable and release jobs run downstream.
 Test:Full:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
-  needs: []
   resource_group: nvidia-gpu
   timeout: 20m
   retry: 2
   tags:
-    - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
+    - nvidia
   variables:
     NVIDIA_VISIBLE_DEVICES: "all"
     NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
   rules:
-    - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\//'
+    - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\\//'
       allow_failure: true
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_TAG
-    - if: $CI_COMMIT_BRANCH
+      changes:
+        - "**/*.scala"
+        - "**/*.sbt"
+        - "**/*.cpp"
+        - "**/*.cu"
+        - "**/*.cuh"
+        - "**/*.h"
+        - "**/CMakeLists.txt"
+        - ".gitlab-ci.yml"
+        - "scripts/integration-tests.sh"
+        - "project/**/*"
   before_script:
     # Verify GPU is available - fail fast if not configured
     - nvidia-smi
@@ -117,25 +128,33 @@ Test:Full:
     reports:
       junit: menger-app/target/test-reports/**/TEST-*.xml
 
-# OptiX integration tests - comprehensive CLI and rendering tests
-# Uses scripts/integration-tests.sh for packaged-app render coverage
+# OptiX integration tests — comprehensive CLI and rendering tests (MR only).
+# Uses scripts/integration-tests.sh for packaged-app render coverage.
 Test:OptiXIntegration:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
-  needs: []
   resource_group: nvidia-gpu
   tags:
     - nvidia
-  timeout: 30m  # Override global 15m - package build plus integration tests need more time
+  timeout: 30m
   variables:
     NVIDIA_VISIBLE_DEVICES: "all"
     NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
-    # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
     __GL_THREADED_OPTIMIZATIONS: "0"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH
+      changes:
+        - "**/*.scala"
+        - "**/*.sbt"
+        - "**/*.cpp"
+        - "**/*.cu"
+        - "**/*.cuh"
+        - "**/*.h"
+        - "**/CMakeLists.txt"
+        - ".gitlab-ci.yml"
+        - "scripts/integration-tests.sh"
+        - "scripts/reference-images/**"
+        - "project/**/*"
   before_script:
     # Verify GPU is available - fail fast if not configured
     - nvidia-smi
@@ -166,15 +185,17 @@ Test:OptiXIntegration:
 CheckCoverage:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
-  needs: []
+  resource_group: nvidia-gpu
   variables:
-    COVERAGE_DROP_THRESHOLD: "1.0"   # Max allowed drop in percentage points
-    COVERAGE_MIN: "80"               # Minimum before drop becomes failure
-    COVERAGE_FLOOR: "60"             # Absolute minimum - always fail below this
+    COVERAGE_DROP_THRESHOLD: "1.0"
+    COVERAGE_MIN: "80"
+    COVERAGE_FLOOR: "60"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH
+      changes:
+        - "**/*.scala"
+        - "**/*.sbt"
+        - "project/**/*"
   before_script:
     - apt-get -y update
     - apt-get -y install --no-install-recommends bc mesa-utils x11-xserver-utils xvfb curl $LIBAV_DEV_PACKAGES
@@ -230,8 +251,7 @@ CheckCoverage:
 
 Scalafix:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
-  stage: test
-  needs: []
+  stage: check
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -298,9 +318,8 @@ pages:
 Run:UseDocker:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
-  needs: []
   resource_group: nvidia-gpu
-  timeout: 20m  # Override global 15m - animation tests need more time
+  timeout: 20m
   tags:
     - nvidia
   variables:
@@ -308,8 +327,17 @@ Run:UseDocker:
     NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_TAG
+      changes:
+        - "**/*.scala"
+        - "**/*.sbt"
+        - "**/*.cpp"
+        - "**/*.cu"
+        - "**/*.cuh"
+        - "**/*.h"
+        - "**/CMakeLists.txt"
+        - ".gitlab-ci.yml"
+        - "scripts/integration-tests.sh"
+        - "project/**/*"
   before_script:
     - nvidia-smi
     - apt-get -y update
@@ -338,9 +366,8 @@ Run:UseDocker:
 CheckRunTime:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
-  needs: []
   resource_group: nvidia-gpu
-  timeout: 20m  # Override global 15m - runtime tests may need more time
+  timeout: 20m
   tags:
     - nvidia
   variables:
@@ -348,8 +375,17 @@ CheckRunTime:
     NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_TAG
+      changes:
+        - "**/*.scala"
+        - "**/*.sbt"
+        - "**/*.cpp"
+        - "**/*.cu"
+        - "**/*.cuh"
+        - "**/*.h"
+        - "**/CMakeLists.txt"
+        - ".gitlab-ci.yml"
+        - "scripts/integration-tests.sh"
+        - "project/**/*"
   before_script:
     - nvidia-smi
     - apt-get -y update
@@ -376,7 +412,6 @@ CheckRunTime:
 NativeLeakCheck:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: test
-  needs: []
   resource_group: nvidia-gpu
   timeout: 20m
   tags:
@@ -387,8 +422,13 @@ NativeLeakCheck:
     __GL_THREADED_OPTIMIZATIONS: "0"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH
+      changes:
+        - "**/*.cpp"
+        - "**/*.cu"
+        - "**/*.cuh"
+        - "**/*.h"
+        - "**/CMakeLists.txt"
+        - ".gitlab-ci.yml"
   allow_failure: true
   before_script:
     - nvidia-smi
@@ -666,7 +706,7 @@ ChangelogIsUpdated:
 BuildDeployable:
   image: $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION
   stage: build
-  needs: []
+  needs: ["Scalafix"]
   timeout: 20m
   retry: 2
   rules:
@@ -790,8 +830,7 @@ PushToGithub:
     - if: "$CI_COMMIT_TAG"
       when: on_success
   needs:
-    - Run:UseDocker
-    - CheckRunTime
+    - BuildDeployable
     - Test:InstallSmoke
   retry:
     max: 2
