@@ -82,7 +82,8 @@ case class ObjectSpec(
   curveData: Option[CurveData] = None,
   lsystemPreset: Option[String] = None,
   lsystemAngle: Option[Float] = None,
-  lsystemSeed: Option[Long] = None
+  lsystemSeed: Option[Long] = None,
+  lsystemDim: Int = 3
 ):
   require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
 
@@ -178,7 +179,7 @@ object ObjectSpec extends LazyLogging:
     "procedural", "proc-scale",
     "normal-map", "roughness-map",
     "dist-threshold",
-    "preset", "angle", "seed"
+    "preset", "angle", "seed", "dim"
   )
 
   def parse(spec: String): Either[String, ObjectSpec] =
@@ -213,6 +214,7 @@ object ObjectSpec extends LazyLogging:
       lsysPreset <- parseLSystemPreset(kvPairs)
       lsysAngle <- parseLSystemAngle(kvPairs)
       lsysSeed <- parseLSystemSeed(kvPairs)
+      lsysDim <- parseLSystemDim(kvPairs)
     yield ObjectSpec(
       objectType = objType,
       x = x,
@@ -235,7 +237,8 @@ object ObjectSpec extends LazyLogging:
       distanceThreshold = distThreshold,
       lsystemPreset = lsysPreset,
       lsystemAngle = lsysAngle,
-      lsystemSeed = lsysSeed
+      lsystemSeed = lsysSeed,
+      lsystemDim = lsysDim
     )
 
     result match
@@ -648,3 +651,16 @@ object ObjectSpec extends LazyLogging:
         Try(s.toLong).toEither.left.map(e =>
           s"Invalid seed value '$s': ${e.getMessage}").map(Some(_))
       case None => Right(None)
+
+  private def parseLSystemDim(
+    kvPairs: Map[String, String]
+  ): Either[String, Int] =
+    kvPairs.get("dim") match
+      case Some(d) =>
+        val dim = Try(d.toInt).toEither.left.map(e =>
+          s"Invalid dim value '$d': ${e.getMessage}")
+        dim.flatMap { v =>
+          if v == 3 || v == 4 then Right(v)
+          else Left(s"dim must be 3 or 4, got $v")
+        }
+      case None => Right(3)

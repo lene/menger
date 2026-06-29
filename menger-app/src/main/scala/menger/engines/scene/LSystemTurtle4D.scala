@@ -152,32 +152,29 @@ class LSystemTurtle4D(
     stack: List[TurtleState4D], i: Int,
     planeI: Int, planeJ: Int, angle: Float
   ): StepResult4D =
-    val (newSpecs, _) = emitRun(specs, runPoints, runWidths)
     val newHeading = rotateVector4D(state.heading, planeI, planeJ, angle)
     val newLeft = rotateVector4D(state.left, planeI, planeJ, angle)
     val newUp = rotateVector4D(state.up, planeI, planeJ, angle)
     val newAna = rotateVector4D(state.ana, planeI, planeJ, angle)
     StepResult4D(i + 1, state.copy(
       heading = newHeading, left = newLeft, up = newUp, ana = newAna),
-      newSpecs, SVec.empty, SVec.empty, stack, 0)
+      specs, runPoints, runWidths, stack, 0)
 
   private def stepTurn180(
     state: TurtleState4D, specs: List[ObjectSpec],
     runPoints: SVec[Vector[4]], runWidths: SVec[Float],
     stack: List[TurtleState4D], i: Int
   ): StepResult4D =
-    val (newSpecs, _) = emitRun(specs, runPoints, runWidths)
     StepResult4D(i + 1, state.copy(
       heading = -state.heading, left = -state.left),
-      newSpecs, SVec.empty, SVec.empty, stack, 0)
+      specs, runPoints, runWidths, stack, 0)
 
   private def stepPush(
     state: TurtleState4D, specs: List[ObjectSpec],
     runPoints: SVec[Vector[4]], runWidths: SVec[Float],
     stack: List[TurtleState4D], i: Int
   ): StepResult4D =
-    val (newSpecs, _) = emitRun(specs, runPoints, runWidths)
-    StepResult4D(i + 1, state, newSpecs, SVec.empty, SVec.empty,
+    StepResult4D(i + 1, state, specs, runPoints, runWidths,
       state :: stack, 0)
 
   private def stepPop(

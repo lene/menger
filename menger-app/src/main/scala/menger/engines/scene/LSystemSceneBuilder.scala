@@ -38,15 +38,32 @@ class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
       LSystemPresets(preset)
     val grammar = LSystemGrammar(axiom, rules.view.mapValues(v => Seq((1.0, v))).toMap, seed)
     val rewritten = grammar.rewrite(level)
-    val turtle = LSystemTurtle3D(
-      rewritten,
-      if spec.lsystemAngle.isDefined then angle else defAngle,
-      segLen * size,
-      initWidth * size,
-      decay
-    )
-    val result = turtle.generate()
-    result
+
+    if spec.lsystemDim == 4 then
+      val proj4D = spec.projection4D.getOrElse(menger.Projection4DSpec.default)
+      val turtle = LSystemTurtle4D(
+        rewritten,
+        if spec.lsystemAngle.isDefined then angle else defAngle,
+        segLen * size,
+        initWidth * size,
+        decay,
+        seed,
+        rotXW = proj4D.rotXW,
+        rotYW = proj4D.rotYW,
+        rotZW = proj4D.rotZW,
+        eyeW = proj4D.eyeW,
+        screenW = proj4D.screenW
+      )
+      turtle.generate()
+    else
+      val turtle = LSystemTurtle3D(
+        rewritten,
+        if spec.lsystemAngle.isDefined then angle else defAngle,
+        segLen * size,
+        initWidth * size,
+        decay
+      )
+      turtle.generate()
 
   private def resolveSubBuilder(objType: String): SceneBuilder = objType match
     case "curve" => CurveSceneBuilder(textureDir)

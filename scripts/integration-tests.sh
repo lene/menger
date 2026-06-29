@@ -1300,6 +1300,14 @@ test_lsystem() {
         --objects type=lsystem:preset=kochisland:level=2:size=1.5
 }
 
+test_lsystem4d() {
+    echo "L-Systems 4D:"
+    run_test "lsystem4d tree level 3" --plane y:-2 \
+        --objects type=lsystem:preset=tree:level=3:size=1.5:dim=4:rot-xw=15:rot-yw=10:eye-w=3:screen-w=1.5
+    run_test "lsystem4d tree level 4" --plane y:-2 \
+        --objects type=lsystem:preset=tree:level=4:size=1.5:dim=4:rot-xw=30:rot-yw=20:eye-w=3:screen-w=1.5
+}
+
 
 # ============================================
 # Main
@@ -1354,6 +1362,7 @@ main() {
     test_denoising
     test_fog
     test_lsystem
+    test_lsystem4d
 
     print_summary
 

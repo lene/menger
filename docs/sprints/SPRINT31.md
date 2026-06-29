@@ -27,10 +27,8 @@ shows.
 - [x] Custom grammars definable in the DSL (axiom + rules + angle + material bindings)
 - [x] Per-segment material control: `M("bark")` and `T("leaf.png")` in grammar strings
 - [x] Stochastic rules supported with a fixed seed (deterministic renders)
-- [ ] A 4D L-system (e.g. 4D Hilbert curve) renders and responds to
-      `rot-x-w / rot-y-w / rot-z-w` like other 4D objects
-      **Note:** LSystemTurtle4D code exists but is NOT wired into the scene builder
-      or CLI — 4D L-systems cannot be rendered yet. Defer to Sprint 32.
+- [x] A 4D L-system (e.g. 4D tree) renders and responds to
+      `rot-xw / rot-yw / rot-zw` like other 4D objects
 - [x] String-rewriting engine fully unit-tested against published ABOP examples
 - [x] Sphere joints (`@O`) and surface primitives stamp at turtle positions
 - [x] All tests pass (2,356 tests, 0 failures)
@@ -238,7 +236,7 @@ are valid, low-risk, and deferred:
 | 31.1 | Grammar engine (rewriting, stochastic, validation) | 6h | ✅ Done |
 | 31.2 | 3D turtle → parameterized segments + surfaces (31.2a-c) | 15h | ✅ Done |
 | 31.3 | DSL + CLI + full material control (31.3a-b) | 7h | ✅ Done |
-| 31.4 | 4D turtle extension | 6h | ⚠️ Code exists, not wired |
+| 31.4 | 4D turtle extension | 6h | ✅ Done (wired + tests + ref images) |
 | 31.5 | Tests + documentation | 6h | ✅ Done |
 | 31.6 | CODE_IMPROVEMENTS (L-upload-texture, L-project4d-async) | 2h | ✅ Done |
 | 31.7 | Architecture backlog (T7 determinism tests + T3 leak gate) | 18h | ✅ Done |
@@ -249,7 +247,7 @@ are valid, low-risk, and deferred:
 
 ## Definition of Done
 
-- [x] All success criteria met (except 31.4 4D turtle wiring — deferred to Sprint 32)
+- [x] All success criteria met
 - [x] Pre-push hook green (2,356 tests, 0 failures)
 - [x] CHANGELOG.md updated (0.7.8)
 - [x] Integration + manual test scripts cover 3D preset and 4D L-system
