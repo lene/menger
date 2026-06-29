@@ -79,7 +79,10 @@ case class ObjectSpec(
   textureMaps: TextureMaps = TextureMaps(),
   meshData: Option[TriangleMeshData] = None,
   distanceThreshold: Option[Int] = None,
-  curveData: Option[CurveData] = None
+  curveData: Option[CurveData] = None,
+  lsystemPreset: Option[String] = None,
+  lsystemAngle: Option[Float] = None,
+  lsystemSeed: Option[Long] = None
 ):
   require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
 
@@ -207,6 +210,9 @@ object ObjectSpec extends LazyLogging:
       _ <- validateSpongeLevel(objType, level)
       texMaps <- parseTextureMaps(kvPairs)
       distThreshold <- parseDistanceThreshold(kvPairs)
+      lsysPreset <- parseLSystemPreset(kvPairs)
+      lsysAngle <- parseLSystemAngle(kvPairs)
+      lsysSeed <- parseLSystemSeed(kvPairs)
     yield ObjectSpec(
       objectType = objType,
       x = x,
@@ -226,7 +232,10 @@ object ObjectSpec extends LazyLogging:
       plane = planeGeom,
       procedural = procSpec,
       textureMaps = texMaps,
-      distanceThreshold = distThreshold
+      distanceThreshold = distThreshold,
+      lsystemPreset = lsysPreset,
+      lsystemAngle = lsysAngle,
+      lsystemSeed = lsysSeed
     )
 
     result match
@@ -615,3 +624,27 @@ object ObjectSpec extends LazyLogging:
       normalMap <- parseMapTexture(kvPairs, "normal-map")
       roughnessMap <- parseMapTexture(kvPairs, "roughness-map")
     yield TextureMaps(normalMap, roughnessMap)
+
+  private def parseLSystemPreset(kvPairs: Map[String, String]): Either[String, Option[String]] =
+    kvPairs.get("preset") match
+      case Some(p) if p.nonEmpty => Right(Some(p.toLowerCase))
+      case Some(_) => Left("L-system preset name cannot be empty")
+      case None => Right(None)
+
+  private def parseLSystemAngle(
+    kvPairs: Map[String, String]
+  ): Either[String, Option[Float]] =
+    kvPairs.get("angle") match
+      case Some(a) =>
+        Try(a.toFloat).toEither.left.map(e =>
+          s"Invalid angle value '$a': ${e.getMessage}").map(Some(_))
+      case None => Right(None)
+
+  private def parseLSystemSeed(
+    kvPairs: Map[String, String]
+  ): Either[String, Option[Long]] =
+    kvPairs.get("seed") match
+      case Some(s) =>
+        Try(s.toLong).toEither.left.map(e =>
+          s"Invalid seed value '$s': ${e.getMessage}").map(Some(_))
+      case None => Right(None)

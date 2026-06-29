@@ -11,6 +11,7 @@ import menger.Projection4DSpec
 import menger.TextureMaps
 import menger.common.ObjectType
 import menger.video.VideoTexture
+import menger.objects.LSystemPresets
 
 /** Base trait for all scene objects */
 sealed trait SceneObject:
@@ -548,21 +549,8 @@ object LSystem:
   def preset(name: String, iterations: Int = 4, size: Float = 1.0f,
     seed: Long = 42L): LSystem =
     val lowerName = name.toLowerCase
-    val presets = Map(
-      "tree" -> ("F", Map('F' -> "F[+F]F[-F]F"), 25.7f, 0.3f, 0.08f, 0.7f, 4),
-      "bush" -> ("F", Map('F' -> "FF+[+F-F-F]-[-F+F+F]"), 22.5f, 0.15f, 0.05f, 0.8f, 3),
-      "fern3d" -> ("F", Map('F' -> "F[&F]F[^F][&F]"), 30.0f, 0.2f, 0.06f, 0.75f, 3),
-      "hilbert3d" -> ("X", Map(
-        'X' -> "^<XF^<XFX-F^>>XFX&F+>>XFX-F>X->",
-        'F' -> "F"
-      ), 90.0f, 0.1f, 0.05f, 1.0f, 4),
-      "kochisland" -> ("F+F+F+F",
-        Map('F' -> "F+f-FF+F+FF+Ff+FF-f+FF-F-FF-Ff-FFF"),
-        90.0f, 0.05f, 0.03f, 1.0f, 2)
-    )
-    require(presets.contains(lowerName), s"Unknown preset: $name")
     val (axiom, rules, angle, segLen, initWidth, decay, defaultIters) =
-      presets(lowerName)
+      LSystemPresets(lowerName)
     val iters = if iterations > 0 then iterations else defaultIters
     LSystem(axiom, rules, iters, angle, segLen, initWidth, decay,
       seed = seed, size = size)

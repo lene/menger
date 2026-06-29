@@ -155,19 +155,17 @@ class LSystemTurtle3D(
     runPoints: Vector[Vec3], runWidths: Vector[Float],
     stack: List[TurtleState3D], i: Int, axis: Vec3, angle: Float
   ): StepResult =
-    val (newSpecs, _) = emitRun(state, specs, runPoints, runWidths)
     val newHeading = rotateAboutAxis(state.heading, axis, angle)
     val newLeft = rotateAboutAxis(state.left, axis, angle)
     val newUp = rotateAboutAxis(state.up, axis, angle)
     StepResult(i + 1, state.copy(heading = newHeading, left = newLeft, up = newUp),
-      newSpecs, Vector.empty, Vector.empty, stack, 0)
+      specs, runPoints, runWidths, stack, 0)
 
   private def stepTurn180(
     state: TurtleState3D, specs: List[ObjectSpec],
     runPoints: Vector[Vec3], runWidths: Vector[Float],
     stack: List[TurtleState3D], i: Int
   ): StepResult =
-    val (newSpecs, _) = emitRun(state, specs, runPoints, runWidths)
     val cosPi = math.cos(math.Pi).toFloat
     val sinPi = math.sin(math.Pi).toFloat
     val axis = state.up
@@ -176,15 +174,14 @@ class LSystemTurtle3D(
     val newLeft = state.left * cosPi + axis.cross(state.left) * sinPi +
       axis * (axis.dot(state.left) * (1f - cosPi))
     StepResult(i + 1, state.copy(heading = newHeading, left = newLeft),
-      newSpecs, Vector.empty, Vector.empty, stack, 0)
+      specs, runPoints, runWidths, stack, 0)
 
   private def stepPush(
     state: TurtleState3D, specs: List[ObjectSpec],
     runPoints: Vector[Vec3], runWidths: Vector[Float],
     stack: List[TurtleState3D], i: Int
   ): StepResult =
-    val (newSpecs, _) = emitRun(state, specs, runPoints, runWidths)
-    StepResult(i + 1, state, newSpecs, Vector.empty, Vector.empty,
+    StepResult(i + 1, state, specs, runPoints, runWidths,
       state :: stack, 0)
 
   private def stepPop(
@@ -352,7 +349,7 @@ class LSystemTurtle3D(
     state: TurtleState3D, specs: List[ObjectSpec],
     points: Vector[Vec3], widths: Vector[Float]
   ): (List[ObjectSpec], (Vector[Vec3], Vector[Float])) =
-    if points.isEmpty then (specs, (Vector.empty, Vector.empty))
+    if points.length < 2 then (specs, (Vector.empty, Vector.empty))
     else
       val mat = currentMaterial(state)
       val flatPoints = Vector.from(points.flatMap(p => Seq(p.x, p.y, p.z)))

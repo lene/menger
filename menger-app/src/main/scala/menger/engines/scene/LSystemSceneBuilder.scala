@@ -5,6 +5,7 @@ import scala.util.Try
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.objects.LSystemGrammar
+import menger.objects.LSystemPresets
 
 class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
@@ -27,10 +28,25 @@ class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
     }
 
   private def generateFromSpec(spec: ObjectSpec): List[ObjectSpec] =
-    val grammar = LSystemGrammar("F", Map('F' -> Seq((1.0, "F[+F]F[-F]F"))))
-    val rewritten = grammar.rewrite(4)
-    val turtle = LSystemTurtle3D(rewritten, 25.7f, 0.1f, 0.05f)
-    turtle.generate()
+    val preset = spec.lsystemPreset.getOrElse("tree")
+    val level = spec.level.map(_.toInt).getOrElse(4)
+    val size = spec.size
+    val angle = spec.lsystemAngle.getOrElse(25.7f)
+    val seed = spec.lsystemSeed.getOrElse(42L)
+
+    val (axiom, rules, defAngle, segLen, initWidth, decay, _) =
+      LSystemPresets(preset)
+    val grammar = LSystemGrammar(axiom, rules.view.mapValues(v => Seq((1.0, v))).toMap, seed)
+    val rewritten = grammar.rewrite(level)
+    val turtle = LSystemTurtle3D(
+      rewritten,
+      if spec.lsystemAngle.isDefined then angle else defAngle,
+      segLen * size,
+      initWidth * size,
+      decay
+    )
+    val result = turtle.generate()
+    result
 
   private def resolveSubBuilder(objType: String): SceneBuilder = objType match
     case "curve" => CurveSceneBuilder(textureDir)
