@@ -111,6 +111,10 @@ trait WithPreview extends RenderEngine with LazyLogging:
         case scala.util.Success(dslScene) =>
           val configs  = SceneConverter.convert(dslScene, causticsConfig)
           val renderer = rendererWrapper.renderer
+          configs.render.foreach(renderer.setRenderConfig)
+          renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
+          if configs.accumulationFrames > 1 then
+            renderer.setAccumulationFrames(configs.accumulationFrames)
           renderer.clearAllInstances()
           buildSceneFromConfigs(configs, renderer).recover { case e: Exception =>
             logger.error(s"Failed to build preview scene for t=$t: ${e.getMessage}", e)

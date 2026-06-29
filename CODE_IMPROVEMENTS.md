@@ -109,15 +109,39 @@ Resolved items are removed from this file entirely — git history is the record
 
 ## Medium Priority
 
+<<<<<<< HEAD
 | ID | Issue | Location | Effort |
 |----|-------|----------|--------|
 | M-lsystem-duplication | LSystemTurtle3D/4D share ~80% duplicated algorithm. Extract shared base trait parameterized by point type. | `LSystemTurtle3D.scala`, `LSystemTurtle4D.scala` | 4h |
 | M-objectspec-bloat | ObjectSpec at 25+ fields, 666 lines. Group related fields into sub-case-classes. | `ObjectSpec.scala:60-82` | 4h |
+=======
+*(all resolved — Sprint 30)*
+>>>>>>> origin/main
 
 ---
 
 ## Low Priority
 
+<<<<<<< HEAD
 | ID | Issue | Location | Effort |
 |----|-------|----------|--------|
 | L-turtle4d-emitrun | LSystemTurtle4D.emitRun has no minimum-points guard (3D turtle has ≥2). Add check and unit test. | `LSystemTurtle4D.scala:211` | 15min |
+=======
+| ID | Issue | Location |
+|----|-------|----------|
+| L-upload-texture-file-raw-int | `uploadTextureFromFile` returns raw negative `Int` on failure while `uploadTexture` throws `TextureUploadException`. Behavior change needed: three production callers treat negative index as "skip and continue". Deferred until fail-fast vs graceful-skip decision is made. | `optix-jni/.../OptiXTextureApi.scala:67` |
+| L-project4d-async-error | `cudaGetLastError()` at `project4d.cu:147` only captures launch-configuration errors, not async kernel execution errors. The required `cudaDeviceSynchronize` is in the caller, not the callee — document the contract or move the sync inside. | `menger-geometry/src/main/native/project4d.cu:147` |
+
+---
+
+## Tooling Gaps
+
+*(all gaps identified in prior reviews have been closed)*
+
+| Tool | Status | Where |
+|------|--------|--------|
+| ArchUnit | Closed — 14+6 active rules | `ArchitectureSpec.scala`, `ArchitecturePhase2Spec.scala` |
+| cppcheck | Closed — pre-push + CI | `.cppcheck-suppress`, `.git_hooks/pre-push`, `.gitlab-ci.yml` |
+| clang-tidy | Closed — pre-push + CI | `.clang-tidy`, `.git_hooks/pre-push`, `.gitlab-ci.yml` |
+
+>>>>>>> origin/main

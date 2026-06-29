@@ -163,6 +163,9 @@ object Main:
       toneMappingExposure = configs.toneMappingExposure,
     )
     val mergedDenoise = cliDenoiseOverride(opts).getOrElse(configs.denoiseMode)
+    val mergedAccumulation =
+      if opts.accumulationFrames.isSupplied then opts.accumulationFrames()
+      else configs.accumulationFrames
     val engineConfig = OptiXEngineConfig(
       scene = configs.scene,
       camera = configs.camera,
@@ -182,7 +185,7 @@ object Main:
       caustics = configs.caustics,
       cross = opts.crossConfig,
       denoiseMode = mergedDenoise,
-      accumulationFrames = configs.accumulationFrames
+      accumulationFrames = mergedAccumulation
     )
     InteractiveEngine(engineConfig, opts.userSetMaxInstances)
 
@@ -209,7 +212,7 @@ object Main:
       caustics = opts.causticsConfig,
       cross = opts.crossConfig,
       denoiseMode = opts.denoiseMode,
-      accumulationFrames = 1
+      accumulationFrames = opts.accumulationFrames()
     )
     opts.animate.toOption match
       case Some(animSpec) =>

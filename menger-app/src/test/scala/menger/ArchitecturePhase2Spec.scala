@@ -123,3 +123,26 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
 
   // Rule 2.4 (sealed hierarchies) is not expressible in ArchUnit — enforced by code review.
   // dsl scene-node traits and MengerException subtypes must be sealed.
+
+  // Sprint 30.8c: engine classes must stay orchestrators, not monoliths.
+  // ArchUnit works on bytecode, so we count methods as a proxy for class size.
+  // InteractiveEngine was 662 lines with 30+ methods before refactoring.
+  private val haveReasonableMethodCount: ArchCondition[JavaClass] =
+    new ArchCondition[JavaClass]("have <= 25 methods (engines must stay lean)"):
+      override def check(clazz: JavaClass, events: ConditionEvents): Unit =
+        val ownMethods = clazz.getMethods.stream()
+          .filter(m => m.getOwner.getName == clazz.getName)
+          .count()
+        val count = ownMethods.toInt
+        if count > 25 then
+          events.add(SimpleConditionEvent.violated(
+            clazz,
+            s"${clazz.getSimpleName} has $count methods (max 25). " +
+            "Engines should be orchestrators — extract logic into strategy objects."
+          ))
+
+  "menger.engines" should "contain lean engine classes (<= 25 methods each)" in:
+    noClasses().that().resideInAPackage("menger.engines..")
+      .and().haveSimpleNameEndingWith("Engine")
+      .should(haveReasonableMethodCount)
+      .check(allClasses)

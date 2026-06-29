@@ -691,7 +691,7 @@ No pending future decisions at this time.
 
 ---
 
-### AD-24: OptiX AI Denoiser Integration (Sprint 29)
+### AD-27: OptiX AI Denoiser Integration (Sprint 29)
 
 **Status:** Accepted
 **Date:** 2026-06 (Sprint 29)
@@ -724,7 +724,7 @@ linear radiance values. Expose it as:
 
 ---
 
-### AD-25: OptiX Built-In Curves Primitive (Sprint 29)
+### AD-28: OptiX Built-In Curves Primitive (Sprint 29)
 
 **Status:** Accepted
 **Date:** 2026-06 (Sprint 29)
@@ -757,3 +757,69 @@ PBR material pipeline — no separate curve material model.
 - Minimum 4 control points per curve (cubic B-spline segment constraint).
 - Per-control-point radius support enables tapered tubes.
 - Reference: `optix-jni/src/main/native/shaders/hit_curve.cu`.
+
+---
+
+### AD-29: Validation Mode + Shader Execution Reordering (Sprint 30)
+
+**Status:** Accepted
+**Date:** 2026-06 (Sprint 30)
+
+**Context:** Two OptiX features remained unexposed after Sprint 29: validation mode
+(catches SBT mismatches and payload errors at exact call sites) and shader execution
+reordering (SER, improves SIMT coherence on Ada Lovelace+ GPUs for divergent scenes).
+
+**Decision:**
+- **Validation mode:** `MENGER_OPTIX_VALIDATION=1` enables
+  `OPTIX_DEVICE_CONTEXT_VALIDATION_MODE_ALL` at context creation time. Documented in
+  TROUBLESHOOTING.md as a debugging aid.
+- **SER:** `optixReorder()` call in raygen shader, gated by device capability check
+  (compute capability ≥ 8.9). Pipeline link option `usesShaderExecutionReordering`
+  set when GPU supports it. Opt-in via `MENGER_OPTIX_SER=1`; default off until
+  benchmarked. Target: >5% gains on Sprint 28 benchmark set.
+
+**Rationale:**
+- Validation mode eliminates the main debugging pain point (opaque CUDA error 718).
+- SER is a zero-effort coherence win for Ada+ GPUs; gating on device capability
+  ensures no breakage on older hardware.
+- Both are opt-in (env vars) — safe to ship without changing default behavior.
+
+**Consequences:**
+- Validation mode adds runtime overhead (~10-30%) — development-only, not production.
+- SER pipeline link option requires pipeline rebuild when toggled.
+- Both features added to arc42 §10 quality scenarios as P7 and P8.
+
+---
+
+### AD-30: Performance Governance + Architecture Hardening (Sprint 30)
+
+**Status:** Accepted
+**Date:** 2026-06 (Sprint 30)
+
+**Context:** The architecture review (ARCHITECTURE_REVIEW.md, 2026-06-27) found that
+most quality claims were aspirational, not enforced — performance was advisory,
+native leak gates were stubbed, caustics ladder was 0/8, and the InteractiveEngine
+was a 662-line god-object with duplicated dispatch.
+
+**Decision:**
+1. **PerfCheck promoted to blocking** (`allow_failure: false` in `.gitlab-ci.yml`,
+   threshold relaxed to 25% until baselines measured).
+2. **GPU tunables exposed** via `MENGER_OPTIX_STREAMS` env var for CUDA stream selection.
+3. **InteractiveEngine refactored** — `RotationFastPath` extracted, dispatch unified
+   via `GeometryRegistry.builderFor`, ArchUnit class-size rule (≤25 methods) added.
+4. **Critical fixes shipped**: `"curve"` added to `ObjectType.VALID_TYPES`,
+   `isInitialized` guards on native denoiser calls, per-frame buffer re-allocation
+   fixed.
+5. **arc42 coherence pass** — duplicate AD numbers fixed, caustics C1-C8 marked
+   "❌ Not implemented," JNI leak risk updated to reflect stubbed gates.
+
+**Rationale:**
+- Governance without enforcement is decoration — every claim now has a fitness function
+  or an honest "not yet" marker.
+- 662-line god-object was the single biggest cohesion problem; extracted strategy
+  objects keep engines as orchestrators.
+
+**Consequences:**
+- PerfCheck failures now block merge; real baselines must be measured on the CI runner.
+- `ARCHITECTURE_BACKLOG.md` T3 (native leak gate) still unscheduled.
+- Caustics C1-C8 ladder development deferred to Sprint 34.

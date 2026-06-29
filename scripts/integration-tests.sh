@@ -1037,6 +1037,16 @@ test_cone() {
     run_test "cone glass" --objects type=cone:material=glass --plane y:-2
 }
 
+test_curve() {
+    echo "Analytical Primitives (Curve):"
+    run_test "curve open 4-point" \
+        --objects type=curve:control-points=0,0,0,1,0,0,1,1,0,0,1,0:radius=0.05
+    run_test "curve with color" \
+        --objects type=curve:control-points=0,0,0,0,1,0,1,1,0,1,0,0:radius=0.03:color=#ff6600
+    run_test "curve glass" \
+        --objects type=curve:control-points=0,0,0,0,0.5,0,0.5,1,0,1,1,0:radius=0.04:material=glass
+}
+
 test_error_handling() {
     echo "Error Handling:"
     run_test_should_fail "invalid object type" --objects type=invalid-type --plane y:-2
@@ -1345,6 +1355,7 @@ main() {
     test_3d_fractional_sponges
     test_platonic_solids
     test_cone
+    test_curve
     test_plane
     test_cone_plane_textures
     test_cross

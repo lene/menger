@@ -3,6 +3,7 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
+import menger.ObjectRotation
 import menger.ObjectSpec
 
 class CurveSceneBuilder(textureDir: String = ".") extends SceneBuilder:
@@ -17,7 +18,23 @@ class CurveSceneBuilder(textureDir: String = ".") extends SceneBuilder:
     else if specs.exists(_.curveData.isEmpty) then
       Left("All curve specs must have curveData populated")
     else
-      Right(())
+      val unsupported = specs.collect {
+        case s if s.texture.isDefined => "texture"
+        case s if s.videoTexture.isDefined => "videoTexture"
+        case s if s.normalMap.isDefined => "normalMap"
+        case s if s.roughnessMap.isDefined => "roughnessMap"
+        case s if s.proceduralType != 0 => "proceduralType"
+        case s if s.rotation != ObjectRotation() => "rotation"
+        case s if s.projection4D.isDefined => "projection4D"
+        case s if s.level.isDefined => "level"
+        case s if s.edgeRadius.isDefined => "edgeRadius"
+        case s if s.edgeMaterial.isDefined => "edgeMaterial"
+      }
+      if unsupported.nonEmpty then
+        Left(s"Curve objects do not support: ${unsupported.distinct.mkString(", ")}. " +
+          "Curves accept only color, ior, material (roughness/metallic/specular/emission), " +
+          "and curveData (control points, widths, closed).")
+      else Right(())
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     specs.foreach { spec =>

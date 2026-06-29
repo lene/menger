@@ -14,7 +14,10 @@ UPDATE_BASELINE=${2:-}
 SCRIPT_DIR="$(cd "$(dirname "$0")" ; pwd)"
 BASELINE_FILE="$SCRIPT_DIR/perf-baseline.json"
 RUNS=3
-THRESHOLD=1.15
+# Threshold relaxed to 25% until real baselines are measured on the CI GPU runner
+# (perf-baseline.json currently contains placeholder values from Sprint 28).
+# After baselines are measured, reduce to 1.15.
+THRESHOLD=1.25
 
 if [ ! -x "$BINARY" ]; then
   echo "ERROR: binary not found or not executable: $BINARY" >&2
@@ -29,7 +32,7 @@ SCENES=(
   "sphere:--objects type=sphere"
   "sponge-volume-L4:--objects type=sponge-volume:level=4"
   "menger4d-L3:--objects type=menger4d:level=3"
-  "sphere-IBL-accum:--objects type=sphere --accumulate"
+  "sphere-IBL-accum:--objects type=sphere --accumulation-frames 8"
 )
 
 echo "=== Menger Performance Benchmark ==="
@@ -53,7 +56,7 @@ for entry in "${SCENES[@]}"; do
     __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a "$BINARY" \
       $args \
       --headless \
-      --timeout 0.5 \
+      --save-name "$TMPDIR/${label}.png" \
       --stats-json "$stats_file" \
       2>"$stderr_file" || {
         echo "ERROR: scene $label run $i failed:" >&2

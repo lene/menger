@@ -104,6 +104,10 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
         case scala.util.Success(dslScene) =>
           val configs  = SceneConverter.convert(dslScene, causticsConfig)
           val renderer = rendererWrapper.renderer
+          configs.render.foreach(renderer.setRenderConfig)
+          renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
+          if configs.accumulationFrames > 1 then
+            renderer.setAccumulationFrames(configs.accumulationFrames)
           val newSpecs = configs.scene.objectSpecs.getOrElse(List.empty)
           val videoSourcesPresent = WithAnimation.hasVideoSources(configs, newSpecs)
           val videoFastPathTaken = tryVideoFastPath(configs, newSpecs, renderer, t)
