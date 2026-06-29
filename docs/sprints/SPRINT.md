@@ -1,14 +1,15 @@
 # Current Sprint
 
-**Sprint:** 31
-**Status:** 🔄 In Progress
-**Branch:** `feature/sprint-31`
+**Sprint:** 32
+**Status:** 🔜 Planning
+**Started:** TBD
+**Branch:** `feature/sprint-32` (not yet created)
 
 ---
 
 ## Goal
 
-See [SPRINT31.md](SPRINT31.md) (L-Systems in 3D and 4D) for detailed task breakdown.
+See [SPRINT32.md](SPRINT32.md) for detailed task breakdown.
 
 ---
 
