@@ -179,6 +179,7 @@ object ObjectSpec extends LazyLogging:
     "procedural", "proc-scale",
     "normal-map", "roughness-map",
     "dist-threshold",
+    "control-points",
     "preset", "angle", "seed", "dim"
   )
 
@@ -215,6 +216,7 @@ object ObjectSpec extends LazyLogging:
       lsysAngle <- parseLSystemAngle(kvPairs)
       lsysSeed <- parseLSystemSeed(kvPairs)
       lsysDim <- parseLSystemDim(kvPairs)
+      curveData <- parseCurveData(kvPairs)
     yield ObjectSpec(
       objectType = objType,
       x = x,
@@ -238,7 +240,8 @@ object ObjectSpec extends LazyLogging:
       lsystemPreset = lsysPreset,
       lsystemAngle = lsysAngle,
       lsystemSeed = lsysSeed,
-      lsystemDim = lsysDim
+      lsystemDim = lsysDim,
+      curveData = curveData
     )
 
     result match
@@ -627,6 +630,32 @@ object ObjectSpec extends LazyLogging:
       normalMap <- parseMapTexture(kvPairs, "normal-map")
       roughnessMap <- parseMapTexture(kvPairs, "roughness-map")
     yield TextureMaps(normalMap, roughnessMap)
+
+  private def parseCurveData(
+    kvPairs: Map[String, String]
+  ): Either[String, Option[CurveData]] =
+    kvPairs.get("control-points") match
+      case Some(pointsStr) =>
+        val parts = pointsStr.split(",").map(_.trim)
+        if parts.exists(_.isEmpty) then
+          Left("Empty value in control-points list")
+        else
+          val parsed = parts.map(s =>
+            Try(s.toFloat).toEither.left.map(e =>
+              s"Invalid control-point value '$s': ${e.getMessage}"))
+          val (errors, values) = parsed.partitionMap(identity)
+          if errors.nonEmpty then Left(errors.head)
+          else if values.length % 3 != 0 then
+            Left(s"control-points must have a multiple of 3 values (x,y,z triplets), got ${values.length} values")
+          else if values.length < 6 then
+            Left(s"control-points must have at least 6 values (2 control points), got ${values.length}")
+          else
+            val points = values.toVector
+            val numPoints = points.length / 3
+            val radius = kvPairs.get("radius").flatMap(r => Try(r.toFloat).toOption).getOrElse(0.01f)
+            val widths = Vector.fill(numPoints)(radius)
+            Right(Some(CurveData(points, widths)))
+      case None => Right(None)
 
   private def parseLSystemPreset(kvPairs: Map[String, String]): Either[String, Option[String]] =
     kvPairs.get("preset") match

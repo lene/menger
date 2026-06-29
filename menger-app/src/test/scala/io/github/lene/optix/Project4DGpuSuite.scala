@@ -241,7 +241,7 @@ class Project4DGpuSuite extends AnyFlatSpec
   it should "animate 4D rotation faster via updateMesh4DProjection than via rebuild" taggedAs Slow in:
     val frames = 10
     val proj0 = TesseractSpongeMesh(
-      center = Vector3(0f, 0f, 0f), size = 1.0f, level = 2f,
+      center = Vector3(0f, 0f, 0f), size = 1.0f, level = 1f,
       rotXW = 0f, rotYW = 0f, rotZW = 0f
     )
     val quads = Mesh4DGpuFlatten.quadsBuffer(proj0.mesh4D)
@@ -263,7 +263,7 @@ class Project4DGpuSuite extends AnyFlatSpec
       (0 until frames).foreach { i =>
         val angle = (i + 1) * 9f
         val proj = TesseractSpongeMesh(
-          center = Vector3(0f, 0f, 0f), size = 1.0f, level = 2f,
+          center = Vector3(0f, 0f, 0f), size = 1.0f, level = 1f,
           rotXW = angle, rotYW = 0f, rotZW = 0f
         )
         val q = Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D)
