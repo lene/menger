@@ -302,6 +302,7 @@ pages:
   needs:
     - job: CheckCoverage
       artifacts: true
+      optional: true
     - job: ScalaVersionConsistent
       optional: true
   rules:
@@ -311,7 +312,7 @@ pages:
     - pip install mkdocs-material --quiet
     - mkdocs build --config-file docs/website/mkdocs.yml --site-dir public
     - mkdir -p public/coverage
-    - mv menger-app/target/scala-${SCALA_VERSION}/scoverage-report/* public/coverage/
+    - mv menger-app/target/scala-${SCALA_VERSION}/scoverage-report/* public/coverage/ 2>/dev/null || echo "No coverage report (expected on main branch)"
   artifacts:
     paths:
       - public
