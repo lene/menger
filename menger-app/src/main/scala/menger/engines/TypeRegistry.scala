@@ -63,13 +63,16 @@ object TypeRegistry:
     (td, _) => Hexadecachoron4DSceneBuilder(td),
     specs => SceneType.Hexadecachoron4D(specs),
     isProjected4D = true)
+  private def lsystemEntry = Entry("lsystem",
+    (td, _) => LSystemSceneBuilder(td),
+    specs => SceneType.Curves(specs))
   private def triangleMeshEntry = Entry("__triangle_mesh__",
     (td, pc) => TriangleMeshSceneBuilder(td)(using pc),
     specs => SceneType.TriangleMeshes(specs))
 
   val allEntries: List[Entry] = List(
     sphereEntry, curveEntry, cubeSpongeEntry, coneEntry, planeEntry,
-    menger4DEntry, sierpinski4DEntry, hexadecachoron4DEntry, triangleMeshEntry
+    menger4DEntry, sierpinski4DEntry, hexadecachoron4DEntry, lsystemEntry, triangleMeshEntry
   )
 
   /** All registered type entries, indexed by normalized name. */

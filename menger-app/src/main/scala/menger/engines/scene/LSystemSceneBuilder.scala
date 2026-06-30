@@ -7,6 +7,16 @@ import menger.ObjectSpec
 import menger.objects.LSystemGrammar
 import menger.objects.LSystemPresets
 
+/** Sealed sub-builder type — compile-time safety replacing raw String dispatch (A4, Sprint 32). */
+enum SubBuilderType:
+  case Curve, Sphere, Cone
+
+  def resolve(textureDir: String): SceneBuilder =
+    this match
+      case Curve  => CurveSceneBuilder(textureDir)
+      case Sphere => SphereSceneBuilder(textureDir)
+      case Cone   => ConeSceneBuilder(textureDir)
+
 class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
@@ -22,7 +32,12 @@ class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
       val generatedSpecs = generateFromSpec(spec)
       val grouped = generatedSpecs.groupBy(_.objectType)
       grouped.foreach { case (objType, objSpecs) =>
-        val builder = resolveSubBuilder(objType)
+        val subType = objType.toLowerCase match
+          case "curve"  => SubBuilderType.Curve
+          case "sphere" => SubBuilderType.Sphere
+          case "cone"   => SubBuilderType.Cone
+          case _        => SubBuilderType.Curve
+        val builder = resolveSubBuilder(subType)
         builder.buildScene(objSpecs, renderer, maxInstances).get
       }
     }
@@ -65,11 +80,8 @@ class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
       )
       turtle.generate()
 
-  private def resolveSubBuilder(objType: String): SceneBuilder = objType match
-    case "curve" => CurveSceneBuilder(textureDir)
-    case "sphere" => SphereSceneBuilder(textureDir)
-    case "cone" => ConeSceneBuilder(textureDir)
-    case _ => CurveSceneBuilder(textureDir)
+  private def resolveSubBuilder(builderType: SubBuilderType): SceneBuilder =
+    builderType.resolve(textureDir)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean = true
 

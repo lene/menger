@@ -3,6 +3,7 @@ package menger.engines.scene
 import scala.annotation.tailrec
 
 import menger.CurveData
+import menger.objects.LSystemPresets
 import menger.ObjectSpec
 import menger.common.Color
 import menger.common.Material
@@ -247,15 +248,13 @@ object LSystemTurtle4D:
     iterations: Int, seed: Long = 42L): String =
     LSystemGrammar(axiom, rules, seed).rewrite(iterations)
 
-  val HilbertCurve4D: LSystemTurtle4D =
-    val g = grammar("X",
-      Map(
-        'X' -> Seq((1.0, "^<XF^<XFX-F^>>XFX&F+>>XFX-F>X->")),
-        'F' -> Seq((1.0, "F"))
-      ), 4)
-    LSystemTurtle4D(g, 90f, 0.15f, 0.05f, 0.7f)
+  /** 4D Hilbert curve — delegates to LSystemPresets (A5, Sprint 32). */
+  val HilbertCurve4D: LSystemTurtle4D = fromPreset("hilbert4d", 90f, 0.15f, 0.05f, 0.7f)
 
-  val Tree4D: LSystemTurtle4D =
-    val g = grammar("F",
-      Map('F' -> Seq((1.0, "F[>+F]F[<-F]F"))), 4)
-    LSystemTurtle4D(g, 25.7f, 0.3f, 0.08f, 0.7f)
+  /** 4D tree — delegates to LSystemPresets (A5, Sprint 32). */
+  val Tree4D: LSystemTurtle4D = fromPreset("tree4d", 25.7f, 0.3f, 0.08f, 0.7f)
+
+  private def fromPreset(name: String, angle: Float, segLen: Float, initWidth: Float, decay: Float): LSystemTurtle4D =
+    val (axiom, rules, _, _, _, _, _) = LSystemPresets(name)
+    val g = grammar(axiom, rules.view.mapValues(v => Seq((1.0, v))).toMap, 4)
+    LSystemTurtle4D(g, angle, segLen, initWidth, decay)

@@ -25,5 +25,13 @@ object LSystemPresets:
     ), 90.0f, 0.1f, 0.05f, 1.0f, 4),
     "kochisland" -> ("F+F+F+F",
       Map('F' -> "F+f-FF+F+FF+Ff+FF-f+FF-F-FF-Ff-FFF"),
-      90.0f, 0.05f, 0.03f, 1.0f, 2)
+      90.0f, 0.05f, 0.03f, 1.0f, 2),
+    // 4D presets — use > and < for ana/kata-axis rotations
+    "hilbert4d" -> ("X", Map(
+      'X' -> "^<XF^<XFX-F^>>XFX&F+>>XFX-F>X->",
+      'F' -> "F"
+    ), 90.0f, 0.15f, 0.05f, 0.7f, 4),
+    "tree4d" -> ("F", Map(
+      'F' -> "F[>+F]F[<-F]F"
+    ), 25.7f, 0.3f, 0.08f, 0.7f, 4)
   )
