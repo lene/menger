@@ -1044,7 +1044,8 @@ test_curve() {
     run_test "curve with color" \
         --objects type=curve:control-points=0,0,0,0,1,0,1,1,0,1,0,0:radius=0.08:color=#ff6600
     run_test "curve glass" \
-        --objects type=curve:control-points=0,0,0,0,0.5,0,0.5,1,0,1,1,0:radius=0.08:material=glass
+        --objects type=curve:control-points=0,0,0,0,0.5,0,0.5,1,0,1,1,0:radius=0.08:material=glass \
+        --plane y:-2
 }
 
 test_error_handling() {
