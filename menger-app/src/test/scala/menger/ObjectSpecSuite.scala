@@ -176,6 +176,30 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
         spec.material.get.ior shouldBe 1.7f
       case Left(error) => fail(s"Expected Right but got Left: $error")
 
+  it should "parse material with dispersion (Abbe number)" in:
+    val result = ObjectSpec.parse("type=sphere:pos=0,0,0:material=diamond:dispersion=33")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.dispersion shouldBe 33f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "default dispersion to 0 when not specified" in:
+    val result = ObjectSpec.parse("type=sphere:pos=0,0,0:material=glass")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.dispersion shouldBe 0.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "reject negative dispersion value" in:
+    val result = ObjectSpec.parse("type=sphere:pos=0,0,0:material=glass:dispersion=-5")
+    result shouldBe a[Left[?, ?]]
+
+  it should "recognize dispersion as a valid key" in:
+    val result = ObjectSpec.parse("type=sphere:dispersion=42")
+    result.isRight shouldBe true
+
   it should "parse material with color override" in:
     val result = ObjectSpec.parse("type=cube:pos=0,0,0:material=metal:color=#FFD700")
     result match

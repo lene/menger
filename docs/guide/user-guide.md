@@ -627,6 +627,48 @@ The color shifts with both thickness and viewing angle (angle of incidence).
 | 550–650       | Yellow / orange                    |
 | 650–750       | Red                                |
 
+**Spectral Dispersion (`dispersion=N`):**
+
+Transparent materials with `dispersion > 0` enable wavelength-dependent refraction using the
+Cauchy IOR model `n(λ) = A + B/λ²`. The Abbe number `V_d` (lower = more dispersion) controls
+the amount of spectral splitting — white light through a prism or diamond produces rainbow
+colors ("fire").
+
+Hero-wavelength sampling draws one wavelength λ ∈ [380, 730] nm per pixel per frame. With
+`dispersion > 0`, a single frame is visibly color-noisy. **Recommend `accumulation ≥ 16`**
+for clean stills. The OptiX denoiser handles spectral noise well but may slightly blend
+adjacent hues — use `accumulation ≥ 32` for reference-quality output.
+
+```bash
+# Dispersive glass (V_d = 59) — subtle rainbow
+--objects 'type=sphere:material=glass-dispersive'
+
+# Dispersive diamond (V_d = 33) — strong fire, needs accumulation
+--objects 'type=sphere:material=diamond-dispersive:accumulation-frames=32'
+
+# Explicit dispersion value via CLI
+--objects 'type=sphere:material=diamond:dispersion=33'
+
+# Via DSL
+Scene(
+  objects = Seq(
+    Sphere(Vec3(0,0,0), 1.5f, Material.DiamondDispersive)
+  ),
+  render = Some(RenderSettings(accumulation = 32))
+)
+```
+
+Preset Abbe numbers:
+
+| Preset | V_d | IOR | Dispersion | Typical use |
+|--------|------|------|-------------|-------------|
+| `glass-dispersive` | 59 | 1.5 | Low | Subtle prism effects |
+| `diamond-dispersive` | 33 | 2.42 | High | Colored "fire" |
+| `material=glass:dispersion=N` | Any | 1.5 | Variable | Custom crown/flint glass |
+
+`dispersion = 0` (default) renders bit-identical to current output — all existing reference
+images unchanged. Spectral refractions are tracked by the `--stats` counter `spectralRays`.
+
 **Usage with `--objects` flag:**
 ```bash
 sbt "run --optix \

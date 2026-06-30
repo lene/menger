@@ -560,6 +560,7 @@ class InteractiveEngine(
           f"Frame: ${stats.frameMs}%.1f ms (${stats.msPerMray}%.2f ms/Mray) | " +
           s"primary=${stats.primaryRays} total=${stats.totalRays} " +
           s"reflected=${stats.reflectedRays} refracted=${stats.refractedRays} " +
+          s"spectral=${stats.spectralRays} " +
           s"shadow=${stats.shadowRays} aa=${stats.aaRays} " +
           s"depth=${stats.minDepthReached}-${stats.maxDepthReached}"
         )

@@ -15,7 +15,7 @@ class OptiXRendererWrapperSuite extends AnyFlatSpec with Matchers with MockFacto
       override protected def initializeRenderer: OptiXRenderer = injected
 
   private def renderResult(image: Array[Byte]): RenderResult =
-    RenderResult(image, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0, 0, 0f)
+    RenderResult(image, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0, 0, 0f)
 
   private val dims = ImageSize(4, 4)
 
