@@ -95,3 +95,16 @@ class GeometryRegistrySuite extends AnyFlatSpec with Matchers:
   it should "return None for empty spec list" in:
     val result = GeometryRegistry.builderFor(List.empty)
     result shouldBe None
+
+  // Fitness function (T1): every VALID_TYPES entry handled by TypeRegistry
+  // must resolve to exactly one builder. Guards against dispatch drift.
+  // Note: lsystem is in VALID_TYPES but lacks a dedicated SceneBuilder
+  // (tracked as Sprint 31 deferred item).
+  it should "resolve every registered type to exactly one builder" in:
+    val registeredTypes = TypeRegistry.builtInTypeNames ++
+      ObjectType.VALID_TYPES.filter(TypeRegistry.isTriangleMeshType)
+    registeredTypes.foreach: t =>
+      withClue(s"no builder for type '$t': "):
+        val builder = GeometryRegistry.builderFor(List(spec(t)))
+        builder shouldBe defined
+        builder.get should not be null
