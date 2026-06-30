@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.8] - 2026-06-29
+## [0.7.8] - 2026-06-30
 
 ### Added
 - **L-Systems** — Lindenmayer grammar engine with 3D/4D turtle interpretation
