@@ -27,12 +27,12 @@ IDs in this document (S28.x–S31.x) refer to the pre-renumbering plans** — ma
 New sprint sequence: 28 = F14 agentic-development guardrails & release automation
 (rescoped 2026-06-10 after discussion), 29 = F13 Phase 1 (denoiser + curves),
 30 = F13 Phase 2 (motion blur, API audit, 1.0 prep), 31 = F9 L-systems,
-32 = F4 spectral dispersion, 33 = T-PBRTEX PBR texture sets,
-34 = F16 production caustics (incl. dispersive caustics, which needs Sprint 32).
+32 = F4 spectral dispersion, 33 = F16 production caustics (incl. dispersive caustics, which needs Sprint 32),
+34 = T-PBRTEX PBR texture sets,
 Full plans in `SPRINT28.md`–`SPRINT34.md`.
 
 Dependency notes honored by this ordering: curves (Sprint 29) land before L-systems
-(Sprint 31); dispersion (Sprint 32) lands before dispersive caustics (Sprint 34);
+(Sprint 31); dispersion (Sprint 32) lands before dispersive caustics (Sprint 33);
 QA hardening (Sprint 28) front-loads so every later sprint ships through it.
 **Purpose:** Dependency-aware catalog of all planned, backlogged, and newly proposed
 features. Items that are dependencies for others are identified so they can be

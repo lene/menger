@@ -1,9 +1,9 @@
 # Current Sprint
 
 **Sprint:** 32
-**Status:** 🔜 Planning
+**Status:** 📋 Planned
 **Started:** TBD
-**Branch:** `feature/sprint-32` (not yet created)
+**Branch:** `feature/sprint-32`
 
 ---
 
