@@ -69,7 +69,7 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addRecursiveIASS
     jint level,
     jfloatArray transform, jfloat r, jfloat g, jfloat b, jfloat a, jfloat ior,
     jfloat roughness, jfloat metallic, jfloat specular, jfloat emission,
-    jint textureIndex, jfloat filmThickness) {
+    jint textureIndex, jfloat filmThickness, jfloat cauchy_a, jfloat cauchy_b) {
     try {
         OptiXWrapper* wrapper = getWrapper(env, obj);
         if (wrapper == nullptr) return -1;
@@ -116,14 +116,14 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addMenger4DInsta
     jfloat rotXW, jfloat rotYW, jfloat rotZW,
     jfloat r, jfloat g, jfloat b, jfloat a, jfloat ior,
     jfloat roughness, jfloat metallic, jfloat specular, jfloat emission,
-    jfloat filmThickness) {
+    jfloat filmThickness, jfloat cauchy_a, jfloat cauchy_b) {
     try {
         OptiXWrapper* wrapper = getWrapper(env, obj);
         if (wrapper == nullptr) return -1;
         return wrapper->addMenger4DInstance(
             (int)level, (int)distThreshold,
             x, y, z, scale, eyeW, screenW, rotXW, rotYW, rotZW,
-            r, g, b, a, ior, roughness, metallic, specular, emission, filmThickness
+            r, g, b, a, ior, roughness, metallic, specular, emission, filmThickness, cauchy_a, cauchy_b
         );
     } catch (const std::exception& e) {
         std::cerr << "[MengerJNI] Error in addMenger4DInstance: " << e.what() << std::endl;
@@ -158,13 +158,13 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addSierpinski4DI
     jfloat rotXW, jfloat rotYW, jfloat rotZW,
     jfloat r, jfloat g, jfloat b, jfloat a, jfloat ior,
     jfloat roughness, jfloat metallic, jfloat specular, jfloat emission,
-    jfloat filmThickness) {
+    jfloat filmThickness, jfloat cauchy_a, jfloat cauchy_b) {
     try {
         OptiXWrapper* wrapper = getWrapper(env, obj);
         if (wrapper == nullptr) return -1;
         return wrapper->addSierpinski4DInstance(
             (int)level, x, y, z, scale, eyeW, screenW, rotXW, rotYW, rotZW,
-            r, g, b, a, ior, roughness, metallic, specular, emission, filmThickness
+            r, g, b, a, ior, roughness, metallic, specular, emission, filmThickness, cauchy_a, cauchy_b
         );
     } catch (const std::exception& e) {
         std::cerr << "[MengerJNI] Error in addSierpinski4DInstance: " << e.what() << std::endl;
@@ -199,13 +199,13 @@ JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addHexadecachoro
     jfloat rotXW, jfloat rotYW, jfloat rotZW,
     jfloat r, jfloat g, jfloat b, jfloat a, jfloat ior,
     jfloat roughness, jfloat metallic, jfloat specular, jfloat emission,
-    jfloat filmThickness) {
+    jfloat filmThickness, jfloat cauchy_a, jfloat cauchy_b) {
     try {
         OptiXWrapper* wrapper = getWrapper(env, obj);
         if (wrapper == nullptr) return -1;
         return wrapper->addHexadecachoron4DInstance(
             (int)level, x, y, z, scale, eyeW, screenW, rotXW, rotYW, rotZW,
-            r, g, b, a, ior, roughness, metallic, specular, emission, filmThickness
+            r, g, b, a, ior, roughness, metallic, specular, emission, filmThickness, cauchy_a, cauchy_b
         );
     } catch (const std::exception& e) {
         std::cerr << "[MengerJNI] Error in addHexadecachoron4DInstance: " << e.what() << std::endl;

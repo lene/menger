@@ -31,7 +31,8 @@ class MengerRenderer extends OptiXRenderer:
     r: Float, g: Float, b: Float, a: Float,
     ior: Float, roughness: Float, metallic: Float, specular: Float, emission: Float,
     textureIndex: Int,
-    filmThickness: Float
+    filmThickness: Float,
+    cauchy_a: Float, cauchy_b: Float
   ): Int
 
   @native override private[optix] def addMenger4DInstanceNative(
@@ -42,7 +43,8 @@ class MengerRenderer extends OptiXRenderer:
     rotXW: Float, rotYW: Float, rotZW: Float,
     r: Float, g: Float, b: Float, a: Float,
     ior: Float, roughness: Float, metallic: Float, specular: Float, emission: Float,
-    filmThickness: Float
+    filmThickness: Float,
+    cauchy_a: Float, cauchy_b: Float
   ): Int
 
   @native override private[optix] def updateMenger4DProjectionNative(
@@ -58,7 +60,8 @@ class MengerRenderer extends OptiXRenderer:
     rotXW: Float, rotYW: Float, rotZW: Float,
     r: Float, g: Float, b: Float, a: Float,
     ior: Float, roughness: Float, metallic: Float,
-    specular: Float, emission: Float, filmThickness: Float
+    specular: Float, emission: Float, filmThickness: Float,
+    cauchy_a: Float, cauchy_b: Float
   ): Int
 
   @native override private[optix] def updateSierpinski4DProjectionNative(
@@ -74,7 +77,8 @@ class MengerRenderer extends OptiXRenderer:
     rotXW: Float, rotYW: Float, rotZW: Float,
     r: Float, g: Float, b: Float, a: Float,
     ior: Float, roughness: Float, metallic: Float,
-    specular: Float, emission: Float, filmThickness: Float
+    specular: Float, emission: Float, filmThickness: Float,
+    cauchy_a: Float, cauchy_b: Float
   ): Int
 
   @native override private[optix] def updateHexadecachoron4DProjectionNative(
