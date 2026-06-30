@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.7.9] - 2026-06-30
+
+### Added
+- **Spectral dispersion** — wavelength-dependent IOR via Cauchy model
+- `dispersion=<Abbe number>` CLI parameter and DSL field on Material
+- `glass-dispersive` (V_d=59) and `diamond-dispersive` (V_d=33) presets
+- Hero-wavelength per-pixel stratification in OptiX shaders
+- CIE XYZ→sRGB spectral color conversion (Wyman 2013 fit)
+- `spectralRays` counter in `--stats` output
+- PrismDispersion and DiamondFire DSL demo scenes
+- 4D Hilbert curve and Tree4D presets in LSystemPresets
+
+### Changed
+- **TypeRegistry** — unified object-type dispatch replacing duplicated if/else chains (T1)
+- **SubBuilderType** sealed enum replacing String dispatch in LSystemSceneBuilder (A4)
+- LSystemTurtle4D.HilbertCurve4D/Tree4D delegate to LSystemPresets (A5)
+- PerfCheck baseline committed with measured sphere/sponge medians (T2)
+- Native-binding ArchUnit rule: MengerRenderer must not introduce new @native methods (T5)
+- Script-parity fitness function covers all VALID_TYPES across test scripts (T9)
+- SceneBuilder fault-injection suite verifies Try→Failure propagation (T7)
+- Fast-path regression guard for projected-4D type schema changes (T10)
+- AD-31 documented: OptiX as sole rendering backend (T11)
+- sbt 2.0.0 upgrade attempted, deferred — plugins not yet ported
+
+### Fixed
+- JNI RenderResult constructor signature corrected (8→had 9 longs → NoSuchMethodError)
+- Pipeline numPayloadValues bumped 10→11 for hero-wavelength register
+- Version bumped 0.7.7→0.7.9 for Sprint 32
+- Missing `parametric` type added to integration-test and manual-test scripts
+
 ## [0.7.8] - 2026-06-30
 
 ### Added

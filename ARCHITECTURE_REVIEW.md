@@ -107,9 +107,14 @@ same interface.
 
 ---
 
-## Summary
+## Summary (updated Sprint 32 close)
 
 The architecture is fundamentally sound — module boundaries are enforced, test coverage
 is high, and the L-system integration follows existing patterns (SceneBuilder, ObjectSpec).
-Three High items (A1, A2, A3) and two Low items (A4, A5) have been added to the
-architectural backlog. All are scheduled in Sprint 32 (T1, T2, T3, plus new tasks for A4/A5).
+
+**Sprint 32 closure:** T1, T2, T5, T7, T9, T10, T11, A4, A5 all completed. The dispatch
+drift (F1) is eliminated via TypeRegistry. Performance budgets (T2) are governed by
+PerfCheck with committed baselines. Native-binding discipline (T5) is enforced by
+ArchUnit. Script parity (T9), fault injection (T7), and fast-path guard (T10) add
+automated fitness functions. Two remaining items defer to Sprint 33: T3 (native leak
+gate) and T6 (caustics C1-C4).

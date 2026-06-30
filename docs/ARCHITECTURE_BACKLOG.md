@@ -22,17 +22,17 @@ Already actioned outside this backlog:
 
 ## Summary table
 
-| # | Task | Finding | Effort | Priority |
-|---|------|---------|--------|----------|
-| T1 | Unify object-type dispatch into one registry table | F1 | M (1.5–2 d) | High |
-| T2 | Performance governance (PerfCheck + benchmark baselines) | F2 | M (1 d) | High |
-| T3 | In-repo native memory-leak gate | F3 | M (1 d) | High |
-| T9 | Script-parity fitness function | F1 | S (2–4 h) | Med-High |
-| T5 | Module-scoped ArchUnit native rule + rename `menger.geometry` | F6 | M (4–8 h) | Medium |
-| T6 | Caustics ladder analytic rungs C1–C4 | F7 | L (2–3 d) | Medium |
-| T7 | Determinism + JNI fault-injection test kinds | F8 | S (~1 d) | Medium |
-| T10 | Fast-path regression guard | Pos.1 | S (3–5 h) | Medium |
-| T11 | Record OptiX-as-sole-backend as a deliberate ADR | F-backend | XS (~30 m) | Low |
+| # | Task | Finding | Effort | Priority | Status |
+|---|------|---------|--------|----------|--------|
+| T1 | Unify object-type dispatch into one registry table | F1 | M (1.5–2 d) | High | ✅ Sprint 32 |
+| T2 | Performance governance (PerfCheck + benchmark baselines) | F2 | M (1 d) | High | ✅ Sprint 32 |
+| T3 | In-repo native memory-leak gate | F3 | M (1 d) | High | 🔜 |
+| T9 | Script-parity fitness function | F1 | S (2–4 h) | Med-High | ✅ Sprint 32 |
+| T5 | Module-scoped ArchUnit native rule + rename `menger.geometry` | F6 | M (4–8 h) | Medium | ✅ Sprint 32 |
+| T6 | Caustics ladder analytic rungs C1–C4 | F7 | L (2–3 d) | Medium | 🔜 Sprint 33 |
+| T7 | Determinism + JNI fault-injection test kinds | F8 | S (~1 d) | Medium | ✅ Sprint 32 |
+| T10 | Fast-path regression guard | Pos.1 | S (3–5 h) | Medium | ✅ Sprint 32 |
+| T11 | Record OptiX-as-sole-backend as a deliberate ADR | F-backend | XS (~30 m) | Low | ✅ Sprint 32 |
 
 Total if all scheduled: **~7–10 dev-days** (T4/T8 completed in Sprint 27 and removed).
 
