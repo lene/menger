@@ -984,6 +984,7 @@ test_platonic_solids() {
     run_test "dodecahedron" --objects type=dodecahedron:size=0.8 --plane y:-2
     run_test "tetrahedron with material" --objects type=tetrahedron:size=0.8:material=glass --plane y:-2
     run_test "octahedron with color" --objects type=octahedron:size=0.8:color=#FF8844 --plane y:-2
+    run_test "parametric sphere" --objects type=parametric:size=0.8 --plane y:-2
     run_test "mixed platonic solids" --plane y:-2 \
         --objects type=tetrahedron:pos=-1.5,0,0:size=0.5 \
         --objects type=icosahedron:pos=1.5,0,0:size=0.5
