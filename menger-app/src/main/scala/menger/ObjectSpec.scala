@@ -165,7 +165,7 @@ object ObjectSpec extends LazyLogging:
   private val ValidKeys: Set[String] = Set(
     "type", "pos", "size", "level", "color", "ior",
     "material", "roughness", "metallic", "specular",
-    "emission", "film-thickness", "texture",
+    "emission", "film-thickness", "dispersion", "texture",
     "eye-w", "screen-w", "rot-xw", "rot-yw", "rot-zw",
     "rot-x", "rot-y", "rot-z",
     "edge-radius", "edge-material", "edge-color",
@@ -196,7 +196,8 @@ object ObjectSpec extends LazyLogging:
       level <- parseLevel(kvPairs)
       color <- parseColor(kvPairs)
       ior <- parseIOR(kvPairs)
-      material <- parseMaterial(kvPairs, color, ior)
+      dispersion <- parseDispersion(kvPairs)
+      material <- parseMaterial(kvPairs, color, ior, dispersion)
       texture <- parseTexture(kvPairs)
       projection4D <- parse4DProjection(kvPairs, objType)
       edgeParams <- parseEdgeParameters(kvPairs, objType)
@@ -343,24 +344,37 @@ object ObjectSpec extends LazyLogging:
         }
       case None => Right(1.0f)
 
+  private def parseDispersion(kvPairs: Map[String, String]): Either[String, Float] =
+    kvPairs.get("dispersion") match
+      case Some(dStr) =>
+        Try(dStr.toFloat).toEither.left.map { e =>
+          s"Invalid dispersion value '$dStr': ${e.getMessage}. " +
+            "Dispersion (Abbe number) must be a positive number (e.g., dispersion=33)"
+        }.flatMap { d =>
+          if (d < 0f) Left(s"Dispersion must be non-negative, got $d")
+          else Right(d)
+        }
+      case None => Right(0.0f)
+
   private def parseMaterial(
     kvPairs: Map[String, String],
     color: Option[Color],
-    ior: Float
+    ior: Float,
+    dispersion: Float
   ): Either[String, Option[Material]] =
     kvPairs.get("material") match
       case Some(presetName) =>
         Material.fromName(presetName).toScala match
           case Some(baseMaterial) =>
-            parseMaterialOverrides(kvPairs, baseMaterial, color, ior)
+            parseMaterialOverrides(kvPairs, baseMaterial, color, ior, dispersion)
           case None =>
-            Left(s"Unknown material preset: '$presetName'. Valid presets: ${Material.presetNames.asScala.mkString(", ")}")
+            Left(s"Unknown material preset: '${Material.presetNames.asScala.mkString(", ")}'")
       case None =>
         // Allow film-thickness without explicit material preset (creates default material with thin film)
         kvPairs.get("film-thickness") match
           case Some(_) =>
             val baseMaterial = Material(color.getOrElse(Color(1.0f, 1.0f, 1.0f)), ior = ior)
-            parseMaterialOverrides(kvPairs, baseMaterial, color, ior)
+            parseMaterialOverrides(kvPairs, baseMaterial, color, ior, dispersion)
           case None =>
             Right(None)
 
@@ -368,7 +382,8 @@ object ObjectSpec extends LazyLogging:
     kvPairs: Map[String, String],
     baseMaterial: Material,
     color: Option[Color],
-    ior: Float
+    ior: Float,
+    dispersion: Float
   ): Either[String, Option[Material]] =
     for
       roughness <- parseOptionalFloat(kvPairs, "roughness", "roughness value (0.0-1.0)")
@@ -384,7 +399,8 @@ object ObjectSpec extends LazyLogging:
         metallic      = metallic.getOrElse(baseMaterial.metallic),
         specular      = specular.getOrElse(baseMaterial.specular),
         emission      = emission.getOrElse(baseMaterial.emission),
-        filmThickness = filmThickness.getOrElse(baseMaterial.filmThickness)
+        filmThickness = filmThickness.getOrElse(baseMaterial.filmThickness),
+        dispersion    = if kvPairs.contains("dispersion") then dispersion else baseMaterial.dispersion
       )
     )
 

@@ -823,3 +823,41 @@ was a 662-line god-object with duplicated dispatch.
 - PerfCheck failures now block merge; real baselines must be measured on the CI runner.
 - `ARCHITECTURE_BACKLOG.md` T3 (native leak gate) still unscheduled.
 - Caustics C1-C8 ladder development deferred to Sprint 34.
+
+---
+
+### AD-31: OptiX as Sole Rendering Backend (Sprint 32 — T11)
+
+**Status:** Accepted
+**Date:** 2026-06-30 (Sprint 32)
+
+**Context:** The renderer backend is hard-wired to OptiX across ~9 scene builders
+(`OptiXRenderer` as a concrete type, no `RenderBackend`/`SceneSink` abstraction).
+This coupling is deliberate: every scene builder constructs OptiX-specific data
+structures (InstanceMaterial, OptiXInstance), GPU memory is managed through
+OptiX-specific allocation, and the render loop assumes an OptiX pipeline context.
+
+**Decision:** The renderer remains deliberately hard-wired to OptiX. No
+abstraction layer for alternative backends will be introduced until a second
+backend is on the roadmap with a concrete use case and resource commitment.
+
+**Rationale:**
+- A backend abstraction would require a cross-cutting refactor touching every
+  scene builder, the memory management layer, and the render loop — easily
+  50+ hours with no user-facing benefit today.
+- OptiX provides the specific features the project needs (RT cores, denoising,
+  curves), and no alternative backend (Vulkan RT, embree, etc.) offers a
+  superset that justifies the abstraction cost.
+- Scene builders already own their OptiX-specific logic; an abstraction would
+  either be leaky (must expose OptiX concepts) or impose an interface design
+  burden without real-world testing against a second implementation.
+
+**Consequences:**
+- Adding a non-OptiX backend in the future is a cross-cutting refactor, not a
+  plugin operation. This is a known and accepted evolvability cost.
+- New scene builders continue to depend directly on `io.github.lene.optix` types.
+- This decision should be revisited if any of: (a) OptiX becomes unavailable on
+  a target platform, (b) a second backend demonstrates a clear user benefit
+  (e.g., software fallback for CI/testing), or (c) OptiX SDK licensing changes.
+
+**Revisit trigger:** Second backend on the roadmap.

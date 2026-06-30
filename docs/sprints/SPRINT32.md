@@ -52,12 +52,7 @@ Every architecture task converts a convention-maintained invariant into a fitnes
 **Estimate:** 6h
 **Priority:** 🔴 Must go first — sbt affects everything
 
-**32.1a — sbt 2.0.1 upgrade (4h):**
-- Bump `sbt.version` in `project/build.properties` across all three repos
-- Fix any build definition API changes (sbt 2.0 removes deprecated syntax)
-- Verify `sbt compile`, `sbt test`, `sbt "scalafix --check"` pass
-- Update CI Docker image or document that sbt is auto-bootstrapped
-- **Risk:** sbt 2.0 is a major release — may need plugin updates or build.sbt changes
+**32.1a — sbt upgrade attempt (1h):** RESULT — sbt 2.0.0 cannot resolve plugins (`sbt-sonatype`, `sbt-jni` lack `_sbt2_3` artifacts). Staying on sbt 1.12.11. Deferred until plugin ecosystem catches up.
 
 **32.1b — CODE_IMPROVEMENTS.md cleanup (1h):**
 - Verify Sprint 31 tasks 31.6 + 31.8 actually resolved the claimed items

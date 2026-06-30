@@ -1,8 +1,8 @@
 # Current Sprint
 
 **Sprint:** 32
-**Status:** 📋 Planned
-**Started:** TBD
+**Status:** 🔄 In Progress
+**Started:** 2026-06-30
 **Branch:** `feature/sprint-32`
 
 ---

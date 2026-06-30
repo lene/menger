@@ -10,7 +10,8 @@ case class Material(
   metallic: Float = 0.0f,
   specular: Float = 0.5f,
   emission: Float = 0.0f,
-  filmThickness: Float = 0.0f
+  filmThickness: Float = 0.0f,
+  dispersion: Float = 0.0f
 ):
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
   require(roughness >= 0f && roughness <= 1f, s"Roughness must be in [0, 1], got $roughness")
@@ -18,6 +19,7 @@ case class Material(
   require(specular >= 0f && specular <= 1f, s"Specular must be in [0, 1], got $specular")
   require(emission >= 0f, s"Emission must be non-negative, got $emission")
   require(filmThickness >= 0f, s"Film thickness must be non-negative, got $filmThickness")
+  require(dispersion >= 0f, s"Dispersion (Abbe number) must be non-negative, got $dispersion")
 
   /** Check material for physical plausibility. Returns advisory warning strings.
     * Never throws — use the existing require() calls for hard failures. */
@@ -38,17 +40,22 @@ case class Material(
       metallic = metallic,
       specular = specular,
       emission = emission,
-      filmThickness = filmThickness
+      filmThickness = filmThickness,
+      dispersion = dispersion
     )
 
 object Material:
   private def fromOptix(m: CoreMaterial): Material =
-    Material(Color.fromCommon(m.color), m.ior, m.roughness, m.metallic, m.specular, m.emission, m.filmThickness)
+    Material(Color.fromCommon(m.color), m.ior, m.roughness, m.metallic, m.specular, m.emission, m.filmThickness, m.dispersion)
 
   // Dielectric presets — delegate to CoreMaterial to avoid duplication
   val Glass   = fromOptix(CoreMaterial.Glass)
   val Water   = fromOptix(CoreMaterial.Water)
   val Diamond = fromOptix(CoreMaterial.Diamond)
+
+  // Dispersive variants
+  val GlassDispersive   = fromOptix(CoreMaterial.GlassDispersive)
+  val DiamondDispersive = fromOptix(CoreMaterial.DiamondDispersive)
 
   // Metal presets — delegate to CoreMaterial
   val Chrome = fromOptix(CoreMaterial.Chrome)
