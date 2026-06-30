@@ -32,8 +32,8 @@ Speed    Efficiency      Quality    Accuracy       Coverage   Handling
 
 | ID | Scenario | Measure | Target | Status |
 |----|----------|---------|--------|--------|
-| P1 | Sponge level 3 generation | Time | < 5s | ⚠️ Advisory PerfCheck (Sprint 30.9); baselines unmeasured |
-| P2 | OptiX render 800×600 | Time | < 500ms | ⚠️ Advisory PerfCheck (Sprint 30.9); baselines unmeasured |
+| P1 | Sponge level 3 generation | Time | < 5s | ✅ PerfCheck baseline committed (scripts/perf-baseline.json, Sprint 32.8a) |
+| P2 | OptiX render 800×600 | Time | < 500ms | ✅ PerfCheck baseline committed (scripts/perf-baseline.json, Sprint 32.8a) |
 | P3 | OptiX render with shadows | Overhead | < 30% | ⚠️ Advisory PerfCheck (Sprint 30.9) |
 | P4 | Adaptive AA (depth 2) | Samples vs uniform | 5-20× fewer | ✅ Code review validated |
 | P5 | Statistics collection | Overhead | < 5% | ✅ Code review validated |
