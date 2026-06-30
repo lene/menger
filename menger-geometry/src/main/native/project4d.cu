@@ -6,6 +6,21 @@
 //
 // Input: N faces × V corners × float4 (x,y,z,w)
 // Output: V vertices × 8-stride (pos·3 + normal·3 + uv·2) + fan indices
+//
+// ASYNC ERROR CONTRACT:
+// `launchProject4DQuadsKernel` uses the standard CUDA async launch pattern:
+// the kernel is launched on `stream` and `cudaGetLastError()` captures only
+// launch-configuration errors (invalid grid/block dims, missing kernel).
+// Async kernel execution errors — out-of-bounds memory access, division by
+// zero, illegal instruction — are NOT caught by `cudaGetLastError()`. Those
+// require the caller to issue `cudaDeviceSynchronize()` (or stream-level sync)
+// after the launch and check the returned `cudaError_t`.
+//
+// Sync is deliberately NOT moved inside this function: it would serialize
+// launches and prevent the caller from overlapping independent work on
+// separate streams (e.g. caustics, AS builds, copy engines). The caller owns
+// the sync point and error check — this is the idiomatic CUDA pattern for
+// performance-sensitive pipelines.
 
 #define MAX_VERTS_PER_FACE 8
 
@@ -109,7 +124,10 @@ extern "C" __global__ void project4d_faces_kernel(
     }
 }
 
-// Backward-compatible host launcher (same C-linkage name, generalized params)
+// Backward-compatible host launcher (same C-linkage name, generalized params).
+// NOTE: returns `cudaGetLastError()` — only launch-config errors. Async
+// kernel execution errors require caller-side `cudaDeviceSynchronize()`.
+// See file header for the full async error contract.
 extern "C" cudaError_t launchProject4DQuadsKernel(
     const void* d_faces_4d,
     const void* d_uvs_or_null,

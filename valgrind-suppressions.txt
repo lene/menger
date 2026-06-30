@@ -1,0 +1,79 @@
+# Valgrind suppressions for JVM + JNI native code.
+# The JVM itself generates many intentional "leaks" (pools, caches, arena
+# allocations freed at exit). These are not real bugs — suppress them and
+# focus on leaks in menger-geometry native code.
+
+# JVM internal allocations (arenas, pools, caches freed at process exit)
+{
+   JVM_internal_allocations
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:/usr/lib/jvm/*/libjvm.so
+}
+{
+   JVM_internal_allocations_java
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:/usr/lib/jvm/*/libjava.so
+}
+
+# sbt / Scala compiler allocations (not our code)
+{
+   sbt_allocations
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:*/sbt/*
+}
+{
+   scala_allocations
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:*/scala/*
+}
+
+# JVM thread stacks and signal handlers
+{
+   JVM_thread_stacks
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   fun:pthread_create*
+   ...
+}
+
+# NVIDIA driver internal allocations
+{
+   nvidia_driver_internal
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:/usr/lib/*/libcuda.so*
+}
+{
+   nvidia_internal
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:/usr/lib/*/libnvidia-*.so*
+}
+
+# OptiX internal allocations
+{
+   optix_internal
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:/usr/local/optix/*/liboptix*.so*
+}
+
+# CUDA runtime internal allocations
+{
+   cuda_runtime_internal
+   Memcheck:Leak
+   match-leak-kinds: reachable,possible
+   ...
+   obj:/usr/local/cuda/*/libcudart.so*
+}

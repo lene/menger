@@ -1042,9 +1042,10 @@ test_curve() {
     run_test "curve open 4-point" \
         --objects type=curve:control-points=0,0,0,1,0,0,1,1,0,0,1,0:radius=0.05
     run_test "curve with color" \
-        --objects type=curve:control-points=0,0,0,0,1,0,1,1,0,1,0,0:radius=0.03:color=#ff6600
+        --objects type=curve:control-points=0,0,0,0,1,0,1,1,0,1,0,0:radius=0.08:color=#ff6600
     run_test "curve glass" \
-        --objects type=curve:control-points=0,0,0,0,0.5,0,0.5,1,0,1,1,0:radius=0.04:material=glass
+        --objects type=curve:control-points=0,0,0,0,0.5,0,0.5,1,0,1,1,0:radius=0.08:material=glass \
+        --plane y:-2
 }
 
 test_error_handling() {
@@ -1296,6 +1297,28 @@ test_fog() {
     rm -f "$no_fog_img" "$fog_img" "/tmp/fog_diff_$$.png"
 }
 
+test_lsystem() {
+    echo "L-Systems:"
+    run_test "lsystem tree level 4" --plane y:-2 \
+        --objects type=lsystem:preset=tree:level=4:size=0.8
+    run_test "lsystem bush level 3" --plane y:-2 \
+        --objects type=lsystem:preset=bush:level=3:size=0.8
+    run_test "lsystem fern3d level 3" --plane y:-2 \
+        --objects type=lsystem:preset=fern3d:level=3:size=0.8
+    run_test "lsystem hilbert3d level 4" --plane y:-2 \
+        --objects type=lsystem:preset=hilbert3d:level=4:size=1.2
+    run_test "lsystem kochisland level 2" --plane y:-2 \
+        --objects type=lsystem:preset=kochisland:level=2:size=1.5
+}
+
+test_lsystem4d() {
+    echo "L-Systems 4D:"
+    run_test "lsystem4d tree level 3" --plane y:-2 \
+        --objects type=lsystem:preset=tree:level=3:size=1.5:dim=4:rot-xw=15:rot-yw=10:eye-w=3:screen-w=1.5
+    run_test "lsystem4d tree level 4" --plane y:-2 \
+        --objects type=lsystem:preset=tree:level=4:size=1.5:dim=4:rot-xw=30:rot-yw=20:eye-w=3:screen-w=1.5
+}
+
 
 # ============================================
 # Main
@@ -1350,6 +1373,8 @@ main() {
     test_ibl
     test_denoising
     test_fog
+    test_lsystem
+    test_lsystem4d
 
     print_summary
 

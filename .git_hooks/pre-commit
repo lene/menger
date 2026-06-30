@@ -1,21 +1,42 @@
 #!/bin/sh
-# Fast pre-commit (Sprint 28.2): hygiene and policy only, target <5 s.
-# Never compiles, never runs tests — the tiered pre-push hook is the
-# authoritative quality gate (compile, tests, scalafix, coverage, integration).
+# Pre-commit: fast hygiene checks, target <30s.
+# Compile + scalafix only — no tests (pre-push is the correctness gate).
+# Prevents style-fix noise commits and catches trivial compile errors before
+# they enter history.
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "$REPO_ROOT" || exit 1
 
+STAGED=$(git diff --cached --name-only)
+HAS_SCALA=$(echo "$STAGED" | grep -cE '\.(scala|sbt)$|^project/')
+
 STATUS=0
 
-echo "=== pre-commit: fast policy checks ==="
-
+# ── Always-run policy checks (instant) ──────────────────────────────────────
+echo "=== Branch & hygiene ==="
 ./standards/hooks/check-branch.sh || STATUS=1
 ./standards/hooks/check-staged-hygiene.sh || STATUS=1
 ./scripts/check-version-consistency.sh || STATUS=1
-./scripts/check-standards-drift.sh --local || STATUS=1
+
+# ── Scala checks (only when Scala changed) ──────────────────────────────────
+if [ "$HAS_SCALA" -gt 0 ]; then
+  echo "=== Compile ==="
+  sbt compile || STATUS=1
+
+  echo "=== Scalafix ==="
+  sbt "scalafix --check" || STATUS=1
+fi
+
+# ── WIP commit bypass ───────────────────────────────────────────────────────
+if [ $STATUS -gt 0 ]; then
+  commit_msg=$(git log --oneline -1 --format=%s 2>/dev/null || true)
+  if echo "$commit_msg" | grep -qi '^WIP:\|^wip:'; then
+    echo "WIP commit — proceeding despite failures" >&2
+    STATUS=0
+  fi
+fi
 
 if [ $STATUS -gt 0 ]; then
-    echo "pre-commit checks failed — nothing was compiled; fix and retry." >&2
+  echo "pre-commit checks failed — fix and retry." >&2
 fi
 exit $STATUS

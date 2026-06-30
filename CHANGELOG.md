@@ -1,43 +1,23 @@
 # Changelog
 
-## [0.7.7] - 2026-06-28
+## [0.7.8] - 2026-06-30
 
 ### Added
-- **OptiX validation mode** — `MENGER_OPTIX_VALIDATION=1` enables full API validation
-  at context creation, catching SBT/payload errors at call sites instead of
-  opaque CUDA error 718 at launch. Documented in TROUBLESHOOTING.md.
-- **Shader execution reordering (SER)** — opt-in via `MENGER_OPTIX_SER=1` on Ada
-  Lovelace+ GPUs. `optixReorder()` call in raygen shader with device capability
-  check. Disabled by default pending benchmarking.
-- **GPU stream tunable** — `MENGER_OPTIX_STREAMS` env var for CUDA stream selection.
-- **`--accumulation-frames <int>` CLI option** — configurable temporal accumulation
-  for the `--object` path (was hardcoded to 1).
-- **Arc42 architecture documentation coherence pass** — duplicate AD numbers fixed,
-  caustics C1-C8 marked as "Not implemented," JNI leak risk updated.
-
-### Changed
-- **PerfCheck CI job promoted to blocking** (`allow_failure: false`, threshold 25%).
-- **InteractiveEngine refactored** — `RotationFastPath` extracted, dispatch unified
-  via `GeometryRegistry.builderFor`, ArchUnit class-size rule added (≤25 methods).
+- **L-Systems** — Lindenmayer grammar engine with 3D/4D turtle interpretation
+- DSL `LSystem(axiom, rules, iterations, angle, ...)` type extending SceneObject
+- CLI `type=lsystem:preset=tree:level=5:size=1.5` with preset selection
+- Presets: Tree (ABOP fig 1.24), Bush, Fern3D, HilbertCurve3D, KochIsland
+- 4D turtle with 6-plane rotations — `HilbertCurve4D`, `Tree4D`
+- Per-segment material control: `M(name)` and `T(filename)` in grammar strings
+- Material inheritance through `[ ]` push/pop stack
+- Parameterized `F(len, width, shape)` segment shapes with auto-taper
+- Primitives: `@O(diameter)` spheres, `@c(diameter)` disks, `J(name, scale)` mesh stamps
+- Pruning `%(n)` and width scaling `!(w)` commands
 
 ### Fixed
-- **Curve CLI path broken** — `"curve"` was missing from `ObjectType.VALID_TYPES`,
-  silently rejecting CLI `type=curve` while DSL path worked. Added to VALID_TYPES
-  with `isCurve` predicate.
-- **Native guard for denoise/accumulation API** — `setDenoisingEnabled` and
-  `setAccumulationFrames` now check `isInitialized` before native calls, preventing
-  SIGSEGV when called before init.
-- **Per-frame buffer re-allocation** — 8 GPU geometry-data arrays in IAS render path
-  now only re-allocate on actual size changes, eliminating unconditional per-frame
-  `cudaFree`+`cudaMalloc` churn.
-- **Per-frame denoise/accumulation in animation engines** — `WithAnimation.render()`
-  and `WithPreview.render()` now apply denoise+accumulation from per-frame
-  `SceneConfigs`, fixing silently ignored per-frame settings.
-- **CurveSceneBuilder validation** — now rejects unsupported DSL fields (texture,
-  rotation, proceduralType) with clear error messages instead of silently ignoring.
-
-### Dependencies
-- optix-jni: added sbt-mima-plugin 1.1.4 (binary compatibility enforcement)
+- **uploadTextureFromFile fail-fast** — now throws `TextureUploadException` (consistent with `uploadTexture`)
+- **project4d.cu async error contract** — documented caller-responsibility for `cudaDeviceSynchronize`
+- **AI review cleanup** — `ser_enabled` bool→uint32_t, `last_*_count` reset on dispose, dead `isSerSupported` removed
 
 ## [0.7.6] - 2026-06-26
 
@@ -1137,6 +1117,8 @@
 [0.7.2]: https://gitlab.com/lilacashes/menger/-/compare/v0.7.1...0.7.2
 [0.7.1]: https://gitlab.com/lilacashes/menger/-/compare/v0.7.0...0.7.1
 [0.7.0]: https://gitlab.com/lilacashes/menger/-/compare/v0.6.2...0.7.0
+[0.7.7]: https://gitlab.com/lilacashes/menger/-/compare/0.7.6...0.7.7
+[0.7.8]: https://gitlab.com/lilacashes/menger/-/compare/0.7.7...0.7.8
 [0.6.1]: https://gitlab.com/lilacashes/menger/-/compare/0.6.0...0.6.1
 [0.6.0]: https://gitlab.com/lilacashes/menger/-/compare/0.5.8...0.6.0
 [0.5.8]: https://gitlab.com/lilacashes/menger/-/compare/0.5.7...0.5.8
@@ -1168,7 +1150,6 @@
 [0.2.6]: https://gitlab.com/lilacashes/menger/-/compare/0.2.5...0.2.6
 [0.2.5]: https://gitlab.com/lilacashes/menger/-/compare/0.2.4...0.2.5
 [0.2.4]: https://gitlab.com/lilacashes/menger/-/compare/0.2.3...0.2.4
-[0.7.7]: https://gitlab.com/lilacashes/menger/-/compare/v0.7.6...0.7.7
 [0.2.3]: https://gitlab.com/lilacashes/menger/-/compare/0.2.2...0.2.3
 [0.2.2]: https://gitlab.com/lilacashes/menger/-/compare/0.2.1...0.2.2
 [0.2.1]: https://gitlab.com/lilacashes/menger/-/compare/0.2.0...0.2.1

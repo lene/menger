@@ -8,6 +8,16 @@ case class Vec3(x: Float, y: Float, z: Float):
   def +(other: Vec3): Vec3 = Vec3(x + other.x, y + other.y, z + other.z)
   def -(other: Vec3): Vec3 = Vec3(x - other.x, y - other.y, z - other.z)
   def *(scalar: Float): Vec3 = Vec3(x * scalar, y * scalar, z * scalar)
+  def dot(other: Vec3): Float = x * other.x + y * other.y + z * other.z
+  def cross(other: Vec3): Vec3 = Vec3(
+    y * other.z - z * other.y,
+    z * other.x - x * other.z,
+    x * other.y - y * other.x
+  )
+  def magnitude: Float = math.sqrt(x * x + y * y + z * z).toFloat
+  def normalize: Vec3 =
+    val mag = magnitude
+    if mag > 0f then this * (1f / mag) else Vec3.Zero
   def toGdxVector3: GdxVector3 = GdxVector3(x, y, z)
   def toCommonVector: Vector[3] = Vector[3](x, y, z)
 

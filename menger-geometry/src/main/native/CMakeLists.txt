@@ -7,6 +7,18 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INSTALL_MESSAGE LAZY)
 
+# AddressSanitizer (ASan) — optional, enabled for leak-check builds.
+# Usage: cmake -DENABLE_ASAN=ON ...
+# Works with GCC and Clang. CUDA-side ASan support is compiler-dependent;
+# compute-sanitizer covers GPU-side leak detection.
+option(ENABLE_ASAN "Enable AddressSanitizer for CPU-side leak detection" OFF)
+if(ENABLE_ASAN)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
+  message(STATUS "✓ AddressSanitizer enabled")
+endif()
+
 # ccache compiler launcher — speeds up repeated native rebuilds (sprint 28.2).
 # No-op when ccache is not installed.
 find_program(CCACHE_PROGRAM ccache)

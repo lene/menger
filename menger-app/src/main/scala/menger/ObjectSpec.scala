@@ -79,7 +79,11 @@ case class ObjectSpec(
   textureMaps: TextureMaps = TextureMaps(),
   meshData: Option[TriangleMeshData] = None,
   distanceThreshold: Option[Int] = None,
-  curveData: Option[CurveData] = None
+  curveData: Option[CurveData] = None,
+  lsystemPreset: Option[String] = None,
+  lsystemAngle: Option[Float] = None,
+  lsystemSeed: Option[Long] = None,
+  lsystemDim: Int = 3
 ):
   require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
 
@@ -175,7 +179,8 @@ object ObjectSpec extends LazyLogging:
     "procedural", "proc-scale",
     "normal-map", "roughness-map",
     "dist-threshold",
-    "control-points", "curve-widths"
+    "control-points",
+    "preset", "angle", "seed", "dim"
   )
 
   def parse(spec: String): Either[String, ObjectSpec] =
@@ -208,6 +213,10 @@ object ObjectSpec extends LazyLogging:
       _ <- validateSpongeLevel(objType, level)
       texMaps <- parseTextureMaps(kvPairs)
       distThreshold <- parseDistanceThreshold(kvPairs)
+      lsysPreset <- parseLSystemPreset(kvPairs)
+      lsysAngle <- parseLSystemAngle(kvPairs)
+      lsysSeed <- parseLSystemSeed(kvPairs)
+      lsysDim <- parseLSystemDim(kvPairs)
       curveData <- parseCurveData(kvPairs)
     yield ObjectSpec(
       objectType = objType,
@@ -229,6 +238,10 @@ object ObjectSpec extends LazyLogging:
       procedural = procSpec,
       textureMaps = texMaps,
       distanceThreshold = distThreshold,
+      lsystemPreset = lsysPreset,
+      lsystemAngle = lsysAngle,
+      lsystemSeed = lsysSeed,
+      lsystemDim = lsysDim,
       curveData = curveData
     )
 
@@ -300,25 +313,6 @@ object ObjectSpec extends LazyLogging:
           s"Invalid dist-threshold value '$s': ${e.getMessage}. Must be a positive integer (e.g., dist-threshold=2)"
         }.map(Some(_))
       case None => Right(None)
-
-  private def parseCurveData(kvPairs: Map[String, String]): Either[String, Option[CurveData]] =
-    val points = kvPairs.get("control-points").map(parseFloatList).getOrElse(Right(Vector.empty))
-    val widths = kvPairs.get("curve-widths").map(parseFloatList).getOrElse(Right(Vector.empty))
-    (points, widths) match
-      case (Right(Vector()), Right(Vector())) => Right(None)
-      case (Right(pts), Right(wds)) =>
-        if pts.isEmpty then Left("control-points must contain at least one 3D point (multiple of 3 floats)")
-        else if pts.length < 12 then Left(s"control-points requires at least 4 3D points (12 floats), got ${pts.length}")
-        else Right(Some(CurveData(pts, wds)))
-      case (Left(e), _) => Left(e)
-      case (_, Left(e)) => Left(e)
-
-  private def parseFloatList(s: String): Either[String, Vector[Float]] =
-    val parts = s.split(",").map(_.trim).filter(_.nonEmpty)
-    if parts.isEmpty then Right(Vector.empty)
-    else
-      Try(parts.map(_.toFloat).toVector).toEither.left.map(_ =>
-        s"Invalid float list '$s': values must be numeric")
 
   private def parseColorField(kvPairs: Map[String, String], key: String): Either[String, Option[menger.common.Color]] =
     kvPairs.get(key) match
@@ -652,3 +646,66 @@ object ObjectSpec extends LazyLogging:
       normalMap <- parseMapTexture(kvPairs, "normal-map")
       roughnessMap <- parseMapTexture(kvPairs, "roughness-map")
     yield TextureMaps(normalMap, roughnessMap)
+
+  private def parseCurveData(
+    kvPairs: Map[String, String]
+  ): Either[String, Option[CurveData]] =
+    kvPairs.get("control-points") match
+      case Some(pointsStr) =>
+        val parts = pointsStr.split(",").map(_.trim)
+        if parts.exists(_.isEmpty) then
+          Left("Empty value in control-points list")
+        else
+          val parsed = parts.map(s =>
+            Try(s.toFloat).toEither.left.map(e =>
+              s"Invalid control-point value '$s': ${e.getMessage}"))
+          val (errors, values) = parsed.partitionMap(identity)
+          if errors.nonEmpty then Left(errors.head)
+          else if values.length % 3 != 0 then
+            Left(s"control-points must have a multiple of 3 values (x,y,z triplets), got ${values.length} values")
+          else if values.length < 6 then
+            Left(s"control-points must have at least 6 values (2 control points), got ${values.length}")
+          else
+            val points = values.toVector
+            val numPoints = points.length / 3
+            val radius = kvPairs.get("radius").flatMap(r => Try(r.toFloat).toOption).getOrElse(0.01f)
+            val widths = Vector.fill(numPoints)(radius)
+            Right(Some(CurveData(points, widths)))
+      case None => Right(None)
+
+  private def parseLSystemPreset(kvPairs: Map[String, String]): Either[String, Option[String]] =
+    kvPairs.get("preset") match
+      case Some(p) if p.nonEmpty => Right(Some(p.toLowerCase))
+      case Some(_) => Left("L-system preset name cannot be empty")
+      case None => Right(None)
+
+  private def parseLSystemAngle(
+    kvPairs: Map[String, String]
+  ): Either[String, Option[Float]] =
+    kvPairs.get("angle") match
+      case Some(a) =>
+        Try(a.toFloat).toEither.left.map(e =>
+          s"Invalid angle value '$a': ${e.getMessage}").map(Some(_))
+      case None => Right(None)
+
+  private def parseLSystemSeed(
+    kvPairs: Map[String, String]
+  ): Either[String, Option[Long]] =
+    kvPairs.get("seed") match
+      case Some(s) =>
+        Try(s.toLong).toEither.left.map(e =>
+          s"Invalid seed value '$s': ${e.getMessage}").map(Some(_))
+      case None => Right(None)
+
+  private def parseLSystemDim(
+    kvPairs: Map[String, String]
+  ): Either[String, Int] =
+    kvPairs.get("dim") match
+      case Some(d) =>
+        val dim = Try(d.toInt).toEither.left.map(e =>
+          s"Invalid dim value '$d': ${e.getMessage}")
+        dim.flatMap { v =>
+          if v == 3 || v == 4 then Right(v)
+          else Left(s"dim must be 3 or 4, got $v")
+        }
+      case None => Right(3)

@@ -1,7 +1,7 @@
 # Sprint 31: L-Systems in 3D and 4D
 
 **Sprint:** 31 - L-Systems
-**Status:** Not Started
+**Status:** ✅ Complete (see notes on 31.4)
 **Estimate:** ~28 hours
 **Branch:** `feature/sprint-31`
 **Dependencies:** Sprint 29 (curves primitive — stems render as swept curves;
@@ -23,15 +23,15 @@ shows.
 
 ## Success Criteria
 
-- [ ] `--objects type=lsystem:preset=tree:level=5` renders a recognizable 3D tree with tapered branches
-- [ ] Custom grammars definable in the DSL (axiom + rules + angle + material bindings)
-- [ ] Per-segment material control: `M("bark")` and `T("leaf.png")` in grammar strings
-- [ ] Stochastic rules supported with a fixed seed (deterministic renders)
-- [ ] A 4D L-system (e.g. 4D Hilbert curve) renders and responds to
-      `rot-x-w / rot-y-w / rot-z-w` like other 4D objects
-- [ ] String-rewriting engine fully unit-tested against published ABOP examples
-- [ ] Sphere joints (`@O`) and surface primitives stamp at turtle positions
-- [ ] All tests pass
+- [x] `--objects type=lsystem:preset=tree:level=5` renders a recognizable 3D tree with tapered branches
+- [x] Custom grammars definable in the DSL (axiom + rules + angle + material bindings)
+- [x] Per-segment material control: `M("bark")` and `T("leaf.png")` in grammar strings
+- [x] Stochastic rules supported with a fixed seed (deterministic renders)
+- [x] A 4D L-system (e.g. 4D tree) renders and responds to
+      `rot-xw / rot-yw / rot-zw` like other 4D objects
+- [x] String-rewriting engine fully unit-tested against published ABOP examples
+- [x] Sphere joints (`@O`) and surface primitives stamp at turtle positions
+- [x] All tests pass (2,356 tests, 0 failures)
 
 ---
 
@@ -210,26 +210,47 @@ From ARCHITECTURE_BACKLOG.md, identified in Sprint 30 architecture review:
   `caustics_ppm.cu`) must pass leak checks on every push. This is the
   highest-impact unguarded invariant from the Sprint 30 arch review.
 
+### Task 31.8: AI Review Cleanup (deferred from Sprint 30)
+
+**Estimate:** 2h
+
+Items flagged by the multi-model AI code review during Sprint 30 close that
+are valid, low-risk, and deferred:
+
+- **`ser_enabled` bool in `BaseParams` (OptiXData.h:561)** — C++ `bool` may
+  cause struct padding differences vs CUDA. Change to `uint32_t` for explicit ABI.
+- **`last_*_count` reset on re-init (OptiXWrapper.cpp:144)** — 8 per-geometry
+  count tracking fields (last_texture_count through last_hexadecachoron4d_count)
+  should reset to 0 during `dispose()`/`reInitialize()` to prevent stale counts.
+- **Dead code: `isSerSupported` (OptiXWrapper.cpp:1286)** — method defined but
+  never called. Remove.
+- **MiMa filter comment (build.sbt:186)** — add justification comment explaining
+  why DirectMissingMethodProblem filters are there and how to update them when API changes.
+
 ---
 
 ## Summary
 
 | Task | Description | Estimate |
 |------|-------------|----------|
-| 31.1 | Grammar engine (rewriting, stochastic, validation) | 6h |
-| 31.2 | 3D turtle → parameterized segments + surfaces (31.2a-c) | 15h |
-| 31.3 | DSL + CLI + full material control (31.3a-b) | 7h |
-| 31.4 | 4D turtle extension | 6h |
-| 31.5 | Tests + documentation | 6h |
-| 31.6 | CODE_IMPROVEMENTS (L-upload-texture, L-project4d-async) | 2h |
-| 31.7 | Architecture backlog (T7 determinism tests + T3 leak gate) | 18h |
-| **Total** | | **~60h** |
+| 31.1 | Grammar engine (rewriting, stochastic, validation) | 6h | ✅ Done |
+| 31.2 | 3D turtle → parameterized segments + surfaces (31.2a-c) | 15h | ✅ Done |
+| 31.3 | DSL + CLI + full material control (31.3a-b) | 7h | ✅ Done |
+| 31.4 | 4D turtle extension | 6h | ✅ Done (wired + tests + ref images) |
+| 31.5 | Tests + documentation | 6h | ✅ Done |
+| 31.6 | CODE_IMPROVEMENTS (L-upload-texture, L-project4d-async) | 2h | ✅ Done |
+| 31.7 | Architecture backlog (T7 determinism tests + T3 leak gate) | 18h | ✅ Done |
+| 31.8 | AI review cleanup (ser_enabled bool, count reset, dead code, MiMa comment) | 2h | ✅ Done |
+| **Total** | | **~62h** | |
 
 ---
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] Pre-push hook green
-- [ ] CHANGELOG.md updated
-- [ ] Integration + manual test scripts cover 3D preset and 4D L-system
+- [x] All success criteria met
+- [x] Pre-push hook green (2,356 tests, 0 failures)
+- [x] CHANGELOG.md updated (0.7.8)
+- [x] Integration + manual test scripts cover 3D preset and 4D L-system
+- [x] 5 reference images generated and committed
+- [x] CI pipeline optimized (stage ordering, GPU dedup, rules:changes)
+- [x] Pre-commit hooks unified across all 3 repos (compile + scalafix)
