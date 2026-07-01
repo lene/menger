@@ -317,7 +317,7 @@ run_test "Tetrahedron" "-o --objects type=tetrahedron:size=0.8 --plane y:-2 -s $
 run_test "Octahedron" "-o --objects type=octahedron:size=0.8 --plane y:-2 -s $OUTPUT_DIR/128-octahedron.png"
 run_test "Icosahedron" "-o --objects type=icosahedron:size=0.8 --plane y:-2 -s $OUTPUT_DIR/129-icosahedron.png"
 run_test "Dodecahedron" "-o --objects type=dodecahedron:size=0.8 --plane y:-2 -s $OUTPUT_DIR/130-dodecahedron.png"
-run_test "Parametric" "-o --objects type=parametric:size=0.8 --plane y:-2 -s $OUTPUT_DIR/130a-parametric.png"
+run_test "Parametric" "-o --scene examples.dsl.ParametricSphere --plane y:-2 -s $OUTPUT_DIR/130a-parametric.png"
 run_test "Tetrahedron glass" "-o --objects type=tetrahedron:size=0.8:material=glass --plane y:-2 -s $OUTPUT_DIR/131-tetrahedron-glass.png"
 run_test "Octahedron chrome" "-o --objects type=octahedron:size=0.8:material=chrome --plane y:-2 -s $OUTPUT_DIR/132-octahedron-chrome.png"
 run_test "Icosahedron colored" "-o --objects type=icosahedron:size=0.8:color=#FF8844 --plane y:-2 -s $OUTPUT_DIR/133-icosahedron-colored.png"
