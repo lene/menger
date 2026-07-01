@@ -34,13 +34,16 @@ class ScriptParitySuite extends AnyFlatSpec with Matchers:
   private val manualTypes: Set[String] = extractTypes("manual-test.sh")
   private val coveredTypes: Set[String] = integrationTypes ++ manualTypes
 
+  // Types that are DSL-only and cannot appear as type=<type> in CLI test scripts
+  private val dslOnlyTypes: Set[String] = Set("parametric")
+
   "Script-parity fitness function" should "cover all manual-test types in integration-tests" in:
-    val missingInIntegration = manualTypes -- integrationTypes
+    val missingInIntegration = (manualTypes -- integrationTypes) -- dslOnlyTypes
     withClue(s"Types in manual-test.sh but not integration-tests.sh: ${missingInIntegration.mkString(", ")}"):
       missingInIntegration shouldBe empty
 
   it should "have every VALID_TYPES entry in at least one script" in:
-    val uncovered = ObjectType.VALID_TYPES.diff(coveredTypes)
+    val uncovered = ObjectType.VALID_TYPES.diff(coveredTypes).diff(dslOnlyTypes)
     withClue(s"VALID_TYPES not covered by any test script: ${uncovered.mkString(", ")}"):
       uncovered shouldBe empty
 
