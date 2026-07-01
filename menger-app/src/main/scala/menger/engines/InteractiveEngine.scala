@@ -564,8 +564,7 @@ class InteractiveEngine(
           f"Frame: ${stats.frameMs}%.1f ms (${stats.msPerMray}%.2f ms/Mray) | " +
           s"primary=${stats.primaryRays} total=${stats.totalRays} " +
           s"reflected=${stats.reflectedRays} refracted=${stats.refractedRays} " +
-          // spectral requires optix-jni >= 0.1.7
-          s"shadow=${stats.shadowRays} aa=${stats.aaRays} " +
+          s"shadow=${stats.shadowRays} aa=${stats.aaRays} spectral=${stats.spectralRays} " +
           s"depth=${stats.minDepthReached}-${stats.maxDepthReached}"
         )
         result.image
