@@ -1185,3 +1185,29 @@
 [0.2.1]: https://gitlab.com/lilacashes/menger/-/compare/0.2.0...0.2.1
 [0.2.0]: https://gitlab.com/lilacashes/menger/-/compare/0.1.0...0.2.0
 [0.1.0]: https://gitlab.com/lilacashes/menger/-/commit/f90eee11
+
+## [0.8.0] - 2026-07-01
+
+### Added
+- **Spectral dispersion** — wavelength-dependent refraction via Cauchy IOR model
+- Hero-wavelength per-pixel sampling (λ ∈ [380, 730] nm) stratified per accumulation frame
+- CIE XYZ→sRGB spectral color conversion (Wyman et al. 2013 analytic fit)
+- `glass-dispersive` (V_d=59) and `diamond-dispersive` (V_d=33) material presets
+- PrismDispersion and DiamondFire DSL demo scenes (visible rainbow/color fringing)
+- `spectralRays` counter in `--stats` output and JSON export
+- `dispersion=<Abbe number>` CLI parameter and DSL Material field (default 0 = off)
+
+### Changed
+- Bumped optix-jni 0.1.7→0.1.10 (Cauchy params, spectral tint, frame-index stratification)
+- Bumped menger-common 0.1.1→0.1.4 (Cauchy coefficients, dispersive presets)
+- `Material.cauchyCoefficients(ior, dispersion)` computes valid Cauchy A, B for any Abbe number
+- `ObjectSpec` now carries `dispersion: Float = 0.0f` for CLI/DSL → native pipeline
+- 4D hit shaders updated: `getInstanceMaterialPBR` and `traceRefractedRay` accept cauchy_a/b
+
+### Fixed
+- `heroWavelengthToRGB` was dead code — spectral tint never applied (optix-jni 0.1.8)
+- `addPlaneInstanceNative` JNI param shift corrupted checkerboard planes (optix-jni 0.1.9)
+- Parametric sphere integration test: replaced broken CLI `type=parametric` with working DSL scene
+- ScriptParitySuite: excluded DSL-only `parametric` type from CLI parity assertions
+- `spectralRays` missing from JSON stats export (code review finding #1)
+
