@@ -1320,6 +1320,22 @@ test_lsystem4d() {
         --objects type=lsystem:preset=tree:level=4:size=1.5:dim=4:rot-xw=30:rot-yw=20:eye-w=3:screen-w=1.5
 }
 
+test_spectral_dispersion() {
+    echo "Spectral Dispersion:"
+    # Glass-dispersive sphere
+    run_test "prism-dispersion" --allow-uniform-render --plane y:-2 \
+        --objects type=sphere:pos=0,0.5,0:size=0.3:material=glass-dispersive:ior=1.5 \
+        --accumulation-frames 16 --light directional:1,0,0.2:3
+    # Diamond-dispersive sphere
+    run_test "diamond-fire" --allow-uniform-render --plane y:-2 \
+        --objects type=sphere:pos=0,0.5,0:size=0.3:material=diamond-dispersive:ior=2.42 \
+        --accumulation-frames 16 --light directional:1,0,0.2:3
+    # Dispersion=0 reference
+    run_test "diamond-no-dispersion" --allow-uniform-render --plane y:-2 \
+        --objects type=sphere:pos=0,0.5,0:size=0.3:material=diamond:ior=2.42 \
+        --accumulation-frames 16 --light directional:1,0,0.2:3
+}
+
 
 # ============================================
 # Main
@@ -1362,6 +1378,7 @@ main() {
     test_cone_plane_textures
     test_cross
     test_4d_polytopes
+    test_spectral_dispersion
     test_dsl_scenes
     test_t_animation
     test_file_output
