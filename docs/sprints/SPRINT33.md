@@ -1,8 +1,8 @@
 # Sprint 33: Production-Quality Caustics
 
 **Sprint:** 33 - Production-Quality Caustics
-**Status:** Not Started
-**Estimate:** ~44 hours
+**Status:** 📋 Planned — scope confirmed 2026-07-01
+**Estimate:** ~52 hours
 **Branch:** `feature/sprint-33`
 **Dependencies:** Sprint 32 (spectral machinery enables dispersive caustics, task 33.5).
 The PPM tuning investigation (docs/caustics/, CausticsRenderer.cpp) is the input state.
@@ -149,6 +149,57 @@ Derive parameters from the scene instead of requiring hand-tuning:
 
 ---
 
+### Task 33.7: Fix RenderDeterminismSuite (GPU)
+
+**Estimate:** 2h
+**Finding:** Sprint 32 architecture review (MEDIUM)
+
+`RenderDeterminismSuite` GPU render-determinism test is `pending` — never executes.
+arc42 §10 reproducibility claims are not backed by an active fitness function.
+
+**Implementation:**
+- Implement byte-identical render comparison: render same scene twice with
+  fixed seed, assert PNG byte equality
+- Use `--seed 42 --allow-uniform-render` for deterministic output
+
+---
+
+### Task 33.8: Expand PerfCheck Baseline Coverage
+
+**Estimate:** 2h
+**Finding:** Sprint 32 architecture review (MEDIUM)
+
+`perf-baseline.json` has 4 entries but only 2 real measurements (sphere, sponge-volume-L4).
+Two are 5000ms hardcoded sentinels. PerfCheck CI is wired but can't catch regressions.
+
+**Implementation:**
+- Run benchmark.sh on 8+ representative scenes (glass sphere, diamond, menger4d L2,
+  sierpinski4d L2, tesseract, curves, lsystem tree, IBL sphere)
+- Replace sentinels with real measurements
+- Document P1 (<5s) and P2 (<500ms) budgets per the sprint design
+
+---
+
+### Task 33.9: ObjectSpec Dispersion Cleanup
+
+**Estimate:** 0.5h
+**Finding:** Sprint 32 code review (LOW)
+
+- Fix error message: "must be a positive number" → "must be non-negative"
+- Add `dispersion` to `parse()` method docstring
+
+---
+
+### Task 33.10: LSystemTurtle4D Minimum-Points Guard
+
+**Estimate:** 0.5h
+**Finding:** Sprint 31 CODE_IMPROVEMENTS (LOW)
+
+Mirror the 3D turtle's `points.length >= 2` check in 4D turtle's `emitRun`.
+Without it, single-point runs produce degenerate curves (all points identical).
+
+---
+
 ## Task Dependency Graph
 
 ```
@@ -171,8 +222,12 @@ Sprint 32 (dispersion) ──► 33.5 (dispersive caustics) ──────�
 | 33.3 | Auto-tuning heuristics | 5h |
 | 33.4 | CLI/DSL surface finalization | 4h |
 | 33.5 | Dispersive caustics | 5h |
-| 33.6 | Reference ladder → integration suite + docs | 4h |
-| **Total** | | **~44h** |
+|| 33.6 | Reference ladder → integration suite + docs | 4h |
+|| 33.7 | Fix RenderDeterminismSuite GPU test (currently `pending`) | 2h |
+|| 33.8 | Expand perf-baseline.json (only 2 real baselines) | 2h |
+|| 33.9 | ObjectSpec dispersion doc + error message cleanup | 0.5h |
+|| 33.10 | LSystemTurtle4D minimum-points guard | 0.5h |
+|| **Total** | | **~52h** |
 
 ---
 
