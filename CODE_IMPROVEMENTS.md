@@ -121,3 +121,51 @@ Resolved items are removed from this file entirely — git history is the record
 | ID | Issue | Location | Effort |
 |----|-------|----------|--------|
 | L-turtle4d-emitrun | LSystemTurtle4D.emitRun has no minimum-points guard (3D turtle has ≥2). Add check and unit test. | `LSystemTurtle4D.scala:211` | 15min |
+
+---
+
+# Code Quality Review — Sprint 32 (2026-07-01)
+
+Spectral dispersion + architecture hardening. 18 files changed, ~30 commits across 3 repos.
+Published menger-common 0.1.4, optix-jni 0.1.9.
+
+## Resolved in Sprint 32
+
+| ID | Issue | Resolution |
+|----|-------|-----------|
+| Arch-T1 | Triplicated object-type dispatch | ✅ GeometryRegistry.unified (unified table replaces 3 if/else chains) |
+| Arch-T2 | No performance governance | ✅ PerfCheck CI + benchmark.sh + perf-baseline.json |
+| Arch-T5 | Missing native-binding ArchUnit | ✅ MengerRenderer native-method guard in ArchitecturePhase2Spec |
+| Arch-T7 | No JNI fault-injection coverage | ✅ SceneBuilderFaultInjectionSuite + FaultInjectionSuite |
+| Arch-T9 | Script-parity gaps | ✅ ScriptParitySuite (all VALID_TYPES covered) |
+| Arch-T10 | No fast-path regression guard | ✅ RotationFastPath + FastPathRegressionSuite |
+| Arch-A4 | String-based sub-builder dispatch | ✅ SubBuilderType sealed enum |
+| Arch-A5 | 4D presets not in LSystemPresets | ✅ hilbert4d preset in LSystemPresets |
+| Arch-T11 | Missing OptiX ADR | ✅ AD-31: OptiX as sole rendering backend |
+
+## New findings from Sprint 32
+
+### 1. heroWavelengthToRGB was dead code (spectral tint not applied)
+
+**Where**: `optix-jni/src/main/native/shaders/helpers.cu:524`
+**Impact**: Medium — Cauchy IOR computation worked correctly (angles changed), spectralRays counter
+incremented, but refracted color was never tinted by wavelength → no visible rainbow effect.
+**Fix**: Applied in 0.1.8/0.1.9 — tint after optixTrace returns in traceRefractedRay.
+**Lesson**: Device functions must have verified call sites, not just definitions.
+Detection: `grep -rn 'FunctionName' src/ | grep -v '__device__'` — single hit = dead code.
+
+### 2. addPlaneInstanceNative JNI parameter shift (checkerboard regression)
+
+**Where**: `optix-jni`: Scala @native, Scala wrapper, JNI C++ binding
+**Impact**: High — cauchy_a/b parameters were added to all add*Instance methods except
+addPlaneInstanceNative. Parameters shifted silently (r2→cauchy_a, g2→cauchy_b, etc.),
+corrupting checkerboard plane rendering. No crash, just wrong output.
+**Fix**: Applied in 0.1.9 — 3-layer fix (Scala @native, wrapper, JNI) + stale Ivy cache clear.
+**Lesson**: Bulk parameter additions across ~10 functions need grep-to-verify on every
+function signature after the change. Stale Ivy cache silently masks the fix.
+
+### 3. failure-handling skill had no enforcement (3 dismissals in one sprint)
+
+**Impact**: Medium — violations: compute-sanitizer dismissed, pre-existing test failures ignored
+twice. Skill existed but was loaded without being followed. Simplified: "if it fails, fix it"
+— no pre-existing exemptions.
