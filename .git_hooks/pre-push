@@ -527,6 +527,7 @@ if [ "${HAS_NATIVE:-0}" -gt 0 ]; then
     NATIVE_LIB="menger-geometry/target/native/x86_64-linux/bin/libmengergeometry.so"
     if [ -f "$NATIVE_LIB" ]; then
       __GL_THREADED_OPTIMIZATIONS=0 compute-sanitizer \
+        --require-cuda-init no \
         --leak-check full \
         --error-exitcode 1 \
         xvfb-run -a sbt "mengerGeometry / test" --warn > /tmp/cs-prepush.log 2>&1
