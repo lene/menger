@@ -24,4 +24,4 @@ object MaterialExtractor:
   def extract(spec: ObjectSpec): Material =
     spec.material match
       case Some(mat) => mat
-      case None => Material(spec.color.getOrElse(defaultColor), spec.ior)
+      case None => Material(spec.color.getOrElse(defaultColor), spec.ior, dispersion = spec.dispersion)

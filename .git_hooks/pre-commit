@@ -7,6 +7,18 @@
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "$REPO_ROOT" || exit 1
 
+# ── Guard: never commit directly to main ──────────────────────────
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" = "main" ]; then
+  echo "ERROR: Committing directly to 'main' is forbidden."
+  echo "Use a feature branch and create an MR instead:"
+  echo "  git checkout -b feature/my-change"
+  echo "  # ... make changes, commit ..."
+  echo "  git push origin feature/my-change"
+  echo "  # Create MR on GitLab"
+  exit 1
+fi
+
 STAGED=$(git diff --cached --name-only)
 HAS_SCALA=$(echo "$STAGED" | grep -cE '\.(scala|sbt)$|^project/')
 

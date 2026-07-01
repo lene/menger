@@ -21,25 +21,24 @@ object GeometryRegistry:
     specs: List[ObjectSpec],
     textureDir: String = "."
   )(using pc: ProfilingConfig): Option[SceneBuilder] =
-    if specs.isEmpty then return None
-
-    val types = specs.map(s => ObjectType.normalize(s.objectType)).toSet
-
-    // Special case: 4D projected triangle meshes with edge rendering
-    val all4DProjected = types.forall(ObjectType.isProjected4D)
-    val hasEdge = specs.exists(_.hasEdgeRendering)
-    if types.forall(ObjectType.isTriangleMesh) && all4DProjected && hasEdge then
-      return Some(menger.engines.scene.TesseractEdgeSceneBuilder(textureDir)(using pc))
-
-    // If all specs share the SAME type, delegate to TypeRegistry
-    if types.size == 1 then
-      val typeName = types.head
-      TypeRegistry.forType(typeName).map { entry =>
-        entry.builderFactory(textureDir, pc)
-      }
+    if specs.isEmpty then
+      None
     else
+      val types = specs.map(s => ObjectType.normalize(s.objectType)).toSet
+
+      // Special case: 4D projected triangle meshes with edge rendering
+      val all4DProjected = types.forall(ObjectType.isProjected4D)
+      val hasEdge = specs.exists(_.hasEdgeRendering)
+      if types.forall(ObjectType.isTriangleMesh) && all4DProjected && hasEdge then
+        Some(menger.engines.scene.TesseractEdgeSceneBuilder(textureDir)(using pc))
+      // If all specs share the SAME type, delegate to TypeRegistry
+      else if types.size == 1 then
+        val typeName = types.head
+        TypeRegistry.forType(typeName).map { entry =>
+          entry.builderFactory(textureDir, pc)
+        }
       // Mixed types — all must be triangle meshes
-      if types.forall(ObjectType.isTriangleMesh) then
+      else if types.forall(ObjectType.isTriangleMesh) then
         Some(menger.engines.scene.TriangleMeshSceneBuilder(textureDir)(using pc))
       else
         None

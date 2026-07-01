@@ -83,7 +83,8 @@ case class ObjectSpec(
   lsystemPreset: Option[String] = None,
   lsystemAngle: Option[Float] = None,
   lsystemSeed: Option[Long] = None,
-  lsystemDim: Int = 3
+  lsystemDim: Int = 3,
+  dispersion: Float = 0.0f
 ):
   require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
 
@@ -242,7 +243,8 @@ object ObjectSpec extends LazyLogging:
       lsystemAngle = lsysAngle,
       lsystemSeed = lsysSeed,
       lsystemDim = lsysDim,
-      curveData = curveData
+      curveData = curveData,
+      dispersion = dispersion
     )
 
     result match

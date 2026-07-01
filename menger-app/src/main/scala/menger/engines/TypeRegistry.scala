@@ -3,7 +3,7 @@ package menger.engines
 import menger.ObjectSpec
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
-import menger.engines.scene.*
+import menger.engines.scene._
 
 /** Single source of truth for object-type → builder/classification mapping.
   *

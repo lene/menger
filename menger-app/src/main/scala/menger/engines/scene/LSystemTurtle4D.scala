@@ -3,13 +3,13 @@ package menger.engines.scene
 import scala.annotation.tailrec
 
 import menger.CurveData
-import menger.objects.LSystemPresets
 import menger.ObjectSpec
 import menger.common.Color
 import menger.common.Material
 import menger.common.Vector
 import menger.dsl.Vec3
 import menger.objects.LSystemGrammar
+import menger.objects.LSystemPresets
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
 
