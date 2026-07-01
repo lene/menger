@@ -1,8 +1,8 @@
 # Sprint 32: Spectral Dispersion + Architecture Hardening
 
 **Sprint:** 32 — Spectral Dispersion
-**Status:** 📋 Planned
-**Estimate:** ~76 hours
+**Status:** ✅ Complete
+**Estimate:** ~76h
 **Branch:** `feature/sprint-32`
 **Dependencies:** None hard. Denoiser (Sprint 29) already available.
 **Feature ID:** F4 in [FEATURE_DEPENDENCIES.md](FEATURE_DEPENDENCIES.md), plus architecture
@@ -25,23 +25,23 @@ Every architecture task converts a convention-maintained invariant into a fitnes
 ## Success Criteria
 
 ### Spectral Dispersion
-- [ ] A glass prism in white directional light shows a rainbow spread in refracted output
-- [ ] `material=diamond` with dispersion enabled shows colored fire absent in current renders
-- [ ] `dispersion = 0` (default) renders bit-identical to current output — all existing
+- [x] A glass prism in white directional light shows a rainbow spread in refracted output
+- [x] `material=diamond` with dispersion enabled shows colored fire absent in current renders
+- [x] `dispersion = 0` (default) renders bit-identical to current output — all existing
       reference images unchanged
-- [ ] Spectral noise converges under existing `accumulation`; documented sample recommendations
+- [x] Spectral noise converges under existing `accumulation`; documented sample recommendations
 
 ### Architecture Hardening
-- [ ] sbt 2.0.1 builds and tests pass across all three repos
-- [ ] Object-type dispatch uses a single registry table (no more triplicated if/else chains)
-- [ ] PerfCheck CI job asserts P1/P2 performance budgets against committed baselines
-- [ ] Script-parity test catches `type=<...>` drift between integration and manual test scripts
-- [ ] ArchUnit native-binding rule uses module-path scoping; `menger.geometry` renamed
-- [ ] Render-determinism test and JNI fault-injection tests pass in CI
-- [ ] Fast-path regression guard for 4D animations
-- [ ] OptiX-as-sole-backend documented as an architectural decision (ADR)
-- [ ] 4D presets unified in LSystemPresets; sub-builder dispatch uses sealed trait
-- [ ] All tests pass
+- [x] sbt 2.0.1 builds and tests pass across all three repos
+- [x] Object-type dispatch uses a single registry table (no more triplicated if/else chains)
+- [x] PerfCheck CI job asserts P1/P2 performance budgets against committed baselines
+- [x] Script-parity test catches `type=<...>` drift between integration and manual test scripts
+- [x] ArchUnit native-binding rule uses module-path scoping; `menger.geometry` renamed
+- [x] Render-determinism test and JNI fault-injection tests pass in CI
+- [x] Fast-path regression guard for 4D animations
+- [x] OptiX-as-sole-backend documented as an architectural decision (ADR)
+- [x] 4D presets unified in LSystemPresets; sub-builder dispatch uses sealed trait
+- [x] All tests pass
 
 ---
 
@@ -341,9 +341,9 @@ unified table and one new builder class.
 
 ## Definition of Done
 
-- [ ] All success criteria met (dispersion + architecture)
-- [ ] Pre-push hook green — including unchanged references for dispersion=0
-- [ ] CHANGELOG.md updated
-- [ ] Architecture backlog items T1, T2, T5, T7, T9, T10, T11, A4, A5 marked done
-- [ ] ARCHITECTURE_REVIEW.md updated with closure notes
-- [ ] Integration + manual test scripts cover dispersion + 4D Hilbert scenes
+- [x] All success criteria met (dispersion + architecture)
+- [x] Pre-push hook green — including unchanged references for dispersion=0
+- [x] CHANGELOG.md updated
+- [x] Architecture backlog items T1, T2, T5, T7, T9, T10, T11, A4, A5 marked done
+- [x] ARCHITECTURE_REVIEW.md updated with closure notes
+- [x] Integration + manual test scripts cover dispersion + 4D Hilbert scenes
