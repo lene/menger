@@ -581,6 +581,7 @@ class InteractiveEngine(
         val refractedRays = result.stats.refractedRays
         val shadowRays    = result.stats.shadowRays
         val aaRays        = result.stats.aaRays
+        val spectralRays  = result.stats.spectralRays
         val msPerMray     = result.stats.msPerMray
         val json =
           s"""|{
@@ -591,6 +592,7 @@ class InteractiveEngine(
               |  "refractedRays": $refractedRays,
               |  "shadowRays": $shadowRays,
               |  "aaRays": $aaRays,
+              |  "spectralRays": $spectralRays,
               |  "msPerMray": $msPerMray
               |}""".stripMargin
         Try {
