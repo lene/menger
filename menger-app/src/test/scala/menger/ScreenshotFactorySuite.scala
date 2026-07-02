@@ -31,6 +31,9 @@ class ScreenshotFactorySuite extends AnyFlatSpec with Matchers:
   it should "preserve existing png extension" in:
     ScreenshotFactory.sanitizePath("output/test.png") should be("output/test.png")
 
+  it should "preserve pfm extension for linear float output" in:
+    ScreenshotFactory.sanitizePath("output/test.pfm") should be("output/test.pfm")
+
   it should "remove dangerous characters but keep path separators" in:
     ScreenshotFactory.sanitizePath("output/test<script>.png") should be("output/testscript.png")
 

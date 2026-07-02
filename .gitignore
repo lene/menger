@@ -19,6 +19,7 @@ local.sbt
 *.png
 !scripts/test-assets/*.png
 !scripts/reference-images/*.png
+!scripts/reference-images/**/*.png
 *.ppm
 
 # test output directories

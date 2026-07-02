@@ -1,0 +1,21 @@
+# Per-scene caustics-validation thresholds (Sprint 33).
+#
+# Format:  <scene>  <resolution>  <max_MSE>  <max_FLIP>
+#   scene       basename of the .pbrt twin (without extension)
+#   resolution  WxH the menger + reference images were produced at
+#   max_MSE     imgtool diff --metric MSE upper bound (clipped-linear PFM pair)
+#   max_FLIP    imgtool diff --metric FLIP upper bound (mean perceptual error)
+#
+# Metric choice: FLIP (Andersson et al. 2020, NVIDIA) is a perceptual metric
+# purpose-built for comparing rendered images and is provided by pbrt's imgtool.
+# It replaces the originally-planned SSIM: the installed ImageMagick 6 has no SSIM
+# metric (added in IM7), and FLIP is a strictly better fit for renderer validation.
+#
+# Thresholds are PLACEHOLDERS until Task 33.8 locks them from converged results
+# once the physics is correct. They are intentionally loose here so 33.1's harness
+# is exercisable; do not treat current values as a passing bar.
+
+# scene              resolution  max_MSE  max_FLIP
+canonical-caustics   800x600     0.050    0.30
+canonical-caustics   400x300     0.050    0.30
+two-spheres          400x300     0.050    0.30

@@ -35,9 +35,9 @@ Unscheduled feature ideas: [docs/BACKLOG.md](docs/BACKLOG.md).
 | v0.7.6 | OptiX API Coverage I | ✅ Complete | AI denoiser, curves primitive, optix-jni release (Sprint 29) |
 | TBD | OptiX API Coverage II | ✅ Complete | Architecture hardening — arch review, arc42 audit, API audit, validation mode, SER, 1.0 prep (Sprint 30) |
 | TBD | L-Systems | 🔄 In Progress | 3D/4D Lindenmayer systems, turtle geometry, presets (Sprint 31) |
-| TBD | Spectral Dispersion | Planned | Wavelength-dependent IOR, hero-wavelength sampling, diamond fire (Sprint 32) |
-| TBD | PBR Texture Sets | Planned | Shared texture sets (ambientCG/Poly Haven), metallic/AO maps (Sprint 33) |
-| TBD | Production Caustics | Planned | PPM defaults, auto-tuning, dispersive caustics (Sprint 34) |
+| TBD | Spectral Dispersion | ✅ Complete | Wavelength-dependent IOR, hero-wavelength sampling, diamond fire (Sprint 32) |
+| TBD | Production Caustics | 🔄 In Progress | Physically-correct PPM (pbrt-validated), arbitrary geometry, dispersive + reflective caustics (Sprint 33) |
+| TBD | PBR Texture Sets | Planned | Shared texture sets (ambientCG/Poly Haven), metallic/AO maps (Sprint 34) |
 | TBD | Visual Quality | Pushed back 2026-06-10 | Depth of field, wireframe rendering (Sprint 35) |
 | TBD | Data Visualization I | Pushed back 2026-06-10 | Colormaps, scalar fields, isosurfaces, volume rendering (Sprint 36) |
 | TBD | 4D Geometry II | Pushed back 2026-06-10 | 4D parametric surfaces, spherical harmonics (Sprint 37) |
@@ -165,19 +165,21 @@ See [docs/sprints/SPRINT32.md](docs/sprints/SPRINT32.md)
 
 ---
 
-### Sprint 33: PBR Texture Sets (~24h)
+### Sprint 33: Production-Quality Caustics (~77h)
 
-**Goal:** Load shared/downloadable PBR texture sets (ambientCG, Poly Haven) by folder
-convention; metallic/AO/height map slots; set metadata (IOR, UV scale)
+**Goal:** Physically-correct progressive photon mapping, validated against pbrt-v4
+(layered validation pyramid: analytic → statistical → converged-reference). Fix the
+structural physics defects (emission pdf, Fresnel/reflection, linear compositing, density
+estimate), generalize to arbitrary geometry, add dispersive + reflective caustics.
 
 See [docs/sprints/SPRINT33.md](docs/sprints/SPRINT33.md)
 
 ---
 
-### Sprint 34: Production-Quality Caustics (~24h)
+### Sprint 34: PBR Texture Sets (~24h)
 
-**Goal:** Conclude PPM tuning, auto-tuned defaults, finalized CLI/DSL surface,
-dispersive caustics, reference ladder gated in the integration suite
+**Goal:** Load shared/downloadable PBR texture sets (ambientCG, Poly Haven) by folder
+convention; metallic/AO/height map slots; set metadata (IOR, UV scale)
 
 See [docs/sprints/SPRINT34.md](docs/sprints/SPRINT34.md)
 
@@ -280,8 +282,8 @@ estimates are in
 | OptiX API Coverage II — Motion Blur & 1.0 Prep (30) | 1 sprint | ~26 hours |
 | L-Systems in 3D and 4D (31) | 1 sprint | ~28 hours |
 | Spectral Dispersion (32) | 1 sprint | ~22 hours |
-| PBR Texture Sets (33) | 1 sprint | ~24 hours |
-| Production-Quality Caustics (34) | 1 sprint | ~24 hours |
+| Production-Quality Caustics (33) | 1 sprint | ~77 hours |
+| PBR Texture Sets (34) | 1 sprint | ~24 hours |
 | Visual Quality (35, pushed back) | 1 sprint | ~20 hours |
 | Data Visualization I (36, pushed back) | 1 sprint | ~25 hours |
 | 4D Geometry II (37, pushed back) | 1 sprint | ~20 hours |

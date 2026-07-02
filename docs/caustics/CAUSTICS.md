@@ -70,37 +70,31 @@ struct CausticsParams {
 --caustics-alpha F         Radius reduction factor (default: 0.7, range: 0-1)
 ```
 
-## Known Issues and TODOs
+## Sprint 33: physics rebuild + validation
 
-### Current Limitations
+The long parameter-tuning investigation (see the historical note in
+`CAUSTICS_ITERATION_LOG.md`) never converged because the implementation has structural
+physics defects — no parameter choice can compensate for them. Sprint 33 fixes them and
+validates the result against pbrt-v4. The nine defects (P1–P9) and the fix order are in
+[docs/sprints/SPRINT33.md](../sprints/SPRINT33.md).
 
-1. **Brute-force photon deposition** - O(n×m) complexity where n=photons, m=hit points
-   - Very slow for high photon/hit point counts
-   - Need to implement spatial hash grid for O(n) performance
-   - Grid structures already defined in CausticsParams, awaiting implementation
+### Validation harness
 
-2. **Caustic intensity** - Using scale factor of 10000×
-   - Provides visible caustics without oversaturation
-   - May need tuning for different scene configurations
+`scripts/caustics-validation/` compares a menger render (linear PFM via `--save-name
+out.pfm`, `--tonemap none`) against a committed pbrt-v4 reference using imgtool MSE + FLIP.
+See `scripts/caustics-validation/README.md`.
 
-### Future Improvements
+### Validation baseline (before the physics rebuild)
 
-1. **Spatial Hash Grid**
-   - Build grid after hit point collection
-   - Use grid for O(1) neighbor lookup during photon deposition
-   - Grid structures already defined in CausticsParams
+Canonical scene (`examples.dsl.CausticsCanonical` vs
+`canonical-caustics.pbrt`), 400×300, `Caustics.HighQuality`, tone map None:
 
-2. **Progressive Radius Reduction**
-   - Implement `__caustics_update_radii` kernel
-   - Shrink radius after each iteration for convergence
+| State | avg brightness (menger / pbrt) | MSE | FLIP | Gate |
+|-------|-------------------------------|-----|------|------|
+| Before (broken, 2026-07-02) | 0.618 / 0.368 (+68%) | 0.208 | 0.655 | FAIL |
 
-3. **Multiple Light Support**
-   - Weight photon emission by light intensity
-   - Support point lights and area lights
-
-4. **Spectral Dispersion**
-   - Trace wavelength-dependent refraction
-   - Rainbow caustic effects
+Each physics task (33.3–33.7) must move these numbers toward the reference and cite the new
+values in its commit message. Thresholds are locked in Task 33.8.
 
 ## Debugging Tips
 

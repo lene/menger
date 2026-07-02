@@ -1,14 +1,17 @@
 # Current Sprint
 
 **Sprint:** 33
-**Status:** 📋 Planned
-**Started:** TBD
-**Branch:** `feature/sprint-33` (not yet created)
+**Status:** 🔄 In Progress
+**Started:** 2026-07-02
+**Branch:** `feature/sprint-33`
 
 ---
 
 ## Goal
 
-TBD — to be defined in Sprint 33 planning.
+Production-quality caustics: physically-correct progressive photon mapping validated against
+pbrt-v4, arbitrary-geometry support, dispersive + reflective caustics.
+
+See [SPRINT33.md](SPRINT33.md).
 
 ---

@@ -1,5 +1,14 @@
 # Caustics Scene Parameter Iteration Log
 
+> **CLOSED 2026-07-02 (Sprint 33).** This log tracked a parameter-tuning investigation that
+> could not converge: the brightness could never be tuned into correctness because the
+> implementation has structural physics defects (P1–P9), not a bad parameter set. The tuning
+> record below is retained only as historical context for *why* the magic scale factors
+> (0.03×…10000×) and the private exponential tone map existed. The actual fixes are tracked
+> in [docs/sprints/SPRINT33.md](../sprints/SPRINT33.md); the validation baseline is in
+> `CAUSTICS.md`. This file is scheduled for deletion in Task 33.11 once the defects are
+> resolved. Do **not** resume parameter tuning against this log.
+
 Tracking all parameter choices and outcomes to prevent re-doing work after context compaction.
 
 ## PBRT Reference Parameters (Ground Truth)

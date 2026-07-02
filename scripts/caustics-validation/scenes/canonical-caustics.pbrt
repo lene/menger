@@ -1,0 +1,59 @@
+# Canonical Caustics Test Scene (pbrt-v4) — Sprint 33 reference twin.
+#
+# Physical twin of the menger canonical caustics scene (arc42 §10):
+#   Sphere:  center (0,0,0), radius 1.0, dielectric IOR 1.5
+#   Floor:   Y = -2.0, diffuse reflectance 0.8
+#   Light:   point (0,10,0), rgb I 500  (radiant intensity, W/sr)
+#   Camera:  position (0,1,4) looking at origin, fov 45
+#   Film:    default 800x600 (render script overrides for the gated 400x300 variant)
+#
+# pbrt-v4 note: no WorldEnd directive (world block ends at EOF).
+# Render via scripts/caustics-validation/render-pbrt-references.sh (never by hooks).
+
+Film "rgb"
+    "string filename" "canonical-caustics.exr"
+    "integer xresolution" 800
+    "integer yresolution" 600
+
+Scale -1 1 1
+LookAt 0 1 4
+       0 0 0
+       0 1 0
+
+Camera "perspective"
+    "float fov" 45
+
+Sampler "pmj02bn"
+    "integer pixelsamples" 256
+
+Integrator "sppm"
+    "integer maxdepth" 32
+    "integer photonsperiteration" 100000
+
+WorldBegin
+
+LightSource "point"
+    "point3 from" [ 0 10 0 ]
+    "rgb I" [ 500 500 500 ]
+
+# Glass sphere at origin (IOR 1.5)
+AttributeBegin
+    Material "dielectric"
+        "float eta" 1.5
+    Translate 0 0 0
+    Shape "sphere"
+        "float radius" 1.0
+AttributeEnd
+
+# Floor plane at Y = -2
+AttributeBegin
+    Material "diffuse"
+        "rgb reflectance" [ 0.8 0.8 0.8 ]
+    Translate 0 -2 0
+    Shape "trianglemesh"
+        "integer indices" [ 0 1 2 0 2 3 ]
+        "point3 P" [ -10 0 -10
+                      10 0 -10
+                      10 0  10
+                     -10 0  10 ]
+AttributeEnd
