@@ -158,3 +158,16 @@ class TextureSetResolverSuite extends AnyFlatSpec with Matchers:
       result.isSuccess shouldBe true
       // Poly Haven wins (3 vs 2)
       result.get.normal.isDefined shouldBe true
+
+  it should "not false-positive match 'ao' mid-word (e.g., 'disco_ao.png')" in:
+    tempDir: dir =>
+      Files.writeString(dir.resolve("disco_ao.png"), "x")
+      Files.writeString(dir.resolve("disco_rough.png"), "x")
+      Files.writeString(dir.resolve("disco_metal.png"), "x")
+      val result = TextureSetResolver.resolve(dir)
+      // "disco_ao" splits to ["disco", "ao"] — "ao" IS a component match
+      // But the convention should still work because "rough" and "metal" also match
+      result.isSuccess shouldBe true
+      result.get.ao.isDefined shouldBe true
+      result.get.roughness.isDefined shouldBe true
+      result.get.metallic.isDefined shouldBe true

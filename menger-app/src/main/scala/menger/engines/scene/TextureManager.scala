@@ -86,7 +86,8 @@ object TextureManager extends LazyLogging:
         loadStaticTexture(filename, renderer, textureDir)
       }
       val textureSetIndices = textureSets.flatMap { setName =>
-        loadTextureSet(setName, renderer, textureDir)
+        val resPref = specs.find(_.textureSet.contains(setName)).flatMap(_.textureSetRes)
+        loadTextureSet(setName, renderer, textureDir, resPref)
       }
       val videoTextureIndices = videoTextures.flatMap { videoTexture =>
         loadInitialVideoTexture(videoTexture, renderer, textureDir)
@@ -96,10 +97,12 @@ object TextureManager extends LazyLogging:
   private def loadTextureSet(
     setName: String,
     renderer: OptiXRenderer,
-    textureDir: String
+    textureDir: String,
+    resPreference: Option[String] = None
   ): Map[String, Int] =
     val setDir = resolveTexturePath(setName, textureDir)
-    TextureSetResolver.resolve(setDir) match
+    val metadata = TextureSetMetadata.load(setDir).getOrElse(TextureSetMetadata())
+    TextureSetResolver.resolve(setDir, resPreference) match
       case Success(resolved) =>
         val results = List.newBuilder[(String, Int)]
         resolved.color.foreach: p =>
