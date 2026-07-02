@@ -121,13 +121,28 @@ trait SceneBuilder extends LazyLogging:
     val rawId = InstanceId.raw(id)
     if spec.proceduralType != 0 then
       renderer.setProceduralTexture(rawId, spec.proceduralType, spec.proceduralScale)
-    val normalIdx    = spec.normalMap.flatMap(textureIndices.get).getOrElse(-1)
-    val roughnessIdx = spec.roughnessMap.flatMap(textureIndices.get).getOrElse(-1)
-    if normalIdx >= 0 || roughnessIdx >= 0 then
-      renderer.setMapTextures(rawId, normalIdx, roughnessIdx)
+    // Resolve map indices from spec fields, falling back to texture set if set is defined
+    val setPrefix = spec.textureSet.map(s => s"set:$s:")
+    val normalIdx    = resolveMapIndex(spec.normalMap, "normal", setPrefix, textureIndices)
+    val roughnessIdx = resolveMapIndex(spec.roughnessMap, "roughness", setPrefix, textureIndices)
+    val metallicIdx  = resolveMapIndex(spec.metallicMap, "metallic", setPrefix, textureIndices)
+    val aoIdx        = resolveMapIndex(spec.aoMap, "ao", setPrefix, textureIndices)
+    val heightIdx    = resolveMapIndex(spec.heightMap, "height", setPrefix, textureIndices)
+    if normalIdx >= 0 || roughnessIdx >= 0 || metallicIdx >= 0 || aoIdx >= 0 || heightIdx >= 0 then
+      renderer.setMapTextures(rawId, normalIdx, roughnessIdx, metallicIdx, aoIdx, heightIdx)
     val imageIdx = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
     if imageIdx >= 0 then
       renderer.setImageTexture(rawId, imageIdx)
+
+  private def resolveMapIndex(
+    explicitFile: Option[String],
+    mapType: String,
+    setPrefix: Option[String],
+    indices: Map[String, Int]
+  ): Int =
+    explicitFile.flatMap(indices.get)  // Explicit override wins
+      .orElse(setPrefix.flatMap(p => indices.get(p + mapType)))  // Texture set fallback
+      .getOrElse(-1)
 
   protected final def requireInstanceId(rawId: Int, operation: => String): InstanceId =
     InstanceId.fromNative(rawId, operation)

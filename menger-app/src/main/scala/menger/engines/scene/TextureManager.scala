@@ -69,8 +69,9 @@ object TextureManager extends LazyLogging:
       specs.flatMap(_.texture) ++ specs.flatMap(_.normalMap) ++ specs.flatMap(_.roughnessMap) ++
       specs.flatMap(_.metallicMap) ++ specs.flatMap(_.aoMap) ++ specs.flatMap(_.heightMap)
     ).distinct
+    val textureSets = specs.flatMap(_.textureSet).distinct
     val videoTextures = specs.flatMap(_.videoTexture).distinctBy(_.textureKey)
-    val textureCount = staticTextureFilenames.length + videoTextures.length
+    val textureCount = staticTextureFilenames.length + videoTextures.length + textureSets.length * 5
 
     if textureCount == 0 then
       Map.empty
@@ -80,10 +81,50 @@ object TextureManager extends LazyLogging:
       val staticTextureIndices = staticTextureFilenames.flatMap { filename =>
         loadStaticTexture(filename, renderer, textureDir)
       }
+      val textureSetIndices = textureSets.flatMap { setName =>
+        loadTextureSet(setName, renderer, textureDir)
+      }
       val videoTextureIndices = videoTextures.flatMap { videoTexture =>
         loadInitialVideoTexture(videoTexture, renderer, textureDir)
       }
-      (staticTextureIndices ++ videoTextureIndices).toMap
+      (staticTextureIndices ++ textureSetIndices ++ videoTextureIndices).toMap
+
+  private def loadTextureSet(
+    setName: String,
+    renderer: OptiXRenderer,
+    textureDir: String
+  ): Map[String, Int] =
+    val setDir = resolveTexturePath(setName, textureDir)
+    TextureSetResolver.resolve(setDir) match
+      case Success(resolved) =>
+        val results = List.newBuilder[(String, Int)]
+        resolved.color.foreach: p =>
+          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:color" -> idx)
+        resolved.normal.foreach: p =>
+          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:normal" -> idx)
+        resolved.roughness.foreach: p =>
+          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:roughness" -> idx)
+        resolved.metallic.foreach: p =>
+          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:metallic" -> idx)
+        resolved.ao.foreach: p =>
+          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:ao" -> idx)
+        resolved.height.foreach: p =>
+          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:height" -> idx)
+        val map = results.result().toMap
+        logger.info(s"Loaded texture set '$setName': ${map.size} maps")
+        map
+      case Failure(e) =>
+        logger.error(s"Failed to resolve texture set '$setName': ${e.getMessage}")
+        Map.empty
+
+  private def loadTexture(
+    path: Path,
+    setName: String,
+    renderer: OptiXRenderer,
+    textureDir: String
+  ): Option[Int] =
+    val filename = s"$setName/${path.getFileName.toString}"
+    loadStaticTexture(filename, renderer, textureDir).map(_._2)
 
   private def loadStaticTexture(
     filename: String,
