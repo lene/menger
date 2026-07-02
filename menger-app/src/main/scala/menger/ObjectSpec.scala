@@ -77,6 +77,12 @@ case class ObjectSpec(
   plane: PlaneGeometry = PlaneGeometry(),
   procedural: ProceduralSpec = ProceduralSpec(),
   textureMaps: TextureMaps = TextureMaps(),
+  metallicMap: Option[String] = None,
+  aoMap: Option[String] = None,
+  heightMap: Option[String] = None,
+  textureSet: Option[String] = None,
+  textureSetRes: Option[String] = None,
+  uvScale: Option[Float] = None,
   meshData: Option[TriangleMeshData] = None,
   distanceThreshold: Option[Int] = None,
   curveData: Option[CurveData] = None,
@@ -178,7 +184,8 @@ object ObjectSpec extends LazyLogging:
     "apex", "base", "radius", "major-radius", "minor-radius",
     "normal", "distance", "color2", "checker-size",
     "procedural", "proc-scale",
-    "normal-map", "roughness-map",
+    "normal-map", "roughness-map", "metallic-map", "ao-map", "height-map",
+    "texture-set", "texture-set-res", "uv-scale",
     "dist-threshold",
     "control-points",
     "preset", "angle", "seed", "dim"
@@ -213,6 +220,12 @@ object ObjectSpec extends LazyLogging:
       procSpec <- parseProceduralSpec(kvPairs)
       _ <- validateSpongeLevel(objType, level)
       texMaps <- parseTextureMaps(kvPairs)
+      metallicMap <- parseMapTexture(kvPairs, "metallic-map")
+      aoMap <- parseMapTexture(kvPairs, "ao-map")
+      heightMap <- parseMapTexture(kvPairs, "height-map")
+      textureSet <- parseOptionalString(kvPairs, "texture-set")
+      textureSetRes <- parseOptionalString(kvPairs, "texture-set-res")
+      uvScale <- parseOptionalFloat(kvPairs, "uv-scale", "UV scale")
       distThreshold <- parseDistanceThreshold(kvPairs)
       lsysPreset <- parseLSystemPreset(kvPairs)
       lsysAngle <- parseLSystemAngle(kvPairs)
@@ -238,6 +251,12 @@ object ObjectSpec extends LazyLogging:
       plane = planeGeom,
       procedural = procSpec,
       textureMaps = texMaps,
+      metallicMap = metallicMap,
+      aoMap = aoMap,
+      heightMap = heightMap,
+      textureSet = textureSet,
+      textureSetRes = textureSetRes,
+      uvScale = uvScale,
       distanceThreshold = distThreshold,
       lsystemPreset = lsysPreset,
       lsystemAngle = lsysAngle,
@@ -410,6 +429,15 @@ object ObjectSpec extends LazyLogging:
         Try(valueStr.toFloat).toEither.left.map { e =>
           s"Invalid $key value '$valueStr': ${e.getMessage}. Expected a valid $description"
         }.map(Some(_))
+      case None => Right(None)
+
+  private def parseOptionalString(
+    kvPairs: Map[String, String],
+    key: String
+  ): Either[String, Option[String]] =
+    kvPairs.get(key) match
+      case Some(value) if value.nonEmpty => Right(Some(value))
+      case Some(_) => Left(s"$key value cannot be empty") 
       case None => Right(None)
 
   private def parseTexture(kvPairs: Map[String, String]): Either[String, Option[String]] =

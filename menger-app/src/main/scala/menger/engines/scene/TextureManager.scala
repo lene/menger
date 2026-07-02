@@ -66,7 +66,8 @@ object TextureManager extends LazyLogging:
     textureDir: String
   ): Map[String, Int] =
     val staticTextureFilenames = (
-      specs.flatMap(_.texture) ++ specs.flatMap(_.normalMap) ++ specs.flatMap(_.roughnessMap)
+      specs.flatMap(_.texture) ++ specs.flatMap(_.normalMap) ++ specs.flatMap(_.roughnessMap) ++
+      specs.flatMap(_.metallicMap) ++ specs.flatMap(_.aoMap) ++ specs.flatMap(_.heightMap)
     ).distinct
     val videoTextures = specs.flatMap(_.videoTexture).distinctBy(_.textureKey)
     val textureCount = staticTextureFilenames.length + videoTextures.length
