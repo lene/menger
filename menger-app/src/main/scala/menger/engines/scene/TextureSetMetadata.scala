@@ -34,8 +34,17 @@ object TextureSetMetadata:
     * No nesting, no arrays — just top-level float fields.
     */
   private def parseSimple(json: String): TextureSetMetadata =
-    val floatPattern = """"(ior|uvScale)"\s*:\s*([0-9]+\.?[0-9]*)""".r
+    val floatPattern = """"(ior|uvScale)"\s*:\s*(-?[0-9]+\.?[0-9]*)""".r
     val matches = floatPattern.findAllMatchIn(json).toList
+    // Detect malformed JSON: has braces with content but no valid float fields
+    val contentBetween = json.indexOf("{") + 1 match
+      case start if start > 0 =>
+        val end = json.lastIndexOf("}")
+        if end > start then json.substring(start, end).trim else ""
+      case _ => ""
+    require(
+      !(contentBetween.nonEmpty && matches.isEmpty),
+      s"Invalid menber-textureset.json: expected {\"ior\": N, \"uvScale\": N}")
     val ior = matches.collectFirst:
       case m if m.group(1) == "ior" => m.group(2).toFloat
     val uvScale = matches.collectFirst:

@@ -610,6 +610,7 @@ interactive_tests=(
     "Denoise IBL baseline:-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/"
     "Denoise IBL final:-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ --denoise"
     "Trefoil knot:-o --scene examples.dsl.TrefoilKnot"
+    "PBR texture set (metallic + AO maps):-o --objects type=sphere:texture-set=tiny-pbr --plane y:-2 --texture-dir scripts/test-assets/texture-sets --allow-uniform-render"
     "L-System Tree Level 4:-o --objects type=lsystem:preset=tree:level=4:size=0.8 --plane y:-2"
     "L-System Bush Level 3:-o --objects type=lsystem:preset=bush:level=3:size=0.8 --plane y:-2"
     "L-System Fern3D Level 3:-o --objects type=lsystem:preset=fern3d:level=3:size=0.8 --plane y:-2"

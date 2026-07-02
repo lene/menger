@@ -468,6 +468,13 @@ test_film_materials() {
         --objects type=tesseract:size=0.8:edge-material=film:edge-radius=0.025
 }
 
+test_pbr_texture_sets() {
+    echo "PBR Texture Sets:"
+    run_test "pbr tiny set" --allow-uniform-render --plane y:-2 \
+        --objects type=sphere:texture-set=tiny-pbr \
+        --texture-dir scripts/test-assets/texture-sets
+}
+
 test_textures() {
     echo "Textures:"
     run_test "texture on cube" --plane y:-2 \
@@ -1362,6 +1369,7 @@ main() {
     test_scene_options
     test_materials
     test_film_materials
+    test_pbr_texture_sets
     test_textures
     test_caustics
     test_tesseract
