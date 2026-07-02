@@ -1,7 +1,10 @@
 package menger.engines.scene
 
-import java.nio.file.{Files, Path}
-import scala.util.{Success, Try}
+import java.nio.file.Files
+import java.nio.file.Path
+
+import scala.util.Success
+import scala.util.Try
 
 /** Optional sidecar metadata for a PBR texture set.
   *
@@ -44,7 +47,7 @@ object TextureSetMetadata:
       case _ => ""
     require(
       !(contentBetween.nonEmpty && matches.isEmpty),
-      s"Invalid menber-textureset.json: expected {\"ior\": N, \"uvScale\": N}")
+      "Invalid menber-textureset.json: expected {\"ior\": N, \"uvScale\": N}")
     val ior = matches.collectFirst:
       case m if m.group(1) == "ior" => m.group(2).toFloat
     val uvScale = matches.collectFirst:

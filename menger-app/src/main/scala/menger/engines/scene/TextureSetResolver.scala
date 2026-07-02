@@ -1,8 +1,13 @@
 package menger.engines.scene
 
-import java.nio.file.{Files, Path}
-import scala.util.{Failure, Success, Try, Using}
+import java.nio.file.Files
+import java.nio.file.Path
+
 import scala.jdk.CollectionConverters._
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+import scala.util.Using
 
 /** Describes a resolved PBR texture set from a directory. */
 case class ResolvedTextureSet(
@@ -113,50 +118,50 @@ object TextureSetResolver:
     */
   def resolve(dir: Path, preferredRes: Option[String] = None): Try[ResolvedTextureSet] =
     if !Files.isDirectory(dir) then
-      return Failure(new IllegalArgumentException(s"Not a directory: $dir"))
+      Failure(new IllegalArgumentException(s"Not a directory: $dir"))
+    else
+      // If Poly Haven style (res subdirs), pick the right resolution
+      val searchDir = findHighestResDir(dir)
 
-    // If Poly Haven style (res subdirs), pick the right resolution
-    val searchDir = findHighestResDir(dir)
+      val files = Using(Files.list(searchDir)): stream =>
+        stream
+          .filter(Files.isRegularFile(_))
+          .filter(f => ImageExtensions.contains(extension(f).toLowerCase))
+          .toList.asScala.toList
+          .sortBy(f => -f.getFileName.toString.length)
+      .getOrElse(Nil)
 
-    val files = Using(Files.list(searchDir)): stream =>
-      stream
-        .filter(Files.isRegularFile(_))
-        .filter(f => ImageExtensions.contains(extension(f).toLowerCase))
-        .toList.asScala.toList
-        .sortBy(f => -f.getFileName.toString.length)
-    .getOrElse(Nil)
+      if files.isEmpty then
+        Failure(new IllegalArgumentException(s"No image files found in $searchDir"))
+      else
+        detectConvention(files) match
+          case None =>
+            Failure(new IllegalArgumentException(
+              s"Could not detect PBR naming convention in $searchDir. " +
+              "Expected ambientCG (*_Color.*, *_NormalGL.*) or Poly Haven (*_diff.*, *_nor_gl.*) patterns."))
+          case Some(conv) =>
+            val classified: Map[MapType, Path] = files.flatMap: f =>
+              val name = f.getFileName.toString
+              conv.classify(name) match
+                case MapType.Unknown => None
+                case mt => Some(mt -> f)
+            .toMap
 
-    if files.isEmpty then
-      return Failure(new IllegalArgumentException(s"No image files found in $searchDir"))
+            val normalInfo = classified.get(MapType.NormalGL) match
+              case Some(p) => (Some(p), false)
+              case None => classified.get(MapType.NormalDX) match
+                case Some(p) => (Some(p), true)
+                case None => (None, false)
 
-    detectConvention(files) match
-      case None =>
-        Failure(new IllegalArgumentException(
-          s"Could not detect PBR naming convention in $searchDir. " +
-          "Expected ambientCG (*_Color.*, *_NormalGL.*) or Poly Haven (*_diff.*, *_nor_gl.*) patterns."))
-      case Some(conv) =>
-        val classified: Map[MapType, Path] = files.flatMap: f =>
-          val name = f.getFileName.toString
-          conv.classify(name) match
-            case MapType.Unknown => None
-            case mt => Some(mt -> f)
-        .toMap
-
-        val normalInfo = classified.get(MapType.NormalGL) match
-          case Some(p) => (Some(p), false)
-          case None => classified.get(MapType.NormalDX) match
-            case Some(p) => (Some(p), true) // Needs DX→GL conversion
-            case None => (None, false)
-
-        Success(ResolvedTextureSet(
-          color     = classified.get(MapType.Color),
-          normal    = normalInfo._1,
-          roughness = classified.get(MapType.Roughness),
-          metallic  = classified.get(MapType.Metallic),
-          ao        = classified.get(MapType.AO),
-          height    = classified.get(MapType.Height),
-          normalNeedsDXConversion = normalInfo._2
-        ))
+            Success(ResolvedTextureSet(
+              color     = classified.get(MapType.Color),
+              normal    = normalInfo._1,
+              roughness = classified.get(MapType.Roughness),
+              metallic  = classified.get(MapType.Metallic),
+              ao        = classified.get(MapType.AO),
+              height    = classified.get(MapType.Height),
+              normalNeedsDXConversion = normalInfo._2
+            ))
 
   private def extension(p: Path): String =
     val name = p.getFileName.toString
