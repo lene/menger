@@ -14,7 +14,7 @@ default:
 
 variables:
   DEPLOYABLE_BASE_NAME: menger
-  DEPLOYABLE_VERSION: 0.8.0
+  DEPLOYABLE_VERSION: 0.8.1
   DOCKER_IMAGE: registry.gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/server
   SCALA_VERSION: 3.8.3
   LIBAV_DEV_PACKAGES: "libavcodec-dev libavformat-dev libavutil-dev libswscale-dev"

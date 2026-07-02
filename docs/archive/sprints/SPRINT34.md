@@ -1,7 +1,7 @@
 # Sprint 34: PBR Texture Sets
 
 **Sprint:** 34 - PBR Texture Sets
-**Status:** ✅ Complete
+**Status:** 📋 Planned — scope confirmed 2026-07-02
 **Estimate:** ~24 hours
 **Branch:** `feature/sprint-34` (created)
 **Dependencies:** None (builds on the Sprint 20/21 texture pipeline)

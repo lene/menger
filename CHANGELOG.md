@@ -1,195 +1,47 @@
 # Changelog
 
-## [0.7.9] - 2026-06-30
+## [0.8.1] - 2026-07-02
+
+
 
 ### Added
-- **Spectral dispersion** — wavelength-dependent IOR via Cauchy model
-- `dispersion=<Abbe number>` CLI parameter and DSL field on Material
-- `glass-dispersive` (V_d=59) and `diamond-dispersive` (V_d=33) presets
-- Hero-wavelength per-pixel stratification in OptiX shaders
-- CIE XYZ→sRGB spectral color conversion (Wyman 2013 fit)
-- `spectralRays` counter in `--stats` output
-- PrismDispersion and DiamondFire DSL demo scenes
-- 4D Hilbert curve and Tree4D presets in LSystemPresets
+
+
+
+- PBR texture sets: metallic, AO, and height GPU texture slots
+
+- TextureSetResolver: auto-detect ambientCG + Poly Haven naming conventions
+
+- TextureSetMetadata: JSON sidecar parser (IOR, UV scale)
+
+- DX->GL normal map conversion on upload
+
+- `--texture-set=FOLDER` CLI parameter with sub-resolution preference
+
+- 23 unit tests, integration + manual test entries
+
+
 
 ### Changed
-- **TypeRegistry** — unified object-type dispatch replacing duplicated if/else chains (T1)
-- **SubBuilderType** sealed enum replacing String dispatch in LSystemSceneBuilder (A4)
-- LSystemTurtle4D.HilbertCurve4D/Tree4D delegate to LSystemPresets (A5)
-- PerfCheck baseline committed with measured sphere/sponge medians (T2)
-- Native-binding ArchUnit rule: MengerRenderer must not introduce new @native methods (T5)
-- Script-parity fitness function covers all VALID_TYPES across test scripts (T9)
-- SceneBuilder fault-injection suite verifies Try→Failure propagation (T7)
-- Fast-path regression guard for projected-4D type schema changes (T10)
-- AD-31 documented: OptiX as sole rendering backend (T11)
-- sbt 2.0.0 upgrade attempted, deferred — plugins not yet ported
+
+
+
+- `setMapTextures` extended from 2->5 texture slots
+
+- Convention detection anchored to underscore-delimited components
+
+
 
 ### Fixed
-- JNI RenderResult constructor signature corrected (8→had 9 longs → NoSuchMethodError)
-- Pipeline numPayloadValues bumped 10→11 for hero-wavelength register
-- Version bumped 0.7.7→0.7.9 for Sprint 32
-- Missing `parametric` type added to integration-test and manual-test scripts
 
-## [0.7.8] - 2026-06-30
 
-### Added
-- **L-Systems** — Lindenmayer grammar engine with 3D/4D turtle interpretation
-- DSL `LSystem(axiom, rules, iterations, angle, ...)` type extending SceneObject
-- CLI `type=lsystem:preset=tree:level=5:size=1.5` with preset selection
-- Presets: Tree (ABOP fig 1.24), Bush, Fern3D, HilbertCurve3D, KochIsland
-- 4D turtle with 6-plane rotations — `HilbertCurve4D`, `Tree4D`
-- Per-segment material control: `M(name)` and `T(filename)` in grammar strings
-- Material inheritance through `[ ]` push/pop stack
-- Parameterized `F(len, width, shape)` segment shapes with auto-taper
-- Primitives: `@O(diameter)` spheres, `@c(diameter)` disks, `J(name, scale)` mesh stamps
-- Pruning `%(n)` and width scaling `!(w)` commands
 
-### Fixed
-- **uploadTextureFromFile fail-fast** — now throws `TextureUploadException` (consistent with `uploadTexture`)
-- **project4d.cu async error contract** — documented caller-responsibility for `cudaDeviceSynchronize`
-- **AI review cleanup** — `ser_enabled` bool→uint32_t, `last_*_count` reset on dispose, dead `isSerSupported` removed
+- hit_cone.cu applies metallic/AO maps (was missing)
 
-## [0.7.6] - 2026-06-26
+- Synthetic key collision guard (filename prefix check)
 
-### Added
-- **OptiX final-frame denoising** — DSL `RenderSettings(denoise = DenoiseMode.Final)`
-  and CLI `--denoise` denoise the final accumulated linear HDR frame before tone mapping.
-- **OptiX curves primitive** — DSL `Curve(points, radius, material)` and CLI
-  `type=curve:control-points=...:radius=...` render smooth swept tubes via the
-  built-in round cubic B-spline primitive. Includes `TrefoilKnot` demo scene.
-  Available in `optix-jni >= 0.1.5`.
 
-### Changed
-- **`optix-jni` 0.1.5** — switched from temporary source pin to published
-  Maven Central artifact (includes denoiser API, curves primitive, and
-  `updateTexture` from Sprint 27).
-
-## [0.7.5] - 2026-06-15
-
-### Added
-- **Cross-repo quality standards** (`standards/`) — canonical scalafix, scalafmt,
-  and hook scripts shared across menger, menger-common, and optix-jni; daily drift
-  detection fails loudly when configs diverge.
-- **Tiered hooks** — fast pre-commit (< 5 s for non-code changes) with branch guard,
-  staged hygiene, and local standards parity; pre-push Phase 0 policy checks
-  (`Test-Change:` trailer enforcement and rendering-discipline check) run before
-  any compilation.
-- **Local CI runner hardening** — gitlab-runner and GitHub Actions runner run as
-  systemd services with auto-restart and resource caps; GPU jobs serialised with
-  `limit = 1`; heartbeat alert fires if no runner picks up work in 24 h.
-- **Multi-model AI review** — every MR receives structured reviews from Claude and
-  DeepSeek posted as GitLab comments; disagreements preserved.
-- **Release-on-merge automation** — merging an MR without `NORELEASE` label
-  triggers `CreateRelease` → tag pipeline → GitHub mirror → install-smoke proof.
-- **Enforcement audit** (`docs/ENFORCEMENT.md`) — every policy in AGENTS.md mapped
-  to its enforcing mechanism; 8 gaps tracked as GitLab issues #155–#162.
-- **GitLab merge checks** — pipelines must succeed and all discussions must be
-  resolved before the merge button is enabled.
-- **`docs/TESTING.md`** — test-failure protocol, flaky-test policy, and
-  `Test-Change:` trailer requirement.
-- **`docs/RENDERING.md`** — rendering-change discipline, sequential-mode rule,
-  alpha-channel invariant, and new-feature checklist.
-- **`--stats-json <path>`** CLI option — writes per-frame render statistics (frame
-  time, ray counts, ms/Mray) as JSON on exit; enabled automatically with `--headless`.
-- **`scripts/benchmark.sh`** — runs 4 representative scenes 3× each, computes
-  median frame time, and compares against `scripts/perf-baseline.json` (15% threshold).
-- **`PerfCheck` CI job** — advisory performance regression guard; runs on every push
-  against the built deployable; `allow_failure: true` so it warns without blocking.
-- **Renovate dependency automation** — `renovate.json` at repo root; groups sbt
-  plugins and libraries separately; excludes pinned CUDA/OptiX/libav deps.
-  Triggered at sprint close via `glab pipeline run`.
-- **`Test:InstallSmoke` CI job** — unpacks the release zip and verifies `--version`
-  and a headless render succeed on the packaged binary.
-- **arc42 §10 G1–G7** — quality scenarios for the guardrail system.
-- **arc42 §11 TR-13** — runner-availability risk and mitigations.
-
-## [0.7.4] - 2026-06-14
-
-### Added
-- **`/arch-review`** — architectural review command (four axes: soundness, maturity,
-  evolvability, performance architecture) with fitness-function nomination; first review
-  in `ARCHITECTURE_REVIEW.md` and actionable backlog in `docs/ARCHITECTURE_BACKLOG.md`.
-- **Video texture documentation and examples** (Sprint 27.10) — user guide and DSL
-  reference coverage for rectangular video textures, 360-degree `EnvMapVideo`
-  backgrounds, playback timing/repeat controls, IBL interaction, and performance
-  recommendations. Added `examples.dsl.EnvMapVideoSponge` plus integration/manual
-  coverage for env-map video playback.
-
-### Changed
-- **Minimum NVIDIA driver raised to ≥580.65 (CUDA 13).** The published `optix-jni`
-  artifact (≥0.1.3) and `menger-geometry` native libs link the CUDA 13 runtime
-  (`libcudart.so.13`). Older drivers fail at startup with CUDA error 35
-  ("driver version is insufficient for CUDA runtime version"). See arc42 §2 (TC-4, TC-9)
-  and `docs/TROUBLESHOOTING.md`. GPU CI runner hosts must also have `nvidia-persistenced`
-  active (not masked) for the NVIDIA container toolkit to mount its socket.
-- Bumped `optix-jni` dependency to **0.1.4** (CUDA 13.x toolkit pin — reproducible
-  runtime ABI, deliberate minimum-driver floor).
-
-### Fixed
-- **4D dispatch in the non-interactive render path** — `sierpinski4d` and
-  `hexadecachoron4d` were dispatched only in `InteractiveEngine`; `GeometryRegistry` /
-  `RenderModeSelector` classified them as `Unsupported`, so Animation/Preview/Video
-  engines (incl. `--animate`) failed with a misleading error. Added the missing dispatch
-  branches + a completeness test; closed the `integration-tests.sh` / `manual-test.sh`
-  parity gap for both types.
-- Removed stale solved High Priority findings from `CODE_IMPROVEMENTS.md`.
-- GitLab GPU jobs now install FFmpeg/libav packages without recommended dependencies,
-  avoiding distro `libcuda1` shadowing the NVIDIA driver-mounted CUDA library.
-- GitLab OptiX runtime jobs now explicitly request visible NVIDIA devices and
-  fail fast when the GPU driver mount is missing instead of cascading render crashes.
-- Scene builders now validate config-based, mixed-scene, and optimized 4D tracked
-  build paths before any renderer instance allocation, closing `M-sceneb-validate-bypass`.
-- Native scene instance IDs are now wrapped in an opaque app-level `InstanceId`;
-  `-1` allocation failures fail scene builds at the boundary instead of being
-  handled inconsistently by individual builders.
-
-## [0.7.3] - 2026-06-08
-
-### Fixed
-- **GitLab OptiX runtime jobs** — `Run:UseDocker` and `CheckRunTime` now request
-  graphics-capable NVIDIA driver mounts and refresh the RTX core linker setup before
-  launching OptiX, matching the full test and integration jobs.
-
-## [0.7.2] - 2026-05-31
-
-### Changed
-- **Package rename** (Sprint 24.2) — `menger.optix` → `io.github.lene.optix` in all Scala
-  sources and JNI C++ symbols. Existing consumers of `optix-jni` must update imports.
-- **`Params` → `BaseParams`** (Sprint 24.3) — OptiX launch parameter struct renamed in
-  `OptiXData.h` and all C++ consumers. `MengerParams` (Sprint 24.5) extends `BaseParams`
-  with 4D geometry and caustics fields; struct extension is layout-safe (offset 0 guarantee).
-- **`optix-jni` decoupled from Menger geometry** (Sprint 25) — all 4D hit shaders
-  (`hit_menger4d.cu`, `hit_sierpinski4d.cu`, `hit_hexadecachoron4d.cu`), `Project4D`,
-  `CausticsRenderer`, and their JNI bindings moved to `menger-geometry`. `optix-jni` now
-  contains zero Menger-specific types and is usable as a standalone GPU ray tracing library.
-
-### Added
-- **`menger-geometry` module** (Sprint 24.4–25.3) — in-repo sbt subproject for
-  Menger-specific geometry. Hosts all 4D geometry, caustics, and `MengerRenderer`. Not
-  published; depends on `optix-jni`.
-- **`MengerRenderer`** (Sprint 25.3) — Scala class extending `OptiXRenderer`; routes all
-  4D geometry `@native` calls through `libmengergeometry.so`. `menger-app` now uses
-  `MengerRenderer` for all 4D scenes instead of calling `OptiXRenderer` directly.
-- **`NativeOptiXApi`** (Sprint 25.4) — thin JNI bindings for the core OptiX pipeline:
-  context, module, program groups (raygen/miss/hitgroup/triangle), and pipeline lifecycle.
-  Handles are raw `Long` values; returns `0L` on failure. Lays groundwork for pipeline
-  composition without the high-level `OptiXWrapper`.
-- **Publication pipeline** (Sprint 24.6–24.7) — `menger-common` and `optix-jni` are now
-  publishable to GitLab Package Registry and Maven Central (Sonatype Central Portal).
-  CI jobs `PublishCommon` and `PublishOptixJni` trigger on tag. GPG signing via sbt-pgp.
-
-### Fixed
-- JNI `GetByteArrayElements`, `GetLongArrayElements`, `GetStringUTFChars` return values
-  are now null-checked before use in `OptiXApiBindings.cpp`; prevents undefined behaviour
-  under JVM memory pressure.
-- JNI string and array resources released on every exit path (including C++ exception
-  paths) in `OptiXApiBindings.cpp` and `MengerJNIBindings.cpp`.
-- `createPipeline` rejects `groupHandles` arrays containing `0L` entries before calling
-  the OptiX SDK, preventing a driver-level crash on failed program group creation.
-- `FindClass` result null-checked before `ThrowNew` in all `MengerJNIBindings.cpp` catch
-  blocks (regression of Sprint 22 fix re-introduced in new file).
-
----
+## [0.8.0] - 2026-07-02
 
 ## [0.7.1] - 2026-05-28
 
@@ -1186,29 +1038,4 @@
 [0.2.1]: https://gitlab.com/lilacashes/menger/-/compare/0.2.0...0.2.1
 [0.2.0]: https://gitlab.com/lilacashes/menger/-/compare/0.1.0...0.2.0
 [0.1.0]: https://gitlab.com/lilacashes/menger/-/commit/f90eee11
-
-## [0.8.0] - 2026-07-02
-
-### Added
-- **Spectral dispersion** — wavelength-dependent refraction via Cauchy IOR model
-- Hero-wavelength per-pixel sampling (λ ∈ [380, 730] nm) stratified per accumulation frame
-- CIE XYZ→sRGB spectral color conversion (Wyman et al. 2013 analytic fit)
-- `glass-dispersive` (V_d=59) and `diamond-dispersive` (V_d=33) material presets
-- PrismDispersion and DiamondFire DSL demo scenes (visible rainbow/color fringing)
-- `spectralRays` counter in `--stats` output and JSON export
-- `dispersion=<Abbe number>` CLI parameter and DSL Material field (default 0 = off)
-
-### Changed
-- Bumped optix-jni 0.1.7→0.1.10 (Cauchy params, spectral tint, frame-index stratification)
-- Bumped menger-common 0.1.1→0.1.4 (Cauchy coefficients, dispersive presets)
-- `Material.cauchyCoefficients(ior, dispersion)` computes valid Cauchy A, B for any Abbe number
-- `ObjectSpec` now carries `dispersion: Float = 0.0f` for CLI/DSL → native pipeline
-- 4D hit shaders updated: `getInstanceMaterialPBR` and `traceRefractedRay` accept cauchy_a/b
-
-### Fixed
-- `heroWavelengthToRGB` was dead code — spectral tint never applied (optix-jni 0.1.8)
-- `addPlaneInstanceNative` JNI param shift corrupted checkerboard planes (optix-jni 0.1.9)
-- Parametric sphere integration test: replaced broken CLI `type=parametric` with working DSL scene
-- ScriptParitySuite: excluded DSL-only `parametric` type from CLI parity assertions
-- `spectralRays` missing from JSON stats export (code review finding #1)
 
