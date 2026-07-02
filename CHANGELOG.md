@@ -1000,6 +1000,7 @@
 [0.7.1]: https://gitlab.com/lilacashes/menger/-/compare/v0.7.0...0.7.1
 [0.7.0]: https://gitlab.com/lilacashes/menger/-/compare/v0.6.2...0.7.0
 [0.7.7]: https://gitlab.com/lilacashes/menger/-/compare/0.7.6...0.7.7
+[0.8.1]: https://gitlab.com/lilacashes/menger/-/compare/0.8.0...0.8.1
 [0.8.0]: https://gitlab.com/lilacashes/menger/-/compare/0.7.9...0.8.0
 [0.7.8]: https://gitlab.com/lilacashes/menger/-/compare/0.7.7...0.7.8
 [0.6.1]: https://gitlab.com/lilacashes/menger/-/compare/0.6.0...0.6.1
