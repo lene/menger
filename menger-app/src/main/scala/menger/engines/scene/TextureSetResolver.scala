@@ -39,36 +39,47 @@ object TextureSetResolver:
   /** Convention-specific pattern matching. */
   private trait Convention:
     def classify(name: String): MapType
+    /** Strip extension, lower case, then split into underscore-delimited components. */
+    protected def components(name: String): Set[String] =
+      val dot = name.lastIndexOf('.')
+      val base = if dot >= 0 then name.substring(0, dot).toLowerCase else name.toLowerCase
+      base.split("_").toSet
 
   /** Poly Haven: lowercase with underscores, e.g. `my_material_diff.png`. */
   private object PolyHaven extends Convention:
-    def classify(name: String): MapType = name.toLowerCase match
-      case n if n.contains("_diff")   || n.contains("_albedo")   => MapType.Color
-      case n if n.contains("_nor_gl") => MapType.NormalGL
-      case n if n.contains("_nor_dx") => MapType.NormalDX
-      case n if n.contains("_rough")  => MapType.Roughness
-      case n if n.contains("_metal")  => MapType.Metallic
-      case n if n.contains("_ao")     => MapType.AO
-      case n if n.contains("_disp")   => MapType.Height
-      case _ => MapType.Unknown
+    def classify(name: String): MapType =
+      val c = components(name)
+      if c.contains("diff") || c.contains("albedo") then MapType.Color
+      else if c.contains("nor") && c.contains("gl") then MapType.NormalGL
+      else if c.contains("nor") && c.contains("dx") then MapType.NormalDX
+      else if c.contains("rough") then MapType.Roughness
+      else if c.contains("metal") then MapType.Metallic
+      else if c.contains("ao") then MapType.AO
+      else if c.contains("disp") then MapType.Height
+      else MapType.Unknown
 
   /** ambientCG: PascalCase, e.g. `PavingStones067_Color_4K.jpg`.
     * Resolution suffix is stripped before classification.
     */
   private object AmbientCG extends Convention:
-    private val resSuffixes = Seq("_1K", "_2K", "_4K", "_8K", "_16K")
+    private val resSuffixes = Seq("_1k", "_2k", "_4k", "_8k", "_16k")
+    override protected def components(name: String): Set[String] =
+      val stripped = resSuffixes.foldLeft(super.components(name))((parts, s) => parts - s)
+      // Also handle merged like "color_4k" → remove resolution components
+      val base = name.toLowerCase
+      val dot = base.lastIndexOf('.')
+      val noExt = if dot >= 0 then base.substring(0, dot) else base
+      resSuffixes.foldLeft(noExt.split("_").toSet)((set, s) => set - s)
     def classify(name: String): MapType =
-      val stripped = name.toLowerCase
-      val base = resSuffixes.foldLeft(stripped)((n, s) => n.replace(s, ""))
-      base match
-        case n if n.contains("_color")  || n.contains("_basecolor") => MapType.Color
-        case n if n.contains("_normalgl") => MapType.NormalGL
-        case n if n.contains("_normaldx") => MapType.NormalDX
-        case n if n.contains("_roughness") => MapType.Roughness
-        case n if n.contains("_metalness") => MapType.Metallic
-        case n if n.contains("_ambientocclusion") => MapType.AO
-        case n if n.contains("_displacement") => MapType.Height
-        case _ => MapType.Unknown
+      val c = components(name)
+      if c.contains("color") || c.contains("basecolor") then MapType.Color
+      else if c.contains("normalgl") then MapType.NormalGL
+      else if c.contains("normaldx") then MapType.NormalDX
+      else if c.contains("roughness") then MapType.Roughness
+      else if c.contains("metalness") then MapType.Metallic
+      else if c.contains("ambientocclusion") then MapType.AO
+      else if c.contains("displacement") then MapType.Height
+      else MapType.Unknown
 
   /** Detect which convention a directory uses.
     * Returns the convention that classifies the most files into known types.

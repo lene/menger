@@ -69,9 +69,13 @@ object TextureManager extends LazyLogging:
       specs.flatMap(_.texture) ++ specs.flatMap(_.normalMap) ++ specs.flatMap(_.roughnessMap) ++
       specs.flatMap(_.metallicMap) ++ specs.flatMap(_.aoMap) ++ specs.flatMap(_.heightMap)
     ).distinct
+    // Guard: static texture filenames must not collide with synthetic texture-set keys
+    staticTextureFilenames.foreach: name =>
+      require(!name.startsWith("set:"),
+        s"Static texture filename '$name' clashes with reserved texture-set key prefix 'set:'. Rename the file.")
     val textureSets = specs.flatMap(_.textureSet).distinct
     val videoTextures = specs.flatMap(_.videoTexture).distinctBy(_.textureKey)
-    val textureCount = staticTextureFilenames.length + videoTextures.length + textureSets.length * 5
+    val textureCount = staticTextureFilenames.length + videoTextures.length + textureSets.length * 7 // up to 7 map types
 
     if textureCount == 0 then
       Map.empty
@@ -101,7 +105,8 @@ object TextureManager extends LazyLogging:
         resolved.color.foreach: p =>
           loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:color" -> idx)
         resolved.normal.foreach: p =>
-          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:normal" -> idx)
+          loadTexture(p, setName, renderer, textureDir, needsDxConversion = resolved.normalNeedsDXConversion)
+            .foreach(idx => results += s"set:$setName:normal" -> idx)
         resolved.roughness.foreach: p =>
           loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:roughness" -> idx)
         resolved.metallic.foreach: p =>
@@ -121,10 +126,40 @@ object TextureManager extends LazyLogging:
     path: Path,
     setName: String,
     renderer: OptiXRenderer,
-    textureDir: String
+    textureDir: String,
+    needsDxConversion: Boolean = false
   ): Option[Int] =
     val filename = s"$setName/${path.getFileName.toString}"
-    loadStaticTexture(filename, renderer, textureDir).map(_._2)
+    if needsDxConversion then
+      loadDxNormalMap(filename, renderer, textureDir)
+    else
+      loadStaticTexture(filename, renderer, textureDir).map(_._2)
+
+  /** Load a DirectX normal map, inverting the green channel (Y+) to OpenGL convention. */
+  private def loadDxNormalMap(
+    filename: String,
+    renderer: OptiXRenderer,
+    textureDir: String
+  ): Option[Int] =
+    TextureLoader.load(filename, textureDir) match
+      case Success(data) =>
+        val converted = TextureData(
+          data.name,
+          invertGreenChannel(data.data),
+          data.width,
+          data.height
+        )
+        uploadTextureData(converted, renderer).map(_._2)
+      case Failure(e) =>
+        logger.error(s"Failed to load DX normal map '$filename': ${e.getMessage}")
+        None
+
+  /** Invert the green channel of RGBA pixel data (DX Y+ → GL Y-). */
+  private def invertGreenChannel(bytes: Array[Byte]): Array[Byte] =
+    val result = bytes.clone()
+    (1 until result.length by 4).foreach: i =>
+      result(i) = (255 - (result(i) & 0xFF)).toByte
+    result
 
   private def loadStaticTexture(
     filename: String,
