@@ -425,6 +425,10 @@ fi
 echo -e "${YELLOW}--- Curves ---${NC}"
 run_test "Trefoil knot" "-o --scene examples.dsl.TrefoilKnot -s $OUTPUT_DIR/153-trefoil-knot.png"
 
+# PBR Texture Sets (ambientCG + Poly Haven conventions)
+echo -e "${YELLOW}--- PBR Texture Sets ---${NC}"
+run_test "PBR texture set (tiny-pbr)" "-o --objects type=sphere:texture-set=tiny-pbr --plane y:-2 --texture-dir scripts/test-assets/texture-sets --allow-uniform-render -s $OUTPUT_DIR/157-pbr-tiny.png"
+
 echo -e "${BLUE}=== Static Tests Complete ===${NC}"
 echo -e "Output files in: ${GREEN}$OUTPUT_DIR/${NC}"
 if [ "$UPDATE_REFERENCES" = true ]; then
