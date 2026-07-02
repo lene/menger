@@ -1,7 +1,7 @@
 package menger.engines.scene
 
 import java.nio.file.{Files, Path}
-import scala.util.{Failure, Success, Try}
+import scala.util.{Success, Try}
 
 /** Optional sidecar metadata for a PBR texture set.
   *

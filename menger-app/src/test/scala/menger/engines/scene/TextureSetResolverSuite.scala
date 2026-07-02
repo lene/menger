@@ -1,7 +1,6 @@
 package menger.engines.scene
 
 import java.nio.file.{Files, Path}
-import scala.jdk.CollectionConverters.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -11,7 +10,8 @@ class TextureSetResolverSuite extends AnyFlatSpec with Matchers:
     val candidates = List(
       Path.of(s"scripts/test-assets/texture-sets/$name"),
       Path.of(s"../scripts/test-assets/texture-sets/$name"),
-      Path.of(s"menger-app/../scripts/test-assets/texture-sets/$name")
+      Path.of(s"menger-app/../scripts/test-assets/texture-sets/$name"),
+      Path.of(s"/builds/lilacashes/menger/scripts/test-assets/texture-sets/$name")
     )
     candidates.find(Files.isDirectory(_)).getOrElse(
       Path.of(s"scripts/test-assets/texture-sets/$name"))
