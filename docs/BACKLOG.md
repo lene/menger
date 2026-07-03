@@ -122,3 +122,30 @@ last non-physical "look" knobs. **Blast radius: every committed reference image 
 (all integration + visual tests), so this is its own workstream, not a caustics tweak.
 Sprint 33 sidesteps it by validating caustics via the on−off **caustic-delta** metric, which
 cancels the constant ambient and the shared direct term. Requires an optix-jni release.
+
+### F-CAUSTICS-LAYERING: Move caustics orchestration into menger-geometry
+
+optix-jni ships two copies of the caustics native code: the live *shader*
+(`caustics_ppm.cu`) and a live *orchestrator* (`CausticsRenderer.cpp`), while menger-geometry
+carries a **dead** `CausticsRenderer.cpp` (`setCausticsRenderer` never called). Finish the
+never-wired Sprint-25 injection (`ICausticsRenderer` / `setCausticsRenderer`) so
+menger-geometry's copy becomes the single live orchestrator and optix-jni keeps only the data
+contract + seams (delete its orchestrator copy). Sprint 33 deferred this ("Physics + binding
+fix only") — the 0.1.12 release is physics + `CausticsStats` binding, no layering move.
+Requires an optix-jni release.
+
+### F-CAUSTICS-MULTITARGET: Per-instance ΔΩ-weighted photon emission
+
+P7 emission currently targets a single merged bounding sphere over all refractive instances
+(correct for one glass object; approximate for several). Emit one bounding sphere per
+refractive instance, pick target *i* per photon with probability ΔΩ_i/ΣΔΩ, flux Φ = I·ΣΔΩ/N.
+Overlapping spheres double-count (documented approximation). Needed for correct multi-object /
+off-axis caustic brightness partitioning.
+
+### F-CAUSTICS-HITPOINT-TRACE: Honor optixTrace result in hit-point generation + PLY export
+
+`__raygen__hitpoints` ignores its `optixTrace` result and analytically re-intersects
+`planes[0]` only, so hit points are created even where the sphere occludes the floor. Honor the
+actual nearest hit (create a hit point only when it *is* the plane). Pairs with a
+`MengerMeshExporter` / `--export-ply` triangle-mesh dumper so cube/sponge scenes get pbrt
+`plymesh` twins for cross-validation. Deferred from Sprint 33.7 (not required for 0.1.12).

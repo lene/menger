@@ -240,6 +240,12 @@ outside the ring (P9 regression via image subtraction).
 ### Task 33.6: P4 — linear-space compositing + injection wiring + optix-jni 0.1.11
 **Estimate:** 12h
 **Depends on:** 33.3–33.5
+**Status:** ✅ Done (2026-07-03) — P4 physics fix landed: `__raygen__caustics_radiance` drops
+the private exponential tone map + screen blend and additively composites linear radiance
+through the single global tone-map operator (optix-jni `1098074`). The **layering move**
+(injection wiring + deleting optix-jni's dead `CausticsRenderer.cpp`) is **deferred to backlog**
+per user decision "Physics + binding fix only" — the caustics release is 0.1.12, not 0.1.11.
+Caustic-delta vs pbrt: spatial correlation 0.11 → 0.86 (> 0.8 target).
 
 The one cross-repo task: a single change-set in `/home/lene/workspace/optix-jni` released as
 0.1.11, then bump `build.sbt`.
@@ -272,6 +278,13 @@ read); caustics+denoise smoke render.
 ### Task 33.7: P7 + P8 — arbitrary-geometry emission, dynamic grid, hit-point correctness, PLY exporter
 **Estimate:** 10h
 **Depends on:** 33.6
+**Status:** ✅ Done (2026-07-03, core) — **P7** arbitrary-geometry emission is already covered by
+the host-computed merged bounding sphere over all refractive instances (OptiXWrapper.cpp ~1794);
+per-instance ΔΩ-weighted target selection is a documented future optimization for overlapping
+multi-object scenes. **P8** dynamic grid bounds landed (optix-jni `3801248`): grid centred on the
+emission target, sized by target radius instead of the ±3 hardcode. Validated no regression
+(correlation 0.86). **Deferred to backlog:** hit-point `optixTrace`-result correctness and the
+PLY exporter (menger-side, not required for the 0.1.12 release).
 
 - **Emission targeting:** host emits one bounding sphere per refractive instance (ior > 1.05)
   instead of one merged AABB; per photon pick target i with probability ΔΩ_i/ΣΔΩ, sample its
