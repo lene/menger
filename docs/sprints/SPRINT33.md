@@ -93,7 +93,13 @@ Shader: `menger-geometry/src/main/native/shaders/caustics_ppm.cu`.
   apples-to-apples. A true float-HDR film buffer is a backlog item.
 - **Struct/host/base-shader changes require an optix-jni release.** All such changes batch
   into **one 0.1.11 release** (task 33.6). Shader-only fixes (33.3–33.5) land in menger first
-  and are verified via `CausticsStats` before the release.
+  and are verified via the **L3 pbrt harness + L1 CPU suite** in the interim.
+- **`getCausticsStats` is broken in optix-jni ≤ 0.1.10** (`JNIBindings.cpp` binds
+  `getCausticsStatsNative` to the nested class name `io/github/lene/optix/OptiXRenderer$CausticsStats`,
+  but the artifact ships a **top-level** `case class CausticsStats` → `NoClassDefFoundError`).
+  The L2 statistical suite (`CausticsStatsSuite`) therefore **cancels** its structural rungs
+  until the FindClass path is fixed in the 0.1.11 release (Task 33.6). Until then, 33.3–33.5
+  are validated by L3 (pbrt) + L1 (CPU), not by `CausticsStats`.
 
 ---
 
@@ -126,19 +132,22 @@ scene against a committed, manifest-locked pbrt reference.
 ### Task 33.2: Test skeleton — analytic C1–C4 (CPU) + statistical C5–C7 (GPU)
 **Estimate:** 8h
 **Depends on:** 33.1 (shared canonical-scene constants)
+**Status:** ✅ Done (2026-07-03)
 
 New package `menger-app/src/test/scala/menger/caustics/`:
 
 - `CausticsPhysicsSuite` (CPU, `AnyFlatSpec`, normal test tier): C1 cone-pdf/power closed
   forms; C3 Snell exit angles < 0.01 rad + TIR at asin(1/1.5); C4 paraxial focal point ±0.1;
-  exact Fresnel values (F(0°,1.5)=0.04, Brewster, grazing, R+T=1).
-- GPU suites (`taggedAs GPURequired`, headless render + `getCausticsStats`, small budgets so
-  the tier runs < 2 min): `CausticsEmissionStatsSuite` (C1 count/flux, C2 hit rate ≈ ΔΩ ratio
-  ±5%), `CausticsEnergySuite` (C5 conservation ±5%, reflect:refract ≈ F̄),
-  `CausticsConvergenceSuite` (C6 radius monotonic; P6 iteration-invariance — fails today),
-  `CausticsBrightnessSuite` (C7 peak/ambient > 1.5 in linear PFM).
-- Suites start red/pending, tagged by the defect ID they wait on; each physics task flips its
-  rungs green. Update arc42 §10 ladder status honestly.
+  exact Fresnel values (F(0°,1.5)=0.04, Brewster, grazing, R+T=1). **12 tests green.**
+- `CausticsStatsSuite` (single GPU suite, `taggedAs GPURequired`, headless render +
+  `getCausticsStats`, small budget): C1 count/flux, C2 hit rate, C5 conservation, C6 radius
+  monotonicity + P6 iteration-invariance, C7 peak/ambient. Consolidated into one suite rather
+  than four (fewer files; same scene fixture).
+- Structural rungs currently **cancel** because `getCausticsStats` is broken in optix-jni
+  ≤ 0.1.10 (FindClass mismatch, unblocked in Task 33.6); physics rungs are **pending**, tagged
+  by the defect ID they wait on (P1→33.3, P6→33.3, P2/P9→33.4, P5→33.5). Each physics task
+  flips its rungs green. The GPU render itself executes today (`MengerRenderer` loads the JNI
+  symbols from `libmengergeometry.so`); only the stats readback is blocked.
 
 ---
 
@@ -202,6 +211,10 @@ The one cross-repo task: a single change-set in `/home/lene/workspace/optix-jni`
   `ICausticsRenderer` so the orchestrator runs its passes without `OptiXWrapper` privates; wire
   the injection call path; **delete optix-jni's `CausticsRenderer.cpp`**. Replace the hardcoded
   grid bounds with plumbing for a hit-point AABB (33.7 supplies the algorithm).
+  **Fix `JNIBindings.cpp` `getCausticsStatsNative`**: `FindClass` must use the top-level
+  `io/github/lene/optix/CausticsStats`, not the nested `OptiXRenderer$CausticsStats` — the
+  current mismatch aborts the whole L2 `CausticsStatsSuite` (`NoClassDefFoundError`). This
+  unblocks the C1/C2/C5/C6/C7 structural rungs.
 - **menger-geometry:** its `CausticsRenderer` becomes the live orchestrator via injection;
   reorder passes to hit points → grid → photons → **radiance → final render**.
   `__raygen__caustics_radiance` deletes the private tone map, screen blend and byte writes, and
