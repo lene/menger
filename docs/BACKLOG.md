@@ -149,3 +149,16 @@ off-axis caustic brightness partitioning.
 actual nearest hit (create a hit point only when it *is* the plane). Pairs with a
 `MengerMeshExporter` / `--export-ply` triangle-mesh dumper so cube/sponge scenes get pbrt
 `plymesh` twins for cross-validation. Deferred from Sprint 33.7 (not required for 0.1.12).
+
+### F-CAUSTICS-STATS: Wire the missing CausticsStats emission counters
+
+Two `CausticsStats` gaps surfaced once the 0.1.12 FindClass fix let `CausticsStatsSuite`
+actually execute:
+- `photons_toward_sphere` (OptiXData.h) is declared but never incremented in
+  `caustics_ppm.cu`, so it (and `sphereHitRate`, which divides by it) reads 0. The C2
+  importance-sampling rung is `pending` until an emission-side `atomicAdd` lands.
+- `photons_emitted` counts launched photon *threads*, not requested photons: the 2D photon
+  launch rounds the per-iteration count up to a multiple of 1024, while `total_photons_traced`
+  (used for flux normalization) uses the requested count — a ~0.3% inconsistency for
+  non-grid-aligned photon budgets. Either bounds-check emission to the requested count or
+  normalize by the launched count. Requires an optix-jni release.
