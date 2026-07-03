@@ -210,7 +210,7 @@ class LSystemTurtle4D(
     points: SVec[Vector[4]],
     widths: SVec[Float]
   ): (List[ObjectSpec], (SVec[Vector[4]], SVec[Float])) =
-    if points.isEmpty then (specs, (SVec.empty, SVec.empty))
+    if points.length < 2 then (specs, (SVec.empty, SVec.empty))
     else
       val projectedPoints = points.map(v4 => project4DTo3D(v4, rotation, projection))
       val flatPoints = SVec.from(projectedPoints.flatMap(p => Seq(p.x, p.y, p.z)))

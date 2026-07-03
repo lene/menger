@@ -43,6 +43,7 @@ case class TextureMaps(normalMap: Option[String] = None, roughnessMap: Option[St
  *   type=sponge-surface:pos=0,2,0:size=2.0:level=2.5:color=#FFFF00
  *   type=cube-sponge:pos=1,0,0:size=2.0:level=2:color=#FF00FF
  *   type=sphere:pos=0,0,0:material=glass:ior=1.7
+ *   type=sphere:pos=0,0,0:material=glass:ior=1.5:dispersion=33
  *   type=cube:pos=0,0,0:material=metal:color=#FFD700
  *   type=cube:pos=0,0,0:texture=brick.png
  *   type=tesseract:pos=0,0,0:size=2:rot-xw=30:rot-yw=15:color=#4488FF
@@ -364,7 +365,7 @@ object ObjectSpec extends LazyLogging:
       case Some(dStr) =>
         Try(dStr.toFloat).toEither.left.map { e =>
           s"Invalid dispersion value '$dStr': ${e.getMessage}. " +
-            "Dispersion (Abbe number) must be a positive number (e.g., dispersion=33)"
+            "Dispersion (Abbe number) must be a non-negative number (e.g., dispersion=33)"
         }.flatMap { d =>
           if (d < 0f) Left(s"Dispersion must be non-negative, got $d")
           else Right(d)

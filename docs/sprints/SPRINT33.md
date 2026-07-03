@@ -397,6 +397,8 @@ reproducibility claims are not backed by an active fitness function.
 ### Task 33.14: ObjectSpec dispersion cleanup
 **Estimate:** 0.5h
 **Finding:** Sprint 32 code review (LOW)
+**Status:** ✅ Done (2026-07-04) — parse error message now says "non-negative" (matches the
+`d < 0f` validation) and a `dispersion=33` example added to the `parse()` docstring.
 
 - Fix error message: "must be a positive number" → "must be non-negative".
 - Add `dispersion` to the `parse()` method docstring.
@@ -406,6 +408,8 @@ reproducibility claims are not backed by an active fitness function.
 ### Task 33.15: LSystemTurtle4D minimum-points guard
 **Estimate:** 0.5h
 **Finding:** Sprint 31 CODE_IMPROVEMENTS (LOW)
+**Status:** ✅ Done (2026-07-04) — 4D `emitRun` now guards `points.length < 2` (was
+`points.isEmpty`), mirroring the 3D turtle; single-point runs no longer emit degenerate curves.
 
 Mirror the 3D turtle's `points.length >= 2` check in the 4D turtle's `emitRun`. Without it,
 single-point runs produce degenerate curves (all points identical).
