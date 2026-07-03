@@ -42,3 +42,16 @@ object CausticsCanonical:
   )
 
   SceneRegistry.register("caustics-canonical", scene)
+
+/**
+ * Caustics-OFF twin of [[CausticsCanonical]] — identical geometry, lighting, camera and
+ * tone map, with caustics disabled. Subtracting its render from the caustics-on render
+ * isolates the caustic contribution (the shared direct + ambient lighting cancels), which is
+ * the Sprint 33 L3 "caustic-delta" validation metric (see docs/sprints/SPRINT33.md).
+ *
+ * Usage: --scene examples.dsl.CausticsCanonicalOff --save-name off.pfm
+ */
+object CausticsCanonicalOff:
+  val scene: Scene = CausticsCanonical.scene.copy(caustics = None)
+
+  SceneRegistry.register("caustics-canonical-off", scene)
