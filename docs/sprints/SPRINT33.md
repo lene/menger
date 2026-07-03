@@ -1,9 +1,42 @@
 # Sprint 33: Production-Quality Caustics (Physically Validated)
 
 **Sprint:** 33 - Production-Quality Caustics
-**Status:** 🔄 In Progress — scope rewritten 2026-07-02
+**Status:** 🔄 In Progress — scope rewritten 2026-07-02; **course-corrected 2026-07-03** (see below)
 **Estimate:** ~77 hours (range 65–85)
 **Branch:** `feature/sprint-33`
+
+> ### ⚠️ Course correction (2026-07-03) — architecture ground-truth was wrong
+>
+> Empirical investigation (strace + md5 + real optix-jni tags) overturned three premises of
+> the 2026-07-02 plan. Corrections, all verified:
+>
+> 1. **The live caustics shader is optix-jni's, not menger-geometry's.** optix-jni's
+>    `optix_shaders.cu` `#include`s `caustics_ppm.cu` (+ `hit_menger4d.cu` + `hit_curve.cu`),
+>    producing the **one monolithic `optix_shaders.ptx`** that `PipelineManager` loads for
+>    **every** scene. menger-geometry's `optix_shaders_menger.ptx` is an incomplete (no curve
+>    programs) duplicate that is **never loaded**. ∴ caustics physics fixes (P1–P9) must land
+>    in **optix-jni's** `caustics_ppm.cu`. The Decision-6 "move orchestration to
+>    menger-geometry" layering is deferred to backlog (it also wouldn't de-Menger optix-jni,
+>    which still owns menger4d + curve). *(user decision 2026-07-03: "physics + binding fix
+>    only")*
+> 2. **Release is 0.1.12, not 0.1.11.** 0.1.11 is already published as a PBR-texture release.
+>    Caustics batches into **optix-jni 0.1.12** (P1–P9 + the `getCausticsStats` FindClass fix
+>    + the P4 linear-composite seam). menger `build.sbt` pins `0.1.12-SNAPSHOT` during dev.
+> 3. **Whole-image L3 (C8) against pbrt `sppm` is not achievable** and must change to a
+>    **caustic-delta metric**. pbrt has full global illumination; menger is direct + caustics
+>    only, and menger's diffuse model is non-physical (`0.3` constant ambient + `0.7` direct
+>    blend), so the direct-lit floor sits ~14% high and GI-dominated regions differ
+>    structurally — none of which caustic fixes touch. Validation switches to comparing the
+>    **caustic contribution in isolation** (`caustics-on − caustics-off`), which cancels
+>    ambient + direct. The physical-lighting rewrite (drop ambient/blend) is backlogged as
+>    **F-PBR-DIFFUSE** (regenerates every reference image). *(user decisions 2026-07-03:
+>    "diagnose floor/units first" → "delta metric only; backlog the lighting rewrite")*
+>
+> **Progress under the correction:** P1 (emission measure) + P6 (iteration normalization) +
+> the FindClass fix are applied to optix-jni's live shader and **proven live** (0.1.12-SNAPSHOT
+> published, menger repinned, strace-confirmed): canonical-scene mean brightness moved from
+> **+68% → +31%** vs pbrt. Tasks 33.3–33.6 are re-scoped around this reality below; the task
+> bodies still describing the menger-geometry shader as "live" are superseded by this box.
 **Dependencies:** Sprint 32 (spectral machinery enables dispersive caustics, task 33.10).
 The current PPM implementation (`menger-geometry/.../shaders/caustics_ppm.cu`) is the input
 state — kept as the algorithm, its physics rebuilt.
@@ -36,8 +69,12 @@ different per-pixel noise). Instead:
   hit-rate vs geometric cross-section. Ladder rungs C2, C5, C6, C7. Driven through the
   already-plumbed `CausticsStats`.
 - **L3 — Converged-reference (pbrt-v4):** menger vs pbrt in **linear space** (menger gains a
-  minimal PFM float dump), quantitative metrics (`imgtool` MSE/FLIP + SSIM), fixed seeds,
-  thresholds locked from measured converged results. Ladder rung C8.
+  minimal PFM float dump), quantitative metrics (`imgtool` MSE/FLIP), fixed seeds, thresholds
+  locked from measured converged results. Ladder rung C8. **Course-corrected (2026-07-03):**
+  the metric compares the **caustic contribution in isolation** (`caustics-on − caustics-off`
+  on each side), because whole-image comparison is dominated by pbrt's global illumination and
+  menger's non-physical ambient — neither of which caustic physics affects (see the correction
+  box above; F-PBR-DIFFUSE backlog).
 - **Bytewise** is reserved for menger-vs-menger determinism (task 33.12).
 
 ---
@@ -154,6 +191,10 @@ New package `menger-app/src/test/scala/menger/caustics/`:
 ### Task 33.3: P1 + P6 — emission power/pdf and per-iteration normalization
 **Estimate:** 4h
 **Depends on:** 33.2
+**Status:** ✅ Done (2026-07-03) — applied to **optix-jni's** live `caustics_ppm.cu` (not the
+menger-geometry dead copy; see correction box), bundled with the `getCausticsStats` FindClass
+fix into `optix-jni 0.1.12-SNAPSHOT`. Validated live: canonical mean brightness +68% → +31% vs
+pbrt (whole-image; caustic-delta metric lands in the 33.1 harness extension).
 
 - `caustics_ppm.cu`: `calculatePhotonFlux` takes an emission-measure factor from the emit
   helpers (point: `I·2π(1−cosθmax)/N`; directional: `E·π·r_disk²/N`); `__raygen__caustics_radiance`

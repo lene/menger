@@ -106,3 +106,19 @@ progressively-refined preview. Pairs with the real-time-preview backlog item (F1
 Sprint 33 hand-authors pbrt twin scenes and adds a triangle-mesh → PLY exporter. A full
 `Scene` → `.pbrt` converter (geometry, materials, lights, camera) would let *any* menger
 scene be cross-validated against pbrt automatically, not just the hand-picked ladder scenes.
+
+### F-PBR-DIFFUSE: Physically based direct lighting (drop the 0.3 ambient + 0.7 blend)
+
+menger's diffuse shading (`optix-jni helpers.cu:calculateLighting`) is **not physically
+based**: it returns `AMBIENT_LIGHT_FACTOR (0.3) + direct · DIFFUSE_BLEND_FACTOR (0.7)` — a
+constant 30% ambient fill plus a 70% direct blend. Measured against the analytic
+Lambertian direct radiance `ρ/π · I/d² · cosθ`, the constant ambient makes lit floor ~14%
+too bright and lifts dark/grazing regions (Sprint 33 diagnosis: menger floor 0.882 vs
+pbrt/analytic 0.777 on a matched patch). pbrt is physically correct.
+
+Making menger physically based (ambient → 0, exact `ρ/π`, true `1/d²` instead of the
+`1/(1+d²)` softening) would let whole-image comparison against pbrt succeed and remove the
+last non-physical "look" knobs. **Blast radius: every committed reference image regenerates**
+(all integration + visual tests), so this is its own workstream, not a caustics tweak.
+Sprint 33 sidesteps it by validating caustics via the on−off **caustic-delta** metric, which
+cancels the constant ambient and the shared direct term. Requires an optix-jni release.
