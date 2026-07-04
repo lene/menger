@@ -163,13 +163,12 @@ actually execute:
   non-grid-aligned photon budgets. Either bounds-check emission to the requested count or
   normalize by the launched count. Requires an optix-jni release.
 
-### F-CAUSTICS-AUTO-CLI: `None`=auto caustics CLI/DSL surface (Sprint 33.9)
+### F-CAUSTICS-AUTO-CLI: photon/iteration auto-derivation (residual of Sprint 33.9)
 
-optix-jni 0.1.13 auto-derives the PPM gather radius from geometry when it is left unset
-(`initial_radius <= 0`), but the menger `Caustics` DSL / CLI cannot yet express "unset": the
-`menger-common` `CausticsConfig` `require`s `initialRadius > 0`, so passing the ≤0 auto sentinel
-throws. Making `Caustics(radius: Option[Float] = None, …)` map `None` to the sentinel needs
-`CausticsConfig` to accept it — a `menger-common` release (0.1.5). Until then the auto radius is
-reachable via an explicit radius or the `MENGER_CAUSTICS_RADIUS` env override. Also fold in the
-33.9 warnings (caustics enabled with no refractive objects / no shadow-capable lights) and the
-photon/iteration auto-derivation once the sentinel plumbing exists.
+The **radius** `None`=auto surface shipped in Sprint 33.9 (menger-common 0.1.5 relaxed
+`CausticsConfig` to accept `AutoRadius`=0.0; `Caustics.initialRadius: Option[Float]`; CLI
+`--caustics-radius` unset = auto). Still outstanding: **photon count and iteration count** have
+no native auto-derive path, so they remain plain `Int` in the DSL/CLI. When the native side
+grows a photon/iteration auto-tuning heuristic (budget from ΣΔΩ per light, iterations tied to
+`RenderSettings.accumulation` — sketched in 33.8), lift them to `Option[Int] = None` on
+`Caustics` and the CLI the same way the radius was done.

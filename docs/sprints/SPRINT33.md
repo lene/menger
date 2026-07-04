@@ -333,17 +333,24 @@ its best radius. **Deferred:** photon-budget ΣΔΩ derivation + iteration/accum
 ### Task 33.9: CLI/DSL surface finalization
 **Estimate:** 3h
 **Depends on:** 33.8
-**Status:** ⏸ Deferred (2026-07-04) — the `None`=auto surface needs `menger-common`'s
-`CausticsConfig` to accept the ≤0 auto sentinel (it currently `require`s `initialRadius > 0`),
-which is a separate published-artifact release (menger-common 0.1.5). The auto radius itself
-ships in optix-jni 0.1.13 and is reachable via an explicit radius or `MENGER_CAUSTICS_RADIUS`.
-Tracked as F-CAUSTICS-AUTO-CLI in `docs/BACKLOG.md`.
+**Status:** ✅ Done (2026-07-04) — shipped the `None`=auto radius surface. `menger-common`
+0.1.5 relaxes `CausticsConfig`'s `require(initialRadius > 0)` to accept `0.0`
+(`CausticsConfig.AutoRadius`) as the auto-derive sentinel (binary-compatible; optix-jni stays
+on its own pin, sbt evicts to 0.1.5). `Caustics.initialRadius` is now `Option[Float]`
+(`None` = auto; presets `Default`/`HighQuality` keep an explicit `Some(1.0f)`, so no reference
+drift). CLI `--caustics-radius` lost its default → unset = auto (verified pixel-identical to the
+old 0.1 default on the `caustics minimal` smoke reference at its 1000-photon budget). Added
+scene-precondition warnings (caustics enabled + no refractive object / no lights → `logger.warn`,
+never fatal) in `SceneConverter`.
 
-- `Caustics(photons: Option[Int] = None, radius: Option[Float] = None,
-  iterations: Option[Int] = None, alpha: Float = 0.7f)` — `None` = auto (33.8); same optionality
-  on the CLI. Warn (don't fail) when caustics are enabled with no refractive objects or no
-  shadow-capable lights; document the `--transparent-shadows` interplay. Update
-  `examples.dsl.CausticsDemo`/`GlassSphere`/`ParametricSphereCaustics`; extend
+Scope trim (ponytail): only the **radius** gets `None`=auto because only the radius has a native
+auto-derive path (optix-jni 0.1.13). Photon/iteration auto-derivation is not implemented natively,
+so wrapping them in `Option[Int]` would be indirection with no behaviour — left as `Int`, tracked
+in F-CAUSTICS-AUTO-CLI (`docs/BACKLOG.md`).
+
+- `Caustics(enabled, photonsPerIteration, iterations, initialRadius: Option[Float] = None, alpha)`
+  — `None` = auto; same optionality on the CLI (`--caustics-radius` unset = auto). Warns (doesn't
+  fail) when caustics are enabled with no refractive object or no lights. Extended
   `CausticsCLIOptionsSuite` and `menger.dsl.CausticsSuite`.
 
 ---

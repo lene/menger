@@ -25,6 +25,9 @@ import menger.video.EnvMapVideo
   */
 object SceneConverter extends LazyLogging:
 
+  /** Objects at or below this IOR refract negligibly and seed no caustics. */
+  private val RefractiveIorThreshold = 1.05f
+
   case class SceneConfigs(
     scene: SceneConfig,
     camera: CameraConfig,
@@ -59,6 +62,7 @@ object SceneConverter extends LazyLogging:
     )
     val lights     = dslScene.lights.map(_.toCommonLight)
     val caustics   = dslScene.caustics.map(_.toCausticsConfig).getOrElse(fallbackCaustics)
+    warnCausticsPreconditions(caustics, objectSpecs, lights)
     val background = dslScene.background.map(_.toCommonColor)
     val planes     = dslScene.planes.map(p => PlaneConfig(p.toPlaneSpec, Some(p.toPlaneColorSpec), p.material))
     val render     = dslScene.render.map(_.toRenderConfig)
@@ -158,6 +162,21 @@ object SceneConverter extends LazyLogging:
 
   private def warnMaterial(material: Material): Unit =
     material.validate().foreach(w => logger.warn(s"[Material] $w"))
+
+  /** Caustics need a refractive/reflective caster and a light to emit photons from. Missing
+    * either yields an empty caustic map — warn (never fail) so a misconfigured scene is obvious.
+    */
+  private def warnCausticsPreconditions(
+    caustics: CausticsConfig, objects: List[ObjectSpec], lights: List[Light]
+  ): Unit =
+    if caustics.enabled then
+      // ponytail: a refractive material preset applied without an explicit `ior=` isn't
+      // inspected here; a missed object only suppresses the hint, never blocks the render.
+      if !objects.exists(_.ior > RefractiveIorThreshold) then
+        logger.warn(s"[Caustics] enabled but no refractive object (ior > $RefractiveIorThreshold)" +
+          " in scene — the caustic map will be empty")
+      if lights.isEmpty then
+        logger.warn("[Caustics] enabled but scene has no lights — no photons will be emitted")
 
   // Tone-mapping operator ids passed to the GPU. These MUST stay in sync with the
   // switch in optix-jni/src/main/native/shaders/miss_plane.cu (applyToneMapping).

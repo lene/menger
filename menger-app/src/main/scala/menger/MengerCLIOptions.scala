@@ -431,9 +431,9 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = s"Number of PPM iterations (default: ${Const.maxIterationsDefault})"
   )
   val causticsRadius: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(0.1f), group = optixCausticsGroup,
+    required = false, group = optixCausticsGroup,
     validate = r => r > 0.0f && r <= Const.maxCausticsRadius,
-    descr = "Initial photon gather radius (default: 0.1)"
+    descr = "Initial photon gather radius (default: auto-derived from scene geometry)"
   )
   val causticsAlpha: ScallopOption[Float] = opt[Float](
     required = false, default = Some(0.7f), group = optixCausticsGroup,
@@ -466,7 +466,7 @@ class MengerCLIOptions(arguments: Seq[String])
     enabled = caustics(),
     photonsPerIteration = causticsPhotons(),
     iterations = causticsIterations(),
-    initialRadius = causticsRadius(),
+    initialRadius = causticsRadius.toOption.getOrElse(CausticsConfig.AutoRadius),
     alpha = causticsAlpha()
   )
 

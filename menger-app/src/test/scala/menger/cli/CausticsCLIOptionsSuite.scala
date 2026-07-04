@@ -66,9 +66,10 @@ class CausticsCLIOptionsSuite extends AnyFlatSpec with Matchers:
     an[ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--caustics-iterations", "20"))
 
-  "--caustics-radius" should "default to 0.1" in:
+  "--caustics-radius" should "be unset (auto-derived) when not provided" in:
     val opts = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--caustics"))
-    opts.causticsRadius() shouldBe 0.1f
+    opts.causticsRadius.toOption shouldBe None
+    opts.causticsConfig.initialRadius shouldBe menger.common.CausticsConfig.AutoRadius
 
   it should "accept custom radius" in:
     val opts = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--caustics", "--caustics-radius", "0.5"))
