@@ -389,6 +389,11 @@ reproducibility claims are not backed by an active fitness function.
 **Estimate:** 2h
 **Finding:** Sprint 32 architecture review (MEDIUM)
 **Depends on:** 33.7 (RR + multi-target changes photon-pass cost)
+**Status:** ✅ Done (2026-07-04) — `benchmark.sh` now covers 9 scenes (glass sphere, diamond,
+menger4d L2, sierpinski4d L2, tesseract, curve, lsystem tree L3, IBL sphere, **caustics glass**);
+`perf-baseline.json` holds real dev-GPU medians (no 5000 ms sentinels). P1 (<5 s) / P2 (<500 ms)
+budgets documented in the script header; threshold set to 1.30 (the ~50 ms scenes jitter too much
+for a tight ratio — absolute budgets are the primary criterion). Regression check green.
 
 `perf-baseline.json` has 4 entries but only 2 real measurements; two are 5000ms sentinels.
 

@@ -1,6 +1,11 @@
 {
-  "sphere": 74.0,
-  "sponge-volume-L4": 64.2,
-  "menger4d-L3": 5000.0,
-  "sphere-IBL-accum": 5000.0
+  "glass-sphere": 49.00547,
+  "diamond-sphere": 48.819675,
+  "menger4d-L2": 56.363327,
+  "sierpinski4d-L2": 49.26967,
+  "tesseract": 48.79146,
+  "curve": 50.630524,
+  "lsystem-tree-L3": 47.216805,
+  "sphere-IBL-accum": 125.7979,
+  "caustics-glass": 164.2973
 }
