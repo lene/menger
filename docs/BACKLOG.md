@@ -162,3 +162,14 @@ actually execute:
   (used for flux normalization) uses the requested count — a ~0.3% inconsistency for
   non-grid-aligned photon budgets. Either bounds-check emission to the requested count or
   normalize by the launched count. Requires an optix-jni release.
+
+### F-CAUSTICS-AUTO-CLI: `None`=auto caustics CLI/DSL surface (Sprint 33.9)
+
+optix-jni 0.1.13 auto-derives the PPM gather radius from geometry when it is left unset
+(`initial_radius <= 0`), but the menger `Caustics` DSL / CLI cannot yet express "unset": the
+`menger-common` `CausticsConfig` `require`s `initialRadius > 0`, so passing the ≤0 auto sentinel
+throws. Making `Caustics(radius: Option[Float] = None, …)` map `None` to the sentinel needs
+`CausticsConfig` to accept it — a `menger-common` release (0.1.5). Until then the auto radius is
+reachable via an explicit radius or the `MENGER_CAUSTICS_RADIUS` env override. Also fold in the
+33.9 warnings (caustics enabled with no refractive objects / no shadow-capable lights) and the
+photon/iteration auto-derivation once the sentinel plumbing exists.

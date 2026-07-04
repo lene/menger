@@ -307,6 +307,15 @@ scene (plane at y=−5) renders a caustic (fails today with ±3 bounds); per-tar
 ### Task 33.8: C8 gate + default parameters + auto-tuning
 **Estimate:** 8h
 **Depends on:** 33.3–33.7
+**Status:** ✅ Done (2026-07-04, core) — shipped in optix-jni 0.1.13. Auto gather radius derives
+from the refractive geometry's bounding radius (`CAUSTICS_AUTO_RADIUS_FACTOR · target_radius`)
+when unset; `MENGER_CAUSTICS_RADIUS` env knob added for calibration. **C8 locked** as the
+caustic-delta spatial correlation ≥ 0.80 (canonical 0.859) in `thresholds.txt` — NOT whole-image
+SSIM/MSE, which is structurally loose (menger is primary-ray-only + non-physical ambient →
+~5× caustic energy deficit at every radius; documented as F-PBR-DIFFUSE / F-CAUSTICS-SDS).
+Calibration finding: correlation is flat across radius, factor 0.6 lands the canonical scene at
+its best radius. **Deferred:** photon-budget ΣΔΩ derivation + iteration/accumulation coupling
+(defaults are sane; energy is structural-limited so photon count won't change magnitude).
 
 - Calibrate and lock: initial radius r₀ = k·bboxDiagonal; photon budget from ΣΔΩ per light
   (lights that can't see glass get zero budget); iterations tied to
@@ -324,6 +333,11 @@ scene (plane at y=−5) renders a caustic (fails today with ±3 bounds); per-tar
 ### Task 33.9: CLI/DSL surface finalization
 **Estimate:** 3h
 **Depends on:** 33.8
+**Status:** ⏸ Deferred (2026-07-04) — the `None`=auto surface needs `menger-common`'s
+`CausticsConfig` to accept the ≤0 auto sentinel (it currently `require`s `initialRadius > 0`),
+which is a separate published-artifact release (menger-common 0.1.5). The auto radius itself
+ships in optix-jni 0.1.13 and is reachable via an explicit radius or `MENGER_CAUSTICS_RADIUS`.
+Tracked as F-CAUSTICS-AUTO-CLI in `docs/BACKLOG.md`.
 
 - `Caustics(photons: Option[Int] = None, radius: Option[Float] = None,
   iterations: Option[Int] = None, alpha: Float = 0.7f)` — `None` = auto (33.8); same optionality
@@ -337,6 +351,11 @@ scene (plane at y=−5) renders a caustic (fails today with ±3 bounds); per-tar
 ### Task 33.10: Dispersive caustics
 **Estimate:** 5h
 **Depends on:** 33.4, Sprint 32 (hero-wavelength + Cauchy IOR)
+**Status:** ✅ Done (2026-07-04) — shipped in optix-jni 0.1.13. Photons carry a hero wavelength
+(payload p10), refract with the Cauchy `n(λ)=a+b/λ²` for dispersive instances, and deposit flux
+tinted by the wavelength's CIE response → spectral floor caustics. Non-dispersive scenes are
+bit-identical (canonical caustic-delta correlation unchanged at 0.859); a dispersive glass sphere
+gains a coloured floor caustic (saturation 0 → 0.044).
 
 - Sample each photon's λ with the Sprint 32 stratification (payload seed from 33.4); refraction
   through dispersive instances uses n(λ) (Cauchy, per-instance dispersion); photon RGB energy =
