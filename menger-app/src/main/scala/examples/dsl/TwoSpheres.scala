@@ -22,8 +22,8 @@ import menger.dsl._
 object TwoSpheres:
   val scene: Scene = Scene(
     camera = Camera(
-      position = (0f, 4f, 5f),
-      lookAt = (0f, -1f, 0f),
+      position = (0f, 1.5f, 6f),
+      lookAt = (0f, 0f, 0f),
       up = (0f, 1f, 0f)
     ),
     objects = List(
