@@ -113,6 +113,7 @@ For reproducible validation, use this fixed configuration:
 | R3 | Invalid CLI args | Error message | Clear, actionable | ✅ Validated |
 | R4 | Missing GPU | Graceful degradation | LibGDX fallback | ✅ Existing |
 | R5 | Missing or invalid video input | Failure mode | Clear build/test/runtime error | ✅ Validated |
+| R6 | Render reproducibility | Same scene + seed, no caustics | Byte-identical output | ✅ `RenderDeterminismSuite` (GPU); caustic float-atomic path excluded |
 
 ### Maintainability
 

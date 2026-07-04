@@ -370,6 +370,10 @@ scene (plane at y=−5) renders a caustic (fails today with ±3 bounds); per-tar
 ### Task 33.12: Fix RenderDeterminismSuite (GPU)
 **Estimate:** 2h
 **Finding:** Sprint 32 architecture review (MEDIUM)
+**Status:** ✅ Done (2026-07-04) — the GPU rung now renders an opaque sphere scene twice
+(AA off, single hard-shadow sample, no caustics) and asserts byte-identical `render()` output
+(4 succeeded, 0 pending). Caustics excluded and documented in the suite (float-atomic gather is
+order-nondeterministic). arc42 §10 gains reliability scenario R6 backing the claim.
 
 `RenderDeterminismSuite` GPU render-determinism test is `pending` — never executes. arc42 §10
 reproducibility claims are not backed by an active fitness function.
