@@ -8,8 +8,12 @@
 #   Sphere:  center (0,0,0), radius 1.0, dielectric IOR 1.5
 #   Floor:   Y = -2.0, diffuse reflectance 0.8
 #   Light:   point (0,10,0), rgb I 500  (radiant intensity, W/sr)
-#   Camera:  position (0,1,4) looking at origin, fov 45
+#   Camera:  position (0,1,4) looking at origin
 #   Film:    default 800x600 (render script overrides for the gated 400x300 variant)
+#
+# FOV note: menger's OptiX camera renders at a fixed 45 deg HORIZONTAL fov
+# (io.github.lene.optix.CameraState). pbrt applies fov to the narrower image axis (vertical at
+# 4:3), so the faithful twin uses the vertical equivalent: 2*atan(tan(22.5)/(4/3)) = 34.516 deg.
 #
 # pbrt-v4 note: no WorldEnd directive (world block ends at EOF).
 # Render via scripts/caustics-validation/render-pbrt-references.sh (never by hooks).
@@ -25,7 +29,7 @@ LookAt 0 1 4
        0 1 0
 
 Camera "perspective"
-    "float fov" 45
+    "float fov" 34.516
 
 Sampler "pmj02bn"
     "integer pixelsamples" 256

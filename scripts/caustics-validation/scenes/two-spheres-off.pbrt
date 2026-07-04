@@ -1,10 +1,14 @@
-# Canonical Caustics Test Scene (pbrt-v4) — Sprint 33 reference twin.
+# Two-Spheres Caustics OFF twin (pbrt-v4) — Sprint 33 caustic-delta metric.
 #
-# Physical twin of the menger canonical caustics scene (arc42 §10):
-#   Sphere:  center (0,0,0), radius 1.0, dielectric IOR 1.5
+# Identical to two-spheres.pbrt but with a `path` integrator, which cannot connect a
+# diffuse floor to the light through specular glass -> caustic-free. sppm_render - path_render
+# isolates the caustic (see scripts/caustics-validation/compare-caustic-delta.sh).
+#
+# Physical twin of examples.dsl.TwoSpheresOff:
+#   Spheres: centers (-1.3,0,0) and (1.3,0,0), radius 0.8, dielectric IOR 1.5
 #   Floor:   Y = -2.0, diffuse reflectance 0.8
 #   Light:   point (0,10,0), rgb I 500  (radiant intensity, W/sr)
-#   Camera:  position (0,1,4) looking at origin
+#   Camera:  position (0,4,5) looking at (0,-1,0)
 #   Film:    default 800x600 (render script overrides for the gated 400x300 variant)
 #
 # FOV note: menger's OptiX camera renders at a fixed 45 deg HORIZONTAL fov
@@ -15,13 +19,13 @@
 # Render via scripts/caustics-validation/render-pbrt-references.sh (never by hooks).
 
 Film "rgb"
-    "string filename" "canonical-caustics.exr"
+    "string filename" "two-spheres-off.exr"
     "integer xresolution" 800
     "integer yresolution" 600
 
 Scale -1 1 1
-LookAt 0 1 4
-       0 0 0
+LookAt 0 4 5
+       0 -1 0
        0 1 0
 
 Camera "perspective"
@@ -30,9 +34,8 @@ Camera "perspective"
 Sampler "pmj02bn"
     "integer pixelsamples" 256
 
-Integrator "sppm"
+Integrator "path"
     "integer maxdepth" 32
-    "integer photonsperiteration" 100000
 
 WorldBegin
 
@@ -40,13 +43,22 @@ LightSource "point"
     "point3 from" [ 0 10 0 ]
     "rgb I" [ 500 500 500 ]
 
-# Glass sphere at origin (IOR 1.5)
+# Left glass sphere (IOR 1.5)
 AttributeBegin
     Material "dielectric"
         "float eta" 1.5
-    Translate 0 0 0
+    Translate -1.3 0 0
     Shape "sphere"
-        "float radius" 1.0
+        "float radius" 0.8
+AttributeEnd
+
+# Right glass sphere (IOR 1.5)
+AttributeBegin
+    Material "dielectric"
+        "float eta" 1.5
+    Translate 1.3 0 0
+    Shape "sphere"
+        "float radius" 0.8
 AttributeEnd
 
 # Floor plane at Y = -2

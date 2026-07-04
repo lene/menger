@@ -1,0 +1,8 @@
+scene:        two-spheres
+resolution:   400x300
+pbrt_sha256:  01536bf29e52bfc449f44b82dcd64c698005a2e104a8c714b5282901e0ac37cd
+seed:         0
+spp:          256
+convergence_mse: 0.00038221324
+scene_sha256: 6cb6553c53413f44cd786e9201f914644d7d4ae6a95efbbd3c099a7b16dea837
+rendered:     2026-07-04T19:46:44Z

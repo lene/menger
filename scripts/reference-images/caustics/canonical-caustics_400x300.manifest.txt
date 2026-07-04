@@ -1,8 +1,8 @@
 scene:        canonical-caustics
 resolution:   400x300
-pbrt:         usage: pbrt [<options>] <filename.pbrt...>
+pbrt_sha256:  01536bf29e52bfc449f44b82dcd64c698005a2e104a8c714b5282901e0ac37cd
 seed:         0
-spp:          512
-convergence_mse: 0.0013889918
-scene_sha256: e9c393a28656592488fa4b98fedb85279661a1221d1fa25856774dc4d221cc8b
-rendered:     2026-07-02T18:34:30Z
+spp:          256
+convergence_mse: 0.00008282957
+scene_sha256: 8afda2f9ea0172d525869bbec691d5ee9bf713206ff32a9f7479ebbc1a27e2db
+rendered:     2026-07-04T19:42:32Z
