@@ -22,7 +22,7 @@ import menger.dsl._
 object CausticsCanonical:
   val scene: Scene = Scene(
     camera = Camera(
-      position = (0f, 1f, 4f),
+      position = (0f, 1.5f, 6f),
       lookAt = (0f, 0f, 0f),
       up = (0f, 1f, 0f)
     ),
