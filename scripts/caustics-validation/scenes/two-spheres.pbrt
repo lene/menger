@@ -67,8 +67,8 @@ AttributeBegin
     Translate 0 -2 0
     Shape "trianglemesh"
         "integer indices" [ 0 1 2 0 2 3 ]
-        "point3 P" [ -10 0 -10
-                      10 0 -10
-                      10 0  10
-                     -10 0  10 ]
+        "point3 P" [ -1000 0 -1000
+                      1000 0 -1000
+                      1000 0  1000
+                     -1000 0  1000 ]
 AttributeEnd

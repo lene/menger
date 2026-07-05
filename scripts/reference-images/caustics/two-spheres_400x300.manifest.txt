@@ -3,6 +3,6 @@ resolution:   400x300
 pbrt_sha256:  01536bf29e52bfc449f44b82dcd64c698005a2e104a8c714b5282901e0ac37cd
 seed:         0
 spp:          256
-convergence_mse: 0.0003268245
-scene_sha256: ac260b6350abbde81241762c1df0347ee686dfd00d05feefc856f00aa847b1b1
-rendered:     2026-07-04T20:17:52Z
+convergence_mse: 0.00032624652
+scene_sha256: ce5742155a8c99108c2b611433d0d5ff308ba0949b3e298d9e650dab47fd83ab
+rendered:     2026-07-05T08:06:18Z
