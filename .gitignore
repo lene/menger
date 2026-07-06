@@ -96,3 +96,6 @@ terraform/.terraform.tfstate.lock.info
 ISSUE_20_UPDATE.md
 
 shadow_alpha_*
+
+# repowise API keys (local)
+.repowise/.env
