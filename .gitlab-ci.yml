@@ -11,6 +11,9 @@ stages:
 default:
   timeout: 15m
   retry: 2
+  before_script:
+    # Bust stale ivy cache for published library bumps (Sprint 33 — optix-jni 0.1.13→0.1.14)
+    - rm -rf ~/.ivy2/cache/io.github.lene/optix-jni ~/.cache/coursier/v1/https/repo1.maven.org/maven2/io/github/lene/optix-jni 2>/dev/null || true
 
 variables:
   DEPLOYABLE_BASE_NAME: menger
