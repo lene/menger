@@ -15,7 +15,7 @@ import menger.common.RenderConfig
   * @param maxRayDepth Maximum ray bounce depth (1 to RenderLimits.MaxRayDepth)
   */
 case class RenderSettings(
-  shadows: Boolean = false,
+  shadows: Boolean = true,
   transparentShadows: Boolean = false,
   antialiasing: Boolean = false,
   aaMaxDepth: Int = 2,

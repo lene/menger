@@ -324,7 +324,7 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = "Light source (repeatable, max 8). Types: directional:x,y,z[:intensity[:color]] (x,y,z points TO light), point:x,y,z[:intensity[:color]], area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color[:shape]]]] (disk emitter, soft shadows)"
   )(using lightSpecConverter)
   val shadows: ScallopOption[Boolean] = opt[Boolean](
-    required = false, default = Some(false), group = optixLightingGroup,
+    required = false, default = Some(true), group = optixLightingGroup,
     descr = "Enable shadow rays for realistic shadows"
   )
   val transparentShadows: ScallopOption[Boolean] = opt[Boolean](

@@ -7,7 +7,7 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
 
   "RenderSettings" should "have correct defaults" in:
     val rs = RenderSettings()
-    rs.shadows shouldBe false
+    rs.shadows shouldBe true
     rs.transparentShadows shouldBe false
     rs.antialiasing shouldBe false
     rs.aaMaxDepth shouldBe 2
@@ -68,7 +68,7 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
 
   it should "map defaults correctly" in:
     val config = RenderSettings().toRenderConfig
-    config.shadows shouldBe false
+    config.shadows shouldBe true
     config.transparentShadows shouldBe false
     config.antialiasing shouldBe false
     config.aaMaxDepth shouldBe 2
