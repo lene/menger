@@ -141,7 +141,8 @@ Test:OptiXIntegration:
     - if: $CI_COMMIT_BRANCH
   before_script:
     # Bust stale ivy/coursier cache for published library bumps
-    - rm -rf ~/.ivy2/cache/io.github.lene ~/.cache/coursier/v1/https/repo1.maven.org/maven2/io/github/lene 2>/dev/null || true
+    - find ~/.ivy2/cache/io.github.lene -delete 2>/dev/null || true
+    - find ~/.cache/coursier -path '*/io/github/lene/*' -delete 2>/dev/null || true
     # Verify GPU is available - fail fast if not configured
     - nvidia-smi
     - apt-get -y update
@@ -155,6 +156,11 @@ Test:OptiXIntegration:
   script:
     # Build packaged distribution
     - sbt "mengerApp / Universal / packageBin"
+    # Verify optix-jni version resolved (debug: CI cache issue)
+    - echo "=== resolved optix-jni jars ==="
+    - find ~/.ivy2/cache/io.github.lene/optix-jni -name '*.jar' 2>/dev/null | head -5 || echo "none in ivy"
+    - echo "=== PTX MD5 ==="
+    - find ~/.ivy2/cache/io.github.lene/optix-jni -name 'optix-jni*.jar' 2>/dev/null | while read jar; do echo "$jar"; jar xf "$jar" native/x86_64-linux/optix_shaders.ptx 2>/dev/null; md5sum native/x86_64-linux/optix_shaders.ptx 2>/dev/null; done || true
     - VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
     - unzip -oq ./menger-app/target/universal/menger-app-${VERSION}.zip
     - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
