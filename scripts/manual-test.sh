@@ -22,6 +22,7 @@ NC='\033[0m' # No Color
 # Parse command line arguments
 SKIP_STATIC=false
 UPDATE_REFERENCES=false
+FILTERS=()  # case-insensitive substrings; only static tests matching ≥1 filter run (empty = all)
 while [[ $# -gt 0 ]]; do
     case $1 in
         -i|--interactive)
@@ -32,15 +33,29 @@ while [[ $# -gt 0 ]]; do
             UPDATE_REFERENCES=true
             shift
             ;;
+        --filter)
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --filter requires a pattern argument" >&2
+                exit 1
+            fi
+            FILTERS+=("$(echo "$1" | tr '[:upper:]' '[:lower:]')")
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [-i|--interactive] [--update-references]"
+            echo "Usage: $0 [-i|--interactive] [--update-references] [--filter PATTERN ...]"
             echo "  -i, --interactive      Skip static tests, go directly to interactive menu"
             echo "  --update-references    Regenerate reference images instead of comparing"
+            echo "  --filter PATTERN       Run only static tests whose name contains PATTERN (repeatable)"
             exit 1
             ;;
     esac
 done
+
+if [ ${#FILTERS[@]} -gt 0 ]; then
+    echo -e "${BLUE}Filter active (case-insensitive substring):${NC} ${FILTERS[*]}\n"
+fi
 
 echo -e "${BLUE}=== Menger Manual Test Suite ===${NC}\n"
 
@@ -128,6 +143,16 @@ else
 run_test() {
     local name="$1"
     local args="$2"
+
+    # --filter: skip tests not matching any filter (case-insensitive substring)
+    if [ ${#FILTERS[@]} -gt 0 ]; then
+        local lname f matched=false
+        lname="$(echo "$name" | tr '[:upper:]' '[:lower:]')"
+        for f in "${FILTERS[@]}"; do
+            [[ "$lname" == *"$f"* ]] && { matched=true; break; }
+        done
+        [ "$matched" = true ] || return 0
+    fi
 
     # Extract output filename from args (look for -s argument)
     local output_file=""

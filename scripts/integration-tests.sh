@@ -1,12 +1,14 @@
 #!/bin/bash
 # Integration tests for Menger OptiX renderer
-# Usage: ./scripts/integration-tests.sh <menger-binary-path> [--update-references]
+# Usage: ./scripts/integration-tests.sh <menger-binary-path> [--update-references] [--filter PATTERN ...]
 #
 # Runs comprehensive integration tests and prints summary.
 # Exit code: 0 if all pass, 1 if any fail.
 #
 # Options:
 #   --update-references  Regenerate reference images instead of comparing
+#   --filter PATTERN     Run only tests whose name contains PATTERN.
+#                        Repeatable; case-insensitive substring match. Empty = all tests.
 #
 # NOTE: Tests run SEQUENTIALLY on purpose. Parallel execution was tried and
 # abandoned: concurrent OptiX renders on a single GPU produce unpredictable
@@ -17,11 +19,21 @@
 # Parse arguments
 UPDATE_REFERENCES=false
 MENGER_BIN=""
+FILTERS=()  # case-insensitive substrings; only tests matching ≥1 filter run (empty = all)
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --update-references)
             UPDATE_REFERENCES=true
+            shift
+            ;;
+        --filter)
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --filter requires a pattern argument" >&2
+                exit 1
+            fi
+            FILTERS+=("$(echo "$1" | tr '[:upper:]' '[:lower:]')")
             shift
             ;;
         *)
@@ -32,8 +44,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -z "$MENGER_BIN" ] || [ ! -x "$MENGER_BIN" ]; then
-    echo "Usage: $0 <menger-binary-path> [--update-references]"
+    echo "Usage: $0 <menger-binary-path> [--update-references] [--filter PATTERN ...]"
+    echo "  --filter PATTERN   Run only tests whose name contains PATTERN (repeatable, case-insensitive)"
     exit 1
+fi
+
+if [ ${#FILTERS[@]} -gt 0 ]; then
+    echo "Filter active (case-insensitive substring): ${FILTERS[*]}"
 fi
 
 # Configuration
@@ -146,10 +163,23 @@ print_failure_log() {
     fi
 }
 
+# --filter helper: return 0 (skip) when a filter is active and $1 matches none.
+should_skip_test() {
+    [ ${#FILTERS[@]} -eq 0 ] && return 1
+    local lname f
+    lname="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+    for f in "${FILTERS[@]}"; do
+        [[ "$lname" == *"$f"* ]] && return 1
+    done
+    return 0
+}
+
 # Run a test, track result, clean up
 run_test() {
     local name="$1"
     shift
+
+    should_skip_test "$name" && return 0
 
     # Generate temporary output filename
     local temp_output="test_temp_$$_${RANDOM}_$(date +%N).png"
@@ -236,6 +266,8 @@ run_test_should_fail() {
     local name="$1"
     shift
 
+    should_skip_test "$name" && return 0
+
     # These tests don't produce output anyway
 
     # Check if --headless is in the arguments (headless and timeout are mutually exclusive)
@@ -271,6 +303,8 @@ run_test_with_output() {
     local name="$1"
     local output_file="$2"
     shift 2
+
+    should_skip_test "$name" && return 0
 
     local failure_log
     failure_log=$(failure_log_file "$name")

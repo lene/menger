@@ -169,6 +169,11 @@ Test:OptiXIntegration:
   after_script:
     # Clean up permissions for Docker artifacts
     - chmod -R 777 menger-app/target/ || true
+  artifacts:
+    when: on_failure
+    expire_in: 1 week
+    paths:
+      - scripts/test-diffs/
 
 # Coverage check with ratchet mechanism:
 # - Fails if coverage drops more than 1% AND is below 80%
