@@ -25,10 +25,14 @@ variables:
   # optix-jni artifact and menger-geometry native libs link the CUDA 13 runtime.
   OPTIX_DOCKER_VERSION: 13.2-9.0-25-1.12.0
   # OptiX uses CUDA driver libraries; Xvfb/Mesa provide headless GL for LibGDX tests.
-  # Do not request the NVIDIA graphics capability here: it makes nvidia-container-runtime
-  # mount host EGL/GL sidecar libraries by exact filename, which is not portable across
-  # runner driver/package revisions.
-  NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+  # "display" is required (not just compute,utility): nvidia-container-toolkit gates
+  # libnvidia-rtcore.so (OptiX's RTX core library) behind the display/graphics capability,
+  # not compute/utility. Without it the container never receives the library at all and
+  # OptiX device-context creation fails with OPTIX_ERROR_UNKNOWN (7999) — see
+  # docs/TROUBLESHOOTING.md. "display" (not "graphics") keeps the EGL/GL footprint to the
+  # NVIDIA core libs OptiX needs, without also pulling in windowing-system EGL bridge
+  # libraries (egl-xcb/wayland/xlib) that caused host-side package conflicts previously.
+  NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
   # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
   # See: https://forums.developer.nvidia.com/t/crash-on-launching-game-with-plasma-problematic-frame-libnvidia-glcore-so-570-144-0xa5966c/332304
   __GL_THREADED_OPTIMIZATIONS: "0"
@@ -86,7 +90,7 @@ Test:Full:
     - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
   variables:
     NVIDIA_VISIBLE_DEVICES: "all"
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
   rules:
     - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\//'
       allow_failure: true
@@ -132,7 +136,7 @@ Test:OptiXIntegration:
   timeout: 30m  # Override global 15m - package build plus integration tests need more time
   variables:
     NVIDIA_VISIBLE_DEVICES: "all"
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
     # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
     __GL_THREADED_OPTIMIZATIONS: "0"
   rules:
@@ -321,7 +325,7 @@ Run:UseDocker:
     - nvidia
   variables:
     NVIDIA_VISIBLE_DEVICES: "all"
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -361,7 +365,7 @@ CheckRunTime:
     - nvidia
   variables:
     NVIDIA_VISIBLE_DEVICES: "all"
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -461,7 +465,7 @@ PerfCheck:
   tags:
     - nvidia
   variables:
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
     __GL_THREADED_OPTIMIZATIONS: "0"
   allow_failure: false   # Sprint 30.9: blocking gate
   before_script:
@@ -693,7 +697,7 @@ Test:InstallSmoke:
   tags:
     - nvidia
   variables:
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
     __GL_THREADED_OPTIMIZATIONS: "0"
   before_script:
     - apt-get -y update -qq

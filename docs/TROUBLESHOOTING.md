@@ -95,6 +95,106 @@ ls -la /run/nvidia-persistenced/socket   # confirm socket exists
 ```
 Then retry the job (`glab ci retry <job-id>`).
 
+### CI GPU job fails only, everything else green: `OPTIX_ERROR_UNKNOWN (7999)`
+
+**Cause:** the self-hosted GPU runner's host NVIDIA driver was upgraded (often by the OS's
+own automatic-update mechanism — PackageKit/GNOME-Software `aptdaemon`, or
+`unattended-upgrades`) to a version the pinned OptiX runtime in the CI image
+(`optix-cuda:$OPTIX_DOCKER_VERSION`) can't create a device context against. The container's
+CUDA/OptiX version is fixed by the image tag; only the *host* driver floats, and
+nvidia-container-toolkit injects whatever driver is currently loaded on the host into the
+container.
+
+**Symptom:** `Test:Full` / `Test:OptiXIntegration` (the two `tags: [nvidia]` jobs) fail while
+every non-GPU job (Scalafix, CheckCoverage, SAST, code_quality) stays green. Job trace shows:
+```
+[OptiX][DEVICECTX]: Error initializing RTX library
+[OptiXContext] Initialization failed: OptiX call 'optixDeviceContextCreate(...)' failed:
+    OPTIX_ERROR_UNKNOWN (7999)
+ERROR i.g.l.o.MengerRenderer - Failed to initialize OptiX renderer
+```
+
+**Diagnosis (on the runner host):**
+```bash
+nvidia-smi | grep -iE 'Driver Version|CUDA Version'
+cat /proc/driver/nvidia/version                 # loaded kernel module
+modinfo nvidia | grep ^version                  # on-disk module — must match the above
+grep -iE 'nvidia-driver|nvidia-dkms' /var/log/apt/history.log | tail -20   # recent auto-upgrades
+```
+The job's own trace also prints the driver version the container saw (its `before_script`
+runs `nvidia-smi`) — compare that against what the CI image's CUDA tag requires (e.g. driver
+580.173.02 supports CUDA ≤13.0, but `OPTIX_DOCKER_VERSION` may require CUDA 13.2).
+
+**Fix:** install a driver that supports the CI image's CUDA version, reboot, then confirm
+`nvidia-smi` reports it before retrying CI:
+```bash
+pkexec apt install nvidia-driver-595   # or current minimum for OPTIX_DOCKER_VERSION's CUDA tag
+pkexec reboot
+# after reboot:
+nvidia-smi                              # confirm new driver loaded
+cd /path/to/menger
+glab api --method POST "projects/:id/jobs/<failed-job-id>/retry"
+```
+
+**Prevention — freeze the driver once it works** (the root cause here was an *unrequested*
+automatic upgrade, not a deliberate one):
+```bash
+dpkg -l | awk '/^ii/ && $2 ~ /(nvidia|cuda|libnvidia|libcuda)/ {print $2}' \
+  | xargs pkexec apt-mark hold
+pkexec apt-mark showhold   # verify
+```
+Also blacklist these packages from `unattended-upgrades` (belt-and-suspenders — `apt-mark
+hold` alone is honored by apt/PackageKit/unattended-upgrades, but this makes the intent
+explicit for the next reader): `/etc/apt/apt.conf.d/51-freeze-nvidia-cuda`:
+```
+Unattended-Upgrade::Package-Blacklist {
+    "nvidia";
+    "cuda";
+    "libnvidia";
+    "libcuda";
+};
+```
+To intentionally upgrade later: `apt-mark unhold <pkgs>`, upgrade, **reboot**, then retry a
+GPU CI job and confirm green **before** trusting the new driver — do not let a driver upgrade
+on this host go unvalidated against CI.
+
+**Second, independent cause of the same error signature:** even with a correct, matching
+driver, `optixDeviceContextCreate` still fails with `OPTIX_ERROR_UNKNOWN (7999)` if
+`libnvidia-rtcore.so` (OptiX's RTX core library) was never mounted into the container at all.
+`nvidia-container-toolkit` gates this library behind the **`display`** (or `graphics`)
+capability — **not** `compute`/`utility`. The job's `before_script` "create symlink for RTX
+core library if needed" step is a no-op in this case: the glob
+`libnvidia-rtcore.so.*` matches nothing because the file isn't there, so `test -f` is false
+and the symlink is silently never created.
+
+**Confirm this is the cause:**
+```bash
+docker run --rm --gpus all -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+  $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION \
+  bash -c 'ls /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so* || echo MISSING'
+# add ",display" to NVIDIA_DRIVER_CAPABILITIES above and re-run — file should now be present
+```
+
+**Fix:** add `display` to `NVIDIA_DRIVER_CAPABILITIES` for every job that renders with OptiX
+(`tags: [nvidia]`) — both the global default and each job's `variables:` override (GitLab CI
+job-level `variables:` fully replaces the global block rather than merging, so every job that
+redeclares `NVIDIA_VISIBLE_DEVICES` etc. must also redeclare this):
+```yaml
+NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
+```
+`display` (not the broader `graphics`) mounts the NVIDIA core libs OptiX needs (including
+`libnvidia-rtcore.so`) without also pulling in windowing-system EGL bridge libraries
+(`libnvidia-egl-xcb`/`-wayland`/`-xlib`) that caused a host-side dpkg conflict in an earlier
+driver upgrade — verified empirically by comparing the mounted library set under `display`
+vs `graphics` vs `compute,utility` alone.
+
+**Why this can appear "new" after a driver upgrade:** the capability-to-library classification
+lives in `nvidia-container-toolkit`, not the driver package. If a working `compute,utility`-only
+setup (as this repo's `.gitlab-ci.yml` used) suddenly regresses to this error after a driver or
+toolkit upgrade, check `nvidia-container-cli list` output and compare against what the running
+container actually receives (`docker run --gpus all ... bash -c 'ls .../libnvidia-rtcore.so*'`)
+rather than assuming the driver version itself is still the problem.
+
 ### "UnsatisfiedLinkError: no optixjni in java.library.path"
 
 - Check `optix-jni/target/native/x86_64-linux/bin/liboptixjni.so` exists
