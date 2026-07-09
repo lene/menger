@@ -550,6 +550,19 @@ test_caustics() {
         --caustics-photons 1000 --caustics-iterations 1 --plane y:-2
 }
 
+test_torus_caustics() {
+    echo "Torus caustics (mesh geometry):"
+    TIMEOUT=$CAUSTICS_TIMEOUT run_test "torus caustics" \
+        --scene examples.dsl.ParametricTorusCaustics
+}
+
+test_icosahedron_caustics() {
+    echo "Icosahedron caustics (faceted mesh geometry):"
+    TIMEOUT=$CAUSTICS_TIMEOUT run_test "icosahedron caustics" \
+        --objects type=icosahedron:size=0.8:material=glass --caustics \
+        --caustics-photons 1000 --caustics-iterations 1 --plane y:-2
+}
+
 test_tesseract() {
     echo "Tesseract (4D Hypercube):"
     run_test "tesseract default rotation" --plane y:-2 \
@@ -1406,6 +1419,8 @@ main() {
     test_pbr_texture_sets
     test_textures
     test_caustics
+    test_torus_caustics
+    test_icosahedron_caustics
     test_tesseract
     test_4d_sponges
     test_menger4d

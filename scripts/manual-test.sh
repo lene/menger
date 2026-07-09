@@ -362,6 +362,7 @@ run_test "Cross custom" "-o --objects type=sphere --cross --cross-length 3.0 --c
 
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
 run_test "Caustics" "-o --objects type=sphere:material=glass --caustics --caustics-photons 10000 --plane y:-2 -s $OUTPUT_DIR/57-caustics.png"
+run_test "Icosahedron caustics" "-o --objects type=icosahedron:size=0.8:material=glass --caustics --caustics-photons 10000 --plane y:-2 -s $OUTPUT_DIR/158-icosahedron-caustics.png"
 
 # DSL Scenes
 echo -e "${YELLOW}--- DSL Scenes ---${NC}"
@@ -577,6 +578,7 @@ interactive_tests=(
     "DSL CausticsReferenceDefault (primitive sphere, default caustics quality — compare to ParametricSphereCaustics):-o --scene examples.dsl.CausticsReferenceDefault"
     "DSL ParametricSphereCaustics (parametric sphere with PPM caustics on floor):-o --scene examples.dsl.ParametricSphereCaustics"
     "DSL ParametricTorusCaustics (glass torus with PPM caustics on floor):-o --scene examples.dsl.ParametricTorusCaustics"
+    "Icosahedron caustics (faceted glass mesh, PPM caustics on floor):-o --objects type=icosahedron:size=0.8:material=glass --caustics --caustics-photons 10000 --plane y:-2"
     "Recursive IAS Sponge L2:-o --objects type=sponge-recursive-ias:level=2"
     "Recursive IAS Sponge L4 (deep):-o --objects type=sponge-recursive-ias:level=4"
     "Recursive IAS Sponge L6 + glass:-o --objects type=sponge-recursive-ias:level=6:material=glass"

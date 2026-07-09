@@ -379,6 +379,19 @@ gains a coloured floor caustic (saturation 0 → 0.044).
 ### Task 33.11: Reference ladder → integration suite + documentation
 **Estimate:** 4h
 **Depends on:** 33.8–33.10
+**Status:** 🔶 Partial (2026-07-09) — arbitrary-geometry test coverage landed; the canonical-ladder
+CI wiring and docs consolidation below are still open. Added `test_torus_caustics()` and
+`test_icosahedron_caustics()` smoke tests to `scripts/integration-tests.sh` (fast, low photon
+budget matching `test_caustics`'s tier — execution + committed-reference-diff only, no pbrt
+ground truth, since no PLY-exporter/pbrt-twin exists for arbitrary meshes yet) plus matching
+`scripts/manual-test.sh` entries. Icosahedron uses the built-in Platonic-solid CLI path
+(`--objects type=icosahedron:material=glass --caustics`), not a new DSL scene or new mesh
+infrastructure — confirmed via direct high-photon-budget testing (500k×20, matching
+`CausticsCanonical`'s budget) that the arbitrary-geometry emission targeting from Task 33.7
+genuinely produces a visible caustic on a 20-facet polyhedron, not just spheres/tori; this had
+never been exercised before. **Deferred (not done):** the `test_caustics_ladder()` +
+`compare-caustics.sh` canonical/two-spheres CI wiring, and the docs consolidation — both bullets
+below remain open.
 
 - `scripts/integration-tests.sh`: keep the fast smoke test; add `test_caustics_ladder()` calling
   `compare-caustics.sh` for **two** scenes (canonical + two-spheres) at 400×300 with reduced
