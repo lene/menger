@@ -552,6 +552,9 @@ test_caustics() {
 
 test_torus_caustics() {
     echo "Torus caustics (mesh geometry):"
+    # Renders the scene as-is (its baked HighQuality caustics). A CLI photon override is not
+    # possible here: --caustics-photons requires the --caustics flag, which --scene mode does
+    # not set (caustics come from the scene). Deterministic, so it matches its reference.
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "torus caustics" \
         --scene examples.dsl.ParametricTorusCaustics
 }
@@ -949,9 +952,13 @@ test_parametric_caustics_comparison() {
     local prim_out="test_prim_caustics_$$.png"
     local para_out="test_para_caustics_$$.png"
 
+    # Analytic sphere vs tessellated sphere with an IDENTICAL scene (CausticsCanonical and
+    # ParametricSphereCaustics share the same camera/light/floor/caustics) so the only
+    # difference is the geometry — this is what makes the pixel diff a meaningful check that
+    # mesh-geometry caustics track the analytic primitive.
     TIMEOUT=$CAUSTICS_TIMEOUT xvfb-run -a $MENGER_BIN --headless \
         --save-name "$prim_out" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
-        --scene examples.dsl.GlassSphere > /dev/null 2>&1 || true
+        --scene examples.dsl.CausticsCanonical > /dev/null 2>&1 || true
 
     TIMEOUT=$CAUSTICS_TIMEOUT xvfb-run -a $MENGER_BIN --headless \
         --save-name "$para_out" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
@@ -963,18 +970,34 @@ test_parametric_caustics_comparison() {
         return
     fi
 
-    local pass_threshold=5  # allow up to 5% pixel difference due to tessellation approximation
+    # Measured ~10% (analytic vs 32x16-tessellated glass sphere at fuzz 5%); headroom for
+    # photon noise. NOTE fuzz 5% below: whole-image fuzz-0 diff is ~31%, but that is almost all
+    # trivial sub-threshold per-pixel shading deltas from the coarse tessellation — a meaningless
+    # gate. -fuzz 5% counts only structural differences (silhouette + caustic shape), which is
+    # what "does the mesh caustic track the analytic one" actually means.
+    local pass_threshold=18
     local diff_pixels total_pixels diff_pct ok
-    diff_pixels=$(compare -metric AE "$prim_out" "$para_out" /dev/null 2>&1) || diff_pixels=0
+    # `compare -metric AE` exits non-zero whenever the images differ at all (AE > 0) — the
+    # normal case here — so do NOT swallow a non-zero exit as an error (a prior `|| diff_pixels=0`
+    # did exactly that, making this test pass unconditionally). Capture the count; treat only a
+    # non-numeric result (a genuine compare failure, e.g. size mismatch) as a hard failure.
+    diff_pixels=$(compare -metric AE -fuzz 5% "$prim_out" "$para_out" null: 2>&1 | awk '{print $1}')
+    if ! [[ "$diff_pixels" =~ ^[0-9]+$ ]]; then
+        echo -e "  ${RED}FAIL${RESET}: image compare failed (${diff_pixels})"
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - parametric caustics comparison: image compare failed"
+        rm -f "$prim_out" "$para_out"
+        return
+    fi
     total_pixels=$(identify -format "%[fx:w*h]" "$prim_out" 2>/dev/null) || total_pixels=1
     diff_pct=$(echo "scale=2; $diff_pixels * 100 / $total_pixels" | bc 2>/dev/null) || diff_pct=0
     ok=$(echo "$diff_pct <= $pass_threshold" | bc 2>/dev/null) || ok=0
     if [ "$ok" -eq 1 ]; then
-        echo -e "  ${GREEN}PASS${RESET}: parametric sphere caustics match primitive (diff: ${diff_pct}%)"
+        echo -e "  ${GREEN}PASS${RESET}: tessellated sphere caustics match the analytic sphere (diff: ${diff_pct}%)"
     else
-        echo -e "  ${RED}FAIL${RESET}: caustic mismatch between primitive and parametric sphere (diff: ${diff_pct}%)"
+        echo -e "  ${RED}FAIL${RESET}: caustic mismatch between analytic and tessellated sphere (diff: ${diff_pct}%)"
         ((FAILED++))
-        FAILED_TESTS="$FAILED_TESTS\n  - parametric sphere caustics: mismatch between primitive and parametric sphere (diff: ${diff_pct}%)"
+        FAILED_TESTS="$FAILED_TESTS\n  - parametric sphere caustics: mismatch vs analytic sphere (diff: ${diff_pct}%)"
     fi
     rm -f "$prim_out" "$para_out"
 }

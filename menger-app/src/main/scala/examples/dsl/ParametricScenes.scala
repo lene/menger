@@ -69,9 +69,11 @@ object ParametricTorusCaustics:
   private val r = 0.4f
 
   val scene: Scene = Scene(
+    // Camera + light match CausticsCanonical (the pbrt-validated setup) so the caustic is
+    // both bright (intensity 500) and large on screen (camera at z=6).
     camera = Camera(
-      position = (0f, 1.5f, 10f),
-      lookAt = (0f, -0.5f, 0f),
+      position = (0f, 1.5f, 6f),
+      lookAt = (0f, 0f, 0f),
       up = (0f, 1f, 0f)
     ),
     objects = List(ParametricSurface(
@@ -84,10 +86,10 @@ object ParametricTorusCaustics:
       closedU = true, closedV = true,
       material = Some(Material.Glass)
     )),
-    lights = List(Point(position = (0f, 10f, 0f), intensity = 200.0f)),
+    lights = List(Point(position = (0f, 10f, 0f), intensity = 500.0f)),
     planes = List(Plane(Y at -2, color = Color(0.8f, 0.8f, 0.8f))),
     background = Some(Color.Black),
-    caustics = Some(Caustics.Default)
+    caustics = Some(Caustics.HighQuality)
   )
   SceneRegistry.register("parametric-torus-caustics", scene)
 
@@ -212,9 +214,12 @@ object ParametricKleinBottleFilm:
 object ParametricSphereCaustics:
   private val TwoPi = 2f * Pi.toFloat
   val scene: Scene = Scene(
+    // Camera + light match CausticsCanonical (the pbrt-validated setup) so the caustic is
+    // both bright (intensity 500) and large on screen (camera at z=6). See the caustic
+    // visibility note in docs/caustics/CAUSTICS.md.
     camera = Camera(
-      position = (0f, 1.5f, 10f),
-      lookAt = (0f, -0.5f, 0f),
+      position = (0f, 1.5f, 6f),
+      lookAt = (0f, 0f, 0f),
       up = (0f, 1f, 0f)
     ),
     objects = List(ParametricSurface(
@@ -224,9 +229,9 @@ object ParametricSphereCaustics:
       closedU = true, closedV = false,
       material = Some(Material.Glass)
     )),
-    lights = List(Point(position = (0f, 10f, 0f), intensity = 200.0f)),
+    lights = List(Point(position = (0f, 10f, 0f), intensity = 500.0f)),
     planes = List(Plane(Y at -2, color = Color(0.8f, 0.8f, 0.8f))),
     background = Some(Color.Black),
-    caustics = Some(Caustics.Default)
+    caustics = Some(Caustics.HighQuality)
   )
   SceneRegistry.register("parametric-sphere-caustics", scene)

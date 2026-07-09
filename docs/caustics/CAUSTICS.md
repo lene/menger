@@ -70,6 +70,19 @@ struct CausticsParams {
 --caustics-alpha F         Radius reduction factor (default: 0.7, range: 0-1)
 ```
 
+### A note on visibility vs. photon budget
+
+`Caustics.Default` (100,000 photons × 10 iterations = 1M total) and the CLI defaults it
+mirrors are tuned for fast iteration, not visibility. Confirmed empirically (Sprint 33):
+at that budget the caustic ring is present in the underlying data but visually
+imperceptible — a side-by-side crop against `Caustics.HighQuality` (500,000 × 20 = 10M)
+shows only a faint partial trace vs. a clear, complete ring. All demo/manual-test scenes
+meant to actually show a caustic to a human (`CausticsDemo`, `CausticsReference`,
+`CausticsReferenceDefault`, `ParametricSphereCaustics`, `ParametricTorusCaustics`,
+`GlassSphere`) use `Caustics.HighQuality`. Reach for `Caustics.Default`/the CLI defaults
+only for fast execution-only checks (e.g. CI smoke tests) where nothing needs to be
+visually judged.
+
 ## Sprint 33: physics rebuild + validation
 
 The long parameter-tuning investigation (see the historical note in

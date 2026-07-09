@@ -5,23 +5,20 @@ import scala.language.implicitConversions
 import menger.dsl._
 
 /**
- * Caustics reference scene matching the PBRT v4 reference-scene.pbrt parameters.
- *
- * PBRT scene: Camera at (0,4,8), point light at (0,10,0) intensity 500,
- * glass sphere at origin (IOR 1.5), floor at Y=-2 (gray 0.8), black background.
- *
- * Our renderer uses an infinite plane (vs PBRT's finite 20x20 quad), so camera is
- * adjusted to (0,1.5,10) to show the horizon. Point light raised to y=20 for a
- * more natural shadow size. Caustics photon emitter uses importance-sampled cone
- * from the point light toward the sphere.
+ * Caustics reference scene — a glass sphere on a diffuse floor lit by a single point
+ * light, using the same camera + light as [[CausticsCanonical]] (the pbrt-validated setup)
+ * so the caustic is clearly visible: camera at (0,1.5,6) looking at the origin, point light
+ * (0,10,0) intensity 500, glass sphere radius 1 at origin, floor at Y=-2 (gray 0.8), black
+ * background. (Pre-Sprint-33 this scene used a fudged camera/intensity to work around physics
+ * bugs that are now fixed — see the caustic-visibility note in docs/caustics/CAUSTICS.md.)
  *
  * Usage: --scene examples.dsl.CausticsReference
  */
 object CausticsReference:
   val scene = Scene(
     camera = Camera(
-      position = (0f, 1.5f, 10f),
-      lookAt = (0f, -0.5f, 0f),
+      position = (0f, 1.5f, 6f),
+      lookAt = (0f, 0f, 0f),
       up = (0f, 1f, 0f)
     ),
     objects = List(
@@ -32,11 +29,9 @@ object CausticsReference:
       )
     ),
     lights = List(
-      // Point light matching PBRT reference position.
-      // PBRT intensity 500 with point light; our renderer needs calibration.
       Point(
         position = (0f, 10f, 0f),
-        intensity = 200.0f
+        intensity = 500.0f
       )
     ),
     planes = List(
@@ -48,12 +43,13 @@ object CausticsReference:
 
   SceneRegistry.register("caustics-reference", scene)
 
-/** Same as CausticsReference but with Caustics.Default quality — used in the manual
-  * test menu alongside ParametricSphereCaustics (which also uses Caustics.Default)
-  * for a fair visual comparison between analytic and tessellated sphere caustics.
+/** Same scene as CausticsReference, kept as a distinct name for the manual test menu's
+  * primitive-vs-mesh pairing with ParametricSphereCaustics. Both now use Caustics.HighQuality
+  * (bumped from Caustics.Default, which was too low-budget for the caustic ring to be
+  * visible to the eye — see docs/caustics/CAUSTICS.md) so the comparison is meaningful.
   *
   * Usage: --scene examples.dsl.CausticsReferenceDefault
   */
 object CausticsReferenceDefault:
-  val scene: Scene = CausticsReference.scene.copy(caustics = Some(Caustics.Default))
+  val scene: Scene = CausticsReference.scene.copy(caustics = Some(Caustics.HighQuality))
   SceneRegistry.register("caustics-reference-default", scene)
