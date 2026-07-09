@@ -121,6 +121,7 @@ Resolved items are removed from this file entirely — git history is the record
 | ID | Issue | Location | Effort |
 |----|-------|----------|--------|
 | L-turtle4d-emitrun | LSystemTurtle4D.emitRun has no minimum-points guard (3D turtle has ≥2). Add check and unit test. | `LSystemTurtle4D.scala:211` | 15min |
+| L-ci-nvidia-caps-duplication | `NVIDIA_DRIVER_CAPABILITIES` (and `NVIDIA_VISIBLE_DEVICES`) is redeclared identically in 6 GPU jobs because GitLab CI job-level `variables:` fully replaces the global block rather than merging with it. A value change (as in Sprint 33's `display`-capability fix) requires editing all 6 sites by hand with no compiler/linter catch for a missed one. | `.gitlab-ci.yml`: `Test:Full`, `Test:OptiXIntegration`, `Run:UseDocker`, `CheckRunTime`, `PerfCheck`, `Test:InstallSmoke` | 1h |
 
 ---
 
