@@ -400,6 +400,16 @@ below remain open.
   binary is **never** invoked by hooks — only committed references are read.
 - Verify pre-push rendering-path gating covers `caustics-validation/` and `caustics_ppm.cu`.
 - `scripts/manual-test.sh`: caustic + dispersive-caustic scenes appended.
+- **Multi-object caustics — menger verification (REQUIRED before considering the feature done):**
+  the optix-jni `7e6e594` multi-object caustics fix (per-instance photon emission) ships in
+  optix-jni **0.1.15** with a unit test on the optix-jni side. It must **also** be verified on
+  the menger side once the pin is bumped to 0.1.15:
+  - `scripts/integration-tests.sh`: a two-sphere (N ≥ 2 separated refractive objects) caustics
+    scene asserting **two distinct, correctly-placed** caustics (regression guard — the old
+    merged-target code produced one misplaced blob).
+  - `scripts/manual-test.sh`: an interactive multi-object caustics scene for human visual
+    confirmation (per repo policy: every rendering feature needs both a headless regression and
+    a manual-test entry).
 - Docs: consolidate `docs/caustics/` to `CAUSTICS.md` + `CAUSTICS_REFERENCES.md` + the (now
   enforced) ladder doc; delete resolved analysis docs per repo policy; CHANGELOG.md entry;
   user-guide Caustics section; arc42 §9/§10.
