@@ -27,6 +27,8 @@ duplicate texture detection.
 - [ ] Metallic/AO visual diff tests pass (images differ with/without maps)
 - [ ] Convention detection fully anchored (no mid-word substring matches)
 - [ ] Duplicate texture loading detected and warned
+- [ ] F-PBR-DIFFUSE completed: physical Lambertian diffuse shipped, default light model
+      reconciled (scenes not near-black), all reference images regenerated
 - [ ] All tests pass
 
 ---
@@ -241,6 +243,34 @@ texture is loaded and uploaded twice — wasting GPU texture slots.
 
 ---
 
+### Task 35.11: Complete F-PBR-DIFFUSE (physically based Lambertian diffuse)
+
+**Estimate:** 8h
+**From:** Sprint 33 — split out of the multi-object caustics release (optix-jni 0.1.15)
+
+The physically based diffuse shader (`albedo/π · irradiance`, no ambient fill) is
+**already implemented and validated** against pbrt-v4 (canonical MSE 0.19 → 0.013) but was
+held back: it changes the shading of every scene and breaks ~44 GPU tests whose expectations
+encode the old `0.3 ambient + 0.7·N·L` model, and it renders default scenes near-black at
+unit light intensity. The shader math is correct (root-caused 2026-07-10), not buggy — the
+downstream work was deferred by the original commit and never done.
+
+**Code (do not reproduce):** optix-jni commit `72843a0` on branch
+`feature/sprint-33-caustics-multitarget`; full handoff in optix-jni
+`docs/DEFERRED_PBR_DIFFUSE.md`.
+
+**Implementation:**
+- Decide the default look: bump default directional-light intensity (e.g. → π so a fully
+  lit surface returns ~albedo) and/or add a small environment/IBL/ambient term so shadow
+  sides are not pure black.
+- Cherry-pick `72843a0` onto the then-current optix-jni main; reconcile with the chosen
+  light model.
+- Regenerate all reference images (optix-jni GPU suites + menger integration suite).
+- Update GPU-test expectations/scenes (fill light or revised thresholds).
+- Re-baseline the pbrt validation harness; release optix-jni; bump menger's pin.
+
+---
+
 ## Summary
 
 | # | Task | Est |
@@ -255,7 +285,8 @@ texture is loaded and uploaded twice — wasting GPU texture slots.
 | 35.8 | DEFER-4: Metallic/AO visual diff tests | 2h |
 | 35.9 | DEFER-5: Convention detection fully anchored | 1h |
 | 35.10 | DEFER-6: Duplicate texture loading detection | 1h |
-| **Total** | | **~42h** |
+| 35.11 | Complete F-PBR-DIFFUSE (from Sprint 33) | 8h |
+| **Total** | | **~50h** |
 
 ---
 
