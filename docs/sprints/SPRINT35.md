@@ -271,6 +271,66 @@ downstream work was deferred by the original commit and never done.
 
 ---
 
+### Task 35.12: Fix `CausticsStats.energyConservationError` — not a physical check
+
+**Estimate:** 4h
+**From:** Sprint 33 — found while implementing the optix-jni caustics coverage net
+(`feature/caustics-coverage-net`, Task 4), 2026-07-11.
+
+**Root cause (investigated, do not re-derive):** `energyConservationError` computes
+`abs((deposited + absorbed + reflected) − emitted) / emitted`, intending to verify that a
+photon's flux is fully accounted for. This is currently **not a valid comparison** —
+`total_flux_deposited` and `total_flux_emitted` are accumulated in incompatible units:
+
+- `total_flux_emitted` (`caustics_ppm.cu` photon-emission raygen, ~line 1148): accumulated
+  **once per photon**, via `atomicAdd(&stats->total_flux_emitted, flux_sum)`. This is the
+  correct per-photon physical flux.
+- `total_flux_deposited` (photon-deposit loop, ~line 397): accumulated **once per
+  (photon, matched hit-point) pair**. Each photon does a 3×3×3 grid-cell neighborhood
+  search and deposits its *full, undivided* flux into **every** hit point within its
+  gather radius (the standard PPM density-estimate technique — this deposit behavior
+  itself is correct). With a hit-point grid of thousands of points, a single photon can
+  match dozens of hit points, so the raw sum massively over-counts vs. a single photon's
+  actual emitted flux.
+- The radiance kernel (`__raygen__caustics_radiance`, ~line 1250) *does* correctly
+  normalize this for display — dividing by `π·R²·iterations` (see the `P6` comment) to
+  convert the raw deposited-flux sum into physical irradiance. That normalization is
+  applied only at the point of computing displayed radiance; it is **never** applied to
+  the `total_flux_deposited` stats accumulator itself.
+- Observed magnitude: for the coverage-net's canonical single-sphere scene,
+  `energyConservationError` ≈ **628** (i.e. deposited+absorbed+reflected is ~628× emitted),
+  deterministic across repeated identical renders (not noise).
+- `total_flux_absorbed` and `total_flux_reflected` (the latter fixed in the same coverage-net
+  branch, commit `71d21d5`+`aaf17df` — was previously a dead stat, always 0) *are*
+  per-photon and directly comparable to `total_flux_emitted`; the mismatch is isolated to
+  `total_flux_deposited`.
+- **Blast radius: zero.** No production code and no test other than the coverage net's own
+  `CausticsCoverageSuite` reads `energyConservationError`, `fresnelTransmission`, or
+  `totalFluxDeposited` (all three derived/raw metrics live in `OptiXRenderer.scala`
+  around line 145). Grepped confirmed at time of writing.
+- **Interim state:** the coverage-net test (`CausticsCoverageSuite`, "report a bounded,
+  deterministic caustic energy-conservation error") recalibrated its ceiling
+  (`MaxEnergyConservationErrorRatio`) to the observed ~628× value, documented as a
+  **regression guard on the raw ratio**, not a physical conservation claim. This task is
+  to make the metric actually mean what its name says.
+
+**Implementation:**
+- Decide the normalization point: either (a) normalize `total_flux_deposited` at
+  accumulation time (divide by the per-hit-point disk area `π·R²` and by `iterations` at
+  the `atomicAdd` site — mirrors the radiance kernel exactly), or (b) track a separate
+  "photon-hit-point match count" stat and normalize post-hoc in Scala
+  (`OptiXRenderer.scala`). (a) keeps all normalization logic co-located with the existing
+  radiance-kernel convention; (b) avoids extra float division in a hot atomic path but
+  requires an extra stat.
+- After the fix, `energyConservationError` should be small (near 0, allowing for photons
+  that escape the gather-radius search or exit the scene unaccounted).
+- Re-tighten `CausticsCoverageSuite`'s `MaxEnergyConservationErrorRatio` to the new, small,
+  physically meaningful value once fixed — this is now a real regression guard.
+- Full optix-jni pre-push gate; verify no reference-image drift (this should be a
+  stats-only change, same category as `71d21d5`/`aaf17df`).
+
+---
+
 ## Summary
 
 | # | Task | Est |
