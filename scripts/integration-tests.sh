@@ -567,6 +567,22 @@ test_area_light_caustics() {
         --plane y:-2 --light area:0,5,0:0,-1,0:1.0:4
 }
 
+test_colored_glass_caustics() {
+    echo "Colored-glass caustics (red glass casts a tinted caustic):"
+    TIMEOUT=$CAUSTICS_TIMEOUT run_test "colored glass caustics" \
+        --objects type=sphere:material=glass:color=#FF3333 --caustics \
+        --caustics-photons 1000 --caustics-iterations 1 \
+        --plane y:-2 --light point:0,10,0:500
+}
+
+test_dispersive_caustics() {
+    echo "Dispersive PPM caustics (spectral floor caustic):"
+    TIMEOUT=$CAUSTICS_TIMEOUT run_test "dispersive caustics" \
+        --objects type=sphere:material=glass-dispersive:ior=1.5 --caustics \
+        --caustics-photons 1000 --caustics-iterations 1 \
+        --plane y:-2 --light point:0,10,0:500
+}
+
 test_torus_caustics() {
     echo "Torus caustics (mesh geometry):"
     # Renders the scene as-is (its baked HighQuality caustics). A CLI photon override is not
@@ -1461,6 +1477,8 @@ main() {
     test_caustics
     test_multiobject_caustics
     test_area_light_caustics
+    test_colored_glass_caustics
+    test_dispersive_caustics
     test_torus_caustics
     test_icosahedron_caustics
     test_tesseract
