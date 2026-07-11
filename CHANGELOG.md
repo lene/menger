@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3] - 2026-07-11
+
+### Added
+
+- Regression coverage for shipped caustic behaviors: colored-glass caustic and PPM dispersive
+  caustic integration + manual scenes. No behavior change.
+
 ## [0.8.2] - 2026-07-11
 
 ### Added
