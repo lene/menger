@@ -363,6 +363,8 @@ run_test "Cross custom" "-o --objects type=sphere --cross --cross-length 3.0 --c
 echo -e "${YELLOW}--- Caustics (experimental) ---${NC}"
 run_test "Caustics" "-o --objects type=sphere:material=glass --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --plane y:-2 --plane-color cccccc --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/57-caustics.png"
 run_test "Icosahedron caustics" "-o --objects type=icosahedron:size=0.8:material=glass --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --plane y:-2 --plane-color cccccc --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/158-icosahedron-caustics.png"
+run_test "Multi-object caustics (two separated glass spheres — each must cast its own caustic, not one merged blob)" "-o --objects type=sphere:material=glass:pos=-1.5,0,0 --objects type=sphere:material=glass:pos=1.5,0,0 --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --plane y:-2 --plane-color cccccc --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/159-multiobject-caustics.png"
+run_test "Area-light soft caustics (disk emitter — caustic should be softer/blurrier than the point-light Caustics scene above)" "-o --objects type=sphere:material=glass --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light area:0,10,0:0,-1,0:2.0:16:500 --plane y:-2 --plane-color cccccc --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/160-area-light-caustics.png"
 
 # DSL Scenes
 echo -e "${YELLOW}--- DSL Scenes ---${NC}"

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.8.2] - 2026-07-11
+
+### Added
+
+- Multi-object caustics: N separated refractive objects each cast their own caustic (per-instance
+  photon emission, point + directional lights), via optix-jni 0.1.16. Integration + manual test
+  scenes (`test_multiobject_caustics`, two glass spheres).
+
+- Soft caustics from area lights: a disk emitter softens the caustic into a lower-peak penumbra
+  (optix-jni `emitAreaPhoton`). Integration + manual test scenes (`test_area_light_caustics`).
+
+### Changed
+
+- optix-jni dependency bumped 0.1.14 -> 0.1.16.
+
 ## [0.8.1] - 2026-07-02
 
 

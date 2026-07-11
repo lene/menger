@@ -400,21 +400,18 @@ below remain open.
   binary is **never** invoked by hooks — only committed references are read.
 - Verify pre-push rendering-path gating covers `caustics-validation/` and `caustics_ppm.cu`.
 - `scripts/manual-test.sh`: caustic + dispersive-caustic scenes appended.
-- **Multi-object caustics — menger verification (REQUIRED before considering the feature done):**
-  the optix-jni `7e6e594` multi-object caustics fix (per-instance photon emission) ships in
-  optix-jni **0.1.15** with a unit test on the optix-jni side. It must **also** be verified on
-  the menger side once the pin is bumped to 0.1.15:
-  - `scripts/integration-tests.sh`: a two-sphere (N ≥ 2 separated refractive objects) caustics
-    scene asserting **two distinct, correctly-placed** caustics (regression guard — the old
-    merged-target code produced one misplaced blob).
-  - `scripts/manual-test.sh`: an interactive multi-object caustics scene for human visual
-    confirmation (per repo policy: every rendering feature needs both a headless regression and
-    a manual-test entry).
-  - Either light type works: 0.1.15 per-instance emission is implemented in **both**
-    `emitPointPhoton` and `emitDirectionalPhoton` (directional was ported before release).
-    optix-jni `MultiObjectCausticsSuite` covers both (two-vs-one refraction rate; the old merged
-    target collapsed it — point to < 10%, directional to ~13%). Single-object emission is
-    bit-identical to before (CDF draw guarded on N > 1), so existing single-object caustic
+- **Multi-object + area-light caustics — menger verification: ✅ Done (2026-07-11).** Pin bumped
+  to optix-jni **0.1.16** (`build.sbt`). 0.1.16 carries per-instance photon emission for point +
+  directional lights (multi-object) *and* `emitAreaPhoton` (soft caustics from area lights). The
+  tagged-but-unpublished 0.1.15 was superseded and never published.
+  - `scripts/integration-tests.sh`: `test_multiobject_caustics` (two separated glass spheres, point
+    light) + `test_area_light_caustics` (disk emitter) — headless regression, both match at diff 0%.
+  - `scripts/manual-test.sh`: multi-object + area-light soft-caustic scenes appended for human
+    visual confirmation (per repo policy: every rendering feature needs both).
+  - Either light type works for multi-object: 0.1.16 per-instance emission is in **both**
+    `emitPointPhoton` and `emitDirectionalPhoton`. optix-jni `MultiObjectCausticsSuite` +
+    `AreaLightCausticsSuite` cover the optix side. Single-object / point / directional emission is
+    bit-identical (CDF draw guarded on N > 1; area photon path is additive), so existing caustic
     references are unaffected.
 - Docs: consolidate `docs/caustics/` to `CAUSTICS.md` + `CAUSTICS_REFERENCES.md` + the (now
   enforced) ladder doc; delete resolved analysis docs per repo policy; CHANGELOG.md entry;
