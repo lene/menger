@@ -410,12 +410,12 @@ below remain open.
   - `scripts/manual-test.sh`: an interactive multi-object caustics scene for human visual
     confirmation (per repo policy: every rendering feature needs both a headless regression and
     a manual-test entry).
-  - **Use a POINT light in both scenes.** The 0.1.15 per-instance emission is implemented in
-    `emitPointPhoton` only; `emitDirectionalPhoton` still aims at the single merged target, so a
-    directional-light multi-object scene exercises the *unchanged* path and would not verify the
-    fix (it would still show the old merged-blob behaviour). Porting the directional emitter is a
-    separate follow-up. Confirmed via optix-jni `MultiObjectCausticsSuite` (directional light gave
-    identical stats on both native branches; point light gave 219k vs 5.5k refraction events).
+  - Either light type works: 0.1.15 per-instance emission is implemented in **both**
+    `emitPointPhoton` and `emitDirectionalPhoton` (directional was ported before release).
+    optix-jni `MultiObjectCausticsSuite` covers both (two-vs-one refraction rate; the old merged
+    target collapsed it — point to < 10%, directional to ~13%). Single-object emission is
+    bit-identical to before (CDF draw guarded on N > 1), so existing single-object caustic
+    references are unaffected.
 - Docs: consolidate `docs/caustics/` to `CAUSTICS.md` + `CAUSTICS_REFERENCES.md` + the (now
   enforced) ladder doc; delete resolved analysis docs per repo policy; CHANGELOG.md entry;
   user-guide Caustics section; arc42 §9/§10.
