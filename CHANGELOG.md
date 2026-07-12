@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.4] - 2026-07-12
+
+### Added
+
+- Caustics now deposit on arbitrary receiver surfaces: any enabled plane, and diffuse
+  mesh/sphere instances — not only the floor plane. Consumes optix-jni 0.1.18.
+  Integration + manual test coverage (`test_mesh_receiver_caustics`, manual scene 164).
+
 ## [0.8.3] - 2026-07-11
 
 ### Added
