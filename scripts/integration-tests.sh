@@ -583,6 +583,16 @@ test_dispersive_caustics() {
         --plane y:-2 --light point:0,10,0:500
 }
 
+test_mesh_receiver_caustics() {
+    echo "Mesh-receiver caustics (glass sphere caustic on a diffuse sphere receiver, no floor plane):"
+    TIMEOUT=$CAUSTICS_TIMEOUT run_test "mesh receiver caustics" \
+        --objects type=sphere:material=glass:color=#DDEEFF:size=1:pos=0,0,0 \
+        --objects type=sphere:size=3:pos=0,-5,0 \
+        --camera-pos 0,1.5,6 --camera-lookat 0,0,0 \
+        --caustics --caustics-photons 1000 --caustics-iterations 1 \
+        --light point:0,10,0:500
+}
+
 test_torus_caustics() {
     echo "Torus caustics (mesh geometry):"
     # Renders the scene as-is (its baked HighQuality caustics). A CLI photon override is not
@@ -1479,6 +1489,7 @@ main() {
     test_area_light_caustics
     test_colored_glass_caustics
     test_dispersive_caustics
+    test_mesh_receiver_caustics
     test_torus_caustics
     test_icosahedron_caustics
     test_tesseract
