@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.5] - 2026-07-13
+
+### Added
+
+- Frosted/rough-glass caustics: `roughness=VALUE` on a glass material now spreads and softens
+  its caustic (GGX-VNDF microfacet sampling). Consumes optix-jni 0.1.19.
+
 ## [0.8.4] - 2026-07-12
 
 ### Added

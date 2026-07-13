@@ -115,6 +115,26 @@ Shader: `menger-geometry/src/main/native/shaders/caustics_ppm.cu`.
 
 ---
 
+## Known test fragility
+
+**`torus caustics` / `DSL CausticsDemo` reference images are sensitive to any shader recompile.**
+Both scenes use `Caustics.HighQuality` (a much higher photon budget than any other caustics
+scene in the integration/reference suites). Landing the Phase 3 rough-refraction shader change
+(optix-jni 0.1.19) — which added new code to `__closesthit__photon` that is a provable
+byte-identical no-op for `roughness=0` (every existing preset) — still shifted these two
+references by a tiny, deterministic amount (0.006%/0.0013% of pixels, confined to the
+caustic-splash region; reproduced identically across repeated runs of the same binary).
+Root cause is presumed to be sub-ULP floating-point rounding drift from compiler
+codegen/register-allocation changes elsewhere in the same CUDA kernel, not a logic regression —
+but this makes these two references brittle against *any* future `caustics_ppm.cu` recompile,
+even changes gated to be no-ops for these scenes. References were regenerated and re-verified
+deterministic as part of Phase 3 (menger 0.8.5). If this recurs on a future unrelated shader
+change, consider lowering these two scenes' photon budget (moving them off the LSB-rounding
+edge) or switching their comparison from exact match to a small tolerance, rather than treating
+each recurrence as a fresh regression investigation.
+
+---
+
 ## Architecture notes (load-bearing)
 
 - **Two copies of the caustics native code.** The live *shader* is menger-geometry's
