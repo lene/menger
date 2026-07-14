@@ -56,6 +56,13 @@ fi
 # Configuration
 DEFAULT_TIMEOUT=0.1
 CAUSTICS_TIMEOUT=1.0
+# Caustics ladder C8 gate (Sprint 33.11): photon budget for the canonical + two-spheres
+# pbrt-reference comparison at 400x300. Tuned to the lowest value that clears the loose
+# whole-image MSE bound (caustics-validation/thresholds.txt) against the committed pbrt
+# references while keeping pre-push wall-time bounded. Raise if the gate goes flaky; the
+# full-ladder / high-budget comparison stays in compare-caustics.sh --full (manual/CI).
+CAUSTICS_LADDER_PHOTONS=2000
+CAUSTICS_LADDER_ITERS=2
 SCRIPT_DIR="$(dirname "$0")"
 TEST_ASSETS_DIR="$SCRIPT_DIR/test-assets"
 REFERENCE_DIR="$SCRIPT_DIR/reference-images"
@@ -615,6 +622,68 @@ test_icosahedron_caustics() {
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "icosahedron caustics" \
         --objects type=icosahedron:size=0.8:material=glass --caustics \
         --caustics-photons 1000 --caustics-iterations 1 --plane y:-2
+}
+
+test_caustics_ladder() {
+    echo "Caustics ladder (C8 pbrt-reference gate, canonical + two-spheres @ 400x300):"
+    # The C8 rung: render the canonical + two-spheres scenes as linear PFM at 400x300 and gate
+    # against the committed pbrt-v4 references via caustics-validation/compare-caustics.sh
+    # (loose whole-image MSE/FLIP bound). pbrt is NEVER invoked here — only the committed
+    # references in scripts/reference-images/caustics/ are read. The tight delta-correlation
+    # gate (compare-caustic-delta.sh) and the 800x600 full ladder stay in --full / manual.
+    # Scenes are physical twins of caustics-validation/scenes/{canonical-caustics,two-spheres}.pbrt:
+    # glass sphere(s) IOR 1.5, floor Y=-2 (grey 0.8), point light (0,10,0) @ 500, camera (0,1.5,6)->origin.
+    local ladder_dir="$SCRIPT_DIR/caustics-validation"
+    local ref_dir="$REFERENCE_DIR/caustics"
+    local out_dir; out_dir="$(mktemp -d)"
+
+    run_ladder_scene() {
+        local name="$1" scene_ref="$2"
+        shift 2
+        should_skip_test "$name" && return 0
+        local tag="${name// /_}"
+        local out="$out_dir/${tag}.pfm"
+        local cmp_log="$out_dir/${tag}.cmp"
+        local failure_log; failure_log=$(failure_log_file "$name")
+        rm -f "$failure_log"
+        if run_menger_to_log "$failure_log" --headless --save-name "$out" \
+                --width 400 --height 300 "$@" && [ -f "$out" ]; then
+            rm -f "$failure_log"
+            if "$ladder_dir/compare-caustics.sh" "$out" "$ref_dir/${scene_ref}_400x300.pfm" >"$cmp_log" 2>&1; then
+                echo -e "  ${name} - pbrt-ref gate ${GREEN}✓${RESET}"
+                sed 's/^/    /' "$cmp_log"
+                ((PASSED++))
+            else
+                echo -e "  ${name} - pbrt-ref gate ${RED}✗${RESET}"
+                sed 's/^/    /' "$cmp_log"
+                ((FAILED++))
+                FAILED_TESTS="$FAILED_TESTS\n  - $name (caustics-ladder pbrt-ref gate)"
+                IMAGE_COMPARISON_FAILURES=$((IMAGE_COMPARISON_FAILURES + 1))
+            fi
+        else
+            echo -e "  ${name} - ${RED}render failed${RESET}"
+            print_failure_log "$name" "$failure_log"
+            ((FAILED++))
+            FAILED_TESTS="$FAILED_TESTS\n  - $name (caustics-ladder render failed)"
+        fi
+    }
+
+    run_ladder_scene "caustics ladder canonical" "canonical-caustics" \
+        --objects type=sphere:ior=1.5:size=1 \
+        --plane y:-2 --plane-color '#CCCCCC' \
+        --light point:0,10,0:500 \
+        --camera-pos 0,1.5,6 --camera-lookat 0,0,0 \
+        --caustics --caustics-photons "$CAUSTICS_LADDER_PHOTONS" --caustics-iterations "$CAUSTICS_LADDER_ITERS"
+
+    run_ladder_scene "caustics ladder two-spheres" "two-spheres" \
+        --objects type=sphere:ior=1.5:size=0.8:pos=-1.3,0,0 \
+        --objects type=sphere:ior=1.5:size=0.8:pos=1.3,0,0 \
+        --plane y:-2 --plane-color '#CCCCCC' \
+        --light point:0,10,0:500 \
+        --camera-pos 0,1.5,6 --camera-lookat 0,0,0 \
+        --caustics --caustics-photons "$CAUSTICS_LADDER_PHOTONS" --caustics-iterations "$CAUSTICS_LADDER_ITERS"
+
+    rm -rf "$out_dir"
 }
 
 test_tesseract() {
@@ -1501,6 +1570,7 @@ main() {
     test_frosted_glass_caustics
     test_torus_caustics
     test_icosahedron_caustics
+    test_caustics_ladder
     test_tesseract
     test_4d_sponges
     test_menger4d

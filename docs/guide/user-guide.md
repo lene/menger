@@ -222,6 +222,36 @@ sbt "run --optix --objects 'type=sponge-surface:level=2' \
     --shadows --antialiasing --plane-color ffffff:808080"
 ```
 
+#### Caustics — Progressive Photon Mapping (Sprint 33)
+
+Caustics — the bright patterns where light focuses through glass — are rendered with
+physically-correct Progressive Photon Mapping, validated against pbrt-v4. Enable with
+`--caustics`; budget flags trade quality for speed:
+
+```bash
+# Glass sphere casting a caustic on the floor
+menger --optix --objects 'type=sphere:ior=1.5' --caustics --plane y:-2 \
+       --light point:0,10,0:500
+
+# Higher photon budget for a sharp, visible caustic (slower)
+menger --optix --objects 'type=sphere:ior=1.5' --caustics \
+       --caustics-photons 500000 --caustics-iterations 20 --plane y:-2
+```
+
+| Flag | Default | Effect |
+|------|---------|--------|
+| `--caustics` | off | Enable PPM caustics |
+| `--caustics-photons N` | 100000 | Photons per PPM iteration |
+| `--caustics-iterations N` | 10 | PPM iterations (quality up, time up) |
+| `--caustics-radius F` | auto | Initial gather radius (auto-derived from scene geometry) |
+| `--caustics-alpha F` | 0.7 | Radius reduction factor per iteration |
+
+The defaults are tuned for fast iteration, not visibility — at the default budget the caustic
+is present in the data but visually faint. For any image meant to *show* a caustic to a human,
+raise the budget (e.g. `--caustics-photons 500000 --caustics-iterations 20`). Frosted/rough
+glass (`roughness=VALUE`) spreads the caustic; dispersive glass (`material=glass-dispersive`,
+`dispersion=N`) splits it into a spectrum. See [Caustics Implementation](../caustics/CAUSTICS.md).
+
 #### Recursion Depth (`--max-ray-depth`, Sprint 18.5)
 
 `--max-ray-depth N` controls how many bounce / refraction recursions a single

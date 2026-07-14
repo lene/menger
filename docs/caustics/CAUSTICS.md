@@ -25,7 +25,11 @@ PPM is a multi-pass rendering algorithm:
 
 ## Key Files
 
-- `optix-jni/src/main/native/shaders/sphere_combined.cu` - CUDA/OptiX shaders
+The live caustics shader is `caustics_ppm.cu`, `#include`d into the single monolithic
+`optix_shaders.ptx` that optix-jni loads for every scene (verified in the Sprint 33
+course-correction). menger-geometry's `caustics_ppm.cu` is a non-loaded duplicate.
+
+- `optix-jni/src/main/native/shaders/caustics_ppm.cu` - PPM caustics shaders (the live path)
 - `optix-jni/src/main/native/OptiXWrapper.cpp` - Host-side rendering loop
 - `optix-jni/src/main/native/include/OptiXData.h` - Data structures (HitPoint, CausticsParams)
 
@@ -85,16 +89,21 @@ visually judged.
 
 ## Sprint 33: physics rebuild + validation
 
-The long parameter-tuning investigation (see the historical note in
-`CAUSTICS_ITERATION_LOG.md`) never converged because the implementation has structural
-physics defects — no parameter choice can compensate for them. Sprint 33 fixes them and
-validates the result against pbrt-v4. The nine defects (P1–P9) and the fix order are in
-[docs/sprints/SPRINT33.md](../sprints/SPRINT33.md).
+The long parameter-tuning investigation never converged because the implementation has
+structural physics defects — no parameter choice can compensate for them. Sprint 33 fixes
+them and validates the result against pbrt-v4. The nine defects (P1–P9) and the fix order
+are in [docs/sprints/SPRINT33.md](../sprints/SPRINT33.md); the closed tuning log was removed
+in Task 33.11 as resolved working material.
 
 ### Validation harness
 
 `scripts/caustics-validation/` compares a menger render (linear PFM via `--save-name
-out.pfm`, `--tonemap none`) against a committed pbrt-v4 reference using imgtool MSE + FLIP.
+out.pfm`; CLI `--objects` scenes are already linear — tone mapping defaults to None) against a
+committed pbrt-v4 reference. The primary C8 criterion is the caustic-DELTA Pearson
+correlation (`compare-caustic-delta.sh`, ≥ 0.80, pure node — no external tool); the
+whole-image MSE/FLIP bound (`compare-caustics.sh`, `thresholds.txt`) is a loose gross-breakage
+check that runs in CI via `test_caustics_ladder`. Where pbrt's `imgtool` is installed it
+supplies MSE + FLIP; otherwise `compare-caustics.sh` falls back to a node MSE computation.
 See `scripts/caustics-validation/README.md`.
 
 ### Validation baseline (before the physics rebuild)

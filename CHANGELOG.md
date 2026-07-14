@@ -7,6 +7,19 @@
 - Frosted/rough-glass caustics: `roughness=VALUE` on a glass material now spreads and softens
   its caustic (GGX-VNDF microfacet sampling). Consumes optix-jni 0.1.19.
 
+- Caustics C8 reference gate in CI: `test_caustics_ladder` renders the canonical + two-spheres
+  scenes at 400x300 and compares the linear PFM against committed pbrt-v4 references
+  (`scripts/caustics-validation/compare-caustics.sh`, with a node MSE fallback where pbrt's
+  imgtool is absent). The tight delta-correlation gate stays in `--full` / manual.
+
+### Changed
+
+- Pre-push rendering-path gating now covers `scripts/caustics-validation/` (the live
+  `caustics_ppm.cu` was already covered by the `menger-geometry/src/main/native/` pattern).
+
+- Consolidated `docs/caustics/` from 7 files to 3 (`CAUSTICS.md`, `CAUSTICS_REFERENCES.md`,
+  `CAUSTICS_TEST_LADDER.md`); removed the resolved analysis/plan/fix-plan/iteration-log docs.
+
 ## [0.8.4] - 2026-07-12
 
 ### Added

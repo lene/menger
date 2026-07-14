@@ -5,3 +5,8 @@
 ^menger-app/src/main/scala/menger/engines/scene/
 ^menger-app/src/main/scala/menger/objects/
 ^menger-app/src/main/scala/menger/optix/
+# Caustics-validation harness (Sprint 33.11): changes to the compare scripts, pbrt twins,
+# or thresholds can alter the C8 gate, so they must come with a reference-image update
+# (or a No-Render-Impact trailer). The live caustics shader itself is already covered by
+# the menger-geometry/src/main/native/ pattern above.
+^scripts/caustics-validation/

@@ -57,21 +57,21 @@ Speed    Efficiency      Quality    Accuracy       Coverage   Handling
 > to reference image comparison. Each step must pass before proceeding to the next.
 > See [Caustics Test Ladder](../caustics/CAUSTICS_TEST_LADDER.md) for implementation details.
 
-| ID | Scenario | Measure | Target | Test Type |
-|----|----------|---------|--------|-----------|
-| C1 | Photon emission | Count & direction | Matches requested, uniform distribution | Analytic | ❌ Not implemented |
-| C2 | Sphere hit rate | Photons hitting sphere | Within 5% of geometric cross-section | Analytic | ❌ Not implemented |
-| C3 | Refraction accuracy | Exit angle vs Snell's law | < 0.01 rad error for known angles | Analytic | ❌ Not implemented |
-| C4 | Focal point position | Caustic centroid location | Within 0.1 units of predicted focal point | Analytic | ❌ Not implemented |
-| C5 | Energy conservation | Flux in vs flux deposited | Within 5% (accounting for absorption) | Statistical | ❌ Not implemented |
-| C6 | PPM convergence | Variance over iterations | Monotonic decrease after iteration 3 | Statistical | ❌ Not implemented |
-| C7 | Caustic brightness | Peak vs ambient | > 1.5× brighter at focal point | Statistical | ❌ Not implemented |
-| C8 | Reference match | SSIM to known-good render | > 0.90 for canonical scene | Image comparison | ❌ Not implemented |
+| ID | Scenario | Measure | Target | Test Type | Status |
+|----|----------|---------|--------|-----------|--------|
+| C1 | Photon emission | Count & direction | Matches requested, uniform distribution | Analytic | ✅ Implemented (Sprint 33) |
+| C2 | Sphere hit rate | Photons hitting sphere | Within 5% of geometric cross-section | Analytic | ✅ Implemented (Sprint 33) |
+| C3 | Refraction accuracy | Exit angle vs Snell's law | < 0.01 rad error for known angles | Analytic | ✅ Implemented (Sprint 33) |
+| C4 | Focal point position | Caustic centroid location | Within 0.1 units of predicted focal point | Analytic | ✅ Implemented (Sprint 33) |
+| C5 | Energy conservation | Flux in vs flux deposited | Within 5% (accounting for absorption) | Statistical | ✅ Implemented (Sprint 33) |
+| C6 | PPM convergence | Variance over iterations | Monotonic decrease after iteration 3 | Statistical | ✅ Implemented (Sprint 33) |
+| C7 | Caustic brightness | Peak vs ambient | > 1.5× brighter at focal point | Statistical | ✅ Implemented (Sprint 33) |
+| C8 | Reference match | Caustic-Δ Pearson correlation + whole-image MSE/FLIP | Δ-corr ≥ 0.80 (primary); MSE/FLIP loose bound | Image comparison | ✅ Implemented (Sprint 33) |
 
 #### Caustics Test Ladder
 
 ```
-Step 8: Reference Match ──────── C8: SSIM > 0.90
+Step 8: Reference Match ──────── C8: Δ-corr ≥ 0.80 (+ MSE/FLIP bound)
     ▲
 Step 7: Brightness ───────────── C7: Peak > 1.5× ambient
     ▲

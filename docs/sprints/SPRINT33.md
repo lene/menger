@@ -81,19 +81,19 @@ different per-pixel noise). Instead:
 
 ## Success Criteria
 
-- [ ] C1–C7 caustics ladder tests pass (analytic + statistical); C8 passes against a
+- [x] C1–C7 caustics ladder tests pass (analytic + statistical); C8 passes against a
       committed, manifest-locked pbrt-v4 reference on all twin scenes
-- [ ] `--caustics` with **no** further parameters produces correct results on every ladder
+- [x] `--caustics` with **no** further parameters produces correct results on every ladder
       scene (auto-tuning derives photon budget, radius, iterations from the scene)
-- [ ] Caustics render correctly for arbitrary refractive geometry (multiple glass objects,
+- [x] Caustics render correctly for arbitrary refractive geometry (multiple glass objects,
       off-center scenes, glass cube), not just a single centered sphere
-- [ ] Reflective caustics render (photon reflection at dielectric/metal boundaries)
-- [ ] Dispersive caustics: white light through a dispersive glass sphere produces a
+- [x] Reflective caustics render (photon reflection at dielectric/metal boundaries)
+- [x] Dispersive caustics: white light through a dispersive glass sphere produces a
       rainbow-fringed caustic; non-dispersive scenes remain bit-compatible
-- [ ] Caustic radiance is composited in **linear space** before the global tone map; works
+- [x] Caustic radiance is composited in **linear space** before the global tone map; works
       under `--tonemap none|reinhard|aces`
-- [ ] Caustics off by default; existing non-caustics reference images byte-identical
-- [ ] All tests pass; pre-push hook green
+- [x] Caustics off by default; existing non-caustics reference images byte-identical
+- [ ] All tests pass; pre-push hook green *(verified at commit/push — see Definition of Done)*
 
 ---
 
@@ -179,7 +179,9 @@ each recurrence as a fresh regression investigation.
   "before" row in `CAUSTICS.md`. Every physics task must move these numbers and cite them.
 - Pin the light-unit convention (pbrt point `I` = W/sr vs menger `Light.intensity`) in the
   harness docs **before** P1 brightness is judged.
-- Close `CAUSTICS_ITERATION_LOG.md` with a pointer to the defect list.
+- ~~Close `CAUSTICS_ITERATION_LOG.md` with a pointer to the defect list.~~ — done (Task 33.11):
+  the resolved log was deleted; the defect list lives in this sprint's "Verified defects"
+  section and `CAUSTICS.md`.
 
 **Done when:** `compare-caustics.sh` produces a reproducible metrics row for the canonical
 scene against a committed, manifest-locked pbrt reference.
@@ -399,19 +401,19 @@ gains a coloured floor caustic (saturation 0 → 0.044).
 ### Task 33.11: Reference ladder → integration suite + documentation
 **Estimate:** 4h
 **Depends on:** 33.8–33.10
-**Status:** 🔶 Partial (2026-07-09) — arbitrary-geometry test coverage landed; the canonical-ladder
-CI wiring and docs consolidation below are still open. Added `test_torus_caustics()` and
-`test_icosahedron_caustics()` smoke tests to `scripts/integration-tests.sh` (fast, low photon
-budget matching `test_caustics`'s tier — execution + committed-reference-diff only, no pbrt
-ground truth, since no PLY-exporter/pbrt-twin exists for arbitrary meshes yet) plus matching
-`scripts/manual-test.sh` entries. Icosahedron uses the built-in Platonic-solid CLI path
-(`--objects type=icosahedron:material=glass --caustics`), not a new DSL scene or new mesh
-infrastructure — confirmed via direct high-photon-budget testing (500k×20, matching
-`CausticsCanonical`'s budget) that the arbitrary-geometry emission targeting from Task 33.7
-genuinely produces a visible caustic on a 20-facet polyhedron, not just spheres/tori; this had
-never been exercised before. **Deferred (not done):** the `test_caustics_ladder()` +
-`compare-caustics.sh` canonical/two-spheres CI wiring, and the docs consolidation — both bullets
-below remain open.
+**Status:** ✅ Done (2026-07-14). Arbitrary-geometry smoke coverage (`test_torus_caustics`,
+`test_icosahedron_caustics`) landed 2026-07-09; the two remaining bullets are now closed:
+(1) `test_caustics_ladder()` is wired into `scripts/integration-tests.sh` — it renders the
+canonical + two-spheres scenes as linear PFM at 400×300 (reduced budget) and gates them against
+the committed pbrt-v4 references via `compare-caustics.sh` (loose whole-image MSE bound; a node
+MSE fallback runs where pbrt's `imgtool` is absent, as on the dev host and the CI image).
+Measured MSE ≈ 0.17 vs the 0.30 bound on both scenes. pbrt is never invoked by hooks. The tight
+delta-correlation gate and the 800×600 ladder stay in `compare-caustics.sh --full` / manual.
+(2) `docs/caustics/` consolidated 7 → 3 (`CAUSTICS.md`, `CAUSTICS_REFERENCES.md`,
+`CAUSTICS_TEST_LADDER.md`); the resolved analysis/plan/fix-plan/iteration-log docs were deleted
+per repo policy. CHANGELOG + a user-guide Caustics section + arc42 §9/§10 (C1–C8 statuses and
+the C8 metric corrected) updated. Pre-push rendering-path gating now covers `caustics-validation/`
+(`caustics_ppm.cu` was already covered by the `menger-geometry/src/main/native/` pattern).
 
 - `scripts/integration-tests.sh`: keep the fast smoke test; add `test_caustics_ladder()` calling
   `compare-caustics.sh` for **two** scenes (canonical + two-spheres) at 400×300 with reduced
@@ -532,9 +534,9 @@ single-point runs produce degenerate curves (all points identical).
 
 ## Definition of Done
 
-- [ ] All success criteria met
-- [ ] Pre-push hook green
-- [ ] CHANGELOG.md updated
-- [ ] Caustics ladder C1–C7 tests pass; C8 gated against pbrt-v4 reference
-- [ ] Caustics ladder scenarios gated in the integration suite
-- [ ] optix-jni 0.1.11 released; `build.sbt` bumped
+- [ ] All success criteria met *(pending the "all tests pass / pre-push green" line — verified at push)*
+- [ ] Pre-push hook green *(verified at push)*
+- [x] CHANGELOG.md updated
+- [x] Caustics ladder C1–C7 tests pass; C8 gated against pbrt-v4 reference
+- [x] Caustics ladder scenarios gated in the integration suite (`test_caustics_ladder`)
+- [x] optix-jni published through 0.1.19; `build.sbt` pins 0.1.19 (the original "0.1.11" target here was superseded by the physics-rebuild releases 0.1.12–0.1.19)

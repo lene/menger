@@ -822,7 +822,8 @@ was a 662-line god-object with duplicated dispatch.
 **Consequences:**
 - PerfCheck failures now block merge; real baselines must be measured on the CI runner.
 - `ARCHITECTURE_BACKLOG.md` T3 (native leak gate) still unscheduled.
-- Caustics C1-C8 ladder development deferred to Sprint 34.
+- Caustics C1-C8 ladder: implemented and validated in Sprint 33 (the deferral recorded here
+  is resolved; the §10 "Not implemented" markers are since updated to ✅).
 
 ---
 
