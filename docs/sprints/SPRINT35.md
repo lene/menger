@@ -310,8 +310,9 @@ photon's flux is fully accounted for. This is currently **not a valid comparison
   around line 145). Grepped confirmed at time of writing.
 - **Interim state:** the coverage-net test (`CausticsCoverageSuite`, "report a bounded,
   deterministic caustic energy-conservation error") recalibrated its ceiling
-  (`MaxEnergyConservationErrorRatio`) to the observed ~628× value, documented as a
-  **regression guard on the raw ratio**, not a physical conservation claim. This task is
+  (`MaxEnergyConservationErrorRatio`) to `780` (the observed ~628× value plus 25% headroom),
+  documented as a **regression guard on the raw ratio**, not a physical conservation claim.
+  This task is
   to make the metric actually mean what its name says.
 
 **Implementation:**
