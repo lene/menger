@@ -48,7 +48,13 @@ apt-get -y install \
 
 ## Install CUDA Toolkit
 
-CUDA Toolkit 13.2 is required for OptiX 9.0 compatibility.
+A CUDA 13.x toolkit is required. This is not an OptiX constraint — OptiX 9.0 runs fine
+against CUDA 12.x — it comes from the project: `optix-jni`'s native build pins
+`find_package(CUDAToolkit 13.0 REQUIRED)` and its published artifacts link
+`libcudart.so.13`, so a 12.x toolchain cannot reproduce them (see arc42 TC-4).
+`menger-geometry` itself only needs ≥12.0.
+
+These instructions install 13.2, which is what CI and the dev machines run.
 
 ### Add NVIDIA Repository
 
