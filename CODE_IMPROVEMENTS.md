@@ -212,3 +212,41 @@ missing PNG files) were pre-commit hook catches. Each would have been caught in 
 
 **Fix**: Memory entry added: "NEVER --no-verify for routine commits." failure-handling skill
 updated with Sprint 34 anti-pattern.
+
+---
+
+# Pre-push gate silently skips every check without a TTY — 2026-07-20
+
+`.git_hooks/pre-push` decides how to compute `CHANGED_FILES` with `if [ -t 0 ]`:
+
+- stdin **is** a TTY (a human in a terminal) → diff the branch against `origin/main`
+- stdin is **not** a TTY → read git's pre-push protocol (`local_ref local_sha
+  remote_ref remote_sha`) from stdin
+
+When the hook is run non-interactively *and* nothing is piped in — which is exactly
+what happens when an AI agent or a CI script invokes it — the `while read` loop gets
+no input, `CHANGED_FILES` stays empty, and every section reports
+`[skipped — no relevant files changed]`. The hook then exits 0.
+
+This is a false pass. It reported success on a branch that modified `.gitlab-ci.yml`,
+without ever running the GitLab CI lint that would have checked it. Only the version
+and tag checks (which are unconditional) actually ran.
+
+It matters because `AGENTS.md` explicitly instructs agents to run
+`./.git_hooks/pre-push 2>&1 | tee /tmp/pre-push.log` and calls it "the single
+authoritative code-quality gate". A human running that in a terminal is fine — the
+pipe affects stdout, not stdin — but an agent has no TTY, so the authoritative gate
+has been silently no-opping for agent-run pushes.
+
+Workaround for now: `script -qec './.git_hooks/pre-push' /dev/null` allocates a
+pseudo-TTY and takes the manual path.
+
+Fix options: fall back to the branch-vs-main diff when stdin is neither a TTY nor has
+readable data, or fail loudly when `CHANGED_FILES` is empty but `HEAD` differs from
+`origin/main` — an empty change set on a branch with commits is a bug, not a clean run.
+
+Related: linting `.gitlab-ci.yml` needs `GITLAB_ACCESS_TOKEN`, and the
+`.set-gitlab-token.sh` the error message points at does not exist in a fresh checkout.
+The token can be read from an authenticated `glab` (`glab config get token --host
+gitlab.com`); nothing documents this, so the lint step silently blocks a first-time
+setup.
