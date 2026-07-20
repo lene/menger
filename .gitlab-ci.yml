@@ -433,7 +433,7 @@ AIReview:
         done < standards/architecture-paths.txt
       fi
     - >
-      ./scripts/review.sh
+      ./standards/scripts/review.sh
       --diff mr.diff
       --guidelines standards/review-guidelines.md
       ${ARCH_FLAG}
