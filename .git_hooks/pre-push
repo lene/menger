@@ -15,8 +15,25 @@ RANGES=()
 # the true branch point rather than a stale local ref.  Degrade
 # gracefully (no error exit) when the network is unavailable.
 git fetch origin --quiet 2>/dev/null || true
-if [ -t 0 ]; then
-  # Running manually (stdin is a TTY) — detect changed files from current branch vs main
+# The `[ -t 0 ]` branch this replaces treated "not a terminal" as "git supplied
+# the pre-push protocol". An agent or CI script has neither a TTY nor stdin, so
+# it took the protocol path, read nothing, and left CHANGED_FILES empty — every
+# section below then reported "skipped — no relevant files changed" and the hook
+# exited 0. That false pass let a branch editing .gitlab-ci.yml through without
+# running the CI lint. See standards/hooks/lib.sh for the full reasoning.
+if [ -r ./standards/hooks/lib.sh ]; then
+  . ./standards/hooks/lib.sh
+  # Capture status separately: inside <(...) it would be lost, and an empty
+  # range list means either "branch deletion" (fine, exit 0) or "could not
+  # determine a base" (a bug). Conflating them is how silent skips start.
+  _ranges_out=$(push_ranges); _rc=$?
+  [ "$_rc" -eq 2 ] && exit 0   # push only deletes a branch
+  mapfile -t RANGES < <(printf '%s' "$_ranges_out")
+  CHANGED_FILES=$(changed_files "${RANGES[@]}")
+  assert_detection "$CHANGED_FILES" || exit 1
+else
+  # Branch predating standards enrollment: degrade to the branch-vs-main
+  # comparison rather than silently skipping.
   LOCAL_SHA=$(git rev-parse HEAD)
   BASE=$(git merge-base origin/main "$LOCAL_SHA" 2>/dev/null || git merge-base main "$LOCAL_SHA" 2>/dev/null)
   if [ -n "$BASE" ]; then
@@ -25,22 +42,6 @@ if [ -t 0 ]; then
   else
     CHANGED_FILES=$(git diff --name-only HEAD)
   fi
-else
-  while read local_ref local_sha remote_ref remote_sha; do
-    if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
-      continue  # branch deletion — nothing to check
-    fi
-    if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
-      BASE=$(git merge-base origin/main "$local_sha" 2>/dev/null)
-      if [ -n "$BASE" ]; then
-        CHANGED_FILES="$CHANGED_FILES"$'\n'"$(git diff --name-only "$BASE" "$local_sha")"
-        RANGES+=("$BASE..$local_sha")
-      fi
-    else
-      CHANGED_FILES="$CHANGED_FILES"$'\n'"$(git diff --name-only "$remote_sha" "$local_sha")"
-      RANGES+=("$remote_sha..$local_sha")
-    fi
-  done
 fi
 
 HAS_SCALA=$(echo "$CHANGED_FILES" | grep -cE '\.(scala|sbt)$|^project/')
