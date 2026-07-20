@@ -34,7 +34,7 @@ active feature branch may live in a worktree under `.worktrees/`. Rule 5's gate 
 
 **Every task requires both steps — neither alone is sufficient:**
 
-**Step 1: Mark the task done in the sprint doc.** Find the current sprint file via `docs/sprints/SPRINT.md`, open the linked sprint file, check the task's box and update its status. Do this before declaring the task complete.
+**Step 1: Mark the task done in the sprint doc.** Sprints live in the workspace repo, since they plan work across all three repos — find the current sprint file via `../docs/sprints/SPRINT.md`, open the linked sprint file, check the task's box and update its status. Do this before declaring the task complete.
 
 **Step 2: Run the pre-push hook:**
 
@@ -141,7 +141,7 @@ Detailed troubleshooting (CUDA error 718, OptiX SDK/driver matching, PTX-not-fou
 
 ## Release workflow
 
-Use the `/release-checklist` skill. Version must be updated in four files: `menger-app/build.sbt`, `.gitlab-ci.yml` (DEPLOYABLE_VERSION), `menger-app/src/main/scala/menger/MengerCLIOptions.scala`, `docs/guide/user-guide.md`. The pre-push hook validates consistency across all four.
+Use the `/release-checklist` skill (it lives in the workspace repo — it covers all three repos' releases, in the order menger-common → optix-jni → menger). Version must be updated in four files: `menger-app/build.sbt`, `.gitlab-ci.yml` (DEPLOYABLE_VERSION), `menger-app/src/main/scala/menger/MengerCLIOptions.scala`, `docs/guide/user-guide.md`. The pre-push hook validates consistency across all four.
 
 ---
 
@@ -154,7 +154,7 @@ Use the `/release-checklist` skill. Version must be updated in four files: `meng
 | `docs/TESTING.md` | Test failure protocol, investigation procedure |
 | `docs/RENDERING.md` | Rendering-change discipline, integration suite |
 | `docs/TROUBLESHOOTING.md` | Common environment/build issues |
-| `docs/sprints/SPRINT.md` | Current sprint pointer |
+| `../docs/sprints/SPRINT.md` | Current sprint pointer (workspace repo) |
 | `CHANGELOG.md` | Version history (keepachangelog format) |
 | `CODE_IMPROVEMENTS.md` | Open code-quality findings (resolved items deleted, not archived) |
 | `docs/BACKLOG.md` | Unscheduled feature ideas not yet sprint-assigned |

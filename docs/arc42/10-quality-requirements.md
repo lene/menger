@@ -161,7 +161,7 @@ For reproducible validation, use this fixed configuration:
 ## 10.4 Performance Budgets
 
 > **Note:** Actual performance metrics are measured during development and documented in sprint planning.
-> For detailed performance data, see [docs/sprints/](../../sprints/) and [docs/archive/sprints/](../archive/sprints/).
+> For detailed performance data, see [sprint planning](../../../docs/sprints/) and its [archive](../../../docs/archive/sprints/), in the workspace repo.
 
 ### Render Time (800×600)
 
@@ -189,5 +189,5 @@ For reproducible validation, use this fixed configuration:
 ### Performance Baselines
 
 For detailed performance metrics and historical data, refer to:
-- **Sprint documentation:** [docs/sprints/](../../sprints/) and [docs/archive/sprints/](../archive/sprints/)
+- **Sprint documentation:** [sprints](../../../docs/sprints/) and [archive](../../../docs/archive/sprints/), in the workspace repo
 - **Code quality assessments:** [CODE_IMPROVEMENTS.md](../../CODE_IMPROVEMENTS.md)
