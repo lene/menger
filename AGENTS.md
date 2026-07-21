@@ -61,7 +61,7 @@ Applies everywhere: OptiX shaders, Beer-Lambert absorption, Scala `Color`, all t
 
 ### Architecture documentation: arc42
 
-Single source of truth: `docs/arc42/README.md`. Consult sections 9 (decisions), 10 (quality), 11 (risks) before architectural changes. Update arc42 if a change affects architecture, quality requirements, or technical debt. Outdated docs are worse than no docs.
+Single source of truth: `../docs/arc42/README.md` (in the workspace repo — arc42 documents all three repos as one system). Consult sections 9 (decisions), 10 (quality), 11 (risks) before architectural changes. Update arc42 if a change affects architecture, quality requirements, or technical debt. Outdated docs are worse than no docs.
 
 ### Code style
 
@@ -149,7 +149,7 @@ Use the `/release-checklist` skill (it lives in the workspace repo — it covers
 
 | Where | What |
 |---|---|
-| `docs/arc42/README.md` | Architecture (authoritative) |
+| `../docs/arc42/README.md` | Architecture (authoritative; workspace repo) |
 | `docs/ENFORCEMENT.md` | Policy → mechanism map; open enforcement gaps |
 | `docs/TESTING.md` | Test failure protocol, investigation procedure |
 | `docs/RENDERING.md` | Rendering-change discipline, integration suite |

@@ -18,7 +18,7 @@ known-good reference for our canonical test scene.
 **Location:** `test-resources/caustics-references/renders/canonical-caustics.pbrt`
 
 This is our **primary reference scene**, designed to exactly match the parameters defined in
-[arc42 Section 10](../docs/arc42/10-quality-requirements.md#canonical-test-scene).
+[arc42 Section 10](../../../docs/arc42/10-quality-requirements.md#canonical-test-scene).
 
 ### Scene Parameters
 
@@ -307,7 +307,7 @@ test-resources/caustics-references/
 
 ## References
 
-- [arc42 Section 10 - Quality Requirements](../docs/arc42/10-quality-requirements.md)
+- [arc42 Section 10 - Quality Requirements](../../../docs/arc42/10-quality-requirements.md)
 - [CAUSTICS_TEST_LADDER.md](./CAUSTICS_TEST_LADDER.md)
 - [PBRT Book, 4th Edition](https://pbrt.org)
 - Jensen, H.W. "Realistic Image Synthesis Using Photon Mapping" (2001)

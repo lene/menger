@@ -5,7 +5,7 @@
 > and prevents wasted effort on downstream issues caused by upstream bugs.
 >
 > **References:**
-> - [arc42 Section 10 - Quality Requirements](../docs/arc42/10-quality-requirements.md#caustics-quality-progressive-photon-mapping)
+> - [arc42 Section 10 - Quality Requirements](../../../docs/arc42/10-quality-requirements.md#caustics-quality-progressive-photon-mapping)
 > - [Caustics Reference Images & Scenes](./CAUSTICS_REFERENCES.md) - Reference materials for validation
 
 ## Overview
@@ -665,8 +665,8 @@ sbt "testOnly *EnergyConservationSpec" # Step 5
 ## References
 
 ### Internal Documentation
-- [arc42 Section 10 - Quality Requirements](../docs/arc42/10-quality-requirements.md)
-- [arc42 Section 8 - Physics Concepts](../docs/arc42/08-crosscutting-concepts.md)
+- [arc42 Section 10 - Quality Requirements](../../../docs/arc42/10-quality-requirements.md)
+- [arc42 Section 8 - Physics Concepts](../../../docs/arc42/08-crosscutting-concepts.md)
 - [Caustics Reference Images & Scenes](./CAUSTICS_REFERENCES.md)
 
 ### Reference Scenes
