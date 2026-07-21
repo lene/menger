@@ -78,8 +78,8 @@ Items moved to sprint plans:
 - Motion blur + OptiX API audit + optix-jni 1.0 prep → Sprint 30
 - L-systems in 3D and 4D → Sprint 31
 - Spectral dispersion → Sprint 32
-- PBR texture sets → Sprint 33
-- Production-quality caustics (incl. dispersive) → Sprint 34
+- Production-quality caustics (incl. dispersive) → Sprint 33
+- PBR texture sets → Sprint 34 (pulled ahead of 33)
 - Depth of field → Sprint 35 (pushed back 2026-06-10)
 - Wireframe rendering → Sprint 35 (pushed back 2026-06-10)
 - Color by intensity / colormaps → Sprint 36 (pushed back 2026-06-10)
