@@ -488,17 +488,11 @@ PerfCheck:
       - perf-results.json
     expire_in: 30 days
 
-# Sprint 28.1: this repo's copies of shared standards files must match the
-# canonical versions in standards/ (see standards/README.md).
-StandardsParity:
-  stage: preconditions
-  image: ubuntu:latest
-  needs: []
-  rules:
-    - if: "$CI_MERGE_REQUEST_ID"
-    - if: $CI_COMMIT_BRANCH
-  script:
-    - ./scripts/check-standards-drift.sh --local
+# Standards parity is now checked at the workspace level — menger-toplevel's
+# .github/workflows/check-drift.yml runs check-standards-drift.sh against the
+# canon in menger-toplevel/shared/standards/. A per-repo job cannot see that
+# canon, so the old StandardsParity/StandardsDrift jobs (which called a script
+# relocated to the workspace root) were removed.
 
 # Sprint 28.3: runner heartbeat — a trivial scheduled job; if no local runner
 # picks it up the scheduled pipeline fails visibly (pipeline-failure email is
@@ -511,21 +505,6 @@ RunnerHeartbeat:
     - if: $CI_PIPELINE_SOURCE == "schedule"
   script:
     - echo "runner alive on $(hostname) at $(date -u)"
-
-# Sprint 28.1: scheduled cross-repo drift detection — the GitHub sibling repos
-# (menger-common, optix-jni) must carry byte-identical standards files.
-# Fails loudly on divergence; opens an issue when GITLAB_API_TOKEN is set.
-StandardsDrift:
-  stage: preconditions
-  image: ubuntu:latest
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-  before_script:
-    - apt-get -y update
-    - apt-get -y install curl ca-certificates
-  script:
-    - ./scripts/check-standards-drift.sh --remote
 
 # Sprint 28.8: dependency-update automation via Renovate.
 # Requires RENOVATE_TOKEN (GitLab PAT, api+read_api scope) as a masked
