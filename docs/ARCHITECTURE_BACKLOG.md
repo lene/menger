@@ -38,6 +38,41 @@ Total if all scheduled: **~7–10 dev-days** (T4/T8 completed in Sprint 27 and r
 
 ---
 
+## Sprint 35 — Native Seam Remediation (from the 2026-07-28 reviews)
+
+Cross-repo remediation program from the workspace-level `ARCHITECTURE_REVIEW.md` and
+`CODE_IMPROVEMENTS.md` (2026-07-28). **The authoritative Ph1–Ph4 task tables, fitness functions,
+and release choreography live in the workspace-repo plan `docs/sprints/SPRINT35.md` (in
+`menger-toplevel`)** — this entry is the menger-repo index into it, not a second copy.
+
+**Decisions (settled 2026-07-28):** AD-24 → **Option A** — optix-jni becomes strictly generic; the
+Menger/Sierpinski/Hexadecachoron 4D-fractal shaders + types move **into this repo's
+`menger-geometry`** behind a new optix-jni custom-IS **SPI**. Caustics → consolidate to optix-jni
+(delete menger-geometry's stale fork). The SPI was spiked (`SPRINT35_SPIKE_SPI.md`): feasible, sized
+**L–XL**, Task 1.1 (the SPI) is Ph1's critical path.
+
+| Phase | Focus | Findings | Effort | Release |
+|-------|-------|----------|--------|---------|
+| Ph1 | Unify the seam & make the gates real | F1, F3, F4, CR-3(partial), CR-7, CR-14 | L–XL | — |
+| Ph2 | Fix the Criticals once | CR-1, CR-2, CR-4, CR-5, CR-8, CR-13 | M | optix-jni Release A |
+| Ph3 | Close the change-cost gaps | F2, F11, F12, CR-6, CR-9, CR-11 | L | optix-jni Release B |
+| Ph4 | App-side evolvability & governance | F5–F10, F13–F15, CR-10, CR-12 | L | menger-common |
+
+**Tasks landing in this repo (menger / menger-geometry)** — full detail in `SPRINT35.md`:
+- **Ph1:** 1.2 own + collapse the 3 Menger 4D shaders in `menger-geometry` (deleted from optix-jni);
+  1.3 delete menger-geometry's stale `caustics_ppm.cu` + `CausticsRenderer.cpp` forks; 1.5 real
+  Valgrind/compute-sanitizer over `menger-geometry` native (**supersedes T3 below**); 1.6 Scala
+  `renderScene` returns `Option`, keeps `needsRender=true` on failure.
+- **Ph2:** menger-geometry side of the Critical fixes; CR-13 seam tests.
+- **Ph4:** F6 move `VALID_TYPES` out of menger-common; F8/F9 geometry-type fan-out + 4D
+  triplication; F13 InteractiveEngine/WithAnimation decomposition; F5/F7/F14/F15 governance;
+  CR-10/CR-12 engine + CLI fixes.
+
+**Supersedes:** **T3** (in-repo native leak gate, 🔜 above) is folded into Ph1 Task 1.5 — the same
+"make the stubbed sanitizer gate real" work, now scoped across the seam.
+
+---
+
 ## Tasks
 
 ### T1 — Unify object-type dispatch (High, M 1.5–2 d) — Finding 1
