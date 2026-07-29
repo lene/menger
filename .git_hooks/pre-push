@@ -349,7 +349,11 @@ run_valgrind() {
   fi
 
   if ! command -v valgrind >/dev/null 2>&1; then
-    echo "Warning: valgrind not installed, skipping native memory checks" >> /tmp/valgrind-phase-prepush.log
+    if command -v nvidia-smi >/dev/null 2>&1 || command -v nvcc >/dev/null 2>&1; then
+      echo "Valgrind: FAILED - native changed on a CUDA-capable host but valgrind is not installed; the leak gate must not be silently skipped where it can run. Install valgrind." >> /tmp/valgrind-phase-prepush.log
+      return 1
+    fi
+    echo "Warning: valgrind not installed and no GPU detected - skipping native memory checks" >> /tmp/valgrind-phase-prepush.log
     return 0
   fi
 
@@ -372,6 +376,22 @@ run_valgrind() {
     return 1
   fi
   echo "Valgrind: PASSED" >> /tmp/valgrind-phase-prepush.log
+
+  # compute-sanitizer catches device-side CUDA memory errors that host-side valgrind cannot see.
+  if command -v compute-sanitizer >/dev/null 2>&1; then
+    echo "Running compute-sanitizer (memcheck) on menger-geometry native..." >> /tmp/valgrind-phase-prepush.log
+    __GL_THREADED_OPTIMIZATIONS=0 compute-sanitizer --tool memcheck --leak-check=full --error-exitcode=1 \
+      xvfb-run -a sbt "mengerGeometry / test" --warn >> /tmp/valgrind-phase-prepush.log 2>&1
+    STATUS_CS=$?
+    if [ "$STATUS_CS" -ne 0 ]; then
+      echo "compute-sanitizer: FAILED (see /tmp/valgrind-phase-prepush.log)" >> /tmp/valgrind-phase-prepush.log
+      return 1
+    fi
+    echo "compute-sanitizer: PASSED" >> /tmp/valgrind-phase-prepush.log
+  elif command -v nvidia-smi >/dev/null 2>&1 || command -v nvcc >/dev/null 2>&1; then
+    echo "compute-sanitizer: FAILED - CUDA-capable host but compute-sanitizer is not on PATH (usually /usr/local/cuda/bin); it must run where it can." >> /tmp/valgrind-phase-prepush.log
+    return 1
+  fi
 }
 
 run_cppcheck() {
