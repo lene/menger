@@ -1,4 +1,6 @@
 #include "VideoLoader.h"
+// Generated from the Scala @native declarations (sbt JniJavah); see Sprint 35 Task 1.4.
+#include "menger_geometry_VideoLoader.h"
 
 #include <algorithm>
 #include <cmath>

@@ -77,6 +77,14 @@ message(STATUS "✓ OptiX: ${OptiX_INSTALL_DIR}")
 find_package(JNI REQUIRED)
 message(STATUS "✓ JNI: ${JNI_INCLUDE_DIRS}")
 
+# Generated JNI headers (sbt JniJavah, -DJAVAH_INCLUDE_DIR): MengerJNIBindings.cpp and
+# VideoLoader.cpp #include these so a Scala @native / C++ signature mismatch is a compile
+# error (Sprint 35 Task 1.4).
+if(DEFINED JAVAH_INCLUDE_DIR)
+  include_directories(${JAVAH_INCLUDE_DIR})
+  message(STATUS "✓ Generated JNI headers: ${JAVAH_INCLUDE_DIR}")
+endif()
+
 #=============================================================================
 # FFmpeg/libav (required for video texture decoding)
 #=============================================================================

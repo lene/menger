@@ -30,7 +30,7 @@ lazy val root = project
 // Menger-specific geometry layer — 4D fractals, caustics (not published)
 lazy val mengerGeometry = project
   .in(file("menger-geometry"))
-  .enablePlugins(JniNative)
+  .enablePlugins(JniNative, JniJavah)
   .settings(libraryDependencies ++= Seq(mengerCommonDependency, optixJniDependency))
 
 // Main application - depends on menger-geometry and common

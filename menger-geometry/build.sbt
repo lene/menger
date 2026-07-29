@@ -77,9 +77,13 @@ nativeBuildTool := CMakeWithoutVersionBug.make(Seq(
   "--log-level=WARNING",
   "-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc",
   s"-DOPTIX_JNI_INCLUDE_DIR=${(optixJniNativeApiDir.value / "include").getAbsolutePath}",
-  s"-DOPTIX_JNI_SHADER_DIR=${(optixJniNativeApiDir.value / "shaders").getAbsolutePath}"
+  s"-DOPTIX_JNI_SHADER_DIR=${(optixJniNativeApiDir.value / "shaders").getAbsolutePath}",
+  s"-DJAVAH_INCLUDE_DIR=${(target.value / "native" / "include").getAbsolutePath}"
 ))
-nativeCompile := (nativeCompile dependsOn extractOptixJniNativeApi).value
+// Generated JNI headers (JniJavah) must exist before the native build so MengerJNIBindings.cpp
+// and VideoLoader.cpp can #include them — a Scala @native / C++ signature mismatch then fails
+// compilation (Sprint 35 Task 1.4).
+nativeCompile := (nativeCompile dependsOn (extractOptixJniNativeApi, javah)).value
 
 // Bundle the menger PTX shader into the JAR as a managed resource.
 // nativeCompile must run first (it produces the PTX via CMake).
