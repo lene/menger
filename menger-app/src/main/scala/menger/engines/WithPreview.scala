@@ -129,5 +129,6 @@ trait WithPreview extends RenderEngine with LazyLogging:
             configs.camera.up.toVector3
           )
           cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
-          val rgbaBytes = rendererWrapper.renderScene(ImageSize(width, height))
-          renderResources.renderToScreen(rgbaBytes, width, height)
+          rendererWrapper.renderScene(ImageSize(width, height)) match
+            case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
+            case None            => () // render failed (logged); skip this frame

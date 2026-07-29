@@ -533,10 +533,12 @@ class InteractiveEngine(
         renderResources.markNeedsRender()
       if renderResources.needsRender then
         val size = ImageSize(width, height)
-        val rgbaBytes =
+        val maybeBytes =
           if execution.enableStats then renderWithStats(width, height)
           else rendererWrapper.renderScene(size)
-        renderResources.renderToScreen(rgbaBytes, width, height)
+        maybeBytes match
+          case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
+          case None => () // render failed (logged); keep needsRender=true → retry next frame
       else
         renderResources.redrawExisting(width, height)
       saveImage()
@@ -552,11 +554,11 @@ class InteractiveEngine(
 
   private val lastRenderResult = new AtomicReference[Option[RenderResult]](None)
 
-  private def renderWithStats(width: Int, height: Int): Array[Byte] =
+  private def renderWithStats(width: Int, height: Int): Option[Array[Byte]] =
     rendererWrapper.renderSceneWithStats(ImageSize(width, height)) match
       case None =>
         logger.error("OptiX rendering failed - renderWithStats returned None")
-        Array.emptyByteArray
+        None
       case Some(result) =>
         lastRenderResult.set(Some(result))
         val stats = result.stats
@@ -567,7 +569,7 @@ class InteractiveEngine(
           s"shadow=${stats.shadowRays} aa=${stats.aaRays} spectral=${stats.spectralRays} " +
           s"depth=${stats.minDepthReached}-${stats.maxDepthReached}"
         )
-        result.image
+        Some(result.image)
 
   private def writeStatsJson(path: String): Unit =
     lastRenderResult.get() match

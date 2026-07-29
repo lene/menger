@@ -81,8 +81,9 @@ class CliAnimationEngine(
         logger.error(s"Failed to build frame $frame: ${e.getMessage}", e)
       }
       cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
-      val rgbaBytes = rendererWrapper.renderScene(ImageSize(width, height))
-      renderResources.renderToScreen(rgbaBytes, width, height)
+      rendererWrapper.renderScene(ImageSize(width, height)) match
+        case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
+        case None            => () // render failed (logged); skip this frame
       saveImage()
       frameCounter.incrementAndGet()
       ()
