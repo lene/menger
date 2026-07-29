@@ -37,6 +37,13 @@ class Project4DGpuSuite extends AnyFlatSpec
   private val ImgSize = ImageSize(256, 192)
   private val MaxAbsPixelDiff = 6  // L∞ over RGB; conservative for float32 path divergence.
 
+  // Perf-timing tests are meaningless under compute-sanitizer's instrumentation
+  // overhead, so they self-skip — letting the sanitizer gate run this suite's GPU
+  // *correctness* tests (which make the CUDA calls that keep the gate non-vacuous)
+  // instead of being excluded wholesale by tag.
+  private val runningUnderSanitizer: Boolean =
+    sys.env.get("RUNNING_UNDER_COMPUTE_SANITIZER").contains("true")
+
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var rendererOpt: Option[OptiXRenderer] = None
 
@@ -52,6 +59,10 @@ class Project4DGpuSuite extends AnyFlatSpec
   override def beforeEach(): Unit =
     super.beforeEach()
     try
+      // Touch the companion first so liboptixjni is actually loaded before any
+      // @native call — otherwise the suite depends on test ordering to have
+      // initialized it (running this suite standalone used to cancel).
+      val _ = OptiXRenderer.isLibraryLoaded
       val r = new OptiXRenderer()
       r.initialize()
       rendererOpt = Some(r)
@@ -181,6 +192,7 @@ class Project4DGpuSuite extends AnyFlatSpec
   // --- Test 3: perf smoke on tesseract-sponge level=2 ----------------------
 
   it should "set up tesseract-sponge level=2 at least as fast on GPU as CPU" taggedAs Slow in:
+    assume(!runningUnderSanitizer, "GPU-vs-CPU timing is meaningless under compute-sanitizer instrumentation")
     val level = 2f
 
     val (cpuMesh, cpuMs) = measureMs:
@@ -239,6 +251,7 @@ class Project4DGpuSuite extends AnyFlatSpec
   // --- Test 5: update perf — animation update vs rebuild --------------------
 
   it should "animate 4D rotation faster via updateMesh4DProjection than via rebuild" taggedAs Slow in:
+    assume(!runningUnderSanitizer, "GPU-vs-CPU timing is meaningless under compute-sanitizer instrumentation")
     val frames = 10
     val proj0 = TesseractSpongeMesh(
       center = Vector3(0f, 0f, 0f), size = 1.0f, level = 1f,

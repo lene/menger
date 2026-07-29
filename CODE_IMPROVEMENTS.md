@@ -212,3 +212,22 @@ missing PNG files) were pre-commit hook catches. Each would have been caught in 
 
 **Fix**: Memory entry added: "NEVER --no-verify for routine commits." failure-handling skill
 updated with Sprint 34 anti-pattern.
+
+# Code Quality Review — Sprint 35 native memory gates (2026-07-29)
+
+Changed files: `.git_hooks/pre-push` (native gate rework), `Project4DGpuSuite.scala`.
+The valgrind + compute-sanitizer gates were made real: they now instrument the *forked test
+JVM* (via a `make_tool_java_home` shim wired in through `Test / javaHome`) instead of the
+`xvfb-run`/sbt launcher, plus anti-vacuity guards and pinned-dep leak attribution.
+
+## New findings
+
+### 1. Leak-attribution parsers are format-fragile and duplicated
+`run_valgrind` and `run_compute_sanitizer` each hand-parse tool output (awk over valgrind's
+"N bytes ... are lost" blocks; grep over compute-sanitizer per-process logs) to decide whether
+a finding's stack passes through `libmengergeometry` (fail) vs pinned `liboptixjni`/driver
+(warn). The two parsers are near-duplicates and depend on the exact tool output format — a
+future valgrind/compute-sanitizer version could silently break attribution (findings mis-bucketed
+as warnings → a real leak slips through). **Fix**: extract one shared `attribute_leaks <lib> <log>`
+helper with a smoke test asserting a known-menger and known-optix stack bucket correctly.
+Low priority — the anti-vacuity guards make a *silent* pass impossible; worst case is misattribution.
