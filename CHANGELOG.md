@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.8.6] - unreleased
+
+Sprint 35 (Native Seam Remediation), Phase 1 — landed so far:
+
+### Changed
+
+- Native render failures no longer swallowed: `OptiXRendererWrapper.renderScene` returns
+  `Option[Array[Byte]]` (`None` on failure) instead of an empty array; the engines skip the
+  frame and keep `needsRender=true` so the interactive loop retries rather than freezing on a
+  stale frame (Task 1.6).
+- Pre-push sanitizer gate made real: `run_valgrind` now fails (not silently skips) when valgrind
+  is absent on a CUDA-capable host, and a compute-sanitizer (memcheck) pass over the
+  menger-geometry native tests was added (Task 1.5).
+
+### Added
+
+- menger-geometry JNI headers are generated via JniJavah, so a Scala↔C++ `@native` signature
+  mismatch is a compile error (Task 1.4).
+
 ## [0.8.5] - 2026-07-15
 
 ### Added
