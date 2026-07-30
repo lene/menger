@@ -19,6 +19,16 @@ Sprint 35 (Native Seam Remediation), Phase 1 — landed so far:
 - menger-geometry JNI headers are generated via JniJavah, so a Scala↔C++ `@native` signature
   mismatch is a compile error (Task 1.4).
 
+### Removed
+
+- menger-geometry's forked caustics/project4d native code (`shaders/caustics_ppm.cu`,
+  `project4d.cu`, `CausticsRenderer.{cpp,h}`, `include/Project4D.h`) — dead since Task 1.2b moved
+  the live caustics path onto optix-jni's `OptiXRenderer` JNI. `libmengergeometry.so` is now
+  video-decoding only and links with no undefined optix-jni symbols, so the
+  `--allow-shlib-undefined` flag and the `RTLD_GLOBAL` promotion constructor were dropped
+  (Task 1.3). Caustics never ran on 4D fractal geometry, so no SPI photon-hitgroup wiring was
+  needed. Loader-dedup half of 1.3 deferred (needs an optix-jni public-API addition).
+
 ## [0.8.5] - 2026-07-15
 
 ### Added

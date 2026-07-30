@@ -2,35 +2,18 @@
 #include "VideoLoader.h"
 #include <iostream>
 #include <cstddef>
-#include <cstring>
 #include <limits>
 #include <string>
-#include <dlfcn.h>
-#include <link.h>
 
 /**
  * JNI bindings for menger-geometry's native layer.
  *
  * As of Sprint 35 (AD-24) the 4D fractals no longer bind here: MengerRenderer
- * registers their shaders through optix-jni's generic custom-geometry SPI, so
- * this file only carries the VideoLoader bindings. libmengergeometry.so still
- * links CausticsRenderer, which calls OptiXWrapper symbols from liboptixjni.so;
- * it is built with --allow-shlib-undefined, and the constructor below promotes
- * liboptixjni.so (always loaded first) to RTLD_GLOBAL so those lazily bind.
+ * registers their shaders through optix-jni's generic custom-geometry SPI. Task
+ * 1.3 then deleted the caustics/project4d fork (optix-jni owns caustics), so this
+ * file carries only the VideoLoader bindings and libmengergeometry.so no longer
+ * links against liboptixjni.so — no RTLD_GLOBAL promotion needed.
  */
-
-static int promoteCallback(struct dl_phdr_info* info, size_t /*size*/, void* /*data*/) {
-    if (info->dlpi_name && std::strstr(info->dlpi_name, "optixjni")) {
-        dlopen(info->dlpi_name, RTLD_LAZY | RTLD_GLOBAL);
-        return 1;
-    }
-    return 0;
-}
-
-__attribute__((constructor))
-static void promoteOptixJniToGlobal() {
-    dl_iterate_phdr(promoteCallback, nullptr);
-}
 
 extern "C" {
 

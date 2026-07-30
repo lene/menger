@@ -136,38 +136,25 @@ set_target_properties(menger_4d_shaders PROPERTIES
 )
 
 #=============================================================================
-# menger-geometry shared library: project4d.cu + CausticsRenderer
-# CausticsRenderer calls symbols from liboptixjni.so — resolved at runtime
-# when both JNI libraries are loaded by the JVM.
+# menger-geometry shared library: video decoding only.
+# As of Sprint 35 Task 1.3 the caustics/project4d fork was deleted — optix-jni
+# owns caustics, reached via OptiXRenderer's JNI in liboptixjni.so. This library
+# no longer references any optix-jni symbol, so it links cleanly (no
+# --allow-shlib-undefined, no RTLD_GLOBAL promotion).
 #=============================================================================
 add_library(mengergeometry SHARED
-    project4d.cu
-    CausticsRenderer.cpp
     VideoLoader.cpp
     MengerJNIBindings.cpp
 )
 target_include_directories(mengergeometry PRIVATE
     ${JNI_INCLUDE_DIRS}
-    ${CUDAToolkit_INCLUDE_DIRS}
-    ${OptiX_INCLUDE_DIR}
-    ${OPTIX_JNI_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_link_libraries(mengergeometry PRIVATE
-    CUDA::cudart
     FFmpeg::avcodec
     FFmpeg::avformat
     FFmpeg::avutil
     FFmpeg::swscale
-)
-# libmengergeometry.so calls OptiXWrapper symbols from liboptixjni.so.
-# --allow-shlib-undefined avoids a hard build-time dependency on liboptixjni.so.
-# At runtime, MengerJNIBindings.cpp's constructor promotes liboptixjni.so to
-# RTLD_GLOBAL so lazy binding can resolve the symbols regardless of load order.
-target_link_options(mengergeometry PRIVATE "LINKER:--allow-shlib-undefined")
-set_target_properties(mengergeometry PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
 )
 
 install(TARGETS mengergeometry LIBRARY DESTINATION .)

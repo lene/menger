@@ -30,7 +30,8 @@ import menger.common.z
  *  projection changes applied in place via `updateCustomGeometryInstanceData`.
  *
  *  The recursive 3D IAS sponge stayed generic in optix-jni and is inherited, not
- *  overridden. libmengergeometry.so is still loaded (video decoding + caustics).
+ *  overridden. libmengergeometry.so is still loaded, now for video decoding only
+ *  (Task 1.3 moved caustics wholly into optix-jni).
  *
  *  Use [[MengerRenderer.apply]] to construct; it ensures both native libraries are
  *  loaded in the correct order (optixjni before mengergeometry).
