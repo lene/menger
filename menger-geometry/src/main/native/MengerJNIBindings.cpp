@@ -1,7 +1,4 @@
 #include <jni.h>
-// Generated from the Scala @native declarations (sbt JniJavah); see Sprint 35 Task 1.4.
-#include "io_github_lene_optix_MengerRenderer.h"
-#include "OptiXWrapper.h"
 #include "VideoLoader.h"
 #include <iostream>
 #include <cstddef>
@@ -12,16 +9,14 @@
 #include <link.h>
 
 /**
- * JNI bindings for MengerRenderer Scala class (io.github.lene.optix.MengerRenderer).
+ * JNI bindings for menger-geometry's native layer.
  *
- * MengerRenderer extends OptiXRenderer and overrides the 4D geometry @native methods.
- * The nativeHandle field is inherited from OptiXRenderer; JNI GetFieldID walks the
- * superclass hierarchy to find it.
- *
- * libmengergeometry.so is built with --allow-shlib-undefined so it has no link-time
- * dependency on liboptixjni.so. At load time the constructor below finds liboptixjni.so
- * in the already-loaded library list (it is always loaded first by OptiXRenderer) and
- * promotes it to RTLD_GLOBAL so that lazy symbol binding for OptiXWrapper calls succeeds.
+ * As of Sprint 35 (AD-24) the 4D fractals no longer bind here: MengerRenderer
+ * registers their shaders through optix-jni's generic custom-geometry SPI, so
+ * this file only carries the VideoLoader bindings. libmengergeometry.so still
+ * links CausticsRenderer, which calls OptiXWrapper symbols from liboptixjni.so;
+ * it is built with --allow-shlib-undefined, and the constructor below promotes
+ * liboptixjni.so (always loaded first) to RTLD_GLOBAL so those lazily bind.
  */
 
 static int promoteCallback(struct dl_phdr_info* info, size_t /*size*/, void* /*data*/) {
@@ -39,18 +34,6 @@ static void promoteOptixJniToGlobal() {
 
 extern "C" {
 
-static OptiXWrapper* getWrapper(JNIEnv* env, jobject obj) {
-    jclass cls = env->GetObjectClass(obj);
-    jfieldID fid = env->GetFieldID(cls, "nativeHandle", "J");
-    if (fid == nullptr) {
-        std::cerr << "[MengerJNI] Failed to get nativeHandle field" << std::endl;
-        env->ExceptionClear();  // GetFieldID sets a pending NoSuchFieldError; clear it so
-        return nullptr;         // returning nullptr to caller doesn't trigger JNI UB
-    }
-    jlong handle = env->GetLongField(obj, fid);
-    return reinterpret_cast<OptiXWrapper*>(handle);
-}
-
 static void throwJavaException(JNIEnv* env, const char* className, const std::string& message) {
     jclass exc = env->FindClass(className);
     if (exc != nullptr) {
@@ -64,182 +47,6 @@ static menger::geometry::VideoLoader* getVideoLoader(JNIEnv* env, jlong handle) 
         return nullptr;
     }
     return reinterpret_cast<menger::geometry::VideoLoader*>(handle);
-}
-
-JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addRecursiveIASSpongeInstanceNative(
-    JNIEnv* env, jobject obj,
-    jint level,
-    jfloatArray transform, jfloat r, jfloat g, jfloat b, jfloat a, jfloat ior,
-    jfloat roughness, jfloat metallic, jfloat specular, jfloat emission,
-    jint textureIndex, jfloat filmThickness,
-    jfloat cauchy_a, jfloat cauchy_b) {
-    try {
-        OptiXWrapper* wrapper = getWrapper(env, obj);
-        if (wrapper == nullptr) return -1;
-
-        jsize transformLen = env->GetArrayLength(transform);
-        if (transformLen != 12) {
-            jclass exc = env->FindClass("java/lang/IllegalArgumentException");
-            std::string msg = "Transform array must have 12 elements (4x3 matrix), got " +
-                std::to_string(transformLen);
-            if (exc) env->ThrowNew(exc, msg.c_str());
-            return -1;
-        }
-        jfloat* transformArr = env->GetFloatArrayElements(transform, nullptr);
-        if (transformArr == nullptr) {
-            jclass exc = env->FindClass("java/lang/RuntimeException");
-            if (exc) env->ThrowNew(exc, "Failed to get transform array elements");
-            return -1;
-        }
-        int instanceId = -1;
-        try {
-            instanceId = wrapper->addRecursiveIASSpongeInstance(
-                level, transformArr, r, g, b, a, ior,
-                roughness, metallic, specular, emission, textureIndex, filmThickness,
-                cauchy_a, cauchy_b
-            );
-        } catch (...) {
-            env->ReleaseFloatArrayElements(transform, transformArr, JNI_ABORT);
-            throw;
-        }
-        env->ReleaseFloatArrayElements(transform, transformArr, 0);
-        return instanceId;
-    } catch (const std::exception& e) {
-        std::cerr << "[MengerJNI] Error in addRecursiveIASSpongeInstance: " << e.what() << std::endl;
-        jclass exc = env->FindClass("java/lang/RuntimeException");
-        if (exc) env->ThrowNew(exc, e.what());
-        return -1;
-    }
-}
-
-JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addMenger4DInstanceNative(
-    JNIEnv* env, jobject obj,
-    jint level, jint distThreshold,
-    jfloat x, jfloat y, jfloat z, jfloat scale,
-    jfloat eyeW, jfloat screenW,
-    jfloat rotXW, jfloat rotYW, jfloat rotZW,
-    jfloat r, jfloat g, jfloat b, jfloat a, jfloat ior,
-    jfloat roughness, jfloat metallic, jfloat specular, jfloat emission,
-    jfloat filmThickness,
-    jfloat cauchy_a, jfloat cauchy_b) {
-    try {
-        OptiXWrapper* wrapper = getWrapper(env, obj);
-        if (wrapper == nullptr) return -1;
-        return wrapper->addMenger4DInstance(
-            (int)level, (int)distThreshold,
-            x, y, z, scale, eyeW, screenW, rotXW, rotYW, rotZW,
-            r, g, b, a, ior, roughness, metallic, specular, emission, filmThickness,
-            cauchy_a, cauchy_b
-        );
-    } catch (const std::exception& e) {
-        std::cerr << "[MengerJNI] Error in addMenger4DInstance: " << e.what() << std::endl;
-        jclass exc = env->FindClass("java/lang/RuntimeException");
-        if (exc) env->ThrowNew(exc, e.what());
-        return -1;
-    }
-}
-
-JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_updateMenger4DProjectionNative(
-    JNIEnv* env, jobject obj,
-    jint instanceId,
-    jfloat eyeW, jfloat screenW,
-    jfloat rotXW, jfloat rotYW, jfloat rotZW) {
-    try {
-        OptiXWrapper* wrapper = getWrapper(env, obj);
-        if (wrapper == nullptr) return -1;
-        return wrapper->updateMenger4DProjection(instanceId, eyeW, screenW, rotXW, rotYW, rotZW);
-    } catch (const std::exception& e) {
-        std::cerr << "[MengerJNI] Error in updateMenger4DProjection: " << e.what() << std::endl;
-        jclass exc = env->FindClass("java/lang/RuntimeException");
-        if (exc) env->ThrowNew(exc, e.what());
-        return -1;
-    }
-}
-
-JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addSierpinski4DInstanceNative(
-    JNIEnv* env, jobject obj,
-    jint level,
-    jfloat x, jfloat y, jfloat z, jfloat scale,
-    jfloat eyeW, jfloat screenW,
-    jfloat rotXW, jfloat rotYW, jfloat rotZW,
-    jfloat r, jfloat g, jfloat b, jfloat a, jfloat ior,
-    jfloat roughness, jfloat metallic, jfloat specular, jfloat emission,
-    jfloat filmThickness,
-    jfloat cauchy_a, jfloat cauchy_b) {
-    try {
-        OptiXWrapper* wrapper = getWrapper(env, obj);
-        if (wrapper == nullptr) return -1;
-        return wrapper->addSierpinski4DInstance(
-            (int)level, x, y, z, scale, eyeW, screenW, rotXW, rotYW, rotZW,
-            r, g, b, a, ior, roughness, metallic, specular, emission, filmThickness,
-            cauchy_a, cauchy_b
-        );
-    } catch (const std::exception& e) {
-        std::cerr << "[MengerJNI] Error in addSierpinski4DInstance: " << e.what() << std::endl;
-        jclass exc = env->FindClass("java/lang/RuntimeException");
-        if (exc) env->ThrowNew(exc, e.what());
-        return -1;
-    }
-}
-
-JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_updateSierpinski4DProjectionNative(
-    JNIEnv* env, jobject obj,
-    jint instanceId,
-    jfloat eyeW, jfloat screenW,
-    jfloat rotXW, jfloat rotYW, jfloat rotZW) {
-    try {
-        OptiXWrapper* wrapper = getWrapper(env, obj);
-        if (wrapper == nullptr) return -1;
-        return wrapper->updateSierpinski4DProjection(instanceId, eyeW, screenW, rotXW, rotYW, rotZW);
-    } catch (const std::exception& e) {
-        std::cerr << "[MengerJNI] Error in updateSierpinski4DProjection: " << e.what() << std::endl;
-        jclass exc = env->FindClass("java/lang/RuntimeException");
-        if (exc) env->ThrowNew(exc, e.what());
-        return -1;
-    }
-}
-
-JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_addHexadecachoron4DInstanceNative(
-    JNIEnv* env, jobject obj,
-    jint level,
-    jfloat x, jfloat y, jfloat z, jfloat scale,
-    jfloat eyeW, jfloat screenW,
-    jfloat rotXW, jfloat rotYW, jfloat rotZW,
-    jfloat r, jfloat g, jfloat b, jfloat a, jfloat ior,
-    jfloat roughness, jfloat metallic, jfloat specular, jfloat emission,
-    jfloat filmThickness,
-    jfloat cauchy_a, jfloat cauchy_b) {
-    try {
-        OptiXWrapper* wrapper = getWrapper(env, obj);
-        if (wrapper == nullptr) return -1;
-        return wrapper->addHexadecachoron4DInstance(
-            (int)level, x, y, z, scale, eyeW, screenW, rotXW, rotYW, rotZW,
-            r, g, b, a, ior, roughness, metallic, specular, emission, filmThickness,
-            cauchy_a, cauchy_b
-        );
-    } catch (const std::exception& e) {
-        std::cerr << "[MengerJNI] Error in addHexadecachoron4DInstance: " << e.what() << std::endl;
-        jclass exc = env->FindClass("java/lang/RuntimeException");
-        if (exc) env->ThrowNew(exc, e.what());
-        return -1;
-    }
-}
-
-JNIEXPORT jint JNICALL Java_io_github_lene_optix_MengerRenderer_updateHexadecachoron4DProjectionNative(
-    JNIEnv* env, jobject obj,
-    jint instanceId,
-    jfloat eyeW, jfloat screenW,
-    jfloat rotXW, jfloat rotYW, jfloat rotZW) {
-    try {
-        OptiXWrapper* wrapper = getWrapper(env, obj);
-        if (wrapper == nullptr) return -1;
-        return wrapper->updateHexadecachoron4DProjection(instanceId, eyeW, screenW, rotXW, rotYW, rotZW);
-    } catch (const std::exception& e) {
-        std::cerr << "[MengerJNI] Error in updateHexadecachoron4DProjection: " << e.what() << std::endl;
-        jclass exc = env->FindClass("java/lang/RuntimeException");
-        if (exc) env->ThrowNew(exc, e.what());
-        return -1;
-    }
 }
 
 JNIEXPORT jlong JNICALL Java_menger_geometry_VideoLoader_openVideoNative(

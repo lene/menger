@@ -90,15 +90,15 @@ nativeCompile := (nativeCompile dependsOn (extractOptixJniNativeApi, javah)).val
 Compile / resourceGenerators += Def.task {
   val log = streams.value.log
   val platform = "x86_64-linux"
-  val ptxSource = target.value / "native" / platform / "bin" / "optix_shaders_menger.ptx"
+  val ptxSource = target.value / "native" / platform / "bin" / "menger_4d.ptx"
   nativeCompile.value
   if (ptxSource.exists()) {
-    val ptxResource = (Compile / resourceManaged).value / "native" / platform / "optix_shaders_menger.ptx"
+    val ptxResource = (Compile / resourceManaged).value / "native" / platform / "menger_4d.ptx"
     IO.copyFile(ptxSource, ptxResource)
-    log.debug(s"Bundled menger PTX into managed resources: $ptxResource")
+    log.debug(s"Bundled menger 4D PTX into managed resources: $ptxResource")
     Seq(ptxResource)
   } else {
-    log.warn(s"Menger PTX not found after nativeCompile: $ptxSource")
+    log.warn(s"Menger 4D PTX not found after nativeCompile: $ptxSource")
     Seq.empty
   }
 }.taskValue

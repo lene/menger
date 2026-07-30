@@ -2,6 +2,7 @@ package menger.engines.scene
 
 import scala.util.Try
 
+import io.github.lene.optix.MengerRenderer
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.Projection4DSpec
@@ -23,6 +24,7 @@ class Sierpinski4DSceneBuilder(
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up ${specs.length} sierpinski4d instances")
+    val mengerRenderer = MengerRenderer.of(renderer)
     specs.zipWithIndex.foreach { case (spec, specIdx) =>
       val proj     = spec.projection4D.getOrElse(Projection4DSpec.default)
       val material = MaterialExtractor.extract(spec)
@@ -31,7 +33,7 @@ class Sierpinski4DSceneBuilder(
 
       def addInstance(level: Int, mat: menger.common.Material, scale: Float): Unit =
         val instanceId = requireInstanceId(
-          renderer.addSierpinski4DInstance(
+          mengerRenderer.addSierpinski4DInstance(
             level, position, scale,
             proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
             mat

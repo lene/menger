@@ -231,3 +231,43 @@ future valgrind/compute-sanitizer version could silently break attribution (find
 as warnings → a real leak slips through). **Fix**: extract one shared `attribute_leaks <lib> <log>`
 helper with a smoke test asserting a known-menger and known-optix stack bucket correctly.
 Low priority — the anti-vacuity guards make a *silent* pass impossible; worst case is misattribution.
+
+# Code Quality Review — Sprint 35 Task 1.2b (2026-07-30)
+
+Moved the 4D IFS fractals (menger4d / sierpinski4d / hexadecachoron4d) out of optix-jni into
+menger-geometry behind the generic custom-geometry SPI (AD-24 Option A). Changed:
+`MengerRenderer.scala` (rewrite), `MengerJNIBindings.cpp` (trimmed to VideoLoader), new
+`MengerGeometryData.h` + `menger_4d_module.cu`, the 3 `hit_*4d.cu` data-reads, CMake/build.sbt,
+the 3 4D `SceneBuilder`s + `RotationFastPath` + `build.sbt` pin. Deleted the superset fork.
+
+## New findings
+
+### 1. The 4D per-instance blob is a hand-maintained Scala↔C++ ABI with no static check
+`MengerRenderer.packBlob` (Scala, little-endian, 96 bytes) must byte-match the three structs in
+`MengerGeometryData.h` (C++). Nothing verifies it: a reordered/resized field on either side
+compiles clean and silently corrupts projection/level/threshold on the GPU (wrong or absent
+render). This is the same class as F2 (packed material struct) but now spans a repo boundary via
+a raw byte buffer. **Fix**: a round-trip test that packs a known struct in Scala and asserts each
+field back in a tiny native reader (or a generated single source of truth for the layout). The
+integration reference-image suite would catch a *gross* break, not a subtle field swap.
+Medium priority.
+
+### 2. MengerRenderer registers the identical `menger_4d.ptx` three times
+One `registerCustomGeometry` per geometry type creates three OptiX modules from the same PTX
+bytes (~1.6 MB each). Correct but wasteful. **Fix**: let the SPI register several geometry types
+against one already-created module, or cache the module handle. Low priority — one-time cost at
+scene setup. Tracked as an optix-jni SPI enhancement.
+
+### 3. The 3 IFS hit shaders remain near-clones (F9 not yet collapsed)
+Task 1.2b repointed each shader's data-read at `custom_geometry_data` but left the three
+`hit_*4d.cu` as separate ~300-line near-duplicates (they differ only in the IFS generator table
+and hit-bias). The planned F9 collapse into one parameterized shader was deliberately deferred to
+keep the mechanical migration separate from a risky shader refactor on the crash-prone path.
+Still open. Medium priority.
+
+### 4. `MengerRenderer.of` is a type-narrowing bridge over the OptiXRenderer-typed call path
+The app types the renderer as `OptiXRenderer` everywhere but always constructs a `MengerRenderer`;
+the 4D call sites recover it via `MengerRenderer.of(renderer)`, which throws on a plain
+`OptiXRenderer`. This preserves the AD-24 seam without retyping the whole `SceneBuilder` /
+animation call chain — that retype is the Ph4 fan-out work (F8/F13). Documented in code; not a
+defect, but a marker that the boundary is still runtime-checked. Low priority.

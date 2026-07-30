@@ -8,7 +8,10 @@ inThisBuild(List(
 ))
 
 lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.6"
-lazy val optixJniDependency = "io.github.lene" % "optix-jni" % "0.1.19"
+// Sprint 35 Ph1 dev bridge: optix-jni 0.2.0-dev is publishLocal'd from the workspace
+// feat/sprint-35 branch (strictly-generic native seam + custom-geometry SPI). Reverts
+// to a real released pin (0.2.0) at Release A. No SNAPSHOTs; this is a local ivy build.
+lazy val optixJniDependency = "io.github.lene" % "optix-jni" % "0.2.0-dev"
 
 // Root project - aggregator only, no source code
 lazy val root = project

@@ -116,10 +116,12 @@ extern "C" __global__ void __intersection__sierpinski4d() {
 
     const InstanceMaterial& mat = params.instance_materials[instanceId];
     const int s4d_idx = mat.geometry_data_index;
-    if (s4d_idx < 0 || s4d_idx >= static_cast<int>(params.num_sierpinski4d)) return;
-    if (!params.sierpinski4d_data) return;
+    if (s4d_idx < 0 || !params.custom_geometry_data) return;
 
-    const Sierpinski4DData& s = params.sierpinski4d_data[s4d_idx];
+    // Per-instance blob via optix-jni's generic custom-geometry SPI (Sprint 35 1.2b).
+    const Sierpinski4DData& s = *reinterpret_cast<const Sierpinski4DData*>(
+        static_cast<const char*>(params.custom_geometry_data)
+        + static_cast<size_t>(s4d_idx) * params.custom_geometry_stride);
 
     const float3 ray_orig = optixGetWorldRayOrigin();
     const float3 ray_dir  = optixGetWorldRayDirection();

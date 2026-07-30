@@ -1,6 +1,6 @@
 package menger.engines.scene
 
-import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.MengerRenderer
 import menger.ObjectSpec
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
@@ -38,7 +38,7 @@ class Menger4DSceneBuilderSuite extends AnyFlatSpec with Matchers with MockFacto
     builder.calculateInstanceCount(specs) shouldBe 4L
 
   "Menger4DSceneBuilder.buildScene" should "fail when native instance creation fails" in:
-    val renderer = mock[OptiXRenderer]
+    val renderer = mock[MengerRenderer]
     val recorded = scala.collection.mutable.ArrayBuffer.empty[InstanceId]
     val builder = Menger4DSceneBuilder(
       menger4DRecorder = (_: Int, instanceId: InstanceId) => recorded += instanceId

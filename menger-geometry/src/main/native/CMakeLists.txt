@@ -112,22 +112,24 @@ message(STATUS "✓ optix-jni include API: ${OPTIX_JNI_INCLUDE_DIR}")
 message(STATUS "✓ optix-jni shader API: ${OPTIX_JNI_SHADER_DIR}")
 
 #=============================================================================
-# Full menger PTX shader: base OptiX shaders + 4D fractal shaders + caustics
-# Compiled to optix_shaders_menger.ptx, used by MengerRenderer instead of
-# optix-jni's optix_shaders.ptx.
+# Registrable 4D-fractal PTX module (Sprint 35 Task 1.2b).
+# Compiled to menger_4d.ptx: ONLY the 4D intersection/closest-hit/shadow programs
+# plus the device helpers they call (helpers.cu). MengerRenderer registers it through
+# optix-jni's custom-geometry SPI, on top of optix-jni's own base pipeline
+# (optix_shaders.ptx) — no more forking the whole shader layer.
 #=============================================================================
-add_library(menger_shaders OBJECT
-    shaders/optix_shaders_menger.cu
+add_library(menger_4d_shaders OBJECT
+    shaders/menger_4d_module.cu
 )
-target_include_directories(menger_shaders PRIVATE
+target_include_directories(menger_4d_shaders PRIVATE
     ${OptiX_INCLUDE_DIR}
     ${CUDAToolkit_INCLUDE_DIRS}
     ${OPTIX_JNI_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders  # local 4D shaders found before OPTIX_JNI_SHADER_DIR
-    ${OPTIX_JNI_SHADER_DIR}              # base shaders (helpers.cu, raygen, miss, hits, etc.)
+    ${OPTIX_JNI_SHADER_DIR}              # helpers.cu (device-helper infrastructure)
 )
-set_target_properties(menger_shaders PROPERTIES
+set_target_properties(menger_4d_shaders PROPERTIES
     CUDA_PTX_COMPILATION ON
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_ARCHITECTURES "75-virtual"
@@ -170,8 +172,8 @@ set_target_properties(mengergeometry PROPERTIES
 
 install(TARGETS mengergeometry LIBRARY DESTINATION .)
 install(FILES
-    "${CMAKE_BINARY_DIR}/CMakeFiles/menger_shaders.dir/shaders/optix_shaders_menger.ptx"
+    "${CMAKE_BINARY_DIR}/CMakeFiles/menger_4d_shaders.dir/shaders/menger_4d_module.ptx"
     DESTINATION .
-    RENAME "optix_shaders_menger.ptx"
+    RENAME "menger_4d.ptx"
     OPTIONAL
 )
