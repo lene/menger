@@ -13,6 +13,11 @@ Sprint 35 (Native Seam Remediation), Phase 1 — landed so far:
 - Pre-push sanitizer gate made real: `run_valgrind` now fails (not silently skips) when valgrind
   is absent on a CUDA-capable host, and a compute-sanitizer (memcheck) pass over the
   menger-geometry native tests was added (Task 1.5).
+- `MengerRenderer` loads `libmengergeometry.so` via optix-jni's new published
+  `NativeLibrary.load`/`platform` instead of its own forked copy of the loader; the duplicated
+  `detectPlatform`/`copyStream`/`extractAndLoad`/`loadFromClasspath`/`loadNativeLibrary` and the
+  now-obsolete `_optixJniInit` load-ordering hack were removed (Task 1.3b, −62 lines). Requires
+  optix-jni ≥ 0.2.0-dev.
 
 ### Added
 
@@ -27,7 +32,7 @@ Sprint 35 (Native Seam Remediation), Phase 1 — landed so far:
   video-decoding only and links with no undefined optix-jni symbols, so the
   `--allow-shlib-undefined` flag and the `RTLD_GLOBAL` promotion constructor were dropped
   (Task 1.3). Caustics never ran on 4D fractal geometry, so no SPI photon-hitgroup wiring was
-  needed. Loader-dedup half of 1.3 deferred (needs an optix-jni public-API addition).
+  needed. (The loader-dedup half landed separately as Task 1.3b — see Changed above.)
 
 ## [0.8.5] - 2026-07-15
 

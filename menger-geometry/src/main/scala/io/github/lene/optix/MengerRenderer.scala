@@ -1,16 +1,10 @@
 package io.github.lene.optix
 
-import java.io.FileOutputStream
-import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
 
 import scala.collection.concurrent.TrieMap
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
-import scala.util.control.Exception.catching
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Material
@@ -33,8 +27,9 @@ import menger.common.z
  *  overridden. libmengergeometry.so is still loaded, now for video decoding only
  *  (Task 1.3 moved caustics wholly into optix-jni).
  *
- *  Use [[MengerRenderer.apply]] to construct; it ensures both native libraries are
- *  loaded in the correct order (optixjni before mengergeometry).
+ *  Use [[MengerRenderer.apply]] to construct. Both native libraries load via the
+ *  shared [[NativeLibrary]] loader; load order is irrelevant since Task 1.3, which
+ *  left libmengergeometry.so no longer linking any optix-jni symbols.
  */
 class MengerRenderer extends OptiXRenderer with LazyLogging:
 
@@ -162,7 +157,7 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
       )
     super.ensureAvailable()
 
-object MengerRenderer extends LazyLogging:
+object MengerRenderer:
   private val libraryName = "mengergeometry"
 
   // Alpha at/above which a fractal is opaque (matches the old native hit_bias gate).
@@ -175,11 +170,7 @@ object MengerRenderer extends LazyLogging:
 
   private def floatBits(f: Float): Int = java.lang.Float.floatToRawIntBits(f)
 
-  // Ensure optixjni is loaded before mengergeometry (mengergeometry has
-  // undefined symbols from liboptixjni.so resolved at runtime).
-  private val _optixJniInit: Boolean = OptiXRenderer.isLibraryLoaded
-
-  private val libraryLoaded: Boolean = loadNativeLibrary().isSuccess
+  private val libraryLoaded: Boolean = NativeLibrary.load(libraryName)
 
   def isLibraryLoaded: Boolean = libraryLoaded
 
@@ -224,36 +215,10 @@ object MengerRenderer extends LazyLogging:
 
   private final case class InstanceState(position: Vector[3], scale: Float, level: Int, lastWord: Int)
 
-  private def detectPlatform(): Try[String] =
-    val os   = System.getProperty("os.name").toLowerCase
-    val arch = System.getProperty("os.arch").toLowerCase
-    (os, arch) match
-      case (o, a) if o.contains("linux") && (a.contains("amd64") || a.contains("x86_64")) =>
-        Success("x86_64-linux")
-      case _ =>
-        Failure(new UnsupportedOperationException(s"Unsupported platform: $os/$arch"))
-
-  private def copyStream(stream: InputStream, out: FileOutputStream): Try[Unit] = Try:
-    val buffer = new Array[Byte](8192)
-    @scala.annotation.tailrec
-    def loop(): Unit =
-      stream.read(buffer) match
-        case -1 => ()
-        case n  => out.write(buffer, 0, n); loop()
-    loop()
-
-  private def extractAndLoad(stream: InputStream): Try[Unit] = Try:
-    val tempFile = Files.createTempFile(s"lib$libraryName", ".so")
-    tempFile.toFile.deleteOnExit()
-    val out = new FileOutputStream(tempFile.toFile)
-    try copyStream(stream, out).get
-    finally { out.close(); stream.close() }
-    System.load(tempFile.toAbsolutePath.toString)
-
   /** Load the registrable 4D shader module (menger_4d.ptx), from the classpath first
     * and the sbt native build output as a fallback (sbt run / test). */
   private def loadMenger4dPtx(): Array[Byte] =
-    val platform = detectPlatform().getOrElse("x86_64-linux")
+    val platform = NativeLibrary.platform()
     val resourcePath = s"/native/$platform/menger_4d.ptx"
     Option(getClass.getResourceAsStream(resourcePath)) match
       case Some(stream) => try stream.readAllBytes() finally stream.close()
@@ -265,23 +230,3 @@ object MengerRenderer extends LazyLogging:
           case Some(path) => Files.readAllBytes(path)
           case None => throw IllegalStateException(
             s"menger_4d.ptx not found on classpath ($resourcePath) or in $candidates")
-
-  private def loadFromClasspath(platform: String): Try[Unit] =
-    val resourcePath = s"/native/$platform/lib$libraryName.so"
-    for
-      stream <- Option(getClass.getResourceAsStream(resourcePath))
-        .toRight(new IllegalStateException(s"Library resource not found: $resourcePath"))
-        .toTry
-      _ <- extractAndLoad(stream)
-    yield ()
-
-  private def loadNativeLibrary(): Try[Unit] =
-    catching(classOf[UnsatisfiedLinkError])
-      .withTry(System.loadLibrary(libraryName))
-      .recoverWith { case _: UnsatisfiedLinkError =>
-        detectPlatform().flatMap(loadFromClasspath)
-      }
-      .recoverWith { case e: Exception =>
-        logger.error(s"Failed to load native library '$libraryName'", e)
-        Failure(e)
-      }
