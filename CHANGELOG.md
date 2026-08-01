@@ -2,10 +2,14 @@
 
 ## [0.8.6] - unreleased
 
-Sprint 35 (Native Seam Remediation), Phase 1 — landed so far:
+Sprint 35 (Native Seam Remediation), Phases 1-2:
 
 ### Changed
 
+- Pinned optix-jni to the released **0.2.0** (Maven Central) — the strictly-generic native seam
+  plus the Phase-2 Critical native-seam fixes (caustics OOB clamp, GPU leaks, JNI array guards,
+  stale-buffer reuse), validated under compute-sanitizer. Replaces the local `0.2.0-dev` dev
+  bridge (Release A).
 - Native render failures no longer swallowed: `OptiXRendererWrapper.renderScene` returns
   `Option[Array[Byte]]` (`None` on failure) instead of an empty array; the engines skip the
   frame and keep `needsRender=true` so the interactive loop retries rather than freezing on a
@@ -17,7 +21,7 @@ Sprint 35 (Native Seam Remediation), Phase 1 — landed so far:
   `NativeLibrary.load`/`platform` instead of its own forked copy of the loader; the duplicated
   `detectPlatform`/`copyStream`/`extractAndLoad`/`loadFromClasspath`/`loadNativeLibrary` and the
   now-obsolete `_optixJniInit` load-ordering hack were removed (Task 1.3b, −62 lines). Requires
-  optix-jni ≥ 0.2.0-dev.
+  optix-jni ≥ 0.2.0.
 
 ### Added
 
