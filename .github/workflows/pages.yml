@@ -1,0 +1,40 @@
+name: Pages
+
+# Ported from .gitlab-ci.yml `pages` job (GitLab Pages → GitHub Pages). Builds the mkdocs
+# docs site and publishes it. One-time manual step: enable Pages on lene/menger
+# (Settings → Pages, source = GitHub Actions). Coverage HTML is uploaded by ci.yml's
+# `coverage` job as the `scoverage-report` artifact; wiring it under /coverage here is a
+# follow-up once Pages is live.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install mkdocs-material --quiet
+      - run: mkdocs build --config-file docs/website/mkdocs.yml --site-dir public
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deploy
+        uses: actions/deploy-pages@v4

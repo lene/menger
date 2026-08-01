@@ -1,0 +1,354 @@
+name: CI
+
+# Ported from .gitlab-ci.yml as part of the menger → GitHub consolidation (Phase B,
+# WORKSPACE_STRATEGY.md step 5). GitHub is the source of truth; GitLab is a passive backup.
+#
+# ── HOST PREREQUISITES (self-hosted NVIDIA runner registered to lene/menger) ──
+# The GPU jobs run directly on the host (no Docker image, matching optix-jni's ci.yml), so
+# the runner host must provide what the old optix-cuda image did:
+#   • CUDA 13.x toolkit at /usr/local/cuda  • OptiX SDK 9.0 (OPTIX_ROOT)
+#   • JDK 21+ and sbt on PATH
+#   • Headless GL + video for LibGDX/VideoLoader tests: xvfb, mesa-utils, x11-xserver-utils,
+#     libavcodec/format/util/swscale-dev, imagemagick, unzip, bc, time
+#   • nvidia driver with the RTX core lib (libnvidia-rtcore.so.1) resolvable — see
+#     docs/TROUBLESHOOTING.md. Persistent host setup, not per-run apt-get (no sudo in CI).
+#
+# ── SECRETS ──  SONAR_TOKEN (sonar job), GITHUB token is automatic.
+# ── DROPPED vs GitLab (intentional) ──
+#   • PushToGithub / mirror — reversed: GitHub is origin now; mirror-to-gitlab.yml backs up GitLab.
+#   • Upload (GitLab package registry), code_quality (GitLab CodeClimate template),
+#     RunnerHeartbeat, StandardsDrift (workspace check-drift.yml covers cross-repo drift),
+#     Renovate (use the GitHub Renovate app / Dependabot instead).
+#   • AIReview lives in ai-review.yml already.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
+  schedule:
+    - cron: '0 4 * * 1'   # weekly PerfCheck baseline (was GitLab scheduled pipeline)
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Single source of the version (was .gitlab-ci.yml DEPLOYABLE_VERSION). The
+  # /release-checklist skill + pre-push 4-file consistency check must be repointed here.
+  DEPLOYABLE_VERSION: "0.8.6"
+  DEPLOYABLE_BASE_NAME: menger
+  SCALA_VERSION: "3.8.3"
+  __GL_THREADED_OPTIMIZATIONS: "0"   # SIGBUS workaround in libnvidia-glcore glfwDestroyWindow
+
+jobs:
+  # ── preconditions (cheap, ubuntu) ──────────────────────────────────────────
+  standards-parity:
+    name: Standards Parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/check-standards-drift.sh --local
+
+  version-consistent:
+    name: Version + Scala Consistent
+    runs-on: ubuntu-latest
+    # A hotfix/#norelease branch may intentionally not bump — skip on those PRs.
+    if: >-
+      github.event_name != 'pull_request' ||
+      ( !startsWith(github.head_ref, 'hotfix/') &&
+        !contains(github.event.pull_request.title, '#norelease') &&
+        !contains(join(github.event.pull_request.labels.*.name), 'NORELEASE') )
+    steps:
+      - uses: actions/checkout@v4
+      - name: build.sbt version/scala match the workflow env + USER_GUIDE; tag is new
+        run: |
+          set -euo pipefail
+          v_sbt=$(grep -E 'version := ".*"' menger-app/build.sbt | head -1 | cut -d'"' -f2)
+          v_guide=$(grep -E '^\*\*Version\*\*:' docs/USER_GUIDE.md | cut -d' ' -f2)
+          s_sbt=$(grep -E 'scalaVersion := ".*"' menger-app/build.sbt | head -1 | cut -d'"' -f2)
+          echo "build.sbt version=$v_sbt guide=$v_guide  workflow=$DEPLOYABLE_VERSION"
+          echo "build.sbt scala=$s_sbt  workflow=$SCALA_VERSION"
+          [ "$v_sbt" = "$DEPLOYABLE_VERSION" ] || { echo "::error::version mismatch build.sbt vs ci.yml"; exit 1; }
+          [ "$v_sbt" = "$v_guide" ]           || { echo "::error::version mismatch build.sbt vs USER_GUIDE"; exit 1; }
+          [ "$s_sbt" = "$SCALA_VERSION" ]      || { echo "::error::scalaVersion mismatch build.sbt vs ci.yml"; exit 1; }
+          git fetch --tags --quiet
+          if git tag | grep -qx "$v_sbt"; then echo "::error::tag $v_sbt already exists — bump version"; exit 1; fi
+
+  changelog-updated:
+    name: Changelog Updated
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request' &&
+      !startsWith(github.head_ref, 'hotfix/') &&
+      !contains(github.event.pull_request.title, '#norelease') &&
+      !contains(join(github.event.pull_request.labels.*.name), 'NORELEASE')
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          set -euo pipefail
+          v=$(grep -E 'version := ".*"' menger-app/build.sbt | head -1 | cut -d'"' -f2)
+          grep -qF "## [$v]" CHANGELOG.md || { echo "::error::CHANGELOG missing '## [$v]'"; exit 1; }
+          grep -qF "...$v" CHANGELOG.md   || { echo "::error::CHANGELOG missing compare link '...$v'"; exit 1; }
+          if echo "${{ github.event.pull_request.title }}" | grep -qE '^(Draft|WIP):'; then
+            echo "draft PR — skipping dated-entry check"
+          else
+            grep -qF "## [$v] - $(TZ=UTC date +%Y-%m-%d)" CHANGELOG.md \
+              || { echo "::error::CHANGELOG '## [$v]' needs today's date"; exit 1; }
+          fi
+
+  # ── quality + tests (need CUDA to compile menger-geometry native → nvidia host) ──
+  scalafix:
+    name: Scalafix
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - run: sbt "scalafix --check"
+
+  test-full:
+    name: Test (full suite, GPU)
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - name: nvidia-smi (fail fast if GPU absent)
+        run: nvidia-smi
+      - name: Run full test suite (headless)
+        run: xvfb-run -a sbt test
+      - name: Publish test report
+        if: always()
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: 'menger-app/target/test-reports/**/TEST-*.xml'
+
+  integration:
+    name: OptiX Integration (packaged app, GPU)
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - run: nvidia-smi
+      - name: Package + run 27-scenario integration suite
+        run: |
+          set -euo pipefail
+          sbt "mengerApp / Universal / packageBin"
+          v=$(grep -E 'version :=' menger-app/build.sbt | head -1 | cut -d'"' -f2)
+          unzip -oq "./menger-app/target/universal/menger-app-${v}.zip"
+          export LD_LIBRARY_PATH=/usr/local/cuda/lib64
+          ./scripts/integration-tests.sh "./menger-app-${v}/bin/menger-app"
+      - name: Upload diffs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-diffs
+          path: scripts/test-diffs/
+          if-no-files-found: ignore
+
+  coverage:
+    name: Coverage ratchet (GPU)
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 30
+    env:
+      COVERAGE_DROP_THRESHOLD: "1.0"
+      COVERAGE_MIN: "80"
+      COVERAGE_FLOOR: "60"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      # Persist the previous coverage.log across runs (replaces the GitLab artifacts-API fetch).
+      - name: Restore previous coverage baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: coverage-prev.log
+          key: menger-coverage-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: menger-coverage-${{ github.ref_name }}-
+      - name: Run coverage + ratchet check
+        run: |
+          set -uo pipefail
+          statement_rate_old=0; branch_rate_old=0
+          [ -f coverage-prev.log ] && . coverage-prev.log && statement_rate_old=${statement_rate:-0} && branch_rate_old=${branch_rate:-0}
+          sbt clean
+          xvfb-run -a sbt coverage test || true
+          sbt coverageReport
+          REPORT=$(head -n 2 menger-app/target/scala-3.*.*/scoverage-report/scoverage.xml | tail -n 1 | xargs)
+          for w in $REPORT; do echo "$w"; done | grep rate | tr - _ > coverage.log
+          . coverage.log
+          echo "statement: current=${statement_rate}% previous=${statement_rate_old}%"
+          if [ "$(echo "$statement_rate < $COVERAGE_FLOOR" | bc -l)" -eq 1 ]; then
+            echo "::error::coverage ${statement_rate}% below floor ${COVERAGE_FLOOR}%"; exit 1; fi
+          drop=$(echo "$statement_rate_old - $statement_rate" | bc -l)
+          if [ "$(echo "$drop > $COVERAGE_DROP_THRESHOLD" | bc -l)" -eq 1 ]; then
+            echo "::warning::coverage dropped ${drop}%"
+            if [ "$(echo "$statement_rate < $COVERAGE_MIN" | bc -l)" -eq 1 ]; then
+              echo "::error::coverage ${statement_rate}% below minimum ${COVERAGE_MIN}%"; exit 1; fi
+          fi
+          cp coverage.log coverage-prev.log
+      - name: Save coverage baseline
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: coverage-prev.log
+          key: menger-coverage-${{ github.ref_name }}-${{ github.run_id }}
+      - name: Upload scoverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scoverage-report
+          path: menger-app/target/scala-${{ env.SCALA_VERSION }}/scoverage-report/
+          if-no-files-found: ignore
+
+  run-smoke:
+    name: Run smoke (sponge types + animation, GPU)
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 20
+    if: github.event_name != 'pull_request' || true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - run: nvidia-smi
+      - name: Smoke-run each sponge type + a DSL animation
+        run: |
+          set -euo pipefail
+          for spec in \
+            "type=cube-sponge:level=1" "type=sponge-volume:level=1" \
+            "type=sponge-volume:level=2" "type=tesseract" \
+            "type=tesseract-sponge-volume:level=1" "type=tesseract-sponge-surface:level=2"; do
+            xvfb-run -a sbt "mengerApp / run --objects $spec --timeout 0.1"
+          done
+          xvfb-run -a sbt "mengerApp / run --scene examples.dsl.PulsingSponge --frames 5 --start-t 0 --end-t 2 --headless --save-name menger%04d.png"
+          test -f menger0000.png && test -f menger0004.png
+
+  runtime:
+    name: Runtime budget (GPU)
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 20
+    env:
+      TEST_RUN_MAX_RUNNING_TIME: "60"   # seconds; was a GitLab CI variable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - run: nvidia-smi
+      - name: Measure a level-1 render runtime against the budget
+        run: |
+          set -euo pipefail
+          sbt compile
+          unset OPTIX_ROOT || true
+          /usr/bin/time -f %U -o runtime.log xvfb-run -a sbt "mengerApp / run --objects type=sponge-volume:level=1 --timeout 0.1"
+          echo "user-time=$(cat runtime.log)  budget=${TEST_RUN_MAX_RUNNING_TIME}s"
+          [ "$(echo "$(cat runtime.log) > $TEST_RUN_MAX_RUNNING_TIME" | bc -l)" -eq 0 ]
+
+  sonar:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: SonarCloud scan
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # ── build + release ─────────────────────────────────────────────────────────
+  build-deployable:
+    name: Build deployable zip (GPU)
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - name: Package
+        run: |
+          set -euo pipefail
+          sbt "mengerApp / Universal / packageBin"
+          mv "menger-app/target/universal/${DEPLOYABLE_BASE_NAME}-app-${DEPLOYABLE_VERSION}.zip" \
+             "./${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: menger-deployable
+          path: ${{ env.DEPLOYABLE_BASE_NAME }}-${{ env.DEPLOYABLE_VERSION }}.zip
+
+  perf-check:
+    name: PerfCheck (benchmark vs baseline, GPU)
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 25
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+    needs: [build-deployable]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@v4
+        with:
+          name: menger-deployable
+      - name: Run benchmark
+        run: |
+          set -euo pipefail
+          unzip -oq "menger-${DEPLOYABLE_VERSION}.zip"
+          export LD_LIBRARY_PATH=/usr/local/cuda/lib64
+          ./scripts/benchmark.sh "./menger-app-${DEPLOYABLE_VERSION}/bin/menger-app"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-results
+          path: perf-results.json
+          if-no-files-found: ignore
+
+  # Tag the release version on a push to main once the gates are green (mirrors optix-jni).
+  create-tag:
+    name: Create release tag
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tag DEPLOYABLE_VERSION if it changed
+        run: |
+          set -euo pipefail
+          if git tag | grep -qx "$DEPLOYABLE_VERSION"; then
+            echo "tag $DEPLOYABLE_VERSION exists — nothing to do"; exit 0; fi
+          git tag "$DEPLOYABLE_VERSION"
+          git push origin "$DEPLOYABLE_VERSION"
+
+  # On the tag: install-smoke the packaged app, then publish a GitHub Release with the zip.
+  release:
+    name: Install-smoke + GitHub Release
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 15
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - name: Build + install-smoke render
+        run: |
+          set -euo pipefail
+          sbt "mengerApp / Universal / packageBin"
+          mv "menger-app/target/universal/${DEPLOYABLE_BASE_NAME}-app-${DEPLOYABLE_VERSION}.zip" \
+             "./${DEPLOYABLE_BASE_NAME}-${DEPLOYABLE_VERSION}.zip"
+          unzip -oq "menger-${DEPLOYABLE_VERSION}.zip"
+          export LD_LIBRARY_PATH=/usr/local/cuda/lib64
+          xvfb-run -a "./menger-app-${DEPLOYABLE_VERSION}/bin/menger-app" --objects type=cube-sponge:level=1 --timeout 0.1
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65  # v2.6.2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: "Full changelog: https://github.com/lene/menger/blob/${{ github.ref_name }}/CHANGELOG.md"
+          files: ${{ env.DEPLOYABLE_BASE_NAME }}-${{ env.DEPLOYABLE_VERSION }}.zip
