@@ -24,7 +24,10 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    # feat/sprint-35 is here TEMPORARILY to validate this workflow on the self-hosted
+    # runner before it reaches main (pull_request triggers only activate once the workflow
+    # is on the default branch). Remove feat/sprint-35 before/at merge.
+    branches: [main, feat/sprint-35]
     tags: ['[0-9]+.[0-9]+.[0-9]+']
   schedule:
     - cron: '0 4 * * 1'   # weekly PerfCheck baseline (was GitLab scheduled pipeline)
