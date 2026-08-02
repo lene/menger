@@ -141,14 +141,13 @@ there. **GitLab `lilacashes/menger` is a passive backup** — push-mirrored from
 `.github/workflows/mirror-to-gitlab.yml`. **Never push to GitLab from a local machine**
 (`bootstrap.sh` disables its push URL; `git push gitlab` will fail by design).
 
-CI is migrating from GitLab to GitHub Actions (WORKSPACE_STRATEGY.md step 5, Phase B).
-Until that lands, GitLab pipelines still run on the mirrored refs, so `glab` monitoring
-below remains valid in the interim; afterwards use `gh run` and GitLab pipelines are off.
+CI runs on **GitHub Actions** (`.github/workflows/ci.yml`); the GitLab pipeline is retired.
 
-Pipeline monitoring after push (GitLab, interim — via the mirror):
+Pipeline monitoring after push:
 ```
-glab ci view       # Watch latest pipeline
-glab ci status     # Current status
+gh run list --branch <branch>   # recent runs
+gh run watch <run-id>           # follow a run live
+gh run view <run-id> --log-failed   # failures only
 ```
 
 Detailed troubleshooting (CUDA error 718, OptiX SDK/driver matching, PTX-not-found, Docker permissions): `docs/TROUBLESHOOTING.md`.
@@ -157,7 +156,7 @@ Detailed troubleshooting (CUDA error 718, OptiX SDK/driver matching, PTX-not-fou
 
 ## Release workflow
 
-Use the `/release-checklist` skill (it lives in the workspace repo — it covers all three repos' releases, in the order menger-common → optix-jni → menger). Version must be updated in four files: `menger-app/build.sbt`, `.gitlab-ci.yml` (DEPLOYABLE_VERSION), `menger-app/src/main/scala/menger/MengerCLIOptions.scala`, `docs/guide/user-guide.md`. The pre-push hook validates consistency across all four.
+Use the `/release-checklist` skill (it lives in the workspace repo — it covers all three repos' releases, in the order menger-common → optix-jni → menger). Version must be updated in four files: `menger-app/build.sbt`, `.github/workflows/ci.yml` (DEPLOYABLE_VERSION), `menger-app/src/main/scala/menger/MengerCLIOptions.scala`, `docs/guide/user-guide.md`. The pre-push hook validates consistency across all four.
 
 ---
 
