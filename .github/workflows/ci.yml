@@ -297,6 +297,9 @@ jobs:
     name: Create release tag
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Repo default GITHUB_TOKEN is read-only; pushing the tag needs write.
+    permissions:
+      contents: write
     needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix]
     steps:
       - uses: actions/checkout@v4
@@ -315,6 +318,9 @@ jobs:
     name: Install-smoke + GitHub Release
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 15
+    # Publishing the GitHub Release needs write; repo default token is read-only.
+    permissions:
+      contents: write
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
