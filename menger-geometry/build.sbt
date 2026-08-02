@@ -77,24 +77,28 @@ nativeBuildTool := CMakeWithoutVersionBug.make(Seq(
   "--log-level=WARNING",
   "-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc",
   s"-DOPTIX_JNI_INCLUDE_DIR=${(optixJniNativeApiDir.value / "include").getAbsolutePath}",
-  s"-DOPTIX_JNI_SHADER_DIR=${(optixJniNativeApiDir.value / "shaders").getAbsolutePath}"
+  s"-DOPTIX_JNI_SHADER_DIR=${(optixJniNativeApiDir.value / "shaders").getAbsolutePath}",
+  s"-DJAVAH_INCLUDE_DIR=${(target.value / "native" / "include").getAbsolutePath}"
 ))
-nativeCompile := (nativeCompile dependsOn extractOptixJniNativeApi).value
+// Generated JNI headers (JniJavah) must exist before the native build so MengerJNIBindings.cpp
+// and VideoLoader.cpp can #include them — a Scala @native / C++ signature mismatch then fails
+// compilation (Sprint 35 Task 1.4).
+nativeCompile := (nativeCompile dependsOn (extractOptixJniNativeApi, javah)).value
 
 // Bundle the menger PTX shader into the JAR as a managed resource.
 // nativeCompile must run first (it produces the PTX via CMake).
 Compile / resourceGenerators += Def.task {
   val log = streams.value.log
   val platform = "x86_64-linux"
-  val ptxSource = target.value / "native" / platform / "bin" / "optix_shaders_menger.ptx"
+  val ptxSource = target.value / "native" / platform / "bin" / "menger_4d.ptx"
   nativeCompile.value
   if (ptxSource.exists()) {
-    val ptxResource = (Compile / resourceManaged).value / "native" / platform / "optix_shaders_menger.ptx"
+    val ptxResource = (Compile / resourceManaged).value / "native" / platform / "menger_4d.ptx"
     IO.copyFile(ptxSource, ptxResource)
-    log.debug(s"Bundled menger PTX into managed resources: $ptxResource")
+    log.debug(s"Bundled menger 4D PTX into managed resources: $ptxResource")
     Seq(ptxResource)
   } else {
-    log.warn(s"Menger PTX not found after nativeCompile: $ptxSource")
+    log.warn(s"Menger 4D PTX not found after nativeCompile: $ptxSource")
     Seq.empty
   }
 }.taskValue

@@ -49,7 +49,7 @@ resource "aws_security_group" "nvidia_dev" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.allowed_ssh_cidrs
     description = "SSH access"
   }
 
@@ -58,7 +58,7 @@ resource "aws_security_group" "nvidia_dev" {
     from_port   = 6000
     to_port     = 6063
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.allowed_ssh_cidrs
     description = "X11 forwarding"
   }
 

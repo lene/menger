@@ -1,0 +1,47 @@
+name: Mirror to GitLab (backup)
+
+# GitHub (lene/menger) is the single source of truth. This workflow keeps the GitLab
+# repo (lilacashes/menger) as a PASSIVE BACKUP mirror, written only from CI — never from
+# a local machine (bootstrap.sh disables the gitlab push URL locally). See
+# docs/WORKSPACE_STRATEGY.md.
+#
+# One-time setup: add a GitHub Actions secret GITLAB_MIRROR_TOKEN — a GitLab personal or
+# project access token with `write_repository` scope on lilacashes/menger. Until it is
+# set, this job no-ops with a warning (it never fails the push).
+
+on:
+  push:
+    branches: ['**']
+    tags: ['**']
+
+concurrency:
+  group: mirror-to-gitlab-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    # Skip branch/tag deletions: the backup keeps stale refs harmlessly rather than
+    # propagating deletions from the source.
+    if: ${{ github.event.deleted != true }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history + tags for a faithful mirror
+
+      - name: Mirror the pushed ref to GitLab
+        env:
+          TOKEN: ${{ secrets.GITLAB_MIRROR_TOKEN }}
+        run: |
+          if [ -z "${TOKEN}" ]; then
+            echo "::warning::GITLAB_MIRROR_TOKEN not set — GitLab backup mirror skipped. Add the secret to enable it."
+            exit 0
+          fi
+          url="https://oauth2:${TOKEN}@gitlab.com/lilacashes/menger.git"
+          # GitHub is authoritative, so force GitLab to follow it faithfully. This is safe,
+          # not blind: the remotes were reconciled (github == gitlab) before this workflow
+          # was enabled, so GitLab only ever receives GitHub's own current state.
+          case "${GITHUB_REF}" in
+            refs/heads/*) git push --force "$url" "${GITHUB_SHA}:${GITHUB_REF}" ;;
+          esac
+          git push --force --tags "$url"

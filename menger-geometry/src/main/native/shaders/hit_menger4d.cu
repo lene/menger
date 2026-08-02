@@ -234,10 +234,13 @@ extern "C" __global__ void __intersection__menger4d() {
 
     const InstanceMaterial& mat = params.instance_materials[instanceId];
     const int m4d_idx = mat.geometry_data_index;
-    if (m4d_idx < 0 || m4d_idx >= static_cast<int>(params.num_menger4d)) return;
-    if (!params.menger4d_data) return;
+    if (m4d_idx < 0 || !params.custom_geometry_data) return;
 
-    const Menger4DData& m = params.menger4d_data[m4d_idx];
+    // Per-instance blob travels through optix-jni's generic custom-geometry SPI
+    // (Sprint 35 1.2b): index into the uniformly strided buffer and cast to our type.
+    const Menger4DData& m = *reinterpret_cast<const Menger4DData*>(
+        static_cast<const char*>(params.custom_geometry_data)
+        + static_cast<size_t>(m4d_idx) * params.custom_geometry_stride);
 
     const float3 ray_orig = optixGetWorldRayOrigin();
     const float3 ray_dir  = optixGetWorldRayDirection();

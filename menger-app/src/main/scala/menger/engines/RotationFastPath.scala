@@ -1,5 +1,6 @@
 package menger.engines
 
+import io.github.lene.optix.MengerRenderer
 import io.github.lene.optix.OptiXRenderer
 import menger.Projection4DSpec
 import menger.engines.scene.InstanceId
@@ -53,7 +54,7 @@ object RotationFastPath:
 
   /** Projection updater for Menger4D IFS instances. */
   val menger4DUpdater: ProjectionUpdater = (renderer, id, proj) =>
-    renderer.updateMenger4DProjection(
+    MengerRenderer.of(renderer).updateMenger4DProjection(
       InstanceId.raw(id),
       eyeW = proj.eyeW, screenW = proj.screenW,
       rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
@@ -61,7 +62,7 @@ object RotationFastPath:
 
   /** Projection updater for Sierpinski4D IFS instances. */
   val sierpinski4DUpdater: ProjectionUpdater = (renderer, id, proj) =>
-    renderer.updateSierpinski4DProjection(
+    MengerRenderer.of(renderer).updateSierpinski4DProjection(
       InstanceId.raw(id),
       eyeW = proj.eyeW, screenW = proj.screenW,
       rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
@@ -69,7 +70,7 @@ object RotationFastPath:
 
   /** Projection updater for Hexadecachoron4D IFS instances. */
   val hexadecachoron4DUpdater: ProjectionUpdater = (renderer, id, proj) =>
-    renderer.updateHexadecachoron4DProjection(
+    MengerRenderer.of(renderer).updateHexadecachoron4DProjection(
       InstanceId.raw(id),
       eyeW = proj.eyeW, screenW = proj.screenW,
       rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW

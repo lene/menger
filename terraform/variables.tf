@@ -50,6 +50,11 @@ variable "auto_terminate" {
   default     = true
 }
 
+variable "allowed_ssh_cidrs" {
+  description = "CIDR blocks allowed inbound for SSH (22) and X11 (6000-6063). Set to your own address(es), e.g. [\"203.0.113.4/32\"] — never 0.0.0.0/0 (SonarCloud S6321). No default: apply must supply it via tfvars."
+  type        = list(string)
+}
+
 variable "project_name" {
   description = "Project name for resource tagging"
   type        = string

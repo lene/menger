@@ -2,6 +2,7 @@ package menger.engines.scene
 
 import scala.util.Try
 
+import io.github.lene.optix.MengerRenderer
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.Projection4DSpec
@@ -33,6 +34,7 @@ class Menger4DSceneBuilder(
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up ${specs.length} menger4d instances")
+    val mengerRenderer = MengerRenderer.of(renderer)
     specs.zipWithIndex.foreach { case (spec, specIdx) =>
       val threshold = spec.distanceThreshold.getOrElse(2)
       val proj      = spec.projection4D.getOrElse(Projection4DSpec.default)
@@ -42,7 +44,7 @@ class Menger4DSceneBuilder(
 
       def addInstance(level: Int, mat: menger.common.Material, scale: Float): Unit =
         val instanceId = requireInstanceId(
-          renderer.addMenger4DInstance(
+          mengerRenderer.addMenger4DInstance(
             level, threshold, position, scale,
             proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW,
             mat

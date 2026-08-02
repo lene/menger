@@ -144,10 +144,12 @@ extern "C" __global__ void __intersection__hexadecachoron4d() {
 
     const InstanceMaterial& mat = params.instance_materials[instanceId];
     const int h4d_idx = mat.geometry_data_index;
-    if (h4d_idx < 0 || h4d_idx >= static_cast<int>(params.num_hexadecachoron4d)) return;
-    if (!params.hexadecachoron4d_data) return;
+    if (h4d_idx < 0 || !params.custom_geometry_data) return;
 
-    const Hexadecachoron4DData& s = params.hexadecachoron4d_data[h4d_idx];
+    // Per-instance blob via optix-jni's generic custom-geometry SPI (Sprint 35 1.2b).
+    const Hexadecachoron4DData& s = *reinterpret_cast<const Hexadecachoron4DData*>(
+        static_cast<const char*>(params.custom_geometry_data)
+        + static_cast<size_t>(h4d_idx) * params.custom_geometry_stride);
 
     const float3 ray_orig = optixGetWorldRayOrigin();
     const float3 ray_dir  = optixGetWorldRayDirection();

@@ -8,7 +8,7 @@ inThisBuild(List(
 ))
 
 lazy val mengerCommonDependency = "io.github.lene" %% "menger-common" % "0.1.6"
-lazy val optixJniDependency = "io.github.lene" % "optix-jni" % "0.1.19"
+lazy val optixJniDependency = "io.github.lene" % "optix-jni" % "0.2.0"
 
 // Root project - aggregator only, no source code
 lazy val root = project
@@ -30,7 +30,7 @@ lazy val root = project
 // Menger-specific geometry layer — 4D fractals, caustics (not published)
 lazy val mengerGeometry = project
   .in(file("menger-geometry"))
-  .enablePlugins(JniNative)
+  .enablePlugins(JniNative, JniJavah)
   .settings(libraryDependencies ++= Seq(mengerCommonDependency, optixJniDependency))
 
 // Main application - depends on menger-geometry and common

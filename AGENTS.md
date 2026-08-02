@@ -134,7 +134,18 @@ sbt "project optixJni" nativeTest    # C++ Google Test suite
 rm -rf optix-jni/target/native ; sbt "project optixJni" compile  # Clean rebuild of native
 ```
 
-Pipeline monitoring after push:
+## Hosting & remotes (read this before pushing)
+
+**GitHub `lene/menger` is `origin` and the single source of truth.** Push there; open PRs
+there. **GitLab `lilacashes/menger` is a passive backup** — push-mirrored from GitHub by
+`.github/workflows/mirror-to-gitlab.yml`. **Never push to GitLab from a local machine**
+(`bootstrap.sh` disables its push URL; `git push gitlab` will fail by design).
+
+CI is migrating from GitLab to GitHub Actions (WORKSPACE_STRATEGY.md step 5, Phase B).
+Until that lands, GitLab pipelines still run on the mirrored refs, so `glab` monitoring
+below remains valid in the interim; afterwards use `gh run` and GitLab pipelines are off.
+
+Pipeline monitoring after push (GitLab, interim — via the mirror):
 ```
 glab ci view       # Watch latest pipeline
 glab ci status     # Current status

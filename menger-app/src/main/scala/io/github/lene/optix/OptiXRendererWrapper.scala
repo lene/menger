@@ -33,13 +33,20 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
     r.initialize(maxInstances)
     r.ensureAvailable()  // Throws OptiXNotAvailableException on failure - caught by Main
 
-  def renderScene(size: ImageSize): Array[Byte] =
+  /** Renders a frame. `None` on failure — a failed render must not masquerade as a valid
+    * (empty) frame. Robust to both the current pinned optix-jni (returns null on failure) and
+    * the post-Sprint-35 optix-jni (throws): both map to `None`, and callers keep the last frame
+    * / retry rather than displaying garbage. */
+  def renderScene(size: ImageSize): Option[Array[Byte]] =
     logger.debug(s"[OptiXRendererWrapper] renderScene: rendering at ${size.width}x${size.height}")
-    val result = renderer.render(size)
-    if result != null then result // scalafix:ok DisableSyntax.null
-    else
-      logger.error("OptiX rendering failed - returned null")
-      Array.emptyByteArray
+    try
+      val bytes = Option(renderer.render(size)).filter(_.nonEmpty)
+      if bytes.isEmpty then logger.error("OptiX rendering failed - renderer returned null/empty")
+      bytes
+    catch
+      case e: Exception =>
+        logger.error(s"OptiX rendering failed: ${e.getMessage}", e)
+        None
 
   def renderSceneWithStats(size: ImageSize): Option[RenderResult] =
     renderer.renderWithStats(size).toScala

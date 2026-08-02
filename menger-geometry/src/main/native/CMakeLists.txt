@@ -77,6 +77,14 @@ message(STATUS "✓ OptiX: ${OptiX_INSTALL_DIR}")
 find_package(JNI REQUIRED)
 message(STATUS "✓ JNI: ${JNI_INCLUDE_DIRS}")
 
+# Generated JNI headers (sbt JniJavah, -DJAVAH_INCLUDE_DIR): MengerJNIBindings.cpp and
+# VideoLoader.cpp #include these so a Scala @native / C++ signature mismatch is a compile
+# error (Sprint 35 Task 1.4).
+if(DEFINED JAVAH_INCLUDE_DIR)
+  include_directories(${JAVAH_INCLUDE_DIR})
+  message(STATUS "✓ Generated JNI headers: ${JAVAH_INCLUDE_DIR}")
+endif()
+
 #=============================================================================
 # FFmpeg/libav (required for video texture decoding)
 #=============================================================================
@@ -104,66 +112,55 @@ message(STATUS "✓ optix-jni include API: ${OPTIX_JNI_INCLUDE_DIR}")
 message(STATUS "✓ optix-jni shader API: ${OPTIX_JNI_SHADER_DIR}")
 
 #=============================================================================
-# Full menger PTX shader: base OptiX shaders + 4D fractal shaders + caustics
-# Compiled to optix_shaders_menger.ptx, used by MengerRenderer instead of
-# optix-jni's optix_shaders.ptx.
+# Registrable 4D-fractal PTX module (Sprint 35 Task 1.2b).
+# Compiled to menger_4d.ptx: ONLY the 4D intersection/closest-hit/shadow programs
+# plus the device helpers they call (helpers.cu). MengerRenderer registers it through
+# optix-jni's custom-geometry SPI, on top of optix-jni's own base pipeline
+# (optix_shaders.ptx) — no more forking the whole shader layer.
 #=============================================================================
-add_library(menger_shaders OBJECT
-    shaders/optix_shaders_menger.cu
+add_library(menger_4d_shaders OBJECT
+    shaders/menger_4d_module.cu
 )
-target_include_directories(menger_shaders PRIVATE
+target_include_directories(menger_4d_shaders PRIVATE
     ${OptiX_INCLUDE_DIR}
     ${CUDAToolkit_INCLUDE_DIRS}
     ${OPTIX_JNI_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders  # local 4D shaders found before OPTIX_JNI_SHADER_DIR
-    ${OPTIX_JNI_SHADER_DIR}              # base shaders (helpers.cu, raygen, miss, hits, etc.)
+    ${OPTIX_JNI_SHADER_DIR}              # helpers.cu (device-helper infrastructure)
 )
-set_target_properties(menger_shaders PROPERTIES
+set_target_properties(menger_4d_shaders PROPERTIES
     CUDA_PTX_COMPILATION ON
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_ARCHITECTURES "75-virtual"
 )
 
 #=============================================================================
-# menger-geometry shared library: project4d.cu + CausticsRenderer
-# CausticsRenderer calls symbols from liboptixjni.so — resolved at runtime
-# when both JNI libraries are loaded by the JVM.
+# menger-geometry shared library: video decoding only.
+# As of Sprint 35 Task 1.3 the caustics/project4d fork was deleted — optix-jni
+# owns caustics, reached via OptiXRenderer's JNI in liboptixjni.so. This library
+# no longer references any optix-jni symbol, so it links cleanly (no
+# --allow-shlib-undefined, no RTLD_GLOBAL promotion).
 #=============================================================================
 add_library(mengergeometry SHARED
-    project4d.cu
-    CausticsRenderer.cpp
     VideoLoader.cpp
     MengerJNIBindings.cpp
 )
 target_include_directories(mengergeometry PRIVATE
     ${JNI_INCLUDE_DIRS}
-    ${CUDAToolkit_INCLUDE_DIRS}
-    ${OptiX_INCLUDE_DIR}
-    ${OPTIX_JNI_INCLUDE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_link_libraries(mengergeometry PRIVATE
-    CUDA::cudart
     FFmpeg::avcodec
     FFmpeg::avformat
     FFmpeg::avutil
     FFmpeg::swscale
 )
-# libmengergeometry.so calls OptiXWrapper symbols from liboptixjni.so.
-# --allow-shlib-undefined avoids a hard build-time dependency on liboptixjni.so.
-# At runtime, MengerJNIBindings.cpp's constructor promotes liboptixjni.so to
-# RTLD_GLOBAL so lazy binding can resolve the symbols regardless of load order.
-target_link_options(mengergeometry PRIVATE "LINKER:--allow-shlib-undefined")
-set_target_properties(mengergeometry PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
-)
 
 install(TARGETS mengergeometry LIBRARY DESTINATION .)
 install(FILES
-    "${CMAKE_BINARY_DIR}/CMakeFiles/menger_shaders.dir/shaders/optix_shaders_menger.ptx"
+    "${CMAKE_BINARY_DIR}/CMakeFiles/menger_4d_shaders.dir/shaders/menger_4d_module.ptx"
     DESTINATION .
-    RENAME "optix_shaders_menger.ptx"
+    RENAME "menger_4d.ptx"
     OPTIONAL
 )

@@ -23,12 +23,17 @@ class OptiXRendererWrapperSuite extends AnyFlatSpec with Matchers with MockFacto
     val renderer = mock[OptiXRenderer]
     val bytes = Array[Byte](1, 2, 3)
     (renderer.render(_: ImageSize)).expects(dims).returning(bytes).once()
-    wrapperWith(renderer).renderScene(dims) shouldBe bytes
+    wrapperWith(renderer).renderScene(dims) shouldBe Some(bytes)
 
-  it should "return an empty array when the renderer yields null" in:
+  it should "return None when the renderer yields null" in:
     val renderer = mock[OptiXRenderer]
     (renderer.render(_: ImageSize)).expects(*).returning(null).once() // scalafix:ok DisableSyntax.null
-    wrapperWith(renderer).renderScene(dims) shouldBe Array.emptyByteArray
+    wrapperWith(renderer).renderScene(dims) shouldBe None
+
+  it should "return None when the renderer throws (native render failure)" in:
+    val renderer = mock[OptiXRenderer]
+    (renderer.render(_: ImageSize)).expects(*).throwing(new RuntimeException("native render failed")).once()
+    wrapperWith(renderer).renderScene(dims) shouldBe None
 
   "renderSceneWithStats" should "convert a present Optional to Some" in:
     val renderer = mock[OptiXRenderer]

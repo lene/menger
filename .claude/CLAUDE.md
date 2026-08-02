@@ -11,7 +11,7 @@
 > (documentation, ownership, history, decisions). **Always verify against
 > actual source files before making changes** — the index may be stale.
 
-Last indexed: 2026-07-05 (commit a396a9e5). Confidence: 100%.
+Last indexed: 2026-07-18 (commit 9fe1a691). Confidence: 100%.
 ### Architecture
 The Menger project is a higher‑dimensional fractal rendering engine: it consumes scene descriptions written in a Scala‑embedded DSL, constructs parametric meshes up to four dimensions (including recursively subdivided Menger sponges), applies procedural materials and lighting, and produces ray‑traced images and videos via an interactive rendering engine. The pipeline begins from .sc scene files or direct DSL use, flows through material/light/plane definitions, object specifications, mesh generation, and an interactive rendering loop that supports denoising, and culminates in still image or video output. The codebase is organised around a layered pipeline with a declarative DSL at the top, progressing through scene construction, mesh generation, and rendering. **Key health signals:** The repository counts 520 files and ~80 k LOC (predominantly Scala).
 ### Key Modules
@@ -32,11 +32,11 @@ The Menger project is a higher‑dimensional fractal rendering engine: it consum
 ### Architectural Layers
 | Layer | Files | Purpose |
 |-------|-------|---------|
-| Scene Definition DSL | 175 | Defines the domain-specific language, scene objects, materials, and geometric… |
-| CLI Input Handling | 8 | Parses command-line options and converts them into application configuration… |
-| Render Configuration Model | 20 | Encapsulates configuration schemas for scenes, cameras, materials, and… |
-| Example Scene Scripts | 153 | Provides a collection of illustrative scene scripts demonstrating the DSL's… |
-| Test Suites & Contracts | 164 | Contains unit tests, property checks, and test helper objects for the scene… |
+| Application | 185 |  |
+| CLI | 8 |  |
+| Config | 70 |  |
+| Docs & Tooling | 151 |  |
+| Test | 166 |  |
 
 ### Guided Tour (12 steps)
 1. `README.md` — Start here for the end-to-end picture before diving into the code.
@@ -49,19 +49,19 @@ The Menger project is a higher‑dimensional fractal rendering engine: it consum
 ### Hotspots (High Churn)
 | File | Churn | 90d Commits | Owner |
 |------|-------|-------------|-------|
-| `menger-app/src/main/scala/menger/engines/InteractiveEngine.scala` | 99.8th %ile | 37 | Lene Preuss |
-| `menger-app/src/main/scala/menger/engines/WithAnimation.scala` | 99.5th %ile | 20 | Claude Code |
-| `scripts/integration-tests.sh` | 99.3th %ile | 46 | Lene |
-| `menger-app/src/main/scala/menger/ObjectSpec.scala` | 99.0th %ile | 24 | Lene Preuss |
-| `menger-geometry/src/main/native/MengerJNIBindings.cpp` | 98.6th %ile | 9 | Lene Preuss |
+| `menger-app/src/main/scala/menger/engines/InteractiveEngine.scala` | 100.0th %ile | 30 | Lene Preuss |
+| `scripts/integration-tests.sh` | 99.8th %ile | 48 | Lene |
+| `menger-app/src/main/scala/menger/engines/WithAnimation.scala` | 99.5th %ile | 18 | Claude Code |
+| `menger-app/src/main/scala/menger/ObjectSpec.scala` | 99.0th %ile | 22 | Lene Preuss |
+| `AGENTS.md` | 98.8th %ile | 12 | Lene Preuss |
 
 ## Code health
 Three signals: **defect risk** (the overall score), **maintainability** (smells that hurt readability/change-cost without predicting bugs), and **performance** (static performance RISK: I/O-in-loop / N+1 shapes that waste work, high-precision/low-recall). Maintainability and performance are co-equal views, never blended into the defect headline. See `docs/CODE_HEALTH.md`.
 
 Defect risk, Hotspot health: 5.73/10 (stable) ·
-Average: 9.07/10 ·
+Average: 9.13/10 ·
 Worst: 3.85/10 (`menger-app/src/main/scala/Main.scala`)
-Maintainability, Average: 9.76/10
+Maintainability, Average: 9.77/10
 Performance risk, Average: 10.0/10
 
 ### Critical biomarkers
@@ -69,7 +69,7 @@ Performance risk, Average: 10.0/10
 - `menger-app/src/main/scala/menger/engines/InteractiveEngine.scala` — untested hotspot — impact −2.0
 - `menger-app/src/main/scala/menger/engines/SceneConverter.scala` — untested hotspot — impact −2.0
 - `menger-app/src/main/scala/menger/engines/scene/CurveSceneBuilder.scala` — prior defect — impact −2.0
-- `menger-app/src/main/scala/menger/engines/scene/TriangleMeshSceneBuilder.scala` — untested hotspot — impact −2.0
+- `menger-app/src/main/scala/menger/engines/scene/TextureManager.scala` — untested hotspot — impact −2.0
 
 ### Repowise MCP Tools
 
