@@ -1,7 +1,5 @@
 #!/bin/bash
 
-GITLAB_PROJECT_ID=53243565
-CI_LINT_OUTPUT=/tmp/gitlab-ci-lint.json
 RED_TEXT=$'\e[38;5;196m'
 GREEN_TEXT=$'\e[38;5;46m'
 RESET_TEXT=$'\e[0m'
@@ -19,8 +17,8 @@ git fetch origin --quiet 2>/dev/null || true
 # the pre-push protocol". An agent or CI script has neither a TTY nor stdin, so
 # it took the protocol path, read nothing, and left CHANGED_FILES empty — every
 # section below then reported "skipped — no relevant files changed" and the hook
-# exited 0. That false pass let a branch editing .gitlab-ci.yml through without
-# running the CI lint. See standards/hooks/lib.sh for the full reasoning.
+# exited 0. That false pass let a branch editing a CI workflow through without
+# running the workflow lint. See standards/hooks/lib.sh for the full reasoning.
 if [ -r ./standards/hooks/lib.sh ]; then
   . ./standards/hooks/lib.sh
   # Capture status separately: inside <(...) it would be lost, and an empty
@@ -46,7 +44,7 @@ fi
 
 HAS_SCALA=$(echo "$CHANGED_FILES" | grep -cE '\.(scala|sbt)$|^project/')
 HAS_NATIVE=$(echo "$CHANGED_FILES" | grep -cE '^menger-geometry/src/main/native/.*\.(cpp|cu|cuh|h)$|CMakeLists\.txt')
-HAS_CI=$(echo "$CHANGED_FILES" | grep -c '\.gitlab-ci\.yml$')
+HAS_CI=$(echo "$CHANGED_FILES" | grep -cE '^\.github/workflows/.*\.ya?ml$')
 HAS_INTEGRATION=$(echo "$CHANGED_FILES" | grep -c '^scripts/integration-tests\.sh$')
 
 # Detect rendering-relevant Scala changes: shaders, scene builders, geometry.
@@ -136,53 +134,34 @@ else
   echo "=== Validating Environment ===" ; skip_section
 fi
 
-if [ -r .set-gitlab-token.sh ]; then
-  . ./.set-gitlab-token.sh
-fi
-
 STATUS=0
 
-# CI lint only needed when .gitlab-ci.yml changed
+# Workflow lint + Scala-version consistency only needed when a GitHub Actions
+# workflow changed. actionlint catches YAML/expression errors locally before the
+# push; if it is not installed the check is advisory (GitHub validates on push).
 if [ "$HAS_CI" -gt 0 ]; then
-  if [ -n "${GITLAB_ACCESS_TOKEN}" ]; then
-    CONTENT="$(cat .gitlab-ci.yml)"
-    jq --null-input --arg yaml "$CONTENT" '.content=$yaml' | \
-    curl -s "https://gitlab.com/api/v4/projects/${GITLAB_PROJECT_ID}/ci/lint" \
-      --header 'Content-Type: application/json' --header "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" \
-      --data @- > $CI_LINT_OUTPUT
-    VALID=$(jq -r .valid < "$CI_LINT_OUTPUT")
-    if [ "$VALID" = "true" ]; then
-          echo "GitLab CI valid: ${GREEN_TEXT}$VALID${RESET_TEXT}"
+  if command -v actionlint >/dev/null 2>&1; then
+    if actionlint .github/workflows/*.yml; then
+      echo "actionlint: ${GREEN_TEXT}PASSED${RESET_TEXT}"
     else
-    #  STATUS=1
-      echo "GitLab CI valid: ${RED_TEXT}$VALID${RESET_TEXT}"
-      echo "message: $(jq .message < "$CI_LINT_OUTPUT")"
-      echo "errors: $(jq .errors < "$CI_LINT_OUTPUT")"
-      echo "warnings: $(jq .warnings < "$CI_LINT_OUTPUT")"
+      echo "actionlint: ${RED_TEXT}FAILED${RESET_TEXT}"
+      STATUS=1
     fi
   else
-    # GitLab CI lint is advisory (STATUS is never set from its result), and GitHub
-    # is the primary CI now — so a missing token warns and skips rather than blocking
-    # the push over a secondary system's secret. Set GITLAB_ACCESS_TOKEN (e.g. via
-    # .set-gitlab-token.sh) to re-enable the lint.
-    echo "GITLAB_ACCESS_TOKEN unset — skipping GitLab CI lint (advisory only; GitHub is primary CI)"
-  fi
-  if [ $STATUS -gt 0 ]
-  then echo "Status after gitlab lint: ${RED_TEXT}${STATUS}${RESET_TEXT}"
-  else echo "Status after gitlab lint: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+    echo "actionlint not installed — skipping workflow lint (advisory; GitHub validates on push)"
   fi
 
   SCALA_VERSION=$(egrep 'scalaVersion := ".*"' menger-app/build.sbt | head -n 1 | cut -d \" -f 2)
-  GITLAB_SCALA_VERSION=$(egrep 'SCALA_VERSION. .*' .gitlab-ci.yml | head -n 1 | cut -d: -f 2 | xargs)
-  if [ "$SCALA_VERSION" != "$GITLAB_SCALA_VERSION" ]
+  CI_SCALA_VERSION=$(egrep '^[[:space:]]*SCALA_VERSION:' .github/workflows/ci.yml | head -n 1 | cut -d \" -f 2)
+  if [ "$SCALA_VERSION" != "$CI_SCALA_VERSION" ]
   then
-    echo "Scala in build.sbt: ${RED_TEXT}${SCALA_VERSION}${RESET_TEXT}, in .gitlab-ci.yml: ${RED_TEXT}${GITLAB_SCALA_VERSION}${RESET_TEXT}"
+    echo "Scala in build.sbt: ${RED_TEXT}${SCALA_VERSION}${RESET_TEXT}, in ci.yml: ${RED_TEXT}${CI_SCALA_VERSION}${RESET_TEXT}"
     STATUS=1
   else
     echo "Scala version: ${GREEN_TEXT}${SCALA_VERSION}${RESET_TEXT}"
   fi
 else
-  echo "=== GitLab CI lint ===" ; skip_section
+  echo "=== Workflow lint ===" ; skip_section
 fi
 
 # Version consistency (shared with pre-commit) and tag check — always run
