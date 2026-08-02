@@ -57,7 +57,9 @@ jobs:
         !contains(join(github.event.pull_request.labels.*.name), 'NORELEASE') )
     steps:
       - uses: actions/checkout@v4
-      - name: build.sbt version/scala match the workflow env + USER_GUIDE; tag is new
+      - name: build.sbt version/scala match the workflow env + USER_GUIDE; not yet released
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           v_sbt=$(grep -E 'version := ".*"' menger-app/build.sbt | head -1 | cut -d'"' -f2)
@@ -68,8 +70,10 @@ jobs:
           [ "$v_sbt" = "$DEPLOYABLE_VERSION" ] || { echo "::error::version mismatch build.sbt vs ci.yml"; exit 1; }
           [ "$v_sbt" = "$v_guide" ]           || { echo "::error::version mismatch build.sbt vs USER_GUIDE"; exit 1; }
           [ "$s_sbt" = "$SCALA_VERSION" ]      || { echo "::error::scalaVersion mismatch build.sbt vs ci.yml"; exit 1; }
-          git fetch --tags --quiet
-          if git tag | grep -qx "$v_sbt"; then echo "::error::tag $v_sbt already exists — bump version"; exit 1; fi
+          # A published Release (not a mere tag) is the "already shipped" signal: the tag is
+          # created by create-tag on merge, and a release can be pending after a tag exists.
+          if gh release view "$v_sbt" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::release $v_sbt already published — bump version"; exit 1; fi
 
   changelog-updated:
     name: Changelog Updated
