@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: '3.12'
       # --only-binary :all: avoids running sdist setup scripts (S8541); pinned version (S8544).
-      - run: pip install --only-binary :all: mkdocs-material==9.7.7 --quiet
+      - run: 'pip install --only-binary :all: mkdocs-material==9.7.7 --quiet'
       - run: mkdocs build --config-file docs/website/mkdocs.yml --site-dir public
       - uses: actions/upload-pages-artifact@v3
         with:
