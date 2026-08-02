@@ -147,8 +147,10 @@ fi
 if [ "${INSTALL_CUDA:-0}" -eq 1 ]; then
     print_info "Adding CUDA repository..."
 
-    # Add CUDA repository for Ubuntu 24.04
-    wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb -O /tmp/cuda-keyring.deb
+    # Add CUDA repository for Ubuntu 24.04.
+    # --max-redirect=0: the keyring is served directly over HTTPS from developer.download.nvidia.com;
+    # disabling redirects prevents a redirect from downgrading to an insecure host (SonarCloud S6506).
+    wget -q --max-redirect=0 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb -O /tmp/cuda-keyring.deb
     sudo dpkg -i /tmp/cuda-keyring.deb
     sudo apt-get update
 

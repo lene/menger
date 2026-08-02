@@ -425,6 +425,18 @@ if [ -n "$AWS_PROFILE" ]; then
   export AWS_PROFILE
 fi
 
+# Restrict inbound SSH/X11 to the caller's public IP (SonarCloud S6321 — never 0.0.0.0/0).
+# Override by exporting ALLOWED_SSH_CIDRS='["1.2.3.4/32","5.6.7.8/32"]' before running.
+if [ -z "${ALLOWED_SSH_CIDRS:-}" ]; then
+  MY_PUBLIC_IP=$(curl -fsS https://checkip.amazonaws.com 2>/dev/null | tr -d '[:space:]')
+  if [ -z "$MY_PUBLIC_IP" ]; then
+    echo -e "${RED}Error: could not detect your public IP for the SSH/X11 allow-list.${NC}"
+    echo "Set it manually, e.g.: export ALLOWED_SSH_CIDRS='[\"1.2.3.4/32\"]'"
+    exit 1
+  fi
+  ALLOWED_SSH_CIDRS="[\"${MY_PUBLIC_IP}/32\"]"
+fi
+
 # Create terraform.tfvars
 cat > terraform.tfvars <<EOF
 region             = "$REGION"
@@ -436,6 +448,7 @@ ami_id             = "$AMI_ID"
 user_public_key    = "$SSH_PUBLIC_KEY"
 auto_terminate     = $AUTO_TERMINATE
 menger_branch      = "$MENGER_BRANCH"
+allowed_ssh_cidrs  = $ALLOWED_SSH_CIDRS
 EOF
 
 # Initialize terraform if needed

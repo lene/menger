@@ -121,6 +121,7 @@ ami_id           = "$AMI_ID"
 user_public_key  = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDUMMY test@example.com"
 auto_terminate   = true
 availability_zone = ""
+allowed_ssh_cidrs = ["203.0.113.0/24"]
 EOF
 
 if terraform validate -var-file=terraform.tfvars.test > /dev/null 2>&1; then
@@ -220,6 +221,7 @@ ami_id           = "$AMI_ID"
 user_public_key  = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDUMMY test@example.com"
 auto_terminate   = true
 availability_zone = ""
+allowed_ssh_cidrs = ["203.0.113.0/24"]
 EOF
 
   PLAN_OUTPUT=$(terraform plan -var-file=terraform.tfvars.test -out=/dev/null 2>&1)

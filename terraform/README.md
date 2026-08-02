@@ -60,6 +60,7 @@ ami_id           = "ami-xxxxxxxxxxxx"
 user_public_key  = "ssh-ed25519 AAAA... your-key"
 auto_terminate   = true
 menger_branch    = "main"
+allowed_ssh_cidrs = ["203.0.113.4/32"]  # your public IP(s); never 0.0.0.0/0 (SonarCloud S6321)
 EOF
 
 # Plan and apply
