@@ -1,21 +1,13 @@
 # Documentation Archive
 
-Completed planning documents preserved for historical reference.
+Completed menger planning documents preserved for historical reference.
+
+Sprint plans are **not** here — they moved to the workspace repo (`../../../docs/archive/sprints/`), because sprints plan work across all three repos and `/sprint-close` archives them alongside the active ones.
 
 ## Structure
 
 ```
 archive/
-├── sprints/              # Completed sprint plans
-│   ├── SPRINT_5.md       # Triangle Mesh + Cube
-│   ├── SPRINT_6.md       # Full Geometry (IAS)
-│   ├── SPRINT_7.md       # Materials & Textures
-│   ├── SPRINT_8.md       # 4D Projection + UX Improvements
-│   ├── SPRINT_9.md       # TesseractSponge (4D Sponges)
-│   ├── SPRINT10.md       # Scala DSL for Scene Description
-│   ├── SPRINT11.md       # libGDX Wrapper, Thin-Film Physics, 4D Enhancements
-│   ├── SPRINT12.md       # t-Parameter Animation System
-│   └── SPRINT13.md       # Visual Quality & Material Enhancements
 ├── refactoring/          # Completed refactoring docs
 │   ├── OptiXEngineRefactor.md
 │   ├── OPTIX_WRAPPER_REFACTORING.md
@@ -35,7 +27,7 @@ archive/
 ## Active Planning Documents
 
 - [ROADMAP.md](../../ROADMAP.md) - Strategic feature planning (Sprints 8-13)
-- [docs/sprints/](../sprints/) - Active sprint planning documents
+- [sprint planning](../../../docs/sprints/) - active sprints, in the workspace repo
   - [SPRINT14.md](sprints/SPRINT14.md) through [SPRINT19.md](../sprints/SPRINT19.md) - Future sprint plans
 - [docs/plans/](../plans/) - Feature implementation plans
 - [docs/investigations/](../investigations/) - Active investigations (unresolved; completed ones move to `docs/archive/investigations/`)

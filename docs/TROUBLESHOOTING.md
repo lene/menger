@@ -531,7 +531,7 @@ compare on/off timing on your GPU.
 
 #### Documentation Resources
 
-- **Architecture**: [docs/arc42/README.md](arc42/README.md) - Full arc42 architecture documentation
+- **Architecture**: [arc42 (workspace repo)](../../docs/arc42/README.md) - Full arc42 architecture documentation
 - **Installation**: [docs/INSTALLATION_FROM_SCRATCH.md](INSTALLATION_FROM_SCRATCH.md) - Complete installation guide
 - **Troubleshooting**: [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Detailed troubleshooting
 - **Caustics**: [docs/caustics/CAUSTICS.md](caustics/CAUSTICS.md) - Caustics implementation details

@@ -8,19 +8,30 @@ The user runs **fish shell** on Ubuntu. Most build commands are shell-agnostic; 
 
 ---
 
+<!-- BEGIN shared rules (synced from menger-toplevel — edit there) -->
 ## Critical rules
 
 These are non-negotiable. Violating any of them causes real harm.
 
-1. **Never commit directly to `main`.** Check `git branch --show-current` before any change. If on `main`, switch to (or create) a feature branch first. The active feature branch may live in a worktree under `.worktrees/`.
+1. **Never commit directly to `main`.** Work on a feature branch and open a PR/MR to merge in. If currently on `main`, switch to (or create) a feature branch first.
 2. **Never push without explicit user confirmation.** Commit locally, show the diff, wait for "push."
-3. **Always monitor the CI pipeline after pushing.** If any failure occur, fix the failures.
-3. **Never `git add -A`.** Add files explicitly.
-4. **Never commit failing tests.** The pre-push hook enforces this; do not bypass it.
-5. **Never rewrite a test to make it pass without investigation.** Failing tests usually catch real bugs. See `docs/TESTING.md`.
-6. **Never delete data without explicit user confirmation.** This includes generated artifacts, caches, and reference images.
-7. **Never infer values the user should provide** (version numbers, branch names, paths). Ask.
-8. **When a skill or instruction says "confirm with user," it is a hard stop.** A prior message in the conversation does not satisfy a fresh checkpoint — ask again.
+3. **Always monitor the CI pipeline after pushing.** If any failures occur, fix them.
+4. **Never `git add -A`.** Add files explicitly.
+5. **Never commit failing tests.** Hooks enforce this; do not bypass them.
+6. **Never rewrite a test to make it pass without investigation.** Failing tests usually catch real bugs.
+7. **Never delete data without explicit user confirmation.** This includes generated artifacts, caches, and reference images.
+8. **Never infer values the user should provide** (version numbers, branch names, paths). Ask.
+9. **When a skill or instruction says "confirm with user," it is a hard stop.** A prior message in the conversation does not satisfy a fresh checkpoint — ask again.
+
+## Shared conventions
+
+- **Alpha channel:** `0.0` = fully transparent (no opacity, no absorption), `1.0` = fully opaque. This holds everywhere alpha appears — OptiX shaders, Beer-Lambert absorption, `Color`, tests. Getting it inverted is a recurring, cross-repo bug.
+- **The pre-push hook is the Definition-of-Done gate.** A task is done when its repo's pre-push hook passes on the change — not when a hand-picked subset of checks does. Don't assemble a substitute for it.
+<!-- END shared rules -->
+
+Repo-specific notes on the above: check `git branch --show-current` before any change — the
+active feature branch may live in a worktree under `.worktrees/`. Rule 5's gate here is
+`./.git_hooks/pre-push`; rule 6's investigation procedure is `docs/TESTING.md`.
 
 ---
 
@@ -28,7 +39,7 @@ These are non-negotiable. Violating any of them causes real harm.
 
 **Every task requires both steps — neither alone is sufficient:**
 
-**Step 1: Mark the task done in the sprint doc.** Find the current sprint file via `docs/sprints/SPRINT.md`, open the linked sprint file, check the task's box and update its status. Do this before declaring the task complete.
+**Step 1: Mark the task done in the sprint doc.** Sprints live in the workspace repo, since they plan work across all three repos — find the current sprint file via `../docs/sprints/SPRINT.md`, open the linked sprint file, check the task's box and update its status. Do this before declaring the task complete.
 
 **Step 2: Run the pre-push hook:**
 
@@ -55,7 +66,7 @@ Applies everywhere: OptiX shaders, Beer-Lambert absorption, Scala `Color`, all t
 
 ### Architecture documentation: arc42
 
-Single source of truth: `docs/arc42/README.md`. Consult sections 9 (decisions), 10 (quality), 11 (risks) before architectural changes. Update arc42 if a change affects architecture, quality requirements, or technical debt. Outdated docs are worse than no docs.
+Single source of truth: `../docs/arc42/README.md` (in the workspace repo — arc42 documents all three repos as one system). Consult sections 9 (decisions), 10 (quality), 11 (risks) before architectural changes. Update arc42 if a change affects architecture, quality requirements, or technical debt. Outdated docs are worse than no docs.
 
 ### Code style
 
@@ -146,7 +157,7 @@ Detailed troubleshooting (CUDA error 718, OptiX SDK/driver matching, PTX-not-fou
 
 ## Release workflow
 
-Use the `/release-checklist` skill. Version must be updated in four files: `menger-app/build.sbt`, `.gitlab-ci.yml` (DEPLOYABLE_VERSION), `menger-app/src/main/scala/menger/MengerCLIOptions.scala`, `docs/guide/user-guide.md`. The pre-push hook validates consistency across all four.
+Use the `/release-checklist` skill (it lives in the workspace repo — it covers all three repos' releases, in the order menger-common → optix-jni → menger). Version must be updated in four files: `menger-app/build.sbt`, `.gitlab-ci.yml` (DEPLOYABLE_VERSION), `menger-app/src/main/scala/menger/MengerCLIOptions.scala`, `docs/guide/user-guide.md`. The pre-push hook validates consistency across all four.
 
 ---
 
@@ -154,12 +165,12 @@ Use the `/release-checklist` skill. Version must be updated in four files: `meng
 
 | Where | What |
 |---|---|
-| `docs/arc42/README.md` | Architecture (authoritative) |
+| `../docs/arc42/README.md` | Architecture (authoritative; workspace repo) |
 | `docs/ENFORCEMENT.md` | Policy → mechanism map; open enforcement gaps |
 | `docs/TESTING.md` | Test failure protocol, investigation procedure |
 | `docs/RENDERING.md` | Rendering-change discipline, integration suite |
 | `docs/TROUBLESHOOTING.md` | Common environment/build issues |
-| `docs/sprints/SPRINT.md` | Current sprint pointer |
+| `../docs/sprints/SPRINT.md` | Current sprint pointer (workspace repo) |
 | `CHANGELOG.md` | Version history (keepachangelog format) |
 | `CODE_IMPROVEMENTS.md` | Open code-quality findings (resolved items deleted, not archived) |
 | `docs/BACKLOG.md` | Unscheduled feature ideas not yet sprint-assigned |

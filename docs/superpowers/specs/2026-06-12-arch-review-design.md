@@ -112,7 +112,7 @@ check rather than a separate axis).
   - add a material / shader path,
   - swap or add a render backend.
 - **Backend-portability seam**: is NVIDIA OptiX hard-wired throughout, or abstracted behind an
-  interface (cf. `docs/architecture/optix-jni-decoupling.md`)? Evolvability, not portability-as-goal.
+  interface (cf. `../../../../docs/architecture/optix-jni-decoupling.md` (workspace repo))? Evolvability, not portability-as-goal.
 - **LibGDX lock-in** of windowing/UI.
 - **Open/closed at architecture level**: do new features plug into seams, or force edits to stable
   core?

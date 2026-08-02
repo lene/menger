@@ -213,6 +213,22 @@ missing PNG files) were pre-commit hook catches. Each would have been caught in 
 **Fix**: Memory entry added: "NEVER --no-verify for routine commits." failure-handling skill
 updated with Sprint 34 anti-pattern.
 
+# GitLab CI lint token is undiscoverable — 2026-07-20
+
+Linting `.gitlab-ci.yml` in the pre-push gate needs `GITLAB_ACCESS_TOKEN`, and the
+`.set-gitlab-token.sh` its error message points at is gitignored, so it does not exist
+in a fresh checkout. The token can be read from an authenticated `glab`
+(`glab config get token --host gitlab.com`), but nothing says so — the lint step just
+stops with an instruction to edit a file that is not there.
+
+(The workspace does have a `.set-gitlab-token.sh`, but at the *toplevel*
+`menger-toplevel/`, not in this repo where the hook looks for it.)
+
+Worth having `bootstrap.sh` create it per repo, or having the hook fall back to `glab`.
+
+*The pre-push-gate-no-ops-without-a-TTY finding recorded here earlier is fixed — see
+`.git_hooks/pre-push` and `standards/hooks/lib.sh`.*
+
 # Code Quality Review — Sprint 35 native memory gates (2026-07-29)
 
 Changed files: `.git_hooks/pre-push` (native gate rework), `Project4DGpuSuite.scala`.

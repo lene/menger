@@ -44,6 +44,31 @@ using the same perspective/orthographic projection logic already used for 4D→3
 
 ---
 
+### F-AI-SCENE: AI-assisted scene authoring (natural language → DSL)
+
+**Priority:** Medium
+**Effort:** Large (multiple sprints)
+**Dependencies:** Existing runtime `menger.dsl.SceneCompiler` / `SceneLoader`
+(`--scene foo.scala`), JSON render-stats export; an external LLM (API key or local model);
+optional vision adapter for autonomous image refinement.
+
+**Description:**
+An AI orchestration layer that turns a prose scene description into a valid `.scala` DSL
+file, asks clarifying questions when intent is ambiguous, validates the generated DSL through
+the existing runtime compiler in a closed compile-error feedback loop, renders it, and refines
+parameters against user feedback ("too dark", "sponge too big"). A machine-readable tool-catalog
+constrains generation to the real DSL surface, kept in parity with the renderer by a fitness
+function (same pattern as `ScriptParitySuite`). The LLM stays an *authoring* tool that calls
+menger as a subprocess/library — **no LLM dependency enters the renderer or the published
+artifacts** (`menger-common`, `optix-jni`), respecting AD-31 (OptiX as sole backend).
+
+**Full spec:** [docs/proposals/ai-assisted-scene-generation/proposal.md](proposals/ai-assisted-scene-generation/proposal.md)
+— proposal, `design.md` (the central vision-vs-text-feedback decision), `tasks.md`, and two
+capability specs (`ai-scene-generation`, `scene-refinement-loop`). Authored as an openspec change;
+preserved here verbatim when the openspec tooling was decommissioned.
+
+---
+
 ## From PBR Book / pbrt-v4 exploration (Sprint 33)
 
 Ideas noted while studying pbrt-v4 for caustics validation. Not yet evaluated.
