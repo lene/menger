@@ -33,9 +33,11 @@ jobs:
           python-version: '3.12'
       # --only-binary :all: avoids running sdist setup scripts (S8541); pinned version (S8544).
       - run: 'pip install --only-binary :all: mkdocs-material==9.7.7 --quiet'
+      # mkdocs resolves --site-dir relative to the config file's directory, so the
+      # site lands in docs/website/public - upload from there, not repo-root public.
       - run: mkdocs build --config-file docs/website/mkdocs.yml --site-dir public
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: docs/website/public
       - id: deploy
         uses: actions/deploy-pages@v4

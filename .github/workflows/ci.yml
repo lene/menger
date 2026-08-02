@@ -301,19 +301,35 @@ jobs:
     permissions:
       contents: write
     needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix]
+    outputs:
+      need_release: ${{ steps.tag.outputs.need_release }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Tag DEPLOYABLE_VERSION if it changed
+      - id: tag
+        name: Tag DEPLOYABLE_VERSION and decide whether a release is needed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if git tag | grep -qx "$DEPLOYABLE_VERSION"; then
-            echo "tag $DEPLOYABLE_VERSION exists — nothing to do"; exit 0; fi
-          git tag "$DEPLOYABLE_VERSION"
-          git push origin "$DEPLOYABLE_VERSION"
+            echo "tag $DEPLOYABLE_VERSION already exists - not re-tagging"
+          else
+            git tag "$DEPLOYABLE_VERSION"
+            git push origin "$DEPLOYABLE_VERSION"
+          fi
+          # A tag pushed by GITHUB_TOKEN does NOT trigger a second workflow, so the
+          # release job runs in this same run instead of on the tag. Publish only when
+          # the GitHub Release is still missing - idempotent and self-recovering.
+          if gh release view "$DEPLOYABLE_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "need_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "need_release=true" >> "$GITHUB_OUTPUT"
+          fi
 
-  # On the tag: install-smoke the packaged app, then publish a GitHub Release with the zip.
+  # Runs in the SAME push-to-main run (a GITHUB_TOKEN tag push cannot trigger a tag
+  # workflow). install-smoke the packaged app, then publish the GitHub Release.
   release:
     name: Install-smoke + GitHub Release
     runs-on: [self-hosted, Linux, X64, nvidia]
@@ -321,7 +337,8 @@ jobs:
     # Publishing the GitHub Release needs write; repo default token is read-only.
     permissions:
       contents: write
-    if: startsWith(github.ref, 'refs/tags/')
+    needs: [create-tag]
+    if: needs.create-tag.outputs.need_release == 'true'
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
@@ -338,7 +355,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65  # v2.6.2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          body: "Full changelog: https://github.com/lene/menger/blob/${{ github.ref_name }}/CHANGELOG.md"
+          tag_name: ${{ env.DEPLOYABLE_VERSION }}
+          name: ${{ env.DEPLOYABLE_VERSION }}
+          body: "Full changelog: https://github.com/lene/menger/blob/${{ env.DEPLOYABLE_VERSION }}/CHANGELOG.md"
           files: ${{ env.DEPLOYABLE_BASE_NAME }}-${{ env.DEPLOYABLE_VERSION }}.zip
