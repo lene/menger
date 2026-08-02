@@ -1,8 +1,8 @@
 site_name: Menger Ray Tracer
 site_description: GPU-accelerated ray tracer for 3D and 4D objects using NVIDIA OptiX
 site_url: https://lene.github.io/menger/
-repo_url: https://gitlab.com/lilacashes/menger
-repo_name: GitLab
+repo_url: https://github.com/lene/menger
+repo_name: GitHub
 
 theme:
   name: material
