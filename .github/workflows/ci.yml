@@ -24,10 +24,7 @@ name: CI
 on:
   pull_request:
   push:
-    # feat/sprint-35 is here TEMPORARILY to validate this workflow on the self-hosted
-    # runner before it reaches main (pull_request triggers only activate once the workflow
-    # is on the default branch). Remove feat/sprint-35 before/at merge.
-    branches: [main, feat/sprint-35]
+    branches: [main]
     tags: ['[0-9]+.[0-9]+.[0-9]+']
   schedule:
     - cron: '0 4 * * 1'   # weekly PerfCheck baseline (was GitLab scheduled pipeline)
@@ -251,19 +248,8 @@ jobs:
           echo "user-time=$(cat runtime.log)  budget=${TEST_RUN_MAX_RUNNING_TIME}s"
           [ "$(echo "$(cat runtime.log) > $TEST_RUN_MAX_RUNNING_TIME" | bc -l)" -eq 0 ]
 
-  sonar:
-    name: SonarCloud
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: SonarCloud scan
-        if: ${{ env.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@v4
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  # SonarCloud analysis is handled by the SonarCloud GitHub App (automatic on PRs/pushes),
+  # so there is no sonar job here — it would double-run. Config lives in sonar-project.properties.
 
   # ── build + release ─────────────────────────────────────────────────────────
   build-deployable:
