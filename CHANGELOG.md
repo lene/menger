@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.8.6] - unreleased
+## [0.8.6] - 2026-08-02
 
 Sprint 35 (Native Seam Remediation), Phases 1-2:
 
