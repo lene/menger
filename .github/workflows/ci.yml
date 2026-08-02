@@ -44,13 +44,8 @@ env:
 
 jobs:
   # ── preconditions (cheap, ubuntu) ──────────────────────────────────────────
-  standards-parity:
-    name: Standards Parity
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./scripts/check-standards-drift.sh --local
-
+  # (standards parity is enforced at the workspace-repo level; the per-repo
+  #  check-standards-drift.sh was removed — see menger commit e901c90.)
   version-consistent:
     name: Version + Scala Consistent
     runs-on: ubuntu-latest
