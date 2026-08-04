@@ -12,7 +12,10 @@ RANGES=()
 # Ensure origin/main is fresh so the merge-base calculation below uses
 # the true branch point rather than a stale local ref.  Degrade
 # gracefully (no error exit) when the network is unavailable.
-git fetch origin --quiet 2>/dev/null || true
+# Fetch the source-of-truth remote (post-migration `origin` may be the stale GitLab
+# mirror; see main_ref in standards/hooks/lib.sh).
+if git remote | grep -qx github; then git fetch github --quiet 2>/dev/null || true
+else git fetch origin --quiet 2>/dev/null || true; fi
 # The `[ -t 0 ]` branch this replaces treated "not a terminal" as "git supplied
 # the pre-push protocol". An agent or CI script has neither a TTY nor stdin, so
 # it took the protocol path, read nothing, and left CHANGED_FILES empty — every
@@ -33,7 +36,8 @@ else
   # Branch predating standards enrollment: degrade to the branch-vs-main
   # comparison rather than silently skipping.
   LOCAL_SHA=$(git rev-parse HEAD)
-  BASE=$(git merge-base origin/main "$LOCAL_SHA" 2>/dev/null || git merge-base main "$LOCAL_SHA" 2>/dev/null)
+  _mr=origin/main; git rev-parse --verify --quiet refs/remotes/github/main >/dev/null 2>&1 && _mr=github/main
+  BASE=$(git merge-base "$_mr" "$LOCAL_SHA" 2>/dev/null || git merge-base main "$LOCAL_SHA" 2>/dev/null)
   if [ -n "$BASE" ]; then
     CHANGED_FILES=$(git diff --name-only "$BASE" "$LOCAL_SHA")
     RANGES+=("$BASE..$LOCAL_SHA")
