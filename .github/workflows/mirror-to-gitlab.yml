@@ -23,6 +23,11 @@ jobs:
     # Skip branch/tag deletions: the backup keeps stale refs harmlessly rather than
     # propagating deletions from the source.
     if: ${{ github.event.deleted != true }}
+    # Interim (Sprint 35 Task 4.0c): the GitLab token's role cannot push to protected
+    # `main`, so the mirror currently fails on every main push. A failing PASSIVE BACKUP
+    # must not make the source-of-truth repo look red — tolerate until the GitLab
+    # protected-branch permission is fixed, then revert this flag.
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
