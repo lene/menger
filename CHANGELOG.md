@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Sprint 35 Phase 4 (Task 4.1, finding F6): the geometry-type vocabulary
+  (`menger.common.ObjectType`) moved from menger-common into menger-app (same package,
+  unchanged API) and menger-common is pinned to **0.2.0**, which no longer carries it.
+  The type vocabulary versions with the app's feature cadence, not the shared kernel's.
+
 ## [0.8.7] - 2026-08-03
 
 ### Changed
