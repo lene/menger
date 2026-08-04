@@ -8,7 +8,7 @@ import menger.engines.scene._
 /** Single source of truth for object-type → builder/classification mapping.
   *
   * Adding a new geometry type touches only:
-  * 1. `ObjectType.VALID_TYPES` (in menger-common)
+  * 1. `ObjectType.VALID_TYPES` (in menger-app since Sprint 35 Ph4 / F6)
   * 2. One new `SceneBuilder` subclass
   * 3. This registry — one entry in the `entries` map
   *
