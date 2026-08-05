@@ -19,7 +19,6 @@ import menger.RotationProjectionParameters
 import menger.Vector3Extensions.toVector3
 import menger.common.Const
 import menger.common.ImageSize
-import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
@@ -94,10 +93,7 @@ class InteractiveEngine(
 
   // Track if we have 4D objects (projected triangle mesh OR menger4d OR sierpinski4d OR hexadecachoron4d) that need rebuild on rotation
   private lazy val has4DObjects: Boolean =
-    currentObjectSpecs.get().exists(_.exists(spec =>
-      ObjectType.isProjected4D(spec.objectType) || ObjectType.isMenger4D(spec.objectType) ||
-      ObjectType.isSierpinski4D(spec.objectType) || ObjectType.isHexadecachoron4D(spec.objectType)
-    ))
+    currentObjectSpecs.get().exists(_.exists(spec => TypeRegistry.is4DFastPathType(spec.objectType)))
 
   /** Per-spec instanceId mapping for the menger4d rotation fast path. */
   private case class Menger4DState(
@@ -153,8 +149,7 @@ class InteractiveEngine(
     )
     if has4DObjects then
       val updatedSpecs = currentObjectSpecs.get().map(_.map { spec =>
-        if ObjectType.isProjected4D(spec.objectType) || ObjectType.isMenger4D(spec.objectType) ||
-           ObjectType.isSierpinski4D(spec.objectType) || ObjectType.isHexadecachoron4D(spec.objectType) then
+        if TypeRegistry.is4DFastPathType(spec.objectType) then
           val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
           val newEyeW =
             // defaultEyeW acts as a sentinel: a rotation-only event leaves eyeW unchanged.

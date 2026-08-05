@@ -108,3 +108,23 @@ class GeometryRegistrySuite extends AnyFlatSpec with Matchers:
         val builder = GeometryRegistry.builderFor(List(spec(t)))
         builder shouldBe defined
         builder.get should not be null
+
+  // Fitness function (F8, Sprint 35 Ph4): every VALID_TYPES entry resolves via
+  // TypeRegistry.forType directly (not just indirectly through builderFor above).
+  // lsystem is the one exception: it is a builtInTypeNames entry but is not itself
+  // a VALID_TYPES member requiring forType resolution via the triangle-mesh path —
+  // included here since it IS in VALID_TYPES and IS a builtin entry.
+  it should "resolve every ObjectType.VALID_TYPES entry via TypeRegistry.forType" in:
+    ObjectType.VALID_TYPES.foreach: t =>
+      withClue(s"TypeRegistry.forType has no entry for '$t': "):
+        TypeRegistry.forType(t) shouldBe defined
+
+  // Regression guard for the InteractiveEngine 4D fast-path unification (F8): the new
+  // single predicate must agree with the old hand-rolled 4-way OR for every valid type.
+  it should "agree with the legacy 4-way OR for is4DFastPathType, for every valid type" in:
+    def legacy4DCheck(t: String): Boolean =
+      ObjectType.isProjected4D(t) || ObjectType.isMenger4D(t) ||
+      ObjectType.isSierpinski4D(t) || ObjectType.isHexadecachoron4D(t)
+    ObjectType.VALID_TYPES.foreach: t =>
+      withClue(s"is4DFastPathType('$t') disagrees with the legacy check: "):
+        TypeRegistry.is4DFastPathType(t) shouldBe legacy4DCheck(t)
