@@ -8,8 +8,9 @@ import menger.engines.scene.InstanceId
 /** Strategy object for 4D-rotation fast paths in interactive and animation engines.
   *
   * Each fast path updates projection parameters on already-uploaded instances without
-  * a full geometry rebuild. The 5 variants differ only in the renderer projection-
-  * update method and the cache state type — this object consolidates the copy-paste.
+  * a full geometry rebuild. Two updaters remain: GPU-projected triangle meshes, and
+  * the instanced IFS 4D types (menger4d / sierpinski4d / hexadecachoron4d), which now
+  * share one projection-update call (F9).
   */
 object RotationFastPath:
 
@@ -52,25 +53,11 @@ object RotationFastPath:
       rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
     )
 
-  /** Projection updater for Menger4D IFS instances. */
-  val menger4DUpdater: ProjectionUpdater = (renderer, id, proj) =>
-    MengerRenderer.of(renderer).updateMenger4DProjection(
-      InstanceId.raw(id),
-      eyeW = proj.eyeW, screenW = proj.screenW,
-      rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-    )
-
-  /** Projection updater for Sierpinski4D IFS instances. */
-  val sierpinski4DUpdater: ProjectionUpdater = (renderer, id, proj) =>
-    MengerRenderer.of(renderer).updateSierpinski4DProjection(
-      InstanceId.raw(id),
-      eyeW = proj.eyeW, screenW = proj.screenW,
-      rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-    )
-
-  /** Projection updater for Hexadecachoron4D IFS instances. */
-  val hexadecachoron4DUpdater: ProjectionUpdater = (renderer, id, proj) =>
-    MengerRenderer.of(renderer).updateHexadecachoron4DProjection(
+  /** Projection updater for all instanced-4D IFS types (menger4d / sierpinski4d /
+    * hexadecachoron4d). The per-type distinction is add-time only, so a single
+    * MengerRenderer.update4DProjection serves all three (F9). */
+  val instanced4DUpdater: ProjectionUpdater = (renderer, id, proj) =>
+    MengerRenderer.of(renderer).update4DProjection(
       InstanceId.raw(id),
       eyeW = proj.eyeW, screenW = proj.screenW,
       rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW

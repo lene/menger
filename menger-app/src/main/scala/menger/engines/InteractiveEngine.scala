@@ -23,11 +23,9 @@ import menger.common.ProfilingConfig
 import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
 import menger.dsl.DenoiseMode
-import menger.engines.scene.Hexadecachoron4DSceneBuilder
 import menger.engines.scene.InstanceId
-import menger.engines.scene.Menger4DSceneBuilder
+import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SceneBuilder
-import menger.engines.scene.Sierpinski4DSceneBuilder
 import menger.engines.scene.TextureManager
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.EventDispatcher
@@ -95,20 +93,10 @@ class InteractiveEngine(
   private lazy val has4DObjects: Boolean =
     currentObjectSpecs.get().exists(_.exists(spec => TypeRegistry.is4DFastPathType(spec.objectType)))
 
-  /** Per-spec instanceId mapping for the menger4d rotation fast path. */
-  private case class Menger4DState(
-    specs: List[ObjectSpec],
-    instancesPerSpec: Vector[Vector[InstanceId]]
-  )
-
-  /** Per-spec instanceId mapping for the sierpinski4d rotation fast path. */
-  private case class Sierpinski4DState(
-    specs: List[ObjectSpec],
-    instancesPerSpec: Vector[Vector[InstanceId]]
-  )
-
-  /** Per-spec instanceId mapping for the hexadecachoron4d rotation fast path. */
-  private case class Hexadecachoron4DState(
+  /** Per-spec instanceId mapping for the instanced-4D (IFS) rotation fast path.
+    * One state for menger4d / sierpinski4d / hexadecachoron4d — the per-type
+    * distinction is add-time only (F9). */
+  private case class Instanced4DState(
     specs: List[ObjectSpec],
     instancesPerSpec: Vector[Vector[InstanceId]]
   )
@@ -118,9 +106,7 @@ class InteractiveEngine(
   private enum Scene4DCache:
     case Empty
     case Gpu(state: WithAnimation.Anim4DState)
-    case Menger4D(state: Menger4DState)
-    case Sierpinski4D(state: Sierpinski4DState)
-    case Hexadecachoron4D(state: Hexadecachoron4DState)
+    case Instanced4D(state: Instanced4DState)
   // AtomicReference for cross-thread visibility only. All reads and writes happen on the
   // LibGDX GL thread (render() and key handlers are both dispatched there), so the
   // non-atomic get+set compound operations in tryXxx4DFastPath are safe — do not
@@ -178,9 +164,7 @@ class InteractiveEngine(
 
       val fastPathTaken = updatedSpecs.exists(specs =>
         tryRotation4DFastPath(specs, rendererWrapper.renderer) ||
-        tryMenger4DFastPath(specs, rendererWrapper.renderer) ||
-        trySierpinski4DFastPath(specs, rendererWrapper.renderer) ||
-        tryHexadecachoron4DFastPath(specs, rendererWrapper.renderer)
+        tryInstanced4DFastPath(specs, rendererWrapper.renderer)
       )
       if !fastPathTaken then
         rebuildScene()
@@ -205,48 +189,21 @@ class InteractiveEngine(
         took
       case _ => false
 
-  /** Menger4D fast path: update projection params on each recorded instance directly.
-    * Returns true iff the menger4d slot map is populated and the change is purely
+  /** Instanced-4D IFS fast path: update projection params on each recorded instance
+    * directly. One path for menger4d / sierpinski4d / hexadecachoron4d (F9).
+    * Returns true iff the instance map is populated and the change is purely
     * a Projection4DSpec delta — skipping the full geometry rebuild. */
-  private def tryMenger4DFastPath(
+  private def tryInstanced4DFastPath(
     newSpecs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Boolean =
     scene4DCache.get match
-      case Scene4DCache.Menger4D(prev) =>
+      case Scene4DCache.Instanced4D(prev) =>
         val took = RotationFastPath.tryFastPath(
           newSpecs, renderer, prev.specs, prev.instancesPerSpec,
-          RotationFastPath.menger4DUpdater
+          RotationFastPath.instanced4DUpdater
         )
-        if took then scene4DCache.set(Scene4DCache.Menger4D(prev.copy(specs = newSpecs)))
-        took
-      case _ => false
-
-  private def trySierpinski4DFastPath(
-    newSpecs: List[ObjectSpec],
-    renderer: io.github.lene.optix.OptiXRenderer
-  ): Boolean =
-    scene4DCache.get match
-      case Scene4DCache.Sierpinski4D(prev) =>
-        val took = RotationFastPath.tryFastPath(
-          newSpecs, renderer, prev.specs, prev.instancesPerSpec,
-          RotationFastPath.sierpinski4DUpdater
-        )
-        if took then scene4DCache.set(Scene4DCache.Sierpinski4D(prev.copy(specs = newSpecs)))
-        took
-      case _ => false
-
-  private def tryHexadecachoron4DFastPath(
-    newSpecs: List[ObjectSpec],
-    renderer: io.github.lene.optix.OptiXRenderer
-  ): Boolean =
-    scene4DCache.get match
-      case Scene4DCache.Hexadecachoron4D(prev) =>
-        val took = RotationFastPath.tryFastPath(
-          newSpecs, renderer, prev.specs, prev.instancesPerSpec,
-          RotationFastPath.hexadecachoron4DUpdater
-        )
-        if took then scene4DCache.set(Scene4DCache.Hexadecachoron4D(prev.copy(specs = newSpecs)))
+        if took then scene4DCache.set(Scene4DCache.Instanced4D(prev.copy(specs = newSpecs)))
         took
       case _ => false
 
@@ -425,18 +382,10 @@ class InteractiveEngine(
         builder match
           case _: TriangleMeshSceneBuilder =>
             buildTriangleMesh4DTracked(specs, renderer)
-          case _: Menger4DSceneBuilder =>
+          case ib: Instanced4DSceneBuilder =>
             build4DTracked(specs, renderer, (recorder: (Int, InstanceId) => Unit) =>
-              new Menger4DSceneBuilder(textureDir, menger4DRecorder = recorder),
-              (specs, ids) => Scene4DCache.Menger4D(Menger4DState(specs, ids)))
-          case _: Sierpinski4DSceneBuilder =>
-            build4DTracked(specs, renderer, (recorder: (Int, InstanceId) => Unit) =>
-              new Sierpinski4DSceneBuilder(textureDir, sierpinski4DRecorder = recorder),
-              (specs, ids) => Scene4DCache.Sierpinski4D(Sierpinski4DState(specs, ids)))
-          case _: Hexadecachoron4DSceneBuilder =>
-            build4DTracked(specs, renderer, (recorder: (Int, InstanceId) => Unit) =>
-              new Hexadecachoron4DSceneBuilder(textureDir, hexadecachoron4DRecorder = recorder),
-              (specs, ids) => Scene4DCache.Hexadecachoron4D(Hexadecachoron4DState(specs, ids)))
+              new Instanced4DSceneBuilder(ib.ifsType, textureDir, recorder),
+              (specs, ids) => Scene4DCache.Instanced4D(Instanced4DState(specs, ids)))
           case _ =>
             scene4DCache.set(Scene4DCache.Empty)
             builder.validateAndBuild(
