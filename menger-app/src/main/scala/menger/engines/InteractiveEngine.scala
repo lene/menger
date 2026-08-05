@@ -232,8 +232,10 @@ class InteractiveEngine(
         val triangles = cfg.estimateTriangles(intLevel)
         if intLevel >= cfg.warnLevel then
           logger.warn(s"${spec.objectType} level $intLevel may be slow (~${triangles / 1000}K triangles)")
-        if intLevel > cfg.maxLevel then
-          logger.error(s"${spec.objectType} level $intLevel exceeds recommended maximum (${cfg.maxLevel})")
+        require(intLevel <= cfg.maxLevel,
+          s"${spec.objectType} level $intLevel exceeds hard maximum ${cfg.maxLevel} " +
+          s"(~${triangles / 1000}K triangles). Use the surface variant or lower the level."
+        )
       }
     }
 
