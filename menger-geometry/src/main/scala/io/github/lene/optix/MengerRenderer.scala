@@ -66,12 +66,6 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
     add4D(menger4dType, position, scale, level, distanceThreshold,
       eyeW, screenW, rotXW, rotYW, rotZW, material)
 
-  /** Updates projection parameters for a GPU-projected 4D Menger instance. */
-  def updateMenger4DProjection(
-    instanceId: Int, eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float
-  ): Unit =
-    update4D(instanceId, eyeW, screenW, rotXW, rotYW, rotZW)
-
   /** Adds a GPU-projected 4D Sierpinski instance. Rotation angles are degrees. */
   def addSierpinski4DInstance(
     level: Int, position: Vector[3], scale: Float,
@@ -81,12 +75,6 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
     val hitBias = if material.color.a < OpaqueAlpha then SierpinskiHitBias else 0.0f
     add4D(sierpinski4dType, position, scale, level, floatBits(hitBias),
       eyeW, screenW, rotXW, rotYW, rotZW, material)
-
-  /** Updates projection parameters for a GPU-projected 4D Sierpinski instance. */
-  def updateSierpinski4DProjection(
-    instanceId: Int, eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float
-  ): Unit =
-    update4D(instanceId, eyeW, screenW, rotXW, rotYW, rotZW)
 
   /** Adds a GPU-projected 4D hexadecachoron instance. Rotation angles are degrees. */
   def addHexadecachoron4DInstance(
@@ -98,8 +86,11 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
     add4D(hexadecachoron4dType, position, scale, level, floatBits(hitBias),
       eyeW, screenW, rotXW, rotYW, rotZW, material)
 
-  /** Updates projection parameters for a GPU-projected 4D hexadecachoron instance. */
-  def updateHexadecachoron4DProjection(
+  /** Updates projection parameters for any GPU-projected 4D IFS instance (menger4d /
+    * sierpinski4d / hexadecachoron4d). The per-type distinction lives only in the
+    * immutable add-time fields (level, threshold/hit-bias), which the update rebuilds
+    * from the registered instance state — so one update path serves all three (F9). */
+  def update4DProjection(
     instanceId: Int, eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float
   ): Unit =
     update4D(instanceId, eyeW, screenW, rotXW, rotYW, rotZW)

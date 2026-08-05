@@ -38,11 +38,8 @@ class FaultInjectionSuite extends AnyFlatSpec with Matchers:
       ConeSceneBuilder(),
       PlaneSceneBuilder(),
       CubeSpongeSceneBuilder(),
-      LSystemSceneBuilder(),
-      Menger4DSceneBuilder(),
-      Sierpinski4DSceneBuilder(),
-      Hexadecachoron4DSceneBuilder()
-    )
+      LSystemSceneBuilder()
+    ) ++ IFS4DType.all.map(t => Instanced4DSceneBuilder(t))
     builders.foreach { builder =>
       val result = builder.validate(List.empty, maxInstances = 64)
       result shouldBe a[Left[String, Unit]]
@@ -98,38 +95,18 @@ class FaultInjectionSuite extends AnyFlatSpec with Matchers:
     val result = builder.validate(List(ObjectSpec("sphere")), maxInstances = 64)
     result shouldBe a[Left[String, Unit]]
 
-  "Menger4DSceneBuilder" should "reject specs without level" in:
-    val builder = Menger4DSceneBuilder()
-    val noLevel = ObjectSpec(objectType = "menger4d")
-    val result = builder.validate(List(noLevel), maxInstances = 64)
-    result shouldBe a[Left[String, Unit]]
+  IFS4DType.all.foreach { ifsType =>
+    s"Instanced4DSceneBuilder(${ifsType.name})" should "reject specs without level" in:
+      val builder = Instanced4DSceneBuilder(ifsType)
+      val noLevel = ObjectSpec(objectType = ifsType.name)
+      val result = builder.validate(List(noLevel), maxInstances = 64)
+      result shouldBe a[Left[String, Unit]]
 
-  it should "reject non-menger4d types" in:
-    val builder = Menger4DSceneBuilder()
-    val result = builder.validate(List(ObjectSpec("sphere")), maxInstances = 64)
-    result shouldBe a[Left[String, Unit]]
-
-  "Sierpinski4DSceneBuilder" should "reject specs without level" in:
-    val builder = Sierpinski4DSceneBuilder()
-    val noLevel = ObjectSpec(objectType = "sierpinski4d")
-    val result = builder.validate(List(noLevel), maxInstances = 64)
-    result shouldBe a[Left[String, Unit]]
-
-  it should "reject non-sierpinski4d types" in:
-    val builder = Sierpinski4DSceneBuilder()
-    val result = builder.validate(List(ObjectSpec("sphere")), maxInstances = 64)
-    result shouldBe a[Left[String, Unit]]
-
-  "Hexadecachoron4DSceneBuilder" should "reject specs without level" in:
-    val builder = Hexadecachoron4DSceneBuilder()
-    val noLevel = ObjectSpec(objectType = "hexadecachoron4d")
-    val result = builder.validate(List(noLevel), maxInstances = 64)
-    result shouldBe a[Left[String, Unit]]
-
-  it should "reject non-hexadecachoron4d types" in:
-    val builder = Hexadecachoron4DSceneBuilder()
-    val result = builder.validate(List(ObjectSpec("sphere")), maxInstances = 64)
-    result shouldBe a[Left[String, Unit]]
+    it should s"reject non-${ifsType.name} types" in:
+      val builder = Instanced4DSceneBuilder(ifsType)
+      val result = builder.validate(List(ObjectSpec("sphere")), maxInstances = 64)
+      result shouldBe a[Left[String, Unit]]
+  }
 
   "LSystemSceneBuilder" should "reject non-lsystem types" in:
     val builder = LSystemSceneBuilder()

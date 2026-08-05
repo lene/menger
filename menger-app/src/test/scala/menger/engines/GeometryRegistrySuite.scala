@@ -4,9 +4,8 @@ import menger.ObjectSpec
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.engines.scene.CubeSpongeSceneBuilder
-import menger.engines.scene.Hexadecachoron4DSceneBuilder
-import menger.engines.scene.Menger4DSceneBuilder
-import menger.engines.scene.Sierpinski4DSceneBuilder
+import menger.engines.scene.IFS4DType
+import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SphereSceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
@@ -62,20 +61,26 @@ class GeometryRegistrySuite extends AnyFlatSpec with Matchers:
     result shouldBe defined
     result.get shouldBe a [TesseractEdgeSceneBuilder]
 
-  it should "return Menger4DSceneBuilder for menger4d specs" in:
+  it should "return Instanced4DSceneBuilder for menger4d specs" in:
     val result = GeometryRegistry.builderFor(List(spec("menger4d")))
     result shouldBe defined
-    result.get shouldBe a [Menger4DSceneBuilder]
+    result.get match
+      case b: Instanced4DSceneBuilder => b.ifsType shouldBe IFS4DType.Menger4D
+      case other => fail(s"expected Instanced4DSceneBuilder, got ${other.getClass.getSimpleName}")
 
-  it should "return Sierpinski4DSceneBuilder for sierpinski4d specs" in:
+  it should "return Instanced4DSceneBuilder for sierpinski4d specs" in:
     val result = GeometryRegistry.builderFor(List(spec("sierpinski4d")))
     result shouldBe defined
-    result.get shouldBe a [Sierpinski4DSceneBuilder]
+    result.get match
+      case b: Instanced4DSceneBuilder => b.ifsType shouldBe IFS4DType.Sierpinski4D
+      case other => fail(s"expected Instanced4DSceneBuilder, got ${other.getClass.getSimpleName}")
 
-  it should "return Hexadecachoron4DSceneBuilder for hexadecachoron4d specs" in:
+  it should "return Instanced4DSceneBuilder for hexadecachoron4d specs" in:
     val result = GeometryRegistry.builderFor(List(spec("hexadecachoron4d")))
     result shouldBe defined
-    result.get shouldBe a [Hexadecachoron4DSceneBuilder]
+    result.get match
+      case b: Instanced4DSceneBuilder => b.ifsType shouldBe IFS4DType.Hexadecachoron4D
+      case other => fail(s"expected Instanced4DSceneBuilder, got ${other.getClass.getSimpleName}")
 
   // Fitness function: every instanced-4D type must resolve to a dedicated builder.
   // Guards against the dispatch drift where sierpinski4d/hexadecachoron4d were wired
