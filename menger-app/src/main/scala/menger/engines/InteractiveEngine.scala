@@ -452,16 +452,19 @@ class InteractiveEngine(
         logger.debug(
           s"Rebuilding scene with updated rotation; camera: eye=$savedEye, lookAt=$savedLookAt"
         )
-        Try {
-          renderer.clearAllInstances()
-          buildScene4DTrackedOrFallback(specs, renderer).get
-          if crossVisible.get then addCrossGeometry(renderer)
-          cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
-          logger.debug("Scene rebuild complete")
-        }.recover { case e =>
-          scene4DCache.set(Scene4DCache.Empty)
-          logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
-        }
+        Try { renderer.clearAllInstances() }
+          .flatMap(_ => buildScene4DTrackedOrFallback(specs, renderer))
+          .fold(
+            e => {
+              scene4DCache.set(Scene4DCache.Empty)
+              logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
+            },
+            _ => {
+              if crossVisible.get then addCrossGeometry(renderer)
+              cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
+              logger.debug("Scene rebuild complete")
+            }
+          )
       case None =>
         logger.warn("Cannot rebuild single-object scene interactively")
 

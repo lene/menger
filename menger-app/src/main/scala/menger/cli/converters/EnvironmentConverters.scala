@@ -187,5 +187,7 @@ given lightSpecConverter: ValueConverter[List[LightSpec]] with
   private def parseColor(colorStr: String): Color =
     if colorStr.contains(',') then
       val parts = colorStr.split(",").map(_.trim.toInt)
+      parts.foreach(n => require(n >= 0 && n <= 255,
+        s"RGB value $n out of range [0, 255] in '$colorStr'"))
       ColorConversions.rgbIntsToColor(parts)
     else Color.valueOf(colorStr)

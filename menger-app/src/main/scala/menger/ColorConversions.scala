@@ -15,5 +15,5 @@ object ColorConversions:
       new GdxColor(commonColor.r, commonColor.g, commonColor.b, commonColor.a)
 
   def rgbIntsToColor(parts: Array[Int]): GdxColor =
-    val Array(r, g, b, a) = parts.map(_ / Const.rgbMaxValueFloat).padTo(4, 1f)
-    GdxColor(r, g, b, a)
+    val floats = parts.take(4).map(_ / Const.rgbMaxValueFloat).padTo(4, 1f)
+    GdxColor(floats(0), floats(1), floats(2), floats(3))
