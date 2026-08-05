@@ -1,7 +1,5 @@
 package menger.engines
 
-import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.collection.mutable.ArrayBuffer
@@ -10,7 +8,6 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.CameraState
-import io.github.lene.optix.RenderResult
 import io.github.lene.optix.SceneConfigurator
 import io.github.lene.optix.TextureUploadException
 import menger.ObjectSpec
@@ -43,7 +40,7 @@ class InteractiveEngine(
   userSetMaxInstances: Boolean = false
 )(using ProfilingConfig)
     extends BaseEngine(config.execution.maxInstances)
-    with TimeoutSupport with LazyLogging with SavesScreenshots with Observer:
+    with TimeoutSupport with LazyLogging with SavesScreenshots with Observer with WithStats:
 
   // Convenience accessors for config sections
   private val scene       = config.scene
@@ -477,9 +474,7 @@ class InteractiveEngine(
         renderResources.markNeedsRender()
       if renderResources.needsRender then
         val size = ImageSize(width, height)
-        val maybeBytes =
-          if execution.enableStats then renderWithStats(width, height)
-          else rendererWrapper.renderScene(size)
+        val maybeBytes = maybeRenderWithStats(width, height)
         maybeBytes match
           case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
           case None => () // render failed (logged); keep needsRender=true → retry next frame
@@ -496,63 +491,13 @@ class InteractiveEngine(
   override protected def currentSaveName: Option[String] = execution.saveName
   override protected def allowUniformRender: Boolean = execution.allowUniformRender
 
-  private val lastRenderResult = new AtomicReference[Option[RenderResult]](None)
-
-  private def renderWithStats(width: Int, height: Int): Option[Array[Byte]] =
-    rendererWrapper.renderSceneWithStats(ImageSize(width, height)) match
-      case None =>
-        logger.error("OptiX rendering failed - renderWithStats returned None")
-        None
-      case Some(result) =>
-        lastRenderResult.set(Some(result))
-        val stats = result.stats
-        logger.info(
-          f"Frame: ${stats.frameMs}%.1f ms (${stats.msPerMray}%.2f ms/Mray) | " +
-          s"primary=${stats.primaryRays} total=${stats.totalRays} " +
-          s"reflected=${stats.reflectedRays} refracted=${stats.refractedRays} " +
-          s"shadow=${stats.shadowRays} aa=${stats.aaRays} spectral=${stats.spectralRays} " +
-          s"depth=${stats.minDepthReached}-${stats.maxDepthReached}"
-        )
-        Some(result.image)
-
-  private def writeStatsJson(path: String): Unit =
-    lastRenderResult.get() match
-      case None =>
-        logger.warn(s"No render result available; stats file not written: $path")
-      case Some(result) =>
-        val frameMs       = result.stats.frameMs
-        val totalRays     = result.stats.totalRays
-        val primaryRays   = result.stats.primaryRays
-        val reflectedRays = result.stats.reflectedRays
-        val refractedRays = result.stats.refractedRays
-        val shadowRays    = result.stats.shadowRays
-        val aaRays        = result.stats.aaRays
-        val spectralRays  = result.stats.spectralRays
-        val msPerMray     = result.stats.msPerMray
-        val json =
-          s"""|{
-              |  "frameMs": $frameMs,
-              |  "totalRays": $totalRays,
-              |  "primaryRays": $primaryRays,
-              |  "reflectedRays": $reflectedRays,
-              |  "refractedRays": $refractedRays,
-              |  "shadowRays": $shadowRays,
-              |  "aaRays": $aaRays,
-              |  "spectralRays": $spectralRays,
-              |  "msPerMray": $msPerMray
-              |}""".stripMargin
-        Try {
-          val p = Paths.get(path).toAbsolutePath
-          Option(p.getParent).foreach(parent => Files.createDirectories(parent))
-          Files.writeString(p, json)
-          logger.info(s"Stats written to $p")
-        }.failed.foreach { e =>
-          logger.error(s"Failed to write stats to $path: ${e.getMessage}", e)
-        }
+  // WithStats
+  override protected def enableStats: Boolean = execution.enableStats
+  override protected def statsJsonPath: Option[String] = execution.statsJsonPath
 
   override def resize(width: Int, height: Int): Unit = {}
 
   override def dispose(): Unit =
     logger.debug("Disposing InteractiveEngine")
-    execution.statsJsonPath.foreach(writeStatsJson)
+    disposeStats()
     super.dispose()
