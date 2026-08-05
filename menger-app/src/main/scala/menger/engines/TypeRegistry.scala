@@ -93,3 +93,14 @@ object TypeRegistry:
   /** Triangle-mesh type names (the catch-all). */
   def isTriangleMeshType(name: String): Boolean =
     !builtInTypeNames.contains(name) && ObjectType.isTriangleMesh(name)
+
+  /** True for any type on the 4D rotation fast path: registry entries flagged
+    * `isProjected4D` (menger4d/sierpinski4d/hexadecachoron4d) plus the projected-4D
+    * triangle-mesh types (tesseract family), which route through the
+    * `__triangle_mesh__` catch-all and so carry no entry of their own.
+    *
+    * Single source for what were two hand-maintained 4-way ORs in InteractiveEngine
+    * (F8, Sprint 35 Ph4) — the `Entry.isProjected4D` flag is otherwise write-only.
+    */
+  def is4DFastPathType(typeName: String): Boolean =
+    ObjectType.isProjected4D(typeName) || forType(typeName).exists(_.isProjected4D)
