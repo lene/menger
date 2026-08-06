@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 
 /** Factory for creating volume-based 4D Menger sponge meshes (tesseract-sponge).
   *
@@ -30,7 +30,7 @@ object TesseractSpongeMesh:
     * @return Mesh4DProjection ready for rendering via OptiX
     */
   def apply(
-      center: Vector3 = Vector3(0f, 0f, 0f),
+      center: Vector[3] = Vector[3](0f, 0f, 0f),
       size: Float = 1.0f,
       level: Float,
       eyeW: Float = 3.0f,

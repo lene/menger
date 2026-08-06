@@ -5,7 +5,7 @@ import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TesseractSpongeSuite extends AnyFlatSpec with RectMesh with Matchers:
+class TesseractSpongeSuite extends AnyFlatSpec with Matchers:
 
   trait Sponge:
     val sponge: TesseractSponge = TesseractSponge(1)

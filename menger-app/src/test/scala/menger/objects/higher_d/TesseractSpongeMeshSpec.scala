@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -59,7 +59,7 @@ class TesseractSpongeMeshSpec extends AnyFlatSpec with Matchers:
     mesh.rotZW shouldBe 15f
 
   it should "translate mesh to specified center" in:
-    val center = Vector3(5f, -3f, 2f)
+    val center = Vector[3](5f, -3f, 2f)
     val mesh = TesseractSpongeMesh(
       center = center,
       level = 0

@@ -1,23 +1,16 @@
 package menger.objects
 
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.g3d.Material
-import com.badlogic.gdx.graphics.g3d.ModelInstance
-import com.badlogic.gdx.math.Vector3
-import menger.common.NotYetImplementedException
 import menger.common.TriangleMeshData
 import menger.common.TriangleMeshSource
+import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 
 case class Icosahedron(
-  center: Vector3 = Vector3.Zero,
-  scale: Float = 1f,
-  material: Material = Builder.WHITE_MATERIAL,
-  primitiveType: Int = GL20.GL_TRIANGLES
+  center: Vector[3] = Vector.Zero[3],
+  scale: Float = 1f
 ) extends Geometry(center, scale) with TriangleMeshSource:
-
-  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-  def getModel: List[ModelInstance] =
-    throw NotYetImplementedException("Icosahedron is OptiX-only; getModel not supported")
 
   def toTriangleMesh: TriangleMeshData =
     // Unit icosahedron vertices: three mutually perpendicular golden rectangles,

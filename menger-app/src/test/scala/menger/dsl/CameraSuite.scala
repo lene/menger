@@ -68,25 +68,25 @@ class CameraSuite extends AnyFlatSpec with Matchers:
     val camera = Camera(Vec3(1f, 2f, 3f), Vec3(4f, 5f, 6f), Vec3(0f, 1f, 0f))
     val config = camConf(camera)
 
-    config.position.x shouldBe 1f
-    config.position.y shouldBe 2f
-    config.position.z shouldBe 3f
-    config.lookAt.x shouldBe 4f
-    config.lookAt.y shouldBe 5f
-    config.lookAt.z shouldBe 6f
-    config.up.x shouldBe 0f
-    config.up.y shouldBe 1f
-    config.up.z shouldBe 0f
+    config.position(0) shouldBe 1f
+    config.position(1) shouldBe 2f
+    config.position(2) shouldBe 3f
+    config.lookAt(0) shouldBe 4f
+    config.lookAt(1) shouldBe 5f
+    config.lookAt(2) shouldBe 6f
+    config.up(0) shouldBe 0f
+    config.up(1) shouldBe 1f
+    config.up(2) shouldBe 0f
 
   it should "convert default camera correctly via SceneConverter" in:
     val config = camConf(Camera.Default)
 
-    config.position.x shouldBe 0f
-    config.position.y shouldBe 0f
-    config.position.z shouldBe 3f
-    config.lookAt.x shouldBe 0f
-    config.lookAt.y shouldBe 0f
-    config.lookAt.z shouldBe 0f
+    config.position(0) shouldBe 0f
+    config.position(1) shouldBe 0f
+    config.position(2) shouldBe 3f
+    config.lookAt(0) shouldBe 0f
+    config.lookAt(1) shouldBe 0f
+    config.lookAt(2) shouldBe 0f
 
   "Camera.fov" should "default to None" in:
     Camera.Default.fov shouldBe None

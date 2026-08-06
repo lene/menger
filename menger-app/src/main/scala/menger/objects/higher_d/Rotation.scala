@@ -7,7 +7,7 @@ import menger.common.Const
 import menger.common.Vector
 import menger.objects.Matrix
 
-case class Rotation(transformationMatrix: Matrix[4], pivotPoint: Vector[4]) extends RectMesh:
+case class Rotation(transformationMatrix: Matrix[4], pivotPoint: Vector[4]):
   lazy val isZero: Boolean = transformationMatrix === Matrix.identity[4]
 
   def apply(point: Vector[4]): Vector[4] =

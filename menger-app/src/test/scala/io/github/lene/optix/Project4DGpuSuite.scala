@@ -1,11 +1,10 @@
 package io.github.lene.optix
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Color
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
-import menger.common.Vector
 import menger.objects.higher_d.Face4D
 import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Mesh4DGpuFlatten
@@ -132,7 +131,7 @@ class Project4DGpuSuite extends AnyFlatSpec
 
   "GPU 4D projection" should "match CPU pixels for a non-rotated tesseract" taggedAs Slow in:
     val cpuProj = TesseractMesh(
-      center = Vector3(0f, 0f, 0f), size = 1.0f,
+      center = Vector[3](0f, 0f, 0f), size = 1.0f,
       rotXW = 0f, rotYW = 0f, rotZW = 0f
     )
     val cpuPixels = renderCpu(cpuProj)
@@ -149,7 +148,7 @@ class Project4DGpuSuite extends AnyFlatSpec
 
   it should "match CPU pixels for a rotated tesseract" taggedAs Slow in:
     val cpuProj = TesseractMesh(
-      center = Vector3(0f, 0f, 0f), size = 1.0f,
+      center = Vector[3](0f, 0f, 0f), size = 1.0f,
       rotXW = 12f, rotYW = 18f, rotZW = 7f
     )
     val cpuPixels = renderCpu(cpuProj)
@@ -197,13 +196,13 @@ class Project4DGpuSuite extends AnyFlatSpec
 
     val (cpuMesh, cpuMs) = measureMs:
       TesseractSpongeMesh(
-        center = Vector3(0f, 0f, 0f), size = 1.0f, level = level,
+        center = Vector[3](0f, 0f, 0f), size = 1.0f, level = level,
         rotXW = 12f, rotYW = 18f, rotZW = 7f
       ).toTriangleMesh
 
     val (gpuQuads, gpuFlattenMs) = measureMs:
       val proj = TesseractSpongeMesh(
-        center = Vector3(0f, 0f, 0f), size = 1.0f, level = level,
+        center = Vector[3](0f, 0f, 0f), size = 1.0f, level = level,
         rotXW = 12f, rotYW = 18f, rotZW = 7f
       )
       Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D)
@@ -221,7 +220,7 @@ class Project4DGpuSuite extends AnyFlatSpec
     val rotA = (0f, 0f, 0f)
     val rotB = (12f, 18f, 7f)
     val tess = TesseractMesh(
-      center = Vector3(0f, 0f, 0f), size = 1.0f,
+      center = Vector[3](0f, 0f, 0f), size = 1.0f,
       rotXW = rotB._1, rotYW = rotB._2, rotZW = rotB._3
     )
     val quads = Mesh4DGpuFlatten.quadsBuffer(tess.mesh4D)
@@ -254,7 +253,7 @@ class Project4DGpuSuite extends AnyFlatSpec
     assume(!runningUnderSanitizer, "GPU-vs-CPU timing is meaningless under compute-sanitizer instrumentation")
     val frames = 10
     val proj0 = TesseractSpongeMesh(
-      center = Vector3(0f, 0f, 0f), size = 1.0f, level = 1f,
+      center = Vector[3](0f, 0f, 0f), size = 1.0f, level = 1f,
       rotXW = 0f, rotYW = 0f, rotZW = 0f
     )
     val quads = Mesh4DGpuFlatten.quadsBuffer(proj0.mesh4D)
@@ -276,7 +275,7 @@ class Project4DGpuSuite extends AnyFlatSpec
       (0 until frames).foreach { i =>
         val angle = (i + 1) * 9f
         val proj = TesseractSpongeMesh(
-          center = Vector3(0f, 0f, 0f), size = 1.0f, level = 1f,
+          center = Vector[3](0f, 0f, 0f), size = 1.0f, level = 1f,
           rotXW = angle, rotYW = 0f, rotZW = 0f
         )
         val q = Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D)
@@ -293,7 +292,7 @@ class Project4DGpuSuite extends AnyFlatSpec
 
   it should "return a non-negative mesh index for a valid upload" in:
     val proj = TesseractMesh(
-      center = Vector3(0f, 0f, 0f), size = 1.0f,
+      center = Vector[3](0f, 0f, 0f), size = 1.0f,
       rotXW = 0f, rotYW = 0f, rotZW = 0f
     )
     val quads = Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D)

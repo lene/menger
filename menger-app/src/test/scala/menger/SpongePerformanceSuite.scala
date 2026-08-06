@@ -1,6 +1,6 @@
 package menger
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Color
 import menger.common.ImageSize
@@ -76,7 +76,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
 
     val (mesh, genTimeMs) = measureTimeMs:
       SpongeBySurface(
-        center = Vector3.Zero,
+        center = Vector.Zero[3],
         scale = 2.0f,
         level = 0f
       ).toTriangleMesh
@@ -90,7 +90,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
 
     val (mesh, genTimeMs) = measureTimeMs:
       SpongeBySurface(
-        center = Vector3.Zero,
+        center = Vector.Zero[3],
         scale = 2.0f,
         level = 1f
       ).toTriangleMesh
@@ -104,7 +104,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
 
     val (mesh, genTimeMs) = measureTimeMs:
       SpongeBySurface(
-        center = Vector3.Zero,
+        center = Vector.Zero[3],
         scale = 2.0f,
         level = 2f
       ).toTriangleMesh
@@ -118,7 +118,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
 
     val (mesh, genTimeMs) = measureTimeMs:
       SpongeBySurface(
-        center = Vector3.Zero,
+        center = Vector.Zero[3],
         scale = 2.0f,
         level = 3f
       ).toTriangleMesh
@@ -131,7 +131,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
 
     val (mesh, genTimeMs) = measureTimeMs:
       SpongeByVolume(
-        center = Vector3.Zero,
+        center = Vector.Zero[3],
         scale = 2.0f,
         level = 0f
       ).toTriangleMesh
@@ -145,7 +145,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
 
     val (mesh, genTimeMs) = measureTimeMs:
       SpongeByVolume(
-        center = Vector3.Zero,
+        center = Vector.Zero[3],
         scale = 2.0f,
         level = 1f
       ).toTriangleMesh
@@ -159,7 +159,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
 
     val (mesh, genTimeMs) = measureTimeMs:
       SpongeByVolume(
-        center = Vector3.Zero,
+        center = Vector.Zero[3],
         scale = 2.0f,
         level = 2f
       ).toTriangleMesh
@@ -172,7 +172,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
     assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
 
     val mesh = SpongeBySurface(
-      center = Vector3.Zero,
+      center = Vector.Zero[3],
       scale = 2.0f,
       level = 2f
     ).toTriangleMesh
@@ -202,7 +202,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
     assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
 
     val mesh = SpongeByVolume(
-      center = Vector3.Zero,
+      center = Vector.Zero[3],
       scale = 2.0f,
       level = 2f
     ).toTriangleMesh
@@ -232,7 +232,7 @@ class SpongePerformanceSuite extends AnyFlatSpec
     assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
 
     val mesh = SpongeBySurface(
-      center = Vector3.Zero,
+      center = Vector.Zero[3],
       scale = 2.0f,
       level = 1f
     ).toTriangleMesh

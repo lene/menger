@@ -7,7 +7,7 @@ import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class Face4DSuite extends AnyFlatSpec with RectMesh with Matchers:
+class Face4DSuite extends AnyFlatSpec with Matchers:
 
   private val seqXY = Seq(Vector[4](-1, -1, 0, 0), Vector[4](1, -1, 0, 0), Vector[4](1, 1, 0, 0), Vector[4](-1, 1, 0, 0))
   private val faceXY = Face4D(seqXY)

@@ -2,6 +2,9 @@ package menger.objects.higher_d
 
 import menger.common.Const
 import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

@@ -7,11 +7,11 @@ import io.github.lene.optix.CameraState
 import io.github.lene.optix.OptiXRendererWrapper
 import menger.OptiXRenderResources
 import menger.RotationProjectionParameters
-import menger.Vector3Extensions.toVector3
 import menger.common.Const
 import menger.common.MouseButton
 import menger.common.OrbitConfig
 import menger.common.ScreenCoords
+import menger.input.Vector3Extensions.toVector3
 
 /**
  * Camera/mouse input handler for OptiX ray-traced rendering mode.

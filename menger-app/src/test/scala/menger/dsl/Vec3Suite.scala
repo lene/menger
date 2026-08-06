@@ -19,13 +19,6 @@ class Vec3Suite extends AnyFlatSpec with Matchers:
     Vec3.UnitY shouldBe Vec3(0f, 1f, 0f)
     Vec3.UnitZ shouldBe Vec3(0f, 0f, 1f)
 
-  it should "convert to libGDX Vector3" in:
-    val v = Vec3(1f, 2f, 3f)
-    val gdx = v.toGdxVector3
-    gdx.x shouldBe 1f
-    gdx.y shouldBe 2f
-    gdx.z shouldBe 3f
-
   it should "convert to common Vector" in:
     val v = Vec3(1f, 2f, 3f)
     val common = v.toCommonVector

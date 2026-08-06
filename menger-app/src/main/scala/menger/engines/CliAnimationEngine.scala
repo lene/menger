@@ -7,7 +7,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.CameraState
 import io.github.lene.optix.SceneConfigurator
 import menger.AnimationSpecificationSequence
-import menger.Vector3Extensions.toVector3
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
@@ -37,12 +36,12 @@ class CliAnimationEngine(
   override protected def accumulationFrames: Int  = config.accumulationFrames
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    camera.position.toVector3, camera.lookAt.toVector3, camera.up.toVector3,
+    camera.position, camera.lookAt, camera.up,
     environment.lights.toArray
   )
 
   override protected val cameraState: CameraState =
-    CameraState(camera.position.toVector3, camera.lookAt.toVector3, camera.up.toVector3)
+    CameraState(camera.position, camera.lookAt, camera.up)
 
   override protected def currentSaveName: Option[String] =
     Some(String.format(savePattern, Integer.valueOf(frameCounter.get())))

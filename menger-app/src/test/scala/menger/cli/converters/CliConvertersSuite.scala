@@ -1,8 +1,8 @@
 package menger.cli.converters
 
-import com.badlogic.gdx.math.Vector3
 import menger.cli.Axis
 import menger.cli.PlaneSpec
+import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -13,11 +13,11 @@ class CliConvertersSuite extends AnyFlatSpec with Matchers:
 
   "vector3Converter" should "parse valid x,y,z string" in:
     val result = vector3Converter.parse(singleArg("0,0,3"))
-    result shouldBe Right(Some(Vector3(0f, 0f, 3f)))
+    result shouldBe Right(Some(Vector[3](0f, 0f, 3f)))
 
   it should "parse negative and fractional values" in:
     val result = vector3Converter.parse(singleArg("1.5,-2.0,0"))
-    result shouldBe Right(Some(Vector3(1.5f, -2.0f, 0f)))
+    result shouldBe Right(Some(Vector[3](1.5f, -2.0f, 0f)))
 
   it should "return Right(None) for empty input" in:
     vector3Converter.parse(List.empty) shouldBe Right(None)

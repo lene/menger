@@ -1,6 +1,6 @@
 package menger.engines
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.common.ObjectType
@@ -23,7 +23,7 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
     // Create TesseractMesh from ObjectSpec parameters
     val proj = spec.projection4D.get
     val mesh = TesseractMesh(
-      center = Vector3(spec.x, spec.y, spec.z),
+      center = Vector[3](spec.x, spec.y, spec.z),
       size = spec.size,
       eyeW = proj.eyeW,
       screenW = proj.screenW,
@@ -168,7 +168,7 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
     val proj = spec.projection4D.get
 
     val mesh = TesseractMesh(
-      center = Vector3(spec.x, spec.y, spec.z),
+      center = Vector[3](spec.x, spec.y, spec.z),
       size = spec.size,
       eyeW = proj.eyeW,
       screenW = proj.screenW,

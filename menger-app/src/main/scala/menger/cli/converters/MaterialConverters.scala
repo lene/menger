@@ -2,9 +2,9 @@ package menger.cli.converters
 
 import scala.util.Try
 
-import com.badlogic.gdx.graphics.Color
 import menger.ColorConversions
 import menger.cli.converters.ConverterUtils.unwrapTryEither
+import menger.common.Color
 import menger.common.Const
 import org.rogach.scallop.ArgType
 import org.rogach.scallop.ValueConverter
@@ -30,7 +30,7 @@ given colorConverter: ValueConverter[Color] with
 
   private def parseHex(input: String): Either[String, Option[Color]] =
     input.length match
-      case len if isValidHexColorLength(len) => Right(Some(Color.valueOf(input)))
+      case len if isValidHexColorLength(len) => Right(Some(Color.fromHex(input)))
       case _ =>
         Left(s"Color '$input' must be hex format RRGGBB (6 digits) or RRGGBBAA (8 digits). " +
           "Example: FF0000 (red) or 00FF0080 (green with 50% alpha)")

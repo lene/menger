@@ -1,14 +1,13 @@
 package menger.objects
 
-import com.badlogic.gdx.graphics.g3d.Material
-import com.badlogic.gdx.math.Vector3
 import menger.common.TriangleMeshData
+import menger.common.Vector
 
 
-trait FractionalLevelSponge extends FractionalLevelObject:
-  def center: Vector3
+trait FractionalLevelSponge:
+  def center: Vector[3]
   def scale: Float
-  def primitiveType: Int
+  def level: Float
 
   /** Merge next-level and current-level meshes into a single fractional-level mesh.
    *  Expands currentLevelMesh outward along normals to prevent z-fighting, then
@@ -26,18 +25,6 @@ trait FractionalLevelSponge extends FractionalLevelObject:
     ))
 
   
-  protected def createInstance(
-    center: Vector3, scale: Float, level: Float, material: Material, primitiveType: Int
-  ): Geometry & FractionalLevelSponge
-
-  private[objects] lazy val transparentSponge: Option[Geometry & FractionalLevelSponge] =
-    if level.isValidInt then None
-    else Some(createInstance(center, scale, level.floor, transparentMaterial, primitiveType))
-
-  private[objects] lazy val nextLevelSponge: Option[Geometry & FractionalLevelSponge] =
-    if level.isValidInt then None
-    else Some(createInstance(center, scale, (level+1).floor, material, primitiveType))
-
 object FractionalLevelSponge:
   /** Absolute world-space offset applied outward along normals to skin faces in fractional-level
    *  rendering, to prevent z-fighting with the underlying sponge faces at non-hole positions.

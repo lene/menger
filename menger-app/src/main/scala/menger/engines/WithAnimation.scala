@@ -16,7 +16,6 @@ import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureUploadException
 import menger.ObjectSpec
 import menger.Projection4DSpec
-import menger.Vector3Extensions.toVector3
 import menger.common.CausticsConfig
 import menger.common.ImageSize
 import menger.common.ObjectType
@@ -131,9 +130,9 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
           cameraState.updateCamera(
             renderer,
-            configs.camera.position.toVector3,
-            configs.camera.lookAt.toVector3,
-            configs.camera.up.toVector3
+            configs.camera.position,
+            configs.camera.lookAt,
+            configs.camera.up
           )
           cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
           rendererWrapper.renderScene(ImageSize(width, height)) match

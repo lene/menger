@@ -2,11 +2,14 @@ package menger.engines.scene
 
 import scala.util.Try
 
-import com.badlogic.gdx.math.Vector3
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.common.Material
 import menger.common.TransformUtil
+import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 import menger.objects.Cube
 import menger.objects.CubeSpongeGenerator
 
@@ -61,7 +64,7 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
   private def setupBaseCubeMesh(renderer: OptiXRenderer): Try[Unit] = Try:
     // Create base cube mesh centered at origin with scale 1.0 (shared by all instances)
-    val baseCube = Cube(center = Vector3(0f, 0f, 0f), scale = 1.0f)
+    val baseCube = Cube(center = Vector[3](0f, 0f, 0f), scale = 1.0f)
     renderer.setTriangleMesh(baseCube.toTriangleMesh)
 
   private def addCubeInstancesForSpec(spec: ObjectSpec, renderer: OptiXRenderer, textureIndices: Map[String, Int]): Unit =
@@ -71,7 +74,7 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
     // Generate all cube transforms using CubeSpongeGenerator
     val generator = CubeSpongeGenerator(
-      center = Vector3(spec.x, spec.y, spec.z),
+      center = Vector[3](spec.x, spec.y, spec.z),
       size = spec.size,
       level = level
     )
@@ -86,7 +89,7 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
     logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
 
   private def addSingleCubeInstance(
-    position: Vector3,
+    position: Vector[3],
     scale: Float,
     material: Material,
     renderer: OptiXRenderer,

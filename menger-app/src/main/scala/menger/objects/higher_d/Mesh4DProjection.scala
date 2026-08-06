@@ -1,9 +1,11 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector3
 import menger.common.TriangleMeshData
 import menger.common.TriangleMeshSource
 import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 
 /** Renders any 4D mesh by projecting it to 3D space.
   *
@@ -17,7 +19,7 @@ import menger.common.Vector
   */
 case class Mesh4DProjection(
     mesh4D: Mesh4D,
-    center: Vector3 = Vector3(0f, 0f, 0f),
+    center: Vector[3] = Vector[3](0f, 0f, 0f),
     eyeW: Float = 3.0f,
     screenW: Float = 1.5f,
     rotXW: Float = 15f,
@@ -34,7 +36,7 @@ case class Mesh4DProjection(
 
   private val projection = Projection(eyeW, screenW)
 
-  private def projectedVertices: Seq[IndexedSeq[Vector3]] =
+  private def projectedVertices: Seq[IndexedSeq[Vector[3]]] =
     mesh4D.faces.map { face4d =>
       val vpf = face4d.vertsPerFace
       (0 until vpf).map(i => projection(rotation(face4d(i)))).toIndexedSeq
@@ -49,7 +51,7 @@ case class Mesh4DProjection(
       val merged = TriangleMeshData.merge(meshDataList)
       translateMesh(merged, center)
 
-  private def faceToTriangleMesh(face: IndexedSeq[Vector3]): TriangleMeshData =
+  private def faceToTriangleMesh(face: IndexedSeq[Vector[3]]): TriangleMeshData =
     val vpf = face.size
     val triCount = vpf - 2
 
@@ -91,7 +93,7 @@ case class Mesh4DProjection(
 
     TriangleMeshData(verts, indices, vertexStride = 8)
 
-  private def translateMesh(mesh: TriangleMeshData, offset: Vector3): TriangleMeshData =
+  private def translateMesh(mesh: TriangleMeshData, offset: Vector[3]): TriangleMeshData =
     if offset.x == 0f && offset.y == 0f && offset.z == 0f then mesh
     else
       val translated = mesh.vertices.zipWithIndex.map { case (value, index) =>
@@ -107,7 +109,7 @@ case class Mesh4DProjection(
 /** Backward-compatible factory for creating tesseract meshes */
 object TesseractMesh:
   def apply(
-      center: Vector3 = Vector3(0f, 0f, 0f),
+      center: Vector[3] = Vector[3](0f, 0f, 0f),
       size: Float = 1.0f,
       eyeW: Float = 3.0f,
       screenW: Float = 1.5f,

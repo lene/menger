@@ -56,9 +56,9 @@ object SceneConverter extends LazyLogging:
       case None       => dslScene.objects.map(_.toObjectSpec)
     val scene      = SceneConfig.multiObject(objectSpecs)
     val camera     = CameraConfig(
-      position = dslScene.camera.position.toGdxVector3,
-      lookAt   = dslScene.camera.lookAt.toGdxVector3,
-      up       = dslScene.camera.up.toGdxVector3
+      position = dslScene.camera.position.toCommonVector,
+      lookAt   = dslScene.camera.lookAt.toCommonVector,
+      up       = dslScene.camera.up.toCommonVector
     )
     val lights     = dslScene.lights.map(_.toCommonLight)
     val caustics   = dslScene.caustics.map(_.toCausticsConfig).getOrElse(fallbackCaustics)

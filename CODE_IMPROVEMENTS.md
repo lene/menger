@@ -287,3 +287,34 @@ the 4D call sites recover it via `MengerRenderer.of(renderer)`, which throws on 
 `OptiXRenderer`. This preserves the AD-24 seam without retyping the whole `SceneBuilder` /
 animation call chain — that retype is the Ph4 fan-out work (F8/F13). Documented in code; not a
 defect, but a marker that the boundary is still runtime-checked. Low priority.
+
+# Code Quality Review — Sprint 35 Task 4.12 (2026-08-06)
+
+Migrated `objects/` off LibGDX math types to `menger.common.Vector[3]` (Finding F10), deleted the
+dead GDX `ModelInstance`/`ModelFactory`/`Builder` rendering path AD-16 had already (incorrectly)
+claimed gone, cleaned 5 `Color`-only files, and added the real "no LibGDX outside
+`menger.input`/`menger.engines`" ArchUnit rule AD-23 had also (incorrectly) claimed already existed.
+Changed: `objects/` (27 files), `engines/scene/` call sites, `MaterialConfig.scala`,
+`cli/CliTypes.scala`, `cli/converters/{Environment,Material}Converters.scala`,
+`ColorConversions.scala`, `MengerCLIOptions.scala`, `ArchitectureSpec.scala`.
+
+## New findings
+
+### 1. `MengerCLIOptions.color`/`faceColor`/`lineColor` appear dead downstream of `Main.scala`
+Traced every call site of `.color(`/`.faceColor(`/`.lineColor(` in `src/main` during the F10
+migration — the only hits are the CLI options' own declarations; `Main.scala` never reads them.
+Legacy from a pre-OptiX render path (AD-16). Only `CLIOptionsSuite.scala` exercises the parsed
+values. **Fix**: confirm via `get_risk`/grep for any indirect consumer, then delete the three
+options and their converter wiring in `MaterialConverters.scala`. Low priority, small (~1h).
+
+### 2. `Project4DGpuSuite`'s "update vs rebuild" test is a zero-tolerance timing comparison
+Added to `docs/TESTING.md`'s Flaky test policy table (2026-08-06) per that policy's own
+requirement. `updateMs should be < rebuildMs` compares two `measureMs` blocks timed back-to-back
+in the same process, no warm-up, no tolerance. Confirmed flaky the same day: failed on a full
+`sbt test` run (`update=70.9ms, rebuild=62.2ms`) then passed 3/3 immediately-following isolated
+reruns (`update≈3ms, rebuild≈52-79ms`, the healthy margin) — same commit, no code change between
+runs. Same root cause as the PerfCheck single-shot-variance finding (thermal/load-dependent GPU
+timing on the shared laptop), different test surface (in-suite ScalaTest assertion vs. the CI
+benchmark script). **Fix**: add a tolerance factor or average over multiple trials, same as the
+proposed PerfCheck fix. Medium priority — real, demonstrated flakiness, not yet load-bearing on
+anyone's push twice.

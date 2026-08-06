@@ -1,6 +1,9 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 import menger.common.TriangleMeshData
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -42,23 +45,23 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
   // Flat-shaded meshes duplicate vertices per face so each triangle has 3 dedicated
   // vertices carrying the face normal. numVertices = numFaces * 3.
   "Tetrahedron" should "have 12 vertex entries (4 faces × 3)" in:
-    val data = Tetrahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Tetrahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     data.numVertices shouldBe 12
 
   it should "have 4 triangles (12 indices)" in:
-    val data = Tetrahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Tetrahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     data.indices.length shouldBe 12
 
   it should "have all vertices on unit sphere" in:
-    val data = Tetrahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Tetrahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     allVerticesOnUnitSphere(data)
 
   it should "have outward face normals" in:
-    val data = Tetrahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Tetrahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     hasPositiveOutwardNormals(data)
 
   it should "scale vertices by scale parameter" in:
-    val data = Tetrahedron(Vector3(0f, 0f, 0f), 2f).toTriangleMesh
+    val data = Tetrahedron(Vector[3](0f, 0f, 0f), 2f).toTriangleMesh
     val stride = data.vertexStride
     for i <- 0 until data.numVertices do
       val base = i * stride
@@ -66,7 +69,7 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       d shouldBe (2f +- Eps)
 
   it should "translate vertices by center parameter" in:
-    val center = Vector3(1f, 2f, 3f)
+    val center = Vector[3](1f, 2f, 3f)
     val data = Tetrahedron(center, 1f).toTriangleMesh
     val coords = data.vertices
     val stride = TriangleMeshData.LegacyVertexStride
@@ -75,7 +78,7 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       d shouldBe (1f +- Eps)
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
-  private def hasVertexAtUnitDistanceFromCenter(data: TriangleMeshData, center: Vector3): Unit =
+  private def hasVertexAtUnitDistanceFromCenter(data: TriangleMeshData, center: Vector[3]): Unit =
     val stride = data.vertexStride
     var found = false
     for i <- 0 until data.numVertices do
@@ -85,23 +88,23 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
     found shouldBe true
 
   "Octahedron" should "have 24 vertex entries (8 faces × 3)" in:
-    val data = Octahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Octahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     data.vertices.length / TriangleMeshData.LegacyVertexStride shouldBe 24
 
   it should "have 8 triangles (24 indices)" in:
-    val data = Octahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Octahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     data.indices.length shouldBe 24
 
   it should "have all vertices on unit sphere" in:
-    val data = Octahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Octahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     allVerticesOnUnitSphere(data)
 
   it should "have outward face normals" in:
-    val data = Octahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Octahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     hasPositiveOutwardNormals(data)
 
   it should "scale vertices by scale parameter" in:
-    val data = Octahedron(Vector3(0f, 0f, 0f), 2f).toTriangleMesh
+    val data = Octahedron(Vector[3](0f, 0f, 0f), 2f).toTriangleMesh
     val coords = data.vertices
     val stride = TriangleMeshData.LegacyVertexStride
     for i <- coords.indices by stride do
@@ -109,7 +112,7 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       d shouldBe (2f +- Eps)
 
   it should "translate vertices by center parameter" in:
-    val center = Vector3(1f, 2f, 3f)
+    val center = Vector[3](1f, 2f, 3f)
     val data = Octahedron(center, 1f).toTriangleMesh
     val coords = data.vertices
     val stride = TriangleMeshData.LegacyVertexStride
@@ -118,23 +121,23 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       d shouldBe (1f +- Eps)
 
   "Icosahedron" should "have 60 vertex entries (20 faces × 3)" in:
-    val data = Icosahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Icosahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     data.vertices.length / TriangleMeshData.LegacyVertexStride shouldBe 60
 
   it should "have 20 triangles (60 indices)" in:
-    val data = Icosahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Icosahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     data.indices.length shouldBe 60
 
   it should "have all vertices on unit sphere" in:
-    val data = Icosahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Icosahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     allVerticesOnUnitSphere(data)
 
   it should "have outward face normals" in:
-    val data = Icosahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Icosahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     hasPositiveOutwardNormals(data)
 
   it should "scale vertices by scale parameter" in:
-    val data = Icosahedron(Vector3(0f, 0f, 0f), 2f).toTriangleMesh
+    val data = Icosahedron(Vector[3](0f, 0f, 0f), 2f).toTriangleMesh
     val coords = data.vertices
     val stride = TriangleMeshData.LegacyVertexStride
     for i <- coords.indices by stride do
@@ -142,7 +145,7 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       d shouldBe (2f +- Eps)
 
   it should "translate vertices by center parameter" in:
-    val center = Vector3(1f, 2f, 3f)
+    val center = Vector[3](1f, 2f, 3f)
     val data = Icosahedron(center, 1f).toTriangleMesh
     val coords = data.vertices
     val stride = TriangleMeshData.LegacyVertexStride
@@ -151,23 +154,23 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       d shouldBe (1f +- Eps)
 
   "Dodecahedron" should "have 108 vertex entries (36 faces × 3)" in:
-    val data = Dodecahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Dodecahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     data.vertices.length / TriangleMeshData.LegacyVertexStride shouldBe 108
 
   it should "have 36 triangles (108 indices)" in:
-    val data = Dodecahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Dodecahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     data.indices.length shouldBe 108
 
   it should "have all vertices on unit sphere" in:
-    val data = Dodecahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Dodecahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     allVerticesOnUnitSphere(data)
 
   it should "have outward face normals" in:
-    val data = Dodecahedron(Vector3(0f, 0f, 0f), 1f).toTriangleMesh
+    val data = Dodecahedron(Vector[3](0f, 0f, 0f), 1f).toTriangleMesh
     hasPositiveOutwardNormals(data)
 
   it should "scale vertices by scale parameter" in:
-    val data = Dodecahedron(Vector3(0f, 0f, 0f), 2f).toTriangleMesh
+    val data = Dodecahedron(Vector[3](0f, 0f, 0f), 2f).toTriangleMesh
     val coords = data.vertices
     val stride = TriangleMeshData.LegacyVertexStride
     for i <- coords.indices by stride do
@@ -175,7 +178,7 @@ class PolytopesSuite extends AnyFlatSpec with Matchers:
       d shouldBe (2f +- Eps)
 
   it should "translate vertices by center parameter" in:
-    val center = Vector3(1f, 2f, 3f)
+    val center = Vector[3](1f, 2f, 3f)
     val data = Dodecahedron(center, 1f).toTriangleMesh
     val coords = data.vertices
     val stride = TriangleMeshData.LegacyVertexStride

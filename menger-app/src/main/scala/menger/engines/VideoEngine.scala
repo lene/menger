@@ -2,7 +2,6 @@ package menger.engines
 
 import io.github.lene.optix.CameraState
 import io.github.lene.optix.SceneConfigurator
-import menger.Vector3Extensions.toVector3
 import menger.common.CausticsConfig
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
@@ -40,16 +39,16 @@ class VideoEngine(
   override protected def accumulationFrames: Int = firstFrameConfigs.accumulationFrames
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    firstFrameConfigs.camera.position.toVector3,
-    firstFrameConfigs.camera.lookAt.toVector3,
-    firstFrameConfigs.camera.up.toVector3,
+    firstFrameConfigs.camera.position,
+    firstFrameConfigs.camera.lookAt,
+    firstFrameConfigs.camera.up,
     firstFrameConfigs.lights.toArray
   )
 
   override protected val cameraState: CameraState = CameraState(
-    firstFrameConfigs.camera.position.toVector3,
-    firstFrameConfigs.camera.lookAt.toVector3,
-    firstFrameConfigs.camera.up.toVector3
+    firstFrameConfigs.camera.position,
+    firstFrameConfigs.camera.lookAt,
+    firstFrameConfigs.camera.up
   )
 
   override protected def currentSaveName: Option[String] =

@@ -1,6 +1,6 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import menger.common.ProfilingConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -18,56 +18,56 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
   // === SpongeByVolume Fractional Level Tests ===
 
   "SpongeByVolume" should "generate stride=9 mesh for fractional levels" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 1.5f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 1.5f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 9  // pos(3) + normal(3) + uv(2) + alpha(1)
     mesh.numTriangles should be > 0
 
   it should "generate stride=8 mesh for integer levels" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 2f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 2f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 8  // pos(3) + normal(3) + uv(2)
     mesh.numTriangles should be > 0
 
   it should "merge level N and N+1 geometries for fractional levels" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 1.5f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 1.5f)
     val mesh = sponge.toTriangleMesh
 
     // Fractional level 1.5 should have triangles from both level 1 and level 2
-    val level1 = SpongeByVolume(Vector3.Zero, 1f, level = 1f).toTriangleMesh
-    val level2 = SpongeByVolume(Vector3.Zero, 1f, level = 2f).toTriangleMesh
+    val level1 = SpongeByVolume(Vector.Zero[3], 1f, level = 1f).toTriangleMesh
+    val level2 = SpongeByVolume(Vector.Zero[3], 1f, level = 2f).toTriangleMesh
 
     mesh.numTriangles shouldBe (level1.numTriangles + level2.numTriangles)
 
   it should "handle level 0.0 as integer" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 0.0f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 0.0f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 8  // Integer level uses stride=8
 
   it should "handle level 1.0 as integer" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 1.0f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 1.0f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 8  // Integer level uses stride=8
 
   it should "handle level 2.0 as integer" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 2.0f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 2.0f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 8  // Integer level uses stride=8
 
   it should "handle very small fractional parts" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 1.01f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 1.01f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 9  // Fractional level uses stride=9
     mesh.vertices.length % 9 shouldBe 0
 
   it should "handle fractional parts close to 1.0" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 1.99f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 1.99f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 9  // Fractional level uses stride=9
@@ -78,7 +78,7 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
     val testLevels = List(0.25f, 0.5f, 0.75f, 1.25f, 1.5f, 1.75f)
 
     testLevels.foreach { level =>
-      val sponge = SpongeByVolume(Vector3.Zero, 1f, level = level)
+      val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = level)
       val mesh = sponge.toTriangleMesh
 
       mesh.vertexStride shouldBe 9
@@ -87,8 +87,8 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
     }
 
   it should "produce different geometry for different fractional levels" in:
-    val sponge1 = SpongeByVolume(Vector3.Zero, 1f, level = 1.25f).toTriangleMesh
-    val sponge2 = SpongeByVolume(Vector3.Zero, 1f, level = 1.75f).toTriangleMesh
+    val sponge1 = SpongeByVolume(Vector.Zero[3], 1f, level = 1.25f).toTriangleMesh
+    val sponge2 = SpongeByVolume(Vector.Zero[3], 1f, level = 1.75f).toTriangleMesh
 
     // Same merged triangle count (level 1 + level 2)
     sponge1.numTriangles shouldBe sponge2.numTriangles
@@ -98,50 +98,50 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
   // === SpongeBySurface Fractional Level Tests ===
 
   "SpongeBySurface" should "generate stride=9 mesh for fractional levels" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 1.5f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 1.5f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 9  // pos(3) + normal(3) + uv(2) + alpha(1)
     mesh.numTriangles should be > 0
 
   it should "generate stride=8 mesh for integer levels" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 2f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 2f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 8  // pos(3) + normal(3) + uv(2)
     mesh.numTriangles should be > 0
 
   it should "merge level N and N+1 geometries for fractional levels" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 1.5f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 1.5f)
     val mesh = sponge.toTriangleMesh
 
     // Fractional level 1.5 should have triangles from both level 1 and level 2
-    val level1 = SpongeBySurface(Vector3.Zero, 1f, level = 1f).toTriangleMesh
-    val level2 = SpongeBySurface(Vector3.Zero, 1f, level = 2f).toTriangleMesh
+    val level1 = SpongeBySurface(Vector.Zero[3], 1f, level = 1f).toTriangleMesh
+    val level2 = SpongeBySurface(Vector.Zero[3], 1f, level = 2f).toTriangleMesh
 
     mesh.numTriangles shouldBe (level1.numTriangles + level2.numTriangles)
 
   it should "handle level 0.0 as integer" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 0.0f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 0.0f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 8  // Integer level uses stride=8
 
   it should "handle level 1.0 as integer" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 1.0f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 1.0f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 8  // Integer level uses stride=8
 
   it should "handle very small fractional parts" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 1.01f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 1.01f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 9  // Fractional level uses stride=9
     mesh.vertices.length % 9 shouldBe 0
 
   it should "handle fractional parts close to 1.0" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 1.99f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 1.99f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 9  // Fractional level uses stride=9
@@ -151,7 +151,7 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
     val testLevels = List(0.25f, 0.5f, 0.75f, 1.25f, 1.5f, 1.75f)
 
     testLevels.foreach { level =>
-      val sponge = SpongeBySurface(Vector3.Zero, 1f, level = level)
+      val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = level)
       val mesh = sponge.toTriangleMesh
 
       mesh.vertexStride shouldBe 9
@@ -172,7 +172,7 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
     )
 
     testCases.foreach { case (level, _) =>
-      val sponge = SpongeByVolume(Vector3.Zero, 1f, level = level)
+      val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = level)
       val mesh = sponge.toTriangleMesh
 
       // Verify merged mesh was created with correct format
@@ -189,7 +189,7 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
     )
 
     testCases.foreach { case (level, _) =>
-      val sponge = SpongeBySurface(Vector3.Zero, 1f, level = level)
+      val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = level)
       val mesh = sponge.toTriangleMesh
 
       mesh.vertexStride shouldBe 9
@@ -200,7 +200,7 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
   it should "set nextLevel alpha = 1.0 and skin alpha = 1 - frac for SpongeBySurface" in:
     // At fractional level 1.25: nextLevel (L2) gets alpha=1.0, currentLevel skin gets alpha=0.75
     // Only the skin fades out; the sponge structure is always fully opaque
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 1.25f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 1.25f)
     val mesh = sponge.toTriangleMesh
 
     val stride = mesh.vertexStride
@@ -214,7 +214,7 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
 
   it should "set nextLevel alpha = 1.0 and skin alpha = 1 - frac for SpongeByVolume" in:
     // SpongeByVolume uses the same logic: at level 1.25, nextLevel alpha=1.0, skin alpha=0.75
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 1.25f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 1.25f)
     val mesh = sponge.toTriangleMesh
 
     val stride = mesh.vertexStride
@@ -228,8 +228,8 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
   // === Comparison Tests ===
 
   "SpongeByVolume vs SpongeBySurface" should "both support fractional levels" in:
-    val volume = SpongeByVolume(Vector3.Zero, 1f, level = 1.5f).toTriangleMesh
-    val surface = SpongeBySurface(Vector3.Zero, 1f, level = 1.5f).toTriangleMesh
+    val volume = SpongeByVolume(Vector.Zero[3], 1f, level = 1.5f).toTriangleMesh
+    val surface = SpongeBySurface(Vector.Zero[3], 1f, level = 1.5f).toTriangleMesh
 
     volume.vertexStride shouldBe 9
     surface.vertexStride shouldBe 9
@@ -237,8 +237,8 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
     surface.numTriangles should be > 0
 
   it should "generate different triangle counts at same level" in:
-    val volume = SpongeByVolume(Vector3.Zero, 1f, level = 1.5f).toTriangleMesh
-    val surface = SpongeBySurface(Vector3.Zero, 1f, level = 1.5f).toTriangleMesh
+    val volume = SpongeByVolume(Vector.Zero[3], 1f, level = 1.5f).toTriangleMesh
+    val surface = SpongeBySurface(Vector.Zero[3], 1f, level = 1.5f).toTriangleMesh
 
     // Volume-based generates more triangles than surface-based
     volume.numTriangles should be > surface.numTriangles
@@ -246,7 +246,7 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
   // === Edge Cases ===
 
   "Edge cases" should "handle level 0.5 correctly for SpongeByVolume" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 0.5f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 0.5f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 9
@@ -254,14 +254,14 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
     mesh.numTriangles should be > 0
 
   it should "handle level 0.5 correctly for SpongeBySurface" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 0.5f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 0.5f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertexStride shouldBe 9
     mesh.numTriangles should be > 0
 
   it should "not produce NaN vertices for SpongeByVolume" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1f, level = 1.5f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1f, level = 1.5f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertices.foreach { v =>
@@ -270,7 +270,7 @@ class FractionalLevelSpongeSuite extends AnyFlatSpec with Matchers:
     }
 
   it should "not produce NaN vertices for SpongeBySurface" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 1.5f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 1.5f)
     val mesh = sponge.toTriangleMesh
 
     mesh.vertices.foreach { v =>

@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -12,7 +12,7 @@ class Mesh4DProjectionSpec extends AnyFlatSpec with Matchers:
     val tesseract = Tesseract(size = 2.0f)
     val projection = Mesh4DProjection(
       mesh4D = tesseract,
-      center = Vector3(0f, 0f, 0f),
+      center = Vector[3](0f, 0f, 0f),
       eyeW = 3.0f,
       screenW = 1.5f
     )
@@ -40,7 +40,7 @@ class Mesh4DProjectionSpec extends AnyFlatSpec with Matchers:
 
   it should "translate mesh to specified center" in:
     val tesseract = Tesseract(size = 1.0f)
-    val center = Vector3(5f, -3f, 2f)
+    val center = Vector[3](5f, -3f, 2f)
     val projection = Mesh4DProjection(
       mesh4D = tesseract,
       center = center,
@@ -90,7 +90,7 @@ class Mesh4DProjectionSpec extends AnyFlatSpec with Matchers:
 
   "TesseractMesh factory" should "create Mesh4DProjection with tesseract" in:
     val mesh = TesseractMesh(
-      center = Vector3(0f, 0f, 0f),
+      center = Vector[3](0f, 0f, 0f),
       size = 2.0f,
       eyeW = 3.0f,
       screenW = 1.5f
@@ -117,7 +117,7 @@ class Mesh4DProjectionSpec extends AnyFlatSpec with Matchers:
 
   it should "maintain same API as original TesseractMesh" in:
     val mesh = TesseractMesh(
-      center = Vector3(1f, 2f, 3f),
+      center = Vector[3](1f, 2f, 3f),
       size = 2.5f,
       eyeW = 4.0f,
       screenW = 2.0f,
@@ -125,7 +125,7 @@ class Mesh4DProjectionSpec extends AnyFlatSpec with Matchers:
       rotYW = 20f,
       rotZW = 10f
     )
-    mesh.center shouldBe Vector3(1f, 2f, 3f)
+    mesh.center shouldBe Vector[3](1f, 2f, 3f)
     mesh.eyeW shouldBe 4.0f
     mesh.screenW shouldBe 2.0f
     mesh.rotXW shouldBe 30f
