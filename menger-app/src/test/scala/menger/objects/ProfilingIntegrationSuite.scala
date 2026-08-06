@@ -1,6 +1,6 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import menger.common.ProfilingConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -18,7 +18,7 @@ class ProfilingIntegrationSuite extends AnyFlatSpec with Matchers:
   "SpongeBySurface" should "propagate ProfilingConfig to child instances" in:
     given ProfilingConfig = ProfilingConfig.enabled(5)
 
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, 1.5f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, 1.5f)
 
     // Should be able to create the sponge with fractional level
     // which creates child SpongeBySurface instances internally

@@ -1,9 +1,12 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
 import menger.common.TriangleMeshData
 import menger.common.TriangleMeshSource
+import menger.common.Vector
 import menger.common.float2string
+import menger.common.x
+import menger.common.y
+import menger.common.z
 import menger.objects.Direction.Z
 
 // Menger Sponge Surface-Based Generator
@@ -25,7 +28,7 @@ import menger.objects.Direction.Z
 // (see FractionalLevelSponge.buildFractionalMesh for smooth LOD transitions).
 
 class SpongeBySurface(
-  val center: Vector3 = Vector3.Zero, val scale: Float = 1f,
+  val center: Vector[3] = Vector.Zero[3], val scale: Float = 1f,
   val level: Float
 )(using val profilingConfig: menger.common.ProfilingConfig) extends Geometry(center, scale) with FractionalLevelSponge with TriangleMeshSource:
   require(level >= 0, "Level must be non-negative")

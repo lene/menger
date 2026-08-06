@@ -1,6 +1,9 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -19,27 +22,27 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
   private val BYTES_PER_TRANSFORM = 48L
 
   "CubeSpongeGenerator" should "generate 1 cube at level 0" in:
-    val generator = CubeSpongeGenerator(Vector3.Zero, 1.0f, 0)
+    val generator = CubeSpongeGenerator(Vector.Zero[3], 1.0f, 0)
     val transforms = generator.generateTransforms
 
     transforms.length shouldBe LEVEL_0_CUBE_COUNT
-    transforms.head._1 shouldBe Vector3.Zero
+    transforms.head._1 shouldBe Vector.Zero[3]
     transforms.head._2 shouldBe 1.0f
 
   it should "generate 20 cubes at level 1" in:
-    val generator = CubeSpongeGenerator(Vector3.Zero, 1.0f, 1)
+    val generator = CubeSpongeGenerator(Vector.Zero[3], 1.0f, 1)
     val transforms = generator.generateTransforms
 
     transforms.length shouldBe LEVEL_1_CUBE_COUNT
 
   it should "generate 400 cubes at level 2" in:
-    val generator = CubeSpongeGenerator(Vector3.Zero, 1.0f, 2)
+    val generator = CubeSpongeGenerator(Vector.Zero[3], 1.0f, 2)
     val transforms = generator.generateTransforms
 
     transforms.length shouldBe LEVEL_2_CUBE_COUNT
 
   it should "generate 8000 cubes at level 3" in:
-    val generator = CubeSpongeGenerator(Vector3.Zero, 1.0f, 3)
+    val generator = CubeSpongeGenerator(Vector.Zero[3], 1.0f, 3)
     val transforms = generator.generateTransforms
 
     transforms.length shouldBe LEVEL_3_CUBE_COUNT
@@ -53,7 +56,7 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
     CubeSpongeGenerator(level = 5).cubeCount shouldBe LEVEL_5_CUBE_COUNT
 
   it should "generate cubes with correct subdivision pattern" in:
-    val generator = CubeSpongeGenerator(Vector3.Zero, 3.0f, 1)
+    val generator = CubeSpongeGenerator(Vector.Zero[3], 3.0f, 1)
     val transforms = generator.generateTransforms
 
     // At level 1, cubes should be at distance 1.0 from center (3.0 / 3 = 1.0)
@@ -66,7 +69,7 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
     }
 
   it should "not include face-center or origin cubes at level 1" in:
-    val generator = CubeSpongeGenerator(Vector3.Zero, 3.0f, 1)
+    val generator = CubeSpongeGenerator(Vector.Zero[3], 3.0f, 1)
     val transforms = generator.generateTransforms
 
     // Should not contain center cube
@@ -94,7 +97,7 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
     edgeCount shouldBe CUBE_EDGE_COUNT
 
   it should "respect custom center position" in:
-    val customCenter = Vector3(5.0f, 10.0f, -3.0f)
+    val customCenter = Vector[3](5.0f, 10.0f, -3.0f)
     val generator = CubeSpongeGenerator(customCenter, 1.0f, 0)
     val transforms = generator.generateTransforms
 
@@ -102,7 +105,7 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
 
   it should "respect custom size" in:
     val customSize = 2.5f
-    val generator = CubeSpongeGenerator(Vector3.Zero, customSize, 0)
+    val generator = CubeSpongeGenerator(Vector.Zero[3], customSize, 0)
     val transforms = generator.generateTransforms
 
     transforms.head._2 shouldBe customSize
@@ -124,7 +127,7 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
       CubeSpongeGenerator(size = -1.0f)
 
   it should "generate all unique positions" in:
-    val generator = CubeSpongeGenerator(Vector3.Zero, 1.0f, 2)
+    val generator = CubeSpongeGenerator(Vector.Zero[3], 1.0f, 2)
     val transforms = generator.generateTransforms
     val positions = transforms.map(_._1)
 
@@ -132,7 +135,7 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
     positions.distinct.length shouldBe positions.length
 
   it should "generate hierarchical scales at level 2" in:
-    val generator = CubeSpongeGenerator(Vector3.Zero, 9.0f, 2)
+    val generator = CubeSpongeGenerator(Vector.Zero[3], 9.0f, 2)
     val transforms = generator.generateTransforms
 
     // At level 2, smallest cubes should have scale 9.0 / 3 / 3 = 1.0

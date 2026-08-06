@@ -1,10 +1,10 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.ProfilingConfig
+import menger.common.Vector
 
-trait Geometry(center: Vector3 = Vector3.Zero, scale: Float = 1f) extends LazyLogging:
+trait Geometry(center: Vector[3] = Vector.Zero[3], scale: Float = 1f) extends LazyLogging:
   override def toString: String = getClass.getSimpleName
 
   inline def logTime[T](msg: String)(f: => T)(using config: ProfilingConfig): T =

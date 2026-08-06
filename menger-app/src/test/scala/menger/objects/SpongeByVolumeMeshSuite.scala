@@ -1,6 +1,6 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.tagobjects.Slow
@@ -8,31 +8,31 @@ import org.scalatest.tagobjects.Slow
 class SpongeByVolumeMeshSuite extends AnyFlatSpec with Matchers:
 
   "Cube.toTriangleMesh" should "generate a cube mesh with 12 triangles" in:
-    val cube = Cube(Vector3.Zero, 1.0f)
+    val cube = Cube(Vector.Zero[3], 1.0f)
     val mesh = cube.toTriangleMesh
     mesh.numTriangles shouldBe 12
     mesh.numVertices shouldBe 24
 
   "SpongeByVolume.toTriangleMesh" should "generate a single cube at level 0" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 0)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1.0f, level = 0)
     val mesh = sponge.toTriangleMesh
     mesh.numTriangles shouldBe 12
     mesh.numVertices shouldBe 24
 
   it should "generate exterior-only faces at level 1 (144 triangles after culling interior shared faces)" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 1)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1.0f, level = 1)
     val mesh = sponge.toTriangleMesh
     mesh.numTriangles shouldBe 144
     mesh.numVertices shouldBe 288
 
   it should "generate exterior-only faces at level 2 (2112 triangles after culling interior shared faces)" taggedAs Slow in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 2)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1.0f, level = 2)
     val mesh = sponge.toTriangleMesh
     mesh.numTriangles shouldBe 2112
     mesh.numVertices shouldBe 4224
 
   it should "position cubes correctly at level 1" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 3.0f, level = 1)
+    val sponge = SpongeByVolume(Vector.Zero[3], 3.0f, level = 1)
     val mesh = sponge.toTriangleMesh
     val stride = mesh.vertexStride
 
@@ -49,7 +49,7 @@ class SpongeByVolumeMeshSuite extends AnyFlatSpec with Matchers:
     zs.max should be > 0.9f
 
   it should "preserve proper normals for faces" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 0)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1.0f, level = 0)
     val mesh = sponge.toTriangleMesh
     val stride = mesh.vertexStride
 
@@ -61,14 +61,14 @@ class SpongeByVolumeMeshSuite extends AnyFlatSpec with Matchers:
       lengthSquared shouldBe 1.0f +- 0.01f
 
   it should "generate a mesh at fractional level 0.5" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 0.5f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1.0f, level = 0.5f)
     val mesh = sponge.toTriangleMesh
     mesh.numTriangles should be > 0
 
   it should "generate a mesh at fractional level 1.5" in:
-    val sponge = SpongeByVolume(Vector3.Zero, 1.0f, level = 1.5f)
+    val sponge = SpongeByVolume(Vector.Zero[3], 1.0f, level = 1.5f)
     val mesh = sponge.toTriangleMesh
     mesh.numTriangles should be > 0
 
   "SpongeByVolume.toString" should "include level" in:
-    SpongeByVolume(Vector3.Zero, 1.0f, level = 1).toString should include ("level=1")
+    SpongeByVolume(Vector.Zero[3], 1.0f, level = 1).toString should include ("level=1")

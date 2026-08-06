@@ -1,6 +1,6 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.tagobjects.Slow
@@ -26,25 +26,25 @@ class SpongeBySurfaceMeshSuite extends AnyFlatSpec with Matchers:
     mesh.numVertices shouldBe QUAD_VERTEX_COUNT
 
   "SpongeBySurface.toTriangleMesh" should "generate 12 triangles at level 0 (6 faces * 2 triangles)" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1.0f, level = 0)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1.0f, level = 0)
     val mesh = sponge.toTriangleMesh
     mesh.numTriangles shouldBe LEVEL_0_TRIANGLES
     mesh.numVertices shouldBe LEVEL_0_VERTICES
 
   it should "generate correct number of triangles at level 1" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1.0f, level = 1)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1.0f, level = 1)
     val mesh = sponge.toTriangleMesh
     mesh.numTriangles shouldBe LEVEL_1_TRIANGLES
     mesh.numVertices shouldBe LEVEL_1_VERTICES
 
   it should "generate correct number of triangles at level 2" taggedAs Slow in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1.0f, level = 2)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1.0f, level = 2)
     val mesh = sponge.toTriangleMesh
     mesh.numTriangles shouldBe LEVEL_2_TRIANGLES
     mesh.numVertices shouldBe LEVEL_2_VERTICES
 
   it should "position faces correctly at level 0" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 2.0f, level = 0)
+    val sponge = SpongeBySurface(Vector.Zero[3], 2.0f, level = 0)
     val mesh = sponge.toTriangleMesh
     val stride = mesh.vertexStride
 
@@ -61,7 +61,7 @@ class SpongeBySurfaceMeshSuite extends AnyFlatSpec with Matchers:
     zs.max should be > 0.9f
 
   it should "preserve proper normals for faces" in:
-    val sponge = SpongeBySurface(Vector3.Zero, 1.0f, level = 0)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1.0f, level = 0)
     val mesh = sponge.toTriangleMesh
     val stride = mesh.vertexStride
 

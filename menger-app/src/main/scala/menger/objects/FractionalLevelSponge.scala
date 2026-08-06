@@ -1,11 +1,11 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
 import menger.common.TriangleMeshData
+import menger.common.Vector
 
 
 trait FractionalLevelSponge:
-  def center: Vector3
+  def center: Vector[3]
   def scale: Float
   def level: Float
 

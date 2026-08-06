@@ -4,7 +4,6 @@ import scala.annotation.targetName
 import scala.math.pow
 import scala.math.signum
 
-import com.badlogic.gdx.math.Vector3
 import menger.common.Vector
 
 
@@ -22,13 +21,13 @@ case class Projection(eyeW: Float, screenW: Float):
   private def exponent(p: Projection): Double = pow(addExponent, signum(p.eyeW - eyeW))
 
   
-  def apply(point: Vector[4]): Vector3 =
+  def apply(point: Vector[4]): Vector[3] =
     val projectionFactor = (eyeW - screenW) / (eyeW - point(3))
-    Vector3(point(0) * projectionFactor, point(1) * projectionFactor, point(2) * projectionFactor)
+    Vector[3](point(0) * projectionFactor, point(1) * projectionFactor, point(2) * projectionFactor)
 
   
-  def apply(points: Seq[Vector[4]]): Seq[Vector3] = points.map(apply)
+  def apply(points: Seq[Vector[4]]): Seq[Vector[3]] = points.map(apply)
 
   def apply[V <: Int & Singleton](points: Face4D[V])(using ValueOf[V]): Face3D[V] =
-    val vectors: IndexedSeq[Vector3] = points.vertices.map(apply)
+    val vectors: IndexedSeq[Vector[3]] = points.vertices.map(apply)
     Face3D[V](vectors)
