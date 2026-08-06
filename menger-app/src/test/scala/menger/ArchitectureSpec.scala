@@ -84,6 +84,36 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
         .resideInAPackage("com.badlogic.gdx..")
       .check(allClasses)
 
+  "application layers outside input/engines" should "not depend on LibGDX" in:
+    import com.tngtech.archunit.base.DescribedPredicate
+    import com.tngtech.archunit.core.domain.JavaClass
+    // AD-23's containment boundary: LibGDX (windowing/input adapters, LWJGL lifecycle)
+    // is confined to menger.input and menger.engines. The files below carry accepted,
+    // tracked LibGDX debt outside that boundary — see CODE_IMPROVEMENTS.md
+    // (M-arch-libgdx-containment): CameraConfig/Vec3/CameraConverters/CliTypes/
+    // EnvironmentConverters/MengerCLIOptions/Vector3Extensions are the CameraConfig
+    // Vector3 cascade into 8 engine files (F10, deferred, sized separately);
+    // RenderState/OptiXRenderResources hold genuine GL primitives (Pixmap/Texture/
+    // SpriteBatch) with no common/JDK equivalent; Main.scala is the LWJGL app
+    // bootstrap. Matched by source file name — Scala 3 compiles `given`/top-level
+    // definitions to synthetic class names that aren't worth predicting here.
+    val deferredLibGdxFiles = Set(
+      "Main.scala", "CliTypes.scala", "CameraConverters.scala", "EnvironmentConverters.scala",
+      "CameraConfig.scala", "Vec3.scala", "MengerCLIOptions.scala", "OptiXRenderResources.scala",
+      "RenderState.scala", "Vector3Extensions.scala"
+    )
+    val isDeferredLibGdxFile: DescribedPredicate[JavaClass] =
+      new DescribedPredicate[JavaClass]("declared in a file with accepted LibGDX debt"):
+        override def test(clazz: JavaClass): Boolean =
+          val fileName = clazz.getSource.map[String](s => s.getFileName.orElse("")).orElse("")
+          deferredLibGdxFiles.contains(fileName)
+    noClasses().that()
+      .resideOutsideOfPackage("menger.input..")
+      .and().resideOutsideOfPackage("menger.engines..")
+      .and(DescribedPredicate.not(isDeferredLibGdxFile))
+      .should().dependOnClassesThat().resideInAPackage("com.badlogic.gdx..")
+      .check(allClasses)
+
   "optix-jni public API" should "not expose Scala-specific types in method signatures" in:
     import com.tngtech.archunit.lang.{ArchCondition, ConditionEvents, SimpleConditionEvent}
     import com.tngtech.archunit.core.domain.JavaMethod
