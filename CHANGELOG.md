@@ -18,6 +18,21 @@
 
 ### Changed
 
+- Sprint 35 Phase 4 (Task 4.12, finding F10): `objects/` (27 files) and the
+  `engines/scene/` call sites that construct its types migrated from LibGDX's
+  `Vector3` to `menger.common.Vector[3]` — the domain model no longer depends
+  on the windowing toolkit's math types. 5 `Color`-only files (`MaterialConfig`,
+  `cli/CliTypes`, `cli/converters/{Environment,Material}Converters`,
+  `ColorConversions`) migrated from LibGDX `Color` to `menger.common.Color`;
+  `MengerCLIOptions`' `--color`/`--face-color`/`--line-color` follow. Added a
+  real, active ArchUnit rule forbidding LibGDX outside `menger.input`/
+  `menger.engines` — AD-23 had described this rule since Sprint 20 without it
+  ever existing in code. The remaining `CameraConfig`/`Vec3`/`LightSpec`
+  cascade (camera position/lookAt/up, light position/normal, the camera and
+  light CLI converters, `MengerCLIOptions`' `cameraPos`/`cameraLookat`/
+  `cameraUp`) is migrated too, closing the exception list down to its 3
+  permanent GL-primitive members (`RenderState.scala`,
+  `OptiXRenderResources.scala`, `Main.scala`).
 - Sprint 35 Phase 4 (Task 4.4, finding F13): render-stats concern (per-frame
   logging, JSON formatting, file output) extracted from `InteractiveEngine` into
   a `WithStats` trait. InteractiveEngine drops ~70 lines (558 → ~490); the stats
@@ -28,6 +43,19 @@
 - Sprint 35 Phase 4 (Task 4.8, finding F15): `InteractiveEngine.warnIfHighLevel`
   now hard-rejects levels above `maxLevel` via `require()` instead of logging an
   error and proceeding — prevents O(20ⁿ) OOM/hang.
+
+### Removed
+
+- Sprint 35 Phase 4 (Task 4.12, finding F10): the dead LibGDX
+  `ModelInstance`/`ModelFactory`/`Builder` rendering-model path in `objects/`
+  (`getModel`, `Builder.scala`, `ModelFactory.scala`) — AD-16 (Sprint 17) had
+  already decided to remove this, but it was never actually deleted;
+  confirmed zero production callers and zero test coverage before removing.
+  Also removed: `Sphere.scala`, `Square.scala`, `Composite.scala`,
+  `FractionalLevelObject.scala`, `RectMesh.scala` and its
+  `higher_d/VertexInfo.scala`/`QuadInfo.scala` support types (existed only
+  to feed the deleted path), and the CLI's `composite[...]` `--sponge-type`
+  syntax (validated but never dispatched to a scene builder).
 
 ### Fixed
 
