@@ -33,11 +33,6 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
       val options = SafeMengerCLIOptions(Seq("--sponge-type", spongeType))
       options.spongeType() shouldEqual spongeType
 
-  it should "accept simple composites with 3D shapes" in:
-    for composite <- Seq("composite[cube,square]", "composite[cube]", "composite[square]") do
-      val options = SafeMengerCLIOptions(Seq("--sponge-type", composite))
-      options.spongeType() shouldEqual composite
-
   it should "reject nested composites with only 3D shapes" in:
     for composite <- Seq("composite[composite[cube,square],cube]", "composite[cube,composite[square]]") do
       an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--sponge-type", composite))

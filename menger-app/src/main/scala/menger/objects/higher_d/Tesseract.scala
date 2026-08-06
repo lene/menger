@@ -1,14 +1,10 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.g3d.Material
 import menger.common.Vector
-import menger.objects.Builder
 
 
 case class Tesseract(
-  size: Float = 1.0,
-  material: Material = Builder.WHITE_MATERIAL, primitiveType: Int = GL20.GL_TRIANGLES
+  size: Float = 1.0
 ) extends Mesh4D:
 
   type V = 4

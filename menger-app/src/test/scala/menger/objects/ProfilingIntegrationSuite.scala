@@ -10,11 +10,9 @@ class ProfilingIntegrationSuite extends AnyFlatSpec with Matchers:
   "Geometry objects" should "accept ProfilingConfig via using parameter" in:
     given ProfilingConfig = ProfilingConfig.disabled
 
-    // These should compile and instantiate without error
-    val square = Square()
+    // Should compile and instantiate without error
     val cube = Cube()
 
-    square shouldBe a[Square]
     cube shouldBe a[Cube]
 
   "SpongeBySurface" should "propagate ProfilingConfig to child instances" in:
@@ -26,29 +24,19 @@ class ProfilingIntegrationSuite extends AnyFlatSpec with Matchers:
     // which creates child SpongeBySurface instances internally
     sponge.level shouldBe 1.5f
 
-  "Composite" should "work with geometries having ProfilingConfig" in:
-    given ProfilingConfig = ProfilingConfig.disabled
-
-    val square = Square()
-    val cube = Cube()
-    val composite = Composite(geometries = List(square, cube))
-
-    composite.toString should include("Square")
-    composite.toString should include("Cube")
-
   "Different ProfilingConfigs" should "not interfere with each other in different scopes" in:
     val result1 = {
       given ProfilingConfig = ProfilingConfig.disabled
-      val s = Square()
-      s.toString
+      val c = Cube()
+      c.toString
     }
 
     val result2 = {
       given ProfilingConfig = ProfilingConfig.enabled(100)
-      val s = Square()
-      s.toString
+      val c = Cube()
+      c.toString
     }
 
     // Both should work correctly despite different configs
-    result1 shouldBe "Square"
-    result2 shouldBe "Square"
+    result1 shouldBe "Cube"
+    result2 shouldBe "Cube"

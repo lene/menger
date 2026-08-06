@@ -12,8 +12,6 @@ class LogTimeSuite extends AnyFlatSpec with Matchers:
     // Use AtomicInteger for thread-safe counting without var
     private val counter = java.util.concurrent.atomic.AtomicInteger(0)
 
-    override def getModel = Nil
-
     def timedOperation(delayMs: Int): String =
       logTime("test-operation") {
         val count = counter.incrementAndGet()
@@ -108,8 +106,6 @@ class LogTimeSuite extends AnyFlatSpec with Matchers:
     given ProfilingConfig = ProfilingConfig.disabled
 
     class NestedGeometry()(using config: ProfilingConfig) extends Geometry(Vector3.Zero, 1f):
-      override def getModel = Nil
-
       def outer(): Int =
         logTime("outer") {
           inner() + 10

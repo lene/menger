@@ -1,6 +1,5 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
 import menger.objects.Direction.X
 import menger.objects.Direction.Y
 import menger.objects.Direction.Z
@@ -228,60 +227,3 @@ class FaceSuite extends AnyFlatSpec with Matchers:
       val twiceSubdivided = face.subdivide().flatMap(_.subdivide())
       forAll(twiceSubdivided) {_.scale should be (1f / 9f) }
     }
-
-  "a face's vertices" should "have size 4" in:
-    forAll(Seq(X, Y, Z, -X, -Y, -Z)) { normal =>
-      val vertices = Face(0, 0, 0, 1, normal).vertices
-      vertices.size should be (4)
-    }
-
-  it should "be correct for +/-x normal" in:
-    forAll(Seq(X, -X)) { normal =>
-      val vertices = Face(0, 0, 0, 1, normal).vertices
-      vertices.toList.map(_.position) should contain only (
-        Vector3(0, -0.5f, -0.5f), Vector3(0, 0.5f, -0.5f),
-        Vector3(0, 0.5f, 0.5f), Vector3(0, -0.5f, 0.5f)
-      )
-    }
-
-  it should "be correct for +/-y normal" in:
-    forAll(Seq(Y, -Y)) { normal =>
-      val vertices = Face(0, 0, 0, 1, normal).vertices
-      vertices.toList.map(_.position) should contain only (
-        Vector3(-0.5f, 0, -0.5f), Vector3(0.5f, 0, -0.5f),
-        Vector3(0.5f, 0, 0.5f), Vector3(-0.5f, 0, 0.5f)
-      )
-    }
-
-  it should "be correct for +/-z normal" in:
-    forAll(Seq(Z, -Z)) { normal =>
-      val vertices = Face(0, 0, 0, 1, normal).vertices
-      vertices.toList.map(_.position) should contain only (
-        Vector3(-0.5f, -0.5f, 0), Vector3(0.5f, -0.5f, 0),
-        Vector3(0.5f, 0.5f, 0), Vector3(-0.5f, 0.5f, 0)
-      )
-    }
-
-  "vertices of a face" should "be correct for different sizes" in:
-    forAll (Seq(1f, 2f, 1e9f, 0.1f, 1e-9f)) { size =>
-      val vertices = Face(0, 0, 0, size, X).vertices
-      val half = size / 2
-      vertices.toList.map(_.position) should contain only(
-        Vector3(0, -half, -half), Vector3(0, half, -half),
-        Vector3(0, half, half), Vector3(0, -half, half)
-      )
-    }
-
-  forAll(Seq(
-    ( 0f, 0f, 1f), ( 0f, 1f,  0f), ( 1f,  0f, 0f), ( 0f,  0f, -1f), (0f, -1f, 0f), (-1f, 0f, 0f),
-    ( 1f, 1f, 1f), ( 1f, 1f, -1f), ( 1f, -1f, 1f), ( 1f, -1f, -1f),
-    (-1f, 1f, 1f), (-1f, 1f, -1f), (-1f, -1f, 1f), (-1f, -1f, -1f)
-  )) { case (xCen, yCen, zCen) =>
-    it should s"be correct for center <$xCen, $yCen, $zCen>" in:
-      val half = 0.5f
-      val vertices = Face(xCen, yCen, zCen, 1, X).vertices
-      vertices.toList.map(_.position) should contain only (
-        Vector3(xCen, yCen - half, zCen - half), Vector3(xCen, yCen + half, zCen - half),
-        Vector3(xCen, yCen + half, zCen + half), Vector3(xCen, yCen - half, zCen + half)
-      )
-  }

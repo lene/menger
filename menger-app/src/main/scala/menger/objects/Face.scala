@@ -2,7 +2,6 @@ package menger.objects
 
 import scala.math.abs
 
-import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder.VertexInfo
 import menger.common.TriangleMeshData
 import menger.common.TriangleMeshSource
 import menger.common.Vec3
@@ -30,21 +29,8 @@ import menger.objects.Direction.Z
 case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Direction)
     extends TriangleMeshSource:
 
-  private type QuadInfo = (VertexInfo, VertexInfo, VertexInfo, VertexInfo)
-
   def subdivide(): Seq[Face] =
     unrotatedSubFaces ++ rotatedSubFaces
-
-  lazy val vertices: QuadInfo =
-    val half = scale / 2
-    normal match
-      case X | Direction.negX => createVertices((0, -half, -half), (0, -half, half), (0, half, half), (0, half, -half))
-      case Y | Direction.negY => createVertices((-half, 0, -half), (half, 0, -half), (half, 0, half), (-half, 0, half))
-      case Z | Direction.negZ => createVertices((-half, -half, 0), (half, -half, 0), (half, half, 0), (-half, half, 0))
-
-  private def createVertices(offsets: Vec3[Float]*): QuadInfo =
-    offsets.map { case (dx, dy, dz) => VertexInfo().setPos(xCen + dx, yCen + dy, zCen + dz) } match
-      case Seq(v1, v2, v3, v4) => (v1, v2, v3, v4)
 
   def toTriangleMesh: TriangleMeshData =
     val half = scale / 2
