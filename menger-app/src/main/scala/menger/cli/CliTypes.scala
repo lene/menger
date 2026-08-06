@@ -1,7 +1,7 @@
 package menger.cli
 
-import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
+import menger.common.Color
 
 // Domain types moved to menger.common — re-exported here for backward compatibility
 // within the cli package (converters, CliValidation, etc. use unqualified names).
@@ -31,7 +31,7 @@ object LightSpec:
   /** Convert CLI LightSpec to menger.common.Light. */
   def toCommonLight(spec: LightSpec): menger.common.Light =
     val pos   = menger.common.Vector[3](spec.position.x, spec.position.y, spec.position.z)
-    val clr   = menger.common.Color(spec.color.r, spec.color.g, spec.color.b, spec.color.a)
+    val clr   = spec.color
     spec.lightType match
       case LightType.DIRECTIONAL =>
         menger.common.Light.Directional(pos, clr, spec.intensity)
@@ -50,14 +50,14 @@ object LightSpec:
           LightType.DIRECTIONAL,
           new Vector3(direction(0), direction(1), direction(2)),
           intensity,
-          new Color(clr.r, clr.g, clr.b, clr.a)
+          clr
         )
       case menger.common.Light.Point(position, clr, intensity) =>
         LightSpec(
           LightType.POINT,
           new Vector3(position(0), position(1), position(2)),
           intensity,
-          new Color(clr.r, clr.g, clr.b, clr.a)
+          clr
         )
       case menger.common.Light.Area(position, normal, radius, shape, clr, intensity, samples) =>
         val cliShape = shape match
@@ -66,7 +66,7 @@ object LightSpec:
           LightType.AREA,
           new Vector3(position(0), position(1), position(2)),
           intensity,
-          new Color(clr.r, clr.g, clr.b, clr.a),
+          clr,
           normal = new Vector3(normal(0), normal(1), normal(2)),
           radius = radius,
           shape = cliShape,

@@ -1,6 +1,6 @@
 package menger.config
 
-import com.badlogic.gdx.graphics.Color
+import menger.common.Color
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -9,11 +9,11 @@ class MaterialConfigSuite extends AnyFlatSpec with Matchers:
 
   "MaterialConfig case class" should "have sensible defaults" in:
     val config = MaterialConfig()
-    config.color shouldBe Color.WHITE
+    config.color shouldBe Color(1f, 1f, 1f)
     config.ior shouldBe 1.5f
 
   it should "allow custom color" in:
-    val customColor = new Color(0.5f, 0.3f, 0.7f, 1.0f)
+    val customColor = Color(0.5f, 0.3f, 0.7f, 1.0f)
     val config = MaterialConfig(color = customColor)
     config.color shouldBe customColor
 
@@ -22,7 +22,7 @@ class MaterialConfigSuite extends AnyFlatSpec with Matchers:
     config.ior shouldBe 2.42f
 
   "MaterialConfig.Default" should "have same values as default constructor" in:
-    MaterialConfig.Default.color shouldBe Color.WHITE
+    MaterialConfig.Default.color shouldBe Color(1f, 1f, 1f)
     MaterialConfig.Default.ior shouldBe 1.5f
 
   "MaterialConfig.Glass preset" should "have low alpha for transparency" in:
@@ -35,13 +35,13 @@ class MaterialConfigSuite extends AnyFlatSpec with Matchers:
     MaterialConfig.Diamond.ior shouldBe 2.42f
 
   it should "have white color" in:
-    MaterialConfig.Diamond.color shouldBe Color.WHITE
+    MaterialConfig.Diamond.color shouldBe Color(1f, 1f, 1f)
 
   "MaterialConfig.Mirror preset" should "have IOR of 1.0 (no refraction)" in:
     MaterialConfig.Mirror.ior shouldBe 1.0f
 
   it should "have white color" in:
-    MaterialConfig.Mirror.color shouldBe Color.WHITE
+    MaterialConfig.Mirror.color shouldBe Color(1f, 1f, 1f)
 
   "MaterialConfig.Water preset" should "have water IOR (1.33)" in:
     MaterialConfig.Water.ior shouldBe 1.33f
@@ -75,9 +75,9 @@ class MaterialConfigSuite extends AnyFlatSpec with Matchers:
     config.ior shouldBe 100.0f
 
   it should "work with fully transparent color (alpha = 0)" in:
-    val config = MaterialConfig(color = new Color(1f, 1f, 1f, 0f))
+    val config = MaterialConfig(color = Color(1f, 1f, 1f, 0f))
     config.color.a shouldBe 0f
 
   it should "work with fully opaque color (alpha = 1)" in:
-    val config = MaterialConfig(color = new Color(1f, 1f, 1f, 1f))
+    val config = MaterialConfig(color = Color(1f, 1f, 1f, 1f))
     config.color.a shouldBe 1f

@@ -1,6 +1,6 @@
 package menger.cli
 
-import com.badlogic.gdx.graphics.Color
+import menger.common.Color
 import com.badlogic.gdx.math.Vector3
 import menger.cli.LightType
 import org.rogach.scallop.exceptions.ScallopException
@@ -21,7 +21,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     lights.head.lightType shouldBe LightType.DIRECTIONAL
     lights.head.position shouldEqual Vector3(1.0f, 2.0f, 3.0f)
     lights.head.intensity shouldEqual 1.0f
-    lights.head.color shouldEqual Color.WHITE
+    lights.head.color shouldEqual Color(1f, 1f, 1f)
 
   it should "parse a single point light with position only" in:
     val opts = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--light", "point:0.0,-5.0,10.0"))
@@ -31,7 +31,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     lights.head.lightType shouldBe LightType.POINT
     lights.head.position shouldEqual Vector3(0.0f, -5.0f, 10.0f)
     lights.head.intensity shouldEqual 1.0f
-    lights.head.color shouldEqual Color.WHITE
+    lights.head.color shouldEqual Color(1f, 1f, 1f)
 
   it should "parse a directional light with intensity" in:
     val opts = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--light", "directional:-1.0,1.0,-1.0:2.5"))
@@ -40,7 +40,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     lights.head.lightType shouldBe LightType.DIRECTIONAL
     lights.head.position shouldEqual Vector3(-1.0f, 1.0f, -1.0f)
     lights.head.intensity shouldEqual 2.5f
-    lights.head.color shouldEqual Color.WHITE
+    lights.head.color shouldEqual Color(1f, 1f, 1f)
 
   it should "parse a point light with intensity" in:
     val opts = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--light", "point:0.0,5.0,0.0:0.5"))
@@ -49,7 +49,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     lights.head.lightType shouldBe LightType.POINT
     lights.head.position shouldEqual Vector3(0.0f, 5.0f, 0.0f)
     lights.head.intensity shouldEqual 0.5f
-    lights.head.color shouldEqual Color.WHITE
+    lights.head.color shouldEqual Color(1f, 1f, 1f)
 
   it should "parse a light with hex color (no intensity)" in:
     val opts = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--light", "directional:1.0,0.0,0.0::ff0000"))
@@ -57,7 +57,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     lights should have size 1
     lights.head.lightType shouldBe LightType.DIRECTIONAL
     lights.head.intensity shouldEqual 1.0f
-    lights.head.color shouldEqual Color.valueOf("ff0000")
+    lights.head.color shouldEqual Color.fromHex("ff0000")
 
   it should "parse a light with intensity and hex color" in:
     val opts = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--light", "point:0.0,5.0,0.0:2.0:00ff00"))
@@ -65,7 +65,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     lights should have size 1
     lights.head.lightType shouldBe LightType.POINT
     lights.head.intensity shouldEqual 2.0f
-    lights.head.color shouldEqual Color.valueOf("00ff00")
+    lights.head.color shouldEqual Color.fromHex("00ff00")
 
   it should "parse a light with intensity and RGB color" in:
     val opts = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--light", "directional:0.0,1.0,0.0:1.5:255,0,0"))
