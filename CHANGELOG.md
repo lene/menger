@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.8.11] - 2026-08-06
+
+Sprint 35 (Native Seam Remediation), Task 4.12 / Finding F10.
+
+### Changed
+
+- `objects/` (27 files) and the `engines/scene/` call sites that construct its types migrated
+  from LibGDX's `Vector3` to `menger.common.Vector[3]` — the domain model no longer depends on
+  the windowing toolkit's math types.
+- 5 `Color`-only files (`MaterialConfig`, `cli/CliTypes`, `cli/converters/{Environment,Material}Converters`,
+  `ColorConversions`) migrated from LibGDX `Color` to `menger.common.Color`; `MengerCLIOptions`'
+  `--color`/`--face-color`/`--line-color` follow.
+- Added a real, active ArchUnit rule forbidding LibGDX outside `menger.input`/`menger.engines`
+  (with a tracked exception list for the remaining `CameraConfig`/`Vec3` `Vector3` cascade) —
+  AD-23 had described this rule since Sprint 20 without it ever existing in code.
+
+### Removed
+
+- The dead LibGDX `ModelInstance`/`ModelFactory`/`Builder` rendering-model path in `objects/`
+  (`getModel`, `Builder.scala`, `ModelFactory.scala`) — AD-16 (Sprint 17) had already decided to
+  remove this, but it was never actually deleted; confirmed zero production callers and zero
+  test coverage before removing. Also removed: `Sphere.scala`, `Square.scala`, `Composite.scala`,
+  `FractionalLevelObject.scala`, `RectMesh.scala` and its `higher_d/VertexInfo.scala`/`QuadInfo.scala`
+  support types (existed only to feed the deleted path), and the CLI's `composite[...]`
+  `--sponge-type` syntax (validated but never dispatched to a scene builder).
+
 ## [0.8.6] - 2026-08-02
 
 Sprint 35 (Native Seam Remediation), Phases 1-2:
