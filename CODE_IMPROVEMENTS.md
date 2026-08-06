@@ -328,3 +328,15 @@ migration — the only hits are the CLI options' own declarations; `Main.scala` 
 Legacy from a pre-OptiX render path (AD-16). Only `CLIOptionsSuite.scala` exercises the parsed
 values. **Fix**: confirm via `get_risk`/grep for any indirect consumer, then delete the three
 options and their converter wiring in `MaterialConverters.scala`. Low priority, small (~1h).
+
+### 3. `Project4DGpuSuite`'s "update vs rebuild" test is a zero-tolerance timing comparison
+Added to `docs/TESTING.md`'s Flaky test policy table (2026-08-06) per that policy's own
+requirement. `updateMs should be < rebuildMs` compares two `measureMs` blocks timed back-to-back
+in the same process, no warm-up, no tolerance. Confirmed flaky the same day: failed on a full
+`sbt test` run (`update=70.9ms, rebuild=62.2ms`) then passed 3/3 immediately-following isolated
+reruns (`update≈3ms, rebuild≈52-79ms`, the healthy margin) — same commit, no code change between
+runs. Same root cause as the PerfCheck single-shot-variance finding (thermal/load-dependent GPU
+timing on the shared laptop), different test surface (in-suite ScalaTest assertion vs. the CI
+benchmark script). **Fix**: add a tolerance factor or average over multiple trials, same as the
+proposed PerfCheck fix. Medium priority — real, demonstrated flakiness, not yet load-bearing on
+anyone's push twice.
