@@ -1,11 +1,11 @@
 package menger
 
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.math.Vector3
 import menger.common.Axis
 import menger.common.PlaneSpec
 import menger.config.PlaneConfig
 import menger.common.Const
+import menger.common.Vector
 import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
 import menger.config.ExecutionConfig
@@ -41,9 +41,9 @@ class InteractiveEngineSuite extends AnyFlatSpec with Matchers:
     OptiXEngineConfig(
       scene = SceneConfig(objectSpecs = Some(objectSpec)),
       camera = CameraConfig(
-        position = Vector3(0f, 0.5f, Const.defaultCameraZDistance),
-        lookAt = Vector3(0f, 0f, 0f),
-        up = Vector3(0f, 1f, 0f)
+        position = Vector[3](0f, 0.5f, Const.defaultCameraZDistance),
+        lookAt = Vector[3](0f, 0f, 0f),
+        up = Vector[3](0f, 1f, 0f)
       ),
       environment = EnvironmentConfig(
         planes = List(

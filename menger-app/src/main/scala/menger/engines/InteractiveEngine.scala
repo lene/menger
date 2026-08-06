@@ -13,7 +13,6 @@ import io.github.lene.optix.TextureUploadException
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.RotationProjectionParameters
-import menger.Vector3Extensions.toVector3
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
@@ -31,6 +30,8 @@ import menger.input.Observer
 import menger.input.OptiXCameraHandler
 import menger.input.OptiXInputMultiplexer
 import menger.input.OptiXKeyHandler
+import menger.input.Vector3Extensions.toGdxVector3
+import menger.input.Vector3Extensions.toVector3
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
@@ -112,18 +113,19 @@ class InteractiveEngine(
     new AtomicReference(Scene4DCache.Empty)
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    camera.position.toVector3,
-    camera.lookAt.toVector3,
-    camera.up.toVector3,
+    camera.position,
+    camera.lookAt,
+    camera.up,
     environment.lights.toArray
   )
 
   override protected val cameraState: CameraState =
-    CameraState(camera.position.toVector3, camera.lookAt.toVector3, camera.up.toVector3)
+    CameraState(camera.position, camera.lookAt, camera.up)
 
   private lazy val cameraController: OptiXCameraHandler =
     OptiXCameraHandler(rendererWrapper, cameraState, renderResources,
-      camera.position, camera.lookAt, camera.up, eventDispatcher)
+      camera.position.toGdxVector3, camera.lookAt.toGdxVector3, camera.up.toGdxVector3,
+      eventDispatcher)
 
   // Handle rotation/projection events from keyboard and mouse
   override def handleEvent(event: RotationProjectionParameters): Unit =

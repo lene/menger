@@ -3,7 +3,6 @@ package menger
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
-import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.cli.CliValidation
 import menger.cli.FogSpec
@@ -25,6 +24,7 @@ import menger.common.Const
 import menger.common.ObjectType
 import menger.common.RenderConfig
 import menger.common.RenderLimits
+import menger.common.Vector
 import menger.config.CrossConfig
 import menger.dsl.DenoiseMode
 import org.rogach.scallop._
@@ -299,16 +299,16 @@ class MengerCLIOptions(arguments: Seq[String])
   )(using objectSpecConverter)
 
   // === OptiX Camera Options ===
-  val cameraPos: ScallopOption[Vector3] = opt[Vector3](
-    required = false, default = Some(Vector3(0f, 0.5f, 3.0f)), group = optixCameraGroup,
+  val cameraPos: ScallopOption[Vector[3]] = opt[Vector[3]](
+    required = false, default = Some(Vector[3](0f, 0.5f, 3.0f)), group = optixCameraGroup,
     descr = "Camera position (x,y,z)"
   )(using vector3Converter)
-  val cameraLookat: ScallopOption[Vector3] = opt[Vector3](
-    required = false, default = Some(Vector3(0f, 0f, 0f)), group = optixCameraGroup,
+  val cameraLookat: ScallopOption[Vector[3]] = opt[Vector[3]](
+    required = false, default = Some(Vector[3](0f, 0f, 0f)), group = optixCameraGroup,
     descr = "Camera look-at target (x,y,z)"
   )(using vector3Converter)
-  val cameraUp: ScallopOption[Vector3] = opt[Vector3](
-    required = false, default = Some(Vector3(0f, 1f, 0f)), group = optixCameraGroup,
+  val cameraUp: ScallopOption[Vector[3]] = opt[Vector[3]](
+    required = false, default = Some(Vector[3](0f, 1f, 0f)), group = optixCameraGroup,
     descr = "Camera up vector (x,y,z)"
   )(using vector3Converter)
 

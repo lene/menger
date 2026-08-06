@@ -40,8 +40,8 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
     specs(0).material shouldBe defined
 
     // Verify camera is properly configured
-    cameraConfig.position.z shouldBe 3f
-    cameraConfig.lookAt.z shouldBe 0f
+    cameraConfig.position(2) shouldBe 3f
+    cameraConfig.lookAt(2) shouldBe 0f
 
   it should "create a multi-object scene with various materials" in:
     val scene = Scene(
@@ -200,9 +200,9 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
     specs should have length 4
 
     // Verify camera setup
-    cameraConfig.position.x shouldBe 5f
-    cameraConfig.position.y shouldBe 5f
-    cameraConfig.position.z shouldBe 5f
+    cameraConfig.position(0) shouldBe 5f
+    cameraConfig.position(1) shouldBe 5f
+    cameraConfig.position(2) shouldBe 5f
 
     // Verify lights are configured
     scene.lights should have length 3

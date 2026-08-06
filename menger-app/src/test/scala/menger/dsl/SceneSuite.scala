@@ -80,12 +80,12 @@ class SceneSuite extends AnyFlatSpec with Matchers:
     val scene = Scene(camera, sphere)
     val cameraConfig = cameraConf(scene)
 
-    cameraConfig.position.x shouldBe 1f
-    cameraConfig.position.y shouldBe 2f
-    cameraConfig.position.z shouldBe 3f
-    cameraConfig.lookAt.x shouldBe 4f
-    cameraConfig.lookAt.y shouldBe 5f
-    cameraConfig.lookAt.z shouldBe 6f
+    cameraConfig.position(0) shouldBe 1f
+    cameraConfig.position(1) shouldBe 2f
+    cameraConfig.position(2) shouldBe 3f
+    cameraConfig.lookAt(0) shouldBe 4f
+    cameraConfig.lookAt(1) shouldBe 5f
+    cameraConfig.lookAt(2) shouldBe 6f
 
   "Scene with sponges" should "convert correctly" in:
     val sponge = Sponge(VolumeFilling, level = 2f, Material.Chrome)

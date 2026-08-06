@@ -300,36 +300,14 @@ Changed: `objects/` (27 files), `engines/scene/` call sites, `MaterialConfig.sca
 
 ## New findings
 
-### 1. `M-arch-libgdx-containment` — CameraConfig/Vec3 Vector3 cascade is the containment rule's
-### one remaining real gap
-`dsl/Vec3.scala`, `config/CameraConfig.scala`, `cli/converters/CameraConverters.scala`,
-`cli/CliTypes.scala` (`LightSpec.position`/`normal`), `cli/converters/EnvironmentConverters.scala`
-(the light-position parsing branch), `Vector3Extensions.scala`, and `MengerCLIOptions.scala`'s
-`cameraPos`/`cameraLookat`/`cameraUp` fields all still carry `com.badlogic.gdx.math.Vector3` — the
-new ArchUnit rule (`ArchitectureSpec`, added this task) lists them as an explicit, named exception
-so the rule can be active now instead of `ignore`d. Reason it wasn't folded into this task:
-`CameraConfig`'s GDX `Vector3` fields fan out through `Vector3Extensions.toVector3` into 30+ call
-sites across 8 engine files (`AnimationEngine`, `CliAnimationEngine`, `InteractiveEngine`,
-`PreviewEngine`, `VideoEngine`, `WithAnimation`, `WithPreview`, `OptiXCameraHandler`) — a migration
-on the order of this whole task, not an opportunistic extra. **Fix**: migrate `CameraConfig`,
-`Vec3`, and the 8 engine files together as one follow-up (the exception list above is exactly its
-scope); menger-common's `Vector[3]` already covers the needed API. Medium priority — not a defect,
-but the last piece of F10.
-
-Not migration candidates, kept in the exception list permanently: `RenderState.scala`
-(`Pixmap`/`Texture`, the CPU-frame-to-GPU-texture upload path) and `OptiXRenderResources.scala`
-(`SpriteBatch`, the screen-blit) hold genuine GL primitives with no common/JDK equivalent;
-`Main.scala` is the LWJGL application-lifecycle bootstrap. All three are input/engines-adjacent
-rendering-boundary code, not domain-model leakage.
-
-### 2. `MengerCLIOptions.color`/`faceColor`/`lineColor` appear dead downstream of `Main.scala`
+### 1. `MengerCLIOptions.color`/`faceColor`/`lineColor` appear dead downstream of `Main.scala`
 Traced every call site of `.color(`/`.faceColor(`/`.lineColor(` in `src/main` during the F10
 migration — the only hits are the CLI options' own declarations; `Main.scala` never reads them.
 Legacy from a pre-OptiX render path (AD-16). Only `CLIOptionsSuite.scala` exercises the parsed
 values. **Fix**: confirm via `get_risk`/grep for any indirect consumer, then delete the three
 options and their converter wiring in `MaterialConverters.scala`. Low priority, small (~1h).
 
-### 3. `Project4DGpuSuite`'s "update vs rebuild" test is a zero-tolerance timing comparison
+### 2. `Project4DGpuSuite`'s "update vs rebuild" test is a zero-tolerance timing comparison
 Added to `docs/TESTING.md`'s Flaky test policy table (2026-08-06) per that policy's own
 requirement. `updateMs should be < rebuildMs` compares two `measureMs` blocks timed back-to-back
 in the same process, no warm-up, no tolerance. Confirmed flaky the same day: failed on a full

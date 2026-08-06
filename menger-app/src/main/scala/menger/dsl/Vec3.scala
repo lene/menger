@@ -1,6 +1,5 @@
 package menger.dsl
 
-import com.badlogic.gdx.math.{Vector3 => GdxVector3}
 import menger.common.Vector
 
 /** 3D vector for DSL with convenient tuple conversions */
@@ -18,7 +17,6 @@ case class Vec3(x: Float, y: Float, z: Float):
   def normalize: Vec3 =
     val mag = magnitude
     if mag > 0f then this * (1f / mag) else Vec3.Zero
-  def toGdxVector3: GdxVector3 = GdxVector3(x, y, z)
   def toCommonVector: Vector[3] = Vector[3](x, y, z)
 
 object Vec3:

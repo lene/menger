@@ -1,7 +1,7 @@
 package menger.cli
 
 import menger.common.Color
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import menger.cli.LightType
 import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
@@ -19,7 +19,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     val lights = opts.light()
     lights should have size 1
     lights.head.lightType shouldBe LightType.DIRECTIONAL
-    lights.head.position shouldEqual Vector3(1.0f, 2.0f, 3.0f)
+    lights.head.position shouldEqual Vector[3](1.0f, 2.0f, 3.0f)
     lights.head.intensity shouldEqual 1.0f
     lights.head.color shouldEqual Color(1f, 1f, 1f)
 
@@ -29,7 +29,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     val lights = opts.light()
     lights should have size 1
     lights.head.lightType shouldBe LightType.POINT
-    lights.head.position shouldEqual Vector3(0.0f, -5.0f, 10.0f)
+    lights.head.position shouldEqual Vector[3](0.0f, -5.0f, 10.0f)
     lights.head.intensity shouldEqual 1.0f
     lights.head.color shouldEqual Color(1f, 1f, 1f)
 
@@ -38,7 +38,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     val lights = opts.light()
     lights should have size 1
     lights.head.lightType shouldBe LightType.DIRECTIONAL
-    lights.head.position shouldEqual Vector3(-1.0f, 1.0f, -1.0f)
+    lights.head.position shouldEqual Vector[3](-1.0f, 1.0f, -1.0f)
     lights.head.intensity shouldEqual 2.5f
     lights.head.color shouldEqual Color(1f, 1f, 1f)
 
@@ -47,7 +47,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     val lights = opts.light()
     lights should have size 1
     lights.head.lightType shouldBe LightType.POINT
-    lights.head.position shouldEqual Vector3(0.0f, 5.0f, 0.0f)
+    lights.head.position shouldEqual Vector[3](0.0f, 5.0f, 0.0f)
     lights.head.intensity shouldEqual 0.5f
     lights.head.color shouldEqual Color(1f, 1f, 1f)
 
@@ -85,9 +85,9 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     val lights = opts.light()
     lights should have size 2
     lights(0).lightType shouldBe LightType.DIRECTIONAL
-    lights(0).position shouldEqual Vector3(1.0f, 0.0f, 0.0f)
+    lights(0).position shouldEqual Vector[3](1.0f, 0.0f, 0.0f)
     lights(1).lightType shouldBe LightType.POINT
-    lights(1).position shouldEqual Vector3(0.0f, 5.0f, 0.0f)
+    lights(1).position shouldEqual Vector[3](0.0f, 5.0f, 0.0f)
     lights(1).intensity shouldEqual 2.0f
 
   it should "parse up to 8 lights" in:
@@ -125,7 +125,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
   it should "accept negative position values" in:
     val opts = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--light", "directional:-1.0,-2.0,-3.0"))
     val lights = opts.light()
-    lights.head.position shouldEqual Vector3(-1.0f, -2.0f, -3.0f)
+    lights.head.position shouldEqual Vector[3](-1.0f, -2.0f, -3.0f)
 
   it should "accept negative intensity values" in:
     val opts = SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--light", "directional:1.0,0.0,0.0:-0.5"))
@@ -150,7 +150,7 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     )
     val spec = LightSpec.fromCommonLight(light)
     spec.lightType shouldBe LightType.DIRECTIONAL
-    spec.position shouldEqual Vector3(1f, -1f, -1f)
+    spec.position shouldEqual Vector[3](1f, -1f, -1f)
     spec.intensity shouldEqual 1.5f
 
   it should "convert a Point light" in:
@@ -159,5 +159,5 @@ class LightCLIOptionsSuite extends AnyFlatSpec with Matchers:
     )
     val spec = LightSpec.fromCommonLight(light)
     spec.lightType shouldBe LightType.POINT
-    spec.position shouldEqual Vector3(0f, 5f, 0f)
+    spec.position shouldEqual Vector[3](0f, 5f, 0f)
     spec.intensity shouldEqual 2.0f

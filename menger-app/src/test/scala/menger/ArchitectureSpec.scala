@@ -88,19 +88,15 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
     import com.tngtech.archunit.base.DescribedPredicate
     import com.tngtech.archunit.core.domain.JavaClass
     // AD-23's containment boundary: LibGDX (windowing/input adapters, LWJGL lifecycle)
-    // is confined to menger.input and menger.engines. The files below carry accepted,
-    // tracked LibGDX debt outside that boundary — see CODE_IMPROVEMENTS.md
-    // (M-arch-libgdx-containment): CameraConfig/Vec3/CameraConverters/CliTypes/
-    // EnvironmentConverters/MengerCLIOptions/Vector3Extensions are the CameraConfig
-    // Vector3 cascade into 8 engine files (F10, deferred, sized separately);
-    // RenderState/OptiXRenderResources hold genuine GL primitives (Pixmap/Texture/
-    // SpriteBatch) with no common/JDK equivalent; Main.scala is the LWJGL app
-    // bootstrap. Matched by source file name — Scala 3 compiles `given`/top-level
-    // definitions to synthetic class names that aren't worth predicting here.
+    // is confined to menger.input and menger.engines. The CameraConfig/Vec3 Vector3
+    // cascade (F10, M-arch-libgdx-containment) is fully migrated — the exception list
+    // is down to its permanent members: RenderState/OptiXRenderResources hold genuine
+    // GL primitives (Pixmap/Texture/SpriteBatch) with no common/JDK equivalent;
+    // Main.scala is the LWJGL app bootstrap. Matched by source file name — Scala 3
+    // compiles `given`/top-level definitions to synthetic class names that aren't
+    // worth predicting here.
     val deferredLibGdxFiles = Set(
-      "Main.scala", "CliTypes.scala", "CameraConverters.scala", "EnvironmentConverters.scala",
-      "CameraConfig.scala", "Vec3.scala", "MengerCLIOptions.scala", "OptiXRenderResources.scala",
-      "RenderState.scala", "Vector3Extensions.scala"
+      "Main.scala", "OptiXRenderResources.scala", "RenderState.scala"
     )
     val isDeferredLibGdxFile: DescribedPredicate[JavaClass] =
       new DescribedPredicate[JavaClass]("declared in a file with accepted LibGDX debt"):

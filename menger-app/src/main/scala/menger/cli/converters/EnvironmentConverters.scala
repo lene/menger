@@ -2,7 +2,6 @@ package menger.cli.converters
 
 import scala.util.Try
 
-import com.badlogic.gdx.math.Vector3
 import menger.ColorConversions
 import menger.cli.AreaLightShape
 import menger.cli.Axis
@@ -12,6 +11,7 @@ import menger.cli.PlaneColorSpec
 import menger.cli.PlaneSpec
 import menger.cli.converters.ConverterUtils.unwrapTryEither
 import menger.common.Color
+import menger.common.Vector
 import org.rogach.scallop.ArgType
 import org.rogach.scallop.ValueConverter
 
@@ -140,7 +140,7 @@ given lightSpecConverter: ValueConverter[List[LightSpec]] with
       val lightType = typeStr.toLowerCase match
         case "directional" => LightType.DIRECTIONAL
         case "point" => LightType.POINT
-      val position = Vector3(x.toFloat, y.toFloat, z.toFloat)
+      val position = Vector[3](x.toFloat, y.toFloat, z.toFloat)
       val intensity = Option(intensityStr).filter(_.nonEmpty).map(_.toFloat).getOrElse(1.0f)
       val color = Option(colorStr).map(parseColor).getOrElse(Color(1f, 1f, 1f))
       LightSpec(lightType, position, intensity, color)
@@ -166,8 +166,8 @@ given lightSpecConverter: ValueConverter[List[LightSpec]] with
   ): Either[String, LightSpec] =
     for
       coords <- Try {
-        val position = Vector3(px.toFloat, py.toFloat, pz.toFloat)
-        val normal = Vector3(nx.toFloat, ny.toFloat, nz.toFloat)
+        val position = Vector[3](px.toFloat, py.toFloat, pz.toFloat)
+        val normal = Vector[3](nx.toFloat, ny.toFloat, nz.toFloat)
         val radius = radiusStr.toFloat
         val samples = Option(samplesStr).filter(_.nonEmpty).map(_.toInt).getOrElse(4)
         val intensity = Option(intensityStr).filter(_.nonEmpty).map(_.toFloat).getOrElse(1.0f)
