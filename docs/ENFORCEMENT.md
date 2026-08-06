@@ -42,8 +42,8 @@ resolve by implementing a gate or consciously accepting the gap.
 |--------|--------|-----------|--------|
 | Rendering-relevant commits must update reference images or carry `No-Render-Impact:` | AGENTS.md §Rendering changes | `standards/hooks/check-rendering-discipline.sh` (pre-push Phase 0) | ✅ |
 | Reference-image diffs resolved in same commit (not discovered at pre-push) | AGENTS.md §Rendering changes | Same hook: push-range check | ✅ |
-| New rendering feature added to `integration-tests.sh` | AGENTS.md §Rendering changes | Unenforced | ❌ [#2] |
-| New rendering feature added to `scripts/manual-test.sh` | AGENTS.md §Rendering changes | Unenforced | ❌ [#3] |
+| New rendering feature added to `integration-tests.sh` | AGENTS.md §Rendering changes | `ScriptParitySuite` (sbt test) reads `scripts/coverage-manifest.yaml`; fails if a DSL scene/material/flag exists in `manual-test.sh` but not in `integration-tests.sh` | ✅ |
+| New rendering feature added to `scripts/manual-test.sh` | AGENTS.md §Rendering changes | Same `ScriptParitySuite` gate (bidirectional parity via manifest) | ✅ |
 | Alpha: 0.0 = transparent, 1.0 = opaque (never inverted) | AGENTS.md §Conventions | Unenforced | ❌ [#4] |
 | Rendering discipline fully documented | AGENTS.md §Rendering changes | `docs/RENDERING.md` | ✅ |
 

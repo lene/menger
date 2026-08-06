@@ -1,0 +1,34 @@
+# Single source of truth for cross-script rendering-feature coverage.
+# Every entry must appear in BOTH scripts/integration-tests.sh AND scripts/manual-test.sh.
+# ScriptParitySuite enforces this — adding a feature here without adding it to both
+# scripts fails the pre-push gate (Sprint 35 Ph4, Task 4.7 / F14).
+#
+# Excluded from flag parity (legitimately script-specific):
+#   --headless, --timeout, --save-name, --video, --keep-frames (output/automation infra)
+#   -i, --interactive (manual-only by design)
+
+materials:
+  - chrome
+  - copper
+  - diamond
+  - diamond-dispersive
+  - film
+  - glass
+  - glass-dispersive
+  - gold
+  - matte
+  - metal
+  - plastic
+  - parchment
+  - water
+
+rendering_flags:
+  - --caustics
+  - --animate
+  - --denoise
+  - --shadows
+  - --transparent-shadows
+  - --fog
+  - --cross
+  - --antialiasing
+  - --accumulation-frames
