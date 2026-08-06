@@ -1,6 +1,6 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -57,7 +57,7 @@ class CubeSuite extends AnyFlatSpec with Matchers:
     normals should contain((0, 0, -1))  // -Z
 
   it should "respect center parameter" in:
-    val mesh = Cube(center = Vector3(1.0f, 2.0f, 3.0f), scale = 2.0f).toTriangleMesh
+    val mesh = Cube(center = Vector[3](1.0f, 2.0f, 3.0f), scale = 2.0f).toTriangleMesh
     val stride = mesh.vertexStride
 
     val xs = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride))
@@ -74,7 +74,7 @@ class CubeSuite extends AnyFlatSpec with Matchers:
 
   it should "respect scale parameter" in:
     forAll(Seq(0.5f, 1.0f, 2.0f, 10.0f)) { scale =>
-      val mesh = Cube(center = Vector3.Zero, scale = scale).toTriangleMesh
+      val mesh = Cube(center = Vector.Zero[3], scale = scale).toTriangleMesh
       val stride = mesh.vertexStride
       val half = scale / 2
 
@@ -127,7 +127,7 @@ class CubeSuite extends AnyFlatSpec with Matchers:
 
   // Edge case tests for scale parameter
   "Cube edge cases" should "produce degenerate mesh with scale = 0 (all vertices at center)" in:
-    val mesh = Cube(center = Vector3.Zero, scale = 0f).toTriangleMesh
+    val mesh = Cube(center = Vector.Zero[3], scale = 0f).toTriangleMesh
     val stride = mesh.vertexStride
     
     // All vertices should be at the center (0, 0, 0)
@@ -144,7 +144,7 @@ class CubeSuite extends AnyFlatSpec with Matchers:
     all(mesh.indices) should be < mesh.numVertices
 
   it should "handle negative scale (inverted cube)" in:
-    val mesh = Cube(center = Vector3.Zero, scale = -2.0f).toTriangleMesh
+    val mesh = Cube(center = Vector.Zero[3], scale = -2.0f).toTriangleMesh
     val stride = mesh.vertexStride
     val half = 1.0f  // abs(-2.0f) / 2
 
@@ -171,7 +171,7 @@ class CubeSuite extends AnyFlatSpec with Matchers:
     xs.max shouldBe half +- 1f
 
   it should "handle center at extreme coordinates" in:
-    val mesh = Cube(center = Vector3(1000000f, -1000000f, 0f), scale = 2f).toTriangleMesh
+    val mesh = Cube(center = Vector[3](1000000f, -1000000f, 0f), scale = 2f).toTriangleMesh
     val stride = mesh.vertexStride
 
     val xs = (0 until mesh.numVertices).map(i => mesh.vertices(i * stride))

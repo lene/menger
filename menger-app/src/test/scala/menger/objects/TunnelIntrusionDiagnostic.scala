@@ -1,6 +1,6 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import menger.objects.Direction.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -16,7 +16,7 @@ class TunnelIntrusionDiagnostic extends AnyFlatSpec with Matchers:
   private val tolerance = 0.001f
 
   private def allLevel2Faces: IndexedSeq[Face] =
-    val sponge = SpongeBySurface(Vector3.Zero, 1f, level = 2f)
+    val sponge = SpongeBySurface(Vector.Zero[3], 1f, level = 2f)
     val half = 0.5f
     Direction.values.toIndexedSeq.flatMap { dir =>
       val offset = half * dir.sign

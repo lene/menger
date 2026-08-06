@@ -1,6 +1,9 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -8,7 +11,7 @@ class HexadecachoronMeshSuite extends AnyFlatSpec with Matchers:
 
   private def mesh(
       size: Float    = 1.0f,
-      center: Vector3 = Vector3(0f, 0f, 0f),
+      center: Vector[3] = Vector[3](0f, 0f, 0f),
       eyeW: Float    = 3.0f,
       screenW: Float = 1.5f,
       rotXW: Float   = 15f,
@@ -49,8 +52,8 @@ class HexadecachoronMeshSuite extends AnyFlatSpec with Matchers:
       length shouldBe 1.0 +- 0.01
 
   it should "apply center translation correctly" in:
-    val offset  = Vector3(5f, -3f, 2f)
-    val base    = mesh(center = Vector3(0f, 0f, 0f)).toTriangleMesh
+    val offset  = Vector[3](5f, -3f, 2f)
+    val base    = mesh(center = Vector[3](0f, 0f, 0f)).toTriangleMesh
     val shifted = mesh(center = offset).toTriangleMesh
     (shifted.vertices(0) - base.vertices(0)) shouldBe offset.x +- 0.001f
     (shifted.vertices(1) - base.vertices(1)) shouldBe offset.y +- 0.001f

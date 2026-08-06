@@ -7,6 +7,9 @@ import menger.ObjectSpec
 import menger.common.Color
 import menger.common.Material
 import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 import menger.dsl.Vec3
 import menger.objects.LSystemGrammar
 import menger.objects.LSystemPresets

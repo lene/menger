@@ -1,6 +1,6 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
 import menger.common.ProfilingConfig
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -8,7 +8,7 @@ import org.scalatest.matchers.should.Matchers
 class LogTimeSuite extends AnyFlatSpec with Matchers:
 
   // Test geometry that uses logTime
-  class TestGeometry()(using config: ProfilingConfig) extends Geometry(Vector3.Zero, 1f):
+  class TestGeometry()(using config: ProfilingConfig) extends Geometry(Vector.Zero[3], 1f):
     // Use AtomicInteger for thread-safe counting without var
     private val counter = java.util.concurrent.atomic.AtomicInteger(0)
 
@@ -105,7 +105,7 @@ class LogTimeSuite extends AnyFlatSpec with Matchers:
   it should "allow nested calls" in:
     given ProfilingConfig = ProfilingConfig.disabled
 
-    class NestedGeometry()(using config: ProfilingConfig) extends Geometry(Vector3.Zero, 1f):
+    class NestedGeometry()(using config: ProfilingConfig) extends Geometry(Vector.Zero[3], 1f):
       def outer(): Int =
         logTime("outer") {
           inner() + 10

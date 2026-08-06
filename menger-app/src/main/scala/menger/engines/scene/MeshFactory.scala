@@ -1,11 +1,11 @@
 package menger.engines.scene
 
-import com.badlogic.gdx.math.Vector3
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.TriangleMeshData
+import menger.common.Vector
 import menger.objects.Cube
 import menger.objects.Dodecahedron
 import menger.objects.Icosahedron
@@ -59,13 +59,13 @@ object MeshFactory:
   def create(spec: ObjectSpec)(using profilingConfig: ProfilingConfig): TriangleMeshData =
     spec.objectType match
       case "cube" =>
-        val cube = Cube(center = Vector3(0f, 0f, 0f), scale = spec.size)
+        val cube = Cube(center = Vector.Zero[3], scale = spec.size)
         cube.toTriangleMesh
 
       case "sponge-volume" =>
         require(spec.level.isDefined, "sponge-volume requires level parameter")
         val sponge = SpongeByVolume(
-          center = Vector3(0f, 0f, 0f),
+          center = Vector.Zero[3],
           scale = spec.size,
           level = spec.level.get
         )
@@ -76,12 +76,12 @@ object MeshFactory:
         // shape comes from N nested IAS layers wrapping that cube via the 20
         // Menger generator transforms (see addRecursiveIASSpongeInstance).
         // spec.size is applied via the outer instance transform, not the mesh.
-        Cube(center = Vector3(0f, 0f, 0f), scale = 1f).toTriangleMesh
+        Cube(center = Vector.Zero[3], scale = 1f).toTriangleMesh
 
       case "sponge-surface" =>
         require(spec.level.isDefined, "sponge-surface requires level parameter")
         val sponge = SpongeBySurface(
-          center = Vector3(0f, 0f, 0f),
+          center = Vector.Zero[3],
           scale = spec.size,
           level = spec.level.get
         )
@@ -102,16 +102,16 @@ object MeshFactory:
         mesh4DProjection(spec).get.toTriangleMesh
 
       case "tetrahedron" =>
-        Tetrahedron(center = Vector3(0f, 0f, 0f), scale = spec.size).toTriangleMesh
+        Tetrahedron(center = Vector.Zero[3], scale = spec.size).toTriangleMesh
 
       case "octahedron" =>
-        Octahedron(center = Vector3(0f, 0f, 0f), scale = spec.size).toTriangleMesh
+        Octahedron(center = Vector.Zero[3], scale = spec.size).toTriangleMesh
 
       case "icosahedron" =>
-        Icosahedron(center = Vector3(0f, 0f, 0f), scale = spec.size).toTriangleMesh
+        Icosahedron(center = Vector.Zero[3], scale = spec.size).toTriangleMesh
 
       case "dodecahedron" =>
-        Dodecahedron(center = Vector3(0f, 0f, 0f), scale = spec.size).toTriangleMesh
+        Dodecahedron(center = Vector.Zero[3], scale = spec.size).toTriangleMesh
 
       case "parametric" =>
         @SuppressWarnings(Array("org.wartremover.warts.Throw"))
@@ -185,20 +185,20 @@ object MeshFactory:
     spec.objectType match
       case "tesseract" =>
         Some(TesseractMesh(
-          center = Vector3(0f, 0f, 0f), size = spec.size,
+          center = Vector.Zero[3], size = spec.size,
           eyeW = proj.eyeW, screenW = proj.screenW,
           rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
         ))
       case "tesseract-sponge" | "tesseract-sponge-volume" if spec.level.isDefined =>
         Some(TesseractSpongeMesh(
-          center = Vector3(0f, 0f, 0f), size = spec.size,
+          center = Vector.Zero[3], size = spec.size,
           level = spec.level.get,
           eyeW = proj.eyeW, screenW = proj.screenW,
           rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
         ))
       case "tesseract-sponge-2" | "tesseract-sponge-surface" if spec.level.isDefined =>
         Some(TesseractSponge2Mesh(
-          center = Vector3(0f, 0f, 0f), size = spec.size,
+          center = Vector.Zero[3], size = spec.size,
           level = spec.level.get,
           eyeW = proj.eyeW, screenW = proj.screenW,
           rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW

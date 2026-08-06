@@ -1,11 +1,14 @@
 package menger.objects
 
-import com.badlogic.gdx.math.Vector3
 import menger.common.TriangleMeshData
 import menger.common.TriangleMeshSource
+import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 
 case class Cube(
-  center: Vector3 = Vector3.Zero, scale: Float = 1f
+  center: Vector[3] = Vector.Zero[3], scale: Float = 1f
 ) extends Geometry(center, scale) with TriangleMeshSource:
 
   def toTriangleMesh: TriangleMeshData = toTriangleMeshExcluding(Set.empty)

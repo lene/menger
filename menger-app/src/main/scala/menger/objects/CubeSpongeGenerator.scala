@@ -2,7 +2,10 @@ package menger.objects
 
 import scala.math.abs
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 
 /**
  * Generates cube instance transforms for a Menger sponge.
@@ -44,7 +47,7 @@ import com.badlogic.gdx.math.Vector3
  * @param level Recursion level; fractional values animate the transition to the next level
  */
 case class CubeSpongeGenerator(
-  center: Vector3 = Vector3.Zero,
+  center: Vector[3] = Vector.Zero[3],
   size: Float = 1.0f,
   level: Float = 1.0f
 ):
@@ -62,7 +65,7 @@ case class CubeSpongeGenerator(
    * contains level-(intLevel+1) solid cubes (alpha=1.0) plus ghost tunnel-fill
    * cubes (alpha = 1 - fracPart) that fade out to reveal the next level's holes.
    */
-  def generateTransforms: Seq[(Vector3, Float, Float)] =
+  def generateTransforms: Seq[(Vector[3], Float, Float)] =
     if fracPart < 1e-4f then
       generateInteger(center, size, intLevel).map { case (p, s) => (p, s, 1.0f) }
     else
@@ -77,7 +80,7 @@ case class CubeSpongeGenerator(
 
   // The 7 positions inside a cube that are NOT in the Menger sponge pattern
   // (center + 6 face-centers): these fill the tunnels during the transition.
-  private def generateGhostSubcubes(c: Vector3, s: Float, alpha: Float): Seq[(Vector3, Float, Float)] =
+  private def generateGhostSubcubes(c: Vector[3], s: Float, alpha: Float): Seq[(Vector[3], Float, Float)] =
     val shift   = s / 3.0f
     val subSize = s / 3.0f
     for
@@ -85,9 +88,9 @@ case class CubeSpongeGenerator(
       yy <- -1 to 1
       zz <- -1 to 1
       if abs(xx) + abs(yy) + abs(zz) <= 1   // center (0,0,0) + 6 face-centers
-    yield (Vector3(c.x + xx * shift, c.y + yy * shift, c.z + zz * shift), subSize, alpha)
+    yield (Vector[3](c.x + xx * shift, c.y + yy * shift, c.z + zz * shift), subSize, alpha)
 
-  private def generateInteger(c: Vector3, s: Float, n: Int): Seq[(Vector3, Float)] =
+  private def generateInteger(c: Vector[3], s: Float, n: Int): Seq[(Vector[3], Float)] =
     if n == 0 then
       Seq((c, s))
     else
@@ -98,7 +101,7 @@ case class CubeSpongeGenerator(
         yy <- -1 to 1
         zz <- -1 to 1
         if abs(xx) + abs(yy) + abs(zz) > 1
-      yield Vector3(c.x + xx * shift, c.y + yy * shift, c.z + zz * shift)
+      yield Vector[3](c.x + xx * shift, c.y + yy * shift, c.z + zz * shift)
       positions.flatMap { pos => generateInteger(pos, subSize, n - 1) }
 
   /**

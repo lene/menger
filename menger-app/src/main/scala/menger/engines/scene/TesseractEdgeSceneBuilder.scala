@@ -2,7 +2,6 @@ package menger.engines.scene
 
 import scala.util.Try
 
-import com.badlogic.gdx.math.Vector3
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.Projection4DSpec
@@ -11,6 +10,9 @@ import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.TransformUtil
 import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 import menger.objects.higher_d.Hecatonicosachoron
 import menger.objects.higher_d.Hexacosichoron
 import menger.objects.higher_d.Hexadecachoron
@@ -169,7 +171,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
     val projection = Projection(proj4D.eyeW, proj4D.screenW)
 
     // Position offset for this hypercube instance
-    val offset = Vector3(spec.x, spec.y, spec.z)
+    val offset = Vector[3](spec.x, spec.y, spec.z)
 
     // Extract edges from the 4D mesh
     val edges = extractEdges(mesh4D)

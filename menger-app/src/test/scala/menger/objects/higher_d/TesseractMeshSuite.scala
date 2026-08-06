@@ -1,6 +1,9 @@
 package menger.objects.higher_d
 
-import com.badlogic.gdx.math.Vector3
+import menger.common.Vector
+import menger.common.x
+import menger.common.y
+import menger.common.z
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -46,8 +49,8 @@ class TesseractMeshSuite extends AnyFlatSpec with Matchers:
       length shouldBe 1.0 +- 0.01
 
   it should "apply center translation correctly" in:
-    val offset = Vector3(5f, -3f, 2f)
-    val centered = TesseractMesh(center = Vector3(0f, 0f, 0f)).toTriangleMesh
+    val offset = Vector[3](5f, -3f, 2f)
+    val centered = TesseractMesh(center = Vector[3](0f, 0f, 0f)).toTriangleMesh
     val translated = TesseractMesh(center = offset).toTriangleMesh
 
     val dx = translated.vertices(0) - centered.vertices(0)

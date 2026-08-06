@@ -2,13 +2,16 @@ package menger.objects
 
 import scala.math.abs
 
-import com.badlogic.gdx.math.Vector3
 import menger.common.TriangleMeshData
+import menger.common.Vector
 import menger.common.float2string
+import menger.common.x
+import menger.common.y
+import menger.common.z
 
 
 class SpongeByVolume(
-  override val center: Vector3 = Vector3.Zero, override val scale: Float = 1f,
+  override val center: Vector[3] = Vector.Zero[3], override val scale: Float = 1f,
   val level: Float
 ) extends Cube(center, scale) with FractionalLevelSponge:
 
@@ -42,7 +45,7 @@ class SpongeByVolume(
         d.x * xx + d.y * yy + d.z * zz == 1
       }
       SpongeByVolume(
-        Vector3(center.x + xx * shift, center.y + yy * shift, center.z + zz * shift),
+        Vector[3](center.x + xx * shift, center.y + yy * shift, center.z + zz * shift),
         scale / 3f, level - 1
       ).toTriangleMeshExcluding(neighborExclude ++ inheritedExclude)
 
