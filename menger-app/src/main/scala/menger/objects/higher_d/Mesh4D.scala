@@ -1,6 +1,6 @@
 package menger.objects.higher_d
 
-trait Mesh4D extends RectMesh:
+trait Mesh4D:
   type V <: Int & Singleton
   type Cell4D = Seq[menger.common.Vector[4]]
 

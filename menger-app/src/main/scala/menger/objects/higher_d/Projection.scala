@@ -9,7 +9,7 @@ import menger.common.Vector
 
 
 
-case class Projection(eyeW: Float, screenW: Float) extends RectMesh:
+case class Projection(eyeW: Float, screenW: Float):
   require(eyeW > 0 && screenW > 0, "eyeW and screenW must be positive")
   require(eyeW > screenW, "eyeW must be greater than screenW")
 

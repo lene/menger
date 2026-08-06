@@ -1,10 +1,5 @@
 package menger.objects
 
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.g3d.Material
-import com.badlogic.gdx.graphics.g3d.Model
-import com.badlogic.gdx.graphics.g3d.ModelInstance
-import com.badlogic.gdx.graphics.g3d.utils.MeshBuilder
 import com.badlogic.gdx.math.Vector3
 import menger.common.TriangleMeshData
 import menger.common.TriangleMeshSource
@@ -27,45 +22,13 @@ import menger.objects.Direction.Z
 // Face.subdivide() logic to be applied uniformly.
 //
 // Supports fractional levels by blending between integer levels
-// (nextLevelSponge + transparentSponge for smooth LOD transitions).
+// (see FractionalLevelSponge.buildFractionalMesh for smooth LOD transitions).
 
 class SpongeBySurface(
   val center: Vector3 = Vector3.Zero, val scale: Float = 1f,
-  val level: Float, val material: Material = Builder.WHITE_MATERIAL, val primitiveType: Int = GL20.GL_TRIANGLES
+  val level: Float
 )(using val profilingConfig: menger.common.ProfilingConfig) extends Geometry(center, scale) with FractionalLevelSponge with TriangleMeshSource:
   require(level >= 0, "Level must be non-negative")
-
-  override protected def createInstance(
-    center: Vector3, scale: Float, level: Float, material: Material, primitiveType: Int
-  ): Geometry & FractionalLevelSponge =
-    SpongeBySurface(center, scale, level, material, primitiveType)
-
-  override def getModel: List[ModelInstance] = logTime("getModel") {
-    if level.isValidInt then getIntegerModel
-    else List(
-      nextLevelSponge.map(_.getModel).getOrElse(Nil),
-      transparentSponge.map(_.getModel).getOrElse(Nil)
-    ).flatten
-  }
-
-  private lazy val getIntegerModel =
-    val facingPlusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 90)
-    val facingMinusX = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, -90)
-    val facingPlusY = transformed(ModelInstance(mesh), scale, center, 1, 0, 0, 90)
-    val facingMinusY = transformed(ModelInstance(mesh), scale, center, 1, 0, 0, -90)
-    val facingPlusZ = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 0)
-    val facingMinusZ = transformed(ModelInstance(mesh), scale, center, 0, 1, 0, 180)
-
-    List(facingPlusX, facingMinusX, facingPlusY, facingMinusY, facingPlusZ, facingMinusZ)
-
-  private def transformed(
-    modelInstance: ModelInstance, scale: Float, xlate: Vector3, axisX: Float, axisY: Float, axisZ: Float, angle: Float
-  ): ModelInstance =
-    modelInstance.transform.translate(xlate)
-    modelInstance.transform.rotate(axisX, axisY, axisZ, angle)
-    modelInstance.transform.translate(0, 0, scale / 2)
-    modelInstance.transform.scale(scale, scale, scale)
-    modelInstance
 
   override def toString: String = s"SpongeBySurface(level=${float2string(level)}, ${6 * faces.size} faces)"
 
@@ -78,15 +41,6 @@ class SpongeBySurface(
 
   lazy val faces: Seq[Face] = logTime("faces") { surfaces(Face(0, 0, 0, 1, Z)) }
 
-  lazy val mesh: Model = logTime("mesh") {
-      Builder.modelFactory.begin()
-      faces.grouped(MeshBuilder.MAX_VERTICES / 4).foreach(facesPart =>
-        val meshBuilder = Builder.modelFactory.part("sponge", primitiveType, Builder.DEFAULT_FLAGS, material)
-        facesPart.foreach(face => meshBuilder.rect.tupled(face.vertices))
-      )
-      Builder.modelFactory.end()
-    }
-
   // Generate triangle mesh for all 6 cube faces
   // Each face is offset by half the scale in its normal direction (on the cube surface)
   override def toTriangleMesh: TriangleMeshData = logTime("toTriangleMesh") {
@@ -96,8 +50,8 @@ class SpongeBySurface(
 
   private def getFractionalMesh: TriangleMeshData =
     buildFractionalMesh(
-      nextLevelMesh    = SpongeBySurface(center, scale, (level + 1).floor, material, primitiveType).toTriangleMesh,
-      currentLevelMesh = SpongeBySurface(center, scale, level.floor, material, primitiveType).toTriangleMesh
+      nextLevelMesh    = SpongeBySurface(center, scale, (level + 1).floor).toTriangleMesh,
+      currentLevelMesh = SpongeBySurface(center, scale, level.floor).toTriangleMesh
     )
 
   private def getIntegerMesh: TriangleMeshData =

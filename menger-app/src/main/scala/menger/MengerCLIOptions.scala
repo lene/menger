@@ -88,13 +88,7 @@ class MengerCLIOptions(arguments: Seq[String])
   )
 
   private def isValidSpongeType(spongeType: String): Boolean =
-    if basicSpongeTypes.contains(spongeType) then true
-    else spongeType match
-      case common.Patterns.CompositeType(content) =>
-        val components = content.split(",").toSet
-        val allowed = Set("cube", "square")
-        components.nonEmpty && components.subsetOf(allowed)
-      case _ => false
+    basicSpongeTypes.contains(spongeType)
 
   // === General Options ===
   val timeout: ScallopOption[Float] = opt[Float](

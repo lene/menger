@@ -1,23 +1,13 @@
 package menger.objects
 
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.g3d.Material
-import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.math.Vector3
-import menger.common.NotYetImplementedException
 import menger.common.TriangleMeshData
 import menger.common.TriangleMeshSource
 
 case class Octahedron(
   center: Vector3 = Vector3.Zero,
-  scale: Float = 1f,
-  material: Material = Builder.WHITE_MATERIAL,
-  primitiveType: Int = GL20.GL_TRIANGLES
+  scale: Float = 1f
 ) extends Geometry(center, scale) with TriangleMeshSource:
-
-  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-  def getModel: List[ModelInstance] =
-    throw NotYetImplementedException("Octahedron is OptiX-only; getModel not supported")
 
   def toTriangleMesh: TriangleMeshData =
     val verts = Array(
