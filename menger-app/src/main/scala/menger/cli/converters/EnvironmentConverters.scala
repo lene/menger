@@ -2,7 +2,6 @@ package menger.cli.converters
 
 import scala.util.Try
 
-import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import menger.ColorConversions
 import menger.cli.AreaLightShape
@@ -12,6 +11,7 @@ import menger.cli.LightType
 import menger.cli.PlaneColorSpec
 import menger.cli.PlaneSpec
 import menger.cli.converters.ConverterUtils.unwrapTryEither
+import menger.common.Color
 import org.rogach.scallop.ArgType
 import org.rogach.scallop.ValueConverter
 
@@ -142,7 +142,7 @@ given lightSpecConverter: ValueConverter[List[LightSpec]] with
         case "point" => LightType.POINT
       val position = Vector3(x.toFloat, y.toFloat, z.toFloat)
       val intensity = Option(intensityStr).filter(_.nonEmpty).map(_.toFloat).getOrElse(1.0f)
-      val color = Option(colorStr).map(parseColor).getOrElse(Color.WHITE)
+      val color = Option(colorStr).map(parseColor).getOrElse(Color(1f, 1f, 1f))
       LightSpec(lightType, position, intensity, color)
     }.toEither.left.map { e =>
       s"Light spec '$input' parse error: ${e.getMessage}. " +
@@ -171,7 +171,7 @@ given lightSpecConverter: ValueConverter[List[LightSpec]] with
         val radius = radiusStr.toFloat
         val samples = Option(samplesStr).filter(_.nonEmpty).map(_.toInt).getOrElse(4)
         val intensity = Option(intensityStr).filter(_.nonEmpty).map(_.toFloat).getOrElse(1.0f)
-        val color = Option(colorStr).filter(_.nonEmpty).map(parseColor).getOrElse(Color.WHITE)
+        val color = Option(colorStr).filter(_.nonEmpty).map(parseColor).getOrElse(Color(1f, 1f, 1f))
         (position, normal, radius, samples, intensity, color)
       }.toEither.left.map { e =>
         s"Area light spec '$input' parse error: ${e.getMessage}. " +
@@ -188,4 +188,4 @@ given lightSpecConverter: ValueConverter[List[LightSpec]] with
     if colorStr.contains(',') then
       val parts = colorStr.split(",").map(_.trim.toInt)
       ColorConversions.rgbIntsToColor(parts)
-    else Color.valueOf(colorStr)
+    else Color.fromHex(colorStr)

@@ -1,19 +1,14 @@
 package menger
 
-import com.badlogic.gdx.graphics.{Color => GdxColor}
+import menger.common.Color
 import menger.common.Const
-import menger.common.{Color => CommonColor}
 
 object ColorConversions:
 
-  extension (gdxColor: GdxColor)
-    def toCommonColor: CommonColor =
-      CommonColor(gdxColor.r, gdxColor.g, gdxColor.b, gdxColor.a)
-
-  extension (commonColor: CommonColor)
-    def toGdxColor: GdxColor =
-      new GdxColor(commonColor.r, commonColor.g, commonColor.b, commonColor.a)
-
-  def rgbIntsToColor(parts: Array[Int]): GdxColor =
-    val Array(r, g, b, a) = parts.map(_ / Const.rgbMaxValueFloat).padTo(4, 1f)
-    GdxColor(r, g, b, a)
+  // GDX's Color constructor silently clamped out-of-range components to [0, 1];
+  // menger.common.Color validates instead (require), so clamp explicitly here to
+  // preserve prior behavior for callers that don't pre-validate (e.g. light color
+  // parsing in EnvironmentConverters).
+  def rgbIntsToColor(parts: Array[Int]): Color =
+    val Array(r, g, b, a) = parts.map(_ / Const.rgbMaxValueFloat).map(v => v.max(0f).min(1f)).padTo(4, 1f)
+    Color(r, g, b, a)

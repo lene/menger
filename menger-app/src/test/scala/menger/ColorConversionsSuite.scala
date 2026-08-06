@@ -1,8 +1,6 @@
 package menger
 
-import com.badlogic.gdx.graphics.{Color => GdxColor}
 import menger.ColorConversions._
-import menger.common.{Color => CommonColor}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -65,15 +63,13 @@ class ColorConversionsSuite extends AnyFlatSpec with Matchers:
     // padTo doesn't truncate, so >4 elements causes pattern match failure
     a[MatchError] should be thrownBy rgbIntsToColor(Array(255, 128, 64, 32, 999))
 
-  it should "clamp values via GdxColor constructor (values > 255 become > 1.0 then clamp)" in:
-    // GdxColor constructor clamps values to [0, 1]
+  it should "clamp values above the valid range (values > 255 become > 1.0 then clamp)" in:
     val color = rgbIntsToColor(Array(510, 0, 0))
-    color.r shouldBe 1.0f  // clamped by GdxColor
+    color.r shouldBe 1.0f  // clamped
 
-  it should "clamp negative values via GdxColor constructor" in:
-    // GdxColor constructor clamps values to [0, 1]
+  it should "clamp negative values" in:
     val color = rgbIntsToColor(Array(-255, 0, 0))
-    color.r shouldBe 0.0f  // clamped by GdxColor
+    color.r shouldBe 0.0f  // clamped
 
   it should "handle mid-range values correctly" in:
     val color = rgbIntsToColor(Array(64, 128, 192, 255))
@@ -81,67 +77,3 @@ class ColorConversionsSuite extends AnyFlatSpec with Matchers:
     color.g shouldBe (128f / 255f) +- 0.01f
     color.b shouldBe (192f / 255f) +- 0.01f
     color.a shouldBe 1.0f
-
-  "GdxColor.toCommonColor" should "preserve all color components" in:
-    val gdx = new GdxColor(0.2f, 0.4f, 0.6f, 0.8f)
-    val common = gdx.toCommonColor
-    common.r shouldBe 0.2f
-    common.g shouldBe 0.4f
-    common.b shouldBe 0.6f
-    common.a shouldBe 0.8f
-
-  it should "preserve boundary value 0.0" in:
-    val gdx = new GdxColor(0f, 0f, 0f, 0f)
-    val common = gdx.toCommonColor
-    common.r shouldBe 0f
-    common.g shouldBe 0f
-    common.b shouldBe 0f
-    common.a shouldBe 0f
-
-  it should "preserve boundary value 1.0" in:
-    val gdx = new GdxColor(1f, 1f, 1f, 1f)
-    val common = gdx.toCommonColor
-    common.r shouldBe 1f
-    common.g shouldBe 1f
-    common.b shouldBe 1f
-    common.a shouldBe 1f
-
-  "CommonColor.toGdxColor" should "preserve all color components" in:
-    val common = CommonColor(0.3f, 0.5f, 0.7f, 0.9f)
-    val gdx = common.toGdxColor
-    gdx.r shouldBe 0.3f
-    gdx.g shouldBe 0.5f
-    gdx.b shouldBe 0.7f
-    gdx.a shouldBe 0.9f
-
-  it should "preserve boundary value 0.0" in:
-    val common = CommonColor(0f, 0f, 0f, 0f)
-    val gdx = common.toGdxColor
-    gdx.r shouldBe 0f
-    gdx.g shouldBe 0f
-    gdx.b shouldBe 0f
-    gdx.a shouldBe 0f
-
-  it should "preserve boundary value 1.0" in:
-    val common = CommonColor(1f, 1f, 1f, 1f)
-    val gdx = common.toGdxColor
-    gdx.r shouldBe 1f
-    gdx.g shouldBe 1f
-    gdx.b shouldBe 1f
-    gdx.a shouldBe 1f
-
-  "round-trip conversion" should "preserve GdxColor through CommonColor and back" in:
-    val original = new GdxColor(0.25f, 0.5f, 0.75f, 1.0f)
-    val roundTrip = original.toCommonColor.toGdxColor
-    roundTrip.r shouldBe original.r
-    roundTrip.g shouldBe original.g
-    roundTrip.b shouldBe original.b
-    roundTrip.a shouldBe original.a
-
-  it should "preserve CommonColor through GdxColor and back" in:
-    val original = CommonColor(0.1f, 0.2f, 0.3f, 0.4f)
-    val roundTrip = original.toGdxColor.toCommonColor
-    roundTrip.r shouldBe original.r
-    roundTrip.g shouldBe original.g
-    roundTrip.b shouldBe original.b
-    roundTrip.a shouldBe original.a

@@ -1,6 +1,6 @@
 package menger.cli
 
-import com.badlogic.gdx.graphics.Color
+import menger.common.Color
 import menger.AnimationSpecification
 import menger.dsl.DenoiseMode
 import org.rogach.scallop.exceptions.ScallopException
@@ -285,14 +285,16 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     options.color() shouldEqual Color.LIGHT_GRAY
 
   "color option" should "accept RGB hex codes (6 digits)" in :
-    SafeMengerCLIOptions(Seq("--color", "ff0000")).color() shouldEqual new Color(1f, 0f, 0f, 1f)
-    SafeMengerCLIOptions(Seq("--color", "00ff00")).color() shouldEqual new Color(0f, 1f, 0f, 1f)
-    SafeMengerCLIOptions(Seq("--color", "0000ff")).color() shouldEqual new Color(0f, 0f, 1f, 1f)
+    SafeMengerCLIOptions(Seq("--color", "ff0000")).color() shouldEqual Color(1f, 0f, 0f, 1f)
+    SafeMengerCLIOptions(Seq("--color", "00ff00")).color() shouldEqual Color(0f, 1f, 0f, 1f)
+    SafeMengerCLIOptions(Seq("--color", "0000ff")).color() shouldEqual Color(0f, 0f, 1f, 1f)
 
   it should "accept RGBA hex codes (8 digits)" in :
-    SafeMengerCLIOptions(Seq("--color", "ff00007f")).color() shouldEqual new Color(1f, 0f, 0f, 0.5f)
-    SafeMengerCLIOptions(Seq("--color", "00ff007f")).color() shouldEqual new Color(0f, 1f, 0f, 0.5f)
-    SafeMengerCLIOptions(Seq("--color", "0000ff7f")).color() shouldEqual new Color(0f, 0f, 1f, 0.5f)
+    // 0x7f = 127; 127f/255f, not 0.5f exactly -- menger.common.Color compares
+    // structurally (unlike GDX's Color, whose equals() rounds via packed int bits)
+    SafeMengerCLIOptions(Seq("--color", "ff00007f")).color() shouldEqual Color(1f, 0f, 0f, 127f / 255f)
+    SafeMengerCLIOptions(Seq("--color", "00ff007f")).color() shouldEqual Color(0f, 1f, 0f, 127f / 255f)
+    SafeMengerCLIOptions(Seq("--color", "0000ff7f")).color() shouldEqual Color(0f, 0f, 1f, 127f / 255f)
 
   it should "fail for invalid hex codes" in :
     an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "gg0000"))
@@ -304,22 +306,22 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "000000000"))
 
   it should "accept RGB integer triplets" in :
-    SafeMengerCLIOptions(Seq("--color", "255,0,0")).color() shouldEqual new Color(1f, 0f, 0f, 1f)
-    SafeMengerCLIOptions(Seq("--color", "0,255,0")).color() shouldEqual new Color(0f, 1f, 0f, 1f)
-    SafeMengerCLIOptions(Seq("--color", "0,0,255")).color() shouldEqual new Color(0f, 0f, 1f, 1f)
+    SafeMengerCLIOptions(Seq("--color", "255,0,0")).color() shouldEqual Color(1f, 0f, 0f, 1f)
+    SafeMengerCLIOptions(Seq("--color", "0,255,0")).color() shouldEqual Color(0f, 1f, 0f, 1f)
+    SafeMengerCLIOptions(Seq("--color", "0,0,255")).color() shouldEqual Color(0f, 0f, 1f, 1f)
 
   it should "accept RGBA integer quadruplets" in :
-    SafeMengerCLIOptions(Seq("--color", "255,0,0,128")).color() shouldEqual new Color(1f, 0f, 0f, 128f / 255f)
-    SafeMengerCLIOptions(Seq("--color", "0,255,0,128")).color() shouldEqual new Color(0f, 1f, 0f, 128f / 255f)
-    SafeMengerCLIOptions(Seq("--color", "0,0,255,128")).color() shouldEqual new Color(0f, 0f, 1f, 128f / 255f)
+    SafeMengerCLIOptions(Seq("--color", "255,0,0,128")).color() shouldEqual Color(1f, 0f, 0f, 128f / 255f)
+    SafeMengerCLIOptions(Seq("--color", "0,255,0,128")).color() shouldEqual Color(0f, 1f, 0f, 128f / 255f)
+    SafeMengerCLIOptions(Seq("--color", "0,0,255,128")).color() shouldEqual Color(0f, 0f, 1f, 128f / 255f)
 
   it should "accept an alpha value of zero" in:
-    SafeMengerCLIOptions(Seq("--color", "ff000000")).color() shouldEqual new Color(1f, 0f, 0f, 0f)
-    SafeMengerCLIOptions(Seq("--color", "00ff0000")).color() shouldEqual new Color(0f, 1f, 0f, 0f)
-    SafeMengerCLIOptions(Seq("--color", "0000ff00")).color() shouldEqual new Color(0f, 0f, 1f, 0f)
-    SafeMengerCLIOptions(Seq("--color", "255,0,0,0")).color() shouldEqual new Color(1f, 0f, 0f, 0f)
-    SafeMengerCLIOptions(Seq("--color", "0,255,0,0")).color() shouldEqual new Color(0f, 1f, 0f, 0f)
-    SafeMengerCLIOptions(Seq("--color", "0,0,255,0")).color() shouldEqual new Color(0f, 0f, 1f, 0f)
+    SafeMengerCLIOptions(Seq("--color", "ff000000")).color() shouldEqual Color(1f, 0f, 0f, 0f)
+    SafeMengerCLIOptions(Seq("--color", "00ff0000")).color() shouldEqual Color(0f, 1f, 0f, 0f)
+    SafeMengerCLIOptions(Seq("--color", "0000ff00")).color() shouldEqual Color(0f, 0f, 1f, 0f)
+    SafeMengerCLIOptions(Seq("--color", "255,0,0,0")).color() shouldEqual Color(1f, 0f, 0f, 0f)
+    SafeMengerCLIOptions(Seq("--color", "0,255,0,0")).color() shouldEqual Color(0f, 1f, 0f, 0f)
+    SafeMengerCLIOptions(Seq("--color", "0,0,255,0")).color() shouldEqual Color(0f, 0f, 1f, 0f)
 
   it should "fail for integer values out of range" in :
     an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "256,0,0"))
@@ -349,8 +351,8 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     val options = SafeMengerCLIOptions(Seq("--face-color", "ffffff80", "--line-color", "000000ff"))
     options.faceColor.toOption shouldBe defined
     options.lineColor.toOption shouldBe defined
-    options.faceColor() shouldEqual Color.valueOf("ffffff80")
-    options.lineColor() shouldEqual new Color(0f, 0f, 0f, 1f)
+    options.faceColor() shouldEqual Color.fromHex("ffffff80")
+    options.lineColor() shouldEqual Color(0f, 0f, 0f, 1f)
 
   it should "fail if --color is used with --face-color" in:
     an[ScallopException] should be thrownBy

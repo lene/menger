@@ -3,7 +3,6 @@ package menger
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
-import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.cli.CliValidation
@@ -21,6 +20,7 @@ import menger.cli.converters.planeColorSpecConverter
 import menger.cli.converters.planeSpecConverter
 import menger.cli.converters.vector3Converter
 import menger.common.CausticsConfig
+import menger.common.Color
 import menger.common.Const
 import menger.common.ObjectType
 import menger.common.RenderConfig
