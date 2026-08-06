@@ -7,11 +7,12 @@ import org.scalatest.matchers.should.Matchers
 import scala.io.Source
 import scala.util.Using
 
-/** Script-parity fitness function (T9, Sprint 32).
+/** Script-parity fitness function (T9, Sprint 32; extended F14, Sprint 35 Ph4).
   *
-  * Extracts type=<...> tokens from integration-tests.sh and manual-test.sh,
-  * asserts integration ⊇ manual coverage, and verifies every VALID_TYPES entry
-  * appears in at least one script. Fails CI on divergence.
+  * Extracts feature tokens from integration-tests.sh and manual-test.sh, asserts
+  * bidirectional coverage on materials and flags, manual ⊆ integration on types
+  * and DSL scenes, and verifies every VALID_TYPES entry appears in at least one
+  * script. The required coverage set is declared in scripts/coverage-manifest.yaml.
   */
 class ScriptParitySuite extends AnyFlatSpec with Matchers:
 
@@ -21,21 +22,60 @@ class ScriptParitySuite extends AnyFlatSpec with Matchers:
     dirs.find(d => java.io.File(d, "integration-tests.sh").exists())
       .getOrElse(sys.error("Cannot find scripts directory"))
 
-  private def extractTypes(scriptName: String): Set[String] =
+  private def readScript(scriptName: String): String =
     val path = s"$scriptsRoot/$scriptName"
-    Using.resource(Source.fromFile(path)): source =>
-      val typeRegex = """type=([a-z0-9-]+)""".r
-      source.getLines
-        .flatMap(typeRegex.findAllMatchIn(_))
-        .map(m => ObjectType.normalize(m.group(1)))
-        .toSet
+    Using.resource(Source.fromFile(path))(_.mkString)
+
+  private def extractTypes(scriptName: String): Set[String] =
+    val typeRegex = """type=([a-z0-9-]+)""".r
+    typeRegex.findAllMatchIn(readScript(scriptName))
+      .map(m => ObjectType.normalize(m.group(1))).toSet
+
+  private def extractPattern(scriptName: String, pattern: String): Set[String] =
+    val regex = pattern.r
+    regex.findAllMatchIn(readScript(scriptName)).map(_.group(1)).toSet
+
+  private def scriptContains(scriptName: String, token: String): Boolean =
+    readScript(scriptName).contains(token)
+
+  // ── coverage manifest ────────────────────────────────────────────────────
+
+  private val manifestPath = s"$scriptsRoot/coverage-manifest.yaml"
+  private val manifestText = Using.resource(Source.fromFile(manifestPath))(_.mkString)
+
+  private def manifestSection(name: String): List[String] =
+    val sectionRegex = s"""(?m)^$name:$$([\\s\\S]*?)(?=^\\S+:|\\Z)""".r
+    sectionRegex.findFirstMatchIn(manifestText) match
+      case None => Nil
+      case Some(m) =>
+        val itemRegex = """(?m)^\s+-\s+(\S+)""".r
+        itemRegex.findAllMatchIn(m.group(1)).map(_.group(1)).toList
+
+  private val requiredMaterials: Set[String] = manifestSection("materials").toSet
+  private val requiredFlags: Set[String] = manifestSection("rendering_flags").toSet
+
+  // ── extracted tokens ─────────────────────────────────────────────────────
 
   private val integrationTypes: Set[String] = extractTypes("integration-tests.sh")
   private val manualTypes: Set[String] = extractTypes("manual-test.sh")
   private val coveredTypes: Set[String] = integrationTypes ++ manualTypes
 
+  private val integrationMaterials: Set[String] =
+    extractPattern("integration-tests.sh", """material=([a-z][-a-z]*)""")
+  private val manualMaterials: Set[String] =
+    extractPattern("manual-test.sh", """material=([a-z][-a-z]*)""")
+
+  private val integrationScenes: Set[String] =
+    extractPattern("integration-tests.sh", """--scene (examples\.dsl\.\w+)""")
+  private val manualScenes: Set[String] =
+    extractPattern("manual-test.sh", """--scene (examples\.dsl\.\w+)""")
+
   // Types that are DSL-only and cannot appear as type=<type> in CLI test scripts
   private val dslOnlyTypes: Set[String] = Set("parametric")
+  // Materials used only in negative tests (deliberately invalid)
+  private val negativeTestMaterials: Set[String] = Set("unobtanium")
+
+  // ── type parity (unchanged, T9) ──────────────────────────────────────────
 
   "Script-parity fitness function" should "cover all manual-test types in integration-tests" in:
     val missingInIntegration = (manualTypes -- integrationTypes) -- dslOnlyTypes
@@ -50,3 +90,34 @@ class ScriptParitySuite extends AnyFlatSpec with Matchers:
   it should "not have empty type extraction from either script" in:
     integrationTypes should not be empty
     manualTypes should not be empty
+
+  // ── material parity (F14, Sprint 35 Ph4) ─────────────────────────────────
+
+  it should "exercise every manifest material in both scripts" in:
+    requiredMaterials.foreach: mat =>
+      withClue(s"material=$mat missing from integration-tests.sh: "):
+        integrationMaterials should contain (mat)
+      withClue(s"material=$mat missing from manual-test.sh: "):
+        manualMaterials should contain (mat)
+
+  it should "not have unregistered materials (excluding negative tests)" in:
+    val unregistered = (integrationMaterials ++ manualMaterials) --
+      requiredMaterials -- negativeTestMaterials
+    withClue(s"Materials in scripts but not in coverage-manifest.yaml: ${unregistered.mkString(", ")}"):
+      unregistered shouldBe empty
+
+  // ── flag parity (F14, Sprint 35 Ph4) ─────────────────────────────────────
+
+  it should "exercise every manifest rendering flag in both scripts" in:
+    requiredFlags.foreach: flag =>
+      withClue(s"$flag missing from integration-tests.sh: "):
+        scriptContains("integration-tests.sh", flag) shouldBe true
+      withClue(s"$flag missing from manual-test.sh: "):
+        scriptContains("manual-test.sh", flag) shouldBe true
+
+  // ── DSL scene coverage (F14, Sprint 35 Ph4) ──────────────────────────────
+
+  it should "cover all manual DSL scenes in integration-tests" in:
+    val missingInIntegration = manualScenes -- integrationScenes
+    withClue(s"DSL scenes in manual-test.sh but not integration-tests.sh: ${missingInIntegration.mkString(", ")}"):
+      missingInIntegration shouldBe empty

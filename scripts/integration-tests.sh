@@ -476,6 +476,14 @@ test_materials() {
         --objects type=cube:pos=0,0,0:size=0.5:material=chrome
     run_test "material preset matte" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=matte
+    run_test "material preset copper" --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=copper
+    run_test "material preset plastic" --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=plastic
+    run_test "material preset water" --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=water
+    run_test "material preset parchment" --plane y:-2 \
+        --objects type=sphere:pos=0,0,0:size=0.5:material=parchment
     run_test "material with color override" --plane y:-2 \
         --objects type=sphere:pos=0,0,0:size=0.5:material=metal:color=#FFD700
 }
@@ -961,6 +969,17 @@ test_dsl_scenes() {
         --scene examples.dsl.EnvMapDemo \
         --texture-dir menger-app/src/test/resources/
     run_test "DSL TrefoilKnot" --scene examples.dsl.TrefoilKnot
+    # Sprint 35 §4.7 F14: close manual/integration gap — scenes were manual-only.
+    # Reference images generated via UPDATE_BASELINE on GPU runner.
+    run_test "DSL CausticsReferenceDefault" --scene examples.dsl.CausticsReferenceDefault
+    run_test "DSL DiamondFire" --scene examples.dsl.DiamondFire --allow-uniform-render
+    run_test "DSL ParametricKleinBottle" --scene examples.dsl.ParametricKleinBottle --shadows
+    run_test "DSL ParametricKleinBottleFilm" --scene examples.dsl.ParametricKleinBottleFilm --shadows
+    run_test "DSL ParametricMoebius" --scene examples.dsl.ParametricMoebius --shadows
+    run_test "DSL ParametricTorus" --scene examples.dsl.ParametricTorus --shadows
+    run_test "DSL ParametricWavySheet" --scene examples.dsl.ParametricWavySheet --shadows
+    run_test "DSL PrismDispersion" --scene examples.dsl.PrismDispersion --allow-uniform-render
+    run_test "DSL RenderSettingsDemo" --scene examples.dsl.RenderSettingsDemo
 }
 
 test_t_animation() {

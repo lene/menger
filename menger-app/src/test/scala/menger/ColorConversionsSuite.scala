@@ -61,9 +61,13 @@ class ColorConversionsSuite extends AnyFlatSpec with Matchers:
     color.b shouldBe 1.0f  // padded
     color.a shouldBe 1.0f  // padded
 
-  it should "fail for array with more than 4 elements (MatchError)" in:
-    // padTo doesn't truncate, so >4 elements causes pattern match failure
-    a[MatchError] should be thrownBy rgbIntsToColor(Array(255, 128, 64, 32, 999))
+  it should "truncate arrays with more than 4 elements to first 4 channels" in:
+    // CR-12: rgbIntsToColor is total — take(4) uses first 4 channels, ignores extras
+    val color = rgbIntsToColor(Array(255, 128, 64, 32, 999))
+    color.r shouldBe 1.0f +- 0.01f
+    color.g shouldBe (128f / 255f) +- 0.01f
+    color.b shouldBe (64f / 255f) +- 0.01f
+    color.a shouldBe (32f / 255f) +- 0.01f
 
   it should "clamp values via GdxColor constructor (values > 255 become > 1.0 then clamp)" in:
     // GdxColor constructor clamps values to [0, 1]

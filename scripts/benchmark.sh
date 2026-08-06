@@ -12,6 +12,8 @@
 #   P1 — single-frame interactive scenes render in < 5000 ms.
 #   P2 — the fast primitive/curve scenes render in < 500 ms.
 # Every scene below is a P1 case; the fast ones (glass-sphere, curve, tesseract) also hold P2.
+# The absolute ceilings are enforced below alongside the relative ratio — a scene that
+# stays within 1.3× baseline but exceeds its absolute ceiling fails the gate (F5).
 set -euo pipefail
 
 BINARY=${1:?"Usage: $0 <menger-app-binary> [--update-baseline]"}
@@ -123,6 +125,11 @@ import json, sys
 results_file, baseline_file, threshold_str = sys.argv[1], sys.argv[2], sys.argv[3]
 threshold = float(threshold_str)
 
+# Absolute ceilings (F5): a scene can be within ratio but still over budget.
+CEILING_P1 = 5000.0   # ms — every scene must stay under this
+CEILING_P2 = 500.0    # ms — fast scenes (primitives/curves) must also stay under this
+P2_SCENES = {"glass-sphere", "curve", "tesseract"}
+
 with open(results_file) as f:
     measured = json.load(f)
 with open(baseline_file) as f:
@@ -136,9 +143,14 @@ for scene, ms in measured.items():
     base = baseline[scene]
     ratio = ms / base
     ok = ratio <= threshold
-    print(f"  {'✅' if ok else '❌'} {scene}: {ms:.1f} ms (baseline {base:.1f} ms, {ratio:.2f}x)")
+    ceiling = CEILING_P2 if scene in P2_SCENES else CEILING_P1
+    abs_ok = ms <= ceiling
+    status = '✅' if (ok and abs_ok) else '❌'
+    print(f"  {status} {scene}: {ms:.1f} ms (baseline {base:.1f} ms, {ratio:.2f}x, ceiling {ceiling:.0f} ms)")
     if not ok:
-        failed.append(scene)
+        failed.append(f"{scene} (ratio {ratio:.2f}x > {threshold}x)")
+    if not abs_ok:
+        failed.append(f"{scene} (absolute {ms:.1f} ms > {ceiling:.0f} ms ceiling)")
 
 print()
 if failed:
