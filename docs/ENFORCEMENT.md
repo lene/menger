@@ -78,7 +78,7 @@ resolve by implementing a gate or consciously accepting the gap.
 | Version consistent across `build.sbt`, `.gitlab-ci.yml`, `MengerCLIOptions.scala`, `user-guide.md` | AGENTS.md §Release workflow | pre-push Phase 1: `scripts/check-version-consistency.sh` | ✅ |
 | Git tag not already used | AGENTS.md §Release workflow | pre-push Phase 1: tag availability check | ✅ |
 | GitLab CI YAML valid | AGENTS.md §Release workflow | pre-push Phase 1: CI lint via API (`.gitlab-ci.yml` changes) | ✅ |
-| Release triggers on MR merge (unless `NORELEASE` label) | Sprint 28.5 | GitLab CI `CreateRelease` job on main-branch pipeline | ✅ |
+| Release triggers on merge to `main` unless skipped | Sprint 28.5 + 35 (4.7) | GitHub Actions `create-tag`/`release` jobs on main push; skip by putting `NORELEASE` or `[skip release]` in the PR title / merge commit message (push events have no PR-label context) | ✅ |
 | Released package installs and renders on user's OS | Sprint 28.5 | `InstallProof` CI job on tag pipeline | ✅ |
 | CHANGELOG.md updated at release | AGENTS.md §Release workflow | CI `ChangelogIsUpdated` job: checks top entry matches current tag and date | ✅ |
 
