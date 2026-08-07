@@ -300,7 +300,12 @@ jobs:
   create-tag:
     name: Create release tag
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # workflow_dispatch is a manual escape hatch: a merge to main occasionally lands
+    # without Actions delivering a push event (0.8.11 sat untagged for a day that way),
+    # and without this the only recovery is inventing a dummy commit.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     # Repo default GITHUB_TOKEN is read-only; pushing the tag needs write.
     permissions:
       contents: write
@@ -315,15 +320,20 @@ jobs:
         name: Tag DEPLOYABLE_VERSION and decide whether a release is needed
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          PREV: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.event.after }}
         run: |
           set -euo pipefail
           # Skip tagging + release when any commit in the push range carries
           # NORELEASE or [skip release] in its message. Push events have no
           # PR-label context, so the marker must live in the commit message
           # (it survives both squash and merge commits when placed in the PR title).
-          PREV="${{ github.event.before }}"
-          HEAD_SHA="${{ github.event.after }}"
-          if [ "$PREV" = "0000000000000000000000000000000000000000" ]; then
+          # before/after exist only on push payloads — on workflow_dispatch they are
+          # empty, so scan the tip commit alone rather than building a broken range.
+          if [ "$EVENT_NAME" != "push" ]; then
+            RANGE="HEAD~1..HEAD"
+          elif [ "$PREV" = "0000000000000000000000000000000000000000" ]; then
             RANGE="$HEAD_SHA"
           else
             RANGE="$PREV..$HEAD_SHA"
