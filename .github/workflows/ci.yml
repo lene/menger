@@ -19,7 +19,8 @@ name: CI
 #   • Upload (GitLab package registry), code_quality (GitLab CodeClimate template),
 #     RunnerHeartbeat, StandardsDrift (workspace check-drift.yml covers cross-repo drift),
 #     Renovate (use the GitHub Renovate app / Dependabot instead).
-#   • AIReview lives in ai-review.yml already.
+#   • AIReview: retired 2026-08-07 (Sprint 36 A2) — no funded API key, ambiguous-green
+#     failure mode masked by continue-on-error. See docs/QA_INCIDENTS.md.
 
 on:
   pull_request:

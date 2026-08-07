@@ -98,7 +98,7 @@ resolve by implementing a gate or consciously accepting the gap.
 
 | Policy | Source | Mechanism | Status |
 |--------|--------|-----------|--------|
-| Every MR reviewed by ≥ 2 AI model families | Sprint 28.4 | GitLab CI `AIReview` job posts structured comments | ✅ |
+| Every MR reviewed by ≥ 2 AI model families | Sprint 28.4 | Retired Sprint 36 A2: no API key was ever funded; `continue-on-error` masked the resulting failure as green for ≥3 PRs. See `docs/QA_INCIDENTS.md`. | 🤖 |
 | Pipeline must succeed before merge | Sprint 28.6 | GitLab project setting: *Pipelines must succeed* | ✅ |
 | All discussions must be resolved before merge | Sprint 28.6 | GitLab project setting: *All discussions must be resolved* | ✅ |
 | Always monitor CI pipeline after push | AGENTS.md §Critical rules | 🤖 AI policy | 🤖 |
@@ -134,6 +134,6 @@ consciously accepted.
 | 2 | No check that a new rendering feature is added to `integration-tests.sh` | Implement hook or CI check — [#156](https://gitlab.com/lilacashes/menger/-/work_items/156) |
 | 3 | No check that a new rendering feature is added to `manual-test.sh` | Implement hook or CI check — [#157](https://gitlab.com/lilacashes/menger/-/work_items/157) |
 | 4 | Alpha-channel convention (0.0 = transparent) has no static check | Add WartRemover rule or comment-linter — [#158](https://gitlab.com/lilacashes/menger/-/work_items/158) |
-| 6 | No check that arc42 is updated when architecture-relevant files change | Implement hook using `standards/architecture-paths.txt` — [#160](https://gitlab.com/lilacashes/menger/-/work_items/160) |
+| 6 | No check that arc42 is updated when architecture-relevant files change | Implement hook comparing changed paths against an architecture-relevant path list — [#160](https://gitlab.com/lilacashes/menger/-/work_items/160) |
 | 7 | CHANGELOG.md update not enforced at release time | Add pre-push or CI check for CHANGELOG date/entry — [#161](https://gitlab.com/lilacashes/menger/-/work_items/161) |
 | 8 | Performance regression guard not yet implemented | Task 28.7 — [#162](https://gitlab.com/lilacashes/menger/-/work_items/162) |
