@@ -77,6 +77,15 @@ FAILED=0
 FAILED_TESTS=""
 IMAGE_COMPARISON_FAILURES=0
 
+# Scenario progress (Sprint 36 C4). Self-counted from the run_test*/run_ladder_scene
+# invocation sites below rather than hardcoded, so it can't drift out of sync with the
+# actual named-scenario count. Some scenarios (animation orbit/rotation checks) also
+# verify individual rendered frames internally — those per-frame checks are not separate
+# counted scenarios, so the final Passed+Failed total can exceed SCENARIO_TOTAL; this
+# counter tracks position among named scenarios, not a promise of an exact final match.
+SCENARIO_N=0
+SCENARIO_TOTAL=$(grep -cE '(^|[^A-Za-z_])(run_test(_hd|_hires|_should_fail|_with_output)?|run_ladder_scene)[[:space:]]+"' "$0")
+
 # Colors
 RED='\e[38;5;196m'
 GREEN='\e[38;5;46m'
@@ -186,6 +195,9 @@ run_test() {
     local name="$1"
     shift
 
+    SCENARIO_N=$((SCENARIO_N + 1))
+    echo "[$SCENARIO_N/$SCENARIO_TOTAL] $name"
+
     should_skip_test "$name" && return 0
 
     # Generate temporary output filename
@@ -273,6 +285,9 @@ run_test_should_fail() {
     local name="$1"
     shift
 
+    SCENARIO_N=$((SCENARIO_N + 1))
+    echo "[$SCENARIO_N/$SCENARIO_TOTAL] $name"
+
     should_skip_test "$name" && return 0
 
     # These tests don't produce output anyway
@@ -310,6 +325,9 @@ run_test_with_output() {
     local name="$1"
     local output_file="$2"
     shift 2
+
+    SCENARIO_N=$((SCENARIO_N + 1))
+    echo "[$SCENARIO_N/$SCENARIO_TOTAL] $name"
 
     should_skip_test "$name" && return 0
 
@@ -648,6 +666,8 @@ test_caustics_ladder() {
     run_ladder_scene() {
         local name="$1" scene_ref="$2"
         shift 2
+        SCENARIO_N=$((SCENARIO_N + 1))
+        echo "[$SCENARIO_N/$SCENARIO_TOTAL] $name"
         should_skip_test "$name" && return 0
         local tag="${name// /_}"
         local out="$out_dir/${tag}.pfm"

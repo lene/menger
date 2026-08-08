@@ -149,6 +149,7 @@ Pipeline monitoring after push:
 gh run list --branch <branch>   # recent runs
 gh run watch <run-id>           # follow a run live
 gh run view <run-id> --log-failed   # failures only
+gh run rerun <run-id> --failed   # re-run only the failed jobs — the standard retry, not a full re-push
 ```
 
 Detailed troubleshooting (CUDA error 718, OptiX SDK/driver matching, PTX-not-found, Docker permissions): `docs/TROUBLESHOOTING.md`.
