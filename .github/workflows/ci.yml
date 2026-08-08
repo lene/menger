@@ -107,7 +107,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
-      - run: sbt "scalafix --check"
+      - run: ./scripts/suites/lint.sh
+        env:
+          HAS_SCALA: "1"
 
   test-full:
     name: Test (full suite, GPU)
@@ -131,19 +133,19 @@ jobs:
     name: OptiX Integration (packaged app, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
+    env:
+      HAS_INTEGRATION: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
       - run: nvidia-smi
-      - name: Package + run 27-scenario integration suite
+      - name: Package (scripts/suites/package.sh)
+        run: ./scripts/suites/package.sh
+      - name: Run 27-scenario integration suite (scripts/suites/integration.sh)
         run: |
-          set -euo pipefail
-          sbt "mengerApp / Universal / packageBin"
-          v=$(grep -E 'version :=' menger-app/build.sbt | head -1 | cut -d'"' -f2)
-          unzip -oq "./menger-app/target/universal/menger-app-${v}.zip"
           export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-          ./scripts/integration-tests.sh "./menger-app-${v}/bin/menger-app"
+          ./scripts/suites/integration.sh
       - name: Upload diffs on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -151,6 +153,38 @@ jobs:
           name: integration-test-diffs
           path: scripts/test-diffs/
           if-no-files-found: ignore
+
+  native-checks:
+    name: Native static analysis (cppcheck + clang-tidy, GPU)
+    # New job (Sprint 36 B4): these gates previously ran only in the local pre-push
+    # hook — a push from a machine without cppcheck/clang-tidy installed, or with
+    # --no-verify, shipped native changes with zero CI-side safety net for them. See
+    # the Sprint 36 Phase B plan and docs/QA_INCIDENTS.md.
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 20
+    env:
+      HAS_NATIVE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - name: Build native (for clang-tidy's compile_commands.json)
+        run: sbt "project mengerGeometry" compile
+      - run: ./scripts/suites/native-checks.sh
+
+  memcheck:
+    name: Memory safety (Valgrind + compute-sanitizer, GPU)
+    # New job (Sprint 36 B4): same gap as native-checks above — memcheck existed only
+    # locally before this.
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 30
+    env:
+      HAS_NATIVE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - run: ./scripts/suites/memcheck.sh
 
   coverage:
     name: Coverage ratchet (GPU)
@@ -310,7 +344,7 @@ jobs:
     # Repo default GITHUB_TOKEN is read-only; pushing the tag needs write.
     permissions:
       contents: write
-    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix]
+    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck]
     outputs:
       need_release: ${{ steps.tag.outputs.need_release }}
     steps:

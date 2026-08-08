@@ -1,0 +1,736 @@
+#!/bin/bash
+
+RED_TEXT=$'\e[38;5;196m'
+GREEN_TEXT=$'\e[38;5;46m'
+RESET_TEXT=$'\e[0m'
+
+# ---------------------------------------------------------------------------
+# Detect which file categories are being pushed
+# ---------------------------------------------------------------------------
+CHANGED_FILES=""
+RANGES=()
+# Ensure origin/main is fresh so the merge-base calculation below uses
+# the true branch point rather than a stale local ref.  Degrade
+# gracefully (no error exit) when the network is unavailable.
+# Fetch the source-of-truth remote (post-migration `origin` may be the stale GitLab
+# mirror; see main_ref in standards/hooks/lib.sh).
+if git remote | grep -qx github; then git fetch github --quiet 2>/dev/null || true
+else git fetch origin --quiet 2>/dev/null || true; fi
+# The `[ -t 0 ]` branch this replaces treated "not a terminal" as "git supplied
+# the pre-push protocol". An agent or CI script has neither a TTY nor stdin, so
+# it took the protocol path, read nothing, and left CHANGED_FILES empty — every
+# section below then reported "skipped — no relevant files changed" and the hook
+# exited 0. That false pass let a branch editing a CI workflow through without
+# running the workflow lint. See standards/hooks/lib.sh for the full reasoning.
+if [ -r ./standards/hooks/lib.sh ]; then
+  . ./standards/hooks/lib.sh
+  # Capture status separately: inside <(...) it would be lost, and an empty
+  # range list means either "branch deletion" (fine, exit 0) or "could not
+  # determine a base" (a bug). Conflating them is how silent skips start.
+  _ranges_out=$(push_ranges); _rc=$?
+  [ "$_rc" -eq 2 ] && exit 0   # push only deletes a branch
+  mapfile -t RANGES < <(printf '%s' "$_ranges_out")
+  CHANGED_FILES=$(changed_files "${RANGES[@]}")
+  assert_detection "$CHANGED_FILES" || exit 1
+else
+  # Branch predating standards enrollment: degrade to the branch-vs-main
+  # comparison rather than silently skipping.
+  LOCAL_SHA=$(git rev-parse HEAD)
+  _mr=origin/main; git rev-parse --verify --quiet refs/remotes/github/main >/dev/null 2>&1 && _mr=github/main
+  BASE=$(git merge-base "$_mr" "$LOCAL_SHA" 2>/dev/null || git merge-base main "$LOCAL_SHA" 2>/dev/null)
+  if [ -n "$BASE" ]; then
+    CHANGED_FILES=$(git diff --name-only "$BASE" "$LOCAL_SHA")
+    RANGES+=("$BASE..$LOCAL_SHA")
+  else
+    CHANGED_FILES=$(git diff --name-only HEAD)
+  fi
+fi
+
+HAS_SCALA=$(echo "$CHANGED_FILES" | grep -cE '\.(scala|sbt)$|^project/')
+HAS_NATIVE=$(echo "$CHANGED_FILES" | grep -cE '^menger-geometry/src/main/native/.*\.(cpp|cu|cuh|h)$|CMakeLists\.txt')
+HAS_CI=$(echo "$CHANGED_FILES" | grep -cE '^\.github/workflows/.*\.ya?ml$')
+HAS_INTEGRATION=$(echo "$CHANGED_FILES" | grep -c '^scripts/integration-tests\.sh$')
+
+# Detect rendering-relevant Scala changes: shaders, scene builders, geometry.
+# Integration tests are only needed when rendering output could change —
+# confirmed policy (2026-06-11): Scala-only pushes without rendering impact
+# skip the package build + integration suite.
+_RENDERING_PATHS_FILE="${RENDERING_PATHS_FILE:-./standards/rendering-paths.txt}"
+HAS_RENDERING=0
+if [ -r "$_RENDERING_PATHS_FILE" ]; then
+  _RENDERING_PATTERNS=$(grep -v '^[[:space:]]*\(#\|$\)' "$_RENDERING_PATHS_FILE" | paste -sd'|' -)
+  if [ -n "$_RENDERING_PATTERNS" ]; then
+    HAS_RENDERING=$(echo "$CHANGED_FILES" | grep -cE "$_RENDERING_PATTERNS" 2>/dev/null) || HAS_RENDERING=0
+  fi
+fi
+
+skip_section() {
+  echo "  [skipped — no relevant files changed]"
+}
+
+# ---------------------------------------------------------------------------
+# Phase 0: Agentic policy checks (Sprint 28.2) — instant, run before anything
+# expensive. Policies from AGENTS.md enforced mechanically: test changes need
+# justification trailers; rendering changes need reference updates or
+# No-Render-Impact trailers.
+# ---------------------------------------------------------------------------
+if [ ${#RANGES[@]} -gt 0 ] && [ -x ./standards/hooks/check-test-justification.sh ]; then
+  echo "=== Agentic policy checks ==="
+  POLICY_STATUS=0
+  ./standards/hooks/check-test-justification.sh "${RANGES[@]}" || POLICY_STATUS=1
+  ./standards/hooks/check-rendering-discipline.sh "${RANGES[@]}" || POLICY_STATUS=1
+  if [ $POLICY_STATUS -gt 0 ]; then
+    echo "${RED_TEXT}Policy checks failed. Fix the issues above before pushing.${RESET_TEXT}"
+    exit 1
+  fi
+else
+  # standards/hooks absent on branches predating Sprint 28.2 — skip gracefully
+  echo "=== Agentic policy checks ===" ; skip_section
+fi
+
+# ---------------------------------------------------------------------------
+# Phase 1: Fast pre-flight checks (env, CI lint, version consistency)
+# These are instant and must pass before we spend time on compilation.
+# ---------------------------------------------------------------------------
+
+# Env validation only needed when sbt compile will run (CUDA always linked)
+if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
+  echo "=== Validating Environment ==="
+
+  if [ -z "$CUDA_HOME" ]; then
+    echo "${RED_TEXT}Error: CUDA_HOME is not set${RESET_TEXT}"
+    echo "Please set CUDA_HOME to your CUDA installation directory (e.g., /usr/local/cuda)"
+    exit 1
+  fi
+
+  if [ ! -d "$CUDA_HOME" ]; then
+    echo "${RED_TEXT}Error: CUDA_HOME points to non-existent directory: $CUDA_HOME${RESET_TEXT}"
+    exit 1
+  fi
+
+  if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
+    echo "${RED_TEXT}Error: nvcc not found at $CUDA_HOME/bin/nvcc${RESET_TEXT}"
+    echo "Please verify CUDA_HOME is set correctly"
+    exit 1
+  fi
+
+  if [ -z "$OPTIX_ROOT" ]; then
+    echo "${RED_TEXT}Error: OPTIX_ROOT is not set${RESET_TEXT}"
+    echo "Please set OPTIX_ROOT to your OptiX SDK directory (e.g., /usr/local/optix)"
+    exit 1
+  fi
+
+  if [ ! -d "$OPTIX_ROOT" ]; then
+    echo "${RED_TEXT}Error: OPTIX_ROOT points to non-existent directory: $OPTIX_ROOT${RESET_TEXT}"
+    exit 1
+  fi
+
+  if [ ! -f "$OPTIX_ROOT/include/optix.h" ]; then
+    echo "${RED_TEXT}Error: optix.h not found at $OPTIX_ROOT/include/optix.h${RESET_TEXT}"
+    echo "Please verify OPTIX_ROOT is set correctly"
+    exit 1
+  fi
+
+  echo "CUDA_HOME: ${GREEN_TEXT}$CUDA_HOME${RESET_TEXT}"
+  echo "OPTIX_ROOT: ${GREEN_TEXT}$OPTIX_ROOT${RESET_TEXT}"
+  echo ""
+else
+  echo "=== Validating Environment ===" ; skip_section
+fi
+
+STATUS=0
+
+# Workflow lint + Scala-version consistency only needed when a GitHub Actions
+# workflow changed. actionlint catches YAML/expression errors locally before the
+# push; if it is not installed the check is advisory (GitHub validates on push).
+if [ "$HAS_CI" -gt 0 ]; then
+  if command -v actionlint >/dev/null 2>&1; then
+    if actionlint .github/workflows/*.yml; then
+      echo "actionlint: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+    else
+      echo "actionlint: ${RED_TEXT}FAILED${RESET_TEXT}"
+      STATUS=1
+    fi
+  else
+    echo "actionlint not installed — skipping workflow lint (advisory; GitHub validates on push)"
+  fi
+
+  SCALA_VERSION=$(egrep 'scalaVersion := ".*"' menger-app/build.sbt | head -n 1 | cut -d \" -f 2)
+  CI_SCALA_VERSION=$(egrep '^[[:space:]]*SCALA_VERSION:' .github/workflows/ci.yml | head -n 1 | cut -d \" -f 2)
+  if [ "$SCALA_VERSION" != "$CI_SCALA_VERSION" ]
+  then
+    echo "Scala in build.sbt: ${RED_TEXT}${SCALA_VERSION}${RESET_TEXT}, in ci.yml: ${RED_TEXT}${CI_SCALA_VERSION}${RESET_TEXT}"
+    STATUS=1
+  else
+    echo "Scala version: ${GREEN_TEXT}${SCALA_VERSION}${RESET_TEXT}"
+  fi
+else
+  echo "=== Workflow lint ===" ; skip_section
+fi
+
+# Version consistency (shared with pre-commit) and tag check — always run
+./scripts/check-version-consistency.sh || STATUS=1
+VERSION_SBT=$(egrep 'version := ".*"' menger-app/build.sbt | cut -d \" -f 2)
+if [ "${NO_RELEASE:-0}" = "1" ]; then
+  echo "Tag check skipped (${GREEN_TEXT}NO_RELEASE=1${RESET_TEXT})"
+elif git tag | ( grep "^${VERSION_SBT}\$" ); then
+  echo "Tag ${RED_TEXT}${VERSION_SBT}${RESET_TEXT} already exists ($(git tag | xargs))"
+  # Release tagging is CI's job now (ci.yml create-tag, idempotent), so an existing
+  # tag for the current version is normal between a release and the next version bump.
+  # Warn but allow when pushing to the GitHub remote (origin, or legacy name github).
+  if [ "$1" != "origin" ] && [ "$1" != "github" ]; then STATUS=1
+  else echo "Pushing anyway (tagging is handled by CI on merge to main)"
+  fi
+else echo "Tag ${GREEN_TEXT}${VERSION_SBT}${RESET_TEXT} is still available"
+fi
+if [ $STATUS -gt 0 ]
+then echo "Status after tag check: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after tag check: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+fi
+
+# Bail early if pre-flight checks failed — no point spending 8+ minutes on tests.
+if [ $STATUS -gt 0 ]; then
+  echo "${RED_TEXT}Pre-flight checks failed. Fix the issues above before pushing.${RESET_TEXT}"
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Phase 2: Compile (once — subsequent phases reuse the compiled artifacts)
+# Note: sbt compile also runs nativeCompile for menger-geometry (C++/CUDA).
+# ---------------------------------------------------------------------------
+if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
+  echo "=== Compiling ==="
+  sbt compile || exit 1
+else
+  echo "=== Compiling ===" ; skip_section
+fi
+
+# ---------------------------------------------------------------------------
+# Phase 3: Run scalafix then sbt test.
+#
+# scalafix only reads source files and compiled semanticdb; it does not need
+# the test suite to have run. It runs first (~10s) so it releases the sbt
+# BootServerSocket before sbt test starts — both bind the same socket path
+# (derived from the project directory hash) and cannot run concurrently.
+# ---------------------------------------------------------------------------
+if [ "$HAS_SCALA" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ]; then
+  echo "=== Running scalafix then tests ==="
+
+  if [ "$HAS_SCALA" -gt 0 ]; then
+    sbt "scalafix --check" --warn > /tmp/scalafix-prepush.log 2>&1
+    SCALAFIX_STATUS=$?
+    cat /tmp/scalafix-prepush.log
+  else
+    SCALAFIX_STATUS=0
+  fi
+
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt test --warn > /tmp/sbt-test-prepush.log 2>&1
+  SBT_TEST_STATUS=$?
+  cat /tmp/sbt-test-prepush.log
+
+  if [ $SBT_TEST_STATUS -ne 0 ]; then
+    echo "sbt test: ${RED_TEXT}FAILED${RESET_TEXT}"
+    STATUS=1
+  else
+    echo "sbt test: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+  fi
+
+  if [ "$HAS_SCALA" -gt 0 ]; then
+    if [ $SCALAFIX_STATUS -ne 0 ]; then
+      echo "scalafix: ${RED_TEXT}FAILED${RESET_TEXT}"
+      STATUS=1
+    else
+      echo "scalafix: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+    fi
+  fi
+
+  if [ $STATUS -gt 0 ]
+  then echo "Status after test+scalafix: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after test+scalafix: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+else
+  echo "=== Tests and scalafix ===" ; skip_section
+fi
+
+# ---------------------------------------------------------------------------
+# Phase 4: Coverage and native static analysis.
+#
+# Parallelization strategy:
+#   - Coverage uses the parent test suite.
+#   - optix-jni host/GPU memory checks run in the standalone lene/optix-jni repo.
+# ---------------------------------------------------------------------------
+
+# --- Coverage (background) ---
+run_coverage() {
+  if [ "${HAS_SCALA:-0}" -eq 0 ]; then
+    echo "=== Coverage ===" > /tmp/coverage-prepush.log
+    echo "Skipped — no Scala changes" >> /tmp/coverage-prepush.log
+    return 0
+  fi
+  if [ "${SKIP_COVERAGE:-0}" = "1" ]; then
+    echo "=== Skipping Coverage Check (SKIP_COVERAGE=1) ===" > /tmp/coverage-prepush.log
+    return 0
+  fi
+  echo "=== Checking Test Coverage ===" > /tmp/coverage-prepush.log
+  BASELINE_FILE=".coverage_baseline"
+  COVERAGE_DROP_THRESHOLD="1.0"
+  COVERAGE_MIN="80"
+  COVERAGE_FLOOR="60"
+  REPORT_FILE="menger-app/target/scala-3.8.3/scoverage-report/scoverage.xml"
+
+  # Clean separately to avoid ClassNotFoundException with scoverage instrumented classes
+  sbt "project mengerApp" clean --warn >> /tmp/coverage-prepush.log 2>&1
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt "project mengerApp" "set coverageEnabled := true" test coverageReport --warn >> /tmp/coverage-prepush.log 2>&1
+  COVERAGE_STATUS=$?
+
+  if [ $COVERAGE_STATUS -ne 0 ]; then
+    echo "Coverage report: FAILED" >> /tmp/coverage-prepush.log
+    tail -20 /tmp/coverage-prepush.log
+    return 1
+  fi
+
+  if [ ! -f "$REPORT_FILE" ]; then
+    echo "Coverage: Report file not found" >> /tmp/coverage-prepush.log
+    return 1
+  fi
+
+  STATEMENT_RATE=$(grep -oP 'statement-rate="\K[0-9.]+' "$REPORT_FILE" | head -1)
+  if [ -z "$STATEMENT_RATE" ]; then
+    echo "Coverage: Could not parse coverage rate" >> /tmp/coverage-prepush.log
+    return 1
+  fi
+
+  if [ -f "$BASELINE_FILE" ]; then
+    BASELINE=$(cat "$BASELINE_FILE")
+  else
+    BASELINE="$STATEMENT_RATE"
+    echo "No baseline file found, using current coverage as baseline" >> /tmp/coverage-prepush.log
+  fi
+
+  DROP=$(echo "$BASELINE - $STATEMENT_RATE" | bc)
+  echo "Statement coverage - current: ${STATEMENT_RATE}% previous: ${BASELINE}%" >> /tmp/coverage-prepush.log
+
+  BELOW_FLOOR=$(echo "$STATEMENT_RATE < $COVERAGE_FLOOR" | bc)
+  if [ "$BELOW_FLOOR" -eq 1 ]; then
+    echo "Coverage: FAILED - Below absolute floor of ${COVERAGE_FLOOR}%" >> /tmp/coverage-prepush.log
+    return 1
+  elif [ "$(echo "$DROP > $COVERAGE_DROP_THRESHOLD" | bc)" -eq 1 ]; then
+    BELOW_MIN=$(echo "$STATEMENT_RATE < $COVERAGE_MIN" | bc)
+    if [ "$BELOW_MIN" -eq 1 ]; then
+      echo "Coverage: FAILED - Dropped ${DROP}% and below ${COVERAGE_MIN}%" >> /tmp/coverage-prepush.log
+      return 1
+    else
+      echo "Coverage: WARNING - Dropped ${DROP}% but above ${COVERAGE_MIN}%" >> /tmp/coverage-prepush.log
+    fi
+  else
+    echo "Coverage: PASSED" >> /tmp/coverage-prepush.log
+    echo "$STATEMENT_RATE" > "$BASELINE_FILE"
+  fi
+  return 0
+}
+
+# --- Native memory gates (Valgrind + compute-sanitizer) ---
+#
+# The tool must wrap the *forked test JVM*, not xvfb-run/sbt: valgrind does
+# not trace child processes by default, so wrapping `xvfb-run -a sbt ...`
+# instrumented only the dash wrapper script — it never saw menger native code
+# (vacuous gate) and failed on a 9-byte leak inside /usr/bin/dash (false
+# positive). make_tool_java_home builds a fake java home whose bin/java execs
+# the tool around the real JVM; sbt forks its test JVM through it via
+# `Test / javaHome`.
+make_tool_java_home() {
+  local dir="$1"; shift   # remaining args: tool + its flags
+  local real_java
+  real_java=$(readlink -f "$(command -v java)")
+  mkdir -p "$dir/bin"
+  if [ "${1##*/}" = "compute-sanitizer" ]; then
+    # compute-sanitizer exits 255 when the wrapped process made no CUDA calls
+    # (e.g. sbt's `java -version` probe) — translate that specific case to 0,
+    # or every probe JVM looks like a crashed one. %p in --log-file gives each
+    # tracked process (--target-processes defaults to `all`) its OWN log file:
+    # without it the CUDA-making JVM's report and a short-lived child's collide,
+    # the real "ERROR SUMMARY" ends up on stdout, and the caller's anti-vacuity
+    # guard (which reads the files) sees only the child's "terminated before
+    # first" and wrongly calls the gate vacuous.
+    : "${CS_LOG_DIR:?must be set when wrapping compute-sanitizer}"
+    {
+      echo '#!/bin/sh'
+      printf 'logdir=%q\n' "$CS_LOG_DIR"
+      # $@ already begins with the tool name (compute-sanitizer) — don't repeat it.
+      printf ' %q' "$@"
+      printf ' --log-file "$logdir/sanitizer.$$.%%p.log" %q "$@"\n' "$real_java"
+      echo 'rc=$?'
+      echo 'if [ "$rc" -eq 255 ] && grep -q "terminated before first instrumented API call" "$logdir"/sanitizer.$$.*.log 2>/dev/null; then exit 0; fi'
+      echo 'exit "$rc"'
+    } > "$dir/bin/java"
+  else
+    {
+      echo '#!/bin/sh'
+      printf 'exec'
+      printf ' %q' "$@" "$real_java"
+      printf ' "$@"\n'
+    } > "$dir/bin/java"
+  fi
+  chmod +x "$dir/bin/java"
+}
+
+# --- Valgrind (host-side leaks in JNI native code) ---
+run_valgrind() {
+  echo "=== Valgrind ===" > /tmp/valgrind-phase-prepush.log
+
+  if [ "${HAS_NATIVE:-0}" -eq 0 ]; then
+    echo "Valgrind: skipped (no native changes)" >> /tmp/valgrind-phase-prepush.log
+    return 0
+  fi
+
+  if ! command -v valgrind >/dev/null 2>&1; then
+    if command -v nvidia-smi >/dev/null 2>&1 || command -v nvcc >/dev/null 2>&1; then
+      echo "Valgrind: FAILED - native changed on a CUDA-capable host but valgrind is not installed; the leak gate must not be silently skipped where it can run. Install valgrind." >> /tmp/valgrind-phase-prepush.log
+      return 1
+    fi
+    echo "Warning: valgrind not installed and no GPU detected - skipping native memory checks" >> /tmp/valgrind-phase-prepush.log
+    return 0
+  fi
+
+  echo "Running valgrind on menger-geometry JNI native code (VideoLoaderSuite, instrumented test JVM)..." >> /tmp/valgrind-phase-prepush.log
+
+  # No --error-exitcode: JVMs under memcheck emit false uninitialised-value
+  # errors from JIT code, so the exit code is noise. The gate below fails on
+  # the test result and on the parsed leak summary instead.
+  # JVM and driver false positives are suppressed via valgrind-suppressions.txt.
+  local VGJH
+  VGJH=$(mktemp -d /tmp/vg-javahome.XXXXXX)
+  make_tool_java_home "$VGJH" valgrind \
+    --leak-check=full \
+    "--suppressions=$PWD/valgrind-suppressions.txt" \
+    --log-file=/tmp/valgrind-detail-prepush.log
+
+  __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt \
+    "set mengerGeometry / Test / javaHome := Some(file(\"$VGJH\"))" \
+    "mengerGeometry / Test / testOnly menger.geometry.VideoLoaderSuite" --warn >> /tmp/valgrind-phase-prepush.log 2>&1
+  STATUS_VG=$?
+  rm -rf "$VGJH"
+
+  if [ "$STATUS_VG" -ne 0 ]; then
+    echo "Valgrind: FAILED (test run itself failed, see above)" >> /tmp/valgrind-phase-prepush.log
+    return 1
+  fi
+
+  # Anti-vacuity guard: the detail log must show the instrumented JVM.
+  # Without it the gate would be checking nothing.
+  if ! grep -qE 'Command: .*/bin/java ' /tmp/valgrind-detail-prepush.log || \
+     ! grep -q 'HEAP SUMMARY' /tmp/valgrind-detail-prepush.log; then
+    echo "Valgrind: FAILED - no instrumented JVM found in /tmp/valgrind-detail-prepush.log; the gate would be vacuous" >> /tmp/valgrind-phase-prepush.log
+    return 1
+  fi
+
+  # Attribution: FAIL only on leaks whose allocation stack passes through this
+  # repo's native library (libmengergeometry). liboptixjni is a pinned Maven
+  # artifact — its leaks are fixed in the optix-jni repo (Sprint 35 Ph2) and
+  # land here via pin bumps, so they are warnings only. Third-party internals
+  # (JVM, glibc TLS/loader, ffmpeg, CUDA driver) leak by design and are not
+  # actionable here at all. A leak caused by *misusing* a library (e.g. a
+  # missing av_frame_free) still has one of our frames in its stack.
+  local LEAK_BLOCKS OPTIX_JNI_BLOCKS
+  LEAK_BLOCKS=$(awk '
+    /bytes in [0-9]+ blocks are (definitely|possibly|indirectly) lost/ {inblock=1; block=$0 "\n"; next}
+    inblock && /^==[0-9]+== *$/ { if (block ~ /libmengergeometry/) printf "%s", block; inblock=0; next }
+    inblock { block = block $0 "\n" }
+    END { if (inblock && block ~ /libmengergeometry/) printf "%s", block }
+  ' /tmp/valgrind-detail-prepush.log)
+  OPTIX_JNI_BLOCKS=$(awk '
+    /bytes in [0-9]+ blocks are (definitely|possibly|indirectly) lost/ {inblock=1; block=$0 "\n"; next}
+    inblock && /^==[0-9]+== *$/ { if (block ~ /liboptixjni/) printf "%s", block; inblock=0; next }
+    inblock { block = block $0 "\n" }
+    END { if (inblock && block ~ /liboptixjni/) printf "%s", block }
+  ' /tmp/valgrind-detail-prepush.log)
+  if [ -n "$OPTIX_JNI_BLOCKS" ]; then
+    echo "Valgrind: WARNING - leaks attributed to pinned liboptixjni (fixed in the optix-jni repo, not blocking):" >> /tmp/valgrind-phase-prepush.log
+    echo "$OPTIX_JNI_BLOCKS" >> /tmp/valgrind-phase-prepush.log
+  fi
+  if [ -n "$LEAK_BLOCKS" ]; then
+    echo "Valgrind: FAILED - leaks in menger native code (see /tmp/valgrind-detail-prepush.log):" >> /tmp/valgrind-phase-prepush.log
+    echo "$LEAK_BLOCKS" >> /tmp/valgrind-phase-prepush.log
+    return 1
+  fi
+  echo "Valgrind: PASSED" >> /tmp/valgrind-phase-prepush.log
+}
+
+# --- compute-sanitizer (device-side CUDA errors host valgrind cannot see) ---
+run_compute_sanitizer() {
+  echo "=== compute-sanitizer ===" > /tmp/cs-prepush.log
+
+  if [ "${HAS_NATIVE:-0}" -eq 0 ]; then
+    echo "compute-sanitizer: skipped (no native changes)" >> /tmp/cs-prepush.log
+    return 0
+  fi
+
+  if ! command -v compute-sanitizer >/dev/null 2>&1; then
+    if command -v nvidia-smi >/dev/null 2>&1 || command -v nvcc >/dev/null 2>&1; then
+      echo "compute-sanitizer: FAILED - CUDA-capable host but compute-sanitizer is not on PATH (usually /usr/local/cuda/bin); it must run where it can." >> /tmp/cs-prepush.log
+      return 1
+    fi
+    echo "compute-sanitizer: skipped (not installed, no GPU detected)" >> /tmp/cs-prepush.log
+    return 0
+  fi
+
+  # Project4DGpuSuite creates/renders/disposes an OptiXRenderer — real CUDA
+  # traffic. (mengerGeometry's only suite, VideoLoaderSuite, makes no CUDA
+  # calls, so sanitizing it was a vacuous pass.) The suite's GPU tests are all
+  # tagged Slow, so we must NOT exclude Slow here — that would drop every CUDA
+  # test and make the gate vacuous. Instead RUNNING_UNDER_COMPUTE_SANITIZER makes
+  # the two perf-timing tests self-skip; the correctness GPU tests run and make
+  # the instrumented CUDA calls the anti-vacuity guard requires.
+  echo "Running compute-sanitizer (memcheck) on the OptiX render path (Project4DGpuSuite, instrumented test JVM)..." >> /tmp/cs-prepush.log
+
+  local CSJH CS_LOG_DIR
+  CSJH=$(mktemp -d /tmp/cs-javahome.XXXXXX)
+  CS_LOG_DIR=$(mktemp -d /tmp/cs-logs.XXXXXX)
+  make_tool_java_home "$CSJH" compute-sanitizer \
+    --tool memcheck --leak-check full --error-exitcode 1
+
+  RUNNING_UNDER_COMPUTE_SANITIZER=true __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt \
+    "set mengerApp / Test / javaHome := Some(file(\"$CSJH\"))" \
+    "mengerApp / Test / testOnly io.github.lene.optix.Project4DGpuSuite" --warn >> /tmp/cs-prepush.log 2>&1
+  STATUS_CS=$?
+  rm -rf "$CSJH"
+
+  # Logs of JVMs that made instrumented CUDA calls. Probe JVMs (e.g. sbt's
+  # `java -version`) legitimately end with "terminated before first
+  # instrumented API call" and prove nothing.
+  local INSTRUMENTED_LOGS
+  INSTRUMENTED_LOGS=$(grep -L 'terminated before first instrumented API call' "$CS_LOG_DIR"/sanitizer.*.log 2>/dev/null || true)
+
+  # Anti-vacuity guard: at least one wrapped JVM must have made instrumented
+  # CUDA calls — otherwise the gate checked nothing (previously a silent
+  # "PASSED" on exactly this condition).
+  if [ -z "$INSTRUMENTED_LOGS" ]; then
+    if [ "$STATUS_CS" -ne 0 ]; then
+      echo "compute-sanitizer: FAILED (test run itself failed, see above)" >> /tmp/cs-prepush.log
+    else
+      echo "compute-sanitizer: FAILED - no CUDA calls were instrumented ($CS_LOG_DIR); the gate would be vacuous" >> /tmp/cs-prepush.log
+    fi
+    return 1
+  fi
+
+  # Attribution: FAIL only on findings whose backtrace passes through this
+  # repo's native library (libmengergeometry). Findings inside the pinned
+  # liboptixjni (or the CUDA driver) are fixed in the optix-jni repo
+  # (Sprint 35 Ph2) and land here via pin bumps — warnings only, kept visible.
+  local fail=0 findings=0 f
+  for f in $INSTRUMENTED_LOGS; do
+    if grep -qE 'ERROR SUMMARY: [1-9][0-9]* error' "$f"; then
+      findings=1
+      if grep -q 'libmengergeometry' "$f"; then
+        echo "compute-sanitizer: FAILED - findings in menger native code ($f):" >> /tmp/cs-prepush.log
+        cat "$f" >> /tmp/cs-prepush.log
+        fail=1
+      else
+        echo "compute-sanitizer: WARNING - findings attributed to pinned liboptixjni / CUDA driver (fixed in the optix-jni repo, not blocking): $(grep -E 'LEAK SUMMARY|ERROR SUMMARY' "$f" | paste -sd' ')" >> /tmp/cs-prepush.log
+      fi
+    fi
+  done
+
+  if [ "$fail" -ne 0 ]; then
+    return 1
+  fi
+  if [ "$STATUS_CS" -ne 0 ] && [ "$findings" -eq 0 ]; then
+    echo "compute-sanitizer: FAILED (test run failed without sanitizer findings, see above)" >> /tmp/cs-prepush.log
+    return 1
+  fi
+  echo "compute-sanitizer: PASSED" >> /tmp/cs-prepush.log
+}
+
+# Both gates invoke sbt — run them sequentially in one job.
+run_native_gates() {
+  local status=0
+  run_valgrind || status=1
+  run_compute_sanitizer || status=1
+  return $status
+}
+
+run_cppcheck() {
+  if [ "${HAS_NATIVE:-0}" -eq 0 ]; then
+    echo "Cppcheck: skipped (no native changes)" > /tmp/cppcheck-prepush.log
+    return 0
+  fi
+  if ! command -v cppcheck >/dev/null 2>&1; then
+    echo "Warning: cppcheck not installed, skipping" > /tmp/cppcheck-prepush.log
+    return 0
+  fi
+  echo "=== cppcheck ===" > /tmp/cppcheck-prepush.log
+  CPP_FILES=$(git ls-files '*.cpp' | grep 'menger-geometry/src/main/native/')
+  if [ -z "$CPP_FILES" ]; then
+    echo "cppcheck: skipped (no C++ source files)" >> /tmp/cppcheck-prepush.log
+    return 0
+  fi
+  # shellcheck disable=SC2086
+  cppcheck \
+    --enable=warning,performance,portability \
+    --inline-suppr \
+    --suppressions-list=.cppcheck-suppress \
+    --error-exitcode=1 \
+    --quiet \
+    ${CPP_FILES} >> /tmp/cppcheck-prepush.log 2>&1
+  STATUS_CPC=$?
+  if [ "${STATUS_CPC}" -ne 0 ]; then
+    echo "cppcheck: FAILED" >> /tmp/cppcheck-prepush.log
+    return 1
+  fi
+  echo "cppcheck: PASSED" >> /tmp/cppcheck-prepush.log
+}
+
+run_clang_tidy() {
+  if [ "${HAS_NATIVE:-0}" -eq 0 ]; then
+    echo "clang-tidy: skipped (no native changes)" > /tmp/clangtidy-prepush.log
+    return 0
+  fi
+  if ! command -v clang-tidy >/dev/null 2>&1; then
+    echo "Warning: clang-tidy not installed, skipping" > /tmp/clangtidy-prepush.log
+    return 0
+  fi
+  BUILD_DIR="menger-geometry/target/native/x86_64-linux/build"
+  if [ ! -f "${BUILD_DIR}/compile_commands.json" ]; then
+    echo "Warning: compile_commands.json not found at ${BUILD_DIR} (run sbt compile first)" > /tmp/clangtidy-prepush.log
+    return 0
+  fi
+  echo "=== clang-tidy ===" > /tmp/clangtidy-prepush.log
+  CPP_FILES=$(git ls-files '*.cpp' | grep 'menger-geometry/src/main/native/')
+  if [ -z "$CPP_FILES" ]; then
+    echo "clang-tidy: skipped (no C++ source files)" >> /tmp/clangtidy-prepush.log
+    return 0
+  fi
+  # Detect GCC stdlib version; clang's frontend needs these paths to parse
+  # cuda_runtime.h which transitively includes C++ standard headers.
+  GCC_VER=$(gcc -dumpversion 2>/dev/null | cut -d. -f1)
+  GCC_ARGS=""
+  if [ -d "/usr/include/c++/${GCC_VER}" ]; then
+    GCC_ARGS="--extra-arg=-I/usr/include/c++/${GCC_VER} --extra-arg=-I/usr/include/x86_64-linux-gnu/c++/${GCC_VER}"
+  fi
+  # shellcheck disable=SC2086
+  clang-tidy \
+    -p "${BUILD_DIR}" \
+    --config-file=.clang-tidy \
+    ${GCC_ARGS} \
+    ${CPP_FILES} >> /tmp/clangtidy-prepush.log 2>&1
+  STATUS_CT=$?
+  if [ "${STATUS_CT}" -ne 0 ]; then
+    echo "clang-tidy: FAILED" >> /tmp/clangtidy-prepush.log
+    return 1
+  fi
+  echo "clang-tidy: PASSED" >> /tmp/clangtidy-prepush.log
+}
+
+export -f run_coverage
+export -f make_tool_java_home
+export -f run_valgrind
+export -f run_compute_sanitizer
+export -f run_native_gates
+export -f run_cppcheck
+export -f run_clang_tidy
+export SKIP_COVERAGE
+export OPTIX_ROOT
+export CUDA_HOME
+export HAS_SCALA
+export HAS_NATIVE
+export HAS_RENDERING
+
+echo "=== Running cppcheck + clang-tidy in parallel; coverage and native memory gates sequentially ==="
+
+run_cppcheck &
+CPPCHECK_PID=$!
+
+run_clang_tidy &
+CLANGTIDY_PID=$!
+
+# Coverage and the native memory gates all drive sbt, and sbt binds one
+# BootServerSocket per project — concurrent sbt runs in the same project race
+# ("Address already in use"), and coverage's `clean` wipes the target dirs the
+# gates' test runs need. Run them strictly sequentially (cppcheck/clang-tidy
+# don't invoke sbt and stay parallel).
+run_coverage
+COVERAGE_STATUS=$?
+cat /tmp/coverage-prepush.log
+
+run_native_gates
+NATIVE_GATES_STATUS=$?
+cat /tmp/valgrind-phase-prepush.log
+cat /tmp/cs-prepush.log
+
+wait $CPPCHECK_PID
+CPPCHECK_STATUS=$?
+cat /tmp/cppcheck-prepush.log
+
+wait $CLANGTIDY_PID
+CLANGTIDY_STATUS=$?
+cat /tmp/clangtidy-prepush.log
+
+if [ $COVERAGE_STATUS -ne 0 ]; then
+  echo "Coverage: ${RED_TEXT}FAILED${RESET_TEXT}"
+  STATUS=1
+else
+  grep "Statement coverage\|Coverage:\|Skipping\|Skipped" /tmp/coverage-prepush.log | while IFS= read -r line; do
+    echo "  ${GREEN_TEXT}${line}${RESET_TEXT}"
+  done
+fi
+
+if [ $NATIVE_GATES_STATUS -ne 0 ]; then
+  grep -q '^Valgrind: FAILED' /tmp/valgrind-phase-prepush.log && echo "Valgrind: ${RED_TEXT}FAILED${RESET_TEXT}" || true
+  grep -q '^compute-sanitizer: FAILED' /tmp/cs-prepush.log && echo "compute-sanitizer: ${RED_TEXT}FAILED${RESET_TEXT}" || true
+  STATUS=1
+else
+  echo "Valgrind: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+  echo "compute-sanitizer: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+fi
+
+if [ $CPPCHECK_STATUS -ne 0 ]; then
+  echo "Cppcheck: ${RED_TEXT}FAILED${RESET_TEXT}"
+  STATUS=1
+else
+  echo "Cppcheck: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+fi
+
+if [ $CLANGTIDY_STATUS -ne 0 ]; then
+  echo "clang-tidy: ${RED_TEXT}FAILED${RESET_TEXT}"
+  STATUS=1
+else
+  echo "clang-tidy: ${GREEN_TEXT}PASSED${RESET_TEXT}"
+fi
+
+if [ $STATUS -gt 0 ]
+then echo "Status after parallel checks: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+else echo "Status after parallel checks: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+fi
+
+# ---------------------------------------------------------------------------
+# Phase 5: Package and integration tests
+# ---------------------------------------------------------------------------
+if [ "$HAS_RENDERING" -gt 0 ] || [ "$HAS_NATIVE" -gt 0 ] || [ "$HAS_INTEGRATION" -gt 0 ]; then
+  echo "=== Building release package ==="
+  sbt "mengerApp / Universal / packageBin" --warn || STATUS=1
+  VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
+  unzip -oq ./menger-app/target/universal/menger-app-${VERSION}.zip || STATUS=1
+  if [ $STATUS -gt 0 ]
+  then echo "Status after build: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after build: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+
+  echo "=== Running integration tests ==="
+  MAX_PARALLEL_JOBS=1 ./scripts/integration-tests.sh "./menger-app-${VERSION}/bin/menger-app" || STATUS=1
+  if [ $STATUS -gt 0 ]
+  then echo "Status after integration tests: ${RED_TEXT}${STATUS}${RESET_TEXT}"
+  else echo "Status after integration tests: ${GREEN_TEXT}${STATUS}${RESET_TEXT}"
+  fi
+else
+  echo "=== Package and integration tests ===" ; skip_section
+fi
+
+if [ $STATUS -gt 0 ]; then
+  commit_msg=$(git log --oneline | head -n 1 | cut -d' ' -f 2-)
+  if echo "$commit_msg" | grep '^WIP:'; then
+    echo >&2 "Found WIP commit, pushing in spite of failed test suite"
+    STATUS=0
+  fi
+fi
+
+exit $STATUS
