@@ -47,25 +47,11 @@ echo "=================================================================="
     fi
   fi
 
-  export HAS_SCALA=$(echo "$CHANGED_FILES" | grep -cE '\.(scala|sbt)$|^project/')
-  export HAS_NATIVE=$(echo "$CHANGED_FILES" | grep -cE '^menger-geometry/src/main/native/.*\.(cpp|cu|cuh|h)$|CMakeLists\.txt')
-  export HAS_CI=$(echo "$CHANGED_FILES" | grep -cE '^\.github/workflows/.*\.ya?ml$')
-  export HAS_INTEGRATION=$(echo "$CHANGED_FILES" | grep -c '^scripts/integration-tests\.sh$')
-
-  _RENDERING_PATHS_FILE="${RENDERING_PATHS_FILE:-./standards/rendering-paths.txt}"
-  export HAS_RENDERING=0
-  if [ -r "$_RENDERING_PATHS_FILE" ]; then
-    _RENDERING_PATTERNS=$(grep -v '^[[:space:]]*\(#\|$\)' "$_RENDERING_PATHS_FILE" | paste -sd'|' -)
-    if [ -n "$_RENDERING_PATTERNS" ]; then
-      HAS_RENDERING=$(echo "$CHANGED_FILES" | grep -cE "$_RENDERING_PATTERNS" 2>/dev/null) || HAS_RENDERING=0
-      export HAS_RENDERING
-    fi
-  fi
-
+  export CHANGED_FILES
   export QA_RANGES="$RANGES"
   export QA_REMOTE="$1"
 
-  ./standards/scripts/qa-runner.sh parity policy preflight lint unit native-checks coverage memcheck package integration
+  ./standards/scripts/qa-runner.sh --tier push
 ) < "$STDIN_CAPTURE"
 NEW_STATUS=$?
 
