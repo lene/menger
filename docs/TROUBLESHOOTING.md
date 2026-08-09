@@ -81,6 +81,17 @@ reboot. CUDA drivers are backward-compatible, so existing CUDA 12 builds keep wo
 **Note:** the project standardized on CUDA 13 in Sprint 27 (arc42 §2 TC-4/TC-9). To stay on
 an older driver, you would have to rebuild `optix-jni` against CUDA 12 and `publishLocal` it.
 
+### GPU busy / OOM from a concurrent desktop process (CUDA error 719, out of memory)
+
+A foreign process (video encoding, another render, a second Menger instance) holding
+GPU memory or compute time can make `memcheck`/`integration` fail with CUDA error 719
+or an out-of-memory error that has nothing to do with the code under test. The pre-push
+hook's `gpu-preflight.sh` check (Sprint 36 D1) detects this automatically — free
+VRAM below ~2 GiB or any listed compute process triggers a short retry window, then a
+labeled `SKIP (env: GPU busy — <process>)` locally, or an `ENV-UNSUITABLE` CI failure
+(rerun with `gh run rerun --failed` once the GPU clears). Manual check:
+`nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv`.
+
 ### CI GPU job "system failure": `open /run/nvidia-persistenced/socket: no such file or directory`
 
 **Cause:** on a self-hosted GitLab GPU runner, the NVIDIA container toolkit mounts the

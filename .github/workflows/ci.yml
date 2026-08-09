@@ -360,6 +360,7 @@ jobs:
           HEAD_SHA: ${{ github.event.after }}
         run: |
           set -euo pipefail
+          . ./standards/hooks/lib.sh
           # Skip tagging + release when any commit in the push range carries
           # NORELEASE or [skip release] in its message. Push events have no
           # PR-label context, so the marker must live in the commit message
@@ -382,7 +383,7 @@ jobs:
             echo "tag $DEPLOYABLE_VERSION already exists - not re-tagging"
           else
             git tag "$DEPLOYABLE_VERSION"
-            git push origin "$DEPLOYABLE_VERSION"
+            retry_with_backoff "git push tag" git push origin "$DEPLOYABLE_VERSION"
           fi
           # A tag pushed by GITHUB_TOKEN does NOT trigger a second workflow, so the
           # release job runs in this same run instead of on the tag. Publish only when

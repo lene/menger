@@ -13,6 +13,8 @@ if [ "${HAS_NATIVE:-0}" -eq 0 ]; then
   exit 0
 fi
 
+gpu_preflight_or_skip memcheck || exit 1
+
 # The tool must wrap the *forked test JVM*, not xvfb-run/sbt: valgrind does not trace
 # child processes by default, so wrapping `xvfb-run -a sbt ...` instrumented only the
 # dash wrapper script — it never saw menger native code (vacuous gate) and failed on a

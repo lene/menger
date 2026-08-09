@@ -10,6 +10,8 @@ if [ "${HAS_RENDERING:-0}" -eq 0 ] && [ "${HAS_NATIVE:-0}" -eq 0 ] && [ "${HAS_I
   exit 0
 fi
 
+gpu_preflight_or_skip integration || exit 1
+
 VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
 echo "=== Running integration tests ==="
 if MAX_PARALLEL_JOBS=1 ./scripts/integration-tests.sh "./menger-app-${VERSION}/bin/menger-app"; then
