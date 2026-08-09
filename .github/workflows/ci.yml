@@ -284,6 +284,18 @@ jobs:
 
   # SonarCloud analysis is handled by the SonarCloud GitHub App (automatic on PRs/pushes),
   # so there is no sonar job here — it would double-run. Config lives in sonar-project.properties.
+  # sonar-ratchet below only blocks on and ratchets against that app's posted check.
+
+  sonar-ratchet:
+    name: Sonar ratchet (F2)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/check-sonar-ratchet.sh "${{ github.event.pull_request.head.sha }}"
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ── build + release ─────────────────────────────────────────────────────────
   build-deployable:
