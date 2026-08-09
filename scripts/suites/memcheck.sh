@@ -194,7 +194,7 @@ run_compute_sanitizer() {
   # native library (libmengergeometry). Findings inside the pinned liboptixjni (or the
   # CUDA driver) are fixed in the optix-jni repo (Sprint 35 Ph2) and land here via pin
   # bumps — warnings only, kept visible.
-  local fail=0 findings=0 f
+  local fail=0 findings=0 f warning_count=0
   for f in $INSTRUMENTED_LOGS; do
     if grep -qE 'ERROR SUMMARY: [1-9][0-9]* error' "$f"; then
       findings=1
@@ -203,6 +203,9 @@ run_compute_sanitizer() {
         cat "$f"
         fail=1
       else
+        local n
+        n=$(grep -oP 'ERROR SUMMARY: \K[0-9]+' "$f" | head -1)
+        warning_count=$((warning_count + n))
         echo "compute-sanitizer: WARNING - findings attributed to pinned liboptixjni / CUDA driver (fixed in the optix-jni repo, not blocking): $(grep -E 'LEAK SUMMARY|ERROR SUMMARY' "$f" | paste -sd' ')"
       fi
     fi
@@ -215,6 +218,31 @@ run_compute_sanitizer() {
     echo "compute-sanitizer: FAILED (test run failed without sanitizer findings, see above)"
     return 1
   fi
+
+  # Sanitizer-warning-count ratchet (Sprint 36 F3, O7): the WARNING channel above is
+  # already non-blocking by design (pinned liboptixjni, fixed upstream via pin bumps) —
+  # this ratchet stops that channel from becoming a place new warnings quietly
+  # accumulate. FAIL-branch findings are never counted here; they already hard-fail
+  # unconditionally above.
+  local SANITIZER_BASELINE_FILE=".sanitizer-warning-baseline"
+  local baseline_count
+  if [ -f "$SANITIZER_BASELINE_FILE" ]; then
+    baseline_count=$(cat "$SANITIZER_BASELINE_FILE")
+  else
+    baseline_count="$warning_count"
+    echo "$warning_count" > "$SANITIZER_BASELINE_FILE"
+    echo "compute-sanitizer: no baseline found, seeding at current count ($warning_count)"
+  fi
+  local verdict
+  if ! verdict=$(ratchet_check "sanitizer-warnings" "$warning_count" "$baseline_count" down 0); then
+    echo "compute-sanitizer: FAILED - warning count ratchet: $warning_count > baseline $baseline_count"
+    return 1
+  fi
+  if [ "$verdict" = "PASS improved" ]; then
+    echo "$warning_count" > "$SANITIZER_BASELINE_FILE"
+    echo "compute-sanitizer: warning count improved to $warning_count — baseline lowered"
+  fi
+
   echo "compute-sanitizer: PASSED"
 }
 
