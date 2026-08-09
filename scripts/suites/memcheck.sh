@@ -15,6 +15,11 @@ fi
 
 gpu_preflight_or_skip memcheck || exit 1
 
+# Shared with run_sanitizer_self_check() (Sprint 36 E2) — a future edit that weakens
+# these flags weakens the self-check too, and the self-check will (correctly) stop
+# detecting its own known defect, aborting the gate before it silently degrades.
+CS_MEMCHECK_FLAGS="--tool memcheck --leak-check full"
+
 # The tool must wrap the *forked test JVM*, not xvfb-run/sbt: valgrind does not trace
 # child processes by default, so wrapping `xvfb-run -a sbt ...` instrumented only the
 # dash wrapper script — it never saw menger native code (vacuous gate) and failed on a
@@ -159,8 +164,7 @@ run_compute_sanitizer() {
   local CSJH CS_LOG_DIR
   CSJH=$(mktemp -d /tmp/cs-javahome.XXXXXX)
   CS_LOG_DIR=$(mktemp -d /tmp/cs-logs.XXXXXX)
-  make_tool_java_home "$CSJH" compute-sanitizer \
-    --tool memcheck --leak-check full --error-exitcode 1
+  make_tool_java_home "$CSJH" compute-sanitizer $CS_MEMCHECK_FLAGS --error-exitcode 1
 
   RUNNING_UNDER_COMPUTE_SANITIZER=true __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt \
     "set mengerApp / Test / javaHome := Some(file(\"$CSJH\"))" \
@@ -212,6 +216,43 @@ run_compute_sanitizer() {
     return 1
   fi
   echo "compute-sanitizer: PASSED"
+}
+
+# --- Sanitizer self-check (Sprint 36 E2): proves the gate below can actually catch
+# a real defect before its PASS is trusted. Runs as its own tiny standalone binary —
+# no sbt/JVM/xvfb-run — so it adds seconds, not minutes, to the hook.
+run_sanitizer_self_check() {
+  echo "=== compute-sanitizer self-check ==="
+
+  if ! command -v compute-sanitizer >/dev/null 2>&1 || ! command -v nvcc >/dev/null 2>&1; then
+    echo "compute-sanitizer self-check: skipped (compute-sanitizer/nvcc not on PATH)"
+    return 0
+  fi
+
+  local dir bin
+  dir=$(mktemp -d /tmp/cs-selfcheck.XXXXXX)
+  bin="$dir/defect"
+  if ! nvcc -o "$bin" "$PWD/scripts/suites/sanitizer-self-check.cu" 2>"$dir/nvcc.log"; then
+    echo "compute-sanitizer self-check: FAILED - could not build the known-defective sample:"
+    cat "$dir/nvcc.log"; rm -rf "$dir"; return 1
+  fi
+
+  # No --error-exitcode: a non-zero exit is the *expected* outcome, and the
+  # log content (not the exit code) is what gets asserted below.
+  compute-sanitizer $CS_MEMCHECK_FLAGS "$bin" >"$dir/selfcheck.log" 2>&1
+
+  if grep -qE 'ERROR SUMMARY: [1-9][0-9]* error' "$dir/selfcheck.log"; then
+    echo "compute-sanitizer self-check: PASSED (gate correctly flagged the known defect)"
+    rm -rf "$dir"; return 0
+  fi
+
+  echo "SANITIZER SELF-CHECK DID NOT DETECT KNOWN DEFECT — gate is not trustworthy, aborting"
+  cat "$dir/selfcheck.log"; rm -rf "$dir"; return 1
+}
+
+run_sanitizer_self_check || {
+  echo "memcheck: aborting before running the real suite — sanitizer self-check failed"
+  exit 1
 }
 
 STATUS=0

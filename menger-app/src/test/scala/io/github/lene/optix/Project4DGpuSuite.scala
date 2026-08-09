@@ -303,6 +303,29 @@ class Project4DGpuSuite extends AnyFlatSpec
     )
     meshIdx should be >= 0
 
+  // --- Test 7: sanitizer scene coverage — GAS lifecycle for non-sphere kinds -----
+  // Sprint 36 E1: setupDefaults only ever adds a sphere, so gas_registry never held a
+  // cylinder/cone/plane/curve alias and the compute-sanitizer gate (memcheck.sh) had
+  // nothing to double-free when dispose() -> clearAllInstances() ran on teardown. This
+  // test's only job is scene coverage, not pixel output. Under plain `sbt test` it
+  // passes cleanly (the double-free is silently absorbed and only logged natively —
+  // exactly QA_INCIDENTS.md entry #1's "why didn't it fail" symptom). Under
+  // compute-sanitizer instrumentation the wrapped JVM exits non-zero on teardown —
+  // expected, and already handled: memcheck.sh treats a non-zero test-run exit as a
+  // real failure only when the sanitizer log has no findings; here it does, so the
+  // suite reports a non-blocking WARNING (findings attributed to liboptixjni) instead.
+
+  it should "add and clear cylinder/cone/plane/curve instances without native error" in:
+    renderer.addCylinderInstance(
+      Vector[3](-2.0f, -1.0f, 0.0f), Vector[3](-2.0f, 1.0f, 0.0f), 0.3f, opaqueGrey)
+    renderer.addConeInstance(
+      Vector[3](2.0f, 1.0f, 0.0f), Vector[3](2.0f, -1.0f, 0.0f), 0.4f, opaqueGrey)
+    renderer.addPlaneInstance(Vector[3](0.0f, 1.0f, 0.0f), -2.0f, opaqueGrey)
+    val points = Array(0.0f, -1.0f, 1.0f, 0.3f, 0.0f, 1.0f, 0.6f, 1.0f, 1.0f, 0.9f, 2.0f, 1.0f)
+    renderer.addCurveInstance(points, Array.fill(4)(0.1f), opaqueGrey)
+    val _ = renderer.render(ImgSize)
+    renderer.getInstanceCount() shouldBe 4
+
   private def measureMs[T](block: => T): (T, Double) =
     val start = System.nanoTime()
     val result = block

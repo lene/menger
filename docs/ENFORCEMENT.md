@@ -33,6 +33,10 @@ resolve by implementing a gate or consciously accepting the gap.
 | Modified/deleted test files require `Test-Change:` trailer | AGENTS.md §Test failures | `standards/hooks/check-test-justification.sh` (pre-push Phase 0) | ✅ |
 | Test failure investigation protocol documented | AGENTS.md §Test failures | `docs/TESTING.md` | ✅ |
 | Coverage ≥ 80 %, max 1 % drop | AGENTS.md §Definition of Done | pre-push Phase 4: coverage ratchet | ✅ |
+| Escaped-defect fix carries a regression test + `docs/QA_INCIDENTS.md` entry | `../docs/QA_STRATEGY.md` §O5 (workspace); `../docs/QA_INCIDENTS.md` | 🤖 AI policy | 🤖 |
+
+Mechanized `QA-Incident:` trailer check deferred per Sprint 36 SPRINT36.md E3 ("later if
+leaky") — add only if the 🤖 row proves insufficient in practice.
 
 ---
 

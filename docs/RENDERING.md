@@ -81,6 +81,14 @@ the feature is considered done. This is not currently enforced by a gate (open
 issue [#156](https://gitlab.com/lilacashes/menger/-/work_items/156) and
 [#157](https://gitlab.com/lilacashes/menger/-/work_items/157)).
 
+If a manual/interactive verification test (`manual-test.sh`, or ad-hoc GPU testing) catches
+a rendering defect, the fix must be accompanied by a new automated regression test
+(`integration-tests.sh` or a unit/suite test) before the fix merges — a failure only a
+human eye caught once must not be able to escape silently a second time. `ScriptParitySuite`
+(menger-app) enforces that both scripts exercise the same feature tokens (types, materials,
+flags, DSL scenes); it is a static content check and cannot verify this
+before/after-a-failure discipline, which remains process (🤖) — see `QA_STRATEGY.md` §O5.
+
 ---
 
 ## Alpha channel convention

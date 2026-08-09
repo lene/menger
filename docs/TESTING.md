@@ -64,6 +64,36 @@ do not require it.
 
 ---
 
+## Guard-proof rule: a new guard must fail against its defect (revert-and-run)
+
+A new regression/guard test is only proof once demonstrated to fail against the defect it
+guards. A guard that has never failed is unproven — it may be passing by accident (wrong
+assertion, wrong fixture, a code path it never actually exercises).
+
+**Procedure:** write the guard against the fixed code (it should pass). Temporarily revert
+the fix — `git stash`, check out the pre-fix version of the file under test, or comment out
+the fix — and re-run the exact same guard command. It must fail. Restore the fix, re-run
+once more to confirm green, and record both results in the commit message.
+
+### Worked examples (2026-08-07)
+
+**OptiXException constructor test** (optix-jni, `efbb8a8`,
+`JniErrorSurfaceSuite.scala:58-65`) — a reflection check that
+`classOf[OptiXException].getConstructor(classOf[String])` exists and constructs correctly,
+mirroring what JNI `ThrowNew` does at runtime. From the commit message: "verified it fails
+with NoSuchMethodException on the pre-fix class and passes after."
+
+**gas_registry alias check** (optix-jni, `1ad1d3a`, `GpuLeakSuite.scala:179-187`) — a
+source-level check that `OptiXWrapper.cpp` never contains the aliasing expression
+`gas_registry[static_cast<GeometryType>(-(instanceId + 1))]`. From the commit message:
+"Verified: 42 occurrences before, 0 after, on the same command; with the fix reverted the
+new check fails and the count returns to 43."
+
+Both guards were run against pre-fix source before being trusted — that is the bar every
+new guard test in this repo must clear.
+
+---
+
 ## Flaky test policy
 
 Some integration tests are known to be intermittently flaky under GPU contention.
