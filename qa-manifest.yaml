@@ -35,5 +35,6 @@ suites:
   memcheck:      { tier: push,    requires: [native] }
   package:       { tier: push,    requires: [] }
   integration:   { tier: push,    requires: [integration, rendering] }
-  perf:          { tier: release, requires: [], automated: false, note: "CI perf-check job, sbt-invoked SpongePerformanceSuite; no suite script yet" }
+  sonar-ratchet: { tier: pr,      requires: [], automated: false, note: "CI-only (needs PR/GitHub check-run context); scripts/check-sonar-ratchet.sh, deliberately not scripts/suites/ — cannot run in the local pre-push hook (Sprint 36 F2)" }
+  perf:          { tier: release, requires: [], note: "scripts/suites/perf.sh wraps benchmark.sh + baseline ratchet (Sprint 36 F4)" }
   manual:        { tier: release, requires: [], automated: false, note: "scripts/manual-test.sh, human-run, part of /release-checklist" }
