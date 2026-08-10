@@ -89,6 +89,12 @@ human eye caught once must not be able to escape silently a second time. `Script
 flags, DSL scenes); it is a static content check and cannot verify this
 before/after-a-failure discipline, which remains process (🤖) — see `QA_STRATEGY.md` §O5.
 
+**Framing (O6):** new scenes with a solid/flat background are gated automatically
+(`integration-tests.sh`, ≥40% subject bbox via ImageMagick `-trim`) on first render.
+Scenes using `--plane*` or an env-map background defeat that measurement — for those,
+manually confirm the subject fills a comparable fraction of frame before adding a
+reference image, and note it in review.
+
 ---
 
 ## Alpha channel convention

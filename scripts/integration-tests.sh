@@ -18,6 +18,7 @@
 
 # Parse arguments
 UPDATE_REFERENCES=false
+FRAMING_REPORT=false
 MENGER_BIN=""
 FILTERS=()  # case-insensitive substrings; only tests matching ≥1 filter run (empty = all)
 
@@ -25,6 +26,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --update-references)
             UPDATE_REFERENCES=true
+            shift
+            ;;
+        --framing-report)
+            FRAMING_REPORT=true
             shift
             ;;
         --filter)
@@ -76,6 +81,7 @@ PASSED=0
 FAILED=0
 FAILED_TESTS=""
 IMAGE_COMPARISON_FAILURES=0
+FRAMING_RESULTS=()  # "name|percent" entries (Sprint 36 F1, O6), for --framing-report
 
 # Scenario progress (Sprint 36 C4). Self-counted from the run_test*/run_ladder_scene
 # invocation sites below rather than hardcoded, so it can't drift out of sync with the
@@ -148,6 +154,55 @@ compare_images() {
         ((IMAGE_COMPARISON_FAILURES++))
         return 1
     fi
+}
+
+# Framing check (Sprint 36 F1, O6): non-background bounding box as % of frame. Only
+# meaningful for a solid/flat background (no --plane* ground flag, no type=plane object,
+# no env-map) — a ground plane, first-class plane geometry, or textured sky fills
+# most/all of the frame, which would make -trim measure "plane + subject" (or, when the
+# plane is edge-on/thin against a similarly-fuzzed background, defeat -trim entirely and
+# read near-zero) rather than the actual subject. Those scenes are covered by the
+# review-checklist line in docs/RENDERING.md instead, not this mechanized check.
+FRAMING_MIN_PERCENT=40
+
+compute_framing_percent() {
+    local image="$1" trimmed tw th
+    trimmed=$(convert "$image" -fuzz 5% -trim -format '%wx%h' info: 2>/dev/null) || { echo ""; return 1; }
+    tw="${trimmed%x*}"; th="${trimmed#*x}"
+    { [ -z "$tw" ] || [ -z "$th" ]; } && { echo ""; return 1; }
+    echo "scale=1; 100 * ($tw * $th) / ($TEST_WIDTH * $TEST_HEIGHT)" | bc
+}
+
+# DSL scenes (--scene examples.dsl.X) can bake a floor plane straight into the Scala
+# scene definition (planes = List(Plane(...))), invisible to a CLI-args check — same
+# defeats-trim problem as --plane/type=plane, just not visible on the command line.
+# Best-effort source grep: find the object matching the scene class and look for a
+# non-empty planes list before the next top-level object or end of file.
+dsl_scene_has_plane() {
+    local scene_class="$1" src
+    src=$(grep -rl "^object ${scene_class}[:[:space:]]" "$SCRIPT_DIR/../menger-app/src/main/scala/examples/dsl/" 2>/dev/null | head -1)
+    [ -z "$src" ] && return 1
+    awk -v obj="^object ${scene_class}[:[:space:]]" '
+        $0 ~ obj { found=1; next }
+        found && /^object / { exit }
+        found && /planes[ \t]*=[ \t]*List\(\)/ { next }
+        found && /planes[ \t]*=[ \t]*List\(/ { print "yes"; exit }
+    ' "$src" | grep -q yes
+}
+
+# False if the scene's args include a full-frame-filling element that defeats -trim.
+framing_check_applicable() {
+    case "$*" in
+        *--plane*|*type=plane*|*"env map background"*) return 1 ;;
+    esac
+    case "$*" in
+        *"--scene examples.dsl."*)
+            local scene_class
+            scene_class=$(echo "$*" | grep -oP '(?<=--scene examples\.dsl\.)\S+')
+            [ -n "$scene_class" ] && dsl_scene_has_plane "$scene_class" && return 1
+            ;;
+    esac
+    return 0
 }
 
 sanitize_test_name() {
@@ -229,13 +284,40 @@ run_test() {
         else
             # Normal test mode with image comparison
             local image_match=true
+            local framing_line=""
+            local fail_reason="image mismatch"
             COMPARISON_RESULT=""
             if [ -f "$reference_file" ]; then
                 if ! compare_images "$name" "$temp_output" "$reference_file" "$diff_file"; then
                     image_match=false
                 fi
+                if framing_check_applicable "$@"; then
+                    local pct
+                    pct=$(compute_framing_percent "$temp_output")
+                    if [ -n "$pct" ]; then
+                        FRAMING_RESULTS+=("$name|$pct")
+                        framing_line="  framing: ${pct}% of frame"
+                    fi
+                fi
             else
                 COMPARISON_RESULT="no reference"
+                # Framing gate (Sprint 36 F1, O6): a scene's first render, with no prior
+                # reference to grade against, must still clear the minimum framing bar.
+                if framing_check_applicable "$@"; then
+                    local pct
+                    pct=$(compute_framing_percent "$temp_output")
+                    if [ -n "$pct" ]; then
+                        FRAMING_RESULTS+=("$name|$pct")
+                        if [ "$(echo "$pct < $FRAMING_MIN_PERCENT" | bc)" -eq 1 ]; then
+                            image_match=false
+                            fail_reason="framing gate: ${pct}% < ${FRAMING_MIN_PERCENT}% minimum"
+                        else
+                            framing_line="  framing: ${pct}% of frame"
+                        fi
+                    fi
+                else
+                    framing_line="  framing: n/a (plane/background scene — see docs/RENDERING.md)"
+                fi
             fi
 
             if $image_match; then
@@ -243,9 +325,10 @@ run_test() {
                 echo -e "  ${name} - ${COMPARISON_RESULT} ${GREEN}✓${RESET}"
             else
                 ((FAILED++))
-                FAILED_TESTS="$FAILED_TESTS\n  - $name (image mismatch)"
+                FAILED_TESTS="$FAILED_TESTS\n  - $name ($fail_reason)"
                 echo -e "  ${name} - ${COMPARISON_RESULT} ${RED}✗${RESET}"
             fi
+            [ -n "$framing_line" ] && echo -e "$framing_line"
         fi
     else
         ((FAILED++))
@@ -422,6 +505,27 @@ print_summary() {
     if [ "$UPDATE_REFERENCES" = true ]; then
         echo -e "\n${YELLOW}Reference images updated in: ${REFERENCE_DIR}${RESET}"
     fi
+
+    if [ "$FRAMING_REPORT" = true ]; then
+        print_framing_report
+    fi
+}
+
+# Survey mode (Sprint 36 F1, O6): sorted worst-first listing of every measured scene's
+# subject-bbox %, for picking real re-framing candidates instead of guessing from source.
+# Not part of the pass/fail gate — a working artifact, not committed suite output.
+print_framing_report() {
+    local report_file="$SCRIPT_DIR/framing-report.log"
+    echo -e "\n=== Framing Report (Sprint 36 F1) ==="
+    if [ ${#FRAMING_RESULTS[@]} -eq 0 ]; then
+        echo "no measurable scenes (all skipped or filtered)"
+        return
+    fi
+    printf '%s\n' "${FRAMING_RESULTS[@]}" \
+        | sort -t'|' -k2 -n \
+        | awk -F'|' '{printf "  %6.1f%%  %s\n", $2, $1}' \
+        | tee "$report_file"
+    echo "Full report written to: $report_file"
 }
 
 # ============================================
@@ -1276,10 +1380,13 @@ test_cone() {
 
 test_curve() {
     echo "Analytical Primitives (Curve):"
+    # Sprint 36 F1: control points recentered on the origin (were offset 0..1, off-center
+    # and small at the default camera distance) and radius increased — measured framing
+    # 3.8%/2.3% of frame, worst offenders in the Sprint 36 F1 framing survey.
     run_test "curve open 4-point" \
-        --objects type=curve:control-points=0,0,0,1,0,0,1,1,0,0,1,0:radius=0.05
+        --objects type=curve:control-points=-0.6,-0.6,0,0.6,-0.6,0,0.6,0.6,0,-0.6,0.6,0:radius=0.1
     run_test "curve with color" \
-        --objects type=curve:control-points=0,0,0,0,1,0,1,1,0,1,0,0:radius=0.08:color=#ff6600
+        --objects type=curve:control-points=-0.6,-0.6,0,-0.6,0.6,0,0.6,0.6,0,0.6,-0.6,0:radius=0.15:color=#ff6600
     run_test "curve glass" \
         --objects type=curve:control-points=0,0,0,0,0.5,0,0.5,1,0,1,1,0:radius=0.08:material=glass \
         --plane y:-2
