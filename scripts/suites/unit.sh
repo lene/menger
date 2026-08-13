@@ -10,6 +10,12 @@ if [ "${HAS_SCALA:-0}" -eq 0 ] && [ "${HAS_NATIVE:-0}" -eq 0 ]; then
   exit 0
 fi
 
+# `sbt test` runs Project4DGpuSuite (real CUDA calls) alongside the plain unit tests, in
+# one JVM run that can't be split without restructuring the suite (Sprint 36 D1) — same
+# whole-suite gating memcheck.sh already applies even though only part of its work is
+# GPU-bound.
+gpu_preflight_or_skip unit || exit 1
+
 echo "=== Compiling ==="
 if ! sbt compile; then
   suite_fail unit 1 "compile"

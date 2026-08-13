@@ -115,14 +115,17 @@ jobs:
     name: Test (full suite, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
+    env:
+      HAS_SCALA: "1"
+      HAS_NATIVE: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
       - name: nvidia-smi (fail fast if GPU absent)
         run: nvidia-smi
-      - name: Run full test suite (headless)
-        run: xvfb-run -a sbt test
+      - name: Run full test suite (scripts/suites/unit.sh)
+        run: ./scripts/suites/unit.sh
       - name: Publish test report
         if: always()
         uses: mikepenz/action-junit-report@v4
@@ -188,50 +191,22 @@ jobs:
 
   coverage:
     name: Coverage ratchet (GPU)
+    # Converted to call scripts/suites/coverage.sh (Sprint 36 B4/O3) — was duplicate
+    # inline scoverage logic with its own GitHub Actions-cache baseline
+    # (coverage-prev.log, statement+branch rate) that had drifted from what the local
+    # pre-push hook actually checks (.coverage_baseline, statement rate only). O3's goal
+    # is one suite definition shared by hook and CI; branch-rate tracking was CI-only
+    # and is dropped here to match, not preserved as a second, hook-inconsistent gate.
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
     env:
-      COVERAGE_DROP_THRESHOLD: "1.0"
-      COVERAGE_MIN: "80"
-      COVERAGE_FLOOR: "60"
+      HAS_SCALA: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
-      # Persist the previous coverage.log across runs (replaces the GitLab artifacts-API fetch).
-      - name: Restore previous coverage baseline
-        uses: actions/cache/restore@v4
-        with:
-          path: coverage-prev.log
-          key: menger-coverage-${{ github.ref_name }}-${{ github.run_id }}
-          restore-keys: menger-coverage-${{ github.ref_name }}-
-      - name: Run coverage + ratchet check
-        run: |
-          set -uo pipefail
-          statement_rate_old=0; branch_rate_old=0
-          [ -f coverage-prev.log ] && . coverage-prev.log && statement_rate_old=${statement_rate:-0} && branch_rate_old=${branch_rate:-0}
-          sbt clean
-          xvfb-run -a sbt coverage test || true
-          sbt coverageReport
-          REPORT=$(head -n 2 menger-app/target/scala-3.*.*/scoverage-report/scoverage.xml | tail -n 1 | xargs)
-          for w in $REPORT; do echo "$w"; done | grep rate | tr - _ > coverage.log
-          . coverage.log
-          echo "statement: current=${statement_rate}% previous=${statement_rate_old}%"
-          if [ "$(echo "$statement_rate < $COVERAGE_FLOOR" | bc -l)" -eq 1 ]; then
-            echo "::error::coverage ${statement_rate}% below floor ${COVERAGE_FLOOR}%"; exit 1; fi
-          drop=$(echo "$statement_rate_old - $statement_rate" | bc -l)
-          if [ "$(echo "$drop > $COVERAGE_DROP_THRESHOLD" | bc -l)" -eq 1 ]; then
-            echo "::warning::coverage dropped ${drop}%"
-            if [ "$(echo "$statement_rate < $COVERAGE_MIN" | bc -l)" -eq 1 ]; then
-              echo "::error::coverage ${statement_rate}% below minimum ${COVERAGE_MIN}%"; exit 1; fi
-          fi
-          cp coverage.log coverage-prev.log
-      - name: Save coverage baseline
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: coverage-prev.log
-          key: menger-coverage-${{ github.ref_name }}-${{ github.run_id }}
+      - name: Run coverage + ratchet check (scripts/suites/coverage.sh)
+        run: ./scripts/suites/coverage.sh
       - name: Upload scoverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -245,22 +220,15 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     if: github.event_name != 'pull_request' || true
+    env:
+      HAS_RENDERING: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
       - run: nvidia-smi
-      - name: Smoke-run each sponge type + a DSL animation
-        run: |
-          set -euo pipefail
-          for spec in \
-            "type=cube-sponge:level=1" "type=sponge-volume:level=1" \
-            "type=sponge-volume:level=2" "type=tesseract" \
-            "type=tesseract-sponge-volume:level=1" "type=tesseract-sponge-surface:level=2"; do
-            xvfb-run -a sbt "mengerApp / run --objects $spec --timeout 0.1"
-          done
-          xvfb-run -a sbt "mengerApp / run --scene examples.dsl.PulsingSponge --frames 5 --start-t 0 --end-t 2 --headless --save-name menger%04d.png"
-          test -f menger0000.png && test -f menger0004.png
+      - name: Smoke-run each sponge type + a DSL animation (scripts/suites/smoke.sh)
+        run: ./scripts/suites/smoke.sh
 
   runtime:
     name: Runtime budget (GPU)
