@@ -28,6 +28,7 @@ These are non-negotiable. Violating any of them causes real harm.
 - **Alpha channel:** `0.0` = fully transparent (no opacity, no absorption), `1.0` = fully opaque. This holds everywhere alpha appears — OptiX shaders, Beer-Lambert absorption, `Color`, tests. Getting it inverted is a recurring, cross-repo bug.
 - **The pre-push hook is the Definition-of-Done gate.** A task is done when its repo's pre-push hook passes on the change — not when a hand-picked subset of checks does. Don't assemble a substitute for it.
 - **Delete-on-resolve:** when a finding in `ARCHITECTURE_REVIEW.md` or `CODE_IMPROVEMENTS.md` is resolved, strike it through (`~~text~~`) and add a `**✅ Resolved (sprint/task):**` note with the sprint reference — do not delete the entry outright (the audit trail matters). Each repo that carries a `CODE_IMPROVEMENTS.md` is its own ledger; cross-repo findings (optix-jni, menger-common) should be seeded there when they accumulate.
+- **CI retry:** `gh run rerun <run-id> --failed` is the standard retry for a failed CI run — re-runs only the failed jobs, not a full re-push.
 <!-- END shared rules -->
 
 Repo-specific notes on the above: check `git branch --show-current` before any change — the
@@ -48,7 +49,7 @@ active feature branch may live in a worktree under `.worktrees/`. Rule 5's gate 
 ./.git_hooks/pre-push 2>&1 | tee /tmp/pre-push.log
 ```
 
-It is the single authoritative code-quality gate — unit tests, scalafix, packaging, integration tests (~27 scenarios, ~2,200 unit tests), coverage ratchet (≥80%, max 1% drop), memory leak checks (Valgrind + compute-sanitizer), version consistency. Takes ~8–10 minutes.
+It is the single authoritative code-quality gate — unit tests, scalafix, packaging, integration tests (self-counting, ~2,200 unit tests), coverage ratchet (≥80%, max 1% drop), memory leak checks (Valgrind + compute-sanitizer), version consistency. Takes ~8–10 minutes.
 
 Do **not** run individual checks (`sbt test`, `sbt "scalafix --check"`, etc.) as a substitute. The hook is the source of truth and evolves over time.
 

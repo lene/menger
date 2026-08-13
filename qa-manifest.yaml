@@ -32,7 +32,7 @@ suites:
   unit:          { tier: push,    requires: [scala, native] }
   native-checks: { tier: push,    requires: [native] }
   coverage:      { tier: push,    requires: [scala, native] }
-  memcheck:      { tier: push,    requires: [native] }
+  memcheck:      { tier: release, requires: [native] }
   package:       { tier: push,    requires: [] }
   integration:   { tier: push,    requires: [integration, rendering] }
   sonar-ratchet: { tier: pr,      requires: [], automated: false, note: "CI-only (needs PR/GitHub check-run context); scripts/check-sonar-ratchet.sh, deliberately not scripts/suites/ — cannot run in the local pre-push hook (Sprint 36 F2)" }

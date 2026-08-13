@@ -167,7 +167,7 @@ Test:OptiXIntegration:
     - VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
     - unzip -oq ./menger-app/target/universal/menger-app-${VERSION}.zip
     - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-    # Run comprehensive integration tests (27 scenarios)
+    # Run comprehensive integration tests (self-counting; see scripts/integration-tests.sh)
     - ./scripts/integration-tests.sh ./menger-app-${VERSION}/bin/menger-app
   after_script:
     # Clean up permissions for Docker artifacts

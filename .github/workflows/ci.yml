@@ -142,7 +142,7 @@ jobs:
       - run: nvidia-smi
       - name: Package (scripts/suites/package.sh)
         run: ./scripts/suites/package.sh
-      - name: Run 27-scenario integration suite (scripts/suites/integration.sh)
+      - name: Run integration suite (scripts/suites/integration.sh)
         run: |
           export LD_LIBRARY_PATH=/usr/local/cuda/lib64
           ./scripts/suites/integration.sh

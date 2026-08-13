@@ -1,5 +1,5 @@
 #!/bin/sh
-# Suite: integration (Sprint 36 B1). 27-scenario integration suite, extracted verbatim.
+# Suite: integration (Sprint 36 B1). Self-counting integration suite, extracted verbatim.
 # Depends on package.sh having already unpacked menger-app-<version>/ (same ordering as
 # the original hook's Phase 5, which ran package immediately before this).
 set -u
