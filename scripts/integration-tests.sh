@@ -1381,12 +1381,15 @@ test_cone() {
 test_curve() {
     echo "Analytical Primitives (Curve):"
     # Sprint 36 F1: control points recentered on the origin (were offset 0..1, off-center
-    # and small at the default camera distance) and radius increased — measured framing
-    # 3.8%/2.3% of frame, worst offenders in the Sprint 36 F1 framing survey.
+    # and small at the default camera distance) — measured framing 3.8%/2.3% of frame,
+    # worst offenders in the Sprint 36 F1 framing survey. The tube's radius, not the
+    # control-point spread, dominates on-screen size for this curve's OptiX B-spline
+    # geometry (the rendered curve stays well inside the control-point bounding box),
+    # so radius was increased substantially rather than the point extent.
     run_test "curve open 4-point" \
-        --objects type=curve:control-points=-0.6,-0.6,0,0.6,-0.6,0,0.6,0.6,0,-0.6,0.6,0:radius=0.1
+        --objects type=curve:control-points=-0.6,-0.6,0,0.6,-0.6,0,0.6,0.6,0,-0.6,0.6,0:radius=0.75
     run_test "curve with color" \
-        --objects type=curve:control-points=-0.6,-0.6,0,-0.6,0.6,0,0.6,0.6,0,0.6,-0.6,0:radius=0.15:color=#ff6600
+        --objects type=curve:control-points=-0.6,-0.6,0,-0.6,0.6,0,0.6,0.6,0,0.6,-0.6,0:radius=0.75:color=#ff6600
     run_test "curve glass" \
         --objects type=curve:control-points=0,0,0,0,0.5,0,0.5,1,0,1,1,0:radius=0.08:material=glass \
         --plane y:-2
