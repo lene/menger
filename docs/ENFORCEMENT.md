@@ -128,6 +128,7 @@ consciously accepted.
 | Never infer values the user should provide (version numbers, branch names, paths) | AGENTS.md §Critical rules | 🤖 |
 | Never delete data without explicit user confirmation | AGENTS.md §Critical rules | 🤖 |
 | When a skill says "confirm with user", it is a hard stop | AGENTS.md §Critical rules | 🤖 |
+| Never rewrite a test to make it pass without investigation | AGENTS.md §Critical rules (shared) | 🤖 |
 
 ---
 
