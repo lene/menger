@@ -135,9 +135,9 @@ consciously accepted.
 
 | # | Policy gap | Action |
 |---|-----------|--------|
-| 2 | No check that a new rendering feature is added to `integration-tests.sh` | Implement hook or CI check — [#156](https://gitlab.com/lilacashes/menger/-/work_items/156) |
-| 3 | No check that a new rendering feature is added to `manual-test.sh` | Implement hook or CI check — [#157](https://gitlab.com/lilacashes/menger/-/work_items/157) |
+| ~~2~~ | ~~No check that a new rendering feature is added to `integration-tests.sh`~~ | **✅ Resolved (Sprint 36 G3):** already closed by `ScriptParitySuite` (see Rendering discipline table above) — the table was updated when that landed but this row never was. |
+| ~~3~~ | ~~No check that a new rendering feature is added to `manual-test.sh`~~ | **✅ Resolved (Sprint 36 G3):** same `ScriptParitySuite` gate, bidirectional — see above. |
 | 4 | Alpha-channel convention (0.0 = transparent) has no static check | Add WartRemover rule or comment-linter — [#158](https://gitlab.com/lilacashes/menger/-/work_items/158) |
 | 6 | No check that arc42 is updated when architecture-relevant files change | Implement hook comparing changed paths against an architecture-relevant path list — [#160](https://gitlab.com/lilacashes/menger/-/work_items/160) |
-| 7 | CHANGELOG.md update not enforced at release time | Add pre-push or CI check for CHANGELOG date/entry — [#161](https://gitlab.com/lilacashes/menger/-/work_items/161) |
-| 8 | Performance regression guard not yet implemented | Task 28.7 — [#162](https://gitlab.com/lilacashes/menger/-/work_items/162) |
+| ~~7~~ | ~~CHANGELOG.md update not enforced at release time~~ | **✅ Resolved (Sprint 36 G3):** already closed by CI's `ChangelogIsUpdated` job (see Version & release table above) — the table was updated when that landed but this row never was. |
+| 8 | Performance regression guard not yet implemented | Task 28.7 — [#162](https://gitlab.com/lilacashes/menger/-/work_items/162). Note: a `PerfCheck` job exists (Performance table above) but only as advisory (`allow_failure: true`); this issue is about a real blocking guard, still open. |
