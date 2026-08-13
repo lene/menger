@@ -691,19 +691,23 @@ PushToGithub:
     - git config user.name "${GITLAB_USER_NAME}"
     - git config pull.rebase true
   script:
+    # Per-command backoff (Sprint 36 D4) on top of the job-level retry: above, whole-job
+    # retry: covers infra failure (runner crash, timeout); this covers an ordinary
+    # transient network error on a single git command without re-running the whole job.
+    - . ./standards/hooks/lib.sh
     # Add or update GitHub remote
     - git remote add github git@github.com:lene/menger.git 2>/dev/null || git remote set-url github git@github.com:lene/menger.git
     - git remote show github
     # Fetch all from GitLab origin
-    - git fetch origin --tags
+    - retry_with_backoff "fetch origin --tags" git fetch origin --tags
     # In tag pipeline CI_COMMIT_BRANCH is empty; fall back to main
     - BRANCH=${CI_COMMIT_BRANCH:-main}
     - echo "Target branch - $BRANCH"
     - echo "Current commit - ${CI_COMMIT_SHA}"
     - echo "Tag - ${CI_COMMIT_TAG}"
     # Push SHA directly to avoid 'branch used by worktree' error from local branch manipulation
-    - git push --force github ${CI_COMMIT_SHA}:refs/heads/$BRANCH
-    - git push --force github $CI_COMMIT_TAG
+    - retry_with_backoff "push branch to github" git push --force github ${CI_COMMIT_SHA}:refs/heads/$BRANCH
+    - retry_with_backoff "push tag to github" git push --force github $CI_COMMIT_TAG
 
 CreateGithubRelease:
   stage: release

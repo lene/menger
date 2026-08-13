@@ -42,11 +42,13 @@ jobs:
             echo "::warning::GITLAB_MIRROR_TOKEN not set — GitLab backup mirror skipped. Add the secret to enable it."
             exit 0
           fi
+          . ./standards/hooks/lib.sh
           url="https://oauth2:${TOKEN}@gitlab.com/lilacashes/menger.git"
           # GitHub is authoritative, so force GitLab to follow it faithfully. This is safe,
           # not blind: the remotes were reconciled (github == gitlab) before this workflow
           # was enabled, so GitLab only ever receives GitHub's own current state.
+          # Per-command backoff (Sprint 36 D4) on ordinary transient network errors.
           case "${GITHUB_REF}" in
-            refs/heads/*) git push --force "$url" "${GITHUB_SHA}:${GITHUB_REF}" ;;
+            refs/heads/*) retry_with_backoff "push ref to gitlab" git push --force "$url" "${GITHUB_SHA}:${GITHUB_REF}" ;;
           esac
-          git push --force --tags "$url"
+          retry_with_backoff "push tags to gitlab" git push --force --tags "$url"
