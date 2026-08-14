@@ -1,15 +1,13 @@
 #!/bin/bash
-# Pre-push hook (Sprint 36 B3 — PARITY PERIOD): runs the legacy monolithic hook
-# (pre-push-legacy.sh, byte-identical to this hook before B3) AND the new suite-runner
-# wrapper, compares their verdicts, and fails loudly on any divergence. This roughly
-# doubles wall-clock time (~8-10min -> ~16-20min) for the parity week — a known,
-# accepted cost of a safe migration (Sprint 36 Phase B plan). Delete
-# pre-push-legacy.sh and everything below the "new path" section once a week of real
-# pushes shows zero divergence; keep only the new path as the permanent hook body.
+# Pre-push hook (Sprint 36 B3): thin wrapper. Change detection is unchanged
+# (standards/hooks/lib.sh); this hook's only job is to compute CHANGED_FILES/QA_RANGES/
+# QA_REMOTE and hand them to standards/scripts/qa-runner.sh, which reads qa-manifest.yaml
+# to decide which suites are relevant at push tier and runs each one (scripts/suites/*.sh),
+# which decides its own PASS/FAIL/SKIP.
 #
-# Both paths need the git-supplied pre-push protocol lines from stdin, but stdin can
-# only be consumed once — capture it to a file up front (skipped for a TTY invocation,
-# where neither path reads stdin anyway; blocking on `cat` there would hang the shell).
+# Needs the git-supplied pre-push protocol lines from stdin, but stdin can only be
+# consumed once — capture it to a file up front (skipped for a TTY invocation, where
+# nothing below reads stdin anyway; blocking on `cat` there would hang the shell).
 STDIN_CAPTURE=$(mktemp)
 trap 'rm -f "$STDIN_CAPTURE"' EXIT
 if [ -t 0 ]; then
@@ -18,15 +16,6 @@ else
   cat > "$STDIN_CAPTURE"
 fi
 
-echo "=================================================================="
-echo "PARITY PERIOD (Sprint 36 B3): running legacy hook"
-echo "=================================================================="
-./.git_hooks/pre-push-legacy.sh "$@" < "$STDIN_CAPTURE"
-LEGACY_STATUS=$?
-
-echo "=================================================================="
-echo "PARITY PERIOD (Sprint 36 B3): running new suite-runner hook"
-echo "=================================================================="
 (
   if [ -r ./standards/hooks/lib.sh ]; then
     . ./standards/hooks/lib.sh
@@ -53,28 +42,12 @@ echo "=================================================================="
 
   ./standards/scripts/qa-runner.sh --tier push
 ) < "$STDIN_CAPTURE"
-NEW_STATUS=$?
+STATUS=$?
 
-# WIP override (unchanged semantics): applied uniformly to both statuses so a WIP push
-# doesn't register as a spurious divergence.
 commit_msg=$(git log --oneline | head -n 1 | cut -d' ' -f 2-)
 if echo "$commit_msg" | grep -q '^WIP:'; then
   echo >&2 "Found WIP commit, pushing in spite of failed test suite"
-  LEGACY_STATUS=0
-  NEW_STATUS=0
+  STATUS=0
 fi
 
-LEGACY_OK=0; [ "$LEGACY_STATUS" -eq 0 ] && LEGACY_OK=1
-NEW_OK=0; [ "$NEW_STATUS" -eq 0 ] && NEW_OK=1
-
-if [ "$LEGACY_OK" -ne "$NEW_OK" ]; then
-  echo "=================================================================="
-  echo "PARITY DIVERGENCE: legacy hook exit=$LEGACY_STATUS, new hook exit=$NEW_STATUS"
-  echo "This is the Sprint 36 B3 parity-period safety net firing — investigate before"
-  echo "trusting the new suite-runner path. Do not delete pre-push-legacy.sh (or this"
-  echo "comparison) until this is understood and a full week passes with zero divergence."
-  echo "=================================================================="
-  exit 1
-fi
-
-exit "$LEGACY_STATUS"
+exit "$STATUS"
