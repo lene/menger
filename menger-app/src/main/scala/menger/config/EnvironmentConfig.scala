@@ -1,10 +1,8 @@
 package menger.config
 
-import menger.common.Axis
 import menger.common.Color
 import menger.common.FogConfig
 import menger.common.Light
-import menger.common.PlaneSpec
 import menger.video.EnvMapVideo
 
 /**
@@ -37,13 +35,5 @@ object EnvironmentConfig:
    */
   val Default: EnvironmentConfig = EnvironmentConfig(
     planes = List.empty,
-    lights = List.empty
-  )
-
-  /**
-   * Configuration with a single gray-checker plane at Y=-2.
-   */
-  val WithPlane: EnvironmentConfig = EnvironmentConfig(
-    planes = List(PlaneConfig(PlaneSpec(Axis.Y, positive = true, -2f), colorSpec = None)),
     lights = List.empty
   )

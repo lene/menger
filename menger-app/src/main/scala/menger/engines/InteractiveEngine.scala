@@ -270,12 +270,21 @@ class InteractiveEngine(
     val requiredMax = requiredMaxInstancesFor(objectSpecs)
     if requiredMax > execution.maxInstances then
       renderer.reinitialize(requiredMax)
-    sceneConfigurator.configureLights(renderer)
-    PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
-    sceneConfigurator.configureCamera(renderer)
+    // Lights/planes/camera are configured AFTER the scene builds, not before. Some builders
+    // (TesseractEdgeSceneBuilder, for edge-heavy 4D objects) call renderer.reinitialize()
+    // themselves when their own instance-count check exceeds 64 — reinitialize disposes and
+    // recreates the native handle, dropping any state set on it. Configuring planes/lights
+    // before that ran left the ground plane silently missing whenever a scene like
+    // `type=24-cell:edge-radius=...` needed more than 64 edge cylinders, even though
+    // `--plane` was on the command line (Sprint 36 H2.1). Ordering after the build means
+    // whichever reinitialize actually runs last — this one or a builder's — is always
+    // followed by the plane/light/camera setup that has to survive it.
     buildScene4DTrackedOrFallback(objectSpecs, renderer)
       .flatMap { _ =>
         Try {
+          sceneConfigurator.configureLights(renderer)
+          PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
+          sceneConfigurator.configureCamera(renderer)
           renderer.setRenderConfig(renderConfig)
           renderer.setCausticsConfig(config.caustics)
           configureOutputMode(renderer)

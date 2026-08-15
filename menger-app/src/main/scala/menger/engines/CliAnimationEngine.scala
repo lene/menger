@@ -49,14 +49,19 @@ class CliAnimationEngine(
   override def create(): Unit =
     logger.info(s"CliAnimationEngine: $totalFrames frames, ${baseSpecs.length} objects")
     val renderer = rendererWrapper.renderer
-    sceneConfigurator.configureLights(renderer)
-    PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
-    sceneConfigurator.configureCamera(renderer)
     val firstSpecs = baseSpecs.map(spec => animSpec.applyToSpec(spec, 0))
+    // Build before configuring lights/planes/camera, not after: a scene builder (e.g.
+    // TesseractEdgeSceneBuilder, for edge-heavy 4D objects) may call renderer.reinitialize()
+    // when its own instance-count check exceeds the constructor-time budget, and
+    // reinitialize disposes and recreates the native handle — dropping any plane/light state
+    // set on it beforehand (Sprint 36 H2.1, same fix as InteractiveEngine.create()).
     buildSceneFromSpecs(firstSpecs, renderer).recover { case e =>
       logger.error(s"Failed to create initial frame: ${e.getMessage}", e)
       GdxRuntime.exit()
     }.get
+    sceneConfigurator.configureLights(renderer)
+    PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
+    sceneConfigurator.configureCamera(renderer)
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(config.caustics)
     configureOutputMode(renderer)
