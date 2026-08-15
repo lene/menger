@@ -85,5 +85,15 @@ class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean = true
 
+  /** One lsystem spec expands into hundreds or thousands of turtle primitives, so the
+    * instance cost is the size of that expansion — not the number of input specs. Reporting
+    * the input count here left `InteractiveEngine.computeEffectiveMaxInstances` blind, and
+    * scenes ran into the native 64-instance cap ("Maximum instances reached"). */
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
-    specs.length.toLong
+    specs.foldLeft(0L)((total, spec) => total + generateFromSpec(spec).size)
+
+  // ponytail: re-runs the grammar rewrite rather than caching it. Called at most a few times
+  // per scene build, alongside a buildScene that expands the same specs anyway. Memoize on
+  // ObjectSpec if per-frame animated rebuilds ever show up in a profile.
+  override def calculateRequiredInstances(specs: List[ObjectSpec]): Int =
+    calculateInstanceCount(specs).toInt

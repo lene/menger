@@ -73,6 +73,37 @@ class LSystemSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val spec = ObjectSpec(objectType = "lsystem")
     builder.validate(List(spec), 100) shouldBe Right(())
 
+  // Sprint 36 H1.3: manual tests 167/168/171/173 aborted with "Maximum instances reached"
+  // because the builder reported one instance per input spec, so InteractiveEngine's
+  // auto-adjust never raised the 64-instance default past the turtle expansion.
+  "LSystemSceneBuilder.calculateRequiredInstances" should
+    "report the turtle expansion, not the input spec count" in:
+    val builder = LSystemSceneBuilder()
+    val spec = ObjectSpec.parse("type=lsystem:preset=tree:level=4:size=0.8").toOption.get
+    val required = builder.calculateRequiredInstances(List(spec))
+    required should be > 1
+    required shouldBe builder.calculateInstanceCount(List(spec)).toInt
+
+  it should "exceed the default 64-instance budget for the reported scenes" in:
+    val builder = LSystemSceneBuilder()
+    val reported = List(
+      "type=lsystem:preset=tree:level=4:size=0.8",
+      "type=lsystem:preset=bush:level=3:size=0.8",
+      "type=lsystem:preset=kochisland:level=2:size=1.5"
+    )
+    reported.foreach { arg =>
+      val spec = ObjectSpec.parse(arg).toOption.get
+      withClue(s"$arg: ") {
+        builder.calculateRequiredInstances(List(spec)) should be > 64
+      }
+    }
+
+  it should "sum across multiple specs" in:
+    val builder = LSystemSceneBuilder()
+    val spec = ObjectSpec.parse("type=lsystem:preset=bush:level=3").toOption.get
+    builder.calculateRequiredInstances(List(spec, spec)) shouldBe
+      2 * builder.calculateRequiredInstances(List(spec))
+
   "GeometryRegistry" should "accept lsystem specs" in:
     val spec = ObjectSpec(objectType = "lsystem")
     val result = GeometryRegistry.builderFor(List(spec))
