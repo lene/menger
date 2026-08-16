@@ -471,6 +471,9 @@ class InteractiveEngine(
               logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
             },
             _ => {
+              // Planes are now real IAS instances (Sprint 36 H3.1) — clearAllInstances above
+              // wiped them too, so they must be re-added on every rebuild, not just at create().
+              PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
               if crossVisible.get then addCrossGeometry(renderer)
               cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
               logger.debug("Scene rebuild complete")

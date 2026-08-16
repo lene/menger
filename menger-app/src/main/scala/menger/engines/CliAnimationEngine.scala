@@ -84,6 +84,9 @@ class CliAnimationEngine(
       buildSceneFromSpecs(animatedSpecs, renderer).recover { case e =>
         logger.error(s"Failed to build frame $frame: ${e.getMessage}", e)
       }
+      // Planes are real IAS instances (Sprint 36 H3.1) — clearAllInstances above wiped
+      // them too, so they must be re-added every frame, not just at create().
+      PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
       cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
       rendererWrapper.renderScene(ImageSize(width, height)) match
         case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
