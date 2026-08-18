@@ -346,3 +346,365 @@ release + pin bump, or commit now with an explicit acknowledged CI-red window).
   remains open.
 - A real `optix-jni` version release before `menger` can pin the fix for real use.
 - Push the `optix-jni` commit (not yet requested).
+
+---
+
+## Round 3 — Stage 1 detector: occlusion test — 2026-08-18
+
+Both reference-image sequencing items above were since resolved (committed `7089727a` in
+`menger`, `38fa5d1` in `optix-jni`, CI-red window explicitly accepted). This round returns to
+the one genuinely open question: is "metal looks transparent" a real defect?
+
+### Scene changes to make the symptom unambiguous
+
+Scenes 84 (`MengerShowcase`) and 92 (`PulsingSponge`) had a *solid* floor, so the pass-through
+claim could not be judged. Changed both to a checkered floor (`Plane.checkered`) and gave the
+sponge an off-axis rotation (`rotation = Vec3(25f, 15f, 10f)`) so its edges are not parallel to
+the checker grid — camera rotation alone cannot do this, and axis-parallel geometry is exactly
+the case where reflection and transmission are hardest to tell apart.
+
+Renders `84_rotated.png` / `92_rotated.png` show the checker pattern apparently continuing
+through the gold surface. **That appearance was, on measurement, misleading — see below.**
+
+### The detector, and its fixture validation
+
+**Invariant:** an opaque object must fully occlude an object placed behind it. Put a matte red
+sphere (`#ff0000`) directly behind the subject, on the camera→subject axis, and count pure-red
+pixels (`R>90, G<30, B<30`) inside the subject's silhouette. Transmission → red survives;
+opacity → zero red.
+
+**Command:**
+```
+menger-app -o --camera-pos 4,3,6 --camera-lookat 0,0,0 \
+  --plane y:-3 --plane-color c0c0c0:404040 --width 600 --height 450 \
+  --objects type=cube:size=2.5:material=<M> \
+  --objects type=sphere:pos=-2.2,-1.7,-3.3:size=1.5:material=matte:color=#ff0000
+```
+
+**Fixture validation (required before trusting it):**
+
+| Fixture | Expected | Measured |
+|---|---|---|
+| red sphere alone, nothing in front | red visible | **4212 px** |
+| matte cube in front (known-good opaque) | zero red | **0 px** |
+| gold sponge, no sphere in scene (false-positive check) | zero red | **0 px** |
+| matte sponge, no sphere in scene (false-positive check) | zero red | **0 px** |
+
+Detector is trustworthy: it fires on the known-bad case, is silent on the known-good case, and
+does not false-positive on gold's dark shading (an earlier looser threshold did — it counted
+166 "red" px on a scene containing no red object at all, and was tightened).
+
+### Result — no transmission, in any material
+
+| Cube material | red still visible | % of sphere |
+|---|---|---|
+| matte | 0 | 0.0% |
+| plastic | 0 | 0.0% |
+| metal | 0 | 0.0% |
+| gold | 0 | 0.0% |
+| chrome | 0 | 0.0% |
+
+Gold *sponge*: 26 px of 1880 (1.4%), consistent with antialiasing at hole edges, versus 0 for a
+solid cube.
+
+**Hypothesis update: the transmission hypothesis is REFUTED.** Nothing is passing through.
+
+### What the symptom actually is
+
+Two follow-ups explain the appearance completely:
+
+1. **Background colour is (76, 25, 51)** — dark maroon — sampled from the corners of a no-plane
+   render. Faces that looked like flat, unshaded "holes" (the chrome cube's top face, the
+   chrome octahedron's upper faces) measure **(68, 22, 45)** = background × chrome tint. They
+   are correctly reflecting the sky. A chrome octahedron's lower-right face, which faces the
+   floor, shows a properly foreshortened, tilted, high-frequency checker reflection — i.e.
+   reflection geometry is demonstrably working on obliquely-oriented faces.
+
+2. **A vertical mirror over an infinite horizontal floor maps that floor onto itself.**
+   Reflection across the plane `x = c` sends `(x,y,z) → (2c-x, y, z)`; the floor plane `y = -3`
+   is invariant. So the reflected floor *is* the same physical plane, at the same height, in the
+   same perspective — the checker lines continue unbent, with no seam. This is real optics, not
+   a bug.
+
+**This invalidates the Checkpoint-1 reasoning.** The agreed description rested on "with
+reflection, the checkerboard lines would change direction when meeting at the object surface."
+That inference does not hold for a vertical mirror face over a horizontal floor, which is
+precisely the geometry in scenes 84/92. The rotation added this round tilts the *sponge*, but
+each individual sponge facet remains axis-aligned within the rotated body, so many facets stay
+effectively vertical.
+
+**Hypothesis update:** the leading explanation is now that H3.2 is **not a defect** — metallic
+= 1.0 (gold, chrome) with almost no diffuse term, over an infinite self-similar checkered floor
+and against a dark background, is genuinely near-indistinguishable from transparency. Needs a
+user checkpoint before being closed as such.
+
+**Residual anomaly — resolved, it is a shadow.** In `x_chrome_cube.png` a dark blob appears near
+the bottom of the frame. Differencing that render against the identical scene without the sphere
+(`w_chrome_nosphere.png`) isolates exactly which pixels the sphere is responsible for:
+
+**Command:** render chrome cube with and without the red sphere; mask where `|Δ| > 25`.
+**Output/measurement:** 10778 pixels changed, all inside bbox (163–371, 341–449) — floor, below
+and in front of the cube, disjoint from the sphere's own screen position (216–389, 138–221).
+Mean colour there goes (92, 92, 92) → (38.8, 38.8, 38.8); the two checker shades map 121 → 57 and
+40 → 19, both scaled by the same ≈0.47 factor.
+**Hypothesis update:** uniform multiplicative darkening of both checker shades is a cast shadow,
+not geometry leaking through. The sphere is fully occluded (0 pure-red px); only its shadow
+reaches visible floor. No anomaly remains — this closes the last open thread from round 3.
+
+Artefacts: `e_A_gold` … `e_H_matte_redfloor`, `r_*` (marker series), `x_*` (occlusion series),
+`z_*_chrome` (tilted-face series), all under the session scratchpad.
+
+**Note on a failed experiment:** `--rot-x` / `--rot-y` are no-ops for CLI `--objects` geometry —
+`y_chrome_roty30.png` and `y_chrome_rotxy.png` are pixel-identical to the unrotated cube. Object
+rotation is only reachable via the DSL `rotation` parameter. Do not re-run that test.
+(Also: a CLI render with no `--objects` at all fails with *"SceneConfig must provide
+objectSpecs"* — for a floor-only reference frame, add a tiny sphere far off-camera.)
+
+## Round 3b — correlation test, and a correction to my own optics argument
+
+The seamlessness argument above ("a vertical mirror maps the horizontal floor onto itself, so
+the checker must continue unbent") is **wrong as stated**, and the rotated-cube renders disprove
+it: a cube yawed 30° about Y still has perfectly vertical faces, yet its reflections show obvious
+horizontal banding rather than a seamless floor. The mirror maps the floor *plane* to itself, but
+what the face displays is the floor as seen from the *mirrored camera position*, which is a
+different viewpoint and generally does not line up. Seamlessness was never predicted; it was
+only ever an impression from one axis-aligned frame.
+
+That made the axis-aligned chrome cube suspicious again, so it was measured directly rather than
+eyeballed.
+
+**Command:** render, at identical camera/resolution, (a) floor only, (b) matte cube, (c) chrome
+cube. Take the cube silhouette from (b); inside it, compare (c) against (a).
+**Output/measurement:**
+- pixels inside the silhouette **identical to bare floor: 0** (of 123502)
+- Pearson **corr(chrome surface, floor behind it) = −0.013**
+- mean |chrome − floor| = 47.5, against a floor luminance std of 45.0
+- ratio chrome/floor: median 0.889 but IQR 0.333–1.000 — far too wide to be a constant tint
+
+**Hypothesis update:** the chrome faces are structurally *uncorrelated* with whatever lies behind
+them. They are not passing the background through, nor showing it scaled by a tint. The pattern
+merely shares the floor's two gray levels and rough cell scale, which is what fooled the eye. The
+transparency hypothesis is refuted a second time, by an independent measurement.
+
+## Verdict
+
+**H3.2 is not a rendering defect.** Converging evidence:
+
+| Check | Result |
+|---|---|
+| Occlusion detector (validated on fixtures) | 0% transmission through matte, plastic, metal, gold, chrome |
+| Pixels identical to bare floor inside silhouette | 0 of 123502 |
+| Correlation of surface with background behind it | −0.013 |
+| Flat "hole" faces | background (76,25,51) × chrome tint = (68,22,45) — correct sky reflection |
+| Reflection vs. face orientation | changes correctly: axis-aligned → near-seamless, yaw → banded, oblique → tilted checker |
+| Dark blob near sphere | cast shadow (uniform ×0.47 on both checker shades) |
+
+The scenes look wrong because a metallic = 1.0 material has almost no diffuse term, and an
+infinite self-similar checkerboard under a dark sky is genuinely hard to distinguish from glass
+by eye. No shader change is warranted.
+
+**Fixture retained for regression use:** the occlusion detector is the reusable artefact from
+this investigation — place a saturated matte sphere behind a subject, assert zero of its
+signature colour survives inside the subject's silhouette. It validated cleanly on both a
+known-good (opaque cube → 0) and known-bad (unobstructed sphere → 4212) fixture.
+
+## Round 4 — VERDICT WITHDRAWN: per-face shading collapses under a multi-light rig
+
+The "not a defect" verdict above is **retracted**. User inspection of the rotated-chrome renders
+flagged two artefacts that survive scrutiny: a **curved** horizon between checker and sky on the
+yaw cube, and rectangular reflection blocks on the tilt cube. A planar mirror reflecting a planar
+floor must produce a *straight* horizon, so curvature is not explainable as correct optics.
+
+Chasing that led away from the reflection path entirely.
+
+**Command:** DSL cubes, `Material.Matte`, varying one factor at a time; count distinct non-floor
+colours in the frame (a flat-shaded cube must show one shade *per visible face*, i.e. three).
+
+| Scene | Lights | Explicit `color` | Rotation | Distinct face shades |
+|---|---|---|---|---|
+| `LightDown` | 1 × (0,−1,0) | no | none | **3** ✓ (76 / 108 / 255) |
+| `LightDownColored` | 1 × (0,−1,0) | yes | none | **3** — byte-identical to above |
+| `TwoLightsNegligible` | 2, same direction | no | none | **3** ✓ |
+| `TwoLights` | (1,−1,−1)@1.5 + (−1,−0.5,1)@0.5 | no | none | **1** ✗ (76 only) |
+| `MatteFlat` | same 2-light rig | yes | none | **1** ✗ |
+| `MatteYaw` | same 2-light rig | yes | Y 30° | **1** ✗ |
+| `MatteTilt` | same 2-light rig | yes | X 30° Y 20° | **1** ✗ |
+
+**Hypothesis updates:**
+- **Rotation is innocent.** `MatteFlat` (zero rotation) collapses identically to the rotated ones.
+- **Light *count* is innocent.** Two lights sharing a direction shade correctly.
+- **Separate minor defect (still stands):** an explicit DSL `color` is silently ignored when
+  `material` is also set — `LightDownColored` is byte-identical to `LightDown`
+  (63009/62677/61814 px), which is why the "gold" test cubes rendered grey.
+
+### CORRECTION — the "collapse" was a fault in my test rig, not in the renderer
+
+`Directional.direction` points **toward** the light (`dsl/Light.scala:12`). Verified empirically
+by sampling named faces of a single-light cube:
+
+| direction | TOP face | LEFT face | RIGHT face |
+|---|---|---|---|
+| `(0, +1, 0)` | **(255,255,255)** lit | (76,76,76) | (76,76,76) |
+| `(0, −1, 0)` | (76,76,76) | (76,76,76) | (76,76,76) |
+
+So 76 is simply the unlit/ambient baseline, and the doc is correct. The rig I called "collapsing"
+used `(1,−1,−1)` and `(−1,−0.5,1)` — **both with negative y, i.e. both lights below the floor**.
+Every upward-facing surface was legitimately unlit, so one flat ambient value is the *correct*
+result. **There is no multi-light defect.** The CLI never reproduced it because I gave the CLI the
+negated (above-floor) vectors, which is the only reason that comparison looked like a DSL/CLI
+divergence.
+
+### Does the light rig explain scene 92 anyway?
+
+Scene 92's two lights do both point below the floor, so the question stood on its own. Rendering
+the real rig against a negated one:
+
+| rig | gold px | mean luminance on object | distinct shades |
+|---|---|---|---|
+| as authored (both below floor) | 50899 | 65.2 | 15 |
+| negated (above floor) | 33448 | 34.1 | 13 |
+
+The sponge looks materially the same in both; only the *floor* brightness changes, and the
+negated version is if anything darker. **Light direction is not the cause of the symptom** —
+expected, since `Material.Gold` is metallic ≈ 1.0 and therefore almost pure reflection with a
+negligible diffuse term for the lights to act on.
+
+### Standing at end of round 4
+
+Still true: no transmission (round 3), reflections respond correctly to face orientation
+(round 3b + octahedron/yaw/tilt). Now also dead: the multi-light hypothesis, the normalization
+hypothesis, the rotation hypothesis, and the light-direction hypothesis.
+
+**Still unexplained, and the only hard evidence of a genuine defect:** the *curved* boundary
+between checker and sky on the yaw cube's flat vertical face, and the rectangular reflection
+blocks on the tilt cube. A planar mirror reflecting a planar floor must yield a straight horizon.
+Note that per-face normals are demonstrably flat (a single-light matte cube renders exactly one
+colour per face), which makes normal interpolation an unlikely explanation and leaves this open.
+
+## Round 5 — ROOT CAUSE: object rotation does not rotate normals
+
+The user flagged a curved checker/sky boundary on the yaw cube and rectangular reflection blocks
+on the tilt cube. Both are real. Zooming to 1600×1200 showed every boundary is made of straight
+segments (the *visual* impression of a curve at 700 px was aliasing), but measuring the actual
+boundary proved a genuine, smooth curvature.
+
+**Command:** render `ChromeYaw` at 1600×1200; extract the maroon/checker boundary per row; fit.
+**Output/measurement:**
+
+| fit | RMS | max \|dev\| |
+|---|---|---|
+| straight line | 2.31 px | **5.41 px** |
+| quadratic | 0.30 px | 0.65 px |
+
+Slope drifts monotonically 0.471 → 0.311; sagitta ≈ 3.8 px. Antialiasing is off, so edges are
+hard and 5.4 px is far above noise. A planar mirror reflecting a planar floor must give a
+straight boundary, so this is a defect.
+
+**Control — the same measurement on an *unrotated* cube** (low camera so its vertical faces
+reflect the horizon; reflected sky is chrome-tinted `(68,22,45)` vs real sky `(76,25,51)`, so the
+two separate exactly):
+
+| cube | reflected-horizon straightness |
+|---|---|
+| unrotated | straight to **0.00 px** RMS over 909 columns |
+| yaw 30° | line fit off by 5.41 px |
+
+Rotation about Y leaves faces vertical, so both cases must obey identical reflection geometry.
+They do not.
+
+**Confirming experiment — are normals rotated with the geometry?** Matte cube, single overhead
+light, tilted about X:
+
+| tilt | shade palette | top-face shade |
+|---|---|---|
+| 0° | {255, 108, 76, 19} | 255 |
+| 30° | {255, 108, 76, 19} | 255 (should be ≈221 = 255·cos30°) |
+| 60° | {255, 108, 76, 19} | 255 (should be ≈128 = 255·cos60°) |
+
+Pixel counts change with tilt (77903 → 92823 → 94081), so the geometry really is rotating, but
+the shade *values* are byte-identical across all three.
+
+**Root cause: `rotation` transforms vertex positions but leaves vertex normals untouched.** Every
+rotated object therefore shades and reflects as though it were unrotated. This explains the
+curved/impossible reflection boundaries (the reflection uses a normal that no longer matches the
+visible face orientation), sky reflected on faces that cannot see it, and the rectangular blocks —
+all without any fault in `reflect()` itself, which rounds 3/3b showed to be correct.
+
+**Scope:** affects every DSL scene using `rotation`, including the two H3.2 scenes after the
+fixture edits made this round. Combined with the CLI no-op below, object rotation is broken on
+both entry paths: the CLI silently drops it, and the DSL applies it to geometry only.
+
+## Round 6 — fix applied, and a correction to round 5's evidence
+
+**Fix (`optix-jni`, `shaders/hit_triangle.cu`):** both `getTriangleGeometry` overloads now carry
+the interpolated vertex normal to world space:
+
+```cuda
+normal = normalize(optixTransformNormalFromObjectToWorldSpace(normal));
+```
+
+Vertex normals are stored in object space; OptiX applies the instance transform
+(`addTriangleMeshInstance(transform, …)`, a real 12-float instance transform — `OptiXWrapper.cpp:2266`)
+to the geometry during traversal but never to the normals. Before this, `hit_curve.cu` was the
+**only** shader in the repo calling that intrinsic.
+
+**Correction — round 5's headline measurement was invalid.** The tilt test used a directional
+light of intensity **2.0**, which saturates: `cos(60°) × 2.0 = 1.0`, still clamping to white. So a
+top face was pinned at 255 for every tilt from 0° to 60° *regardless of how normals were handled*.
+The identical palettes proved nothing. Re-run at intensity 1.0 the palettes do vary with tilt. The
+conclusion "geometry rotates but normals do not" was reached from a test that could not have
+detected the difference — the fix stands on the code reading, not on that measurement.
+
+**Plumbing verified before trusting any result:** forcing `normal` to a constant in the
+SBT-data variant changed nothing (byte-identical pixel counts), but forcing it in the
+explicit-pointer/IAS variant did change the render. So the IAS overload is the live path for these
+scenes, and the fix sits on executed code. (Also confirmed the runtime extracts the PTX from the
+jar to `target/native/x86_64-linux/bin/optix_shaders.ptx` relative to the *working directory* —
+`OptiXRenderer.scala:717-723` — so stale copies elsewhere in the tree are not used.)
+
+**Acceptance test — the artefact the user reported is gone.** Chrome cube, yaw 30°, 1600×1200,
+measuring where reflected sky (maroon) appears:
+
+| | maroon y-range | vertical-face sky wedges |
+|---|---|---|
+| before fix | 210 … **1110** | present (impossible: a downward-looking camera cannot see sky reflected in a vertical mirror) |
+| after fix | 210 … **427** | **gone** — only the upward-facing top face reflects sky |
+
+The region containing the curved boundary (y 620…1000, straight-line fit off by 5.41 px) no longer
+exists at all.
+
+**Still to do:** re-measure a reflected horizon end-to-end on a rotated object for a clean
+straightness number, and check the other analytic shaders (`hit_sphere.cu`, `hit_cone.cu`,
+`hit_cylinder.cu`) which compute normals from object-space data and never call the transform
+either — they are likely to carry the same defect for rotated instances.
+
+## DEFERRED DEFECT — CLI object rotation is a silent no-op
+
+**Found incidentally while building fixtures for this investigation. Not part of H3.2; must be
+raised when the H3.2 fixtures are cleaned up and committed.**
+
+`--rot-x` / `--rot-y` / `--rot-z` have no effect on geometry supplied via `--objects`.
+`y_chrome_roty30.png` (`--rot-y 30`) and `y_chrome_rotxy.png` (`--rot-y 30 --rot-x 20`) are
+**pixel-identical** to the unrotated cube — verified with an exact array comparison, not by eye.
+The flags are accepted silently; there is no warning and no error. Object rotation is reachable
+only through the DSL `rotation` parameter.
+
+This is significant on its own: every CLI scene and every `manual-test.sh` / `integration-tests.sh`
+entry that passes `--rot-*` alongside `--objects` is silently rendering an unrotated object, so
+those tests assert against references that never exercised rotation. Needs its own investigation
+and fix, plus an audit of which scripted scenes pass `--rot-*`.
+
+**Why this matters for H3.2:** scene 84 (`MengerShowcase`) uses a **three**-point directional rig
+and scene 92 (`PulsingSponge`) uses **two** — both in the affected class. An object whose faces
+all shade to one flat dark value loses the per-face contrast that reads as solid form, which is a
+far better explanation of "the metal looks transparent" than anything found in the reflection
+path. The earlier measurements in rounds 3/3b remain valid on their own terms (there really is no
+transmission), but they were answering the wrong question.
+
+**Open, not yet explained:** the curved horizon and rectangular reflection blocks. These may be
+downstream of the same shading defect or independent; not yet established.
+
+**Note on invalidated reasoning:** round 3's inference "matte cube renders flat ⇒ normals are
+flat per face" was unsound. Under the multi-light rig the diffuse result is orientation-*independent*,
+so it carries no information about the normals at all. Any future normal-related test must use a
+single-light rig.
