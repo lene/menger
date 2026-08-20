@@ -1357,6 +1357,13 @@ test_cross() {
     run_test "cross material" --objects type=sphere --cross --cross-material chrome --plane y:-2
 }
 
+test_global_rotation() {
+    echo "Global rotation flags (Sprint 36 H5.1):"
+    run_test "global rot-x on a 3D object" --objects type=cube:material=gold --rot-x 45 --plane y:-2
+    run_test "global rot-x-w on a 4D object" \
+        --objects type=menger4d:level=1:material=gold --rot-x-w 45 --plane y:-2
+}
+
 test_4d_polytopes() {
     echo "4D Polytopes:"
     run_test "pentachoron" --objects type=pentachoron:size=0.8 --allow-uniform-render --plane y:-2
@@ -1733,6 +1740,7 @@ main() {
     test_plane
     test_cone_plane_textures
     test_cross
+    test_global_rotation
     test_4d_polytopes
     test_spectral_dispersion
     test_dsl_scenes

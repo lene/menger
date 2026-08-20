@@ -371,6 +371,11 @@ run_test "Diamond-dispersive caustics (ior 2.42 — stronger dispersion, wider s
 run_test "Mesh-receiver caustics (glass sphere casts a caustic onto a diffuse sphere receiver, no floor plane)" "-o --objects type=sphere:material=glass:color=#DDEEFF:size=1:pos=0,0,0 --objects type=sphere:size=3:pos=0,-5,0 --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/164-mesh-receiver-caustics.png"
 run_test "Frosted-glass caustics (rough dielectric — spread/blurred caustic vs the sharp Caustics scene above)" "-o --objects type=sphere:material=glass:roughness=0.7 --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --plane y:-2 --plane-color cccccc --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/165-frosted-glass-caustics.png"
 
+# Global rotation flags (Sprint 36 H5.1 — --rot-x/-y/-z/-x-w/-y-w/-z-w were parsed but never applied)
+echo -e "${YELLOW}--- Global Rotation ---${NC}"
+run_test "Global rot-x on a 3D object" "-o --objects type=cube:material=gold --rot-x 45 --plane y:-2 -s $OUTPUT_DIR/166-global-rot-x.png"
+run_test "Global rot-x-w on a 4D object" "-o --objects type=menger4d:level=1:material=gold --rot-x-w 45 --plane y:-2 -s $OUTPUT_DIR/167-global-rot-x-w.png"
+
 # DSL Scenes
 echo -e "${YELLOW}--- DSL Scenes ---${NC}"
 run_test "DSL: SimpleScene" "-o --scene examples.dsl.SimpleScene -s $OUTPUT_DIR/90-dsl-simple.png"

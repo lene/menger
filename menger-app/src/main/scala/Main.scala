@@ -6,6 +6,7 @@ import ch.qos.logback.classic.Logger
 import com.badlogic.gdx.ApplicationListener
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
+import menger.GlobalRotation
 import menger.MengerCLIOptions
 import menger.MengerExitException
 import menger.cli.LightSpec
@@ -191,7 +192,7 @@ object Main:
 
   private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): RenderEngine =
     val engineConfig = OptiXEngineConfig(
-      scene = SceneConfig(objectSpecs = opts.objects.toOption),
+      scene = SceneConfig(objectSpecs = opts.objects.toOption.map(GlobalRotation(opts, _))),
       camera = CameraConfig(
         position = opts.cameraPos(),
         lookAt = opts.cameraLookat(),
