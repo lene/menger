@@ -1364,6 +1364,12 @@ test_global_rotation() {
         --objects type=menger4d:level=1:material=gold --rot-x-w 45 --plane y:-2
 }
 
+test_material_color_tint() {
+    echo "Material + color tint (Sprint 36 H5.3):"
+    run_test "gold material tinted red via color=" \
+        --objects "type=sphere:material=gold:color=#ff0000" --plane y:-2
+}
+
 test_4d_polytopes() {
     echo "4D Polytopes:"
     run_test "pentachoron" --objects type=pentachoron:size=0.8 --allow-uniform-render --plane y:-2
@@ -1741,6 +1747,7 @@ main() {
     test_cone_plane_textures
     test_cross
     test_global_rotation
+    test_material_color_tint
     test_4d_polytopes
     test_spectral_dispersion
     test_dsl_scenes

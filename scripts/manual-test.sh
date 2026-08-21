@@ -376,6 +376,10 @@ echo -e "${YELLOW}--- Global Rotation ---${NC}"
 run_test "Global rot-x on a 3D object" "-o --objects type=cube:material=gold --rot-x 45 --plane y:-2 -s $OUTPUT_DIR/166-global-rot-x.png"
 run_test "Global rot-x-w on a 4D object" "-o --objects type=menger4d:level=1:material=gold --rot-x-w 45 --plane y:-2 -s $OUTPUT_DIR/167-global-rot-x-w.png"
 
+# Material + color tint (Sprint 36 H5.3 — color was silently dropped whenever material was also set)
+echo -e "${YELLOW}--- Material + Color Tint ---${NC}"
+run_test "Gold material tinted red via color=" "-o --objects type=sphere:material=gold:color=#ff0000 --plane y:-2 -s $OUTPUT_DIR/168-material-color-tint.png"
+
 # DSL Scenes
 echo -e "${YELLOW}--- DSL Scenes ---${NC}"
 run_test "DSL: SimpleScene" "-o --scene examples.dsl.SimpleScene -s $OUTPUT_DIR/90-dsl-simple.png"
