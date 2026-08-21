@@ -50,6 +50,18 @@ class TextureManagerSuite extends AnyFlatSpec with Matchers with MockFactory:
     textureData.height shouldBe 2
     textureData.data.length shouldBe 4 * 2 * 4
 
+  it should "select the environment-map video frame using the resolved render time, " +
+    "not always the raw start offset" in:
+    val envMapVideo = EnvMapVideo(EnvMapFixtureName)
+    val atStart = videoTextureDataOrCancel(
+      TextureManager.loadInitialEnvMapVideoData(envMapVideo, FixtureDir, renderT = 0f)
+    )
+    val atEnd = videoTextureDataOrCancel(
+      TextureManager.loadInitialEnvMapVideoData(envMapVideo, FixtureDir, renderT = 0.99f)
+    )
+
+    atStart.data.toSeq should not be atEnd.data.toSeq
+
   it should "reject environment-map videos that are not equirectangular 2:1" in:
     val failure = videoTextureFailureOrCancel(TextureManager.loadInitialEnvMapVideoData(
       EnvMapVideo(FixtureName),

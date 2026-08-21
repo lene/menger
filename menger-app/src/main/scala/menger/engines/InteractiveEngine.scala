@@ -38,7 +38,8 @@ import menger.objects.higher_d.TesseractSpongeMesh
 
 class InteractiveEngine(
   config: OptiXEngineConfig,
-  userSetMaxInstances: Boolean = false
+  userSetMaxInstances: Boolean = false,
+  renderT: Float = 0f
 )(using ProfilingConfig)
     extends BaseEngine(config.execution.maxInstances)
     with TimeoutSupport with LazyLogging with SavesScreenshots with Observer with WithStats:
@@ -305,7 +306,8 @@ class InteractiveEngine(
             TextureManager.loadInitialEnvMapVideo(
               envMapVideo,
               renderer,
-              config.execution.textureDir
+              config.execution.textureDir,
+              renderT
             ).foreach(renderer.setEnvironmentMap)
           }
           if environment.iblEnabled then

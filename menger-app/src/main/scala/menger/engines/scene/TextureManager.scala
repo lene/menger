@@ -15,7 +15,9 @@ import menger.ObjectSpec
 import menger.TextureData
 import menger.TextureLoader
 import menger.geometry.VideoLoader
+import menger.video.AnimationTimeRange
 import menger.video.EnvMapVideo
+import menger.video.VideoPlaybackTime
 import menger.video.VideoTexture
 
 /**
@@ -211,9 +213,10 @@ object TextureManager extends LazyLogging:
   def loadInitialEnvMapVideo(
     envMapVideo: EnvMapVideo,
     renderer: OptiXRenderer,
-    textureDir: String
+    textureDir: String,
+    renderT: Float = 0f
   ): Option[Int] =
-    loadInitialEnvMapVideoData(envMapVideo, textureDir) match
+    loadInitialEnvMapVideoData(envMapVideo, textureDir, renderT) match
       case Success(textureData) =>
         uploadTextureData(textureData, renderer).map(_._2)
       case Failure(e) =>
@@ -238,7 +241,8 @@ object TextureManager extends LazyLogging:
 
   private[scene] def loadInitialEnvMapVideoData(
     envMapVideo: EnvMapVideo,
-    textureDir: String
+    textureDir: String,
+    renderT: Float = 0f
   ): Try[TextureData] =
     val resolvedPath = resolveTexturePath(envMapVideo.path, textureDir)
     loadVideoTextureData:
@@ -249,9 +253,18 @@ object TextureManager extends LazyLogging:
           loader.height,
           envMapVideo.path
         )
+        // A single-still `--t` preview has no `--start-t`/`--end-t` sweep, so there is no
+        // meaningful animation range to resolve here -- only relevant to the AnimationRange
+        // time mapping, which is meant for true --frames sweeps, not previews.
+        val timestamp = VideoPlaybackTime.sampleTime(
+          envMapVideo.playback,
+          renderT,
+          AnimationTimeRange(0f, 1f),
+          loader.durationSeconds
+        )
         TextureData(
           envMapVideo.textureKey,
-          loader.frameAt(envMapVideo.playback.startOffset),
+          loader.frameAt(timestamp),
           loader.width,
           loader.height
         )

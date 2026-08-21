@@ -141,17 +141,19 @@ object Main:
 
       case Right(loadedScene) =>
         // Static scene or animated scene evaluated at fixed t
+        val freezeT = opts.freezeT.toOption.getOrElse(0f)
         val dslScene = loadedScene match
           case LoadedScene.Static(scene) => scene
-          case LoadedScene.Animated(fn) =>
-            fn(opts.freezeT.toOption.getOrElse(0f))
-        createOptiXEngineFromDslScene(opts, dslScene)
+          case LoadedScene.Animated(fn) => fn(freezeT)
+        createOptiXEngineFromDslScene(opts, dslScene, freezeT)
 
       case Left(error) =>
         System.err.println(s"Failed to load scene '$sceneName': $error")
         sys.exit(1)
 
-  private def createOptiXEngineFromDslScene(opts: MengerCLIOptions, dslScene: menger.dsl.Scene)(using ProfilingConfig): InteractiveEngine =
+  private def createOptiXEngineFromDslScene(
+    opts: MengerCLIOptions, dslScene: menger.dsl.Scene, renderT: Float = 0f
+  )(using ProfilingConfig): InteractiveEngine =
     val configs = SceneConverter.convert(dslScene, opts.causticsConfig)
     val baseRender = configs.render.getOrElse(RenderConfig.Default)
     val mergedRender = RenderConfig(
@@ -188,7 +190,7 @@ object Main:
       denoiseMode = mergedDenoise,
       accumulationFrames = mergedAccumulation
     )
-    InteractiveEngine(engineConfig, opts.userSetMaxInstances)
+    InteractiveEngine(engineConfig, opts.userSetMaxInstances, renderT)
 
   private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): RenderEngine =
     val engineConfig = OptiXEngineConfig(
