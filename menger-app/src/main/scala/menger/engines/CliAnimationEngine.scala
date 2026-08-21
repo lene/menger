@@ -14,10 +14,14 @@ import menger.config.OptiXEngineConfig
 import menger.dsl.DenoiseMode
 import menger.input.GdxRuntime
 
+object CliAnimationEngine:
+  def formatSaveName(savePattern: Option[String], frame: Int): Option[String] =
+    savePattern.map(p => String.format(p, Integer.valueOf(frame)))
+
 class CliAnimationEngine(
   config: OptiXEngineConfig,
   animSpec: AnimationSpecificationSequence,
-  savePattern: String
+  savePattern: Option[String]
 )(using ProfilingConfig)
     extends BaseEngine(config.execution.maxInstances)
     with SavesScreenshots with LazyLogging:
@@ -44,7 +48,7 @@ class CliAnimationEngine(
     CameraState(camera.position, camera.lookAt, camera.up)
 
   override protected def currentSaveName: Option[String] =
-    Some(String.format(savePattern, Integer.valueOf(frameCounter.get())))
+    CliAnimationEngine.formatSaveName(savePattern, frameCounter.get())
 
   override def create(): Unit =
     logger.info(s"CliAnimationEngine: $totalFrames frames, ${baseSpecs.length} objects")

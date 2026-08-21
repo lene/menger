@@ -217,7 +217,7 @@ object Main:
     )
     opts.animate.toOption match
       case Some(animSpec) =>
-        CliAnimationEngine(engineConfig, animSpec, opts.saveName())
+        CliAnimationEngine(engineConfig, animSpec, opts.saveName.toOption)
       case None =>
         InteractiveEngine(engineConfig, opts.userSetMaxInstances)
 
