@@ -101,7 +101,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
             Right(())
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
-    logger.info(s"Building tesseract scene with edge rendering: ${specs.length} tesseracts")
+    logger.debug(s"Building tesseract scene with edge rendering: ${specs.length} tesseracts")
 
     // Reinitialize renderer with correct maxInstances if needed
     if maxInstances > 64 then
