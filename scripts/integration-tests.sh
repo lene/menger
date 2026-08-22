@@ -908,6 +908,9 @@ test_menger4d() {
         --objects type=menger4d:level=2.5:pos=0,0,0:size=0.8
     run_test "menger4d fractional level 1.5 with color" --plane y:-2 \
         --objects type=menger4d:level=1.5:color=#4488FF:size=0.8
+    run_test "menger4d two instances" --plane y:-2 \
+        --objects type=menger4d:level=2:pos=-1.2,0,0:size=0.8 \
+        --objects type=menger4d:level=2:pos=1.2,0,0:size=0.8
 }
 
 test_sierpinski4d() {
@@ -922,6 +925,9 @@ test_sierpinski4d() {
         --objects type=sierpinski4d:level=1:color=#4488FF:size=0.8
     run_test "sierpinski4d with material" --plane y:-2 \
         --objects type=sierpinski4d:level=1:material=chrome:size=0.8
+    run_test "sierpinski4d two instances" --plane y:-2 \
+        --objects type=sierpinski4d:level=2:pos=-1.2,0,0:size=0.8 \
+        --objects type=sierpinski4d:level=2:pos=1.2,0,0:size=0.8
 }
 
 test_hexadecachoron4d() {
