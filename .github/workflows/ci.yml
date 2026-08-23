@@ -19,7 +19,8 @@ name: CI
 #   • Upload (GitLab package registry), code_quality (GitLab CodeClimate template),
 #     RunnerHeartbeat, StandardsDrift (workspace check-drift.yml covers cross-repo drift),
 #     Renovate (use the GitHub Renovate app / Dependabot instead).
-#   • AIReview lives in ai-review.yml already.
+#   • AIReview: retired 2026-08-07 (Sprint 36 A2) — no funded API key, ambiguous-green
+#     failure mode masked by continue-on-error. See docs/QA_INCIDENTS.md.
 
 on:
   pull_request:
@@ -37,7 +38,7 @@ concurrency:
 env:
   # Single source of the version (was .gitlab-ci.yml DEPLOYABLE_VERSION). The
   # /release-checklist skill + pre-push 4-file consistency check must be repointed here.
-  DEPLOYABLE_VERSION: "0.8.11"
+  DEPLOYABLE_VERSION: "0.8.12"
   DEPLOYABLE_BASE_NAME: menger
   SCALA_VERSION: "3.8.3"
   __GL_THREADED_OPTIMIZATIONS: "0"   # SIGBUS workaround in libnvidia-glcore glfwDestroyWindow
@@ -85,12 +86,14 @@ jobs:
       !contains(join(github.event.pull_request.labels.*.name), 'NORELEASE')
     steps:
       - uses: actions/checkout@v4
-      - run: |
+      - env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
           set -euo pipefail
           v=$(grep -E 'version := ".*"' menger-app/build.sbt | head -1 | cut -d'"' -f2)
           grep -qF "## [$v]" CHANGELOG.md || { echo "::error::CHANGELOG missing '## [$v]'"; exit 1; }
           grep -qF "...$v" CHANGELOG.md   || { echo "::error::CHANGELOG missing compare link '...$v'"; exit 1; }
-          if echo "${{ github.event.pull_request.title }}" | grep -qE '^(Draft|WIP):'; then
+          if echo "$PR_TITLE" | grep -qE '^(Draft|WIP):'; then
             echo "draft PR — skipping dated-entry check"
           else
             grep -qF "## [$v] - $(TZ=UTC date +%Y-%m-%d)" CHANGELOG.md \
@@ -106,23 +109,28 @@ jobs:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
-      - run: sbt "scalafix --check"
+      - run: ./scripts/suites/lint.sh
+        env:
+          HAS_SCALA: "1"
 
   test-full:
     name: Test (full suite, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
+    env:
+      HAS_SCALA: "1"
+      HAS_NATIVE: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
       - name: nvidia-smi (fail fast if GPU absent)
         run: nvidia-smi
-      - name: Run full test suite (headless)
-        run: xvfb-run -a sbt test
+      - name: Run full test suite (scripts/suites/unit.sh)
+        run: ./scripts/suites/unit.sh
       - name: Publish test report
         if: always()
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@db71d41eb79864e25ab0337e395c352e84523afe # v4
         with:
           report_paths: 'menger-app/target/test-reports/**/TEST-*.xml'
 
@@ -130,19 +138,19 @@ jobs:
     name: OptiX Integration (packaged app, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
+    env:
+      HAS_INTEGRATION: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
       - run: nvidia-smi
-      - name: Package + run 27-scenario integration suite
+      - name: Package (scripts/suites/package.sh)
+        run: ./scripts/suites/package.sh
+      - name: Run integration suite (scripts/suites/integration.sh)
         run: |
-          set -euo pipefail
-          sbt "mengerApp / Universal / packageBin"
-          v=$(grep -E 'version :=' menger-app/build.sbt | head -1 | cut -d'"' -f2)
-          unzip -oq "./menger-app/target/universal/menger-app-${v}.zip"
           export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-          ./scripts/integration-tests.sh "./menger-app-${v}/bin/menger-app"
+          ./scripts/suites/integration.sh
       - name: Upload diffs on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -151,52 +159,56 @@ jobs:
           path: scripts/test-diffs/
           if-no-files-found: ignore
 
-  coverage:
-    name: Coverage ratchet (GPU)
+  native-checks:
+    name: Native static analysis (cppcheck + clang-tidy, GPU)
+    # New job (Sprint 36 B4): these gates previously ran only in the local pre-push
+    # hook — a push from a machine without cppcheck/clang-tidy installed, or with
+    # --no-verify, shipped native changes with zero CI-side safety net for them. See
+    # the Sprint 36 Phase B plan and docs/QA_INCIDENTS.md.
     runs-on: [self-hosted, Linux, X64, nvidia]
-    timeout-minutes: 30
+    timeout-minutes: 20
     env:
-      COVERAGE_DROP_THRESHOLD: "1.0"
-      COVERAGE_MIN: "80"
-      COVERAGE_FLOOR: "60"
+      HAS_NATIVE: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
-      # Persist the previous coverage.log across runs (replaces the GitLab artifacts-API fetch).
-      - name: Restore previous coverage baseline
-        uses: actions/cache/restore@v4
-        with:
-          path: coverage-prev.log
-          key: menger-coverage-${{ github.ref_name }}-${{ github.run_id }}
-          restore-keys: menger-coverage-${{ github.ref_name }}-
-      - name: Run coverage + ratchet check
-        run: |
-          set -uo pipefail
-          statement_rate_old=0; branch_rate_old=0
-          [ -f coverage-prev.log ] && . coverage-prev.log && statement_rate_old=${statement_rate:-0} && branch_rate_old=${branch_rate:-0}
-          sbt clean
-          xvfb-run -a sbt coverage test || true
-          sbt coverageReport
-          REPORT=$(head -n 2 menger-app/target/scala-3.*.*/scoverage-report/scoverage.xml | tail -n 1 | xargs)
-          for w in $REPORT; do echo "$w"; done | grep rate | tr - _ > coverage.log
-          . coverage.log
-          echo "statement: current=${statement_rate}% previous=${statement_rate_old}%"
-          if [ "$(echo "$statement_rate < $COVERAGE_FLOOR" | bc -l)" -eq 1 ]; then
-            echo "::error::coverage ${statement_rate}% below floor ${COVERAGE_FLOOR}%"; exit 1; fi
-          drop=$(echo "$statement_rate_old - $statement_rate" | bc -l)
-          if [ "$(echo "$drop > $COVERAGE_DROP_THRESHOLD" | bc -l)" -eq 1 ]; then
-            echo "::warning::coverage dropped ${drop}%"
-            if [ "$(echo "$statement_rate < $COVERAGE_MIN" | bc -l)" -eq 1 ]; then
-              echo "::error::coverage ${statement_rate}% below minimum ${COVERAGE_MIN}%"; exit 1; fi
-          fi
-          cp coverage.log coverage-prev.log
-      - name: Save coverage baseline
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: coverage-prev.log
-          key: menger-coverage-${{ github.ref_name }}-${{ github.run_id }}
+      - name: Build native (for clang-tidy's compile_commands.json)
+        run: sbt "project mengerGeometry" compile
+      - run: ./scripts/suites/native-checks.sh
+
+  memcheck:
+    name: Memory safety (Valgrind + compute-sanitizer, GPU)
+    # New job (Sprint 36 B4): same gap as native-checks above — memcheck existed only
+    # locally before this.
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 30
+    env:
+      HAS_NATIVE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - run: ./scripts/suites/memcheck.sh
+
+  coverage:
+    name: Coverage ratchet (GPU)
+    # Converted to call scripts/suites/coverage.sh (Sprint 36 B4/O3) — was duplicate
+    # inline scoverage logic with its own GitHub Actions-cache baseline
+    # (coverage-prev.log, statement+branch rate) that had drifted from what the local
+    # pre-push hook actually checks (.coverage_baseline, statement rate only). O3's goal
+    # is one suite definition shared by hook and CI; branch-rate tracking was CI-only
+    # and is dropped here to match, not preserved as a second, hook-inconsistent gate.
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 30
+    env:
+      HAS_SCALA: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - name: Run coverage + ratchet check (scripts/suites/coverage.sh)
+        run: ./scripts/suites/coverage.sh
       - name: Upload scoverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -210,22 +222,15 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     if: github.event_name != 'pull_request' || true
+    env:
+      HAS_RENDERING: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
       - run: nvidia-smi
-      - name: Smoke-run each sponge type + a DSL animation
-        run: |
-          set -euo pipefail
-          for spec in \
-            "type=cube-sponge:level=1" "type=sponge-volume:level=1" \
-            "type=sponge-volume:level=2" "type=tesseract" \
-            "type=tesseract-sponge-volume:level=1" "type=tesseract-sponge-surface:level=2"; do
-            xvfb-run -a sbt "mengerApp / run --objects $spec --timeout 0.1"
-          done
-          xvfb-run -a sbt "mengerApp / run --scene examples.dsl.PulsingSponge --frames 5 --start-t 0 --end-t 2 --headless --save-name menger%04d.png"
-          test -f menger0000.png && test -f menger0004.png
+      - name: Smoke-run each sponge type + a DSL animation (scripts/suites/smoke.sh)
+        run: ./scripts/suites/smoke.sh
 
   runtime:
     name: Runtime budget (GPU)
@@ -249,6 +254,18 @@ jobs:
 
   # SonarCloud analysis is handled by the SonarCloud GitHub App (automatic on PRs/pushes),
   # so there is no sonar job here — it would double-run. Config lives in sonar-project.properties.
+  # sonar-ratchet below only blocks on and ratchets against that app's posted check.
+
+  sonar-ratchet:
+    name: Sonar ratchet (F2)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/check-sonar-ratchet.sh "${{ github.event.pull_request.head.sha }}"
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ── build + release ─────────────────────────────────────────────────────────
   build-deployable:
@@ -309,7 +326,7 @@ jobs:
     # Repo default GITHUB_TOKEN is read-only; pushing the tag needs write.
     permissions:
       contents: write
-    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix]
+    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck]
     outputs:
       need_release: ${{ steps.tag.outputs.need_release }}
     steps:
@@ -325,6 +342,7 @@ jobs:
           HEAD_SHA: ${{ github.event.after }}
         run: |
           set -euo pipefail
+          . ./standards/hooks/lib.sh
           # Skip tagging + release when any commit in the push range carries
           # NORELEASE or [skip release] in its message. Push events have no
           # PR-label context, so the marker must live in the commit message
@@ -347,7 +365,7 @@ jobs:
             echo "tag $DEPLOYABLE_VERSION already exists - not re-tagging"
           else
             git tag "$DEPLOYABLE_VERSION"
-            git push origin "$DEPLOYABLE_VERSION"
+            retry_with_backoff "git push tag" git push origin "$DEPLOYABLE_VERSION"
           fi
           # A tag pushed by GITHUB_TOKEN does NOT trigger a second workflow, so the
           # release job runs in this same run instead of on the tag. Publish only when

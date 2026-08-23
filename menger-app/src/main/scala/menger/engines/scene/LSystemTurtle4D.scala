@@ -78,7 +78,7 @@ class LSystemTurtle4D(
 
   def generate(): List[ObjectSpec] =
     process(grammarString, 0, initialState, List.empty,
-      SVec.empty, SVec.empty, List.empty, 0)
+      SVec(initialState.pos), SVec(initialState.width), List.empty, 0)
 
   @tailrec
   private def process(
@@ -148,7 +148,7 @@ class LSystemTurtle4D(
     val (newSpecs, _) = emitRun(specs, runPoints, runWidths)
     val newPos = state.pos + state.heading * segmentLength
     StepResult4D(i + 1, state.copy(pos = newPos), newSpecs,
-      SVec.empty, SVec.empty, stack, 0)
+      SVec(newPos), SVec(state.width), stack, 0)
 
   private def stepTurn(
     state: TurtleState4D, specs: List[ObjectSpec],
@@ -189,9 +189,9 @@ class LSystemTurtle4D(
     val (newSpecs, _) = emitRun(specs, runPoints, runWidths)
     stack match
       case popped :: rest =>
-        StepResult4D(i + 1, popped, newSpecs, SVec.empty, SVec.empty, rest, 0)
+        StepResult4D(i + 1, popped, newSpecs, SVec(popped.pos), SVec(popped.width), rest, 0)
       case Nil =>
-        StepResult4D(i + 1, state, newSpecs, SVec.empty, SVec.empty, Nil, 0)
+        StepResult4D(i + 1, state, newSpecs, SVec(state.pos), SVec(state.width), Nil, 0)
 
   private def stepWidth(
     state: TurtleState4D, specs: List[ObjectSpec],

@@ -25,6 +25,7 @@ local.sbt
 # test output directories
 scripts/test-output/
 scripts/test-diffs/
+scripts/framing-report.log
 
 .opencode/package-lock.json
 native/

@@ -31,4 +31,5 @@ rendering_flags:
   - --fog
   - --cross
   - --antialiasing
+  - --rot-x
   - --accumulation-frames

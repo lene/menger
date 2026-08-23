@@ -38,7 +38,8 @@ import menger.objects.higher_d.TesseractSpongeMesh
 
 class InteractiveEngine(
   config: OptiXEngineConfig,
-  userSetMaxInstances: Boolean = false
+  userSetMaxInstances: Boolean = false,
+  renderT: Float = 0f
 )(using ProfilingConfig)
     extends BaseEngine(config.execution.maxInstances)
     with TimeoutSupport with LazyLogging with SavesScreenshots with Observer with WithStats:
@@ -270,12 +271,21 @@ class InteractiveEngine(
     val requiredMax = requiredMaxInstancesFor(objectSpecs)
     if requiredMax > execution.maxInstances then
       renderer.reinitialize(requiredMax)
-    sceneConfigurator.configureLights(renderer)
-    PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
-    sceneConfigurator.configureCamera(renderer)
+    // Lights/planes/camera are configured AFTER the scene builds, not before. Some builders
+    // (TesseractEdgeSceneBuilder, for edge-heavy 4D objects) call renderer.reinitialize()
+    // themselves when their own instance-count check exceeds 64 — reinitialize disposes and
+    // recreates the native handle, dropping any state set on it. Configuring planes/lights
+    // before that ran left the ground plane silently missing whenever a scene like
+    // `type=24-cell:edge-radius=...` needed more than 64 edge cylinders, even though
+    // `--plane` was on the command line (Sprint 36 H2.1). Ordering after the build means
+    // whichever reinitialize actually runs last — this one or a builder's — is always
+    // followed by the plane/light/camera setup that has to survive it.
     buildScene4DTrackedOrFallback(objectSpecs, renderer)
       .flatMap { _ =>
         Try {
+          sceneConfigurator.configureLights(renderer)
+          PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
+          sceneConfigurator.configureCamera(renderer)
           renderer.setRenderConfig(renderConfig)
           renderer.setCausticsConfig(config.caustics)
           configureOutputMode(renderer)
@@ -296,7 +306,8 @@ class InteractiveEngine(
             TextureManager.loadInitialEnvMapVideo(
               envMapVideo,
               renderer,
-              config.execution.textureDir
+              config.execution.textureDir,
+              renderT
             ).foreach(renderer.setEnvironmentMap)
           }
           if environment.iblEnabled then
@@ -462,6 +473,9 @@ class InteractiveEngine(
               logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
             },
             _ => {
+              // Planes are now real IAS instances (Sprint 36 H3.1) — clearAllInstances above
+              // wiped them too, so they must be re-added on every rebuild, not just at create().
+              PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
               if crossVisible.get then addCrossGeometry(renderer)
               cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
               logger.debug("Scene rebuild complete")

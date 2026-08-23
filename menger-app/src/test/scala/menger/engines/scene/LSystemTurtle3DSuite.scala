@@ -29,16 +29,20 @@ class LSystemTurtle3DSuite extends AnyFlatSpec with Matchers:
     val specs = turtle.generate()
     specs should not be empty
     specs.head.curveData should not be empty
+    // index 0 is the seed point at the turtle's starting position/width (Sprint 36 H3.6 --
+    // runs are now anchored at their start position instead of only recording F-endpoints),
+    // so widths(1)/widths(2) are the two F-drawn points, not widths(0)/widths(1).
     val widths = specs.head.curveData.get.widths
-    widths.length should be >= 2
-    if widths.length >= 2 then
-      (widths(1) - widths(0) * 0.5f).abs should be < Tolerance
+    widths.length should be >= 3
+    if widths.length >= 3 then
+      (widths(2) - widths(1) * 0.5f).abs should be < Tolerance
 
   "Segment accumulation" should "produce one spec for three consecutive Fs" in:
     val turtle = LSystemTurtle3D("FFF", 90f, 1.0f)
     val specs = turtle.generate()
     specs.length shouldBe 1
-    specs.head.curveData.get.points.length shouldBe 9
+    // 4 points (seed + 3 F's), not 3 -- the seed anchors the run at the turtle's start position.
+    specs.head.curveData.get.points.length shouldBe 12
 
   "Gap handling" should "produce two specs for FFFFfFFFF" in:
     val turtle = LSystemTurtle3D("FFFFfFFFF", 90f, 1.0f)
@@ -49,6 +53,33 @@ class LSystemTurtle3DSuite extends AnyFlatSpec with Matchers:
     val turtle = LSystemTurtle3D("F[+FFFF][-FFFF]", 90f, 1.0f)
     val specs = turtle.generate()
     specs.length shouldBe 2
+
+  "Single-F branches" should "not be silently dropped (Sprint 36 H3.6)" in:
+    // Before the fix, a run's first point was only recorded by an F step, never seeded from
+    // the turtle's position on entering `[` or after popping `]`. A branch containing exactly
+    // one F (extremely common in real presets, e.g. fern3d's "F[&F]F[^F][&F]") then produced
+    // a run of a single point, which emitRun silently drops (points.length < 2). Two adjacent
+    // single-F branches with no F between them reproduces this exactly: the second branch's
+    // run started from an empty (unseeded) point list.
+    val turtle = LSystemTurtle3D("F[+F][-F]", 90f, 1.0f)
+    val specs = turtle.generate()
+    specs.length shouldBe 2
+
+  "Roll (< and >)" should "rotate around the heading axis, not change heading direction" in:
+    // A true roll rotates around the turtle's own heading, which is a fixed point of that
+    // rotation -- two F's separated only by a roll must stay collinear. Before the fix, `<`/`>`
+    // rotated around `state.up` (the same axis as `+`/`-`), so the roll silently turned the
+    // turtle instead of rolling it, breaking collinearity.
+    val turtle = LSystemTurtle3D("F<F", 45f, 1.0f, 1.0f, 1.0f, normalizeScale = false)
+    val specs = turtle.generate()
+    specs.length shouldBe 1
+    val pts = specs.head.curveData.get.points.grouped(3).toVector
+    pts.length shouldBe 3
+    val dir1 = Vec3(pts(1)(0) - pts(0)(0), pts(1)(1) - pts(0)(1), pts(1)(2) - pts(0)(2))
+    val dir2 = Vec3(pts(2)(0) - pts(1)(0), pts(2)(1) - pts(1)(1), pts(2)(2) - pts(1)(2))
+    (dir1.x - dir2.x).abs should be < Tolerance
+    (dir1.y - dir2.y).abs should be < Tolerance
+    (dir1.z - dir2.z).abs should be < Tolerance
 
   "Sphere primitive" should "emit sphere ObjectSpec" in:
     val turtle = LSystemTurtle3D("@O(1.0)", 90f, 1.0f)
@@ -97,10 +128,12 @@ class LSystemTurtle3DSuite extends AnyFlatSpec with Matchers:
     val turtle = LSystemTurtle3D("F!F", 90f, 1.0f, 1.0f, 0.5f)
     val specs = turtle.generate()
     specs should not be empty
+    // index 0 is the seed point at the turtle's starting position/width; see the analogous
+    // comment on "Width scaling" above.
     val widths = specs.head.curveData.get.widths
-    widths.length should be >= 2
-    if widths.length >= 2 then
-      (widths(1) - widths(0) * 0.5f).abs should be < Tolerance
+    widths.length should be >= 3
+    if widths.length >= 3 then
+      (widths(2) - widths(1) * 0.5f).abs should be < Tolerance
 
   "Material index cycling" should "wrap around" in:
     val mat1 = menger.common.Material(menger.common.Color(1f, 0f, 0f))

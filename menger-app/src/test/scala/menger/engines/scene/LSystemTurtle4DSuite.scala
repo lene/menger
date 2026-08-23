@@ -43,6 +43,15 @@ class LSystemTurtle4DSuite extends AnyFlatSpec with Matchers:
       spec.objectType shouldBe "curve"
     }
 
+  "Single-F branches" should "not be silently dropped (Sprint 36 H3.6)" in:
+    // Same defect as LSystemTurtle3DSuite's identically-named test: before the fix, a run's
+    // first point was only recorded by an F step, never seeded from the turtle's position on
+    // entering `[` or after popping `]`, so a lone-F branch (e.g. "tree"'s "F[+F]F[-F]F") with
+    // no preceding F in its own run produced a single-point run that emitRun silently drops.
+    val turtle = LSystemTurtle4D("F[+F][-F]", 90f, 1.0f)
+    val specs = turtle.generate()
+    specs.length shouldBe 2
+
   "Frame orthonormality" should "be maintained after many rotations" in:
     val rng = new scala.util.Random(42L)
     val h = Vector.Y
@@ -174,9 +183,13 @@ class LSystemTurtle4DSuite extends AnyFlatSpec with Matchers:
     val specs = turtle.generate()
     specs should not be empty
     specs.head.curveData.foreach { cd =>
-      cd.widths.size shouldBe 4
+      // index 0 is the seed point at the turtle's starting position/width (Sprint 36 H3.6 --
+      // runs are now anchored at their start position instead of only recording F-endpoints),
+      // so widths(1..4) are the four F-drawn points, not widths(0..3).
+      cd.widths.size shouldBe 5
       cd.widths(0) shouldBe 1.0f
-      cd.widths(1) shouldBe 0.5f +- 0.001f
-      cd.widths(2) shouldBe 0.25f +- 0.001f
-      cd.widths(3) shouldBe 0.125f +- 0.01f
+      cd.widths(1) shouldBe 1.0f
+      cd.widths(2) shouldBe 0.5f +- 0.001f
+      cd.widths(3) shouldBe 0.25f +- 0.001f
+      cd.widths(4) shouldBe 0.125f +- 0.01f
     }

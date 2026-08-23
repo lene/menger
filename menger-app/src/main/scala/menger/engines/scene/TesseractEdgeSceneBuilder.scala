@@ -52,6 +52,12 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
   // Default edge material if none specified
   private val defaultEdgeMaterial = Material.Film
 
+  // Matches the epsilon the 4D CUDA shaders use for the same eye_w clip (e.g. hit_menger4d.cu).
+  private val EyeWClipEpsilon = 1e-6f
+
+  private[scene] def isClippedByEyeW(rotated: Vector[4], eyeW: Float): Boolean =
+    rotated(3) >= eyeW - EyeWClipEpsilon
+
   /**
    * Calculate exact number of instances needed (meshes + edge cylinders).
    * Generates actual meshes to determine precise edge counts.
@@ -95,7 +101,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
             Right(())
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
-    logger.info(s"Building tesseract scene with edge rendering: ${specs.length} tesseracts")
+    logger.debug(s"Building tesseract scene with edge rendering: ${specs.length} tesseracts")
 
     // Reinitialize renderer with correct maxInstances if needed
     if maxInstances > 64 then
@@ -182,20 +188,34 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       val rotatedV0 = rotation(v0_4d)
       val rotatedV1 = rotation(v1_4d)
 
-      // Project to 3D
-      val p0_3d = projection(rotatedV0)
-      val p1_3d = projection(rotatedV1)
+      // Reject edges with an endpoint at or behind the eye_w projection plane, mirroring the
+      // clip every 4D CUDA closest-hit shader applies (e.g. hit_menger4d.cu's
+      // `rot.w >= m.eye_w - 1e-6f`). Without this, Projection.apply's
+      // `(eyeW - screenW) / (eyeW - point(3))` denominator approaches or crosses zero once a
+      // vertex's w-coordinate reaches eyeW, producing a non-finite or exploded 3D endpoint.
+      // Defensive parity fix (Sprint 36 H1.5): rotation preserves a vertex's 4D norm, so at
+      // the CLI defaults (eyeW=3.0, object size ~0.8-1.5) no achievable rotation actually
+      // reaches this clip — it matters once --eye-w is brought close to --size. It is NOT
+      // the cause of the console error spam reported for tesseract/polytope edge scenes
+      // during interactive rotation; that has a different, not-yet-identified cause — see
+      // ManualTestNeedFixing.md section 2.
+      if isClippedByEyeW(rotatedV0, proj4D.eyeW) || isClippedByEyeW(rotatedV1, proj4D.eyeW) then
+        logger.trace(s"Skipping edge clipped by eye_w plane (eyeW=${proj4D.eyeW})")
+      else
+        // Project to 3D
+        val p0_3d = projection(rotatedV0)
+        val p1_3d = projection(rotatedV1)
 
-      // Apply position offset
-      val p0 = Vector[3](p0_3d.x + offset.x, p0_3d.y + offset.y, p0_3d.z + offset.z)
-      val p1 = Vector[3](p1_3d.x + offset.x, p1_3d.y + offset.y, p1_3d.z + offset.z)
+        // Apply position offset
+        val p0 = Vector[3](p0_3d.x + offset.x, p0_3d.y + offset.y, p0_3d.z + offset.z)
+        val p1 = Vector[3](p1_3d.x + offset.x, p1_3d.y + offset.y, p1_3d.z + offset.z)
 
-      // Add cylinder instance
-      val cylinderId = requireInstanceId(
-        renderer.addCylinderInstance(p0, p1, edgeRadius, edgeMaterial),
-        s"edge cylinder from $p0 to $p1"
-      )
-      logger.trace(s"Added edge cylinder $cylinderId from $p0 to $p1")
+        // Add cylinder instance
+        val cylinderId = requireInstanceId(
+          renderer.addCylinderInstance(p0, p1, edgeRadius, edgeMaterial),
+          s"edge cylinder from $p0 to $p1"
+        )
+        logger.trace(s"Added edge cylinder $cylinderId from $p0 to $p1")
     }
 
     logger.debug(s"Added ${edges.size} edge cylinders for ${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")

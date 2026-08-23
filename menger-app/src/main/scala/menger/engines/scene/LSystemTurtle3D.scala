@@ -66,7 +66,7 @@ class LSystemTurtle3D(
 
   def generate(): List[ObjectSpec] =
     val rawSpecs = process(grammarString, 0, initialState, List.empty,
-      Vector.empty, Vector.empty, List.empty, 0)
+      Vector(initialState.pos), Vector(initialState.width), List.empty, 0)
     if normalizeScale then normalize(rawSpecs) else rawSpecs
 
   @tailrec
@@ -102,8 +102,8 @@ class LSystemTurtle3D(
       case '^' => stepTurn(state, specs, runPoints, runWidths, stack, i, state.left, -angleRad)
       case '\\' => stepTurn(state, specs, runPoints, runWidths, stack, i, state.heading, angleRad)
       case '/' => stepTurn(state, specs, runPoints, runWidths, stack, i, state.heading, -angleRad)
-      case '<' => stepTurn(state, specs, runPoints, runWidths, stack, i, state.up, angleRad)
-      case '>' => stepTurn(state, specs, runPoints, runWidths, stack, i, state.up, -angleRad)
+      case '<' => stepTurn(state, specs, runPoints, runWidths, stack, i, state.heading, angleRad)
+      case '>' => stepTurn(state, specs, runPoints, runWidths, stack, i, state.heading, -angleRad)
       case '|' => stepTurn180(state, specs, runPoints, runWidths, stack, i)
       case '[' => stepPush(state, specs, runPoints, runWidths, stack, i)
       case ']' => stepPop(state, specs, runPoints, runWidths, stack, i)
@@ -135,7 +135,7 @@ class LSystemTurtle3D(
           texture = state.currentTexture
         )
         StepResult(nextIdx, newState, sphereSpec :: newSpecs,
-          Vector.empty, Vector.empty, stack, 0)
+          Vector(newPos), Vector(segWidth), stack, 0)
       case _ =>
         StepResult(nextIdx, newState, specs,
           runPoints :+ newPos, runWidths :+ segWidth, stack, 0)
@@ -148,7 +148,7 @@ class LSystemTurtle3D(
     val (newSpecs, _) = emitRun(state, specs, runPoints, runWidths)
     val newPos = state.pos + state.heading * segmentLength
     StepResult(i + 1, state.copy(pos = newPos), newSpecs,
-      Vector.empty, Vector.empty, stack, 0)
+      Vector(newPos), Vector(state.width), stack, 0)
 
   private def stepTurn(
     state: TurtleState3D, specs: List[ObjectSpec],
@@ -192,9 +192,9 @@ class LSystemTurtle3D(
     val (newSpecs, _) = emitRun(state, specs, runPoints, runWidths)
     stack match
       case popped :: rest =>
-        StepResult(i + 1, popped, newSpecs, Vector.empty, Vector.empty, rest, 0)
+        StepResult(i + 1, popped, newSpecs, Vector(popped.pos), Vector(popped.width), rest, 0)
       case Nil =>
-        StepResult(i + 1, state, newSpecs, Vector.empty, Vector.empty, Nil, 0)
+        StepResult(i + 1, state, newSpecs, Vector(state.pos), Vector(state.width), Nil, 0)
 
   private def stepIncMaterial(
     state: TurtleState3D, specs: List[ObjectSpec],

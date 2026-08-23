@@ -4,6 +4,7 @@ import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
+import menger.common.TransformUtil
 import menger.common.Vector
 
 /**
@@ -23,13 +24,31 @@ class ConeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
       Left("All objects must be cones for ConeSceneBuilder")
     else Right(())
 
+  /** Rotates a point that is local to `spec`'s position by the object's Euler rotation
+    * (radians), then translates by `spec`'s position — same rotation convention as
+    * `TransformUtil.createEulerRotationScaleTranslation`, reused rather than re-derived. */
+  private[scene] def rotatedWorldPoint(spec: ObjectSpec, localX: Float, localY: Float, localZ: Float): (Float, Float, Float) =
+    val m = TransformUtil.createEulerRotationScaleTranslation(
+      spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
+    )
+    (
+      m(0) * localX + m(1) * localY + m(2) * localZ + m(3),
+      m(4) * localX + m(5) * localY + m(6) * localZ + m(7),
+      m(8) * localX + m(9) * localY + m(10) * localZ + m(11)
+    )
+
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up ${specs.length} cone instances")
     val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
     specs.foreach { spec =>
       val material = MaterialExtractor.extract(spec)
-      val (ax, ay, az) = spec.apex.getOrElse((spec.x, spec.y + spec.size / 2f, spec.z))
-      val (bx, by, bz) = spec.base.getOrElse((spec.x, spec.y - spec.size / 2f, spec.z))
+      // Explicit apex/base are absolute world coordinates and bypass pos/size/rotation
+      // entirely, same as before. Only the pos+size-derived default needs rotation applied --
+      // otherwise `rotation=` on a cone with no explicit apex/base was silently dropped
+      // (Sprint 36 H5.2): the cone's shape is defined purely by apex/base/radius, so an
+      // unrotated default apex/base offset renders an unrotated cone regardless of `rotation`.
+      val (ax, ay, az) = spec.apex.getOrElse(rotatedWorldPoint(spec, 0f, spec.size / 2f, 0f))
+      val (bx, by, bz) = spec.base.getOrElse(rotatedWorldPoint(spec, 0f, -spec.size / 2f, 0f))
       val r = spec.radius.getOrElse(spec.size / 2f)
       val apex = Vector[3](ax, ay, az)
       val base = Vector[3](bx, by, bz)

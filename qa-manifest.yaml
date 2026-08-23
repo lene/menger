@@ -1,0 +1,41 @@
+# qa-manifest.yaml (Sprint 36 C1) — path patterns -> change classes -> suite relevance,
+# and per-suite tier (commit|push|pr|main|release). Single source of truth for "what runs
+# on this push", read by standards/scripts/qa-runner.sh and cross-checked against
+# .git_hooks/pre-push and .github/workflows/ci.yml by scripts/check-suite-parity.sh (C7).
+# Extends the coverage-manifest.yaml pattern (Sprint 35 F14). Not vendored — inherently
+# per-repo, like coverage-manifest.yaml itself.
+#
+# `requires: []` = always relevant regardless of changed paths (structural checks).
+# `requires: [a, b]` = relevant if any of a, b matched (OR semantics).
+# `automated: false` = no scripts/suites/<name>.sh exists; always reported SKIP, never
+# invoked — a first-class pointer to a still-manual, release-tier-only check.
+
+change_classes:
+  scala:
+    - '\.(scala|sbt)$'
+    - '^project/'
+  native:
+    - '^menger-geometry/src/main/native/.*\.(cpp|cu|cuh|h)$'
+    - 'CMakeLists\.txt'
+  ci:
+    - '^\.github/workflows/.*\.ya?ml$'
+  integration:
+    - '^scripts/integration-tests\.sh$'
+  rendering:
+    - '@file:standards/rendering-paths.txt'
+
+suites:
+  parity:        { tier: push,    requires: [] }
+  policy:        { tier: push,    requires: [] }
+  preflight:     { tier: push,    requires: [] }
+  lint:          { tier: push,    requires: [] }
+  unit:          { tier: push,    requires: [scala, native] }
+  native-checks: { tier: push,    requires: [native] }
+  coverage:      { tier: push,    requires: [scala, native] }
+  memcheck:      { tier: release, requires: [native] }
+  package:       { tier: push,    requires: [] }
+  integration:   { tier: push,    requires: [integration, rendering] }
+  smoke:         { tier: push,    requires: [rendering, native] }
+  sonar-ratchet: { tier: pr,      requires: [], automated: false, note: "CI-only (needs PR/GitHub check-run context); scripts/check-sonar-ratchet.sh, deliberately not scripts/suites/ — cannot run in the local pre-push hook (Sprint 36 F2)" }
+  perf:          { tier: release, requires: [], note: "scripts/suites/perf.sh wraps benchmark.sh + baseline ratchet (Sprint 36 F4)" }
+  manual:        { tier: release, requires: [], automated: false, note: "scripts/manual-test.sh, human-run, part of /release-checklist" }

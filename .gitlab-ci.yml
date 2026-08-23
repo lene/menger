@@ -1,6 +1,5 @@
 stages:
   - preconditions
-  - review
   - test
   - build
   - test built
@@ -168,7 +167,7 @@ Test:OptiXIntegration:
     - VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
     - unzip -oq ./menger-app/target/universal/menger-app-${VERSION}.zip
     - export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-    # Run comprehensive integration tests (27 scenarios)
+    # Run comprehensive integration tests (self-counting; see scripts/integration-tests.sh)
     - ./scripts/integration-tests.sh ./menger-app-${VERSION}/bin/menger-app
   after_script:
     # Clean up permissions for Docker artifacts
@@ -389,62 +388,6 @@ CheckRunTime:
   artifacts:
     paths:
       - runtime.log
-
-# Sprint 28.4: AI code review by Claude + DeepSeek on every MR.
-# Advisory (allow_failure); posts findings as a bot note on the MR.
-# Skip with the 'skip-review' MR label for draft/WIP branches.
-# DeepSeek key: DEEPSEEK_API_KEY (masked, protected CI variable — see arc42 §11).
-AIReview:
-  stage: review
-  image: ubuntu:latest
-  needs: []
-  timeout: 10m
-  allow_failure: true
-  rules:
-    - if: "$CI_MERGE_REQUEST_ID"
-      when: always
-  before_script:
-    - apt-get -y update -qq
-    - apt-get -y install -qq curl jq python3 git ca-certificates
-  script:
-    # Skip if MR carries the 'skip-review' label
-    - |
-      if echo "${CI_MERGE_REQUEST_LABELS:-}" | tr ',' '\n' | grep -qx 'skip-review'; then
-        echo "skip-review label set; skipping AI review"
-        exit 0
-      fi
-    # Generate diff against the target branch
-    - git fetch --quiet origin "${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}"
-    - git diff "origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}...HEAD" > mr.diff
-    - DIFF_LINES=$(wc -l < mr.diff)
-    - echo "Diff is ${DIFF_LINES} lines"
-    # Detect whether architecture-relevant paths are touched
-    - |
-      ARCH_FLAG=""
-      if [ -f standards/architecture-paths.txt ]; then
-        while IFS= read -r pattern; do
-          case "$pattern" in '#'*|'') continue ;; esac
-          if git diff --name-only "origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}...HEAD" \
-              | grep -qE "$pattern"; then
-            ARCH_FLAG="--arch-guidelines standards/architecture-review-guidelines.md"
-            echo "Architecture-relevant paths changed; adding arch review"
-            break
-          fi
-        done < standards/architecture-paths.txt
-      fi
-    - >
-      ./standards/scripts/review.sh
-      --diff mr.diff
-      --guidelines standards/review-guidelines.md
-      ${ARCH_FLAG}
-      --output review-findings.json
-    # Post findings to the MR
-    - ./scripts/adapters/gitlab-mr-review.sh review-findings.json
-  artifacts:
-    when: always
-    paths:
-      - review-findings.json
-    expire_in: 7 days
 
 # Sprint 28.7: performance-regression guard.
 # Runs 4 benchmark scenes 3 times each, computes median frameMs, compares
@@ -748,19 +691,23 @@ PushToGithub:
     - git config user.name "${GITLAB_USER_NAME}"
     - git config pull.rebase true
   script:
+    # Per-command backoff (Sprint 36 D4) on top of the job-level retry: above, whole-job
+    # retry: covers infra failure (runner crash, timeout); this covers an ordinary
+    # transient network error on a single git command without re-running the whole job.
+    - . ./standards/hooks/lib.sh
     # Add or update GitHub remote
     - git remote add github git@github.com:lene/menger.git 2>/dev/null || git remote set-url github git@github.com:lene/menger.git
     - git remote show github
     # Fetch all from GitLab origin
-    - git fetch origin --tags
+    - retry_with_backoff "fetch origin --tags" git fetch origin --tags
     # In tag pipeline CI_COMMIT_BRANCH is empty; fall back to main
     - BRANCH=${CI_COMMIT_BRANCH:-main}
     - echo "Target branch - $BRANCH"
     - echo "Current commit - ${CI_COMMIT_SHA}"
     - echo "Tag - ${CI_COMMIT_TAG}"
     # Push SHA directly to avoid 'branch used by worktree' error from local branch manipulation
-    - git push --force github ${CI_COMMIT_SHA}:refs/heads/$BRANCH
-    - git push --force github $CI_COMMIT_TAG
+    - retry_with_backoff "push branch to github" git push --force github ${CI_COMMIT_SHA}:refs/heads/$BRANCH
+    - retry_with_backoff "push tag to github" git push --force github $CI_COMMIT_TAG
 
 CreateGithubRelease:
   stage: release

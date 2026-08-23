@@ -13,7 +13,9 @@ import menger.dsl._
 object VideoTextureCube:
   val scene = Scene(
     camera = Camera(
-      position = (0f, 0.8f, 4f),
+      // Sprint 36 F1: moved closer (was z=4) — measured framing 34.3% of frame, one of
+      // the worst offenders in the Sprint 36 F1 framing survey.
+      position = (0f, 0.6f, 2.8f),
       lookAt = (0f, 0f, 0f)
     ),
     objects = List(

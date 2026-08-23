@@ -37,7 +37,13 @@ TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
 # label:args pairs (args exclude the common --headless/--save-name/--stats-json flags added below)
+# _calibration (Sprint 36 D2) is a same-run baseline probe, not a tracked scene: cheapest
+# possible render, measured identically to every other scene, popped out of the results
+# before the per-scene comparison below and used to normalize each scene's ratio against
+# this run's own machine speed — a slow/throttled/contended run and a fast/cool run should
+# then report the same *adjusted* ratio even though their raw ms differ.
 SCENES=(
+  "_calibration:--objects type=sphere:pos=0,0,0:size=0.3"
   "glass-sphere:--objects type=sphere:pos=0,0,0:size=0.5:material=glass --plane y:-2"
   "diamond-sphere:--objects type=sphere:pos=0,0.5,0:size=0.3:material=diamond-dispersive:ior=2.42 --plane y:-2"
   "menger4d-L2:--objects type=menger4d:level=2:pos=0,0,0:size=0.8 --plane y:-2"
@@ -135,20 +141,35 @@ with open(results_file) as f:
 with open(baseline_file) as f:
     baseline = json.load(f)
 
+# Same-run calibration probe (Sprint 36 D2): >1.0 means this run's machine is slower
+# than the baseline capture day (thermal throttling, GPU contention, weaker hardware).
+# Dividing each scene's raw ratio by this normalizes that out.
+calibration_ms = measured.pop("_calibration", None)
+calibration_baseline_ms = baseline.pop("_calibration", None)
+if calibration_ms is not None and calibration_baseline_ms is not None:
+    calibration_ratio = calibration_ms / calibration_baseline_ms
+    print(f"  calibration probe: {calibration_ms:.1f} ms (baseline {calibration_baseline_ms:.1f} ms, {calibration_ratio:.2f}x)")
+    print()
+else:
+    calibration_ratio = 1.0
+    print("  calibration probe: no baseline entry — ratios unadjusted")
+    print()
+
 failed = []
 for scene, ms in measured.items():
     if scene not in baseline:
         print(f"  {scene}: no baseline entry — skipping")
         continue
     base = baseline[scene]
-    ratio = ms / base
+    raw_ratio = ms / base
+    ratio = raw_ratio / calibration_ratio
     ok = ratio <= threshold
     ceiling = CEILING_P2 if scene in P2_SCENES else CEILING_P1
     abs_ok = ms <= ceiling
     status = '✅' if (ok and abs_ok) else '❌'
-    print(f"  {status} {scene}: {ms:.1f} ms (baseline {base:.1f} ms, {ratio:.2f}x, ceiling {ceiling:.0f} ms)")
+    print(f"  {status} {scene}: {ms:.1f} ms (baseline {base:.1f} ms, raw {raw_ratio:.2f}x, adjusted {ratio:.2f}x, ceiling {ceiling:.0f} ms)")
     if not ok:
-        failed.append(f"{scene} (ratio {ratio:.2f}x > {threshold}x)")
+        failed.append(f"{scene} (adjusted ratio {ratio:.2f}x > {threshold}x)")
     if not abs_ok:
         failed.append(f"{scene} (absolute {ms:.1f} ms > {ceiling:.0f} ms ceiling)")
 

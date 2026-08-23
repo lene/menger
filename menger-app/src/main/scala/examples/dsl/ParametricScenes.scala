@@ -170,7 +170,10 @@ object ParametricKleinBottle:
       f = f,
       uRange = (0f, TwoPi), vRange = (0f, TwoPi),
       uSteps = 128, vSteps = 64,
-      closedU = true, closedV = true,
+      // f uses cos(u/2)/sin(u/2), so it is 4pi-periodic in u — the surface has not
+      // returned to itself at u=2pi. closedU=true wrongly welds that half-twist seam
+      // (same trap as ParametricMoebius above; see its note).
+      closedU = false, closedV = true,
       ior = 1.5f
     )),
     lights = List(Directional(
@@ -194,7 +197,8 @@ object ParametricKleinBottleFilm:
       f = ParametricKleinBottle.f,
       uRange = (0f, 2f * Pi.toFloat), vRange = (0f, 2f * Pi.toFloat),
       uSteps = 128, vSteps = 64,
-      closedU = true, closedV = true,
+      // Same half-twist trap as ParametricKleinBottle.f above — closedU must be false.
+      closedU = false, closedV = true,
       material = Some(Material.Film)
     )),
     lights = List(Directional(
