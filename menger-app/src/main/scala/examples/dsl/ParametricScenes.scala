@@ -146,7 +146,9 @@ object ParametricMoebius:
       direction = (1f, -1f, -1f),
       intensity = 2.0f
     )),
-    planes = List(Plane(Y at -1.5, color = Color(0.8f, 0.8f, 0.8f))),
+    planes = List(Plane.checkered(Y at -1.5, (
+      Color(120f / 255f, 120f / 255f, 120f / 255f), Color(20f / 255f, 20f / 255f, 20f / 255f)
+    ))),
     background = Some(Color.Black)
   )
   SceneRegistry.register("parametric-moebius", scene)
@@ -179,7 +181,10 @@ object ParametricKleinBottle:
     lights = List(Directional(
       direction = (1f, -1f, -1f),
       intensity = 2.0f
-    ))
+    )),
+    planes = List(Plane.checkered(Y at -3, (
+      Color(120f / 255f, 120f / 255f, 120f / 255f), Color(20f / 255f, 20f / 255f, 20f / 255f)
+    )))
   )
   SceneRegistry.register("parametric-klein-bottle", scene)
 
@@ -205,7 +210,9 @@ object ParametricKleinBottleFilm:
       direction = (1f, -1f, -1f),
       intensity = 2.0f
     )),
-    planes = List(Plane(Y at -3, color = Color(0.8f, 0.8f, 0.8f))),
+    planes = List(Plane.checkered(Y at -3, (
+      Color(120f / 255f, 120f / 255f, 120f / 255f), Color(20f / 255f, 20f / 255f, 20f / 255f)
+    ))),
     background = Some(Color.Black)
   )
   SceneRegistry.register("parametric-klein-bottle-film", scene)
