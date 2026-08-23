@@ -86,12 +86,14 @@ jobs:
       !contains(join(github.event.pull_request.labels.*.name), 'NORELEASE')
     steps:
       - uses: actions/checkout@v4
-      - run: |
+      - env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
           set -euo pipefail
           v=$(grep -E 'version := ".*"' menger-app/build.sbt | head -1 | cut -d'"' -f2)
           grep -qF "## [$v]" CHANGELOG.md || { echo "::error::CHANGELOG missing '## [$v]'"; exit 1; }
           grep -qF "...$v" CHANGELOG.md   || { echo "::error::CHANGELOG missing compare link '...$v'"; exit 1; }
-          if echo "${{ github.event.pull_request.title }}" | grep -qE '^(Draft|WIP):'; then
+          if echo "$PR_TITLE" | grep -qE '^(Draft|WIP):'; then
             echo "draft PR — skipping dated-entry check"
           else
             grep -qF "## [$v] - $(TZ=UTC date +%Y-%m-%d)" CHANGELOG.md \
@@ -128,7 +130,7 @@ jobs:
         run: ./scripts/suites/unit.sh
       - name: Publish test report
         if: always()
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@db71d41eb79864e25ab0337e395c352e84523afe # v4
         with:
           report_paths: 'menger-app/target/test-reports/**/TEST-*.xml'
 
