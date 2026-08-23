@@ -38,7 +38,11 @@ if [ "$API_OK" -eq 1 ]; then
   RELIAB=$(echo "$RESPONSE" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(m["value"] for m in d["component"]["measures"] if m["metric"]=="reliability_rating"))')
   SECUR=$(echo "$RESPONSE"  | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(m["value"] for m in d["component"]["measures"] if m["metric"]=="security_rating"))')
 
-  [ -f "$BASELINE_FILE" ] || printf 'alert_status=%s\nsqale_rating=%s\nreliability_rating=%s\nsecurity_rating=%s\n' \
+  # A baseline written by the fallback branch below (missing token / API error) only has
+  # fallback_conclusion=..., not the four rating keys this branch needs -- reinitialize in
+  # the primary format rather than crash under `set -u` on the missing keys.
+  { [ -f "$BASELINE_FILE" ] && grep -q '^sqale_rating=' "$BASELINE_FILE"; } || \
+    printf 'alert_status=%s\nsqale_rating=%s\nreliability_rating=%s\nsecurity_rating=%s\n' \
     "$ALERT" "$SQALE" "$RELIAB" "$SECUR" > "$BASELINE_FILE"
 
   # shellcheck disable=SC1090
