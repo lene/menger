@@ -849,6 +849,13 @@ test_4d_sponges() {
         --objects type=tesseract-sponge:level=0:pos=0,0,0:size=0.8
     run_test "tesseract-sponge level 1" --plane y:-2 \
         --objects type=tesseract-sponge:level=1:pos=0,0,0:size=0.8
+    # Sprint 36 #8: level 2+ is deep enough recursion (faces shrink 3x per
+    # level) to exercise the GPU4D projection kernel's degenerate-face
+    # normal fallback -- level 0/1 faces are too large to ever trip it, so
+    # this level was the actual regression coverage gap that let the
+    # constant-wrong-normal bug ship undetected.
+    run_test "tesseract-sponge level 2" --plane y:-2 \
+        --objects type=tesseract-sponge:level=2:pos=0,0,0:size=0.8
     run_test "tesseract-sponge-2 level 0" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=0:pos=0,0,0:size=0.8
     run_test "tesseract-sponge-2 level 1" --plane y:-2 \
