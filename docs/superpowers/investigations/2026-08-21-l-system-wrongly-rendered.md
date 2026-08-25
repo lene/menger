@@ -160,17 +160,57 @@ continuous run. A real fix (corner-sharpening via duplicate-point insertion at s
 is scoped feature work affecting every L-system preset's rendering — **filed as a residual,
 not implemented in this investigation** (user decision).
 
+## Root cause 3 — resolved (Sprint 36 #17) — 2026-08-25
+
+Picked up the filed residual. Fix: in each turtle's `emitRun`, before building `CurveData`,
+detect interior run points where the incoming and outgoing segment directions diverge by more
+than 60° (`(inDir.normalize dot outDir.normalize) < cos(60°)`) and triple that control point
+(append two duplicates) so the cubic B-spline anchors to it instead of rounding it off. 60°
+was chosen to sit cleanly between hilbert3d/kochisland's 90° turns (sharpened) and
+fern3d/tree/bush's ~22-26° organic bends (left smooth) — see
+`menger-app/src/main/scala/menger/engines/scene/CurveCornerSharpening.scala`. Implemented once
+as a shared helper; wired into `LSystemTurtle3D.emitRun` directly on `Vec3` run points, and
+into `LSystemTurtle4D.emitRun` after the existing 4D-to-3D projection (so both turtles share
+identical corner logic in the same coordinate space).
+
+**Command:**
+```
+./menger-app/target/universal/stage/bin/menger-app --headless \
+  --objects type=lsystem:preset=hilbert3d:level=4:size=1.2 --plane y:-2 -s /tmp/hilbert3d_after_fix.png
+```
+**Output/measurement:** visibly sharp right-angle turns replace the prior smooth ~3-bend tube
+(compare Stage 0's description). Unit-level: `CurveCornerSharpeningSuite` (new) asserts a
+90° corner triples to 5 points from 3, an ~11° bend and a straight run are both left
+untouched, and multiple consecutive corners sharpen independently. `LSystemTurtle3DSuite`
+gained an integration-level assertion (`"F+F"`, 90°) that the emitted `CurveData` has 15
+floats (5 points), not 9.
+**Hypothesis update:** confirms the fix targets exactly the geometric-vs-organic distinction
+identified in Stage 2's root-cause-3 analysis, without needing per-preset special-casing.
+
+**Reference-image fallout:** regenerated all 7 L-system integration-test references
+(`PARALLEL_MODE=false ./scripts/integration-tests.sh ... --filter "lsystem" --update-references`).
+Only 3 of 7 actually changed pixels: `lsystem_hilbert3d_level_4`, `lsystem_kochisland_level_2`
+(both 90°-angle presets — expected, this is the bug's exact symptom) and
+`lsystem4d_tree_level_4` (deeper recursion apparently crosses the 60° threshold at some
+corners even at tree's 25.7° per-turn angle, from accumulated multi-turn sequences between
+F's). `tree`, `bush`, `fern3d`, and `lsystem4d tree level 3` are pixel-identical — confirms
+organic presets are unaffected at shallower recursion, as intended. Re-ran the same filtered
+suite a second time without `--update-references`: all 7 report `diff: 0%` against the new
+references (deterministic).
+
 ## Minimum artefacts checklist
 
-- [x] Regression tests exist (`LSystemTurtle3DSuite`/`LSystemTurtle4DSuite`, permanent) for
-      both fixed root causes
-- [x] Fix commit passes those tests (and the 4 pre-existing tests updated for the correct,
-      shifted indices)
+- [x] Regression tests exist (`LSystemTurtle3DSuite`/`LSystemTurtle4DSuite`,
+      `CurveCornerSharpeningSuite`, permanent) for all three root causes, including root
+      cause 3's resolution
+- [x] Fix commits pass those tests (and the 4 pre-existing tests updated for the correct,
+      shifted indices, from the root-cause 1/2 fix)
 - [x] This note records per-step commands, measurements, root-cause narrative for all three
-      root causes investigated (2 fixed, 1 filed as residual)
+      root causes investigated (3 fixed, 0 residual)
 - [x] `ManualTestNeedFixing.md` #13 corrected: marked PARTIALLY RESOLVED, prior "needs
       deciding" framing replaced with the actual two confirmed bugs, and the two residuals
       (hilbert3d B-spline smoothing, tree/dim=4 positioning) filed explicitly rather than
-      left unstated
+      left unstated; hilbert3d residual now resolved, see above
 - [x] No `CODE_IMPROVEMENTS.md` entry existed for this
-- [x] Residuals filed with rationale, not silently dropped
+- [x] Residuals filed with rationale, not silently dropped; the one residual scoped as future
+      work (corner-sharpening) has since been implemented

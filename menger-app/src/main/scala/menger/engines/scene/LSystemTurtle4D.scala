@@ -218,8 +218,9 @@ class LSystemTurtle4D(
     if points.length < 2 then (specs, (SVec.empty, SVec.empty))
     else
       val projectedPoints = points.map(v4 => project4DTo3D(v4, rotation, projection))
-      val flatPoints = SVec.from(projectedPoints.flatMap(p => Seq(p.x, p.y, p.z)))
-      val flatWidths = SVec.from(widths)
+      val (sharpPoints, sharpWidths) = CurveCornerSharpening.sharpenCorners(projectedPoints, widths)
+      val flatPoints = SVec.from(sharpPoints.flatMap(p => Seq(p.x, p.y, p.z)))
+      val flatWidths = SVec.from(sharpWidths)
       val spec = ObjectSpec(
         objectType = "curve",
         curveData = Some(CurveData(flatPoints, flatWidths)),

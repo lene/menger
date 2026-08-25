@@ -352,8 +352,9 @@ class LSystemTurtle3D(
     if points.length < 2 then (specs, (Vector.empty, Vector.empty))
     else
       val mat = currentMaterial(state)
-      val flatPoints = Vector.from(points.flatMap(p => Seq(p.x, p.y, p.z)))
-      val flatWidths = Vector.from(widths)
+      val (sharpPoints, sharpWidths) = CurveCornerSharpening.sharpenCorners(points, widths)
+      val flatPoints = Vector.from(sharpPoints.flatMap(p => Seq(p.x, p.y, p.z)))
+      val flatWidths = Vector.from(sharpWidths)
       val spec = ObjectSpec(
         objectType = "curve",
         curveData = Some(CurveData(flatPoints, flatWidths)),
