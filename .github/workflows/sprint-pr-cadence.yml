@@ -1,0 +1,54 @@
+name: Sprint Branch PR Cadence
+
+# QA_INCIDENTS.md 2026-08-22 (Sprint 36): a long-running feat/sprint-N branch can go an
+# entire sprint (this repo's own 2026-08-22 incident: 40 commits, ~2 weeks) with zero
+# PR-level CI runs, since changelog-updated/sonar-ratchet are
+# `if: github.event_name == 'pull_request'` only in ci.yml. Opens (or leaves open) a
+# draft PR for every active feat/sprint-* branch so those PR-only gates run well before
+# the branch is actually ready to merge, not just discovered at the very end.
+#
+# Idempotent: does nothing if an open PR already exists for a branch. Safe to leave the
+# draft PR open for the whole sprint -- it's superseded by the real release PR at close.
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # daily, offset from the existing 04:00 weekly PerfCheck run
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  sync-sprint-prs:
+    name: Open/check draft PRs for active sprint branches
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Open a draft PR for each feat/sprint-* branch without one
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          BRANCHES=$(git ls-remote --heads origin 'feat/sprint-*' \
+            | sed 's#.*refs/heads/##' || true)
+
+          if [ -z "$BRANCHES" ]; then
+            echo "No active feat/sprint-* branches."
+            exit 0
+          fi
+
+          for branch in $BRANCHES; do
+            existing=$(gh pr list --repo lene/menger --head "$branch" --state open \
+              --json number --jq '.[0].number // empty')
+            if [ -n "$existing" ]; then
+              echo "PR #$existing already open for $branch — nothing to do."
+              continue
+            fi
+            echo "Opening draft PR for $branch..."
+            gh pr create --repo lene/menger --draft --base main --head "$branch" \
+              --title "Sprint sync: $branch" \
+              --body "Auto-opened by sprint-pr-cadence.yml so PR-only gates (changelog-updated, sonar-ratchet) run periodically during a long-running sprint instead of only at the very end (QA_INCIDENTS.md 2026-08-22). Safe to leave in draft — superseded by the real release PR at sprint close."
+          done
