@@ -53,6 +53,11 @@ class ScriptParitySuite extends AnyFlatSpec with Matchers:
 
   private val requiredMaterials: Set[String] = manifestSection("materials").toSet
   private val requiredFlags: Set[String] = manifestSection("rendering_flags").toSet
+  private val requiredFieldCombinations: List[(String, String)] =
+    manifestSection("field_combinations").map { pair =>
+      val fields = pair.split("\\+")
+      (fields(0), fields(1))
+    }
 
   // ── extracted tokens ─────────────────────────────────────────────────────
 
@@ -64,6 +69,13 @@ class ScriptParitySuite extends AnyFlatSpec with Matchers:
     extractPattern("integration-tests.sh", """material=([a-z][-a-z]*)""")
   private val manualMaterials: Set[String] =
     extractPattern("manual-test.sh", """material=([a-z][-a-z]*)""")
+
+  private def objectsClauses(scriptName: String): List[String] =
+    val regex = """--objects\s+"?([^"\n]+)"?""".r
+    regex.findAllMatchIn(readScript(scriptName)).map(_.group(1)).toList
+
+  private val integrationObjectsClauses: List[String] = objectsClauses("integration-tests.sh")
+  private val manualObjectsClauses: List[String] = objectsClauses("manual-test.sh")
 
   private val integrationScenes: Set[String] =
     extractPattern("integration-tests.sh", """--scene (examples\.dsl\.\w+)""")
@@ -121,3 +133,17 @@ class ScriptParitySuite extends AnyFlatSpec with Matchers:
     val missingInIntegration = manualScenes -- integrationScenes
     withClue(s"DSL scenes in manual-test.sh but not integration-tests.sh: ${missingInIntegration.mkString(", ")}"):
       missingInIntegration shouldBe empty
+
+  // ── field-combination coverage (Sprint 36 #18, QA_INCIDENTS.md 2026-08-21) ──
+  // Presence checks above ("material=X appears somewhere") don't catch a field
+  // silently ignored whenever a specific OTHER field is also set. A declared pair
+  // must appear together (both `field=` tokens) in the same --objects clause.
+
+  it should "exercise every declared field combination together in both scripts" in:
+    requiredFieldCombinations.foreach: (fieldA, fieldB) =>
+      def coveredBy(clauses: List[String]): Boolean =
+        clauses.exists(c => c.contains(s"$fieldA=") && c.contains(s"$fieldB="))
+      withClue(s"No --objects clause in integration-tests.sh sets both $fieldA= and $fieldB=: "):
+        coveredBy(integrationObjectsClauses) shouldBe true
+      withClue(s"No --objects clause in manual-test.sh sets both $fieldA= and $fieldB=: "):
+        coveredBy(manualObjectsClauses) shouldBe true
