@@ -1,6 +1,7 @@
 #!/bin/sh
-# Suite: policy (Sprint 36 B1). Test-Change trailer gate + rendering-discipline gate,
-# extracted verbatim from the pre-push hook's former Phase 0.
+# Suite: policy (Sprint 36 B1). Test-Change trailer gate + rendering-discipline gate.
+# Both hooks were already vendored into this repo (shared/standards/manifest.txt) but
+# never invoked here before this suite existed — see docs/QA_INCIDENTS.md.
 #
 # Reads $QA_RANGES: newline-separated rev-ranges, set by the caller (pre-push hook or
 # CI wrapper) from standards/hooks/lib.sh's push_ranges.
@@ -25,6 +26,10 @@ fi
 if ! ./standards/hooks/check-log-verbosity.sh $QA_RANGES; then
   STATUS=1
   FAILED="${FAILED:+$FAILED;}log-verbosity"
+fi
+if ! ./standards/hooks/check-issue-link.sh $QA_RANGES; then
+  STATUS=1
+  FAILED="${FAILED:+$FAILED;}issue-link"
 fi
 
 if [ "$STATUS" -eq 0 ]; then
