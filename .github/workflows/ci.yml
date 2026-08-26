@@ -100,6 +100,22 @@ jobs:
               || { echo "::error::CHANGELOG '## [$v]' needs today's date"; exit 1; }
           fi
 
+  policy:
+    name: Policy (test-justification, rendering-discipline, log-verbosity, issue-link)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compute QA_RANGES and run policy suite
+        run: |
+          set -euo pipefail
+          . ./standards/hooks/lib.sh
+          RANGES=$(push_ranges < /dev/null)
+          export QA_RANGES="$RANGES"
+          ./scripts/suites/policy.sh
+
   # ── quality + tests (need CUDA to compile menger-geometry native → nvidia host) ──
   scalafix:
     name: Scalafix
