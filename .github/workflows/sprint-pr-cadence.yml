@@ -41,7 +41,10 @@ jobs:
           fi
 
           for branch in $BRANCHES; do
-            existing=$(gh pr list --repo lene/menger --head "$branch" --state open \
+            # --state all: a closed-but-unmerged auto-draft must also count as "handled",
+            # or this recreates it (and re-fires the full CI matrix) every day (ultrareview
+            # bug_002, 2026-08-27).
+            existing=$(gh pr list --repo lene/menger --head "$branch" --state all \
               --json number --jq '.[0].number // empty')
             if [ -n "$existing" ]; then
               echo "PR #$existing already open for $branch — nothing to do."
