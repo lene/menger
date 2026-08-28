@@ -11,7 +11,7 @@
 > (documentation, ownership, history, decisions). **Always verify against
 > actual source files before making changes** — the index may be stale.
 
-Last indexed: 2026-08-09 (commit 1196b2c6). Confidence: 100%.
+Last indexed: 2026-08-28 (commit 52c8c519). Confidence: 100%.
 ### Architecture
 The Menger project is a higher‑dimensional fractal rendering engine: it consumes scene descriptions written in a Scala‑embedded DSL, constructs parametric meshes up to four dimensions (including recursively subdivided Menger sponges), applies procedural materials and lighting, and produces ray‑traced images and videos via an interactive rendering engine. The pipeline begins from .sc scene files or direct DSL use, flows through material/light/plane definitions, object specifications, mesh generation, and an interactive rendering loop that supports denoising, and culminates in still image or video output. The codebase is organised around a layered pipeline with a declarative DSL at the top, progressing through scene construction, mesh generation, and rendering. **Key health signals:** The repository counts 520 files and ~80 k LOC (predominantly Scala).
 ### Key Modules
@@ -32,11 +32,11 @@ The Menger project is a higher‑dimensional fractal rendering engine: it consum
 ### Architectural Layers
 | Layer | Files | Purpose |
 |-------|-------|---------|
-| Application | 160 |  |
+| Application | 161 |  |
 | CLI | 8 |  |
 | Utility | 1 |  |
-| Config | 26 |  |
-| Docs & Tooling | 122 |  |
+| Config | 25 |  |
+| Docs & Tooling | 138 |  |
 | Test | 161 |  |
 
 ### Guided Tour (12 steps)
@@ -50,26 +50,26 @@ The Menger project is a higher‑dimensional fractal rendering engine: it consum
 ### Hotspots (High Churn)
 | File | Churn | 90d Commits | Owner |
 |------|-------|-------------|-------|
-| `.git_hooks/pre-push` | 100.0th %ile | 26 | Lene Preuss |
-| `menger-app/src/main/scala/menger/engines/InteractiveEngine.scala` | 99.8th %ile | 33 | Lene Preuss |
-| `menger-geometry/src/main/native/MengerJNIBindings.cpp` | 99.5th %ile | 12 | Claude Code |
-| `scripts/integration-tests.sh` | 99.3th %ile | 37 | Lene |
-| `menger-geometry/src/main/scala/io/github/lene/optix/MengerRenderer.scala` | 99.0th %ile | 9 | Lene |
+| `CODE_IMPROVEMENTS.md` | 100.0th %ile | 40 | Lene |
+| `ARCHITECTURE_REVIEW.md` | 99.8th %ile | 7 | Lene |
+| `menger-app/src/main/scala/menger/engines/InteractiveEngine.scala` | 99.6th %ile | 29 | Lene Preuss |
+| `CHANGELOG.md` | 99.4th %ile | 55 | Lene Preuss |
+| `scripts/integration-tests.sh` | 99.2th %ile | 34 | Lene |
 
 ## Code health
 Three signals: **defect risk** (the overall score), **maintainability** (smells that hurt readability/change-cost without predicting bugs), and **performance** (static performance RISK: I/O-in-loop / N+1 shapes that waste work, high-precision/low-recall). Maintainability and performance are co-equal views, never blended into the defect headline. See `docs/CODE_HEALTH.md`.
 
-Defect risk, Hotspot health: 6.54/10 (stable) ·
-Average: 9.01/10 ·
-Worst: 3.85/10 (`menger-app/src/main/scala/Main.scala`)
-Maintainability, Average: 9.74/10
+Defect risk, Hotspot health: 6.36/10 (stable) ·
+Average: 8.83/10 ·
+Worst: 3.9/10 (`menger-app/src/main/scala/menger/MengerCLIOptions.scala`)
+Maintainability, Average: 9.73/10
 Performance risk, Average: 10.0/10
 
 ### Critical biomarkers
+- `menger-geometry/src/main/scala/io/github/lene/optix/MengerRenderer.scala` — change entropy — impact −2.2
 - `menger-app/src/main/scala/menger/engines/scene/MeshFactory.scala` — change entropy — impact −2.1
 - `menger-app/src/main/scala/menger/engines/GeometryRegistry.scala` — change entropy — impact −2.0
 - `menger-app/src/main/scala/menger/engines/BaseEngine.scala` — untested hotspot — impact −2.0
-- `menger-app/src/main/scala/menger/engines/InteractiveEngine.scala` — untested hotspot — impact −2.0
 - `menger-app/src/main/scala/menger/engines/SceneConverter.scala` — untested hotspot — impact −2.0
 
 ### Repowise MCP Tools

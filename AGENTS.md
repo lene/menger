@@ -131,10 +131,10 @@ sbt test                             # All tests
 sbt "testOnly ClassName"             # Specific Scala test
 sbt run                              # Run application
 sbt "scalafix --check"               # Code quality check
-sbt "project optixJni" nativeCompile # C++/CUDA only
-sbt "project optixJni" nativeTest    # C++ Google Test suite
-rm -rf optix-jni/target/native ; sbt "project optixJni" compile  # Clean rebuild of native
 ```
+
+C++/CUDA native code (the OptiX wrapper) lives in the separate `optix-jni` repo, not an sbt
+subproject here — see `optix-jni/README.md` for its own native-build commands.
 
 ## Hosting & remotes (read this before pushing)
 

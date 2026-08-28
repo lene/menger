@@ -173,7 +173,7 @@ Add `--allow-uniform-render` to bypass the render-health check when testing blan
 See `MeshTopologySpec` for ready-made fixture tests.
 
 **Render health check (blank/uniform output):** `RenderHealth.check` in
-`optix-jni/src/main/scala/menger/optix/RenderHealth.scala`. Logs exact
+`optix-jni/src/main/scala/io/github/lene/optix/RenderHealth.scala`. Logs exact
 uniform colour and CLI args; exit code 2 = failed render. Check the log
 for the offending invocation.
 
