@@ -11,7 +11,7 @@
 > (documentation, ownership, history, decisions). **Always verify against
 > actual source files before making changes** — the index may be stale.
 
-Last indexed: 2026-08-28 (commit 52c8c519). Confidence: 100%.
+Last indexed: 2026-08-28 (commit f6a2d5d7). Confidence: 100%.
 ### Architecture
 The Menger project is a higher‑dimensional fractal rendering engine: it consumes scene descriptions written in a Scala‑embedded DSL, constructs parametric meshes up to four dimensions (including recursively subdivided Menger sponges), applies procedural materials and lighting, and produces ray‑traced images and videos via an interactive rendering engine. The pipeline begins from .sc scene files or direct DSL use, flows through material/light/plane definitions, object specifications, mesh generation, and an interactive rendering loop that supports denoising, and culminates in still image or video output. The codebase is organised around a layered pipeline with a declarative DSL at the top, progressing through scene construction, mesh generation, and rendering. **Key health signals:** The repository counts 520 files and ~80 k LOC (predominantly Scala).
 ### Key Modules
@@ -59,8 +59,8 @@ The Menger project is a higher‑dimensional fractal rendering engine: it consum
 ## Code health
 Three signals: **defect risk** (the overall score), **maintainability** (smells that hurt readability/change-cost without predicting bugs), and **performance** (static performance RISK: I/O-in-loop / N+1 shapes that waste work, high-precision/low-recall). Maintainability and performance are co-equal views, never blended into the defect headline. See `docs/CODE_HEALTH.md`.
 
-Defect risk, Hotspot health: 6.36/10 (stable) ·
-Average: 8.83/10 ·
+Defect risk, Hotspot health: 6.43/10 (stable) ·
+Average: 8.84/10 ·
 Worst: 3.9/10 (`menger-app/src/main/scala/menger/MengerCLIOptions.scala`)
 Maintainability, Average: 9.73/10
 Performance risk, Average: 10.0/10

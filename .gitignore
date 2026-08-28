@@ -98,5 +98,6 @@ ISSUE_20_UPDATE.md
 
 shadow_alpha_*
 
-# repowise API keys (local)
-.repowise/.env
+# repowise local cache/index/keys
+.repowise/
+.mcp.json
