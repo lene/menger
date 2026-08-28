@@ -20,13 +20,6 @@ case "$BRANCH" in
         ;;
 esac
 
-# Bootstrap exemption (ultrareview bug_001, 2026-08-27): this gate landed partway through
-# feat/sprint-36, on a branch already carrying commits with no Refs trailer. Without this,
-# the PR that introduces the gate can never pass it. BOOTSTRAP_SHA is the HEAD at the time
-# of this fix — every commit at or before it is grandfathered; only commits added after
-# enforcement was live must comply.
-BOOTSTRAP_SHA=9b7fba1840c2149c9b80fa495a6d21b8ae886ce0
-
 REFS_RE='^Refs: [A-Za-z0-9._-]+/[A-Za-z0-9._-]+#[0-9]+'
 STATUS=0
 MAIN_REF=$(main_ref)
@@ -34,7 +27,7 @@ MAIN_REF=$(main_ref)
 for range in "$@"; do
     for commit in $(commits_in_range "$range"); do
         git merge-base --is-ancestor "$commit" "$MAIN_REF" 2>/dev/null && continue
-        git merge-base --is-ancestor "$commit" "$BOOTSTRAP_SHA" 2>/dev/null && continue
+        is_bootstrapped_commit "$commit" && continue
         commit_is_wip "$commit" && continue
         commit_has_trailer "$commit" "No-Issue" && continue
         if ! git log -1 --format=%B "$commit" | grep -qE "$REFS_RE"; then
