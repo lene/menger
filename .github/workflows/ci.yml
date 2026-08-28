@@ -150,6 +150,19 @@ jobs:
         with:
           report_paths: 'menger-app/target/test-reports/**/TEST-*.xml'
 
+  archunit:
+    # S2 C1: the 25 substantive ArchUnit rules in ArchitectureSpec/ArchitecturePhase2Spec
+    # already ran (bundled into unit.sh, part of test-full) but had no named, required job —
+    # promoted to one, matching menger-common/optix-jni's existing named archunit jobs.
+    name: ArchUnit
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - run: sbt "testOnly menger.ArchitectureSpec menger.ArchitecturePhase2Spec"
+
   integration:
     name: OptiX Integration (packaged app, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
@@ -342,7 +355,7 @@ jobs:
     # Repo default GITHUB_TOKEN is read-only; pushing the tag needs write.
     permissions:
       contents: write
-    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck]
+    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck, archunit]
     outputs:
       need_release: ${{ steps.tag.outputs.need_release }}
     steps:

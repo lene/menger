@@ -159,7 +159,7 @@ Detailed troubleshooting (CUDA error 718, OptiX SDK/driver matching, PTX-not-fou
 
 ## Release workflow
 
-Use the `/release-checklist` skill (it lives in the workspace repo — it covers all three repos' releases, in the order menger-common → optix-jni → menger). Version must be updated in four files: `menger-app/build.sbt`, `.github/workflows/ci.yml` (DEPLOYABLE_VERSION), `menger-app/src/main/scala/menger/MengerCLIOptions.scala`, `docs/guide/user-guide.md`. The pre-push hook validates consistency across all four.
+Use the `/release-checklist` skill (it lives in the workspace repo — it covers all three repos' releases, in the order menger-common → optix-jni → menger). Version must be updated in four files: `menger-app/build.sbt`, `.github/workflows/ci.yml` (DEPLOYABLE_VERSION), `menger-app/src/main/scala/menger/MengerCLIOptions.scala`, `docs/USER_GUIDE.md` (the real user-guide start page — `docs/guide/user-guide.md` is a separate doc and does not carry the version). The pre-push hook validates consistency across all four.
 
 ---
 
