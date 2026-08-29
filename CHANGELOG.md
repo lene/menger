@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.8.13] - 2026-08-29
+
+### Changed
+
+- `optix-jni` dependency bumped to 0.3.3 — fixes a Critical GPU-readback-failure bug
+  (see optix-jni's own CHANGELOG) and scales the 4D projection kernel's degenerate-face
+  epsilon by edge length.
+
+### Fixed
+
+- `LSystemTurtle4D` had no scale normalization — 4D L-system presets rendered at
+  inconsistent scale relative to their 3D counterparts.
+- L-system curve corners are now sharpened via control-point tripling instead of
+  rendering with rounded joins.
+- Ground plane gaps in `ParametricKleinBottle`, `ParametricMoebius`, and
+  `ParametricKleinBottleFilm`: `KleinBottle` had no ground plane at all; the other two
+  had a solid-gray plane instead of the checkerboard convention every other fixed scene
+  uses. All three now render a consistent checkered plane.
+- `--color`/`--face-color`/`--line-color` CLI flags (validated but silently unused, #33)
+  now emit a runtime warning naming `--objects type=...:color=#RRGGBB` as the real,
+  wired mechanism, instead of failing silently.
+
 ## [0.8.12] - 2026-08-23
 
 ### Added
