@@ -65,8 +65,15 @@ case class Mesh4DProjection(
          nz + (cur.x - nxt.x).toDouble * (cur.y + nxt.y).toDouble)
     }
     val nl = math.sqrt(nxAcc * nxAcc + nyAcc * nyAcc + nzAcc * nzAcc).toFloat
+    // Newell's-method magnitude scales with face area, i.e. edge^2, so nl
+    // scales with edge^2. A fixed absolute epsilon here misclassifies
+    // small-but-valid faces as degenerate (e.g. deep fractal recursion,
+    // where faces shrink by 3x per level) -- scale the threshold by the
+    // face's own edge length instead. (Mirrors the fix in optix-jni's
+    // project4d.cu, which computes the analogous normal on the GPU.)
+    val edgeLen = (face(1) - face(0)).len
     val (ennX, ennY, ennZ) =
-      if nl < 0.0001f then (0f, 1f, 0f)
+      if edgeLen < 1e-6f || nl < 1e-3f * edgeLen * edgeLen then (0f, 1f, 0f)
       else ((nxAcc / nl).toFloat, (nyAcc / nl).toFloat, (nzAcc / nl).toFloat)
 
     val verts = Array.tabulate(vpf * 8) { idx =>

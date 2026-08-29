@@ -89,7 +89,6 @@ Test:Full:
     - nvidia  # Requires runner with NVIDIA GPU and nvidia-container-toolkit configured
   variables:
     NVIDIA_VISIBLE_DEVICES: "all"
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
   rules:
     - if: '$CI_MERGE_REQUEST_ID && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^hotfix\//'
       allow_failure: true
@@ -135,7 +134,6 @@ Test:OptiXIntegration:
   timeout: 30m  # Override global 15m - package build plus integration tests need more time
   variables:
     NVIDIA_VISIBLE_DEVICES: "all"
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
     # Workaround for SIGBUS crash in libnvidia-glcore.so during glfwDestroyWindow
     __GL_THREADED_OPTIMIZATIONS: "0"
   rules:
@@ -324,7 +322,6 @@ Run:UseDocker:
     - nvidia
   variables:
     NVIDIA_VISIBLE_DEVICES: "all"
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -364,7 +361,6 @@ CheckRunTime:
     - nvidia
   variables:
     NVIDIA_VISIBLE_DEVICES: "all"
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
   rules:
     - if: "$CI_MERGE_REQUEST_ID"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -408,7 +404,6 @@ PerfCheck:
   tags:
     - nvidia
   variables:
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
     __GL_THREADED_OPTIMIZATIONS: "0"
   allow_failure: false   # Sprint 30.9: blocking gate
   before_script:
@@ -619,7 +614,6 @@ Test:InstallSmoke:
   tags:
     - nvidia
   variables:
-    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
     __GL_THREADED_OPTIMIZATIONS: "0"
   before_script:
     - apt-get -y update -qq

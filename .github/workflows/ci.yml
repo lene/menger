@@ -38,7 +38,7 @@ concurrency:
 env:
   # Single source of the version (was .gitlab-ci.yml DEPLOYABLE_VERSION). The
   # /release-checklist skill + pre-push 4-file consistency check must be repointed here.
-  DEPLOYABLE_VERSION: "0.8.12"
+  DEPLOYABLE_VERSION: "0.8.13"
   DEPLOYABLE_BASE_NAME: menger
   SCALA_VERSION: "3.8.3"
   __GL_THREADED_OPTIMIZATIONS: "0"   # SIGBUS workaround in libnvidia-glcore glfwDestroyWindow
@@ -100,6 +100,22 @@ jobs:
               || { echo "::error::CHANGELOG '## [$v]' needs today's date"; exit 1; }
           fi
 
+  policy:
+    name: Policy (test-justification, rendering-discipline, log-verbosity, issue-link)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compute QA_RANGES and run policy suite
+        run: |
+          set -euo pipefail
+          . ./standards/hooks/lib.sh
+          RANGES=$(push_ranges < /dev/null)
+          export QA_RANGES="$RANGES"
+          ./scripts/suites/policy.sh
+
   # ── quality + tests (need CUDA to compile menger-geometry native → nvidia host) ──
   scalafix:
     name: Scalafix
@@ -133,6 +149,19 @@ jobs:
         uses: mikepenz/action-junit-report@db71d41eb79864e25ab0337e395c352e84523afe # v4
         with:
           report_paths: 'menger-app/target/test-reports/**/TEST-*.xml'
+
+  archunit:
+    # S2 C1: the 25 substantive ArchUnit rules in ArchitectureSpec/ArchitecturePhase2Spec
+    # already ran (bundled into unit.sh, part of test-full) but had no named, required job —
+    # promoted to one, matching menger-common/optix-jni's existing named archunit jobs.
+    name: ArchUnit
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - run: sbt "testOnly menger.ArchitectureSpec menger.ArchitecturePhase2Spec"
 
   integration:
     name: OptiX Integration (packaged app, GPU)
@@ -326,7 +355,7 @@ jobs:
     # Repo default GITHUB_TOKEN is read-only; pushing the tag needs write.
     permissions:
       contents: write
-    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck]
+    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck, archunit]
     outputs:
       need_release: ${{ steps.tag.outputs.need_release }}
     steps:

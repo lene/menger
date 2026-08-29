@@ -67,7 +67,7 @@ class LSystemTurtle3D(
   def generate(): List[ObjectSpec] =
     val rawSpecs = process(grammarString, 0, initialState, List.empty,
       Vector(initialState.pos), Vector(initialState.width), List.empty, 0)
-    if normalizeScale then normalize(rawSpecs) else rawSpecs
+    if normalizeScale then LSystemNormalization.normalize(rawSpecs) else rawSpecs
 
   @tailrec
   private def process(
@@ -352,8 +352,9 @@ class LSystemTurtle3D(
     if points.length < 2 then (specs, (Vector.empty, Vector.empty))
     else
       val mat = currentMaterial(state)
-      val flatPoints = Vector.from(points.flatMap(p => Seq(p.x, p.y, p.z)))
-      val flatWidths = Vector.from(widths)
+      val (sharpPoints, sharpWidths) = CurveCornerSharpening.sharpenCorners(points, widths)
+      val flatPoints = Vector.from(sharpPoints.flatMap(p => Seq(p.x, p.y, p.z)))
+      val flatWidths = Vector.from(sharpWidths)
       val spec = ObjectSpec(
         objectType = "curve",
         curveData = Some(CurveData(flatPoints, flatWidths)),
@@ -444,55 +445,6 @@ class LSystemTurtle3D(
       val idx = state.materialIndex % materialList.length
       materialList(math.abs(idx))
 
-  private def normalize(specs: List[ObjectSpec]): List[ObjectSpec] =
-    val allPoints = specs.flatMap { s =>
-      s.curveData.map(_.points.grouped(3).map(g => (g(0), g(1), g(2))).toVector)
-        .getOrElse(Vector((s.x, s.y, s.z)))
-    }
-    if allPoints.isEmpty then specs
-    else
-      val minX = allPoints.map(_._1).min
-      val minY = allPoints.map(_._2).min
-      val minZ = allPoints.map(_._3).min
-      val maxX = allPoints.map(_._1).max
-      val maxY = allPoints.map(_._2).max
-      val maxZ = allPoints.map(_._3).max
-      val sizeX = maxX - minX
-      val sizeY = maxY - minY
-      val sizeZ = maxZ - minZ
-      val maxDim = math.max(math.max(sizeX, sizeY), sizeZ)
-      if maxDim <= 0f then specs
-      else
-        val scale = 1f / maxDim
-        val offsetX = (minX + maxX) / 2f
-        val offsetY = (minY + maxY) / 2f
-        val offsetZ = (minZ + maxZ) / 2f
-        specs.map(s => normalizeSpec(s, scale, offsetX, offsetY, offsetZ))
-
-  private def normalizeSpec(
-    s: ObjectSpec, scale: Float, ox: Float, oy: Float, oz: Float
-  ): ObjectSpec =
-    s.curveData match
-      case Some(cd) =>
-        val newPoints = cd.points.grouped(3).flatMap {
-          case Seq(px, py, pz) =>
-            Seq((px - ox) * scale, (py - oy) * scale, (pz - oz) * scale)
-          case _ => Seq.empty[Float]
-        }.toVector
-        s.copy(
-          curveData = Some(cd.copy(points = Vector.from(newPoints))),
-          x = (s.x - ox) * scale,
-          y = (s.y - oy) * scale,
-          z = (s.z - oz) * scale,
-          size = s.size * scale
-        )
-      case None =>
-        s.copy(
-          x = (s.x - ox) * scale,
-          y = (s.y - oy) * scale,
-          z = (s.z - oz) * scale,
-          size = s.size * scale
-        )
 
 object LSystemTurtle3D:
 

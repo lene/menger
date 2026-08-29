@@ -43,6 +43,30 @@ class LSystemTurtle4DSuite extends AnyFlatSpec with Matchers:
       spec.objectType shouldBe "curve"
     }
 
+  "generate" should "normalize output scale to match LSystemTurtle3D (Sprint 36 #16)" in:
+    // Before the fix, LSystemTurtle4D had no equivalent of LSystemTurtle3D's normalizeScale
+    // post-process (rescale to unit bounding box + center) -- its raw, un-normalized output
+    // was several times larger and rooted asymmetrically instead of centered, which for a
+    // 3D-only preset like "tree" (never leaves w=0) read as an oversized, disconnected blob
+    // rather than a recognizable tree ("floats off the ground plane",
+    // ManualTestNeedFixing.md #13's residual).
+    val grammar = "F[+F]F[-F]F"
+    val specs3D = LSystemTurtle3D(grammar, 25.7f, 1.0f).generate()
+    val specs4D = LSystemTurtle4D(grammar, 25.7f, 1.0f, rotXW = 0f, rotYW = 0f).generate()
+    def maxDim(specs: List[ObjectSpec]): Float =
+      val allPoints = specs.flatMap(_.curveData.map(_.points).getOrElse(scala.Vector.empty))
+      val coords = allPoints.grouped(3).flatMap(g => Seq(g(0), g(1), g(2))).toSeq
+      coords.max - coords.min
+    maxDim(specs4D) shouldBe 1f +- 0.001f
+    maxDim(specs4D) shouldBe maxDim(specs3D) +- 0.001f
+
+  it should "leave output at raw scale when normalizeScale is false" in:
+    val turtle = LSystemTurtle4D("FFF", 25.7f, 1.0f, normalizeScale = false)
+    val specs = turtle.generate()
+    val allPoints = specs.flatMap(_.curveData.map(_.points).getOrElse(scala.Vector.empty))
+    val ys = allPoints.grouped(3).map(_(1)).toSeq
+    (ys.max - ys.min) should be > 1f
+
   "Single-F branches" should "not be silently dropped (Sprint 36 H3.6)" in:
     // Same defect as LSystemTurtle3DSuite's identically-named test: before the fix, a run's
     // first point was only recorded by an F step, never seeded from the turtle's position on

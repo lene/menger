@@ -67,6 +67,11 @@ elif [ "$(echo "$DROP > $COVERAGE_DROP_THRESHOLD" | bc)" -eq 1 ]; then
   else
     echo "Coverage: WARNING - Dropped ${DROP}% but above ${COVERAGE_MIN}%"
   fi
+elif [ "$(echo "$DROP > 0" | bc)" -eq 1 ]; then
+  # Within-tolerance drop (S2 B7): passes, but must NOT rewrite the baseline downward --
+  # otherwise repeated small drops compound indefinitely until the absolute floor. Baseline
+  # only ever moves on strict improvement (the branch below).
+  echo "Coverage: PASSED - Dropped ${DROP}% within tolerance, baseline unchanged"
 else
   echo "Coverage: PASSED"
   echo "$STATEMENT_RATE" > "$BASELINE_FILE"

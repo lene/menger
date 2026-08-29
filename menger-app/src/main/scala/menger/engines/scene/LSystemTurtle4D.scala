@@ -49,7 +49,8 @@ class LSystemTurtle4D(
   rotYW: Float = 10f,
   rotZW: Float = 0f,
   eyeW: Float = 3.0f,
-  screenW: Float = 1.5f
+  screenW: Float = 1.5f,
+  normalizeScale: Boolean = true
 ):
 
   import LSystemTurtle4D.{DegToRad, rotateVector4D, project4DTo3D}
@@ -77,8 +78,9 @@ class LSystemTurtle4D(
   )
 
   def generate(): List[ObjectSpec] =
-    process(grammarString, 0, initialState, List.empty,
+    val rawSpecs = process(grammarString, 0, initialState, List.empty,
       SVec(initialState.pos), SVec(initialState.width), List.empty, 0)
+    if normalizeScale then LSystemNormalization.normalize(rawSpecs) else rawSpecs
 
   @tailrec
   private def process(
@@ -216,8 +218,9 @@ class LSystemTurtle4D(
     if points.length < 2 then (specs, (SVec.empty, SVec.empty))
     else
       val projectedPoints = points.map(v4 => project4DTo3D(v4, rotation, projection))
-      val flatPoints = SVec.from(projectedPoints.flatMap(p => Seq(p.x, p.y, p.z)))
-      val flatWidths = SVec.from(widths)
+      val (sharpPoints, sharpWidths) = CurveCornerSharpening.sharpenCorners(projectedPoints, widths)
+      val flatPoints = SVec.from(sharpPoints.flatMap(p => Seq(p.x, p.y, p.z)))
+      val flatWidths = SVec.from(sharpWidths)
       val spec = ObjectSpec(
         objectType = "curve",
         curveData = Some(CurveData(flatPoints, flatWidths)),

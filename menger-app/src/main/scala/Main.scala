@@ -193,6 +193,15 @@ object Main:
     InteractiveEngine(engineConfig, opts.userSetMaxInstances, renderT)
 
   private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): RenderEngine =
+    // S2 menger#33: these three flags are validated (CliValidation's mutual-exclusion check)
+    // but never applied anywhere below -- --objects type=...:color=#RRGGBB is the real,
+    // wired mechanism. Not removed (that broke CliValidation's coupling when tried); warn
+    // instead so the silence stops.
+    if opts.color.isSupplied || opts.faceColor.isSupplied || opts.lineColor.isSupplied then
+      LoggerFactory.getLogger("Main").warn(
+        "--color/--face-color/--line-color have no effect on rendering -- use " +
+        "--objects type=...:color=#RRGGBB instead"
+      )
     val engineConfig = OptiXEngineConfig(
       scene = SceneConfig(objectSpecs = opts.objects.toOption.map(GlobalRotation(opts, _))),
       camera = CameraConfig(

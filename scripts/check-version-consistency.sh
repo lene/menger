@@ -1,5 +1,7 @@
 #!/bin/sh
-# Version consistency across the four version-carrying files (menger-specific).
+# Version consistency across the four version-carrying files (menger-specific):
+# build.sbt, ci.yml, MengerCLIOptions.scala, docs/USER_GUIDE.md. docs/guide/user-guide.md
+# is a separate, non-version-bearing doc, deliberately not checked here.
 # Extracted from the pre-push hook (Sprint 28.2) so pre-commit and pre-push
 # share one implementation. Tag availability stays in pre-push (release-time).
 set -u
@@ -22,13 +24,6 @@ if [ "$VERSION_SBT" != "$VERSION_SOURCE" ]; then
   STATUS=1
 else
   echo "Version: ${GREEN_TEXT}${VERSION_SBT}${RESET_TEXT}"
-fi
-VERSION_USERGUIDE=$(grep '^\*\*Version\*\*:' docs/guide/user-guide.md | cut -d ' ' -f 2)
-if [ "$VERSION_SBT" != "$VERSION_USERGUIDE" ]; then
-  echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in docs/guide/user-guide.md: ${RED_TEXT}${VERSION_USERGUIDE}${RESET_TEXT}"
-  STATUS=1
-else
-  echo "docs/guide/user-guide.md version: ${GREEN_TEXT}${VERSION_USERGUIDE}${RESET_TEXT}"
 fi
 VERSION_INDEX=$(grep '^\*\*Version\*\*:' docs/USER_GUIDE.md | cut -d ' ' -f 2)
 if [ "$VERSION_SBT" != "$VERSION_INDEX" ]; then

@@ -48,7 +48,7 @@ leaky") — add only if the 🤖 row proves insufficient in practice.
 | Reference-image diffs resolved in same commit (not discovered at pre-push) | AGENTS.md §Rendering changes | Same hook: push-range check | ✅ |
 | New rendering feature added to `integration-tests.sh` | AGENTS.md §Rendering changes | `ScriptParitySuite` (sbt test) reads `scripts/coverage-manifest.yaml`; fails if a DSL scene/material/flag exists in `manual-test.sh` but not in `integration-tests.sh` | ✅ |
 | New rendering feature added to `scripts/manual-test.sh` | AGENTS.md §Rendering changes | Same `ScriptParitySuite` gate (bidirectional parity via manifest) | ✅ |
-| Alpha: 0.0 = transparent, 1.0 = opaque (never inverted) | AGENTS.md §Conventions | Unenforced | ❌ [#4] |
+| Alpha: 0.0 = transparent, 1.0 = opaque (never inverted) | AGENTS.md §Conventions | Unenforced | ❌ [#35] |
 | Rendering discipline fully documented | AGENTS.md §Rendering changes | `docs/RENDERING.md` | ✅ |
 
 ---
@@ -61,7 +61,7 @@ leaky") — add only if the 🤖 row proves insufficient in practice.
 | WartRemover: no `var`, `while`, `asInstanceOf`, `throw` in production | AGENTS.md §Code style | WartRemover via `sbt compile` (pre-commit + pre-push) | ✅ |
 | No unused imports | AGENTS.md §Code style | `OrganizeImports` scalafix rule | ✅ |
 | No null references | AGENTS.md §Code style | `DisableSyntax` scalafix rule | ✅ |
-| arc42 updated on architectural changes | AGENTS.md §Architecture | Unenforced | ❌ [#6] |
+| arc42 updated on architectural changes | AGENTS.md §Architecture | Unenforced | ❌ [#36] |
 
 ---
 

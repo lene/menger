@@ -704,6 +704,19 @@ transmission), but they were answering the wrong question.
 **Open, not yet explained:** the curved horizon and rectangular reflection blocks. These may be
 downstream of the same shading defect or independent; not yet established.
 
+**✅ Resolved (Sprint 36, post-#12).** Both residuals closed together. Re-rendered the chrome
+cube, yaw 30°, at 1600×1200 with a camera framing matching the original test (`--camera-pos
+0,1,4 --camera-lookat 0,0,0 --objects type=cube:material=chrome:size=1.2:rot-y=30`). Confirms
+the acceptance test above still holds: only the upward-facing top face reflects sky, no
+vertical-face sky wedges, and the curved-boundary region is entirely absent. Measured
+straightness of both edges of the top face's reflected-sky boundary by fitting a line to the
+maroon/checker pixel transition per edge: **max deviation 0.50px, RMS 0.29px** for each edge
+— sub-pixel, i.e. genuinely straight (down from the pre-fix measurement of "5.41px off").
+Both the curved horizon and the rectangular reflection blocks were downstream of the same
+normals-not-transformed-to-world-space defect the H3.2 fix already resolved — independent
+confirmation, not a coincidence: with the fix in place there is no remaining boundary to
+measure that isn't a genuine cube edge.
+
 **Note on invalidated reasoning:** round 3's inference "matte cube renders flat ⇒ normals are
 flat per face" was unsound. Under the multi-light rig the diffuse result is orientation-*independent*,
 so it carries no information about the normals at all. Any future normal-related test must use a

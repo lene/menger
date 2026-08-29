@@ -33,3 +33,11 @@ rendering_flags:
   - --antialiasing
   - --rot-x
   - --accumulation-frames
+
+# Pairs of ObjectSpec fields that must appear together on the same --objects
+# clause in at least one script (QA_INCIDENTS.md 2026-08-21: material+color
+# silently dropping color went unnoticed because ScriptParitySuite only
+# checked each field's presence separately, never a specific combination).
+# Declaring a pair here without a scene exercising it together fails the gate.
+field_combinations:
+  - material+color

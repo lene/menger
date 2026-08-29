@@ -1,0 +1,13 @@
+# grep -E patterns for hot-path files (menger repo): code that runs every
+# rendered frame or every interactive input event, not once per user action.
+# A commit adding .info(/.warn( logging here must justify it with a
+# Hot-Path-Log-OK trailer — see standards/hooks/check-log-verbosity.sh.
+#
+# QA_INCIDENTS.md 2026-08-21: TesseractEdgeSceneBuilder logged a correct
+# rebuild confirmation at INFO instead of DEBUG, flooding the console once
+# per mouse-drag input event.
+^menger-app/src/main/scala/menger/engines/scene/TesseractEdgeSceneBuilder\.scala
+^menger-app/src/main/scala/menger/engines/InteractiveEngine\.scala
+^menger-app/src/main/scala/menger/input/LibGDXInputAdapter\.scala
+^menger-app/src/main/scala/menger/engines/WithAnimation\.scala
+^menger-app/src/main/scala/menger/engines/CliAnimationEngine\.scala

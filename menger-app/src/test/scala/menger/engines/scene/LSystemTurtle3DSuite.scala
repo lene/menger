@@ -44,6 +44,17 @@ class LSystemTurtle3DSuite extends AnyFlatSpec with Matchers:
     // 4 points (seed + 3 F's), not 3 -- the seed anchors the run at the turtle's start position.
     specs.head.curveData.get.points.length shouldBe 12
 
+  "Corner sharpening" should "triple the corner point at a 90-degree turn (Sprint 36 #17)" in:
+    // Before the fix, every run rendered through a smooth cubic B-spline that rounds off sharp
+    // turns -- fine for organic branches, wrong for a geometric curve like hilbert3d. A 90-degree
+    // turn between two F's must now anchor the spline by tripling the corner control point.
+    val turtle = LSystemTurtle3D("F+F", 90f, 1.0f)
+    val specs = turtle.generate()
+    specs.length shouldBe 1
+    // 5 points (seed, corner x3, end), not 3 -- see CurveCornerSharpeningSuite for the
+    // pure-function behavior this relies on.
+    specs.head.curveData.get.points.length shouldBe 15
+
   "Gap handling" should "produce two specs for FFFFfFFFF" in:
     val turtle = LSystemTurtle3D("FFFFfFFFF", 90f, 1.0f)
     val specs = turtle.generate()

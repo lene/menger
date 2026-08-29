@@ -240,3 +240,10 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .matching("menger.(*)..")
       .should().beFreeOfCycles()
       .check(allClasses)
+
+  it should "keep menger.video a leaf package" in:
+    noClasses().that().resideInAPackage("menger.video..")
+      .should().dependOnClassesThat().resideInAnyPackage(
+        "menger.engines..", "menger.dsl..", "menger.objects.."
+      )
+      .check(allClasses)
