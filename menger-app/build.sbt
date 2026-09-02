@@ -62,6 +62,8 @@ libraryDependencies ++= Seq(
   "com.badlogicgames.gdx" % "gdx-platform" % "1.14.2" classifier "natives-desktop",
   // Scala 3 compiler for runtime .scala scene file evaluation (Task 17.7)
   "org.scala-lang" %% "scala3-compiler" % scalaVersion.value,
+  // JSON serialization for the DSL capability manifest (menger.tools.ManifestGenerator)
+  "com.lihaoyi" %% "upickle" % "4.1.0",
   // ArchUnit — architecture rule enforcement
   "com.tngtech.archunit" % "archunit" % "1.4.2" % Test
 )
