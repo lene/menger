@@ -7,7 +7,16 @@ import org.scalatest.matchers.should.Matchers
 
 /** Generic test contract for regular 4D polytopes.
   * Concrete suites extend AnyFlatSpec with Matchers with Polytope4DContract
-  * and call registerPolytopeTests() at end of constructor. */
+  * and call registerPolytopeTests() at end of constructor.
+  *
+  * Not refactored to call `PolytopeInvariants` (the runtime, count-independent generalization
+  * of this contract's structural assertions, used by `menger.tools.SceneValidator`): each
+  * assertion below is registered as its own named ScalaTest case (e.g. "have no duplicate
+  * vertices" fails independently of "have no NaN or Inf in vertex coordinates"), which is
+  * exactly the per-invariant test granularity a failing suite's output depends on.
+  * `PolytopeInvariants.check` collapses the same checks into a single `List[InvariantFinding]`
+  * for a runtime caller that has no ScalaTest reporter to fail into -- routing this trait
+  * through it would trade that per-assertion reporting for no real simplification. */
 trait Polytope4DContract:
   this: AnyFlatSpec & Matchers =>
 

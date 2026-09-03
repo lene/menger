@@ -4,8 +4,6 @@ import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Files
 
-import scala.util.Try
-
 import com.typesafe.scalalogging.LazyLogging
 import dotty.tools.dotc.Driver
 
@@ -14,10 +12,15 @@ object SceneCompiler extends LazyLogging:
   /** Compile a .scala file and return a ClassLoader over the output directory.
    *  Compiler errors are printed to stderr by the Dotty reporter; the Left message
    *  is a brief summary pointing the user there.
+   *
+   *  Compiles against `RestrictedClasspath.build()` -- the DSL-surface-scoped classpath
+   *  (AD-4 rule 2) -- rather than the full unrestricted classpath every jar on the current
+   *  JVM would otherwise expose to a compiled scene file. See `RestrictedClasspath` for what
+   *  is included/excluded and why.
    */
   def compile(sourceFile: File): Either[String, ClassLoader] =
     val outputDir = Files.createTempDirectory("menger-scene-").toFile
-    val cp        = currentClasspath
+    val cp        = RestrictedClasspath.build()
     logger.debug(s"Compiling ${sourceFile.getAbsolutePath} → ${outputDir.getAbsolutePath}")
 
     val args = Array(
@@ -35,23 +38,3 @@ object SceneCompiler extends LazyLogging:
         Array(outputDir.toURI.toURL),
         Thread.currentThread.getContextClassLoader
       ))
-
-  @SuppressWarnings(Array("org.wartremover.warts.IsInstanceOf"))
-  private def currentClasspath: String =
-    def urlsFrom(cl: ClassLoader): Seq[java.net.URL] = cl match
-      case ucl: URLClassLoader => ucl.getURLs.toSeq ++ urlsFrom(ucl.getParent)
-      // scalafix:off DisableSyntax.null
-      case null                => Seq.empty
-      // scalafix:on DisableSyntax.null
-      case other               => urlsFrom(other.getParent)
-
-    val loaderUrls = urlsFrom(Thread.currentThread.getContextClassLoader)
-
-    val sysPropEntries = System.getProperty("java.class.path", "")
-      .split(File.pathSeparator)
-      .filter(_.nonEmpty)
-      .toSeq
-
-    val loaderPaths = loaderUrls.flatMap(u => Try(new File(u.toURI).getAbsolutePath).toOption)
-
-    (loaderPaths ++ sysPropEntries).distinct.mkString(File.pathSeparator)

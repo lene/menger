@@ -104,3 +104,9 @@ shadow_alpha_*
 
 # SonarCloud local scanner cache
 .scannerwork/
+
+# scene-validator Docker build context staged by docker/scene-validator/build.sh
+# (sbt Universal/stage output + a trimmed OptiX SDK copy) -- regenerated on every build,
+# never something to commit
+docker/scene-validator/stage/
+docker/scene-validator/optix-sdk/
