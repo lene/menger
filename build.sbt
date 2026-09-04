@@ -44,5 +44,11 @@ lazy val mengerApp = project
     run / javaOptions += s"-Djava.library.path=${(mengerGeometry / target).value / "native" / "x86_64-linux" / "bin"}:/usr/local/cuda/lib64",
     run / fork := true,
     // Use project root as working directory so file paths match packaged executable behavior
-    run / baseDirectory := (ThisBuild / baseDirectory).value
+    run / baseDirectory := (ThisBuild / baseDirectory).value,
+    // menger.tools.ManifestGenerator/CorpusExporter/SceneValidator (stories 1, 3, 5) each add
+    // their own `main`, so sbt can no longer auto-detect a single main class for plain
+    // `run`/`bgRun` -- explicitly pin it to the actual application entry point. The other
+    // tools remain reachable via `runMain <FQCN>`, which always takes an explicit class and
+    // isn't affected by this setting.
+    Compile / mainClass := Some("Main")
   )
