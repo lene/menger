@@ -496,3 +496,23 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
   it should "be enabled when supplied" in:
     val opts = SafeMengerCLIOptions(Seq("--allow-uniform-render"))
     opts.allowUniformRender() shouldBe true
+
+  // === --display / --render-lock-path (story 8: interactive render window) ===
+
+  "--display" should "be unset by default" in:
+    val opts = SafeMengerCLIOptions(Seq[String]())
+    opts.display.toOption shouldBe None
+
+  it should "carry the given value when supplied" in:
+    val opts = SafeMengerCLIOptions(Seq("--display", ":1"))
+    opts.display.toOption shouldBe Some(":1")
+    opts.display() shouldEqual ":1"
+
+  "--render-lock-path" should "default to a path under the system temp directory" in:
+    val opts = SafeMengerCLIOptions(Seq[String]())
+    opts.renderLockPath() should include(System.getProperty("java.io.tmpdir"))
+    opts.renderLockPath() should endWith("menger-render.lock")
+
+  it should "use the given path when supplied" in:
+    val opts = SafeMengerCLIOptions(Seq("--render-lock-path", "/tmp/custom-render.lock"))
+    opts.renderLockPath() shouldEqual "/tmp/custom-render.lock"

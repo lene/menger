@@ -36,6 +36,14 @@ import org.rogach.scallop.exceptions._
 final class MengerExitException(val code: Int, message: String)
     extends RuntimeException(message)
 
+object MengerCLIOptions:
+  /** Sane default under the system temp directory (never hardcoded to a project-relative
+    * path, per the Consistency Conventions rule that injected paths must not be discovered
+    * or assumed) -- always resolves to a directory that already exists, so a fresh/default
+    * invocation never trips the "lock file's directory missing" edge case. */
+  def defaultRenderLockPath: String =
+    java.nio.file.Paths.get(System.getProperty("java.io.tmpdir"), "menger-render.lock").toString
+
 class MengerCLIOptions(arguments: Seq[String])
     extends ScallopConf(arguments)
     with CliValidation
@@ -131,6 +139,19 @@ class MengerCLIOptions(arguments: Seq[String])
   val headless: ScallopOption[Boolean] = opt[Boolean](
     name = "headless", default = Some(false), group = generalGroup,
     descr = "Render without displaying window (requires --save-name)"
+  )
+  val display: ScallopOption[String] = opt[String](
+    name = "display", noshort = true, required = false, group = generalGroup,
+    descr = "Explicit X11 display target (e.g. ':1'). When given, re-execs as a child " +
+      "process with DISPLAY set in its environment instead of inheriting the ambient value " +
+      "(AD-6: the display target must be an explicit, injected parameter)"
+  )
+  val renderLockPath: ScallopOption[String] = opt[String](
+    name = "render-lock-path", noshort = true, required = false,
+    default = Some(MengerCLIOptions.defaultRenderLockPath),
+    group = generalGroup,
+    descr = "Path to the exclusive render-session lock file (AD-16: at most one active " +
+      "interactive render session at a time; a second request is refused, never queued)"
   )
 
   // === Coordinate Cross ===

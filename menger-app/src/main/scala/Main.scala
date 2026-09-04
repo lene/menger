@@ -1,4 +1,7 @@
 
+import java.nio.file.Paths
+
+import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 import ch.qos.logback.classic.Level
@@ -23,30 +26,121 @@ import menger.config.SceneConfig
 import menger.config.TAnimationConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.LoadedScene
+import menger.dsl.RestrictedClasspath
 import menger.engines.AnimationEngine
 import menger.engines.CliAnimationEngine
 import menger.engines.InteractiveEngine
 import menger.engines.PreviewEngine
 import menger.engines.RenderEngine
+import menger.engines.RenderLock
 import menger.engines.SceneConverter
 import menger.engines.VideoEngine
+import menger.tools.SceneValidator
 import org.slf4j.LoggerFactory
+import upickle.default.write
 
 object Main:
   def main(args: Array[String]): Unit =
     try
       val opts = MengerCLIOptions(args.toList)
       configureLogging(opts.logLevel().toUpperCase)
-      val config = getConfig(opts)
-      val rendering = createEngine(opts)
-      rendering match
-        case app: ApplicationListener => Lwjgl3Application(app, config)
-        case _ => sys.error("Engine must implement ApplicationListener")
+      opts.display.toOption match
+        // AD-6: the display target is an explicit, injected parameter. A native windowing
+        // library (GLFW/X11, via LWJGL) only ever reads DISPLAY from the process environment
+        // at init time -- nothing in-process can override it once the JVM has started, so the
+        // only way to honor an injected value is to re-exec as a child process that has it
+        // set from the start. When --display is absent this branch is never taken, so every
+        // existing invocation keeps today's in-process, ambient-environment behavior exactly.
+        case Some(display) if display.trim.nonEmpty => sys.exit(reExecWithDisplay(args, display))
+        case Some(_) => sys.error("--display was given an empty value")
+        case None => launchInProcess(opts)
     catch
       case e: MengerExitException => sys.exit(e.code)
       case e: Exception =>
         System.err.println(s"Error: ${e.getMessage}")
         sys.exit(1)
+
+  /** AD-16: the GPU is a single exclusive resource. Only the genuine interactive window --
+    * a real-time session an `InteractiveEngine` drives for however long the user keeps it
+    * open -- is gated; headless/preview/video/animation runs are one-shot batch renders
+    * already sequential-only by existing convention (AD-11), and this story's own
+    * Boundaries explicitly excludes them from locking. A pure predicate, kept separate from
+    * `launchInProcess`'s side-effecting match, so the discrimination itself (not just that
+    * the code compiles) is directly unit-testable without touching `Lwjgl3Application`. */
+  def shouldLock(rendering: RenderEngine, opts: MengerCLIOptions): Boolean =
+    rendering match
+      case _: InteractiveEngine => !opts.headless()
+      case _ => false
+
+  private def launchInProcess(opts: MengerCLIOptions): Unit =
+    val config = getConfig(opts)
+    val rendering = createEngine(opts)
+    rendering match
+      case app: ApplicationListener if shouldLock(rendering, opts) =>
+        RenderLock.tryAcquire(opts.renderLockPath()) match
+          case Right(lock) =>
+            try Lwjgl3Application(app, config)
+            finally lock.close()
+          case Left(reason) => reportRefusedAndExit(reason)
+      case app: ApplicationListener => Lwjgl3Application(app, config)
+      case _ => sys.error("Engine must implement ApplicationListener")
+
+  /** Reuses `SceneValidator`'s AD-5 tagged-result JSON shape rather than inventing a second
+    * "refused" contract -- one tagged-result vocabulary across the validation gauntlet and
+    * the render-exclusivity check. Pure JSON construction, kept separate from `sys.exit` so
+    * the contract itself is directly testable (mirroring `buildReExecProcessBuilder`'s own
+    * separation from `reExecWithDisplay`). `Main` already matches `ArchitectureSpec`'s
+    * `.*Main.*` exemption for stdout/`sys.exit`, so no separate isolation object is needed. */
+  def refusedResultJson(reason: String): String =
+    write(SceneValidator.ValidationResult(SceneValidator.Tag.Refused, List(reason)), indent = 2)
+
+  private def reportRefusedAndExit(reason: String): Unit =
+    print(refusedResultJson(reason))
+    print(System.lineSeparator())
+    sys.exit(1)
+
+  /** Pure command/environment construction, kept separate from `reExecWithDisplay` so tests
+    * can assert the child's environment carries the injected `DISPLAY` value without
+    * actually starting a process (this environment has no real display to render into).
+    * Strips every `--display`/`--display=value` occurrence from `rawArgs` before forwarding
+    * them to the child (review round: stripping only the first occurrence left a second one
+    * in place, which would re-trigger this same re-exec branch in the child and recurse) --
+    * otherwise the child would see `--display` again and re-exec itself forever.
+    *
+    * Classpath: `RestrictedClasspath.fullClasspath` (story 5), not a bare
+    * `System.getProperty("java.class.path")` (review round) -- that module's own doc comment
+    * already established why the system property alone is incomplete under sbt's layered
+    * classloaders ("neither alone is complete"); reusing the existing, already-correct
+    * enumeration here rather than re-deriving a narrower one avoids reintroducing the same
+    * gap in a second place. */
+  def buildReExecProcessBuilder(rawArgs: Array[String], display: String): ProcessBuilder =
+    val javaBin = Paths.get(System.getProperty("java.home"), "bin", "java").toString
+    val classpath = RestrictedClasspath.fullClasspath
+    val childArgs = stripDisplayFlag(rawArgs)
+    val command = (List(javaBin, "-cp", classpath, "Main") ++ childArgs.toList).asJava
+    val builder = ProcessBuilder(command)
+    builder.environment().put("DISPLAY", display)
+    builder.inheritIO()
+    builder
+
+  private def stripDisplayFlag(args: Array[String]): Array[String] =
+    val withoutValues = args.indices.filterNot { i =>
+      args(i) == "--display" || (i > 0 && args(i - 1) == "--display")
+    }
+    withoutValues.map(args).filterNot(_.startsWith("--display=")).toArray
+
+  /** Ties the child's lifetime to the parent's: without this, a parent killed abruptly
+    * (SIGTERM/SIGKILL, a supervisor terminating it) while blocked in `waitFor()` (review
+    * round) would leave the child running detached -- orphaned, and still holding the
+    * render lock the whole point of this re-exec is to eventually pass through to. */
+  private def reExecWithDisplay(rawArgs: Array[String], display: String): Int =
+    val process = buildReExecProcessBuilder(rawArgs, display).start()
+    val shutdownHook = new Thread(() => if process.isAlive then process.destroy())
+    Runtime.getRuntime.addShutdownHook(shutdownHook)
+    try process.waitFor()
+    finally
+      try Runtime.getRuntime.removeShutdownHook(shutdownHook)
+      catch case _: IllegalStateException => () // already shutting down -- hook will run anyway
 
   private def configureLogging(levelName: String): Unit =
     val level = Level.valueOf(levelName)
