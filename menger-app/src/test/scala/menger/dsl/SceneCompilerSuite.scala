@@ -32,6 +32,32 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
     val file = writeTempScene("object Broken { THIS IS NOT SCALA !!!!")
     SceneCompiler.compile(file) shouldBe a[Left[?, ?]]
 
+  // RestrictedClasspath's own doc comment (menger.dsl.RestrictedClasspath): omitting
+  // `scala-logging_3` from its allowlist doesn't produce a normal compile error for a scene
+  // referencing ParametricSurface -- it crashes the Scala 3 compiler with an opaque
+  // `AssertionError: class X has non-class parent` during base-class linearization, because
+  // ParametricSurface extends LazyLogging and the compiler must fully resolve that supertype
+  // to typecheck any reference to it. That was diagnosed once, by hand, against the full
+  // example corpus -- this pins it as a repeatable regression test: a future edit that
+  // narrows RestrictedClasspath's allowlist (e.g. dropping scala-logging as "unused by any
+  // scene file directly") would silently reintroduce exactly this failure mode for any real
+  // ParametricSurface-based scene, and this test would catch it immediately.
+  it should "compile a scene using ParametricSurface through the real restricted classpath" in:
+    val file = writeTempScene(
+      """import scala.math._
+        |import menger.dsl._
+        |object ParametricSurfaceTestScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(ParametricSurface(
+        |      f = (u, v) => Vec3(cos(u).toFloat, sin(u).toFloat, v)
+        |    )),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    SceneCompiler.compile(file) shouldBe a[Right[?, ?]]
+
   "SceneLoader" should "load a static scene from a .scala file path" in:
     val file = writeTempScene(
       """import menger.dsl._

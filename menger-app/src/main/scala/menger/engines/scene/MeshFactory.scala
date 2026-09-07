@@ -160,7 +160,12 @@ object MeshFactory:
       )
     }
 
-  private def mesh4D(spec: ObjectSpec): Option[Mesh4D] =
+  /** Builds the raw 4D mesh (pre-projection, pre-flatten) for a 4D `ObjectSpec`, `None` for
+    * anything else. Exposed (not `private`) so `menger.tools.SceneValidator` can run
+    * `PolytopeInvariants.check` against the same `Mesh4D` this factory would otherwise only
+    * ever hand to `gpu4DPlan`/`mesh4DProjection` on the way to a GPU-flattened triangle mesh
+    * -- reusing this mapping rather than duplicating the `ObjectSpec.objectType` switch. */
+  def mesh4D(spec: ObjectSpec): Option[Mesh4D] =
     spec.objectType match
       case "tesseract" =>
         Some(Tesseract(size = spec.size))
