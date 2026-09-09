@@ -4,6 +4,12 @@ import java.io.File
 import java.io.PrintWriter
 import java.nio.file.Files
 
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.TimeoutException
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.SECONDS
 import scala.sys.process.Process
 import scala.sys.process.ProcessLogger
 import scala.util.Try
@@ -16,8 +22,9 @@ import org.scalatest.matchers.should.Matchers
   * known-bad one," `spec-ai-scene-agent/stories/5-gauntlet-renderer-side.md`'s Tasks &
   * Acceptance) as an automated test, not a manual step performed once. Actually shells out to
   * `docker/scene-validator/run-sandboxed.sh`, which runs the real built
-  * `menger-scene-validator:latest` image with `--gpus all --network none` and AD-18's full
-  * mount/seccomp/capability containment, against a genuine temp scene file on disk.
+  * `menger-scene-validator:latest` image with `--network none`, `--cap-drop ALL`,
+  * `--read-only`, resource/wall-clock bounds and a single read-only scene-file bind mount,
+  * against a genuine temp scene file on disk.
   *
   * Skips via `assume` (not a failure) when `docker` isn't on PATH, the run script can't be
   * found, or the image hasn't been built (`./docker/scene-validator/build.sh`) -- the story's
@@ -29,6 +36,12 @@ import org.scalatest.matchers.should.Matchers
 class SceneValidatorContainerE2ESuite extends AnyFlatSpec with Matchers:
 
   private val ImageTag = "menger-scene-validator:latest"
+
+  /** Upper bound on one sandboxed run. `run-sandboxed.sh` enforces its own 120s wall clock and
+    * now tears the container down itself, but a test must never depend on the thing it is
+    * testing to terminate: an unbounded `Process(...).!` here blocks the suite forever if the
+    * wrapper's teardown regresses (review round 2). */
+  private val RunTimeoutSeconds = 300L
 
   private def dockerAvailable: Boolean =
     Try(Process(Seq("docker", "--version")).!(ProcessLogger(_ => ()))).toOption.contains(0)
@@ -75,7 +88,17 @@ class SceneValidatorContainerE2ESuite extends AnyFlatSpec with Matchers:
       line => { out.append(line); out.append("\n"); () },
       line => { out.append(line); out.append("\n"); () }
     )
-    val exitCode = Process(Seq(script.getAbsolutePath, sceneFile.getAbsolutePath)).!(logger)
+    val running = Process(Seq(script.getAbsolutePath, sceneFile.getAbsolutePath)).run(logger)
+    val finished = Future(running.exitValue())(ExecutionContext.global)
+    val exitCode =
+      try Await.result(finished, Duration(RunTimeoutSeconds, SECONDS))
+      catch
+        case _: TimeoutException =>
+          running.destroy()
+          fail(
+            s"run-sandboxed.sh did not finish within ${RunTimeoutSeconds}s -- its own wall-clock " +
+              s"bound should have fired long before. Output so far:\n${out.toString}"
+          )
     (exitCode, out.toString)
 
   private def assumeSandboxAvailable(script: Option[File]): Unit =

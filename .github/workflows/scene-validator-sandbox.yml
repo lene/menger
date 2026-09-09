@@ -1,0 +1,94 @@
+# AD-18 sandbox verification (spec-ai-scene-agent story 5, code review round 2).
+#
+# Deliberately NOT part of PR CI: story 5's `Never` clause keeps the scene-validator image out
+# of the PR pipeline, and building it needs a licensed OptiX SDK on the host. But leaving it
+# entirely unbuilt meant `SceneValidatorContainerE2ESuite`'s three tests `assume`-skipped
+# everywhere -- reverting both of the round-1 sandbox fixes (the directory-wide scene mount,
+# the missing resource bounds) left `sbt test`, `qa-runner.sh --tier push` and CI all green.
+# This job is the answer: nightly, on the self-hosted NVIDIA runner that already has the SDK.
+#
+# It fails loudly rather than skipping. A cancelled `assume` here is a failure, because the
+# whole point is that the containment flags get observed by something.
+name: Scene Validator Sandbox
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # nightly, before the weekly 04:00 Monday PerfCheck baseline
+  workflow_dispatch:
+    # No `ref` input: a manual run already checks out the branch it was dispatched on, and
+    # feeding user-supplied text into actions/checkout's `ref:` is a ref-injection footgun.
+
+concurrency:
+  # The image tag and the GPU are both singletons on this runner.
+  group: scene-validator-sandbox
+  cancel-in-progress: false
+
+jobs:
+  sandbox-e2e:
+    name: Build image + run container E2E suite
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+
+      # GPU contention on this shared runner has silently broken jobs before (a stray mpv
+      # holding ~150MiB blocked four jobs on PR #41). Report it up front so a failure below
+      # is attributable rather than mysterious.
+      - name: Report GPU state
+        run: nvidia-smi || echo "nvidia-smi unavailable"
+
+      - name: Build the scene-validator image
+        run: ./docker/scene-validator/build.sh
+
+      - name: Verify the image carries this working tree's version
+        run: |
+          set -euo pipefail
+          EXPECTED="$(grep -oP '(?<=version := ")[^"]+' menger-app/build.sbt | head -1)"
+          ACTUAL="$(docker image inspect menger-scene-validator:latest \
+            --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')"
+          echo "image version: $ACTUAL (expected $EXPECTED)"
+          [ "$ACTUAL" = "$EXPECTED" ]
+
+      # The suite `assume`s on the image being present; it is, so all three cases must run.
+      # A cancelled case is a failure here: the whole point of this job is that something
+      # actually observes the containment flags, and a silent skip is what let both round-1
+      # sandbox fixes be revertible with every check still green.
+      - name: Run the container E2E suite
+        run: |
+          set -euo pipefail
+          OUT=$(sbt 'mengerApp/testOnly menger.tools.SceneValidatorContainerE2ESuite -- -oD' 2>&1)
+          echo "$OUT" | tail -40
+          if echo "$OUT" | grep -qE 'canceled [1-9]'; then
+            echo "::error::E2E cases were cancelled -- the sandbox went unverified"
+            exit 1
+          fi
+
+      - name: Assert the containment flags the wrapper actually passes
+        run: |
+          set -euo pipefail
+          # A cheap, Docker-free guard on the flags themselves, so a regression in
+          # run-sandboxed.sh is caught even if the image build is what broke.
+          WRAPPER=docker/scene-validator/run-sandboxed.sh
+          MISSING=0
+          require_flag() {
+            if ! grep -qF -- "$1" "$WRAPPER"; then
+              echo "::error::run-sandboxed.sh no longer passes $1"
+              MISSING=1
+            fi
+          }
+          require_flag '--network none'
+          require_flag '--cap-drop ALL'
+          require_flag '--read-only'
+          require_flag '--security-opt no-new-privileges'
+          require_flag '--pids-limit'
+          require_flag '--memory'
+          require_flag '--cpus'
+          if grep -qF -- '--gpus' "$WRAPPER"; then
+            echo "::error::--gpus reintroduced without a Spec Change Log entry"
+            MISSING=1
+          fi
+          [ "$MISSING" -eq 0 ] || exit 1
+          echo "containment flags present"

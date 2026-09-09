@@ -247,3 +247,26 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
         "menger.engines..", "menger.dsl..", "menger.objects.."
       )
       .check(allClasses)
+
+  // AD-4 rule 2 (review round 2): `RestrictedClasspath` prunes menger.engines/tools/cli/input
+  // off the classpath it hands the compiler, so a scene file cannot reach them. That pruning
+  // is only safe while the DSL surface itself does not depend on those packages -- if it ever
+  // does, scene compilation breaks with an opaque "class not found" rather than a clear
+  // error. This rule is what keeps the pruning honest.
+  "The DSL surface" should "not depend on the engine, tooling, CLI or input layers" in:
+    noClasses().that().resideInAnyPackage("menger.dsl..", "menger.objects..")
+      .should().dependOnClassesThat().resideInAnyPackage(
+        "menger.engines..", "menger.tools..", "menger.cli..", "menger.input.."
+      )
+      .check(allClasses)
+
+  // `MeshFactory.mesh4D` was widened from private so SceneValidator can run
+  // PolytopeInvariants against the same Mesh4D the renderer builds. That is a deliberate,
+  // single edge: menger.tools reaches into menger.engines.scene and nowhere else in the
+  // engine layer (review round 2 -- the widening previously had no rule holding it).
+  "menger.tools" should "reach into the engine layer only via menger.engines.scene" in:
+    noClasses().that().resideInAPackage("menger.tools..")
+      .should().dependOnClassesThat().resideInAnyPackage(
+        "menger.engines.internal..", "menger.input.."
+      )
+      .check(allClasses)

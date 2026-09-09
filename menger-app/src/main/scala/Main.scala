@@ -1,4 +1,5 @@
 
+import java.lang.management.ManagementFactory
 import java.nio.file.Paths
 
 import scala.jdk.CollectionConverters._
@@ -40,6 +41,10 @@ import org.slf4j.LoggerFactory
 import upickle.default.write
 
 object Main:
+
+  /** Shell convention for "killed by SIGINT": 128 + 2. */
+  private val InterruptedExitCode = 130
+
   def main(args: Array[String]): Unit =
     try
       val opts = MengerCLIOptions(args.toList)
@@ -51,9 +56,13 @@ object Main:
         // only way to honor an injected value is to re-exec as a child process that has it
         // set from the start. When --display is absent this branch is never taken, so every
         // existing invocation keeps today's in-process, ambient-environment behavior exactly.
-        case Some(display) if display.trim.nonEmpty => sys.exit(reExecWithDisplay(args, display))
-        case Some(_) => sys.error("--display was given an empty value")
-        case None => launchInProcess(opts)
+        //
+        // `!opts.headless()` (review round 2): a headless run opens no window, so DISPLAY is
+        // irrelevant to it and the re-exec bought nothing but a second full JVM startup.
+        case Some(display) if display.trim.isEmpty =>
+          sys.error("--display was given an empty value")
+        case Some(display) if !opts.headless() => sys.exit(reExecWithDisplay(args, display))
+        case _ => launchInProcess(opts)
     catch
       case e: MengerExitException => sys.exit(e.code)
       case e: Exception =>
@@ -72,17 +81,32 @@ object Main:
       case _: InteractiveEngine => !opts.headless()
       case _ => false
 
+  /** AD-16's decision, composed: does this engine need the lock, and if so can it be had?
+    * `None` means "run unlocked" (a batch render), `Some(Right(handle))` means the caller
+    * holds it, `Some(Left(reason))` means refuse.
+    *
+    * Extracted in review round 2: `shouldLock`, `RenderLock.tryAcquire` and
+    * `refusedResultJson` were each unit-tested in isolation but nothing composed them, so
+    * deleting the entire guarded branch in `launchInProcess` left every test green -- the
+    * sprint's headline GPU-exclusivity guarantee had no test that could observe whether it
+    * was wired in at all. Only the `sys.exit` remains untestable. */
+  def acquireLockIfNeeded(
+    rendering: RenderEngine, opts: MengerCLIOptions
+  ): Option[Either[String, RenderLock.Handle]] =
+    if shouldLock(rendering, opts) then Some(RenderLock.tryAcquire(opts.renderLockPath()))
+    else None
+
   private def launchInProcess(opts: MengerCLIOptions): Unit =
     val config = getConfig(opts)
     val rendering = createEngine(opts)
     rendering match
-      case app: ApplicationListener if shouldLock(rendering, opts) =>
-        RenderLock.tryAcquire(opts.renderLockPath()) match
-          case Right(lock) =>
+      case app: ApplicationListener =>
+        acquireLockIfNeeded(rendering, opts) match
+          case Some(Left(reason)) => reportRefusedAndExit(reason)
+          case Some(Right(lock)) =>
             try Lwjgl3Application(app, config)
             finally lock.close()
-          case Left(reason) => reportRefusedAndExit(reason)
-      case app: ApplicationListener => Lwjgl3Application(app, config)
+          case None => Lwjgl3Application(app, config)
       case _ => sys.error("Engine must implement ApplicationListener")
 
   /** Reuses `SceneValidator`'s AD-5 tagged-result JSON shape rather than inventing a second
@@ -113,11 +137,32 @@ object Main:
     * classloaders ("neither alone is complete"); reusing the existing, already-correct
     * enumeration here rather than re-deriving a narrower one avoids reintroducing the same
     * gap in a second place. */
+  /** The parent's own JVM options, minus the ones that must not be inherited by a child.
+    *
+    * Review round 2: the child was started as a bare `java -cp <cp> Main <args>`, dropping
+    * every `-D` and `-X` the parent runs with. `menger-app/build.sbt` supplies
+    * `-Djava.library.path=<mengerGeometry native>:/usr/local/cuda/lib64` through
+    * `run / javaOptions`, and the packaged launcher does the same -- system properties are not
+    * environment, so `ProcessBuilder`'s inherited environment never carried them. The child
+    * therefore could not load libmengergeometry.so, which is the whole point of the window it
+    * was re-exec'd to open.
+    *
+    * `-agentlib`/`-javaagent`/`-agentpath` are dropped: a debugger or profiler agent bound to
+    * a fixed port in the parent makes the child fail to start on the same port. */
+  private val NonInheritableJvmOptionPrefixes =
+    List("-agentlib:", "-agentpath:", "-javaagent:")
+
+  def inheritedJvmOptions: List[String] =
+    ManagementFactory.getRuntimeMXBean.getInputArguments.asScala.toList
+      .filterNot(opt => NonInheritableJvmOptionPrefixes.exists(opt.startsWith))
+
   def buildReExecProcessBuilder(rawArgs: Array[String], display: String): ProcessBuilder =
     val javaBin = Paths.get(System.getProperty("java.home"), "bin", "java").toString
     val classpath = RestrictedClasspath.fullClasspath
     val childArgs = stripDisplayFlag(rawArgs)
-    val command = (List(javaBin, "-cp", classpath, "Main") ++ childArgs.toList).asJava
+    val command =
+      (List(javaBin) ++ inheritedJvmOptions ++ List("-cp", classpath, "Main") ++
+        childArgs.toList).asJava
     val builder = ProcessBuilder(command)
     builder.environment().put("DISPLAY", display)
     builder.inheritIO()
@@ -129,15 +174,29 @@ object Main:
     }
     withoutValues.map(args).filterNot(_.startsWith("--display=")).toArray
 
-  /** Ties the child's lifetime to the parent's: without this, a parent killed abruptly
-    * (SIGTERM/SIGKILL, a supervisor terminating it) while blocked in `waitFor()` (review
-    * round) would leave the child running detached -- orphaned, and still holding the
-    * render lock the whole point of this re-exec is to eventually pass through to. */
+  /** Ties the child's lifetime to the parent's: without this, a parent terminated while
+    * blocked in `waitFor()` (review round) would leave the child running detached --
+    * orphaned, and still holding the render lock the whole point of this re-exec is to
+    * eventually pass through to.
+    *
+    * The hook covers an *orderly* JVM shutdown -- SIGTERM, `sys.exit`, a supervisor's normal
+    * stop. It does not and cannot cover SIGKILL, which the JVM never observes (review round 2
+    * corrects the earlier comment here, which claimed both). A SIGKILL'd parent still orphans
+    * the child; the OS releasing the render lock on the child's own exit is the backstop. */
   private def reExecWithDisplay(rawArgs: Array[String], display: String): Int =
     val process = buildReExecProcessBuilder(rawArgs, display).start()
     val shutdownHook = new Thread(() => if process.isAlive then process.destroy())
     Runtime.getRuntime.addShutdownHook(shutdownHook)
-    try process.waitFor()
+    try
+      try process.waitFor()
+      catch
+        // Review round 2: this escaped to main's generic `case e: Exception`, which reports
+        // exit 1 and loses both the child and its status. Kill the child we own, restore the
+        // interrupt flag for anything above us, and report the conventional 128+SIGINT.
+        case _: InterruptedException =>
+          process.destroyForcibly()
+          Thread.currentThread().interrupt()
+          InterruptedExitCode
     finally
       try Runtime.getRuntime.removeShutdownHook(shutdownHook)
       catch case _: IllegalStateException => () // already shutting down -- hook will run anyway

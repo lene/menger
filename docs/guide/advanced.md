@@ -187,6 +187,49 @@ ffmpeg -framerate 30 -i orbit_%04d.png -c:v libx264 -pix_fmt yuv420p orbit.mp4
 
 Static scenes (`val scene: Scene`) continue to work unchanged. The `SceneLoader` auto-detects whether a scene object has a `def scene(Float)` method or a `val scene` field via reflection.
 
+### Interactive Session Control
+
+Two options govern *where* an interactive window opens and *how many* may be open at once.
+
+#### `--display <target>`
+
+Opens the interactive window on an explicitly named X display instead of inheriting `DISPLAY`
+from the environment:
+
+```bash
+menger-app --display :1 --objects type=tesseract-sponge-volume:level=2
+```
+
+A native windowing library reads `DISPLAY` only at initialisation, before anything in the JVM
+can change it, so menger re-executes itself as a child process with `DISPLAY` set from the
+start. The child inherits the parent's JVM options (including the native library path), and
+the parent's exit code is the child's. Combining `--display` with `--headless` does nothing
+useful and is ignored — a headless run opens no window.
+
+#### `--render-lock-path <path>`
+
+The GPU is a single exclusive resource, so **at most one interactive render session runs at a
+time**. A second launch is refused immediately — never queued, never left waiting:
+
+```json
+{
+  "tag": "refused",
+  "messages": [ "render lock already held: /tmp/menger-render-<user>.lock" ]
+}
+```
+
+The process exits non-zero after printing that. The lock defaults to a per-user file in the
+system temp directory; `--render-lock-path` puts it somewhere else, which is what you want if
+several people share the machine and the temp directory is world-writable:
+
+```bash
+menger-app --render-lock-path "$HOME/.menger/render.lock" --objects type=sphere
+```
+
+Only the interactive window takes the lock. Headless, preview, video and animation renders are
+one-shot batch jobs and are not gated by it, so a batch render can still run alongside an
+interactive session — sequence those yourself if they contend for GPU memory.
+
 ### Caustics (Light Focusing Effects)
 
 

@@ -1,6 +1,11 @@
 <configuration>
 
+    <!-- stderr, not stdout: menger.tools.SceneValidator, ManifestGenerator and CorpusExporter
+         all write a machine-parseable payload to stdout, and a ConsoleAppender with no
+         <target> defaults to System.out, interleaving timestamped log lines with the JSON a
+         caller parses verbatim (review round 2). Logging belongs on stderr regardless. -->
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
         <encoder>
             <pattern>
                 %d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n

@@ -34,14 +34,20 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     manifest.minDriverVersion shouldBe "580.65"
 
   it should "write to target/dsl-manifest.json when no output path is given" in:
+    // Review round 2: this used to `deleteIfExists` the real default path before and after,
+    // destroying a manifest a developer or the agent workflow had generated and making the
+    // suite unsafe to run alongside anything reading it. The path is part of the contract
+    // under test, so it still writes there -- but whatever was there is put back.
     val defaultPath = java.nio.file.Paths.get("target/dsl-manifest.json")
-    Files.deleteIfExists(defaultPath)
+    val saved = if Files.exists(defaultPath) then Some(Files.readAllBytes(defaultPath)) else None
     try
       val result = ManifestGenerator.run(Array.empty)
       result shouldBe Right(())
       Files.exists(defaultPath) shouldBe true
     finally
-      Files.deleteIfExists(defaultPath)
+      saved match
+        case Some(bytes) => Files.write(defaultPath, bytes)
+        case None        => Files.deleteIfExists(defaultPath)
 
   it should "report a clear, non-empty error and not throw on an unwritable path" in:
     // A regular file cannot be treated as a directory: Files.createDirectories on a path
@@ -65,6 +71,22 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
       "Sierpinski4D", "ParametricSurface", "Curve", "LSystem"
     )
     manifest.objects should have size 9
+
+  // CAP-7 ("absence is decidable"): a field typed `menger.dsl.TesseractSpongeType` is
+  // unusable unless the manifest also says which values that type admits. These are mandatory
+  // constructor arguments, so without them the MVP acceptance scene's own flagship object
+  // cannot be constructed from the manifest alone (review round 2).
+  it should "enumerate the admissible values of every mandatory-argument enum" in:
+    val manifest = manifestFor(freshTempPath())
+    val enums = manifest.enums.map(e => e.name -> e.values).toMap
+    enums("TesseractSpongeType") should contain allOf ("VolumeRemoving", "SurfaceSubdividing")
+    enums("SpongeType") should not be empty
+    enums("AreaLightShape") should not be empty
+    enums("DenoiseMode") should not be empty
+
+  it should "carry the scene-composition types an agent needs to assemble a scene" in:
+    val manifest = manifestFor(freshTempPath())
+    manifest.sceneComposition.map(_.name) should contain allOf ("Camera", "Scene", "Caustics")
 
   it should "list exactly the 12 Material presets" in:
     val manifest = manifestFor(freshTempPath())

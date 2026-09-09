@@ -51,6 +51,14 @@ object RenderLock extends LazyLogging:
         case _: OverlappingFileLockException =>
           channel.close()
           Left(s"render lock already held: $path")
+        // Review round 2: only OverlappingFileLockException was caught here, so any other
+        // failure from tryLock() (an IOException on a full or read-only filesystem, an NFS
+        // mount without lock support) propagated to the outer handler with `raf` and
+        // `channel` still open -- a file-descriptor leak on every such attempt.
+        case NonFatal(e) =>
+          channel.close()
+          logger.error(s"Failed to lock '$path'", e)
+          Left(s"failed to acquire render lock at '$path': ${e.getMessage}")
     catch
       case NonFatal(e) =>
         logger.error(s"Failed to acquire render lock at '$path'", e)
