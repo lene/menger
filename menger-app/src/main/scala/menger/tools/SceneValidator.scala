@@ -58,14 +58,47 @@ object SceneValidator extends LazyLogging:
 
     given ReadWriter[Tag] = readwriter[String].bimap[Tag](toWire, fromWire)
 
-  case class ValidationResult(tag: Tag, messages: List[String]) derives ReadWriter
+  /** One geometric invariant violation, carried structurally rather than flattened into
+    * `messages` (review round 2): `PolytopeInvariants` documents `invariant` as "a short,
+    * stable machine-readable tag", and a consumer that has to string-split `"tag: message"`
+    * back apart is re-parsing something that was already structured. Mirrors
+    * `menger.objects.higher_d.InvariantFinding` rather than serializing it directly, so the
+    * geometry package stays free of a upickle dependency. */
+  case class Finding(invariant: String, message: String) derives ReadWriter
+
+  /** Bumped when this result's shape changes incompatibly, matching `CorpusManifest` and
+    * `DslManifest`, which both carry one (review round 2). */
+  val SchemaVersion = "1.0.0"
+
+  /** `messages` stays first-class and unchanged -- it is what the existing consumers read.
+    * `findings`, `scene` and `schemaVersion` are additive and defaulted, so every positional
+    * `ValidationResult(tag, messages)` call site keeps working. */
+  case class ValidationResult(
+    tag: Tag,
+    messages: List[String],
+    findings: List[Finding] = Nil,
+    scene: Option[String] = None,
+    schemaVersion: String = SchemaVersion
+  ) derives ReadWriter
 
   def main(args: Array[String]): Unit =
-    run(args) match
-      case Right(result) =>
-        SceneValidatorMain.printResult(write(result, indent = 2))
-        if result.tag != Tag.Ok then SceneValidatorMain.exitNonZero()
-      case Left(message) => SceneValidatorMain.reportFailureAndExit(message)
+    val result = run(args) match
+      case Right(r)      => r
+      // A usage error is exactly what `refused` exists for: the pipeline was handed something
+      // it cannot validate. Emitting the message through the logger and no JSON at all
+      // (review round 2) broke run-sandboxed.sh's documented "prints a tagged JSON result"
+      // contract for the one case most likely to be hit by a mis-wired caller.
+      case Left(message) => ValidationResult(Tag.Refused, List(message))
+    SceneValidatorMain.printResult(write(result, indent = 2))
+    SceneValidatorMain.exitWith(exitCodeFor(result.tag))
+
+  /** AD-5's four tags collapse onto three exit codes so a caller can branch without parsing
+    * JSON (review round 2 -- previously every non-`ok` tag exited 1, making "the scene is
+    * wrong, retry" indistinguishable from "the pipeline is broken, stop"). */
+  private[tools] def exitCodeFor(tag: Tag): Int = tag match
+    case Tag.Ok      => 0
+    case Tag.Refused => 2
+    case _           => 1
 
   /** Pure-ish entry point (the only I/O is loading/compiling the scene file) -- kept separate
     * from `main` so tests can observe results without triggering `sys.exit`, mirroring
@@ -76,9 +109,12 @@ object SceneValidator extends LazyLogging:
       case Some(path) => Right(validate(new File(path)))
 
   /** Runs the full stage-1 + stage-4 gauntlet against `file` and returns AD-5's tagged
-    * result. Never throws: any unexpected exception during loading/checking is caught and
-    * reported as `Refused` (a pipeline-level failure), never surfaced as a crash -- a scene
-    * file's job is to reveal defects in the *scene*, not to take the validator down with it.
+    * result. Does not throw for any failure a scene file can provoke: unexpected exceptions,
+    * and the `Error`s a hostile or careless scene actually reaches (`StackOverflowError`,
+    * `OutOfMemoryError`, `LinkageError` -- see the handlers below), are caught and reported
+    * as a tagged result, never surfaced as a crash -- a scene file's job is to reveal defects
+    * in the *scene*, not to take the validator down with it. A genuinely fatal JVM error
+    * outside that set is still allowed to propagate.
     *
     * `preflightCheck` defaults to `RestrictedClasspath.preflight` but is an injectable seam
     * (review round 1 fix): the production classpath is always structurally complete in this
@@ -101,10 +137,12 @@ object SceneValidator extends LazyLogging:
         // for a directory, which `SceneLoader.load` has no defined behavior for.
         ValidationResult(Tag.Refused, List(s"scene file not found: ${file.getAbsolutePath}"))
       case None =>
+        val scenePath = file.getAbsolutePath
         try
-          SceneLoader.load(file.getAbsolutePath) match
+          (SceneLoader.load(scenePath) match
             case Left(err)     => classifyLoadFailure(err)
             case Right(loaded) => checkInvariants(loaded)
+          ).copy(scene = Some(scenePath))
         catch
           // A `require()` rejection inside a compiled scene's static initializer (e.g.
           // `Sphere(size = -1f)`) surfaces as `ExceptionInInitializerError` -- a
@@ -116,10 +154,41 @@ object SceneValidator extends LazyLogging:
           // root cause is almost always the `require()`'s own `IllegalArgumentException`.
           case e: ExceptionInInitializerError =>
             val cause = Option(e.getCause).map(_.getMessage).getOrElse(e.getMessage)
-            ValidationResult(Tag.LintFindings, List(s"scene construction failed: $cause"))
+            ValidationResult(
+              Tag.LintFindings, List(s"scene construction failed: $cause"), scene = Some(scenePath)
+            )
+          // Review round 2: the scaladoc above promised "never throws", but only
+          // `ExceptionInInitializerError` and `NonFatal` were handled. The three `Error`s
+          // below are exactly the ones a hostile or merely careless scene provokes, and each
+          // escaped as a bare stack trace with no tag on stdout.
+          //   - StackOverflowError: infinite recursion in a scene's own `lazy val` -- the case
+          //     run-sandboxed.sh's own comment anticipates. A scene defect: `lint-findings`.
+          //   - OutOfMemoryError: a huge allocation under the container's `--memory` ceiling.
+          //     Not decidably the scene's fault, and the JVM is now unreliable: `refused`.
+          //   - LinkageError (incl. NoClassDefFoundError from a previously-failed
+          //     initializer): an environment/classpath problem, never scene content:
+          //     `refused`.
+          case e: StackOverflowError =>
+            ValidationResult(
+              Tag.LintFindings,
+              List(s"scene construction overflowed the stack (infinite recursion?): $e"),
+              scene = Some(scenePath)
+            )
+          case e: OutOfMemoryError =>
+            ValidationResult(
+              Tag.Refused, List(s"validator ran out of memory: $e"), scene = Some(scenePath)
+            )
+          case e: LinkageError =>
+            ValidationResult(
+              Tag.Refused, List(s"validator classpath is broken: $e"), scene = Some(scenePath)
+            )
           case NonFatal(e) =>
-            logger.error(s"Unexpected failure validating ${file.getAbsolutePath}", e)
-            ValidationResult(Tag.Refused, List(s"unexpected validator failure: ${e.getMessage}"))
+            logger.error(s"Unexpected failure validating $scenePath", e)
+            ValidationResult(
+              Tag.Refused,
+              List(s"unexpected validator failure: ${e.getMessage}"),
+              scene = Some(scenePath)
+            )
 
   /** `SceneLoader.load`'s `Left` messages come from three distinct sources, each mapped to a
     * different AD-5 tag:
@@ -147,7 +216,11 @@ object SceneValidator extends LazyLogging:
       case LoadedScene.Animated(f) => f(0f)
     val findings = geometricFindings(scene)
     if findings.isEmpty then ValidationResult(Tag.Ok, Nil)
-    else ValidationResult(Tag.LintFindings, findings.map(f => s"${f.invariant}: ${f.message}"))
+    else ValidationResult(
+      Tag.LintFindings,
+      findings.map(f => s"${f.invariant}: ${f.message}"),
+      findings = findings.map(f => Finding(f.invariant, f.message))
+    )
 
   /** Every `SceneObject` in `scene` (flat `objects` list, or the scene-graph `root`'s leaf
     * geometry when that's what the scene uses -- `Scene` requires at least one of the two)
@@ -164,7 +237,7 @@ object SceneValidator extends LazyLogging:
 /** Isolates the three process-level side effects `ArchitectureSpec` restricts to classes
   * whose name matches `.*Main.*` (writing to stdout/stderr, calling `sys.exit`) -- same
   * convention as `ManifestGeneratorMain`/`CorpusExporterMain`. */
-private object SceneValidatorMain extends LazyLogging:
+private object SceneValidatorMain:
   // `Predef.print`, not `println`: this is the tool's real output contract (the JSON a
   // caller like run-sandboxed.sh parses from stdout), not a debug statement -- routing it
   // through `LazyLogging`'s logger instead would risk Logback's own formatting (timestamps,
@@ -175,9 +248,5 @@ private object SceneValidatorMain extends LazyLogging:
     print(json)
     print(System.lineSeparator())
 
-  def reportFailureAndExit(message: String): Unit =
-    logger.error(message)
-    sys.exit(1)
-
-  def exitNonZero(): Unit =
-    sys.exit(1)
+  def exitWith(code: Int): Unit =
+    if code != 0 then sys.exit(code)

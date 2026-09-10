@@ -7,22 +7,36 @@ import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
 import scala.compiletime.constValueTuple
 import scala.deriving.Mirror
+import scala.util.Try
 import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.dsl.AreaLightShape
 import menger.dsl.AxisHelper
 import menger.dsl.Bezier
+import menger.dsl.Camera
 import menger.dsl.CameraPath
+import menger.dsl.Caustics
 import menger.dsl.Color
+import menger.dsl.DenoiseMode
+import menger.dsl.Fog
+import menger.dsl.IBL
 import menger.dsl.Light
 import menger.dsl.Material
 import menger.dsl.Placement
 import menger.dsl.Plane
 import menger.dsl.RenderSettings
+import menger.dsl.Scene
+import menger.dsl.SceneNode
 import menger.dsl.SceneObject
+import menger.dsl.SpongeType
+import menger.dsl.TesseractSpongeType
+import menger.dsl.Transform
+import menger.dsl.Vec3
 import upickle.default.ReadWriter
 import upickle.default.write
 
@@ -55,6 +69,13 @@ object ManifestGenerator extends LazyLogging:
 
   case class FieldManifest(name: String, `type`: String, default: Option[String]) derives ReadWriter
   case class TypeManifest(name: String, fields: List[FieldManifest]) derives ReadWriter
+
+  /** An enum's admissible values. Without these the manifest names a field's *type*
+    * (`spongeType : menger.dsl.TesseractSpongeType`) but never what may be written there, and
+    * for the mandatory-argument enums that makes the flagship 4D objects unconstructable from
+    * the manifest alone -- CAP-7's "absence is decidable" fails on the very capability the
+    * MVP acceptance scene needs (review round 2). */
+  case class EnumManifest(name: String, values: List[String]) derives ReadWriter
   case class MethodManifest(name: String, parameters: List[FieldManifest]) derives ReadWriter
   case class MaterialManifest(
     name: String,
@@ -73,6 +94,8 @@ object ManifestGenerator extends LazyLogging:
     optixJniVersion: String,
     minDriverVersion: String,
     objects: List[TypeManifest],
+    enums: List[EnumManifest],
+    sceneComposition: List[TypeManifest],
     materials: List[MaterialManifest],
     lights: List[TypeManifest],
     placement: List[MethodManifest],
@@ -137,7 +160,14 @@ object ManifestGenerator extends LazyLogging:
           case _ => None
       }.toMap
     ctor.getParameters.toList.zipWithIndex.map { case (p, i) =>
-      val default = defaults.get(i + 1).map(m => String.valueOf(m.invoke(companion)))
+      // A default that *depends on earlier parameters* compiles to a `$default$N` method
+      // taking those parameters, so invoking it with no arguments throws
+      // IllegalArgumentException and (before review round 2) aborted the whole manifest. Such
+      // a default cannot be rendered as a standalone literal anyway: report it as "no static
+      // default" rather than failing generation.
+      val default = defaults.get(i + 1)
+        .filter(_.getParameterCount == 0)
+        .flatMap(m => Try(String.valueOf(m.invoke(companion))).toOption)
       FieldManifest(p.getName, p.getParameterizedType.getTypeName, default)
     }
 
@@ -150,14 +180,31 @@ object ManifestGenerator extends LazyLogging:
   private inline def sealedSubtypeNames[T](using m: Mirror.SumOf[T]): List[String] =
     constValueTuple[m.MirroredElemLabels].toList.map(_.toString)
 
+  /** Resolves a sealed-trait child's runtime class. A `case object` child compiles to
+    * `menger.dsl.<Name>$`, not `menger.dsl.<Name>`, so the plain lookup throws
+    * `ClassNotFoundException` and -- before review round 2 -- took the entire manifest down
+    * the first time anyone added one. */
+  private def dslClassOf(name: String): Class[?] =
+    Try(Class.forName(s"menger.dsl.$name")).getOrElse(Class.forName(s"menger.dsl.$name$$"))
+
+  /** Per-type failures are reported with the offending type named, rather than one bad DSL
+    * type aborting generation with a message that never says which one (review round 2). */
   private def objectManifestsOf(names: List[String]): List[TypeManifest] =
-    names.map(n => typeManifestOf(Class.forName(s"menger.dsl.$n")))
+    val (failures, manifests) = names
+      .map(n => Try(typeManifestOf(dslClassOf(n))).toEither.left.map(e => s"$n: ${e.getMessage}"))
+      .partitionMap(identity)
+    require(failures.isEmpty, s"could not derive a manifest for: ${failures.mkString("; ")}")
+    manifests
 
   /** Names of zero-arg methods on `obj`'s class whose return type is `returnType` -- the
     * reflective shape of a preset `val` (e.g. `Material.Glass`, `RenderSettings.Default`,
     * `Color.White`): each compiles to a synthetic zero-arg getter on the companion module. */
   private def zeroArgPresetNames(obj: AnyRef, returnType: Class[?]): List[String] =
     obj.getClass.getDeclaredMethods.toList
+      // `getDeclaredMethods` includes non-public members, so a private helper val of the same
+      // type was advertised to the agent as a preset and then failed the `getMethod` lookup
+      // that reads it (review round 2).
+      .filter(m => Modifier.isPublic(m.getModifiers))
       .filter(m => m.getParameterCount == 0 && returnType.isAssignableFrom(m.getReturnType))
       .map(_.getName)
       .filterNot(_.contains("$"))
@@ -253,6 +300,26 @@ object ManifestGenerator extends LazyLogging:
       optixJniVersion = OptixJniVersionPin,
       minDriverVersion = MinDriverVersion,
       objects = objectManifestsOf(sealedSubtypeNames[SceneObject]),
+      enums = List(
+        EnumManifest("SpongeType", sealedSubtypeNames[SpongeType]),
+        EnumManifest("TesseractSpongeType", sealedSubtypeNames[TesseractSpongeType]),
+        EnumManifest("AreaLightShape", sealedSubtypeNames[AreaLightShape]),
+        EnumManifest("DenoiseMode", sealedSubtypeNames[DenoiseMode])
+      ),
+      // `dsl-surface.md`'s "Remaining surface": the scene-composition and environment types an
+      // agent needs to assemble a scene at all. `Caustics` in particular is that document's
+      // own worked example of the tacit knowledge this manifest exists to supply, and was
+      // absent entirely (review round 2).
+      sceneComposition = List(
+        typeManifestOf(classOf[Camera]),
+        typeManifestOf(classOf[Scene]),
+        typeManifestOf(classOf[SceneNode]),
+        typeManifestOf(classOf[Transform]),
+        typeManifestOf(classOf[Caustics]),
+        typeManifestOf(classOf[Fog]),
+        typeManifestOf(classOf[IBL]),
+        typeManifestOf(classOf[Vec3])
+      ),
       materials = zeroArgPresetNames(Material, classOf[Material]).map(materialManifestOf),
       lights = objectManifestsOf(sealedSubtypeNames[Light]),
       placement = methodsOf(Placement),
@@ -269,7 +336,15 @@ object ManifestGenerator extends LazyLogging:
     try
       val path: Path = Paths.get(outputPath)
       Option(path.getParent).foreach(Files.createDirectories(_))
-      Files.writeString(path, write(manifest, indent = 2))
+      // AD-14: this artifact is mounted read-only into the agent domain, so a reader must
+      // never observe a partial file. Write beside the target and rename into place -- a
+      // rename is atomic within a filesystem, `Files.writeString` straight onto the target is
+      // not (review round 2).
+      val tmp = Files.createTempFile(
+        Option(path.getParent).getOrElse(Paths.get(".")), ".dsl-manifest-", ".json.tmp"
+      )
+      Files.writeString(tmp, write(manifest, indent = 2))
+      Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
       Right(())
     catch
       case e: IOException =>

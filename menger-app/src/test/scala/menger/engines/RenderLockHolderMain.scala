@@ -8,7 +8,18 @@ package menger.engines
   * second OS process (the actual AD-16 scenario) does. */
 object RenderLockHolderMain:
   def main(args: Array[String]): Unit =
-    RenderLock.tryAcquire(args(0)) match
+    // Review round 2: `args(0)` unguarded raised ArrayIndexOutOfBoundsException instead of the
+    // FAILED line the parent test reads for, so a mis-invoked helper hung the parent on
+    // readLine() rather than failing it.
+    args.headOption match
+      case None =>
+        println("FAILED: no lock path given")
+        System.out.flush()
+        sys.exit(2)
+      case Some(path) => acquireAndHold(path)
+
+  private def acquireAndHold(path: String): Unit =
+    RenderLock.tryAcquire(path) match
       case Right(lock) =>
         try
           println("LOCKED")

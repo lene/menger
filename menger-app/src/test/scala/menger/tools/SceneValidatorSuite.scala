@@ -47,6 +47,93 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val result = SceneValidator.validate(file)
     result.tag shouldBe SceneValidator.Tag.Ok
 
+  // Review round 2: the only 4D scene exercised here was a default-size `Tesseract`, whose 16
+  // vertices are all equidistant from the origin -- so `common-sphere` passed and nothing
+  // noticed that `MeshFactory.mesh4D` also routes the 4D *fractals* into a check written for
+  // regular polytopes. A sponge at level >= 1 has vertex norms spanning [0.33, 1.0] and was
+  // reported `lint-findings`, including for the renderer's own shipped corpus exemplars.
+  it should "return Ok for a volume-removing tesseract sponge at level 1 (a fractal, not a regular polytope)" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object SpongeScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(TesseractSponge(
+        |      spongeType = TesseractSpongeType.VolumeRemoving, level = 1f
+        |    )),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+
+  it should "return Ok for a surface-subdividing tesseract sponge at level 1" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object Sponge2Scene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(TesseractSponge(
+        |      spongeType = TesseractSpongeType.SurfaceSubdividing, level = 1f, size = 1.5f
+        |    )),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+
+  // AD-4 rule 2: a compiled scene sees the DSL surface and its transitive needs, not the rest
+  // of menger-app. `menger.tools`/`menger.engines`/`menger.cli`/`menger.input` are pruned off
+  // the classpath handed to the compiler (review round 2), so referencing them is a compile
+  // error rather than a working import.
+  it should "refuse a scene that reaches outside the DSL surface into menger.tools" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object ReachesOutside:
+        |  val leak = menger.tools.SceneValidator.SchemaVersion
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere()),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    SceneValidator.validate(file).tag shouldBe SceneValidator.Tag.CompileErrors
+
+  // The scene-graph authoring style: `Scene` requires `objects` or `root`, so for a root-only
+  // scene the whole geometric check hangs off the `root` half of `geometricFindings`. Nothing
+  // covered it, and deleting that half left every test green (review round 2).
+  it should "run the geometric check on a scene-graph scene's leaf geometry, not just the flat objects list" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object GraphScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    root   = SceneNode(geometry = Some(Tesseract(Material.Glass))),
+        |    lights = List()
+        |  )
+        |""".stripMargin
+    )
+    SceneValidator.validate(file).tag shouldBe SceneValidator.Tag.Ok
+
+  // `def scene(t: Float)` is a first-class DSL form and roughly half the shipped corpus uses
+  // it, but every scene in this suite declared `val scene`, so the Animated branch was never
+  // reached (review round 2).
+  it should "validate an animated scene through the Animated branch" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object AnimatedScene:
+        |  def scene(t: Float): Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Tesseract(Material.Glass)),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    SceneValidator.validate(file).tag shouldBe SceneValidator.Tag.Ok
+
   it should "return CompileErrors naming the compiler's message for a Scala/DSL syntax error" in:
     val file = writeTempScene("object Broken { THIS IS NOT SCALA !!!!")
     val result = SceneValidator.validate(file)

@@ -7,6 +7,9 @@ import org.scalatest.matchers.should.Matchers
 
 class MainSuite extends AnyFlatSpec with Matchers:
 
+  private def freshLockPath(): String =
+    java.nio.file.Files.createTempDirectory("main-suite-lock").resolve("render.lock").toString
+
   "getConfig" should "return default config if no options" in :
     val options = MengerCLIOptions(Seq.empty)
     Main.getConfig(options)
@@ -72,7 +75,37 @@ class MainSuite extends AnyFlatSpec with Matchers:
     val command = builder.command().asScala
     val cpIndex = command.indexOf("-cp")
     cpIndex should be >= 0
-    command(cpIndex + 1) shouldEqual menger.dsl.RestrictedClasspath.fullClasspath
+    val classpath = command(cpIndex + 1)
+    classpath shouldEqual menger.dsl.RestrictedClasspath.fullClasspath
+    // Review round 2, partially: the assertion above compares the function under test to
+    // itself, so it cannot by itself catch a revert to `System.getProperty("java.class.path")`.
+    // The union invariant below is the strongest thing assertable from *here* -- `Test / fork`
+    // starts this suite from a plain `java -cp`, so its classloader chain contributes nothing
+    // and the two sources genuinely coincide in this JVM. A "must differ" assertion would be
+    // false here, not merely weak. What actually protects the packaged/container path is
+    // RestrictedClasspathSuite's stage-layout case.
+    val sep = java.io.File.pathSeparator
+    val systemEntries = System.getProperty("java.class.path").split(sep).filter(_.nonEmpty).toSet
+    withClue("fullClasspath must be a superset of the java.class.path property: "):
+      classpath.split(sep).toSet should contain allElementsOf systemEntries
+
+  // Review round 2: the child was started as a bare `java -cp <cp> Main <args>`, dropping every
+  // -D and -X the parent runs with -- including build.sbt's -Djava.library.path, without which
+  // the re-exec'd child cannot load libmengergeometry.so and the window it exists to open never
+  // renders.
+  it should "forward the parent JVM's own options to the child" in:
+    val builder = Main.buildReExecProcessBuilder(Array.empty, ":1")
+    val command = builder.command().asScala.toList
+    val cpIndex = command.indexOf("-cp")
+    val beforeClasspath = command.slice(1, cpIndex)
+    beforeClasspath shouldEqual Main.inheritedJvmOptions
+    // The forwarded options must precede -cp/Main, or java treats them as program arguments.
+    command.head should endWith("java")
+
+  it should "not forward a debugger or profiler agent to the child" in:
+    Main.inheritedJvmOptions.filter(o =>
+      o.startsWith("-agentlib:") || o.startsWith("-agentpath:") || o.startsWith("-javaagent:")
+    ) shouldBe empty
 
   // === shouldLock / refusedResultJson (story 8 review round: extracted for direct testability) ===
 
@@ -86,6 +119,41 @@ class MainSuite extends AnyFlatSpec with Matchers:
     val engine = Main.createEngine(opts)
     engine shouldBe a [InteractiveEngine]
     Main.shouldLock(engine, opts) shouldBe false
+
+  // Review round 2: shouldLock, RenderLock.tryAcquire and refusedResultJson were each tested
+  // in isolation and nothing composed them, so deleting Main's entire lock branch left every
+  // test green. These pin the composition -- AD-16's actual behaviour.
+  "acquireLockIfNeeded" should "not take a lock for a batch (headless) render" in:
+    val opts = MengerCLIOptions(
+      Seq("--objects", "type=sphere", "--headless", "--save-name", "out.png")
+    )
+    Main.acquireLockIfNeeded(Main.createEngine(opts), opts) shouldBe None
+
+  it should "acquire the lock for an interactive render, and release it on close" in:
+    val lockPath = freshLockPath()
+    val opts = MengerCLIOptions(Seq("--objects", "type=sphere", "--render-lock-path", lockPath))
+    val first = Main.acquireLockIfNeeded(Main.createEngine(opts), opts)
+    first.map(_.isRight) shouldBe Some(true)
+    first.foreach(_.foreach(_.close()))
+    // Released: a second attempt on the same path now succeeds.
+    val second = Main.acquireLockIfNeeded(Main.createEngine(opts), opts)
+    second.map(_.isRight) shouldBe Some(true)
+    second.foreach(_.foreach(_.close()))
+
+  it should "refuse an interactive render while the lock is already held" in:
+    val lockPath = freshLockPath()
+    val opts = MengerCLIOptions(Seq("--objects", "type=sphere", "--render-lock-path", lockPath))
+    val held = menger.engines.RenderLock.tryAcquire(lockPath)
+    held shouldBe a[Right[?, ?]]
+    try
+      val refused = Main.acquireLockIfNeeded(Main.createEngine(opts), opts)
+      refused.map(_.isLeft) shouldBe Some(true)
+      refused.foreach(_.left.foreach { reason =>
+        reason should include(lockPath)
+        // The refusal reaches the user as AD-5's tagged JSON, not a bare message.
+        Main.refusedResultJson(reason) should include("\"refused\"")
+      })
+    finally held.foreach(_.close())
 
   "refusedResultJson" should "encode the reason under the wire-format 'refused' tag" in:
     val json = Main.refusedResultJson("render lock already held: /tmp/menger-render.lock")

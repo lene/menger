@@ -16,6 +16,10 @@ class CorpusExporterSuite extends AnyFlatSpec with Matchers:
   // working directory for this suite is menger-app/ itself -- one path segment shorter.
   private val TestSourceDir = "src/main/scala/examples/dsl"
 
+  /** Story 3's acceptance criterion, as a literal: the corpus carries exactly these many
+    * example scenes. Update deliberately when a scene is added or removed. */
+  private val ExpectedSceneCount = 32
+
   private def freshTempPath(): String =
     val dir = Files.createTempDirectory("corpus-exporter-suite")
     dir.resolve("dsl-corpus.json").toString
@@ -81,6 +85,15 @@ class CorpusExporterSuite extends AnyFlatSpec with Matchers:
     )
     simpleScene.source should include("object SimpleScene")
 
+  // Review round 2: this recomputed the expected count with the same listing and the same
+  // SceneIndex.scala exclusion the implementation uses, so it passed for any count -- story 3's
+  // "exactly 32 example scenes" acceptance criterion was not actually pinned by anything. The
+  // literal is the point: adding or losing a corpus scene is a deliberate act that should
+  // update this number.
+  it should "carry exactly the 32 example scenes story 3 specifies" in:
+    val corpus = corpusFor(freshTempPath())
+    corpus.scenes should have size ExpectedSceneCount
+
   it should "carry every scene file currently present in examples/dsl" in:
     val corpus = corpusFor(freshTempPath())
     val expectedCount = java.nio.file.Files.list(
@@ -89,6 +102,10 @@ class CorpusExporterSuite extends AnyFlatSpec with Matchers:
       .filter(p => Files.isRegularFile(p) && p.getFileName.toString.endsWith(".scala"))
       .count(p => p.getFileName.toString != "SceneIndex.scala")
     corpus.scenes should have size expectedCount
+
+  it should "exclude shared presets under examples/dsl/common (the scan is non-recursive)" in:
+    val corpus = corpusFor(freshTempPath())
+    corpus.scenes.map(_.path).foreach(_ should not include "common/")
 
   private def corpusFor(outputPath: String): CorpusExporter.CorpusManifest =
     CorpusExporter.run(Array(outputPath, TestSourceDir)) shouldBe Right(())
