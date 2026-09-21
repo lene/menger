@@ -86,6 +86,45 @@ class RestrictedClasspathSuite extends AnyFlatSpec with Matchers:
   it should "consider the stage layout structurally complete" in:
     RestrictedClasspath.preflight(syntheticStage) shouldBe None
 
+  // menger-toplevel's nightly compat.yml builds menger against `menger-common@main` by
+  // `sbt publishLocal`-ing it first. Ivy's local repository keeps the version in the
+  // directory and names the jar `menger-common_3.jar` -- no version in the file name at all
+  // -- so a version-shaped pattern missed it and preflight() refused every scene the job
+  // validated. These are the real paths from the failing run's log.
+  private val syntheticIvyLocal = List(
+    "/repo/menger-app/target/scala-3.8.3/classes",
+    "/cache/org/scala-lang/scala-library/3.8.3/scala-library-3.8.3.jar",
+    "/cache/org/scala-lang/scala3-library_3/3.8.3/scala3-library_3-3.8.3.jar",
+    "/ci/.ivy2/local/io.github.lene/menger-common_3/0.0.0-compat-local/jars/menger-common_3.jar",
+    "/cache/com/typesafe/scala-logging/scala-logging_3/3.9.6/scala-logging_3-3.9.6.jar"
+  ).mkString(sep)
+
+  it should "include a locally published menger-common whose Ivy jar name carries no version" in:
+    RestrictedClasspath.build(syntheticIvyLocal) should include("menger-common_3.jar")
+
+  it should "consider the Ivy local layout structurally complete" in:
+    RestrictedClasspath.preflight(syntheticIvyLocal) shouldBe None
+
+  it should "accept a version with a non-numeric qualifier, as a local build produces" in:
+    val qualified = syntheticFull
+      .replace("menger-common_3-0.2.0.jar", "menger-common_3-0.0.0-compat-local.jar")
+    RestrictedClasspath.preflight(qualified) shouldBe None
+    RestrictedClasspath.build(qualified) should include("menger-common_3-0.0.0-compat-local.jar")
+
+  it should "still exclude sources, javadoc and test classifier jars of allowlisted artifacts" in:
+    val classifiersOnly = List(
+      "/repo/menger-app/target/scala-3.8.3/classes",
+      "/cache/io/github/lene/menger-common_3/0.2.0/menger-common_3-0.2.0-sources.jar",
+      "/cache/io/github/lene/menger-common_3/0.2.0/menger-common_3-0.2.0-javadoc.jar",
+      "/ci/.ivy2/local/io.github.lene/menger-common_3/0.2.0/srcs/menger-common_3-sources.jar"
+    ).mkString(sep)
+    val restricted = RestrictedClasspath.build(classifiersOnly)
+    restricted should not include "sources"
+    restricted should not include "javadoc"
+    val reason = RestrictedClasspath.preflight(classifiersOnly)
+    reason shouldBe defined
+    reason.get should include("menger-common")
+
   "RestrictedClasspath.preflight" should "return None when every required entry is present" in:
     RestrictedClasspath.preflight(syntheticFull) shouldBe None
 
