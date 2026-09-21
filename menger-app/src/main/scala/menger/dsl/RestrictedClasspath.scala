@@ -12,6 +12,7 @@ import java.util.zip.ZipOutputStream
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 import scala.util.control.NonFatal
+import scala.util.matching.Regex
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -70,7 +71,7 @@ object RestrictedClasspath extends LazyLogging:
     * compiled *main* output directory (never `test-classes`, never `menger-geometry`'s). This
     * is the layout `sbt test`/`sbt run` (unforked, or forked via the plain `Test`/`Compile`
     * classpath -- confirmed empirically to be what `sbt testOnly` actually uses) presents;
-    * see the jar patterns below for the *other* two layouts this project's own build produces.
+    * see the jar patterns below for the *other* layouts this project's own build produces.
     */
   private val ProjectClassesDir = """.*/menger-app/target/[^/]+/classes$""".r
 
@@ -85,23 +86,41 @@ object RestrictedClasspath extends LazyLogging:
     * `docker/scene-validator/` actually runs) prefixes *every* jar with its dotted
     * organization id, e.g. `io.github.lilacashes.menger-app-0.8.13.jar`,
     * `org.scala-lang.scala-library-3.8.3.jar`, `com.typesafe.scala-logging.scala-logging_3-
-    * 3.9.6.jar` -- and drops menger-app's own `_3` cross-version suffix entirely. The optional
-    * `(?:[\w.-]+\.)?` prefix and optional `(?:_3)?` suffix below tolerate all three; the
-    * trailing `\d[\d.]*\.jar$` (digits/dots only, then `.jar` immediately) is what excludes
-    * `-tests`/`-sources`/`-javadoc`/`-natives-*` classifier jars, which share the same
-    * artifact-name-plus-version prefix but never end in bare digits-and-dots.
+    * 3.9.6.jar` -- and drops menger-app's own `_3` cross-version suffix entirely. A fourth,
+    * found the hard way: Ivy's *local* repository (where `sbt publishLocal` puts a dependency
+    * built from source -- what menger-toplevel's nightly `compat.yml` does with
+    * `menger-common@main`) carries the version in the enclosing *directory* and names the jar
+    * `menger-common_3.jar`, with no version in the file name at all. A version-shaped pattern
+    * missed it, `preflight` reported menger-common missing, and every scene the job validated
+    * came back `refused` -- a red nightly that looked like a cross-repo API break and was not.
+    *
+    * Hence: the optional `(?:[\w.-]+\.)?` prefix tolerates the dotted organization id, the
+    * optional `(?:_3)?` suffix menger-app's own dropped cross-version suffix, and the version
+    * segment is optional and may carry a qualifier (`-0.0.0-compat-local`), requiring only a
+    * leading digit. Making the version that permissive means it no longer does double duty as
+    * the classifier filter, so [[ClassifierJar]] below excludes `-sources`/`-javadoc`/`-tests`/
+    * `-natives-*` jars explicitly instead -- they resolve to the same artifact name and would
+    * otherwise satisfy the allowlist with a jar that has no classes in it.
     */
-  private val MengerAppJarPattern    = """(?:[\w.-]+\.)?menger-app(?:_3)?-\d[\d.]*\.jar""".r
+  private val MengerAppJarPattern = """(?:[\w.-]+\.)?menger-app(?:_3)?(?:-\d[\w.-]*)?\.jar""".r
   private val IncludedJarNamePatterns = List(
-    "scala-library"  -> """(?:[\w.-]+\.)?scala-library-\d[\d.]*\.jar""".r,
-    "scala3-library"  -> """(?:[\w.-]+\.)?scala3-library_3-\d[\d.]*\.jar""".r,
-    "menger-common"  -> """(?:[\w.-]+\.)?menger-common_3-\d[\d.]*\.jar""".r,
-    "scala-logging"  -> """(?:[\w.-]+\.)?scala-logging_3-\d[\d.]*\.jar""".r,
+    "scala-library"  -> """(?:[\w.-]+\.)?scala-library(?:-\d[\w.-]*)?\.jar""".r,
+    "scala3-library" -> """(?:[\w.-]+\.)?scala3-library_3(?:-\d[\w.-]*)?\.jar""".r,
+    "menger-common"  -> """(?:[\w.-]+\.)?menger-common_3(?:-\d[\w.-]*)?\.jar""".r,
+    "scala-logging"  -> """(?:[\w.-]+\.)?scala-logging_3(?:-\d[\w.-]*)?\.jar""".r,
     "menger-app"     -> MengerAppJarPattern
   )
 
+  /** A classifier jar is never the artifact itself: it carries sources, scaladoc, test
+    * classes or native libraries. Checked before the allowlist -- and by every caller, so
+    * `build` and `preflight` can never disagree about what counts as present. */
+  private val ClassifierJar = """.*-(?:sources|javadoc|tests|natives-[\w.-]+)\.jar""".r
+
   private def isIncludedDir(path: String): Boolean = ProjectClassesDir.matches(path)
-  private def isIncludedJar(name: String): Boolean = IncludedJarNamePatterns.exists(_._2.matches(name))
+  private def jarMatches(pattern: Regex, name: String): Boolean =
+    !ClassifierJar.matches(name) && pattern.matches(name)
+  private def isIncludedJar(name: String): Boolean =
+    IncludedJarNamePatterns.exists(entry => jarMatches(entry._2, name))
 
   /** Classifies a classpath entry from its *path string* alone -- deliberately not a
     * filesystem `isDirectory()` stat: a `.jar`-suffixed entry is a jar, anything else is a
@@ -266,7 +285,10 @@ object RestrictedClasspath extends LazyLogging:
 
     val missingLibs = IncludedJarNamePatterns
       .filterNot(_._1 == "menger-app")
-      .collect { case (label, pattern) if !entries.exists(e => pattern.matches(new File(e).getName)) => label }
+      .collect {
+        case (label, pattern) if !entries.exists(e => jarMatches(pattern, new File(e).getName)) =>
+          label
+      }
 
     val mengerAppPresent = entries.exists { e =>
       isIncludedDir(e) || mengerAppJarMatches(e)
@@ -281,7 +303,7 @@ object RestrictedClasspath extends LazyLogging:
       Some((libPart ++ appPart).mkString("; "))
 
   private def mengerAppJarMatches(entryPath: String): Boolean =
-    entryPath.endsWith(".jar") && MengerAppJarPattern.matches(new File(entryPath).getName)
+    entryPath.endsWith(".jar") && jarMatches(MengerAppJarPattern, new File(entryPath).getName)
 
   /** menger-app's own compiled output, in either layout -- the only entry [[prune]] applies
     * to. Every other allowlisted entry is a third-party jar with no menger packages in it. */
