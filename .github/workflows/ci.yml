@@ -316,6 +316,18 @@ jobs:
           name: menger-deployable
           path: ${{ env.DEPLOYABLE_BASE_NAME }}-${{ env.DEPLOYABLE_VERSION }}.zip
 
+  perf:
+    name: Performance gates (GPU)
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 30
+    needs: [test-full]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - name: Run performance gates (scripts/suites/perf.sh)
+        run: ./scripts/suites/perf.sh
+
   perf-check:
     name: PerfCheck (benchmark vs baseline, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
@@ -329,12 +341,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: menger-deployable
-      - name: Run benchmark
+      - name: Run benchmark trend check (scripts/suites/perf-trend.sh)
         run: |
           set -euo pipefail
           unzip -oq "menger-${DEPLOYABLE_VERSION}.zip"
           export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-          ./scripts/benchmark.sh "./menger-app-${DEPLOYABLE_VERSION}/bin/menger-app"
+          ./scripts/suites/perf-trend.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -355,7 +367,7 @@ jobs:
     # Repo default GITHUB_TOKEN is read-only; pushing the tag needs write.
     permissions:
       contents: write
-    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck, archunit]
+    needs: [test-full, perf, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck, archunit]
     outputs:
       need_release: ${{ steps.tag.outputs.need_release }}
     steps:
