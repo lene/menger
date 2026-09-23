@@ -1,7 +1,14 @@
 package io.github.lene.optix
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import menger.common.Vector
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.qa.BenchConfig
+import io.github.lene.qa.Perf
+import io.github.lene.qa.PerfGate
+import io.github.lene.qa.RelativeBenchmark
+import io.github.lene.qa.Side
 import menger.common.Color
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
@@ -27,6 +34,7 @@ object Project4DGpuSuiteTags:
 class Project4DGpuSuite extends AnyFlatSpec
     with Matchers
     with LazyLogging
+    with PerfGate
     with BeforeAndAfterEach:
 
   import Project4DGpuSuiteTags.Slow
@@ -36,12 +44,16 @@ class Project4DGpuSuite extends AnyFlatSpec
   private val ImgSize = ImageSize(256, 192)
   private val MaxAbsPixelDiff = 6  // L∞ over RGB; conservative for float32 path divergence.
 
-  // Perf-timing tests are meaningless under compute-sanitizer's instrumentation
-  // overhead, so they self-skip — letting the sanitizer gate run this suite's GPU
-  // *correctness* tests (which make the CUDA calls that keep the gate non-vacuous)
-  // instead of being excluded wholesale by tag.
-  private val runningUnderSanitizer: Boolean =
-    sys.env.get("RUNNING_UNDER_COMPUTE_SANITIZER").contains("true")
+  // Perf gates (tag Perf): time ratio subject / reference, judged by RelativeBenchmark. Both
+  // assert the tests' claim "faster than" (ratio < 1). Measured on the RTX A1000 laptop (idle /
+  // under a 99% GPU burn plus CPU load, 2026-09-23), highest upper confidence bound: GPU flatten
+  // 0.41; update vs rebuild 0.06 idle but 0.89 loaded -- update is GPU-bound, rebuild mostly
+  // CPU, so GPU contention moves only one side. The perf suite's GPU preflight skips the run
+  // when another compute process holds the GPU.
+  private val MaxRatioGpuFlattenVsCpu = 1.0
+  private val MaxRatioUpdateVsRebuild = 1.0
+  private val AnimationFrames = 40
+  private val AnimationStepDegrees = 9f
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var rendererOpt: Option[OptiXRenderer] = None
@@ -190,29 +202,19 @@ class Project4DGpuSuite extends AnyFlatSpec
 
   // --- Test 3: perf smoke on tesseract-sponge level=2 ----------------------
 
-  it should "set up tesseract-sponge level=2 at least as fast on GPU as CPU" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "GPU-vs-CPU timing is meaningless under compute-sanitizer instrumentation")
-    val level = 2f
-
-    val (cpuMesh, cpuMs) = measureMs:
-      TesseractSpongeMesh(
-        center = Vector[3](0f, 0f, 0f), size = 1.0f, level = level,
-        rotXW = 12f, rotYW = 18f, rotZW = 7f
-      ).toTriangleMesh
-
-    val (gpuQuads, gpuFlattenMs) = measureMs:
-      val proj = TesseractSpongeMesh(
-        center = Vector[3](0f, 0f, 0f), size = 1.0f, level = level,
-        rotXW = 12f, rotYW = 18f, rotZW = 7f
-      )
-      Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D)
-
-    logger.info(f"tesseract-sponge L$level%.0f setup — CPU=${cpuMs}%.1fms, GPU-flatten=${gpuFlattenMs}%.1fms; CPU triangles=${cpuMesh.numTriangles}, GPU quads=${gpuQuads.length / 16}")
-
+  // Level 1, not 2: the CPU path takes seconds per op at level 2, times ~34 timed samples.
+  it should "set up a tesseract sponge faster via GPU flatten than via CPU" taggedAs Perf in:
+    def sponge() = TesseractSpongeMesh(
+      center = Vector[3](0f, 0f, 0f), size = 1.0f, level = 1f,
+      rotXW = 12f, rotYW = 18f, rotZW = 7f
+    )
     // The GPU flatten step skips per-vertex matrix multiplications and normal
     // cross-products, so it should comfortably beat the CPU `toTriangleMesh`
     // path even before the kernel launch is amortised.
-    gpuFlattenMs should be <= cpuMs
+    val cpu = Side("CPU toTriangleMesh", () => { val _ = sponge().toTriangleMesh })
+    val gpu = Side("GPU flatten", () => { val _ = Mesh4DGpuFlatten.quadsBuffer(sponge().mesh4D) })
+    val verdict = RelativeBenchmark.compare(cpu, gpu, MaxRatioGpuFlattenVsCpu, BenchConfig.JvmCpu)
+    assertWithin("tesseract sponge L1 setup, GPU flatten vs CPU", verdict)
 
   // --- Test 4: update equivalence — frame B via update vs from-scratch ------
 
@@ -249,47 +251,43 @@ class Project4DGpuSuite extends AnyFlatSpec
 
   // --- Test 5: update perf — animation update vs rebuild --------------------
 
-  it should "animate 4D rotation faster via updateMesh4DProjection than via rebuild" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "GPU-vs-CPU timing is meaningless under compute-sanitizer instrumentation")
-    val frames = 10
-    val proj0 = TesseractSpongeMesh(
+  it should "animate 4D rotation faster via projection update than rebuild" taggedAs Perf in:
+    def sponge(angle: Float) = TesseractSpongeMesh(
       center = Vector[3](0f, 0f, 0f), size = 1.0f, level = 1f,
-      rotXW = 0f, rotYW = 0f, rotZW = 0f
+      rotXW = angle, rotYW = 0f, rotZW = 0f
     )
-    val quads = Mesh4DGpuFlatten.quadsBuffer(proj0.mesh4D)
-    val meshIdx = renderer.setTriangleMesh4DQuads(
-      quads, uvs = null, eyeW = proj0.eyeW, screenW = proj0.screenW, // scalafix:ok DisableSyntax.null
-      rotXW = 0f, rotYW = 0f, rotZW = 0f,
-      centerX = 0f, centerY = 0f, centerZ = 0f
+    def upload(proj: Mesh4DProjection, angle: Float): Int =
+      renderer.setTriangleMesh4DQuads(
+        Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D), uvs = null, // scalafix:ok DisableSyntax.null
+        eyeW = proj.eyeW, screenW = proj.screenW,
+        rotXW = angle, rotYW = 0f, rotZW = 0f,
+        centerX = 0f, centerY = 0f, centerZ = 0f
+      )
+    val base = sponge(0f)
+    val meshIdx = AtomicInteger(-1)
+    val frame = AtomicInteger(0)
+    def nextAngle(): Float = (frame.incrementAndGet() % AnimationFrames + 1) * AnimationStepDegrees
+    // Uploads append meshes: every sample starts from a scene holding just the base mesh.
+    def resetScene(): Unit =
+      renderer.clearAllInstances()
+      renderer.clearTriangleMesh()
+      meshIdx.set(upload(base, 0f))
+      renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
+    val update = Side(
+      "updateMesh4DProjection",
+      () => renderer.updateMesh4DProjection(
+        meshIdx.get, eyeW = base.eyeW, screenW = base.screenW,
+        rotXW = nextAngle(), rotYW = 0f, rotZW = 0f
+      ),
+      prepare = () => resetScene()
     )
-    renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
-    val (_, updateMs) = measureMs:
-      (0 until frames).foreach { i =>
-        val angle = (i + 1) * 9f
-        renderer.updateMesh4DProjection(
-          meshIdx, eyeW = proj0.eyeW, screenW = proj0.screenW,
-          rotXW = angle, rotYW = 0f, rotZW = 0f
-        )
-      }
-    val (_, rebuildMs) = measureMs:
-      (0 until frames).foreach { i =>
-        val angle = (i + 1) * 9f
-        val proj = TesseractSpongeMesh(
-          center = Vector[3](0f, 0f, 0f), size = 1.0f, level = 1f,
-          rotXW = angle, rotYW = 0f, rotZW = 0f
-        )
-        val q = Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D)
-        val _ = renderer.setTriangleMesh4DQuads(
-          q, uvs = null, eyeW = proj.eyeW, screenW = proj.screenW, // scalafix:ok DisableSyntax.null
-          rotXW = angle, rotYW = 0f, rotZW = 0f,
-          centerX = 0f, centerY = 0f, centerZ = 0f
-        )
-      }
-    logger.info(f"animation $frames frames — update=${updateMs}%.1fms, rebuild=${rebuildMs}%.1fms")
-    // Single-shot timing, not a tight loop average — a small tolerance avoids flaking on
-    // scheduler/GPU-contention noise near the crossover, while still catching a real
-    // regression where update stops being meaningfully cheaper than a full rebuild.
-    updateMs should be < (rebuildMs * 1.2)
+    val rebuild = Side(
+      "rebuild",
+      () => { val angle = nextAngle(); val _ = upload(sponge(angle), angle) },
+      prepare = () => resetScene()
+    )
+    val verdict = RelativeBenchmark.compare(rebuild, update, MaxRatioUpdateVsRebuild)
+    assertWithin("tesseract sponge L1 animation, update vs rebuild", verdict)
 
   // --- Test 6: return-code contract — setTriangleMesh4DQuads ---
 
@@ -328,9 +326,3 @@ class Project4DGpuSuite extends AnyFlatSpec
     renderer.addCurveInstance(points, Array.fill(4)(0.1f), opaqueGrey)
     val _ = renderer.render(ImgSize)
     renderer.getInstanceCount() shouldBe 4
-
-  private def measureMs[T](block: => T): (T, Double) =
-    val start = System.nanoTime()
-    val result = block
-    val ms = (System.nanoTime() - start) / 1_000_000.0
-    (result, ms)
