@@ -1,12 +1,11 @@
 {
-  "_calibration": 41.998947,
-  "glass-sphere": 49.00547,
-  "diamond-sphere": 48.819675,
-  "menger4d-L2": 56.363327,
-  "sierpinski4d-L2": 49.26967,
-  "tesseract": 48.79146,
-  "curve": 50.630524,
-  "lsystem-tree-L3": 47.216805,
-  "sphere-IBL-accum": 125.7979,
-  "caustics-glass": 164.2973
+  "glass-sphere": 1.0883,
+  "diamond-sphere": 1.0434,
+  "menger4d-L2": 1.145,
+  "sierpinski4d-L2": 1.0099,
+  "tesseract": 1.0243,
+  "curve": 0.9762,
+  "lsystem-tree-L3": 1.0051,
+  "sphere-IBL-accum": 2.4006,
+  "caustics-glass": 1.5935
 }
