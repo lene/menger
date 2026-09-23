@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- Timing tests are now noise-aware performance gates (tag `Perf`) in their own push-tier `perf`
+  suite and CI job, excluded from the regular test run. Each gate times a subject against a
+  reference in interleaved rounds (shared helper `io.github.lene.qa.RelativeBenchmark`) and
+  judges the median ratio by its confidence interval: a conclusive regression fails, an
+  unjudgeable measurement is skipped visibly. Replaces absolute millisecond/fps thresholds
+  (`SpongePerformanceSuite`) and single-shot A/B timings (`Project4DGpuSuite`).
+- The benchmark trend check is now the release-tier `perf-trend` suite: `benchmark.sh` brackets
+  every scene with calibration renders, stores machine-independent ratios in
+  `perf-baseline.json`, and exits 2 (skip) when a scene can't be judged reliably.
+
 ## [0.8.14] - 2026-09-04
 
 ### Added

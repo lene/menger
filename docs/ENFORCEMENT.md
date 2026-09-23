@@ -113,7 +113,8 @@ leaky") — add only if the 🤖 row proves insufficient in practice.
 
 | Policy | Source | Mechanism | Status |
 |--------|--------|-----------|--------|
-| No silent performance regressions (> 15 % ms/frame) | Sprint 28.7 | CI `PerfCheck` job (`allow_failure: true`): `benchmark.sh` compares 4 scenes against `perf-baseline.json` (15 % threshold) | ⚠️ advisory |
+| No silent performance regressions | Sprint 28.7, Sprint 37 | `perf` suite (push tier, pre-push + CI `perf` job, blocking): `Perf`-tagged gates time each subject against a reference in interleaved rounds (`io.github.lene.qa.RelativeBenchmark`) and fail only on a conclusive regression; unjudgeable measurements SKIP visibly (see `docs/TESTING.md` "Performance gates") | ✅ enforced |
+| No silent performance drift across commits | Sprint 36 F4, Sprint 37 | `perf-trend` suite (release tier; CI `perf-check` on PRs/schedule): `benchmark.sh` brackets each of 9 scenes with calibration renders, compares against machine-independent ratios in `perf-baseline.json` (1.30x limit, confidence interval), ratchets on conclusive improvement; arc42 P1/P2 absolute budgets as budget guards | ✅ enforced |
 
 ---
 
@@ -141,4 +142,4 @@ consciously accepted.
 | 4 | Alpha-channel convention (0.0 = transparent) has no static check | Add WartRemover rule or comment-linter — [#158](https://gitlab.com/lilacashes/menger/-/work_items/158) |
 | 6 | No check that arc42 is updated when architecture-relevant files change | Implement hook comparing changed paths against an architecture-relevant path list — [#160](https://gitlab.com/lilacashes/menger/-/work_items/160) |
 | ~~7~~ | ~~CHANGELOG.md update not enforced at release time~~ | **✅ Resolved (Sprint 36 G3):** already closed by CI's `ChangelogIsUpdated` job (see Version & release table above) — the table was updated when that landed but this row never was. |
-| 8 | Performance regression guard not yet implemented | Task 28.7 — [#162](https://gitlab.com/lilacashes/menger/-/work_items/162). Note: a `PerfCheck` job exists (Performance table above) but only as advisory (`allow_failure: true`); this issue is about a real blocking guard, still open. |
+| ~~8~~ | ~~Performance regression guard not yet implemented~~ | **✅ Resolved (Sprint 37):** blocking push-tier `perf` suite plus release-tier `perf-trend` (Performance table above), built on interleaved relative benchmarks with confidence intervals — [#162](https://gitlab.com/lilacashes/menger/-/work_items/162). |
