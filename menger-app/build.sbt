@@ -37,6 +37,20 @@ Test / javaOptions += "-Dlogback.statusListenerClass=ch.qos.logback.core.status.
 Test / fork := true
 Test / scalacOptions += "-experimental"
 
+// Shared performance-gate helper (RelativeBenchmark), vendored from menger-toplevel's
+// shared/standards like the hooks.
+Test / unmanagedSourceDirectories +=
+  (ThisBuild / baseDirectory).value / "standards" / "test" / "scala"
+
+// Timing-based gates (ScalaTest tag "Perf") run alone in the `perf` suite (PERF_ONLY=1) and
+// are excluded from every other test run, where concurrent work would distort the timings.
+val perfOnly = sys.env.get("PERF_ONLY").contains("1")
+Test / testOptions += Tests.Argument(
+  TestFrameworks.ScalaTest,
+  (if (perfOnly) Seq("-n", "Perf") else Seq("-l", "Perf")): _*
+)
+Test / parallelExecution := !perfOnly
+
 // Coverage configuration - exclude untestable packages (JNI/GPU and LibGDX/OpenGL code)
 // Also exclude LibGDX adapter handlers that require native library initialization for testing
 coverageExcludedPackages := "menger\\.optix\\..*;menger\\.engines\\..*;" +
