@@ -14,6 +14,14 @@
   every scene with calibration renders, stores machine-independent ratios in
   `perf-baseline.json`, and exits 2 (skip) when a scene can't be judged reliably.
 
+### Fixed
+
+- Console log output goes to stderr, so tools that print JSON on stdout (`SceneValidator`)
+  stay machine-readable.
+- Scene compile failures report the real compiler diagnostics instead of a placeholder.
+- A sticky CUDA error (700 illegal address, 719 launch failure, ...) exits with one error line
+  instead of being retried on every frame; non-sticky failures (out of memory) still retry.
+
 ## [0.8.14] - 2026-09-04
 
 ### Added
