@@ -35,6 +35,38 @@ class OptiXRendererWrapperSuite extends AnyFlatSpec with Matchers with MockFacto
     (renderer.render(_: ImageSize)).expects(*).throwing(new RuntimeException("native render failed")).once()
     wrapperWith(renderer).renderScene(dims) shouldBe None
 
+  // A sticky CUDA error leaves the context permanently unusable: retrying every frame (the
+  // None path) only repeats the same failure forever, so it must surface as a fatal error.
+  private def cudaFailure(description: String, code: Int): OptiXException =
+    OptiXException(s"CUDA call 'cudaDeviceSynchronize()' failed: $description ($code)")
+
+  it should "fail fast on a sticky CUDA error (700 illegal address)" in:
+    val renderer = mock[OptiXRenderer]
+    val cause = cudaFailure("an illegal memory access was encountered", 700)
+    (renderer.render(_: ImageSize)).expects(*).throwing(cause).once()
+    val thrown = the[RuntimeException] thrownBy wrapperWith(renderer).renderScene(dims)
+    thrown.getMessage should include("(700)")
+
+  it should "fail fast on a sticky CUDA error (719 launch failure)" in:
+    val renderer = mock[OptiXRenderer]
+    val cause = cudaFailure("unspecified launch failure", 719)
+    (renderer.render(_: ImageSize)).expects(*).throwing(cause).once()
+    val thrown = the[RuntimeException] thrownBy wrapperWith(renderer).renderScene(dims)
+    thrown.getMessage should include("(719)")
+
+  it should "fail fast on a sticky CUDA error with trailing explanation (718)" in:
+    val renderer = mock[OptiXRenderer]
+    val cause = OptiXException(
+      "CUDA call 'cudaDeviceSynchronize()' failed: invalid program counter (718)\n\nHint: ..."
+    )
+    (renderer.render(_: ImageSize)).expects(*).throwing(cause).once()
+    an[RuntimeException] should be thrownBy wrapperWith(renderer).renderScene(dims)
+
+  it should "still return None on a recoverable CUDA error (2 out of memory)" in:
+    val renderer = mock[OptiXRenderer]
+    (renderer.render(_: ImageSize)).expects(*).throwing(cudaFailure("out of memory", 2)).once()
+    wrapperWith(renderer).renderScene(dims) shouldBe None
+
   "renderSceneWithStats" should "convert a present Optional to Some" in:
     val renderer = mock[OptiXRenderer]
     val result = renderResult(Array[Byte](9))
