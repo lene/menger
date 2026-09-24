@@ -1,14 +1,24 @@
 # Menger - OptiX Ray Tracing and 3D/4D Visualization
 
-This project provides three main capabilities:
+Menger is a GPU ray tracer for three- and four-dimensional objects, written in Scala 3 on top of
+NVIDIA OptiX. It renders [Menger sponges](https://en.wikipedia.org/wiki/Menger_sponge) (3D),
+tesseract sponges (4D), the regular 4-polytopes, 4D IFS fractals, L-systems, parametric surfaces
+and more — with physically based materials, refraction, shadows, caustics, HDR environment
+lighting, animation and video output. Scenes are described either on the command line or in a
+type-safe Scala DSL.
 
-1. **OptiX JNI Wrapper** - Java Native Interface bindings for NVIDIA's OptiX ray tracing library
-2. **Ray Tracing Renderer** - Scala 3 implementation with LibGDX integration for interactive rendering
-3. **3D/4D Visualization Tool** - Rendering and exploration of three and four dimensional objects
+It is used in three ways: an **interactive window** (orbit, pan, rotate in 4D while the image
+refines), **headless rendering** of stills, frame sequences and videos, and **DSL scenes** you write
+in Scala.
 
-**Current showcase:** [Menger sponges](https://en.wikipedia.org/wiki/Menger_sponge) (3D) and tesseract sponges (4D) generated via surface subdivision, with support for interactive exploration, animations, and fractional levels with alpha blending.
+📖 **[Complete User Guide](docs/USER_GUIDE.md)** — installation, usage, tutorials, DSL reference and
+troubleshooting.
 
-📖 **[Complete User Guide](docs/USER_GUIDE.md)** - Comprehensive guide covering installation, usage, tutorials, and troubleshooting
+**Where the pieces live:** this repo is the application. Generic OptiX bindings are the separate
+published library [`optix-jni`](https://github.com/lene/optix-jni), shared domain types are
+[`menger-common`](https://github.com/lene/menger-common); the three are developed together in the
+[`menger-toplevel`](https://github.com/lene/menger-toplevel) workspace, which also holds the
+architecture documentation (arc42) and sprint planning.
 
 ## About Menger Sponges
 
@@ -45,118 +55,78 @@ $O(16^n)$ instead of $O(48^n)$ for the Tesseract subdivision process.
 
 ## Fractional levels
 
-All sponge types support fractional levels (e.g., `--level 1.5`), which renders two overlapping
+All sponge types support fractional levels (e.g., `level=1.5`), which renders two overlapping
 sponges with smooth alpha blending: the floor level (e.g., level 1) rendered transparently, and the
 ceiling level (e.g., level 2) rendered opaque. The transparency of the lower level increases 
 linearly from fully opaque at integer levels to fully transparent as it approaches the next integer 
 level.
 
 
-# Build Requirements
+# Requirements
 
-## Quick Start
+Menger renders **only** on NVIDIA GPUs via OptiX — there is no CPU or OpenGL fallback.
 
-For a complete installation from scratch (CUDA, OptiX, Java, sbt), see the **[Installation from Scratch Guide](docs/INSTALLATION_FROM_SCRATCH.md)**.
+- Linux (Ubuntu 22.04+ or Debian stable/testing)
+- NVIDIA RTX-class GPU, **driver ≥ 580.65** (the published binaries link the CUDA 13 runtime;
+  older drivers fail with CUDA error 35)
+- Java 17+ (21 or 25 recommended)
+- To build from source additionally: CUDA Toolkit 13.x, NVIDIA OptiX SDK 9.0 (matching the
+  driver), CMake 3.x, g++, sbt 1.11+
 
-## CMake
+Step-by-step: [Installation from Scratch](docs/INSTALLATION_FROM_SCRATCH.md).
 
-The project requires CMake 3.x for building the OptiX JNI bindings.
+# Quick Start
 
-**Note:** The project includes a `cmake` wrapper script that filters out a harmless warning caused
-by an sbt-jni version parsing bug. To use it, create a symlink in your local bin directory:
+From a release (download `menger-<version>.zip` from the GitHub releases page and unzip it):
 
 ```bash
-mkdir -p ~/.local/bin
-ln -sf "$PWD/cmake" ~/.local/bin/cmake
+./menger-app-0.9.0/bin/menger-app --objects type=sponge-volume:level=2:material=gold \
+    --plane y:-2 --shadows
 ```
 
-This only needs to be done once. The wrapper ensures `~/.local/bin/cmake` is found before the system
-cmake, filtering out the annoying "Ignoring extra path from command line" warning.
+From source:
 
-## CUDA and OptiX
+```bash
+git clone https://github.com/lene/menger.git && cd menger
+sbt compile                                    # first build: 5-10 min (Scala + CUDA)
+sbt "run --objects type=sphere:material=glass --plane y:-2"
+```
 
-For GPU acceleration features (optional), you need:
-- **NVIDIA driver ≥ 580.65** (required to run the distributed build — its native libs link the CUDA 13 runtime; older drivers fail with CUDA error 35)
-- CUDA Toolkit 13.x (build toolchain; source compiles with ≥12.0, but the published binaries use CUDA 13)
-- NVIDIA OptiX SDK 9.0+
+Every run needs `--objects` (objects described on the command line) or `--scene` (a DSL scene);
+a bare `sbt run` exits with an error. `menger-app --help` lists all options.
 
-**Installation guides:**
-- [Installation from Scratch](docs/INSTALLATION_FROM_SCRATCH.md) - Complete step-by-step guide
+> **Upgrading from 0.8.x?** `--optix` is gone (OptiX is the only renderer; passing it now fails
+> with `Unknown option 'optix'`), as are the LibGDX rasterizer and the single-object flags
+> `--object`, `--radius`, `--ior`, `--scale`, `--center`. `--sponge-type`, `--lines`, `--color`,
+> `--face-color`, `--line-color`, `--antialias-samples` and the global `--projection-*-w` flags
+> are still parsed but have no effect — use `--objects type=...:level=...:color=...` instead.
 
-# Usage
+# Usage Overview
 
-Compile code with `sbt compile`, test with `sbt test`, run with `sbt run`, and `sbt console`
-for a Scala 3 REPL.
+The [User Guide](docs/USER_GUIDE.md) has the full reference; this is the short version.
 
-## Options
-- `--timeout <float>` - Exit after specified seconds (useful for testing)
-- `--sponge-type <type>` - Type of sponge to render:
-  - `square` - 2D square
-  - `cube` - 3D cube
-  - `square-sponge` - Menger sponge by surface subdivision
-  - `cube-sponge` - Menger sponge by volume subdivision
-  - `tesseract` - 4D tesseract
-  - `tesseract-sponge` - 4D sponge (48 tesseracts)
-  - `tesseract-sponge-2` - 4D sponge (16 faces per face)
-  - `composite[type1,type2,...]` - Overlay multiple geometries
-- `--level <float>` - Fractal iteration level (supports fractional values)
-- `--lines` - Render as wireframe
-- `--color <rrggbb[aa]>` - Hex color code (e.g., ff0000 for red). Cannot be used with `--face-color`
-  or `--line-color`.
-- `--face-color <rrggbb[aa]>` - Color for filled faces in overlay mode (supports RGBA for 
-  transparency)
-- `--line-color <rrggbb[aa]>` - Color for wireframe lines in overlay mode (supports RGBA for 
-  transparency)
-  - **Overlay mode**: When both `--face-color` and `--line-color` are specified, renders transparent
-    faces with wireframe overlay
-  - Example: `--face-color ffffff40 --line-color 000000ff` (transparent white faces with opaque 
-    black lines)
-  - Note: Both must be specified together. Cannot be used with `--color` or `--lines`.
-- `--projection-screen-w <float>` - 4D projection screen distance
-- `--projection-eye-w <float>` - 4D projection eye distance
-- `--rot-x-w <float>` - 4D rotation around XW plane
-- `--rot-y-w <float>` - 4D rotation around YW plane
-- `--rot-z-w <float>` - 4D rotation around ZW plane
-- `--width <int>` - Window width
-- `--height <int>` - Window height
-- `--antialias-samples <int>` - MSAA samples
-- `--animate <spec>` - Animation specification supporting:
-  - Rotation: `rot-x`, `rot-y`, `rot-z` (3D rotation angles)
-  - 4D rotation: `rot-x-w`, `rot-y-w`, `rot-z-w` (4D rotation angles)
-  - 4D projection: `projection-screen-w`, `projection-eye-w` (4D camera settings)
-  - Level animation: `level` (fractal iteration level for sponge types)
-  - Examples:
-    - `frames=10:rot-y=0-360` - Rotate 360° around Y axis over 10 frames
-    - `frames=20:level=0-3` - Animate from level 0 to 3 over 20 frames
-    - `frames=10:level=0-2:rot-y=0-90` - Combine level and rotation animation
-  - Chaining: Multiple animation specifications can be chained using `--animate` multiple times
-    - `--animate frames=10:rot-x-w=0-10 --animate frames=10:rot-y-w=0-10` - Sequential rotations
-    - `--animate frames=10:level=0-2 --animate frames=10:level=2-0` - Animate level up then down
-  - Note: Parameters cannot be specified both as CLI options (e.g., `--level`, `--rot-x`) and in
-    animation specifications
-- `--save-name <pattern>` - Save frames to files (e.g., `frame%d.png`)
+#### Objects
 
-### OptiX Ray Tracing Options
-
-GPU-accelerated ray tracing using NVIDIA OptiX (requires `--optix` and `--object`).
-
-#### Object Types
-
-- `--optix` - Enable OptiX renderer (requires `--object`)
-- `--objects <spec>` - Objects to render (repeatable), format: `type=TYPE[:param=value...]`
-  - Object types: `sphere`, `cube`, `sponge-volume`, `sponge-surface`, `cube-sponge`, `tesseract`, `tesseract-sponge`, `tesseract-sponge-2`
-  - Common parameters: `pos=x,y,z`, `size=S`, `color=#RGB`, `material=PRESET`, `texture=FILE`, `emission=E`
-  - Material parameters: `ior=I`, `roughness=R`, `metallic=M`, `specular=S`
-  - Sponge parameters: `level=L` (supports fractional values)
+- `--objects <spec>` (repeatable) — `type=TYPE[:key=value...]`
+  - 3D types: `sphere`, `cube`, `cone`, `plane`, `tetrahedron`, `octahedron`, `dodecahedron`,
+    `icosahedron`, `parametric`, `curve`, `lsystem`
+  - Sponges: `sponge-surface`, `sponge-volume`, `cube-sponge`, `sponge-recursive-ias`
+  - 4D: `tesseract`, `pentachoron`, `16-cell`, `24-cell`, `120-cell`, `600-cell`,
+    `tesseract-sponge-volume`, `tesseract-sponge-surface`, `menger4d`, `sierpinski4d`,
+    `hexadecachoron4d`
+  - Common keys: `pos=x,y,z`, `size=S`, `color=#RRGGBB[AA]`, `material=PRESET`, `texture=FILE`,
+    `emission=E`, `film-thickness=NM`; materials: `ior=I`, `roughness=R`, `metallic=M`, `specular=S`
+  - Sponges: `level=L` (fractional values allowed; required for 4D sponges)
   - 4D projection: `rot-xw=A`, `rot-yw=B`, `rot-zw=C`, `eye-w=W`, `screen-w=W`
   - 4D edges: `edge-radius=R`, `edge-material=PRESET`, `edge-color=#RGB`, `edge-emission=E`
+- `--scene <name|class|file.scala>` — load a DSL scene (mutually exclusive with `--objects`)
 
-  Examples:
-  - `--objects type=sphere:size=1.5:material=glass`
-  - `--objects type=cube:pos=0,0,0:color=#FF0000:material=metal`
-  - `--objects type=sponge-surface:level=2:material=glass`
+#### Output
 
-**Note:** Legacy single-object options (`--object`, `--radius`, `--ior`, `--scale`, `--center`) have been removed. Use `--objects` with the key=value format instead.
+- `--headless --save-name out.png` — render to a file without a window
+- `--width`, `--height` — image size (default 800×600)
+- `--timeout <s>` (`-t`) — close the interactive window after N seconds
+- `--stats`, `--stats-json <file>` — ray tracing statistics
 
 #### Camera
 
@@ -168,7 +138,9 @@ GPU-accelerated ray tracing using NVIDIA OptiX (requires `--optix` and `--object
 
 - `--light <spec>` - Add light source (repeatable, max 8)
   - Format: `<type>:x,y,z[:intensity[:color]]`
-  - Types: `directional` (parallel rays, sun-like) or `point` (radiates from position)
+  - Types: `directional` (parallel rays, sun-like; x,y,z points *to* the light), `point`
+    (radiates from position), `area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color[:shape]]]]`
+    (disk emitter, soft shadows)
   - Intensity: brightness multiplier (default: 1.0)
   - Color: hex (e.g., `ffffff`) or RGB (e.g., `255,0,0`)
   - Examples:
@@ -179,48 +151,42 @@ GPU-accelerated ray tracing using NVIDIA OptiX (requires `--optix` and `--object
 
 #### Scene
 
-- `--plane <spec>` - Ground plane specification (default: +y:-2)
+- `--plane <spec>` - Ground plane (none unless given)
   - Format: `[+-]?[xyz]:<value>` (e.g., `y:-2`, `+y:-2`, `-z:5.5`)
-- `--plane-color <spec>` - Plane color
-  - Solid: `#RRGGBB` (e.g., `#808080` for gray)
+- `--plane-color <spec>` - Plane color (needs `--plane`)
+  - Solid: `RRGGBB` (e.g., `808080` for gray)
   - Checkered: `RRGGBB:RRGGBB` (e.g., `ffffff:000000` for black/white checkerboard)
+- `--plane-material <preset>` - Plane material preset (alternative to `--plane-color`)
+- `--env-map <file.hdr>` - HDR environment map (image-based lighting and background)
+- `--fog density=D:color=r,g,b` - Depth-cue fog
 
 #### Quality
 
 - `--antialiasing` - Enable recursive adaptive antialiasing
 - `--aa-max-depth <int>` - Maximum AA recursion depth (1-4, default: 2)
 - `--aa-threshold <float>` - AA edge detection threshold (0.0-1.0, default: 0.1)
-- `--stats` - Display ray tracing statistics after render
+- `--max-ray-depth <int>` - Maximum bounce depth (1-5, default: 5)
+- `--accumulation-frames <n>` - Average N frames to reduce noise
+- `--denoise` / `--no-denoise` - OptiX AI denoiser on the final frame
 
 #### Caustics (Progressive Photon Mapping)
 
 - `--caustics` - Enable caustics rendering
 - `--caustics-photons <int>` - Photons per PPM iteration (default: 100000)
 - `--caustics-iterations <int>` - Number of PPM iterations (default: 10)
-- `--caustics-radius <float>` - Initial photon gather radius (default: 0.1)
+- `--caustics-radius <float>` - Initial photon gather radius (default: derived from scene geometry)
 - `--caustics-alpha <float>` - PPM radius reduction factor (0.0-1.0, default: 0.7)
 
-#### Multiple Objects (v0.4+)
+#### Animation
 
-Render multiple objects with independent properties using the `--objects` flag:
+- `--animate frames=N:param=start-end[:...]` — sweep `rot-x/y/z`, `rot-x-w/y-w/z-w` or `level`
+  of the `--objects` (repeatable to chain segments; needs `--save-name` with `%`)
+- `--scene <animated scene> --frames N [--start-t A --end-t B] [--video out.mp4]` — render an
+  animated DSL scene; `--t X` renders a single frame, `--preview` scrubs interactively
 
-```bash
---objects "type=sphere:pos=0,0,0:size=1.0:color=#FF0000:ior=1.5:material=glass"
---objects "type=cube:pos=2,0,0:size=0.5:material=chrome"
---objects "type=sponge-surface:level=2:pos=-2,0,0:color=#00FF00:material=matte"
-```
+See [Advanced Features](docs/guide/advanced.md) for both systems.
 
-**Object parameters:**
-- `type` - Object type: `sphere`, `cube`, `sponge-volume`, `sponge-surface`
-- `pos` - Position as `x,y,z` (default: 0,0,0)
-- `size` - Size/scale factor (default: 1.0)
-- `level` - Fractal level for sponge types (supports fractional values)
-- `color` - Hex color `#RRGGBB` or `#RRGGBBAA` with alpha
-- `ior` - Index of refraction (default: 1.0)
-- `material` - Material preset (see Materials section)
-- `texture` - Path to texture file (PNG/JPEG)
-
-#### Materials & Textures (v0.4.1)
+#### Materials & Textures
 
 Material system with physically-based rendering properties:
 
@@ -234,6 +200,9 @@ Material system with physically-based rendering properties:
 - `metal` - Generic brushed metal (high metallic, medium roughness)
 - `plastic` - Matte plastic (low metallic, medium roughness)
 - `matte` - Non-reflective matte (no metallic, high roughness)
+- `film` - Thin-film interference (soap bubble / oil slick iridescence)
+- `parchment` - Translucent beige, lets light through without refracting it
+- `glass-dispersive`, `diamond-dispersive` - With wavelength-dependent refraction (prism rainbows)
 
 **Custom material parameters:**
 - `roughness` - Surface roughness (0.0-1.0, default: 0.5)
@@ -263,32 +232,36 @@ Material system with physically-based rendering properties:
 
 ```bash
 # Level 3 Menger sponge from above-left
-sbt "run --optix --object sponge-surface --level 3 --camera-pos -2,1.5,-2"
+sbt "run --objects type=sponge-surface:level=3 --camera-pos -2,1.5,-2"
 
 # Same using cube instancing (IAS - faster for high levels)
-sbt "run --optix --object sponge-volume --level 3 --camera-pos -2,1.5,-2"
+sbt "run --objects type=sponge-volume:level=3 --camera-pos -2,1.5,-2"
 
 # Glass sphere with refraction
-sbt "run --optix --objects type=sphere:size=1.5:material=glass"
+sbt "run --objects type=sphere:size=1.5:material=glass"
 
 # Opaque cube
-sbt "run --optix --objects type=cube:size=1:material=matte:color=#808080"
+sbt "run --objects type=cube:size=1:material=matte:color=#808080"
 
 # Sphere with shadows and custom lighting
-sbt "run --optix --objects type=sphere:material=glass --shadows \
+sbt "run --objects type=sphere:material=glass --shadows \
   --light directional:-1,1,-1:1.5 \
   --light point:2,3,2:0.8:ffd700"
 
 # Glass sphere with caustics (light focusing effects)
-sbt "run --optix --objects type=sphere:material=glass --caustics \
+sbt "run --objects type=sphere:material=glass --caustics \
   --caustics-photons 50000 --caustics-iterations 20"
 
 # High-quality sponge render with antialiasing
-sbt "run --optix --objects type=sponge-surface:level=2:material=glass --antialiasing \
-  --plane-color ffffff:808080"
+sbt "run --objects type=sponge-surface:level=2:material=glass --antialiasing \
+  --plane y:-2 --plane-color ffffff:808080"
+
+# Rotated tesseract with glowing film edges
+sbt "run --objects type=tesseract:rot-xw=30:rot-yw=20:edge-material=film:edge-radius=0.025 \
+  --plane y:-2"
 
 # Display ray statistics
-sbt "run --optix --object sphere --stats"
+sbt "run --objects type=sphere --stats"
 ```
 
 ### Scala DSL for Scene Description (v0.5.0)
@@ -344,10 +317,10 @@ object MyScene:
 **Load and render:**
 ```bash
 # By class name
-sbt "run --optix --scene examples.dsl.MyScene"
+sbt "run --scene examples.dsl.MyScene"
 
 # By registry short name
-sbt "run --optix --scene my-scene"
+sbt "run --scene my-scene"
 ```
 
 **Key Features:**

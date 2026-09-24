@@ -2,7 +2,7 @@
 
 Guidance for AI coding agents (Claude Code, opencode, etc.) working in this repository.
 
-This is a Scala 3 ray tracer using NVIDIA OptiX (via a C++/CUDA JNI bridge) and LibGDX. Showcase: Menger sponges (3D) and tesseract sponges (4D). Two in-repo modules: `menger-app` (application — CLI, engines, DSL, geometry objects, input, OptiX wrapper) *dependsOn* `menger-geometry` (Menger-specific 4D geometry + caustics; extends `optix-jni` via JNI/CUDA native code; not published). Two domain layers are consumed as separate **published Maven artifacts** maintained in their own repos: `io.github.lene:menger-common` (domain primitives, config) and `io.github.lene:optix-jni` (generic GPU ray tracing, no Menger types).
+This is a Scala 3 ray tracer using NVIDIA OptiX (via a C++/CUDA JNI bridge) and LibGDX. Showcase: Menger sponges (3D) and tesseract sponges (4D). Two in-repo modules: `menger-app` (application — CLI, engines, DSL, geometry objects, input, OptiX wrapper) *dependsOn* `menger-geometry` (Menger-specific 4D geometry programs + video decoding; extends `optix-jni` through its custom-geometry SPI via JNI/CUDA native code; not published — caustics moved to optix-jni in Sprint 35). `menger-app` also ships the headless tools `ManifestGenerator`, `CorpusExporter` and `SceneValidator` (`menger.tools`) used by the separate `menger-scene-agent` repo (workspace arc42 AD-36). Two domain layers are consumed as separate **published Maven artifacts** maintained in their own repos: `io.github.lene:menger-common` (domain primitives, config) and `io.github.lene:optix-jni` (generic GPU ray tracing, no Menger types).
 
 The user runs **fish shell** on Ubuntu. Most build commands are shell-agnostic; the difference matters only for ad-hoc scripting and env-var syntax.
 
@@ -164,12 +164,14 @@ Every new rendering feature (material preset, object type, shader path, CLI para
 sbt compile                          # All modules (includes C++/CUDA)
 sbt test                             # All tests
 sbt "testOnly ClassName"             # Specific Scala test
-sbt run                              # Run application
+sbt "run --objects type=sphere"      # Run application (needs --objects or --scene; bare `sbt run` errors)
 sbt "scalafix --check"               # Code quality check
 ```
 
-C++/CUDA native code (the OptiX wrapper) lives in the separate `optix-jni` repo, not an sbt
-subproject here — see `optix-jni/README.md` for its own native-build commands.
+The generic C++/CUDA OptiX code lives in the separate `optix-jni` repo (consumed here as a
+published jar) — see `../optix-jni/README.md` for its native-build commands. This repo's only
+native code is `menger-geometry/src/main/native/` (Menger 4D programs + video decoding),
+built by `sbt compile` via CMake.
 
 ## Hosting & remotes (read this before pushing)
 
@@ -209,9 +211,9 @@ Use the `/release-checklist` skill (it lives in the workspace repo — it covers
 | `docs/TROUBLESHOOTING.md` | Common environment/build issues |
 | `../docs/sprints/SPRINT.md` | Current sprint pointer (workspace repo) |
 | `CHANGELOG.md` | Version history (keepachangelog format) |
-| `CODE_IMPROVEMENTS.md` | Open code-quality findings (resolved items deleted, not archived) |
+| `CODE_IMPROVEMENTS.md` | Code-quality findings; resolved items are struck through with a `✅ Resolved` note, not deleted (see Shared conventions) |
 | `docs/BACKLOG.md` | Unscheduled feature ideas not yet sprint-assigned |
-| `optix-jni/README.md` | OptiX JNI module details |
+| `../optix-jni/README.md` | OptiX JNI library details (separate repo, workspace sibling) |
 
 ---
 

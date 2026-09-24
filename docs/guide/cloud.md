@@ -1,7 +1,7 @@
 # Menger — Cloud GPU Development
 
-**Version**: 0.5.5
-**Last Updated**: April 2026
+**Version**: 0.9.0
+**Last Updated**: September 2026
 
 ← [User Guide Index](../USER_GUIDE.md)
 
@@ -56,8 +56,13 @@ Use `--ssh-key /path/to/key.pub` to override.
 
 ### 1. Build the AMI (one-time, ~20 minutes)
 
-The custom AMI pre-installs CUDA 12.8, OptiX 9.0, JVM 21, sbt, Fish shell, nvtop, and htop so
-that launch time stays short.
+The custom AMI pre-installs the CUDA toolkit, OptiX 9.0, JVM 21, sbt, Fish shell, nvtop, and htop
+so that launch time stays short.
+
+> **Known issue:** `build-ami.sh` currently installs CUDA **12.8**, but menger and optix-jni now
+> require CUDA **13.x** (and driver ≥ 580.65). An AMI built by the unmodified script cannot build
+> current menger — update the toolkit version in the script before building a new AMI (tracked
+> as workspace arc42 TD-14). Existing AMIs built before the CUDA 13 switch have the same problem.
 
 ```bash
 # Download OptiX SDK 9.0 installer from https://developer.nvidia.com/optix
@@ -109,7 +114,15 @@ AWS_PROFILE=personal ./scripts/nvidia-spot.sh --menger-branch feature/my-branch
 
 ```bash
 AWS_PROFILE=personal ./scripts/nvidia-spot.sh --instance-type g5.xlarge --max-price 0.75
+
+# See available NVIDIA instance types and current spot prices first
+AWS_PROFILE=personal ./scripts/nvidia-spot.sh --list-instances
+
+# Pin a specific availability zone (the region is derived from it)
+AWS_PROFILE=personal ./scripts/nvidia-spot.sh --availability-zone eu-central-1b
 ```
+
+`./scripts/nvidia-spot.sh --help` lists every option.
 
 ### Instance initialization time
 
@@ -131,7 +144,7 @@ back to your local machine:
 
 ```bash
 AWS_PROFILE=personal ./scripts/nvidia-spot.sh \
-  --command "menger-app --optix --sponge-type cube-sponge --level 3 --save-name out.png" \
+  --command "menger-app --objects type=cube-sponge:level=3 --headless --save-name out.png" \
   --retrieve "*.png"
 ```
 
@@ -145,7 +158,7 @@ Without `--command`, the script opens an SSH session with X11 forwarding. You ca
 commands interactively, use `nvtop` to monitor GPU utilization, etc.:
 
 ```bash
-menger-app --optix --objects 'type=sphere:ior=1.5:size=1.5' --save-name sphere.png
+menger-app --objects 'type=sphere:ior=1.5:size=1.5' --save-name sphere.png
 nvtop        # GPU monitor
 htop         # CPU/memory monitor
 ```
@@ -189,6 +202,7 @@ AWS_PROFILE=personal ./scripts/nvidia-spot.sh --save-state my-checkpoint
 ### List and clean up saved states
 
 ```bash
+AWS_PROFILE=personal ./scripts/nvidia-spot.sh --list-states   # same list via the main script
 ./scripts/list-spot-states.sh
 ./scripts/cleanup-spot-states.sh --keep-recent 5 --dry-run
 ./scripts/cleanup-spot-states.sh --keep-recent 5    # execute

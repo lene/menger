@@ -1,7 +1,7 @@
 # Menger — Usage & Rendering
 
-**Version**: 0.8.12
-**Last Updated**: August 2026
+**Version**: 0.9.0
+**Last Updated**: September 2026
 
 ← [Quick Start](quickstart.md) | [User Guide Index](../USER_GUIDE.md)
 
@@ -11,66 +11,96 @@
 
 ### Running the Application
 
-The application is run through sbt with various command-line options:
+Menger has a single renderer: NVIDIA OptiX GPU ray tracing. Every run needs **something to
+render** — either `--objects` (one or more objects described on the command line) or `--scene`
+(a scene written in the Scala DSL). A run with neither exits with
+`Error: SceneConfig must provide objectSpecs`.
 
 ```bash
-# Interactive mode (LibGDX real-time preview)
-sbt run
+# From a source checkout (quote the whole argument list after "run")
+sbt "run --objects type=sphere"
 
-# With options (must quote the entire command)
-sbt "run --option1 value1 --option2 value2"
+# From a packaged release
+./menger-app-0.9.0/bin/menger-app --objects type=sphere
 
 # Examples
-sbt "run --level 2"                          # Level 2 sponge
-sbt "run --width 1920 --height 1080"        # HD resolution
-sbt "run --optix --objects 'type=sphere'    # Ray-traced sphere
+sbt "run --objects type=sponge-volume:level=2"                  # Level 2 Menger sponge
+sbt "run --objects type=sphere --width 1920 --height 1080"      # HD window
+sbt "run --scene glass-sphere"                                  # Built-in DSL scene
+sbt "run --objects type=sphere:material=glass --headless --save-name sphere.png"  # Render to file, no window
 ```
 
-**Important**: Always quote the entire command after `run` when using options.
+**Important**: With `sbt`, always quote the entire argument list after `run`.
+
+> **Upgrading from 0.8.x or earlier?** The `--optix` flag is gone (OptiX is now the only
+> renderer, and passing `--optix` fails with `Unknown option 'optix'`). The old real-time
+> LibGDX rasterizer and the single-object flags `--object`, `--radius`, `--scale`, `--center`
+> and `--ior` were removed too — use `--objects type=...:size=...:pos=...:ior=...` instead.
 
 ### Command-Line Options
+
+`menger-app --help` prints the authoritative, grouped list. The most-used options:
 
 #### General Options
 
 ```bash
---timeout <seconds>          # Auto-exit after specified time (useful for testing)
---width <pixels>             # Window width (default: 800)
---height <pixels>            # Window height (default: 600)
---save-name <pattern>        # Save frames (e.g., "frame%d.png")
+--timeout <seconds>          # Auto-exit after N seconds (short form: -t). 0 = stay open
+--width <pixels>             # Window/image width (default: 800)
+--height <pixels>            # Window/image height (default: 600)
+--save-name <file>           # Save the rendered image; use a % pattern for frame sequences
+--headless                   # Render without showing a window (requires --save-name)
+--stats                      # Print ray tracing statistics
+--stats-json <file>          # Write last-frame statistics as JSON (implies --stats)
+--log-level <level>          # ERROR, WARN, INFO, DEBUG or TRACE
+--display <:N>               # Render on a specific X11 display (re-execs with DISPLAY set)
+--cross                      # Show an XYZ coordinate cross (--cross-length/-thickness/-material)
 ```
 
-#### LibGDX Mode Options
+> **`-t` vs `--t`:** the short option `-t` is `--timeout`. The long option `--t` is the
+> animation freeze-frame value (see [Advanced Features](advanced.md)). They are unrelated.
+
+#### Objects and Scenes
 
 ```bash
---sponge-type <type>         # Geometry type (see section 5)
---level <float>              # Recursion level (supports fractional, e.g., 1.5)
---lines                      # Render as wireframe
---color <rrggbb[aa]>         # Hex color (e.g., ff0000 for red)
---face-color <rrggbb[aa]>    # Face color with alpha (overlay mode)
---line-color <rrggbb[aa]>    # Line color with alpha (overlay mode)
---antialias-samples <int>    # MSAA samples for antialiasing
+--objects <spec>             # Repeatable: type=TYPE[:key=value...]  (see "Object Types" below)
+--scene <name|class|file>    # DSL scene: short name, class name, or path to a .scala file
+                             # --scene and --objects are mutually exclusive
 ```
 
-#### 4D Projection Options
+Common `--objects` keys: `pos=x,y,z`, `size=S`, `color=#RRGGBB`, `material=PRESET`,
+`ior=I` (1.0 = opaque, 1.5 = glass, 2.42 = diamond), `texture=FILE`, `emission=E`,
+`film-thickness=NM`, `level=L` (sponges). Examples:
 
 ```bash
---projection-screen-w <float>    # 4D projection screen distance
---projection-eye-w <float>       # 4D projection eye distance
---rot-x-w <float>                # 4D rotation around XW plane
---rot-y-w <float>                # 4D rotation around YW plane
---rot-z-w <float>                # 4D rotation around ZW plane
+--objects type=sphere:ior=1.5:size=1.5
+--objects type=sponge-surface:level=3:material=gold --objects type=sphere:pos=2,0,0
 ```
 
-#### OptiX Mode Options
+#### 4D Objects
+
+4D objects (`tesseract`, `tesseract-sponge-volume`, `tesseract-sponge-surface`, the regular
+4-polytopes, …) are projected into 3D. Rotation and projection are set **per object** in the
+`--objects` spec:
 
 ```bash
---optix                      # Enable OptiX ray tracing
---object <type>              # DEPRECATED: Use --objects instead
---radius <float>             # Object radius (default: 1.0)
---scale <float>              # Object scale factor (default: 1.0)
---center <x,y,z>             # Object center position
---objects type=sphere:ior=1.5  # Index of refraction via --objects (1.0=opaque, 1.5=glass, 2.42=diamond)
+--objects type=tesseract:rot-xw=30:rot-yw=45     # Rotation in the XW / YW / ZW planes (degrees)
+--objects type=tesseract:eye-w=4:screen-w=2      # 4D projection eye / screen distance
+```
 
+The global flags `--rot-x-w`, `--rot-y-w`, `--rot-z-w` (or the shorthand `--rotation-4d XW,YW,ZW`)
+and `--rot-x`, `--rot-y`, `--rot-z` add a rotation to **every** object on top of its own.
+
+#### Legacy flags that currently do nothing
+
+These flags are still accepted by the parser but no longer affect the rendered image. Do not
+rely on them: `--sponge-type`, `--level` (except as input to `--animate`), `--lines`,
+`--color`, `--face-color`, `--line-color` (these three log a warning), `--antialias-samples`,
+`--projection-screen-w`, `--projection-eye-w`. Use the per-object `--objects` keys instead
+(`level=`, `color=`, `eye-w=`, `screen-w=`).
+
+#### Camera, Lighting, Quality, Scene
+
+```bash
 # Camera
 --camera-pos <x,y,z>         # Camera position (default: 0,0.5,3)
 --camera-lookat <x,y,z>      # Camera look-at target (default: 0,0,0)
@@ -79,53 +109,34 @@ sbt "run --optix --objects 'type=sphere'    # Ray-traced sphere
 # Lighting
 --light <spec>               # Add light (repeatable, max 8)
                              # Types: directional:x,y,z[:i[:c]], point:x,y,z[:i[:c]],
-                             #        area:px,py,pz:nx,ny,nz:radius[:samples[:i[:c]]]
+                             #        area:px,py,pz:nx,ny,nz:radius[:samples[:i[:c[:shape]]]]
+                             # directional x,y,z points TO the light
 --shadows                    # Enable shadow rays
 
 # Quality
 --antialiasing               # Enable recursive adaptive antialiasing
 --aa-max-depth <int>         # AA recursion depth (1-4, default: 2)
 --aa-threshold <float>       # AA edge threshold (0.0-1.0, default: 0.1)
---max-ray-depth <int>        # Bounce / refraction recursion depth (1..8, default: 5)
+--max-ray-depth <int>        # Bounce / refraction recursion depth (1..5, default: 5)
 --allow-uniform-render       # Disable the failed-render diagnostic (see "Render health checks")
 --denoise                    # Apply OptiX AI denoiser to accumulated frame before tone mapping
---accumulation-frames <int>   # Temporal accumulation count (default: 1, >=1). >1 averages N frames
---stats                      # Display ray tracing statistics
+--no-denoise                 # Force denoising off, even if a DSL scene enables it
+--accumulation-frames <int>  # Temporal accumulation count (default: 1, >=1). >1 averages N frames
 
 # Scene
---plane <spec>               # Ground plane (default: +y:-2)
---plane-color <spec>         # Plane color (solid: #RRGGBB, checkered: RRGGBB:RRGGBB)
+--plane <spec>               # Ground plane, e.g. y:-2 (no plane unless given)
+--plane-color <spec>         # Plane color (solid: RRGGBB, checkered: RRGGBB:RRGGBB)
 --plane-material <name>      # Plane material preset (chrome, gold, glass, …)
---transparent-shadows        # Colored shadow tinting through transparent objects
+--transparent-shadows        # Colored shadow tinting through transparent objects (needs --shadows)
+--env-map <file.hdr>         # HDR equirectangular environment map (image-based lighting)
+--fog density=D:color=r,g,b  # Depth-cue fog
+--texture-dir <dir>          # Base directory for texture= files
+--max-instances <n>          # Instance budget (1-65536; default 64, auto-raised for 4D edges)
 ```
 
 ### Interactive Controls
 
-#### LibGDX Mode (Real-time Preview)
-
-When running in LibGDX interactive mode, use these controls:
-
-**Mouse Controls:**
-- **Left Click + Drag**: Rotate the object around X and Y axes
-- **Right Click + Drag**: Rotate the object around the Z axis
-- **Scroll Wheel**: Zoom in/out
-
-**Keyboard Shortcuts:**
-- **ESC**: Exit application
-- **Space**: Pause/resume animation (if enabled)
-- **R**: Reset camera to default position
-- **S**: Take screenshot (saves to current directory)
-- **W**: Toggle wireframe mode
-- **F**: Toggle fullscreen
-
-**4D Rotation (Tesseract/4D objects):**
-- **Shift + LEFT/RIGHT arrows**: Rotate in XW plane
-- **Shift + UP/DOWN arrows**: Rotate in YW plane
-- **Shift + PAGE_UP/PAGE_DOWN**: Rotate in ZW plane
-
-#### OptiX Mode (Ray Tracing)
-
-When running in OptiX mode, use these controls:
+Without `--headless`, Menger opens a window and keeps refining the image. Controls:
 
 **Mouse Controls:**
 - **Left Click + Drag**: Rotate camera view around the scene
@@ -152,74 +163,44 @@ When running in OptiX mode, use these controls:
 **4D Projection Adjustment:**
 - **Shift + Scroll Wheel**: Adjust the 4D eye distance (`eyeW`). Scroll up = move the 4D viewpoint further away (flatter projection); scroll down = move closer (more perspective distortion).
 
-**Note**: In OptiX mode, 4D rotation and projection changes trigger a scene rebuild and re-render. The tesseract will visibly change shape as it rotates through 4D space.
+**Note**: 4D rotation and projection changes trigger a scene rebuild and re-render. The tesseract will visibly change shape as it rotates through 4D space.
+
+**One interactive window at a time:** only one interactive render session may run at once
+(guarded by a lock file, see `--render-lock-path`). A second interactive start is refused,
+not queued. Headless renders are not affected.
 
 ---
 
 ## Rendering Modes
 
-### LibGDX Mode (Real-time Preview)
+All rendering goes through NVIDIA OptiX ray tracing (physically based refraction, shadows,
+reflections, caustics, PBR materials). What changes between runs is only *where the result
+goes*:
 
-LibGDX mode uses OpenGL rasterization for real-time interactive rendering. This is the default mode when you run `sbt run` without `--optix`.
+| Mode | How to select | Use for |
+|------|---------------|---------|
+| Interactive window | default | Exploring a scene with the mouse/keyboard controls above; the image keeps refining while the view is still |
+| Headless still | `--headless --save-name out.png` | Scripts, CI, remote machines (combine with `xvfb-run` on machines without a display) |
+| Frame sequence / video | `--frames N --save-name f%03d.png [--video out.mp4]` or `--animate ...` | Animations (see [Advanced Features](advanced.md)) |
+| Animation preview | `--scene <animated scene> --preview` | Scrubbing the `t` parameter interactively before rendering frames |
 
-**Advantages:**
-- Real-time interaction (60+ FPS)
-- Works on any system with OpenGL support
-- Immediate visual feedback
-- Interactive camera control
+**Requirements and limits:** an NVIDIA GPU with a working OptiX-capable driver on Linux.
+Render time ranges from interactive (simple scenes) to minutes per frame (high sponge levels,
+caustics, many AA/accumulation passes).
 
-**Limitations:**
-- No refraction or realistic light transport
-- Limited material support
-- No caustics or advanced effects
-
-**Best for:**
-- Exploring geometry and composition
-- Quick previews before final rendering
-- Interactive demonstrations
-- Prototyping animations
-
-**Example:**
-```bash
-# Interactive level 3 Menger sponge
-sbt "run --sponge-type square-sponge --level 3"
-
-# Wireframe overlay on transparent faces
-sbt "run --level 2 --face-color ffffff40 --line-color 000000ff"
-```
-
-### OptiX Mode (High-Quality Ray Tracing)
-
-OptiX mode uses NVIDIA's ray tracing engine for physically-based rendering with realistic light transport.
-
-**Advantages:**
-- Physically accurate refraction (glass, water, diamond)
-- Realistic shadows
-- Caustics (light focusing through transparent objects)
-- Recursive reflections
-- Advanced material properties (metallic, roughness, IOR)
-- High-quality antialiasing
-
-**Limitations:**
-- Requires NVIDIA GPU
-- Slower rendering (seconds to minutes per frame)
-- No real-time interaction during render
-- Linux only
-
-**Best for:**
-- Final high-quality output
-- Publication-quality images
-- Realistic material showcase
-- Complex lighting scenarios
-
-**Example:**
+**Examples:**
 ```bash
 # Glass sphere with refraction
-sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5'"
+sbt "run --objects 'type=sphere:ior=1.5:size=1.5'"
 
-# High-quality Menger sponge with shadows and antialiasing
-sbt "run --optix --objects 'type=sponge-surface:level=2' \
-    --shadows --antialiasing --plane-color ffffff:808080"
+# High-quality Menger sponge with shadows and antialiasing on a checkered floor
+sbt "run --objects 'type=sponge-surface:level=2' \
+    --shadows --antialiasing --plane y:-2 --plane-color ffffff:808080"
+
+# Same, rendered straight to a file on a machine without a display
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-app-0.9.0/bin/menger-app \
+    --objects 'type=sponge-surface:level=2' --shadows --antialiasing --plane y:-2 \
+    --headless --save-name sponge.png
 ```
 
 #### Caustics — Progressive Photon Mapping (Sprint 33)
@@ -230,11 +211,11 @@ physically-correct Progressive Photon Mapping, validated against pbrt-v4. Enable
 
 ```bash
 # Glass sphere casting a caustic on the floor
-menger --optix --objects 'type=sphere:ior=1.5' --caustics --plane y:-2 \
+menger-app --objects 'type=sphere:ior=1.5' --caustics --plane y:-2 \
        --light point:0,10,0:500
 
 # Higher photon budget for a sharp, visible caustic (slower)
-menger --optix --objects 'type=sphere:ior=1.5' --caustics \
+menger-app --objects 'type=sphere:ior=1.5' --caustics \
        --caustics-photons 500000 --caustics-iterations 20 --plane y:-2
 ```
 
@@ -300,18 +281,18 @@ clear-colour smoke test). For the broader debugging method, use the
 **Sphere** (`--objects 'type=sphere'`)
 - Analytical sphere (IS program — no triangle mesh, arbitrary precision)
 - Supports all material properties
-- Example: `sbt "run --optix --objects 'type=sphere:size=1.5'"`
+- Example: `sbt "run --objects 'type=sphere:size=1.5'"`
 
 **Cone** (`--objects 'type=cone'`) — *Sprint 19.3*
 - Analytical cone (IS program — no triangle mesh)
 - Apex at origin, opens along +Y axis by default
 - Supports all material properties and 3D rotation
-- Example: `sbt "run --optix --objects 'type=cone:size=1.0:material=chrome'"`
+- Example: `sbt "run --objects 'type=cone:size=1.0:material=chrome'"`
 
 **Cube** (`--objects 'type=cube'`)
 - Triangle mesh cube
 - Supports textures and all materials
-- Example: `sbt "run --optix --objects 'type=cube:size=0.5'"`
+- Example: `sbt "run --objects 'type=cube:size=0.5'"`
 
 #### Platonic Solids — *Sprint 19.1*
 
@@ -320,42 +301,42 @@ Each is unit-sphere normalized (vertices on sphere of radius `size`).
 
 **Tetrahedron** (`--objects 'type=tetrahedron'`)
 - 4 triangular faces, 4 vertices, 6 edges
-- Example: `sbt "run --optix --objects 'type=tetrahedron:size=1.2:material=gold'"`
+- Example: `sbt "run --objects 'type=tetrahedron:size=1.2:material=gold'"`
 
 **Octahedron** (`--objects 'type=octahedron'`)
 - 8 triangular faces, 6 vertices, 12 edges
-- Example: `sbt "run --optix --objects 'type=octahedron:size=1.0:material=chrome'"`
+- Example: `sbt "run --objects 'type=octahedron:size=1.0:material=chrome'"`
 
 **Dodecahedron** (`--objects 'type=dodecahedron'`)
 - 12 pentagonal faces, 20 vertices, 30 edges
-- Example: `sbt "run --optix --objects 'type=dodecahedron:size=1.0:material=glass'"`
+- Example: `sbt "run --objects 'type=dodecahedron:size=1.0:material=glass'"`
 
 **Icosahedron** (`--objects 'type=icosahedron'`)
 - 20 triangular faces, 12 vertices, 30 edges
-- Example: `sbt "run --optix --objects 'type=icosahedron:size=1.0:material=copper'"`
+- Example: `sbt "run --objects 'type=icosahedron:size=1.0:material=copper'"`
 
 **Per-object 3D rotation** (all types, Sprint 19.7): use `rot-x`, `rot-y`, `rot-z`
 in degrees within the `--objects` spec:
 ```bash
-sbt "run --optix --objects 'type=tetrahedron:rot-x=45:rot-y=30'"
-sbt "run --optix --objects 'type=dodecahedron:rot-y=60:material=gold'"
+sbt "run --objects 'type=tetrahedron:rot-x=45:rot-y=30'"
+sbt "run --objects 'type=dodecahedron:rot-y=60:material=gold'"
 ```
 
 #### Menger Sponges
 
-**Surface Subdivision** (`--sponge-type square-sponge` or `--objects 'type=sponge-surface'`)
+**Surface Subdivision** (`--objects 'type=sponge-surface:level=L'`)
 - Generates only the outer surface
 - Computational complexity: O(12^n)
 - Higher detail, suitable for levels 0-6
 - No internal faces (efficient for ray tracing)
-- Example: `sbt "run --sponge-type square-sponge --level 3"`
+- Example: `sbt "run --objects 'type=sponge-surface:level=3'"`
 
-**Volume Subdivision** (`--sponge-type cube-sponge` or `--objects 'type=sponge-volume'`)
+**Volume Subdivision** (`--objects 'type=sponge-volume:level=L'`; `type=cube-sponge` is a separate variant built from instanced cubes)
 - Generates cube instances
 - Computational complexity: O(20^n)
 - Uses Instance Acceleration Structure (IAS)
 - Efficient for high levels (5+) in OptiX mode
-- Example: `sbt "run --optix --objects 'type=sponge-volume:level=5'"`
+- Example: `sbt "run --objects 'type=sponge-volume:level=5'"`
 
 **Recursive IAS** (`--objects 'type=sponge-recursive-ias'`, OptiX only)
 - One unit-cube GAS reused at every level via N nested instance acceleration
@@ -363,11 +344,11 @@ sbt "run --optix --objects 'type=dodecahedron:rot-y=60:material=gold'"
 - Memory cost is O(level × 20) instead of O(20^level), so deep sponges that
   would otherwise exceed VRAM remain practical
 - Integer levels 1..14 (capped by OptiX's MAX_TRAVERSABLE_GRAPH_DEPTH=16)
-- Example: `sbt "run --optix --objects 'type=sponge-recursive-ias:level=6'"`
+- Example: `sbt "run --objects 'type=sponge-recursive-ias:level=6'"`
 
 **Which to use?**
-- **Surface subdivision**: Better for low to medium levels (0-4), more geometric detail, works in both modes
-- **Volume subdivision**: Better for high levels (5+) in OptiX mode, faster with IAS optimization
+- **Surface subdivision**: Better for low to medium levels (0-4), more geometric detail
+- **Volume subdivision**: Better for high levels (5+), faster with IAS optimization
 - **Recursive IAS**: Use for very deep levels (6+) where the explicit volume mesh
   no longer fits in VRAM; renders the same shape with constant per-level memory
 
@@ -375,21 +356,24 @@ sbt "run --optix --objects 'type=dodecahedron:rot-y=60:material=gold'"
 
 #### Tesseract (4D Hypercube)
 
-**Tesseract** (`--sponge-type tesseract`)
+**Tesseract** (`--objects 'type=tesseract'`)
 - 4D analog of a cube
 - 8 cubic "cells" (faces)
 - Projected to 3D using 4D→3D perspective projection
-- Example: `sbt "run --sponge-type tesseract"`
+- Example: `sbt "run --objects 'type=tesseract:rot-xw=30:rot-yw=45'"`
 
-**Tesseract Sponge Volume** (`--sponge-type tesseract-sponge-volume`)
+**Tesseract Sponge Volume** (`--objects 'type=tesseract-sponge-volume:level=L'`, level required)
 - 4D Menger sponge (48 tesseracts per iteration)
 - Hausdorff dimension ≈ 3.524
-- Example: `sbt "run --sponge-type tesseract-sponge-volume --level 2"`
+- Example: `sbt "run --objects 'type=tesseract-sponge-volume:level=2'"`
 
-**Tesseract Sponge Surface** (`--sponge-type tesseract-sponge-surface`)
+**Tesseract Sponge Surface** (`--objects 'type=tesseract-sponge-surface:level=L'`, level required)
 - Alternative generation (16 faces per face)
 - More efficient: O(16^n) vs O(48^n)
-- Example: `sbt "run --sponge-type tesseract-sponge-surface --level 2"`
+- Example: `sbt "run --objects 'type=tesseract-sponge-surface:level=2'"`
+
+The older type names `tesseract-sponge` and `tesseract-sponge-2` are still accepted as
+aliases for the volume and surface variants.
 
 #### Regular 4-Polychora — *Sprint 19.2*
 
@@ -405,16 +389,17 @@ same 4D perspective projection as the tesseract. Use `--objects type=<name>` in 
 | `600-cell` | Hexacosichoron | {3,3,5} | 120 | 720 | 1200 | 600 tetrahedra |
 | `tesseract` | Tesseract | {4,3,3} | 16 | 32 | 24 | 8 cubes |
 
-All accept the same 4D projection and rotation parameters:
+All accept the same 4D projection and rotation keys (`eye-w`, `screen-w`, `rot-xw`, `rot-yw`,
+`rot-zw` — note: no hyphen between the two axis letters inside `--objects`):
 ```bash
 # Pentachoron with custom 4D rotation
-sbt "run --optix --objects 'type=pentachoron:size=1.0:eye-w=3.0:rot-x-w=30'"
+sbt "run --objects 'type=pentachoron:size=1.0:eye-w=3.0:rot-xw=30'"
 
 # 600-cell (most complex: 1200 triangular faces)
-sbt "run --optix --objects 'type=600-cell:size=1.0:screen-w=1.5:rot-y-w=20'"
+sbt "run --objects 'type=600-cell:size=1.0:screen-w=1.5:rot-yw=20'"
 
 # 24-cell with glass material
-sbt "run --optix --objects 'type=24-cell:size=1.0:material=glass:rot-x-w=15:rot-z-w=10'"
+sbt "run --objects 'type=24-cell:size=1.0:material=glass:rot-xw=15:rot-zw=10'"
 ```
 
 4D rotation and projection always run on the GPU, so even large polytopes (120-cell, 600-cell) project quickly.
@@ -457,14 +442,17 @@ menger-app --headless --objects type=menger4d:level=3 \
 
 #### 4D Projection Controls
 
-Control the 4D→3D projection:
+Control the 4D→3D projection. Projection distances are set per object; rotations can be set
+per object or globally (global values are added to every object's own rotation):
 
 ```bash
-# Adjust projection parameters
---projection-screen-w 1.0    # Distance to projection screen in W dimension
---projection-eye-w 3.0       # Eye position in W dimension
+# Projection parameters (per object)
+--objects type=tesseract:screen-w=1.0:eye-w=3.0   # Screen / eye distance in W
 
-# Rotate in 4D space (individual axes)
+# Rotate in 4D space per object
+--objects type=tesseract:rot-xw=45:rot-yw=30:rot-zw=15
+
+# Rotate every object in 4D space (global flags)
 --rot-x-w 45                 # Rotate around XW plane (degrees)
 --rot-y-w 30                 # Rotate around YW plane
 --rot-z-w 15                 # Rotate around ZW plane
@@ -482,29 +470,24 @@ at level ≥ 2, 120-cell, 600-cell) and animated viewpoints fast. The earlier
 opt-in `--gpu-project-4d` flag and the legacy CPU projection path were removed
 in Sprint 26 — there is no longer a CPU rendering mode to select.
 
-When the flag is set:
+What this means in practice:
 
-- **Setup time** — `tesseract-sponge level=2` drops from ≈4s on the CPU
-  to ≈130ms (~30× faster); larger levels scale better.
+- **Setup time** — `tesseract-sponge-volume level=2` builds in ≈130ms (the removed CPU
+  path took ≈4s); larger levels scale better.
 - **Animation** — when an animation only changes 4D rotation
-  (`--animate rot-x-w/y-w/z-w`) or projection eye/screen depth
-  (`projection-eye-w`, `projection-screen-w`), the engine refits the
-  existing GPU mesh in place via `updateMesh4DProjection` instead of
-  rebuilding the scene. A 10-frame XW-rotation animation on
-  tesseract-sponge level=2 is ≈300× faster (5.5ms vs 1500ms).
-  Animations that change other parameters (size, material, position,
+  (`--animate` with `rot-x-w`/`rot-y-w`/`rot-z-w`), the engine refits the
+  existing GPU mesh in place instead of rebuilding the scene. A 10-frame XW-rotation
+  animation on a level-2 tesseract sponge is ≈300× faster than a rebuild (5.5ms vs
+  1500ms). Animations that change other parameters (size, material, position,
   level…) fall back to the rebuild path automatically.
 
-The flag is purely opt-in: with the default off, behaviour and image
-output are unchanged. Output of the GPU path matches the CPU path to
-L∞ ≤ 6/255 (typically L∞ = 0). For arbitrary 4D meshes that are not
-quad-based, decompose each polygon into a fan of degenerate quads
-`(a, b, c, c)` — the kernel handles the degenerate-normal fallback
-identically to the CPU path.
+For developers adding new 4D meshes that are not quad-based: decompose each polygon into
+a fan of degenerate quads `(a, b, c, c)` — the projection kernel handles the
+degenerate-normal case.
 
 ### Fractional Levels
 
-All sponge types support fractional recursion levels (e.g., `--level 1.5`), which creates a smooth transition between integer levels using alpha blending.
+All sponge types support fractional recursion levels (e.g., `level=1.5`), which creates a smooth transition between integer levels using alpha blending.
 
 **How it works:**
 - The floor level (e.g., 1) is rendered with increasing transparency
@@ -514,13 +497,13 @@ All sponge types support fractional recursion levels (e.g., `--level 1.5`), whic
 **Examples:**
 ```bash
 # Halfway between level 1 and level 2
-sbt "run --level 1.5"
+sbt "run --objects 'type=sponge-volume:level=1.5'"
 
 # Quarter of the way from level 2 to level 3
-sbt "run --level 2.25"
+sbt "run --objects 'type=sponge-surface:level=2.25'"
 
 # Almost fully level 3
-sbt "run --level 2.95"
+sbt "run --objects 'type=sponge-volume:level=2.95'"
 ```
 
 **Use cases:**
@@ -534,10 +517,11 @@ Display XYZ axis cylinders from the origin to help orient the scene:
 
 ```bash
 # Default cross (chrome, half-length 2.0, radius 0.03)
-sbt "run --optix --cross --objects 'type=tesseract'"
+sbt "run --cross --objects 'type=tesseract'"
 
 # Custom appearance
-sbt "run --optix --cross --cross-length 3.0 --cross-thickness 0.05 --cross-material gold"
+sbt "run --cross --cross-length 3.0 --cross-thickness 0.05 --cross-material gold \
+     --objects 'type=sphere:size=0.5'"
 ```
 
 | Flag | Default | Description |
@@ -547,7 +531,7 @@ sbt "run --optix --cross --cross-length 3.0 --cross-thickness 0.05 --cross-mater
 | `--cross-thickness` | 0.03 | Cylinder radius |
 | `--cross-material` | chrome | Material preset |
 
-**Interactive toggle:** press **C** in OptiX mode to show/hide the cross without restarting.
+**Interactive toggle:** press **C** in the interactive window to show/hide the cross without restarting.
 
 #### Curves — *Sprint 29*
 
@@ -556,11 +540,11 @@ Renders smooth swept tubes using OptiX's built-in round cubic B-spline primitive
 refraction, and metallic.
 
 ```bash
-# Simple arc segment (4 control points, constant radius)
-sbt "run --optix --objects 'type=curve:control-points=0,0,0:1,1,0:2,1,0:3,0,0:radius=0.05'"
+# Simple arc segment: 4 control points as one flat x,y,z,x,y,z,... list (multiple of 3 values)
+sbt "run --objects 'type=curve:control-points=0,0,0,1,1,0,2,1,0,3,0,0:radius=0.05'"
 
 # Trefoil knot demo scene
-sbt "run --optix --scene examples.dsl.TrefoilKnot"
+sbt "run --scene examples.dsl.TrefoilKnot"
 ```
 
 Or from DSL scenes:
@@ -594,7 +578,7 @@ reference: `optix-jni/src/main/native/shaders/hit_curve.cu`.
 `--stats` now reports timing alongside ray counts:
 
 ```bash
-sbt "run --optix --objects 'type=sphere' --stats"
+sbt "run --objects 'type=sphere' --stats"
 ```
 
 Output includes:
@@ -701,7 +685,7 @@ images unchanged. Spectral refractions are tracked by the `--stats` counter `spe
 
 **Usage with `--objects` flag:**
 ```bash
-sbt "run --optix \
+sbt "run \
     --objects 'type=sphere:material=glass:pos=0,0,0' \
     --objects 'type=cube:material=gold:pos=2,0,0'"
 ```
@@ -735,13 +719,13 @@ specular=0.5                 # Specular reflection intensity (0.0-1.0)
 **Examples:**
 ```bash
 # Custom glass with higher roughness (frosted glass)
-sbt "run --optix --objects 'type=sphere:ior=1.5:roughness=0.3'"
+sbt "run --objects 'type=sphere:ior=1.5:roughness=0.3'"
 
 # Brushed metal sphere
-sbt "run --optix --objects 'type=sphere:metallic=1.0:roughness=0.5'"
+sbt "run --objects 'type=sphere:metallic=1.0:roughness=0.5'"
 
 # Semi-transparent colored sphere
-sbt "run --optix --objects 'type=sphere:color=#FF000080:ior=1.3'"
+sbt "run --objects 'type=sphere:color=#FF000080:ior=1.3'"
 ```
 
 ### Textures — *Sprint 20*
@@ -760,7 +744,7 @@ Textures are loaded relative to the working directory unless an absolute path is
 The `--texture-dir` flag sets a base directory for all relative texture paths.
 
 ```bash
-sbt "run --optix --texture-dir assets/textures \
+sbt "run --texture-dir assets/textures \
     --objects 'type=sphere:texture=marble.png'"
 ```
 
@@ -868,7 +852,7 @@ Both maps use the same `--texture-dir` base path as image textures.
 Set an HDR/EXR equirectangular environment map for image-based lighting:
 
 ```bash
-sbt "run --optix --env-map path/to/environment.hdr"
+sbt "run --objects 'type=sphere:material=chrome' --env-map path/to/environment.hdr"
 ```
 
 The environment map contributes to both scene lighting (IBL) and the background skybox.
@@ -964,7 +948,7 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
 
 ```bash
 # Three-point lighting setup
-sbt "run --optix --objects 'type=sphere' \
+sbt "run --objects 'type=sphere' \
     --light directional:-1,1,-1:1.5 \          # Key light
     --light directional:1,0.5,-1:0.5:8080ff \  # Fill light (blue)
     --light point:0,3,2:0.8:ffffff"             # Rim light
@@ -975,7 +959,7 @@ sbt "run --optix --objects 'type=sphere' \
 Enable shadow rays for realistic shadows:
 
 ```bash
-sbt "run --optix --objects 'type=sphere' \
+sbt "run --objects 'type=sphere' \
     --shadows \
     --light directional:-1,1,-1"
 ```
@@ -989,7 +973,7 @@ Enable `--transparent-shadows` to make glass objects cast color-tinted shadows i
 glass sphere casts a red-tinted shadow, a blue glass sphere a blue-tinted shadow:
 
 ```bash
-sbt "run --optix \
+sbt "run \
     --objects 'type=sphere:color=#FF000066:ior=1.5' \
     --shadows --transparent-shadows \
     --light directional:-1,1,-1"
@@ -1018,22 +1002,23 @@ If no lights are specified, a default setup is used:
 
 ### Plane Materials
 
-The ground plane supports a material preset in addition to the basic color/checkerboard options:
+The ground plane (enabled with `--plane`) supports a material preset in addition to the basic
+color/checkerboard options:
 
 ```bash
-# Solid color plane (original behavior)
-sbt "run --optix --plane-color 808080"
+# Solid color plane
+sbt "run --objects type=sphere --plane y:-2 --plane-color 808080"
 
-# Checkerboard plane (original behavior)
-sbt "run --optix --plane-color ffffff:404040"
+# Checkerboard plane
+sbt "run --objects type=sphere --plane y:-2 --plane-color ffffff:404040"
 
-# Material preset plane (new in Sprint 13)
-sbt "run --optix --plane-material chrome"   # Mirror-finish chrome floor
-sbt "run --optix --plane-material gold"     # Gold-tinted floor
+# Material preset plane
+sbt "run --objects type=sphere --plane y:-2 --plane-material chrome"   # Mirror-finish chrome floor
+sbt "run --objects type=sphere --plane y:-2 --plane-material gold"     # Gold-tinted floor
 ```
 
 **Available plane material presets:** `glass`, `water`, `diamond`, `chrome`, `gold`, `copper`,
-`metal`, `plastic`, `matte`, `film`, `parchment`
+`metal`, `plastic`, `matte`, `film`, `parchment`, `glass-dispersive`, `diamond-dispersive`
 
 **Note:** `--plane-material` and `--plane-color` are mutually exclusive — use one or the other.
 
