@@ -1,7 +1,7 @@
 # Menger — Advanced Features
 
-**Version**: 0.5.5
-**Last Updated**: March 2026
+**Version**: 0.9.0
+**Last Updated**: September 2026
 
 ← [Usage & Rendering](user-guide.md) | [User Guide Index](../USER_GUIDE.md)
 
@@ -9,9 +9,18 @@
 
 ## Advanced Features
 
-### Animations
+Menger has two independent animation systems. Pick one per run — they cannot be combined:
 
-Generate frame sequences for animations using the `--animate` flag.
+| System | Flags | What it animates | Use when |
+|--------|-------|------------------|----------|
+| CLI parameter sweep | `--animate` + `--objects` | Rotation, 4D rotation/projection, sponge level of the `--objects` | Quick sweeps without writing code |
+| Animated DSL scene (t-parameter) | `--scene` + `--frames`/`--t`/`--preview` | Anything — your `scene(t)` function decides | Full control: moving objects, materials, camera, lights |
+
+### Animations with `--animate`
+
+Generate frame sequences by sweeping parameters of the objects given with `--objects`.
+`--save-name` must contain a `%` pattern for the frame number. `--animate` is mutually
+exclusive with `--timeout`.
 
 #### Animation Syntax
 
@@ -21,65 +30,63 @@ Generate frame sequences for animations using the `--animate` flag.
 
 #### Animatable Parameters
 
-**3D Rotation:**
-- `rot-x`: Rotation around X axis (degrees)
-- `rot-y`: Rotation around Y axis
-- `rot-z`: Rotation around Z axis
+Which parameters are allowed depends on the object types in `--objects`; an invalid
+parameter for the given types is rejected at startup.
 
-**4D Rotation:**
-- `rot-x-w`: Rotation around XW plane
-- `rot-y-w`: Rotation around YW plane
-- `rot-z-w`: Rotation around ZW plane
+| Parameter | Valid for | Meaning |
+|-----------|-----------|---------|
+| `rot-x`, `rot-y`, `rot-z` | all types | 3D rotation around X / Y / Z (degrees) |
+| `rot-x-w`, `rot-y-w`, `rot-z-w` | 4D types (tesseract, 4-polytopes, tesseract sponges) | Rotation in the XW / YW / ZW plane (degrees) |
+| `projection-screen-w`, `projection-eye-w` | 4D types | 4D projection screen / eye distance |
+| `level` | sponges (3D and 4D) | Recursion level (fractional values allowed) |
 
-**4D Projection:**
-- `projection-screen-w`: Projection screen distance
-- `projection-eye-w`: Eye position in W dimension
-
-**Fractal Level:**
-- `level`: Recursion level (supports fractional values)
+Note the spelling: inside `--animate` the 4D planes are written `rot-x-w`; inside
+`--objects` specs they are `rot-xw`.
 
 #### Animation Examples
 
 **Simple Rotation:**
 ```bash
-# Rotate 360° around Y axis over 36 frames
-sbt "run --level 2 --save-name frame%03d.png \
+# Rotate a level-2 sponge 360° around Y over 36 frames
+sbt "run --objects type=sponge-volume:level=2 --save-name frame%03d.png \
     --animate frames=36:rot-y=0-360"
 ```
 
 **Level Animation:**
 ```bash
-# Animate from level 0 to level 3 over 30 frames
-sbt "run --save-name level%03d.png \
+# Animate from level 0 to level 3 over 30 frames (fractional levels in between)
+sbt "run --objects type=sponge-surface:level=0 --save-name level%03d.png \
     --animate frames=30:level=0-3"
 ```
 
 **Combined Parameters:**
 ```bash
-# Rotate and zoom simultaneously
-sbt "run --save-name combined%03d.png \
+# Grow the level while rotating
+sbt "run --objects type=sponge-volume:level=0 --save-name combined%03d.png \
     --animate frames=20:level=0-2:rot-y=0-90"
 ```
 
 **Chained Animations:**
 ```bash
-# First rotate in 4D, then rotate in 3D
-sbt "run --sponge-type tesseract --save-name anim%03d.png \
+# First rotate in 4D, then rotate in 3D (--animate is repeatable; segments play in order)
+sbt "run --objects type=tesseract --save-name anim%03d.png \
     --animate frames=10:rot-x-w=0-45 \
     --animate frames=10:rot-y=0-90"
 ```
 
-**Note:** Parameters specified in `--animate` cannot also be specified as CLI options (e.g., can't use both `--level 2` and `frames=10:level=0-2`).
+**Note:** Sponges always need a `level=` in their `--objects` spec, even when `--animate`
+sweeps the level — the animated value then overrides it frame by frame (writing the start value,
+as above, keeps the command self-explanatory).
 
 #### Creating Videos from Frames
 
-After generating frames, use ffmpeg to create a video:
+The built-in encoder (`--video`, see [Video Output](#video-output) below) works with the
+t-parameter system. For `--animate` frame sequences, encode with ffmpeg:
 
 ```bash
 # Generate frames
-sbt "run --optix --objects 'type=sphere' --level 2 \
-    --save-name frame%03d.png --animate frames=36:rot-y=0-360 \
-    --timeout 0.5"
+sbt "run --objects type=sphere:material=chrome --plane y:-2 \
+    --save-name frame%03d.png --animate frames=36:rot-y=0-360"
 
 # Create MP4 video (30 FPS)
 ffmpeg -framerate 30 -i frame%03d.png -c:v libx264 -pix_fmt yuv420p output.mp4
@@ -125,10 +132,10 @@ Evaluate an animated scene at a single `t` value:
 
 ```bash
 # Render OrbitingSphere at t=0.5
-sbt "run --optix --scene examples.dsl.OrbitingSphere --t 0.5 --save-name orbit.png --headless"
+sbt "run --scene examples.dsl.OrbitingSphere --t 0.5 --save-name orbit.png --headless"
 
 # Render PulsingSponge at t=2.0 (fractal level 2)
-sbt "run --optix --scene examples.dsl.PulsingSponge --t 2.0 --save-name pulse.png --headless"
+sbt "run --scene examples.dsl.PulsingSponge --t 2.0 --save-name pulse.png --headless"
 ```
 
 Without `--t`, animated scenes default to `t=0`.
@@ -139,12 +146,12 @@ Sweep `t` across a range to generate a frame sequence:
 
 ```bash
 # 100-frame orbit animation, t from 0 to 2π
-sbt "run --optix --scene examples.dsl.OrbitingSphere \
+sbt "run --scene examples.dsl.OrbitingSphere \
     --frames 100 --start-t 0 --end-t 6.28 \
     --save-name orbit_%04d.png --headless"
 
 # Pulsing sponge from level 0 to 3
-sbt "run --optix --scene examples.dsl.PulsingSponge \
+sbt "run --scene examples.dsl.PulsingSponge \
     --frames 60 --start-t 0 --end-t 3 \
     --save-name pulse_%04d.png --headless"
 ```
@@ -162,21 +169,49 @@ The `t` value is linearly interpolated: `t = startT + frameIndex * (endT - start
 
 **Validation rules:**
 - `--t` is mutually exclusive with `--start-t`, `--end-t`, `--frames`
-- `--t` and `--frames` require `--scene` and `--optix`
-- `--t` and `--frames` are mutually exclusive with `--animate` (the LibGDX animation system)
+- `--t` and `--frames` require `--scene`
+- `--t` and `--frames` are mutually exclusive with `--animate` (the CLI parameter-sweep system)
 - `--frames` requires `--save-name` containing `%` for frame numbering
 
-#### Creating Videos from Animated Scenes
+#### Video Output
+
+Menger can encode the frame sequence produced by `--frames` directly into a video (ffmpeg
+must be installed; availability and encoder support are checked at startup):
 
 ```bash
-# Generate frames
-sbt "run --optix --scene examples.dsl.OrbitingSphere \
+# 120-frame orbit straight to H.264 MP4 (frame PNGs are deleted afterwards)
+sbt "run --scene examples.dsl.OrbitingSphere \
     --frames 120 --start-t 0 --end-t 6.28 \
-    --save-name orbit_%04d.png --headless"
+    --save-name orbit_%04d.png --video orbit.mp4 --headless"
 
-# Convert to MP4
+# HEVC via NVENC, near-lossless, keep the individual frames
+sbt "run --scene examples.dsl.OrbitingSphere --frames 120 --end-t 6.28 \
+    --save-name orbit_%04d.png --video orbit.mkv --video-quality 4 --keep-frames --headless"
+```
+
+| Flag | Default | Meaning |
+|------|---------|---------|
+| `--video <file>` (`-v`) | — | Output file; `.mp4` = H.264 (libx264), `.mkv` = HEVC (hevc_nvenc). Requires `--frames` and `--save-name` |
+| `--video-quality <0-51>` | 12 | Encoder QP: 0 = lossless, 51 = worst; 12 is "master" quality |
+| `--keep-frames` (`-k`) | off | Keep the frame PNGs after encoding |
+
+To encode manually instead (e.g. with custom ffmpeg options):
+
+```bash
 ffmpeg -framerate 30 -i orbit_%04d.png -c:v libx264 -pix_fmt yuv420p orbit.mp4
 ```
+
+#### Interactive Preview
+
+Before committing to a long frame render, scrub through an animated scene interactively:
+
+```bash
+sbt "run --scene examples.dsl.OrbitingSphere --preview --start-t 0 --end-t 6.28 --frames 100"
+```
+
+Controls: **Left/Right** step `t` by one frame, **Shift+Left/Right** take larger steps,
+**Space** plays/pauses, **Home/End** jump to the start/end of the range. `--frames`
+(default 100) sets the step size. `--preview` requires an animated scene.
 
 #### Included Animated Examples
 
@@ -250,20 +285,20 @@ Caustics are the patterns of light focused through transparent refractive object
 **Basic Caustics:**
 ```bash
 # Glass sphere with caustics
-sbt "run --optix --objects 'type=sphere:ior=1.5' --caustics"
+sbt "run --objects 'type=sphere:ior=1.5' --caustics"
 ```
 
 **High-Quality Caustics:**
 ```bash
 # More photons and iterations for better quality
-sbt "run --optix --objects 'type=sphere:ior=1.5' \
+sbt "run --objects 'type=sphere:ior=1.5' \
     --caustics --caustics-photons 500000 --caustics-iterations 50"
 ```
 
 **Caustics with Complex Geometry:**
 ```bash
 # Menger sponge with caustics (computationally intensive!)
-sbt "run --optix --objects 'type=sponge-surface:level=2:ior=1.5' \
+sbt "run --objects 'type=sponge-surface:level=2:ior=1.5' \
     --caustics --caustics-photons 200000"
 ```
 
@@ -298,20 +333,10 @@ For more details, see [docs/caustics/CAUSTICS.md](../caustics/CAUSTICS.md).
 
 Reduce jagged edges and improve quality with antialiasing.
 
-#### LibGDX Mode MSAA
-
-```bash
---antialias-samples <N>      # Number of MSAA samples (2, 4, 8, 16)
-```
-
-Example:
-```bash
-sbt "run --level 2 --antialias-samples 8"
-```
-
-#### OptiX Mode Recursive AA
-
-OptiX mode uses recursive adaptive antialiasing that samples more heavily at edges:
+Menger uses recursive adaptive antialiasing that samples more heavily at edges. (The old
+`--antialias-samples` MSAA option belonged to the removed LibGDX rasterizer and no longer
+affects the image.) For noise rather than jagged edges, use `--accumulation-frames N` and/or
+`--denoise`.
 
 ```bash
 --antialiasing                   # Enable adaptive AA
@@ -328,14 +353,14 @@ OptiX mode uses recursive adaptive antialiasing that samples more heavily at edg
 **Examples:**
 ```bash
 # Standard quality
-sbt "run --optix --objects 'type=sphere' --antialiasing"
+sbt "run --objects 'type=sphere' --antialiasing"
 
 # High quality (more recursion)
-sbt "run --optix --objects 'type=sphere' \
+sbt "run --objects 'type=sphere' \
     --antialiasing --aa-max-depth 4 --aa-threshold 0.05"
 
 # Fast AA (less sensitive edge detection)
-sbt "run --optix --objects 'type=sphere' \
+sbt "run --objects 'type=sphere' \
     --antialiasing --aa-max-depth 2 --aa-threshold 0.2"
 ```
 
@@ -347,7 +372,7 @@ sbt "run --optix --objects 'type=sphere' \
 
 ### Multiple Objects
 
-Render complex scenes with multiple objects (OptiX v0.4+):
+Render complex scenes with multiple objects by repeating `--objects`:
 
 ```bash
 --objects "type=<type>:param=value:param2=value2..."
@@ -396,7 +421,7 @@ edge-emission=<float>        # Edge emission (0.0-10.0, for glowing edges)
 
 **Three Spheres with Different Materials:**
 ```bash
-sbt "run --optix \
+sbt "run \
     --objects 'type=sphere:pos=-2,0,0:material=glass' \
     --objects 'type=sphere:pos=0,0,0:material=gold' \
     --objects 'type=sphere:pos=2,0,0:material=chrome'"
@@ -404,7 +429,7 @@ sbt "run --optix \
 
 **Mixed Geometry:**
 ```bash
-sbt "run --optix \
+sbt "run \
     --objects 'type=sponge-surface:level=2:pos=0,0,0:material=diamond' \
     --objects 'type=sphere:pos=3,0,0:size=0.5:color=#FF0000' \
     --objects 'type=cube:pos=-3,0,0:material=copper'"
@@ -412,7 +437,7 @@ sbt "run --optix \
 
 **Textured Objects:**
 ```bash
-sbt "run --optix \
+sbt "run \
     --objects 'type=cube:texture=wood.png:pos=0,0,0' \
     --objects 'type=cube:texture=metal.jpg:pos=2,0,0'"
 ```
@@ -420,19 +445,19 @@ sbt "run --optix \
 **Tesseract (4D Hypercube):**
 ```bash
 # Basic tesseract with glass material
-sbt "run --optix \
+sbt "run \
     --objects 'type=tesseract:material=glass'"
 
 # Tesseract with custom 4D rotation
-sbt "run --optix \
+sbt "run \
     --objects 'type=tesseract:material=diamond:rot-xw=30:rot-yw=45'"
 
 # Tesseract with glowing edges (wireframe effect)
-sbt "run --optix \
+sbt "run \
     --objects 'type=tesseract:material=glass:edge-radius=0.02:edge-material=chrome:edge-emission=3.0'"
 
 # Tesseract with colored emissive edges
-sbt "run --optix \
+sbt "run \
     --objects 'type=tesseract:edge-radius=0.025:edge-color=#00FFFF:edge-emission=5.0'"
 ```
 

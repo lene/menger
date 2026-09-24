@@ -2,68 +2,79 @@
 
 # Troubleshooting
 
-## OptiX JNI Build Issues
+**Where the native code lives** (it matters for most fixes below): the generic OptiX layer —
+`liboptixjni.so` and `optix_shaders.ptx` — ships *inside* the `io.github.lene:optix-jni` jar
+from Maven Central and is not built in this repo. This repo builds only `menger-geometry`:
+`menger_4d.ptx` (the 4D fractal programs) and `libmengergeometry.so` (video decoding), under
+`menger-geometry/target/native/x86_64-linux/bin/`. Everything is compiled by `sbt compile`.
 
-### CMake warnings "Ignoring extra path"
+Quick index:
 
-**Fixed** by custom `CMakeWithoutVersionBug` build tool. See `project/CMakeWithoutVersionBug.scala` - fixes sbt-jni version passing issue.
+| Symptom | Section |
+|---------|---------|
+| `Error: SceneConfig must provide objectSpecs` | [Nothing to render](#nothing-to-render) |
+| `Error: Unknown option 'optix'` (or `object`, `radius`, …) | [Removed options](#removed-options) |
+| CUDA error 35 at startup | [CUDA error 35](#cuda-error-35-driver-version-is-insufficient-for-cuda-runtime-version) |
+| CUDA error 718 | [CUDA error 718](#cuda-error-718-invalid-program-counter) |
+| CUDA error 719 / out of memory in tests | [GPU busy](#gpu-busy--oom-from-a-concurrent-process-cuda-error-719-out-of-memory) |
+| `menger_4d.ptx not found` | [Missing PTX](#menger_4dptx-not-found-after-sbt-clean) |
+| `failed to load` (native library) | [Native library](#native-library-failed-to-load--unsatisfiedlinkerror) |
+| JVM crash in `libnvidia-glcore.so` under `xvfb-run` | [SIGBUS](#sigbus-crash-in-libnvidia-glcoreso-under-xvfb-run) |
+| `render lock already held: <path>` / second window refused | [Render lock](#second-interactive-window-refused) |
+| `.scala` scene stopped compiling after upgrading to 0.9.0 | [Restricted classpath](#scene-file-no-longer-compiles-090) |
 
-### "library not found" or "cannot find -lcuda"
+## Usage Errors
 
-- Check CUDA installed: `nvcc --version`
-- Check `LD_LIBRARY_PATH`: `echo $LD_LIBRARY_PATH`
-- Ubuntu/Debian: `pkexec apt-get install nvidia-cuda-toolkit`
+### Nothing to render
 
-### "OptiX headers not found"
+**Symptom:** `Error: SceneConfig must provide objectSpecs` (often after a bare `sbt run`).
 
-- Set `OPTIX_ROOT` to OptiX SDK path
-- CMakeLists.txt auto-detects, prefers highest version (9.0 over 8.0)
-- Download: https://developer.nvidia.com/optix
+**Cause:** every run needs `--objects` or `--scene`; there is no default scene.
 
-### CUDA error 718 ("invalid program counter")
+**Fix:** `sbt "run --objects type=sphere"` or `sbt "run --scene glass-sphere"`.
 
-**Cause:** OptiX SDK/driver version mismatch
+### Removed options
 
-**Symptom:** `cudaDeviceSynchronize() failed: invalid program counter (718)`
+**Symptom:** `Error: Unknown option 'optix'` (or `object`, `radius`, `scale`, `center`, `ior`).
 
-**Diagnosis:**
-```bash
-# Check driver's OptiX version
-strings /usr/lib/x86_64-linux-gnu/libnvoptix.so.* | grep "OptiX Version"
+**Cause:** OptiX is the only renderer since the LibGDX renderer was removed, so `--optix` is gone;
+the single-object flags were replaced by `--objects`.
 
-# Check SDK version used to build
-grep "OptiX SDK:" optix-jni/target/native/x86_64-linux/build/CMakeCache.txt
-```
+**Fix:** drop `--optix`; write `--objects type=sphere:size=1.5:pos=0,0,0:ior=1.5` instead of the
+single-object flags. Some older flags are still *accepted but ignored* (`--sponge-type`,
+`--lines`, `--color`, …) — see the [User Guide](guide/user-guide.md#legacy-flags-that-currently-do-nothing).
 
-**Fix:**
-```bash
-# Install matching OptiX SDK (9.0 for driver 580.x+)
-rm -rf optix-jni/target/native
-sbt "project optixJni" compile
-```
+### Second interactive window refused
 
-**Prevention:** CMakeLists.txt auto-detects highest SDK version
+**Symptom:** starting a second interactive window fails immediately with
+`render lock already held: <path>`.
 
-**Root cause:** OptiX strict ABI compatibility - SDK must match driver runtime
+**Cause:** at most one interactive render session may be active (lock file, `--render-lock-path`).
+This is deliberate — a second request is refused, never queued. Headless renders are not affected.
 
-### OptiX Validation Mode
+**Fix:** close the other window, or render headless (`--headless --save-name out.png`). If no
+window is open, a crashed process may still hold the lock only until it exits; the OS releases
+the lock when the process ends.
 
-**When to use:** Debugging SBT mismatches, payload size errors, or buffer
-alignment issues that produce opaque CUDA error 718. Validation mode catches
-these at the exact call site with a descriptive error.
+### Scene file no longer compiles (0.9.0)
 
-**Usage:**
-```bash
-MENGER_OPTIX_VALIDATION=1 sbt run
-MENGER_OPTIX_VALIDATION=1 menger-app --objects type=sphere
-```
+**Symptom:** a `.scala` scene loaded with `--scene file.scala` that worked in 0.8.x fails to
+compile with missing-package errors.
 
-**Performance note:** Adds ~10-30% runtime overhead — debugging only, not production.
+**Cause:** since 0.9.0 scene files compile against a restricted classpath: the Scala library,
+menger-common, scala-logging, and `menger.dsl`, `menger.objects`, `menger.video`. Imports of
+LibGDX, `io.github.lene.optix`, `upickle`, or menger's `engines`/`tools`/`cli`/`input` packages
+are rejected.
+
+**Fix:** use only the DSL (`import menger.dsl.*`). See the
+[DSL reference](guide/dsl-reference.md#basic-dsl-structure).
+
+## GPU, Driver and Build Issues
 
 ### CUDA error 35 ("driver version is insufficient for CUDA runtime version")
 
-**Cause:** NVIDIA driver too old for the CUDA 13 runtime that the distributed native
-libraries (`optix-jni` ≥0.1.3, `menger-geometry`) link against (`libcudart.so.13`).
+**Cause:** NVIDIA driver too old for the CUDA 13 runtime that the native libraries
+(`optix-jni` ≥0.1.3, `menger-geometry`) link against (`libcudart.so.13`).
 
 **Symptom:** `cudaFree(0) failed: CUDA driver version is insufficient for CUDA runtime
 version (35)` and `OptiXNotAvailableException: Failed to initialize OptiX renderer` — every
@@ -72,91 +83,157 @@ GPU render fails at startup, including a plain sphere.
 **Diagnosis:**
 ```bash
 nvidia-smi | grep -iE 'Driver Version|CUDA Version'   # need driver >= 580.65 / CUDA 13
-ldd <jar-extracted>/native/x86_64-linux/liboptixjni.so | grep cudart   # libcudart.so.13
 ```
 
-**Fix:** upgrade the NVIDIA driver to ≥580.65 (`pkexec apt install nvidia-driver-595`),
-reboot. CUDA drivers are backward-compatible, so existing CUDA 12 builds keep working.
+**Fix:** upgrade the NVIDIA driver to ≥580.65 (e.g. `pkexec apt install nvidia-driver-595`) and
+reboot. The project standardized on CUDA 13 in Sprint 27; staying on an older driver would mean
+rebuilding `optix-jni` against CUDA 12 and `publishLocal`-ing it.
 
-**Note:** the project standardized on CUDA 13 in Sprint 27 (arc42 §2 TC-4/TC-9). To stay on
-an older driver, you would have to rebuild `optix-jni` against CUDA 12 and `publishLocal` it.
+### CUDA error 718 ("invalid program counter")
 
-### GPU busy / OOM from a concurrent desktop process (CUDA error 719, out of memory)
+**Cause:** OptiX SDK / driver mismatch (OptiX has a strict ABI — the SDK a PTX was built against
+must be supported by the driver's OptiX runtime), or a pipeline/SBT bug.
 
-A foreign process (video encoding, another render, a second Menger instance) holding
-GPU memory or compute time can make `memcheck`/`integration` fail with CUDA error 719
-or an out-of-memory error that has nothing to do with the code under test. The pre-push
-hook's `gpu-preflight.sh` check (Sprint 36 D1) detects this automatically — free
-VRAM below ~2 GiB or any listed compute process triggers a short retry window, then a
-labeled `SKIP (env: GPU busy — <process>)` locally, or an `ENV-UNSUITABLE` CI failure
-(rerun with `gh run rerun --failed` once the GPU clears). Manual check:
+**Diagnosis:**
+```bash
+nvidia-smi                                                             # driver version
+strings /usr/lib/x86_64-linux-gnu/libnvoptix.so.* | grep "OptiX Version"   # driver's OptiX
+grep "OptiX" menger-geometry/target/native/x86_64-linux/build/CMakeCache.txt  # SDK used here
+```
+
+**Fix:** install OptiX SDK 9.0 (the project's target; driver ≥580.65 supports it), point
+`OPTIX_ROOT` at it, then `sbt clean compile`. If the published `optix-jni` jar itself fails with
+718 on your driver, that is a driver problem — upgrade the driver. If the error only appears
+with a particular scene, use validation mode (below).
+
+### OptiX validation mode
+
+**When to use:** SBT mismatches, payload-size errors or buffer-alignment problems that surface as
+an opaque CUDA error 718. Validation mode reports them at the exact call site.
+
+```bash
+MENGER_OPTIX_VALIDATION=1 sbt "run --objects type=sphere"
+MENGER_OPTIX_VALIDATION=1 menger-app --objects type=sphere
+```
+
+Adds ~10-30% runtime overhead — debugging only.
+
+### GPU busy / OOM from a concurrent process (CUDA error 719, out of memory)
+
+A foreign process (video encoding, another render, a second Menger instance) holding GPU memory
+or compute time can make `memcheck`/`integration` fail with CUDA error 719 or out-of-memory
+errors unrelated to the code under test. The pre-push hook's `gpu-preflight.sh` (Sprint 36 D1)
+detects this: free VRAM below ~2 GiB or any listed compute process triggers a short retry window,
+then a labeled `SKIP (env: GPU busy — <process>)` locally, or an `ENV-UNSUITABLE` CI failure
+(rerun with `gh run rerun <run-id> --failed` once the GPU is free). Manual check:
 `nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv`.
 
-### CI GPU job "system failure": `open /run/nvidia-persistenced/socket: no such file or directory`
+### `menger_4d.ptx not found` after `sbt clean`
 
-**Cause:** on a self-hosted GitLab GPU runner, the NVIDIA container toolkit mounts the
-`nvidia-persistenced` socket; if the daemon is masked/inactive the job fails to start
-(`OCI runtime create failed`) in seconds, before any test runs.
+**Symptom:** `menger_4d.ptx not found on classpath (/native/x86_64-linux/menger_4d.ptx) or in
+[menger-geometry/target/native/x86_64-linux/bin/menger_4d.ptx, …]`, typically as soon as a 4D
+fractal (`menger4d`, `sierpinski4d`, `hexadecachoron4d`) is rendered.
 
-**Fix (on the runner host):**
+**Cause:** `sbt clean` deleted menger-geometry's native build output. The PTX is looked up on the
+classpath first (packaged app), then in the sbt build directory (`sbt run` / tests).
+
+**Fix:** `sbt compile` (rebuilds it). Run `sbt` from the repo root — the fallback paths are
+relative to the working directory.
+
+### Native library failed to load / `UnsatisfiedLinkError`
+
+**Symptom:** `OptiXNotAvailableException: Menger native library (mengergeometry) failed to load`,
+or an `UnsatisfiedLinkError` for `optixjni`.
+
+**Diagnosis and fix:**
+- `mengergeometry`: check `menger-geometry/target/native/x86_64-linux/bin/libmengergeometry.so`
+  exists; if not, `sbt compile`. `sbt run` sets `java.library.path` to that directory
+  (`build.sbt`); the packaged app bundles it.
+- `optixjni`: it is loaded from the optix-jni jar on the classpath. A failure there usually means
+  the CUDA runtime isn't found: `export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH`,
+  and check the driver (error 35 above).
+
+### "OptiX headers not found" / "cannot find -lcuda" when building
+
+- Set `OPTIX_ROOT` to the OptiX SDK path (e.g. `/usr/local/optix`); CMake prefers the highest
+  installed SDK version.
+- Check CUDA 13.x is installed and on `PATH`: `nvcc --version`; set `CUDA_HOME=/usr/local/cuda`.
+- Full setup: the workspace [installation guide](../../docs/INSTALLATION_FROM_SCRATCH.md).
+
+### CMake "Ignoring extra path" warnings
+
+Handled by the custom `CMakeWithoutVersionBug` build tool (`project/CMakeWithoutVersionBug.scala`),
+which works around sbt-jni's version passing. No action needed.
+
+### Root-owned files after Docker builds (`AccessDeniedException`, CMake cache mismatch)
+
+**Cause:** a container ran as root and left root-owned files, or a CMake cache created at a
+different path inside a container.
+
+**Fix:**
 ```bash
-pkexec systemctl unmask nvidia-persistenced
-pkexec systemctl enable --now nvidia-persistenced
-ls -la /run/nvidia-persistenced/socket   # confirm socket exists
+pkexec chown -R $USER:$USER menger-geometry/target/
+rm -rf menger-geometry/target/native     # only if the CMake cache path mismatches
 ```
-Then retry the job (`glab ci retry <job-id>`).
+**Prevention:** run containers with `--user $(id -u):$(id -g)`.
 
-### CI GPU job fails only, everything else green: `OPTIX_ERROR_UNKNOWN (7999)`
+### SIGBUS crash in `libnvidia-glcore.so` under `xvfb-run`
 
-**Cause:** the self-hosted GPU runner's host NVIDIA driver was upgraded (often by the OS's
-own automatic-update mechanism — PackageKit/GNOME-Software `aptdaemon`, or
-`unattended-upgrades`) to a version the pinned OptiX runtime in the CI image
-(`optix-cuda:$OPTIX_DOCKER_VERSION`) can't create a device context against. The container's
-CUDA/OptiX version is fixed by the image tag; only the *host* driver floats, and
-nvidia-container-toolkit injects whatever driver is currently loaded on the host into the
-container.
+**Symptom:** JVM crashes with `SIGBUS (0x7)` during `glfwDestroyWindow` at shutdown, especially
+under `xvfb-run`.
 
-**Symptom:** `Test:Full` / `Test:OptiXIntegration` (the two `tags: [nvidia]` jobs) fail while
-every non-GPU job (Scalafix, CheckCoverage, SAST, code_quality) stays green. Job trace shows:
+**Cause:** NVIDIA OpenGL driver threading issue in headless X sessions.
+
+**Fix:** always set the variable before headless runs (the pre-push hook and CI already do):
+```bash
+export __GL_THREADED_OPTIMIZATIONS=0
+xvfb-run -a sbt "run --objects type=sphere --headless --save-name out.png"
+```
+
+### Out of memory during compilation
+
+```bash
+sbt -J-Xmx4G compile        # limit sbt heap
+```
+or add swap space.
+
+## CI Issues (self-hosted GitHub Actions runners)
+
+CI runs on GitHub Actions; GPU jobs run bare on self-hosted runners labelled `nvidia` (see the
+workspace `infra/ci-runners/README.md`). Retry failed jobs with `gh run rerun <run-id> --failed`.
+
+### Only GPU jobs fail with `OPTIX_ERROR_UNKNOWN (7999)` after a driver change
+
+**Cause:** the runner host's NVIDIA driver was upgraded — often by the OS's automatic updates
+(PackageKit / `unattended-upgrades`) — and the loaded kernel module no longer matches the
+installed driver, or the new driver doesn't support the CUDA version in use.
+
+**Symptom:** GPU jobs fail with
 ```
 [OptiX][DEVICECTX]: Error initializing RTX library
-[OptiXContext] Initialization failed: OptiX call 'optixDeviceContextCreate(...)' failed:
-    OPTIX_ERROR_UNKNOWN (7999)
-ERROR i.g.l.o.MengerRenderer - Failed to initialize OptiX renderer
+[OptiXContext] Initialization failed: ... optixDeviceContextCreate(...) failed: OPTIX_ERROR_UNKNOWN (7999)
 ```
+while every non-GPU job stays green.
 
 **Diagnosis (on the runner host):**
 ```bash
 nvidia-smi | grep -iE 'Driver Version|CUDA Version'
 cat /proc/driver/nvidia/version                 # loaded kernel module
 modinfo nvidia | grep ^version                  # on-disk module — must match the above
-grep -iE 'nvidia-driver|nvidia-dkms' /var/log/apt/history.log | tail -20   # recent auto-upgrades
-```
-The job's own trace also prints the driver version the container saw (its `before_script`
-runs `nvidia-smi`) — compare that against what the CI image's CUDA tag requires (e.g. driver
-580.173.02 supports CUDA ≤13.0, but `OPTIX_DOCKER_VERSION` may require CUDA 13.2).
-
-**Fix:** install a driver that supports the CI image's CUDA version, reboot, then confirm
-`nvidia-smi` reports it before retrying CI:
-```bash
-pkexec apt install nvidia-driver-595   # or current minimum for OPTIX_DOCKER_VERSION's CUDA tag
-pkexec reboot
-# after reboot:
-nvidia-smi                              # confirm new driver loaded
-cd /path/to/menger
-glab api --method POST "projects/:id/jobs/<failed-job-id>/retry"
+grep -iE 'nvidia-driver|nvidia-dkms' /var/log/apt/history.log | tail -20
 ```
 
-**Prevention — freeze the driver once it works** (the root cause here was an *unrequested*
-automatic upgrade, not a deliberate one):
+**Fix:** install a driver supporting CUDA 13.x, **reboot**, confirm with `nvidia-smi`, then
+`gh run rerun <run-id> --failed`.
+
+**Prevention — freeze the driver once it works:**
 ```bash
 dpkg -l | awk '/^ii/ && $2 ~ /(nvidia|cuda|libnvidia|libcuda)/ {print $2}' \
   | xargs pkexec apt-mark hold
 pkexec apt-mark showhold   # verify
 ```
-Also blacklist these packages from `unattended-upgrades` (belt-and-suspenders — `apt-mark
-hold` alone is honored by apt/PackageKit/unattended-upgrades, but this makes the intent
-explicit for the next reader): `/etc/apt/apt.conf.d/51-freeze-nvidia-cuda`:
+and blacklist the packages from `unattended-upgrades` in
+`/etc/apt/apt.conf.d/51-freeze-nvidia-cuda`:
 ```
 Unattended-Upgrade::Package-Blacklist {
     "nvidia";
@@ -165,335 +242,64 @@ Unattended-Upgrade::Package-Blacklist {
     "libcuda";
 };
 ```
-To intentionally upgrade later: `apt-mark unhold <pkgs>`, upgrade, **reboot**, then retry a
-GPU CI job and confirm green **before** trusting the new driver — do not let a driver upgrade
-on this host go unvalidated against CI.
+To upgrade deliberately later: `apt-mark unhold <pkgs>`, upgrade, reboot, and confirm a GPU CI
+run is green before trusting the new driver.
 
-**Second, independent cause of the same error signature:** even with a correct, matching
-driver, `optixDeviceContextCreate` still fails with `OPTIX_ERROR_UNKNOWN (7999)` if
-`libnvidia-rtcore.so` (OptiX's RTX core library) was never mounted into the container at all.
-`nvidia-container-toolkit` gates this library behind the **`display`** (or `graphics`)
-capability — **not** `compute`/`utility`. The job's `before_script` "create symlink for RTX
-core library if needed" step is a no-op in this case: the glob
-`libnvidia-rtcore.so.*` matches nothing because the file isn't there, so `test -f` is false
-and the symlink is silently never created.
+**Historical note (container-based CI):** under the retired GitLab/Docker CI the same error also
+appeared when `libnvidia-rtcore.so` was not mounted into the container — `nvidia-container-toolkit`
+only mounts it with the `display` (or `graphics`) capability, so jobs needed
+`NVIDIA_DRIVER_CAPABILITIES=compute,utility,display`. Keep this in mind for any containerized
+GPU run (e.g. the scene-validator sandbox if it is ever given GPU access).
 
-**Confirm this is the cause:**
-```bash
-docker run --rm --gpus all -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
-  $CI_REGISTRY_IMAGE/optix-cuda:$OPTIX_DOCKER_VERSION \
-  bash -c 'ls /usr/lib/x86_64-linux-gnu/libnvidia-rtcore.so* || echo MISSING'
-# add ",display" to NVIDIA_DRIVER_CAPABILITIES above and re-run — file should now be present
-```
+### Runner never picks up jobs
 
-**Fix:** add `display` to `NVIDIA_DRIVER_CAPABILITIES` for every job that renders with OptiX
-(`tags: [nvidia]`) — both the global default and each job's `variables:` override (GitLab CI
-job-level `variables:` fully replaces the global block rather than merging, so every job that
-redeclares `NVIDIA_VISIBLE_DEVICES` etc. must also redeclare this):
-```yaml
-NVIDIA_DRIVER_CAPABILITIES: "compute,utility,display"
-```
-`display` (not the broader `graphics`) mounts the NVIDIA core libs OptiX needs (including
-`libnvidia-rtcore.so`) without also pulling in windowing-system EGL bridge libraries
-(`libnvidia-egl-xcb`/`-wayland`/`-xlib`) that caused a host-side dpkg conflict in an earlier
-driver upgrade — verified empirically by comparing the mounted library set under `display`
-vs `graphics` vs `compute,utility` alone.
-
-**Why this can appear "new" after a driver upgrade:** the capability-to-library classification
-lives in `nvidia-container-toolkit`, not the driver package. If a working `compute,utility`-only
-setup (as this repo's `.gitlab-ci.yml` used) suddenly regresses to this error after a driver or
-toolkit upgrade, check `nvidia-container-cli list` output and compare against what the running
-container actually receives (`docker run --gpus all ... bash -c 'ls .../libnvidia-rtcore.so*'`)
-rather than assuming the driver version itself is still the problem.
-
-### "UnsatisfiedLinkError: no optixjni in java.library.path"
-
-- Check `optix-jni/target/native/x86_64-linux/bin/liboptixjni.so` exists
-- Rebuild: `sbt "project optixJni" nativeCompile`
-- For tests, `build.sbt` sets library path via `Test / javaOptions`
-
-### CUDA Architecture Support
-
-**Native library (`liboptixjni.so`):**
-- C++ host code only (no device code)
-- Calls CUDA/OptiX APIs
-- Works on any system with compatible CUDA runtime
-
-**OptiX shaders (`sphere_combined.ptx`):**
-- PTX intermediate representation
-- Targets compute_52 (Maxwell) minimum
-- JIT-compiled at runtime to actual GPU architecture
-- Single PTX works on any NVIDIA GPU 2014+ (sm_52, 75, 86, 89, etc.)
-- OptiX requires one architecture target; we use virtual for compatibility
-
-### CMake cache mismatch after Docker builds
-
-**Cause:** CMake cache created in Docker at different path (e.g., `/builds/lilacashes/menger`)
-
-**Automatic fix:** build.sbt detects and cleans mismatched caches
-
-**Manual fix:**
-```bash
-pkexec chown -R $USER:$USER optix-jni/target/
-rm -rf optix-jni/target/native
-```
-
-**Prevention:** Run Docker with your user ID (see CI_CD.md)
-
-### "AccessDeniedException" after Docker builds
-
-**Cause:** Docker ran as root, created root-owned files
-
-**Fix:** `pkexec chown -R $USER:$USER optix-jni/target/`
-
-**Prevention:** Run Docker with `--user $(id -u):$(id -g)` (see CI_CD.md)
-
-### "Failed to open PTX file" or solid red rendering after sbt clean
-
-**Cause:** PTX compiled to `optix-jni/target/classes/native/` but OptiX looks in `target/native/x86_64-linux/bin/`
-
-**Symptom:** Solid red image, error `Failed to open PTX file: target/native/x86_64-linux/bin/sphere_combined.ptx (errno: 2)`
-
-**Root cause:** After `sbt clean`, `target/` removed. Build compiles to `optix-jni/target/classes/native/` but runtime expects `target/native/x86_64-linux/bin/`
-
-**Fix:**
-```bash
-mkdir -p target/native/x86_64-linux/bin
-cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx target/native/x86_64-linux/bin/
-```
-
-### Stale PTX files loaded after shader recompilation
-
-**Symptom:** Shader changes don't take effect even after `sbt nativeCompile`
-
-**Cause:** OptiXWrapper.cpp searches multiple PTX locations in priority order:
-1. `target/native/x86_64-linux/bin/sphere_combined.ptx` (extracted from JAR, often stale)
-2. `optix-jni/target/native/x86_64-linux/bin/sphere_combined.ptx` (fresh build output)
-3. `optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx` (sbt-jni managed)
-
-If location #1 contains a stale PTX file, it gets loaded instead of your fresh compilation.
-
-**Fix (immediate):**
-```bash
-# Force-sync fresh PTX to priority location
-cp optix-jni/target/native/x86_64-linux/bin/sphere_combined.ptx target/native/x86_64-linux/bin/
-```
-
-**Fix (cleanup):**
-```bash
-# Remove stale PTX files
-rm -f target/native/x86_64-linux/bin/sphere_combined.ptx
-# Rebuild will now use fresh PTX from optix-jni/target/
-```
-
-**Prevention:** After modifying shaders, always check timestamps:
-```bash
-ls -lah */target/native/x86_64-linux/bin/sphere_combined.ptx target/native/x86_64-linux/bin/sphere_combined.ptx
-```
-
-**Note:** See `docs/archive/PTX_LOADING_ISSUE.md` for detailed analysis and proposed long-term solutions.
-
-### Wrong shader file being edited
-
-**Issue:** Separate shader files (`sphere_miss.cu`, `sphere_closesthit.cu`, `sphere_raygen.cu`) NOT compiled/used
-
-**Correct file:** Edit `sphere_combined.cu` (all shaders in one file)
-
-**Verify:** Check `optix-jni/src/main/native/CMakeLists.txt` - specifies `shaders/sphere_combined.cu`
-
-**Why separate files exist:** Outdated from earlier implementation
-
-### SIGBUS crash in libnvidia-glcore.so during window cleanup
-
-**Symptom:** JVM crashes with `SIGBUS (0x7)` during `glfwDestroyWindow`, especially with xvfb-run
-
-**Error:** Crash in `libnvidia-glcore.so` at application shutdown
-
-**Cause:** NVIDIA OpenGL driver threading issue when running headless (xvfb-run)
-
-**Fix:** Set environment variable before running:
-```bash
-export __GL_THREADED_OPTIMIZATIONS=0
-xvfb-run -a sbt "run --optix ..."
-```
-
-**Prevention:**
-- Already set in `.gitlab-ci.yml` for all CI jobs
-- Already set in `.git_hooks/pre-push`
-- Set in any local test scripts using xvfb-run
-
-**Note:** This issue only affects headless rendering. Interactive display sessions typically don't crash.
-
-## Package Issues
-
-### Packaged app can't find optixjni library
-
-**Expected behavior:** Known issue - packaged app tries loading from system path not bundled location. Doesn't affect code correctness. Only impacts distribution.
+GitHub deletes runner registrations that stay disconnected too long. If the runner log says
+*"The runner registration has been deleted from the server"*, re-register it — see the workspace
+`infra/ci-runners/README.md`.
 
 ---
 
-## User-Facing Common Issues
+## Performance Tips
 
-> This section covers runtime issues when using the rendered application.
-> For build and JNI issues, see the sections above.
-
-### Common Issues
-
-#### "CUDA Error 718: Invalid Program Counter"
-
-**Problem:** OptiX SDK version doesn't match NVIDIA driver version.
-
-**Diagnosis:**
-```bash
-# Check driver version
-nvidia-smi
-
-# Check driver's OptiX version
-strings /usr/lib/x86_64-linux-gnu/libnvoptix.so.* | grep "OptiX Version"
-
-# Check SDK version used to build
-grep "OptiX SDK:" optix-jni/target/native/x86_64-linux/build/CMakeCache.txt
-```
-
-**Solution:**
-1. Driver 580.x+ requires OptiX SDK 9.0+
-2. Driver 535-575.x requires OptiX SDK 8.0
-3. Install matching SDK version
-4. Clean and rebuild:
-```bash
-rm -rf optix-jni/target/native
-sbt compile
-```
-
-For more details, see [INSTALLATION_FROM_SCRATCH.md](INSTALLATION_FROM_SCRATCH.md#check-optixdriver-compatibility).
-
-#### "PTX File Not Found" or Solid Red Rendering
-
-**Problem:** Compiled PTX shaders not found after `sbt clean`.
-
-**Solution:**
-```bash
-# Rebuild project
-sbt compile
-
-# Or manually copy PTX
-mkdir -p target/native/x86_64-linux/bin
-cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx \
-    target/native/x86_64-linux/bin/
-```
-
-#### Stale PTX After Shader Changes
-
-**Problem:** Shader modifications don't take effect.
-
-**Diagnosis:**
-```bash
-# Check PTX file timestamps
-ls -lah */target/native/x86_64-linux/bin/sphere_combined.ptx \
-    target/native/x86_64-linux/bin/sphere_combined.ptx
-```
-
-**Solution:**
-```bash
-# Remove stale PTX
-rm -f target/native/x86_64-linux/bin/sphere_combined.ptx
-
-# Or force-copy fresh PTX
-cp optix-jni/target/native/x86_64-linux/bin/sphere_combined.ptx \
-    target/native/x86_64-linux/bin/
-```
-
-#### "UnsatisfiedLinkError: no optixjni in java.library.path"
-
-**Problem:** JNI library not found.
-
-**Solution:**
-```bash
-# Check library exists
-ls optix-jni/target/native/x86_64-linux/bin/liboptixjni.so
-
-# Rebuild if missing
-sbt "project optixJni" nativeCompile
-```
-
-#### SIGBUS Crash During Window Cleanup (Headless Mode)
-
-**Problem:** JVM crashes with `SIGBUS` in `libnvidia-glcore.so` when using `xvfb-run`.
-
-**Solution:**
-```bash
-# Set environment variable before running
-export __GL_THREADED_OPTIMIZATIONS=0
-xvfb-run sbt "run --optix ..."
-```
-
-This is already set in CI/CD configurations and git hooks.
-
-#### Permission Errors After Docker Build
-
-**Problem:** Files owned by root after Docker build.
-
-**Solution:**
-```bash
-# Use pkexec (not sudo) per project guidelines
-pkexec chown -R $USER:$USER optix-jni/target/
-```
-
-#### Out of Memory During Compilation
-
-**Problem:** Compilation fails with OOM errors.
-
-**Solution:**
-```bash
-# Limit sbt heap
-sbt -J-Xmx4G compile
-
-# Or add swap space
-sudo fallocate -l 8G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-```
-
-For performance tips and further help, see [Performance Tips](#performance-tips) and [Getting Help](#getting-help) below.
-
-### Performance Tips
-
-#### Optimizing Render Speed
+### Optimizing Render Speed
 
 **1. Choose the Right Geometry Type**
 - For levels 0-4: Use surface subdivision (`sponge-surface`)
 - For levels 5+: Use volume subdivision (`sponge-volume` with IAS)
+- For very deep levels (6+): `sponge-recursive-ias` (constant memory per level)
 
 **2. Reduce Quality for Previews**
 ```bash
 # Fast preview (no AA, no shadows)
-sbt "run --optix --objects 'type=sponge-surface:level=2'"
+sbt "run --objects 'type=sponge-surface:level=2'"
 
 # Medium quality (AA only)
-sbt "run --optix --objects 'type=sponge-surface:level=2' --antialiasing"
+sbt "run --objects 'type=sponge-surface:level=2' --antialiasing"
 
 # Full quality (AA + shadows)
-sbt "run --optix --objects 'type=sponge-surface:level=2' --antialiasing --shadows"
+sbt "run --objects 'type=sponge-surface:level=2' --antialiasing --shadows --plane y:-2"
 ```
 
-**3. Use LibGDX for Exploration**
+**3. Explore Cheaply, Then Render**
 ```bash
-# Quick interactive preview
-sbt "run --sponge-type square-sponge --level 2"
+# Explore interactively at a low level with no extra passes
+sbt "run --objects 'type=sponge-surface:level=1'"
 
-# Then render final version with OptiX
-sbt "run --optix --objects 'type=sponge-surface:level=2' --antialiasing --shadows"
+# Then render the final version headless with everything on
+sbt "run --objects 'type=sponge-surface:level=3' --antialiasing --shadows \
+    --plane y:-2 --headless --save-name final.png"
 ```
+
+For animated DSL scenes, `--preview` lets you scrub through `t` before rendering all frames.
 
 **4. Limit Caustics Quality**
 ```bash
 # Fast caustics preview
-sbt "run --optix --objects 'type=sphere:ior=1.5' \
+sbt "run --objects 'type=sphere:ior=1.5' --plane y:-2 \
     --caustics --caustics-photons 50000 --caustics-iterations 5"
 
 # Production caustics
-sbt "run --optix --objects 'type=sphere:ior=1.5' \
+sbt "run --objects 'type=sphere:ior=1.5' --plane y:-2 \
     --caustics --caustics-photons 500000 --caustics-iterations 50"
 ```
 
@@ -512,53 +318,55 @@ sbt "run --optix --objects 'type=sphere:ior=1.5' \
 **6. Headless Rendering for Batch Jobs**
 ```bash
 export __GL_THREADED_OPTIMIZATIONS=0
-xvfb-run sbt "run --optix ... --timeout 2.0"
+xvfb-run -a sbt "run --objects 'type=sponge-volume:level=3' --headless --save-name out.png"
 ```
 
-#### Benchmarking
+### Benchmarking
 
-Check render statistics:
 ```bash
-sbt "run --optix --objects 'type=sphere' --stats"
+sbt "run --objects 'type=sphere' --stats"                        # print statistics
+sbt "run --objects 'type=sphere' --headless --save-name s.png --stats-json stats.json"
 ```
 
-This displays ray counts, intersection tests, and timing information.
+`--stats` prints frame time, ms per million rays and ray counts by type (primary, reflected,
+refracted, shadow, AA). `scripts/benchmark.sh` compares frame times against
+`scripts/perf-baseline.json`.
 
-#### Shader Execution Reordering (SER)
+### Shader Execution Reordering (SER)
 
-**Ada Lovelace+ GPUs (RTX 40xx+):** Enable `MENGER_OPTIX_SER=1` to use OptiX
-shader execution reordering, which improves SIMT coherence for divergent rays
-(e.g., sponges with mixed materials). Enabling SER requires a pipeline rebuild
-on next render — expect 5-20% frame-time improvement on divergent scenes.
+**Ada Lovelace+ GPUs (RTX 40xx+):** `MENGER_OPTIX_SER=1` enables OptiX shader execution
+reordering, which improves SIMT coherence for divergent rays (e.g. sponges with mixed materials).
+It triggers a pipeline rebuild on the next render — expect 5-20% frame-time improvement on
+divergent scenes.
 
 ```bash
 MENGER_OPTIX_SER=1 menger-app --objects type=sponge-volume:level=4
 ```
 
-Disabled by default pending benchmarking. Use `scripts/benchmark.sh` to
-compare on/off timing on your GPU.
+Disabled by default pending benchmarking. Use `scripts/benchmark.sh` to compare on/off timing on
+your GPU.
 
-### Getting Help
+## Getting Help
 
-#### Documentation Resources
+### Documentation Resources
 
-- **Architecture**: [arc42 (workspace repo)](../../docs/arc42/README.md) - Full arc42 architecture documentation
-- **Installation**: [docs/INSTALLATION_FROM_SCRATCH.md](INSTALLATION_FROM_SCRATCH.md) - Complete installation guide
-- **Troubleshooting**: [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Detailed troubleshooting
-- **Caustics**: [docs/caustics/CAUSTICS.md](caustics/CAUSTICS.md) - Caustics implementation details
+- **Architecture**: [arc42 (workspace repo)](../../docs/arc42/README.md)
+- **Installation**: [INSTALLATION_FROM_SCRATCH.md](INSTALLATION_FROM_SCRATCH.md) (and the
+  workspace-level [stack setup](../../docs/INSTALLATION_FROM_SCRATCH.md))
+- **Usage**: [User Guide](USER_GUIDE.md)
+- **Caustics**: [caustics/CAUSTICS.md](caustics/CAUSTICS.md)
 
-#### Reporting Issues
+### Reporting Issues
 
-If you encounter a bug or have a feature request:
-
-1. Check existing issues: https://gitlab.com/lilacashes/menger/issues
+1. Check existing issues: https://github.com/lene/menger/issues
 2. Create a new issue with:
    - Clear description of the problem
-   - Steps to reproduce
+   - Steps to reproduce (the exact `menger-app` / `sbt "run ..."` command)
    - Expected vs actual behavior
-   - Environment details (OS, GPU, driver version)
+   - Environment details (OS, GPU, `nvidia-smi` driver version, menger version from `--version`)
    - Relevant error messages
 
-#### Contributing
+### Contributing
 
-Contributions are welcome! The project follows functional programming principles in Scala 3. See [AGENTS.md](../AGENTS.md) for code standards and development workflow.
+Contributions are welcome! The project follows functional programming principles in Scala 3. See
+[AGENTS.md](../AGENTS.md) for code standards and development workflow.
