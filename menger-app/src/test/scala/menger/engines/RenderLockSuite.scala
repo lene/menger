@@ -4,11 +4,16 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.concurrent.TimeUnit
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class RenderLockSuite extends AnyFlatSpec with Matchers:
+
+  /** Generous enough for a cold JVM start on a loaded CI runner, short enough that a genuinely
+    * stuck helper fails the suite instead of hanging it. */
+  private val HolderTimeoutSeconds = 60L
 
   private def freshLockPath(): String =
     val dir = Files.createTempDirectory("render-lock-suite")
@@ -78,4 +83,9 @@ class RenderLockSuite extends AnyFlatSpec with Matchers:
       result.left.foreach(_ should include(path))
     finally
       holder.getOutputStream.close() // unblocks the holder's readLine(), letting it release+exit
-      holder.waitFor()
+      // Review round 2: an unbounded waitFor() hangs the whole suite in CI if the helper JVM
+      // never reaches its release path (a classpath problem, a JIT stall on a loaded runner).
+      // Bound it and kill what is left.
+      if !holder.waitFor(HolderTimeoutSeconds, TimeUnit.SECONDS) then
+        holder.destroyForcibly()
+        fail(s"lock-holder process did not exit within ${HolderTimeoutSeconds}s")

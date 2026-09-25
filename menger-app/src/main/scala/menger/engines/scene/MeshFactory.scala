@@ -169,6 +169,12 @@ object MeshFactory:
     spec.objectType match
       case "tesseract" =>
         Some(Tesseract(size = spec.size))
+      // `TesseractSponge` takes no `size` -- unlike `TesseractSponge2` below it is always
+      // built at unit scale, so the mesh checked here is a unit-sized stand-in for the
+      // `TesseractSpongeMesh(size = spec.size, ...)` the render path builds. That mismatch is
+      // harmless only because `PolytopeInvariants` runs the scale-free subset for a
+      // `Fractal4D` (review round 2); do not re-enable the scale-sensitive checks for this
+      // type without giving the sponge a real `size`.
       case "tesseract-sponge" | "tesseract-sponge-volume" if spec.level.isDefined =>
         Some(TesseractSponge(spec.level.get))
       case "tesseract-sponge-2" | "tesseract-sponge-surface" if spec.level.isDefined =>

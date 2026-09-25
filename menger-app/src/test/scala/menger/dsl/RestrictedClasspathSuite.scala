@@ -57,6 +57,35 @@ class RestrictedClasspathSuite extends AnyFlatSpec with Matchers:
     val inputEntries = syntheticFull.split(sep).toSet
     restricted.split(sep).filter(_.nonEmpty).foreach { e => inputEntries should contain(e) }
 
+  // Review round 2: `syntheticFull` above uses only Coursier-style names, but the layout the
+  // Docker image actually runs is `JavaAppPackaging`'s stage output, which prefixes every jar
+  // with its dotted organization id and drops menger-app's own `_3` cross-version suffix. The
+  // optional `(?:[\w.-]+\.)?` prefix in the patterns exists solely for that layout and nothing
+  // exercised it -- dropping it left every suite green while `preflight()` refused every scene
+  // inside the container. These are the real filenames from menger-app-<version>/lib/.
+  private val syntheticStage = List(
+    "/opt/menger-app/lib/io.github.lilacashes.menger-app-0.8.13.jar",
+    "/opt/menger-app/lib/org.scala-lang.scala-library-3.8.3.jar",
+    "/opt/menger-app/lib/org.scala-lang.scala3-library_3-3.8.3.jar",
+    "/opt/menger-app/lib/io.github.lene.menger-common_3-0.2.0.jar",
+    "/opt/menger-app/lib/com.typesafe.scala-logging.scala-logging_3-3.9.6.jar",
+    "/opt/menger-app/lib/com.badlogicgames.gdx.gdx-1.14.2.jar",
+    "/opt/menger-app/lib/io.github.lene.optix-jni-0.3.3.jar"
+  ).mkString(sep)
+
+  it should "include every allowlisted artifact in JavaAppPackaging's organization-prefixed stage layout" in:
+    val restricted = RestrictedClasspath.build(syntheticStage)
+    restricted should include("io.github.lilacashes.menger-app-0.8.13.jar")
+    restricted should include("org.scala-lang.scala-library-3.8.3.jar")
+    restricted should include("org.scala-lang.scala3-library_3-3.8.3.jar")
+    restricted should include("io.github.lene.menger-common_3-0.2.0.jar")
+    restricted should include("com.typesafe.scala-logging.scala-logging_3-3.9.6.jar")
+    restricted should not include "gdx"
+    restricted should not include "optix-jni"
+
+  it should "consider the stage layout structurally complete" in:
+    RestrictedClasspath.preflight(syntheticStage) shouldBe None
+
   "RestrictedClasspath.preflight" should "return None when every required entry is present" in:
     RestrictedClasspath.preflight(syntheticFull) shouldBe None
 

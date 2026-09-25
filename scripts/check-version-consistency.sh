@@ -33,4 +33,29 @@ else
   echo "docs/USER_GUIDE.md version: ${GREEN_TEXT}${VERSION_INDEX}${RESET_TEXT}"
 fi
 
+# --- Toolchain pins advertised to the scene agent -----------------------------------------
+# ManifestGenerator and CorpusExporter each hardcode the Scala and optix-jni versions they
+# tell the agent it is generating for (AD-9's staleness signal). Nothing tied those constants
+# to the build, and each suite asserted its own file's constant against a hand-copied literal,
+# so a `scalaVersion` bump left all four copies stale and every test green (review round 2).
+SCALA_BUILD=$(grep -E '^[[:space:]]*scalaVersion := ".*"' menger-app/build.sbt | head -n 1 | cut -d \" -f 2)
+OPTIX_BUILD=$(grep -E 'optixJniDependency[[:space:]]*=' build.sbt | grep -oE '"[0-9]+\.[0-9]+\.[0-9]+"' | tail -n 1 | tr -d '"')
+
+for TOOL_FILE in menger-app/src/main/scala/menger/tools/ManifestGenerator.scala \
+                 menger-app/src/main/scala/menger/tools/CorpusExporter.scala; do
+  SCALA_PIN=$(grep -E 'ScalaVersionPin = ".*"' "$TOOL_FILE" | cut -d \" -f 2)
+  OPTIX_PIN=$(grep -E 'OptixJniVersionPin = ".*"' "$TOOL_FILE" | cut -d \" -f 2)
+  if [ -n "$SCALA_BUILD" ] && [ "$SCALA_PIN" != "$SCALA_BUILD" ]; then
+    echo "scalaVersion in menger-app/build.sbt: ${RED_TEXT}${SCALA_BUILD}${RESET_TEXT}, ScalaVersionPin in ${TOOL_FILE}: ${RED_TEXT}${SCALA_PIN}${RESET_TEXT}"
+    STATUS=1
+  fi
+  if [ -n "$OPTIX_BUILD" ] && [ "$OPTIX_PIN" != "$OPTIX_BUILD" ]; then
+    echo "optix-jni in build.sbt: ${RED_TEXT}${OPTIX_BUILD}${RESET_TEXT}, OptixJniVersionPin in ${TOOL_FILE}: ${RED_TEXT}${OPTIX_PIN}${RESET_TEXT}"
+    STATUS=1
+  fi
+done
+if [ "$STATUS" -eq 0 ]; then
+  echo "Toolchain pins: ${GREEN_TEXT}scala ${SCALA_BUILD}, optix-jni ${OPTIX_BUILD}${RESET_TEXT}"
+fi
+
 exit $STATUS

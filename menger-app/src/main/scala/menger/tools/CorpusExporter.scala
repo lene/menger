@@ -5,8 +5,10 @@ import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.util.Try
 import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
@@ -39,6 +41,11 @@ object CorpusExporter extends LazyLogging:
 
   private val DefaultOutputPath = "target/dsl-corpus.json"
   private val DefaultSourceDir = "menger-app/src/main/scala/examples/dsl"
+
+  /** Not a standalone scene: `SceneIndex` is the registry, not an example. Shared presets live
+    * under `examples/dsl/common/`, which is excluded structurally by the scan being
+    * non-recursive -- move one up into `examples/dsl/` and it silently becomes a corpus
+    * "scene", which `CorpusExporterSuite` now pins against (review round 2). */
   private val ExcludedFileNames = Set("SceneIndex.scala")
 
   case class SceneSource(name: String, path: String, source: String) derives ReadWriter
@@ -60,8 +67,16 @@ object CorpusExporter extends LazyLogging:
     * kept separate from `main` so tests can observe failures without triggering `sys.exit`,
     * mirroring `ManifestGenerator.run`. */
   def run(args: Array[String]): Either[String, Unit] =
-    val outputPath = resolveOutputPath(args)
-    val sourceDir = resolveSourceDir(args)
+    // Review round 2: both positionals were taken unvalidated, so `CorpusExporter --help`
+    // wrote a file literally named `--help` and a third stray argument was silently ignored.
+    val usage = "usage: CorpusExporter [output-path] [source-dir]"
+    if args.length > 2 then Left(s"Error: too many arguments -- $usage")
+    else if args.exists(_.startsWith("-")) then
+      Left(s"Error: unexpected option '${args.find(_.startsWith("-")).getOrElse("")}' -- $usage")
+    else
+      runValidated(resolveOutputPath(args), resolveSourceDir(args))
+
+  private def runValidated(outputPath: String, sourceDir: String): Either[String, Unit] =
     try
       buildCorpus(sourceDir).flatMap(writeCorpus(_, outputPath))
     catch
@@ -82,20 +97,31 @@ object CorpusExporter extends LazyLogging:
     else
       val stream = Files.list(dir)
       try
-        val scenes = stream.iterator().asScala
+        val (unreadable, scenes) = stream.iterator().asScala
           .filter(p => Files.isRegularFile(p) && p.getFileName.toString.endsWith(".scala"))
           .filterNot(p => ExcludedFileNames.contains(p.getFileName.toString))
           .toList
           .sortBy(_.getFileName.toString)
           .map { p =>
             val fileName = p.getFileName.toString
-            SceneSource(
-              name = fileName.stripSuffix(".scala"),
-              path = fileName,
-              source = Files.readString(p)
-            )
+            // A scene file that isn't valid UTF-8 previously failed the whole export with a
+            // MalformedInputException whose message never named the offending file (review
+            // round 2).
+            Try(Files.readString(p)).toEither
+              .left.map(e => s"unreadable scene file '$fileName': ${e.getMessage}")
+              .map(src => SceneSource(
+                name = fileName.stripSuffix(".scala"),
+                // Relative to `sourceDir`, so the field carries locating information rather
+                // than repeating `name + ".scala"` (review round 2).
+                path = dir.relativize(p).toString,
+                source = src
+              ))
           }
-        if scenes.isEmpty then
+          .partitionMap(identity)
+
+        if unreadable.nonEmpty then
+          Left(s"Error: ${unreadable.mkString("; ")}")
+        else if scenes.isEmpty then
           Left(s"Error: no .scala scene files found in '$sourceDir' -- refusing to write an empty corpus")
         else
           Right(CorpusManifest(
@@ -112,7 +138,14 @@ object CorpusExporter extends LazyLogging:
     try
       val path: Path = Paths.get(outputPath)
       Option(path.getParent).foreach(Files.createDirectories(_))
-      Files.writeString(path, write(corpus, indent = 2))
+      // AD-14, same as ManifestGenerator.writeManifest: this artifact crosses into the agent
+      // domain read-only, so it is renamed into place rather than written in situ (review
+      // round 2).
+      val tmp = Files.createTempFile(
+        Option(path.getParent).getOrElse(Paths.get(".")), ".dsl-corpus-", ".json.tmp"
+      )
+      Files.writeString(tmp, write(corpus, indent = 2))
+      Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
       Right(())
     catch
       case e: IOException =>

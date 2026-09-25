@@ -2,8 +2,16 @@ package menger.dsl
 
 import java.io.File
 import java.net.URLClassLoader
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.concurrent.ConcurrentHashMap
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
+import scala.jdk.CollectionConverters._
 import scala.util.Try
+import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -129,8 +137,97 @@ object RestrictedClasspath extends LazyLogging:
 
     (loaderPaths ++ sysPropEntries).distinct.mkString(File.pathSeparator)
 
-  /** Filters `classpath`'s own entries down to the DSL-surface allowlist -- restriction only
-    * ever narrows, it never adds an entry that wasn't already present on the input. */
+  /** menger-app's own packages that a compiled scene has no business resolving: the render
+    * engines, the validation tooling that *invokes* the compiler, the CLI, and input handling.
+    *
+    * Review round 2 (AD-4 rule 2): admitting menger-app's whole classes directory / jar left
+    * `Main`, `menger.tools.SceneValidator`, `menger.engines.*` and `menger.cli.*` typeable
+    * from inside a generated scene -- well beyond "only the DSL surface and its transitive
+    * needs". `-classpath` has no sub-jar or per-package granularity, so the narrowing is done
+    * by handing the compiler a *pruned view* of the entry instead: a symlink mirror for a
+    * classes directory, a repacked jar for a jar (the layout the container actually runs).
+    *
+    * Verified against the source closure: nothing under `menger.dsl`, `menger.objects` or
+    * `menger.video` imports or otherwise references any of these four packages. */
+  private val ExcludedProjectPackages = Set("cli", "engines", "input", "tools")
+
+  private val ExcludedJarPrefixes =
+    ExcludedProjectPackages.map(pkg => s"menger/$pkg/").toList
+
+  /** Pruning is pure I/O and identical for every call in a JVM, so each source entry is
+    * pruned once and reused. */
+  private val prunedEntries = new ConcurrentHashMap[String, String]()
+
+  /** A pruned stand-in for `entry` with [[ExcludedProjectPackages]] removed, or `entry`
+    * itself if pruning is impossible (no symlink support, an unreadable jar, a read-only
+    * temp directory). Degrading to the unpruned entry keeps scene compilation working --
+    * AD-18's container is what backstops the restriction -- but says so loudly. */
+  private def prune(entry: String): String =
+    prunedEntries.computeIfAbsent(entry, _ => pruneUncached(entry))
+
+  private def pruneUncached(entry: String): String =
+    try
+      // An entry that isn't on disk cannot be pruned, and mirroring it would yield an *empty*
+      // stand-in that silently drops menger-app from the classpath entirely. Hand back the
+      // original: a caller passing a synthetic or stale path gets the same restriction
+      // semantics it had before pruning existed.
+      if !new File(entry).exists() then entry
+      else if entry.endsWith(".jar") then pruneJar(entry)
+      else pruneClassesDir(entry)
+    catch
+      case NonFatal(e) =>
+        logger.warn(
+          s"Could not prune '$entry' to the DSL surface (${e.getMessage}) -- compiling scenes " +
+            "against the unpruned entry; menger-app's non-DSL packages stay resolvable",
+          e
+        )
+        entry
+
+  private def pruneClassesDir(dir: String): String =
+    val root    = new File(dir)
+    val pruned  = Files.createTempDirectory("menger-dsl-classes-")
+    val mengerD = pruned.resolve("menger")
+    Files.createDirectory(mengerD)
+
+    def link(target: Path, source: File): Unit =
+      Files.createSymbolicLink(target.resolve(source.getName), source.toPath)
+      ()
+
+    Option(root.listFiles()).toSeq.flatten
+      .filterNot(_.getName == "menger")
+      .foreach(link(pruned, _))
+
+    Option(new File(root, "menger").listFiles()).toSeq.flatten
+      .filterNot(f => f.isDirectory && ExcludedProjectPackages.contains(f.getName))
+      .foreach(link(mengerD, _))
+
+    pruned.toFile.deleteOnExit()
+    pruned.toString
+
+  private def pruneJar(jar: String): String =
+    val out = Files.createTempFile("menger-dsl-", ".jar")
+    val src = new ZipFile(jar)
+    try
+      val sink = new ZipOutputStream(Files.newOutputStream(out))
+      try
+        src.entries().asScala
+          .filterNot(e => ExcludedJarPrefixes.exists(e.getName.startsWith))
+          .foreach { entry =>
+            sink.putNextEntry(new ZipEntry(entry.getName))
+            if !entry.isDirectory then
+              val in = src.getInputStream(entry)
+              try in.transferTo(sink)
+              finally in.close()
+            sink.closeEntry()
+          }
+      finally sink.close()
+    finally src.close()
+    out.toFile.deleteOnExit()
+    out.toString
+
+  /** Filters `classpath`'s own entries down to the DSL-surface allowlist, then prunes
+    * menger-app's own entry to the DSL packages -- restriction only ever narrows, it never
+    * adds an entry that wasn't already present on the input. */
   def build(classpath: String): String =
     val entries = classpath
       .split(File.pathSeparator)
@@ -138,6 +235,7 @@ object RestrictedClasspath extends LazyLogging:
       .filter(_.nonEmpty)
       .filter(isIncluded)
       .distinct
+      .map(e => if isProjectEntry(e) then prune(e) else e)
 
     if entries.isEmpty then
       logger.warn("Restricted classpath is empty -- no entry on the full classpath matched " +
@@ -184,6 +282,11 @@ object RestrictedClasspath extends LazyLogging:
 
   private def mengerAppJarMatches(entryPath: String): Boolean =
     entryPath.endsWith(".jar") && MengerAppJarPattern.matches(new File(entryPath).getName)
+
+  /** menger-app's own compiled output, in either layout -- the only entry [[prune]] applies
+    * to. Every other allowlisted entry is a third-party jar with no menger packages in it. */
+  private def isProjectEntry(entryPath: String): Boolean =
+    isIncludedDir(entryPath) || mengerAppJarMatches(entryPath)
 
   /** Convenience overload against the current JVM's own full classpath. */
   def preflight(): Option[String] = preflight(fullClasspath)

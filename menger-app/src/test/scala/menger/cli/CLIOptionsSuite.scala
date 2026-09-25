@@ -508,10 +508,15 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     opts.display.toOption shouldBe Some(":1")
     opts.display() shouldEqual ":1"
 
-  "--render-lock-path" should "default to a path under the system temp directory" in:
+  // Review round 2: the default was a single `menger-render.lock` shared by every user of the
+  // machine, so a second user hit "Permission denied" on the first user's file and was told
+  // "failed to acquire" rather than "already held". Scoped by user name now.
+  "--render-lock-path" should "default to a per-user path under the system temp directory" in:
     val opts = SafeMengerCLIOptions(Seq[String]())
     opts.renderLockPath() should include(System.getProperty("java.io.tmpdir"))
-    opts.renderLockPath() should endWith("menger-render.lock")
+    opts.renderLockPath() should endWith(".lock")
+    opts.renderLockPath() should include("menger-render-")
+    opts.renderLockPath() should include(System.getProperty("user.name"))
 
   it should "use the given path when supplied" in:
     val opts = SafeMengerCLIOptions(Seq("--render-lock-path", "/tmp/custom-render.lock"))

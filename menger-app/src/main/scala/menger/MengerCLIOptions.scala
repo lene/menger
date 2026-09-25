@@ -41,15 +41,29 @@ object MengerCLIOptions:
     * path, per the Consistency Conventions rule that injected paths must not be discovered
     * or assumed) -- always resolves to a directory that already exists, so a fresh/default
     * invocation never trips the "lock file's directory missing" edge case. */
+  /** Per-user, not per-machine (review round 2). The previous fixed `menger-render.lock` in a
+    * shared `java.io.tmpdir` was owned by whoever ran menger first: a second user's
+    * `RandomAccessFile(path, "rw")` then failed with `Permission denied`, which surfaces as
+    * "failed to acquire render lock" rather than "already held" -- a misleading message for
+    * what is not even a lock conflict, and a trivial local denial of service for anyone who
+    * pre-creates the name. Scoping by user name keeps AD-16's exclusivity (one interactive
+    * session per user, which is what a GPU-bound desktop session actually contends over)
+    * while removing the cross-user collision.
+    *
+    * Note this is still a predictable path in a world-writable directory; a symlink planted
+    * before first use redirects the lock. `--render-lock-path` exists for anyone who needs to
+    * put it somewhere only they can write. */
   def defaultRenderLockPath: String =
-    java.nio.file.Paths.get(System.getProperty("java.io.tmpdir"), "menger-render.lock").toString
+    val user = Option(System.getProperty("user.name")).filter(_.nonEmpty).getOrElse("unknown")
+    java.nio.file.Paths.get(System.getProperty("java.io.tmpdir"), s"menger-render-$user.lock")
+      .toString
 
 class MengerCLIOptions(arguments: Seq[String])
     extends ScallopConf(arguments)
     with CliValidation
     with LazyLogging:
 
-  version("menger v0.8.14 (c) 2023-26, lene.preuss@gmail.com")
+  version("menger v0.9.0 (c) 2023-26, lene.preuss@gmail.com")
   banner("""Usage: menger [options]
            |
            |Menger sponge fractal renderer with OptiX GPU ray tracing support.
