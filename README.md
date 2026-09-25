@@ -172,9 +172,10 @@ GPU-accelerated ray tracing using NVIDIA OptiX (requires `--optix` and `--object
   - Intensity: brightness multiplier (default: 1.0)
   - Color: hex (e.g., `ffffff`) or RGB (e.g., `255,0,0`)
   - Examples:
-    - `--light directional:-1,1,-1` - Directional light from upper-left-back
+    - `--light directional:1,-1,1` - Directional light from upper-left-back (the vector is
+      the direction the light travels)
     - `--light point:0,5,0:2.0:ffffff` - Bright white point light above
-    - `--light directional:0,1,0::ff0000` - Red light (omit intensity with `::`)
+    - `--light directional:0,-1,0::ff0000` - Red light shining down (omit intensity with `::`)
 - `--shadows` - Enable shadow rays for realistic shadows
 
 #### Scene
@@ -276,7 +277,7 @@ sbt "run --optix --objects type=cube:size=1:material=matte:color=#808080"
 
 # Sphere with shadows and custom lighting
 sbt "run --optix --objects type=sphere:material=glass --shadows \
-  --light directional:-1,1,-1:1.5 \
+  --light directional:1,-1,1:1.5 \
   --light point:2,3,2:0.8:ffd700"
 
 # Glass sphere with caustics (light focusing effects)

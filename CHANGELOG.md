@@ -12,6 +12,14 @@
 
 ### Changed
 
+- **Breaking (rendering):** DSL planes face the origin: `Y at -2` is a floor lit from above
+  (it faced down before, so floors were lit only by lights from below and never showed a
+  shadow), matching the CLI's `--plane +y:-2`. Together with optix-jni's fix of the directional
+  light convention (`direction` is the travel direction), the example scenes' lights, which were
+  already written that way, now light them from above.
+- The DSL capability manifest (schema 1.1.0) carries the DSL's conventions and per-field
+  semantics: units, light direction, plane orientation, colour alpha versus material, emission,
+  animation duration (`menger.tools.DslSemantics`).
 - Timing tests are now noise-aware performance gates (tag `Perf`) in their own push-tier `perf`
   suite and CI job, excluded from the regular test run. Each gate times a subject against a
   reference in interleaved rounds (shared helper `io.github.lene.qa.RelativeBenchmark`) and
