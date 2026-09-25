@@ -18,7 +18,10 @@ gpu_preflight_or_skip memcheck || exit 1
 # Shared with run_sanitizer_self_check() (Sprint 36 E2) — a future edit that weakens
 # these flags weakens the self-check too, and the self-check will (correctly) stop
 # detecting its own known defect, aborting the gate before it silently degrades.
-CS_MEMCHECK_FLAGS="--tool memcheck --leak-check full"
+# --check-optix: without it memcheck never instruments OptiX kernel launches, so the whole
+# render path (raygen/closest-hit/any-hit programs) went unchecked while this gate reported
+# clean (usability review 2026-09, F30).
+CS_MEMCHECK_FLAGS="--tool memcheck --leak-check full --check-optix"
 
 # The tool must wrap the *forked test JVM*, not xvfb-run/sbt: valgrind does not trace
 # child processes by default, so wrapping `xvfb-run -a sbt ...` instrumented only the
