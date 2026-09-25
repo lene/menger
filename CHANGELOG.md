@@ -33,6 +33,19 @@
   nothing and passed an empty pattern, which is now allowed.
 - An animated scene whose `scene(0)` threw (e.g. a failed `require`) was reported as having
   no scene method at all; the scene's own error is now reported.
+- `--preview` ignored `--timeout`.
+- A 4D object with edges next to one without made the scene build fail and the window vanish;
+  such scenes are now split into separately built groups.
+- An analytical object (e.g. a sphere) next to an edge-rendered 4D object disappeared: the
+  edge builder reinitializes the renderer, which dropped everything built before it. Edge
+  groups are now built first.
+- Rotating edge-rendered 4D objects interactively darkened the scene: every rebuild
+  reinitialized the renderer and lost the lights and render settings, which are now restored
+  after each rebuild (interactive window and preview).
+- A failure to create the scene exited with status 0 after a briefly flashing window; it is now
+  reported on stderr with exit status 1.
+- `SceneValidator` accepted scenes the renderer cannot build: it now runs the renderer's own
+  object grouping and each scene builder's preconditions (no GPU needed).
 
 ## [0.9.0] - 2026-09-10
 

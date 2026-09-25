@@ -3,6 +3,7 @@ package menger.engines
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Failure
 import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
@@ -283,14 +284,9 @@ class InteractiveEngine(
     buildScene4DTrackedOrFallback(objectSpecs, renderer)
       .flatMap { _ =>
         Try {
-          sceneConfigurator.configureLights(renderer)
           PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
           sceneConfigurator.configureCamera(renderer)
-          renderer.setRenderConfig(renderConfig)
-          renderer.setCausticsConfig(config.caustics)
-          configureOutputMode(renderer)
-          environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
-          environment.fog.foreach(sceneConfigurator.setFog(renderer, _))
+          applyRendererState(renderer)
           environment.envMap.foreach { path =>
             val resolvedPath =
               if java.nio.file.Paths.get(path).isAbsolute then path
@@ -310,20 +306,36 @@ class InteractiveEngine(
               renderT
             ).foreach(renderer.setEnvironmentMap)
           }
-          if environment.iblEnabled then
-            renderer.setIBL(
-              enabled  = true,
-              strength = environment.iblStrength,
-              samples  = environment.iblSamples
-            )
           if crossVisible.get then addCrossGeometry(renderer)
           finalizeCreate()
         }
       }
-      .recover { case e: Exception =>
+      // Propagated, not recovered into GdxRuntime.exit(): that exited with status 0 after a
+      // window that flashed and vanished, so nothing downstream -- the scene agent's crash
+      // report in particular -- could tell a failure from a clean close (usability review
+      // 2026-09, F18). Main now reports it and exits 1.
+      .recoverWith { case e: Exception =>
         logger.error(s"Failed to create OptiX scene: ${e.getMessage}", e)
-        GdxRuntime.exit()
+        Failure(e)
       }.get
+
+  /** Renderer state a builder's `renderer.reinitialize` discards (TesseractEdgeSceneBuilder
+    * reinitializes when it needs more than 64 instances). Applied after the initial build and
+    * again after every rebuild -- a rebuild that skipped it lost the lights, so interactive 4D
+    * rotation of edge-rendered objects turned the scene dark (usability review 2026-09, F22). */
+  private def applyRendererState(renderer: io.github.lene.optix.OptiXRenderer): Unit =
+    sceneConfigurator.configureLights(renderer)
+    renderer.setRenderConfig(renderConfig)
+    renderer.setCausticsConfig(config.caustics)
+    configureOutputMode(renderer)
+    environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
+    environment.fog.foreach(sceneConfigurator.setFog(renderer, _))
+    if environment.iblEnabled then
+      renderer.setIBL(
+        enabled  = true,
+        strength = environment.iblStrength,
+        samples  = environment.iblSamples
+      )
 
   private def addCrossGeometry(renderer: io.github.lene.optix.OptiXRenderer): Unit =
     val length    = config.cross.length
@@ -476,6 +488,7 @@ class InteractiveEngine(
               // Planes are now real IAS instances (Sprint 36 H3.1) — clearAllInstances above
               // wiped them too, so they must be re-added on every rebuild, not just at create().
               PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
+              applyRendererState(renderer)
               if crossVisible.get then addCrossGeometry(renderer)
               cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
               logger.debug("Scene rebuild complete")

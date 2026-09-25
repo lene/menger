@@ -134,6 +134,10 @@ trait WithPreview extends RenderEngine with LazyLogging:
           buildSceneFromConfigs(configs, renderer).recover { case e: Exception =>
             logger.error(s"Failed to build preview scene for t=$t: ${e.getMessage}", e)
           }
+          // A builder may have reinitialized the renderer, discarding lights and render
+          // settings (usability review 2026-09, F22) -- restore them every frame.
+          sceneConfigurator.configureLights(renderer)
+          renderer.setRenderConfig(configs.render.getOrElse(renderConfig))
           PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))

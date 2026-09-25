@@ -65,6 +65,50 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     result.tag shouldBe SceneValidator.Tag.LintFindings
     result.messages.exists(_.startsWith("scene-evaluation: scene(2.0) threw")) shouldBe true
 
+  // Usability review 2026-09 (F18/F19/F24): scenes the validator accepted crashed the render
+  // window -- it never ran the renderer's own grouping and builder preconditions.
+  private def sceneOf(objects: menger.dsl.SceneObject*): menger.dsl.Scene =
+    menger.dsl.Scene(
+      camera = menger.dsl.Camera(
+        position = menger.dsl.Vec3(0f, 0f, 5f), lookAt = menger.dsl.Vec3(0f, 0f, 0f)
+      ),
+      objects = objects.toList,
+      lights = List()
+    )
+
+  private val edgedSponge = menger.dsl.TesseractSponge(
+    spongeType = menger.dsl.TesseractSpongeType.VolumeRemoving,
+    level = 0f,
+    material = Some(menger.dsl.Material.Film),
+    edgeRadius = Some(0.005f)
+  )
+
+  "SceneValidator.buildFindings" should "accept a 4D object with edges next to one without" in:
+    val plain = menger.dsl.Tesseract(pos = menger.dsl.Vec3(0f, 2f, 0f))
+    SceneValidator.buildFindings(sceneOf(edgedSponge, plain)) shouldBe empty
+
+  it should "accept a sphere next to an edge-rendered 4D object" in:
+    val orb = menger.dsl.Sphere(size = 0.6f)
+    SceneValidator.buildFindings(sceneOf(edgedSponge, orb)) shouldBe empty
+
+  it should "reject edge-rendered 4D objects whose 4D projections differ" in:
+    val otherProjection = menger.dsl.Tesseract(
+      pos = menger.dsl.Vec3(0f, 2f, 0f),
+      edgeRadius = Some(0.005f),
+      projection = Some(menger.Projection4DSpec(eyeW = 5f))
+    )
+    val findings = SceneValidator.buildFindings(sceneOf(edgedSponge, otherProjection))
+    findings.map(_.invariant) shouldBe List("scene-build")
+    findings.head.message should include("Incompatible 4D projection parameters")
+
+  it should "find nothing to object to in any of the renderer's own registered example scenes" in:
+    val _ = examples.dsl.SceneIndex
+    menger.dsl.SceneRegistry.list().foreach { name =>
+      withClue(s"example scene '$name': ") {
+        SceneValidator.buildFindings(menger.dsl.SceneRegistry.get(name).get) shouldBe empty
+      }
+    }
+
   // Review round 2: the only 4D scene exercised here was a default-size `Tesseract`, whose 16
   // vertices are all equidistant from the origin -- so `common-sphere` passed and nothing
   // noticed that `MeshFactory.mesh4D` also routes the 4D *fractals* into a check written for
