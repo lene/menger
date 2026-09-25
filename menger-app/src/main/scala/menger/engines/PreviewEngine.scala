@@ -19,7 +19,8 @@ class PreviewEngine(
   executionConfig: ExecutionConfig,
   override val renderConfig: RenderConfig,
   val causticsConfig: CausticsConfig,
-  denoiseModeOverride: Option[DenoiseMode] = None
+  denoiseModeOverride: Option[DenoiseMode] = None,
+  override val realtime: Boolean = false
 )(using ProfilingConfig)
     extends BaseEngine(executionConfig.maxInstances)
     with WithPreview:

@@ -79,7 +79,18 @@ object Main:
   def shouldLock(rendering: RenderEngine, opts: MengerCLIOptions): Boolean =
     rendering match
       case _: InteractiveEngine => !opts.headless()
+      // A real-time looping preview is an open-ended window session too, not a batch render.
+      case p: PreviewEngine if p.realtime => !opts.headless()
       case _ => false
+
+  /** A run that opens a window for the user rather than rendering a fixed set of frames or a
+    * single frozen t. */
+  def isInteractiveWindow(opts: MengerCLIOptions): Boolean =
+    !opts.headless() && !opts.tFrames.isSupplied && !opts.freezeT.isSupplied &&
+      !opts.saveName.isSupplied
+
+  /** Only labels the frame counter in the window title; real-time playback follows the clock. */
+  private val RealtimePreviewNominalFrames = 100
 
   /** AD-16's decision, composed: does this engine need the lock, and if so can it be had?
     * `None` means "run unlocked" (a batch render), `Some(Right(handle))` means the caller
@@ -291,6 +302,25 @@ object Main:
             causticsConfig = opts.causticsConfig,
             denoiseModeOverride = cliDenoiseOverride(opts)
           )
+
+      case Right(animated @ LoadedScene.Animated(fn))
+          if animated.duration.isDefined && isInteractiveWindow(opts) =>
+        // The scene declares its duration in seconds: play it in real time, looping -- what
+        // the scene agent's render window needs to show an animation at all.
+        PreviewEngine(
+          sceneFunction   = fn,
+          previewConfig   = TAnimationConfig(
+            startT      = 0f,
+            endT        = animated.duration.getOrElse(0f),
+            frames      = RealtimePreviewNominalFrames,
+            savePattern = ""
+          ),
+          executionConfig = buildExecutionConfig(opts),
+          renderConfig    = opts.renderConfig,
+          causticsConfig  = opts.causticsConfig,
+          denoiseModeOverride = cliDenoiseOverride(opts),
+          realtime        = true
+        )
 
       case Right(loadedScene) =>
         // Static scene or animated scene evaluated at fixed t

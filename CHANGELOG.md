@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- An animated scene can declare `val duration = <seconds>f`: `t` is then time in seconds, and
+  `--scene` without `--frames`/`--t`/`--save-name`/`--headless` opens a window that plays it
+  in real time, looping (it takes the render lock like the interactive window). Scenes
+  without `duration` behave as before. `SceneValidator` also checks such a scene at
+  `t = duration`, not only at `t = 0`.
+
 ### Changed
 
 - Timing tests are now noise-aware performance gates (tag `Perf`) in their own push-tier `perf`
@@ -21,6 +29,10 @@
 - Scene compile failures report the real compiler diagnostics instead of a placeholder.
 - A sticky CUDA error (700 illegal address, 719 launch failure, ...) exits with one error line
   instead of being retried on every frame; non-sticky failures (out of memory) still retry.
+- `--preview` failed on every animated scene (`savePattern must contain %`): the preview saves
+  nothing and passed an empty pattern, which is now allowed.
+- An animated scene whose `scene(0)` threw (e.g. a failed `require`) was reported as having
+  no scene method at all; the scene's own error is now reported.
 
 ## [0.9.0] - 2026-09-10
 

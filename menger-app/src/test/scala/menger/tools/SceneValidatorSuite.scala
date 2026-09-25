@@ -47,6 +47,24 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val result = SceneValidator.validate(file)
     result.tag shouldBe SceneValidator.Tag.Ok
 
+  // Usability review 2026-09: only t=0 was checked, but a scene that changes with t is often
+  // at its largest (or broken) at the end of its declared duration.
+  it should "check an animated scene with a declared duration at its end time too" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object ShrinksToNothingScene:
+        |  val duration = 2f
+        |  def scene(t: Float): Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(size = 1f - t)),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("scene-evaluation: scene(2.0) threw")) shouldBe true
+
   // Review round 2: the only 4D scene exercised here was a default-size `Tesseract`, whose 16
   // vertices are all equidistant from the origin -- so `common-sphere` passed and nothing
   // noticed that `MeshFactory.mesh4D` also routes the 4D *fractals* into a check written for

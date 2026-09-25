@@ -110,3 +110,38 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
         |""".stripMargin
     )
     SceneLoader.load(file.getAbsolutePath) shouldBe a[Left[?, ?]]
+
+  private def animatedScene(name: String, extraMember: String, sphereSize: String): String =
+    s"""import menger.dsl._
+       |object $name:
+       |  $extraMember
+       |  def scene(t: Float): Scene = Scene(
+       |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+       |    objects = List(Sphere(size = $sphereSize)),
+       |    lights  = List()
+       |  )
+       |""".stripMargin
+
+  it should "read an animated scene's declared duration in seconds" in:
+    val file = writeTempScene(animatedScene("TimedScene", "val duration = 10f", "1f + t"))
+    SceneLoader.load(file.getAbsolutePath) match
+      case Right(animated: LoadedScene.Animated) => animated.duration shouldBe Some(10f)
+      case other => fail(s"Expected Animated, got $other")
+
+  it should "leave the duration empty when an animated scene declares none" in:
+    val file = writeTempScene(animatedScene("UntimedScene", "", "1f + t"))
+    SceneLoader.load(file.getAbsolutePath) match
+      case Right(animated: LoadedScene.Animated) => animated.duration shouldBe None
+      case other => fail(s"Expected Animated, got $other")
+
+  it should "reject a non-positive duration" in:
+    val file = writeTempScene(animatedScene("NegativeDurationScene", "val duration = -1f", "1f + t"))
+    SceneLoader.load(file.getAbsolutePath) shouldBe Left("'duration' must be positive, got -1.0")
+
+  // Usability review 2026-09: the loader swallowed exceptions from probing scene(0), so a scene
+  // whose require() failed at t=0 was reported as having no scene method at all.
+  it should "report the scene's own error when scene(0) throws" in:
+    val file = writeTempScene(animatedScene("ThrowingAtZeroScene", "", "t"))
+    val result = SceneLoader.load(file.getAbsolutePath)
+    result.left.map(_.contains("scene(0) threw")) shouldBe Left(true)
+    result.left.map(_.contains("Size must be positive")) shouldBe Left(true)

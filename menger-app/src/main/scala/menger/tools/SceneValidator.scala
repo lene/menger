@@ -2,6 +2,7 @@ package menger.tools
 
 import java.io.File
 
+import scala.util.Try
 import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
@@ -210,11 +211,23 @@ object SceneValidator extends LazyLogging:
     else
       ValidationResult(Tag.LintFindings, List(err))
 
+  /** An animated scene that declares its duration is checked at both ends of its time range:
+    * a scene that grows with t (e.g. a sponge whose level rises) is at its largest at the end,
+    * so checking t=0 alone would miss exactly the frames most likely to be invalid. */
   private def checkInvariants(loaded: LoadedScene): ValidationResult =
-    val scene = loaded match
-      case LoadedScene.Static(s)   => s
-      case LoadedScene.Animated(f) => f(0f)
-    val findings = geometricFindings(scene)
+    val evaluated: List[Either[InvariantFinding, Scene]] = loaded match
+      case LoadedScene.Static(s) => List(Right(s))
+      case animated @ LoadedScene.Animated(f) =>
+        (0f :: animated.duration.toList).map { t =>
+          Try(f(t)).toEither.left.map { e =>
+            val cause = Option(e.getCause).getOrElse(e)
+            InvariantFinding("scene-evaluation", s"scene($t) threw: ${cause.getMessage}")
+          }
+        }
+    val findings = evaluated.flatMap {
+      case Left(failure) => List(failure)
+      case Right(scene)  => geometricFindings(scene)
+    }.distinct
     if findings.isEmpty then ValidationResult(Tag.Ok, Nil)
     else ValidationResult(
       Tag.LintFindings,
