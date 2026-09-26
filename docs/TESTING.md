@@ -103,11 +103,35 @@ The current known-flaky list:
 |------|--------|--------|
 | `sponge-volume` integration scenario | GPU contention under parallel runner load | One push retry before investigating |
 | `tesseract-with-material` integration scenario | GPU contention under parallel runner load | One push retry before investigating |
-| `Project4DGpuSuite` "animate 4D rotation faster via updateMesh4DProjection than via rebuild" | Zero-tolerance relative-timing assertion (`updateMs should be < rebuildMs`) between two `measureMs` blocks in the same process, no warm-up; thermal/load variance on the shared laptop GPU can invert the margin | Rerun the suite in isolation 2-3x (`sbt "mengerApp/testOnly io.github.lene.optix.Project4DGpuSuite"`) before treating a single failure as a regression |
 
 **Retry limit:** A test may stay on the flaky list for at most **2 consecutive sprints**.
 After that, root-cause investigation is mandatory before the next sprint starts.
 Add to `CODE_IMPROVEMENTS.md` when a test goes onto the retry list.
+
+## Performance gates
+
+Every timing-based assertion is a *gate* tagged `Perf` (`io.github.lene.qa.Perf`), built on the
+shared `io.github.lene.qa.RelativeBenchmark` helper (vendored into `standards/test/scala/` from
+menger-toplevel's `shared/standards/test-scala/`; edit it there, then `./bootstrap.sh sync`):
+
+- A gate times a **subject** against a **reference** workload in interleaved rounds (warm-up,
+  then 15 rounds alternating order), so throttling and background load affect both sides of
+  every round alike. Rendering compares against a trivial scene through the same path (e.g.
+  level-0 cube vs sponge); CPU work compares against a fixed CPU probe and uses
+  `BenchConfig.JvmCpu` (GC before each sample, longer batches, longer warm-up).
+- The verdict comes from the median of the per-round ratios and a sign-test confidence
+  interval: PASS if the whole interval is within the limit, FAIL if the whole interval is
+  beyond it, INCONCLUSIVE (test canceled) otherwise or when the interval is too wide.
+- Limits are ~2x the highest upper confidence bound measured on the RTX A1000 laptop (also
+  the CI runner), idle and under heavy CPU+GPU load; "X faster than Y" gates use 1.0. Each
+  constant records its measurement.
+- `menger-app/build.sbt` excludes the `Perf` tag from every test run; the `perf` suite
+  (`scripts/suites/perf.sh`, push tier, right after `unit`) runs only that tag, alone:
+  `PERF_ONLY=1 sbt "mengerApp/testOnly *"`. A canceled gate makes the suite SKIP with the gate
+  named, never FAIL; the log line `PERF-INCONCLUSIVE ...` shows the measurement.
+- The cross-commit trend check against `scripts/perf-baseline.json` is the release-tier
+  `perf-trend` suite (`scripts/benchmark.sh`, same concept: each scene bracketed by calibration
+  renders, baseline stored as machine-independent ratios).
 
 ---
 
@@ -132,9 +156,8 @@ or as grounds to push):
    the run was truncated).
 2. Find the explicit named-stage checkpoint (e.g. `sbt test: PASSED`/`FAILED`) if the hook
    prints one — don't infer it from later output existing.
-3. If the failing (or passing) test compares two measured durations against each other with
-   no tolerance (see the flaky-test table above), rerun that suite alone 2-3 times before
-   trusting either a red or a green result.
+3. Timing assertions live only in the `perf` suite (see "Performance gates" above), which
+   reports an unjudgeable measurement as SKIP rather than FAIL; a `perf` FAIL is conclusive.
 4. Avoid running heavy concurrent GPU/build work while someone else might be independently
    verifying or pushing on the same shared machine — resource contention biases exactly this
    class of test.

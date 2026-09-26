@@ -1087,6 +1087,7 @@ test_dsl_scenes() {
     # TesseractDemo is a wireframe scene: thin edges leave a near-uniform background
     # that legitimately trips the all-red-render detector. Allow uniform output.
     run_test_hd "DSL TesseractDemo" --allow-uniform-render --scene examples.dsl.TesseractDemo
+    run_test_hd "DSL PolytopeGallery" --allow-uniform-render --scene examples.dsl.PolytopeGallery
     run_test "DSL FilmSphere" --scene examples.dsl.FilmSphere
     run_test "DSL SpongeShowcase" --scene examples.dsl.SpongeShowcase
     run_test "DSL MengerShowcase" --scene examples.dsl.MengerShowcase
@@ -1185,7 +1186,7 @@ test_colored_shadows() {
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_with" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
         --plane y:-2 --shadows --transparent-shadows \
-        --light directional:0,1,0:2.0 \
+        --light directional:0,-1,0:2.0 \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
         >/dev/null 2>&1 || [ ! -f "$temp_with" ]; then
         rendered_both=false
@@ -1194,7 +1195,7 @@ test_colored_shadows() {
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_without" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
         --plane y:-2 --shadows \
-        --light directional:0,1,0:2.0 \
+        --light directional:0,-1,0:2.0 \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
         >/dev/null 2>&1 || [ ! -f "$temp_without" ]; then
         rendered_both=false

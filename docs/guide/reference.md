@@ -288,7 +288,7 @@ material=gold                              # Gold preset
 material=glass:roughness=0.3               # Custom glass
 
 # LIGHTING
---light directional:-1,1,-1                # Sun-like light
+--light directional:1,-1,1                 # Sun-like light, shining down
 --light point:0,5,0:2.0                    # Bright overhead light
 --light point:2,3,2::ffd700                # Gold-colored light
 

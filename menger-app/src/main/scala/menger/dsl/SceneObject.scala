@@ -244,6 +244,152 @@ object Tesseract:
   def apply(pos: Vec3, material: Material, size: Float): Tesseract =
     Tesseract(pos, Some(material), size = size)
 
+// The other regular 4D polytopes, with the same fields and 4D handling as Tesseract. The
+// renderer supported them all along, but only the CLI could create them -- a DSL scene (and so
+// the scene agent) could not (usability review 2026-09, F17). Deliberately separate case
+// classes: an intermediate trait would hide them from the manifest's Mirror-derived object
+// list.
+
+/** Pentachoron (5-cell, {3,3,3}): 5 tetrahedral cells, the 4D simplex. */
+case class Pentachoron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec = baseObjectSpec(
+    "pentachoron", projection4D = projection, edgeRadius = edgeRadius,
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+  )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Hexadecachoron (16-cell, {3,3,4}): 16 tetrahedral cells, the 4D cross-polytope. */
+case class Hexadecachoron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec = baseObjectSpec(
+    "16-cell", projection4D = projection, edgeRadius = edgeRadius,
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+  )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Icositetrachoron (24-cell, {3,4,3}): 24 octahedral cells, self-dual. */
+case class Icositetrachoron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec = baseObjectSpec(
+    "24-cell", projection4D = projection, edgeRadius = edgeRadius,
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+  )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Hexacosichoron (600-cell, {3,3,5}): 600 tetrahedral cells. */
+case class Hexacosichoron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec = baseObjectSpec(
+    "600-cell", projection4D = projection, edgeRadius = edgeRadius,
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+  )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Hecatonicosachoron (120-cell, {5,3,3}): 120 dodecahedral cells. */
+case class Hecatonicosachoron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec = baseObjectSpec(
+    "120-cell", projection4D = projection, edgeRadius = edgeRadius,
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+  )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
 
 /** Tesseract sponge fractal object (4D) */
 case class TesseractSponge(

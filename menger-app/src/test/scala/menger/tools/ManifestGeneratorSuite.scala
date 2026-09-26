@@ -30,8 +30,37 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
 
     manifest.schemaVersion should not be empty
     manifest.scalaVersion shouldBe "3.8.3"
-    manifest.optixJniVersion shouldBe "0.3.3"
+    manifest.optixJniVersion shouldBe "0.3.4"
     manifest.minDriverVersion shouldBe "580.65"
+
+  // Usability review 2026-09 (F28): names, types and defaults alone left the scene agent
+  // guessing units and conventions -- it lit every scene from below.
+  it should "carry the DSL's conventions and per-field semantics" in:
+    val outputPath = freshTempPath()
+    ManifestGenerator.run(Array(outputPath)) shouldBe Right(())
+    val manifest = read[ManifestGenerator.DslManifest](
+      Files.readString(java.nio.file.Paths.get(outputPath))
+    )
+
+    manifest.conventions shouldBe DslSemantics.conventions
+    val directional = manifest.lights.find(_.name == "Directional").get
+    directional.fields.find(_.name == "direction").flatMap(_.description).get should
+      include("travels")
+
+  it should "attach every DslSemantics field description to a field that exists" in:
+    val outputPath = freshTempPath()
+    ManifestGenerator.run(Array(outputPath)) shouldBe Right(())
+    val manifest = read[ManifestGenerator.DslManifest](
+      Files.readString(java.nio.file.Paths.get(outputPath))
+    )
+    val allTypes = manifest.objects ++ manifest.lights ++ manifest.sceneComposition ++
+      List(manifest.plane, manifest.cameraPath, manifest.renderSettings)
+    val described = (for
+      t <- allTypes
+      f <- t.fields
+      if f.description.isDefined
+    yield (t.name, f.name)).toSet
+    described shouldBe DslSemantics.fieldDescriptions.keySet
 
   it should "write to target/dsl-manifest.json when no output path is given" in:
     // Review round 2: this used to `deleteIfExists` the real default path before and after,
@@ -64,13 +93,15 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     finally
       Files.deleteIfExists(blockingFile)
 
-  "The generated manifest" should "list exactly the 9 SceneObject case classes" in:
+  "The generated manifest" should "list exactly the 14 SceneObject case classes" in:
     val manifest = manifestFor(freshTempPath())
     manifest.objects.map(_.name).toSet shouldBe Set(
       "Sphere", "Cube", "Sponge", "Tesseract", "TesseractSponge",
-      "Sierpinski4D", "ParametricSurface", "Curve", "LSystem"
+      "Sierpinski4D", "ParametricSurface", "Curve", "LSystem",
+      // the regular 4D polytopes, usability review 2026-09 (F17)
+      "Pentachoron", "Hexadecachoron", "Icositetrachoron", "Hexacosichoron", "Hecatonicosachoron"
     )
-    manifest.objects should have size 9
+    manifest.objects should have size 14
 
   // CAP-7 ("absence is decidable"): a field typed `menger.dsl.TesseractSpongeType` is
   // unusable unless the manifest also says which values that type admits. These are mandatory

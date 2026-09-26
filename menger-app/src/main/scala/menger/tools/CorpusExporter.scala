@@ -36,7 +36,7 @@ object CorpusExporter extends LazyLogging:
   // Kept in sync with ManifestGenerator's own pins -- see that file for the sync-with-build.sbt
   // note; duplicated here rather than shared because both are private to their own object.
   private val ScalaVersionPin = "3.8.3"
-  private val OptixJniVersionPin = "0.3.3"
+  private val OptixJniVersionPin = "0.3.4"
   private val MinDriverVersion = "580.65"
 
   private val DefaultOutputPath = "target/dsl-corpus.json"

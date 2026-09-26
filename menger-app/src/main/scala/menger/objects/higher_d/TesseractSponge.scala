@@ -7,13 +7,21 @@ import menger.common.NotYetImplementedException
 import menger.common.Vector
 
 
-class TesseractSponge(level: Float) extends Fractal4D(level):
+/** @param size scale of the whole sponge; 1 matches `Tesseract(1)`. Was missing, so a DSL
+  *             `TesseractSponge(size = 2.5f)` rendered at unit size (usability review 2026-09,
+  *             F27). */
+class TesseractSponge(level: Float, size: Float = 1f) extends Fractal4D(level):
 
   require(level >= 0, "Level must be non-negative")
+  require(size > 0, s"Size must be positive, got $size")
 
   lazy val vertices: Seq[Vector[4]] = faces.flatMap(_.asSeq).distinct
-  lazy val faces: Seq[Face4D[V]] = if level.toInt == 0 then Tesseract().faces else nestedFaces.flatten
+  lazy val faces: Seq[Face4D[V]] =
+    if size == 1f then unitFaces else unitFaces.map(_ / (1f / size))
   override def cells: Seq[Cell4D] = Seq.empty
+
+  private lazy val unitFaces: Seq[Face4D[V]] =
+    if level.toInt == 0 then Tesseract().faces else nestedFaces.flatten
 
   private def nestedFaces =
     for (

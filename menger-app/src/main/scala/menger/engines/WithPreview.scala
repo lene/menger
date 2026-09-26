@@ -25,9 +25,15 @@ trait WithPreview extends RenderEngine with LazyLogging:
   protected def firstFrameConfigs: SceneConverter.SceneConfigs
   protected def windowTitle: String = "Menger Sponges"
 
+  /** Real-time looping playback, for a scene that declares its `duration`: t follows the wall
+    * clock through [startT, endT) and wraps around, instead of advancing one tStep per
+    * rendered frame. Starts playing immediately. */
+  protected def realtime: Boolean = false
+
   private val currentT    = new AtomicReference[Float](0f)
   private val isPlaying   = new AtomicBoolean(false)
   private val needsRender = new AtomicBoolean(true)
+  private val playStartNanos = new AtomicReference[Long](0L)
 
   private def tStep: Float =
     val range = previewConfig.endT - previewConfig.startT
@@ -54,6 +60,10 @@ trait WithPreview extends RenderEngine with LazyLogging:
 
   def togglePlay(): Unit =
     val nowPlaying = !isPlaying.get()
+    // Resuming real-time playback continues from the current t, not from the start.
+    if nowPlaying && realtime then
+      val playedNanos = ((currentT.get() - previewConfig.startT) * WithPreview.NanosPerSecond).toLong
+      playStartNanos.set(System.nanoTime() - playedNanos)
     isPlaying.set(nowPlaying)
     GdxRuntime.setContinuousRendering(nowPlaying)
     if nowPlaying then GdxRuntime.requestRendering()
@@ -86,13 +96,19 @@ trait WithPreview extends RenderEngine with LazyLogging:
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
     GdxRuntime.setContinuousRendering(false)
     updateTitle()
+    if realtime then togglePlay()
 
   abstract override def render(): Unit =
     GdxRuntime.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     val width  = GdxRuntime.width
     val height = GdxRuntime.height
 
-    if isPlaying.get() then
+    if isPlaying.get() && realtime then
+      val elapsedSeconds = (System.nanoTime() - playStartNanos.get()) / WithPreview.NanosPerSecond
+      currentT.set(WithPreview.loopedT(elapsedSeconds, previewConfig.startT, previewConfig.endT))
+      updateTitle()
+      needsRender.set(true)
+    else if isPlaying.get() then
       val next = currentT.get() + tStep
       if next >= previewConfig.endT then
         currentT.set(previewConfig.endT)
@@ -118,6 +134,10 @@ trait WithPreview extends RenderEngine with LazyLogging:
           buildSceneFromConfigs(configs, renderer).recover { case e: Exception =>
             logger.error(s"Failed to build preview scene for t=$t: ${e.getMessage}", e)
           }
+          // A builder may have reinitialized the renderer, discarding lights and render
+          // settings (usability review 2026-09, F22) -- restore them every frame.
+          sceneConfigurator.configureLights(renderer)
+          renderer.setRenderConfig(configs.render.getOrElse(renderConfig))
           PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
@@ -131,3 +151,12 @@ trait WithPreview extends RenderEngine with LazyLogging:
           rendererWrapper.renderScene(ImageSize(width, height)) match
             case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
             case None            => () // render failed (logged); skip this frame
+
+object WithPreview:
+  val NanosPerSecond: Double = 1e9
+
+  /** t for real-time looping playback: `elapsedSeconds` after the start, wrapped into
+    * [startT, endT). A non-positive span pins t to startT. */
+  def loopedT(elapsedSeconds: Double, startT: Float, endT: Float): Float =
+    val span = (endT - startT).toDouble
+    if span <= 0.0 then startT else startT + (elapsedSeconds % span).toFloat

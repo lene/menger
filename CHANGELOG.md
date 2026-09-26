@@ -1,5 +1,60 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- An animated scene can declare `val duration = <seconds>f`: `t` is then time in seconds, and
+  `--scene` without `--frames`/`--t`/`--save-name`/`--headless` opens a window that plays it
+  in real time, looping (it takes the render lock like the interactive window). Scenes
+  without `duration` behave as before. `SceneValidator` also checks such a scene at
+  `t = duration`, not only at `t = 0`.
+
+### Changed
+
+- **Breaking (rendering):** DSL planes face the origin: `Y at -2` is a floor lit from above
+  (it faced down before, so floors were lit only by lights from below and never showed a
+  shadow), matching the CLI's `--plane +y:-2`. Together with optix-jni's fix of the directional
+  light convention (`direction` is the travel direction), the example scenes' lights, which were
+  already written that way, now light them from above.
+- The DSL capability manifest (schema 1.1.0) carries the DSL's conventions and per-field
+  semantics: units, light direction, plane orientation, colour alpha versus material, emission,
+  animation duration (`menger.tools.DslSemantics`).
+- Timing tests are now noise-aware performance gates (tag `Perf`) in their own push-tier `perf`
+  suite and CI job, excluded from the regular test run. Each gate times a subject against a
+  reference in interleaved rounds (shared helper `io.github.lene.qa.RelativeBenchmark`) and
+  judges the median ratio by its confidence interval: a conclusive regression fails, an
+  unjudgeable measurement is skipped visibly. Replaces absolute millisecond/fps thresholds
+  (`SpongePerformanceSuite`) and single-shot A/B timings (`Project4DGpuSuite`).
+- The benchmark trend check is now the release-tier `perf-trend` suite: `benchmark.sh` brackets
+  every scene with calibration renders, stores machine-independent ratios in
+  `perf-baseline.json`, and exits 2 (skip) when a scene can't be judged reliably.
+
+### Fixed
+
+- Console log output goes to stderr, so tools that print JSON on stdout (`SceneValidator`)
+  stay machine-readable.
+- Scene compile failures report the real compiler diagnostics instead of a placeholder.
+- A sticky CUDA error (700 illegal address, 719 launch failure, ...) exits with one error line
+  instead of being retried on every frame; non-sticky failures (out of memory) still retry.
+- `--preview` failed on every animated scene (`savePattern must contain %`): the preview saves
+  nothing and passed an empty pattern, which is now allowed.
+- An animated scene whose `scene(0)` threw (e.g. a failed `require`) was reported as having
+  no scene method at all; the scene's own error is now reported.
+- `--preview` ignored `--timeout`.
+- A 4D object with edges next to one without made the scene build fail and the window vanish;
+  such scenes are now split into separately built groups.
+- An analytical object (e.g. a sphere) next to an edge-rendered 4D object disappeared: the
+  edge builder reinitializes the renderer, which dropped everything built before it. Edge
+  groups are now built first.
+- Rotating edge-rendered 4D objects interactively darkened the scene: every rebuild
+  reinitialized the renderer and lost the lights and render settings, which are now restored
+  after each rebuild (interactive window and preview).
+- A failure to create the scene exited with status 0 after a briefly flashing window; it is now
+  reported on stderr with exit status 1.
+- `SceneValidator` accepted scenes the renderer cannot build: it now runs the renderer's own
+  object grouping and each scene builder's preconditions (no GPU needed).
+
 ## [0.9.0] - 2026-09-10
 
 `0.8.14` was prepared but never tagged/released — its changes and this cycle's code-review

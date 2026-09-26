@@ -36,7 +36,7 @@ sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' --shadows"
 **Step 5: Improve lighting**
 ```bash
 sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' --shadows \
-    --light directional:-1,1,-1:1.5 \
+    --light directional:1,-1,1:1.5 \
     --light point:2,3,2:0.8:ffffff"
 ```
 
@@ -44,7 +44,7 @@ sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' --shadows \
 ```bash
 sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' --shadows \
     --antialiasing \
-    --light directional:-1,1,-1:1.5 \
+    --light directional:1,-1,1:1.5 \
     --light point:2,3,2:0.8:ffffff"
 ```
 
@@ -52,7 +52,7 @@ sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' --shadows \
 ```bash
 sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' --shadows \
     --antialiasing --save-name my_first_sphere.png --timeout 10 \
-    --light directional:-1,1,-1:1.5 \
+    --light directional:1,-1,1:1.5 \
     --light point:2,3,2:0.8:ffffff"
 ```
 
@@ -68,8 +68,8 @@ sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' \
     --shadows \
     --antialiasing \
     --plane-color ffffff:d0d0d0 \
-    --light directional:-1,1,-1:2.0 \
-    --light directional:1,0.5,1:0.5:8080ff"
+    --light directional:1,-1,1:2.0 \
+    --light directional:-1,-0.5,-1:0.5:8080ff"
 ```
 
 **Glass Menger Sponge:**
@@ -86,7 +86,7 @@ sbt "run --optix --objects 'type=sponge-surface:level=2:ior=1.5' \
 sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5' \
     --caustics --caustics-photons 200000 --caustics-iterations 20 \
     --shadows --antialiasing \
-    --light directional:-1,2,-1:2.0"
+    --light directional:1,-2,1:2.0"
 ```
 
 **Tips for Glass:**
@@ -110,7 +110,7 @@ sbt "run --optix --objects 'type=sponge-surface:level=2'"
 sbt "run --optix --objects 'type=sponge-surface:level=2' \
     --camera-pos -2,1.5,-2 \
     --shadows \
-    --light directional:-1,1,-1"
+    --light directional:1,-1,1"
 ```
 
 **Step 3: Create animation (36 frames = 10° per frame)**
@@ -118,7 +118,7 @@ sbt "run --optix --objects 'type=sponge-surface:level=2' \
 sbt "run --optix --objects 'type=sponge-surface:level=2' \
     --camera-pos -2,1.5,-2 \
     --shadows \
-    --light directional:-1,1,-1 \
+    --light directional:1,-1,1 \
     --save-name sponge_rot_%03d.png \
     --animate frames=36:rot-y=0-360 \
     --timeout 1.0"
@@ -129,7 +129,7 @@ sbt "run --optix --objects 'type=sponge-surface:level=2' \
 sbt "run --optix --objects 'type=sponge-surface:level=2' \
     --camera-pos -2,1.5,-2 \
     --shadows --antialiasing \
-    --light directional:-1,1,-1:1.5 \
+    --light directional:1,-1,1:1.5 \
     --plane-color ffffff:808080 \
     --save-name sponge_hq_%03d.png \
     --animate frames=36:rot-y=0-360 \
@@ -206,7 +206,7 @@ sbt "run --optix \
     --objects 'type=sphere:pos=1.5,0,0:material=gold:size=0.8' \
     --objects 'type=sphere:pos=3,0,0:material=chrome:size=0.8' \
     --shadows --antialiasing \
-    --light directional:-1,1,-1:2.0 \
+    --light directional:1,-1,1:2.0 \
     --plane-color ffffff:c0c0c0 \
     --camera-pos 0,2,6"
 ```
@@ -218,7 +218,7 @@ sbt "run --optix \
     --objects 'type=sponge-surface:level=1:pos=0,0,0:material=gold' \
     --objects 'type=sponge-surface:level=1:pos=2,0,0:material=copper' \
     --shadows --antialiasing \
-    --light directional:-1,1,-1:1.5 \
+    --light directional:1,-1,1:1.5 \
     --light point:0,3,0:1.0 \
     --camera-pos 0,2,5"
 ```
@@ -232,7 +232,7 @@ sbt "run --optix \
     --objects 'type=cube:pos=-1.5,0,-2:size=0.4:material=gold' \
     --objects 'type=cube:pos=1.5,0,-2:size=0.4:material=chrome' \
     --shadows --antialiasing \
-    --light directional:-1,1,-1:2.0 \
+    --light directional:1,-1,1:2.0 \
     --light point:0,5,0:1.5:ffffd0 \
     --plane-color ffffff:808080"
 ```

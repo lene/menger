@@ -25,7 +25,9 @@ class SceneConfigurator(
       logger.debug(s"Configured ${lights.length} light(s) from specification")
     else
       // Default single directional light (backward compatibility)
-      val lightDirection = Vector[3](-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
+      // Light from upper-left-back. `direction` is the direction the light travels (optix-jni
+      // convention), so it points away from where the light comes from: Y negative = downward.
+      val lightDirection = Vector[3](1f, -1f, 1f)
       val lightIntensity = 1.0f
       renderer.setLight(lightDirection, lightIntensity)
       logger.debug(s"Configured default light: direction=(${lightDirection(0)},${lightDirection(1)},${lightDirection(2)}), intensity=$lightIntensity")

@@ -40,7 +40,7 @@ object TesseractSpongeMesh:
       rotZW: Float = 0f
   ): Mesh4DProjection =
     Mesh4DProjection(
-      mesh4D = TesseractSponge(level),
+      mesh4D = TesseractSponge(level, size),
       center = center,
       eyeW = eyeW,
       screenW = screenW,

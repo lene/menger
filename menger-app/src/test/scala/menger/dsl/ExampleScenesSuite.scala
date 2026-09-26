@@ -169,6 +169,13 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.planes should not be empty
     scene.caustics shouldBe defined
 
+  it should "load PolytopeGallery via reflection" in:
+    // Usability review 2026-09, F17: the regular 4D polytopes besides the tesseract.
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.PolytopeGallery"))
+    scene.objects should have length 5
+    scene.lights should have length 1
+    scene.planes should not be empty
+
   "Scene registry" should "have all registered short names" in:
     val registeredNames = SceneRegistry.list().sorted
 
@@ -193,6 +200,7 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     registeredNames should contain("caustics-reference-default")
     registeredNames should contain("denoise-ibl-demo")
     registeredNames should contain("trefoil-knot")
+    registeredNames should contain("polytope-gallery")
 
   it should "load TesseractDemo via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.TesseractDemo"))

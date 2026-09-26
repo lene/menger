@@ -913,12 +913,14 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
 
 **Directional Light** (`directional`)
 - Parallel rays (like sunlight)
-- Direction vector points TOWARD the light source (where light comes from)
-  - Light rays travel in opposite direction, shining onto the scene
-  - Example: `directional:1,-1,-1` places light at upper-right-back
+- Direction vector is the direction the light TRAVELS (the same in the CLI and the DSL)
+  - `directional:0,-1,0` shines straight down
+  - Example: `directional:1,-1,1` comes from above and shines toward +x/+z
+  - Menger 0.9.0 and earlier read it the other way round ("toward the light"); negate the
+    light vectors of older command lines
 - Normalized automatically
 - No falloff with distance
-- Example: `--light directional:-1,1,-1`
+- Example: `--light directional:1,-1,1`
 
 **Point Light** (`point`)
 - Radiates from a position in all directions
@@ -939,13 +941,13 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
 
 ```bash
 # Basic directional light from upper-left
---light directional:-1,1,-1
+--light directional:1,-1,1
 
 # Bright point light above the scene
 --light point:0,5,0:2.0
 
 # Red directional light
---light directional:0,1,0::ff0000
+--light directional:0,-1,0::ff0000
 
 # Colored point light with intensity
 --light point:2,3,2:1.5:ffd700    # Gold-colored light
@@ -965,8 +967,8 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
 ```bash
 # Three-point lighting setup
 sbt "run --optix --objects 'type=sphere' \
-    --light directional:-1,1,-1:1.5 \          # Key light
-    --light directional:1,0.5,-1:0.5:8080ff \  # Fill light (blue)
+    --light directional:1,-1,1:1.5 \           # Key light
+    --light directional:-1,-0.5,1:0.5:8080ff \ # Fill light (blue)
     --light point:0,3,2:0.8:ffffff"             # Rim light
 ```
 
@@ -977,7 +979,7 @@ Enable shadow rays for realistic shadows:
 ```bash
 sbt "run --optix --objects 'type=sphere' \
     --shadows \
-    --light directional:-1,1,-1"
+    --light directional:1,-1,1"
 ```
 
 **Note:** Shadows increase render time but add significant realism.
@@ -992,7 +994,7 @@ glass sphere casts a red-tinted shadow, a blue glass sphere a blue-tinted shadow
 sbt "run --optix \
     --objects 'type=sphere:color=#FF000066:ior=1.5' \
     --shadows --transparent-shadows \
-    --light directional:-1,1,-1"
+    --light directional:1,-1,1"
 ```
 
 **How it works:** The shadow ray records the transparent object's color and opacity and
