@@ -30,7 +30,7 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
 
     manifest.schemaVersion should not be empty
     manifest.scalaVersion shouldBe "3.8.3"
-    manifest.optixJniVersion shouldBe "0.3.3"
+    manifest.optixJniVersion shouldBe "0.3.4"
     manifest.minDriverVersion shouldBe "580.65"
 
   // Usability review 2026-09 (F28): names, types and defaults alone left the scene agent

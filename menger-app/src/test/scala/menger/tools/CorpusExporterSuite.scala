@@ -49,7 +49,7 @@ class CorpusExporterSuite extends AnyFlatSpec with Matchers:
 
     corpus.schemaVersion should not be empty
     corpus.scalaVersion shouldBe "3.8.3"
-    corpus.optixJniVersion shouldBe "0.3.3"
+    corpus.optixJniVersion shouldBe "0.3.4"
     corpus.minDriverVersion shouldBe "580.65"
 
   it should "report a clear, non-empty error and not throw on an unwritable path" in:
