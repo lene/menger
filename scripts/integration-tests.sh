@@ -1087,6 +1087,7 @@ test_dsl_scenes() {
     # TesseractDemo is a wireframe scene: thin edges leave a near-uniform background
     # that legitimately trips the all-red-render detector. Allow uniform output.
     run_test_hd "DSL TesseractDemo" --allow-uniform-render --scene examples.dsl.TesseractDemo
+    run_test_hd "DSL PolytopeGallery" --allow-uniform-render --scene examples.dsl.PolytopeGallery
     run_test "DSL FilmSphere" --scene examples.dsl.FilmSphere
     run_test "DSL SpongeShowcase" --scene examples.dsl.SpongeShowcase
     run_test "DSL MengerShowcase" --scene examples.dsl.MengerShowcase

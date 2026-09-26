@@ -18,7 +18,7 @@ class CorpusExporterSuite extends AnyFlatSpec with Matchers:
 
   /** Story 3's acceptance criterion, as a literal: the corpus carries exactly these many
     * example scenes. Update deliberately when a scene is added or removed. */
-  private val ExpectedSceneCount = 32
+  private val ExpectedSceneCount = 33  // + PolytopeGallery (usability review 2026-09, F17)
 
   private def freshTempPath(): String =
     val dir = Files.createTempDirectory("corpus-exporter-suite")
@@ -90,7 +90,7 @@ class CorpusExporterSuite extends AnyFlatSpec with Matchers:
   // "exactly 32 example scenes" acceptance criterion was not actually pinned by anything. The
   // literal is the point: adding or losing a corpus scene is a deliberate act that should
   // update this number.
-  it should "carry exactly the 32 example scenes story 3 specifies" in:
+  it should "carry exactly the example scenes story 3 specifies, plus later additions" in:
     val corpus = corpusFor(freshTempPath())
     corpus.scenes should have size ExpectedSceneCount
 

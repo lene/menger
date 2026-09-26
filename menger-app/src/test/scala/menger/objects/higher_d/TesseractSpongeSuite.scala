@@ -17,6 +17,17 @@ class TesseractSpongeSuite extends AnyFlatSpec with Matchers:
   "A TesseractSponge level < 0" should "be impossible" in:
     an[IllegalArgumentException] should be thrownBy TesseractSponge(-1)
 
+  // Usability review 2026-09 (F27): `size` was ignored and every sponge had unit size.
+  "A TesseractSponge with size 2.5" should "be 2.5 times as large as a unit sponge" in:
+    def maxNorm(s: TesseractSponge): Float = s.vertices.map(_.len).max
+    maxNorm(TesseractSponge(1, size = 2.5f)) shouldBe (maxNorm(TesseractSponge(1)) * 2.5f +- 1e-4f)
+
+  it should "keep the same number of faces" in:
+    TesseractSponge(1, size = 2.5f).faces should have size TesseractSponge(1).faces.size
+
+  "A TesseractSponge size <= 0" should "be impossible" in:
+    an[IllegalArgumentException] should be thrownBy TesseractSponge(1, size = 0f)
+
   "A TesseractSponge level 1" should "have 48 times the number of a Tesseract's faces" in new Sponge:
     sponge.faces should have size 48 * Tesseract().faces.size
 

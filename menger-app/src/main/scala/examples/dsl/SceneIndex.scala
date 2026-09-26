@@ -19,6 +19,7 @@ object SceneIndex:
     ComplexLighting.scene,
     ReusableComponents.scene,
     TesseractDemo.scene,
+    PolytopeGallery.scene,
     MixedMetallicShowcase.scene,
     VideoTextureCube.scene,
     RenderSettingsDemo.scene,

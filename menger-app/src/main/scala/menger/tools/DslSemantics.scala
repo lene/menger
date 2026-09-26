@@ -30,8 +30,10 @@ object DslSemantics:
     "Animation: `def scene(t: Float): Scene` plus `val duration = <seconds>f` in the same " +
       "object; t is seconds in [0, duration]. The window plays it in real time, looping, and " +
       "the validator checks the scene at t = 0 and at t = duration.",
-    "4D objects are rotated in 4D (`projection`), projected to 3D, then placed at `pos`. The " +
-      "volume-filling TesseractSponge currently ignores `size`."
+    "4D objects are rotated in 4D (`projection`), projected to 3D, then placed at `pos`. " +
+      "The regular 4D polytopes are Pentachoron (5-cell), Tesseract (8-cell), Hexadecachoron " +
+      "(16-cell), Icositetrachoron (24-cell), Hecatonicosachoron (120-cell) and Hexacosichoron " +
+      "(600-cell). In one scene, all edge-rendered 4D objects must share the same `projection`."
   )
 
   /** Per-field notes, keyed by (DSL type's simple name, field name). */
@@ -47,7 +49,7 @@ object DslSemantics:
       "neighbouring integer levels. Cost grows ~20x per level."),
     ("TesseractSponge", "level") -> ("Recursion depth; fractional levels blend between " +
       "integer levels. Cost grows ~48x per level."),
-    ("TesseractSponge", "size") -> "Currently ignored for VolumeRemoving (known issue).",
+    ("TesseractSponge", "size") -> "Scale; 1 matches a Tesseract of size 1.",
     ("Sphere", "size") -> "Radius in world units.",
     ("Sponge", "color") -> "Replaces the material colour including alpha (see conventions).",
     ("TesseractSponge", "color") -> "Replaces the material colour including alpha.",

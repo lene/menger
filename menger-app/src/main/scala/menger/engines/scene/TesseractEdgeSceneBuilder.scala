@@ -109,11 +109,6 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
       logger.debug(s"Reinitializing renderer with maxInstances=$maxInstances")
       renderer.reinitialize(maxInstances)
 
-    // Create shared base geometry for faces
-    val firstSpec = specs.head
-    val mesh = MeshFactory.create(firstSpec)
-    renderer.setTriangleMesh(mesh)
-
     // Load textures
     val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
 
@@ -126,6 +121,12 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
 
       // Only add face mesh instance if face material is specified (not just edge material)
       if hasFaceMaterial then
+        // Each spec's own mesh: addTriangleMeshInstance instances the most recently set one.
+        // One shared mesh built from `specs.head` gave a tesseract next to a sponge the
+        // sponge's shape and size (usability review 2026-09, F27).
+        // ponytail: one mesh per spec, cache by (type, level, size, projection) if many
+        // identical 4D objects ever make this slow.
+        renderer.setTriangleMesh(MeshFactory.create(spec))
         val faceMaterial = MaterialExtractor.extract(spec)
         val textureIndex = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
 
@@ -227,7 +228,7 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
         Tesseract(size = spec.size)
       case "tesseract-sponge" | "tesseract-sponge-volume" =>
         require(spec.level.isDefined, "tesseract-sponge requires level parameter")
-        TesseractSponge(spec.level.get)
+        TesseractSponge(spec.level.get, spec.size)
       case "tesseract-sponge-2" | "tesseract-sponge-surface" =>
         require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
         TesseractSponge2(spec.level.get, spec.size)
