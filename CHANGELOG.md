@@ -54,6 +54,18 @@
   reported on stderr with exit status 1.
 - `SceneValidator` accepted scenes the renderer cannot build: it now runs the renderer's own
   object grouping and each scene builder's preconditions (no GPU needed).
+- An object's explicit `color` overrode its material's alpha too, so an opaque `color` on
+  `Glass`/`Film` silently made it opaque; `color` now tints RGB only and the material's own
+  transparency is preserved.
+- `examples.dsl.CausticsReferenceDefault`'s point light blew the floor out to solid white in
+  8-bit output, hiding the caustic ring; its intensity is lowered (the pbrt-compared
+  `CausticsCanonical` is unaffected). `CausticsReferenceDefault`, `ParametricSphereCaustics`
+  and `ParametricTorusCaustics` were also missing from `SceneIndex`, so their short names
+  (`caustics-reference-default`, ...) never resolved via `--scene <short-name>`.
+- `ExampleScenesSuite`'s registry test intermittently saw an empty `SceneRegistry`: a test
+  helper (`SceneLoaderSuite`) cleared the process-global registry, racing other suites that
+  run concurrently in the same JVM. The clearing was unnecessary (its keys never collide with
+  a real scene name) and is removed, along with the now-unused `SceneRegistry.clear()`.
 
 ## [0.9.0] - 2026-09-10
 

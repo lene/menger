@@ -12,6 +12,14 @@ import org.scalatest.matchers.should.Matchers
  */
 class ExampleScenesSuite extends AnyFlatSpec with Matchers:
 
+  // Force every scene object SceneIndex knows about to class-load (and therefore run its
+  // SceneRegistry.register() call) before any test in this suite runs, so the "Scene
+  // registry" check below doesn't depend on which "should load X via reflection" tests
+  // happened to execute first (usability review 2026-09 inbox item: this test was
+  // intermittently failing under certain `sbt testOnly` suite-glob combinations).
+  examples.dsl.SceneIndex.all
+  examples.dsl.SceneIndex.animated
+
   private def extractStaticScene(result: Either[String, LoadedScene]): Scene =
     result match
       case Right(LoadedScene.Static(scene)) => scene

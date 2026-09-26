@@ -23,8 +23,9 @@ object DslSemantics:
     "Planes: `Y at -2f` is an infinite plane that faces the origin, so a floor below the " +
       "scene is lit from above and receives shadows. Shadows are on by default.",
     "Colour and transparency: alpha 0 is fully transparent, 1 fully opaque. An object's " +
-      "explicit `color` replaces its material's colour INCLUDING alpha, so an opaque `color` " +
-      "turns glass or film opaque -- omit `color` or give it a low alpha to keep transparency.",
+      "explicit `color` tints only the material's RGB; the material's own alpha (its " +
+      "transparency) is preserved, so an opaque `color` on `Glass` or `Film` stays " +
+      "transparent (usability review 2026-09, F14).",
     "Emission makes a surface self-lit: flat, unshaded colour. There is no bloom, halo or " +
       "glow around objects, and no emission that falls off with distance.",
     "Animation: `def scene(t: Float): Scene` plus `val duration = <seconds>f` in the same " +
@@ -51,10 +52,10 @@ object DslSemantics:
       "integer levels. Cost grows ~48x per level."),
     ("TesseractSponge", "size") -> "Scale; 1 matches a Tesseract of size 1.",
     ("Sphere", "size") -> "Radius in world units.",
-    ("Sponge", "color") -> "Replaces the material colour including alpha (see conventions).",
-    ("TesseractSponge", "color") -> "Replaces the material colour including alpha.",
-    ("Tesseract", "color") -> "Replaces the material colour including alpha.",
-    ("Sphere", "color") -> "Replaces the material colour including alpha.",
+    ("Sponge", "color") -> "Tints the material's RGB; alpha (transparency) is preserved (see conventions).",
+    ("TesseractSponge", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",
+    ("Tesseract", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",
+    ("Sphere", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",
     ("Sponge", "rotation") -> "Euler angles in radians around x, y, z.",
     ("Tesseract", "rotation") -> ("3D Euler angles in radians, applied after projection; " +
       "4D rotations go in `projection`."),

@@ -69,6 +69,22 @@ preserved here verbatim when the openspec tooling was decommissioned.
 
 ---
 
+### F-CAMERA-HANDEDNESS: Rendered image is mirrored horizontally
+
+**Priority:** Low
+**Effort:** Large (touches every reference image)
+**Dependencies:** None
+
+**Description:**
+With the camera on `+z` looking toward `-z`, an object at `x = +2` renders on the LEFT of the
+frame, not the right (found during the 2026-09 usability review, F31; documented as current
+behaviour in the DSL manifest's conventions in the meantime). Root cause is in the
+camera/projection setup, not any one scene. Fixing the handedness re-renders every one of the
+~240 committed reference images repo-wide, so it needs its own dedicated pass rather than a
+drive-by fix alongside unrelated work.
+
+---
+
 ## From PBR Book / pbrt-v4 exploration (Sprint 33)
 
 Ideas noted while studying pbrt-v4 for caustics validation. Not yet evaluated.

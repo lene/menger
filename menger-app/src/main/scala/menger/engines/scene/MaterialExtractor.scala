@@ -17,13 +17,15 @@ object MaterialExtractor:
 
   /**
    * Extract Material from ObjectSpec using the following precedence:
-   * 1. spec.material (if provided), with its color overridden by spec.color when both are
+   * 1. spec.material (if provided), with its RGB overridden by spec.color when both are
    *    set (Sprint 36 H5.3) -- material supplies the physical properties (roughness,
-   *    metallic, ior, ...), color is a tint override on top, not a competing setting
+   *    metallic, ior, alpha, ...), color is a hue tint on top, not a competing setting.
+   *    Alpha is not part of that tint (usability review 2026-09, F14): an explicit `color`
+   *    on a `Glass` object must not silently make it opaque.
    * 2. Material(spec.color, spec.ior) (if color provided, no material)
    * 3. Material(defaultColor, spec.ior) (fallback)
    */
   def extract(spec: ObjectSpec): Material =
     spec.material match
-      case Some(mat) => spec.color.fold(mat)(c => mat.copy(color = c))
+      case Some(mat) => spec.color.fold(mat)(c => mat.copy(color = mat.color.copy(r = c.r, g = c.g, b = c.b)))
       case None => Material(spec.color.getOrElse(defaultColor), spec.ior, dispersion = spec.dispersion)
