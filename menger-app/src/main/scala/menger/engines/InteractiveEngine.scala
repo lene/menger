@@ -17,9 +17,13 @@ import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
+import menger.config.EnvironmentConfig
 import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
 import menger.dsl.DenoiseMode
+import menger.dsl.LoadedScene
+import menger.dsl.SceneFileWatcher
+import menger.dsl.SceneLoader
 import menger.engines.scene.InstanceId
 import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SceneBuilder
@@ -40,7 +44,11 @@ import menger.objects.higher_d.TesseractSpongeMesh
 class InteractiveEngine(
   config: OptiXEngineConfig,
   userSetMaxInstances: Boolean = false,
-  renderT: Float = 0f
+  renderT: Float = 0f,
+  // F5: when set (a real `--scene <file.scala>` in an interactive window), the file is
+  // watched and edits reload the scene in place -- geometry/lights/planes/render settings
+  // update, camera and 4D rotation state do not. See `startWatchingSceneFile`.
+  watchScenePath: Option[java.io.File] = None
 )(using ProfilingConfig)
     extends BaseEngine(config.execution.maxInstances)
     with TimeoutSupport with LazyLogging with SavesScreenshots with Observer with WithStats:
@@ -48,14 +56,43 @@ class InteractiveEngine(
   // Convenience accessors for config sections
   private val scene       = config.scene
   private val camera      = config.camera
-  private val environment = config.environment
   private val execution   = config.execution
 
   override protected def textureDir: String = execution.textureDir
 
-  override protected def renderConfig: menger.common.RenderConfig = config.render
-  override protected def denoiseMode: DenoiseMode = config.denoiseMode
-  override protected def accumulationFrames: Int = config.accumulationFrames
+  /** Renderer-visible scene state F5's live reload swaps without touching the camera or 4D
+    * rotation state: everything `applyRendererState` sets, plus render/denoise/accumulation
+    * config and the lights baked into `SceneConfigurator`. `environment.envMap`/`envMapVideo`
+    * are carried through unchanged across a reload -- re-uploading a changed environment map
+    * isn't supported yet (see CHANGELOG). */
+  private case class ReloadableSceneState(
+    environment: EnvironmentConfig,
+    renderConfig: menger.common.RenderConfig,
+    caustics: menger.common.CausticsConfig,
+    sceneConfigurator: SceneConfigurator,
+    denoiseMode: DenoiseMode,
+    accumulationFrames: Int
+  )
+
+  private val reloadable: AtomicReference[ReloadableSceneState] = new AtomicReference(
+    ReloadableSceneState(
+      environment = config.environment,
+      renderConfig = config.render,
+      caustics = config.caustics,
+      sceneConfigurator = SceneConfigurator(
+        camera.position, camera.lookAt, camera.up, config.environment.lights.toArray
+      ),
+      denoiseMode = config.denoiseMode,
+      accumulationFrames = config.accumulationFrames
+    )
+  )
+
+  private def environment: EnvironmentConfig = reloadable.get().environment
+
+  override protected def sceneConfigurator: SceneConfigurator = reloadable.get().sceneConfigurator
+  override protected def renderConfig: menger.common.RenderConfig = reloadable.get().renderConfig
+  override protected def denoiseMode: DenoiseMode = reloadable.get().denoiseMode
+  override protected def accumulationFrames: Int = reloadable.get().accumulationFrames
 
   // Required by TimeoutSupport trait
   override def timeout: Float = execution.timeout
@@ -89,6 +126,9 @@ class InteractiveEngine(
   // Keyboard handler for 4D rotation (initialized in finalizeCreate)
   private val keyHandler = new AtomicReference[Option[OptiXKeyHandler]](None)
 
+  // F5 live-reload watcher on the scene file, when one was given (initialized in finalizeCreate)
+  private val fileWatcher = new AtomicReference[Option[SceneFileWatcher]](None)
+
   // Track if we have 4D objects (projected triangle mesh OR menger4d OR sierpinski4d OR hexadecachoron4d) that need rebuild on rotation
   private lazy val has4DObjects: Boolean =
     currentObjectSpecs.get().exists(_.exists(spec => TypeRegistry.is4DFastPathType(spec.objectType)))
@@ -113,13 +153,6 @@ class InteractiveEngine(
   // add a second thread that writes this without converting to synchronized or CAS loops.
   private val scene4DCache: AtomicReference[Scene4DCache] =
     new AtomicReference(Scene4DCache.Empty)
-
-  override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    camera.position,
-    camera.lookAt,
-    camera.up,
-    environment.lights.toArray
-  )
 
   override protected val cameraState: CameraState =
     CameraState(camera.position, camera.lookAt, camera.up)
@@ -326,7 +359,7 @@ class InteractiveEngine(
   private def applyRendererState(renderer: io.github.lene.optix.OptiXRenderer): Unit =
     sceneConfigurator.configureLights(renderer)
     renderer.setRenderConfig(renderConfig)
-    renderer.setCausticsConfig(config.caustics)
+    renderer.setCausticsConfig(reloadable.get().caustics)
     configureOutputMode(renderer)
     environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
     environment.fog.foreach(sceneConfigurator.setFog(renderer, _))
@@ -392,6 +425,65 @@ class InteractiveEngine(
     GdxRuntime.setContinuousRendering(false)
     GdxRuntime.requestRendering()
     if execution.timeout > 0 then startExitTimer(execution.timeout)
+    watchScenePath.foreach(startWatchingSceneFile)
+
+  /** F5: reload the scene from disk whenever the watched file changes, keeping the camera
+    * and 4D rotation state untouched. Runs on `SceneFileWatcher`'s own background thread;
+    * the actual renderer mutation in `reloadScene` is posted to the GL thread. A bad edit
+    * (compile failure, or a class the loader rejects) is logged and the current scene keeps
+    * running -- it must never kill the window. */
+  private def startWatchingSceneFile(file: java.io.File): Unit =
+    val watcher = new SceneFileWatcher(file)(() => onSceneFileChanged(file))
+    fileWatcher.set(Some(watcher))
+    logger.info(s"Watching scene file for live reload: ${file.getPath}")
+
+  private def onSceneFileChanged(file: java.io.File): Unit =
+    SceneLoader.load(file.getPath) match
+      case Right(LoadedScene.Static(newScene)) =>
+        GdxRuntime.postRunnable(() => reloadScene(newScene))
+      case Right(LoadedScene.Animated(_)) =>
+        logger.warn(
+          s"${file.getPath} changed to an animated scene; live reload only supports " +
+          "static scenes -- restart the window to pick it up"
+        )
+      case Left(error) =>
+        logger.warn(s"Failed to reload ${file.getPath}, keeping the current scene: $error")
+
+  /** Applies a freshly reloaded static scene: geometry, lights, planes, background, fog, IBL
+    * and render/denoise/accumulation settings all update. The camera and any in-progress 4D
+    * rotation are deliberately left alone -- `rebuildScene()` already preserves the camera,
+    * the same path `resetTo4DDefaults`/interactive rotation rebuilds use. Must run on the GL
+    * thread (called via `GdxRuntime.postRunnable` from the watcher's own thread). */
+  private def reloadScene(dslScene: menger.dsl.Scene): Unit =
+    val configs = SceneConverter.convert(dslScene, reloadable.get().caustics)
+    val prevEnvironment = reloadable.get().environment
+    reloadable.set(ReloadableSceneState(
+      environment = EnvironmentConfig(
+        planes = configs.planes,
+        lights = configs.lights,
+        background = configs.background,
+        fog = configs.fog,
+        envMap = prevEnvironment.envMap,
+        envMapVideo = prevEnvironment.envMapVideo,
+        iblEnabled = configs.iblEnabled,
+        iblStrength = configs.iblStrength,
+        iblSamples = configs.iblSamples
+      ),
+      renderConfig = configs.render.getOrElse(reloadable.get().renderConfig),
+      caustics = configs.caustics,
+      sceneConfigurator = SceneConfigurator(
+        camera.position, camera.lookAt, camera.up, configs.lights.toArray
+      ),
+      denoiseMode = configs.denoiseMode,
+      accumulationFrames = configs.accumulationFrames
+    ))
+    currentObjectSpecs.set(Some(configs.scene.objectSpecs.getOrElse(List.empty)))
+    logger.info(
+      s"Reloaded scene from file (${configs.scene.objectSpecs.map(_.size).getOrElse(0)} object(s))"
+    )
+    rebuildScene()
+    renderResources.markNeedsRender()
+    GdxRuntime.requestRendering()
 
   /** Build the initial scene with builder from [[GeometryRegistry.builderFor]] — the single
     * source of truth for type → builder dispatch. Captures per-spec instance/slot indices
@@ -533,5 +625,6 @@ class InteractiveEngine(
 
   override def dispose(): Unit =
     logger.debug("Disposing InteractiveEngine")
+    fileWatcher.get().foreach(_.close())
     disposeStats()
     super.dispose()

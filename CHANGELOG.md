@@ -9,6 +9,13 @@
   in real time, looping (it takes the render lock like the interactive window). Scenes
   without `duration` behave as before. `SceneValidator` also checks such a scene at
   `t = duration`, not only at `t = 0`.
+- `--scene <file.scala>` in an interactive window now watches the file and reloads it in
+  place on every save (usability review 2026-09, F5): geometry, lights, planes, background,
+  fog, IBL and render/denoise/accumulation settings all update; the camera and any
+  in-progress 4D rotation are left untouched. A save that fails to load (a compile error, or
+  a scene the loader rejects) is logged and the window keeps running its current scene. Only
+  a static scene reloads live; a save that turns the file animated is reported and requires
+  restarting the window. New `menger.dsl.SceneFileWatcher`.
 
 ### Changed
 

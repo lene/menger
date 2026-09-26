@@ -328,14 +328,22 @@ object Main:
         val dslScene = loadedScene match
           case LoadedScene.Static(scene) => scene
           case LoadedScene.Animated(fn) => fn(freezeT)
-        createOptiXEngineFromDslScene(opts, dslScene, freezeT)
+        // F5: only a real scene FILE can be hand-edited and picked up live, and only in an
+        // actual interactive window -- a headless/frames/freeze-t run is a one-shot batch
+        // render that will already have exited before any edit could matter.
+        val watchFile =
+          if isInteractiveWindow(opts) && sceneName.endsWith(".scala") && new java.io.File(sceneName).isFile
+          then Some(new java.io.File(sceneName))
+          else None
+        createOptiXEngineFromDslScene(opts, dslScene, freezeT, watchFile)
 
       case Left(error) =>
         System.err.println(s"Failed to load scene '$sceneName': $error")
         sys.exit(1)
 
   private def createOptiXEngineFromDslScene(
-    opts: MengerCLIOptions, dslScene: menger.dsl.Scene, renderT: Float = 0f
+    opts: MengerCLIOptions, dslScene: menger.dsl.Scene, renderT: Float = 0f,
+    watchScenePath: Option[java.io.File] = None
   )(using ProfilingConfig): InteractiveEngine =
     val configs = SceneConverter.convert(dslScene, opts.causticsConfig)
     val baseRender = configs.render.getOrElse(RenderConfig.Default)
@@ -373,7 +381,7 @@ object Main:
       denoiseMode = mergedDenoise,
       accumulationFrames = mergedAccumulation
     )
-    InteractiveEngine(engineConfig, opts.userSetMaxInstances, renderT)
+    InteractiveEngine(engineConfig, opts.userSetMaxInstances, renderT, watchScenePath)
 
   private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): RenderEngine =
     // S2 menger#33: these three flags are validated (CliValidation's mutual-exclusion check)
