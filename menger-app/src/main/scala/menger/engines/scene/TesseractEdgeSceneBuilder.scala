@@ -46,17 +46,21 @@ import menger.objects.higher_d.TesseractSponge2
  * - TesseractSponge level 1: 1,152 edges
  * - TesseractSponge2 level 1: 384 edges
  */
-class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: ProfilingConfig)
+class TesseractEdgeSceneBuilder(
+  textureDir: String,
+  // Receives, per spec index, what the interactive rotation fast path needs to move this
+  // spec's geometry in place (TesseractEdgeSceneBuilder.updateProjection).
+  recorder: (Int, TesseractEdgeSceneBuilder.EdgeTrack) => Unit = (_, _) => ()
+)(using profilingConfig: ProfilingConfig)
   extends SceneBuilder:
+  import TesseractEdgeSceneBuilder.EdgeTrack
+  import TesseractEdgeSceneBuilder.FaceTrack
 
   // Default edge material if none specified
   private val defaultEdgeMaterial = Material.Film
 
-  // Matches the epsilon the 4D CUDA shaders use for the same eye_w clip (e.g. hit_menger4d.cu).
-  private val EyeWClipEpsilon = 1e-6f
-
   private[scene] def isClippedByEyeW(rotated: Vector[4], eyeW: Float): Boolean =
-    rotated(3) >= eyeW - EyeWClipEpsilon
+    TesseractEdgeSceneBuilder.isClippedByEyeW(rotated, eyeW)
 
   /**
    * Calculate exact number of instances needed (meshes + edge cylinders).
@@ -104,8 +108,11 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
     logger.debug(
       s"Building scene with edge rendering: ${specs.length} ${specs.head.objectType}(s)")
 
-    // Reinitialize renderer with correct maxInstances if needed
-    if maxInstances > 64 then
+    // Only when the renderer can't hold the scene: a reinitialize tears the whole native renderer
+    // down and rebuilds it (~46 ms), and this runs on every rebuild -- for an edge-rendered
+    // polytope that used to mean every step of an interactive rotation (usability review
+    // 2026-09, F22). It also discards lights and render settings, which callers reapply.
+    if maxInstances > renderer.maxInstances then
       logger.debug(s"Reinitializing renderer with maxInstances=$maxInstances")
       renderer.reinitialize(maxInstances)
 
@@ -113,44 +120,78 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
     val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
 
     // Add instances for each tesseract
-    specs.foreach { spec =>
+    specs.zipWithIndex.foreach { case (spec, specIdx) =>
       val position = Vector[3](spec.x, spec.y, spec.z)
 
       val hasFaceMaterial = spec.material.isDefined
       val hasEdgeMaterial = spec.edgeMaterial.isDefined
 
       // Only add face mesh instance if face material is specified (not just edge material)
-      if hasFaceMaterial then
-        // Each spec's own mesh: addTriangleMeshInstance instances the most recently set one.
-        // One shared mesh built from `specs.head` gave a tesseract next to a sponge the
-        // sponge's shape and size (usability review 2026-09, F27).
-        // ponytail: one mesh per spec, cache by (type, level, size, projection) if many
-        // identical 4D objects ever make this slow.
-        renderer.setTriangleMesh(MeshFactory.create(spec))
-        val faceMaterial = MaterialExtractor.extract(spec)
-        val textureIndex = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
-
-        val faceInstanceId =
-          if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
-            renderer.addTriangleMeshInstance(position, faceMaterial, textureIndex)
-          else
-            val transform = TransformUtil.createEulerRotationScaleTranslation(
-              spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
-            )
-            renderer.addTriangleMeshInstance(transform, faceMaterial, textureIndex)
-
-        val validFaceInstanceId = requireInstanceId(
-          faceInstanceId,
-          s"tesseract face mesh instance at ($position)"
-        )
-        logger.debug(s"Added tesseract face mesh instance $validFaceInstanceId at ($position)")
+      val faces =
+        if hasFaceMaterial then addFaces(spec, position, textureIndices, renderer)
+        else FaceTrack.NoFaces
 
       // Add edge cylinder instances if edge material or edge radius specified
-      if hasEdgeMaterial || spec.edgeRadius.isDefined then
-        addEdgeCylinders(spec, renderer)
-      else
-        logger.debug("Skipping edge cylinders (no edge material/radius specified)")
+      val (edges, cylinderIds) =
+        if hasEdgeMaterial || spec.edgeRadius.isDefined then addEdgeCylinders(spec, renderer)
+        else
+          logger.debug("Skipping edge cylinders (no edge material/radius specified)")
+          (IndexedSeq.empty, IndexedSeq.empty)
+      recorder(specIdx, EdgeTrack(faces, edges, cylinderIds))
     }
+
+  private def addFaces(
+    spec: ObjectSpec,
+    position: Vector[3],
+    textureIndices: Map[String, Int],
+    renderer: OptiXRenderer
+  ): FaceTrack =
+    // Each spec's own mesh: addTriangleMeshInstance instances the most recently set one.
+    // One shared mesh built from `specs.head` gave a tesseract next to a sponge the
+    // sponge's shape and size (usability review 2026-09, F27).
+    // ponytail: one mesh per spec, cache by (type, level, size, projection) if many
+    // identical 4D objects ever make this slow.
+    val faceTrack = uploadFaces(spec, renderer)
+    val faceMaterial = MaterialExtractor.extract(spec)
+    val textureIndex = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
+
+    val faceInstanceId =
+      if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
+        renderer.addTriangleMeshInstance(position, faceMaterial, textureIndex)
+      else
+        val transform = TransformUtil.createEulerRotationScaleTranslation(
+          spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
+        )
+        renderer.addTriangleMeshInstance(transform, faceMaterial, textureIndex)
+
+    val validFaceInstanceId = requireInstanceId(
+      faceInstanceId,
+      s"tesseract face mesh instance at ($position)"
+    )
+    logger.debug(s"Added tesseract face mesh instance $validFaceInstanceId at ($position)")
+    faceTrack
+
+  /** 4D faces go through the GPU projection path wherever it applies -- the same upload
+    * `TriangleMeshSceneBuilder` uses for these types -- so the rotation fast path can re-project
+    * them in place (`updateMesh4DProjection`). Fractional-level sponges keep the CPU mesh (their
+    * two-level blend is built on the CPU) and so rebuild on rotation. */
+  private def uploadFaces(spec: ObjectSpec, renderer: OptiXRenderer): FaceTrack =
+    val integralLevel = spec.level.forall(l => l == l.floor)
+    if integralLevel then
+      MeshFactory.createUpload(spec) match
+        case MeshUploadPlan.Gpu4D(faces4D, vertsPerFace, proj) =>
+          FaceTrack.Gpu(renderer.setProjectedMesh(
+            faces4D, vertsPerFace, uvs = null, // scalafix:ok DisableSyntax.null
+            eyeW = proj.eyeW, screenW = proj.screenW,
+            rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW,
+            centerX = 0f, centerY = 0f, centerZ = 0f
+          ))
+        case MeshUploadPlan.Cpu(data) =>
+          renderer.setTriangleMesh(data)
+          FaceTrack.Cpu
+    else
+      renderer.setTriangleMesh(MeshFactory.create(spec))
+      FaceTrack.Cpu
 
   /**
    * Add cylinder instances for all edges of a 4D hypercube mesh.
@@ -162,65 +203,28 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
    *
    * Each edge is projected from 4D to 3D using the same rotation and projection as the faces.
    */
-  private def addEdgeCylinders(spec: ObjectSpec, renderer: OptiXRenderer): Unit =
-    val proj4D = spec.projection4D.getOrElse(Projection4DSpec.default)
-    val edgeRadius = spec.edgeRadius.getOrElse(0.02f)
+  private def addEdgeCylinders(
+    spec: ObjectSpec,
+    renderer: OptiXRenderer
+  ): (IndexedSeq[(Vector[4], Vector[4])], IndexedSeq[Option[Int]]) =
+    val edgeRadius = spec.edgeRadius.getOrElse(TesseractEdgeSceneBuilder.DefaultEdgeRadius)
     val edgeMaterial = spec.edgeMaterial.getOrElse(defaultEdgeMaterial)
+    val edges = extractEdges(createMesh4D(spec)).toIndexedSeq
+    val endpoints = TesseractEdgeSceneBuilder.edgeEndpoints(spec, edges)
 
-    val mesh4D: Mesh4D = createMesh4D(spec)
+    // One cylinder per edge that isn't clipped by the eye_w plane (None: clipped, no cylinder).
+    val cylinderIds = endpoints.map(_.map { case (p0, p1) =>
+      val cylinderId = requireInstanceId(
+        renderer.addCylinderInstance(p0, p1, edgeRadius, edgeMaterial),
+        s"edge cylinder from $p0 to $p1"
+      )
+      logger.trace(s"Added edge cylinder $cylinderId from $p0 to $p1")
+      InstanceId.raw(cylinderId)
+    })
 
-    // Create rotation and projection (same as TesseractMesh)
-    val rotation: Rotation =
-      if proj4D.rotXW == 0f && proj4D.rotYW == 0f && proj4D.rotZW == 0f then
-        Rotation.identity
-      else
-        Rotation(proj4D.rotXW, proj4D.rotYW, proj4D.rotZW, Vector[4](0f, 0f, 0f, 0f))
-
-    val projection = Projection(proj4D.eyeW, proj4D.screenW)
-
-    // Position offset for this hypercube instance
-    val offset = Vector[3](spec.x, spec.y, spec.z)
-
-    // Extract edges from the 4D mesh
-    val edges = extractEdges(mesh4D)
-
-    // Project each edge and create cylinder
-    edges.foreach { case (v0_4d, v1_4d) =>
-      // Apply 4D rotation
-      val rotatedV0 = rotation(v0_4d)
-      val rotatedV1 = rotation(v1_4d)
-
-      // Reject edges with an endpoint at or behind the eye_w projection plane, mirroring the
-      // clip every 4D CUDA closest-hit shader applies (e.g. hit_menger4d.cu's
-      // `rot.w >= m.eye_w - 1e-6f`). Without this, Projection.apply's
-      // `(eyeW - screenW) / (eyeW - point(3))` denominator approaches or crosses zero once a
-      // vertex's w-coordinate reaches eyeW, producing a non-finite or exploded 3D endpoint.
-      // Defensive parity fix (Sprint 36 H1.5): rotation preserves a vertex's 4D norm, so at
-      // the CLI defaults (eyeW=3.0, object size ~0.8-1.5) no achievable rotation actually
-      // reaches this clip — it matters once --eye-w is brought close to --size. It is NOT
-      // the cause of the console error spam reported for tesseract/polytope edge scenes
-      // during interactive rotation; that has a different, not-yet-identified cause — see
-      // ManualTestNeedFixing.md section 2.
-      if isClippedByEyeW(rotatedV0, proj4D.eyeW) || isClippedByEyeW(rotatedV1, proj4D.eyeW) then
-        logger.trace(s"Skipping edge clipped by eye_w plane (eyeW=${proj4D.eyeW})")
-      else
-        // Project to 3D
-        val p0_3d = projection(rotatedV0)
-        val p1_3d = projection(rotatedV1)
-
-        // Apply position offset
-        val p0 = Vector[3](p0_3d.x + offset.x, p0_3d.y + offset.y, p0_3d.z + offset.z)
-        val p1 = Vector[3](p1_3d.x + offset.x, p1_3d.y + offset.y, p1_3d.z + offset.z)
-
-        // Add cylinder instance
-        val cylinderId = requireInstanceId(
-          renderer.addCylinderInstance(p0, p1, edgeRadius, edgeMaterial),
-          s"edge cylinder from $p0 to $p1"
-        )
-        logger.trace(s"Added edge cylinder $cylinderId from $p0 to $p1")
-    }
-
-    logger.debug(s"Added ${edges.size} edge cylinders for ${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
+    logger.debug(s"Added ${cylinderIds.count(_.isDefined)} of ${edges.size} edge cylinders for " +
+      s"${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
+    (edges, cylinderIds)
 
   private def createMesh4D(spec: ObjectSpec): Mesh4D =
     spec.objectType.toLowerCase match
@@ -314,3 +318,111 @@ class TesseractEdgeSceneBuilder(textureDir: String)(using profilingConfig: Profi
         import menger.objects.higher_d.TesseractSponge2Mesh
         TesseractSponge2Mesh.estimatedFaces(level) * 2
       case _ => 32L
+
+object TesseractEdgeSceneBuilder:
+
+  val DefaultEdgeRadius = 0.02f
+
+  // Matches the epsilon the 4D CUDA shaders use for the same eye_w clip (e.g. hit_menger4d.cu).
+  private val EyeWClipEpsilon = 1e-6f
+
+  private[scene] def isClippedByEyeW(rotated: Vector[4], eyeW: Float): Boolean =
+    rotated(3) >= eyeW - EyeWClipEpsilon
+
+  /** How a spec's faces were uploaded: re-projectable in place on the GPU, CPU-projected
+    * (a rotation has to rebuild), or none (edges only). */
+  enum FaceTrack:
+    case NoFaces
+    case Gpu(meshSlot: Int)
+    case Cpu
+
+  /** What the interactive rotation fast path needs to move one spec's geometry in place.
+    * `cylinderIds` is aligned with `edges`: the cylinder drawn for that edge, or None where the
+    * edge was clipped by the eye_w plane at build time. */
+  final case class EdgeTrack(
+    faces: FaceTrack,
+    edges: IndexedSeq[(Vector[4], Vector[4])],
+    cylinderIds: IndexedSeq[Option[Int]]
+  )
+
+  /** 3D endpoints of each 4D edge under the spec's rotation and projection, offset to its
+    * position; None for an edge with an endpoint at or behind the eye_w projection plane.
+    * That mirrors the clip every 4D CUDA closest-hit shader applies (e.g. hit_menger4d.cu's
+    * `rot.w >= m.eye_w - 1e-6f`): without it, Projection.apply's
+    * `(eyeW - screenW) / (eyeW - point(3))` denominator approaches or crosses zero once a
+    * vertex's w reaches eyeW, giving a non-finite or exploded endpoint. Rotation preserves a
+    * vertex's 4D norm, so at the CLI defaults (eyeW=3.0, size ~0.8-1.5) no rotation reaches
+    * the clip; it matters once --eye-w is brought close to --size (Sprint 36 H1.5). */
+  def edgeEndpoints(
+    spec: ObjectSpec,
+    edges: IndexedSeq[(Vector[4], Vector[4])]
+  ): IndexedSeq[Option[(Vector[3], Vector[3])]] =
+    val proj4D = spec.projection4D.getOrElse(Projection4DSpec.default)
+    val rotation: Rotation =
+      if proj4D.rotXW == 0f && proj4D.rotYW == 0f && proj4D.rotZW == 0f then Rotation.identity
+      else Rotation(proj4D.rotXW, proj4D.rotYW, proj4D.rotZW, Vector[4](0f, 0f, 0f, 0f))
+    val projection = Projection(proj4D.eyeW, proj4D.screenW)
+    edges.map { case (v0, v1) =>
+      val r0 = rotation(v0)
+      val r1 = rotation(v1)
+      if isClippedByEyeW(r0, proj4D.eyeW) || isClippedByEyeW(r1, proj4D.eyeW) then None
+      else
+        val p0 = projection(r0)
+        val p1 = projection(r1)
+        Some((
+          Vector[3](p0.x + spec.x, p0.y + spec.y, p0.z + spec.z),
+          Vector[3](p1.x + spec.x, p1.y + spec.y, p1.z + spec.z)
+        ))
+    }
+
+  /** Interactive 4D rotation fast path: moves the already-built edge cylinders (and
+    * GPU-projected faces) of every spec whose projection changed, instead of rebuilding the
+    * scene (usability review 2026-09, F22). Returns false -- nothing changed, the caller
+    * rebuilds -- unless only projections changed, every changed spec's faces are
+    * re-projectable, and the set of edges clipped by the eye_w plane is the same as when the
+    * cylinders were built (a newly clipped or unclipped edge needs a different cylinder
+    * count). Everything is checked before anything is moved. */
+  def updateProjection(
+    prevSpecs: List[ObjectSpec],
+    newSpecs: List[ObjectSpec],
+    tracks: IndexedSeq[EdgeTrack],
+    renderer: OptiXRenderer
+  ): Boolean =
+    if prevSpecs.size != tracks.size || newSpecs.size != tracks.size
+      || !menger.engines.WithAnimation.specsDifferOnlyIn4DProjection(prevSpecs, newSpecs)
+    then false
+    else
+      val changed = prevSpecs.lazyZip(newSpecs).lazyZip(tracks).collect {
+        case (prev, next, track) if prev.projection4D != next.projection4D => (next, track)
+      }.toIndexedSeq
+      val planned = changed.map { case (spec, track) =>
+        (spec, track, edgeEndpoints(spec, track.edges))
+      }
+      val movable = planned.forall { case (_, track, endpoints) =>
+        track.faces != FaceTrack.Cpu &&
+          endpoints.map(_.isDefined) == track.cylinderIds.map(_.isDefined)
+      }
+      if !movable then false
+      else
+        planned.foreach { case (spec, track, endpoints) =>
+          val moves = track.cylinderIds.lazyZip(endpoints).collect {
+            case (Some(id), Some((p0, p1))) => (id, p0, p1)
+          }.toIndexedSeq
+          if moves.nonEmpty then
+            val radius = spec.edgeRadius.getOrElse(DefaultEdgeRadius)
+            renderer.updateCylinderInstances(
+              moves.map(_._1).toArray,
+              moves.flatMap { case (_, p0, _) => Seq(p0.x, p0.y, p0.z) }.toArray,
+              moves.flatMap { case (_, _, p1) => Seq(p1.x, p1.y, p1.z) }.toArray,
+              Array.fill(moves.size)(radius)
+            )
+          track.faces match
+            case FaceTrack.Gpu(slot) =>
+              val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
+              renderer.updateMesh4DProjection(
+                slot, eyeW = proj.eyeW, screenW = proj.screenW,
+                rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+              )
+            case _ => ()
+        }
+        true

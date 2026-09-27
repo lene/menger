@@ -61,6 +61,19 @@
   reported on stderr with exit status 1.
 - `SceneValidator` accepted scenes the renderer cannot build: it now runs the renderer's own
   object grouping and each scene builder's preconditions (no GPU needed).
+- The interactive window could crash with CUDA 700/719 (illegal memory access) while rotating
+  scenes with many see-through faces, such as fractional-level sponges: rays passing through
+  transparent or coverage-blended faces nested past the ray tracer's recursion limit
+  (usability review 2026-09, F11). Fixed in optix-jni 0.4.0, which menger now uses; its three
+  4D shaders read the trace-depth payload through `TraceDepth::bounce`, and a face that would
+  exceed the limit renders opaque.
+- Interactively rotating an edge-rendered 4D object (polytopes with `edge-radius`/
+  `edge-material`) rebuilt the whole scene on every step, reinitializing the renderer each
+  time: ~95-195 ms per step, 5-10 fps while dragging (usability review 2026-09, F22). The edge
+  cylinders and faces are now moved in place (optix-jni 0.4.0's `updateCylinderInstances`,
+  faces on the GPU projection path): ~7-24 ms per step. A rotation that changes which edges the
+  eye_w plane clips, or fractional-level sponges (CPU-projected faces), still rebuild. The edge
+  builder also no longer reinitializes the renderer when it already has enough capacity.
 - An object's explicit `color` overrode its material's alpha too, so an opaque `color` on
   `Glass`/`Film` silently made it opaque; `color` now tints RGB only and the material's own
   transparency is preserved.

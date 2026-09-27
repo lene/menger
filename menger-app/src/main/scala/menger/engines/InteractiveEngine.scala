@@ -27,6 +27,7 @@ import menger.dsl.SceneLoader
 import menger.engines.scene.InstanceId
 import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SceneBuilder
+import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TextureManager
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.EventDispatcher
@@ -147,6 +148,7 @@ class InteractiveEngine(
     case Empty
     case Gpu(state: WithAnimation.Anim4DState)
     case Instanced4D(state: Instanced4DState)
+    case Edges(specs: List[ObjectSpec], tracks: IndexedSeq[TesseractEdgeSceneBuilder.EdgeTrack])
   // AtomicReference for cross-thread visibility only. All reads and writes happen on the
   // LibGDX GL thread (render() and key handlers are both dispatched there), so the
   // non-atomic get+set compound operations in tryXxx4DFastPath are safe — do not
@@ -198,7 +200,8 @@ class InteractiveEngine(
 
       val fastPathTaken = updatedSpecs.exists(specs =>
         tryRotation4DFastPath(specs, rendererWrapper.renderer) ||
-        tryInstanced4DFastPath(specs, rendererWrapper.renderer)
+        tryInstanced4DFastPath(specs, rendererWrapper.renderer) ||
+        tryEdgeFastPath(specs, rendererWrapper.renderer)
       )
       if !fastPathTaken then
         rebuildScene()
@@ -238,6 +241,21 @@ class InteractiveEngine(
           RotationFastPath.instanced4DUpdater
         )
         if took then scene4DCache.set(Scene4DCache.Instanced4D(prev.copy(specs = newSpecs)))
+        took
+      case _ => false
+
+  /** Edge-rendered 4D objects: moves their edge cylinders and GPU-projected faces in place
+    * (usability review 2026-09, F22 -- every rotation step used to rebuild the whole scene).
+    * False when the change isn't projection-only or the eye_w clip set changed; see
+    * `TesseractEdgeSceneBuilder.updateProjection`. */
+  private def tryEdgeFastPath(
+    newSpecs: List[ObjectSpec],
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): Boolean =
+    scene4DCache.get match
+      case Scene4DCache.Edges(prevSpecs, tracks) =>
+        val took = TesseractEdgeSceneBuilder.updateProjection(prevSpecs, newSpecs, tracks, renderer)
+        if took then scene4DCache.set(Scene4DCache.Edges(newSpecs, tracks))
         took
       case _ => false
 
@@ -502,6 +520,8 @@ class InteractiveEngine(
             build4DTracked(specs, renderer, (recorder: (Int, InstanceId) => Unit) =>
               new Instanced4DSceneBuilder(ib.ifsType, textureDir, recorder),
               (specs, ids) => Scene4DCache.Instanced4D(Instanced4DState(specs, ids)))
+          case _: TesseractEdgeSceneBuilder =>
+            buildEdgesTracked(specs, renderer)
           case _ =>
             scene4DCache.set(Scene4DCache.Empty)
             builder.validateAndBuild(
@@ -557,6 +577,20 @@ class InteractiveEngine(
       else scene4DCache.set(Scene4DCache.Empty)
     }
     result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
+    result
+
+  private def buildEdgesTracked(
+    specs: List[ObjectSpec],
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): Try[Unit] =
+    val tracks = scala.collection.mutable.Map.empty[Int, TesseractEdgeSceneBuilder.EdgeTrack]
+    val builder = TesseractEdgeSceneBuilder(textureDir, (specIdx, track) => tracks(specIdx) = track)
+    val result = builder.validateAndBuild(specs, renderer, computeEffectiveMaxInstances(builder, specs))
+    scene4DCache.set(
+      if result.isSuccess && tracks.size == specs.size then
+        Scene4DCache.Edges(specs, specs.indices.map(tracks).toIndexedSeq)
+      else Scene4DCache.Empty
+    )
     result
 
   private def rebuildScene(): Unit =
