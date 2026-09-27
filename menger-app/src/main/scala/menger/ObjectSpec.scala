@@ -183,7 +183,7 @@ object ObjectSpec extends LazyLogging:
     "rot-x", "rot-y", "rot-z",
     "edge-radius", "edge-material", "edge-color",
     "edge-emission",
-    "apex", "base", "radius", "major-radius", "minor-radius",
+    "apex", "base", "radius",
     "normal", "distance", "color2", "checker-size",
     "procedural", "proc-scale",
     "normal-map", "roughness-map", "metallic-map", "ao-map", "height-map",

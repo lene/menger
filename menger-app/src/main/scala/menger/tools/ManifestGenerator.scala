@@ -349,7 +349,7 @@ object ManifestGenerator extends LazyLogging:
     try
       val path: Path = Paths.get(outputPath)
       Option(path.getParent).foreach(Files.createDirectories(_))
-      // AD-14: this artifact is mounted read-only into the agent domain, so a reader must
+      // SA-AD-14: this artifact is mounted read-only into the agent domain, so a reader must
       // never observe a partial file. Write beside the target and rename into place -- a
       // rename is atomic within a filesystem, `Files.writeString` straight onto the target is
       // not (review round 2).

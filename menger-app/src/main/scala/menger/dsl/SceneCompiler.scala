@@ -13,7 +13,7 @@ object SceneCompiler extends LazyLogging:
   /** Compile a .scala file and return a ClassLoader over the output directory.
    *
    *  Compiles against `RestrictedClasspath.build()` -- the DSL-surface-scoped classpath
-   *  (AD-4 rule 2) -- rather than the full unrestricted classpath every jar on the current
+   *  (SA-AD-4 rule 2) -- rather than the full unrestricted classpath every jar on the current
    *  JVM would otherwise expose to a compiled scene file. See `RestrictedClasspath` for what
    *  is included/excluded and why.
    */
@@ -42,7 +42,7 @@ object SceneCompiler extends LazyLogging:
     * by the base `Reporter` class regardless of which concrete reporter ran the compile, so
     * this needs no custom `StoreReporter`/`Context` plumbing) into the `Left` a caller actually
     * gets back. Previously this was a generic placeholder pointing at "compiler output above" --
-    * output that a sandboxed subprocess caller (`SceneValidator`, AD-18) never sees, since the
+    * output that a sandboxed subprocess caller (`SceneValidator`, SA-AD-18) never sees, since the
     * reporter's own console output is on the compiler JVM's stderr, not folded into the JSON
     * result. `Diagnostic.message` needs no `Context` argument (already ANSI-stripped by its own
     * `override def message`), so this stays a plain, directly testable string transform. */

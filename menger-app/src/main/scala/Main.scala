@@ -50,7 +50,7 @@ object Main:
       val opts = MengerCLIOptions(args.toList)
       configureLogging(opts.logLevel().toUpperCase)
       opts.display.toOption match
-        // AD-6: the display target is an explicit, injected parameter. A native windowing
+        // SA-AD-6: the display target is an explicit, injected parameter. A native windowing
         // library (GLFW/X11, via LWJGL) only ever reads DISPLAY from the process environment
         // at init time -- nothing in-process can override it once the JVM has started, so the
         // only way to honor an injected value is to re-exec as a child process that has it
@@ -69,10 +69,10 @@ object Main:
         System.err.println(s"Error: ${e.getMessage}")
         sys.exit(1)
 
-  /** AD-16: the GPU is a single exclusive resource. Only the genuine interactive window --
+  /** SA-AD-16: the GPU is a single exclusive resource. Only the genuine interactive window --
     * a real-time session an `InteractiveEngine` drives for however long the user keeps it
     * open -- is gated; headless/preview/video/animation runs are one-shot batch renders
-    * already sequential-only by existing convention (AD-11), and this story's own
+    * already sequential-only by existing convention (SA-AD-11), and this story's own
     * Boundaries explicitly excludes them from locking. A pure predicate, kept separate from
     * `launchInProcess`'s side-effecting match, so the discrimination itself (not just that
     * the code compiles) is directly unit-testable without touching `Lwjgl3Application`. */
@@ -92,7 +92,7 @@ object Main:
   /** Only labels the frame counter in the window title; real-time playback follows the clock. */
   private val RealtimePreviewNominalFrames = 100
 
-  /** AD-16's decision, composed: does this engine need the lock, and if so can it be had?
+  /** SA-AD-16's decision, composed: does this engine need the lock, and if so can it be had?
     * `None` means "run unlocked" (a batch render), `Some(Right(handle))` means the caller
     * holds it, `Some(Left(reason))` means refuse.
     *
@@ -120,7 +120,7 @@ object Main:
           case None => Lwjgl3Application(app, config)
       case _ => sys.error("Engine must implement ApplicationListener")
 
-  /** Reuses `SceneValidator`'s AD-5 tagged-result JSON shape rather than inventing a second
+  /** Reuses `SceneValidator`'s SA-AD-5 tagged-result JSON shape rather than inventing a second
     * "refused" contract -- one tagged-result vocabulary across the validation gauntlet and
     * the render-exclusivity check. Pure JSON construction, kept separate from `sys.exit` so
     * the contract itself is directly testable (mirroring `buildReExecProcessBuilder`'s own
@@ -384,15 +384,6 @@ object Main:
     InteractiveEngine(engineConfig, opts.userSetMaxInstances, renderT, watchScenePath)
 
   private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): RenderEngine =
-    // S2 menger#33: these three flags are validated (CliValidation's mutual-exclusion check)
-    // but never applied anywhere below -- --objects type=...:color=#RRGGBB is the real,
-    // wired mechanism. Not removed (that broke CliValidation's coupling when tried); warn
-    // instead so the silence stops.
-    if opts.color.isSupplied || opts.faceColor.isSupplied || opts.lineColor.isSupplied then
-      LoggerFactory.getLogger("Main").warn(
-        "--color/--face-color/--line-color have no effect on rendering -- use " +
-        "--objects type=...:color=#RRGGBB instead"
-      )
     val engineConfig = OptiXEngineConfig(
       scene = SceneConfig(objectSpecs = opts.objects.toOption.map(GlobalRotation(opts, _))),
       camera = CameraConfig(

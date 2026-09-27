@@ -40,7 +40,7 @@ set(CMAKE_CUDA_ARCHITECTURES "75-real;86-real;89-real;75-virtual")
 enable_language(CUDA)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-find_package(CUDAToolkit 12.0 REQUIRED)
+find_package(CUDAToolkit 13.0 REQUIRED)
 
 #=============================================================================
 # OptiX SDK

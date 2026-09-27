@@ -99,10 +99,10 @@ run_dsl_test() {
     rm -f "$temp_output"
 
     echo -e "${YELLOW}Testing DSL scene:${RESET} $name"
-    echo "  Command: $MENGER_BIN --optix --scene $scene_name --headless --save-name $temp_output"
+    echo "  Command: $MENGER_BIN --scene $scene_name --headless --save-name $temp_output"
 
     local test_passed=false
-    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --optix --scene "$scene_name" --headless --save-name "$temp_output" >/dev/null 2>&1 && [ -f "$temp_output" ]; then
+    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --scene "$scene_name" --headless --save-name "$temp_output" >/dev/null 2>&1 && [ -f "$temp_output" ]; then
         test_passed=true
     fi
 
@@ -150,9 +150,9 @@ run_dsl_test_should_fail() {
     local scene_name="$2"
 
     echo -e "${YELLOW}Testing DSL scene (should fail):${RESET} $name"
-    echo "  Command: $MENGER_BIN --optix --scene $scene_name --headless --save-name test.png"
+    echo "  Command: $MENGER_BIN --scene $scene_name --headless --save-name test.png"
 
-    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --optix --scene "$scene_name" --headless --save-name test.png >/dev/null 2>&1; then
+    if __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --scene "$scene_name" --headless --save-name test.png >/dev/null 2>&1; then
         ((FAILED++))
         FAILED_TESTS="$FAILED_TESTS\n  - $name (expected failure but succeeded)"
         echo -e "  ${RED}✗${RESET} Expected failure but succeeded"

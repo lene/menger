@@ -97,6 +97,8 @@ with `Error: SceneConfig must provide objectSpecs`.
     --antialiasing           Recursive adaptive antialiasing
     --aa-max-depth <1-4>     AA recursion depth (default: 2)
     --aa-threshold <0-1>     AA edge threshold (default: 0.1)
+    --antialias-samples N    MSAA samples for the interactive window's back buffer only
+                             (headless renders always use --antialiasing instead)
     --max-ray-depth <1-5>    Maximum bounce depth (default: 5)
 -d, --denoise                OptiX AI denoiser on the final accumulated frame
 -n, --no-denoise             Force denoising off, even if a DSL scene enables it
@@ -140,14 +142,11 @@ All of these require `--scene` with an animated scene and are mutually exclusive
 -k, --keep-frames            Keep the frame PNGs after encoding
 ```
 
-#### Legacy flags (accepted, but currently without effect)
-```
---sponge-type, --level (except as input to --animate validation), --lines, --color,
---face-color, --line-color, -a/--antialias-samples, --projection-screen-w, --projection-eye-w
-```
-Use the corresponding `--objects` keys (`level=`, `color=`, `eye-w=`, `screen-w=`) instead.
-`--optix`, `--object`, `--radius`, `--scale`, `--center` and `--ior` were removed and are
-rejected as unknown options.
+`--sponge-type`, `--level` (outside `--animate`), `--lines`, `--color`, `--face-color`,
+`--line-color`, `--projection-screen-w` and `--projection-eye-w` were removed (they parsed but
+had no effect on rendering) along with `--optix`, `--object`, `--radius`, `--scale`,
+`--center` and `--ior`; all are rejected as unknown options. Use the corresponding `--objects`
+keys (`level=`, `color=`, `eye-w=`, `screen-w=`) instead.
 
 ### Object Types
 

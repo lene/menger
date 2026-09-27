@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to build custom AMI with CUDA 12.8, OptiX, and dev tools
+# Script to build custom AMI with CUDA 13.0, OptiX, and dev tools
 # Alternative to Packer for users who prefer AWS CLI
 
 set -e
@@ -29,7 +29,7 @@ Usage: $0 [OPTIONS] <path-to-optix-installer.sh>
        $0 --copy <ami-id> --to-regions REGION[,REGION...]
        $0 --list
 
-Build a custom AMI with CUDA 12.8, OptiX, Scala, and dev tools.
+Build a custom AMI with CUDA 13.0, OptiX, Scala, and dev tools.
 
 OPTIONS:
   --region REGION                  AWS region for build (default: \$AWS_REGION or us-east-1)
@@ -418,12 +418,12 @@ sudo sed -i 's/#X11Forwarding yes/X11Forwarding yes/' /etc/ssh/sshd_config
 sudo sed -i 's/#X11DisplayOffset 10/X11DisplayOffset 10/' /etc/ssh/sshd_config
 sudo sed -i 's/#X11UseLocalhost yes/X11UseLocalhost no/' /etc/ssh/sshd_config
 
-# Install CUDA 12.8 + NVIDIA driver from CUDA repository
+# Install CUDA 13.0 + NVIDIA driver from CUDA repository
 # Install driver via CUDA repo (not ubuntu-drivers, which requires a GPU to autodetect)
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
 sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt-get update
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cuda-toolkit-12-8 cuda-drivers
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cuda-toolkit-13-0 cuda-drivers
 rm cuda-keyring_1.1-1_all.deb
 
 # Install OptiX
@@ -436,46 +436,46 @@ rm /tmp/optix-installer.sh
 
 # 1. System-wide environment file
 sudo tee /etc/profile.d/cuda-optix.sh > /dev/null <<'ENVEOF'
-export PATH=/usr/local/cuda-12.8/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH
-export CUDA_HOME=/usr/local/cuda-12.8
+export PATH=/usr/local/cuda-13.0/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-13.0/lib64:$LD_LIBRARY_PATH
+export CUDA_HOME=/usr/local/cuda-13.0
 export OPTIX_ROOT=/opt/optix
 ENVEOF
 sudo chmod +x /etc/profile.d/cuda-optix.sh
 
 # 2. Add to /etc/environment for system-wide availability
-sudo sed -i 's|^PATH="|PATH="/usr/local/cuda-12.8/bin:|' /etc/environment
-echo 'CUDA_HOME="/usr/local/cuda-12.8"' | sudo tee -a /etc/environment
+sudo sed -i 's|^PATH="|PATH="/usr/local/cuda-13.0/bin:|' /etc/environment
+echo 'CUDA_HOME="/usr/local/cuda-13.0"' | sudo tee -a /etc/environment
 echo 'OPTIX_ROOT="/opt/optix"' | sudo tee -a /etc/environment
-echo 'LD_LIBRARY_PATH="/usr/local/cuda-12.8/lib64"' | sudo tee -a /etc/environment
+echo 'LD_LIBRARY_PATH="/usr/local/cuda-13.0/lib64"' | sudo tee -a /etc/environment
 
 # 3. Add to existing ubuntu user (bash)
-echo 'export PATH=/usr/local/cuda-12.8/bin:$PATH' >> ~/.bashrc
-echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
-echo 'export CUDA_HOME=/usr/local/cuda-12.8' >> ~/.bashrc
+echo 'export PATH=/usr/local/cuda-13.0/bin:$PATH' >> ~/.bashrc
+echo 'export LD_LIBRARY_PATH=/usr/local/cuda-13.0/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+echo 'export CUDA_HOME=/usr/local/cuda-13.0' >> ~/.bashrc
 echo 'export OPTIX_ROOT=/opt/optix' >> ~/.bashrc
 
 # 4. Add to existing ubuntu user (fish)
 mkdir -p ~/.config/fish
 cat >> ~/.config/fish/config.fish <<'FISHEOF'
-set -x PATH /usr/local/cuda-12.8/bin $PATH
-set -x LD_LIBRARY_PATH /usr/local/cuda-12.8/lib64 $LD_LIBRARY_PATH
-set -x CUDA_HOME /usr/local/cuda-12.8
+set -x PATH /usr/local/cuda-13.0/bin $PATH
+set -x LD_LIBRARY_PATH /usr/local/cuda-13.0/lib64 $LD_LIBRARY_PATH
+set -x CUDA_HOME /usr/local/cuda-13.0
 set -x OPTIX_ROOT /opt/optix
 FISHEOF
 
 # 5. Add to skeleton for new users (bash)
-echo 'export PATH=/usr/local/cuda-12.8/bin:$PATH' | sudo tee -a /etc/skel/.bashrc
-echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH' | sudo tee -a /etc/skel/.bashrc
-echo 'export CUDA_HOME=/usr/local/cuda-12.8' | sudo tee -a /etc/skel/.bashrc
+echo 'export PATH=/usr/local/cuda-13.0/bin:$PATH' | sudo tee -a /etc/skel/.bashrc
+echo 'export LD_LIBRARY_PATH=/usr/local/cuda-13.0/lib64:$LD_LIBRARY_PATH' | sudo tee -a /etc/skel/.bashrc
+echo 'export CUDA_HOME=/usr/local/cuda-13.0' | sudo tee -a /etc/skel/.bashrc
 echo 'export OPTIX_ROOT=/opt/optix' | sudo tee -a /etc/skel/.bashrc
 
 # 6. Add to skeleton for new users (fish)
 sudo mkdir -p /etc/skel/.config/fish
 sudo tee /etc/skel/.config/fish/config.fish > /dev/null <<'FISHSKELEOF'
-set -x PATH /usr/local/cuda-12.8/bin $PATH
-set -x LD_LIBRARY_PATH /usr/local/cuda-12.8/lib64 $LD_LIBRARY_PATH
-set -x CUDA_HOME /usr/local/cuda-12.8
+set -x PATH /usr/local/cuda-13.0/bin $PATH
+set -x LD_LIBRARY_PATH /usr/local/cuda-13.0/lib64 $LD_LIBRARY_PATH
+set -x CUDA_HOME /usr/local/cuda-13.0
 set -x OPTIX_ROOT /opt/optix
 FISHSKELEOF
 
@@ -520,9 +520,9 @@ echo "=== Provisioning complete ==="
 echo "=== Verifying OptiX installation ==="
 ssh $SSH_OPTS ubuntu@$PUBLIC_IP 'bash -s' <<'VERIFY_SCRIPT'
 # Set environment variables for verification
-export PATH=/usr/local/cuda-12.8/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64:$LD_LIBRARY_PATH
-export CUDA_HOME=/usr/local/cuda-12.8
+export PATH=/usr/local/cuda-13.0/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda-13.0/lib64:$LD_LIBRARY_PATH
+export CUDA_HOME=/usr/local/cuda-13.0
 export OPTIX_ROOT=/opt/optix
 
 # Run verification (--no-gpu: build instance has no GPU driver; checks are warnings not failures)
@@ -553,8 +553,8 @@ AMI_ID=$(aws ec2 create-image \
   --region "$REGION" \
   --instance-id "$INSTANCE_ID" \
   --name "$AMI_NAME" \
-  --description "Menger NVIDIA dev environment with CUDA 12.8, OptiX, Scala, IntelliJ" \
-  --tag-specifications "ResourceType=image,Tags=[{Key=Name,Value=$AMI_NAME},{Key=Project,Value=menger},{Key=CUDAVersion,Value=12.8}]" \
+  --description "Menger NVIDIA dev environment with CUDA 13.0, OptiX, Scala, IntelliJ" \
+  --tag-specifications "ResourceType=image,Tags=[{Key=Name,Value=$AMI_NAME},{Key=Project,Value=menger},{Key=CUDAVersion,Value=13.0}]" \
   --query 'ImageId' \
   --output text)
 

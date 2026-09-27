@@ -5,7 +5,7 @@ package menger.engines
   * from stdin (the parent test closes/writes to release it) before releasing and exiting.
   * Needed because a same-JVM `tryAcquire` collision always throws
   * `OverlappingFileLockException` and never exercises the `case null =>` branch that a real
-  * second OS process (the actual AD-16 scenario) does. */
+  * second OS process (the actual SA-AD-16 scenario) does. */
 object RenderLockHolderMain:
   def main(args: Array[String]): Unit =
     // Review round 2: `args(0)` unguarded raised ArrayIndexOutOfBoundsException instead of the

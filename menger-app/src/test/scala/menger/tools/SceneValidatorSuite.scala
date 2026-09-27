@@ -226,7 +226,7 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val result = SceneValidator.validate(file)
     result.tag shouldBe SceneValidator.Tag.Ok
 
-  // AD-4 rule 2: a compiled scene sees the DSL surface and its transitive needs, not the rest
+  // SA-AD-4 rule 2: a compiled scene sees the DSL surface and its transitive needs, not the rest
   // of menger-app. `menger.tools`/`menger.engines`/`menger.cli`/`menger.input` are pruned off
   // the classpath handed to the compiler (review round 2), so referencing them is a compile
   // error rather than a working import.

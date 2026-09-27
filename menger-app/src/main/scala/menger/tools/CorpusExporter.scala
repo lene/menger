@@ -138,7 +138,7 @@ object CorpusExporter extends LazyLogging:
     try
       val path: Path = Paths.get(outputPath)
       Option(path.getParent).foreach(Files.createDirectories(_))
-      // AD-14, same as ManifestGenerator.writeManifest: this artifact crosses into the agent
+      // SA-AD-14, same as ManifestGenerator.writeManifest: this artifact crosses into the agent
       // domain read-only, so it is renamed into place rather than written in situ (review
       // round 2).
       val tmp = Files.createTempFile(

@@ -80,7 +80,7 @@ They are compiled against a *restricted* classpath (since 0.9.0): the Scala libr
 `menger-common`, `scala-logging`, and menger's `menger.dsl`, `menger.objects` and `menger.video`
 packages. Imports of LibGDX, `io.github.lene.optix`, `upickle`, or menger's `engines`, `tools`,
 `cli` or `input` packages no longer compile. This is deliberate: a scene file is treated as
-untrusted input and the compile step is the boundary (architecture decision AD-4). `SceneRegistry.register` is not needed for file
+untrusted input and the compile step is the boundary (architecture decision SA-AD-4). `SceneRegistry.register` is not needed for file
 scenes. A compile error is reported with the compiler's diagnostics and the run exits.
 
 **Animation length:** an animated scene (`def scene(t: Float)`) can also declare

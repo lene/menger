@@ -90,13 +90,14 @@ Common `--objects` keys: `pos=x,y,z`, `size=S`, `color=#RRGGBB`, `material=PRESE
 The global flags `--rot-x-w`, `--rot-y-w`, `--rot-z-w` (or the shorthand `--rotation-4d XW,YW,ZW`)
 and `--rot-x`, `--rot-y`, `--rot-z` add a rotation to **every** object on top of its own.
 
-#### Legacy flags that currently do nothing
+#### Removed flags
 
-These flags are still accepted by the parser but no longer affect the rendered image. Do not
-rely on them: `--sponge-type`, `--level` (except as input to `--animate`), `--lines`,
-`--color`, `--face-color`, `--line-color` (these three log a warning), `--antialias-samples`,
-`--projection-screen-w`, `--projection-eye-w`. Use the per-object `--objects` keys instead
-(`level=`, `color=`, `eye-w=`, `screen-w=`).
+`--sponge-type`, `--level` (outside `--animate`), `--lines`, `--color`, `--face-color`,
+`--line-color`, `--projection-screen-w` and `--projection-eye-w` were removed -- they parsed
+but never affected the rendered image. Use the per-object `--objects` keys instead
+(`level=`, `color=`, `eye-w=`, `screen-w=`). `--antialias-samples` was kept: it sets the MSAA
+sample count for the interactive window's back buffer (headless renders always use
+`--antialiasing` instead).
 
 #### Camera, Lighting, Quality, Scene
 

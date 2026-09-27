@@ -96,10 +96,12 @@ Every run needs `--objects` (objects described on the command line) or `--scene`
 a bare `sbt run` exits with an error. `menger-app --help` lists all options.
 
 > **Upgrading from 0.8.x?** `--optix` is gone (OptiX is the only renderer; passing it now fails
-> with `Unknown option 'optix'`), as are the LibGDX rasterizer and the single-object flags
-> `--object`, `--radius`, `--ior`, `--scale`, `--center`. `--sponge-type`, `--lines`, `--color`,
-> `--face-color`, `--line-color`, `--antialias-samples` and the global `--projection-*-w` flags
-> are still parsed but have no effect — use `--objects type=...:level=...:color=...` instead.
+> with `Unknown option 'optix'`), as are the LibGDX rasterizer, the single-object flags
+> `--object`, `--radius`, `--ior`, `--scale`, `--center`, and `--sponge-type`, `--level`
+> (outside `--animate`), `--lines`, `--color`, `--face-color`, `--line-color` and the global
+> `--projection-*-w` flags (they parsed but had no effect) — use
+> `--objects type=...:level=...:color=...` instead. `--antialias-samples` still works: it sets
+> the interactive window's MSAA sample count (headless renders use `--antialiasing` instead).
 
 # Usage Overview
 

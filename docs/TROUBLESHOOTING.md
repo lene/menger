@@ -41,8 +41,9 @@ Quick index:
 the single-object flags were replaced by `--objects`.
 
 **Fix:** drop `--optix`; write `--objects type=sphere:size=1.5:pos=0,0,0:ior=1.5` instead of the
-single-object flags. Some older flags are still *accepted but ignored* (`--sponge-type`,
-`--lines`, `--color`, …) — see the [User Guide](guide/user-guide.md#legacy-flags-that-currently-do-nothing).
+single-object flags. Some older flags (`--sponge-type`, `--lines`, `--color`, …) were removed
+entirely and are now rejected as unknown options — see the
+[User Guide](guide/user-guide.md#removed-flags).
 
 ### Second interactive window refused
 

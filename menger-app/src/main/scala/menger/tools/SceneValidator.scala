@@ -28,10 +28,10 @@ import upickle.default.readwriter
 import upickle.default.write
 
 /** Renderer-side gauntlet validation entry point (spec-ai-scene-agent story 5): runs stage 1
-  * (compile, via `SceneCompiler` with `RestrictedClasspath` -- AD-4 rule 2) and stage 4
+  * (compile, via `SceneCompiler` with `RestrictedClasspath` -- SA-AD-4 rule 2) and stage 4
   * (geometric checks -- `SceneLoader.load` already triggers every `require()` precondition at
   * construction time; `PolytopeInvariants` adds the count-independent geometric-invariant
-  * check on top) for a single `.scala` scene file, and emits AD-5's tagged result: `ok` |
+  * check on top) for a single `.scala` scene file, and emits SA-AD-5's tagged result: `ok` |
   * `compile-errors` | `lint-findings` | `refused`.
   *
   * Intentionally out of scope (see the story's `Never` clause): the agent-side static checks
@@ -46,9 +46,9 @@ object SceneValidator extends LazyLogging:
   enum Tag:
     case Ok, CompileErrors, LintFindings, Refused
 
-  /** AD-5's tagged result contract names these variants literally in lowercase, hyphenated
+  /** SA-AD-5's tagged result contract names these variants literally in lowercase, hyphenated
     * form (`ok` | `compile-errors` | `lint-findings` | `refused`,
-    * `ARCHITECTURE-SPINE.md`'s AD-5 rule) -- a consumer on the other side of this JSON (the
+    * `ARCHITECTURE-SPINE.md`'s SA-AD-5 rule) -- a consumer on the other side of this JSON (the
     * agent pipeline, `history.jsonl`) matches against those exact strings, not Scala's
     * PascalCase enum case names. `derives ReadWriter`'s default enum encoding would emit
     * `"Ok"`/`"CompileErrors"`/... instead, silently breaking that contract, so `Tag` gets an
@@ -103,7 +103,7 @@ object SceneValidator extends LazyLogging:
     SceneValidatorMain.printResult(write(result, indent = 2))
     SceneValidatorMain.exitWith(exitCodeFor(result.tag))
 
-  /** AD-5's four tags collapse onto three exit codes so a caller can branch without parsing
+  /** SA-AD-5's four tags collapse onto three exit codes so a caller can branch without parsing
     * JSON (review round 2 -- previously every non-`ok` tag exited 1, making "the scene is
     * wrong, retry" indistinguishable from "the pipeline is broken, stop"). */
   private[tools] def exitCodeFor(tag: Tag): Int = tag match
@@ -119,7 +119,7 @@ object SceneValidator extends LazyLogging:
       case None       => Left("Usage: SceneValidator <scene-file.scala>")
       case Some(path) => Right(validate(new File(path)))
 
-  /** Runs the full stage-1 + stage-4 gauntlet against `file` and returns AD-5's tagged
+  /** Runs the full stage-1 + stage-4 gauntlet against `file` and returns SA-AD-5's tagged
     * result. Does not throw for any failure a scene file can provoke: unexpected exceptions,
     * and the `Error`s a hostile or careless scene actually reaches (`StackOverflowError`,
     * `OutOfMemoryError`, `LinkageError` -- see the handlers below), are caught and reported
@@ -143,7 +143,7 @@ object SceneValidator extends LazyLogging:
         // *registry/reflection* lookup instead of its file-not-found branch
         // (`SceneLoader.isFilePath` requires the file to already exist to be treated as a
         // path at all), which would otherwise get misclassified as a scene defect instead of
-        // AD-5's `refused` (a resource the pipeline was told to validate that simply isn't a
+        // SA-AD-5's `refused` (a resource the pipeline was told to validate that simply isn't a
         // usable file). `isFile`, not `exists`, per review round 1: `exists()` is also true
         // for a directory, which `SceneLoader.load` has no defined behavior for.
         ValidationResult(Tag.Refused, List(s"scene file not found: ${file.getAbsolutePath}"))
@@ -202,7 +202,7 @@ object SceneValidator extends LazyLogging:
             )
 
   /** `SceneLoader.load`'s `Left` messages come from three distinct sources, each mapped to a
-    * different AD-5 tag:
+    * different SA-AD-5 tag:
     *   - `SceneCompiler`'s own message (always starts with "Compilation of") -- a genuine
     *     Scala/DSL syntax error -- `CompileErrors`.
     *   - "Scene file not found: ..." -- the resource the pipeline was told to validate simply
@@ -278,7 +278,7 @@ object SceneValidator extends LazyLogging:
 
   /** Flags an absolute or `..`-escaping texture/video/env-map path before the scene ever
     * reaches a renderer with a real `--texture-dir` (usability review 2026-09, T1#1). The
-    * sandbox this validator runs in (AD-18) deliberately mounts no texture directory at all,
+    * sandbox this validator runs in (SA-AD-18) deliberately mounts no texture directory at all,
     * so this can only be a lexical check: the placeholder base below never needs to be the
     * real `--texture-dir` because [[AssetPaths.resolve]]'s absolute-path and `..`-escape
     * rejections are base-independent (they never touch the filesystem); only its

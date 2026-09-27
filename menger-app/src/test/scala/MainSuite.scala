@@ -156,7 +156,7 @@ class MainSuite extends AnyFlatSpec with Matchers:
 
   // Review round 2: shouldLock, RenderLock.tryAcquire and refusedResultJson were each tested
   // in isolation and nothing composed them, so deleting Main's entire lock branch left every
-  // test green. These pin the composition -- AD-16's actual behaviour.
+  // test green. These pin the composition -- SA-AD-16's actual behaviour.
   "acquireLockIfNeeded" should "not take a lock for a batch (headless) render" in:
     val opts = MengerCLIOptions(
       Seq("--objects", "type=sphere", "--headless", "--save-name", "out.png")
@@ -184,7 +184,7 @@ class MainSuite extends AnyFlatSpec with Matchers:
       refused.map(_.isLeft) shouldBe Some(true)
       refused.foreach(_.left.foreach { reason =>
         reason should include(lockPath)
-        // The refusal reaches the user as AD-5's tagged JSON, not a bare message.
+        // The refusal reaches the user as SA-AD-5's tagged JSON, not a bare message.
         Main.refusedResultJson(reason) should include("\"refused\"")
       })
     finally held.foreach(_.close())
