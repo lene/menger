@@ -13,11 +13,10 @@ import menger.dsl._
  * are now fixed — see the caustic-visibility note in docs/caustics/CAUSTICS.md.)
  *
  * Unlike `CausticsCanonical`, this scene is viewed as a tone-mapped LDR PNG, not compared to
- * a linear pbrt .pfm -- and a single-frame headless render doesn't apply `Scene.toneMapping`
- * at all (only the animation path does, `WithAnimation.scala`). So the point light's
- * intensity is tuned down from pbrt's physically-matched 500 (`CausticsCanonical`'s value)
- * to 150, which keeps the caustic ring visible without blowing the 0.8-albedo floor out to
- * solid white (usability review 2026-09 inbox item).
+ * a linear pbrt .pfm. So the point light's intensity is tuned down from pbrt's
+ * physically-matched 500 (`CausticsCanonical`'s value) to 150, which keeps the caustic ring
+ * visible without blowing the 0.8-albedo floor out to solid white (usability review 2026-09
+ * inbox item).
  *
  * Usage: --scene examples.dsl.CausticsReference
  */

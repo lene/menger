@@ -69,8 +69,6 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
     configureOutputMode(renderer)
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
-    if firstFrameConfigs.toneMappingOperator != 0 then
-      renderer.setToneMapping(firstFrameConfigs.toneMappingOperator, firstFrameConfigs.toneMappingExposure)
     configureStaticEnvironmentMap(firstFrameConfigs, renderer)
     configureEnvMapVideoForFrame(
       firstFrameConfigs,
