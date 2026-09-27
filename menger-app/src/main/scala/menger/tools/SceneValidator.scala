@@ -236,7 +236,9 @@ object SceneValidator extends LazyLogging:
         }
     val findings = evaluated.flatMap {
       case Left(failure) => List(failure)
-      case Right(scene)  => geometricFindings(scene) ++ buildFindings(scene) ++ assetPathFindings(scene)
+      case Right(scene)  =>
+        geometricFindings(scene) ++ buildFindings(scene) ++ assetPathFindings(scene) ++
+          parametricSurfaceFindings(scene)
     }.distinct
     if findings.isEmpty then ValidationResult(Tag.Ok, Nil)
     else ValidationResult(
@@ -256,8 +258,21 @@ object SceneValidator extends LazyLogging:
       .flatMap(MeshFactory.mesh4D)
       .flatMap(mesh => PolytopeInvariants.check(mesh))
 
+  /** Contracts for the two free-form/lambda DSL types (usability review 2026-09, T3#13) --
+    * checked against the raw `SceneObject`, before `.toObjectSpec` loses `closedU`/`closedV`
+    * and the `f` lambda itself into a flattened mesh. */
+  private def parametricSurfaceFindings(scene: Scene): List[InvariantFinding] =
+    sceneObjects(scene).flatMap {
+      case s: menger.dsl.ParametricSurface => menger.dsl.ParametricSurfaceContracts.check(s)
+      case c: menger.dsl.Curve             => menger.dsl.ParametricSurfaceContracts.check(c)
+      case _                               => Nil
+    }
+
+  private def sceneObjects(scene: Scene): List[menger.dsl.SceneObject] =
+    scene.objects ++ scene.root.toList.flatMap(_.allLeafGeometry)
+
   private def sceneObjectSpecs(scene: Scene): List[ObjectSpec] =
-    (scene.objects ++ scene.root.toList.flatMap(_.allLeafGeometry)).map(_.toObjectSpec)
+    sceneObjects(scene).map(_.toObjectSpec)
 
   private val AssetPathInvariant = "asset-path"
 

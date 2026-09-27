@@ -112,6 +112,39 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val result = SceneValidator.validate(file)
     result.tag shouldBe SceneValidator.Tag.Ok
 
+  // Usability review 2026-09 (T3#13): a degenerate free-form/lambda object used to pass
+  // straight through -- require() alone can't catch a bad closure's behavior at the seam.
+  it should "flag a ParametricSurface whose closedU seam doesn't actually coincide" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object BadSeamScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(ParametricSurface(f = (u, v) => Vec3(u, 0f, v), closedU = true)),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("parametric-surface-seam:")) shouldBe true
+
+  it should "flag a Curve whose control points all coincide" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object DegenerateCurveScene:
+        |  val p = Vec3(1f, 2f, 3f)
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Curve(points = Seq(p, p, p, p))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("curve-arc-length:")) shouldBe true
+
   // Usability review 2026-09 (F18/F19/F24): scenes the validator accepted crashed the render
   // window -- it never ran the renderer's own grouping and builder preconditions.
   private def sceneOf(objects: menger.dsl.SceneObject*): menger.dsl.Scene =
