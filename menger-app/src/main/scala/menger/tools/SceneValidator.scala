@@ -8,6 +8,7 @@ import scala.util.Try
 import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.AssetPaths
 import menger.ObjectSpec
 import menger.common.Const
 import menger.common.ProfilingConfig
@@ -235,7 +236,7 @@ object SceneValidator extends LazyLogging:
         }
     val findings = evaluated.flatMap {
       case Left(failure) => List(failure)
-      case Right(scene)  => geometricFindings(scene) ++ buildFindings(scene)
+      case Right(scene)  => geometricFindings(scene) ++ buildFindings(scene) ++ assetPathFindings(scene)
     }.distinct
     if findings.isEmpty then ValidationResult(Tag.Ok, Nil)
     else ValidationResult(
@@ -257,6 +258,36 @@ object SceneValidator extends LazyLogging:
 
   private def sceneObjectSpecs(scene: Scene): List[ObjectSpec] =
     (scene.objects ++ scene.root.toList.flatMap(_.allLeafGeometry)).map(_.toObjectSpec)
+
+  private val AssetPathInvariant = "asset-path"
+
+  /** Flags an absolute or `..`-escaping texture/video/env-map path before the scene ever
+    * reaches a renderer with a real `--texture-dir` (usability review 2026-09, T1#1). The
+    * sandbox this validator runs in (AD-18) deliberately mounts no texture directory at all,
+    * so this can only be a lexical check: the placeholder base below never needs to be the
+    * real `--texture-dir` because [[AssetPaths.resolve]]'s absolute-path and `..`-escape
+    * rejections are base-independent (they never touch the filesystem); only its
+    * symlink check needs a real, existing file, which never happens here since nothing is
+    * mounted. */
+  private def assetPathFindings(scene: Scene): List[InvariantFinding] =
+    val placeholderBaseDir = "."
+    val paths = sceneObjectSpecs(scene).flatMap { spec =>
+      List(
+        spec.texture,
+        spec.textureMaps.normalMap,
+        spec.textureMaps.roughnessMap,
+        spec.metallicMap,
+        spec.aoMap,
+        spec.heightMap,
+        spec.textureSet,
+        spec.videoTexture.map(_.path)
+      ).flatten
+    } ++ scene.envMap.toList ++ scene.envMapVideo.map(_.path).toList
+    paths.distinct.flatMap { path =>
+      AssetPaths.resolve(placeholderBaseDir, path) match
+        case Left(reason) => List(InvariantFinding(AssetPathInvariant, reason))
+        case Right(_)      => Nil
+    }
 
   private val BuildInvariant = "scene-build"
 

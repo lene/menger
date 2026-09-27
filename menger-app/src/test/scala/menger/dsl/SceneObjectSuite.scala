@@ -155,6 +155,14 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
   it should "validate non-negative level" in:
     an[IllegalArgumentException] should be thrownBy Sponge(VolumeFilling, level = -1f)
 
+  // Usability review 2026-09 (T1#3): the DSL had no upper bound at all -- only the CLI path did.
+  it should "reject a level above the hard maximum" in:
+    an[IllegalArgumentException] should be thrownBy
+      Sponge(VolumeFilling, level = (ResourceLimits.cubeSpongeLevel.max + 1).toFloat)
+
+  it should "accept a level at the hard maximum" in:
+    noException should be thrownBy Sponge(VolumeFilling, level = ResourceLimits.cubeSpongeLevel.max.toFloat)
+
   it should "validate positive size" in:
     an[IllegalArgumentException] should be thrownBy Sponge(VolumeFilling, level = 2f, size = 0f)
 
@@ -301,6 +309,15 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
   it should "validate non-negative level" in:
     an[IllegalArgumentException] should be thrownBy TesseractSponge(VolumeRemoving, level = -1f)
 
+  // Usability review 2026-09 (T1#3): the DSL had no upper bound at all -- only the CLI path did.
+  it should "reject a level above the hard maximum" in:
+    an[IllegalArgumentException] should be thrownBy
+      TesseractSponge(VolumeRemoving, level = (ResourceLimits.tesseractSpongeVolumeLevel.max + 1).toFloat)
+
+  it should "accept a level at the hard maximum" in:
+    noException should be thrownBy
+      TesseractSponge(VolumeRemoving, level = ResourceLimits.tesseractSpongeVolumeLevel.max.toFloat)
+
   it should "validate positive size" in:
     an[IllegalArgumentException] should be thrownBy TesseractSponge(VolumeRemoving, level = 1f, size = 0f)
 
@@ -366,3 +383,27 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
   it should "support proceduralType in DSL" in:
     val sponge = Sponge(VolumeFilling, level = 2f, proceduralType = 8)
     sponge.toObjectSpec.proceduralType shouldBe 8
+
+  // Usability review 2026-09 (T1#3): LSystem already capped iterations at construction time;
+  // these pin that behavior to ResourceLimits' single source instead of a local magic number.
+  "LSystem" should "accept iterations at the hard maximum" in:
+    noException should be thrownBy
+      LSystem("F", Map('F' -> "F+F"), iterations = ResourceLimits.lsystemMaxIterations)
+
+  it should "reject iterations above the hard maximum" in:
+    an[IllegalArgumentException] should be thrownBy
+      LSystem("F", Map('F' -> "F+F"), iterations = ResourceLimits.lsystemMaxIterations + 1)
+
+  // Usability review 2026-09 (T1#3): was a log-and-continue warning, now a hard reject.
+  "ParametricSurface" should "reject a uSteps * vSteps product above the hard maximum" in:
+    val tooManySamples = (ResourceLimits.parametricSurfaceMaxSamples + 1).toInt
+    an[IllegalArgumentException] should be thrownBy
+      ParametricSurface(f = (_, _) => Vec3.Zero, uSteps = tooManySamples, vSteps = 1)
+
+  it should "accept a uSteps * vSteps product at the hard maximum" in:
+    noException should be thrownBy
+      ParametricSurface(
+        f = (_, _) => Vec3.Zero,
+        uSteps = ResourceLimits.parametricSurfaceMaxSamples.toInt,
+        vSteps = 1
+      )

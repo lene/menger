@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.CameraState
 import io.github.lene.optix.SceneConfigurator
 import io.github.lene.optix.TextureUploadException
+import menger.AssetPaths
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.RotationProjectionParameters
@@ -22,6 +23,7 @@ import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.LoadedScene
+import menger.dsl.ResourceLimits
 import menger.dsl.SceneFileWatcher
 import menger.dsl.SceneLoader
 import menger.engines.scene.InstanceId
@@ -259,24 +261,26 @@ class InteractiveEngine(
         took
       case _ => false
 
+  // Level ceilings are ResourceLimits' single source (usability review 2026-09, T1#3); only
+  // the triangle-count estimator (this engine's own slowness-warning heuristic) stays local.
   private val levelConfigs: Map[String, LevelConfig] = Map(
     "sponge-volume"      -> LevelConfig(
-      Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel,
+      ResourceLimits.cubeSpongeLevel.warnAt, ResourceLimits.cubeSpongeLevel.max,
       lvl => math.pow(Const.Engine.cubesPerSpongeLevel, lvl).toLong * Const.Engine.trianglesPerCube),
     "sponge-surface"     -> LevelConfig(
-      Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel,
+      ResourceLimits.cubeSpongeLevel.warnAt, ResourceLimits.cubeSpongeLevel.max,
       lvl => math.pow(Const.Engine.trianglesPerCube, lvl).toLong * 6 * 2),
     "tesseract-sponge"        -> LevelConfig(
-      Const.Engine.tesseractSpongeWarnLevel, Const.Engine.tesseractSpongeMaxLevel,
+      ResourceLimits.tesseractSpongeVolumeLevel.warnAt, ResourceLimits.tesseractSpongeVolumeLevel.max,
       TesseractSpongeMesh.estimatedTriangles),
     "tesseract-sponge-volume" -> LevelConfig(
-      Const.Engine.tesseractSpongeWarnLevel, Const.Engine.tesseractSpongeMaxLevel,
+      ResourceLimits.tesseractSpongeVolumeLevel.warnAt, ResourceLimits.tesseractSpongeVolumeLevel.max,
       TesseractSpongeMesh.estimatedTriangles),
     "tesseract-sponge-2"       -> LevelConfig(
-      Const.Engine.tesseractSponge2WarnLevel, Const.Engine.tesseractSponge2MaxLevel,
+      ResourceLimits.tesseractSpongeSurfaceLevel.warnAt, ResourceLimits.tesseractSpongeSurfaceLevel.max,
       TesseractSponge2Mesh.estimatedTriangles),
     "tesseract-sponge-surface" -> LevelConfig(
-      Const.Engine.tesseractSponge2WarnLevel, Const.Engine.tesseractSponge2MaxLevel,
+      ResourceLimits.tesseractSpongeSurfaceLevel.warnAt, ResourceLimits.tesseractSpongeSurfaceLevel.max,
       TesseractSponge2Mesh.estimatedTriangles),
   )
 
@@ -339,14 +343,14 @@ class InteractiveEngine(
           sceneConfigurator.configureCamera(renderer)
           applyRendererState(renderer)
           environment.envMap.foreach { path =>
-            val resolvedPath =
-              if java.nio.file.Paths.get(path).isAbsolute then path
-              else java.nio.file.Paths.get(config.execution.textureDir).resolve(path).toString
             try
+              val resolvedPath = AssetPaths.resolveOrThrow(config.execution.textureDir, path).toString
               val idx = renderer.uploadTextureFromFile(resolvedPath)
               renderer.setEnvironmentMap(idx)
             catch
               case e: TextureUploadException =>
+                logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
+              case e: AssetPaths.AssetPathException =>
                 logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
           }
           environment.envMapVideo.foreach { envMapVideo =>

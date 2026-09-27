@@ -65,6 +65,53 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     result.tag shouldBe SceneValidator.Tag.LintFindings
     result.messages.exists(_.startsWith("scene-evaluation: scene(2.0) threw")) shouldBe true
 
+  // Usability review 2026-09 (T1#1): an absolute or `..`-escaping texture path is a
+  // security/config error, flagged before the scene reaches a renderer with a real
+  // `--texture-dir`.
+  it should "flag an absolute texture path" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object AbsoluteTexturePathScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(texture = Some("/etc/passwd"))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("asset-path:")) shouldBe true
+
+  it should "flag a texture path that escapes the texture directory with .." in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object EscapingTexturePathScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(texture = Some("../../etc/passwd"))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("asset-path:")) shouldBe true
+
+  it should "accept a plain relative texture path" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object RelativeTexturePathScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(texture = Some("brick.png"))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+
   // Usability review 2026-09 (F18/F19/F24): scenes the validator accepted crashed the render
   // window -- it never ran the renderer's own grouping and builder preconditions.
   private def sceneOf(objects: menger.dsl.SceneObject*): menger.dsl.Scene =

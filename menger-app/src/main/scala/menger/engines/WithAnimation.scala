@@ -1,7 +1,6 @@
 package menger.engines
 
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -14,6 +13,7 @@ import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureUploadException
+import menger.AssetPaths
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.common.CausticsConfig
@@ -227,22 +227,21 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       case None        => Success(())
 
   private def resolveVideoPath(path: String): Path =
-    val videoPath = Paths.get(path)
-    if videoPath.isAbsolute then videoPath else Paths.get(textureDir).resolve(videoPath)
+    AssetPaths.resolveOrThrow(textureDir, path)
 
   private def configureStaticEnvironmentMap(
     configs: SceneConverter.SceneConfigs,
     renderer: OptiXRenderer
   ): Unit =
     configs.envMap.foreach { path =>
-      val resolvedPath =
-        if Paths.get(path).isAbsolute then path
-        else Paths.get(textureDir).resolve(path).toString
       try
+        val resolvedPath = AssetPaths.resolveOrThrow(textureDir, path).toString
         val idx = renderer.uploadTextureFromFile(resolvedPath)
         renderer.setEnvironmentMap(idx)
       catch
         case e: TextureUploadException =>
+          logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
+        case e: AssetPaths.AssetPathException =>
           logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
     }
 
