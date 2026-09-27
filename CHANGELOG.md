@@ -16,6 +16,10 @@
   a scene the loader rejects) is logged and the window keeps running its current scene. Only
   a static scene reloads live; a save that turns the file animated is reported and requires
   restarting the window. New `menger.dsl.SceneFileWatcher`.
+- The regular 4D polytopes besides the tesseract are DSL objects: `Pentachoron`,
+  `Hexadecachoron`, `Icositetrachoron`, `Hecatonicosachoron`, `Hexacosichoron` (usability
+  review 2026-09, F17), with the same fields as `Tesseract`; new example `PolytopeGallery`
+  (`--scene polytope-gallery`).
 
 ### Changed
 
@@ -77,6 +81,8 @@
 - An object's explicit `color` overrode its material's alpha too, so an opaque `color` on
   `Glass`/`Film` silently made it opaque; `color` now tints RGB only and the material's own
   transparency is preserved.
+- `TesseractSponge` ignored `size`, and several edge-rendered 4D objects in one scene all got
+  the first object's mesh (usability review 2026-09, F27).
 - `examples.dsl.CausticsReferenceDefault`'s point light blew the floor out to solid white in
   8-bit output, hiding the caustic ring; its intensity is lowered (the pbrt-compared
   `CausticsCanonical` is unaffected). `CausticsReferenceDefault`, `ParametricSphereCaustics`

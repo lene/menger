@@ -1,7 +1,7 @@
 # Feature Backlog
 
-Unscheduled feature ideas not yet assigned to a sprint. See [ROADMAP.md](../ROADMAP.md) for
-the sprint plan and [CODE_IMPROVEMENTS.md](../CODE_IMPROVEMENTS.md) for tech-debt items.
+Unscheduled feature ideas not yet assigned to a sprint. See the workspace repo's
+[ROADMAP.md](../../ROADMAP.md) (menger-toplevel) for the sprint plan and [CODE_IMPROVEMENTS.md](../CODE_IMPROVEMENTS.md) for tech-debt items.
 
 ---
 
