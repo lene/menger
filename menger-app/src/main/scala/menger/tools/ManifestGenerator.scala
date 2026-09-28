@@ -54,7 +54,8 @@ import upickle.default.write
 object ManifestGenerator extends LazyLogging:
 
   // 1.1.0: field `description`s and top-level `conventions` from DslSemantics (F28).
-  private val SchemaVersion = "1.1.0"
+  // 1.2.0: field `min`/`max` from DslSemantics (T1#3), backed by menger.dsl.ResourceLimits.
+  private val SchemaVersion = "1.2.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
@@ -72,7 +73,9 @@ object ManifestGenerator extends LazyLogging:
     name: String,
     `type`: String,
     default: Option[String],
-    description: Option[String] = None
+    description: Option[String] = None,
+    min: Option[Double] = None,
+    max: Option[Double] = None
   ) derives ReadWriter
   case class TypeManifest(name: String, fields: List[FieldManifest]) derives ReadWriter
 
@@ -175,11 +178,14 @@ object ManifestGenerator extends LazyLogging:
       val default = defaults.get(i + 1)
         .filter(_.getParameterCount == 0)
         .flatMap(m => Try(String.valueOf(m.invoke(companion))).toOption)
+      val (min, max) = DslSemantics.limitsOf(clazz.getSimpleName, p.getName)
       FieldManifest(
         p.getName,
         p.getParameterizedType.getTypeName,
         default,
-        DslSemantics.descriptionOf(clazz.getSimpleName, p.getName)
+        DslSemantics.descriptionOf(clazz.getSimpleName, p.getName),
+        min,
+        max
       )
     }
 

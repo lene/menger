@@ -62,6 +62,28 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     yield (t.name, f.name)).toSet
     described shouldBe DslSemantics.fieldDescriptions.keySet
 
+  // Usability review 2026-09 (T1#3): a manifest that names a field but not its ceiling still
+  // lets an agent request an unbounded sponge level or L-system iteration count.
+  it should "carry min/max on every field DslSemantics.limitsOf knows about" in:
+    val manifest = manifestFor(freshTempPath())
+    val sponge = manifest.objects.find(_.name == "Sponge").get
+    sponge.fields.find(_.name == "level").get.max shouldBe Some(
+      menger.dsl.ResourceLimits.cubeSpongeLevel.max.toDouble
+    )
+    val lsystem = manifest.objects.find(_.name == "LSystem").get
+    lsystem.fields.find(_.name == "iterations").get.max shouldBe Some(
+      menger.dsl.ResourceLimits.lsystemMaxIterations.toDouble
+    )
+    val parametricSurface = manifest.objects.find(_.name == "ParametricSurface").get
+    parametricSurface.fields.find(_.name == "uSteps").get.min shouldBe Some(1d)
+
+  it should "leave min/max as None for a field with no known limit" in:
+    val manifest = manifestFor(freshTempPath())
+    val sphere = manifest.objects.find(_.name == "Sphere").get
+    val sizeField = sphere.fields.find(_.name == "size").get
+    sizeField.min shouldBe None
+    sizeField.max shouldBe None
+
   it should "write to target/dsl-manifest.json when no output path is given" in:
     // Review round 2: this used to `deleteIfExists` the real default path before and after,
     // destroying a manifest a developer or the agent workflow had generated and making the

@@ -34,7 +34,11 @@ object DslSemantics:
     "4D objects are rotated in 4D (`projection`), projected to 3D, then placed at `pos`. " +
       "The regular 4D polytopes are Pentachoron (5-cell), Tesseract (8-cell), Hexadecachoron " +
       "(16-cell), Icositetrachoron (24-cell), Hecatonicosachoron (120-cell) and Hexacosichoron " +
-      "(600-cell). In one scene, all edge-rendered 4D objects must share the same `projection`."
+      "(600-cell). In one scene, all edge-rendered 4D objects must share the same `projection`.",
+    "Camera: the horizontal field of view is fixed at 45 degrees (not adjustable per scene). " +
+      "To frame or zoom to fit a scene, move `Camera.position` -- aim `lookAt` at the scene's " +
+      "centre and set the eye's distance from it to at least radius / sin(22.5deg), where " +
+      "radius is the scene's bounding-sphere radius, with a margin for comfortable framing."
   )
 
   /** Per-field notes, keyed by (DSL type's simple name, field name). */
@@ -67,3 +71,26 @@ object DslSemantics:
 
   def descriptionOf(typeName: String, fieldName: String): Option[String] =
     fieldDescriptions.get((typeName, fieldName))
+
+  /** Per-field (min, max), keyed the same way as [[fieldDescriptions]] -- the single source is
+    * [[menger.dsl.ResourceLimits]] (usability review 2026-09, T1#3); this just maps a DSL
+    * type/field pair onto the right constant. `Sponge` has one level ceiling regardless of
+    * `spongeType` (cube and cube-sponge share `cubeSpongeMaxLevel`); `TesseractSponge` does
+    * not (volume-removing and surface-subdividing have different ceilings), so its manifest
+    * max is the *smaller* of the two -- a hint that's never wrong to reject, only sometimes
+    * more conservative than the real per-variant limit `require()` actually enforces.
+    */
+  private val fieldLimits: Map[(String, String), (Option[Double], Option[Double])] = Map(
+    ("Sponge", "level") -> (Some(0d), Some(menger.dsl.ResourceLimits.cubeSpongeLevel.max.toDouble)),
+    ("TesseractSponge", "level") -> (Some(0d), Some(math.min(
+      menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.max,
+      menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.max
+    ).toDouble)),
+    ("LSystem", "iterations") -> (Some(0d), Some(menger.dsl.ResourceLimits.lsystemMaxIterations.toDouble)),
+    ("ParametricSurface", "uSteps") -> (Some(1d), None),
+    ("ParametricSurface", "vSteps") -> (Some(1d), None),
+    ("Sierpinski4D", "level") -> (Some(0d), Some(menger.dsl.ResourceLimits.ifs4dMaxLevel.toDouble))
+  )
+
+  def limitsOf(typeName: String, fieldName: String): (Option[Double], Option[Double]) =
+    fieldLimits.getOrElse((typeName, fieldName), (None, None))
