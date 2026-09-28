@@ -99,16 +99,17 @@ class SpongePerformanceSuite extends AnyFlatSpec
   private def generation(name: String, generate: => TriangleMeshData): Side =
     Side(name, () => { val _ = generate })
 
-  // Each render side replaces the mesh: setTriangleMesh appends, so clear first.
+  // IAS instance path (menger#46: the single-mesh clearTriangleMesh/setTriangleMeshColor/
+  // setTriangleMeshIOR trio is deprecated since 0.1.5 in favor of instances + Material).
+  // Each render side replaces the mesh: addTriangleMesh appends, so clear first.
   private def rendering(name: String, mesh: TriangleMeshData, color: Color, ior: Float): Side =
     Side(
       name,
       () => { val _ = renderer.render(RenderSize) },
       prepare = () =>
-        renderer.clearTriangleMesh()
-        renderer.setTriangleMesh(mesh)
-        renderer.setTriangleMeshColor(color)
-        renderer.setTriangleMeshIOR(ior)
+        renderer.clearAllInstances()
+        renderer.addTriangleMesh(mesh)
+        renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), color, ior)
         renderer.clearPlanes()
         renderer.addPlane(1, true, -2.0f)
     )

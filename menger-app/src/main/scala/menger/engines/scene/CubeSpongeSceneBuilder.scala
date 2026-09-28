@@ -65,7 +65,8 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
   private def setupBaseCubeMesh(renderer: OptiXRenderer): Try[Unit] = Try:
     // Create base cube mesh centered at origin with scale 1.0 (shared by all instances)
     val baseCube = Cube(center = Vector[3](0f, 0f, 0f), scale = 1.0f)
-    renderer.setTriangleMesh(baseCube.toTriangleMesh)
+    renderer.addTriangleMesh(baseCube.toTriangleMesh)
+    ()
 
   private def addCubeInstancesForSpec(spec: ObjectSpec, renderer: OptiXRenderer, textureIndices: Map[String, Int]): Unit =
     require(spec.level.isDefined, "cube-sponge requires level")

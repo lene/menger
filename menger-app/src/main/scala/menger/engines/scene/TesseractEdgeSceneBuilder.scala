@@ -187,10 +187,10 @@ class TesseractEdgeSceneBuilder(
             centerX = 0f, centerY = 0f, centerZ = 0f
           ))
         case MeshUploadPlan.Cpu(data) =>
-          renderer.setTriangleMesh(data)
+          renderer.addTriangleMesh(data)
           FaceTrack.Cpu
     else
-      renderer.setTriangleMesh(MeshFactory.create(spec))
+      renderer.addTriangleMesh(MeshFactory.create(spec))
       FaceTrack.Cpu
 
   /**

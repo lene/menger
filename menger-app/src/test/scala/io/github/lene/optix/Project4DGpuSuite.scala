@@ -101,7 +101,7 @@ class Project4DGpuSuite extends AnyFlatSpec
 
   private def renderCpu(projection: Mesh4DProjection): Array[Byte] =
     val mesh = projection.toTriangleMesh
-    renderer.setTriangleMesh(mesh)
+    renderer.addTriangleMesh(mesh)
     renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
     val img = renderer.render(ImgSize)
     if img == null then fail(s"CPU render returned null for ${ImgSize.width}x${ImgSize.height}") // scalafix:ok DisableSyntax.null

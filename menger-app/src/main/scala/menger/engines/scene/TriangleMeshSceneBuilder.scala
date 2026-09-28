@@ -81,7 +81,7 @@ class TriangleMeshSceneBuilder(
         // Upload mesh and add instance
         op.plan match
           case MeshUploadPlan.Cpu(data) =>
-            renderer.setTriangleMesh(data)
+            renderer.addTriangleMesh(data)
           case MeshUploadPlan.Gpu4D(quads4D, vertsPerFace, proj) =>
             val meshIdx = renderer.setProjectedMesh(
               quads4D, vertsPerFace, uvs = null, // scalafix:ok DisableSyntax.null
