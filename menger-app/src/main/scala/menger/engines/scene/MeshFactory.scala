@@ -128,31 +128,24 @@ object MeshFactory:
     * params, projected on the GPU. All other (3D) types use the CPU `create(spec)`
     * triangle mesh.
     *
-    * `skinOffset` is reserved for expanding the lower-level mesh of a fractional
-    * pair along face normals (`FractionalLevelSponge.SkinNormalOffset`). */
+    * `holeCaps` uploads only the hole caps of the mesh (`Mesh4DGpuFlatten.holeCapsBuffer`):
+    * the lower level of a fractional 4D sponge pair. */
   def createUpload(
     spec: ObjectSpec,
-    skinOffset: Float = 0f
+    holeCaps: Boolean = false
   )(using profilingConfig: ProfilingConfig): MeshUploadPlan =
     if ObjectType.isProjected4D(spec.objectType) then
-      gpu4DPlan(spec, skinOffset).getOrElse(
+      gpu4DPlan(spec, holeCaps).getOrElse(
         sys.error(s"No GPU 4D projection available for type: ${spec.objectType}")
       )
     else
       MeshUploadPlan.Cpu(create(spec))
 
-  private def gpu4DPlan(spec: ObjectSpec, skinOffset: Float = 0f): Option[MeshUploadPlan.Gpu4D] =
+  private def gpu4DPlan(spec: ObjectSpec, holeCaps: Boolean): Option[MeshUploadPlan.Gpu4D] =
     mesh4D(spec).map { m =>
-      // A non-zero skinOffset expands the lower-level mesh of a fractional pair
-      // outward along its 4D face normals before projection, so its surface does
-      // not land coincident with the higher-level surface and z-fight. This is the
-      // GPU equivalent of the CPU path's TriangleMeshData.expandAlongNormals; only
-      // quad meshes (the 4D sponges that take a skin offset) support it.
       val (buffer, vpf) =
-        if skinOffset != 0f then
-          (Mesh4DGpuFlatten.quadsBuffer(m, skinOffset), m.vertsPerFace)
-        else
-          Mesh4DGpuFlatten.facesBuffer(m)
+        if holeCaps then (Mesh4DGpuFlatten.holeCapsBuffer(m), m.vertsPerFace)
+        else Mesh4DGpuFlatten.facesBuffer(m)
       MeshUploadPlan.Gpu4D(
         quads4D = buffer,
         vertsPerFace = vpf,

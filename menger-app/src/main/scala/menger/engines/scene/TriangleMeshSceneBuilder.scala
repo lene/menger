@@ -9,7 +9,6 @@ import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.TransformUtil
 import menger.common.Vector
-import menger.objects.FractionalLevelSponge
 
 /**
  * Scene builder for multiple triangle mesh instances with optional textures.
@@ -142,14 +141,12 @@ class TriangleMeshSceneBuilder(
       }
     }
 
-  /** GPU-projected fractional 4D sponge: emit two integer-level meshes
-    * (level n+1 fully opaque, level n with alpha = 1 - fractional). Both
-    * share projection params; per-mesh material alpha differs.
-    *
-    * The lower-level (currentLevel) quads are expanded along their 4D face
-    * normals by `SkinNormalOffset` before upload — equivalent to the CPU
-    * path's `expandAlongNormals` — so that the level-n skin faces do not
-    * perfectly overlap the level-(n+1) surface, preventing z-fighting. */
+  /** GPU-projected fractional 4D sponge: emit two meshes sharing the projection
+    * params: level n+1 fully opaque, and the hole caps of level n (the centre
+    * third of each face, which level n+1 leaves open) with alpha = 1 - fractional,
+    * so the new holes fade in. Same design as the CPU path's
+    * `FractionalLevelSponge`; no face of the caps overlaps level n+1 (usability
+    * review 2026-09, session 2, F35). */
   private def buildFractionalGpuOps(
     spec: ObjectSpec,
     baseMaterial: menger.common.Material
@@ -169,11 +166,7 @@ class TriangleMeshSceneBuilder(
     )
     List(
       FractionalOp(MeshFactory.createUpload(nextLevelSpec), opaqueMaterial),
-      FractionalOp(
-        MeshFactory.createUpload(currentLevelSpec,
-          skinOffset = FractionalLevelSponge.SkinNormalOffset),
-        transparentMaterial
-      )
+      FractionalOp(MeshFactory.createUpload(currentLevelSpec, holeCaps = true), transparentMaterial)
     )
 
   private final case class FractionalOp(plan: MeshUploadPlan, material: menger.common.Material)
