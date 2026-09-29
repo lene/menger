@@ -37,6 +37,10 @@ object DslSemantics:
       "The regular 4D polytopes are Pentachoron (5-cell), Tesseract (8-cell), Hexadecachoron " +
       "(16-cell), Icositetrachoron (24-cell), Hecatonicosachoron (120-cell) and Hexacosichoron " +
       "(600-cell). In one scene, all edge-rendered 4D objects must share the same `projection`.",
+    "Glass on a TesseractSponge from level 2 up renders as chaotic, fragmented refraction: the " +
+      "projected sponge has thousands of overlapping refracting layers and a ray gets at most 5 " +
+      "bounces. Prefer an opaque or metal material there, or level 1 for glass, and say so if " +
+      "the user asks for glass (usability review 2026-09, session 2, F55).",
     "Camera: the horizontal field of view is fixed at 45 degrees (not adjustable per scene). " +
       "To frame or zoom to fit a scene, move `Camera.position` -- aim `lookAt` at the scene's " +
       "centre and set the eye's distance from it to at least radius / sin(22.5deg), where " +
