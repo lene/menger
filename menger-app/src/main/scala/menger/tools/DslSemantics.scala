@@ -30,7 +30,9 @@ object DslSemantics:
       "glow around objects, and no emission that falls off with distance.",
     "Animation: `def scene(t: Float): Scene` plus `val duration = <seconds>f` in the same " +
       "object; t is seconds in [0, duration]. The window plays it in real time, looping, and " +
-      "the validator checks the scene at t = 0 and at t = duration.",
+      "the validator checks the scene at t = 0 and at t = duration. An animated scene has no " +
+      "`SceneRegistry.register` line: register takes a static Scene only, so drop it when " +
+      "turning `val scene` into `def scene(t: Float)` (usability review 2026-09, F46).",
     "4D objects are rotated in 4D (`projection`), projected to 3D, then placed at `pos`. " +
       "The regular 4D polytopes are Pentachoron (5-cell), Tesseract (8-cell), Hexadecachoron " +
       "(16-cell), Icositetrachoron (24-cell), Hecatonicosachoron (120-cell) and Hexacosichoron " +
