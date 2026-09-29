@@ -872,24 +872,25 @@ test_4d_sponges() {
         --objects type=tesseract-sponge:level=1:pos=-1.5,0,0:size=0.5 \
         --objects type=tesseract:pos=1.5,0,0:size=0.5
     run_test "mixed 4D sponge + 3D sphere" --plane y:-2 \
-        --objects type=tesseract-sponge-2:level=1:pos=-1.5,0,0:size=0.5 \
+        --objects type=tesseract-sponge-2:level=1:pos=-0.9,0,0:size=1.2 \
         --objects type=sphere:pos=1.5,0,0:size=0.5
 
-    # Fractional level tests (per-vertex alpha blending)
+    # Fractional level tests (hole caps fading in, F35). The tesseract-sponge scenes are
+    # large enough to show the fading hole caps in detail (reviewed 2026-09-29).
     run_test "fractional level 0.5 (tesseract-sponge)" --plane y:-2 \
-        --objects type=tesseract-sponge:level=0.5:size=0.8
+        --objects type=tesseract-sponge:level=0.5:size=1.6
     run_test "fractional level 1.25 (tesseract-sponge)" --plane y:-2 \
-        --objects type=tesseract-sponge:level=1.25:size=0.8
+        --objects type=tesseract-sponge:level=1.25:size=1.6
     run_test "fractional level 1.5 (tesseract-sponge)" --plane y:-2 \
-        --objects type=tesseract-sponge:level=1.5:size=0.8
+        --objects type=tesseract-sponge:level=1.5:size=1.6
     run_test "fractional level 1.75 (tesseract-sponge-2)" --plane y:-2 \
-        --objects type=tesseract-sponge-2:level=1.75:size=0.8
+        --objects type=tesseract-sponge-2:level=1.75:size=1.2
     run_test "fractional level 0.9 (tesseract-sponge-2)" --plane y:-2 \
-        --objects type=tesseract-sponge-2:level=0.9:size=0.8
+        --objects type=tesseract-sponge-2:level=0.9:size=1.2
     run_test_hd "fractional level with material" --plane y:-2 \
-        --objects type=tesseract-sponge:level=1.5:material=glass:size=0.8
+        --objects type=tesseract-sponge:level=1.5:material=glass:size=1.6
     run_test "fractional level with rotation" --plane y:-2 \
-        --objects type=tesseract-sponge-2:level=1.3:rot-xw=30:rot-yw=20:size=0.8
+        --objects type=tesseract-sponge-2:level=1.3:rot-xw=30:rot-yw=20:size=1.2
     run_test "mixed fractional + integer levels" --plane y:-2 \
         --objects type=tesseract-sponge:level=1.5:pos=-1.2,0,0:size=0.5 \
         --objects type=tesseract-sponge:level=1:pos=1.2,0,0:size=0.5
