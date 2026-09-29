@@ -21,7 +21,9 @@ object EnvMapVideoSponge:
   private val MaxT = 1.0f
   private val BaseLevel = 0.5f
   private val LevelSweep = 0.75f
-  private val SpongeSize = 2.4f
+  // 2.0, not 2.4: chosen while F42 rendered every level >= 1 at unit size; at its real size
+  // 2.4 overflows the frame (reviewed 2026-09-29).
+  private val SpongeSize = 2.0f
   private val XWRotationSweep = 120.0f
   private val YWRotationSweep = 45.0f
   private val EnvVideoFps = 2.0
