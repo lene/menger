@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.AssetPaths
 import menger.ObjectSpec
 import menger.common.Const
+import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.dsl.LoadedScene
 import menger.dsl.RestrictedClasspath
@@ -252,9 +253,13 @@ object SceneValidator extends LazyLogging:
     * that maps to a 4D `Mesh4D` via `MeshFactory.mesh4D` gets checked; anything else (3D
     * primitives, or free-form/lambda objects out of this story's scope per the `Never`
     * clause) is silently skipped -- "when applicable", per the story's own Code Map wording.
+    * 4D sponges are skipped too, before their mesh is built: the scene controls only their
+    * `level` and `size` (both range-checked by the DSL), and building a sponge from level 3
+    * up ran the sandbox out of heap (usability review 2026-09, F31).
     */
   private def geometricFindings(scene: Scene): List[InvariantFinding] =
     sceneObjectSpecs(scene)
+      .filterNot(spec => ObjectType.is4DSponge(spec.objectType))
       .flatMap(MeshFactory.mesh4D)
       .flatMap(mesh => PolytopeInvariants.check(mesh))
 

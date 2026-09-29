@@ -226,6 +226,26 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val result = SceneValidator.validate(file)
     result.tag shouldBe SceneValidator.Tag.Ok
 
+  // Usability review 2026-09, session 2 (F31): the geometric check built the full 4D mesh of
+  // every sponge just to check its vertices, so any sponge from level 3 up (level 4 has ~127M
+  // faces) ran the sandboxed validator out of heap and came back `refused`.
+  it should "return Ok for a tesseract sponge at the DSL's maximum level" in:
+    val file = writeTempScene(
+      s"""import menger.dsl._
+        |object MaxLevelSpongeScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(TesseractSponge(
+        |      spongeType = TesseractSpongeType.VolumeRemoving,
+        |      level = ${menger.common.Const.Engine.tesseractSpongeMaxLevel}f
+        |    )),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+
   // SA-AD-4 rule 2: a compiled scene sees the DSL surface and its transitive needs, not the rest
   // of menger-app. `menger.tools`/`menger.engines`/`menger.cli`/`menger.input` are pruned off
   // the classpath handed to the compiler (review round 2), so referencing them is a compile
