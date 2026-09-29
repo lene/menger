@@ -34,6 +34,9 @@ trait WithPreview extends RenderEngine with LazyLogging:
   private val isPlaying   = new AtomicBoolean(false)
   private val needsRender = new AtomicBoolean(true)
   private val playStartNanos = new AtomicReference[Long](0L)
+  // The previous frame's 4D scene with its renderer handles, when it can be updated in place
+  // (usability review 2026-09, session 2, F52: every frame used to rebuild the whole scene).
+  private val tracked4D = new AtomicReference[Option[scene.TrackedMesh4D.State]](None)
 
   private def tStep: Float =
     val range = previewConfig.endT - previewConfig.startT
@@ -130,8 +133,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
           renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
           if configs.accumulationFrames > 1 then
             renderer.setAccumulationFrames(configs.accumulationFrames)
-          renderer.clearAllInstances()
-          buildSceneFromConfigs(configs, renderer).recover { case e: Exception =>
+          updateOrRebuild(configs, renderer).recover { case e: Exception =>
             logger.error(s"Failed to build preview scene for t=$t: ${e.getMessage}", e)
           }
           // A builder may have reinitialized the renderer, discarding lights and render
@@ -151,6 +153,27 @@ trait WithPreview extends RenderEngine with LazyLogging:
           rendererWrapper.renderScene(ImageSize(width, height)) match
             case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
             case None            => () // render failed (logged); skip this frame
+
+  /** A frame that differs from the previous one only in 4D projection or fractional level is
+    * applied in place (TrackedMesh4D); anything else is rebuilt, tracked when the scene is
+    * 4D-only triangle meshes so the next frame can be updated in place again. */
+  private def updateOrRebuild(
+    configs: SceneConverter.SceneConfigs,
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): Try[Unit] =
+    val specs = configs.scene.objectSpecs.getOrElse(List.empty)
+    tracked4D.get.filter(state => scene.TrackedMesh4D.canUpdateInPlace(state.specs, specs)) match
+      case Some(state) =>
+        Try(tracked4D.set(Some(scene.TrackedMesh4D.updateInPlace(state, specs, renderer))))
+      case None =>
+        renderer.clearAllInstances()
+        tracked4D.set(None)
+        if WithAnimation.is4DOnlyTriangleMeshScene(specs) then
+          scene.TrackedMesh4D
+            .build(specs, renderer, textureDir, computeEffectiveMaxInstances(_, specs))(using
+              profilingConfig)
+            .map(tracked4D.set)
+        else buildSceneFromConfigs(configs, renderer)
 
 object WithPreview:
   val NanosPerSecond: Double = 1e9

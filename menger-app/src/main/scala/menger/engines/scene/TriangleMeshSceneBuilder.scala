@@ -31,7 +31,10 @@ import menger.common.Vector
  */
 class TriangleMeshSceneBuilder(
   textureDir: String,
-  mesh4DRecorder: (Int, Int) => Unit = (_, _) => ()
+  mesh4DRecorder: (Int, Int) => Unit = (_, _) => (),
+  // (spec index, instance id) of a fractional 4D sponge's hole-cap instance, whose alpha an
+  // animation can then update in place (TrackedMesh4D, F52).
+  holeCapsRecorder: (Int, Int) => Unit = (_, _) => ()
 )(using profilingConfig: ProfilingConfig)
   extends SceneBuilder:
 
@@ -135,6 +138,7 @@ class TriangleMeshSceneBuilder(
               s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
             )
         applyInstanceTextures(instanceId, spec, textureIndices, renderer)
+        if op.isHoleCaps then holeCapsRecorder(specIdx, InstanceId.raw(instanceId))
         val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
         val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
         logger.debug(s"Added ${spec.objectType} instance $instanceId ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
@@ -160,16 +164,20 @@ class TriangleMeshSceneBuilder(
       s"GPU fractional split: ${spec.objectType} level=$level → " +
       s"slot[opaque level ${(level + 1).floor}] + slot[level ${level.floor} alpha=$alphaTransparent]"
     )
-    val opaqueMaterial = baseMaterial
-    val transparentMaterial = baseMaterial.copy(
-      color = baseMaterial.color.copy(a = baseMaterial.color.a * alphaTransparent)
-    )
     List(
-      FractionalOp(MeshFactory.createUpload(nextLevelSpec), opaqueMaterial),
-      FractionalOp(MeshFactory.createUpload(currentLevelSpec, holeCaps = true), transparentMaterial)
+      FractionalOp(MeshFactory.createUpload(nextLevelSpec), baseMaterial),
+      FractionalOp(
+        MeshFactory.createUpload(currentLevelSpec, holeCaps = true),
+        TriangleMeshSceneBuilder.holeCapsMaterial(baseMaterial, level),
+        isHoleCaps = true
+      )
     )
 
-  private final case class FractionalOp(plan: MeshUploadPlan, material: menger.common.Material)
+  private final case class FractionalOp(
+    plan: MeshUploadPlan,
+    material: menger.common.Material,
+    isHoleCaps: Boolean = false
+  )
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // TD-5 resolution (Sprint 18.1): each spec gets its own mesh + GAS via per-spec
@@ -225,3 +233,10 @@ class TriangleMeshSceneBuilder(
     else spec.level match
       case Some(l) => l < 1f || l >= 14f
       case None => true
+
+object TriangleMeshSceneBuilder:
+  /** The hole caps of a fractional 4D sponge fade out as the level rises: alpha = base alpha
+    * x (1 - fractional part). Shared by the build and by in-place animation updates
+    * (TrackedMesh4D), so both give the same material. */
+  def holeCapsMaterial(base: menger.common.Material, level: Float): menger.common.Material =
+    base.copy(color = base.color.copy(a = base.color.a * (1f - (level - level.floor))))

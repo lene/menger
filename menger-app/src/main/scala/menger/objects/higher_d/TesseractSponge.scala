@@ -73,17 +73,28 @@ object TesseractSponge:
   // A 2-face of the 4D grid borders four hypercubes: the two axes it doesn't span, each +/-.
   private val InteriorMultiplicity = 4
   private val KeyScale = 1e4f
+  // 16 bits per coordinate: covers +/-3.27 at KeyScale, the unit sponge spans +/-0.5.
+  private val KeyOffset = 1 << 15
+  private val KeyBits = 16
+  private val KeyMask = 0xFFFFL
 
-  private def key(face: Face4D[?]): Seq[(Int, Int, Int, Int)] =
-    face.asSeq.map { v =>
-      (math.round(v(0) * KeyScale), math.round(v(1) * KeyScale),
-        math.round(v(2) * KeyScale), math.round(v(3) * KeyScale))
-    }.sorted
+  /** Every face is an axis-aligned square, so its componentwise min and max corners identify
+    * it whatever its vertex order; each corner packs into one Long. Cheap on purpose: level 3
+    * has ~2.65M raw faces, and the old sorted-tuple key made this filter cost ~10 s (F52). */
+  private def key(face: Face4D[?]): (Long, Long) =
+    val vertices = face.asSeq
+    def packed(corner: Seq[Float] => Float): Long =
+      (0 until 4).foldLeft(0L) { (acc, axis) =>
+        val coordinate = math.round(corner(vertices.map(_(axis))) * KeyScale) + KeyOffset
+        (acc << KeyBits) | (coordinate & KeyMask)
+      }
+    (packed(_.min), packed(_.max))
 
   /** The sponge's surface from the faces of all its sub-tesseracts: a face emitted by all four
     * hypercubes around it is inside the sponge and dropped, and every other face is kept once.
     * Keeping every copy put 2-4 coincident faces wherever sub-tesseracts touch, and glass
     * refracted at each of them (usability review 2026-09, session 2, F55). */
   private[higher_d] def surfaceFaces[F <: Face4D[?]](raw: Seq[F]): Seq[F] =
-    val copies = raw.groupMapReduce(key)(_ => 1)(_ + _)
-    raw.filter(face => copies(key(face)) < InteriorMultiplicity).distinctBy(key)
+    val keyed = raw.map(face => (key(face), face))
+    val copies = keyed.groupMapReduce(_._1)(_ => 1)(_ + _)
+    keyed.filter((k, _) => copies(k) < InteriorMultiplicity).distinctBy(_._1).map(_._2)

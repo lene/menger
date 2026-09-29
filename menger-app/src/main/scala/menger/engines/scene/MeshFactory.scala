@@ -142,16 +142,42 @@ object MeshFactory:
       MeshUploadPlan.Cpu(create(spec))
 
   private def gpu4DPlan(spec: ObjectSpec, holeCaps: Boolean): Option[MeshUploadPlan.Gpu4D] =
-    mesh4D(spec).map { m =>
-      val (buffer, vpf) =
-        if holeCaps then (Mesh4DGpuFlatten.holeCapsBuffer(m), m.vertsPerFace)
-        else Mesh4DGpuFlatten.facesBuffer(m)
+    Gpu4DBufferCache.buffer(spec, holeCaps).map { (buffer, vpf) =>
       MeshUploadPlan.Gpu4D(
         quads4D = buffer,
         vertsPerFace = vpf,
         proj = spec.projection4D.getOrElse(Projection4DSpec.default)
       )
     }
+
+  /** The pre-projection 4D buffer depends only on the object's type, level, size and whether
+    * it is the hole-cap mesh, not on the projection: an animation or reload that changes the
+    * level every frame rebuilt it every frame (level 3 took ~20 s; usability review 2026-09,
+    * session 2, F52). Bounded LRU: a level-3 volume sponge's buffer is ~80 MB.
+    * The buffers are shared and must never be mutated. */
+  private object Gpu4DBufferCache:
+    private val MaxEntries = 4
+    private type Key = (String, Option[Float], Float, Boolean)
+
+    @SuppressWarnings(Array("org.wartremover.warts.Null"))
+    private val entries = new java.util.LinkedHashMap[Key, (Array[Float], Int)](
+      MaxEntries + 1, 0.75f, true
+    ):
+      override def removeEldestEntry(
+        eldest: java.util.Map.Entry[Key, (Array[Float], Int)]
+      ): Boolean = size() > MaxEntries
+
+    def buffer(spec: ObjectSpec, holeCaps: Boolean): Option[(Array[Float], Int)] =
+      val key: Key = (spec.objectType, spec.level, spec.size, holeCaps)
+      entries.synchronized(Option(entries.get(key))).orElse {
+        mesh4D(spec).map { m =>
+          val built =
+            if holeCaps then (Mesh4DGpuFlatten.holeCapsBuffer(m), m.vertsPerFace)
+            else Mesh4DGpuFlatten.facesBuffer(m)
+          entries.synchronized(entries.put(key, built))
+          built
+        }
+      }
 
   /** Builds the raw 4D mesh (pre-projection, pre-flatten) for a 4D `ObjectSpec`, `None` for
     * anything else. Exposed (not `private`) so `menger.tools.SceneValidator` can run
