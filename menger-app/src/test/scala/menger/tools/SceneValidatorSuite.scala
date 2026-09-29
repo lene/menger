@@ -179,7 +179,8 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     )
     val findings = SceneValidator.buildFindings(sceneOf(edgedSponge, otherProjection))
     findings.map(_.invariant) shouldBe List("scene-build")
-    findings.head.message should include("Incompatible 4D projection parameters")
+    findings.head.message should include("must use the same `projection`")
+    findings.head.message should include("eyeW = 5.0")
 
   it should "find nothing to object to in any of the renderer's own registered example scenes" in:
     val _ = examples.dsl.SceneIndex

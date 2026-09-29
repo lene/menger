@@ -88,8 +88,13 @@ class TesseractEdgeSceneBuilder(
       val firstSpec = specs.head
       specs.find(!isCompatible(_, firstSpec)) match
         case Some(incompatible) =>
-          Left("Incompatible 4D projection parameters between 4D objects. " +
-            "All 4D objects must have matching projection parameters for shared mesh rendering.")
+          def described(spec: ObjectSpec): String =
+            val p = spec.projection4D.getOrElse(Projection4DSpec.default)
+            s"${spec.objectType} has eyeW = ${p.eyeW}, screenW = ${p.screenW}, " +
+              s"rotXW = ${p.rotXW}, rotYW = ${p.rotYW}, rotZW = ${p.rotZW}"
+          Left("all edge-rendered 4D objects in a scene must use the same `projection` " +
+            s"(${described(firstSpec)}, ${described(incompatible)}) -- give them the same " +
+            "projection, or none for the default")
         case None =>
           // Calculate actual required instances by generating meshes
           val requiredInstances = calculateRequiredInstances(specs)
@@ -281,13 +286,11 @@ class TesseractEdgeSceneBuilder(
     if !ObjectType.isProjected4D(spec1.objectType) || !ObjectType.isProjected4D(spec2.objectType) then
       false
     else
-      // Must have same 4D projection params (for shared mesh geometry)
-      (spec1.projection4D, spec2.projection4D) match
-        case (Some(p1), Some(p2)) =>
-          p1.eyeW == p2.eyeW && p1.screenW == p2.screenW &&
-          p1.rotXW == p2.rotXW && p1.rotYW == p2.rotYW && p1.rotZW == p2.rotZW
-        case (None, None) => true  // Both using defaults
-        case _ => false
+      // Must have same 4D projection params (for shared mesh geometry). An absent projection
+      // means the default one, so it matches an explicit default (usability review 2026-09,
+      // F44: (Some(default), None) used to be rejected).
+      spec1.projection4D.getOrElse(Projection4DSpec.default) ==
+        spec2.projection4D.getOrElse(Projection4DSpec.default)
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
     // Calculate total instances: 1 face mesh instance + N edge cylinder instances per object

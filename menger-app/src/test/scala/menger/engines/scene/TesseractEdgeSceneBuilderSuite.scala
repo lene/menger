@@ -1,5 +1,7 @@
 package menger.engines.scene
 
+import menger.ObjectSpec
+import menger.Projection4DSpec
 import menger.common.ProfilingConfig
 import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
@@ -20,6 +22,23 @@ class TesseractEdgeSceneBuilderSuite extends AnyFlatSpec with Matchers:
   given ProfilingConfig = ProfilingConfig.disabled
 
   private val builder = TesseractEdgeSceneBuilder(".")
+
+  // Usability review 2026-09, session 2 (F44): an explicit default projection next to an
+  // absent one projects identically, but (Some, None) was always rejected as incompatible.
+  // `parse` fills in the default projection; only a DSL object without `projection` gives None.
+  private def withoutProjection =
+    ObjectSpec.parse("type=tesseract").toOption.get.copy(projection4D = None)
+
+  "isCompatible" should "treat an explicit default projection like an absent one" in:
+    val absent = withoutProjection
+    val explicitDefault = absent.copy(projection4D = Some(Projection4DSpec.default))
+    builder.isCompatible(explicitDefault, absent) shouldBe true
+    builder.isCompatible(absent, explicitDefault) shouldBe true
+
+  it should "still reject a projection that differs from the default" in:
+    val absent = withoutProjection
+    val rotated = absent.copy(projection4D = Some(Projection4DSpec(rotXW = 20f)))
+    builder.isCompatible(rotated, absent) shouldBe false
 
   "isClippedByEyeW" should "not clip a vertex safely inside eyeW" in:
     builder.isClippedByEyeW(Vector[4](0f, 0f, 0f, 0f), eyeW = 3.0f) shouldBe false
