@@ -17,10 +17,13 @@ class TesseractSponge(level: Float, size: Float = 1f) extends Fractal4D(level):
 
   lazy val vertices: Seq[Vector[4]] = faces.flatMap(_.asSeq).distinct
   lazy val faces: Seq[Face4D[V]] =
+    val unitFaces = TesseractSponge.surfaceFaces(rawUnitFaces)
     if size == 1f then unitFaces else unitFaces.map(_ / (1f / size))
   override def cells: Seq[Cell4D] = Seq.empty
 
-  private lazy val unitFaces: Seq[Face4D[V]] =
+  /** Every face of every sub-tesseract, shared ones included: only the complete list tells a
+    * face inside the sponge from one on its surface, so the recursion passes it up unfiltered. */
+  private lazy val rawUnitFaces: Seq[Face4D[V]] =
     if level.toInt == 0 then Tesseract().faces else nestedFaces.flatten
 
   private def nestedFaces =
@@ -31,7 +34,7 @@ class TesseractSponge(level: Float, size: Float = 1f) extends Fractal4D(level):
 
   private def shrunkSubSponge: Seq[Face4D[V]] = subSponge.map { _ / 3 }
 
-  private def subSponge: Seq[Face4D[V]] = TesseractSponge(level - 1).faces
+  private def subSponge: Seq[Face4D[V]] = TesseractSponge(level - 1).rawUnitFaces
 
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def isInSponge(point: Vector[4]): Boolean =
@@ -65,3 +68,22 @@ class TesseractSponge(level: Float, size: Float = 1f) extends Fractal4D(level):
           point(i) <= maxBound(i) + Const.epsilon
       )
 
+object TesseractSponge:
+
+  // A 2-face of the 4D grid borders four hypercubes: the two axes it doesn't span, each +/-.
+  private val InteriorMultiplicity = 4
+  private val KeyScale = 1e4f
+
+  private def key(face: Face4D[?]): Seq[(Int, Int, Int, Int)] =
+    face.asSeq.map { v =>
+      (math.round(v(0) * KeyScale), math.round(v(1) * KeyScale),
+        math.round(v(2) * KeyScale), math.round(v(3) * KeyScale))
+    }.sorted
+
+  /** The sponge's surface from the faces of all its sub-tesseracts: a face emitted by all four
+    * hypercubes around it is inside the sponge and dropped, and every other face is kept once.
+    * Keeping every copy put 2-4 coincident faces wherever sub-tesseracts touch, and glass
+    * refracted at each of them (usability review 2026-09, session 2, F55). */
+  private[higher_d] def surfaceFaces[F <: Face4D[?]](raw: Seq[F]): Seq[F] =
+    val copies = raw.groupMapReduce(key)(_ => 1)(_ + _)
+    raw.filter(face => copies(key(face)) < InteriorMultiplicity).distinctBy(key)
