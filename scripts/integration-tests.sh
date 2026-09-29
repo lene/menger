@@ -1104,6 +1104,11 @@ test_dsl_scenes() {
         --scene examples.dsl.EnvMapVideoSponge \
         --texture-dir menger-geometry/src/test/resources/ \
         --t 0.5
+    # t = 0.25 shows the video's red frame: the chrome sponge's reflection follows the video.
+    run_test "DSL EnvMapVideoSponge red frame" \
+        --scene examples.dsl.EnvMapVideoSponge \
+        --texture-dir menger-geometry/src/test/resources/ \
+        --t 0.25
     run_test "DSL EnvMapDemo (IBL importance-sampled env lighting + accumulation)" \
         --scene examples.dsl.EnvMapDemo \
         --texture-dir menger-app/src/test/resources/

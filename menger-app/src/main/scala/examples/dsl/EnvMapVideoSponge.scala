@@ -41,7 +41,9 @@ object EnvMapVideoSponge:
         TesseractSponge(
           spongeType = SurfaceSubdividing,
           level      = level,
-          material   = Some(Material.Gold),
+          // Chrome, not Gold: Gold's blue component is 0, so it reflects the video's pure-blue
+          // frame as black (usability review 2026-09, session 2, F54).
+          material   = Some(Material.Chrome),
           size       = SpongeSize,
           projection = Some(Projection4DSpec(
             eyeW    = EyeW,
