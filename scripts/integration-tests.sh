@@ -863,7 +863,7 @@ test_4d_sponges() {
     run_test "tesseract-sponge with rotation" --plane y:-2 \
         --objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30:size=0.8
     run_test_hd "tesseract-sponge with material" --plane y:-2 \
-        --objects type=tesseract-sponge:level=1:material=glass:size=0.8
+        --objects type=tesseract-sponge:level=1:material=glass:size=1.6
     run_test "tesseract-sponge-2 with color" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=1:color=#FF4488:size=0.8
     run_test "tesseract-sponge with edges" --plane y:-2 \
