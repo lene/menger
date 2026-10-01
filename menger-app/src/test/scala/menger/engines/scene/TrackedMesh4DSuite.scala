@@ -1,6 +1,7 @@
 package menger.engines.scene
 
 import io.github.lene.optix.OptiXRenderer
+import menger.ObjectRotation
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.common.ImageSize
@@ -67,6 +68,26 @@ class TrackedMesh4DSuite extends AnyFlatSpec with Matchers with BeforeAndAfterEa
     TrackedMesh4D.canUpdateInPlace(before, after) shouldBe true
     val updated = TrackedMesh4D.updateInPlace(state, after, renderer)
     updated.specs shouldBe after
+    val moved = renderer.render(Size)
+
+    renderer.clearAllInstances()
+    build(after)
+    val fresh = renderer.render(Size)
+
+    moved should not equal first
+    moved shouldEqual fresh
+
+  it should "move and rotate the object like a fresh build" in:
+    val before = List(sponge(1.2f, 20f))
+    val after = List(
+      sponge(1.5f, 20f).copy(x = 0.4f, y = -0.2f, rotation = ObjectRotation(0f, 30f, 0f))
+    )
+    val state = build(before)
+    state.instancesPerSpec.head.size shouldBe 2  // level-2 mesh + level-1 hole caps
+    val first = renderer.render(Size)
+
+    TrackedMesh4D.canUpdateInPlace(before, after) shouldBe true
+    val _ = TrackedMesh4D.updateInPlace(state, after, renderer)
     val moved = renderer.render(Size)
 
     renderer.clearAllInstances()

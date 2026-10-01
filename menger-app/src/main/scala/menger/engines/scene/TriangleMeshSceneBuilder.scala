@@ -34,7 +34,10 @@ class TriangleMeshSceneBuilder(
   mesh4DRecorder: (Int, Int) => Unit = (_, _) => (),
   // (spec index, instance id) of a fractional 4D sponge's hole-cap instance, whose alpha an
   // animation can then update in place (TrackedMesh4D, F52).
-  holeCapsRecorder: (Int, Int) => Unit = (_, _) => ()
+  holeCapsRecorder: (Int, Int) => Unit = (_, _) => (),
+  // (spec index, instance id) of every triangle-mesh instance, so an animation can move or
+  // rotate it in place via setInstanceTransform (TrackedMesh4D, F52).
+  instanceRecorder: (Int, Int) => Unit = (_, _) => ()
 )(using profilingConfig: ProfilingConfig)
   extends SceneBuilder:
 
@@ -130,14 +133,14 @@ class TriangleMeshSceneBuilder(
               s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
             )
           else
-            val transform = TransformUtil.createEulerRotationScaleTranslation(
-              spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
-            )
             requireInstanceId(
-              renderer.addTriangleMeshInstance(transform, op.material, textureIndex),
+              renderer.addTriangleMeshInstance(
+                TriangleMeshSceneBuilder.instanceTransform(spec), op.material, textureIndex
+              ),
               s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
             )
         applyInstanceTextures(instanceId, spec, textureIndices, renderer)
+        instanceRecorder(specIdx, InstanceId.raw(instanceId))
         if op.isHoleCaps then holeCapsRecorder(specIdx, InstanceId.raw(instanceId))
         val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
         val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
@@ -240,3 +243,10 @@ object TriangleMeshSceneBuilder:
     * (TrackedMesh4D), so both give the same material. */
   def holeCapsMaterial(base: menger.common.Material, level: Float): menger.common.Material =
     base.copy(color = base.color.copy(a = base.color.a * (1f - (level - level.floor))))
+
+  /** Instance transform of a (non-recursive-IAS) triangle mesh: rotation + position; size is
+    * baked into the mesh. Shared by the build and by in-place moves (TrackedMesh4D). */
+  def instanceTransform(spec: ObjectSpec): Array[Float] =
+    TransformUtil.createEulerRotationScaleTranslation(
+      spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
+    )

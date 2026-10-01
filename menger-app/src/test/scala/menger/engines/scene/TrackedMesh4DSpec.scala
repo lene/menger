@@ -1,5 +1,6 @@
 package menger.engines.scene
 
+import menger.ObjectRotation
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import org.scalatest.flatspec.AnyFlatSpec
@@ -23,6 +24,12 @@ class TrackedMesh4DSpec extends AnyFlatSpec with Matchers:
   it should "accept a level change within the same integer interval" in:
     TrackedMesh4D.canUpdateInPlace(
       List(sponge(2.3f)), List(rotated(sponge(2.7f), 40f))
+    ) shouldBe true
+
+  it should "accept a position and 3D rotation change" in:
+    val base = sponge(2.3f)
+    TrackedMesh4D.canUpdateInPlace(
+      List(base), List(base.copy(x = 1f, z = -2f, rotation = ObjectRotation(0f, 45f, 10f)))
     ) shouldBe true
 
   it should "reject a level change into another interval" in:
