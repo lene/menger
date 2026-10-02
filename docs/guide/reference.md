@@ -212,6 +212,9 @@ Unknown keys are rejected with an error. Colors are `#RRGGBB` or `#RRGGBBAA`
 | Esc | Reset 4D rotation and projection (does **not** quit) |
 | Ctrl + Q | Quit |
 
+Each 4D object has its own projection, so one can be rotated in 4D next to an unrotated one.
+The Shift rotations add the same angle to every 4D object's own projection.
+
 In `--preview` mode: Left/Right step `t`, Shift+Left/Right larger steps, Space play/pause,
 Home/End jump to the ends of the range.
 

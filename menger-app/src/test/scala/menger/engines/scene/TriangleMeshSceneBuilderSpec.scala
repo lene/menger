@@ -30,10 +30,11 @@ class TriangleMeshSceneBuilderSpec extends AnyFlatSpec with Matchers:
     val spec2 = ObjectSpec.parse("type=tesseract-sponge-2:level=1").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
-  it should "reject different 4D types with mismatched projection parameters" in:
+  // menger#52: each 4D spec is projected with its own parameters.
+  it should "allow 4D types with different projection parameters" in:
     val spec1 = ObjectSpec.parse("type=tesseract:rot-xw=45").toOption.get
     val spec2 = ObjectSpec.parse("type=tesseract-sponge:level=1:rot-xw=30").toOption.get
-    builder.isCompatible(spec1, spec2) shouldBe false
+    builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow mixed 4D and non-4D types (TD-5: each spec gets its own mesh+GAS)" in:
     val spec1 = ObjectSpec.parse("type=tesseract").toOption.get
@@ -89,14 +90,12 @@ class TriangleMeshSceneBuilderSpec extends AnyFlatSpec with Matchers:
     )
     builder.validate(specs, 100) shouldBe Right(())
 
-  it should "reject 4D specs with mismatched projection parameters" in:
+  it should "accept 4D specs with different projection parameters (menger#52)" in:
     val specs = List(
       ObjectSpec.parse("type=tesseract:rot-xw=45").toOption.get,
       ObjectSpec.parse("type=tesseract-sponge:level=1:rot-xw=30").toOption.get
     )
-    val result = builder.validate(specs, 100)
-    result shouldBe a[Left[?, ?]]
-    result.left.getOrElse("") should include("Incompatible")
+    builder.validate(specs, 100) shouldBe Right(())
 
   it should "accept fractional level for sponge-recursive-ias" in:
     val spec = ObjectSpec.parse("type=sponge-recursive-ias:level=2.5").toOption.get

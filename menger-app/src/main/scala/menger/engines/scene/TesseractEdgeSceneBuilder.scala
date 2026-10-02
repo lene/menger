@@ -84,30 +84,21 @@ class TesseractEdgeSceneBuilder(
     else if !specs.forall(_.hasEdgeRendering) then
       Left("TesseractEdgeSceneBuilder requires edge rendering parameters on all specs")
     else
-      // Check compatibility - all specs must have same 4D projection params
-      val firstSpec = specs.head
-      specs.find(!isCompatible(_, firstSpec)) match
-        case Some(incompatible) =>
-          def described(spec: ObjectSpec): String =
-            val p = spec.projection4D.getOrElse(Projection4DSpec.default)
-            s"${spec.objectType} has eyeW = ${p.eyeW}, screenW = ${p.screenW}, " +
-              s"rotXW = ${p.rotXW}, rotYW = ${p.rotYW}, rotZW = ${p.rotZW}"
-          Left("all edge-rendered 4D objects in a scene must use the same `projection` " +
-            s"(${described(firstSpec)}, ${described(incompatible)}) -- give them the same " +
-            "projection, or none for the default")
-        case None =>
-          // Calculate actual required instances by generating meshes
-          val requiredInstances = calculateRequiredInstances(specs)
+      // Each spec gets its own face mesh and edge cylinders, projected with its own
+      // `projection4D`, so 4D objects with different projections coexist (usability review
+      // 2026-09, session 2, F44/menger#52).
+      // Calculate actual required instances by generating meshes
+      val requiredInstances = calculateRequiredInstances(specs)
 
-          if requiredInstances > maxInstances then
-            val recommended = Math.min(requiredInstances * 2, menger.common.Const.maxInstancesLimit)
-            Left(
-              s"Scene requires $requiredInstances instances (including edge cylinders) but limit is $maxInstances. " +
-              s"Recommendation: Add --max-instances $recommended to your command. " +
-              "Note: Edge rendering creates one cylinder per edge (varies by object type and level)."
-            )
-          else
-            Right(())
+      if requiredInstances > maxInstances then
+        val recommended = Math.min(requiredInstances * 2, menger.common.Const.maxInstancesLimit)
+        Left(
+          s"Scene requires $requiredInstances instances (including edge cylinders) but limit is $maxInstances. " +
+          s"Recommendation: Add --max-instances $recommended to your command. " +
+          "Note: Edge rendering creates one cylinder per edge (varies by object type and level)."
+        )
+      else
+        Right(())
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(
@@ -282,15 +273,8 @@ class TesseractEdgeSceneBuilder(
     }.find(_ != 0).getOrElse(0)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
-    // Both must be 4D projected types
-    if !ObjectType.isProjected4D(spec1.objectType) || !ObjectType.isProjected4D(spec2.objectType) then
-      false
-    else
-      // Must have same 4D projection params (for shared mesh geometry). An absent projection
-      // means the default one, so it matches an explicit default (usability review 2026-09,
-      // F44: (Some(default), None) used to be rejected).
-      spec1.projection4D.getOrElse(Projection4DSpec.default) ==
-        spec2.projection4D.getOrElse(Projection4DSpec.default)
+    // Both must be 4D projected types; their projections may differ (menger#52).
+    ObjectType.isProjected4D(spec1.objectType) && ObjectType.isProjected4D(spec2.objectType)
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
     // Calculate total instances: 1 face mesh instance + N edge cylinder instances per object

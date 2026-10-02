@@ -4,7 +4,6 @@ import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.TransformUtil
@@ -185,28 +184,14 @@ class TriangleMeshSceneBuilder(
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // TD-5 resolution (Sprint 18.1): each spec gets its own mesh + GAS via per-spec
     // setTriangleMesh + addTriangleMeshInstance, so distinct triangle-mesh types coexist
-    // naturally in the IAS. The only remaining cross-spec constraint is that 4D-projected
-    // specs must share projection parameters, since projection is a global render setting.
+    // naturally in the IAS. Each 4D spec is projected with its own parameters too (per-mesh
+    // `setProjectedMesh`/CPU projection), so their projections may differ (menger#52).
     val t1 = spec1.objectType.toLowerCase
     val t2 = spec2.objectType.toLowerCase
-
-    val spongeLevelsOk =
-      (!ObjectType.isSponge(t1) || spec1.level.isDefined) &&
+    (!ObjectType.isSponge(t1) || spec1.level.isDefined) &&
       (!ObjectType.isSponge(t2) || spec2.level.isDefined) &&
       (!ObjectType.is4DSponge(t1) || spec1.level.isDefined) &&
       (!ObjectType.is4DSponge(t2) || spec2.level.isDefined)
-
-    val projectionOk =
-      if ObjectType.isProjected4D(t1) && ObjectType.isProjected4D(t2) then
-        matchingProjectionParams(spec1, spec2)
-      else true
-
-    spongeLevelsOk && projectionOk
-
-  private def matchingProjectionParams(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
-    val p1 = spec1.projection4D.getOrElse(Projection4DSpec.default)
-    val p2 = spec2.projection4D.getOrElse(Projection4DSpec.default)
-    p1 == p2
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
     // GPU fractional path: 2 instances per fractional spec (level n + level n+1).

@@ -63,6 +63,52 @@ class EdgeRotationFastPathSuite extends AnyFlatSpec with Matchers with BeforeAnd
 
   private def render(): Array[Byte] = renderer.render(Size)
 
+  /** Renders `specs` on a cleared renderer: matte, no shadows, so objects far apart can't
+    * affect each other's pixels. */
+  private def renderAlone(specs: List[ObjectSpec]): Array[Byte] =
+    renderer.clearAllInstances()
+    renderer.setShadows(false)
+    if specs.nonEmpty then buildTracked(specs)
+    render()
+
+  private def matte(rotXW: Int, x: Float): ObjectSpec =
+    spec(s"type=24-cell:size=1:pos=$x,0,0:material=matte:edge-material=matte:" +
+      s"edge-radius=0.02:rot-xw=$rotXW")
+
+  private def pixels(image: Array[Byte]): IndexedSeq[Seq[Int]] =
+    image.grouped(4).map(_.toSeq.map(_ & 0xff)).toIndexedSeq
+
+  // Usability review 2026-09, session 2 (F44, menger#52): every 4D object already has its own
+  // mesh and edges, built from its own projection; a scene check still demanded one shared
+  // projection and rejected "a 24-cell above the tesseract sponge".
+  "TesseractEdgeSceneBuilder" should "render 4D objects with different projections each as if alone" in:
+    val left = matte(30, -1.4f)
+    val right = matte(0, 1.4f)
+    // An empty scene renders a different background, so park one object far out of view.
+    val background = pixels(renderAlone(List(matte(0, 100f))))
+    val leftAlone = pixels(renderAlone(List(left)))
+    val rightAlone = pixels(renderAlone(List(right)))
+    val both = pixels(renderAlone(List(left, right)))
+
+    def coveredOnlyBy(own: IndexedSeq[Seq[Int]], other: IndexedSeq[Seq[Int]]): IndexedSeq[Int] =
+      own.indices.filter(i => own(i) != background(i) && other(i) == background(i))
+    val leftPixels = coveredOnlyBy(leftAlone, rightAlone)
+    val rightPixels = coveredOnlyBy(rightAlone, leftAlone)
+    withClue(s"non-background: left ${leftAlone.indices.count(i => leftAlone(i) != background(i))}, " +
+      s"right ${rightAlone.indices.count(i => rightAlone(i) != background(i))}, " +
+      s"both ${both.indices.count(i => both(i) != background(i))}: ") {
+      leftPixels.size should be > 500
+      rightPixels.size should be > 500
+    }
+
+    def mismatches(expected: IndexedSeq[Seq[Int]], at: IndexedSeq[Int]): Int =
+      at.count(i => expected(i).lazyZip(both(i)).exists((a, b) => math.abs(a - b) > 8))
+    mismatches(leftAlone, leftPixels) should be <= leftPixels.size / 100
+    mismatches(rightAlone, rightPixels) should be <= rightPixels.size / 100
+
+    // The test is only meaningful if the projections really render differently.
+    pixels(renderAlone(List(matte(0, -1.4f)))) should not equal leftAlone
+
   "TesseractEdgeSceneBuilder.updateProjection" should "render exactly like a fresh build" in:
     val before = List(polytope(30))
     val after = List(polytope(40))

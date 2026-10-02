@@ -35,10 +35,11 @@ class TesseractEdgeSceneBuilderSuite extends AnyFlatSpec with Matchers:
     builder.isCompatible(explicitDefault, absent) shouldBe true
     builder.isCompatible(absent, explicitDefault) shouldBe true
 
-  it should "still reject a projection that differs from the default" in:
+  // menger#52: each 4D object is projected with its own projection.
+  it should "accept a projection that differs from the default" in:
     val absent = withoutProjection
     val rotated = absent.copy(projection4D = Some(Projection4DSpec(rotXW = 20f)))
-    builder.isCompatible(rotated, absent) shouldBe false
+    builder.isCompatible(rotated, absent) shouldBe true
 
   "isClippedByEyeW" should "not clip a vertex safely inside eyeW" in:
     builder.isClippedByEyeW(Vector[4](0f, 0f, 0f, 0f), eyeW = 3.0f) shouldBe false

@@ -171,16 +171,15 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val orb = menger.dsl.Sphere(size = 0.6f)
     SceneValidator.buildFindings(sceneOf(edgedSponge, orb)) shouldBe empty
 
-  it should "reject edge-rendered 4D objects whose 4D projections differ" in:
+  // Usability review 2026-09, session 2 (F44, menger#52): this used to be rejected; each 4D
+  // object is projected with its own `projection`.
+  it should "accept edge-rendered 4D objects whose 4D projections differ" in:
     val otherProjection = menger.dsl.Tesseract(
       pos = menger.dsl.Vec3(0f, 2f, 0f),
       edgeRadius = Some(0.005f),
       projection = Some(menger.Projection4DSpec(eyeW = 5f))
     )
-    val findings = SceneValidator.buildFindings(sceneOf(edgedSponge, otherProjection))
-    findings.map(_.invariant) shouldBe List("scene-build")
-    findings.head.message should include("must use the same `projection`")
-    findings.head.message should include("eyeW = 5.0")
+    SceneValidator.buildFindings(sceneOf(edgedSponge, otherProjection)) shouldBe empty
 
   it should "find nothing to object to in any of the renderer's own registered example scenes" in:
     val _ = examples.dsl.SceneIndex
