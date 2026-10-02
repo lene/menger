@@ -36,7 +36,18 @@ object DslSemantics:
     "4D objects are rotated in 4D (`projection`), projected to 3D, then placed at `pos`. " +
       "The regular 4D polytopes are Pentachoron (5-cell), Tesseract (8-cell), Hexadecachoron " +
       "(16-cell), Icositetrachoron (24-cell), Hecatonicosachoron (120-cell) and Hexacosichoron " +
-      "(600-cell). In one scene, all edge-rendered 4D objects must share the same `projection`.",
+      "(600-cell). Each 4D object has its own `projection`, so one object can be rotated in " +
+      "4D next to an unrotated one; in the render window, Shift+drag adds the same 4D " +
+      "rotation to every 4D object.",
+    "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position. " +
+      "For a 4D object that is the projected 3D position, after `projection` and `pos`, so the " +
+      "colours follow the projected shape and change when the 4D rotation changes " +
+      "(usability review 2026-09, session 2, F43).",
+    "Image textures and texture maps (`texture`, `videoTexture`, `normalMap`, " +
+      "`roughnessMap`) need surface UV coordinates. 4D objects, edge tubes (`edgeRadius`), " +
+      "curves and an L-system's branches have no UV coordinates, so these fields have no " +
+      "effect on them; " +
+      "use a material colour or a `proceduralType` there instead.",
     "Glass on a TesseractSponge from level 2 up renders as chaotic, fragmented refraction: the " +
       "projected sponge has thousands of overlapping refracting layers and a ray gets at most 5 " +
       "bounces. Prefer an opaque or metal material there, or level 1 for glass, and say so if " +
@@ -73,7 +84,31 @@ object DslSemantics:
       "projection; 4D rotations go in `projection`."),
     ("Tesseract", "edgeRadius") -> "Draws the edges as tubes of this radius.",
     ("TesseractSponge", "edgeRadius") -> "Draws the edges as tubes of this radius."
-  )
+  ) ++ proceduralDescriptions
+
+  /** Every DSL object type has `proceduralType`/`proceduralScale`; the presets were known only
+    * to the scene agent's prompt (usability review 2026-09, session 2, F37/F40). Numbers and
+    * names match `ObjectSpec`'s preset table and optix-jni's `applyProceduralTexture`. */
+  private def proceduralDescriptions: Map[(String, String), String] =
+    val objectTypes = List(
+      "Sphere", "Cube", "Sponge", "Tesseract", "TesseractSponge", "Sierpinski4D",
+      "ParametricSurface", "Curve", "LSystem", "Pentachoron", "Hexadecachoron",
+      "Icositetrachoron", "Hexacosichoron", "Hecatonicosachoron"
+    )
+    val typeText =
+      "Built-in procedural texture, one of exactly these presets: 0 none (default); " +
+        "1 value_noise, 2 fbm, 3 worley, 4 gradient, 5 wood, 6 marble, 7 layered_noise, " +
+        "10 triplanar -- each MODULATES the material's own colour by a pattern (same hue, " +
+        "varying brightness); 8 xyz_rgb REPLACES the colour with (|x|, |y|, |z| mod 1) of the " +
+        "world position as RGB, mirrored at 0 on each axis; 9 heatmap REPLACES the colour " +
+        "with a blue-to-red noise gradient. It belongs to the look of the material it " +
+        "imitates: swapping the material (e.g. wood to aluminium) drops a pattern like wood."
+    val scaleText =
+      "Multiplies the world position before the pattern is evaluated (higher = smaller, " +
+        "more frequent pattern). One pattern period across an object needs about 1 / size."
+    objectTypes.flatMap(t =>
+      List((t, "proceduralType") -> typeText, (t, "proceduralScale") -> scaleText)
+    ).toMap
 
   def descriptionOf(typeName: String, fieldName: String): Option[String] =
     fieldDescriptions.get((typeName, fieldName))
@@ -100,3 +135,17 @@ object DslSemantics:
 
   def limitsOf(typeName: String, fieldName: String): (Option[Double], Option[Double]) =
     fieldLimits.getOrElse((typeName, fieldName), (None, None))
+
+  /** Level at or above which rendering gets slow (`ResourceLimits.*.warnAt`) -- the agent should
+    * ask before going there (usability review 2026-09, session 2, F36). `TesseractSponge` takes
+    * the smaller of its two variants' thresholds, like its `max` above. */
+  private val fieldWarnLevels: Map[(String, String), Double] = Map(
+    ("Sponge", "level") -> menger.dsl.ResourceLimits.cubeSpongeLevel.warnAt.toDouble,
+    ("TesseractSponge", "level") -> math.min(
+      menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.warnAt,
+      menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.warnAt
+    ).toDouble
+  )
+
+  def warnAtOf(typeName: String, fieldName: String): Option[Double] =
+    fieldWarnLevels.get((typeName, fieldName))

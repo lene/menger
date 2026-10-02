@@ -222,6 +222,42 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     )
     levelField.default shouldBe None
 
+  // Usability review 2026-09, session 2 (F36, msa#15): the agent animated a tesseract sponge
+  // to level 3 because only the hard `max` reached the manifest, not the slowness threshold.
+  it should "carry warnAt on every field that has a slowness threshold" in:
+    val manifest = manifestFor(freshTempPath())
+    def level(typeName: String) =
+      manifest.objects.find(_.name == typeName).get.fields.find(_.name == "level").get
+    level("Sponge").warnAt shouldBe Some(
+      menger.dsl.ResourceLimits.cubeSpongeLevel.warnAt.toDouble
+    )
+    level("TesseractSponge").warnAt shouldBe Some(math.min(
+      menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.warnAt,
+      menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.warnAt
+    ).toDouble)
+    manifest.objects.find(_.name == "Sphere").get.fields.find(_.name == "size").get
+      .warnAt shouldBe None
+
+  // Session 2 (F37/F40, msa#14): the proceduralType presets lived only in the agent's prompt.
+  it should "describe the procedural presets on every object that has proceduralType" in:
+    val manifest = manifestFor(freshTempPath())
+    for obj <- manifest.objects do
+      val fields = obj.fields.map(f => f.name -> f).toMap
+      withClue(obj.name) {
+        fields("proceduralType").description.get should (include("5 wood") and include("8 xyz_rgb"))
+        fields("proceduralScale").description.get should include("1 / size")
+      }
+
+  // Session 2: F43 (msa#9) colouring of a 4D object follows the projected position; menger#21
+  // texture maps need UVs that 4D objects, edges, cylinders and curves don't have; menger#52
+  // each 4D object has its own projection.
+  it should "state how 4D objects are coloured, textured and projected" in:
+    val conventions = manifestFor(freshTempPath()).conventions.mkString("\n")
+    conventions should include("projected 3D position")
+    conventions should include("no UV coordinates")
+    conventions should include("own `projection`")
+    conventions should not include ("must share the same `projection`")
+
   private def manifestFor(outputPath: String): ManifestGenerator.DslManifest =
     ManifestGenerator.run(Array(outputPath)) shouldBe Right(())
     read[ManifestGenerator.DslManifest](Files.readString(java.nio.file.Paths.get(outputPath)))

@@ -55,7 +55,9 @@ object ManifestGenerator extends LazyLogging:
 
   // 1.1.0: field `description`s and top-level `conventions` from DslSemantics (F28).
   // 1.2.0: field `min`/`max` from DslSemantics (T1#3), backed by menger.dsl.ResourceLimits.
-  private val SchemaVersion = "1.2.0"
+  // 1.3.0: field `warnAt` (F36), procedural preset descriptions (F37/F40) and 4D
+  //        colouring/texture/projection conventions (F43, menger#21, menger#52).
+  private val SchemaVersion = "1.3.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
@@ -75,7 +77,8 @@ object ManifestGenerator extends LazyLogging:
     default: Option[String],
     description: Option[String] = None,
     min: Option[Double] = None,
-    max: Option[Double] = None
+    max: Option[Double] = None,
+    warnAt: Option[Double] = None
   ) derives ReadWriter
   case class TypeManifest(name: String, fields: List[FieldManifest]) derives ReadWriter
 
@@ -185,7 +188,8 @@ object ManifestGenerator extends LazyLogging:
         default,
         DslSemantics.descriptionOf(clazz.getSimpleName, p.getName),
         min,
-        max
+        max,
+        DslSemantics.warnAtOf(clazz.getSimpleName, p.getName)
       )
     }
 
