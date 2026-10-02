@@ -181,6 +181,30 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     )
     SceneValidator.buildFindings(sceneOf(edgedSponge, otherProjection)) shouldBe empty
 
+  // Usability review 2026-09, session 2 (F33, menger#53): counting an edge-rendered sponge's
+  // edges built its whole mesh, which exhausted the validator's memory from level 3 up. Those
+  // levels need more edge cylinders than the instance limit allows; say so without building.
+  it should "reject edge-rendered tesseract sponges from level 3 up without building them" in:
+    for
+      (spongeType, levels) <- List(
+        menger.dsl.TesseractSpongeType.VolumeRemoving -> List(3f, 4f),
+        menger.dsl.TesseractSpongeType.SurfaceSubdividing -> List(3f, 5f)
+      )
+      level <- levels
+    do
+      val sponge = edgedSponge.copy(spongeType = spongeType, level = level)
+      withClue(s"$spongeType level $level: ") {
+        val findings = SceneValidator.buildFindings(sceneOf(sponge))
+        findings.map(_.invariant) shouldBe List("scene-build")
+        findings.head.message should include("instances")
+      }
+
+  it should "still accept an edge-rendered surface sponge at level 2" in:
+    val sponge = edgedSponge.copy(
+      spongeType = menger.dsl.TesseractSpongeType.SurfaceSubdividing, level = 2f
+    )
+    SceneValidator.buildFindings(sceneOf(sponge)) shouldBe empty
+
   it should "find nothing to object to in any of the renderer's own registered example scenes" in:
     val _ = examples.dsl.SceneIndex
     menger.dsl.SceneRegistry.list().foreach { name =>

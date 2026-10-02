@@ -68,12 +68,19 @@ class TesseractEdgeSceneBuilder(
    */
   override def calculateRequiredInstances(specs: List[ObjectSpec]): Int =
     specs.foldLeft(0) { (total, spec) =>
-      val meshInstances = 1  // The main mesh
-      val edgeInstances = if spec.hasEdgeRendering then
-        extractEdges(createMesh4D(spec)).size
-      else
-        0
-      total + meshInstances + edgeInstances
+      // Too large to build just to count its edges: the lower bound already exceeds any
+      // instance limit (menger#53).
+      val atLeast = TesseractEdgeSceneBuilder.minEdgeInstances(spec)
+      val instances =
+        if atLeast > 0 then math.min(atLeast, Int.MaxValue.toLong).toInt
+        else
+          val meshInstances = 1  // The main mesh
+          val edgeInstances = if spec.hasEdgeRendering then
+            extractEdges(createMesh4D(spec)).size
+          else
+            0
+          meshInstances + edgeInstances
+      total + instances
     }
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
@@ -87,10 +94,17 @@ class TesseractEdgeSceneBuilder(
       // Each spec gets its own face mesh and edge cylinders, projected with its own
       // `projection4D`, so 4D objects with different projections coexist (usability review
       // 2026-09, session 2, F44/menger#52).
-      // Calculate actual required instances by generating meshes
-      val requiredInstances = calculateRequiredInstances(specs)
-
-      if requiredInstances > maxInstances then
+      // A sponge too big to build just to count its edges is rejected from a lower bound
+      // first (menger#53); everything else gets the exact count from its mesh.
+      val atLeast = specs.map(TesseractEdgeSceneBuilder.minEdgeInstances).sum
+      lazy val requiredInstances = calculateRequiredInstances(specs)
+      if atLeast > maxInstances then
+        Left(
+          s"Scene requires at least $atLeast instances (one cylinder per edge) but the limit " +
+          s"is $maxInstances. Edge-rendered tesseract sponges fit up to level 2; use a lower " +
+          "level or drop `edgeRadius`."
+        )
+      else if requiredInstances > maxInstances then
         val recommended = Math.min(requiredInstances * 2, menger.common.Const.maxInstancesLimit)
         Left(
           s"Scene requires $requiredInstances instances (including edge cylinders) but limit is $maxInstances. " +
@@ -309,6 +323,25 @@ class TesseractEdgeSceneBuilder(
 object TesseractEdgeSceneBuilder:
 
   val DefaultEdgeRadius = 0.02f
+
+  /** Measured edge counts at level 2, and the smallest per-level growth seen from level 0 up
+    * (volume 24x then 36x, surface 21x then 16.1x; surface rounded down to 12 for margin). */
+  private val Level2Edges = Map("volume" -> 27648L, "surface" -> 10848L)
+  private val MinGrowthPerLevel = Map("volume" -> 24L, "surface" -> 12L)
+  private val SmallestUncountedLevel = 3
+
+  /** Instances an edge-rendered tesseract sponge needs at least -- without building its mesh,
+    * which from level 3 up is too large to build just to count edges (usability review
+    * 2026-09, session 2, F33/menger#53). 0 for everything that is cheap to count exactly. */
+  def minEdgeInstances(spec: ObjectSpec): Long =
+    val variant = spec.objectType.toLowerCase match
+      case "tesseract-sponge" | "tesseract-sponge-volume" => Some("volume")
+      case "tesseract-sponge-2" | "tesseract-sponge-surface" => Some("surface")
+      case _ => None
+    val level = spec.level.map(_.floor.toInt).getOrElse(0)
+    variant.filter(_ => spec.hasEdgeRendering && level >= SmallestUncountedLevel) match
+      case Some(v) => 1L + Level2Edges(v) * math.pow(MinGrowthPerLevel(v).toDouble, level - 2).toLong
+      case None => 0L
 
   // Matches the epsilon the 4D CUDA shaders use for the same eye_w clip (e.g. hit_menger4d.cu).
   private val EyeWClipEpsilon = 1e-6f
