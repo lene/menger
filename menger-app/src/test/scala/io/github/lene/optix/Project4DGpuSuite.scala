@@ -47,9 +47,10 @@ class Project4DGpuSuite extends AnyFlatSpec
   // Perf gates (tag Perf): time ratio subject / reference, judged by RelativeBenchmark. Both
   // assert the tests' claim "faster than" (ratio < 1). Measured on the RTX A1000 laptop (idle /
   // under a 99% GPU burn plus CPU load, 2026-09-23), highest upper confidence bound: GPU flatten
-  // 0.41; update vs rebuild 0.06 idle but 0.89 loaded -- update is GPU-bound, rebuild mostly
-  // CPU, so GPU contention moves only one side. The perf suite's GPU preflight skips the run
-  // when another compute process holds the GPU.
+  // 0.41. Update vs rebuild, both sides one GPU frame with render (menger#44, 2026-10-02): 0.010
+  // idle, 0.205 under a 100% CUDA burn -- GPU time-slicing still costs the update's extra syncs
+  // more, but the loaded ratio stays 5x under the limit. The perf suite's GPU preflight skips
+  // the run when the GPU is busy.
   private val MaxRatioGpuFlattenVsCpu = 1.0
   private val MaxRatioUpdateVsRebuild = 1.0
   private val AnimationFrames = 40
@@ -252,38 +253,49 @@ class Project4DGpuSuite extends AnyFlatSpec
   // --- Test 5: update perf — animation update vs rebuild --------------------
 
   it should "animate 4D rotation faster via projection update than rebuild" taggedAs Perf in:
-    def sponge(angle: Float) = TesseractSpongeMesh(
+    val base = TesseractSpongeMesh(
       center = Vector[3](0f, 0f, 0f), size = 1.0f, level = 1f,
-      rotXW = angle, rotYW = 0f, rotZW = 0f
+      rotXW = 0f, rotYW = 0f, rotZW = 0f
     )
-    def upload(proj: Mesh4DProjection, angle: Float): Int =
+    // Each side is one animation frame on the GPU, render included (menger#44: the CPU-side
+    // rebuild made the ratio 0.05 idle but 0.89 under a GPU burn). The 4D mesh does not depend
+    // on the angle (the GPU applies the rotation), so the quads are built once, outside the timed
+    // op. The render matters: an upload defers its GAS and IAS builds to render(), whereas an
+    // update refits both before it returns.
+    val quads = Mesh4DGpuFlatten.quadsBuffer(base.mesh4D)
+    def upload(angle: Float): Int =
       renderer.setTriangleMesh4DQuads(
-        Mesh4DGpuFlatten.quadsBuffer(proj.mesh4D), uvs = null, // scalafix:ok DisableSyntax.null
-        eyeW = proj.eyeW, screenW = proj.screenW,
+        quads, uvs = null, // scalafix:ok DisableSyntax.null
+        eyeW = base.eyeW, screenW = base.screenW,
         rotXW = angle, rotYW = 0f, rotZW = 0f,
         centerX = 0f, centerY = 0f, centerZ = 0f
       )
-    val base = sponge(0f)
     val meshIdx = AtomicInteger(-1)
     val frame = AtomicInteger(0)
     def nextAngle(): Float = (frame.incrementAndGet() % AnimationFrames + 1) * AnimationStepDegrees
-    // Uploads append meshes: every sample starts from a scene holding just the base mesh.
-    def resetScene(): Unit =
+    def buildScene(angle: Float): Unit =
       renderer.clearAllInstances()
       renderer.clearTriangleMesh()
-      meshIdx.set(upload(base, 0f))
+      meshIdx.set(upload(angle))
       renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
+    // Every sample starts from a rendered scene holding just the base mesh.
+    def resetScene(): Unit =
+      buildScene(0f)
+      val _ = renderer.render(ImgSize)
     val update = Side(
       "updateMesh4DProjection",
-      () => renderer.updateMesh4DProjection(
-        meshIdx.get, eyeW = base.eyeW, screenW = base.screenW,
-        rotXW = nextAngle(), rotYW = 0f, rotZW = 0f
-      ),
+      () => {
+        val _ = renderer.updateMesh4DProjection(
+          meshIdx.get, eyeW = base.eyeW, screenW = base.screenW,
+          rotXW = nextAngle(), rotYW = 0f, rotZW = 0f
+        )
+        val _ = renderer.render(ImgSize)
+      },
       prepare = () => resetScene()
     )
     val rebuild = Side(
       "rebuild",
-      () => { val angle = nextAngle(); val _ = upload(sponge(angle), angle) },
+      () => { buildScene(nextAngle()); val _ = renderer.render(ImgSize) },
       prepare = () => resetScene()
     )
     val verdict = RelativeBenchmark.compare(rebuild, update, MaxRatioUpdateVsRebuild)
