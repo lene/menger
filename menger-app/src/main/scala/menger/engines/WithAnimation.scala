@@ -93,9 +93,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       Try(sceneFunction(t)) match
         case Failure(e) =>
           logger.error(
-            s"Scene function threw for frame ${frame + 1}/${animConfig.frames}" +
-            s" (t=$t): ${e.getMessage}",
-            e
+            FrameBuildFailure.message(s"frame ${frame + 1}/${animConfig.frames} (t=$t)", e), e
           )
           frameCounter.incrementAndGet()
         case scala.util.Success(dslScene) =>
@@ -117,7 +115,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
             buildAnim4DTrackedOrFallback(configs, newSpecs, renderer)
               .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, t))
               .recover { case e: Exception =>
-                logger.error(s"Failed to build scene for frame $frame (t=$t): ${e.getMessage}", e)
+                logger.error(FrameBuildFailure.message(s"frame $frame (t=$t)", e), e)
               }
             configureEnvMapVideoForFrame(configs, newSpecs, renderer, t).recover {
               case e: Exception =>

@@ -612,7 +612,7 @@ class InteractiveEngine(
           .fold(
             e => {
               scene4DCache.set(Scene4DCache.Empty)
-              logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
+              logger.error(FrameBuildFailure.message("rebuild after 4D rotation", e), e)
             },
             _ => {
               // Planes are now real IAS instances (Sprint 36 H3.1) — clearAllInstances above

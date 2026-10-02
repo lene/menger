@@ -1,6 +1,7 @@
 package menger.engines
 
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.util.Failure
@@ -37,6 +38,14 @@ trait WithPreview extends RenderEngine with LazyLogging:
   // The previous frame's 4D scene with its renderer handles, when it can be updated in place
   // (usability review 2026-09, session 2, F52: every frame used to rebuild the whole scene).
   private val tracked4D = new AtomicReference[Option[scene.TrackedMesh4D.State]](None)
+  // Frames whose scene failed to build -- the window then shows the previous frame, so say so
+  // in the title (menger#54).
+  private val failedFrames = new AtomicInteger(0)
+
+  private def reportFailedFrame(t: Float, e: Throwable): Unit =
+    failedFrames.incrementAndGet()
+    logger.error(FrameBuildFailure.message(s"t=$t", e), e)
+    updateTitle()
 
   private def tStep: Float =
     val range = previewConfig.endT - previewConfig.startT
@@ -80,8 +89,10 @@ trait WithPreview extends RenderEngine with LazyLogging:
   private def updateTitle(): Unit =
     val t     = currentT.get()
     val frame = frameForT(t)
+    val failed = failedFrames.get()
+    val failures = if failed > 0 then s" | $failed frame(s) failed to build" else ""
     GdxRuntime.setWindowTitle(
-      f"$windowTitle | t=$t%.3f | frame $frame/${previewConfig.frames}"
+      f"$windowTitle | t=$t%.3f | frame $frame/${previewConfig.frames}" + failures
     )
 
   abstract override def create(): Unit =
@@ -125,7 +136,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
       val t = currentT.get()
       Try(sceneFunction(t)) match
         case Failure(e) =>
-          logger.error(s"Scene function threw for t=$t: ${e.getMessage}", e)
+          reportFailedFrame(t, e)
         case scala.util.Success(dslScene) =>
           val configs  = SceneConverter.convert(dslScene, causticsConfig)
           val renderer = rendererWrapper.renderer
@@ -134,7 +145,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
           if configs.accumulationFrames > 1 then
             renderer.setAccumulationFrames(configs.accumulationFrames)
           updateOrRebuild(configs, renderer).recover { case e: Exception =>
-            logger.error(s"Failed to build preview scene for t=$t: ${e.getMessage}", e)
+            reportFailedFrame(t, e)
           }
           // A builder may have reinitialized the renderer, discarding lights and render
           // settings (usability review 2026-09, F22) -- restore them every frame.
