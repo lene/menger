@@ -51,7 +51,10 @@ object DslSemantics:
     "Glass on a TesseractSponge from level 2 up renders as chaotic, fragmented refraction: the " +
       "projected sponge has thousands of overlapping refracting layers and a ray gets at most 5 " +
       "bounces. Prefer an opaque or metal material there, or level 1 for glass, and say so if " +
-      "the user asks for glass (usability review 2026-09, session 2, F55).",
+      "the user asks for glass (usability review 2026-09, session 2, F55). Thin transparent " +
+      "`Film` shows every inner layer of a 4D sponge at once, so its holes and their walls " +
+      "can't be told apart from the front face; an opaque material with a directional light " +
+      "shows the hole shapes (menger#56).",
     "Camera: the horizontal field of view is fixed at 45 degrees (not adjustable per scene). " +
       "To frame or zoom to fit a scene, move `Camera.position` -- aim `lookAt` at the scene's " +
       "centre and set the eye's distance from it to at least radius / sin(22.5deg), where " +
