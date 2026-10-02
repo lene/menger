@@ -539,6 +539,10 @@ test_basic_objects() {
     run_test "sponge-volume" --objects type=sponge-volume:level=1:size=0.5 --plane y:-2
     run_test "sponge-surface" --objects type=sponge-surface:level=1:size=0.5 --plane y:-2
     run_test "sponge-recursive-ias" --objects type=sponge-recursive-ias:level=2:size=0.5 --plane y:-2
+    # menger#55: a fractional level fades only the coarse level's hole caps
+    # (seen from above a corner, so the half-faded level-2 holes on two faces show)
+    run_test "sponge-recursive-ias fractional" --objects type=sponge-recursive-ias:level=1.5:size=1.2 --plane y:-2 \
+        --camera-pos 1.6,1.2,2.4 --camera-lookat 0,0,0 --camera-up 0,1,0
     run_test "tesseract" --objects type=tesseract:size=0.5 --plane y:-2
 }
 

@@ -102,30 +102,21 @@ class TriangleMeshSceneBuilder(
             val transform = TransformUtil.createEulerRotationScaleTranslation(
               spec.rotX, spec.rotY, spec.rotZ, spec.size, spec.x, spec.y, spec.z
             )
-            val rawLevel = spec.level.get
-            if isFractional(rawLevel) then
-              val frac      = rawLevel - rawLevel.floor
-              val coarseMat = op.material.copy(color = op.material.color.copy(a = op.material.color.a * (1f - frac)))
-              val coarseId = requireInstanceId(
-                renderer.addRecursiveIASSpongeInstance(
-                  rawLevel.floor.toInt, transform, coarseMat, textureIndex
-                ),
-                s"coarse fractional sponge instance level=${rawLevel.floor.toInt} for ${spec.objectType}"
-              )
-              applyInstanceTextures(coarseId, spec, textureIndices, renderer)
-              requireInstanceId(
-                renderer.addRecursiveIASSpongeInstance(
-                  rawLevel.floor.toInt + 1, transform, op.material, textureIndex
-                ),
-                s"fractional sponge instance level=${rawLevel.floor.toInt + 1} for ${spec.objectType}"
-              )
-            else
-              requireInstanceId(
-                renderer.addRecursiveIASSpongeInstance(
-                  rawLevel.toInt, transform, op.material, textureIndex
-                ),
-                s"recursive-IAS sponge instance level=${rawLevel.toInt} for ${spec.objectType}"
-              )
+            // The plain cube was uploaded above. addRecursiveIASSpongeInstance wraps the most
+            // recently uploaded mesh, so any other leaf (the hole caps) goes up right before
+            // its own instance.
+            val cube = MeshFactory.create(spec)
+            val ids = TriangleMeshSceneBuilder.recursiveIASInstances(spec.level.get, cube, op.material)
+              .map { (leaf, level, material) =>
+                if leaf ne cube then
+                  val _ = renderer.addTriangleMesh(leaf)
+                requireInstanceId(
+                  renderer.addRecursiveIASSpongeInstance(level, transform, material, textureIndex),
+                  s"recursive-IAS sponge instance level=$level for ${spec.objectType}"
+                )
+              }
+            ids.tail.foreach(applyInstanceTextures(_, spec, textureIndices, renderer))
+            ids.head
           else if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
             requireInstanceId(
               renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), op.material, textureIndex),
@@ -228,6 +219,21 @@ object TriangleMeshSceneBuilder:
     * (TrackedMesh4D), so both give the same material. */
   def holeCapsMaterial(base: menger.common.Material, level: Float): menger.common.Material =
     base.copy(color = base.color.copy(a = base.color.a * (1f - (level - level.floor))))
+
+  /** Leaf mesh, recursion level and material of each recursive-IAS sponge instance, in the
+    * order they are added. A fractional level n.f adds level n+1 on the plain cube and level n
+    * on the cube's hole caps fading with 1 - f, so only the new holes fade in instead of the
+    * whole coarse level lying over the fine one (usability review 2026-09, F35 / menger#55).
+    * Caps also sit on the leaf cubes' shared inner faces; they show, fading, inside the new
+    * tunnels. */
+  def recursiveIASInstances(
+    level: Float, cube: menger.common.TriangleMeshData, material: menger.common.Material
+  ): List[(menger.common.TriangleMeshData, Int, menger.common.Material)] =
+    if level == level.floor then List((cube, level.toInt, material))
+    else List(
+      (cube, level.floor.toInt + 1, material),
+      (menger.objects.HoleCaps.of(cube), level.floor.toInt, holeCapsMaterial(material, level))
+    )
 
   /** Instance transform of a (non-recursive-IAS) triangle mesh: rotation + position; size is
     * baked into the mesh. Shared by the build and by in-place moves (TrackedMesh4D). */
