@@ -96,3 +96,25 @@ class TrackedMesh4DSuite extends AnyFlatSpec with Matchers with BeforeAndAfterEa
 
     moved should not equal first
     moved shouldEqual fresh
+
+  // menger#56: glass and film hole caps faded by scaling alpha, which a refractive material
+  // reads as absorption, so the caps looked the same at every fractional level.
+  "A fractional refractive tesseract sponge" should "fade its hole caps with the level" in:
+    def render(level: Float, material: String): Array[Byte] =
+      renderer.clearAllInstances()
+      val spec = ObjectSpec.parse(s"type=tesseract-sponge:level=$level:size=1.5:material=$material")
+        .fold(e => fail(e), identity)
+      val _ = build(List(spec))
+      renderer.render(Size)
+    def diff(a: Array[Byte], b: Array[Byte]): Double =
+      a.indices.map(i => math.abs((a(i) & 0xff) - (b(i) & 0xff))).sum.toDouble / a.length
+    // As the level rises the image must approach level 2. Not "approach level 1 as it falls":
+    // level 2's new tunnels show through transparent caps at any coverage. Measured on the
+    // 400x300 front view: distance to L2 at 1.75 / at 1.25 = 0.56 glass, 0.54 film, 0.50 matte;
+    // 1.0 for the alpha-scaled glass and film caps.
+    for material <- List("glass", "film") do
+      val level2 = render(2f, material)
+      val early = diff(render(1.25f, material), level2)
+      val late = diff(render(1.75f, material), level2)
+      info(f"$material: distance to L2 at 1.25 = $early%.2f, at 1.75 = $late%.2f")
+      late should be < (0.75 * early)

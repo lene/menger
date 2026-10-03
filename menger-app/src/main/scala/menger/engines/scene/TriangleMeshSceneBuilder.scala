@@ -107,13 +107,15 @@ class TriangleMeshSceneBuilder(
             // its own instance.
             val cube = MeshFactory.create(spec)
             val ids = TriangleMeshSceneBuilder.recursiveIASInstances(spec.level.get, cube, op.material)
-              .map { (leaf, level, material) =>
+              .map { (leaf, level, material, coverage) =>
                 if leaf ne cube then
                   val _ = renderer.addTriangleMesh(leaf)
-                requireInstanceId(
+                val id = requireInstanceId(
                   renderer.addRecursiveIASSpongeInstance(level, transform, material, textureIndex),
                   s"recursive-IAS sponge instance level=$level for ${spec.objectType}"
                 )
+                setCoverage(renderer, id, coverage)
+                id
               }
             ids.tail.foreach(applyInstanceTextures(_, spec, textureIndices, renderer))
             ids.head
@@ -129,6 +131,7 @@ class TriangleMeshSceneBuilder(
               ),
               s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
             )
+        setCoverage(renderer, instanceId, op.coverage)
         applyInstanceTextures(instanceId, spec, textureIndices, renderer)
         instanceRecorder(specIdx, InstanceId.raw(instanceId))
         if op.isHoleCaps then holeCapsRecorder(specIdx, InstanceId.raw(instanceId))
@@ -139,8 +142,8 @@ class TriangleMeshSceneBuilder(
     }
 
   /** GPU-projected fractional 4D sponge: emit two meshes sharing the projection
-    * params: level n+1 fully opaque, and the hole caps of level n (the centre
-    * third of each face, which level n+1 leaves open) with alpha = 1 - fractional,
+    * params: level n+1 fully present, and the hole caps of level n (the centre
+    * third of each face, which level n+1 leaves open) at coverage 1 - fractional,
     * so the new holes fade in. Same design as the CPU path's
     * `FractionalLevelSponge`; no face of the caps overlaps level n+1 (usability
     * review 2026-09, session 2, F35). */
@@ -149,28 +152,34 @@ class TriangleMeshSceneBuilder(
     baseMaterial: menger.common.Material
   )(using profilingConfig: ProfilingConfig): List[FractionalOp] =
     val level = spec.level.get
-    val fractionalPart = level - level.floor
-    val alphaTransparent = 1.0f - fractionalPart
+    val coverage = TriangleMeshSceneBuilder.holeCapsCoverage(level)
     val nextLevelSpec = spec.copy(level = Some((level + 1).floor))
     val currentLevelSpec = spec.copy(level = Some(level.floor))
     logger.debug(
       s"GPU fractional split: ${spec.objectType} level=$level → " +
-      s"slot[opaque level ${(level + 1).floor}] + slot[level ${level.floor} alpha=$alphaTransparent]"
+      s"slot[level ${(level + 1).floor}] + slot[level ${level.floor} caps coverage=$coverage]"
     )
     List(
       FractionalOp(MeshFactory.createUpload(nextLevelSpec), baseMaterial),
       FractionalOp(
         MeshFactory.createUpload(currentLevelSpec, holeCaps = true),
-        TriangleMeshSceneBuilder.holeCapsMaterial(baseMaterial, level),
-        isHoleCaps = true
+        baseMaterial,
+        isHoleCaps = true,
+        coverage = coverage
       )
     )
 
   private final case class FractionalOp(
     plan: MeshUploadPlan,
     material: menger.common.Material,
-    isHoleCaps: Boolean = false
+    isHoleCaps: Boolean = false,
+    coverage: Float = 1f
   )
+
+  private def setCoverage(renderer: OptiXRenderer, id: InstanceId, coverage: Float): Unit =
+    if coverage < 1f then
+      val result = renderer.setInstanceCoverage(InstanceId.raw(id), coverage)
+      if result != 0 then sys.error(s"setInstanceCoverage($id, $coverage) failed with $result")
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // TD-5 resolution (Sprint 18.1): each spec gets its own mesh + GAS via per-spec
@@ -214,25 +223,25 @@ class TriangleMeshSceneBuilder(
       case None => true
 
 object TriangleMeshSceneBuilder:
-  /** The hole caps of a fractional 4D sponge fade out as the level rises: alpha = base alpha
-    * x (1 - fractional part). Shared by the build and by in-place animation updates
-    * (TrackedMesh4D), so both give the same material. */
-  def holeCapsMaterial(base: menger.common.Material, level: Float): menger.common.Material =
-    base.copy(color = base.color.copy(a = base.color.a * (1f - (level - level.floor))))
+  /** The hole caps of a fractional sponge fade out as the level rises: instance coverage
+    * 1 - fractional part, with the material untouched. Not alpha: a refractive material reads
+    * alpha as absorption, so glass and film caps looked the same at every level (menger#56).
+    * Shared by the build and by in-place animation updates (TrackedMesh4D). */
+  def holeCapsCoverage(level: Float): Float = 1f - (level - level.floor)
 
-  /** Leaf mesh, recursion level and material of each recursive-IAS sponge instance, in the
-    * order they are added. A fractional level n.f adds level n+1 on the plain cube and level n
-    * on the cube's hole caps fading with 1 - f, so only the new holes fade in instead of the
+  /** Leaf mesh, recursion level, material and coverage of each recursive-IAS sponge instance,
+    * in the order they are added. A fractional level n.f adds level n+1 on the plain cube and
+    * level n on the cube's hole caps at coverage 1 - f, so only the new holes fade in instead of the
     * whole coarse level lying over the fine one (usability review 2026-09, F35 / menger#55).
     * Caps also sit on the leaf cubes' shared inner faces; they show, fading, inside the new
     * tunnels. */
   def recursiveIASInstances(
     level: Float, cube: menger.common.TriangleMeshData, material: menger.common.Material
-  ): List[(menger.common.TriangleMeshData, Int, menger.common.Material)] =
-    if level == level.floor then List((cube, level.toInt, material))
+  ): List[(menger.common.TriangleMeshData, Int, menger.common.Material, Float)] =
+    if level == level.floor then List((cube, level.toInt, material, 1f))
     else List(
-      (cube, level.floor.toInt + 1, material),
-      (menger.objects.HoleCaps.of(cube), level.floor.toInt, holeCapsMaterial(material, level))
+      (cube, level.floor.toInt + 1, material, 1f),
+      (menger.objects.HoleCaps.of(cube), level.floor.toInt, material, holeCapsCoverage(level))
     )
 
   /** Instance transform of a (non-recursive-IAS) triangle mesh: rotation + position; size is

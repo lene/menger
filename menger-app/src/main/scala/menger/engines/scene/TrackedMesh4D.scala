@@ -7,7 +7,6 @@ import io.github.lene.optix.OptiXRenderer
 import menger.ObjectRotation
 import menger.ObjectSpec
 import menger.Projection4DSpec
-import menger.common.Material
 import menger.common.ProfilingConfig
 
 /** A 4D triangle-mesh scene built with its renderer handles recorded, so that an animation can
@@ -93,14 +92,6 @@ object TrackedMesh4D:
         level <- spec.level if !prev.level.contains(level)
         caps <- state.capsInstancePerSpec(i)
       do
-        setMaterial(renderer, caps,
-          TriangleMeshSceneBuilder.holeCapsMaterial(MaterialExtractor.extract(spec), level))
+        val _ = renderer.setInstanceCoverage(caps, TriangleMeshSceneBuilder.holeCapsCoverage(level))
     }
     state.copy(specs = next)
-
-  private def setMaterial(renderer: OptiXRenderer, instance: Int, m: Material): Unit =
-    val (cauchyA, cauchyB) = Material.cauchyCoefficients(m.ior, m.dispersion)
-    val _ = renderer.setInstanceMaterial(
-      instance, m.color.r, m.color.g, m.color.b, m.color.a, m.ior, m.roughness, m.metallic,
-      m.specular, m.emission, m.filmThickness, cauchyA, cauchyB
-    )

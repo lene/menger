@@ -138,15 +138,23 @@ class TriangleMeshSceneBuilderSpec extends AnyFlatSpec with Matchers:
     "add the fine level on the cube and fade only the coarse level's hole caps" in:
       val instances = TriangleMeshSceneBuilder.recursiveIASInstances(1.25f, cube, Material.Film)
       instances should have size 2
-      val (fineLeaf, fineLevel, fineMaterial) = instances.head
+      val (fineLeaf, fineLevel, fineMaterial, fineCoverage) = instances.head
       fineLeaf shouldBe cube
       fineLevel shouldBe 2
       fineMaterial shouldBe Material.Film
-      val (coarseLeaf, coarseLevel, coarseMaterial) = instances(1)
+      fineCoverage shouldBe 1f
+      val (coarseLeaf, coarseLevel, coarseMaterial, coarseCoverage) = instances(1)
       coarseLeaf.vertices.toSeq shouldBe HoleCaps.of(cube).vertices.toSeq
       coarseLevel shouldBe 1
-      coarseMaterial.color.a shouldBe (Material.Film.color.a * 0.75f +- 1e-6f)
+      // menger#56: the caps fade by instance coverage and keep their material, so a refractive
+      // material keeps its absorption (scaling alpha could not fade glass or film caps).
+      coarseMaterial shouldBe Material.Film
+      coarseCoverage shouldBe (0.75f +- 1e-6f)
 
   it should "add only the plain cube for an integer level" in:
     TriangleMeshSceneBuilder.recursiveIASInstances(2f, cube, Material.Film) shouldBe
-      List((cube, 2, Material.Film))
+      List((cube, 2, Material.Film, 1f))
+
+  "TriangleMeshSceneBuilder.holeCapsCoverage" should "be 1 minus the fractional part" in:
+    TriangleMeshSceneBuilder.holeCapsCoverage(1.25f) shouldBe (0.75f +- 1e-6f)
+    TriangleMeshSceneBuilder.holeCapsCoverage(2.9f) shouldBe (0.1f +- 1e-5f)
