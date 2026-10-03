@@ -50,6 +50,10 @@ Test / testOptions += Tests.Argument(
   (if (perfOnly) Seq("-n", "Perf") else Seq("-l", "Perf")): _*
 )
 Test / parallelExecution := !perfOnly
+// Fixed, pre-touched heap for the perf JVM only: G1 shrank the heap after each explicit GC in
+// BenchConfig.JvmCpu and the next sample paid for faulting fresh pages back in, 23-59% of the
+// sponge generation samples' time and their main noise (menger#45).
+Test / javaOptions ++= (if (perfOnly) Seq("-Xms3g", "-Xmx3g", "-XX:+AlwaysPreTouch") else Nil)
 
 // Coverage configuration - exclude untestable packages (JNI/GPU and LibGDX/OpenGL code)
 // Also exclude LibGDX adapter handlers that require native library initialization for testing

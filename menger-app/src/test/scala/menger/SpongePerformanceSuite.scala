@@ -23,8 +23,10 @@ import org.scalatest.matchers.should.Matchers
 object Slow extends Tag("Slow")
 
 /** Sponge generation and rendering gates, each timed against a reference in interleaved rounds
-  * (io.github.lene.qa.RelativeBenchmark). Mesh generation runs on the CPU, so its reference is a
-  * fixed CPU workload; rendering compares against the level-0 cube through the same mesh path.
+  * (io.github.lene.qa.RelativeBenchmark). Mesh generation runs on the CPU: one gate per subject
+  * against a fixed CPU workload (uniform slowdowns) and one against the same generator a level
+  * lower (scaling regressions). Rendering compares against the level-0 cube through the same
+  * mesh path.
   * Triangle counts are asserted by SpongeBySurfaceMeshSuite and SpongeByVolumeMeshSuite. */
 class SpongePerformanceSuite extends AnyFlatSpec
     with Matchers
@@ -36,12 +38,21 @@ class SpongePerformanceSuite extends AnyFlatSpec
 
   private val RenderSize = ImageSize(800, 600)
 
-  // Limits: time ratio subject / reference, ~2x the highest upper confidence bound measured on
-  // the RTX A1000 laptop (also the CI runner) over 3 idle runs and 5 runs under a 99% GPU burn
-  // plus CPU load (2026-09-23). Highest bound -> limit:
-  private val MaxSlowdownSurfaceL2 = 1.4            // 0.68
-  private val MaxSlowdownSurfaceL3 = 70.0           // 34.7 (loaded)
-  private val MaxSlowdownVolumeL2 = 1.8             // 0.88
+  // Generation limits (menger#45): thread CPU time with a fixed, pre-touched heap
+  // (BenchConfig.JvmCpu, build.sbt). 1.5x the highest upper confidence bound -- not the usual
+  // ~2x, which can never fail a 2x slowdown (decided by user 2026-10-03: "1.5x, catch most").
+  // Probe gates catch a uniform slowdown, scaling gates (vs the level below) a level-dependent
+  // one. Measured over 5 idle runs and 5 with all cores busy plus a 100% GPU burn (2026-10-03).
+  // Highest bound -> limit:
+  private val MaxSlowdownSurfaceL2 = 0.36           // 0.239
+  private val MaxSlowdownSurfaceL3 = 26.0           // 17.27
+  private val MaxSlowdownVolumeL2 = 0.69            // 0.459 (loaded)
+  private val MaxScalingSurfaceL1ToL2 = 33.4        // 22.28
+  private val MaxScalingSurfaceL2ToL3 = 117.0       // 78.13
+  private val MaxScalingVolumeL1ToL2 = 34.1         // 22.72
+  // Render limits: ~2x the highest upper confidence bound measured on the RTX A1000 laptop
+  // (also the CI runner) over 3 idle runs and 5 runs under a 99% GPU burn plus CPU load
+  // (2026-09-23). Highest bound -> limit:
   private val MaxSlowdownRenderSurfaceL2 = 2.3      // 1.13 (loaded)
   private val MaxSlowdownRenderVolumeL2 = 2.4       // 1.16
   private val MaxSlowdownRenderTransparentL1 = 3.9  // 1.91
@@ -128,6 +139,19 @@ class SpongePerformanceSuite extends AnyFlatSpec
   private def generationGate(name: String, generate: => TriangleMeshData, maxSlowdown: Double) =
     gate(cpuProbe, generation(name, generate), maxSlowdown, BenchConfig.JvmCpu)
 
+  private def scalingGate(
+      name: String,
+      level: Int,
+      generate: Float => TriangleMeshData,
+      maxRatio: Double
+  ) =
+    gate(
+      generation(s"level ${level - 1} $name", generate(level - 1f)),
+      generation(s"level $level $name", generate(level.toFloat)),
+      maxRatio,
+      BenchConfig.JvmCpu
+    )
+
   "Sponge generation" should "generate a level 2 surface sponge within its limit" taggedAs Perf in:
     generationGate("level 2 surface sponge", surface(2f), MaxSlowdownSurfaceL2)
 
@@ -136,6 +160,15 @@ class SpongePerformanceSuite extends AnyFlatSpec
 
   it should "generate a level 2 volume sponge within its limit" taggedAs Perf in:
     generationGate("level 2 volume sponge", volume(2f), MaxSlowdownVolumeL2)
+
+  it should "scale a surface sponge from level 1 to 2 within its limit" taggedAs Perf in:
+    scalingGate("surface sponge", 2, surface, MaxScalingSurfaceL1ToL2)
+
+  it should "scale a surface sponge from level 2 to 3 within its limit" taggedAs Perf in:
+    scalingGate("surface sponge", 3, surface, MaxScalingSurfaceL2ToL3)
+
+  it should "scale a volume sponge from level 1 to 2 within its limit" taggedAs Perf in:
+    scalingGate("volume sponge", 2, volume, MaxScalingVolumeL1ToL2)
 
   "Sponge rendering" should "render a level 2 surface sponge within its limit" taggedAs Perf in:
     val grey = Color(0.8f, 0.8f, 0.8f)

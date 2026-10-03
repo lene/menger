@@ -118,13 +118,20 @@ menger-toplevel's `shared/standards/test-scala/`; edit it there, then `./bootstr
   then 15 rounds alternating order), so throttling and background load affect both sides of
   every round alike. Rendering compares against a trivial scene through the same path (e.g.
   level-0 cube vs sponge); CPU work compares against a fixed CPU probe and uses
-  `BenchConfig.JvmCpu` (GC before each sample, longer batches, longer warm-up).
+  `BenchConfig.JvmCpu` (GC before each sample, longer batches, longer warm-up, timed on the
+  thread CPU clock so background load doesn't count). The perf JVM gets a fixed, pre-touched
+  heap (`menger-app/build.sbt`): otherwise G1 shrinks the heap after each explicit GC and the
+  next sample pays for faulting pages back in (menger#45). Sponge generation additionally has
+  scaling gates against the same generator one level lower, for level-dependent regressions.
 - The verdict comes from the median of the per-round ratios and a sign-test confidence
   interval: PASS if the whole interval is within the limit, FAIL if the whole interval is
   beyond it, INCONCLUSIVE (test canceled) otherwise or when the interval is too wide.
 - Limits are ~2x the highest upper confidence bound measured on the RTX A1000 laptop (also
   the CI runner), idle and under heavy CPU+GPU load; "X faster than Y" gates use 1.0. Each
-  constant records its measurement.
+  constant records its measurement. Exception: the sponge generation gates use 1.5x, so that
+  an injected 2x slowdown fails (a ~2x margin can never fail a 2x slowdown); measured
+  2026-10-03, every injected 2x was caught by at least one gate except a uniform slowdown of
+  the volume generator alone (menger#45).
 - `menger-app/build.sbt` excludes the `Perf` tag from every test run; the `perf` suite
   (`scripts/suites/perf.sh`, push tier, right after `unit`) runs only that tag, alone:
   `PERF_ONLY=1 sbt "mengerApp/testOnly *"`. A canceled gate makes the suite SKIP with the gate
