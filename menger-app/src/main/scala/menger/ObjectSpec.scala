@@ -9,6 +9,7 @@ import menger.common.Color
 import menger.common.Material
 import menger.common.ObjectType
 import menger.common.TriangleMeshData
+import menger.dsl.ResourceLimits
 import menger.video.VideoTexture
 
 case class ObjectRotation(x: Float = 0f, y: Float = 0f, z: Float = 0f)
@@ -182,7 +183,7 @@ object ObjectSpec extends LazyLogging:
     "rot-x", "rot-y", "rot-z",
     "edge-radius", "edge-material", "edge-color",
     "edge-emission",
-    "apex", "base", "radius", "major-radius", "minor-radius",
+    "apex", "base", "radius",
     "normal", "distance", "color2", "checker-size",
     "procedural", "proc-scale",
     "normal-map", "roughness-map", "metallic-map", "ao-map", "height-map",
@@ -454,6 +455,7 @@ object ObjectSpec extends LazyLogging:
       case None => Right(None)
 
   private def validateSpongeLevel(objType: String, level: Option[Float]): Either[String, Unit] =
+    val normalized = ObjectType.normalize(objType)
     if ObjectType.isSponge(objType) && level.isEmpty then
       Left("Sponge object requires 'level' field. Add level=<number> to specification. " +
         s"Example: type=$objType:level=2")
@@ -462,8 +464,14 @@ object ObjectSpec extends LazyLogging:
         s"Example: type=$objType:level=1")
     else if level.exists(_ < 0) then
       Left(s"Level must be non-negative, got ${level.get}")
+    else if normalized == "lsystem" && level.exists(_.toInt > ResourceLimits.lsystemMaxIterations) then
+      Left(s"lsystem iterations ${level.get.toInt} exceeds hard maximum " +
+        s"${ResourceLimits.lsystemMaxIterations}")
     else
-      Right(())
+      ResourceLimits.levelLimitByObjectType.get(normalized) match
+        case Some(limit) if level.exists(_ > limit.max) =>
+          Left(s"$objType level ${level.get} exceeds hard maximum ${limit.max}")
+        case _ => Right(())
 
   private def parse4DProjection(
     kvPairs: Map[String, String],

@@ -386,6 +386,7 @@ run_test "DSL: SimpleScene" "-o --scene examples.dsl.SimpleScene -s $OUTPUT_DIR/
 run_test "DSL: ThreeMaterials" "-o --scene examples.dsl.ThreeMaterials -s $OUTPUT_DIR/91-dsl-three-materials.png"
 run_test "DSL: GlassSphere" "-o --scene examples.dsl.GlassSphere -s $OUTPUT_DIR/92-dsl-glass-sphere.png"
 run_test "DSL: TesseractDemo" "-o --scene examples.dsl.TesseractDemo -s $OUTPUT_DIR/93-dsl-tesseract.png"
+run_test "DSL: PolytopeGallery" "-o --scene examples.dsl.PolytopeGallery -s $OUTPUT_DIR/93b-dsl-polytope-gallery.png"
 run_test "DSL: FilmSphere" "-o --scene examples.dsl.FilmSphere -s $OUTPUT_DIR/94-dsl-film-sphere.png"
 run_test "DSL: SpongeShowcase" "-o --scene examples.dsl.SpongeShowcase -s $OUTPUT_DIR/95-dsl-sponge-showcase.png"
 run_test "DSL: MengerShowcase" "-o --scene examples.dsl.MengerShowcase -s $OUTPUT_DIR/96-dsl-menger-showcase.png"

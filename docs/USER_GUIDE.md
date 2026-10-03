@@ -14,12 +14,12 @@ of the documentation.
 |----------|----------|----------|
 | [Quick Start](guide/quickstart.md) | What Menger is, system requirements, installation, first render | New users |
 | [Usage & Rendering](guide/user-guide.md) | CLI options, interactive controls, rendering modes, geometry types, materials, lighting | Regular users |
-| [Advanced Features](guide/advanced.md) | Animations, t-parameter system, caustics (PPM), antialiasing, multi-object scenes | Power users |
+| [Advanced Features](guide/advanced.md) | `--animate` sweeps, animated DSL scenes (t-parameter), video output, animation preview, interactive session control, caustics (PPM), antialiasing, multi-object scenes | Power users |
 | [Scala DSL Reference](guide/dsl-reference.md) | Type-safe scene description language, all DSL types, parametric surfaces | DSL / developers |
 | [Tutorials](guide/tutorials.md) | Step-by-step walkthroughs: first render, glass, animation, 4D, complex scenes | All users |
 | [Cloud GPU Development](guide/cloud.md) | AWS EC2 spot instances: setup, launch, renders, state management, cost control | Cloud users |
 | [Troubleshooting](TROUBLESHOOTING.md) | Common errors, performance tips, getting help | All users |
-| [Reference](guide/reference.md) | Complete CLI option list, keyboard shortcuts, file formats | All users |
+| [Reference](guide/reference.md) | Complete CLI option list, every `--objects` key, keyboard shortcuts, file formats | All users |
 
 ---
 
@@ -30,11 +30,14 @@ of the documentation.
 - **Glass/material setup** → [Usage & Rendering](guide/user-guide.md#materials-and-lighting)
 - **Define a scene in Scala** → [DSL Reference](guide/dsl-reference.md)
 - **Caustics rendering** → [Advanced Features](guide/advanced.md#caustics-light-focusing-effects)
-- **OptiX ray tracing mode** → [Usage & Rendering](guide/user-guide.md#rendering-modes)
+- **Window vs. headless vs. video output** → [Usage & Rendering](guide/user-guide.md#rendering-modes)
+- **4D objects and rotation** → [Tutorials](guide/tutorials.md#tutorial-4-4d-visualization)
+- **Render a video** → [Advanced Features](guide/advanced.md#video-output)
+- **Upgrading from 0.8.x (`--optix` removed)** → [Usage & Rendering](guide/user-guide.md#running-the-application)
 - **GPU cloud rendering** → [Cloud GPU Development](guide/cloud.md)
 
 ---
 
 For questions, issues, or contributions:
-- GitLab: https://gitlab.com/lilacashes/menger
-- Issues: https://gitlab.com/lilacashes/menger/issues
+- GitHub: https://github.com/lene/menger (GitLab `lilacashes/menger` is a read-only mirror)
+- Issues: https://github.com/lene/menger/issues

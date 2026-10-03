@@ -133,12 +133,21 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
     )
     def isCompilerGenerated(name: String): Boolean =
       name.contains("$")
+    // optix-jni 0.4.4 shipped `private[optix] def extractedPtxPath: Option[String]`, which is
+    // public in bytecode. Maven Central artifacts can't be replaced, so exactly this method is
+    // exempt until the next optix-jni release fixes it; then remove this (lene/optix-jni#59).
+    // Matched on the owner's full name: one of the two owners is a Scala-generated class whose
+    // simple name is empty.
+    def isKnownViolation(method: JavaMethod): Boolean =
+      method.getName == "extractedPtxPath" &&
+        method.getOwner.getFullName.startsWith("io.github.lene.optix.OptiXRenderer")
 
     val noScalaTypesInSignature: ArchCondition[JavaMethod] =
       new ArchCondition[JavaMethod]("not expose Scala-specific types in signatures"):
         override def check(method: JavaMethod, events: ConditionEvents): Unit =
           if scalaGeneratedMethodNames.contains(method.getName) then return
           if isCompilerGenerated(method.getName) then return
+          if isKnownViolation(method) then return
           val allTypes = method.getRawParameterTypes.asScala.toList :+ method.getRawReturnType
           allTypes.foreach: t =>
             if isScalaSpecific(t.getFullName) then
@@ -248,7 +257,7 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       )
       .check(allClasses)
 
-  // AD-4 rule 2 (review round 2): `RestrictedClasspath` prunes menger.engines/tools/cli/input
+  // SA-AD-4 rule 2 (review round 2): `RestrictedClasspath` prunes menger.engines/tools/cli/input
   // off the classpath it hands the compiler, so a scene file cannot reach them. That pruning
   // is only safe while the DSL surface itself does not depend on those packages -- if it ever
   // does, scene compilation breaks with an opaque "class not found" rather than a clear

@@ -7,10 +7,12 @@ import menger.common.PlaneSpec
 
 /** Axis position specification for planes.
   *
-  * Created by axis helpers: `Y at -2` produces `AxisPosition(Axis.Y, false, -2f)`
+  * Created by axis helpers: `Y at -2` produces `AxisPosition(Axis.Y, true, -2f)` -- a floor
+  * below the origin whose lit side faces up.
   *
   * @param axis The axis perpendicular to the plane (X, Y, or Z)
-  * @param positive Whether the plane is on the positive side of origin
+  * @param positive Whether the plane's normal (its lit side) points along the positive axis,
+  *                 as the `+`/`-` sign of the CLI's `--plane` means
   * @param value The position along the axis
   */
 case class AxisPosition(axis: Axis, positive: Boolean, value: Float)
@@ -22,24 +24,29 @@ case class AxisPosition(axis: Axis, positive: Boolean, value: Float)
 sealed trait AxisHelper:
   def axis: Axis
 
-  /** Create an axis position at the given value.
+  /** Create an axis position at the given value. The plane faces the origin: a floor at
+    * `Y at -2` is lit from above, a ceiling at `Y at 3` from below.
+    *
+    * It used to face away from the origin (normal sign = sign of the value), so every floor
+    * below the scene was lit only from below; the example scenes compensated with lights
+    * pointing up from beneath (usability review 2026-09, F13).
     *
     * @param value Position along the axis
-    * @return AxisPosition with positive flag set based on value sign
+    * @return AxisPosition whose normal points toward the origin (+axis at 0)
     */
-  infix def at(value: Float): AxisPosition = AxisPosition(axis, value >= 0, value)
+  infix def at(value: Float): AxisPosition = AxisPosition(axis, value <= 0, value)
 
   /** Create an axis position at the given integer value.
     *
     * @param value Position along the axis (converted to Float)
-    * @return AxisPosition with positive flag set based on value sign
+    * @return AxisPosition whose normal points toward the origin
     */
   infix def at(value: Int): AxisPosition = at(value.toFloat)
 
   /** Create an axis position at the given double value.
     *
     * @param value Position along the axis (converted to Float)
-    * @return AxisPosition with positive flag set based on value sign
+    * @return AxisPosition whose normal points toward the origin
     */
   infix def at(value: Double): AxisPosition = at(value.toFloat)
 

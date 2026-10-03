@@ -21,7 +21,9 @@ object EnvMapVideoSponge:
   private val MaxT = 1.0f
   private val BaseLevel = 0.5f
   private val LevelSweep = 0.75f
-  private val SpongeSize = 2.4f
+  // 2.0, not 2.4: chosen while F42 rendered every level >= 1 at unit size; at its real size
+  // 2.4 overflows the frame (reviewed 2026-09-29).
+  private val SpongeSize = 2.0f
   private val XWRotationSweep = 120.0f
   private val YWRotationSweep = 45.0f
   private val EnvVideoFps = 2.0
@@ -39,7 +41,9 @@ object EnvMapVideoSponge:
         TesseractSponge(
           spongeType = SurfaceSubdividing,
           level      = level,
-          material   = Some(Material.Gold),
+          // Chrome, not Gold: Gold's blue component is 0, so it reflects the video's pure-blue
+          // frame as black (usability review 2026-09, session 2, F54).
+          material   = Some(Material.Chrome),
           size       = SpongeSize,
           projection = Some(Projection4DSpec(
             eyeW    = EyeW,

@@ -17,7 +17,7 @@ import scala.util.Try
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-/** Real end-to-end test of the AD-18 sandbox -- the story's own acceptance criterion ("one
+/** Real end-to-end test of the SA-AD-18 sandbox -- the story's own acceptance criterion ("one
   * real end-to-end test actually running the container against a known-good scene and a
   * known-bad one," `spec-ai-scene-agent/stories/5-gauntlet-renderer-side.md`'s Tasks &
   * Acceptance) as an automated test, not a manual step performed once. Actually shells out to
@@ -106,7 +106,7 @@ class SceneValidatorContainerE2ESuite extends AnyFlatSpec with Matchers:
     assume(script.isDefined, "docker/scene-validator/run-sandboxed.sh not found -- skipping")
     assume(imageBuilt, s"$ImageTag not built (run docker/scene-validator/build.sh first) -- skipping")
 
-  "the real AD-18 sandbox" should "return ok for a known-good scene run through the real container" in:
+  "the real SA-AD-18 sandbox" should "return ok for a known-good scene run through the real container" in:
     val script = findRunScript()
     assumeSandboxAvailable(script)
 

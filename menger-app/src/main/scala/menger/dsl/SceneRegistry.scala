@@ -33,7 +33,3 @@ object SceneRegistry:
   /** Check if a scene is registered. */
   def contains(name: String): Boolean =
     scenes.contains(name)
-
-  /** Clear all registered scenes (primarily for testing). */
-  def clear(): Unit =
-    scenes.clear()

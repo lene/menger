@@ -92,7 +92,8 @@ visually judged.
 The long parameter-tuning investigation never converged because the implementation has
 structural physics defects — no parameter choice can compensate for them. Sprint 33 fixes
 them and validates the result against pbrt-v4. The nine defects (P1–P9) and the fix order
-are in [docs/sprints/SPRINT33.md](../sprints/SPRINT33.md); the closed tuning log was removed
+are in the workspace repo's archived
+[SPRINT33.md](https://github.com/lene/menger-toplevel/blob/main/docs/archive/sprints/SPRINT33.md); the closed tuning log was removed
 in Task 33.11 as resolved working material.
 
 ### Validation harness

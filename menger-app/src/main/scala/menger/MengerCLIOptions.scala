@@ -11,7 +11,6 @@ import menger.cli.PlaneColorSpec
 import menger.cli.PlaneSpec
 import menger.cli.converters.ConverterUtils
 import menger.cli.converters.animationSpecificationSequenceConverter
-import menger.cli.converters.colorConverter
 import menger.cli.converters.fogSpecConverter
 import menger.cli.converters.lightSpecConverter
 import menger.cli.converters.objectSpecConverter
@@ -19,7 +18,6 @@ import menger.cli.converters.planeColorSpecConverter
 import menger.cli.converters.planeSpecConverter
 import menger.cli.converters.vector3Converter
 import menger.common.CausticsConfig
-import menger.common.Color
 import menger.common.Const
 import menger.common.ObjectType
 import menger.common.RenderConfig
@@ -46,7 +44,7 @@ object MengerCLIOptions:
     * `RandomAccessFile(path, "rw")` then failed with `Permission denied`, which surfaces as
     * "failed to acquire render lock" rather than "already held" -- a misleading message for
     * what is not even a lock conflict, and a trivial local denial of service for anyone who
-    * pre-creates the name. Scoping by user name keeps AD-16's exclusivity (one interactive
+    * pre-creates the name. Scoping by user name keeps SA-AD-16's exclusivity (one interactive
     * session per user, which is what a GPU-bound desktop session actually contends over)
     * while removing the cross-user collision.
     *
@@ -103,15 +101,6 @@ class MengerCLIOptions(arguments: Seq[String])
   private val optixQualityGroup = group("OptiX Quality:")
   private val optixCausticsGroup = group("OptiX Caustics:")
 
-  // Sponge type validation
-  private val basicSpongeTypes = List(
-    "cube", "square", "square-sponge", "cube-sponge",
-    "tesseract", "tesseract-sponge", "tesseract-sponge-2"
-  )
-
-  private def isValidSpongeType(spongeType: String): Boolean =
-    basicSpongeTypes.contains(spongeType)
-
   // === General Options ===
   val timeout: ScallopOption[Float] = opt[Float](
     required = false, default = Some(0), group = generalGroup,
@@ -158,13 +147,13 @@ class MengerCLIOptions(arguments: Seq[String])
     name = "display", noshort = true, required = false, group = generalGroup,
     descr = "Explicit X11 display target (e.g. ':1'). When given, re-execs as a child " +
       "process with DISPLAY set in its environment instead of inheriting the ambient value " +
-      "(AD-6: the display target must be an explicit, injected parameter)"
+      "(SA-AD-6: the display target must be an explicit, injected parameter)"
   )
   val renderLockPath: ScallopOption[String] = opt[String](
     name = "render-lock-path", noshort = true, required = false,
     default = Some(MengerCLIOptions.defaultRenderLockPath),
     group = generalGroup,
-    descr = "Path to the exclusive render-session lock file (AD-16: at most one active " +
+    descr = "Path to the exclusive render-session lock file (SA-AD-16: at most one active " +
       "interactive render session at a time; a second request is refused, never queued)"
   )
 
@@ -187,47 +176,15 @@ class MengerCLIOptions(arguments: Seq[String])
   )
 
   // === Sponge Rendering Options ===
-  val spongeType: ScallopOption[String] = opt[String](
-    required = false, default = Some("square"), group = spongeGroup,
-    validate = isValidSpongeType,
-    descr = "Sponge type: square, cube, tesseract-sponge-volume, tesseract-sponge-surface, composite[...] (old names: tesseract-sponge, tesseract-sponge-2 still work)"
-  )
-  val level: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(Const.defaultSpongeLevel), validate = _ >= 0, group = spongeGroup,
-    descr = "Fractal recursion level (supports fractional values)"
-  )
-  val lines: ScallopOption[Boolean] = opt[Boolean](
-    required = false, default = Some(false), group = spongeGroup,
-    descr = "Render wireframe instead of faces"
-  )
-  val color: ScallopOption[Color] = opt[Color](
-    required = false, default = Some(Color.LIGHT_GRAY), group = spongeGroup,
-    descr = "Sponge color (hex RRGGBB or R,G,B)"
-  )(using colorConverter)
-  val faceColor: ScallopOption[Color] = opt[Color](
-    required = false, group = spongeGroup,
-    descr = "Face color (requires --line-color)"
-  )(using colorConverter)
-  val lineColor: ScallopOption[Color] = opt[Color](
-    required = false, group = spongeGroup,
-    descr = "Line color (requires --face-color)"
-  )(using colorConverter)
   val antialiasSamples: ScallopOption[Int] = opt[Int](
     required = false, default = Some(Const.defaultAntialiasSamples), group = spongeGroup,
-    descr = "OpenGL antialiasing samples"
+    descr = "MSAA sample count for the interactive window's back buffer (headless renders " +
+      "always use --antialiasing's adaptive supersampling instead; no effect there)"
   )
 
   private val isDegree: Float => Boolean = a => a >= 0 && a < 360
 
   // === 4D Projection Options ===
-  val projectionScreenW: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(Const.defaultScreenW), validate = _ > 0, group = projectionGroup,
-    descr = "4D projection screen W coordinate"
-  )
-  val projectionEyeW: ScallopOption[Float] = opt[Float](
-    required = false, default = Some(Const.defaultEyeW), validate = _ > 0, group = projectionGroup,
-    descr = "4D projection eye W coordinate"
-  )
   val rotX: ScallopOption[Float] = opt[Float](
     required = false, default = Some(0), validate = isDegree, group = projectionGroup,
     descr = "Rotation around X axis (degrees)"
@@ -255,7 +212,7 @@ class MengerCLIOptions(arguments: Seq[String])
   val fourDRotation: ScallopOption[String] = opt[String](
     name = "rotation-4d", required = false, group = projectionGroup,
     descr = "4D rotation shorthand: XW,YW,ZW in degrees (e.g., --rotation-4d=30,20,0). " +
-      "Mutually exclusive with --rot-xw, --rot-yw, --rot-zw"
+      "Mutually exclusive with --rot-x-w, --rot-y-w, --rot-z-w"
   )
 
   // Resolve effective 4D rotation angles, honouring --rotation-4d shorthand.
@@ -350,7 +307,7 @@ class MengerCLIOptions(arguments: Seq[String])
   // === OptiX Lighting Options ===
   val light: ScallopOption[List[LightSpec]] = opt[List[LightSpec]](
     required = false, group = optixLightingGroup,
-    descr = "Light source (repeatable, max 8). Types: directional:x,y,z[:intensity[:color]] (x,y,z points TO light), point:x,y,z[:intensity[:color]], area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color[:shape]]]] (disk emitter, soft shadows)"
+    descr = "Light source (repeatable, max 8). Types: directional:x,y,z[:intensity[:color]] (x,y,z is the direction the light travels, 0,-1,0 = straight down), point:x,y,z[:intensity[:color]], area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color[:shape]]]] (disk emitter, soft shadows)"
   )(using lightSpecConverter)
   val shadows: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(true), group = optixLightingGroup,

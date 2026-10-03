@@ -1,5 +1,98 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- An animated scene can declare `val duration = <seconds>f`: `t` is then time in seconds, and
+  `--scene` without `--frames`/`--t`/`--save-name`/`--headless` opens a window that plays it
+  in real time, looping (it takes the render lock like the interactive window). Scenes
+  without `duration` behave as before. `SceneValidator` also checks such a scene at
+  `t = duration`, not only at `t = 0`.
+- `--scene <file.scala>` in an interactive window now watches the file and reloads it in
+  place on every save (usability review 2026-09, F5): geometry, lights, planes, background,
+  fog, IBL and render/denoise/accumulation settings all update; the camera and any
+  in-progress 4D rotation are left untouched. A save that fails to load (a compile error, or
+  a scene the loader rejects) is logged and the window keeps running its current scene. Only
+  a static scene reloads live; a save that turns the file animated is reported and requires
+  restarting the window. New `menger.dsl.SceneFileWatcher`.
+- The regular 4D polytopes besides the tesseract are DSL objects: `Pentachoron`,
+  `Hexadecachoron`, `Icositetrachoron`, `Hecatonicosachoron`, `Hexacosichoron` (usability
+  review 2026-09, F17), with the same fields as `Tesseract`; new example `PolytopeGallery`
+  (`--scene polytope-gallery`).
+
+### Changed
+
+- **Breaking (rendering):** DSL planes face the origin: `Y at -2` is a floor lit from above
+  (it faced down before, so floors were lit only by lights from below and never showed a
+  shadow), matching the CLI's `--plane +y:-2`. Together with optix-jni's fix of the directional
+  light convention (`direction` is the travel direction), the example scenes' lights, which were
+  already written that way, now light them from above.
+- The DSL capability manifest (schema 1.1.0) carries the DSL's conventions and per-field
+  semantics: units, light direction, plane orientation, colour alpha versus material, emission,
+  animation duration (`menger.tools.DslSemantics`).
+- Timing tests are now noise-aware performance gates (tag `Perf`) in their own push-tier `perf`
+  suite and CI job, excluded from the regular test run. Each gate times a subject against a
+  reference in interleaved rounds (shared helper `io.github.lene.qa.RelativeBenchmark`) and
+  judges the median ratio by its confidence interval: a conclusive regression fails, an
+  unjudgeable measurement is skipped visibly. Replaces absolute millisecond/fps thresholds
+  (`SpongePerformanceSuite`) and single-shot A/B timings (`Project4DGpuSuite`).
+- The benchmark trend check is now the release-tier `perf-trend` suite: `benchmark.sh` brackets
+  every scene with calibration renders, stores machine-independent ratios in
+  `perf-baseline.json`, and exits 2 (skip) when a scene can't be judged reliably.
+
+### Fixed
+
+- Console log output goes to stderr, so tools that print JSON on stdout (`SceneValidator`)
+  stay machine-readable.
+- Scene compile failures report the real compiler diagnostics instead of a placeholder.
+- A sticky CUDA error (700 illegal address, 719 launch failure, ...) exits with one error line
+  instead of being retried on every frame; non-sticky failures (out of memory) still retry.
+- `--preview` failed on every animated scene (`savePattern must contain %`): the preview saves
+  nothing and passed an empty pattern, which is now allowed.
+- An animated scene whose `scene(0)` threw (e.g. a failed `require`) was reported as having
+  no scene method at all; the scene's own error is now reported.
+- `--preview` ignored `--timeout`.
+- A 4D object with edges next to one without made the scene build fail and the window vanish;
+  such scenes are now split into separately built groups.
+- An analytical object (e.g. a sphere) next to an edge-rendered 4D object disappeared: the
+  edge builder reinitializes the renderer, which dropped everything built before it. Edge
+  groups are now built first.
+- Rotating edge-rendered 4D objects interactively darkened the scene: every rebuild
+  reinitialized the renderer and lost the lights and render settings, which are now restored
+  after each rebuild (interactive window and preview).
+- A failure to create the scene exited with status 0 after a briefly flashing window; it is now
+  reported on stderr with exit status 1.
+- `SceneValidator` accepted scenes the renderer cannot build: it now runs the renderer's own
+  object grouping and each scene builder's preconditions (no GPU needed).
+- The interactive window could crash with CUDA 700/719 (illegal memory access) while rotating
+  scenes with many see-through faces, such as fractional-level sponges: rays passing through
+  transparent or coverage-blended faces nested past the ray tracer's recursion limit
+  (usability review 2026-09, F11). Fixed in optix-jni 0.4.0, which menger now uses; its three
+  4D shaders read the trace-depth payload through `TraceDepth::bounce`, and a face that would
+  exceed the limit renders opaque.
+- Interactively rotating an edge-rendered 4D object (polytopes with `edge-radius`/
+  `edge-material`) rebuilt the whole scene on every step, reinitializing the renderer each
+  time: ~95-195 ms per step, 5-10 fps while dragging (usability review 2026-09, F22). The edge
+  cylinders and faces are now moved in place (optix-jni 0.4.0's `updateCylinderInstances`,
+  faces on the GPU projection path): ~7-24 ms per step. A rotation that changes which edges the
+  eye_w plane clips, or fractional-level sponges (CPU-projected faces), still rebuild. The edge
+  builder also no longer reinitializes the renderer when it already has enough capacity.
+- An object's explicit `color` overrode its material's alpha too, so an opaque `color` on
+  `Glass`/`Film` silently made it opaque; `color` now tints RGB only and the material's own
+  transparency is preserved.
+- `TesseractSponge` ignored `size`, and several edge-rendered 4D objects in one scene all got
+  the first object's mesh (usability review 2026-09, F27).
+- `examples.dsl.CausticsReferenceDefault`'s point light blew the floor out to solid white in
+  8-bit output, hiding the caustic ring; its intensity is lowered (the pbrt-compared
+  `CausticsCanonical` is unaffected). `CausticsReferenceDefault`, `ParametricSphereCaustics`
+  and `ParametricTorusCaustics` were also missing from `SceneIndex`, so their short names
+  (`caustics-reference-default`, ...) never resolved via `--scene <short-name>`.
+- `ExampleScenesSuite`'s registry test intermittently saw an empty `SceneRegistry`: a test
+  helper (`SceneLoaderSuite`) cleared the process-global registry, racing other suites that
+  run concurrently in the same JVM. The clearing was unnecessary (its keys never collide with
+  a real scene name) and is removed, along with the now-unused `SceneRegistry.clear()`.
+
 ## [0.9.0] - 2026-09-10
 
 `0.8.14` was prepared but never tagged/released — its changes and this cycle's code-review

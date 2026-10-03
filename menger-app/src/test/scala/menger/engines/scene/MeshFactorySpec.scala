@@ -10,6 +10,29 @@ class MeshFactorySpec extends AnyFlatSpec with Matchers:
 
   given ProfilingConfig = ProfilingConfig.disabled
 
+  // --- 4D buffer cache (usability review 2026-09, session 2, F52) ---
+
+  private def quads(plan: MeshUploadPlan): Array[Float] = plan match
+    case MeshUploadPlan.Gpu4D(buffer, _, _) => buffer
+    case other => fail(s"expected a Gpu4D plan, got $other")
+
+  "MeshFactory's 4D buffer cache" should "reuse the buffer when only the projection differs" in:
+    // An animated level or rotation rebuilt the sponge's 4D mesh every frame; level 3 took ~20 s.
+    val spec = ObjectSpec.parse("type=tesseract-sponge:level=2:size=1.3").toOption.get
+    val rotated = spec.copy(projection4D = Some(Projection4DSpec(rotXW = 42f)))
+    quads(MeshFactory.createUpload(spec)) should be theSameInstanceAs
+      quads(MeshFactory.createUpload(rotated))
+
+  it should "not mix up level, size or hole caps" in:
+    val spec = ObjectSpec.parse("type=tesseract-sponge:level=1:size=1.3").toOption.get
+    val buffers = Seq(
+      MeshFactory.createUpload(spec),
+      MeshFactory.createUpload(spec.copy(level = Some(2f))),
+      MeshFactory.createUpload(spec.copy(size = 1.4f)),
+      MeshFactory.createUpload(spec, holeCaps = true)
+    ).map(quads)
+    buffers.combinations(2).foreach { pair => pair(0) should not be theSameInstanceAs(pair(1)) }
+
   // --- 4D types → Gpu4D plan ---
 
   "MeshFactory.createUpload" should "return Gpu4D plan for tesseract" in:

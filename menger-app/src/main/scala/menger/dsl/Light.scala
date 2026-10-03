@@ -9,7 +9,8 @@ sealed trait Light:
 
 /** Directional light with parallel rays (like sunlight).
   *
-  * @param direction Vector pointing TOWARD the light source position (where the light comes from).
+  * @param direction The direction the light travels: (0f, -1f, 0f) shines straight down,
+  *                  (1f, -1f, -1f) shines down and away from a camera on the +z side.
   * @param intensity Light brightness multiplier (default: 1.0)
   * @param color Light color (default: white)
   */

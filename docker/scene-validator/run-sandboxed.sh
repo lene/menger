@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# AD-18's sandboxed run wrapper for the scene-validator image: no network egress, no Linux
+# SA-AD-18's sandboxed run wrapper for the scene-validator image: no network egress, no Linux
 # capabilities, an immutable root filesystem, resource/wall-clock bounds, and a mount topology
 # reduced to exactly one read-only file -- the scene under validation. Nothing else is mounted:
 # not the texture directory, not an output directory, and (this is load-bearing, not an
-# omission) no manifest/corpus artifact directory. AD-9 scopes the manifest+corpus artifact to
+# omission) no manifest/corpus artifact directory. SA-AD-9 scopes the manifest+corpus artifact to
 # the agent side only; a scene-validator run has no legitimate reason to read or write it.
 set -euo pipefail
 
@@ -11,7 +11,7 @@ usage() {
   cat >&2 <<'USAGE'
 Usage: run-sandboxed.sh <scene-file.scala> [--image <tag>]
 
-Runs `menger.tools.SceneValidator` against <scene-file.scala> inside the AD-18 sandbox.
+Runs `menger.tools.SceneValidator` against <scene-file.scala> inside the SA-AD-18 sandbox.
 
   --image <tag>      Image to run (default: menger-scene-validator:latest -- see build.sh).
 
@@ -81,14 +81,14 @@ case "$SCENE_FILE_ABS" in
   *,*|*=*) echo "Scene path may not contain ',' or '=': $SCENE_FILE_ABS" >&2; exit 1 ;;
 esac
 
-# --- Containment (AD-18) -------------------------------------------------------------------
+# --- Containment (SA-AD-18) -----------------------------------------------------------------
 #   --pull never                        never implicitly fetch $IMAGE_TAG over the network if
 #                                        it's not already cached locally -- `docker run` alone
 #                                        would pull it via the *daemon's* own network access,
 #                                        which happens before --network none applies to the
 #                                        container being started, so an unbuilt/mistyped image
 #                                        tag fails loudly instead of silently reaching out
-#   --network none                      no egress (AD-2: the renderer already needs none --
+#   --network none                      no egress (SA-AD-2: the renderer already needs none --
 #                                        this is the enforcement, not a new constraint)
 #   --memory / --cpus / --pids-limit    bounds a pathological or adversarial generated scene
 #                                        (an infinite loop or huge allocation in a val

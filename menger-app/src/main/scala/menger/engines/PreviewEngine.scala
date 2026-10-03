@@ -19,12 +19,17 @@ class PreviewEngine(
   executionConfig: ExecutionConfig,
   override val renderConfig: RenderConfig,
   val causticsConfig: CausticsConfig,
-  denoiseModeOverride: Option[DenoiseMode] = None
+  denoiseModeOverride: Option[DenoiseMode] = None,
+  override val realtime: Boolean = false
 )(using ProfilingConfig)
     extends BaseEngine(executionConfig.maxInstances)
-    with WithPreview:
+    with WithPreview
+    with TimeoutSupport:
 
   override protected def textureDir: String = executionConfig.textureDir
+
+  // --timeout was ignored here, so a looping real-time preview never ended on its own.
+  override def timeout: Float = executionConfig.timeout
 
   private val _firstScene = sceneFunction(previewConfig.startT)
 
@@ -58,5 +63,6 @@ class PreviewEngine(
       onJumpEnd    = jumpToEnd
     )
     GdxRuntime.setInputProcessor(LibGDXInputAdapter(Seq(keyHandler)))
+    startExitTimer(timeout)
 
   override def render(): Unit = super.render()

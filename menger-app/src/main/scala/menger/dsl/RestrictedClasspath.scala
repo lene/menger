@@ -16,17 +16,17 @@ import scala.util.control.NonFatal
 import com.typesafe.scalalogging.LazyLogging
 
 /** Scopes the compile-time classpath `SceneCompiler.compile` hands to the Scala 3 compiler
-  * down to the DSL surface and its transitive needs (AD-4 rule 2), replacing the previous
+  * down to the DSL surface and its transitive needs (SA-AD-4 rule 2), replacing the previous
   * unrestricted classpath -- every jar and directory reachable from the current JVM's
   * classloader chain, including test frameworks, LibGDX/LWJGL, the native OptiX JNI bridge,
   * and the sbt/coursier build toolchain.
   *
-  * AD-4 rule 2's own text concedes this restriction "cannot exclude the JVM bootclasspath or
+  * SA-AD-4 rule 2's own text concedes this restriction "cannot exclude the JVM bootclasspath or
   * `scala-library.jar`" -- it narrows which *library jars* are visible to the compiler while
   * it typechecks a scene file; it does not achieve per-class isolation within `menger-app`'s
   * own compiled output (`menger.dsl`, `menger.objects`, `menger.engines`, `menger.tools`, ...
   * all still share one `classes` directory -- splitting that would need a source-set-level
-  * restructuring of the build, out of this story's scope). AD-18's container sandbox is what
+  * restructuring of the build, out of this story's scope). SA-AD-18's container sandbox is what
   * backstops the rest.
   *
   * The include list below was determined empirically, not guessed: compiling every one of
@@ -140,7 +140,7 @@ object RestrictedClasspath extends LazyLogging:
   /** menger-app's own packages that a compiled scene has no business resolving: the render
     * engines, the validation tooling that *invokes* the compiler, the CLI, and input handling.
     *
-    * Review round 2 (AD-4 rule 2): admitting menger-app's whole classes directory / jar left
+    * Review round 2 (SA-AD-4 rule 2): admitting menger-app's whole classes directory / jar left
     * `Main`, `menger.tools.SceneValidator`, `menger.engines.*` and `menger.cli.*` typeable
     * from inside a generated scene -- well beyond "only the DSL surface and its transitive
     * needs". `-classpath` has no sub-jar or per-package granularity, so the narrowing is done
@@ -161,7 +161,7 @@ object RestrictedClasspath extends LazyLogging:
   /** A pruned stand-in for `entry` with [[ExcludedProjectPackages]] removed, or `entry`
     * itself if pruning is impossible (no symlink support, an unreadable jar, a read-only
     * temp directory). Degrading to the unpruned entry keeps scene compilation working --
-    * AD-18's container is what backstops the restriction -- but says so loudly. */
+    * SA-AD-18's container is what backstops the restriction -- but says so loudly. */
   private def prune(entry: String): String =
     prunedEntries.computeIfAbsent(entry, _ => pruneUncached(entry))
 
@@ -252,11 +252,11 @@ object RestrictedClasspath extends LazyLogging:
   /** `None` when the restricted classpath is structurally complete (every allowlisted
     * artifact resolved to at least one entry); `Some(reason)` when it is not -- a stale
     * build, an unresolved dependency, a classpath that never reached this project's own
-    * `menger-app` code at all. Used to tell AD-5's `refused` (a pipeline-level failure) apart
+    * `menger-app` code at all. Used to tell SA-AD-5's `refused` (a pipeline-level failure) apart
     * from a genuine scene defect: a scene that fails to compile against a *complete*
     * restricted classpath is the scene's own bug; a scene that fails to compile because the
     * classpath itself is missing an entry it should always have is `refused`, never
-    * miscoded as `compile-errors` (AD-5's own stated rationale -- conflating the two makes an
+    * miscoded as `compile-errors` (SA-AD-5's own stated rationale -- conflating the two makes an
     * agent retry forever against its own supposed bug).
     *
     * `menger-app` itself is satisfied by *either* its classes directory or its jar (the two

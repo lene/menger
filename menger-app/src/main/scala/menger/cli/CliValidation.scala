@@ -15,8 +15,6 @@ trait CliValidation:
 
   protected def timeout: ScallopOption[Float]
   protected def animate: ScallopOption[AnimationSpecificationSequence]
-  protected def spongeType: ScallopOption[String]
-  protected def level: ScallopOption[Float]
   protected def rotX: ScallopOption[Float]
   protected def rotY: ScallopOption[Float]
   protected def rotZ: ScallopOption[Float]
@@ -24,12 +22,6 @@ trait CliValidation:
   protected def rotYW: ScallopOption[Float]
   protected def rotZW: ScallopOption[Float]
   protected def fourDRotation: ScallopOption[String]
-  protected def projectionScreenW: ScallopOption[Float]
-  protected def projectionEyeW: ScallopOption[Float]
-  protected def color: ScallopOption[?]
-  protected def faceColor: ScallopOption[?]
-  protected def lineColor: ScallopOption[?]
-  protected def lines: ScallopOption[Boolean]
   protected def scene: ScallopOption[String]
   protected def objects: ScallopOption[List[ObjectSpec]]
   protected def shadows: ScallopOption[Boolean]
@@ -58,7 +50,6 @@ trait CliValidation:
     validationLogger.debug("Registering CLI validation rules")
     registerProjectionValidations()
     registerAnimationValidations()
-    registerColorValidations()
     registerOptiXValidations()
     registerAntialiasingValidations()
     registerCausticsValidations()
@@ -68,10 +59,6 @@ trait CliValidation:
 
   private def registerProjectionValidations(): Unit =
     mutuallyExclusive(timeout, animate)
-    validate(projectionScreenW, projectionEyeW) { (screen, eye) =>
-      if eye > screen then Right(())
-      else Left("eyeW must be greater than screenW")
-    }
     validateOpt(fourDRotation) { rot =>
       rot.map(ConverterUtils.parseFourDRotation).getOrElse(Right((0f, 0f, 0f))).map(_ => ())
     }
@@ -82,12 +69,12 @@ trait CliValidation:
     }
 
   private def registerAnimationValidations(): Unit =
-    validateOpt(animate, spongeType, objects) { (specOpt, spongeOpt, objsOpt) =>
+    validateOpt(animate, objects) { (specOpt, objsOpt) =>
       specOpt match
         case Some(spec) =>
           val types: Set[String] = objsOpt match
             case Some(objs) if objs.nonEmpty => objs.map(_.objectType).toSet
-            case _ => spongeOpt.toSet
+            case _ => Set.empty
           validateAnimationSpecification(spec, types)
         case None => Right(())
     }
@@ -105,32 +92,6 @@ trait CliValidation:
           effectiveXW, effectiveYW, effectiveZW
         ) then Left("Animation specification has rotation axis set that is also set statically")
         else Right(())
-    }
-
-    validateOpt(animate, level) { (spec, lvl) =>
-      if spec.isEmpty then Right(())
-      else
-        val levelIsAnimated = spec.get.parts.exists(_.animationParameters.contains("level"))
-        if levelIsAnimated && level.isSupplied then
-          Left("Level cannot be specified both as --level option and in animation specification")
-        else Right(())
-    }
-
-  private def registerColorValidations(): Unit =
-    validateOpt(color, faceColor, lineColor) { (_, _, _) =>
-      if hasConflictingColorOptions then
-        Left("--color cannot be used together with --face-color or --line-color. " +
-          "Use either --color OR (--face-color AND --line-color)")
-      else if hasFaceLineColorMismatch then
-        Left("--face-color and --line-color must be specified together. " +
-          "Provide both options or use --color instead")
-      else Right(())
-    }
-
-    validateOpt(lines, faceColor, lineColor) { (_, _, _) =>
-      if hasLinesWithColorConflict then
-        Left("--lines cannot be used together with --face-color or --line-color")
-      else Right(())
     }
 
   private def registerOptiXValidations(): Unit =
@@ -163,15 +124,6 @@ trait CliValidation:
     requiresCausticsFlag("caustics-iterations", causticsIterations)
     requiresCausticsFlag("caustics-radius", causticsRadius)
     requiresCausticsFlag("caustics-alpha", causticsAlpha)
-
-  private def hasConflictingColorOptions: Boolean =
-    color.isSupplied && (faceColor.isSupplied || lineColor.isSupplied)
-
-  private def hasFaceLineColorMismatch: Boolean =
-    faceColor.isSupplied != lineColor.isSupplied
-
-  private def hasLinesWithColorConflict: Boolean =
-    lines.isSupplied && (faceColor.isSupplied || lineColor.isSupplied)
 
   private def validateAnimationSpecification(
     spec: AnimationSpecificationSequence, spongeTypes: Set[String]

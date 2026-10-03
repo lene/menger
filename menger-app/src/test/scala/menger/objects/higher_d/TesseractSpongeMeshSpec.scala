@@ -20,23 +20,24 @@ class TesseractSpongeMeshSpec extends AnyFlatSpec with Matchers:
     val mesh = TesseractSpongeMesh(level = 1)
     val triangleMesh = mesh.toTriangleMesh
 
-    // Level 1: 1,152 faces = 2,304 triangles
-    triangleMesh.numTriangles shouldBe 2304
-    triangleMesh.numVertices shouldBe 4608
+    // Level 1: 768 surface faces = 1,536 triangles (F55: shared faces once, not 1,152 copies)
+    triangleMesh.numTriangles shouldBe 1536
+    triangleMesh.numVertices shouldBe 3072
 
   it should "create level 2 mesh" in:
     val mesh = TesseractSpongeMesh(level = 2)
     val triangleMesh = mesh.toTriangleMesh
 
-    // Level 2: 55,296 faces = 110,592 triangles
-    triangleMesh.numTriangles shouldBe 110592
+    // Level 2: 29,184 surface faces = 58,368 triangles (F55: was 55,296 faces with copies and
+    // interior faces)
+    triangleMesh.numTriangles shouldBe 58368
 
   it should "accept fractional levels" in:
     val mesh = TesseractSpongeMesh(level = 1.5f)
     val triangleMesh = mesh.toTriangleMesh
 
     // Fractional level should truncate to level 1
-    triangleMesh.numTriangles shouldBe 2304
+    triangleMesh.numTriangles shouldBe 1536
 
   it should "work with default parameters" in:
     val mesh = TesseractSpongeMesh(level = 0)
@@ -96,10 +97,10 @@ class TesseractSpongeMeshSpec extends AnyFlatSpec with Matchers:
     val triangleMesh = mesh.toTriangleMesh
     TesseractSpongeMesh.estimatedTriangles(0) shouldBe triangleMesh.numTriangles
 
-  it should "match actual mesh triangle count at level 1" in:
+  it should "be an upper bound of the actual mesh triangle count at level 1" in:
     val mesh = TesseractSpongeMesh(level = 1)
     val triangleMesh = mesh.toTriangleMesh
-    TesseractSpongeMesh.estimatedTriangles(1) shouldBe triangleMesh.numTriangles
+    TesseractSpongeMesh.estimatedTriangles(1) should be >= triangleMesh.numTriangles.toLong
 
   // === Mesh Quality Tests ===
 

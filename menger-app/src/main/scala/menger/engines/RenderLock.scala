@@ -9,7 +9,7 @@ import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
 
-/** GPU-exclusivity guard (AD-16: "at most one active render session ... a second request ...
+/** GPU-exclusivity guard (SA-AD-16: "at most one active render session ... a second request ...
   * refused explicitly, never queued silently") built on `java.nio.channels.FileLock`.
   *
   * `tryAcquire` is non-blocking by construction (`FileChannel.tryLock()`, never `lock()`):

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the scene-validator sandbox image (spec-ai-scene-agent story 5, AD-18).
+# Builds the scene-validator sandbox image (spec-ai-scene-agent story 5, SA-AD-18).
 #
 # Three-step build, deliberately not a single `docker build .` (steps 1 and 2 below prepare
 # the build context that step 3 consumes):

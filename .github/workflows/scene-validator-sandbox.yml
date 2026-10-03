@@ -1,4 +1,4 @@
-# AD-18 sandbox verification (spec-ai-scene-agent story 5, code review round 2).
+# SA-AD-18 sandbox verification (spec-ai-scene-agent story 5, code review round 2).
 #
 # Deliberately NOT part of PR CI: story 5's `Never` clause keeps the scene-validator image out
 # of the PR pipeline, and building it needs a licensed OptiX SDK on the host. But leaving it

@@ -79,9 +79,8 @@ leaky") — add only if the 🤖 row proves insufficient in practice.
 
 | Policy | Source | Mechanism | Status |
 |--------|--------|-----------|--------|
-| Version consistent across `build.sbt`, `.gitlab-ci.yml`, `MengerCLIOptions.scala`, `user-guide.md` | AGENTS.md §Release workflow | pre-push Phase 1: `scripts/check-version-consistency.sh` | ✅ |
+| Version consistent across `build.sbt`, `.github/workflows/ci.yml` (`DEPLOYABLE_VERSION`), `MengerCLIOptions.scala`, `user-guide.md` | AGENTS.md §Release workflow | pre-push Phase 1: `scripts/check-version-consistency.sh` | ✅ |
 | Git tag not already used | AGENTS.md §Release workflow | pre-push Phase 1: tag availability check | ✅ |
-| GitLab CI YAML valid | AGENTS.md §Release workflow | pre-push Phase 1: CI lint via API (`.gitlab-ci.yml` changes) | ✅ |
 | Release triggers on merge to `main` unless skipped | Sprint 28.5 + 35 (4.7) | GitHub Actions `create-tag`/`release` jobs on main push; skip by putting `NORELEASE` or `[skip release]` in the PR title / merge commit message (push events have no PR-label context) | ✅ |
 | Released package installs and renders on user's OS | Sprint 28.5 | `InstallProof` CI job on tag pipeline | ✅ |
 | CHANGELOG.md updated at release | AGENTS.md §Release workflow | CI `ChangelogIsUpdated` job: checks top entry matches current tag and date | ✅ |
@@ -103,8 +102,8 @@ leaky") — add only if the 🤖 row proves insufficient in practice.
 | Policy | Source | Mechanism | Status |
 |--------|--------|-----------|--------|
 | Every MR reviewed by ≥ 2 AI model families | Sprint 28.4 | Retired Sprint 36 A2: no API key was ever funded; `continue-on-error` masked the resulting failure as green for ≥3 PRs. See `docs/QA_INCIDENTS.md`. | 🤖 |
-| Pipeline must succeed before merge | Sprint 28.6 | GitLab project setting: *Pipelines must succeed* | ✅ |
-| All discussions must be resolved before merge | Sprint 28.6 | GitLab project setting: *All discussions must be resolved* | ✅ |
+| Pipeline must succeed before merge | Sprint 28.6 | Not a GitHub branch-protection setting (none configured on `main`); relies on maintainer discipline (`gh pr checks` green before merge) since the GitLab migration (Sprint 35) retired the GitLab project setting this row used to describe | ⚠️ |
+| All discussions must be resolved before merge | Sprint 28.6 | Same as above -- no GitHub equivalent configured; maintainer discipline only | ⚠️ |
 | Always monitor CI pipeline after push | AGENTS.md §Critical rules | 🤖 AI policy | 🤖 |
 
 ---
@@ -113,7 +112,8 @@ leaky") — add only if the 🤖 row proves insufficient in practice.
 
 | Policy | Source | Mechanism | Status |
 |--------|--------|-----------|--------|
-| No silent performance regressions (> 15 % ms/frame) | Sprint 28.7 | CI `PerfCheck` job (`allow_failure: true`): `benchmark.sh` compares 4 scenes against `perf-baseline.json` (15 % threshold) | ⚠️ advisory |
+| No silent performance regressions | Sprint 28.7, Sprint 37 | `perf` suite (push tier, pre-push + CI `perf` job, blocking): `Perf`-tagged gates time each subject against a reference in interleaved rounds (`io.github.lene.qa.RelativeBenchmark`) and fail only on a conclusive regression; unjudgeable measurements SKIP visibly (see `docs/TESTING.md` "Performance gates") | ✅ enforced |
+| No silent performance drift across commits | Sprint 36 F4, Sprint 37 | `perf-trend` suite (release tier; CI `perf-check` on PRs/schedule): `benchmark.sh` brackets each of 9 scenes with calibration renders, compares against machine-independent ratios in `perf-baseline.json` (1.30x limit, confidence interval), ratchets on conclusive improvement; arc42 P1/P2 absolute budgets as budget guards | ✅ enforced |
 
 ---
 
@@ -141,4 +141,4 @@ consciously accepted.
 | 4 | Alpha-channel convention (0.0 = transparent) has no static check | Add WartRemover rule or comment-linter — [#158](https://gitlab.com/lilacashes/menger/-/work_items/158) |
 | 6 | No check that arc42 is updated when architecture-relevant files change | Implement hook comparing changed paths against an architecture-relevant path list — [#160](https://gitlab.com/lilacashes/menger/-/work_items/160) |
 | ~~7~~ | ~~CHANGELOG.md update not enforced at release time~~ | **✅ Resolved (Sprint 36 G3):** already closed by CI's `ChangelogIsUpdated` job (see Version & release table above) — the table was updated when that landed but this row never was. |
-| 8 | Performance regression guard not yet implemented | Task 28.7 — [#162](https://gitlab.com/lilacashes/menger/-/work_items/162). Note: a `PerfCheck` job exists (Performance table above) but only as advisory (`allow_failure: true`); this issue is about a real blocking guard, still open. |
+| ~~8~~ | ~~Performance regression guard not yet implemented~~ | **✅ Resolved (Sprint 37):** blocking push-tier `perf` suite plus release-tier `perf-trend` (Performance table above), built on interleaved relative benchmarks with confidence intervals — [#162](https://gitlab.com/lilacashes/menger/-/work_items/162). |

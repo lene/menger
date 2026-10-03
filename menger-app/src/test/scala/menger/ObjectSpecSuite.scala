@@ -106,6 +106,29 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
       case Right(spec) => spec.objectType shouldBe "sponge-volume"
       case Left(error) => fail(s"Expected Right but got Left: $error")
 
+  // Usability review 2026-09 (T1#3): the CLI path had no upper bound on sponge/lsystem level
+  // at all -- only InteractiveEngine's own require() did, and only for the CLI object-spec
+  // path at initial startup, not for e.g. a DSL scene reload.
+  it should "reject a sponge level above the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.cubeSpongeLevel.max
+    val result = ObjectSpec.parse(s"type=sponge-volume:level=${max + 1}")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("exceeds hard maximum"))
+
+  it should "accept a sponge level at the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.cubeSpongeLevel.max
+    ObjectSpec.parse(s"type=sponge-volume:level=$max") shouldBe a[Right[?, ?]]
+
+  it should "reject an lsystem level (iterations) above the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.lsystemMaxIterations
+    val result = ObjectSpec.parse(s"type=lsystem:level=${max + 1}")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("exceeds hard maximum"))
+
+  it should "accept an lsystem level (iterations) at the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.lsystemMaxIterations
+    ObjectSpec.parse(s"type=lsystem:level=$max") shouldBe a[Right[?, ?]]
+
   "ObjectSpec.parseAll" should "parse multiple valid specs" in:
     val specs = List(
       "type=sphere:pos=0,0,0:size=1.0",

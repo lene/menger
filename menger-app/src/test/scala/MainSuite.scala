@@ -2,6 +2,7 @@ import scala.jdk.CollectionConverters._
 
 import menger.MengerCLIOptions
 import menger.engines.InteractiveEngine
+import menger.engines.PreviewEngine
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -120,9 +121,42 @@ class MainSuite extends AnyFlatSpec with Matchers:
     engine shouldBe a [InteractiveEngine]
     Main.shouldLock(engine, opts) shouldBe false
 
+  // Usability review 2026-09 (F3): the scene agent's window froze every animated scene at t=0.
+  private def timedSceneFile(): String =
+    val f = java.nio.file.Files.createTempFile("main-suite-timed-", ".scala").toFile
+    f.deleteOnExit()
+    val pw = java.io.PrintWriter(f)
+    pw.write(
+      """import menger.dsl._
+        |object TimedMainSuiteScene:
+        |  val duration = 10f
+        |  def scene(t: Float): Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(pos = Vec3(t, 0f, 0f))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    pw.close()
+    f.getAbsolutePath
+
+  "an animated scene with a declared duration" should "play in a locked, real-time preview window" in:
+    val opts = MengerCLIOptions(Seq("--scene", timedSceneFile()))
+    val engine = Main.createEngine(opts)
+    engine match
+      case preview: PreviewEngine =>
+        preview.realtime shouldBe true
+        preview.previewConfig.endT shouldBe 10f
+      case other => fail(s"Expected a PreviewEngine, got $other")
+    Main.shouldLock(engine, opts) shouldBe true
+
+  it should "still render a single frozen frame when --t is given" in:
+    val opts = MengerCLIOptions(Seq("--scene", timedSceneFile(), "--t", "2"))
+    Main.createEngine(opts) shouldBe a [InteractiveEngine]
+
   // Review round 2: shouldLock, RenderLock.tryAcquire and refusedResultJson were each tested
   // in isolation and nothing composed them, so deleting Main's entire lock branch left every
-  // test green. These pin the composition -- AD-16's actual behaviour.
+  // test green. These pin the composition -- SA-AD-16's actual behaviour.
   "acquireLockIfNeeded" should "not take a lock for a batch (headless) render" in:
     val opts = MengerCLIOptions(
       Seq("--objects", "type=sphere", "--headless", "--save-name", "out.png")
@@ -150,7 +184,7 @@ class MainSuite extends AnyFlatSpec with Matchers:
       refused.map(_.isLeft) shouldBe Some(true)
       refused.foreach(_.left.foreach { reason =>
         reason should include(lockPath)
-        // The refusal reaches the user as AD-5's tagged JSON, not a bare message.
+        // The refusal reaches the user as SA-AD-5's tagged JSON, not a bare message.
         Main.refusedResultJson(reason) should include("\"refused\"")
       })
     finally held.foreach(_.close())
