@@ -266,20 +266,23 @@ jobs:
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     env:
-      TEST_RUN_MAX_RUNNING_TIME: "60"   # seconds; was a GitLab CI variable
+      # Level-1 render run vs a --help run of the staged launcher, CPU user time, median of 5
+      # interleaved rounds (scripts/runtime-budget.sh). Relative, because the runner is a
+      # shared desktop: an absolute 60 s budget failed at 69-108 s on unchanged code under load.
+      # Measured on the RTX A1000 laptop (2026-10-03): median 1.86 / 1.99 under desktop load,
+      # 2.02 / 2.02 with all cores busy plus a 100% GPU burn; limit ~2x the highest.
+      RUNTIME_BUDGET_MAX_RATIO: "4.0"
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
       - run: nvidia-smi
-      - name: Measure a level-1 render runtime against the budget
+      - name: Measure a level-1 render runtime relative to a reference run
         run: |
           set -euo pipefail
-          sbt compile
+          sbt mengerApp/stage
           unset OPTIX_ROOT || true
-          /usr/bin/time -f %U -o runtime.log xvfb-run -a sbt "mengerApp / run --objects type=sponge-volume:level=1 --timeout 0.1"
-          echo "user-time=$(cat runtime.log)  budget=${TEST_RUN_MAX_RUNNING_TIME}s"
-          [ "$(echo "$(cat runtime.log) > $TEST_RUN_MAX_RUNNING_TIME" | bc -l)" -eq 0 ]
+          ./scripts/runtime-budget.sh
 
   # SonarCloud analysis is handled by the SonarCloud GitHub App (automatic on PRs/pushes),
   # so there is no sonar job here — it would double-run. Config lives in sonar-project.properties.
