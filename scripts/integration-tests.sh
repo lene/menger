@@ -836,6 +836,9 @@ test_tesseract() {
         --objects type=tesseract:pos=0,0,0:size=0.8:rot-xw=30:rot-yw=20:rot-zw=10
     run_test "tesseract custom projection" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:eye-w=5.0:screen-w=2.0
+    # menger#65: w scaled before rotation; 0.3 is a tesseract part-way grown out of a cube
+    run_test "tesseract w-scale" --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8:w-scale=0.3
     run_test "tesseract with color" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:color=#4488FF
     run_test_hd "tesseract with material" --plane y:-2 \

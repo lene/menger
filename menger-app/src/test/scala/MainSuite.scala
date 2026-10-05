@@ -129,7 +129,7 @@ class MainSuite extends AnyFlatSpec with Matchers:
     pw.write(
       """import menger.dsl._
         |object TimedMainSuiteScene:
-        |  val duration = 10f
+        |  val durationSeconds = 10f
         |  def scene(t: Float): Scene = Scene(
         |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
         |    objects = List(Sphere(pos = Vec3(t, 0f, 0f))),

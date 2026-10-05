@@ -32,10 +32,10 @@ object TrackedMesh4D:
   def canUpdateInPlace(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
     prev.length == next.length && prev.lazyZip(next).forall((a, b) => geometry(a) == geometry(b))
 
+  // The view drops out, the w-scale stays: it changes the 4D mesh itself (menger#65).
   private def geometry(spec: ObjectSpec): ObjectSpec =
-    spec.copy(
-      projection4D = None, level = spec.level.map(levelInterval),
-      x = 0f, y = 0f, z = 0f, rotation = ObjectRotation()
+    spec.withoutView.copy(
+      level = spec.level.map(levelInterval), x = 0f, y = 0f, z = 0f, rotation = ObjectRotation()
     )
 
   private def pose(spec: ObjectSpec) = (spec.x, spec.y, spec.z, spec.rotation)

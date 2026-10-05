@@ -13,17 +13,9 @@ import menger.common.Vector
 import menger.common.x
 import menger.common.y
 import menger.common.z
-import menger.objects.higher_d.Hecatonicosachoron
-import menger.objects.higher_d.Hexacosichoron
-import menger.objects.higher_d.Hexadecachoron
-import menger.objects.higher_d.Icositetrachoron
 import menger.objects.higher_d.Mesh4D
-import menger.objects.higher_d.Pentachoron
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
-import menger.objects.higher_d.Tesseract
-import menger.objects.higher_d.TesseractSponge
-import menger.objects.higher_d.TesseractSponge2
 
 /**
  * Scene builder for 4D hypercube objects with cylinder edge rendering.
@@ -236,28 +228,11 @@ class TesseractEdgeSceneBuilder(
       s"${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
     (edges, cylinderIds)
 
+  // The same w-scaled mesh as the faces (menger#65), not a second copy of the type switch.
   private def createMesh4D(spec: ObjectSpec): Mesh4D =
-    spec.objectType.toLowerCase match
-      case "tesseract" =>
-        Tesseract(size = spec.size)
-      case "tesseract-sponge" | "tesseract-sponge-volume" =>
-        require(spec.level.isDefined, "tesseract-sponge requires level parameter")
-        TesseractSponge(spec.level.get, spec.size)
-      case "tesseract-sponge-2" | "tesseract-sponge-surface" =>
-        require(spec.level.isDefined, "tesseract-sponge-2 requires level parameter")
-        TesseractSponge2(spec.level.get, spec.size)
-      case "pentachoron" =>
-        Pentachoron(size = spec.size)
-      case "16-cell" =>
-        Hexadecachoron(size = spec.size)
-      case "24-cell" =>
-        Icositetrachoron(size = spec.size)
-      case "600-cell" =>
-        Hexacosichoron(size = spec.size)
-      case "120-cell" =>
-        Hecatonicosachoron(size = spec.size)
-      case other =>
-        sys.error(s"Unsupported 4D type for edge rendering: $other")
+    MeshFactory.renderMesh4D(spec.copy(objectType = spec.objectType.toLowerCase)).getOrElse(
+      sys.error(s"Unsupported 4D type for edge rendering (or no level): ${spec.objectType}")
+    )
 
   /**
    * Extract all unique edges from a 4D mesh.

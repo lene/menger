@@ -122,10 +122,25 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
        |  )
        |""".stripMargin
 
-  it should "read an animated scene's declared duration in seconds" in:
-    val file = writeTempScene(animatedScene("TimedScene", "val duration = 10f", "1f + t"))
+  it should "read an animated scene's declared durationSeconds" in:
+    val file = writeTempScene(animatedScene("TimedScene", "val durationSeconds = 10f", "1f + t"))
     SceneLoader.load(file.getAbsolutePath) match
       case Right(animated: LoadedScene.Animated) => animated.duration shouldBe Some(10f)
+      case other => fail(s"Expected Animated, got $other")
+
+  // Usability review 2026-10, session 3 (F84): `duration` did not say it is seconds; the old
+  // name stays accepted for a deprecation period.
+  it should "still accept the deprecated `val duration`" in:
+    val file = writeTempScene(animatedScene("OldTimedScene", "val duration = 10f", "1f + t"))
+    SceneLoader.load(file.getAbsolutePath) match
+      case Right(animated: LoadedScene.Animated) => animated.duration shouldBe Some(10f)
+      case other => fail(s"Expected Animated, got $other")
+
+  it should "prefer durationSeconds when a scene declares both" in:
+    val members = "val durationSeconds = 4f\n  val duration = 10f"
+    val file = writeTempScene(animatedScene("BothTimedScene", members, "1f + t"))
+    SceneLoader.load(file.getAbsolutePath) match
+      case Right(animated: LoadedScene.Animated) => animated.duration shouldBe Some(4f)
       case other => fail(s"Expected Animated, got $other")
 
   it should "leave the duration empty when an animated scene declares none" in:
@@ -135,8 +150,9 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
       case other => fail(s"Expected Animated, got $other")
 
   it should "reject a non-positive duration" in:
-    val file = writeTempScene(animatedScene("NegativeDurationScene", "val duration = -1f", "1f + t"))
-    SceneLoader.load(file.getAbsolutePath) shouldBe Left("'duration' must be positive, got -1.0")
+    val file =
+      writeTempScene(animatedScene("NegativeDurationScene", "val durationSeconds = -1f", "1f + t"))
+    SceneLoader.load(file.getAbsolutePath) shouldBe Left("'durationSeconds' must be positive, got -1.0")
 
   // Usability review 2026-09: the loader swallowed exceptions from probing scene(0), so a scene
   // whose require() failed at t=0 was reported as having no scene method at all.

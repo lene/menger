@@ -6,8 +6,9 @@ sealed trait LoadedScene
 object LoadedScene:
   case class Static(scene: Scene) extends LoadedScene
 
-  /** `duration` is the scene object's optional `val duration: Float`: t then means seconds in
-    * `[0, duration]`, and the interactive window plays the scene in real time, looping. It sits
+  /** `duration` is the scene object's optional `val durationSeconds: Float` (or the deprecated
+    * `val duration`): t then means seconds in `[0, duration]`, and the interactive window plays
+    * the scene in real time, looping. It sits
     * in a second parameter list so `Animated(fn)` patterns keep matching. */
   case class Animated(sceneFunction: Float => Scene)(val duration: Option[Float] = None)
       extends LoadedScene

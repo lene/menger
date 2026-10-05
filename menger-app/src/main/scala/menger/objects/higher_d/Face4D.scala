@@ -12,6 +12,7 @@ case class Face4D[V <: Int & Singleton](vertices: IndexedSeq[Vector[4]])(using v
     s"Face4D[$vertsPerFace] requires $vertsPerFace vertices, got ${vertices.size}")
 
   def apply(i: Int): Vector[4] = vertices(i)
+  def mapVertices(f: Vector[4] => Vector[4]): Face4D[V] = Face4D[V](vertices.map(f))
   def asSeq: Seq[Vector[4]] = vertices.toSeq
 
   def area: Float =

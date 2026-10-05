@@ -37,12 +37,13 @@ object DslSemantics:
       "the caustics brighter (usability review 2026-10, session 3, F69).",
     "Emission makes a surface self-lit: flat, unshaded colour. There is no bloom, halo or " +
       "glow around objects, and no emission that falls off with distance.",
-    "Animation: `def scene(t: Float): Scene` plus `val duration = <seconds>f` in the same " +
-      "object; t is seconds in [0, duration]. The window plays it in real time, looping, and " +
-      "the validator checks the scene at t = 0 and at t = duration. An animated scene has no " +
+    "Animation: `def scene(t: Float): Scene` plus `val durationSeconds = <seconds>f` in the " +
+      "same object; t is seconds in [0, durationSeconds]. The window plays it in real time, " +
+      "looping, and the validator checks the scene at t = 0 and at t = durationSeconds. The " +
+      "older name `val duration` is deprecated but still read. An animated scene has no " +
       "`SceneRegistry.register` line: register takes a static Scene only, so drop it when " +
       "turning `val scene` into `def scene(t: Float)` (usability review 2026-09, F46). " +
-      "`duration` is in seconds. The scene has no frame count: the window plays by the wall " +
+      "The scene has no frame count: the window plays by the wall " +
       "clock and drops frames when rendering is slow; frame counts are menger-app " +
       "command-line options only. Editing the scene file reloads an animated scene live in " +
       "the window, but the window cannot switch between a static and an animated scene -- " +
@@ -56,7 +57,11 @@ object DslSemantics:
       "projection, so its on-screen size is not proportional to `size` and differs between " +
       "polytope types (a Tesseract and an Icositetrachoron of the same `size` project about " +
       "1.6x apart); to enlarge one without distorting it, scale `size`, `eyeW` and `screenW` " +
-      "by the same factor (usability review 2026-10, session 3, F72).",
+      "by the same factor (usability review 2026-10, session 3, F72). " +
+      "`Projection4DSpec(wScale = s)` scales the object's w coordinate before the 4D rotation " +
+      "(default 1, must be >= 0): 0 flattens a Tesseract to a cube, and animating it from 0 to " +
+      "1 grows the tesseract out of the cube along w -- the nearest the DSL has to extruding a " +
+      "3D object into 4D. There is no 5D object (menger#65, #59).",
     "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position. " +
       "For a 4D object that is the projected 3D position, after `projection` and `pos`, so the " +
       "colours follow the projected shape and change when the 4D rotation changes " +

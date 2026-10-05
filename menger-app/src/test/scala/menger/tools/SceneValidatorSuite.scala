@@ -53,7 +53,7 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val file = writeTempScene(
       """import menger.dsl._
         |object ShrinksToNothingScene:
-        |  val duration = 2f
+        |  val durationSeconds = 2f
         |  def scene(t: Float): Scene = Scene(
         |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
         |    objects = List(Sphere(size = 1f - t)),

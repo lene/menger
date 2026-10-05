@@ -84,9 +84,10 @@ untrusted input and the compile step is the boundary (architecture decision SA-A
 scenes. A compile error is reported with the compiler's diagnostics and the run exits.
 
 **Animation length:** an animated scene (`def scene(t: Float)`) can also declare
-`val duration = <seconds>f`. `t` is then time in seconds, and `--scene` without
+`val durationSeconds = <seconds>f`. `t` is then time in seconds, and `--scene` without
 `--frames`/`--t`/`--save-name`/`--headless` opens a window that plays it in real time,
-looping. Scenes without `duration` behave as before.
+looping. Scenes without it behave as before. The older name `val duration` is still read,
+with a deprecation warning.
 
 **Live reload:** `--scene my_scene.scala` in an interactive window watches the file and
 reloads it on every save — geometry, lights, planes, background and render settings update,

@@ -59,7 +59,9 @@ object ManifestGenerator extends LazyLogging:
   //        colouring/texture/projection conventions (F43, menger#21, menger#52).
   // 1.4.0: field `limitsBy` (per-`spongeType` level bounds, F59), 4D rotation units in degrees
   //        (F74), refractive-colour/caustics/duration/4D-size conventions (F66, F69, F84, F72).
-  private val SchemaVersion = "1.4.0"
+  // 1.5.0: `val durationSeconds` (F84, `duration` deprecated) and `Projection4DSpec.wScale`
+  //        (menger#65) in the conventions.
+  private val SchemaVersion = "1.5.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),

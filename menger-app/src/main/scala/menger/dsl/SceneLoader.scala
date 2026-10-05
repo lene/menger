@@ -169,15 +169,22 @@ object SceneLoader extends LazyLogging:
           Left(s"'scene(Float)' method exists but returns ${other.getClass.getName}, not Scene")
     }
 
-  /** The scene object's optional `val duration: Float` (seconds), read through its accessor. */
+  /** The scene object's optional `val durationSeconds: Float`, read through its accessor. The
+    * old name `duration` did not say it is seconds (usability review 2026-10, session 3, F84);
+    * it is still read, with a deprecation warning, when `durationSeconds` is absent. */
   private def loadDuration(cls: Class[?], module: AnyRef): Either[String, Option[Float]] =
-    Try(cls.getDeclaredMethod("duration")).toOption match
+    val accessors = List("durationSeconds", "duration").flatMap(name =>
+      Try(cls.getDeclaredMethod(name)).toOption.map(name -> _)
+    )
+    accessors.headOption match
       case None => Right(None)
-      case Some(accessor) =>
+      case Some((name, accessor)) =>
+        if name == "duration" then
+          logger.warn("`val duration` is deprecated: name it `val durationSeconds`")
         Try(accessor.invoke(module)).toOption match
           case Some(d: java.lang.Float) if d.floatValue > 0f => Right(Some(d.floatValue))
-          case Some(d: java.lang.Float) => Left(s"'duration' must be positive, got $d")
-          case _ => Left("'duration' must be a Float (seconds), e.g. `val duration = 10f`")
+          case Some(d: java.lang.Float) => Left(s"'$name' must be positive, got $d")
+          case _ => Left(s"'$name' must be a Float (seconds), e.g. `val durationSeconds = 10f`")
 
   @scala.annotation.tailrec
   private def rootCause(e: Throwable): Throwable =

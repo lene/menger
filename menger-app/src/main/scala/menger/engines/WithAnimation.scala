@@ -533,9 +533,8 @@ object WithAnimation:
     else
       val pairs = prev.zip(next)
       val anyDiffs = pairs.exists { case (a, b) => a.projection4D != b.projection4D }
-      val onlyProjDiffs = pairs.forall { case (a, b) =>
-        a.copy(projection4D = None) == b.copy(projection4D = None)
-      }
+      // A w-scale change is a different mesh, not a re-projection (menger#65).
+      val onlyProjDiffs = pairs.forall { case (a, b) => a.withoutView == b.withoutView }
       anyDiffs && onlyProjDiffs
 
   def specsCanReuseVideoTextureSlots(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =

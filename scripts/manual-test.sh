@@ -269,6 +269,7 @@ echo -e "${YELLOW}--- 4D Tesseract ---${NC}"
 run_test "Tesseract (default)" "-o --objects type=tesseract -s $OUTPUT_DIR/33-tesseract.png"
 run_test "Tesseract (rotated)" "-o --objects type=tesseract:rot-xw=45:rot-yw=30 -s $OUTPUT_DIR/34-tesseract-rot.png"
 run_test "Tesseract (projection)" "-o --objects type=tesseract:eye-w=4.0:screen-w=2.0 -s $OUTPUT_DIR/35-tesseract-proj.png"
+run_test "Tesseract (w-scale 0.3, part-way out of a cube)" "-o --objects type=tesseract:w-scale=0.3 -s $OUTPUT_DIR/35b-tesseract-wscale.png"
 run_test "Tesseract (glass)" "-o --objects type=tesseract:material=glass --plane y:-2 -s $OUTPUT_DIR/36-tesseract-glass.png"
 run_test "Tesseract (chrome)" "-o --objects type=tesseract:material=chrome -s $OUTPUT_DIR/37-tesseract-chrome.png"
 

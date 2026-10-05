@@ -4,11 +4,17 @@
 
 ### Added
 
-- An animated scene can declare `val duration = <seconds>f`: `t` is then time in seconds, and
-  `--scene` without `--frames`/`--t`/`--save-name`/`--headless` opens a window that plays it
-  in real time, looping (it takes the render lock like the interactive window). Scenes
-  without `duration` behave as before. `SceneValidator` also checks such a scene at
-  `t = duration`, not only at `t = 0`.
+- An animated scene can declare `val durationSeconds = <seconds>f`: `t` is then time in
+  seconds, and `--scene` without `--frames`/`--t`/`--save-name`/`--headless` opens a window
+  that plays it in real time, looping (it takes the render lock like the interactive window).
+  Scenes without it behave as before. `SceneValidator` also checks such a scene at its end
+  time, not only at `t = 0`. The first name, `val duration`, did not say it is seconds; it is
+  still read, with a deprecation warning (usability review 2026-10, session 3, F84; #65).
+- `Projection4DSpec(wScale = s)` (CLI `w-scale=S`) scales a 4D object's w coordinate before
+  the 4D rotation: 0 flattens a tesseract to a cube, animating 0 → 1 grows it out of the cube
+  along w, the nearest the DSL has to extruding a 3D object into 4D (#65, the extrusion half
+  of #59). Applied to faces and edges, on the CPU and the GPU projection path; a w-scale
+  change rebuilds the 4D mesh, a view change still re-projects it in place.
 - `--scene <file.scala>` in an interactive window now watches the file and reloads it in
   place on every save (usability review 2026-09, F5): geometry, lights, planes, background,
   fog, IBL and render/denoise/accumulation settings all update; the camera and any
