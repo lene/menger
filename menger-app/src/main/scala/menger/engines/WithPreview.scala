@@ -144,14 +144,14 @@ trait WithPreview extends RenderEngine with LazyLogging:
           renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
           if configs.accumulationFrames > 1 then
             renderer.setAccumulationFrames(configs.accumulationFrames)
-          updateOrRebuild(configs, renderer).recover { case e: Exception =>
-            reportFailedFrame(t, e)
-          }
+          val instancesCleared = updateOrRebuild(configs, renderer, t)
           // A builder may have reinitialized the renderer, discarding lights and render
           // settings (usability review 2026-09, F22) -- restore them every frame.
           sceneConfigurator.configureLights(renderer)
           renderer.setRenderConfig(configs.render.getOrElse(renderConfig))
-          PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
+          // Planes are real IAS instances: re-add them only when the instances were cleared,
+          // or one more is added every in-place frame until the table is full (F58).
+          if instancesCleared then PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
           cameraState.updateCamera(
@@ -167,24 +167,34 @@ trait WithPreview extends RenderEngine with LazyLogging:
 
   /** A frame that differs from the previous one only in 4D projection or fractional level is
     * applied in place (TrackedMesh4D); anything else is rebuilt, tracked when the scene is
-    * 4D-only triangle meshes so the next frame can be updated in place again. */
+    * 4D-only triangle meshes so the next frame can be updated in place again. A failure is
+    * reported as a failed frame. Returns whether all instances were cleared. */
   private def updateOrRebuild(
     configs: SceneConverter.SceneConfigs,
-    renderer: io.github.lene.optix.OptiXRenderer
-  ): Try[Unit] =
+    renderer: io.github.lene.optix.OptiXRenderer,
+    t: Float
+  ): Boolean =
     val specs = configs.scene.objectSpecs.getOrElse(List.empty)
-    tracked4D.get.filter(state => scene.TrackedMesh4D.canUpdateInPlace(state.specs, specs)) match
-      case Some(state) =>
-        Try(tracked4D.set(Some(scene.TrackedMesh4D.updateInPlace(state, specs, renderer))))
-      case None =>
-        renderer.clearAllInstances()
-        tracked4D.set(None)
-        if WithAnimation.is4DOnlyTriangleMeshScene(specs) then
-          scene.TrackedMesh4D
-            .build(specs, renderer, textureDir, computeEffectiveMaxInstances(_, specs))(using
-              profilingConfig)
-            .map(tracked4D.set)
-        else buildSceneFromConfigs(configs, renderer)
+    val (updated, instancesCleared) =
+      tracked4D.get.filter(state => scene.TrackedMesh4D.canUpdateInPlace(state.specs, specs)) match
+        case Some(state) =>
+          val inPlace = Try(
+            tracked4D.set(Some(scene.TrackedMesh4D.updateInPlace(state, specs, renderer)))
+          )
+          (inPlace, false)
+        case None =>
+          renderer.clearAllInstances()
+          tracked4D.set(None)
+          val rebuilt =
+            if WithAnimation.is4DOnlyTriangleMeshScene(specs) then
+              scene.TrackedMesh4D
+                .build(specs, renderer, textureDir, computeEffectiveMaxInstances(_, specs))(using
+                  profilingConfig)
+                .map(tracked4D.set)
+            else buildSceneFromConfigs(configs, renderer)
+          (rebuilt, true)
+    updated.recover { case e: Exception => reportFailedFrame(t, e) }
+    instancesCleared
 
 object WithPreview:
   val NanosPerSecond: Double = 1e9
