@@ -18,6 +18,7 @@ import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
+import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
 import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
@@ -488,12 +489,27 @@ class InteractiveEngine(
       accumulationFrames = configs.accumulationFrames
     ))
     currentObjectSpecs.set(Some(configs.scene.objectSpecs.getOrElse(List.empty)))
+    applyFileCameraIfChanged(configs.camera)
     logger.info(
       s"Reloaded scene from file (${configs.scene.objectSpecs.map(_.size).getOrElse(0)} object(s))"
     )
     rebuildScene()
     renderResources.markNeedsRender()
     GdxRuntime.requestRendering()
+
+  // The camera the previously loaded file declared. A reload leaves the mouse view alone unless
+  // the file's own camera changed; then the edit wins, otherwise a camera edit made through the
+  // scene agent never showed (usability session 3, F64).
+  private val lastFileCamera = new AtomicReference[CameraConfig](camera)
+
+  private def applyFileCameraIfChanged(fileCamera: CameraConfig): Unit =
+    if lastFileCamera.getAndSet(fileCamera) != fileCamera then
+      logger.info("Scene file moved the camera; applying it")
+      cameraController.setCamera(
+        fileCamera.position.toGdxVector3,
+        fileCamera.lookAt.toGdxVector3,
+        fileCamera.up.toGdxVector3
+      )
 
   /** Build the initial scene with builder from [[GeometryRegistry.builderFor]] — the single
     * source of truth for type → builder dispatch. Captures per-spec instance/slot indices
