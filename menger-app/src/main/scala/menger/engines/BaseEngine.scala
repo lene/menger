@@ -38,6 +38,24 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
   protected def computeEffectiveMaxInstances(builder: SceneBuilder, specs: List[ObjectSpec]): Int =
     maxInstances
 
+  /** The instance budget for `specs`: the configured `maxInstances`, or -- unless the user set
+    * it explicitly -- twice what the scene needs when that exceeds it. */
+  protected def autoAdjustedMaxInstances(
+    builder: SceneBuilder,
+    specs: List[ObjectSpec],
+    userSetMaxInstances: Boolean
+  ): Int =
+    if userSetMaxInstances then maxInstances
+    else
+      val required = builder.calculateRequiredInstances(specs)
+      val adjusted = BaseEngine.adjustedMaxInstances(required, maxInstances)
+      if adjusted != maxInstances then
+        logger.info(
+          s"Auto-adjusting max instances: $maxInstances → $adjusted " +
+          s"(scene requires $required)"
+        )
+      adjusted
+
   /** Compute the max-instances budget required to host `specs`, accounting for
     * mixed-scene splits (`SceneGroups.buildOrder`). Mirrors the dispatch logic in
     * `buildMixedSceneObjects` so the renderer can be reinitialised at the right size before
@@ -167,3 +185,11 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     rendererWrapper.dispose()
   override def pause(): Unit  = {}
   override def resume(): Unit = {}
+
+object BaseEngine:
+
+  // The configured budget, or twice the scene's requirement (capped) when that exceeds it.
+  def adjustedMaxInstances(required: Int, configured: Int): Int =
+    if required > 0 && required > configured then
+      Math.min(required * 2, menger.common.Const.maxInstancesLimit)
+    else configured

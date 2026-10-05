@@ -270,7 +270,8 @@ object Main:
           executionConfig = buildExecutionConfig(opts),
           renderConfig    = opts.renderConfig,
           causticsConfig  = opts.causticsConfig,
-          denoiseModeOverride = cliDenoiseOverride(opts)
+          denoiseModeOverride = cliDenoiseOverride(opts),
+          userSetMaxInstances = opts.userSetMaxInstances
         )
 
       case Right(LoadedScene.Animated(fn)) if opts.tFrames.isSupplied =>
@@ -319,7 +320,8 @@ object Main:
           renderConfig    = opts.renderConfig,
           causticsConfig  = opts.causticsConfig,
           denoiseModeOverride = cliDenoiseOverride(opts),
-          realtime        = true
+          realtime        = true,
+          userSetMaxInstances = opts.userSetMaxInstances
         )
 
       case Right(loadedScene) =>

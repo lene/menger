@@ -303,19 +303,7 @@ class InteractiveEngine(
     builder: SceneBuilder,
     specs: List[ObjectSpec]
   ): Int =
-    if userSetMaxInstances then
-      execution.maxInstances
-    else
-      val required = builder.calculateRequiredInstances(specs)
-      if required > 0 && required > execution.maxInstances then
-        val adjusted = Math.min(required * 2, menger.common.Const.maxInstancesLimit)
-        logger.info(
-          s"Auto-adjusting max instances: ${execution.maxInstances} → $adjusted " +
-          s"(scene requires $required)"
-        )
-        adjusted
-      else
-        execution.maxInstances
+    autoAdjustedMaxInstances(builder, specs, userSetMaxInstances)
 
   override def create(): Unit =
     logger.info(s"Creating InteractiveEngine with ${objectSpecs.length} objects")
