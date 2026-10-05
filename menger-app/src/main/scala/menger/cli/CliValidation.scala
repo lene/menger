@@ -42,6 +42,7 @@ trait CliValidation:
   protected def startT: ScallopOption[Float]
   protected def endT: ScallopOption[Float]
   protected def tFrames: ScallopOption[Int]
+  protected def preview: ScallopOption[Boolean]
   protected def video: ScallopOption[String]
   protected def videoQuality: ScallopOption[Int]
   protected def keepFrames: ScallopOption[Boolean]
@@ -197,9 +198,10 @@ trait CliValidation:
       else Right(())
     }
 
-    // --frames requires --save-name containing %
-    validateOpt(tFrames, saveName) { (fr, sn) =>
-      if fr.isDefined then
+    // --frames requires --save-name containing %, except with --preview, which saves nothing
+    // and reads --frames only as its scrub-step count (usability session 3, F68c)
+    validateOpt(tFrames, saveName, preview) { (fr, sn, pv) =>
+      if fr.isDefined && !pv.contains(true) then
         sn match
           case Some(name) if name.contains("%") => Right(())
           case _ => Left("--frames requires --save-name containing '%' for frame numbering (e.g., frame_%04d.png)")

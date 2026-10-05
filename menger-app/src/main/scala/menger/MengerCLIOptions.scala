@@ -248,7 +248,7 @@ class MengerCLIOptions(arguments: Seq[String])
   )
   val tFrames: ScallopOption[Int] = opt[Int](
     name = "frames", required = false, validate = _ > 0, group = tAnimationGroup,
-    descr = "Number of frames in t-parameter animation (requires --scene, --save-name with %)"
+    descr = "Number of frames in t-parameter animation (requires --scene, --save-name with %; with --preview the scrub-step count, no --save-name needed)"
   )
   val preview: ScallopOption[Boolean] = opt[Boolean](
     name = "preview", required = false, default = Some(false), group = tAnimationGroup,

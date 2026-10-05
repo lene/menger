@@ -78,6 +78,13 @@ class TAnimationCLIOptionsSuite extends AnyFlatSpec with Matchers:
         "--frames", "10"
       ))
 
+  it should "not require --save-name with --preview, which saves nothing" in:
+    noException should be thrownBy
+      SafeMengerCLIOptions(Seq(
+        "--scene", "glass-sphere",
+        "--preview", "--frames", "10"
+      ))
+
   it should "be mutually exclusive with --animate" in:
     an[ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq(
