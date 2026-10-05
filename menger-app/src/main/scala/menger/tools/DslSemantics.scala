@@ -13,8 +13,9 @@ object DslSemantics:
 
   /** Cross-cutting rules that belong to no single field. */
   val conventions: List[String] = List(
-    "Units: positions and sizes are world units; `pos` is an object's centre; all angles " +
-      "(`rotation`, 4D rotations) are radians.",
+    "Units: positions and sizes are world units; `pos` is an object's centre; 3D `rotation` " +
+      "angles are radians, but the 4D rotation angles of `Projection4DSpec` (`rotXW`, `rotYW`, " +
+      "`rotZW`) are DEGREES (usability review 2026-10, session 3, F74).",
     "Axes: +y is up. The rendered image is currently mirrored horizontally: with the camera " +
       "on +z looking toward -z, +x appears on the LEFT of the image.",
     "Directional light: `direction` is the direction the light TRAVELS. (0f, -1f, 0f) shines " +
@@ -26,19 +27,36 @@ object DslSemantics:
       "explicit `color` tints only the material's RGB; the material's own alpha (its " +
       "transparency) is preserved, so an opaque `color` on `Glass` or `Film` stays " +
       "transparent (usability review 2026-09, F14).",
+    "Refractive materials (Glass, Diamond, Water, Film): `Material.Glass.copy(color = " +
+      "Color(r, g, b))` REPLACES the preset's colour including its alpha, and `Color(r, g, b)` " +
+      "has alpha 1, which for a refractive material means fully absorbing -- an opaque look. " +
+      "Tint a refractive material with a low alpha, e.g. `Color(0.8f, 0.06f, 0.12f, 0.05f)` " +
+      "(usability review 2026-10, session 3, F66).",
+    "Caustics has no intensity parameter (only `photonsPerIteration`, `iterations`, " +
+      "`initialRadius`, `alpha`): more photons or iterations reduce noise, they do not make " +
+      "the caustics brighter (usability review 2026-10, session 3, F69).",
     "Emission makes a surface self-lit: flat, unshaded colour. There is no bloom, halo or " +
       "glow around objects, and no emission that falls off with distance.",
     "Animation: `def scene(t: Float): Scene` plus `val duration = <seconds>f` in the same " +
       "object; t is seconds in [0, duration]. The window plays it in real time, looping, and " +
       "the validator checks the scene at t = 0 and at t = duration. An animated scene has no " +
       "`SceneRegistry.register` line: register takes a static Scene only, so drop it when " +
-      "turning `val scene` into `def scene(t: Float)` (usability review 2026-09, F46).",
+      "turning `val scene` into `def scene(t: Float)` (usability review 2026-09, F46). " +
+      "`duration` is in seconds. The scene has no frame count: the window plays by the wall " +
+      "clock and drops frames when rendering is slow; frame counts are menger-app " +
+      "command-line options only. Editing the scene file reloads an animated scene live in " +
+      "the window, but the window cannot switch between a static and an animated scene -- " +
+      "it must be restarted then (usability review 2026-10, session 3, F57, F84).",
     "4D objects are rotated in 4D (`projection`), projected to 3D, then placed at `pos`. " +
       "The regular 4D polytopes are Pentachoron (5-cell), Tesseract (8-cell), Hexadecachoron " +
       "(16-cell), Icositetrachoron (24-cell), Hecatonicosachoron (120-cell) and Hexacosichoron " +
       "(600-cell). Each 4D object has its own `projection`, so one object can be rotated in " +
       "4D next to an unrotated one; in the render window, Shift+drag adds the same 4D " +
-      "rotation to every 4D object.",
+      "rotation to every 4D object. A 4D object's `size` is applied before the 4D perspective " +
+      "projection, so its on-screen size is not proportional to `size` and differs between " +
+      "polytope types (a Tesseract and an Icositetrachoron of the same `size` project about " +
+      "1.6x apart); to enlarge one without distorting it, scale `size`, `eyeW` and `screenW` " +
+      "by the same factor (usability review 2026-10, session 3, F72).",
     "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position. " +
       "For a 4D object that is the projected 3D position, after `projection` and `pos`, so the " +
       "colours follow the projected shape and change when the 4D rotation changes " +
@@ -71,7 +89,10 @@ object DslSemantics:
     ("Camera", "lookAt") -> ("Point the camera looks at; frame a scene by aiming here at the " +
       "centre of all objects and moving `position` away until they fit."),
     ("Sponge", "level") -> ("Recursion depth; fractional levels blend between the two " +
-      "neighbouring integer levels. Cost grows ~20x per level."),
+      "neighbouring integer levels. Cost grows ~20x per level. Limits depend on `spongeType` " +
+      "(see `limitsBy`): VolumeFilling above level 4 builds a mesh too large for the window's " +
+      "memory (4.75 ran it out of memory) -- prefer SurfaceUnfolding, or RecursiveIAS (levels " +
+      "1 to 13) for high levels."),
     ("TesseractSponge", "level") -> ("Recursion depth; fractional levels blend between " +
       "integer levels. Cost grows ~48x per level."),
     ("TesseractSponge", "size") -> "Scale; 1 matches a Tesseract of size 1.",
@@ -135,6 +156,46 @@ object DslSemantics:
     ("ParametricSurface", "vSteps") -> (Some(1d), None),
     ("Sierpinski4D", "level") -> (Some(0d), Some(menger.dsl.ResourceLimits.ifs4dMaxLevel.toDouble))
   )
+
+  /** Per-value bounds of a field whose limits depend on another field (usability review
+    * 2026-10, session 3, F59): (field the limits are keyed by) -> value -> (min, max, warnAt).
+    * The plain `limitsOf`/`warnAtOf` stay as the conservative default for when that field is
+    * not a literal. */
+  type Bounds = (Option[Double], Option[Double], Option[Double])
+
+  private def meshSpongeBounds: Bounds =
+    val limit = menger.dsl.ResourceLimits.cubeSpongeLevel
+    (Some(0d), Some(limit.max.toDouble), Some(limit.warnAt.toDouble))
+
+  private def tesseractSpongeBounds(limit: menger.dsl.ResourceLimits.LevelLimit): Bounds =
+    (Some(0d), Some(limit.max.toDouble), Some(limit.warnAt.toDouble))
+
+  private val limitsBySubtype: Map[(String, String), (String, Map[String, Bounds])] = Map(
+    ("Sponge", "level") -> ("spongeType", Map(
+      "VolumeFilling"    -> meshSpongeBounds,
+      "SurfaceUnfolding" -> meshSpongeBounds,
+      "CubeSponge"       -> meshSpongeBounds,
+      "RecursiveIAS"     -> (
+        Some(menger.dsl.ResourceLimits.recursiveIasMinLevel.toDouble),
+        Some(menger.dsl.ResourceLimits.recursiveIasMaxLevel.toDouble),
+        None
+      )
+    )),
+    ("TesseractSponge", "level") -> ("spongeType", Map(
+      "VolumeRemoving" -> tesseractSpongeBounds(
+        menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel
+      ),
+      "SurfaceSubdividing" -> tesseractSpongeBounds(
+        menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel
+      )
+    ))
+  )
+
+  def limitsBySubtypeOf(
+    typeName: String,
+    fieldName: String
+  ): Option[(String, Map[String, Bounds])] =
+    limitsBySubtype.get((typeName, fieldName))
 
   def limitsOf(typeName: String, fieldName: String): (Option[Double], Option[Double]) =
     fieldLimits.getOrElse((typeName, fieldName), (None, None))

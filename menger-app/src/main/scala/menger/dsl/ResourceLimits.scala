@@ -30,6 +30,12 @@ object ResourceLimits:
     "tesseract-sponge-surface" -> tesseractSpongeSurfaceLevel,
   )
 
+  /** `sponge-recursive-ias` accepts levels from `recursiveIasMinLevel` up to (excluding)
+    * `recursiveIasMaxLevel + 1`; it has no entry in `levelLimitByObjectType` because it shares
+    * none of the mesh-based types' ceilings (usability review 2026-10, session 3, F59). */
+  val recursiveIasMinLevel = 1
+  val recursiveIasMaxLevel = 13
+
   /** Recursion-depth ceiling shared by all three GPU-projected 4D IFS types (menger4d,
     * sierpinski4d, hexadecachoron4d, `Instanced4DSceneBuilder`'s `IFS4DType.maxLevel`). Each
     * shader's own traversal stack (`S4D_MAX_STACK`, `H4D_MAX_STACK`) already guards against

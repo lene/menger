@@ -57,7 +57,9 @@ object ManifestGenerator extends LazyLogging:
   // 1.2.0: field `min`/`max` from DslSemantics (T1#3), backed by menger.dsl.ResourceLimits.
   // 1.3.0: field `warnAt` (F36), procedural preset descriptions (F37/F40) and 4D
   //        colouring/texture/projection conventions (F43, menger#21, menger#52).
-  private val SchemaVersion = "1.3.0"
+  // 1.4.0: field `limitsBy` (per-`spongeType` level bounds, F59), 4D rotation units in degrees
+  //        (F74), refractive-colour/caustics/duration/4D-size conventions (F66, F69, F84, F72).
+  private val SchemaVersion = "1.4.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
@@ -71,6 +73,19 @@ object ManifestGenerator extends LazyLogging:
   private val ConstructorDefaultPattern = """^\$lessinit\$greater\$default\$(\d+)$""".r
   private val MethodDefaultPattern = """^(.+)\$default\$(\d+)$""".r
 
+  /** Bounds of one value of a discriminating field (`limitsBy`). */
+  case class BoundsManifest(
+    min: Option[Double] = None,
+    max: Option[Double] = None,
+    warnAt: Option[Double] = None
+  ) derives ReadWriter
+
+  /** Field bounds that depend on another field's value: `field` names the discriminating
+    * field (`spongeType`), `values` maps each of its values to the bounds that apply. The
+    * field's own `min`/`max`/`warnAt` stay as the conservative default. */
+  case class LimitsByManifest(field: String, values: Map[String, BoundsManifest])
+      derives ReadWriter
+
   case class FieldManifest(
     name: String,
     `type`: String,
@@ -78,7 +93,8 @@ object ManifestGenerator extends LazyLogging:
     description: Option[String] = None,
     min: Option[Double] = None,
     max: Option[Double] = None,
-    warnAt: Option[Double] = None
+    warnAt: Option[Double] = None,
+    limitsBy: Option[LimitsByManifest] = None
   ) derives ReadWriter
   case class TypeManifest(name: String, fields: List[FieldManifest]) derives ReadWriter
 
@@ -189,7 +205,13 @@ object ManifestGenerator extends LazyLogging:
         DslSemantics.descriptionOf(clazz.getSimpleName, p.getName),
         min,
         max,
-        DslSemantics.warnAtOf(clazz.getSimpleName, p.getName)
+        DslSemantics.warnAtOf(clazz.getSimpleName, p.getName),
+        DslSemantics.limitsBySubtypeOf(clazz.getSimpleName, p.getName).map { (field, bySubtype) =>
+          LimitsByManifest(
+            field,
+            bySubtype.map { case (value, (lo, hi, warn)) => value -> BoundsManifest(lo, hi, warn) }
+          )
+        }
       )
     }
 

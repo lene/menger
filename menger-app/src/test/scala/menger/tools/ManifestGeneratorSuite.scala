@@ -77,6 +77,42 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     val parametricSurface = manifest.objects.find(_.name == "ParametricSurface").get
     parametricSurface.fields.find(_.name == "uSteps").get.min shouldBe Some(1d)
 
+  // Usability review 2026-10, session 3 (F59): one `Sponge.level` limit for every sponge type
+  // made the agent clamp a RecursiveIAS level of 5.8 to 5 although the engine accepts [1, 14).
+  it should "carry per-spongeType level bounds in limitsBy" in:
+    val manifest = manifestFor(freshTempPath())
+    def level(typeName: String) =
+      manifest.objects.find(_.name == typeName).get.fields.find(_.name == "level").get
+    val sponge = level("Sponge").limitsBy.get
+    sponge.field shouldBe "spongeType"
+    sponge.values("RecursiveIAS") shouldBe ManifestGenerator.BoundsManifest(
+      min = Some(menger.dsl.ResourceLimits.recursiveIasMinLevel.toDouble),
+      max = Some(menger.dsl.ResourceLimits.recursiveIasMaxLevel.toDouble),
+      warnAt = None
+    )
+    sponge.values("VolumeFilling").max shouldBe Some(
+      menger.dsl.ResourceLimits.cubeSpongeLevel.max.toDouble
+    )
+    val tesseract = level("TesseractSponge").limitsBy.get
+    tesseract.values("VolumeRemoving").max shouldBe Some(
+      menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.max.toDouble
+    )
+    tesseract.values("SurfaceSubdividing").max shouldBe Some(
+      menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.max.toDouble
+    )
+
+  it should "leave limitsBy empty for a field whose limits do not depend on another field" in:
+    val manifest = manifestFor(freshTempPath())
+    val sphere = manifest.objects.find(_.name == "Sphere").get
+    sphere.fields.find(_.name == "size").get.limitsBy shouldBe None
+
+  // F74: the manifest used to say all angles are radians; the 4D rotation fields are degrees.
+  it should "state the 4D rotation units as degrees" in:
+    val manifest = manifestFor(freshTempPath())
+    val units = manifest.conventions.find(_.startsWith("Units:")).get
+    units should include ("DEGREES")
+    units should include ("rotXW")
+
   it should "leave min/max as None for a field with no known limit" in:
     val manifest = manifestFor(freshTempPath())
     val sphere = manifest.objects.find(_.name == "Sphere").get

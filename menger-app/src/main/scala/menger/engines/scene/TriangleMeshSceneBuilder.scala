@@ -8,6 +8,7 @@ import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.TransformUtil
 import menger.common.Vector
+import menger.dsl.ResourceLimits
 
 /**
  * Scene builder for multiple triangle mesh instances with optional textures.
@@ -46,7 +47,10 @@ class TriangleMeshSceneBuilder(
     else if !specs.forall(isTriangleMeshType) then
       Left("All objects must be triangle mesh types (cube, sponge-*, tesseract, tetrahedron, octahedron, icosahedron, dodecahedron, parametric)")
     else if specs.exists(invalidRecursiveIASLevel) then
-      Left("sponge-recursive-ias requires level in [1, 14)")
+      Left(
+        s"sponge-recursive-ias requires level in [${ResourceLimits.recursiveIasMinLevel}, " +
+          s"${ResourceLimits.recursiveIasMaxLevel + 1})"
+      )
     else
       // Check instance count (accounting for fractional levels creating 2 instances)
       val instanceCount = calculateInstanceCount(specs)
@@ -219,7 +223,8 @@ class TriangleMeshSceneBuilder(
   private def invalidRecursiveIASLevel(spec: ObjectSpec): Boolean =
     if !ObjectType.isRecursiveIASSponge(spec.objectType) then false
     else spec.level match
-      case Some(l) => l < 1f || l >= 14f
+      case Some(l) =>
+        l < ResourceLimits.recursiveIasMinLevel || l >= ResourceLimits.recursiveIasMaxLevel + 1
       case None => true
 
 object TriangleMeshSceneBuilder:
