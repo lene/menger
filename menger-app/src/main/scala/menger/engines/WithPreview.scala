@@ -151,8 +151,9 @@ trait WithPreview extends RenderEngine with LazyLogging:
             renderer.setAccumulationFrames(configs.accumulationFrames)
           val instancesCleared = updateOrRebuild(configs, renderer, t)
           // A builder may have reinitialized the renderer, discarding lights and render
-          // settings (usability review 2026-09, F22) -- restore them every frame.
-          sceneConfigurator.configureLights(renderer)
+          // settings (usability review 2026-09, F22) -- restore them every frame, with this
+          // frame's lights: an animated scene's lights may move (F65).
+          sceneConfigurator.configureLights(renderer, configs.lights.toArray)
           renderer.setRenderConfig(configs.render.getOrElse(renderConfig))
           // Planes are real IAS instances: re-add them only when the instances were cleared,
           // or one more is added every in-place frame until the table is full (F58).

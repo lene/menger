@@ -125,6 +125,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
             // clearAllInstances above actually ran; the fast paths leave existing
             // instances (including previously added planes) untouched.
             PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
+          sceneConfigurator.configureLights(renderer, configs.lights.toArray)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
           cameraState.updateCamera(
