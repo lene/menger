@@ -35,7 +35,10 @@ import org.scalatest.matchers.should.Matchers
   */
 class SceneValidatorContainerE2ESuite extends AnyFlatSpec with Matchers:
 
-  private val ImageTag = "menger-scene-validator:latest"
+  // CI sets MENGER_SCENE_VALIDATOR_IMAGE to a CI-only tag so its nightly build never replaces a
+  // developer's :latest image on the shared Docker daemon (usability session 3, F70).
+  private val ImageTag =
+    sys.env.getOrElse("MENGER_SCENE_VALIDATOR_IMAGE", "menger-scene-validator:latest")
 
   /** Upper bound on one sandboxed run. `run-sandboxed.sh` enforces its own 120s wall clock and
     * now tears the container down itself, but a test must never depend on the thing it is
@@ -88,7 +91,8 @@ class SceneValidatorContainerE2ESuite extends AnyFlatSpec with Matchers:
       line => { out.append(line); out.append("\n"); () },
       line => { out.append(line); out.append("\n"); () }
     )
-    val running = Process(Seq(script.getAbsolutePath, sceneFile.getAbsolutePath)).run(logger)
+    val command = Seq(script.getAbsolutePath, sceneFile.getAbsolutePath, "--image", ImageTag)
+    val running = Process(command).run(logger)
     val finished = Future(running.exitValue())(ExecutionContext.global)
     val exitCode =
       try Await.result(finished, Duration(RunTimeoutSeconds, SECONDS))
