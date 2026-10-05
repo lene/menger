@@ -8,6 +8,7 @@ import menger.ObjectSpec
 import menger.common.CausticsConfig
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
+import menger.config.CameraConfig
 import menger.config.ExecutionConfig
 import menger.config.TAnimationConfig
 import menger.dsl.DenoiseMode
@@ -16,9 +17,13 @@ import menger.dsl.Scene
 import menger.dsl.SceneFileWatcher
 import menger.dsl.SceneLoader
 import menger.engines.scene.SceneBuilder
+import menger.input.EventDispatcher
 import menger.input.GdxRuntime
 import menger.input.LibGDXInputAdapter
+import menger.input.OptiXCameraHandler
 import menger.input.PreviewKeyHandler
+import menger.input.Vector3Extensions.toGdxVector3
+import menger.input.Vector3Extensions.toVector3
 
 class PreviewEngine(
   initialSceneFunction: Float => Scene,
@@ -95,6 +100,40 @@ class PreviewEngine(
     firstFrameConfigs.camera.up
   )
 
+  // Mouse orbit/pan/zoom (usability session 3, F68b). A 4D rotation event has no observer here.
+  private lazy val cameraController: OptiXCameraHandler =
+    OptiXCameraHandler(
+      rendererWrapper,
+      cameraState,
+      renderResources,
+      firstFrameConfigs.camera.position.toGdxVector3,
+      firstFrameConfigs.camera.lookAt.toGdxVector3,
+      firstFrameConfigs.camera.up.toGdxVector3,
+      EventDispatcher()
+    )
+
+  private val lastSceneCamera = new AtomicReference[CameraConfig](firstFrameConfigs.camera)
+
+  // The scene's camera takes over only when it changed since the previous frame (an animated or
+  // reloaded camera); otherwise the mouse view stays. A builder may have reinitialized the
+  // renderer, so the current view is applied every frame.
+  override protected def applyFrameCamera(
+    renderer: io.github.lene.optix.OptiXRenderer,
+    sceneCamera: CameraConfig
+  ): Unit =
+    if lastSceneCamera.getAndSet(sceneCamera) != sceneCamera then
+      cameraController.setCamera(
+        sceneCamera.position.toGdxVector3,
+        sceneCamera.lookAt.toGdxVector3,
+        sceneCamera.up.toGdxVector3
+      )
+    cameraState.updateCamera(
+      renderer,
+      cameraController.currentEye.toVector3,
+      cameraController.currentLookAt.toVector3,
+      cameraController.currentUp.toVector3
+    )
+
   override def create(): Unit =
     super.create()
     val keyHandler = PreviewKeyHandler(
@@ -103,7 +142,7 @@ class PreviewEngine(
       onJumpStart  = jumpToStart,
       onJumpEnd    = jumpToEnd
     )
-    GdxRuntime.setInputProcessor(LibGDXInputAdapter(Seq(keyHandler)))
+    GdxRuntime.setInputProcessor(LibGDXInputAdapter(Seq(keyHandler, cameraController)))
     startExitTimer(timeout)
     watchScenePath.foreach(startWatchingSceneFile)
 

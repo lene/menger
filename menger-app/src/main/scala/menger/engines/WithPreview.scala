@@ -58,6 +58,18 @@ trait WithPreview extends RenderEngine with LazyLogging:
     needsRender.set(true)
     GdxRuntime.requestRendering()
 
+  // The camera to render a frame with; the scene's own camera by default.
+  protected def applyFrameCamera(
+    renderer: io.github.lene.optix.OptiXRenderer,
+    sceneCamera: menger.config.CameraConfig
+  ): Unit =
+    cameraState.updateCamera(
+      renderer,
+      sceneCamera.position,
+      sceneCamera.lookAt,
+      sceneCamera.up
+    )
+
   // Draws the current t again with whatever scene the engine now holds (a live reload).
   protected def requestRedraw(): Unit =
     needsRender.set(true)
@@ -137,7 +149,9 @@ trait WithPreview extends RenderEngine with LazyLogging:
       updateTitle()
       needsRender.set(true)
 
-    if needsRender.getAndSet(false) && width > 0 && height > 0 then
+    // A camera moved with the mouse asks the resources for a redraw, not this engine.
+    val rebuildFrame = needsRender.getAndSet(false) || renderResources.needsRender
+    if rebuildFrame && width > 0 && height > 0 then
       val t = currentT.get()
       Try(sceneFunction(t)) match
         case Failure(e) =>
@@ -160,12 +174,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
           if instancesCleared then PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
-          cameraState.updateCamera(
-            renderer,
-            configs.camera.position,
-            configs.camera.lookAt,
-            configs.camera.up
-          )
+          applyFrameCamera(renderer, configs.camera)
           cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
           rendererWrapper.renderScene(ImageSize(width, height)) match
             case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
