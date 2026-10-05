@@ -170,6 +170,9 @@ trait WithPreview extends RenderEngine with LazyLogging:
           rendererWrapper.renderScene(ImageSize(width, height)) match
             case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
             case None            => () // render failed (logged); skip this frame
+    // Paused or between key presses: the buffer was cleared above and nothing new was built, so
+    // draw the last frame again instead of showing a black window (usability session 3, F68a).
+    else if width > 0 && height > 0 then renderResources.redrawExisting(width, height)
 
   /** A frame that differs from the previous one only in 4D projection or fractional level is
     * applied in place (TrackedMesh4D); anything else is rebuilt, tracked when the scene is
