@@ -58,6 +58,11 @@ trait WithPreview extends RenderEngine with LazyLogging:
     needsRender.set(true)
     GdxRuntime.requestRendering()
 
+  // Draws the current t again with whatever scene the engine now holds (a live reload).
+  protected def requestRedraw(): Unit =
+    needsRender.set(true)
+    GdxRuntime.requestRendering()
+
   def jumpToStart(): Unit =
     currentT.set(previewConfig.startT)
     updateTitle()

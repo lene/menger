@@ -251,6 +251,13 @@ object Main:
       case Some(sceneName) => createSceneBasedEngine(opts, sceneName)
       case None => createCliBasedOptiXEngine(opts)
 
+  // F5/F57: only a real scene FILE can be hand-edited and picked up live, and only in an actual
+  // interactive window -- a headless/frames/freeze-t run is a one-shot batch render that will
+  // already have exited before any edit could matter.
+  private def sceneFileToWatch(opts: MengerCLIOptions, sceneName: String): Option[java.io.File] =
+    Some(new java.io.File(sceneName))
+      .filter(f => isInteractiveWindow(opts) && sceneName.endsWith(".scala") && f.isFile)
+
   private def createSceneBasedEngine(opts: MengerCLIOptions, sceneName: String)(using ProfilingConfig): RenderEngine =
     // Ensure all example scene objects are initialized so short names are registered
     val _ = examples.dsl.SceneIndex
@@ -265,13 +272,14 @@ object Main:
           savePattern = ""
         )
         PreviewEngine(
-          sceneFunction   = fn,
-          previewConfig   = animConfig,
+          initialSceneFunction = fn,
+          initialPreviewConfig = animConfig,
           executionConfig = buildExecutionConfig(opts),
           renderConfig    = opts.renderConfig,
           causticsConfig  = opts.causticsConfig,
           denoiseModeOverride = cliDenoiseOverride(opts),
-          userSetMaxInstances = opts.userSetMaxInstances
+          userSetMaxInstances = opts.userSetMaxInstances,
+          watchScenePath = sceneFileToWatch(opts, sceneName)
         )
 
       case Right(LoadedScene.Animated(fn)) if opts.tFrames.isSupplied =>
@@ -309,8 +317,8 @@ object Main:
         // The scene declares its duration in seconds: play it in real time, looping -- what
         // the scene agent's render window needs to show an animation at all.
         PreviewEngine(
-          sceneFunction   = fn,
-          previewConfig   = TAnimationConfig(
+          initialSceneFunction = fn,
+          initialPreviewConfig = TAnimationConfig(
             startT      = 0f,
             endT        = animated.duration.getOrElse(0f),
             frames      = RealtimePreviewNominalFrames,
@@ -321,7 +329,8 @@ object Main:
           causticsConfig  = opts.causticsConfig,
           denoiseModeOverride = cliDenoiseOverride(opts),
           realtime        = true,
-          userSetMaxInstances = opts.userSetMaxInstances
+          userSetMaxInstances = opts.userSetMaxInstances,
+          watchScenePath = sceneFileToWatch(opts, sceneName)
         )
 
       case Right(loadedScene) =>
@@ -333,11 +342,7 @@ object Main:
         // F5: only a real scene FILE can be hand-edited and picked up live, and only in an
         // actual interactive window -- a headless/frames/freeze-t run is a one-shot batch
         // render that will already have exited before any edit could matter.
-        val watchFile =
-          if isInteractiveWindow(opts) && sceneName.endsWith(".scala") && new java.io.File(sceneName).isFile
-          then Some(new java.io.File(sceneName))
-          else None
-        createOptiXEngineFromDslScene(opts, dslScene, freezeT, watchFile)
+        createOptiXEngineFromDslScene(opts, dslScene, freezeT, sceneFileToWatch(opts, sceneName))
 
       case Left(error) =>
         System.err.println(s"Failed to load scene '$sceneName': $error")
