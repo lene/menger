@@ -208,6 +208,7 @@ run_test "Recursive IAS Sponge L6" "-o --objects type=sponge-recursive-ias:level
 # Materials (use material= preset for transparency)
 echo -e "${YELLOW}--- Materials ---${NC}"
 run_test "Glass" "-o --objects type=sphere:material=glass --plane y:-2 -s $OUTPUT_DIR/06-glass.png"
+run_test "Glass sponge, xyz_rgb_local, rainbow transparent shadow" "-o --transparent-shadows --objects type=sponge-volume:level=2:material=glass:procedural=xyz_rgb_local --light directional:0.3,-1,0.6:1.5 --plane y:-2 -s $OUTPUT_DIR/06b-glass-local-rainbow-shadow.png"
 run_test "Diamond" "-o --objects type=sphere:material=diamond --plane y:-2 -s $OUTPUT_DIR/07-diamond.png"
 run_test "Chrome" "-o --objects type=sphere:material=chrome -s $OUTPUT_DIR/08-chrome.png"
 run_test "Custom Color (red)" "-o --objects type=sphere:color=#ff0000 -s $OUTPUT_DIR/09-red.png"

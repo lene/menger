@@ -62,10 +62,16 @@ object DslSemantics:
       "(default 1, must be >= 0): 0 flattens a Tesseract to a cube, and animating it from 0 to " +
       "1 grows the tesseract out of the cube along w -- the nearest the DSL has to extruding a " +
       "3D object into 4D. There is no 5D object (menger#65, #59).",
-    "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position. " +
+    "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position " +
+      "(11 xyz_rgb_local: in the object's own box). " +
       "For a 4D object that is the projected 3D position, after `projection` and `pos`, so the " +
       "colours follow the projected shape and change when the 4D rotation changes " +
-      "(usability review 2026-09, session 2, F43).",
+      "(usability review 2026-09, session 2, F43); its box is taken from `size` before " +
+      "projection, so xyz_rgb_local only approximately spans 0..1 on a 4D object.",
+    "Shadows of transparent objects are opaque unless the scene enables them: " +
+      "`RenderSettings(transparentShadows = true)`. Then a transparent object casts the colour " +
+      "seen through it, its procedural colour included -- e.g. rainbow shadows of a glass " +
+      "object with xyz_rgb_local (usability review 2026-10, session 3, F67).",
     "Image textures and texture maps (`texture`, `videoTexture`, `normalMap`, " +
       "`roughnessMap`) need surface UV coordinates. 4D objects, edge tubes (`edgeRadius`), " +
       "curves and an L-system's branches have no UV coordinates, so these fields have no " +
@@ -129,8 +135,12 @@ object DslSemantics:
         "1 value_noise, 2 fbm, 3 worley, 4 gradient, 5 wood, 6 marble, 7 layered_noise, " +
         "10 triplanar -- each MODULATES the material's own colour by a pattern (same hue, " +
         "varying brightness); 8 xyz_rgb REPLACES the colour with (|x|, |y|, |z| mod 1) of the " +
-        "world position as RGB, mirrored at 0 on each axis; 9 heatmap REPLACES the colour " +
-        "with a blue-to-red noise gradient. It belongs to the look of the material it " +
+        "world position as RGB, mirrored at 0 on each axis; 11 xyz_rgb_local REPLACES it with " +
+        "the position inside the object's own box, x, y, z each 0..1 -> R, G, B: every colour " +
+        "once over the object at scale 1, following its position, size and rotation, no " +
+        "mirroring -- use it for \"local\" or \"every colour once\" colouring, never move the " +
+        "object for it (usability review 2026-10, session 3, F63); 9 heatmap REPLACES the " +
+        "colour with a blue-to-red noise gradient. It belongs to the look of the material it " +
         "imitates: swapping the material (e.g. wood to aluminium) drops a pattern like wood."
     val scaleText =
       "Multiplies the world position before the pattern is evaluated (higher = smaller, " +

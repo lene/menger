@@ -61,13 +61,15 @@ object ManifestGenerator extends LazyLogging:
   //        (F74), refractive-colour/caustics/duration/4D-size conventions (F66, F69, F84, F72).
   // 1.5.0: `val durationSeconds` (F84, `duration` deprecated) and `Projection4DSpec.wScale`
   //        (menger#65) in the conventions.
-  private val SchemaVersion = "1.5.0"
+  // 1.6.0: procedural preset 11 xyz_rgb_local (F63) and the transparent-shadow convention (F67),
+  //        optix-jni 0.4.6.
+  private val SchemaVersion = "1.6.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
   // and the architecture spine's Stack table (minimum driver version).
   private val ScalaVersionPin = "3.8.3"
-  private val OptixJniVersionPin = "0.4.5"
+  private val OptixJniVersionPin = "0.4.6"
   private val MinDriverVersion = "580.65"
 
   private val DefaultOutputPath = "target/dsl-manifest.json"

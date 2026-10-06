@@ -673,6 +673,16 @@ test_textures() {
     run_test "procedural xyz_rgb sponge" \
         --objects "type=sponge-volume:level=1:pos=0,0,0:size=0.5:procedural=xyz_rgb:proc-scale=1.0" \
         --plane y:-2
+    # optix-jni#61 (F63): object-local xyz -> rgb, every colour once on a centred sponge
+    run_test "procedural xyz_rgb_local sponge" \
+        --objects "type=sponge-volume:level=1:pos=0,0,0:size=0.5:procedural=xyz_rgb_local" \
+        --plane y:-2
+    # optix-jni#61 (F67): a red glass cube's transparent shadow is red, not grey. The colour
+    # needs a low alpha (#RRGGBBAA): a 6-digit tint makes glass opaque (F66). The light throws
+    # the shadow forward, into view.
+    run_test "glass cube coloured transparent shadow" --transparent-shadows \
+        --objects "type=cube:pos=0,0,0:size=0.6:material=glass:color=#FF262614" \
+        --light directional:0.3,-1,0.6:1.5 --plane y:-2
     run_test "procedural heatmap sphere" \
         --objects "type=sphere:pos=0,0,0:size=0.5:color=#FFFFFF:procedural=heatmap:proc-scale=2.0" \
         --plane y:-2

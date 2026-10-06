@@ -30,7 +30,7 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
 
     manifest.schemaVersion should not be empty
     manifest.scalaVersion shouldBe "3.8.3"
-    manifest.optixJniVersion shouldBe "0.4.5"
+    manifest.optixJniVersion shouldBe "0.4.6"
     manifest.minDriverVersion shouldBe "580.65"
 
   // Usability review 2026-09 (F28): names, types and defaults alone left the scene agent
@@ -280,7 +280,8 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     for obj <- manifest.objects do
       val fields = obj.fields.map(f => f.name -> f).toMap
       withClue(obj.name) {
-        fields("proceduralType").description.get should (include("5 wood") and include("8 xyz_rgb"))
+        fields("proceduralType").description.get should
+          (include("5 wood") and include("8 xyz_rgb") and include("11 xyz_rgb_local"))
         fields("proceduralScale").description.get should include("1 / size")
       }
 

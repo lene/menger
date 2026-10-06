@@ -10,6 +10,14 @@
   Scenes without it behave as before. `SceneValidator` also checks such a scene at its end
   time, not only at `t = 0`. The first name, `val duration`, did not say it is seconds; it is
   still read, with a deprecation warning (usability review 2026-10, session 3, F84; #65).
+- Procedural preset 11 `xyz_rgb_local` (CLI `procedural=xyz_rgb_local`): x, y, z inside the
+  object's own box, each 0..1, as R, G, B -- every colour once over the object at scale 1,
+  following its position, size and rotation, instead of world colours mirrored at 0 (usability
+  review 2026-10, session 3, F63). Every instance now gets its object frame (optix-jni 0.4.6
+  `setObjectFrame`).
+- With `RenderSettings(transparentShadows = true)` (CLI `--transparent-shadows`), a transparent
+  object's shadow takes the colour seen through it, its procedural colour included: a red glass
+  casts a red shadow, an `xyz_rgb_local` glass a rainbow one (F67, optix-jni 0.4.6).
 - `Projection4DSpec(wScale = s)` (CLI `w-scale=S`) scales a 4D object's w coordinate before
   the 4D rotation: 0 flattens a tesseract to a cube, animating 0 → 1 grows it out of the cube
   along w, the nearest the DSL has to extruding a 3D object into 4D (#65, the extrusion half
