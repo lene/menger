@@ -91,6 +91,10 @@ class OptiXCameraHandler(
     camera.zoom(scrollAmount)
     updateCamera()
 
+  def setCamera(eye: Vector3, lookAt: Vector3, up: Vector3): Unit =
+    camera.reset(eye, lookAt, up)
+    updateCamera()
+
   private def updateCamera(): Unit =
     cameraState.updateCamera(rendererWrapper.renderer,
       camera.currentEye.toVector3, camera.currentLookAt.toVector3, camera.currentUp.toVector3)

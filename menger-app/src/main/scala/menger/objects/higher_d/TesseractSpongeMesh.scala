@@ -40,7 +40,7 @@ object TesseractSpongeMesh:
       rotZW: Float = 0f
   ): Mesh4DProjection =
     Mesh4DProjection(
-      mesh4D = TesseractSponge(level),
+      mesh4D = TesseractSponge(level, size),
       center = center,
       eyeW = eyeW,
       screenW = screenW,
@@ -64,6 +64,8 @@ object TesseractSpongeMesh:
   /** Estimate number of triangles after projection to 3D.
     *
     * Each 4D quad face projects to a 3D quad, which is tessellated into 2 triangles.
+    * An upper bound from level 1 on: the mesh keeps shared faces once and drops interior ones
+    * (F55), which this closed form doesn't account for.
     *
     * @param level Recursion depth
     * @return Estimated number of triangles

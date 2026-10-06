@@ -33,6 +33,8 @@ object ParametricTessellator:
       val u = uMin + i * du
       val v = vMin + j * dv
       val (px, py, pz) = f(u, v)
+      require(px.isFinite && py.isFinite && pz.isFinite,
+        s"f($u, $v) = ($px, $py, $pz) is not finite (NaN or Inf) -- refusing to tessellate")
 
       // Finite difference normals
       val (dxu, dyu, dzu) =

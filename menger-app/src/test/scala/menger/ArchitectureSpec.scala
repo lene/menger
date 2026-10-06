@@ -248,7 +248,7 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       )
       .check(allClasses)
 
-  // AD-4 rule 2 (review round 2): `RestrictedClasspath` prunes menger.engines/tools/cli/input
+  // SA-AD-4 rule 2 (review round 2): `RestrictedClasspath` prunes menger.engines/tools/cli/input
   // off the classpath it hands the compiler, so a scene file cannot reach them. That pruning
   // is only safe while the DSL surface itself does not depend on those packages -- if it ever
   // does, scene compilation breaks with an opaque "class not found" rather than a clear

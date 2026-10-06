@@ -30,8 +30,95 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
 
     manifest.schemaVersion should not be empty
     manifest.scalaVersion shouldBe "3.8.3"
-    manifest.optixJniVersion shouldBe "0.3.3"
+    manifest.optixJniVersion shouldBe "0.4.6"
     manifest.minDriverVersion shouldBe "580.65"
+
+  // Usability review 2026-09 (F28): names, types and defaults alone left the scene agent
+  // guessing units and conventions -- it lit every scene from below.
+  it should "carry the DSL's conventions and per-field semantics" in:
+    val outputPath = freshTempPath()
+    ManifestGenerator.run(Array(outputPath)) shouldBe Right(())
+    val manifest = read[ManifestGenerator.DslManifest](
+      Files.readString(java.nio.file.Paths.get(outputPath))
+    )
+
+    manifest.conventions shouldBe DslSemantics.conventions
+    val directional = manifest.lights.find(_.name == "Directional").get
+    directional.fields.find(_.name == "direction").flatMap(_.description).get should
+      include("travels")
+
+  it should "attach every DslSemantics field description to a field that exists" in:
+    val outputPath = freshTempPath()
+    ManifestGenerator.run(Array(outputPath)) shouldBe Right(())
+    val manifest = read[ManifestGenerator.DslManifest](
+      Files.readString(java.nio.file.Paths.get(outputPath))
+    )
+    val allTypes = manifest.objects ++ manifest.lights ++ manifest.sceneComposition ++
+      List(manifest.plane, manifest.cameraPath, manifest.renderSettings)
+    val described = (for
+      t <- allTypes
+      f <- t.fields
+      if f.description.isDefined
+    yield (t.name, f.name)).toSet
+    described shouldBe DslSemantics.fieldDescriptions.keySet
+
+  // Usability review 2026-09 (T1#3): a manifest that names a field but not its ceiling still
+  // lets an agent request an unbounded sponge level or L-system iteration count.
+  it should "carry min/max on every field DslSemantics.limitsOf knows about" in:
+    val manifest = manifestFor(freshTempPath())
+    val sponge = manifest.objects.find(_.name == "Sponge").get
+    sponge.fields.find(_.name == "level").get.max shouldBe Some(
+      menger.dsl.ResourceLimits.cubeSpongeLevel.max.toDouble
+    )
+    val lsystem = manifest.objects.find(_.name == "LSystem").get
+    lsystem.fields.find(_.name == "iterations").get.max shouldBe Some(
+      menger.dsl.ResourceLimits.lsystemMaxIterations.toDouble
+    )
+    val parametricSurface = manifest.objects.find(_.name == "ParametricSurface").get
+    parametricSurface.fields.find(_.name == "uSteps").get.min shouldBe Some(1d)
+
+  // Usability review 2026-10, session 3 (F59): one `Sponge.level` limit for every sponge type
+  // made the agent clamp a RecursiveIAS level of 5.8 to 5 although the engine accepts [1, 14).
+  it should "carry per-spongeType level bounds in limitsBy" in:
+    val manifest = manifestFor(freshTempPath())
+    def level(typeName: String) =
+      manifest.objects.find(_.name == typeName).get.fields.find(_.name == "level").get
+    val sponge = level("Sponge").limitsBy.get
+    sponge.field shouldBe "spongeType"
+    sponge.values("RecursiveIAS") shouldBe ManifestGenerator.BoundsManifest(
+      min = Some(menger.dsl.ResourceLimits.recursiveIasMinLevel.toDouble),
+      max = Some(menger.dsl.ResourceLimits.recursiveIasMaxLevel.toDouble),
+      warnAt = None
+    )
+    sponge.values("VolumeFilling").max shouldBe Some(
+      menger.dsl.ResourceLimits.cubeSpongeLevel.max.toDouble
+    )
+    val tesseract = level("TesseractSponge").limitsBy.get
+    tesseract.values("VolumeRemoving").max shouldBe Some(
+      menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.max.toDouble
+    )
+    tesseract.values("SurfaceSubdividing").max shouldBe Some(
+      menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.max.toDouble
+    )
+
+  it should "leave limitsBy empty for a field whose limits do not depend on another field" in:
+    val manifest = manifestFor(freshTempPath())
+    val sphere = manifest.objects.find(_.name == "Sphere").get
+    sphere.fields.find(_.name == "size").get.limitsBy shouldBe None
+
+  // F74: the manifest used to say all angles are radians; the 4D rotation fields are degrees.
+  it should "state the 4D rotation units as degrees" in:
+    val manifest = manifestFor(freshTempPath())
+    val units = manifest.conventions.find(_.startsWith("Units:")).get
+    units should include ("DEGREES")
+    units should include ("rotXW")
+
+  it should "leave min/max as None for a field with no known limit" in:
+    val manifest = manifestFor(freshTempPath())
+    val sphere = manifest.objects.find(_.name == "Sphere").get
+    val sizeField = sphere.fields.find(_.name == "size").get
+    sizeField.min shouldBe None
+    sizeField.max shouldBe None
 
   it should "write to target/dsl-manifest.json when no output path is given" in:
     // Review round 2: this used to `deleteIfExists` the real default path before and after,
@@ -64,13 +151,15 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     finally
       Files.deleteIfExists(blockingFile)
 
-  "The generated manifest" should "list exactly the 9 SceneObject case classes" in:
+  "The generated manifest" should "list exactly the 14 SceneObject case classes" in:
     val manifest = manifestFor(freshTempPath())
     manifest.objects.map(_.name).toSet shouldBe Set(
       "Sphere", "Cube", "Sponge", "Tesseract", "TesseractSponge",
-      "Sierpinski4D", "ParametricSurface", "Curve", "LSystem"
+      "Sierpinski4D", "ParametricSurface", "Curve", "LSystem",
+      // the regular 4D polytopes, usability review 2026-09 (F17)
+      "Pentachoron", "Hexadecachoron", "Icositetrachoron", "Hexacosichoron", "Hecatonicosachoron"
     )
-    manifest.objects should have size 9
+    manifest.objects should have size 14
 
   // CAP-7 ("absence is decidable"): a field typed `menger.dsl.TesseractSpongeType` is
   // unusable unless the manifest also says which values that type admits. These are mandatory
@@ -168,6 +257,43 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
       fail("Sponge.level missing from generated manifest")
     )
     levelField.default shouldBe None
+
+  // Usability review 2026-09, session 2 (F36, msa#15): the agent animated a tesseract sponge
+  // to level 3 because only the hard `max` reached the manifest, not the slowness threshold.
+  it should "carry warnAt on every field that has a slowness threshold" in:
+    val manifest = manifestFor(freshTempPath())
+    def level(typeName: String) =
+      manifest.objects.find(_.name == typeName).get.fields.find(_.name == "level").get
+    level("Sponge").warnAt shouldBe Some(
+      menger.dsl.ResourceLimits.cubeSpongeLevel.warnAt.toDouble
+    )
+    level("TesseractSponge").warnAt shouldBe Some(math.min(
+      menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.warnAt,
+      menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.warnAt
+    ).toDouble)
+    manifest.objects.find(_.name == "Sphere").get.fields.find(_.name == "size").get
+      .warnAt shouldBe None
+
+  // Session 2 (F37/F40, msa#14): the proceduralType presets lived only in the agent's prompt.
+  it should "describe the procedural presets on every object that has proceduralType" in:
+    val manifest = manifestFor(freshTempPath())
+    for obj <- manifest.objects do
+      val fields = obj.fields.map(f => f.name -> f).toMap
+      withClue(obj.name) {
+        fields("proceduralType").description.get should
+          (include("5 wood") and include("8 xyz_rgb") and include("11 xyz_rgb_local"))
+        fields("proceduralScale").description.get should include("1 / size")
+      }
+
+  // Session 2: F43 (msa#9) colouring of a 4D object follows the projected position; menger#21
+  // texture maps need UVs that 4D objects, edges, cylinders and curves don't have; menger#52
+  // each 4D object has its own projection.
+  it should "state how 4D objects are coloured, textured and projected" in:
+    val conventions = manifestFor(freshTempPath()).conventions.mkString("\n")
+    conventions should include("projected 3D position")
+    conventions should include("no UV coordinates")
+    conventions should include("own `projection`")
+    conventions should not include ("must share the same `projection`")
 
   private def manifestFor(outputPath: String): ManifestGenerator.DslManifest =
     ManifestGenerator.run(Array(outputPath)) shouldBe Right(())

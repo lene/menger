@@ -3,6 +3,7 @@ package menger.engines
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Failure
 import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
@@ -10,18 +11,26 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.CameraState
 import io.github.lene.optix.SceneConfigurator
 import io.github.lene.optix.TextureUploadException
+import menger.AssetPaths
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
+import menger.config.CameraConfig
+import menger.config.EnvironmentConfig
 import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
 import menger.dsl.DenoiseMode
+import menger.dsl.LoadedScene
+import menger.dsl.ResourceLimits
+import menger.dsl.SceneFileWatcher
+import menger.dsl.SceneLoader
 import menger.engines.scene.InstanceId
 import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SceneBuilder
+import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TextureManager
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.EventDispatcher
@@ -39,7 +48,11 @@ import menger.objects.higher_d.TesseractSpongeMesh
 class InteractiveEngine(
   config: OptiXEngineConfig,
   userSetMaxInstances: Boolean = false,
-  renderT: Float = 0f
+  renderT: Float = 0f,
+  // F5: when set (a real `--scene <file.scala>` in an interactive window), the file is
+  // watched and edits reload the scene in place -- geometry/lights/planes/render settings
+  // update, camera and 4D rotation state do not. See `startWatchingSceneFile`.
+  watchScenePath: Option[java.io.File] = None
 )(using ProfilingConfig)
     extends BaseEngine(config.execution.maxInstances)
     with TimeoutSupport with LazyLogging with SavesScreenshots with Observer with WithStats:
@@ -47,14 +60,43 @@ class InteractiveEngine(
   // Convenience accessors for config sections
   private val scene       = config.scene
   private val camera      = config.camera
-  private val environment = config.environment
   private val execution   = config.execution
 
   override protected def textureDir: String = execution.textureDir
 
-  override protected def renderConfig: menger.common.RenderConfig = config.render
-  override protected def denoiseMode: DenoiseMode = config.denoiseMode
-  override protected def accumulationFrames: Int = config.accumulationFrames
+  /** Renderer-visible scene state F5's live reload swaps without touching the camera or 4D
+    * rotation state: everything `applyRendererState` sets, plus render/denoise/accumulation
+    * config and the lights baked into `SceneConfigurator`. `environment.envMap`/`envMapVideo`
+    * are carried through unchanged across a reload -- re-uploading a changed environment map
+    * isn't supported yet (see CHANGELOG). */
+  private case class ReloadableSceneState(
+    environment: EnvironmentConfig,
+    renderConfig: menger.common.RenderConfig,
+    caustics: menger.common.CausticsConfig,
+    sceneConfigurator: SceneConfigurator,
+    denoiseMode: DenoiseMode,
+    accumulationFrames: Int
+  )
+
+  private val reloadable: AtomicReference[ReloadableSceneState] = new AtomicReference(
+    ReloadableSceneState(
+      environment = config.environment,
+      renderConfig = config.render,
+      caustics = config.caustics,
+      sceneConfigurator = SceneConfigurator(
+        camera.position, camera.lookAt, camera.up, config.environment.lights.toArray
+      ),
+      denoiseMode = config.denoiseMode,
+      accumulationFrames = config.accumulationFrames
+    )
+  )
+
+  private def environment: EnvironmentConfig = reloadable.get().environment
+
+  override protected def sceneConfigurator: SceneConfigurator = reloadable.get().sceneConfigurator
+  override protected def renderConfig: menger.common.RenderConfig = reloadable.get().renderConfig
+  override protected def denoiseMode: DenoiseMode = reloadable.get().denoiseMode
+  override protected def accumulationFrames: Int = reloadable.get().accumulationFrames
 
   // Required by TimeoutSupport trait
   override def timeout: Float = execution.timeout
@@ -88,6 +130,9 @@ class InteractiveEngine(
   // Keyboard handler for 4D rotation (initialized in finalizeCreate)
   private val keyHandler = new AtomicReference[Option[OptiXKeyHandler]](None)
 
+  // F5 live-reload watcher on the scene file, when one was given (initialized in finalizeCreate)
+  private val fileWatcher = new AtomicReference[Option[SceneFileWatcher]](None)
+
   // Track if we have 4D objects (projected triangle mesh OR menger4d OR sierpinski4d OR hexadecachoron4d) that need rebuild on rotation
   private lazy val has4DObjects: Boolean =
     currentObjectSpecs.get().exists(_.exists(spec => TypeRegistry.is4DFastPathType(spec.objectType)))
@@ -106,19 +151,13 @@ class InteractiveEngine(
     case Empty
     case Gpu(state: WithAnimation.Anim4DState)
     case Instanced4D(state: Instanced4DState)
+    case Edges(specs: List[ObjectSpec], tracks: IndexedSeq[TesseractEdgeSceneBuilder.EdgeTrack])
   // AtomicReference for cross-thread visibility only. All reads and writes happen on the
   // LibGDX GL thread (render() and key handlers are both dispatched there), so the
   // non-atomic get+set compound operations in tryXxx4DFastPath are safe — do not
   // add a second thread that writes this without converting to synchronized or CAS loops.
   private val scene4DCache: AtomicReference[Scene4DCache] =
     new AtomicReference(Scene4DCache.Empty)
-
-  override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
-    camera.position,
-    camera.lookAt,
-    camera.up,
-    environment.lights.toArray
-  )
 
   override protected val cameraState: CameraState =
     CameraState(camera.position, camera.lookAt, camera.up)
@@ -164,7 +203,8 @@ class InteractiveEngine(
 
       val fastPathTaken = updatedSpecs.exists(specs =>
         tryRotation4DFastPath(specs, rendererWrapper.renderer) ||
-        tryInstanced4DFastPath(specs, rendererWrapper.renderer)
+        tryInstanced4DFastPath(specs, rendererWrapper.renderer) ||
+        tryEdgeFastPath(specs, rendererWrapper.renderer)
       )
       if !fastPathTaken then
         rebuildScene()
@@ -207,24 +247,41 @@ class InteractiveEngine(
         took
       case _ => false
 
+  /** Edge-rendered 4D objects: moves their edge cylinders and GPU-projected faces in place
+    * (usability review 2026-09, F22 -- every rotation step used to rebuild the whole scene).
+    * False when the change isn't projection-only or the eye_w clip set changed; see
+    * `TesseractEdgeSceneBuilder.updateProjection`. */
+  private def tryEdgeFastPath(
+    newSpecs: List[ObjectSpec],
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): Boolean =
+    scene4DCache.get match
+      case Scene4DCache.Edges(prevSpecs, tracks) =>
+        val took = TesseractEdgeSceneBuilder.updateProjection(prevSpecs, newSpecs, tracks, renderer)
+        if took then scene4DCache.set(Scene4DCache.Edges(newSpecs, tracks))
+        took
+      case _ => false
+
+  // Level ceilings are ResourceLimits' single source (usability review 2026-09, T1#3); only
+  // the triangle-count estimator (this engine's own slowness-warning heuristic) stays local.
   private val levelConfigs: Map[String, LevelConfig] = Map(
     "sponge-volume"      -> LevelConfig(
-      Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel,
+      ResourceLimits.cubeSpongeLevel.warnAt, ResourceLimits.cubeSpongeLevel.max,
       lvl => math.pow(Const.Engine.cubesPerSpongeLevel, lvl).toLong * Const.Engine.trianglesPerCube),
     "sponge-surface"     -> LevelConfig(
-      Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel,
+      ResourceLimits.cubeSpongeLevel.warnAt, ResourceLimits.cubeSpongeLevel.max,
       lvl => math.pow(Const.Engine.trianglesPerCube, lvl).toLong * 6 * 2),
     "tesseract-sponge"        -> LevelConfig(
-      Const.Engine.tesseractSpongeWarnLevel, Const.Engine.tesseractSpongeMaxLevel,
+      ResourceLimits.tesseractSpongeVolumeLevel.warnAt, ResourceLimits.tesseractSpongeVolumeLevel.max,
       TesseractSpongeMesh.estimatedTriangles),
     "tesseract-sponge-volume" -> LevelConfig(
-      Const.Engine.tesseractSpongeWarnLevel, Const.Engine.tesseractSpongeMaxLevel,
+      ResourceLimits.tesseractSpongeVolumeLevel.warnAt, ResourceLimits.tesseractSpongeVolumeLevel.max,
       TesseractSpongeMesh.estimatedTriangles),
     "tesseract-sponge-2"       -> LevelConfig(
-      Const.Engine.tesseractSponge2WarnLevel, Const.Engine.tesseractSponge2MaxLevel,
+      ResourceLimits.tesseractSpongeSurfaceLevel.warnAt, ResourceLimits.tesseractSpongeSurfaceLevel.max,
       TesseractSponge2Mesh.estimatedTriangles),
     "tesseract-sponge-surface" -> LevelConfig(
-      Const.Engine.tesseractSponge2WarnLevel, Const.Engine.tesseractSponge2MaxLevel,
+      ResourceLimits.tesseractSpongeSurfaceLevel.warnAt, ResourceLimits.tesseractSpongeSurfaceLevel.max,
       TesseractSponge2Mesh.estimatedTriangles),
   )
 
@@ -247,19 +304,7 @@ class InteractiveEngine(
     builder: SceneBuilder,
     specs: List[ObjectSpec]
   ): Int =
-    if userSetMaxInstances then
-      execution.maxInstances
-    else
-      val required = builder.calculateRequiredInstances(specs)
-      if required > 0 && required > execution.maxInstances then
-        val adjusted = Math.min(required * 2, menger.common.Const.maxInstancesLimit)
-        logger.info(
-          s"Auto-adjusting max instances: ${execution.maxInstances} → $adjusted " +
-          s"(scene requires $required)"
-        )
-        adjusted
-      else
-        execution.maxInstances
+    autoAdjustedMaxInstances(builder, specs, userSetMaxInstances)
 
   override def create(): Unit =
     logger.info(s"Creating InteractiveEngine with ${objectSpecs.length} objects")
@@ -283,23 +328,18 @@ class InteractiveEngine(
     buildScene4DTrackedOrFallback(objectSpecs, renderer)
       .flatMap { _ =>
         Try {
-          sceneConfigurator.configureLights(renderer)
           PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
           sceneConfigurator.configureCamera(renderer)
-          renderer.setRenderConfig(renderConfig)
-          renderer.setCausticsConfig(config.caustics)
-          configureOutputMode(renderer)
-          environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
-          environment.fog.foreach(sceneConfigurator.setFog(renderer, _))
+          applyRendererState(renderer)
           environment.envMap.foreach { path =>
-            val resolvedPath =
-              if java.nio.file.Paths.get(path).isAbsolute then path
-              else java.nio.file.Paths.get(config.execution.textureDir).resolve(path).toString
             try
+              val resolvedPath = AssetPaths.resolveOrThrow(config.execution.textureDir, path).toString
               val idx = renderer.uploadTextureFromFile(resolvedPath)
               renderer.setEnvironmentMap(idx)
             catch
               case e: TextureUploadException =>
+                logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
+              case e: AssetPaths.AssetPathException =>
                 logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
           }
           environment.envMapVideo.foreach { envMapVideo =>
@@ -310,20 +350,36 @@ class InteractiveEngine(
               renderT
             ).foreach(renderer.setEnvironmentMap)
           }
-          if environment.iblEnabled then
-            renderer.setIBL(
-              enabled  = true,
-              strength = environment.iblStrength,
-              samples  = environment.iblSamples
-            )
           if crossVisible.get then addCrossGeometry(renderer)
           finalizeCreate()
         }
       }
-      .recover { case e: Exception =>
+      // Propagated, not recovered into GdxRuntime.exit(): that exited with status 0 after a
+      // window that flashed and vanished, so nothing downstream -- the scene agent's crash
+      // report in particular -- could tell a failure from a clean close (usability review
+      // 2026-09, F18). Main now reports it and exits 1.
+      .recoverWith { case e: Exception =>
         logger.error(s"Failed to create OptiX scene: ${e.getMessage}", e)
-        GdxRuntime.exit()
+        Failure(e)
       }.get
+
+  /** Renderer state a builder's `renderer.reinitialize` discards (TesseractEdgeSceneBuilder
+    * reinitializes when it needs more than 64 instances). Applied after the initial build and
+    * again after every rebuild -- a rebuild that skipped it lost the lights, so interactive 4D
+    * rotation of edge-rendered objects turned the scene dark (usability review 2026-09, F22). */
+  private def applyRendererState(renderer: io.github.lene.optix.OptiXRenderer): Unit =
+    sceneConfigurator.configureLights(renderer)
+    renderer.setRenderConfig(renderConfig)
+    renderer.setCausticsConfig(reloadable.get().caustics)
+    configureOutputMode(renderer)
+    environment.background.foreach(sceneConfigurator.setBackgroundColor(renderer, _))
+    environment.fog.foreach(sceneConfigurator.setFog(renderer, _))
+    if environment.iblEnabled then
+      renderer.setIBL(
+        enabled  = true,
+        strength = environment.iblStrength,
+        samples  = environment.iblSamples
+      )
 
   private def addCrossGeometry(renderer: io.github.lene.optix.OptiXRenderer): Unit =
     val length    = config.cross.length
@@ -380,6 +436,80 @@ class InteractiveEngine(
     GdxRuntime.setContinuousRendering(false)
     GdxRuntime.requestRendering()
     if execution.timeout > 0 then startExitTimer(execution.timeout)
+    watchScenePath.foreach(startWatchingSceneFile)
+
+  /** F5: reload the scene from disk whenever the watched file changes, keeping the camera
+    * and 4D rotation state untouched. Runs on `SceneFileWatcher`'s own background thread;
+    * the actual renderer mutation in `reloadScene` is posted to the GL thread. A bad edit
+    * (compile failure, or a class the loader rejects) is logged and the current scene keeps
+    * running -- it must never kill the window. */
+  private def startWatchingSceneFile(file: java.io.File): Unit =
+    val watcher = new SceneFileWatcher(file)(() => onSceneFileChanged(file))
+    fileWatcher.set(Some(watcher))
+    logger.info(s"Watching scene file for live reload: ${file.getPath}")
+
+  private def onSceneFileChanged(file: java.io.File): Unit =
+    SceneLoader.load(file.getPath) match
+      case Right(LoadedScene.Static(newScene)) =>
+        GdxRuntime.postRunnable(() => reloadScene(newScene))
+      case Right(LoadedScene.Animated(_)) =>
+        logger.warn(
+          s"${file.getPath} changed to an animated scene; live reload only supports " +
+          "static scenes -- restart the window to pick it up"
+        )
+      case Left(error) =>
+        logger.warn(s"Failed to reload ${file.getPath}, keeping the current scene: $error")
+
+  /** Applies a freshly reloaded static scene: geometry, lights, planes, background, fog, IBL
+    * and render/denoise/accumulation settings all update. The camera and any in-progress 4D
+    * rotation are deliberately left alone -- `rebuildScene()` already preserves the camera,
+    * the same path `resetTo4DDefaults`/interactive rotation rebuilds use. Must run on the GL
+    * thread (called via `GdxRuntime.postRunnable` from the watcher's own thread). */
+  private def reloadScene(dslScene: menger.dsl.Scene): Unit =
+    val configs = SceneConverter.convert(dslScene, reloadable.get().caustics)
+    val prevEnvironment = reloadable.get().environment
+    reloadable.set(ReloadableSceneState(
+      environment = EnvironmentConfig(
+        planes = configs.planes,
+        lights = configs.lights,
+        background = configs.background,
+        fog = configs.fog,
+        envMap = prevEnvironment.envMap,
+        envMapVideo = prevEnvironment.envMapVideo,
+        iblEnabled = configs.iblEnabled,
+        iblStrength = configs.iblStrength,
+        iblSamples = configs.iblSamples
+      ),
+      renderConfig = configs.render.getOrElse(reloadable.get().renderConfig),
+      caustics = configs.caustics,
+      sceneConfigurator = SceneConfigurator(
+        camera.position, camera.lookAt, camera.up, configs.lights.toArray
+      ),
+      denoiseMode = configs.denoiseMode,
+      accumulationFrames = configs.accumulationFrames
+    ))
+    currentObjectSpecs.set(Some(configs.scene.objectSpecs.getOrElse(List.empty)))
+    applyFileCameraIfChanged(configs.camera)
+    logger.info(
+      s"Reloaded scene from file (${configs.scene.objectSpecs.map(_.size).getOrElse(0)} object(s))"
+    )
+    rebuildScene()
+    renderResources.markNeedsRender()
+    GdxRuntime.requestRendering()
+
+  // The camera the previously loaded file declared. A reload leaves the mouse view alone unless
+  // the file's own camera changed; then the edit wins, otherwise a camera edit made through the
+  // scene agent never showed (usability session 3, F64).
+  private val lastFileCamera = new AtomicReference[CameraConfig](camera)
+
+  private def applyFileCameraIfChanged(fileCamera: CameraConfig): Unit =
+    if lastFileCamera.getAndSet(fileCamera) != fileCamera then
+      logger.info("Scene file moved the camera; applying it")
+      cameraController.setCamera(
+        fileCamera.position.toGdxVector3,
+        fileCamera.lookAt.toGdxVector3,
+        fileCamera.up.toGdxVector3
+      )
 
   /** Build the initial scene with builder from [[GeometryRegistry.builderFor]] — the single
     * source of truth for type → builder dispatch. Captures per-spec instance/slot indices
@@ -398,6 +528,8 @@ class InteractiveEngine(
             build4DTracked(specs, renderer, (recorder: (Int, InstanceId) => Unit) =>
               new Instanced4DSceneBuilder(ib.ifsType, textureDir, recorder),
               (specs, ids) => Scene4DCache.Instanced4D(Instanced4DState(specs, ids)))
+          case _: TesseractEdgeSceneBuilder =>
+            buildEdgesTracked(specs, renderer)
           case _ =>
             scene4DCache.set(Scene4DCache.Empty)
             builder.validateAndBuild(
@@ -455,6 +587,20 @@ class InteractiveEngine(
     result.recover { case _ => scene4DCache.set(Scene4DCache.Empty) }
     result
 
+  private def buildEdgesTracked(
+    specs: List[ObjectSpec],
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): Try[Unit] =
+    val tracks = scala.collection.mutable.Map.empty[Int, TesseractEdgeSceneBuilder.EdgeTrack]
+    val builder = TesseractEdgeSceneBuilder(textureDir, (specIdx, track) => tracks(specIdx) = track)
+    val result = builder.validateAndBuild(specs, renderer, computeEffectiveMaxInstances(builder, specs))
+    scene4DCache.set(
+      if result.isSuccess && tracks.size == specs.size then
+        Scene4DCache.Edges(specs, specs.indices.map(tracks).toIndexedSeq)
+      else Scene4DCache.Empty
+    )
+    result
+
   private def rebuildScene(): Unit =
     currentObjectSpecs.get() match
       case Some(specs) =>
@@ -470,12 +616,13 @@ class InteractiveEngine(
           .fold(
             e => {
               scene4DCache.set(Scene4DCache.Empty)
-              logger.error(s"Failed to rebuild scene: ${e.getMessage}", e)
+              logger.error(FrameBuildFailure.message("rebuild after 4D rotation", e), e)
             },
             _ => {
               // Planes are now real IAS instances (Sprint 36 H3.1) — clearAllInstances above
               // wiped them too, so they must be re-added on every rebuild, not just at create().
               PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
+              applyRendererState(renderer)
               if crossVisible.get then addCrossGeometry(renderer)
               cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
               logger.debug("Scene rebuild complete")
@@ -520,5 +667,6 @@ class InteractiveEngine(
 
   override def dispose(): Unit =
     logger.debug("Disposing InteractiveEngine")
+    fileWatcher.get().foreach(_.close())
     disposeStats()
     super.dispose()

@@ -9,6 +9,7 @@ import menger.common.Color
 import menger.common.Material
 import menger.common.ObjectType
 import menger.common.TriangleMeshData
+import menger.dsl.ResourceLimits
 import menger.video.VideoTexture
 
 case class ObjectRotation(x: Float = 0f, y: Float = 0f, z: Float = 0f)
@@ -112,6 +113,16 @@ case class ObjectSpec(
   def color2: Option[Color] = plane.color2
   def checkerSize: Float = plane.checkerSize
 
+  /** The 4D w-scale; 1 without a projection. */
+  def wScale: Float = projection4D.fold(Projection4DSpec.DefaultWScale)(_.wScale)
+
+  /** This spec without its 4D view (eye, screen, rotations) but with its w-scale: a view
+    * change re-projects the same 4D mesh, a w-scale change is a different mesh (menger#65). */
+  def withoutView: ObjectSpec =
+    copy(projection4D =
+      Some(wScale).filter(_ != Projection4DSpec.DefaultWScale).map(w => Projection4DSpec(wScale = w))
+    )
+
 /**
  * 4D projection parameters for hypercube objects (tesseract, etc.).
  * Only applicable to object types where ObjectType.isHypercube returns true.
@@ -121,10 +132,15 @@ case class Projection4DSpec(
   screenW: Float = Projection4DSpec.DefaultScreenW,
   rotXW: Float = Projection4DSpec.DefaultRotXW,
   rotYW: Float = Projection4DSpec.DefaultRotYW,
-  rotZW: Float = Projection4DSpec.DefaultRotZW
+  rotZW: Float = Projection4DSpec.DefaultRotZW,
+  // Scales the object's w coordinate before rotation and projection (menger#65): 0 flattens a
+  // tesseract to a cube, animating 0 -> 1 grows it along w. Geometry, not view: see
+  // ObjectSpec.withoutView.
+  wScale: Float = Projection4DSpec.DefaultWScale
 ):
   require(eyeW > screenW, s"eyeW ($eyeW) must be greater than screenW ($screenW)")
   require(eyeW > 0 && screenW > 0, "eyeW and screenW must be positive")
+  require(wScale >= 0f && !wScale.isInfinite, s"wScale must be finite and >= 0, got $wScale")
 
 object Projection4DSpec:
   val DefaultEyeW: Float = 3.0f
@@ -132,6 +148,7 @@ object Projection4DSpec:
   val DefaultRotXW: Float = 15f
   val DefaultRotYW: Float = 10f
   val DefaultRotZW: Float = 0f
+  val DefaultWScale: Float = 1f
 
   val default: Projection4DSpec = Projection4DSpec()
 
@@ -158,6 +175,7 @@ object ObjectSpec extends LazyLogging:
     *   rot-xw=DEGREES  - XW plane rotation angle (default: 15)
     *   rot-yw=DEGREES  - YW plane rotation angle (default: 10)
     *   rot-zw=DEGREES  - ZW plane rotation angle (default: 0)
+    *   w-scale=VALUE   - scales w before rotation, >= 0 (default: 1; 0 flattens to 3D)
     *
     * 3D rotation keywords (for all object types):
     *   rot-x=DEGREES  - X-axis rotation (default: 0)
@@ -178,11 +196,11 @@ object ObjectSpec extends LazyLogging:
     "type", "pos", "size", "level", "color", "ior",
     "material", "roughness", "metallic", "specular",
     "emission", "film-thickness", "dispersion", "texture",
-    "eye-w", "screen-w", "rot-xw", "rot-yw", "rot-zw",
+    "eye-w", "screen-w", "rot-xw", "rot-yw", "rot-zw", "w-scale",
     "rot-x", "rot-y", "rot-z",
     "edge-radius", "edge-material", "edge-color",
     "edge-emission",
-    "apex", "base", "radius", "major-radius", "minor-radius",
+    "apex", "base", "radius",
     "normal", "distance", "color2", "checker-size",
     "procedural", "proc-scale",
     "normal-map", "roughness-map", "metallic-map", "ao-map", "height-map",
@@ -454,6 +472,7 @@ object ObjectSpec extends LazyLogging:
       case None => Right(None)
 
   private def validateSpongeLevel(objType: String, level: Option[Float]): Either[String, Unit] =
+    val normalized = ObjectType.normalize(objType)
     if ObjectType.isSponge(objType) && level.isEmpty then
       Left("Sponge object requires 'level' field. Add level=<number> to specification. " +
         s"Example: type=$objType:level=2")
@@ -462,8 +481,14 @@ object ObjectSpec extends LazyLogging:
         s"Example: type=$objType:level=1")
     else if level.exists(_ < 0) then
       Left(s"Level must be non-negative, got ${level.get}")
+    else if normalized == "lsystem" && level.exists(_.toInt > ResourceLimits.lsystemMaxIterations) then
+      Left(s"lsystem iterations ${level.get.toInt} exceeds hard maximum " +
+        s"${ResourceLimits.lsystemMaxIterations}")
     else
-      Right(())
+      ResourceLimits.levelLimitByObjectType.get(normalized) match
+        case Some(limit) if level.exists(_ > limit.max) =>
+          Left(s"$objType level ${level.get} exceeds hard maximum ${limit.max}")
+        case _ => Right(())
 
   private def parse4DProjection(
     kvPairs: Map[String, String],
@@ -476,8 +501,10 @@ object ObjectSpec extends LazyLogging:
         rotXW <- parseFloatParam(kvPairs, "rot-xw", Projection4DSpec.DefaultRotXW, "XW rotation angle in degrees")
         rotYW <- parseFloatParam(kvPairs, "rot-yw", Projection4DSpec.DefaultRotYW, "YW rotation angle in degrees")
         rotZW <- parseFloatParam(kvPairs, "rot-zw", Projection4DSpec.DefaultRotZW, "ZW rotation angle in degrees")
+        wScale <- parseFloatParam(kvPairs, "w-scale", Projection4DSpec.DefaultWScale, "w scale >= 0")
         _ <- validate4DParams(eyeW, screenW)
-      yield Some(Projection4DSpec(eyeW, screenW, rotXW, rotYW, rotZW))
+        _ <- Either.cond(wScale >= 0f, (), s"w-scale must be >= 0, got $wScale")
+      yield Some(Projection4DSpec(eyeW, screenW, rotXW, rotYW, rotZW, wScale))
     else
       Right(None)
 
@@ -505,7 +532,8 @@ object ObjectSpec extends LazyLogging:
     "layered_noise" -> 7,
     "xyz_rgb"       -> 8,
     "heatmap"       -> 9,
-    "triplanar"     -> 10
+    "triplanar"     -> 10,
+    "xyz_rgb_local" -> 11
   )
 
   private def parseProceduralType(kvPairs: Map[String, String]): Either[String, Int] =

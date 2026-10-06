@@ -47,6 +47,172 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val result = SceneValidator.validate(file)
     result.tag shouldBe SceneValidator.Tag.Ok
 
+  // Usability review 2026-09: only t=0 was checked, but a scene that changes with t is often
+  // at its largest (or broken) at the end of its declared duration.
+  it should "check an animated scene with a declared duration at its end time too" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object ShrinksToNothingScene:
+        |  val durationSeconds = 2f
+        |  def scene(t: Float): Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(size = 1f - t)),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("scene-evaluation: scene(2.0) threw")) shouldBe true
+
+  // Usability review 2026-09 (T1#1): an absolute or `..`-escaping texture path is a
+  // security/config error, flagged before the scene reaches a renderer with a real
+  // `--texture-dir`.
+  it should "flag an absolute texture path" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object AbsoluteTexturePathScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(texture = Some("/etc/passwd"))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("asset-path:")) shouldBe true
+
+  it should "flag a texture path that escapes the texture directory with .." in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object EscapingTexturePathScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(texture = Some("../../etc/passwd"))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("asset-path:")) shouldBe true
+
+  it should "accept a plain relative texture path" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object RelativeTexturePathScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(texture = Some("brick.png"))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+
+  // Usability review 2026-09 (T3#13): a degenerate free-form/lambda object used to pass
+  // straight through -- require() alone can't catch a bad closure's behavior at the seam.
+  it should "flag a ParametricSurface whose closedU seam doesn't actually coincide" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object BadSeamScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(ParametricSurface(f = (u, v) => Vec3(u, 0f, v), closedU = true)),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("parametric-surface-seam:")) shouldBe true
+
+  it should "flag a Curve whose control points all coincide" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object DegenerateCurveScene:
+        |  val p = Vec3(1f, 2f, 3f)
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Curve(points = Seq(p, p, p, p))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("curve-arc-length:")) shouldBe true
+
+  // Usability review 2026-09 (F18/F19/F24): scenes the validator accepted crashed the render
+  // window -- it never ran the renderer's own grouping and builder preconditions.
+  private def sceneOf(objects: menger.dsl.SceneObject*): menger.dsl.Scene =
+    menger.dsl.Scene(
+      camera = menger.dsl.Camera(
+        position = menger.dsl.Vec3(0f, 0f, 5f), lookAt = menger.dsl.Vec3(0f, 0f, 0f)
+      ),
+      objects = objects.toList,
+      lights = List()
+    )
+
+  private val edgedSponge = menger.dsl.TesseractSponge(
+    spongeType = menger.dsl.TesseractSpongeType.VolumeRemoving,
+    level = 0f,
+    material = Some(menger.dsl.Material.Film),
+    edgeRadius = Some(0.005f)
+  )
+
+  "SceneValidator.buildFindings" should "accept a 4D object with edges next to one without" in:
+    val plain = menger.dsl.Tesseract(pos = menger.dsl.Vec3(0f, 2f, 0f))
+    SceneValidator.buildFindings(sceneOf(edgedSponge, plain)) shouldBe empty
+
+  it should "accept a sphere next to an edge-rendered 4D object" in:
+    val orb = menger.dsl.Sphere(size = 0.6f)
+    SceneValidator.buildFindings(sceneOf(edgedSponge, orb)) shouldBe empty
+
+  // Usability review 2026-09, session 2 (F44, menger#52): this used to be rejected; each 4D
+  // object is projected with its own `projection`.
+  it should "accept edge-rendered 4D objects whose 4D projections differ" in:
+    val otherProjection = menger.dsl.Tesseract(
+      pos = menger.dsl.Vec3(0f, 2f, 0f),
+      edgeRadius = Some(0.005f),
+      projection = Some(menger.Projection4DSpec(eyeW = 5f))
+    )
+    SceneValidator.buildFindings(sceneOf(edgedSponge, otherProjection)) shouldBe empty
+
+  // Usability review 2026-09, session 2 (F33, menger#53): counting an edge-rendered sponge's
+  // edges built its whole mesh, which exhausted the validator's memory from level 3 up. Those
+  // levels need more edge cylinders than the instance limit allows; say so without building.
+  it should "reject edge-rendered tesseract sponges from level 3 up without building them" in:
+    for
+      (spongeType, levels) <- List(
+        menger.dsl.TesseractSpongeType.VolumeRemoving -> List(3f, 4f),
+        menger.dsl.TesseractSpongeType.SurfaceSubdividing -> List(3f, 5f)
+      )
+      level <- levels
+    do
+      val sponge = edgedSponge.copy(spongeType = spongeType, level = level)
+      withClue(s"$spongeType level $level: ") {
+        val findings = SceneValidator.buildFindings(sceneOf(sponge))
+        findings.map(_.invariant) shouldBe List("scene-build")
+        findings.head.message should include("instances")
+      }
+
+  it should "still accept an edge-rendered surface sponge at level 2" in:
+    val sponge = edgedSponge.copy(
+      spongeType = menger.dsl.TesseractSpongeType.SurfaceSubdividing, level = 2f
+    )
+    SceneValidator.buildFindings(sceneOf(sponge)) shouldBe empty
+
+  it should "find nothing to object to in any of the renderer's own registered example scenes" in:
+    val _ = examples.dsl.SceneIndex
+    menger.dsl.SceneRegistry.list().foreach { name =>
+      withClue(s"example scene '$name': ") {
+        SceneValidator.buildFindings(menger.dsl.SceneRegistry.get(name).get) shouldBe empty
+      }
+    }
+
   // Review round 2: the only 4D scene exercised here was a default-size `Tesseract`, whose 16
   // vertices are all equidistant from the origin -- so `common-sphere` passed and nothing
   // noticed that `MeshFactory.mesh4D` also routes the 4D *fractals* into a check written for
@@ -84,7 +250,27 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val result = SceneValidator.validate(file)
     result.tag shouldBe SceneValidator.Tag.Ok
 
-  // AD-4 rule 2: a compiled scene sees the DSL surface and its transitive needs, not the rest
+  // Usability review 2026-09, session 2 (F31): the geometric check built the full 4D mesh of
+  // every sponge just to check its vertices, so any sponge from level 3 up (level 4 has ~127M
+  // faces) ran the sandboxed validator out of heap and came back `refused`.
+  it should "return Ok for a tesseract sponge at the DSL's maximum level" in:
+    val file = writeTempScene(
+      s"""import menger.dsl._
+        |object MaxLevelSpongeScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(TesseractSponge(
+        |      spongeType = TesseractSpongeType.VolumeRemoving,
+        |      level = ${menger.common.Const.Engine.tesseractSpongeMaxLevel}f
+        |    )),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+
+  // SA-AD-4 rule 2: a compiled scene sees the DSL surface and its transitive needs, not the rest
   // of menger-app. `menger.tools`/`menger.engines`/`menger.cli`/`menger.input` are pruned off
   // the classpath handed to the compiler (review round 2), so referencing them is a compile
   // error rather than a working import.

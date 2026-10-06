@@ -28,6 +28,13 @@ class SceneConfiguratorSuite extends AnyFlatSpec with Matchers with MockFactory:
     (renderer.setLights(_: Array[Light])).expects(lights).once()
     configurator(lights).configureLights(renderer)
 
+  it should "use the lights of the given frame instead of the configured first-frame lights" in:
+    val renderer = mock[OptiXRenderer]
+    val first = Array[Light](Light.Directional(Vector[3](-1f, 1f, -1f), Color(1f, 1f, 1f), 1.0f))
+    val later = Array[Light](Light.Directional(Vector[3](1f, 1f, 1f), Color(1f, 1f, 1f), 2.0f))
+    (renderer.setLights(_: Array[Light])).expects(later).once()
+    configurator(first).configureLights(renderer, later)
+
   it should "fall back to a single default directional light when none are given" in:
     val renderer = mock[OptiXRenderer]
     (renderer.setLight(_: Vector[3], _: Float)).expects(*, *).once()

@@ -139,3 +139,17 @@ class OrbitCameraSuite extends AnyFlatSpec with Matchers:
     // Just verify construction doesn't throw
     cam.currentEye.z shouldBe (defaultEye.z +- 0.001f)
   }
+
+  "OrbitCamera.reset" should "jump to the new camera" in {
+    val cam = makeCamera
+    cam.reset(Vector3(0f, 0f, 10f), Vector3(1f, 2f, 3f), Vector3(0f, 1f, 0f))
+    cam.currentEye.z shouldBe (10f +- 0.001f)
+    cam.currentLookAt.y shouldBe (2f +- 0.001f)
+  }
+
+  it should "orbit around the new look-at point afterwards" in {
+    val cam = makeCamera
+    cam.reset(Vector3(0f, 0f, 10f), Vector3(0f, 0f, 0f), Vector3(0f, 1f, 0f))
+    cam.orbit(10, 0)
+    cam.currentEye.dst(cam.currentLookAt) shouldBe (10f +- 0.01f)
+  }

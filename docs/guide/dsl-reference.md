@@ -1,7 +1,7 @@
 # Menger — Scala DSL Reference
 
-**Version**: 0.5.8
-**Last Updated**: May 2026
+**Version**: 0.9.0
+**Last Updated**: September 2026
 
 ← [Advanced Features](advanced.md) | [User Guide Index](../USER_GUIDE.md)
 
@@ -11,7 +11,7 @@
 
 **Introduced in v0.5.0**
 
-The Scala DSL provides a type-safe, IDE-friendly way to define scenes that compile with your project. Instead of specifying scenes via command-line arguments, you write Scala code that describes your scene structure.
+The Scala DSL provides a type-safe, IDE-friendly way to define scenes. Instead of specifying scenes via command-line arguments, you write Scala code that describes your scene structure. Scenes can live inside the project (compiled with Menger) or in a standalone `.scala` file that Menger compiles at startup — no rebuild needed.
 
 ### Why Use the DSL?
 
@@ -65,11 +65,35 @@ object MyScene:
 **Load and render:**
 ```bash
 # By fully-qualified class name
-sbt "run --optix --scene examples.dsl.MyScene"
+sbt "run --scene examples.dsl.MyScene"
 
 # By registry short name (if registered)
-sbt "run --optix --scene my-scene"
+sbt "run --scene my-scene"
+
+# From a standalone file, compiled at startup (works with the packaged release too)
+./menger-app-0.9.0/bin/menger-app --scene my_scene.scala
 ```
+
+**Standalone scene files** must contain a top-level `object` (optionally inside a `package`)
+with either `val scene: Scene` or `def scene(t: Float): Scene`, within the first 60 lines.
+They are compiled against a *restricted* classpath (since 0.9.0): the Scala library,
+`menger-common`, `scala-logging`, and menger's `menger.dsl`, `menger.objects` and `menger.video`
+packages. Imports of LibGDX, `io.github.lene.optix`, `upickle`, or menger's `engines`, `tools`,
+`cli` or `input` packages no longer compile. This is deliberate: a scene file is treated as
+untrusted input and the compile step is the boundary (architecture decision SA-AD-4). `SceneRegistry.register` is not needed for file
+scenes. A compile error is reported with the compiler's diagnostics and the run exits.
+
+**Animation length:** an animated scene (`def scene(t: Float)`) can also declare
+`val durationSeconds = <seconds>f`. `t` is then time in seconds, and `--scene` without
+`--frames`/`--t`/`--save-name`/`--headless` opens a window that plays it in real time,
+looping. Scenes without it behave as before. The older name `val duration` is still read,
+with a deprecation warning.
+
+**Live reload:** `--scene my_scene.scala` in an interactive window watches the file and
+reloads it on every save — geometry, lights, planes, background and render settings update,
+the camera and any 4D rotation stay where they are. A save that fails to compile is logged and
+the window keeps its current scene. Only static scenes reload live; turning the file into an
+animated scene needs a restart.
 
 ### Core DSL Types
 
@@ -102,6 +126,10 @@ Color.White, Color.Black, Color.Red, Color.Green, Color.Blue
 // Implicit conversion from strings
 val color: Color = "#FF0000"
 ```
+
+An object's `color` together with a `material` tints only the material's RGB; transparency
+stays the material's own (a `color` on `Material.Glass` keeps it transparent). Without a
+`material`, the colour's alpha sets the object's opacity.
 
 **Material - PBR Materials:**
 ```scala
@@ -157,12 +185,16 @@ Cube(
 ```
 
 The `rotation` field is available on: `Sphere`, `Cube`, `Sponge`, `Tesseract`,
-`TesseractSponge`, `ParametricSurface`.
+`TesseractSponge`, `ParametricSurface`, and the 4D polytopes below.
 
-> **CLI-only types:** Platonic solids (tetrahedron, octahedron, dodecahedron, icosahedron),
-> cone, and 4D polytopes (pentachoron, 16-cell, 24-cell, 120-cell, 600-cell) do not yet have
-> Scala DSL constructors. Use the CLI `--objects type=<name>:...` syntax for those types.
-> See [reference.md](reference.md) for the full parameter list.
+**4D polytopes:** `Pentachoron` (5-cell), `Hexadecachoron` (16-cell), `Icositetrachoron`
+(24-cell), `Hecatonicosachoron` (120-cell) and `Hexacosichoron` (600-cell) take the same
+fields as `Tesseract` (`pos`, `size`, `material`, `color`, `projection`, `edgeRadius`,
+`edgeMaterial`, `rotation`, ...). See the `PolytopeGallery` example.
+
+> **CLI-only types:** Platonic solids (tetrahedron, octahedron, dodecahedron, icosahedron) and
+> cone do not yet have Scala DSL constructors. Use the CLI `--objects type=<name>:...` syntax
+> for those types. See [reference.md](reference.md) for the full parameter list.
 
 **Sphere:**
 ```scala
@@ -309,7 +341,8 @@ TesseractSponge(
 
 ### Lights
 
-**Directional Lights:**
+**Directional Lights:** `direction` is the direction the light travels: `(0f, -1f, 0f)`
+shines straight down, `(1f, -1f, -1f)` comes from above.
 ```scala
 // Direction only (default intensity 1.0, white)
 Directional(direction = (1f, -1f, -1f))
@@ -420,8 +453,10 @@ ParametricSurface(
 | `size` | `1.0` | Uniform scale |
 | `pos` | `(0,0,0)` | Position offset |
 
-**Built-in example scenes** (load with `--dsl <name>`): `parametric-sphere`,
-`parametric-torus`, `parametric-wavy-sheet`, `parametric-moebius`, `parametric-klein-bottle`.
+**Built-in example scenes** (load with `--scene <name>`): `parametric-sphere`,
+`parametric-torus`, `parametric-wavy-sheet`, `parametric-moebius`, `parametric-klein-bottle`,
+plus the caustics variants `parametric-sphere-caustics`, `parametric-torus-caustics` and the
+thin-film `parametric-klein-bottle-film`. See [All built-in scenes](#all-built-in-scenes).
 
 ### Camera and Plane
 
@@ -690,7 +725,8 @@ object MyScene:
 
 ### Included Example Scenes
 
-All example scenes are in `menger-app/src/main/scala/examples/dsl/`:
+All example scenes are in `menger-app/src/main/scala/examples/dsl/`. Load them by class name
+(`--scene examples.dsl.ThreeMaterials`) or, where registered, by short name.
 
 - **SimpleScene** - Minimal single chrome sphere
 - **ThreeMaterials** - Glass, Chrome, Gold showcase with two lights
@@ -701,15 +737,41 @@ All example scenes are in `menger-app/src/main/scala/examples/dsl/`:
 - **SpongeShowcase** - Three sponge types comparison
 - **MengerShowcase** - Classic Menger Sponge with three-point lighting
 - **TesseractDemo** - 4D hypercube (tesseract) with custom projection and glass material
+- **PolytopeGallery** - The five regular 4D polytopes besides the tesseract, side by side
 - **FilmSphere** - Thin-film interference demonstration with Film material
 - **ReusableComponents** - Demonstrates importing common materials/lighting
 - **MixedMetallicShowcase** - Five spheres at metallic 0.0→1.0, same roughness
+- **TwoSpheres**, **CausticsCanonical**, **CausticsReference** - Caustics validation scenes
+- **EnvMapDemo**, **IblSphereDemo**, **DenoiseIblDemo** - HDR environment lighting
+- **PrismDispersion**, **DiamondFire** - Wavelength-dependent refraction
+- **TrefoilKnot** - B-spline curve primitive
+- **VideoTextureCube** - Video texture on a cube
+- **RenderSettingsDemo** - Render-quality settings from the DSL
+- Animated (`def scene(t: Float)`, use with `--t`, `--frames` or `--preview`):
+  **OrbitingSphere**, **PulsingSponge**, **SpongeLevelAnimation**, **RotatingSilverSponge**,
+  **SierpinskiHDRRotation**, **FractalWithHDR** (HDR lighting), **EnvMapVideoSponge**
+  (video environment map)
+
+#### All Built-in Scenes
+
+Short names accepted by `--scene` (registered in `SceneIndex`):
+
+| Topic | Short names |
+|-------|-------------|
+| Basics & materials | `simple`, `three-materials`, `custom-materials`, `mixed-metallic`, `film-sphere`, `reusable-components`, `render-settings-demo` |
+| Sponges & 4D | `menger-showcase`, `sponge-showcase`, `tesseract-demo`, `polytope-gallery` |
+| Lighting & environment | `complex-lighting`, `env-map-demo`, `ibl-sphere-demo`, `denoise-ibl-demo` |
+| Caustics | `glass-sphere`, `caustics-demo`, `two-spheres`, `two-spheres-off`, `caustics-canonical`, `caustics-canonical-off`, `caustics-canonical-parametric`, `caustics-canonical-parametric-off`, `caustics-reference`, `caustics-reference-default` |
+| Parametric surfaces | `parametric-sphere`, `parametric-sphere-caustics`, `parametric-torus`, `parametric-torus-caustics`, `parametric-wavy-sheet`, `parametric-moebius`, `parametric-klein-bottle`, `parametric-klein-bottle-film` |
+| Curves & textures | `trefoil-knot`, `video-texture-cube` |
+
+The `-off` variants render the same scene with caustics disabled (for A/B comparison).
 
 **Render an example:**
 ```bash
-sbt "run --optix --scene examples.dsl.ThreeMaterials"
-sbt "run --optix --scene glass-sphere"
-sbt "run --optix --scene menger-showcase"
+sbt "run --scene examples.dsl.ThreeMaterials"
+sbt "run --scene glass-sphere"
+sbt "run --scene menger-showcase"
 ```
 
 ### Tips and Best Practices

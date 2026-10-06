@@ -50,3 +50,6 @@ class TAnimationConfigSuite extends AnyFlatSpec with Matchers:
   it should "reject save pattern without %" in:
     an[IllegalArgumentException] should be thrownBy
       TAnimationConfig(0f, 1f, 10, "output.png")
+
+  it should "accept an empty save pattern, which the preview uses because it saves nothing" in:
+    TAnimationConfig(0f, 1f, 10, "").savePattern shouldBe empty

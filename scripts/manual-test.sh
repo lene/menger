@@ -208,6 +208,7 @@ run_test "Recursive IAS Sponge L6" "-o --objects type=sponge-recursive-ias:level
 # Materials (use material= preset for transparency)
 echo -e "${YELLOW}--- Materials ---${NC}"
 run_test "Glass" "-o --objects type=sphere:material=glass --plane y:-2 -s $OUTPUT_DIR/06-glass.png"
+run_test "Glass sponge, xyz_rgb_local, rainbow transparent shadow" "-o --transparent-shadows --objects type=sponge-volume:level=2:material=glass:procedural=xyz_rgb_local --light directional:0.3,-1,0.6:1.5 --plane y:-2 -s $OUTPUT_DIR/06b-glass-local-rainbow-shadow.png"
 run_test "Diamond" "-o --objects type=sphere:material=diamond --plane y:-2 -s $OUTPUT_DIR/07-diamond.png"
 run_test "Chrome" "-o --objects type=sphere:material=chrome -s $OUTPUT_DIR/08-chrome.png"
 run_test "Custom Color (red)" "-o --objects type=sphere:color=#ff0000 -s $OUTPUT_DIR/09-red.png"
@@ -269,6 +270,7 @@ echo -e "${YELLOW}--- 4D Tesseract ---${NC}"
 run_test "Tesseract (default)" "-o --objects type=tesseract -s $OUTPUT_DIR/33-tesseract.png"
 run_test "Tesseract (rotated)" "-o --objects type=tesseract:rot-xw=45:rot-yw=30 -s $OUTPUT_DIR/34-tesseract-rot.png"
 run_test "Tesseract (projection)" "-o --objects type=tesseract:eye-w=4.0:screen-w=2.0 -s $OUTPUT_DIR/35-tesseract-proj.png"
+run_test "Tesseract (w-scale 0.3, part-way out of a cube)" "-o --objects type=tesseract:w-scale=0.3 -s $OUTPUT_DIR/35b-tesseract-wscale.png"
 run_test "Tesseract (glass)" "-o --objects type=tesseract:material=glass --plane y:-2 -s $OUTPUT_DIR/36-tesseract-glass.png"
 run_test "Tesseract (chrome)" "-o --objects type=tesseract:material=chrome -s $OUTPUT_DIR/37-tesseract-chrome.png"
 
@@ -386,6 +388,7 @@ run_test "DSL: SimpleScene" "-o --scene examples.dsl.SimpleScene -s $OUTPUT_DIR/
 run_test "DSL: ThreeMaterials" "-o --scene examples.dsl.ThreeMaterials -s $OUTPUT_DIR/91-dsl-three-materials.png"
 run_test "DSL: GlassSphere" "-o --scene examples.dsl.GlassSphere -s $OUTPUT_DIR/92-dsl-glass-sphere.png"
 run_test "DSL: TesseractDemo" "-o --scene examples.dsl.TesseractDemo -s $OUTPUT_DIR/93-dsl-tesseract.png"
+run_test "DSL: PolytopeGallery" "-o --scene examples.dsl.PolytopeGallery -s $OUTPUT_DIR/93b-dsl-polytope-gallery.png"
 run_test "DSL: FilmSphere" "-o --scene examples.dsl.FilmSphere -s $OUTPUT_DIR/94-dsl-film-sphere.png"
 run_test "DSL: SpongeShowcase" "-o --scene examples.dsl.SpongeShowcase -s $OUTPUT_DIR/95-dsl-sponge-showcase.png"
 run_test "DSL: MengerShowcase" "-o --scene examples.dsl.MengerShowcase -s $OUTPUT_DIR/96-dsl-menger-showcase.png"

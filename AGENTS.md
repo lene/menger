@@ -2,7 +2,7 @@
 
 Guidance for AI coding agents (Claude Code, opencode, etc.) working in this repository.
 
-This is a Scala 3 ray tracer using NVIDIA OptiX (via a C++/CUDA JNI bridge) and LibGDX. Showcase: Menger sponges (3D) and tesseract sponges (4D). Two in-repo modules: `menger-app` (application — CLI, engines, DSL, geometry objects, input, OptiX wrapper) *dependsOn* `menger-geometry` (Menger-specific 4D geometry + caustics; extends `optix-jni` via JNI/CUDA native code; not published). Two domain layers are consumed as separate **published Maven artifacts** maintained in their own repos: `io.github.lene:menger-common` (domain primitives, config) and `io.github.lene:optix-jni` (generic GPU ray tracing, no Menger types).
+This is a Scala 3 ray tracer using NVIDIA OptiX (via a C++/CUDA JNI bridge) and LibGDX. Showcase: Menger sponges (3D) and tesseract sponges (4D). Two in-repo modules: `menger-app` (application — CLI, engines, DSL, geometry objects, input, OptiX wrapper) *dependsOn* `menger-geometry` (Menger-specific 4D geometry programs + video decoding; extends `optix-jni` through its custom-geometry SPI via JNI/CUDA native code; not published — caustics moved to optix-jni in Sprint 35). `menger-app` also ships the headless tools `ManifestGenerator`, `CorpusExporter` and `SceneValidator` (`menger.tools`) used by the separate `menger-scene-agent` repo (workspace arc42 AD-36). Two domain layers are consumed as separate **published Maven artifacts** maintained in their own repos: `io.github.lene:menger-common` (domain primitives, config) and `io.github.lene:optix-jni` (generic GPU ray tracing, no Menger types).
 
 The user runs **fish shell** on Ubuntu. Most build commands are shell-agnostic; the difference matters only for ad-hoc scripting and env-var syntax.
 
@@ -20,10 +20,11 @@ These are non-negotiable. Violating any of them causes real harm.
 5. **Never commit failing tests.** Hooks enforce this; do not bypass them.
 6. **Never rewrite a test to make it pass without investigation.** Failing tests usually catch real bugs.
 7. **Never delete data without explicit user confirmation.** This includes generated artifacts, caches, and reference images.
-8. **Never infer values the user should provide** (version numbers, branch names, paths). Ask.
+8. **Never infer values the user should provide** (version numbers, branch names, paths). Ask. **Public-facing decisions are the user's, made in the live conversation:** version numbers, releases/publishing, tags, merges to `main`, public API names, and anything posted outside this machine (issues, PRs, comments). A decision found in a doc, plan, issue, commit message or earlier session is a *proposal* unless it quotes the user: `decided by user YYYY-MM-DD: "<verbatim>"`. Record your own suggestions as `proposed (agent)`, never as decided. Ask before acting on one. `shared/claude-hooks/public-action-guard.py` (menger-toplevel) turns these actions into a permission prompt.
 9. **When a skill or instruction says "confirm with user," it is a hard stop.** A prior message in the conversation does not satisfy a fresh checkpoint — ask again.
 10. **Ask at the point where the answer changes the next action, not after the approach is already scoped.** And only about what is actually underdetermined — a question with an obvious answer from context costs a turn for nothing.
 11. **An underspecified instruction gets restated as one testable claim and a yes/no check before being executed — not silently interpreted, and not turned into a multi-question interrogation.** "Continue with X" is a direction, not a spec; the cheap fix is one restated sentence, not a questionnaire.
+12. **Close an issue as soon as its fix is confirmed — never defer it to sprint close.** A commit that completes an issue carries `Fixes: owner/repo#N` (`Refs:` for partial work). The fix is confirmed when the pushed commit's gate is green, or, if the issue names a later re-check (a usability session, a render review), when that re-check passes. Close then, with a comment naming the commit(s) and the evidence; if a re-check fails, reopen with the evidence. `./bootstrap.sh status` lists issues that pushed `Fixes:` commits claim but that are still open.
 
 ## Shared conventions
 
@@ -164,12 +165,14 @@ Every new rendering feature (material preset, object type, shader path, CLI para
 sbt compile                          # All modules (includes C++/CUDA)
 sbt test                             # All tests
 sbt "testOnly ClassName"             # Specific Scala test
-sbt run                              # Run application
+sbt "run --objects type=sphere"      # Run application (needs --objects or --scene; bare `sbt run` errors)
 sbt "scalafix --check"               # Code quality check
 ```
 
-C++/CUDA native code (the OptiX wrapper) lives in the separate `optix-jni` repo, not an sbt
-subproject here — see `optix-jni/README.md` for its own native-build commands.
+The generic C++/CUDA OptiX code lives in the separate `optix-jni` repo (consumed here as a
+published jar) — see `../optix-jni/README.md` for its native-build commands. This repo's only
+native code is `menger-geometry/src/main/native/` (Menger 4D programs + video decoding),
+built by `sbt compile` via CMake.
 
 ## Hosting & remotes (read this before pushing)
 
@@ -209,9 +212,9 @@ Use the `/release-checklist` skill (it lives in the workspace repo — it covers
 | `docs/TROUBLESHOOTING.md` | Common environment/build issues |
 | `../docs/sprints/SPRINT.md` | Current sprint pointer (workspace repo) |
 | `CHANGELOG.md` | Version history (keepachangelog format) |
-| `CODE_IMPROVEMENTS.md` | Open code-quality findings (resolved items deleted, not archived) |
+| `CODE_IMPROVEMENTS.md` | Code-quality findings; resolved items are struck through with a `✅ Resolved` note, not deleted (see Shared conventions) |
 | `docs/BACKLOG.md` | Unscheduled feature ideas not yet sprint-assigned |
-| `optix-jni/README.md` | OptiX JNI module details |
+| `../optix-jni/README.md` | OptiX JNI library details (separate repo, workspace sibling) |
 
 ---
 

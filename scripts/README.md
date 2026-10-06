@@ -12,7 +12,7 @@ Infrastructure-as-code scripts for AWS GPU development workflow and local enviro
 ./nvidia-spot.sh --menger-branch feature/my-branch
 
 # Run a render non-interactively and retrieve the output
-./nvidia-spot.sh --command "menger-app --optix --sponge-type cube-sponge --level 3 --save-name out.png" --retrieve "*.png"
+./nvidia-spot.sh --command "menger-app --objects type=cube-sponge:level=3 --headless --save-name out.png" --retrieve "*.png"
 
 # See all AMIs built for this project
 ./nvidia-spot.sh --list-amis
@@ -71,7 +71,9 @@ Infrastructure-as-code scripts for AWS GPU development workflow and local enviro
 ### Infrastructure Setup
 
 **AMI Building:**
-- `build-ami.sh` (12 KB) - Build custom AMI with CUDA 12.8, OptiX SDK 9.0, dev tools
+- `build-ami.sh` (12 KB) - Build custom AMI with OptiX SDK 9.0 and dev tools. **Stale:** it still
+  installs CUDA 12.8, but the build needs CUDA 13.x — fix before building a new AMI (workspace
+  arc42 TD-14)
   - Ubuntu 24.04 base
   - NVIDIA drivers (580.x+)
   - Java, Scala, sbt, nvtop, htop, Fish shell
@@ -176,7 +178,7 @@ AWS_PROFILE=personal ./nvidia-spot.sh --menger-branch feature/my-branch
 
 # Run a render and retrieve output images
 AWS_PROFILE=personal ./nvidia-spot.sh \
-  --command "menger-app --optix --sponge-type cube-sponge --level 3 --save-name out.png" \
+  --command "menger-app --objects type=cube-sponge:level=3 --headless --save-name out.png" \
   --retrieve "*.png"
 # Output saved to ./artifacts/out.png
 

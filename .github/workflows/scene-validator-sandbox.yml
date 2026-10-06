@@ -1,4 +1,4 @@
-# AD-18 sandbox verification (spec-ai-scene-agent story 5, code review round 2).
+# SA-AD-18 sandbox verification (spec-ai-scene-agent story 5, code review round 2).
 #
 # Deliberately NOT part of PR CI: story 5's `Never` clause keeps the scene-validator image out
 # of the PR pipeline, and building it needs a licensed OptiX SDK on the host. But leaving it
@@ -28,6 +28,11 @@ jobs:
     name: Build image + run container E2E suite
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 45
+    env:
+      # A CI-only tag: `:latest` is the developer's image on this shared runner, and the nightly
+      # build from main used to replace it, so a sprint branch validated against an older DSL
+      # (usability session 3, F70). The E2E suite reads the same variable.
+      MENGER_SCENE_VALIDATOR_IMAGE: menger-scene-validator:ci
     steps:
       - uses: actions/checkout@v4
 
@@ -41,13 +46,13 @@ jobs:
         run: nvidia-smi || echo "nvidia-smi unavailable"
 
       - name: Build the scene-validator image
-        run: ./docker/scene-validator/build.sh
+        run: ./docker/scene-validator/build.sh "$MENGER_SCENE_VALIDATOR_IMAGE"
 
       - name: Verify the image carries this working tree's version
         run: |
           set -euo pipefail
           EXPECTED="$(grep -oP '(?<=version := ")[^"]+' menger-app/build.sbt | head -1)"
-          ACTUAL="$(docker image inspect menger-scene-validator:latest \
+          ACTUAL="$(docker image inspect "$MENGER_SCENE_VALIDATOR_IMAGE" \
             --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')"
           echo "image version: $ACTUAL (expected $EXPECTED)"
           [ "$ACTUAL" = "$EXPECTED" ]

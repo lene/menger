@@ -4,12 +4,11 @@ import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.TransformUtil
 import menger.common.Vector
-import menger.objects.FractionalLevelSponge
+import menger.dsl.ResourceLimits
 
 /**
  * Scene builder for multiple triangle mesh instances with optional textures.
@@ -32,7 +31,13 @@ import menger.objects.FractionalLevelSponge
  */
 class TriangleMeshSceneBuilder(
   textureDir: String,
-  mesh4DRecorder: (Int, Int) => Unit = (_, _) => ()
+  mesh4DRecorder: (Int, Int) => Unit = (_, _) => (),
+  // (spec index, instance id) of a fractional 4D sponge's hole-cap instance, whose alpha an
+  // animation can then update in place (TrackedMesh4D, F52).
+  holeCapsRecorder: (Int, Int) => Unit = (_, _) => (),
+  // (spec index, instance id) of every triangle-mesh instance, so an animation can move or
+  // rotate it in place via setInstanceTransform (TrackedMesh4D, F52).
+  instanceRecorder: (Int, Int) => Unit = (_, _) => ()
 )(using profilingConfig: ProfilingConfig)
   extends SceneBuilder:
 
@@ -42,7 +47,10 @@ class TriangleMeshSceneBuilder(
     else if !specs.forall(isTriangleMeshType) then
       Left("All objects must be triangle mesh types (cube, sponge-*, tesseract, tetrahedron, octahedron, icosahedron, dodecahedron, parametric)")
     else if specs.exists(invalidRecursiveIASLevel) then
-      Left("sponge-recursive-ias requires level in [1, 14)")
+      Left(
+        s"sponge-recursive-ias requires level in [${ResourceLimits.recursiveIasMinLevel}, " +
+          s"${ResourceLimits.recursiveIasMaxLevel + 1})"
+      )
     else
       // Check instance count (accounting for fractional levels creating 2 instances)
       val instanceCount = calculateInstanceCount(specs)
@@ -81,7 +89,7 @@ class TriangleMeshSceneBuilder(
         // Upload mesh and add instance
         op.plan match
           case MeshUploadPlan.Cpu(data) =>
-            renderer.setTriangleMesh(data)
+            renderer.addTriangleMesh(data)
           case MeshUploadPlan.Gpu4D(quads4D, vertsPerFace, proj) =>
             val meshIdx = renderer.setProjectedMesh(
               quads4D, vertsPerFace, uvs = null, // scalafix:ok DisableSyntax.null
@@ -98,111 +106,96 @@ class TriangleMeshSceneBuilder(
             val transform = TransformUtil.createEulerRotationScaleTranslation(
               spec.rotX, spec.rotY, spec.rotZ, spec.size, spec.x, spec.y, spec.z
             )
-            val rawLevel = spec.level.get
-            if isFractional(rawLevel) then
-              val frac      = rawLevel - rawLevel.floor
-              val coarseMat = op.material.copy(color = op.material.color.copy(a = op.material.color.a * (1f - frac)))
-              val coarseId = requireInstanceId(
-                renderer.addRecursiveIASSpongeInstance(
-                  rawLevel.floor.toInt, transform, coarseMat, textureIndex
-                ),
-                s"coarse fractional sponge instance level=${rawLevel.floor.toInt} for ${spec.objectType}"
-              )
-              applyInstanceTextures(coarseId, spec, textureIndices, renderer)
-              requireInstanceId(
-                renderer.addRecursiveIASSpongeInstance(
-                  rawLevel.floor.toInt + 1, transform, op.material, textureIndex
-                ),
-                s"fractional sponge instance level=${rawLevel.floor.toInt + 1} for ${spec.objectType}"
-              )
-            else
-              requireInstanceId(
-                renderer.addRecursiveIASSpongeInstance(
-                  rawLevel.toInt, transform, op.material, textureIndex
-                ),
-                s"recursive-IAS sponge instance level=${rawLevel.toInt} for ${spec.objectType}"
-              )
+            // The plain cube was uploaded above. addRecursiveIASSpongeInstance wraps the most
+            // recently uploaded mesh, so any other leaf (the hole caps) goes up right before
+            // its own instance.
+            val cube = MeshFactory.create(spec)
+            val ids = TriangleMeshSceneBuilder.recursiveIASInstances(spec.level.get, cube, op.material)
+              .map { (leaf, level, material, coverage) =>
+                if leaf ne cube then
+                  val _ = renderer.addTriangleMesh(leaf)
+                val id = requireInstanceId(
+                  renderer.addRecursiveIASSpongeInstance(level, transform, material, textureIndex),
+                  s"recursive-IAS sponge instance level=$level for ${spec.objectType}"
+                )
+                setCoverage(renderer, id, coverage)
+                id
+              }
+            ids.tail.foreach(applyInstanceTextures(_, spec, textureIndices, renderer))
+            ids.head
           else if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
             requireInstanceId(
               renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), op.material, textureIndex),
               s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
             )
           else
-            val transform = TransformUtil.createEulerRotationScaleTranslation(
-              spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
-            )
             requireInstanceId(
-              renderer.addTriangleMeshInstance(transform, op.material, textureIndex),
+              renderer.addTriangleMeshInstance(
+                TriangleMeshSceneBuilder.instanceTransform(spec), op.material, textureIndex
+              ),
               s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
             )
+        setCoverage(renderer, instanceId, op.coverage)
         applyInstanceTextures(instanceId, spec, textureIndices, renderer)
+        instanceRecorder(specIdx, InstanceId.raw(instanceId))
+        if op.isHoleCaps then holeCapsRecorder(specIdx, InstanceId.raw(instanceId))
         val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
         val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
         logger.debug(s"Added ${spec.objectType} instance $instanceId ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
       }
     }
 
-  /** GPU-projected fractional 4D sponge: emit two integer-level meshes
-    * (level n+1 fully opaque, level n with alpha = 1 - fractional). Both
-    * share projection params; per-mesh material alpha differs.
-    *
-    * The lower-level (currentLevel) quads are expanded along their 4D face
-    * normals by `SkinNormalOffset` before upload — equivalent to the CPU
-    * path's `expandAlongNormals` — so that the level-n skin faces do not
-    * perfectly overlap the level-(n+1) surface, preventing z-fighting. */
+  /** GPU-projected fractional 4D sponge: emit two meshes sharing the projection
+    * params: level n+1 fully present, and the hole caps of level n (the centre
+    * third of each face, which level n+1 leaves open) at coverage 1 - fractional,
+    * so the new holes fade in. Same design as the CPU path's
+    * `FractionalLevelSponge`; no face of the caps overlaps level n+1 (usability
+    * review 2026-09, session 2, F35). */
   private def buildFractionalGpuOps(
     spec: ObjectSpec,
     baseMaterial: menger.common.Material
   )(using profilingConfig: ProfilingConfig): List[FractionalOp] =
     val level = spec.level.get
-    val fractionalPart = level - level.floor
-    val alphaTransparent = 1.0f - fractionalPart
+    val coverage = TriangleMeshSceneBuilder.holeCapsCoverage(level)
     val nextLevelSpec = spec.copy(level = Some((level + 1).floor))
     val currentLevelSpec = spec.copy(level = Some(level.floor))
     logger.debug(
       s"GPU fractional split: ${spec.objectType} level=$level → " +
-      s"slot[opaque level ${(level + 1).floor}] + slot[level ${level.floor} alpha=$alphaTransparent]"
-    )
-    val opaqueMaterial = baseMaterial
-    val transparentMaterial = baseMaterial.copy(
-      color = baseMaterial.color.copy(a = baseMaterial.color.a * alphaTransparent)
+      s"slot[level ${(level + 1).floor}] + slot[level ${level.floor} caps coverage=$coverage]"
     )
     List(
-      FractionalOp(MeshFactory.createUpload(nextLevelSpec), opaqueMaterial),
+      FractionalOp(MeshFactory.createUpload(nextLevelSpec), baseMaterial),
       FractionalOp(
-        MeshFactory.createUpload(currentLevelSpec,
-          skinOffset = FractionalLevelSponge.SkinNormalOffset),
-        transparentMaterial
+        MeshFactory.createUpload(currentLevelSpec, holeCaps = true),
+        baseMaterial,
+        isHoleCaps = true,
+        coverage = coverage
       )
     )
 
-  private final case class FractionalOp(plan: MeshUploadPlan, material: menger.common.Material)
+  private final case class FractionalOp(
+    plan: MeshUploadPlan,
+    material: menger.common.Material,
+    isHoleCaps: Boolean = false,
+    coverage: Float = 1f
+  )
+
+  private def setCoverage(renderer: OptiXRenderer, id: InstanceId, coverage: Float): Unit =
+    if coverage < 1f then
+      val result = renderer.setInstanceCoverage(InstanceId.raw(id), coverage)
+      if result != 0 then sys.error(s"setInstanceCoverage($id, $coverage) failed with $result")
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // TD-5 resolution (Sprint 18.1): each spec gets its own mesh + GAS via per-spec
     // setTriangleMesh + addTriangleMeshInstance, so distinct triangle-mesh types coexist
-    // naturally in the IAS. The only remaining cross-spec constraint is that 4D-projected
-    // specs must share projection parameters, since projection is a global render setting.
+    // naturally in the IAS. Each 4D spec is projected with its own parameters too (per-mesh
+    // `setProjectedMesh`/CPU projection), so their projections may differ (menger#52).
     val t1 = spec1.objectType.toLowerCase
     val t2 = spec2.objectType.toLowerCase
-
-    val spongeLevelsOk =
-      (!ObjectType.isSponge(t1) || spec1.level.isDefined) &&
+    (!ObjectType.isSponge(t1) || spec1.level.isDefined) &&
       (!ObjectType.isSponge(t2) || spec2.level.isDefined) &&
       (!ObjectType.is4DSponge(t1) || spec1.level.isDefined) &&
       (!ObjectType.is4DSponge(t2) || spec2.level.isDefined)
-
-    val projectionOk =
-      if ObjectType.isProjected4D(t1) && ObjectType.isProjected4D(t2) then
-        matchingProjectionParams(spec1, spec2)
-      else true
-
-    spongeLevelsOk && projectionOk
-
-  private def matchingProjectionParams(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
-    val p1 = spec1.projection4D.getOrElse(Projection4DSpec.default)
-    val p2 = spec2.projection4D.getOrElse(Projection4DSpec.default)
-    p1 == p2
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
     // GPU fractional path: 2 instances per fractional spec (level n + level n+1).
@@ -230,5 +223,35 @@ class TriangleMeshSceneBuilder(
   private def invalidRecursiveIASLevel(spec: ObjectSpec): Boolean =
     if !ObjectType.isRecursiveIASSponge(spec.objectType) then false
     else spec.level match
-      case Some(l) => l < 1f || l >= 14f
+      case Some(l) =>
+        l < ResourceLimits.recursiveIasMinLevel || l >= ResourceLimits.recursiveIasMaxLevel + 1
       case None => true
+
+object TriangleMeshSceneBuilder:
+  /** The hole caps of a fractional sponge fade out as the level rises: instance coverage
+    * 1 - fractional part, with the material untouched. Not alpha: a refractive material reads
+    * alpha as absorption, so glass and film caps looked the same at every level (menger#56).
+    * Shared by the build and by in-place animation updates (TrackedMesh4D). */
+  def holeCapsCoverage(level: Float): Float = 1f - (level - level.floor)
+
+  /** Leaf mesh, recursion level, material and coverage of each recursive-IAS sponge instance,
+    * in the order they are added. A fractional level n.f adds level n+1 on the plain cube and
+    * level n on the cube's hole caps at coverage 1 - f, so only the new holes fade in instead of the
+    * whole coarse level lying over the fine one (usability review 2026-09, F35 / menger#55).
+    * Caps also sit on the leaf cubes' shared inner faces; they show, fading, inside the new
+    * tunnels. */
+  def recursiveIASInstances(
+    level: Float, cube: menger.common.TriangleMeshData, material: menger.common.Material
+  ): List[(menger.common.TriangleMeshData, Int, menger.common.Material, Float)] =
+    if level == level.floor then List((cube, level.toInt, material, 1f))
+    else List(
+      (cube, level.floor.toInt + 1, material, 1f),
+      (menger.objects.HoleCaps.of(cube), level.floor.toInt, material, holeCapsCoverage(level))
+    )
+
+  /** Instance transform of a (non-recursive-IAS) triangle mesh: rotation + position; size is
+    * baked into the mesh. Shared by the build and by in-place moves (TrackedMesh4D). */
+  def instanceTransform(spec: ObjectSpec): Array[Float] =
+    TransformUtil.createEulerRotationScaleTranslation(
+      spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
+    )

@@ -26,11 +26,15 @@ object GeometryRegistry:
     else
       val types = specs.map(s => ObjectType.normalize(s.objectType)).toSet
 
-      // Special case: 4D projected triangle meshes with edge rendering
+      // Special case: 4D projected triangle meshes with edge rendering on every spec
       val all4DProjected = types.forall(ObjectType.isProjected4D)
-      val hasEdge = specs.exists(_.hasEdgeRendering)
-      if types.forall(ObjectType.isTriangleMesh) && all4DProjected && hasEdge then
+      val allEdge = specs.forall(_.hasEdgeRendering)
+      if types.forall(ObjectType.isTriangleMesh) && all4DProjected && allEdge then
         Some(menger.engines.scene.TesseractEdgeSceneBuilder(textureDir)(using pc))
+      // Edges on some specs only: no single builder can take them -- split first
+      // (SceneGroups.buildOrder); picking the edge builder crashed the window (F18)
+      else if SceneGroups.hasMixedEdge4D(specs) then
+        None
       // If all specs share the SAME type, delegate to TypeRegistry
       else if types.size == 1 then
         val typeName = types.head

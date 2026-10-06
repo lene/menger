@@ -153,16 +153,44 @@ object SceneLoader extends LazyLogging:
     }.toOption
 
   private def tryLoadAnimatedScene(cls: Class[?], module: AnyRef): Option[Either[String, LoadedScene]] =
-    Try {
-      val sceneMethod = cls.getDeclaredMethod("scene", java.lang.Float.TYPE)
-      // Verify the method returns a Scene by calling it with t=0
-      sceneMethod.invoke(module, java.lang.Float.valueOf(0f)) match
-        case _: Scene =>
-          val fn: Float => Scene = t => invokeSceneMethod(sceneMethod, module, t)
-          Right(LoadedScene.Animated(fn))
-        case other =>
+    // Only a missing method means "not an animated scene". An exception thrown while probing
+    // scene(0) is the scene's own error and is reported as such -- swallowing it used to turn
+    // e.g. a failed require() into a misleading "has no scene method".
+    Try(cls.getDeclaredMethod("scene", java.lang.Float.TYPE)).toOption.map { sceneMethod =>
+      Try(sceneMethod.invoke(module, java.lang.Float.valueOf(0f))).toEither match
+        case Left(e) =>
+          Left(s"scene(0) threw: ${rootCause(e).getMessage}")
+        case Right(_: Scene) =>
+          loadDuration(cls, module).map { duration =>
+            val fn: Float => Scene = t => invokeSceneMethod(sceneMethod, module, t)
+            LoadedScene.Animated(fn)(duration)
+          }
+        case Right(other) =>
           Left(s"'scene(Float)' method exists but returns ${other.getClass.getName}, not Scene")
-    }.toOption
+    }
+
+  /** The scene object's optional `val durationSeconds: Float`, read through its accessor. The
+    * old name `duration` did not say it is seconds (usability review 2026-10, session 3, F84);
+    * it is still read, with a deprecation warning, when `durationSeconds` is absent. */
+  private def loadDuration(cls: Class[?], module: AnyRef): Either[String, Option[Float]] =
+    val accessors = List("durationSeconds", "duration").flatMap(name =>
+      Try(cls.getDeclaredMethod(name)).toOption.map(name -> _)
+    )
+    accessors.headOption match
+      case None => Right(None)
+      case Some((name, accessor)) =>
+        if name == "duration" then
+          logger.warn("`val duration` is deprecated: name it `val durationSeconds`")
+        Try(accessor.invoke(module)).toOption match
+          case Some(d: java.lang.Float) if d.floatValue > 0f => Right(Some(d.floatValue))
+          case Some(d: java.lang.Float) => Left(s"'$name' must be positive, got $d")
+          case _ => Left(s"'$name' must be a Float (seconds), e.g. `val durationSeconds = 10f`")
+
+  @scala.annotation.tailrec
+  private def rootCause(e: Throwable): Throwable =
+    Option(e.getCause) match
+      case Some(cause) if cause ne e => rootCause(cause)
+      case _ => e
 
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   private def invokeSceneMethod(method: java.lang.reflect.Method, module: AnyRef, t: Float): Scene =

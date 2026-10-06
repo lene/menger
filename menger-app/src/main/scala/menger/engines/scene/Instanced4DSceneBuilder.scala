@@ -21,21 +21,23 @@ import menger.common.Vector
   * @param name        canonical (normalized) object-type name, e.g. "menger4d"
   * @param addInstance (renderer, level, distanceThreshold, position, scale, projection, material)
   *                    => raw instance id; distanceThreshold is read only by menger4d
-  * @param maxLevel    recursion-depth upper bound (menger4d only); must match
-  *                    MAX_4D_LEVEL in OptiXWrapper.cpp. Lower bound is always 0.
+  * @param maxLevel    recursion-depth upper bound, [[menger.dsl.ResourceLimits.ifs4dMaxLevel]]
+  *                    for all three types (usability review 2026-09, T1#3 -- sierpinski4d and
+  *                    hexadecachoron4d had none; each shader's own traversal stack guards
+  *                    against overflow, but silently prunes rather than rendering what was
+  *                    asked for). Lower bound is always 0.
   */
 case class IFS4DType(
   name: String,
   addInstance: (MengerRenderer, Int, Int, Vector[3], Float, Projection4DSpec, Material) => Int,
-  maxLevel: Option[Int] = None
+  maxLevel: Option[Int] = Some(menger.dsl.ResourceLimits.ifs4dMaxLevel)
 )
 
 object IFS4DType:
   val Menger4D: IFS4DType = IFS4DType("menger4d",
     (r, level, threshold, pos, scale, proj, mat) =>
       r.addMenger4DInstance(level, threshold, pos, scale,
-        proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW, mat),
-    maxLevel = Some(14))
+        proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW, mat))
 
   val Sierpinski4D: IFS4DType = IFS4DType("sierpinski4d",
     (r, level, _, pos, scale, proj, mat) =>

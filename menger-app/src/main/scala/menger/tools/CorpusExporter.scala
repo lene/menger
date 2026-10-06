@@ -36,7 +36,7 @@ object CorpusExporter extends LazyLogging:
   // Kept in sync with ManifestGenerator's own pins -- see that file for the sync-with-build.sbt
   // note; duplicated here rather than shared because both are private to their own object.
   private val ScalaVersionPin = "3.8.3"
-  private val OptixJniVersionPin = "0.3.3"
+  private val OptixJniVersionPin = "0.4.6"
   private val MinDriverVersion = "580.65"
 
   private val DefaultOutputPath = "target/dsl-corpus.json"
@@ -138,7 +138,7 @@ object CorpusExporter extends LazyLogging:
     try
       val path: Path = Paths.get(outputPath)
       Option(path.getParent).foreach(Files.createDirectories(_))
-      // AD-14, same as ManifestGenerator.writeManifest: this artifact crosses into the agent
+      // SA-AD-14, same as ManifestGenerator.writeManifest: this artifact crosses into the agent
       // domain read-only, so it is renamed into place rather than written in situ (review
       // round 2).
       val tmp = Files.createTempFile(

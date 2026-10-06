@@ -12,6 +12,14 @@ import org.scalatest.matchers.should.Matchers
  */
 class ExampleScenesSuite extends AnyFlatSpec with Matchers:
 
+  // Force every scene object SceneIndex knows about to class-load (and therefore run its
+  // SceneRegistry.register() call) before any test in this suite runs, so the "Scene
+  // registry" check below doesn't depend on which "should load X via reflection" tests
+  // happened to execute first (usability review 2026-09 inbox item: this test was
+  // intermittently failing under certain `sbt testOnly` suite-glob combinations).
+  examples.dsl.SceneIndex.all
+  examples.dsl.SceneIndex.animated
+
   private def extractStaticScene(result: Either[String, LoadedScene]): Scene =
     result match
       case Right(LoadedScene.Static(scene)) => scene
@@ -169,6 +177,13 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.planes should not be empty
     scene.caustics shouldBe defined
 
+  it should "load PolytopeGallery via reflection" in:
+    // Usability review 2026-09, F17: the regular 4D polytopes besides the tesseract.
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.PolytopeGallery"))
+    scene.objects should have length 5
+    scene.lights should have length 1
+    scene.planes should not be empty
+
   "Scene registry" should "have all registered short names" in:
     val registeredNames = SceneRegistry.list().sorted
 
@@ -193,6 +208,7 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     registeredNames should contain("caustics-reference-default")
     registeredNames should contain("denoise-ibl-demo")
     registeredNames should contain("trefoil-knot")
+    registeredNames should contain("polytope-gallery")
 
   it should "load TesseractDemo via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.TesseractDemo"))

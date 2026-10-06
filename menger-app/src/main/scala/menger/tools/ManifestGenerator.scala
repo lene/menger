@@ -53,13 +53,23 @@ import upickle.default.write
   */
 object ManifestGenerator extends LazyLogging:
 
-  private val SchemaVersion = "1.0.0"
+  // 1.1.0: field `description`s and top-level `conventions` from DslSemantics (F28).
+  // 1.2.0: field `min`/`max` from DslSemantics (T1#3), backed by menger.dsl.ResourceLimits.
+  // 1.3.0: field `warnAt` (F36), procedural preset descriptions (F37/F40) and 4D
+  //        colouring/texture/projection conventions (F43, menger#21, menger#52).
+  // 1.4.0: field `limitsBy` (per-`spongeType` level bounds, F59), 4D rotation units in degrees
+  //        (F74), refractive-colour/caustics/duration/4D-size conventions (F66, F69, F84, F72).
+  // 1.5.0: `val durationSeconds` (F84, `duration` deprecated) and `Projection4DSpec.wScale`
+  //        (menger#65) in the conventions.
+  // 1.6.0: procedural preset 11 xyz_rgb_local (F63) and the transparent-shadow convention (F67),
+  //        optix-jni 0.4.6.
+  private val SchemaVersion = "1.6.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
   // and the architecture spine's Stack table (minimum driver version).
   private val ScalaVersionPin = "3.8.3"
-  private val OptixJniVersionPin = "0.3.3"
+  private val OptixJniVersionPin = "0.4.6"
   private val MinDriverVersion = "580.65"
 
   private val DefaultOutputPath = "target/dsl-manifest.json"
@@ -67,7 +77,29 @@ object ManifestGenerator extends LazyLogging:
   private val ConstructorDefaultPattern = """^\$lessinit\$greater\$default\$(\d+)$""".r
   private val MethodDefaultPattern = """^(.+)\$default\$(\d+)$""".r
 
-  case class FieldManifest(name: String, `type`: String, default: Option[String]) derives ReadWriter
+  /** Bounds of one value of a discriminating field (`limitsBy`). */
+  case class BoundsManifest(
+    min: Option[Double] = None,
+    max: Option[Double] = None,
+    warnAt: Option[Double] = None
+  ) derives ReadWriter
+
+  /** Field bounds that depend on another field's value: `field` names the discriminating
+    * field (`spongeType`), `values` maps each of its values to the bounds that apply. The
+    * field's own `min`/`max`/`warnAt` stay as the conservative default. */
+  case class LimitsByManifest(field: String, values: Map[String, BoundsManifest])
+      derives ReadWriter
+
+  case class FieldManifest(
+    name: String,
+    `type`: String,
+    default: Option[String],
+    description: Option[String] = None,
+    min: Option[Double] = None,
+    max: Option[Double] = None,
+    warnAt: Option[Double] = None,
+    limitsBy: Option[LimitsByManifest] = None
+  ) derives ReadWriter
   case class TypeManifest(name: String, fields: List[FieldManifest]) derives ReadWriter
 
   /** An enum's admissible values. Without these the manifest names a field's *type*
@@ -93,6 +125,7 @@ object ManifestGenerator extends LazyLogging:
     scalaVersion: String,
     optixJniVersion: String,
     minDriverVersion: String,
+    conventions: List[String],
     objects: List[TypeManifest],
     enums: List[EnumManifest],
     sceneComposition: List[TypeManifest],
@@ -168,7 +201,22 @@ object ManifestGenerator extends LazyLogging:
       val default = defaults.get(i + 1)
         .filter(_.getParameterCount == 0)
         .flatMap(m => Try(String.valueOf(m.invoke(companion))).toOption)
-      FieldManifest(p.getName, p.getParameterizedType.getTypeName, default)
+      val (min, max) = DslSemantics.limitsOf(clazz.getSimpleName, p.getName)
+      FieldManifest(
+        p.getName,
+        p.getParameterizedType.getTypeName,
+        default,
+        DslSemantics.descriptionOf(clazz.getSimpleName, p.getName),
+        min,
+        max,
+        DslSemantics.warnAtOf(clazz.getSimpleName, p.getName),
+        DslSemantics.limitsBySubtypeOf(clazz.getSimpleName, p.getName).map { (field, bySubtype) =>
+          LimitsByManifest(
+            field,
+            bySubtype.map { case (value, (lo, hi, warn)) => value -> BoundsManifest(lo, hi, warn) }
+          )
+        }
+      )
     }
 
   private def typeManifestOf(clazz: Class[?]): TypeManifest =
@@ -299,6 +347,7 @@ object ManifestGenerator extends LazyLogging:
       scalaVersion = ScalaVersionPin,
       optixJniVersion = OptixJniVersionPin,
       minDriverVersion = MinDriverVersion,
+      conventions = DslSemantics.conventions,
       objects = objectManifestsOf(sealedSubtypeNames[SceneObject]),
       enums = List(
         EnumManifest("SpongeType", sealedSubtypeNames[SpongeType]),
@@ -336,7 +385,7 @@ object ManifestGenerator extends LazyLogging:
     try
       val path: Path = Paths.get(outputPath)
       Option(path.getParent).foreach(Files.createDirectories(_))
-      // AD-14: this artifact is mounted read-only into the agent domain, so a reader must
+      // SA-AD-14: this artifact is mounted read-only into the agent domain, so a reader must
       // never observe a partial file. Write beside the target and rename into place -- a
       // rename is atomic within a filesystem, `Files.writeString` straight onto the target is
       // not (review round 2).

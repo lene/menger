@@ -1,7 +1,7 @@
 # Menger — Quick Start
 
-**Version**: 0.5.5
-**Last Updated**: March 2026
+**Version**: 0.9.0
+**Last Updated**: September 2026
 
 ← [User Guide Index](../USER_GUIDE.md)
 
@@ -26,9 +26,9 @@ The project extends this concept to four dimensions with **tesseract sponges**, 
 
 ### Key Features
 
-- **Dual Rendering Pipeline**
-  - LibGDX (OpenGL) for real-time interactive preview
-  - OptiX (ray tracing) for high-quality photorealistic output
+- **GPU Ray Tracing Throughout**
+  - NVIDIA OptiX for every render — the interactive window, headless stills and animations
+  - Interactive window keeps refining the image while you orbit, pan and rotate in 4D
 
 - **Flexible Geometry**
   - Multiple sponge generation algorithms (surface vs volume subdivision)
@@ -44,14 +44,15 @@ The project extends this concept to four dimensions with **tesseract sponges**, 
 
 - **Realistic Lighting**
   - Multiple light sources (up to 8)
-  - Directional and point lights with color and intensity control
+  - Directional, point and area lights (soft shadows) with color and intensity control
+  - HDR environment maps (image-based lighting)
   - Shadow rays for realistic shadows
   - Caustics rendering via Progressive Photon Mapping (PPM)
 
 - **Animation System**
-  - Frame sequence generation
-  - Animate rotation, camera, and fractal levels
-  - Chainable animation specifications
+  - Frame sequences and direct MP4/MKV video output
+  - Quick parameter sweeps from the CLI, or fully scripted scenes in the Scala DSL
+  - Interactive preview to scrub through an animation before rendering it
 
 - **High-Quality Rendering**
   - Recursive adaptive antialiasing
@@ -72,111 +73,62 @@ The project extends this concept to four dimensions with **tesseract sponges**, 
 
 ### Quick Start
 
-If you just want to see something cool right away:
+If the toolchain below is already installed and you just want to see something right away:
 
 ```bash
-# Clone the repository
-git clone https://gitlab.com/lilacashes/menger.git
+# Clone the repository (GitHub is the source of truth; GitLab is a read-only mirror)
+git clone https://github.com/lene/menger.git
 cd menger
 
-# Build the project (first time takes 5-10 minutes)
+# Build (first time takes 5-10 minutes: Scala plus the CUDA/OptiX native code)
 sbt compile
 
-# Run with default settings (LibGDX interactive mode)
-sbt run
+# Open an interactive window with a level-2 Menger sponge
+sbt "run --objects 'type=sponge-volume:level=2:material=gold' --plane y:-2 --shadows"
 
-# Or render a glass sphere with OptiX (high quality)
-sbt "run --optix --objects 'type=sphere:ior=1.5:size=1.5'"
+# Or ray-trace a glass sphere straight to a file, without a window
+sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 --headless --save-name sphere.png"
 ```
 
-See the interactive window open with a rotating Menger sponge, or wait a few seconds for a ray-traced sphere to render!
+Every run needs `--objects` or `--scene` — there is no default scene, and a bare `sbt run`
+exits with an error.
+
+**Prefer not to build?** Each release publishes a ready-to-run zip
+(`menger-<version>.zip`) on the GitHub releases page. Unzip it and run
+`./menger-app-<version>/bin/menger-app --objects type=sphere`. You still need the NVIDIA
+driver (and an X display or `xvfb-run` for `--headless`).
 
 ### System Requirements
 
-#### Minimum Requirements
+Menger renders exclusively with NVIDIA OptiX, so an NVIDIA GPU on Linux is **required** —
+there is no CPU or OpenGL fallback.
 
-- **OS**: Ubuntu 22.04+, Debian stable/testing, or macOS (LibGDX mode only)
-- **Java**: OpenJDK 17 or later
-- **sbt**: 1.11+ (Scala Build Tool)
+- **OS**: Linux — Ubuntu 22.04+ or Debian stable/testing (macOS and Windows are not supported)
+- **GPU**: NVIDIA GPU with RTX support (ray tracing cores)
+- **Driver**: NVIDIA driver ≥ 580.65 (required by the CUDA 13 runtime that the published
+  binaries link; older drivers fail with CUDA error 35)
+- **OptiX SDK**: 9.0 (building from source only; must be supported by your driver)
+- **CUDA**: CUDA Toolkit 13.x (building from source only)
+- **Java**: OpenJDK 17 or later (21 or 25 recommended)
+- **sbt**: 1.11+ (building from source only)
 - **RAM**: 8 GB minimum
-- **Disk**: 2 GB for project + dependencies
-
-#### For OptiX Ray Tracing (Optional but Recommended)
-
-- **GPU**: NVIDIA GPU with RTX support (GTX 1060 or better)
-- **Driver**: NVIDIA driver 535+ (for OptiX 9.0)
-- **CUDA**: CUDA Toolkit 12.0+
-- **OptiX SDK**: OptiX SDK 9.0+ (must match driver version)
-- **Disk**: Additional 15 GB for CUDA toolkit
-- **OS**: Linux only (macOS and Windows not yet supported for OptiX)
-
-**Note**: LibGDX mode works without NVIDIA GPU and provides real-time preview. OptiX mode requires NVIDIA GPU for ray tracing.
+- **Disk**: ~2 GB for the project and dependencies, plus ~15 GB for the CUDA toolkit
 
 **No local NVIDIA GPU?** Use AWS EC2 GPU spot instances — see [Cloud GPU Development](cloud.md) for a managed workflow that handles launch, rendering, and cost control.
 
 ### Installation
 
-#### Option 1: Quick Install (Java and sbt only)
+The development stack (CUDA, OptiX, NVIDIA driver, Java, sbt) is installed once for the
+whole workspace. Follow the workspace
+**[Installation from Scratch Guide](https://github.com/lene/menger-toplevel/blob/main/docs/INSTALLATION_FROM_SCRATCH.md)**
+(or `../docs/INSTALLATION_FROM_SCRATCH.md` if you have the workspace checked out), then the
+repo-local [build steps](../INSTALLATION_FROM_SCRATCH.md). They cover:
 
-If you only want to use LibGDX mode (real-time preview without ray tracing):
-
-```bash
-# Install Java 17+ and sbt
-sudo apt-get update
-sudo apt-get install openjdk-17-jdk sbt
-
-# Clone and build
-git clone https://gitlab.com/lilacashes/menger.git
-cd menger
-sbt compile
-```
-
-#### Option 2: Full Install (with OptiX Ray Tracing)
-
-For the complete experience including high-quality ray tracing, follow the **[Installation from Scratch Guide](INSTALLATION_FROM_SCRATCH.md)**. This guide walks you through:
-
-1. Installing system dependencies (CMake, g++, X11 utilities)
-2. Installing CUDA Toolkit 12.8
-3. Installing OptiX SDK 9.0 (with driver compatibility checking)
-4. Installing Java and sbt
+1. System dependencies (CMake, g++, X11 utilities, xvfb)
+2. CUDA Toolkit 13.x
+3. OptiX SDK (matched to your driver version)
+4. Java and sbt
 5. Building and testing the project
-
-**Quick summary for experienced users:**
-
-```bash
-# Install system dependencies
-sudo apt-get install cmake g++ curl mesa-utils x11-xserver-utils xvfb
-
-# Install CUDA Toolkit 12.8
-curl -o cuda-keyring_1.1-1_all.deb \
-    https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
-sudo dpkg -i cuda-keyring_1.1-1_all.deb
-sudo apt-get update
-sudo apt-get install cuda-toolkit-12-8
-
-# Set environment variables (add to ~/.bashrc)
-export CUDA_HOME=/usr/local/cuda
-export PATH=$CUDA_HOME/bin:$PATH
-export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
-
-# Install OptiX SDK 9.0 (download from NVIDIA Developer site)
-# https://developer.nvidia.com/designworks/optix/downloads
-chmod +x NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh
-sudo mkdir -p /usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64
-sudo sh NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64.sh \
-    --skip-license \
-    --prefix=/usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64
-sudo ln -s /usr/local/NVIDIA-OptiX-SDK-9.0.0-linux64-x86_64 /usr/local/optix
-export OPTIX_ROOT=/usr/local/optix
-
-# Install Java and sbt
-sudo apt-get install openjdk-17-jdk sbt
-
-# Build project
-git clone https://gitlab.com/lilacashes/menger.git
-cd menger
-sbt compile
-```
 
 #### Verifying Installation
 
@@ -189,7 +141,7 @@ export __GL_THREADED_OPTIMIZATIONS=0
 xvfb-run sbt test
 
 # Quick render test
-sbt "run --optix --objects 'type=sphere' --timeout 0.5"
+sbt "run --objects 'type=sphere' --timeout 0.5"
 ```
 
 If all tests pass, you're ready to go!
