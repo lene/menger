@@ -65,6 +65,37 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     result.tag shouldBe SceneValidator.Tag.LintFindings
     result.messages.exists(_.startsWith("scene-evaluation: scene(2.0) threw")) shouldBe true
 
+  // Usability review 2026-10, session 4 (F94): an edge-rendered tesseract sponge rising to
+  // level 3 and back passed, because only t = 0 and t = durationSeconds (both level 0) were
+  // checked; level 3 with edges needs more instances than the renderer has.
+  it should "reject a scene that is only invalid in the middle of its time range" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object PeaksMidAnimationScene:
+        |  val durationSeconds = 12f
+        |  def scene(t: Float): Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 6f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(TesseractSponge(
+        |      spongeType = SurfaceSubdividing,
+        |      level = 3f * (1f - math.abs(t - 6f) / 6f),
+        |      edgeRadius = Some(0.02f)
+        |    )),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.contains("instances")) shouldBe true
+
+  "SceneValidator.sampleTimes" should "span the whole duration, both ends included" in:
+    val times = SceneValidator.sampleTimes(Some(12f))
+    times should have size SceneValidator.AnimationSampleCount.toLong
+    times.head shouldBe 0f
+    times.last shouldBe 12f
+    times should contain (6f)
+    SceneValidator.sampleTimes(None) shouldBe List(0f)
+
   // Usability review 2026-09 (T1#1): an absolute or `..`-escaping texture path is a
   // security/config error, flagged before the scene reaches a renderer with a real
   // `--texture-dir`.

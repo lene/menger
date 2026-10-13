@@ -34,12 +34,19 @@ object DslSemantics:
       "(usability review 2026-10, session 3, F66).",
     "Caustics has no intensity parameter (only `photonsPerIteration`, `iterations`, " +
       "`initialRadius`, `alpha`): more photons or iterations reduce noise, they do not make " +
-      "the caustics brighter (usability review 2026-10, session 3, F69).",
+      "the caustics brighter (usability review 2026-10, session 3, F69). Caustics are only " +
+      "visible where a CURVED refracting surface (e.g. a glass Sphere) focuses light onto a " +
+      "nearby diffuse surface: flat facets (polytopes, " +
+      "sponges) only shift light and thin Film bends it hardly at all, so they give faint or " +
+      "no caustics -- say so instead of promising patterns (usability review 2026-10, " +
+      "session 4, F98).",
     "Emission makes a surface self-lit: flat, unshaded colour. There is no bloom, halo or " +
       "glow around objects, and no emission that falls off with distance.",
     "Animation: `def scene(t: Float): Scene` plus `val durationSeconds = <seconds>f` in the " +
       "same object; t is seconds in [0, durationSeconds]. The window plays it in real time, " +
-      "looping, and the validator checks the scene at t = 0 and at t = durationSeconds. The " +
+      s"looping, and the validator checks the scene at ${SceneValidator.AnimationSampleCount} " +
+      "evenly spaced times from t = 0 to " +
+      "t = durationSeconds. The " +
       "older name `val duration` is deprecated but still read. An animated scene has no " +
       "`SceneRegistry.register` line: register takes a static Scene only, so drop it when " +
       "turning `val scene` into `def scene(t: Float)` (usability review 2026-09, F46). " +
@@ -47,7 +54,10 @@ object DslSemantics:
       "clock and drops frames when rendering is slow; frame counts are menger-app " +
       "command-line options only. Editing the scene file reloads an animated scene live in " +
       "the window, but the window cannot switch between a static and an animated scene -- " +
-      "it must be restarted then (usability review 2026-10, session 3, F57, F84).",
+      "it must be restarted then (usability review 2026-10, session 3, F57, F84). The window " +
+      "has playback keys: Space pauses and resumes, Left/Right step 0.01 s (with Shift " +
+      "0.1 s), Home/End jump to the start/end -- so a looping animation CAN be stopped at any " +
+      "frame (usability review 2026-10, session 4, F92).",
     "4D objects are rotated in 4D (`projection`), projected to 3D, then placed at `pos`. " +
       "The regular 4D polytopes are Pentachoron (5-cell), Tesseract (8-cell), Hexadecachoron " +
       "(16-cell), Icositetrachoron (24-cell), Hecatonicosachoron (120-cell) and Hexacosichoron " +
@@ -57,7 +67,11 @@ object DslSemantics:
       "projection, so its on-screen size is not proportional to `size` and differs between " +
       "polytope types (a Tesseract and an Icositetrachoron of the same `size` project about " +
       "1.6x apart); to enlarge one without distorting it, scale `size`, `eyeW` and `screenW` " +
-      "by the same factor (usability review 2026-10, session 3, F72). " +
+      "by the same factor (usability review 2026-10, session 3, F72). The projection scales " +
+      "each point by (eyeW - screenW) / (eyeW - w); a flat object (every w = 0, e.g. " +
+      "`wScale = 0`) is therefore shown at (eyeW - screenW) / eyeW of its `size` -- 0.5 for " +
+      "eyeW 3, screenW 1.5. To match a 3D cube of size s, give the 4D object size " +
+      "s * eyeW / (eyeW - screenW) (usability review 2026-10, session 4, F101). " +
       "`Projection4DSpec(wScale = s)` scales the object's w coordinate before the 4D rotation " +
       "(default 1, must be >= 0): 0 flattens a Tesseract to a cube, and animating it from 0 to " +
       "1 grows the tesseract out of the cube along w -- the nearest the DSL has to extruding a " +
@@ -118,7 +132,11 @@ object DslSemantics:
     ("TesseractSponge", "rotation") -> ("3D Euler angles in radians, applied after " +
       "projection; 4D rotations go in `projection`."),
     ("Tesseract", "edgeRadius") -> "Draws the edges as tubes of this radius.",
-    ("TesseractSponge", "edgeRadius") -> "Draws the edges as tubes of this radius."
+    ("TesseractSponge", "edgeRadius") -> ("Draws the edges as tubes of this radius. With edge " +
+      "tubes the level is truncated to an integer (a fractional level steps, it does not " +
+      "blend), and they fit only up to level 2: one tube per edge, so level 3 needs 130177 " +
+      "instances, more than the 65536 the renderer has (usability review 2026-10, session 4, " +
+      "F94; menger#70).")
   ) ++ proceduralDescriptions
 
   /** Every DSL object type has `proceduralType`/`proceduralScale`; the presets were known only

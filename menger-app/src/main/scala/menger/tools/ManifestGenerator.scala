@@ -63,7 +63,10 @@ object ManifestGenerator extends LazyLogging:
   //        (menger#65) in the conventions.
   // 1.6.0: procedural preset 11 xyz_rgb_local (F63) and the transparent-shadow convention (F67),
   //        optix-jni 0.4.6.
-  private val SchemaVersion = "1.6.0"
+  // 1.7.0: a level limit per 3D sponge type, CubeSponge left out (deprecated) (F86, #76);
+  //        edge-tube level limits, caustics visibility, the 4D projection-size formula and the
+  //        preview playback keys in the notes (F94, F98, F101, F92).
+  private val SchemaVersion = "1.7.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),

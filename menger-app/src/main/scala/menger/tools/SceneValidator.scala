@@ -222,14 +222,23 @@ object SceneValidator extends LazyLogging:
     else
       ValidationResult(Tag.LintFindings, List(err))
 
-  /** An animated scene that declares its duration is checked at both ends of its time range:
-    * a scene that grows with t (e.g. a sponge whose level rises) is at its largest at the end,
-    * so checking t=0 alone would miss exactly the frames most likely to be invalid. */
+  /** Evenly spaced times, both ends included, at which an animated scene with a duration is
+    * checked. Checking only the ends missed a sponge whose level peaks mid-animation: an
+    * edge-rendered level 3 at t = 10.5 of 12 s (usability review 2026-10, session 4, F94). */
+  private[tools] val AnimationSampleCount = 25
+
+  private[tools] def sampleTimes(duration: Option[Float]): List[Float] = duration match
+    case Some(d) if d > 0f =>
+      List.tabulate(AnimationSampleCount)(i => d * i / (AnimationSampleCount - 1))
+    case _ => List(0f)
+
+  /** An animated scene is checked across its time range: a scene that changes with t (e.g. a
+    * sponge whose level rises) can be invalid at any frame, not only at t = 0. */
   private def checkInvariants(loaded: LoadedScene): ValidationResult =
     val evaluated: List[Either[InvariantFinding, Scene]] = loaded match
       case LoadedScene.Static(s) => List(Right(s))
       case animated @ LoadedScene.Animated(f) =>
-        (0f :: animated.duration.toList).map { t =>
+        sampleTimes(animated.duration).map { t =>
           Try(f(t)).toEither.left.map { e =>
             val cause = Option(e.getCause).getOrElse(e)
             InvariantFinding("scene-evaluation", s"scene($t) threw: ${cause.getMessage}")

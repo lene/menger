@@ -59,6 +59,12 @@
   triangles) ran the render window out of memory. `sponge-surface` stays at 5. `cube-sponge`
   stops at 3: above that its instances do not fit the 65536-entry instance table. It had no
   DSL limit before, and the manifest claimed 5.
+- `SceneValidator` checks an animated scene at 25 evenly spaced times over its duration, not
+  only at both ends: an edge-rendered tesseract sponge rising to level 3 mid-animation passed
+  before and could not be built (usability review 2026-10, session 4, F94).
+- DSL manifest 1.7.0: per-type sponge level limits, and notes on edge-tube level limits,
+  when caustics are visible, the on-screen size of a 4D object at w = 0, and the preview's
+  playback keys (F94, F98, F101, F92; #64, #66).
 
 ### Deprecated
 
