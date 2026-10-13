@@ -88,6 +88,54 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     result.tag shouldBe SceneValidator.Tag.LintFindings
     result.messages.exists(_.contains("instances")) shouldBe true
 
+  // Usability review 2026-10, session 4 (F90, F89, F102): the scene agent reads the evaluated
+  // values from here instead of parsing scene text.
+  "SceneValidator snapshots" should "carry a static scene's evaluated objects, camera and lights" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object SnapshotScene:
+        |  private val Lift = 1.5f
+        |  private val Shiny = Material.Glass
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 1f, 6f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(pos = (0f, Lift * 2f, 0f), material = Shiny, size = 0.5f)),
+        |    lights  = List(Directional(direction = (1f, -1f, -1f), intensity = 1.5f))
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+    result.snapshots should have size 1
+    val snapshot = result.snapshots.head
+    snapshot.camera.position shouldBe List(0f, 1f, 6f)
+    val sphere = snapshot.objects.head
+    sphere.objectType shouldBe "sphere"
+    sphere.pos shouldBe List(0f, 3f, 0f)
+    sphere.material.map(_.ior) shouldBe Some(1.5f)
+    snapshot.lights.head.kind shouldBe "Directional"
+    snapshot.lights.head.intensity shouldBe 1.5f
+    result.cameraPath shouldBe empty
+
+  it should "carry an animated scene's snapshots and its densely sampled camera path" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object CameraFlightScene:
+        |  val durationSeconds = 2f
+        |  def scene(t: Float): Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 6f - t), lookAt = (0f, 0f, -t)),
+        |    objects = List(Sphere()),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+    result.snapshots should have size SceneValidator.AnimationSampleCount.toLong
+    result.snapshots.last.camera.position shouldBe List(0f, 0f, 4f)
+    result.cameraPath.size shouldBe (2f / SceneSnapshot.CameraPathStepSeconds).round + 1
+    result.cameraPath.head.position shouldBe List(0f, 0f, 6f)
+    result.cameraPath.last.t shouldBe 2f
+
   "SceneValidator.sampleTimes" should "span the whole duration, both ends included" in:
     val times = SceneValidator.sampleTimes(Some(12f))
     times should have size SceneValidator.AnimationSampleCount.toLong

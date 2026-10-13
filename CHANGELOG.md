@@ -70,6 +70,12 @@
   --expect-manifest-sha256 <hex>` refuses (tag `refused`, exit 2) to run an image built from
   a different manifest. The version label alone could not tell a stale image from a current
   one within a release (usability review 2026-10, session 4, F99; #74).
+- `SceneValidator` results carry the evaluated scene (schema 1.1.0, additive): `snapshots`
+  (objects, camera, lights, background, caustics and render settings at each checked time,
+  from the resolved `ObjectSpec`s) and, for an animated scene, `cameraPath` (the camera every
+  0.05 s). The scene agent reads values from here instead of parsing scene text, which could
+  not resolve local vals, constants or piecewise camera paths (usability review 2026-10,
+  session 4, F90, F89, F102).
 - The `sponge-volume` mesh is built about 15x faster at level 4 (3.1 s -> 0.2 s) and without
   the per-level copies: it collects the visible faces of all leaf cubes and writes them, in
   parallel, into one preallocated array, instead of merging a mesh per sub-cube at every level

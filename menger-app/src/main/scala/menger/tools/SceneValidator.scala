@@ -80,17 +80,22 @@ object SceneValidator extends LazyLogging:
 
   /** Bumped when this result's shape changes incompatibly, matching `CorpusManifest` and
     * `DslManifest`, which both carry one (review round 2). */
-  val SchemaVersion = "1.0.0"
+  // 1.1.0: `snapshots` and `cameraPath` (additive; usability review 2026-10, session 4).
+  val SchemaVersion = "1.1.0"
 
   /** `messages` stays first-class and unchanged -- it is what the existing consumers read.
-    * `findings`, `scene` and `schemaVersion` are additive and defaulted, so every positional
-    * `ValidationResult(tag, messages)` call site keeps working. */
+    * `findings`, `scene`, `schemaVersion`, `snapshots` and `cameraPath` are additive and
+    * defaulted, so every positional `ValidationResult(tag, messages)` call site keeps working.
+    * `snapshots`: the evaluated scene at each checked time (`SceneSnapshot`); `cameraPath`: the
+    * camera of an animated scene, densely sampled. */
   case class ValidationResult(
     tag: Tag,
     messages: List[String],
     findings: List[Finding] = Nil,
     scene: Option[String] = None,
-    schemaVersion: String = SchemaVersion
+    schemaVersion: String = SchemaVersion,
+    snapshots: List[SceneSnapshot.Snapshot] = Nil,
+    cameraPath: List[SceneSnapshot.CameraSample] = Nil
   ) derives ReadWriter
 
   def main(args: Array[String]): Unit =
@@ -235,27 +240,37 @@ object SceneValidator extends LazyLogging:
   /** An animated scene is checked across its time range: a scene that changes with t (e.g. a
     * sponge whose level rises) can be invalid at any frame, not only at t = 0. */
   private def checkInvariants(loaded: LoadedScene): ValidationResult =
-    val evaluated: List[Either[InvariantFinding, Scene]] = loaded match
-      case LoadedScene.Static(s) => List(Right(s))
+    val evaluated: List[(Float, Either[InvariantFinding, Scene])] = loaded match
+      case LoadedScene.Static(s) => List(0f -> Right(s))
       case animated @ LoadedScene.Animated(f) =>
         sampleTimes(animated.duration).map { t =>
-          Try(f(t)).toEither.left.map { e =>
+          t -> Try(f(t)).toEither.left.map { e =>
             val cause = Option(e.getCause).getOrElse(e)
             InvariantFinding("scene-evaluation", s"scene($t) threw: ${cause.getMessage}")
           }
         }
     val findings = evaluated.flatMap {
-      case Left(failure) => List(failure)
-      case Right(scene)  =>
+      case (_, Left(failure)) => List(failure)
+      case (_, Right(scene))  =>
         geometricFindings(scene) ++ buildFindings(scene) ++ assetPathFindings(scene) ++
           parametricSurfaceFindings(scene)
     }.distinct
-    if findings.isEmpty then ValidationResult(Tag.Ok, Nil)
-    else ValidationResult(
-      Tag.LintFindings,
-      findings.map(f => s"${f.invariant}: ${f.message}"),
-      findings = findings.map(f => Finding(f.invariant, f.message))
-    )
+    val snapshots = evaluated.flatMap {
+      case (t, Right(scene)) => SceneSnapshot.of(t, scene)
+      case _                 => None
+    }
+    val cameraPath = loaded match
+      case animated @ LoadedScene.Animated(f) =>
+        SceneSnapshot.cameraPath(f, animated.duration.getOrElse(0f))
+      case _ => Nil
+    val result =
+      if findings.isEmpty then ValidationResult(Tag.Ok, Nil)
+      else ValidationResult(
+        Tag.LintFindings,
+        findings.map(f => s"${f.invariant}: ${f.message}"),
+        findings = findings.map(f => Finding(f.invariant, f.message))
+      )
+    result.copy(snapshots = snapshots, cameraPath = cameraPath)
 
   /** Every `SceneObject` in `scene` (flat `objects` list, or the scene-graph `root`'s leaf
     * geometry when that's what the scene uses -- `Scene` requires at least one of the two)
