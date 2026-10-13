@@ -52,6 +52,14 @@ if [ ! -d "$STAGE_SRC/lib" ]; then
   exit 1
 fi
 
+# F99: label the image with the manifest it was built with, so run-sandboxed.sh can refuse a
+# caller whose manifest differs (the version label above cannot: it is the same all sprint).
+MANIFEST_TMP="$(mktemp)"
+"$STAGE_SRC/bin/manifest-generator" "$MANIFEST_TMP" >/dev/null
+MANIFEST_SHA256="$(sha256sum "$MANIFEST_TMP" | cut -d' ' -f1)"
+rm -f "$MANIFEST_TMP"
+SOURCE_REVISION="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+
 echo "== 2/3: copying build context (stage/, optix-sdk/) =="
 rm -rf "$SCRIPT_DIR/stage" "$SCRIPT_DIR/optix-sdk"
 cp -a "$STAGE_SRC" "$SCRIPT_DIR/stage"
@@ -77,9 +85,11 @@ echo "== 3/3: docker build -t $IMAGE_TAG (menger-app $APP_VERSION) =="
 # (see the cp -a above) and must never be pushed to a public registry (review round 2).
 docker build \
   --label "org.opencontainers.image.version=$APP_VERSION" \
+  --label "org.opencontainers.image.revision=$SOURCE_REVISION" \
+  --label "menger.dsl-manifest.sha256=$MANIFEST_SHA256" \
   --label "org.opencontainers.image.title=menger-scene-validator" \
   --label "menger.optix.redistributable=false" \
   -t "$IMAGE_TAG" "$SCRIPT_DIR"
 
-echo "Built $IMAGE_TAG (menger-app $APP_VERSION)"
+echo "Built $IMAGE_TAG (menger-app $APP_VERSION, revision $SOURCE_REVISION, manifest sha256 $MANIFEST_SHA256)"
 echo "NOTE: this image embeds a licensed OptiX SDK -- do not push it to a public registry."

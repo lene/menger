@@ -65,6 +65,11 @@
 - DSL manifest 1.7.0: per-type sponge level limits, and notes on edge-tube level limits,
   when caustics are visible, the on-screen size of a 4D object at w = 0, and the preview's
   playback keys (F94, F98, F101, F92; #64, #66).
+- The scene-validator image carries `menger.dsl-manifest.sha256` (the manifest it was built
+  with) and `org.opencontainers.image.revision` labels, and `run-sandboxed.sh
+  --expect-manifest-sha256 <hex>` refuses (tag `refused`, exit 2) to run an image built from
+  a different manifest. The version label alone could not tell a stale image from a current
+  one within a release (usability review 2026-10, session 4, F99; #74).
 
 ### Deprecated
 

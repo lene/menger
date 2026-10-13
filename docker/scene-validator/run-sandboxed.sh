@@ -9,11 +9,15 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: run-sandboxed.sh <scene-file.scala> [--image <tag>]
+Usage: run-sandboxed.sh <scene-file.scala> [--image <tag>] [--expect-manifest-sha256 <hex>]
 
 Runs `menger.tools.SceneValidator` against <scene-file.scala> inside the SA-AD-18 sandbox.
 
   --image <tag>      Image to run (default: menger-scene-validator:latest -- see build.sh).
+  --expect-manifest-sha256 <hex>
+                     Refuse (tag `refused`, exit 2, nothing run) unless the image's
+                     `menger.dsl-manifest.sha256` label is <hex>: the caller's DSL manifest and
+                     the image's must be the same build (usability review 2026-10, F99).
 
 Prints SceneValidator's tagged JSON result (ok | compile-errors | lint-findings | refused) to
 stdout. Exit codes mirror the validator's own: 0 for `ok`, 1 for a scene defect
@@ -60,16 +64,33 @@ esac
 
 SCENE_FILE="$1"; shift
 IMAGE_TAG="menger-scene-validator:latest"
+EXPECTED_MANIFEST_SHA256=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --image)    IMAGE_TAG="${2:?--image needs a tag}"; shift 2 ;;
+    --expect-manifest-sha256)
+      EXPECTED_MANIFEST_SHA256="${2:?--expect-manifest-sha256 needs a hash}"; shift 2 ;;
     -h|--help)  usage ;;
     *) echo "Unknown argument: $1" >&2; usage ;;
   esac
 done
 
 [ -f "$SCENE_FILE" ] || { echo "Scene file not found: $SCENE_FILE" >&2; exit 1; }
+
+# F99: the image's version label is the app version, unchanged within a sprint, so a stale
+# image (re-tagged by CI from older sources) passed for current. build.sh labels the image with
+# the sha256 of the manifest it was built with; a caller holding a different manifest gets a
+# refusal it can show as is, instead of validating against an older DSL.
+if [ -n "$EXPECTED_MANIFEST_SHA256" ]; then
+  IMAGE_MANIFEST_SHA256="$(docker inspect -f '{{index .Config.Labels "menger.dsl-manifest.sha256"}}' \
+    "$IMAGE_TAG" 2>/dev/null || true)"
+  if [ "$IMAGE_MANIFEST_SHA256" != "$EXPECTED_MANIFEST_SHA256" ]; then
+    printf '{"tag": "refused", "messages": ["validator image %s was built from a different DSL manifest (image: %s, caller: %s); rebuild it: menger/docker/scene-validator/build.sh"], "findings": [], "schemaVersion": "1.0.0"}\n' \
+      "$IMAGE_TAG" "${IMAGE_MANIFEST_SHA256:-<no label>}" "$EXPECTED_MANIFEST_SHA256"
+    exit 2
+  fi
+fi
 
 SCENE_FILE_ABS="$(cd "$(dirname "$SCENE_FILE")" && pwd)/$(basename "$SCENE_FILE")"
 SCENE_BASENAME="$(basename "$SCENE_FILE")"
