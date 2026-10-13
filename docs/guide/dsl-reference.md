@@ -235,7 +235,7 @@ Cube(pos = (2f, 0f, 0f), material = Material.Gold, size = 1.2f)
 // Four sponge types
 VolumeFilling      // Standard Menger sponge (20 cubes per iteration)
 SurfaceUnfolding   // Surface-based sponge (12 faces per iteration)
-CubeSponge         // Cube-based sponge pattern
+CubeSponge         // Deprecated (menger#76): one instance per cube, levels up to 3; use VolumeFilling
 RecursiveIAS       // Recursive IAS sponge — supports fractional levels (1–13)
 
 // Basic sponge

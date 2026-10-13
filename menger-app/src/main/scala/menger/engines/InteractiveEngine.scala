@@ -266,10 +266,10 @@ class InteractiveEngine(
   // the triangle-count estimator (this engine's own slowness-warning heuristic) stays local.
   private val levelConfigs: Map[String, LevelConfig] = Map(
     "sponge-volume"      -> LevelConfig(
-      ResourceLimits.cubeSpongeLevel.warnAt, ResourceLimits.cubeSpongeLevel.max,
+      ResourceLimits.volumeSpongeLevel.warnAt, ResourceLimits.volumeSpongeLevel.max,
       lvl => math.pow(Const.Engine.cubesPerSpongeLevel, lvl).toLong * Const.Engine.trianglesPerCube),
     "sponge-surface"     -> LevelConfig(
-      ResourceLimits.cubeSpongeLevel.warnAt, ResourceLimits.cubeSpongeLevel.max,
+      ResourceLimits.surfaceSpongeLevel.warnAt, ResourceLimits.surfaceSpongeLevel.max,
       lvl => math.pow(Const.Engine.trianglesPerCube, lvl).toLong * 6 * 2),
     "tesseract-sponge"        -> LevelConfig(
       ResourceLimits.tesseractSpongeVolumeLevel.warnAt, ResourceLimits.tesseractSpongeVolumeLevel.max,

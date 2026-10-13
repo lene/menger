@@ -332,12 +332,11 @@ sbt "run --objects 'type=dodecahedron:rot-y=60:material=gold'"
 - No internal faces (efficient for ray tracing)
 - Example: `sbt "run --objects 'type=sponge-surface:level=3'"`
 
-**Volume Subdivision** (`--objects 'type=sponge-volume:level=L'`; `type=cube-sponge` is a separate variant built from instanced cubes)
-- Generates cube instances
-- Computational complexity: O(20^n)
-- Uses Instance Acceleration Structure (IAS)
-- Efficient for high levels (5+) in OptiX mode
-- Example: `sbt "run --objects 'type=sponge-volume:level=5'"`
+**Volume Subdivision** (`--objects 'type=sponge-volume:level=L'`; `type=cube-sponge`, built from instanced cubes, is deprecated and will be removed, menger#76)
+- Builds one triangle mesh of the 20^n sub-cubes on the CPU, without the faces between touching cubes
+- Computational complexity: O(20^n); levels up to 4 (level 5 does not fit the window's memory)
+- For higher levels use `sponge-surface` (up to 5) or `sponge-recursive-ias` (1 to 13)
+- Example: `sbt "run --objects 'type=sponge-volume:level=3'"`
 
 **Recursive IAS** (`--objects 'type=sponge-recursive-ias'`, OptiX only)
 - One unit-cube GAS reused at every level via N nested instance acceleration

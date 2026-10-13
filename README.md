@@ -112,7 +112,7 @@ The [User Guide](docs/USER_GUIDE.md) has the full reference; this is the short v
 - `--objects <spec>` (repeatable) — `type=TYPE[:key=value...]`
   - 3D types: `sphere`, `cube`, `cone`, `plane`, `tetrahedron`, `octahedron`, `dodecahedron`,
     `icosahedron`, `parametric`, `curve`, `lsystem`
-  - Sponges: `sponge-surface`, `sponge-volume`, `cube-sponge`, `sponge-recursive-ias`
+  - Sponges: `sponge-surface`, `sponge-volume`, `sponge-recursive-ias` (and `cube-sponge`, deprecated)
   - 4D: `tesseract`, `pentachoron`, `16-cell`, `24-cell`, `120-cell`, `600-cell`,
     `tesseract-sponge-volume`, `tesseract-sponge-surface`, `menger4d`, `sierpinski4d`,
     `hexadecachoron4d`

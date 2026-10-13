@@ -14,8 +14,27 @@ object ResourceLimits:
     * level (`require`/`Left`, not just a log line). */
   case class LevelLimit(warnAt: Int, max: Int)
 
-  val cubeSpongeLevel: LevelLimit =
+  // One limit per 3D sponge type: they draw the same sponge at very different costs (usability
+  // review 2026-10, session 4, F86). `Const.Engine.cubeSpongeMaxLevel` predates the split and
+  // names the 3D ("cube-based") sponges as a family, not the `cube-sponge` type.
+
+  /** `sponge-surface`: a mesh of the visible surface only. */
+  val surfaceSpongeLevel: LevelLimit =
     LevelLimit(Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel)
+
+  /** `sponge-volume`: one merged CPU mesh of 20^level cubes; level 5 (38.4M triangles) ran the
+    * render window out of memory. */
+  val volumeSpongeMaxLevel = 4
+  val volumeSpongeLevel: LevelLimit =
+    LevelLimit(Const.Engine.spongeLevelWarningThreshold, volumeSpongeMaxLevel)
+
+  /** `cube-sponge` (deprecated, menger#76): one GPU instance per cube, so the instance table is
+    * the ceiling. Level 3 is 8000 instances and level 2.x at most 10800
+    * (`CubeSpongeGenerator.cubeCount`), but any level above 3 needs 216000, more than
+    * `Const.maxInstancesLimit`. It had no limit of its own, and the manifest claimed 5. */
+  val cubeSpongeInstancedMaxLevel = 3
+  val cubeSpongeInstancedLevel: LevelLimit =
+    LevelLimit(Const.Engine.spongeLevelWarningThreshold, cubeSpongeInstancedMaxLevel)
   val tesseractSpongeVolumeLevel: LevelLimit =
     LevelLimit(Const.Engine.tesseractSpongeWarnLevel, Const.Engine.tesseractSpongeMaxLevel)
   val tesseractSpongeSurfaceLevel: LevelLimit =
@@ -24,8 +43,9 @@ object ResourceLimits:
   /** Keyed by normalized object-type name (`menger.common.ObjectType.normalize`). Shared by
     * `InteractiveEngine`'s level table and `ObjectSpec.validateSpongeLevel`. */
   val levelLimitByObjectType: Map[String, LevelLimit] = Map(
-    "sponge-volume"            -> cubeSpongeLevel,
-    "sponge-surface"           -> cubeSpongeLevel,
+    "sponge-volume"            -> volumeSpongeLevel,
+    "sponge-surface"           -> surfaceSpongeLevel,
+    "cube-sponge"              -> cubeSpongeInstancedLevel,
     "tesseract-sponge-volume"  -> tesseractSpongeVolumeLevel,
     "tesseract-sponge-surface" -> tesseractSpongeSurfaceLevel,
   )

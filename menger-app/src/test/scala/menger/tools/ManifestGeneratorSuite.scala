@@ -67,8 +67,9 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
   it should "carry min/max on every field DslSemantics.limitsOf knows about" in:
     val manifest = manifestFor(freshTempPath())
     val sponge = manifest.objects.find(_.name == "Sponge").get
+    // Without a literal spongeType, the smaller of the mesh sponges' maxima (VolumeFilling's).
     sponge.fields.find(_.name == "level").get.max shouldBe Some(
-      menger.dsl.ResourceLimits.cubeSpongeLevel.max.toDouble
+      menger.dsl.ResourceLimits.volumeSpongeLevel.max.toDouble
     )
     val lsystem = manifest.objects.find(_.name == "LSystem").get
     lsystem.fields.find(_.name == "iterations").get.max shouldBe Some(
@@ -91,8 +92,13 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
       warnAt = None
     )
     sponge.values("VolumeFilling").max shouldBe Some(
-      menger.dsl.ResourceLimits.cubeSpongeLevel.max.toDouble
+      menger.dsl.ResourceLimits.volumeSpongeLevel.max.toDouble
     )
+    sponge.values("SurfaceUnfolding").max shouldBe Some(
+      menger.dsl.ResourceLimits.surfaceSpongeLevel.max.toDouble
+    )
+    // Deprecated (menger#76): left out so the agent never chooses it.
+    sponge.values.keySet should not contain "CubeSponge"
     val tesseract = level("TesseractSponge").limitsBy.get
     tesseract.values("VolumeRemoving").max shouldBe Some(
       menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.max.toDouble
@@ -169,7 +175,8 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     val manifest = manifestFor(freshTempPath())
     val enums = manifest.enums.map(e => e.name -> e.values).toMap
     enums("TesseractSpongeType") should contain allOf ("VolumeRemoving", "SurfaceSubdividing")
-    enums("SpongeType") should not be empty
+    enums("SpongeType") should contain allOf ("VolumeFilling", "SurfaceUnfolding", "RecursiveIAS")
+    enums("SpongeType") should not contain "CubeSponge" // deprecated, menger#76
     enums("AreaLightShape") should not be empty
     enums("DenoiseMode") should not be empty
 
@@ -264,9 +271,10 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     val manifest = manifestFor(freshTempPath())
     def level(typeName: String) =
       manifest.objects.find(_.name == typeName).get.fields.find(_.name == "level").get
-    level("Sponge").warnAt shouldBe Some(
-      menger.dsl.ResourceLimits.cubeSpongeLevel.warnAt.toDouble
-    )
+    level("Sponge").warnAt shouldBe Some(math.min(
+      menger.dsl.ResourceLimits.volumeSpongeLevel.warnAt,
+      menger.dsl.ResourceLimits.surfaceSpongeLevel.warnAt
+    ).toDouble)
     level("TesseractSponge").warnAt shouldBe Some(math.min(
       menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.warnAt,
       menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.warnAt

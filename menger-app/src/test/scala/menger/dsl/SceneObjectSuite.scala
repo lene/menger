@@ -158,10 +158,18 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
   // Usability review 2026-09 (T1#3): the DSL had no upper bound at all -- only the CLI path did.
   it should "reject a level above the hard maximum" in:
     an[IllegalArgumentException] should be thrownBy
-      Sponge(VolumeFilling, level = (ResourceLimits.cubeSpongeLevel.max + 1).toFloat)
+      Sponge(VolumeFilling, level = (ResourceLimits.volumeSpongeLevel.max + 1).toFloat)
 
   it should "accept a level at the hard maximum" in:
-    noException should be thrownBy Sponge(VolumeFilling, level = ResourceLimits.cubeSpongeLevel.max.toFloat)
+    noException should be thrownBy Sponge(VolumeFilling, level = ResourceLimits.volumeSpongeLevel.max.toFloat)
+
+  // Usability review 2026-10, session 4 (F86): VolumeFilling's level-5 mesh ran the window out
+  // of memory; CubeSponge had no DSL limit although its instances run out above level 3.
+  it should "apply each sponge type's own level maximum" in:
+    an[IllegalArgumentException] should be thrownBy Sponge(VolumeFilling, level = 4.5f)
+    noException should be thrownBy Sponge(SurfaceUnfolding, level = 5f)
+    noException should be thrownBy Sponge(CubeSponge, level = 3f)
+    an[IllegalArgumentException] should be thrownBy Sponge(CubeSponge, level = 3.5f)
 
   it should "validate positive size" in:
     an[IllegalArgumentException] should be thrownBy Sponge(VolumeFilling, level = 2f, size = 0f)

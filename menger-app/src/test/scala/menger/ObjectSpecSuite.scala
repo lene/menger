@@ -110,14 +110,22 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
   // at all -- only InteractiveEngine's own require() did, and only for the CLI object-spec
   // path at initial startup, not for e.g. a DSL scene reload.
   it should "reject a sponge level above the hard maximum" in:
-    val max = menger.dsl.ResourceLimits.cubeSpongeLevel.max
+    val max = menger.dsl.ResourceLimits.volumeSpongeLevel.max
     val result = ObjectSpec.parse(s"type=sponge-volume:level=${max + 1}")
     result shouldBe a[Left[?, ?]]
     result.left.map(_ should include("exceeds hard maximum"))
 
   it should "accept a sponge level at the hard maximum" in:
-    val max = menger.dsl.ResourceLimits.cubeSpongeLevel.max
+    val max = menger.dsl.ResourceLimits.volumeSpongeLevel.max
     ObjectSpec.parse(s"type=sponge-volume:level=$max") shouldBe a[Right[?, ?]]
+
+  // Usability review 2026-10, session 4 (F86): the 3D sponge types got a limit each, and
+  // cube-sponge (deprecated, menger#76) got one at all.
+  it should "apply each 3D sponge type's own level maximum" in:
+    ObjectSpec.parse("type=sponge-volume:level=5") shouldBe a[Left[?, ?]]
+    ObjectSpec.parse("type=sponge-surface:level=5") shouldBe a[Right[?, ?]]
+    ObjectSpec.parse("type=cube-sponge:level=3") shouldBe a[Right[?, ?]]
+    ObjectSpec.parse("type=cube-sponge:level=3.5") shouldBe a[Left[?, ?]]
 
   it should "reject an lsystem level (iterations) above the hard maximum" in:
     val max = menger.dsl.ResourceLimits.lsystemMaxIterations

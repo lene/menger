@@ -54,6 +54,18 @@
 - The benchmark trend check is now the release-tier `perf-trend` suite: `benchmark.sh` brackets
   every scene with calibration renders, stores machine-independent ratios in
   `perf-baseline.json`, and exits 2 (skip) when a scene can't be judged reliably.
+- **Breaking:** each 3D sponge type has its own level limit (usability review 2026-10,
+  session 4, F86; #68). `sponge-volume` / `VolumeFilling` stops at 4: its level-5 mesh (38.4M
+  triangles) ran the render window out of memory. `sponge-surface` stays at 5. `cube-sponge`
+  stops at 3: above that its instances do not fit the 65536-entry instance table. It had no
+  DSL limit before, and the manifest claimed 5.
+
+### Deprecated
+
+- `cube-sponge` / `SpongeType.CubeSponge`: the same sponge as `sponge-volume`, as one GPU
+  instance per cube, so it stops at level 3; `sponge-recursive-ias` covers high levels. It
+  logs a deprecation warning, the DSL manifest no longer lists it, and it will be removed
+  (#76).
 
 ### Fixed
 

@@ -101,9 +101,9 @@ object DslSemantics:
       "centre of all objects and moving `position` away until they fit."),
     ("Sponge", "level") -> ("Recursion depth; fractional levels blend between the two " +
       "neighbouring integer levels. Cost grows ~20x per level. Limits depend on `spongeType` " +
-      "(see `limitsBy`): VolumeFilling above level 4 builds a mesh too large for the window's " +
-      "memory (4.75 ran it out of memory) -- prefer SurfaceUnfolding, or RecursiveIAS (levels " +
-      "1 to 13) for high levels."),
+      "(see `limitsBy`): VolumeFilling stops at 4 (one merged mesh; level 5 ran the window out " +
+      "of memory) -- for higher levels use SurfaceUnfolding (up to 5), or RecursiveIAS (levels " +
+      "1 to 13)."),
     ("TesseractSponge", "level") -> ("Recursion depth; fractional levels blend between " +
       "integer levels. Cost grows ~48x per level."),
     ("TesseractSponge", "size") -> "Scale; 1 matches a Tesseract of size 1.",
@@ -154,14 +154,16 @@ object DslSemantics:
 
   /** Per-field (min, max), keyed the same way as [[fieldDescriptions]] -- the single source is
     * [[menger.dsl.ResourceLimits]] (usability review 2026-09, T1#3); this just maps a DSL
-    * type/field pair onto the right constant. `Sponge` has one level ceiling regardless of
-    * `spongeType` (cube and cube-sponge share `cubeSpongeMaxLevel`); `TesseractSponge` does
-    * not (volume-removing and surface-subdividing have different ceilings), so its manifest
-    * max is the *smaller* of the two -- a hint that's never wrong to reject, only sometimes
-    * more conservative than the real per-variant limit `require()` actually enforces.
+    * type/field pair onto the right constant. `Sponge` and `TesseractSponge` have a ceiling per
+    * `spongeType` (see `limitsBySubtype`), so their plain manifest max is the *smaller* of the
+    * mesh types' -- a hint that's never wrong to reject, only sometimes more conservative than
+    * the real per-variant limit `require()` actually enforces.
     */
   private val fieldLimits: Map[(String, String), (Option[Double], Option[Double])] = Map(
-    ("Sponge", "level") -> (Some(0d), Some(menger.dsl.ResourceLimits.cubeSpongeLevel.max.toDouble)),
+    ("Sponge", "level") -> (Some(0d), Some(math.min(
+      menger.dsl.ResourceLimits.volumeSpongeLevel.max,
+      menger.dsl.ResourceLimits.surfaceSpongeLevel.max
+    ).toDouble)),
     ("TesseractSponge", "level") -> (Some(0d), Some(math.min(
       menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.max,
       menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.max
@@ -178,18 +180,17 @@ object DslSemantics:
     * not a literal. */
   type Bounds = (Option[Double], Option[Double], Option[Double])
 
-  private def meshSpongeBounds: Bounds =
-    val limit = menger.dsl.ResourceLimits.cubeSpongeLevel
+  private def levelBounds(limit: menger.dsl.ResourceLimits.LevelLimit): Bounds =
     (Some(0d), Some(limit.max.toDouble), Some(limit.warnAt.toDouble))
 
-  private def tesseractSpongeBounds(limit: menger.dsl.ResourceLimits.LevelLimit): Bounds =
-    (Some(0d), Some(limit.max.toDouble), Some(limit.warnAt.toDouble))
+  /** Enum values the manifest leaves out, so the agent never chooses them; the DSL still reads
+    * them (`CubeSponge`: deprecated, menger#76). */
+  val deprecatedEnumValues: Set[String] = Set("CubeSponge")
 
   private val limitsBySubtype: Map[(String, String), (String, Map[String, Bounds])] = Map(
     ("Sponge", "level") -> ("spongeType", Map(
-      "VolumeFilling"    -> meshSpongeBounds,
-      "SurfaceUnfolding" -> meshSpongeBounds,
-      "CubeSponge"       -> meshSpongeBounds,
+      "VolumeFilling"    -> levelBounds(menger.dsl.ResourceLimits.volumeSpongeLevel),
+      "SurfaceUnfolding" -> levelBounds(menger.dsl.ResourceLimits.surfaceSpongeLevel),
       "RecursiveIAS"     -> (
         Some(menger.dsl.ResourceLimits.recursiveIasMinLevel.toDouble),
         Some(menger.dsl.ResourceLimits.recursiveIasMaxLevel.toDouble),
@@ -197,12 +198,8 @@ object DslSemantics:
       )
     )),
     ("TesseractSponge", "level") -> ("spongeType", Map(
-      "VolumeRemoving" -> tesseractSpongeBounds(
-        menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel
-      ),
-      "SurfaceSubdividing" -> tesseractSpongeBounds(
-        menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel
-      )
+      "VolumeRemoving" -> levelBounds(menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel),
+      "SurfaceSubdividing" -> levelBounds(menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel)
     ))
   )
 
@@ -219,7 +216,10 @@ object DslSemantics:
     * ask before going there (usability review 2026-09, session 2, F36). `TesseractSponge` takes
     * the smaller of its two variants' thresholds, like its `max` above. */
   private val fieldWarnLevels: Map[(String, String), Double] = Map(
-    ("Sponge", "level") -> menger.dsl.ResourceLimits.cubeSpongeLevel.warnAt.toDouble,
+    ("Sponge", "level") -> math.min(
+      menger.dsl.ResourceLimits.volumeSpongeLevel.warnAt,
+      menger.dsl.ResourceLimits.surfaceSpongeLevel.warnAt
+    ).toDouble,
     ("TesseractSponge", "level") -> math.min(
       menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.warnAt,
       menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.warnAt

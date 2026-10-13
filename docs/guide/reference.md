@@ -155,7 +155,7 @@ keys (`level=`, `color=`, `eye-w=`, `screen-w=`) instead.
 | Analytic primitives | `sphere`, `cone`, `plane` |
 | Meshes | `cube`, `tetrahedron`, `octahedron`, `dodecahedron`, `icosahedron`, `parametric` |
 | Curves & L-systems | `curve`, `lsystem` |
-| 3D Menger sponges | `sponge-surface` (O(12ⁿ) faces), `sponge-volume` (O(20ⁿ) cubes), `cube-sponge` (instanced cubes), `sponge-recursive-ias` (O(n·20) VRAM, integer levels 1-14) |
+| 3D Menger sponges | `sponge-surface` (O(12ⁿ) faces), `sponge-volume` (O(20ⁿ) cubes), `cube-sponge` (instanced cubes, levels up to 3; deprecated, menger#76), `sponge-recursive-ias` (O(n·20) VRAM, integer levels 1-14) |
 | 4D projected | `tesseract`, `pentachoron`, `16-cell`, `24-cell`, `120-cell`, `600-cell`, `tesseract-sponge-volume`, `tesseract-sponge-surface` |
 | 4D IFS fractals | `menger4d`, `sierpinski4d`, `hexadecachoron4d` |
 

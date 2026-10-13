@@ -350,7 +350,10 @@ object ManifestGenerator extends LazyLogging:
       conventions = DslSemantics.conventions,
       objects = objectManifestsOf(sealedSubtypeNames[SceneObject]),
       enums = List(
-        EnumManifest("SpongeType", sealedSubtypeNames[SpongeType]),
+        EnumManifest(
+          "SpongeType",
+          sealedSubtypeNames[SpongeType].filterNot(DslSemantics.deprecatedEnumValues)
+        ),
         EnumManifest("TesseractSpongeType", sealedSubtypeNames[TesseractSpongeType]),
         EnumManifest("AreaLightShape", sealedSubtypeNames[AreaLightShape]),
         EnumManifest("DenoiseMode", sealedSubtypeNames[DenoiseMode])
