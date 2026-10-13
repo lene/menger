@@ -163,10 +163,11 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
   it should "accept a level at the hard maximum" in:
     noException should be thrownBy Sponge(VolumeFilling, level = ResourceLimits.volumeSpongeLevel.max.toFloat)
 
-  // Usability review 2026-10, session 4 (F86): VolumeFilling's level-5 mesh ran the window out
-  // of memory; CubeSponge had no DSL limit although its instances run out above level 3.
+  // Usability review 2026-10, session 4 (F86): one limit per sponge type; CubeSponge had no DSL
+  // limit at all although its instances run out above level 3.
   it should "apply each sponge type's own level maximum" in:
-    an[IllegalArgumentException] should be thrownBy Sponge(VolumeFilling, level = 4.5f)
+    noException should be thrownBy Sponge(VolumeFilling, level = 5f)
+    an[IllegalArgumentException] should be thrownBy Sponge(VolumeFilling, level = 5.5f)
     noException should be thrownBy Sponge(SurfaceUnfolding, level = 5f)
     noException should be thrownBy Sponge(CubeSponge, level = 3f)
     an[IllegalArgumentException] should be thrownBy Sponge(CubeSponge, level = 3.5f)

@@ -267,7 +267,7 @@ class InteractiveEngine(
   private val levelConfigs: Map[String, LevelConfig] = Map(
     "sponge-volume"      -> LevelConfig(
       ResourceLimits.volumeSpongeLevel.warnAt, ResourceLimits.volumeSpongeLevel.max,
-      lvl => math.pow(Const.Engine.cubesPerSpongeLevel, lvl).toLong * Const.Engine.trianglesPerCube),
+      menger.objects.SpongeByVolume.triangleCount),
     "sponge-surface"     -> LevelConfig(
       ResourceLimits.surfaceSpongeLevel.warnAt, ResourceLimits.surfaceSpongeLevel.max,
       lvl => math.pow(Const.Engine.trianglesPerCube, lvl).toLong * 6 * 2),

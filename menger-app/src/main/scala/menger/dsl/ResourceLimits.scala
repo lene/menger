@@ -22,11 +22,11 @@ object ResourceLimits:
   val surfaceSpongeLevel: LevelLimit =
     LevelLimit(Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel)
 
-  /** `sponge-volume`: one merged CPU mesh of 20^level cubes; level 5 (38.4M triangles) ran the
-    * render window out of memory. */
-  val volumeSpongeMaxLevel = 4
+  /** `sponge-volume`: one CPU mesh of the 20^level cubes' visible faces. Level 5 (13.1M
+    * triangles) used to run the render window out of memory while it was merged level by
+    * level; built into one array it opens in about 10 s at about 4.5 GB (measured 2026-10-13). */
   val volumeSpongeLevel: LevelLimit =
-    LevelLimit(Const.Engine.spongeLevelWarningThreshold, volumeSpongeMaxLevel)
+    LevelLimit(Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel)
 
   /** `cube-sponge` (deprecated, menger#76): one GPU instance per cube, so the instance table is
     * the ceiling. Level 3 is 8000 instances and level 2.x at most 10800

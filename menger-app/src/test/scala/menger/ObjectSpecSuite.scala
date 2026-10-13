@@ -122,7 +122,8 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
   // Usability review 2026-10, session 4 (F86): the 3D sponge types got a limit each, and
   // cube-sponge (deprecated, menger#76) got one at all.
   it should "apply each 3D sponge type's own level maximum" in:
-    ObjectSpec.parse("type=sponge-volume:level=5") shouldBe a[Left[?, ?]]
+    ObjectSpec.parse("type=sponge-volume:level=5") shouldBe a[Right[?, ?]]
+    ObjectSpec.parse("type=sponge-volume:level=5.5") shouldBe a[Left[?, ?]]
     ObjectSpec.parse("type=sponge-surface:level=5") shouldBe a[Right[?, ?]]
     ObjectSpec.parse("type=cube-sponge:level=3") shouldBe a[Right[?, ?]]
     ObjectSpec.parse("type=cube-sponge:level=3.5") shouldBe a[Left[?, ?]]

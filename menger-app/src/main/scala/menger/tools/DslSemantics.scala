@@ -115,9 +115,8 @@ object DslSemantics:
       "centre of all objects and moving `position` away until they fit."),
     ("Sponge", "level") -> ("Recursion depth; fractional levels blend between the two " +
       "neighbouring integer levels. Cost grows ~20x per level. Limits depend on `spongeType` " +
-      "(see `limitsBy`): VolumeFilling stops at 4 (one merged mesh; level 5 ran the window out " +
-      "of memory) -- for higher levels use SurfaceUnfolding (up to 5), or RecursiveIAS (levels " +
-      "1 to 13)."),
+      "(see `limitsBy`): VolumeFilling and SurfaceUnfolding go up to 5 (a VolumeFilling level 5 " +
+      "is a 13M-triangle mesh, about 10 s to build); RecursiveIAS covers levels 1 to 13."),
     ("TesseractSponge", "level") -> ("Recursion depth; fractional levels blend between " +
       "integer levels. Cost grows ~48x per level."),
     ("TesseractSponge", "size") -> "Scale; 1 matches a Tesseract of size 1.",

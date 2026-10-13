@@ -90,6 +90,11 @@ class SpongeByVolumeMeshSuite extends AnyFlatSpec with Matchers:
         mesh.vertices shouldBe reference.vertices
       }
 
+  "SpongeByVolume.triangleCount" should "match the generated mesh" in:
+    for level <- 0 to 3 do
+      SpongeByVolume.triangleCount(level) shouldBe
+        SpongeByVolume(Vector.Zero[3], 1f, level.toFloat).toTriangleMesh.numTriangles.toLong
+
   private def legacyFaceMesh(f: Face): menger.common.TriangleMeshData =
     val half = f.scale / 2
     val n = f.normal.toFloatArray

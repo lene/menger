@@ -43,6 +43,15 @@ class SpongeByVolume(
     s"SpongeByVolume(level=${float2string(level)}, ${6 * Math.pow(20, level.toInt).toLong} faces)"
 
 object SpongeByVolume:
+  /** Triangles of an integer-level mesh: 4 * 20^n + 8 * 8^n (12, 144, 2112, 36096, 672768,
+    * 13062144 for levels 0 to 5). The window's slowness warning used 12 * 20^n, which counts
+    * the hidden faces too (38.4M instead of 13.1M at level 5). */
+  def triangleCount(level: Int): Long =
+    VisibleFacesPer20 * math.pow(20, level).toLong + VisibleFacesPer8 * math.pow(8, level).toLong
+
+  private val VisibleFacesPer20 = 4L
+  private val VisibleFacesPer8 = 8L
+
   /** The 20 kept sub-cubes of a level (all but the centre and the 6 face centres). A `Set`, as
     * before the rewrite: its iteration order is the face order of every mesh built so far. */
   private val filledPositions: Set[(Int, Int, Int)] =

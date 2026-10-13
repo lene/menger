@@ -334,8 +334,8 @@ sbt "run --objects 'type=dodecahedron:rot-y=60:material=gold'"
 
 **Volume Subdivision** (`--objects 'type=sponge-volume:level=L'`; `type=cube-sponge`, built from instanced cubes, is deprecated and will be removed, menger#76)
 - Builds one triangle mesh of the 20^n sub-cubes on the CPU, without the faces between touching cubes
-- Computational complexity: O(20^n); levels up to 4 (level 5 does not fit the window's memory)
-- For higher levels use `sponge-surface` (up to 5) or `sponge-recursive-ias` (1 to 13)
+- Computational complexity: O(20^n); levels up to 5 (level 5: 13.1M triangles, about 10 s to build)
+- For higher levels use `sponge-recursive-ias` (1 to 13)
 - Example: `sbt "run --objects 'type=sponge-volume:level=3'"`
 
 **Recursive IAS** (`--objects 'type=sponge-recursive-ias'`, OptiX only)
