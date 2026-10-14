@@ -243,6 +243,26 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
         spec.material.get.color.b shouldBe 0.0f
       case Left(error) => fail(s"Expected Right but got Left: $error")
 
+  // F14 on the CLI path: `material=glass:color=...` used to replace glass's alpha (0.02) with
+  // the colour's 1, an opaque red sphere instead of red glass (2026-10-14).
+  it should "tint a preset's RGB with a 6-digit colour and keep its alpha" in:
+    val material = ObjectSpec.parse("type=sphere:material=glass:color=#FF3333")
+      .fold(e => fail(e), identity).material.get
+    (material.color.r, material.color.g) shouldBe ((1.0f, 0.2f))
+    material.color.a shouldBe Material.Glass.color.a
+    material.ior shouldBe Material.Glass.ior
+
+  it should "take the alpha from an 8-digit colour" in:
+    val material = ObjectSpec.parse("type=cube:material=glass:color=#FF262614")
+      .fold(e => fail(e), identity).material.get
+    material.color.a shouldBe (0x14 / 255f +- 1e-3f)
+
+  it should "tint an edge material's RGB with a 6-digit edge colour and keep its alpha" in:
+    val edges = ObjectSpec.parse("type=tesseract:edge-material=film:edge-color=#FF0000:edge-radius=0.02")
+      .fold(e => fail(e), identity).edgeMaterial.get
+    edges.color.r shouldBe 1.0f
+    edges.color.a shouldBe Material.Film.color.a
+
   it should "parse material with multiple overrides" in:
     val result = ObjectSpec.parse("type=sphere:material=plastic:roughness=0.5:color=#FF0000")
     result match

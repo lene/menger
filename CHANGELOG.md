@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `--objects ...:material=glass:color=#RRGGBB` made the glass opaque: on the command line the
+  colour replaced the preset's whole colour, alpha 1 included, while the DSL tints only RGB
+  (usability review 2026-09, F14). A 6-digit colour (`color=`, `edge-color=`) now tints the
+  preset's RGB and keeps its alpha; an 8-digit one (#RRGGBBAA) still sets the alpha. Two
+  integration scenes had looked fine only because of it -- their caustics were hidden behind
+  or saturated on an opaque sphere -- and are reframed so the caustic is in view.
+
 ### Added
 
 - An animated scene can declare `val durationSeconds = <seconds>f`: `t` is then time in

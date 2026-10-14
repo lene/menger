@@ -412,6 +412,17 @@ object ObjectSpec extends LazyLogging:
           case None =>
             Right(None)
 
+  // Hex digits of a colour that sets its alpha (#RRGGBBAA).
+  private val HexDigitsWithAlpha = 8
+
+  /** A colour given with a material preset tints its RGB and keeps its alpha: `material=glass:
+    * color=#FF3333` is red glass, not an opaque red surface (the rule MaterialExtractor applies,
+    * usability review 2026-09, F14, which this path bypassed by baking the colour, alpha 1,
+    * into the material). A colour with 8 hex digits (#RRGGBBAA) sets the alpha as well. */
+  private def tint(base: Color, color: Color, written: Option[String]): Color =
+    if written.exists(_.stripPrefix("#").length == HexDigitsWithAlpha) then color
+    else base.copy(r = color.r, g = color.g, b = color.b)
+
   private def parseMaterialOverrides(
     kvPairs: Map[String, String],
     baseMaterial: Material,
@@ -427,7 +438,7 @@ object ObjectSpec extends LazyLogging:
       filmThickness <- parseOptionalFloat(kvPairs, "film-thickness", "film thickness in nm (e.g., 500)")
     yield Some(
       baseMaterial.copy(
-        color         = color.getOrElse(baseMaterial.color),
+        color         = color.fold(baseMaterial.color)(tint(baseMaterial.color, _, kvPairs.get("color"))),
         ior           = if kvPairs.contains("ior") then ior else baseMaterial.ior,
         roughness     = roughness.getOrElse(baseMaterial.roughness),
         metallic      = metallic.getOrElse(baseMaterial.metallic),
@@ -646,7 +657,9 @@ object ObjectSpec extends LazyLogging:
               emission <- edgeEmission
             yield Some(
               baseMaterial.copy(
-                color    = color.getOrElse(baseMaterial.color),
+                color    = color.fold(baseMaterial.color)(
+                  tint(baseMaterial.color, _, kvPairs.get("edge-color"))
+                ),
                 emission = emission.getOrElse(baseMaterial.emission)
               )
             )

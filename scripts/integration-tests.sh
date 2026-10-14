@@ -720,9 +720,12 @@ test_area_light_caustics() {
 
 test_colored_glass_caustics() {
     echo "Colored-glass caustics (red glass casts a tinted caustic):"
+    # Smaller sphere, camera looking down past it: the floor caustic is in view. It was hidden
+    # behind the sphere, unnoticed while `color=` made the glass opaque (2026-10-14).
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "colored glass caustics" \
-        --objects type=sphere:material=glass:color=#FF3333 --caustics \
+        --objects type=sphere:size=0.7:pos=0,0,0:material=glass:color=#FF3333 --caustics \
         --caustics-photons 1000 --caustics-iterations 1 \
+        --camera-pos 0,3.5,5 --camera-lookat 0,-1.6,0 \
         --plane y:-2 --light point:0,10,0:500
 }
 
@@ -736,10 +739,12 @@ test_dispersive_caustics() {
 
 test_mesh_receiver_caustics() {
     echo "Mesh-receiver caustics (glass sphere caustic on a diffuse sphere receiver, no floor plane):"
+    # A grey receiver seen from above: a white one saturated under the point light, so the
+    # caustic only showed while the glass was wrongly opaque and shadowed it (2026-10-14).
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "mesh receiver caustics" \
         --objects type=sphere:material=glass:color=#DDEEFF:size=1:pos=0,0,0 \
-        --objects type=sphere:size=3:pos=0,-5,0 \
-        --camera-pos 0,1.5,6 --camera-lookat 0,0,0 \
+        --objects type=sphere:size=3:pos=0,-5,0:color=#404040 \
+        --camera-pos 0,3,5 --camera-lookat 0,-1.8,0 \
         --caustics --caustics-photons 1000 --caustics-iterations 1 \
         --light point:0,10,0:500
 }
@@ -1050,6 +1055,7 @@ test_3d_fractional_sponges() {
         --objects type=sponge-surface:level=1.5:material=chrome:size=0.8
     run_test "sponge-volume fractional with color" --plane y:-2 \
         --objects type=sponge-volume:level=1.3:color=#FF4488:size=0.8
+
 
     # Mixed fractional and integer levels
     run_test "mixed sponge-volume fractional + integer" --plane y:-2 \
