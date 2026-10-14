@@ -70,6 +70,11 @@
   --expect-manifest-sha256 <hex>` refuses (tag `refused`, exit 2) to run an image built from
   a different manifest. The version label alone could not tell a stale image from a current
   one within a release (usability review 2026-10, session 4, F99; #74).
+- Edge-rendered 4D objects get their procedural colour (`xyz_rgb_local` etc.) on every path:
+  `TesseractEdgeSceneBuilder` now runs the shared texture/procedural step, which it skipped, so
+  headless renders and the static window showed plain faces. An edge-rendered scene in the
+  animated window takes the full build instead of the in-place mesh path, which has no edge
+  tubes (usability review 2026-10, session 4, F97; #73).
 - `SceneValidator` results carry the evaluated scene (schema 1.1.0, additive): `snapshots`
   (objects, camera, lights, background, caustics and render settings at each checked time,
   from the resolved `ObjectSpec`s) and, for an animated scene, `cameraPath` (the camera every

@@ -524,7 +524,11 @@ object WithAnimation:
     * tesseract-sponge-2). Recursive-IAS sponges and non-4D meshes block the
     * fast path because their slot mapping isn't 1:1. */
   def is4DOnlyTriangleMeshScene(specs: List[ObjectSpec]): Boolean =
-    specs.nonEmpty && specs.forall(s => ObjectType.isProjected4D(s.objectType))
+    specs.nonEmpty && specs.forall(s =>
+      // Edge tubes are not part of the in-place mesh path (TriangleMeshSceneBuilder ignores
+      // them): an edged scene takes the full build, which has them (session 4, F97).
+      ObjectType.isProjected4D(s.objectType) && !s.hasEdgeRendering
+    )
 
   /** True iff the two spec lists have the same length and differ only in
     * `Projection4DSpec` (and at least one element actually differs there). */

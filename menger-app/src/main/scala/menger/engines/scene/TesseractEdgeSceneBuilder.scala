@@ -170,6 +170,9 @@ class TesseractEdgeSceneBuilder(
       faceInstanceId,
       s"tesseract face mesh instance at ($position)"
     )
+    // The shared texture/procedural/object-frame step every other builder runs (usability
+    // review 2026-10, session 4, F97: faces had no procedural colour on this path).
+    applyInstanceTextures(validFaceInstanceId, spec, textureIndices, renderer)
     logger.debug(s"Added tesseract face mesh instance $validFaceInstanceId at ($position)")
     faceTrack
 

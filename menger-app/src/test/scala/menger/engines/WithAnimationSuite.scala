@@ -59,6 +59,11 @@ class WithAnimationSuite extends AnyFlatSpec with Matchers:
   it should "reject an empty scene" in:
     WithAnimation.is4DOnlyTriangleMeshScene(List.empty) shouldBe false
 
+  // Usability review 2026-10, session 4 (F97): the in-place mesh path has no edge tubes, so an
+  // animated window showed none.
+  it should "reject a scene with edge-rendered objects" in:
+    WithAnimation.is4DOnlyTriangleMeshScene(List(tess0.copy(edgeRadius = Some(0.02f)))) shouldBe false
+
   "specsDifferOnlyIn4DProjection" should "be true when only projection4D differs" in:
     WithAnimation.specsDifferOnlyIn4DProjection(List(tess0), List(tessRotated)) shouldBe true
 
