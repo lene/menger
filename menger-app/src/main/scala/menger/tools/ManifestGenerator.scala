@@ -66,7 +66,8 @@ object ManifestGenerator extends LazyLogging:
   // 1.7.0: a level limit per 3D sponge type, CubeSponge left out (deprecated) (F86, #76);
   //        edge-tube level limits, caustics visibility, the 4D projection-size formula and the
   //        preview playback keys in the notes (F94, F98, F101, F92).
-  private val SchemaVersion = "1.7.0"
+  // 1.8.0: the window's playback modes and idle pause in the animation convention (F95, #71, #75).
+  private val SchemaVersion = "1.8.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),

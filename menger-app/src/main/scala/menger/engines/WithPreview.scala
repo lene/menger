@@ -31,6 +31,26 @@ trait WithPreview extends RenderEngine with LazyLogging:
     * rendered frame. Starts playing immediately. */
   protected def realtime: Boolean = false
 
+  /** Every-frame looping playback (`--playback every-frame`, usability review 2026-10, session 4,
+    * F95): every frame is rendered, scene time advances one `1 / EveryFrameRate` step per frame
+    * but never faster than real time, and the loop restarts at the end. Starts playing. */
+  protected def everyFrame: Boolean = false
+
+  /** Seconds without input or reload after which a playing window pauses itself, so a window
+    * left open does not hold the GPU (menger#75); 0 disables. */
+  protected def idlePauseSeconds: Double = 600.0
+
+  private def playingClockMode: Boolean = realtime || everyFrame
+
+  private val lastActivityNanos = new java.util.concurrent.atomic.AtomicLong(System.nanoTime())
+  private val idlePaused = new AtomicBoolean(false)
+  private val lastShownT = new AtomicReference[Float](0f)
+  private val skippedTotal = new AtomicReference[Float](0f)
+
+  /** Input or a reload happened: the window is not idle. */
+  def noteActivity(): Unit =
+    lastActivityNanos.set(System.nanoTime())
+
   /** The current time and whether the animation is playing, for the window state file. */
   protected def playback: (Float, Boolean) = (currentT.get(), isPlaying.get())
 
@@ -96,10 +116,13 @@ trait WithPreview extends RenderEngine with LazyLogging:
   def togglePlay(): Unit =
     val nowPlaying = !isPlaying.get()
     // Resuming real-time playback continues from the current t, not from the start.
-    if nowPlaying && realtime then
+    if nowPlaying && playingClockMode then
       val playedNanos = ((currentT.get() - previewConfig.startT) * WithPreview.NanosPerSecond).toLong
       playStartNanos.set(System.nanoTime() - playedNanos)
     isPlaying.set(nowPlaying)
+    if nowPlaying then
+      idlePaused.set(false)
+      lastActivityNanos.set(System.nanoTime())
     GdxRuntime.setContinuousRendering(nowPlaying)
     if nowPlaying then GdxRuntime.requestRendering()
 
@@ -114,8 +137,12 @@ trait WithPreview extends RenderEngine with LazyLogging:
     val frame = frameForT(t)
     val failed = failedFrames.get()
     val failures = if failed > 0 then s" | $failed frame(s) failed to build" else ""
+    val skipped = skippedTotal.get()
+    val behind =
+      if skipped > 0f then f" | behind real time: ${skipped}%.1f s skipped" else ""
+    val idle = if idlePaused.get() then " | paused: idle (Space resumes)" else ""
     GdxRuntime.setWindowTitle(
-      f"$windowTitle | t=$t%.3f | frame $frame/${previewConfig.frames}" + failures
+      f"$windowTitle | t=$t%.3f | frame $frame/${previewConfig.frames}" + failures + behind + idle
     )
 
   abstract override def create(): Unit =
@@ -133,18 +160,41 @@ trait WithPreview extends RenderEngine with LazyLogging:
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
     GdxRuntime.setContinuousRendering(false)
     updateTitle()
-    if realtime then togglePlay()
+    if playingClockMode then togglePlay()
 
   abstract override def render(): Unit =
     GdxRuntime.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     val width  = GdxRuntime.width
     val height = GdxRuntime.height
 
+    // Left alone for too long: pause like Space does, which stops the continuous rendering.
+    if isPlaying.get() &&
+        WithPreview.isIdle(System.nanoTime(), lastActivityNanos.get(), idlePauseSeconds)
+    then
+      logger.info(s"No input for ${idlePauseSeconds.toInt} s; pausing the animation")
+      idlePaused.set(true)
+      togglePlay()
+      updateTitle()
+
     if isPlaying.get() && realtime then
       val elapsedSeconds = (System.nanoTime() - playStartNanos.get()) / WithPreview.NanosPerSecond
-      currentT.set(WithPreview.loopedT(elapsedSeconds, previewConfig.startT, previewConfig.endT))
+      val newT = WithPreview.loopedT(elapsedSeconds, previewConfig.startT, previewConfig.endT)
+      val skipped = WithPreview.skippedSeconds(lastShownT.getAndSet(newT), newT)
+      // The total restarts with each loop; a wrap is `newT` before the last shown time.
+      skippedTotal.updateAndGet(total => if newT < currentT.get() then 0f else total + skipped)
+      currentT.set(newT)
       updateTitle()
       needsRender.set(true)
+    else if isPlaying.get() && everyFrame then
+      val elapsedSeconds = (System.nanoTime() - playStartNanos.get()) / WithPreview.NanosPerSecond
+      WithPreview.nextEveryFrame(
+        currentT.get(), tStep, elapsedSeconds, previewConfig.startT, previewConfig.endT
+      ).foreach { (next, wrapped) =>
+        currentT.set(next)
+        if wrapped then playStartNanos.set(System.nanoTime())
+        updateTitle()
+        needsRender.set(true)
+      }
     else if isPlaying.get() then
       val next = currentT.get() + tStep
       if next >= previewConfig.endT then
@@ -234,3 +284,32 @@ object WithPreview:
   def loopedT(elapsedSeconds: Double, startT: Float, endT: Float): Float =
     val span = (endT - startT).toDouble
     if span <= 0.0 then startT else startT + (elapsedSeconds % span).toFloat
+
+  /** Frame rate of the every-frame playback (one `1 / EveryFrameRate` s step per frame). */
+  val EveryFrameRate = 25
+
+  /** A time step larger than this between two rendered frames of the real-time playback means
+    * frames were dropped (the window skipped scene time, usability review 2026-10, session 4,
+    * F95: a 2 s frame made the rest of the loop vanish). */
+  val SkipThresholdSeconds = 0.25f
+
+  /** Seconds of scene time skipped between two consecutive rendered frames, 0 for a normal
+    * step and at a loop wrap (`newT` before `prevT`). */
+  def skippedSeconds(prevT: Float, newT: Float): Float =
+    if newT > prevT && newT - prevT > SkipThresholdSeconds then newT - prevT else 0f
+
+  /** The next frame time of the every-frame playback, or `None` while it is not due: every frame
+    * is rendered (a slow frame slows the playback instead of skipping scene time), but never
+    * faster than real time -- `elapsedSeconds` is the wall time since `t` was in step with it.
+    * Returns the new time and whether it wrapped to `startT` at the end of the loop. */
+  def nextEveryFrame(
+    t: Float, step: Float, elapsedSeconds: Double, startT: Float, endT: Float
+  ): Option[(Float, Boolean)] =
+    if step <= 0f || (t - startT + step) > elapsedSeconds then None
+    else
+      val next = t + step
+      if next >= endT then Some((startT, true)) else Some((next, false))
+
+  /** Whether a playing window has been left alone long enough to pause itself. */
+  def isIdle(nowNanos: Long, lastActivityNanos: Long, idleSeconds: Double): Boolean =
+    idleSeconds > 0.0 && (nowNanos - lastActivityNanos) / NanosPerSecond > idleSeconds

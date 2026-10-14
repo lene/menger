@@ -255,6 +255,20 @@ class MengerCLIOptions(arguments: Seq[String])
     descr = "Interactive animation preview: scrub t with Left/Right, Shift+Left/Right for larger steps, Space to play/pause, Home/End to jump. Requires --scene with an animated scene"
   )
 
+  val playback: ScallopOption[String] = opt[String](
+    name = "playback", required = false, default = Some("realtime"), group = tAnimationGroup,
+    validate = Set("realtime", "every-frame").contains,
+    descr = "How a scene with val durationSeconds plays in the window: realtime (scene time " +
+      "follows the clock and skips frames when rendering is slow) or every-frame (every frame " +
+      "is rendered at 25 steps per second at most, slow frames slow the playback, loops)"
+  )
+  val idlePauseSeconds: ScallopOption[Float] = opt[Float](
+    name = "idle-pause-seconds", required = false, default = Some(600f), group = tAnimationGroup,
+    validate = _ >= 0f,
+    descr = "A playing animation window with no input for this many seconds pauses itself, so " +
+      "a forgotten window does not hold the GPU (0 disables)"
+  )
+
   // === Video Output Options ===
   private val videoGroup = group("Video Output:")
 

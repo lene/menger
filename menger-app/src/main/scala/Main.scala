@@ -80,7 +80,7 @@ object Main:
     rendering match
       case _: InteractiveEngine => !opts.headless()
       // A real-time looping preview is an open-ended window session too, not a batch render.
-      case p: PreviewEngine if p.realtime => !opts.headless()
+      case p: PreviewEngine if p.realtime || p.everyFrame => !opts.headless()
       case _ => false
 
   /** A run that opens a window for the user rather than rendering a fixed set of frames or a
@@ -314,23 +314,30 @@ object Main:
 
       case Right(animated @ LoadedScene.Animated(fn))
           if animated.duration.isDefined && isInteractiveWindow(opts) =>
-        // The scene declares its duration in seconds: play it in real time, looping -- what
-        // the scene agent's render window needs to show an animation at all.
+        // The scene declares its duration in seconds: play it looping, in real time or (with
+        // `--playback every-frame`) rendering every frame -- what the scene agent's render
+        // window needs to show an animation at all.
+        val everyFrame = opts.playback() == "every-frame"
+        val duration = animated.duration.getOrElse(0f)
         PreviewEngine(
           initialSceneFunction = fn,
           initialPreviewConfig = TAnimationConfig(
             startT      = 0f,
-            endT        = animated.duration.getOrElse(0f),
-            frames      = RealtimePreviewNominalFrames,
+            endT        = duration,
+            frames      =
+              if everyFrame then PreviewEngine.everyFrameCount(duration)
+              else RealtimePreviewNominalFrames,
             savePattern = ""
           ),
           executionConfig = buildExecutionConfig(opts),
           renderConfig    = opts.renderConfig,
           causticsConfig  = opts.causticsConfig,
           denoiseModeOverride = cliDenoiseOverride(opts),
-          realtime        = true,
+          realtime        = !everyFrame,
           userSetMaxInstances = opts.userSetMaxInstances,
-          watchScenePath = sceneFileToWatch(opts, sceneName)
+          watchScenePath = sceneFileToWatch(opts, sceneName),
+          everyFrame      = everyFrame,
+          idlePause       = opts.idlePauseSeconds().toDouble
         )
 
       case Right(loadedScene) =>

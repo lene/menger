@@ -36,7 +36,11 @@ class PreviewEngine(
   userSetMaxInstances: Boolean = false,
   // When set (a real `--scene <file.scala>`), the file is watched and an edit that stays an
   // animated scene replaces the playing scene (usability session 3, F57).
-  watchScenePath: Option[java.io.File] = None
+  watchScenePath: Option[java.io.File] = None,
+  // Every-frame looping playback instead of real time (`--playback every-frame`, session 4,
+  // F95), and the idle pause (menger#75).
+  override val everyFrame: Boolean = false,
+  idlePause: Double = 600.0
 )(using ProfilingConfig)
     extends BaseEngine(executionConfig.maxInstances)
     with WithPreview
@@ -89,6 +93,8 @@ class PreviewEngine(
 
   // --timeout was ignored here, so a looping real-time preview never ended on its own.
   override def timeout: Float = executionConfig.timeout
+
+  override protected def idlePauseSeconds: Double = idlePause
 
   override protected def denoiseMode: DenoiseMode =
     denoiseModeOverride.getOrElse(firstFrameConfigs.denoiseMode)
@@ -152,7 +158,9 @@ class PreviewEngine(
       onJumpStart  = jumpToStart,
       onJumpEnd    = jumpToEnd
     )
-    GdxRuntime.setInputProcessor(LibGDXInputAdapter(Seq(keyHandler, cameraController)))
+    GdxRuntime.setInputProcessor(LibGDXInputAdapter(
+      Seq(menger.input.ActivityHandler(() => noteActivity()), keyHandler, cameraController)
+    ))
     startExitTimer(timeout)
     watchScenePath.foreach(startWatchingSceneFile)
 
@@ -179,7 +187,9 @@ class PreviewEngine(
     logger.info(s"Watching scene file for live reload: ${file.getPath}")
 
   private def onSceneFileChanged(file: java.io.File): Unit =
-    PreviewEngine.reloadDecision(SceneLoader.load(file.getPath), previewConfig, realtime) match
+    PreviewEngine.reloadDecision(
+      SceneLoader.load(file.getPath), previewConfig, realtime, everyFrame
+    ) match
       case PreviewEngine.Reload(fn, config) =>
         GdxRuntime.postRunnable(() => reloadScene(fn, config))
       case PreviewEngine.KindChanged =>
@@ -193,6 +203,7 @@ class PreviewEngine(
   // GL thread. The preview takes its camera from the scene on every frame, so a camera edit
   // shows without further handling (F64).
   private def reloadScene(fn: Float => Scene, config: TAnimationConfig): Unit =
+    noteActivity() // an edit is not idleness
     scala.util.Try(stateFor(fn, config)) match
       case scala.util.Success(newState) =>
         def fileProjections(s: PreviewState) =
@@ -207,6 +218,11 @@ class PreviewEngine(
 
 object PreviewEngine:
 
+  /** Frames of an every-frame loop of `duration` seconds: one per `1 / EveryFrameRate` s, plus
+    * the first. */
+  def everyFrameCount(duration: Float): Int =
+    math.max(2, math.round(duration * WithPreview.EveryFrameRate) + 1)
+
   // What a changed scene file means for the playing window.
   sealed trait ReloadDecision
   case class Reload(sceneFunction: Float => Scene, previewConfig: TAnimationConfig)
@@ -219,12 +235,15 @@ object PreviewEngine:
   def reloadDecision(
     loaded: Either[String, LoadedScene],
     current: TAnimationConfig,
-    realtime: Boolean
+    realtime: Boolean,
+    everyFrame: Boolean = false
   ): ReloadDecision =
     loaded match
       case Right(animated @ LoadedScene.Animated(fn)) =>
         val config =
-          if realtime then current.copy(endT = animated.duration.getOrElse(current.endT))
+          if realtime || everyFrame then
+            val endT = animated.duration.getOrElse(current.endT)
+            current.copy(endT = endT, frames = if everyFrame then everyFrameCount(endT) else current.frames)
           else current
         Reload(fn, config)
       case Right(_: LoadedScene.Static) => KindChanged

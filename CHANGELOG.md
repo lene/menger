@@ -70,6 +70,14 @@
   --expect-manifest-sha256 <hex>` refuses (tag `refused`, exit 2) to run an image built from
   a different manifest. The version label alone could not tell a stale image from a current
   one within a release (usability review 2026-10, session 4, F99; #74).
+- Animation window playback (usability review 2026-10, session 4, F95; #71, #75): `--playback
+  every-frame` renders every frame of a scene with `val durationSeconds` (25 steps per second at
+  most, a slow frame slows the playback instead of skipping scene time) and loops, which the
+  scene agent's window now uses; the default `--playback realtime` still follows the clock, but
+  its window title says "behind real time: N s skipped" when frames were dropped. A playing
+  window with no input or reload for 10 minutes (`--idle-pause-seconds`, 0 disables) pauses
+  itself like Space, with a note in the title, so a window left open does not hold the GPU.
+  DSL manifest 1.8.0.
 - Render window 4D state (usability review 2026-10, session 4, F96; #72): Shift+drag rotates in
   the animated window too, and the rotation is kept as an offset on top of the file's
   projections, so a live reload no longer resets it unless the file changed its own projections

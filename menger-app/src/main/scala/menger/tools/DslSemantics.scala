@@ -50,9 +50,12 @@ object DslSemantics:
       "older name `val duration` is deprecated but still read. An animated scene has no " +
       "`SceneRegistry.register` line: register takes a static Scene only, so drop it when " +
       "turning `val scene` into `def scene(t: Float)` (usability review 2026-09, F46). " +
-      "The scene has no frame count: the window plays by the wall " +
-      "clock and drops frames when rendering is slow; frame counts are menger-app " +
-      "command-line options only. Editing the scene file reloads an animated scene live in " +
+      "The scene has no frame count. The scene agent's window plays it with every frame " +
+      "rendered (25 steps per second at most; a slow frame slows the playback instead of " +
+      "skipping scene time) and loops; menger's default real-time mode follows the wall " +
+      "clock and skips scene time when rendering is slow, which the window title says. A " +
+      "playing window with no input for 10 minutes pauses itself (Space resumes); frame " +
+      "counts are menger-app command-line options only. Editing the scene file reloads an animated scene live in " +
       "the window, but the window cannot switch between a static and an animated scene -- " +
       "it must be restarted then (usability review 2026-10, session 3, F57, F84). The window " +
       "has playback keys: Space pauses and resumes, Left/Right step 0.01 s (with Shift " +

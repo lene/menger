@@ -42,3 +42,12 @@ class PreviewEngineReloadSuite extends AnyFlatSpec with Matchers:
   it should "reject a scene that failed to load and keep the playing one" in:
     PreviewEngine.reloadDecision(Left("compile error"), current, realtime = true) shouldBe
       PreviewEngine.Rejected("compile error")
+
+  it should "recompute the frame count of an every-frame loop from the new duration" in:
+    PreviewEngine.reloadDecision(
+      Right(animated(Some(12f))), current, realtime = false, everyFrame = true
+    ) match
+      case PreviewEngine.Reload(_, config) =>
+        config.endT shouldBe 12f
+        config.frames shouldBe 301
+      case other => fail(s"expected Reload, got $other")
