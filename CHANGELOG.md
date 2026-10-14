@@ -70,6 +70,13 @@
   --expect-manifest-sha256 <hex>` refuses (tag `refused`, exit 2) to run an image built from
   a different manifest. The version label alone could not tell a stale image from a current
   one within a release (usability review 2026-10, session 4, F99; #74).
+- Render window 4D state (usability review 2026-10, session 4, F96; #72): Shift+drag rotates in
+  the animated window too, and the rotation is kept as an offset on top of the file's
+  projections, so a live reload no longer resets it unless the file changed its own projections
+  (as the camera already behaved). Both windows write what they show -- camera, the added 4D
+  rotation, and for an animated scene the time and play state -- to
+  `<scene file>.window-state.json` (at most 4 writes a second), which the scene agent reads for
+  `/ask` and for "keep them like that".
 - Edge-rendered 4D objects get their procedural colour (`xyz_rgb_local` etc.) on every path:
   `TesseractEdgeSceneBuilder` now runs the shared texture/procedural step, which it skipped, so
   headless renders and the static window showed plain faces. An edge-rendered scene in the

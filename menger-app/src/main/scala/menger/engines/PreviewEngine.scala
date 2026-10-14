@@ -40,7 +40,8 @@ class PreviewEngine(
 )(using ProfilingConfig)
     extends BaseEngine(executionConfig.maxInstances)
     with WithPreview
-    with TimeoutSupport:
+    with TimeoutSupport
+    with menger.input.Observer:
 
   // Everything a reload swaps: the scene function, its time range, and what is derived from
   // its first frame (lights, camera, output mode).
@@ -109,8 +110,17 @@ class PreviewEngine(
       firstFrameConfigs.camera.position.toGdxVector3,
       firstFrameConfigs.camera.lookAt.toGdxVector3,
       firstFrameConfigs.camera.up.toGdxVector3,
-      EventDispatcher()
+      EventDispatcher().withObserver(this)
     )
+
+  // Shift+drag 4D rotation (usability review 2026-10, session 4, F96): kept as an offset that
+  // rides on every frame, and across a reload unless the file changed its own projections.
+  private val offset4D = new AtomicReference(Interactive4DOffset.Zero)
+  override protected def interactive4D: Interactive4DOffset = offset4D.get()
+
+  override def handleEvent(event: menger.RotationProjectionParameters): Unit =
+    val _ = offset4D.updateAndGet(_.plus(event.rotXW, event.rotYW, event.rotZW))
+    requestRedraw()
 
   private val lastSceneCamera = new AtomicReference[CameraConfig](firstFrameConfigs.camera)
 
@@ -146,7 +156,17 @@ class PreviewEngine(
     startExitTimer(timeout)
     watchScenePath.foreach(startWatchingSceneFile)
 
-  override def render(): Unit = super.render()
+  private val stateFile = watchScenePath.map(f => WindowStateFile(WindowStateFile.pathFor(f)))
+
+  override def render(): Unit =
+    super.render()
+    stateFile.foreach { file =>
+      val (t, playing) = playback
+      file.update(WindowStateFile.of(
+        cameraController.currentEye.toVector3, cameraController.currentLookAt.toVector3,
+        cameraController.currentUp.toVector3, offset4D.get(), Some(t), Some(playing)
+      ))
+    }
 
   override def dispose(): Unit =
     fileWatcher.get().foreach(_.close())
@@ -175,6 +195,10 @@ class PreviewEngine(
   private def reloadScene(fn: Float => Scene, config: TAnimationConfig): Unit =
     scala.util.Try(stateFor(fn, config)) match
       case scala.util.Success(newState) =>
+        def fileProjections(s: PreviewState) =
+          Interactive4DOffset.fileProjections(s.firstFrameConfigs.scene.objectSpecs.getOrElse(Nil))
+        if fileProjections(state.get()) != fileProjections(newState) then
+          offset4D.set(Interactive4DOffset.Zero)
         state.set(newState)
         logger.info(s"Reloaded animated scene from file (duration ${config.endT}s)")
         requestRedraw()

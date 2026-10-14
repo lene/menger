@@ -127,6 +127,13 @@ class InteractiveEngine(
   private val currentObjectSpecs =
     new AtomicReference[Option[List[ObjectSpec]]](Some(objectSpecs))
 
+  // The rotation the user added with Shift+drag, and the projections the scene file declared
+  // when it was last loaded: a reload keeps the rotation unless the file's projections changed
+  // (usability review 2026-10, session 4, F96, the F64 rule for the 4D view).
+  private val interactive4DOffset = new AtomicReference(Interactive4DOffset.Zero)
+  private val lastFileProjections =
+    new AtomicReference(Interactive4DOffset.fileProjections(objectSpecs))
+
   // Keyboard handler for 4D rotation (initialized in finalizeCreate)
   private val keyHandler = new AtomicReference[Option[OptiXKeyHandler]](None)
 
@@ -200,6 +207,9 @@ class InteractiveEngine(
           spec
       })
       currentObjectSpecs.set(updatedSpecs)
+      val _ = interactive4DOffset.updateAndGet(
+        _.plus(event.rotXW, event.rotYW, event.rotZW)
+      )
 
       val fastPathTaken = updatedSpecs.exists(specs =>
         tryRotation4DFastPath(specs, rendererWrapper.renderer) ||
@@ -421,6 +431,7 @@ class InteractiveEngine(
   private def resetTo4DDefaults(): Unit =
     logger.debug("Resetting 4D view to initial state")
     currentObjectSpecs.set(Some(objectSpecs))
+    interactive4DOffset.set(Interactive4DOffset.Zero)
     rebuildScene()
     renderResources.markNeedsRender()
     GdxRuntime.requestRendering()
@@ -461,9 +472,9 @@ class InteractiveEngine(
         logger.warn(s"Failed to reload ${file.getPath}, keeping the current scene: $error")
 
   /** Applies a freshly reloaded static scene: geometry, lights, planes, background, fog, IBL
-    * and render/denoise/accumulation settings all update. The camera and any in-progress 4D
-    * rotation are deliberately left alone -- `rebuildScene()` already preserves the camera,
-    * the same path `resetTo4DDefaults`/interactive rotation rebuilds use. Must run on the GL
+    * and render/denoise/accumulation settings all update. The camera stays unless the file moved
+    * it, and the 4D rotation added in the window is applied to the new specs again unless the
+    * file changed its own projections (`Interactive4DOffset`). Must run on the GL
     * thread (called via `GdxRuntime.postRunnable` from the watcher's own thread). */
   private def reloadScene(dslScene: menger.dsl.Scene): Unit =
     val configs = SceneConverter.convert(dslScene, reloadable.get().caustics)
@@ -488,7 +499,13 @@ class InteractiveEngine(
       denoiseMode = configs.denoiseMode,
       accumulationFrames = configs.accumulationFrames
     ))
-    currentObjectSpecs.set(Some(configs.scene.objectSpecs.getOrElse(List.empty)))
+    val fileSpecs = configs.scene.objectSpecs.getOrElse(List.empty)
+    if lastFileProjections.getAndSet(Interactive4DOffset.fileProjections(fileSpecs)) !=
+        Interactive4DOffset.fileProjections(fileSpecs)
+    then
+      logger.info("Scene file changed its 4D projection; resetting the interactive rotation")
+      interactive4DOffset.set(Interactive4DOffset.Zero)
+    currentObjectSpecs.set(Some(interactive4DOffset.get().applyTo(fileSpecs)))
     applyFileCameraIfChanged(configs.camera)
     logger.info(
       s"Reloaded scene from file (${configs.scene.objectSpecs.map(_.size).getOrElse(0)} object(s))"
@@ -631,7 +648,13 @@ class InteractiveEngine(
       case None =>
         logger.warn("Cannot rebuild single-object scene interactively")
 
+  private val stateFile = watchScenePath.map(f => WindowStateFile(WindowStateFile.pathFor(f)))
+
   override def render(): Unit =
+    stateFile.foreach(_.update(WindowStateFile.of(
+      cameraController.currentEye.toVector3, cameraController.currentLookAt.toVector3,
+      cameraController.currentUp.toVector3, interactive4DOffset.get(), None, None
+    )))
     GdxRuntime.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT)
     keyHandler.get().foreach(_.update(GdxRuntime.deltaTime))
     val width  = GdxRuntime.width

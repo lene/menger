@@ -31,6 +31,12 @@ trait WithPreview extends RenderEngine with LazyLogging:
     * rendered frame. Starts playing immediately. */
   protected def realtime: Boolean = false
 
+  /** The current time and whether the animation is playing, for the window state file. */
+  protected def playback: (Float, Boolean) = (currentT.get(), isPlaying.get())
+
+  /** The 4D rotation the user added in the window; applied to every frame's 4D objects. */
+  protected def interactive4D: Interactive4DOffset = Interactive4DOffset.Zero
+
   private val currentT    = new AtomicReference[Float](0f)
   private val isPlaying   = new AtomicBoolean(false)
   private val needsRender = new AtomicBoolean(true)
@@ -157,7 +163,13 @@ trait WithPreview extends RenderEngine with LazyLogging:
         case Failure(e) =>
           reportFailedFrame(t, e)
         case scala.util.Success(dslScene) =>
-          val configs  = SceneConverter.convert(dslScene, causticsConfig)
+          val converted = SceneConverter.convert(dslScene, causticsConfig)
+          // The rotation added in the window (Shift+drag) rides on every frame (session 4, F96).
+          val configs =
+            if interactive4D.isZero then converted
+            else converted.copy(scene = converted.scene.copy(
+              objectSpecs = converted.scene.objectSpecs.map(interactive4D.applyTo)
+            ))
           val renderer = rendererWrapper.renderer
           configs.render.foreach(renderer.setRenderConfig)
           renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
