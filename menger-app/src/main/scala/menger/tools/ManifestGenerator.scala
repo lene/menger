@@ -67,13 +67,15 @@ object ManifestGenerator extends LazyLogging:
   //        edge-tube level limits, caustics visibility, the 4D projection-size formula and the
   //        preview playback keys in the notes (F94, F98, F101, F92).
   // 1.8.0: the window's playback modes and idle pause in the animation convention (F95, #71, #75).
-  private val SchemaVersion = "1.8.0"
+  // 1.9.0: fractional refractive levels render both levels (render cost in the Sponge level
+  //        note), and edge tubes of a fractional level blend up to 2.x (#69, #70).
+  private val SchemaVersion = "1.9.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
   // and the architecture spine's Stack table (minimum driver version).
   private val ScalaVersionPin = "3.8.3"
-  private val OptixJniVersionPin = "0.4.6"
+  private val OptixJniVersionPin = "0.4.7"
   private val MinDriverVersion = "580.65"
 
   private val DefaultOutputPath = "target/dsl-manifest.json"

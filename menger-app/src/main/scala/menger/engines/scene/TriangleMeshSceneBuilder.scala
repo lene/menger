@@ -76,16 +76,21 @@ class TriangleMeshSceneBuilder(
 
     // For each spec, emit one or more (upload-plan, material-override?) pairs.
     // Fractional 4D sponges in GPU mode produce two GPU meshes (level n+1 opaque,
-    // level n with alpha=1-frac). All other specs produce one entry.
+    // level n with alpha=1-frac). A refractive fractional sponge produces its two whole
+    // levels, which the renderer mixes (LevelMixing). All other specs produce one entry.
     specs.zipWithIndex.foreach { case (spec, specIdx) =>
       val baseMaterial = MaterialExtractor.extract(spec)
+      val mixer = LevelMixing.mixer(renderer)
+        .filter(_ => isLeveled(spec) && LevelMixing.appliesTo(spec.level, baseMaterial))
       val ops: List[FractionalOp] =
-        if isFractional4DSponge(spec) then
+        if mixer.isDefined && !ObjectType.isRecursiveIASSponge(spec.objectType) then
+          buildTwoLevelOps(spec, baseMaterial)
+        else if isFractional4DSponge(spec) then
           buildFractionalGpuOps(spec, baseMaterial)
         else
           List(FractionalOp(MeshFactory.createUpload(spec), baseMaterial))
 
-      ops.foreach { op =>
+      val levelInstances = ops.flatMap { op =>
         // Upload mesh and add instance
         op.plan match
           case MeshUploadPlan.Cpu(data) =>
@@ -101,7 +106,7 @@ class TriangleMeshSceneBuilder(
 
         val textureIndex = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
 
-        val instanceId =
+        val (instanceId, recursiveRoles) =
           if ObjectType.isRecursiveIASSponge(spec.objectType) then
             val transform = TransformUtil.createEulerRotationScaleTranslation(
               spec.rotX, spec.rotY, spec.rotZ, spec.size, spec.x, spec.y, spec.z
@@ -110,31 +115,29 @@ class TriangleMeshSceneBuilder(
             // recently uploaded mesh, so any other leaf (the hole caps) goes up right before
             // its own instance.
             val cube = MeshFactory.create(spec)
-            val ids = TriangleMeshSceneBuilder.recursiveIASInstances(spec.level.get, cube, op.material)
-              .map { (leaf, level, material, coverage) =>
-                if leaf ne cube then
-                  val _ = renderer.addTriangleMesh(leaf)
-                val id = requireInstanceId(
-                  renderer.addRecursiveIASSpongeInstance(level, transform, material, textureIndex),
-                  s"recursive-IAS sponge instance level=$level for ${spec.objectType}"
-                )
-                setCoverage(renderer, id, coverage)
-                id
-              }
-            ids.tail.foreach(applyInstanceTextures(_, spec, textureIndices, renderer))
-            ids.head
-          else if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
-            requireInstanceId(
-              renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), op.material, textureIndex),
-              s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
-            )
-          else
-            requireInstanceId(
-              renderer.addTriangleMeshInstance(
-                TriangleMeshSceneBuilder.instanceTransform(spec), op.material, textureIndex
-              ),
-              s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
-            )
+            val level = spec.level.get
+            val placements: List[
+              (menger.common.TriangleMeshData, Int, menger.common.Material, Float, Option[LevelRole])
+            ] =
+              if mixer.isDefined then List(
+                (cube, level.floor.toInt + 1, op.material, 1f, Some(LevelRole.Upper)),
+                (cube, level.floor.toInt, op.material, 1f, Some(LevelRole.Lower))
+              )
+              else TriangleMeshSceneBuilder.recursiveIASInstances(level, cube, op.material)
+                .map((leaf, n, material, coverage) => (leaf, n, material, coverage, None))
+            val placed = placements.map { (leaf, n, material, coverage, role) =>
+              if leaf ne cube then
+                val _ = renderer.addTriangleMesh(leaf)
+              val id = requireInstanceId(
+                renderer.addRecursiveIASSpongeInstance(n, transform, material, textureIndex),
+                s"recursive-IAS sponge instance level=$n for ${spec.objectType}"
+              )
+              setCoverage(renderer, id, coverage)
+              (id, role)
+            }
+            placed.tail.foreach((id, _) => applyInstanceTextures(id, spec, textureIndices, renderer))
+            (placed.head._1, placed.collect { case (id, Some(role)) => (InstanceId.raw(id), role) })
+          else (addMeshInstance(spec, op, textureIndex, renderer), Nil)
         setCoverage(renderer, instanceId, op.coverage)
         applyInstanceTextures(instanceId, spec, textureIndices, renderer)
         instanceRecorder(specIdx, InstanceId.raw(instanceId))
@@ -142,8 +145,51 @@ class TriangleMeshSceneBuilder(
         val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
         val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
         logger.debug(s"Added ${spec.objectType} instance $instanceId ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
+        recursiveRoles ++ op.role.map(role => (InstanceId.raw(instanceId), role))
       }
+      mixer.foreach(m => LevelMixing.register(
+        m,
+        lower = levelInstances.collect { case (id, LevelRole.Lower) => id },
+        upper = levelInstances.collect { case (id, LevelRole.Upper) => id },
+        level = spec.level.get
+      ))
     }
+
+  private def addMeshInstance(
+    spec: ObjectSpec, op: FractionalOp, textureIndex: Int, renderer: OptiXRenderer
+  ): InstanceId =
+    val where = s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
+    if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
+      requireInstanceId(
+        renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), op.material, textureIndex),
+        where
+      )
+    else
+      requireInstanceId(
+        renderer.addTriangleMeshInstance(
+          TriangleMeshSceneBuilder.instanceTransform(spec), op.material, textureIndex
+        ),
+        where
+      )
+
+  /** A refractive fractional sponge as its two whole levels, each in the full material; the
+    * renderer shows one at a time and mixes the renders (LevelMixing). Integer 4D levels take
+    * the GPU projection path, so an animation can still re-project them in place. */
+  private def buildTwoLevelOps(
+    spec: ObjectSpec,
+    baseMaterial: menger.common.Material
+  )(using profilingConfig: ProfilingConfig): List[FractionalOp] =
+    val level = spec.level.get
+    List(
+      FractionalOp(
+        MeshFactory.createUpload(spec.copy(level = Some(level.floor + 1f))), baseMaterial,
+        role = Some(LevelRole.Upper)
+      ),
+      FractionalOp(
+        MeshFactory.createUpload(spec.copy(level = Some(level.floor))), baseMaterial,
+        role = Some(LevelRole.Lower)
+      )
+    )
 
   /** GPU-projected fractional 4D sponge: emit two meshes sharing the projection
     * params: level n+1 fully present, and the hole caps of level n (the centre
@@ -177,8 +223,13 @@ class TriangleMeshSceneBuilder(
     plan: MeshUploadPlan,
     material: menger.common.Material,
     isHoleCaps: Boolean = false,
-    coverage: Float = 1f
+    coverage: Float = 1f,
+    role: Option[LevelRole] = None
   )
+
+  // Which level of a two-level object (LevelMixing) an instance draws.
+  private enum LevelRole:
+    case Lower, Upper
 
   private def setCoverage(renderer: OptiXRenderer, id: InstanceId, coverage: Float): Unit =
     if coverage < 1f then
@@ -198,12 +249,20 @@ class TriangleMeshSceneBuilder(
       (!ObjectType.is4DSponge(t2) || spec2.level.isDefined)
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
-    // GPU fractional path: 2 instances per fractional spec (level n + level n+1).
+    // GPU fractional path: 2 instances per fractional spec (level n + level n+1); a refractive
+    // fractional 3D sponge too (its two levels, LevelMixing), counted whatever the renderer.
     specs.iterator.map { spec =>
       if ObjectType.isRecursiveIASSponge(spec.objectType) && spec.level.exists(isFractional) then 2L
       else if isFractional4DSponge(spec) then 2L
+      else if isLeveled(spec) &&
+        LevelMixing.appliesTo(spec.level, MaterialExtractor.extract(spec)) then 2L
       else 1L
     }.sum
+
+  // A sponge type whose level this builder draws (3D, 4D or recursive IAS).
+  private def isLeveled(spec: ObjectSpec): Boolean =
+    val t = spec.objectType.toLowerCase
+    ObjectType.isSponge(t) || ObjectType.is4DSponge(t) || ObjectType.isRecursiveIASSponge(t)
 
   private def isTriangleMeshType(spec: ObjectSpec): Boolean =
     ObjectType.isTriangleMesh(spec.objectType)

@@ -13,6 +13,16 @@
 
 ### Added
 
+- Fractional levels in a refractive material (glass, water, diamond, film) grow gradually: the
+  renderer draws both whole levels and mixes the images, linearly, each render showing one level
+  per object, so no light path meets both. Fading level n's hole caps over level n+1 in one render
+  (still used for opaque materials, where it is the same mix) could not work for glass: a glass
+  cap shows the new tunnels behind it at any strength, so the level jumped at the integer
+  (usability review 2026-10, session 4, F85; #69; decided by user 2026-10-14: linear mix,
+  rendering twice). With k such objects every combination of their levels is rendered (2^k,
+  product weights; beyond 4 objects the first-order sum, k + 1 renders). Covers the 3D sponges,
+  the 4D sponges (also animated in place), the recursive-IAS sponge and the 4D IFS fractals.
+  Needs optix-jni 0.4.7 (`setInstanceVisible`). DSL manifest 1.9.0 notes the render cost.
 - An animated scene can declare `val durationSeconds = <seconds>f`: `t` is then time in
   seconds, and `--scene` without `--frames`/`--t`/`--save-name`/`--headless` opens a window
   that plays it in real time, looping (it takes the render lock like the interactive window).

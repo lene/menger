@@ -1056,6 +1056,14 @@ test_3d_fractional_sponges() {
     run_test "sponge-volume fractional with color" --plane y:-2 \
         --objects type=sponge-volume:level=1.3:color=#FF4488:size=0.8
 
+    # Two refractive fractional objects whose light paths cross: every combination of their
+    # levels is rendered (2^k) and mixed (lene/menger#69). A blue glass sponge at 0.2 partly
+    # hidden by a red glass sponge at 1.3 -- a stand-in for a Sierpinski tetrahedron until
+    # the Platonic fractals exist (backlog B-PLATOFRAC).
+    run_test "two crossing glass sponges fractional 0.2 and 1.3" --plane y:-1.2 \
+        --objects type=sponge-volume:level=0.2:size=1.6:material=glass:color=#7799FF \
+        --objects type=sponge-surface:level=1.3:pos=0.35,0.15,1.3:size=1.0:material=glass:color=#FF7777 \
+        --camera-pos 0.5,0.8,4.4 --camera-lookat 0,0,0
 
     # Mixed fractional and integer levels
     run_test "mixed sponge-volume fractional + integer" --plane y:-2 \

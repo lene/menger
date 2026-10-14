@@ -73,8 +73,9 @@ object TrackedMesh4D:
     }
 
   /** Applies `next` (for which `canUpdateInPlace(state.specs, next)` holds) to the built scene:
-    * the new projection on every projected mesh, the new hole-cap alpha on every caps instance,
-    * the new position/rotation on every instance (an IAS-only rebuild on the next render). */
+    * the new projection on every projected mesh, the new hole-cap alpha on every caps instance
+    * (or the new mix fraction of a two-level object), the new position/rotation on every
+    * instance (an IAS-only rebuild on the next render). */
   def updateInPlace(state: State, next: List[ObjectSpec], renderer: OptiXRenderer): State =
     next.indices.foreach { i =>
       val (prev, spec) = (state.specs(i), next(i))
@@ -93,5 +94,11 @@ object TrackedMesh4D:
         caps <- state.capsInstancePerSpec(i)
       do
         val _ = renderer.setInstanceCoverage(caps, TriangleMeshSceneBuilder.holeCapsCoverage(level))
+      // A two-level object (LevelMixing) has no caps: its new fraction is the renderer's mix.
+      for
+        level <- spec.level if !prev.level.contains(level) && level != level.floor
+        mixer <- LevelMixing.mixer(renderer)
+        instance <- state.instancesPerSpec(i).headOption
+      do mixer.setLevelMixFraction(instance, level - level.floor)
     }
     state.copy(specs = next)

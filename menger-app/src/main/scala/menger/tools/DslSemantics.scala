@@ -117,7 +117,9 @@ object DslSemantics:
     ("Camera", "lookAt") -> ("Point the camera looks at; frame a scene by aiming here at the " +
       "centre of all objects and moving `position` away until they fit."),
     ("Sponge", "level") -> ("Recursion depth; fractional levels blend between the two " +
-      "neighbouring integer levels. Cost grows ~20x per level. Limits depend on `spongeType` " +
+      "neighbouring integer levels. In a refractive material (glass, water, diamond, film) the " +
+      "renderer renders both levels and mixes the images, so each such object doubles the " +
+      "renders per frame (two objects 4, up to 16) (menger#69). Cost grows ~20x per level. Limits depend on `spongeType` " +
       "(see `limitsBy`): VolumeFilling and SurfaceUnfolding go up to 5 (a VolumeFilling level 5 " +
       "is a 13M-triangle mesh, about 10 s to build); RecursiveIAS covers levels 1 to 13."),
     ("TesseractSponge", "level") -> ("Recursion depth; fractional levels blend between " +
@@ -134,11 +136,11 @@ object DslSemantics:
     ("TesseractSponge", "rotation") -> ("3D Euler angles in radians, applied after " +
       "projection; 4D rotations go in `projection`."),
     ("Tesseract", "edgeRadius") -> "Draws the edges as tubes of this radius.",
-    ("TesseractSponge", "edgeRadius") -> ("Draws the edges as tubes of this radius. With edge " +
-      "tubes the level is truncated to an integer (a fractional level steps, it does not " +
-      "blend), and they fit only up to level 2: one tube per edge, so level 3 needs 130177 " +
-      "instances, more than the 65536 the renderer has (usability review 2026-10, session 4, " +
-      "F94; menger#70).")
+    ("TesseractSponge", "edgeRadius") -> ("Draws the edges as tubes of this radius. A " +
+      "fractional level blends the tubes of its two levels up to 2.x; edge tubes fit only up to " +
+      "level 2: one tube per edge, so level 3 needs 130177 instances, more than the 65536 the " +
+      "renderer has, and from 2.x the level stays at its integer part (usability review 2026-10, " +
+      "session 4, F94; menger#70).")
   ) ++ proceduralDescriptions
 
   /** Every DSL object type has `proceduralType`/`proceduralScale`; the presets were known only

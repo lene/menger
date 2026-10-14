@@ -92,21 +92,28 @@ class Instanced4DSceneBuilder(
       val position  = Vector[3](spec.x, spec.y, spec.z)
       val rawLevel  = spec.level.get
 
-      def addInstance(level: Int, mat: Material, scale: Float): Unit =
+      def addInstance(level: Int, mat: Material, scale: Float): Int =
         val instanceId = requireInstanceId(
           ifsType.addInstance(mengerRenderer, level, threshold, position, scale, proj, mat),
           s"${ifsType.name} instance at (${spec.x},${spec.y},${spec.z})"
         )
         recorder(specIdx, instanceId)
         logger.debug(s"Added ${ifsType.name} instance $instanceId level=$level")
+        InstanceId.raw(instanceId)
 
-      if isFractional(rawLevel) then
+      if LevelMixing.appliesTo(spec.level, material) then
+        // Both whole levels in the full material, one shown per render (LevelMixing); no
+        // shrink, which only kept the two levels apart when they shared a render.
+        val upper = addInstance(rawLevel.floor.toInt + 1, material, spec.size)
+        val lower = addInstance(rawLevel.floor.toInt, material, spec.size)
+        LevelMixing.register(mengerRenderer, Seq(lower), Seq(upper), rawLevel)
+      else if isFractional(rawLevel) then
         val frac      = rawLevel - rawLevel.floor
         val coarseMat = material.copy(color = material.color.copy(a = material.color.a * (1f - frac)))
-        addInstance(rawLevel.floor.toInt + 1, material,  spec.size)
-        addInstance(rawLevel.floor.toInt,     coarseMat, spec.size * (1f - CoarseScaleOffset))
+        val _ = addInstance(rawLevel.floor.toInt + 1, material,  spec.size)
+        val _ = addInstance(rawLevel.floor.toInt,     coarseMat, spec.size * (1f - CoarseScaleOffset))
       else
-        addInstance(rawLevel.toInt, material, spec.size)
+        val _ = addInstance(rawLevel.toInt, material, spec.size)
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =

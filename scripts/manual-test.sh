@@ -337,6 +337,7 @@ run_test "3D Fractional (glass)" "-o --objects type=sponge-volume:level=1.5:mate
 run_test "3D Fractional (chrome)" "-o --objects type=sponge-surface:level=1.3:material=chrome -s $OUTPUT_DIR/80-3d-frac-chrome.png"
 run_test "3D Mixed fractional + integer" "-o --objects type=sponge-volume:level=1.5:pos=-0.8,0,0:color=#FF8844 --objects type=sponge-volume:level=1:pos=0.8,0,0:color=#4488FF -s $OUTPUT_DIR/81-3d-mixed-frac-int.png"
 run_test "3D Volume vs Surface frac" "-o --objects type=sponge-volume:level=1.5:pos=-0.8,0,0 --objects type=sponge-surface:level=1.5:pos=0.8,0,0 -s $OUTPUT_DIR/82-volume-vs-surface-frac.png"
+run_test "Two crossing glass sponges 0.2 + 1.3 (each level combination rendered and mixed; the red one in front stays clear glass, no jump to a finer level)" "-o --objects type=sponge-volume:level=0.2:size=1.6:material=glass:color=#7799FF --objects type=sponge-surface:level=1.3:pos=0.35,0.15,1.3:size=1.0:material=glass:color=#FF7777 --camera-pos 0.5,0.8,4.4 --camera-lookat 0,0,0 --plane y:-1.2 -s $OUTPUT_DIR/82b-crossing-glass-frac.png"
 
 # Platonic Solids
 echo -e "${YELLOW}--- Platonic Solids ---${NC}"
