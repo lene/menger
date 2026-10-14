@@ -70,6 +70,11 @@
   --expect-manifest-sha256 <hex>` refuses (tag `refused`, exit 2) to run an image built from
   a different manifest. The version label alone could not tell a stale image from a current
   one within a release (usability review 2026-10, session 4, F99; #74).
+- Fractional levels on edge-rendered 4D sponges (usability review 2026-10, session 4, F94; #70):
+  the edge tubes were built from the integer part of the level, so they stepped at each
+  integer. A level n.f now draws the tubes of level n fading out and those of level n+1 fading in
+  (alpha and refraction scaled, as for glass hole caps), while n+1 is at most 2; from 2.x there
+  are too many tubes (level 3: 130177, the limit is 65536) and the integer part stays.
 - Animation window playback (usability review 2026-10, session 4, F95; #71, #75): `--playback
   every-frame` renders every frame of a scene with `val durationSeconds` (25 steps per second at
   most, a slow frame slows the playback instead of skipping scene time) and loops, which the

@@ -62,13 +62,15 @@ class TesseractEdgeSceneBuilder(
     specs.foldLeft(0) { (total, spec) =>
       // Too large to build just to count its edges: the lower bound already exceeds any
       // instance limit (menger#53).
-      val atLeast = TesseractEdgeSceneBuilder.minEdgeInstances(spec)
+      val atLeast = TesseractEdgeSceneBuilder.minEdgeInstancesOf(spec)
       val instances =
         if atLeast > 0 then math.min(atLeast, Int.MaxValue.toLong).toInt
         else
           val meshInstances = 1  // The main mesh
           val edgeInstances = if spec.hasEdgeRendering then
-            extractEdges(createMesh4D(spec)).size
+            TesseractEdgeSceneBuilder.edgeLevels(spec).map { (levelSpec, _) =>
+              extractEdges(createMesh4D(levelSpec)).size
+            }.sum
           else
             0
           meshInstances + edgeInstances
@@ -88,7 +90,7 @@ class TesseractEdgeSceneBuilder(
       // 2026-09, session 2, F44/menger#52).
       // A sponge too big to build just to count its edges is rejected from a lower bound
       // first (menger#53); everything else gets the exact count from its mesh.
-      val atLeast = specs.map(TesseractEdgeSceneBuilder.minEdgeInstances).sum
+      val atLeast = specs.map(TesseractEdgeSceneBuilder.minEdgeInstancesOf).sum
       lazy val requiredInstances = calculateRequiredInstances(specs)
       if atLeast > maxInstances then
         Left(
@@ -214,18 +216,27 @@ class TesseractEdgeSceneBuilder(
   ): (IndexedSeq[(Vector[4], Vector[4])], IndexedSeq[Option[Int]]) =
     val edgeRadius = spec.edgeRadius.getOrElse(TesseractEdgeSceneBuilder.DefaultEdgeRadius)
     val edgeMaterial = spec.edgeMaterial.getOrElse(defaultEdgeMaterial)
-    val edges = extractEdges(createMesh4D(spec)).toIndexedSeq
-    val endpoints = TesseractEdgeSceneBuilder.edgeEndpoints(spec, edges)
+    // A fractional level n.f draws the edges of level n fading out and those of level n+1 fading
+    // in (usability review 2026-10, session 4, F94): they used to be built from the integer
+    // part, so the edges of a level animation stepped at each integer.
+    val groups = TesseractEdgeSceneBuilder.edgeLevels(spec).map { (levelSpec, keep) =>
+      val groupEdges = extractEdges(createMesh4D(levelSpec)).toIndexedSeq
+      val material = TesseractEdgeSceneBuilder.fadedEdgeMaterial(edgeMaterial, keep)
+      (groupEdges, TesseractEdgeSceneBuilder.edgeEndpoints(spec, groupEdges), material)
+    }
+    val edges = groups.flatMap(_._1).toIndexedSeq
 
     // One cylinder per edge that isn't clipped by the eye_w plane (None: clipped, no cylinder).
-    val cylinderIds = endpoints.map(_.map { case (p0, p1) =>
-      val cylinderId = requireInstanceId(
-        renderer.addCylinderInstance(p0, p1, edgeRadius, edgeMaterial),
-        s"edge cylinder from $p0 to $p1"
-      )
-      logger.trace(s"Added edge cylinder $cylinderId from $p0 to $p1")
-      InstanceId.raw(cylinderId)
-    })
+    val cylinderIds = groups.flatMap { (_, endpoints, material) =>
+      endpoints.map(_.map { case (p0, p1) =>
+        val cylinderId = requireInstanceId(
+          renderer.addCylinderInstance(p0, p1, edgeRadius, material),
+          s"edge cylinder from $p0 to $p1"
+        )
+        logger.trace(s"Added edge cylinder $cylinderId from $p0 to $p1")
+        InstanceId.raw(cylinderId)
+      })
+    }.toIndexedSeq
 
     logger.debug(s"Added ${cylinderIds.count(_.isDefined)} of ${edges.size} edge cylinders for " +
       s"${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
@@ -320,6 +331,39 @@ object TesseractEdgeSceneBuilder:
     variant.filter(_ => spec.hasEdgeRendering && level >= SmallestUncountedLevel) match
       case Some(v) => 1L + Level2Edges(v) * math.pow(MinGrowthPerLevel(v).toDouble, level - 2).toLong
       case None => 0L
+
+  /** Highest level whose edges cross-fade with the next one's: level 3 needs 130177 cylinders,
+    * more than the instance limit, so from 2.x the edges stay those of the integer part. */
+  private val MaxCrossFadeLevel = 2
+
+  /** The integer-level specs whose edges are drawn for `spec`, each with the share it keeps:
+    * the spec itself (1) at an integer level; level n (1 - f) and level n+1 (f) at n.f while
+    * n+1 fits `MaxCrossFadeLevel`; else level n alone. */
+  def edgeLevels(spec: ObjectSpec): List[(ObjectSpec, Float)] =
+    spec.level match
+      case Some(level) if level != level.floor =>
+        val lower = spec.copy(level = Some(level.floor))
+        val fraction = level - level.floor
+        if level.floor + 1 <= MaxCrossFadeLevel then
+          List((lower, 1f - fraction), (spec.copy(level = Some(level.floor + 1f)), fraction))
+        else List((lower, 1f))
+      case _ => List((spec, 1f))
+
+  /** `minEdgeInstances` over every level whose edges are drawn for `spec`. */
+  def minEdgeInstancesOf(spec: ObjectSpec): Long =
+    edgeLevels(spec).map((levelSpec, _) => minEdgeInstances(levelSpec)).sum
+
+  /** An edge material that keeps `keep` of its opacity and, when refractive, of its refraction
+    * (alpha and IOR above 1 scaled): the rule `TriangleMeshSceneBuilder.fadingMaterial` uses for
+    * a fading refractive cap, in the same direction (decided by user 2026-10-13: "decrease
+    * opacity to 0 and ior to 1 with increasing fractional level"). */
+  def fadedEdgeMaterial(material: Material, keep: Float): Material =
+    if keep >= 1f then material
+    else
+      material.copy(
+        color = material.color.copy(a = material.color.a * keep),
+        ior = if material.ior > 1f then 1f + (material.ior - 1f) * keep else material.ior
+      )
 
   // Matches the epsilon the 4D CUDA shaders use for the same eye_w clip (e.g. hit_menger4d.cu).
   private val EyeWClipEpsilon = 1e-6f
