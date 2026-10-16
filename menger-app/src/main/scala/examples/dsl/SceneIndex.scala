@@ -19,10 +19,12 @@ object SceneIndex:
     ComplexLighting.scene,
     ReusableComponents.scene,
     TesseractDemo.scene,
+    PolytopeGallery.scene,
     MixedMetallicShowcase.scene,
     VideoTextureCube.scene,
     RenderSettingsDemo.scene,
     CausticsReference.scene,
+    CausticsReferenceDefault.scene,
     DenoiseIblDemo.scene,
     ParametricSphere.scene,
     ParametricTorus.scene,
@@ -30,6 +32,8 @@ object SceneIndex:
     ParametricMoebius.scene,
     ParametricKleinBottle.scene,
     ParametricKleinBottleFilm.scene,
+    ParametricSphereCaustics.scene,
+    ParametricTorusCaustics.scene,
     TrefoilKnot.scene,
   )
 

@@ -33,6 +33,69 @@ rendering_flags:
   - --antialiasing
   - --rot-x
   - --accumulation-frames
+  # menger#93: rendering flags both scripts already exercised, now required too.
+  - --aa-max-depth
+  - --camera-lookat
+  - --camera-pos
+  - --caustics-iterations
+  - --caustics-photons
+  - --cross-length
+  - --cross-material
+  - --env-map
+  - --light
+  - --objects
+  - --plane
+  - --plane-color
+  - --plane-material
+  - --rot-x-w
+  - --scene
+  - --t
+  - --texture-dir
+
+# menger#93: every flag MengerCLIOptions defines is in rendering_flags, flags_exempt or
+# flags_backlog (ScriptParitySuite derives the flag set from the options; a new flag in none of
+# the three lists fails). Exempt: no rendering effect to compare, or covered by other suites.
+flags_exempt:
+  - --headless              # output/automation infra
+  - --timeout               # output/automation infra
+  - --save-name             # output/automation infra
+  - --video                 # output/automation infra
+  - --keep-frames           # output/automation infra
+  - --video-quality         # output encoding only
+  - --start-t               # animation frame range of a saved video
+  - --end-t                 # animation frame range of a saved video
+  - --frames                # animation frame count of a saved video
+  - --width                 # image size, used by every test
+  - --height                # image size, used by every test
+  - --allow-uniform-render  # test-harness switch for the render-health check
+  - --log-level             # diagnostics
+  - --fps-log-interval      # diagnostics
+  - --profile-min-ms        # diagnostics
+  - --stats                 # diagnostics (RayStatsSuite)
+  - --stats-json            # diagnostics (benchmark.sh)
+  - --render-lock-path      # process coordination (WindowLockSuite)
+  - --idle-pause-seconds    # interactive window idling, no image
+
+# Rendering or agent-facing flags that still need an entry in one or both scripts. Remove a flag
+# from here and add it to rendering_flags once both scripts cover it (the suite says when).
+flags_backlog:
+  - --aa-threshold          # integration only
+  - --camera-up             # integration only
+  - --cross-thickness       # manual only
+  - --max-instances         # manual only
+  - --antialias-samples
+  - --caustics-alpha
+  - --caustics-radius
+  - --max-ray-depth
+  - --no-denoise
+  - --rot-y
+  - --rot-z
+  - --rot-y-w
+  - --rot-z-w
+  - --rotation-4d
+  - --preview               # agent-facing
+  - --playback              # agent-facing
+  - --display               # agent-facing
 
 # Pairs of ObjectSpec fields that must appear together on the same --objects
 # clause in at least one script (QA_INCIDENTS.md 2026-08-21: material+color
@@ -41,3 +104,15 @@ rendering_flags:
 # Declaring a pair here without a scene exercising it together fails the gate.
 field_combinations:
   - material+color
+
+# menger#93: example scenes (examples/dsl, the agent's corpus) not yet in integration-tests.sh.
+# ScriptParitySuite fails for a scene in neither the suite nor this list, and for a listed scene
+# the suite already covers. Adding one needs its reference image reviewed first.
+scenes_backlog:
+  - CausticsMeshValidation
+  - CausticsReference
+  - FractalWithHDR
+  - ParametricScenes
+  - RotatingSilverSponge
+  - SierpinskiHDRRotation
+  - TwoSpheres

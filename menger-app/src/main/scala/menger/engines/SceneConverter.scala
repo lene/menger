@@ -13,6 +13,7 @@ import menger.config.PlaneConfig
 import menger.config.SceneConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.Material
+import menger.dsl.RenderSettings
 import menger.dsl.Scene
 import menger.dsl.SceneNode
 import menger.dsl.ToneMapping
@@ -65,7 +66,7 @@ object SceneConverter extends LazyLogging:
     warnCausticsPreconditions(caustics, objectSpecs, lights)
     val background = dslScene.background.map(_.toCommonColor)
     val planes     = dslScene.planes.map(p => PlaneConfig(p.toPlaneSpec, Some(p.toPlaneColorSpec), p.material))
-    val render     = dslScene.render.map(_.toRenderConfig)
+    val render     = dslScene.render.map(effectiveRenderConfig(_, dslScene.toneMapping))
     val fog        = dslScene.fog.map(f => FogConfig(f.density, f.color.toCommonColor))
     val envMap     = dslScene.envMap
     val envMapVideo = dslScene.envMapVideo
@@ -189,3 +190,14 @@ object SceneConverter extends LazyLogging:
     case ToneMapping.None          => (ToneMapOp.None, 1.0f)
     case ToneMapping.Reinhard(exp) => (ToneMapOp.Reinhard, exp)
     case ToneMapping.ACES(exp)     => (ToneMapOp.Aces, exp)
+
+  /** `RenderSettings.toRenderConfig` alone never carries tone mapping -- it's a separate
+    * top-level `Scene` field, not part of `RenderSettings` -- so every consumer of
+    * `SceneConfigs.render` that calls `renderer.setRenderConfig` directly (an animation frame
+    * after the first, `--preview`, the F5 live-reload path) reset tone mapping to off,
+    * because `RenderApi.setRenderConfig` also pushes `RenderConfig`'s own (always-default)
+    * tone-mapping fields to the GPU (usability review 2026-09, T2#8). Folding it in here,
+    * once, is the fix all of those call sites pick up for free. */
+  private def effectiveRenderConfig(settings: RenderSettings, toneMapping: ToneMapping): RenderConfig =
+    val (tmOp, tmExp) = toToneMappingParams(toneMapping)
+    settings.toRenderConfig.copy(toneMappingOperator = tmOp, toneMappingExposure = tmExp)

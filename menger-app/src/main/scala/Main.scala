@@ -27,7 +27,6 @@ import menger.config.SceneConfig
 import menger.config.TAnimationConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.LoadedScene
-import menger.dsl.RestrictedClasspath
 import menger.engines.AnimationEngine
 import menger.engines.CliAnimationEngine
 import menger.engines.InteractiveEngine
@@ -36,6 +35,7 @@ import menger.engines.RenderEngine
 import menger.engines.RenderLock
 import menger.engines.SceneConverter
 import menger.engines.VideoEngine
+import menger.scene.RestrictedClasspath
 import menger.tools.SceneValidator
 import org.slf4j.LoggerFactory
 import upickle.default.write
@@ -50,7 +50,7 @@ object Main:
       val opts = MengerCLIOptions(args.toList)
       configureLogging(opts.logLevel().toUpperCase)
       opts.display.toOption match
-        // AD-6: the display target is an explicit, injected parameter. A native windowing
+        // SA-AD-6: the display target is an explicit, injected parameter. A native windowing
         // library (GLFW/X11, via LWJGL) only ever reads DISPLAY from the process environment
         // at init time -- nothing in-process can override it once the JVM has started, so the
         // only way to honor an injected value is to re-exec as a child process that has it
@@ -69,19 +69,30 @@ object Main:
         System.err.println(s"Error: ${e.getMessage}")
         sys.exit(1)
 
-  /** AD-16: the GPU is a single exclusive resource. Only the genuine interactive window --
+  /** SA-AD-16: the GPU is a single exclusive resource. Only the genuine interactive window --
     * a real-time session an `InteractiveEngine` drives for however long the user keeps it
     * open -- is gated; headless/preview/video/animation runs are one-shot batch renders
-    * already sequential-only by existing convention (AD-11), and this story's own
+    * already sequential-only by existing convention (SA-AD-11), and this story's own
     * Boundaries explicitly excludes them from locking. A pure predicate, kept separate from
     * `launchInProcess`'s side-effecting match, so the discrimination itself (not just that
     * the code compiles) is directly unit-testable without touching `Lwjgl3Application`. */
   def shouldLock(rendering: RenderEngine, opts: MengerCLIOptions): Boolean =
     rendering match
       case _: InteractiveEngine => !opts.headless()
+      // A real-time looping preview is an open-ended window session too, not a batch render.
+      case p: PreviewEngine if p.realtime || p.everyFrame => !opts.headless()
       case _ => false
 
-  /** AD-16's decision, composed: does this engine need the lock, and if so can it be had?
+  /** A run that opens a window for the user rather than rendering a fixed set of frames or a
+    * single frozen t. */
+  def isInteractiveWindow(opts: MengerCLIOptions): Boolean =
+    !opts.headless() && !opts.tFrames.isSupplied && !opts.freezeT.isSupplied &&
+      !opts.saveName.isSupplied
+
+  /** Only labels the frame counter in the window title; real-time playback follows the clock. */
+  private val RealtimePreviewNominalFrames = 100
+
+  /** SA-AD-16's decision, composed: does this engine need the lock, and if so can it be had?
     * `None` means "run unlocked" (a batch render), `Some(Right(handle))` means the caller
     * holds it, `Some(Left(reason))` means refuse.
     *
@@ -109,7 +120,7 @@ object Main:
           case None => Lwjgl3Application(app, config)
       case _ => sys.error("Engine must implement ApplicationListener")
 
-  /** Reuses `SceneValidator`'s AD-5 tagged-result JSON shape rather than inventing a second
+  /** Reuses `SceneValidator`'s SA-AD-5 tagged-result JSON shape rather than inventing a second
     * "refused" contract -- one tagged-result vocabulary across the validation gauntlet and
     * the render-exclusivity check. Pure JSON construction, kept separate from `sys.exit` so
     * the contract itself is directly testable (mirroring `buildReExecProcessBuilder`'s own
@@ -118,10 +129,12 @@ object Main:
   def refusedResultJson(reason: String): String =
     write(SceneValidator.ValidationResult(SceneValidator.Tag.Refused, List(reason)), indent = 2)
 
+  // `refused` exits with its contract code (contracts/process-result.json), the validator's 2; it
+  // exited 1, the scene-defect code (review 2026-10-14, menger#100).
   private def reportRefusedAndExit(reason: String): Unit =
     print(refusedResultJson(reason))
     print(System.lineSeparator())
-    sys.exit(1)
+    sys.exit(SceneValidator.exitCodeFor(SceneValidator.Tag.Refused))
 
   /** Pure command/environment construction, kept separate from `reExecWithDisplay` so tests
     * can assert the child's environment carries the injected `DISPLAY` value without
@@ -240,11 +253,18 @@ object Main:
       case Some(sceneName) => createSceneBasedEngine(opts, sceneName)
       case None => createCliBasedOptiXEngine(opts)
 
+  // F5/F57: only a real scene FILE can be hand-edited and picked up live, and only in an actual
+  // interactive window -- a headless/frames/freeze-t run is a one-shot batch render that will
+  // already have exited before any edit could matter.
+  private def sceneFileToWatch(opts: MengerCLIOptions, sceneName: String): Option[java.io.File] =
+    Some(new java.io.File(sceneName))
+      .filter(f => isInteractiveWindow(opts) && sceneName.endsWith(".scala") && f.isFile)
+
   private def createSceneBasedEngine(opts: MengerCLIOptions, sceneName: String)(using ProfilingConfig): RenderEngine =
     // Ensure all example scene objects are initialized so short names are registered
     val _ = examples.dsl.SceneIndex
 
-    import menger.dsl.SceneLoader
+    import menger.scene.SceneLoader
     SceneLoader.load(sceneName) match
       case Right(LoadedScene.Animated(fn)) if opts.preview() =>
         val animConfig = TAnimationConfig(
@@ -254,12 +274,14 @@ object Main:
           savePattern = ""
         )
         PreviewEngine(
-          sceneFunction   = fn,
-          previewConfig   = animConfig,
+          initialSceneFunction = fn,
+          initialPreviewConfig = animConfig,
           executionConfig = buildExecutionConfig(opts),
           renderConfig    = opts.renderConfig,
           causticsConfig  = opts.causticsConfig,
-          denoiseModeOverride = cliDenoiseOverride(opts)
+          denoiseModeOverride = cliDenoiseOverride(opts),
+          userSetMaxInstances = opts.userSetMaxInstances,
+          watchScenePath = sceneFileToWatch(opts, sceneName)
         )
 
       case Right(LoadedScene.Animated(fn)) if opts.tFrames.isSupplied =>
@@ -292,20 +314,52 @@ object Main:
             denoiseModeOverride = cliDenoiseOverride(opts)
           )
 
+      case Right(animated @ LoadedScene.Animated(fn))
+          if animated.duration.isDefined && isInteractiveWindow(opts) =>
+        // The scene declares its duration in seconds: play it looping, in real time or (with
+        // `--playback every-frame`) rendering every frame -- what the scene agent's render
+        // window needs to show an animation at all.
+        val everyFrame = opts.playback() == "every-frame"
+        val duration = animated.duration.getOrElse(0f)
+        PreviewEngine(
+          initialSceneFunction = fn,
+          initialPreviewConfig = TAnimationConfig(
+            startT      = 0f,
+            endT        = duration,
+            frames      =
+              if everyFrame then PreviewEngine.everyFrameCount(duration)
+              else RealtimePreviewNominalFrames,
+            savePattern = ""
+          ),
+          executionConfig = buildExecutionConfig(opts),
+          renderConfig    = opts.renderConfig,
+          causticsConfig  = opts.causticsConfig,
+          denoiseModeOverride = cliDenoiseOverride(opts),
+          realtime        = !everyFrame,
+          userSetMaxInstances = opts.userSetMaxInstances,
+          watchScenePath = sceneFileToWatch(opts, sceneName),
+          everyFrame      = everyFrame,
+          idlePause       = opts.idlePauseSeconds().toDouble
+        )
+
       case Right(loadedScene) =>
         // Static scene or animated scene evaluated at fixed t
         val freezeT = opts.freezeT.toOption.getOrElse(0f)
         val dslScene = loadedScene match
           case LoadedScene.Static(scene) => scene
           case LoadedScene.Animated(fn) => fn(freezeT)
-        createOptiXEngineFromDslScene(opts, dslScene, freezeT)
+        // F5: only a real scene FILE can be hand-edited and picked up live, and only in an
+        // actual interactive window -- a headless/frames/freeze-t run is a one-shot batch
+        // render that will already have exited before any edit could matter.
+        createOptiXEngineFromDslScene(opts, dslScene, freezeT, sceneFileToWatch(opts, sceneName))
 
       case Left(error) =>
         System.err.println(s"Failed to load scene '$sceneName': $error")
         sys.exit(1)
 
   private def createOptiXEngineFromDslScene(
-    opts: MengerCLIOptions, dslScene: menger.dsl.Scene, renderT: Float = 0f
+    opts: MengerCLIOptions, dslScene: menger.dsl.Scene, renderT: Float = 0f,
+    watchScenePath: Option[java.io.File] = None
   )(using ProfilingConfig): InteractiveEngine =
     val configs = SceneConverter.convert(dslScene, opts.causticsConfig)
     val baseRender = configs.render.getOrElse(RenderConfig.Default)
@@ -343,18 +397,9 @@ object Main:
       denoiseMode = mergedDenoise,
       accumulationFrames = mergedAccumulation
     )
-    InteractiveEngine(engineConfig, opts.userSetMaxInstances, renderT)
+    InteractiveEngine(engineConfig, opts.userSetMaxInstances, renderT, watchScenePath)
 
   private def createCliBasedOptiXEngine(opts: MengerCLIOptions)(using ProfilingConfig): RenderEngine =
-    // S2 menger#33: these three flags are validated (CliValidation's mutual-exclusion check)
-    // but never applied anywhere below -- --objects type=...:color=#RRGGBB is the real,
-    // wired mechanism. Not removed (that broke CliValidation's coupling when tried); warn
-    // instead so the silence stops.
-    if opts.color.isSupplied || opts.faceColor.isSupplied || opts.lineColor.isSupplied then
-      LoggerFactory.getLogger("Main").warn(
-        "--color/--face-color/--line-color have no effect on rendering -- use " +
-        "--objects type=...:color=#RRGGBB instead"
-      )
     val engineConfig = OptiXEngineConfig(
       scene = SceneConfig(objectSpecs = opts.objects.toOption.map(GlobalRotation(opts, _))),
       camera = CameraConfig(

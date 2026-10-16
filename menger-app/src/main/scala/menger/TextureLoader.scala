@@ -2,7 +2,6 @@ package menger
 
 import java.awt.image.BufferedImage
 import java.nio.file.Path
-import java.nio.file.Paths
 import javax.imageio.ImageIO
 
 import scala.util.Failure
@@ -21,8 +20,7 @@ case class TextureData(
 object TextureLoader extends LazyLogging:
 
   def load(filename: String, baseDir: String): Try[TextureData] =
-    val path = resolvePath(filename, baseDir)
-    loadFromPath(path, filename)
+    Try(AssetPaths.resolveOrThrow(baseDir, filename)).flatMap(loadFromPath(_, filename))
 
   def loadFromPath(path: Path, name: String): Try[TextureData] =
     validateFile(path).flatMap { file =>
@@ -56,13 +54,6 @@ object TextureLoader extends LazyLogging:
         case None => Failure(new java.io.IOException(
           s"Failed to decode image: $path (unsupported format?)"))
     }
-
-  private def resolvePath(filename: String, baseDir: String): Path =
-    val filePath = Paths.get(filename)
-    if filePath.isAbsolute then
-      filePath
-    else
-      Paths.get(baseDir).resolve(filename)
 
   private def extractRgbaData(image: BufferedImage): Array[Byte] =
     val width = image.getWidth

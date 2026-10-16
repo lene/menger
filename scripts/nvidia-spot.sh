@@ -106,7 +106,7 @@ EXAMPLES:
   $0 --instance-type g5.xlarge --max-price 0.75
 
   # Run a render and retrieve the output image
-  $0 --command "menger-app --optix --sponge-type cube-sponge --level 3 --save-name out.png" --retrieve "*.png"
+  $0 --command "menger-app --objects type=cube-sponge:level=3 --headless --save-name out.png" --retrieve "*.png"
 
   # Launch a specific branch
   $0 --menger-branch feature/my-branch

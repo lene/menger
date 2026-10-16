@@ -2,25 +2,32 @@ package menger.tools
 
 import java.io.File
 
+import scala.util.Try
 import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.AssetPaths
+import menger.ObjectSpec
+import menger.common.ObjectType
+import menger.common.ProfilingConfig
 import menger.dsl.LoadedScene
-import menger.dsl.RestrictedClasspath
 import menger.dsl.Scene
-import menger.dsl.SceneLoader
+import menger.engines.BuildPrecheck
 import menger.engines.scene.MeshFactory
+import menger.engines.scene.SceneCost
 import menger.objects.higher_d.InvariantFinding
 import menger.objects.higher_d.PolytopeInvariants
+import menger.scene.RestrictedClasspath
+import menger.scene.SceneLoader
 import upickle.default.ReadWriter
 import upickle.default.readwriter
 import upickle.default.write
 
 /** Renderer-side gauntlet validation entry point (spec-ai-scene-agent story 5): runs stage 1
-  * (compile, via `SceneCompiler` with `RestrictedClasspath` -- AD-4 rule 2) and stage 4
+  * (compile, via `SceneCompiler` with `RestrictedClasspath` -- SA-AD-4 rule 2) and stage 4
   * (geometric checks -- `SceneLoader.load` already triggers every `require()` precondition at
   * construction time; `PolytopeInvariants` adds the count-independent geometric-invariant
-  * check on top) for a single `.scala` scene file, and emits AD-5's tagged result: `ok` |
+  * check on top) for a single `.scala` scene file, and emits SA-AD-5's tagged result: `ok` |
   * `compile-errors` | `lint-findings` | `refused`.
   *
   * Intentionally out of scope (see the story's `Never` clause): the agent-side static checks
@@ -35,9 +42,9 @@ object SceneValidator extends LazyLogging:
   enum Tag:
     case Ok, CompileErrors, LintFindings, Refused
 
-  /** AD-5's tagged result contract names these variants literally in lowercase, hyphenated
+  /** SA-AD-5's tagged result contract names these variants literally in lowercase, hyphenated
     * form (`ok` | `compile-errors` | `lint-findings` | `refused`,
-    * `ARCHITECTURE-SPINE.md`'s AD-5 rule) -- a consumer on the other side of this JSON (the
+    * `ARCHITECTURE-SPINE.md`'s SA-AD-5 rule) -- a consumer on the other side of this JSON (the
     * agent pipeline, `history.jsonl`) matches against those exact strings, not Scala's
     * PascalCase enum case names. `derives ReadWriter`'s default enum encoding would emit
     * `"Ok"`/`"CompileErrors"`/... instead, silently breaking that contract, so `Tag` gets an
@@ -68,17 +75,27 @@ object SceneValidator extends LazyLogging:
 
   /** Bumped when this result's shape changes incompatibly, matching `CorpusManifest` and
     * `DslManifest`, which both carry one (review round 2). */
-  val SchemaVersion = "1.0.0"
+  // 1.1.0: `snapshots` and `cameraPath` (additive; usability review 2026-10, session 4).
+  // 1.2.0: snapshot objects carry `dslType`, snapshots carry `planes` (additive; menger#92).
+  val SchemaVersion = "1.2.0"
 
   /** `messages` stays first-class and unchanged -- it is what the existing consumers read.
-    * `findings`, `scene` and `schemaVersion` are additive and defaulted, so every positional
-    * `ValidationResult(tag, messages)` call site keeps working. */
+    * `findings`, `scene`, `schemaVersion`, `snapshots` and `cameraPath` are additive and
+    * defaulted, so every positional `ValidationResult(tag, messages)` call site keeps working.
+    * `snapshots`: the evaluated scene at each checked time (`SceneSnapshot`); `cameraPath`: the
+    * camera of an animated scene, densely sampled. */
+  // serializeDefaults: upickle leaves out a field equal to its default, so the result never
+  // carried `schemaVersion` (nor an empty `findings`) -- the agent could not check the version it
+  // was reading (review 2026-10-14, menger#116; found by ProcessContractSuite).
+  @upickle.implicits.serializeDefaults(true)
   case class ValidationResult(
     tag: Tag,
     messages: List[String],
     findings: List[Finding] = Nil,
     scene: Option[String] = None,
-    schemaVersion: String = SchemaVersion
+    schemaVersion: String = SchemaVersion,
+    snapshots: List[SceneSnapshot.Snapshot] = Nil,
+    cameraPath: List[SceneSnapshot.CameraSample] = Nil
   ) derives ReadWriter
 
   def main(args: Array[String]): Unit =
@@ -92,10 +109,12 @@ object SceneValidator extends LazyLogging:
     SceneValidatorMain.printResult(write(result, indent = 2))
     SceneValidatorMain.exitWith(exitCodeFor(result.tag))
 
-  /** AD-5's four tags collapse onto three exit codes so a caller can branch without parsing
+  /** SA-AD-5's four tags collapse onto three exit codes so a caller can branch without parsing
     * JSON (review round 2 -- previously every non-`ok` tag exited 1, making "the scene is
     * wrong, retry" indistinguishable from "the pipeline is broken, stop"). */
-  private[tools] def exitCodeFor(tag: Tag): Int = tag match
+  /** The exit code for each tag (contracts/process-result.json `exitCodes`; every producer uses
+    * this, ProcessContractSuite holds it to the file). */
+  def exitCodeFor(tag: Tag): Int = tag match
     case Tag.Ok      => 0
     case Tag.Refused => 2
     case _           => 1
@@ -108,7 +127,7 @@ object SceneValidator extends LazyLogging:
       case None       => Left("Usage: SceneValidator <scene-file.scala>")
       case Some(path) => Right(validate(new File(path)))
 
-  /** Runs the full stage-1 + stage-4 gauntlet against `file` and returns AD-5's tagged
+  /** Runs the full stage-1 + stage-4 gauntlet against `file` and returns SA-AD-5's tagged
     * result. Does not throw for any failure a scene file can provoke: unexpected exceptions,
     * and the `Error`s a hostile or careless scene actually reaches (`StackOverflowError`,
     * `OutOfMemoryError`, `LinkageError` -- see the handlers below), are caught and reported
@@ -132,7 +151,7 @@ object SceneValidator extends LazyLogging:
         // *registry/reflection* lookup instead of its file-not-found branch
         // (`SceneLoader.isFilePath` requires the file to already exist to be treated as a
         // path at all), which would otherwise get misclassified as a scene defect instead of
-        // AD-5's `refused` (a resource the pipeline was told to validate that simply isn't a
+        // SA-AD-5's `refused` (a resource the pipeline was told to validate that simply isn't a
         // usable file). `isFile`, not `exists`, per review round 1: `exists()` is also true
         // for a directory, which `SceneLoader.load` has no defined behavior for.
         ValidationResult(Tag.Refused, List(s"scene file not found: ${file.getAbsolutePath}"))
@@ -164,7 +183,9 @@ object SceneValidator extends LazyLogging:
           //   - StackOverflowError: infinite recursion in a scene's own `lazy val` -- the case
           //     run-sandboxed.sh's own comment anticipates. A scene defect: `lint-findings`.
           //   - OutOfMemoryError: a huge allocation under the container's `--memory` ceiling.
-          //     Not decidably the scene's fault, and the JVM is now unreliable: `refused`.
+          //     The validator itself is small, so it is the scene's doing: `lint-findings`, so
+          //     the agent repairs the scene instead of stopping (review 2026-10-14, menger#106).
+          //     The scene budget below should catch it first.
           //   - LinkageError (incl. NoClassDefFoundError from a previously-failed
           //     initializer): an environment/classpath problem, never scene content:
           //     `refused`.
@@ -176,7 +197,9 @@ object SceneValidator extends LazyLogging:
             )
           case e: OutOfMemoryError =>
             ValidationResult(
-              Tag.Refused, List(s"validator ran out of memory: $e"), scene = Some(scenePath)
+              Tag.LintFindings,
+              List(s"scene exhausted the validator's memory (lower its size or detail): $e"),
+              scene = Some(scenePath)
             )
           case e: LinkageError =>
             ValidationResult(
@@ -191,7 +214,7 @@ object SceneValidator extends LazyLogging:
             )
 
   /** `SceneLoader.load`'s `Left` messages come from three distinct sources, each mapped to a
-    * different AD-5 tag:
+    * different SA-AD-5 tag:
     *   - `SceneCompiler`'s own message (always starts with "Compilation of") -- a genuine
     *     Scala/DSL syntax error -- `CompileErrors`.
     *   - "Scene file not found: ..." -- the resource the pipeline was told to validate simply
@@ -207,32 +230,140 @@ object SceneValidator extends LazyLogging:
       ValidationResult(Tag.CompileErrors, List(err))
     else if err.startsWith("Scene file not found") then
       ValidationResult(Tag.Refused, List(err))
+    // A LinkageError while loading is the environment's, never the scene's (now a `Left` from
+    // the loader, menger#101; it used to be caught as an Error below).
+    else if err.startsWith(SceneLoader.ClasspathBroken) then
+      ValidationResult(Tag.Refused, List(err))
     else
       ValidationResult(Tag.LintFindings, List(err))
 
+  /** Evenly spaced times, both ends included, at which an animated scene with a duration is
+    * checked. Checking only the ends missed a sponge whose level peaks mid-animation: an
+    * edge-rendered level 3 at t = 10.5 of 12 s (usability review 2026-10, session 4, F94). */
+  private[tools] val AnimationSampleCount = 25
+
+  private[tools] def sampleTimes(duration: Option[Float]): List[Float] = duration match
+    case Some(d) if d > 0f =>
+      List.tabulate(AnimationSampleCount)(i => d * i / (AnimationSampleCount - 1))
+    case _ => List(0f)
+
+  /** An animated scene is checked across its time range: a scene that changes with t (e.g. a
+    * sponge whose level rises) can be invalid at any frame, not only at t = 0. */
   private def checkInvariants(loaded: LoadedScene): ValidationResult =
-    val scene = loaded match
-      case LoadedScene.Static(s)   => s
-      case LoadedScene.Animated(f) => f(0f)
-    val findings = geometricFindings(scene)
-    if findings.isEmpty then ValidationResult(Tag.Ok, Nil)
-    else ValidationResult(
-      Tag.LintFindings,
-      findings.map(f => s"${f.invariant}: ${f.message}"),
-      findings = findings.map(f => Finding(f.invariant, f.message))
-    )
+    val evaluated: List[(Float, Either[InvariantFinding, Scene])] = loaded match
+      case LoadedScene.Static(s) => List(0f -> Right(s))
+      case animated @ LoadedScene.Animated(f) =>
+        sampleTimes(animated.duration).map { t =>
+          t -> Try(f(t)).toEither.left.map { e =>
+            val cause = Option(e.getCause).getOrElse(e)
+            InvariantFinding("scene-evaluation", s"scene($t) threw: ${cause.getMessage}")
+          }
+        }
+    val findings = evaluated.flatMap {
+      case (_, Left(failure)) => List(failure)
+      case (_, Right(scene))  =>
+        // An over-budget scene is not checked further: the other checks build its geometry.
+        val overBudget = costFindings(scene)
+        if overBudget.nonEmpty then overBudget
+        else geometricFindings(scene) ++ buildFindings(scene) ++ assetPathFindings(scene) ++
+          parametricSurfaceFindings(scene)
+    }.distinct
+    val snapshots = evaluated.flatMap {
+      case (t, Right(scene)) => SceneSnapshot.of(t, scene)
+      case _                 => None
+    }
+    val cameraPath = loaded match
+      case animated @ LoadedScene.Animated(f) =>
+        SceneSnapshot.cameraPath(f, animated.duration.getOrElse(0f))
+      case _ => Nil
+    val result =
+      if findings.isEmpty then ValidationResult(Tag.Ok, Nil)
+      else ValidationResult(
+        Tag.LintFindings,
+        findings.map(f => s"${f.invariant}: ${f.message}"),
+        findings = findings.map(f => Finding(f.invariant, f.message))
+      )
+    result.copy(snapshots = snapshots, cameraPath = cameraPath)
 
   /** Every `SceneObject` in `scene` (flat `objects` list, or the scene-graph `root`'s leaf
     * geometry when that's what the scene uses -- `Scene` requires at least one of the two)
     * that maps to a 4D `Mesh4D` via `MeshFactory.mesh4D` gets checked; anything else (3D
     * primitives, or free-form/lambda objects out of this story's scope per the `Never`
     * clause) is silently skipped -- "when applicable", per the story's own Code Map wording.
+    * 4D sponges are skipped too, before their mesh is built: the scene controls only their
+    * `level` and `size` (both range-checked by the DSL), and building a sponge from level 3
+    * up ran the sandbox out of heap (usability review 2026-09, F31).
     */
   private def geometricFindings(scene: Scene): List[InvariantFinding] =
-    val objects = scene.objects ++ scene.root.toList.flatMap(_.allLeafGeometry)
-    objects
-      .flatMap(obj => MeshFactory.mesh4D(obj.toObjectSpec))
+    sceneObjectSpecs(scene)
+      .filterNot(spec => ObjectType.is4DSponge(spec.objectType))
+      .flatMap(MeshFactory.mesh4D)
       .flatMap(mesh => PolytopeInvariants.check(mesh))
+
+  /** Contracts for the two free-form/lambda DSL types (usability review 2026-09, T3#13) --
+    * checked against the raw `SceneObject`, before `.toObjectSpec` loses `closedU`/`closedV`
+    * and the `f` lambda itself into a flattened mesh. */
+  private def parametricSurfaceFindings(scene: Scene): List[InvariantFinding] =
+    sceneObjects(scene).flatMap {
+      case s: menger.dsl.ParametricSurface => menger.dsl.ParametricSurfaceContracts.check(s)
+      case c: menger.dsl.Curve             => menger.dsl.ParametricSurfaceContracts.check(c)
+      case _                               => Nil
+    }
+
+  private def sceneObjects(scene: Scene): List[menger.dsl.SceneObject] =
+    scene.objects ++ scene.root.toList.flatMap(_.allLeafGeometry)
+
+  private def sceneObjectSpecs(scene: Scene): List[ObjectSpec] =
+    sceneObjects(scene).map(_.toObjectSpec)
+
+  private[tools] val CostInvariant = "scene-budget"
+
+  /** The scene-wide budget (review 2026-10-14, menger#80), at every sampled t. */
+  private[tools] def costFindings(scene: Scene): List[InvariantFinding] =
+    val caustics = scene.caustics.filter(_.enabled).fold(SceneCost.CausticsLoad.None)(c =>
+      SceneCost.CausticsLoad(c.photonsPerIteration.toLong, c.iterations.toLong))
+    val accumulation = scene.render.fold(1)(_.accumulation)
+    SceneCost.check(SceneCost.estimate(sceneObjectSpecs(scene), accumulation, caustics))
+      .left.toOption.map(InvariantFinding(CostInvariant, _)).toList
+
+  private val AssetPathInvariant = "asset-path"
+
+  /** Flags an absolute or `..`-escaping texture/video/env-map path before the scene ever
+    * reaches a renderer with a real `--texture-dir` (usability review 2026-09, T1#1). The
+    * sandbox this validator runs in (SA-AD-18) deliberately mounts no texture directory at all,
+    * so this can only be a lexical check: the placeholder base below never needs to be the
+    * real `--texture-dir` because [[AssetPaths.resolve]]'s absolute-path and `..`-escape
+    * rejections are base-independent (they never touch the filesystem); only its
+    * symlink check needs a real, existing file, which never happens here since nothing is
+    * mounted. */
+  private def assetPathFindings(scene: Scene): List[InvariantFinding] =
+    val placeholderBaseDir = "."
+    val paths = sceneObjectSpecs(scene).flatMap { spec =>
+      List(
+        spec.texture,
+        spec.textureMaps.normalMap,
+        spec.textureMaps.roughnessMap,
+        spec.metallicMap,
+        spec.aoMap,
+        spec.heightMap,
+        spec.textureSet,
+        spec.videoTexture.map(_.path)
+      ).flatten
+    } ++ scene.envMap.toList ++ scene.envMapVideo.map(_.path).toList
+    paths.distinct.flatMap { path =>
+      AssetPaths.resolve(placeholderBaseDir, path) match
+        case Left(reason) => List(InvariantFinding(AssetPathInvariant, reason))
+        case Right(_)      => Nil
+    }
+
+  private val BuildInvariant = "scene-build"
+
+  /** A scene the renderer can't build is rejected here instead of being accepted and then
+    * killing the render window (usability review 2026-09, F19) -- the same `BuildPrecheck` the
+    * windows run before a live reload. */
+  private[tools] def buildFindings(scene: Scene): List[InvariantFinding] =
+    given ProfilingConfig = ProfilingConfig.disabled
+    BuildPrecheck.problems(sceneObjectSpecs(scene)).map(InvariantFinding(BuildInvariant, _))
 
 /** Isolates the three process-level side effects `ArchitectureSpec` restricts to classes
   * whose name matches `.*Main.*` (writing to stdout/stderr, calling `sys.exit`) -- same

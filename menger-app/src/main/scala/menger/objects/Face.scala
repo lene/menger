@@ -33,6 +33,14 @@ case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Dir
     unrotatedSubFaces ++ rotatedSubFaces
 
   def toTriangleMesh: TriangleMeshData =
+    val verts = new Array[Float](Face.FloatsPerFace)
+    writeVertices(verts, 0)
+    TriangleMeshData(verts, Face.QuadIndices.clone(), Face.VertexStride)
+
+  /** Writes this face's 4 vertices (position, normal, uv: `Face.FloatsPerFace` floats) into
+    * `dst` from `offset`, so a mesh of many faces fills one array instead of merging one small
+    * mesh per face (usability review 2026-10, session 4, F86). */
+  def writeVertices(dst: Array[Float], offset: Int): Unit =
     val half = scale / 2
     val n = normal.toFloatArray
     // Face vertices are in the plane perpendicular to normal, at distance 0 from center
@@ -42,15 +50,17 @@ case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Dir
       case Y | Direction.negY => Seq((-half, 0f, -half), (half, 0f, -half), (half, 0f, half), (-half, 0f, half))
       case Z | Direction.negZ => Seq((-half, -half, 0f), (half, -half, 0f), (half, half, 0f), (-half, half, 0f))
 
-    // UV coordinates for quad corners: (0,0), (1,0), (1,1), (0,1)
-    val uvs = Seq((0f, 0f), (1f, 0f), (1f, 1f), (0f, 1f))
-
-    val verts = offsets.zip(uvs).flatMap { case ((dx, dy, dz), (u, v)) =>
-      Seq(xCen + dx, yCen + dy, zCen + dz, n(0), n(1), n(2), u, v)
-    }.toArray
-
-    val indices = Array(0, 1, 2, 0, 2, 3)
-    TriangleMeshData(verts, indices, 8)
+    offsets.zip(Face.QuadUVs).zipWithIndex.foreach { case (((dx, dy, dz), (u, v)), corner) =>
+      val base = offset + corner * Face.VertexStride
+      dst(base) = xCen + dx
+      dst(base + 1) = yCen + dy
+      dst(base + 2) = zCen + dz
+      dst(base + 3) = n(0)
+      dst(base + 4) = n(1)
+      dst(base + 5) = n(2)
+      dst(base + 6) = u
+      dst(base + 7) = v
+    }
 
   // 8 sub-faces in the same plane: 3x3 grid minus center
   // Condition abs(x) + abs(y) > 0 excludes only (0,0), keeping the 8 surrounding positions
@@ -99,5 +109,14 @@ case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Dir
       case Z | Direction.negZ => (xCen + x1 * add / 2, yCen + x2 * add / 2, zCen + shift / 2 * normal.sign)
 
 object Face:
+  /** position(3) + normal(3) + uv(2) */
+  val VertexStride = 8
+  val VerticesPerFace = 4
+  val FloatsPerFace: Int = VertexStride * VerticesPerFace
+  /** Two triangles over the quad's corners 0-1-2-3. */
+  val QuadIndices: Array[Int] = Array(0, 1, 2, 0, 2, 3)
+  /** UV coordinates for quad corners: (0,0), (1,0), (1,1), (0,1) */
+  val QuadUVs: Seq[(Float, Float)] = Seq((0f, 0f), (1f, 0f), (1f, 1f), (0f, 1f))
+
   def apply(xyzCen: Vec3[Float], scale: Float, normal: Direction): Face =
     Face(xyzCen.x, xyzCen.y, xyzCen.z, scale, normal)

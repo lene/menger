@@ -59,6 +59,19 @@ class TesseractSponge2Suite extends AnyFlatSpec with Matchers:
   "A TesseractSponge2 level 1" should "have 16 * 24 faces" in:
     TesseractSponge2(1).faces should have size (16 * 24)
 
+  // Usability review 2026-09, session 2 (F42): the F27 fix gave only TesseractSponge a
+  // working `size`; this variant still built every level >= 1 at unit size.
+  "A TesseractSponge2 with size 2.5" should "be 2.5 times as large as a unit sponge" in:
+    def maxNorm(s: TesseractSponge2): Float = s.vertices.map(_.len).max
+    maxNorm(TesseractSponge2(1, size = 2.5f)) shouldBe
+      (maxNorm(TesseractSponge2(1)) * 2.5f +- 1e-4f)
+
+  it should "keep the same number of faces" in:
+    TesseractSponge2(2, size = 2.5f).faces should have size TesseractSponge2(2).faces.size
+
+  "A TesseractSponge2 size <= 0" should "be impossible" in:
+    an[IllegalArgumentException] should be thrownBy TesseractSponge2(1, size = 0f)
+
   "A TesseractSponge2 level 2" should "have 5376 faces" in :
     // 5376 = 6144 - 768: containment filter removes 768 faces with vertices in removed sub-cubes
     TesseractSponge2(2).faces should have size 5376

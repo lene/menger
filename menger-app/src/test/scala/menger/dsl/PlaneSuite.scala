@@ -8,16 +8,18 @@ import org.scalatest.matchers.should.Matchers
 
 class PlaneSuite extends AnyFlatSpec with Matchers:
 
+  // `positive` is the direction of the plane's normal (its lit side), which faces the origin:
+  // a floor below the scene faces up (usability review 2026-09, F13).
   "AxisHelper" should "create AxisPosition with 'at' syntax" in:
     val pos = Y at -2
     pos.axis shouldBe Axis.Y
-    pos.positive shouldBe false
+    pos.positive shouldBe true
     pos.value shouldBe -2f
 
   it should "handle positive values" in:
     val pos = Y at 5
     pos.axis shouldBe Axis.Y
-    pos.positive shouldBe true
+    pos.positive shouldBe false
     pos.value shouldBe 5f
 
   it should "handle zero as positive" in:
@@ -88,7 +90,7 @@ class PlaneSuite extends AnyFlatSpec with Matchers:
     val spec = plane.toPlaneSpec
 
     spec.axis shouldBe Axis.Y
-    spec.positive shouldBe false
+    spec.positive shouldBe true
     spec.value shouldBe -2f
 
   it should "convert plane at positive position" in:
@@ -96,7 +98,7 @@ class PlaneSuite extends AnyFlatSpec with Matchers:
     val spec = plane.toPlaneSpec
 
     spec.axis shouldBe Axis.X
-    spec.positive shouldBe true
+    spec.positive shouldBe false
     spec.value shouldBe 5f
 
   it should "convert plane at zero" in:

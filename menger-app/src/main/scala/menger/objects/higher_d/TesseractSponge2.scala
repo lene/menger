@@ -3,15 +3,23 @@ package menger.objects.higher_d
 import menger.common.Vector
 
 
+/** @param size scale of the whole sponge, as in `TesseractSponge`. The faces are built at unit
+  *             size (`isInsideKthSponge` assumes unit coordinates) and scaled afterwards; only
+  *             level 0 used to honour it (usability review 2026-09, session 2, F42). */
 class TesseractSponge2(level: Float, size: Float = 1) extends Fractal4D(level):
 
   private type CornerMap = Map[String, Vector[4]]
 
   require(level >= 0, "Level must be non-negative")
+  require(size > 0, s"Size must be positive, got $size")
 
   lazy val vertices: Seq[Vector[4]] = faces.flatMap(_.asSeq).distinct
-  lazy val faces: Seq[Face4D[V]] = if level.toInt == 0 then Tesseract(size).faces else nestedFaces
+  lazy val faces: Seq[Face4D[V]] =
+    if size == 1f then unitFaces else unitFaces.map(_ / (1f / size))
   override def cells: Seq[Cell4D] = Seq.empty
+
+  private lazy val unitFaces: Seq[Face4D[V]] =
+    if level.toInt == 0 then Tesseract().faces else nestedFaces
 
   private def mergeVertices(faces: Seq[Face4D[V]], epsilon: Float = 1e-4f): Seq[Face4D[V]] =
     val canonicalMap = scala.collection.mutable.HashMap[(Long, Long, Long, Long), Vector[4]]()

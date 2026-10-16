@@ -22,11 +22,9 @@ import menger.objects.higher_d.Mesh4DGpuFlatten
 import menger.objects.higher_d.Mesh4DProjection
 import menger.objects.higher_d.Pentachoron
 import menger.objects.higher_d.Tesseract
-import menger.objects.higher_d.TesseractMesh
 import menger.objects.higher_d.TesseractSponge
 import menger.objects.higher_d.TesseractSponge2
-import menger.objects.higher_d.TesseractSponge2Mesh
-import menger.objects.higher_d.TesseractSpongeMesh
+import menger.objects.higher_d.WScaledMesh4D
 
 /**
  * Factory for creating triangle meshes from ObjectSpec.
@@ -128,37 +126,56 @@ object MeshFactory:
     * params, projected on the GPU. All other (3D) types use the CPU `create(spec)`
     * triangle mesh.
     *
-    * `skinOffset` is reserved for expanding the lower-level mesh of a fractional
-    * pair along face normals (`FractionalLevelSponge.SkinNormalOffset`). */
+    * `holeCaps` uploads only the hole caps of the mesh (`Mesh4DGpuFlatten.holeCapsBuffer`):
+    * the lower level of a fractional 4D sponge pair. */
   def createUpload(
     spec: ObjectSpec,
-    skinOffset: Float = 0f
+    holeCaps: Boolean = false
   )(using profilingConfig: ProfilingConfig): MeshUploadPlan =
     if ObjectType.isProjected4D(spec.objectType) then
-      gpu4DPlan(spec, skinOffset).getOrElse(
+      gpu4DPlan(spec, holeCaps).getOrElse(
         sys.error(s"No GPU 4D projection available for type: ${spec.objectType}")
       )
     else
       MeshUploadPlan.Cpu(create(spec))
 
-  private def gpu4DPlan(spec: ObjectSpec, skinOffset: Float = 0f): Option[MeshUploadPlan.Gpu4D] =
-    mesh4D(spec).map { m =>
-      // A non-zero skinOffset expands the lower-level mesh of a fractional pair
-      // outward along its 4D face normals before projection, so its surface does
-      // not land coincident with the higher-level surface and z-fight. This is the
-      // GPU equivalent of the CPU path's TriangleMeshData.expandAlongNormals; only
-      // quad meshes (the 4D sponges that take a skin offset) support it.
-      val (buffer, vpf) =
-        if skinOffset != 0f then
-          (Mesh4DGpuFlatten.quadsBuffer(m, skinOffset), m.vertsPerFace)
-        else
-          Mesh4DGpuFlatten.facesBuffer(m)
+  private def gpu4DPlan(spec: ObjectSpec, holeCaps: Boolean): Option[MeshUploadPlan.Gpu4D] =
+    Gpu4DBufferCache.buffer(spec, holeCaps).map { (buffer, vpf) =>
       MeshUploadPlan.Gpu4D(
         quads4D = buffer,
         vertsPerFace = vpf,
         proj = spec.projection4D.getOrElse(Projection4DSpec.default)
       )
     }
+
+  /** The pre-projection 4D buffer depends only on the object's type, level, size, w-scale and
+    * whether it is the hole-cap mesh, not on the view: an animation or reload that changes the
+    * level every frame rebuilt it every frame (level 3 took ~20 s; usability review 2026-09,
+    * session 2, F52). Bounded LRU: a level-3 volume sponge's buffer is ~80 MB.
+    * The buffers are shared and must never be mutated. */
+  private object Gpu4DBufferCache:
+    private val MaxEntries = 4
+    private type Key = (String, Option[Float], Float, Float, Boolean)
+
+    @SuppressWarnings(Array("org.wartremover.warts.Null"))
+    private val entries = new java.util.LinkedHashMap[Key, (Array[Float], Int)](
+      MaxEntries + 1, 0.75f, true
+    ):
+      override def removeEldestEntry(
+        eldest: java.util.Map.Entry[Key, (Array[Float], Int)]
+      ): Boolean = size() > MaxEntries
+
+    def buffer(spec: ObjectSpec, holeCaps: Boolean): Option[(Array[Float], Int)] =
+      val key: Key = (spec.objectType, spec.level, spec.size, spec.wScale, holeCaps)
+      entries.synchronized(Option(entries.get(key))).orElse {
+        renderMesh4D(spec).map { m =>
+          val built =
+            if holeCaps then (Mesh4DGpuFlatten.holeCapsBuffer(m), m.vertsPerFace)
+            else Mesh4DGpuFlatten.facesBuffer(m)
+          entries.synchronized(entries.put(key, built))
+          built
+        }
+      }
 
   /** Builds the raw 4D mesh (pre-projection, pre-flatten) for a 4D `ObjectSpec`, `None` for
     * anything else. Exposed (not `private`) so `menger.tools.SceneValidator` can run
@@ -169,14 +186,10 @@ object MeshFactory:
     spec.objectType match
       case "tesseract" =>
         Some(Tesseract(size = spec.size))
-      // `TesseractSponge` takes no `size` -- unlike `TesseractSponge2` below it is always
-      // built at unit scale, so the mesh checked here is a unit-sized stand-in for the
-      // `TesseractSpongeMesh(size = spec.size, ...)` the render path builds. That mismatch is
-      // harmless only because `PolytopeInvariants` runs the scale-free subset for a
-      // `Fractal4D` (review round 2); do not re-enable the scale-sensitive checks for this
-      // type without giving the sponge a real `size`.
+      // The render paths use this same mesh, `size` included -- they used to ignore it and
+      // build a unit sponge (usability review 2026-09, F27).
       case "tesseract-sponge" | "tesseract-sponge-volume" if spec.level.isDefined =>
-        Some(TesseractSponge(spec.level.get))
+        Some(TesseractSponge(spec.level.get, size = spec.size))
       case "tesseract-sponge-2" | "tesseract-sponge-surface" if spec.level.isDefined =>
         Some(TesseractSponge2(spec.level.get, size = spec.size))
       case "pentachoron" =>
@@ -191,57 +204,17 @@ object MeshFactory:
         Some(Hecatonicosachoron(size = spec.size))
       case _ => None
 
+  /** The 4D mesh the render paths draw: [[mesh4D]] with the spec's w-scale applied (menger#65).
+    * The validator keeps the unscaled mesh, whose polytope invariants it checks. */
+  def renderMesh4D(spec: ObjectSpec): Option[Mesh4D] =
+    mesh4D(spec).map(WScaledMesh4D.of(_, spec.wScale))
+
   private def mesh4DProjection(spec: ObjectSpec): Option[Mesh4DProjection] =
     val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
-    spec.objectType match
-      case "tesseract" =>
-        Some(TesseractMesh(
-          center = Vector.Zero[3], size = spec.size,
-          eyeW = proj.eyeW, screenW = proj.screenW,
-          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-        ))
-      case "tesseract-sponge" | "tesseract-sponge-volume" if spec.level.isDefined =>
-        Some(TesseractSpongeMesh(
-          center = Vector.Zero[3], size = spec.size,
-          level = spec.level.get,
-          eyeW = proj.eyeW, screenW = proj.screenW,
-          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-        ))
-      case "tesseract-sponge-2" | "tesseract-sponge-surface" if spec.level.isDefined =>
-        Some(TesseractSponge2Mesh(
-          center = Vector.Zero[3], size = spec.size,
-          level = spec.level.get,
-          eyeW = proj.eyeW, screenW = proj.screenW,
-          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-        ))
-      case "pentachoron" =>
-        Some(Mesh4DProjection(
-          mesh4D = Pentachoron(size = spec.size),
-          eyeW = proj.eyeW, screenW = proj.screenW,
-          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-        ))
-      case "16-cell" =>
-        Some(Mesh4DProjection(
-          mesh4D = Hexadecachoron(size = spec.size),
-          eyeW = proj.eyeW, screenW = proj.screenW,
-          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-        ))
-      case "24-cell" =>
-        Some(Mesh4DProjection(
-          mesh4D = Icositetrachoron(size = spec.size),
-          eyeW = proj.eyeW, screenW = proj.screenW,
-          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-        ))
-      case "600-cell" =>
-        Some(Mesh4DProjection(
-          mesh4D = Hexacosichoron(size = spec.size),
-          eyeW = proj.eyeW, screenW = proj.screenW,
-          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-        ))
-      case "120-cell" =>
-        Some(Mesh4DProjection(
-          mesh4D = Hecatonicosachoron(size = spec.size),
-          eyeW = proj.eyeW, screenW = proj.screenW,
-          rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-        ))
-      case _ => None
+    renderMesh4D(spec).map { mesh =>
+      Mesh4DProjection(
+        mesh4D = mesh, center = Vector.Zero[3],
+        eyeW = proj.eyeW, screenW = proj.screenW,
+        rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+      )
+    }

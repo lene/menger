@@ -7,13 +7,24 @@ import menger.common.NotYetImplementedException
 import menger.common.Vector
 
 
-class TesseractSponge(level: Float) extends Fractal4D(level):
+/** @param size scale of the whole sponge; 1 matches `Tesseract(1)`. Was missing, so a DSL
+  *             `TesseractSponge(size = 2.5f)` rendered at unit size (usability review 2026-09,
+  *             F27). */
+class TesseractSponge(level: Float, size: Float = 1f) extends Fractal4D(level):
 
   require(level >= 0, "Level must be non-negative")
+  require(size > 0, s"Size must be positive, got $size")
 
   lazy val vertices: Seq[Vector[4]] = faces.flatMap(_.asSeq).distinct
-  lazy val faces: Seq[Face4D[V]] = if level.toInt == 0 then Tesseract().faces else nestedFaces.flatten
+  lazy val faces: Seq[Face4D[V]] =
+    val unitFaces = TesseractSponge.surfaceFaces(rawUnitFaces)
+    if size == 1f then unitFaces else unitFaces.map(_ / (1f / size))
   override def cells: Seq[Cell4D] = Seq.empty
+
+  /** Every face of every sub-tesseract, shared ones included: only the complete list tells a
+    * face inside the sponge from one on its surface, so the recursion passes it up unfiltered. */
+  private lazy val rawUnitFaces: Seq[Face4D[V]] =
+    if level.toInt == 0 then Tesseract().faces else nestedFaces.flatten
 
   private def nestedFaces =
     for (
@@ -23,7 +34,7 @@ class TesseractSponge(level: Float) extends Fractal4D(level):
 
   private def shrunkSubSponge: Seq[Face4D[V]] = subSponge.map { _ / 3 }
 
-  private def subSponge: Seq[Face4D[V]] = TesseractSponge(level - 1).faces
+  private def subSponge: Seq[Face4D[V]] = TesseractSponge(level - 1).rawUnitFaces
 
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def isInSponge(point: Vector[4]): Boolean =
@@ -57,3 +68,33 @@ class TesseractSponge(level: Float) extends Fractal4D(level):
           point(i) <= maxBound(i) + Const.epsilon
       )
 
+object TesseractSponge:
+
+  // A 2-face of the 4D grid borders four hypercubes: the two axes it doesn't span, each +/-.
+  private val InteriorMultiplicity = 4
+  private val KeyScale = 1e4f
+  // 16 bits per coordinate: covers +/-3.27 at KeyScale, the unit sponge spans +/-0.5.
+  private val KeyOffset = 1 << 15
+  private val KeyBits = 16
+  private val KeyMask = 0xFFFFL
+
+  /** Every face is an axis-aligned square, so its componentwise min and max corners identify
+    * it whatever its vertex order; each corner packs into one Long. Cheap on purpose: level 3
+    * has ~2.65M raw faces, and the old sorted-tuple key made this filter cost ~10 s (F52). */
+  private def key(face: Face4D[?]): (Long, Long) =
+    val vertices = face.asSeq
+    def packed(corner: Seq[Float] => Float): Long =
+      (0 until 4).foldLeft(0L) { (acc, axis) =>
+        val coordinate = math.round(corner(vertices.map(_(axis))) * KeyScale) + KeyOffset
+        (acc << KeyBits) | (coordinate & KeyMask)
+      }
+    (packed(_.min), packed(_.max))
+
+  /** The sponge's surface from the faces of all its sub-tesseracts: a face emitted by all four
+    * hypercubes around it is inside the sponge and dropped, and every other face is kept once.
+    * Keeping every copy put 2-4 coincident faces wherever sub-tesseracts touch, and glass
+    * refracted at each of them (usability review 2026-09, session 2, F55). */
+  private[higher_d] def surfaceFaces[F <: Face4D[?]](raw: Seq[F]): Seq[F] =
+    val keyed = raw.map(face => (key(face), face))
+    val copies = keyed.groupMapReduce(_._1)(_ => 1)(_ + _)
+    keyed.filter((k, _) => copies(k) < InteriorMultiplicity).distinctBy(_._1).map(_._2)

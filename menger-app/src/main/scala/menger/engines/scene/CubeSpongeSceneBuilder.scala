@@ -53,6 +53,9 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
         Right(())
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] =
+    // Once per process: an animated scene rebuilds every frame.
+    if !CubeSpongeSceneBuilder.deprecationWarned.getAndSet(true) then
+      logger.warn(CubeSpongeSceneBuilder.DeprecationMessage)
     val totalInstances = calculateInstanceCount(specs)
     logger.debug(s"Setting up ${specs.length} cube-sponge(s) generating $totalInstances total cube instances")
     val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
@@ -65,7 +68,8 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
   private def setupBaseCubeMesh(renderer: OptiXRenderer): Try[Unit] = Try:
     // Create base cube mesh centered at origin with scale 1.0 (shared by all instances)
     val baseCube = Cube(center = Vector[3](0f, 0f, 0f), scale = 1.0f)
-    renderer.setTriangleMesh(baseCube.toTriangleMesh)
+    renderer.addTriangleMesh(baseCube.toTriangleMesh)
+    ()
 
   private def addCubeInstancesForSpec(spec: ObjectSpec, renderer: OptiXRenderer, textureIndices: Map[String, Int]): Unit =
     require(spec.level.isDefined, "cube-sponge requires level")
@@ -130,3 +134,10 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
   // 64-instance limit is exceeded silently.
   override def calculateRequiredInstances(specs: List[ObjectSpec]): Int =
     if specs.forall(_.level.isDefined) then calculateInstanceCount(specs).toInt else 0
+
+object CubeSpongeSceneBuilder:
+  // Deprecated 2026-10-13, removal: menger#76. The DSL manifest already leaves it out.
+  val DeprecationMessage: String =
+    "cube-sponge is deprecated and will be removed (menger#76): use sponge-volume for the " +
+      "same sponge as one mesh, or sponge-recursive-ias for high levels"
+  private[scene] val deprecationWarned = java.util.concurrent.atomic.AtomicBoolean(false)

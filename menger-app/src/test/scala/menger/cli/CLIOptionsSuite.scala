@@ -1,6 +1,5 @@
 package menger.cli
 
-import menger.common.Color
 import menger.AnimationSpecification
 import menger.dsl.DenoiseMode
 import org.rogach.scallop.exceptions.ScallopException
@@ -17,45 +16,6 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
   "--timeout" should "set timeout" in:
     val options = SafeMengerCLIOptions(Seq("--timeout", "1"))
     options.timeout() shouldEqual 1
-
-  "--sponge-type" should "accept basic 3D shapes" in:
-    for spongeType <- Seq("cube", "square") do
-      val options = SafeMengerCLIOptions(Seq("--sponge-type", spongeType))
-      options.spongeType() shouldEqual spongeType
-
-  it should "accept 4D shapes when standalone" in:
-    for spongeType <- Seq("tesseract", "tesseract-sponge", "tesseract-sponge-2") do
-      val options = SafeMengerCLIOptions(Seq("--sponge-type", spongeType))
-      options.spongeType() shouldEqual spongeType
-
-  it should "accept new sponge types" in:
-    for spongeType <- Seq("square-sponge", "cube-sponge") do
-      val options = SafeMengerCLIOptions(Seq("--sponge-type", spongeType))
-      options.spongeType() shouldEqual spongeType
-
-  it should "reject nested composites with only 3D shapes" in:
-    for composite <- Seq("composite[composite[cube,square],cube]", "composite[cube,composite[square]]") do
-      an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--sponge-type", composite))
-
-  it should "reject composites with 4D shapes" in:
-    for composite <- Seq("composite[cube,tesseract]", "composite[tesseract]", "composite[tesseract-sponge]") do
-      an [ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--sponge-type", composite))
-
-  it should "reject nested composites containing 4D shapes" in:
-    for composite <- Seq("composite[composite[cube,tesseract],cube]", "composite[cube,composite[tesseract]]") do
-      an [ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--sponge-type", composite))
-
-  it should "default to square" in:
-    val options = SafeMengerCLIOptions(Seq[String]())
-    options.spongeType() shouldEqual "square"
-
-  it should "reject invalid sponge types" in:
-    for invalid <- Seq("invalid", "composite[invalid]", "composite[]") do
-      an [ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--sponge-type", invalid))
-
-  it should "reject malformed composite syntax" in:
-    for malformed <- Seq("composite[cube", "compositecube,square]", "composite") do
-      an [ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--sponge-type", malformed))
 
   "--antialias-samples" should "set antialias samples" in:
     val options = SafeMengerCLIOptions(Seq("--antialias-samples", "1"))
@@ -78,19 +38,6 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     options.denoise() shouldBe false
     options.denoiseMode shouldBe DenoiseMode.Off
 
-  "--projection-screen-w" should "be valid with matching --projection-eye-w" in:
-    val options = SafeMengerCLIOptions(Seq("--projection-screen-w", "1", "--projection-eye-w", "2"))
-    options.projectionScreenW() shouldEqual 1
-    options.projectionEyeW() shouldEqual 2
-
-  it should "be invalid if <= 0" in:
-    an [ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--projection-screen-w", "0", "--projection-eye-w", "2"))
-
-  it should "be invalid if <= --projection-screen-w)" in:
-    an [ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--projection-screen-w", "2", "--projection-eye-w", "2"))
-
   "rotation options" should "be valid if 0 <= x < 360" in:
     for opt <- Seq("--rot-x", "--rot-y", "--rot-z", "--rot-x-w", "--rot-y-w", "--rot-z-w") do
       val options = SafeMengerCLIOptions(Seq(opt, "1"))
@@ -112,7 +59,7 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     opts.effectiveRotYW shouldEqual 20f
     opts.effectiveRotZW shouldEqual 0f
 
-  it should "fall back to individual --rot-xw/yw/zw when not supplied" in:
+  it should "fall back to individual --rot-x-w/-y-w/-z-w when not supplied" in:
     val opts = SafeMengerCLIOptions(Seq("--rot-x-w", "45", "--rot-y-w", "15"))
     opts.effectiveRotXW shouldEqual 45f
     opts.effectiveRotYW shouldEqual 15f
@@ -188,24 +135,13 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
   AnimationSpecification.TIMESCALE_PARAMETERS.foreach { timescale =>
     AnimationSpecification.ALWAYS_VALID_PARAMETERS.foreach { parameter =>
       it should s"succeed when $timescale and $parameter are specified" in:
-        SafeMengerCLIOptions(Seq("--animate", s"$timescale=10:$parameter=0-10"))
+        SafeMengerCLIOptions(Seq("--objects", "type=sphere", "--animate", s"$timescale=10:$parameter=0-10"))
     }
   }
 
   it should "fail if an invalid parameter is specified" in:
     an[ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--animate", "frames=10:invalid=0-10"))
-
-  Seq("square", "cube").foreach { sponge =>
-    it should s"fail if a 4D parameter is specified for 3D sponge type $sponge" in :
-      an[ScallopException] should be thrownBy
-        SafeMengerCLIOptions(Seq("--sponge-type", sponge, "--animate", "frames=10:rot-x-w=0-10"))
-  }
-
-  Seq("tesseract", "tesseract-sponge", "tesseract-sponge-2").foreach { sponge =>
-    it should s"succeed if a 4D parameter is specified for 4D sponge type $sponge" in:
-      SafeMengerCLIOptions(Seq("--sponge-type", sponge, "--animate", "frames=10:rot-x-w=0-10"))
-  }
 
   Seq("tesseract", "tesseract-sponge", "tesseract-sponge-2").foreach { obj =>
     it should s"succeed if a 4D parameter is specified for --objects type=$obj" in:
@@ -225,19 +161,24 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
   Seq("tesseract").foreach { sponge =>
     it should s"fail when level is specified for non-fractal sponge type $sponge" in:
       an[ScallopException] should be thrownBy
-        SafeMengerCLIOptions(Seq("--sponge-type", sponge, "--animate", "frames=10:level=0-1"))
+        SafeMengerCLIOptions(Seq("--objects", s"type=$sponge", "--animate", "frames=10:level=0-1"))
   }
 
-  Seq("tesseract-sponge", "tesseract-sponge-2", "square", "cube").foreach { sponge =>
+  Seq("tesseract-sponge", "tesseract-sponge-2", "cube").foreach { sponge =>
     it should s"succeed when level is specified for fractal sponge type $sponge" in:
-      SafeMengerCLIOptions(Seq("--sponge-type", sponge, "--animate", "frames=10:level=0-1"))
+      SafeMengerCLIOptions(Seq("--objects", s"type=$sponge:level=1", "--animate", "frames=10:level=0-1"))
   }
 
   it should "succeed when two valid animation specifications are given" in:
-    SafeMengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10", "--animate", "frames=10:rot-x=10-20"))
+    SafeMengerCLIOptions(Seq(
+      "--objects", "type=sphere",
+      "--animate", "frames=10:rot-x=0-10", "--animate", "frames=10:rot-x=10-20"
+    ))
 
   it should "return the correct animation parameters"  in:
-    val options = SafeMengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10:rot-y=0-10"))
+    val options = SafeMengerCLIOptions(Seq(
+      "--objects", "type=sphere", "--animate", "frames=10:rot-x=0-10:rot-y=0-10"
+    ))
     options.animate().specification should have size 1
     options.animate().specification.head shouldEqual "frames=10:rot-x=0-10:rot-y=0-10"
     options.animate().parts should have size 1
@@ -246,7 +187,10 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     options.animate().parts.head.animationParameters("rot-y") shouldEqual (0, 10)
 
   it should "return correct animation parameters when two valid animation specifications are given" in:
-    val options = SafeMengerCLIOptions(Seq("--animate", "frames=10:rot-x=0-10", "--animate", "frames=10:rot-x=10-20"))
+    val options = SafeMengerCLIOptions(Seq(
+      "--objects", "type=sphere",
+      "--animate", "frames=10:rot-x=0-10", "--animate", "frames=10:rot-x=10-20"
+    ))
     options.animate().specification should have size 2
     options.animate().parts should have size 2
     options.animate().parts.head.animationParameters should have size 1
@@ -265,121 +209,6 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
   it should "fail if a 4D axis set via --rotation-4d is also animated" in:
     an[ScallopException] should be thrownBy
       SafeMengerCLIOptions(Seq("--rotation-4d", "30,0,0", "--animate", "frames=10:rot-x-w=0-10"))
-
-  it should "fail if level is declared both as static and animated" in:
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--animate", "frames=10:level=0-2", "--level", "2"))
-
-  it should "fail if level is explicitly set to default value and animated" in:
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--animate", "frames=10:level=0-2", "--level", "1.0"))
-
-  it should "succeed if level is animated but not explicitly set as option" in:
-    SafeMengerCLIOptions(Seq("--animate", "frames=10:level=0-2", "--sponge-type", "cube"))
-
-  it should "succeed if level is set as option but not animated" in:
-    SafeMengerCLIOptions(Seq("--level", "2", "--sponge-type", "cube"))
-
-  "color option" should "default color to light gray" in:
-    val options = SafeMengerCLIOptions(Seq[String]())
-    options.color() shouldEqual Color.LIGHT_GRAY
-
-  "color option" should "accept RGB hex codes (6 digits)" in :
-    SafeMengerCLIOptions(Seq("--color", "ff0000")).color() shouldEqual Color(1f, 0f, 0f, 1f)
-    SafeMengerCLIOptions(Seq("--color", "00ff00")).color() shouldEqual Color(0f, 1f, 0f, 1f)
-    SafeMengerCLIOptions(Seq("--color", "0000ff")).color() shouldEqual Color(0f, 0f, 1f, 1f)
-
-  it should "accept RGBA hex codes (8 digits)" in :
-    // 0x7f = 127; 127f/255f, not 0.5f exactly -- menger.common.Color compares
-    // structurally (unlike GDX's Color, whose equals() rounds via packed int bits)
-    SafeMengerCLIOptions(Seq("--color", "ff00007f")).color() shouldEqual Color(1f, 0f, 0f, 127f / 255f)
-    SafeMengerCLIOptions(Seq("--color", "00ff007f")).color() shouldEqual Color(0f, 1f, 0f, 127f / 255f)
-    SafeMengerCLIOptions(Seq("--color", "0000ff7f")).color() shouldEqual Color(0f, 0f, 1f, 127f / 255f)
-
-  it should "fail for invalid hex codes" in :
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "gg0000"))
-
-  it should "fail for too short hex codes" in:
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "0000"))
-
-  it should "fail for too long hex codes" in:
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "000000000"))
-
-  it should "accept RGB integer triplets" in :
-    SafeMengerCLIOptions(Seq("--color", "255,0,0")).color() shouldEqual Color(1f, 0f, 0f, 1f)
-    SafeMengerCLIOptions(Seq("--color", "0,255,0")).color() shouldEqual Color(0f, 1f, 0f, 1f)
-    SafeMengerCLIOptions(Seq("--color", "0,0,255")).color() shouldEqual Color(0f, 0f, 1f, 1f)
-
-  it should "accept RGBA integer quadruplets" in :
-    SafeMengerCLIOptions(Seq("--color", "255,0,0,128")).color() shouldEqual Color(1f, 0f, 0f, 128f / 255f)
-    SafeMengerCLIOptions(Seq("--color", "0,255,0,128")).color() shouldEqual Color(0f, 1f, 0f, 128f / 255f)
-    SafeMengerCLIOptions(Seq("--color", "0,0,255,128")).color() shouldEqual Color(0f, 0f, 1f, 128f / 255f)
-
-  it should "accept an alpha value of zero" in:
-    SafeMengerCLIOptions(Seq("--color", "ff000000")).color() shouldEqual Color(1f, 0f, 0f, 0f)
-    SafeMengerCLIOptions(Seq("--color", "00ff0000")).color() shouldEqual Color(0f, 1f, 0f, 0f)
-    SafeMengerCLIOptions(Seq("--color", "0000ff00")).color() shouldEqual Color(0f, 0f, 1f, 0f)
-    SafeMengerCLIOptions(Seq("--color", "255,0,0,0")).color() shouldEqual Color(1f, 0f, 0f, 0f)
-    SafeMengerCLIOptions(Seq("--color", "0,255,0,0")).color() shouldEqual Color(0f, 1f, 0f, 0f)
-    SafeMengerCLIOptions(Seq("--color", "0,0,255,0")).color() shouldEqual Color(0f, 0f, 1f, 0f)
-
-  it should "fail for integer values out of range" in :
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "256,0,0"))
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "0,-1,255"))
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "0,0,255,300"))
-
-  it should "fail for too short integer triplets (aka pairs)" in:
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "0,0"))
-
-  it should "fail for too long integer quadruplets (aka quintuplets)" in:
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "0,0,255,255,0"))
-
-  it should "fail for integer triplets with trailing commas" in:
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "0,0,255,"))
-
-  it should "fail for integer triplets with missing parts" in:
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "0,,255"))
-
-  it should "fail if any member is not an integer" in:
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "0,0,blue"))
-
-  it should "fail for unrecognized color names" in :
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "red"))
-    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--color", "whatever"))
-
-  "face-color and line-color options" should "work together for overlay mode" in:
-    val options = SafeMengerCLIOptions(Seq("--face-color", "ffffff80", "--line-color", "000000ff"))
-    options.faceColor.toOption shouldBe defined
-    options.lineColor.toOption shouldBe defined
-    options.faceColor() shouldEqual Color.fromHex("ffffff80")
-    options.lineColor() shouldEqual Color(0f, 0f, 0f, 1f)
-
-  it should "fail if --color is used with --face-color" in:
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--color", "ff0000", "--face-color", "ffffff80", "--line-color", "000000ff"))
-
-  it should "fail if --color is used with --line-color" in:
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--color", "ff0000", "--line-color", "000000ff"))
-
-  it should "fail if only --face-color is specified" in:
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--face-color", "ffffff80"))
-
-  it should "fail if only --line-color is specified" in:
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--line-color", "000000ff"))
-
-  it should "fail if --lines is used with --face-color" in:
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--lines", "--face-color", "ffffff80", "--line-color", "000000ff"))
-
-  it should "fail if --lines is used with --line-color" in:
-    an[ScallopException] should be thrownBy
-      SafeMengerCLIOptions(Seq("--lines", "--line-color", "000000ff"))
-
-  it should "succeed with --color and --lines together" in:
-    SafeMengerCLIOptions(Seq("--color", "ff0000", "--lines"))
 
   "--objects type=sphere" should "be accepted standalone" in:
     val options = SafeMengerCLIOptions(Seq("--objects", "type=sphere"))
@@ -441,19 +270,20 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
 
   it should "work with --animate mode" in:
     val opts = SafeMengerCLIOptions(Seq(
+      "--objects", "type=sphere",
       "--animate", "frames=10:rot-y=0-360",
       "--headless", "--save-name", "frame_%04d.png"
     ))
     opts.headless() shouldBe true
     opts.animate().parts should have size 1
 
-  it should "work with interactive mode (non-OptiX)" in:
+  it should "work with --objects mode using a cube" in:
     val opts = SafeMengerCLIOptions(Seq(
-      "--sponge-type", "cube",
+      "--objects", "type=cube",
       "--headless", "--save-name", "cube.png"
     ))
     opts.headless() shouldBe true
-    opts.spongeType() shouldBe "cube"
+    opts.objects.toOption.flatMap(_.headOption.map(_.objectType)) shouldBe Some("cube")
 
   it should "fail when used with --timeout" in:
     an[ScallopException] should be thrownBy

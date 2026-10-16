@@ -16,6 +16,7 @@ object GdxRuntime:
   private def gl       = Option(Gdx.gl)
 
   def exit(): Unit                                  = app.foreach(_.exit())
+  def postRunnable(r: Runnable): Unit               = app.foreach(_.postRunnable(r))
   def requestRendering(): Unit                      = graphics.foreach(_.requestRendering())
   def setContinuousRendering(v: Boolean): Unit      = graphics.foreach(_.setContinuousRendering(v))
   def deltaTime: Float                              = graphics.map(_.getDeltaTime).getOrElse(0f)

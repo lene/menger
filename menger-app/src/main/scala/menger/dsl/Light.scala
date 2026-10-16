@@ -9,7 +9,8 @@ sealed trait Light:
 
 /** Directional light with parallel rays (like sunlight).
   *
-  * @param direction Vector pointing TOWARD the light source position (where the light comes from).
+  * @param direction The direction the light travels: (0f, -1f, 0f) shines straight down,
+  *                  (1f, -1f, -1f) shines down and away from a camera on the +z side.
   * @param intensity Light brightness multiplier (default: 1.0)
   * @param color Light color (default: white)
   */
@@ -76,7 +77,7 @@ case class AreaLight(
 ) extends Light:
   require(intensity >= 0f, s"Intensity must be non-negative, got $intensity")
   require(radius > 0f, s"Radius must be positive, got $radius")
-  require(shadowSamples >= 1 && shadowSamples <= 16, s"shadowSamples must be 1-16, got $shadowSamples")
+  FieldConstraints.check("AreaLight", "shadowSamples", shadowSamples)
 
   def toCommonLight: CommonLight =
     CommonLight.Area(

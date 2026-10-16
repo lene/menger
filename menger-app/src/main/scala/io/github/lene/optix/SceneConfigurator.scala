@@ -19,13 +19,20 @@ class SceneConfigurator(
     renderer.setCamera(cameraPos, cameraLookat, cameraUp, horizontalFovDegrees = horizontalFov)
     logger.debug(s"Configured camera: eye=(${cameraPos(0)},${cameraPos(1)},${cameraPos(2)}), lookAt=(${cameraLookat(0)},${cameraLookat(1)},${cameraLookat(2)}), up=(${cameraUp(0)},${cameraUp(1)},${cameraUp(2)}), horizontalFOV=$horizontalFov")
 
-  def configureLights(renderer: OptiXRenderer): Unit =
-    if lights.nonEmpty then
-      renderer.setLights(lights)
-      logger.debug(s"Configured ${lights.length} light(s) from specification")
+  def configureLights(renderer: OptiXRenderer): Unit = configureLights(renderer, lights)
+
+  // The lights of one animation frame; an animated scene's lights are a function of t, so the
+  // lights this configurator was built with are only the first frame's (usability session 3,
+  // F65).
+  def configureLights(renderer: OptiXRenderer, frameLights: Array[Light]): Unit =
+    if frameLights.nonEmpty then
+      renderer.setLights(frameLights)
+      logger.debug(s"Configured ${frameLights.length} light(s) from specification")
     else
       // Default single directional light (backward compatibility)
-      val lightDirection = Vector[3](-1f, 1f, -1f)  // Light from upper-left-back (Y positive = from above)
+      // Light from upper-left-back. `direction` is the direction the light travels (optix-jni
+      // convention), so it points away from where the light comes from: Y negative = downward.
+      val lightDirection = Vector[3](1f, -1f, 1f)
       val lightIntensity = 1.0f
       renderer.setLight(lightDirection, lightIntensity)
       logger.debug(s"Configured default light: direction=(${lightDirection(0)},${lightDirection(1)},${lightDirection(2)}), intensity=$lightIntensity")

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the scene-validator sandbox image (spec-ai-scene-agent story 5, AD-18).
+# Builds the scene-validator sandbox image (spec-ai-scene-agent story 5, SA-AD-18).
 #
 # Three-step build, deliberately not a single `docker build .` (steps 1 and 2 below prepare
 # the build context that step 3 consumes):
@@ -52,6 +52,17 @@ if [ ! -d "$STAGE_SRC/lib" ]; then
   exit 1
 fi
 
+# F99: label the image with the manifest it was built with, so run-sandboxed.sh can refuse a
+# caller whose manifest differs (the version label above cannot: it is the same all sprint).
+MANIFEST_TMP="$(mktemp)"
+"$STAGE_SRC/bin/manifest-generator" "$MANIFEST_TMP" >/dev/null
+# The DSL's identity is the manifest's contentRevision, not the file's hash: a pin bump
+# (optix-jni, Scala) changed the hash and made the agent refuse an image whose DSL had not
+# changed (review 2026-10-14, menger#83).
+DSL_REVISION="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["contentRevision"])' "$MANIFEST_TMP")"
+rm -f "$MANIFEST_TMP"
+SOURCE_REVISION="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+
 echo "== 2/3: copying build context (stage/, optix-sdk/) =="
 rm -rf "$SCRIPT_DIR/stage" "$SCRIPT_DIR/optix-sdk"
 cp -a "$STAGE_SRC" "$SCRIPT_DIR/stage"
@@ -75,11 +86,21 @@ echo "== 3/3: docker build -t $IMAGE_TAG (menger-app $APP_VERSION) =="
 # org.opencontainers.image.version lets a caller check the image against the working tree;
 # menger.optix.redistributable=false records that this image embeds a licensed OptiX SDK
 # (see the cp -a above) and must never be pushed to a public registry (review round 2).
-docker build \
-  --label "org.opencontainers.image.version=$APP_VERSION" \
-  --label "org.opencontainers.image.title=menger-scene-validator" \
-  --label "menger.optix.redistributable=false" \
-  -t "$IMAGE_TAG" "$SCRIPT_DIR"
+build_target() {  # build_target <target> <tag>
+  docker build --target "$1" \
+    --label "org.opencontainers.image.version=$APP_VERSION" \
+    --label "org.opencontainers.image.revision=$SOURCE_REVISION" \
+    --label "menger.dsl-content-revision=$DSL_REVISION" \
+    --label "org.opencontainers.image.title=menger-$1" \
+    --label "menger.optix.redistributable=false" \
+    -t "$2" "$SCRIPT_DIR"
+}
+build_target scene-validator "$IMAGE_TAG"
+# The render window runs the same generated code (review 2026-10-14, menger#77); it is built
+# from the same staged app in the same run, so validator and window are always one build and
+# carry the same manifest label, which run-render-window.sh checks like run-sandboxed.sh.
+RENDER_IMAGE_TAG="${RENDER_IMAGE_TAG:-menger-render-window:latest}"
+build_target render-window "$RENDER_IMAGE_TAG"
 
-echo "Built $IMAGE_TAG (menger-app $APP_VERSION)"
+echo "Built $IMAGE_TAG and $RENDER_IMAGE_TAG (menger-app $APP_VERSION, revision $SOURCE_REVISION, DSL revision $DSL_REVISION)"
 echo "NOTE: this image embeds a licensed OptiX SDK -- do not push it to a public registry."

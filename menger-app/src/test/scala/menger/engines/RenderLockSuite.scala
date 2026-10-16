@@ -64,7 +64,7 @@ class RenderLockSuite extends AnyFlatSpec with Matchers:
 
   // The two tests above only ever collide within this same JVM, where the JDK always throws
   // `OverlappingFileLockException` -- they never exercise `tryLock() == null`, the actual
-  // cross-process AD-16 scenario, which is the only genuinely novel runtime behavior this
+  // cross-process SA-AD-16 scenario, which is the only genuinely novel runtime behavior this
   // story adds (review round). This test spawns a real second JVM to hold the lock instead.
   "RenderLock.tryAcquire across processes" should "fail cleanly when a different process holds the lock" in:
     val path = freshLockPath()

@@ -61,7 +61,32 @@ class FastPathRegressionSuite extends AnyFlatSpec with Matchers with MockFactory
     val newSpecs = List(baseSpec.copy(projection4D = Some(proj2)))
     val ids = Vector(Vector(InstanceId.fromNative(0, "test")))
     val updateCalled = AtomicBoolean(false)
-    val updater: RotationFastPath.ProjectionUpdater = (_, _, _) => updateCalled.set(true)
+    val updater: RotationFastPath.ProjectionUpdater[InstanceId] =
+      (_, _, _) => updateCalled.set(true)
     val took = RotationFastPath.tryFastPath(newSpecs, renderer, prevSpecs, ids, updater)
     took shouldBe true
     updateCalled.get() shouldBe true
+
+  // Review 2026-10-14 (menger#102): the old guard sat outside its `else`, so any change took
+  // the "fast path" -- the tests were positive-only and could not see it.
+  private val base4D =
+    ObjectSpec(objectType = "menger4d", x = 0, y = 0, z = 0, size = 1, level = Some(1))
+  private val oneId = Vector(Vector(InstanceId.fromNative(0, "test")))
+
+  private def attempt(prev: ObjectSpec, next: ObjectSpec, ids: Vector[Vector[InstanceId]] = oneId) =
+    val updates = java.util.concurrent.atomic.AtomicInteger(0)
+    val took = RotationFastPath.tryFastPath[InstanceId](
+      List(next), mock[OptiXRenderer], List(prev), ids, (_, _, _) => updates.incrementAndGet(): Unit
+    )
+    (took, updates.get())
+
+  it should "not take the fast path, nor update anything, when more than the projection changed" in:
+    val changed = base4D.copy(level = Some(2), projection4D = Some(Projection4DSpec.default))
+    attempt(base4D, changed) shouldBe (false, 0)
+
+  it should "not take the fast path when nothing changed" in:
+    attempt(base4D, base4D) shouldBe (false, 0)
+
+  it should "not take the fast path when the id lists do not match the specs" in:
+    val turned = base4D.copy(projection4D = Some(Projection4DSpec.default.copy(rotXW = 10f)))
+    attempt(base4D, turned, ids = Vector.empty) shouldBe (false, 0)
