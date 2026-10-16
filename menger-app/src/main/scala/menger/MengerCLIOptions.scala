@@ -408,8 +408,9 @@ class MengerCLIOptions(arguments: Seq[String])
   )
   val accumulationFrames: ScallopOption[Int] = opt[Int](
     required = false, default = Some(1), group = optixQualityGroup,
-    descr = "Temporal accumulation frame count (>=1). >1 averages N frames for noise reduction.",
-    validate = _ >= 1
+    descr = s"Temporal accumulation frame count (1-${menger.dsl.ResourceLimits.renderAccumulationMax})." +
+      " >1 averages N frames for noise reduction.",
+    validate = n => n >= 1 && n <= menger.dsl.ResourceLimits.renderAccumulationMax
   )
   val allowUniformRender: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(false), group = optixQualityGroup,

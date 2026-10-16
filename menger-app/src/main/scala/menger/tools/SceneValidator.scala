@@ -22,6 +22,7 @@ import menger.engines.RenderModeSelector
 import menger.engines.SceneGroups
 import menger.engines.SceneType
 import menger.engines.scene.MeshFactory
+import menger.engines.scene.SceneCost
 import menger.objects.higher_d.InvariantFinding
 import menger.objects.higher_d.PolytopeInvariants
 import upickle.default.ReadWriter
@@ -181,7 +182,9 @@ object SceneValidator extends LazyLogging:
           //   - StackOverflowError: infinite recursion in a scene's own `lazy val` -- the case
           //     run-sandboxed.sh's own comment anticipates. A scene defect: `lint-findings`.
           //   - OutOfMemoryError: a huge allocation under the container's `--memory` ceiling.
-          //     Not decidably the scene's fault, and the JVM is now unreliable: `refused`.
+          //     The validator itself is small, so it is the scene's doing: `lint-findings`, so
+          //     the agent repairs the scene instead of stopping (review 2026-10-14, menger#106).
+          //     The scene budget below should catch it first.
           //   - LinkageError (incl. NoClassDefFoundError from a previously-failed
           //     initializer): an environment/classpath problem, never scene content:
           //     `refused`.
@@ -193,7 +196,9 @@ object SceneValidator extends LazyLogging:
             )
           case e: OutOfMemoryError =>
             ValidationResult(
-              Tag.Refused, List(s"validator ran out of memory: $e"), scene = Some(scenePath)
+              Tag.LintFindings,
+              List(s"scene exhausted the validator's memory (lower its size or detail): $e"),
+              scene = Some(scenePath)
             )
           case e: LinkageError =>
             ValidationResult(
@@ -252,7 +257,10 @@ object SceneValidator extends LazyLogging:
     val findings = evaluated.flatMap {
       case (_, Left(failure)) => List(failure)
       case (_, Right(scene))  =>
-        geometricFindings(scene) ++ buildFindings(scene) ++ assetPathFindings(scene) ++
+        // An over-budget scene is not checked further: the other checks build its geometry.
+        val overBudget = costFindings(scene)
+        if overBudget.nonEmpty then overBudget
+        else geometricFindings(scene) ++ buildFindings(scene) ++ assetPathFindings(scene) ++
           parametricSurfaceFindings(scene)
     }.distinct
     val snapshots = evaluated.flatMap {
@@ -302,6 +310,16 @@ object SceneValidator extends LazyLogging:
 
   private def sceneObjectSpecs(scene: Scene): List[ObjectSpec] =
     sceneObjects(scene).map(_.toObjectSpec)
+
+  private[tools] val CostInvariant = "scene-budget"
+
+  /** The scene-wide budget (review 2026-10-14, menger#80), at every sampled t. */
+  private[tools] def costFindings(scene: Scene): List[InvariantFinding] =
+    val caustics = scene.caustics.filter(_.enabled).fold(SceneCost.CausticsLoad.None)(c =>
+      SceneCost.CausticsLoad(c.photonsPerIteration.toLong, c.iterations.toLong))
+    val accumulation = scene.render.fold(1)(_.accumulation)
+    SceneCost.check(SceneCost.estimate(sceneObjectSpecs(scene), accumulation, caustics))
+      .left.toOption.map(InvariantFinding(CostInvariant, _)).toList
 
   private val AssetPathInvariant = "asset-path"
 

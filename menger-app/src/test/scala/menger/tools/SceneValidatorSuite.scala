@@ -49,6 +49,25 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
 
   // Usability review 2026-09: only t=0 was checked, but a scene that changes with t is often
   // at its largest (or broken) at the end of its declared duration.
+  // Review 2026-10-14, menger#80: two level-5 volume sponges each pass their own cap and ran
+  // the render window out of memory together.
+  it should "reject a scene over the scene-wide budget as a lint finding" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object BudgetBombScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(
+        |      Sponge(spongeType = SpongeType.VolumeFilling, level = 5f),
+        |      Sponge(spongeType = SpongeType.VolumeFilling, level = 5f, pos = (2f, 0f, 0f))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.messages.exists(_.startsWith("scene-budget: scene over budget")) shouldBe true
+
   it should "check an animated scene with a declared duration at its end time too" in:
     val file = writeTempScene(
       """import menger.dsl._
@@ -332,7 +351,9 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
   // Usability review 2026-09, session 2 (F31): the geometric check built the full 4D mesh of
   // every sponge just to check its vertices, so any sponge from level 3 up (level 4 has ~127M
   // faces) ran the sandboxed validator out of heap and came back `refused`.
-  it should "return Ok for a tesseract sponge at the DSL's maximum level" in:
+  // Was the DSL's maximum level (4). Level 4 is about 42M faces (measured growth x38 per level:
+  // 24, 768, 29184), over the scene budget (menger#80), so the highest level that can pass is 3.
+  it should "return Ok for a tesseract sponge at the highest level within the scene budget" in:
     val file = writeTempScene(
       s"""import menger.dsl._
         |object MaxLevelSpongeScene:
@@ -340,7 +361,7 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
         |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
         |    objects = List(TesseractSponge(
         |      spongeType = TesseractSpongeType.VolumeRemoving,
-        |      level = ${menger.common.Const.Engine.tesseractSpongeMaxLevel}f
+        |      level = ${menger.common.Const.Engine.tesseractSpongeMaxLevel - 1}f
         |    )),
         |    lights  = List()
         |  )

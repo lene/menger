@@ -31,7 +31,8 @@ case class RenderSettings(
     d >= 1 && d <= RenderConfig.Default.maxRayDepth,
     s"maxRayDepth must be 1-${RenderConfig.Default.maxRayDepth}, got $d"
   ))
-  require(accumulation >= 1, s"RenderSettings.accumulation must be ≥ 1, got $accumulation")
+  require(accumulation >= 1 && accumulation <= ResourceLimits.renderAccumulationMax,
+    s"RenderSettings.accumulation must be 1-${ResourceLimits.renderAccumulationMax}, got $accumulation")
 
   def toRenderConfig: RenderConfig = RenderConfig(
     shadows = shadows,

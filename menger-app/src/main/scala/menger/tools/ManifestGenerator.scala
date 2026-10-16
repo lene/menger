@@ -69,7 +69,9 @@ object ManifestGenerator extends LazyLogging:
   // 1.8.0: the window's playback modes and idle pause in the animation convention (F95, #71, #75).
   // 1.9.0: fractional refractive levels render both levels (render cost in the Sponge level
   //        note), and edge tubes of a fractional level blend up to 2.x (#69, #70).
-  private val SchemaVersion = "1.9.0"
+  // 1.10.0: the scene-wide budget convention; max for RenderSettings.accumulation and
+  //         ParametricSurface uSteps/vSteps (menger#80, #106).
+  private val SchemaVersion = "1.10.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),

@@ -72,3 +72,25 @@ object ResourceLimits:
   /** `ParametricSurface.uSteps * vSteps` upper bound -- was a log-and-continue warning
     * (`MemoryWarningThreshold`), now a hard reject. */
   val parametricSurfaceMaxSamples = 1_000_000L
+
+  /** `RenderSettings.accumulation` / `--accumulation-frames` upper bound. Every accumulation frame
+    * re-runs the whole render, caustics included; the corpus goes up to 64. */
+  val renderAccumulationMax = 256
+
+  // --- Scene-wide budget (review 2026-10-14, menger#80) -----------------------------------
+  // Each limit above caps one field; the budget caps what they multiply into, so a scene with
+  // every field inside its own cap still cannot hang or run the host renderer out of memory.
+  // Checked by `SceneCost` in SceneValidator (a scene defect the agent can repair) and before
+  // every engine build.
+
+  /** Triangles held at once by all mesh objects, both levels of a fractional one counted. One
+    * level-5 volume sponge (13.1M, about 4.5 GB heap) fits; two -- which ran the render window
+    * out of memory in usability sessions 3 and 4 -- do not. */
+  val sceneMaxTriangles = 16_000_000L
+
+  /** Whole renders per displayed frame: level-mix worlds (`LevelMix.worlds`) x accumulation. */
+  val sceneMaxRendersPerFrame = 128L
+
+  /** Caustics photons traced per displayed frame: photons x iterations x renders per frame.
+    * `Caustics.HighQuality` (10^7 per render) at 128 renders fits. */
+  val sceneMaxPhotonsPerFrame = 2_000_000_000L

@@ -73,7 +73,7 @@ WORKDIR /workspace
 # -XX:MaxRAMPercentage (review round 2): without it the JVM sizes its heap from the *host's*
 # memory view at ~25%, which under run-sandboxed.sh's `--memory 2g` lands near 512MB while
 # SceneCompiler drives the full Scala 3 compiler inside it. The resulting OutOfMemoryError is
-# now a tagged `refused` rather than a crash (see SceneValidator.validate), but sizing the
+# now a tagged `lint-findings` rather than a crash (see SceneValidator.validate), but sizing the
 # heap to the cgroup limit is what stops it happening at all.
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-cp", "/opt/menger-app/lib/*", \
             "menger.tools.SceneValidator"]

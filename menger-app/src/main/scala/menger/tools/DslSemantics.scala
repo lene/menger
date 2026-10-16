@@ -13,6 +13,14 @@ object DslSemantics:
 
   /** Cross-cutting rules that belong to no single field. */
   val conventions: List[String] = List(
+    "Scene budget: besides each field's own max, a whole scene must stay within " +
+      s"${menger.dsl.ResourceLimits.sceneMaxTriangles} mesh triangles (both levels of a " +
+      "fractional sponge count; one VolumeFilling sponge at level 5 fits, two do not), " +
+      s"${menger.dsl.ResourceLimits.sceneMaxRendersPerFrame} renders per frame (accumulation " +
+      "times 2^k for k fractional-level glass objects, k + 1 above 4) and " +
+      s"${menger.dsl.ResourceLimits.sceneMaxPhotonsPerFrame} caustics photons per frame " +
+      "(photonsPerIteration x iterations x renders per frame). The validator reports a " +
+      "`scene-budget` finding naming what to lower.",
     "Units: positions and sizes are world units; `pos` is an object's centre; 3D `rotation` " +
       "angles are radians, but the 4D rotation angles of `Projection4DSpec` (`rotXW`, `rotYW`, " +
       "`rotZW`) are DEGREES (usability review 2026-10, session 3, F74).",
@@ -191,8 +199,14 @@ object DslSemantics:
       menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.max
     ).toDouble)),
     ("LSystem", "iterations") -> (Some(0d), Some(menger.dsl.ResourceLimits.lsystemMaxIterations.toDouble)),
-    ("ParametricSurface", "uSteps") -> (Some(1d), None),
-    ("ParametricSurface", "vSteps") -> (Some(1d), None),
+    // Each is capped by the product cap (the other at 1); the product itself is checked by
+    // the DSL and the validator (review 2026-10-14, menger#106).
+    ("ParametricSurface", "uSteps") ->
+      (Some(1d), Some(menger.dsl.ResourceLimits.parametricSurfaceMaxSamples.toDouble)),
+    ("ParametricSurface", "vSteps") ->
+      (Some(1d), Some(menger.dsl.ResourceLimits.parametricSurfaceMaxSamples.toDouble)),
+    ("RenderSettings", "accumulation") ->
+      (Some(1d), Some(menger.dsl.ResourceLimits.renderAccumulationMax.toDouble)),
     ("Sierpinski4D", "level") -> (Some(0d), Some(menger.dsl.ResourceLimits.ifs4dMaxLevel.toDouble))
   )
 

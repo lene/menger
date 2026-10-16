@@ -487,6 +487,10 @@ case class Sierpinski4D(
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
+  // The manifest already advertised this ceiling; the constructor did not enforce it (review
+  // 2026-10-14, menger#106).
+  require(level <= ResourceLimits.ifs4dMaxLevel,
+    s"Sierpinski4D level $level exceeds hard maximum ${ResourceLimits.ifs4dMaxLevel}")
   require(size > 0f, s"Size must be positive, got $size")
 
   def toObjectSpec: ObjectSpec =

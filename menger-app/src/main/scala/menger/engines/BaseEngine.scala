@@ -16,6 +16,7 @@ import menger.common.ProfilingConfig
 import menger.common.RenderConfig
 import menger.dsl.DenoiseMode
 import menger.engines.scene.SceneBuilder
+import menger.engines.scene.SceneCost
 
 abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig: ProfilingConfig)
     extends Game with RenderEngine with LazyLogging:
@@ -76,7 +77,20 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
   // Must be provided by concrete engine — where texture assets live
   protected def textureDir: String
 
+  /** Refuses a scene over `ResourceLimits`' scene-wide budget before any mesh is allocated, on
+    * every build path -- start, reload, preview, animation (review 2026-10-14, menger#80/#107).
+    * Caustics are left out: the validator checks them from the DSL scene. */
+  protected def withinBudget(specs: List[ObjectSpec]): Try[Unit] =
+    SceneCost.check(SceneCost.estimate(specs, accumulationFrames, SceneCost.CausticsLoad.None))
+      .left.map(IllegalArgumentException(_)).toTry
+
   protected def buildSceneFromSpecs(
+    specs: List[ObjectSpec],
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): Try[Unit] =
+    withinBudget(specs).flatMap(_ => buildSpecsWithinBudget(specs, renderer))
+
+  private def buildSpecsWithinBudget(
     specs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
@@ -112,6 +126,12 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
     val specs = configs.scene.objectSpecs.getOrElse(List.empty)
+    withinBudget(specs).flatMap(_ => buildConfigSpecsWithinBudget(specs, renderer))
+
+  private def buildConfigSpecsWithinBudget(
+    specs: List[ObjectSpec],
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): Try[Unit] =
     val sceneType = RenderModeSelector.classify(specs)
     sceneType match
       case _ if SceneGroups.hasMixedEdge4D(specs) =>
@@ -136,6 +156,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     specs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Unit =
+    withinBudget(specs).get // before clearing, so a refused scene leaves the old one standing
     renderer.clearAllInstances()
     RenderModeSelector.classify(specs) match
       case _ if SceneGroups.hasMixedEdge4D(specs) =>
