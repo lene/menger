@@ -2,23 +2,17 @@ package menger.tools
 
 import java.io.File
 
-import scala.util.Failure
-import scala.util.Success
 import scala.util.Try
 import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.AssetPaths
 import menger.ObjectSpec
-import menger.common.Const
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.dsl.LoadedScene
 import menger.dsl.Scene
-import menger.engines.GeometryRegistry
-import menger.engines.RenderModeSelector
-import menger.engines.SceneGroups
-import menger.engines.SceneType
+import menger.engines.BuildPrecheck
 import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
 import menger.objects.higher_d.InvariantFinding
@@ -229,6 +223,10 @@ object SceneValidator extends LazyLogging:
       ValidationResult(Tag.CompileErrors, List(err))
     else if err.startsWith("Scene file not found") then
       ValidationResult(Tag.Refused, List(err))
+    // A LinkageError while loading is the environment's, never the scene's (now a `Left` from
+    // the loader, menger#101; it used to be caught as an Error below).
+    else if err.startsWith(SceneLoader.ClasspathBroken) then
+      ValidationResult(Tag.Refused, List(err))
     else
       ValidationResult(Tag.LintFindings, List(err))
 
@@ -353,38 +351,12 @@ object SceneValidator extends LazyLogging:
 
   private val BuildInvariant = "scene-build"
 
-  /** Runs the renderer's own grouping (`SceneGroups`, `RenderModeSelector`) and each scene
-    * builder's `validate` -- pure CPU checks, no GPU -- so a scene the renderer can't build is
-    * rejected here instead of being accepted and then killing the render window (usability
-    * review 2026-09, F19). The instance limit is the ceiling the engines auto-adjust up to. */
+  /** A scene the renderer can't build is rejected here instead of being accepted and then
+    * killing the render window (usability review 2026-09, F19) -- the same `BuildPrecheck` the
+    * windows run before a live reload. */
   private[tools] def buildFindings(scene: Scene): List[InvariantFinding] =
     given ProfilingConfig = ProfilingConfig.disabled
-    val specs = sceneObjectSpecs(scene)
-    if specs.isEmpty then Nil
-    else RenderModeSelector.classify(specs) match
-      case SceneType.Unsupported(_) =>
-        val types = specs.map(_.objectType).distinct.mkString(", ")
-        List(InvariantFinding(
-          BuildInvariant,
-          s"analytical primitives can be mixed with one mesh type at a time, got: $types"
-        ))
-      case sceneType =>
-        val groups = sceneType match
-          case _ if SceneGroups.hasMixedEdge4D(specs) => SceneGroups.buildOrder(specs)
-          case SceneType.SimpleMixed(_, _) => SceneGroups.buildOrder(specs)
-          case _ => List(specs)
-        groups.flatMap(group => validateGroup(group).toList)
-
-  private def validateGroup(group: List[ObjectSpec])(using ProfilingConfig): Option[InvariantFinding] =
-    val types = group.map(_.objectType).distinct.mkString(", ")
-    GeometryRegistry.builderFor(group) match
-      case None =>
-        Some(InvariantFinding(BuildInvariant, s"the renderer has no scene builder for: $types"))
-      case Some(builder) =>
-        Try(builder.validate(group, Const.maxInstancesLimit)) match
-          case Success(Right(()))    => None
-          case Success(Left(reason)) => Some(InvariantFinding(BuildInvariant, s"$types: $reason"))
-          case Failure(e)            => Some(InvariantFinding(BuildInvariant, s"$types: ${e.getMessage}"))
+    BuildPrecheck.problems(sceneObjectSpecs(scene)).map(InvariantFinding(BuildInvariant, _))
 
 /** Isolates the three process-level side effects `ArchitectureSpec` restricts to classes
   * whose name matches `.*Main.*` (writing to stdout/stderr, calling `sys.exit`) -- same

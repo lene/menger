@@ -298,10 +298,9 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
   // used to forbid only menger.engines.internal -- a package that does not exist -- so it could
   // not fail while SceneValidator and SceneSnapshot reached five engine-root types (review
   // 2026-10-14, menger#90). It now admits menger.engines.scene plus exactly today's edges; a
-  // new one fails until it is listed here deliberately.
-  private val toolsEngineEdges = Set(
-    "GeometryRegistry", "RenderModeSelector", "SceneConverter", "SceneGroups", "SceneType"
-  ).map("menger.engines." + _)
+  // new one fails until it is listed here deliberately. The validator's build checks moved into
+  // BuildPrecheck (menger#101), which replaced four of the five edges with one.
+  private val toolsEngineEdges = Set("BuildPrecheck", "SceneConverter").map("menger.engines." + _)
 
   "menger.tools" should "reach the engine layer only via engines.scene and the known edges" in:
     import com.tngtech.archunit.base.DescribedPredicate

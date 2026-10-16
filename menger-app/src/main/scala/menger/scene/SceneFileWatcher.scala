@@ -63,13 +63,20 @@ class SceneFileWatcher(file: java.io.File, debounceMillis: Long = 200L)(onChange
       case Some(true) => pollLoop()
       case _          => ()
 
+  private def callbackFailed(e: Throwable): Unit =
+    logger.error(s"Scene file reload callback failed for $targetName", e)
+
   private def scheduleDebounced(): Unit =
     pendingDebounce.get().foreach(_.cancel(false))
     val task = scheduler.schedule(
       new Runnable:
         def run(): Unit =
+          // LinkageError too: an escaping one (e.g. a scene's failed initializer) used to end the
+          // callback unreported (review 2026-10-14, menger#101).
           try onChange()
-          catch case e: Exception => logger.error(s"Scene file reload callback failed for $targetName", e)
+          catch
+            case e: Exception    => callbackFailed(e)
+            case e: LinkageError => callbackFailed(e)
       ,
       debounceMillis,
       TimeUnit.MILLISECONDS

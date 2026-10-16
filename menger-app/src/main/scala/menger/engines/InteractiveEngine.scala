@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
@@ -42,8 +43,6 @@ import menger.input.Vector3Extensions.toVector3
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
-import menger.scene.SceneFileWatcher
-import menger.scene.SceneLoader
 
 class InteractiveEngine(
   config: OptiXEngineConfig,
@@ -55,7 +54,8 @@ class InteractiveEngine(
   watchScenePath: Option[java.io.File] = None
 )(using ProfilingConfig)
     extends BaseEngine(config.execution.maxInstances)
-    with TimeoutSupport with LazyLogging with SavesScreenshots with Observer with WithStats:
+    with TimeoutSupport with LazyLogging with SavesScreenshots with Observer with WithStats
+    with LiveReload:
 
   // Convenience accessors for config sections
   private val scene       = config.scene
@@ -133,12 +133,12 @@ class InteractiveEngine(
   private val interactive4DOffset = new AtomicReference(Interactive4DOffset.Zero)
   private val lastFileProjections =
     new AtomicReference(Interactive4DOffset.fileProjections(objectSpecs))
+  // The specs the file declared at its last successful (re)load -- what the reset key returns
+  // to. It returned to the first load's specs, undoing every reload.
+  private val lastFileSpecs = new AtomicReference(objectSpecs)
 
   // Keyboard handler for 4D rotation (initialized in finalizeCreate)
   private val keyHandler = new AtomicReference[Option[OptiXKeyHandler]](None)
-
-  // F5 live-reload watcher on the scene file, when one was given (initialized in finalizeCreate)
-  private val fileWatcher = new AtomicReference[Option[SceneFileWatcher]](None)
 
   // Track if we have 4D objects (projected triangle mesh OR menger4d OR sierpinski4d OR hexadecachoron4d) that need rebuild on rotation
   private lazy val has4DObjects: Boolean =
@@ -217,7 +217,7 @@ class InteractiveEngine(
         tryEdgeFastPath(specs, rendererWrapper.renderer)
       )
       if !fastPathTaken then
-        rebuildScene()
+        rebuildOrReport()
       renderResources.markNeedsRender()
       GdxRuntime.requestRendering()
 
@@ -426,15 +426,15 @@ class InteractiveEngine(
 
   private def toggleCross(): Unit =
     crossVisible.set(!crossVisible.get)
-    rebuildScene()
+    rebuildOrReport()
     renderResources.markNeedsRender()
     GdxRuntime.requestRendering()
 
   private def resetTo4DDefaults(): Unit =
     logger.debug("Resetting 4D view to initial state")
-    currentObjectSpecs.set(Some(objectSpecs))
+    currentObjectSpecs.set(Some(lastFileSpecs.get()))
     interactive4DOffset.set(Interactive4DOffset.Zero)
-    rebuildScene()
+    rebuildOrReport()
     renderResources.markNeedsRender()
     GdxRuntime.requestRendering()
 
@@ -453,33 +453,78 @@ class InteractiveEngine(
 
   /** F5: reload the scene from disk whenever the watched file changes, keeping the camera
     * and 4D rotation state untouched. Runs on `SceneFileWatcher`'s own background thread;
-    * the actual renderer mutation in `reloadScene` is posted to the GL thread. A bad edit
-    * (compile failure, or a class the loader rejects) is logged and the current scene keeps
-    * running -- it must never kill the window. */
+    * the actual renderer mutation in `reloadScene` is posted to the GL thread. A bad edit is
+    * logged and the current scene keeps running -- it must never kill the window. */
   private def startWatchingSceneFile(file: java.io.File): Unit =
-    val watcher = new SceneFileWatcher(file)(() => onSceneFileChanged(file))
-    fileWatcher.set(Some(watcher))
-    logger.info(s"Watching scene file for live reload: ${file.getPath}")
-
-  private def onSceneFileChanged(file: java.io.File): Unit =
-    SceneLoader.load(file.getPath) match
+    watchSceneFile(file) {
       case Right(LoadedScene.Static(newScene)) =>
-        GdxRuntime.postRunnable(() => reloadScene(newScene))
-      case Right(LoadedScene.Animated(_)) =>
-        logger.warn(
-          s"${file.getPath} changed to an animated scene; live reload only supports " +
-          "static scenes -- restart the window to pick it up"
-        )
-      case Left(error) =>
-        logger.warn(s"Failed to reload ${file.getPath}, keeping the current scene: $error")
+        GdxRuntime.postRunnable(() => reloadScene(file, newScene))
+      case Right(LoadedScene.Animated(_)) => kindChanged(file, toAnimated = true)
+      case Left(error) => reloadFailed(file, error)
+    }
+
+  /** Everything a reload replaces, so a failed rebuild can put the previous scene back. */
+  private case class ReloadPoint(
+    reloadable: ReloadableSceneState,
+    specs: Option[List[ObjectSpec]],
+    fileSpecs: List[ObjectSpec],
+    fileProjections: List[Option[Projection4DSpec]],
+    offset: Interactive4DOffset
+  )
+
+  private def reloadPoint: ReloadPoint = ReloadPoint(
+    reloadable.get(), currentObjectSpecs.get(), lastFileSpecs.get(), lastFileProjections.get(),
+    interactive4DOffset.get()
+  )
+
+  private def restore(point: ReloadPoint): Unit =
+    reloadable.set(point.reloadable)
+    currentObjectSpecs.set(point.specs)
+    lastFileSpecs.set(point.fileSpecs)
+    lastFileProjections.set(point.fileProjections)
+    interactive4DOffset.set(point.offset)
 
   /** Applies a freshly reloaded static scene: geometry, lights, planes, background, fog, IBL
     * and render/denoise/accumulation settings all update. The camera stays unless the file moved
     * it, and the 4D rotation added in the window is applied to the new specs again unless the
     * file changed its own projections (`Interactive4DOffset`). Must run on the GL
-    * thread (called via `GdxRuntime.postRunnable` from the watcher's own thread). */
-  private def reloadScene(dslScene: menger.dsl.Scene): Unit =
-    val configs = SceneConverter.convert(dslScene, reloadable.get().caustics)
+    * thread (called via `GdxRuntime.postRunnable` from the watcher's own thread).
+    *
+    * Transactional (review 2026-10-14, menger#101): the new scene is checked first (budget,
+    * builders) and the current one is torn down only if that passes; if the build still fails,
+    * the previous state is restored and rebuilt. It used to clear the instances first, so a
+    * failed build left a black window whose state claimed the new scene. */
+  private def reloadScene(file: java.io.File, dslScene: menger.dsl.Scene): Unit =
+    val converted = Try(SceneConverter.convert(dslScene, reloadable.get().caustics))
+    val checked = converted.flatMap { configs =>
+      precheck(sceneSpecs(configs.scene.objectSpecs.getOrElse(List.empty))).map(_ => configs)
+    }
+    checked match
+      case Failure(e) => reloadFailed(file, e.getMessage)
+      case Success(configs) =>
+        val previous = reloadPoint
+        applyReloaded(configs)
+        rebuildScene() match
+          case Success(_) =>
+            applyFileCameraIfChanged(configs.camera)
+            reloaded("scene", s"${configs.scene.objectSpecs.map(_.size).getOrElse(0)} object(s)")
+          case Failure(e) =>
+            restore(previous)
+            rebuildScene().failed.foreach(again =>
+              logger.error(FrameBuildFailure.message("restoring the previous scene", again), again))
+            reloadFailed(file, s"the new scene did not build: ${e.getMessage}")
+        renderResources.markNeedsRender()
+        GdxRuntime.requestRendering()
+
+  /** The specs a file's `fileSpecs` render as: the window's 4D rotation applied, unless the file
+    * changed its own projections. */
+  private def sceneSpecs(fileSpecs: List[ObjectSpec]): List[ObjectSpec] =
+    val projectionsChanged =
+      lastFileProjections.get() != Interactive4DOffset.fileProjections(fileSpecs)
+    val offset = if projectionsChanged then Interactive4DOffset.Zero else interactive4DOffset.get()
+    offset.applyTo(fileSpecs)
+
+  private def applyReloaded(configs: SceneConverter.SceneConfigs): Unit =
     val prevEnvironment = reloadable.get().environment
     reloadable.set(ReloadableSceneState(
       environment = EnvironmentConfig(
@@ -502,19 +547,14 @@ class InteractiveEngine(
       accumulationFrames = configs.accumulationFrames
     ))
     val fileSpecs = configs.scene.objectSpecs.getOrElse(List.empty)
+    val specs = sceneSpecs(fileSpecs)
     if lastFileProjections.getAndSet(Interactive4DOffset.fileProjections(fileSpecs)) !=
         Interactive4DOffset.fileProjections(fileSpecs)
     then
       logger.info("Scene file changed its 4D projection; resetting the interactive rotation")
       interactive4DOffset.set(Interactive4DOffset.Zero)
-    currentObjectSpecs.set(Some(interactive4DOffset.get().applyTo(fileSpecs)))
-    applyFileCameraIfChanged(configs.camera)
-    logger.info(
-      s"Reloaded scene from file (${configs.scene.objectSpecs.map(_.size).getOrElse(0)} object(s))"
-    )
-    rebuildScene()
-    renderResources.markNeedsRender()
-    GdxRuntime.requestRendering()
+    lastFileSpecs.set(fileSpecs)
+    currentObjectSpecs.set(Some(specs))
 
   // The camera the previously loaded file declared. A reload leaves the mouse view alone unless
   // the file's own camera changed; then the edit wins, otherwise a camera edit made through the
@@ -620,7 +660,11 @@ class InteractiveEngine(
     )
     result
 
-  private def rebuildScene(): Unit =
+  private def rebuildOrReport(): Unit =
+    rebuildScene().failed.foreach(e =>
+      logger.error(FrameBuildFailure.message("rebuild after 4D rotation", e), e))
+
+  private def rebuildScene(): Try[Unit] =
     currentObjectSpecs.get() match
       case Some(specs) =>
         val renderer    = rendererWrapper.renderer
@@ -630,25 +674,24 @@ class InteractiveEngine(
         logger.debug(
           s"Rebuilding scene with updated rotation; camera: eye=$savedEye, lookAt=$savedLookAt"
         )
-        Try { renderer.clearAllInstances() }
+        val built = Try { renderer.clearAllInstances() }
           .flatMap(_ => buildScene4DTrackedOrFallback(specs, renderer))
-          .fold(
-            e => {
-              scene4DCache.set(Scene4DCache.Empty)
-              logger.error(FrameBuildFailure.message("rebuild after 4D rotation", e), e)
-            },
-            _ => {
-              // Planes are now real IAS instances (Sprint 36 H3.1) — clearAllInstances above
-              // wiped them too, so they must be re-added on every rebuild, not just at create().
-              PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
-              applyRendererState(renderer)
-              if crossVisible.get then addCrossGeometry(renderer)
-              cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
-              logger.debug("Scene rebuild complete")
-            }
-          )
+        built.fold(
+          _ => scene4DCache.set(Scene4DCache.Empty),
+          _ => {
+            // Planes are now real IAS instances (Sprint 36 H3.1) — clearAllInstances above
+            // wiped them too, so they must be re-added on every rebuild, not just at create().
+            PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
+            applyRendererState(renderer)
+            if crossVisible.get then addCrossGeometry(renderer)
+            cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
+            logger.debug("Scene rebuild complete")
+          }
+        )
+        built
       case None =>
         logger.warn("Cannot rebuild single-object scene interactively")
+        Success(())
 
   private val stateFile = watchScenePath.map(f => WindowStateFile(WindowStateFile.pathFor(f)))
 
@@ -692,6 +735,6 @@ class InteractiveEngine(
 
   override def dispose(): Unit =
     logger.debug("Disposing InteractiveEngine")
-    fileWatcher.get().foreach(_.close())
+    stopWatchingSceneFile()
     disposeStats()
     super.dispose()

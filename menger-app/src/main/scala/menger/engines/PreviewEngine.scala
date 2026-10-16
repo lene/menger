@@ -22,8 +22,6 @@ import menger.input.OptiXCameraHandler
 import menger.input.PreviewKeyHandler
 import menger.input.Vector3Extensions.toGdxVector3
 import menger.input.Vector3Extensions.toVector3
-import menger.scene.SceneFileWatcher
-import menger.scene.SceneLoader
 
 class PreviewEngine(
   initialSceneFunction: Float => Scene,
@@ -45,7 +43,8 @@ class PreviewEngine(
     extends BaseEngine(executionConfig.maxInstances)
     with WithPreview
     with TimeoutSupport
-    with menger.input.Observer:
+    with menger.input.Observer
+    with LiveReload:
 
   // Everything a reload swaps: the scene function, its time range, and what is derived from
   // its first frame (lights, camera, output mode).
@@ -73,7 +72,6 @@ class PreviewEngine(
   private val state = new AtomicReference[PreviewState](
     stateFor(initialSceneFunction, initialPreviewConfig)
   )
-  private val fileWatcher = new AtomicReference[Option[SceneFileWatcher]](None)
 
   override protected def sceneFunction: Float => Scene = state.get().sceneFunction
   override def previewConfig: TAnimationConfig = state.get().previewConfig
@@ -177,44 +175,38 @@ class PreviewEngine(
     }
 
   override def dispose(): Unit =
-    fileWatcher.get().foreach(_.close())
+    stopWatchingSceneFile()
     super.dispose()
 
   // Runs on the watcher's own thread; the swap itself happens on the GL thread. A bad edit is
   // logged and the playing scene keeps running -- it must never kill the window.
   private def startWatchingSceneFile(file: java.io.File): Unit =
-    fileWatcher.set(Some(new SceneFileWatcher(file)(() => onSceneFileChanged(file))))
-    logger.info(s"Watching scene file for live reload: ${file.getPath}")
-
-  private def onSceneFileChanged(file: java.io.File): Unit =
-    PreviewEngine.reloadDecision(
-      SceneLoader.load(file.getPath), previewConfig, realtime, everyFrame
-    ) match
-      case PreviewEngine.Reload(fn, config) =>
-        GdxRuntime.postRunnable(() => reloadScene(fn, config))
-      case PreviewEngine.KindChanged =>
-        logger.warn(
-          s"${file.getPath} changed to a static scene; the animated window cannot show it -- " +
-          "restart the window to pick it up"
-        )
-      case PreviewEngine.Rejected(error) =>
-        logger.warn(s"Failed to reload ${file.getPath}, keeping the current scene: $error")
+    watchSceneFile(file) { loaded =>
+      PreviewEngine.reloadDecision(loaded, previewConfig, realtime, everyFrame) match
+        case PreviewEngine.Reload(fn, config) =>
+          GdxRuntime.postRunnable(() => reloadScene(file, fn, config))
+        case PreviewEngine.KindChanged     => kindChanged(file, toAnimated = false)
+        case PreviewEngine.Rejected(error) => reloadFailed(file, error)
+    }
 
   // GL thread. The preview takes its camera from the scene on every frame, so a camera edit
-  // shows without further handling (F64).
-  private def reloadScene(fn: Float => Scene, config: TAnimationConfig): Unit =
+  // shows without further handling (F64). The new scene's first frame is checked before the
+  // swap (review 2026-10-14, menger#101): a scene that cannot build used to replace the playing
+  // one and then fail on every frame.
+  private def reloadScene(file: java.io.File, fn: Float => Scene, config: TAnimationConfig): Unit =
     noteActivity() // an edit is not idleness
-    scala.util.Try(stateFor(fn, config)) match
+    val checked = scala.util.Try(stateFor(fn, config)).flatMap(newState =>
+      precheck(newState.firstFrameConfigs.scene.objectSpecs.getOrElse(Nil)).map(_ => newState))
+    checked match
       case scala.util.Success(newState) =>
         def fileProjections(s: PreviewState) =
           Interactive4DOffset.fileProjections(s.firstFrameConfigs.scene.objectSpecs.getOrElse(Nil))
         if fileProjections(state.get()) != fileProjections(newState) then
           offset4D.set(Interactive4DOffset.Zero)
         state.set(newState)
-        logger.info(s"Reloaded animated scene from file (duration ${config.endT}s)")
+        reloaded("animated scene", s"duration ${config.endT}s")
         requestRedraw()
-      case scala.util.Failure(e) =>
-        logger.warn(s"Failed to reload the animated scene, keeping the current one: ${e.getMessage}")
+      case scala.util.Failure(e) => reloadFailed(file, e.getMessage)
 
 object PreviewEngine:
 

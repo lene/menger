@@ -163,6 +163,39 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
     result.left.map(_.contains("scene(0) threw")) shouldBe Left(true)
     result.left.map(_.contains("Size must be positive")) shouldBe Left(true)
 
+  // Review 2026-10-14 (menger#101): a static scene's failing `require` is an
+  // ExceptionInInitializerError, which escaped the loader (live reload silently did nothing).
+  it should "return Left, not throw, when a static scene's construction fails" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object FailingStaticScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(size = -1f)),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneLoader.load(file.getAbsolutePath)
+    result.left.map(_.startsWith(SceneLoader.ConstructionFailed)) shouldBe Left(true)
+    result.left.map(_.contains("Size must be positive")) shouldBe Left(true)
+
+  it should "return Left, not throw, when a scene's construction recurses forever" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object RecursingScene:
+        |  def deep(n: Int): Int = deep(n + 1) + 1
+        |  val depth: Int = deep(0)
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere()),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    SceneLoader.load(file.getAbsolutePath).left.map(_.startsWith(SceneLoader.StackOverflow)) shouldBe
+      Left(true)
+
   // Review 2026-10-14 (menger#79/#99): the compile view is an allow-list of the DSL surface, and
   // a compiled scene's class loader resolves nothing outside it at run time either.
   private val outsideTheVocabulary = List(

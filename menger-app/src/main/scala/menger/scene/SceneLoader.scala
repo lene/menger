@@ -48,7 +48,26 @@ object SceneLoader extends LazyLogging:
     */
   def load(sceneName: String): Either[String, LoadedScene] =
     logger.info(s"Loading scene: $sceneName")
+    // Total (review 2026-10-14, menger#101): a failing `require` in a scene's `val scene = ...`
+    // surfaces as ExceptionInInitializerError, a LinkageError that neither `Try` nor a
+    // `catch Exception` sees -- live reload silently did nothing and the first load ended in a
+    // stack trace. The three Errors a scene can provoke become a `Left` here; their prefixes
+    // are what SceneValidator classifies by (`ClasspathBroken` is `refused`, the others are
+    // scene defects).
+    try loadUnguarded(sceneName)
+    catch
+      case e: ExceptionInInitializerError =>
+        Left(s"$ConstructionFailed ${Option(e.getCause).map(_.getMessage).getOrElse(e.getMessage)}")
+      case e: StackOverflowError =>
+        Left(s"$StackOverflow $e")
+      case e: LinkageError =>
+        Left(s"$ClasspathBroken $e")
 
+  val ConstructionFailed = "scene construction failed:"
+  val StackOverflow = "scene construction overflowed the stack (infinite recursion?):"
+  val ClasspathBroken = "scene classpath is broken:"
+
+  private def loadUnguarded(sceneName: String): Either[String, LoadedScene] =
     // A `.scala` name is a file, found or not: it never falls through to `Class.forName`,
     // which would initialise whatever class the name happens to spell (review 2026-10-14,
     // menger#88).
