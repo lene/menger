@@ -21,11 +21,32 @@ trait LiveReload extends LazyLogging:
 
   private val fileWatcher = new AtomicReference[Option[SceneFileWatcher]](None)
 
+  /** The scene file the window watches, when it was started on one: its events go next to it.
+    * Known before `create()`, so a startup failure is reported too. */
+  protected def eventsFor: Option[File]
+
+  private lazy val events: Option[WindowEvents] =
+    eventsFor.map(f => WindowEvents(WindowEvents.pathFor(f)))
+
+  private def emit(kind: WindowEvents.Kind, detail: String): Unit =
+    events.foreach(_.emit(kind, detail))
+
   /** Starts watching `file`; `onLoaded` runs on the watcher's thread with the loader's result. */
   protected def watchSceneFile(file: File)(onLoaded: Either[String, LoadedScene] => Unit): Unit =
     val watcher = new SceneFileWatcher(file)(() => onLoaded(SceneLoader.load(file.getPath)))
     fileWatcher.set(Some(watcher))
     logger.info(s"Watching scene file for live reload: ${file.getPath}")
+    emit(WindowEvents.Kind.Up, "")
+
+  /** The first scene could not be built: the window exits non-zero after this. */
+  protected def startupFailed(cause: Throwable): Unit =
+    emit(WindowEvents.Kind.StartupFailed, Option(cause.getMessage).getOrElse(cause.toString))
+
+  /** A frame (or a rebuild) failed to build; the window keeps showing the last good one. */
+  protected def frameFailed(context: String, cause: Throwable): Unit =
+    logger.error(FrameBuildFailure.message(context, cause), cause)
+    emit(WindowEvents.Kind.FrameFailed, FrameBuildFailure.message(context, cause)
+      .stripPrefix(FrameBuildFailure.Marker + " "))
 
   protected def stopWatchingSceneFile(): Unit = fileWatcher.get().foreach(_.close())
 
@@ -40,14 +61,16 @@ trait LiveReload extends LazyLogging:
 
   protected def reloaded(what: String, detail: String): Unit =
     logger.info(s"Reloaded $what from file ($detail)")
+    emit(WindowEvents.Kind.Reloaded, detail)
 
   protected def reloadFailed(file: File, reason: String): Unit =
     logger.warn(s"Failed to reload ${file.getPath}, keeping the current scene: $reason")
+    emit(WindowEvents.Kind.ReloadFailed, reason)
 
   protected def kindChanged(file: File, toAnimated: Boolean): Unit =
     val (now, window) = if toAnimated then ("an animated", "this static window")
                         else ("a static", "this animated window")
-    logger.warn(
-      s"${file.getPath} changed to $now scene, which $window cannot show -- " +
-        "restart the window to pick it up"
-    )
+    val message = s"${file.getPath} changed to $now scene, which $window cannot show -- " +
+      "restart the window to pick it up"
+    logger.warn(message)
+    emit(WindowEvents.Kind.KindChanged, message)

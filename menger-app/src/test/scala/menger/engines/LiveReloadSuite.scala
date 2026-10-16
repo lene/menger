@@ -61,6 +61,7 @@ class LiveReloadSuite extends AnyFlatSpec with Matchers with MockFactory:
       CameraState(eye, Vector[3](0f, 0f, 0f), Vector[3](0f, 1f, 0f))
     override protected def renderConfig: RenderConfig = RenderConfig.Default
     override protected def textureDir: String = "."
+    override protected def eventsFor: Option[java.io.File] = None
 
     def check(specs: List[ObjectSpec]): scala.util.Try[Unit] = precheck(specs)
     def build(configs: SceneConverter.SceneConfigs, renderer: OptiXRenderer): scala.util.Try[Unit] =

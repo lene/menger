@@ -21,12 +21,16 @@ Runs `menger.tools.SceneValidator` against <scene-file.scala> inside the SA-AD-1
 
 Prints SceneValidator's tagged JSON result (ok | compile-errors | lint-findings | refused) to
 stdout. Exit codes mirror the validator's own: 0 for `ok`, 1 for a scene defect
-(compile-errors/lint-findings), 2 for `refused`. A run killed by the wall-clock timeout below
-exits 124 with no JSON -- callers should treat "no valid JSON on stdout" as its own failure
-mode, not just a non-zero exit.
+(compile-errors/lint-findings), 2 for `refused` -- including a usage error, as the validator's
+own (contracts/process-result.json). A run killed by the wall-clock timeout below exits 124
+with no JSON -- callers should treat "no valid JSON on stdout" as its own failure mode, not
+just a non-zero exit.
 USAGE
-  exit 1
+  refuse "run-sandboxed.sh: usage error (see stderr)"
 }
+
+# shellcheck source=refused-result.sh
+. "$(dirname "$(readlink -f "$0")")/refused-result.sh"   # refuse <message>: tagged JSON, exit 2
 
 # Review round 1 findings, both fixed here: no resource/time bounds on the sandboxed process
 # (a pathological or adversarial generated scene could hang or exhaust the host), and the
@@ -76,7 +80,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-[ -f "$SCENE_FILE" ] || { echo "Scene file not found: $SCENE_FILE" >&2; exit 1; }
+[ -f "$SCENE_FILE" ] || refuse "Scene file not found: $SCENE_FILE"
 
 # F99: the image's version label is the app version, unchanged within a sprint, so a stale
 # image (re-tagged by CI from older sources) passed for current. build.sh labels the image with
@@ -86,9 +90,7 @@ if [ -n "$EXPECTED_MANIFEST_SHA256" ]; then
   IMAGE_MANIFEST_SHA256="$(docker inspect -f '{{index .Config.Labels "menger.dsl-manifest.sha256"}}' \
     "$IMAGE_TAG" 2>/dev/null || true)"
   if [ "$IMAGE_MANIFEST_SHA256" != "$EXPECTED_MANIFEST_SHA256" ]; then
-    printf '{"tag": "refused", "messages": ["validator image %s was built from a different DSL manifest (image: %s, caller: %s); rebuild it: menger/docker/scene-validator/build.sh"], "findings": [], "schemaVersion": "1.0.0"}\n' \
-      "$IMAGE_TAG" "${IMAGE_MANIFEST_SHA256:-<no label>}" "$EXPECTED_MANIFEST_SHA256"
-    exit 2
+    refuse "validator image $IMAGE_TAG was built from a different DSL manifest (image: ${IMAGE_MANIFEST_SHA256:-<no label>}, caller: $EXPECTED_MANIFEST_SHA256); rebuild it: menger/docker/scene-validator/build.sh"
   fi
 fi
 
@@ -99,7 +101,7 @@ SCENE_BASENAME="$(basename "$SCENE_FILE")"
 # or `=` is silently split into bogus mount options rather than mounting the file. Reject it
 # with a real message instead.
 case "$SCENE_FILE_ABS" in
-  *,*|*=*) echo "Scene path may not contain ',' or '=': $SCENE_FILE_ABS" >&2; exit 1 ;;
+  *,*|*=*) refuse "Scene path may not contain ',' or '=': $SCENE_FILE_ABS" ;;
 esac
 
 # --- Containment (SA-AD-18) -----------------------------------------------------------------

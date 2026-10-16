@@ -70,8 +70,15 @@ trait WithPreview extends RenderEngine with LazyLogging:
 
   private def reportFailedFrame(t: Float, e: Throwable): Unit =
     failedFrames.incrementAndGet()
-    logger.error(FrameBuildFailure.message(s"t=$t", e), e)
+    onFrameFailed(s"t=$t", e)
     updateTitle()
+
+  /** The first scene failed to build; a window with live reload also emits a window event. */
+  protected def onStartupFailed(e: Throwable): Unit = ()
+
+  /** Where a failed frame is reported; a window with live reload also emits a window event. */
+  protected def onFrameFailed(context: String, e: Throwable): Unit =
+    logger.error(FrameBuildFailure.message(context, e), e)
 
   private def tStep: Float =
     val range = previewConfig.endT - previewConfig.startT
@@ -150,9 +157,13 @@ trait WithPreview extends RenderEngine with LazyLogging:
     val renderer = rendererWrapper.renderer
     sceneConfigurator.configureLights(renderer)
     sceneConfigurator.configureCamera(renderer)
-    buildSceneFromConfigs(firstFrameConfigs, renderer).recover { case e: Exception =>
+    // Propagated, as in InteractiveEngine (F18): `GdxRuntime.exit()` here exited 0 and went on
+    // configuring the renderer, so a scene that could not be built looked like a closed window
+    // (review 2026-10-14, menger#100). Main reports it and exits non-zero.
+    buildSceneFromConfigs(firstFrameConfigs, renderer).recoverWith { case e: Exception =>
       logger.error(s"Failed to create initial preview scene: ${e.getMessage}", e)
-      GdxRuntime.exit()
+      onStartupFailed(e)
+      scala.util.Failure(e)
     }.get
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
@@ -262,17 +273,21 @@ trait WithPreview extends RenderEngine with LazyLogging:
             tracked4D.set(Some(scene.TrackedMesh4D.updateInPlace(state, specs, renderer)))
           )
           (inPlace, false)
-        case None =>
-          renderer.clearAllInstances()
-          tracked4D.set(None)
-          val rebuilt =
-            if WithAnimation.is4DOnlyTriangleMeshScene(specs) then
-              scene.TrackedMesh4D
-                .build(specs, renderer, textureDir, computeEffectiveMaxInstances(_, specs))(using
-                  profilingConfig)
-                .map(tracked4D.set)
-            else buildSceneFromConfigs(configs, renderer)
-          (rebuilt, true)
+        // The budget first, before the current frame's instances go: the tracked 4D build
+        // does not pass through `buildSceneFromConfigs`, which checks it (menger#80).
+        case None => withinBudget(specs) match
+          case failed @ scala.util.Failure(_) => (failed, false)
+          case _ =>
+            renderer.clearAllInstances()
+            tracked4D.set(None)
+            val rebuilt =
+              if WithAnimation.is4DOnlyTriangleMeshScene(specs) then
+                scene.TrackedMesh4D
+                  .build(specs, renderer, textureDir, computeEffectiveMaxInstances(_, specs))(using
+                    profilingConfig)
+                  .map(tracked4D.set)
+              else buildSceneFromConfigs(configs, renderer)
+            (rebuilt, true)
     updated.recover { case e: Exception => reportFailedFrame(t, e) }
     instancesCleared
 

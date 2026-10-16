@@ -83,6 +83,10 @@ object SceneValidator extends LazyLogging:
     * defaulted, so every positional `ValidationResult(tag, messages)` call site keeps working.
     * `snapshots`: the evaluated scene at each checked time (`SceneSnapshot`); `cameraPath`: the
     * camera of an animated scene, densely sampled. */
+  // serializeDefaults: upickle leaves out a field equal to its default, so the result never
+  // carried `schemaVersion` (nor an empty `findings`) -- the agent could not check the version it
+  // was reading (review 2026-10-14, menger#116; found by ProcessContractSuite).
+  @upickle.implicits.serializeDefaults(true)
   case class ValidationResult(
     tag: Tag,
     messages: List[String],
@@ -107,7 +111,9 @@ object SceneValidator extends LazyLogging:
   /** SA-AD-5's four tags collapse onto three exit codes so a caller can branch without parsing
     * JSON (review round 2 -- previously every non-`ok` tag exited 1, making "the scene is
     * wrong, retry" indistinguishable from "the pipeline is broken, stop"). */
-  private[tools] def exitCodeFor(tag: Tag): Int = tag match
+  /** The exit code for each tag (contracts/process-result.json `exitCodes`; every producer uses
+    * this, ProcessContractSuite holds it to the file). */
+  def exitCodeFor(tag: Tag): Int = tag match
     case Tag.Ok      => 0
     case Tag.Refused => 2
     case _           => 1

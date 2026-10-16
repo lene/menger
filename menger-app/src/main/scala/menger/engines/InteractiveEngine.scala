@@ -372,8 +372,11 @@ class InteractiveEngine(
       // 2026-09, F18). Main now reports it and exits 1.
       .recoverWith { case e: Exception =>
         logger.error(s"Failed to create OptiX scene: ${e.getMessage}", e)
+        startupFailed(e)
         Failure(e)
       }.get
+
+  override protected def eventsFor: Option[java.io.File] = watchScenePath
 
   /** Renderer state a builder's `renderer.reinitialize` discards (TesseractEdgeSceneBuilder
     * reinitializes when it needs more than 64 instances). Applied after the initial build and
@@ -510,8 +513,7 @@ class InteractiveEngine(
             reloaded("scene", s"${configs.scene.objectSpecs.map(_.size).getOrElse(0)} object(s)")
           case Failure(e) =>
             restore(previous)
-            rebuildScene().failed.foreach(again =>
-              logger.error(FrameBuildFailure.message("restoring the previous scene", again), again))
+            rebuildScene().failed.foreach(again => frameFailed("restoring the previous scene", again))
             reloadFailed(file, s"the new scene did not build: ${e.getMessage}")
         renderResources.markNeedsRender()
         GdxRuntime.requestRendering()
@@ -574,6 +576,15 @@ class InteractiveEngine(
     * source of truth for type → builder dispatch. Captures per-spec instance/slot indices
     * for 4D-rotation fast paths where applicable. */
   private def buildScene4DTrackedOrFallback(
+    specs: List[ObjectSpec],
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): Try[Unit] =
+    // This engine builds through its own 4D-tracking builders, not `buildSceneFromSpecs`, so
+    // the scene budget is checked here too: an over-budget first scene opened the window and
+    // ran it out of memory (found by the WP-F startup check, review 2026-10-14, menger#80).
+    withinBudget(specs).flatMap(_ => buildTrackedOrFallback(specs, renderer))
+
+  private def buildTrackedOrFallback(
     specs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
@@ -661,8 +672,7 @@ class InteractiveEngine(
     result
 
   private def rebuildOrReport(): Unit =
-    rebuildScene().failed.foreach(e =>
-      logger.error(FrameBuildFailure.message("rebuild after 4D rotation", e), e))
+    rebuildScene().failed.foreach(e => frameFailed("rebuild after 4D rotation", e))
 
   private def rebuildScene(): Try[Unit] =
     currentObjectSpecs.get() match

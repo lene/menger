@@ -59,9 +59,10 @@ class CliAnimationEngine(
     // when its own instance-count check exceeds the constructor-time budget, and
     // reinitialize disposes and recreates the native handle — dropping any plane/light state
     // set on it beforehand (Sprint 36 H2.1, same fix as InteractiveEngine.create()).
-    buildSceneFromSpecs(firstSpecs, renderer).recover { case e =>
+    // Propagated (F18; review 2026-10-14, menger#100): `GdxRuntime.exit()` exited 0.
+    buildSceneFromSpecs(firstSpecs, renderer).recoverWith { case e =>
       logger.error(s"Failed to create initial frame: ${e.getMessage}", e)
-      GdxRuntime.exit()
+      scala.util.Failure(e)
     }.get
     sceneConfigurator.configureLights(renderer)
     PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)

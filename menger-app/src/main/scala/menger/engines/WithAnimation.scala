@@ -63,9 +63,11 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     val firstSpecs = firstFrameConfigs.scene.objectSpecs.getOrElse(List.empty)
     buildSceneTrackingVideoTextures(firstFrameConfigs, firstSpecs, renderer)
       .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, animConfig.tForFrame(0)))
-      .recover { case e: Exception =>
+      // Propagated (F18; review 2026-10-14, menger#100): `GdxRuntime.exit()` exited 0 and the
+      // animation went on configuring a renderer that held no scene.
+      .recoverWith { case e: Exception =>
         logger.error(s"Failed to create initial scene: ${e.getMessage}", e)
-        GdxRuntime.exit()
+        Failure(e)
     }.get
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
@@ -456,6 +458,15 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     * the fast path. Otherwise fall back to the generic `buildSceneFromConfigs`
     * path and clear any cached fast-path state. */
   private def buildAnim4DTrackedOrFallback(
+    configs: SceneConverter.SceneConfigs,
+    newSpecs: List[ObjectSpec],
+    renderer: OptiXRenderer
+  ): Try[Unit] =
+    // The tracked 4D build does not pass through `buildSceneFromConfigs`, which checks the
+    // budget, so it is checked here (menger#80).
+    withinBudget(newSpecs).flatMap(_ => buildAnim4DWithinBudget(configs, newSpecs, renderer))
+
+  private def buildAnim4DWithinBudget(
     configs: SceneConverter.SceneConfigs,
     newSpecs: List[ObjectSpec],
     renderer: OptiXRenderer

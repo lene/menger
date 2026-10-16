@@ -22,10 +22,8 @@ MEMORY="${MENGER_RENDER_MEMORY:-12g}"   # the launcher's -Xmx8g plus native and 
 CPUS="${MENGER_RENDER_CPUS:-4}"
 PIDS="${MENGER_RENDER_PIDS_LIMIT:-1024}"
 
-refuse() {  # the tagged JSON the agent already parses from a window that exits at once
-  printf '{"tag": "refused", "messages": ["%s"], "findings": [], "schemaVersion": "1.0.0"}\n' "$1"
-  exit 2
-}
+# shellcheck source=refused-result.sh
+. "$(dirname "$(readlink -f "$0")")/refused-result.sh"   # refuse <message>: tagged JSON, exit 2
 
 scene="" display="${DISPLAY:-}" lock=""
 args=("$@")

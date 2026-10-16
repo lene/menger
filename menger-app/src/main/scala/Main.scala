@@ -129,10 +129,12 @@ object Main:
   def refusedResultJson(reason: String): String =
     write(SceneValidator.ValidationResult(SceneValidator.Tag.Refused, List(reason)), indent = 2)
 
+  // `refused` exits with its contract code (contracts/process-result.json), the validator's 2; it
+  // exited 1, the scene-defect code (review 2026-10-14, menger#100).
   private def reportRefusedAndExit(reason: String): Unit =
     print(refusedResultJson(reason))
     print(System.lineSeparator())
-    sys.exit(1)
+    sys.exit(SceneValidator.exitCodeFor(SceneValidator.Tag.Refused))
 
   /** Pure command/environment construction, kept separate from `reExecWithDisplay` so tests
     * can assert the child's environment carries the injected `DISPLAY` value without

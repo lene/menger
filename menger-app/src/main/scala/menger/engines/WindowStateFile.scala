@@ -17,7 +17,12 @@ import upickle.default.write
   * `MinIntervalMillis`. Vectors are `[x, y, z]`, angles degrees. */
 object WindowStateFile:
 
+  /** contracts/process-result.json `windowStateSchemaVersion` (review 2026-10-14, menger#82: the
+    * file had none, so the agent could not tell an older layout from a broken one). */
+  val SchemaVersion = "1.0.0"
+
   final case class State(
+    schemaVersion: String,
     cameraEye: List[Float],
     cameraLookAt: List[Float],
     cameraUp: List[Float],
@@ -41,6 +46,7 @@ object WindowStateFile:
     import menger.common.y
     import menger.common.z
     State(
+      SchemaVersion,
       List(eye.x, eye.y, eye.z), List(lookAt.x, lookAt.y, lookAt.z), List(up.x, up.y, up.z),
       offset.rotXW, offset.rotYW, offset.rotZW, t, playing
     )
