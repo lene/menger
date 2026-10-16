@@ -107,6 +107,15 @@ class CorpusExporterSuite extends AnyFlatSpec with Matchers:
     val corpus = corpusFor(freshTempPath())
     corpus.scenes.map(_.path).foreach(_ should not include "common/")
 
+  // menger#115: the corpus is what the scene agent learns from, and a scene it writes stands
+  // alone -- an `examples.*` import resolves only inside this repository, so the agent's
+  // allowlist rejects it and the prompt had to warn against imitating it.
+  it should "carry only self-contained scenes (no imports from examples.*)" in:
+    val corpus = corpusFor(freshTempPath())
+    val crossImports = corpus.scenes.filter(_.source.linesIterator.exists(
+      _.trim.startsWith("import examples.")))
+    crossImports.map(_.name) shouldBe empty
+
   private def corpusFor(outputPath: String): CorpusExporter.CorpusManifest =
     CorpusExporter.run(Array(outputPath, TestSourceDir)) shouldBe Right(())
     read[CorpusExporter.CorpusManifest](Files.readString(java.nio.file.Paths.get(outputPath)))
