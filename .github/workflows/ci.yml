@@ -13,6 +13,15 @@ name: CI
 #   • nvidia driver with the RTX core lib (libnvidia-rtcore.so.1) resolvable — see
 #     docs/TROUBLESHOOTING.md. Persistent host setup, not per-run apt-get (no sudo in CI).
 #
+#
+# ── FORK PRs (security review 2026-10-14, menger-toplevel#83) ──
+# Every self-hosted job carries `if: !github.event.pull_request.head.repo.fork`: a pull request
+# from a fork never runs on the self-hosted GPU runners (they run as the maintainer's user on the
+# maintainer's machines). Fork PRs get only the GitHub-hosted checks; run the GPU suite on a
+# same-repo branch before merging one. The guard lives in this file, so a fork PR can delete it —
+# the real gate is the repo's "require approval for all external contributors" setting: before
+# approving a fork PR's run, check its changes to .github/, build.sbt, project/ and scripts/.
+#
 # ── SECRETS ──  SONAR_TOKEN (sonar job), GITHUB token is automatic.
 # ── DROPPED vs GitLab (intentional) ──
 #   • PushToGithub / mirror — reversed: GitHub is origin now; mirror-to-gitlab.yml backs up GitLab.
@@ -119,6 +128,7 @@ jobs:
   # ── quality + tests (need CUDA to compile menger-geometry native → nvidia host) ──
   scalafix:
     name: Scalafix
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     steps:
@@ -131,6 +141,7 @@ jobs:
 
   test-full:
     name: Test (full suite, GPU)
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
     env:
@@ -155,6 +166,7 @@ jobs:
     # already ran (bundled into unit.sh, part of test-full) but had no named, required job —
     # promoted to one, matching menger-common/optix-jni's existing named archunit jobs.
     name: ArchUnit
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     steps:
@@ -165,6 +177,7 @@ jobs:
 
   integration:
     name: OptiX Integration (packaged app, GPU)
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
     env:
@@ -194,6 +207,7 @@ jobs:
     # hook — a push from a machine without cppcheck/clang-tidy installed, or with
     # --no-verify, shipped native changes with zero CI-side safety net for them. See
     # the Sprint 36 Phase B plan and docs/QA_INCIDENTS.md.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     env:
@@ -210,6 +224,7 @@ jobs:
     name: Memory safety (Valgrind + compute-sanitizer, GPU)
     # New job (Sprint 36 B4): same gap as native-checks above — memcheck existed only
     # locally before this.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
     env:
@@ -228,6 +243,7 @@ jobs:
     # pre-push hook actually checks (.coverage_baseline, statement rate only). O3's goal
     # is one suite definition shared by hook and CI; branch-rate tracking was CI-only
     # and is dropped here to match, not preserved as a second, hook-inconsistent gate.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
     env:
@@ -250,7 +266,7 @@ jobs:
     name: Run smoke (sponge types + animation, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
-    if: github.event_name != 'pull_request' || true
+    if: ${{ !github.event.pull_request.head.repo.fork && (github.event_name != 'pull_request' || true) }}
     env:
       HAS_RENDERING: "1"
     steps:
@@ -263,6 +279,7 @@ jobs:
 
   runtime:
     name: Runtime budget (GPU)
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     env:
@@ -302,6 +319,7 @@ jobs:
   # ── build + release ─────────────────────────────────────────────────────────
   build-deployable:
     name: Build deployable zip (GPU)
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 25
     steps:
@@ -321,6 +339,7 @@ jobs:
 
   perf:
     name: Performance gates (GPU)
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
     needs: [test-full]
@@ -335,7 +354,7 @@ jobs:
     name: PerfCheck (benchmark vs baseline, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 25
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+    if: ${{ !github.event.pull_request.head.repo.fork && (github.event_name == 'pull_request' || github.event_name == 'schedule') }}
     needs: [build-deployable]
     steps:
       - uses: actions/checkout@v4
@@ -430,7 +449,7 @@ jobs:
     permissions:
       contents: write
     needs: [create-tag]
-    if: needs.create-tag.outputs.need_release == 'true'
+    if: ${{ !github.event.pull_request.head.repo.fork && (needs.create-tag.outputs.need_release == 'true') }}
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
