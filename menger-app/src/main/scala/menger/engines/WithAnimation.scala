@@ -15,7 +15,6 @@ import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureUploadException
 import menger.AssetPaths
 import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.common.CausticsConfig
 import menger.common.ImageSize
 import menger.common.ObjectType
@@ -446,22 +445,11 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     anim4DState.get match
       case None => false
       case Some(prev) =>
-        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
-        else
-          prev.specs.lazyZip(newSpecs).lazyZip(prev.slotsPerSpec).foreach {
-            case (prevSpec, newSpec, slots) =>
-              if prevSpec.projection4D != newSpec.projection4D then
-                val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
-                slots.foreach { slot =>
-                  renderer.updateMesh4DProjection(
-                    slot,
-                    eyeW = proj.eyeW, screenW = proj.screenW,
-                    rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-                  )
-                }
-          }
-          anim4DState.set(Some(prev.copy(specs = newSpecs)))
-          true
+        val took = RotationFastPath.tryFastPath(
+          newSpecs, renderer, prev.specs, prev.slotsPerSpec, RotationFastPath.meshSlotUpdater
+        )
+        if took then anim4DState.set(Some(prev.copy(specs = newSpecs)))
+        took
 
   /** Rebuild path: when the scene is 4D-only triangle-mesh, build via a
     * recorder-equipped TriangleMeshSceneBuilder so subsequent frames can attempt

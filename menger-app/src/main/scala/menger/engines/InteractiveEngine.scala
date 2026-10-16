@@ -232,8 +232,8 @@ class InteractiveEngine(
   ): Boolean =
     scene4DCache.get match
       case Scene4DCache.Gpu(prev) =>
-        val took = RotationFastPath.tryGpuProjectionFastPath(
-          newSpecs, renderer, prev.specs, prev.slotsPerSpec
+        val took = RotationFastPath.tryFastPath(
+          newSpecs, renderer, prev.specs, prev.slotsPerSpec, RotationFastPath.meshSlotUpdater
         )
         if took then scene4DCache.set(Scene4DCache.Gpu(prev.copy(specs = newSpecs)))
         took
