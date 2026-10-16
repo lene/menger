@@ -1,5 +1,6 @@
 package menger.dsl
 
+import menger.scene.SceneLoader
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -1,4 +1,4 @@
-package menger.dsl
+package menger.scene
 
 import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicInteger

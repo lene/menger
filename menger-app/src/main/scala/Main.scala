@@ -27,7 +27,6 @@ import menger.config.SceneConfig
 import menger.config.TAnimationConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.LoadedScene
-import menger.dsl.RestrictedClasspath
 import menger.engines.AnimationEngine
 import menger.engines.CliAnimationEngine
 import menger.engines.InteractiveEngine
@@ -36,6 +35,7 @@ import menger.engines.RenderEngine
 import menger.engines.RenderLock
 import menger.engines.SceneConverter
 import menger.engines.VideoEngine
+import menger.scene.RestrictedClasspath
 import menger.tools.SceneValidator
 import org.slf4j.LoggerFactory
 import upickle.default.write
@@ -262,7 +262,7 @@ object Main:
     // Ensure all example scene objects are initialized so short names are registered
     val _ = examples.dsl.SceneIndex
 
-    import menger.dsl.SceneLoader
+    import menger.scene.SceneLoader
     SceneLoader.load(sceneName) match
       case Right(LoadedScene.Animated(fn)) if opts.preview() =>
         val animConfig = TAnimationConfig(

@@ -1,9 +1,12 @@
-package menger.dsl
+package menger.scene
 
 import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.ConfigurationException
+import menger.dsl.LoadedScene
+import menger.dsl.Scene
+import menger.dsl.SceneRegistry
 
 /** Loader for pre-compiled DSL scenes.
   *
@@ -46,7 +49,10 @@ object SceneLoader extends LazyLogging:
   def load(sceneName: String): Either[String, LoadedScene] =
     logger.info(s"Loading scene: $sceneName")
 
-    if isFilePath(sceneName) then
+    // A `.scala` name is a file, found or not: it never falls through to `Class.forName`,
+    // which would initialise whatever class the name happens to spell (review 2026-10-14,
+    // menger#88).
+    if sceneName.endsWith(".scala") then
       loadFromFile(new java.io.File(sceneName))
     else
       // Try registry first (registry only stores static scenes)
@@ -58,11 +64,8 @@ object SceneLoader extends LazyLogging:
           // Try reflection
           loadByReflection(sceneName)
 
-  private def isFilePath(name: String): Boolean =
-    name.endsWith(".scala") && new java.io.File(name).isFile
-
   private def loadFromFile(file: java.io.File): Either[String, LoadedScene] =
-    if !file.exists() then Left(s"Scene file not found: ${file.getAbsolutePath}")
+    if !file.isFile then Left(s"Scene file not found: ${file.getAbsolutePath}")
     else SceneCompiler.compile(file) match
       case Left(err) => Left(err)
       case Right(loader) =>

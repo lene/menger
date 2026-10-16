@@ -14,8 +14,6 @@ import menger.config.TAnimationConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.LoadedScene
 import menger.dsl.Scene
-import menger.dsl.SceneFileWatcher
-import menger.dsl.SceneLoader
 import menger.engines.scene.SceneBuilder
 import menger.input.EventDispatcher
 import menger.input.GdxRuntime
@@ -24,6 +22,8 @@ import menger.input.OptiXCameraHandler
 import menger.input.PreviewKeyHandler
 import menger.input.Vector3Extensions.toGdxVector3
 import menger.input.Vector3Extensions.toVector3
+import menger.scene.SceneFileWatcher
+import menger.scene.SceneLoader
 
 class PreviewEngine(
   initialSceneFunction: Float => Scene,

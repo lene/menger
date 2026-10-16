@@ -77,7 +77,7 @@ class MainSuite extends AnyFlatSpec with Matchers:
     val cpIndex = command.indexOf("-cp")
     cpIndex should be >= 0
     val classpath = command(cpIndex + 1)
-    classpath shouldEqual menger.dsl.RestrictedClasspath.fullClasspath
+    classpath shouldEqual menger.scene.RestrictedClasspath.fullClasspath
     // Review round 2, partially: the assertion above compares the function under test to
     // itself, so it cannot by itself catch a revert to `System.getProperty("java.class.path")`.
     // The union invariant below is the strongest thing assertable from *here* -- `Test / fork`

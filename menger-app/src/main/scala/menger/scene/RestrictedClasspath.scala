@@ -1,4 +1,4 @@
-package menger.dsl
+package menger.scene
 
 import java.io.File
 import java.net.URLClassLoader
@@ -137,28 +137,46 @@ object RestrictedClasspath extends LazyLogging:
 
     (loaderPaths ++ sysPropEntries).distinct.mkString(File.pathSeparator)
 
-  /** menger-app's own packages that a compiled scene has no business resolving: the render
-    * engines, the validation tooling that *invokes* the compiler, the CLI, and input handling.
+  /** The parts of menger-app a compiled scene may resolve: the DSL and what its signatures
+    * need. Everything else -- `Main`, `examples`, the engines, CLI, input, tools, this package's
+    * compiler and loader, the app-local `io.github.lene.optix` wrapper, the other root-package
+    * types -- is left out of the pruned view handed to the compiler.
     *
-    * Review round 2 (SA-AD-4 rule 2): admitting menger-app's whole classes directory / jar left
-    * `Main`, `menger.tools.SceneValidator`, `menger.engines.*` and `menger.cli.*` typeable
-    * from inside a generated scene -- well beyond "only the DSL surface and its transitive
-    * needs". `-classpath` has no sub-jar or per-package granularity, so the narrowing is done
-    * by handing the compiler a *pruned view* of the entry instead: a symlink mirror for a
-    * classes directory, a repacked jar for a jar (the layout the container actually runs).
-    *
-    * Verified against the source closure: nothing under `menger.dsl`, `menger.objects` or
-    * `menger.video` imports or otherwise references any of these four packages. */
-  private val ExcludedProjectPackages = Set("cli", "engines", "input", "tools")
+    * Review round 2 (SA-AD-4 rule 2) pruned with a deny-list of four packages, which left the
+    * rest typeable and admitted every new package by default (review 2026-10-14, menger#79/#99).
+    * This is an allow-list: a new package or root type is invisible to scenes until added here.
+    * `-classpath` has no sub-jar or per-package granularity, so the narrowing is a *pruned view*
+    * of the entry: a symlink mirror for a classes directory, a repacked jar for a jar (the
+    * layout the container actually runs). */
+  private[scene] val ScenePackages = Set("dsl", "objects", "video", "common")
 
-  private val ExcludedJarPrefixes =
-    ExcludedProjectPackages.map(pkg => s"menger/$pkg/").toList
+  /** Root-package types the DSL's own signatures use (`toObjectSpec`, 4D projection, curves,
+    * textures). Determined by compiling every example scene against the pruned view. */
+  private[scene] val SceneRootTypes = Set(
+    "ObjectSpec", "Projection4DSpec", "ProceduralSpec", "TextureMaps", "TextureData",
+    "ObjectRotation", "CurveData", "RotationProjectionParameters", "ConeGeometry",
+    "PlaneGeometry", "AssetPaths", "ColorConversions"
+  )
+
+  /** Whether a classpath-relative path (`menger/dsl/Sphere.class`) is part of the scene view. */
+  private[scene] def isSceneEntry(relativePath: String): Boolean =
+    relativePath.split('/').toList match
+      case "menger" :: file :: Nil => SceneRootTypes.exists(t => isTypeFile(file, t))
+      case "menger" :: pkg :: _ :: _ => ScenePackages.contains(pkg)
+      case _ => false
+
+  private def isTypeFile(file: String, typeName: String): Boolean =
+    file.startsWith(typeName + ".") || file.startsWith(typeName + "$")
+
+  /** The same allow-list by class name, for [[SceneClassLoader]]. */
+  private[scene] def isSceneClass(className: String): Boolean =
+    isSceneEntry(className.replace('.', '/') + ".class")
 
   /** Pruning is pure I/O and identical for every call in a JVM, so each source entry is
     * pruned once and reused. */
   private val prunedEntries = new ConcurrentHashMap[String, String]()
 
-  /** A pruned stand-in for `entry` with [[ExcludedProjectPackages]] removed, or `entry`
+  /** A pruned stand-in for `entry` holding only [[isSceneEntry]] paths, or `entry`
     * itself if pruning is impossible (no symlink support, an unreadable jar, a read-only
     * temp directory). Degrading to the unpruned entry keeps scene compilation working --
     * SA-AD-18's container is what backstops the restriction -- but says so loudly. */
@@ -193,12 +211,10 @@ object RestrictedClasspath extends LazyLogging:
       Files.createSymbolicLink(target.resolve(source.getName), source.toPath)
       ()
 
-    Option(root.listFiles()).toSeq.flatten
-      .filterNot(_.getName == "menger")
-      .foreach(link(pruned, _))
-
     Option(new File(root, "menger").listFiles()).toSeq.flatten
-      .filterNot(f => f.isDirectory && ExcludedProjectPackages.contains(f.getName))
+      .filter(f =>
+        if f.isDirectory then ScenePackages.contains(f.getName)
+        else isSceneEntry(s"menger/${f.getName}"))
       .foreach(link(mengerD, _))
 
     pruned.toFile.deleteOnExit()
@@ -211,7 +227,7 @@ object RestrictedClasspath extends LazyLogging:
       val sink = new ZipOutputStream(Files.newOutputStream(out))
       try
         src.entries().asScala
-          .filterNot(e => ExcludedJarPrefixes.exists(e.getName.startsWith))
+          .filter(e => !e.isDirectory && isSceneEntry(e.getName))
           .foreach { entry =>
             sink.putNextEntry(new ZipEntry(entry.getName))
             if !entry.isDirectory then

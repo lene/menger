@@ -1,4 +1,4 @@
-package menger.dsl
+package menger.scene
 
 import java.nio.file.ClosedWatchServiceException
 import java.nio.file.FileSystems

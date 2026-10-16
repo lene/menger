@@ -1,5 +1,6 @@
-package menger.dsl
+package menger.scene
 
+import menger.dsl.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -99,7 +100,7 @@ class SceneLoaderSuite extends AnyFlatSpec with Matchers:
         fail("Should have failed to load non-existent scene")
 
   it should "return error for class without scene field or method" in:
-    val loaded = SceneLoader.load("menger.dsl.SceneLoader")
+    val loaded = SceneLoader.load("menger.scene.SceneLoader")
     loaded shouldBe a[Left[?, ?]]
 
     loaded match

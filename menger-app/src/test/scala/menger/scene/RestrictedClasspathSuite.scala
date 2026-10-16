@@ -1,4 +1,4 @@
-package menger.dsl
+package menger.scene
 
 import java.io.File
 
@@ -111,3 +111,13 @@ class RestrictedClasspathSuite extends AnyFlatSpec with Matchers:
     restricted should include("scala-logging")
     restricted should not include "scalatest"
     restricted should not include "archunit"
+
+  "RestrictedClasspath.isSceneEntry" should "admit the DSL packages and named root types only" in:
+    List("menger/dsl/Sphere.class", "menger/objects/Cube.class", "menger/video/X.class",
+      "menger/Projection4DSpec.class", "menger/Projection4DSpec$.class", "menger/ObjectSpec.tasty")
+      .foreach(p => withClue(p) { RestrictedClasspath.isSceneEntry(p) shouldBe true })
+    List("Main.class", "menger/MengerCLIOptions.class", "menger/tools/SceneValidator.class",
+      "menger/scene/SceneCompiler.class", "menger/engines/X.class", "menger/newpkg/X.class",
+      "examples/dsl/SceneIndex.class", "io/github/lene/optix/MengerRenderer.class",
+      "menger/ObjectSpecParser.class")
+      .foreach(p => withClue(p) { RestrictedClasspath.isSceneEntry(p) shouldBe false })

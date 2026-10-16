@@ -279,15 +279,17 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       )
       .check(allClasses)
 
-  // SA-AD-4 rule 2 (review round 2): `RestrictedClasspath` prunes menger.engines/tools/cli/input
-  // off the classpath it hands the compiler, so a scene file cannot reach them. That pruning
-  // is only safe while the DSL surface itself does not depend on those packages -- if it ever
-  // does, scene compilation breaks with an opaque "class not found" rather than a clear
-  // error. This rule is what keeps the pruning honest.
-  "The DSL surface" should "not depend on the engine, tooling, CLI or input layers" in:
-    noClasses().that().resideInAnyPackage("menger.dsl..", "menger.objects..")
+  // SA-AD-4 rule 2: `RestrictedClasspath` hands the compiler only the DSL surface, so a scene
+  // file cannot reach the rest. That is only safe while the DSL surface itself does not depend
+  // on the rest -- if it ever does, scene compilation breaks with an opaque "class not found".
+  // menger.scene (the compiler and loader, moved out of menger.dsl) and the compiler itself
+  // are in the list since review 2026-10-14 (menger#79): the vocabulary must not contain the
+  // machinery that executes it.
+  "The DSL surface" should "not depend on the engine, tooling, CLI, input or scene-loading layers" in:
+    noClasses().that().resideInAnyPackage("menger.dsl..", "menger.objects..", "menger.video..")
       .should().dependOnClassesThat().resideInAnyPackage(
-        "menger.engines..", "menger.tools..", "menger.cli..", "menger.input.."
+        "menger.engines..", "menger.tools..", "menger.cli..", "menger.input..", "menger.scene..",
+        "dotty.."
       )
       .check(allClasses)
 

@@ -1,4 +1,4 @@
-package menger.dsl
+package menger.scene
 
 import java.io.File
 import java.net.URLClassLoader
@@ -35,7 +35,7 @@ object SceneCompiler extends LazyLogging:
     else
       Right(URLClassLoader(
         Array(outputDir.toURI.toURL),
-        Thread.currentThread.getContextClassLoader
+        SceneClassLoader(Thread.currentThread.getContextClassLoader)
       ))
 
   /** Renders the Dotty reporter's own buffered diagnostics (`Reporter.allErrors` -- populated
@@ -52,3 +52,21 @@ object SceneCompiler extends LazyLogging:
       else err.message
     }
     s"Compilation of '${sourceFile.getName}' failed:\n${details.mkString("\n")}"
+
+/** The parent of a compiled scene's class loader: it resolves the JDK, the Scala library and
+  * the scene view of menger-app ([[RestrictedClasspath.isSceneClass]]), and nothing else, so a
+  * scene cannot load `menger.tools`, `menger.engines` or this package by name at run time
+  * either (review 2026-10-14, menger#99). Not a security boundary on its own: `java.lang` stays
+  * reachable, and any DSL class's `getClassLoader` is the application loader. The container is
+  * the boundary; this keeps the compile-time and run-time views the same. */
+final class SceneClassLoader(application: ClassLoader) extends ClassLoader(application):
+  @SuppressWarnings(Array("org.wartremover.warts.Throw")) // ClassLoader's contract
+  override protected def loadClass(name: String, resolve: Boolean): Class[?] =
+    if SceneClassLoader.isVisible(name) then super.loadClass(name, resolve)
+    else throw ClassNotFoundException(s"$name is outside the scene vocabulary")
+
+object SceneClassLoader:
+  private val PlatformPrefixes = List("java.", "javax.", "jdk.", "sun.", "scala.")
+
+  def isVisible(className: String): Boolean =
+    PlatformPrefixes.exists(className.startsWith) || RestrictedClasspath.isSceneClass(className)

@@ -25,8 +25,6 @@ import menger.config.OptiXEngineConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.LoadedScene
 import menger.dsl.ResourceLimits
-import menger.dsl.SceneFileWatcher
-import menger.dsl.SceneLoader
 import menger.engines.scene.InstanceId
 import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SceneBuilder
@@ -44,6 +42,8 @@ import menger.input.Vector3Extensions.toVector3
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
+import menger.scene.SceneFileWatcher
+import menger.scene.SceneLoader
 
 class InteractiveEngine(
   config: OptiXEngineConfig,

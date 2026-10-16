@@ -14,9 +14,7 @@ import menger.common.Const
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.dsl.LoadedScene
-import menger.dsl.RestrictedClasspath
 import menger.dsl.Scene
-import menger.dsl.SceneLoader
 import menger.engines.GeometryRegistry
 import menger.engines.RenderModeSelector
 import menger.engines.SceneGroups
@@ -25,6 +23,8 @@ import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
 import menger.objects.higher_d.InvariantFinding
 import menger.objects.higher_d.PolytopeInvariants
+import menger.scene.RestrictedClasspath
+import menger.scene.SceneLoader
 import upickle.default.ReadWriter
 import upickle.default.readwriter
 import upickle.default.write

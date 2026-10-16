@@ -1,7 +1,8 @@
-package menger.dsl
+package menger.scene
 
 import java.nio.file.Files
 
+import menger.dsl.LoadedScene
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -32,7 +33,7 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
     val file = writeTempScene("object Broken { THIS IS NOT SCALA !!!!")
     SceneCompiler.compile(file) shouldBe a[Left[?, ?]]
 
-  // RestrictedClasspath's own doc comment (menger.dsl.RestrictedClasspath): omitting
+  // RestrictedClasspath's own doc comment (menger.scene.RestrictedClasspath): omitting
   // `scala-logging_3` from its allowlist doesn't produce a normal compile error for a scene
   // referencing ParametricSurface -- it crashes the Scala 3 compiler with an opaque
   // `AssertionError: class X has non-class parent` during base-class linearization, because
@@ -161,3 +162,27 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
     val result = SceneLoader.load(file.getAbsolutePath)
     result.left.map(_.contains("scene(0) threw")) shouldBe Left(true)
     result.left.map(_.contains("Size must be positive")) shouldBe Left(true)
+
+  // Review 2026-10-14 (menger#79/#99): the compile view is an allow-list of the DSL surface, and
+  // a compiled scene's class loader resolves nothing outside it at run time either.
+  private val outsideTheVocabulary = List(
+    "menger.tools.SceneValidator", "menger.engines.InteractiveEngine", "menger.cli.CliParser",
+    "menger.scene.SceneCompiler", "menger.scene.SceneLoader", "menger.MengerCLIOptions",
+    "menger.config.SceneConfig", "examples.dsl.SceneIndex", "Main"
+  )
+
+  it should "not compile a scene that names anything outside the DSL surface" in:
+    outsideTheVocabulary.zipWithIndex.foreach { (name, i) =>
+      val file = writeTempScene(s"object Reach$i:\n  val leak = classOf[$name]\n")
+      withClue(name) { SceneCompiler.compile(file) shouldBe a[Left[?, ?]] }
+    }
+
+  "SceneClassLoader" should "resolve the platform and the DSL, nothing else" in:
+    val loader = SceneClassLoader(getClass.getClassLoader)
+    noException should be thrownBy loader.loadClass("menger.dsl.Sphere")
+    noException should be thrownBy loader.loadClass("menger.Projection4DSpec")
+    noException should be thrownBy loader.loadClass("scala.collection.immutable.List")
+    noException should be thrownBy loader.loadClass("java.lang.String")
+    outsideTheVocabulary.foreach { name =>
+      withClue(name) { an[ClassNotFoundException] should be thrownBy loader.loadClass(name) }
+    }
