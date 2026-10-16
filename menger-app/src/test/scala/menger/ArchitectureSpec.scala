@@ -36,6 +36,15 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .withImportOption(onlyOptixJniTarget)
       .importPackages("io.github.lene.optix")
 
+  // menger-app's and menger-geometry's own classes in the library package (everything in
+  // io.github.lene.optix that does not come from the optix-jni artifact).
+  private lazy val mengerClassesInOptixPackage =
+    ClassFileImporter()
+      .withImportOption(DoNotIncludeTests())
+      .withImportOption(doNotIncludeSbtTestClasses)
+      .withImportOption((location: Location) => !onlyOptixJniTarget.includes(location))
+      .importPackages("io.github.lene.optix")
+
   "menger.common" should "not depend on io.github.lene.optix" in:
     noClasses().that().resideInAPackage("menger.common..")
       .should().dependOnClassesThat().resideInAPackage("io.github.lene.optix..")
@@ -47,10 +56,13 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
         .resideInAnyPackage("menger.engines..", "menger.config..", "menger.dsl..")
       .check(allClasses)
 
+  // The list used to omit cli, input, tools, objects and the root package (review 2026-10-14,
+  // menger#90); "menger" without ".." is the root package itself.
   "io.github.lene.optix" should "not depend on menger application layer" in:
     noClasses().that().resideInAPackage("io.github.lene.optix..")
       .should().dependOnClassesThat()
-        .resideInAnyPackage("menger.engines..", "menger.config..", "menger.dsl..")
+        .resideInAnyPackage("menger.engines..", "menger.config..", "menger.dsl..",
+          "menger.cli..", "menger.input..", "menger.tools..", "menger.objects..", "menger")
       .check(allClasses)
 
   "io.github.lene.optix JNI boundary" should "not have native methods outside optix-jni module" in:
@@ -196,10 +208,16 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .should().resideInAnyPackage("menger.config..", "menger.common..")
       .check(allClasses)
 
-  it should "keep OptiX-prefixed classes in io.github.lene.optix within optix-jni" in:
-    classes().that().haveSimpleNameStartingWith("OptiX")
-      .should().resideInAPackage("io.github.lene.optix..")
-      .check(optixJniClasses)
+  // Split package (review 2026-10-14, menger#89/#90): menger's own classes declare the published
+  // library's package io.github.lene.optix, which lets them reach optix-jni's private[optix]
+  // members. The rule here used to check only optix-jni's own classes, so it could not fail.
+  // It now pins menger's classes in that package to today's set until they move to menger.*;
+  // a new one fails.
+  it should "add no new menger classes to the library package io.github.lene.optix" in:
+    classes().should().haveNameMatching(
+      "io\\.github\\.lene\\.optix\\." +
+        "(OptiXRendererWrapper|SceneConfigurator|CameraState|MengerRenderer|LevelMix)(\\$.*)?"
+    ).check(mengerClassesInOptixPackage)
 
   "JNI resource wrappers" should "implement AutoCloseable" in:
     import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
@@ -241,6 +259,19 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .should().beFreeOfCycles()
       .check(allClasses)
 
+  // The root package `menger` belongs to no layer and no slice, so the cycle rule above cannot
+  // see the two cycles that run through it (review 2026-10-14, menger#84/#90). Until it is
+  // emptied (menger#84), it may not grow: a new type there fails until listed here deliberately.
+  it should "not grow the unlayered root package menger" in:
+    classes().that().resideInAPackage("menger")
+      .should().haveNameMatching(
+        "menger\\.(AnimationSpecification|AnimationSpecificationSequence|AssetPaths|" +
+          "ColorConversions|ConeGeometry|CurveData|GlobalRotation|MengerCLIOptions|" +
+          "MengerExitException|ObjectRotation|ObjectSpec|OptiXRenderResources|OptiXRenderState|" +
+          "PlaneGeometry|ProceduralSpec|Projection4DSpec|RenderState|" +
+          "RotationProjectionParameters|TextureData|TextureLoader|TextureMaps)(\\$.*)?"
+      ).check(allClasses)
+
   it should "keep menger.video a leaf package" in:
     noClasses().that().resideInAPackage("menger.video..")
       .should().dependOnClassesThat().resideInAnyPackage(
@@ -261,12 +292,25 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .check(allClasses)
 
   // `MeshFactory.mesh4D` was widened from private so SceneValidator can run
-  // PolytopeInvariants against the same Mesh4D the renderer builds. That is a deliberate,
-  // single edge: menger.tools reaches into menger.engines.scene and nowhere else in the
-  // engine layer (review round 2 -- the widening previously had no rule holding it).
-  "menger.tools" should "reach into the engine layer only via menger.engines.scene" in:
+  // PolytopeInvariants against the same Mesh4D the renderer builds (review round 2). The rule
+  // used to forbid only menger.engines.internal -- a package that does not exist -- so it could
+  // not fail while SceneValidator and SceneSnapshot reached five engine-root types (review
+  // 2026-10-14, menger#90). It now admits menger.engines.scene plus exactly today's edges; a
+  // new one fails until it is listed here deliberately.
+  private val toolsEngineEdges = Set(
+    "GeometryRegistry", "RenderModeSelector", "SceneConverter", "SceneGroups", "SceneType"
+  ).map("menger.engines." + _)
+
+  "menger.tools" should "reach the engine layer only via engines.scene and the known edges" in:
+    import com.tngtech.archunit.base.DescribedPredicate
+    import com.tngtech.archunit.core.domain.JavaClass
+    val unlistedEngineClass: DescribedPredicate[JavaClass] =
+      new DescribedPredicate[JavaClass]("an engine class outside engines.scene and known edges"):
+        override def test(c: JavaClass): Boolean =
+          val name = c.getFullName
+          name.startsWith("menger.engines.") && !name.startsWith("menger.engines.scene.") &&
+            !toolsEngineEdges.exists(edge => name == edge || name.startsWith(edge + "$"))
     noClasses().that().resideInAPackage("menger.tools..")
-      .should().dependOnClassesThat().resideInAnyPackage(
-        "menger.engines.internal..", "menger.input.."
-      )
+      .should().dependOnClassesThat(unlistedEngineClass)
+      .orShould().dependOnClassesThat().resideInAPackage("menger.input..")
       .check(allClasses)
