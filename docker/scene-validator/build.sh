@@ -83,13 +83,21 @@ echo "== 3/3: docker build -t $IMAGE_TAG (menger-app $APP_VERSION) =="
 # org.opencontainers.image.version lets a caller check the image against the working tree;
 # menger.optix.redistributable=false records that this image embeds a licensed OptiX SDK
 # (see the cp -a above) and must never be pushed to a public registry (review round 2).
-docker build \
-  --label "org.opencontainers.image.version=$APP_VERSION" \
-  --label "org.opencontainers.image.revision=$SOURCE_REVISION" \
-  --label "menger.dsl-manifest.sha256=$MANIFEST_SHA256" \
-  --label "org.opencontainers.image.title=menger-scene-validator" \
-  --label "menger.optix.redistributable=false" \
-  -t "$IMAGE_TAG" "$SCRIPT_DIR"
+build_target() {  # build_target <target> <tag>
+  docker build --target "$1" \
+    --label "org.opencontainers.image.version=$APP_VERSION" \
+    --label "org.opencontainers.image.revision=$SOURCE_REVISION" \
+    --label "menger.dsl-manifest.sha256=$MANIFEST_SHA256" \
+    --label "org.opencontainers.image.title=menger-$1" \
+    --label "menger.optix.redistributable=false" \
+    -t "$2" "$SCRIPT_DIR"
+}
+build_target scene-validator "$IMAGE_TAG"
+# The render window runs the same generated code (review 2026-10-14, menger#77); it is built
+# from the same staged app in the same run, so validator and window are always one build and
+# carry the same manifest label, which run-render-window.sh checks like run-sandboxed.sh.
+RENDER_IMAGE_TAG="${RENDER_IMAGE_TAG:-menger-render-window:latest}"
+build_target render-window "$RENDER_IMAGE_TAG"
 
-echo "Built $IMAGE_TAG (menger-app $APP_VERSION, revision $SOURCE_REVISION, manifest sha256 $MANIFEST_SHA256)"
+echo "Built $IMAGE_TAG and $RENDER_IMAGE_TAG (menger-app $APP_VERSION, revision $SOURCE_REVISION, manifest sha256 $MANIFEST_SHA256)"
 echo "NOTE: this image embeds a licensed OptiX SDK -- do not push it to a public registry."
