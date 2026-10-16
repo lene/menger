@@ -53,6 +53,9 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     new AtomicReference(None)
   private val envMapVideoState: AtomicReference[Option[WithAnimation.EnvMapVideoState]] =
     new AtomicReference(None)
+  // Environment-map videos that failed to open: not retried on every frame, which opened a new
+  // decoder and uploaded a new texture per frame (review 2026-10-14, menger#105).
+  private val failedEnvMapVideos: AtomicReference[Set[String]] = new AtomicReference(Set.empty)
 
   abstract override def create(): Unit =
     val renderer = rendererWrapper.renderer
@@ -263,6 +266,8 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       case None =>
         replaceEnvMapVideoState(None)
         Success(())
+      case Some(envMapVideo) if failedEnvMapVideos.get.contains(envMapVideo.textureKey) =>
+        Success(()) // reported once when it failed
       case Some(envMapVideo) =>
         val existingState = envMapVideoState.get.filter { state =>
           state.envMapVideo.textureKey == envMapVideo.textureKey
@@ -270,11 +275,17 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
         val state = existingState
           .map(existing => Success(existing.copy(specs = newSpecs, envMapVideo = envMapVideo)))
           .getOrElse(createEnvMapVideoState(envMapVideo, newSpecs, renderer))
-        state.flatMap { activeState =>
-          updateEnvMapVideoSlot(activeState, configs, renderer, t).map { _ =>
-            replaceEnvMapVideoState(Some(activeState))
-          }
+        val updated = state.flatMap { activeState =>
+          updateEnvMapVideoSlot(activeState, configs, renderer, t) match
+            case Success(_) => Success(replaceEnvMapVideoState(Some(activeState)))
+            case Failure(e) =>
+              // A state made for this frame is not kept, so its decoder must not outlive it.
+              if existingState.isEmpty then activeState.source.close()
+              Failure(e)
         }
+        updated.failed.foreach(_ =>
+          failedEnvMapVideos.updateAndGet(_ + envMapVideo.textureKey))
+        updated
 
   private def uploadEnvMapVideoSlot(
     envMapVideo: EnvMapVideo,
@@ -294,16 +305,16 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     newSpecs: List[ObjectSpec],
     renderer: OptiXRenderer
   ): Try[WithAnimation.EnvMapVideoState] =
-    for
-      textureIndex <- uploadEnvMapVideoSlot(envMapVideo, renderer)
-      source       <- createVideoFrameSource(envMapVideo.path, envMapVideo.playback)
-    yield
-      TextureManager.validateEquirectangularDimensions(
-        source.width,
-        source.height,
-        envMapVideo.path
-      )
-      WithAnimation.EnvMapVideoState(newSpecs, envMapVideo, textureIndex, source)
+    // The decoder first and checked before anything is uploaded; closed if a later step fails
+    // (it leaked when the 2:1 check or the upload failed after it was opened, menger#105).
+    createVideoFrameSource(envMapVideo.path, envMapVideo.playback).flatMap { source =>
+      val state = Try(TextureManager.validateEquirectangularDimensions(
+        source.width, source.height, envMapVideo.path
+      )).flatMap(_ => uploadEnvMapVideoSlot(envMapVideo, renderer)).map(textureIndex =>
+        WithAnimation.EnvMapVideoState(newSpecs, envMapVideo, textureIndex, source))
+      if state.isFailure then source.close()
+      state
+    }
 
   private def updateEnvMapVideoSlot(
     state: WithAnimation.EnvMapVideoState,
@@ -387,11 +398,20 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
             WithAnimation.VideoTextureSlot(videoTexture, textureIndices.toVector, source)
           }
     }.toVector
-    slotTries.foldLeft(Success(Vector.empty): Try[Vector[WithAnimation.VideoTextureSlot]]) {
+    val none: Try[Vector[WithAnimation.VideoTextureSlot]] = Success(Vector.empty)
+    val slots = slotTries.foldLeft(none) {
       case (Success(slots), Success(slot)) => Success(slots :+ slot)
       case (Failure(e), _)                 => Failure(e)
       case (_, Failure(e))                 => Failure(e)
     }
+    // One source failing dropped the others this call had opened, unclosed (menger#105).
+    if slots.isFailure then
+      val reused = reusableSlots.values.map(_.source).toSet
+      slotTries.foreach {
+        case Success(slot) if !reused.contains(slot.source) => slot.source.close()
+        case _ => ()
+      }
+    slots
 
   private def createVideoFrameSource(
     path: String,
