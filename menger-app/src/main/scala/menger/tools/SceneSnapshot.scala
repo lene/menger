@@ -11,7 +11,9 @@ import menger.common.Vector
 import menger.common.x
 import menger.common.y
 import menger.common.z
+import menger.config.PlaneConfig
 import menger.dsl.Scene
+import menger.dsl.SceneObject
 import menger.engines.SceneConverter
 import upickle.default.ReadWriter
 
@@ -37,8 +39,12 @@ object SceneSnapshot:
     eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float, wScale: Float
   ) derives ReadWriter
 
+  /** `objectType` is the renderer's name, which carries the subtype (`sponge-volume`,
+    * `sponge-surface`); `dslType` is the DSL case class the scene wrote (`Sponge`), the name
+    * the agent shows (review 2026-10-14, menger#92). */
   case class ObjectValues(
     objectType: String,
+    dslType: String,
     pos: List[Float],
     size: Float,
     level: Option[Float],
@@ -63,6 +69,18 @@ object SceneSnapshot:
   case class CameraValues(position: List[Float], lookAt: List[Float], up: List[Float])
     derives ReadWriter
 
+  /** A plane: `axis` X/Y/Z, `positive` = the side it faces, `value` its position on the axis;
+    * `checkerColor` only for a checkered plane. Planes were missing, so a plane change was
+    * missing from the agent's change list and its readback guessed (menger#92). */
+  case class PlaneValues(
+    axis: String,
+    positive: Boolean,
+    value: Float,
+    color: Option[List[Float]],
+    checkerColor: Option[List[Float]],
+    material: Option[MaterialValues]
+  ) derives ReadWriter
+
   // ponytail: caustics and render settings as their DSL case-class text -- enough for the agent
   // to show a change; model them field by field when a check needs one of them.
   case class Snapshot(
@@ -72,7 +90,8 @@ object SceneSnapshot:
     lights: List[LightValues],
     background: Option[List[Float]],
     caustics: Option[String],
-    render: Option[String]
+    render: Option[String],
+    planes: List[PlaneValues] = Nil
   ) derives ReadWriter
 
   case class CameraSample(t: Float, position: List[Float], lookAt: List[Float])
@@ -91,13 +110,19 @@ object SceneSnapshot:
         camera = CameraValues(
           vec(configs.camera.position), vec(configs.camera.lookAt), vec(configs.camera.up)
         ),
-        objects = configs.scene.objectSpecs.getOrElse(Nil).map(objectValues),
+        objects = configs.scene.objectSpecs.getOrElse(Nil).zip(dslObjects(scene)).map(objectValues),
         lights = configs.lights.map(lightValues),
         background = configs.background.map(rgba),
         caustics = scene.caustics.map(_.toString),
-        render = scene.render.map(_.toString)
+        render = scene.render.map(_.toString),
+        planes = configs.planes.map(planeValues)
       )
     }
+
+  /** The scene's objects in the order `SceneConverter.flattenNode` turns them into specs (one
+    * spec per object): `allLeafGeometry` walks the tree the same way. */
+  private[tools] def dslObjects(scene: Scene): List[SceneObject] =
+    scene.root.map(_.allLeafGeometry).getOrElse(scene.objects)
 
   /** The camera every `CameraPathStepSeconds` over `[0, duration]` (at most
     * `MaxCameraPathSamples`, then evenly spread); a time whose scene throws is skipped. */
@@ -122,9 +147,20 @@ object SceneSnapshot:
       m.dispersion
     )
 
-  private def objectValues(spec: ObjectSpec): ObjectValues =
+  private def planeValues(plane: PlaneConfig): PlaneValues =
+    PlaneValues(
+      axis = plane.spec.axis.toString,
+      positive = plane.spec.positive,
+      value = plane.spec.value,
+      color = plane.colorSpec.map(c => rgba(c.color1)),
+      checkerColor = plane.colorSpec.flatMap(_.color2).map(rgba),
+      material = plane.material.map(materialValues)
+    )
+
+  private def objectValues(spec: ObjectSpec, dsl: SceneObject): ObjectValues =
     ObjectValues(
       objectType = spec.objectType,
+      dslType = dsl.getClass.getSimpleName,
       pos = List(spec.x, spec.y, spec.z),
       size = spec.size,
       level = spec.level,

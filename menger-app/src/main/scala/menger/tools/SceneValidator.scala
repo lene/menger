@@ -76,7 +76,8 @@ object SceneValidator extends LazyLogging:
   /** Bumped when this result's shape changes incompatibly, matching `CorpusManifest` and
     * `DslManifest`, which both carry one (review round 2). */
   // 1.1.0: `snapshots` and `cameraPath` (additive; usability review 2026-10, session 4).
-  val SchemaVersion = "1.1.0"
+  // 1.2.0: snapshot objects carry `dslType`, snapshots carry `planes` (additive; menger#92).
+  val SchemaVersion = "1.2.0"
 
   /** `messages` stays first-class and unchanged -- it is what the existing consumers read.
     * `findings`, `scene`, `schemaVersion`, `snapshots` and `cameraPath` are additive and

@@ -135,6 +135,37 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     snapshot.lights.head.intensity shouldBe 1.5f
     result.cameraPath shouldBe empty
 
+  // Review 2026-10-14 (menger#92): planes were missing, so a plane change never reached the
+  // agent's change list; objects carried only the renderer's name. In a node tree the DSL name
+  // must pair with its own flattened spec.
+  it should "carry planes and each object's DSL type, in a node tree too" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object TreeScene:
+        |  val scene: Scene = Scene(
+        |    root = Some(SceneNode(
+        |      geometry = Some(Cube(pos = (1f, 0f, 0f))),
+        |      children = List(
+        |        SceneNode(geometry = Some(Sponge(VolumeFilling, level = 1f))),
+        |        SceneNode(geometry = Some(Sphere(pos = (0f, 2f, 0f))))
+        |      )
+        |    )),
+        |    planes = List(Plane(Y at -1, color = "#336699"))
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+    val snapshot = result.snapshots.head
+    snapshot.objects.map(o => (o.dslType, o.objectType)) shouldBe
+      List(("Cube", "cube"), ("Sponge", "sponge-volume"), ("Sphere", "sphere"))
+    snapshot.objects(2).pos shouldBe List(0f, 2f, 0f)
+    snapshot.planes should have size 1
+    val plane = snapshot.planes.head
+    (plane.axis, plane.value) shouldBe ("Y", -1f)
+    plane.color.map(_.take(3)) shouldBe Some(List(0x33 / 255f, 0x66 / 255f, 0x99 / 255f))
+    plane.checkerColor shouldBe None
+
   it should "carry an animated scene's snapshots and its densely sampled camera path" in:
     val file = writeTempScene(
       """import menger.dsl._
