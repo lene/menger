@@ -11,9 +11,10 @@ import scala.sys.process.ProcessLogger
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-/** `run-sandboxed.sh --expect-manifest-sha256` against a stub `docker` (usability review
-  * 2026-10, session 4, F99): a stale validator image passed for current because its only label
-  * was the app version. No real image or daemon needed, unlike `SceneValidatorContainerE2ESuite`.
+/** `run-sandboxed.sh --expect-dsl-revision` against a stub `docker` (usability review 2026-10,
+  * session 4, F99): a stale validator image passed for current because its only label was the
+  * app version. The label is the manifest's contentRevision since menger#83 (it was the whole
+  * file's sha256). No real image or daemon needed, unlike `SceneValidatorContainerE2ESuite`.
   */
 class RunSandboxedScriptSuite extends AnyFlatSpec with Matchers:
 
@@ -51,14 +52,14 @@ class RunSandboxedScriptSuite extends AnyFlatSpec with Matchers:
     val out = StringBuilder()
     val env = "PATH" -> s"${stubDir.getPath}:${sys.env.getOrElse("PATH", "")}"
     val exit = Process(
-      Seq("bash", script.getPath, scene.getPath, "--expect-manifest-sha256", expected),
+      Seq("bash", script.getPath, scene.getPath, "--expect-dsl-revision", expected),
       None, env
     ).!(ProcessLogger(line => out.append(line).append('\n'), _ => ()))
     val calls = new File(stubDir, "calls")
     val logged = if calls.isFile then Files.readAllLines(calls.toPath).asScala.toList else Nil
     (exit, out.toString, logged)
 
-  "run-sandboxed.sh" should "refuse without running the container when the manifest hash differs" in:
+  "run-sandboxed.sh" should "refuse without running the container when the DSL revision differs" in:
     val (exit, out, calls) = run(stubDocker(ImageHash), "b" * 64)
     exit shouldBe 2
     out should include ("\"tag\": \"refused\"")

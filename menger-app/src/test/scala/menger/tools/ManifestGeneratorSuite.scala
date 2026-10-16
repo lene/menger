@@ -60,7 +60,14 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
       f <- t.fields
       if f.description.isDefined
     yield (t.name, f.name)).toSet
-    described shouldBe DslSemantics.fieldDescriptions.keySet
+    // The (type, field) table, plus the descriptions given by field name on every type that has
+    // the field (proceduralType/proceduralScale, menger#81) -- each from a table entry.
+    val byFieldName = (for
+      t <- allTypes
+      f <- t.fields
+      if DslSemantics.descriptionOf("<none>", f.name).isDefined
+    yield (t.name, f.name)).toSet
+    described shouldBe DslSemantics.fieldDescriptions.keySet ++ byFieldName
 
   // Usability review 2026-09 (T1#3): a manifest that names a field but not its ceiling still
   // lets an agent request an unbounded sponge level or L-system iteration count.

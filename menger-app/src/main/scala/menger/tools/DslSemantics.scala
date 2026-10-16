@@ -1,5 +1,7 @@
 package menger.tools
 
+import menger.dsl.FieldConstraints
+
 /** What the DSL's fields *mean* -- units, conventions and interactions that reflection cannot
   * recover (there is no scaladoc at runtime). Everything else in the manifest is derived from
   * the DSL types themselves; this is the one deliberately hand-maintained part, so keep it to
@@ -149,118 +151,41 @@ object DslSemantics:
       "level 2: one tube per edge, so level 3 needs 130177 instances, more than the 65536 the " +
       "renderer has, and from 2.x the level stays at its integer part (usability review 2026-10, " +
       "session 4, F94; menger#70).")
-  ) ++ proceduralDescriptions
-
-  /** Every DSL object type has `proceduralType`/`proceduralScale`; the presets were known only
-    * to the scene agent's prompt (usability review 2026-09, session 2, F37/F40). Numbers and
-    * names match `ObjectSpec`'s preset table and optix-jni's `applyProceduralTexture`. */
-  private def proceduralDescriptions: Map[(String, String), String] =
-    val objectTypes = List(
-      "Sphere", "Cube", "Sponge", "Tesseract", "TesseractSponge", "Sierpinski4D",
-      "ParametricSurface", "Curve", "LSystem", "Pentachoron", "Hexadecachoron",
-      "Icositetrachoron", "Hexacosichoron", "Hecatonicosachoron"
-    )
-    val typeText =
-      "Built-in procedural texture, one of exactly these presets: 0 none (default); " +
-        "1 value_noise, 2 fbm, 3 worley, 4 gradient, 5 wood, 6 marble, 7 layered_noise, " +
-        "10 triplanar -- each MODULATES the material's own colour by a pattern (same hue, " +
-        "varying brightness); 8 xyz_rgb REPLACES the colour with (|x|, |y|, |z| mod 1) of the " +
-        "world position as RGB, mirrored at 0 on each axis; 11 xyz_rgb_local REPLACES it with " +
-        "the position inside the object's own box, x, y, z each 0..1 -> R, G, B: every colour " +
-        "once over the object at scale 1, following its position, size and rotation, no " +
-        "mirroring -- use it for \"local\" or \"every colour once\" colouring, never move the " +
-        "object for it (usability review 2026-10, session 3, F63); 9 heatmap REPLACES the " +
-        "colour with a blue-to-red noise gradient. It belongs to the look of the material it " +
-        "imitates: swapping the material (e.g. wood to aluminium) drops a pattern like wood."
-    val scaleText =
-      "Multiplies the world position before the pattern is evaluated (higher = smaller, " +
-        "more frequent pattern). One pattern period across an object needs about 1 / size."
-    objectTypes.flatMap(t =>
-      List((t, "proceduralType") -> typeText, (t, "proceduralScale") -> scaleText)
-    ).toMap
-
-  def descriptionOf(typeName: String, fieldName: String): Option[String] =
-    fieldDescriptions.get((typeName, fieldName))
-
-  /** Per-field (min, max), keyed the same way as [[fieldDescriptions]] -- the single source is
-    * [[menger.dsl.ResourceLimits]] (usability review 2026-09, T1#3); this just maps a DSL
-    * type/field pair onto the right constant. `Sponge` and `TesseractSponge` have a ceiling per
-    * `spongeType` (see `limitsBySubtype`), so their plain manifest max is the *smaller* of the
-    * mesh types' -- a hint that's never wrong to reject, only sometimes more conservative than
-    * the real per-variant limit `require()` actually enforces.
-    */
-  private val fieldLimits: Map[(String, String), (Option[Double], Option[Double])] = Map(
-    ("Sponge", "level") -> (Some(0d), Some(math.min(
-      menger.dsl.ResourceLimits.volumeSpongeLevel.max,
-      menger.dsl.ResourceLimits.surfaceSpongeLevel.max
-    ).toDouble)),
-    ("TesseractSponge", "level") -> (Some(0d), Some(math.min(
-      menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.max,
-      menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.max
-    ).toDouble)),
-    ("LSystem", "iterations") -> (Some(0d), Some(menger.dsl.ResourceLimits.lsystemMaxIterations.toDouble)),
-    // Each is capped by the product cap (the other at 1); the product itself is checked by
-    // the DSL and the validator (review 2026-10-14, menger#106).
-    ("ParametricSurface", "uSteps") ->
-      (Some(1d), Some(menger.dsl.ResourceLimits.parametricSurfaceMaxSamples.toDouble)),
-    ("ParametricSurface", "vSteps") ->
-      (Some(1d), Some(menger.dsl.ResourceLimits.parametricSurfaceMaxSamples.toDouble)),
-    ("RenderSettings", "accumulation") ->
-      (Some(1d), Some(menger.dsl.ResourceLimits.renderAccumulationMax.toDouble)),
-    ("Sierpinski4D", "level") -> (Some(0d), Some(menger.dsl.ResourceLimits.ifs4dMaxLevel.toDouble))
   )
 
-  /** Per-value bounds of a field whose limits depend on another field (usability review
-    * 2026-10, session 3, F59): (field the limits are keyed by) -> value -> (min, max, warnAt).
-    * The plain `limitsOf`/`warnAtOf` stay as the conservative default for when that field is
-    * not a literal. */
-  type Bounds = (Option[Double], Option[Double], Option[Double])
+  /** The same on every object that has them (usability review 2026-09, session 2, F37/F40):
+    * by field name, so a new object type gets them without a list to extend (it was a hand list
+    * of 14 types). The presets themselves are `ProceduralPresets` (menger#81). */
+  private val descriptionsByFieldName: Map[String, String] = Map(
+    "proceduralType" -> menger.dsl.ProceduralPresets.description,
+    "proceduralScale" -> ("Multiplies the world position before the pattern is evaluated " +
+      "(higher = smaller, more frequent pattern). One pattern period across an object needs " +
+      "about 1 / size.")
+  )
 
-  private def levelBounds(limit: menger.dsl.ResourceLimits.LevelLimit): Bounds =
-    (Some(0d), Some(limit.max.toDouble), Some(limit.warnAt.toDouble))
+  def descriptionOf(typeName: String, fieldName: String): Option[String] =
+    fieldDescriptions.get((typeName, fieldName)).orElse(descriptionsByFieldName.get(fieldName))
 
   /** Enum values the manifest leaves out, so the agent never chooses them; the DSL still reads
     * them (`CubeSponge`: deprecated, menger#76). */
   val deprecatedEnumValues: Set[String] = Set("CubeSponge")
 
-  private val limitsBySubtype: Map[(String, String), (String, Map[String, Bounds])] = Map(
-    ("Sponge", "level") -> ("spongeType", Map(
-      "VolumeFilling"    -> levelBounds(menger.dsl.ResourceLimits.volumeSpongeLevel),
-      "SurfaceUnfolding" -> levelBounds(menger.dsl.ResourceLimits.surfaceSpongeLevel),
-      "RecursiveIAS"     -> (
-        Some(menger.dsl.ResourceLimits.recursiveIasMinLevel.toDouble),
-        Some(menger.dsl.ResourceLimits.recursiveIasMaxLevel.toDouble),
-        None
-      )
-    )),
-    ("TesseractSponge", "level") -> ("spongeType", Map(
-      "VolumeRemoving" -> levelBounds(menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel),
-      "SurfaceSubdividing" -> levelBounds(menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel)
-    ))
-  )
+  /** Object types with holes through them: something inside one stays visible through the holes,
+    * so it never occludes (usability review 2026-10, F78). The agent kept this list itself
+    * (review 2026-10-14, msa#28); the manifest now carries it as the `holed` trait. */
+  val holedTypes: Set[String] = Set("Sponge", "TesseractSponge", "Sierpinski4D")
 
-  def limitsBySubtypeOf(
-    typeName: String,
-    fieldName: String
-  ): Option[(String, Map[String, Bounds])] =
-    limitsBySubtype.get((typeName, fieldName))
-
+  // Bounds are `menger.dsl.FieldConstraints` (review 2026-10-14, menger#114): these were three
+  // string-keyed tables parallel to the DSL `require`s. `Sponge`/`TesseractSponge` have a
+  // ceiling per `spongeType`; their plain max is the smaller of the mesh types' -- never wrong
+  // to reject, only sometimes more conservative than the per-variant limit.
   def limitsOf(typeName: String, fieldName: String): (Option[Double], Option[Double]) =
-    fieldLimits.getOrElse((typeName, fieldName), (None, None))
+    FieldConstraints.fields.get((typeName, fieldName)).fold((None, None))(b => (b.min, b.max))
 
-  /** Level at or above which rendering gets slow (`ResourceLimits.*.warnAt`) -- the agent should
-    * ask before going there (usability review 2026-09, session 2, F36). `TesseractSponge` takes
-    * the smaller of its two variants' thresholds, like its `max` above. */
-  private val fieldWarnLevels: Map[(String, String), Double] = Map(
-    ("Sponge", "level") -> math.min(
-      menger.dsl.ResourceLimits.volumeSpongeLevel.warnAt,
-      menger.dsl.ResourceLimits.surfaceSpongeLevel.warnAt
-    ).toDouble,
-    ("TesseractSponge", "level") -> math.min(
-      menger.dsl.ResourceLimits.tesseractSpongeVolumeLevel.warnAt,
-      menger.dsl.ResourceLimits.tesseractSpongeSurfaceLevel.warnAt
-    ).toDouble
-  )
-
+  /** Level at or above which rendering gets slow -- the agent should ask before going there
+    * (usability review 2026-09, session 2, F36). */
   def warnAtOf(typeName: String, fieldName: String): Option[Double] =
-    fieldWarnLevels.get((typeName, fieldName))
+    FieldConstraints.fields.get((typeName, fieldName)).flatMap(_.warnAt)
+
+  def limitsBySubtypeOf(typeName: String, fieldName: String): Option[FieldConstraints.BySubtype] =
+    FieldConstraints.bySubtype.get((typeName, fieldName))

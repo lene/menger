@@ -9,14 +9,14 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: run-sandboxed.sh <scene-file.scala> [--image <tag>] [--expect-manifest-sha256 <hex>]
+Usage: run-sandboxed.sh <scene-file.scala> [--image <tag>] [--expect-dsl-revision <hex>]
 
 Runs `menger.tools.SceneValidator` against <scene-file.scala> inside the SA-AD-18 sandbox.
 
   --image <tag>      Image to run (default: menger-scene-validator:latest -- see build.sh).
-  --expect-manifest-sha256 <hex>
+  --expect-dsl-revision <hex>
                      Refuse (tag `refused`, exit 2, nothing run) unless the image's
-                     `menger.dsl-manifest.sha256` label is <hex>: the caller's DSL manifest and
+                     `menger.dsl-content-revision` label is <hex> (the manifest's contentRevision): the caller's DSL and
                      the image's must be the same build (usability review 2026-10, F99).
 
 Prints SceneValidator's tagged JSON result (ok | compile-errors | lint-findings | refused) to
@@ -68,13 +68,13 @@ esac
 
 SCENE_FILE="$1"; shift
 IMAGE_TAG="menger-scene-validator:latest"
-EXPECTED_MANIFEST_SHA256=""
+EXPECTED_DSL_REVISION=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --image)    IMAGE_TAG="${2:?--image needs a tag}"; shift 2 ;;
-    --expect-manifest-sha256)
-      EXPECTED_MANIFEST_SHA256="${2:?--expect-manifest-sha256 needs a hash}"; shift 2 ;;
+    --expect-dsl-revision)
+      EXPECTED_DSL_REVISION="${2:?--expect-dsl-revision needs a revision}"; shift 2 ;;
     -h|--help)  usage ;;
     *) echo "Unknown argument: $1" >&2; usage ;;
   esac
@@ -86,11 +86,11 @@ done
 # image (re-tagged by CI from older sources) passed for current. build.sh labels the image with
 # the sha256 of the manifest it was built with; a caller holding a different manifest gets a
 # refusal it can show as is, instead of validating against an older DSL.
-if [ -n "$EXPECTED_MANIFEST_SHA256" ]; then
-  IMAGE_MANIFEST_SHA256="$(docker inspect -f '{{index .Config.Labels "menger.dsl-manifest.sha256"}}' \
+if [ -n "$EXPECTED_DSL_REVISION" ]; then
+  IMAGE_DSL_REVISION="$(docker inspect -f '{{index .Config.Labels "menger.dsl-content-revision"}}' \
     "$IMAGE_TAG" 2>/dev/null || true)"
-  if [ "$IMAGE_MANIFEST_SHA256" != "$EXPECTED_MANIFEST_SHA256" ]; then
-    refuse "validator image $IMAGE_TAG was built from a different DSL manifest (image: ${IMAGE_MANIFEST_SHA256:-<no label>}, caller: $EXPECTED_MANIFEST_SHA256); rebuild it: menger/docker/scene-validator/build.sh"
+  if [ "$IMAGE_DSL_REVISION" != "$EXPECTED_DSL_REVISION" ]; then
+    refuse "validator image $IMAGE_TAG was built from a different DSL manifest (image: ${IMAGE_DSL_REVISION:-<no label>}, caller: $EXPECTED_DSL_REVISION); rebuild it: menger/docker/scene-validator/build.sh"
   fi
 fi
 

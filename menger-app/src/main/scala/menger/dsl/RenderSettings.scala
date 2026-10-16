@@ -25,14 +25,10 @@ case class RenderSettings(
   accumulation: Int = 1,
   denoise: DenoiseMode = DenoiseMode.Off,
 ):
-  require(aaMaxDepth >= 1 && aaMaxDepth <= 4, s"aaMaxDepth must be 1-4, got $aaMaxDepth")
-  require(aaThreshold >= 0.0f && aaThreshold <= 1.0f, s"aaThreshold must be 0.0-1.0, got $aaThreshold")
-  maxRayDepth.foreach(d => require(
-    d >= 1 && d <= RenderConfig.Default.maxRayDepth,
-    s"maxRayDepth must be 1-${RenderConfig.Default.maxRayDepth}, got $d"
-  ))
-  require(accumulation >= 1 && accumulation <= ResourceLimits.renderAccumulationMax,
-    s"RenderSettings.accumulation must be 1-${ResourceLimits.renderAccumulationMax}, got $accumulation")
+  FieldConstraints.check("RenderSettings", "aaMaxDepth", aaMaxDepth)
+  FieldConstraints.check("RenderSettings", "aaThreshold", aaThreshold)
+  maxRayDepth.foreach(FieldConstraints.check("RenderSettings", "maxRayDepth", _))
+  FieldConstraints.check("RenderSettings", "accumulation", accumulation)
 
   def toRenderConfig: RenderConfig = RenderConfig(
     shadows = shadows,

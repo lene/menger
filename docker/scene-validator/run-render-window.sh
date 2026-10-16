@@ -12,7 +12,7 @@
 #
 # Environment:
 #   MENGER_RENDER_IMAGE                image (default menger-render-window:latest, see build.sh)
-#   MENGER_RENDER_EXPECT_MANIFEST_SHA256  refuse unless the image's manifest label matches
+#   MENGER_RENDER_EXPECT_DSL_REVISION  refuse unless the image's DSL revision label matches
 #   MENGER_TEXTURE_DIR                 mounted read-only at its host path, if set
 #   MENGER_RENDER_MEMORY / _CPUS / _PIDS_LIMIT   resource bounds (12g / 4 / 1024)
 set -euo pipefail
@@ -42,10 +42,10 @@ display_number="${display#*:}"; display_number="${display_number%%.*}"
 socket="/tmp/.X11-unix/X$display_number"
 [ -S "$socket" ] || refuse "render window: X socket $socket not found"
 
-if [ -n "${MENGER_RENDER_EXPECT_MANIFEST_SHA256:-}" ]; then
-  label="$(docker inspect -f '{{index .Config.Labels "menger.dsl-manifest.sha256"}}' "$IMAGE" \
+if [ -n "${MENGER_RENDER_EXPECT_DSL_REVISION:-}" ]; then
+  label="$(docker inspect -f '{{index .Config.Labels "menger.dsl-content-revision"}}' "$IMAGE" \
     2>/dev/null || true)"
-  [ "$label" = "$MENGER_RENDER_EXPECT_MANIFEST_SHA256" ] || refuse \
+  [ "$label" = "$MENGER_RENDER_EXPECT_DSL_REVISION" ] || refuse \
     "render image $IMAGE was built from a different DSL manifest (image: ${label:-<no label>}); rebuild it: menger/docker/scene-validator/build.sh"
 fi
 

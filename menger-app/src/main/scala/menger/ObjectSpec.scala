@@ -532,29 +532,15 @@ object ObjectSpec extends LazyLogging:
         }
       case None => Right(default)
 
-  private val ProceduralTypeNames: Map[String, Int] = Map(
-    "none"         -> 0,
-    "value_noise"  -> 1,
-    "fbm"          -> 2,
-    "worley"       -> 3,
-    "gradient"     -> 4,
-    "wood"         -> 5,
-    "marble"       -> 6,
-    "layered_noise" -> 7,
-    "xyz_rgb"       -> 8,
-    "heatmap"       -> 9,
-    "triplanar"     -> 10,
-    "xyz_rgb_local" -> 11
-  )
-
   private def parseProceduralType(kvPairs: Map[String, String]): Either[String, Int] =
     kvPairs.get("procedural") match
       case None => Right(0)
       case Some(name) =>
-        ProceduralTypeNames.get(name.toLowerCase) match
-          case Some(id) => Right(id)
+        menger.dsl.ProceduralPresets.byName(name) match
+          case Some(preset) => Right(preset.id)
           case None =>
-            Left(s"Unknown procedural type '$name'. Valid: ${ProceduralTypeNames.keys.mkString(", ")}")
+            val valid = menger.dsl.ProceduralPresets.All.map(_.name).mkString(", ")
+            Left(s"Unknown procedural type '$name'. Valid: $valid")
 
   private def validate4DParams(eyeW: Float, screenW: Float): Either[String, Unit] =
     if eyeW <= screenW then

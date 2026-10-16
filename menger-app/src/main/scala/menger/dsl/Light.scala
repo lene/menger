@@ -77,7 +77,7 @@ case class AreaLight(
 ) extends Light:
   require(intensity >= 0f, s"Intensity must be non-negative, got $intensity")
   require(radius > 0f, s"Radius must be positive, got $radius")
-  require(shadowSamples >= 1 && shadowSamples <= 16, s"shadowSamples must be 1-16, got $shadowSamples")
+  FieldConstraints.check("AreaLight", "shadowSamples", shadowSamples)
 
   def toCommonLight: CommonLight =
     CommonLight.Area(

@@ -489,8 +489,7 @@ case class Sierpinski4D(
   require(level >= 0f, s"Level must be non-negative, got $level")
   // The manifest already advertised this ceiling; the constructor did not enforce it (review
   // 2026-10-14, menger#106).
-  require(level <= ResourceLimits.ifs4dMaxLevel,
-    s"Sierpinski4D level $level exceeds hard maximum ${ResourceLimits.ifs4dMaxLevel}")
+  FieldConstraints.check("Sierpinski4D", "level", level)
   require(size > 0f, s"Size must be positive, got $size")
 
   def toObjectSpec: ObjectSpec =
@@ -548,8 +547,8 @@ case class ParametricSurface(
   proceduralScale: Float = 1.0f,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
-  require(uSteps >= 1, s"uSteps must be >= 1, got $uSteps")
-  require(vSteps >= 1, s"vSteps must be >= 1, got $vSteps")
+  FieldConstraints.check("ParametricSurface", "uSteps", uSteps)
+  FieldConstraints.check("ParametricSurface", "vSteps", vSteps)
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
   require(
@@ -682,8 +681,7 @@ case class LSystem(
   proceduralScale: Float = 1.0f,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
-  require(iterations >= 0 && iterations <= ResourceLimits.lsystemMaxIterations,
-    s"iterations must be 0-${ResourceLimits.lsystemMaxIterations}, got $iterations")
+  FieldConstraints.check("LSystem", "iterations", iterations)
   require(angleDegrees > 0, s"angle must be positive, got $angleDegrees")
   require(segmentLength > 0, "segmentLength must be positive")
   require(initialWidth > 0, "initialWidth must be positive")
