@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Security
+
+- Pins optix-jni 0.4.8: its native entries validate their input (64-bit sizes, null and length
+  checks, index and range checks), and dispose waits for renders in flight (optix-jni#68-#71).
+
 ### Fixed
 
 - `--objects ...:material=glass:color=#RRGGBB` made the glass opaque: on the command line the
