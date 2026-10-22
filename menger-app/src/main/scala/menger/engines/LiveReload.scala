@@ -35,7 +35,7 @@ trait LiveReload extends LazyLogging:
   protected def watchSceneFile(file: File)(onLoaded: Either[String, LoadedScene] => Unit): Unit =
     val watcher = new SceneFileWatcher(file)(() => onLoaded(SceneLoader.load(file.getPath)))
     fileWatcher.set(Some(watcher))
-    logger.info(s"Watching scene file for live reload: ${file.getPath}")
+    logger.info(s"Watching scene file for live reload: ${file.getPath} (${HeapUsage.describe()})")
     emit(WindowEvents.Kind.Up, "")
 
   /** The first scene could not be built: the window exits non-zero after this. */
@@ -60,8 +60,13 @@ trait LiveReload extends LazyLogging:
     }
 
   protected def reloaded(what: String, detail: String): Unit =
-    logger.info(s"Reloaded $what from file ($detail)")
+    logger.info(s"Reloaded $what from file ($detail; ${HeapUsage.describe()})")
     emit(WindowEvents.Kind.Reloaded, detail)
+
+  /** A frame took long enough to look frozen (usability review 2026-10, session 5, F125). */
+  protected def frameSlow(detail: String): Unit =
+    logger.info(s"Slow frame: $detail")
+    emit(WindowEvents.Kind.FrameSlow, detail)
 
   protected def reloadFailed(file: File, reason: String): Unit =
     logger.warn(s"Failed to reload ${file.getPath}, keeping the current scene: $reason")
@@ -74,3 +79,13 @@ trait LiveReload extends LazyLogging:
       "restart the window to pick it up"
     logger.warn(message)
     emit(WindowEvents.Kind.KindChanged, message)
+
+/** The JVM heap in the window's log: a window the kernel kills writes nothing itself (usability
+  * review 2026-10, session 5, F113, menger#130), so the last line before it says how full the
+  * heap was. */
+object HeapUsage:
+  private val BytesPerGib = 1024.0 * 1024.0 * 1024.0
+
+  def describe(runtime: Runtime = Runtime.getRuntime): String =
+    val used = (runtime.totalMemory() - runtime.freeMemory()) / BytesPerGib
+    f"heap $used%.1f of ${runtime.maxMemory() / BytesPerGib}%.1f GiB"

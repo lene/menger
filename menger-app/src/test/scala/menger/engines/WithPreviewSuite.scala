@@ -55,3 +55,14 @@ class WithPreviewSuite extends AnyFlatSpec with Matchers:
 
   it should "never pause when the limit is 0" in:
     WithPreview.isIdle(nowNanos = Long.MaxValue, lastActivityNanos = 0L, idleSeconds = 0.0) shouldBe false
+
+  // Usability review 2026-10, session 5 (F125, menger#133): 3.4 s frames with nothing said.
+  "WithPreview.isSlow" should "report a frame over a second, at most every five seconds" in:
+    val second = 1000000000L
+    WithPreview.isSlow(frameNanos = 2 * second, lastReportNanos = None, now = 0L) shouldBe true
+    WithPreview.isSlow(frameNanos = second / 2, lastReportNanos = None, now = 0L) shouldBe false
+    WithPreview.isSlow(2 * second, lastReportNanos = Some(10 * second), now = 13 * second) shouldBe false
+    WithPreview.isSlow(2 * second, lastReportNanos = Some(10 * second), now = 15 * second) shouldBe true
+
+  "HeapUsage.describe" should "name the used and the maximum heap in GiB" in:
+    HeapUsage.describe() should fullyMatch regex """heap \d+\.\d of \d+\.\d GiB"""

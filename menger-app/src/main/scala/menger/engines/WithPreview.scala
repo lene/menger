@@ -80,6 +80,24 @@ trait WithPreview extends RenderEngine with LazyLogging:
   protected def onFrameFailed(context: String, e: Throwable): Unit =
     logger.error(FrameBuildFailure.message(context, e), e)
 
+  /** Where a slow frame is reported; a window with live reload also emits a window event. */
+  protected def onFrameSlow(detail: String): Unit = logger.info(s"Slow frame: $detail")
+
+  // When a slow frame was last reported: a scene that is slow every frame says so every few
+  // seconds, not every frame (usability review 2026-10, session 5, F125).
+  private val lastSlowReportNanos = new AtomicReference[Option[Long]](None)
+
+  private def reportIfSlow(t: Float, buildNanos: Long, renderNanos: Long): Unit =
+    val now = System.nanoTime()
+    if WithPreview.isSlow(buildNanos + renderNanos, lastSlowReportNanos.get(), now) then
+      lastSlowReportNanos.set(Some(now))
+      val seconds = (nanos: Long) => nanos / WithPreview.NanosPerSecond
+      onFrameSlow(
+        f"frame ${frameForT(t)}/${previewConfig.frames} (t=$t%.2f) took " +
+          f"${seconds(buildNanos + renderNanos)}%.1f s: build ${seconds(buildNanos)}%.1f s, " +
+          f"render ${seconds(renderNanos)}%.1f s; ${HeapUsage.describe()}"
+      )
+
   private def tStep: Float =
     val range = previewConfig.endT - previewConfig.startT
     if previewConfig.frames > 1 then range / (previewConfig.frames - 1) else range
@@ -220,6 +238,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
     val rebuildFrame = needsRender.getAndSet(false) || renderResources.needsRender
     if rebuildFrame && width > 0 && height > 0 then
       val t = currentT.get()
+      val buildStart = System.nanoTime()
       Try(sceneFunction(t)) match
         case Failure(e) =>
           reportFailedFrame(t, e)
@@ -249,9 +268,11 @@ trait WithPreview extends RenderEngine with LazyLogging:
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
           applyFrameCamera(renderer, configs.camera)
           cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
+          val renderStart = System.nanoTime()
           rendererWrapper.renderScene(ImageSize(width, height)) match
             case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
             case None            => () // render failed (logged); skip this frame
+          reportIfSlow(t, renderStart - buildStart, System.nanoTime() - renderStart)
     // Paused or between key presses: the buffer was cleared above and nothing new was built, so
     // draw the last frame again instead of showing a black window (usability session 3, F68a).
     else if width > 0 && height > 0 then renderResources.redrawExisting(width, height)
@@ -293,6 +314,16 @@ trait WithPreview extends RenderEngine with LazyLogging:
 
 object WithPreview:
   val NanosPerSecond: Double = 1e9
+  // A frame slower than this looks frozen in the window.
+  val SlowFrameSeconds: Double = 1.0
+  val SlowFrameReportIntervalSeconds: Double = 5.0
+
+  /** A frame of `frameNanos` is reported at `now`: it is slow, and the last report is long
+    * enough ago (or there is none). */
+  def isSlow(frameNanos: Long, lastReportNanos: Option[Long], now: Long): Boolean =
+    val sinceReport = (last: Long) => (now - last) / NanosPerSecond
+    frameNanos / NanosPerSecond > SlowFrameSeconds &&
+      lastReportNanos.forall(sinceReport(_) >= SlowFrameReportIntervalSeconds)
 
   /** t for real-time looping playback: `elapsedSeconds` after the start, wrapped into
     * [startT, endT). A non-positive span pins t to startT. */

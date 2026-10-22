@@ -97,6 +97,7 @@ class PreviewEngine(
   override protected def eventsFor: Option[java.io.File] = watchScenePath
   override protected def onStartupFailed(e: Throwable): Unit = startupFailed(e)
   override protected def onFrameFailed(context: String, e: Throwable): Unit = frameFailed(context, e)
+  override protected def onFrameSlow(detail: String): Unit = frameSlow(detail)
 
   override protected def denoiseMode: DenoiseMode =
     denoiseModeOverride.getOrElse(firstFrameConfigs.denoiseMode)

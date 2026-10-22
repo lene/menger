@@ -26,6 +26,7 @@ object WindowEvents:
     case KindChanged   extends Kind("kind_changed")
     case FrameFailed   extends Kind("frame_failed")
     case StartupFailed extends Kind("startup_failed")
+    case FrameSlow     extends Kind("frame_slow")
 
   final case class Event(v: Int, kind: String, detail: String, time: String) derives ReadWriter
 
