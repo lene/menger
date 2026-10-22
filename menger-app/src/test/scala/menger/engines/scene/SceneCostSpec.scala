@@ -4,7 +4,9 @@ import menger.ObjectSpec
 import menger.common.Material
 import menger.dsl.RenderSettings
 import menger.dsl.ResourceLimits
-import menger.dsl.Sierpinski4D
+import menger.dsl.HexadecachoronGasket
+import menger.dsl.Menger4D
+import menger.dsl.PentachoronGasket
 import menger.objects.SpongeByVolume
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -51,6 +53,8 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
     an[IllegalArgumentException] should be thrownBy
       RenderSettings(accumulation = ResourceLimits.renderAccumulationMax + 1)
 
-  "Sierpinski4D" should "reject a level above the 4D IFS ceiling" in:
-    an[IllegalArgumentException] should be thrownBy
-      Sierpinski4D(level = ResourceLimits.ifs4dMaxLevel + 1f)
+  "The 4D IFS fractals" should "reject a level above the 4D IFS ceiling" in:
+    val tooHigh = ResourceLimits.ifs4dMaxLevel + 1f
+    an[IllegalArgumentException] should be thrownBy PentachoronGasket(level = tooHigh)
+    an[IllegalArgumentException] should be thrownBy Menger4D(level = tooHigh)
+    an[IllegalArgumentException] should be thrownBy HexadecachoronGasket(level = tooHigh)

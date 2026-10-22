@@ -164,15 +164,18 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     finally
       Files.deleteIfExists(blockingFile)
 
-  "The generated manifest" should "list exactly the 14 SceneObject case classes" in:
+  "The generated manifest" should "list exactly the 21 SceneObject case classes" in:
     val manifest = manifestFor(freshTempPath())
     manifest.objects.map(_.name).toSet shouldBe Set(
       "Sphere", "Cube", "Sponge", "Tesseract", "TesseractSponge",
-      "Sierpinski4D", "ParametricSurface", "Curve", "LSystem",
+      "PentachoronGasket", "ParametricSurface", "Curve", "LSystem",
       // the regular 4D polytopes, usability review 2026-09 (F17)
-      "Pentachoron", "Hexadecachoron", "Icositetrachoron", "Hexacosichoron", "Hecatonicosachoron"
+      "Pentachoron", "Hexadecachoron", "Icositetrachoron", "Hexacosichoron", "Hecatonicosachoron",
+      // formerly command-line only (2026-10)
+      "Tetrahedron", "Octahedron", "Dodecahedron", "Icosahedron", "Cone",
+      "Menger4D", "HexadecachoronGasket"
     )
-    manifest.objects should have size 14
+    manifest.objects should have size 21
 
   // CAP-7 ("absence is decidable"): a field typed `menger.dsl.TesseractSpongeType` is
   // unusable unless the manifest also says which values that type admits. These are mandatory

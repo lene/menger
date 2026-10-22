@@ -38,7 +38,7 @@ object SierpinskiHDRRotation:
         lookAt   = (0f, 0f, 0f)
       ),
       objects = List(
-        Sierpinski4D(
+        PentachoronGasket(
           level       = Level,
           material    = Some(Material.Film),
           size        = 2.0f,

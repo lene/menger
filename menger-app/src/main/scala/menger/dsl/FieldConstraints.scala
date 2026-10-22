@@ -52,7 +52,9 @@ object FieldConstraints:
       Some(math.min(L.tesseractSpongeVolumeLevel.max, L.tesseractSpongeSurfaceLevel.max).toDouble),
       Some(math.min(L.tesseractSpongeVolumeLevel.warnAt, L.tesseractSpongeSurfaceLevel.warnAt)
         .toDouble)),
-    ("Sierpinski4D", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),
+    ("PentachoronGasket", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),
+    ("Menger4D", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),
+    ("HexadecachoronGasket", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),
     ("LSystem", "iterations") -> Bounds.between(0d, L.lsystemMaxIterations.toDouble),
     ("ParametricSurface", "uSteps") -> Bounds.between(1d, L.parametricSurfaceMaxSamples.toDouble),
     ("ParametricSurface", "vSteps") -> Bounds.between(1d, L.parametricSurfaceMaxSamples.toDouble),

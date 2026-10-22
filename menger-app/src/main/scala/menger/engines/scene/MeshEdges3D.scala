@@ -8,8 +8,9 @@ import menger.common.ProfilingConfig
 import menger.common.TriangleMeshData
 import menger.common.Vector
 
-/** Edge tubes of a 3D triangle-mesh object, a Cube or a mesh Sponge (usability review 2026-10,
-  * session 5, F124, menger#132: only the 4D types had edges). An edge is where the mesh's
+/** Edge tubes of a 3D triangle-mesh object: a Cube, a platonic solid or a mesh Sponge
+  * (usability review 2026-10, session 5, F124, menger#132: only the 4D types had edges).
+  * An edge is where the mesh's
   * triangles meet at an angle: a quad's diagonal and the seam between two coplanar faces of
   * neighbouring cubes are not edges. One cylinder per edge, as for the 4D types; a recursive-IAS
   * sponge has no flat mesh to take them from. */

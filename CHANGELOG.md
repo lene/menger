@@ -18,6 +18,9 @@
   corner, which a camera in the +x +y +z octant never sees (lene/menger#127). Its caustics
   convention names every transparent material with an IOR above 1 as refractive, Film
   included (lene/menger-scene-agent#54).
+- The DSL's `Sierpinski4D` is now `PentachoronGasket`, the name of what it is (the Sierpinski
+  gasket of the 5-cell); the old name still compiles, deprecated. The CLI type stays
+  `sierpinski4d`.
 
 ### Fixed
 
@@ -30,6 +33,10 @@
 
 ### Added
 
+- Every command-line object type has a DSL class: `Tetrahedron`, `Octahedron`, `Dodecahedron`
+  and `Icosahedron` (with edge tubes, like `Cube`), `Cone` (`apex`, `base`, `radius`), and the
+  GPU-traced 4D fractals `Menger4D` and `HexadecachoronGasket` (CLI `menger4d`,
+  `hexadecachoron4d`). A unit test fails when a new CLI type has no DSL class.
 - The animation window reports a frame that takes over a second as a `frame_slow` window event
   (at most one per 5 s: frame, build and render time, heap), and its log names the JVM heap on
   every scene load, so a slow scene and a killed window leave a trace (usability review 2026-10,

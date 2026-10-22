@@ -75,7 +75,10 @@ object DslSemantics:
     "4D objects are rotated in 4D (`projection`), projected to 3D, then placed at `pos`. " +
       "The regular 4D polytopes are Pentachoron (5-cell), Tesseract (8-cell), Hexadecachoron " +
       "(16-cell), Icositetrachoron (24-cell), Hecatonicosachoron (120-cell) and Hexacosichoron " +
-      "(600-cell). Each 4D object has its own `projection`, so one object can be rotated in " +
+      "(600-cell). The 4D IFS fractals are Menger4D (the TesseractSponge's shape), " +
+      "PentachoronGasket and HexadecachoronGasket (Sierpinski gaskets of the 5-cell and the " +
+      "16-cell); they are traced on the GPU without a stored mesh, so a higher level costs " +
+      "render time, not memory. Each 4D object has its own `projection`, so one object can be rotated in " +
       "4D next to an unrotated one; in the render window, Shift+drag adds the same 4D " +
       "rotation to every 4D object. A 4D object's `size` is applied before the 4D perspective " +
       "projection, so its on-screen size is not proportional to `size` and differs between " +
@@ -182,7 +185,8 @@ object DslSemantics:
   /** Object types with holes through them: something inside one stays visible through the holes,
     * so it never occludes (usability review 2026-10, F78). The agent kept this list itself
     * (review 2026-10-14, msa#28); the manifest now carries it as the `holed` trait. */
-  val holedTypes: Set[String] = Set("Sponge", "TesseractSponge", "Sierpinski4D")
+  val holedTypes: Set[String] =
+    Set("Sponge", "TesseractSponge", "PentachoronGasket", "Menger4D", "HexadecachoronGasket")
 
   // Bounds are `menger.dsl.FieldConstraints` (review 2026-10-14, menger#114): these were three
   // string-keyed tables parallel to the DSL `require`s. `Sponge`/`TesseractSponge` have a

@@ -2,6 +2,7 @@ package menger.dsl
 
 import scala.language.implicitConversions
 
+import menger.common.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -206,7 +207,14 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
       Sponge(VolumeFilling, level = 1f, videoTexture = Some(videoTexture)),
       Tesseract(videoTexture = Some(videoTexture)),
       TesseractSponge(VolumeRemoving, level = 1f, videoTexture = Some(videoTexture)),
-      Sierpinski4D(level = 1f, videoTexture = Some(videoTexture)),
+      PentachoronGasket(level = 1f, videoTexture = Some(videoTexture)),
+      Menger4D(level = 1f, videoTexture = Some(videoTexture)),
+      HexadecachoronGasket(level = 1f, videoTexture = Some(videoTexture)),
+      Tetrahedron(videoTexture = Some(videoTexture)),
+      Octahedron(videoTexture = Some(videoTexture)),
+      Dodecahedron(videoTexture = Some(videoTexture)),
+      Icosahedron(videoTexture = Some(videoTexture)),
+      Cone(videoTexture = Some(videoTexture)),
       ParametricSurface(
         f = (_, _) => Vec3.Zero,
         uSteps = 1,
@@ -216,6 +224,42 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     )
 
     objects.map(_.toObjectSpec.videoTexture) should contain only Some(videoTexture)
+
+  // No object type is command-line only: the platonic solids, Cone, menger4d and
+  // hexadecachoron4d had no DSL class until 2026-10. A new CLI type fails here until it has one.
+  "The DSL" should "have a class for every command-line object type" in:
+    val written = List[SceneObject](
+      Sphere(), Cube(), Tetrahedron(), Octahedron(), Dodecahedron(), Icosahedron(), Cone(),
+      Sponge(VolumeFilling, 1f), Sponge(SurfaceUnfolding, 1f), Sponge(CubeSponge, 1f),
+      Sponge(RecursiveIAS, 1f), Tesseract(), Pentachoron(), Hexadecachoron(),
+      Icositetrachoron(), Hecatonicosachoron(), Hexacosichoron(),
+      TesseractSponge(VolumeRemoving, 1f), TesseractSponge(SurfaceSubdividing, 1f),
+      Menger4D(level = 1f), PentachoronGasket(level = 1f), HexadecachoronGasket(level = 1f),
+      ParametricSurface(f = (_, _) => Vec3.Zero, uSteps = 1, vSteps = 1),
+      Curve(points = Seq(Vec3(0f, 0f, 0f), Vec3(1f, 0f, 0f), Vec3(1f, 1f, 0f), Vec3(0f, 1f, 0f))),
+      LSystem(axiom = "F", rules = Map('F' -> "F"))
+    ).map(_.toObjectSpec.objectType).toSet
+    // A plane is a Scene's `planes` entry, not a SceneObject.
+    ObjectType.VALID_TYPES -- written shouldBe Set("plane")
+
+  "The platonic solids" should "carry edge tubes" in:
+    val tube = Some(0.02f)
+    List(Tetrahedron(edgeRadius = tube), Octahedron(edgeRadius = tube),
+      Dodecahedron(edgeRadius = tube), Icosahedron(edgeRadius = tube)
+    ).map(_.toObjectSpec.edgeRadius) should contain only tube
+
+  "Cone.toObjectSpec" should "carry apex, base and radius" in:
+    val spec = Cone(apex = Some(Vec3(0f, 2f, 0f)), base = Some(Vec3(0f, -1f, 0f)),
+      radius = Some(0.5f)).toObjectSpec
+    spec.apex shouldBe Some((0f, 2f, 0f))
+    spec.base shouldBe Some((0f, -1f, 0f))
+    spec.radius shouldBe Some(0.5f)
+
+  "Sierpinski4D" should "still build a PentachoronGasket under its old name" in:
+    @annotation.nowarn("cat=deprecation")
+    val old = Sierpinski4D(level = 2f)
+    old shouldBe PentachoronGasket(level = 2f)
+    old.toObjectSpec.objectType shouldBe "sierpinski4d"
 
   "TesseractSpongeType" should "have correct type names" in:
     TesseractSpongeType.VolumeRemoving.objectTypeName shouldBe "tesseract-sponge-volume"

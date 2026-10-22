@@ -184,17 +184,31 @@ Cube(
 )
 ```
 
-The `rotation` field is available on: `Sphere`, `Cube`, `Sponge`, `Tesseract`,
-`TesseractSponge`, `ParametricSurface`, and the 4D polytopes below.
+The `rotation` field is available on every scene object.
 
 **4D polytopes:** `Pentachoron` (5-cell), `Hexadecachoron` (16-cell), `Icositetrachoron`
 (24-cell), `Hecatonicosachoron` (120-cell) and `Hexacosichoron` (600-cell) take the same
 fields as `Tesseract` (`pos`, `size`, `material`, `color`, `projection`, `edgeRadius`,
 `edgeMaterial`, `rotation`, ...). See the `PolytopeGallery` example.
 
-> **CLI-only types:** Platonic solids (tetrahedron, octahedron, dodecahedron, icosahedron) and
-> cone do not yet have Scala DSL constructors. Use the CLI `--objects type=<name>:...` syntax
-> for those types. See [reference.md](reference.md) for the full parameter list.
+**Platonic solids:** `Tetrahedron`, `Octahedron`, `Dodecahedron` and `Icosahedron` take the
+same fields as `Cube`, edge tubes included (`edgeRadius`, `edgeMaterial`).
+
+**Cone:** the fields of `Sphere`, plus optional `apex`, `base` (world coordinates) and
+`radius`. Without them the cone is centred on `pos`, `size` high along y, with a base radius
+of `size / 2`:
+
+```scala
+Cone(material = Some(Material.Copper), size = 1.5f)
+Cone(apex = Some(Vec3(0f, 2f, 0f)), base = Some(Vec3(0f, 0f, 0f)), radius = Some(0.5f))
+```
+
+**4D IFS fractals:** `Menger4D` (the `TesseractSponge`'s shape), `PentachoronGasket` and
+`HexadecachoronGasket` (Sierpinski gaskets of the 5-cell and the 16-cell) take a `level` and
+the fields of `Tesseract`. They are traced on the GPU without a stored mesh.
+`PentachoronGasket` was called `Sierpinski4D`; the old name still compiles, deprecated.
+
+Every command-line object type has a DSL class.
 
 **Sphere:**
 ```scala
