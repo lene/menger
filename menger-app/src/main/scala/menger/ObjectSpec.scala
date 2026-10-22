@@ -589,7 +589,10 @@ object ObjectSpec extends LazyLogging:
 
   /** The 3D types with edge tubes: triangle meshes whose edges come from their faces
     * (MeshEdges3D, menger#132). A recursive-IAS sponge has no flat mesh to take them from. */
-  val Edge3DTypes: Set[String] = Set("cube", "sponge-volume", "sponge-surface")
+  val Edge3DTypes: Set[String] = Set(
+    "cube", "sponge-volume", "sponge-surface",
+    "tetrahedron", "octahedron", "dodecahedron", "icosahedron"
+  )
 
   def hasEdgeTubes(objType: String): Boolean =
     ObjectType.isProjected4D(objType) || Edge3DTypes.contains(ObjectType.normalize(objType))

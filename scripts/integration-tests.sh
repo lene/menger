@@ -641,12 +641,16 @@ test_film_materials() {
     # Film on tesseract edges
     run_test "tesseract with film edge material" --plane y:-2 \
         --objects type=tesseract:size=0.8:edge-material=film:edge-radius=0.025
-    # menger#132 (F124): edge tubes on 3D meshes -- a cube's 12 edges, and a sponge's edges
-    # without the grid between coplanar sub-faces.
+    # menger#132 (F124): edge tubes on 3D meshes -- a cube's 12 edges, a dodecahedron's 30
+    # (not its pentagons' triangulation), and a sponge's edges without the grid between
+    # coplanar sub-faces. The sponge is half transparent at ior 1, so its inner edges show
+    # without refraction.
     run_test "cube with gold edge tubes" --plane y:-2 \
         --objects type=cube:size=0.8:material=film:edge-material=gold:edge-radius=0.02
-    run_test "sponge level 2 with gold edge tubes" --plane y:-2 \
-        --objects type=sponge-volume:level=2:size=0.8:color=#3060c0:edge-material=gold:edge-radius=0.01
+    run_test "dodecahedron with gold edge tubes" --plane y:-2 \
+        --objects type=dodecahedron:size=0.8:color=#3060c0:edge-material=gold:edge-radius=0.02
+    run_test "transparent sponge level 2 with gold edge tubes" --plane y:-2 \
+        --objects type=sponge-volume:level=2:size=0.8:color=#3060c080:edge-material=gold:edge-radius=0.01
 }
 
 test_pbr_texture_sets() {

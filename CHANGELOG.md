@@ -35,7 +35,9 @@
   every scene load, so a slow scene and a killed window leave a trace (usability review 2026-10,
   session 5, F125/F113; lene/menger#133, #130).
 - Edge tubes on 3D meshes: `Cube` and the VolumeFilling/SurfaceUnfolding `Sponge` take
-  `edgeRadius` and `edgeMaterial` (CLI `edge-radius`, `edge-material`, ...), as the 4D types do.
+  `edgeRadius` and `edgeMaterial` (CLI `edge-radius`, `edge-material`, ...), as the 4D types do;
+  on the command line the platonic solids (tetrahedron, octahedron, dodecahedron, icosahedron)
+  take them too.
   An edge is where the mesh's faces meet at an angle, so the grid between coplanar sub-faces is
   not drawn: 12 tubes for a cube, 96 / 1296 / 22512 for a sponge at levels 1 / 2 / 3. A
   recursive-IAS sponge refuses them. Meshes with edges build before the analytical primitives,

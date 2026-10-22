@@ -21,6 +21,9 @@ class MeshEdges3DSuite extends AnyFlatSpec with Matchers:
   "MeshEdges3D.of" should "give a cube its 12 edges, not the quads' diagonals" in:
     edgeCount(ObjectSpec(objectType = "cube", edgeRadius = tube)) shouldBe 12
 
+  it should "give a dodecahedron its 30 edges, not its pentagons' triangulation" in:
+    edgeCount(ObjectSpec(objectType = "dodecahedron", edgeRadius = tube)) shouldBe 30
+
   it should "drop the seams between coplanar faces of a sponge's sub-cubes" in:
     // Counted independently from the sponge's leaf cubes (a face between two kept cubes is
     // hidden; an edge stays where its faces differ in normal).
