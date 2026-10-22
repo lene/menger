@@ -37,5 +37,15 @@ class ObjectFrameSpec extends AnyFlatSpec with Matchers:
       m(4 * i) * corner._1 + m(4 * i + 1) * corner._2 + m(4 * i + 2) * corner._3 + m(4 * i + 3))
     near(apply(SceneBuilder.objectFrame(spec).get, (world(0), world(1), world(2))), Seq(1f, 0f, 1f))
 
+  it should "follow a cube-sponge's rotation about x and z (menger#127)" in:
+    // A level-1 sub-cube's corner, at the sponge's (1, 0, 1) corner, turned with the sponge.
+    val spec = ObjectSpec("cube-sponge", x = 2f, size = 3f, level = Some(1f),
+      rotation = ObjectRotation(0.7f, 0f, -0.5f))
+    val m = CubeSpongeSceneBuilder.cubeTransform(spec, menger.common.Vector[3](3f, -1f, 1f), 1f)
+    val corner = (0.5f, -0.5f, 0.5f)
+    val world = (0 until 3).map(i =>
+      m(4 * i) * corner._1 + m(4 * i + 1) * corner._2 + m(4 * i + 2) * corner._3 + m(4 * i + 3))
+    near(apply(SceneBuilder.objectFrame(spec).get, (world(0), world(1), world(2))), Seq(1f, 0f, 1f))
+
   it should "give a plane no frame" in:
     SceneBuilder.objectFrame(ObjectSpec("plane")) shouldBe None

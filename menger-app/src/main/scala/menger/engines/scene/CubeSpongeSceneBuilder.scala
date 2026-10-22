@@ -87,7 +87,7 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
     // Add each cube as an instance
     generator.generateTransforms.foreach { case (position, scale, alpha) =>
-      addSingleCubeInstance(position, scale, material, renderer, spec, textureIndices, spec.rotY, alpha)
+      addSingleCubeInstance(position, scale, material, renderer, spec, textureIndices, alpha)
     }
 
     logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
@@ -99,21 +99,15 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
     renderer: OptiXRenderer,
     spec: ObjectSpec,
     textureIndices: Map[String, Int],
-    rotY: Float = 0f,
     alpha: Float = 1f
   ): Unit =
     val effectiveMaterial =
       if alpha >= 0.9999f then material
       else material.copy(color = material.color.copy(a = alpha))
 
-    val transform =
-      if rotY == 0f then
-        TransformUtil.createScaleTranslation(scale, position.x, position.y, position.z)
-      else
-        TransformUtil.createYRotationScaleTranslation(rotY, scale, position.x, position.y, position.z)
-
     val instanceId = requireInstanceId(
-      renderer.addTriangleMeshInstance(transform, effectiveMaterial),
+      renderer.addTriangleMeshInstance(
+        CubeSpongeSceneBuilder.cubeTransform(spec, position, scale), effectiveMaterial),
       s"cube instance at position=($position), scale=$scale"
     )
     applyInstanceTextures(instanceId, spec, textureIndices, renderer)
@@ -141,3 +135,15 @@ object CubeSpongeSceneBuilder:
     "cube-sponge is deprecated and will be removed (menger#76): use sponge-volume for the " +
       "same sponge as one mesh, or sponge-recursive-ias for high levels"
   private[scene] val deprecationWarned = java.util.concurrent.atomic.AtomicBoolean(false)
+
+  /** A sub-cube at `position` turned with the whole sponge: rotX, rotY and rotZ about the
+    * sponge's centre, as a mesh object turns (`TriangleMeshSceneBuilder.instanceTransform`), so
+    * `SceneBuilder.objectFrame` matches it. Only rotY was applied before, about the world origin
+    * (usability review 2026-10, session 5, menger#127). */
+  def cubeTransform(spec: ObjectSpec, position: Vector[3], scale: Float): Array[Float] =
+    val r = TransformUtil.createEulerRotationScaleTranslation(
+      spec.rotX, spec.rotY, spec.rotZ, 1f, 0f, 0f, 0f)
+    val (dx, dy, dz) = (position.x - spec.x, position.y - spec.y, position.z - spec.z)
+    def turned(row: Int) = r(4 * row) * dx + r(4 * row + 1) * dy + r(4 * row + 2) * dz
+    TransformUtil.createEulerRotationScaleTranslation(spec.rotX, spec.rotY, spec.rotZ, scale,
+      spec.x + turned(0), spec.y + turned(1), spec.z + turned(2))
