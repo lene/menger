@@ -280,6 +280,7 @@ echo -e "${YELLOW}--- Tesseract Edge Rendering ---${NC}"
 run_test "Tesseract with chrome edges" "-o --objects type=tesseract:edge-radius=0.02:edge-material=chrome -s $OUTPUT_DIR/38-tesseract-chrome-edges.png"
 run_test "Tesseract with cyan emissive edges" "-o --objects type=tesseract:edge-radius=0.03:edge-color=#00ffff:edge-emission=3.0 -s $OUTPUT_DIR/39-tesseract-cyan-edges.png"
 run_test "Tesseract glass with gold edges" "-o --objects type=tesseract:material=glass:edge-material=gold:edge-radius=0.025 -s $OUTPUT_DIR/40-tesseract-glass-gold.png"
+run_test "Film sponge level 2 with chrome edge tubes (no grid on flat faces)" "-o --objects type=sponge-volume:level=2:material=film:edge-material=chrome:edge-radius=0.01 -s $OUTPUT_DIR/40b-sponge-chrome-edges.png"
 run_test "Tesseract rotated with edges" "-o --objects type=tesseract:rot-xw=45:rot-yw=30:edge-material=chrome:edge-radius=0.02 -s $OUTPUT_DIR/41-tesseract-rot-edges.png"
 run_test "Tesseract film with emissive edges" "-o --objects type=tesseract:material=film:edge-color=#ff00ff:edge-emission=5.0:edge-radius=0.03 -s $OUTPUT_DIR/42-tesseract-film-magenta.png"
 

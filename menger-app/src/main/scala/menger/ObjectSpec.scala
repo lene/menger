@@ -587,22 +587,30 @@ object ObjectSpec extends LazyLogging:
   // Edge parameter defaults
   private val DefaultEdgeRadius: Float = 0.02f
 
+  /** The 3D types with edge tubes: triangle meshes whose edges come from their faces
+    * (MeshEdges3D, menger#132). A recursive-IAS sponge has no flat mesh to take them from. */
+  val Edge3DTypes: Set[String] = Set("cube", "sponge-volume", "sponge-surface")
+
+  def hasEdgeTubes(objType: String): Boolean =
+    ObjectType.isProjected4D(objType) || Edge3DTypes.contains(ObjectType.normalize(objType))
+
   /**
-   * Parse edge rendering parameters (only applicable to hypercube types).
+   * Parse edge rendering parameters (4D projected types, a cube, a mesh sponge).
    * Returns (edgeRadius, edgeMaterial) tuple.
    */
   private def parseEdgeParameters(
     kvPairs: Map[String, String],
     objType: String
   ): Either[String, (Option[Float], Option[Material])] =
-    // Edge parameters only applicable to hypercube types (tesseract)
     val hasEdgeParams = kvPairs.keys.exists(k =>
       k.startsWith("edge-") || k == "edgeradius" || k == "edgematerial" ||
       k == "edgecolor" || k == "edgeemission"
     )
 
-    if hasEdgeParams && !ObjectType.isProjected4D(objType) then
-      Left(s"Edge rendering parameters (edge-radius, edge-material, etc.) are only valid for 4D projected types (tesseract, tesseract-sponge, tesseract-sponge-2), not '$objType'")
+    if hasEdgeParams && !hasEdgeTubes(objType) then
+      Left("Edge rendering parameters (edge-radius, edge-material, etc.) are only valid for " +
+        "4D projected types, a cube and a mesh sponge (sponge-volume, sponge-surface), " +
+        s"not '$objType'")
     else if !hasEdgeParams then
       Right((None, None))
     else

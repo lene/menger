@@ -107,12 +107,19 @@ case class Cube(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
-  def toObjectSpec: ObjectSpec = baseObjectSpec("cube")
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      "cube", edgeRadius = edgeRadius, edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
 
 object Cube:
   // Material-only constructor (at origin)
@@ -150,6 +157,8 @@ case class Sponge(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
@@ -159,9 +168,20 @@ case class Sponge(
     require(level <= limit.max,
       s"${spongeType.objectTypeName} level $level exceeds hard maximum ${limit.max}")
   }
+  require(
+    (edgeRadius.isEmpty && edgeMaterial.isEmpty) ||
+      ObjectSpec.Edge3DTypes.contains(ObjectType.normalize(spongeType.objectTypeName)),
+    "edge tubes (edgeRadius, edgeMaterial) exist on VolumeFilling and SurfaceUnfolding " +
+      s"sponges, not on $spongeType (menger#132)"
+  )
 
   def toObjectSpec: ObjectSpec =
-    baseObjectSpec(ObjectType.normalize(spongeType.objectTypeName), level = Some(level))
+    baseObjectSpec(
+      ObjectType.normalize(spongeType.objectTypeName), level = Some(level),
+      edgeRadius = edgeRadius, edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
 
 object Sponge:
   // Type + level (at origin, no material)

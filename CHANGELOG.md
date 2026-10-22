@@ -34,6 +34,13 @@
   (at most one per 5 s: frame, build and render time, heap), and its log names the JVM heap on
   every scene load, so a slow scene and a killed window leave a trace (usability review 2026-10,
   session 5, F125/F113; lene/menger#133, #130).
+- Edge tubes on 3D meshes: `Cube` and the VolumeFilling/SurfaceUnfolding `Sponge` take
+  `edgeRadius` and `edgeMaterial` (CLI `edge-radius`, `edge-material`, ...), as the 4D types do.
+  An edge is where the mesh's faces meet at an angle, so the grid between coplanar sub-faces is
+  not drawn: 12 tubes for a cube, 96 / 1296 / 22512 for a sponge at levels 1 / 2 / 3. A
+  recursive-IAS sponge refuses them. Meshes with edges build before the analytical primitives,
+  since their builder may grow the renderer (usability review 2026-10, session 5, F124;
+  lene/menger#132).
 - Fractional levels in a refractive material (glass, water, diamond, film) grow gradually: the
   renderer draws both whole levels and mixes the images, linearly, each render showing one level
   per object, so no light path meets both. Fading level n's hole caps over level n+1 in one render

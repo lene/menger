@@ -147,6 +147,14 @@ object DslSemantics:
     ("TesseractSponge", "rotation") -> ("3D Euler angles in radians, applied after " +
       "projection; 4D rotations go in `projection`."),
     ("Tesseract", "edgeRadius") -> "Draws the edges as tubes of this radius.",
+    ("Cube", "edgeRadius") -> ("Draws the 12 edges as tubes of this radius (`edgeMaterial`, " +
+      "default Film) -- the same tubes as on the 4D types (menger#132)."),
+    ("Sponge", "edgeRadius") -> ("Draws the edges as tubes of this radius (`edgeMaterial`, " +
+      "default Film): where faces meet at an angle, so the grid between coplanar sub-faces is " +
+      "not drawn. VolumeFilling and SurfaceUnfolding only (RecursiveIAS has no flat mesh). One " +
+      "tube per edge: 96 at level 1, 1296 at level 2, 22512 at level 3; level 4 needs more " +
+      "instances than the renderer has. A fractional level blends the tubes of its two levels " +
+      "up to 2.x, like the 4D types (menger#132)."),
     ("TesseractSponge", "edgeRadius") -> ("Draws the edges as tubes of this radius. A " +
       "fractional level blends the tubes of its two levels up to 2.x; edge tubes fit only up to " +
       "level 2: one tube per edge, so level 3 needs 130177 instances, more than the 65536 the " +

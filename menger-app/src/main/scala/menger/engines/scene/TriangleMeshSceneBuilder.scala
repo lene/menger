@@ -70,6 +70,10 @@ class TriangleMeshSceneBuilder(
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
     logger.debug(s"Setting up triangle mesh instances for ${specs.length} specs")
+    // Edge tubes are one instance each: as in TesseractEdgeSceneBuilder, the renderer grows to
+    // hold them; callers reapply lights and settings after a build.
+    if specs.exists(MeshEdges3D.appliesTo) && maxInstances > renderer.maxInstances then
+      renderer.reinitialize(maxInstances)
 
     // Load textures once
     val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
@@ -153,6 +157,11 @@ class TriangleMeshSceneBuilder(
         upper = levelInstances.collect { case (id, LevelRole.Upper) => id },
         level = spec.level.get
       ))
+      if MeshEdges3D.appliesTo(spec) then
+        MeshEdges3D.add(spec, renderer).foreach { id =>
+          val _ = requireInstanceId(id, s"edge tube of ${spec.objectType} at (${spec.x}, " +
+            s"${spec.y}, ${spec.z})")
+        }
     }
 
   private def addMeshInstance(
@@ -251,13 +260,25 @@ class TriangleMeshSceneBuilder(
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
     // GPU fractional path: 2 instances per fractional spec (level n + level n+1); a refractive
     // fractional 3D sponge too (its two levels, LevelMixing), counted whatever the renderer.
+    // Plus one per edge tube (MeshEdges3D).
     specs.iterator.map { spec =>
-      if ObjectType.isRecursiveIASSponge(spec.objectType) && spec.level.exists(isFractional) then 2L
-      else if isFractional4DSponge(spec) then 2L
-      else if isLeveled(spec) &&
-        LevelMixing.appliesTo(spec.level, MaterialExtractor.extract(spec)) then 2L
-      else 1L
+      val fractionalIAS =
+        ObjectType.isRecursiveIASSponge(spec.objectType) && spec.level.exists(isFractional)
+      val faces =
+        if fractionalIAS then 2L
+        else if isFractional4DSponge(spec) then 2L
+        else if isLeveled(spec) &&
+          LevelMixing.appliesTo(spec.level, MaterialExtractor.extract(spec)) then 2L
+        else 1L
+      faces + MeshEdges3D.count(spec)
     }.sum
+
+  // Only a scene with edge tubes asks for more instances than the engine's budget: the faces
+  // fit the default (menger#132).
+  override def calculateRequiredInstances(specs: List[ObjectSpec]): Int =
+    if specs.exists(MeshEdges3D.appliesTo) then
+      math.min(calculateInstanceCount(specs), Int.MaxValue.toLong).toInt
+    else 0
 
   // A sponge type whose level this builder draws (3D, 4D or recursive IAS).
   private def isLeveled(spec: ObjectSpec): Boolean =
