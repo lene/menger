@@ -7,6 +7,14 @@
 - Pins optix-jni 0.4.8: its native entries validate their input (64-bit sizes, null and length
   checks, index and range checks), and dispose waits for renders in flight (optix-jni#68-#71).
 
+### Changed
+
+- Pins optix-jni 0.4.9: instance transform, visibility and material changes refit the IAS in
+  place instead of rebuilding it (optix-jni#66), a sticky CUDA error is thrown as
+  `OptiXContextLostException` on every later render (optix-jni#73), the native library is
+  built optimized (optix-jni#67), and `renderMix` mixes visibility passes in one native call
+  (not yet used here; lene/menger#85).
+
 ### Fixed
 
 - `--objects ...:material=glass:color=#RRGGBB` made the glass opaque: on the command line the
