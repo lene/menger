@@ -19,7 +19,9 @@ import menger.objects.higher_d.TesseractSpongeMesh
   */
 object SceneCost:
 
-  final case class Estimate(triangles: Long, rendersPerFrame: Long, photonsPerFrame: Long)
+  /** `edgeTubeSpongeLevel`: the highest whole level whose edge tubes a 3D sponge draws. */
+  final case class Estimate(triangles: Long, rendersPerFrame: Long, photonsPerFrame: Long,
+    edgeTubeSpongeLevel: Int = 0)
 
   /** Caustics as far as cost is concerned: photons traced per render, or none. */
   final case class CausticsLoad(photonsPerIteration: Long, iterations: Long):
@@ -62,9 +64,13 @@ object SceneCost:
     val worlds = if mixed == 0 then 1 else LevelMix.worlds(Vector.fill(mixed)(0.5f)).size
     worlds.toLong * math.max(1, accumulation).toLong
 
+  def edgeTubeSpongeLevel(specs: List[ObjectSpec]): Int =
+    specs.filter(MeshEdges3D.appliesTo).flatMap(_.level).map(_.ceil.toInt).maxOption.getOrElse(0)
+
   def estimate(specs: List[ObjectSpec], accumulation: Int, caustics: CausticsLoad): Estimate =
     val renders = rendersPerFrame(specs, accumulation)
-    Estimate(specs.map(triangles).sum, renders, caustics.photonsPerRender * renders)
+    Estimate(specs.map(triangles).sum, renders, caustics.photonsPerRender * renders,
+      edgeTubeSpongeLevel(specs))
 
   /** `Left` names every budget the scene exceeds and what to lower; `Right` when it fits. */
   def check(estimate: Estimate): Either[String, Unit] =
@@ -80,7 +86,11 @@ object SceneCost:
       Option.when(estimate.photonsPerFrame > ResourceLimits.sceneMaxPhotonsPerFrame)(
         s"${estimate.photonsPerFrame} caustics photons per frame, budget " +
           s"${ResourceLimits.sceneMaxPhotonsPerFrame} (lower photonsPerIteration, iterations or " +
-          "accumulation)")
+          "accumulation)"),
+      Option.when(estimate.edgeTubeSpongeLevel > ResourceLimits.edgeTubeSpongeMaxLevel)(
+        s"edge tubes on a sponge of level ${estimate.edgeTubeSpongeLevel}, at most level " +
+          s"${ResourceLimits.edgeTubeSpongeMaxLevel} (one tube per edge: level 4 has 427,728; " +
+          "lower the level to 3 or less, or drop edgeRadius/edgeMaterial)")
     ).flatten
     if problems.isEmpty then Right(()) else Left(s"scene over budget: ${problems.mkString("; ")}")
 

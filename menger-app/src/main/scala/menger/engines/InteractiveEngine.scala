@@ -324,8 +324,12 @@ class InteractiveEngine(
     val renderer = rendererWrapper.renderer
     // Resize the native instance buffer up-front when auto-adjust says we need
     // more than the constructor-time budget — otherwise large cube-sponge / mixed
-    // scenes silently drop instances past the cap.
-    val requiredMax = requiredMaxInstancesFor(objectSpecs)
+    // scenes silently drop instances past the cap. Only for a scene within budget: counting
+    // edge tubes builds the mesh, and the build below refuses an over-budget scene anyway (a
+    // level-5 sponge with edges took 9 GB to be refused, menger#132).
+    val requiredMax =
+      if withinBudget(objectSpecs).isSuccess then requiredMaxInstancesFor(objectSpecs)
+      else execution.maxInstances
     if requiredMax > execution.maxInstances then
       renderer.reinitialize(requiredMax)
     // Lights/planes/camera are configured AFTER the scene builds, not before. Some builders

@@ -24,6 +24,11 @@
 
 ### Fixed
 
+- Edge tubes on a sponge above level 3 are refused by the scene budget from the level alone
+  (validator and every engine). The window counted the edges first, which builds the mesh: a
+  level-5 sponge with edges took 46 s and 9 GB to be refused; now 2 s (lene/menger#132).
+- A `cube-sponge` turns about x, y and z around its own centre; only rotY was applied, about
+  the world origin, so its procedural colours did not follow its rotation (lene/menger#127).
 - `--objects ...:material=glass:color=#RRGGBB` made the glass opaque: on the command line the
   colour replaced the preset's whole colour, alpha 1 included, while the DSL tints only RGB
   (usability review 2026-09, F14). A 6-digit colour (`color=`, `edge-color=`) now tints the

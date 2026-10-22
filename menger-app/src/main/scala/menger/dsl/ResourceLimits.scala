@@ -35,6 +35,12 @@ object ResourceLimits:
   val cubeSpongeInstancedMaxLevel = 3
   val cubeSpongeInstancedLevel: LevelLimit =
     LevelLimit(Const.Engine.spongeLevelWarningThreshold, cubeSpongeInstancedMaxLevel)
+  /** Edge tubes on a 3D mesh sponge (`MeshEdges3D`): one cylinder instance per edge, 22,512
+    * at level 3 and 427,728 at level 4, past `Const.maxInstancesLimit`. Checked from the level
+    * (`SceneCost`), since counting the edges means building the mesh: refusing a level-4
+    * sponge's edges that way took 5 GB (menger#132). A fractional level draws the next level's
+    * edges too, so 3.x is over as well. */
+  val edgeTubeSpongeMaxLevel = 3
   val tesseractSpongeVolumeLevel: LevelLimit =
     LevelLimit(Const.Engine.tesseractSpongeWarnLevel, Const.Engine.tesseractSpongeMaxLevel)
   val tesseractSpongeSurfaceLevel: LevelLimit =

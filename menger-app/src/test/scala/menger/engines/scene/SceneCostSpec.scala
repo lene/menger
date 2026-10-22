@@ -42,11 +42,21 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
     fits(List(volumeSponge(1f)), caustics = SceneCost.CausticsLoad(10_000_000L, 1000L)) shouldBe
       false
 
+  // menger#132: refused from the level, before a level-4 mesh is built to count its edges.
+  it should "admit edge tubes on a sponge up to level 3, not 3.5 or 4" in:
+    def edged(level: Float) = volumeSponge(level).copy(edgeRadius = Some(0.01f))
+    fits(List(edged(3f))) shouldBe true
+    fits(List(edged(3.5f))) shouldBe false
+    fits(List(edged(4f))) shouldBe false
+    fits(List(volumeSponge(4f))) shouldBe true
+
   it should "name every exceeded budget" in:
     val over = SceneCost.Estimate(ResourceLimits.sceneMaxTriangles + 1,
-      ResourceLimits.sceneMaxRendersPerFrame + 1, ResourceLimits.sceneMaxPhotonsPerFrame + 1)
+      ResourceLimits.sceneMaxRendersPerFrame + 1, ResourceLimits.sceneMaxPhotonsPerFrame + 1,
+      ResourceLimits.edgeTubeSpongeMaxLevel + 1)
     val message = SceneCost.check(over).left.getOrElse("")
-    message should (include("triangles") and include("renders per frame") and include("photons"))
+    message should (include("triangles") and include("renders per frame") and include("photons")
+      and include("edge tubes"))
 
   "RenderSettings.accumulation" should "be capped" in:
     noException should be thrownBy RenderSettings(accumulation = ResourceLimits.renderAccumulationMax)
