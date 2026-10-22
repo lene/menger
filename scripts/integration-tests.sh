@@ -677,6 +677,11 @@ test_textures() {
     run_test "procedural xyz_rgb_local sponge" \
         --objects "type=sponge-volume:level=1:pos=0,0,0:size=0.5:procedural=xyz_rgb_local" \
         --plane y:-2
+    # menger#127 (F110): the local origin, black, is the min-x/y/z corner -- seen from the
+    # -x -y -z octant; the default camera only sees the faces around the white corner.
+    run_test "procedural xyz_rgb_local min corner" \
+        --objects "type=cube:pos=0,0,0:size=0.5:procedural=xyz_rgb_local" \
+        --camera-pos -1.2,-0.9,-1.8 --camera-lookat 0,0,0 --camera-up 0,1,0 --plane y:-2
     # optix-jni#61 (F67): a red glass cube's transparent shadow is red, not grey. The colour
     # needs a low alpha (#RRGGBBAA): a 6-digit tint makes glass opaque (F66). The light throws
     # the shadow forward, into view.

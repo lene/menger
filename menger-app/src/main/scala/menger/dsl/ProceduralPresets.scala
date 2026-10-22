@@ -36,7 +36,10 @@ object ProceduralPresets:
       "the position inside the object's own box, x, y, z each 0..1 -> R, G, B: every colour " +
         "once over the object at scale 1, following its position, size and rotation, no " +
         "mirroring -- use it for \"local\" or \"every colour once\" colouring, never move the " +
-        "object for it (usability review 2026-10, session 3, F63)")
+        "object for it (usability review 2026-10, session 3, F63). Black (0, 0, 0) is the " +
+        "box's min-x, min-y, min-z corner (left, bottom, back for an unrotated object) and " +
+        "white the opposite corner, so a camera in the +x +y +z octant sees white nearest and " +
+        "no black (usability review 2026-10, session 5, F110)")
   )
 
   def byName(name: String): Option[Preset] = All.find(_.name == name.toLowerCase)

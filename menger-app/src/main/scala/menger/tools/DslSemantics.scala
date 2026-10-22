@@ -49,7 +49,8 @@ object DslSemantics:
       "nearby diffuse surface: flat facets (polytopes, " +
       "sponges) only shift light and thin Film bends it hardly at all, so they give faint or " +
       "no caustics -- say so instead of promising patterns (usability review 2026-10, " +
-      "session 4, F98).",
+      "session 4, F98). Every transparent material with an IOR above 1 refracts, Film " +
+      "(1.33) and Water included, not only Glass and Diamond (session 5, F121).",
     "Emission makes a surface self-lit: flat, unshaded colour. There is no bloom, halo or " +
       "glow around objects, and no emission that falls off with distance.",
     "Animation: `def scene(t: Float): Scene` plus `val durationSeconds = <seconds>f` in the " +

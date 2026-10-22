@@ -14,6 +14,10 @@
   `OptiXContextLostException` on every later render (optix-jni#73), the native library is
   built optimized (optix-jni#67), and `renderMix` mixes visibility passes in one native call
   (not yet used here; lene/menger#85).
+- The manifest says which corner of an object `xyz_rgb_local` colours black: the min-x/y/z
+  corner, which a camera in the +x +y +z octant never sees (lene/menger#127). Its caustics
+  convention names every transparent material with an IOR above 1 as refractive, Film
+  included (lene/menger-scene-agent#54).
 
 ### Fixed
 
