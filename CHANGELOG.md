@@ -37,6 +37,11 @@
   and `Icosahedron` (with edge tubes, like `Cube`), `Cone` (`apex`, `base`, `radius`), and the
   GPU-traced 4D fractals `Menger4D` and `HexadecachoronGasket` (CLI `menger4d`,
   `hexadecachoron4d`). A unit test fails when a new CLI type has no DSL class.
+- Extruding a cube into a tesseract without a cut: the manifest's `wScale` convention says how
+  (4D rotations 0 while `wScale` grows, the tesseract's size scaled by eyeW / (eyeW - screenW),
+  the same material and edge tubes on both), and the example `CubeToTesseract` does it, with
+  freeze frames at the hand-over in the integration suite (usability review 2026-10, session 5,
+  F124; lene/menger#132).
 - The animation window reports a frame that takes over a second as a `frame_slow` window event
   (at most one per 5 s: frame, build and render time, heap), and its log names the JVM heap on
   every scene load, so a slow scene and a killed window leave a trace (usability review 2026-10,

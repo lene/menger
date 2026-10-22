@@ -46,4 +46,5 @@ object SceneIndex:
     FractalWithHDR.scene,
     SierpinskiHDRRotation.scene,
     EnvMapVideoSponge.scene,
+    CubeToTesseract.scene,
   )

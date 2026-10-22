@@ -92,7 +92,14 @@ object DslSemantics:
       "`Projection4DSpec(wScale = s)` scales the object's w coordinate before the 4D rotation " +
       "(default 1, must be >= 0): 0 flattens a Tesseract to a cube, and animating it from 0 to " +
       "1 grows the tesseract out of the cube along w -- the nearest the DSL has to extruding a " +
-      "3D object into 4D. There is no 5D object (menger#65, #59).",
+      "3D object into 4D. There is no 5D object (menger#65, #59). For the hand-over from a " +
+      "3D Cube or Sponge to be seamless: keep rotXW, rotYW and rotZW at 0 while wScale grows " +
+      "(a 4D rotation turns x into w, so wScale 0 is then not the cube), give the 4D object " +
+      "size s * eyeW / (eyeW - screenW) for a 3D object of size s, the same material and the " +
+      "same `edgeRadius`/`edgeMaterial` on both (a `material`, not only a `color`: a 4D object " +
+      "with edge tubes and no material is drawn as its edges alone), and let the extrusion " +
+      "take at least 3 s; rotate in 4D only after wScale reaches 1 (usability review 2026-10, " +
+      "session 5, F124, menger#132; example: CubeToTesseract).",
     "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position " +
       "(11 xyz_rgb_local: in the object's own box). " +
       "For a 4D object that is the projected 3D position, after `projection` and `pos`, so the " +
