@@ -9,6 +9,11 @@
 
 ### Changed
 
+- A transparent object's shadow takes the colour seen through it by default when the object is
+  tinted or procedurally coloured: `RenderSettings(transparentShadows = ...)` is now `Auto`
+  unless set to `true` or `false` (usability review 2026-10, session 5, F111; lene/menger#128).
+  Caustics turn transparent shadows on in any case, from the command line (`--caustics`) and in
+  a DSL scene.
 - Pins optix-jni 0.4.9: instance transform, visibility and material changes refit the IAS in
   place instead of rebuilding it (optix-jni#66), a sticky CUDA error is thrown as
   `OptiXContextLostException` on every later render (optix-jni#73), the native library is

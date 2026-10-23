@@ -322,9 +322,11 @@ For more details, see [docs/caustics/CAUSTICS.md](../caustics/CAUSTICS.md).
 - **Single light source:** Photons are emitted from the first light only; multi-light caustics
   are not yet supported.
 - **Single plane deposition:** Caustic photons are deposited on the first ground plane only.
-- **No interaction with colored shadows:** Caustics are computed in a separate PPM pass and do not
-  interact with `--transparent-shadows` attenuation. Enabling both simultaneously is valid but
-  the two effects are computed independently.
+- **Caustics imply transparent shadows:** `--caustics` (or `Caustics` in a DSL scene) turns
+  `--transparent-shadows` on: caustics are for the most realistic picture, and an opaque shadow
+  under glass contradicts it. The two are computed independently -- the caustic photons in a
+  separate PPM pass, the shadow by its own rays -- so light through glass is counted by both,
+  and against a physical renderer (pbrt-v4) the light under glass is not yet right.
 - **Interactive mode:** In interactive (non-headless) mode, caustics quality improves progressively —
   each rendered frame adds one PPM iteration. Full convergence requires `--caustics-iterations`
   frames to elapse.

@@ -330,7 +330,8 @@ class MengerCLIOptions(arguments: Seq[String])
   val transparentShadows: ScallopOption[Boolean] = opt[Boolean](
     name = "transparent-shadows",
     required = false, default = Some(false), group = optixLightingGroup,
-    descr = "Enable colored light tinting through transparent/glass objects (requires --shadows)"
+    descr = "Enable colored light tinting through transparent/glass objects (requires --shadows; " +
+      "--caustics turns it on)"
   )
 
   // === OptiX Scene Options ===
@@ -449,7 +450,8 @@ class MengerCLIOptions(arguments: Seq[String])
   // Config accessors
   def renderConfig: RenderConfig = RenderConfig(
     shadows = shadows(),
-    transparentShadows = transparentShadows(),
+    // --caustics implies --transparent-shadows (decided by user 2026-10-23), as in a DSL scene.
+    transparentShadows = transparentShadows() || caustics(),
     antialiasing = antialiasing(),
     aaMaxDepth = aaMaxDepth(),
     aaThreshold = aaThreshold(),

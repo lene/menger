@@ -109,10 +109,13 @@ object DslSemantics:
       "colours follow the projected shape and change when the 4D rotation changes " +
       "(usability review 2026-09, session 2, F43); its box is taken from `size` before " +
       "projection, so xyz_rgb_local only approximately spans 0..1 on a 4D object.",
-    "Shadows of transparent objects are opaque unless the scene enables them: " +
-      "`RenderSettings(transparentShadows = true)`. Then a transparent object casts the colour " +
-      "seen through it, its procedural colour included -- e.g. rainbow shadows of a glass " +
-      "object with xyz_rgb_local (usability review 2026-10, session 3, F67).",
+    "Shadows of transparent objects: `RenderSettings(transparentShadows = ...)` is `Auto` by " +
+      "default, which makes a transparent object cast the colour seen through it when one is " +
+      "tinted or procedurally coloured -- e.g. rainbow shadows of a glass object with " +
+      "xyz_rgb_local (usability review 2026-10, session 3, F67; session 5, F111). `true` " +
+      "turns it on for every transparent object, `false` keeps shadows opaque. A scene without " +
+      "`render = Some(RenderSettings(...))` keeps opaque shadows. `caustics` turns transparent " +
+      "shadows on in any case.",
     "Image textures and texture maps (`texture`, `videoTexture`, `normalMap`, " +
       "`roughnessMap`) need surface UV coordinates. 4D objects, edge tubes (`edgeRadius`), " +
       "curves and an L-system's branches have no UV coordinates, so these fields have no " +

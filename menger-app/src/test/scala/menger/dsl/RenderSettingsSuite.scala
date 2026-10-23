@@ -8,7 +8,7 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
   "RenderSettings" should "have correct defaults" in:
     val rs = RenderSettings()
     rs.shadows shouldBe true
-    rs.transparentShadows shouldBe false
+    rs.transparentShadows shouldBe TransparentShadows.Auto
     rs.antialiasing shouldBe false
     rs.aaMaxDepth shouldBe 2
     rs.aaThreshold shouldBe 0.1f
@@ -25,7 +25,7 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
       denoise = DenoiseMode.Final
     )
     rs.shadows shouldBe true
-    rs.transparentShadows shouldBe true
+    rs.transparentShadows shouldBe TransparentShadows.On
     rs.antialiasing shouldBe true
     rs.aaMaxDepth shouldBe 3
     rs.aaThreshold shouldBe 0.05f
@@ -73,6 +73,34 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
     config.antialiasing shouldBe false
     config.aaMaxDepth shouldBe 2
     config.aaThreshold shouldBe 0.1f
+
+  // Usability review 2026-10, session 5 (F111, menger#128): coloured glass, grey shadow.
+  "TransparentShadows.Auto" should "turn coloured shadows on for a coloured transparent object" in:
+    RenderSettings().toRenderConfigFor(colouredTransparent = true).transparentShadows shouldBe true
+    RenderSettings().toRenderConfigFor(colouredTransparent = false).transparentShadows shouldBe false
+    RenderSettings(transparentShadows = false)
+      .toRenderConfigFor(colouredTransparent = true).transparentShadows shouldBe false
+
+  "SceneConverter.isColouredTransparent" should "take tinted or patterned glass, not clear glass" in:
+    import menger.engines.SceneConverter.isColouredTransparent
+    def glass(colour: Option[Color], procedural: Int = 0) =
+      Sphere(material = Some(Material.Glass), color = colour, proceduralType = procedural)
+        .toObjectSpec
+    isColouredTransparent(glass(None)) shouldBe false
+    isColouredTransparent(glass(Some(Color(1f, 0.1f, 0.1f, 0.02f)))) shouldBe true
+    isColouredTransparent(glass(None, procedural = 11)) shouldBe true
+    isColouredTransparent(Sphere(color = Some(Color(1f, 0f, 0f))).toObjectSpec) shouldBe false
+
+  // Decided by user 2026-10-23: "caustics should always imply transparent shadows".
+  "SceneConverter" should "turn transparent shadows on whenever caustics are" in:
+    import menger.engines.SceneConverter
+    val caustics = menger.common.CausticsConfig(enabled = true)
+    val scene = Scene(objects = List(Sphere()))
+    SceneConverter.convert(scene, caustics).render.map(_.transparentShadows) shouldBe Some(true)
+    val off = scene.copy(render = Some(RenderSettings(transparentShadows = false)))
+    SceneConverter.convert(off, caustics).render.map(_.transparentShadows) shouldBe Some(true)
+    val noCaustics = menger.common.CausticsConfig()
+    SceneConverter.convert(off, noCaustics).render.map(_.transparentShadows) shouldBe Some(false)
 
   "RenderSettings.Default" should "match no-arg constructor" in:
     RenderSettings.Default shouldBe RenderSettings()

@@ -294,6 +294,11 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     opts.headless() shouldBe true
     opts.timeout() shouldBe 0f
 
+  // Decided by user 2026-10-23: "caustics should always imply transparent shadows".
+  "--caustics" should "turn transparent shadows on" in:
+    SafeMengerCLIOptions(Seq("--caustics")).renderConfig.transparentShadows shouldBe true
+    SafeMengerCLIOptions(Seq[String]()).renderConfig.transparentShadows shouldBe false
+
   "--max-ray-depth" should "default to RenderLimits.MaxRayDepth" in:
     val opts = SafeMengerCLIOptions(Seq[String]())
     opts.maxRayDepth() shouldBe menger.common.RenderLimits.MaxRayDepth

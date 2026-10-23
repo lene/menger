@@ -38,6 +38,7 @@ import menger.dsl.SceneObject
 import menger.dsl.SpongeType
 import menger.dsl.TesseractSpongeType
 import menger.dsl.Transform
+import menger.dsl.TransparentShadows
 import menger.dsl.Vec3
 import menger.scene.RestrictedClasspath
 import upickle.default.ReadWriter
@@ -425,7 +426,8 @@ object ManifestGenerator extends LazyLogging:
         ),
         EnumManifest("TesseractSpongeType", sealedSubtypeNames[TesseractSpongeType]),
         EnumManifest("AreaLightShape", sealedSubtypeNames[AreaLightShape]),
-        EnumManifest("DenoiseMode", sealedSubtypeNames[DenoiseMode])
+        EnumManifest("DenoiseMode", sealedSubtypeNames[DenoiseMode]),
+        EnumManifest("TransparentShadows", sealedSubtypeNames[TransparentShadows])
       ),
       // `dsl-surface.md`'s "Remaining surface": the scene-composition and environment types an
       // agent needs to assemble a scene at all. `Caustics` in particular is that document's

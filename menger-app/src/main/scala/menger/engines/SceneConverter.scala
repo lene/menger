@@ -18,6 +18,7 @@ import menger.dsl.Scene
 import menger.dsl.SceneNode
 import menger.dsl.ToneMapping
 import menger.dsl.Transform
+import menger.engines.scene.MaterialExtractor
 import menger.video.EnvMapVideo
 
 /** Extracted conversion from DSL Scene to rendering configs.
@@ -66,7 +67,10 @@ object SceneConverter extends LazyLogging:
     warnCausticsPreconditions(caustics, objectSpecs, lights)
     val background = dslScene.background.map(_.toCommonColor)
     val planes     = dslScene.planes.map(p => PlaneConfig(p.toPlaneSpec, Some(p.toPlaneColorSpec), p.material))
-    val render     = dslScene.render.map(effectiveRenderConfig(_, dslScene.toneMapping))
+    val colouredTransparent = objectSpecs.exists(SceneConverter.isColouredTransparent)
+    val render     = withCausticsShadows(
+      dslScene.render.map(effectiveRenderConfig(_, dslScene.toneMapping, colouredTransparent)),
+      caustics, dslScene.toneMapping)
     val fog        = dslScene.fog.map(f => FogConfig(f.density, f.color.toCommonColor))
     val envMap     = dslScene.envMap
     val envMapVideo = dslScene.envMapVideo
@@ -198,6 +202,34 @@ object SceneConverter extends LazyLogging:
     * because `RenderApi.setRenderConfig` also pushes `RenderConfig`'s own (always-default)
     * tone-mapping fields to the GPU (usability review 2026-09, T2#8). Folding it in here,
     * once, is the fix all of those call sites pick up for free. */
-  private def effectiveRenderConfig(settings: RenderSettings, toneMapping: ToneMapping): RenderConfig =
+  private def effectiveRenderConfig(
+    settings: RenderSettings, toneMapping: ToneMapping, colouredTransparent: Boolean
+  ): RenderConfig =
     val (tmOp, tmExp) = toToneMappingParams(toneMapping)
-    settings.toRenderConfig.copy(toneMappingOperator = tmOp, toneMappingExposure = tmExp)
+    settings.toRenderConfigFor(colouredTransparent)
+      .copy(toneMappingOperator = tmOp, toneMappingExposure = tmExp)
+
+  /** Caustics turn transparent shadows on, whatever the scene says: caustics are for the most
+    * realistic picture, and an opaque shadow under glass contradicts it (decided by user
+    * 2026-10-23: "caustics should always imply transparent shadows"). A scene without render
+    * settings gets the defaults with them. */
+  private def withCausticsShadows(
+    render: Option[RenderConfig], caustics: CausticsConfig, toneMapping: ToneMapping
+  ): Option[RenderConfig] =
+    if !caustics.enabled then render
+    else
+      val (tmOp, tmExp) = toToneMappingParams(toneMapping)
+      val base = render.getOrElse(
+        RenderConfig.Default.copy(toneMappingOperator = tmOp, toneMappingExposure = tmExp))
+      Some(base.copy(transparentShadows = true))
+
+  // A colour channel spread below this reads as grey, white or black: clear glass, not coloured.
+  private val GreySpread = 0.05f
+
+  /** A transparent object whose shadow can show a colour: its material or colour is tinted, or
+    * a procedural pattern colours it (`TransparentShadows.Auto`, menger#128). */
+  def isColouredTransparent(spec: ObjectSpec): Boolean =
+    val material = MaterialExtractor.extract(spec)
+    val c = material.color
+    val spread = math.max(c.r, math.max(c.g, c.b)) - math.min(c.r, math.min(c.g, c.b))
+    c.a < 1f && (spec.procedural.proceduralType != 0 || spread > GreySpread)
