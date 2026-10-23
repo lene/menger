@@ -68,9 +68,9 @@ object SceneConverter extends LazyLogging:
     val background = dslScene.background.map(_.toCommonColor)
     val planes     = dslScene.planes.map(p => PlaneConfig(p.toPlaneSpec, Some(p.toPlaneColorSpec), p.material))
     val colouredTransparent = objectSpecs.exists(SceneConverter.isColouredTransparent)
-    val render     = withCausticsShadows(
-      dslScene.render.map(effectiveRenderConfig(_, dslScene.toneMapping, colouredTransparent)),
-      caustics, dslScene.toneMapping)
+    val render     = renderSettingsFor(dslScene.render, colouredTransparent, caustics.enabled)
+      .map(effectiveRenderConfig(_, dslScene.toneMapping, colouredTransparent))
+      .map(r => if caustics.enabled then r.copy(transparentShadows = true) else r)
     val fog        = dslScene.fog.map(f => FogConfig(f.density, f.color.toCommonColor))
     val envMap     = dslScene.envMap
     val envMapVideo = dslScene.envMapVideo
@@ -209,19 +209,16 @@ object SceneConverter extends LazyLogging:
     settings.toRenderConfigFor(colouredTransparent)
       .copy(toneMappingOperator = tmOp, toneMappingExposure = tmExp)
 
-  /** Caustics turn transparent shadows on, whatever the scene says: caustics are for the most
-    * realistic picture, and an opaque shadow under glass contradicts it (decided by user
-    * 2026-10-23: "caustics should always imply transparent shadows"). A scene without render
-    * settings gets the defaults with them. */
-  private def withCausticsShadows(
-    render: Option[RenderConfig], caustics: CausticsConfig, toneMapping: ToneMapping
-  ): Option[RenderConfig] =
-    if !caustics.enabled then render
-    else
-      val (tmOp, tmExp) = toToneMappingParams(toneMapping)
-      val base = render.getOrElse(
-        RenderConfig.Default.copy(toneMappingOperator = tmOp, toneMappingExposure = tmExp))
-      Some(base.copy(transparentShadows = true))
+  /** The scene's render settings, or the defaults when transparent shadows must be on without
+    * them: for a coloured transparent object (`TransparentShadows.Auto`; decided by user
+    * 2026-10-23: "yes" to Auto for a scene without render settings, menger#128), and with
+    * caustics, which turn transparent shadows on whatever the scene says (decided by user
+    * 2026-10-23: "caustics should always imply transparent shadows"). Otherwise None, so the
+    * command line's render settings stay in force for the scene. */
+  private def renderSettingsFor(
+    render: Option[RenderSettings], colouredTransparent: Boolean, caustics: Boolean
+  ): Option[RenderSettings] =
+    render.orElse(Option.when(colouredTransparent || caustics)(RenderSettings.Default))
 
   // A colour channel spread below this reads as grey, white or black: clear glass, not coloured.
   private val GreySpread = 0.05f

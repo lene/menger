@@ -102,6 +102,18 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
     val noCaustics = menger.common.CausticsConfig()
     SceneConverter.convert(off, noCaustics).render.map(_.transparentShadows) shouldBe Some(false)
 
+  // Decided by user 2026-10-23: "yes" to Auto for a scene without render settings (menger#128).
+  it should "turn transparent shadows on for coloured glass in a scene without render settings" in:
+    import menger.engines.SceneConverter
+    val noCaustics = menger.common.CausticsConfig()
+    def shadowsOf(sphere: Sphere) =
+      SceneConverter.convert(Scene(objects = List(sphere)), noCaustics).render
+        .map(_.transparentShadows)
+    shadowsOf(Sphere(material = Some(Material.Glass), color = Some(Color(1f, 0.1f, 0.1f, 0.02f))))
+      .shouldBe(Some(true))
+    // Clear glass leaves the scene without render settings, so the command line's stay in force.
+    shadowsOf(Sphere(material = Some(Material.Glass))) shouldBe None
+
   "RenderSettings.Default" should "match no-arg constructor" in:
     RenderSettings.Default shouldBe RenderSettings()
 

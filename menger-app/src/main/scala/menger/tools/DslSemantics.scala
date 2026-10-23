@@ -114,7 +114,7 @@ object DslSemantics:
       "tinted or procedurally coloured -- e.g. rainbow shadows of a glass object with " +
       "xyz_rgb_local (usability review 2026-10, session 3, F67; session 5, F111). `true` " +
       "turns it on for every transparent object, `false` keeps shadows opaque. A scene without " +
-      "`render = Some(RenderSettings(...))` keeps opaque shadows. `caustics` turns transparent " +
+      "`render = Some(RenderSettings(...))` behaves as `Auto`. `caustics` turns transparent " +
       "shadows on in any case.",
     "Image textures and texture maps (`texture`, `videoTexture`, `normalMap`, " +
       "`roughnessMap`) need surface UV coordinates. 4D objects, edge tubes (`edgeRadius`), " +
