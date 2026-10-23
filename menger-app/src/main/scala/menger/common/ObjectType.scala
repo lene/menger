@@ -112,6 +112,10 @@ object ObjectType:
   def isHexadecachoron4D(objectType: String): Boolean =
     HEXADECACHORON4D_TYPES.contains(normalize(objectType))
 
+  /** The GPU-traced 4D IFS fractals, each built by its own `Instanced4DSceneBuilder`. */
+  def isIFS4D(objectType: String): Boolean =
+    isMenger4D(objectType) || isSierpinski4D(objectType) || isHexadecachoron4D(objectType)
+
   def isRecursiveIASSponge(objectType: String): Boolean =
     normalize(objectType) == "sponge-recursive-ias"
 

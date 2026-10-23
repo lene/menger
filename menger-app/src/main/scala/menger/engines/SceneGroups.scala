@@ -19,12 +19,16 @@ object SceneGroups:
     * analytical sphere built earlier simply vanished (usability review 2026-09, F24): the 4D
     * ones, then the 3D meshes with edge tubes (menger#132; every group gets the same budget, so
     * only the first of them grows the renderer). Then one group per analytical primitive type,
-    * the cube sponges, and all remaining meshes. */
+    * one per 4D IFS fractal type (each has its own builder, menger#134), the cube sponges, and
+    * all remaining meshes. */
   def buildOrder(specs: List[ObjectSpec]): List[List[ObjectSpec]] =
     val (analytical, meshes) = specs.partition(s => ObjectType.isAnalyticalPrimitive(s.objectType))
     val (edge4D, nonEdge4D) = meshes.partition(s =>
       s.hasEdgeRendering && ObjectType.isProjected4D(s.objectType))
     val (edge3D, nonEdge) = nonEdge4D.partition(menger.engines.scene.MeshEdges3D.appliesTo)
-    val (cubeSponges, otherMeshes) = nonEdge.partition(_.objectType.toLowerCase == "cube-sponge")
-    val analyticalGroups = analytical.groupBy(_.objectType.toLowerCase).values.toList
-    (edge4D :: edge3D :: analyticalGroups ++ List(cubeSponges, otherMeshes)).filter(_.nonEmpty)
+    val (ifs4D, nonIFS) = nonEdge.partition(s => ObjectType.isIFS4D(s.objectType))
+    val (cubeSponges, otherMeshes) = nonIFS.partition(_.objectType.toLowerCase == "cube-sponge")
+    def byType(group: List[ObjectSpec]) =
+      group.groupBy(s => ObjectType.normalize(s.objectType)).toList.sortBy(_._1).map(_._2)
+    (edge4D :: edge3D :: byType(analytical) ++ byType(ifs4D) ++ List(cubeSponges, otherMeshes))
+      .filter(_.nonEmpty)

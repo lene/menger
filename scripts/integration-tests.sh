@@ -956,6 +956,13 @@ test_menger4d() {
     run_test "menger4d two instances" --plane y:-2 \
         --objects type=menger4d:level=2:pos=-1.2,0,0:size=0.8 \
         --objects type=menger4d:level=2:pos=1.2,0,0:size=0.8
+    # menger#134: the three IFS fractals and a sphere in one scene ("No builder found" before).
+    run_test "4D IFS fractals mixed with a sphere" --plane y:-1 \
+        --camera-pos 0,1.5,6 --camera-lookat 0,-0.2,0 --camera-up 0,1,0 \
+        --objects type=menger4d:level=2:pos=-1.6,0,0:size=0.8 \
+        --objects type=sierpinski4d:level=3:pos=0,0,0:size=0.8:color=#e04040 \
+        --objects type=hexadecachoron4d:level=3:pos=1.6,0,0:size=0.8:color=#40a0e0 \
+        --objects type=sphere:pos=0,-0.7,1.2:size=0.3:material=chrome
 }
 
 test_sierpinski4d() {

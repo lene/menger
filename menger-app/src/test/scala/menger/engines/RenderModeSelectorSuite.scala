@@ -64,5 +64,21 @@ class RenderModeSelectorSuite extends AnyFlatSpec with Matchers:
   it should "classify hexadecachoron4d scene as Hexadecachoron4D (not Unsupported)" in:
     RenderModeSelector.classify(List(spec("hexadecachoron4d"))) shouldBe a [SceneType.Hexadecachoron4D]
 
-  it should "throw IllegalArgumentException for empty spec list" in:
+  // menger#134: a 4D IFS fractal was Unsupported next to any other type.
+  private val ifsMix = List("menger4d", "sphere", "sierpinski4d", "cube", "hexadecachoron4d")
+    .map(t => spec(t).copy(level = Some(2f)))
+
+  it should "classify the 4D IFS fractals mixed with each other and other types as SimpleMixed" in:
+    RenderModeSelector.classify(ifsMix) shouldBe a [SceneType.SimpleMixed]
+    RenderModeSelector.classify(ifsMix.filter(s => s.objectType.endsWith("4d"))) shouldBe
+      a [SceneType.SimpleMixed]
+
+  "SceneGroups.buildOrder" should "give each 4D IFS fractal type its own group" in:
+    SceneGroups.buildOrder(ifsMix).map(_.map(_.objectType).toSet) should contain allOf (
+      Set("menger4d"), Set("sierpinski4d"), Set("hexadecachoron4d"))
+
+  "BuildPrecheck" should "find a builder for every group of a scene mixing the IFS fractals" in:
+    BuildPrecheck.problems(ifsMix) shouldBe empty
+
+  "RenderModeSelector.classify" should "throw IllegalArgumentException for empty spec list" in:
     an [IllegalArgumentException] should be thrownBy RenderModeSelector.classify(List.empty)

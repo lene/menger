@@ -645,6 +645,7 @@ interactive_tests=(
     "Menger4D L3 chrome:-o --objects type=menger4d:level=3:material=chrome --plane y:-2"
     "Menger4D L4 matte:-o --objects type=menger4d:level=4:material=matte --plane y:-2"
     "Menger4D two objects (L2+L3):-o --objects type=menger4d:level=2:pos=-0.8,0,0 --objects type=menger4d:level=3:pos=0.8,0,0 --plane y:-2"
+    "4D IFS fractals mixed with a sphere (menger#134):-o --objects type=menger4d:level=2:pos=-1.6,0,0:size=0.8 --objects type=sierpinski4d:level=3:pos=0,0,0:size=0.8:color=#e04040 --objects type=hexadecachoron4d:level=3:pos=1.6,0,0:size=0.8:color=#40a0e0 --objects type=sphere:pos=0,-0.7,1.2:size=0.3:material=chrome --plane y:-1"
     "Menger4D fractional L2.5:-o --objects type=menger4d:level=2.5 --plane y:-2"
     "Sierpinski4D L1 matte:-o --objects type=sierpinski4d:level=1 --plane y:-2"
     "Sierpinski4D L3 chrome:-o --objects type=sierpinski4d:level=3:material=chrome --plane y:-2"

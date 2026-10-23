@@ -24,6 +24,9 @@
 
 ### Fixed
 
+- The GPU-traced 4D IFS fractals (`Menger4D`, `PentachoronGasket`, `HexadecachoronGasket`) share
+  a scene with other objects and with each other; any such mix failed with "No builder found"
+  (lene/menger#134).
 - Edge tubes on a sponge above level 3 are refused by the scene budget from the level alone
   (validator and every engine). The window counted the edges first, which builds the mesh: a
   level-5 sponge with edges took 46 s and 9 GB to be refused; now 2 s (lene/menger#132).
