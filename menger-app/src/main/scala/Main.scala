@@ -362,13 +362,7 @@ object Main:
     watchScenePath: Option[java.io.File] = None
   )(using ProfilingConfig): InteractiveEngine =
     val configs = SceneConverter.convert(dslScene, opts.causticsConfig)
-    val baseRender = configs.render.getOrElse(RenderConfig.Default)
-    val mergedRender = RenderConfig(
-      shadows            = if opts.shadows.isSupplied            then opts.shadows()            else baseRender.shadows,
-      transparentShadows = if opts.transparentShadows.isSupplied then opts.transparentShadows() else baseRender.transparentShadows,
-      antialiasing       = if opts.antialiasing.isSupplied       then opts.antialiasing()       else baseRender.antialiasing,
-      aaMaxDepth         = if opts.aaMaxDepth.isSupplied         then opts.aaMaxDepth()         else baseRender.aaMaxDepth,
-      aaThreshold        = if opts.aaThreshold.isSupplied        then opts.aaThreshold()        else baseRender.aaThreshold,
+    val mergedRender = opts.renderConfigOver(configs.render.getOrElse(RenderConfig.Default)).copy(
       toneMappingOperator = configs.toneMappingOperator,
       toneMappingExposure = configs.toneMappingExposure,
     )

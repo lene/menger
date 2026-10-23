@@ -458,6 +458,17 @@ class MengerCLIOptions(arguments: Seq[String])
     maxRayDepth = maxRayDepth()
   )
 
+  /** A scene's render settings with each render flag given on the command line in its place. */
+  def renderConfigOver(scene: RenderConfig): RenderConfig = scene.copy(
+    shadows = if shadows.isSupplied then shadows() else scene.shadows,
+    transparentShadows =
+      if transparentShadows.isSupplied then transparentShadows() else scene.transparentShadows,
+    antialiasing = if antialiasing.isSupplied then antialiasing() else scene.antialiasing,
+    aaMaxDepth = if aaMaxDepth.isSupplied then aaMaxDepth() else scene.aaMaxDepth,
+    aaThreshold = if aaThreshold.isSupplied then aaThreshold() else scene.aaThreshold,
+    maxRayDepth = if maxRayDepth.isSupplied then maxRayDepth() else scene.maxRayDepth
+  )
+
   def denoiseMode: DenoiseMode =
     if noDenoise() then DenoiseMode.Off
     else if denoise() then DenoiseMode.Final

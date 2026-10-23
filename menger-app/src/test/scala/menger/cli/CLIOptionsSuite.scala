@@ -299,6 +299,14 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     SafeMengerCLIOptions(Seq("--caustics")).renderConfig.transparentShadows shouldBe true
     SafeMengerCLIOptions(Seq[String]()).renderConfig.transparentShadows shouldBe false
 
+  // The DSL scene merge built a fresh RenderConfig and so lost the scene's maxRayDepth.
+  "renderConfigOver" should "keep a scene's render settings where no flag is given" in:
+    val scene = menger.common.RenderConfig(antialiasing = true, maxRayDepth = 3)
+    SafeMengerCLIOptions(Seq[String]()).renderConfigOver(scene) shouldBe scene
+    val merged = SafeMengerCLIOptions(Seq("--max-ray-depth", "2")).renderConfigOver(scene)
+    merged.maxRayDepth shouldBe 2
+    merged.antialiasing shouldBe true
+
   "--max-ray-depth" should "default to RenderLimits.MaxRayDepth" in:
     val opts = SafeMengerCLIOptions(Seq[String]())
     opts.maxRayDepth() shouldBe menger.common.RenderLimits.MaxRayDepth

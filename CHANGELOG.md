@@ -34,6 +34,8 @@
 
 ### Fixed
 
+- A static DSL scene's `RenderSettings(maxRayDepth = ...)` is used; merging the command line's
+  render flags over the scene's reset it to the default of 5.
 - The GPU-traced 4D IFS fractals (`Menger4D`, `PentachoronGasket`, `HexadecachoronGasket`) share
   a scene with other objects and with each other; any such mix failed with "No builder found"
   (lene/menger#134).
