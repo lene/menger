@@ -28,6 +28,10 @@
   corner, which a camera in the +x +y +z octant never sees (lene/menger#127). Its caustics
   convention names every transparent material with an IOR above 1 as refractive, Film
   included (lene/menger-scene-agent#54).
+- The window title shows the 4D view state (rotation in the xw, yw and zw planes, eye-w) and
+  the 4D controls while a 4D object is shown, and says when Shift+drag finds no 4D object
+  (lene/menger#131). An animated window's title also shows the time of a slow last frame, so a
+  window that renders slowly says so (lene/menger#133).
 - The DSL's `Sierpinski4D` is now `PentachoronGasket`, the name of what it is (the Sierpinski
   gasket of the 5-cell); the old name still compiles, deprecated. The CLI type stays
   `sierpinski4d`.
@@ -36,6 +40,7 @@
 
 - A static DSL scene's `RenderSettings(maxRayDepth = ...)` is used; merging the command line's
   render flags over the scene's reset it to the default of 5.
+- Shift+scroll changes eye-w in an animated window too; it did nothing there.
 - The GPU-traced 4D IFS fractals (`Menger4D`, `PentachoronGasket`, `HexadecachoronGasket`) share
   a scene with other objects and with each other; any such mix failed with "No builder found"
   (lene/menger#134).

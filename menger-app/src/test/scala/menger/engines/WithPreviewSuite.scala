@@ -64,5 +64,11 @@ class WithPreviewSuite extends AnyFlatSpec with Matchers:
     WithPreview.isSlow(2 * second, lastReportNanos = Some(10 * second), now = 13 * second) shouldBe false
     WithPreview.isSlow(2 * second, lastReportNanos = Some(10 * second), now = 15 * second) shouldBe true
 
+  // Session 5, F125 (menger#133): a slowly rendering window looked blank or frozen.
+  "WithPreview.slowFrameNote" should "name a slow frame's time in whole seconds, else nothing" in:
+    val second = 1000000000L
+    WithPreview.slowFrameNote(11 * second + second / 4) shouldBe Some("slow: last frame 11 s")
+    WithPreview.slowFrameNote(second / 2) shouldBe None
+
   "HeapUsage.describe" should "name the used and the maximum heap in GiB" in:
     HeapUsage.describe() should fullyMatch regex """heap \d+\.\d of \d+\.\d GiB"""

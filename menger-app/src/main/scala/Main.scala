@@ -228,7 +228,7 @@ object Main:
   def getConfig(opts: MengerCLIOptions): Lwjgl3ApplicationConfiguration =
     val config = Lwjgl3ApplicationConfiguration()
     config.disableAudio(true)
-    config.setTitle("Menger Sponges")
+    config.setTitle(menger.input.GdxRuntime.DefaultWindowTitle)
     config.setWindowedMode(opts.width(), opts.height())
     config.setBackBufferConfig(
       Const.Display.colorBits, Const.Display.colorBits,

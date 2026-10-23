@@ -128,7 +128,7 @@ class PreviewEngine(
   override protected def interactive4D: Interactive4DOffset = offset4D.get()
 
   override def handleEvent(event: menger.RotationProjectionParameters): Unit =
-    val _ = offset4D.updateAndGet(_.plus(event.rotXW, event.rotYW, event.rotZW))
+    val _ = offset4D.updateAndGet(_.plus(event))
     requestRedraw()
 
   private val lastSceneCamera = new AtomicReference[CameraConfig](firstFrameConfigs.camera)

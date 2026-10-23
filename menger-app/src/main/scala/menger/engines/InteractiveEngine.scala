@@ -207,6 +207,7 @@ class InteractiveEngine(
           spec
       })
       currentObjectSpecs.set(updatedSpecs)
+      show4DState(updatedSpecs)
       val _ = interactive4DOffset.updateAndGet(
         _.plus(event.rotXW, event.rotYW, event.rotZW)
       )
@@ -220,6 +221,14 @@ class InteractiveEngine(
         rebuildOrReport()
       renderResources.markNeedsRender()
       GdxRuntime.requestRendering()
+    else
+      GdxRuntime.setWindowTitle(s"${GdxRuntime.DefaultWindowTitle} | ${Window4DState.NoObject}")
+
+  // The 4D view state in the title (usability review 2026-10, session 5, F116, menger#131).
+  private def show4DState(specs: Option[List[ObjectSpec]]): Unit =
+    Window4DState.describe(specs.getOrElse(Nil)).foreach(state =>
+      GdxRuntime.setWindowTitle(s"${GdxRuntime.DefaultWindowTitle} | $state")
+    )
 
   /** Per-mesh GPU 4D-projection update path. Mirrors `WithAnimation.tryAnim4DFastPath`.
     * Returns true iff every spec is 4D-projected, slot mapping is cached, and the
@@ -321,6 +330,7 @@ class InteractiveEngine(
   override def create(): Unit =
     logger.info(s"Creating InteractiveEngine with ${objectSpecs.length} objects")
     objectSpecs.foreach(warnIfHighLevel)
+    show4DState(currentObjectSpecs.get())
     val renderer = rendererWrapper.renderer
     // Resize the native instance buffer up-front when auto-adjust says we need
     // more than the constructor-time budget — otherwise large cube-sponge / mixed
@@ -440,6 +450,7 @@ class InteractiveEngine(
   private def resetTo4DDefaults(): Unit =
     logger.debug("Resetting 4D view to initial state")
     currentObjectSpecs.set(Some(lastFileSpecs.get()))
+    show4DState(currentObjectSpecs.get())
     interactive4DOffset.set(Interactive4DOffset.Zero)
     rebuildOrReport()
     renderResources.markNeedsRender()
@@ -487,6 +498,7 @@ class InteractiveEngine(
   private def restore(point: ReloadPoint): Unit =
     reloadable.set(point.reloadable)
     currentObjectSpecs.set(point.specs)
+    show4DState(point.specs)
     lastFileSpecs.set(point.fileSpecs)
     lastFileProjections.set(point.fileProjections)
     interactive4DOffset.set(point.offset)
@@ -561,6 +573,7 @@ class InteractiveEngine(
       interactive4DOffset.set(Interactive4DOffset.Zero)
     lastFileSpecs.set(fileSpecs)
     currentObjectSpecs.set(Some(specs))
+    show4DState(Some(specs))
 
   // The camera the previously loaded file declared. A reload leaves the mouse view alone unless
   // the file's own camera changed; then the edit wins, otherwise a camera edit made through the

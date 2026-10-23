@@ -532,6 +532,8 @@ interactive_tests=(
     "Cube Sponge L1:-o --objects type=cube-sponge:level=1:color=#00ffff --max-instances 64 --plane y:-2"
     "Tesseract (4D hypercube):-o --objects type=tesseract --plane y:-2"
     "Tesseract (4D rotated):-o --objects type=tesseract:rot-xw=45:rot-yw=30:rot-zw=15 --plane y:-2"
+    "4D state in the title (Shift+drag / Shift+scroll change it; menger#131):-o --objects type=tesseract --plane y:-2"
+    "4D state in an animated window's title (Shift+scroll moves eye-w; menger#131):-o --scene examples.dsl.CubeToTesseract"
     "Tesseract (glass):-o --objects type=tesseract:material=glass --plane y:-2"
     "Tesseract (chrome):-o --objects type=tesseract:material=chrome --plane y:-2"
     "Tesseract with chrome edges:-o --objects type=tesseract:edge-material=chrome:edge-radius=0.02 --plane y:-2"

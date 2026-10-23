@@ -24,7 +24,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
   protected def renderConfig: RenderConfig
   protected def causticsConfig: CausticsConfig
   protected def firstFrameConfigs: SceneConverter.SceneConfigs
-  protected def windowTitle: String = "Menger Sponges"
+  protected def windowTitle: String = GdxRuntime.DefaultWindowTitle
 
   /** Real-time looping playback, for a scene that declares its `duration`: t follows the wall
     * clock through [startT, endT) and wraps around, instead of advancing one tStep per
@@ -67,6 +67,13 @@ trait WithPreview extends RenderEngine with LazyLogging:
   // Frames whose scene failed to build -- the window then shows the previous frame, so say so
   // in the title (menger#54).
   private val failedFrames = new AtomicInteger(0)
+  // The title's 4D view state (menger#131) and the time of a slow last frame (menger#133), so
+  // the window itself says what Shift+drag changed and that it is still rendering.
+  private val title4D = new AtomicReference[Option[String]](None)
+  private val slowFrameNote = new AtomicReference[Option[String]](None)
+
+  private def setTitleNote(note: AtomicReference[Option[String]], value: Option[String]): Unit =
+    if note.getAndSet(value) != value then updateTitle()
 
   private def reportFailedFrame(t: Float, e: Throwable): Unit =
     failedFrames.incrementAndGet()
@@ -166,8 +173,10 @@ trait WithPreview extends RenderEngine with LazyLogging:
     val behind =
       if skipped > 0f then f" | behind real time: ${skipped}%.1f s skipped" else ""
     val idle = if idlePaused.get() then " | paused: idle (Space resumes)" else ""
+    val notes = (slowFrameNote.get() ++ title4D.get()).map(" | " + _).mkString
     GdxRuntime.setWindowTitle(
-      f"$windowTitle | t=$t%.3f | frame $frame/${previewConfig.frames}" + failures + behind + idle
+      f"$windowTitle | t=$t%.3f | frame $frame/${previewConfig.frames}" + failures + behind +
+        idle + notes
     )
 
   abstract override def create(): Unit =
@@ -250,6 +259,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
             else converted.copy(scene = converted.scene.copy(
               objectSpecs = converted.scene.objectSpecs.map(interactive4D.applyTo)
             ))
+          setTitleNote(title4D, Window4DState.describe(configs.scene.objectSpecs.getOrElse(Nil)))
           val renderer = rendererWrapper.renderer
           configs.render.foreach(renderer.setRenderConfig)
           renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
@@ -272,7 +282,9 @@ trait WithPreview extends RenderEngine with LazyLogging:
           rendererWrapper.renderScene(ImageSize(width, height)) match
             case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
             case None            => () // render failed (logged); skip this frame
-          reportIfSlow(t, renderStart - buildStart, System.nanoTime() - renderStart)
+          val renderEnd = System.nanoTime()
+          reportIfSlow(t, renderStart - buildStart, renderEnd - renderStart)
+          setTitleNote(slowFrameNote, WithPreview.slowFrameNote(renderEnd - buildStart))
     // Paused or between key presses: the buffer was cleared above and nothing new was built, so
     // draw the last frame again instead of showing a black window (usability session 3, F68a).
     else if width > 0 && height > 0 then renderResources.redrawExisting(width, height)
@@ -324,6 +336,12 @@ object WithPreview:
     val sinceReport = (last: Long) => (now - last) / NanosPerSecond
     frameNanos / NanosPerSecond > SlowFrameSeconds &&
       lastReportNanos.forall(sinceReport(_) >= SlowFrameReportIntervalSeconds)
+
+  /** The title note for a frame of `frameNanos`: its time when it was slow, else none. Rounded
+    * to a second so the title does not change with every slow frame. */
+  def slowFrameNote(frameNanos: Long): Option[String] =
+    val seconds = frameNanos / NanosPerSecond
+    Option.when(seconds > SlowFrameSeconds)(f"slow: last frame ${math.round(seconds)} s")
 
   /** t for real-time looping playback: `elapsedSeconds` after the start, wrapped into
     * [startT, endT). A non-positive span pins t to startT. */
