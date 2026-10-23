@@ -19,6 +19,11 @@
   `OptiXContextLostException` on every later render (optix-jni#73), the native library is
   built optimized (optix-jni#67), and `renderMix` mixes visibility passes in one native call
   (not yet used here; lene/menger#85).
+- Pins optix-jni 0.4.10: a transparent shadow is charged for the glass the shadow ray crosses.
+  For a mesh this is the path length through it, with exact Fresnel at the ray's angle to
+  each face; a level-3 sponge's shadow keeps its tint instead of going grey. Measured against
+  pbrt-v4, the shadow under preset glass transmits 0.65 (pbrt 0.50, 0.4.9 0.63) with the right
+  colour balance (lene/menger#128).
 - The manifest says which corner of an object `xyz_rgb_local` colours black: the min-x/y/z
   corner, which a camera in the +x +y +z octant never sees (lene/menger#127). Its caustics
   convention names every transparent material with an IOR above 1 as refractive, Film
