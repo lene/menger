@@ -24,6 +24,11 @@
   each face; a level-3 sponge's shadow keeps its tint instead of going grey. Measured against
   pbrt-v4, the shadow under preset glass transmits 0.65 (pbrt 0.50, 0.4.9 0.63) with the right
   colour balance (lene/menger#128).
+- Pins optix-jni 0.4.11: an opaque object casts a full shadow with transparent shadows on (an
+  opaque cyan sphere cast a cyan shadow, an opaque grey floor let 31% of the light through);
+  glass reflects with the exact Fresnel equations, total internal reflection included, and the
+  light it reflects inside coloured glass is absorbed; edge tubes move in 0.49 s per frame
+  instead of 0.74 s in session 5's Task 4.7 scene (lene/menger#129).
 - The manifest says which corner of an object `xyz_rgb_local` colours black: the min-x/y/z
   corner, which a camera in the +x +y +z octant never sees (lene/menger#127). Its caustics
   convention names every transparent material with an IOR above 1 as refractive, Film
