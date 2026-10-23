@@ -64,6 +64,8 @@ trait WithPreview extends RenderEngine with LazyLogging:
   // The previous frame's 4D scene with its renderer handles, when it can be updated in place
   // (usability review 2026-09, session 2, F52: every frame used to rebuild the whole scene).
   private val tracked4D = new AtomicReference[Option[scene.TrackedMesh4D.State]](None)
+  // The same for an edge-rendered 4D scene: its cylinders move in place (menger#129).
+  private val trackedEdges = new AtomicReference[Option[scene.TrackedEdges4D.State]](None)
   // Frames whose scene failed to build -- the window then shows the previous frame, so say so
   // in the title (menger#54).
   private val failedFrames = new AtomicInteger(0)
@@ -299,8 +301,17 @@ trait WithPreview extends RenderEngine with LazyLogging:
     t: Float
   ): Boolean =
     val specs = configs.scene.objectSpecs.getOrElse(List.empty)
+    // A failed move leaves the scene half moved: the rebuild below replaces it.
+    val edgesMoved = trackedEdges.get.flatMap { state =>
+      val moved = Try(scene.TrackedEdges4D.update(state, specs, renderer))
+      moved.failed.foreach(e => logger.warn(s"Moving edge tubes in place failed, rebuilding: $e"))
+      moved.toOption.flatten
+    }
     val (updated, instancesCleared) =
       tracked4D.get.filter(state => scene.TrackedMesh4D.canUpdateInPlace(state.specs, specs)) match
+        case _ if edgesMoved.isDefined =>
+          trackedEdges.set(edgesMoved)
+          (scala.util.Success(()), false)
         case Some(state) =>
           val inPlace = Try(
             tracked4D.set(Some(scene.TrackedMesh4D.updateInPlace(state, specs, renderer)))
@@ -313,12 +324,15 @@ trait WithPreview extends RenderEngine with LazyLogging:
           case _ =>
             renderer.clearAllInstances()
             tracked4D.set(None)
+            trackedEdges.set(None)
+            val maxInstances = computeEffectiveMaxInstances(_, specs)
             val rebuilt =
               if WithAnimation.is4DOnlyTriangleMeshScene(specs) then
-                scene.TrackedMesh4D
-                  .build(specs, renderer, textureDir, computeEffectiveMaxInstances(_, specs))(using
-                    profilingConfig)
-                  .map(tracked4D.set)
+                scene.TrackedMesh4D.build(specs, renderer, textureDir, maxInstances)(using
+                  profilingConfig).map(tracked4D.set)
+              else if scene.TrackedEdges4D.isEdgeScene(specs) then
+                scene.TrackedEdges4D.build(specs, renderer, textureDir, maxInstances)(using
+                  profilingConfig).map(trackedEdges.set)
               else buildSceneFromConfigs(configs, renderer)
             (rebuilt, true)
     updated.recover { case e: Exception => reportFailedFrame(t, e) }

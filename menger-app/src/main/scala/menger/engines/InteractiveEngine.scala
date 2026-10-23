@@ -31,6 +31,7 @@ import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TextureManager
+import menger.engines.scene.TrackedEdges4D
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.input.EventDispatcher
 import menger.input.GdxRuntime
@@ -678,15 +679,13 @@ class InteractiveEngine(
     specs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
-    val tracks = scala.collection.mutable.Map.empty[Int, TesseractEdgeSceneBuilder.EdgeTrack]
-    val builder = TesseractEdgeSceneBuilder(textureDir, (specIdx, track) => tracks(specIdx) = track)
-    val result = builder.validateAndBuild(specs, renderer, computeEffectiveMaxInstances(builder, specs))
+    val result = TrackedEdges4D.build(
+      specs, renderer, textureDir, computeEffectiveMaxInstances(_, specs)
+    )(using profilingConfig)
     scene4DCache.set(
-      if result.isSuccess && tracks.size == specs.size then
-        Scene4DCache.Edges(specs, specs.indices.map(tracks).toIndexedSeq)
-      else Scene4DCache.Empty
+      result.toOption.flatten.fold(Scene4DCache.Empty)(s => Scene4DCache.Edges(s.specs, s.tracks))
     )
-    result
+    result.map(_ => ())
 
   private def rebuildOrReport(): Unit =
     rebuildScene().failed.foreach(e => frameFailed("rebuild after 4D rotation", e))

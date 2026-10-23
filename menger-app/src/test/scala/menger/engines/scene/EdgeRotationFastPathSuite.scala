@@ -3,6 +3,10 @@ package menger.engines.scene
 import scala.collection.mutable
 
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.qa.Perf
+import io.github.lene.qa.PerfGate
+import io.github.lene.qa.RelativeBenchmark
+import io.github.lene.qa.Side
 import menger.ObjectSpec
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
@@ -15,11 +19,14 @@ import org.scalatest.matchers.should.Matchers
 /** Interactive 4D rotation of edge-rendered objects moves the built geometry in place
   * (TesseractEdgeSceneBuilder.updateProjection) instead of rebuilding the scene (usability
   * review 2026-09, F22). The moved scene has to render exactly like a fresh build. */
-class EdgeRotationFastPathSuite extends AnyFlatSpec with Matchers with BeforeAndAfterEach:
+class EdgeRotationFastPathSuite extends AnyFlatSpec with Matchers with BeforeAndAfterEach
+    with PerfGate:
   given ProfilingConfig = ProfilingConfig.disabled
 
   private val Size = ImageSize(200, 150)
   private val MaxInstances = 4096
+  // The claim is "faster than" (ratio < 1), as Project4DGpuSuite's update-vs-rebuild gate.
+  private val MaxRatioMovedVsRebuilt = 1.0
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var rendererOpt: Option[OptiXRenderer] = None
@@ -125,7 +132,63 @@ class EdgeRotationFastPathSuite extends AnyFlatSpec with Matchers with BeforeAnd
     moved should not equal first
     moved shouldEqual fresh
 
-  it should "decline when the rotation changes which edges the eye_w plane clips" in:
+  // Session 5, F112 (menger#129): the animated window rebuilt every cylinder each frame.
+  "TrackedEdges4D" should "move an animated window's edge scene in place, as a fresh build renders it" in:
+    val before = List(polytope(30))
+    val after = List(polytope(40))
+    val state = TrackedEdges4D.build(before, renderer, ".", _ => MaxInstances).get
+      .getOrElse(fail("no tracks recorded"))
+    val first = render()
+
+    val moved = TrackedEdges4D.update(state, after, renderer)
+    moved.map(_.specs) shouldBe Some(after)
+    val movedImage = render()
+
+    renderer.clearAllInstances()
+    buildTracked(after)
+    movedImage shouldEqual render()
+    movedImage should not equal first
+    // Anything but the projection: nothing moved, the caller rebuilds.
+    TrackedEdges4D.update(moved.get, List(polytope(40).copy(x = 0.5f)), renderer) shouldBe None
+
+  // The edge scene's animation frame, moved in place vs rebuilt, both with their render. Measured
+  // on session 5's Task 4.7 scene (27,648 cylinders) 2026-10-23: 3.0 s rebuilt, 0.74 s moved.
+  it should "animate an edge scene's 4D rotation faster in place than rebuilt" taggedAs Perf in:
+    val sponge = (rotXW: Int) => spec(
+      s"type=tesseract-sponge:level=1:size=1:material=film:edge-material=gold:" +
+        s"edge-radius=0.01:rot-xw=$rotXW")
+    val frame = new java.util.concurrent.atomic.AtomicInteger(0)
+    def nextSpecs(): List[ObjectSpec] = List(sponge(frame.incrementAndGet() % 36 * 10 + 5))
+    val state = new java.util.concurrent.atomic.AtomicReference[Option[TrackedEdges4D.State]](None)
+    def build(specs: List[ObjectSpec]): Unit =
+      renderer.clearAllInstances()
+      state.set(TrackedEdges4D.build(specs, renderer, ".", _ => MaxInstances).get)
+    def resetScene(): Unit =
+      build(List(sponge(0)))
+      val _ = render()
+    val moved = Side(
+      "TrackedEdges4D.update",
+      () => {
+        state.set(state.get.flatMap(TrackedEdges4D.update(_, nextSpecs(), renderer)))
+        val _ = render()
+      },
+      prepare = () => resetScene()
+    )
+    val rebuilt = Side(
+      "rebuild",
+      () => { build(nextSpecs()); val _ = render() },
+      prepare = () => resetScene()
+    )
+    assertWithin("tesseract sponge L1 with edge tubes, moved vs rebuilt",
+      RelativeBenchmark.compare(rebuilt, moved, MaxRatioMovedVsRebuilt))
+
+  it should "take exactly the scenes the edge builder takes" in:
+    TrackedEdges4D.isEdgeScene(List(polytope(0), polytope(10))) shouldBe true
+    TrackedEdges4D.isEdgeScene(List(polytope(0), spec("type=24-cell:size=1"))) shouldBe false
+    TrackedEdges4D.isEdgeScene(List(spec("type=cube:size=1:edge-radius=0.02"))) shouldBe false
+    TrackedEdges4D.isEdgeScene(Nil) shouldBe false
+
+  "TesseractEdgeSceneBuilder.updateProjection" should "decline when the rotation changes which edges the eye_w plane clips" in:
     // Inside the vertices' 4D radius (0.5 at size 1), so some rotations clip some edges.
     val eyeW = ":eye-w=0.4:screen-w=0.2"
     val base = polytope(0, eyeW)

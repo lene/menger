@@ -32,6 +32,11 @@
   the 4D controls while a 4D object is shown, and says when Shift+drag finds no 4D object
   (lene/menger#131). An animated window's title also shows the time of a slow last frame, so a
   window that renders slowly says so (lene/menger#133).
+- A 4D rotation animation of edge-rendered 4D objects moves their edge tubes in place in the
+  animated window and in frame/video export, as the interactive window already did, instead of
+  rebuilding every cylinder each frame: session 5's Task 4.7 scene (27,648 cylinders) went from
+  3.0 s to 0.74 s per frame, the frames unchanged. Most of the rest is optix-jni refitting the
+  cylinders one by one (lene/menger#129).
 - Fractional-level glass renders its level mix in one optix-jni `renderMix` call instead of one
   render per level combination mixed on the JVM; the image is the same (lene/menger#85).
 - The DSL's `Sierpinski4D` is now `PentachoronGasket`, the name of what it is (the Sierpinski

@@ -1,5 +1,6 @@
 package menger.engines.scene
 
+import scala.collection.mutable
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
@@ -68,9 +69,9 @@ class TesseractEdgeSceneBuilder(
         else
           val meshInstances = 1  // The main mesh
           val edgeInstances = if spec.hasEdgeRendering then
-            TesseractEdgeSceneBuilder.edgeLevels(spec).map { (levelSpec, _) =>
-              extractEdges(createMesh4D(levelSpec)).size
-            }.sum
+            TesseractEdgeSceneBuilder.edgeLevels(spec).map((levelSpec, _) =>
+              levelEdges(levelSpec).size
+            ).sum
           else
             0
           meshInstances + edgeInstances
@@ -220,7 +221,7 @@ class TesseractEdgeSceneBuilder(
     // in (usability review 2026-10, session 4, F94): they used to be built from the integer
     // part, so the edges of a level animation stepped at each integer.
     val groups = TesseractEdgeSceneBuilder.edgeLevels(spec).map { (levelSpec, keep) =>
-      val groupEdges = extractEdges(createMesh4D(levelSpec)).toIndexedSeq
+      val groupEdges = levelEdges(levelSpec)
       val material = TesseractEdgeSceneBuilder.fadedEdgeMaterial(edgeMaterial, keep)
       (groupEdges, TesseractEdgeSceneBuilder.edgeEndpoints(spec, groupEdges), material)
     }
@@ -241,6 +242,16 @@ class TesseractEdgeSceneBuilder(
     logger.debug(s"Added ${cylinderIds.count(_.isDefined)} of ${edges.size} edge cylinders for " +
       s"${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
     (edges, cylinderIds)
+
+  // Counting, validating and building all ask for the same levels' edges; each meant a fresh 4D
+  // mesh and dedup, three per rebuild (menger#129). Keyed without the view, which the edges do
+  // not depend on. A builder serves one build, so the memo lives as long as that build.
+  private val edgesByLevel = mutable.Map.empty[ObjectSpec, IndexedSeq[(Vector[4], Vector[4])]]
+
+  private def levelEdges(levelSpec: ObjectSpec): IndexedSeq[(Vector[4], Vector[4])] =
+    edgesByLevel.getOrElseUpdate(
+      levelSpec.withoutView, extractEdges(createMesh4D(levelSpec)).toIndexedSeq
+    )
 
   // The same w-scaled mesh as the faces (menger#65), not a second copy of the type switch.
   private def createMesh4D(spec: ObjectSpec): Mesh4D =

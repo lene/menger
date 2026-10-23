@@ -22,6 +22,7 @@ import menger.common.RenderConfig
 import menger.config.TAnimationConfig
 import menger.dsl.Scene
 import menger.engines.scene.TextureManager
+import menger.engines.scene.TrackedEdges4D
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.geometry.VideoLoader
 import menger.input.GdxRuntime
@@ -47,6 +48,9 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     * call `renderer.updateMesh4DProjection` instead of clearAllInstances+rebuild.
     * Set only when the scene is purely 4D-projected triangle meshes. */
   private val anim4DState: AtomicReference[Option[WithAnimation.Anim4DState]] =
+    new AtomicReference(None)
+  // The same for an edge-rendered 4D scene: its cylinders move in place (menger#129).
+  private val animEdgesState: AtomicReference[Option[TrackedEdges4D.State]] =
     new AtomicReference(None)
   private val videoTextureState: AtomicReference[Option[WithAnimation.VideoTextureState]] =
     new AtomicReference(None)
@@ -445,7 +449,10 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     * and let the caller take the rebuild path. */
   private def tryAnim4DFastPath(newSpecs: List[ObjectSpec], renderer: OptiXRenderer): Boolean =
     anim4DState.get match
-      case None => false
+      case None =>
+        val moved = animEdgesState.get.flatMap(TrackedEdges4D.update(_, newSpecs, renderer))
+        moved.foreach(state => animEdgesState.set(Some(state)))
+        moved.isDefined
       case Some(prev) =>
         val took = RotationFastPath.tryFastPath(
           newSpecs, renderer, prev.specs, prev.slotsPerSpec, RotationFastPath.meshSlotUpdater
@@ -472,6 +479,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     renderer: OptiXRenderer
   ): Try[Unit] =
     if WithAnimation.is4DOnlyTriangleMeshScene(newSpecs) then
+      animEdgesState.set(None)
       val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
         scala.collection.mutable.Map.empty
       val builder = TriangleMeshSceneBuilder(
@@ -493,8 +501,15 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       }
       val recovered = result.recover { case _ => anim4DState.set(None) }
       recovered
+    else if TrackedEdges4D.isEdgeScene(newSpecs) then
+      anim4DState.set(None)
+      animEdgesState.set(None)
+      buildWithVideoTextureTracking(newSpecs):
+        TrackedEdges4D.build(newSpecs, renderer, textureDir,
+          computeEffectiveMaxInstances(_, newSpecs))(using profilingConfig).map(animEdgesState.set)
     else
       anim4DState.set(None)
+      animEdgesState.set(None)
       buildSceneTrackingVideoTextures(configs, newSpecs, renderer)
 
 object WithAnimation:
