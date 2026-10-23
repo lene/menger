@@ -32,6 +32,8 @@
   the 4D controls while a 4D object is shown, and says when Shift+drag finds no 4D object
   (lene/menger#131). An animated window's title also shows the time of a slow last frame, so a
   window that renders slowly says so (lene/menger#133).
+- Fractional-level glass renders its level mix in one optix-jni `renderMix` call instead of one
+  render per level combination mixed on the JVM; the image is the same (lene/menger#85).
 - The DSL's `Sierpinski4D` is now `PentachoronGasket`, the name of what it is (the Sierpinski
   gasket of the 5-cell); the old name still compiles, deprecated. The CLI type stays
   `sierpinski4d`.

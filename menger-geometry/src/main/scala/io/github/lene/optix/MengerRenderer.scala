@@ -90,18 +90,17 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
     if mixes.isEmpty then super.renderWithStats(size) else renderLevelMixes(size, mixes)
 
   // One render per level combination (LevelMix.worlds), each showing one level of every mixed
-  // object, mixed with the combinations' weights. A failed render fails the frame.
+  // object, mixed with the combinations' weights -- in one native call (optix-jni's renderMix,
+  // menger#85), which keeps the passes' images on the native side.
   private def renderLevelMixes(size: ImageSize, mixes: List[LevelMix]): Optional[RenderResult] =
-    val renders = LevelMix.worlds(mixes.map(_.fraction).toVector).map { (upper, weight) =>
-      mixes.zip(upper).foreach { (mix, showUpper) =>
-        mix.lower.foreach(id => setInstanceVisible(id, !showUpper))
-        mix.upper.foreach(id => setInstanceVisible(id, showUpper))
+    val ids = mixes.flatMap(m => m.lower ++ m.upper).toArray
+    val passes = LevelMix.worlds(mixes.map(_.fraction).toVector).map { (upper, weight) =>
+      val visible = mixes.zip(upper).flatMap { (mix, showUpper) =>
+        mix.lower.map(_ => !showUpper) ++ mix.upper.map(_ => showUpper)
       }
-      (super.renderWithStats(size), weight)
+      MixPass(visible.toArray, weight)
     }
-    if renders.forall(_._1.isPresent) then
-      Optional.of(LevelMix.combine(renders.map((result, weight) => (result.get, weight))))
-    else Optional.empty()
+    renderMix(size, ids, passes.toArray)
 
   /** Adds a GPU-projected 4D Menger sponge instance. Rotation angles are degrees. */
   def addMenger4DInstance(

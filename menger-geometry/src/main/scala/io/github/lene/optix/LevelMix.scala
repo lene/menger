@@ -39,7 +39,8 @@ object LevelMix:
         Vector.tabulate(k)(i => (Vector.tabulate(k)(_ == i), fractions(i).toDouble))
 
   /** The weighted sum of same-size RGBA images, rounded and clamped to 0..255 (the first-order
-    * sum can weight a render negatively). */
+    * sum can weight a render negatively). optix-jni's `renderMix` mixes the same way on the
+    * native side; this is the oracle its result is tested against. */
   def mix(images: Seq[(Array[Byte], Double)]): Array[Byte] =
     val length = images.head._1.length
     require(images.forall(_._1.length == length), "all images of a level mix must have one size")
@@ -48,22 +49,3 @@ object LevelMix:
       (0 until length).foreach(i => sum(i) += (image(i) & ByteMask) * weight)
     }
     sum.map(v => math.max(0L, math.min(MaxChannel, math.round(v))).toByte)
-
-  /** One frame from its renders: the mixed image, and the cost of all renders together. */
-  def combine(results: Seq[(RenderResult, Double)]): RenderResult =
-    val renders = results.map(_._1)
-    def total(stat: RenderResult => Long): Long = renders.map(stat).sum
-    RenderResult(
-      image = mix(results.map((r, w) => (r.image, w))),
-      totalRays = total(_.totalRays),
-      primaryRays = total(_.primaryRays),
-      reflectedRays = total(_.reflectedRays),
-      refractedRays = total(_.refractedRays),
-      shadowRays = total(_.shadowRays),
-      aaRays = total(_.aaRays),
-      aaStackOverflows = total(_.aaStackOverflows),
-      spectralRays = total(_.spectralRays),
-      maxDepthReached = renders.map(_.maxDepthReached).max,
-      minDepthReached = renders.map(_.minDepthReached).min,
-      frameMs = renders.map(_.frameMs).sum
-    )

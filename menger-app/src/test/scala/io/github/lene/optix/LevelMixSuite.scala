@@ -40,14 +40,6 @@ class LevelMixSuite extends AnyFlatSpec with Matchers:
     val mixed = LevelMix.mix(Seq((Array[Byte](10, -56), -0.5), (Array[Byte](10, -56), 2.0)))
     mixed.map(_ & 0xff).toSeq shouldBe Seq(15, 255)
 
-  "LevelMix.combine" should "count the rays and time of every render" in:
-    def result(rays: Long, ms: Float, depth: Int) =
-      RenderResult(Array[Byte](0, 0, 0, -1), rays, rays, 0L, 0L, 0L, 0L, 0L, 0L, depth, depth, ms)
-    val combined = LevelMix.combine(Seq((result(100L, 2f, 3), 0.5), (result(50L, 1f, 5), 0.5)))
-    combined.totalRays shouldBe 150L
-    combined.frameMs shouldBe 3f
-    (combined.minDepthReached, combined.maxDepthReached) shouldBe ((3, 5))
-
   "LevelMix" should "need a fraction strictly between 0 and 1" in:
     an[IllegalArgumentException] should be thrownBy LevelMix(Vector(1), Vector(2), 0f)
     an[IllegalArgumentException] should be thrownBy LevelMix(Vector(1), Vector(2), 1f)
