@@ -2,6 +2,7 @@ package menger.engines
 
 import io.github.lene.optix.CameraState
 import io.github.lene.optix.SceneConfigurator
+import menger.ObjectSpec
 import menger.common.CausticsConfig
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
@@ -9,6 +10,7 @@ import menger.config.ExecutionConfig
 import menger.config.TAnimationConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.Scene
+import menger.engines.scene.SceneBuilder
 
 class VideoEngine(
   val sceneFunction: Float => Scene,
@@ -19,12 +21,19 @@ class VideoEngine(
   val videoOutputPath: String,
   val videoQuality: Int,
   val keepFrames: Boolean,
-  denoiseModeOverride: Option[DenoiseMode] = None
+  denoiseModeOverride: Option[DenoiseMode] = None,
+  userSetMaxInstances: Boolean = false
 )(using ProfilingConfig)
     extends BaseEngine(executionConfig.maxInstances)
     with WithAnimation with WithVideoExport with SavesScreenshots:
 
   VideoEncoder.checkAvailable(videoOutputPath)
+
+  // As AnimationEngine (msa#56).
+  override protected def computeEffectiveMaxInstances(
+    builder: SceneBuilder,
+    specs: List[ObjectSpec]
+  ): Int = autoAdjustedMaxInstances(builder, specs, userSetMaxInstances)
 
   override protected def textureDir: String = executionConfig.textureDir
 

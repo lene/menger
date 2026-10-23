@@ -302,7 +302,8 @@ object Main:
             videoOutputPath = opts.video(),
             videoQuality = opts.videoQuality(),
             keepFrames = opts.keepFrames(),
-            denoiseModeOverride = cliDenoiseOverride(opts)
+            denoiseModeOverride = cliDenoiseOverride(opts),
+            userSetMaxInstances = opts.userSetMaxInstances
           )
         else
           AnimationEngine(
@@ -311,7 +312,8 @@ object Main:
             executionConfig = buildExecutionConfig(opts),
             renderConfig = opts.renderConfig,
             causticsConfig = opts.causticsConfig,
-            denoiseModeOverride = cliDenoiseOverride(opts)
+            denoiseModeOverride = cliDenoiseOverride(opts),
+            userSetMaxInstances = opts.userSetMaxInstances
           )
 
       case Right(animated @ LoadedScene.Animated(fn))

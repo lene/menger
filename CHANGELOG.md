@@ -50,6 +50,8 @@
 
 ### Fixed
 
+- Frame and video export (`--frames`, `--video`) size the instance budget for the scene as the
+  window does; an edge-tube scene over 64 instances needed `--max-instances`.
 - A static DSL scene's `RenderSettings(maxRayDepth = ...)` is used; merging the command line's
   render flags over the scene's reset it to the default of 5.
 - Shift+scroll changes eye-w in an animated window too; it did nothing there.
