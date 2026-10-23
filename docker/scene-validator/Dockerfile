@@ -59,13 +59,14 @@ COPY stage/ /opt/menger-app/
 FROM base AS render-window
 
 # What the window loads beyond the JVM: GLFW's X11 libraries, the GL dispatch libraries the
-# NVIDIA driver's GLX plugs into (the driver itself comes in through CDI), and the FFmpeg
-# libraries libmengergeometry.so links for video textures.
+# NVIDIA driver's GLX plugs into (the driver itself comes in through CDI), the FFmpeg
+# libraries libmengergeometry.so links for video textures, and the ffmpeg binary that
+# `--video` (VideoEncoder) runs to encode the agent's `/export video` frames.
 # ponytail: unpinned, unlike the JRE above; pin them if this image is ever published.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        libgl1 libglx0 libegl1 libx11-6 libxext6 libxrandr2 libxcursor1 libxi6 libxinerama1 \
-       libxxf86vm1 libavcodec60 libavformat60 libavutil58 libswscale7 libswresample4 \
+       libxxf86vm1 libavcodec60 libavformat60 libavutil58 libswscale7 libswresample4 ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # The staged launchers are owner-executable only; the window runs as the host user's uid.
