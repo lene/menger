@@ -97,7 +97,10 @@ object DslSemantics:
       "(a 4D rotation turns x into w, so wScale 0 is then not the cube), give the 4D object " +
       "size s * eyeW / (eyeW - screenW) for a 3D object of size s, the same material and the " +
       "same `edgeRadius`/`edgeMaterial` on both (a `material`, not only a `color`: a 4D object " +
-      "with edge tubes and no material is drawn as its edges alone), and let the extrusion " +
+      "with edge tubes and no material is drawn as its edges alone), show the 3D object only " +
+      "while wScale is exactly 0 and the 4D object from any wScale above 0 (at 0 the 4D " +
+      "object's faces and edges lie on top of each other in pairs, which a transparent " +
+      "material shows as speckle), and let the extrusion " +
       "take at least 3 s; rotate in 4D only after wScale reaches 1 (usability review 2026-10, " +
       "session 5, F124, menger#132; example: CubeToTesseract).",
     "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position " +

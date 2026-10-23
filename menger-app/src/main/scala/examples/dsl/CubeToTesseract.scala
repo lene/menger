@@ -14,7 +14,10 @@ import menger.dsl._
  *   - the tesseract's size is the cube's times eyeW / (eyeW - screenW): a flat 4D object is
  *     shown at (eyeW - screenW) / eyeW of its size;
  *   - both have the same material and the same edge tubes. A material, not just a colour: a
- *     4D object with edge tubes and no material is drawn as edges only.
+ *     4D object with edge tubes and no material is drawn as edges only;
+ *   - the cube stands in for the tesseract at wScale exactly 0: there the tesseract's faces and
+ *     edges lie on top of each other in pairs, and a transparent material speckles between
+ *     the coincident copies. At any wScale above 0 it is the tesseract.
  *
  * Usage:
  *   --scene examples.dsl.CubeToTesseract --t 3
@@ -22,22 +25,23 @@ import menger.dsl._
 object CubeToTesseract:
   val durationSeconds = 8f
 
-  private val handOver = 1f
+  private val extrusionStart = 1f
   private val extrusionSeconds = 4f
   private val eyeW = 3f
   private val screenW = 1.5f
   private val cubeSize = 1f
   private val tesseractSize = cubeSize * eyeW / (eyeW - screenW)
-  private val material = Some(Material.plastic("#3060c0"))
+  // Transparent, so the inner cube and the cells growing out of it show through.
+  private val material = Some(Material.Film)
   private val edgeRadius = Some(0.015f)
   private val edgeMaterial = Some(Material.Gold)
 
   def scene(t: Float): Scene =
-    val extruded = math.min(1f, math.max(0f, (t - handOver) / extrusionSeconds))
-    val turnStart = handOver + extrusionSeconds
+    val extruded = math.min(1f, math.max(0f, (t - extrusionStart) / extrusionSeconds))
+    val turnStart = extrusionStart + extrusionSeconds
     val turn = math.max(0f, (t - turnStart) / (durationSeconds - turnStart)) * 90f
     val shape =
-      if t < handOver then
+      if extruded == 0f then
         Cube(material = material, size = cubeSize, edgeRadius = edgeRadius,
           edgeMaterial = edgeMaterial)
       else

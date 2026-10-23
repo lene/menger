@@ -417,8 +417,8 @@ run_test "OrbitingSphere t=3.14" "-o --scene examples.dsl.OrbitingSphere --t 3.1
 run_test "PulsingSponge t=0" "-o --scene examples.dsl.PulsingSponge --t 0 -s $OUTPUT_DIR/103-pulsing-t0.png"
 run_test "PulsingSponge t=1.5" "-o --scene examples.dsl.PulsingSponge --t 1.5 -s $OUTPUT_DIR/104-pulsing-t1.5.png"
 run_test "PulsingSponge t=3" "-o --scene examples.dsl.PulsingSponge --t 3 -s $OUTPUT_DIR/105-pulsing-t3.png"
-run_test "CubeToTesseract t=0.9 (cube, just before the hand-over)" "-o --scene examples.dsl.CubeToTesseract --t 0.9 -s $OUTPUT_DIR/105a-cube-to-tesseract-t0.9.png"
-run_test "CubeToTesseract t=1 (tesseract at wScale 0: same picture as t=0.9)" "-o --scene examples.dsl.CubeToTesseract --t 1 -s $OUTPUT_DIR/105b-cube-to-tesseract-t1.png"
+run_test "CubeToTesseract t=1 (Film cube at wScale 0, the hand-over)" "-o --scene examples.dsl.CubeToTesseract --t 1 -s $OUTPUT_DIR/105a-cube-to-tesseract-t1.png"
+run_test "CubeToTesseract t=1.004 (tesseract at wScale 0.001: the cube's picture, no speckle)" "-o --scene examples.dsl.CubeToTesseract --t 1.004 -s $OUTPUT_DIR/105b-cube-to-tesseract-t1.004.png"
 run_test "CubeToTesseract t=3 (extrusion halfway)" "-o --scene examples.dsl.CubeToTesseract --t 3 -s $OUTPUT_DIR/105c-cube-to-tesseract-t3.png"
 run_test "CubeToTesseract t=7 (turning in XW after the extrusion)" "-o --scene examples.dsl.CubeToTesseract --t 7 -s $OUTPUT_DIR/105d-cube-to-tesseract-t7.png"
 

@@ -1181,12 +1181,12 @@ test_t_animation() {
         --scene examples.dsl.PulsingSponge --t 1.0
     run_test "t-animation freeze-frame SpongeLevelAnimation" \
         --scene examples.dsl.SpongeLevelAnimation --t 0.5
-    # The cube-to-tesseract hand-over at t = 1 (menger#132): the cube just before it, the
-    # tesseract at wScale 0 just after it (the same picture), and halfway through the extrusion.
+    # The cube-to-tesseract hand-over at t = 1 (menger#132): the cube at wScale 0, the Film
+    # tesseract just after it (wScale 0.06), and halfway through the extrusion.
     run_test "t-animation freeze-frame CubeToTesseract cube" \
         --scene examples.dsl.CubeToTesseract --t 0.9
     run_test "t-animation freeze-frame CubeToTesseract hand-over" \
-        --scene examples.dsl.CubeToTesseract --t 1.0
+        --scene examples.dsl.CubeToTesseract --t 1.25
     run_test "t-animation freeze-frame CubeToTesseract extrusion" \
         --scene examples.dsl.CubeToTesseract --t 3
 
