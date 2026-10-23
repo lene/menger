@@ -128,11 +128,13 @@ sample count for the interactive window's back buffer (headless renders always u
 --plane <spec>               # Ground plane, e.g. y:-2 (no plane unless given)
 --plane-color <spec>         # Plane color (solid: RRGGBB, checkered: RRGGBB:RRGGBB)
 --plane-material <name>      # Plane material preset (chrome, gold, glass, …)
---transparent-shadows        # Colored shadow tinting through transparent objects (needs --shadows)
+--transparent-shadows        # Colored shadow tinting through transparent objects (needs --shadows;
+                             # DSL scenes default to Auto, see Transparent Shadows)
 --env-map <file.hdr>         # HDR equirectangular environment map (image-based lighting)
 --fog density=D:color=r,g,b  # Depth-cue fog
 --texture-dir <dir>          # Base directory for texture= files
---max-instances <n>          # Instance budget (1-65536; default 64, auto-raised for 4D edges)
+--max-instances <n>          # Instance budget (1-65536; default 64, raised automatically when the
+                             # scene needs more, in the window and in frame/video export)
 ```
 
 ### Interactive Controls
@@ -970,9 +972,15 @@ sbt "run --objects 'type=sphere' \
 
 #### Transparent Shadows
 
-By default, transparent (glass) objects cast opaque gray shadows proportional to their alpha.
-Enable `--transparent-shadows` to make glass objects cast color-tinted shadows instead — a red
-glass sphere casts a red-tinted shadow, a blue glass sphere a blue-tinted shadow:
+With transparent shadows, glass objects cast color-tinted shadows — a red glass sphere casts a
+red-tinted shadow, a blue glass sphere a blue-tinted shadow. Without them, a transparent object
+casts an opaque gray shadow proportional to its alpha.
+
+- **DSL scenes** (`--scene`): `RenderSettings(transparentShadows = ...)` is `Auto` unless set to
+  `true` or `false`, with or without a `render = Some(RenderSettings(...))` block: on when a
+  transparent object is tinted or procedurally coloured, off for clear glass. Set it to `true` for
+  light through clear glass, `false` for the opaque shadow.
+- **`--objects` scenes:** off unless `--transparent-shadows` is given:
 
 ```bash
 sbt "run \
@@ -981,18 +989,18 @@ sbt "run \
     --light directional:1,-1,1"
 ```
 
-**How it works:** The shadow ray records the transparent object's color and opacity and
-attenuates each RGB channel of the light independently. A red sphere with alpha 0.6 passes
-100% of the red channel but only 40% of green and blue, creating a red-tinted shadow.
+Caustics (`--caustics`, or `Caustics` in a DSL scene) turn transparent shadows on in any case.
 
-**Multi-object accumulation (Phase 2):** Shadow rays accumulate color tinting through all
-transparent objects multiplicatively. Two overlapping glass spheres — one red, one blue — cast
-a combined purple shadow. An opaque object behind them still casts a fully dark shadow
-(the opaque closest-hit overwrites the accumulated tint).
+**How it works:** The shadow ray attenuates each RGB channel of the light by the object's
+Beer-Lambert absorption, as camera rays do, and by the Fresnel reflection at its surfaces. A red
+glass passes most of the red channel and absorbs green and blue, creating a red-tinted shadow.
+For a triangle mesh (sponges, tesseracts, platonic solids) the absorption is over the length the
+ray actually crosses inside it, with the exact Fresnel loss at the ray's angle to each face;
+spheres, cones, cylinders and curves are charged their mean chord.
 
-**Limitation:** Transparent shadows through **cylinder** objects may double-count opacity because
-a ray can intersect both the cylinder body and its end caps. Use transparent cylinders with caution;
-sphere and mesh objects behave correctly.
+**Several objects:** Shadow rays accumulate the tinting of every transparent object they cross.
+Two overlapping glass spheres — one red, one blue — cast a combined purple shadow. An opaque
+object casts a fully dark shadow, whatever its colour.
 
 #### Default Lighting
 

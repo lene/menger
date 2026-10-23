@@ -47,7 +47,9 @@ with `Error: SceneConfig must provide objectSpecs`.
     --scene <name>           DSL scene: short name (glass-sphere), class name
                              (examples.dsl.GlassSphere) or path to a .scala file.
                              Mutually exclusive with --objects
--m, --max-instances <n>      Instance budget, 1-65536 (default 64; raised automatically for 4D edges)
+-m, --max-instances <n>      Instance budget, 1-65536 (default 64; raised automatically when the
+                             scene needs more, e.g. edge tubes, in the window and in frame/video
+                             export; an explicit value is kept)
 ```
 
 #### Global Rotation (applied on top of each object's own rotation)
@@ -77,7 +79,9 @@ with `Error: SceneConfig must provide objectSpecs`.
                                  (disk emitter → soft shadows)
                              Color: hex (ffffff) or R,G,B; skip intensity with "::"
 --shadows                    Enable shadow rays
---transparent-shadows        Colored shadows through transparent objects (requires --shadows)
+--transparent-shadows        Colored shadows through transparent objects (requires --shadows;
+                             a DSL scene defaults to Auto: on for tinted or procedurally
+                             coloured transparent objects; --caustics turns it on)
 ```
 
 #### Scene
@@ -213,7 +217,9 @@ Unknown keys are rejected with an error. Colors are `#RRGGBB` or `#RRGGBBAA`
 | Ctrl + Q | Quit |
 
 Each 4D object has its own projection, so one can be rotated in 4D next to an unrotated one.
-The Shift rotations add the same angle to every 4D object's own projection.
+The Shift rotations add the same angle to every 4D object's own projection. The window title
+shows the added rotation (xw, yw, zw) and eye-w while a 4D object is shown; both the
+interactive and the animated window take these controls.
 
 In `--preview` mode: Left/Right step `t`, Shift+Left/Right larger steps, Space play/pause,
 Home/End jump to the ends of the range.

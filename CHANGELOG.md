@@ -2,74 +2,6 @@
 
 ## [Unreleased]
 
-### Security
-
-- Pins optix-jni 0.4.8: its native entries validate their input (64-bit sizes, null and length
-  checks, index and range checks), and dispose waits for renders in flight (optix-jni#68-#71).
-
-### Changed
-
-- A transparent object's shadow takes the colour seen through it by default when the object is
-  tinted or procedurally coloured: `RenderSettings(transparentShadows = ...)` is now `Auto`
-  unless set to `true` or `false` (usability review 2026-10, session 5, F111; lene/menger#128).
-  A DSL scene without render settings behaves as `Auto` too. Caustics turn transparent shadows
-  on in any case, from the command line (`--caustics`) and in a DSL scene.
-- Pins optix-jni 0.4.9: instance transform, visibility and material changes refit the IAS in
-  place instead of rebuilding it (optix-jni#66), a sticky CUDA error is thrown as
-  `OptiXContextLostException` on every later render (optix-jni#73), the native library is
-  built optimized (optix-jni#67), and `renderMix` mixes visibility passes in one native call
-  (not yet used here; lene/menger#85).
-- Pins optix-jni 0.4.10: a transparent shadow is charged for the glass the shadow ray crosses.
-  For a mesh this is the path length through it, with exact Fresnel at the ray's angle to
-  each face; a level-3 sponge's shadow keeps its tint instead of going grey. Measured against
-  pbrt-v4, the shadow under preset glass transmits 0.65 (pbrt 0.50, 0.4.9 0.63) with the right
-  colour balance (lene/menger#128).
-- Pins optix-jni 0.4.11: an opaque object casts a full shadow with transparent shadows on (an
-  opaque cyan sphere cast a cyan shadow, an opaque grey floor let 31% of the light through);
-  glass reflects with the exact Fresnel equations, total internal reflection included, and the
-  light it reflects inside coloured glass is absorbed; edge tubes move in 0.49 s per frame
-  instead of 0.74 s in session 5's Task 4.7 scene (lene/menger#129).
-- The manifest says which corner of an object `xyz_rgb_local` colours black: the min-x/y/z
-  corner, which a camera in the +x +y +z octant never sees (lene/menger#127). Its caustics
-  convention names every transparent material with an IOR above 1 as refractive, Film
-  included (lene/menger-scene-agent#54).
-- The window title shows the 4D view state (rotation in the xw, yw and zw planes, eye-w) and
-  the 4D controls while a 4D object is shown, and says when Shift+drag finds no 4D object
-  (lene/menger#131). An animated window's title also shows the time of a slow last frame, so a
-  window that renders slowly says so (lene/menger#133).
-- A 4D rotation animation of edge-rendered 4D objects moves their edge tubes in place in the
-  animated window and in frame/video export, as the interactive window already did, instead of
-  rebuilding every cylinder each frame: session 5's Task 4.7 scene (27,648 cylinders) went from
-  3.0 s to 0.74 s per frame, the frames unchanged. Most of the rest is optix-jni refitting the
-  cylinders one by one (lene/menger#129).
-- Fractional-level glass renders its level mix in one optix-jni `renderMix` call instead of one
-  render per level combination mixed on the JVM; the image is the same (lene/menger#85).
-- The DSL's `Sierpinski4D` is now `PentachoronGasket`, the name of what it is (the Sierpinski
-  gasket of the 5-cell); the old name still compiles, deprecated. The CLI type stays
-  `sierpinski4d`.
-
-### Fixed
-
-- Frame and video export (`--frames`, `--video`) size the instance budget for the scene as the
-  window does; an edge-tube scene over 64 instances needed `--max-instances`.
-- A static DSL scene's `RenderSettings(maxRayDepth = ...)` is used; merging the command line's
-  render flags over the scene's reset it to the default of 5.
-- Shift+scroll changes eye-w in an animated window too; it did nothing there.
-- The GPU-traced 4D IFS fractals (`Menger4D`, `PentachoronGasket`, `HexadecachoronGasket`) share
-  a scene with other objects and with each other; any such mix failed with "No builder found"
-  (lene/menger#134).
-- Edge tubes on a sponge above level 3 are refused by the scene budget from the level alone
-  (validator and every engine). The window counted the edges first, which builds the mesh: a
-  level-5 sponge with edges took 46 s and 9 GB to be refused; now 2 s (lene/menger#132).
-- A `cube-sponge` turns about x, y and z around its own centre; only rotY was applied, about
-  the world origin, so its procedural colours did not follow its rotation (lene/menger#127).
-- `--objects ...:material=glass:color=#RRGGBB` made the glass opaque: on the command line the
-  colour replaced the preset's whole colour, alpha 1 included, while the DSL tints only RGB
-  (usability review 2026-09, F14). A 6-digit colour (`color=`, `edge-color=`) now tints the
-  preset's RGB and keeps its alpha; an 8-digit one (#RRGGBBAA) still sets the alpha. Two
-  integration scenes had looked fine only because of it -- their caustics were hidden behind
-  or saturated on an opaque sphere -- and are reframed so the caustic is in view.
-
 ### Added
 
 - Every command-line object type has a DSL class: `Tetrahedron`, `Octahedron`, `Dodecahedron`
@@ -115,9 +47,10 @@
   following its position, size and rotation, instead of world colours mirrored at 0 (usability
   review 2026-10, session 3, F63). Every instance now gets its object frame (optix-jni 0.4.6
   `setObjectFrame`).
-- With `RenderSettings(transparentShadows = true)` (CLI `--transparent-shadows`), a transparent
-  object's shadow takes the colour seen through it, its procedural colour included: a red glass
-  casts a red shadow, an `xyz_rgb_local` glass a rainbow one (F67, optix-jni 0.4.6).
+- Transparent shadows (`RenderSettings(transparentShadows = ...)`, CLI
+  `--transparent-shadows`): a transparent object's shadow takes the colour seen through it,
+  its procedural colour included: a red glass casts a red shadow, an `xyz_rgb_local` glass a
+  rainbow one (F67, optix-jni 0.4.6). On by default where they show (`Auto`, see Changed).
 - `Projection4DSpec(wScale = s)` (CLI `w-scale=S`) scales a 4D object's w coordinate before
   the 4D rotation: 0 flattens a tesseract to a cube, animating 0 → 1 grows it out of the cube
   along w, the nearest the DSL has to extruding a 3D object into 4D (#65, the extrusion half
@@ -137,6 +70,44 @@
 
 ### Changed
 
+- A transparent object's shadow takes the colour seen through it by default when the object is
+  tinted or procedurally coloured: `RenderSettings(transparentShadows = ...)` is now `Auto`
+  unless set to `true` or `false` (usability review 2026-10, session 5, F111; lene/menger#128).
+  A DSL scene without render settings behaves as `Auto` too. Caustics turn transparent shadows
+  on in any case, from the command line (`--caustics`) and in a DSL scene.
+- Pins optix-jni 0.4.11 (0.3.3 in 0.9.0; the entries below name the release a change needs).
+  Since 0.4.8: instance transform, visibility and material changes refit the IAS in place
+  instead of rebuilding it (optix-jni#66); a sticky CUDA error is thrown as
+  `OptiXContextLostException` on every later render (optix-jni#73); the native library is
+  built optimized (optix-jni#67); `renderMix` mixes visibility passes in one native call
+  (lene/menger#85). A transparent shadow is charged for the glass the shadow ray crosses: for
+  a mesh the path length through it, with exact Fresnel at the ray's angle to each face, so a
+  level-3 sponge's shadow keeps its tint instead of going grey; measured against pbrt-v4, the
+  shadow under preset glass transmits 0.65 (pbrt 0.50, before 0.63) with the right colour
+  balance. An opaque object casts a full shadow with transparent shadows on (an opaque cyan
+  sphere cast a cyan shadow, an opaque grey floor let 31% of the light through)
+  (lene/menger#128). Glass reflects with the exact Fresnel equations, total internal
+  reflection included, and the light it reflects inside coloured glass is absorbed. Edge tubes
+  move in 0.49 s per frame instead of 0.74 s in session 5's Task 4.7 scene
+  (lene/menger#129).
+- The manifest says which corner of an object `xyz_rgb_local` colours black: the min-x/y/z
+  corner, which a camera in the +x +y +z octant never sees (lene/menger#127). Its caustics
+  convention names every transparent material with an IOR above 1 as refractive, Film
+  included (lene/menger-scene-agent#54).
+- The window title shows the 4D view state (rotation in the xw, yw and zw planes, eye-w) and
+  the 4D controls while a 4D object is shown, and says when Shift+drag finds no 4D object
+  (lene/menger#131). An animated window's title also shows the time of a slow last frame, so a
+  window that renders slowly says so (lene/menger#133).
+- A 4D rotation animation of edge-rendered 4D objects moves their edge tubes in place in the
+  animated window and in frame/video export, as the interactive window already did, instead of
+  rebuilding every cylinder each frame: session 5's Task 4.7 scene (27,648 cylinders) went from
+  3.0 s to 0.74 s per frame, the frames unchanged. Most of the rest is optix-jni refitting the
+  cylinders one by one (lene/menger#129).
+- Fractional-level glass renders its level mix in one optix-jni `renderMix` call instead of one
+  render per level combination mixed on the JVM; the image is the same (lene/menger#85).
+- The DSL's `Sierpinski4D` is now `PentachoronGasket`, the name of what it is (the Sierpinski
+  gasket of the 5-cell); the old name still compiles, deprecated. The CLI type stays
+  `sierpinski4d`.
 - **Breaking (rendering):** DSL planes face the origin: `Y at -2` is a floor lit from above
   (it faced down before, so floors were lit only by lights from below and never showed a
   shadow), matching the CLI's `--plane +y:-2`. Together with optix-jni's fix of the directional
@@ -216,6 +187,25 @@
 
 ### Fixed
 
+- Frame and video export (`--frames`, `--video`) size the instance budget for the scene as the
+  window does; an edge-tube scene over 64 instances needed `--max-instances`.
+- A static DSL scene's `RenderSettings(maxRayDepth = ...)` is used; merging the command line's
+  render flags over the scene's reset it to the default of 5.
+- Shift+scroll changes eye-w in an animated window too; it did nothing there.
+- The GPU-traced 4D IFS fractals (`Menger4D`, `PentachoronGasket`, `HexadecachoronGasket`) share
+  a scene with other objects and with each other; any such mix failed with "No builder found"
+  (lene/menger#134).
+- Edge tubes on a sponge above level 3 are refused by the scene budget from the level alone
+  (validator and every engine). The window counted the edges first, which builds the mesh: a
+  level-5 sponge with edges took 46 s and 9 GB to be refused; now 2 s (lene/menger#132).
+- A `cube-sponge` turns about x, y and z around its own centre; only rotY was applied, about
+  the world origin, so its procedural colours did not follow its rotation (lene/menger#127).
+- `--objects ...:material=glass:color=#RRGGBB` made the glass opaque: on the command line the
+  colour replaced the preset's whole colour, alpha 1 included, while the DSL tints only RGB
+  (usability review 2026-09, F14). A 6-digit colour (`color=`, `edge-color=`) now tints the
+  preset's RGB and keeps its alpha; an 8-digit one (#RRGGBBAA) still sets the alpha. Two
+  integration scenes had looked fine only because of it -- their caustics were hidden behind
+  or saturated on an opaque sphere -- and are reframed so the caustic is in view.
 - Console log output goes to stderr, so tools that print JSON on stdout (`SceneValidator`)
   stay machine-readable.
 - Scene compile failures report the real compiler diagnostics instead of a placeholder.
@@ -265,6 +255,12 @@
   helper (`SceneLoaderSuite`) cleared the process-global registry, racing other suites that
   run concurrently in the same JVM. The clearing was unnecessary (its keys never collide with
   a real scene name) and is removed, along with the now-unused `SceneRegistry.clear()`.
+
+### Security
+
+- optix-jni's native entries validate their input (64-bit sizes, null and length checks,
+  index and range checks), and dispose waits for renders in flight (optix-jni 0.4.8,
+  optix-jni#68-#71).
 
 ## [0.9.0] - 2026-09-10
 
