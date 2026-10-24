@@ -204,7 +204,7 @@ class EdgeRotationFastPathSuite extends AnyFlatSpec with Matchers with BeforeAnd
 
   // The edge scene's animation frame, moved in place vs rebuilt, both with their render. Measured
   // on session 5's Task 4.7 scene (27,648 cylinders) 2026-10-23: 3.0 s rebuilt, 0.74 s moved.
-  it should "animate an edge scene's 4D rotation faster in place than rebuilt" taggedAs Perf in:
+  "TrackedEdges4D" should "animate an edge scene's 4D rotation faster in place than rebuilt" taggedAs Perf in:
     val sponge = (rotXW: Int) => spec(
       s"type=tesseract-sponge:level=1:size=1:material=film:edge-material=gold:" +
         s"edge-radius=0.01:rot-xw=$rotXW")
@@ -238,6 +238,39 @@ class EdgeRotationFastPathSuite extends AnyFlatSpec with Matchers with BeforeAnd
     TrackedEdges4D.isEdgeScene(List(polytope(0), spec("type=24-cell:size=1"))) shouldBe false
     TrackedEdges4D.isEdgeScene(List(spec("type=cube:size=1:edge-radius=0.02"))) shouldBe false
     TrackedEdges4D.isEdgeScene(Nil) shouldBe false
+
+  // The menger#129 gate for the mixed path: session 6's Task 4.7 scene (an edged tesseract sponge
+  // and a plain 24-cell) rebuilt every frame, 1.12 s; moved in place it ran at ~6 fps.
+  "TrackedMixed4D" should "animate a partly edged scene's 4D rotation faster in place than rebuilt" taggedAs
+    Perf in:
+    val scene = (rotXW: Int) => List(
+      spec(s"type=tesseract-sponge:level=1:size=1:material=film:edge-material=gold:" +
+        s"edge-radius=0.01:rot-xw=$rotXW"),
+      plainPolytope(rotXW))
+    val frame = new java.util.concurrent.atomic.AtomicInteger(0)
+    def nextSpecs(): List[ObjectSpec] = scene(frame.incrementAndGet() % 36 * 10 + 5)
+    val state = new java.util.concurrent.atomic.AtomicReference[Option[TrackedMixed4D.State]](None)
+    def build(specs: List[ObjectSpec]): Unit =
+      renderer.clearAllInstances()
+      state.set(TrackedMixed4D.build(specs, renderer, ".", MaxInstances).get)
+    def resetScene(): Unit =
+      build(scene(0))
+      val _ = render()
+    val moved = Side(
+      "TrackedMixed4D.update",
+      () => {
+        state.set(state.get.flatMap(TrackedMixed4D.update(_, nextSpecs(), renderer)))
+        val _ = render()
+      },
+      prepare = () => resetScene()
+    )
+    val rebuilt = Side(
+      "rebuild",
+      () => { build(nextSpecs()); val _ = render() },
+      prepare = () => resetScene()
+    )
+    assertWithin("edged tesseract sponge L1 and plain 24-cell, moved vs rebuilt",
+      RelativeBenchmark.compare(rebuilt, moved, MaxRatioMovedVsRebuilt))
 
   "TesseractEdgeSceneBuilder.updateProjection" should "decline when the rotation changes which edges the eye_w plane clips" in:
     // Inside the vertices' 4D radius (0.5 at size 1), so some rotations clip some edges.
