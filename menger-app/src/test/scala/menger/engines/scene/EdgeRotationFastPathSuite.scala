@@ -151,6 +151,57 @@ class EdgeRotationFastPathSuite extends AnyFlatSpec with Matchers with BeforeAnd
     // Anything but the projection: nothing moved, the caller rebuilds.
     TrackedEdges4D.update(moved.get, List(polytope(40).copy(x = 0.5f)), renderer) shouldBe None
 
+  // Session 6 (menger#129): an animation's hold phase rebuilt every unchanged frame, 1.1 s each.
+  it should "take an unchanged frame without a rebuild" in:
+    val state = TrackedEdges4D.build(List(polytope(30)), renderer, ".", _ => MaxInstances).get
+      .getOrElse(fail("no tracks recorded"))
+
+    TrackedEdges4D.update(state, List(polytope(30)), renderer).map(_.specs) shouldBe
+      Some(List(polytope(30)))
+
+  // Session 6 (menger#129): an edged sponge next to an unedged 24-cell had no in-place path and
+  // rebuilt everything every frame, 1.12 s each.
+  private def plainPolytope(rotXW: Int): ObjectSpec =
+    spec(s"type=24-cell:size=0.6:pos=1.2,0,0:material=film:rot-xw=$rotXW")
+
+  "TrackedMixed4D" should "move a partly edged scene in place, as a fresh build renders it" in:
+    val scene = (r: Int) => List(polytope(r), plainPolytope(r))
+    val state = TrackedMixed4D.build(scene(30), renderer, ".", MaxInstances).get
+      .getOrElse(fail("no tracks recorded"))
+    val first = render()
+
+    val moved = TrackedMixed4D.update(state, scene(40), renderer)
+    moved.map(s => s.edges.specs ++ s.meshes.specs) shouldBe Some(scene(40))
+    val movedImage = render()
+
+    renderer.clearAllInstances()
+    TrackedMixed4D.build(scene(40), renderer, ".", MaxInstances).get
+    movedImage shouldEqual render()
+    movedImage should not equal first
+    TrackedMixed4D.update(moved.get, scene(40), renderer) should not be None
+    // An edged object moved: nothing moved, the caller rebuilds.
+    val shifted = List(polytope(40).copy(x = 0.5f), plainPolytope(40))
+    TrackedMixed4D.update(moved.get, shifted, renderer) shouldBe None
+
+  it should "build like the group-by-group build of a mixed scene" in:
+    val scene = List(polytope(30), plainPolytope(30))
+    renderer.clearAllInstances()
+    menger.engines.SceneGroups.buildOrder(scene).foreach { group =>
+      menger.engines.GeometryRegistry.builderFor(group, ".").getOrElse(fail(s"no builder: $group"))
+        .validateAndBuild(group, renderer, MaxInstances).get
+    }
+    val grouped = render()
+
+    renderer.clearAllInstances()
+    TrackedMixed4D.build(scene, renderer, ".", MaxInstances).get
+    render() shouldEqual grouped
+
+  it should "take only mixed scenes of projected 4D meshes" in:
+    TrackedMixed4D.isMixedScene(List(polytope(0), plainPolytope(0))) shouldBe true
+    TrackedMixed4D.isMixedScene(List(polytope(0), polytope(10))) shouldBe false
+    TrackedMixed4D.isMixedScene(List(polytope(0), spec("type=sphere:size=1"))) shouldBe false
+    TrackedMixed4D.isMixedScene(Nil) shouldBe false
+
   // The edge scene's animation frame, moved in place vs rebuilt, both with their render. Measured
   // on session 5's Task 4.7 scene (27,648 cylinders) 2026-10-23: 3.0 s rebuilt, 0.74 s moved.
   it should "animate an edge scene's 4D rotation faster in place than rebuilt" taggedAs Perf in:

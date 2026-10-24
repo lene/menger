@@ -187,6 +187,11 @@
 
 ### Fixed
 
+- A 4D animation with edge tubes on some objects but not on others (an edged tesseract sponge
+  next to a plain 24-cell) moves both in place frame to frame; every frame used to rebuild the
+  whole scene, 1.1 s each. The animated window and the frame/video export also no longer
+  rebuild a frame that changed nothing (an animation's hold phase), and a frame whose planes
+  changed is rebuilt, so an animated plane no longer freezes on in-place frames (menger#129).
 - The contained render window (`run-render-window.sh`) keeps the OptiX shader cache in the
   scene's directory. Every window and export used to compile the shaders again on its first
   frame, about 35 s of a black window; later windows and exports of the same agent session now

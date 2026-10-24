@@ -38,9 +38,9 @@ class WScaledMesh4DSpec extends AnyFlatSpec with Matchers:
   it should "reject a negative w-scale" in:
     ObjectSpec.parse("type=tesseract:w-scale=-1").isLeft shouldBe true
 
-  "WithAnimation.specsDifferOnlyIn4DProjection" should "not count a w-scale change as a view change" in:
+  "WithAnimation.specsDifferAtMostIn4DProjection" should "not count a w-scale change as a view" in:
     val spec = ObjectSpec("tesseract")
     val scaled = spec.copy(projection4D = Some(Projection4DSpec(wScale = 0.5f)))
-    WithAnimation.specsDifferOnlyIn4DProjection(List(spec), List(scaled)) shouldBe false
+    WithAnimation.specsDifferAtMostIn4DProjection(List(spec), List(scaled)) shouldBe false
     val turned = spec.copy(projection4D = Some(Projection4DSpec(rotXW = 40f)))
-    WithAnimation.specsDifferOnlyIn4DProjection(List(spec), List(turned)) shouldBe true
+    WithAnimation.specsDifferAtMostIn4DProjection(List(spec), List(turned)) shouldBe true

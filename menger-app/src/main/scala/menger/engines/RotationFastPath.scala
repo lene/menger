@@ -22,8 +22,8 @@ object RotationFastPath:
   type ProjectionUpdater[Id] = (OptiXRenderer, Id, Projection4DSpec) => Unit
 
   /** Updates the projection of every instance whose spec's projection changed, and returns true,
-    * iff `newSpecs` differ from `prevSpecs` in their 4D projection only and there is one id list
-    * per spec. Otherwise changes nothing and returns false: the caller rebuilds the scene.
+    * iff `newSpecs` differ from `prevSpecs` at most in their 4D projection and there is one id
+    * list per spec. Otherwise changes nothing and returns false: the caller rebuilds the scene.
     *
     * @param prevIds  the instances (or mesh slots) each previous spec was built as
     */
@@ -35,7 +35,7 @@ object RotationFastPath:
     update: ProjectionUpdater[Id]
   ): Boolean =
     val eligible = prevIds.size == prevSpecs.size &&
-      WithAnimation.specsDifferOnlyIn4DProjection(prevSpecs, newSpecs)
+      WithAnimation.specsDifferAtMostIn4DProjection(prevSpecs, newSpecs)
     if eligible then
       prevSpecs.lazyZip(newSpecs).lazyZip(prevIds).foreach { (prevSpec, newSpec, ids) =>
         if prevSpec.projection4D != newSpec.projection4D then

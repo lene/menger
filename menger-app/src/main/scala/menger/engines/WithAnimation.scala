@@ -19,10 +19,12 @@ import menger.common.CausticsConfig
 import menger.common.ImageSize
 import menger.common.ObjectType
 import menger.common.RenderConfig
+import menger.config.PlaneConfig
 import menger.config.TAnimationConfig
 import menger.dsl.Scene
 import menger.engines.scene.TextureManager
 import menger.engines.scene.TrackedEdges4D
+import menger.engines.scene.TrackedMixed4D
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.geometry.VideoLoader
 import menger.input.GdxRuntime
@@ -52,6 +54,11 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   // The same for an edge-rendered 4D scene: its cylinders move in place (menger#129).
   private val animEdgesState: AtomicReference[Option[TrackedEdges4D.State]] =
     new AtomicReference(None)
+  // And for a 4D scene with edges on some objects only (session 6, menger#129).
+  private val animMixedState: AtomicReference[Option[TrackedMixed4D.State]] =
+    new AtomicReference(None)
+  // Planes are instances, re-added only after a rebuild: a frame whose planes changed is rebuilt.
+  private val lastPlanes: AtomicReference[List[PlaneConfig]] = new AtomicReference(List.empty)
   private val videoTextureState: AtomicReference[Option[WithAnimation.VideoTextureState]] =
     new AtomicReference(None)
   private val envMapVideoState: AtomicReference[Option[WithAnimation.EnvMapVideoState]] =
@@ -113,9 +120,11 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
             renderer.setAccumulationFrames(configs.accumulationFrames)
           val newSpecs = configs.scene.objectSpecs.getOrElse(List.empty)
           val videoSourcesPresent = WithAnimation.hasVideoSources(configs, newSpecs)
-          val videoFastPathTaken = tryVideoFastPath(configs, newSpecs, renderer, t)
+          val planesChanged = lastPlanes.getAndSet(configs.planes) != configs.planes
+          val videoFastPathTaken =
+            !planesChanged && tryVideoFastPath(configs, newSpecs, renderer, t)
           val geometryFastPathTaken =
-            if videoSourcesPresent && !videoFastPathTaken then false
+            if planesChanged || (videoSourcesPresent && !videoFastPathTaken) then false
             else tryAnim4DFastPath(newSpecs, renderer)
           val fastPathTaken = videoFastPathTaken || geometryFastPathTaken
           if !fastPathTaken then
@@ -450,9 +459,12 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   private def tryAnim4DFastPath(newSpecs: List[ObjectSpec], renderer: OptiXRenderer): Boolean =
     anim4DState.get match
       case None =>
-        val moved = animEdgesState.get.flatMap(TrackedEdges4D.update(_, newSpecs, renderer))
-        moved.foreach(state => animEdgesState.set(Some(state)))
-        moved.isDefined
+        val edgesMoved = animEdgesState.get.flatMap(TrackedEdges4D.update(_, newSpecs, renderer))
+        edgesMoved.foreach(state => animEdgesState.set(Some(state)))
+        // At most one of the two is tracked: each build clears the other.
+        val mixedMoved = animMixedState.get.flatMap(TrackedMixed4D.update(_, newSpecs, renderer))
+        mixedMoved.foreach(state => animMixedState.set(Some(state)))
+        edgesMoved.isDefined || mixedMoved.isDefined
       case Some(prev) =>
         val took = RotationFastPath.tryFastPath(
           newSpecs, renderer, prev.specs, prev.slotsPerSpec, RotationFastPath.meshSlotUpdater
@@ -478,8 +490,10 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     newSpecs: List[ObjectSpec],
     renderer: OptiXRenderer
   ): Try[Unit] =
+    anim4DState.set(None)
+    animEdgesState.set(None)
+    animMixedState.set(None)
     if WithAnimation.is4DOnlyTriangleMeshScene(newSpecs) then
-      animEdgesState.set(None)
       val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
         scala.collection.mutable.Map.empty
       val builder = TriangleMeshSceneBuilder(
@@ -502,15 +516,14 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       val recovered = result.recover { case _ => anim4DState.set(None) }
       recovered
     else if TrackedEdges4D.isEdgeScene(newSpecs) then
-      anim4DState.set(None)
-      animEdgesState.set(None)
       buildWithVideoTextureTracking(newSpecs):
         TrackedEdges4D.build(newSpecs, renderer, textureDir,
           computeEffectiveMaxInstances(_, newSpecs))(using profilingConfig).map(animEdgesState.set)
-    else
-      anim4DState.set(None)
-      animEdgesState.set(None)
-      buildSceneTrackingVideoTextures(configs, newSpecs, renderer)
+    else if TrackedMixed4D.isMixedScene(newSpecs) then
+      buildWithVideoTextureTracking(newSpecs):
+        TrackedMixed4D.build(newSpecs, renderer, textureDir,
+          requiredMaxInstancesFor(newSpecs))(using profilingConfig).map(animMixedState.set)
+    else buildSceneTrackingVideoTextures(configs, newSpecs, renderer)
 
 object WithAnimation:
   /** Per-mesh-slot bookkeeping for the GPU 4D projection animation fast path.
@@ -564,16 +577,14 @@ object WithAnimation:
       ObjectType.isProjected4D(s.objectType) && !s.hasEdgeRendering
     )
 
-  /** True iff the two spec lists have the same length and differ only in
-    * `Projection4DSpec` (and at least one element actually differs there). */
-  def specsDifferOnlyIn4DProjection(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
-    if prev.length != next.length then false
-    else
-      val pairs = prev.zip(next)
-      val anyDiffs = pairs.exists { case (a, b) => a.projection4D != b.projection4D }
-      // A w-scale change is a different mesh, not a re-projection (menger#65).
-      val onlyProjDiffs = pairs.forall { case (a, b) => a.withoutView == b.withoutView }
-      anyDiffs && onlyProjDiffs
+  /** True iff the two spec lists have the same length and differ at most in
+    * `Projection4DSpec`. Identical lists are true: a frame that changed nothing (the hold phase
+    * of an animation) has nothing to update; it was rebuilt, 1.1 s for an edged sponge (session
+    * 6, menger#129). */
+  def specsDifferAtMostIn4DProjection(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
+    // A w-scale change is a different mesh, not a re-projection (menger#65).
+    prev.length == next.length &&
+      prev.lazyZip(next).forall((a, b) => a.withoutView == b.withoutView)
 
   def specsCanReuseVideoTextureSlots(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
     prev == next && prev.exists(_.videoTexture.nonEmpty)

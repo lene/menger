@@ -66,6 +66,10 @@ trait WithPreview extends RenderEngine with LazyLogging:
   private val tracked4D = new AtomicReference[Option[scene.TrackedMesh4D.State]](None)
   // The same for an edge-rendered 4D scene: its cylinders move in place (menger#129).
   private val trackedEdges = new AtomicReference[Option[scene.TrackedEdges4D.State]](None)
+  // And for a 4D scene with edges on some objects only (session 6, menger#129).
+  private val trackedMixed = new AtomicReference[Option[scene.TrackedMixed4D.State]](None)
+  // Planes are instances, re-added only after a rebuild: a frame whose planes changed is rebuilt.
+  private val lastPlanes = new AtomicReference[List[menger.config.PlaneConfig]](List.empty)
   // Frames whose scene failed to build -- the window then shows the previous frame, so say so
   // in the title (menger#54).
   private val failedFrames = new AtomicInteger(0)
@@ -297,27 +301,26 @@ trait WithPreview extends RenderEngine with LazyLogging:
     // draw the last frame again instead of showing a black window (usability session 3, F68a).
     else if width > 0 && height > 0 then renderResources.redrawExisting(width, height)
 
-  /** A frame that differs from the previous one only in 4D projection or fractional level is
-    * applied in place (TrackedMesh4D); anything else is rebuilt, tracked when the scene is
-    * 4D-only triangle meshes so the next frame can be updated in place again. A failure is
-    * reported as a failed frame. Returns whether all instances were cleared. */
+  /** A frame that differs from the previous one at most in 4D projection (and, for plain
+    * meshes, fractional level and pose) is applied in place (TrackedMesh4D, TrackedEdges4D,
+    * TrackedMixed4D); anything else, and any frame whose planes changed, is rebuilt, tracked
+    * when the scene is 4D meshes only so the next frame can be updated in place again. A
+    * failure is reported as a failed frame. Returns whether all instances were cleared. */
   private def updateOrRebuild(
     configs: SceneConverter.SceneConfigs,
     renderer: io.github.lene.optix.OptiXRenderer,
     t: Float
   ): Boolean =
     val specs = configs.scene.objectSpecs.getOrElse(List.empty)
-    // A failed move leaves the scene half moved: the rebuild below replaces it.
-    val edgesMoved = trackedEdges.get.flatMap { state =>
-      val moved = Try(scene.TrackedEdges4D.update(state, specs, renderer))
-      moved.failed.foreach(e => logger.warn(s"Moving edge tubes in place failed, rebuilding: $e"))
-      moved.toOption.flatten
-    }
+    if lastPlanes.getAndSet(configs.planes) != configs.planes then
+      tracked4D.set(None)
+      trackedEdges.set(None)
+      trackedMixed.set(None)
+    val moved = movedInPlace(trackedEdges, scene.TrackedEdges4D.update(_, specs, renderer)) ||
+      movedInPlace(trackedMixed, scene.TrackedMixed4D.update(_, specs, renderer))
     val (updated, instancesCleared) =
       tracked4D.get.filter(state => scene.TrackedMesh4D.canUpdateInPlace(state.specs, specs)) match
-        case _ if edgesMoved.isDefined =>
-          trackedEdges.set(edgesMoved)
-          (scala.util.Success(()), false)
+        case _ if moved => (scala.util.Success(()), false)
         case Some(state) =>
           val inPlace = Try(
             tracked4D.set(Some(scene.TrackedMesh4D.updateInPlace(state, specs, renderer)))
@@ -331,6 +334,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
             renderer.clearAllInstances()
             tracked4D.set(None)
             trackedEdges.set(None)
+            trackedMixed.set(None)
             val maxInstances = computeEffectiveMaxInstances(_, specs)
             val rebuilt =
               if WithAnimation.is4DOnlyTriangleMeshScene(specs) then
@@ -339,10 +343,27 @@ trait WithPreview extends RenderEngine with LazyLogging:
               else if scene.TrackedEdges4D.isEdgeScene(specs) then
                 scene.TrackedEdges4D.build(specs, renderer, textureDir, maxInstances)(using
                   profilingConfig).map(trackedEdges.set)
+              else if scene.TrackedMixed4D.isMixedScene(specs) then
+                scene.TrackedMixed4D.build(specs, renderer, textureDir,
+                  requiredMaxInstancesFor(specs))(using profilingConfig).map(trackedMixed.set)
               else buildSceneFromConfigs(configs, renderer)
             (rebuilt, true)
     updated.recover { case e: Exception => reportFailedFrame(t, e) }
     instancesCleared
+
+  /** Moves the tracked scene in place; false when there is none or it cannot take the frame.
+    * A failed move leaves the scene half moved: the caller's rebuild replaces it. */
+  private def movedInPlace[S](
+    tracked: AtomicReference[Option[S]],
+    move: S => Option[S]
+  ): Boolean =
+    val moved = tracked.get.flatMap { state =>
+      val result = Try(move(state))
+      result.failed.foreach(e => logger.warn(s"Moving the 4D scene in place failed, rebuilding: $e"))
+      result.toOption.flatten
+    }
+    moved.foreach(state => tracked.set(Some(state)))
+    moved.isDefined
 
 object WithPreview:
   val NanosPerSecond: Double = 1e9

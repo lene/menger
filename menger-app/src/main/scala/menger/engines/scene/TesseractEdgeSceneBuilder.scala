@@ -431,7 +431,7 @@ object TesseractEdgeSceneBuilder:
   /** Interactive 4D rotation fast path: moves the already-built edge cylinders (and
     * GPU-projected faces) of every spec whose projection changed, instead of rebuilding the
     * scene (usability review 2026-09, F22). Returns false -- nothing changed, the caller
-    * rebuilds -- unless only projections changed, every changed spec's faces are
+    * rebuilds -- unless at most projections changed, every changed spec's faces are
     * re-projectable, and the set of edges clipped by the eye_w plane is the same as when the
     * cylinders were built (a newly clipped or unclipped edge needs a different cylinder
     * count). Everything is checked before anything is moved. */
@@ -442,7 +442,7 @@ object TesseractEdgeSceneBuilder:
     renderer: OptiXRenderer
   ): Boolean =
     if prevSpecs.size != tracks.size || newSpecs.size != tracks.size
-      || !menger.engines.WithAnimation.specsDifferOnlyIn4DProjection(prevSpecs, newSpecs)
+      || !menger.engines.WithAnimation.specsDifferAtMostIn4DProjection(prevSpecs, newSpecs)
     then false
     else
       val changed = prevSpecs.lazyZip(newSpecs).lazyZip(tracks).collect {

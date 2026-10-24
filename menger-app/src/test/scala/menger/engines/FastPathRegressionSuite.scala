@@ -84,8 +84,10 @@ class FastPathRegressionSuite extends AnyFlatSpec with Matchers with MockFactory
     val changed = base4D.copy(level = Some(2), projection4D = Some(Projection4DSpec.default))
     attempt(base4D, changed) shouldBe (false, 0)
 
-  it should "not take the fast path when nothing changed" in:
-    attempt(base4D, base4D) shouldBe (false, 0)
+  // Session 6 (menger#129): an unchanged frame (an animation's hold phase) was rebuilt; it now
+  // takes the path and updates nothing.
+  it should "take the fast path, updating nothing, when nothing changed" in:
+    attempt(base4D, base4D) shouldBe (true, 0)
 
   it should "not take the fast path when the id lists do not match the specs" in:
     val turned = base4D.copy(projection4D = Some(Projection4DSpec.default.copy(rotXW = 10f)))
