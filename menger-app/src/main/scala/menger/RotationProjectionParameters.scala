@@ -37,13 +37,6 @@ case class RotationProjectionParameters(
     "|"
 
 object RotationProjectionParameters:
-  def apply(opts: MengerCLIOptions): RotationProjectionParameters =
-    RotationProjectionParameters(
-      rotXW = opts.effectiveRotXW, rotYW = opts.effectiveRotYW, rotZW = opts.effectiveRotZW,
-      eyeW = opts.projectionEyeW(), screenW = opts.projectionScreenW(),
-      rotX = opts.rotX(), rotY = opts.rotY(), rotZ = opts.rotZ()
-    )
-
   def apply(rotXW: Float, rotYW: Float, rotZW: Float): RotationProjectionParameters =
     RotationProjectionParameters(rotXW, rotYW, rotZW, Const.defaultEyeW, Const.defaultScreenW)
 

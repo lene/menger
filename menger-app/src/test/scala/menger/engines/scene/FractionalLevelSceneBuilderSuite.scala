@@ -226,8 +226,11 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   it should "calculate correct instance count with many fractional levels" in:
     val builder = TriangleMeshSceneBuilder(".")
+    // Cycles through the four fractional levels tesseract-sponge actually allows (max 4,
+    // usability review 2026-09 T1#3) -- the count arithmetic under test doesn't need distinct
+    // levels, just ten fractional-level objects.
     val specs = (1 to 10).map { i =>
-      ObjectSpec.parse(s"type=tesseract-sponge:level=${i}.5").toOption.get
+      ObjectSpec.parse(s"type=tesseract-sponge:level=${(i % 4) + 0.5}").toOption.get
     }.toList
 
     // GPU split: 10 fractional levels emit two instances each = 20.

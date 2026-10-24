@@ -106,6 +106,38 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
       case Right(spec) => spec.objectType shouldBe "sponge-volume"
       case Left(error) => fail(s"Expected Right but got Left: $error")
 
+  // Usability review 2026-09 (T1#3): the CLI path had no upper bound on sponge/lsystem level
+  // at all -- only InteractiveEngine's own require() did, and only for the CLI object-spec
+  // path at initial startup, not for e.g. a DSL scene reload.
+  it should "reject a sponge level above the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.volumeSpongeLevel.max
+    val result = ObjectSpec.parse(s"type=sponge-volume:level=${max + 1}")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("exceeds hard maximum"))
+
+  it should "accept a sponge level at the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.volumeSpongeLevel.max
+    ObjectSpec.parse(s"type=sponge-volume:level=$max") shouldBe a[Right[?, ?]]
+
+  // Usability review 2026-10, session 4 (F86): the 3D sponge types got a limit each, and
+  // cube-sponge (deprecated, menger#76) got one at all.
+  it should "apply each 3D sponge type's own level maximum" in:
+    ObjectSpec.parse("type=sponge-volume:level=5") shouldBe a[Right[?, ?]]
+    ObjectSpec.parse("type=sponge-volume:level=5.5") shouldBe a[Left[?, ?]]
+    ObjectSpec.parse("type=sponge-surface:level=5") shouldBe a[Right[?, ?]]
+    ObjectSpec.parse("type=cube-sponge:level=3") shouldBe a[Right[?, ?]]
+    ObjectSpec.parse("type=cube-sponge:level=3.5") shouldBe a[Left[?, ?]]
+
+  it should "reject an lsystem level (iterations) above the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.lsystemMaxIterations
+    val result = ObjectSpec.parse(s"type=lsystem:level=${max + 1}")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("exceeds hard maximum"))
+
+  it should "accept an lsystem level (iterations) at the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.lsystemMaxIterations
+    ObjectSpec.parse(s"type=lsystem:level=$max") shouldBe a[Right[?, ?]]
+
   "ObjectSpec.parseAll" should "parse multiple valid specs" in:
     val specs = List(
       "type=sphere:pos=0,0,0:size=1.0",
@@ -210,6 +242,26 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
         spec.material.get.color.g should be(0.84f +- 0.01f)
         spec.material.get.color.b shouldBe 0.0f
       case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  // F14 on the CLI path: `material=glass:color=...` used to replace glass's alpha (0.02) with
+  // the colour's 1, an opaque red sphere instead of red glass (2026-10-14).
+  it should "tint a preset's RGB with a 6-digit colour and keep its alpha" in:
+    val material = ObjectSpec.parse("type=sphere:material=glass:color=#FF3333")
+      .fold(e => fail(e), identity).material.get
+    (material.color.r, material.color.g) shouldBe ((1.0f, 0.2f))
+    material.color.a shouldBe Material.Glass.color.a
+    material.ior shouldBe Material.Glass.ior
+
+  it should "take the alpha from an 8-digit colour" in:
+    val material = ObjectSpec.parse("type=cube:material=glass:color=#FF262614")
+      .fold(e => fail(e), identity).material.get
+    material.color.a shouldBe (0x14 / 255f +- 1e-3f)
+
+  it should "tint an edge material's RGB with a 6-digit edge colour and keep its alpha" in:
+    val edges = ObjectSpec.parse("type=tesseract:edge-material=film:edge-color=#FF0000:edge-radius=0.02")
+      .fold(e => fail(e), identity).edgeMaterial.get
+    edges.color.r shouldBe 1.0f
+    edges.color.a shouldBe Material.Film.color.a
 
   it should "parse material with multiple overrides" in:
     val result = ObjectSpec.parse("type=sphere:material=plastic:roughness=0.5:color=#FF0000")
@@ -577,7 +629,7 @@ class ObjectSpecSuite extends AnyFlatSpec with Matchers:
   it should "parse all procedural type names" in:
     val names = Map("value_noise" -> 1, "fbm" -> 2, "worley" -> 3,
                     "gradient" -> 4, "wood" -> 5, "marble" -> 6, "layered_noise" -> 7, "xyz_rgb" -> 8, "heatmap" -> 9,
-                    "triplanar" -> 10)
+                    "triplanar" -> 10, "xyz_rgb_local" -> 11)
     names.foreach { (name, expected) =>
       ObjectSpec.parse(s"type=sphere:procedural=$name") match
         case Right(spec) => spec.proceduralType shouldBe expected

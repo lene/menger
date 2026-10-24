@@ -23,12 +23,14 @@ import menger.dsl.CameraPath
 import menger.dsl.Caustics
 import menger.dsl.Color
 import menger.dsl.DenoiseMode
+import menger.dsl.FieldConstraints
 import menger.dsl.Fog
 import menger.dsl.IBL
 import menger.dsl.Light
 import menger.dsl.Material
 import menger.dsl.Placement
 import menger.dsl.Plane
+import menger.dsl.ProceduralPresets
 import menger.dsl.RenderSettings
 import menger.dsl.Scene
 import menger.dsl.SceneNode
@@ -36,7 +38,9 @@ import menger.dsl.SceneObject
 import menger.dsl.SpongeType
 import menger.dsl.TesseractSpongeType
 import menger.dsl.Transform
+import menger.dsl.TransparentShadows
 import menger.dsl.Vec3
+import menger.scene.RestrictedClasspath
 import upickle.default.ReadWriter
 import upickle.default.write
 
@@ -53,13 +57,36 @@ import upickle.default.write
   */
 object ManifestGenerator extends LazyLogging:
 
-  private val SchemaVersion = "1.0.0"
+  // 1.1.0: field `description`s and top-level `conventions` from DslSemantics (F28).
+  // 1.2.0: field `min`/`max` from DslSemantics (T1#3), backed by menger.dsl.ResourceLimits.
+  // 1.3.0: field `warnAt` (F36), procedural preset descriptions (F37/F40) and 4D
+  //        colouring/texture/projection conventions (F43, menger#21, menger#52).
+  // 1.4.0: field `limitsBy` (per-`spongeType` level bounds, F59), 4D rotation units in degrees
+  //        (F74), refractive-colour/caustics/duration/4D-size conventions (F66, F69, F84, F72).
+  // 1.5.0: `val durationSeconds` (F84, `duration` deprecated) and `Projection4DSpec.wScale`
+  //        (menger#65) in the conventions.
+  // 1.6.0: procedural preset 11 xyz_rgb_local (F63) and the transparent-shadow convention (F67),
+  //        optix-jni 0.4.6.
+  // 1.7.0: a level limit per 3D sponge type, CubeSponge left out (deprecated) (F86, #76);
+  //        edge-tube level limits, caustics visibility, the 4D projection-size formula and the
+  //        preview playback keys in the notes (F94, F98, F101, F92).
+  // 1.8.0: the window's playback modes and idle pause in the animation convention (F95, #71, #75).
+  // 1.9.0: fractional refractive levels render both levels (render cost in the Sponge level
+  //        note), and edge tubes of a fractional level blend up to 2.x (#69, #70).
+  // 1.10.0: the scene-wide budget convention; max for RenderSettings.accumulation and
+  //         ParametricSurface uSteps/vSteps (menger#80, #106).
+  // 1.11.0: `contentRevision` (the DSL's identity, menger#83), `proceduralPresets`, `productCaps`,
+  //         `compileSurface`, type `traits`, material `transparent`, and a `min`/`max` for every
+  //         bounded field (FieldConstraints, menger#114, msa#28). From here `schemaVersion`
+  //         describes the JSON shape only: additive changes are a minor bump, and
+  //         ManifestShapeSuite fails when the shape changes without one.
+  private[tools] val SchemaVersion = "1.11.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
   // and the architecture spine's Stack table (minimum driver version).
   private val ScalaVersionPin = "3.8.3"
-  private val OptixJniVersionPin = "0.3.3"
+  private val OptixJniVersionPin = "0.4.11"
   private val MinDriverVersion = "580.65"
 
   private val DefaultOutputPath = "target/dsl-manifest.json"
@@ -67,8 +94,46 @@ object ManifestGenerator extends LazyLogging:
   private val ConstructorDefaultPattern = """^\$lessinit\$greater\$default\$(\d+)$""".r
   private val MethodDefaultPattern = """^(.+)\$default\$(\d+)$""".r
 
-  case class FieldManifest(name: String, `type`: String, default: Option[String]) derives ReadWriter
-  case class TypeManifest(name: String, fields: List[FieldManifest]) derives ReadWriter
+  /** Bounds of one value of a discriminating field (`limitsBy`). */
+  case class BoundsManifest(
+    min: Option[Double] = None,
+    max: Option[Double] = None,
+    warnAt: Option[Double] = None
+  ) derives ReadWriter
+
+  /** Field bounds that depend on another field's value: `field` names the discriminating
+    * field (`spongeType`), `values` maps each of its values to the bounds that apply. The
+    * field's own `min`/`max`/`warnAt` stay as the conservative default. */
+  case class LimitsByManifest(field: String, values: Map[String, BoundsManifest])
+      derives ReadWriter
+
+  case class FieldManifest(
+    name: String,
+    `type`: String,
+    default: Option[String],
+    description: Option[String] = None,
+    min: Option[Double] = None,
+    max: Option[Double] = None,
+    warnAt: Option[Double] = None,
+    limitsBy: Option[LimitsByManifest] = None
+  ) derives ReadWriter
+  /** `traits`: what the agent needs to know about a type beyond its fields -- `holed` (an object
+    * with holes through it never occludes), `positioned` (a light placed by `position`). The
+    * agent kept these lists itself (review 2026-10-14, msa#28). */
+  case class TypeManifest(name: String, fields: List[FieldManifest], traits: List[String] = Nil)
+      derives ReadWriter
+
+  /** One `proceduralType` preset, structured (menger#81: the agent parsed them out of prose). */
+  case class PresetManifest(id: Int, name: String, effect: String, note: String) derives ReadWriter
+
+  /** A cap on the product of fields of one type, which per-field bounds cannot express. */
+  case class ProductCapManifest(`type`: String, fields: List[String], max: Double)
+      derives ReadWriter
+
+  /** What a scene can compile against in menger-app: these packages and root types (see
+    * `RestrictedClasspath`), so the agent's advisory allowlist is derived, not hand-kept. */
+  case class CompileSurfaceManifest(packages: List[String], types: List[String])
+      derives ReadWriter
 
   /** An enum's admissible values. Without these the manifest names a field's *type*
     * (`spongeType : menger.dsl.TesseractSpongeType`) but never what may be written there, and
@@ -85,14 +150,19 @@ object ManifestGenerator extends LazyLogging:
     specular: Float,
     emission: Float,
     filmThickness: Float,
-    dispersion: Float
+    dispersion: Float,
+    // Light passes through it (alpha below 1, or refractive): what the agent's occlusion
+    // checks need, kept by hand there until msa#28.
+    transparent: Boolean
   ) derives ReadWriter
 
   case class DslManifest(
     schemaVersion: String,
+    contentRevision: String,
     scalaVersion: String,
     optixJniVersion: String,
     minDriverVersion: String,
+    conventions: List[String],
     objects: List[TypeManifest],
     enums: List[EnumManifest],
     sceneComposition: List[TypeManifest],
@@ -105,7 +175,10 @@ object ManifestGenerator extends LazyLogging:
     cameraPath: TypeManifest,
     cameraPathHelpers: List[MethodManifest],
     renderSettings: TypeManifest,
-    renderSettingsPresets: List[String]
+    renderSettingsPresets: List[String],
+    proceduralPresets: List[PresetManifest],
+    productCaps: List[ProductCapManifest],
+    compileSurface: CompileSurfaceManifest
   ) derives ReadWriter
 
   def main(args: Array[String]): Unit =
@@ -168,7 +241,22 @@ object ManifestGenerator extends LazyLogging:
       val default = defaults.get(i + 1)
         .filter(_.getParameterCount == 0)
         .flatMap(m => Try(String.valueOf(m.invoke(companion))).toOption)
-      FieldManifest(p.getName, p.getParameterizedType.getTypeName, default)
+      val (min, max) = DslSemantics.limitsOf(clazz.getSimpleName, p.getName)
+      FieldManifest(
+        p.getName,
+        p.getParameterizedType.getTypeName,
+        default,
+        DslSemantics.descriptionOf(clazz.getSimpleName, p.getName),
+        min,
+        max,
+        DslSemantics.warnAtOf(clazz.getSimpleName, p.getName),
+        DslSemantics.limitsBySubtypeOf(clazz.getSimpleName, p.getName).map { bySubtype =>
+          LimitsByManifest(
+            bySubtype.field,
+            bySubtype.values.map((value, b) => value -> BoundsManifest(b.min, b.max, b.warnAt))
+          )
+        }
+      )
     }
 
   private def typeManifestOf(clazz: Class[?]): TypeManifest =
@@ -245,7 +333,10 @@ object ManifestGenerator extends LazyLogging:
           specular = floatValue("specular"),
           emission = floatValue("emission"),
           filmThickness = floatValue("filmThickness"),
-          dispersion = floatValue("dispersion")
+          dispersion = floatValue("dispersion"),
+          // Alpha below 1 lets light through; an opaque material's IOR (Plastic's 1.5) only
+          // shapes its reflection.
+          transparent = m.color.a < 1f
         )
       case other =>
         sys.error(s"Expected menger.dsl.Material for preset '$name', got ${other.getClass.getName}")
@@ -293,18 +384,50 @@ object ManifestGenerator extends LazyLogging:
   // Manifest assembly
   // ---------------------------------------------------------------------
 
-  private def buildManifest(): DslManifest =
+  private def withTraits(t: TypeManifest, traits: List[(String, TypeManifest => Boolean)]) =
+    t.copy(traits = traits.collect { case (name, applies) if applies(t) => name })
+
+  private val objectTraits: List[(String, TypeManifest => Boolean)] =
+    List("holed" -> (t => DslSemantics.holedTypes.contains(t.name)))
+
+  private val lightTraits: List[(String, TypeManifest => Boolean)] =
+    List("positioned" -> (t => t.fields.exists(_.name == "position")))
+
+  /** What identifies the DSL a scene is written against (review 2026-10-14, menger#83): a hash
+    * of the manifest without its version fields, so a pin bump (optix-jni, Scala) no longer
+    * makes the agent refuse an otherwise identical validator image, as the whole-file hash did.
+    * `schemaVersion` describes the JSON shape only. */
+  private[tools] def contentRevisionOf(manifest: DslManifest): String =
+    val content = write(manifest.copy(
+      schemaVersion = "", contentRevision = "", scalaVersion = "", optixJniVersion = "",
+      minDriverVersion = ""
+    ))
+    java.security.MessageDigest.getInstance("SHA-256")
+      .digest(content.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+      .map(b => f"$b%02x").mkString
+
+  private[tools] def buildManifest(): DslManifest =
+    val manifest = buildManifestWithoutRevision()
+    manifest.copy(contentRevision = contentRevisionOf(manifest))
+
+  private def buildManifestWithoutRevision(): DslManifest =
     DslManifest(
       schemaVersion = SchemaVersion,
+      contentRevision = "",
       scalaVersion = ScalaVersionPin,
       optixJniVersion = OptixJniVersionPin,
       minDriverVersion = MinDriverVersion,
-      objects = objectManifestsOf(sealedSubtypeNames[SceneObject]),
+      conventions = DslSemantics.conventions,
+      objects = objectManifestsOf(sealedSubtypeNames[SceneObject]).map(withTraits(_, objectTraits)),
       enums = List(
-        EnumManifest("SpongeType", sealedSubtypeNames[SpongeType]),
+        EnumManifest(
+          "SpongeType",
+          sealedSubtypeNames[SpongeType].filterNot(DslSemantics.deprecatedEnumValues)
+        ),
         EnumManifest("TesseractSpongeType", sealedSubtypeNames[TesseractSpongeType]),
         EnumManifest("AreaLightShape", sealedSubtypeNames[AreaLightShape]),
-        EnumManifest("DenoiseMode", sealedSubtypeNames[DenoiseMode])
+        EnumManifest("DenoiseMode", sealedSubtypeNames[DenoiseMode]),
+        EnumManifest("TransparentShadows", sealedSubtypeNames[TransparentShadows])
       ),
       // `dsl-surface.md`'s "Remaining surface": the scene-composition and environment types an
       // agent needs to assemble a scene at all. `Caustics` in particular is that document's
@@ -321,7 +444,7 @@ object ManifestGenerator extends LazyLogging:
         typeManifestOf(classOf[Vec3])
       ),
       materials = zeroArgPresetNames(Material, classOf[Material]).map(materialManifestOf),
-      lights = objectManifestsOf(sealedSubtypeNames[Light]),
+      lights = objectManifestsOf(sealedSubtypeNames[Light]).map(withTraits(_, lightTraits)),
       placement = methodsOf(Placement),
       colorPresets = zeroArgPresetNames(Color, classOf[Color]),
       plane = typeManifestOf(classOf[Plane]),
@@ -329,14 +452,22 @@ object ManifestGenerator extends LazyLogging:
       cameraPath = typeManifestOf(classOf[CameraPath]),
       cameraPathHelpers = methodsOf(Bezier),
       renderSettings = typeManifestOf(classOf[RenderSettings]),
-      renderSettingsPresets = zeroArgPresetNames(RenderSettings, classOf[RenderSettings])
+      renderSettingsPresets = zeroArgPresetNames(RenderSettings, classOf[RenderSettings]),
+      proceduralPresets = ProceduralPresets.All.map(p =>
+        PresetManifest(p.id, p.name, p.effect.wire, p.note)),
+      productCaps = FieldConstraints.products.map(c =>
+        ProductCapManifest(c.typeName, c.fields, c.max)),
+      compileSurface = CompileSurfaceManifest(
+        RestrictedClasspath.ScenePackages.toList.sorted.map("menger." + _),
+        RestrictedClasspath.SceneRootTypes.toList.sorted.map("menger." + _)
+      )
     )
 
   private def writeManifest(manifest: DslManifest, outputPath: String): Either[String, Unit] =
     try
       val path: Path = Paths.get(outputPath)
       Option(path.getParent).foreach(Files.createDirectories(_))
-      // AD-14: this artifact is mounted read-only into the agent domain, so a reader must
+      // SA-AD-14: this artifact is mounted read-only into the agent domain, so a reader must
       // never observe a partial file. Write beside the target and rename into place -- a
       // rename is atomic within a filesystem, `Files.writeString` straight onto the target is
       // not (review round 2).

@@ -3,10 +3,13 @@ package io.github.lene.optix
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
+import java.util.Optional
+import java.util.concurrent.atomic.AtomicReference
 
 import scala.collection.concurrent.TrieMap
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.common.ImageSize
 import menger.common.Material
 import menger.common.Vector
 import menger.common.x
@@ -56,6 +59,48 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
   // (only eye/screen/rotation change per frame). lastWord is the struct's trailing
   // 4 bytes: dist_threshold (int) for menger4d, hit_bias (float bits) for the others.
   private val instanceState = TrieMap[Int, InstanceState]()
+
+  // Fractional-level objects drawn as their two whole levels; every frame mixes them.
+  private val levelMixes = new AtomicReference(List.empty[LevelMix])
+
+  /** Registers a fractional-level object drawn as its two whole levels. From now on each frame
+    * renders every combination of the registered objects' levels and mixes the images
+    * ([[LevelMix]]); `clearAllInstances` and `reinitialize` forget the registrations. */
+  def addLevelMix(mix: LevelMix): Unit =
+    val _ = levelMixes.updateAndGet(_ :+ mix)
+
+  /** The fraction of the registered object one of whose levels contains `instanceId`, for an
+    * in-place level animation; nothing happens for an instance of no level mix. */
+  def setLevelMixFraction(instanceId: Int, fraction: Float): Unit =
+    val _ = levelMixes.updateAndGet(_.map(mix =>
+      if mix.contains(instanceId) then mix.copy(fraction = fraction) else mix))
+
+  def levelMixCount: Int = levelMixes.get().size
+
+  override def clearAllInstances(): Unit =
+    levelMixes.set(List.empty)
+    super.clearAllInstances()
+
+  override def reinitialize(newMaxInstances: Int): Boolean =
+    levelMixes.set(List.empty)
+    super.reinitialize(newMaxInstances)
+
+  override def renderWithStats(size: ImageSize): Optional[RenderResult] =
+    val mixes = levelMixes.get()
+    if mixes.isEmpty then super.renderWithStats(size) else renderLevelMixes(size, mixes)
+
+  // One render per level combination (LevelMix.worlds), each showing one level of every mixed
+  // object, mixed with the combinations' weights -- in one native call (optix-jni's renderMix,
+  // menger#85), which keeps the passes' images on the native side.
+  private def renderLevelMixes(size: ImageSize, mixes: List[LevelMix]): Optional[RenderResult] =
+    val ids = mixes.flatMap(m => m.lower ++ m.upper).toArray
+    val passes = LevelMix.worlds(mixes.map(_.fraction).toVector).map { (upper, weight) =>
+      val visible = mixes.zip(upper).flatMap { (mix, showUpper) =>
+        mix.lower.map(_ => !showUpper) ++ mix.upper.map(_ => showUpper)
+      }
+      MixPass(visible.toArray, weight)
+    }
+    renderMix(size, ids, passes.toArray)
 
   /** Adds a GPU-projected 4D Menger sponge instance. Rotation angles are degrees. */
   def addMenger4DInstance(

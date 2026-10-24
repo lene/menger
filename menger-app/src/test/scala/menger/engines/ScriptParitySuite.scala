@@ -1,5 +1,6 @@
 package menger.engines
 
+import menger.MengerCLIOptions
 import menger.common.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -37,6 +38,10 @@ class ScriptParitySuite extends AnyFlatSpec with Matchers:
 
   private def scriptContains(scriptName: String, token: String): Boolean =
     readScript(scriptName).contains(token)
+
+  /** The flag itself, not a longer flag it prefixes (`--rot` is not covered by `--rot-x`). */
+  private def scriptHasFlag(scriptName: String, flag: String): Boolean =
+    (java.util.regex.Pattern.quote(flag) + "(?![a-z0-9-])").r.findFirstIn(readScript(scriptName)).isDefined
 
   // ── coverage manifest ────────────────────────────────────────────────────
 
@@ -123,11 +128,56 @@ class ScriptParitySuite extends AnyFlatSpec with Matchers:
   it should "exercise every manifest rendering flag in both scripts" in:
     requiredFlags.foreach: flag =>
       withClue(s"$flag missing from integration-tests.sh: "):
-        scriptContains("integration-tests.sh", flag) shouldBe true
+        scriptHasFlag("integration-tests.sh", flag) shouldBe true
       withClue(s"$flag missing from manual-test.sh: "):
-        scriptContains("manual-test.sh", flag) shouldBe true
+        scriptHasFlag("manual-test.sh", flag) shouldBe true
+
+  // Review 2026-10-14 (menger#93): the required flags were a hand-picked list (21 of 63), so a
+  // new flag -- including agent-facing ones like --preview, --playback, --display -- never had
+  // to be covered. Every flag MengerCLIOptions defines is now either required in both scripts
+  // (rendering_flags), exempt with a reason (flags_exempt), or on the named backlog of flags
+  // that still need a script entry (flags_backlog); a flag in none of them fails.
+  private val allFlags: Set[String] =
+    MengerCLIOptions(Seq.empty).builder.opts.map(o => s"--${o.name}").toSet
+  private val exemptFlags: Set[String] = manifestSection("flags_exempt").toSet
+  private val backlogFlags: Set[String] = manifestSection("flags_backlog").toSet
+
+  it should "classify every CLI flag as required, exempt or backlog" in:
+    val unclassified = allFlags -- requiredFlags -- exemptFlags -- backlogFlags
+    withClue(s"CLI flags in no coverage-manifest.yaml list: ${unclassified.toList.sorted.mkString(" ")}"):
+      unclassified shouldBe empty
+
+  it should "list only real CLI flags in coverage-manifest.yaml" in:
+    val stale = (requiredFlags ++ exemptFlags ++ backlogFlags) -- allFlags
+    withClue(s"coverage-manifest.yaml names flags MengerCLIOptions does not define: ${stale.mkString(" ")}"):
+      stale shouldBe empty
+
+  it should "not keep a flag on the backlog once both scripts cover it" in:
+    val covered = backlogFlags.filter(f =>
+      scriptHasFlag("integration-tests.sh", f) && scriptHasFlag("manual-test.sh", f))
+    withClue(s"move from flags_backlog to rendering_flags: ${covered.mkString(" ")}"):
+      covered shouldBe empty
 
   // ── DSL scene coverage (F14, Sprint 35 Ph4) ──────────────────────────────
+
+  // menger#93: every example scene (the corpus the agent learns from) is in the integration
+  // suite or on the named scenes_backlog; a new scene in neither fails.
+  private val exampleScenes: Set[String] =
+    val dir = java.io.File(s"$scriptsRoot/../menger-app/src/main/scala/examples/dsl")
+    Option(dir.listFiles()).toList.flatten
+      .map(_.getName).filter(n => n.endsWith(".scala") && n != "SceneIndex.scala")
+      .map(n => s"examples.dsl.${n.stripSuffix(".scala")}").toSet
+  private val sceneBacklog: Set[String] =
+    manifestSection("scenes_backlog").map(n => s"examples.dsl.$n").toSet
+
+  it should "cover every example scene in integration-tests or list it on scenes_backlog" in:
+    exampleScenes should not be empty
+    val uncovered = exampleScenes -- integrationScenes -- sceneBacklog
+    withClue(s"example scenes in neither integration-tests.sh nor scenes_backlog: ${uncovered.toList.sorted.mkString(" ")}"):
+      uncovered shouldBe empty
+    val done = sceneBacklog intersect integrationScenes
+    withClue(s"remove from scenes_backlog, integration-tests.sh covers them: ${done.mkString(" ")}"):
+      done shouldBe empty
 
   it should "cover all manual DSL scenes in integration-tests" in:
     val missingInIntegration = manualScenes -- integrationScenes

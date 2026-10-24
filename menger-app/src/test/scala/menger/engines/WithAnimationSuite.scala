@@ -59,17 +59,23 @@ class WithAnimationSuite extends AnyFlatSpec with Matchers:
   it should "reject an empty scene" in:
     WithAnimation.is4DOnlyTriangleMeshScene(List.empty) shouldBe false
 
-  "specsDifferOnlyIn4DProjection" should "be true when only projection4D differs" in:
-    WithAnimation.specsDifferOnlyIn4DProjection(List(tess0), List(tessRotated)) shouldBe true
+  // Usability review 2026-10, session 4 (F97): the in-place mesh path has no edge tubes, so an
+  // animated window showed none.
+  it should "reject a scene with edge-rendered objects" in:
+    WithAnimation.is4DOnlyTriangleMeshScene(List(tess0.copy(edgeRadius = Some(0.02f)))) shouldBe false
+
+  "specsDifferAtMostIn4DProjection" should "be true when only projection4D differs" in:
+    WithAnimation.specsDifferAtMostIn4DProjection(List(tess0), List(tessRotated)) shouldBe true
 
   it should "be false when a non-projection field differs" in:
-    WithAnimation.specsDifferOnlyIn4DProjection(List(tess0), List(tessMoved)) shouldBe false
+    WithAnimation.specsDifferAtMostIn4DProjection(List(tess0), List(tessMoved)) shouldBe false
 
-  it should "be false when no spec actually changed" in:
-    WithAnimation.specsDifferOnlyIn4DProjection(List(tess0), List(tess0)) shouldBe false
+  // Session 6 (menger#129): an animation's hold phase rebuilt every unchanged frame.
+  it should "be true when no spec changed, so an unchanged frame is not rebuilt" in:
+    WithAnimation.specsDifferAtMostIn4DProjection(List(tess0), List(tess0)) shouldBe true
 
   it should "be false when lengths differ" in:
-    WithAnimation.specsDifferOnlyIn4DProjection(
+    WithAnimation.specsDifferAtMostIn4DProjection(
       List(tess0),
       List(tess0, tessRotated)
     ) shouldBe false

@@ -15,6 +15,10 @@ class GdxRuntimeSuite extends AnyFlatSpec with Matchers:
     noException should be thrownBy GdxRuntime.exit()
   }
 
+  "GdxRuntime.postRunnable" should "not throw when Gdx.app is null" in {
+    noException should be thrownBy GdxRuntime.postRunnable(() => ())
+  }
+
   "GdxRuntime.requestRendering" should "not throw when Gdx.graphics is null" in {
     noException should be thrownBy GdxRuntime.requestRendering()
   }

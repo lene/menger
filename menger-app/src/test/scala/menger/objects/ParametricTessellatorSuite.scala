@@ -165,3 +165,15 @@ class ParametricTessellatorSuite extends AnyFlatSpec with Matchers:
       val len = math.sqrt(nx * nx + ny * ny + nz * nz).toFloat
       len should be > 0.99f
       len should be < 1.01f
+
+  // Usability review 2026-09 (T3#13): a NaN/Inf sample from a hostile or careless f used to
+  // silently propagate into the mesh instead of being caught here.
+  it should "fail fast when f returns a non-finite point" in:
+    val nanF: (Float, Float) => (Float, Float, Float) = (u, v) => (u, Float.NaN, v)
+    an[IllegalArgumentException] should be thrownBy
+      ParametricTessellator.tessellate(nanF, (0f, 1f), (0f, 1f), 4, 4, closedU = false, closedV = false)
+
+  it should "fail fast when f returns an infinite point" in:
+    val infF: (Float, Float) => (Float, Float, Float) = (u, v) => (u, Float.PositiveInfinity, v)
+    an[IllegalArgumentException] should be thrownBy
+      ParametricTessellator.tessellate(infF, (0f, 1f), (0f, 1f), 4, 4, closedU = false, closedV = false)

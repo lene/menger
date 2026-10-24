@@ -1,53 +1,33 @@
-#!/bin/bash
-# Pre-push hook (Sprint 36 B3): thin wrapper. Change detection is unchanged
-# (standards/hooks/lib.sh); this hook's only job is to compute CHANGED_FILES/QA_RANGES/
-# QA_REMOTE and hand them to standards/scripts/qa-runner.sh, which reads qa-manifest.yaml
-# to decide which suites are relevant at push tier and runs each one (scripts/suites/*.sh),
-# which decides its own PASS/FAIL/SKIP.
+#!/bin/sh
+# Pre-push hook, the same in every enrolled repo (vendored from menger-toplevel
+# shared/standards/hooks/pre-push by `./bootstrap.sh sync`; toplevel#79: the copies had
+# diverged -- hard-coded origin/main, different stdin handling, and in menger a bypass that
+# pushed a `WIP:` commit despite a failing gate, dropped by user decision 2026-10-16).
 #
-# Needs the git-supplied pre-push protocol lines from stdin, but stdin can only be
-# consumed once — capture it to a file up front (skipped for a TTY invocation, where
-# nothing below reads stdin anyway; blocking on `cat` there would hang the shell).
-STDIN_CAPTURE=$(mktemp)
-trap 'rm -f "$STDIN_CAPTURE"' EXIT
-if [ -t 0 ]; then
-  : > "$STDIN_CAPTURE"
-else
-  cat > "$STDIN_CAPTURE"
+# Its only job: compute CHANGED_FILES / QA_RANGES / QA_REMOTE and hand them to
+# standards/scripts/qa-runner.sh, which reads ./qa-manifest.yaml, decides which suites are
+# relevant at push tier and runs them; each suite reports PASS/FAIL/SKIP. A failing gate blocks
+# the push; an intentionally broken push is `git push --no-verify`, visibly.
+#
+# Change detection reads git's pre-push protocol from stdin. Run by hand (no stdin) it
+# compares against main instead; see standards/hooks/lib.sh for the three invocation contexts.
+set -u
+
+if [ ! -r ./standards/hooks/lib.sh ]; then
+  echo "pre-push: standards/hooks/lib.sh missing -- run ./bootstrap.sh sync in menger-toplevel" >&2
+  exit 1
 fi
+. ./standards/hooks/lib.sh
 
-(
-  if [ -r ./standards/hooks/lib.sh ]; then
-    . ./standards/hooks/lib.sh
-    RANGES=$(push_ranges < "$STDIN_CAPTURE"); _rc=$?
-    [ "$_rc" -eq 2 ] && exit 0   # push only deletes a branch
-    CHANGED_FILES=$(changed_files $RANGES)
-    assert_detection "$CHANGED_FILES" || exit 1
-  else
-    LOCAL_SHA=$(git rev-parse HEAD)
-    _mr=origin/main; git rev-parse --verify --quiet refs/remotes/github/main >/dev/null 2>&1 && _mr=github/main
-    BASE=$(git merge-base "$_mr" "$LOCAL_SHA" 2>/dev/null || git merge-base main "$LOCAL_SHA" 2>/dev/null)
-    if [ -n "$BASE" ]; then
-      CHANGED_FILES=$(git diff --name-only "$BASE" "$LOCAL_SHA")
-      RANGES="$BASE..$LOCAL_SHA"
-    else
-      CHANGED_FILES=$(git diff --name-only HEAD)
-      RANGES=""
-    fi
-  fi
+retry_with_backoff "git fetch origin" git fetch origin --quiet || true
+RANGES=$(push_ranges); _rc=$?
+[ "$_rc" -eq 2 ] && exit 0   # the push only deletes a branch
+# unquoted on purpose: split the newline-separated ranges into arguments
+CHANGED_FILES=$(changed_files $RANGES)
+assert_detection "$CHANGED_FILES" || exit 1
 
-  export CHANGED_FILES
-  export QA_RANGES="$RANGES"
-  export QA_REMOTE="$1"
+export CHANGED_FILES
+export QA_RANGES="$RANGES"
+export QA_REMOTE="${1:-origin}"
 
-  ./standards/scripts/qa-runner.sh --tier push
-) < "$STDIN_CAPTURE"
-STATUS=$?
-
-commit_msg=$(git log --oneline | head -n 1 | cut -d' ' -f 2-)
-if echo "$commit_msg" | grep -q '^WIP:'; then
-  echo >&2 "Found WIP commit, pushing in spite of failed test suite"
-  STATUS=0
-fi
-
-exit "$STATUS"
+exec ./standards/scripts/qa-runner.sh --tier push

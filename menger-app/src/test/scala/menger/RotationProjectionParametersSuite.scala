@@ -5,23 +5,6 @@ import org.scalatest.matchers.should.Matchers
 
 class RotationProjectionParametersSuite extends AnyFlatSpec with Matchers:
 
-  "instantiating from CLI options" should "work" in:
-    val options = MengerCLIOptions(
-      Seq(
-        "--rot-x", "1", "--rot-y", "2", "--rot-z", "3",
-        "--rot-x-w", "1", "--rot-y-w", "2", "--rot-z-w", "3",
-        "--projection-screen-w", "1", "--projection-eye-w", "2"
-      ))
-    val parameters = RotationProjectionParameters(options)
-    parameters.rotXW should be (1)
-    parameters.rotYW should be (2)
-    parameters.rotZW should be (3)
-    parameters.rotX should be (1)
-    parameters.rotY should be (2)
-    parameters.rotZ should be (3)
-    parameters.screenW should be (1)
-    parameters.eyeW should be (2)
-  
   "plus for rotation parameters" should "add the 4D components" in:
     val p1 = RotationProjectionParameters(1, 2, 3)
     val p2 = RotationProjectionParameters(4, 5, 6)

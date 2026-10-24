@@ -17,8 +17,69 @@ class TesseractSpongeSuite extends AnyFlatSpec with Matchers:
   "A TesseractSponge level < 0" should "be impossible" in:
     an[IllegalArgumentException] should be thrownBy TesseractSponge(-1)
 
-  "A TesseractSponge level 1" should "have 48 times the number of a Tesseract's faces" in new Sponge:
-    sponge.faces should have size 48 * Tesseract().faces.size
+  // Usability review 2026-09 (F27): `size` was ignored and every sponge had unit size.
+  "A TesseractSponge with size 2.5" should "be 2.5 times as large as a unit sponge" in:
+    def maxNorm(s: TesseractSponge): Float = s.vertices.map(_.len).max
+    maxNorm(TesseractSponge(1, size = 2.5f)) shouldBe (maxNorm(TesseractSponge(1)) * 2.5f +- 1e-4f)
+
+  it should "keep the same number of faces" in:
+    TesseractSponge(1, size = 2.5f).faces should have size TesseractSponge(1).faces.size
+
+  "A TesseractSponge size <= 0" should "be impossible" in:
+    an[IllegalArgumentException] should be thrownBy TesseractSponge(1, size = 0f)
+
+  // Usability review 2026-09, session 2 (F55): every sub-tesseract emitted all 24 of its faces,
+  // so a face shared by neighbours existed 2-4 times at the same place (level 1 had 48 * 24 =
+  // 1152 faces for 768 distinct ones), and glass refracted at every copy.
+  "A TesseractSponge" should "have no two faces at the same place" in:
+    Seq(1, 2).foreach { level =>
+      val keys = TesseractSponge(level).faces.map(faceKey)
+      withClue(s"level $level: ") { keys.distinct.size shouldBe keys.size }
+    }
+
+  Seq(1, 2).foreach { level =>
+    it should s"consist of exactly the faces between a filled and an empty hypercube (level $level)" in:
+      TesseractSponge(level).faces.map(faceKey).toSet shouldBe boundaryFaceKeys(level)
+  }
+
+  private type Key = Seq[(Int, Int, Int, Int)]
+  private val KeyScale = 1e4f
+
+  private def keyOf(points: Seq[Seq[Float]]): Key =
+    points.map(p => (
+      math.round(p(0) * KeyScale), math.round(p(1) * KeyScale),
+      math.round(p(2) * KeyScale), math.round(p(3) * KeyScale)
+    )).sorted
+
+  private def faceKey(face: Face4D[4]): Key = keyOf(face.asSeq.map(v => (0 until 4).map(v(_))))
+
+  /** Independent oracle: the unit sponge as a grid of 3^level cells per axis, a cell filled
+    * unless, at some base-3 digit, two or more of its coordinates are "middle" (digit 1). A
+    * 2-face of the grid is on the surface iff the four cells around it are neither all filled
+    * nor all empty. */
+  private def boundaryFaceKeys(level: Int): Set[Key] =
+    val n = math.pow(3, level).toInt
+    def filled(cell: Seq[Int]): Boolean =
+      cell.forall(i => i >= 0 && i < n) &&
+        (0 until level).forall { k =>
+          cell.count(i => (i / math.pow(3, k).toInt) % 3 == 1) < 2
+        }
+    val axes = 0 until 4
+    val faces = for
+      a <- axes; b <- axes if a < b
+      p <- (0 to n).flatMap(x => (0 to n).flatMap(y => (0 to n).flatMap(z => (0 to n).map(w =>
+        IndexedSeq(x, y, z, w)))))
+      if p(a) < n && p(b) < n
+    yield
+      val Seq(c, d) = axes.filterNot(i => i == a || i == b)
+      val around = for dc <- Seq(-1, 0); dd <- Seq(-1, 0) yield
+        p.updated(c, p(c) + dc).updated(d, p(d) + dd)
+      val filledCount = around.count(filled)
+      val corners = Seq((0, 0), (1, 0), (1, 1), (0, 1)).map { (da, db) =>
+        p.updated(a, p(a) + da).updated(b, p(b) + db).map(i => -0.5f + i.toFloat / n)
+      }
+      (keyOf(corners), filledCount)
+    faces.collect { case (key, count) if count > 0 && count < 4 => key }.toSet
 
   it should "have no vertices with absolute value greater than 0.5" in new Sponge:
     forAll(sponge.faces) { rect => forAll(rect.asSeq) { v => v.forall(_.abs <= 0.5) } }

@@ -26,3 +26,16 @@ class MaterialExtractorSuite extends AnyFlatSpec with Matchers:
   it should "use color directly when no material is given" in:
     val spec = ObjectSpec(objectType = "sphere", color = Some(tint))
     MaterialExtractor.extract(spec).color shouldBe tint
+
+  // Usability review 2026-09 (F14): an explicit `color` on a transparent material must not
+  // silently make it opaque -- `color` tints hue, transparency stays owned by the material.
+  it should "preserve the material's alpha when an opaque color is given (F14)" in:
+    val glass = Material.Glass
+    val opaqueTint = Color(0.2f, 0.5f, 0.9f, 1f)
+    val spec = ObjectSpec(objectType = "sphere", material = Some(glass), color = Some(opaqueTint))
+    val extracted = MaterialExtractor.extract(spec)
+    extracted.color.r shouldBe opaqueTint.r
+    extracted.color.g shouldBe opaqueTint.g
+    extracted.color.b shouldBe opaqueTint.b
+    extracted.color.a shouldBe glass.color.a
+    extracted.ior shouldBe glass.ior

@@ -16,6 +16,8 @@ if ! sbt "mengerApp / Universal / packageBin" --warn; then
   exit 1
 fi
 VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
+# A fresh directory: unzipping over the last one kept every earlier dependency jar in lib/.
+rm -rf "./menger-app-${VERSION}"
 if ! unzip -oq "./menger-app/target/universal/menger-app-${VERSION}.zip"; then
   suite_fail package 1 "unzip"
   exit 1

@@ -208,6 +208,8 @@ run_test "Recursive IAS Sponge L6" "-o --objects type=sponge-recursive-ias:level
 # Materials (use material= preset for transparency)
 echo -e "${YELLOW}--- Materials ---${NC}"
 run_test "Glass" "-o --objects type=sphere:material=glass --plane y:-2 -s $OUTPUT_DIR/06-glass.png"
+run_test "Glass sponge, xyz_rgb_local, rainbow transparent shadow" "-o --transparent-shadows --objects type=sponge-volume:level=2:material=glass:procedural=xyz_rgb_local --light directional:0.3,-1,0.6:1.5 --plane y:-2 -s $OUTPUT_DIR/06b-glass-local-rainbow-shadow.png"
+run_test "xyz_rgb_local cube from below-behind: black corner visible" "-o --objects type=cube:size=0.5:procedural=xyz_rgb_local --camera-pos -1.2,-0.9,-1.8 --camera-lookat 0,0,0 --plane y:-2 -s $OUTPUT_DIR/06c-xyz-rgb-local-min-corner.png"
 run_test "Diamond" "-o --objects type=sphere:material=diamond --plane y:-2 -s $OUTPUT_DIR/07-diamond.png"
 run_test "Chrome" "-o --objects type=sphere:material=chrome -s $OUTPUT_DIR/08-chrome.png"
 run_test "Custom Color (red)" "-o --objects type=sphere:color=#ff0000 -s $OUTPUT_DIR/09-red.png"
@@ -269,6 +271,7 @@ echo -e "${YELLOW}--- 4D Tesseract ---${NC}"
 run_test "Tesseract (default)" "-o --objects type=tesseract -s $OUTPUT_DIR/33-tesseract.png"
 run_test "Tesseract (rotated)" "-o --objects type=tesseract:rot-xw=45:rot-yw=30 -s $OUTPUT_DIR/34-tesseract-rot.png"
 run_test "Tesseract (projection)" "-o --objects type=tesseract:eye-w=4.0:screen-w=2.0 -s $OUTPUT_DIR/35-tesseract-proj.png"
+run_test "Tesseract (w-scale 0.3, part-way out of a cube)" "-o --objects type=tesseract:w-scale=0.3 -s $OUTPUT_DIR/35b-tesseract-wscale.png"
 run_test "Tesseract (glass)" "-o --objects type=tesseract:material=glass --plane y:-2 -s $OUTPUT_DIR/36-tesseract-glass.png"
 run_test "Tesseract (chrome)" "-o --objects type=tesseract:material=chrome -s $OUTPUT_DIR/37-tesseract-chrome.png"
 
@@ -277,6 +280,8 @@ echo -e "${YELLOW}--- Tesseract Edge Rendering ---${NC}"
 run_test "Tesseract with chrome edges" "-o --objects type=tesseract:edge-radius=0.02:edge-material=chrome -s $OUTPUT_DIR/38-tesseract-chrome-edges.png"
 run_test "Tesseract with cyan emissive edges" "-o --objects type=tesseract:edge-radius=0.03:edge-color=#00ffff:edge-emission=3.0 -s $OUTPUT_DIR/39-tesseract-cyan-edges.png"
 run_test "Tesseract glass with gold edges" "-o --objects type=tesseract:material=glass:edge-material=gold:edge-radius=0.025 -s $OUTPUT_DIR/40-tesseract-glass-gold.png"
+run_test "Film sponge level 2 with chrome edge tubes (no grid on flat faces)" "-o --objects type=sponge-volume:level=2:material=film:edge-material=chrome:edge-radius=0.01 -s $OUTPUT_DIR/40b-sponge-chrome-edges.png"
+run_test "Dodecahedron with gold edge tubes (pentagons, no diagonals)" "-o --objects type=dodecahedron:color=#3060c0:edge-material=gold:edge-radius=0.02 -s $OUTPUT_DIR/40c-dodecahedron-gold-edges.png"
 run_test "Tesseract rotated with edges" "-o --objects type=tesseract:rot-xw=45:rot-yw=30:edge-material=chrome:edge-radius=0.02 -s $OUTPUT_DIR/41-tesseract-rot-edges.png"
 run_test "Tesseract film with emissive edges" "-o --objects type=tesseract:material=film:edge-color=#ff00ff:edge-emission=5.0:edge-radius=0.03 -s $OUTPUT_DIR/42-tesseract-film-magenta.png"
 
@@ -335,6 +340,7 @@ run_test "3D Fractional (glass)" "-o --objects type=sponge-volume:level=1.5:mate
 run_test "3D Fractional (chrome)" "-o --objects type=sponge-surface:level=1.3:material=chrome -s $OUTPUT_DIR/80-3d-frac-chrome.png"
 run_test "3D Mixed fractional + integer" "-o --objects type=sponge-volume:level=1.5:pos=-0.8,0,0:color=#FF8844 --objects type=sponge-volume:level=1:pos=0.8,0,0:color=#4488FF -s $OUTPUT_DIR/81-3d-mixed-frac-int.png"
 run_test "3D Volume vs Surface frac" "-o --objects type=sponge-volume:level=1.5:pos=-0.8,0,0 --objects type=sponge-surface:level=1.5:pos=0.8,0,0 -s $OUTPUT_DIR/82-volume-vs-surface-frac.png"
+run_test "Two crossing glass sponges 0.2 + 1.3 (each level combination rendered and mixed; the red one in front stays clear glass, no jump to a finer level)" "-o --objects type=sponge-volume:level=0.2:size=1.6:material=glass:color=#7799FF --objects type=sponge-surface:level=1.3:pos=0.35,0.15,1.3:size=1.0:material=glass:color=#FF7777 --camera-pos 0.5,0.8,4.4 --camera-lookat 0,0,0 --plane y:-1.2 -s $OUTPUT_DIR/82b-crossing-glass-frac.png"
 
 # Platonic Solids
 echo -e "${YELLOW}--- Platonic Solids ---${NC}"
@@ -368,7 +374,7 @@ run_test "Area-light soft caustics (disk emitter — caustic should be softer/bl
 run_test "Colored-glass caustics (red glass — the floor caustic should read visibly red)" "-o --objects type=sphere:material=glass:color=#FF3333 --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --plane y:-2 --plane-color cccccc --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/161-colored-glass-caustics.png"
 run_test "Dispersive PPM caustics (glass-dispersive — spectral colour fringing in the floor caustic)" "-o --objects type=sphere:material=glass-dispersive:ior=1.5 --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --plane y:-2 --plane-color cccccc --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/162-dispersive-caustics.png"
 run_test "Diamond-dispersive caustics (ior 2.42 — stronger dispersion, wider spectral spread)" "-o --objects type=sphere:material=diamond-dispersive:ior=2.42 --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --plane y:-2 --plane-color cccccc --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/163-diamond-dispersive-caustics.png"
-run_test "Mesh-receiver caustics (glass sphere casts a caustic onto a diffuse sphere receiver, no floor plane)" "-o --objects type=sphere:material=glass:color=#DDEEFF:size=1:pos=0,0,0 --objects type=sphere:size=3:pos=0,-5,0 --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/164-mesh-receiver-caustics.png"
+run_test "Mesh-receiver caustics (glass sphere casts a caustic onto a diffuse sphere receiver, no floor plane)" "-o --objects type=sphere:material=glass:color=#DDEEFF:size=1:pos=0,0,0 --objects type=sphere:size=3:pos=0,-5,0:color=#404040 --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/164-mesh-receiver-caustics.png"
 run_test "Frosted-glass caustics (rough dielectric — spread/blurred caustic vs the sharp Caustics scene above)" "-o --objects type=sphere:material=glass:roughness=0.7 --camera-pos 0,1.5,6 --camera-lookat 0,0,0 --light point:0,10,0:500 --plane y:-2 --plane-color cccccc --caustics --caustics-photons 500000 --caustics-iterations 20 -s $OUTPUT_DIR/165-frosted-glass-caustics.png"
 
 # Global rotation flags (Sprint 36 H5.1 — --rot-x/-y/-z/-x-w/-y-w/-z-w were parsed but never applied)
@@ -386,6 +392,7 @@ run_test "DSL: SimpleScene" "-o --scene examples.dsl.SimpleScene -s $OUTPUT_DIR/
 run_test "DSL: ThreeMaterials" "-o --scene examples.dsl.ThreeMaterials -s $OUTPUT_DIR/91-dsl-three-materials.png"
 run_test "DSL: GlassSphere" "-o --scene examples.dsl.GlassSphere -s $OUTPUT_DIR/92-dsl-glass-sphere.png"
 run_test "DSL: TesseractDemo" "-o --scene examples.dsl.TesseractDemo -s $OUTPUT_DIR/93-dsl-tesseract.png"
+run_test "DSL: PolytopeGallery" "-o --scene examples.dsl.PolytopeGallery -s $OUTPUT_DIR/93b-dsl-polytope-gallery.png"
 run_test "DSL: FilmSphere" "-o --scene examples.dsl.FilmSphere -s $OUTPUT_DIR/94-dsl-film-sphere.png"
 run_test "DSL: SpongeShowcase" "-o --scene examples.dsl.SpongeShowcase -s $OUTPUT_DIR/95-dsl-sponge-showcase.png"
 run_test "DSL: MengerShowcase" "-o --scene examples.dsl.MengerShowcase -s $OUTPUT_DIR/96-dsl-menger-showcase.png"
@@ -410,6 +417,10 @@ run_test "OrbitingSphere t=3.14" "-o --scene examples.dsl.OrbitingSphere --t 3.1
 run_test "PulsingSponge t=0" "-o --scene examples.dsl.PulsingSponge --t 0 -s $OUTPUT_DIR/103-pulsing-t0.png"
 run_test "PulsingSponge t=1.5" "-o --scene examples.dsl.PulsingSponge --t 1.5 -s $OUTPUT_DIR/104-pulsing-t1.5.png"
 run_test "PulsingSponge t=3" "-o --scene examples.dsl.PulsingSponge --t 3 -s $OUTPUT_DIR/105-pulsing-t3.png"
+run_test "CubeToTesseract t=1 (Film cube at wScale 0, the hand-over)" "-o --scene examples.dsl.CubeToTesseract --t 1 -s $OUTPUT_DIR/105a-cube-to-tesseract-t1.png"
+run_test "CubeToTesseract t=1.004 (tesseract at wScale 0.001: the cube's picture, no speckle)" "-o --scene examples.dsl.CubeToTesseract --t 1.004 -s $OUTPUT_DIR/105b-cube-to-tesseract-t1.004.png"
+run_test "CubeToTesseract t=3 (extrusion halfway)" "-o --scene examples.dsl.CubeToTesseract --t 3 -s $OUTPUT_DIR/105c-cube-to-tesseract-t3.png"
+run_test "CubeToTesseract t=7 (turning in XW after the extrusion)" "-o --scene examples.dsl.CubeToTesseract --t 7 -s $OUTPUT_DIR/105d-cube-to-tesseract-t7.png"
 
 # Colored Shadows Phase 1 (single-object)
 echo -e "${YELLOW}--- Colored Shadows (Phase 1: single object) ---${NC}"
@@ -521,6 +532,8 @@ interactive_tests=(
     "Cube Sponge L1:-o --objects type=cube-sponge:level=1:color=#00ffff --max-instances 64 --plane y:-2"
     "Tesseract (4D hypercube):-o --objects type=tesseract --plane y:-2"
     "Tesseract (4D rotated):-o --objects type=tesseract:rot-xw=45:rot-yw=30:rot-zw=15 --plane y:-2"
+    "4D state in the title (Shift+drag / Shift+scroll change it; menger#131):-o --objects type=tesseract --plane y:-2"
+    "4D state in an animated window's title (Shift+scroll moves eye-w; menger#131):-o --scene examples.dsl.CubeToTesseract"
     "Tesseract (glass):-o --objects type=tesseract:material=glass --plane y:-2"
     "Tesseract (chrome):-o --objects type=tesseract:material=chrome --plane y:-2"
     "Tesseract with chrome edges:-o --objects type=tesseract:edge-material=chrome:edge-radius=0.02 --plane y:-2"
@@ -634,6 +647,7 @@ interactive_tests=(
     "Menger4D L3 chrome:-o --objects type=menger4d:level=3:material=chrome --plane y:-2"
     "Menger4D L4 matte:-o --objects type=menger4d:level=4:material=matte --plane y:-2"
     "Menger4D two objects (L2+L3):-o --objects type=menger4d:level=2:pos=-0.8,0,0 --objects type=menger4d:level=3:pos=0.8,0,0 --plane y:-2"
+    "4D IFS fractals mixed with a sphere (menger#134):-o --objects type=menger4d:level=2:pos=-1.6,0,0:size=0.8 --objects type=sierpinski4d:level=3:pos=0,0,0:size=0.8:color=#e04040 --objects type=hexadecachoron4d:level=3:pos=1.6,0,0:size=0.8:color=#40a0e0 --objects type=sphere:pos=0,-0.7,1.2:size=0.3:material=chrome --plane y:-1"
     "Menger4D fractional L2.5:-o --objects type=menger4d:level=2.5 --plane y:-2"
     "Sierpinski4D L1 matte:-o --objects type=sierpinski4d:level=1 --plane y:-2"
     "Sierpinski4D L3 chrome:-o --objects type=sierpinski4d:level=3:material=chrome --plane y:-2"

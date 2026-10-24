@@ -539,6 +539,10 @@ test_basic_objects() {
     run_test "sponge-volume" --objects type=sponge-volume:level=1:size=0.5 --plane y:-2
     run_test "sponge-surface" --objects type=sponge-surface:level=1:size=0.5 --plane y:-2
     run_test "sponge-recursive-ias" --objects type=sponge-recursive-ias:level=2:size=0.5 --plane y:-2
+    # menger#55: a fractional level fades only the coarse level's hole caps
+    # (seen from above a corner, so the half-faded level-2 holes on two faces show)
+    run_test "sponge-recursive-ias fractional" --objects type=sponge-recursive-ias:level=1.5:size=1.2 --plane y:-2 \
+        --camera-pos 1.6,1.2,2.4 --camera-lookat 0,0,0 --camera-up 0,1,0
     run_test "tesseract" --objects type=tesseract:size=0.5 --plane y:-2
 }
 
@@ -637,6 +641,16 @@ test_film_materials() {
     # Film on tesseract edges
     run_test "tesseract with film edge material" --plane y:-2 \
         --objects type=tesseract:size=0.8:edge-material=film:edge-radius=0.025
+    # menger#132 (F124): edge tubes on 3D meshes -- a cube's 12 edges, a dodecahedron's 30
+    # (not its pentagons' triangulation), and a sponge's edges without the grid between
+    # coplanar sub-faces. The sponge is half transparent at ior 1, so its inner edges show
+    # without refraction.
+    run_test "cube with gold edge tubes" --plane y:-2 \
+        --objects type=cube:size=0.8:material=film:edge-material=gold:edge-radius=0.02
+    run_test "dodecahedron with gold edge tubes" --plane y:-2 \
+        --objects type=dodecahedron:size=0.8:color=#3060c0:edge-material=gold:edge-radius=0.02
+    run_test "transparent sponge level 2 with gold edge tubes" --plane y:-2 \
+        --objects type=sponge-volume:level=2:size=0.8:color=#3060c080:edge-material=gold:edge-radius=0.01
 }
 
 test_pbr_texture_sets() {
@@ -669,6 +683,21 @@ test_textures() {
     run_test "procedural xyz_rgb sponge" \
         --objects "type=sponge-volume:level=1:pos=0,0,0:size=0.5:procedural=xyz_rgb:proc-scale=1.0" \
         --plane y:-2
+    # optix-jni#61 (F63): object-local xyz -> rgb, every colour once on a centred sponge
+    run_test "procedural xyz_rgb_local sponge" \
+        --objects "type=sponge-volume:level=1:pos=0,0,0:size=0.5:procedural=xyz_rgb_local" \
+        --plane y:-2
+    # menger#127 (F110): the local origin, black, is the min-x/y/z corner -- seen from the
+    # -x -y -z octant; the default camera only sees the faces around the white corner.
+    run_test "procedural xyz_rgb_local min corner" \
+        --objects "type=cube:pos=0,0,0:size=0.5:procedural=xyz_rgb_local" \
+        --camera-pos -1.2,-0.9,-1.8 --camera-lookat 0,0,0 --camera-up 0,1,0 --plane y:-2
+    # optix-jni#61 (F67): a red glass cube's transparent shadow is red, not grey. The colour
+    # needs a low alpha (#RRGGBBAA): a 6-digit tint makes glass opaque (F66). The light throws
+    # the shadow forward, into view.
+    run_test "glass cube coloured transparent shadow" --transparent-shadows \
+        --objects "type=cube:pos=0,0,0:size=0.6:material=glass:color=#FF262614" \
+        --light directional:0.3,-1,0.6:1.5 --plane y:-2
     run_test "procedural heatmap sphere" \
         --objects "type=sphere:pos=0,0,0:size=0.5:color=#FFFFFF:procedural=heatmap:proc-scale=2.0" \
         --plane y:-2
@@ -706,9 +735,12 @@ test_area_light_caustics() {
 
 test_colored_glass_caustics() {
     echo "Colored-glass caustics (red glass casts a tinted caustic):"
+    # Smaller sphere, camera looking down past it: the floor caustic is in view. It was hidden
+    # behind the sphere, unnoticed while `color=` made the glass opaque (2026-10-14).
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "colored glass caustics" \
-        --objects type=sphere:material=glass:color=#FF3333 --caustics \
+        --objects type=sphere:size=0.7:pos=0,0,0:material=glass:color=#FF3333 --caustics \
         --caustics-photons 1000 --caustics-iterations 1 \
+        --camera-pos 0,3.5,5 --camera-lookat 0,-1.6,0 \
         --plane y:-2 --light point:0,10,0:500
 }
 
@@ -722,10 +754,12 @@ test_dispersive_caustics() {
 
 test_mesh_receiver_caustics() {
     echo "Mesh-receiver caustics (glass sphere caustic on a diffuse sphere receiver, no floor plane):"
+    # A grey receiver seen from above: a white one saturated under the point light, so the
+    # caustic only showed while the glass was wrongly opaque and shadowed it (2026-10-14).
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "mesh receiver caustics" \
         --objects type=sphere:material=glass:color=#DDEEFF:size=1:pos=0,0,0 \
-        --objects type=sphere:size=3:pos=0,-5,0 \
-        --camera-pos 0,1.5,6 --camera-lookat 0,0,0 \
+        --objects type=sphere:size=3:pos=0,-5,0:color=#404040 \
+        --camera-pos 0,3,5 --camera-lookat 0,-1.8,0 \
         --caustics --caustics-photons 1000 --caustics-iterations 1 \
         --light point:0,10,0:500
 }
@@ -832,6 +866,9 @@ test_tesseract() {
         --objects type=tesseract:pos=0,0,0:size=0.8:rot-xw=30:rot-yw=20:rot-zw=10
     run_test "tesseract custom projection" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:eye-w=5.0:screen-w=2.0
+    # menger#65: w scaled before rotation; 0.3 is a tesseract part-way grown out of a cube
+    run_test "tesseract w-scale" --plane y:-2 \
+        --objects type=tesseract:pos=0,0,0:size=0.8:w-scale=0.3
     run_test "tesseract with color" --plane y:-2 \
         --objects type=tesseract:pos=0,0,0:size=0.8:color=#4488FF
     run_test_hd "tesseract with material" --plane y:-2 \
@@ -863,7 +900,7 @@ test_4d_sponges() {
     run_test "tesseract-sponge with rotation" --plane y:-2 \
         --objects type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30:size=0.8
     run_test_hd "tesseract-sponge with material" --plane y:-2 \
-        --objects type=tesseract-sponge:level=1:material=glass:size=0.8
+        --objects type=tesseract-sponge:level=1:material=glass:size=1.6
     run_test "tesseract-sponge-2 with color" --plane y:-2 \
         --objects type=tesseract-sponge-2:level=1:color=#FF4488:size=0.8
     run_test "tesseract-sponge with edges" --plane y:-2 \
@@ -872,24 +909,25 @@ test_4d_sponges() {
         --objects type=tesseract-sponge:level=1:pos=-1.5,0,0:size=0.5 \
         --objects type=tesseract:pos=1.5,0,0:size=0.5
     run_test "mixed 4D sponge + 3D sphere" --plane y:-2 \
-        --objects type=tesseract-sponge-2:level=1:pos=-1.5,0,0:size=0.5 \
+        --objects type=tesseract-sponge-2:level=1:pos=-0.9,0,0:size=1.2 \
         --objects type=sphere:pos=1.5,0,0:size=0.5
 
-    # Fractional level tests (per-vertex alpha blending)
+    # Fractional level tests (hole caps fading in, F35). The tesseract-sponge scenes are
+    # large enough to show the fading hole caps in detail (reviewed 2026-09-29).
     run_test "fractional level 0.5 (tesseract-sponge)" --plane y:-2 \
-        --objects type=tesseract-sponge:level=0.5:size=0.8
+        --objects type=tesseract-sponge:level=0.5:size=1.6
     run_test "fractional level 1.25 (tesseract-sponge)" --plane y:-2 \
-        --objects type=tesseract-sponge:level=1.25:size=0.8
+        --objects type=tesseract-sponge:level=1.25:size=1.6
     run_test "fractional level 1.5 (tesseract-sponge)" --plane y:-2 \
-        --objects type=tesseract-sponge:level=1.5:size=0.8
+        --objects type=tesseract-sponge:level=1.5:size=1.6
     run_test "fractional level 1.75 (tesseract-sponge-2)" --plane y:-2 \
-        --objects type=tesseract-sponge-2:level=1.75:size=0.8
+        --objects type=tesseract-sponge-2:level=1.75:size=1.2
     run_test "fractional level 0.9 (tesseract-sponge-2)" --plane y:-2 \
-        --objects type=tesseract-sponge-2:level=0.9:size=0.8
+        --objects type=tesseract-sponge-2:level=0.9:size=1.2
     run_test_hd "fractional level with material" --plane y:-2 \
-        --objects type=tesseract-sponge:level=1.5:material=glass:size=0.8
+        --objects type=tesseract-sponge:level=1.5:material=glass:size=1.6
     run_test "fractional level with rotation" --plane y:-2 \
-        --objects type=tesseract-sponge-2:level=1.3:rot-xw=30:rot-yw=20:size=0.8
+        --objects type=tesseract-sponge-2:level=1.3:rot-xw=30:rot-yw=20:size=1.2
     run_test "mixed fractional + integer levels" --plane y:-2 \
         --objects type=tesseract-sponge:level=1.5:pos=-1.2,0,0:size=0.5 \
         --objects type=tesseract-sponge:level=1:pos=1.2,0,0:size=0.5
@@ -918,6 +956,13 @@ test_menger4d() {
     run_test "menger4d two instances" --plane y:-2 \
         --objects type=menger4d:level=2:pos=-1.2,0,0:size=0.8 \
         --objects type=menger4d:level=2:pos=1.2,0,0:size=0.8
+    # menger#134: the three IFS fractals and a sphere in one scene ("No builder found" before).
+    run_test "4D IFS fractals mixed with a sphere" --plane y:-1 \
+        --camera-pos 0,1.5,6 --camera-lookat 0,-0.2,0 --camera-up 0,1,0 \
+        --objects type=menger4d:level=2:pos=-1.6,0,0:size=0.8 \
+        --objects type=sierpinski4d:level=3:pos=0,0,0:size=0.8:color=#e04040 \
+        --objects type=hexadecachoron4d:level=3:pos=1.6,0,0:size=0.8:color=#40a0e0 \
+        --objects type=sphere:pos=0,-0.7,1.2:size=0.3:material=chrome
 }
 
 test_sierpinski4d() {
@@ -1033,6 +1078,15 @@ test_3d_fractional_sponges() {
     run_test "sponge-volume fractional with color" --plane y:-2 \
         --objects type=sponge-volume:level=1.3:color=#FF4488:size=0.8
 
+    # Two refractive fractional objects whose light paths cross: every combination of their
+    # levels is rendered (2^k) and mixed (lene/menger#69). A blue glass sponge at 0.2 partly
+    # hidden by a red glass sponge at 1.3 -- a stand-in for a Sierpinski tetrahedron until
+    # the Platonic fractals exist (backlog B-PLATOFRAC).
+    run_test "two crossing glass sponges fractional 0.2 and 1.3" --plane y:-1.2 \
+        --objects type=sponge-volume:level=0.2:size=1.6:material=glass:color=#7799FF \
+        --objects type=sponge-surface:level=1.3:pos=0.35,0.15,1.3:size=1.0:material=glass:color=#FF7777 \
+        --camera-pos 0.5,0.8,4.4 --camera-lookat 0,0,0
+
     # Mixed fractional and integer levels
     run_test "mixed sponge-volume fractional + integer" --plane y:-2 \
         --objects type=sponge-volume:level=1.5:pos=-1.2,0,0:size=0.5 \
@@ -1087,6 +1141,7 @@ test_dsl_scenes() {
     # TesseractDemo is a wireframe scene: thin edges leave a near-uniform background
     # that legitimately trips the all-red-render detector. Allow uniform output.
     run_test_hd "DSL TesseractDemo" --allow-uniform-render --scene examples.dsl.TesseractDemo
+    run_test_hd "DSL PolytopeGallery" --allow-uniform-render --scene examples.dsl.PolytopeGallery
     run_test "DSL FilmSphere" --scene examples.dsl.FilmSphere
     run_test "DSL SpongeShowcase" --scene examples.dsl.SpongeShowcase
     run_test "DSL MengerShowcase" --scene examples.dsl.MengerShowcase
@@ -1102,6 +1157,11 @@ test_dsl_scenes() {
         --scene examples.dsl.EnvMapVideoSponge \
         --texture-dir menger-geometry/src/test/resources/ \
         --t 0.5
+    # t = 0.25 shows the video's red frame: the chrome sponge's reflection follows the video.
+    run_test "DSL EnvMapVideoSponge red frame" \
+        --scene examples.dsl.EnvMapVideoSponge \
+        --texture-dir menger-geometry/src/test/resources/ \
+        --t 0.25
     run_test "DSL EnvMapDemo (IBL importance-sampled env lighting + accumulation)" \
         --scene examples.dsl.EnvMapDemo \
         --texture-dir menger-app/src/test/resources/
@@ -1128,6 +1188,14 @@ test_t_animation() {
         --scene examples.dsl.PulsingSponge --t 1.0
     run_test "t-animation freeze-frame SpongeLevelAnimation" \
         --scene examples.dsl.SpongeLevelAnimation --t 0.5
+    # The cube-to-tesseract hand-over at t = 1 (menger#132): the cube at wScale 0, the Film
+    # tesseract just after it (wScale 0.06), and halfway through the extrusion.
+    run_test "t-animation freeze-frame CubeToTesseract cube" \
+        --scene examples.dsl.CubeToTesseract --t 0.9
+    run_test "t-animation freeze-frame CubeToTesseract hand-over" \
+        --scene examples.dsl.CubeToTesseract --t 1.25
+    run_test "t-animation freeze-frame CubeToTesseract extrusion" \
+        --scene examples.dsl.CubeToTesseract --t 3
 
     # Multi-frame animation: 3 frames for speed
     local temp_dir
@@ -1185,7 +1253,7 @@ test_colored_shadows() {
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_with" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
         --plane y:-2 --shadows --transparent-shadows \
-        --light directional:0,1,0:2.0 \
+        --light directional:0,-1,0:2.0 \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
         >/dev/null 2>&1 || [ ! -f "$temp_with" ]; then
         rendered_both=false
@@ -1194,7 +1262,7 @@ test_colored_shadows() {
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_without" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
         --plane y:-2 --shadows \
-        --light directional:0,1,0:2.0 \
+        --light directional:0,-1,0:2.0 \
         --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
         >/dev/null 2>&1 || [ ! -f "$temp_without" ]; then
         rendered_both=false

@@ -18,22 +18,26 @@ object Mesh4DGpuFlatten:
     (buffer, vpf)
 
   @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  def quadsBuffer(mesh4D: Mesh4D, skinOffset: Float = 0f): Array[Float] =
+  def quadsBuffer(mesh4D: Mesh4D): Array[Float] =
     require(mesh4D.vertsPerFace == 4, "quadsBuffer requires quad faces (vertsPerFace=4)")
-    // A non-zero skinOffset expands the lower-level mesh of a fractional pair so it
-    // does not z-fight the coincident higher-level surface. We use a uniform radial
-    // scale about the (origin-centred) sponge rather than a per-face normal offset:
-    // the per-face approach (Σ winding-signed normals) moved faces in inconsistent
-    // directions and split shared vertices, opening gaps that showed the surface
-    // behind as dark squares at the cube corners. A radial scale moves coincident
-    // vertices identically, so it is gap-free by construction.
-    val scale = 1f + skinOffset
     mesh4D.faces.asInstanceOf[Seq[Face4D[4]]].iterator.flatMap { f =>
-      if skinOffset == 0f then
-        vertexFloats(f(0)) ++ vertexFloats(f(1)) ++ vertexFloats(f(2)) ++ vertexFloats(f(3))
-      else
-        vertexFloats(f(0) * scale) ++ vertexFloats(f(1) * scale) ++
-          vertexFloats(f(2) * scale) ++ vertexFloats(f(3) * scale)
+      vertexFloats(f(0)) ++ vertexFloats(f(1)) ++ vertexFloats(f(2)) ++ vertexFloats(f(3))
+    }.toArray
+
+  private val CapFraction = 1f / 3f
+
+  /** The hole caps of a fractional 4D sponge's lower level, in `quadsBuffer` layout: each face
+    * shrunk to its centre third about its own centroid, which is exactly the opening the next
+    * level leaves in that face. Replaces uploading the whole lower level, radially scaled by
+    * 1.0003, whose near-coincident surface caused speckle, double refraction and shifted
+    * procedural colours (usability review 2026-09, session 2, F35/F41). */
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+  def holeCapsBuffer(mesh4D: Mesh4D): Array[Float] =
+    require(mesh4D.vertsPerFace == 4, "holeCapsBuffer requires quad faces (vertsPerFace=4)")
+    mesh4D.faces.asInstanceOf[Seq[Face4D[4]]].iterator.flatMap { f =>
+      val corners = (0 until 4).map(f(_))
+      val centre = corners.reduce(_ + _) / 4f
+      corners.flatMap(v => vertexFloats(centre + (v - centre) * CapFraction))
     }.toArray
 
   private inline def vertexFloats(v: menger.common.Vector[4]): Array[Float] =

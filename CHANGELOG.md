@@ -1,5 +1,282 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Every command-line object type has a DSL class: `Tetrahedron`, `Octahedron`, `Dodecahedron`
+  and `Icosahedron` (with edge tubes, like `Cube`), `Cone` (`apex`, `base`, `radius`), and the
+  GPU-traced 4D fractals `Menger4D` and `HexadecachoronGasket` (CLI `menger4d`,
+  `hexadecachoron4d`). A unit test fails when a new CLI type has no DSL class.
+- Extruding a cube into a tesseract without a cut: the manifest's `wScale` convention says how
+  (4D rotations 0 while `wScale` grows, the tesseract's size scaled by eyeW / (eyeW - screenW),
+  the same material and edge tubes on both), and the example `CubeToTesseract` does it, with
+  freeze frames at the hand-over in the integration suite (usability review 2026-10, session 5,
+  F124; lene/menger#132).
+- The animation window reports a frame that takes over a second as a `frame_slow` window event
+  (at most one per 5 s: frame, build and render time, heap), and its log names the JVM heap on
+  every scene load, so a slow scene and a killed window leave a trace (usability review 2026-10,
+  session 5, F125/F113; lene/menger#133, #130).
+- Edge tubes on 3D meshes: `Cube` and the VolumeFilling/SurfaceUnfolding `Sponge` take
+  `edgeRadius` and `edgeMaterial` (CLI `edge-radius`, `edge-material`, ...), as the 4D types do;
+  on the command line the platonic solids (tetrahedron, octahedron, dodecahedron, icosahedron)
+  take them too.
+  An edge is where the mesh's faces meet at an angle, so the grid between coplanar sub-faces is
+  not drawn: 12 tubes for a cube, 96 / 1296 / 22512 for a sponge at levels 1 / 2 / 3. A
+  recursive-IAS sponge refuses them. Meshes with edges build before the analytical primitives,
+  since their builder may grow the renderer (usability review 2026-10, session 5, F124;
+  lene/menger#132).
+- Fractional levels in a refractive material (glass, water, diamond, film) grow gradually: the
+  renderer draws both whole levels and mixes the images, linearly, each render showing one level
+  per object, so no light path meets both. Fading level n's hole caps over level n+1 in one render
+  (still used for opaque materials, where it is the same mix) could not work for glass: a glass
+  cap shows the new tunnels behind it at any strength, so the level jumped at the integer
+  (usability review 2026-10, session 4, F85; #69; decided by user 2026-10-14: linear mix,
+  rendering twice). With k such objects every combination of their levels is rendered (2^k,
+  product weights; beyond 4 objects the first-order sum, k + 1 renders). Covers the 3D sponges,
+  the 4D sponges (also animated in place), the recursive-IAS sponge and the 4D IFS fractals.
+  Needs optix-jni 0.4.7 (`setInstanceVisible`). DSL manifest 1.9.0 notes the render cost.
+- An animated scene can declare `val durationSeconds = <seconds>f`: `t` is then time in
+  seconds, and `--scene` without `--frames`/`--t`/`--save-name`/`--headless` opens a window
+  that plays it in real time, looping (it takes the render lock like the interactive window).
+  Scenes without it behave as before. `SceneValidator` also checks such a scene at its end
+  time, not only at `t = 0`. The first name, `val duration`, did not say it is seconds; it is
+  still read, with a deprecation warning (usability review 2026-10, session 3, F84; #65).
+- Procedural preset 11 `xyz_rgb_local` (CLI `procedural=xyz_rgb_local`): x, y, z inside the
+  object's own box, each 0..1, as R, G, B -- every colour once over the object at scale 1,
+  following its position, size and rotation, instead of world colours mirrored at 0 (usability
+  review 2026-10, session 3, F63). Every instance now gets its object frame (optix-jni 0.4.6
+  `setObjectFrame`).
+- Transparent shadows (`RenderSettings(transparentShadows = ...)`, CLI
+  `--transparent-shadows`): a transparent object's shadow takes the colour seen through it,
+  its procedural colour included: a red glass casts a red shadow, an `xyz_rgb_local` glass a
+  rainbow one (F67, optix-jni 0.4.6). On by default where they show (`Auto`, see Changed).
+- `Projection4DSpec(wScale = s)` (CLI `w-scale=S`) scales a 4D object's w coordinate before
+  the 4D rotation: 0 flattens a tesseract to a cube, animating 0 → 1 grows it out of the cube
+  along w, the nearest the DSL has to extruding a 3D object into 4D (#65, the extrusion half
+  of #59). Applied to faces and edges, on the CPU and the GPU projection path; a w-scale
+  change rebuilds the 4D mesh, a view change still re-projects it in place.
+- `--scene <file.scala>` in an interactive window now watches the file and reloads it in
+  place on every save (usability review 2026-09, F5): geometry, lights, planes, background,
+  fog, IBL and render/denoise/accumulation settings all update; the camera and any
+  in-progress 4D rotation are left untouched. A save that fails to load (a compile error, or
+  a scene the loader rejects) is logged and the window keeps running its current scene. Only
+  a static scene reloads live; a save that turns the file animated is reported and requires
+  restarting the window. New `menger.dsl.SceneFileWatcher`.
+- The regular 4D polytopes besides the tesseract are DSL objects: `Pentachoron`,
+  `Hexadecachoron`, `Icositetrachoron`, `Hecatonicosachoron`, `Hexacosichoron` (usability
+  review 2026-09, F17), with the same fields as `Tesseract`; new example `PolytopeGallery`
+  (`--scene polytope-gallery`).
+
+### Changed
+
+- A transparent object's shadow takes the colour seen through it by default when the object is
+  tinted or procedurally coloured: `RenderSettings(transparentShadows = ...)` is now `Auto`
+  unless set to `true` or `false` (usability review 2026-10, session 5, F111; lene/menger#128).
+  A DSL scene without render settings behaves as `Auto` too. Caustics turn transparent shadows
+  on in any case, from the command line (`--caustics`) and in a DSL scene.
+- Pins optix-jni 0.4.11 (0.3.3 in 0.9.0; the entries below name the release a change needs).
+  Since 0.4.8: instance transform, visibility and material changes refit the IAS in place
+  instead of rebuilding it (optix-jni#66); a sticky CUDA error is thrown as
+  `OptiXContextLostException` on every later render (optix-jni#73); the native library is
+  built optimized (optix-jni#67); `renderMix` mixes visibility passes in one native call
+  (lene/menger#85). A transparent shadow is charged for the glass the shadow ray crosses: for
+  a mesh the path length through it, with exact Fresnel at the ray's angle to each face, so a
+  level-3 sponge's shadow keeps its tint instead of going grey; measured against pbrt-v4, the
+  shadow under preset glass transmits 0.65 (pbrt 0.50, before 0.63) with the right colour
+  balance. An opaque object casts a full shadow with transparent shadows on (an opaque cyan
+  sphere cast a cyan shadow, an opaque grey floor let 31% of the light through)
+  (lene/menger#128). Glass reflects with the exact Fresnel equations, total internal
+  reflection included, and the light it reflects inside coloured glass is absorbed. Edge tubes
+  move in 0.49 s per frame instead of 0.74 s in session 5's Task 4.7 scene
+  (lene/menger#129).
+- The manifest says which corner of an object `xyz_rgb_local` colours black: the min-x/y/z
+  corner, which a camera in the +x +y +z octant never sees (lene/menger#127). Its caustics
+  convention names every transparent material with an IOR above 1 as refractive, Film
+  included (lene/menger-scene-agent#54).
+- The window title shows the 4D view state (rotation in the xw, yw and zw planes, eye-w) and
+  the 4D controls while a 4D object is shown, and says when Shift+drag finds no 4D object
+  (lene/menger#131). An animated window's title also shows the time of a slow last frame, so a
+  window that renders slowly says so (lene/menger#133).
+- A 4D rotation animation of edge-rendered 4D objects moves their edge tubes in place in the
+  animated window and in frame/video export, as the interactive window already did, instead of
+  rebuilding every cylinder each frame: session 5's Task 4.7 scene (27,648 cylinders) went from
+  3.0 s to 0.74 s per frame, the frames unchanged. Most of the rest is optix-jni refitting the
+  cylinders one by one (lene/menger#129).
+- Fractional-level glass renders its level mix in one optix-jni `renderMix` call instead of one
+  render per level combination mixed on the JVM; the image is the same (lene/menger#85).
+- The DSL's `Sierpinski4D` is now `PentachoronGasket`, the name of what it is (the Sierpinski
+  gasket of the 5-cell); the old name still compiles, deprecated. The CLI type stays
+  `sierpinski4d`.
+- **Breaking (rendering):** DSL planes face the origin: `Y at -2` is a floor lit from above
+  (it faced down before, so floors were lit only by lights from below and never showed a
+  shadow), matching the CLI's `--plane +y:-2`. Together with optix-jni's fix of the directional
+  light convention (`direction` is the travel direction), the example scenes' lights, which were
+  already written that way, now light them from above.
+- The DSL capability manifest (schema 1.1.0) carries the DSL's conventions and per-field
+  semantics: units, light direction, plane orientation, colour alpha versus material, emission,
+  animation duration (`menger.tools.DslSemantics`).
+- Timing tests are now noise-aware performance gates (tag `Perf`) in their own push-tier `perf`
+  suite and CI job, excluded from the regular test run. Each gate times a subject against a
+  reference in interleaved rounds (shared helper `io.github.lene.qa.RelativeBenchmark`) and
+  judges the median ratio by its confidence interval: a conclusive regression fails, an
+  unjudgeable measurement is skipped visibly. Replaces absolute millisecond/fps thresholds
+  (`SpongePerformanceSuite`) and single-shot A/B timings (`Project4DGpuSuite`).
+- The benchmark trend check is now the release-tier `perf-trend` suite: `benchmark.sh` brackets
+  every scene with calibration renders, stores machine-independent ratios in
+  `perf-baseline.json`, and exits 2 (skip) when a scene can't be judged reliably.
+- **Breaking:** each 3D sponge type has its own level limit (usability review 2026-10,
+  session 4, F86; #68). `sponge-volume` and `sponge-surface` stay at 5 (with the faster
+  `sponge-volume` build below, level 5 opens in the window). `cube-sponge` stops at 3: above
+  that its instances do not fit the 65536-entry instance table. It had no DSL limit before,
+  and the manifest claimed 5.
+- `SceneValidator` checks an animated scene at 25 evenly spaced times over its duration, not
+  only at both ends: an edge-rendered tesseract sponge rising to level 3 mid-animation passed
+  before and could not be built (usability review 2026-10, session 4, F94).
+- DSL manifest 1.7.0: per-type sponge level limits, and notes on edge-tube level limits,
+  when caustics are visible, the on-screen size of a 4D object at w = 0, and the preview's
+  playback keys (F94, F98, F101, F92; #64, #66).
+- The scene-validator image carries `menger.dsl-manifest.sha256` (the manifest it was built
+  with) and `org.opencontainers.image.revision` labels, and `run-sandboxed.sh
+  --expect-manifest-sha256 <hex>` refuses (tag `refused`, exit 2) to run an image built from
+  a different manifest. The version label alone could not tell a stale image from a current
+  one within a release (usability review 2026-10, session 4, F99; #74).
+- Fractional levels on edge-rendered 4D sponges (usability review 2026-10, session 4, F94; #70):
+  the edge tubes were built from the integer part of the level, so they stepped at each
+  integer. A level n.f now draws the tubes of level n fading out and those of level n+1 fading in
+  (alpha and refraction scaled, as for glass hole caps), while n+1 is at most 2; from 2.x there
+  are too many tubes (level 3: 130177, the limit is 65536) and the integer part stays.
+- Animation window playback (usability review 2026-10, session 4, F95; #71, #75): `--playback
+  every-frame` renders every frame of a scene with `val durationSeconds` (25 steps per second at
+  most, a slow frame slows the playback instead of skipping scene time) and loops, which the
+  scene agent's window now uses; the default `--playback realtime` still follows the clock, but
+  its window title says "behind real time: N s skipped" when frames were dropped. A playing
+  window with no input or reload for 10 minutes (`--idle-pause-seconds`, 0 disables) pauses
+  itself like Space, with a note in the title, so a window left open does not hold the GPU.
+  DSL manifest 1.8.0.
+- Render window 4D state (usability review 2026-10, session 4, F96; #72): Shift+drag rotates in
+  the animated window too, and the rotation is kept as an offset on top of the file's
+  projections, so a live reload no longer resets it unless the file changed its own projections
+  (as the camera already behaved). Both windows write what they show -- camera, the added 4D
+  rotation, and for an animated scene the time and play state -- to
+  `<scene file>.window-state.json` (at most 4 writes a second), which the scene agent reads for
+  `/ask` and for "keep them like that".
+- Edge-rendered 4D objects get their procedural colour (`xyz_rgb_local` etc.) on every path:
+  `TesseractEdgeSceneBuilder` now runs the shared texture/procedural step, which it skipped, so
+  headless renders and the static window showed plain faces. An edge-rendered scene in the
+  animated window takes the full build instead of the in-place mesh path, which has no edge
+  tubes (usability review 2026-10, session 4, F97; #73).
+- `SceneValidator` results carry the evaluated scene (schema 1.1.0, additive): `snapshots`
+  (objects, camera, lights, background, caustics and render settings at each checked time,
+  from the resolved `ObjectSpec`s) and, for an animated scene, `cameraPath` (the camera every
+  0.05 s). The scene agent reads values from here instead of parsing scene text, which could
+  not resolve local vals, constants or piecewise camera paths (usability review 2026-10,
+  session 4, F90, F89, F102).
+- The `sponge-volume` mesh is built about 15x faster at level 4 (3.1 s -> 0.2 s) and without
+  the per-level copies: it collects the visible faces of all leaf cubes and writes them, in
+  parallel, into one preallocated array, instead of merging a mesh per sub-cube at every level
+  (`TriangleMeshData.merge` boxes every float). The mesh is identical, byte for byte; level 5
+  (13.1M triangles) now builds in about 4 s (F86, #68).
+
+### Deprecated
+
+- `cube-sponge` / `SpongeType.CubeSponge`: the same sponge as `sponge-volume`, as one GPU
+  instance per cube, so it stops at level 3; `sponge-recursive-ias` covers high levels. It
+  logs a deprecation warning, the DSL manifest no longer lists it, and it will be removed
+  (#76).
+
+### Fixed
+
+- A 4D animation with edge tubes on some objects but not on others (an edged tesseract sponge
+  next to a plain 24-cell) moves both in place frame to frame; every frame used to rebuild the
+  whole scene, 1.1 s each. The animated window and the frame/video export also no longer
+  rebuild a frame that changed nothing (an animation's hold phase), and a frame whose planes
+  changed is rebuilt, so an animated plane no longer freezes on in-place frames (menger#129).
+- The contained render window (`run-render-window.sh`) keeps the OptiX shader cache in the
+  scene's directory. Every window and export used to compile the shaders again on its first
+  frame, about 35 s of a black window; later windows and exports of the same agent session now
+  start in a few seconds (menger#133).
+- The window title says "rendering frame N/M…" (or "rendering…" for a still scene) while a
+  frame is built and rendered, so a long first frame or a caustics render no longer looks
+  frozen (menger#133).
+- A scene over the triangle budget is refused with the highest level at which its most
+  expensive object fits ("the tesseract-sponge-surface fits at level 3 (…)"), not only the totals
+  (lene/menger-scene-agent#48).
+- Frame and video export (`--frames`, `--video`) size the instance budget for the scene as the
+  window does; an edge-tube scene over 64 instances needed `--max-instances`.
+- A static DSL scene's `RenderSettings(maxRayDepth = ...)` is used; merging the command line's
+  render flags over the scene's reset it to the default of 5.
+- Shift+scroll changes eye-w in an animated window too; it did nothing there.
+- The GPU-traced 4D IFS fractals (`Menger4D`, `PentachoronGasket`, `HexadecachoronGasket`) share
+  a scene with other objects and with each other; any such mix failed with "No builder found"
+  (lene/menger#134).
+- Edge tubes on a sponge above level 3 are refused by the scene budget from the level alone
+  (validator and every engine). The window counted the edges first, which builds the mesh: a
+  level-5 sponge with edges took 46 s and 9 GB to be refused; now 2 s (lene/menger#132).
+- A `cube-sponge` turns about x, y and z around its own centre; only rotY was applied, about
+  the world origin, so its procedural colours did not follow its rotation (lene/menger#127).
+- `--objects ...:material=glass:color=#RRGGBB` made the glass opaque: on the command line the
+  colour replaced the preset's whole colour, alpha 1 included, while the DSL tints only RGB
+  (usability review 2026-09, F14). A 6-digit colour (`color=`, `edge-color=`) now tints the
+  preset's RGB and keeps its alpha; an 8-digit one (#RRGGBBAA) still sets the alpha. Two
+  integration scenes had looked fine only because of it -- their caustics were hidden behind
+  or saturated on an opaque sphere -- and are reframed so the caustic is in view.
+- Console log output goes to stderr, so tools that print JSON on stdout (`SceneValidator`)
+  stay machine-readable.
+- Scene compile failures report the real compiler diagnostics instead of a placeholder.
+- A sticky CUDA error (700 illegal address, 719 launch failure, ...) exits with one error line
+  instead of being retried on every frame; non-sticky failures (out of memory) still retry.
+- `--preview` failed on every animated scene (`savePattern must contain %`): the preview saves
+  nothing and passed an empty pattern, which is now allowed.
+- An animated scene whose `scene(0)` threw (e.g. a failed `require`) was reported as having
+  no scene method at all; the scene's own error is now reported.
+- `--preview` ignored `--timeout`.
+- A 4D object with edges next to one without made the scene build fail and the window vanish;
+  such scenes are now split into separately built groups.
+- An analytical object (e.g. a sphere) next to an edge-rendered 4D object disappeared: the
+  edge builder reinitializes the renderer, which dropped everything built before it. Edge
+  groups are now built first.
+- Rotating edge-rendered 4D objects interactively darkened the scene: every rebuild
+  reinitialized the renderer and lost the lights and render settings, which are now restored
+  after each rebuild (interactive window and preview).
+- A failure to create the scene exited with status 0 after a briefly flashing window; it is now
+  reported on stderr with exit status 1.
+- `SceneValidator` accepted scenes the renderer cannot build: it now runs the renderer's own
+  object grouping and each scene builder's preconditions (no GPU needed).
+- The interactive window could crash with CUDA 700/719 (illegal memory access) while rotating
+  scenes with many see-through faces, such as fractional-level sponges: rays passing through
+  transparent or coverage-blended faces nested past the ray tracer's recursion limit
+  (usability review 2026-09, F11). Fixed in optix-jni 0.4.0, which menger now uses; its three
+  4D shaders read the trace-depth payload through `TraceDepth::bounce`, and a face that would
+  exceed the limit renders opaque.
+- Interactively rotating an edge-rendered 4D object (polytopes with `edge-radius`/
+  `edge-material`) rebuilt the whole scene on every step, reinitializing the renderer each
+  time: ~95-195 ms per step, 5-10 fps while dragging (usability review 2026-09, F22). The edge
+  cylinders and faces are now moved in place (optix-jni 0.4.0's `updateCylinderInstances`,
+  faces on the GPU projection path): ~7-24 ms per step. A rotation that changes which edges the
+  eye_w plane clips, or fractional-level sponges (CPU-projected faces), still rebuild. The edge
+  builder also no longer reinitializes the renderer when it already has enough capacity.
+- An object's explicit `color` overrode its material's alpha too, so an opaque `color` on
+  `Glass`/`Film` silently made it opaque; `color` now tints RGB only and the material's own
+  transparency is preserved.
+- `TesseractSponge` ignored `size`, and several edge-rendered 4D objects in one scene all got
+  the first object's mesh (usability review 2026-09, F27).
+- `examples.dsl.CausticsReferenceDefault`'s point light blew the floor out to solid white in
+  8-bit output, hiding the caustic ring; its intensity is lowered (the pbrt-compared
+  `CausticsCanonical` is unaffected). `CausticsReferenceDefault`, `ParametricSphereCaustics`
+  and `ParametricTorusCaustics` were also missing from `SceneIndex`, so their short names
+  (`caustics-reference-default`, ...) never resolved via `--scene <short-name>`.
+- `ExampleScenesSuite`'s registry test intermittently saw an empty `SceneRegistry`: a test
+  helper (`SceneLoaderSuite`) cleared the process-global registry, racing other suites that
+  run concurrently in the same JVM. The clearing was unnecessary (its keys never collide with
+  a real scene name) and is removed, along with the now-unused `SceneRegistry.clear()`.
+
+### Security
+
+- optix-jni's native entries validate their input (64-bit sizes, null and length checks,
+  index and range checks), and dispose waits for renders in flight (optix-jni 0.4.8,
+  optix-jni#68-#71).
+
 ## [0.9.0] - 2026-09-10
 
 `0.8.14` was prepared but never tagged/released — its changes and this cycle's code-review
