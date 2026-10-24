@@ -93,6 +93,11 @@ docker run --rm --name "$name" \
   --user "$(id -u):$(id -g)" \
   -e DISPLAY=":$display_number" -e XAUTHORITY=/xauth/cookie \
   -e __GL_THREADED_OPTIMIZATIONS=0 \
+  `# OptiX compiles its shaders on the first frame, ~35 s; the immutable root and the tmpfs HOME` \
+  `# lose its disk cache with the container. The scene directory is already mounted read-write` \
+  `# and belongs to one agent session, so the cache lives there: later windows and exports of` \
+  `# the session skip the compile, and no session reads another's (menger#133).` \
+  -e MENGER_OPTIX_CACHE="$scene_dir/.optix-cache" \
   `# hybrid laptops: GLX on the NVIDIA GPU when the X server runs on the integrated one` \
   ${__NV_PRIME_RENDER_OFFLOAD:+-e __NV_PRIME_RENDER_OFFLOAD="$__NV_PRIME_RENDER_OFFLOAD"} \
   ${__GLX_VENDOR_LIBRARY_NAME:+-e __GLX_VENDOR_LIBRARY_NAME="$__GLX_VENDOR_LIBRARY_NAME"} \

@@ -58,6 +58,20 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
     message should (include("triangles") and include("renders per frame") and include("photons")
       and include("edge tubes"))
 
+  // Session 6, msa#48: the rejection names a level that fits, not only the totals.
+  it should "name the highest level at which the most expensive object fits" in:
+    val specs = List(volumeSponge(5f), volumeSponge(5.8f))
+    val fit = SceneCost.fittingLevel(specs)
+    fit.map(_.objectType) shouldBe Some("sponge-volume")
+    fit.map(_.level) shouldBe Some(4)
+    fit.map(_.sceneTriangles) shouldBe
+      Some(SpongeByVolume.triangleCount(5) + SpongeByVolume.triangleCount(4))
+    SceneCost.checkTriangles(specs).left.getOrElse("") should
+      include("the sponge-volume fits at level 4")
+
+  it should "name no level for a scene within the budget" in:
+    SceneCost.fittingLevel(List(volumeSponge(5f))) shouldBe None
+
   "RenderSettings.accumulation" should "be capped" in:
     noException should be thrownBy RenderSettings(accumulation = ResourceLimits.renderAccumulationMax)
     an[IllegalArgumentException] should be thrownBy

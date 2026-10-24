@@ -73,6 +73,8 @@ trait WithPreview extends RenderEngine with LazyLogging:
   // the window itself says what Shift+drag changed and that it is still rendering.
   private val title4D = new AtomicReference[Option[String]](None)
   private val slowFrameNote = new AtomicReference[Option[String]](None)
+  // While a frame is built and rendered: both block the window (menger#133).
+  private val renderingNote = new AtomicReference[Option[String]](None)
 
   private def setTitleNote(note: AtomicReference[Option[String]], value: Option[String]): Unit =
     if note.getAndSet(value) != value then updateTitle()
@@ -175,7 +177,8 @@ trait WithPreview extends RenderEngine with LazyLogging:
     val behind =
       if skipped > 0f then f" | behind real time: ${skipped}%.1f s skipped" else ""
     val idle = if idlePaused.get() then " | paused: idle (Space resumes)" else ""
-    val notes = (slowFrameNote.get() ++ title4D.get()).map(" | " + _).mkString
+    val notes =
+      (renderingNote.get() ++ slowFrameNote.get() ++ title4D.get()).map(" | " + _).mkString
     GdxRuntime.setWindowTitle(
       f"$windowTitle | t=$t%.3f | frame $frame/${previewConfig.frames}" + failures + behind +
         idle + notes
@@ -249,6 +252,8 @@ trait WithPreview extends RenderEngine with LazyLogging:
     val rebuildFrame = needsRender.getAndSet(false) || renderResources.needsRender
     if rebuildFrame && width > 0 && height > 0 then
       val t = currentT.get()
+      setTitleNote(renderingNote,
+        Some(WithPreview.renderingFrameNote(frameForT(t), previewConfig.frames)))
       val buildStart = System.nanoTime()
       Try(sceneFunction(t)) match
         case Failure(e) =>
@@ -287,6 +292,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
           val renderEnd = System.nanoTime()
           reportIfSlow(t, renderStart - buildStart, renderEnd - renderStart)
           setTitleNote(slowFrameNote, WithPreview.slowFrameNote(renderEnd - buildStart))
+      setTitleNote(renderingNote, None)
     // Paused or between key presses: the buffer was cleared above and nothing new was built, so
     // draw the last frame again instead of showing a black window (usability session 3, F68a).
     else if width > 0 && height > 0 then renderResources.redrawExisting(width, height)
@@ -350,6 +356,12 @@ object WithPreview:
     val sinceReport = (last: Long) => (now - last) / NanosPerSecond
     frameNanos / NanosPerSecond > SlowFrameSeconds &&
       lastReportNanos.forall(sinceReport(_) >= SlowFrameReportIntervalSeconds)
+
+  /** The title note while a frame is built and rendered. The render blocks the window, so the
+    * title is the only sign of it, and a first frame can take half a minute (usability review
+    * 2026-10, session 6, menger#133). */
+  def renderingFrameNote(frame: Int, frames: Int): String = s"rendering frame $frame/$frames…"
+  val RenderingNote: String = "rendering…"
 
   /** The title note for a frame of `frameNanos`: its time when it was slow, else none. Rounded
     * to a second so the title does not change with every slow frame. */

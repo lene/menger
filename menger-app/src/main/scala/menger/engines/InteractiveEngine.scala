@@ -223,12 +223,19 @@ class InteractiveEngine(
       renderResources.markNeedsRender()
       GdxRuntime.requestRendering()
     else
-      GdxRuntime.setWindowTitle(s"${GdxRuntime.DefaultWindowTitle} | ${Window4DState.NoObject}")
+      setTitle(s"${GdxRuntime.DefaultWindowTitle} | ${Window4DState.NoObject}")
+
+  // The title without the rendering note, which comes and goes around every render.
+  private val title = new AtomicReference[String](GdxRuntime.DefaultWindowTitle)
+
+  private def setTitle(value: String): Unit =
+    title.set(value)
+    GdxRuntime.setWindowTitle(value)
 
   // The 4D view state in the title (usability review 2026-10, session 5, F116, menger#131).
   private def show4DState(specs: Option[List[ObjectSpec]]): Unit =
     Window4DState.describe(specs.getOrElse(Nil)).foreach(state =>
-      GdxRuntime.setWindowTitle(s"${GdxRuntime.DefaultWindowTitle} | $state")
+      setTitle(s"${GdxRuntime.DefaultWindowTitle} | $state")
     )
 
   /** Per-mesh GPU 4D-projection update path. Mirrors `WithAnimation.tryAnim4DFastPath`.
@@ -736,7 +743,10 @@ class InteractiveEngine(
         renderResources.markNeedsRender()
       if renderResources.needsRender then
         val size = ImageSize(width, height)
+        // The render blocks the window; a first frame or caustics can take minutes (menger#133).
+        GdxRuntime.setWindowTitle(s"${title.get()} | ${WithPreview.RenderingNote}")
         val maybeBytes = maybeRenderWithStats(width, height)
+        GdxRuntime.setWindowTitle(title.get())
         maybeBytes match
           case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)
           case None => () // render failed (logged); keep needsRender=true → retry next frame

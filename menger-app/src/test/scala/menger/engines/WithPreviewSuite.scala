@@ -70,5 +70,8 @@ class WithPreviewSuite extends AnyFlatSpec with Matchers:
     WithPreview.slowFrameNote(11 * second + second / 4) shouldBe Some("slow: last frame 11 s")
     WithPreview.slowFrameNote(second / 2) shouldBe None
 
+  "WithPreview.renderingFrameNote" should "name the frame being rendered" in:
+    WithPreview.renderingFrameNote(0, 251) shouldBe "rendering frame 0/251…"
+
   "HeapUsage.describe" should "name the used and the maximum heap in GiB" in:
     HeapUsage.describe() should fullyMatch regex """heap \d+\.\d of \d+\.\d GiB"""

@@ -187,6 +187,16 @@
 
 ### Fixed
 
+- The contained render window (`run-render-window.sh`) keeps the OptiX shader cache in the
+  scene's directory. Every window and export used to compile the shaders again on its first
+  frame, about 35 s of a black window; later windows and exports of the same agent session now
+  start in a few seconds (menger#133).
+- The window title says "rendering frame N/M…" (or "rendering…" for a still scene) while a
+  frame is built and rendered, so a long first frame or a caustics render no longer looks
+  frozen (menger#133).
+- A scene over the triangle budget is refused with the highest level at which its most
+  expensive object fits ("the tesseract-sponge-surface fits at level 3 (…)"), not only the totals
+  (lene/menger-scene-agent#48).
 - Frame and video export (`--frames`, `--video`) size the instance budget for the scene as the
   window does; an edge-tube scene over 64 instances needed `--max-instances`.
 - A static DSL scene's `RenderSettings(maxRayDepth = ...)` is used; merging the command line's

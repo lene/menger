@@ -19,9 +19,14 @@ import menger.objects.higher_d.TesseractSpongeMesh
   */
 object SceneCost:
 
+  /** The most expensive levelled object of a scene over the triangle budget, and the highest
+    * whole level at which the scene would fit (usability review 2026-10, session 6, msa#48: a
+    * rejection that names only the totals leaves the user to guess a level). */
+  final case class FittingLevel(objectType: String, level: Int, sceneTriangles: Long)
+
   /** `edgeTubeSpongeLevel`: the highest whole level whose edge tubes a 3D sponge draws. */
   final case class Estimate(triangles: Long, rendersPerFrame: Long, photonsPerFrame: Long,
-    edgeTubeSpongeLevel: Int = 0)
+    edgeTubeSpongeLevel: Int = 0, fittingLevel: Option[FittingLevel] = None)
 
   /** Caustics as far as cost is concerned: photons traced per render, or none. */
   final case class CausticsLoad(photonsPerIteration: Long, iterations: Long):
@@ -67,17 +72,36 @@ object SceneCost:
   def edgeTubeSpongeLevel(specs: List[ObjectSpec]): Int =
     specs.filter(MeshEdges3D.appliesTo).flatMap(_.level).map(_.ceil.toInt).maxOption.getOrElse(0)
 
+  def fittingLevel(specs: List[ObjectSpec]): Option[FittingLevel] =
+    val total = specs.map(triangles).sum
+    val levelled = for
+      spec     <- specs
+      perLevel <- levelTriangles.get(ObjectType.normalize(spec.objectType))
+      level    <- spec.level
+    yield (spec, perLevel, level)
+    if total <= ResourceLimits.sceneMaxTriangles then None
+    else
+      for
+        (spec, perLevel, level) <- levelled.maxByOption((spec, _, _) => triangles(spec))
+        others = total - triangles(spec)
+        fit <- (level.floor.toInt to 0 by -1).find(l =>
+          others + perLevel(l) <= ResourceLimits.sceneMaxTriangles)
+      yield FittingLevel(ObjectType.normalize(spec.objectType), fit, others + perLevel(fit))
+
   def estimate(specs: List[ObjectSpec], accumulation: Int, caustics: CausticsLoad): Estimate =
     val renders = rendersPerFrame(specs, accumulation)
     Estimate(specs.map(triangles).sum, renders, caustics.photonsPerRender * renders,
-      edgeTubeSpongeLevel(specs))
+      edgeTubeSpongeLevel(specs), fittingLevel(specs))
 
   /** `Left` names every budget the scene exceeds and what to lower; `Right` when it fits. */
   def check(estimate: Estimate): Either[String, Unit] =
     val problems = List(
       Option.when(estimate.triangles > ResourceLimits.sceneMaxTriangles)(
         s"${estimate.triangles} triangles in total, budget ${ResourceLimits.sceneMaxTriangles} " +
-          "(lower sponge levels, or use fewer high-level objects)"),
+          "(lower sponge levels, or use fewer high-level objects)" +
+          estimate.fittingLevel.fold("")(fit =>
+            s"; the ${fit.objectType} fits at level ${fit.level} " +
+              s"(${fit.sceneTriangles} triangles in total)")),
       Option.when(estimate.rendersPerFrame > ResourceLimits.sceneMaxRendersPerFrame)(
         s"${estimate.rendersPerFrame} renders per frame, budget " +
           s"${ResourceLimits.sceneMaxRendersPerFrame} (each fractional-level glass object doubles " +
@@ -96,4 +120,4 @@ object SceneCost:
 
   /** Triangles only: what an engine can check from the specs alone, before allocating meshes. */
   def checkTriangles(specs: List[ObjectSpec]): Either[String, Unit] =
-    check(Estimate(specs.map(triangles).sum, 1L, 0L))
+    check(Estimate(specs.map(triangles).sum, 1L, 0L, fittingLevel = fittingLevel(specs)))
