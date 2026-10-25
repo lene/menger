@@ -273,6 +273,14 @@
 
 ### Security
 
+- The contained render window no longer gets the user's X display. Its cookie for that display
+  allowed XTEST, so generated scene code could have typed into any window on the desktop, a
+  terminal included. `run-render-window.sh` now starts an X server of its own for every run, a
+  nested Xephyr for a window and an invisible Xvfb for a headless export, both without XTEST,
+  and mounts only that server's socket. GLX still renders on the GPU. The window's title is
+  copied to the Xephyr window. The host needs Xephyr and Xvfb (`xserver-xephyr`, `xvfb`).
+  `test-containment.sh` checks the mounts and runs a new `x-xtest` probe, which speaks the X
+  protocol over the mounted socket.
 - optix-jni's native entries validate their input (64-bit sizes, null and length checks,
   index and range checks), and dispose waits for renders in flight (optix-jni 0.4.8,
   optix-jni#68-#71).

@@ -62,12 +62,41 @@ EOF
   local socket_dir=/tmp/.X11-unix
   if [ -S "$socket_dir/X42" ] || ln -s "$TMP/x/X42" "$socket_dir/X42" 2>/dev/null; then
     printf '#!/bin/sh\nexit 0\n' > "$TMP/bin/xauth"; chmod +x "$TMP/bin/xauth"
+    printf '#!/bin/sh\nexit 0\n' > "$TMP/bin/xdotool"; chmod +x "$TMP/bin/xdotool"
+    # Fake X servers: record their arguments, bind display :77 and report it on fd 3.
+    for server in Xephyr Xvfb; do
+      cat > "$TMP/bin/$server" <<EOF
+#!/bin/sh
+printf '%s\n' "\$@" > "$TMP/$server.args"
+python3 -c "import socket,sys; s=socket.socket(socket.AF_UNIX); s.bind(sys.argv[1])" "$socket_dir/X77"
+echo 77 >&3
+exec sleep 30
+EOF
+      chmod +x "$TMP/bin/$server"
+    done
     DOCKER_ARGS_FILE="$TMP/window.args" PATH="$TMP/bin:$PATH" DISPLAY=:42 \
-      "$HERE/run-render-window.sh" --scene "$TMP/session/window/current.scala" >/dev/null 2>&1
-    rm -f "$socket_dir/X42"
+      "$HERE/run-render-window.sh" --scene "$TMP/session/window/current.scala" --display :42 \
+      >/dev/null 2>&1
+    rm -f "$socket_dir/X77"
+    DOCKER_ARGS_FILE="$TMP/export.args" PATH="$TMP/bin:$PATH" DISPLAY=:42 \
+      "$HERE/run-render-window.sh" --scene "$TMP/session/window/current.scala" --headless \
+      >/dev/null 2>&1
+    rm -f "$socket_dir/X42" "$socket_dir/X77"
+    require_args "Xvfb (headless export)" "$TMP/Xvfb.args" "-extension XTEST" "-nolisten tcp"
+    if grep -q "X42" "$TMP/export.args"; then fail "a headless run exposes the host display"
+    else ok "a headless run keeps the host display out"; fi
     require_args "run-render-window.sh" "$TMP/window.args" "${common[@]}" \
-      "--device nvidia.com/gpu=all"
-    forbid_args "run-render-window.sh" "$TMP/window.args" --privileged --ipc=host --net=host
+      "--device nvidia.com/gpu=all" "-e DISPLAY=:77"
+    forbid_args "run-render-window.sh" "$TMP/window.args" --privileged --ipc=host --net=host \
+      --display
+    # The window must never reach the user's display: its cookie allows XTEST, i.e. typing into
+    # a host terminal (menger#77 residual). Only the nested server's socket is mounted.
+    if grep -q "X42" "$TMP/window.args"; then fail "run-render-window.sh exposes the host display"
+    else ok "run-render-window.sh keeps the host display out"; fi
+    if grep -qx "type=bind,source=$socket_dir/X77,target=$socket_dir/X77,readonly" "$TMP/window.args"
+    then ok "run-render-window.sh mounts the nested display's socket"
+    else fail "run-render-window.sh does not mount the nested display's socket"; fi
+    require_args "Xephyr" "$TMP/Xephyr.args" "-extension XTEST" "-nolisten tcp"
     if grep -qx "type=bind,source=$TMP/session/window,target=$TMP/session/window" "$TMP/window.args"
     then ok "run-render-window.sh mounts the window directory only"
     else fail "run-render-window.sh does not mount exactly the window directory"; fi
@@ -83,7 +112,8 @@ EOF
 # probe_run <label> <stderr-file>: every PROBE line blocked, uid not 0, and all probes present.
 check_probes() {
   local label="$1" log="$2"
-  local expected=(network dns read-home read-sibling write-opt write-etc env-key docker-socket)
+  local expected=(network dns read-home read-sibling write-opt write-etc env-key docker-socket
+    x-xtest)
   for name in "${expected[@]}"; do
     line="$(grep -m1 "PROBE $name:" "$log")"
     case "$line" in
@@ -108,7 +138,8 @@ live() {
     > "$TMP/validator.out" 2> "$TMP/validator.err"
   check_probes "validator" "$TMP/validator.err"
 
-  local display_number="${DISPLAY#*:}"; display_number="${display_number%%.*}"
+  local display_number="${DISPLAY:-}"; display_number="${display_number#*:}"
+  display_number="${display_number%%.*}"
   if [ -n "${DISPLAY:-}" ] && [ -S "/tmp/.X11-unix/X$display_number" ]; then
     ANTHROPIC_API_KEY=sk-containment-test timeout --signal=TERM 60 \
       "$HERE/run-render-window.sh" --scene "$TMP/session/window/current.scala" \

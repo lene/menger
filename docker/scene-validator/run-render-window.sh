@@ -4,8 +4,8 @@
 # running it on the host made "generated code only runs in the sandbox" false on the main path.
 #
 # A drop-in for menger-app's launcher: the same arguments, `--scene <file>` required. Adds what a
-# window needs and nothing more: the GPU (CDI), one X display socket with a cookie for that
-# display only, and the scene's own directory read-write at its host path (the agent replaces
+# window needs and nothing more: the GPU (CDI), a nested X display of its own (Xephyr, below)
+# with a cookie for it only, and the scene's own directory read-write at its host path (the agent replaces
 # `current.scala` atomically, and the window writes `current.scala.window-state.json` next to it,
 # so a single-file mount would go stale). Point the scene there from a directory holding nothing
 # else -- the agent uses `<session>/window/`.
@@ -25,15 +25,23 @@ PIDS="${MENGER_RENDER_PIDS_LIMIT:-1024}"
 # shellcheck source=refused-result.sh
 . "$(dirname "$(readlink -f "$0")")/refused-result.sh"   # refuse <message>: tagged JSON, exit 2
 
-scene="" display="${DISPLAY:-}" lock=""
-args=("$@")
+scene="" display="${DISPLAY:-}" lock="" width=800 height=600 headless=""
+args=("$@") container_args=()
 for ((i = 0; i < ${#args[@]}; i++)); do
   case "${args[i]}" in
     --scene) scene="${args[i + 1]:-}" ;;
-    --display) display="${args[i + 1]:-}" ;;
+    --headless) headless=1 ;;
+    --display) display="${args[i + 1]:-}"; i=$((i + 1)); continue ;;   # the host's, not the window's
     --render-lock-path) lock="${args[i + 1]:-}" ;;
+    --width) width="${args[i + 1]:-}" ;;
+    --height) height="${args[i + 1]:-}" ;;
   esac
+  container_args+=("${args[i]}")
 done
+[[ "$width$height" =~ ^[0-9]+$ ]] || refuse "render window: --width/--height must be numbers"
+# A window gets a nested Xephyr on the user's display; a headless run (an export) an invisible Xvfb.
+if [ -n "$headless" ]; then xserver=Xvfb package=xvfb; else xserver=Xephyr package=xserver-xephyr; fi
+command -v "$xserver" >/dev/null || refuse "render window: $xserver not found (apt install $package)"
 [ -f "$scene" ] || refuse "render window: scene file not found: $scene"
 scene_dir="$(cd "$(dirname "$scene")" && pwd)"
 
@@ -51,20 +59,66 @@ fi
 
 work="$(mktemp -d)"
 name="menger-render-window-$$-$(date +%s)"
+xserver_pid="" title_pid=""
 cleanup() {
   docker kill "$name" >/dev/null 2>&1 || true
   docker rm -f "$name" >/dev/null 2>&1 || true
+  [ -z "$title_pid" ] || kill "$title_pid" 2>/dev/null || true
+  [ -z "$xserver_pid" ] || kill "$xserver_pid" 2>/dev/null || true
   rm -rf "$work"
 }
 trap cleanup EXIT
 trap 'exit 143' TERM INT HUP
 
-# A cookie for this display only, with the hostname wildcarded: the container has its own.
+# The window gets an X server of its own, never the user's display. Any client holding the
+# user's cookie can use XTEST and read input, i.e. type into a host terminal: generated scene code
+# with that cookie could leave the container (menger#77 residual). An untrusted cookie would block
+# that but also GLX. Xephyr is a trusted host process drawing into one window on the user's
+# display; the container sees only its socket, with XTEST switched off, and a cookie for it.
+key="$(mcookie)"
+touch "$work/xserver.auth" "$work/xauth"
+xauth -f "$work/xserver.auth" add :0 . "$key"   # the server accepts it whatever display it gets
+xephyr_title="menger-render-window-$$"
+if [ -n "$headless" ]; then
+  server_args=(-screen 0 "${width}x${height}x24")
+else
+  server_args=(-screen "${width}x${height}" -no-host-grab -title "$xephyr_title")
+fi
+DISPLAY="$display" "$xserver" -displayfd 3 -auth "$work/xserver.auth" -extension XTEST \
+  -nolisten tcp "${server_args[@]}" 3> "$work/display" 2> "$work/xserver.log" &
+xserver_pid=$!
+for _ in $(seq 100); do [ -s "$work/display" ] && break; sleep 0.1; done
+nested="$(tr -d '[:space:]' < "$work/display")"
+[[ "$nested" =~ ^[0-9]+$ ]] && [ -S "/tmp/.X11-unix/X$nested" ] \
+  || refuse "render window: $xserver did not start: $(head -c 300 "$work/xserver.log")"
+xauth -f "$work/xauth" add ":$nested" . "$key"
+# The hostname wildcarded: the container has its own.
+xauth -f "$work/xauth" nlist | sed -e 's/^..../ffff/' > "$work/xauth.list"
+rm -f "$work/xauth"; touch "$work/xauth"
+xauth -f "$work/xauth" nmerge "$work/xauth.list"
+chmod 644 "$work/xauth"
 cookie="$work/xauth"
-touch "$cookie"
-xauth nlist "$display" 2>/dev/null | sed -e 's/^..../ffff/' | xauth -f "$cookie" nmerge - \
-  || refuse "render window: no X authority cookie for display $display"
-chmod 644 "$cookie"
+socket="/tmp/.X11-unix/X$nested"
+
+# No window manager runs inside Xephyr, so the window's title (render progress, the 4D rotation)
+# would be invisible: copy it to the Xephyr window, as plain text.
+if [ -z "$headless" ] && command -v xdotool >/dev/null; then
+  (
+    set +eu +o pipefail   # an empty search (no window yet) is the normal case, not an error
+    outer="" shown=""
+    while sleep 1; do
+      [ -n "$outer" ] \
+        || outer="$(DISPLAY="$display" xdotool search --name "^$xephyr_title\$" 2>/dev/null | head -1)"
+      inner="$(DISPLAY=":$nested" XAUTHORITY="$cookie" xdotool search --name . 2>/dev/null | head -1)"
+      [ -n "$outer" ] && [ -n "$inner" ] || continue
+      title="$(DISPLAY=":$nested" XAUTHORITY="$cookie" xdotool getwindowname "$inner" 2>/dev/null \
+        | tr -d '[:cntrl:]' | cut -c1-200)"
+      [ -n "$title" ] && [ "$title" != "$shown" ] || continue
+      DISPLAY="$display" xdotool set_window --name "$title" "$outer" && shown="$title"
+    done
+  ) &
+  title_pid=$!
+fi
 
 mounts=(
   --mount "type=bind,source=$scene_dir,target=$scene_dir"
@@ -91,7 +145,7 @@ docker run --rm --name "$name" \
   --tmpfs /tmp:rw,exec,nosuid,size=2g \
   --device nvidia.com/gpu=all \
   --user "$(id -u):$(id -g)" \
-  -e DISPLAY=":$display_number" -e XAUTHORITY=/xauth/cookie \
+  -e DISPLAY=":$nested" -e XAUTHORITY=/xauth/cookie \
   -e __GL_THREADED_OPTIMIZATIONS=0 \
   `# OptiX compiles its shaders on the first frame, ~35 s; the immutable root and the tmpfs HOME` \
   `# lose its disk cache with the container. The scene directory is already mounted read-write` \
@@ -102,5 +156,5 @@ docker run --rm --name "$name" \
   ${__NV_PRIME_RENDER_OFFLOAD:+-e __NV_PRIME_RENDER_OFFLOAD="$__NV_PRIME_RENDER_OFFLOAD"} \
   ${__GLX_VENDOR_LIBRARY_NAME:+-e __GLX_VENDOR_LIBRARY_NAME="$__GLX_VENDOR_LIBRARY_NAME"} \
   "${mounts[@]}" \
-  "$IMAGE" "$@" &
+  "$IMAGE" "${container_args[@]}" &
 wait $!
