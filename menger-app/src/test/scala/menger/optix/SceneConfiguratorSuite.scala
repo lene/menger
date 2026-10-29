@@ -1,5 +1,6 @@
-package io.github.lene.optix
+package menger.optix
 
+import io.github.lene.optix._
 import menger.common.Color
 import menger.common.FogConfig
 import menger.common.Light

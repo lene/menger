@@ -2,11 +2,10 @@ package menger.engines
 
 import java.util.concurrent.atomic.AtomicBoolean
 
+import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.common.ObjectType
-import io.github.lene.optix.OptiXRenderer
-import io.github.lene.optix.MengerRenderer
 import menger.engines.scene.InstanceId
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec

@@ -8,7 +8,7 @@
 #   Film:    default 800x600 (render script overrides for the gated 400x300 variant)
 #
 # FOV note: menger's OptiX camera renders at a fixed 45 deg HORIZONTAL fov
-# (io.github.lene.optix.CameraState). pbrt applies fov to the narrower image axis (vertical at
+# (menger.optix.CameraState). pbrt applies fov to the narrower image axis (vertical at
 # 4:3), so the faithful twin uses the vertical equivalent: 2*atan(tan(22.5)/(4/3)) = 34.516 deg.
 #
 # pbrt-v4 note: no WorldEnd directive (world block ends at EOF).

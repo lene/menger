@@ -1,5 +1,7 @@
-package io.github.lene.optix
+package menger.geometry
 
+import io.github.lene.optix._
+import io.github.lene.optix.testing.OptiXTestHooks
 import menger.ObjectSpec
 import menger.common.Material
 import menger.common.ProfilingConfig
@@ -41,7 +43,7 @@ class ProjectedMeshFailureSuite extends AnyFlatSpec with Matchers with BeforeAnd
 
   private def failingRenderer: OptiXRenderer =
     val r = rendererOpt.get
-    r.failNextProjectionReadbackNative()
+    OptiXTestHooks.failNextProjectionReadback(r)
     r
 
   "TriangleMeshSceneBuilder" should "fail the build when the projection readback fails" in:

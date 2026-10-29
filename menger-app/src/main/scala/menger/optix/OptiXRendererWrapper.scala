@@ -1,11 +1,13 @@
-package io.github.lene.optix
+package menger.optix
 
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.jdk.OptionConverters._
 
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix._
 import menger.common.ImageSize
+import menger.geometry.MengerRenderer
 
 class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with AutoCloseable:
 

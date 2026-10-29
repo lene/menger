@@ -2,11 +2,11 @@ package menger.engines.scene
 
 import menger.ObjectSpec
 import menger.common.Material
-import menger.dsl.RenderSettings
-import menger.dsl.ResourceLimits
 import menger.dsl.HexadecachoronGasket
 import menger.dsl.Menger4D
 import menger.dsl.PentachoronGasket
+import menger.dsl.RenderSettings
+import menger.dsl.ResourceLimits
 import menger.objects.SpongeByVolume
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

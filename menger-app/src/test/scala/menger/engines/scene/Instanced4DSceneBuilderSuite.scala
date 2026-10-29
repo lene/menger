@@ -1,8 +1,8 @@
 package menger.engines.scene
 
-import io.github.lene.optix.MengerRenderer
 import io.github.lene.optix.OptiXException
 import menger.ObjectSpec
+import menger.geometry.MengerRenderer
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

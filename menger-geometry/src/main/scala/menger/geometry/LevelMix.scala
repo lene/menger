@@ -1,4 +1,6 @@
-package io.github.lene.optix
+package menger.geometry
+
+import io.github.lene.optix.InstanceId
 
 /** A fractional-level object drawn as its two whole levels, which [[MengerRenderer]] renders
   * separately and mixes: `lower` (the instance ids of level n) with weight 1 - fraction,

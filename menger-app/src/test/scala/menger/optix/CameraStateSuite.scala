@@ -1,5 +1,6 @@
-package io.github.lene.optix
+package menger.optix
 
+import io.github.lene.optix._
 import menger.common.ImageSize
 import menger.common.Vector
 import org.scalamock.scalatest.MockFactory

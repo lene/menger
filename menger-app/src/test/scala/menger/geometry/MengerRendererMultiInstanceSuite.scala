@@ -1,6 +1,7 @@
-package io.github.lene.optix
+package menger.geometry
 
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix._
 import menger.common.Color
 import menger.common.ImageSize
 import menger.common.Material

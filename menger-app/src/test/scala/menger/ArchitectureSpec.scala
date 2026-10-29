@@ -4,7 +4,8 @@ import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests
 import com.tngtech.archunit.core.importer.Location
-import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.{classes, noClasses}
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -208,16 +209,13 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .should().resideInAnyPackage("menger.config..", "menger.common..")
       .check(allClasses)
 
-  // Split package (review 2026-10-14, menger#89/#90): menger's own classes declare the published
-  // library's package io.github.lene.optix, which lets them reach optix-jni's private[optix]
-  // members. The rule here used to check only optix-jni's own classes, so it could not fail.
-  // It now pins menger's classes in that package to today's set until they move to menger.*;
-  // a new one fails.
-  it should "add no new menger classes to the library package io.github.lene.optix" in:
-    classes().should().haveNameMatching(
-      "io\\.github\\.lene\\.optix\\." +
-        "(OptiXRendererWrapper|SceneConfigurator|CameraState|MengerRenderer|LevelMix)(\\$.*)?"
-    ).check(mengerClassesInOptixPackage)
+  // Split package (review 2026-10-14, menger#89/#90): menger's own classes declared the published
+  // library's package io.github.lene.optix, which let them reach optix-jni's private[optix]
+  // members. They moved to menger.optix and menger.geometry; a test hook comes from
+  // io.github.lene.optix.testing.OptiXTestHooks (optix-jni 0.5.0). None may come back.
+  it should "declare no menger classes in the library package io.github.lene.optix" in:
+    import scala.jdk.CollectionConverters.*
+    mengerClassesInOptixPackage.asScala.map(_.getName).toList.sorted shouldBe empty
 
   "JNI resource wrappers" should "implement AutoCloseable" in:
     import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes

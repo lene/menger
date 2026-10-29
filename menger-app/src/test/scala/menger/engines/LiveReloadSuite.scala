@@ -1,8 +1,6 @@
 package menger.engines
 
-import io.github.lene.optix.CameraState
 import io.github.lene.optix.OptiXRenderer
-import io.github.lene.optix.SceneConfigurator
 import menger.ObjectSpec
 import menger.common.CausticsConfig
 import menger.common.Light
@@ -11,6 +9,8 @@ import menger.common.RenderConfig
 import menger.common.Vector
 import menger.config.CameraConfig
 import menger.config.SceneConfig
+import menger.optix.CameraState
+import menger.optix.SceneConfigurator
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

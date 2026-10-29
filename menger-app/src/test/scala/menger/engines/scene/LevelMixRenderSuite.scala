@@ -1,7 +1,7 @@
 package menger.engines.scene
 
-import io.github.lene.optix.LevelMix
-import io.github.lene.optix.MengerRenderer
+import menger.geometry.LevelMix
+import menger.geometry.MengerRenderer
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.common.ImageSize

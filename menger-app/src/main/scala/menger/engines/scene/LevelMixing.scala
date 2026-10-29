@@ -1,9 +1,9 @@
 package menger.engines.scene
 
-import io.github.lene.optix.LevelMix
-import io.github.lene.optix.MengerRenderer
 import io.github.lene.optix.OptiXRenderer
 import menger.common.Material
+import menger.geometry.LevelMix
+import menger.geometry.MengerRenderer
 
 /** Which fractional-level objects are drawn as their two whole levels and mixed by the renderer
   * ([[LevelMix]]), instead of fading level n's hole caps over level n+1 in one render.

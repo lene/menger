@@ -76,6 +76,10 @@
   and its `-1` checks are gone, since a failed add now throws. The seven ignored `-1` returns of
   `setInstanceTransform/Coverage` and the mesh adds now throw too. A lost CUDA context is
   caught as `OptiXContextLostException` instead of by matching error codes in the message.
+- menger's classes left optix-jni's package `io.github.lene.optix` (menger#89):
+  `CameraState`, `OptiXRendererWrapper` and `SceneConfigurator` are in `menger.optix`,
+  `MengerRenderer` and `LevelMix` in `menger.geometry`. They no longer reach optix-jni's
+  `private[optix]` members; a test hook comes from `OptiXTestHooks`.
 - A transparent object's shadow takes the colour seen through it by default when the object is
   tinted or procedurally coloured: `RenderSettings(transparentShadows = ...)` is now `Auto`
   unless set to `true` or `false` (usability review 2026-10, session 5, F111; lene/menger#128).

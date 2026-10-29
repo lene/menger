@@ -1,10 +1,10 @@
 package menger.engines.scene
 
-import io.github.lene.optix.LevelMix
 import menger.ObjectSpec
 import menger.common.Const
 import menger.common.ObjectType
 import menger.dsl.ResourceLimits
+import menger.geometry.LevelMix
 import menger.objects.SpongeByVolume
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh

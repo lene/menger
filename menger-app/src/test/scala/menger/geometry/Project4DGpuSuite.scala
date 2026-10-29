@@ -1,9 +1,9 @@
-package io.github.lene.optix
+package menger.geometry
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import menger.common.Vector
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix._
 import io.github.lene.qa.BenchConfig
 import io.github.lene.qa.Perf
 import io.github.lene.qa.PerfGate
@@ -12,6 +12,7 @@ import io.github.lene.qa.Side
 import menger.common.Color
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
+import menger.common.Vector
 import menger.objects.higher_d.Face4D
 import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Mesh4DGpuFlatten

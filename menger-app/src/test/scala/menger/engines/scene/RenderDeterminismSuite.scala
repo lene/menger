@@ -1,6 +1,6 @@
 package menger.engines.scene
 
-import io.github.lene.optix.MengerRenderer
+import menger.geometry.MengerRenderer
 import menger.ObjectSpec
 import menger.common.Color
 import menger.common.ImageSize

@@ -1,5 +1,6 @@
-package io.github.lene.optix
+package menger.geometry
 
+import io.github.lene.optix.InstanceId
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

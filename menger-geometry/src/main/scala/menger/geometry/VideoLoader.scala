@@ -2,7 +2,6 @@ package menger.geometry
 
 import java.util.concurrent.atomic.AtomicLong
 
-import io.github.lene.optix.MengerRenderer
 
 final class VideoLoader(path: String) extends MengerVideoApi, AutoCloseable:
   require(Option(path).exists(_.nonEmpty), "Video path must not be empty")

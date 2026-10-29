@@ -1,7 +1,8 @@
-package io.github.lene.optix
+package menger.optix
 
 import java.util.Optional
 
+import io.github.lene.optix._
 import menger.common.ImageSize
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec

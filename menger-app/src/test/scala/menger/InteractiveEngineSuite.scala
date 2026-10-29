@@ -2,20 +2,20 @@ package menger
 
 import com.badlogic.gdx.graphics.Color
 import menger.common.Axis
-import menger.common.PlaneSpec
-import menger.config.PlaneConfig
 import menger.common.Const
+import menger.common.PlaneSpec
+import menger.common.ProfilingConfig
+import menger.common.RenderConfig
 import menger.common.Vector
 import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
 import menger.config.ExecutionConfig
 import menger.config.MaterialConfig
 import menger.config.OptiXEngineConfig
+import menger.config.PlaneConfig
 import menger.config.SceneConfig
-import menger.engines.InteractiveEngine
-import menger.common.ProfilingConfig
-import menger.common.RenderConfig
 import menger.dsl.DenoiseMode
+import menger.engines.InteractiveEngine
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

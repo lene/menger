@@ -9,9 +9,7 @@ import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
-import io.github.lene.optix.CameraState
 import io.github.lene.optix.MeshSlot
-import io.github.lene.optix.SceneConfigurator
 import io.github.lene.optix.TextureUploadException
 import menger.AssetPaths
 import menger.ObjectSpec
@@ -45,6 +43,8 @@ import menger.input.Vector3Extensions.toVector3
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
+import menger.optix.CameraState
+import menger.optix.SceneConfigurator
 
 class InteractiveEngine(
   config: OptiXEngineConfig,

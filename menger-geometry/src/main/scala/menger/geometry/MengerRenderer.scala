@@ -1,4 +1,4 @@
-package io.github.lene.optix
+package menger.geometry
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.collection.concurrent.TrieMap
 
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix._
 import menger.common.ImageSize
 import menger.common.Material
 import menger.common.Vector
@@ -220,7 +221,7 @@ object MengerRenderer:
   /** Compose the 4D rotation matrix as R_xw * (R_yw * R_zw), row-major float[16].
     * Angles are DEGREES (ports the old native compose_rotation_xw_yw_zw exactly;
     * matches Rotation.scala). */
-  private[optix] def composeRotationXwYwZw(degXw: Float, degYw: Float, degZw: Float): Array[Float] =
+  private[geometry] def composeRotationXwYwZw(degXw: Float, degYw: Float, degZw: Float): Array[Float] =
     val rxw = rotationPlane(0, 3, degXw)
     val ryw = rotationPlane(1, 3, degYw)
     val rzw = rotationPlane(2, 3, degZw)
