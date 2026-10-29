@@ -37,30 +37,25 @@ class OptiXRendererWrapperSuite extends AnyFlatSpec with Matchers with MockFacto
 
   // A sticky CUDA error leaves the context permanently unusable: retrying every frame (the
   // None path) only repeats the same failure forever, so it must surface as a fatal error.
+  // optix-jni 0.5.0 throws OptiXContextLostException for every one (optix-jni#73), so the wrapper
+  // matches the type; it parsed the error codes out of the message before.
   private def cudaFailure(description: String, code: Int): OptiXException =
     OptiXException(s"CUDA call 'cudaDeviceSynchronize()' failed: $description ($code)")
 
-  it should "fail fast on a sticky CUDA error (700 illegal address)" in:
+  it should "fail fast on a lost CUDA context" in:
     val renderer = mock[OptiXRenderer]
-    val cause = cudaFailure("an illegal memory access was encountered", 700)
+    val cause = new OptiXContextLostException(
+      "CUDA context lost earlier in this process (restart it): illegal memory access (700)")
     (renderer.render(_: ImageSize)).expects(*).throwing(cause).once()
     val thrown = the[RuntimeException] thrownBy wrapperWith(renderer).renderScene(dims)
+    thrown.getMessage should include("restart required")
     thrown.getMessage should include("(700)")
 
-  it should "fail fast on a sticky CUDA error (719 launch failure)" in:
+  it should "return None for any other OptiX failure, whatever its message says" in:
     val renderer = mock[OptiXRenderer]
-    val cause = cudaFailure("unspecified launch failure", 719)
-    (renderer.render(_: ImageSize)).expects(*).throwing(cause).once()
-    val thrown = the[RuntimeException] thrownBy wrapperWith(renderer).renderScene(dims)
-    thrown.getMessage should include("(719)")
-
-  it should "fail fast on a sticky CUDA error with trailing explanation (718)" in:
-    val renderer = mock[OptiXRenderer]
-    val cause = OptiXException(
-      "CUDA call 'cudaDeviceSynchronize()' failed: invalid program counter (718)\n\nHint: ..."
-    )
-    (renderer.render(_: ImageSize)).expects(*).throwing(cause).once()
-    an[RuntimeException] should be thrownBy wrapperWith(renderer).renderScene(dims)
+    (renderer.render(_: ImageSize)).expects(*)
+      .throwing(cudaFailure("unspecified launch failure", 719)).once()
+    wrapperWith(renderer).renderScene(dims) shouldBe None
 
   it should "still return None on a recoverable CUDA error (2 out of memory)" in:
     val renderer = mock[OptiXRenderer]

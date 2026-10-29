@@ -103,7 +103,7 @@ class Project4DGpuSuite extends AnyFlatSpec
   private def renderCpu(projection: Mesh4DProjection): Array[Byte] =
     val mesh = projection.toTriangleMesh
     renderer.addTriangleMesh(mesh)
-    renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
+    renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, TextureIndex.NoTexture)
     val img = renderer.render(ImgSize)
     if img == null then fail(s"CPU render returned null for ${ImgSize.width}x${ImgSize.height}") // scalafix:ok DisableSyntax.null
     img
@@ -118,7 +118,7 @@ class Project4DGpuSuite extends AnyFlatSpec
       rotXW = rotXW, rotYW = rotYW, rotZW = rotZW,
       centerX = 0f, centerY = 0f, centerZ = 0f
     )
-    renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
+    renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, TextureIndex.NoTexture)
     val img = renderer.render(ImgSize)
     if img == null then fail(s"GPU render returned null for ${ImgSize.width}x${ImgSize.height}") // scalafix:ok DisableSyntax.null
     img
@@ -233,7 +233,7 @@ class Project4DGpuSuite extends AnyFlatSpec
       rotXW = rotA._1, rotYW = rotA._2, rotZW = rotA._3,
       centerX = 0f, centerY = 0f, centerZ = 0f
     )
-    renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
+    renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, TextureIndex.NoTexture)
     val _ = renderer.render(ImgSize)
     renderer.updateMesh4DProjection(
       meshIdx, eyeW = tess.eyeW, screenW = tess.screenW,
@@ -263,21 +263,21 @@ class Project4DGpuSuite extends AnyFlatSpec
     // op. The render matters: an upload defers its GAS and IAS builds to render(), whereas an
     // update refits both before it returns.
     val quads = Mesh4DGpuFlatten.quadsBuffer(base.mesh4D)
-    def upload(angle: Float): Int =
+    def upload(angle: Float): MeshSlot =
       renderer.setTriangleMesh4DQuads(
         quads, uvs = null, // scalafix:ok DisableSyntax.null
         eyeW = base.eyeW, screenW = base.screenW,
         rotXW = angle, rotYW = 0f, rotZW = 0f,
         centerX = 0f, centerY = 0f, centerZ = 0f
       )
-    val meshIdx = AtomicInteger(-1)
+    val meshIdx = java.util.concurrent.atomic.AtomicReference(Option.empty[MeshSlot])
     val frame = AtomicInteger(0)
     def nextAngle(): Float = (frame.incrementAndGet() % AnimationFrames + 1) * AnimationStepDegrees
     def buildScene(angle: Float): Unit =
       renderer.clearAllInstances()
       renderer.clearTriangleMesh()
-      meshIdx.set(upload(angle))
-      renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, -1)
+      meshIdx.set(Some(upload(angle)))
+      renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), opaqueGrey, TextureIndex.NoTexture)
     // Every sample starts from a rendered scene holding just the base mesh.
     def resetScene(): Unit =
       buildScene(0f)
@@ -286,7 +286,7 @@ class Project4DGpuSuite extends AnyFlatSpec
       "updateMesh4DProjection",
       () => {
         val _ = renderer.updateMesh4DProjection(
-          meshIdx.get, eyeW = base.eyeW, screenW = base.screenW,
+          meshIdx.get.get, eyeW = base.eyeW, screenW = base.screenW,
           rotXW = nextAngle(), rotYW = 0f, rotZW = 0f
         )
         val _ = renderer.render(ImgSize)
@@ -314,7 +314,7 @@ class Project4DGpuSuite extends AnyFlatSpec
       eyeW = proj.eyeW, screenW = proj.screenW,
       rotXW = 0f, rotYW = 0f, rotZW = 0f
     )
-    meshIdx should be >= 0
+    meshIdx.value should be >= 0
 
   // --- Test 7: sanitizer scene coverage — GAS lifecycle for non-sphere kinds -----
   // Sprint 36 E1: setupDefaults only ever adds a sphere, so gas_registry never held a

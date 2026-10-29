@@ -11,7 +11,9 @@ import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureIndex
 import io.github.lene.optix.TextureUploadException
 import menger.AssetPaths
 import menger.ObjectSpec
@@ -304,7 +306,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   private def uploadEnvMapVideoSlot(
     envMapVideo: EnvMapVideo,
     renderer: OptiXRenderer
-  ): Try[Int] =
+  ): Try[TextureIndex] =
     TextureManager.loadInitialEnvMapVideo(envMapVideo, renderer, textureDir) match
       case Some(textureIndex) =>
         renderer.setEnvironmentMap(textureIndex)
@@ -356,7 +358,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       .map(_.slots.map(slot => slot.videoTexture.textureKey -> slot).toMap)
       .getOrElse(Map.empty)
     val observedSlots =
-      scala.collection.mutable.LinkedHashMap.empty[String, (VideoTexture, ArrayBuffer[Int])]
+      scala.collection.mutable.LinkedHashMap.empty[String, (VideoTexture, ArrayBuffer[TextureIndex])]
     val result = TextureManager.withVideoTextureSlotObserver { (videoTexture, textureIndex) =>
       recordObservedVideoTextureSlot(observedSlots, videoTexture, textureIndex)
     } {
@@ -382,10 +384,10 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   private def recordObservedVideoTextureSlot(
     observedSlots: scala.collection.mutable.LinkedHashMap[
       String,
-      (VideoTexture, ArrayBuffer[Int])
+      (VideoTexture, ArrayBuffer[TextureIndex])
     ],
     videoTexture: VideoTexture,
-    textureIndex: Int
+    textureIndex: TextureIndex
   ): Unit =
     observedSlots.get(videoTexture.textureKey) match
       case Some((_, textureIndices)) =>
@@ -396,7 +398,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   private def videoTextureSlotsFor(
     observedSlots: scala.collection.mutable.LinkedHashMap[
       String,
-      (VideoTexture, ArrayBuffer[Int])
+      (VideoTexture, ArrayBuffer[TextureIndex])
     ],
     reusableSlots: Map[String, WithAnimation.VideoTextureSlot]
   ): Try[Vector[WithAnimation.VideoTextureSlot]] =
@@ -494,12 +496,12 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     animEdgesState.set(None)
     animMixedState.set(None)
     if WithAnimation.is4DOnlyTriangleMeshScene(newSpecs) then
-      val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
+      val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[MeshSlot]] =
         scala.collection.mutable.Map.empty
       val builder = TriangleMeshSceneBuilder(
         textureDir,
-        mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
-          slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
+        mesh4DRecorder = (specIdx: Int, slot: MeshSlot) =>
+          slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[MeshSlot]) += slot
       )(using profilingConfig)
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, newSpecs)
       val result = buildWithVideoTextureTracking(newSpecs):
@@ -507,7 +509,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       result.foreach { _ =>
         if slotsBuf.size == newSpecs.size then
           val slotsPerSpec = newSpecs.indices.map(i =>
-            slotsBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
+            slotsBuf.getOrElse(i, ArrayBuffer.empty[MeshSlot]).toVector
           ).toVector
           anim4DState.set(Some(WithAnimation.Anim4DState(newSpecs, slotsPerSpec)))
         else
@@ -529,17 +531,17 @@ object WithAnimation:
   /** Per-mesh-slot bookkeeping for the GPU 4D projection animation fast path.
     * `slotsPerSpec(i)` lists the renderer slot indices that belong to spec i —
     * usually a single slot, but two for fractional 4D sponges (level n + level n+1). */
-  final case class Anim4DState(specs: List[ObjectSpec], slotsPerSpec: Vector[Vector[Int]])
+  final case class Anim4DState(specs: List[ObjectSpec], slotsPerSpec: Vector[Vector[MeshSlot]])
   final case class VideoTextureSlot(
     videoTexture: VideoTexture,
-    textureIndices: Vector[Int],
+    textureIndices: Vector[TextureIndex],
     source: VideoFrameSource
   )
   final case class VideoTextureState(specs: List[ObjectSpec], slots: Vector[VideoTextureSlot])
   final case class EnvMapVideoState(
     specs: List[ObjectSpec],
     envMapVideo: EnvMapVideo,
-    textureIndex: Int,
+    textureIndex: TextureIndex,
     source: VideoFrameSource
   )
 

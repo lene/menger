@@ -76,8 +76,8 @@ object MeshEdges3D:
     if !appliesTo(spec) then 0L
     else levels(spec).map((levelSpec, _) => of(MeshFactory.create(levelSpec)).size.toLong).sum
 
-  /** Adds one cylinder per edge of `spec`; returns the renderer's raw instance ids. */
-  def add(spec: ObjectSpec, renderer: OptiXRenderer)(using ProfilingConfig): Seq[Int] =
+  /** Adds one cylinder per edge of `spec`; returns the renderer's instance ids. */
+  def add(spec: ObjectSpec, renderer: OptiXRenderer)(using ProfilingConfig): Seq[InstanceId] =
     val radius = spec.edgeRadius.getOrElse(TesseractEdgeSceneBuilder.DefaultEdgeRadius)
     val material = spec.edgeMaterial.getOrElse(Material.Film)
     levels(spec).flatMap { (levelSpec, keep) =>

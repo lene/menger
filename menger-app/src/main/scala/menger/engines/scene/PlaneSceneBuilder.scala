@@ -29,10 +29,8 @@ class PlaneSceneBuilder(textureDir: String = ".") extends SceneBuilder:
         dot
       }
       val normal = Vector[3](nx, ny, nz)
-      val instanceId = requireInstanceId(
-        renderer.addPlaneInstance(normal, d, material, spec.color2.orNull, spec.checkerSize),
-        s"plane instance normal=($nx,$ny,$nz) distance=$d"
-      )
+      val instanceId =
+        renderer.addPlaneInstance(normal, d, material, spec.color2.orNull, spec.checkerSize)
       applyInstanceTextures(instanceId, spec, textureIndices, renderer)
       logger.debug(s"Added plane instance $instanceId normal=($nx,$ny,$nz) distance=$d")
     }

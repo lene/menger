@@ -3,7 +3,9 @@ package menger.engines.scene
 import scala.collection.mutable
 import scala.util.Try
 
+import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureIndex
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.common.Material
@@ -148,7 +150,7 @@ class TesseractEdgeSceneBuilder(
   private def addFaces(
     spec: ObjectSpec,
     position: Vector[3],
-    textureIndices: Map[String, Int],
+    textureIndices: Map[String, TextureIndex],
     renderer: OptiXRenderer
   ): FaceTrack =
     // Each spec's own mesh: addTriangleMeshInstance instances the most recently set one.
@@ -158,7 +160,8 @@ class TesseractEdgeSceneBuilder(
     // identical 4D objects ever make this slow.
     val faceTrack = uploadFaces(spec, renderer)
     val faceMaterial = MaterialExtractor.extract(spec)
-    val textureIndex = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
+    val textureIndex =
+      spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(TextureIndex.NoTexture)
 
     val faceInstanceId =
       if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
@@ -169,14 +172,10 @@ class TesseractEdgeSceneBuilder(
         )
         renderer.addTriangleMeshInstance(transform, faceMaterial, textureIndex)
 
-    val validFaceInstanceId = requireInstanceId(
-      faceInstanceId,
-      s"tesseract face mesh instance at ($position)"
-    )
     // The shared texture/procedural/object-frame step every other builder runs (usability
     // review 2026-10, session 4, F97: faces had no procedural colour on this path).
-    applyInstanceTextures(validFaceInstanceId, spec, textureIndices, renderer)
-    logger.debug(s"Added tesseract face mesh instance $validFaceInstanceId at ($position)")
+    applyInstanceTextures(faceInstanceId, spec, textureIndices, renderer)
+    logger.debug(s"Added tesseract face mesh instance ${faceInstanceId.value} at ($position)")
     faceTrack
 
   /** 4D faces go through the GPU projection path wherever it applies -- the same upload
@@ -214,7 +213,7 @@ class TesseractEdgeSceneBuilder(
   private def addEdgeCylinders(
     spec: ObjectSpec,
     renderer: OptiXRenderer
-  ): (IndexedSeq[(Vector[4], Vector[4])], IndexedSeq[Option[Int]]) =
+  ): (IndexedSeq[(Vector[4], Vector[4])], IndexedSeq[Option[InstanceId]]) =
     val edgeRadius = spec.edgeRadius.getOrElse(TesseractEdgeSceneBuilder.DefaultEdgeRadius)
     val edgeMaterial = spec.edgeMaterial.getOrElse(defaultEdgeMaterial)
     // A fractional level n.f draws the edges of level n fading out and those of level n+1 fading
@@ -230,12 +229,9 @@ class TesseractEdgeSceneBuilder(
     // One cylinder per edge that isn't clipped by the eye_w plane (None: clipped, no cylinder).
     val cylinderIds = groups.flatMap { (_, endpoints, material) =>
       endpoints.map(_.map { case (p0, p1) =>
-        val cylinderId = requireInstanceId(
-          renderer.addCylinderInstance(p0, p1, edgeRadius, material),
-          s"edge cylinder from $p0 to $p1"
-        )
-        logger.trace(s"Added edge cylinder $cylinderId from $p0 to $p1")
-        InstanceId.raw(cylinderId)
+        val cylinderId = renderer.addCylinderInstance(p0, p1, edgeRadius, material)
+        logger.trace(s"Added edge cylinder ${cylinderId.value} from $p0 to $p1")
+        cylinderId
       })
     }.toIndexedSeq
 
@@ -386,7 +382,7 @@ object TesseractEdgeSceneBuilder:
     * (a rotation has to rebuild), or none (edges only). */
   enum FaceTrack:
     case NoFaces
-    case Gpu(meshSlot: Int)
+    case Gpu(meshSlot: MeshSlot)
     case Cpu
 
   /** What the interactive rotation fast path needs to move one spec's geometry in place.
@@ -395,7 +391,7 @@ object TesseractEdgeSceneBuilder:
   final case class EdgeTrack(
     faces: FaceTrack,
     edges: IndexedSeq[(Vector[4], Vector[4])],
-    cylinderIds: IndexedSeq[Option[Int]]
+    cylinderIds: IndexedSeq[Option[InstanceId]]
   )
 
   /** 3D endpoints of each 4D edge under the spec's rotation and projection, offset to its

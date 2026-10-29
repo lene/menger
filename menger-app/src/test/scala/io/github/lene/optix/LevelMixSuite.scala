@@ -41,6 +41,7 @@ class LevelMixSuite extends AnyFlatSpec with Matchers:
     mixed.map(_ & 0xff).toSeq shouldBe Seq(15, 255)
 
   "LevelMix" should "need a fraction strictly between 0 and 1" in:
-    an[IllegalArgumentException] should be thrownBy LevelMix(Vector(1), Vector(2), 0f)
-    an[IllegalArgumentException] should be thrownBy LevelMix(Vector(1), Vector(2), 1f)
-    LevelMix(Vector(1), Vector(2), 0.5f).contains(2) shouldBe true
+    val (one, two) = (InstanceId(1), InstanceId(2))
+    an[IllegalArgumentException] should be thrownBy LevelMix(Vector(one), Vector(two), 0f)
+    an[IllegalArgumentException] should be thrownBy LevelMix(Vector(one), Vector(two), 1f)
+    LevelMix(Vector(one), Vector(two), 0.5f).contains(two) shouldBe true

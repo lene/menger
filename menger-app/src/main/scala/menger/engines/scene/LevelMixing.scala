@@ -32,5 +32,5 @@ object LevelMixing:
 
   /** Registers an object at fractional `level` whose level n is drawn by the instances `lower`
     * and whose level n+1 by `upper`. */
-  def register(mixer: MengerRenderer, lower: Seq[Int], upper: Seq[Int], level: Float): Unit =
+  def register(mixer: MengerRenderer, lower: Seq[InstanceId], upper: Seq[InstanceId], level: Float): Unit =
     mixer.addLevelMix(LevelMix(lower.toVector, upper.toVector, level - level.floor))

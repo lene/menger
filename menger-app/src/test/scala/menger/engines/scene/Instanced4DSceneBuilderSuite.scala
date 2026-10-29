@@ -1,6 +1,7 @@
 package menger.engines.scene
 
 import io.github.lene.optix.MengerRenderer
+import io.github.lene.optix.OptiXException
 import menger.ObjectSpec
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
@@ -83,10 +84,13 @@ class Instanced4DSceneBuilderSuite extends AnyFlatSpec with Matchers with MockFa
       recorder = (_: Int, instanceId: InstanceId) => recorded += instanceId
     )
 
-    (renderer.addMenger4DInstance _).expects(*, *, *, *, *, *, *, *, *, *).returning(-1).once()
+    // optix-jni 0.5.0 throws when an add fails (it returned -1, which menger checked itself).
+    (renderer.addMenger4DInstance _).expects(*, *, *, *, *, *, *, *, *, *)
+      .throwing(new OptiXException("addCustomGeometryInstance failed with code -1")).once()
 
     val result = builder.buildScene(List(spec("type=menger4d:level=1")), renderer, maxInstances = 10)
 
     result.isFailure shouldBe true
-    result.failed.get.getMessage should include("Native renderer failed to add menger4d instance")
+    result.failed.get shouldBe an[OptiXException]
+    result.failed.get.getMessage should include("addCustomGeometryInstance failed")
     recorded shouldBe empty

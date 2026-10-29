@@ -50,10 +50,7 @@ class SphereSceneBuilder(textureDir: String = ".") extends SceneBuilder:
         else
           TransformUtil.createEulerRotationScaleTranslation(spec.rotX, spec.rotY, spec.rotZ, scale, spec.x, spec.y, spec.z)
 
-      val instanceId = requireInstanceId(
-        renderer.addSphereInstance(transform, material),
-        s"sphere instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
-      )
+      val instanceId = renderer.addSphereInstance(transform, material)
 
       applyInstanceTextures(instanceId, spec, textureIndices, renderer)
       logger.debug(s"Added sphere instance $instanceId at position=(${spec.x}, ${spec.y}, ${spec.z}), scale=$scale, material=$material")

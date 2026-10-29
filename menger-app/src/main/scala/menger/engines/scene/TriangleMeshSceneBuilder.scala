@@ -2,7 +2,9 @@ package menger.engines.scene
 
 import scala.util.Try
 
+import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureIndex
 import menger.ObjectSpec
 import menger.common.ObjectType
 import menger.common.ProfilingConfig
@@ -31,13 +33,13 @@ import menger.dsl.ResourceLimits
  */
 class TriangleMeshSceneBuilder(
   textureDir: String,
-  mesh4DRecorder: (Int, Int) => Unit = (_, _) => (),
+  mesh4DRecorder: (Int, MeshSlot) => Unit = (_, _) => (),
   // (spec index, instance id) of a fractional 4D sponge's hole-cap instance, whose alpha an
   // animation can then update in place (TrackedMesh4D, F52).
-  holeCapsRecorder: (Int, Int) => Unit = (_, _) => (),
+  holeCapsRecorder: (Int, InstanceId) => Unit = (_, _) => (),
   // (spec index, instance id) of every triangle-mesh instance, so an animation can move or
   // rotate it in place via setInstanceTransform (TrackedMesh4D, F52).
-  instanceRecorder: (Int, Int) => Unit = (_, _) => ()
+  instanceRecorder: (Int, InstanceId) => Unit = (_, _) => ()
 )(using profilingConfig: ProfilingConfig)
   extends SceneBuilder:
 
@@ -108,7 +110,8 @@ class TriangleMeshSceneBuilder(
             )
             mesh4DRecorder(specIdx, meshIdx)
 
-        val textureIndex = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
+        val textureIndex =
+          spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(TextureIndex.NoTexture)
 
         val (instanceId, recursiveRoles) =
           if ObjectType.isRecursiveIASSponge(spec.objectType) then
@@ -132,24 +135,22 @@ class TriangleMeshSceneBuilder(
             val placed = placements.map { (leaf, n, material, coverage, role) =>
               if leaf ne cube then
                 val _ = renderer.addTriangleMesh(leaf)
-              val id = requireInstanceId(
-                renderer.addRecursiveIASSpongeInstance(n, transform, material, textureIndex),
-                s"recursive-IAS sponge instance level=$n for ${spec.objectType}"
-              )
+              val id = renderer.addRecursiveIASSpongeInstance(n, transform, material, textureIndex)
               setCoverage(renderer, id, coverage)
               (id, role)
             }
             placed.tail.foreach((id, _) => applyInstanceTextures(id, spec, textureIndices, renderer))
-            (placed.head._1, placed.collect { case (id, Some(role)) => (InstanceId.raw(id), role) })
+            (placed.head._1, placed.collect { case (id, Some(role)) => (id, role) })
           else (addMeshInstance(spec, op, textureIndex, renderer), Nil)
         setCoverage(renderer, instanceId, op.coverage)
         applyInstanceTextures(instanceId, spec, textureIndices, renderer)
-        instanceRecorder(specIdx, InstanceId.raw(instanceId))
-        if op.isHoleCaps then holeCapsRecorder(specIdx, InstanceId.raw(instanceId))
+        instanceRecorder(specIdx, instanceId)
+        if op.isHoleCaps then holeCapsRecorder(specIdx, instanceId)
         val levelInfo = spec.level.map(l => f"level=$l%.2f").getOrElse("")
-        val textureInfo = if textureIndex >= 0 then s", texture=$textureIndex" else ""
-        logger.debug(s"Added ${spec.objectType} instance $instanceId ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
-        recursiveRoles ++ op.role.map(role => (InstanceId.raw(instanceId), role))
+        val textureInfo =
+          if textureIndex != TextureIndex.NoTexture then s", texture=${textureIndex.value}" else ""
+        logger.debug(s"Added ${spec.objectType} instance ${instanceId.value} ($levelInfo) at position=(${spec.x}, ${spec.y}, ${spec.z})$textureInfo")
+        recursiveRoles ++ op.role.map(role => (instanceId, role))
       }
       mixer.foreach(m => LevelMixing.register(
         m,
@@ -158,27 +159,17 @@ class TriangleMeshSceneBuilder(
         level = spec.level.get
       ))
       if MeshEdges3D.appliesTo(spec) then
-        MeshEdges3D.add(spec, renderer).foreach { id =>
-          val _ = requireInstanceId(id, s"edge tube of ${spec.objectType} at (${spec.x}, " +
-            s"${spec.y}, ${spec.z})")
-        }
+        val _ = MeshEdges3D.add(spec, renderer)
     }
 
   private def addMeshInstance(
-    spec: ObjectSpec, op: FractionalOp, textureIndex: Int, renderer: OptiXRenderer
+    spec: ObjectSpec, op: FractionalOp, textureIndex: TextureIndex, renderer: OptiXRenderer
   ): InstanceId =
-    val where = s"${spec.objectType} instance at position=(${spec.x}, ${spec.y}, ${spec.z})"
     if spec.rotX == 0f && spec.rotY == 0f && spec.rotZ == 0f then
-      requireInstanceId(
-        renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), op.material, textureIndex),
-        where
-      )
+      renderer.addTriangleMeshInstance(Vector[3](spec.x, spec.y, spec.z), op.material, textureIndex)
     else
-      requireInstanceId(
-        renderer.addTriangleMeshInstance(
-          TriangleMeshSceneBuilder.instanceTransform(spec), op.material, textureIndex
-        ),
-        where
+      renderer.addTriangleMeshInstance(
+        TriangleMeshSceneBuilder.instanceTransform(spec), op.material, textureIndex
       )
 
   /** A refractive fractional sponge as its two whole levels, each in the full material; the
@@ -241,9 +232,7 @@ class TriangleMeshSceneBuilder(
     case Lower, Upper
 
   private def setCoverage(renderer: OptiXRenderer, id: InstanceId, coverage: Float): Unit =
-    if coverage < 1f then
-      val result = renderer.setInstanceCoverage(InstanceId.raw(id), coverage)
-      if result != 0 then sys.error(s"setInstanceCoverage($id, $coverage) failed with $result")
+    if coverage < 1f then renderer.setInstanceCoverage(id, coverage)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // TD-5 resolution (Sprint 18.1): each spec gets its own mesh + GAS via per-spec

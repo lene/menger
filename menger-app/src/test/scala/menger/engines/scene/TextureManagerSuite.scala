@@ -9,6 +9,7 @@ import scala.util.Success
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureIndex
 import menger.ObjectSpec
 import menger.TextureData
 import menger.video.EnvMapVideo
@@ -80,7 +81,7 @@ class TextureManagerSuite extends AnyFlatSpec with Matchers with MockFactory:
     val renderer = mock[OptiXRenderer]
     val videoTexture = VideoTexture(FixtureName)
     val spec = ObjectSpec(objectType = "cube", videoTexture = Some(videoTexture))
-    val observed = AtomicReference(Option.empty[(VideoTexture, Int)])
+    val observed = AtomicReference(Option.empty[(VideoTexture, TextureIndex)])
 
     val indices = TextureManager.withVideoTextureSlotProvider(_ => Some(ReusableTextureIndex)) {
       TextureManager.withVideoTextureSlotObserver { (texture, textureIndex) =>
@@ -119,7 +120,7 @@ class TextureManagerSuite extends AnyFlatSpec with Matchers with MockFactory:
 
   private val FixtureName = "video/two-frame-rgba.mov"
   private val EnvMapFixtureName = "video/two-frame-equirect-rgba.mov"
-  private val ReusableTextureIndex = 42
+  private val ReusableTextureIndex = TextureIndex(42)
   private val ByteMask = 0xff
   private val Opaque = 255
   private val Black = 0

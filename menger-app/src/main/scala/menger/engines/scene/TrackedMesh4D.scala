@@ -3,6 +3,7 @@ package menger.engines.scene
 import scala.collection.mutable
 import scala.util.Try
 
+import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectRotation
 import menger.ObjectSpec
@@ -21,9 +22,9 @@ object TrackedMesh4D:
     * hole-cap instance. */
   final case class State(
     specs: List[ObjectSpec],
-    slotsPerSpec: Vector[Vector[Int]],
-    instancesPerSpec: Vector[Vector[Int]],
-    capsInstancePerSpec: Vector[Option[Int]]
+    slotsPerSpec: Vector[Vector[MeshSlot]],
+    instancesPerSpec: Vector[Vector[InstanceId]],
+    capsInstancePerSpec: Vector[Option[InstanceId]]
   )
 
   /** True when `next` can be reached from `prev` by `updateInPlace`: the same objects, differing
@@ -53,9 +54,9 @@ object TrackedMesh4D:
     textureDir: String,
     maxInstances: SceneBuilder => Int
   )(using ProfilingConfig): Try[Option[State]] =
-    val slots = mutable.Map.empty[Int, mutable.ArrayBuffer[Int]]
-    val instances = mutable.Map.empty[Int, mutable.ArrayBuffer[Int]]
-    val caps = mutable.Map.empty[Int, Int]
+    val slots = mutable.Map.empty[Int, mutable.ArrayBuffer[MeshSlot]]
+    val instances = mutable.Map.empty[Int, mutable.ArrayBuffer[InstanceId]]
+    val caps = mutable.Map.empty[Int, InstanceId]
     val builder = TriangleMeshSceneBuilder(
       textureDir,
       mesh4DRecorder = (spec, slot) => slots.getOrElseUpdate(spec, mutable.ArrayBuffer.empty) += slot,
@@ -85,15 +86,14 @@ object TrackedMesh4D:
       if prev.projection4D != spec.projection4D then
         val p = spec.projection4D.getOrElse(Projection4DSpec.default)
         state.slotsPerSpec(i).foreach { slot =>
-          val _ = renderer.updateMesh4DProjection(
+          renderer.updateMesh4DProjection(
             slot, eyeW = p.eyeW, screenW = p.screenW, rotXW = p.rotXW, rotYW = p.rotYW, rotZW = p.rotZW
           )
         }
       for
         level <- spec.level if !prev.level.contains(level)
         caps <- state.capsInstancePerSpec(i)
-      do
-        val _ = renderer.setInstanceCoverage(caps, TriangleMeshSceneBuilder.holeCapsCoverage(level))
+      do renderer.setInstanceCoverage(caps, TriangleMeshSceneBuilder.holeCapsCoverage(level))
       // A two-level object (LevelMixing) has no caps: its new fraction is the renderer's mix.
       for
         level <- spec.level if !prev.level.contains(level) && level != level.floor

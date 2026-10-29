@@ -9,25 +9,8 @@ class FaultInjectionSuite extends AnyFlatSpec with Matchers:
 
   private def spec(s: String): ObjectSpec = ObjectSpec.parse(s).toOption.get
 
-  // ── InstanceId.fromNative ──────────────────────────────────────────────────
-
-  "InstanceId.fromNative" should "throw RuntimeException on -1" in:
-    val ex = intercept[RuntimeException] {
-      InstanceId.fromNative(-1, "test operation")
-    }
-    ex.getMessage should include("Native renderer failed to add test operation")
-
-  it should "return the ID for zero" in:
-    val id = InstanceId.fromNative(0, "zero allocation")
-    InstanceId.raw(id) shouldBe 0
-
-  it should "return the ID for a positive value" in:
-    val id = InstanceId.fromNative(42, "positive allocation")
-    InstanceId.raw(id) shouldBe 42
-
-  "InstanceId opaque type" should "round-trip through raw" in:
-    val id = InstanceId.fromNative(7, "round trip")
-    InstanceId.raw(id) shouldBe 7
+  // InstanceId.fromNative is gone: optix-jni 0.5.0 throws on a failed add and types the id
+  // itself (menger#110); Instanced4DSceneBuilderSuite covers the failure reaching buildScene.
 
   // ── Validation fail-fast: common cases ─────────────────────────────────────
 

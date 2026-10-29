@@ -29,7 +29,7 @@ import menger.common.Vector
   */
 case class IFS4DType(
   name: String,
-  addInstance: (MengerRenderer, Int, Int, Vector[3], Float, Projection4DSpec, Material) => Int,
+  addInstance: (MengerRenderer, Int, Int, Vector[3], Float, Projection4DSpec, Material) => InstanceId,
   maxLevel: Option[Int] = Some(menger.dsl.ResourceLimits.ifs4dMaxLevel)
 )
 
@@ -92,14 +92,12 @@ class Instanced4DSceneBuilder(
       val position  = Vector[3](spec.x, spec.y, spec.z)
       val rawLevel  = spec.level.get
 
-      def addInstance(level: Int, mat: Material, scale: Float): Int =
-        val instanceId = requireInstanceId(
-          ifsType.addInstance(mengerRenderer, level, threshold, position, scale, proj, mat),
-          s"${ifsType.name} instance at (${spec.x},${spec.y},${spec.z})"
-        )
+      def addInstance(level: Int, mat: Material, scale: Float): InstanceId =
+        val instanceId =
+          ifsType.addInstance(mengerRenderer, level, threshold, position, scale, proj, mat)
         recorder(specIdx, instanceId)
         logger.debug(s"Added ${ifsType.name} instance $instanceId level=$level")
-        InstanceId.raw(instanceId)
+        instanceId
 
       if LevelMixing.appliesTo(spec.level, material) then
         // Both whole levels in the full material, one shown per render (LevelMixing); no

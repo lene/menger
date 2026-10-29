@@ -5,6 +5,7 @@ import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureIndex
 import menger.ObjectSpec
 import menger.common.TransformUtil
 import menger.common.ValidationException
@@ -116,38 +117,31 @@ trait SceneBuilder extends LazyLogging:
   protected final def applyInstanceTextures(
     id: InstanceId,
     spec: ObjectSpec,
-    textureIndices: Map[String, Int],
+    textureIndices: Map[String, TextureIndex],
     renderer: OptiXRenderer
   ): Unit =
-    val rawId = InstanceId.raw(id)
-    SceneBuilder.objectFrame(spec).foreach(renderer.setObjectFrame(rawId, _))
+    SceneBuilder.objectFrame(spec).foreach(renderer.setObjectFrame(id, _))
     if spec.proceduralType != 0 then
-      renderer.setProceduralTexture(rawId, spec.proceduralType, spec.proceduralScale)
+      renderer.setProceduralTexture(id, spec.proceduralType, spec.proceduralScale)
     // Resolve map indices from spec fields, falling back to texture set if set is defined
     val setPrefix = spec.textureSet.map(s => s"set:$s:")
-    val normalIdx    = resolveMapIndex(spec.normalMap, "normal", setPrefix, textureIndices)
-    val roughnessIdx = resolveMapIndex(spec.roughnessMap, "roughness", setPrefix, textureIndices)
-    val metallicIdx  = resolveMapIndex(spec.metallicMap, "metallic", setPrefix, textureIndices)
-    val aoIdx        = resolveMapIndex(spec.aoMap, "ao", setPrefix, textureIndices)
-    val heightIdx    = resolveMapIndex(spec.heightMap, "height", setPrefix, textureIndices)
-    if normalIdx >= 0 || roughnessIdx >= 0 || metallicIdx >= 0 || aoIdx >= 0 || heightIdx >= 0 then
-      renderer.setMapTextures(rawId, normalIdx, roughnessIdx, metallicIdx, aoIdx, heightIdx)
-    val imageIdx = spec.imageTextureKey.flatMap(textureIndices.get).getOrElse(-1)
-    if imageIdx >= 0 then
-      renderer.setImageTexture(rawId, imageIdx)
+    val maps = List("normal" -> spec.normalMap, "roughness" -> spec.roughnessMap,
+      "metallic" -> spec.metallicMap, "ao" -> spec.aoMap, "height" -> spec.heightMap)
+      .map((mapType, file) => resolveMapIndex(file, mapType, setPrefix, textureIndices))
+    if maps.exists(_.isDefined) then
+      val List(normal, roughness, metallic, ao, height) =
+        maps.map(_.getOrElse(TextureIndex.NoTexture)): @unchecked
+      renderer.setMapTextures(id, normal, roughness, metallic, ao, height)
+    spec.imageTextureKey.flatMap(textureIndices.get).foreach(renderer.setImageTexture(id, _))
 
   private def resolveMapIndex(
     explicitFile: Option[String],
     mapType: String,
     setPrefix: Option[String],
-    indices: Map[String, Int]
-  ): Int =
+    indices: Map[String, TextureIndex]
+  ): Option[TextureIndex] =
     explicitFile.flatMap(indices.get)  // Explicit override wins
       .orElse(setPrefix.flatMap(p => indices.get(p + mapType)))  // Texture set fallback
-      .getOrElse(-1)
-
-  protected final def requireInstanceId(rawId: Int, operation: => String): InstanceId =
-    InstanceId.fromNative(rawId, operation)
 
 object SceneBuilder:
   /** The object's frame for optix-jni's `setObjectFrame`: the row-major 3x4 world -> local

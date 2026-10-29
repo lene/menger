@@ -1,6 +1,7 @@
 package menger.engines
 
 import io.github.lene.optix.MengerRenderer
+import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
 import menger.Projection4DSpec
 import menger.engines.scene.InstanceId
@@ -45,7 +46,7 @@ object RotationFastPath:
     eligible
 
   /** GPU-projected 4D triangle meshes, by mesh slot. */
-  val meshSlotUpdater: ProjectionUpdater[Int] = (renderer, slot, proj) =>
+  val meshSlotUpdater: ProjectionUpdater[MeshSlot] = (renderer, slot, proj) =>
     renderer.updateMesh4DProjection(
       slot,
       eyeW = proj.eyeW, screenW = proj.screenW,
@@ -57,7 +58,7 @@ object RotationFastPath:
     * three (F9). */
   val instanced4DUpdater: ProjectionUpdater[InstanceId] = (renderer, id, proj) =>
     MengerRenderer.of(renderer).update4DProjection(
-      InstanceId.raw(id),
+      id,
       eyeW = proj.eyeW, screenW = proj.screenW,
       rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
     )

@@ -46,7 +46,9 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
       if bytes.isEmpty then logger.error("OptiX rendering failed - renderer returned null/empty")
       bytes
     catch
-      case e: Exception if OptiXRendererWrapper.isStickyCudaError(e.getMessage) =>
+      // optix-jni 0.5.0 throws this for every sticky CUDA error (optix-jni#73); menger matched
+      // the error codes in the message text before.
+      case e: OptiXContextLostException =>
         sys.error(
           s"OptiX rendering hit an unrecoverable CUDA error, restart required: ${e.getMessage}"
         )
@@ -64,17 +66,3 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
     }
 
   override def close(): Unit = dispose()
-
-object OptiXRendererWrapper:
-  // The CUDA runtime documents these as leaving the process in an inconsistent state: "any
-  // further CUDA work will return the same error" until the process is relaunched.
-  private val StickyCudaErrorCodes = Set(700, 702, 714, 715, 716, 717, 718, 719)
-
-  // optix-jni's CUDA_CHECK format: "CUDA call '<call>' failed: <description> (<code>)", with
-  // extra explanation lines appended after the code for some errors (e.g. 718).
-  private val CudaCheckFailure = """CUDA call '[^']*' failed: [^\n]*\((\d+)\)""".r
-
-  def isStickyCudaError(message: String): Boolean =
-    Option(message)
-      .flatMap(CudaCheckFailure.findFirstMatchIn)
-      .exists(m => StickyCudaErrorCodes.contains(m.group(1).toInt))

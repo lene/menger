@@ -9,6 +9,7 @@ import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureIndex
 import io.github.lene.optix.TextureUploadException
 import menger.AssetPaths
 import menger.ObjectSpec
@@ -33,8 +34,8 @@ import menger.video.VideoTexture
  * objects without textures will use materials only.
  */
 object TextureManager extends LazyLogging:
-  type VideoTextureSlotObserver = (VideoTexture, Int) => Unit
-  type VideoTextureSlotProvider = VideoTexture => Option[Int]
+  type VideoTextureSlotObserver = (VideoTexture, TextureIndex) => Unit
+  type VideoTextureSlotProvider = VideoTexture => Option[TextureIndex]
 
   private val videoTextureSlotObserver = new ThreadLocal[Option[VideoTextureSlotObserver]]:
     override def initialValue(): Option[VideoTextureSlotObserver] = None
@@ -66,7 +67,7 @@ object TextureManager extends LazyLogging:
     specs: List[ObjectSpec],
     renderer: OptiXRenderer,
     textureDir: String
-  ): Map[String, Int] =
+  ): Map[String, TextureIndex] =
     val staticTextureFilenames = (
       specs.flatMap(_.texture) ++ specs.flatMap(_.normalMap) ++ specs.flatMap(_.roughnessMap) ++
       specs.flatMap(_.metallicMap) ++ specs.flatMap(_.aoMap) ++ specs.flatMap(_.heightMap)
@@ -101,7 +102,7 @@ object TextureManager extends LazyLogging:
     renderer: OptiXRenderer,
     textureDir: String,
     resPreference: Option[String] = None
-  ): Map[String, Int] =
+  ): Map[String, TextureIndex] =
     Try(AssetPaths.resolveOrThrow(textureDir, setName)) match
       case Failure(e) =>
         logger.error(s"Failed to resolve texture set '$setName': ${e.getMessage}")
@@ -110,7 +111,7 @@ object TextureManager extends LazyLogging:
         val metadata = TextureSetMetadata.load(setDir).getOrElse(TextureSetMetadata())
         TextureSetResolver.resolve(setDir, resPreference) match
           case Success(resolved) =>
-            val results = List.newBuilder[(String, Int)]
+            val results = List.newBuilder[(String, TextureIndex)]
             resolved.color.foreach: p =>
               loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:color" -> idx)
             resolved.normal.foreach: p =>
@@ -137,7 +138,7 @@ object TextureManager extends LazyLogging:
     renderer: OptiXRenderer,
     textureDir: String,
     needsDxConversion: Boolean = false
-  ): Option[Int] =
+  ): Option[TextureIndex] =
     val filename = s"$setName/${path.getFileName.toString}"
     if needsDxConversion then
       loadDxNormalMap(filename, renderer, textureDir)
@@ -149,7 +150,7 @@ object TextureManager extends LazyLogging:
     filename: String,
     renderer: OptiXRenderer,
     textureDir: String
-  ): Option[Int] =
+  ): Option[TextureIndex] =
     TextureLoader.load(filename, textureDir) match
       case Success(data) =>
         val converted = TextureData(
@@ -174,7 +175,7 @@ object TextureManager extends LazyLogging:
     filename: String,
     renderer: OptiXRenderer,
     textureDir: String
-  ): Option[(String, Int)] =
+  ): Option[(String, TextureIndex)] =
     if filename.toLowerCase.endsWith(".hdr") then
       try
         val resolvedPath = AssetPaths.resolveOrThrow(textureDir, filename).toString
@@ -200,7 +201,7 @@ object TextureManager extends LazyLogging:
     videoTexture: VideoTexture,
     renderer: OptiXRenderer,
     textureDir: String
-  ): Option[(String, Int)] =
+  ): Option[(String, TextureIndex)] =
     videoTextureSlotProvider.get().flatMap(_(videoTexture)) match
       case Some(textureIndex) =>
         recordVideoTextureSlot(videoTexture, textureIndex)
@@ -222,7 +223,7 @@ object TextureManager extends LazyLogging:
     renderer: OptiXRenderer,
     textureDir: String,
     renderT: Float = 0f
-  ): Option[Int] =
+  ): Option[TextureIndex] =
     loadInitialEnvMapVideoData(envMapVideo, textureDir, renderT) match
       case Success(textureData) =>
         uploadTextureData(textureData, renderer).map(_._2)
@@ -280,7 +281,7 @@ object TextureManager extends LazyLogging:
   private def uploadTextureData(
     textureData: TextureData,
     renderer: OptiXRenderer
-  ): Option[(String, Int)] =
+  ): Option[(String, TextureIndex)] =
     try
       val index = renderer.uploadTexture(
         textureData.name,
@@ -295,7 +296,7 @@ object TextureManager extends LazyLogging:
         logger.error(s"Failed to upload texture '${textureData.name}': ${e.getMessage}")
         None
 
-  private def recordVideoTextureSlot(videoTexture: VideoTexture, textureIndex: Int): Unit =
+  private def recordVideoTextureSlot(videoTexture: VideoTexture, textureIndex: TextureIndex): Unit =
     videoTextureSlotObserver.get().foreach(_(videoTexture, textureIndex))
 
   private def loadVideoTextureData(body: => TextureData): Try[TextureData] =

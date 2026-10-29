@@ -58,7 +58,7 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
   // Immutable per-instance fields, kept so a projection update can rebuild the blob
   // (only eye/screen/rotation change per frame). lastWord is the struct's trailing
   // 4 bytes: dist_threshold (int) for menger4d, hit_bias (float bits) for the others.
-  private val instanceState = TrieMap[Int, InstanceState]()
+  private val instanceState = TrieMap[InstanceId, InstanceState]()
 
   // Fractional-level objects drawn as their two whole levels; every frame mixes them.
   private val levelMixes = new AtomicReference(List.empty[LevelMix])
@@ -71,7 +71,7 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
 
   /** The fraction of the registered object one of whose levels contains `instanceId`, for an
     * in-place level animation; nothing happens for an instance of no level mix. */
-  def setLevelMixFraction(instanceId: Int, fraction: Float): Unit =
+  def setLevelMixFraction(instanceId: InstanceId, fraction: Float): Unit =
     val _ = levelMixes.updateAndGet(_.map(mix =>
       if mix.contains(instanceId) then mix.copy(fraction = fraction) else mix))
 
@@ -107,7 +107,7 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
     level: Int, distanceThreshold: Int, position: Vector[3], scale: Float,
     eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float,
     material: Material
-  ): Int =
+  ): InstanceId =
     add4D(menger4dType, position, scale, level, distanceThreshold,
       eyeW, screenW, rotXW, rotYW, rotZW, material)
 
@@ -116,7 +116,7 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
     level: Int, position: Vector[3], scale: Float,
     eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float,
     material: Material
-  ): Int =
+  ): InstanceId =
     val hitBias = if material.color.a < OpaqueAlpha then SierpinskiHitBias else 0.0f
     add4D(sierpinski4dType, position, scale, level, floatBits(hitBias),
       eyeW, screenW, rotXW, rotYW, rotZW, material)
@@ -126,7 +126,7 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
     level: Int, position: Vector[3], scale: Float,
     eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float,
     material: Material
-  ): Int =
+  ): InstanceId =
     val hitBias = if material.color.a < OpaqueAlpha then HexadecachoronHitBias else 0.0f
     add4D(hexadecachoron4dType, position, scale, level, floatBits(hitBias),
       eyeW, screenW, rotXW, rotYW, rotZW, material)
@@ -136,42 +136,39 @@ class MengerRenderer extends OptiXRenderer with LazyLogging:
     * immutable add-time fields (level, threshold/hit-bias), which the update rebuilds
     * from the registered instance state — so one update path serves all three (F9). */
   def update4DProjection(
-    instanceId: Int, eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float
+    instanceId: InstanceId, eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float
   ): Unit =
     update4D(instanceId, eyeW, screenW, rotXW, rotYW, rotZW)
 
+  // optix-jni 0.5.0: the add throws on failure instead of returning -1 (menger#110).
   private def add4D(
     typeId: Int, position: Vector[3], scale: Float, level: Int, lastWord: Int,
     eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float,
     material: Material
-  ): Int =
+  ): InstanceId =
     val rotation = composeRotationXwYwZw(rotXW, rotYW, rotZW)
     val blob = packBlob(position, scale, rotation, eyeW, screenW, level, lastWord)
     // Conservative AABB: the projected fractal stays within `scale` of its centre.
     val aabbMin = Array(position.x - scale, position.y - scale, position.z - scale)
     val aabbMax = Array(position.x + scale, position.y + scale, position.z + scale)
     val instanceId = addCustomGeometryInstance(typeId, aabbMin, aabbMax, IdentityTransform, blob)
-    if instanceId < 0 then instanceId
-    else
-      val (cauchyA, cauchyB) = Material.cauchyCoefficients(material.ior, material.dispersion)
-      setInstanceMaterial(
-        instanceId,
-        material.color.r, material.color.g, material.color.b, material.color.a,
-        material.ior, material.roughness, material.metallic, material.specular,
-        material.emission, material.filmThickness, cauchyA, cauchyB)
-      instanceState(instanceId) = InstanceState(position, scale, level, lastWord)
-      instanceId
+    val (cauchyA, cauchyB) = Material.cauchyCoefficients(material.ior, material.dispersion)
+    setInstanceMaterial(
+      instanceId,
+      material.color.r, material.color.g, material.color.b, material.color.a,
+      material.ior, material.roughness, material.metallic, material.specular,
+      material.emission, material.filmThickness, cauchyA, cauchyB)
+    instanceState(instanceId) = InstanceState(position, scale, level, lastWord)
+    instanceId
 
   private def update4D(
-    instanceId: Int, eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float
+    instanceId: InstanceId, eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float
   ): Unit =
-    require(instanceId >= 0, s"instanceId must be non-negative, got $instanceId")
     val state = instanceState.getOrElse(instanceId,
-      throw IllegalArgumentException(s"No 4D instance registered with id $instanceId"))
+      throw IllegalArgumentException(s"No 4D instance registered with id ${instanceId.value}"))
     val rotation = composeRotationXwYwZw(rotXW, rotYW, rotZW)
     val blob = packBlob(state.position, state.scale, rotation, eyeW, screenW, state.level, state.lastWord)
-    val rc = updateCustomGeometryInstanceData(instanceId, blob)
-    require(rc == 0, s"updateCustomGeometryInstanceData failed with code $rc (instanceId=$instanceId)")
+    updateCustomGeometryInstanceData(instanceId, blob)
 
   private def packBlob(
     position: Vector[3], scale: Float, rotation: Array[Float],

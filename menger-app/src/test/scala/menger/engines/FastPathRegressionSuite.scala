@@ -59,7 +59,7 @@ class FastPathRegressionSuite extends AnyFlatSpec with Matchers with MockFactory
     val baseSpec = ObjectSpec(objectType = "menger4d", x = 0, y = 0, z = 0, size = 1, level = Some(1))
     val prevSpecs = List(baseSpec.copy(projection4D = Some(proj1)))
     val newSpecs = List(baseSpec.copy(projection4D = Some(proj2)))
-    val ids = Vector(Vector(InstanceId.fromNative(0, "test")))
+    val ids = Vector(Vector(io.github.lene.optix.InstanceId(0)))
     val updateCalled = AtomicBoolean(false)
     val updater: RotationFastPath.ProjectionUpdater[InstanceId] =
       (_, _, _) => updateCalled.set(true)
@@ -71,7 +71,7 @@ class FastPathRegressionSuite extends AnyFlatSpec with Matchers with MockFactory
   // the "fast path" -- the tests were positive-only and could not see it.
   private val base4D =
     ObjectSpec(objectType = "menger4d", x = 0, y = 0, z = 0, size = 1, level = Some(1))
-  private val oneId = Vector(Vector(InstanceId.fromNative(0, "test")))
+  private val oneId = Vector(Vector(io.github.lene.optix.InstanceId(0)))
 
   private def attempt(prev: ObjectSpec, next: ObjectSpec, ids: Vector[Vector[InstanceId]] = oneId) =
     val updates = java.util.concurrent.atomic.AtomicInteger(0)

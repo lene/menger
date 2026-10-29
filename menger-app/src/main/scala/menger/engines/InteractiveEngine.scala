@@ -10,6 +10,7 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.CameraState
+import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.SceneConfigurator
 import io.github.lene.optix.TextureUploadException
 import menger.AssetPaths
@@ -434,19 +435,13 @@ class InteractiveEngine(
         color = CrossAxisColors(axisIdx).color,
         ior   = 1.0f
       )
-      InstanceId.fromNative(
-        renderer.addCylinderInstance(p0, p1, thickness, mat),
-        s"coordinate cross cylinder for axis $axisIdx"
-      )
+      val _ = renderer.addCylinderInstance(p0, p1, thickness, mat)
       val coneApex = menger.common.Vector[3](
         if axisIdx == 0 then length + CrossConeLength else p1(0),
         if axisIdx == 1 then length + CrossConeLength else p1(1),
         if axisIdx == 2 then length + CrossConeLength else p1(2)
       )
-      InstanceId.fromNative(
-        renderer.addConeInstance(coneApex, p1, CrossConeRadius, mat),
-        s"coordinate cross cone for axis $axisIdx"
-      )
+      val _ = renderer.addConeInstance(coneApex, p1, CrossConeRadius, mat)
     }
 
   private def toggleCross(): Unit =
@@ -637,19 +632,19 @@ class InteractiveEngine(
     specs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
-    val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
+    val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[MeshSlot]] =
       scala.collection.mutable.Map.empty
     val builder = TriangleMeshSceneBuilder(
       textureDir,
-      mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
-        slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
+      mesh4DRecorder = (specIdx: Int, slot: MeshSlot) =>
+        slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[MeshSlot]) += slot
     )(using profilingConfig)
     val maxInst = computeEffectiveMaxInstances(builder, specs)
     val result = builder.validateAndBuild(specs, renderer, maxInst)
     result.foreach { _ =>
       if slotsBuf.size == specs.size then
         val slotsPerSpec = specs.indices.map(i =>
-          slotsBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
+          slotsBuf.getOrElse(i, ArrayBuffer.empty[MeshSlot]).toVector
         ).toVector
         scene4DCache.set(Scene4DCache.Gpu(WithAnimation.Anim4DState(specs, slotsPerSpec)))
       else scene4DCache.set(Scene4DCache.Empty)

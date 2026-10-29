@@ -7,10 +7,11 @@ package io.github.lene.optix
   * the other cannot work for glass: a refractive surface shows what lies behind it at any
   * strength (usability review 2026-10, session 4, F85; decided by user 2026-10-14: linear mix,
   * rendering twice). */
-final case class LevelMix(lower: Vector[Int], upper: Vector[Int], fraction: Float):
+final case class LevelMix(lower: Vector[InstanceId], upper: Vector[InstanceId], fraction: Float):
   require(fraction > 0f && fraction < 1f, s"a level mix needs a fraction in (0, 1), got $fraction")
 
-  def contains(instanceId: Int): Boolean = lower.contains(instanceId) || upper.contains(instanceId)
+  def contains(instanceId: InstanceId): Boolean =
+    lower.contains(instanceId) || upper.contains(instanceId)
 
 object LevelMix:
 

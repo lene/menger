@@ -1,10 +1,5 @@
 package menger.engines.scene
 
-opaque type InstanceId = Int
-
-object InstanceId:
-  def fromNative(rawId: Int, operation: => String): InstanceId =
-    if rawId >= 0 then rawId
-    else sys.error(s"Native renderer failed to add $operation")
-
-  def raw(instanceId: InstanceId): Int = instanceId
+// optix-jni 0.5.0 types instance ids itself and throws when an add fails (menger#110); the
+// opaque type menger kept to catch a -1 is now optix-jni's.
+type InstanceId = io.github.lene.optix.InstanceId

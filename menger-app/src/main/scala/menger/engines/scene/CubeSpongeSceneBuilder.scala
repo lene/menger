@@ -3,6 +3,7 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureIndex
 import menger.ObjectSpec
 import menger.common.Material
 import menger.common.TransformUtil
@@ -71,7 +72,9 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
     renderer.addTriangleMesh(baseCube.toTriangleMesh)
     ()
 
-  private def addCubeInstancesForSpec(spec: ObjectSpec, renderer: OptiXRenderer, textureIndices: Map[String, Int]): Unit =
+  private def addCubeInstancesForSpec(
+    spec: ObjectSpec, renderer: OptiXRenderer, textureIndices: Map[String, TextureIndex]
+  ): Unit =
     require(spec.level.isDefined, "cube-sponge requires level")
     val level = spec.level.get
     val material = MaterialExtractor.extract(spec)
@@ -98,18 +101,15 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
     material: Material,
     renderer: OptiXRenderer,
     spec: ObjectSpec,
-    textureIndices: Map[String, Int],
+    textureIndices: Map[String, TextureIndex],
     alpha: Float = 1f
   ): Unit =
     val effectiveMaterial =
       if alpha >= 0.9999f then material
       else material.copy(color = material.color.copy(a = alpha))
 
-    val instanceId = requireInstanceId(
-      renderer.addTriangleMeshInstance(
-        CubeSpongeSceneBuilder.cubeTransform(spec, position, scale), effectiveMaterial),
-      s"cube instance at position=($position), scale=$scale"
-    )
+    val instanceId = renderer.addTriangleMeshInstance(
+      CubeSpongeSceneBuilder.cubeTransform(spec, position, scale), effectiveMaterial)
     applyInstanceTextures(instanceId, spec, textureIndices, renderer)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
