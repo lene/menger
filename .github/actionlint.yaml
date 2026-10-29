@@ -1,0 +1,5 @@
+# actionlint knows only GitHub-hosted runner labels; these are the self-hosted runners' own.
+# `nvidia`: the GPU runners (this laptop and venus), see RUNNER_SETUP in optix-jni.
+self-hosted-runner:
+  labels:
+    - nvidia
