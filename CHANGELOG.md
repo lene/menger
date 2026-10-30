@@ -4,6 +4,10 @@
 
 ### Added
 
+- The validator result (schema 1.3.0, `contracts/process-result.json`) carries `loadError`: why
+  the scene did not load, as a `kind` (`compile_failed`, `construction_failed`, ...) and, for a
+  compile failure, each compiler error with its line. `messages` is unchanged; nothing reading
+  it needs to change (menger#113).
 - Every command-line object type has a DSL class: `Tetrahedron`, `Octahedron`, `Dodecahedron`
   and `Icosahedron` (with edge tubes, like `Cube`), `Cone` (`apex`, `base`, `radius`), and the
   GPU-traced 4D fractals `Menger4D` and `HexadecachoronGasket` (CLI `menger4d`,

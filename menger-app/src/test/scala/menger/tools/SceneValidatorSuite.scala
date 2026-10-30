@@ -457,6 +457,40 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     result.tag shouldBe SceneValidator.Tag.CompileErrors
     result.messages.head should include("Compilation of")
 
+  // menger#113: the agent repairs from the error's kind and line, not from the message text.
+  it should "carry the kind and the line of a compile error in loadError" in:
+    val file = writeTempScene("import menger.dsl._\nobject OnLineTwo:\n  val scene: Scene = 42\n")
+    val failure = SceneValidator.validate(file).loadError
+    failure.map(_.kind) shouldBe Some("compile_failed")
+    failure.toList.flatMap(_.diagnostics).map(_.line) should contain (3)
+
+  it should "carry a loadError of a different kind for a scene that loads but fails" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object FailingScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere(size = -1f)),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.loadError.map(_.kind) shouldBe Some("construction_failed")
+
+  it should "leave loadError empty for a scene that loads" in:
+    SceneValidator.validate(writeTempScene(
+      """import menger.dsl._
+        |object FineScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Sphere()),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )).loadError shouldBe None
+
   it should "return Refused, never CompileErrors, when the scene file does not exist" in:
     val result = SceneValidator.validate(new java.io.File("/nonexistent/path/missing-scene.scala"))
     result.tag shouldBe SceneValidator.Tag.Refused

@@ -74,14 +74,30 @@ object SceneValidator extends LazyLogging:
     * geometry package stays free of a upickle dependency. */
   case class Finding(invariant: String, message: String) derives ReadWriter
 
+  /** Why the scene did not load, for a consumer that repairs it: the `kind` (a `LoadError`
+    * case) and, for a compile failure, each compiler error with its 1-based `line` (0 when the
+    * compiler gave no position). */
+  case class LoadFailure(kind: String, diagnostics: List[LoadFailure.Diagnostic] = Nil)
+    derives ReadWriter
+
+  object LoadFailure:
+    case class Diagnostic(line: Int, message: String) derives ReadWriter
+
+    def of(error: LoadError): LoadFailure = error match
+      case LoadError.CompileFailed(_, diagnostics) =>
+        LoadFailure(error.kind, diagnostics.map(d => Diagnostic(d.line.getOrElse(0), d.message)))
+      case _ => LoadFailure(error.kind)
+
   /** Bumped when this result's shape changes incompatibly, matching `CorpusManifest` and
     * `DslManifest`, which both carry one (review round 2). */
   // 1.1.0: `snapshots` and `cameraPath` (additive; usability review 2026-10, session 4).
   // 1.2.0: snapshot objects carry `dslType`, snapshots carry `planes` (additive; menger#92).
-  val SchemaVersion = "1.2.0"
+  // 1.3.0: `loadError`, the structured reason a scene did not load (additive; menger#113).
+  val SchemaVersion = "1.3.0"
 
   /** `messages` stays first-class and unchanged -- it is what the existing consumers read.
-    * `findings`, `scene`, `schemaVersion`, `snapshots` and `cameraPath` are additive and
+    * `findings`, `scene`, `schemaVersion`, `snapshots`, `cameraPath` and `loadError` are
+    * additive and
     * defaulted, so every positional `ValidationResult(tag, messages)` call site keeps working.
     * `snapshots`: the evaluated scene at each checked time (`SceneSnapshot`); `cameraPath`: the
     * camera of an animated scene, densely sampled. */
@@ -96,7 +112,8 @@ object SceneValidator extends LazyLogging:
     scene: Option[String] = None,
     schemaVersion: String = SchemaVersion,
     snapshots: List[SceneSnapshot.Snapshot] = Nil,
-    cameraPath: List[SceneSnapshot.CameraSample] = Nil
+    cameraPath: List[SceneSnapshot.CameraSample] = Nil,
+    loadError: Option[LoadFailure] = None
   ) derives ReadWriter
 
   def main(args: Array[String]): Unit =
@@ -232,7 +249,7 @@ object SceneValidator extends LazyLogging:
         Tag.Refused
       case _: (LoadError.NoSceneObject | LoadError.ConstructionFailed | LoadError.StackOverflow |
                LoadError.Malformed) => Tag.LintFindings
-    ValidationResult(tag, List(err.message))
+    ValidationResult(tag, List(err.message), loadError = Some(LoadFailure.of(err)))
 
   /** Evenly spaced times, both ends included, at which an animated scene with a duration is
     * checked. Checking only the ends missed a sponge whose level peaks mid-animation: an

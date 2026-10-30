@@ -13,6 +13,17 @@ enum LoadError:
   case ClasspathBroken(detail: String)
   case Malformed(detail: String)
 
+  /** Stable machine-readable name of the case; part of the validator's result contract. */
+  def kind: String = this match
+    case _: NotFound           => "not_found"
+    case _: UnknownScene       => "unknown_scene"
+    case _: NoSceneObject      => "no_scene_object"
+    case _: CompileFailed      => "compile_failed"
+    case _: ConstructionFailed => "construction_failed"
+    case _: StackOverflow      => "stack_overflow"
+    case _: ClasspathBroken    => "classpath_broken"
+    case _: Malformed          => "malformed"
+
   def message: String = this match
     case NotFound(path) => s"Scene file not found: $path"
     case UnknownScene(name, registered) =>

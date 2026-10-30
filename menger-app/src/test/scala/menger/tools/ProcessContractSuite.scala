@@ -54,6 +54,24 @@ class ProcessContractSuite extends AnyFlatSpec with Matchers:
     val refused = SceneValidator.ValidationResult(SceneValidator.Tag.Refused, List("usage"))
     conformsToContract(upickle.default.write(refused))
 
+  // The optional fields are checked by kind when they have a value (an absent one is written as
+  // null), so a loadError that is not an object fails here.
+  it should "print a loadError that matches the contract's optional field" in:
+    val failed = SceneValidator.ValidationResult(
+      SceneValidator.Tag.CompileErrors, List("Compilation of 'x.scala' failed"),
+      loadError = Some(SceneValidator.LoadFailure("compile_failed",
+        List(SceneValidator.LoadFailure.Diagnostic(3, "Found: Int"))))
+    )
+    val json = upickle.default.write(failed)
+    conformsToContract(json)
+    val result = ujson.read(json).obj
+    contract("optionalFields").obj.foreach { (field, kind) =>
+      result.get(field).filter(_ != ujson.Null).foreach(v =>
+        withClue(field) { typeOf(v) shouldBe kind.str })
+    }
+    result("loadError")("kind").str shouldBe "compile_failed"
+    result("loadError")("diagnostics")(0)("line").num.toInt shouldBe 3
+
   private def runScript(script: String, args: String*): (Int, String) =
     val out = new StringBuilder
     val exit = Process(new File(repoRoot, s"docker/scene-validator/$script").getPath +: args)
