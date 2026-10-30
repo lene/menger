@@ -63,6 +63,17 @@ class ManifestContentSuite extends AnyFlatSpec with Matchers:
     unit("Sphere", "rotation") shouldBe Some("radians")
     unit("Transform", "rotation") shouldBe Some("radians")
 
+  // The fitness function for menger#95: a field named like an angle (rot..., ...Angle..., fov)
+  // that is a raw Float has no unit, so a new one fails here until it is typed Degrees/Radians.
+  it should "include every field whose name says it is an angle" in:
+    val angleNamed = """(?i).*(rot|angle|fov).*""".r
+    val unitless = (manifest.objects ++ manifest.sceneComposition).flatMap { t =>
+      t.fields.collect { case f if angleNamed.matches(f.name) && f.unit.isEmpty =>
+        s"${t.name}.${f.name}"
+      }
+    }
+    unitless shouldBe empty
+
   it should "leave other numeric fields without a unit" in:
     val types = (manifest.objects ++ manifest.sceneComposition).map(t => t.name -> t).toMap
     types("Projection4DSpec").fields.find(_.name == "eyeW").flatMap(_.unit) shouldBe None
