@@ -6,12 +6,12 @@ import scala.util.Try
 import com.badlogic.gdx.Game
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
-import menger.OptiXRenderResources
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
 import menger.dsl.DenoiseMode
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SceneCost
+import menger.input.OptiXRenderResources
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 import menger.optix.SceneConfigurator

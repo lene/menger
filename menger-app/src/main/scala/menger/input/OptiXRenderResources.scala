@@ -1,4 +1,4 @@
-package menger
+package menger.input
 
 import java.util.concurrent.atomic.AtomicReference
 

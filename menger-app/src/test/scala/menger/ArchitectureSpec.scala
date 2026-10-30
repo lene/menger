@@ -103,14 +103,12 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
     // AD-23's containment boundary: LibGDX (windowing/input adapters, LWJGL lifecycle)
     // is confined to menger.input and menger.engines. The CameraConfig/Vec3 Vector3
     // cascade (F10, M-arch-libgdx-containment) is fully migrated — the exception list
-    // is down to its permanent members: RenderState/OptiXRenderResources hold genuine
-    // GL primitives (Pixmap/Texture/SpriteBatch) with no common/JDK equivalent;
-    // Main.scala is the LWJGL app bootstrap. Matched by source file name — Scala 3
-    // compiles `given`/top-level definitions to synthetic class names that aren't
-    // worth predicting here.
-    val deferredLibGdxFiles = Set(
-      "Main.scala", "OptiXRenderResources.scala", "RenderState.scala"
-    )
+    // is down to its one permanent member: Main.scala is the LWJGL app bootstrap.
+    // (RenderState/OptiXRenderResources hold genuine GL primitives, Pixmap/Texture/SpriteBatch,
+    // and moved into menger.input, so they need no exception any more.) Matched by source
+    // file name — Scala 3 compiles `given`/top-level definitions to synthetic class names
+    // that aren't worth predicting here.
+    val deferredLibGdxFiles = Set("Main.scala")
     val isDeferredLibGdxFile: DescribedPredicate[JavaClass] =
       new DescribedPredicate[JavaClass]("declared in a file with accepted LibGDX debt"):
         override def test(clazz: JavaClass): Boolean =
@@ -274,7 +272,7 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
   it should "not grow the unlayered root package menger" in:
     classes().that().resideInAPackage("menger")
       .should().haveNameMatching(
-        "menger\\.(GlobalRotation|OptiXRenderResources|OptiXRenderState|RenderState)(\\$.*)?"
+        "menger\\.GlobalRotation(\\$.*)?"
       ).check(allClasses)
 
   it should "keep menger.video a leaf package" in:

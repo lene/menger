@@ -1,4 +1,4 @@
-package menger
+package menger.input
 
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture

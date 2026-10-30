@@ -3,7 +3,6 @@ package menger.input
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
-import menger.OptiXRenderResources
 import menger.common.Const
 import menger.common.MouseButton
 import menger.common.OrbitConfig
