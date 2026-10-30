@@ -27,9 +27,9 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
       size = spec.size,
       eyeW = proj.eyeW,
       screenW = proj.screenW,
-      rotXW = proj.rotXW,
-      rotYW = proj.rotYW,
-      rotZW = proj.rotZW
+      rotXW = proj.rotXW.value,
+      rotYW = proj.rotYW.value,
+      rotZW = proj.rotZW.value
     )
 
     val data = mesh.toTriangleMesh
@@ -43,15 +43,15 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
     val spec = result.toOption.get
     val proj = spec.projection4D.get
 
-    proj.rotXW shouldBe 45f
-    proj.rotYW shouldBe 30f
-    proj.rotZW shouldBe 15f
+    proj.rotXW.value shouldBe 45f
+    proj.rotYW.value shouldBe 30f
+    proj.rotZW.value shouldBe 15f
 
     // Verify mesh generation works with custom rotation
     val mesh = TesseractMesh(
-      rotXW = proj.rotXW,
-      rotYW = proj.rotYW,
-      rotZW = proj.rotZW
+      rotXW = proj.rotXW.value,
+      rotYW = proj.rotYW.value,
+      rotZW = proj.rotZW.value
     )
     val data = mesh.toTriangleMesh
     data.numTriangles shouldBe 48
@@ -154,9 +154,9 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
     spec.color shouldBe defined
 
     val proj = spec.projection4D.get
-    proj.rotXW shouldBe 30f
-    proj.rotYW shouldBe 20f
-    proj.rotZW shouldBe 10f
+    proj.rotXW.value shouldBe 30f
+    proj.rotYW.value shouldBe 20f
+    proj.rotZW.value shouldBe 10f
     proj.eyeW shouldBe 4.0f
     proj.screenW shouldBe 1.5f
 
@@ -172,9 +172,9 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
       size = spec.size,
       eyeW = proj.eyeW,
       screenW = proj.screenW,
-      rotXW = proj.rotXW,
-      rotYW = proj.rotYW,
-      rotZW = proj.rotZW
+      rotXW = proj.rotXW.value,
+      rotYW = proj.rotYW.value,
+      rotZW = proj.rotZW.value
     )
 
     val data = mesh.toTriangleMesh
@@ -190,9 +190,9 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
   "Projection4DSpec defaults" should "match documented values" in:
     Projection4DSpec.DefaultEyeW shouldBe 3.0f
     Projection4DSpec.DefaultScreenW shouldBe 1.5f
-    Projection4DSpec.DefaultRotXW shouldBe 15f
-    Projection4DSpec.DefaultRotYW shouldBe 10f
-    Projection4DSpec.DefaultRotZW shouldBe 0f
+    Projection4DSpec.DefaultRotXW.value shouldBe 15f
+    Projection4DSpec.DefaultRotYW.value shouldBe 10f
+    Projection4DSpec.DefaultRotZW.value shouldBe 0f
 
   it should "match TesseractMesh default values" in:
     val defaultMesh = TesseractMesh()
@@ -200,9 +200,9 @@ class TesseractIntegrationSuite extends AnyFlatSpec with Matchers:
 
     defaultMesh.eyeW shouldBe defaultProj.eyeW
     defaultMesh.screenW shouldBe defaultProj.screenW
-    defaultMesh.rotXW shouldBe defaultProj.rotXW
-    defaultMesh.rotYW shouldBe defaultProj.rotYW
-    defaultMesh.rotZW shouldBe defaultProj.rotZW
+    defaultMesh.rotXW shouldBe defaultProj.rotXW.value
+    defaultMesh.rotYW shouldBe defaultProj.rotYW.value
+    defaultMesh.rotZW shouldBe defaultProj.rotZW.value
 
   // === isCompatibleMesh Logic Tests ===
 

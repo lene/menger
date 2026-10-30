@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import io.github.lene.optix.OptiXRenderer
 import menger.engines.scene.InstanceId
+import menger.spec.Degrees
 import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 import menger.spec.Projection4DSpec
@@ -54,7 +55,7 @@ class FastPathRegressionSuite extends AnyFlatSpec with Matchers with MockFactory
   "RotationFastPath.tryFastPath" should "take the fast path when only projection differs" in:
     val renderer = mock[OptiXRenderer]
     val proj1 = Projection4DSpec.default
-    val proj2 = Projection4DSpec(eyeW = 3.0f, screenW = 2.0f, rotXW = 0, rotYW = 0, rotZW = 0)
+    val proj2 = Projection4DSpec(eyeW = 3.0f, screenW = 2.0f, rotXW = Degrees.Zero, rotYW = Degrees.Zero, rotZW = Degrees.Zero)
     val baseSpec = ObjectSpec(objectType = "menger4d", x = 0, y = 0, z = 0, size = 1, level = Some(1))
     val prevSpecs = List(baseSpec.copy(projection4D = Some(proj1)))
     val newSpecs = List(baseSpec.copy(projection4D = Some(proj2)))

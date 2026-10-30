@@ -70,9 +70,9 @@ case class ObjectSpec(
   require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
 
   def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined
-  def rotX: Float = rotation.x
-  def rotY: Float = rotation.y
-  def rotZ: Float = rotation.z
+  def rotX: Float = rotation.x.value
+  def rotY: Float = rotation.y.value
+  def rotZ: Float = rotation.z.value
   def proceduralType: Int = procedural.proceduralType
   def proceduralScale: Float = procedural.scale
   def imageTextureKey: Option[String] = texture.orElse(videoTexture.map(_.textureKey))

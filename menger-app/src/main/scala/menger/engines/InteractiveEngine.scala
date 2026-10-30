@@ -43,6 +43,7 @@ import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
 import menger.optix.CameraState
 import menger.optix.SceneConfigurator
+import menger.spec.Degrees
 import menger.spec.ObjectSpec
 import menger.spec.Projection4DSpec
 
@@ -191,9 +192,9 @@ class InteractiveEngine(
           }
           val newProj = currentProj.copy(
             eyeW = newEyeW,
-            rotXW = currentProj.rotXW + event.rotXW,
-            rotYW = currentProj.rotYW + event.rotYW,
-            rotZW = currentProj.rotZW + event.rotZW
+            rotXW = currentProj.rotXW + Degrees(event.rotXW),
+            rotYW = currentProj.rotYW + Degrees(event.rotYW),
+            rotZW = currentProj.rotZW + Degrees(event.rotZW)
           )
           logger.debug(
             s"Updated 4D object: rotXW=${newProj.rotXW}, rotYW=${newProj.rotYW}, " +

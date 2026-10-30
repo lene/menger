@@ -24,15 +24,15 @@ class GlobalRotationTest extends AnyFlatSpec with Matchers:
     val opts = SafeMengerCLIOptions(List("--objects", "type=cube", "--rot-x", "90", "--rot-y", "45"))
     val specs = List(ObjectSpec(objectType = "cube"))
     val result = GlobalRotation(opts, specs)
-    result.head.rotation.x shouldBe (math.Pi / 2).toFloat +- Tolerance
-    result.head.rotation.y shouldBe (math.Pi / 4).toFloat +- Tolerance
-    result.head.rotation.z shouldBe 0f +- Tolerance
+    result.head.rotation.x.value shouldBe (math.Pi / 2).toFloat +- Tolerance
+    result.head.rotation.y.value shouldBe (math.Pi / 4).toFloat +- Tolerance
+    result.head.rotation.z.value shouldBe 0f +- Tolerance
 
   it should "compose with a per-object rot-x= already set on the spec" in:
     val opts = SafeMengerCLIOptions(List("--objects", "type=cube:rot-x=30", "--rot-x", "60"))
     val specs = List(ObjectSpec(objectType = "cube", rotation = ObjectRotation(x = (math.Pi / 6).toFloat)))
     val result = GlobalRotation(opts, specs)
-    result.head.rotation.x shouldBe (math.Pi / 2).toFloat +- Tolerance
+    result.head.rotation.x.value shouldBe (math.Pi / 2).toFloat +- Tolerance
 
   private val zeroProjection = Projection4DSpec(rotXW = 0f, rotYW = 0f, rotZW = 0f)
 

@@ -48,9 +48,9 @@ class TesseractSpongeIntegrationSpec extends AnyFlatSpec with Matchers:
 
     val spec = result.toOption.get
     val proj = spec.projection4D.get
-    proj.rotXW shouldBe 45f
-    proj.rotYW shouldBe 30f
-    proj.rotZW shouldBe 15f
+    proj.rotXW.value shouldBe 45f
+    proj.rotYW.value shouldBe 30f
+    proj.rotZW.value shouldBe 15f
 
   it should "parse tesseract-sponge with 4D projection parameters" in:
     val result = ObjectSpecParser.parse("type=tesseract-sponge:level=1:eye-w=5.0:screen-w=2.5")
@@ -270,9 +270,9 @@ class TesseractSpongeIntegrationSpec extends AnyFlatSpec with Matchers:
     spec.edgeRadius shouldBe Some(0.02f)
 
     val proj = spec.projection4D.get
-    proj.rotXW shouldBe 30f
-    proj.rotYW shouldBe 20f
-    proj.rotZW shouldBe 10f
+    proj.rotXW.value shouldBe 30f
+    proj.rotYW.value shouldBe 20f
+    proj.rotZW.value shouldBe 10f
     proj.eyeW shouldBe 4.0f
     proj.screenW shouldBe 1.5f
 
@@ -369,12 +369,12 @@ class TesseractSpongeIntegrationSpec extends AnyFlatSpec with Matchers:
     // Issue 1: 4D rotation detection works for all types
     val tesseractResult = ObjectSpecParser.parse("type=tesseract:rot-xw=45:rot-yw=30")
     tesseractResult shouldBe a[Right[?, ?]]
-    tesseractResult.toOption.get.projection4D.get.rotXW shouldBe 45f
+    tesseractResult.toOption.get.projection4D.get.rotXW.value shouldBe 45f
 
     val spongeResult = ObjectSpecParser.parse("type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30")
     spongeResult shouldBe a[Right[?, ?]]
-    spongeResult.toOption.get.projection4D.get.rotXW shouldBe 45f
+    spongeResult.toOption.get.projection4D.get.rotXW.value shouldBe 45f
 
     val sponge2Result = ObjectSpecParser.parse("type=tesseract-sponge-2:level=1:rot-xw=45:rot-yw=30")
     sponge2Result shouldBe a[Right[?, ?]]
-    sponge2Result.toOption.get.projection4D.get.rotXW shouldBe 45f
+    sponge2Result.toOption.get.projection4D.get.rotXW.value shouldBe 45f

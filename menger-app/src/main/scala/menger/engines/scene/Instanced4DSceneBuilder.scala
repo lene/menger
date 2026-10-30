@@ -37,17 +37,17 @@ object IFS4DType:
   val Menger4D: IFS4DType = IFS4DType("menger4d",
     (r, level, threshold, pos, scale, proj, mat) =>
       r.addMenger4DInstance(level, threshold, pos, scale,
-        proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW, mat))
+        proj.eyeW, proj.screenW, proj.rotXW.value, proj.rotYW.value, proj.rotZW.value, mat))
 
   val Sierpinski4D: IFS4DType = IFS4DType("sierpinski4d",
     (r, level, _, pos, scale, proj, mat) =>
       r.addSierpinski4DInstance(level, pos, scale,
-        proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW, mat))
+        proj.eyeW, proj.screenW, proj.rotXW.value, proj.rotYW.value, proj.rotZW.value, mat))
 
   val Hexadecachoron4D: IFS4DType = IFS4DType("hexadecachoron4d",
     (r, level, _, pos, scale, proj, mat) =>
       r.addHexadecachoron4DInstance(level, pos, scale,
-        proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW, mat))
+        proj.eyeW, proj.screenW, proj.rotXW.value, proj.rotYW.value, proj.rotZW.value, mat))
 
   val all: List[IFS4DType] = List(Menger4D, Sierpinski4D, Hexadecachoron4D)
 

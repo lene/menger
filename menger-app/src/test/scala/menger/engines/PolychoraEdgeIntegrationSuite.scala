@@ -72,7 +72,7 @@ class PolychoraEdgeIntegrationSuite extends AnyFlatSpec with Matchers:
     val spec = result.toOption.get
     spec.hasEdgeRendering shouldBe true
     val proj = spec.projection4D.get
-    proj.rotXW shouldBe 30f
+    proj.rotXW.value shouldBe 30f
     proj.eyeW shouldBe 4.0f
 
   // === TesseractEdgeSceneBuilder.calculateRequiredInstances ===

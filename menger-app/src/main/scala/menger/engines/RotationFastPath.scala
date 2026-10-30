@@ -51,7 +51,7 @@ object RotationFastPath:
     renderer.updateMesh4DProjection(
       slot,
       eyeW = proj.eyeW, screenW = proj.screenW,
-      rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+      rotXW = proj.rotXW.value, rotYW = proj.rotYW.value, rotZW = proj.rotZW.value
     )
 
   /** All instanced-4D IFS types (menger4d / sierpinski4d / hexadecachoron4d). The per-type
@@ -61,5 +61,5 @@ object RotationFastPath:
     MengerRenderer.of(renderer).update4DProjection(
       id,
       eyeW = proj.eyeW, screenW = proj.screenW,
-      rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+      rotXW = proj.rotXW.value, rotYW = proj.rotYW.value, rotZW = proj.rotZW.value
     )

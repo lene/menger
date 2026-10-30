@@ -87,7 +87,7 @@ object TrackedMesh4D:
         val p = spec.projection4D.getOrElse(Projection4DSpec.default)
         state.slotsPerSpec(i).foreach { slot =>
           renderer.updateMesh4DProjection(
-            slot, eyeW = p.eyeW, screenW = p.screenW, rotXW = p.rotXW, rotYW = p.rotYW, rotZW = p.rotZW
+            slot, eyeW = p.eyeW, screenW = p.screenW, rotXW = p.rotXW.value, rotYW = p.rotYW.value, rotZW = p.rotZW.value
           )
         }
       for

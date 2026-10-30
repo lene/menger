@@ -5,11 +5,13 @@ import scala.annotation.targetName
 import menger.objects.LSystemPresets
 import menger.spec.ConeGeometry
 import menger.spec.CurveData
+import menger.spec.Degrees
 import menger.spec.ObjectRotation
 import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 import menger.spec.ProceduralSpec
 import menger.spec.Projection4DSpec
+import menger.spec.Radians
 import menger.spec.TextureMaps
 import menger.video.VideoTexture
 
@@ -54,7 +56,7 @@ sealed trait SceneObject:
       projection4D = projection4D,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial,
-      rotation = ObjectRotation(rotation.x, rotation.y, rotation.z),
+      rotation = ObjectRotation(Radians(rotation.x), Radians(rotation.y), Radians(rotation.z)),
       procedural = ProceduralSpec(proceduralType, proceduralScale),
       textureMaps = TextureMaps(normalMap = normalMap, roughnessMap = roughnessMap),
       meshData = meshData,
@@ -899,7 +901,7 @@ case class LSystem(
   axiom: String,
   rules: Map[Char, String],
   iterations: Int = 4,
-  angleDegrees: Float = 25.7f,
+  angleDegrees: Degrees = Degrees(25.7f),
   segmentLength: Float = 0.1f,
   initialWidth: Float = 0.1f,
   widthDecay: Float = 0.7f,
@@ -919,7 +921,7 @@ case class LSystem(
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   FieldConstraints.check("LSystem", "iterations", iterations)
-  require(angleDegrees > 0, s"angle must be positive, got $angleDegrees")
+  require(angleDegrees.value > 0, s"angle must be positive, got ${angleDegrees.value}")
   require(segmentLength > 0, "segmentLength must be positive")
   require(initialWidth > 0, "initialWidth must be positive")
   require(rules.nonEmpty, "rules must not be empty")

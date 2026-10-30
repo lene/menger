@@ -5,6 +5,7 @@ import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.AnimationException
 import menger.objects.higher_d.RotationProjectionParameters
+import menger.spec.Degrees
 import menger.spec.ObjectRotation
 import menger.spec.ObjectSpec
 import menger.spec.Projection4DSpec
@@ -43,19 +44,18 @@ case class AnimationSpecificationSequence(specification: List[String] = List.emp
       val base = spec.projection4D.getOrElse(Projection4DSpec.default)
       val with4D = if has4D then
         withLevel.copy(projection4D = Some(Projection4DSpec(
-          rotXW   = if animatedParams.contains(RotXW) then r.rotXW else base.rotXW,
-          rotYW   = if animatedParams.contains(RotYW) then r.rotYW else base.rotYW,
-          rotZW   = if animatedParams.contains(RotZW) then r.rotZW else base.rotZW,
+          rotXW   = if animatedParams.contains(RotXW) then Degrees(r.rotXW) else base.rotXW,
+          rotYW   = if animatedParams.contains(RotYW) then Degrees(r.rotYW) else base.rotYW,
+          rotZW   = if animatedParams.contains(RotZW) then Degrees(r.rotZW) else base.rotZW,
           eyeW    = r.eyeW.getOrElse(base.eyeW),
           screenW = if animatedParams.contains(ProjectionScreenW) then r.screenW else base.screenW
         )))
       else withLevel
       if has3D then
-        val toRad = math.Pi.toFloat / 180f
         with4D.copy(rotation = ObjectRotation(
-          x = if animatedParams.contains(RotX) then r.rotX * toRad else with4D.rotation.x,
-          y = if animatedParams.contains(RotY) then r.rotY * toRad else with4D.rotation.y,
-          z = if animatedParams.contains(RotZ) then r.rotZ * toRad else with4D.rotation.z
+          x = if animatedParams.contains(RotX) then Degrees(r.rotX).toRadians else with4D.rotation.x,
+          y = if animatedParams.contains(RotY) then Degrees(r.rotY).toRadians else with4D.rotation.y,
+          z = if animatedParams.contains(RotZ) then Degrees(r.rotZ).toRadians else with4D.rotation.z
         ))
       else with4D
 

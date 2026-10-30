@@ -2,7 +2,7 @@ package menger.spec
 
 import menger.common.Color
 
-case class ObjectRotation(x: Float = 0f, y: Float = 0f, z: Float = 0f)
+case class ObjectRotation(x: Radians = Radians.Zero, y: Radians = Radians.Zero, z: Radians = Radians.Zero)
 
 case class ConeGeometry(
   apex: Option[(Float, Float, Float)] = None,

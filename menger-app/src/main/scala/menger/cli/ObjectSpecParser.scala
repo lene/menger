@@ -10,6 +10,7 @@ import menger.common.Material
 import menger.dsl.ResourceLimits
 import menger.spec.ConeGeometry
 import menger.spec.CurveData
+import menger.spec.Degrees
 import menger.spec.ObjectRotation
 import menger.spec.ObjectSpec
 import menger.spec.ObjectType
@@ -377,13 +378,15 @@ object ObjectSpecParser extends LazyLogging:
       for
         eyeW <- parseFloatParam(kvPairs, "eye-w", Projection4DSpec.DefaultEyeW, "4D eye W-coordinate")
         screenW <- parseFloatParam(kvPairs, "screen-w", Projection4DSpec.DefaultScreenW, "4D screen W-coordinate")
-        rotXW <- parseFloatParam(kvPairs, "rot-xw", Projection4DSpec.DefaultRotXW, "XW rotation angle in degrees")
-        rotYW <- parseFloatParam(kvPairs, "rot-yw", Projection4DSpec.DefaultRotYW, "YW rotation angle in degrees")
-        rotZW <- parseFloatParam(kvPairs, "rot-zw", Projection4DSpec.DefaultRotZW, "ZW rotation angle in degrees")
+        rotXW <- parseFloatParam(kvPairs, "rot-xw", Projection4DSpec.DefaultRotXW.value, "XW rotation angle in degrees")
+        rotYW <- parseFloatParam(kvPairs, "rot-yw", Projection4DSpec.DefaultRotYW.value, "YW rotation angle in degrees")
+        rotZW <- parseFloatParam(kvPairs, "rot-zw", Projection4DSpec.DefaultRotZW.value, "ZW rotation angle in degrees")
         wScale <- parseFloatParam(kvPairs, "w-scale", Projection4DSpec.DefaultWScale, "w scale >= 0")
         _ <- validate4DParams(eyeW, screenW)
         _ <- Either.cond(wScale >= 0f, (), s"w-scale must be >= 0, got $wScale")
-      yield Some(Projection4DSpec(eyeW, screenW, rotXW, rotYW, rotZW, wScale))
+      yield Some(Projection4DSpec(
+        eyeW, screenW, Degrees(rotXW), Degrees(rotYW), Degrees(rotZW), wScale
+      ))
     else
       Right(None)
 
@@ -541,9 +544,7 @@ object ObjectSpecParser extends LazyLogging:
       rotYDeg <- parseFloatParam(kvPairs, "rot-y", 0f, "Y-axis rotation in degrees")
       rotZDeg <- parseFloatParam(kvPairs, "rot-z", 0f, "Z-axis rotation in degrees")
     yield ObjectRotation(
-      math.toRadians(rotXDeg.toDouble).toFloat,
-      math.toRadians(rotYDeg.toDouble).toFloat,
-      math.toRadians(rotZDeg.toDouble).toFloat
+      Degrees(rotXDeg).toRadians, Degrees(rotYDeg).toRadians, Degrees(rotZDeg).toRadians
     )
 
   private def parseConeGeometry(kvPairs: Map[String, String]): Either[String, ConeGeometry] =

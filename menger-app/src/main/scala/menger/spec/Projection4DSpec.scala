@@ -7,9 +7,9 @@ package menger.spec
 case class Projection4DSpec(
   eyeW: Float = Projection4DSpec.DefaultEyeW,
   screenW: Float = Projection4DSpec.DefaultScreenW,
-  rotXW: Float = Projection4DSpec.DefaultRotXW,
-  rotYW: Float = Projection4DSpec.DefaultRotYW,
-  rotZW: Float = Projection4DSpec.DefaultRotZW,
+  rotXW: Degrees = Projection4DSpec.DefaultRotXW,
+  rotYW: Degrees = Projection4DSpec.DefaultRotYW,
+  rotZW: Degrees = Projection4DSpec.DefaultRotZW,
   // Scales the object's w coordinate before rotation and projection (menger#65): 0 flattens a
   // tesseract to a cube, animating 0 -> 1 grows it along w. Geometry, not view: see
   // ObjectSpec.withoutView.
@@ -22,9 +22,9 @@ case class Projection4DSpec(
 object Projection4DSpec:
   val DefaultEyeW: Float = 3.0f
   val DefaultScreenW: Float = 1.5f
-  val DefaultRotXW: Float = 15f
-  val DefaultRotYW: Float = 10f
-  val DefaultRotZW: Float = 0f
+  val DefaultRotXW: Degrees = Degrees(15f)
+  val DefaultRotYW: Degrees = Degrees(10f)
+  val DefaultRotZW: Degrees = Degrees.Zero
   val DefaultWScale: Float = 1f
 
   val default: Projection4DSpec = Projection4DSpec()

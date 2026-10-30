@@ -2,6 +2,7 @@ package menger.engines
 
 import menger.common.Const
 import menger.objects.higher_d.RotationProjectionParameters
+import menger.spec.Degrees
 import menger.spec.ObjectSpec
 import menger.spec.Projection4DSpec
 
@@ -35,7 +36,8 @@ final case class Interactive4DOffset(
         val p = spec.projection4D.getOrElse(Projection4DSpec.default)
         spec.copy(projection4D = Some(p.copy(
           eyeW = scrolledEyeW(p),
-          rotXW = p.rotXW + rotXW, rotYW = p.rotYW + rotYW, rotZW = p.rotZW + rotZW
+          rotXW = p.rotXW + Degrees(rotXW), rotYW = p.rotYW + Degrees(rotYW),
+          rotZW = p.rotZW + Degrees(rotZW)
         )))
       else spec
     }

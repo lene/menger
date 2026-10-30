@@ -2,6 +2,7 @@ package menger.app
 
 import menger.cli.MengerCLIOptions
 import menger.engines.TypeRegistry
+import menger.spec.Degrees
 import menger.spec.ObjectRotation
 import menger.spec.ObjectSpec
 import menger.spec.Projection4DSpec
@@ -14,9 +15,9 @@ import menger.spec.Projection4DSpec
   */
 object GlobalRotation:
   def apply(opts: MengerCLIOptions, specs: List[ObjectSpec]): List[ObjectSpec] =
-    val rx = math.toRadians(opts.rotX().toDouble).toFloat
-    val ry = math.toRadians(opts.rotY().toDouble).toFloat
-    val rz = math.toRadians(opts.rotZ().toDouble).toFloat
+    val rx = Degrees(opts.rotX()).toRadians
+    val ry = Degrees(opts.rotY()).toRadians
+    val rz = Degrees(opts.rotZ()).toRadians
     specs.map { spec =>
       val withRotation = spec.copy(rotation = ObjectRotation(
         spec.rotation.x + rx, spec.rotation.y + ry, spec.rotation.z + rz
@@ -24,9 +25,9 @@ object GlobalRotation:
       if TypeRegistry.is4DFastPathType(spec.objectType) then
         val proj = withRotation.projection4D.getOrElse(Projection4DSpec())
         withRotation.copy(projection4D = Some(proj.copy(
-          rotXW = proj.rotXW + opts.effectiveRotXW,
-          rotYW = proj.rotYW + opts.effectiveRotYW,
-          rotZW = proj.rotZW + opts.effectiveRotZW
+          rotXW = proj.rotXW + Degrees(opts.effectiveRotXW),
+          rotYW = proj.rotYW + Degrees(opts.effectiveRotYW),
+          rotZW = proj.rotZW + Degrees(opts.effectiveRotZW)
         )))
       else withRotation
     }

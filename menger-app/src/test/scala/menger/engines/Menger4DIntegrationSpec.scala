@@ -18,9 +18,9 @@ class Menger4DIntegrationSpec extends AnyFlatSpec with Matchers:
     val result = ObjectSpecParser.parse("type=menger4d:level=3:rot-xw=45:rot-yw=30:rot-zw=15")
     result shouldBe a[Right[?, ?]]
     val proj = result.toOption.get.projection4D.get
-    proj.rotXW shouldBe 45f
-    proj.rotYW shouldBe 30f
-    proj.rotZW shouldBe 15f
+    proj.rotXW.value shouldBe 45f
+    proj.rotYW.value shouldBe 30f
+    proj.rotZW.value shouldBe 15f
 
   it should "parse menger4d with projection parameters" in:
     val result = ObjectSpecParser.parse("type=menger4d:level=3:eye-w=4.0:screen-w=1.5")

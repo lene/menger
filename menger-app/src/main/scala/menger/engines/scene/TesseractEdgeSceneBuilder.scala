@@ -16,6 +16,7 @@ import menger.common.z
 import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
+import menger.spec.Degrees
 import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 import menger.spec.Projection4DSpec
@@ -190,7 +191,7 @@ class TesseractEdgeSceneBuilder(
           FaceTrack.Gpu(renderer.setProjectedMesh(
             faces4D, vertsPerFace, uvs = null, // scalafix:ok DisableSyntax.null
             eyeW = proj.eyeW, screenW = proj.screenW,
-            rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW,
+            rotXW = proj.rotXW.value, rotYW = proj.rotYW.value, rotZW = proj.rotZW.value,
             centerX = 0f, centerY = 0f, centerZ = 0f
           ))
         case MeshUploadPlan.Cpu(data) =>
@@ -408,8 +409,11 @@ object TesseractEdgeSceneBuilder:
   ): IndexedSeq[Option[(Vector[3], Vector[3])]] =
     val proj4D = spec.projection4D.getOrElse(Projection4DSpec.default)
     val rotation: Rotation =
-      if proj4D.rotXW == 0f && proj4D.rotYW == 0f && proj4D.rotZW == 0f then Rotation.identity
-      else Rotation(proj4D.rotXW, proj4D.rotYW, proj4D.rotZW, Vector[4](0f, 0f, 0f, 0f))
+      if proj4D.rotXW == Degrees.Zero && proj4D.rotYW == Degrees.Zero &&
+        proj4D.rotZW == Degrees.Zero then Rotation.identity
+      else Rotation(
+        proj4D.rotXW.value, proj4D.rotYW.value, proj4D.rotZW.value, Vector[4](0f, 0f, 0f, 0f)
+      )
     val projection = Projection(proj4D.eyeW, proj4D.screenW)
     edges.map { case (v0, v1) =>
       val r0 = rotation(v0)
@@ -470,7 +474,7 @@ object TesseractEdgeSceneBuilder:
               val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
               renderer.updateMesh4DProjection(
                 slot, eyeW = proj.eyeW, screenW = proj.screenW,
-                rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+                rotXW = proj.rotXW.value, rotYW = proj.rotYW.value, rotZW = proj.rotZW.value
               )
             case _ => ()
         }

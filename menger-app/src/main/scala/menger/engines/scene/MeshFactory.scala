@@ -215,6 +215,6 @@ object MeshFactory:
       Mesh4DProjection(
         mesh4D = mesh, center = Vector.Zero[3],
         eyeW = proj.eyeW, screenW = proj.screenW,
-        rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+        rotXW = proj.rotXW.value, rotYW = proj.rotYW.value, rotZW = proj.rotZW.value
       )
     }

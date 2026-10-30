@@ -420,9 +420,9 @@ class ObjectSpecParserSuite extends AnyFlatSpec with Matchers:
     result match
       case Right(spec) =>
         val proj = spec.projection4D.get
-        proj.rotXW shouldBe 30.0f
-        proj.rotYW shouldBe 45.0f
-        proj.rotZW shouldBe 60.0f
+        proj.rotXW.value shouldBe 30.0f
+        proj.rotYW.value shouldBe 45.0f
+        proj.rotZW.value shouldBe 60.0f
       case Left(error) => fail(s"Expected Right but got Left: $error")
 
   it should "parse custom eye-w and screen-w parameters" in:
@@ -470,7 +470,7 @@ class ObjectSpecParserSuite extends AnyFlatSpec with Matchers:
         spec.size shouldBe 2.5f
         spec.color shouldBe defined
         spec.projection4D shouldBe defined
-        spec.projection4D.get.rotXW shouldBe 45.0f
+        spec.projection4D.get.rotXW.value shouldBe 45.0f
         spec.projection4D.get.eyeW shouldBe 4.0f
         spec.projection4D.get.screenW shouldBe 1.0f
       case Left(error) => fail(s"Expected Right but got Left: $error")
@@ -487,9 +487,9 @@ class ObjectSpecParserSuite extends AnyFlatSpec with Matchers:
     val default = Projection4DSpec.default
     default.eyeW shouldBe 3.0f
     default.screenW shouldBe 1.5f
-    default.rotXW shouldBe 15f
-    default.rotYW shouldBe 10f
-    default.rotZW shouldBe 0f
+    default.rotXW.value shouldBe 15f
+    default.rotYW.value shouldBe 10f
+    default.rotZW.value shouldBe 0f
 
   // Edge rendering parameter tests
   "ObjectSpec edge parameter parsing" should "parse edge-radius" in:

@@ -164,13 +164,13 @@ object SceneSnapshot:
       pos = List(spec.x, spec.y, spec.z),
       size = spec.size,
       level = spec.level,
-      rotation = List(spec.rotation.x, spec.rotation.y, spec.rotation.z),
+      rotation = List(spec.rotation.x.value, spec.rotation.y.value, spec.rotation.z.value),
       color = spec.color.map(rgba),
       material = spec.material.map(materialValues),
       edgeRadius = spec.edgeRadius,
       edgeMaterial = spec.edgeMaterial.map(materialValues),
       projection = spec.projection4D.map(p =>
-        ProjectionValues(p.eyeW, p.screenW, p.rotXW, p.rotYW, p.rotZW, p.wScale)
+        ProjectionValues(p.eyeW, p.screenW, p.rotXW.value, p.rotYW.value, p.rotZW.value, p.wScale)
       ),
       proceduralType = spec.procedural.proceduralType,
       proceduralScale = spec.procedural.scale

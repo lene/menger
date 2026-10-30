@@ -64,9 +64,9 @@ class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
         initWidth * size,
         decay,
         seed,
-        rotXW = proj4D.rotXW,
-        rotYW = proj4D.rotYW,
-        rotZW = proj4D.rotZW,
+        rotXW = proj4D.rotXW.value,
+        rotYW = proj4D.rotYW.value,
+        rotZW = proj4D.rotZW.value,
         eyeW = proj4D.eyeW,
         screenW = proj4D.screenW
       )

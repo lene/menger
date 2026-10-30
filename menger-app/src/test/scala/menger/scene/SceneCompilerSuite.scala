@@ -29,6 +29,25 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
     )
     SceneCompiler.compile(file) shouldBe a[Right[?, ?]]
 
+  // menger#95: the 4D angles are Degrees, but a scene that passes plain Floats (as every
+  // scene written before the types did) must keep compiling, without opting into implicit
+  // conversions -- the conversion is a warning at the use site, not an error.
+  it should "compile a scene that passes plain Floats for the 4D rotation angles" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |import menger.spec.Projection4DSpec
+        |object FloatAnglesTestScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Tesseract(
+        |      projection = Some(Projection4DSpec(rotXW = 30f, rotYW = 45f, rotZW = 0f))
+        |    )),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    SceneCompiler.compile(file) shouldBe a[Right[?, ?]]
+
   it should "return Left for a file with a syntax error" in:
     val file = writeTempScene("object Broken { THIS IS NOT SCALA !!!!")
     SceneCompiler.compile(file) shouldBe a[Left[?, ?]]

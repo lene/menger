@@ -25,7 +25,7 @@ class Interactive4DOffsetSuite extends AnyFlatSpec with Matchers:
     val applied = offset.applyTo(List(tesseract, cube))
 
     val p = applied.head.projection4D.get
-    (p.rotXW, p.rotYW, p.rotZW) shouldBe (15f, 17f, 2f)
+    (p.rotXW.value, p.rotYW.value, p.rotZW.value) shouldBe (15f, 17f, 2f)
     applied(1) shouldBe cube
 
   it should "leave the specs alone for a zero offset" in:
