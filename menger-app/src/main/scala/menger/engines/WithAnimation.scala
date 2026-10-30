@@ -14,7 +14,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureIndex
-import io.github.lene.optix.TextureUploadException
 import menger.common.CausticsConfig
 import menger.common.ImageSize
 import menger.common.RenderConfig
@@ -250,15 +249,9 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     renderer: OptiXRenderer
   ): Unit =
     configs.envMap.foreach { path =>
-      try
-        val resolvedPath = AssetPaths.resolveOrThrow(textureDir, path).toString
-        val idx = renderer.uploadTextureFromFile(resolvedPath)
-        renderer.setEnvironmentMap(idx)
-      catch
-        case e: TextureUploadException =>
-          logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
-        case e: AssetPaths.AssetPathException =>
-          logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
+      TextureManager.uploadFile(renderer, textureDir, path) match
+        case Right(idx)   => renderer.setEnvironmentMap(idx)
+        case Left(reason) => logger.error(s"Failed to load environment map: $path: $reason")
     }
 
   private def configureIBL(

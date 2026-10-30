@@ -168,23 +168,32 @@ object TextureManager extends LazyLogging:
       result(i) = (255 - (result(i) & 0xFF)).toByte
     result
 
+  /** Uploads the image file `filename`, resolved under `textureDir`; the `Left` says why it could
+    * not be. The one place a file upload's failures are caught (menger#103): every caller logs
+    * the `Left` and renders without the texture. */
+  def uploadFile(
+    renderer: OptiXRenderer,
+    textureDir: String,
+    filename: String
+  ): Either[String, TextureIndex] =
+    AssetPaths.resolve(textureDir, filename).left.map(reason => s"cannot resolve: $reason")
+      .flatMap { path =>
+        try Right(renderer.uploadTextureFromFile(path.toString))
+        catch case e: TextureUploadException => Left(s"upload failed: ${e.getMessage}")
+      }
+
   private def loadStaticTexture(
     filename: String,
     renderer: OptiXRenderer,
     textureDir: String
   ): Option[(String, TextureIndex)] =
     if filename.toLowerCase.endsWith(".hdr") then
-      try
-        val resolvedPath = AssetPaths.resolveOrThrow(textureDir, filename).toString
-        val idx = renderer.uploadTextureFromFile(resolvedPath)
-        logger.debug(s"Uploaded HDR texture '$filename' as index $idx")
-        Some(filename -> idx)
-      catch
-        case e: TextureUploadException =>
-          logger.error(s"Failed to upload HDR texture '$filename': ${e.getMessage}")
-          None
-        case e: AssetPaths.AssetPathException =>
-          logger.error(s"Failed to resolve HDR texture '$filename': ${e.getMessage}")
+      uploadFile(renderer, textureDir, filename) match
+        case Right(idx) =>
+          logger.debug(s"Uploaded HDR texture '$filename' as index $idx")
+          Some(filename -> idx)
+        case Left(reason) =>
+          logger.error(s"Failed to load HDR texture '$filename': $reason")
           None
     else
       TextureLoader.load(filename, textureDir) match

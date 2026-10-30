@@ -10,7 +10,6 @@ import scala.util.Try
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.MeshSlot
-import io.github.lene.optix.TextureUploadException
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
@@ -21,7 +20,6 @@ import menger.config.OptiXEngineConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.LoadedScene
 import menger.dsl.ResourceLimits
-import menger.engines.scene.AssetPaths
 import menger.engines.scene.InstanceId
 import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SceneBuilder
@@ -363,15 +361,9 @@ class InteractiveEngine(
           sceneConfigurator.configureCamera(renderer)
           applyRendererState(renderer)
           environment.envMap.foreach { path =>
-            try
-              val resolvedPath = AssetPaths.resolveOrThrow(config.execution.textureDir, path).toString
-              val idx = renderer.uploadTextureFromFile(resolvedPath)
-              renderer.setEnvironmentMap(idx)
-            catch
-              case e: TextureUploadException =>
-                logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
-              case e: AssetPaths.AssetPathException =>
-                logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
+            TextureManager.uploadFile(renderer, config.execution.textureDir, path) match
+              case Right(idx)   => renderer.setEnvironmentMap(idx)
+              case Left(reason) => logger.error(s"Failed to load environment map: $path: $reason")
           }
           environment.envMapVideo.foreach { envMapVideo =>
             TextureManager.loadInitialEnvMapVideo(
