@@ -1,4 +1,4 @@
-package menger
+package menger.cli.converters
 
 import menger.common.Color
 import menger.common.Const

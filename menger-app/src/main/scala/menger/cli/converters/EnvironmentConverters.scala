@@ -2,7 +2,6 @@ package menger.cli.converters
 
 import scala.util.Try
 
-import menger.ColorConversions
 import menger.cli.AreaLightShape
 import menger.cli.Axis
 import menger.cli.LightSpec

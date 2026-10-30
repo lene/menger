@@ -459,7 +459,7 @@ object ManifestGenerator extends LazyLogging:
         ProductCapManifest(c.typeName, c.fields, c.max)),
       compileSurface = CompileSurfaceManifest(
         RestrictedClasspath.ScenePackages.toList.sorted.map("menger." + _),
-        RestrictedClasspath.SceneRootTypes.toList.sorted.map("menger." + _)
+        List.empty // no root-package types any more; the field goes with manifest 2.0.0
       )
     )
 
