@@ -200,7 +200,7 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
   // a compiled scene's class loader resolves nothing outside it at run time either.
   private val outsideTheVocabulary = List(
     "menger.tools.SceneValidator", "menger.engines.InteractiveEngine", "menger.cli.CliParser",
-    "menger.scene.SceneCompiler", "menger.scene.SceneLoader", "menger.MengerCLIOptions",
+    "menger.scene.SceneCompiler", "menger.scene.SceneLoader", "menger.cli.MengerCLIOptions",
     "menger.config.SceneConfig", "examples.dsl.SceneIndex", "Main"
   )
 

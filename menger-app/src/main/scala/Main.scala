@@ -11,9 +11,9 @@ import com.badlogic.gdx.ApplicationListener
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import menger.GlobalRotation
-import menger.MengerCLIOptions
-import menger.MengerExitException
 import menger.cli.LightSpec
+import menger.cli.MengerCLIOptions
+import menger.cli.MengerExitException
 import menger.common.Const
 import menger.common.FogConfig
 import menger.common.ProfilingConfig

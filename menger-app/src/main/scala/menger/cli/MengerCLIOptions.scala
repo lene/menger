@@ -1,14 +1,9 @@
-package menger
+package menger.cli
 
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 import com.typesafe.scalalogging.LazyLogging
-import menger.cli.CliValidation
-import menger.cli.FogSpec
-import menger.cli.LightSpec
-import menger.cli.PlaneColorSpec
-import menger.cli.PlaneSpec
 import menger.cli.converters.ConverterUtils
 import menger.cli.converters.animationSpecificationSequenceConverter
 import menger.cli.converters.fogSpecConverter

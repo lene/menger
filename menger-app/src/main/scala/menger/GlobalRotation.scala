@@ -1,5 +1,6 @@
 package menger
 
+import menger.cli.MengerCLIOptions
 import menger.engines.TypeRegistry
 import menger.spec.ObjectRotation
 import menger.spec.ObjectSpec

@@ -1,6 +1,6 @@
 import scala.jdk.CollectionConverters._
 
-import menger.MengerCLIOptions
+import menger.cli.MengerCLIOptions
 import menger.engines.InteractiveEngine
 import menger.engines.PreviewEngine
 import org.scalatest.flatspec.AnyFlatSpec

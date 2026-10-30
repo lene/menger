@@ -274,8 +274,7 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
   it should "not grow the unlayered root package menger" in:
     classes().that().resideInAPackage("menger")
       .should().haveNameMatching(
-        "menger\\.(GlobalRotation|MengerCLIOptions|" +
-          "MengerExitException|OptiXRenderResources|OptiXRenderState|RenderState)(\\$.*)?"
+        "menger\\.(GlobalRotation|OptiXRenderResources|OptiXRenderState|RenderState)(\\$.*)?"
       ).check(allClasses)
 
   it should "keep menger.video a leaf package" in:

@@ -1,6 +1,6 @@
 package menger.engines
 
-import menger.MengerCLIOptions
+import menger.cli.MengerCLIOptions
 import menger.spec.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

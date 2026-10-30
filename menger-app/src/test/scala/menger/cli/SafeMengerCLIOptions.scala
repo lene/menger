@@ -1,7 +1,5 @@
 package menger.cli
 
-import menger.MengerCLIOptions
-
 /** Test utility that converts CLI parsing errors to exceptions for easier test assertions.
   *
   * The production MengerCLIOptions handles errors gracefully by printing help text and exiting.
