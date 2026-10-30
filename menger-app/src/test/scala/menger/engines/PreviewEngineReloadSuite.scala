@@ -6,6 +6,7 @@ import menger.dsl.LoadedScene
 import menger.dsl.Scene
 import menger.dsl.Sphere
 import menger.dsl.Vec3
+import menger.scene.LoadError
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -40,7 +41,7 @@ class PreviewEngineReloadSuite extends AnyFlatSpec with Matchers:
     PreviewEngine.reloadDecision(loaded, current, realtime = true) shouldBe PreviewEngine.KindChanged
 
   it should "reject a scene that failed to load and keep the playing one" in:
-    PreviewEngine.reloadDecision(Left("compile error"), current, realtime = true) shouldBe
+    PreviewEngine.reloadDecision(Left(LoadError.Malformed("compile error")), current, realtime = true) shouldBe
       PreviewEngine.Rejected("compile error")
 
   it should "recompute the frame count of an every-frame loop from the new duration" in:

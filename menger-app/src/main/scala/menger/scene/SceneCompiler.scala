@@ -17,7 +17,7 @@ object SceneCompiler extends LazyLogging:
    *  JVM would otherwise expose to a compiled scene file. See `RestrictedClasspath` for what
    *  is included/excluded and why.
    */
-  def compile(sourceFile: File): Either[String, ClassLoader] =
+  def compile(sourceFile: File): Either[LoadError, ClassLoader] =
     val outputDir = Files.createTempDirectory("menger-scene-").toFile
     val cp        = RestrictedClasspath.build()
     logger.debug(s"Compiling ${sourceFile.getAbsolutePath} → ${outputDir.getAbsolutePath}")
@@ -31,27 +31,23 @@ object SceneCompiler extends LazyLogging:
     val reporter = new Driver().process(args)
 
     if reporter.hasErrors then
-      Left(formatErrors(sourceFile, reporter.allErrors))
+      Left(LoadError.CompileFailed(sourceFile.getName, diagnosticsOf(reporter.allErrors)))
     else
       Right(URLClassLoader(
         Array(outputDir.toURI.toURL),
         SceneClassLoader(Thread.currentThread.getContextClassLoader)
       ))
 
-  /** Renders the Dotty reporter's own buffered diagnostics (`Reporter.allErrors` -- populated
-    * by the base `Reporter` class regardless of which concrete reporter ran the compile, so
-    * this needs no custom `StoreReporter`/`Context` plumbing) into the `Left` a caller actually
-    * gets back. Previously this was a generic placeholder pointing at "compiler output above" --
-    * output that a sandboxed subprocess caller (`SceneValidator`, SA-AD-18) never sees, since the
-    * reporter's own console output is on the compiler JVM's stderr, not folded into the JSON
-    * result. `Diagnostic.message` needs no `Context` argument (already ANSI-stripped by its own
-    * `override def message`), so this stays a plain, directly testable string transform. */
-  private def formatErrors(sourceFile: File, errors: List[Error]): String =
-    val details = errors.map { err =>
-      if err.pos.exists then s"line ${err.pos.line + 1}: ${err.message}"
-      else err.message
+  /** The Dotty reporter's own buffered diagnostics (`Reporter.allErrors` -- populated by the
+    * base `Reporter` class regardless of which concrete reporter ran the compile, so this needs
+    * no custom `StoreReporter`/`Context` plumbing). They have to travel in the `Left`: the
+    * reporter's console output is on the compiler JVM's stderr, which a sandboxed subprocess
+    * caller (`SceneValidator`, SA-AD-18) never sees. `Diagnostic.message` needs no `Context`
+    * argument (already ANSI-stripped by its own `override def message`). */
+  private def diagnosticsOf(errors: List[Error]): List[LoadError.Diagnostic] =
+    errors.map { err =>
+      LoadError.Diagnostic(Option.when(err.pos.exists)(err.pos.line + 1), err.message)
     }
-    s"Compilation of '${sourceFile.getName}' failed:\n${details.mkString("\n")}"
 
 /** The parent of a compiled scene's class loader: it resolves the JDK, the Scala library and
   * the scene view of menger-app ([[RestrictedClasspath.isSceneClass]]), and nothing else, so a

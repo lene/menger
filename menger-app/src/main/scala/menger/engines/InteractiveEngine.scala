@@ -477,7 +477,7 @@ class InteractiveEngine(
       case Right(LoadedScene.Static(newScene)) =>
         GdxRuntime.postRunnable(() => reloadScene(file, newScene))
       case Right(LoadedScene.Animated(_)) => kindChanged(file, toAnimated = true)
-      case Left(error) => reloadFailed(file, error)
+      case Left(error) => reloadFailed(file, error.message)
     }
 
   /** Everything a reload replaces, so a failed rebuild can put the previous scene back. */

@@ -120,8 +120,21 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
     val file = writeTempScene("object Broken { THIS IS NOT VALID SCALA !!!!")
     SceneLoader.load(file.getAbsolutePath) shouldBe a[Left[?, ?]]
 
-  it should "return Left when the .scala file does not exist" in:
-    SceneLoader.load("/nonexistent/path/missing.scala") shouldBe a[Left[?, ?]]
+  it should "say which line a compilation error is on" in:
+    val file = writeTempScene("import menger.dsl._\nobject OnLineTwo:\n  val scene: Scene = 42\n")
+    SceneLoader.load(file.getAbsolutePath) match
+      case Left(LoadError.CompileFailed(name, diagnostics)) =>
+        name shouldBe file.getName
+        diagnostics.flatMap(_.line) should contain (3)
+      case other => fail(s"Expected CompileFailed, got $other")
+
+  it should "return NotFound when the .scala file does not exist" in:
+    SceneLoader.load("/nonexistent/path/missing.scala") shouldBe
+      Left(LoadError.NotFound("/nonexistent/path/missing.scala"))
+
+  it should "return NoSceneObject for a file without an object" in:
+    val file = writeTempScene("import menger.dsl._\nval x = 1\n")
+    SceneLoader.load(file.getAbsolutePath) shouldBe Left(LoadError.NoSceneObject(file.getName))
 
   it should "return Left when object has no scene member" in:
     val file = writeTempScene(
@@ -172,15 +185,16 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
   it should "reject a non-positive duration" in:
     val file =
       writeTempScene(animatedScene("NegativeDurationScene", "val durationSeconds = -1f", "1f + t"))
-    SceneLoader.load(file.getAbsolutePath) shouldBe Left("'durationSeconds' must be positive, got -1.0")
+    SceneLoader.load(file.getAbsolutePath) shouldBe
+      Left(LoadError.Malformed("'durationSeconds' must be positive, got -1.0"))
 
   // Usability review 2026-09: the loader swallowed exceptions from probing scene(0), so a scene
   // whose require() failed at t=0 was reported as having no scene method at all.
   it should "report the scene's own error when scene(0) throws" in:
     val file = writeTempScene(animatedScene("ThrowingAtZeroScene", "", "t"))
     val result = SceneLoader.load(file.getAbsolutePath)
-    result.left.map(_.contains("scene(0) threw")) shouldBe Left(true)
-    result.left.map(_.contains("Size must be positive")) shouldBe Left(true)
+    result.left.map(_.message.contains("scene(0) threw")) shouldBe Left(true)
+    result.left.map(_.message.contains("Size must be positive")) shouldBe Left(true)
 
   // Review 2026-10-14 (menger#101): a static scene's failing `require` is an
   // ExceptionInInitializerError, which escaped the loader (live reload silently did nothing).
@@ -196,8 +210,8 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
         |""".stripMargin
     )
     val result = SceneLoader.load(file.getAbsolutePath)
-    result.left.map(_.startsWith(SceneLoader.ConstructionFailed)) shouldBe Left(true)
-    result.left.map(_.contains("Size must be positive")) shouldBe Left(true)
+    result.left.toOption.collect { case LoadError.ConstructionFailed(_) => () } shouldBe Some(())
+    result.left.map(_.message.contains("Size must be positive")) shouldBe Left(true)
 
   it should "return Left, not throw, when a scene's construction recurses forever" in:
     val file = writeTempScene(
@@ -212,8 +226,8 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
         |  )
         |""".stripMargin
     )
-    SceneLoader.load(file.getAbsolutePath).left.map(_.startsWith(SceneLoader.StackOverflow)) shouldBe
-      Left(true)
+    SceneLoader.load(file.getAbsolutePath).left.toOption
+      .collect { case LoadError.StackOverflow(_) => () } shouldBe Some(())
 
   // Review 2026-10-14 (menger#79/#99): the compile view is an allow-list of the DSL surface, and
   // a compiled scene's class loader resolves nothing outside it at run time either.

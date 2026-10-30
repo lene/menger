@@ -95,7 +95,8 @@ class SceneLoaderSuite extends AnyFlatSpec with Matchers:
 
     loaded match
       case Left(error) =>
-        error should include("Scene not found")
+        error shouldBe a[LoadError.UnknownScene]
+        error.message should include("Scene not found")
       case Right(_) =>
         fail("Should have failed to load non-existent scene")
 
@@ -105,7 +106,8 @@ class SceneLoaderSuite extends AnyFlatSpec with Matchers:
 
     loaded match
       case Left(error) =>
-        error should include("has neither a 'scene' field")
+        error shouldBe a[LoadError.Malformed]
+        error.message should include("has neither a 'scene' field")
       case Right(_) =>
         fail("Should have failed to load class without scene field")
 

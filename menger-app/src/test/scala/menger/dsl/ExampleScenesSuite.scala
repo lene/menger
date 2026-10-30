@@ -1,5 +1,6 @@
 package menger.dsl
 
+import menger.scene.LoadError
 import menger.scene.SceneLoader
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -21,11 +22,11 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
   examples.dsl.SceneIndex.all
   examples.dsl.SceneIndex.animated
 
-  private def extractStaticScene(result: Either[String, LoadedScene]): Scene =
+  private def extractStaticScene(result: Either[LoadError, LoadedScene]): Scene =
     result match
       case Right(LoadedScene.Static(scene)) => scene
       case Right(LoadedScene.Animated(_)) => fail("Expected Static scene but got Animated")
-      case Left(error) => fail(s"Failed to load scene: $error")
+      case Left(error) => fail(s"Failed to load scene: ${error.message}")
 
   "Example scenes" should "load GlassSphere via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.GlassSphere"))
@@ -86,11 +87,11 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.lights should have length 2
     scene.planes should not be empty
 
-  private def extractAnimatedFn(result: Either[String, LoadedScene]): Float => Scene =
+  private def extractAnimatedFn(result: Either[LoadError, LoadedScene]): Float => Scene =
     result match
       case Right(LoadedScene.Animated(fn)) => fn
       case Right(LoadedScene.Static(_)) => fail("Expected Animated scene but got Static")
-      case Left(error) => fail(s"Failed to load scene: $error")
+      case Left(error) => fail(s"Failed to load scene: ${error.message}")
 
   "Animated example scenes" should "load OrbitingSphere as animated" in:
     val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.OrbitingSphere"))

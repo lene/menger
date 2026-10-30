@@ -15,6 +15,7 @@ import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
 import menger.objects.higher_d.InvariantFinding
 import menger.objects.higher_d.PolytopeInvariants
+import menger.scene.LoadError
 import menger.scene.RestrictedClasspath
 import menger.scene.SceneLoader
 import menger.spec.ObjectSpec
@@ -213,29 +214,25 @@ object SceneValidator extends LazyLogging:
               scene = Some(scenePath)
             )
 
-  /** `SceneLoader.load`'s `Left` messages come from three distinct sources, each mapped to a
-    * different SA-AD-5 tag:
-    *   - `SceneCompiler`'s own message (always starts with "Compilation of") -- a genuine
-    *     Scala/DSL syntax error -- `CompileErrors`.
-    *   - "Scene file not found: ..." -- the resource the pipeline was told to validate simply
+  /** Each [[LoadError]] maps to one SA-AD-5 tag:
+    *   - `CompileFailed` -- a genuine Scala/DSL syntax or type error -- `CompileErrors`.
+    *   - `NotFound`, `UnknownScene` -- the resource the pipeline was told to validate simply
     *     isn't there -- a pipeline-level `Refused`, not a defect in scene content that was
     *     never even read.
-    *   - Everything else (no top-level object, no `scene`/`scene(Float)` member, or a
-    *     `require()` precondition rejecting a compiled-and-loaded scene's construction
-    *     parameters, caught by `SceneLoader`'s own `Try`) -- a scene-content defect the
-    *     loader itself caught, not a compiler error -- `LintFindings`, matching the I/O
-    *     matrix's "compile-errors or lint-findings" allowance for `require()` rejections. */
-  private def classifyLoadFailure(err: String): ValidationResult =
-    if err.startsWith("Compilation of") then
-      ValidationResult(Tag.CompileErrors, List(err))
-    else if err.startsWith("Scene file not found") then
-      ValidationResult(Tag.Refused, List(err))
-    // A LinkageError while loading is the environment's, never the scene's (now a `Left` from
-    // the loader, menger#101; it used to be caught as an Error below).
-    else if err.startsWith(SceneLoader.ClasspathBroken) then
-      ValidationResult(Tag.Refused, List(err))
-    else
-      ValidationResult(Tag.LintFindings, List(err))
+    *   - `ClasspathBroken` -- a LinkageError while loading is the environment's, never the
+    *     scene's -- `Refused`.
+    *   - Everything else (no top-level object, no `scene`/`scene(Float)` member, a
+    *     `require()` rejecting the scene's construction parameters) -- a scene-content defect
+    *     the loader itself caught -- `LintFindings`, matching the I/O matrix's
+    *     "compile-errors or lint-findings" allowance for `require()` rejections. */
+  private def classifyLoadFailure(err: LoadError): ValidationResult =
+    val tag = err match
+      case _: LoadError.CompileFailed => Tag.CompileErrors
+      case _: (LoadError.NotFound | LoadError.UnknownScene | LoadError.ClasspathBroken) =>
+        Tag.Refused
+      case _: (LoadError.NoSceneObject | LoadError.ConstructionFailed | LoadError.StackOverflow |
+               LoadError.Malformed) => Tag.LintFindings
+    ValidationResult(tag, List(err.message))
 
   /** Evenly spaced times, both ends included, at which an animated scene with a duration is
     * checked. Checking only the ends missed a sponge whose level peaks mid-animation: an

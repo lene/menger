@@ -355,7 +355,8 @@ object Main:
         // render that will already have exited before any edit could matter.
         createOptiXEngineFromDslScene(opts, dslScene, freezeT, sceneFileToWatch(opts, sceneName))
 
-      case Left(error) =>
+      case Left(loadError) =>
+        val error = loadError.message
         System.err.println(s"Failed to load scene '$sceneName': $error")
         sys.exit(1)
 

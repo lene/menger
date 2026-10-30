@@ -22,6 +22,7 @@ import menger.input.Vector3Extensions.toVector3
 import menger.objects.higher_d.RotationProjectionParameters
 import menger.optix.CameraState
 import menger.optix.SceneConfigurator
+import menger.scene.LoadError
 import menger.spec.ObjectSpec
 
 class PreviewEngine(
@@ -231,7 +232,7 @@ object PreviewEngine:
   // A real-time scene's new `duration` becomes its new time range; a `--preview` scene keeps
   // the range it was started with.
   def reloadDecision(
-    loaded: Either[String, LoadedScene],
+    loaded: Either[LoadError, LoadedScene],
     current: TAnimationConfig,
     realtime: Boolean,
     everyFrame: Boolean = false
@@ -245,4 +246,4 @@ object PreviewEngine:
           else current
         Reload(fn, config)
       case Right(_: LoadedScene.Static) => KindChanged
-      case Left(error)                  => Rejected(error)
+      case Left(error)                  => Rejected(error.message)

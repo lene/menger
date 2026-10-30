@@ -7,6 +7,7 @@ import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.dsl.LoadedScene
+import menger.scene.LoadError
 import menger.scene.SceneFileWatcher
 import menger.scene.SceneLoader
 import menger.spec.ObjectSpec
@@ -32,7 +33,7 @@ trait LiveReload extends LazyLogging:
     events.foreach(_.emit(kind, detail))
 
   /** Starts watching `file`; `onLoaded` runs on the watcher's thread with the loader's result. */
-  protected def watchSceneFile(file: File)(onLoaded: Either[String, LoadedScene] => Unit): Unit =
+  protected def watchSceneFile(file: File)(onLoaded: Either[LoadError, LoadedScene] => Unit): Unit =
     val watcher = new SceneFileWatcher(file)(() => onLoaded(SceneLoader.load(file.getPath)))
     fileWatcher.set(Some(watcher))
     logger.info(s"Watching scene file for live reload: ${file.getPath} (${HeapUsage.describe()})")
