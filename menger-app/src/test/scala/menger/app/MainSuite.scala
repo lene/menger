@@ -1,3 +1,5 @@
+package menger.app
+
 import scala.jdk.CollectionConverters._
 
 import menger.cli.MengerCLIOptions
@@ -33,7 +35,7 @@ class MainSuite extends AnyFlatSpec with Matchers:
 
   it should "invoke Main as the child's main class" in:
     val builder = Main.buildReExecProcessBuilder(Array.empty, ":1")
-    builder.command().asScala should contain("Main")
+    builder.command().asScala should contain("menger.app.Main")
 
   it should "forward the original arguments to the child" in:
     val builder = Main.buildReExecProcessBuilder(Array("--objects", "type=sphere"), ":1")

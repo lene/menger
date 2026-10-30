@@ -1,4 +1,4 @@
-package menger
+package menger.app
 
 import menger.cli.SafeMengerCLIOptions
 import menger.spec.ObjectRotation

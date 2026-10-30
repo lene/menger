@@ -266,14 +266,15 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .should().beFreeOfCycles()
       .check(allClasses)
 
-  // The root package `menger` belongs to no layer and no slice, so the cycle rule above cannot
-  // see the two cycles that run through it (review 2026-10-14, menger#84/#90). Until it is
-  // emptied (menger#84), it may not grow: a new type there fails until listed here deliberately.
-  it should "not grow the unlayered root package menger" in:
-    classes().that().resideInAPackage("menger")
-      .should().haveNameMatching(
-        "menger\\.GlobalRotation(\\$.*)?"
-      ).check(allClasses)
+  // The root package `menger` and the default package belong to no layer and no slice, so the
+  // cycle rule above cannot see the cycles that ran through them (review 2026-10-14,
+  // menger#84/#90). They are empty now (menger#84): every type is in a layer, the application
+  // entry point in menger.app. A class declared in either fails here.
+  it should "keep the root package menger and the default package empty" in:
+    noClasses().that().resideInAnyPackage("menger", "")
+      .should().haveNameMatching(".*")
+      .allowEmptyShould(true) // an empty package is exactly the point
+      .check(allClasses)
 
   it should "keep menger.video a leaf package" in:
     noClasses().that().resideInAPackage("menger.video..")

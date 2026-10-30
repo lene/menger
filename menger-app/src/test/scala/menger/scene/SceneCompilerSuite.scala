@@ -201,7 +201,7 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
   private val outsideTheVocabulary = List(
     "menger.tools.SceneValidator", "menger.engines.InteractiveEngine", "menger.cli.CliParser",
     "menger.scene.SceneCompiler", "menger.scene.SceneLoader", "menger.cli.MengerCLIOptions",
-    "menger.config.SceneConfig", "examples.dsl.SceneIndex", "Main"
+    "menger.config.SceneConfig", "examples.dsl.SceneIndex", "menger.app.Main"
   )
 
   it should "not compile a scene that names anything outside the DSL surface" in:

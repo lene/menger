@@ -50,5 +50,5 @@ lazy val mengerApp = project
     // `run`/`bgRun` -- explicitly pin it to the actual application entry point. The other
     // tools remain reachable via `runMain <FQCN>`, which always takes an explicit class and
     // isn't affected by this setting.
-    Compile / mainClass := Some("Main")
+    Compile / mainClass := Some("menger.app.Main")
   )

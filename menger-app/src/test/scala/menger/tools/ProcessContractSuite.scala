@@ -49,8 +49,7 @@ class ProcessContractSuite extends AnyFlatSpec with Matchers:
       withClue(wire) { SceneValidator.exitCodeFor(tag) shouldBe contract("exitCodes")(wire).num.toInt }
     }
 
-  // menger-app's render-lock refusal (`Main.refusedResultJson`, default package, so not reachable
-  // from here) writes this same ValidationResult and exits with `exitCodeFor(Refused)`.
+  // menger-app's render-lock refusal (`menger.app.Main.refusedResultJson`) writes this same ValidationResult and exits with `exitCodeFor(Refused)`.
   it should "print a result that conforms to the contract" in:
     val refused = SceneValidator.ValidationResult(SceneValidator.Tag.Refused, List("usage"))
     conformsToContract(upickle.default.write(refused))

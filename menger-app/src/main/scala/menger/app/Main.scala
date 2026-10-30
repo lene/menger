@@ -1,3 +1,4 @@
+package menger.app
 
 import java.lang.management.ManagementFactory
 import java.nio.file.Paths
@@ -10,7 +11,6 @@ import ch.qos.logback.classic.Logger
 import com.badlogic.gdx.ApplicationListener
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
-import menger.GlobalRotation
 import menger.cli.LightSpec
 import menger.cli.MengerCLIOptions
 import menger.cli.MengerExitException
@@ -174,7 +174,7 @@ object Main:
     val classpath = RestrictedClasspath.fullClasspath
     val childArgs = stripDisplayFlag(rawArgs)
     val command =
-      (List(javaBin) ++ inheritedJvmOptions ++ List("-cp", classpath, "Main") ++
+      (List(javaBin) ++ inheritedJvmOptions ++ List("-cp", classpath, "menger.app.Main") ++
         childArgs.toList).asJava
     val builder = ProcessBuilder(command)
     builder.environment().put("DISPLAY", display)
