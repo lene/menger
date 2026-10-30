@@ -41,13 +41,13 @@ trait LiveReload extends LazyLogging:
 
   /** The first scene could not be built: the window exits non-zero after this. */
   protected def startupFailed(cause: Throwable): Unit =
-    emit(WindowEvents.Kind.StartupFailed, Option(cause.getMessage).getOrElse(cause.toString))
+    emit(WindowEvents.Kind.StartupFailed, SceneFailure.of(cause).describe)
 
   /** A frame (or a rebuild) failed to build; the window keeps showing the last good one. */
   protected def frameFailed(context: String, cause: Throwable): Unit =
-    logger.error(FrameBuildFailure.message(context, cause), cause)
-    emit(WindowEvents.Kind.FrameFailed, FrameBuildFailure.message(context, cause)
-      .stripPrefix(FrameBuildFailure.Marker + " "))
+    val line = FrameBuildFailure.message(context, cause)
+    logger.error(line, cause)
+    emit(WindowEvents.Kind.FrameFailed, line.stripPrefix(FrameBuildFailure.Marker + " "))
 
   protected def stopWatchingSceneFile(): Unit = fileWatcher.get().foreach(_.close())
 
@@ -69,9 +69,9 @@ trait LiveReload extends LazyLogging:
     logger.info(s"Slow frame: $detail")
     emit(WindowEvents.Kind.FrameSlow, detail)
 
-  protected def reloadFailed(file: File, reason: String): Unit =
-    logger.warn(s"Failed to reload ${file.getPath}, keeping the current scene: $reason")
-    emit(WindowEvents.Kind.ReloadFailed, reason)
+  protected def reloadFailed(file: File, failure: SceneFailure): Unit =
+    logger.warn(s"Failed to reload ${file.getPath}, keeping the current scene: ${failure.describe}")
+    emit(WindowEvents.Kind.ReloadFailed, failure.describe)
 
   protected def kindChanged(file: File, toAnimated: Boolean): Unit =
     val (now, window) = if toAnimated then ("an animated", "this static window")

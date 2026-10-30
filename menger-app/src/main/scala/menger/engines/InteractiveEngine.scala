@@ -469,7 +469,7 @@ class InteractiveEngine(
       case Right(LoadedScene.Static(newScene)) =>
         GdxRuntime.postRunnable(() => reloadScene(file, newScene))
       case Right(LoadedScene.Animated(_)) => kindChanged(file, toAnimated = true)
-      case Left(error) => reloadFailed(file, error.message)
+      case Left(error) => reloadFailed(file, SceneFailure.Load(error))
     }
 
   /** Everything a reload replaces, so a failed rebuild can put the previous scene back. */
@@ -510,7 +510,7 @@ class InteractiveEngine(
       precheck(sceneSpecs(configs.scene.objectSpecs.getOrElse(List.empty))).map(_ => configs)
     }
     checked match
-      case Failure(e) => reloadFailed(file, e.getMessage)
+      case Failure(e) => reloadFailed(file, SceneFailure.of(e))
       case Success(configs) =>
         val previous = reloadPoint
         applyReloaded(configs)
@@ -521,7 +521,7 @@ class InteractiveEngine(
           case Failure(e) =>
             restore(previous)
             rebuildScene().failed.foreach(again => frameFailed("restoring the previous scene", again))
-            reloadFailed(file, s"the new scene did not build: ${e.getMessage}")
+            reloadFailed(file, SceneFailure.of(e).prefixed("the new scene did not build"))
         renderResources.markNeedsRender()
         GdxRuntime.requestRendering()
 

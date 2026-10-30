@@ -14,6 +14,14 @@ class FrameBuildFailureSpec extends AnyFlatSpec with Matchers:
     line should include("t=1.5")
     line should include("level out of range")
 
+  it should "say whose fault the failure is, right after the marker" in:
+    FrameBuildFailure.message("frame 1", IllegalArgumentException("Size must be positive")) shouldBe
+      "FRAME-BUILD-FAILED [scene] frame 1: Size must be positive"
+    FrameBuildFailure.message("frame 1", java.io.IOException("disk full")) shouldBe
+      "FRAME-BUILD-FAILED [environment] frame 1: disk full"
+    FrameBuildFailure.message("frame 1", IllegalStateException("unreachable")) shouldBe
+      "FRAME-BUILD-FAILED [internal] frame 1: unreachable"
+
   it should "fall back to the exception's type when it has no message" in:
     FrameBuildFailure.message("frame 3", NullPointerException()) should
       endWith("frame 3: NullPointerException")

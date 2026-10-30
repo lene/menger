@@ -41,8 +41,10 @@ class PreviewEngineReloadSuite extends AnyFlatSpec with Matchers:
     PreviewEngine.reloadDecision(loaded, current, realtime = true) shouldBe PreviewEngine.KindChanged
 
   it should "reject a scene that failed to load and keep the playing one" in:
-    PreviewEngine.reloadDecision(Left(LoadError.Malformed("compile error")), current, realtime = true) shouldBe
-      PreviewEngine.Rejected("compile error")
+    val error = LoadError.Malformed("compile error")
+
+    PreviewEngine.reloadDecision(Left(error), current, realtime = true) shouldBe
+      PreviewEngine.Rejected(SceneFailure.Load(error))
 
   it should "recompute the frame count of an every-frame loop from the new duration" in:
     PreviewEngine.reloadDecision(

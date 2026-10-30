@@ -7,5 +7,8 @@ package menger.engines
 object FrameBuildFailure:
   val Marker = "FRAME-BUILD-FAILED"
 
+  /** `FRAME-BUILD-FAILED [kind] context: message`; the kind (scene, environment, internal) is
+    * [[SceneFailure]]'s classification of the cause. */
   def message(context: String, cause: Throwable): String =
-    s"$Marker $context: ${Option(cause.getMessage).getOrElse(cause.getClass.getSimpleName)}"
+    val failure = SceneFailure.of(cause)
+    s"$Marker [${failure.kind}] $context: ${failure.message}"

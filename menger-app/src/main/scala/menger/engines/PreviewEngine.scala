@@ -193,7 +193,7 @@ class PreviewEngine(
         case PreviewEngine.Reload(fn, config) =>
           GdxRuntime.postRunnable(() => reloadScene(file, fn, config))
         case PreviewEngine.KindChanged     => kindChanged(file, toAnimated = false)
-        case PreviewEngine.Rejected(error) => reloadFailed(file, error)
+        case PreviewEngine.Rejected(failure) => reloadFailed(file, failure)
     }
 
   // GL thread. The preview takes its camera from the scene on every frame, so a camera edit
@@ -213,7 +213,7 @@ class PreviewEngine(
         state.set(newState)
         reloaded("animated scene", s"duration ${config.endT}s")
         requestRedraw()
-      case scala.util.Failure(e) => reloadFailed(file, e.getMessage)
+      case scala.util.Failure(e) => reloadFailed(file, SceneFailure.of(e))
 
 object PreviewEngine:
 
@@ -227,7 +227,7 @@ object PreviewEngine:
   case class Reload(sceneFunction: Float => Scene, previewConfig: TAnimationConfig)
       extends ReloadDecision
   case object KindChanged extends ReloadDecision
-  case class Rejected(error: String) extends ReloadDecision
+  case class Rejected(failure: SceneFailure) extends ReloadDecision
 
   // A real-time scene's new `duration` becomes its new time range; a `--preview` scene keeps
   // the range it was started with.
@@ -246,4 +246,4 @@ object PreviewEngine:
           else current
         Reload(fn, config)
       case Right(_: LoadedScene.Static) => KindChanged
-      case Left(error)                  => Rejected(error.message)
+      case Left(error)                  => Rejected(SceneFailure.Load(error))

@@ -74,6 +74,13 @@
 
 ### Changed
 
+- **A window's failures say whose fault they are (menger#103).** One classification
+  (`SceneFailure`) of the exception behind a frame that failed to build, a failed reload or a
+  failed first scene: the scene's content was refused (`scene`), the GPU, native layer or disk
+  failed (`environment`), or it is a bug (`internal`). The log marker reads
+  `FRAME-BUILD-FAILED [kind] frame 3: message`, and the `frame_failed`, `reload_failed` and
+  `startup_failed` events carry the same `[kind]` label in their detail (a load error keeps its
+  own text, which already says what failed). The event fields and kinds are unchanged.
 - **Performance gates that gate (menger#87, #58).** `perf-check` (the benchmark trend check)
   runs on `main` too and the release tag needs it; a perf suite that could not judge (an
   inconclusive gate, a busy GPU) is counted, and the third such run in a row fails instead of
