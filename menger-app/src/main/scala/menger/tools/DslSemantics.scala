@@ -23,9 +23,11 @@ object DslSemantics:
       s"${menger.dsl.ResourceLimits.sceneMaxPhotonsPerFrame} caustics photons per frame " +
       "(photonsPerIteration x iterations x renders per frame). The validator reports a " +
       "`scene-budget` finding naming what to lower.",
-    "Units: positions and sizes are world units; `pos` is an object's centre; 3D `rotation` " +
-      "angles are radians, but the 4D rotation angles of `Projection4DSpec` (`rotXW`, `rotYW`, " +
-      "`rotZW`) are DEGREES (usability review 2026-10, session 3, F74).",
+    "Units: positions and sizes are world units; `pos` is an object's centre; an angle-valued " +
+      "field names its unit in the manifest's `unit` key. 3D `rotation` angles are radians, but " +
+      "the 4D rotation angles of `Projection4DSpec` (`rotXW`, `rotYW`, `rotZW`), " +
+      "`LSystem.angleDegrees` and `Camera.fov` are DEGREES (usability review 2026-10, session " +
+      "3, F74; menger#95).",
     "Axes: +y is up. The rendered image is currently mirrored horizontally: with the camera " +
       "on +z looking toward -z, +x appears on the LEFT of the image.",
     "Directional light: `direction` is the direction the light TRAVELS. (0f, -1f, 0f) shines " +

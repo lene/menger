@@ -49,6 +49,34 @@ class ManifestContentSuite extends AnyFlatSpec with Matchers:
     manifest.productCaps.map(c => (c.`type`, c.fields)) shouldBe
       List(("ParametricSurface", List("uSteps", "vSteps")))
 
+  // menger#95: the unit of an angle used to be a prose convention; it is read off the field's
+  // type now (FieldUnits), so a field retyped Degrees <-> Radians changes it here.
+  "angle-valued fields" should "state their unit" in:
+    val types = (manifest.objects ++ manifest.sceneComposition).map(t => t.name -> t).toMap
+    def unit(typeName: String, field: String): Option[String] =
+      types(typeName).fields.find(_.name == field).flatMap(_.unit)
+    unit("Projection4DSpec", "rotXW") shouldBe Some("degrees")
+    unit("Projection4DSpec", "rotYW") shouldBe Some("degrees")
+    unit("Projection4DSpec", "rotZW") shouldBe Some("degrees")
+    unit("LSystem", "angleDegrees") shouldBe Some("degrees")
+    unit("Camera", "fov") shouldBe Some("degrees")
+    unit("Sphere", "rotation") shouldBe Some("radians")
+    unit("Transform", "rotation") shouldBe Some("radians")
+
+  it should "leave other numeric fields without a unit" in:
+    val types = (manifest.objects ++ manifest.sceneComposition).map(t => t.name -> t).toMap
+    types("Projection4DSpec").fields.find(_.name == "eyeW").flatMap(_.unit) shouldBe None
+    types("Sphere").fields.find(_.name == "size").flatMap(_.unit) shouldBe None
+
+  "compileSurface" should "list packages only, including menger.spec" in:
+    manifest.compileSurface.packages should contain allOf ("menger.dsl", "menger.spec")
+    manifest.compileSurface.packages shouldBe sorted
+
+  "Caustics" should "call its radius-reduction factor radiusReduction, not alpha" in:
+    val fields = manifest.sceneComposition.find(_.name == "Caustics").get.fields.map(_.name)
+    fields should contain ("radiusReduction")
+    fields should not contain "alpha"
+
   "contentRevision" should "ignore version pins and follow content" in:
     ManifestGenerator.contentRevisionOf(manifest.copy(optixJniVersion = "9.9.9")) shouldBe
       manifest.contentRevision

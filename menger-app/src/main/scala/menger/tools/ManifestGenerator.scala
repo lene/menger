@@ -24,6 +24,7 @@ import menger.dsl.Caustics
 import menger.dsl.Color
 import menger.dsl.DenoiseMode
 import menger.dsl.FieldConstraints
+import menger.dsl.FieldUnits
 import menger.dsl.Fog
 import menger.dsl.IBL
 import menger.dsl.Light
@@ -41,6 +42,7 @@ import menger.dsl.Transform
 import menger.dsl.TransparentShadows
 import menger.dsl.Vec3
 import menger.scene.RestrictedClasspath
+import menger.spec.Projection4DSpec
 import upickle.default.ReadWriter
 import upickle.default.write
 
@@ -80,7 +82,12 @@ object ManifestGenerator extends LazyLogging:
   //         bounded field (FieldConstraints, menger#114, msa#28). From here `schemaVersion`
   //         describes the JSON shape only: additive changes are a minor bump, and
   //         ManifestShapeSuite fails when the shape changes without one.
-  private[tools] val SchemaVersion = "1.11.0"
+  // 2.0.0: `compileSurface.types` is gone (menger#84: no scene-visible type sits in the root
+  //        package any more, so the surface is packages only -- menger.spec joined them), and
+  //        a field may carry a `unit` (degrees or radians) read off its Scala type (menger#95),
+  //        which replaces the prose of the "Units" convention. `Projection4DSpec` is a
+  //        scene-composition type now, and `Caustics.alpha` is `radiusReduction`.
+  private[tools] val SchemaVersion = "2.0.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
@@ -115,7 +122,8 @@ object ManifestGenerator extends LazyLogging:
     min: Option[Double] = None,
     max: Option[Double] = None,
     warnAt: Option[Double] = None,
-    limitsBy: Option[LimitsByManifest] = None
+    limitsBy: Option[LimitsByManifest] = None,
+    unit: Option[String] = None
   ) derives ReadWriter
   /** `traits`: what the agent needs to know about a type beyond its fields -- `holed` (an object
     * with holes through it never occludes), `positioned` (a light placed by `position`). The
@@ -130,10 +138,9 @@ object ManifestGenerator extends LazyLogging:
   case class ProductCapManifest(`type`: String, fields: List[String], max: Double)
       derives ReadWriter
 
-  /** What a scene can compile against in menger-app: these packages and root types (see
+  /** What a scene can compile against in menger-app: these packages (see
     * `RestrictedClasspath`), so the agent's advisory allowlist is derived, not hand-kept. */
-  case class CompileSurfaceManifest(packages: List[String], types: List[String])
-      derives ReadWriter
+  case class CompileSurfaceManifest(packages: List[String]) derives ReadWriter
 
   /** An enum's admissible values. Without these the manifest names a field's *type*
     * (`spongeType : menger.dsl.TesseractSpongeType`) but never what may be written there, and
@@ -255,7 +262,8 @@ object ManifestGenerator extends LazyLogging:
             bySubtype.field,
             bySubtype.values.map((value, b) => value -> BoundsManifest(b.min, b.max, b.warnAt))
           )
-        }
+        },
+        FieldUnits.of(clazz.getSimpleName, p.getName)
       )
     }
 
@@ -435,6 +443,7 @@ object ManifestGenerator extends LazyLogging:
       // absent entirely (review round 2).
       sceneComposition = List(
         typeManifestOf(classOf[Camera]),
+        typeManifestOf(classOf[Projection4DSpec]),
         typeManifestOf(classOf[Scene]),
         typeManifestOf(classOf[SceneNode]),
         typeManifestOf(classOf[Transform]),
@@ -458,8 +467,7 @@ object ManifestGenerator extends LazyLogging:
       productCaps = FieldConstraints.products.map(c =>
         ProductCapManifest(c.typeName, c.fields, c.max)),
       compileSurface = CompileSurfaceManifest(
-        RestrictedClasspath.ScenePackages.toList.sorted.map("menger." + _),
-        List.empty // no root-package types any more; the field goes with manifest 2.0.0
+        RestrictedClasspath.ScenePackages.toList.sorted.map("menger." + _)
       )
     )
 

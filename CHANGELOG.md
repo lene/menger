@@ -70,6 +70,28 @@
 
 ### Changed
 
+- **Breaking, scene vocabulary (menger#84, #95, #110; DSL manifest 2.0.0).**
+  - Packages: the root package `menger` and the default package are empty. `ObjectSpec`,
+    `Projection4DSpec`, `ObjectRotation`, `ProceduralSpec`, `TextureMaps`, `CurveData`,
+    `ConeGeometry`, `PlaneGeometry` and `ObjectType` are in `menger.spec` (a scene that
+    imported `menger.Projection4DSpec` imports `menger.spec.Projection4DSpec`); the parser is
+    `menger.cli.ObjectSpecParser`, the options `menger.cli.MengerCLIOptions`, the entry point
+    `menger.app.Main` (`mainClass` and the `--display` re-exec follow); `ObjectType` left
+    `menger.common`, which belongs to the menger-common artifact.
+  - `Caustics.alpha` is `radiusReduction` (it is the factor the photon-gather radius shrinks by
+    between iterations, not a colour alpha); no alias.
+  - `Degrees` and `Radians` (`menger.spec`) type the angle fields: `Projection4DSpec.rotXW/rotYW/
+    rotZW`, `LSystem.angleDegrees` and `Camera.fov` are degrees, `ObjectRotation` radians. A
+    plain `Float` still converts, so `rotXW = 30f` compiles unchanged; `90f.deg` and `1.5f.rad`
+    are explicit.
+  - `Color.tint(r, g, b, absorption)` builds the tint of a refractive material, whose colour
+    alpha is the absorption, not the opacity.
+  - The manifest's `schemaVersion` is `2.0.0`: `compileSurface.types` is gone (packages only,
+    now with `menger.spec`), a field may carry a `unit` (`degrees` or `radians`) read off its
+    Scala type, `Projection4DSpec` is a scene-composition type, and `Caustics` lists
+    `radiusReduction`. The agent must read manifests of major version 2.
+  - Internal: `RotationProjectionParameters.eyeW` is an `Option` (a rotation-only event has no
+    eye-w) instead of the default value standing for "unchanged".
 - optix-jni 0.5.0 (optix-jni#72, #73, #76; menger#110, #103). Instance ids, mesh slots and
   texture indices are optix-jni's typed `InstanceId`/`MeshSlot`/`TextureIndex` throughout the
   scene builders, the 4D trackers and the animation state; menger's own `InstanceId` wrapper

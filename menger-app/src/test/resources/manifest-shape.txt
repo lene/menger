@@ -1,4 +1,4 @@
-1.11.0
+2.0.0
 cameraPath
 cameraPath.fields
 cameraPath.fields.default
@@ -14,7 +14,6 @@ cameraPathHelpers.parameters.type
 colorPresets
 compileSurface
 compileSurface.packages
-compileSurface.types
 contentRevision
 conventions
 enums
@@ -71,6 +70,7 @@ objects.fields.max
 objects.fields.min
 objects.fields.name
 objects.fields.type
+objects.fields.unit
 objects.fields.warnAt
 objects.name
 objects.traits
@@ -116,5 +116,6 @@ sceneComposition.fields.max
 sceneComposition.fields.min
 sceneComposition.fields.name
 sceneComposition.fields.type
+sceneComposition.fields.unit
 sceneComposition.name
 schemaVersion
