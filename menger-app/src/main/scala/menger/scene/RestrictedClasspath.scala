@@ -150,12 +150,11 @@ object RestrictedClasspath extends LazyLogging:
     * layout the container actually runs). */
   val ScenePackages = Set("dsl", "objects", "video", "common", "spec")
 
-  /** Root-package types the DSL's own signatures use (textures, rotation parameters). The
-    * rest moved into `spec` (menger#84); these follow into packages and the set goes away.
-    * Determined by compiling every example scene against the pruned view. */
-  val SceneRootTypes = Set(
-    "TextureData", "RotationProjectionParameters", "AssetPaths", "ColorConversions"
-  )
+  /** Root-package types the DSL's own signatures use (textures, asset paths, colours). The
+    * rest moved into `spec` and `objects.higher_d` (menger#84); these follow into packages
+    * and the set goes away. Determined by compiling every example scene against the pruned
+    * view. */
+  val SceneRootTypes = Set("TextureData", "AssetPaths", "ColorConversions")
 
   /** Whether a classpath-relative path (`menger/dsl/Sphere.class`) is part of the scene view. */
   private[scene] def isSceneEntry(relativePath: String): Boolean =

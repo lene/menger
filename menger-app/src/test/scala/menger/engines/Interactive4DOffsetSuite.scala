@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.Files
 
 import menger.common.Vector
+import menger.objects.higher_d.RotationProjectionParameters
 import menger.spec.ObjectSpec
 import menger.spec.Projection4DSpec
 import org.scalatest.flatspec.AnyFlatSpec
@@ -38,14 +39,14 @@ class Interactive4DOffsetSuite extends AnyFlatSpec with Matchers:
 
   // Session 5, F116 (menger#131): the preview window ignored Shift+scroll.
   it should "move eye-w by one power of 1.1 per Shift+scroll notch, as the interactive window" in:
-    val up = menger.RotationProjectionParameters(0, 0, 0, eyeW = 65f)
-    val down = menger.RotationProjectionParameters(0, 0, 0, eyeW = 1.0156f)
+    val up = RotationProjectionParameters(0, 0, 0, eyeW = 65f)
+    val down = RotationProjectionParameters(0, 0, 0, eyeW = 1.0156f)
     val eyeW = (o: Interactive4DOffset) => o.applyTo(List(tesseract)).head.projection4D.get.eyeW
     val fileEyeW = tesseract.projection4D.get.eyeW.toDouble
     eyeW(Interactive4DOffset.Zero.plus(up)) shouldBe math.pow(fileEyeW, 1.1).toFloat +- 1e-5f
     Interactive4DOffset.Zero.plus(up).plus(down).isZero shouldBe true
     // A rotation-only event carries the default eye-w: no notch.
-    Interactive4DOffset.Zero.plus(menger.RotationProjectionParameters(rotXW = 5f)).eyeWSteps
+    Interactive4DOffset.Zero.plus(RotationProjectionParameters(rotXW = 5f)).eyeWSteps
       .shouldBe(0)
     // Never at or below screen-w, which Projection4DSpec refuses.
     val far = (1 to 60).foldLeft(Interactive4DOffset.Zero)((o, _) => o.plus(down))

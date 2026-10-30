@@ -2,7 +2,6 @@ package menger.objects.higher_d
 
 import scala.annotation.targetName
 
-import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.Vector
 import menger.objects.Matrix

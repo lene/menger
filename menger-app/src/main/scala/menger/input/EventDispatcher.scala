@@ -2,7 +2,7 @@ package menger.input
 
 import java.util.concurrent.atomic.AtomicReference
 
-import menger.RotationProjectionParameters
+import menger.objects.higher_d.RotationProjectionParameters
 
 trait Observer:
   def handleEvent(event: RotationProjectionParameters): Unit

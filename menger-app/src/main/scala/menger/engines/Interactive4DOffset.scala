@@ -1,7 +1,7 @@
 package menger.engines
 
-import menger.RotationProjectionParameters
 import menger.common.Const
+import menger.objects.higher_d.RotationProjectionParameters
 import menger.spec.ObjectSpec
 import menger.spec.Projection4DSpec
 

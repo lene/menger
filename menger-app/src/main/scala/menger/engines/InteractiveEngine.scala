@@ -12,7 +12,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.TextureUploadException
 import menger.AssetPaths
-import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
@@ -39,6 +38,7 @@ import menger.input.OptiXKeyHandler
 import menger.input.Vector3Extensions.toGdxVector3
 import menger.input.Vector3Extensions.toVector3
 import menger.objects.higher_d.Projection
+import menger.objects.higher_d.RotationProjectionParameters
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
 import menger.optix.CameraState

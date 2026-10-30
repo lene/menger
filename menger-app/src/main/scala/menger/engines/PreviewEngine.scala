@@ -19,6 +19,7 @@ import menger.input.OptiXCameraHandler
 import menger.input.PreviewKeyHandler
 import menger.input.Vector3Extensions.toGdxVector3
 import menger.input.Vector3Extensions.toVector3
+import menger.objects.higher_d.RotationProjectionParameters
 import menger.optix.CameraState
 import menger.optix.SceneConfigurator
 import menger.spec.ObjectSpec
@@ -127,7 +128,7 @@ class PreviewEngine(
   private val offset4D = new AtomicReference(Interactive4DOffset.Zero)
   override protected def interactive4D: Interactive4DOffset = offset4D.get()
 
-  override def handleEvent(event: menger.RotationProjectionParameters): Unit =
+  override def handleEvent(event: RotationProjectionParameters): Unit =
     val _ = offset4D.updateAndGet(_.plus(event))
     requestRedraw()
 

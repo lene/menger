@@ -1,7 +1,6 @@
 package menger.objects.higher_d
 
 import com.typesafe.scalalogging.LazyLogging
-import menger.RotationProjectionParameters
 import menger.common.Vector
 import menger.objects.Matrix
 import org.scalatest.Inspectors.forAll

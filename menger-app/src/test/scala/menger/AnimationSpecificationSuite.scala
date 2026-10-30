@@ -1,6 +1,7 @@
 package menger
 
 import menger.cli.ObjectSpecParser
+import menger.objects.higher_d.RotationProjectionParameters
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

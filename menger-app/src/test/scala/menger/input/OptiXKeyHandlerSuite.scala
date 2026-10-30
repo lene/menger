@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.collection.mutable.ListBuffer
 
-import menger.RotationProjectionParameters
+import menger.objects.higher_d.RotationProjectionParameters
 import menger.common.InputEvent
 import menger.common.Key
 import menger.common.ModifierState

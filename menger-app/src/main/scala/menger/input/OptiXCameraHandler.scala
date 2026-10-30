@@ -4,12 +4,12 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
 import menger.OptiXRenderResources
-import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.MouseButton
 import menger.common.OrbitConfig
 import menger.common.ScreenCoords
 import menger.input.Vector3Extensions.toVector3
+import menger.objects.higher_d.RotationProjectionParameters
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 

@@ -4,6 +4,7 @@ import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.AnimationException
+import menger.objects.higher_d.RotationProjectionParameters
 import menger.spec.ObjectRotation
 import menger.spec.ObjectSpec
 import menger.spec.Projection4DSpec
