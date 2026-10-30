@@ -22,6 +22,7 @@ import menger.common.Const
 import menger.common.RenderConfig
 import menger.common.RenderLimits
 import menger.common.Vector
+import menger.config.AnimationSpecificationSequence
 import menger.config.CrossConfig
 import menger.dsl.DenoiseMode
 import menger.spec.ObjectSpec

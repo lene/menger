@@ -1,9 +1,9 @@
 package menger.cli
 
 import com.typesafe.scalalogging.Logger
-import menger.AnimationSpecificationSequence
 import menger.cli.converters.ConverterUtils
 import menger.common.Const
+import menger.config.AnimationSpecificationSequence
 import menger.spec.ObjectSpec
 import org.rogach.scallop.ScallopConf
 import org.rogach.scallop.ScallopOption

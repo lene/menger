@@ -1,6 +1,6 @@
 package menger.cli
 
-import menger.AnimationSpecification
+import menger.config.AnimationSpecification
 import menger.dsl.DenoiseMode
 import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec

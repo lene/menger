@@ -1,4 +1,4 @@
-package menger
+package menger.config
 
 import menger.objects.higher_d.RotationProjectionParameters
 import org.scalatest.flatspec.AnyFlatSpec

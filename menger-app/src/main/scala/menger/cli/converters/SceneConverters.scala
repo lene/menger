@@ -2,9 +2,9 @@ package menger.cli.converters
 
 import scala.util.Try
 
-import menger.AnimationSpecificationSequence
 import menger.cli.ObjectSpecParser
 import menger.cli.converters.ConverterUtils.unwrapTryEither
+import menger.config.AnimationSpecificationSequence
 import menger.spec.ObjectSpec
 import org.rogach.scallop.ArgType
 import org.rogach.scallop.ValueConverter

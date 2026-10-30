@@ -1,4 +1,4 @@
-package menger
+package menger.config
 
 import menger.cli.ObjectSpecParser
 import menger.objects.higher_d.RotationProjectionParameters

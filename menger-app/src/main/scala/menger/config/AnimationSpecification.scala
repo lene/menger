@@ -1,4 +1,4 @@
-package menger
+package menger.config
 
 import scala.util.Try
 

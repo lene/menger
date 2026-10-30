@@ -4,10 +4,10 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
-import menger.AnimationSpecificationSequence
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
+import menger.config.AnimationSpecificationSequence
 import menger.config.OptiXEngineConfig
 import menger.dsl.DenoiseMode
 import menger.input.GdxRuntime
