@@ -54,7 +54,14 @@ class SpongePerformanceSuite extends AnyFlatSpec
   private val MaxSlowdownVolumeL3 = 1.47            // 0.981 (loaded)
   private val MaxScalingSurfaceL1ToL2 = 33.4        // 22.28
   private val MaxScalingSurfaceL2ToL3 = 117.0       // 78.13
-  private val MaxScalingVolumeL1ToL2 = 34.1         // 22.72
+  // Volume scaling, re-measured 2026-10-30 (4 idle and 3 all-core-busy runs, with and without a
+  // doubled workload at the upper level). Level 1 is now a tiny sample: its ratio doubles under
+  // load (median ~5 idle, ~12 loaded), so 1 -> 2 cannot tell a 2x slowdown from load at any
+  // limit; it only trips on a larger one (1.5 x the loaded highest bound 14.8, was 34.1 for a
+  // generator ~8x slower). 2 -> 3 is stable (17.2 idle, 19.9 loaded; highest bound 20.63) and an
+  // injected 2x has a lower bound of at least 32.64, so it catches 2x in every condition.
+  private val MaxScalingVolumeL1ToL2 = 22.2         // 14.8 (loaded)
+  private val MaxScalingVolumeL2ToL3 = 30.9         // 20.63 (loaded)
   // Render limits: ~2x the highest upper confidence bound measured on the RTX A1000 laptop
   // (also the CI runner) over 3 idle runs and 5 runs under a 99% GPU burn plus CPU load
   // (2026-09-23). Highest bound -> limit:
@@ -174,6 +181,9 @@ class SpongePerformanceSuite extends AnyFlatSpec
 
   it should "scale a volume sponge from level 1 to 2 within its limit" taggedAs Perf in:
     scalingGate("volume sponge", 2, volume, MaxScalingVolumeL1ToL2)
+
+  it should "scale a volume sponge from level 2 to 3 within its limit" taggedAs Perf in:
+    scalingGate("volume sponge", 3, volume, MaxScalingVolumeL2ToL3)
 
   "Sponge rendering" should "render a level 2 surface sponge within its limit" taggedAs Perf in:
     val grey = Color(0.8f, 0.8f, 0.8f)
