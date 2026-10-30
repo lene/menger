@@ -217,6 +217,17 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
     import scala.jdk.CollectionConverters.*
     mengerClassesInOptixPackage.asScala.map(_.getName).toList.sorted shouldBe empty
 
+  // The same split in the other direction (menger#89): menger.common belongs to the published
+  // menger-common artifact; ObjectType, the one menger-app class in it, moved to menger.spec.
+  it should "declare no menger-app classes in the library package menger.common" in:
+    import scala.jdk.CollectionConverters.*
+    val mengerClassesInCommonPackage = ClassFileImporter()
+      .withImportOption(DoNotIncludeTests())
+      .withImportOption(doNotIncludeSbtTestClasses)
+      .withImportOption((location: Location) => !location.isJar)
+      .importPackages("menger.common")
+    mengerClassesInCommonPackage.asScala.map(_.getName).toList.sorted shouldBe empty
+
   "JNI resource wrappers" should "implement AutoCloseable" in:
     import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
     classes().that().haveSimpleNameContaining("Wrapper")

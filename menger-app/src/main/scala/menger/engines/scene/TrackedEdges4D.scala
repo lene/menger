@@ -5,8 +5,8 @@ import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
-import menger.common.ObjectType
 import menger.common.ProfilingConfig
+import menger.spec.ObjectType
 
 /** An edge-rendered 4D scene built with its cylinders and faces recorded, so that a change of
   * 4D projection moves them in place (TesseractEdgeSceneBuilder.updateProjection) instead of

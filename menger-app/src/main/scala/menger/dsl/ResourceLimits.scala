@@ -46,7 +46,7 @@ object ResourceLimits:
   val tesseractSpongeSurfaceLevel: LevelLimit =
     LevelLimit(Const.Engine.tesseractSponge2WarnLevel, Const.Engine.tesseractSponge2MaxLevel)
 
-  /** Keyed by normalized object-type name (`menger.common.ObjectType.normalize`). Shared by
+  /** Keyed by normalized object-type name (`menger.spec.ObjectType.normalize`). Shared by
     * `InteractiveEngine`'s level table and `ObjectSpec.validateSpongeLevel`. */
   val levelLimitByObjectType: Map[String, LevelLimit] = Map(
     "sponge-volume"            -> volumeSpongeLevel,

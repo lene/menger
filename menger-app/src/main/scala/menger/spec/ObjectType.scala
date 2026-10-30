@@ -1,4 +1,4 @@
-package menger.common
+package menger.spec
 
 object ObjectType:
 

@@ -123,11 +123,11 @@ class ParametricTessellatorSuite extends AnyFlatSpec with Matchers:
     mesh.numVertices shouldBe 9
 
   "ObjectType" should "recognize 'parametric' as valid" in:
-    menger.common.ObjectType.isValid("parametric") shouldBe true
+    menger.spec.ObjectType.isValid("parametric") shouldBe true
 
   it should "not classify 'parametric' as sponge or 4D" in:
-    menger.common.ObjectType.isSponge("parametric") shouldBe false
-    menger.common.ObjectType.isProjected4D("parametric") shouldBe false
+    menger.spec.ObjectType.isSponge("parametric") shouldBe false
+    menger.spec.ObjectType.isProjected4D("parametric") shouldBe false
 
   "ParametricSurface" should "produce an ObjectSpec with meshData" in:
     import menger.dsl._

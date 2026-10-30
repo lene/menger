@@ -19,7 +19,6 @@ import menger.AssetPaths
 import menger.ObjectSpec
 import menger.common.CausticsConfig
 import menger.common.ImageSize
-import menger.common.ObjectType
 import menger.common.RenderConfig
 import menger.config.PlaneConfig
 import menger.config.TAnimationConfig
@@ -30,6 +29,7 @@ import menger.engines.scene.TrackedMixed4D
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.geometry.VideoLoader
 import menger.input.GdxRuntime
+import menger.spec.ObjectType
 import menger.video.AnimationTimeRange
 import menger.video.EnvMapVideo
 import menger.video.VideoPlayback

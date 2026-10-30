@@ -4,9 +4,9 @@ import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
-import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.engines.SceneGroups
+import menger.spec.ObjectType
 
 /** A 4D scene of edge-rendered and plain projected meshes, each part tracked as its own kind
   * (TrackedEdges4D, TrackedMesh4D), so that a 4D rotation moves both in place. Without it, such

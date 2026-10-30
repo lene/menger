@@ -7,9 +7,9 @@ import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Color
 import menger.common.Material
-import menger.common.ObjectType
 import menger.common.TriangleMeshData
 import menger.dsl.ResourceLimits
+import menger.spec.ObjectType
 import menger.video.VideoTexture
 
 case class ObjectRotation(x: Float = 0f, y: Float = 0f, z: Float = 0f)

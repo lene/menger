@@ -19,12 +19,12 @@ import menger.cli.converters.planeSpecConverter
 import menger.cli.converters.vector3Converter
 import menger.common.CausticsConfig
 import menger.common.Const
-import menger.common.ObjectType
 import menger.common.RenderConfig
 import menger.common.RenderLimits
 import menger.common.Vector
 import menger.config.CrossConfig
 import menger.dsl.DenoiseMode
+import menger.spec.ObjectType
 import org.rogach.scallop._
 import org.rogach.scallop.exceptions._
 

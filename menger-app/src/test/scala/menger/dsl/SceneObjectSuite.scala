@@ -2,7 +2,7 @@ package menger.dsl
 
 import scala.language.implicitConversions
 
-import menger.common.ObjectType
+import menger.spec.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -6,11 +6,11 @@ import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureIndex
 import menger.ObjectSpec
-import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.TransformUtil
 import menger.common.Vector
 import menger.dsl.ResourceLimits
+import menger.spec.ObjectType
 
 /**
  * Scene builder for multiple triangle mesh instances with optional textures.

@@ -9,7 +9,6 @@ import io.github.lene.optix.TextureIndex
 import menger.ObjectSpec
 import menger.Projection4DSpec
 import menger.common.Material
-import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.TransformUtil
 import menger.common.Vector
@@ -19,6 +18,7 @@ import menger.common.z
 import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
+import menger.spec.ObjectType
 
 /**
  * Scene builder for 4D hypercube objects with cylinder edge rendering.

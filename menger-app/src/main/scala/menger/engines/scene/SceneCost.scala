@@ -2,12 +2,12 @@ package menger.engines.scene
 
 import menger.ObjectSpec
 import menger.common.Const
-import menger.common.ObjectType
 import menger.dsl.ResourceLimits
 import menger.geometry.LevelMix
 import menger.objects.SpongeByVolume
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
+import menger.spec.ObjectType
 
 /** What a scene costs as a whole, against `ResourceLimits`' scene-wide budget (review
   * 2026-10-14, menger#80). Each DSL field has its own cap, but the caps multiply: two

@@ -3,8 +3,8 @@ package menger.engines
 import menger.common.Vector
 import menger.ObjectSpec
 import menger.Projection4DSpec
-import menger.common.ObjectType
 import menger.objects.higher_d.TesseractMesh
+import menger.spec.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

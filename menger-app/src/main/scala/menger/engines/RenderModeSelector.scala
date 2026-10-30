@@ -1,7 +1,7 @@
 package menger.engines
 
 import menger.ObjectSpec
-import menger.common.ObjectType
+import menger.spec.ObjectType
 
 enum SceneType:
   case TriangleMeshes(specs: List[ObjectSpec])

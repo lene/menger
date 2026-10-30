@@ -4,7 +4,7 @@ import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Const
-import menger.common.ObjectType
+import menger.spec.ObjectType
 
 case class AnimationSpecification(specString: String) extends LazyLogging:
 

@@ -1,7 +1,7 @@
 package menger.engines
 
 import menger.ObjectSpec
-import menger.common.ObjectType
+import menger.spec.ObjectType
 
 /** How a mixed scene's specs are split into groups that one scene builder each can build.
   * Shared by the engines (`BaseEngine`) and `SceneValidator`, so the validator checks exactly

@@ -3,10 +3,10 @@ package menger.engines.scene
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.common.Material
-import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.common.TriangleMeshData
 import menger.common.Vector
+import menger.spec.ObjectType
 
 /** Edge tubes of a 3D triangle-mesh object: a Cube, a platonic solid or a mesh Sponge
   * (usability review 2026-10, session 5, F124, menger#132: only the 4D types had edges).

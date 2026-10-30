@@ -2,7 +2,7 @@ package menger.engines.scene
 
 import menger.ObjectSpec
 import menger.common.ProfilingConfig
-import menger.common.ObjectType
+import menger.spec.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

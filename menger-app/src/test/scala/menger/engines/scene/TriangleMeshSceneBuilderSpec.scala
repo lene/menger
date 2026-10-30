@@ -3,10 +3,10 @@ package menger.engines.scene
 import menger.ObjectSpec
 import menger.common.Material
 import menger.common.ProfilingConfig
-import menger.common.ObjectType
 import menger.common.Vector
 import menger.objects.Cube
 import menger.objects.HoleCaps
+import menger.spec.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

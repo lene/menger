@@ -5,8 +5,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 import io.github.lene.optix.OptiXRenderer
 import menger.ObjectSpec
 import menger.Projection4DSpec
-import menger.common.ObjectType
 import menger.engines.scene.InstanceId
+import menger.spec.ObjectType
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

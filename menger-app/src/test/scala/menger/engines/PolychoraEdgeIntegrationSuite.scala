@@ -1,12 +1,12 @@
 package menger.engines
 
 import menger.ObjectSpec
-import menger.common.ObjectType
 import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.objects.higher_d.Hexadecachoron
 import menger.objects.higher_d.Icositetrachoron
 import menger.objects.higher_d.Mesh4DProjection
 import menger.objects.higher_d.Pentachoron
+import menger.spec.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
