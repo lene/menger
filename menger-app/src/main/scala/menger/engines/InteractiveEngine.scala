@@ -185,15 +185,10 @@ class InteractiveEngine(
       val updatedSpecs = currentObjectSpecs.get().map(_.map { spec =>
         if TypeRegistry.is4DFastPathType(spec.objectType) then
           val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
-          val newEyeW =
-            // defaultEyeW acts as a sentinel: a rotation-only event leaves eyeW unchanged.
-            // A user who genuinely wants to reset eyeW to exactly defaultEyeW cannot do so here.
-            if event.eyeW != Const.defaultEyeW then
-              val updatedProjection =
-                Projection(currentProj.eyeW, currentProj.screenW) + event.projection
-              updatedProjection.eyeW
-            else
-              currentProj.eyeW
+          // A rotation-only event has no eyeW and leaves it unchanged.
+          val newEyeW = event.eyeW.fold(currentProj.eyeW) { _ =>
+            (Projection(currentProj.eyeW, currentProj.screenW) + event.projection).eyeW
+          }
           val newProj = currentProj.copy(
             eyeW = newEyeW,
             rotXW = currentProj.rotXW + event.rotXW,

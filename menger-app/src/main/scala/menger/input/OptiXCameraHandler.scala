@@ -73,7 +73,7 @@ class OptiXCameraHandler(
   override protected def handleScroll(amountX: Float, amountY: Float): Boolean =
     if isShiftPressed then
       val eyeW = computeEyeW(amountY)
-      dispatcher.notifyObservers(RotationProjectionParameters(0, 0, 0, eyeW))
+      dispatcher.notifyObservers(RotationProjectionParameters(eyeW = Some(eyeW)))
     else
       handleZoom(amountY)
     true // Consume all scroll events: single-handler setup, no other handler should act on scroll.

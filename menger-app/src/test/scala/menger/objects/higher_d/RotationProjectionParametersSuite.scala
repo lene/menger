@@ -24,28 +24,43 @@ class RotationProjectionParametersSuite extends AnyFlatSpec with Matchers:
   "plus for projection parameters" should "increase distance if adding bigger distance" in:
     val originalEyeDistance = 2f
     val targetEyeDistance = 3f
-    val p1 = RotationProjectionParameters(0, 0, 0, originalEyeDistance, 1)
-    val p2 = RotationProjectionParameters(0, 0, 0, targetEyeDistance, 1)
+    val p1 = RotationProjectionParameters(0, 0, 0, Some(originalEyeDistance), 1)
+    val p2 = RotationProjectionParameters(0, 0, 0, Some(targetEyeDistance), 1)
     val p3 = p1 + p2
-    p3.eyeW should be > originalEyeDistance
-    p3.eyeW should be < targetEyeDistance
+    p3.eyeW.get should be > originalEyeDistance
+    p3.eyeW.get should be < targetEyeDistance
 
   it should "decrease distance if adding smaller distance" in:
     val originalEyeDistance = 3f
     val targetEyeDistance = 2f
-    val p1 = RotationProjectionParameters(0, 0, 0, originalEyeDistance, 1)
-    val p2 = RotationProjectionParameters(0, 0, 0, targetEyeDistance, 1)
+    val p1 = RotationProjectionParameters(0, 0, 0, Some(originalEyeDistance), 1)
+    val p2 = RotationProjectionParameters(0, 0, 0, Some(targetEyeDistance), 1)
     val p3 = p1 + p2
-    p3.eyeW should be < originalEyeDistance
-    p3.eyeW should be > targetEyeDistance
+    p3.eyeW.get should be < originalEyeDistance
+    p3.eyeW.get should be > targetEyeDistance
 
   it should "keep distance same if adding same distance" in:
     val originalEyeDistance = 3f
     val targetEyeDistance = 3f
-    val p1 = RotationProjectionParameters(0, 0, 0, originalEyeDistance, 1)
-    val p2 = RotationProjectionParameters(0, 0, 0, targetEyeDistance, 1)
+    val p1 = RotationProjectionParameters(0, 0, 0, Some(originalEyeDistance), 1)
+    val p2 = RotationProjectionParameters(0, 0, 0, Some(targetEyeDistance), 1)
     val p3 = p1 + p2
-    p3.eyeW should be (originalEyeDistance)
+    p3.eyeW should be (Some(originalEyeDistance))
+
+  it should "have no eyeW after adding two rotation-only changes" in:
+    val sum = RotationProjectionParameters(rotXW = 1f) + RotationProjectionParameters(rotYW = 2f)
+    sum.eyeW shouldBe None
+
+  it should "keep an eyeW set on only one side" in:
+    val rotationOnly = RotationProjectionParameters(rotXW = 1f)
+    val scrolled = RotationProjectionParameters(eyeW = Some(4f))
+    (rotationOnly + scrolled).eyeW shouldBe defined
+    (scrolled + rotationOnly).eyeW shouldBe defined
+
+  it should "treat the default eyeW as a real value, not as 'unchanged'" in:
+    val explicit = RotationProjectionParameters(eyeW = Some(menger.common.Const.defaultEyeW))
+    explicit.eyeW shouldBe defined
+    explicit should not be RotationProjectionParameters()
 
   "RotationProjectionParameters.toString" should "include XYZ rotation when non-zero" in:
     val p = RotationProjectionParameters(rotX = 1.0f, rotY = 0.5f, rotZ = -0.5f)
@@ -59,9 +74,12 @@ class RotationProjectionParametersSuite extends AnyFlatSpec with Matchers:
     p.toString should include ("yw: 2.0")
     p.toString should include ("zw: 0.5")
 
-  it should "include eyeW when non-default" in:
-    val p = RotationProjectionParameters(eyeW = 5.0f)
+  it should "include eyeW when set" in:
+    val p = RotationProjectionParameters(eyeW = Some(5.0f))
     p.toString should include ("eyeW=5.0")
+
+  it should "not mention eyeW when it is not set" in:
+    RotationProjectionParameters(rotXW = 1f).toString should not include "eyeW"
 
   it should "include screenW when non-default" in:
     val p = RotationProjectionParameters(screenW = 3.0f)

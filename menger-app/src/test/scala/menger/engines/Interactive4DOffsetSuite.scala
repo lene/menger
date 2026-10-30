@@ -39,8 +39,8 @@ class Interactive4DOffsetSuite extends AnyFlatSpec with Matchers:
 
   // Session 5, F116 (menger#131): the preview window ignored Shift+scroll.
   it should "move eye-w by one power of 1.1 per Shift+scroll notch, as the interactive window" in:
-    val up = RotationProjectionParameters(0, 0, 0, eyeW = 65f)
-    val down = RotationProjectionParameters(0, 0, 0, eyeW = 1.0156f)
+    val up = RotationProjectionParameters(0, 0, 0, eyeW = Some(65f))
+    val down = RotationProjectionParameters(0, 0, 0, eyeW = Some(1.0156f))
     val eyeW = (o: Interactive4DOffset) => o.applyTo(List(tesseract)).head.projection4D.get.eyeW
     val fileEyeW = tesseract.projection4D.get.eyeW.toDouble
     eyeW(Interactive4DOffset.Zero.plus(up)) shouldBe math.pow(fileEyeW, 1.1).toFloat +- 1e-5f

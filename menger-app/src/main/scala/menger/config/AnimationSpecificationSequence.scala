@@ -46,7 +46,7 @@ case class AnimationSpecificationSequence(specification: List[String] = List.emp
           rotXW   = if animatedParams.contains(RotXW) then r.rotXW else base.rotXW,
           rotYW   = if animatedParams.contains(RotYW) then r.rotYW else base.rotYW,
           rotZW   = if animatedParams.contains(RotZW) then r.rotZW else base.rotZW,
-          eyeW    = if animatedParams.contains(ProjectionEyeW) then r.eyeW else base.eyeW,
+          eyeW    = r.eyeW.getOrElse(base.eyeW),
           screenW = if animatedParams.contains(ProjectionScreenW) then r.screenW else base.screenW
         )))
       else withLevel

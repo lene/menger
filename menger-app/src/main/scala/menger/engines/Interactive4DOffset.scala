@@ -20,10 +20,10 @@ final case class Interactive4DOffset(
     copy(rotXW = rotXW + dXW, rotYW = rotYW + dYW, rotZW = rotZW + dZW)
 
   /** This offset plus a window event: its rotation, and a Shift+scroll notch when it has one
-    * (a rotation-only event carries the default eye-w). */
+    * (a rotation-only event has no eye-w). */
   def plus(event: RotationProjectionParameters): Interactive4DOffset =
     plus(event.rotXW, event.rotYW, event.rotZW)
-      .copy(eyeWSteps = eyeWSteps + math.signum(event.eyeW - Const.defaultEyeW).toInt)
+      .copy(eyeWSteps = eyeWSteps + event.eyeW.fold(0)(e => math.signum(e - Const.defaultEyeW).toInt))
 
   def isZero: Boolean = rotXW == 0f && rotYW == 0f && rotZW == 0f && eyeWSteps == 0
 

@@ -84,7 +84,9 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
       rotYW = current(getBounds(RotYW), frame),
       rotZW = current(getBounds(RotZW), frame),
       screenW = current(getBounds(ProjectionScreenW, Const.defaultScreenW), frame),
-      eyeW = current(getBounds(ProjectionEyeW, Const.defaultEyeW), frame),
+      eyeW = Option.when(animationParameters.contains(ProjectionEyeW))(
+        current(getBounds(ProjectionEyeW), frame)
+      ),
       rotX = current(getBounds(RotX), frame),
       rotY = current(getBounds(RotY), frame),
       rotZ = current(getBounds(RotZ), frame)
@@ -133,7 +135,7 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
           rotXW   = if animationParameters.contains(RotXW) then r.rotXW else base.rotXW,
           rotYW   = if animationParameters.contains(RotYW) then r.rotYW else base.rotYW,
           rotZW   = if animationParameters.contains(RotZW) then r.rotZW else base.rotZW,
-          eyeW    = if animationParameters.contains(ProjectionEyeW) then r.eyeW else base.eyeW,
+          eyeW    = r.eyeW.getOrElse(base.eyeW),
           screenW = if animationParameters.contains(ProjectionScreenW) then r.screenW else base.screenW
         )))
       else withLevel
