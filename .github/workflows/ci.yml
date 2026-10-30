@@ -354,7 +354,9 @@ jobs:
     name: PerfCheck (benchmark vs baseline, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 25
-    if: ${{ !github.event.pull_request.head.repo.fork && (github.event_name == 'pull_request' || github.event_name == 'schedule') }}
+    # Also on main (a push, or the workflow_dispatch escape hatch): create-tag needs it, so a
+    # performance regression cannot be tagged and released (menger#87).
+    if: ${{ !github.event.pull_request.head.repo.fork && (github.event_name == 'pull_request' || github.event_name == 'schedule' || github.ref == 'refs/heads/main') }}
     needs: [build-deployable]
     steps:
       - uses: actions/checkout@v4
@@ -389,7 +391,7 @@ jobs:
     # Repo default GITHUB_TOKEN is read-only; pushing the tag needs write.
     permissions:
       contents: write
-    needs: [test-full, perf, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck, archunit]
+    needs: [test-full, perf, perf-check, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck, archunit]
     outputs:
       need_release: ${{ steps.tag.outputs.need_release }}
     steps:

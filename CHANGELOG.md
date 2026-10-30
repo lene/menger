@@ -74,6 +74,12 @@
 
 ### Changed
 
+- **Performance gates that gate (menger#87, #58).** `perf-check` (the benchmark trend check)
+  runs on `main` too and the release tag needs it; a perf suite that could not judge (an
+  inconclusive gate, a busy GPU) is counted, and the third such run in a row fails instead of
+  skipping (`QA_MAX_UNJUDGED`, default 3; a PASS resets it). The volume sponge generation gate
+  runs at level 3 (the level 2 limit could not fail even a 10x slowdown), volume scaling is
+  gated 2 -> 3, and the noisy volume level 1 -> 2 gate is gone.
 - **Breaking, scene vocabulary (menger#84, #95, #110; DSL manifest 2.0.0).**
   - Packages: the root package `menger` and the default package are empty. `ObjectSpec`,
     `Projection4DSpec`, `ObjectRotation`, `ProceduralSpec`, `TextureMaps`, `CurveData`,
