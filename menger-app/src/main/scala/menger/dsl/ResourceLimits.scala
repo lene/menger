@@ -3,7 +3,7 @@ package menger.dsl
 import menger.common.Const
 
 /** Central resource ceilings, enforced identically wherever a scene can request them: DSL
-  * object constructors' `require`s, the CLI `ObjectSpec` parser, and
+  * object constructors' `require`s, the CLI `ObjectSpecParser`, and
   * `InteractiveEngine`'s level table. One number per limit instead of several copies that can
   * drift apart -- a DSL scene had no upper bound at all on sponge/L-system/parametric-surface
   * size, only the CLI path did (usability review 2026-09, T1#3).
@@ -47,7 +47,7 @@ object ResourceLimits:
     LevelLimit(Const.Engine.tesseractSponge2WarnLevel, Const.Engine.tesseractSponge2MaxLevel)
 
   /** Keyed by normalized object-type name (`menger.spec.ObjectType.normalize`). Shared by
-    * `InteractiveEngine`'s level table and `ObjectSpec.validateSpongeLevel`. */
+    * `InteractiveEngine`'s level table and `ObjectSpecParser.validateSpongeLevel`. */
   val levelLimitByObjectType: Map[String, LevelLimit] = Map(
     "sponge-volume"            -> volumeSpongeLevel,
     "sponge-surface"           -> surfaceSpongeLevel,

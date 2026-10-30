@@ -1,6 +1,6 @@
 package menger.engines
 
-import menger.ObjectSpec
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 
 /** How a mixed scene's specs are split into groups that one scene builder each can build.

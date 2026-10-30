@@ -3,12 +3,12 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.common.Material
 import menger.common.Vector
 import menger.geometry.MengerRenderer
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
+import menger.spec.Projection4DSpec
 
 /** Per-IFS-type variation for the single projected-4D scene builder (F9, Sprint 35 Ph4).
   *

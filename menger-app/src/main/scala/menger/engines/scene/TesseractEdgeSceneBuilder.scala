@@ -6,8 +6,6 @@ import scala.util.Try
 import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureIndex
-import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.common.Material
 import menger.common.ProfilingConfig
 import menger.common.TransformUtil
@@ -18,7 +16,9 @@ import menger.common.z
 import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
+import menger.spec.Projection4DSpec
 
 /**
  * Scene builder for 4D hypercube objects with cylinder edge rendering.

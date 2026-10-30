@@ -1,11 +1,11 @@
 package menger.engines
 
-import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.common.CausticsConfig
 import menger.config.CameraConfig
 import menger.config.SceneConfig
 import menger.config.TAnimationConfig
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 import menger.video.EnvMapVideo
 import menger.video.VideoTexture
 import org.scalatest.flatspec.AnyFlatSpec

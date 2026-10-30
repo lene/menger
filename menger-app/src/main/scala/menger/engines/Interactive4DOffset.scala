@@ -1,9 +1,9 @@
 package menger.engines
 
-import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.RotationProjectionParameters
 import menger.common.Const
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 
 /** The 4D rotation a user adds in the window (Shift+drag), kept apart from the scene file's own
   * projections (usability review 2026-10, session 4, F96). Written into the specs, it was lost

@@ -12,10 +12,10 @@ import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureIndex
 import io.github.lene.optix.TextureUploadException
 import menger.AssetPaths
-import menger.ObjectSpec
 import menger.TextureData
 import menger.TextureLoader
 import menger.geometry.VideoLoader
+import menger.spec.ObjectSpec
 import menger.video.AnimationTimeRange
 import menger.video.EnvMapVideo
 import menger.video.VideoPlaybackTime

@@ -7,7 +7,6 @@ import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.AssetPaths
-import menger.ObjectSpec
 import menger.common.ProfilingConfig
 import menger.dsl.LoadedScene
 import menger.dsl.Scene
@@ -18,6 +17,7 @@ import menger.objects.higher_d.InvariantFinding
 import menger.objects.higher_d.PolytopeInvariants
 import menger.scene.RestrictedClasspath
 import menger.scene.SceneLoader
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 import upickle.default.ReadWriter
 import upickle.default.readwriter

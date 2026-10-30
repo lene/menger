@@ -288,7 +288,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     tesseract.size shouldBe 0.5f
 
   it should "accept projection parameters" in:
-    import menger.Projection4DSpec
+    import menger.spec.Projection4DSpec
     val projection = Projection4DSpec(eyeW = 3.0f, screenW = 1.5f)
     val tesseract = Tesseract(projection = Some(projection))
     tesseract.projection shouldBe Some(projection)
@@ -318,7 +318,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     spec.material shouldBe Some(Material.Glass.toCoreMaterial)
 
   it should "include projection when specified" in:
-    import menger.Projection4DSpec
+    import menger.spec.Projection4DSpec
     val projection = Projection4DSpec(eyeW = 3.0f, screenW = 1.5f)
     val tesseract = Tesseract(projection = Some(projection))
     val spec = tesseract.toObjectSpec
@@ -354,7 +354,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     sponge.material shouldBe Some(Material.Glass)
 
   it should "accept projection parameters" in:
-    import menger.Projection4DSpec
+    import menger.spec.Projection4DSpec
     val projection = Projection4DSpec(eyeW = 3.0f, screenW = 1.5f)
     val sponge = TesseractSponge(VolumeRemoving, level = 1f, projection = Some(projection))
     sponge.projection shouldBe Some(projection)
@@ -392,7 +392,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     spec.objectType shouldBe "tesseract-sponge-surface"
 
   it should "include projection when specified" in:
-    import menger.Projection4DSpec
+    import menger.spec.Projection4DSpec
     val projection = Projection4DSpec(eyeW = 3.0f, screenW = 1.5f)
     val sponge = TesseractSponge(VolumeRemoving, level = 1f, projection = Some(projection))
     val spec = sponge.toObjectSpec

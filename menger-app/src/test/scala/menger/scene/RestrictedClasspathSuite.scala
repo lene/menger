@@ -114,10 +114,11 @@ class RestrictedClasspathSuite extends AnyFlatSpec with Matchers:
 
   "RestrictedClasspath.isSceneEntry" should "admit the DSL packages and named root types only" in:
     List("menger/dsl/Sphere.class", "menger/objects/Cube.class", "menger/video/X.class",
-      "menger/Projection4DSpec.class", "menger/Projection4DSpec$.class", "menger/ObjectSpec.tasty")
+      "menger/spec/Projection4DSpec.class", "menger/spec/Projection4DSpec$.class",
+      "menger/spec/ObjectSpec.tasty")
       .foreach(p => withClue(p) { RestrictedClasspath.isSceneEntry(p) shouldBe true })
     List("Main.class", "menger/MengerCLIOptions.class", "menger/tools/SceneValidator.class",
       "menger/scene/SceneCompiler.class", "menger/engines/X.class", "menger/newpkg/X.class",
       "examples/dsl/SceneIndex.class", "io/github/lene/optix/MengerRenderer.class",
-      "menger/ObjectSpecParser.class")
+      "menger/cli/ObjectSpecParser.class")
       .foreach(p => withClue(p) { RestrictedClasspath.isSceneEntry(p) shouldBe false })

@@ -12,8 +12,6 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.TextureUploadException
 import menger.AssetPaths
-import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.ImageSize
@@ -45,6 +43,8 @@ import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
 import menger.optix.CameraState
 import menger.optix.SceneConfigurator
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 
 class InteractiveEngine(
   config: OptiXEngineConfig,

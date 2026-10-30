@@ -213,7 +213,7 @@ class SceneCompilerSuite extends AnyFlatSpec with Matchers:
   "SceneClassLoader" should "resolve the platform and the DSL, nothing else" in:
     val loader = SceneClassLoader(getClass.getClassLoader)
     noException should be thrownBy loader.loadClass("menger.dsl.Sphere")
-    noException should be thrownBy loader.loadClass("menger.Projection4DSpec")
+    noException should be thrownBy loader.loadClass("menger.spec.Projection4DSpec")
     noException should be thrownBy loader.loadClass("scala.collection.immutable.List")
     noException should be thrownBy loader.loadClass("java.lang.String")
     outsideTheVocabulary.foreach { name =>

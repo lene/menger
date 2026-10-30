@@ -1,8 +1,9 @@
 package menger.engines.scene
 
-import menger.ObjectRotation
-import menger.ObjectSpec
-import menger.Projection4DSpec
+import menger.cli.ObjectSpecParser
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -12,7 +13,7 @@ import org.scalatest.matchers.should.Matchers
 class TrackedMesh4DSpec extends AnyFlatSpec with Matchers:
 
   private def sponge(level: Float): ObjectSpec =
-    ObjectSpec.parse(s"type=tesseract-sponge:level=$level:size=1.5:material=glass")
+    ObjectSpecParser.parse(s"type=tesseract-sponge:level=$level:size=1.5:material=glass")
       .fold(e => fail(e), identity)
 
   private def rotated(spec: ObjectSpec, rotXW: Float): ObjectSpec =
@@ -54,6 +55,6 @@ class TrackedMesh4DSpec extends AnyFlatSpec with Matchers:
     TrackedMesh4D.canUpdateInPlace(List(base), List(base.copy(size = 2f))) shouldBe false
     TrackedMesh4D.canUpdateInPlace(List(base), List(base, base)) shouldBe false
     TrackedMesh4D.canUpdateInPlace(
-      List(base), List(ObjectSpec.parse("type=tesseract-sponge:level=2.3:size=1.5:material=chrome")
+      List(base), List(ObjectSpecParser.parse("type=tesseract-sponge:level=2.3:size=1.5:material=chrome")
         .fold(e => fail(e), identity))
     ) shouldBe false

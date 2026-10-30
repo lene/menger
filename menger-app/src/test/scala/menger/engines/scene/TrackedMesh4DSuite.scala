@@ -1,12 +1,13 @@
 package menger.engines.scene
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectRotation
-import menger.ObjectSpec
-import menger.Projection4DSpec
+import menger.cli.ObjectSpecParser
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
 import menger.common.Vector
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Outcome
 import org.scalatest.flatspec.AnyFlatSpec
@@ -50,7 +51,7 @@ class TrackedMesh4DSuite extends AnyFlatSpec with Matchers with BeforeAndAfterEa
       super.afterEach()
 
   private def sponge(level: Float, rotXW: Float): ObjectSpec =
-    ObjectSpec.parse(s"type=tesseract-sponge:level=$level:size=1.5:material=film")
+    ObjectSpecParser.parse(s"type=tesseract-sponge:level=$level:size=1.5:material=film")
       .fold(e => fail(e), identity)
       .copy(projection4D = Some(Projection4DSpec(rotXW = rotXW)))
 
@@ -102,7 +103,7 @@ class TrackedMesh4DSuite extends AnyFlatSpec with Matchers with BeforeAndAfterEa
   "A fractional refractive tesseract sponge" should "fade its hole caps with the level" in:
     def render(level: Float, material: String): Array[Byte] =
       renderer.clearAllInstances()
-      val spec = ObjectSpec.parse(s"type=tesseract-sponge:level=$level:size=1.5:material=$material")
+      val spec = ObjectSpecParser.parse(s"type=tesseract-sponge:level=$level:size=1.5:material=$material")
         .fold(e => fail(e), identity)
       val _ = build(List(spec))
       renderer.render(Size)

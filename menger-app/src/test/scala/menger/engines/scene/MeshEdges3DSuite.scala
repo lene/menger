@@ -1,11 +1,12 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
 import menger.common.ProfilingConfig
 import menger.dsl.Material
 import menger.dsl.Sponge
 import menger.dsl.SpongeType
 import menger.engines.SceneGroups
+import menger.spec.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -49,8 +50,8 @@ class MeshEdges3DSuite extends AnyFlatSpec with Matchers:
     ) shouldBe false
 
   "The command line" should "accept edge parameters on a cube and refuse them on an IAS sponge" in:
-    ObjectSpec.parse("type=cube:edge-radius=0.02").map(_.edgeRadius) shouldBe Right(Some(0.02f))
-    ObjectSpec.parse("type=sponge-recursive-ias:level=2:edge-radius=0.02") shouldBe a[Left[?, ?]]
+    ObjectSpecParser.parse("type=cube:edge-radius=0.02").map(_.edgeRadius) shouldBe Right(Some(0.02f))
+    ObjectSpecParser.parse("type=sponge-recursive-ias:level=2:edge-radius=0.02") shouldBe a[Left[?, ?]]
 
   "The DSL" should "carry a sponge's edges and refuse them on a recursive-IAS sponge" in:
     val sponge = Sponge(SpongeType.VolumeFilling, level = 1f, edgeRadius = tube,

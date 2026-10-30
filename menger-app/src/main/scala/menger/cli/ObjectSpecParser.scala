@@ -1,4 +1,4 @@
-package menger
+package menger.cli
 
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
@@ -7,152 +7,20 @@ import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Color
 import menger.common.Material
-import menger.common.TriangleMeshData
 import menger.dsl.ResourceLimits
+import menger.spec.ConeGeometry
+import menger.spec.CurveData
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
-import menger.video.VideoTexture
+import menger.spec.PlaneGeometry
+import menger.spec.ProceduralSpec
+import menger.spec.Projection4DSpec
+import menger.spec.TextureMaps
 
-case class ObjectRotation(x: Float = 0f, y: Float = 0f, z: Float = 0f)
-
-case class ConeGeometry(
-  apex: Option[(Float, Float, Float)] = None,
-  base: Option[(Float, Float, Float)] = None,
-  radius: Option[Float] = None
-)
-
-case class PlaneGeometry(
-  normal: Option[(Float, Float, Float)] = None,
-  distance: Option[Float] = None,
-  color2: Option[Color] = None,
-  checkerSize: Float = 1.0f
-)
-
-case class ProceduralSpec(proceduralType: Int = 0, scale: Float = 1.0f)
-
-case class CurveData(points: Vector[Float], widths: Vector[Float])
-
-case class TextureMaps(normalMap: Option[String] = None, roughnessMap: Option[String] = None)
-
-/**
- * Object specification parsed from CLI --object flag.
- * Format: type=TYPE:key=value:key=value...
- *
- * Success examples:
- *   type=sphere:pos=0,0,0:size=1.0:color=#FF0000:ior=1.5
- *   type=cube:pos=2,0,0:size=1.5:color=#0000FF
- *   type=sponge-volume:pos=-2,0,0:size=2.0:level=3:color=#00FF00
- *   type=sponge-surface:pos=0,2,0:size=2.0:level=2.5:color=#FFFF00
- *   type=cube-sponge:pos=1,0,0:size=2.0:level=2:color=#FF00FF
- *   type=sphere:pos=0,0,0:material=glass:ior=1.7
- *   type=sphere:pos=0,0,0:material=glass:ior=1.5:dispersion=33
- *   type=cube:pos=0,0,0:material=metal:color=#FFD700
- *   type=cube:pos=0,0,0:texture=brick.png
- *   type=tesseract:pos=0,0,0:size=2:rot-xw=30:rot-yw=15:color=#4488FF
- *
- * Error examples (input → error message):
- *   "type=invalid" → "Invalid object type: 'invalid'. Valid types: sphere, cube, ..."
- *   "pos=1,2,3" (missing type) → "Missing required 'type' field..."
- *   "type=sphere:pos=1,2" → "Invalid position format: '1,2'. Expected format: pos=x,y,z..."
- *   "type=sphere:size=abc" → "Invalid size value 'abc': For input string: \"abc\"..."
- *   "type=sponge-volume:pos=0,0,0" → "Sponge object requires 'level' field..."
- *   "type=sphere:material=unknown" → "Unknown material preset: 'unknown'. Valid presets: ..."
- *   "type=sphere:color=notahex" → "Invalid color value 'notahex': For input string: \"notahex\"..."
- *   "type=tesseract:eye-w=1:screen-w=2" → "eye-w must be greater than screen-w..."
- */
-case class ObjectSpec(
-  objectType: String,
-  x: Float = 0.0f,
-  y: Float = 0.0f,
-  z: Float = 0.0f,
-  size: Float = 1.0f,
-  level: Option[Float] = None,
-  color: Option[Color] = None,
-  ior: Float = 1.0f,
-  material: Option[Material] = None,
-  texture: Option[String] = None,
-  videoTexture: Option[VideoTexture] = None,
-  projection4D: Option[Projection4DSpec] = None,
-  edgeRadius: Option[Float] = None,
-  edgeMaterial: Option[Material] = None,
-  rotation: ObjectRotation = ObjectRotation(),
-  cone: ConeGeometry = ConeGeometry(),
-  plane: PlaneGeometry = PlaneGeometry(),
-  procedural: ProceduralSpec = ProceduralSpec(),
-  textureMaps: TextureMaps = TextureMaps(),
-  metallicMap: Option[String] = None,
-  aoMap: Option[String] = None,
-  heightMap: Option[String] = None,
-  textureSet: Option[String] = None,
-  textureSetRes: Option[String] = None,
-  uvScale: Option[Float] = None,
-  meshData: Option[TriangleMeshData] = None,
-  distanceThreshold: Option[Int] = None,
-  curveData: Option[CurveData] = None,
-  lsystemPreset: Option[String] = None,
-  lsystemAngle: Option[Float] = None,
-  lsystemSeed: Option[Long] = None,
-  lsystemDim: Int = 3,
-  dispersion: Float = 0.0f
-):
-  require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
-
-  def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined
-  def rotX: Float = rotation.x
-  def rotY: Float = rotation.y
-  def rotZ: Float = rotation.z
-  def proceduralType: Int = procedural.proceduralType
-  def proceduralScale: Float = procedural.scale
-  def imageTextureKey: Option[String] = texture.orElse(videoTexture.map(_.textureKey))
-  def normalMap: Option[String] = textureMaps.normalMap
-  def roughnessMap: Option[String] = textureMaps.roughnessMap
-  def apex: Option[(Float, Float, Float)] = cone.apex
-  def base: Option[(Float, Float, Float)] = cone.base
-  def radius: Option[Float] = cone.radius
-  def normal: Option[(Float, Float, Float)] = plane.normal
-  def distance: Option[Float] = plane.distance
-  def color2: Option[Color] = plane.color2
-  def checkerSize: Float = plane.checkerSize
-
-  /** The 4D w-scale; 1 without a projection. */
-  def wScale: Float = projection4D.fold(Projection4DSpec.DefaultWScale)(_.wScale)
-
-  /** This spec without its 4D view (eye, screen, rotations) but with its w-scale: a view
-    * change re-projects the same 4D mesh, a w-scale change is a different mesh (menger#65). */
-  def withoutView: ObjectSpec =
-    copy(projection4D =
-      Some(wScale).filter(_ != Projection4DSpec.DefaultWScale).map(w => Projection4DSpec(wScale = w))
-    )
-
-/**
- * 4D projection parameters for hypercube objects (tesseract, etc.).
- * Only applicable to object types where ObjectType.isHypercube returns true.
- */
-case class Projection4DSpec(
-  eyeW: Float = Projection4DSpec.DefaultEyeW,
-  screenW: Float = Projection4DSpec.DefaultScreenW,
-  rotXW: Float = Projection4DSpec.DefaultRotXW,
-  rotYW: Float = Projection4DSpec.DefaultRotYW,
-  rotZW: Float = Projection4DSpec.DefaultRotZW,
-  // Scales the object's w coordinate before rotation and projection (menger#65): 0 flattens a
-  // tesseract to a cube, animating 0 -> 1 grows it along w. Geometry, not view: see
-  // ObjectSpec.withoutView.
-  wScale: Float = Projection4DSpec.DefaultWScale
-):
-  require(eyeW > screenW, s"eyeW ($eyeW) must be greater than screenW ($screenW)")
-  require(eyeW > 0 && screenW > 0, "eyeW and screenW must be positive")
-  require(wScale >= 0f && !wScale.isInfinite, s"wScale must be finite and >= 0, got $wScale")
-
-object Projection4DSpec:
-  val DefaultEyeW: Float = 3.0f
-  val DefaultScreenW: Float = 1.5f
-  val DefaultRotXW: Float = 15f
-  val DefaultRotYW: Float = 10f
-  val DefaultRotZW: Float = 0f
-  val DefaultWScale: Float = 1f
-
-  val default: Projection4DSpec = Projection4DSpec()
-
-object ObjectSpec extends LazyLogging:
+/** Parses the `--object` flag, `type=TYPE:key=value:...`, into an [[ObjectSpec]] (the format and
+  * its examples are documented on `ObjectSpec`). */
+object ObjectSpecParser extends LazyLogging:
 
   /**
    * Parse object specification from keyword=value format.
@@ -587,16 +455,6 @@ object ObjectSpec extends LazyLogging:
   // Edge parameter defaults
   private val DefaultEdgeRadius: Float = 0.02f
 
-  /** The 3D types with edge tubes: triangle meshes whose edges come from their faces
-    * (MeshEdges3D, menger#132). A recursive-IAS sponge has no flat mesh to take them from. */
-  val Edge3DTypes: Set[String] = Set(
-    "cube", "sponge-volume", "sponge-surface",
-    "tetrahedron", "octahedron", "dodecahedron", "icosahedron"
-  )
-
-  def hasEdgeTubes(objType: String): Boolean =
-    ObjectType.isProjected4D(objType) || Edge3DTypes.contains(ObjectType.normalize(objType))
-
   /**
    * Parse edge rendering parameters (4D projected types, a cube, a mesh sponge).
    * Returns (edgeRadius, edgeMaterial) tuple.
@@ -610,7 +468,7 @@ object ObjectSpec extends LazyLogging:
       k == "edgecolor" || k == "edgeemission"
     )
 
-    if hasEdgeParams && !hasEdgeTubes(objType) then
+    if hasEdgeParams && !ObjectSpec.hasEdgeTubes(objType) then
       Left("Edge rendering parameters (edge-radius, edge-material, etc.) are only valid for " +
         "4D projected types, a cube and a mesh sponge (sponge-volume, sponge-surface), " +
         s"not '$objType'")

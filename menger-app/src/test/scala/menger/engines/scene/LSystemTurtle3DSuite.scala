@@ -107,7 +107,7 @@ class LSystemTurtle3DSuite extends AnyFlatSpec with Matchers:
   "Stochastic same-seed" should "produce identical point lists" in:
     val specs1 = LSystemTurtle3D.Tree.generate()
     val specs2 = LSystemTurtle3D.Tree.generate()
-    val ptsToVec = (s: menger.ObjectSpec) =>
+    val ptsToVec = (s: menger.spec.ObjectSpec) =>
       s.curveData.get.points.grouped(3).map(g => (g(0), g(1), g(2))).toVector
     specs1.map(ptsToVec) shouldBe specs2.map(ptsToVec)
 

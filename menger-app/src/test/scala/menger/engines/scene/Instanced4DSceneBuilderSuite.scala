@@ -1,8 +1,9 @@
 package menger.engines.scene
 
 import io.github.lene.optix.OptiXException
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
 import menger.geometry.MengerRenderer
+import menger.spec.ObjectSpec
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -14,7 +15,7 @@ import org.scalatest.matchers.should.Matchers
   * fractional, mixed), and the native-failure path. */
 class Instanced4DSceneBuilderSuite extends AnyFlatSpec with Matchers with MockFactory:
 
-  private def spec(s: String): ObjectSpec = ObjectSpec.parse(s).toOption.get
+  private def spec(s: String): ObjectSpec = ObjectSpecParser.parse(s).toOption.get
 
   IFS4DType.all.foreach { ifsType =>
 

@@ -1,6 +1,6 @@
 package menger.engines
 
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
 import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.objects.higher_d.Hexadecachoron
 import menger.objects.higher_d.Icositetrachoron
@@ -19,7 +19,7 @@ class PolychoraEdgeIntegrationSuite extends AnyFlatSpec with Matchers:
   // === ObjectSpec parsing — edge rendering on polychora ===
 
   "Pentachoron edge rendering" should "parse with edge-material" in:
-    val result = ObjectSpec.parse("type=pentachoron:size=0.8:material=film:edge-material=gold:edge-radius=0.02")
+    val result = ObjectSpecParser.parse("type=pentachoron:size=0.8:material=film:edge-material=gold:edge-radius=0.02")
     result shouldBe a[Right[?, ?]]
     val spec = result.toOption.get
     spec.objectType shouldBe "pentachoron"
@@ -28,20 +28,20 @@ class PolychoraEdgeIntegrationSuite extends AnyFlatSpec with Matchers:
     spec.edgeRadius shouldBe Some(0.02f)
 
   it should "parse with edge-radius only" in:
-    val result = ObjectSpec.parse("type=pentachoron:edge-radius=0.03")
+    val result = ObjectSpecParser.parse("type=pentachoron:edge-radius=0.03")
     result shouldBe a[Right[?, ?]]
     val spec = result.toOption.get
     spec.hasEdgeRendering shouldBe true
 
   it should "parse with emissive edges" in:
-    val result = ObjectSpec.parse("type=pentachoron:edge-color=#ff00ff:edge-emission=3.0:edge-radius=0.025")
+    val result = ObjectSpecParser.parse("type=pentachoron:edge-color=#ff00ff:edge-emission=3.0:edge-radius=0.025")
     result shouldBe a[Right[?, ?]]
     val spec = result.toOption.get
     spec.edgeMaterial shouldBe defined
     spec.hasEdgeRendering shouldBe true
 
   "16-cell edge rendering" should "parse with edge-material" in:
-    val result = ObjectSpec.parse("type=16-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.02")
+    val result = ObjectSpecParser.parse("type=16-cell:size=0.8:material=film:edge-material=chrome:edge-radius=0.02")
     result shouldBe a[Right[?, ?]]
     val spec = result.toOption.get
     spec.objectType shouldBe "16-cell"
@@ -50,12 +50,12 @@ class PolychoraEdgeIntegrationSuite extends AnyFlatSpec with Matchers:
     spec.edgeRadius shouldBe Some(0.02f)
 
   it should "parse with edge-radius only" in:
-    val result = ObjectSpec.parse("type=16-cell:edge-radius=0.015")
+    val result = ObjectSpecParser.parse("type=16-cell:edge-radius=0.015")
     result shouldBe a[Right[?, ?]]
     result.toOption.get.hasEdgeRendering shouldBe true
 
   "24-cell edge rendering" should "parse with edge-material" in:
-    val result = ObjectSpec.parse("type=24-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.02")
+    val result = ObjectSpecParser.parse("type=24-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.02")
     result shouldBe a[Right[?, ?]]
     val spec = result.toOption.get
     spec.objectType shouldBe "24-cell"
@@ -64,7 +64,7 @@ class PolychoraEdgeIntegrationSuite extends AnyFlatSpec with Matchers:
     spec.edgeRadius shouldBe Some(0.02f)
 
   it should "parse with all parameters" in:
-    val result = ObjectSpec.parse(
+    val result = ObjectSpecParser.parse(
       "type=24-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.02" +
       ":rot-xw=30:rot-yw=20:eye-w=4.0:screen-w=1.5"
     )
@@ -81,21 +81,21 @@ class PolychoraEdgeIntegrationSuite extends AnyFlatSpec with Matchers:
   given menger.common.ProfilingConfig = menger.common.ProfilingConfig.disabled
 
   "TesseractEdgeSceneBuilder.calculateRequiredInstances" should "handle pentachoron with edges" in:
-    val spec = ObjectSpec.parse("type=pentachoron:size=0.8:edge-material=gold:edge-radius=0.02")
+    val spec = ObjectSpecParser.parse("type=pentachoron:size=0.8:edge-material=gold:edge-radius=0.02")
       .toOption.get
     val builder = TesseractEdgeSceneBuilder(".")
     // 1 face mesh + 10 edges = 11
     builder.calculateRequiredInstances(List(spec)) shouldBe 11
 
   it should "handle 16-cell with edges" in:
-    val spec = ObjectSpec.parse("type=16-cell:size=0.8:edge-material=chrome:edge-radius=0.02")
+    val spec = ObjectSpecParser.parse("type=16-cell:size=0.8:edge-material=chrome:edge-radius=0.02")
       .toOption.get
     val builder = TesseractEdgeSceneBuilder(".")
     // 1 face mesh + 24 edges = 25
     builder.calculateRequiredInstances(List(spec)) shouldBe 25
 
   it should "handle 24-cell with edges" in:
-    val spec = ObjectSpec.parse("type=24-cell:size=0.8:edge-material=gold:edge-radius=0.02")
+    val spec = ObjectSpecParser.parse("type=24-cell:size=0.8:edge-material=gold:edge-radius=0.02")
       .toOption.get
     val builder = TesseractEdgeSceneBuilder(".")
     // 1 face mesh + 96 edges = 97

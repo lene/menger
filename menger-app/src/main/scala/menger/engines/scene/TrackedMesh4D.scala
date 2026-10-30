@@ -5,10 +5,10 @@ import scala.util.Try
 
 import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectRotation
-import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.common.ProfilingConfig
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 
 /** A 4D triangle-mesh scene built with its renderer handles recorded, so that an animation can
   * update it in place instead of rebuilding it every frame (usability review 2026-09, session 2,

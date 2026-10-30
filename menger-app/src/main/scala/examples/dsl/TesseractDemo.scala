@@ -2,8 +2,8 @@ package examples.dsl
 
 import scala.language.implicitConversions
 
-import menger.Projection4DSpec
 import menger.dsl._
+import menger.spec.Projection4DSpec
 
 /**
  * Example: 4D Tesseract rendering

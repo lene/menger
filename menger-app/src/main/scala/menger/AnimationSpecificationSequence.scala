@@ -4,6 +4,9 @@ import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.AnimationException
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 
 case class AnimationSpecificationSequence(specification: List[String] = List.empty) extends LazyLogging:
   val parts: List[AnimationSpecification] = specification.map(AnimationSpecification(_))

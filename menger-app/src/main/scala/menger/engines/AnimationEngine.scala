@@ -1,6 +1,5 @@
 package menger.engines
 
-import menger.ObjectSpec
 import menger.common.CausticsConfig
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
@@ -11,6 +10,7 @@ import menger.dsl.Scene
 import menger.engines.scene.SceneBuilder
 import menger.optix.CameraState
 import menger.optix.SceneConfigurator
+import menger.spec.ObjectSpec
 
 class AnimationEngine(
   val sceneFunction: Float => Scene,

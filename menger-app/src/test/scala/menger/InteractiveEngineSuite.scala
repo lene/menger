@@ -1,6 +1,7 @@
 package menger
 
 import com.badlogic.gdx.graphics.Color
+import menger.cli.ObjectSpecParser
 import menger.common.Axis
 import menger.common.Const
 import menger.common.PlaneSpec
@@ -32,7 +33,7 @@ class InteractiveEngineSuite extends AnyFlatSpec with Matchers:
     val colorHex =
       f"#${(color.r * 255).toInt}%02X${(color.g * 255).toInt}%02X${(color.b * 255).toInt}%02X"
     val objectSpec =
-      ObjectSpec.parse(
+      ObjectSpecParser.parse(
         s"type=sphere:pos=0,0,0:size=${radius * 2}:color=$colorHex:ior=$ior"
       ) match
         case Left(error) => sys.error(s"Failed to parse object spec: $error")

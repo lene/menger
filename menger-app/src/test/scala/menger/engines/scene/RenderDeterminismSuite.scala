@@ -1,7 +1,8 @@
 package menger.engines.scene
 
 import menger.geometry.MengerRenderer
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
+import menger.spec.ObjectSpec
 import menger.common.Color
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
@@ -16,7 +17,7 @@ object GPURequired extends Tag("menger.tags.GPURequired")
 
 class RenderDeterminismSuite extends AnyFlatSpec with Matchers:
 
-  private def spec(s: String): ObjectSpec = ObjectSpec.parse(s).toOption.get
+  private def spec(s: String): ObjectSpec = ObjectSpecParser.parse(s).toOption.get
 
   // ── Scene configuration determinism ────────────────────────────────────────
 

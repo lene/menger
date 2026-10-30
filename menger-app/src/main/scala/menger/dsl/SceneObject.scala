@@ -2,14 +2,15 @@ package menger.dsl
 
 import scala.annotation.targetName
 
-import menger.CurveData
-import menger.ObjectRotation
-import menger.ObjectSpec
-import menger.ProceduralSpec
-import menger.Projection4DSpec
-import menger.TextureMaps
 import menger.objects.LSystemPresets
+import menger.spec.ConeGeometry
+import menger.spec.CurveData
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
+import menger.spec.ProceduralSpec
+import menger.spec.Projection4DSpec
+import menger.spec.TextureMaps
 import menger.video.VideoTexture
 
 /** Base trait for all scene objects */
@@ -32,7 +33,7 @@ sealed trait SceneObject:
   protected def baseObjectSpec(
     objectType: String,
     level: Option[Float] = None,
-    projection4D: Option[menger.Projection4DSpec] = None,
+    projection4D: Option[Projection4DSpec] = None,
     edgeRadius: Option[Float] = None,
     edgeMaterial: Option[menger.common.Material] = None,
     meshData: Option[menger.common.TriangleMeshData] = None,
@@ -271,7 +272,7 @@ case class Cone(
   require(radius.forall(_ > 0f), s"Radius must be positive, got ${radius.getOrElse(0f)}")
 
   def toObjectSpec: ObjectSpec =
-    baseObjectSpec("cone").copy(cone = menger.ConeGeometry(
+    baseObjectSpec("cone").copy(cone = ConeGeometry(
       apex.map(v => (v.x, v.y, v.z)), base.map(v => (v.x, v.y, v.z)), radius
     ))
 

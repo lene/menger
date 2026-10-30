@@ -6,10 +6,10 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
-import menger.ObjectSpec
 import menger.dsl.LoadedScene
 import menger.scene.SceneFileWatcher
 import menger.scene.SceneLoader
+import menger.spec.ObjectSpec
 
 /** The live reload both windows share (review 2026-10-14, menger#101: it existed twice and
   * the two copies already behaved differently). Watches the scene file, loads it with the total

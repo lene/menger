@@ -1,6 +1,6 @@
 package menger.engines
 
-import menger.ObjectSpec
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 
 enum SceneType:

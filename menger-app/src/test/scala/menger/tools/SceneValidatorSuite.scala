@@ -2,7 +2,7 @@ package menger.tools
 
 import java.nio.file.Files
 
-import menger.ObjectSpec
+import menger.spec.ObjectSpec
 import menger.engines.scene.MeshFactory
 import menger.objects.higher_d.PolytopeInvariants
 import org.scalatest.flatspec.AnyFlatSpec
@@ -306,7 +306,7 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val otherProjection = menger.dsl.Tesseract(
       pos = menger.dsl.Vec3(0f, 2f, 0f),
       edgeRadius = Some(0.005f),
-      projection = Some(menger.Projection4DSpec(eyeW = 5f))
+      projection = Some(menger.spec.Projection4DSpec(eyeW = 5f))
     )
     SceneValidator.buildFindings(sceneOf(edgedSponge, otherProjection)) shouldBe empty
 

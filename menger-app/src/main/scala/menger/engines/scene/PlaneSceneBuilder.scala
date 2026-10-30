@@ -3,8 +3,8 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
 import menger.common.Vector
+import menger.spec.ObjectSpec
 
 class PlaneSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 

@@ -2,7 +2,6 @@ package menger.tools
 
 import scala.util.Try
 
-import menger.ObjectSpec
 import menger.common.CausticsConfig
 import menger.common.Color
 import menger.common.Light
@@ -15,6 +14,7 @@ import menger.config.PlaneConfig
 import menger.dsl.Scene
 import menger.dsl.SceneObject
 import menger.engines.SceneConverter
+import menger.spec.ObjectSpec
 import upickle.default.ReadWriter
 
 /** The evaluated values of a scene at one time, as the scene agent needs them to describe and

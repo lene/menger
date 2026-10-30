@@ -1,6 +1,9 @@
 package menger
 
 import menger.engines.TypeRegistry
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 
 /** Sprint 36 H5.1: `--rot-x/-y/-z/-x-w/-y-w/-z-w` were parsed but never applied to any scene --
   * `RotationProjectionParameters.apply(opts)`, their sole reader, had no caller. Compose them

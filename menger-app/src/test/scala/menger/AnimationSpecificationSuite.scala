@@ -1,5 +1,6 @@
 package menger
 
+import menger.cli.ObjectSpecParser
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -263,25 +264,25 @@ class AnimationSpecificationSuite extends AnyFlatSpec with Matchers:
 
   "AnimationSpecification.applyToSpec" should "interpolate level on the spec" in:
     val anim = AnimationSpecification("frames=10:level=1-3")
-    val spec = ObjectSpec.parse("type=menger4d:level=2").toOption.get
+    val spec = ObjectSpecParser.parse("type=menger4d:level=2").toOption.get
     anim.applyToSpec(spec, 0).level shouldBe Some(1f)
     anim.applyToSpec(spec, 5).level shouldBe Some(2f)
     anim.applyToSpec(spec, 10).level shouldBe Some(3f)
 
   it should "interpolate rotXW on the projection4D" in:
     val anim = AnimationSpecification("frames=10:rot-x-w=0-90")
-    val spec = ObjectSpec.parse("type=menger4d:level=2").toOption.get
+    val spec = ObjectSpecParser.parse("type=menger4d:level=2").toOption.get
     anim.applyToSpec(spec, 0).projection4D.map(_.rotXW) shouldBe Some(0f)
     anim.applyToSpec(spec, 5).projection4D.map(_.rotXW) shouldBe Some(45f)
     anim.applyToSpec(spec, 10).projection4D.map(_.rotXW) shouldBe Some(90f)
 
   it should "preserve non-animated 4D params when animating rotXW" in:
     val anim = AnimationSpecification("frames=10:rot-x-w=0-90")
-    val spec = ObjectSpec.parse("type=menger4d:level=2:rot-yw=30").toOption.get
+    val spec = ObjectSpecParser.parse("type=menger4d:level=2:rot-yw=30").toOption.get
     val result = anim.applyToSpec(spec, 5)
     result.projection4D.map(_.rotYW) shouldBe spec.projection4D.map(_.rotYW)
 
   it should "not modify spec when no anim params overlap" in:
     val anim = AnimationSpecification("frames=10:level=1-3")
-    val spec = ObjectSpec.parse("type=cube").toOption.get
+    val spec = ObjectSpecParser.parse("type=cube").toOption.get
     anim.applyToSpec(spec, 5) shouldBe spec.copy(level = Some(2f))

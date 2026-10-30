@@ -325,7 +325,7 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--max-ray-depth", tooDeep.toString))
 
   "ObjectSpec" should "parse rot-x rot-y rot-z in degrees and convert to radians" in:
-    val result = menger.ObjectSpec.parse("type=cube:rot-x=45:rot-y=90:rot-z=30")
+    val result = ObjectSpecParser.parse("type=cube:rot-x=45:rot-y=90:rot-z=30")
     result should be a Symbol("right")
     val spec = result.getOrElse(fail("parse error"))
     spec.rotX shouldBe (Math.PI.toFloat / 4f) +- 0.001f   // 45° → π/4

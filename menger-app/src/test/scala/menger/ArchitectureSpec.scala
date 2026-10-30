@@ -275,10 +275,9 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
     classes().that().resideInAPackage("menger")
       .should().haveNameMatching(
         "menger\\.(AnimationSpecification|AnimationSpecificationSequence|AssetPaths|" +
-          "ColorConversions|ConeGeometry|CurveData|GlobalRotation|MengerCLIOptions|" +
-          "MengerExitException|ObjectRotation|ObjectSpec|OptiXRenderResources|OptiXRenderState|" +
-          "PlaneGeometry|ProceduralSpec|Projection4DSpec|RenderState|" +
-          "RotationProjectionParameters|TextureData|TextureLoader|TextureMaps)(\\$.*)?"
+          "ColorConversions|GlobalRotation|MengerCLIOptions|" +
+          "MengerExitException|OptiXRenderResources|OptiXRenderState|RenderState|" +
+          "RotationProjectionParameters|TextureData|TextureLoader)(\\$.*)?"
       ).check(allClasses)
 
   it should "keep menger.video a leaf package" in:

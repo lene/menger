@@ -1,8 +1,8 @@
 package menger.engines.scene
 
-import menger.ObjectRotation
-import menger.ObjectSpec
 import menger.common.TransformUtil
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

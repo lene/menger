@@ -1,8 +1,8 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
 import menger.common.Color
 import menger.common.Material
+import menger.spec.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

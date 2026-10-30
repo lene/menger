@@ -1,6 +1,7 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
+import menger.spec.ObjectSpec
 import menger.common.Material
 import menger.common.ProfilingConfig
 import menger.common.Vector
@@ -19,50 +20,50 @@ class TriangleMeshSceneBuilderSpec extends AnyFlatSpec with Matchers:
   // === Compatibility Tests for Sprint 9 Fixes ===
 
   "TriangleMeshSceneBuilder.isCompatible" should "allow same 4D types with matching projection" in:
-    val spec1 = ObjectSpec.parse("type=tesseract:rot-xw=45").toOption.get
-    val spec2 = ObjectSpec.parse("type=tesseract:rot-xw=45").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=tesseract:rot-xw=45").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=tesseract:rot-xw=45").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow different 4D types with matching projection parameters" in:
     // Issue 3: Mix different 4D types
-    val spec1 = ObjectSpec.parse("type=tesseract:rot-xw=45:rot-yw=30").toOption.get
-    val spec2 = ObjectSpec.parse("type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=tesseract:rot-xw=45:rot-yw=30").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=tesseract-sponge:level=1:rot-xw=45:rot-yw=30").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow tesseract-sponge and tesseract-sponge-2 with matching projection" in:
-    val spec1 = ObjectSpec.parse("type=tesseract-sponge:level=1").toOption.get
-    val spec2 = ObjectSpec.parse("type=tesseract-sponge-2:level=1").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=tesseract-sponge:level=1").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=tesseract-sponge-2:level=1").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
   // menger#52: each 4D spec is projected with its own parameters.
   it should "allow 4D types with different projection parameters" in:
-    val spec1 = ObjectSpec.parse("type=tesseract:rot-xw=45").toOption.get
-    val spec2 = ObjectSpec.parse("type=tesseract-sponge:level=1:rot-xw=30").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=tesseract:rot-xw=45").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=tesseract-sponge:level=1:rot-xw=30").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow mixed 4D and non-4D types (TD-5: each spec gets its own mesh+GAS)" in:
-    val spec1 = ObjectSpec.parse("type=tesseract").toOption.get
-    val spec2 = ObjectSpec.parse("type=cube").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=tesseract").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=cube").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow cube + sponge (TD-5: distinct triangle-mesh types coexist)" in:
-    val spec1 = ObjectSpec.parse("type=cube").toOption.get
-    val spec2 = ObjectSpec.parse("type=sponge-volume:level=1").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=cube").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=sponge-volume:level=1").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow multiple cubes" in:
-    val spec1 = ObjectSpec.parse("type=cube").toOption.get
-    val spec2 = ObjectSpec.parse("type=cube").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=cube").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=cube").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow sponges of same level" in:
-    val spec1 = ObjectSpec.parse("type=sponge-volume:level=2").toOption.get
-    val spec2 = ObjectSpec.parse("type=sponge-volume:level=2").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=sponge-volume:level=2").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=sponge-volume:level=2").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow sponges of different levels" in:
-    val spec1 = ObjectSpec.parse("type=sponge-volume:level=1").toOption.get
-    val spec2 = ObjectSpec.parse("type=sponge-volume:level=2").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=sponge-volume:level=1").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=sponge-volume:level=2").toOption.get
     builder.isCompatible(spec1, spec2) shouldBe true
 
   // === ObjectType classification for 4D types ===
@@ -82,48 +83,48 @@ class TriangleMeshSceneBuilderSpec extends AnyFlatSpec with Matchers:
 
   "TriangleMeshSceneBuilder.validate" should "accept compatible 4D types" in:
     val specs = List(
-      ObjectSpec.parse("type=tesseract").toOption.get,
-      ObjectSpec.parse("type=tesseract-sponge:level=1").toOption.get
+      ObjectSpecParser.parse("type=tesseract").toOption.get,
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1").toOption.get
     )
     builder.validate(specs, 100) shouldBe Right(())
 
   it should "accept cube + tesseract (TD-5 resolved: distinct mesh types coexist)" in:
     val specs = List(
-      ObjectSpec.parse("type=cube").toOption.get,
-      ObjectSpec.parse("type=tesseract").toOption.get
+      ObjectSpecParser.parse("type=cube").toOption.get,
+      ObjectSpecParser.parse("type=tesseract").toOption.get
     )
     builder.validate(specs, 100) shouldBe Right(())
 
   it should "accept 4D specs with different projection parameters (menger#52)" in:
     val specs = List(
-      ObjectSpec.parse("type=tesseract:rot-xw=45").toOption.get,
-      ObjectSpec.parse("type=tesseract-sponge:level=1:rot-xw=30").toOption.get
+      ObjectSpecParser.parse("type=tesseract:rot-xw=45").toOption.get,
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1:rot-xw=30").toOption.get
     )
     builder.validate(specs, 100) shouldBe Right(())
 
   it should "accept fractional level for sponge-recursive-ias" in:
-    val spec = ObjectSpec.parse("type=sponge-recursive-ias:level=2.5").toOption.get
+    val spec = ObjectSpecParser.parse("type=sponge-recursive-ias:level=2.5").toOption.get
     builder.validate(List(spec), 100) shouldBe Right(())
 
   it should "reject level >= 14 for sponge-recursive-ias" in:
-    val spec = ObjectSpec.parse("type=sponge-recursive-ias:level=14").toOption.get
+    val spec = ObjectSpecParser.parse("type=sponge-recursive-ias:level=14").toOption.get
     val result = builder.validate(List(spec), 100)
     result shouldBe a[Left[?, ?]]
 
   // === calculateInstanceCount Tests ===
 
   "TriangleMeshSceneBuilder.calculateInstanceCount" should "return 2 for fractional sponge-recursive-ias" in:
-    val spec = ObjectSpec.parse("type=sponge-recursive-ias:level=2.5").toOption.get
+    val spec = ObjectSpecParser.parse("type=sponge-recursive-ias:level=2.5").toOption.get
     builder.calculateInstanceCount(List(spec)) shouldBe 2L
 
   it should "return 1 for integer sponge-recursive-ias" in:
-    val spec = ObjectSpec.parse("type=sponge-recursive-ias:level=2").toOption.get
+    val spec = ObjectSpecParser.parse("type=sponge-recursive-ias:level=2").toOption.get
     builder.calculateInstanceCount(List(spec)) shouldBe 1L
 
   // === validate: instance count ===
 
   "TriangleMeshSceneBuilder.validate" should "reject too many instances" in:
-    val specs = List.fill(100)(ObjectSpec.parse("type=cube").toOption.get)
+    val specs = List.fill(100)(ObjectSpecParser.parse("type=cube").toOption.get)
     val result = builder.validate(specs, 50)
     result shouldBe a[Left[?, ?]]
     result.left.getOrElse("") should include("Too many")

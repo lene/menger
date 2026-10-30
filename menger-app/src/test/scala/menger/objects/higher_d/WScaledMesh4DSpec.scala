@@ -1,8 +1,9 @@
 package menger.objects.higher_d
 
-import menger.ObjectSpec
-import menger.Projection4DSpec
+import menger.cli.ObjectSpecParser
 import menger.engines.WithAnimation
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -32,11 +33,11 @@ class WScaledMesh4DSpec extends AnyFlatSpec with Matchers:
   "Projection4DSpec" should "reject a negative w-scale" in:
     an[IllegalArgumentException] should be thrownBy Projection4DSpec(wScale = -0.1f)
 
-  "ObjectSpec.parse" should "read the w-scale keyword" in:
-    ObjectSpec.parse("type=tesseract:w-scale=0.25").map(_.wScale) shouldBe Right(0.25f)
+  "ObjectSpecParser.parse" should "read the w-scale keyword" in:
+    ObjectSpecParser.parse("type=tesseract:w-scale=0.25").map(_.wScale) shouldBe Right(0.25f)
 
   it should "reject a negative w-scale" in:
-    ObjectSpec.parse("type=tesseract:w-scale=-1").isLeft shouldBe true
+    ObjectSpecParser.parse("type=tesseract:w-scale=-1").isLeft shouldBe true
 
   "WithAnimation.specsDifferAtMostIn4DProjection" should "not count a w-scale change as a view" in:
     val spec = ObjectSpec("tesseract")

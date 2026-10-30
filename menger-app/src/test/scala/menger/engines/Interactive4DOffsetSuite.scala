@@ -3,9 +3,9 @@ package menger.engines
 import java.io.File
 import java.nio.file.Files
 
-import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.common.Vector
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

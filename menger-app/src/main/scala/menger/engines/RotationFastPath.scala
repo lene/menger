@@ -2,9 +2,10 @@ package menger.engines
 
 import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
-import menger.Projection4DSpec
 import menger.engines.scene.InstanceId
 import menger.geometry.MengerRenderer
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 
 /** Strategy object for 4D-rotation fast paths in interactive and animation engines.
   *
@@ -29,9 +30,9 @@ object RotationFastPath:
     * @param prevIds  the instances (or mesh slots) each previous spec was built as
     */
   def tryFastPath[Id](
-    newSpecs: List[menger.ObjectSpec],
+    newSpecs: List[ObjectSpec],
     renderer: OptiXRenderer,
-    prevSpecs: List[menger.ObjectSpec],
+    prevSpecs: List[ObjectSpec],
     prevIds: Vector[Vector[Id]],
     update: ProjectionUpdater[Id]
   ): Boolean =

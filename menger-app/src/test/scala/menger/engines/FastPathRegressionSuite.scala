@@ -3,10 +3,10 @@ package menger.engines
 import java.util.concurrent.atomic.AtomicBoolean
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.engines.scene.InstanceId
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
+import menger.spec.Projection4DSpec
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

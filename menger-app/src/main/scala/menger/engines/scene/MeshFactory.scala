@@ -1,7 +1,5 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.common.ProfilingConfig
 import menger.common.TriangleMeshData
 import menger.common.Vector
@@ -24,7 +22,9 @@ import menger.objects.higher_d.Tesseract
 import menger.objects.higher_d.TesseractSponge
 import menger.objects.higher_d.TesseractSponge2
 import menger.objects.higher_d.WScaledMesh4D
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
+import menger.spec.Projection4DSpec
 
 /**
  * Factory for creating triangle meshes from ObjectSpec.

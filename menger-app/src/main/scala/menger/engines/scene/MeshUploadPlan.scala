@@ -1,7 +1,7 @@
 package menger.engines.scene
 
-import menger.Projection4DSpec
 import menger.common.TriangleMeshData
+import menger.spec.Projection4DSpec
 
 /** Outcome of `MeshFactory.create*` — either a CPU-projected triangle mesh
   * (default path) or a 4D quad buffer that the GPU kernel will project at

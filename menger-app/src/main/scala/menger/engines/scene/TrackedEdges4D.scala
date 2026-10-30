@@ -4,8 +4,8 @@ import scala.collection.mutable
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
 import menger.common.ProfilingConfig
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 
 /** An edge-rendered 4D scene built with its cylinders and faces recorded, so that a change of

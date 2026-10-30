@@ -24,6 +24,7 @@ import menger.common.RenderLimits
 import menger.common.Vector
 import menger.config.CrossConfig
 import menger.dsl.DenoiseMode
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 import org.rogach.scallop._
 import org.rogach.scallop.exceptions._

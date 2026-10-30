@@ -2,8 +2,8 @@ package examples.dsl
 
 import scala.language.implicitConversions
 
-import menger.Projection4DSpec
 import menger.dsl._
+import menger.spec.Projection4DSpec
 
 /**
  * Example: a cube extruded along w into a tesseract, then turned in 4D -- with no cut at the

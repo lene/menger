@@ -1,6 +1,9 @@
 package menger
 
 import menger.cli.SafeMengerCLIOptions
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

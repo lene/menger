@@ -3,7 +3,8 @@ package menger.engines.scene
 import menger.geometry.LevelMix
 import menger.geometry.MengerRenderer
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
+import menger.spec.ObjectSpec
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
 import menger.common.Vector
@@ -54,7 +55,7 @@ class LevelMixRenderSuite extends AnyFlatSpec with Matchers with BeforeAndAfterE
       super.afterEach()
 
   private def spec(definition: String): ObjectSpec =
-    ObjectSpec.parse(definition).fold(e => fail(e), identity)
+    ObjectSpecParser.parse(definition).fold(e => fail(e), identity)
 
   private def render(specs: List[ObjectSpec], builder: SceneBuilder = TriangleMeshSceneBuilder(".")) =
     renderer.clearAllInstances()

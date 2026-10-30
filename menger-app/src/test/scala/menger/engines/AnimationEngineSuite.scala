@@ -1,6 +1,6 @@
 package menger.engines
 
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
 import menger.common.CausticsConfig
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
@@ -25,7 +25,7 @@ class AnimationEngineSuite extends AnyFlatSpec with Matchers:
   )
   // 1 face mesh + 96 edge cylinders: more than the default budget of 64.
   private val edged24Cell = List(
-    ObjectSpec.parse("type=24-cell:size=0.8:edge-material=gold:edge-radius=0.02").toOption.get
+    ObjectSpecParser.parse("type=24-cell:size=0.8:edge-material=gold:edge-radius=0.02").toOption.get
   )
 
   private class Budget(userSet: Boolean) extends AnimationEngine(

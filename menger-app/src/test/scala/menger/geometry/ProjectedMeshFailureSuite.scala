@@ -2,11 +2,11 @@ package menger.geometry
 
 import io.github.lene.optix._
 import io.github.lene.optix.testing.OptiXTestHooks
-import menger.ObjectSpec
 import menger.common.Material
 import menger.common.ProfilingConfig
 import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
+import menger.spec.ObjectSpec
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Outcome
 import org.scalatest.flatspec.AnyFlatSpec

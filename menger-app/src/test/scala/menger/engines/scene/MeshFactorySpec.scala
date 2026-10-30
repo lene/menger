@@ -1,8 +1,9 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
-import menger.Projection4DSpec
+import menger.cli.ObjectSpecParser
 import menger.common.ProfilingConfig
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -18,13 +19,13 @@ class MeshFactorySpec extends AnyFlatSpec with Matchers:
 
   "MeshFactory's 4D buffer cache" should "reuse the buffer when only the projection differs" in:
     // An animated level or rotation rebuilt the sponge's 4D mesh every frame; level 3 took ~20 s.
-    val spec = ObjectSpec.parse("type=tesseract-sponge:level=2:size=1.3").toOption.get
+    val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=2:size=1.3").toOption.get
     val rotated = spec.copy(projection4D = Some(Projection4DSpec(rotXW = 42f)))
     quads(MeshFactory.createUpload(spec)) should be theSameInstanceAs
       quads(MeshFactory.createUpload(rotated))
 
   it should "not mix up level, size or hole caps" in:
-    val spec = ObjectSpec.parse("type=tesseract-sponge:level=1:size=1.3").toOption.get
+    val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=1:size=1.3").toOption.get
     val buffers = Seq(
       MeshFactory.createUpload(spec),
       MeshFactory.createUpload(spec.copy(level = Some(2f))),

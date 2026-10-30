@@ -1,7 +1,8 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
-import menger.Projection4DSpec
+import menger.cli.ObjectSpecParser
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 import menger.common.ProfilingConfig
 import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
@@ -27,7 +28,7 @@ class TesseractEdgeSceneBuilderSuite extends AnyFlatSpec with Matchers:
   // absent one projects identically, but (Some, None) was always rejected as incompatible.
   // `parse` fills in the default projection; only a DSL object without `projection` gives None.
   private def withoutProjection =
-    ObjectSpec.parse("type=tesseract").toOption.get.copy(projection4D = None)
+    ObjectSpecParser.parse("type=tesseract").toOption.get.copy(projection4D = None)
 
   "isCompatible" should "treat an explicit default projection like an absent one" in:
     val absent = withoutProjection
@@ -81,7 +82,7 @@ class TesseractEdgeSceneBuilderSuite extends AnyFlatSpec with Matchers:
   // Usability review 2026-10, session 4 (F94): edges were built from the integer part of a
   // fractional level, so they stepped at each integer.
   private def sponge(level: Float) =
-    ObjectSpec.parse(s"type=tesseract-sponge:level=$level:edge-radius=0.02").toOption.get
+    ObjectSpecParser.parse(s"type=tesseract-sponge:level=$level:edge-radius=0.02").toOption.get
 
   "edgeLevels" should "draw one level at an integer level" in:
     TesseractEdgeSceneBuilder.edgeLevels(sponge(1f)).map((s, k) => (s.level, k)) shouldBe

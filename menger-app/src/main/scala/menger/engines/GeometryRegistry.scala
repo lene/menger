@@ -1,8 +1,8 @@
 package menger.engines
 
-import menger.ObjectSpec
 import menger.common.ProfilingConfig
 import menger.engines.scene.SceneBuilder
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 
 /** Central registry mapping geometry type sets to scene builder factories.

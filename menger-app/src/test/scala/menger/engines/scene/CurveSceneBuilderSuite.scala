@@ -1,10 +1,11 @@
 package menger.engines.scene
 
+import menger.spec.CurveData
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
+import menger.spec.ProceduralSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import menger.CurveData
-import menger.ObjectRotation
-import menger.ObjectSpec
 
 class CurveSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
@@ -15,7 +16,7 @@ class CurveSceneBuilderSuite extends AnyFlatSpec with Matchers:
     ObjectSpec(
       objectType = "curve",
       curveData = Some(
-        menger.CurveData(points = points.toVector, widths = widths.toVector)
+        CurveData(points = points.toVector, widths = widths.toVector)
       )
     )
 
@@ -44,7 +45,7 @@ class CurveSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   it should "reject proceduralType on curves" in:
     val builder = CurveSceneBuilder()
-    val spec = curveSpec().copy(procedural = menger.ProceduralSpec(1, 1.0f))
+    val spec = curveSpec().copy(procedural = ProceduralSpec(1, 1.0f))
     builder.validate(List(spec), maxInstances = 8) match
       case Left(msg) => msg should include("procedural")
       case Right(_)  => fail("Expected validation failure for procedural on curve")

@@ -4,7 +4,6 @@ import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureIndex
-import menger.ObjectSpec
 import menger.common.Material
 import menger.common.TransformUtil
 import menger.common.Vector
@@ -13,6 +12,7 @@ import menger.common.y
 import menger.common.z
 import menger.objects.Cube
 import menger.objects.CubeSpongeGenerator
+import menger.spec.ObjectSpec
 
 /**
  * Scene builder for cube-sponge fractals.

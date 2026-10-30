@@ -6,7 +6,6 @@ import scala.util.Try
 import com.badlogic.gdx.Game
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
 import menger.OptiXRenderResources
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
@@ -16,6 +15,7 @@ import menger.engines.scene.SceneCost
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
 import menger.optix.SceneConfigurator
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 
 abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig: ProfilingConfig)

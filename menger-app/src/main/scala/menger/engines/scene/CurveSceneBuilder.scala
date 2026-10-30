@@ -3,8 +3,8 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectRotation
-import menger.ObjectSpec
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
 
 class CurveSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 

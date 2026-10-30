@@ -1,13 +1,14 @@
 package menger.engines.scene
 
-import menger.CurveData
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
+import menger.spec.CurveData
+import menger.spec.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class FaultInjectionSuite extends AnyFlatSpec with Matchers:
 
-  private def spec(s: String): ObjectSpec = ObjectSpec.parse(s).toOption.get
+  private def spec(s: String): ObjectSpec = ObjectSpecParser.parse(s).toOption.get
 
   // InstanceId.fromNative is gone: optix-jni 0.5.0 throws on a failed add and types the id
   // itself (menger#110); Instanced4DSceneBuilderSuite covers the failure reaching buildScene.

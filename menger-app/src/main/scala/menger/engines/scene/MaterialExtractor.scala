@@ -1,8 +1,8 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
 import menger.common.Color
 import menger.common.Material
+import menger.spec.ObjectSpec
 
 /**
  * Utility for extracting Material from ObjectSpec.

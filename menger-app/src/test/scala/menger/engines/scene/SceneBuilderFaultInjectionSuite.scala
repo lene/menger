@@ -1,12 +1,10 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
 import menger.common.ProfilingConfig
 import menger.engines.GeometryRegistry
+import menger.spec.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import scala.util.{Failure, Success}
 
 /** Determinism + JNI fault-injection fitness function (T7, Sprint 32).
   *

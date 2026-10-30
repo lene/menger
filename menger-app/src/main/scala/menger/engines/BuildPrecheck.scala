@@ -4,9 +4,9 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import menger.ObjectSpec
 import menger.common.Const
 import menger.common.ProfilingConfig
+import menger.spec.ObjectSpec
 
 /** Every reason the renderer would refuse to build `specs`, found without touching it: the
   * renderer's own grouping (`SceneGroups`, `RenderModeSelector`) and each scene builder's

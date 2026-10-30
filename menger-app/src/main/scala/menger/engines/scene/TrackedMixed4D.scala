@@ -3,9 +3,9 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
 import menger.common.ProfilingConfig
 import menger.engines.SceneGroups
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 
 /** A 4D scene of edge-rendered and plain projected meshes, each part tracked as its own kind

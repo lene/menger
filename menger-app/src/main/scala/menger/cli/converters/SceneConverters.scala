@@ -3,8 +3,9 @@ package menger.cli.converters
 import scala.util.Try
 
 import menger.AnimationSpecificationSequence
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
 import menger.cli.converters.ConverterUtils.unwrapTryEither
+import menger.spec.ObjectSpec
 import org.rogach.scallop.ArgType
 import org.rogach.scallop.ValueConverter
 
@@ -26,6 +27,6 @@ given objectSpecConverter: ValueConverter[List[ObjectSpec]] with
     val specStrings = s.flatMap(_._2)
     if specStrings.isEmpty then Right(None)
     else
-      ObjectSpec.parseAll(specStrings) match
+      ObjectSpecParser.parseAll(specStrings) match
         case Right(objects) => Right(Some(objects))
         case Left(error) => Left(error)

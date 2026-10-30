@@ -6,9 +6,9 @@ import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureIndex
-import menger.ObjectSpec
 import menger.common.TransformUtil
 import menger.common.ValidationException
+import menger.spec.ObjectSpec
 
 /**
  * Strategy trait for building different scene types in OptiX.

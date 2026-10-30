@@ -2,7 +2,6 @@ package menger.engines
 
 import java.util.concurrent.atomic.AtomicReference
 
-import menger.ObjectSpec
 import menger.common.CausticsConfig
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
@@ -22,6 +21,7 @@ import menger.input.Vector3Extensions.toGdxVector3
 import menger.input.Vector3Extensions.toVector3
 import menger.optix.CameraState
 import menger.optix.SceneConfigurator
+import menger.spec.ObjectSpec
 
 class PreviewEngine(
   initialSceneFunction: Float => Scene,

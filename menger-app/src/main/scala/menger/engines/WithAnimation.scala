@@ -16,7 +16,6 @@ import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureIndex
 import io.github.lene.optix.TextureUploadException
 import menger.AssetPaths
-import menger.ObjectSpec
 import menger.common.CausticsConfig
 import menger.common.ImageSize
 import menger.common.RenderConfig
@@ -29,6 +28,7 @@ import menger.engines.scene.TrackedMixed4D
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.geometry.VideoLoader
 import menger.input.GdxRuntime
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 import menger.video.AnimationTimeRange
 import menger.video.EnvMapVideo

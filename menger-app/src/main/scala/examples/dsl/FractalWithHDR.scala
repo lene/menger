@@ -2,8 +2,8 @@ package examples.dsl
 
 import scala.language.implicitConversions
 
-import menger.Projection4DSpec
 import menger.dsl._
+import menger.spec.Projection4DSpec
 
 /**
  * Animated 4D Menger sponge (glass) with HDR environment map and Reinhard tone mapping.

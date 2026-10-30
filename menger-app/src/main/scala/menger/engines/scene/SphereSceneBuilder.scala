@@ -3,8 +3,8 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
 import menger.common.TransformUtil
+import menger.spec.ObjectSpec
 
 /**
  * Scene builder for multiple sphere instances using IAS (Instance Acceleration Structure).

@@ -1,7 +1,8 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
 import menger.common.ProfilingConfig
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -15,8 +16,8 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   "TriangleMeshSceneBuilder" should "detect fractional 4D sponge levels" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val integerSpec = ObjectSpec.parse("type=tesseract-sponge:level=1").toOption.get
-    val fractionalSpec = ObjectSpec.parse("type=tesseract-sponge:level=1.5").toOption.get
+    val integerSpec = ObjectSpecParser.parse("type=tesseract-sponge:level=1").toOption.get
+    val fractionalSpec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.5").toOption.get
 
     // Use reflection to access private method for testing
     val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
@@ -27,7 +28,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   it should "detect fractional levels for tesseract-sponge-2" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val fractionalSpec = ObjectSpec.parse("type=tesseract-sponge-2:level=2.7").toOption.get
+    val fractionalSpec = ObjectSpecParser.parse("type=tesseract-sponge-2:level=2.7").toOption.get
 
     val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
@@ -36,9 +37,9 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   it should "not detect fractional levels for non-4D sponges" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val cubeSpec = ObjectSpec.parse("type=cube:size=1").toOption.get
-    val spongeSpec = ObjectSpec.parse("type=sponge-volume:level=1.5").toOption.get
-    val tesseractSpec = ObjectSpec.parse("type=tesseract").toOption.get
+    val cubeSpec = ObjectSpecParser.parse("type=cube:size=1").toOption.get
+    val spongeSpec = ObjectSpecParser.parse("type=sponge-volume:level=1.5").toOption.get
+    val tesseractSpec = ObjectSpecParser.parse("type=tesseract").toOption.get
 
     val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
@@ -52,7 +53,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
   "Instance count calculation" should "count 1 for integer level sponges" in:
     val builder = TriangleMeshSceneBuilder(".")
     val specs = List(
-      ObjectSpec.parse("type=tesseract-sponge:level=1").toOption.get
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1").toOption.get
     )
 
     builder.calculateInstanceCount(specs) shouldBe 1L
@@ -60,7 +61,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
   it should "count 2 for fractional level sponges (GPU split)" in:
     val builder = TriangleMeshSceneBuilder(".")
     val specs = List(
-      ObjectSpec.parse("type=tesseract-sponge:level=1.5").toOption.get
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1.5").toOption.get
     )
 
     // GPU path: a fractional 4D sponge emits two instances (level n + level n+1).
@@ -69,10 +70,10 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
   it should "count correctly for mixed integer and fractional levels" in:
     val builder = TriangleMeshSceneBuilder(".")
     val specs = List(
-      ObjectSpec.parse("type=tesseract-sponge:level=1").toOption.get,
-      ObjectSpec.parse("type=tesseract-sponge:level=1.5").toOption.get,
-      ObjectSpec.parse("type=tesseract-sponge:level=2").toOption.get,
-      ObjectSpec.parse("type=tesseract-sponge:level=2.3").toOption.get
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1").toOption.get,
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1.5").toOption.get,
+      ObjectSpecParser.parse("type=tesseract-sponge:level=2").toOption.get,
+      ObjectSpecParser.parse("type=tesseract-sponge:level=2.3").toOption.get
     )
 
     // GPU split: 1 + 2 + 1 + 2 = 6 (fractional levels emit two instances each).
@@ -81,9 +82,9 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
   it should "count correctly for multiple fractional levels" in:
     val builder = TriangleMeshSceneBuilder(".")
     val specs = List(
-      ObjectSpec.parse("type=tesseract-sponge:level=1.2").toOption.get,
-      ObjectSpec.parse("type=tesseract-sponge:level=1.5").toOption.get,
-      ObjectSpec.parse("type=tesseract-sponge:level=1.8").toOption.get
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1.2").toOption.get,
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1.5").toOption.get,
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1.8").toOption.get
     )
 
     // GPU split: each fractional spec emits two instances → 2 + 2 + 2 = 6.
@@ -92,8 +93,8 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
   it should "count correctly for non-sponge objects" in:
     val builder = TriangleMeshSceneBuilder(".")
     val specs = List(
-      ObjectSpec.parse("type=cube").toOption.get,
-      ObjectSpec.parse("type=tesseract").toOption.get
+      ObjectSpecParser.parse("type=cube").toOption.get,
+      ObjectSpecParser.parse("type=tesseract").toOption.get
     )
 
     builder.calculateInstanceCount(specs) shouldBe 2L
@@ -102,45 +103,45 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   "Compatibility checks" should "allow same type with different integer levels" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val spec1 = ObjectSpec.parse("type=tesseract-sponge:level=1").toOption.get
-    val spec2 = ObjectSpec.parse("type=tesseract-sponge:level=2").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=tesseract-sponge:level=1").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=tesseract-sponge:level=2").toOption.get
 
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow same type with integer and fractional levels" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val spec1 = ObjectSpec.parse("type=tesseract-sponge:level=1").toOption.get
-    val spec2 = ObjectSpec.parse("type=tesseract-sponge:level=1.5").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=tesseract-sponge:level=1").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=tesseract-sponge:level=1.5").toOption.get
 
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow same type with different fractional levels" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val spec1 = ObjectSpec.parse("type=tesseract-sponge:level=1.3").toOption.get
-    val spec2 = ObjectSpec.parse("type=tesseract-sponge:level=2.7").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=tesseract-sponge:level=1.3").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=tesseract-sponge:level=2.7").toOption.get
 
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow different 4D sponge types" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val spec1 = ObjectSpec.parse("type=tesseract-sponge:level=1").toOption.get
-    val spec2 = ObjectSpec.parse("type=tesseract-sponge-2:level=1").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=tesseract-sponge:level=1").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=tesseract-sponge-2:level=1").toOption.get
 
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow 3D sponges with different levels" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val spec1 = ObjectSpec.parse("type=sponge-volume:level=1.5").toOption.get
-    val spec2 = ObjectSpec.parse("type=sponge-volume:level=1").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=sponge-volume:level=1.5").toOption.get
+    val spec2 = ObjectSpecParser.parse("type=sponge-volume:level=1").toOption.get
 
     builder.isCompatible(spec1, spec2) shouldBe true
 
   it should "allow mixing sponge-volume and sponge-surface" in:
     val builder = TriangleMeshSceneBuilder(".")
     val spec1 =
-      ObjectSpec.parse("type=sponge-volume:level=1.5").toOption.get
+      ObjectSpecParser.parse("type=sponge-volume:level=1.5").toOption.get
     val spec2 =
-      ObjectSpec.parse("type=sponge-surface:level=1.5").toOption.get
+      ObjectSpecParser.parse("type=sponge-surface:level=1.5").toOption.get
 
     builder.isCompatible(spec1, spec2) shouldBe true
 
@@ -148,7 +149,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val builder = TriangleMeshSceneBuilder(".")
     // These should fail at parsing, but let's test the compatibility logic
     // by constructing specs directly (which bypasses validation)
-    val spec1 = ObjectSpec.parse("type=tesseract-sponge:level=1").toOption.get
+    val spec1 = ObjectSpecParser.parse("type=tesseract-sponge:level=1").toOption.get
     val spec2 = spec1.copy(level = None)
 
     builder.isCompatible(spec1, spec2) shouldBe false
@@ -157,7 +158,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   "Edge cases" should "handle level 0.0 as integer" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val spec = ObjectSpec.parse("type=tesseract-sponge:level=0.0").toOption.get
+    val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=0.0").toOption.get
 
     val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
@@ -166,7 +167,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   it should "handle level 1.0 as integer" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val spec = ObjectSpec.parse("type=tesseract-sponge:level=1.0").toOption.get
+    val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.0").toOption.get
 
     val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
@@ -175,7 +176,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   it should "handle level 2.0 as integer" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val spec = ObjectSpec.parse("type=tesseract-sponge:level=2.0").toOption.get
+    val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=2.0").toOption.get
 
     val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
@@ -184,7 +185,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   it should "handle very small fractional parts" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val spec = ObjectSpec.parse("type=tesseract-sponge:level=1.01").toOption.get
+    val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.01").toOption.get
 
     val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
@@ -193,7 +194,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   it should "handle fractional part close to 1.0" in:
     val builder = TriangleMeshSceneBuilder(".")
-    val spec = ObjectSpec.parse("type=tesseract-sponge:level=1.99").toOption.get
+    val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.99").toOption.get
 
     val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
@@ -207,7 +208,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
   "Validation" should "accept fractional level sponges" in:
     val builder = TriangleMeshSceneBuilder(".")
     val specs = List(
-      ObjectSpec.parse("type=tesseract-sponge:level=1.5").toOption.get
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1.5").toOption.get
     )
 
     val result = builder.validate(specs, maxInstances = 100)
@@ -216,7 +217,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
   it should "reject fractional level sponges exceeding instance limit" in:
     val builder = TriangleMeshSceneBuilder(".")
     val specs = List(
-      ObjectSpec.parse("type=tesseract-sponge:level=1.5").toOption.get
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1.5").toOption.get
     )
 
     // GPU split: a fractional sponge emits two instances (> 0 limit).
@@ -230,7 +231,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     // usability review 2026-09 T1#3) -- the count arithmetic under test doesn't need distinct
     // levels, just ten fractional-level objects.
     val specs = (1 to 10).map { i =>
-      ObjectSpec.parse(s"type=tesseract-sponge:level=${(i % 4) + 0.5}").toOption.get
+      ObjectSpecParser.parse(s"type=tesseract-sponge:level=${(i % 4) + 0.5}").toOption.get
     }.toList
 
     // GPU split: 10 fractional levels emit two instances each = 20.

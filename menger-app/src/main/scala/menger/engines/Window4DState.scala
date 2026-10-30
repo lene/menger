@@ -1,7 +1,7 @@
 package menger.engines
 
-import menger.ObjectSpec
-import menger.Projection4DSpec
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 
 /** The 4D view state as the window title shows it (usability review 2026-10, session 5, F116,
   * menger#131): Shift+drag changed the rotation with nothing on screen saying so, and the tester

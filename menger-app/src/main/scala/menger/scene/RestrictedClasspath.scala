@@ -148,14 +148,13 @@ object RestrictedClasspath extends LazyLogging:
     * `-classpath` has no sub-jar or per-package granularity, so the narrowing is a *pruned view*
     * of the entry: a symlink mirror for a classes directory, a repacked jar for a jar (the
     * layout the container actually runs). */
-  val ScenePackages = Set("dsl", "objects", "video", "common")
+  val ScenePackages = Set("dsl", "objects", "video", "common", "spec")
 
-  /** Root-package types the DSL's own signatures use (`toObjectSpec`, 4D projection, curves,
-    * textures). Determined by compiling every example scene against the pruned view. */
+  /** Root-package types the DSL's own signatures use (textures, rotation parameters). The
+    * rest moved into `spec` (menger#84); these follow into packages and the set goes away.
+    * Determined by compiling every example scene against the pruned view. */
   val SceneRootTypes = Set(
-    "ObjectSpec", "Projection4DSpec", "ProceduralSpec", "TextureMaps", "TextureData",
-    "ObjectRotation", "CurveData", "RotationProjectionParameters", "ConeGeometry",
-    "PlaneGeometry", "AssetPaths", "ColorConversions"
+    "TextureData", "RotationProjectionParameters", "AssetPaths", "ColorConversions"
   )
 
   /** Whether a classpath-relative path (`menger/dsl/Sphere.class`) is part of the scene view. */

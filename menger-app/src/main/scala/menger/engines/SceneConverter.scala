@@ -1,8 +1,6 @@
 package menger.engines
 
 import com.typesafe.scalalogging.LazyLogging
-import menger.ObjectRotation
-import menger.ObjectSpec
 import menger.common.CausticsConfig
 import menger.common.FogConfig
 import menger.common.Light
@@ -19,6 +17,8 @@ import menger.dsl.SceneNode
 import menger.dsl.ToneMapping
 import menger.dsl.Transform
 import menger.engines.scene.MaterialExtractor
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
 import menger.video.EnvMapVideo
 
 /** Extracted conversion from DSL Scene to rendering configs.

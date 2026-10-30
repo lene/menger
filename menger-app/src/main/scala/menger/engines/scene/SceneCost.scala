@@ -1,12 +1,12 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
 import menger.common.Const
 import menger.dsl.ResourceLimits
 import menger.geometry.LevelMix
 import menger.objects.SpongeByVolume
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 
 /** What a scene costs as a whole, against `ResourceLimits`' scene-wide budget (review

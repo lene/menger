@@ -4,7 +4,10 @@ import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Const
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
 import menger.spec.ObjectType
+import menger.spec.Projection4DSpec
 
 case class AnimationSpecification(specString: String) extends LazyLogging:
 

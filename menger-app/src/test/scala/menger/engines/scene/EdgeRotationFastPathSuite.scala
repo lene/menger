@@ -7,7 +7,8 @@ import io.github.lene.qa.Perf
 import io.github.lene.qa.PerfGate
 import io.github.lene.qa.RelativeBenchmark
 import io.github.lene.qa.Side
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
+import menger.spec.ObjectSpec
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
 import menger.common.Vector
@@ -57,7 +58,7 @@ class EdgeRotationFastPathSuite extends AnyFlatSpec with Matchers with BeforeAnd
       super.afterEach()
 
   private def spec(s: String): ObjectSpec =
-    ObjectSpec.parse(s).fold(e => fail(s"bad spec '$s': $e"), identity)
+    ObjectSpecParser.parse(s).fold(e => fail(s"bad spec '$s': $e"), identity)
 
   private def polytope(rotXW: Int, extra: String = ""): ObjectSpec =
     spec(s"type=24-cell:size=1:material=film:edge-material=gold:edge-radius=0.02:rot-xw=$rotXW$extra")
