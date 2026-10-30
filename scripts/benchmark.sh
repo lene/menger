@@ -29,7 +29,7 @@ BINARY=${1:?"Usage: $0 <menger-app-binary> [--update-baseline | --ratchet]"}
 MODE=${2:-}
 SCRIPT_DIR="$(cd "$(dirname "$0")" ; pwd)"
 BASELINE_FILE="$SCRIPT_DIR/perf-baseline.json"
-ROUNDS=${BENCHMARK_ROUNDS:-7}   # 7 rounds: the sign-test interval is (min, max) at 98.4%
+ROUNDS=${BENCHMARK_ROUNDS:-9}   # 9 rounds: the sign-test interval is (2nd smallest, 2nd largest) at 96.1%, so one outlier round per side no longer makes a scene inconclusive (with 7 it was (min, max) and one did)
 THRESHOLD=1.30                  # max slowdown vs baseline
 RATCHET_THRESHOLD=0.90          # conclusive improvement needed to lower the baseline
 MAX_SPREAD=2.0                  # interval wider than this: environment unstable, inconclusive
@@ -55,6 +55,16 @@ SCENES=(
   "lsystem-tree-L3:--objects type=lsystem:preset=tree:level=3:size=0.8 --plane y:-2"
   "sphere-IBL-accum:--objects type=sphere --accumulation-frames 8"
   "caustics-glass:--objects type=sphere:ior=1.5 --caustics --caustics-photons 1000 --caustics-iterations 1 --plane y:-2"
+  # Sprint 37 hot paths (menger#87). Each is well above the ~59 ms floor every render has (the
+  # calibration sphere, a plain recursive-IAS sponge or a parametric surface all sit on it), so a
+  # slowdown of the path itself shows. They measure the frame's render cost only: the
+  # build/update cost of an animation or preview frame is not in --stats-json's frameMs
+  # (arc42 §10.4 says so), and the realistic-caustics parametric scenes take over a minute.
+  "level-mix-1:--objects type=tesseract-sponge:level=1.5:material=glass:size=1.6 --plane y:-2"
+  "level-mix-2:--objects type=tesseract-sponge:level=1.5:material=glass:pos=-1.2,0,0:size=0.8 --objects type=tesseract-sponge:level=2.5:material=glass:pos=1.2,0,0:size=0.8 --plane y:-2"
+  "sponge-volume-glass-L1.5:--objects type=sponge-volume:level=1.5:material=glass:size=0.8 --plane y:-2"
+  "recursive-ias-L3-glass:--objects type=sponge-recursive-ias:level=3:size=0.5:material=glass --plane y:-2"
+  "edge-tubes-600cell:--objects type=600-cell:size=0.8:material=film:edge-material=gold:edge-radius=0.01"
 )
 
 # Renders one scene headless and prints its frame time in ms. $1 = label, $2 = args.

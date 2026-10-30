@@ -7,5 +7,10 @@
   "curve": 0.9762,
   "lsystem-tree-L3": 1.0051,
   "sphere-IBL-accum": 2.4006,
-  "caustics-glass": 1.5935
+  "caustics-glass": 1.5935,
+  "level-mix-1": 3.3963,
+  "level-mix-2": 3.1824,
+  "sponge-volume-glass-L1.5": 1.9066,
+  "recursive-ias-L3-glass": 1.6287,
+  "edge-tubes-600cell": 1.5573
 }
