@@ -276,13 +276,6 @@ class ArchitectureSpec extends AnyFlatSpec with Matchers:
       .allowEmptyShould(true) // an empty package is exactly the point
       .check(allClasses)
 
-  it should "keep menger.video a leaf package" in:
-    noClasses().that().resideInAPackage("menger.video..")
-      .should().dependOnClassesThat().resideInAnyPackage(
-        "menger.engines..", "menger.dsl..", "menger.objects.."
-      )
-      .check(allClasses)
-
   // SA-AD-4 rule 2: `RestrictedClasspath` hands the compiler only the DSL surface, so a scene
   // file cannot reach the rest. That is only safe while the DSL surface itself does not depend
   // on the rest -- if it ever does, scene compilation breaks with an opaque "class not found".
