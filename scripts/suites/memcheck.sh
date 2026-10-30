@@ -171,7 +171,7 @@ run_compute_sanitizer() {
 
   RUNNING_UNDER_COMPUTE_SANITIZER=true __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a sbt \
     "set mengerApp / Test / javaHome := Some(file(\"$CSJH\"))" \
-    "mengerApp / Test / testOnly io.github.lene.optix.Project4DGpuSuite" --warn
+    "mengerApp / Test / testOnly menger.geometry.Project4DGpuSuite" --warn
   local STATUS_CS=$?
   rm -rf "$CSJH"
 
