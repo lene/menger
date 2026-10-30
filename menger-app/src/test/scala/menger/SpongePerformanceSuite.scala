@@ -46,7 +46,12 @@ class SpongePerformanceSuite extends AnyFlatSpec
   // Highest bound -> limit:
   private val MaxSlowdownSurfaceL2 = 0.36           // 0.239
   private val MaxSlowdownSurfaceL3 = 26.0           // 17.27
-  private val MaxSlowdownVolumeL2 = 0.69            // 0.459 (loaded)
+  // Volume generation got ~8x faster after the 2026-10-03 calibration (level 2 now measures
+  // 0.05 of the probe, not 0.32-0.46), so the old level-2 limit of 0.69 could no longer fail even
+  // a 10x slowdown (menger#58). Level 3 is ~20x heavier and steady (CI +-3%): over 6 idle and 3
+  // all-core-busy runs its highest upper bound is 0.981, and an injected 2x gives a lower bound
+  // of at least 1.663 (18 of 18 runs), so 1.5 x 0.981 fails it conclusively (2026-10-30).
+  private val MaxSlowdownVolumeL3 = 1.47            // 0.981 (loaded)
   private val MaxScalingSurfaceL1ToL2 = 33.4        // 22.28
   private val MaxScalingSurfaceL2ToL3 = 117.0       // 78.13
   private val MaxScalingVolumeL1ToL2 = 34.1         // 22.72
@@ -158,8 +163,8 @@ class SpongePerformanceSuite extends AnyFlatSpec
   it should "generate a level 3 surface sponge within its limit" taggedAs Perf in:
     generationGate("level 3 surface sponge", surface(3f), MaxSlowdownSurfaceL3)
 
-  it should "generate a level 2 volume sponge within its limit" taggedAs Perf in:
-    generationGate("level 2 volume sponge", volume(2f), MaxSlowdownVolumeL2)
+  it should "generate a level 3 volume sponge within its limit" taggedAs Perf in:
+    generationGate("level 3 volume sponge", volume(3f), MaxSlowdownVolumeL3)
 
   it should "scale a surface sponge from level 1 to 2 within its limit" taggedAs Perf in:
     scalingGate("surface sponge", 2, surface, MaxScalingSurfaceL1ToL2)
