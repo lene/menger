@@ -1,4 +1,4 @@
-package menger
+package menger.engines.scene
 
 import java.nio.file.Files
 

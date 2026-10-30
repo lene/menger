@@ -154,7 +154,7 @@ object RestrictedClasspath extends LazyLogging:
     * rest moved into `spec` and `objects.higher_d` (menger#84); these follow into packages
     * and the set goes away. Determined by compiling every example scene against the pruned
     * view. */
-  val SceneRootTypes = Set("TextureData", "AssetPaths", "ColorConversions")
+  val SceneRootTypes = Set("ColorConversions")
 
   /** Whether a classpath-relative path (`menger/dsl/Sphere.class`) is part of the scene view. */
   private[scene] def isSceneEntry(relativePath: String): Boolean =

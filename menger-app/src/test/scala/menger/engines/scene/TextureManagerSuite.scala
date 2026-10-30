@@ -11,7 +11,6 @@ import scala.util.Try
 import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureIndex
 import menger.spec.ObjectSpec
-import menger.TextureData
 import menger.video.EnvMapVideo
 import menger.video.VideoPlayback
 import menger.video.VideoTexture

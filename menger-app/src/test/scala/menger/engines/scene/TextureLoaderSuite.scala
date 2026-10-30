@@ -1,4 +1,4 @@
-package menger
+package menger.engines.scene
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

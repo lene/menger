@@ -6,11 +6,11 @@ import scala.util.Try
 import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
-import menger.AssetPaths
 import menger.common.ProfilingConfig
 import menger.dsl.LoadedScene
 import menger.dsl.Scene
 import menger.engines.BuildPrecheck
+import menger.engines.scene.AssetPaths
 import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
 import menger.objects.higher_d.InvariantFinding
