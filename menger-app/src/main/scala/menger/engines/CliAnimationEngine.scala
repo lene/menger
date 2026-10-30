@@ -1,6 +1,7 @@
 package menger.engines
 
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
@@ -33,6 +34,8 @@ class CliAnimationEngine(
   private val baseSpecs   = config.scene.objectSpecs.getOrElse(List.empty)
   private val totalFrames = animSpec.numFrames
   private val frameCounter = new AtomicInteger(0)
+  // The geometry the renderer holds, after a frame that built it successfully (menger#86).
+  private val lastGeometry = new AtomicReference[Option[FrameChange.Geometry]](None)
 
   override protected def textureDir: String       = execution.textureDir
   override protected def renderConfig: RenderConfig = config.render
@@ -85,13 +88,18 @@ class CliAnimationEngine(
       val animatedSpecs = baseSpecs.map(spec => animSpec.applyToSpec(spec, frame))
       val renderer = rendererWrapper.renderer
       configureOutputMode(renderer)
-      renderer.clearAllInstances()
-      buildSceneFromSpecs(animatedSpecs, renderer).recover { case e =>
-        logger.error(FrameBuildFailure.message(s"frame $frame", e), e)
-      }
-      // Planes are real IAS instances (Sprint 36 H3.1) — clearAllInstances above wiped
-      // them too, so they must be re-added every frame, not just at create().
-      PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
+      // A frame whose objects did not change (an animation that holds still for a while)
+      // touches no instance (menger#86); a frame that failed to build is never that base.
+      val geometry = FrameChange.Geometry(animatedSpecs, environment.planes, None,
+        animatedTextures = animatedSpecs.exists(_.videoTexture.nonEmpty))
+      if FrameChange.classify(lastGeometry.get, geometry) == FrameChange.Rebuild then
+        renderer.clearAllInstances()
+        val built = buildSceneFromSpecs(animatedSpecs, renderer)
+        built.failed.foreach(e => logger.error(FrameBuildFailure.message(s"frame $frame", e), e))
+        lastGeometry.set(Option.when(built.isSuccess)(geometry))
+        // Planes are real IAS instances (Sprint 36 H3.1) — clearAllInstances above wiped
+        // them too, so they must be re-added after every rebuild, not just at create().
+        PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
       cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
       rendererWrapper.renderScene(ImageSize(width, height)) match
         case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)

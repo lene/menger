@@ -60,6 +60,9 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     new AtomicReference(None)
   // Planes are instances, re-added only after a rebuild: a frame whose planes changed is rebuilt.
   private val lastPlanes: AtomicReference[List[PlaneConfig]] = new AtomicReference(List.empty)
+  // The geometry the renderer holds, after a frame that built it successfully (menger#86).
+  private val lastGeometry: AtomicReference[Option[FrameChange.Geometry]] =
+    new AtomicReference(None)
   private val videoTextureState: AtomicReference[Option[WithAnimation.VideoTextureState]] =
     new AtomicReference(None)
   private val envMapVideoState: AtomicReference[Option[WithAnimation.EnvMapVideoState]] =
@@ -119,30 +122,12 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
           renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
           if configs.accumulationFrames > 1 then
             renderer.setAccumulationFrames(configs.accumulationFrames)
-          val newSpecs = configs.scene.objectSpecs.getOrElse(List.empty)
-          val videoSourcesPresent = WithAnimation.hasVideoSources(configs, newSpecs)
-          val planesChanged = lastPlanes.getAndSet(configs.planes) != configs.planes
-          val videoFastPathTaken =
-            !planesChanged && tryVideoFastPath(configs, newSpecs, renderer, t)
-          val geometryFastPathTaken =
-            if planesChanged || (videoSourcesPresent && !videoFastPathTaken) then false
-            else tryAnim4DFastPath(newSpecs, renderer)
-          val fastPathTaken = videoFastPathTaken || geometryFastPathTaken
-          if !fastPathTaken then
-            renderer.clearAllInstances()
-            buildAnim4DTrackedOrFallback(configs, newSpecs, renderer)
-              .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, t))
-              .recover { case e: Exception =>
-                logger.error(FrameBuildFailure.message(s"frame $frame (t=$t)", e), e)
-              }
-            configureEnvMapVideoForFrame(configs, newSpecs, renderer, t).recover {
-              case e: Exception =>
-                logger.error(s"Failed to update environment-map video for t=$t: ${e.getMessage}", e)
-            }
-            // Planes are real IAS instances (Sprint 36 H3.1) — only re-add them when
-            // clearAllInstances above actually ran; the fast paths leave existing
-            // instances (including previously added planes) untouched.
-            PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
+          // A frame with the geometry of the last one built (only the view moved) touches no
+          // instance (menger#86); a frame that failed to build is never that base.
+          val geometry = FrameChange.Geometry.of(configs)
+          if FrameChange.classify(lastGeometry.get, geometry) == FrameChange.Rebuild then
+            val built = updateFrameGeometry(configs, geometry.specs, renderer, t, frame)
+            lastGeometry.set(Option.when(built)(geometry))
           sceneConfigurator.configureLights(renderer, configs.lights.toArray)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
@@ -440,6 +425,39 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
         if !retained then slot.source.close()
       }
     }
+
+  /** Moves the scene to this frame in place when it can, rebuilds it otherwise. True when the
+    * renderer then holds this frame's geometry. */
+  private def updateFrameGeometry(
+    configs: SceneConverter.SceneConfigs,
+    newSpecs: List[ObjectSpec],
+    renderer: OptiXRenderer,
+    t: Float,
+    frame: Int
+  ): Boolean =
+    val videoSourcesPresent = WithAnimation.hasVideoSources(configs, newSpecs)
+    val planesChanged = lastPlanes.getAndSet(configs.planes) != configs.planes
+    val videoFastPathTaken =
+      !planesChanged && tryVideoFastPath(configs, newSpecs, renderer, t)
+    val geometryFastPathTaken =
+      if planesChanged || (videoSourcesPresent && !videoFastPathTaken) then false
+      else tryAnim4DFastPath(newSpecs, renderer)
+    if videoFastPathTaken || geometryFastPathTaken then true
+    else
+      renderer.clearAllInstances()
+      val built = buildAnim4DTrackedOrFallback(configs, newSpecs, renderer)
+        .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, t))
+      built.failed.foreach(e =>
+        logger.error(FrameBuildFailure.message(s"frame $frame (t=$t)", e), e))
+      configureEnvMapVideoForFrame(configs, newSpecs, renderer, t).recover {
+        case e: Exception =>
+          logger.error(s"Failed to update environment-map video for t=$t: ${e.getMessage}", e)
+      }
+      // Planes are real IAS instances (Sprint 36 H3.1) — only re-add them when
+      // clearAllInstances above actually ran; the fast paths leave existing
+      // instances (including previously added planes) untouched.
+      PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
+      built.isSuccess
 
   private def replaceEnvMapVideoState(next: Option[WithAnimation.EnvMapVideoState]): Unit =
     val previous = envMapVideoState.getAndSet(next)

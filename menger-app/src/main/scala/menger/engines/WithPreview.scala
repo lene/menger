@@ -70,6 +70,8 @@ trait WithPreview extends RenderEngine with LazyLogging:
   private val trackedMixed = new AtomicReference[Option[scene.TrackedMixed4D.State]](None)
   // Planes are instances, re-added only after a rebuild: a frame whose planes changed is rebuilt.
   private val lastPlanes = new AtomicReference[List[menger.config.PlaneConfig]](List.empty)
+  // The geometry the renderer holds, after a frame that built it successfully (menger#86).
+  private val lastGeometry = new AtomicReference[Option[FrameChange.Geometry]](None)
   // Frames whose scene failed to build -- the window then shows the previous frame, so say so
   // in the title (menger#54).
   private val failedFrames = new AtomicInteger(0)
@@ -305,12 +307,29 @@ trait WithPreview extends RenderEngine with LazyLogging:
     * meshes, fractional level and pose) is applied in place (TrackedMesh4D, TrackedEdges4D,
     * TrackedMixed4D); anything else, and any frame whose planes changed, is rebuilt, tracked
     * when the scene is 4D meshes only so the next frame can be updated in place again. A
-    * failure is reported as a failed frame. Returns whether all instances were cleared. */
+    * frame with the same geometry as the last one built (only the view moved) touches nothing
+    * (menger#86). A failure is reported as a failed frame. Returns whether all instances were
+    * cleared. */
   private def updateOrRebuild(
     configs: SceneConverter.SceneConfigs,
     renderer: io.github.lene.optix.OptiXRenderer,
     t: Float
   ): Boolean =
+    val geometry = FrameChange.Geometry.of(configs)
+    FrameChange.classify(lastGeometry.get, geometry) match
+      case FrameChange.Unchanged => false
+      case FrameChange.Rebuild =>
+        val (updated, instancesCleared) = moveOrRebuild(configs, renderer)
+        // Only a frame that built is the base for the next one: after a failure, the next
+        // frame rebuilds even when its geometry is the same.
+        lastGeometry.set(updated.toOption.map(_ => geometry))
+        updated.recover { case e: Exception => reportFailedFrame(t, e) }
+        instancesCleared
+
+  private def moveOrRebuild(
+    configs: SceneConverter.SceneConfigs,
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): (Try[Unit], Boolean) =
     val specs = configs.scene.objectSpecs.getOrElse(List.empty)
     if lastPlanes.getAndSet(configs.planes) != configs.planes then
       tracked4D.set(None)
@@ -349,8 +368,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
                   requiredMaxInstancesFor(specs))(using profilingConfig).map(trackedMixed.set)
               else buildSceneFromConfigs(configs, renderer)
             (rebuilt, true)
-    updated.recover { case e: Exception => reportFailedFrame(t, e) }
-    instancesCleared
+    (updated, instancesCleared)
 
   /** Moves the tracked scene in place; false when there is none or it cannot take the frame.
     * A failed move leaves the scene half moved: the caller's rebuild replaces it. */
