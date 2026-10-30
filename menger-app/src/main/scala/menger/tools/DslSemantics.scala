@@ -41,9 +41,11 @@ object DslSemantics:
       "Color(r, g, b))` REPLACES the preset's colour including its alpha, and `Color(r, g, b)` " +
       "has alpha 1, which for a refractive material means fully absorbing -- an opaque look. " +
       "Tint a refractive material with a low alpha, e.g. `Color(0.8f, 0.06f, 0.12f, 0.05f)` " +
+      "or, naming what the alpha means there, `Color.tint(0.8f, 0.06f, 0.12f, absorption = " +
+      "0.05f)` (for a refractive material the alpha is the ABSORPTION, not the opacity) " +
       "(usability review 2026-10, session 3, F66).",
     "Caustics has no intensity parameter (only `photonsPerIteration`, `iterations`, " +
-      "`initialRadius`, `alpha`): more photons or iterations reduce noise, they do not make " +
+      "`initialRadius`, `radiusReduction`): more photons or iterations reduce noise, they do not make " +
       "the caustics brighter (usability review 2026-10, session 3, F69). Caustics are only " +
       "visible where a CURVED refracting surface (e.g. a glass Sphere) focuses light onto a " +
       "nearby diffuse surface: flat facets (polytopes, " +

@@ -9,14 +9,16 @@ import menger.common.{CausticsConfig => OptiXCausticsConfig}
   * @param iterations Number of photon tracing iterations
   * @param initialRadius Initial photon-gather radius; `None` auto-derives it from scene
   *                      geometry (optix-jni >= 0.1.13), `Some(r)` is an explicit override
-  * @param alpha Radius reduction factor between iterations (0.0-1.0)
+  * @param radiusReduction Factor by which the photon-gather radius shrinks between iterations
+  *                        (0.0-1.0, exclusive); not a colour alpha. Named `alpha` before
+  *                        manifest 2.0.0 (menger#95).
   */
 case class Caustics(
   enabled: Boolean = true,
   photonsPerIteration: Int = 100000,
   iterations: Int = 10,
   initialRadius: Option[Float] = None,
-  alpha: Float = 0.7f
+  radiusReduction: Float = 0.7f
 ):
   // Delegate validation to CausticsConfig — single source of constraint definitions.
   toCausticsConfig
@@ -24,7 +26,7 @@ case class Caustics(
   def toCausticsConfig: OptiXCausticsConfig =
     OptiXCausticsConfig(
       enabled, photonsPerIteration, iterations,
-      initialRadius.getOrElse(OptiXCausticsConfig.AutoRadius), alpha)
+      initialRadius.getOrElse(OptiXCausticsConfig.AutoRadius), radiusReduction)
 
 object Caustics:
   /** Disabled caustics (no photon mapping) */
@@ -38,5 +40,5 @@ object Caustics:
     photonsPerIteration = 500000,
     iterations = 20,
     initialRadius = Some(1.0f),
-    alpha = 0.8f
+    radiusReduction = 0.8f
   )

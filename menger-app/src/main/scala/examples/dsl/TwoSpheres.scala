@@ -41,7 +41,7 @@ object TwoSpheres:
     // Auto gather radius (initialRadius = None): the two r=0.8 spheres are smaller than the
     // canonical unit sphere, so a fixed 1.0 radius (Caustics.HighQuality) over-smooths their
     // caustics into a single blur. Auto-derive from geometry keeps them focused (Sprint 33.9).
-    caustics = Some(Caustics(photonsPerIteration = 500000, iterations = 20, alpha = 0.8f)),
+    caustics = Some(Caustics(photonsPerIteration = 500000, iterations = 20, radiusReduction = 0.8f)),
     render = Some(RenderSettings(shadows = true))
   )
 
