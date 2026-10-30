@@ -9,7 +9,7 @@ set -u
 . ./standards/hooks/lib.sh
 
 # A busy GPU makes timings meaningless: skip, in CI too.
-gpu_preflight_or_skip perf-trend --skip-in-ci || exit 0
+gpu_preflight_or_skip perf-trend --skip-in-ci || { [ $? -eq 2 ] && exit 0; exit 1; }
 
 VERSION=$(grep 'version :=' menger-app/build.sbt | cut -d '"' -f 2)
 BINARY="./menger-app-${VERSION}/bin/menger-app"
@@ -17,6 +17,6 @@ echo "=== Running perf trend benchmark ==="
 ./scripts/benchmark.sh "$BINARY" --ratchet
 case $? in
   0) suite_pass perf-trend ;;
-  2) suite_skip perf-trend "inconclusive: measurements too noisy to judge some scenes" ;;
+  2) suite_skip_unjudged perf-trend "inconclusive: measurements too noisy to judge some scenes" || exit 1 ;;
   *) suite_fail perf-trend 1 "regression-or-budget"; exit 1 ;;
 esac
