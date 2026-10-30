@@ -321,11 +321,12 @@ trait WithPreview extends RenderEngine with LazyLogging:
     val (updated, instancesCleared) =
       tracked4D.get.filter(state => scene.TrackedMesh4D.canUpdateInPlace(state.specs, specs)) match
         case _ if moved => (scala.util.Success(()), false)
+        // A failed move is a failed frame, and the stale state goes with it: the next frame
+        // rebuilds instead of moving a half-moved scene again (menger#103).
         case Some(state) =>
-          val inPlace = Try(
-            tracked4D.set(Some(scene.TrackedMesh4D.updateInPlace(state, specs, renderer)))
-          )
-          (inPlace, false)
+          val inPlace = Try(scene.TrackedMesh4D.updateInPlace(state, specs, renderer))
+          tracked4D.set(inPlace.toOption)
+          (inPlace.map(_ => ()), false)
         // The budget first, before the current frame's instances go: the tracked 4D build
         // does not pass through `buildSceneFromConfigs`, which checks it (menger#80).
         case None => withinBudget(specs) match
@@ -357,11 +358,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
     tracked: AtomicReference[Option[S]],
     move: S => Option[S]
   ): Boolean =
-    val moved = tracked.get.flatMap { state =>
-      val result = Try(move(state))
-      result.failed.foreach(e => logger.warn(s"Moving the 4D scene in place failed, rebuilding: $e"))
-      result.toOption.flatten
-    }
+    val moved = tracked.get.flatMap(InPlaceMove.attempt(_)(move))
     moved.foreach(state => tracked.set(Some(state)))
     moved.isDefined
 

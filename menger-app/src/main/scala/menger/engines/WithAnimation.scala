@@ -457,22 +457,30 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
 
   /** If conditions are met, drive frame N from frame N−1 via per-mesh
     * `updateMesh4DProjection` calls and return true. Otherwise return false
-    * and let the caller take the rebuild path. */
+    * and let the caller take the rebuild path, which also resets the tracked states. A move
+    * that throws takes the rebuild path too: it used to escape `render()` and end the
+    * animation (menger#103). */
   private def tryAnim4DFastPath(newSpecs: List[ObjectSpec], renderer: OptiXRenderer): Boolean =
     anim4DState.get match
       case None =>
-        val edgesMoved = animEdgesState.get.flatMap(TrackedEdges4D.update(_, newSpecs, renderer))
+        val edgesMoved = animEdgesState.get.flatMap(
+          InPlaceMove.attempt(_)(TrackedEdges4D.update(_, newSpecs, renderer))
+        )
         edgesMoved.foreach(state => animEdgesState.set(Some(state)))
         // At most one of the two is tracked: each build clears the other.
-        val mixedMoved = animMixedState.get.flatMap(TrackedMixed4D.update(_, newSpecs, renderer))
+        val mixedMoved = animMixedState.get.flatMap(
+          InPlaceMove.attempt(_)(TrackedMixed4D.update(_, newSpecs, renderer))
+        )
         mixedMoved.foreach(state => animMixedState.set(Some(state)))
         edgesMoved.isDefined || mixedMoved.isDefined
       case Some(prev) =>
-        val took = RotationFastPath.tryFastPath(
-          newSpecs, renderer, prev.specs, prev.slotsPerSpec, RotationFastPath.meshSlotUpdater
-        )
-        if took then anim4DState.set(Some(prev.copy(specs = newSpecs)))
-        took
+        val moved = InPlaceMove.attempt(prev) { state =>
+          Option.when(RotationFastPath.tryFastPath(
+            newSpecs, renderer, state.specs, state.slotsPerSpec, RotationFastPath.meshSlotUpdater
+          ))(state.copy(specs = newSpecs))
+        }
+        moved.foreach(state => anim4DState.set(Some(state)))
+        moved.isDefined
 
   /** Rebuild path: when the scene is 4D-only triangle-mesh, build via a
     * recorder-equipped TriangleMeshSceneBuilder so subsequent frames can attempt
