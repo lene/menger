@@ -3,6 +3,7 @@ package menger.engines.scene
 import menger.common.ProfilingConfig
 import menger.common.TriangleMeshData
 import menger.common.Vector
+import menger.failure.Fail
 import menger.objects.Cube
 import menger.objects.Dodecahedron
 import menger.objects.Icosahedron
@@ -119,7 +120,7 @@ object MeshFactory:
         getMesh
 
       case other =>
-        sys.error(s"Unknown mesh type: $other")
+        Fail.unknownGeometry(other, ObjectType.VALID_TYPES.toSeq.sorted)
 
   /** Build a `MeshUploadPlan` for the given spec. 4D-projected types always use
     * the GPU path: a `Gpu4D` plan carrying the flat 4D-quad buffer + projection
@@ -134,7 +135,7 @@ object MeshFactory:
   )(using profilingConfig: ProfilingConfig): MeshUploadPlan =
     if ObjectType.isProjected4D(spec.objectType) then
       gpu4DPlan(spec, holeCaps).getOrElse(
-        sys.error(s"No GPU 4D projection available for type: ${spec.objectType}")
+        Fail.internal(s"No GPU 4D projection available for type: ${spec.objectType}")
       )
     else
       MeshUploadPlan.Cpu(create(spec))

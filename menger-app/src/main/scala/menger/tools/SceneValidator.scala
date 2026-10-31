@@ -13,6 +13,7 @@ import menger.engines.BuildPrecheck
 import menger.engines.scene.AssetPaths
 import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
+import menger.failure.Fail
 import menger.objects.higher_d.InvariantFinding
 import menger.objects.higher_d.PolytopeInvariants
 import menger.scene.LoadError
@@ -62,7 +63,10 @@ object SceneValidator extends LazyLogging:
       case "compile-errors" => CompileErrors
       case "lint-findings"  => LintFindings
       case "refused"        => Refused
-      case other            => sys.error(s"Unknown SceneValidator.Tag: '$other'")
+      case other            => Fail.parse(
+        s"Unknown SceneValidator.Tag: '$other'", other,
+        "ok, compile-errors, lint-findings or refused"
+      )
 
     given ReadWriter[Tag] = readwriter[String].bimap[Tag](toWire, fromWire)
 

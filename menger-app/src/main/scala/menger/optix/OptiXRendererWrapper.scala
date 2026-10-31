@@ -7,6 +7,7 @@ import scala.jdk.OptionConverters._
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix._
 import menger.common.ImageSize
+import menger.failure.Fail
 import menger.geometry.MengerRenderer
 
 class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with AutoCloseable:
@@ -25,11 +26,11 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
     if !OptiXRenderer.isLibraryLoaded then
       val msg = "OptiX native library failed to load"
       logger.error(msg)
-      scala.sys.error(msg)
+      Fail.environment(msg)
     if !MengerRenderer.isLibraryLoaded then
       val msg = "Menger native library failed to load"
       logger.error(msg)
-      scala.sys.error(msg)
+      Fail.environment(msg)
 
     val r = MengerRenderer()
     r.initialize(maxInstances)
@@ -51,8 +52,10 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
       // optix-jni 0.5.0 throws this for every sticky CUDA error (optix-jni#73); menger matched
       // the error codes in the message text before.
       case e: OptiXContextLostException =>
-        sys.error(
-          s"OptiX rendering hit an unrecoverable CUDA error, restart required: ${e.getMessage}"
+        Fail.environment(
+          s"OptiX rendering hit an unrecoverable CUDA error: ${e.getMessage}",
+          "Restart the application",
+          Some(e)
         )
       case e: Exception =>
         logger.error(s"OptiX rendering failed: ${e.getMessage}", e)

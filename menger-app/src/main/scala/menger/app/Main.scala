@@ -34,7 +34,9 @@ import menger.engines.PreviewEngine
 import menger.engines.RenderEngine
 import menger.engines.RenderLock
 import menger.engines.SceneConverter
+import menger.engines.SceneFailure
 import menger.engines.VideoEngine
+import menger.failure.Fail
 import menger.scene.RestrictedClasspath
 import menger.tools.SceneValidator
 import org.slf4j.LoggerFactory
@@ -60,13 +62,16 @@ object Main:
         // `!opts.headless()` (review round 2): a headless run opens no window, so DISPLAY is
         // irrelevant to it and the re-exec bought nothing but a second full JVM startup.
         case Some(display) if display.trim.isEmpty =>
-          sys.error("--display was given an empty value")
+          Fail.configuration("--display was given an empty value")
         case Some(display) if !opts.headless() => sys.exit(reExecWithDisplay(args, display))
         case _ => launchInProcess(opts)
     catch
       case e: MengerExitException => sys.exit(e.code)
       case e: Exception =>
         System.err.println(s"Error: ${e.getMessage}")
+        // A bug's stack trace (menger#96, #103): nothing the user can do explains it, while a bad
+        // option or a missing ffmpeg needs only its message. It used to print "Error: null".
+        if SceneFailure.of(e).isBug then e.printStackTrace()
         sys.exit(1)
 
   /** SA-AD-16: the GPU is a single exclusive resource. Only the genuine interactive window --
@@ -118,7 +123,7 @@ object Main:
             try Lwjgl3Application(app, config)
             finally lock.close()
           case None => Lwjgl3Application(app, config)
-      case _ => sys.error("Engine must implement ApplicationListener")
+      case _ => Fail.internal("Engine must implement ApplicationListener")
 
   /** Reuses `SceneValidator`'s SA-AD-5 tagged-result JSON shape rather than inventing a second
     * "refused" contract -- one tagged-result vocabulary across the validation gauntlet and

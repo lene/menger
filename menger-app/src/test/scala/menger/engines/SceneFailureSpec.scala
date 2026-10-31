@@ -4,6 +4,10 @@ import io.github.lene.optix.OptiXContextLostException
 import io.github.lene.optix.OptiXException
 import io.github.lene.optix.TextureUploadException
 import menger.common.ConfigurationException
+import menger.common.EnvironmentException
+import menger.common.InternalException
+import menger.common.NotYetImplementedException
+import menger.common.UnknownGeometryException
 import menger.common.ValidationException
 import menger.engines.scene.AssetPaths
 import menger.scene.LoadError
@@ -34,6 +38,12 @@ class SceneFailureSpec extends AnyFlatSpec with Matchers:
     kindOf(TextureUploadException("cannot read texture")) shouldBe "environment"
     kindOf(java.io.IOException("disk full")) shouldBe "environment"
 
+  it should "believe the typed exceptions of menger.failure.Fail" in:
+    kindOf(EnvironmentException("ffmpeg not found")) shouldBe "environment"
+    kindOf(InternalException("unreachable")) shouldBe "internal"
+    kindOf(NotYetImplementedException("rebuilding a mixed scene")) shouldBe "scene"
+    kindOf(UnknownGeometryException("blob", Seq("cube"))) shouldBe "scene"
+
   it should "call anything else a bug" in:
     kindOf(IllegalStateException("renderer not initialised")) shouldBe "internal"
     kindOf(NullPointerException()) shouldBe "internal"
@@ -48,6 +58,18 @@ class SceneFailureSpec extends AnyFlatSpec with Matchers:
 
   it should "use the exception's type when it has no message" in:
     SceneFailure.of(NullPointerException()).message shouldBe "NullPointerException"
+
+  // Main prints a stack trace for a bug only: a bad option or a missing ffmpeg needs its message.
+  private def isBug(cause: Throwable): Boolean = SceneFailure.of(cause).isBug
+
+  "SceneFailure.isBug" should "be true for a bug" in:
+    isBug(IllegalStateException("renderer not initialised")) shouldBe true
+    isBug(InternalException("unreachable mesh type")) shouldBe true
+
+  it should "be false for the user's or the environment's fault" in:
+    isBug(ConfigurationException("--display was given an empty value")) shouldBe false
+    isBug(EnvironmentException("ffmpeg not found on PATH")) shouldBe false
+    SceneFailure.Load(LoadError.NotFound("/x/scene.scala")).isBug shouldBe false
 
   "SceneFailure.Load" should "carry the load error's own text and no label" in:
     val failure = SceneFailure.Load(LoadError.NotFound("/x/scene.scala"))

@@ -2,6 +2,8 @@ package menger.engines
 
 import io.github.lene.optix.OptiXException
 import io.github.lene.optix.TextureUploadException
+import menger.common.EnvironmentException
+import menger.common.InternalException
 import menger.common.MengerException
 import menger.engines.scene.AssetPaths
 import menger.scene.LoadError
@@ -31,6 +33,12 @@ enum SceneFailure:
     case Environment(detail, _) => detail
     case Internal(detail, _)    => detail
 
+  /** A bug, as opposed to the scene's fault or the environment's: what deserves a stack trace in
+    * front of a person. */
+  def isBug: Boolean = this match
+    case _: Internal => true
+    case _           => false
+
   /** The throwable to log a stack trace for: only a failure that is not the scene's. */
   def cause: Option[Throwable] = this match
     case Environment(_, error) => Some(error)
@@ -52,9 +60,13 @@ enum SceneFailure:
 
 object SceneFailure:
 
+  /** Classifies by what was thrown. The typed exceptions say it themselves (`Fail`); the rest is
+    * a heuristic on the exception class, as good as the throw sites that have not been typed. */
   def of(cause: Throwable): SceneFailure =
     val detail = Option(cause.getMessage).getOrElse(cause.getClass.getSimpleName)
     cause match
+      case _: EnvironmentException => Environment(detail, cause)
+      case _: InternalException    => Internal(detail, cause)
       case _: MengerException | _: IllegalArgumentException | _: UnsupportedOperationException |
            _: AssetPaths.AssetPathException => Invalid(detail)
       case _: OptiXException | _: TextureUploadException | _: java.io.IOException =>

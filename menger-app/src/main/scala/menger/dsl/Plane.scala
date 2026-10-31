@@ -1,6 +1,7 @@
 package menger.dsl
 
 import menger.common.Axis
+import menger.common.InternalException
 import menger.common.Material
 import menger.common.PlaneColorSpec
 import menger.common.PlaneSpec
@@ -103,12 +104,17 @@ case class Plane(
   def toPlaneSpec: PlaneSpec =
     PlaneSpec(axisPosition.axis, axisPosition.positive, axisPosition.value)
 
-  /** Convert to PlaneColorSpec for rendering. */
+  /** Convert to PlaneColorSpec for rendering. The DSL is on the scene-compile classpath, which
+    * `menger.failure` is not, so it throws the menger-common exception itself. */
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def toPlaneColorSpec: PlaneColorSpec =
     (color, checkered) match
       case (Some(c), _)          => PlaneColorSpec(c.toCommonColor, None)
       case (_, Some((c1, c2)))   => PlaneColorSpec(c1.toCommonColor, Some(c2.toCommonColor))
-      case _                     => sys.error("Plane must have either color or checkered defined (caught by require)")
+      case _                     =>
+        throw InternalException(
+          "Plane must have either color or checkered defined (caught by require)"
+        )
 
 object Plane:
   /** Create a solid-colored plane.

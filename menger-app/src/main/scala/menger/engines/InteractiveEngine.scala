@@ -27,6 +27,7 @@ import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TextureManager
 import menger.engines.scene.TrackedEdges4D
 import menger.engines.scene.TriangleMeshSceneBuilder
+import menger.failure.Fail
 import menger.input.EventDispatcher
 import menger.input.GdxRuntime
 import menger.input.Observer
@@ -108,7 +109,7 @@ class InteractiveEngine(
       "SceneConfig must provide objectSpecs. " +
       "Legacy single-object parameters are no longer supported."
     )
-    sys.error("SceneConfig must provide objectSpecs")
+    Fail.configuration("SceneConfig must provide objectSpecs")
   }
 
   // Coordinate cross visibility (togglable via 'C' key)

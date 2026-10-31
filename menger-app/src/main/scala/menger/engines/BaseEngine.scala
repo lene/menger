@@ -11,6 +11,7 @@ import menger.common.RenderConfig
 import menger.dsl.DenoiseMode
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SceneCost
+import menger.failure.Fail
 import menger.input.OptiXRenderResources
 import menger.optix.CameraState
 import menger.optix.OptiXRendererWrapper
@@ -167,7 +168,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
         buildMixedSceneObjects(allSpecs, renderer)
 
       case SceneType.Unsupported(_) =>
-        sys.error("Complex mixed scenes not supported for rebuilding")
+        Fail.unsupported("rebuilding a complex mixed scene")
 
       case sceneType =>
         GeometryRegistry.builderFor(specs, textureDir) match
@@ -176,7 +177,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
             builder.validateAndBuild(specs, renderer, effectiveMaxInstances).get
           case None =>
             logger.warn(s"Cannot rebuild scene type: $sceneType")
-            sys.error(s"Scene type $sceneType not supported for rebuilding")
+            Fail.unsupported(s"rebuilding a scene of type $sceneType")
 
   /** Builds each `SceneGroups.buildOrder` group with its own builder: cube-sponge specs need
     * CubeSpongeSceneBuilder (instance-explosion path), other triangle meshes
@@ -193,7 +194,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
         .map(_.validateAndBuild(group, renderer, effectiveMaxInstances).get)
         .getOrElse {
           val types = group.map(_.objectType).distinct.mkString(", ")
-          sys.error(s"No builder found for types: $types")
+          Fail.unsupported(s"a scene builder for the types $types")
         }
     }
 

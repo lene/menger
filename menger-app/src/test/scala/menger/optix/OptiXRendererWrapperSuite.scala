@@ -48,9 +48,11 @@ class OptiXRendererWrapperSuite extends AnyFlatSpec with Matchers with MockFacto
     val cause = new OptiXContextLostException(
       "CUDA context lost earlier in this process (restart it): illegal memory access (700)")
     (renderer.render(_: ImageSize)).expects(*).throwing(cause).once()
-    val thrown = the[RuntimeException] thrownBy wrapperWith(renderer).renderScene(dims)
-    thrown.getMessage should include("restart required")
+    val thrown = the[menger.common.EnvironmentException] thrownBy
+      wrapperWith(renderer).renderScene(dims)
     thrown.getMessage should include("(700)")
+    thrown.getMessage should endWith("Restart the application")
+    thrown.getCause shouldBe cause
 
   it should "return None for any other OptiX failure, whatever its message says" in:
     val renderer = mock[OptiXRenderer]

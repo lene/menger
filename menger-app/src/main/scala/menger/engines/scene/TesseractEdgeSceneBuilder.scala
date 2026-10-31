@@ -13,6 +13,7 @@ import menger.common.Vector
 import menger.common.x
 import menger.common.y
 import menger.common.z
+import menger.failure.Fail
 import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
@@ -253,7 +254,9 @@ class TesseractEdgeSceneBuilder(
   // The same w-scaled mesh as the faces (menger#65), not a second copy of the type switch.
   private def createMesh4D(spec: ObjectSpec): Mesh4D =
     MeshFactory.renderMesh4D(spec.copy(objectType = spec.objectType.toLowerCase)).getOrElse(
-      sys.error(s"Unsupported 4D type for edge rendering (or no level): ${spec.objectType}")
+      Fail.configuration(
+        s"Unsupported 4D type for edge rendering (or no level): ${spec.objectType}"
+      )
     )
 
   /**

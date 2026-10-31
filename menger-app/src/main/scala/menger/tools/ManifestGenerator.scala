@@ -41,6 +41,7 @@ import menger.dsl.TesseractSpongeType
 import menger.dsl.Transform
 import menger.dsl.TransparentShadows
 import menger.dsl.Vec3
+import menger.failure.Fail
 import menger.scene.RestrictedClasspath
 import menger.spec.Projection4DSpec
 import upickle.default.ReadWriter
@@ -332,7 +333,8 @@ object ManifestGenerator extends LazyLogging:
         )
         def floatValue(field: String): Float = values(field) match
           case f: Float => f
-          case other => sys.error(s"Expected Float for Material.$field, got ${other.getClass.getName}")
+          case other =>
+            Fail.internal(s"Expected Float for Material.$field, got ${other.getClass.getName}")
         MaterialManifest(
           name,
           ior = floatValue("ior"),
@@ -347,7 +349,9 @@ object ManifestGenerator extends LazyLogging:
           transparent = m.color.a < 1f
         )
       case other =>
-        sys.error(s"Expected menger.dsl.Material for preset '$name', got ${other.getClass.getName}")
+        Fail.internal(
+          s"Expected menger.dsl.Material for preset '$name', got ${other.getClass.getName}"
+        )
 
   private val IgnoredObjectMethodNames =
     Set("getClass", "hashCode", "equals", "toString", "notify", "notifyAll", "wait")
