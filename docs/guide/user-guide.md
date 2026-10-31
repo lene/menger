@@ -1,7 +1,7 @@
 # Menger — Usage & Rendering
 
-**Version**: 0.9.0
-**Last Updated**: September 2026
+**Version**: 0.9.1
+**Last Updated**: October 2026
 
 ← [Quick Start](quickstart.md) | [User Guide Index](../USER_GUIDE.md)
 
@@ -21,7 +21,7 @@ render** — either `--objects` (one or more objects described on the command li
 sbt "run --objects type=sphere"
 
 # From a packaged release
-./menger-app-0.9.0/bin/menger-app --objects type=sphere
+./menger-app-0.9.1/bin/menger-app --objects type=sphere
 
 # Examples
 sbt "run --objects type=sponge-volume:level=2"                  # Level 2 Menger sponge
@@ -201,7 +201,7 @@ sbt "run --objects 'type=sponge-surface:level=2' \
     --shadows --antialiasing --plane y:-2 --plane-color ffffff:808080"
 
 # Same, rendered straight to a file on a machine without a display
-__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-app-0.9.0/bin/menger-app \
+__GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-app-0.9.1/bin/menger-app \
     --objects 'type=sponge-surface:level=2' --shadows --antialiasing --plane y:-2 \
     --headless --save-name sponge.png
 ```
