@@ -37,7 +37,7 @@ object CausticsCanonical:
     ),
     background = Some(Color.Black),
     toneMapping = ToneMapping.None,
-    caustics = Some(Caustics(photonsPerIteration = 500000, iterations = 20, alpha = 0.8f)),
+    caustics = Some(Caustics(photonsPerIteration = 500000, iterations = 20, radiusReduction = 0.8f)),
     render = Some(RenderSettings(shadows = true))
   )
 

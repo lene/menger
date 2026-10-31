@@ -2,6 +2,7 @@ package menger
 
 import com.badlogic.gdx.math.Vector3
 import menger.input.EventDispatcher
+import menger.objects.higher_d.RotationProjectionParameters
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -1,7 +1,6 @@
 package menger.engines.scene
 
 import java.nio.file.Path
-import java.nio.file.Paths
 
 import scala.util.Failure
 import scala.util.Success
@@ -10,11 +9,10 @@ import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureIndex
 import io.github.lene.optix.TextureUploadException
-import menger.ObjectSpec
-import menger.TextureData
-import menger.TextureLoader
 import menger.geometry.VideoLoader
+import menger.spec.ObjectSpec
 import menger.video.AnimationTimeRange
 import menger.video.EnvMapVideo
 import menger.video.VideoPlaybackTime
@@ -33,8 +31,8 @@ import menger.video.VideoTexture
  * objects without textures will use materials only.
  */
 object TextureManager extends LazyLogging:
-  type VideoTextureSlotObserver = (VideoTexture, Int) => Unit
-  type VideoTextureSlotProvider = VideoTexture => Option[Int]
+  type VideoTextureSlotObserver = (VideoTexture, TextureIndex) => Unit
+  type VideoTextureSlotProvider = VideoTexture => Option[TextureIndex]
 
   private val videoTextureSlotObserver = new ThreadLocal[Option[VideoTextureSlotObserver]]:
     override def initialValue(): Option[VideoTextureSlotObserver] = None
@@ -66,7 +64,7 @@ object TextureManager extends LazyLogging:
     specs: List[ObjectSpec],
     renderer: OptiXRenderer,
     textureDir: String
-  ): Map[String, Int] =
+  ): Map[String, TextureIndex] =
     val staticTextureFilenames = (
       specs.flatMap(_.texture) ++ specs.flatMap(_.normalMap) ++ specs.flatMap(_.roughnessMap) ++
       specs.flatMap(_.metallicMap) ++ specs.flatMap(_.aoMap) ++ specs.flatMap(_.heightMap)
@@ -101,31 +99,35 @@ object TextureManager extends LazyLogging:
     renderer: OptiXRenderer,
     textureDir: String,
     resPreference: Option[String] = None
-  ): Map[String, Int] =
-    val setDir = resolveTexturePath(setName, textureDir)
-    val metadata = TextureSetMetadata.load(setDir).getOrElse(TextureSetMetadata())
-    TextureSetResolver.resolve(setDir, resPreference) match
-      case Success(resolved) =>
-        val results = List.newBuilder[(String, Int)]
-        resolved.color.foreach: p =>
-          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:color" -> idx)
-        resolved.normal.foreach: p =>
-          loadTexture(p, setName, renderer, textureDir, needsDxConversion = resolved.normalNeedsDXConversion)
-            .foreach(idx => results += s"set:$setName:normal" -> idx)
-        resolved.roughness.foreach: p =>
-          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:roughness" -> idx)
-        resolved.metallic.foreach: p =>
-          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:metallic" -> idx)
-        resolved.ao.foreach: p =>
-          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:ao" -> idx)
-        resolved.height.foreach: p =>
-          loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:height" -> idx)
-        val map = results.result().toMap
-        logger.info(s"Loaded texture set '$setName': ${map.size} maps")
-        map
+  ): Map[String, TextureIndex] =
+    Try(AssetPaths.resolveOrThrow(textureDir, setName)) match
       case Failure(e) =>
         logger.error(s"Failed to resolve texture set '$setName': ${e.getMessage}")
         Map.empty
+      case Success(setDir) =>
+        val metadata = TextureSetMetadata.load(setDir).getOrElse(TextureSetMetadata())
+        TextureSetResolver.resolve(setDir, resPreference) match
+          case Success(resolved) =>
+            val results = List.newBuilder[(String, TextureIndex)]
+            resolved.color.foreach: p =>
+              loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:color" -> idx)
+            resolved.normal.foreach: p =>
+              loadTexture(p, setName, renderer, textureDir, needsDxConversion = resolved.normalNeedsDXConversion)
+                .foreach(idx => results += s"set:$setName:normal" -> idx)
+            resolved.roughness.foreach: p =>
+              loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:roughness" -> idx)
+            resolved.metallic.foreach: p =>
+              loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:metallic" -> idx)
+            resolved.ao.foreach: p =>
+              loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:ao" -> idx)
+            resolved.height.foreach: p =>
+              loadTexture(p, setName, renderer, textureDir).foreach(idx => results += s"set:$setName:height" -> idx)
+            val map = results.result().toMap
+            logger.info(s"Loaded texture set '$setName': ${map.size} maps")
+            map
+          case Failure(e) =>
+            logger.error(s"Failed to resolve texture set '$setName': ${e.getMessage}")
+            Map.empty
 
   private def loadTexture(
     path: Path,
@@ -133,7 +135,7 @@ object TextureManager extends LazyLogging:
     renderer: OptiXRenderer,
     textureDir: String,
     needsDxConversion: Boolean = false
-  ): Option[Int] =
+  ): Option[TextureIndex] =
     val filename = s"$setName/${path.getFileName.toString}"
     if needsDxConversion then
       loadDxNormalMap(filename, renderer, textureDir)
@@ -145,7 +147,7 @@ object TextureManager extends LazyLogging:
     filename: String,
     renderer: OptiXRenderer,
     textureDir: String
-  ): Option[Int] =
+  ): Option[TextureIndex] =
     TextureLoader.load(filename, textureDir) match
       case Success(data) =>
         val converted = TextureData(
@@ -166,20 +168,32 @@ object TextureManager extends LazyLogging:
       result(i) = (255 - (result(i) & 0xFF)).toByte
     result
 
+  /** Uploads the image file `filename`, resolved under `textureDir`; the `Left` says why it could
+    * not be. The one place a file upload's failures are caught (menger#103): every caller logs
+    * the `Left` and renders without the texture. */
+  def uploadFile(
+    renderer: OptiXRenderer,
+    textureDir: String,
+    filename: String
+  ): Either[String, TextureIndex] =
+    AssetPaths.resolve(textureDir, filename).left.map(reason => s"cannot resolve: $reason")
+      .flatMap { path =>
+        try Right(renderer.uploadTextureFromFile(path.toString))
+        catch case e: TextureUploadException => Left(s"upload failed: ${e.getMessage}")
+      }
+
   private def loadStaticTexture(
     filename: String,
     renderer: OptiXRenderer,
     textureDir: String
-  ): Option[(String, Int)] =
+  ): Option[(String, TextureIndex)] =
     if filename.toLowerCase.endsWith(".hdr") then
-      val resolvedPath = resolveTexturePath(filename, textureDir).toString
-      try
-        val idx = renderer.uploadTextureFromFile(resolvedPath)
-        logger.debug(s"Uploaded HDR texture '$filename' as index $idx")
-        Some(filename -> idx)
-      catch
-        case e: TextureUploadException =>
-          logger.error(s"Failed to upload HDR texture '$filename': ${e.getMessage}")
+      uploadFile(renderer, textureDir, filename) match
+        case Right(idx) =>
+          logger.debug(s"Uploaded HDR texture '$filename' as index $idx")
+          Some(filename -> idx)
+        case Left(reason) =>
+          logger.error(s"Failed to load HDR texture '$filename': $reason")
           None
     else
       TextureLoader.load(filename, textureDir) match
@@ -193,7 +207,7 @@ object TextureManager extends LazyLogging:
     videoTexture: VideoTexture,
     renderer: OptiXRenderer,
     textureDir: String
-  ): Option[(String, Int)] =
+  ): Option[(String, TextureIndex)] =
     videoTextureSlotProvider.get().flatMap(_(videoTexture)) match
       case Some(textureIndex) =>
         recordVideoTextureSlot(videoTexture, textureIndex)
@@ -215,7 +229,7 @@ object TextureManager extends LazyLogging:
     renderer: OptiXRenderer,
     textureDir: String,
     renderT: Float = 0f
-  ): Option[Int] =
+  ): Option[TextureIndex] =
     loadInitialEnvMapVideoData(envMapVideo, textureDir, renderT) match
       case Success(textureData) =>
         uploadTextureData(textureData, renderer).map(_._2)
@@ -227,8 +241,8 @@ object TextureManager extends LazyLogging:
     videoTexture: VideoTexture,
     textureDir: String
   ): Try[TextureData] =
-    val resolvedPath = resolveTexturePath(videoTexture.path, textureDir)
     loadVideoTextureData:
+      val resolvedPath = AssetPaths.resolveOrThrow(textureDir, videoTexture.path)
       val loader = new VideoLoader(resolvedPath.toString)
       try
         TextureData(
@@ -244,8 +258,8 @@ object TextureManager extends LazyLogging:
     textureDir: String,
     renderT: Float = 0f
   ): Try[TextureData] =
-    val resolvedPath = resolveTexturePath(envMapVideo.path, textureDir)
     loadVideoTextureData:
+      val resolvedPath = AssetPaths.resolveOrThrow(textureDir, envMapVideo.path)
       val loader = new VideoLoader(resolvedPath.toString)
       try
         validateEquirectangularDimensions(
@@ -273,7 +287,7 @@ object TextureManager extends LazyLogging:
   private def uploadTextureData(
     textureData: TextureData,
     renderer: OptiXRenderer
-  ): Option[(String, Int)] =
+  ): Option[(String, TextureIndex)] =
     try
       val index = renderer.uploadTexture(
         textureData.name,
@@ -288,12 +302,7 @@ object TextureManager extends LazyLogging:
         logger.error(s"Failed to upload texture '${textureData.name}': ${e.getMessage}")
         None
 
-  private def resolveTexturePath(filename: String, textureDir: String): Path =
-    val filePath = Paths.get(filename)
-    if filePath.isAbsolute then filePath
-    else Paths.get(textureDir).resolve(filename)
-
-  private def recordVideoTextureSlot(videoTexture: VideoTexture, textureIndex: Int): Unit =
+  private def recordVideoTextureSlot(videoTexture: VideoTexture, textureIndex: TextureIndex): Unit =
     videoTextureSlotObserver.get().foreach(_(videoTexture, textureIndex))
 
   private def loadVideoTextureData(body: => TextureData): Try[TextureData] =

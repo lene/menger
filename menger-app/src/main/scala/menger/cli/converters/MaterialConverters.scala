@@ -2,7 +2,6 @@ package menger.cli.converters
 
 import scala.util.Try
 
-import menger.ColorConversions
 import menger.cli.converters.ConverterUtils.unwrapTryEither
 import menger.common.Color
 import menger.common.Const

@@ -4,6 +4,7 @@ import scala.sys.process._
 import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.failure.Fail
 
 object VideoEncoder extends LazyLogging:
 
@@ -17,7 +18,7 @@ object VideoEncoder extends LazyLogging:
     val lower = outputPath.toLowerCase
     if lower.endsWith(".mp4") then Codec.H264
     else if lower.endsWith(".mkv") then Codec.Hevc
-    else sys.error(
+    else Fail.configuration(
       s"Unsupported video format for '$outputPath'. Supported extensions: .mp4 (H.264/libx264), .mkv (HEVC/hevc_nvenc)"
     )
 
@@ -30,21 +31,21 @@ object VideoEncoder extends LazyLogging:
       List(outputPath)
 
   /** Verify ffmpeg is on PATH and the encoder for outputPath's format is available.
-   *  Throws (via sys.error) if either check fails.
+   *  Throws an `EnvironmentException` (with the remedy) if either check fails.
    *  Safe to call at application startup.
    */
   def checkAvailable(outputPath: String): Unit =
     val ffmpegFound = Try("ffmpeg -version" !! ProcessLogger(_ => ())).isSuccess
     if !ffmpegFound then
-      sys.error("ffmpeg not found on PATH. Install ffmpeg to use --video output.")
+      Fail.environment("ffmpeg not found on PATH", "Install ffmpeg to use --video output")
     val codec = codecForPath(outputPath)
     val encoderPresent =
       Try("ffmpeg -encoders" !! ProcessLogger(_ => ())).toOption
         .exists(_.contains(codec.name))
     if !encoderPresent then
-      sys.error(
-        s"ffmpeg encoder '${codec.name}' is not available on this system. " +
-        "Install the required codec or choose a different output format."
+      Fail.environment(
+        s"ffmpeg encoder '${codec.name}' is not available on this system",
+        "Install the required codec or choose a different output format"
       )
 
   /** Encode frame sequence into a video file.
@@ -66,7 +67,8 @@ object VideoEncoder extends LazyLogging:
     val exitCode = Process(args).!(ProcessLogger(_ => (), line => { val _ = stderr.append(line).append('\n') }))
     if exitCode != 0 then
       logger.error(s"ffmpeg stderr:\n$stderr")
-      sys.error(
-        s"ffmpeg exited with code $exitCode encoding '$outputPath'. See log for details."
+      Fail.environment(
+        s"ffmpeg exited with code $exitCode encoding '$outputPath'",
+        "See the log for ffmpeg's own error output"
       )
     logger.info(s"Video written to $outputPath")

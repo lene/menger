@@ -1,5 +1,5 @@
 name := "menger-app"
-version := "0.9.0"
+version := "0.9.1"
 scalaVersion := "3.8.3"
 
 organization := "io.github.lilacashes"
@@ -36,6 +36,30 @@ Compile / wartremoverErrors ++= Seq(
 Test / javaOptions += "-Dlogback.statusListenerClass=ch.qos.logback.core.status.NopStatusListener"
 Test / fork := true
 Test / scalacOptions += "-experimental"
+
+// Shared performance-gate helper (RelativeBenchmark), vendored from menger-toplevel's
+// shared/standards like the hooks.
+Test / unmanagedSourceDirectories +=
+  (ThisBuild / baseDirectory).value / "standards" / "test" / "scala"
+
+// Timing-based gates (ScalaTest tag "Perf") run alone in the `perf` suite (PERF_ONLY=1) and
+// are excluded from every other test run, where concurrent work would distort the timings.
+val perfOnly = sys.env.get("PERF_ONLY").contains("1")
+Test / testOptions += Tests.Argument(
+  TestFrameworks.ScalaTest,
+  (if (perfOnly) Seq("-n", "Perf") else Seq("-l", "Perf")): _*
+)
+Test / parallelExecution := !perfOnly
+// Fixed, pre-touched heap for the perf JVM only: G1 shrank the heap after each explicit GC in
+// BenchConfig.JvmCpu and the next sample paid for faulting fresh pages back in, 23-59% of the
+// sponge generation samples' time and their main noise (menger#45).
+Test / javaOptions ++= (if (perfOnly) Seq("-Xms3g", "-Xmx3g", "-XX:+AlwaysPreTouch") else Nil)
+
+// The packaged launcher's heap, sized to the scene budget (ResourceLimits.sceneMaxTriangles:
+// 16M triangles, about 5.5 GB going by the level-5 sponge's measured 13.1M triangles / 4.5 GB)
+// plus headroom. The JVM default, a quarter of RAM, ran a within-budget scene out of memory on
+// a 16 GB host (review 2026-10-14, menger#80). The validator container sets its own heap.
+Universal / javaOptions += "-J-Xmx8g"
 
 // Coverage configuration - exclude untestable packages (JNI/GPU and LibGDX/OpenGL code)
 // Also exclude LibGDX adapter handlers that require native library initialization for testing

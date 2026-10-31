@@ -7,9 +7,9 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
-import io.github.lene.optix.OptiXRendererWrapper
 import io.github.lene.optix.RenderResult
 import menger.common.ImageSize
+import menger.optix.OptiXRendererWrapper
 
 /** Render-stats concern extracted from InteractiveEngine (F13, Sprint 35 Ph4).
   *

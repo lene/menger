@@ -1,0 +1,639 @@
+package menger.cli
+
+import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
+import scala.util.Try
+
+import com.typesafe.scalalogging.LazyLogging
+import menger.common.Color
+import menger.common.Material
+import menger.dsl.ResourceLimits
+import menger.spec.ConeGeometry
+import menger.spec.CurveData
+import menger.spec.Degrees
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
+import menger.spec.ObjectType
+import menger.spec.PlaneGeometry
+import menger.spec.ProceduralSpec
+import menger.spec.Projection4DSpec
+import menger.spec.TextureMaps
+
+/** Parses the `--object` flag, `type=TYPE:key=value:...`, into an [[ObjectSpec]] (the format and
+  * its examples are documented on `ObjectSpec`). */
+object ObjectSpecParser extends LazyLogging:
+
+  /**
+   * Parse object specification from keyword=value format.
+   * Format: type=TYPE:pos=x,y,z:size=S:level=L:color=#RRGGBB:ior=I:material=PRESET:texture=FILE
+   *
+   * Material keywords:
+   *   material=PRESET - base material preset (glass, water, diamond, chrome, gold, copper, metal, plastic, matte, film, parchment)
+   *   ior=VALUE       - override IOR (also applies without material preset)
+   *   roughness=VALUE - override roughness (only with material preset)
+   *   metallic=VALUE  - override metallic (only with material preset)
+   *   specular=VALUE  - override specular (only with material preset)
+   *   emission=VALUE  - override emission (0.0-10.0, default 0.0)
+   *   film-thickness=NM - thin-film thickness in nm for iridescent interference (e.g., 500)
+   *   color=#RRGGBB   - override color (works with or without material preset)
+   *   texture=FILE    - texture filename (relative to texture directory)
+   *
+   * 4D projection keywords (only for tesseract type):
+   *   eye-w=VALUE     - 4D eye W-coordinate (default: 3.0)
+   *   screen-w=VALUE  - 4D screen W-coordinate (default: 1.5)
+    *   rot-xw=DEGREES  - XW plane rotation angle (default: 15)
+    *   rot-yw=DEGREES  - YW plane rotation angle (default: 10)
+    *   rot-zw=DEGREES  - ZW plane rotation angle (default: 0)
+    *   w-scale=VALUE   - scales w before rotation, >= 0 (default: 1; 0 flattens to 3D)
+    *
+    * 3D rotation keywords (for all object types):
+    *   rot-x=DEGREES  - X-axis rotation (default: 0)
+    *   rot-y=DEGREES  - Y-axis rotation (default: 0)
+    *   rot-z=DEGREES  - Z-axis rotation (default: 0)
+    *
+   * Edge rendering keywords (only for tesseract type):
+   *   edge-radius=VALUE     - Radius of cylinder edges (default: 0.02)
+   *   edge-material=PRESET  - Material preset for edges (film, parchment, etc.)
+   *   edge-color=#RRGGBB    - Edge color override
+   *   edge-emission=VALUE   - Edge emission override (0.0-10.0)
+   *
+   * Examples with edge rendering:
+   *   type=tesseract:material=film:edge-material=film:edge-emission=3.0
+   *   type=tesseract:material=glass:edge-color=#00FFFF:edge-emission=5.0:edge-radius=0.03
+   */
+  private val ValidKeys: Set[String] = Set(
+    "type", "pos", "size", "level", "color", "ior",
+    "material", "roughness", "metallic", "specular",
+    "emission", "film-thickness", "dispersion", "texture",
+    "eye-w", "screen-w", "rot-xw", "rot-yw", "rot-zw", "w-scale",
+    "rot-x", "rot-y", "rot-z",
+    "edge-radius", "edge-material", "edge-color",
+    "edge-emission",
+    "apex", "base", "radius",
+    "normal", "distance", "color2", "checker-size",
+    "procedural", "proc-scale",
+    "normal-map", "roughness-map", "metallic-map", "ao-map", "height-map",
+    "texture-set", "texture-set-res", "uv-scale",
+    "dist-threshold",
+    "control-points",
+    "preset", "angle", "seed", "dim"
+  )
+
+  def parse(spec: String): Either[String, ObjectSpec] =
+    logger.debug(s"Parsing object spec: $spec")
+    val parts = spec.split(":").map(_.trim)
+    val kvPairs = parts.flatMap { part =>
+      part.split("=", 2) match
+        case Array(key, value) => Some(key.trim.toLowerCase -> value.trim)
+        case _ => None
+    }.toMap
+    logger.debug(s"Parsed key-value pairs: $kvPairs")
+
+    val result = for
+      _ <- validateKeys(kvPairs)
+      objType <- parseObjectType(kvPairs)
+      (x, y, z) <- parsePosition(kvPairs)
+      size <- parseSize(kvPairs)
+      level <- parseLevel(kvPairs)
+      color <- parseColor(kvPairs)
+      ior <- parseIOR(kvPairs)
+      dispersion <- parseDispersion(kvPairs)
+      material <- parseMaterial(kvPairs, color, ior, dispersion)
+      texture <- parseTexture(kvPairs)
+      projection4D <- parse4DProjection(kvPairs, objType)
+      edgeParams <- parseEdgeParameters(kvPairs, objType)
+      rotation <- parseRotation3DDeg(kvPairs)
+      coneGeom <- parseConeGeometry(kvPairs)
+      planeGeom <- parsePlaneGeometry(kvPairs)
+      procSpec <- parseProceduralSpec(kvPairs)
+      _ <- validateSpongeLevel(objType, level)
+      texMaps <- parseTextureMaps(kvPairs)
+      metallicMap <- parseMapTexture(kvPairs, "metallic-map")
+      aoMap <- parseMapTexture(kvPairs, "ao-map")
+      heightMap <- parseMapTexture(kvPairs, "height-map")
+      textureSet <- parseOptionalString(kvPairs, "texture-set")
+      textureSetRes <- parseOptionalString(kvPairs, "texture-set-res")
+      uvScale <- parseOptionalFloat(kvPairs, "uv-scale", "UV scale")
+      distThreshold <- parseDistanceThreshold(kvPairs)
+      lsysPreset <- parseLSystemPreset(kvPairs)
+      lsysAngle <- parseLSystemAngle(kvPairs)
+      lsysSeed <- parseLSystemSeed(kvPairs)
+      lsysDim <- parseLSystemDim(kvPairs)
+      curveData <- parseCurveData(kvPairs)
+    yield ObjectSpec(
+      objectType = objType,
+      x = x,
+      y = y,
+      z = z,
+      size = size,
+      level = level,
+      color = color,
+      ior = ior,
+      material = material,
+      texture = texture,
+      projection4D = projection4D,
+      edgeRadius = edgeParams._1,
+      edgeMaterial = edgeParams._2,
+      rotation = rotation,
+      cone = coneGeom,
+      plane = planeGeom,
+      procedural = procSpec,
+      textureMaps = texMaps,
+      metallicMap = metallicMap,
+      aoMap = aoMap,
+      heightMap = heightMap,
+      textureSet = textureSet,
+      textureSetRes = textureSetRes,
+      uvScale = uvScale,
+      distanceThreshold = distThreshold,
+      lsystemPreset = lsysPreset,
+      lsystemAngle = lsysAngle,
+      lsystemSeed = lsysSeed,
+      lsystemDim = lsysDim,
+      curveData = curveData,
+      dispersion = dispersion
+    )
+
+    result match
+      case Right(obj) => logger.debug(s"Successfully parsed: $obj")
+      case Left(err) => logger.debug(s"Parse failed: $err")
+    result
+
+  private def validateKeys(
+    kvPairs: Map[String, String]
+  ): Either[String, Unit] =
+    val unknownKeys = kvPairs.keySet -- ValidKeys
+    if unknownKeys.nonEmpty then
+      val sorted = unknownKeys.toList.sorted.mkString("', '")
+      Left(
+        s"Unknown key(s): '$sorted'. " +
+          s"Valid keys: ${ValidKeys.toList.sorted.mkString(", ")}"
+      )
+    else
+      Right(())
+
+  private def parseObjectType(kvPairs: Map[String, String]): Either[String, String] =
+    kvPairs.get("type") match
+      case Some(t) if t.toLowerCase == "parametric" =>
+        Left("'parametric' objects can only be created via the Scala DSL, not the --object CLI flag. " +
+          "See examples.dsl.ParametricScenes for usage examples.")
+      case Some(t) if ObjectType.isValid(t) => Right(t.toLowerCase)
+      case Some(t) =>
+        Left(s"Invalid object type: '$t'. Valid types: ${ObjectType.validTypesString}. " +
+          "Example: type=sphere or type=cube")
+      case None =>
+        Left("Missing required 'type' field. Add type=<object-type> to specification. " +
+          s"Valid types: ${ObjectType.validTypesString}")
+
+  private def parsePosition(kvPairs: Map[String, String]): Either[String, (Float, Float, Float)] =
+    kvPairs.get("pos") match
+      case Some(posStr) =>
+        posStr.split(",").map(_.trim) match
+          case Array(xStr, yStr, zStr) =>
+            Try((xStr.toFloat, yStr.toFloat, zStr.toFloat)).toEither.left.map { e =>
+              s"Invalid position value in '$posStr': ${e.getMessage}. " +
+                "Position components must be valid numbers (e.g., pos=1.0,2.0,3.0)"
+            }
+          case _ =>
+            Left(s"Invalid position format: '$posStr'. Expected format: pos=x,y,z " +
+              "(three comma-separated numbers). Example: pos=1.0,2.0,3.0")
+      case None => Right((0.0f, 0.0f, 0.0f))
+
+  private def parseSize(kvPairs: Map[String, String]): Either[String, Float] =
+    kvPairs.get("size") match
+      case Some(sizeStr) =>
+        Try(sizeStr.toFloat).toEither.left.map { e =>
+          s"Invalid size value '$sizeStr': ${e.getMessage}. Size must be a valid number (e.g., size=1.5)"
+        }
+      case None => Right(1.0f)
+
+  private def parseLevel(kvPairs: Map[String, String]): Either[String, Option[Float]] =
+    kvPairs.get("level") match
+      case Some(levelStr) =>
+        Try(levelStr.toFloat).toEither.left.map { e =>
+          s"Invalid level value '$levelStr': ${e.getMessage}. Level must be a valid number (e.g., level=2)"
+        }.map(Some(_))
+      case None => Right(None)
+
+  private def parseDistanceThreshold(kvPairs: Map[String, String]): Either[String, Option[Int]] =
+    kvPairs.get("dist-threshold") match
+      case Some(s) =>
+        Try(s.toInt).toEither.left.map { e =>
+          s"Invalid dist-threshold value '$s': ${e.getMessage}. Must be a positive integer (e.g., dist-threshold=2)"
+        }.map(Some(_))
+      case None => Right(None)
+
+  private def parseColorField(kvPairs: Map[String, String], key: String): Either[String, Option[menger.common.Color]] =
+    kvPairs.get(key) match
+      case Some(colorStr) =>
+        Try {
+          val hexStr = if colorStr.startsWith("#") then colorStr.substring(1) else colorStr
+          menger.common.Color.fromHex(hexStr)
+        }.toEither.left.map { e =>
+          s"Invalid $key value '$colorStr': ${e.getMessage}. " +
+            s"Color must be hex format (e.g., $key=#FF0000)"
+        }.map(Some(_))
+      case None => Right(None)
+
+  private def parseColor(kvPairs: Map[String, String]): Either[String, Option[menger.common.Color]] =
+    parseColorField(kvPairs, "color")
+
+  private def parseIOR(kvPairs: Map[String, String]): Either[String, Float] =
+    kvPairs.get("ior") match
+      case Some(iorStr) =>
+        Try(iorStr.toFloat).toEither.left.map { e =>
+          s"Invalid IOR value '$iorStr': ${e.getMessage}. " +
+            "IOR (index of refraction) must be a valid number (e.g., ior=1.5)"
+        }
+      case None => Right(1.0f)
+
+  private def parseDispersion(kvPairs: Map[String, String]): Either[String, Float] =
+    kvPairs.get("dispersion") match
+      case Some(dStr) =>
+        Try(dStr.toFloat).toEither.left.map { e =>
+          s"Invalid dispersion value '$dStr': ${e.getMessage}. " +
+            "Dispersion (Abbe number) must be a non-negative number (e.g., dispersion=33)"
+        }.flatMap { d =>
+          if (d < 0f) Left(s"Dispersion must be non-negative, got $d")
+          else Right(d)
+        }
+      case None => Right(0.0f)
+
+  private def parseMaterial(
+    kvPairs: Map[String, String],
+    color: Option[Color],
+    ior: Float,
+    dispersion: Float
+  ): Either[String, Option[Material]] =
+    kvPairs.get("material") match
+      case Some(presetName) =>
+        Material.fromName(presetName).toScala match
+          case Some(baseMaterial) =>
+            parseMaterialOverrides(kvPairs, baseMaterial, color, ior, dispersion)
+          case None =>
+            Left(s"Unknown material preset: '${Material.presetNames.asScala.mkString(", ")}'")
+      case None =>
+        // Allow film-thickness without explicit material preset (creates default material with thin film)
+        kvPairs.get("film-thickness") match
+          case Some(_) =>
+            val baseMaterial = Material(color.getOrElse(Color(1.0f, 1.0f, 1.0f)), ior = ior)
+            parseMaterialOverrides(kvPairs, baseMaterial, color, ior, dispersion)
+          case None =>
+            Right(None)
+
+  // Hex digits of a colour that sets its alpha (#RRGGBBAA).
+  private val HexDigitsWithAlpha = 8
+
+  /** A colour given with a material preset tints its RGB and keeps its alpha: `material=glass:
+    * color=#FF3333` is red glass, not an opaque red surface (the rule MaterialExtractor applies,
+    * usability review 2026-09, F14, which this path bypassed by baking the colour, alpha 1,
+    * into the material). A colour with 8 hex digits (#RRGGBBAA) sets the alpha as well. */
+  private def tint(base: Color, color: Color, written: Option[String]): Color =
+    if written.exists(_.stripPrefix("#").length == HexDigitsWithAlpha) then color
+    else base.copy(r = color.r, g = color.g, b = color.b)
+
+  private def parseMaterialOverrides(
+    kvPairs: Map[String, String],
+    baseMaterial: Material,
+    color: Option[Color],
+    ior: Float,
+    dispersion: Float
+  ): Either[String, Option[Material]] =
+    for
+      roughness <- parseOptionalFloat(kvPairs, "roughness", "roughness value (0.0-1.0)")
+      metallic <- parseOptionalFloat(kvPairs, "metallic", "metallic value (0.0-1.0)")
+      specular <- parseOptionalFloat(kvPairs, "specular", "specular value (0.0-1.0)")
+      emission <- parseOptionalFloat(kvPairs, "emission", "emission value (0.0-10.0)")
+      filmThickness <- parseOptionalFloat(kvPairs, "film-thickness", "film thickness in nm (e.g., 500)")
+    yield Some(
+      baseMaterial.copy(
+        color         = color.fold(baseMaterial.color)(tint(baseMaterial.color, _, kvPairs.get("color"))),
+        ior           = if kvPairs.contains("ior") then ior else baseMaterial.ior,
+        roughness     = roughness.getOrElse(baseMaterial.roughness),
+        metallic      = metallic.getOrElse(baseMaterial.metallic),
+        specular      = specular.getOrElse(baseMaterial.specular),
+        emission      = emission.getOrElse(baseMaterial.emission),
+        filmThickness = filmThickness.getOrElse(baseMaterial.filmThickness),
+        dispersion    = if kvPairs.contains("dispersion") then dispersion else baseMaterial.dispersion
+      )
+    )
+
+  private def parseOptionalFloat(
+    kvPairs: Map[String, String],
+    key: String,
+    description: String
+  ): Either[String, Option[Float]] =
+    kvPairs.get(key) match
+      case Some(valueStr) =>
+        Try(valueStr.toFloat).toEither.left.map { e =>
+          s"Invalid $key value '$valueStr': ${e.getMessage}. Expected a valid $description"
+        }.map(Some(_))
+      case None => Right(None)
+
+  private def parseOptionalString(
+    kvPairs: Map[String, String],
+    key: String
+  ): Either[String, Option[String]] =
+    kvPairs.get(key) match
+      case Some(value) if value.nonEmpty => Right(Some(value))
+      case Some(_) => Left(s"$key value cannot be empty") 
+      case None => Right(None)
+
+  private def parseTexture(kvPairs: Map[String, String]): Either[String, Option[String]] =
+    kvPairs.get("texture") match
+      case Some(filename) if filename.nonEmpty => Right(Some(filename))
+      case Some(_) => Left("Texture filename cannot be empty. Provide a valid filename (e.g., texture=brick.png)")
+      case None => Right(None)
+
+  private def parseMapTexture(kvPairs: Map[String, String], key: String): Either[String, Option[String]] =
+    kvPairs.get(key) match
+      case Some(filename) if filename.nonEmpty => Right(Some(filename))
+      case Some(_) => Left(s"$key filename cannot be empty. Provide a valid filename (e.g., $key=brick_n.png)")
+      case None => Right(None)
+
+  private def validateSpongeLevel(objType: String, level: Option[Float]): Either[String, Unit] =
+    val normalized = ObjectType.normalize(objType)
+    if ObjectType.isSponge(objType) && level.isEmpty then
+      Left("Sponge object requires 'level' field. Add level=<number> to specification. " +
+        s"Example: type=$objType:level=2")
+    else if ObjectType.is4DSponge(objType) && level.isEmpty then
+      Left("4D sponge object requires 'level' field. Add level=<number> to specification. " +
+        s"Example: type=$objType:level=1")
+    else if level.exists(_ < 0) then
+      Left(s"Level must be non-negative, got ${level.get}")
+    else if normalized == "lsystem" && level.exists(_.toInt > ResourceLimits.lsystemMaxIterations) then
+      Left(s"lsystem iterations ${level.get.toInt} exceeds hard maximum " +
+        s"${ResourceLimits.lsystemMaxIterations}")
+    else
+      ResourceLimits.levelLimitByObjectType.get(normalized) match
+        case Some(limit) if level.exists(_ > limit.max) =>
+          Left(s"$objType level ${level.get} exceeds hard maximum ${limit.max}")
+        case _ => Right(())
+
+  private def parse4DProjection(
+    kvPairs: Map[String, String],
+    objType: String
+  ): Either[String, Option[Projection4DSpec]] =
+    if ObjectType.isProjected4D(objType) || ObjectType.isMenger4D(objType) then
+      for
+        eyeW <- parseFloatParam(kvPairs, "eye-w", Projection4DSpec.DefaultEyeW, "4D eye W-coordinate")
+        screenW <- parseFloatParam(kvPairs, "screen-w", Projection4DSpec.DefaultScreenW, "4D screen W-coordinate")
+        rotXW <- parseFloatParam(kvPairs, "rot-xw", Projection4DSpec.DefaultRotXW.value, "XW rotation angle in degrees")
+        rotYW <- parseFloatParam(kvPairs, "rot-yw", Projection4DSpec.DefaultRotYW.value, "YW rotation angle in degrees")
+        rotZW <- parseFloatParam(kvPairs, "rot-zw", Projection4DSpec.DefaultRotZW.value, "ZW rotation angle in degrees")
+        wScale <- parseFloatParam(kvPairs, "w-scale", Projection4DSpec.DefaultWScale, "w scale >= 0")
+        _ <- validate4DParams(eyeW, screenW)
+        _ <- Either.cond(wScale >= 0f, (), s"w-scale must be >= 0, got $wScale")
+      yield Some(Projection4DSpec(
+        eyeW, screenW, Degrees(rotXW), Degrees(rotYW), Degrees(rotZW), wScale
+      ))
+    else
+      Right(None)
+
+  private def parseFloatParam(
+    kvPairs: Map[String, String],
+    key: String,
+    default: Float,
+    description: String
+  ): Either[String, Float] =
+    kvPairs.get(key) match
+      case Some(valueStr) =>
+        Try(valueStr.toFloat).toEither.left.map { e =>
+          s"Invalid $key value '$valueStr': ${e.getMessage}. Expected a valid $description (e.g., $key=$default)"
+        }
+      case None => Right(default)
+
+  private def parseProceduralType(kvPairs: Map[String, String]): Either[String, Int] =
+    kvPairs.get("procedural") match
+      case None => Right(0)
+      case Some(name) =>
+        menger.dsl.ProceduralPresets.byName(name) match
+          case Some(preset) => Right(preset.id)
+          case None =>
+            val valid = menger.dsl.ProceduralPresets.All.map(_.name).mkString(", ")
+            Left(s"Unknown procedural type '$name'. Valid: $valid")
+
+  private def validate4DParams(eyeW: Float, screenW: Float): Either[String, Unit] =
+    if eyeW <= screenW then
+      Left(s"eye-w ($eyeW) must be greater than screen-w ($screenW) for 4D projection")
+    else if eyeW <= 0 || screenW <= 0 then
+      Left("eye-w and screen-w must be positive values for 4D projection")
+    else
+      Right(())
+
+  private def parseVector3(
+    kvPairs: Map[String, String],
+    key: String
+  ): Either[String, Option[(Float, Float, Float)]] =
+    kvPairs.get(key) match
+      case None => Right(None)
+      case Some(v) =>
+        v.split(",").map(_.trim) match
+          case Array(xStr, yStr, zStr) =>
+            for
+              fx <- Try(xStr.toFloat).toEither.left.map(_ =>
+                s"Invalid $key format: '$v'. Expected: x,y,z (three comma-separated numbers)")
+              fy <- Try(yStr.toFloat).toEither.left.map(_ =>
+                s"Invalid $key format: '$v'. Expected: x,y,z (three comma-separated numbers)")
+              fz <- Try(zStr.toFloat).toEither.left.map(_ =>
+                s"Invalid $key format: '$v'. Expected: x,y,z (three comma-separated numbers)")
+            yield Some((fx, fy, fz))
+          case _ =>
+            Left(s"Invalid $key format: '$v'. Expected: x,y,z (three comma-separated numbers)")
+
+  /**
+   * Validate multiple object specifications.
+   * Returns error if any spec is invalid, including index of failing spec.
+   */
+  def parseAll(specs: List[String]): Either[String, List[ObjectSpec]] =
+    specs.zipWithIndex.foldLeft[Either[String, List[ObjectSpec]]](Right(List.empty)) {
+      case (acc, (spec, index)) =>
+        acc.flatMap { objects =>
+          parse(spec).left.map { error =>
+            s"Error in object specification #${index + 1}: $error"
+          }.map(obj => objects :+ obj)
+        }
+    }
+
+  // Edge parameter defaults
+  private val DefaultEdgeRadius: Float = 0.02f
+
+  /**
+   * Parse edge rendering parameters (4D projected types, a cube, a mesh sponge).
+   * Returns (edgeRadius, edgeMaterial) tuple.
+   */
+  private def parseEdgeParameters(
+    kvPairs: Map[String, String],
+    objType: String
+  ): Either[String, (Option[Float], Option[Material])] =
+    val hasEdgeParams = kvPairs.keys.exists(k =>
+      k.startsWith("edge-") || k == "edgeradius" || k == "edgematerial" ||
+      k == "edgecolor" || k == "edgeemission"
+    )
+
+    if hasEdgeParams && !ObjectSpec.hasEdgeTubes(objType) then
+      Left("Edge rendering parameters (edge-radius, edge-material, etc.) are only valid for " +
+        "4D projected types, a cube and a mesh sponge (sponge-volume, sponge-surface), " +
+        s"not '$objType'")
+    else if !hasEdgeParams then
+      Right((None, None))
+    else
+      for
+        edgeRadius <- parseEdgeRadius(kvPairs)
+        edgeMaterial <- parseEdgeMaterial(kvPairs)
+      yield (edgeRadius, edgeMaterial)
+
+  private def parseEdgeRadius(kvPairs: Map[String, String]): Either[String, Option[Float]] =
+    kvPairs.get("edge-radius") match
+      case Some(valueStr) =>
+        Try(valueStr.toFloat).toEither.left.map { e =>
+          s"Invalid edge-radius value '$valueStr': ${e.getMessage}. " +
+            s"Expected a valid radius (e.g., edge-radius=$DefaultEdgeRadius)"
+        }.flatMap { value =>
+          if value <= 0 then
+            Left(s"edge-radius must be positive, got $value")
+          else
+            Right(Some(value))
+        }
+      case None =>
+        // If any edge parameter is present, use default radius
+        val hasAnyEdgeParam = kvPairs.keys.exists(k =>
+          k == "edge-material" || k == "edge-color" || k == "edge-emission"
+        )
+        Right(if hasAnyEdgeParam then Some(DefaultEdgeRadius) else None)
+
+  private def parseEdgeMaterial(kvPairs: Map[String, String]): Either[String, Option[Material]] =
+    val edgeColor = parseEdgeColor(kvPairs)
+    val edgeEmission = parseOptionalFloat(kvPairs, "edge-emission", "edge emission value (0.0-10.0)")
+
+    kvPairs.get("edge-material") match
+      case Some(presetName) =>
+        Material.fromName(presetName).toScala match
+          case Some(baseMaterial) =>
+            for
+              color <- edgeColor
+              emission <- edgeEmission
+            yield Some(
+              baseMaterial.copy(
+                color    = color.fold(baseMaterial.color)(
+                  tint(baseMaterial.color, _, kvPairs.get("edge-color"))
+                ),
+                emission = emission.getOrElse(baseMaterial.emission)
+              )
+            )
+          case None =>
+            Left(s"Unknown edge material preset: '$presetName'. Valid presets: ${Material.presetNames.asScala.mkString(", ")}")
+      case None =>
+        // If edge-color or edge-emission specified without edge-material, create a default material
+        for
+          color <- edgeColor
+          emission <- edgeEmission
+        yield
+          if color.isDefined || emission.isDefined then
+            val baseColor = color.getOrElse(Color(1.0f, 1.0f, 1.0f))
+            Some(Material(baseColor, emission = emission.getOrElse(0.0f)))
+          else
+            None
+
+  private def parseEdgeColor(kvPairs: Map[String, String]): Either[String, Option[Color]] =
+    parseColorField(kvPairs, "edge-color")
+
+  private def parseRotation3DDeg(kvPairs: Map[String, String]): Either[String, ObjectRotation] =
+    for
+      rotXDeg <- parseFloatParam(kvPairs, "rot-x", 0f, "X-axis rotation in degrees")
+      rotYDeg <- parseFloatParam(kvPairs, "rot-y", 0f, "Y-axis rotation in degrees")
+      rotZDeg <- parseFloatParam(kvPairs, "rot-z", 0f, "Z-axis rotation in degrees")
+    yield ObjectRotation(
+      Degrees(rotXDeg).toRadians, Degrees(rotYDeg).toRadians, Degrees(rotZDeg).toRadians
+    )
+
+  private def parseConeGeometry(kvPairs: Map[String, String]): Either[String, ConeGeometry] =
+    for
+      apex <- parseVector3(kvPairs, "apex")
+      base <- parseVector3(kvPairs, "base")
+      radius <- parseOptionalFloat(kvPairs, "radius", "cone base radius")
+    yield ConeGeometry(apex, base, radius)
+
+  private def parsePlaneGeometry(kvPairs: Map[String, String]): Either[String, PlaneGeometry] =
+    for
+      normal <- parseVector3(kvPairs, "normal")
+      distance <- parseOptionalFloat(kvPairs, "distance", "plane distance from origin")
+      color2 <- parseColorField(kvPairs, "color2")
+      checkerSize <- parseFloatParam(kvPairs, "checker-size", 1.0f, "checker cell size in world units")
+    yield PlaneGeometry(normal, distance, color2, checkerSize)
+
+  private def parseProceduralSpec(kvPairs: Map[String, String]): Either[String, ProceduralSpec] =
+    for
+      proceduralType <- parseProceduralType(kvPairs)
+      proceduralScale <- parseFloatParam(kvPairs, "proc-scale", 1.0f, "procedural noise scale must be positive")
+      _ <- if proceduralScale <= 0f then Left("proc-scale must be positive") else Right(())
+    yield ProceduralSpec(proceduralType, proceduralScale)
+
+  private def parseTextureMaps(kvPairs: Map[String, String]): Either[String, TextureMaps] =
+    for
+      normalMap <- parseMapTexture(kvPairs, "normal-map")
+      roughnessMap <- parseMapTexture(kvPairs, "roughness-map")
+    yield TextureMaps(normalMap, roughnessMap)
+
+  private def parseCurveData(
+    kvPairs: Map[String, String]
+  ): Either[String, Option[CurveData]] =
+    kvPairs.get("control-points") match
+      case Some(pointsStr) =>
+        val parts = pointsStr.split(",").map(_.trim)
+        if parts.exists(_.isEmpty) then
+          Left("Empty value in control-points list")
+        else
+          val parsed = parts.map(s =>
+            Try(s.toFloat).toEither.left.map(e =>
+              s"Invalid control-point value '$s': ${e.getMessage}"))
+          val (errors, values) = parsed.partitionMap(identity)
+          if errors.nonEmpty then Left(errors.head)
+          else if values.length % 3 != 0 then
+            Left(s"control-points must have a multiple of 3 values (x,y,z triplets), got ${values.length} values")
+          else if values.length < 6 then
+            Left(s"control-points must have at least 6 values (2 control points), got ${values.length}")
+          else
+            val points = values.toVector
+            val numPoints = points.length / 3
+            val radius = kvPairs.get("radius").flatMap(r => Try(r.toFloat).toOption).getOrElse(0.01f)
+            val widths = Vector.fill(numPoints)(radius)
+            Right(Some(CurveData(points, widths)))
+      case None => Right(None)
+
+  private def parseLSystemPreset(kvPairs: Map[String, String]): Either[String, Option[String]] =
+    kvPairs.get("preset") match
+      case Some(p) if p.nonEmpty => Right(Some(p.toLowerCase))
+      case Some(_) => Left("L-system preset name cannot be empty")
+      case None => Right(None)
+
+  private def parseLSystemAngle(
+    kvPairs: Map[String, String]
+  ): Either[String, Option[Float]] =
+    kvPairs.get("angle") match
+      case Some(a) =>
+        Try(a.toFloat).toEither.left.map(e =>
+          s"Invalid angle value '$a': ${e.getMessage}").map(Some(_))
+      case None => Right(None)
+
+  private def parseLSystemSeed(
+    kvPairs: Map[String, String]
+  ): Either[String, Option[Long]] =
+    kvPairs.get("seed") match
+      case Some(s) =>
+        Try(s.toLong).toEither.left.map(e =>
+          s"Invalid seed value '$s': ${e.getMessage}").map(Some(_))
+      case None => Right(None)
+
+  private def parseLSystemDim(
+    kvPairs: Map[String, String]
+  ): Either[String, Int] =
+    kvPairs.get("dim") match
+      case Some(d) =>
+        val dim = Try(d.toInt).toEither.left.map(e =>
+          s"Invalid dim value '$d': ${e.getMessage}")
+        dim.flatMap { v =>
+          if v == 3 || v == 4 then Right(v)
+          else Left(s"dim must be 3 or 4, got $v")
+        }
+      case None => Right(3)

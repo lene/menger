@@ -43,6 +43,15 @@ class VideoEncoderSuite extends AnyFlatSpec with Matchers:
     a[RuntimeException] should be thrownBy
       VideoEncoder.buildArgs("frame_%04d.png", "output.webm", fps = 24, quality = 12)
 
+  it should "blame the user's input, and name what is supported, for an unsupported extension" in:
+    val e = intercept[menger.common.ConfigurationException](
+      VideoEncoder.buildArgs("frame_%04d.png", "output.webm", fps = 24, quality = 12)
+    )
+
+    e.getMessage should include("output.webm")
+    e.getMessage should include(".mp4")
+    e.getMessage should include(".mkv")
+
   it should "throw for no extension" in:
     a[RuntimeException] should be thrownBy
       VideoEncoder.buildArgs("frame_%04d.png", "output", fps = 24, quality = 12)

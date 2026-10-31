@@ -24,6 +24,12 @@ object Color:
   val Magenta = Color(1f, 0f, 1f)
   val Gray = Color(0.5f, 0.5f, 0.5f)
 
+  /** A tint for a refractive material (Glass, Diamond, Water, Film), whose colour alpha is the
+    * ABSORPTION: 0 absorbs nothing (clear), 1 absorbs fully (an opaque look). A plain
+    * `Color(r, g, b)` has alpha 1 and therefore absorbs fully. For every other material the
+    * alpha is opacity: 0 fully transparent, 1 fully opaque (menger#95). */
+  def tint(r: Float, g: Float, b: Float, absorption: Float): Color = Color(r, g, b, absorption)
+
   /** Parse hex color string (e.g., "#FF0000" or "FF0000" or "#FF0000FF") */
   def apply(hex: String): Color =
     val cleanHex = if hex.startsWith("#") then hex.substring(1) else hex

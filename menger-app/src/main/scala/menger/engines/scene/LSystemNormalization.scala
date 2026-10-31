@@ -1,6 +1,6 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
+import menger.spec.ObjectSpec
 
 /** Shared post-processing for L-system turtle output (Sprint 36 #16): rescales the whole
   * generated tree so its largest dimension is 1.0 and centers it on the origin. Operates on

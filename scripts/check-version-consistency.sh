@@ -14,7 +14,7 @@ STATUS=0
 
 VERSION_SBT=$(grep -E 'version := ".*"' menger-app/build.sbt | cut -d \" -f 2)
 VERSIONS_CI=$(grep -E '^[[:space:]]*DEPLOYABLE_VERSION:' .github/workflows/ci.yml | head -n 1 | cut -d \" -f 2)
-VERSION_SOURCE=$(grep -E 'version\("menger v.* ' menger-app/src/main/scala/menger/MengerCLIOptions.scala | cut -d 'v' -f 3 | cut -d ' ' -f 1)
+VERSION_SOURCE=$(grep -E 'version\("menger v.* ' menger-app/src/main/scala/menger/cli/MengerCLIOptions.scala | cut -d 'v' -f 3 | cut -d ' ' -f 1)
 if [ "$VERSION_SBT" != "$VERSIONS_CI" ]; then
   echo "Version in build.sbt: ${RED_TEXT}${VERSION_SBT}${RESET_TEXT}, in ci.yml: ${RED_TEXT}${VERSIONS_CI}${RESET_TEXT}"
   STATUS=1
@@ -35,7 +35,7 @@ fi
 
 # --- Toolchain pins advertised to the scene agent -----------------------------------------
 # ManifestGenerator and CorpusExporter each hardcode the Scala and optix-jni versions they
-# tell the agent it is generating for (AD-9's staleness signal). Nothing tied those constants
+# tell the agent it is generating for (SA-AD-9's staleness signal). Nothing tied those constants
 # to the build, and each suite asserted its own file's constant against a hand-copied literal,
 # so a `scalaVersion` bump left all four copies stale and every test green (review round 2).
 SCALA_BUILD=$(grep -E '^[[:space:]]*scalaVersion := ".*"' menger-app/build.sbt | head -n 1 | cut -d \" -f 2)

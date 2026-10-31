@@ -1,8 +1,8 @@
 package menger.cli
 
+import menger.cli.LightType
 import menger.common.Color
 import menger.common.Vector
-import menger.cli.LightType
 import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

@@ -16,6 +16,7 @@ object GdxRuntime:
   private def gl       = Option(Gdx.gl)
 
   def exit(): Unit                                  = app.foreach(_.exit())
+  def postRunnable(r: Runnable): Unit               = app.foreach(_.postRunnable(r))
   def requestRendering(): Unit                      = graphics.foreach(_.requestRendering())
   def setContinuousRendering(v: Boolean): Unit      = graphics.foreach(_.setContinuousRendering(v))
   def deltaTime: Float                              = graphics.map(_.getDeltaTime).getOrElse(0f)
@@ -23,6 +24,7 @@ object GdxRuntime:
   def height: Int                                   = graphics.map(_.getHeight).getOrElse(0)
   def glClear(mask: Int): Unit                      = gl.foreach(_.glClear(mask))
   def setWindowTitle(title: String): Unit            = graphics.foreach(_.setTitle(title))
+  val DefaultWindowTitle = "Menger Sponges"
   def setInputProcessor(p: InputProcessor): Unit    = input.foreach(_.setInputProcessor(p))
   def isKeyPressed(keycode: Int): Boolean           = input.exists(_.isKeyPressed(keycode))
   def isButtonPressed(button: Int): Boolean         = input.exists(_.isButtonPressed(button))

@@ -3,7 +3,7 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
+import io.github.lene.optix.TextureIndex
 import menger.common.Material
 import menger.common.TransformUtil
 import menger.common.Vector
@@ -12,6 +12,7 @@ import menger.common.y
 import menger.common.z
 import menger.objects.Cube
 import menger.objects.CubeSpongeGenerator
+import menger.spec.ObjectSpec
 
 /**
  * Scene builder for cube-sponge fractals.
@@ -53,6 +54,9 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
         Right(())
 
   override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] =
+    // Once per process: an animated scene rebuilds every frame.
+    if !CubeSpongeSceneBuilder.deprecationWarned.getAndSet(true) then
+      logger.warn(CubeSpongeSceneBuilder.DeprecationMessage)
     val totalInstances = calculateInstanceCount(specs)
     logger.debug(s"Setting up ${specs.length} cube-sponge(s) generating $totalInstances total cube instances")
     val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
@@ -65,9 +69,12 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
   private def setupBaseCubeMesh(renderer: OptiXRenderer): Try[Unit] = Try:
     // Create base cube mesh centered at origin with scale 1.0 (shared by all instances)
     val baseCube = Cube(center = Vector[3](0f, 0f, 0f), scale = 1.0f)
-    renderer.setTriangleMesh(baseCube.toTriangleMesh)
+    renderer.addTriangleMesh(baseCube.toTriangleMesh)
+    ()
 
-  private def addCubeInstancesForSpec(spec: ObjectSpec, renderer: OptiXRenderer, textureIndices: Map[String, Int]): Unit =
+  private def addCubeInstancesForSpec(
+    spec: ObjectSpec, renderer: OptiXRenderer, textureIndices: Map[String, TextureIndex]
+  ): Unit =
     require(spec.level.isDefined, "cube-sponge requires level")
     val level = spec.level.get
     val material = MaterialExtractor.extract(spec)
@@ -83,7 +90,7 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
     // Add each cube as an instance
     generator.generateTransforms.foreach { case (position, scale, alpha) =>
-      addSingleCubeInstance(position, scale, material, renderer, spec, textureIndices, spec.rotY, alpha)
+      addSingleCubeInstance(position, scale, material, renderer, spec, textureIndices, alpha)
     }
 
     logger.debug(s"Added ${generator.cubeCount} cube instances for cube-sponge")
@@ -94,24 +101,15 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
     material: Material,
     renderer: OptiXRenderer,
     spec: ObjectSpec,
-    textureIndices: Map[String, Int],
-    rotY: Float = 0f,
+    textureIndices: Map[String, TextureIndex],
     alpha: Float = 1f
   ): Unit =
     val effectiveMaterial =
       if alpha >= 0.9999f then material
       else material.copy(color = material.color.copy(a = alpha))
 
-    val transform =
-      if rotY == 0f then
-        TransformUtil.createScaleTranslation(scale, position.x, position.y, position.z)
-      else
-        TransformUtil.createYRotationScaleTranslation(rotY, scale, position.x, position.y, position.z)
-
-    val instanceId = requireInstanceId(
-      renderer.addTriangleMeshInstance(transform, effectiveMaterial),
-      s"cube instance at position=($position), scale=$scale"
-    )
+    val instanceId = renderer.addTriangleMeshInstance(
+      CubeSpongeSceneBuilder.cubeTransform(spec, position, scale), effectiveMaterial)
     applyInstanceTextures(instanceId, spec, textureIndices, renderer)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
@@ -130,3 +128,22 @@ class CubeSpongeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
   // 64-instance limit is exceeded silently.
   override def calculateRequiredInstances(specs: List[ObjectSpec]): Int =
     if specs.forall(_.level.isDefined) then calculateInstanceCount(specs).toInt else 0
+
+object CubeSpongeSceneBuilder:
+  // Deprecated 2026-10-13, removal: menger#76. The DSL manifest already leaves it out.
+  val DeprecationMessage: String =
+    "cube-sponge is deprecated and will be removed (menger#76): use sponge-volume for the " +
+      "same sponge as one mesh, or sponge-recursive-ias for high levels"
+  private[scene] val deprecationWarned = java.util.concurrent.atomic.AtomicBoolean(false)
+
+  /** A sub-cube at `position` turned with the whole sponge: rotX, rotY and rotZ about the
+    * sponge's centre, as a mesh object turns (`TriangleMeshSceneBuilder.instanceTransform`), so
+    * `SceneBuilder.objectFrame` matches it. Only rotY was applied before, about the world origin
+    * (usability review 2026-10, session 5, menger#127). */
+  def cubeTransform(spec: ObjectSpec, position: Vector[3], scale: Float): Array[Float] =
+    val r = TransformUtil.createEulerRotationScaleTranslation(
+      spec.rotX, spec.rotY, spec.rotZ, 1f, 0f, 0f, 0f)
+    val (dx, dy, dz) = (position.x - spec.x, position.y - spec.y, position.z - spec.z)
+    def turned(row: Int) = r(4 * row) * dx + r(4 * row + 1) * dy + r(4 * row + 2) * dz
+    TransformUtil.createEulerRotationScaleTranslation(spec.rotX, spec.rotY, spec.rotZ, scale,
+      spec.x + turned(0), spec.y + turned(1), spec.z + turned(2))

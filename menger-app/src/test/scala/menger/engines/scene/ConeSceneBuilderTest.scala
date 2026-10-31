@@ -1,8 +1,8 @@
 package menger.engines.scene
 
-import menger.ConeGeometry
-import menger.ObjectRotation
-import menger.ObjectSpec
+import menger.spec.ConeGeometry
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

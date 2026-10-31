@@ -1,6 +1,6 @@
 package menger.config
 
-import menger.ObjectSpec
+import menger.spec.ObjectSpec
 
 /**
  * Scene configuration specifying what geometry to render using object specifications.

@@ -1,6 +1,7 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
+import menger.spec.ObjectSpec
 import menger.common.Color
 import menger.common.Material
 import menger.common.ProfilingConfig
@@ -79,7 +80,7 @@ class LSystemSceneBuilderSuite extends AnyFlatSpec with Matchers:
   "LSystemSceneBuilder.calculateRequiredInstances" should
     "report the turtle expansion, not the input spec count" in:
     val builder = LSystemSceneBuilder()
-    val spec = ObjectSpec.parse("type=lsystem:preset=tree:level=4:size=0.8").toOption.get
+    val spec = ObjectSpecParser.parse("type=lsystem:preset=tree:level=4:size=0.8").toOption.get
     val required = builder.calculateRequiredInstances(List(spec))
     required should be > 1
     required shouldBe builder.calculateInstanceCount(List(spec)).toInt
@@ -92,7 +93,7 @@ class LSystemSceneBuilderSuite extends AnyFlatSpec with Matchers:
       "type=lsystem:preset=kochisland:level=2:size=1.5"
     )
     reported.foreach { arg =>
-      val spec = ObjectSpec.parse(arg).toOption.get
+      val spec = ObjectSpecParser.parse(arg).toOption.get
       withClue(s"$arg: ") {
         builder.calculateRequiredInstances(List(spec)) should be > 64
       }
@@ -100,7 +101,7 @@ class LSystemSceneBuilderSuite extends AnyFlatSpec with Matchers:
 
   it should "sum across multiple specs" in:
     val builder = LSystemSceneBuilder()
-    val spec = ObjectSpec.parse("type=lsystem:preset=bush:level=3").toOption.get
+    val spec = ObjectSpecParser.parse("type=lsystem:preset=bush:level=3").toOption.get
     builder.calculateRequiredInstances(List(spec, spec)) shouldBe
       2 * builder.calculateRequiredInstances(List(spec))
 
@@ -111,18 +112,18 @@ class LSystemSceneBuilderSuite extends AnyFlatSpec with Matchers:
     result.get shouldBe a[LSystemSceneBuilder]
 
   "CLI parsing" should "parse lsystem preset spec" in:
-    val result = ObjectSpec.parse("type=lsystem:preset=tree:level=4")
+    val result = ObjectSpecParser.parse("type=lsystem:preset=tree:level=4")
     result.isRight shouldBe true
     result.foreach { spec =>
       spec.objectType shouldBe "lsystem"
     }
 
   it should "parse lsystem with angle and seed" in:
-    val result = ObjectSpec.parse("type=lsystem:preset=tree:level=4:angle=30:seed=123")
+    val result = ObjectSpecParser.parse("type=lsystem:preset=tree:level=4:angle=30:seed=123")
     result.isRight shouldBe true
 
   it should "reject unknown preset" in:
-    val result = ObjectSpec.parse("type=lsystem:preset=nonexistent:level=3")
+    val result = ObjectSpecParser.parse("type=lsystem:preset=nonexistent:level=3")
     result.isRight shouldBe true // CLI just stores preset as-is; validation at build time
 
   "Material switching in turtle" should "set material via M(name)" in:

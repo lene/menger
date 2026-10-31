@@ -1,5 +1,7 @@
 package menger.dsl
 
+import menger.spec.Degrees
+
 /** Camera configuration for scene rendering.
   *
   * @param position Camera eye position in world space
@@ -11,7 +13,7 @@ case class Camera(
   position: Vec3 = Vec3(0f, 0f, 3f),
   lookAt: Vec3 = Vec3.Zero,
   up: Vec3 = Vec3(0f, 1f, 0f),
-  fov: Option[Float] = None
+  fov: Option[Degrees] = None
 ):
   fov.foreach(_ => failFov())
 

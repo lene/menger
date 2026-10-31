@@ -11,7 +11,7 @@ class CausticsSuite extends AnyFlatSpec with Matchers:
     caustics.photonsPerIteration shouldBe 100000
     caustics.iterations shouldBe 10
     caustics.initialRadius shouldBe None
-    caustics.alpha shouldBe 0.7f
+    caustics.radiusReduction shouldBe 0.7f
 
   it should "map a None radius to the auto-derive sentinel" in:
     Caustics().toCausticsConfig.initialRadius shouldBe menger.common.CausticsConfig.AutoRadius
@@ -22,12 +22,12 @@ class CausticsSuite extends AnyFlatSpec with Matchers:
       photonsPerIteration = 200000,
       iterations = 15,
       initialRadius = Some(0.2f),
-      alpha = 0.8f
+      radiusReduction = 0.8f
     )
     caustics.photonsPerIteration shouldBe 200000
     caustics.iterations shouldBe 15
     caustics.initialRadius shouldBe Some(0.2f)
-    caustics.alpha shouldBe 0.8f
+    caustics.radiusReduction shouldBe 0.8f
 
   it should "validate photonsPerIteration range" in:
     an[IllegalArgumentException] should be thrownBy Caustics(photonsPerIteration = 0)
@@ -44,9 +44,9 @@ class CausticsSuite extends AnyFlatSpec with Matchers:
   it should "accept a None radius (auto-derive) without throwing" in:
     noException should be thrownBy Caustics(initialRadius = None)
 
-  it should "validate alpha range" in:
-    an[IllegalArgumentException] should be thrownBy Caustics(alpha = 0f)
-    an[IllegalArgumentException] should be thrownBy Caustics(alpha = 1f)
+  it should "validate radiusReduction range" in:
+    an[IllegalArgumentException] should be thrownBy Caustics(radiusReduction = 0f)
+    an[IllegalArgumentException] should be thrownBy Caustics(radiusReduction = 1f)
 
   "Caustics.Disabled" should "have correct configuration" in:
     val caustics = Caustics.Disabled
@@ -63,7 +63,7 @@ class CausticsSuite extends AnyFlatSpec with Matchers:
     caustics.photonsPerIteration shouldBe 500000
     caustics.iterations shouldBe 20
     caustics.initialRadius shouldBe Some(1.0f)
-    caustics.alpha shouldBe 0.8f
+    caustics.radiusReduction shouldBe 0.8f
 
   "Caustics.toCausticsConfig" should "convert to OptiX CausticsConfig correctly" in:
     val dsl = Caustics(
@@ -71,7 +71,7 @@ class CausticsSuite extends AnyFlatSpec with Matchers:
       photonsPerIteration = 150000,
       iterations = 12,
       initialRadius = Some(0.15f),
-      alpha = 0.75f
+      radiusReduction = 0.75f
     )
     val config = dsl.toCausticsConfig
 

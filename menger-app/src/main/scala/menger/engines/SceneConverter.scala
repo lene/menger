@@ -1,8 +1,6 @@
 package menger.engines
 
 import com.typesafe.scalalogging.LazyLogging
-import menger.ObjectRotation
-import menger.ObjectSpec
 import menger.common.CausticsConfig
 import menger.common.FogConfig
 import menger.common.Light
@@ -13,10 +11,14 @@ import menger.config.PlaneConfig
 import menger.config.SceneConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.Material
+import menger.dsl.RenderSettings
 import menger.dsl.Scene
 import menger.dsl.SceneNode
 import menger.dsl.ToneMapping
 import menger.dsl.Transform
+import menger.engines.scene.MaterialExtractor
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
 import menger.video.EnvMapVideo
 
 /** Extracted conversion from DSL Scene to rendering configs.
@@ -65,7 +67,10 @@ object SceneConverter extends LazyLogging:
     warnCausticsPreconditions(caustics, objectSpecs, lights)
     val background = dslScene.background.map(_.toCommonColor)
     val planes     = dslScene.planes.map(p => PlaneConfig(p.toPlaneSpec, Some(p.toPlaneColorSpec), p.material))
-    val render     = dslScene.render.map(_.toRenderConfig)
+    val colouredTransparent = objectSpecs.exists(SceneConverter.isColouredTransparent)
+    val render     = renderSettingsFor(dslScene.render, colouredTransparent, caustics.enabled)
+      .map(effectiveRenderConfig(_, dslScene.toneMapping, colouredTransparent))
+      .map(r => if caustics.enabled then r.copy(transparentShadows = true) else r)
     val fog        = dslScene.fog.map(f => FogConfig(f.density, f.color.toCommonColor))
     val envMap     = dslScene.envMap
     val envMapVideo = dslScene.envMapVideo
@@ -189,3 +194,39 @@ object SceneConverter extends LazyLogging:
     case ToneMapping.None          => (ToneMapOp.None, 1.0f)
     case ToneMapping.Reinhard(exp) => (ToneMapOp.Reinhard, exp)
     case ToneMapping.ACES(exp)     => (ToneMapOp.Aces, exp)
+
+  /** `RenderSettings.toRenderConfig` alone never carries tone mapping -- it's a separate
+    * top-level `Scene` field, not part of `RenderSettings` -- so every consumer of
+    * `SceneConfigs.render` that calls `renderer.setRenderConfig` directly (an animation frame
+    * after the first, `--preview`, the F5 live-reload path) reset tone mapping to off,
+    * because `RenderApi.setRenderConfig` also pushes `RenderConfig`'s own (always-default)
+    * tone-mapping fields to the GPU (usability review 2026-09, T2#8). Folding it in here,
+    * once, is the fix all of those call sites pick up for free. */
+  private def effectiveRenderConfig(
+    settings: RenderSettings, toneMapping: ToneMapping, colouredTransparent: Boolean
+  ): RenderConfig =
+    val (tmOp, tmExp) = toToneMappingParams(toneMapping)
+    settings.toRenderConfigFor(colouredTransparent)
+      .copy(toneMappingOperator = tmOp, toneMappingExposure = tmExp)
+
+  /** The scene's render settings, or the defaults when transparent shadows must be on without
+    * them: for a coloured transparent object (`TransparentShadows.Auto`; decided by user
+    * 2026-10-23: "yes" to Auto for a scene without render settings, menger#128), and with
+    * caustics, which turn transparent shadows on whatever the scene says (decided by user
+    * 2026-10-23: "caustics should always imply transparent shadows"). Otherwise None, so the
+    * command line's render settings stay in force for the scene. */
+  private def renderSettingsFor(
+    render: Option[RenderSettings], colouredTransparent: Boolean, caustics: Boolean
+  ): Option[RenderSettings] =
+    render.orElse(Option.when(colouredTransparent || caustics)(RenderSettings.Default))
+
+  // A colour channel spread below this reads as grey, white or black: clear glass, not coloured.
+  private val GreySpread = 0.05f
+
+  /** A transparent object whose shadow can show a colour: its material or colour is tinted, or
+    * a procedural pattern colours it (`TransparentShadows.Auto`, menger#128). */
+  def isColouredTransparent(spec: ObjectSpec): Boolean =
+    val material = MaterialExtractor.extract(spec)
+    val c = material.color
+    val spread = math.max(c.r, math.max(c.g, c.b)) - math.min(c.r, math.min(c.g, c.b))
+    c.a < 1f && (spec.procedural.proceduralType != 0 || spread > GreySpread)

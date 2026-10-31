@@ -2,13 +2,13 @@ package menger.engines.scene
 
 import scala.util.Try
 
-import io.github.lene.optix.MengerRenderer
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
-import menger.Projection4DSpec
 import menger.common.Material
-import menger.common.ObjectType
 import menger.common.Vector
+import menger.geometry.MengerRenderer
+import menger.spec.ObjectSpec
+import menger.spec.ObjectType
+import menger.spec.Projection4DSpec
 
 /** Per-IFS-type variation for the single projected-4D scene builder (F9, Sprint 35 Ph4).
   *
@@ -21,31 +21,33 @@ import menger.common.Vector
   * @param name        canonical (normalized) object-type name, e.g. "menger4d"
   * @param addInstance (renderer, level, distanceThreshold, position, scale, projection, material)
   *                    => raw instance id; distanceThreshold is read only by menger4d
-  * @param maxLevel    recursion-depth upper bound (menger4d only); must match
-  *                    MAX_4D_LEVEL in OptiXWrapper.cpp. Lower bound is always 0.
+  * @param maxLevel    recursion-depth upper bound, [[menger.dsl.ResourceLimits.ifs4dMaxLevel]]
+  *                    for all three types (usability review 2026-09, T1#3 -- sierpinski4d and
+  *                    hexadecachoron4d had none; each shader's own traversal stack guards
+  *                    against overflow, but silently prunes rather than rendering what was
+  *                    asked for). Lower bound is always 0.
   */
 case class IFS4DType(
   name: String,
-  addInstance: (MengerRenderer, Int, Int, Vector[3], Float, Projection4DSpec, Material) => Int,
-  maxLevel: Option[Int] = None
+  addInstance: (MengerRenderer, Int, Int, Vector[3], Float, Projection4DSpec, Material) => InstanceId,
+  maxLevel: Option[Int] = Some(menger.dsl.ResourceLimits.ifs4dMaxLevel)
 )
 
 object IFS4DType:
   val Menger4D: IFS4DType = IFS4DType("menger4d",
     (r, level, threshold, pos, scale, proj, mat) =>
       r.addMenger4DInstance(level, threshold, pos, scale,
-        proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW, mat),
-    maxLevel = Some(14))
+        proj.eyeW, proj.screenW, proj.rotXW.value, proj.rotYW.value, proj.rotZW.value, mat))
 
   val Sierpinski4D: IFS4DType = IFS4DType("sierpinski4d",
     (r, level, _, pos, scale, proj, mat) =>
       r.addSierpinski4DInstance(level, pos, scale,
-        proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW, mat))
+        proj.eyeW, proj.screenW, proj.rotXW.value, proj.rotYW.value, proj.rotZW.value, mat))
 
   val Hexadecachoron4D: IFS4DType = IFS4DType("hexadecachoron4d",
     (r, level, _, pos, scale, proj, mat) =>
       r.addHexadecachoron4DInstance(level, pos, scale,
-        proj.eyeW, proj.screenW, proj.rotXW, proj.rotYW, proj.rotZW, mat))
+        proj.eyeW, proj.screenW, proj.rotXW.value, proj.rotYW.value, proj.rotZW.value, mat))
 
   val all: List[IFS4DType] = List(Menger4D, Sierpinski4D, Hexadecachoron4D)
 
@@ -90,21 +92,26 @@ class Instanced4DSceneBuilder(
       val position  = Vector[3](spec.x, spec.y, spec.z)
       val rawLevel  = spec.level.get
 
-      def addInstance(level: Int, mat: Material, scale: Float): Unit =
-        val instanceId = requireInstanceId(
-          ifsType.addInstance(mengerRenderer, level, threshold, position, scale, proj, mat),
-          s"${ifsType.name} instance at (${spec.x},${spec.y},${spec.z})"
-        )
+      def addInstance(level: Int, mat: Material, scale: Float): InstanceId =
+        val instanceId =
+          ifsType.addInstance(mengerRenderer, level, threshold, position, scale, proj, mat)
         recorder(specIdx, instanceId)
         logger.debug(s"Added ${ifsType.name} instance $instanceId level=$level")
+        instanceId
 
-      if isFractional(rawLevel) then
+      if LevelMixing.appliesTo(spec.level, material) then
+        // Both whole levels in the full material, one shown per render (LevelMixing); no
+        // shrink, which only kept the two levels apart when they shared a render.
+        val upper = addInstance(rawLevel.floor.toInt + 1, material, spec.size)
+        val lower = addInstance(rawLevel.floor.toInt, material, spec.size)
+        LevelMixing.register(mengerRenderer, Seq(lower), Seq(upper), rawLevel)
+      else if isFractional(rawLevel) then
         val frac      = rawLevel - rawLevel.floor
         val coarseMat = material.copy(color = material.color.copy(a = material.color.a * (1f - frac)))
-        addInstance(rawLevel.floor.toInt + 1, material,  spec.size)
-        addInstance(rawLevel.floor.toInt,     coarseMat, spec.size * (1f - CoarseScaleOffset))
+        val _ = addInstance(rawLevel.floor.toInt + 1, material,  spec.size)
+        val _ = addInstance(rawLevel.floor.toInt,     coarseMat, spec.size * (1f - CoarseScaleOffset))
       else
-        addInstance(rawLevel.toInt, material, spec.size)
+        val _ = addInstance(rawLevel.toInt, material, spec.size)
     }
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =

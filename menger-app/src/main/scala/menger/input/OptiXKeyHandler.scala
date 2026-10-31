@@ -1,10 +1,10 @@
 package menger.input
 
 import com.typesafe.scalalogging.LazyLogging
-import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.Key
 import menger.common.ModifierState
+import menger.objects.higher_d.RotationProjectionParameters
 
 /**
  * Keyboard input handler for OptiX ray-traced rendering mode.

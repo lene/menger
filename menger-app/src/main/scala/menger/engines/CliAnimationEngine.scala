@@ -1,18 +1,19 @@
 package menger.engines
 
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
-import io.github.lene.optix.CameraState
-import io.github.lene.optix.SceneConfigurator
-import menger.AnimationSpecificationSequence
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
+import menger.config.AnimationSpecificationSequence
 import menger.config.OptiXEngineConfig
 import menger.dsl.DenoiseMode
 import menger.input.GdxRuntime
+import menger.optix.CameraState
+import menger.optix.SceneConfigurator
 
 object CliAnimationEngine:
   def formatSaveName(savePattern: Option[String], frame: Int): Option[String] =
@@ -33,6 +34,8 @@ class CliAnimationEngine(
   private val baseSpecs   = config.scene.objectSpecs.getOrElse(List.empty)
   private val totalFrames = animSpec.numFrames
   private val frameCounter = new AtomicInteger(0)
+  // The geometry the renderer holds, after a frame that built it successfully (menger#86).
+  private val lastGeometry = new AtomicReference[Option[FrameChange.Geometry]](None)
 
   override protected def textureDir: String       = execution.textureDir
   override protected def renderConfig: RenderConfig = config.render
@@ -59,9 +62,10 @@ class CliAnimationEngine(
     // when its own instance-count check exceeds the constructor-time budget, and
     // reinitialize disposes and recreates the native handle — dropping any plane/light state
     // set on it beforehand (Sprint 36 H2.1, same fix as InteractiveEngine.create()).
-    buildSceneFromSpecs(firstSpecs, renderer).recover { case e =>
+    // Propagated (F18; review 2026-10-14, menger#100): `GdxRuntime.exit()` exited 0.
+    buildSceneFromSpecs(firstSpecs, renderer).recoverWith { case e =>
       logger.error(s"Failed to create initial frame: ${e.getMessage}", e)
-      GdxRuntime.exit()
+      scala.util.Failure(e)
     }.get
     sceneConfigurator.configureLights(renderer)
     PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
@@ -84,13 +88,18 @@ class CliAnimationEngine(
       val animatedSpecs = baseSpecs.map(spec => animSpec.applyToSpec(spec, frame))
       val renderer = rendererWrapper.renderer
       configureOutputMode(renderer)
-      renderer.clearAllInstances()
-      buildSceneFromSpecs(animatedSpecs, renderer).recover { case e =>
-        logger.error(s"Failed to build frame $frame: ${e.getMessage}", e)
-      }
-      // Planes are real IAS instances (Sprint 36 H3.1) — clearAllInstances above wiped
-      // them too, so they must be re-added every frame, not just at create().
-      PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
+      // A frame whose objects did not change (an animation that holds still for a while)
+      // touches no instance (menger#86); a frame that failed to build is never that base.
+      val geometry = FrameChange.Geometry(animatedSpecs, environment.planes, None,
+        animatedTextures = animatedSpecs.exists(_.videoTexture.nonEmpty))
+      if FrameChange.classify(lastGeometry.get, geometry) == FrameChange.Rebuild then
+        renderer.clearAllInstances()
+        val built = buildSceneFromSpecs(animatedSpecs, renderer)
+        built.failed.foreach(e => logger.error(FrameBuildFailure.message(s"frame $frame", e), e))
+        lastGeometry.set(Option.when(built.isSuccess)(geometry))
+        // Planes are real IAS instances (Sprint 36 H3.1) — clearAllInstances above wiped
+        // them too, so they must be re-added after every rebuild, not just at create().
+        PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
       cameraState.updateCameraAspectRatio(renderer, ImageSize(width, height))
       rendererWrapper.renderScene(ImageSize(width, height)) match
         case Some(rgbaBytes) => renderResources.renderToScreen(rgbaBytes, width, height)

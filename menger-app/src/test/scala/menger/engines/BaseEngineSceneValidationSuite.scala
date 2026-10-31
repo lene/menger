@@ -1,9 +1,7 @@
 package menger.engines
 
-import io.github.lene.optix.CameraState
 import io.github.lene.optix.OptiXRenderer
-import io.github.lene.optix.SceneConfigurator
-import menger.ObjectSpec
+import menger.cli.ObjectSpecParser
 import menger.common.CausticsConfig
 import menger.common.Light
 import menger.common.ProfilingConfig
@@ -12,6 +10,9 @@ import menger.common.ValidationException
 import menger.common.Vector
 import menger.config.CameraConfig
 import menger.config.SceneConfig
+import menger.optix.CameraState
+import menger.optix.SceneConfigurator
+import menger.spec.ObjectSpec
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -28,7 +29,7 @@ class BaseEngineSceneValidationSuite extends AnyFlatSpec with Matchers with Mock
     val engine   = TestEngine(maxInstances = 64)
     val renderer = mock[OptiXRenderer]
     val invalidSpec =
-      ObjectSpec.parse("type=tesseract-sponge:level=1").toOption.get.copy(level = None)
+      ObjectSpecParser.parse("type=tesseract-sponge:level=1").toOption.get.copy(level = None)
 
     val result = engine.build(configsFor(List(invalidSpec)), renderer)
 

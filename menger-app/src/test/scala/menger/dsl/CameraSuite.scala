@@ -5,6 +5,7 @@ import scala.language.implicitConversions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import menger.engines.SceneConverter
+import menger.spec.Degrees
 
 class CameraSuite extends AnyFlatSpec with Matchers:
 
@@ -92,4 +93,4 @@ class CameraSuite extends AnyFlatSpec with Matchers:
     Camera.Default.fov shouldBe None
 
   it should "throw NotImplementedError when set" in:
-    a[NotImplementedError] should be thrownBy Camera(fov = Some(60f))
+    a[NotImplementedError] should be thrownBy Camera(fov = Some(Degrees(60f)))

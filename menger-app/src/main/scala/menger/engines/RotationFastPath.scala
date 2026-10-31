@@ -1,94 +1,65 @@
 package menger.engines
 
-import io.github.lene.optix.MengerRenderer
+import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
-import menger.Projection4DSpec
 import menger.engines.scene.InstanceId
+import menger.geometry.MengerRenderer
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 
 /** Strategy object for 4D-rotation fast paths in interactive and animation engines.
   *
   * Each fast path updates projection parameters on already-uploaded instances without
-  * a full geometry rebuild. Two updaters remain: GPU-projected triangle meshes, and
-  * the instanced IFS 4D types (menger4d / sierpinski4d / hexadecachoron4d), which now
-  * share one projection-update call (F9).
+  * a full geometry rebuild. Two updaters remain: GPU-projected triangle meshes (by mesh slot),
+  * and the instanced IFS 4D types (menger4d / sierpinski4d / hexadecachoron4d, by instance),
+  * which share one projection-update call (F9).
+  *
+  * One decision for all of them (review 2026-10-14, menger#102): there were three copies, and
+  * in one the guard sat outside its `else`, so it updated every instance and returned true for
+  * any change -- harmless only because its one caller pre-filtered.
   */
 object RotationFastPath:
 
-  /** Per-type projection update function signature. */
-  type ProjectionUpdater = (OptiXRenderer, InstanceId, Projection4DSpec) => Unit
+  /** How to update one instance's (or mesh slot's) projection on the renderer. */
+  type ProjectionUpdater[Id] = (OptiXRenderer, Id, Projection4DSpec) => Unit
 
-  /** Attempt a cached fast-path projection update for a set of specs.
+  /** Updates the projection of every instance whose spec's projection changed, and returns true,
+    * iff `newSpecs` differ from `prevSpecs` at most in their 4D projection and there is one id
+    * list per spec. Otherwise changes nothing and returns false: the caller rebuilds the scene.
     *
-    * @param newSpecs      the current ObjectSpecs with possibly updated projection4D
-    * @param renderer      the OptiX renderer instance
-    * @param prevSpecs     the previously-cached specs (for diff detection)
-    * @param prevIds       the previously-cached instance/slot ids per spec
-    * @param updateFn      how to update one instance's projection on the renderer
-    * @return true if the fast path was taken (projection-only delta), false otherwise
+    * @param prevIds  the instances (or mesh slots) each previous spec was built as
     */
-  def tryFastPath(
-    newSpecs: List[menger.ObjectSpec],
+  def tryFastPath[Id](
+    newSpecs: List[ObjectSpec],
     renderer: OptiXRenderer,
-    prevSpecs: List[menger.ObjectSpec],
-    prevIds: Vector[Vector[InstanceId]],
-    updateFn: ProjectionUpdater
+    prevSpecs: List[ObjectSpec],
+    prevIds: Vector[Vector[Id]],
+    update: ProjectionUpdater[Id]
   ): Boolean =
-    if !WithAnimation.specsDifferOnlyIn4DProjection(prevSpecs, newSpecs) then false
-    else
-      require(prevSpecs.size == prevIds.size,
-      s"prevSpecs.size (${prevSpecs.size}) != prevIds.size (${prevIds.size})")
-    prevSpecs.lazyZip(newSpecs).lazyZip(prevIds).foreach {
-        case (prevSpec, newSpec, ids) =>
-          if prevSpec.projection4D != newSpec.projection4D then
-            val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
-            ids.foreach { id => updateFn(renderer, id, proj) }
+    val eligible = prevIds.size == prevSpecs.size &&
+      WithAnimation.specsDifferAtMostIn4DProjection(prevSpecs, newSpecs)
+    if eligible then
+      prevSpecs.lazyZip(newSpecs).lazyZip(prevIds).foreach { (prevSpec, newSpec, ids) =>
+        if prevSpec.projection4D != newSpec.projection4D then
+          val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
+          ids.foreach(id => update(renderer, id, proj))
       }
-      true
+    eligible
 
-  /** Projection updater for GPU-projected 4D triangle meshes. */
-  val gpuProjectionUpdater: ProjectionUpdater = (renderer, id, proj) =>
+  /** GPU-projected 4D triangle meshes, by mesh slot. */
+  val meshSlotUpdater: ProjectionUpdater[MeshSlot] = (renderer, slot, proj) =>
     renderer.updateMesh4DProjection(
-      InstanceId.raw(id),
+      slot,
       eyeW = proj.eyeW, screenW = proj.screenW,
-      rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+      rotXW = proj.rotXW.value, rotYW = proj.rotYW.value, rotZW = proj.rotZW.value
     )
 
-  /** Projection updater for all instanced-4D IFS types (menger4d / sierpinski4d /
-    * hexadecachoron4d). The per-type distinction is add-time only, so a single
-    * MengerRenderer.update4DProjection serves all three (F9). */
-  val instanced4DUpdater: ProjectionUpdater = (renderer, id, proj) =>
+  /** All instanced-4D IFS types (menger4d / sierpinski4d / hexadecachoron4d). The per-type
+    * distinction is add-time only, so a single MengerRenderer.update4DProjection serves all
+    * three (F9). */
+  val instanced4DUpdater: ProjectionUpdater[InstanceId] = (renderer, id, proj) =>
     MengerRenderer.of(renderer).update4DProjection(
-      InstanceId.raw(id),
+      id,
       eyeW = proj.eyeW, screenW = proj.screenW,
-      rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
+      rotXW = proj.rotXW.value, rotYW = proj.rotYW.value, rotZW = proj.rotZW.value
     )
-
-  /** Attempt a GPU-projected 4D triangle mesh fast path using raw mesh slot indices.
-    *
-    * @param newSpecs      current ObjectSpecs
-    * @param renderer      OptiX renderer
-    * @param prevSpecs     previously-cached specs
-    * @param prevSlots     previously-cached mesh slot indices per spec
-    * @return true if projection-only delta was applied, false otherwise
-    */
-  def tryGpuProjectionFastPath(
-    newSpecs: List[menger.ObjectSpec],
-    renderer: OptiXRenderer,
-    prevSpecs: List[menger.ObjectSpec],
-    prevSlots: Vector[Vector[Int]]
-  ): Boolean =
-    if !WithAnimation.specsDifferOnlyIn4DProjection(prevSpecs, newSpecs) then false
-    else
-      prevSpecs.lazyZip(newSpecs).lazyZip(prevSlots).foreach {
-        case (prevSpec, newSpec, slots) =>
-          if prevSpec.projection4D != newSpec.projection4D then
-            val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
-            slots.foreach { slot =>
-              renderer.updateMesh4DProjection(
-                slot,
-                eyeW = proj.eyeW, screenW = proj.screenW,
-                rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-              )
-            }
-      }
-      true

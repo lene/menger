@@ -1,10 +1,9 @@
 package menger.engines.scene
 
-import menger.ObjectSpec
 import menger.common.Vector
-import menger.dsl.Vec3
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
+import menger.spec.ObjectSpec
 import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

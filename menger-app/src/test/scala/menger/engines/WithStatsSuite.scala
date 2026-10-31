@@ -2,9 +2,9 @@ package menger.engines
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import io.github.lene.optix.OptiXRendererWrapper
 import io.github.lene.optix.RenderResult
 import menger.common.ImageSize
+import menger.optix.OptiXRendererWrapper
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

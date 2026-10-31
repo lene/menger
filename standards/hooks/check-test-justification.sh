@@ -10,11 +10,20 @@ set -u
 HOOKS_DIR=$(dirname "$0")
 . "$HOOKS_DIR/lib.sh"
 
+# The sbt layout by default; a repo with another layout lists its test-path patterns in
+# standards/test-paths.txt, like rendering-paths.txt and hot-paths.txt (the scene agent keeps
+# its tests in tests/, which the default never matched: review 2026-10-14, msa#29).
 TEST_PATTERN='(^|/)src/test/'
+TEST_PATHS_FILE="${TEST_PATHS_FILE:-$HOOKS_DIR/../test-paths.txt}"
+if [ -r "$TEST_PATHS_FILE" ]; then
+    TEST_PATTERN=$(grep -v '^[[:space:]]*\(#\|$\)' "$TEST_PATHS_FILE" | paste -sd'|' -)
+fi
 STATUS=0
 
 for range in "$@"; do
-    for commit in $(commits_in_range "$range"); do
+    # An unresolvable range fails the check (menger-toplevel#70).
+    COMMITS=$(commits_in_range "$range") || { STATUS=1; continue; }
+    for commit in $COMMITS; do
         # Skip commits already on origin/main (absorbed during rebase)
         git merge-base --is-ancestor "$commit" "$(main_ref)" 2>/dev/null && continue
         is_bootstrapped_commit "$commit" && continue

@@ -176,3 +176,12 @@ class CubeSpongeGeneratorSuite extends AnyFlatSpec with Matchers:
   it should "include fractional level" in:
     val generator = CubeSpongeGenerator(level = 1.5f)
     generator.toString should include ("level=1.5")
+
+  // Usability review 2026-10, session 4 (F86): the cube-sponge level limit is the highest level
+  // whose instances, fractional levels below it included, fit the instance table.
+  "the cube-sponge level limit" should "be the highest level that fits the instance table" in:
+    val max = menger.dsl.ResourceLimits.cubeSpongeInstancedLevel.max
+    val limit = menger.common.Const.maxInstancesLimit.toLong
+    CubeSpongeGenerator(level = max.toFloat).cubeCount should be <= limit
+    CubeSpongeGenerator(level = max - 0.5f).cubeCount should be <= limit
+    CubeSpongeGenerator(level = max + 0.5f).cubeCount should be > limit

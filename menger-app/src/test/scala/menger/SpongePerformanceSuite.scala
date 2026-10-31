@@ -1,13 +1,19 @@
 package menger
 
-import menger.common.Vector
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.OptiXRenderer
+import io.github.lene.qa.BenchConfig
+import io.github.lene.qa.Perf
+import io.github.lene.qa.PerfGate
+import io.github.lene.qa.RelativeBenchmark
+import io.github.lene.qa.Side
 import menger.common.Color
 import menger.common.ImageSize
 import menger.common.ProfilingConfig
+import menger.common.TriangleMeshData
+import menger.common.Vector
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
-import io.github.lene.optix.OptiXRenderer
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Outcome
 import org.scalatest.Tag
@@ -16,17 +22,57 @@ import org.scalatest.matchers.should.Matchers
 
 object Slow extends Tag("Slow")
 
+/** Sponge generation and rendering gates, each timed against a reference in interleaved rounds
+  * (io.github.lene.qa.RelativeBenchmark). Mesh generation runs on the CPU: one gate per subject
+  * against a fixed CPU workload (uniform slowdowns) and one against the same generator a level
+  * lower (scaling regressions). Rendering compares against the level-0 cube through the same
+  * mesh path.
+  * Triangle counts are asserted by SpongeBySurfaceMeshSuite and SpongeByVolumeMeshSuite. */
 class SpongePerformanceSuite extends AnyFlatSpec
     with Matchers
     with LazyLogging
+    with PerfGate
     with BeforeAndAfterEach:
-
-  private val runningUnderSanitizer: Boolean =
-    sys.env.get("RUNNING_UNDER_COMPUTE_SANITIZER").contains("true")
 
   given ProfilingConfig = ProfilingConfig.disabled
 
-  private val STANDARD_IMAGE_SIZE = ImageSize(800, 600)
+  private val RenderSize = ImageSize(800, 600)
+
+  // Generation limits (menger#45): thread CPU time with a fixed, pre-touched heap
+  // (BenchConfig.JvmCpu, build.sbt). 1.5x the highest upper confidence bound -- not the usual
+  // ~2x, which can never fail a 2x slowdown (decided by user 2026-10-03: "1.5x, catch most").
+  // Probe gates catch a uniform slowdown, scaling gates (vs the level below) a level-dependent
+  // one. Measured over 5 idle runs and 5 with all cores busy plus a 100% GPU burn (2026-10-03).
+  // Highest bound -> limit:
+  private val MaxSlowdownSurfaceL2 = 0.36           // 0.239
+  private val MaxSlowdownSurfaceL3 = 26.0           // 17.27
+  // Volume generation got ~8x faster after the 2026-10-03 calibration (level 2 now measures
+  // 0.05 of the probe, not 0.32-0.46), so the old level-2 limit of 0.69 could no longer fail even
+  // a 10x slowdown (menger#58). Level 3 is ~20x heavier and steady (CI +-3%): over 6 idle and 3
+  // all-core-busy runs its highest upper bound is 0.981, and an injected 2x gives a lower bound
+  // of at least 1.663 (18 of 18 runs), so 1.5 x 0.981 fails it conclusively (2026-10-30).
+  private val MaxSlowdownVolumeL3 = 1.47            // 0.981 (loaded)
+  private val MaxScalingSurfaceL1ToL2 = 33.4        // 22.28
+  private val MaxScalingSurfaceL2ToL3 = 117.0       // 78.13
+  // Volume scaling, re-measured 2026-10-30 (4 idle and 3 all-core-busy runs, with and without a
+  // doubled workload at the upper level). There is no 1 -> 2 gate: level 1 is a tiny sample whose
+  // ratio doubles under load (median ~5 idle, ~12 loaded), so it cannot tell a 2x slowdown from
+  // load at any limit, and it came back inconclusive often enough to make the whole perf suite
+  // skip on push (menger#87; decided by user 2026-10-30: "Delete it (Recommended)").
+  // 2 -> 3 is stable (17.2 idle, 19.9 loaded; highest bound 20.63) and an injected 2x has a lower
+  // bound of at least 32.64, so it catches 2x in every condition.
+  private val MaxScalingVolumeL2ToL3 = 30.9         // 20.63 (loaded)
+  // Render limits: ~2x the highest upper confidence bound measured on the RTX A1000 laptop
+  // (also the CI runner) over 3 idle runs and 5 runs under a 99% GPU burn plus CPU load
+  // (2026-09-23). Highest bound -> limit:
+  private val MaxSlowdownRenderSurfaceL2 = 2.3      // 1.13 (loaded)
+  private val MaxSlowdownRenderVolumeL2 = 2.4       // 1.16
+  private val MaxSlowdownRenderTransparentL1 = 3.9  // 1.91
+
+  // A fixed, deterministic CPU workload (allocate and sort) to time mesh generation against.
+  private val ProbeSize = 100_000
+  private val probeData: Array[Double] = Array.tabulate(ProbeSize)(i => math.sin(i.toDouble))
+  private val cpuProbe = Side("CPU probe", () => { val _ = probeData.sorted })
 
   @SuppressWarnings(Array("org.wartremover.warts.Var"))
   private var rendererOpt: Option[OptiXRenderer] = None
@@ -43,6 +89,9 @@ class SpongePerformanceSuite extends AnyFlatSpec
   override def beforeEach(): Unit =
     super.beforeEach()
     try
+      // Touch the companion first so liboptixjni is actually loaded before any @native call;
+      // otherwise the suite depends on another suite having loaded it (run alone, it cancels).
+      val _ = OptiXRenderer.isLibraryLoaded
       val r = new OptiXRenderer()
       r.initialize()
       rendererOpt = Some(r)
@@ -55,7 +104,6 @@ class SpongePerformanceSuite extends AnyFlatSpec
     rendererOpt = None
 
   protected def setupDefaults(): Unit =
-    import menger.common.Vector
     renderer.setCamera(
       Vector[3](0.0f, 0.5f, 3.0f),
       Vector[3](0.0f, 0.0f, 0.0f),
@@ -65,195 +113,95 @@ class SpongePerformanceSuite extends AnyFlatSpec
     renderer.setLight(Vector[3](0.5f, 0.5f, -0.5f), 1.0f)
     renderer.setSphere(Vector[3](0.0f, 0.0f, 0.0f), 0.5f)
 
-  private def measureTimeMs[T](block: => T): (T, Double) =
-    val startNs = System.nanoTime()
-    val result = block
-    val elapsedMs = (System.nanoTime() - startNs) / 1_000_000.0
-    (result, elapsedMs)
+  private def surface(level: Float): TriangleMeshData =
+    SpongeBySurface(center = Vector.Zero[3], scale = 2.0f, level = level).toTriangleMesh
 
-  "Sponge mesh generation" should "generate level 0 surface sponge quickly" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
+  private def volume(level: Float): TriangleMeshData =
+    SpongeByVolume(center = Vector.Zero[3], scale = 2.0f, level = level).toTriangleMesh
 
-    val (mesh, genTimeMs) = measureTimeMs:
-      SpongeBySurface(
-        center = Vector.Zero[3],
-        scale = 2.0f,
-        level = 0f
-      ).toTriangleMesh
+  private def generation(name: String, generate: => TriangleMeshData): Side =
+    Side(name, () => { val _ = generate })
 
-    logger.info(f"Level 0 surface sponge: ${mesh.numTriangles} triangles in $genTimeMs%.2fms")
-    mesh.numTriangles shouldBe 12 // 6 faces * 2 triangles/face
-    genTimeMs should be < 100.0
+  // IAS instance path (menger#46: the single-mesh clearTriangleMesh/setTriangleMeshColor/
+  // setTriangleMeshIOR trio is deprecated since 0.1.5 in favor of instances + Material).
+  // Each render side replaces the mesh: addTriangleMesh appends, so clear first.
+  private def rendering(name: String, mesh: TriangleMeshData, color: Color, ior: Float): Side =
+    Side(
+      name,
+      () => { val _ = renderer.render(RenderSize) },
+      prepare = () =>
+        renderer.clearAllInstances()
+        renderer.addTriangleMesh(mesh)
+        renderer.addTriangleMeshInstance(Vector[3](0f, 0f, 0f), color, ior)
+        renderer.clearPlanes()
+        renderer.addPlane(1, true, -2.0f)
+    )
 
-  it should "generate level 1 surface sponge quickly" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
+  private def gate(
+      reference: Side,
+      subject: Side,
+      maxSlowdown: Double,
+      config: BenchConfig = BenchConfig()
+  ) =
+    assertWithin(
+      s"${subject.name} vs ${reference.name}",
+      RelativeBenchmark.compare(reference, subject, maxSlowdown, config)
+    )
 
-    val (mesh, genTimeMs) = measureTimeMs:
-      SpongeBySurface(
-        center = Vector.Zero[3],
-        scale = 2.0f,
-        level = 1f
-      ).toTriangleMesh
+  private def generationGate(name: String, generate: => TriangleMeshData, maxSlowdown: Double) =
+    gate(cpuProbe, generation(name, generate), maxSlowdown, BenchConfig.JvmCpu)
 
-    logger.info(f"Level 1 surface sponge: ${mesh.numTriangles} triangles in $genTimeMs%.2fms")
-    mesh.numTriangles shouldBe 144 // 12 faces/face * 6 faces * 2 triangles
-    genTimeMs should be < 200.0
+  private def scalingGate(
+      name: String,
+      level: Int,
+      generate: Float => TriangleMeshData,
+      maxRatio: Double
+  ) =
+    gate(
+      generation(s"level ${level - 1} $name", generate(level - 1f)),
+      generation(s"level $level $name", generate(level.toFloat)),
+      maxRatio,
+      BenchConfig.JvmCpu
+    )
 
-  it should "generate level 2 surface sponge within 1 second" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
+  "Sponge generation" should "generate a level 2 surface sponge within its limit" taggedAs Perf in:
+    generationGate("level 2 surface sponge", surface(2f), MaxSlowdownSurfaceL2)
 
-    val (mesh, genTimeMs) = measureTimeMs:
-      SpongeBySurface(
-        center = Vector.Zero[3],
-        scale = 2.0f,
-        level = 2f
-      ).toTriangleMesh
+  it should "generate a level 3 surface sponge within its limit" taggedAs Perf in:
+    generationGate("level 3 surface sponge", surface(3f), MaxSlowdownSurfaceL3)
 
-    logger.info(f"Level 2 surface sponge: ${mesh.numTriangles} triangles in $genTimeMs%.2fms")
-    mesh.numTriangles shouldBe 1728 // 144 sub-faces/face * 6 faces * 2 triangles
-    genTimeMs should be < 1000.0
+  it should "generate a level 3 volume sponge within its limit" taggedAs Perf in:
+    generationGate("level 3 volume sponge", volume(3f), MaxSlowdownVolumeL3)
 
-  it should "generate level 3 surface sponge within 5 seconds" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
+  it should "scale a surface sponge from level 1 to 2 within its limit" taggedAs Perf in:
+    scalingGate("surface sponge", 2, surface, MaxScalingSurfaceL1ToL2)
 
-    val (mesh, genTimeMs) = measureTimeMs:
-      SpongeBySurface(
-        center = Vector.Zero[3],
-        scale = 2.0f,
-        level = 3f
-      ).toTriangleMesh
+  it should "scale a surface sponge from level 2 to 3 within its limit" taggedAs Perf in:
+    scalingGate("surface sponge", 3, surface, MaxScalingSurfaceL2ToL3)
 
-    logger.info(f"Level 3 surface sponge: ${mesh.numTriangles} triangles in $genTimeMs%.2fms")
-    genTimeMs should be < 5000.0
+  it should "scale a volume sponge from level 2 to 3 within its limit" taggedAs Perf in:
+    scalingGate("volume sponge", 3, volume, MaxScalingVolumeL2ToL3)
 
-  "Sponge volume mesh generation" should "generate level 0 volume sponge quickly" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
+  "Sponge rendering" should "render a level 2 surface sponge within its limit" taggedAs Perf in:
+    val grey = Color(0.8f, 0.8f, 0.8f)
+    gate(
+      rendering("level 0 cube render", surface(0f), grey, 1.0f),
+      rendering("level 2 surface sponge render", surface(2f), grey, 1.0f),
+      MaxSlowdownRenderSurfaceL2
+    )
 
-    val (mesh, genTimeMs) = measureTimeMs:
-      SpongeByVolume(
-        center = Vector.Zero[3],
-        scale = 2.0f,
-        level = 0f
-      ).toTriangleMesh
+  it should "render a level 2 volume sponge within its limit" taggedAs Perf in:
+    val grey = Color(0.8f, 0.8f, 0.8f)
+    gate(
+      rendering("level 0 cube render", volume(0f), grey, 1.0f),
+      rendering("level 2 volume sponge render", volume(2f), grey, 1.0f),
+      MaxSlowdownRenderVolumeL2
+    )
 
-    logger.info(f"Level 0 volume sponge: ${mesh.numTriangles} triangles in $genTimeMs%.2fms")
-    mesh.numTriangles shouldBe 12
-    genTimeMs should be < 100.0
-
-  it should "generate level 1 volume sponge quickly" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
-
-    val (mesh, genTimeMs) = measureTimeMs:
-      SpongeByVolume(
-        center = Vector.Zero[3],
-        scale = 2.0f,
-        level = 1f
-      ).toTriangleMesh
-
-    logger.info(f"Level 1 volume sponge: ${mesh.numTriangles} triangles in $genTimeMs%.2fms")
-    mesh.numTriangles shouldBe 144
-    genTimeMs should be < 200.0
-
-  it should "generate level 2 volume sponge within 1 second" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
-
-    val (mesh, genTimeMs) = measureTimeMs:
-      SpongeByVolume(
-        center = Vector.Zero[3],
-        scale = 2.0f,
-        level = 2f
-      ).toTriangleMesh
-
-    logger.info(f"Level 2 volume sponge: ${mesh.numTriangles} triangles in $genTimeMs%.2fms")
-    mesh.numTriangles shouldBe 2112
-    genTimeMs should be < 1000.0
-
-  "Sponge rendering performance" should "render level 2 surface sponge at >1 FPS (800x600)" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
-
-    val mesh = SpongeBySurface(
-      center = Vector.Zero[3],
-      scale = 2.0f,
-      level = 2f
-    ).toTriangleMesh
-
-    renderer.setTriangleMesh(mesh)
-    renderer.setTriangleMeshColor(Color(0.8f, 0.8f, 0.8f))
-    renderer.setTriangleMeshIOR(1.0f)
-    renderer.clearPlanes()
-    renderer.addPlane(1, true, -2.0f)
-
-    val renderSize = STANDARD_IMAGE_SIZE
-    val iterations = 10
-
-    // Warmup
-    renderer.render(renderSize)
-
-    val (_, totalMs) = measureTimeMs:
-      (0 until iterations).foreach(_ => renderer.render(renderSize))
-
-    val avgMs = totalMs / iterations
-    val fps = 1000.0 / avgMs
-
-    logger.info(f"Level 2 surface sponge render: ${mesh.numTriangles} triangles, ${renderSize.width}x${renderSize.height}, $avgMs%.2fms/frame ($fps%.1f FPS)")
-    fps should be > 1.0
-
-  it should "render level 2 volume sponge at >1 FPS (800x600)" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
-
-    val mesh = SpongeByVolume(
-      center = Vector.Zero[3],
-      scale = 2.0f,
-      level = 2f
-    ).toTriangleMesh
-
-    renderer.setTriangleMesh(mesh)
-    renderer.setTriangleMeshColor(Color(0.8f, 0.8f, 0.8f))
-    renderer.setTriangleMeshIOR(1.0f)
-    renderer.clearPlanes()
-    renderer.addPlane(1, true, -2.0f)
-
-    val renderSize = STANDARD_IMAGE_SIZE
-    val iterations = 10
-
-    // Warmup
-    renderer.render(renderSize)
-
-    val (_, totalMs) = measureTimeMs:
-      (0 until iterations).foreach(_ => renderer.render(renderSize))
-
-    val avgMs = totalMs / iterations
-    val fps = 1000.0 / avgMs
-
-    logger.info(f"Level 2 volume sponge render: ${mesh.numTriangles} triangles, ${renderSize.width}x${renderSize.height}, $avgMs%.2fms/frame ($fps%.1f FPS)")
-    fps should be > 1.0
-
-  it should "render transparent level 1 surface sponge at >1 FPS (800x600)" taggedAs Slow in:
-    assume(!runningUnderSanitizer, "Performance test skipped under compute-sanitizer")
-
-    val mesh = SpongeBySurface(
-      center = Vector.Zero[3],
-      scale = 2.0f,
-      level = 1f
-    ).toTriangleMesh
-
-    renderer.setTriangleMesh(mesh)
-    renderer.setTriangleMeshColor(Color(0.9f, 0.9f, 1.0f, 0.5f))
-    renderer.setTriangleMeshIOR(1.5f)
-    renderer.clearPlanes()
-    renderer.addPlane(1, true, -2.0f)
-
-    val renderSize = STANDARD_IMAGE_SIZE
-    val iterations = 10
-
-    // Warmup
-    renderer.render(renderSize)
-
-    val (_, totalMs) = measureTimeMs:
-      (0 until iterations).foreach(_ => renderer.render(renderSize))
-
-    val avgMs = totalMs / iterations
-    val fps = 1000.0 / avgMs
-
-    logger.info(f"Level 1 transparent surface sponge render: ${mesh.numTriangles} triangles, ${renderSize.width}x${renderSize.height}, $avgMs%.2fms/frame ($fps%.1f FPS)")
-    fps should be > 1.0
+  it should "render a transparent level 1 surface sponge within limit" taggedAs Perf in:
+    val glass = Color(0.9f, 0.9f, 1.0f, 0.5f)
+    gate(
+      rendering("transparent level 0 cube render", surface(0f), glass, 1.5f),
+      rendering("transparent level 1 surface sponge render", surface(1f), glass, 1.5f),
+      MaxSlowdownRenderTransparentL1
+    )

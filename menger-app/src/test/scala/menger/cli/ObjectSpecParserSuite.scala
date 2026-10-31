@@ -1,0 +1,679 @@
+package menger.cli
+
+import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
+
+import menger.common.Material
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+class ObjectSpecParserSuite extends AnyFlatSpec with Matchers:
+
+  "ObjectSpecParser.parse" should "parse sphere with minimal attributes" in:
+    val result = ObjectSpecParser.parse("type=sphere")
+    result shouldBe Right(ObjectSpec("sphere", 0.0f, 0.0f, 0.0f, 1.0f, None, None, 1.0f, None, None))
+
+  it should "parse sphere with all attributes" in:
+    val result = ObjectSpecParser.parse("type=sphere:pos=1,2,3:size=2.5:color=#FF0000:ior=1.5")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "sphere"
+        spec.x shouldBe 1.0f
+        spec.y shouldBe 2.0f
+        spec.z shouldBe 3.0f
+        spec.size shouldBe 2.5f
+        spec.color.get.r shouldBe 1.0f
+        spec.color.get.g shouldBe 0.0f
+        spec.color.get.b shouldBe 0.0f
+        spec.ior shouldBe 1.5f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse cube with position and size" in:
+    val result = ObjectSpecParser.parse("type=cube:pos=-1,0,1:size=3.0")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "cube"
+        spec.x shouldBe -1.0f
+        spec.y shouldBe 0.0f
+        spec.z shouldBe 1.0f
+        spec.size shouldBe 3.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse sponge-volume with level" in:
+    val result = ObjectSpecParser.parse("type=sponge-volume:level=3:size=2.0")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "sponge-volume"
+        spec.level shouldBe Some(3.0f)
+        spec.size shouldBe 2.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse sponge-surface with fractional level" in:
+    val result = ObjectSpecParser.parse("type=sponge-surface:level=2.5:pos=0,1,0:color=#00FF00")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "sponge-surface"
+        spec.level shouldBe Some(2.5f)
+        spec.x shouldBe 0.0f
+        spec.y shouldBe 1.0f
+        spec.z shouldBe 0.0f
+        spec.color.get.g shouldBe 1.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "handle color without # prefix" in:
+    val result = ObjectSpecParser.parse("type=sphere:color=FF0000")
+    result match
+      case Right(spec) =>
+        spec.color.get.r shouldBe 1.0f
+        spec.color.get.g shouldBe 0.0f
+        spec.color.get.b shouldBe 0.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "handle whitespace in spec" in:
+    val result = ObjectSpecParser.parse("type = sphere : pos = 1, 2, 3 : size = 1.5")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "sphere"
+        spec.x shouldBe 1.0f
+        spec.y shouldBe 2.0f
+        spec.z shouldBe 3.0f
+        spec.size shouldBe 1.5f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "fail when type is missing" in:
+    val result = ObjectSpecParser.parse("pos=1,2,3:size=2.0")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Missing required 'type' field"))
+
+  it should "fail when type is invalid" in:
+    val result = ObjectSpecParser.parse("type=pyramid:pos=0,0,0")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Invalid object type"))
+
+  it should "fail when position format is invalid" in:
+    val result = ObjectSpecParser.parse("type=sphere:pos=1,2")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Invalid position format"))
+
+  it should "fail when sponge is missing level" in:
+    val result = ObjectSpecParser.parse("type=sponge-volume:size=2.0")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("requires 'level' field"))
+
+  it should "accept sponge-volume type (case insensitive)" in:
+    val result = ObjectSpecParser.parse("type=SPONGE-VOLUME:level=2")
+    result match
+      case Right(spec) => spec.objectType shouldBe "sponge-volume"
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  // Usability review 2026-09 (T1#3): the CLI path had no upper bound on sponge/lsystem level
+  // at all -- only InteractiveEngine's own require() did, and only for the CLI object-spec
+  // path at initial startup, not for e.g. a DSL scene reload.
+  it should "reject a sponge level above the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.volumeSpongeLevel.max
+    val result = ObjectSpecParser.parse(s"type=sponge-volume:level=${max + 1}")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("exceeds hard maximum"))
+
+  it should "accept a sponge level at the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.volumeSpongeLevel.max
+    ObjectSpecParser.parse(s"type=sponge-volume:level=$max") shouldBe a[Right[?, ?]]
+
+  // Usability review 2026-10, session 4 (F86): the 3D sponge types got a limit each, and
+  // cube-sponge (deprecated, menger#76) got one at all.
+  it should "apply each 3D sponge type's own level maximum" in:
+    ObjectSpecParser.parse("type=sponge-volume:level=5") shouldBe a[Right[?, ?]]
+    ObjectSpecParser.parse("type=sponge-volume:level=5.5") shouldBe a[Left[?, ?]]
+    ObjectSpecParser.parse("type=sponge-surface:level=5") shouldBe a[Right[?, ?]]
+    ObjectSpecParser.parse("type=cube-sponge:level=3") shouldBe a[Right[?, ?]]
+    ObjectSpecParser.parse("type=cube-sponge:level=3.5") shouldBe a[Left[?, ?]]
+
+  it should "reject an lsystem level (iterations) above the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.lsystemMaxIterations
+    val result = ObjectSpecParser.parse(s"type=lsystem:level=${max + 1}")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("exceeds hard maximum"))
+
+  it should "accept an lsystem level (iterations) at the hard maximum" in:
+    val max = menger.dsl.ResourceLimits.lsystemMaxIterations
+    ObjectSpecParser.parse(s"type=lsystem:level=$max") shouldBe a[Right[?, ?]]
+
+  "ObjectSpecParser.parseAll" should "parse multiple valid specs" in:
+    val specs = List(
+      "type=sphere:pos=0,0,0:size=1.0",
+      "type=cube:pos=2,0,0:size=1.5",
+      "type=sponge-volume:pos=-2,0,0:level=2:size=2.0"
+    )
+    val result = ObjectSpecParser.parseAll(specs)
+    result match
+      case Right(objects) =>
+        objects.length shouldBe 3
+        objects(0).objectType shouldBe "sphere"
+        objects(1).objectType shouldBe "cube"
+        objects(2).objectType shouldBe "sponge-volume"
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "fail if any spec is invalid" in:
+    val specs = List(
+      "type=sphere:pos=0,0,0",
+      "type=invalid:pos=1,1,1",  // Invalid type
+      "type=cube:pos=2,0,0"
+    )
+    val result = ObjectSpecParser.parseAll(specs)
+    result shouldBe a[Left[?, ?]]
+
+  it should "return empty list for empty input" in:
+    val result = ObjectSpecParser.parseAll(List.empty)
+    result shouldBe Right(List.empty)
+
+  "Complex object specs" should "support all sphere attributes" in:
+    val spec = "type=sphere:pos=1.5,-2.3,4.7:size=3.2:color=#8080FF:ior=2.42"
+    val result = ObjectSpecParser.parse(spec)
+    result match
+      case Right(obj) =>
+        obj.objectType shouldBe "sphere"
+        obj.x shouldBe 1.5f
+        obj.y shouldBe -2.3f
+        obj.z shouldBe 4.7f
+        obj.size shouldBe 3.2f
+        obj.ior shouldBe 2.42f
+        obj.color.isDefined shouldBe true
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "support sponge with color and ior" in:
+    val spec = "type=sponge-surface:level=1.5:pos=0,0,0:size=2.0:color=#FF00FF:ior=1.5"
+    val result = ObjectSpecParser.parse(spec)
+    result match
+      case Right(obj) =>
+        obj.objectType shouldBe "sponge-surface"
+        obj.level shouldBe Some(1.5f)
+        obj.color.isDefined shouldBe true
+        obj.ior shouldBe 1.5f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  // Material preset tests (Step 7.4)
+  "ObjectSpec material parsing" should "parse material preset" in:
+    val result = ObjectSpecParser.parse("type=sphere:pos=0,0,0:material=glass")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.ior shouldBe 1.5f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse material with IOR override" in:
+    val result = ObjectSpecParser.parse("type=sphere:pos=0,0,0:material=glass:ior=1.7")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.ior shouldBe 1.7f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse material with dispersion (Abbe number)" in:
+    val result = ObjectSpecParser.parse("type=sphere:pos=0,0,0:material=diamond:dispersion=33")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.dispersion shouldBe 33f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "default dispersion to 0 when not specified" in:
+    val result = ObjectSpecParser.parse("type=sphere:pos=0,0,0:material=glass")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.dispersion shouldBe 0.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "reject negative dispersion value" in:
+    val result = ObjectSpecParser.parse("type=sphere:pos=0,0,0:material=glass:dispersion=-5")
+    result shouldBe a[Left[?, ?]]
+
+  it should "recognize dispersion as a valid key" in:
+    val result = ObjectSpecParser.parse("type=sphere:dispersion=42")
+    result.isRight shouldBe true
+
+  it should "parse material with color override" in:
+    val result = ObjectSpecParser.parse("type=cube:pos=0,0,0:material=metal:color=#FFD700")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        // Gold color: #FFD700 = RGB(1.0, 0.843, 0.0)
+        spec.material.get.color.r shouldBe 1.0f
+        spec.material.get.color.g should be(0.84f +- 0.01f)
+        spec.material.get.color.b shouldBe 0.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  // F14 on the CLI path: `material=glass:color=...` used to replace glass's alpha (0.02) with
+  // the colour's 1, an opaque red sphere instead of red glass (2026-10-14).
+  it should "tint a preset's RGB with a 6-digit colour and keep its alpha" in:
+    val material = ObjectSpecParser.parse("type=sphere:material=glass:color=#FF3333")
+      .fold(e => fail(e), identity).material.get
+    (material.color.r, material.color.g) shouldBe ((1.0f, 0.2f))
+    material.color.a shouldBe Material.Glass.color.a
+    material.ior shouldBe Material.Glass.ior
+
+  it should "take the alpha from an 8-digit colour" in:
+    val material = ObjectSpecParser.parse("type=cube:material=glass:color=#FF262614")
+      .fold(e => fail(e), identity).material.get
+    material.color.a shouldBe (0x14 / 255f +- 1e-3f)
+
+  it should "tint an edge material's RGB with a 6-digit edge colour and keep its alpha" in:
+    val edges = ObjectSpecParser.parse("type=tesseract:edge-material=film:edge-color=#FF0000:edge-radius=0.02")
+      .fold(e => fail(e), identity).edgeMaterial.get
+    edges.color.r shouldBe 1.0f
+    edges.color.a shouldBe Material.Film.color.a
+
+  it should "parse material with multiple overrides" in:
+    val result = ObjectSpecParser.parse("type=sphere:material=plastic:roughness=0.5:color=#FF0000")
+    result match
+      case Right(spec) =>
+        val mat = spec.material.get
+        mat.roughness shouldBe 0.5f
+        mat.color.r shouldBe 1.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "return None material for spec without material keyword" in:
+    val result = ObjectSpecParser.parse("type=sphere:pos=0,0,0")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe None
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "fail for unknown material preset" in:
+    val result = ObjectSpecParser.parse("type=sphere:pos=0,0,0:material=unobtanium")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Unknown material preset"))
+
+  it should "parse all known material presets" in:
+    Material.presetNames.asScala.foreach { presetName =>
+      val result = ObjectSpecParser.parse(s"type=sphere:material=$presetName")
+      result match
+        case Right(spec) =>
+          spec.material shouldBe defined
+        case Left(error) =>
+          fail(s"Failed to parse preset '$presetName': $error")
+    }
+
+  it should "be case insensitive for material presets" in:
+    val result = ObjectSpecParser.parse("type=sphere:material=GLASS")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.ior shouldBe 1.5f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  "Material.fromName" should "return Glass for 'glass'" in:
+    Material.fromName("glass").toScala shouldBe Some(Material.Glass)
+
+  it should "return Diamond for 'diamond'" in:
+    Material.fromName("diamond").toScala shouldBe Some(Material.Diamond)
+
+  it should "return None for unknown preset" in:
+    Material.fromName("unobtanium").toScala shouldBe None
+
+  it should "be case insensitive" in:
+    Material.fromName("GLASS").toScala shouldBe Some(Material.Glass)
+    Material.fromName("Glass").toScala shouldBe Some(Material.Glass)
+    Material.fromName("gLaSs").toScala shouldBe Some(Material.Glass)
+
+  // Texture tests (Step 7.5)
+  "ObjectSpec texture parsing" should "parse texture filename" in:
+    val result = ObjectSpecParser.parse("type=cube:pos=0,0,0:texture=brick.png")
+    result match
+      case Right(spec) =>
+        spec.texture shouldBe Some("brick.png")
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse texture with material" in:
+    val result = ObjectSpecParser.parse("type=cube:material=metal:texture=metal_plate.jpg")
+    result match
+      case Right(spec) =>
+        spec.texture shouldBe Some("metal_plate.jpg")
+        spec.material shouldBe defined
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "have None texture when not specified" in:
+    val result = ObjectSpecParser.parse("type=cube:pos=0,0,0")
+    result match
+      case Right(spec) =>
+        spec.texture shouldBe None
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse texture with path" in:
+    val result = ObjectSpecParser.parse("type=cube:texture=textures/brick.png")
+    result match
+      case Right(spec) =>
+        spec.texture shouldBe Some("textures/brick.png")
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "fail for empty texture filename" in:
+    val result = ObjectSpecParser.parse("type=cube:texture=")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("cannot be empty"))
+
+  // Unknown key validation tests
+  "ObjectSpec unknown key validation" should "reject unknown keys" in:
+    val result = ObjectSpecParser.parse("type=sphere:x=10")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Unknown"))
+    result.left.map(_ should include("x"))
+
+  it should "reject multiple unknown keys" in:
+    val result = ObjectSpecParser.parse("type=sphere:x=10:y=20:z=30")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Unknown"))
+
+  it should "reject mix of valid and unknown keys" in:
+    val result = ObjectSpecParser.parse(
+      "type=sphere:pos=1,2,3:bogus=42"
+    )
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Unknown"))
+    result.left.map(_ should include("bogus"))
+
+  it should "accept all valid keys without error" in:
+    val result = ObjectSpecParser.parse(
+      "type=sphere:pos=0,0,0:size=1:color=#FF0000:ior=1.5" +
+        ":material=glass:roughness=0.5:metallic=0.5" +
+        ":specular=0.5:emission=1.0:film-thickness=500" +
+        ":texture=brick.png"
+    )
+    result shouldBe a[Right[?, ?]]
+
+  it should "accept all valid 4D keys without error" in:
+    val result = ObjectSpecParser.parse(
+      "type=tesseract:eye-w=4:screen-w=1:rot-xw=30" +
+        ":rot-yw=15:rot-zw=0:edge-radius=0.05" +
+        ":edge-material=film:edge-color=#FF0000" +
+        ":edge-emission=3.0"
+    )
+    result shouldBe a[Right[?, ?]]
+
+  // 4D Projection tests (Sprint 8)
+  "ObjectSpec 4D projection parsing" should "create Projection4DSpec for tesseract type" in:
+    val result = ObjectSpecParser.parse("type=tesseract:pos=0,0,0:size=2.0")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "tesseract"
+        spec.projection4D shouldBe defined
+        val proj = spec.projection4D.get
+        proj.eyeW shouldBe Projection4DSpec.DefaultEyeW
+        proj.screenW shouldBe Projection4DSpec.DefaultScreenW
+        proj.rotXW shouldBe Projection4DSpec.DefaultRotXW
+        proj.rotYW shouldBe Projection4DSpec.DefaultRotYW
+        proj.rotZW shouldBe Projection4DSpec.DefaultRotZW
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "have None projection4D for non-hypercube types" in:
+    val sphereResult = ObjectSpecParser.parse("type=sphere:pos=0,0,0")
+    val cubeResult = ObjectSpecParser.parse("type=cube:pos=0,0,0")
+    val spongeResult = ObjectSpecParser.parse("type=sponge-volume:level=2")
+
+    sphereResult.map(_.projection4D) shouldBe Right(None)
+    cubeResult.map(_.projection4D) shouldBe Right(None)
+    spongeResult.map(_.projection4D) shouldBe Right(None)
+
+  it should "parse custom 4D rotation angles" in:
+    val result = ObjectSpecParser.parse("type=tesseract:rot-xw=30:rot-yw=45:rot-zw=60")
+    result match
+      case Right(spec) =>
+        val proj = spec.projection4D.get
+        proj.rotXW.value shouldBe 30.0f
+        proj.rotYW.value shouldBe 45.0f
+        proj.rotZW.value shouldBe 60.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse custom eye-w and screen-w parameters" in:
+    val result = ObjectSpecParser.parse("type=tesseract:eye-w=5.0:screen-w=2.0")
+    result match
+      case Right(spec) =>
+        val proj = spec.projection4D.get
+        proj.eyeW shouldBe 5.0f
+        proj.screenW shouldBe 2.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "fail when eye-w <= screen-w" in:
+    val equalResult = ObjectSpecParser.parse("type=tesseract:eye-w=2.0:screen-w=2.0")
+    equalResult shouldBe a[Left[?, ?]]
+    equalResult.left.map(_ should include("must be greater than"))
+
+    val lessThanResult = ObjectSpecParser.parse("type=tesseract:eye-w=1.0:screen-w=2.0")
+    lessThanResult shouldBe a[Left[?, ?]]
+    lessThanResult.left.map(_ should include("must be greater than"))
+
+  it should "fail when eye-w or screen-w is not positive" in:
+    // Zero values fail the "greater than" check first (0 is not > 0)
+    val zeroResult = ObjectSpecParser.parse("type=tesseract:eye-w=0:screen-w=0")
+    zeroResult shouldBe a[Left[?, ?]]
+    zeroResult.left.map(_ should include("must be greater than"))
+
+    // Negative values - eye-w=-1 is not > screen-w=-2
+    val negativeResult = ObjectSpecParser.parse("type=tesseract:eye-w=-1:screen-w=-2")
+    negativeResult shouldBe a[Left[?, ?]]
+    negativeResult.left.map(_ should include("must be positive"))
+
+  it should "fail for invalid 4D rotation value" in:
+    val result = ObjectSpecParser.parse("type=tesseract:rot-xw=notanumber")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Invalid rot-xw"))
+
+  it should "combine 4D parameters with other attributes" in:
+    val result = ObjectSpecParser.parse("type=tesseract:pos=1,2,3:size=2.5:color=#FF0000:rot-xw=45:eye-w=4.0:screen-w=1.0")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "tesseract"
+        spec.x shouldBe 1.0f
+        spec.y shouldBe 2.0f
+        spec.z shouldBe 3.0f
+        spec.size shouldBe 2.5f
+        spec.color shouldBe defined
+        spec.projection4D shouldBe defined
+        spec.projection4D.get.rotXW.value shouldBe 45.0f
+        spec.projection4D.get.eyeW shouldBe 4.0f
+        spec.projection4D.get.screenW shouldBe 1.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "be case insensitive for tesseract type" in:
+    val result = ObjectSpecParser.parse("type=TESSERACT")
+    result match
+      case Right(spec) =>
+        spec.objectType shouldBe "tesseract"
+        spec.projection4D shouldBe defined
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  "Projection4DSpec.default" should "have expected default values" in:
+    val default = Projection4DSpec.default
+    default.eyeW shouldBe 3.0f
+    default.screenW shouldBe 1.5f
+    default.rotXW.value shouldBe 15f
+    default.rotYW.value shouldBe 10f
+    default.rotZW.value shouldBe 0f
+
+  // Edge rendering parameter tests
+  "ObjectSpec edge parameter parsing" should "parse edge-radius" in:
+    val result = ObjectSpecParser.parse("type=tesseract:edge-radius=0.05")
+    result match
+      case Right(spec) =>
+        spec.edgeRadius shouldBe Some(0.05f)
+        spec.hasEdgeRendering shouldBe true
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse edge-material preset" in:
+    val result = ObjectSpecParser.parse("type=tesseract:edge-material=film")
+    result match
+      case Right(spec) =>
+        spec.edgeMaterial shouldBe defined
+        spec.edgeMaterial.get.roughness shouldBe 0.1f  // Film's roughness
+        spec.edgeRadius shouldBe Some(0.02f)  // Default radius when edge params present
+        spec.hasEdgeRendering shouldBe true
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse edge-color with default material" in:
+    val result = ObjectSpecParser.parse("type=tesseract:edge-color=#00FFFF")
+    result match
+      case Right(spec) =>
+        spec.edgeMaterial shouldBe defined
+        spec.edgeMaterial.get.color.r shouldBe 0.0f
+        spec.edgeMaterial.get.color.g shouldBe 1.0f
+        spec.edgeMaterial.get.color.b shouldBe 1.0f
+        spec.hasEdgeRendering shouldBe true
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse edge-emission with default material" in:
+    val result = ObjectSpecParser.parse("type=tesseract:edge-emission=5.0")
+    result match
+      case Right(spec) =>
+        spec.edgeMaterial shouldBe defined
+        spec.edgeMaterial.get.emission shouldBe 5.0f
+        spec.hasEdgeRendering shouldBe true
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse combined edge parameters" in:
+    val result = ObjectSpecParser.parse("type=tesseract:edge-material=parchment:edge-color=#FF0000:edge-emission=3.0:edge-radius=0.03")
+    result match
+      case Right(spec) =>
+        spec.edgeRadius shouldBe Some(0.03f)
+        spec.edgeMaterial shouldBe defined
+        spec.edgeMaterial.get.color.r shouldBe 1.0f
+        spec.edgeMaterial.get.color.g shouldBe 0.0f
+        spec.edgeMaterial.get.color.b shouldBe 0.0f
+        spec.edgeMaterial.get.emission shouldBe 3.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "combine edge parameters with face material" in:
+    val result = ObjectSpecParser.parse("type=tesseract:material=glass:edge-material=film:edge-emission=2.0")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.ior shouldBe 1.5f  // Glass IOR
+        spec.edgeMaterial shouldBe defined
+        spec.edgeMaterial.get.emission shouldBe 2.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "fail for edge parameters on non-tesseract type" in:
+    val result = ObjectSpecParser.parse("type=sphere:edge-radius=0.05")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("only valid for 4D projected types"))
+
+  it should "fail for invalid edge-radius value" in:
+    val result = ObjectSpecParser.parse("type=tesseract:edge-radius=notanumber")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Invalid edge-radius"))
+
+  it should "fail for negative edge-radius" in:
+    val result = ObjectSpecParser.parse("type=tesseract:edge-radius=-0.01")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("must be positive"))
+
+  it should "fail for unknown edge-material preset" in:
+    val result = ObjectSpecParser.parse("type=tesseract:edge-material=unobtanium")
+    result shouldBe a[Left[?, ?]]
+    result.left.map(_ should include("Unknown edge material preset"))
+
+  it should "have hasEdgeRendering=false when no edge params" in:
+    val result = ObjectSpecParser.parse("type=tesseract:material=glass")
+    result match
+      case Right(spec) =>
+        spec.hasEdgeRendering shouldBe false
+        spec.edgeRadius shouldBe None
+        spec.edgeMaterial shouldBe None
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  // Thin-film thickness tests
+  "ObjectSpec film-thickness parsing" should "parse film-thickness with material preset" in:
+    val result = ObjectSpecParser.parse("type=sphere:material=chrome:film-thickness=300")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.filmThickness shouldBe 300.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse film material with default thickness" in:
+    val result = ObjectSpecParser.parse("type=sphere:material=film")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.filmThickness shouldBe 500.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "allow film-thickness override on film material" in:
+    val result = ObjectSpecParser.parse("type=sphere:material=film:film-thickness=200")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.filmThickness shouldBe 200.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse standalone film-thickness without material preset" in:
+    val result = ObjectSpecParser.parse("type=sphere:film-thickness=400")
+    result match
+      case Right(spec) =>
+        spec.material shouldBe defined
+        spec.material.get.filmThickness shouldBe 400.0f
+      case Left(error) => fail(s"Expected Right but got Left: $error")
+
+  it should "parse procedural=wood and default proc-scale" in:
+    ObjectSpecParser.parse("type=sphere:procedural=wood") match
+      case Right(spec) =>
+        spec.proceduralType shouldBe 5
+        spec.proceduralScale shouldBe 1.0f
+      case Left(err) => fail(err)
+
+  it should "parse procedural=marble with custom proc-scale" in:
+    ObjectSpecParser.parse("type=sphere:procedural=marble:proc-scale=2.5") match
+      case Right(spec) =>
+        spec.proceduralType shouldBe 6
+        spec.proceduralScale shouldBe 2.5f
+      case Left(err) => fail(err)
+
+  it should "parse all procedural type names" in:
+    val names = Map("value_noise" -> 1, "fbm" -> 2, "worley" -> 3,
+                    "gradient" -> 4, "wood" -> 5, "marble" -> 6, "layered_noise" -> 7, "xyz_rgb" -> 8, "heatmap" -> 9,
+                    "triplanar" -> 10, "xyz_rgb_local" -> 11)
+    names.foreach { (name, expected) =>
+      ObjectSpecParser.parse(s"type=sphere:procedural=$name") match
+        case Right(spec) => spec.proceduralType shouldBe expected
+        case Left(err)   => fail(s"Failed for '$name': $err")
+    }
+
+  it should "reject unknown procedural type name" in:
+    ObjectSpecParser.parse("type=sphere:procedural=lava") match
+      case Left(err) => err should include("lava")
+      case Right(_)  => fail("Expected Left for unknown procedural type")
+
+  it should "reject non-positive proc-scale" in:
+    ObjectSpecParser.parse("type=sphere:procedural=wood:proc-scale=0") match
+      case Left(_)  => succeed
+
+  // Task 20.7: PBR texture maps
+  it should "parse normal-map filename" in:
+    ObjectSpecParser.parse("type=sphere:normal-map=brick_n.png") match
+      case Right(spec) => spec.normalMap shouldBe Some("brick_n.png")
+      case Left(err)   => fail(err)
+
+  it should "parse roughness-map filename" in:
+    ObjectSpecParser.parse("type=sphere:roughness-map=brick_r.png") match
+      case Right(spec) => spec.roughnessMap shouldBe Some("brick_r.png")
+      case Left(err)   => fail(err)
+
+  it should "parse normal-map and roughness-map together" in:
+    ObjectSpecParser.parse("type=sphere:normal-map=wall_n.png:roughness-map=wall_r.png") match
+      case Right(spec) =>
+        spec.normalMap    shouldBe Some("wall_n.png")
+        spec.roughnessMap shouldBe Some("wall_r.png")
+      case Left(err) => fail(err)
+
+  it should "default normalMap and roughnessMap to None" in:
+    ObjectSpecParser.parse("type=sphere") match
+      case Right(spec) =>
+        spec.normalMap    shouldBe None
+        spec.roughnessMap shouldBe None
+      case Left(err) => fail(err)
+
+  it should "reject empty normal-map filename" in:
+    ObjectSpecParser.parse("type=sphere:normal-map=") match
+      case Left(err) => err should include("normal-map")
+      case Right(_)  => fail("Expected Left for empty normal-map")
+      case Right(_) => fail("Expected Left for zero proc-scale")

@@ -2,15 +2,17 @@ package menger.dsl
 
 import scala.annotation.targetName
 
-import com.typesafe.scalalogging.LazyLogging
-import menger.CurveData
-import menger.ObjectRotation
-import menger.ObjectSpec
-import menger.ProceduralSpec
-import menger.Projection4DSpec
-import menger.TextureMaps
-import menger.common.ObjectType
 import menger.objects.LSystemPresets
+import menger.spec.ConeGeometry
+import menger.spec.CurveData
+import menger.spec.Degrees
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
+import menger.spec.ObjectType
+import menger.spec.ProceduralSpec
+import menger.spec.Projection4DSpec
+import menger.spec.Radians
+import menger.spec.TextureMaps
 import menger.video.VideoTexture
 
 /** Base trait for all scene objects */
@@ -33,7 +35,7 @@ sealed trait SceneObject:
   protected def baseObjectSpec(
     objectType: String,
     level: Option[Float] = None,
-    projection4D: Option[menger.Projection4DSpec] = None,
+    projection4D: Option[Projection4DSpec] = None,
     edgeRadius: Option[Float] = None,
     edgeMaterial: Option[menger.common.Material] = None,
     meshData: Option[menger.common.TriangleMeshData] = None,
@@ -54,7 +56,7 @@ sealed trait SceneObject:
       projection4D = projection4D,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial,
-      rotation = ObjectRotation(rotation.x, rotation.y, rotation.z),
+      rotation = ObjectRotation(Radians(rotation.x), Radians(rotation.y), Radians(rotation.z)),
       procedural = ProceduralSpec(proceduralType, proceduralScale),
       textureMaps = TextureMaps(normalMap = normalMap, roughnessMap = roughnessMap),
       meshData = meshData,
@@ -108,12 +110,19 @@ case class Cube(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
-  def toObjectSpec: ObjectSpec = baseObjectSpec("cube")
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      "cube", edgeRadius = edgeRadius, edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
 
 object Cube:
   // Material-only constructor (at origin)
@@ -127,6 +136,147 @@ object Cube:
   @targetName("cubePosMatSize")
   def apply(pos: Vec3, material: Material, size: Float): Cube =
     Cube(pos, Some(material), size = size)
+
+
+// The platonic solids were CLI-only types; every object type has a DSL class (2026-10).
+
+/** Tetrahedron: 4 triangular faces. */
+case class Tetrahedron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      "tetrahedron", edgeRadius = edgeRadius, edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Octahedron: 8 triangular faces. */
+case class Octahedron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      "octahedron", edgeRadius = edgeRadius, edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Dodecahedron: 12 pentagonal faces. */
+case class Dodecahedron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      "dodecahedron", edgeRadius = edgeRadius, edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Icosahedron: 20 triangular faces. */
+case class Icosahedron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      "icosahedron", edgeRadius = edgeRadius, edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+
+/** Cone. Without `apex`/`base` it is centred on `pos`, `size` high along y (turned by `rotation`),
+  * with a base radius of `size / 2`; `apex` and `base` are world coordinates and override
+  * `pos`, `size` and `rotation`. */
+case class Cone(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  apex: Option[Vec3] = None,
+  base: Option[Vec3] = None,
+  radius: Option[Float] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+  require(radius.forall(_ > 0f), s"Radius must be positive, got ${radius.getOrElse(0f)}")
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec("cone").copy(cone = ConeGeometry(
+      apex.map(v => (v.x, v.y, v.z)), base.map(v => (v.x, v.y, v.z)), radius
+    ))
 
 
 /** Sponge type enumeration for DSL */
@@ -151,14 +301,31 @@ case class Sponge(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
+  ResourceLimits.levelLimitByObjectType.get(ObjectType.normalize(spongeType.objectTypeName)).foreach { limit =>
+    require(level <= limit.max,
+      s"${spongeType.objectTypeName} level $level exceeds hard maximum ${limit.max}")
+  }
+  require(
+    (edgeRadius.isEmpty && edgeMaterial.isEmpty) ||
+      ObjectSpec.Edge3DTypes.contains(ObjectType.normalize(spongeType.objectTypeName)),
+    "edge tubes (edgeRadius, edgeMaterial) exist on VolumeFilling and SurfaceUnfolding " +
+      s"sponges, not on $spongeType (menger#132)"
+  )
 
   def toObjectSpec: ObjectSpec =
-    baseObjectSpec(ObjectType.normalize(spongeType.objectTypeName), level = Some(level))
+    baseObjectSpec(
+      ObjectType.normalize(spongeType.objectTypeName), level = Some(level),
+      edgeRadius = edgeRadius, edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
 
 object Sponge:
   // Type + level (at origin, no material)
@@ -244,6 +411,152 @@ object Tesseract:
   def apply(pos: Vec3, material: Material, size: Float): Tesseract =
     Tesseract(pos, Some(material), size = size)
 
+// The other regular 4D polytopes, with the same fields and 4D handling as Tesseract. The
+// renderer supported them all along, but only the CLI could create them -- a DSL scene (and so
+// the scene agent) could not (usability review 2026-09, F17). Deliberately separate case
+// classes: an intermediate trait would hide them from the manifest's Mirror-derived object
+// list.
+
+/** Pentachoron (5-cell, {3,3,3}): 5 tetrahedral cells, the 4D simplex. */
+case class Pentachoron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec = baseObjectSpec(
+    "pentachoron", projection4D = projection, edgeRadius = edgeRadius,
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+  )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Hexadecachoron (16-cell, {3,3,4}): 16 tetrahedral cells, the 4D cross-polytope. */
+case class Hexadecachoron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec = baseObjectSpec(
+    "16-cell", projection4D = projection, edgeRadius = edgeRadius,
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+  )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Icositetrachoron (24-cell, {3,4,3}): 24 octahedral cells, self-dual. */
+case class Icositetrachoron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec = baseObjectSpec(
+    "24-cell", projection4D = projection, edgeRadius = edgeRadius,
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+  )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Hexacosichoron (600-cell, {3,3,5}): 600 tetrahedral cells. */
+case class Hexacosichoron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec = baseObjectSpec(
+    "600-cell", projection4D = projection, edgeRadius = edgeRadius,
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+  )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** Hecatonicosachoron (120-cell, {5,3,3}): 120 dodecahedral cells. */
+case class Hecatonicosachoron(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+
+  def toObjectSpec: ObjectSpec = baseObjectSpec(
+    "120-cell", projection4D = projection, edgeRadius = edgeRadius,
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+  )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
 
 /** Tesseract sponge fractal object (4D) */
 case class TesseractSponge(
@@ -268,6 +581,10 @@ case class TesseractSponge(
   require(level >= 0f, s"Level must be non-negative, got $level")
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
+  ResourceLimits.levelLimitByObjectType.get(ObjectType.normalize(spongeType.objectTypeName)).foreach { limit =>
+    require(level <= limit.max,
+      s"${spongeType.objectTypeName} level $level exceeds hard maximum ${limit.max}")
+  }
 
   def toObjectSpec: ObjectSpec =
     baseObjectSpec(
@@ -314,8 +631,8 @@ object TesseractSponge:
 // Export TesseractSpongeType values for convenient imports
 export TesseractSpongeType.{VolumeRemoving, SurfaceSubdividing}
 
-/** 4D Sierpinski pentachoron analog (IFS fractal) */
-case class Sierpinski4D(
+/** 4D Sierpinski gasket of the pentachoron (5-cell), an IFS fractal; was `Sierpinski4D`. */
+case class PentachoronGasket(
   pos: Vec3 = Vec3.Zero,
   level: Float,
   material: Option[Material] = None,
@@ -334,6 +651,9 @@ case class Sierpinski4D(
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
+  // The manifest already advertised this ceiling; the constructor did not enforce it (review
+  // 2026-10-14, menger#106).
+  FieldConstraints.check("PentachoronGasket", "level", level)
   require(size > 0f, s"Size must be positive, got $size")
 
   def toObjectSpec: ObjectSpec =
@@ -347,10 +667,85 @@ case class Sierpinski4D(
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
 
-object Sierpinski4D:
-  def apply(level: Float): Sierpinski4D = Sierpinski4D(Vec3.Zero, level)
-  def apply(level: Float, material: Material): Sierpinski4D =
-    Sierpinski4D(Vec3.Zero, level, Some(material))
+object PentachoronGasket:
+  def apply(level: Float): PentachoronGasket = PentachoronGasket(Vec3.Zero, level)
+  def apply(level: Float, material: Material): PentachoronGasket =
+    PentachoronGasket(Vec3.Zero, level, Some(material))
+
+// Scenes written before the rename keep compiling (and the manifest lists only the new name).
+@deprecated("use PentachoronGasket", "2026-10")
+type Sierpinski4D = PentachoronGasket
+@deprecated("use PentachoronGasket", "2026-10")
+val Sierpinski4D: PentachoronGasket.type = PentachoronGasket
+
+/** 4D Menger sponge as an IFS fractal, traced on the GPU without stored geometry: the
+  * TesseractSponge's shape, at a fraction of its memory. */
+case class Menger4D(
+  pos: Vec3 = Vec3.Zero,
+  level: Float,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(level >= 0f, s"Level must be non-negative, got $level")
+  FieldConstraints.check("Menger4D", "level", level)
+  require(size > 0f, s"Size must be positive, got $size")
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      "menger4d",
+      level = Some(level),
+      projection4D = projection,
+      edgeRadius = edgeRadius,
+      edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** 4D Sierpinski gasket of the hexadecachoron (16-cell), an IFS fractal. */
+case class HexadecachoronGasket(
+  pos: Vec3 = Vec3.Zero,
+  level: Float,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[Projection4DSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(level >= 0f, s"Level must be non-negative, got $level")
+  FieldConstraints.check("HexadecachoronGasket", "level", level)
+  require(size > 0f, s"Size must be positive, got $size")
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      "hexadecachoron4d",
+      level = Some(level),
+      projection4D = projection,
+      edgeRadius = edgeRadius,
+      edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    )
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
 
 
 /** Parametric surface defined by f(u,v) -> Vec3, tessellated into a triangle mesh.
@@ -390,26 +785,20 @@ case class ParametricSurface(
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
   rotation: Vec3 = Vec3.Zero
-) extends SceneObject with LazyLogging:
-  require(uSteps >= 1, s"uSteps must be >= 1, got $uSteps")
-  require(vSteps >= 1, s"vSteps must be >= 1, got $vSteps")
+) extends SceneObject:
+  FieldConstraints.check("ParametricSurface", "uSteps", uSteps)
+  FieldConstraints.check("ParametricSurface", "vSteps", vSteps)
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
-
-  private val MemoryWarningThreshold = 1_000_000
+  require(
+    uSteps.toLong * vSteps.toLong <= ResourceLimits.parametricSurfaceMaxSamples,
+    s"uSteps * vSteps ($uSteps x $vSteps = ${uSteps.toLong * vSteps.toLong}) exceeds hard " +
+      s"maximum ${ResourceLimits.parametricSurfaceMaxSamples} grid cells"
+  )
 
   def toObjectSpec: ObjectSpec =
     val tupleF: (Float, Float) => (Float, Float, Float) =
       (u, v) => { val p = f(u, v); (p.x, p.y, p.z) }
-    val totalCells = uSteps.toLong * vSteps.toLong
-    if totalCells > MemoryWarningThreshold then
-      val approxMB = totalCells * 8 * 4 / 1_048_576L
-      logger.warn(
-        "Parametric surface tessellation is very high resolution " +
-        s"($uSteps x $vSteps = $totalCells grid cells). " +
-        s"This will use approximately $approxMB MB of GPU memory. " +
-        "Consider reducing resolution."
-      )
     val mesh = menger.objects.ParametricTessellator.tessellate(
       tupleF, uRange, vRange, uSteps, vSteps, closedU, closedV
     )
@@ -512,7 +901,7 @@ case class LSystem(
   axiom: String,
   rules: Map[Char, String],
   iterations: Int = 4,
-  angleDegrees: Float = 25.7f,
+  angleDegrees: Degrees = Degrees(25.7f),
   segmentLength: Float = 0.1f,
   initialWidth: Float = 0.1f,
   widthDecay: Float = 0.7f,
@@ -531,9 +920,8 @@ case class LSystem(
   proceduralScale: Float = 1.0f,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
-  require(iterations >= 0 && iterations <= 12,
-    s"iterations must be 0-12, got $iterations")
-  require(angleDegrees > 0, s"angle must be positive, got $angleDegrees")
+  FieldConstraints.check("LSystem", "iterations", iterations)
+  require(angleDegrees.value > 0, s"angle must be positive, got ${angleDegrees.value}")
   require(segmentLength > 0, "segmentLength must be positive")
   require(initialWidth > 0, "initialWidth must be positive")
   require(rules.nonEmpty, "rules must not be empty")

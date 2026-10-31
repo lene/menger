@@ -110,3 +110,5 @@ shadow_alpha_*
 # never something to commit
 docker/scene-validator/stage/
 docker/scene-validator/optix-sdk/
+# pre-push code-quality review log (global CLAUDE.md rule): local, never committed
+LOCAL_CODE_IMPROVEMENTS.md

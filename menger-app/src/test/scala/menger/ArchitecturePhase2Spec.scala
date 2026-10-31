@@ -1,22 +1,68 @@
 package menger
 
 import com.tngtech.archunit.base.DescribedPredicate
+import com.tngtech.archunit.core.domain.AccessTarget
+import com.tngtech.archunit.core.domain.JavaCall
 import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
 import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests
 import com.tngtech.archunit.core.importer.Location
 import com.tngtech.archunit.lang.ArchCondition
+import com.tngtech.archunit.lang.ArchRule
 import com.tngtech.archunit.lang.ConditionEvents
 import com.tngtech.archunit.lang.SimpleConditionEvent
+import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+object ArchitecturePhase2Spec:
+
+  /** Layer -> the other layers it may depend on (measured 2026-10-30). `menger.common` is the
+    * published base; `menger.spec` and `menger.video` are value-type leaves; `menger.optix` is
+    * the renderer wrapper. A layer's own subpackages are always allowed. */
+  val AllowedLayerDependencies: List[(String, List[String])] = List(
+    "menger.objects" -> List("menger.common"),
+    "menger.dsl"     -> List("menger.common", "menger.objects", "menger.spec", "menger.video"),
+    "menger.config"  -> List("menger.common", "menger.dsl", "menger.objects", "menger.spec",
+                             "menger.video"),
+    "menger.input"   -> List("menger.common", "menger.objects", "menger.optix"),
+    "menger.cli"     -> List("menger.common", "menger.config", "menger.dsl", "menger.spec"),
+    "menger.spec"    -> List("menger.common", "menger.video"),
+    "menger.scene"   -> List("menger.common", "menger.dsl"),
+    "menger.video"   -> Nil,
+    // The one place that throws; not on the scene-compile classpath, so the DSL cannot use it.
+    "menger.failure" -> List("menger.common")
+  )
+
+  /** Production code raises a failure through `menger.failure.Fail`, which says whose fault it
+    * is, never through `sys.error`, a bare RuntimeException (menger#96, #103). */
+  def noSysErrorRule: ArchRule =
+    val sysError = new DescribedPredicate[AccessTarget.CodeUnitCallTarget]("error on scala.sys"):
+      override def test(target: AccessTarget.CodeUnitCallTarget): Boolean =
+        target.getName == "error" && target.getOwner.getFullName == "scala.sys.package$"
+    noClasses().should().callMethodWhere(JavaCall.Predicates.target(sysError))
+
+  // The packages the architecture governs: ours. Everything else (java, scala, LibGDX, slf4j,
+  // ...) is the business of the rules about those libraries (file IO, logging, mutable collections).
+  private val governed = Seq("menger..", "io.github.lene.optix..")
+
+  /** `layer` depends, among the governed packages, only on itself and `allowed`. Fails if the
+    * layer has no classes at all, so a renamed package cannot leave the rule vacuous. */
+  def layerRule(layer: String, allowed: List[String]): ArchRule =
+    val permitted = (layer :: allowed).map(p => s"$p..")
+    classes().that().resideInAPackage(s"$layer..")
+      .should().onlyDependOnClassesThat(
+        JavaClass.Predicates.resideOutsideOfPackages(governed*)
+          .or(JavaClass.Predicates.resideInAnyPackage(permitted*))
+      )
 
 /**
  * Phase 2 architectural rules.
  */
 class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
+  import ArchitecturePhase2Spec.*
 
   private val doNotIncludeSbtTestClasses: ImportOption =
     (location: Location) => !location.matches(java.util.regex.Pattern.compile(".*test-classes.*"))
@@ -59,41 +105,16 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
     new DescribedPredicate[JavaClass]("reside in org.slf4j"):
       override def test(c: JavaClass): Boolean = c.getPackageName.startsWith("org.slf4j")
 
-  // P0.B resolved: menger.objects no longer imports menger.input
-  "menger.objects" should "depend only on menger.common (P0.B resolved)" in:
-    noClasses().that().resideInAPackage("menger.objects..")
-      .should().dependOnClassesThat()
-        .resideInAnyPackage("menger.input..", "menger.engines..",
-                            "menger.dsl..", "menger.cli..", "menger.config..")
-      .check(allClasses)
+  // Allow-lists, not deny-lists (menger#90 (e)): each layer names what it may depend on, so a new
+  // edge fails until someone decides it belongs, instead of passing because nobody thought to
+  // forbid it. The lists are the dependency graph measured 2026-10-30; ArchitectureRulesCanFailSpec
+  // plants a violation in each layer and shows its rule going red.
+  for (layer, allowed) <- AllowedLayerDependencies do
+    s"$layer" should s"depend on no other layer than ${allowed.mkString(", ")}" in:
+      layerRule(layer, allowed).check(allClasses)
 
-  // P0.A resolved: SceneConverter moved to menger.engines; Camera/Plane/Scene config methods inlined there.
-  // menger.dsl.Material imports menger.common.Material (allowed — common is not restricted by this rule).
-  it should "depend only on menger.common and menger.objects (P0.A resolved)" in:
-    noClasses().that().resideInAPackage("menger.dsl..")
-      .should().dependOnClassesThat()
-        .resideInAnyPackage("menger.engines..", "menger.cli..",
-                            "menger.config..", "menger.input..")
-      .check(allClasses)
-
-  "menger.config" should "not depend on engines or cli" in:
-    noClasses().that().resideInAPackage("menger.config..")
-      .should().dependOnClassesThat()
-        .resideInAnyPackage("menger.engines..", "menger.cli..")
-      .check(allClasses)
-
-  "menger.input" should "not depend on engines, dsl, or config" in:
-    noClasses().that().resideInAPackage("menger.input..")
-      .should().dependOnClassesThat()
-        .resideInAnyPackage("menger.engines..", "menger.dsl..", "menger.config..")
-      .check(allClasses)
-
-  // Fixed: removed VideoEncoder.checkAvailable call from CliValidation (checked at VideoEngine init)
-  "menger.cli" should "not depend on engines or optix in menger.cli" in:
-    noClasses().that().resideInAPackage("menger.cli..")
-      .should().dependOnClassesThat()
-        .resideInAnyPackage("menger.engines..", "io.github.lene.optix..")
-      .check(allClasses)
+  "production code" should "raise failures through menger.failure.Fail, not sys.error" in:
+    noSysErrorRule.check(allClasses)
 
   // Fixed: replaced haveOnlyFinalFields() with a Scala-aware var-setter check.
   // Scala val fields compile to non-final JVM fields; only var fields generate setter methods.

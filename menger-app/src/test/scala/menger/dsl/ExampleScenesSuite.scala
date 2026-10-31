@@ -1,5 +1,7 @@
 package menger.dsl
 
+import menger.scene.LoadError
+import menger.scene.SceneLoader
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -12,11 +14,19 @@ import org.scalatest.matchers.should.Matchers
  */
 class ExampleScenesSuite extends AnyFlatSpec with Matchers:
 
-  private def extractStaticScene(result: Either[String, LoadedScene]): Scene =
+  // Force every scene object SceneIndex knows about to class-load (and therefore run its
+  // SceneRegistry.register() call) before any test in this suite runs, so the "Scene
+  // registry" check below doesn't depend on which "should load X via reflection" tests
+  // happened to execute first (usability review 2026-09 inbox item: this test was
+  // intermittently failing under certain `sbt testOnly` suite-glob combinations).
+  examples.dsl.SceneIndex.all
+  examples.dsl.SceneIndex.animated
+
+  private def extractStaticScene(result: Either[LoadError, LoadedScene]): Scene =
     result match
       case Right(LoadedScene.Static(scene)) => scene
       case Right(LoadedScene.Animated(_)) => fail("Expected Static scene but got Animated")
-      case Left(error) => fail(s"Failed to load scene: $error")
+      case Left(error) => fail(s"Failed to load scene: ${error.message}")
 
   "Example scenes" should "load GlassSphere via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.GlassSphere"))
@@ -77,11 +87,11 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.lights should have length 2
     scene.planes should not be empty
 
-  private def extractAnimatedFn(result: Either[String, LoadedScene]): Float => Scene =
+  private def extractAnimatedFn(result: Either[LoadError, LoadedScene]): Float => Scene =
     result match
       case Right(LoadedScene.Animated(fn)) => fn
       case Right(LoadedScene.Static(_)) => fail("Expected Animated scene but got Static")
-      case Left(error) => fail(s"Failed to load scene: $error")
+      case Left(error) => fail(s"Failed to load scene: ${error.message}")
 
   "Animated example scenes" should "load OrbitingSphere as animated" in:
     val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.OrbitingSphere"))
@@ -169,6 +179,13 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.planes should not be empty
     scene.caustics shouldBe defined
 
+  it should "load PolytopeGallery via reflection" in:
+    // Usability review 2026-09, F17: the regular 4D polytopes besides the tesseract.
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.PolytopeGallery"))
+    scene.objects should have length 5
+    scene.lights should have length 1
+    scene.planes should not be empty
+
   "Scene registry" should "have all registered short names" in:
     val registeredNames = SceneRegistry.list().sorted
 
@@ -193,6 +210,7 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     registeredNames should contain("caustics-reference-default")
     registeredNames should contain("denoise-ibl-demo")
     registeredNames should contain("trefoil-knot")
+    registeredNames should contain("polytope-gallery")
 
   it should "load TesseractDemo via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.TesseractDemo"))

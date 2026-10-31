@@ -2,12 +2,12 @@ package menger.engines
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import menger.ObjectSpec
-import menger.Projection4DSpec
-import menger.common.ObjectType
 import io.github.lene.optix.OptiXRenderer
-import io.github.lene.optix.MengerRenderer
 import menger.engines.scene.InstanceId
+import menger.spec.Degrees
+import menger.spec.ObjectSpec
+import menger.spec.ObjectType
+import menger.spec.Projection4DSpec
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -55,13 +55,40 @@ class FastPathRegressionSuite extends AnyFlatSpec with Matchers with MockFactory
   "RotationFastPath.tryFastPath" should "take the fast path when only projection differs" in:
     val renderer = mock[OptiXRenderer]
     val proj1 = Projection4DSpec.default
-    val proj2 = Projection4DSpec(eyeW = 3.0f, screenW = 2.0f, rotXW = 0, rotYW = 0, rotZW = 0)
+    val proj2 = Projection4DSpec(eyeW = 3.0f, screenW = 2.0f, rotXW = Degrees.Zero, rotYW = Degrees.Zero, rotZW = Degrees.Zero)
     val baseSpec = ObjectSpec(objectType = "menger4d", x = 0, y = 0, z = 0, size = 1, level = Some(1))
     val prevSpecs = List(baseSpec.copy(projection4D = Some(proj1)))
     val newSpecs = List(baseSpec.copy(projection4D = Some(proj2)))
-    val ids = Vector(Vector(InstanceId.fromNative(0, "test")))
+    val ids = Vector(Vector(io.github.lene.optix.InstanceId(0)))
     val updateCalled = AtomicBoolean(false)
-    val updater: RotationFastPath.ProjectionUpdater = (_, _, _) => updateCalled.set(true)
+    val updater: RotationFastPath.ProjectionUpdater[InstanceId] =
+      (_, _, _) => updateCalled.set(true)
     val took = RotationFastPath.tryFastPath(newSpecs, renderer, prevSpecs, ids, updater)
     took shouldBe true
     updateCalled.get() shouldBe true
+
+  // Review 2026-10-14 (menger#102): the old guard sat outside its `else`, so any change took
+  // the "fast path" -- the tests were positive-only and could not see it.
+  private val base4D =
+    ObjectSpec(objectType = "menger4d", x = 0, y = 0, z = 0, size = 1, level = Some(1))
+  private val oneId = Vector(Vector(io.github.lene.optix.InstanceId(0)))
+
+  private def attempt(prev: ObjectSpec, next: ObjectSpec, ids: Vector[Vector[InstanceId]] = oneId) =
+    val updates = java.util.concurrent.atomic.AtomicInteger(0)
+    val took = RotationFastPath.tryFastPath[InstanceId](
+      List(next), mock[OptiXRenderer], List(prev), ids, (_, _, _) => updates.incrementAndGet(): Unit
+    )
+    (took, updates.get())
+
+  it should "not take the fast path, nor update anything, when more than the projection changed" in:
+    val changed = base4D.copy(level = Some(2), projection4D = Some(Projection4DSpec.default))
+    attempt(base4D, changed) shouldBe (false, 0)
+
+  // Session 6 (menger#129): an unchanged frame (an animation's hold phase) was rebuilt; it now
+  // takes the path and updates nothing.
+  it should "take the fast path, updating nothing, when nothing changed" in:
+    attempt(base4D, base4D) shouldBe (true, 0)
+
+  it should "not take the fast path when the id lists do not match the specs" in:
+    val turned = base4D.copy(projection4D = Some(Projection4DSpec.default.copy(rotXW = 10f)))
+    attempt(base4D, turned, ids = Vector.empty) shouldBe (false, 0)

@@ -1,7 +1,6 @@
 package menger.engines
 
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -12,20 +11,24 @@ import scala.util.Try
 
 import com.badlogic.gdx.graphics.GL20
 import com.typesafe.scalalogging.LazyLogging
+import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
-import io.github.lene.optix.TextureUploadException
-import menger.ObjectSpec
-import menger.Projection4DSpec
+import io.github.lene.optix.TextureIndex
 import menger.common.CausticsConfig
 import menger.common.ImageSize
-import menger.common.ObjectType
 import menger.common.RenderConfig
+import menger.config.PlaneConfig
 import menger.config.TAnimationConfig
 import menger.dsl.Scene
+import menger.engines.scene.AssetPaths
 import menger.engines.scene.TextureManager
+import menger.engines.scene.TrackedEdges4D
+import menger.engines.scene.TrackedMixed4D
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.geometry.VideoLoader
 import menger.input.GdxRuntime
+import menger.spec.ObjectSpec
+import menger.spec.ObjectType
 import menger.video.AnimationTimeRange
 import menger.video.EnvMapVideo
 import menger.video.VideoPlayback
@@ -49,10 +52,24 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     * Set only when the scene is purely 4D-projected triangle meshes. */
   private val anim4DState: AtomicReference[Option[WithAnimation.Anim4DState]] =
     new AtomicReference(None)
+  // The same for an edge-rendered 4D scene: its cylinders move in place (menger#129).
+  private val animEdgesState: AtomicReference[Option[TrackedEdges4D.State]] =
+    new AtomicReference(None)
+  // And for a 4D scene with edges on some objects only (session 6, menger#129).
+  private val animMixedState: AtomicReference[Option[TrackedMixed4D.State]] =
+    new AtomicReference(None)
+  // Planes are instances, re-added only after a rebuild: a frame whose planes changed is rebuilt.
+  private val lastPlanes: AtomicReference[List[PlaneConfig]] = new AtomicReference(List.empty)
+  // The geometry the renderer holds, after a frame that built it successfully (menger#86).
+  private val lastGeometry: AtomicReference[Option[FrameChange.Geometry]] =
+    new AtomicReference(None)
   private val videoTextureState: AtomicReference[Option[WithAnimation.VideoTextureState]] =
     new AtomicReference(None)
   private val envMapVideoState: AtomicReference[Option[WithAnimation.EnvMapVideoState]] =
     new AtomicReference(None)
+  // Environment-map videos that failed to open: not retried on every frame, which opened a new
+  // decoder and uploaded a new texture per frame (review 2026-10-14, menger#105).
+  private val failedEnvMapVideos: AtomicReference[Set[String]] = new AtomicReference(Set.empty)
 
   abstract override def create(): Unit =
     val renderer = rendererWrapper.renderer
@@ -61,16 +78,16 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     val firstSpecs = firstFrameConfigs.scene.objectSpecs.getOrElse(List.empty)
     buildSceneTrackingVideoTextures(firstFrameConfigs, firstSpecs, renderer)
       .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, animConfig.tForFrame(0)))
-      .recover { case e: Exception =>
+      // Propagated (F18; review 2026-10-14, menger#100): `GdxRuntime.exit()` exited 0 and the
+      // animation went on configuring a renderer that held no scene.
+      .recoverWith { case e: Exception =>
         logger.error(s"Failed to create initial scene: ${e.getMessage}", e)
-        GdxRuntime.exit()
+        Failure(e)
     }.get
     renderer.setRenderConfig(renderConfig)
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
     configureOutputMode(renderer)
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
-    if firstFrameConfigs.toneMappingOperator != 0 then
-      renderer.setToneMapping(firstFrameConfigs.toneMappingOperator, firstFrameConfigs.toneMappingExposure)
     configureStaticEnvironmentMap(firstFrameConfigs, renderer)
     configureEnvMapVideoForFrame(
       firstFrameConfigs,
@@ -95,9 +112,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       Try(sceneFunction(t)) match
         case Failure(e) =>
           logger.error(
-            s"Scene function threw for frame ${frame + 1}/${animConfig.frames}" +
-            s" (t=$t): ${e.getMessage}",
-            e
+            FrameBuildFailure.message(s"frame ${frame + 1}/${animConfig.frames} (t=$t)", e), e
           )
           frameCounter.incrementAndGet()
         case scala.util.Success(dslScene) =>
@@ -107,28 +122,13 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
           renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
           if configs.accumulationFrames > 1 then
             renderer.setAccumulationFrames(configs.accumulationFrames)
-          val newSpecs = configs.scene.objectSpecs.getOrElse(List.empty)
-          val videoSourcesPresent = WithAnimation.hasVideoSources(configs, newSpecs)
-          val videoFastPathTaken = tryVideoFastPath(configs, newSpecs, renderer, t)
-          val geometryFastPathTaken =
-            if videoSourcesPresent && !videoFastPathTaken then false
-            else tryAnim4DFastPath(newSpecs, renderer)
-          val fastPathTaken = videoFastPathTaken || geometryFastPathTaken
-          if !fastPathTaken then
-            renderer.clearAllInstances()
-            buildAnim4DTrackedOrFallback(configs, newSpecs, renderer)
-              .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, t))
-              .recover { case e: Exception =>
-                logger.error(s"Failed to build scene for frame $frame (t=$t): ${e.getMessage}", e)
-              }
-            configureEnvMapVideoForFrame(configs, newSpecs, renderer, t).recover {
-              case e: Exception =>
-                logger.error(s"Failed to update environment-map video for t=$t: ${e.getMessage}", e)
-            }
-            // Planes are real IAS instances (Sprint 36 H3.1) — only re-add them when
-            // clearAllInstances above actually ran; the fast paths leave existing
-            // instances (including previously added planes) untouched.
-            PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
+          // A frame with the geometry of the last one built (only the view moved) touches no
+          // instance (menger#86); a frame that failed to build is never that base.
+          val geometry = FrameChange.Geometry.of(configs)
+          if FrameChange.classify(lastGeometry.get, geometry) == FrameChange.Rebuild then
+            val built = updateFrameGeometry(configs, geometry.specs, renderer, t, frame)
+            lastGeometry.set(Option.when(built)(geometry))
+          sceneConfigurator.configureLights(renderer, configs.lights.toArray)
           configs.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
           configs.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
           cameraState.updateCamera(
@@ -227,23 +227,16 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       case None        => Success(())
 
   private def resolveVideoPath(path: String): Path =
-    val videoPath = Paths.get(path)
-    if videoPath.isAbsolute then videoPath else Paths.get(textureDir).resolve(videoPath)
+    AssetPaths.resolveOrThrow(textureDir, path)
 
   private def configureStaticEnvironmentMap(
     configs: SceneConverter.SceneConfigs,
     renderer: OptiXRenderer
   ): Unit =
     configs.envMap.foreach { path =>
-      val resolvedPath =
-        if Paths.get(path).isAbsolute then path
-        else Paths.get(textureDir).resolve(path).toString
-      try
-        val idx = renderer.uploadTextureFromFile(resolvedPath)
-        renderer.setEnvironmentMap(idx)
-      catch
-        case e: TextureUploadException =>
-          logger.error(s"Failed to load environment map: $path: ${e.getMessage}")
+      TextureManager.uploadFile(renderer, textureDir, path) match
+        case Right(idx)   => renderer.setEnvironmentMap(idx)
+        case Left(reason) => logger.error(s"Failed to load environment map: $path: $reason")
     }
 
   private def configureIBL(
@@ -267,6 +260,8 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       case None =>
         replaceEnvMapVideoState(None)
         Success(())
+      case Some(envMapVideo) if failedEnvMapVideos.get.contains(envMapVideo.textureKey) =>
+        Success(()) // reported once when it failed
       case Some(envMapVideo) =>
         val existingState = envMapVideoState.get.filter { state =>
           state.envMapVideo.textureKey == envMapVideo.textureKey
@@ -274,16 +269,22 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
         val state = existingState
           .map(existing => Success(existing.copy(specs = newSpecs, envMapVideo = envMapVideo)))
           .getOrElse(createEnvMapVideoState(envMapVideo, newSpecs, renderer))
-        state.flatMap { activeState =>
-          updateEnvMapVideoSlot(activeState, configs, renderer, t).map { _ =>
-            replaceEnvMapVideoState(Some(activeState))
-          }
+        val updated = state.flatMap { activeState =>
+          updateEnvMapVideoSlot(activeState, configs, renderer, t) match
+            case Success(_) => Success(replaceEnvMapVideoState(Some(activeState)))
+            case Failure(e) =>
+              // A state made for this frame is not kept, so its decoder must not outlive it.
+              if existingState.isEmpty then activeState.source.close()
+              Failure(e)
         }
+        updated.failed.foreach(_ =>
+          failedEnvMapVideos.updateAndGet(_ + envMapVideo.textureKey))
+        updated
 
   private def uploadEnvMapVideoSlot(
     envMapVideo: EnvMapVideo,
     renderer: OptiXRenderer
-  ): Try[Int] =
+  ): Try[TextureIndex] =
     TextureManager.loadInitialEnvMapVideo(envMapVideo, renderer, textureDir) match
       case Some(textureIndex) =>
         renderer.setEnvironmentMap(textureIndex)
@@ -298,16 +299,16 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     newSpecs: List[ObjectSpec],
     renderer: OptiXRenderer
   ): Try[WithAnimation.EnvMapVideoState] =
-    for
-      textureIndex <- uploadEnvMapVideoSlot(envMapVideo, renderer)
-      source       <- createVideoFrameSource(envMapVideo.path, envMapVideo.playback)
-    yield
-      TextureManager.validateEquirectangularDimensions(
-        source.width,
-        source.height,
-        envMapVideo.path
-      )
-      WithAnimation.EnvMapVideoState(newSpecs, envMapVideo, textureIndex, source)
+    // The decoder first and checked before anything is uploaded; closed if a later step fails
+    // (it leaked when the 2:1 check or the upload failed after it was opened, menger#105).
+    createVideoFrameSource(envMapVideo.path, envMapVideo.playback).flatMap { source =>
+      val state = Try(TextureManager.validateEquirectangularDimensions(
+        source.width, source.height, envMapVideo.path
+      )).flatMap(_ => uploadEnvMapVideoSlot(envMapVideo, renderer)).map(textureIndex =>
+        WithAnimation.EnvMapVideoState(newSpecs, envMapVideo, textureIndex, source))
+      if state.isFailure then source.close()
+      state
+    }
 
   private def updateEnvMapVideoSlot(
     state: WithAnimation.EnvMapVideoState,
@@ -335,7 +336,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       .map(_.slots.map(slot => slot.videoTexture.textureKey -> slot).toMap)
       .getOrElse(Map.empty)
     val observedSlots =
-      scala.collection.mutable.LinkedHashMap.empty[String, (VideoTexture, ArrayBuffer[Int])]
+      scala.collection.mutable.LinkedHashMap.empty[String, (VideoTexture, ArrayBuffer[TextureIndex])]
     val result = TextureManager.withVideoTextureSlotObserver { (videoTexture, textureIndex) =>
       recordObservedVideoTextureSlot(observedSlots, videoTexture, textureIndex)
     } {
@@ -361,10 +362,10 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   private def recordObservedVideoTextureSlot(
     observedSlots: scala.collection.mutable.LinkedHashMap[
       String,
-      (VideoTexture, ArrayBuffer[Int])
+      (VideoTexture, ArrayBuffer[TextureIndex])
     ],
     videoTexture: VideoTexture,
-    textureIndex: Int
+    textureIndex: TextureIndex
   ): Unit =
     observedSlots.get(videoTexture.textureKey) match
       case Some((_, textureIndices)) =>
@@ -375,7 +376,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   private def videoTextureSlotsFor(
     observedSlots: scala.collection.mutable.LinkedHashMap[
       String,
-      (VideoTexture, ArrayBuffer[Int])
+      (VideoTexture, ArrayBuffer[TextureIndex])
     ],
     reusableSlots: Map[String, WithAnimation.VideoTextureSlot]
   ): Try[Vector[WithAnimation.VideoTextureSlot]] =
@@ -391,11 +392,20 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
             WithAnimation.VideoTextureSlot(videoTexture, textureIndices.toVector, source)
           }
     }.toVector
-    slotTries.foldLeft(Success(Vector.empty): Try[Vector[WithAnimation.VideoTextureSlot]]) {
+    val none: Try[Vector[WithAnimation.VideoTextureSlot]] = Success(Vector.empty)
+    val slots = slotTries.foldLeft(none) {
       case (Success(slots), Success(slot)) => Success(slots :+ slot)
       case (Failure(e), _)                 => Failure(e)
       case (_, Failure(e))                 => Failure(e)
     }
+    // One source failing dropped the others this call had opened, unclosed (menger#105).
+    if slots.isFailure then
+      val reused = reusableSlots.values.map(_.source).toSet
+      slotTries.foreach {
+        case Success(slot) if !reused.contains(slot.source) => slot.source.close()
+        case _ => ()
+      }
+    slots
 
   private def createVideoFrameSource(
     path: String,
@@ -416,6 +426,39 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       }
     }
 
+  /** Moves the scene to this frame in place when it can, rebuilds it otherwise. True when the
+    * renderer then holds this frame's geometry. */
+  private def updateFrameGeometry(
+    configs: SceneConverter.SceneConfigs,
+    newSpecs: List[ObjectSpec],
+    renderer: OptiXRenderer,
+    t: Float,
+    frame: Int
+  ): Boolean =
+    val videoSourcesPresent = WithAnimation.hasVideoSources(configs, newSpecs)
+    val planesChanged = lastPlanes.getAndSet(configs.planes) != configs.planes
+    val videoFastPathTaken =
+      !planesChanged && tryVideoFastPath(configs, newSpecs, renderer, t)
+    val geometryFastPathTaken =
+      if planesChanged || (videoSourcesPresent && !videoFastPathTaken) then false
+      else tryAnim4DFastPath(newSpecs, renderer)
+    if videoFastPathTaken || geometryFastPathTaken then true
+    else
+      renderer.clearAllInstances()
+      val built = buildAnim4DTrackedOrFallback(configs, newSpecs, renderer)
+        .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, t))
+      built.failed.foreach(e =>
+        logger.error(FrameBuildFailure.message(s"frame $frame (t=$t)", e), e))
+      configureEnvMapVideoForFrame(configs, newSpecs, renderer, t).recover {
+        case e: Exception =>
+          logger.error(s"Failed to update environment-map video for t=$t: ${e.getMessage}", e)
+      }
+      // Planes are real IAS instances (Sprint 36 H3.1) — only re-add them when
+      // clearAllInstances above actually ran; the fast paths leave existing
+      // instances (including previously added planes) untouched.
+      PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
+      built.isSuccess
+
   private def replaceEnvMapVideoState(next: Option[WithAnimation.EnvMapVideoState]): Unit =
     val previous = envMapVideoState.getAndSet(next)
     previous.foreach { state =>
@@ -425,27 +468,30 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
 
   /** If conditions are met, drive frame N from frame N−1 via per-mesh
     * `updateMesh4DProjection` calls and return true. Otherwise return false
-    * and let the caller take the rebuild path. */
+    * and let the caller take the rebuild path, which also resets the tracked states. A move
+    * that throws takes the rebuild path too: it used to escape `render()` and end the
+    * animation (menger#103). */
   private def tryAnim4DFastPath(newSpecs: List[ObjectSpec], renderer: OptiXRenderer): Boolean =
     anim4DState.get match
-      case None => false
+      case None =>
+        val edgesMoved = animEdgesState.get.flatMap(
+          InPlaceMove.attempt(_)(TrackedEdges4D.update(_, newSpecs, renderer))
+        )
+        edgesMoved.foreach(state => animEdgesState.set(Some(state)))
+        // At most one of the two is tracked: each build clears the other.
+        val mixedMoved = animMixedState.get.flatMap(
+          InPlaceMove.attempt(_)(TrackedMixed4D.update(_, newSpecs, renderer))
+        )
+        mixedMoved.foreach(state => animMixedState.set(Some(state)))
+        edgesMoved.isDefined || mixedMoved.isDefined
       case Some(prev) =>
-        if !WithAnimation.specsDifferOnlyIn4DProjection(prev.specs, newSpecs) then false
-        else
-          prev.specs.lazyZip(newSpecs).lazyZip(prev.slotsPerSpec).foreach {
-            case (prevSpec, newSpec, slots) =>
-              if prevSpec.projection4D != newSpec.projection4D then
-                val proj = newSpec.projection4D.getOrElse(Projection4DSpec.default)
-                slots.foreach { slot =>
-                  renderer.updateMesh4DProjection(
-                    slot,
-                    eyeW = proj.eyeW, screenW = proj.screenW,
-                    rotXW = proj.rotXW, rotYW = proj.rotYW, rotZW = proj.rotZW
-                  )
-                }
-          }
-          anim4DState.set(Some(prev.copy(specs = newSpecs)))
-          true
+        val moved = InPlaceMove.attempt(prev) { state =>
+          Option.when(RotationFastPath.tryFastPath(
+            newSpecs, renderer, state.specs, state.slotsPerSpec, RotationFastPath.meshSlotUpdater
+          ))(state.copy(specs = newSpecs))
+        }
+        moved.foreach(state => anim4DState.set(Some(state)))
+        moved.isDefined
 
   /** Rebuild path: when the scene is 4D-only triangle-mesh, build via a
     * recorder-equipped TriangleMeshSceneBuilder so subsequent frames can attempt
@@ -456,13 +502,25 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     newSpecs: List[ObjectSpec],
     renderer: OptiXRenderer
   ): Try[Unit] =
+    // The tracked 4D build does not pass through `buildSceneFromConfigs`, which checks the
+    // budget, so it is checked here (menger#80).
+    withinBudget(newSpecs).flatMap(_ => buildAnim4DWithinBudget(configs, newSpecs, renderer))
+
+  private def buildAnim4DWithinBudget(
+    configs: SceneConverter.SceneConfigs,
+    newSpecs: List[ObjectSpec],
+    renderer: OptiXRenderer
+  ): Try[Unit] =
+    anim4DState.set(None)
+    animEdgesState.set(None)
+    animMixedState.set(None)
     if WithAnimation.is4DOnlyTriangleMeshScene(newSpecs) then
-      val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[Int]] =
+      val slotsBuf: scala.collection.mutable.Map[Int, ArrayBuffer[MeshSlot]] =
         scala.collection.mutable.Map.empty
       val builder = TriangleMeshSceneBuilder(
         textureDir,
-        mesh4DRecorder = (specIdx: Int, slotIdx: Int) =>
-          slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[Int]) += slotIdx
+        mesh4DRecorder = (specIdx: Int, slot: MeshSlot) =>
+          slotsBuf.getOrElseUpdate(specIdx, ArrayBuffer.empty[MeshSlot]) += slot
       )(using profilingConfig)
       val effectiveMaxInstances = computeEffectiveMaxInstances(builder, newSpecs)
       val result = buildWithVideoTextureTracking(newSpecs):
@@ -470,7 +528,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       result.foreach { _ =>
         if slotsBuf.size == newSpecs.size then
           val slotsPerSpec = newSpecs.indices.map(i =>
-            slotsBuf.getOrElse(i, ArrayBuffer.empty[Int]).toVector
+            slotsBuf.getOrElse(i, ArrayBuffer.empty[MeshSlot]).toVector
           ).toVector
           anim4DState.set(Some(WithAnimation.Anim4DState(newSpecs, slotsPerSpec)))
         else
@@ -478,25 +536,31 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       }
       val recovered = result.recover { case _ => anim4DState.set(None) }
       recovered
-    else
-      anim4DState.set(None)
-      buildSceneTrackingVideoTextures(configs, newSpecs, renderer)
+    else if TrackedEdges4D.isEdgeScene(newSpecs) then
+      buildWithVideoTextureTracking(newSpecs):
+        TrackedEdges4D.build(newSpecs, renderer, textureDir,
+          computeEffectiveMaxInstances(_, newSpecs))(using profilingConfig).map(animEdgesState.set)
+    else if TrackedMixed4D.isMixedScene(newSpecs) then
+      buildWithVideoTextureTracking(newSpecs):
+        TrackedMixed4D.build(newSpecs, renderer, textureDir,
+          requiredMaxInstancesFor(newSpecs))(using profilingConfig).map(animMixedState.set)
+    else buildSceneTrackingVideoTextures(configs, newSpecs, renderer)
 
 object WithAnimation:
   /** Per-mesh-slot bookkeeping for the GPU 4D projection animation fast path.
     * `slotsPerSpec(i)` lists the renderer slot indices that belong to spec i —
     * usually a single slot, but two for fractional 4D sponges (level n + level n+1). */
-  final case class Anim4DState(specs: List[ObjectSpec], slotsPerSpec: Vector[Vector[Int]])
+  final case class Anim4DState(specs: List[ObjectSpec], slotsPerSpec: Vector[Vector[MeshSlot]])
   final case class VideoTextureSlot(
     videoTexture: VideoTexture,
-    textureIndices: Vector[Int],
+    textureIndices: Vector[TextureIndex],
     source: VideoFrameSource
   )
   final case class VideoTextureState(specs: List[ObjectSpec], slots: Vector[VideoTextureSlot])
   final case class EnvMapVideoState(
     specs: List[ObjectSpec],
     envMapVideo: EnvMapVideo,
-    textureIndex: Int,
+    textureIndex: TextureIndex,
     source: VideoFrameSource
   )
 
@@ -528,19 +592,20 @@ object WithAnimation:
     * tesseract-sponge-2). Recursive-IAS sponges and non-4D meshes block the
     * fast path because their slot mapping isn't 1:1. */
   def is4DOnlyTriangleMeshScene(specs: List[ObjectSpec]): Boolean =
-    specs.nonEmpty && specs.forall(s => ObjectType.isProjected4D(s.objectType))
+    specs.nonEmpty && specs.forall(s =>
+      // Edge tubes are not part of the in-place mesh path (TriangleMeshSceneBuilder ignores
+      // them): an edged scene takes the full build, which has them (session 4, F97).
+      ObjectType.isProjected4D(s.objectType) && !s.hasEdgeRendering
+    )
 
-  /** True iff the two spec lists have the same length and differ only in
-    * `Projection4DSpec` (and at least one element actually differs there). */
-  def specsDifferOnlyIn4DProjection(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
-    if prev.length != next.length then false
-    else
-      val pairs = prev.zip(next)
-      val anyDiffs = pairs.exists { case (a, b) => a.projection4D != b.projection4D }
-      val onlyProjDiffs = pairs.forall { case (a, b) =>
-        a.copy(projection4D = None) == b.copy(projection4D = None)
-      }
-      anyDiffs && onlyProjDiffs
+  /** True iff the two spec lists have the same length and differ at most in
+    * `Projection4DSpec`. Identical lists are true: a frame that changed nothing (the hold phase
+    * of an animation) has nothing to update; it was rebuilt, 1.1 s for an edged sponge (session
+    * 6, menger#129). */
+  def specsDifferAtMostIn4DProjection(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
+    // A w-scale change is a different mesh, not a re-projection (menger#65).
+    prev.length == next.length &&
+      prev.lazyZip(next).forall((a, b) => a.withoutView == b.withoutView)
 
   def specsCanReuseVideoTextureSlots(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
     prev == next && prev.exists(_.videoTexture.nonEmpty)

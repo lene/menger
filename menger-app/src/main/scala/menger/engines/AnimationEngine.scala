@@ -1,7 +1,5 @@
 package menger.engines
 
-import io.github.lene.optix.CameraState
-import io.github.lene.optix.SceneConfigurator
 import menger.common.CausticsConfig
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
@@ -9,6 +7,10 @@ import menger.config.ExecutionConfig
 import menger.config.TAnimationConfig
 import menger.dsl.DenoiseMode
 import menger.dsl.Scene
+import menger.engines.scene.SceneBuilder
+import menger.optix.CameraState
+import menger.optix.SceneConfigurator
+import menger.spec.ObjectSpec
 
 class AnimationEngine(
   val sceneFunction: Float => Scene,
@@ -16,10 +18,18 @@ class AnimationEngine(
   executionConfig: ExecutionConfig,
   override val renderConfig: RenderConfig,
   val causticsConfig: CausticsConfig,
-  denoiseModeOverride: Option[DenoiseMode] = None
+  denoiseModeOverride: Option[DenoiseMode] = None,
+  userSetMaxInstances: Boolean = false
 )(using ProfilingConfig)
     extends BaseEngine(executionConfig.maxInstances)
     with WithAnimation with SavesScreenshots:
+
+  // Sized like the window: with the fixed budget an edge scene the window shows was refused
+  // ("requires N instances but limit is 64"), so it could not be exported (msa#56).
+  override protected def computeEffectiveMaxInstances(
+    builder: SceneBuilder,
+    specs: List[ObjectSpec]
+  ): Int = autoAdjustedMaxInstances(builder, specs, userSetMaxInstances)
 
   override protected def textureDir: String = executionConfig.textureDir
 

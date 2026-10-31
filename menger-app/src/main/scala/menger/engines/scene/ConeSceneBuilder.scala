@@ -3,9 +3,9 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
 import menger.common.TransformUtil
 import menger.common.Vector
+import menger.spec.ObjectSpec
 
 /**
  * Scene builder for cone primitives.
@@ -52,10 +52,7 @@ class ConeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
       val r = spec.radius.getOrElse(spec.size / 2f)
       val apex = Vector[3](ax, ay, az)
       val base = Vector[3](bx, by, bz)
-      val instanceId = requireInstanceId(
-        renderer.addConeInstance(apex, base, r, material),
-        s"cone instance at apex=($ax,$ay,$az)"
-      )
+      val instanceId = renderer.addConeInstance(apex, base, r, material)
       applyInstanceTextures(instanceId, spec, textureIndices, renderer)
       logger.debug(s"Added cone instance $instanceId at apex=($ax,$ay,$az) base=($bx,$by,$bz) radius=$r")
     }

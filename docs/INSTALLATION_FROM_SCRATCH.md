@@ -7,54 +7,55 @@ The development stack — CUDA, OptiX, NVIDIA driver, Java, sbt — is installed
 ### Clone Repository
 
 ```bash
-git clone https://gitlab.com/lilacashes/menger.git
+git clone https://github.com/lene/menger.git   # GitHub is origin; GitLab is a read-only mirror
 cd menger
 ```
 
 ### First Build (Downloads Dependencies)
 
-The first build will download Scala, dependencies, and compile native code. This takes 5-10 minutes:
+The first build downloads Scala and dependencies and compiles native code. This takes 5-10 minutes:
 
 ```bash
-# Compile project (includes C++/CUDA OptiX JNI)
 sbt compile
 ```
 
 **What happens:**
-1. sbt downloads Scala 3.7.3 and project dependencies
-2. CMake configures OptiX JNI build
-3. nvcc compiles CUDA shaders (`.cu` → `.ptx`)
-4. g++ compiles C++ JNI bindings
-5. Creates `liboptixjni.so` shared library
+1. sbt downloads Scala 3 (version pinned in `build.sbt`, currently 3.8.3) and the dependencies —
+   including the published artifacts `io.github.lene:optix-jni` (generic OptiX ray tracing,
+   ships its own native library) and `io.github.lene:menger-common`. Neither is built here.
+2. CMake configures the **menger-geometry** native build (`menger-geometry/src/main/native`)
+3. nvcc compiles the Menger-specific 4D CUDA programs (→ `menger_4d.ptx`)
+4. g++ compiles the video-decoding JNI bindings (libav) into `libmengergeometry.so`
+
+To change optix-jni or menger-common, work in their own repos and bump the released version pin
+in `build.sbt` — see the workspace `CLAUDE.md`.
 
 ### Run Tests
 
 ```bash
-# Run all tests (menger + optix-jni)
-# Use xvfb-run for headless execution
-# Set __GL_THREADED_OPTIMIZATIONS=0 to prevent NVIDIA driver threading crashes
+# Set __GL_THREADED_OPTIMIZATIONS=0 to prevent NVIDIA driver threading crashes under xvfb
 export __GL_THREADED_OPTIMIZATIONS=0
 xvfb-run sbt test
 ```
 
-**Expected output:**
-- 16 C++ tests (OptiX context tests)
-- 80+ Scala tests (rendering, physics, integration)
-- All tests should pass
+Expect roughly 2,000+ Scala tests, all passing. Before pushing, run the full gate instead —
+`./.git_hooks/pre-push` (tests, scalafix, packaging, integration renders, coverage, memory
+checks; ~8–10 minutes). See [TESTING.md](TESTING.md).
 
 ### Run Application
 
+Every run needs `--objects` or `--scene`:
+
 ```bash
-# Interactive mode (requires display)
-sbt run
+# Interactive window (requires a display)
+sbt "run --objects type=sphere:size=1.5:material=glass --plane y:-2"
 
-# Headless mode with OptiX sphere rendering
+# Headless smoke test
 export __GL_THREADED_OPTIMIZATIONS=0
-xvfb-run sbt "run --optix --objects type=sphere:size=1:material=glass --timeout 0.1"
+xvfb-run -a sbt "run --objects type=sphere:size=1:material=glass --timeout 0.1"
 
-# Render and save image
-export __GL_THREADED_OPTIMIZATIONS=0
-xvfb-run sbt "run --optix --objects type=sphere:size=1.5:material=glass --timeout 1.0 --save-name sphere.png"
+# Render and save an image
+xvfb-run -a sbt "run --objects type=sphere:size=1.5:material=glass --headless --save-name sphere.png"
 ```
 
 ## Troubleshooting
@@ -72,7 +73,7 @@ OptiX call failed: Invalid OptiX version (error code 718)
 1. Check driver version: `nvidia-smi`
 2. Check driver's OptiX version: `strings /usr/lib/x86_64-linux-gnu/libnvoptix.so.* | grep "OptiX Version"`
 3. Install matching SDK (9.0 for driver 580.x+, 8.0 for driver 535-575.x)
-4. Clean rebuild: `rm -rf optix-jni/target/native && sbt compile`
+4. Clean rebuild: `sbt clean compile`
 
 ### cuda.h Not Found
 
@@ -117,32 +118,23 @@ ls $OPTIX_ROOT/include/optix.h
 
 **Symptom:**
 ```
-RuntimeException: PTX file not found: sphere_combined.ptx
+RuntimeException: PTX file not found: menger_4d.ptx
 ```
 
-**Cause**: `sbt clean` removes compiled PTX shaders but they're needed at runtime.
+**Cause**: `sbt clean` removes the compiled menger-geometry PTX, which is needed at runtime.
 
-**Solution**:
-```bash
-# Rebuild project after clean
-sbt compile
-
-# Or manually copy PTX to expected location
-mkdir -p target/native/x86_64-linux/bin
-cp optix-jni/target/classes/native/x86_64-linux/sphere_combined.ptx \
-    target/native/x86_64-linux/bin/
-```
+**Solution**: rebuild with `sbt compile`. (The generic OptiX shaders ship inside the
+`optix-jni` jar and are not affected by `sbt clean`.)
 
 ### Permission Errors After Docker Build
 
-**Symptom**: Files in `optix-jni/target/` owned by root, can't delete locally.
+**Symptom**: Files in `menger-geometry/target/` owned by root, can't delete locally.
 
 **Cause**: Docker containers run as root.
 
 **Solution**:
 ```bash
-# Use pkexec instead of sudo (per CLAUDE.md)
-pkexec chown -R $USER:$USER optix-jni/target/
+pkexec chown -R $USER:$USER menger-geometry/target/
 ```
 
 ### Out of Memory During Compilation
@@ -165,10 +157,10 @@ sudo swapon /swapfile
 
 ## Additional Resources
 
-- **Architecture**: See [ARCHITECTURE.md](ARCHITECTURE.md) for code structure
-- **OptiX Physics**: See [PHYSICS.md](PHYSICS.md) for rendering equations
-- **CI/CD Setup**: See [CI_CD.md](CI_CD.md) for Docker image and runner configuration
-- **GPU Development**: See [GPU_DEVELOPMENT.md](GPU_DEVELOPMENT.md) for AWS EC2 setup
+- **Architecture**: workspace arc42 docs, `../docs/arc42/README.md` (in menger-toplevel)
+- **Rendering physics / caustics**: [caustics/CAUSTICS.md](caustics/CAUSTICS.md)
+- **CI runners**: `../infra/RUNNER_SETUP.md` (in menger-toplevel)
+- **GPU development on AWS**: [guide/cloud.md](guide/cloud.md)
 - **Troubleshooting**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for complete troubleshooting guide
 
 ## Quick Reference
@@ -183,7 +175,7 @@ export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 # Common commands
 sbt compile              # Build project
 sbt test                 # Run all tests
-sbt run                  # Run application
+sbt "run --objects type=sphere"   # Run application (needs --objects or --scene)
 sbt clean                # Clean build artifacts
 xvfb-run sbt test        # Headless test execution
 ```

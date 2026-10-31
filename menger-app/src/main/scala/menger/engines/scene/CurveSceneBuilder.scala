@@ -3,8 +3,8 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectRotation
-import menger.ObjectSpec
+import menger.spec.ObjectRotation
+import menger.spec.ObjectSpec
 
 class CurveSceneBuilder(textureDir: String = ".") extends SceneBuilder:
 
@@ -41,10 +41,7 @@ class CurveSceneBuilder(textureDir: String = ".") extends SceneBuilder:
       val cd = spec.curveData.get
       val material = MaterialExtractor.extract(spec)
       val (paddedPoints, paddedWidths) = padToMinPoints(cd.points, cd.widths, 4)
-      requireInstanceId(
-        renderer.addCurveInstance(paddedPoints.toArray, paddedWidths.toArray, material),
-        s"curve instance (${paddedPoints.length / 3} control points)"
-      )
+      renderer.addCurveInstance(paddedPoints.toArray, paddedWidths.toArray, material)
     }
 
   private def padToMinPoints(

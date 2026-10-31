@@ -1,7 +1,7 @@
 package menger.engines
 
-import menger.ObjectSpec
-import menger.common.ObjectType
+import menger.spec.ObjectSpec
+import menger.spec.ObjectType
 
 enum SceneType:
   case TriangleMeshes(specs: List[ObjectSpec])
@@ -29,14 +29,17 @@ object RenderModeSelector:
     else
       val hasAnalytical = types.exists(ObjectType.isAnalyticalPrimitive)
       val hasCubeSponge = types.contains("cube-sponge")
+      val hasIFS4D      = types.exists(ObjectType.isIFS4D)
       val otherTypes    = types.filterNot(t =>
         ObjectType.isAnalyticalPrimitive(t) || t == "cube-sponge")
+      // SceneGroups.buildOrder gives each IFS fractal type its own group (menger#134).
+      val mixable = otherTypes.forall(t => ObjectType.isTriangleMesh(t) || ObjectType.isIFS4D(t))
 
       if types.forall(_ == "curve") then
         SceneType.Curves(specs)
       else if types.forall(ObjectType.isTriangleMesh) then
         SceneType.TriangleMeshes(specs)
-      else if (hasAnalytical || hasCubeSponge) && otherTypes.forall(ObjectType.isTriangleMesh) then
+      else if (hasAnalytical || hasCubeSponge || hasIFS4D) && mixable then
         val tag = otherTypes.headOption.getOrElse(
           if hasCubeSponge then "cube-sponge"
           else types.find(ObjectType.isAnalyticalPrimitive).get

@@ -98,6 +98,23 @@ class SceneConverterSuite extends AnyFlatSpec with Matchers:
     result.toneMappingOperator shouldBe 2
     result.toneMappingExposure shouldBe 1.5f
 
+  // Usability review 2026-09 (T2#8): RenderSettings.toRenderConfig alone never carried tone
+  // mapping (a separate top-level Scene field), so any consumer that applied configs.render
+  // directly to the renderer (an animation frame after the first, --preview, the F5 live-
+  // reload path) reset tone mapping to off. SceneConfigs.toneMappingOperator/Exposure (tested
+  // above) were always right; the RenderConfig embedded in .render was not.
+  it should "fold the scene's toneMapping into the embedded RenderConfig, not just the top-level fields" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass))
+      .copy(render = Some(RenderSettings.Default), toneMapping = ToneMapping.ACES(1.5f))
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.render.map(_.toneMappingOperator) shouldBe Some(2)
+    result.render.map(_.toneMappingExposure) shouldBe Some(1.5f)
+
+  it should "embed toneMappingOperator=0 in RenderConfig when the scene has no toneMapping" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass)).copy(render = Some(RenderSettings.Default))
+    val result = SceneConverter.convert(scene, fallbackCaustics)
+    result.render.map(_.toneMappingOperator) shouldBe Some(0)
+
   it should "handle objects without materials" in:
     val sphere = Sphere()
     val cube = Cube()

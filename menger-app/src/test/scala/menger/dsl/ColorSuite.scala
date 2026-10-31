@@ -7,6 +7,14 @@ import org.scalatest.matchers.should.Matchers
 
 class ColorSuite extends AnyFlatSpec with Matchers:
 
+  "Color.tint" should "set the alpha of a refractive material's colour as its absorption" in:
+    val tint = Color.tint(0.8f, 0.06f, 0.12f, absorption = 0.05f)
+    tint shouldBe Color(0.8f, 0.06f, 0.12f, 0.05f)
+    tint.a shouldBe 0.05f
+
+  it should "reject an absorption outside [0, 1]" in:
+    an[IllegalArgumentException] should be thrownBy Color.tint(0.5f, 0.5f, 0.5f, absorption = 1.5f)
+
   "Color" should "be constructible with r, g, b components" in:
     val c = Color(1f, 0f, 0.5f)
     c.r shouldBe 1f

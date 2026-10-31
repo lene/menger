@@ -2,8 +2,8 @@ package examples.dsl
 
 import scala.language.implicitConversions
 
-import menger.Projection4DSpec
 import menger.dsl._
+import menger.spec.Projection4DSpec
 
 /**
  * Animated 4D Sierpinski pentachoron: film body + copper edges, HDR background.
@@ -38,7 +38,7 @@ object SierpinskiHDRRotation:
         lookAt   = (0f, 0f, 0f)
       ),
       objects = List(
-        Sierpinski4D(
+        PentachoronGasket(
           level       = Level,
           material    = Some(Material.Film),
           size        = 2.0f,

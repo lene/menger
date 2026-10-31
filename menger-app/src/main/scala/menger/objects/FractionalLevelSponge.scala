@@ -9,27 +9,18 @@ trait FractionalLevelSponge:
   def scale: Float
   def level: Float
 
-  /** Merge next-level and current-level meshes into a single fractional-level mesh.
-   *  Expands currentLevelMesh outward along normals to prevent z-fighting, then
-   *  blends the two meshes using per-vertex alpha based on the fractional part of level:
-   *  nextLevel is fully opaque, currentLevel (skin) alpha = 1 - fractionalPart. */
+  /** Merge the next-level mesh with the hole caps of the current level into a single
+   *  fractional-level mesh: nextLevel is fully opaque, the caps (`HoleCaps`) have
+   *  alpha = 1 - fractionalPart, so the new holes fade in. Only the caps fade, not the whole
+   *  current-level surface: that used to be laid 0.0003 outside the next level and caused
+   *  speckle, double refraction on glass and shifted procedural colours (usability review
+   *  2026-09, session 2, F35/F41). */
   protected def buildFractionalMesh(
     nextLevelMesh: TriangleMeshData,
     currentLevelMesh: TriangleMeshData
   ): TriangleMeshData =
     val alphaTransparent = 1.0f - (level - level.floor)
-    val expanded = TriangleMeshData.expandAlongNormals(currentLevelMesh, FractionalLevelSponge.SkinNormalOffset)
     TriangleMeshData.merge(Seq(
       TriangleMeshData.withAlpha(nextLevelMesh, 1.0f),
-      TriangleMeshData.withAlpha(expanded, alphaTransparent)
+      TriangleMeshData.withAlpha(HoleCaps.of(currentLevelMesh), alphaTransparent)
     ))
-
-  
-object FractionalLevelSponge:
-  /** Absolute world-space offset applied outward along normals to skin faces in fractional-level
-   *  rendering, to prevent z-fighting with the underlying sponge faces at non-hole positions.
-   *  The skin mesh is expanded by this amount so the continuation ray (tmin =
-   *  COVERAGE_CONTINUATION_OFFSET = 0.0001f) can reach the sponge face just behind it.
-   *  Value = 3 * COVERAGE_CONTINUATION_OFFSET = 0.0003f: sub-pixel at typical renders,
-   *  ~3% of sub-cube width at level 4, ~9% at level 5. */
-  val SkinNormalOffset: Float = 0.0003f

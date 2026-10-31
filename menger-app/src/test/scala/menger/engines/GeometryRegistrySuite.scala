@@ -1,7 +1,5 @@
 package menger.engines
 
-import menger.ObjectSpec
-import menger.common.ObjectType
 import menger.common.ProfilingConfig
 import menger.engines.scene.CubeSpongeSceneBuilder
 import menger.engines.scene.IFS4DType
@@ -9,6 +7,8 @@ import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SphereSceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
 import menger.engines.scene.TriangleMeshSceneBuilder
+import menger.spec.ObjectSpec
+import menger.spec.ObjectType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -54,6 +54,15 @@ class OrbitCamera(
   def currentLookAt: Vector3 = lookAt.cpy()
   def currentUp: Vector3     = up.cpy()
 
+  /** Jump to a new camera, e.g. when a reloaded scene file moved it. */
+  def reset(newEye: Vector3, newLookAt: Vector3, newUp: Vector3): Unit =
+    eye.set(newEye)
+    lookAt.set(newLookAt)
+    up.set(newUp)
+    val (newAzimuth, newElevation, newDistance) = initSpherical(newEye, newLookAt)
+    spherical = SphericalCoords(newAzimuth, newElevation, newDistance)
+    dragState = None
+
   /** Apply orbit (azimuth/elevation) from mouse drag delta. */
   def orbit(deltaX: Int, deltaY: Int): Unit =
     updateOrbit(deltaX, deltaY)

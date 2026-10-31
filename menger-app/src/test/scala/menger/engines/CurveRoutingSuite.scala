@@ -1,9 +1,9 @@
 package menger.engines
 
-import menger.CurveData
-import menger.ObjectSpec
 import menger.common.ProfilingConfig
 import menger.engines.scene.CurveSceneBuilder
+import menger.spec.CurveData
+import menger.spec.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

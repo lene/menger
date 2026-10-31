@@ -2,7 +2,7 @@ package menger.caustics
 
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.CausticsStats
-import io.github.lene.optix.MengerRenderer
+import menger.geometry.MengerRenderer
 import io.github.lene.optix.OptiXRenderer
 import menger.common.Color
 import menger.common.ImageSize

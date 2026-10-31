@@ -3,15 +3,14 @@ package menger.input
 import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.math.Vector3
 import com.typesafe.scalalogging.LazyLogging
-import io.github.lene.optix.CameraState
-import io.github.lene.optix.OptiXRendererWrapper
-import menger.OptiXRenderResources
-import menger.RotationProjectionParameters
 import menger.common.Const
 import menger.common.MouseButton
 import menger.common.OrbitConfig
 import menger.common.ScreenCoords
 import menger.input.Vector3Extensions.toVector3
+import menger.objects.higher_d.RotationProjectionParameters
+import menger.optix.CameraState
+import menger.optix.OptiXRendererWrapper
 
 /**
  * Camera/mouse input handler for OptiX ray-traced rendering mode.
@@ -74,7 +73,7 @@ class OptiXCameraHandler(
   override protected def handleScroll(amountX: Float, amountY: Float): Boolean =
     if isShiftPressed then
       val eyeW = computeEyeW(amountY)
-      dispatcher.notifyObservers(RotationProjectionParameters(0, 0, 0, eyeW))
+      dispatcher.notifyObservers(RotationProjectionParameters(eyeW = Some(eyeW)))
     else
       handleZoom(amountY)
     true // Consume all scroll events: single-handler setup, no other handler should act on scroll.
@@ -89,6 +88,10 @@ class OptiXCameraHandler(
 
   private def handleZoom(scrollAmount: Float): Unit =
     camera.zoom(scrollAmount)
+    updateCamera()
+
+  def setCamera(eye: Vector3, lookAt: Vector3, up: Vector3): Unit =
+    camera.reset(eye, lookAt, up)
     updateCamera()
 
   private def updateCamera(): Unit =

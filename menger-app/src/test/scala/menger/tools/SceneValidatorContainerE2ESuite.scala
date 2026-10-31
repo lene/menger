@@ -17,7 +17,7 @@ import scala.util.Try
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-/** Real end-to-end test of the AD-18 sandbox -- the story's own acceptance criterion ("one
+/** Real end-to-end test of the SA-AD-18 sandbox -- the story's own acceptance criterion ("one
   * real end-to-end test actually running the container against a known-good scene and a
   * known-bad one," `spec-ai-scene-agent/stories/5-gauntlet-renderer-side.md`'s Tasks &
   * Acceptance) as an automated test, not a manual step performed once. Actually shells out to
@@ -35,7 +35,10 @@ import org.scalatest.matchers.should.Matchers
   */
 class SceneValidatorContainerE2ESuite extends AnyFlatSpec with Matchers:
 
-  private val ImageTag = "menger-scene-validator:latest"
+  // CI sets MENGER_SCENE_VALIDATOR_IMAGE to a CI-only tag so its nightly build never replaces a
+  // developer's :latest image on the shared Docker daemon (usability session 3, F70).
+  private val ImageTag =
+    sys.env.getOrElse("MENGER_SCENE_VALIDATOR_IMAGE", "menger-scene-validator:latest")
 
   /** Upper bound on one sandboxed run. `run-sandboxed.sh` enforces its own 120s wall clock and
     * now tears the container down itself, but a test must never depend on the thing it is
@@ -88,7 +91,8 @@ class SceneValidatorContainerE2ESuite extends AnyFlatSpec with Matchers:
       line => { out.append(line); out.append("\n"); () },
       line => { out.append(line); out.append("\n"); () }
     )
-    val running = Process(Seq(script.getAbsolutePath, sceneFile.getAbsolutePath)).run(logger)
+    val command = Seq(script.getAbsolutePath, sceneFile.getAbsolutePath, "--image", ImageTag)
+    val running = Process(command).run(logger)
     val finished = Future(running.exitValue())(ExecutionContext.global)
     val exitCode =
       try Await.result(finished, Duration(RunTimeoutSeconds, SECONDS))
@@ -106,7 +110,7 @@ class SceneValidatorContainerE2ESuite extends AnyFlatSpec with Matchers:
     assume(script.isDefined, "docker/scene-validator/run-sandboxed.sh not found -- skipping")
     assume(imageBuilt, s"$ImageTag not built (run docker/scene-validator/build.sh first) -- skipping")
 
-  "the real AD-18 sandbox" should "return ok for a known-good scene run through the real container" in:
+  "the real SA-AD-18 sandbox" should "return ok for a known-good scene run through the real container" in:
     val script = findRunScript()
     assumeSandboxAvailable(script)
 

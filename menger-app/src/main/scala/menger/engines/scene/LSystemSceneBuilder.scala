@@ -3,9 +3,10 @@ package menger.engines.scene
 import scala.util.Try
 
 import io.github.lene.optix.OptiXRenderer
-import menger.ObjectSpec
 import menger.objects.LSystemGrammar
 import menger.objects.LSystemPresets
+import menger.spec.ObjectSpec
+import menger.spec.Projection4DSpec
 
 /** Sealed sub-builder type — compile-time safety replacing raw String dispatch (A4, Sprint 32). */
 enum SubBuilderType:
@@ -55,7 +56,7 @@ class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
     val rewritten = grammar.rewrite(level)
 
     if spec.lsystemDim == 4 then
-      val proj4D = spec.projection4D.getOrElse(menger.Projection4DSpec.default)
+      val proj4D = spec.projection4D.getOrElse(Projection4DSpec.default)
       val turtle = LSystemTurtle4D(
         rewritten,
         if spec.lsystemAngle.isDefined then angle else defAngle,
@@ -63,9 +64,9 @@ class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
         initWidth * size,
         decay,
         seed,
-        rotXW = proj4D.rotXW,
-        rotYW = proj4D.rotYW,
-        rotZW = proj4D.rotZW,
+        rotXW = proj4D.rotXW.value,
+        rotYW = proj4D.rotYW.value,
+        rotZW = proj4D.rotZW.value,
         eyeW = proj4D.eyeW,
         screenW = proj4D.screenW
       )

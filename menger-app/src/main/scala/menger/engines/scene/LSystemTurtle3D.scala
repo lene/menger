@@ -3,12 +3,13 @@ package menger.engines.scene
 import scala.annotation.tailrec
 import scala.util.Try
 
-import menger.CurveData
-import menger.ObjectSpec
 import menger.common.Color
 import menger.common.Material
 import menger.dsl.Vec3
 import menger.objects.LSystemGrammar
+import menger.spec.ConeGeometry
+import menger.spec.CurveData
+import menger.spec.ObjectSpec
 
 private case class TurtleState3D(
   pos: Vec3,
@@ -372,7 +373,7 @@ class LSystemTurtle3D(
       objectType = "cone",
       x = pos.x, y = pos.y, z = pos.z,
       size = diameter,
-      cone = menger.ConeGeometry(
+      cone = ConeGeometry(
         apex = Some(apexPt),
         base = Some(basePt),
         radius = Some(diameter / 2f)

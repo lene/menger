@@ -1,21 +1,22 @@
 package menger
 
 import com.badlogic.gdx.graphics.Color
+import menger.cli.ObjectSpecParser
 import menger.common.Axis
-import menger.common.PlaneSpec
-import menger.config.PlaneConfig
 import menger.common.Const
+import menger.common.PlaneSpec
+import menger.common.ProfilingConfig
+import menger.common.RenderConfig
 import menger.common.Vector
 import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
 import menger.config.ExecutionConfig
 import menger.config.MaterialConfig
 import menger.config.OptiXEngineConfig
+import menger.config.PlaneConfig
 import menger.config.SceneConfig
-import menger.engines.InteractiveEngine
-import menger.common.ProfilingConfig
-import menger.common.RenderConfig
 import menger.dsl.DenoiseMode
+import menger.engines.InteractiveEngine
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -32,7 +33,7 @@ class InteractiveEngineSuite extends AnyFlatSpec with Matchers:
     val colorHex =
       f"#${(color.r * 255).toInt}%02X${(color.g * 255).toInt}%02X${(color.b * 255).toInt}%02X"
     val objectSpec =
-      ObjectSpec.parse(
+      ObjectSpecParser.parse(
         s"type=sphere:pos=0,0,0:size=${radius * 2}:color=$colorHex:ior=$ior"
       ) match
         case Left(error) => sys.error(s"Failed to parse object spec: $error")

@@ -1,7 +1,9 @@
 package menger.engines.scene
 
-import io.github.lene.optix.MengerRenderer
-import menger.ObjectSpec
+import io.github.lene.optix.OptiXException
+import menger.cli.ObjectSpecParser
+import menger.geometry.MengerRenderer
+import menger.spec.ObjectSpec
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -13,7 +15,7 @@ import org.scalatest.matchers.should.Matchers
   * fractional, mixed), and the native-failure path. */
 class Instanced4DSceneBuilderSuite extends AnyFlatSpec with Matchers with MockFactory:
 
-  private def spec(s: String): ObjectSpec = ObjectSpec.parse(s).toOption.get
+  private def spec(s: String): ObjectSpec = ObjectSpecParser.parse(s).toOption.get
 
   IFS4DType.all.foreach { ifsType =>
 
@@ -57,19 +59,23 @@ class Instanced4DSceneBuilderSuite extends AnyFlatSpec with Matchers with MockFa
       builder.calculateInstanceCount(specs) shouldBe 4L
   }
 
-  // Menger4d is the only IFS type with recursion-depth bounds (must match
-  // MAX_4D_LEVEL in OptiXWrapper.cpp). Sierpinski/Hexadecachoron are unbounded.
-  "Instanced4DSceneBuilder(menger4d).validate" should "reject level above max (14)" in:
-    val builder = Instanced4DSceneBuilder(IFS4DType.Menger4D)
-    val result = builder.validate(List(spec("type=menger4d:level=15")), maxInstances = 10)
-    result shouldBe a[Left[String, Unit]]
-    result.left.getOrElse("") should include("[0, 14]")
+  // All three IFS types share the same recursion-depth ceiling (ResourceLimits.ifs4dMaxLevel,
+  // 14). Sierpinski4D/Hexadecachoron4D had none before the usability review 2026-09 (T1#3) --
+  // each shader's own traversal stack guards against overflow, but silently prunes rather than
+  // rendering what was asked for.
+  IFS4DType.all.foreach { ifsType =>
+    s"Instanced4DSceneBuilder(${ifsType.name}).validate" should "reject level above max (14)" in:
+      val builder = Instanced4DSceneBuilder(ifsType)
+      val result = builder.validate(List(spec(s"type=${ifsType.name}:level=15")), maxInstances = 10)
+      result shouldBe a[Left[String, Unit]]
+      result.left.getOrElse("") should include("[0, 14]")
 
-  it should "reject fractional level whose floor+1 exceeds max (14)" in:
-    val builder = Instanced4DSceneBuilder(IFS4DType.Menger4D)
-    val fracOver = spec("type=menger4d:level=1").copy(level = Some(14.5f))
-    val result = builder.validate(List(fracOver), maxInstances = 10)
-    result shouldBe a[Left[String, Unit]]
+    it should "reject fractional level whose floor+1 exceeds max (14)" in:
+      val builder = Instanced4DSceneBuilder(ifsType)
+      val fracOver = spec(s"type=${ifsType.name}:level=1").copy(level = Some(14.5f))
+      val result = builder.validate(List(fracOver), maxInstances = 10)
+      result shouldBe a[Left[String, Unit]]
+  }
 
   "Instanced4DSceneBuilder(menger4d).buildScene" should "fail when native instance creation fails" in:
     val renderer = mock[MengerRenderer]
@@ -79,10 +85,13 @@ class Instanced4DSceneBuilderSuite extends AnyFlatSpec with Matchers with MockFa
       recorder = (_: Int, instanceId: InstanceId) => recorded += instanceId
     )
 
-    (renderer.addMenger4DInstance _).expects(*, *, *, *, *, *, *, *, *, *).returning(-1).once()
+    // optix-jni 0.5.0 throws when an add fails (it returned -1, which menger checked itself).
+    (renderer.addMenger4DInstance _).expects(*, *, *, *, *, *, *, *, *, *)
+      .throwing(new OptiXException("addCustomGeometryInstance failed with code -1")).once()
 
     val result = builder.buildScene(List(spec("type=menger4d:level=1")), renderer, maxInstances = 10)
 
     result.isFailure shouldBe true
-    result.failed.get.getMessage should include("Native renderer failed to add menger4d instance")
+    result.failed.get shouldBe an[OptiXException]
+    result.failed.get.getMessage should include("addCustomGeometryInstance failed")
     recorded shouldBe empty

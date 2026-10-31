@@ -13,6 +13,15 @@ name: CI
 #   • nvidia driver with the RTX core lib (libnvidia-rtcore.so.1) resolvable — see
 #     docs/TROUBLESHOOTING.md. Persistent host setup, not per-run apt-get (no sudo in CI).
 #
+#
+# ── FORK PRs (security review 2026-10-14, menger-toplevel#83) ──
+# Every self-hosted job carries `if: !github.event.pull_request.head.repo.fork`: a pull request
+# from a fork never runs on the self-hosted GPU runners (they run as the maintainer's user on the
+# maintainer's machines). Fork PRs get only the GitHub-hosted checks; run the GPU suite on a
+# same-repo branch before merging one. The guard lives in this file, so a fork PR can delete it —
+# the real gate is the repo's "require approval for all external contributors" setting: before
+# approving a fork PR's run, check its changes to .github/, build.sbt, project/ and scripts/.
+#
 # ── SECRETS ──  SONAR_TOKEN (sonar job), GITHUB token is automatic.
 # ── DROPPED vs GitLab (intentional) ──
 #   • PushToGithub / mirror — reversed: GitHub is origin now; mirror-to-gitlab.yml backs up GitLab.
@@ -38,7 +47,7 @@ concurrency:
 env:
   # Single source of the version (was .gitlab-ci.yml DEPLOYABLE_VERSION). The
   # /release-checklist skill + pre-push 4-file consistency check must be repointed here.
-  DEPLOYABLE_VERSION: "0.9.0"
+  DEPLOYABLE_VERSION: "0.9.1"
   DEPLOYABLE_BASE_NAME: menger
   SCALA_VERSION: "3.8.3"
   __GL_THREADED_OPTIMIZATIONS: "0"   # SIGBUS workaround in libnvidia-glcore glfwDestroyWindow
@@ -119,6 +128,7 @@ jobs:
   # ── quality + tests (need CUDA to compile menger-geometry native → nvidia host) ──
   scalafix:
     name: Scalafix
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     steps:
@@ -131,6 +141,7 @@ jobs:
 
   test-full:
     name: Test (full suite, GPU)
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
     env:
@@ -155,6 +166,7 @@ jobs:
     # already ran (bundled into unit.sh, part of test-full) but had no named, required job —
     # promoted to one, matching menger-common/optix-jni's existing named archunit jobs.
     name: ArchUnit
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     steps:
@@ -165,6 +177,7 @@ jobs:
 
   integration:
     name: OptiX Integration (packaged app, GPU)
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
     env:
@@ -194,6 +207,7 @@ jobs:
     # hook — a push from a machine without cppcheck/clang-tidy installed, or with
     # --no-verify, shipped native changes with zero CI-side safety net for them. See
     # the Sprint 36 Phase B plan and docs/QA_INCIDENTS.md.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     env:
@@ -210,6 +224,7 @@ jobs:
     name: Memory safety (Valgrind + compute-sanitizer, GPU)
     # New job (Sprint 36 B4): same gap as native-checks above — memcheck existed only
     # locally before this.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
     env:
@@ -228,6 +243,7 @@ jobs:
     # pre-push hook actually checks (.coverage_baseline, statement rate only). O3's goal
     # is one suite definition shared by hook and CI; branch-rate tracking was CI-only
     # and is dropped here to match, not preserved as a second, hook-inconsistent gate.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 30
     env:
@@ -250,7 +266,7 @@ jobs:
     name: Run smoke (sponge types + animation, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
-    if: github.event_name != 'pull_request' || true
+    if: ${{ !github.event.pull_request.head.repo.fork && (github.event_name != 'pull_request' || true) }}
     env:
       HAS_RENDERING: "1"
     steps:
@@ -263,23 +279,27 @@ jobs:
 
   runtime:
     name: Runtime budget (GPU)
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 20
     env:
-      TEST_RUN_MAX_RUNNING_TIME: "60"   # seconds; was a GitLab CI variable
+      # Level-1 render run vs a --help run of the staged launcher, CPU user time, median of 5
+      # interleaved rounds (scripts/runtime-budget.sh). Relative, because the runner is a
+      # shared desktop: an absolute 60 s budget failed at 69-108 s on unchanged code under load.
+      # Measured on the RTX A1000 laptop (2026-10-03): median 1.86 / 1.99 under desktop load,
+      # 2.02 / 2.02 with all cores busy plus a 100% GPU burn; limit ~2x the highest.
+      RUNTIME_BUDGET_MAX_RATIO: "4.0"
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH
         run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
       - run: nvidia-smi
-      - name: Measure a level-1 render runtime against the budget
+      - name: Measure a level-1 render runtime relative to a reference run
         run: |
           set -euo pipefail
-          sbt compile
+          sbt mengerApp/stage
           unset OPTIX_ROOT || true
-          /usr/bin/time -f %U -o runtime.log xvfb-run -a sbt "mengerApp / run --objects type=sponge-volume:level=1 --timeout 0.1"
-          echo "user-time=$(cat runtime.log)  budget=${TEST_RUN_MAX_RUNNING_TIME}s"
-          [ "$(echo "$(cat runtime.log) > $TEST_RUN_MAX_RUNNING_TIME" | bc -l)" -eq 0 ]
+          ./scripts/runtime-budget.sh
 
   # SonarCloud analysis is handled by the SonarCloud GitHub App (automatic on PRs/pushes),
   # so there is no sonar job here — it would double-run. Config lives in sonar-project.properties.
@@ -299,6 +319,7 @@ jobs:
   # ── build + release ─────────────────────────────────────────────────────────
   build-deployable:
     name: Build deployable zip (GPU)
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 25
     steps:
@@ -316,11 +337,26 @@ jobs:
           name: menger-deployable
           path: ${{ env.DEPLOYABLE_BASE_NAME }}-${{ env.DEPLOYABLE_VERSION }}.zip
 
+  perf:
+    name: Performance gates (GPU)
+    if: ${{ !github.event.pull_request.head.repo.fork }}
+    runs-on: [self-hosted, Linux, X64, nvidia]
+    timeout-minutes: 30
+    needs: [test-full]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add CUDA to PATH
+        run: echo "/usr/local/cuda/bin" >> "$GITHUB_PATH"
+      - name: Run performance gates (scripts/suites/perf.sh)
+        run: ./scripts/suites/perf.sh
+
   perf-check:
     name: PerfCheck (benchmark vs baseline, GPU)
     runs-on: [self-hosted, Linux, X64, nvidia]
     timeout-minutes: 25
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+    # Also on main (a push, or the workflow_dispatch escape hatch): create-tag needs it, so a
+    # performance regression cannot be tagged and released (menger#87).
+    if: ${{ !github.event.pull_request.head.repo.fork && (github.event_name == 'pull_request' || github.event_name == 'schedule' || github.ref == 'refs/heads/main') }}
     needs: [build-deployable]
     steps:
       - uses: actions/checkout@v4
@@ -329,12 +365,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: menger-deployable
-      - name: Run benchmark
+      - name: Run benchmark trend check (scripts/suites/perf-trend.sh)
         run: |
           set -euo pipefail
           unzip -oq "menger-${DEPLOYABLE_VERSION}.zip"
           export LD_LIBRARY_PATH=/usr/local/cuda/lib64
-          ./scripts/benchmark.sh "./menger-app-${DEPLOYABLE_VERSION}/bin/menger-app"
+          ./scripts/suites/perf-trend.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -355,7 +391,7 @@ jobs:
     # Repo default GITHUB_TOKEN is read-only; pushing the tag needs write.
     permissions:
       contents: write
-    needs: [test-full, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck, archunit]
+    needs: [test-full, perf, perf-check, integration, run-smoke, runtime, build-deployable, scalafix, native-checks, memcheck, archunit]
     outputs:
       need_release: ${{ steps.tag.outputs.need_release }}
     steps:
@@ -415,7 +451,7 @@ jobs:
     permissions:
       contents: write
     needs: [create-tag]
-    if: needs.create-tag.outputs.need_release == 'true'
+    if: ${{ !github.event.pull_request.head.repo.fork && (needs.create-tag.outputs.need_release == 'true') }}
     steps:
       - uses: actions/checkout@v4
       - name: Add CUDA to PATH

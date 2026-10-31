@@ -1,28 +1,36 @@
 #!/usr/bin/env bash
-# AD-18's sandboxed run wrapper for the scene-validator image: no network egress, no Linux
+# SA-AD-18's sandboxed run wrapper for the scene-validator image: no network egress, no Linux
 # capabilities, an immutable root filesystem, resource/wall-clock bounds, and a mount topology
 # reduced to exactly one read-only file -- the scene under validation. Nothing else is mounted:
 # not the texture directory, not an output directory, and (this is load-bearing, not an
-# omission) no manifest/corpus artifact directory. AD-9 scopes the manifest+corpus artifact to
+# omission) no manifest/corpus artifact directory. SA-AD-9 scopes the manifest+corpus artifact to
 # the agent side only; a scene-validator run has no legitimate reason to read or write it.
 set -euo pipefail
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: run-sandboxed.sh <scene-file.scala> [--image <tag>]
+Usage: run-sandboxed.sh <scene-file.scala> [--image <tag>] [--expect-dsl-revision <hex>]
 
-Runs `menger.tools.SceneValidator` against <scene-file.scala> inside the AD-18 sandbox.
+Runs `menger.tools.SceneValidator` against <scene-file.scala> inside the SA-AD-18 sandbox.
 
   --image <tag>      Image to run (default: menger-scene-validator:latest -- see build.sh).
+  --expect-dsl-revision <hex>
+                     Refuse (tag `refused`, exit 2, nothing run) unless the image's
+                     `menger.dsl-content-revision` label is <hex> (the manifest's contentRevision): the caller's DSL and
+                     the image's must be the same build (usability review 2026-10, F99).
 
 Prints SceneValidator's tagged JSON result (ok | compile-errors | lint-findings | refused) to
 stdout. Exit codes mirror the validator's own: 0 for `ok`, 1 for a scene defect
-(compile-errors/lint-findings), 2 for `refused`. A run killed by the wall-clock timeout below
-exits 124 with no JSON -- callers should treat "no valid JSON on stdout" as its own failure
-mode, not just a non-zero exit.
+(compile-errors/lint-findings), 2 for `refused` -- including a usage error, as the validator's
+own (contracts/process-result.json). A run killed by the wall-clock timeout below exits 124
+with no JSON -- callers should treat "no valid JSON on stdout" as its own failure mode, not
+just a non-zero exit.
 USAGE
-  exit 1
+  refuse "run-sandboxed.sh: usage error (see stderr)"
 }
+
+# shellcheck source=refused-result.sh
+. "$(dirname "$(readlink -f "$0")")/refused-result.sh"   # refuse <message>: tagged JSON, exit 2
 
 # Review round 1 findings, both fixed here: no resource/time bounds on the sandboxed process
 # (a pathological or adversarial generated scene could hang or exhaust the host), and the
@@ -60,16 +68,31 @@ esac
 
 SCENE_FILE="$1"; shift
 IMAGE_TAG="menger-scene-validator:latest"
+EXPECTED_DSL_REVISION=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --image)    IMAGE_TAG="${2:?--image needs a tag}"; shift 2 ;;
+    --expect-dsl-revision)
+      EXPECTED_DSL_REVISION="${2:?--expect-dsl-revision needs a revision}"; shift 2 ;;
     -h|--help)  usage ;;
     *) echo "Unknown argument: $1" >&2; usage ;;
   esac
 done
 
-[ -f "$SCENE_FILE" ] || { echo "Scene file not found: $SCENE_FILE" >&2; exit 1; }
+[ -f "$SCENE_FILE" ] || refuse "Scene file not found: $SCENE_FILE"
+
+# F99: the image's version label is the app version, unchanged within a sprint, so a stale
+# image (re-tagged by CI from older sources) passed for current. build.sh labels the image with
+# the sha256 of the manifest it was built with; a caller holding a different manifest gets a
+# refusal it can show as is, instead of validating against an older DSL.
+if [ -n "$EXPECTED_DSL_REVISION" ]; then
+  IMAGE_DSL_REVISION="$(docker inspect -f '{{index .Config.Labels "menger.dsl-content-revision"}}' \
+    "$IMAGE_TAG" 2>/dev/null || true)"
+  if [ "$IMAGE_DSL_REVISION" != "$EXPECTED_DSL_REVISION" ]; then
+    refuse "validator image $IMAGE_TAG was built from a different DSL manifest (image: ${IMAGE_DSL_REVISION:-<no label>}, caller: $EXPECTED_DSL_REVISION); rebuild it: menger/docker/scene-validator/build.sh"
+  fi
+fi
 
 SCENE_FILE_ABS="$(cd "$(dirname "$SCENE_FILE")" && pwd)/$(basename "$SCENE_FILE")"
 SCENE_BASENAME="$(basename "$SCENE_FILE")"
@@ -78,17 +101,17 @@ SCENE_BASENAME="$(basename "$SCENE_FILE")"
 # or `=` is silently split into bogus mount options rather than mounting the file. Reject it
 # with a real message instead.
 case "$SCENE_FILE_ABS" in
-  *,*|*=*) echo "Scene path may not contain ',' or '=': $SCENE_FILE_ABS" >&2; exit 1 ;;
+  *,*|*=*) refuse "Scene path may not contain ',' or '=': $SCENE_FILE_ABS" ;;
 esac
 
-# --- Containment (AD-18) -------------------------------------------------------------------
+# --- Containment (SA-AD-18) -----------------------------------------------------------------
 #   --pull never                        never implicitly fetch $IMAGE_TAG over the network if
 #                                        it's not already cached locally -- `docker run` alone
 #                                        would pull it via the *daemon's* own network access,
 #                                        which happens before --network none applies to the
 #                                        container being started, so an unbuilt/mistyped image
 #                                        tag fails loudly instead of silently reaching out
-#   --network none                      no egress (AD-2: the renderer already needs none --
+#   --network none                      no egress (SA-AD-2: the renderer already needs none --
 #                                        this is the enforcement, not a new constraint)
 #   --memory / --cpus / --pids-limit    bounds a pathological or adversarial generated scene
 #                                        (an infinite loop or huge allocation in a val

@@ -1,9 +1,9 @@
 package menger
 
+import java.lang.reflect.Modifier
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import java.lang.reflect.Modifier
 
 /** Module-scoped native-binding fitness function (T5, Sprint 32).
   *
@@ -17,7 +17,7 @@ class NativeBindingModuleSuite extends AnyFlatSpec with Matchers:
     Modifier.isNative(m.getModifiers)
 
   "MengerRenderer" should "only override native methods, not declare new ones" in:
-    val cls = Class.forName("io.github.lene.optix.MengerRenderer")
+    val cls = Class.forName("menger.geometry.MengerRenderer")
     val superClass = cls.getSuperclass
     val ownNative = cls.getDeclaredMethods.filter(isNative).map(_.getName).toSet
     val superNative = superClass.getMethods.filter(isNative).map(_.getName).toSet
@@ -27,7 +27,7 @@ class NativeBindingModuleSuite extends AnyFlatSpec with Matchers:
       newNatives shouldBe empty
 
   it should "extend OptiXRenderer (the published native surface)" in:
-    val cls = Class.forName("io.github.lene.optix.MengerRenderer")
+    val cls = Class.forName("menger.geometry.MengerRenderer")
     cls.getSuperclass.getName should include("OptiXRenderer")
 
   "menger.engines" should "not declare @native methods" in:
