@@ -1,6 +1,8 @@
 package menger
 
 import com.tngtech.archunit.base.DescribedPredicate
+import com.tngtech.archunit.core.domain.AccessTarget
+import com.tngtech.archunit.core.domain.JavaCall
 import com.tngtech.archunit.core.domain.JavaClass
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
@@ -29,8 +31,18 @@ object ArchitecturePhase2Spec:
     "menger.cli"     -> List("menger.common", "menger.config", "menger.dsl", "menger.spec"),
     "menger.spec"    -> List("menger.common", "menger.video"),
     "menger.scene"   -> List("menger.common", "menger.dsl"),
-    "menger.video"   -> Nil
+    "menger.video"   -> Nil,
+    // The one place that throws; not on the scene-compile classpath, so the DSL cannot use it.
+    "menger.failure" -> List("menger.common")
   )
+
+  /** Production code raises a failure through `menger.failure.Fail`, which says whose fault it
+    * is, never through `sys.error`, a bare RuntimeException (menger#96, #103). */
+  def noSysErrorRule: ArchRule =
+    val sysError = new DescribedPredicate[AccessTarget.CodeUnitCallTarget]("error on scala.sys"):
+      override def test(target: AccessTarget.CodeUnitCallTarget): Boolean =
+        target.getName == "error" && target.getOwner.getFullName == "scala.sys.package$"
+    noClasses().should().callMethodWhere(JavaCall.Predicates.target(sysError))
 
   // The packages the architecture governs: ours. Everything else (java, scala, LibGDX, slf4j,
   // ...) is the business of the rules about those libraries (file IO, logging, mutable collections).
@@ -100,6 +112,9 @@ class ArchitecturePhase2Spec extends AnyFlatSpec with Matchers:
   for (layer, allowed) <- AllowedLayerDependencies do
     s"$layer" should s"depend on no other layer than ${allowed.mkString(", ")}" in:
       layerRule(layer, allowed).check(allClasses)
+
+  "production code" should "raise failures through menger.failure.Fail, not sys.error" in:
+    noSysErrorRule.check(allClasses)
 
   // Fixed: replaced haveOnlyFinalFields() with a Scala-aware var-setter check.
   // Scala val fields compile to non-final JVM fields; only var fields generate setter methods.

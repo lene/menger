@@ -33,3 +33,12 @@ package menger.scene.planted:
 package menger.video.planted:
   object PlantedVideo:
     def leak(color: menger.common.Color): Unit = ()
+
+package menger.failure.planted:
+  object PlantedFailure:
+    def leak(scene: menger.dsl.Scene): Unit = ()
+
+// Not a layer: the sys.error rule applies to every production class.
+package menger.planted.syserror:
+  object PlantedSysError:
+    def leak(): Nothing = sys.error("planted: a bare RuntimeException")

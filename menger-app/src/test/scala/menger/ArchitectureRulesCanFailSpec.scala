@@ -3,6 +3,7 @@ package menger
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import menger.ArchitecturePhase2Spec.AllowedLayerDependencies
 import menger.ArchitecturePhase2Spec.layerRule
+import menger.ArchitecturePhase2Spec.noSysErrorRule
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -19,6 +20,12 @@ class ArchitectureRulesCanFailSpec extends AnyFlatSpec with Matchers:
 
       planted.size should be > 0
       layerRule(layer, allowed).evaluate(planted).hasViolation shouldBe true
+
+  "The sys.error rule" should "fail on a class that calls sys.error" in:
+    val planted = ClassFileImporter().importPackages("menger.planted.syserror")
+
+    planted.size should be > 0
+    noSysErrorRule.evaluate(planted).hasViolation shouldBe true
 
   "A layer rule for a package with no classes" should "fail instead of passing on nothing" in:
     val someClasses = ClassFileImporter().importPackages("menger.common")
