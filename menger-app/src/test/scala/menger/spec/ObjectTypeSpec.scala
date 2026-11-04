@@ -156,6 +156,7 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.VALID_TYPES should contain("dodecahedron")
     ObjectType.VALID_TYPES should contain("icosahedron")
     ObjectType.VALID_TYPES should contain("cone")
+    ObjectType.VALID_TYPES should contain("cylinder")
     ObjectType.VALID_TYPES should contain("plane")
     ObjectType.VALID_TYPES should contain("pentachoron")
     ObjectType.VALID_TYPES should contain("16-cell")
@@ -167,7 +168,16 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.VALID_TYPES should contain("hexadecachoron4d")
     ObjectType.VALID_TYPES should contain("curve")
     ObjectType.VALID_TYPES should contain("lsystem")
-    ObjectType.VALID_TYPES.size shouldBe 26
+    ObjectType.VALID_TYPES.size shouldBe 27
+
+  // menger#156: a cylinder mixes with meshes like the other analytic primitives, and only it
+  // is shaded opaque whatever its material.
+  "ObjectType" should "classify a cylinder as an opaque-only analytical primitive" in:
+    ObjectType.isAnalyticalPrimitive("cylinder") shouldBe true
+    ObjectType.isTriangleMesh("cylinder") shouldBe false
+    ObjectType.OPAQUE_ONLY_TYPES shouldBe Set("cylinder")
+    ObjectType.isOpaqueOnly("Cylinder") shouldBe true
+    ObjectType.isOpaqueOnly("cone") shouldBe false
 
   "ObjectType.SPONGE_TYPES" should "contain only 3D sponge types" in:
     ObjectType.SPONGE_TYPES should contain("sponge-volume")

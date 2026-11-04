@@ -1472,6 +1472,23 @@ test_cone() {
     run_test "cone glass" --objects type=cone:material=glass --plane y:-2
 }
 
+# menger#156: the capped cylinder (opaque only; optix-jni shades it diffuse or metallic).
+test_cylinder() {
+    echo "Analytical Primitives (Cylinder):"
+    run_test "cylinder default" --objects type=cylinder --plane y:-2
+    run_test "cylinder with endpoints" --plane y:-2 \
+        --objects type=cylinder:p0=-0.7,-0.3,0:p1=0.7,0.3,0:radius=0.35:material=chrome
+    # Mixed analytic + mesh path: a sponge standing on a plinth. Its shadow on the plinth needs
+    # the optix-jni shader fix; this reference follows the pinned optix-jni release.
+    run_test "cylinder plinth with sponge" --plane y:-2 \
+        --camera-pos 1.5,2,4 --camera-lookat 0,-0.3,0 --camera-up 0,1,0 \
+        --objects type=cylinder:p0=0,-0.75,0:p1=0,-0.55,0:radius=1.3:material=matte \
+        --objects type=sponge-volume:level=1:pos=0,-0.15,0:size=0.8:material=plastic
+    # Shadow and caustic of a glass sphere on the plinth's top cap (the shadow, again, with the
+    # shader fix only).
+    run_test "DSL Plinth" --scene examples.dsl.Plinth
+}
+
 test_curve() {
     echo "Analytical Primitives (Curve):"
     # Sprint 36 F1: control points recentered on the origin (were offset 0..1, off-center
@@ -1823,6 +1840,7 @@ main() {
     test_3d_fractional_sponges
     test_platonic_solids
     test_cone
+    test_cylinder
     test_curve
     test_plane
     test_cone_plane_textures

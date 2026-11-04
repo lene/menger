@@ -20,6 +20,7 @@ class FaultInjectionSuite extends AnyFlatSpec with Matchers:
       SphereSceneBuilder(),
       CurveSceneBuilder(),
       ConeSceneBuilder(),
+      CylinderSceneBuilder(),
       PlaneSceneBuilder(),
       CubeSpongeSceneBuilder(),
       LSystemSceneBuilder()
@@ -61,6 +62,12 @@ class FaultInjectionSuite extends AnyFlatSpec with Matchers:
     val builder = ConeSceneBuilder()
     val result = builder.validate(List(ObjectSpec("sphere")), maxInstances = 64)
     result shouldBe a[Left[String, Unit]]
+
+  "CylinderSceneBuilder" should "reject non-cylinder types" in:
+    val builder = CylinderSceneBuilder()
+    val result = builder.validate(List(ObjectSpec("cone")), maxInstances = 64)
+    result shouldBe a[Left[String, Unit]]
+    result.left.getOrElse("") should include("cylinders")
 
   "PlaneSceneBuilder" should "reject non-plane types" in:
     val builder = PlaneSceneBuilder()
@@ -111,6 +118,7 @@ class FaultInjectionSuite extends AnyFlatSpec with Matchers:
       (SphereSceneBuilder(), ObjectSpec("sphere")),
       (CurveSceneBuilder(), curveSpec),
       (ConeSceneBuilder(), ObjectSpec("cone")),
+      (CylinderSceneBuilder(), ObjectSpec("cylinder")),
       (PlaneSceneBuilder(), ObjectSpec("plane")),
       (LSystemSceneBuilder(), ObjectSpec("lsystem"))
     )

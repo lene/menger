@@ -677,3 +677,47 @@ class ObjectSpecParserSuite extends AnyFlatSpec with Matchers:
       case Left(err) => err should include("normal-map")
       case Right(_)  => fail("Expected Left for empty normal-map")
       case Right(_) => fail("Expected Left for zero proc-scale")
+
+  // menger#156: the command-line cylinder takes the DSL's p0 / p1 / radius.
+  "ObjectSpecParser cylinder keys" should "parse p0, p1 and radius" in:
+    val spec = ObjectSpecParser.parse("type=cylinder:p0=0,-0.1,0:p1=0,0,0:radius=1.5")
+      .fold(e => fail(e), identity)
+    spec.objectType shouldBe "cylinder"
+    spec.p0 shouldBe Some((0f, -0.1f, 0f))
+    spec.p1 shouldBe Some((0f, 0f, 0f))
+    spec.cylinderRadius shouldBe Some(1.5f)
+
+  it should "build the same spec as the DSL cylinder" in:
+    val cli = ObjectSpecParser.parse(
+      "type=cylinder:pos=1,2,3:size=2:p0=0,-0.1,0:p1=0,0,0:radius=1.5:material=matte"
+    ).fold(e => fail(e), identity)
+    val dsl = menger.dsl.Cylinder(
+      pos = menger.dsl.Vec3(1f, 2f, 3f), size = 2f, material = Some(menger.dsl.Material.Matte),
+      p0 = Some(menger.dsl.Vec3(0f, -0.1f, 0f)), p1 = Some(menger.dsl.Vec3(0f, 0f, 0f)),
+      radius = Some(1.5f)
+    ).toObjectSpec
+    (cli.objectType, cli.x, cli.y, cli.z, cli.size, cli.cylinder, cli.material) shouldBe
+      (dsl.objectType, dsl.x, dsl.y, dsl.z, dsl.size, dsl.cylinder, dsl.material)
+
+  it should "default to no end points and no radius" in:
+    val spec = ObjectSpecParser.parse("type=cylinder").fold(e => fail(e), identity)
+    (spec.p0, spec.p1, spec.cylinderRadius) shouldBe (None, None, None)
+
+  it should "reject a malformed end point, naming the key" in:
+    ObjectSpecParser.parse("type=cylinder:p0=0,1") match
+      case Left(err) => err should include("p0")
+      case Right(_)  => fail("Expected Left for a two-component p0")
+
+  it should "reject a non-positive radius" in:
+    ObjectSpecParser.parse("type=cylinder:radius=0") match
+      case Left(err) => err should include("radius must be positive")
+      case Right(_)  => fail("Expected Left for radius 0")
+
+  it should "reject equal end points" in:
+    ObjectSpecParser.parse("type=cylinder:p0=1,2,3:p1=1,2,3") match
+      case Left(err) => err should include("p0 and p1 must differ")
+      case Right(_)  => fail("Expected Left for p0 == p1")
+
+  it should "leave a cone's radius to the cone" in:
+    val spec = ObjectSpecParser.parse("type=cone:radius=0.3").fold(e => fail(e), identity)
+    spec.radius shouldBe Some(0.3f)

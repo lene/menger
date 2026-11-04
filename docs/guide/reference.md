@@ -156,7 +156,7 @@ keys (`level=`, `color=`, `eye-w=`, `screen-w=`) instead.
 
 | Group | Types |
 |-------|-------|
-| Analytic primitives | `sphere`, `cone`, `plane` |
+| Analytic primitives | `sphere`, `cone`, `cylinder`, `plane` |
 | Meshes | `cube`, `tetrahedron`, `octahedron`, `dodecahedron`, `icosahedron`, `parametric` |
 | Curves & L-systems | `curve`, `lsystem` |
 | 3D Menger sponges | `sponge-surface` (O(12ⁿ) faces), `sponge-volume` (O(20ⁿ) cubes), `cube-sponge` (instanced cubes, levels up to 3; deprecated, menger#76), `sponge-recursive-ias` (O(n·20) VRAM, integer levels 1-14) |
@@ -197,6 +197,7 @@ Unknown keys are rejected with an error. Colors are `#RRGGBB` or `#RRGGBBAA`
 | `edge-radius=`, `edge-material=`, `edge-color=`, `edge-emission=` | 4D types | Render the 4D edges as cylinders |
 | `dist-threshold=N` | `menger4d` | IFS distance threshold (integer, default 2) |
 | `apex=x,y,z`, `base=x,y,z`, `radius=R` | `cone` | Cone geometry |
+| `p0=x,y,z`, `p1=x,y,z`, `radius=R` | `cylinder` | Centres of the end caps and the radius (default: centred on `pos`, `size` high along y, radius `size / 2`; radius must be positive, p0 and p1 must differ). Opaque materials only |
 | `normal=x,y,z`, `distance=D`, `color2=#RRGGBB`, `checker-size=S` | `plane` object | Plane orientation, offset and checkerboard |
 | `control-points=x,y,z,x,y,z,...`, `radius=R` | `curve` | B-spline control points (flat list, multiple of 3) and tube radius |
 | `preset=NAME`, `angle=DEG`, `seed=N`, `dim=3\|4` | `lsystem` | Preset (tree, bush, fern3d, hilbert3d, kochisland, hilbert4d, tree4d), branch angle, random seed, 3D or 4D |

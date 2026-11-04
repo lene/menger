@@ -5,6 +5,7 @@ object ObjectType:
   val VALID_TYPES: Set[String] = Set(
     "sphere",
     "cone",
+    "cylinder",
     "plane",
     "cube",
     "parametric",
@@ -57,7 +58,11 @@ object ObjectType:
     "tesseract-sponge-surface"
   )
 
-  val ANALYTICAL_PRIMITIVE_TYPES: Set[String] = Set("sphere", "cone", "plane")
+  val ANALYTICAL_PRIMITIVE_TYPES: Set[String] = Set("sphere", "cone", "cylinder", "plane")
+
+  /** Types optix-jni shades opaque whatever their material: transparency and refraction are
+    * not drawn on them (menger#156). */
+  val OPAQUE_ONLY_TYPES: Set[String] = Set("cylinder")
 
   val TRIANGLE_MESH_TYPES: Set[String] =
     Set("cube", "parametric", "tetrahedron", "octahedron", "dodecahedron", "icosahedron") ++
@@ -124,6 +129,9 @@ object ObjectType:
 
   def isAnalyticalPrimitive(objectType: String): Boolean =
     ANALYTICAL_PRIMITIVE_TYPES.contains(normalize(objectType))
+
+  def isOpaqueOnly(objectType: String): Boolean =
+    OPAQUE_ONLY_TYPES.contains(normalize(objectType))
 
   def isTriangleMesh(objectType: String): Boolean =
     TRIANGLE_MESH_TYPES.contains(normalize(objectType))

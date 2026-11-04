@@ -10,6 +10,12 @@ case class ConeGeometry(
   radius: Option[Float] = None
 )
 
+case class CylinderGeometry(
+  p0: Option[(Float, Float, Float)] = None,
+  p1: Option[(Float, Float, Float)] = None,
+  radius: Option[Float] = None
+)
+
 case class PlaneGeometry(
   normal: Option[(Float, Float, Float)] = None,
   distance: Option[Float] = None,

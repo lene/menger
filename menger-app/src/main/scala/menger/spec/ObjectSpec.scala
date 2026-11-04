@@ -21,6 +21,7 @@ import menger.video.VideoTexture
  *   type=cube:pos=0,0,0:material=metal:color=#FFD700
  *   type=cube:pos=0,0,0:texture=brick.png
  *   type=tesseract:pos=0,0,0:size=2:rot-xw=30:rot-yw=15:color=#4488FF
+ *   type=cylinder:p0=0,-0.1,0:p1=0,0,0:radius=1.5:material=matte
  *
  * Error examples (input → error message):
  *   "type=invalid" → "Invalid object type: 'invalid'. Valid types: sphere, cube, ..."
@@ -49,6 +50,7 @@ case class ObjectSpec(
   edgeMaterial: Option[Material] = None,
   rotation: ObjectRotation = ObjectRotation(),
   cone: ConeGeometry = ConeGeometry(),
+  cylinder: CylinderGeometry = CylinderGeometry(),
   plane: PlaneGeometry = PlaneGeometry(),
   procedural: ProceduralSpec = ProceduralSpec(),
   textureMaps: TextureMaps = TextureMaps(),
@@ -81,6 +83,9 @@ case class ObjectSpec(
   def apex: Option[(Float, Float, Float)] = cone.apex
   def base: Option[(Float, Float, Float)] = cone.base
   def radius: Option[Float] = cone.radius
+  def p0: Option[(Float, Float, Float)] = cylinder.p0
+  def p1: Option[(Float, Float, Float)] = cylinder.p1
+  def cylinderRadius: Option[Float] = cylinder.radius
   def normal: Option[(Float, Float, Float)] = plane.normal
   def distance: Option[Float] = plane.distance
   def color2: Option[Color] = plane.color2

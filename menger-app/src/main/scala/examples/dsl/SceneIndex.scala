@@ -35,6 +35,7 @@ object SceneIndex:
     ParametricSphereCaustics.scene,
     ParametricTorusCaustics.scene,
     TrefoilKnot.scene,
+    Plinth.scene,
   )
 
   /** Animated scene objects (loaded via reflection with def scene(t: Float)). */

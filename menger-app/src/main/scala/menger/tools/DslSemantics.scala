@@ -122,9 +122,14 @@ object DslSemantics:
       "shadows on in any case.",
     "Image textures and texture maps (`texture`, `videoTexture`, `normalMap`, " +
       "`roughnessMap`) need surface UV coordinates. 4D objects, edge tubes (`edgeRadius`), " +
-      "curves and an L-system's branches have no UV coordinates, so these fields have no " +
-      "effect on them; " +
+      "a `Cylinder`, curves and an L-system's branches have no UV coordinates, so these " +
+      "fields have no effect on them; " +
       "use a material colour or a `proceduralType` there instead.",
+    "A `Cylinder` is shaded opaque, diffuse or metallic: a transparent or refractive material " +
+      "(Glass, Water, Diamond, Film, Parchment, or any colour alpha below 1) renders opaque, " +
+      "and thin film (`filmThickness`) has no effect on it. The validator reports a " +
+      s"transparent material on one as an `${SceneValidator.OpaqueOnlyInvariant}` finding. " +
+      "A wide, flat Cylinder makes a round plinth or table top (menger#156).",
     "Glass on a TesseractSponge from level 2 up renders as chaotic, fragmented refraction: the " +
       "projected sponge has thousands of overlapping refracting layers and a ray gets at most 5 " +
       "bounces. Prefer an opaque or metal material there, or level 1 for glass, and say so if " +
@@ -166,6 +171,14 @@ object DslSemantics:
       "4D rotations go in `projection`."),
     ("TesseractSponge", "rotation") -> ("3D Euler angles in radians, applied after " +
       "projection; 4D rotations go in `projection`."),
+    ("Cylinder", "p0") -> ("Centre of one end cap, in world coordinates. With `p1` it " +
+      "overrides `pos`, `size` and `rotation`."),
+    ("Cylinder", "p1") -> "Centre of the other end cap, in world coordinates.",
+    ("Cylinder", "radius") -> "Radius in world units; `size / 2` when absent.",
+    ("Cylinder", "size") -> ("Height along y (turned by `rotation`, centred on `pos`) when " +
+      "`p0`/`p1` are absent; the default radius is `size / 2`."),
+    ("Cylinder", "material") -> ("Opaque materials only: a transparent one renders opaque " +
+      "(see conventions)."),
     ("Tesseract", "edgeRadius") -> "Draws the edges as tubes of this radius.",
     ("Cube", "edgeRadius") -> ("Draws the 12 edges as tubes of this radius (`edgeMaterial`, " +
       "default Film) -- the same tubes as on the 4D types (menger#132)."),

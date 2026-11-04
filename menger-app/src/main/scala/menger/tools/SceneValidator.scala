@@ -11,6 +11,7 @@ import menger.dsl.LoadedScene
 import menger.dsl.Scene
 import menger.engines.BuildPrecheck
 import menger.engines.scene.AssetPaths
+import menger.engines.scene.MaterialExtractor
 import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
 import menger.failure.Fail
@@ -284,7 +285,7 @@ object SceneValidator extends LazyLogging:
         val overBudget = costFindings(scene)
         if overBudget.nonEmpty then overBudget
         else geometricFindings(scene) ++ buildFindings(scene) ++ assetPathFindings(scene) ++
-          parametricSurfaceFindings(scene)
+          parametricSurfaceFindings(scene) ++ opaqueOnlyFindings(scene)
     }.distinct
     val snapshots = evaluated.flatMap {
       case (t, Right(scene)) => SceneSnapshot.of(t, scene)
@@ -373,6 +374,24 @@ object SceneValidator extends LazyLogging:
         case Left(reason) => List(InvariantFinding(AssetPathInvariant, reason))
         case Right(_)      => Nil
     }
+
+  private[tools] val OpaqueOnlyInvariant = "opaque-only"
+
+  /** A transparent material on a type the renderer shades opaque (a Cylinder, menger#156): the
+    * scene would render opaque where its author asked for glass. The material checked is the
+    * one the builder uses, so a transparent `color` without a material counts too. */
+  private[tools] def opaqueOnlyFindings(scene: Scene): List[InvariantFinding] =
+    sceneObjects(scene)
+      .map(obj => obj -> obj.toObjectSpec)
+      .filter((_, spec) => ObjectType.isOpaqueOnly(spec.objectType))
+      .flatMap { (obj, spec) =>
+        val alpha = MaterialExtractor.extract(spec).color.a
+        Option.when(alpha < 1f)(InvariantFinding(
+          OpaqueOnlyInvariant,
+          s"a ${obj.getClass.getSimpleName} renders opaque: its material's alpha $alpha " +
+            "(transparency and refraction) is not drawn; give it an opaque material (alpha 1)"
+        ))
+      }.distinct
 
   private val BuildInvariant = "scene-build"
 

@@ -31,6 +31,11 @@ class SceneBuilderFaultInjectionSuite extends AnyFlatSpec with Matchers:
     val spec = ObjectSpec(objectType = "cone")
     builder.buildScene(List(spec), null, 100).isFailure shouldBe true
 
+  "CylinderSceneBuilder" should "return Failure with null renderer" in:
+    val builder = CylinderSceneBuilder()
+    val spec = ObjectSpec(objectType = "cylinder")
+    builder.buildScene(List(spec), null, 100).isFailure shouldBe true
+
   "CurveSceneBuilder" should "return Failure with null renderer" in:
     val builder = CurveSceneBuilder()
     val spec = ObjectSpec(objectType = "curve")

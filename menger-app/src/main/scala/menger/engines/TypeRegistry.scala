@@ -48,6 +48,10 @@ object TypeRegistry:
     (td, _) => ConeSceneBuilder(td),
     specs => SceneType.SimpleMixed(specs, "cone"),
     isAnalytical = true)
+  private def cylinderEntry = Entry("cylinder",
+    (td, _) => CylinderSceneBuilder(td),
+    specs => SceneType.SimpleMixed(specs, "cylinder"),
+    isAnalytical = true)
   private def planeEntry = Entry("plane",
     (td, _) => PlaneSceneBuilder(td),
     specs => SceneType.SimpleMixed(specs, "plane"))
@@ -71,7 +75,7 @@ object TypeRegistry:
     specs => SceneType.TriangleMeshes(specs))
 
   val allEntries: List[Entry] = List(
-    sphereEntry, curveEntry, cubeSpongeEntry, coneEntry, planeEntry,
+    sphereEntry, curveEntry, cubeSpongeEntry, coneEntry, cylinderEntry, planeEntry,
     menger4DEntry, sierpinski4DEntry, hexadecachoron4DEntry, lsystemEntry, triangleMeshEntry
   )
 

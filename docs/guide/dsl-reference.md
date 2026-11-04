@@ -203,6 +203,21 @@ Cone(material = Some(Material.Copper), size = 1.5f)
 Cone(apex = Some(Vec3(0f, 2f, 0f)), base = Some(Vec3(0f, 0f, 0f)), radius = Some(0.5f))
 ```
 
+**Cylinder:** a capped cylinder with the fields of `Cone`, but optional `p0`, `p1` (the centres
+of its end caps, world coordinates) and `radius` instead of `apex` and `base`. Without them the
+cylinder is centred on `pos`, `size` high along y (turned by `rotation`), with a radius of
+`size / 2`. A radius of 0 or less, a `size` of 0 or less and `p0 == p1` are rejected. It is
+shaded opaque, diffuse or metallic: a transparent or refractive material (Glass, Film, any
+colour alpha below 1) renders opaque, and the scene validator reports it (`opaque-only`). It
+has no UV coordinates, so image textures and texture maps have no effect on it; a
+`proceduralType` works. See the `Plinth` example:
+
+```scala
+Cylinder(material = Some(Material.Matte))               // centred on pos, 1 high, radius 0.5
+Cylinder(p0 = Some(Vec3(0f, -0.65f, 0f)), p1 = Some(Vec3(0f, -0.45f, 0f)),
+  radius = Some(1.8f), material = Some(Material.matte(Color(0.85f, 0.82f, 0.76f))))
+```
+
 **4D IFS fractals:** `Menger4D` (the `TesseractSponge`'s shape), `PentachoronGasket` and
 `HexadecachoronGasket` (Sierpinski gaskets of the 5-cell and the 16-cell) take a `level` and
 the fields of `Tesseract`. They are traced on the GPU without a stored mesh.

@@ -164,7 +164,7 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     finally
       Files.deleteIfExists(blockingFile)
 
-  "The generated manifest" should "list exactly the 21 SceneObject case classes" in:
+  "The generated manifest" should "list exactly the 22 SceneObject case classes" in:
     val manifest = manifestFor(freshTempPath())
     manifest.objects.map(_.name).toSet shouldBe Set(
       "Sphere", "Cube", "Sponge", "Tesseract", "TesseractSponge",
@@ -173,9 +173,23 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
       "Pentachoron", "Hexadecachoron", "Icositetrachoron", "Hexacosichoron", "Hecatonicosachoron",
       // formerly command-line only (2026-10)
       "Tetrahedron", "Octahedron", "Dodecahedron", "Icosahedron", "Cone",
-      "Menger4D", "HexadecachoronGasket"
+      "Menger4D", "HexadecachoronGasket",
+      // menger#156
+      "Cylinder"
     )
-    manifest.objects should have size 21
+    manifest.objects should have size 22
+
+  // menger#156: the agent learns the cylinder's end points, radius and opaque-only material
+  // from the manifest alone.
+  it should "describe the Cylinder's placement fields and opaque-only material" in:
+    val manifest = manifestFor(freshTempPath())
+    val cylinder = manifest.objects.find(_.name == "Cylinder").getOrElse(fail("no Cylinder"))
+    val fields = cylinder.fields.map(f => f.name -> f).toMap
+    for name <- List("p0", "p1", "radius", "size", "material") do
+      withClue(name) { fields(name).description shouldBe defined }
+    fields("radius").description.get should include("size / 2")
+    fields("material").description.get should include("opaque")
+    manifest.conventions.mkString("\n") should include(SceneValidator.OpaqueOnlyInvariant)
 
   // CAP-7 ("absence is decidable"): a field typed `menger.dsl.TesseractSpongeType` is
   // unusable unless the manifest also says which values that type admits. These are mandatory

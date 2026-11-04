@@ -10,6 +10,7 @@ import menger.common.Material
 import menger.dsl.ResourceLimits
 import menger.spec.ConeGeometry
 import menger.spec.CurveData
+import menger.spec.CylinderGeometry
 import menger.spec.Degrees
 import menger.spec.ObjectRotation
 import menger.spec.ObjectSpec
@@ -60,6 +61,10 @@ object ObjectSpecParser extends LazyLogging:
    * Examples with edge rendering:
    *   type=tesseract:material=film:edge-material=film:edge-emission=3.0
    *   type=tesseract:material=glass:edge-color=#00FFFF:edge-emission=5.0:edge-radius=0.03
+   *
+   * Cylinder keywords (only for cylinder type; without them it is pos/size-derived):
+   *   p0=x,y,z / p1=x,y,z - centres of the end caps in world coordinates
+   *   radius=VALUE        - cylinder radius (default: size / 2), must be positive
    */
   private val ValidKeys: Set[String] = Set(
     "type", "pos", "size", "level", "color", "ior",
@@ -69,7 +74,7 @@ object ObjectSpecParser extends LazyLogging:
     "rot-x", "rot-y", "rot-z",
     "edge-radius", "edge-material", "edge-color",
     "edge-emission",
-    "apex", "base", "radius",
+    "apex", "base", "radius", "p0", "p1",
     "normal", "distance", "color2", "checker-size",
     "procedural", "proc-scale",
     "normal-map", "roughness-map", "metallic-map", "ao-map", "height-map",
@@ -104,6 +109,7 @@ object ObjectSpecParser extends LazyLogging:
       edgeParams <- parseEdgeParameters(kvPairs, objType)
       rotation <- parseRotation3DDeg(kvPairs)
       coneGeom <- parseConeGeometry(kvPairs)
+      cylinderGeom <- parseCylinderGeometry(kvPairs, objType)
       planeGeom <- parsePlaneGeometry(kvPairs)
       procSpec <- parseProceduralSpec(kvPairs)
       _ <- validateSpongeLevel(objType, level)
@@ -136,6 +142,7 @@ object ObjectSpecParser extends LazyLogging:
       edgeMaterial = edgeParams._2,
       rotation = rotation,
       cone = coneGeom,
+      cylinder = cylinderGeom,
       plane = planeGeom,
       procedural = procSpec,
       textureMaps = texMaps,
@@ -547,12 +554,35 @@ object ObjectSpecParser extends LazyLogging:
       Degrees(rotXDeg).toRadians, Degrees(rotYDeg).toRadians, Degrees(rotZDeg).toRadians
     )
 
+  // One `radius` key: a cone's base radius or a cylinder's radius.
+  private val RadiusDescription = "radius in world units (cone base or cylinder)"
+
   private def parseConeGeometry(kvPairs: Map[String, String]): Either[String, ConeGeometry] =
     for
       apex <- parseVector3(kvPairs, "apex")
       base <- parseVector3(kvPairs, "base")
-      radius <- parseOptionalFloat(kvPairs, "radius", "cone base radius")
+      radius <- parseOptionalFloat(kvPairs, "radius", RadiusDescription)
     yield ConeGeometry(apex, base, radius)
+
+  private def parseCylinderGeometry(
+    kvPairs: Map[String, String],
+    objType: String
+  ): Either[String, CylinderGeometry] =
+    for
+      p0 <- parseVector3(kvPairs, "p0")
+      p1 <- parseVector3(kvPairs, "p1")
+      radius <- parseOptionalFloat(kvPairs, "radius", RadiusDescription)
+      geometry = CylinderGeometry(p0, p1, radius)
+      _ <- if objType == "cylinder" then validateCylinderGeometry(geometry) else Right(())
+    yield geometry
+
+  private def validateCylinderGeometry(geometry: CylinderGeometry): Either[String, Unit] =
+    geometry match
+      case CylinderGeometry(_, _, Some(radius)) if radius <= 0f =>
+        Left(s"Cylinder radius must be positive, got $radius")
+      case CylinderGeometry(Some(p0), Some(p1), _) if p0 == p1 =>
+        Left(s"Cylinder p0 and p1 must differ, both are $p0")
+      case _ => Right(())
 
   private def parsePlaneGeometry(kvPairs: Map[String, String]): Either[String, PlaneGeometry] =
     for

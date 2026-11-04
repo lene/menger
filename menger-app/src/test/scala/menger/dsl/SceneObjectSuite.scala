@@ -230,7 +230,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
   "The DSL" should "have a class for every command-line object type" in:
     val written = List[SceneObject](
       Sphere(), Cube(), Tetrahedron(), Octahedron(), Dodecahedron(), Icosahedron(), Cone(),
-      Sponge(VolumeFilling, 1f), Sponge(SurfaceUnfolding, 1f), Sponge(CubeSponge, 1f),
+      Cylinder(), Sponge(VolumeFilling, 1f), Sponge(SurfaceUnfolding, 1f), Sponge(CubeSponge, 1f),
       Sponge(RecursiveIAS, 1f), Tesseract(), Pentachoron(), Hexadecachoron(),
       Icositetrachoron(), Hecatonicosachoron(), Hexacosichoron(),
       TesseractSponge(VolumeRemoving, 1f), TesseractSponge(SurfaceSubdividing, 1f),
@@ -254,6 +254,40 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     spec.apex shouldBe Some((0f, 2f, 0f))
     spec.base shouldBe Some((0f, -1f, 0f))
     spec.radius shouldBe Some(0.5f)
+
+  // menger#156: a round plinth for the Sprint 38 scene.
+  "Cylinder" should "default to pos, size and no end points" in:
+    val spec = Cylinder(material = Some(Material.Matte)).toObjectSpec
+    spec.objectType shouldBe "cylinder"
+    (spec.x, spec.y, spec.z, spec.size) shouldBe (0f, 0f, 0f, 1f)
+    (spec.p0, spec.p1, spec.cylinderRadius) shouldBe (None, None, None)
+
+  "Cylinder.toObjectSpec" should "carry p0, p1 and radius" in:
+    val spec = Cylinder(p0 = Some(Vec3(0f, -0.1f, 0f)), p1 = Some(Vec3(0f, 0f, 0f)),
+      radius = Some(1.5f)).toObjectSpec
+    spec.p0 shouldBe Some((0f, -0.1f, 0f))
+    spec.p1 shouldBe Some((0f, 0f, 0f))
+    spec.cylinderRadius shouldBe Some(1.5f)
+
+  it should "leave the cone's geometry empty" in:
+    Cylinder(radius = Some(0.3f)).toObjectSpec.radius shouldBe None
+
+  "Cylinder" should "reject a non-positive radius, naming the field" in:
+    for r <- List(0f, -1f) do
+      the[IllegalArgumentException] thrownBy Cylinder(radius = Some(r)) should
+        have message s"requirement failed: Radius must be positive, got $r"
+
+  it should "reject a non-positive size, naming the field" in:
+    the[IllegalArgumentException] thrownBy Cylinder(size = 0f) should
+      have message "requirement failed: Size must be positive, got 0.0"
+
+  it should "reject equal end points, naming them" in:
+    val p = Some(Vec3(1f, 2f, 3f))
+    val e = the[IllegalArgumentException] thrownBy Cylinder(p0 = p, p1 = p)
+    e.getMessage should include("p0 and p1 must differ")
+
+  it should "accept a single end point, the other derived from pos and size" in:
+    noException should be thrownBy Cylinder(p0 = Some(Vec3(0f, -0.5f, 0f)))
 
   "Sierpinski4D" should "still build a PentachoronGasket under its old name" in:
     @annotation.nowarn("cat=deprecation")

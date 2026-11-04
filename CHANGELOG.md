@@ -1,5 +1,29 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- A capped `Cylinder` for scenes, the round plinth of the Sprint 38 scene: DSL `Cylinder` with
+  optional `p0`, `p1` (centres of its end caps, world coordinates) and `radius`, centred on `pos`,
+  `size` high along y with a radius of `size / 2` without them; CLI `type=cylinder` with the
+  keys `p0`, `p1`, `radius`. It mixes with meshes like the other analytic primitives. A radius or
+  size of 0 or less and `p0 == p1` are rejected. It is shaded opaque: the validator reports a
+  transparent material on one (`opaque-only` finding), and the manifest says so. It has no UV
+  coordinates, so image textures and texture maps have no effect on it. Example: `Plinth`, a glass
+  sphere whose shadow and caustic fall on the plinth's top cap (lene/menger#156).
+
+### Changed
+
+- `ConeSceneBuilder` and the new `CylinderSceneBuilder` share `AxialPrimitiveSceneBuilder`: the
+  placement by two axis end points and a radius, derived from `pos`, `size` and `rotation` when
+  absent. Cones render as before.
+
+### Known issues
+
+- With the pinned optix-jni 0.5.0 a cylinder does not receive shadows (it casts them). The fix is
+  in optix-jni (lene/menger#156) and arrives with the next optix-jni pin.
+
 ## [0.9.1] - 2026-10-31
 
 The 0.9.0 release was premature: use 0.9.1. It carries the Sprint 37 work, including several

@@ -155,6 +155,23 @@ groups are wired up.
 - Integration-test entry in `scripts/integration-tests.sh`.
 - Reference image checked in.
 
+## Exposing a primitive to scenes (menger side)
+
+Once optix-jni has the primitive (its `add<Prim>Instance` on `OptiXMeshApi`), the menger
+wiring is the same every time. The `Cylinder` (menger#156, Sprint 38), which wraps optix-jni's
+capped cylinder (until then used only for edge tubes), is the most recent complete example:
+
+| Layer | Where | What |
+|---|---|---|
+| Spec | `spec/ObjectSpecParts.scala`, `spec/ObjectSpec.scala` | A `<Prim>Geometry` case class and accessors on `ObjectSpec` |
+| Type | `spec/ObjectType.scala` | The type name in `VALID_TYPES` and `ANALYTICAL_PRIMITIVE_TYPES` (mixed scenes), `OPAQUE_ONLY_TYPES` if optix-jni shades it opaque |
+| CLI | `cli/ObjectSpecParser.scala` | Its keys in `ValidKeys`, a `parse<Prim>Geometry` that rejects degenerate values |
+| DSL | `dsl/SceneObject.scala` | A case class with `require`s naming the field; `ManifestGenerator` finds it by itself |
+| Builder | `engines/scene/<Prim>SceneBuilder.scala`, `engines/TypeRegistry.scala` | A primitive placed by its axis end points and a radius extends `AxialPrimitiveSceneBuilder` (as `ConeSceneBuilder` does); one registry entry |
+| Agent | `tools/DslSemantics.scala`, `tools/SceneValidator.scala` | Field descriptions and conventions the types cannot say; a validator finding for what it cannot render |
+| Tests | `*SceneBuilderTest`, `FaultInjectionSuite`, `SceneObjectSuite`, `ObjectTypeSpec`, `ManifestGeneratorSuite`, `ObjectSpecParserSuite` | The enumerating suites fail until the new type is in them |
+| Scenes | `examples/dsl/`, `SceneIndex`, `scripts/integration-tests.sh`, `scripts/manual-test.sh` | An example (it joins the agent's corpus) and both scripts (`ScriptParitySuite`) |
+
 ## Why no shared `PrimitiveParameters` abstraction
 
 The existing two primitives (sphere, cylinder) use *different* parameter

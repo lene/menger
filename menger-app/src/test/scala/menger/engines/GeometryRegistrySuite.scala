@@ -2,6 +2,7 @@ package menger.engines
 
 import menger.common.ProfilingConfig
 import menger.engines.scene.CubeSpongeSceneBuilder
+import menger.engines.scene.CylinderSceneBuilder
 import menger.engines.scene.IFS4DType
 import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SphereSceneBuilder
@@ -27,6 +28,11 @@ class GeometryRegistrySuite extends AnyFlatSpec with Matchers:
     val result = GeometryRegistry.builderFor(List(spec("sphere"), spec("sphere")))
     result shouldBe defined
     result.get shouldBe a [SphereSceneBuilder]
+
+  it should "return CylinderSceneBuilder for all-cylinder specs" in:
+    val result = GeometryRegistry.builderFor(List(spec("cylinder"), spec("cylinder")))
+    result shouldBe defined
+    result.get shouldBe a [CylinderSceneBuilder]
 
   it should "return CubeSpongeSceneBuilder for all-cube-sponge specs" in:
     val result = GeometryRegistry.builderFor(List(spec("cube-sponge")))

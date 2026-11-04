@@ -223,6 +223,13 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.lights should have length 1
     scene.planes should not be empty
 
+  it should "load Plinth via reflection: a cylinder plinth under a glass sphere, caustics on" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.Plinth"))
+    scene.objects.map(_.toObjectSpec.objectType) shouldBe List("cylinder", "sphere")
+    scene.lights should have length 1
+    scene.caustics shouldBe defined
+    SceneRegistry.list() should contain("plinth")
+
   it should "load FilmSphere via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.FilmSphere"))
     scene.objects should have length 3

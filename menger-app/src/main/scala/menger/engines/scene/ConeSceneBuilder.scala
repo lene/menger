@@ -1,63 +1,19 @@
 package menger.engines.scene
 
-import scala.util.Try
-
 import io.github.lene.optix.OptiXRenderer
-import menger.common.TransformUtil
+import menger.common.Material
 import menger.common.Vector
+import menger.engines.scene.AxialPrimitiveSceneBuilder.ExplicitAxis
 import menger.spec.ObjectSpec
 
-/**
- * Scene builder for cone primitives.
- *
- * Cones are specified with apex, base center, and radius.
- * If apex/base are not given, they are derived from pos and size.
- */
-class ConeSceneBuilder(textureDir: String = ".") extends SceneBuilder:
+/** Scene builder for cones: apex on top, base centre at the bottom, radius of the base. */
+class ConeSceneBuilder(textureDir: String = ".")
+    extends AxialPrimitiveSceneBuilder("cone", textureDir):
 
-  override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
-    if specs.isEmpty then Left("Object specs list cannot be empty")
-    else if specs.length > maxInstances then
-      Left(s"Too many objects: ${specs.length} exceeds max instances limit of $maxInstances. " +
-        "Use --max-instances to increase the limit.")
-    else if !specs.forall(_.objectType.toLowerCase == "cone") then
-      Left("All objects must be cones for ConeSceneBuilder")
-    else Right(())
+  override private[scene] def explicitAxisOf(spec: ObjectSpec): ExplicitAxis =
+    ExplicitAxis(top = spec.apex, bottom = spec.base, radius = spec.radius)
 
-  /** Rotates a point that is local to `spec`'s position by the object's Euler rotation
-    * (radians), then translates by `spec`'s position — same rotation convention as
-    * `TransformUtil.createEulerRotationScaleTranslation`, reused rather than re-derived. */
-  private[scene] def rotatedWorldPoint(spec: ObjectSpec, localX: Float, localY: Float, localZ: Float): (Float, Float, Float) =
-    val m = TransformUtil.createEulerRotationScaleTranslation(
-      spec.rotX, spec.rotY, spec.rotZ, 1f, spec.x, spec.y, spec.z
-    )
-    (
-      m(0) * localX + m(1) * localY + m(2) * localZ + m(3),
-      m(4) * localX + m(5) * localY + m(6) * localZ + m(7),
-      m(8) * localX + m(9) * localY + m(10) * localZ + m(11)
-    )
-
-  override def buildScene(specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int): Try[Unit] = Try:
-    logger.debug(s"Setting up ${specs.length} cone instances")
-    val textureIndices = TextureManager.loadTextures(specs, renderer, textureDir)
-    specs.foreach { spec =>
-      val material = MaterialExtractor.extract(spec)
-      // Explicit apex/base are absolute world coordinates and bypass pos/size/rotation
-      // entirely, same as before. Only the pos+size-derived default needs rotation applied --
-      // otherwise `rotation=` on a cone with no explicit apex/base was silently dropped
-      // (Sprint 36 H5.2): the cone's shape is defined purely by apex/base/radius, so an
-      // unrotated default apex/base offset renders an unrotated cone regardless of `rotation`.
-      val (ax, ay, az) = spec.apex.getOrElse(rotatedWorldPoint(spec, 0f, spec.size / 2f, 0f))
-      val (bx, by, bz) = spec.base.getOrElse(rotatedWorldPoint(spec, 0f, -spec.size / 2f, 0f))
-      val r = spec.radius.getOrElse(spec.size / 2f)
-      val apex = Vector[3](ax, ay, az)
-      val base = Vector[3](bx, by, bz)
-      val instanceId = renderer.addConeInstance(apex, base, r, material)
-      applyInstanceTextures(instanceId, spec, textureIndices, renderer)
-      logger.debug(s"Added cone instance $instanceId at apex=($ax,$ay,$az) base=($bx,$by,$bz) radius=$r")
-    }
-
-  override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
-    spec1.objectType.toLowerCase == "cone" && spec2.objectType.toLowerCase == "cone"
-
-  override def calculateInstanceCount(specs: List[ObjectSpec]): Long = specs.length.toLong
+  override protected def addInstance(
+    renderer: OptiXRenderer, top: Vector[3], bottom: Vector[3], radius: Float, material: Material
+  ): InstanceId =
+    renderer.addConeInstance(top, bottom, radius, material)

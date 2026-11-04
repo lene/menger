@@ -5,6 +5,7 @@ import scala.annotation.targetName
 import menger.objects.LSystemPresets
 import menger.spec.ConeGeometry
 import menger.spec.CurveData
+import menger.spec.CylinderGeometry
 import menger.spec.Degrees
 import menger.spec.ObjectRotation
 import menger.spec.ObjectSpec
@@ -276,6 +277,38 @@ case class Cone(
   def toObjectSpec: ObjectSpec =
     baseObjectSpec("cone").copy(cone = ConeGeometry(
       apex.map(v => (v.x, v.y, v.z)), base.map(v => (v.x, v.y, v.z)), radius
+    ))
+
+/** Capped cylinder. Without `p0`/`p1` it is centred on `pos`, `size` high along y (turned by
+  * `rotation`), with a radius of `size / 2`; `p0` and `p1` are the centres of its end caps in
+  * world coordinates and override `pos`, `size` and `rotation`. It is shaded opaque, so a
+  * transparent or refractive material renders opaque, and it has no UV coordinates, so
+  * `texture`, `videoTexture`, `normalMap` and `roughnessMap` have no effect on it. */
+case class Cylinder(
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  p0: Option[Vec3] = None,
+  p1: Option[Vec3] = None,
+  radius: Option[Float] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+  require(radius.forall(_ > 0f), s"Radius must be positive, got ${radius.getOrElse(0f)}")
+  require(p0.isEmpty || p0 != p1, s"p0 and p1 must differ, both are ${p0.getOrElse(Vec3.Zero)}")
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec("cylinder").copy(cylinder = CylinderGeometry(
+      p0.map(v => (v.x, v.y, v.z)), p1.map(v => (v.x, v.y, v.z)), radius
     ))
 
 

@@ -80,5 +80,16 @@ class RenderModeSelectorSuite extends AnyFlatSpec with Matchers:
   "BuildPrecheck" should "find a builder for every group of a scene mixing the IFS fractals" in:
     BuildPrecheck.problems(ifsMix) shouldBe empty
 
+  // menger#156: a cylinder plinth under a sponge goes the mixed analytic + mesh path, built as
+  // its own group like the other analytic primitives.
+  private val plinthMix = List(spec("cylinder"), spec("sponge-volume").copy(level = Some(1f)))
+
+  "A cylinder next to a sponge" should "classify as SimpleMixed" in:
+    RenderModeSelector.classify(plinthMix) shouldBe a [SceneType.SimpleMixed]
+
+  it should "be built as its own group, with a builder for every group" in:
+    SceneGroups.buildOrder(plinthMix).map(_.map(_.objectType)) should contain (List("cylinder"))
+    BuildPrecheck.problems(plinthMix) shouldBe empty
+
   "RenderModeSelector.classify" should "throw IllegalArgumentException for empty spec list" in:
     an [IllegalArgumentException] should be thrownBy RenderModeSelector.classify(List.empty)

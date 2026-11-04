@@ -533,6 +533,45 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     result.tag shouldBe SceneValidator.Tag.LintFindings
     result.messages.mkString should include("Size must be positive")
 
+  // menger#156: optix-jni shades a cylinder opaque, so glass on one would silently render
+  // opaque; the validator says so instead.
+  "SceneValidator.opaqueOnlyFindings" should "report a Cylinder with a transparent material" in:
+    for material <- List(menger.dsl.Material.Glass, menger.dsl.Material.Film) do
+      val findings = SceneValidator.opaqueOnlyFindings(
+        sceneOf(menger.dsl.Cylinder(material = Some(material)))
+      )
+      withClue(material) {
+        findings.map(_.invariant) shouldBe List(SceneValidator.OpaqueOnlyInvariant)
+        findings.head.message should include("Cylinder renders opaque")
+      }
+
+  it should "report a Cylinder whose colour alone is transparent" in:
+    val cylinder = menger.dsl.Cylinder(color = Some(menger.dsl.Color(1f, 0f, 0f, 0.5f)))
+    SceneValidator.opaqueOnlyFindings(sceneOf(cylinder)) should have size 1
+
+  it should "accept an opaque Cylinder and a glass object of another type" in:
+    SceneValidator.opaqueOnlyFindings(sceneOf(
+      menger.dsl.Cylinder(material = Some(menger.dsl.Material.Matte)),
+      menger.dsl.Cylinder(material = Some(menger.dsl.Material.Chrome)),
+      menger.dsl.Sphere(material = Some(menger.dsl.Material.Glass)),
+      menger.dsl.Cone(material = Some(menger.dsl.Material.Glass))
+    )) shouldBe empty
+
+  it should "make a scene with a glass Cylinder a lint finding" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object GlassCylinderScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 0f, 3f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Cylinder(material = Some(Material.Glass))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.LintFindings
+    result.findings.map(_.invariant) shouldBe List(SceneValidator.OpaqueOnlyInvariant)
+
   "SceneValidator.run" should "report a usage error when given no arguments" in:
     SceneValidator.run(Array.empty) shouldBe a[Left[?, ?]]
 
