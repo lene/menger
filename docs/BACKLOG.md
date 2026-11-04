@@ -9,6 +9,8 @@ Unscheduled feature ideas not yet assigned to a sprint. See the workspace repo's
 
 ### F-ND-GEOMETRY: N-Dimensional Geometry (N ≥ 5)
 
+**Stale-item sweep 2026-11-04:** scheduled in Sprint 38 as grid cells of menger-toplevel#98 (menger#162–#166).
+
 **Priority:** Medium
 **Effort:** Large (multiple sprints)
 **Dependencies:** Existing 4D projection infrastructure (Sprint 18/25), `menger-geometry` layer
@@ -45,6 +47,8 @@ using the same perspective/orthographic projection logic already used for 4D→3
 ---
 
 ### F-AI-SCENE: AI-assisted scene authoring (natural language → DSL)
+
+**Stale-item sweep 2026-11-04:** done: menger-scene-agent 0.1.0 (2026-10-31).
 
 **Priority:** Medium
 **Effort:** Large (multiple sprints)
@@ -166,6 +170,8 @@ cancels the constant ambient and the shared direct term. Requires an optix-jni r
 
 ### F-CAUSTICS-LAYERING: Move caustics orchestration into menger-geometry
 
+**Stale-item sweep 2026-11-04:** obsolete: Sprint 35 moved caustics into optix-jni instead.
+
 optix-jni ships two copies of the caustics native code: the live *shader*
 (`caustics_ppm.cu`) and a live *orchestrator* (`CausticsRenderer.cpp`), while menger-geometry
 carries a **dead** `CausticsRenderer.cpp` (`setCausticsRenderer` never called). Finish the
@@ -176,6 +182,9 @@ fix only") — the 0.1.12 release is physics + `CausticsStats` binding, no layer
 Requires an optix-jni release.
 
 ### F-CAUSTICS-MULTITARGET: Per-instance ΔΩ-weighted photon emission
+
+**Stale-item sweep 2026-11-04:** likely done: the CHANGELOG lists multi-object caustics ("N separated refractive
+objects each cast their own caustic"); the ΔΩ weighting is unverified.
 
 P7 emission currently targets a single merged bounding sphere over all refractive instances
 (correct for one glass object; approximate for several). Emit one bounding sphere per
