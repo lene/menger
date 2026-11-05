@@ -1479,9 +1479,13 @@ test_cylinder() {
     run_test "cylinder with endpoints" --plane y:-2 \
         --objects type=cylinder:p0=-0.7,-0.3,0:p1=0.7,0.3,0:radius=0.35:material=chrome
     # Mixed analytic + mesh path: a sponge standing on a plinth. Its shadow on the plinth needs
-    # the optix-jni shader fix; this reference follows the pinned optix-jni release.
+    # the optix-jni shader fix; this reference follows the pinned optix-jni release. The light
+    # comes from the +x/+y/+z side the camera looks at, so the three sponge faces it sees get
+    # N.L 0.75 / 0.55 / 0.35 (the default light leaves two of them at ambient, hiding the
+    # holes), and it throws the shadow sideways across the cap, not behind the sponge.
     run_test "cylinder plinth with sponge" --plane y:-2 \
         --camera-pos 1.5,2,4 --camera-lookat 0,-0.3,0 \
+        --light directional:-0.75,-0.55,-0.35:1.0 \
         --objects type=cylinder:p0=0,-0.75,0:p1=0,-0.55,0:radius=1.3:material=matte \
         --objects type=sponge-volume:level=1:pos=0,-0.15,0:size=0.8:material=plastic
     # Shadow and caustic of a glass sphere on the plinth's top cap (the shadow, again, with the
