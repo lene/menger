@@ -185,9 +185,11 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     val manifest = manifestFor(freshTempPath())
     val cylinder = manifest.objects.find(_.name == "Cylinder").getOrElse(fail("no Cylinder"))
     val fields = cylinder.fields.map(f => f.name -> f).toMap
-    for name <- List("p0", "p1", "radius", "size", "material") do
+    for name <- List("p0", "p1", "radius", "size", "rotation", "material") do
       withClue(name) { fields(name).description shouldBe defined }
     fields("radius").description.get should include("size / 2")
+    fields("p0").description.get should include("both or neither")
+    fields("rotation").description.get should include("Ignored when `p0`/`p1` are given")
     fields("material").description.get should include("opaque")
     manifest.conventions.mkString("\n") should include(SceneValidator.OpaqueOnlyInvariant)
 

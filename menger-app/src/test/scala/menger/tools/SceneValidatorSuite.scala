@@ -542,12 +542,38 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
       )
       withClue(material) {
         findings.map(_.invariant) shouldBe List(SceneValidator.OpaqueOnlyInvariant)
-        findings.head.message should include("Cylinder renders opaque")
+        findings.head.message should include("object 0, a Cylinder at pos (0.0, 0.0, 0.0)")
+        findings.head.message should include("renders opaque")
       }
 
   it should "report a Cylinder whose colour alone is transparent" in:
     val cylinder = menger.dsl.Cylinder(color = Some(menger.dsl.Color(1f, 0f, 0f, 0.5f)))
     SceneValidator.opaqueOnlyFindings(sceneOf(cylinder)) should have size 1
+
+  // Caustics photons deposit only on IOR 1.05 or less: an opaque Plastic plinth (1.5) would
+  // silently lose its caustic.
+  it should "report a Cylinder with a refractive IOR, opaque or not, as getting no caustic" in:
+    for cylinder <- List(
+      menger.dsl.Cylinder(material = Some(menger.dsl.Material.Plastic)),
+      menger.dsl.Cylinder(ior = 1.5f)
+    ) do
+      val findings = SceneValidator.opaqueOnlyFindings(sceneOf(cylinder))
+      withClue(cylinder) {
+        findings.map(_.invariant) shouldBe List(SceneValidator.OpaqueOnlyInvariant)
+        findings.head.message should include("receives no caustic")
+        findings.head.message should not include "transparency"
+      }
+
+  it should "name each object by its index and place, so equal ones stay apart" in:
+    val glass = menger.dsl.Cylinder(material = Some(menger.dsl.Material.Glass))
+    val placed = glass.copy(
+      p0 = Some(menger.dsl.Vec3(0f, -1f, 0f)), p1 = Some(menger.dsl.Vec3(0f, 1f, 0f))
+    )
+    val messages = SceneValidator.opaqueOnlyFindings(sceneOf(glass, glass, placed)).map(_.message)
+    messages should have size 3
+    messages(0) should include("object 0,")
+    messages(1) should include("object 1,")
+    messages(2) should include("object 2, a Cylinder at p0 (0.0,-1.0,0.0), p1 (0.0,1.0,0.0)")
 
   it should "accept an opaque Cylinder and a glass object of another type" in:
     SceneValidator.opaqueOnlyFindings(sceneOf(

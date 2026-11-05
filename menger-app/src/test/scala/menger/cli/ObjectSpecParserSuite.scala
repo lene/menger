@@ -696,8 +696,8 @@ class ObjectSpecParserSuite extends AnyFlatSpec with Matchers:
       p0 = Some(menger.dsl.Vec3(0f, -0.1f, 0f)), p1 = Some(menger.dsl.Vec3(0f, 0f, 0f)),
       radius = Some(1.5f)
     ).toObjectSpec
-    (cli.objectType, cli.x, cli.y, cli.z, cli.size, cli.cylinder, cli.material) shouldBe
-      (dsl.objectType, dsl.x, dsl.y, dsl.z, dsl.size, dsl.cylinder, dsl.material)
+    (cli.objectType, cli.x, cli.y, cli.z, cli.size, cli.cone, cli.cylinder, cli.material) shouldBe
+      (dsl.objectType, dsl.x, dsl.y, dsl.z, dsl.size, dsl.cone, dsl.cylinder, dsl.material)
 
   it should "default to no end points and no radius" in:
     val spec = ObjectSpecParser.parse("type=cylinder").fold(e => fail(e), identity)
@@ -708,16 +708,29 @@ class ObjectSpecParserSuite extends AnyFlatSpec with Matchers:
       case Left(err) => err should include("p0")
       case Right(_)  => fail("Expected Left for a two-component p0")
 
-  it should "reject a non-positive radius" in:
-    ObjectSpecParser.parse("type=cylinder:radius=0") match
-      case Left(err) => err should include("radius must be positive")
-      case Right(_)  => fail("Expected Left for radius 0")
+  private def rejectsCylinder(keys: String, expected: String): Unit =
+    ObjectSpecParser.parse(s"type=cylinder:$keys") match
+      case Left(err) => withClue(keys) { err should include(expected) }
+      case Right(_)  => fail(s"Expected Left for type=cylinder:$keys")
+
+  it should "reject a radius that is not positive and finite" in:
+    for radius <- List("0", "-1", "NaN", "Infinity") do
+      rejectsCylinder(s"radius=$radius", "radius must be positive and finite")
+
+  it should "reject a size of 0 or less" in:
+    for size <- List("0", "-1") do rejectsCylinder(s"size=$size", "size must be positive")
+
+  it should "reject a single end point" in:
+    rejectsCylinder("p0=0,0.5,0", "give both or neither")
+    rejectsCylinder("p1=0,-0.5,0", "give both or neither")
+
+  it should "reject non-finite end points" in:
+    rejectsCylinder("p0=0,NaN,0:p1=0,1,0", "must be finite")
 
   it should "reject equal end points" in:
-    ObjectSpecParser.parse("type=cylinder:p0=1,2,3:p1=1,2,3") match
-      case Left(err) => err should include("p0 and p1 must differ")
-      case Right(_)  => fail("Expected Left for p0 == p1")
+    rejectsCylinder("p0=1,2,3:p1=1,2,3", "p0 and p1 must differ")
 
   it should "leave a cone's radius to the cone" in:
     val spec = ObjectSpecParser.parse("type=cone:radius=0.3").fold(e => fail(e), identity)
     spec.radius shouldBe Some(0.3f)
+    spec.cylinderRadius shouldBe None

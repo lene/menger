@@ -204,13 +204,16 @@ Cone(apex = Some(Vec3(0f, 2f, 0f)), base = Some(Vec3(0f, 0f, 0f)), radius = Some
 ```
 
 **Cylinder:** a capped cylinder with the fields of `Cone`, but optional `p0`, `p1` (the centres
-of its end caps, world coordinates) and `radius` instead of `apex` and `base`. Without them the
-cylinder is centred on `pos`, `size` high along y (turned by `rotation`), with a radius of
-`size / 2`. A radius of 0 or less, a `size` of 0 or less and `p0 == p1` are rejected. It is
-shaded opaque, diffuse or metallic: a transparent or refractive material (Glass, Film, any
-colour alpha below 1) renders opaque, and the scene validator reports it (`opaque-only`). It
-has no UV coordinates, so image textures and texture maps have no effect on it; a
-`proceduralType` works. See the `Plinth` example:
+of its end caps, world coordinates; both or neither) and `radius` instead of `apex` and `base`.
+Without them the cylinder is centred on `pos`, `size` high along y (turned by `rotation`), with
+a radius of `size / 2`. A radius that is not positive and finite, a `size` of 0 or less, only
+one of `p0`/`p1`, non-finite end points and `p0 == p1` are rejected. It is shaded opaque,
+diffuse or metallic: a transparent material (Glass, Film, any colour alpha below 1) renders
+opaque, and one with an IOR above 1.05 (the refractive ones, and Plastic) receives no caustic;
+the scene validator reports both (`opaque-only`). It has no UV coordinates, so image textures
+and texture maps have no effect on it. Procedural colouring works, but the object-local one
+(`proceduralType` 11, xyz_rgb_local) spans the box `pos` ± `size / 2`, not `p0`/`p1`: with
+`p0`/`p1`, set `pos` and `size` so that box covers the cylinder. See the `Plinth` example:
 
 ```scala
 Cylinder(material = Some(Material.Matte))               // centred on pos, 1 high, radius 0.5

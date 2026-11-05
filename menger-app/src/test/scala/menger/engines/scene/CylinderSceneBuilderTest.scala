@@ -20,8 +20,8 @@ class CylinderSceneBuilderTest extends AnyFlatSpec with Matchers:
     actual._3 shouldBe expected._3 +- Tolerance
 
   private def axisNear(actual: Axis, expected: Axis): Unit =
-    near(actual.bottom, expected.bottom)
-    near(actual.top, expected.top)
+    near(actual.start, expected.start)
+    near(actual.end, expected.end)
     actual.radius shouldBe expected.radius +- Tolerance
 
   "CylinderSceneBuilder.validate" should "accept a valid cylinder spec" in:
@@ -59,16 +59,16 @@ class CylinderSceneBuilderTest extends AnyFlatSpec with Matchers:
     val spec = Cylinder(pos = Vec3(1f, 2f, 3f), size = 2f).toObjectSpec
     axisNear(
       CylinderSceneBuilder().axisOf(spec),
-      Axis(top = (1f, 3f, 3f), bottom = (1f, 1f, 3f), radius = 1f)
+      Axis(start = (1f, 1f, 3f), end = (1f, 3f, 3f), radius = 1f)
     )
 
-  it should "put p0 at the bottom and p1 at the top, with the given radius" in:
+  it should "run the axis from p0 to p1, with the given radius" in:
     val spec = Cylinder(
       p0 = Some(Vec3(0f, -0.1f, 0f)), p1 = Some(Vec3(0f, 0f, 0f)), radius = Some(1.5f)
     ).toObjectSpec
     axisNear(
       CylinderSceneBuilder().axisOf(spec),
-      Axis(top = (0f, 0f, 0f), bottom = (0f, -0.1f, 0f), radius = 1.5f)
+      Axis(start = (0f, -0.1f, 0f), end = (0f, 0f, 0f), radius = 1.5f)
     )
 
   it should "turn a default cylinder's axis by its rotation, about pos" in:
@@ -79,7 +79,7 @@ class CylinderSceneBuilderTest extends AnyFlatSpec with Matchers:
     )
     axisNear(
       CylinderSceneBuilder().axisOf(spec),
-      Axis(top = (0.5f, 2f, 3f), bottom = (1.5f, 2f, 3f), radius = 0.5f)
+      Axis(start = (1.5f, 2f, 3f), end = (0.5f, 2f, 3f), radius = 0.5f)
     )
 
   it should "ignore pos, size and rotation when both end points are given" in:
@@ -89,7 +89,7 @@ class CylinderSceneBuilderTest extends AnyFlatSpec with Matchers:
     ).toObjectSpec
     axisNear(
       CylinderSceneBuilder().axisOf(spec),
-      Axis(top = (0f, 1f, 0f), bottom = (0f, 0f, 0f), radius = 0.2f)
+      Axis(start = (0f, 0f, 0f), end = (0f, 1f, 0f), radius = 0.2f)
     )
 
   it should "place a cylinder from the command line where the same DSL cylinder goes" in:

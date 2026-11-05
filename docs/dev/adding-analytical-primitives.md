@@ -170,7 +170,14 @@ capped cylinder (until then used only for edge tubes), is the most recent comple
 | Builder | `engines/scene/<Prim>SceneBuilder.scala`, `engines/TypeRegistry.scala` | A primitive placed by its axis end points and a radius extends `AxialPrimitiveSceneBuilder` (as `ConeSceneBuilder` does); one registry entry |
 | Agent | `tools/DslSemantics.scala`, `tools/SceneValidator.scala` | Field descriptions and conventions the types cannot say; a validator finding for what it cannot render |
 | Tests | `*SceneBuilderTest`, `FaultInjectionSuite`, `SceneObjectSuite`, `ObjectTypeSpec`, `ManifestGeneratorSuite`, `ObjectSpecParserSuite` | The enumerating suites fail until the new type is in them |
+| Fault injection | `SceneBuilderFaultInjectionSuite` | The new builder returns a `Failure` with a null renderer |
+| Dispatch | `GeometryRegistrySuite`, `RenderModeSelectorSuite` | The type resolves to its builder, and a mix with a mesh classifies as `SimpleMixed` and builds as its own group |
 | Scenes | `examples/dsl/`, `SceneIndex`, `scripts/integration-tests.sh`, `scripts/manual-test.sh` | An example (it joins the agent's corpus) and both scripts (`ScriptParitySuite`) |
+| Example tests | `CorpusExporterSuite.ExpectedSceneCount`, `ExampleScenesSuite` | The corpus count goes up by one; the example loads by reflection and by its short name |
+| Script coverage | `scripts/coverage-manifest.yaml` | Only when a new script entry is the first in both scripts to use a flag or material: `ScriptParitySuite` names what to move |
+| References | `scripts/reference-images/` | Rendered with `PARALLEL_MODE=false`; the user reviews reference, new and diff before they are committed |
+| Docs | `docs/guide/dsl-reference.md`, `docs/guide/user-guide.md`, `docs/guide/reference.md`, `CHANGELOG.md` | The DSL class, the CLI type and its keys, the change |
+| Scene agent | `menger-scene-agent/reference/dsl-manifest.json`, `dsl-corpus.json` | Regenerate the agent's vendored copies with `ManifestGenerator` and `CorpusExporter` (its README, "Refreshing the reference artifacts") and commit them there |
 
 ## Why no shared `PrimitiveParameters` abstraction
 

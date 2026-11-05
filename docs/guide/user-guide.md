@@ -294,10 +294,11 @@ clear-colour smoke test). For the broader debugging method, use the
 
 **Cylinder** (`--objects 'type=cylinder'`) — *Sprint 38*
 - Analytical capped cylinder (IS program — no triangle mesh)
-- Centred on `pos`, `size` high along +Y, radius `size / 2` by default; `p0=x,y,z`, `p1=x,y,z`
-  (centres of the end caps) and `radius=R` place it explicitly
-- Opaque materials only: a transparent or refractive material renders opaque; no image
-  textures or texture maps (procedural textures work)
+- Centred on `pos`, `size` high along +Y, radius `size / 2` by default; `p0=x,y,z` and
+  `p1=x,y,z` together (centres of the end caps) and `radius=R` place it explicitly
+- Opaque materials only: a transparent material renders opaque, one with an IOR above 1.05
+  (e.g. glass, plastic) receives no caustic; no image textures or texture maps. Procedural
+  textures work; the object-local one follows `pos`/`size`, not `p0`/`p1`
 - Example: `sbt "run --objects 'type=cylinder:p0=0,-0.1,0:p1=0,0,0:radius=1.5:material=matte'"`
 
 **Cube** (`--objects 'type=cube'`)

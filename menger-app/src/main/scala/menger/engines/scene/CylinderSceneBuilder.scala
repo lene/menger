@@ -6,15 +6,16 @@ import menger.common.Vector
 import menger.engines.scene.AxialPrimitiveSceneBuilder.ExplicitAxis
 import menger.spec.ObjectSpec
 
-/** Scene builder for capped cylinders: `p0` and `p1` are the centres of the end caps. optix-jni
-  * shades a cylinder opaque; `SceneValidator` reports a transparent material on one. */
+/** Scene builder for capped cylinders: the axis runs from `p0` to `p1`, the centres of the end
+  * caps. optix-jni shades a cylinder opaque; `SceneValidator` reports a material it cannot draw
+  * as written. */
 class CylinderSceneBuilder(textureDir: String = ".")
     extends AxialPrimitiveSceneBuilder("cylinder", textureDir):
 
   override private[scene] def explicitAxisOf(spec: ObjectSpec): ExplicitAxis =
-    ExplicitAxis(top = spec.p1, bottom = spec.p0, radius = spec.cylinderRadius)
+    ExplicitAxis(start = spec.p0, end = spec.p1, radius = spec.cylinderRadius)
 
   override protected def addInstance(
-    renderer: OptiXRenderer, top: Vector[3], bottom: Vector[3], radius: Float, material: Material
+    renderer: OptiXRenderer, start: Vector[3], end: Vector[3], radius: Float, material: Material
   ): InstanceId =
-    renderer.addCylinderInstance(bottom, top, radius, material)
+    renderer.addCylinderInstance(start, end, radius, material)

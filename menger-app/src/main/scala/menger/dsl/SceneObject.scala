@@ -280,10 +280,11 @@ case class Cone(
     ))
 
 /** Capped cylinder. Without `p0`/`p1` it is centred on `pos`, `size` high along y (turned by
-  * `rotation`), with a radius of `size / 2`; `p0` and `p1` are the centres of its end caps in
-  * world coordinates and override `pos`, `size` and `rotation`. It is shaded opaque, so a
-  * transparent or refractive material renders opaque, and it has no UV coordinates, so
-  * `texture`, `videoTexture`, `normalMap` and `roughnessMap` have no effect on it. */
+  * `rotation`), with a radius of `size / 2`; `p0` and `p1`, given together, are the centres of
+  * its end caps in world coordinates and override `pos`, `size` and `rotation`. It is shaded
+  * opaque, so a transparent material renders opaque, and one with an IOR above 1.05 receives
+  * no caustic; it has no UV coordinates, so `texture`, `videoTexture`, `normalMap` and
+  * `roughnessMap` have no effect on it. */
 case class Cylinder(
   pos: Vec3 = Vec3.Zero,
   material: Option[Material] = None,
@@ -303,7 +304,11 @@ case class Cylinder(
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
-  require(radius.forall(_ > 0f), s"Radius must be positive, got ${radius.getOrElse(0f)}")
+  require(radius.forall(r => r > 0f && r.isFinite),
+    s"Radius must be positive and finite, got ${radius.getOrElse(0f)}")
+  require(p0.isDefined == p1.isDefined, "p0 and p1 go together: give both or neither")
+  require((p0 ++ p1).forall(v => v.x.isFinite && v.y.isFinite && v.z.isFinite),
+    s"p0 and p1 must be finite, got p0 $p0, p1 $p1")
   require(p0.isEmpty || p0 != p1, s"p0 and p1 must differ, both are ${p0.getOrElse(Vec3.Zero)}")
 
   def toObjectSpec: ObjectSpec =

@@ -1481,7 +1481,7 @@ test_cylinder() {
     # Mixed analytic + mesh path: a sponge standing on a plinth. Its shadow on the plinth needs
     # the optix-jni shader fix; this reference follows the pinned optix-jni release.
     run_test "cylinder plinth with sponge" --plane y:-2 \
-        --camera-pos 1.5,2,4 --camera-lookat 0,-0.3,0 --camera-up 0,1,0 \
+        --camera-pos 1.5,2,4 --camera-lookat 0,-0.3,0 \
         --objects type=cylinder:p0=0,-0.75,0:p1=0,-0.55,0:radius=1.3:material=matte \
         --objects type=sponge-volume:level=1:pos=0,-0.15,0:size=0.8:material=plastic
     # Shadow and caustic of a glass sphere on the plinth's top cap (the shadow, again, with the

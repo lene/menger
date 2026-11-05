@@ -17,7 +17,7 @@ object LevelMixing:
 
   // A face refracts above this IOR -- the threshold the triangle shader (is_refractive) and the
   // caustics photon targets use.
-  private val RefractiveIor = 1.05f
+  val RefractiveIor = 1.05f
 
   def isRefractive(material: Material): Boolean = material.ior > RefractiveIor
 

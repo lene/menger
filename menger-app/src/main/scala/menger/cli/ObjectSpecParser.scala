@@ -63,8 +63,8 @@ object ObjectSpecParser extends LazyLogging:
    *   type=tesseract:material=glass:edge-color=#00FFFF:edge-emission=5.0:edge-radius=0.03
    *
    * Cylinder keywords (only for cylinder type; without them it is pos/size-derived):
-   *   p0=x,y,z / p1=x,y,z - centres of the end caps in world coordinates
-   *   radius=VALUE        - cylinder radius (default: size / 2), must be positive
+   *   p0=x,y,z / p1=x,y,z - centres of the end caps in world coordinates, both or neither
+   *   radius=VALUE        - cylinder radius (default: size / 2), positive and finite
    */
   private val ValidKeys: Set[String] = Set(
     "type", "pos", "size", "level", "color", "ior",
@@ -108,8 +108,8 @@ object ObjectSpecParser extends LazyLogging:
       projection4D <- parse4DProjection(kvPairs, objType)
       edgeParams <- parseEdgeParameters(kvPairs, objType)
       rotation <- parseRotation3DDeg(kvPairs)
-      coneGeom <- parseConeGeometry(kvPairs)
-      cylinderGeom <- parseCylinderGeometry(kvPairs, objType)
+      coneGeom <- parseConeGeometry(kvPairs, objType)
+      cylinderGeom <- parseCylinderGeometry(kvPairs, objType, size)
       planeGeom <- parsePlaneGeometry(kvPairs)
       procSpec <- parseProceduralSpec(kvPairs)
       _ <- validateSpongeLevel(objType, level)
@@ -554,32 +554,46 @@ object ObjectSpecParser extends LazyLogging:
       Degrees(rotXDeg).toRadians, Degrees(rotYDeg).toRadians, Degrees(rotZDeg).toRadians
     )
 
-  // One `radius` key: a cone's base radius or a cylinder's radius.
-  private val RadiusDescription = "radius in world units (cone base or cylinder)"
-
-  private def parseConeGeometry(kvPairs: Map[String, String]): Either[String, ConeGeometry] =
+  // `radius` is the cone's base radius on a cone and the cylinder's radius on a cylinder.
+  private def parseConeGeometry(
+    kvPairs: Map[String, String],
+    objType: String
+  ): Either[String, ConeGeometry] =
     for
       apex <- parseVector3(kvPairs, "apex")
       base <- parseVector3(kvPairs, "base")
-      radius <- parseOptionalFloat(kvPairs, "radius", RadiusDescription)
+      radius <- if objType == "cone" then parseOptionalFloat(kvPairs, "radius", "cone base radius")
+        else Right(None)
     yield ConeGeometry(apex, base, radius)
 
   private def parseCylinderGeometry(
     kvPairs: Map[String, String],
-    objType: String
+    objType: String,
+    size: Float
   ): Either[String, CylinderGeometry] =
-    for
-      p0 <- parseVector3(kvPairs, "p0")
-      p1 <- parseVector3(kvPairs, "p1")
-      radius <- parseOptionalFloat(kvPairs, "radius", RadiusDescription)
-      geometry = CylinderGeometry(p0, p1, radius)
-      _ <- if objType == "cylinder" then validateCylinderGeometry(geometry) else Right(())
-    yield geometry
+    if objType != "cylinder" then Right(CylinderGeometry())
+    else
+      for
+        p0 <- parseVector3(kvPairs, "p0")
+        p1 <- parseVector3(kvPairs, "p1")
+        radius <- parseOptionalFloat(kvPairs, "radius", "cylinder radius")
+        geometry = CylinderGeometry(p0, p1, radius)
+        _ <- validateCylinderGeometry(geometry, size)
+      yield geometry
 
-  private def validateCylinderGeometry(geometry: CylinderGeometry): Either[String, Unit] =
+  private def validateCylinderGeometry(
+    geometry: CylinderGeometry,
+    size: Float
+  ): Either[String, Unit] =
+    def isFinite(p: (Float, Float, Float)) = p._1.isFinite && p._2.isFinite && p._3.isFinite
     geometry match
-      case CylinderGeometry(_, _, Some(radius)) if radius <= 0f =>
-        Left(s"Cylinder radius must be positive, got $radius")
+      case _ if !(size > 0f) => Left(s"Cylinder size must be positive, got $size")
+      case CylinderGeometry(_, _, Some(radius)) if !(radius > 0f && radius.isFinite) =>
+        Left(s"Cylinder radius must be positive and finite, got $radius")
+      case CylinderGeometry(p0, p1, _) if p0.isDefined != p1.isDefined =>
+        Left("Cylinder p0 and p1 go together: give both or neither")
+      case CylinderGeometry(Some(p0), Some(p1), _) if !isFinite(p0) || !isFinite(p1) =>
+        Left(s"Cylinder p0 and p1 must be finite, got p0 $p0, p1 $p1")
       case CylinderGeometry(Some(p0), Some(p1), _) if p0 == p1 =>
         Left(s"Cylinder p0 and p1 must differ, both are $p0")
       case _ => Right(())

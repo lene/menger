@@ -83,3 +83,18 @@ class ConeSceneBuilderTest extends AnyFlatSpec with Matchers:
       ConeSceneBuilder().rotatedWorldPoint(spec, 0f, 0f, 0.5f),
       (1.5f, 2f, 3f)
     )
+
+  // The shared axial builder names the axis start/end: a cone's runs from the base to the apex.
+  "ConeSceneBuilder.axisOf" should "put the default base below pos and the apex above it" in:
+    val axis = ConeSceneBuilder().axisOf(ObjectSpec(objectType = "cone", y = 1f, size = 2f))
+    near(axis.start, (0f, 0f, 0f))
+    near(axis.end, (0f, 2f, 0f))
+    axis.radius shouldBe 1f
+
+  it should "start the axis at an explicit base and end it at an explicit apex" in:
+    val spec = ObjectSpec(
+      objectType = "cone",
+      cone = ConeGeometry(apex = Some((0f, 0.5f, 0f)), base = Some((0f, -0.5f, 0f)))
+    )
+    val axis = ConeSceneBuilder().axisOf(spec)
+    (axis.start, axis.end) shouldBe ((0f, -0.5f, 0f), (0f, 0.5f, 0f))

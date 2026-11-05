@@ -11,6 +11,7 @@ import menger.dsl.LoadedScene
 import menger.dsl.Scene
 import menger.engines.BuildPrecheck
 import menger.engines.scene.AssetPaths
+import menger.engines.scene.LevelMixing
 import menger.engines.scene.MaterialExtractor
 import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
@@ -377,21 +378,34 @@ object SceneValidator extends LazyLogging:
 
   private[tools] val OpaqueOnlyInvariant = "opaque-only"
 
-  /** A transparent material on a type the renderer shades opaque (a Cylinder, menger#156): the
-    * scene would render opaque where its author asked for glass. The material checked is the
-    * one the builder uses, so a transparent `color` without a material counts too. */
+  /** A material that a type the renderer shades opaque (a Cylinder, menger#156) cannot draw as
+    * written: a transparent one renders opaque, and a refractive one (IOR above the threshold
+    * the caustics photons use) also gets no caustic. The material checked is the one the
+    * builder uses, so a transparent `color` or an `ior` without a material counts too. */
   private[tools] def opaqueOnlyFindings(scene: Scene): List[InvariantFinding] =
-    sceneObjects(scene)
-      .map(obj => obj -> obj.toObjectSpec)
-      .filter((_, spec) => ObjectType.isOpaqueOnly(spec.objectType))
-      .flatMap { (obj, spec) =>
-        val alpha = MaterialExtractor.extract(spec).color.a
-        Option.when(alpha < 1f)(InvariantFinding(
+    sceneObjects(scene).zipWithIndex
+      .map((obj, index) => (obj, index, obj.toObjectSpec))
+      .filter((_, _, spec) => ObjectType.isOpaqueOnly(spec.objectType))
+      .flatMap { (obj, index, spec) =>
+        val material = MaterialExtractor.extract(spec)
+        val problems = List(
+          Option.when(material.color.a < 1f)(
+            s"its alpha ${material.color.a} (transparency) is not drawn, it renders opaque"),
+          Option.when(LevelMixing.isRefractive(material))(
+            s"its ior ${material.ior} counts as refractive: it renders opaque and receives " +
+              "no caustic")
+        ).flatten
+        Option.when(problems.nonEmpty)(InvariantFinding(
           OpaqueOnlyInvariant,
-          s"a ${obj.getClass.getSimpleName} renders opaque: its material's alpha $alpha " +
-            "(transparency and refraction) is not drawn; give it an opaque material (alpha 1)"
+          s"object $index, a ${obj.getClass.getSimpleName} at ${placementOf(spec)}: " +
+            s"${problems.mkString("; ")}. Give it an opaque, non-refractive material " +
+            s"(alpha 1, ior ${LevelMixing.RefractiveIor} or less)"
         ))
-      }.distinct
+      }
+
+  private def placementOf(spec: ObjectSpec): String = (spec.p0, spec.p1) match
+    case (Some(p0), Some(p1)) => s"p0 $p0, p1 $p1"
+    case _                    => s"pos (${spec.x}, ${spec.y}, ${spec.z})"
 
   private val BuildInvariant = "scene-build"
 

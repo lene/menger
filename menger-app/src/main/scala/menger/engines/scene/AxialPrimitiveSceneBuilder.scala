@@ -14,22 +14,23 @@ import menger.spec.ObjectSpec
 object AxialPrimitiveSceneBuilder:
   type Point3 = (Float, Float, Float)
 
-  /** The end points of a primitive's axis in world coordinates and its radius, each absent
-    * when it is to be derived from the spec's `pos`, `size` and `rotation`. */
+  /** The start and end points of a primitive's axis in world coordinates and its radius, each
+    * absent when it is to be derived from the spec's `pos`, `size` and `rotation`. */
   final case class ExplicitAxis(
-    top: Option[Point3], bottom: Option[Point3], radius: Option[Float]
+    start: Option[Point3], end: Option[Point3], radius: Option[Float]
   )
 
-  /** Where a primitive goes: the end points of its axis in world coordinates and its radius. */
-  final case class Axis(top: Point3, bottom: Point3, radius: Float)
+  /** Where a primitive goes: the start and end points of its axis in world coordinates and its
+    * radius. */
+  final case class Axis(start: Point3, end: Point3, radius: Float)
 
 /**
  * Scene builder for an analytic primitive placed by the two end points of its axis and a radius
  * (cone, cylinder), one instance per spec.
  *
  * Explicit end points are absolute world coordinates and bypass pos/size/rotation. Without them
- * the end points lie `size / 2` above and below `pos` along the object's rotated y axis, and the
- * radius defaults to `size / 2`.
+ * the axis starts `size / 2` below `pos` and ends `size / 2` above it, along the object's rotated
+ * y axis, and the radius defaults to `size / 2`.
  */
 abstract class AxialPrimitiveSceneBuilder(typeName: String, textureDir: String)
     extends SceneBuilder:
@@ -37,7 +38,7 @@ abstract class AxialPrimitiveSceneBuilder(typeName: String, textureDir: String)
   private[scene] def explicitAxisOf(spec: ObjectSpec): ExplicitAxis
 
   protected def addInstance(
-    renderer: OptiXRenderer, top: Vector[3], bottom: Vector[3], radius: Float, material: Material
+    renderer: OptiXRenderer, start: Vector[3], end: Vector[3], radius: Float, material: Material
   ): InstanceId
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
@@ -64,14 +65,14 @@ abstract class AxialPrimitiveSceneBuilder(typeName: String, textureDir: String)
       m(8) * localX + m(9) * localY + m(10) * localZ + m(11)
     )
 
-  /** Only the pos+size-derived default needs rotation applied -- otherwise `rotation=` on a cone
-    * with no explicit apex/base was silently dropped (Sprint 36 H5.2): the shape is defined
-    * purely by its end points and radius. */
+  /** `spec`'s axis and radius in world coordinates: the explicit ones where given, else the
+    * defaults derived from `pos`, `size` and `rotation`. (Rotation applies to the defaults only;
+    * a cone once dropped it there, Sprint 36 H5.2.) */
   private[scene] def axisOf(spec: ObjectSpec): Axis =
     val explicit = explicitAxisOf(spec)
     Axis(
-      explicit.top.getOrElse(rotatedWorldPoint(spec, 0f, spec.size / 2f, 0f)),
-      explicit.bottom.getOrElse(rotatedWorldPoint(spec, 0f, -spec.size / 2f, 0f)),
+      explicit.start.getOrElse(rotatedWorldPoint(spec, 0f, -spec.size / 2f, 0f)),
+      explicit.end.getOrElse(rotatedWorldPoint(spec, 0f, spec.size / 2f, 0f)),
       explicit.radius.getOrElse(spec.size / 2f)
     )
 
@@ -83,7 +84,7 @@ abstract class AxialPrimitiveSceneBuilder(typeName: String, textureDir: String)
     specs.foreach { spec =>
       val axis = axisOf(spec)
       val instanceId = addInstance(
-        renderer, toVector(axis.top), toVector(axis.bottom), axis.radius,
+        renderer, toVector(axis.start), toVector(axis.end), axis.radius,
         MaterialExtractor.extract(spec)
       )
       applyInstanceTextures(instanceId, spec, textureIndices, renderer)

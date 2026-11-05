@@ -5,13 +5,17 @@
 ### Added
 
 - A capped `Cylinder` for scenes, the round plinth of the Sprint 38 scene: DSL `Cylinder` with
-  optional `p0`, `p1` (centres of its end caps, world coordinates) and `radius`, centred on `pos`,
-  `size` high along y with a radius of `size / 2` without them; CLI `type=cylinder` with the
-  keys `p0`, `p1`, `radius`. It mixes with meshes like the other analytic primitives. A radius or
-  size of 0 or less and `p0 == p1` are rejected. It is shaded opaque: the validator reports a
-  transparent material on one (`opaque-only` finding), and the manifest says so. It has no UV
-  coordinates, so image textures and texture maps have no effect on it. Example: `Plinth`, a glass
-  sphere whose shadow and caustic fall on the plinth's top cap (lene/menger#156).
+  optional `p0`, `p1` (centres of its end caps, world coordinates; both or neither) and
+  `radius`, centred on `pos`, `size` high along y with a radius of `size / 2` without them; CLI
+  `type=cylinder` with the keys `p0`, `p1`, `radius`. It mixes with meshes like the other
+  analytic primitives. A size of 0 or less, a radius that is not positive and finite, only one
+  end point, non-finite end points and `p0 == p1` are rejected. It is shaded opaque: the
+  validator reports a transparent material on one, and one with an IOR above 1.05, which gets no
+  caustic (`opaque-only` finding, naming the object's index and place); the manifest says so. It
+  has no UV coordinates, so image textures and texture maps have no effect on it. Example:
+  `Plinth`, a glass sphere whose shadow and caustic fall on the plinth's top cap
+  (lene/menger#156).
+- On the command line `radius` sets a cone's or a cylinder's radius only on that type.
 
 ### Changed
 

@@ -272,10 +272,10 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
   it should "leave the cone's geometry empty" in:
     Cylinder(radius = Some(0.3f)).toObjectSpec.radius shouldBe None
 
-  "Cylinder" should "reject a non-positive radius, naming the field" in:
-    for r <- List(0f, -1f) do
+  "Cylinder" should "reject a radius that is not positive and finite, naming the field" in:
+    for r <- List(0f, -1f, Float.NaN, Float.PositiveInfinity) do
       the[IllegalArgumentException] thrownBy Cylinder(radius = Some(r)) should
-        have message s"requirement failed: Radius must be positive, got $r"
+        have message s"requirement failed: Radius must be positive and finite, got $r"
 
   it should "reject a non-positive size, naming the field" in:
     the[IllegalArgumentException] thrownBy Cylinder(size = 0f) should
@@ -286,8 +286,16 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     val e = the[IllegalArgumentException] thrownBy Cylinder(p0 = p, p1 = p)
     e.getMessage should include("p0 and p1 must differ")
 
-  it should "accept a single end point, the other derived from pos and size" in:
-    noException should be thrownBy Cylinder(p0 = Some(Vec3(0f, -0.5f, 0f)))
+  // A lone end point could land on the derived other one: p0 = (0, 0.5, 0) is the default p1.
+  it should "reject a single end point" in:
+    for (p0, p1) <- List((Some(Vec3(0f, 0.5f, 0f)), None), (None, Some(Vec3(0f, -0.5f, 0f)))) do
+      the[IllegalArgumentException] thrownBy Cylinder(p0 = p0, p1 = p1) should
+        have message "requirement failed: p0 and p1 go together: give both or neither"
+
+  it should "reject non-finite end points" in:
+    val e = the[IllegalArgumentException] thrownBy
+      Cylinder(p0 = Some(Vec3(0f, Float.NaN, 0f)), p1 = Some(Vec3(0f, 1f, 0f)))
+    e.getMessage should include("p0 and p1 must be finite")
 
   "Sierpinski4D" should "still build a PentachoronGasket under its old name" in:
     @annotation.nowarn("cat=deprecation")

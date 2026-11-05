@@ -37,7 +37,6 @@ rendering_flags:
   - --aa-max-depth
   - --camera-lookat
   - --camera-pos
-  - --camera-up             # menger#156: both scripts since the cylinder plinth test
   - --caustics-iterations
   - --caustics-photons
   - --cross-length
@@ -81,6 +80,7 @@ flags_exempt:
 # from here and add it to rendering_flags once both scripts cover it (the suite says when).
 flags_backlog:
   - --aa-threshold          # integration only
+  - --camera-up             # integration only
   - --cross-thickness       # manual only
   - --max-instances         # manual only
   - --antialias-samples
