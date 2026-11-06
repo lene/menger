@@ -23,13 +23,16 @@ change_classes:
     - '^scripts/integration-tests\.sh$'
   rendering:
     - '@file:standards/rendering-paths.txt'
+  assets:
+    - '^scripts/(test-)?fetch-kiara-hdri\.sh$'
+    - '^PROVENANCE\.yaml$'
 
 suites:
   parity:        { tier: push,    requires: [] }
   policy:        { tier: push,    requires: [] }
   preflight:     { tier: push,    requires: [] }
   lint:          { tier: push,    requires: [] }
-  unit:          { tier: push,    requires: [scala, native] }
+  unit:          { tier: push,    requires: [scala, native, assets] }
   perf:          { tier: push,    requires: [scala, native], note: "Perf-tagged timing gates (RelativeBenchmark: interleaved subject/reference rounds, median + confidence interval), excluded from `unit` by build.sbt and run alone; inconclusive gates make the suite SKIP, never FAIL" }
   native-checks: { tier: push,    requires: [native] }
   coverage:      { tier: push,    requires: [scala, native] }

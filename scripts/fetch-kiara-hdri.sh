@@ -49,6 +49,7 @@ if [ -f "$TARGET" ]; then
         exit 0
     fi
     echo "$TARGET has the wrong hash (want $EXPECTED, got $actual); downloading again" >&2
+    rm -f "$TARGET"  # a failed download must not leave the corrupt copy behind
 fi
 
 mkdir -p "$TARGET_DIR"
@@ -56,7 +57,7 @@ TMP="$(mktemp "$TARGET_DIR/.$NAME.XXXXXX")"
 trap 'rm -f "$TMP"' EXIT
 
 echo "downloading $URL"
-curl -fL --progress-bar -o "$TMP" "$URL"
+curl -fL --retry 3 --connect-timeout 30 --progress-bar -o "$TMP" "$URL"
 
 actual="$(sha256_of "$TMP")"
 if [ "$actual" != "$EXPECTED" ]; then
@@ -66,5 +67,6 @@ if [ "$actual" != "$EXPECTED" ]; then
     exit 1
 fi
 
+chmod 644 "$TMP"  # mktemp creates 0600; the renderer may run as another user (containers)
 mv -f "$TMP" "$TARGET"
 echo "$TARGET: SHA-256 verified"

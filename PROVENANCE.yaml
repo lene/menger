@@ -9,7 +9,9 @@ entries:
     licence: CC0-1.0
     author: Greg Zaal
     kind: asset
-    sha256:   # of the files as downloaded on 2026-11-07
+    # Downloaded 2026-11-07; each file's MD5 equals the one Poly Haven publishes
+    # (api.polyhaven.com/files/kiara_2_sunrise), so the pins are not trust-on-first-use.
+    sha256:
       1k: e4cd96c6046b2c3b81bd74b0c8b0d680272420ebc00e88ab7ba1c9be5941069b
       4k: f06d8b697c97cbaf4614ff82ae65530ed85ec6ab515bdfa4edaa6901ec2c0079
       8k: c6a1686cbcf45af26982af550a1c9647c5b24643c593e90d9cf394c3f4437d63

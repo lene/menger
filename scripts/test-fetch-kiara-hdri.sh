@@ -35,6 +35,7 @@ run_fetch "$DIR" 4k
 [ "$RC" -eq 0 ] && cmp -s "$DIR/$NAME" "$SERVER/4k/$NAME"
 check "fetch: file downloaded and verified, exit 0" $?
 [ "$(leftovers "$DIR")" -eq 0 ]; check "fetch: no temp file left behind" $?
+[ "$(stat -c %a "$DIR/$NAME")" = 644 ]; check "fetch: file readable by others (mode 644)" $?
 
 # Default resolution is 4k
 DIR="$WORK/default"
@@ -44,8 +45,9 @@ run_fetch "$DIR"
 # Already there: no download (URL would fail)
 DIR="$WORK/present"
 run_fetch "$DIR" 4k
+FIRST_RC=$RC
 KIARA_HDRI_BASE_URL="file://$WORK/nowhere" run_fetch "$DIR" 4k
-[ "$RC" -eq 0 ] && grep -q "already present" <<< "$OUT"
+[ "$FIRST_RC" -eq 0 ] && [ "$RC" -eq 0 ] && grep -q "already present" <<< "$OUT"
 check "already there: no download, exit 0" $?
 
 # Corrupt local copy: re-downloaded and verified
@@ -62,6 +64,12 @@ KIARA_HDRI_PINS="4k $WRONG_HASH" run_fetch "$DIR" 4k
 [ "$RC" -ne 0 ] && [ ! -e "$DIR/$NAME" ]; check "corrupt local copy, bad download: removed, exit non-zero" $?
 grep -q "$WRONG_HASH" <<< "$OUT" && grep -q "$FIXTURE_HASH" <<< "$OUT"
 check "corrupt local copy, bad download: message names expected and actual hash" $?
+
+# Corrupt local copy and a failed download: the corrupt copy does not stay behind
+DIR="$WORK/corrupt-offline"
+mkdir -p "$DIR"; echo corrupt > "$DIR/$NAME"
+KIARA_HDRI_BASE_URL="file://$WORK/nowhere" run_fetch "$DIR" 4k
+[ "$RC" -ne 0 ] && [ ! -e "$DIR/$NAME" ]; check "corrupt local copy, failed download: removed, exit non-zero" $?
 
 # Mismatch: download's hash differs from the pin
 DIR="$WORK/mismatch"
