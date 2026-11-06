@@ -22,6 +22,11 @@
 - `ConeSceneBuilder` and the new `CylinderSceneBuilder` share `AxialPrimitiveSceneBuilder`: the
   placement by two axis end points and a radius, derived from `pos`, `size` and `rotation` when
   absent. Cones render as before.
+- Internal, no render change: `menger.objects` rotates, projects and meshes in N = 3..8
+  dimensions (`Rotation[N]` in any plane, `PerspectiveChain[N]`, `Mesh[N]` / `Polygon[N, V]`;
+  `Mesh4D` and `Face4D[V]` remain as aliases for N = 4). The unused `Rotation` factory taking
+  `RotationProjectionParameters` (its z rotation scaled x instead of rotating) and
+  `RotationProjectionParameters.rotation` are removed (lene/menger#162).
 
 ### Known issues
 

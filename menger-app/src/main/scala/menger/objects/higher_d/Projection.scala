@@ -21,8 +21,10 @@ case class Projection(eyeW: Float, screenW: Float):
   private def exponent(p: Projection): Double = pow(addExponent, signum(p.eyeW - eyeW))
 
   
+  def factor(depth: Float): Float = (eyeW - screenW) / (eyeW - depth)
+
   def apply(point: Vector[4]): Vector[3] =
-    val projectionFactor = (eyeW - screenW) / (eyeW - point(3))
+    val projectionFactor = factor(point(3))
     Vector[3](point(0) * projectionFactor, point(1) * projectionFactor, point(2) * projectionFactor)
 
   
@@ -31,3 +33,48 @@ case class Projection(eyeW: Float, screenW: Float):
   def apply[V <: Int & Singleton](points: Face4D[V])(using ValueOf[V]): Face3D[V] =
     val vectors: IndexedSeq[Vector[3]] = points.vertices.map(apply)
     Face3D[V](vectors)
+
+
+// stages.head projects N -> N-1 (dropping the last coordinate), stages.last projects 4 -> 3;
+// each stage's eyeW / screenW are the eye and screen along the coordinate it drops.
+case class PerspectiveChain[N <: Int & Singleton](stages: Seq[Projection])(using d: ValueOf[N]):
+  require(
+    Dimension.isSupported(d.value),
+    s"dimension must be between ${Dimension.min} and ${Dimension.max}, is ${d.value}"
+  )
+  require(
+    stages.size == d.value - PerspectiveChain.targetDimension,
+    s"a perspective chain from ${d.value}D to ${PerspectiveChain.targetDimension}D needs " +
+      s"${d.value - PerspectiveChain.targetDimension} stages, got ${stages.size}"
+  )
+
+  def apply(point: Vector[N]): Vector[3] =
+    toVector3(stages.foldLeft(point.toIndexedSeq)(PerspectiveChain.dropLast))
+
+  def apply(points: Seq[Vector[N]]): Seq[Vector[3]] = points.map(apply)
+
+  def project(point: Vector[N]): Option[Vector[3]] =
+    stages.foldLeft(Option(point.toIndexedSeq)) { (coordinates, stage) =>
+      coordinates
+        .filterNot(c => PerspectiveChain.isClipped(c, stage))
+        .map(PerspectiveChain.dropLast(_, stage))
+    }.map(toVector3)
+
+  private def toVector3(coordinates: IndexedSeq[Float]): Vector[3] = Vector[3](coordinates*)
+
+object PerspectiveChain:
+  val targetDimension: Int = 3
+  // matches the epsilon the 4D CUDA shaders use for the eye_w clip (e.g. hit_menger4d.cu)
+  val clipEpsilon: Float = 1e-6f
+
+  def uniform[N <: Int & Singleton](eye: Float, screen: Float)(
+    using d: ValueOf[N]
+  ): PerspectiveChain[N] =
+    PerspectiveChain[N](Seq.fill(d.value - targetDimension)(Projection(eye, screen)))
+
+  private def dropLast(coordinates: IndexedSeq[Float], stage: Projection): IndexedSeq[Float] =
+    val factor = stage.factor(coordinates.last)
+    coordinates.init.map(_ * factor)
+
+  private def isClipped(coordinates: IndexedSeq[Float], stage: Projection): Boolean =
+    coordinates.last >= stage.eyeW - clipEpsilon

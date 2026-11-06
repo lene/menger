@@ -2,6 +2,8 @@ package menger
 
 import menger.common.Vector
 import menger.objects.Matrix
+import menger.objects.higher_d.Dimension
+import menger.objects.higher_d.Plane
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 
@@ -46,6 +48,16 @@ object PropertyTestGenerators:
   val smallMatrix4Gen: Gen[Matrix[4]] = for
     elements <- Gen.listOfN(16, smallFloat)
   yield Matrix[4](elements.toArray)
+
+  def vectorGen(d: Dimension, element: Gen[Float] = smallFloat): Gen[Vector[d.N]] =
+    Gen.listOfN(d.value, element).map(xs => Vector.fromSeq[d.N](xs)(using d.valueOf))
+
+  def planeGen(d: Dimension): Gen[Plane] = for
+    i <- Gen.choose(0, d.value - 1)
+    skipped <- Gen.choose(0, d.value - 2)
+  yield Plane(i, if skipped >= i then skipped + 1 else skipped, d.value)
+
+  val dimensions: Seq[Dimension] = (Dimension.min to Dimension.max).map(Dimension.of)
 
   given Arbitrary[Vector[4]] = Arbitrary(vector4Gen)
   given Arbitrary[Matrix[4]] = Arbitrary(matrix4Gen)

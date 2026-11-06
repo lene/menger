@@ -31,6 +31,24 @@ trait CustomMatchers:
 
   def epsilonEqual(expected: Matrix[4]) = new MatricesRoughlyEqualMatcher(expected)
 
+  def closeTo[N <: Int & Singleton](
+    expected: Vector[N], tolerance: Float = Const.epsilon
+  ): Matcher[Vector[N]] = left =>
+    MatchResult(
+      left.dst(expected) < tolerance,
+      s"""${left.toString} is not within $tolerance of ${expected.toString}""",
+      s"""${left.toString} is within $tolerance of ${expected.toString}"""
+    )
+
+  def closeTo[N <: Int & Singleton](
+    expected: Matrix[N], tolerance: Float
+  ): Matcher[Matrix[N]] = left =>
+    MatchResult(
+      expected.m.zip(left.m).forall((e, l) => math.abs(e - l) < tolerance),
+      s"""$left is not within $tolerance of \n$expected""",
+      s"""$left is within $tolerance of $expected"""
+    )
+
   def containsEpsilon(left: Iterable[Vector[4]], expected: Vector[4]): Boolean =
     left.exists(_.dst(expected) < Const.epsilon)
 
