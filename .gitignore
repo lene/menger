@@ -112,3 +112,6 @@ docker/scene-validator/stage/
 docker/scene-validator/optix-sdk/
 # pre-push code-quality review log (global CLAUDE.md rule): local, never committed
 LOCAL_CODE_IMPROVEMENTS.md
+
+# HDRIs fetched by scripts/fetch-kiara-hdri.sh (26-102 MB, over the staged-hygiene limit)
+assets/hdri/

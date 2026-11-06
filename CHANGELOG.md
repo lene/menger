@@ -15,6 +15,11 @@
   has no UV coordinates, so image textures and texture maps have no effect on it. Example:
   `Plinth`, a glass sphere whose shadow and caustic fall on the plinth's top cap
   (lene/menger#156).
+- `scripts/fetch-kiara-hdri.sh [1k|4k|8k]` fetches the Sprint 38 scene's environment map, Poly
+  Haven's Kiara 2 Sunrise HDRI (CC0, Greg Zaal), into the gitignored `assets/hdri/`, verified
+  against a pinned SHA-256 (a mismatch or failed download exits non-zero and leaves no file).
+  `PROVENANCE.yaml` records source, licence, author and hashes; its offline test runs in the
+  unit suite (lene/menger#157).
 - On the command line `radius` sets a cone's or a cylinder's radius only on that type.
 
 ### Changed

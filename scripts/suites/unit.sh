@@ -5,6 +5,13 @@
 set -u
 . ./standards/hooks/lib.sh
 
+# Offline and fast, so it runs before (and independent of) the Scala/native skip below.
+echo "=== Script tests ==="
+if ! scripts/test-fetch-kiara-hdri.sh; then
+  suite_fail unit 1 "test-fetch-kiara-hdri.sh"
+  exit 1
+fi
+
 if [ "${HAS_SCALA:-0}" -eq 0 ] && [ "${HAS_NATIVE:-0}" -eq 0 ]; then
   suite_skip unit "no Scala or native changes"
   exit 0

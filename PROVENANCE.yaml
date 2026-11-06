@@ -1,0 +1,15 @@
+# Provenance of third-party assets, algorithms and references used by menger.
+# The format (path/glob, source, licence, author, kind, SHA-256 per fetched file) is owned by
+# menger-toplevel#107, which adds the checker for all repos and may reshape this file.
+
+entries:
+  - path: assets/hdri/kiara_2_sunrise_*.hdr   # gitignored; fetched by scripts/fetch-kiara-hdri.sh
+    source: https://polyhaven.com/a/kiara_2_sunrise
+    download_url: https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/<res>/kiara_2_sunrise_<res>.hdr
+    licence: CC0-1.0
+    author: Greg Zaal
+    kind: asset
+    sha256:   # of the files as downloaded on 2026-11-07
+      1k: e4cd96c6046b2c3b81bd74b0c8b0d680272420ebc00e88ab7ba1c9be5941069b
+      4k: f06d8b697c97cbaf4614ff82ae65530ed85ec6ab515bdfa4edaa6901ec2c0079
+      8k: c6a1686cbcf45af26982af550a1c9647c5b24643c593e90d9cf394c3f4437d63
