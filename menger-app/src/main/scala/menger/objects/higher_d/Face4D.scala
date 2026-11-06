@@ -5,15 +5,17 @@ import scala.annotation.targetName
 import menger.common.Const
 import menger.common.Vector
 
-case class Face4D[V <: Int & Singleton](vertices: IndexedSeq[Vector[4]])(using v: ValueOf[V]):
+case class Polygon[N <: Int & Singleton, V <: Int & Singleton](vertices: IndexedSeq[Vector[N]])(
+  using v: ValueOf[V], n: ValueOf[N]
+):
 
   val vertsPerFace: Int = v.value
   require(vertices.size == vertsPerFace,
-    s"Face4D[$vertsPerFace] requires $vertsPerFace vertices, got ${vertices.size}")
+    s"Polygon[${n.value}, $vertsPerFace] requires $vertsPerFace vertices, got ${vertices.size}")
 
-  def apply(i: Int): Vector[4] = vertices(i)
-  def mapVertices(f: Vector[4] => Vector[4]): Face4D[V] = Face4D[V](vertices.map(f))
-  def asSeq: Seq[Vector[4]] = vertices.toSeq
+  def apply(i: Int): Vector[N] = vertices(i)
+  def mapVertices(f: Vector[N] => Vector[N]): Polygon[N, V] = Polygon[N, V](vertices.map(f))
+  def asSeq: Seq[Vector[N]] = vertices.toSeq
 
   def area: Float =
     if vertsPerFace < 3 then 0f
@@ -26,19 +28,21 @@ case class Face4D[V <: Int & Singleton](vertices: IndexedSeq[Vector[4]])(using v
       val area2 = u2 * v2 - uv * uv
       if area2 < 0f then 0f else math.sqrt(area2).toFloat
 
-  def map(f: Vector[4] => Vector[4]): Face4D[V] =
-    Face4D[V](vertices.map(f))
+  def map(f: Vector[N] => Vector[N]): Polygon[N, V] =
+    Polygon[N, V](vertices.map(f))
 
   @targetName("plus")
-  def +(delta: Vector[4]): Face4D[V] = map(_ + delta)
+  def +(delta: Vector[N]): Polygon[N, V] = map(_ + delta)
 
   @targetName("div")
-  def /(scale: Float): Face4D[V] = map(_ / scale)
+  def /(scale: Float): Polygon[N, V] = map(_ / scale)
 
   @targetName("equals")
-  def ==(that: Face4D[V]): Boolean = asSeq == that.asSeq
+  def ==(that: Polygon[N, V]): Boolean = asSeq == that.asSeq
 
   override def toString: String = asSeq.map(_.toString).mkString("(", ", ", ")")
+
+type Face4D[V <: Int & Singleton] = Polygon[4, V]
 
 object Face4D:
 
@@ -48,6 +52,9 @@ object Face4D:
 
   val dimension: Int = 4
   val numVertices: Int = 4
+
+  def apply[V <: Int & Singleton](vertices: IndexedSeq[Vector[4]])(using ValueOf[V]): Face4D[V] =
+    Polygon[4, V](vertices)
 
   def apply(a: Vector[4], b: Vector[4], c: Vector[4], d: Vector[4]): Face4D[4] =
     Face4D[4](IndexedSeq(a, b, c, d))
