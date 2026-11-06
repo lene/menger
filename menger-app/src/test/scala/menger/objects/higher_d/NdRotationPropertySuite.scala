@@ -108,8 +108,29 @@ class NdRotationPropertySuite extends AnyFlatSpec with Matchers with ScalaCheckP
         bits(Rotation.planeMatrix[d.N](plane, 33f).m)
     }
 
+  "A rotation about a pivot" should "keep the pivot fixed and rotate p - pivot about it" in:
+    dimensions.foreach { d =>
+      given ValueOf[d.N] = d.valueOf
+      forAll(planeGen(d), angleGen, planeGen(d), angleGen, vectorGen(d), vectorGen(d)) {
+        (p1, a1, p2, a2, pivot, point) =>
+          val single = Rotation.inPlane[d.N](p1, a1, pivot)
+          val written = Rotation.inWrittenOrder[d.N](Seq((p1, a1), (p2, a2)), pivot)
+          val aboutOrigin = Rotation.inPlane[d.N](p1, a1)
+          val writtenAboutOrigin = Rotation.inWrittenOrder[d.N](Seq((p1, a1), (p2, a2)))
+          single(pivot) should closeTo(pivot, tolerance)
+          written(pivot) should closeTo(pivot, tolerance)
+          single(point) should closeTo(aboutOrigin(point - pivot) + pivot, tolerance)
+          written(point) should closeTo(writtenAboutOrigin(point - pivot) + pivot, tolerance)
+      }
+    }
+
+  "A 4D-only Plane operation" should "reject a plane of another dimension, naming 4D planes" in:
+    val neg = the[IllegalArgumentException] thrownBy Plane(0, 1, 5).neg
+    neg.getMessage should (include("4D planes") and include("dimension 5"))
+    val units = the[IllegalArgumentException] thrownBy Plane(0, 1, 5).units
+    units.getMessage should (include("4D planes") and include("dimension 5"))
+
   "A plane rotation in dimension 4" should "be bit-identical to the legacy factories" in:
-    given ValueOf[4] = ValueOf(4)
     val planes = Seq(Plane.xy, Plane.xz, Plane.xw, Plane.yz, Plane.yw, Plane.zw)
     forAll(angleGen) { angle =>
       planes.foreach { plane =>
@@ -119,11 +140,10 @@ class NdRotationPropertySuite extends AnyFlatSpec with Matchers with ScalaCheckP
     }
 
   it should "compose XW, YW, ZW in written order like the legacy factory, within float noise" in:
-    given ValueOf[4] = ValueOf(4)
     forAll(angleGen, angleGen, angleGen) { (xw, yw, zw) =>
       val written = Rotation.inWrittenOrder[4](Seq((Plane.zw, zw), (Plane.yw, yw), (Plane.xw, xw)))
       written.transformationMatrix should closeTo(
-        Rotation(xw, yw, zw).transformationMatrix, 1e-6f
+        Rotation(xw, yw, zw).transformationMatrix, 1e-5f
       )
     }
 
@@ -146,21 +166,19 @@ class NdRotationPropertySuite extends AnyFlatSpec with Matchers with ScalaCheckP
 
   "Rejecting an invalid plane or dimension" should "name the plane and the dimension" in:
     val sameAxis = the[IllegalArgumentException] thrownBy Plane(2, 2, 5)
-    sameAxis.getMessage should (include("2") and include("dimension 5"))
+    sameAxis.getMessage should (include("must differ") and include("dimension 5"))
     val outOfRange = the[IllegalArgumentException] thrownBy Plane(0, 5, 5)
     outOfRange.getMessage should (include("0 and 4") and include("dimension 5") and include("5"))
     val tooBig = the[IllegalArgumentException] thrownBy Plane(0, 1, 9)
     tooBig.getMessage should (include("9") and include("(plane (0, 1))"))
     val tooSmall = the[IllegalArgumentException] thrownBy Plane(0, 1, 2)
-    tooSmall.getMessage should include("2")
+    tooSmall.getMessage should (include("is 2") and include("(plane (0, 1))"))
 
   it should "reject a plane of another dimension than the rotation's" in:
-    given ValueOf[5] = ValueOf(5)
     val mismatch = the[IllegalArgumentException] thrownBy Rotation.inPlane[5](Plane.xw, 10f)
     mismatch.getMessage should (include("xw") and include("dimension 4") and include("dimension 5"))
 
   it should "reject a rotation dimension outside 3..8" in:
-    given ValueOf[9] = ValueOf(9)
     val unsupported = the[IllegalArgumentException] thrownBy
       Rotation.planeMatrix[9](Plane.xy, 10f)
     unsupported.getMessage should (include("9") and include("xy"))

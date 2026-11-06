@@ -36,7 +36,6 @@ class NdMeshSuite extends AnyFlatSpec with Matchers:
     Polygon[5, 3](IndexedSeq(p0, p1, p2)).area shouldBe math.sqrt(3.0).toFloat +- 1e-5f
 
   "A Rotation[5]" should "rotate every vertex of a Polygon[5, V]" in:
-    given ValueOf[5] = ValueOf(5)
     val polygon = Polygon[5, 3](IndexedSeq(p0, p1, p2))
     val rotation = Rotation.inPlane[5](Plane(0, 4, 5), 90f)
     val rotated = rotation(polygon)

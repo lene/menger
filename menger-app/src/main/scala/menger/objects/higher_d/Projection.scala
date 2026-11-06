@@ -38,20 +38,17 @@ case class Projection(eyeW: Float, screenW: Float):
 // stages.head projects N -> N-1 (dropping the last coordinate), stages.last projects 4 -> 3;
 // each stage's eyeW / screenW are the eye and screen along the coordinate it drops.
 case class PerspectiveChain[N <: Int & Singleton](stages: Seq[Projection])(using d: ValueOf[N]):
-  require(
-    Dimension.isSupported(d.value),
-    s"dimension must be between ${Dimension.min} and ${Dimension.max}, is ${d.value}"
-  )
+  Dimension.requireSupported(d.value, "perspective chain")
   require(
     stages.size == d.value - PerspectiveChain.targetDimension,
     s"a perspective chain from ${d.value}D to ${PerspectiveChain.targetDimension}D needs " +
       s"${d.value - PerspectiveChain.targetDimension} stages, got ${stages.size}"
   )
 
+  // Does not clip: a point at or behind a stage's eye gives Inf/NaN or a mirrored point.
+  // Use `project` for points that can reach a stage's eye.
   def apply(point: Vector[N]): Vector[3] =
     toVector3(stages.foldLeft(point.toIndexedSeq)(PerspectiveChain.dropLast))
-
-  def apply(points: Seq[Vector[N]]): Seq[Vector[3]] = points.map(apply)
 
   def project(point: Vector[N]): Option[Vector[3]] =
     stages.foldLeft(Option(point.toIndexedSeq)) { (coordinates, stage) =>

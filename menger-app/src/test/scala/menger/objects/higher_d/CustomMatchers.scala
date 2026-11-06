@@ -45,7 +45,7 @@ trait CustomMatchers:
   ): Matcher[Matrix[N]] = left =>
     MatchResult(
       expected.m.zip(left.m).forall((e, l) => math.abs(e - l) < tolerance),
-      s"""$left is not within $tolerance of \n$expected""",
+      s"""$left is not within $tolerance of $expected""",
       s"""$left is within $tolerance of $expected"""
     )
 

@@ -20,6 +20,7 @@ import org.scalatest.matchers.should.Matchers
 class LegacyRotationParitySuite extends AnyFlatSpec with Matchers:
 
   private val GpuParityTolerance = 1e-6f
+  private val FullTurn = 360f
   private val randomAngleCount = 12
   private val randomSeed = 162L
 
@@ -57,7 +58,7 @@ class LegacyRotationParitySuite extends AnyFlatSpec with Matchers:
     withClue(clue) { bits(actual.m) shouldBe bits(expected.m) }
 
   "Rotation(xw, yw, zw)" should "produce the legacy matrix bit for bit" in:
-    for xw <- angleGrid; yw <- angleGrid.take(8); zw <- angleGrid.drop(8).take(8) do
+    for xw <- angleGrid; yw <- angleGrid; zw <- angleGrid do
       shouldBeBitIdentical(
         Rotation(xw, yw, zw).transformationMatrix, legacyXwYwZw(xw, yw, zw), s"($xw, $yw, $zw): "
       )
@@ -95,7 +96,7 @@ class LegacyRotationParitySuite extends AnyFlatSpec with Matchers:
     val pivot = Vector[4](0.5f, -1f, 2f, 0.25f)
     for _ <- 0 until 40 do
       val p = Vector[4](Seq.fill(4)((random.nextFloat() - 0.5f) * 20f)*)
-      val (xw, yw, zw) = (random.nextFloat() * 720f, random.nextFloat() * 720f, 90f)
+      val Seq(xw, yw, zw) = Seq.fill(3)(random.nextFloat() * 720f)
       val expected = legacyXwYwZw(xw, yw, zw)(p - pivot) + pivot
       bits(Rotation(xw, yw, zw, pivot)(p).toIndexedSeq) shouldBe bits(expected.toIndexedSeq)
 
@@ -137,9 +138,11 @@ class LegacyRotationParitySuite extends AnyFlatSpec with Matchers:
     edgeBits(edges) shouldBe edgeBits(legacyEdges(pentachoron))
 
   "Rotation.apply" should "agree with the GPU composition R_xw * (R_yw * R_zw) within tolerance" in:
-    for xw <- angleGrid; yw <- angleGrid.take(8); zw <- angleGrid.drop(8).take(8) do
+    for xw <- angleGrid; yw <- angleGrid; zw <- angleGrid do
       val gpu = MengerRenderer.composeRotationXwYwZw(xw, yw, zw)
       val scala = Rotation(xw, yw, zw).transformationMatrix.m
+      // the GPU port converts degrees to radians in float, so its error grows with the angle
+      val tolerance = GpuParityTolerance * math.max(1f, Seq(xw, yw, zw).map(_.abs).max / FullTurn)
       withClue(s"($xw, $yw, $zw): ") {
-        scala.zip(gpu).foreach((s, g) => s shouldBe g +- GpuParityTolerance)
+        scala.zip(gpu).foreach((s, g) => s shouldBe g +- tolerance)
       }

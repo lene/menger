@@ -12,7 +12,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 class PerspectiveChainSuite extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks:
 
   private val clipEpsilon = 1e-6f
-  private val relativeTolerance = 1e-4f
+  private val absoluteTolerance = 5e-4f
 
   private val stageGen: Gen[Projection] = for
     screen <- Gen.choose(0.5f, 2f)
@@ -38,7 +38,6 @@ class PerspectiveChainSuite extends AnyFlatSpec with Matchers with ScalaCheckPro
         expected(rest, coordinates.init.map(_ * factor))
 
   "A chain without stages (N = 3)" should "leave a point bit for bit as it is" in:
-    given ValueOf[3] = ValueOf(3)
     forAll(Gen.listOfN(3, Gen.choose(-100f, 100f))) { xs =>
       val p = Vector[3](xs*)
       bits(PerspectiveChain[3](Seq.empty)(p).toIndexedSeq) shouldBe bits(xs)
@@ -46,7 +45,6 @@ class PerspectiveChainSuite extends AnyFlatSpec with Matchers with ScalaCheckPro
     }
 
   "A chain with one stage (N = 4)" should "equal Projection.apply bit for bit" in:
-    given ValueOf[4] = ValueOf(4)
     forAll(stageGen, Gen.listOfN(4, Gen.choose(-0.9f, 0.9f))) { (stage, xs) =>
       val p = Vector[4](xs*)
       bits(PerspectiveChain[4](Seq(stage))(p).toIndexedSeq) shouldBe
@@ -69,12 +67,11 @@ class PerspectiveChainSuite extends AnyFlatSpec with Matchers with ScalaCheckPro
         val flat = Vector.fromSeq[d.N](xs ++ Seq.fill(d.value - 3)(0f))
         val scale = stages.map(s => (s.eyeW - s.screenW) / s.eyeW).product
         val projected = PerspectiveChain[d.N](stages)(flat)
-        projected should closeTo(Vector[3](xs.map(_ * scale)*), relativeTolerance * 5f)
+        projected should closeTo(Vector[3](xs.map(_ * scale)*), absoluteTolerance)
       }
     }
 
   it should "give a different projection when the stage pairs are swapped" in:
-    given ValueOf[5] = ValueOf(5)
     val (a, b) = (Projection(3f, 1f), Projection(6f, 2f))
     val p = Vector[5](0.5f, 1f, 1.5f, 0.8f, 0.9f)
     PerspectiveChain[5](Seq(a, b))(p) should not be closeTo(PerspectiveChain[5](Seq(b, a))(p), 1e-3f)
@@ -97,7 +94,6 @@ class PerspectiveChainSuite extends AnyFlatSpec with Matchers with ScalaCheckPro
     }
 
   it should "project a point at, just behind and just before the eye as the clip rule says" in:
-    given ValueOf[4] = ValueOf(4)
     val eye = 3f
     val chain = PerspectiveChain[4](Seq(Projection(eye, 1f)))
     def at(w: Float) = Vector[4](1f, 1f, 1f, w)
@@ -108,7 +104,6 @@ class PerspectiveChainSuite extends AnyFlatSpec with Matchers with ScalaCheckPro
     chain.project(at(0f)) shouldBe Some(chain(at(0f)))
 
   it should "clip a later stage on the already scaled coordinate" in:
-    given ValueOf[5] = ValueOf(5)
     val chain = PerspectiveChain[5](Seq(Projection(2f, 1f), Projection(2f, 1f)))
     // stage 1 factor is 1 / (2 - 0) = 0.5, so w becomes 1.5 (< 2): not clipped
     chain.project(Vector[5](1f, 1f, 1f, 3f, 0f)).isDefined shouldBe true
@@ -116,19 +111,16 @@ class PerspectiveChainSuite extends AnyFlatSpec with Matchers with ScalaCheckPro
     chain.project(Vector[5](1f, 1f, 1f, 4f, 1.5f)) shouldBe None
 
   "Constructing a chain" should "reject a wrong stage count, naming both counts" in:
-    given ValueOf[6] = ValueOf(6)
     val tooFew = the[IllegalArgumentException] thrownBy
       PerspectiveChain[6](Seq(Projection(3f, 1f)))
     tooFew.getMessage should (include("needs 3 stages") and include("got 1") and include("6D"))
 
   it should "reject any stage for N = 3, naming both counts" in:
-    given ValueOf[3] = ValueOf(3)
     val tooMany = the[IllegalArgumentException] thrownBy
       PerspectiveChain[3](Seq(Projection(3f, 1f)))
     tooMany.getMessage should (include("needs 0 stages") and include("got 1"))
 
   it should "reject a dimension outside 3..8" in:
-    given ValueOf[9] = ValueOf(9)
     val unsupported = the[IllegalArgumentException] thrownBy
       PerspectiveChain[9](Seq.fill(6)(Projection(3f, 1f)))
     unsupported.getMessage should include("9")

@@ -5,11 +5,7 @@ import menger.common.Vector
 
 
 case class Plane(i: Int, j: Int, dimension: Int = Plane.legacyDimension):
-  require(
-    Dimension.isSupported(dimension),
-    s"dimension must be between ${Dimension.min} and ${Dimension.max}, is $dimension " +
-      s"(plane ($i, $j))"
-  )
+  Dimension.requireSupported(dimension, s"plane ($i, $j)")
   require(
     i >= 0 && i < dimension && j >= 0 && j < dimension,
     s"i and j must be between 0 and ${dimension - 1} in dimension $dimension, are $i and $j"

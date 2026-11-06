@@ -92,8 +92,7 @@ object Rotation:
     using d: ValueOf[N]
   ): Matrix[N] =
     val size = d.value
-    require(Dimension.isSupported(size), s"dimension must be between ${Dimension.min} and " +
-      s"${Dimension.max}, is $size (plane $plane)")
+    Dimension.requireSupported(size, s"plane $plane")
     require(plane.dimension == size,
       s"plane $plane is in dimension ${plane.dimension}, not in the rotation's dimension $size")
     val cosTheta: Float = math.cos(angle.toRadians).toFloat

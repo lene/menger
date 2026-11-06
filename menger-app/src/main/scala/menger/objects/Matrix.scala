@@ -18,7 +18,8 @@ case class Matrix[dim <: Int & Singleton](m: Array[Float])(implicit d: ValueOf[d
     for (i <- indices; j <- indices) result(index(i, j)) = element(i, j)
     Matrix[dim](result)
 
-  def transpose: Matrix[dim] = Matrix[dim](Array.tabulate(m.length)(k => this(k % d.value, k / d.value)))
+  def transpose: Matrix[dim] =
+    Matrix[dim](Array.tabulate(m.length)(k => this(k % d.value, k / d.value)))
 
   def apply(i: Int, j: Int): Float = m(index(i, j))
 
