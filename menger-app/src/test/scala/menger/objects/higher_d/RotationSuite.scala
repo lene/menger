@@ -2,7 +2,6 @@ package menger.objects.higher_d
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.common.Vector
-import menger.objects.Matrix
 import org.scalatest.Inspectors.forAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should._
@@ -61,49 +60,6 @@ class RotationSuite extends AnyFlatSpec with Matchers with LazyLogging with Stan
     val r1 = Rotation(10, 0, 0)
     val r2 = Rotation(20, 0, 0)
     (r1 + r2) === Rotation(30, 0, 0) should be (true)
-
-  "Rotation in 3D" should "be created from empty RotationProjectionParameters as identity" in:
-    val rotProjParams = RotationProjectionParameters()
-    val r = Rotation(rotProjParams)
-    r.transformationMatrix should epsilonEqual(Matrix.identity[4])
-
-  it should "not be identity if created from RotationProjectionParameters" in:
-    val rotProjParams = RotationProjectionParameters(rotX = 90, rotY = 0, rotZ = 0)
-    val r = Rotation(rotProjParams)
-    r.transformationMatrix should not be epsilonEqual(Matrix.identity[4])
-
-  it should "be created correctly from RotationProjectionParameters when rotating around X" in:
-    val rotProjParams = RotationProjectionParameters(rotX = 90, rotY = 0, rotZ = 0)
-    val r = Rotation(rotProjParams)
-    r.transformationMatrix should epsilonEqual(
-      Matrix[4](Array[Float](
-         0, 1, 0, 0,
-        -1, 0, 0, 0,
-         0, 0, 1, 0,
-         0, 0, 0, 1
-    )))
-
-  it should "be created correctly from RotationProjectionParameters when rotating around Y" in:
-    val rotProjParams = RotationProjectionParameters(rotX = 0, rotY = 90, rotZ = 0)
-    val r = Rotation(rotProjParams)
-    r.transformationMatrix should epsilonEqual(
-      Matrix[4](Array[Float](
-        0, 0, 1, 0,
-         0, 1, 0, 0,
-        -1, 0, 0, 0,
-         0, 0, 0, 1
-    )))
-
-  it should "work together with 4D rotation" in:
-    val rotProjParams = RotationProjectionParameters(rotX = 90, rotZW = 90)
-    val r = Rotation(rotProjParams)
-    r.transformationMatrix should epsilonEqual(
-      Matrix[4](Array[Float](
-         0, 1,  0, 0,
-        -1, 0,  0, 0,
-         0, 0,  0, 1,
-         0, 0, -1, 0
-      )))
 
   "chaining two rotations" should "have same result regardless of order" in:
     val r1 = Rotation(10, 0, 0)

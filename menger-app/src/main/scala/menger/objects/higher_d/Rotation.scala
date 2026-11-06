@@ -40,12 +40,6 @@ object Rotation:
     val rotate = Rotation.matrix(0, 3, degreesXW) * Ryw * Rzw
     Rotation(rotate, pivotPoint)
 
-  def apply(rotProjParameters: RotationProjectionParameters): Rotation =
-    val Rx = Rotation.matrix(0, 1, rotProjParameters.rotX)
-    val Ry = Rotation.matrix(0, 2, rotProjParameters.rotY)
-    val rot3D = Rotation.matrix(0, 0, rotProjParameters.rotZ) * Rx * Ry
-    Rotation(rotProjParameters.rotXW, rotProjParameters.rotYW, rotProjParameters.rotZW) * Rotation(rot3D, Vector.Zero[4])
-
   def apply(plane: Plane, axis: Edge, pivotPoint: Vector[4], angle: Float): Array[Rotation] =
     val u: Vector[4] = axis(1) - axis(0)
     val direction: Int = u.indexWhere(math.abs(_) > Const.epsilon)

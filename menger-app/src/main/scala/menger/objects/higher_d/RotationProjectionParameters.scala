@@ -13,7 +13,6 @@ case class RotationProjectionParameters(
   rotX: Float = 0, rotY: Float = 0, rotZ: Float = 0
 ):
   lazy val projection: Projection = Projection(eyeW.getOrElse(Const.defaultEyeW), screenW)
-  lazy val rotation: Rotation = Rotation(this)
 
   @targetName("plus")
   def +(other: RotationProjectionParameters): RotationProjectionParameters =
