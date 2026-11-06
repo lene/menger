@@ -245,7 +245,7 @@ object LSystemTurtle4D:
       if 3 == i then c * vi - s * vj else if 3 == j then s * vi + c * vj else v(3)
     )
 
-  def project4DTo3D(v: Vector[4], rot: Rotation, proj: Projection): Vec3 =
+  def project4DTo3D(v: Vector[4], rot: Rotation[4], proj: Projection): Vec3 =
     val rotated = rot(v)
     val gdx3 = proj(rotated)
     Vec3(gdx3.x, gdx3.y, gdx3.z)

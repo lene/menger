@@ -30,7 +30,7 @@ case class Mesh4DProjection(
   require(eyeW > screenW, s"eyeW ($eyeW) must be greater than screenW ($screenW)")
   require(eyeW > 0 && screenW > 0, "eyeW and screenW must be positive")
 
-  private val rotation: Rotation =
+  private val rotation: Rotation[4] =
     if rotXW == 0f && rotYW == 0f && rotZW == 0f then Rotation.identity
     else Rotation(rotXW, rotYW, rotZW, Vector[4](0f, 0f, 0f, 0f))
 

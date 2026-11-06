@@ -4,17 +4,37 @@ import menger.common.Const
 import menger.common.Vector
 
 
-case class Plane(i: Int, j: Int):
-  require(i >= 0 && i < 4 && j >= 0 && j < 4, s"i and j must be between 0 and 3, are $i and $j")
+case class Plane(i: Int, j: Int, dimension: Int = Plane.legacyDimension):
+  require(
+    Dimension.isSupported(dimension),
+    s"dimension must be between ${Dimension.min} and ${Dimension.max}, is $dimension " +
+      s"(plane ($i, $j))"
+  )
+  require(
+    i >= 0 && i < dimension && j >= 0 && j < dimension,
+    s"i and j must be between 0 and ${dimension - 1} in dimension $dimension, are $i and $j"
+  )
+  require(i != j, s"i and j must differ, are $i and $j in dimension $dimension")
   lazy val indices: Array[Int] = Array(i, j)
-  lazy val normalIndices: Array[Int] = Set(0, 1, 2, 3).diff(indices.toSet).toArray
-  override def toString: String = s"${("x", "y", "z", "w")(i)}${("x", "y", "z", "w")(j)}"
+  lazy val normalIndices: Array[Int] =
+    (0 until dimension).filterNot(indices.contains).toArray
+  override def toString: String = s"${Dimension.axisNames(i)}${Dimension.axisNames(j)}"
   def neg: Plane =
+    requireLegacyDimension("neg")
     val unusedIndices = (0 to 3).diff(indices)
     Plane(unusedIndices.head, unusedIndices.last)
-  def units: Seq[Vector[4]] = Seq(Plane.units(i), Plane.units(j))
+  def units: Seq[Vector[4]] =
+    requireLegacyDimension("units")
+    Seq(Plane.units(i), Plane.units(j))
+
+  private def requireLegacyDimension(operation: String): Unit =
+    require(
+      dimension == Plane.legacyDimension,
+      s"$operation is only defined for 4D planes, plane $this is in dimension $dimension"
+    )
 
 object Plane:
+  val legacyDimension: Int = 4
   val xy: Plane = Plane(0, 1)
   val xz: Plane = Plane(0, 2)
   val xw: Plane = Plane(0, 3)

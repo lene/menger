@@ -411,7 +411,7 @@ object TesseractEdgeSceneBuilder:
     edges: IndexedSeq[(Vector[4], Vector[4])]
   ): IndexedSeq[Option[(Vector[3], Vector[3])]] =
     val proj4D = spec.projection4D.getOrElse(Projection4DSpec.default)
-    val rotation: Rotation =
+    val rotation: Rotation[4] =
       if proj4D.rotXW == Degrees.Zero && proj4D.rotYW == Degrees.Zero &&
         proj4D.rotZW == Degrees.Zero then Rotation.identity
       else Rotation(
