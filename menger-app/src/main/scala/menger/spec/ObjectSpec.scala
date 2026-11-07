@@ -125,4 +125,4 @@ object ObjectSpec:
   )
 
   def hasEdgeTubes(objType: String): Boolean =
-    ObjectType.isEdgeTubed4D(objType) || Edge3DTypes.contains(ObjectType.normalize(objType))
+    ObjectType.isEdgeTubeMesh(objType) || Edge3DTypes.contains(ObjectType.normalize(objType))

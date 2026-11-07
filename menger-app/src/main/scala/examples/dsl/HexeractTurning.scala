@@ -13,15 +13,17 @@ import menger.spec.ProjectionStage
  * is seen through three perspective stages, 6D -> 5D -> 4D -> 3D.
  *
  * The cube has an extent in every axis, so a turn in the xu plane is a real turn: u moves into
- * x. After a quarter turn the cube maps onto itself, which makes the 8 s loop seamless.
+ * x. It turns a full 360 degrees in 16 s, so that the loop is seamless: a quarter turn maps the
+ * cube onto itself as a shape, but swaps faces of opposite winding, which a film material
+ * shades differently from their two sides.
  *
  * Usage:
- *   --scene examples.dsl.HexeractTurning --t 2
+ *   --scene examples.dsl.HexeractTurning --t 4
  */
 object HexeractTurning:
-  val durationSeconds = 8f
+  val durationSeconds = 16f
 
-  private val quarterTurn = 90f
+  private val fullTurn = 360f
   private val stages = List.fill(3)(ProjectionStage(4f, 0.8f))
   private val size = 1.6f
   private val material = Some(Material.Film)
@@ -31,7 +33,7 @@ object HexeractTurning:
   def scene(t: Float): Scene =
     val view = ProjectionSpec(
       dimension = 6,
-      planes = List(PlaneRotation("xu", quarterTurn * t / durationSeconds)),
+      planes = List(PlaneRotation("xu", fullTurn * t / durationSeconds)),
       stages = stages
     )
     Scene(

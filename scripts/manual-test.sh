@@ -426,8 +426,8 @@ run_test "TesseractToPenteract t=2.667 (xv fully turned)" "-o --scene examples.d
 run_test "TesseractToPenteract t=5.333 (xv, yv turned)" "-o --scene examples.dsl.TesseractToPenteract --t 5.3333335 -s $OUTPUT_DIR/105g-tesseract-to-penteract-t5.33.png"
 run_test "TesseractToPenteract t=8 (xv, yv and zv turned)" "-o --scene examples.dsl.TesseractToPenteract --t 8 -s $OUTPUT_DIR/105h-tesseract-to-penteract-t8.png"
 run_test "HexeractTurning t=0 (6-cube, unturned)" "-o --scene examples.dsl.HexeractTurning --t 0 -s $OUTPUT_DIR/105i-hexeract-turning-t0.png"
-run_test "HexeractTurning t=4 (xu turned 45 degrees)" "-o --scene examples.dsl.HexeractTurning --t 4 -s $OUTPUT_DIR/105j-hexeract-turning-t4.png"
-run_test "HexeractTurning t=8 (xu turned 90 degrees)" "-o --scene examples.dsl.HexeractTurning --t 8 -s $OUTPUT_DIR/105k-hexeract-turning-t8.png"
+run_test "HexeractTurning t=2 (xu turned 45 degrees)" "-o --scene examples.dsl.HexeractTurning --t 2 -s $OUTPUT_DIR/105j-hexeract-turning-t2.png"
+run_test "HexeractTurning t=4 (xu turned 90 degrees)" "-o --scene examples.dsl.HexeractTurning --t 4 -s $OUTPUT_DIR/105k-hexeract-turning-t4.png"
 
 # Colored Shadows Phase 1 (single-object)
 echo -e "${YELLOW}--- Colored Shadows (Phase 1: single object) ---${NC}"

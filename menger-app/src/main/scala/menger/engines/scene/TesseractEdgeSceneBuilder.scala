@@ -87,8 +87,8 @@ class TesseractEdgeSceneBuilder(
     lazy val fractionalProjectionSpec = ProjectionSupport.rejectedFractionalLevel(specs)
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
-    else if !specs.forall(s => ObjectType.isEdgeTubed4D(s.objectType)) then
-      Left("TesseractEdgeSceneBuilder only supports 4D projected types and the hypercube")
+    else if !specs.forall(s => ObjectType.isEdgeTubeMesh(s.objectType)) then
+      Left("TesseractEdgeSceneBuilder only supports projected 4D types and n-cubes (Hypercube)")
     else if !specs.forall(_.hasEdgeRendering) then
       Left("TesseractEdgeSceneBuilder requires edge rendering parameters on all specs")
     else if fractionalProjectionSpec.isDefined then fractionalProjectionSpec.toLeft(())
@@ -325,7 +325,7 @@ class TesseractEdgeSceneBuilder(
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
     // Both must be 4D projected types or n-cubes; their projections may differ (menger#52).
-    ObjectType.isEdgeTubed4D(spec1.objectType) && ObjectType.isEdgeTubed4D(spec2.objectType)
+    ObjectType.isEdgeTubeMesh(spec1.objectType) && ObjectType.isEdgeTubeMesh(spec2.objectType)
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
     // Calculate total instances: 1 face mesh instance + N edge cylinder instances per object

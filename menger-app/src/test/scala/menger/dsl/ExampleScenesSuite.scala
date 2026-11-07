@@ -1,5 +1,7 @@
 package menger.dsl
 
+import menger.common.ProfilingConfig
+import menger.engines.scene.MeshFactory
 import menger.scene.LoadError
 import menger.scene.SceneLoader
 import org.scalatest.flatspec.AnyFlatSpec
@@ -295,15 +297,30 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
       spec.edgeRadius should not be empty
       spec.edgeMaterial should not be empty
 
-  it should "turn HexeractTurning in the plane xu, a quarter turn over the loop" in:
+  it should "turn HexeractTurning in the plane xu, a full turn over the loop" in:
     val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.HexeractTurning"))
     def turns(t: Float) =
       val planes = fn(t).objects.head.toObjectSpec.projectionN.get.planes
       planes.map(r => (r.plane.letters, r.angle.value))
+    val duration = examples.dsl.HexeractTurning.durationSeconds
     turns(0f) shouldBe List(("xu", 0f))
-    val end = turns(examples.dsl.HexeractTurning.durationSeconds)
+    turns(2f).head._2 shouldBe 45f +- 1e-3f
+    turns(4f).head._2 shouldBe 90f +- 1e-3f
+    val end = turns(duration)
     end.map(_._1) shouldBe List("xu")
-    end.head._2 shouldBe 90f +- 1e-3f
+    end.head._2 shouldBe 360f +- 1e-3f
+
+  it should "close the HexeractTurning loop: the cube at the end is the cube at the start" in:
+    // A quarter turn maps the shape onto itself but swaps faces of opposite winding, which a
+    // film material shades differently; only a full turn returns every face to itself.
+    given ProfilingConfig = ProfilingConfig.disabled
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.HexeractTurning"))
+    def vertices(t: Float): Array[Float] =
+      MeshFactory.create(fn(t).objects.head.toObjectSpec).vertices
+    val start = vertices(0f)
+    val end = vertices(examples.dsl.HexeractTurning.durationSeconds)
+    end.length shouldBe start.length
+    start.zip(end).foreach((a, b) => a shouldBe b +- 1e-5f)
 
   "SceneIndex" should "contain all static scenes" in:
     val all = examples.dsl.SceneIndex.all

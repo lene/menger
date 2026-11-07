@@ -109,7 +109,7 @@ object ObjectType:
 
   /** Meshes drawn with edge tubes by `TesseractEdgeSceneBuilder`: the projected 4D types and
     * the n-cube. */
-  def isEdgeTubed4D(objectType: String): Boolean =
+  def isEdgeTubeMesh(objectType: String): Boolean =
     isProjected4D(objectType) || isNCube(objectType)
 
   def isSpongeOrCube(objectType: String): Boolean =

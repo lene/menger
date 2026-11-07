@@ -94,10 +94,10 @@ The command line stays 4D. Rotating a 4D object in 5D to 8D (`ProjectionSpec`) i
 see [the DSL reference](dsl-reference.md) and the `TesseractToPenteract` example. The window's
 Shift+drag rotation and the Shift+scroll eye change do not apply to such an object.
 
-The cube of 5 to 8 dimensions (penteract, hexeract, ...) is DSL only too: `Hypercube(dimension =
-N)`, with film faces and one tube per edge like the tesseract, seen through a `ProjectionSpec`
-of at least N dimensions. See [the DSL reference](dsl-reference.md) and the `HexeractTurning`
-example.
+The cube of 4 to 8 dimensions (tesseract, penteract, hexeract, ...) is DSL only too:
+`Hypercube(dimension = N)`, with film faces and one tube per edge like the tesseract, seen
+through a `ProjectionSpec` of at least N dimensions. See [the DSL reference](dsl-reference.md)
+and the `HexeractTurning` example.
 
 #### Removed flags
 

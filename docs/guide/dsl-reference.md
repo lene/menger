@@ -403,7 +403,8 @@ Hypercube(
   5-cube in `ProjectionSpec(7)` can be turned in planes using `u` and `t`: the plane `vt` moves
   it into `t`. A plane of axes the cube has not reached yet (`ts` for a 5-cube) turns nothing.
 - A face or an edge tube with a vertex at or behind a stage's eye is left out, the rest is
-  drawn.
+  drawn. This holds for `Hypercube(4)` too, while the faces of a `Tesseract` are not clipped
+  at an eye (lene/menger#176): the two differ there, edge tubes aside.
 - It renders on the CPU through the chain, like any `ProjectionSpec` object: an animation
   rebuilds it every frame, and the window's Shift+drag leaves it alone. An 8-cube with edge
   tubes needs 1025 instances; the renderer's limit is raised for it unless you set

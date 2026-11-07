@@ -93,13 +93,19 @@ class NCubeSceneSuite extends AnyFlatSpec with Matchers:
 
   it should "place the edge endpoints at the object's position" in:
     val spec = hypercube(5).copy(x = 1f, y = 2f, z = 3f)
-    val moved = NCubeScene.edgeEndpoints(spec)
+    val placed = NCubeScene.edgeEndpoints(spec)
     val atOrigin = NCubeScene.edgeEndpoints(spec.copy(x = 0f, y = 0f, z = 0f))
-    moved.zip(atOrigin).foreach { case (Some((m0, _)), Some((o0, _))) =>
-      Seq(m0(0) - o0(0), m0(1) - o0(1), m0(2) - o0(2)).zip(Seq(1f, 2f, 3f)).foreach {
-        (moved, offset) => moved shouldBe offset +- 1e-5f
-      }
-    case _ => fail("no edge is clipped at the default view")
+    placed should have size atOrigin.size.toLong
+    val offset = Seq(1f, 2f, 3f)
+    def shift(point: menger.common.Vector[3], origin: menger.common.Vector[3]) =
+      Seq(point(0) - origin(0), point(1) - origin(1), point(2) - origin(2))
+    placed.zip(atOrigin).foreach { (actual, expected) =>
+      (actual, expected) match
+        case (Some((a0, a1)), Some((e0, e1))) =>
+          Seq(shift(a0, e0), shift(a1, e1)).foreach { shifted =>
+            shifted.zip(offset).foreach((moved, wanted) => moved shouldBe wanted +- 1e-5f)
+          }
+        case _ => fail("no edge is clipped at the default view")
     }
 
   "The builders" should "take an edge-rendered n-cube with TesseractEdgeSceneBuilder" in:
