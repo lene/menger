@@ -21,6 +21,18 @@
   `PROVENANCE.yaml` records source, licence, author and hashes; its offline test runs in the
   unit suite (lene/menger#157).
 - On the command line `radius` sets a cone's or a cylinder's radius only on that type.
+- The hypercube of 4 to 8 dimensions (Sprint 38 grid cell G7, lene/menger#163): DSL
+  `Hypercube(dimension = N)` with the fields of `Tesseract` and `projection: Option[ProjectionSpec]`
+  (the penteract has 32 vertices, 80 edges and 80 square faces; the 8-cube 256, 1024 and 1792).
+  The projection's dimension must be at least N (default `ProjectionSpec(N)`): a smaller one
+  and a dimension outside 4 to 8 are rejected with a message naming them. A cube lower than its
+  view is lifted with zero coordinates, so planes using the extra axes turn it. Faces and edge
+  tubes (one per edge, the instance limit raised for them) are drawn through the perspective
+  chain on the CPU; a face or tube with a vertex at or behind a stage's eye is left out. No
+  GPU path and no 4D fast path (an animation rebuilds every frame); the command line stays 4D
+  (`type=n-cube` is refused with a pointer to the DSL). The validator's snapshot carries the
+  cube's `dimension`. Example: `HexeractTurning`, a 6-cube turning in the plane `xu`. The
+  scene agent's manifest and corpus follow with the next regeneration.
 - A 4D object can be lifted into 5D to 8D and turned there (Sprint 38 grid cell G6, part 2 of
   lene/menger#162): the DSL `projection` of `Tesseract`, `TesseractSponge` and the regular
   polytopes takes a `ProjectionSpec(dimension, planes, eye, screen, stages)` next to the 4D

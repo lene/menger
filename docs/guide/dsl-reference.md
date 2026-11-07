@@ -372,6 +372,45 @@ Tesseract(
 - Example: `TesseractToPenteract`, a tesseract with a strong 5D perspective
   (`stages`), turned in `xv`, then `yv`, then `zv`.
 
+**Hypercube (the cube of 4 to 8 dimensions):**
+
+`Hypercube(dimension = N)` is the cube of N dimensions: 4 is the tesseract, 5 the penteract, 6
+the hexeract, up to 8. It has 2^N vertices, N * 2^(N-1) edges and C(N,2) * 2^(N-2) square faces
+(5: 32, 80, 80; 8: 256, 1024, 1792). `size` is the edge length, `pos` the centre. It has the
+fields of `Tesseract`.
+
+```scala
+import menger.spec.{PlaneRotation, ProjectionSpec}
+
+Hypercube(
+  dimension = 6,
+  material = Some(Material.Film),             // the faces
+  size = 1.6f,
+  edgeRadius = Some(0.012f),                  // one tube per edge: 192 for a 6-cube
+  edgeMaterial = Some(Material.Gold),
+  projection = Some(ProjectionSpec(
+    dimension = 6,                            // N or more (a cube of N < D is lifted with zeros)
+    planes = List(PlaneRotation("xu", 30f))   // a plane using the sixth axis u
+  ))
+)
+```
+
+- `projection` is a `ProjectionSpec` (see above) whose `dimension` is at least the cube's;
+  left out, it is `ProjectionSpec(N)` with its defaults and no turn. A 6-cube with a
+  `ProjectionSpec(5)` is rejected, the message naming both dimensions, as is a `dimension`
+  outside 4 to 8.
+- A cube of fewer dimensions than its view is lifted into it with zero coordinates, so a
+  5-cube in `ProjectionSpec(7)` can be turned in planes using `u` and `t`: the plane `vt` moves
+  it into `t`. A plane of axes the cube has not reached yet (`ts` for a 5-cube) turns nothing.
+- A face or an edge tube with a vertex at or behind a stage's eye is left out, the rest is
+  drawn.
+- It renders on the CPU through the chain, like any `ProjectionSpec` object: an animation
+  rebuilds it every frame, and the window's Shift+drag leaves it alone. An 8-cube with edge
+  tubes needs 1025 instances; the renderer's limit is raised for it unless you set
+  `--max-instances` yourself.
+- The command line has no `Hypercube`: `--objects` keeps the 4D `type=tesseract`.
+- Example: `HexeractTurning`, a 6-cube with film faces and gold edges turning in `xu`.
+
 **TesseractSponge (4D Menger Sponge):**
 ```scala
 // Two sponge types
