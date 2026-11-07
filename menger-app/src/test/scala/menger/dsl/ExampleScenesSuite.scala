@@ -261,14 +261,26 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
       spec.objectType shouldBe "tesseract"
       spec.projectionN.map(_.dimension) shouldBe Some(5)
 
-  it should "turn TesseractToPenteract in xv first and in wv after it" in:
+  it should "turn TesseractToPenteract in xv, then yv, then zv, 45 degrees each" in:
     val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.TesseractToPenteract"))
     def angles(t: Float) =
       val planes = fn(t).objects.head.toObjectSpec.projectionN.get.planes
       planes.map(r => (r.plane.letters, r.angle.value))
-    angles(0f) shouldBe List(("xv", 0f), ("wv", 0f))
-    angles(4f) shouldBe List(("xv", 60f), ("wv", 0f))
-    angles(8f) shouldBe List(("xv", 60f), ("wv", 60f))
+    def at(t: Float, expected: List[(String, Float)]) =
+      val actual = angles(t)
+      actual.map(_._1) shouldBe expected.map(_._1)
+      actual.map(_._2).zip(expected.map(_._2)).foreach((a, e) => a shouldBe e +- 1e-3f)
+    val duration = examples.dsl.TesseractToPenteract.durationSeconds
+    val third = duration / 3f
+    at(0f, List(("xv", 0f), ("yv", 0f), ("zv", 0f)))
+    at(third, List(("xv", 45f), ("yv", 0f), ("zv", 0f)))
+    at(2f * third, List(("xv", 45f), ("yv", 45f), ("zv", 0f)))
+    at(duration, List(("xv", 45f), ("yv", 45f), ("zv", 45f)))
+
+  it should "give TesseractToPenteract a strong 5D stage and the example's 4D stage" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.TesseractToPenteract"))
+    val view = fn(0f).objects.head.toObjectSpec.projectionN.get
+    view.stagePairs.map(s => (s.eye, s.screen)) shouldBe List((3f, 0.6f), (6f, 1.2f))
 
   "SceneIndex" should "contain all static scenes" in:
     val all = examples.dsl.SceneIndex.all

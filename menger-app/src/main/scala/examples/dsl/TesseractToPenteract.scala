@@ -5,17 +5,22 @@ import scala.language.implicitConversions
 import menger.dsl._
 import menger.spec.PlaneRotation
 import menger.spec.ProjectionSpec
+import menger.spec.ProjectionStage
 
 /**
  * Example: a tesseract lifted into 5D and turned there (menger#162). Its x y z w coordinates stay
  * and the fifth axis v starts at 0, so at t = 0 the picture is the tesseract seen through two
- * perspective stages (5D -> 4D -> 3D). Turning in the xv plane then tips x into v; turning in
- * wv after it does the same for w -- a rotation no 4D view can show, because the shape is not
- * rotated inside the 4D space the `Projection4DSpec` projects.
+ * perspective stages (5D -> 4D -> 3D). It is turned in the xv plane, then in yv, then in zv, one
+ * after the other and each by 45 degrees.
  *
- * `planes` are applied in the order written: xv first, then wv. Each stage of the projection
- * scales a flat object by (eye - screen) / eye, so with two stages `size` is chosen larger than
- * for a 4D tesseract of the same look, and `screen` is low.
+ * Why this view: a tesseract has no extent in v, so turning it into v only changes its picture
+ * through the perspective of the 5D -> 4D stage. That reads as a turn with a strong 5D
+ * perspective (the 5D eye is close, 3) or with turns in several planes, which is why there are
+ * three planes. The 5D stage's screen is 0.2 x its eye, so a flat object keeps its scale
+ * ((eye - screen) / eye = 0.8 per stage) and `size` is chosen for the two stages together.
+ *
+ * `planes` are applied in the order written, and `progress` moves each plane in its own third
+ * of the animation. `stages` lists the 5D -> 4D stage first.
  *
  * Usage:
  *   --scene examples.dsl.TesseractToPenteract --t 3
@@ -23,10 +28,9 @@ import menger.spec.ProjectionSpec
 object TesseractToPenteract:
   val durationSeconds = 8f
 
-  private val turnSeconds = durationSeconds / 2f
-  private val turnDegrees = 60f
-  private val eye = 6f
-  private val screen = 1.2f
+  private val turnSeconds = durationSeconds / 3f
+  private val turnDegrees = 45f
+  private val stages = List(ProjectionStage(3f, 0.6f), ProjectionStage(6f, 1.2f))
   private val size = 1.8f
   private val material = Some(Material.Film)
   private val edgeRadius = Some(0.015f)
@@ -40,10 +44,10 @@ object TesseractToPenteract:
       dimension = 5,
       planes = List(
         PlaneRotation("xv", progress(t, 0f) * turnDegrees),
-        PlaneRotation("wv", progress(t, turnSeconds) * turnDegrees)
+        PlaneRotation("yv", progress(t, turnSeconds) * turnDegrees),
+        PlaneRotation("zv", progress(t, 2f * turnSeconds) * turnDegrees)
       ),
-      eye = eye,
-      screen = screen
+      stages = stages
     )
     Scene(
       camera = Camera(position = (2.5f, 2f, 4f), lookAt = (0f, 0f, 0f)),

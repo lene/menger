@@ -369,7 +369,8 @@ Tesseract(
   cannot be combined with a lift into 5D or more.
 - `ProjectionSpec(4, planes = List(PlaneRotation("zw", c), PlaneRotation("yw", b),
   PlaneRotation("xw", a)))` is `Projection4DSpec(rotXW = a, rotYW = b, rotZW = c)`.
-- Example: `TesseractToPenteract`, a tesseract turned in `xv` and then in `wv`.
+- Example: `TesseractToPenteract`, a tesseract with a strong 5D perspective
+  (`stages`), turned in `xv`, then `yv`, then `zv`.
 
 **TesseractSponge (4D Menger Sponge):**
 ```scala

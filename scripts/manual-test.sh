@@ -422,9 +422,9 @@ run_test "CubeToTesseract t=1.004 (tesseract at wScale 0.001: the cube's picture
 run_test "CubeToTesseract t=3 (extrusion halfway)" "-o --scene examples.dsl.CubeToTesseract --t 3 -s $OUTPUT_DIR/105c-cube-to-tesseract-t3.png"
 run_test "CubeToTesseract t=7 (turning in XW after the extrusion)" "-o --scene examples.dsl.CubeToTesseract --t 7 -s $OUTPUT_DIR/105d-cube-to-tesseract-t7.png"
 run_test "TesseractToPenteract t=0 (5D lift, unturned)" "-o --scene examples.dsl.TesseractToPenteract --t 0 -s $OUTPUT_DIR/105e-tesseract-to-penteract-t0.png"
-run_test "TesseractToPenteract t=2 (halfway through the xv turn)" "-o --scene examples.dsl.TesseractToPenteract --t 2 -s $OUTPUT_DIR/105f-tesseract-to-penteract-t2.png"
-run_test "TesseractToPenteract t=4 (xv fully turned)" "-o --scene examples.dsl.TesseractToPenteract --t 4 -s $OUTPUT_DIR/105g-tesseract-to-penteract-t4.png"
-run_test "TesseractToPenteract t=6 (halfway through the wv turn)" "-o --scene examples.dsl.TesseractToPenteract --t 6 -s $OUTPUT_DIR/105h-tesseract-to-penteract-t6.png"
+run_test "TesseractToPenteract t=2.667 (xv fully turned)" "-o --scene examples.dsl.TesseractToPenteract --t 2.6666667 -s $OUTPUT_DIR/105f-tesseract-to-penteract-t2.67.png"
+run_test "TesseractToPenteract t=5.333 (xv, yv turned)" "-o --scene examples.dsl.TesseractToPenteract --t 5.3333335 -s $OUTPUT_DIR/105g-tesseract-to-penteract-t5.33.png"
+run_test "TesseractToPenteract t=8 (xv, yv and zv turned)" "-o --scene examples.dsl.TesseractToPenteract --t 8 -s $OUTPUT_DIR/105h-tesseract-to-penteract-t8.png"
 
 # Colored Shadows Phase 1 (single-object)
 echo -e "${YELLOW}--- Colored Shadows (Phase 1: single object) ---${NC}"
