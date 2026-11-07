@@ -15,6 +15,7 @@ import menger.dsl.Scene
 import menger.dsl.SceneObject
 import menger.engines.SceneConverter
 import menger.spec.ObjectSpec
+import menger.spec.ProjectionSpec
 import upickle.default.ReadWriter
 
 /** The evaluated values of a scene at one time, as the scene agent needs them to describe and
@@ -39,6 +40,14 @@ object SceneSnapshot:
     eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float, wScale: Float
   ) derives ReadWriter
 
+  case class PlaneRotationValues(plane: String, angle: Float) derives ReadWriter
+
+  /** A `ProjectionSpec` (menger#162): `planes` in the order written, one (eye, screen) pair per
+    * projection stage, the first dropping the highest axis; angles in degrees. */
+  case class NdProjectionValues(
+    dimension: Int, planes: List[PlaneRotationValues], stages: List[List[Float]]
+  ) derives ReadWriter
+
   /** `objectType` is the renderer's name, which carries the subtype (`sponge-volume`,
     * `sponge-surface`); `dslType` is the DSL case class the scene wrote (`Sponge`), the name
     * the agent shows (review 2026-10-14, menger#92). */
@@ -55,7 +64,8 @@ object SceneSnapshot:
     edgeMaterial: Option[MaterialValues],
     projection: Option[ProjectionValues],
     proceduralType: Int,
-    proceduralScale: Float
+    proceduralScale: Float,
+    ndProjection: Option[NdProjectionValues] = None
   ) derives ReadWriter
 
   case class LightValues(
@@ -173,7 +183,15 @@ object SceneSnapshot:
         ProjectionValues(p.eyeW, p.screenW, p.rotXW.value, p.rotYW.value, p.rotZW.value, p.wScale)
       ),
       proceduralType = spec.procedural.proceduralType,
-      proceduralScale = spec.procedural.scale
+      proceduralScale = spec.procedural.scale,
+      ndProjection = spec.projectionN.map(ndProjectionValues)
+    )
+
+  private def ndProjectionValues(view: ProjectionSpec): NdProjectionValues =
+    NdProjectionValues(
+      view.dimension,
+      view.planes.map(r => PlaneRotationValues(r.plane.letters, r.angle.value)),
+      view.stagePairs.map(stage => List(stage.eye, stage.screen))
     )
 
   private def lightValues(light: Light): LightValues = light match

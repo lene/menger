@@ -79,6 +79,22 @@ class ManifestContentSuite extends AnyFlatSpec with Matchers:
     types("Projection4DSpec").fields.find(_.name == "eyeW").flatMap(_.unit) shouldBe None
     types("Sphere").fields.find(_.name == "size").flatMap(_.unit) shouldBe None
 
+  // menger#162: the nD view of a 4D object is part of the scene composition the agent writes.
+  "the nD projection" should "be in the scene composition, with its angles in degrees" in:
+    val types = manifest.sceneComposition.map(t => t.name -> t).toMap
+    types.keys should contain allOf ("ProjectionSpec", "PlaneRotation", "ProjectionStage")
+    types("ProjectionSpec").fields.map(_.name) shouldBe
+      List("dimension", "planes", "eye", "screen", "stages")
+    types("PlaneRotation").fields.find(_.name == "angle").flatMap(_.unit) shouldBe Some("degrees")
+    val dimension = types("ProjectionSpec").fields.find(_.name == "dimension").get
+    (dimension.min, dimension.max) shouldBe (Some(4d), Some(8d))
+
+  it should "be explained in the conventions, not denied" in:
+    val text = manifest.conventions.mkString(" ")
+    text should include ("ProjectionSpec")
+    text should include ("x y z w v u t s")
+    text should not include "There is no 5D object"
+
   "compileSurface" should "list packages only, including menger.spec" in:
     manifest.compileSurface.packages should contain allOf ("menger.dsl", "menger.spec")
     manifest.compileSurface.packages shouldBe sorted

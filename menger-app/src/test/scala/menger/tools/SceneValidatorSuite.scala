@@ -166,6 +166,33 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     plane.color.map(_.take(3)) shouldBe Some(List(0x33 / 255f, 0x66 / 255f, 0x99 / 255f))
     plane.checkerColor shouldBe None
 
+  // menger#162: the nD view of a 4D object is in the snapshot, in the order written.
+  it should "carry a ProjectionSpec's dimension, planes and stages" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |import menger.spec.{PlaneRotation, ProjectionSpec}
+        |object NdScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Tesseract(
+        |      material = Some(Material.Glass),
+        |      projection = Some(ProjectionSpec(
+        |        5, planes = List(PlaneRotation("xv", 30f), PlaneRotation("wv", 10f)),
+        |        eye = 4f, screen = 1f))
+        |    )),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+    val tesseract = result.snapshots.head.objects.head
+    tesseract.projection shouldBe None
+    val nd = tesseract.ndProjection.get
+    nd.dimension shouldBe 5
+    nd.planes.map(p => (p.plane, p.angle)) shouldBe List(("xv", 30f), ("wv", 10f))
+    nd.stages shouldBe List(List(4f, 1f), List(4f, 1f))
+
   it should "carry an animated scene's snapshots and its densely sampled camera path" in:
     val file = writeTempScene(
       """import menger.dsl._

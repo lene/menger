@@ -96,7 +96,8 @@ object DslSemantics:
       "`Projection4DSpec(wScale = s)` scales the object's w coordinate before the 4D rotation " +
       "(default 1, must be >= 0): 0 flattens a Tesseract to a cube, and animating it from 0 to " +
       "1 grows the tesseract out of the cube along w -- the nearest the DSL has to extruding a " +
-      "3D object into 4D. There is no 5D object (menger#65, #59). For the hand-over from a " +
+      "3D object into 4D; a `ProjectionSpec` (next convention) lifts a 4D object into 5D to 8D " +
+      "(menger#65, #59, #162). For the hand-over from a " +
       "3D Cube or Sponge to be seamless: keep rotXW, rotYW and rotZW at 0 while wScale grows " +
       "(a 4D rotation turns x into w, so wScale 0 is then not the cube), give the 4D object " +
       "size s * eyeW / (eyeW - screenW) for a 3D object of size s, the same material and the " +
@@ -107,6 +108,31 @@ object DslSemantics:
       "material shows as speckle), and let the extrusion " +
       "take at least 3 s; rotate in 4D only after wScale reaches 1 (usability review 2026-10, " +
       "session 5, F124, menger#132; example: CubeToTesseract).",
+    "nD view: `projection = Some(ProjectionSpec(dimension, planes, eye, screen, stages))` " +
+      "lifts a 4D object (Tesseract, TesseractSponge or a regular polytope) into `dimension` " +
+      "4..8 dimensions: its x y z w coordinates stay, the further ones are 0. The axes are " +
+      "x y z w v u t s (5D adds v, 6D u, 7D t, 8D s). `planes` is a list of " +
+      "`PlaneRotation(plane, angle)` with the plane named by two distinct axes that exist in " +
+      "`dimension`, e.g. `PlaneRotation(\"xv\", 30f)` (the angle is in DEGREES; the first " +
+      "axis turns towards the second for a positive angle), applied in the order written: " +
+      "the first plane turns first, and the result depends on the order. An object lies in " +
+      "x y z w, so a plane of axes beyond w alone (vu, ...) turns nothing until an earlier " +
+      "plane (xv, wv, ...) has moved the object into them. The projection to 3D has one " +
+      "perspective stage per dropped axis, the first dropping the highest axis; a stage " +
+      "scales a point by (eye - screen) / (eye - c), c the coordinate it drops, so the stages " +
+      "compound: with the default eye 3 and screen 1.5 a flat object is at 0.5^(dimension - " +
+      "3) of its `size`, half again per extra dimension -- enlarge `size`, or lower `screen`, " +
+      "to compensate. `stages` may list one `ProjectionStage(eye, " +
+      "screen)` per stage (dimension - 3 of them); empty, every stage uses `eye` and " +
+      "`screen`. Keep each eye above the extent of the lifted object along the axis it " +
+      "drops: faces reaching an eye are not clipped and distort, edge tubes with such an " +
+      "endpoint are left out. A `ProjectionSpec` is rendered on the CPU through the chain: " +
+      "an animation rebuilds the object every frame, a sponge needs a whole `level`, the " +
+      "IFS types (Menger4D, PentachoronGasket, HexadecachoronGasket) take a " +
+      "`Projection4DSpec` only, and the render window's Shift+drag does not rotate it (the " +
+      "log says so once). `ProjectionSpec(4, ...)` is the 4D view with the planes in " +
+      "order: `Projection4DSpec(rotXW = a, rotYW = b, rotZW = c)` equals planes zw c, yw b, " +
+      "xw a, in that order (menger#162; example: TesseractToPenteract).",
     "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position " +
       "(11 xyz_rgb_local: in the object's own box). " +
       "For a 4D object that is the projected 3D position, after `projection` and `pos`, so the " +

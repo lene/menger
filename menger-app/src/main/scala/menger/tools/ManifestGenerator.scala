@@ -43,7 +43,10 @@ import menger.dsl.TransparentShadows
 import menger.dsl.Vec3
 import menger.failure.Fail
 import menger.scene.RestrictedClasspath
+import menger.spec.PlaneRotation
 import menger.spec.Projection4DSpec
+import menger.spec.ProjectionSpec
+import menger.spec.ProjectionStage
 import upickle.default.ReadWriter
 import upickle.default.write
 
@@ -88,7 +91,10 @@ object ManifestGenerator extends LazyLogging:
   //        a field may carry a `unit` (degrees or radians) read off its Scala type (menger#95),
   //        which replaces the prose of the "Units" convention. `Projection4DSpec` is a
   //        scene-composition type now, and `Caustics.alpha` is `radiusReduction`.
-  private[tools] val SchemaVersion = "2.0.0"
+  // 2.1.0: `ProjectionSpec`, `PlaneRotation` and `ProjectionStage` in the scene composition (the
+  //        nD view of a 4D object, menger#162); the 4D objects' `projection` is a
+  //        `ProjectionLike`, and snapshots carry `ndProjection`.
+  private[tools] val SchemaVersion = "2.1.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
@@ -448,6 +454,9 @@ object ManifestGenerator extends LazyLogging:
       sceneComposition = List(
         typeManifestOf(classOf[Camera]),
         typeManifestOf(classOf[Projection4DSpec]),
+        typeManifestOf(classOf[ProjectionSpec]),
+        typeManifestOf(classOf[PlaneRotation]),
+        typeManifestOf(classOf[ProjectionStage]),
         typeManifestOf(classOf[Scene]),
         typeManifestOf(classOf[SceneNode]),
         typeManifestOf(classOf[Transform]),

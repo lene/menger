@@ -2,6 +2,7 @@ package menger.dsl
 
 import menger.common.CausticsConfig
 import menger.common.RenderLimits
+import menger.spec.ProjectionSpec
 
 /** Every bound a DSL field has, declared once (review 2026-10-14, menger#114, msa#28): the DSL
   * constructors' `require`s check against it and `ManifestGenerator` exports it, so the agent
@@ -55,6 +56,8 @@ object FieldConstraints:
     ("PentachoronGasket", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),
     ("Menger4D", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),
     ("HexadecachoronGasket", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),
+    ("ProjectionSpec", "dimension") ->
+      Bounds.between(ProjectionSpec.MinDimension.toDouble, ProjectionSpec.MaxDimension.toDouble),
     ("LSystem", "iterations") -> Bounds.between(0d, L.lsystemMaxIterations.toDouble),
     ("ParametricSurface", "uSteps") -> Bounds.between(1d, L.parametricSurfaceMaxSamples.toDouble),
     ("ParametricSurface", "vSteps") -> Bounds.between(1d, L.parametricSurfaceMaxSamples.toDouble),

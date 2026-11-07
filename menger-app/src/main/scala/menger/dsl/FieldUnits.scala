@@ -5,7 +5,9 @@ import scala.compiletime.erasedValue
 import scala.deriving.Mirror
 
 import menger.spec.Degrees
+import menger.spec.PlaneRotation
 import menger.spec.Projection4DSpec
+import menger.spec.ProjectionSpec
 import menger.spec.Radians
 
 /** The unit of an angle-valued field, for the manifest's `unit` (menger#95).
@@ -40,6 +42,8 @@ object FieldUnits:
 
   private val byType: Map[String, Map[String, String]] = Map(
     "Projection4DSpec" -> derive[Projection4DSpec],
+    "ProjectionSpec" -> derive[ProjectionSpec],
+    "PlaneRotation" -> derive[PlaneRotation],
     "LSystem" -> derive[LSystem],
     "Camera" -> derive[Camera]
   )
