@@ -126,7 +126,8 @@ object DslSemantics:
       "to compensate. `stages` may list one `ProjectionStage(eye, " +
       "screen)` per stage (dimension - 3 of them); empty, every stage uses `eye` and " +
       "`screen`. Keep each eye above the extent of the lifted object along the axis it " +
-      "drops: faces reaching an eye are not clipped and distort, edge tubes with such an " +
+      "drops: faces of a 4D object reaching an eye are not clipped and distort (a Hypercube's " +
+      "are left out), edge tubes with such an " +
       "endpoint are left out. A `ProjectionSpec` is rendered on the CPU through the chain: " +
       "an animation rebuilds the object every frame, a sponge needs a whole `level`, the " +
       "IFS types (Menger4D, PentachoronGasket, HexadecachoronGasket) take a " +
@@ -136,6 +137,17 @@ object DslSemantics:
       "`ProjectionSpec(4, ...)` is the 4D view with the planes in " +
       "order: `Projection4DSpec(rotXW = a, rotYW = b, rotZW = c)` equals planes zw c, yw b, " +
       "xw a, in that order (menger#162; example: TesseractToPenteract).",
+    "Hypercube: `Hypercube(dimension = N)` is the cube of N = 4..8 dimensions (4 the " +
+      "tesseract, 5 the penteract, 6 the hexeract, ...) with 2^N vertices, N * 2^(N-1) edges " +
+      "and C(N,2) * 2^(N-2) square faces; `size` is its edge length, its centre is `pos`. It " +
+      "takes a `ProjectionSpec` of `dimension` N or more, as `projection = Some(...)`; absent, " +
+      "`ProjectionSpec(N)` with its defaults. A cube of fewer dimensions than the view is " +
+      "lifted into it with zero coordinates, so planes using the extra axes act on it. It " +
+      "is rendered on the CPU and rebuilt for every frame of an animation; a face or edge tube " +
+      "with a vertex at or behind a stage's eye is left out, the rest is drawn. With " +
+      "`edgeRadius`/`edgeMaterial` it has one tube per edge: 1024 on an 8-cube, which the " +
+      "renderer's instance limit is raised for. Hypercube is DSL-only: the command line has " +
+      "only the 4D `tesseract` (menger#163; example: HexeractTurning).",
     "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position " +
       "(11 xyz_rgb_local: in the object's own box). " +
       "For a 4D object that is the projected 3D position, after `projection` and `pos`, so the " +
@@ -201,6 +213,12 @@ object DslSemantics:
     ("Tesseract", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",
     ("Sphere", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",
     ("Sponge", "rotation") -> "Euler angles in radians around x, y, z.",
+    ("Hypercube", "dimension") -> ("Number of dimensions N, 4 to 8: the cube has 2^N " +
+      "vertices; see conventions."),
+    ("Hypercube", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",
+    ("Hypercube", "rotation") -> ("3D Euler angles in radians, applied after projection; " +
+      "rotations in N dimensions go in `projection`."),
+    ("Hypercube", "edgeRadius") -> "Draws the edges as tubes of this radius, N * 2^(N-1) of them.",
     ("Tesseract", "rotation") -> ("3D Euler angles in radians, applied after projection; " +
       "4D rotations go in `projection`."),
     ("TesseractSponge", "rotation") -> ("3D Euler angles in radians, applied after " +

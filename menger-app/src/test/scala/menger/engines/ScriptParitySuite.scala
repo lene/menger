@@ -88,7 +88,7 @@ class ScriptParitySuite extends AnyFlatSpec with Matchers:
     extractPattern("manual-test.sh", """--scene (examples\.dsl\.\w+)""")
 
   // Types that are DSL-only and cannot appear as type=<type> in CLI test scripts
-  private val dslOnlyTypes: Set[String] = Set("parametric")
+  private val dslOnlyTypes: Set[String] = Set("parametric", "n-cube")
   // Materials used only in negative tests (deliberately invalid)
   private val negativeTestMaterials: Set[String] = Set("unobtanium")
 

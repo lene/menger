@@ -164,20 +164,22 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     finally
       Files.deleteIfExists(blockingFile)
 
-  "The generated manifest" should "list exactly the 22 SceneObject case classes" in:
+  "The generated manifest" should "list exactly the 23 SceneObject case classes" in:
     val manifest = manifestFor(freshTempPath())
     manifest.objects.map(_.name).toSet shouldBe Set(
       "Sphere", "Cube", "Sponge", "Tesseract", "TesseractSponge",
       "PentachoronGasket", "ParametricSurface", "Curve", "LSystem",
       // the regular 4D polytopes, usability review 2026-09 (F17)
       "Pentachoron", "Hexadecachoron", "Icositetrachoron", "Hexacosichoron", "Hecatonicosachoron",
+      // the n-cube of dimension 4..8 (menger#163)
+      "Hypercube",
       // formerly command-line only (2026-10)
       "Tetrahedron", "Octahedron", "Dodecahedron", "Icosahedron", "Cone",
       "Menger4D", "HexadecachoronGasket",
       // menger#156
       "Cylinder"
     )
-    manifest.objects should have size 22
+    manifest.objects should have size 23
 
   // menger#156: the agent learns the cylinder's end points, radius and opaque-only material
   // from the manifest alone.

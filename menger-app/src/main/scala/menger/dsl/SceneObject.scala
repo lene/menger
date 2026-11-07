@@ -465,6 +465,49 @@ object Tesseract:
   def apply(pos: Vec3, material: Material, size: Float): Tesseract =
     Tesseract(pos, Some(material), size = size)
 
+/** The hypercube of `dimension` 4..8 (4: tesseract, 5: penteract, 6: hexeract, ...): 2^N
+  * vertices, N * 2^(N-1) edges, C(N,2) * 2^(N-2) square faces. Drawn on the CPU through
+  * `projection`, which lifts it into dimension D >= N (`ProjectionSpec(dimension)` when absent)
+  * (menger#163). */
+case class Hypercube(
+  dimension: Int,
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[ProjectionSpec] = None,
+  edgeRadius: Option[Float] = None,
+  edgeMaterial: Option[Material] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  FieldConstraints.check("Hypercube", "dimension", dimension)
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+  projection.foreach { view =>
+    require(
+      view.dimension >= dimension,
+      s"a $dimension-cube needs a projection of dimension $dimension or more, " +
+        s"got ProjectionSpec(dimension = ${view.dimension})"
+    )
+  }
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      "n-cube",
+      projection = Some(projection.getOrElse(ProjectionSpec(dimension))),
+      edgeRadius = edgeRadius,
+      edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    ).copy(dimension = Some(dimension))
+
+  override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
 // The other regular 4D polytopes, with the same fields and 4D handling as Tesseract. The
 // renderer supported them all along, but only the CLI could create them -- a DSL scene (and so
 // the scene agent) could not (usability review 2026-09, F17). Deliberately separate case

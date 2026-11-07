@@ -24,7 +24,7 @@ object SceneGroups:
   def buildOrder(specs: List[ObjectSpec]): List[List[ObjectSpec]] =
     val (analytical, meshes) = specs.partition(s => ObjectType.isAnalyticalPrimitive(s.objectType))
     val (edge4D, nonEdge4D) = meshes.partition(s =>
-      s.hasEdgeRendering && ObjectType.isProjected4D(s.objectType))
+      s.hasEdgeRendering && ObjectType.isEdgeTubed4D(s.objectType))
     val (edge3D, nonEdge) = nonEdge4D.partition(menger.engines.scene.MeshEdges3D.appliesTo)
     val (ifs4D, nonIFS) = nonEdge.partition(s => ObjectType.isIFS4D(s.objectType))
     val (cubeSponges, otherMeshes) = nonIFS.partition(_.objectType.toLowerCase == "cube-sponge")

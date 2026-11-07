@@ -27,7 +27,7 @@ object GeometryRegistry:
       val types = specs.map(s => ObjectType.normalize(s.objectType)).toSet
 
       // Special case: 4D projected triangle meshes with edge rendering on every spec
-      val all4DProjected = types.forall(ObjectType.isProjected4D)
+      val all4DProjected = types.forall(ObjectType.isEdgeTubed4D)
       val allEdge = specs.forall(_.hasEdgeRendering)
       if types.forall(ObjectType.isTriangleMesh) && all4DProjected && allEdge then
         Some(menger.engines.scene.TesseractEdgeSceneBuilder(textureDir)(using pc))

@@ -67,7 +67,9 @@ case class ObjectSpec(
   lsystemAngle: Option[Float] = None,
   lsystemSeed: Option[Long] = None,
   lsystemDim: Int = 3,
-  dispersion: Float = 0.0f
+  dispersion: Float = 0.0f,
+  // The n-cube's dimension (menger#163); None for every other type.
+  dimension: Option[Int] = None
 ):
   require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
 
@@ -123,4 +125,4 @@ object ObjectSpec:
   )
 
   def hasEdgeTubes(objType: String): Boolean =
-    ObjectType.isProjected4D(objType) || Edge3DTypes.contains(ObjectType.normalize(objType))
+    ObjectType.isEdgeTubed4D(objType) || Edge3DTypes.contains(ObjectType.normalize(objType))

@@ -193,6 +193,40 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     nd.planes.map(p => (p.plane, p.angle)) shouldBe List(("xv", 30f), ("wv", 10f))
     nd.stages shouldBe List.fill(2)(SceneSnapshot.StageValues(4f, 1f))
 
+  // menger#163: the n-cube's dimension is in the snapshot next to its view.
+  it should "carry a Hypercube's dimension and its default view" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object CubeScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Hypercube(6, material = Some(Material.Film), edgeRadius = Some(0.02f))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+    val cube = result.snapshots.head.objects.head
+    (cube.dslType, cube.objectType, cube.dimension) shouldBe (("Hypercube", "n-cube", Some(6)))
+    cube.ndProjection.get.dimension shouldBe 6
+
+  it should "refuse a Hypercube with a projection of fewer dimensions, naming both" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |import menger.spec.ProjectionSpec
+        |object LowCubeScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(Hypercube(6, projection = Some(ProjectionSpec(5)))),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag should not be SceneValidator.Tag.Ok
+    result.messages.mkString(" ") should (include("6-cube") and include("dimension = 5"))
+
   it should "carry an animated scene's snapshots and its densely sampled camera path" in:
     val file = writeTempScene(
       """import menger.dsl._

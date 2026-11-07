@@ -232,7 +232,7 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
       Sphere(), Cube(), Tetrahedron(), Octahedron(), Dodecahedron(), Icosahedron(), Cone(),
       Cylinder(), Sponge(VolumeFilling, 1f), Sponge(SurfaceUnfolding, 1f), Sponge(CubeSponge, 1f),
       Sponge(RecursiveIAS, 1f), Tesseract(), Pentachoron(), Hexadecachoron(),
-      Icositetrachoron(), Hecatonicosachoron(), Hexacosichoron(),
+      Icositetrachoron(), Hecatonicosachoron(), Hexacosichoron(), Hypercube(5),
       TesseractSponge(VolumeRemoving, 1f), TesseractSponge(SurfaceSubdividing, 1f),
       Menger4D(level = 1f), PentachoronGasket(level = 1f), HexadecachoronGasket(level = 1f),
       ParametricSurface(f = (_, _) => Vec3.Zero, uSteps = 1, vSteps = 1),

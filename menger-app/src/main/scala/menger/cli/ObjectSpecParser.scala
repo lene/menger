@@ -184,6 +184,11 @@ object ObjectSpecParser extends LazyLogging:
       case Some(t) if t.toLowerCase == "parametric" =>
         Left("'parametric' objects can only be created via the Scala DSL, not the --object CLI flag. " +
           "See examples.dsl.ParametricScenes for usage examples.")
+      case Some(t) if ObjectType.isNCube(t) =>
+        Left("'n-cube' objects (the DSL's Hypercube) can only be created via the Scala DSL, " +
+          "not the --object CLI flag: the command line stays 4D (use type=tesseract). " +
+          "See examples.dsl.HexeractTurning and the Hypercube entry of " +
+          "docs/guide/dsl-reference.md.")
       case Some(t) if ObjectType.isValid(t) => Right(t.toLowerCase)
       case Some(t) =>
         Left(s"Invalid object type: '$t'. Valid types: ${ObjectType.validTypesString}. " +

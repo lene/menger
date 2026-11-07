@@ -18,6 +18,7 @@ object ObjectType:
     "cube-sponge",
     "sponge-recursive-ias",
     "tesseract",
+    "n-cube",
     "pentachoron",
     "16-cell",
     "24-cell",
@@ -58,6 +59,10 @@ object ObjectType:
     "tesseract-sponge-surface"
   )
 
+  /** The n-cube for N = 4..8 (menger#163): a mesh seen through a `ProjectionSpec` on the CPU
+    * path, never on the 4D fast paths, which is why it is not one of the projected 4D types. */
+  val NCUBE_TYPES: Set[String] = Set("n-cube")
+
   val ANALYTICAL_PRIMITIVE_TYPES: Set[String] = Set("sphere", "cone", "cylinder", "plane")
 
   /** Types optix-jni shades opaque whatever their material: transparency and refraction are
@@ -67,7 +72,8 @@ object ObjectType:
   val TRIANGLE_MESH_TYPES: Set[String] =
     Set("cube", "parametric", "tetrahedron", "octahedron", "dodecahedron", "icosahedron") ++
     SPONGE_TYPES.filter(_ != "cube-sponge") ++
-    PROJECTED_4D_TYPES
+    PROJECTED_4D_TYPES ++
+    NCUBE_TYPES
 
   // Deprecated names map to new canonical names
   private val DEPRECATED_ALIASES: Map[String, String] = Map(
@@ -97,6 +103,14 @@ object ObjectType:
   def isProjected4D(objectType: String): Boolean =
     val normalized = normalize(objectType)
     PROJECTED_4D_TYPES.contains(normalized)
+
+  def isNCube(objectType: String): Boolean =
+    NCUBE_TYPES.contains(normalize(objectType))
+
+  /** Meshes drawn with edge tubes by `TesseractEdgeSceneBuilder`: the projected 4D types and
+    * the n-cube. */
+  def isEdgeTubed4D(objectType: String): Boolean =
+    isProjected4D(objectType) || isNCube(objectType)
 
   def isSpongeOrCube(objectType: String): Boolean =
     val normalized = normalize(objectType)

@@ -67,7 +67,9 @@ object SceneSnapshot:
     projection: Option[ProjectionValues],
     proceduralType: Int,
     proceduralScale: Float,
-    ndProjection: Option[NdProjectionValues] = None
+    ndProjection: Option[NdProjectionValues] = None,
+    // The n-cube's own dimension (Hypercube); its `ndProjection.dimension` is at least this.
+    dimension: Option[Int] = None
   ) derives ReadWriter
 
   case class LightValues(
@@ -186,7 +188,8 @@ object SceneSnapshot:
       ),
       proceduralType = spec.procedural.proceduralType,
       proceduralScale = spec.procedural.scale,
-      ndProjection = spec.projectionN.map(ndProjectionValues)
+      ndProjection = spec.projectionN.map(ndProjectionValues),
+      dimension = spec.dimension
     )
 
   private def ndProjectionValues(view: ProjectionSpec): NdProjectionValues =

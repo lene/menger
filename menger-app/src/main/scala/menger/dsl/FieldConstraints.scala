@@ -58,6 +58,8 @@ object FieldConstraints:
     ("HexadecachoronGasket", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),
     ("ProjectionSpec", "dimension") ->
       Bounds.between(ProjectionSpec.MinDimension.toDouble, ProjectionSpec.MaxDimension.toDouble),
+    ("Hypercube", "dimension") ->
+      Bounds.between(ProjectionSpec.MinDimension.toDouble, ProjectionSpec.MaxDimension.toDouble),
     ("LSystem", "iterations") -> Bounds.between(0d, L.lsystemMaxIterations.toDouble),
     ("ParametricSurface", "uSteps") -> Bounds.between(1d, L.parametricSurfaceMaxSamples.toDouble),
     ("ParametricSurface", "vSteps") -> Bounds.between(1d, L.parametricSurfaceMaxSamples.toDouble),

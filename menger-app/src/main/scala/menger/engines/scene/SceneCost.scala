@@ -4,6 +4,7 @@ import menger.common.Const
 import menger.dsl.ResourceLimits
 import menger.geometry.LevelMix
 import menger.objects.SpongeByVolume
+import menger.objects.higher_d.NCube
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
 import menger.spec.ObjectSpec
@@ -35,6 +36,8 @@ object SceneCost:
   object CausticsLoad:
     val None: CausticsLoad = CausticsLoad(0L, 0L)
 
+  private val TrianglesPerSquare = 2L
+
   /** Surface-subdivision sponge: 12^n cubes' worth of faces (AD-1), the estimate the
     * interactive engine's slowness warning has always used. */
   def surfaceSpongeTriangles(level: Int): Long =
@@ -54,6 +57,13 @@ object SceneCost:
     * without a CPU mesh (analytical primitives, GPU-procedural 4D, instanced sponges bounded by
     * the instance table) count zero; a pre-tessellated mesh counts its own triangles. */
   def triangles(spec: ObjectSpec): Long =
+    if ObjectType.isNCube(spec.objectType) then nCubeTriangles(spec) else meshTriangles(spec)
+
+  /** An n-cube's square faces, two triangles each (those clipped at an eye count too). */
+  private def nCubeTriangles(spec: ObjectSpec): Long =
+    spec.dimension.fold(0L)(n => TrianglesPerSquare * NCube.faceCount(n))
+
+  private def meshTriangles(spec: ObjectSpec): Long =
     val byLevel = for
       estimate <- levelTriangles.get(ObjectType.normalize(spec.objectType))
       level    <- spec.level

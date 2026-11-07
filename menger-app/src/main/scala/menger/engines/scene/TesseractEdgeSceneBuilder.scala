@@ -75,7 +75,7 @@ class TesseractEdgeSceneBuilder(
           val meshInstances = 1  // The main mesh
           val edgeInstances = if spec.hasEdgeRendering then
             TesseractEdgeSceneBuilder.edgeLevels(spec).map((levelSpec, _) =>
-              levelEdges(levelSpec).size
+              edgeCountOf(levelSpec)
             ).sum
           else
             0
@@ -87,8 +87,8 @@ class TesseractEdgeSceneBuilder(
     lazy val fractionalProjectionSpec = ProjectionSupport.rejectedFractionalLevel(specs)
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
-    else if !specs.forall(s => ObjectType.isProjected4D(s.objectType)) then
-      Left("TesseractEdgeSceneBuilder only supports 4D projected types")
+    else if !specs.forall(s => ObjectType.isEdgeTubed4D(s.objectType)) then
+      Left("TesseractEdgeSceneBuilder only supports 4D projected types and the hypercube")
     else if !specs.forall(_.hasEdgeRendering) then
       Left("TesseractEdgeSceneBuilder requires edge rendering parameters on all specs")
     else if fractionalProjectionSpec.isDefined then fractionalProjectionSpec.toLeft(())
@@ -149,7 +149,10 @@ class TesseractEdgeSceneBuilder(
         else
           logger.debug("Skipping edge cylinders (no edge material/radius specified)")
           (IndexedSeq.empty, IndexedSeq.empty)
-      recorder(specIdx, EdgeTrack(faces, edges, cylinderIds))
+      // An n-cube is always rebuilt (it has no 4D fast path): nothing to record, so the
+      // scene is not tracked.
+      if !ObjectType.isNCube(spec.objectType) then
+        recorder(specIdx, EdgeTrack(faces, edges, cylinderIds))
     }
 
   private def addFaces(
@@ -219,7 +222,25 @@ class TesseractEdgeSceneBuilder(
     spec: ObjectSpec,
     renderer: OptiXRenderer
   ): (IndexedSeq[(Vector[4], Vector[4])], IndexedSeq[Option[InstanceId]]) =
-    val edgeRadius = spec.edgeRadius.getOrElse(TesseractEdgeSceneBuilder.DefaultEdgeRadius)
+    if ObjectType.isNCube(spec.objectType) then addNCubeEdgeCylinders(spec, renderer)
+    else addMesh4DEdgeCylinders(spec, renderer)
+
+  /** One tube per edge of an n-cube, in `NCube.orderedEdges` order; none for an edge clipped at
+    * a stage's eye. There are no 4D edges to report: the track stays empty. */
+  private def addNCubeEdgeCylinders(
+    spec: ObjectSpec,
+    renderer: OptiXRenderer
+  ): (IndexedSeq[(Vector[4], Vector[4])], IndexedSeq[Option[InstanceId]]) =
+    val cylinderIds = addCylinders(
+      spec, NCubeScene.edgeEndpoints(spec),
+      spec.edgeMaterial.getOrElse(defaultEdgeMaterial), renderer
+    )
+    (IndexedSeq.empty, cylinderIds)
+
+  private def addMesh4DEdgeCylinders(
+    spec: ObjectSpec,
+    renderer: OptiXRenderer
+  ): (IndexedSeq[(Vector[4], Vector[4])], IndexedSeq[Option[InstanceId]]) =
     val edgeMaterial = spec.edgeMaterial.getOrElse(defaultEdgeMaterial)
     // A fractional level n.f draws the edges of level n fading out and those of level n+1 fading
     // in (usability review 2026-10, session 4, F94): they used to be built from the integer
@@ -231,23 +252,36 @@ class TesseractEdgeSceneBuilder(
     }
     val edges = groups.flatMap(_._1).toIndexedSeq
 
-    // One cylinder per edge that isn't clipped by the eye_w plane (None: clipped, no cylinder).
     val cylinderIds = groups.flatMap { (_, endpoints, material) =>
-      endpoints.map(_.map { case (p0, p1) =>
-        val cylinderId = renderer.addCylinderInstance(p0, p1, edgeRadius, material)
-        logger.trace(s"Added edge cylinder ${cylinderId.value} from $p0 to $p1")
-        cylinderId
-      })
+      addCylinders(spec, endpoints, material, renderer)
     }.toIndexedSeq
-
-    logger.debug(s"Added ${cylinderIds.count(_.isDefined)} of ${edges.size} edge cylinders for " +
-      s"${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
     (edges, cylinderIds)
+
+  /** One cylinder per edge that isn't clipped by the eye_w plane (None: clipped, no cylinder). */
+  private def addCylinders(
+    spec: ObjectSpec,
+    endpoints: IndexedSeq[Option[(Vector[3], Vector[3])]],
+    material: Material,
+    renderer: OptiXRenderer
+  ): IndexedSeq[Option[InstanceId]] =
+    val edgeRadius = spec.edgeRadius.getOrElse(TesseractEdgeSceneBuilder.DefaultEdgeRadius)
+    val cylinderIds = endpoints.map(_.map { case (p0, p1) =>
+      val cylinderId = renderer.addCylinderInstance(p0, p1, edgeRadius, material)
+      logger.trace(s"Added edge cylinder ${cylinderId.value} from $p0 to $p1")
+      cylinderId
+    })
+    logger.debug(s"Added ${cylinderIds.count(_.isDefined)} of ${endpoints.size} edge cylinders " +
+      s"for ${spec.objectType} at (${spec.x}, ${spec.y}, ${spec.z})")
+    cylinderIds
 
   // Counting, validating and building all ask for the same levels' edges; each meant a fresh 4D
   // mesh and dedup, three per rebuild (menger#129). Keyed without the view, which the edges do
   // not depend on. A builder serves one build, so the memo lives as long as that build.
   private val edgesByLevel = mutable.Map.empty[ObjectSpec, IndexedSeq[(Vector[4], Vector[4])]]
+
+  private def edgeCountOf(levelSpec: ObjectSpec): Int =
+    if ObjectType.isNCube(levelSpec.objectType) then NCubeScene.edgeCount(levelSpec)
+    else levelEdges(levelSpec).size
 
   private def levelEdges(levelSpec: ObjectSpec): IndexedSeq[(Vector[4], Vector[4])] =
     edgesByLevel.getOrElseUpdate(
@@ -290,8 +324,8 @@ class TesseractEdgeSceneBuilder(
     }.find(_ != 0).getOrElse(0)
 
   override def isCompatible(spec1: ObjectSpec, spec2: ObjectSpec): Boolean =
-    // Both must be 4D projected types; their projections may differ (menger#52).
-    ObjectType.isProjected4D(spec1.objectType) && ObjectType.isProjected4D(spec2.objectType)
+    // Both must be 4D projected types or n-cubes; their projections may differ (menger#52).
+    ObjectType.isEdgeTubed4D(spec1.objectType) && ObjectType.isEdgeTubed4D(spec2.objectType)
 
   override def calculateInstanceCount(specs: List[ObjectSpec]): Long =
     // Calculate total instances: 1 face mesh instance + N edge cylinder instances per object
@@ -308,6 +342,7 @@ class TesseractEdgeSceneBuilder(
   private def estimateEdgeCount(spec: ObjectSpec): Long =
     spec.objectType.toLowerCase match
       case "tesseract"                                     => 32L
+      case "n-cube"                                        => NCubeScene.edgeCount(spec).toLong
       case "pentachoron"                                   => 10L
       case "16-cell"                                       => 24L
       case "24-cell"                                       => 96L
