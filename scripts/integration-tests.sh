@@ -1196,6 +1196,14 @@ test_t_animation() {
         --scene examples.dsl.CubeToTesseract --t 1.25
     run_test "t-animation freeze-frame CubeToTesseract extrusion" \
         --scene examples.dsl.CubeToTesseract --t 3
+    # The tesseract lifted into 5D (menger#162): unturned, turned in xv, then in wv as well --
+    # CPU path through the perspective chain, no 4D fast path.
+    run_test "t-animation freeze-frame TesseractToPenteract unturned" \
+        --scene examples.dsl.TesseractToPenteract --t 0
+    run_test "t-animation freeze-frame TesseractToPenteract xv" \
+        --scene examples.dsl.TesseractToPenteract --t 2
+    run_test "t-animation freeze-frame TesseractToPenteract xv and wv" \
+        --scene examples.dsl.TesseractToPenteract --t 6
 
     # Multi-frame animation: 3 frames for speed
     local temp_dir

@@ -48,4 +48,5 @@ object SceneIndex:
     SierpinskiHDRRotation.scene,
     EnvMapVideoSponge.scene,
     CubeToTesseract.scene,
+    TesseractToPenteract.scene,
   )

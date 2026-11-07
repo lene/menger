@@ -250,6 +250,26 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     val scene3 = fn(3f)
     scene0.objects.head should not be scene3.objects.head
 
+  it should "load TesseractToPenteract as an animated 5D tesseract (menger#162)" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.TesseractToPenteract"))
+    for t <- List(0f, 2f, 4f, 6f, 8f) do
+      val scene = fn(t)
+      scene.objects should have length 1
+      scene.lights should have length 2
+      scene.planes should not be empty
+      val spec = scene.objects.head.toObjectSpec
+      spec.objectType shouldBe "tesseract"
+      spec.projectionN.map(_.dimension) shouldBe Some(5)
+
+  it should "turn TesseractToPenteract in xv first and in wv after it" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.TesseractToPenteract"))
+    def angles(t: Float) =
+      val planes = fn(t).objects.head.toObjectSpec.projectionN.get.planes
+      planes.map(r => (r.plane.letters, r.angle.value))
+    angles(0f) shouldBe List(("xv", 0f), ("wv", 0f))
+    angles(4f) shouldBe List(("xv", 60f), ("wv", 0f))
+    angles(8f) shouldBe List(("xv", 60f), ("wv", 60f))
+
   "SceneIndex" should "contain all static scenes" in:
     val all = examples.dsl.SceneIndex.all
     all should not be empty
