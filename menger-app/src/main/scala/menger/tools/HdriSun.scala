@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
   *    diameter that of the spherical cap with the region's solid angle, its colour the region's
   *    solid-angle weighted mean RGB scaled to a largest channel of 1;
   *  - its share of the sky's light is its luminance x solid angle over the whole sphere's. */
-object HdriSun extends LazyLogging:
+object HdriSun:
 
   val PeakFraction = 0.1
   val MaxSunDiameterDegrees: Double = menger.dsl.Sun.MaxDiameterDegrees.toDouble
@@ -355,9 +355,17 @@ object HdriSun extends LazyLogging:
 
   def main(args: Array[String]): Unit =
     run(args) match
-      case Right(text) =>
-        print(text)
-        print(System.lineSeparator())
-      case Left(message) =>
-        logger.error(message)
-        sys.exit(1)
+      case Right(text)   => HdriSunMain.printReport(text)
+      case Left(message) => HdriSunMain.reportFailureAndExit(message)
+
+/** The process side effects of `HdriSun.main`: the architecture rules allow printing and
+  * `sys.exit` only in objects whose name matches `.*Main.*` (as `ManifestGeneratorMain`,
+  * `SceneValidatorMain`). */
+private object HdriSunMain extends LazyLogging:
+  def printReport(text: String): Unit =
+    print(text)
+    print(System.lineSeparator())
+
+  def reportFailureAndExit(message: String): Unit =
+    logger.error(message)
+    sys.exit(1)
