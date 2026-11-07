@@ -57,8 +57,8 @@ class FastPathRegressionSuite extends AnyFlatSpec with Matchers with MockFactory
     val proj1 = Projection4DSpec.default
     val proj2 = Projection4DSpec(eyeW = 3.0f, screenW = 2.0f, rotXW = Degrees.Zero, rotYW = Degrees.Zero, rotZW = Degrees.Zero)
     val baseSpec = ObjectSpec(objectType = "menger4d", x = 0, y = 0, z = 0, size = 1, level = Some(1))
-    val prevSpecs = List(baseSpec.copy(projection4D = Some(proj1)))
-    val newSpecs = List(baseSpec.copy(projection4D = Some(proj2)))
+    val prevSpecs = List(baseSpec.copy(projection = Some(proj1)))
+    val newSpecs = List(baseSpec.copy(projection = Some(proj2)))
     val ids = Vector(Vector(io.github.lene.optix.InstanceId(0)))
     val updateCalled = AtomicBoolean(false)
     val updater: RotationFastPath.ProjectionUpdater[InstanceId] =
@@ -81,7 +81,7 @@ class FastPathRegressionSuite extends AnyFlatSpec with Matchers with MockFactory
     (took, updates.get())
 
   it should "not take the fast path, nor update anything, when more than the projection changed" in:
-    val changed = base4D.copy(level = Some(2), projection4D = Some(Projection4DSpec.default))
+    val changed = base4D.copy(level = Some(2), projection = Some(Projection4DSpec.default))
     attempt(base4D, changed) shouldBe (false, 0)
 
   // Session 6 (menger#129): an unchanged frame (an animation's hold phase) was rebuilt; it now
@@ -90,5 +90,5 @@ class FastPathRegressionSuite extends AnyFlatSpec with Matchers with MockFactory
     attempt(base4D, base4D) shouldBe (true, 0)
 
   it should "not take the fast path when the id lists do not match the specs" in:
-    val turned = base4D.copy(projection4D = Some(Projection4DSpec.default.copy(rotXW = 10f)))
+    val turned = base4D.copy(projection = Some(Projection4DSpec.default.copy(rotXW = 10f)))
     attempt(base4D, turned, ids = Vector.empty) shouldBe (false, 0)

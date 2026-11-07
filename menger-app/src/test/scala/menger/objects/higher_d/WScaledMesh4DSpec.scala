@@ -41,7 +41,7 @@ class WScaledMesh4DSpec extends AnyFlatSpec with Matchers:
 
   "WithAnimation.specsDifferAtMostIn4DProjection" should "not count a w-scale change as a view" in:
     val spec = ObjectSpec("tesseract")
-    val scaled = spec.copy(projection4D = Some(Projection4DSpec(wScale = 0.5f)))
+    val scaled = spec.copy(projection = Some(Projection4DSpec(wScale = 0.5f)))
     WithAnimation.specsDifferAtMostIn4DProjection(List(spec), List(scaled)) shouldBe false
-    val turned = spec.copy(projection4D = Some(Projection4DSpec(rotXW = 40f)))
+    val turned = spec.copy(projection = Some(Projection4DSpec(rotXW = 40f)))
     WithAnimation.specsDifferAtMostIn4DProjection(List(spec), List(turned)) shouldBe true

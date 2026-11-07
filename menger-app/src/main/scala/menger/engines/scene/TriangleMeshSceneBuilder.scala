@@ -44,6 +44,8 @@ class TriangleMeshSceneBuilder(
   extends SceneBuilder:
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
+    lazy val fractionalProjectionSpec =
+      ProjectionSupport.rejectedFractionalLevel(specs, isFractional4DSponge)
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
     else if !specs.forall(isTriangleMeshType) then
@@ -53,6 +55,7 @@ class TriangleMeshSceneBuilder(
         s"sponge-recursive-ias requires level in [${ResourceLimits.recursiveIasMinLevel}, " +
           s"${ResourceLimits.recursiveIasMaxLevel + 1})"
       )
+    else if fractionalProjectionSpec.isDefined then fractionalProjectionSpec.toLeft(())
     else
       // Check instance count (accounting for fractional levels creating 2 instances)
       val instanceCount = calculateInstanceCount(specs)

@@ -13,7 +13,7 @@ object Window4DState:
   val NoObject = "Shift+drag: no 4D object in the scene"
 
   def describe(specs: List[ObjectSpec]): Option[String] =
-    specs.find(s => TypeRegistry.is4DFastPathType(s.objectType)).map { spec =>
+    specs.find(s => TypeRegistry.is4DFastPathType(s.objectType) && s.isLegacyView).map { spec =>
       val p = spec.projection4D.getOrElse(Projection4DSpec.default)
       f"4D xw ${p.rotXW}%.1f° yw ${p.rotYW}%.1f° zw ${p.rotZW}%.1f° eye-w ${p.eyeW}%.2f ($Hint)"
     }

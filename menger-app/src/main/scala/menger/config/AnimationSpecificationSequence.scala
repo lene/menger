@@ -42,8 +42,9 @@ case class AnimationSpecificationSequence(specification: List[String] = List.emp
     else
       val r = rotationProjectionParameters(frame).getOrElse(RotationProjectionParameters())
       val base = spec.projection4D.getOrElse(Projection4DSpec.default)
-      val with4D = if has4D then
-        withLevel.copy(projection4D = Some(Projection4DSpec(
+      // A ProjectionSpec keeps its own planes: the CLI animates the 4D shorthand only.
+      val with4D = if has4D && spec.isLegacyView then
+        withLevel.copy(projection = Some(Projection4DSpec(
           rotXW   = if animatedParams.contains(RotXW) then Degrees(r.rotXW) else base.rotXW,
           rotYW   = if animatedParams.contains(RotYW) then Degrees(r.rotYW) else base.rotYW,
           rotZW   = if animatedParams.contains(RotZW) then Degrees(r.rotZW) else base.rotZW,

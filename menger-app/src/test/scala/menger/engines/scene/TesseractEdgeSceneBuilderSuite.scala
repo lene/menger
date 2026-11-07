@@ -28,18 +28,18 @@ class TesseractEdgeSceneBuilderSuite extends AnyFlatSpec with Matchers:
   // absent one projects identically, but (Some, None) was always rejected as incompatible.
   // `parse` fills in the default projection; only a DSL object without `projection` gives None.
   private def withoutProjection =
-    ObjectSpecParser.parse("type=tesseract").toOption.get.copy(projection4D = None)
+    ObjectSpecParser.parse("type=tesseract").toOption.get.copy(projection = None)
 
   "isCompatible" should "treat an explicit default projection like an absent one" in:
     val absent = withoutProjection
-    val explicitDefault = absent.copy(projection4D = Some(Projection4DSpec.default))
+    val explicitDefault = absent.copy(projection = Some(Projection4DSpec.default))
     builder.isCompatible(explicitDefault, absent) shouldBe true
     builder.isCompatible(absent, explicitDefault) shouldBe true
 
   // menger#52: each 4D object is projected with its own projection.
   it should "accept a projection that differs from the default" in:
     val absent = withoutProjection
-    val rotated = absent.copy(projection4D = Some(Projection4DSpec(rotXW = 20f)))
+    val rotated = absent.copy(projection = Some(Projection4DSpec(rotXW = 20f)))
     builder.isCompatible(rotated, absent) shouldBe true
 
   "isClippedByEyeW" should "not clip a vertex safely inside eyeW" in:

@@ -20,7 +20,7 @@ class MeshFactorySpec extends AnyFlatSpec with Matchers:
   "MeshFactory's 4D buffer cache" should "reuse the buffer when only the projection differs" in:
     // An animated level or rotation rebuilt the sponge's 4D mesh every frame; level 3 took ~20 s.
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=2:size=1.3").toOption.get
-    val rotated = spec.copy(projection4D = Some(Projection4DSpec(rotXW = 42f)))
+    val rotated = spec.copy(projection = Some(Projection4DSpec(rotXW = 42f)))
     quads(MeshFactory.createUpload(spec)) should be theSameInstanceAs
       quads(MeshFactory.createUpload(rotated))
 
@@ -85,7 +85,7 @@ class MeshFactorySpec extends AnyFlatSpec with Matchers:
 
   it should "use spec projection when provided" in:
     val customProj = Projection4DSpec(eyeW = 4.0f, screenW = 2.0f, rotXW = 15f, rotYW = 10f, rotZW = 5f)
-    MeshFactory.createUpload(ObjectSpec("tesseract", projection4D = Some(customProj))) match
+    MeshFactory.createUpload(ObjectSpec("tesseract", projection = Some(customProj))) match
       case MeshUploadPlan.Gpu4D(_, _, proj) => proj shouldBe customProj
       case other => fail(s"expected Gpu4D, got $other")
 

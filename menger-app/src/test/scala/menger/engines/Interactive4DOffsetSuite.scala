@@ -15,7 +15,7 @@ import org.scalatest.matchers.should.Matchers
 class Interactive4DOffsetSuite extends AnyFlatSpec with Matchers:
 
   private val tesseract = ObjectSpec(
-    "tesseract", projection4D = Some(Projection4DSpec(rotXW = 10f, rotYW = 20f, rotZW = 0f))
+    "tesseract", projection = Some(Projection4DSpec(rotXW = 10f, rotYW = 20f, rotZW = 0f))
   )
   private val cube = ObjectSpec("cube")
 
@@ -59,7 +59,7 @@ class Interactive4DOffsetSuite extends AnyFlatSpec with Matchers:
     Window4DState.describe(List(cube)) shouldBe None
 
   "Interactive4DOffset.fileProjections" should "differ when the file changed a projection" in:
-    val changed = tesseract.copy(projection4D = Some(Projection4DSpec(rotXW = 99f)))
+    val changed = tesseract.copy(projection = Some(Projection4DSpec(rotXW = 99f)))
 
     Interactive4DOffset.fileProjections(List(tesseract)) shouldBe
       Interactive4DOffset.fileProjections(List(tesseract.copy(x = 1f)))

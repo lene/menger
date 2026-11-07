@@ -601,11 +601,14 @@ object WithAnimation:
   /** True iff the two spec lists have the same length and differ at most in
     * `Projection4DSpec`. Identical lists are true: a frame that changed nothing (the hold phase
     * of an animation) has nothing to update; it was rebuilt, 1.1 s for an edged sponge (session
-    * 6, menger#129). */
+    * 6, menger#129). A `ProjectionSpec` has no in-place update: a changed one is a rebuild
+    * (menger#162). */
   def specsDifferAtMostIn4DProjection(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
     // A w-scale change is a different mesh, not a re-projection (menger#65).
     prev.length == next.length &&
-      prev.lazyZip(next).forall((a, b) => a.withoutView == b.withoutView)
+      prev.lazyZip(next).forall((a, b) =>
+        a == b || (a.isLegacyView && b.isLegacyView && a.withoutView == b.withoutView)
+      )
 
   def specsCanReuseVideoTextureSlots(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
     prev == next && prev.exists(_.videoTexture.nonEmpty)

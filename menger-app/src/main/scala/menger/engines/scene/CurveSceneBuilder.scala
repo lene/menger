@@ -25,7 +25,7 @@ class CurveSceneBuilder(textureDir: String = ".") extends SceneBuilder:
         case s if s.roughnessMap.isDefined => "roughnessMap"
         case s if s.proceduralType != 0 => "proceduralType"
         case s if s.rotation != ObjectRotation() => "rotation"
-        case s if s.projection4D.isDefined => "projection4D"
+        case s if s.projection.isDefined => "projection4D"
         case s if s.level.isDefined => "level"
         case s if s.edgeRadius.isDefined => "edgeRadius"
         case s if s.edgeMaterial.isDefined => "edgeMaterial"

@@ -38,7 +38,7 @@ class GlobalRotationTest extends AnyFlatSpec with Matchers:
 
   it should "leave a 4D fast-path spec's projection4D untouched when no global 4D rotation is given" in:
     val opts = SafeMengerCLIOptions(List("--objects", "type=menger4d:level=1"))
-    val specs = List(ObjectSpec(objectType = "menger4d", projection4D = Some(zeroProjection)))
+    val specs = List(ObjectSpec(objectType = "menger4d", projection = Some(zeroProjection)))
     val result = GlobalRotation(opts, specs)
     result.head.projection4D shouldBe Some(zeroProjection)
 
@@ -46,7 +46,7 @@ class GlobalRotationTest extends AnyFlatSpec with Matchers:
     val opts = SafeMengerCLIOptions(
       List("--objects", "type=menger4d:level=1", "--rot-x-w", "30", "--rot-y-w", "15")
     )
-    val specs = List(ObjectSpec(objectType = "menger4d", projection4D = Some(zeroProjection)))
+    val specs = List(ObjectSpec(objectType = "menger4d", projection = Some(zeroProjection)))
     val result = GlobalRotation(opts, specs)
     result.head.projection4D.map(_.rotXW) shouldBe Some(30f)
     result.head.projection4D.map(_.rotYW) shouldBe Some(15f)

@@ -53,7 +53,7 @@ class TrackedMesh4DSuite extends AnyFlatSpec with Matchers with BeforeAndAfterEa
   private def sponge(level: Float, rotXW: Float): ObjectSpec =
     ObjectSpecParser.parse(s"type=tesseract-sponge:level=$level:size=1.5:material=film")
       .fold(e => fail(e), identity)
-      .copy(projection4D = Some(Projection4DSpec(rotXW = rotXW)))
+      .copy(projection = Some(Projection4DSpec(rotXW = rotXW)))
 
   private def build(specs: List[ObjectSpec]): TrackedMesh4D.State =
     TrackedMesh4D.build(specs, renderer, ".", _ => MaxInstances).get

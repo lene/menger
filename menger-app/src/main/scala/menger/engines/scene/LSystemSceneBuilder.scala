@@ -24,7 +24,7 @@ class LSystemSceneBuilder(textureDir: String = ".") extends SceneBuilder:
     if specs.isEmpty then Left("Object specs list cannot be empty")
     else if !specs.forall(_.objectType == "lsystem") then
       Left("All objects must be lsystem for LSystemSceneBuilder")
-    else Right(())
+    else ProjectionSupport.rejectedByMeshlessBuilder(specs).toLeft(())
 
   override def buildScene(
     specs: List[ObjectSpec], renderer: OptiXRenderer, maxInstances: Int

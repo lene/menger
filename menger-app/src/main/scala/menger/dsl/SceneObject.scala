@@ -11,10 +11,23 @@ import menger.spec.ObjectRotation
 import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 import menger.spec.ProceduralSpec
-import menger.spec.Projection4DSpec
+import menger.spec.ProjectionLike
+import menger.spec.ProjectionSpec
 import menger.spec.Radians
 import menger.spec.TextureMaps
 import menger.video.VideoTexture
+
+/** What a type may take as its `projection`. */
+private[dsl] object ProjectionRules:
+
+  /** The IFS fractals are traced by a 4D shader on the GPU and have no mesh to project through
+    * a [[ProjectionSpec]]'s chain (menger#162). */
+  def requireProjection4D(typeName: String, projection: Option[ProjectionLike]): Unit =
+    require(
+      projection.forall { case _: ProjectionSpec => false; case _ => true },
+      s"$typeName takes a Projection4DSpec only: ProjectionSpec needs a mesh type " +
+        "(Tesseract, TesseractSponge or a regular polytope), not a GPU-traced IFS fractal"
+    )
 
 /** Base trait for all scene objects */
 sealed trait SceneObject:
@@ -36,7 +49,7 @@ sealed trait SceneObject:
   protected def baseObjectSpec(
     objectType: String,
     level: Option[Float] = None,
-    projection4D: Option[Projection4DSpec] = None,
+    projection: Option[ProjectionLike] = None,
     edgeRadius: Option[Float] = None,
     edgeMaterial: Option[menger.common.Material] = None,
     meshData: Option[menger.common.TriangleMeshData] = None,
@@ -54,7 +67,7 @@ sealed trait SceneObject:
       material = material.map(_.toCoreMaterial),
       texture = texture,
       videoTexture = videoTexture,
-      projection4D = projection4D,
+      projection = projection,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial,
       rotation = ObjectRotation(Radians(rotation.x), Radians(rotation.y), Radians(rotation.z)),
@@ -418,7 +431,7 @@ case class Tesseract(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
-  projection: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
@@ -429,7 +442,7 @@ case class Tesseract(
   def toObjectSpec: ObjectSpec =
     baseObjectSpec(
       "tesseract",
-      projection4D = projection,
+      projection = projection,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
     )
@@ -468,7 +481,7 @@ case class Pentachoron(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
-  projection: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
@@ -477,7 +490,7 @@ case class Pentachoron(
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec = baseObjectSpec(
-    "pentachoron", projection4D = projection, edgeRadius = edgeRadius,
+    "pentachoron", projection = projection, edgeRadius = edgeRadius,
     edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
   )
 
@@ -496,7 +509,7 @@ case class Hexadecachoron(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
-  projection: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
@@ -505,7 +518,7 @@ case class Hexadecachoron(
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec = baseObjectSpec(
-    "16-cell", projection4D = projection, edgeRadius = edgeRadius,
+    "16-cell", projection = projection, edgeRadius = edgeRadius,
     edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
   )
 
@@ -524,7 +537,7 @@ case class Icositetrachoron(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
-  projection: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
@@ -533,7 +546,7 @@ case class Icositetrachoron(
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec = baseObjectSpec(
-    "24-cell", projection4D = projection, edgeRadius = edgeRadius,
+    "24-cell", projection = projection, edgeRadius = edgeRadius,
     edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
   )
 
@@ -552,7 +565,7 @@ case class Hexacosichoron(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
-  projection: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
@@ -561,7 +574,7 @@ case class Hexacosichoron(
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec = baseObjectSpec(
-    "600-cell", projection4D = projection, edgeRadius = edgeRadius,
+    "600-cell", projection = projection, edgeRadius = edgeRadius,
     edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
   )
 
@@ -580,7 +593,7 @@ case class Hecatonicosachoron(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
-  projection: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
@@ -589,7 +602,7 @@ case class Hecatonicosachoron(
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec = baseObjectSpec(
-    "120-cell", projection4D = projection, edgeRadius = edgeRadius,
+    "120-cell", projection = projection, edgeRadius = edgeRadius,
     edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
   )
 
@@ -611,7 +624,7 @@ case class TesseractSponge(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
-  projection: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
@@ -628,7 +641,7 @@ case class TesseractSponge(
     baseObjectSpec(
       ObjectType.normalize(spongeType.objectTypeName),
       level = Some(level),
-      projection4D = projection,
+      projection = projection,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
     )
@@ -683,7 +696,7 @@ case class PentachoronGasket(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
-  projection: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
@@ -692,13 +705,14 @@ case class PentachoronGasket(
   // The manifest already advertised this ceiling; the constructor did not enforce it (review
   // 2026-10-14, menger#106).
   FieldConstraints.check("PentachoronGasket", "level", level)
+  ProjectionRules.requireProjection4D("PentachoronGasket", projection)
   require(size > 0f, s"Size must be positive, got $size")
 
   def toObjectSpec: ObjectSpec =
     baseObjectSpec(
       "sierpinski4d",
       level = Some(level),
-      projection4D = projection,
+      projection = projection,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
     )
@@ -731,20 +745,21 @@ case class Menger4D(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
-  projection: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
   FieldConstraints.check("Menger4D", "level", level)
+  ProjectionRules.requireProjection4D("Menger4D", projection)
   require(size > 0f, s"Size must be positive, got $size")
 
   def toObjectSpec: ObjectSpec =
     baseObjectSpec(
       "menger4d",
       level = Some(level),
-      projection4D = projection,
+      projection = projection,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
     )
@@ -765,20 +780,21 @@ case class HexadecachoronGasket(
   roughnessMap: Option[String] = None,
   proceduralType: Int = 0,
   proceduralScale: Float = 1.0f,
-  projection: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: Vec3 = Vec3.Zero
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
   FieldConstraints.check("HexadecachoronGasket", "level", level)
+  ProjectionRules.requireProjection4D("HexadecachoronGasket", projection)
   require(size > 0f, s"Size must be positive, got $size")
 
   def toObjectSpec: ObjectSpec =
     baseObjectSpec(
       "hexadecachoron4d",
       level = Some(level),
-      projection4D = projection,
+      projection = projection,
       edgeRadius = edgeRadius,
       edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
     )

@@ -14,6 +14,7 @@ import menger.common.x
 import menger.common.y
 import menger.common.z
 import menger.failure.Fail
+import menger.objects.higher_d.LiftedProjection
 import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Projection
 import menger.objects.higher_d.Rotation
@@ -410,6 +411,29 @@ object TesseractEdgeSceneBuilder:
     spec: ObjectSpec,
     edges: IndexedSeq[(Vector[4], Vector[4])]
   ): IndexedSeq[Option[(Vector[3], Vector[3])]] =
+    spec.projectionN match
+      case Some(view) =>
+        chainEdgeEndpoints(spec, ProjectionConversion.liftedProjection(view), edges)
+      case None => legacyEdgeEndpoints(spec, edges)
+
+  /** The same clip as the 4D view, applied at every stage of the chain. */
+  private def chainEdgeEndpoints(
+    spec: ObjectSpec,
+    view: LiftedProjection,
+    edges: IndexedSeq[(Vector[4], Vector[4])]
+  ): IndexedSeq[Option[(Vector[3], Vector[3])]] =
+    def placed(p: Vector[3]): Vector[3] = Vector[3](p.x + spec.x, p.y + spec.y, p.z + spec.z)
+    edges.map { case (v0, v1) =>
+      for
+        p0 <- view.project(v0)
+        p1 <- view.project(v1)
+      yield (placed(p0), placed(p1))
+    }
+
+  private def legacyEdgeEndpoints(
+    spec: ObjectSpec,
+    edges: IndexedSeq[(Vector[4], Vector[4])]
+  ): IndexedSeq[Option[(Vector[3], Vector[3])]] =
     val proj4D = spec.projection4D.getOrElse(Projection4DSpec.default)
     val rotation: Rotation[4] =
       if proj4D.rotXW == Degrees.Zero && proj4D.rotYW == Degrees.Zero &&
@@ -449,13 +473,13 @@ object TesseractEdgeSceneBuilder:
     then false
     else
       val changed = prevSpecs.lazyZip(newSpecs).lazyZip(tracks).collect {
-        case (prev, next, track) if prev.projection4D != next.projection4D => (next, track)
+        case (prev, next, track) if prev.projection != next.projection => (next, track)
       }.toIndexedSeq
       val planned = changed.map { case (spec, track) =>
         (spec, track, edgeEndpoints(spec, track.edges))
       }
-      val movable = planned.forall { case (_, track, endpoints) =>
-        track.faces != FaceTrack.Cpu &&
+      val movable = planned.forall { case (spec, track, endpoints) =>
+        spec.isLegacyView && track.faces != FaceTrack.Cpu &&
           endpoints.map(_.isDefined) == track.cylinderIds.map(_.isDefined)
       }
       if !movable then false

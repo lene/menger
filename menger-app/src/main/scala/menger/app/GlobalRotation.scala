@@ -22,9 +22,10 @@ object GlobalRotation:
       val withRotation = spec.copy(rotation = ObjectRotation(
         spec.rotation.x + rx, spec.rotation.y + ry, spec.rotation.z + rz
       ))
-      if TypeRegistry.is4DFastPathType(spec.objectType) then
+      // A ProjectionSpec keeps its own planes: the global 4D rotation is a 4D one.
+      if TypeRegistry.is4DFastPathType(spec.objectType) && spec.isLegacyView then
         val proj = withRotation.projection4D.getOrElse(Projection4DSpec())
-        withRotation.copy(projection4D = Some(proj.copy(
+        withRotation.copy(projection = Some(proj.copy(
           rotXW = proj.rotXW + Degrees(opts.effectiveRotXW),
           rotYW = proj.rotYW + Degrees(opts.effectiveRotYW),
           rotZW = proj.rotZW + Degrees(opts.effectiveRotZW)

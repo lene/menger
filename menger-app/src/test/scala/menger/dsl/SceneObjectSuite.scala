@@ -440,6 +440,48 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     val spec = sponge.toObjectSpec
     spec.projection4D shouldBe Some(projection)
 
+  // menger#162: the nD view of a 4D object
+  "A 4D mesh object" should "carry a ProjectionSpec into its ObjectSpec" in:
+    import menger.spec.ProjectionSpec
+    val view = ProjectionSpec(5, planes = List(menger.spec.PlaneRotation("xv", 30f)))
+    Seq[SceneObject](
+      Tesseract(projection = Some(view)),
+      Pentachoron(projection = Some(view)),
+      Hexadecachoron(projection = Some(view)),
+      Icositetrachoron(projection = Some(view)),
+      Hexacosichoron(projection = Some(view)),
+      Hecatonicosachoron(projection = Some(view)),
+      TesseractSponge(VolumeRemoving, level = 1f, projection = Some(view))
+    ).foreach { obj =>
+      val spec = obj.toObjectSpec
+      withClue(spec.objectType) {
+        spec.projectionN shouldBe Some(view)
+        spec.projection4D shouldBe None
+        spec.isLegacyView shouldBe false
+      }
+    }
+
+  "A 4D IFS object" should "reject a ProjectionSpec, naming the type and the mesh types" in:
+    import menger.spec.ProjectionSpec
+    val view = Some(ProjectionSpec(5))
+    Seq[(String, () => SceneObject)](
+      "Menger4D" -> (() => Menger4D(level = 1f, projection = view)),
+      "PentachoronGasket" -> (() => PentachoronGasket(level = 1f, projection = view)),
+      "HexadecachoronGasket" -> (() => HexadecachoronGasket(level = 1f, projection = view))
+    ).foreach { (name, build) =>
+      val message = intercept[IllegalArgumentException](build()).getMessage
+      withClue(name) {
+        message should include (name)
+        message should include ("ProjectionSpec needs a mesh type")
+      }
+    }
+
+  it should "still take the 4D shorthand" in:
+    import menger.spec.Projection4DSpec
+    val projection = Projection4DSpec(rotXW = 30f)
+    Menger4D(level = 1f, projection = Some(projection)).toObjectSpec.projection4D shouldBe
+      Some(projection)
+
   // Task 20.10: DSL texture syntax
   "Sphere" should "support normalMap in DSL" in:
     val sphere = Sphere(normalMap = Some("wall_n.png"))

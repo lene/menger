@@ -15,10 +15,12 @@ import menger.objects.higher_d.Hecatonicosachoron
 import menger.objects.higher_d.Hexacosichoron
 import menger.objects.higher_d.Hexadecachoron
 import menger.objects.higher_d.Icositetrachoron
+import menger.objects.higher_d.LiftedMesh4DProjection
 import menger.objects.higher_d.Mesh4D
 import menger.objects.higher_d.Mesh4DGpuFlatten
 import menger.objects.higher_d.Mesh4DProjection
 import menger.objects.higher_d.Pentachoron
+import menger.objects.higher_d.ProjectedMesh4D
 import menger.objects.higher_d.Tesseract
 import menger.objects.higher_d.TesseractSponge
 import menger.objects.higher_d.TesseractSponge2
@@ -122,9 +124,10 @@ object MeshFactory:
       case other =>
         Fail.unknownGeometry(other, ObjectType.VALID_TYPES.toSeq.sorted)
 
-  /** Build a `MeshUploadPlan` for the given spec. 4D-projected types always use
+  /** Build a `MeshUploadPlan` for the given spec. 4D-projected types with a 4D view use
     * the GPU path: a `Gpu4D` plan carrying the flat 4D-quad buffer + projection
-    * params, projected on the GPU. All other (3D) types use the CPU `create(spec)`
+    * params, projected on the GPU. All other (3D) types, and a 4D type with a
+    * `ProjectionSpec`, which only the CPU chain projects, use the CPU `create(spec)`
     * triangle mesh.
     *
     * `holeCaps` uploads only the hole caps of the mesh (`Mesh4DGpuFlatten.holeCapsBuffer`):
@@ -133,7 +136,7 @@ object MeshFactory:
     spec: ObjectSpec,
     holeCaps: Boolean = false
   )(using profilingConfig: ProfilingConfig): MeshUploadPlan =
-    if ObjectType.isProjected4D(spec.objectType) then
+    if ObjectType.isProjected4D(spec.objectType) && spec.isLegacyView then
       gpu4DPlan(spec, holeCaps).getOrElse(
         Fail.internal(s"No GPU 4D projection available for type: ${spec.objectType}")
       )
@@ -167,6 +170,8 @@ object MeshFactory:
       ): Boolean = size() > MaxEntries
 
     def buffer(spec: ObjectSpec, holeCaps: Boolean): Option[(Array[Float], Int)] =
+      if !spec.isLegacyView then
+        Fail.internal(s"no GPU 4D buffer for ${spec.objectType}: it has a ProjectionSpec")
       val key: Key = (spec.objectType, spec.level, spec.size, spec.wScale, holeCaps)
       entries.synchronized(Option(entries.get(key))).orElse {
         renderMesh4D(spec).map { m =>
@@ -210,12 +215,16 @@ object MeshFactory:
   def renderMesh4D(spec: ObjectSpec): Option[Mesh4D] =
     mesh4D(spec).map(WScaledMesh4D.of(_, spec.wScale))
 
-  private def mesh4DProjection(spec: ObjectSpec): Option[Mesh4DProjection] =
-    val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
+  private def mesh4DProjection(spec: ObjectSpec): Option[ProjectedMesh4D] =
     renderMesh4D(spec).map { mesh =>
-      Mesh4DProjection(
-        mesh4D = mesh, center = Vector.Zero[3],
-        eyeW = proj.eyeW, screenW = proj.screenW,
-        rotXW = proj.rotXW.value, rotYW = proj.rotYW.value, rotZW = proj.rotZW.value
-      )
+      spec.projectionN match
+        case Some(view) =>
+          LiftedMesh4DProjection(mesh, ProjectionConversion.liftedProjection(view))
+        case None =>
+          val proj = spec.projection4D.getOrElse(Projection4DSpec.default)
+          Mesh4DProjection(
+            mesh4D = mesh, center = Vector.Zero[3],
+            eyeW = proj.eyeW, screenW = proj.screenW,
+            rotXW = proj.rotXW.value, rotYW = proj.rotYW.value, rotZW = proj.rotZW.value
+          )
     }

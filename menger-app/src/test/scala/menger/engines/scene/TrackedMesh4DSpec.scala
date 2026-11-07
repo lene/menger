@@ -17,7 +17,7 @@ class TrackedMesh4DSpec extends AnyFlatSpec with Matchers:
       .fold(e => fail(e), identity)
 
   private def rotated(spec: ObjectSpec, rotXW: Float): ObjectSpec =
-    spec.copy(projection4D = Some(Projection4DSpec(rotXW = rotXW)))
+    spec.copy(projection = Some(Projection4DSpec(rotXW = rotXW)))
 
   "TrackedMesh4D.canUpdateInPlace" should "accept a projection-only change" in:
     TrackedMesh4D.canUpdateInPlace(List(sponge(2f)), List(rotated(sponge(2f), 40f))) shouldBe true
@@ -35,12 +35,12 @@ class TrackedMesh4DSpec extends AnyFlatSpec with Matchers:
 
   // menger#65: a w-scale change is a different 4D mesh, not a re-projection of the same one.
   it should "reject a w-scale change" in:
-    val flat = sponge(2f).copy(projection4D = Some(Projection4DSpec(wScale = 0.5f)))
+    val flat = sponge(2f).copy(projection = Some(Projection4DSpec(wScale = 0.5f)))
     TrackedMesh4D.canUpdateInPlace(List(sponge(2f)), List(flat)) shouldBe false
 
   it should "accept a view change that keeps the w-scale" in:
-    val flat = sponge(2f).copy(projection4D = Some(Projection4DSpec(wScale = 0.5f)))
-    val turned = flat.copy(projection4D = Some(Projection4DSpec(rotXW = 40f, wScale = 0.5f)))
+    val flat = sponge(2f).copy(projection = Some(Projection4DSpec(wScale = 0.5f)))
+    val turned = flat.copy(projection = Some(Projection4DSpec(rotXW = 40f, wScale = 0.5f)))
     TrackedMesh4D.canUpdateInPlace(List(flat), List(turned)) shouldBe true
 
   it should "reject a level change into another interval" in:

@@ -29,9 +29,11 @@ object TrackedMesh4D:
 
   /** True when `next` can be reached from `prev` by `updateInPlace`: the same objects, differing
     * at most in their 4D projection, the fractional part of their level, their position and
-    * their 3D rotation. */
+    * their 3D rotation. A `ProjectionSpec` has no projected-mesh slot to update (menger#162). */
   def canUpdateInPlace(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
-    prev.length == next.length && prev.lazyZip(next).forall((a, b) => geometry(a) == geometry(b))
+    prev.length == next.length && prev.lazyZip(next).forall((a, b) =>
+      a.isLegacyView && b.isLegacyView && geometry(a) == geometry(b)
+    )
 
   // The view drops out, the w-scale stays: it changes the 4D mesh itself (menger#65).
   private def geometry(spec: ObjectSpec): ObjectSpec =

@@ -44,7 +44,7 @@ import menger.optix.CameraState
 import menger.optix.SceneConfigurator
 import menger.spec.Degrees
 import menger.spec.ObjectSpec
-import menger.spec.Projection4DSpec
+import menger.spec.ProjectionLike
 
 class InteractiveEngine(
   config: OptiXEngineConfig,
@@ -183,8 +183,7 @@ class InteractiveEngine(
     )
     if has4DObjects then
       val updatedSpecs = currentObjectSpecs.get().map(_.map { spec =>
-        if TypeRegistry.is4DFastPathType(spec.objectType) then
-          val currentProj = spec.projection4D.getOrElse(Projection4DSpec.default)
+        Interactive4DOffset.rotate(spec) { currentProj =>
           // A rotation-only event has no eyeW and leaves it unchanged.
           val newEyeW = event.eyeW.fold(currentProj.eyeW) { _ =>
             (Projection(currentProj.eyeW, currentProj.screenW) + event.projection).eyeW
@@ -199,9 +198,8 @@ class InteractiveEngine(
             s"Updated 4D object: rotXW=${newProj.rotXW}, rotYW=${newProj.rotYW}, " +
             s"rotZW=${newProj.rotZW}, eyeW=${newProj.eyeW}"
           )
-          spec.copy(projection4D = Some(newProj))
-        else
-          spec
+          newProj
+        }
       })
       currentObjectSpecs.set(updatedSpecs)
       show4DState(updatedSpecs)
@@ -478,7 +476,7 @@ class InteractiveEngine(
     reloadable: ReloadableSceneState,
     specs: Option[List[ObjectSpec]],
     fileSpecs: List[ObjectSpec],
-    fileProjections: List[Option[Projection4DSpec]],
+    fileProjections: List[Option[ProjectionLike]],
     offset: Interactive4DOffset
   )
 

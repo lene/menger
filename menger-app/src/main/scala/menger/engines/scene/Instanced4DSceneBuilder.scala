@@ -72,7 +72,7 @@ class Instanced4DSceneBuilder(
       Left(s"All ${ifsType.name} objects require a level parameter")
     else if ifsType.maxLevel.exists(max => specs.exists(levelOutOfRange(_, max))) then
       Left(s"${ifsType.name} level must be in [0, ${ifsType.maxLevel.get}]")
-    else Right(())
+    else ProjectionSupport.rejectedByMeshlessBuilder(specs).toLeft(())
 
   /** A fractional level renders two instances (floor and floor+1), so the
     * effective maximum int level handed to the native layer is floor+1. */

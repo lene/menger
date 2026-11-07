@@ -137,7 +137,7 @@ object ObjectSpecParser extends LazyLogging:
       ior = ior,
       material = material,
       texture = texture,
-      projection4D = projection4D,
+      projection = projection4D,
       edgeRadius = edgeParams._1,
       edgeMaterial = edgeParams._2,
       rotation = rotation,

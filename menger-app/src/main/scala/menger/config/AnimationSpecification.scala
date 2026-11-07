@@ -131,8 +131,9 @@ case class AnimationSpecification(specString: String) extends LazyLogging:
     else
       val r = rotationProjectionParameters(frame)
       val base = spec.projection4D.getOrElse(Projection4DSpec.default)
-      val with4D = if has4D then
-        withLevel.copy(projection4D = Some(Projection4DSpec(
+      // A ProjectionSpec keeps its own planes: the CLI animates the 4D shorthand only.
+      val with4D = if has4D && spec.isLegacyView then
+        withLevel.copy(projection = Some(Projection4DSpec(
           rotXW   = if animationParameters.contains(RotXW) then Degrees(r.rotXW) else base.rotXW,
           rotYW   = if animationParameters.contains(RotYW) then Degrees(r.rotYW) else base.rotYW,
           rotZW   = if animationParameters.contains(RotZW) then Degrees(r.rotZW) else base.rotZW,

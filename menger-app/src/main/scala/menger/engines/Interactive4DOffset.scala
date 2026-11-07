@@ -5,6 +5,7 @@ import menger.objects.higher_d.RotationProjectionParameters
 import menger.spec.Degrees
 import menger.spec.ObjectSpec
 import menger.spec.Projection4DSpec
+import menger.spec.ProjectionLike
 
 /** The 4D rotation a user adds in the window (Shift+drag), kept apart from the scene file's own
   * projections (usability review 2026-10, session 4, F96). Written into the specs, it was lost
@@ -31,16 +32,13 @@ final case class Interactive4DOffset(
   /** `specs` with this rotation added to every projected object's projection. */
   def applyTo(specs: List[ObjectSpec]): List[ObjectSpec] =
     if isZero then specs
-    else specs.map { spec =>
-      if TypeRegistry.is4DFastPathType(spec.objectType) then
-        val p = spec.projection4D.getOrElse(Projection4DSpec.default)
-        spec.copy(projection4D = Some(p.copy(
-          eyeW = scrolledEyeW(p),
-          rotXW = p.rotXW + Degrees(rotXW), rotYW = p.rotYW + Degrees(rotYW),
-          rotZW = p.rotZW + Degrees(rotZW)
-        )))
-      else spec
-    }
+    else specs.map(Interactive4DOffset.rotate(_)(p =>
+      p.copy(
+        eyeW = scrolledEyeW(p),
+        rotXW = p.rotXW + Degrees(rotXW), rotYW = p.rotYW + Degrees(rotYW),
+        rotZW = p.rotZW + Degrees(rotZW)
+      )
+    ))
 
   // Kept above screen-w, which Projection4DSpec requires.
   private def scrolledEyeW(p: Projection4DSpec): Float =
@@ -57,5 +55,17 @@ object Interactive4DOffset:
   private val MinEyeWAboveScreenW = 0.01f
 
   /** The projections a scene file declares, to tell whether a reload changed them. */
-  def fileProjections(specs: List[ObjectSpec]): List[Option[Projection4DSpec]] =
-    specs.map(_.projection4D)
+  def fileProjections(specs: List[ObjectSpec]): List[Option[ProjectionLike]] =
+    specs.map(_.projection)
+
+  /** `spec` with `turn` applied to its 4D view, if it is a 4D type the window rotates. An
+    * object with a `ProjectionSpec` keeps its view and the log says so once: the window's
+    * rotation is a 4D rotation, and its own planes are the scene's (menger#162). */
+  def rotate(spec: ObjectSpec)(turn: Projection4DSpec => Projection4DSpec): ObjectSpec =
+    if !TypeRegistry.is4DFastPathType(spec.objectType) then spec
+    else if !spec.isLegacyView then
+      NdViewNotice.rotationIgnored(spec)
+      spec
+    else spec.copy(projection =
+      Some(turn(spec.projection4D.getOrElse(Projection4DSpec.default)))
+    )

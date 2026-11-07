@@ -45,7 +45,7 @@ case class ObjectSpec(
   material: Option[Material] = None,
   texture: Option[String] = None,
   videoTexture: Option[VideoTexture] = None,
-  projection4D: Option[Projection4DSpec] = None,
+  projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
   rotation: ObjectRotation = ObjectRotation(),
@@ -91,13 +91,25 @@ case class ObjectSpec(
   def color2: Option[Color] = plane.color2
   def checkerSize: Float = plane.checkerSize
 
+  /** The 4D shorthand view, which every 4D reader and the GPU paths understand; None for a
+    * [[ProjectionSpec]] (see [[isLegacyView]]). */
+  def projection4D: Option[Projection4DSpec] = projection.collect { case p: Projection4DSpec => p }
+
+  /** The general nD view, which only the CPU path renders (menger#162). */
+  def projectionN: Option[ProjectionSpec] = projection.collect { case p: ProjectionSpec => p }
+
+  /** True unless the spec carries a [[ProjectionSpec]]: only a legacy view may take a 4D fast
+    * path or be rotated by the window. */
+  def isLegacyView: Boolean = projectionN.isEmpty
+
   /** The 4D w-scale; 1 without a projection. */
   def wScale: Float = projection4D.fold(Projection4DSpec.DefaultWScale)(_.wScale)
 
-  /** This spec without its 4D view (eye, screen, rotations) but with its w-scale: a view
-    * change re-projects the same 4D mesh, a w-scale change is a different mesh (menger#65). */
+  /** This spec without its view (eye, screen, rotations; a [[ProjectionSpec]] altogether) but
+    * with its w-scale: a view change re-projects the same 4D mesh, a w-scale change is a
+    * different mesh (menger#65). */
   def withoutView: ObjectSpec =
-    copy(projection4D =
+    copy(projection =
       Some(wScale).filter(_ != Projection4DSpec.DefaultWScale).map(w => Projection4DSpec(wScale = w))
     )
 

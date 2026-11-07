@@ -42,10 +42,10 @@ class WithAnimationSuite extends AnyFlatSpec with Matchers:
   // --- GPU 4D projection animation fast-path eligibility helpers -----------
 
   private val tess0 = ObjectSpec(
-    "tesseract", projection4D = Some(Projection4DSpec(rotXW = 0f, rotYW = 0f, rotZW = 0f))
+    "tesseract", projection = Some(Projection4DSpec(rotXW = 0f, rotYW = 0f, rotZW = 0f))
   )
   private val tessRotated = ObjectSpec(
-    "tesseract", projection4D = Some(Projection4DSpec(rotXW = 30f, rotYW = 0f, rotZW = 0f))
+    "tesseract", projection = Some(Projection4DSpec(rotXW = 30f, rotYW = 0f, rotZW = 0f))
   )
   private val tessMoved = tess0.copy(x = 1f)
 
