@@ -29,7 +29,9 @@ object SunKeyLight:
         radius = Some(1.8f),
         material = Some(Material.matte(Color(0.85f, 0.82f, 0.76f)))
       ),
-      Cube(pos = (0f, -0.05f, 0f), material = Some(Material.Glass), size = 0.8f)
+      // 0.01 above the plinth's top cap (y = -0.45): a bottom face on the cap itself fights with
+      // it and speckles the refraction.
+      Cube(pos = (0f, -0.04f, 0f), material = Some(Material.Glass), size = 0.8f)
     ),
     lights = List(
       // From about 42 degrees up, behind the cube and to the left, so the shadow and the caustic
