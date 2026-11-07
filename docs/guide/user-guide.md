@@ -1204,14 +1204,17 @@ the full animation — it does not change frame to frame.
 
 **Kiara 2 Sunrise (the Sprint 38 scene's HDRI):** Poly Haven's
 [Kiara 2 Sunrise](https://polyhaven.com/a/kiara_2_sunrise) (CC0, Greg Zaal) is too big to
-commit (4K 26 MB, 8K 102 MB), so it is fetched on demand into the gitignored `assets/hdri/`:
+commit (1K 1.5 MB, 4K 26 MB, 8K 102 MB), so it is fetched on demand into the gitignored
+`assets/hdri/` of the menger checkout. Run both commands from the menger repository's root (the
+`--texture-dir` path is relative to the working directory; `<scene>` is any scene, e.g.
+`examples.dsl.EnvMapDemo`):
 ```bash
 scripts/fetch-kiara-hdri.sh 4k      # or 1k, 8k; default 4k
 menger-app --scene <scene> --texture-dir assets/hdri --env-map kiara_2_sunrise_4k.hdr
 ```
 The script verifies the download against a pinned SHA-256, exits non-zero on any mismatch or
-failed download and leaves no file behind then; with a verified file already there it downloads
-nothing. Source, licence and hashes: `PROVENANCE.yaml`.
+failed download and then leaves no file behind (a corrupt copy is removed too); with a verified
+file already there it downloads nothing. Source, licence and hashes: `PROVENANCE.yaml`.
 
 ---
 
