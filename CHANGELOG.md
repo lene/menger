@@ -50,8 +50,9 @@
   chain on the CPU; a face or tube with a vertex at or behind a stage's eye is left out. No
   GPU path and no 4D fast path (an animation rebuilds every frame); the command line stays 4D
   (`type=n-cube` is refused with a pointer to the DSL). The validator's snapshot carries the
-  cube's `dimension`. Example: `HexeractTurning`, a 6-cube turning in the plane `xu`. The
-  scene agent's manifest and corpus follow with the next regeneration.
+  cube's `dimension` (validator result schema 1.5.0). Example: `HexeractTurning`, a 6-cube
+  turning in the plane `xu`. With `Sun` (above) the manifest is 2.2.0 (additive: `Hypercube`,
+  `Sun`); menger-scene-agent regenerates its manifest and corpus (38 scenes).
 - A 4D object can be lifted into 5D to 8D and turned there (Sprint 38 grid cell G6, part 2 of
   lene/menger#162): the DSL `projection` of `Tesseract`, `TesseractSponge` and the regular
   polytopes takes a `ProjectionSpec(dimension, planes, eye, screen, stages)` next to the 4D

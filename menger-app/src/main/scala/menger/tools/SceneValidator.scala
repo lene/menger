@@ -101,7 +101,9 @@ object SceneValidator extends LazyLogging:
   // 1.3.0: `loadError`, the structured reason a scene did not load (additive; menger#113).
   // 1.4.0: snapshot objects carry `ndProjection`, the dimension, planes and stages of a
   //        `ProjectionSpec` (additive; menger#162).
-  val SchemaVersion = "1.4.0"
+  // 1.5.0: snapshot objects carry `dimension`, a `Hypercube`'s own dimension (additive;
+  //        menger#163).
+  val SchemaVersion = "1.5.0"
 
   /** `messages` stays first-class and unchanged -- it is what the existing consumers read.
     * `findings`, `scene`, `schemaVersion`, `snapshots`, `cameraPath` and `loadError` are

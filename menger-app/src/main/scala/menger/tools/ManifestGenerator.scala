@@ -94,7 +94,9 @@ object ManifestGenerator extends LazyLogging:
   // 2.1.0: `ProjectionSpec`, `PlaneRotation` and `ProjectionStage` in the scene composition (the
   //        nD view of a 4D object, menger#162); the 4D objects' `projection` is a
   //        `ProjectionLike`, and snapshots carry `ndProjection`.
-  private[tools] val SchemaVersion = "2.1.0"
+  // 2.2.0: the `Hypercube` object (the n-cube of 4 to 8 dimensions, menger#163) and the `Sun`
+  //        light (menger#158) (additive).
+  private[tools] val SchemaVersion = "2.2.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
