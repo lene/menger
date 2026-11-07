@@ -49,4 +49,5 @@ object SceneIndex:
     EnvMapVideoSponge.scene,
     CubeToTesseract.scene,
     TesseractToPenteract.scene,
+    HexeractTurning.scene,
   )

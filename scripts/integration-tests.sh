@@ -1205,6 +1205,14 @@ test_t_animation() {
         --scene examples.dsl.TesseractToPenteract --t 2.6666667
     run_test "t-animation freeze-frame TesseractToPenteract xv yv zv" \
         --scene examples.dsl.TesseractToPenteract --t 8
+    # The hexeract (6-cube) turning in the xu plane (menger#163): CPU faces and 192 edge tubes
+    # through the three-stage chain, unturned, an eighth and a quarter of the turn.
+    run_test "t-animation freeze-frame HexeractTurning unturned" \
+        --scene examples.dsl.HexeractTurning --t 0
+    run_test "t-animation freeze-frame HexeractTurning xu 45" \
+        --scene examples.dsl.HexeractTurning --t 4
+    run_test "t-animation freeze-frame HexeractTurning xu 90" \
+        --scene examples.dsl.HexeractTurning --t 8
 
     # Multi-frame animation: 3 frames for speed
     local temp_dir

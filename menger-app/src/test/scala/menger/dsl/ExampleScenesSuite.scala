@@ -282,6 +282,29 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     val view = fn(0f).objects.head.toObjectSpec.projectionN.get
     view.stagePairs.map(s => (s.eye, s.screen)) shouldBe List((3f, 0.6f), (6f, 1.2f))
 
+  it should "load HexeractTurning as an animated 6-cube with film faces, gold tubes (menger#163)" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.HexeractTurning"))
+    for t <- List(0f, 2f, 4f, 8f) do
+      val scene = fn(t)
+      scene.objects should have length 1
+      scene.lights should have length 2
+      scene.planes should not be empty
+      val spec = scene.objects.head.toObjectSpec
+      (spec.objectType, spec.dimension) shouldBe (("n-cube", Some(6)))
+      spec.material should not be empty
+      spec.edgeRadius should not be empty
+      spec.edgeMaterial should not be empty
+
+  it should "turn HexeractTurning in the plane xu, a quarter turn over the loop" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.HexeractTurning"))
+    def turns(t: Float) =
+      val planes = fn(t).objects.head.toObjectSpec.projectionN.get.planes
+      planes.map(r => (r.plane.letters, r.angle.value))
+    turns(0f) shouldBe List(("xu", 0f))
+    val end = turns(examples.dsl.HexeractTurning.durationSeconds)
+    end.map(_._1) shouldBe List("xu")
+    end.head._2 shouldBe 90f +- 1e-3f
+
   "SceneIndex" should "contain all static scenes" in:
     val all = examples.dsl.SceneIndex.all
     all should not be empty

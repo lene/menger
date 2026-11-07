@@ -18,7 +18,8 @@ class CorpusExporterSuite extends AnyFlatSpec with Matchers:
 
   /** Story 3's acceptance criterion, as a literal: the corpus carries exactly these many
     * example scenes. Update deliberately when a scene is added or removed. */
-  private val ExpectedSceneCount = 36  // + Plinth (menger#156), TesseractToPenteract (menger#162)
+  private val ExpectedSceneCount = 37  // + Plinth (menger#156), TesseractToPenteract (menger#162),
+  // HexeractTurning (menger#163)
 
   private def freshTempPath(): String =
     val dir = Files.createTempDirectory("corpus-exporter-suite")
