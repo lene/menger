@@ -1508,6 +1508,9 @@ test_cylinder() {
     # Shadow and caustic of a glass sphere on the plinth's top cap (the shadow, again, with the
     # shader fix only).
     run_test "DSL Plinth" --scene examples.dsl.Plinth
+    # A Sun key light (menger#158): an area light on the sun's direction, first so it emits the
+    # caustic photons, over a glass cube on the plinth.
+    run_test "DSL SunKeyLight" --scene examples.dsl.SunKeyLight
 }
 
 test_curve() {

@@ -33,6 +33,12 @@ object DslSemantics:
     "Directional light: `direction` is the direction the light TRAVELS. (0f, -1f, 0f) shines " +
       "straight down; (1f, -1f, -1f) comes from above. Point and area lights are placed by " +
       "`position`.",
+    "Sun: a distant disk-shaped key light, `Sun(direction, diameterDegrees, distance, color, " +
+      "intensity)`. `direction` is the direction the light TRAVELS, as for `Directional`, and " +
+      "`intensity` means the same as there (it lights the origin like a `Directional` of that " +
+      "intensity, whatever the `distance`); `distance` only sets the penumbra width (larger = " +
+      "sharper). Only the FIRST light of a scene emits caustic photons: put the `Sun` first in " +
+      "`lights` when the scene has caustics (menger#158).",
     "Planes: `Y at -2f` is an infinite plane that faces the origin, so a floor below the " +
       "scene is lit from above and receives shadows. Shadows are on by default.",
     "Colour and transparency: alpha 0 is fully transparent, 1 fully opaque. An object's " +
@@ -193,6 +199,13 @@ object DslSemantics:
   val fieldDescriptions: Map[(String, String), String] = Map(
     ("Directional", "direction") ->
       "Direction the light travels: (0f, -1f, 0f) shines straight down.",
+    ("Sun", "direction") ->
+      "Direction the light travels (as Directional): (0f, -1f, 0f) shines straight down.",
+    ("Sun", "diameterDegrees") ->
+      "Apparent diameter of the sun's disk in degrees, above 0 and at most 10; the sun is 0.53.",
+    ("Sun", "distance") ->
+      "Distance of the disk from the origin; does not change the brightness, only the penumbra.",
+    ("Sun", "intensity") -> "Brightness, as for Directional.",
     ("Plane", "axisPosition") ->
       "`Y at -2f` = floor at y = -2 facing up (planes face the origin).",
     ("Camera", "position") -> "Eye position in world units.",

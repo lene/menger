@@ -175,3 +175,63 @@ class LightSuite extends AnyFlatSpec with Matchers:
         area.shadowSamples shouldBe 8
         area.shape shouldBe menger.common.AreaLightShape.Disk
       case _ => fail("Expected Area light")
+
+  "Sun" should "default to the sun's apparent size, 50 units away, white, intensity 1" in:
+    val sun = Sun(Vec3(0f, -1f, 0f))
+    sun.diameterDegrees shouldBe 0.53f
+    sun.distance shouldBe 50f
+    sun.color shouldBe Color.White
+    sun.intensity shouldBe 1f
+
+  it should "accept a Float tuple for the direction" in:
+    Sun((1f, -1f, -1f)).direction shouldBe Vec3(1f, -1f, -1f)
+
+  it should "become an area light on the sun's direction" in:
+    val area = Sun(Vec3(0f, -2f, 0f), diameterDegrees = 2f, distance = 10f).toAreaLight
+    area.position shouldBe Vec3(0f, 10f, 0f)
+    area.normal shouldBe Vec3(0f, -1f, 0f)
+    area.radius shouldBe (10f * math.tan(math.toRadians(1.0)).toFloat +- 1e-6f)
+
+  it should "place the disk against the direction the light travels" in:
+    val area = Sun(Vec3(3f, -4f, 0f), distance = 5f).toAreaLight
+    area.position.x shouldBe -3f +- 1e-5f
+    area.position.y shouldBe 4f +- 1e-5f
+    area.position.z shouldBe 0f +- 1e-5f
+
+  it should "scale the intensity by 1 + distance^2 so the origin is lit like a Directional" in:
+    List(20f, 80f).foreach { distance =>
+      Sun(Vec3.UnitX, distance = distance, intensity = 2f).toAreaLight.intensity shouldBe
+        (2f * (1f + distance * distance) +- 1e-3f)
+    }
+
+  it should "carry its colour to the area light" in:
+    Sun(Vec3.UnitX, color = Color.Red).toAreaLight.color shouldBe Color.Red
+
+  it should "convert to a common Area light" in:
+    Sun(Vec3(0f, -1f, 0f), distance = 10f, intensity = 0.5f).toCommonLight match
+      case area: menger.common.Light.Area =>
+        area.position(1) shouldBe 10f
+        area.normal(1) shouldBe -1f
+        area.intensity shouldBe (0.5f * 101f +- 1e-3f)
+      case other => fail(s"Expected an Area light, got $other")
+
+  it should "reject a zero direction, naming the field" in:
+    intercept[IllegalArgumentException](Sun(Vec3.Zero)).getMessage should
+      include("Sun.direction")
+
+  it should "reject a diameter of zero or less, or above 10 degrees, naming the field" in:
+    List(0f, -1f, 10.5f).foreach { diameter =>
+      intercept[IllegalArgumentException](Sun(Vec3.UnitX, diameterDegrees = diameter))
+        .getMessage should include("Sun.diameterDegrees")
+    }
+    Sun(Vec3.UnitX, diameterDegrees = 10f).diameterDegrees shouldBe 10f
+
+  it should "reject a distance of zero or less, naming the field" in:
+    List(0f, -5f).foreach { distance =>
+      intercept[IllegalArgumentException](Sun(Vec3.UnitX, distance = distance)).getMessage should
+        include("Sun.distance")
+    }
+
+  it should "reject a negative intensity, naming the field" in:
+    intercept[IllegalArgumentException](Sun(Vec3.UnitX, intensity = -0.1f)).getMessage should
+      include("Sun.intensity")

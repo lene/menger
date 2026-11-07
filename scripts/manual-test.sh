@@ -641,6 +641,7 @@ interactive_tests=(
     "Cylinder endpoints chrome (tilted, p0/p1/radius):-o --objects type=cylinder:p0=-0.7,-0.3,0:p1=0.7,0.3,0:radius=0.35:material=chrome --plane y:-2"
     "Cylinder plinth under a sponge (mixed analytic + mesh, sponge shadow on the cap):-o --camera-pos 1.5,2,4 --camera-lookat 0,-0.3,0 --light directional:-0.75,-0.55,-0.35:1.0 --objects type=cylinder:p0=0,-0.75,0:p1=0,-0.55,0:radius=1.3:material=matte --objects type=sponge-volume:level=1:pos=0,-0.15,0:size=0.8:material=plastic --plane y:-2"
     "DSL Plinth (glass sphere over a cylinder plinth: shadow + caustic on the top cap):-o --scene examples.dsl.Plinth"
+    "DSL SunKeyLight (Sun key light over a glass cube on a plinth: penumbra shadow + caustic):-o --scene examples.dsl.SunKeyLight"
     "Plane IS (chrome floor):-o --objects type=plane:pos=0,-2,0:material=chrome --objects type=sphere:pos=0,0,0:material=glass"
     "Plane IS (metal wall):-o --objects type=plane:pos=0,0,-3:normal=0,0,1:material=metal --objects type=sphere:pos=0,0,0:material=glass"
     "Coordinate cross:-o --objects type=sphere --cross"

@@ -220,9 +220,9 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     )
     manifest.materials should have size 12
 
-  it should "list exactly the 3 Light case classes" in:
+  it should "list exactly the 4 Light case classes" in:
     val manifest = manifestFor(freshTempPath())
-    manifest.lights.map(_.name).toSet shouldBe Set("Directional", "Point", "AreaLight")
+    manifest.lights.map(_.name).toSet shouldBe Set("Directional", "Point", "AreaLight", "Sun")
 
   it should "list Placement's mode functions" in:
     val manifest = manifestFor(freshTempPath())

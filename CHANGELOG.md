@@ -15,6 +15,22 @@
   has no UV coordinates, so image textures and texture maps have no effect on it. Example:
   `Plinth`, a glass sphere whose shadow and caustic fall on the plinth's top cap
   (lene/menger#156).
+- A `Sun` light for the DSL, matched to the Sprint 38 scene's Kiara 2 Sunrise HDRI (grid cell G3,
+  lene/menger#158): `Sun(direction, diameterDegrees = 0.53, distance = 50, color, intensity)` is
+  an area light on the sun's direction, `radius = distance * tan(diameter / 2)`, with its
+  intensity scaled by `1 + distance^2` so that it lights the origin like a `Directional` of the
+  same intensity whatever the distance (only the penumbra changes). `direction` is the direction
+  the light travels, as for `Directional`. A zero direction, a diameter of 0 or less or above 10
+  degrees, a distance of 0 or less and a negative intensity are rejected at scene load, naming the
+  field. Only the first light emits caustic photons, so a scene with caustics needs the `Sun`
+  first. Example: `SunKeyLight`, a `Sun` over a glass cube on a plinth.
+- `menger.tools.HdriSun <file.hdr>` finds the sun in an equirectangular Radiance HDRI (the pixels
+  at 10 % of the peak luminance or more that are connected to the peak) and prints its direction
+  in the background's mapping, elevation, angular diameter, colour, share of the sky's light and a
+  ready `Sun(...)` line; Kiara 2 Sunrise 4K gives direction (0.742, 0.072, 0.666), elevation
+  4.1 degrees, diameter 0.53 degrees, colour (1, 0.86, 0.40). Malformed, truncated, unsupported
+  (`-Y h +X w` only) or sunless input exits non-zero with a message naming the file. The method
+  is in the user guide (lene/menger#158).
 - `scripts/fetch-kiara-hdri.sh [1k|4k|8k]` fetches the Sprint 38 scene's environment map, Poly
   Haven's Kiara 2 Sunrise HDRI (CC0, Greg Zaal), into the gitignored `assets/hdri/`, verified
   against a pinned SHA-256 (a mismatch or failed download exits non-zero and leaves no file).

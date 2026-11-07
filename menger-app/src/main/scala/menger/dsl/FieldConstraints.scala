@@ -69,6 +69,7 @@ object FieldConstraints:
     ("RenderSettings", "maxRayDepth") -> Bounds.between(1d, RenderLimits.MaxRayDepth.toDouble),
     ("IBL", "samples") -> Bounds.between(1d, 8d),
     ("AreaLight", "shadowSamples") -> Bounds.between(1d, 16d),
+    ("Sun", "diameterDegrees") -> Bounds(None, Some(Sun.MaxDiameterDegrees.toDouble)),
     ("Caustics", "photonsPerIteration") ->
       Bounds.between(1d, CausticsConfig.MaxPhotonsPerIteration.toDouble),
     ("Caustics", "iterations") -> Bounds.between(1d, CausticsConfig.MaxIterations.toDouble)

@@ -91,3 +91,52 @@ case class AreaLight(
     )
 
 object AreaLight
+
+/** The sun (or any distant disk-shaped key light): an area light on the sun's direction, sized by
+  * its angular diameter (menger#158). Lights the origin like `Directional` of the same
+  * `intensity`, whatever the `distance`; `distance` only sets the penumbra width.
+  *
+  * Only `lights(0)` emits caustic photons, so put the `Sun` first in a scene with caustics.
+  * `HdriSun` (menger.tools) reads direction, diameter and colour off an HDRI.
+  *
+  * @param direction The direction the light travels, as `Directional.direction`; need not be
+  *                  normalized, must not be zero
+  * @param diameterDegrees Apparent diameter of the disk in degrees (0 to 10; the sun is 0.53)
+  * @param distance Distance of the disk from the origin along the light's way (default: 50)
+  * @param color Light color (default: white)
+  * @param intensity Brightness, as for `Directional` (default: 1.0)
+  */
+case class Sun(
+  direction: Vec3,
+  diameterDegrees: Float = Sun.ApparentDiameterDegrees,
+  distance: Float = Sun.DefaultDistance,
+  color: Color = Color.White,
+  intensity: Float = 1.0f
+) extends Light:
+  require(direction.magnitude > 0f, "Sun.direction must not be the zero vector")
+  require(diameterDegrees > 0f, s"Sun.diameterDegrees must be positive, got $diameterDegrees")
+  FieldConstraints.check("Sun", "diameterDegrees", diameterDegrees)
+  require(distance > 0f, s"Sun.distance must be positive, got $distance")
+  require(intensity >= 0f, s"Sun.intensity must be non-negative, got $intensity")
+
+  /** The area light the renderer sees. Shading uses the disk centre with 1 / (1 + d^2), so the
+    * intensity is scaled by (1 + d^2) to keep the light at the origin independent of the
+    * distance. */
+  def toAreaLight: AreaLight =
+    val travel = direction.normalize
+    AreaLight(
+      position = travel * -distance,
+      normal = travel,
+      radius = distance * math.tan(math.toRadians(diameterDegrees.toDouble) / 2).toFloat,
+      intensity = intensity * (1f + distance * distance),
+      color = color,
+      shadowSamples = Sun.ShadowSamples
+    )
+
+  def toCommonLight: CommonLight = toAreaLight.toCommonLight
+
+object Sun:
+  val ApparentDiameterDegrees: Float = 0.53f
+  val DefaultDistance: Float = 50f
+  val ShadowSamples: Int = 4
+  val MaxDiameterDegrees: Float = 10f

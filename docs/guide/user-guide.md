@@ -941,6 +941,14 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
   - `samples` — shadow rays per light (default 4; more = softer but slower)
 - Example: `--light area:0,4,0:0,-1,0:1.5:8`  (disk above, facing down, 8 samples)
 
+**Sun** (DSL `Sun`, menger#158)
+- A distant disk-shaped key light given by the direction it travels and its apparent diameter
+  (the real sun: 0.53 degrees); an area light underneath, so shadows get a penumbra and, as the
+  scene's first light, the sun emits the caustic photons (only the first light does)
+- DSL only: `Sun(direction, diameterDegrees, distance, color, intensity)`; `intensity` means the
+  same as for a directional light, whatever the `distance` (details: DSL reference, Lights)
+- Example: `--scene examples.dsl.SunKeyLight`
+
 **Light Parameters:**
 
 ```bash
@@ -1220,6 +1228,47 @@ menger-app --scene <scene> --texture-dir assets/hdri --env-map kiara_2_sunrise_4
 The script verifies the download against a pinned SHA-256, exits non-zero on any mismatch or
 failed download and then leaves no file behind (a corrupt copy is removed too); with a verified
 file already there it downloads nothing. Source, licence and hashes: `PROVENANCE.yaml`.
+
+#### Finding the sun in an HDRI
+
+The scene's caustics come only from scene lights: the environment map emits no photons. To get
+a shadow and a caustic that agree with the sun in the sky, a `Sun` light has to stand where the
+HDRI shows its sun, with its colour and size. `menger.tools.HdriSun` reads that off an
+equirectangular Radiance `.hdr` and needs no GPU:
+```bash
+sbt "mengerApp/runMain menger.tools.HdriSun assets/hdri/kiara_2_sunrise_4k.hdr"
+```
+It prints the sun's direction (towards the sun, in the background's convention), its position
+in the map, elevation, angular diameter, colour, its share of the sky's light, and a ready
+`Sun(...)` line to paste into a scene (first in `lights` for caustics). For Kiara 2 Sunrise 4K:
+```
+direction to the sun (background convention): (0.742, 0.072, 0.666)
+elevation: 4.1 degrees
+diameter: 0.53 degrees (29 pixels at 10 % of the peak luminance or more)
+colour: (1.000, 0.864, 0.402)
+share of the sky's light: 63 % (an IBL scene counts it twice, once as sky and once as the Sun light)
+Sun(Vec3(-0.7423f, -0.0722f, -0.6662f), diameterDegrees = 0.53f, color = Color(1.00f, 0.86f, 0.40f))
+```
+Use the 4K or larger file: at 1K the sun spans too few pixels (about 0.8 degrees). A file that
+is not a Radiance `-Y h +X w` RGBE image, is truncated or has no sun exits non-zero with a
+message naming the file and the problem.
+
+How it finds the sun, so that you can judge a result:
+- Directions use the background's mapping: u = 0.5 + atan2(z, x) / 2pi, v = 0.5 - asin(y) / pi,
+  +Y up, top row first, because that is what the camera sees. The printed `Sun.direction` is the
+  opposite, the direction the light travels, as for `Directional`.
+- The sun is the region of pixels at 10 % of the peak luminance or more that is connected to the
+  peak (also across the left/right seam of the map). A region wider than 10 degrees is not a sun
+  (overcast sky, flat image): the tool reports "no sun found".
+- Its direction is the mean of the pixels' directions weighted by luminance times solid angle
+  (the rows near the poles are smaller), its diameter that of a disk with the region's solid
+  angle, its colour the solid-angle weighted mean RGB scaled so that the largest channel is 1.
+- The share of the sky's light is the region's luminance times solid angle over the whole
+  sphere's. With `ibl` on the sun's light would be counted twice, as sky and as `Sun`; the
+  balance between the two is not decided here (menger#171).
+- The IBL lighting currently maps the map's azimuth half a turn off from the background
+  (lene/optix-jni#112), so an IBL-lit scene is lit from the opposite side of the visible sky
+  until that is fixed; the `Sun` follows the background.
 
 ---
 

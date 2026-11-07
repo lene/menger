@@ -513,6 +513,40 @@ AreaLight(
 )
 ```
 
+**Sun:** a distant disk-shaped key light given by the direction it travels and its apparent
+diameter (menger#158). It becomes an `AreaLight` of that angular size, so its shadows have a
+penumbra and it can emit caustic photons.
+```scala
+// The sun at its real size (0.53 degrees), 50 units away
+Sun(direction = (-0.742f, -0.072f, -0.666f))
+
+// Every parameter: Sun(direction, diameterDegrees, distance, color, intensity)
+Sun(
+  direction = (1f, -1f, -1f),
+  diameterDegrees = 2f,        // above 0, at most 10; the sun is 0.53
+  distance = 20f,              // only sets the penumbra width, see below
+  color = Color(1f, 0.86f, 0.4f),
+  intensity = 1.5f
+)
+```
+- `direction` is the direction the light travels, as for `Directional`; it need not be
+  normalized but must not be zero.
+- `intensity` means what it means for `Directional`: `Sun(intensity = k)` lights the origin like
+  `Directional(intensity = k)`, whatever the `distance`. Internally the area light's intensity is
+  scaled by `1 + distance^2`, because area lights fall off as `1 / (1 + d^2)`. `distance` then
+  only changes the penumbra width: the disk's radius is `distance * tan(diameterDegrees / 2)`,
+  and a larger distance with the same angle is a sharper shadow edge.
+- Rejected at scene load, naming the field: a zero direction, `diameterDegrees` of 0 or less or
+  above 10, `distance` of 0 or less, a negative `intensity`.
+- Only the first light of a scene emits caustic photons: put the `Sun` first in `lights` when the
+  scene has caustics.
+- The environment map emits no photons, so for caustics under an HDRI sky a `Sun` has to stand
+  where the HDRI's sun is; `menger.tools.HdriSun` reads that off the file (see
+  [Finding the sun in an HDRI](user-guide.md#finding-the-sun-in-an-hdri)). With `ibl`
+  on, the sun's light is then counted twice, once as sky and once as the `Sun`; how to balance the
+  two is an open experiment (menger#171).
+- Example: `examples.dsl.SunKeyLight`.
+
 ### Parametric Surfaces
 
 Define arbitrary 3D surfaces using a Scala function `f(u, v) => Vec3`. The surface is
@@ -658,8 +692,9 @@ At density=0.05 and distance=20, fog is ~37% of scene color.
 
 ### Environment Map
 
-An equirectangular `.hdr` file rendered as the scene background (miss-shader background only;
-does not illuminate objects — IBL is Sprint 23):
+An equirectangular `.hdr` file rendered as the scene background. On its own it only paints the
+background and lights nothing (the next sections' `ibl` makes it light the scene; it emits no
+caustic photons either way, see `Sun`):
 
 ```scala
 // Enable HDR background
