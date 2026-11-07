@@ -182,7 +182,8 @@ class InteractiveEngine(
       s"Received rotation event: rotXW=${event.rotXW}, rotYW=${event.rotYW}, rotZW=${event.rotZW}"
     )
     if has4DObjects then
-      val updatedSpecs = currentObjectSpecs.get().map(_.map { spec =>
+      val previousSpecs = currentObjectSpecs.get()
+      val updatedSpecs = previousSpecs.map(_.map { spec =>
         Interactive4DOffset.rotate(spec) { currentProj =>
           // A rotation-only event has no eyeW and leaves it unchanged.
           val newEyeW = event.eyeW.fold(currentProj.eyeW) { _ =>
@@ -207,7 +208,9 @@ class InteractiveEngine(
         _.plus(event.rotXW, event.rotYW, event.rotZW)
       )
 
-      val fastPathTaken = updatedSpecs.exists(specs =>
+      // Nothing to move when no spec changed (every 4D object has a ProjectionSpec): not a
+      // rebuild of the CPU mesh for an unchanged view.
+      val fastPathTaken = updatedSpecs == previousSpecs || updatedSpecs.exists(specs =>
         tryRotation4DFastPath(specs, rendererWrapper.renderer) ||
         tryInstanced4DFastPath(specs, rendererWrapper.renderer) ||
         tryEdgeFastPath(specs, rendererWrapper.renderer)

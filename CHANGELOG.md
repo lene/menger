@@ -29,10 +29,12 @@
   dimension above 3, each with its own eye and screen when `stages` is given. It renders on the
   CPU through the perspective chain: no 4D fast path (an animation rebuilds every frame), no
   fractional-level sponge, no IFS type (`Menger4D` and the gaskets reject it), and the window's
-  Shift+drag does not rotate it. Scenes without it render bit for bit as before. The command
-  line stays 4D. The manifest is 2.1.0 (additive: `ProjectionSpec`, `PlaneRotation`,
-  `ProjectionStage`, the nD convention), snapshots carry `ndProjection` (validator result schema 1.4.0). Example:
-  `TesseractToPenteract`.
+  Shift+drag and Shift+scroll leave it alone. It has no `wScale`, so the cube-to-tesseract
+  extrusion cannot be combined with a 5D lift yet. Scenes without it render bit for bit as
+  before. The command line stays 4D. The manifest is 2.1.0 (additive: `ProjectionSpec`,
+  `PlaneRotation`, `ProjectionStage`, the nD convention), snapshots carry `ndProjection`
+  (validator result schema 1.4.0). menger-scene-agent must regenerate its manifest and corpus
+  and take over the new result schema. Example: `TesseractToPenteract`.
 
 ### Changed
 

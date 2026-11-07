@@ -163,6 +163,19 @@ class NdProjectionSceneSuite extends AnyFlatSpec with Matchers:
       List(fractional.copy(level = Some(2f))), 10
     ) shouldBe Right(())
 
+  it should "refuse an edged fractional-level sponge with a ProjectionSpec as well" in:
+    val edged = ObjectSpec(
+      "tesseract-sponge", level = Some(1.5f), edgeRadius = Some(0.02f),
+      projection = Some(ProjectionSpec(5))
+    )
+    val builder = TesseractEdgeSceneBuilder(".")
+    val message = builder.validate(List(edged), 100000).left.toOption.get
+    message should include ("tesseract-sponge with a ProjectionSpec")
+    message should include ("whole level")
+    builder.validate(List(edged.copy(level = Some(2f))), 100000) shouldBe Right(())
+    builder.validate(List(edged.copy(projection = Some(Projection4DSpec()))), 100000) shouldBe
+      Right(())
+
   it should "still accept a fractional-level sponge with the 4D view" in:
     val legacy = ObjectSpec("tesseract-sponge", level = Some(1.5f))
     TriangleMeshSceneBuilder(".").validate(List(legacy), 10) shouldBe Right(())

@@ -92,7 +92,7 @@ and `--rot-x`, `--rot-y`, `--rot-z` add a rotation to **every** object on top of
 
 The command line stays 4D. Rotating a 4D object in 5D to 8D (`ProjectionSpec`) is DSL only:
 see [the DSL reference](dsl-reference.md) and the `TesseractToPenteract` example. The window's
-Shift+drag rotation does not apply to such an object.
+Shift+drag rotation and the Shift+scroll eye change do not apply to such an object.
 
 #### Removed flags
 

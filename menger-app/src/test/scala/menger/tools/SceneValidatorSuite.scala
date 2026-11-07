@@ -191,7 +191,7 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     val nd = tesseract.ndProjection.get
     nd.dimension shouldBe 5
     nd.planes.map(p => (p.plane, p.angle)) shouldBe List(("xv", 30f), ("wv", 10f))
-    nd.stages shouldBe List(List(4f, 1f), List(4f, 1f))
+    nd.stages shouldBe List.fill(2)(SceneSnapshot.StageValues(4f, 1f))
 
   it should "carry an animated scene's snapshots and its densely sampled camera path" in:
     val file = writeTempScene(

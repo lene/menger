@@ -476,7 +476,18 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
       }
     }
 
-  it should "still take the 4D shorthand" in:
+  "A TesseractSponge" should "take a ProjectionSpec only at a whole level" in:
+    import menger.spec.ProjectionSpec
+    val view = Some(ProjectionSpec(5))
+    val message = intercept[IllegalArgumentException] {
+      TesseractSponge(VolumeRemoving, level = 1.5f, projection = view)
+    }.getMessage
+    message should include ("tesseract-sponge-volume with a ProjectionSpec needs a whole level")
+    message should include ("1.5")
+    TesseractSponge(VolumeRemoving, level = 2f, projection = view).level shouldBe 2f
+    TesseractSponge(VolumeRemoving, level = 1.5f).level shouldBe 1.5f
+
+  "A 4D IFS object" should "still take the 4D shorthand" in:
     import menger.spec.Projection4DSpec
     val projection = Projection4DSpec(rotXW = 30f)
     Menger4D(level = 1f, projection = Some(projection)).toObjectSpec.projection4D shouldBe

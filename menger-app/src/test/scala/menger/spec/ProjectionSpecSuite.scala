@@ -53,6 +53,26 @@ class ProjectionSpecSuite extends AnyFlatSpec with Matchers:
     intercept[IllegalArgumentException](ProjectionStage(1f, 1f))
     intercept[IllegalArgumentException](ProjectionStage(1f, -1f))
 
+  it should "reject a NaN or infinite eye or screen, naming the field and the value" in:
+    for (eye, screen, field) <- Seq(
+        (Float.PositiveInfinity, 1.5f, "eye must be finite, got Infinity"),
+        (Float.NaN, 1.5f, "eye must be finite, got NaN"),
+        (3f, Float.NaN, "screen must be finite, got NaN"),
+        (3f, Float.NegativeInfinity, "screen must be finite, got -Infinity")
+      )
+    do
+      intercept[IllegalArgumentException](ProjectionSpec(5, eye = eye, screen = screen))
+        .getMessage should include (field)
+      intercept[IllegalArgumentException](ProjectionStage(eye, screen)).getMessage should
+        include (field)
+
+  it should "reject a NaN or infinite plane angle, naming the plane and the value" in:
+    Seq(Float.NaN, Float.PositiveInfinity).foreach { angle =>
+      val message = intercept[IllegalArgumentException](turn("xv", angle)).getMessage
+      message should include ("angle of plane 'xv' must be finite")
+      message should include (angle.toString)
+    }
+
   "PlaneName" should "name two distinct known axes" in:
     PlaneName("xw").firstAxis shouldBe 0
     PlaneName("xw").secondAxis shouldBe 3

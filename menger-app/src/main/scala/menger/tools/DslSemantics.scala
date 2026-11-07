@@ -113,8 +113,9 @@ object DslSemantics:
       "4..8 dimensions: its x y z w coordinates stay, the further ones are 0. The axes are " +
       "x y z w v u t s (5D adds v, 6D u, 7D t, 8D s). `planes` is a list of " +
       "`PlaneRotation(plane, angle)` with the plane named by two distinct axes that exist in " +
-      "`dimension`, e.g. `PlaneRotation(\"xv\", 30f)` (the angle is in DEGREES; the first " +
-      "axis turns towards the second for a positive angle), applied in the order written: " +
+      "`dimension`, e.g. `PlaneRotation(\"xv\", 30f)` (the angle is in DEGREES; for a " +
+      "positive angle the second axis turns towards the first, v towards x in `xv`, as w " +
+      "does in `Projection4DSpec.rotXW`), applied in the order written: " +
       "the first plane turns first, and the result depends on the order. An object lies in " +
       "x y z w, so a plane of axes beyond w alone (vu, ...) turns nothing until an earlier " +
       "plane (xv, wv, ...) has moved the object into them. The projection to 3D has one " +
@@ -129,8 +130,10 @@ object DslSemantics:
       "endpoint are left out. A `ProjectionSpec` is rendered on the CPU through the chain: " +
       "an animation rebuilds the object every frame, a sponge needs a whole `level`, the " +
       "IFS types (Menger4D, PentachoronGasket, HexadecachoronGasket) take a " +
-      "`Projection4DSpec` only, and the render window's Shift+drag does not rotate it (the " +
-      "log says so once). `ProjectionSpec(4, ...)` is the 4D view with the planes in " +
+      "`Projection4DSpec` only, and the render window's Shift+drag and Shift+scroll (eye) " +
+      "leave it alone (the log says so once). It has no `wScale`, so the cube-to-tesseract " +
+      "extrusion above cannot be combined with a lift into 5D or more. " +
+      "`ProjectionSpec(4, ...)` is the 4D view with the planes in " +
       "order: `Projection4DSpec(rotXW = a, rotYW = b, rotZW = c)` equals planes zw c, yw b, " +
       "xw a, in that order (menger#162; example: TesseractToPenteract).",
     "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position " +

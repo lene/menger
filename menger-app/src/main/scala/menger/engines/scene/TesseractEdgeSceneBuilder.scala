@@ -84,12 +84,14 @@ class TesseractEdgeSceneBuilder(
     }
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
+    lazy val fractionalProjectionSpec = ProjectionSupport.rejectedFractionalLevel(specs)
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
     else if !specs.forall(s => ObjectType.isProjected4D(s.objectType)) then
       Left("TesseractEdgeSceneBuilder only supports 4D projected types")
     else if !specs.forall(_.hasEdgeRendering) then
       Left("TesseractEdgeSceneBuilder requires edge rendering parameters on all specs")
+    else if fractionalProjectionSpec.isDefined then fractionalProjectionSpec.toLeft(())
     else
       // Each spec gets its own face mesh and edge cylinders, projected with its own
       // `projection4D`, so 4D objects with different projections coexist (usability review

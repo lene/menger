@@ -61,7 +61,8 @@ class NdProjectionGuardsSuite extends AnyFlatSpec with Matchers:
     )
     GlobalRotation(opts, List(nd)).head.projection shouldBe nd.projection
 
-  "Window4DState" should "describe a 4D view and say nothing about a ProjectionSpec" in:
+  "Window4DState" should "describe a 4D view and say a ProjectionSpec is set by the scene" in:
     Window4DState.describe(List(legacy)) should not be empty
-    Window4DState.describe(List(nd)) shouldBe None
+    Window4DState.describe(List(nd)) shouldBe Some(Window4DState.SetByScene)
+    Window4DState.describe(List(ObjectSpec("cube"))) shouldBe None
     Window4DState.describe(List(nd, legacy)).get should include ("xw 10.0")

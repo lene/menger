@@ -333,7 +333,7 @@ and gets zeros in the further axes, is turned in the planes you list, and is pro
 `s`).
 
 ```scala
-import menger.spec.{PlaneRotation, ProjectionSpec}
+import menger.spec.{PlaneRotation, ProjectionSpec, ProjectionStage}
 
 Tesseract(
   material = Some(Material.Film),
@@ -351,8 +351,9 @@ Tesseract(
 ```
 
 - `planes` are applied in the order written: the first turns first, and the result depends on
-  the order. A plane names two distinct axes that exist in `dimension`; the first axis turns
-  towards the second for a positive angle. A plane of axes beyond `w` turns nothing until an
+  the order. A plane names two distinct axes that exist in `dimension`; for a positive angle
+  the second axis turns towards the first (v towards x in `xv`, as w does for a positive
+  `rotXW`). A plane of axes beyond `w` turns nothing until an
   earlier plane has moved the object into them.
 - The projection has `dimension - 3` stages, the first dropping the highest axis. A stage scales
   a point by `(eye - screen) / (eye - c)`, `c` being the coordinate it drops, so the stages
@@ -362,8 +363,10 @@ Tesseract(
 - It renders on the CPU through the projection chain, without the 4D fast paths: an animation
   rebuilds the object every frame, a sponge needs a whole `level`, and the IFS types
   (`Menger4D`, `PentachoronGasket`, `HexadecachoronGasket`) take a `Projection4DSpec` only.
-  Shift+drag in the render window does not rotate it (the log says so once), and the command
-  line has no nD projection: `--objects` keeps the 4D keys.
+  Shift+drag and Shift+scroll (eye) in the render window leave it alone (the log says so
+  once), and the command line has no nD projection: `--objects` keeps the 4D keys.
+- A `ProjectionSpec` has no `wScale`: the cube-to-tesseract extrusion (`CubeToTesseract`)
+  cannot be combined with a lift into 5D or more.
 - `ProjectionSpec(4, planes = List(PlaneRotation("zw", c), PlaneRotation("yw", b),
   PlaneRotation("xw", a)))` is `Projection4DSpec(rotXW = a, rotYW = b, rotZW = c)`.
 - Example: `TesseractToPenteract`, a tesseract turned in `xv` and then in `wv`.

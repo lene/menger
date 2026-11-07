@@ -1,6 +1,8 @@
 package menger.engines.scene
 
 import menger.spec.ObjectSpec
+import menger.spec.ObjectType
+import menger.spec.ProjectionSpec
 
 /** What a builder owes an object with a `ProjectionSpec`: render it through the CPU chain or
   * refuse it with the object and the reason, never fall back to a 4D view (menger#162). */
@@ -16,9 +18,10 @@ object ProjectionSupport:
 
   /** A fractional-level 4D sponge is a pair of GPU-projected meshes with hole caps, which the
     * CPU chain does not build: the message for the first `ProjectionSpec` spec with one. */
-  def rejectedFractionalLevel(specs: List[ObjectSpec], isFractionalSponge: ObjectSpec => Boolean)
-    : Option[String] =
+  def rejectedFractionalLevel(specs: List[ObjectSpec]): Option[String] =
     specs.find(spec => !spec.isLegacyView && isFractionalSponge(spec)).map(spec =>
-      s"${spec.objectType} with a ProjectionSpec needs a whole level, got " +
-        s"${spec.level.getOrElse(0f)}"
+      ProjectionSpec.wholeLevelMessage(spec.objectType, spec.level.getOrElse(0f))
     )
+
+  private def isFractionalSponge(spec: ObjectSpec): Boolean =
+    ObjectType.is4DSponge(spec.objectType) && spec.level.exists(level => level != level.floor)

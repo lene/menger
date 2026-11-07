@@ -45,7 +45,7 @@ class TriangleMeshSceneBuilder(
 
   override def validate(specs: List[ObjectSpec], maxInstances: Int): Either[String, Unit] =
     lazy val fractionalProjectionSpec =
-      ProjectionSupport.rejectedFractionalLevel(specs, isFractional4DSponge)
+      ProjectionSupport.rejectedFractionalLevel(specs)
     if specs.isEmpty then
       Left("Object specs list cannot be empty")
     else if !specs.forall(isTriangleMeshType) then

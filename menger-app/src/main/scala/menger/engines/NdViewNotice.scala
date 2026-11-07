@@ -14,6 +14,6 @@ private[engines] object NdViewNotice extends LazyLogging:
   def rotationIgnored(spec: ObjectSpec): Unit =
     if shown.compareAndSet(false, true) then
       logger.info(
-        s"Shift+drag does not rotate ${spec.objectType}: it has a ProjectionSpec, whose " +
-          "rotation is set by the scene"
+        s"Shift+drag and Shift+scroll do not change ${spec.objectType}: it has a " +
+          "ProjectionSpec, whose rotation and eye are set by the scene"
       )

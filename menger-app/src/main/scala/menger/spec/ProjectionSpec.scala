@@ -33,12 +33,16 @@ object Projection4DSpec:
 
   val default: Projection4DSpec = Projection4DSpec()
 
-/** A rotation of one coordinate plane, e.g. `PlaneRotation("xv", 30f)`: the first axis of the
-  * plane turns towards the second for a positive angle. */
-case class PlaneRotation(plane: PlaneName, angle: Degrees)
+/** A rotation of one coordinate plane, e.g. `PlaneRotation("xv", 30f)`: for a positive angle
+  * the second axis of the plane turns towards the first (v towards x), as w turns towards x
+  * for a positive `rotXW`. */
+case class PlaneRotation(plane: PlaneName, angle: Degrees):
+  require(angle.value.isFinite, s"angle of plane '$plane' must be finite, got ${angle.value}")
 
 /** The eye and the screen along the axis one projection stage drops. */
 case class ProjectionStage(eye: Float, screen: Float):
+  require(eye.isFinite, s"eye must be finite, got $eye")
+  require(screen.isFinite, s"screen must be finite, got $screen")
   require(eye > screen, s"eye ($eye) must be greater than screen ($screen)")
   require(eye > 0 && screen > 0, "eye and screen must be positive")
 
@@ -54,6 +58,8 @@ case class ProjectionSpec(
   screen: Float = ProjectionSpec.DefaultScreen,
   stages: List[ProjectionStage] = Nil
 ) extends ProjectionLike:
+  require(eye.isFinite, s"eye must be finite, got $eye")
+  require(screen.isFinite, s"screen must be finite, got $screen")
   require(
     dimension >= ProjectionSpec.MinDimension && dimension <= ProjectionSpec.MaxDimension,
     s"dimension must be between ${ProjectionSpec.MinDimension} and " +
@@ -86,6 +92,11 @@ object ProjectionSpec:
   val TargetDimension: Int = 3
   val DefaultEye: Float = Projection4DSpec.DefaultEyeW
   val DefaultScreen: Float = Projection4DSpec.DefaultScreenW
+
+  /** A fractional-level sponge is a pair of GPU-projected meshes, which the CPU chain does not
+    * build. */
+  def wholeLevelMessage(objectType: String, level: Float): String =
+    s"$objectType with a ProjectionSpec needs a whole level, got $level"
 
 /** A coordinate plane named by its two axis letters, e.g. "xw" or "xv". The axes are
   * x y z w v u t s (5D v, 6D u, 7D t, 8D s). */

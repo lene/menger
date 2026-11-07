@@ -11,9 +11,14 @@ object Window4DState:
 
   val Hint = "Shift+drag rotates in 4D, Shift+scroll moves eye-w"
   val NoObject = "Shift+drag: no 4D object in the scene"
+  val SetByScene =
+    "4D view set by the scene's ProjectionSpec (Shift+drag and Shift+scroll do not apply)"
 
   def describe(specs: List[ObjectSpec]): Option[String] =
-    specs.find(s => TypeRegistry.is4DFastPathType(s.objectType) && s.isLegacyView).map { spec =>
+    val rotatable = specs.find(s => TypeRegistry.is4DFastPathType(s.objectType) && s.isLegacyView)
+    rotatable.map { spec =>
       val p = spec.projection4D.getOrElse(Projection4DSpec.default)
       f"4D xw ${p.rotXW}%.1f° yw ${p.rotYW}%.1f° zw ${p.rotZW}%.1f° eye-w ${p.eyeW}%.2f ($Hint)"
-    }
+    }.orElse(
+      specs.find(s => TypeRegistry.is4DFastPathType(s.objectType)).map(_ => SetByScene)
+    )

@@ -42,10 +42,12 @@ object SceneSnapshot:
 
   case class PlaneRotationValues(plane: String, angle: Float) derives ReadWriter
 
+  case class StageValues(eye: Float, screen: Float) derives ReadWriter
+
   /** A `ProjectionSpec` (menger#162): `planes` in the order written, one (eye, screen) pair per
     * projection stage, the first dropping the highest axis; angles in degrees. */
   case class NdProjectionValues(
-    dimension: Int, planes: List[PlaneRotationValues], stages: List[List[Float]]
+    dimension: Int, planes: List[PlaneRotationValues], stages: List[StageValues]
   ) derives ReadWriter
 
   /** `objectType` is the renderer's name, which carries the subtype (`sponge-volume`,
@@ -191,7 +193,7 @@ object SceneSnapshot:
     NdProjectionValues(
       view.dimension,
       view.planes.map(r => PlaneRotationValues(r.plane.letters, r.angle.value)),
-      view.stagePairs.map(stage => List(stage.eye, stage.screen))
+      view.stagePairs.map(stage => StageValues(stage.eye, stage.screen))
     )
 
   private def lightValues(light: Light): LightValues = light match

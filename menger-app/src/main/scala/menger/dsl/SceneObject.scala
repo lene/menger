@@ -20,11 +20,14 @@ import menger.video.VideoTexture
 /** What a type may take as its `projection`. */
 private[dsl] object ProjectionRules:
 
+  def hasProjectionSpec(projection: Option[ProjectionLike]): Boolean =
+    projection.exists { case _: ProjectionSpec => true; case _ => false }
+
   /** The IFS fractals are traced by a 4D shader on the GPU and have no mesh to project through
     * a [[ProjectionSpec]]'s chain (menger#162). */
   def requireProjection4D(typeName: String, projection: Option[ProjectionLike]): Unit =
     require(
-      projection.forall { case _: ProjectionSpec => false; case _ => true },
+      !hasProjectionSpec(projection),
       s"$typeName takes a Projection4DSpec only: ProjectionSpec needs a mesh type " +
         "(Tesseract, TesseractSponge or a regular polytope), not a GPU-traced IFS fractal"
     )
@@ -636,6 +639,10 @@ case class TesseractSponge(
     require(level <= limit.max,
       s"${spongeType.objectTypeName} level $level exceeds hard maximum ${limit.max}")
   }
+  require(
+    level == level.floor || !ProjectionRules.hasProjectionSpec(projection),
+    ProjectionSpec.wholeLevelMessage(ObjectType.normalize(spongeType.objectTypeName), level)
+  )
 
   def toObjectSpec: ObjectSpec =
     baseObjectSpec(
