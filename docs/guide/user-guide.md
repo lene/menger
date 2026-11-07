@@ -90,6 +90,10 @@ Common `--objects` keys: `pos=x,y,z`, `size=S`, `color=#RRGGBB`, `material=PRESE
 The global flags `--rot-x-w`, `--rot-y-w`, `--rot-z-w` (or the shorthand `--rotation-4d XW,YW,ZW`)
 and `--rot-x`, `--rot-y`, `--rot-z` add a rotation to **every** object on top of its own.
 
+The command line stays 4D. Rotating a 4D object in 5D to 8D (`ProjectionSpec`) is DSL only:
+see [the DSL reference](dsl-reference.md) and the `TesseractToPenteract` example. The window's
+Shift+drag rotation does not apply to such an object.
+
 #### Removed flags
 
 `--sponge-type`, `--level` (outside `--animate`), `--lines`, `--color`, `--face-color`,

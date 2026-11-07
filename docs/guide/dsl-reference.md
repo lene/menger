@@ -324,6 +324,50 @@ Tesseract(
 )
 ```
 
+**A 4D object in 5D to 8D (`ProjectionSpec`):**
+
+`projection` takes a `ProjectionSpec` instead of the 4D shorthand `Projection4DSpec`. The
+object (a `Tesseract`, `TesseractSponge` or a regular polytope) keeps its x y z w coordinates
+and gets zeros in the further axes, is turned in the planes you list, and is projected down to
+3D one dimension at a time. The axes are `x y z w v u t s` (5D adds `v`, 6D `u`, 7D `t`, 8D
+`s`).
+
+```scala
+import menger.spec.{PlaneRotation, ProjectionSpec}
+
+Tesseract(
+  material = Some(Material.Film),
+  size = 1.8f,
+  projection = Some(ProjectionSpec(
+    dimension = 5,                    // 4 to 8
+    planes = List(
+      PlaneRotation("xv", 30f),       // turns first (degrees)
+      PlaneRotation("wv", 20f)        // then this one
+    ),
+    eye = 6f, screen = 1.2f           // for every stage ...
+    // stages = List(ProjectionStage(6f, 1.2f), ProjectionStage(4f, 1f))  // ... or one per stage
+  ))
+)
+```
+
+- `planes` are applied in the order written: the first turns first, and the result depends on
+  the order. A plane names two distinct axes that exist in `dimension`; the first axis turns
+  towards the second for a positive angle. A plane of axes beyond `w` turns nothing until an
+  earlier plane has moved the object into them.
+- The projection has `dimension - 3` stages, the first dropping the highest axis. A stage scales
+  a point by `(eye - screen) / (eye - c)`, `c` being the coordinate it drops, so the stages
+  compound: with the default `eye` 3 and `screen` 1.5 a flat object is at 0.5 per stage. Give
+  `stages` (one `ProjectionStage(eye, screen)` per stage) to set each pair; left empty, every
+  stage uses `eye` and `screen`.
+- It renders on the CPU through the projection chain, without the 4D fast paths: an animation
+  rebuilds the object every frame, a sponge needs a whole `level`, and the IFS types
+  (`Menger4D`, `PentachoronGasket`, `HexadecachoronGasket`) take a `Projection4DSpec` only.
+  Shift+drag in the render window does not rotate it (the log says so once), and the command
+  line has no nD projection: `--objects` keeps the 4D keys.
+- `ProjectionSpec(4, planes = List(PlaneRotation("zw", c), PlaneRotation("yw", b),
+  PlaneRotation("xw", a)))` is `Projection4DSpec(rotXW = a, rotYW = b, rotZW = c)`.
+- Example: `TesseractToPenteract`, a tesseract turned in `xv` and then in `wv`.
+
 **TesseractSponge (4D Menger Sponge):**
 ```scala
 // Two sponge types

@@ -21,6 +21,18 @@
   `PROVENANCE.yaml` records source, licence, author and hashes; its offline test runs in the
   unit suite (lene/menger#157).
 - On the command line `radius` sets a cone's or a cylinder's radius only on that type.
+- A 4D object can be lifted into 5D to 8D and turned there (Sprint 38 grid cell G6, part 2 of
+  lene/menger#162): the DSL `projection` of `Tesseract`, `TesseractSponge` and the regular
+  polytopes takes a `ProjectionSpec(dimension, planes, eye, screen, stages)` next to the 4D
+  shorthand `Projection4DSpec`. `planes` are `PlaneRotation("xv", degrees)` over the axes
+  `x y z w v u t s`, applied in the order written; the projection to 3D has one stage per
+  dimension above 3, each with its own eye and screen when `stages` is given. It renders on the
+  CPU through the perspective chain: no 4D fast path (an animation rebuilds every frame), no
+  fractional-level sponge, no IFS type (`Menger4D` and the gaskets reject it), and the window's
+  Shift+drag does not rotate it. Scenes without it render bit for bit as before. The command
+  line stays 4D. The manifest is 2.1.0 (additive: `ProjectionSpec`, `PlaneRotation`,
+  `ProjectionStage`, the nD convention), snapshots carry `ndProjection` (validator result schema 1.4.0). Example:
+  `TesseractToPenteract`.
 
 ### Changed
 

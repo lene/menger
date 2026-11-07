@@ -193,7 +193,7 @@ Unknown keys are rejected with an error. Colors are `#RRGGBB` or `#RRGGBBAA`
 | `procedural=NAME` | all | Procedural texture: value_noise, fbm, worley, gradient, wood, marble, layered_noise, xyz_rgb, heatmap, triplanar |
 | `proc-scale=S` | with `procedural` | Procedural noise scale (default 1.0) |
 | `eye-w=`, `screen-w=` | 4D types | 4D projection eye / screen distance (defaults 3.0 / 1.5; eye-w must exceed screen-w) |
-| `rot-xw=`, `rot-yw=`, `rot-zw=` | 4D types | Rotation in the XW / YW / ZW plane (defaults 15 / 10 / 0 degrees) |
+| `rot-xw=`, `rot-yw=`, `rot-zw=` | 4D types | Rotation in the XW / YW / ZW plane (defaults 15 / 10 / 0 degrees). The keys are 4D only: a 5D to 8D view (`ProjectionSpec`) is DSL only |
 | `edge-radius=`, `edge-material=`, `edge-color=`, `edge-emission=` | 4D types | Render the 4D edges as cylinders |
 | `dist-threshold=N` | `menger4d` | IFS distance threshold (integer, default 2) |
 | `apex=x,y,z`, `base=x,y,z`, `radius=R` | `cone` | Cone geometry |
