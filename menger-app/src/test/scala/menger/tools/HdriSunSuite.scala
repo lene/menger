@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 
+import scala.util.Using
+
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.EitherValues
 import org.scalatest.OptionValues
@@ -22,7 +24,7 @@ class HdriSunSuite extends AnyFlatSpec with Matchers with EitherValues with Opti
   private val tempDir: Path = Files.createTempDirectory("hdri-sun-suite")
 
   override def afterAll(): Unit =
-    Files.list(tempDir).forEach(Files.delete(_))
+    Using.resource(Files.list(tempDir))(_.forEach(Files.delete(_)))
     Files.delete(tempDir)
     super.afterAll()
 
@@ -166,6 +168,16 @@ class HdriSunSuite extends AnyFlatSpec with Matchers with EitherValues with Opti
     val message = HdriSun.run(Array(path.toString)).left.value
     message should include(path.toString)
     message should include("no sun found")
+
+  it should "refuse a flat 4K map without exhausting memory" in:
+    val (width, height) = (4096, 2048)
+    val header = s"#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y $height +X $width\n"
+    val pixel = rgbeOf((1.0, 1.0, 1.0))
+    val body = Array.tabulate(width * height * 4)(i => pixel(i % 4))
+    val path = writeHdr("flat4k.hdr", header.getBytes(StandardCharsets.ISO_8859_1) ++ body)
+    val message = HdriSun.run(Array(path.toString)).left.value
+    message should include("no sun found")
+    message should include("wider than 10 degrees")
 
   it should "refuse a black image" in:
     val path = writeHdr("black.hdr", hdrBytes(Width, Height, (_, _) => (0.0, 0.0, 0.0)))

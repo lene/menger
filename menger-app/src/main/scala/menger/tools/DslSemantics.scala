@@ -36,8 +36,10 @@ object DslSemantics:
     "Sun: a distant disk-shaped key light, `Sun(direction, diameterDegrees, distance, color, " +
       "intensity)`. `direction` is the direction the light TRAVELS, as for `Directional`, and " +
       "`intensity` means the same as there (it lights the origin like a `Directional` of that " +
-      "intensity, whatever the `distance`); `distance` only sets the penumbra width (larger = " +
-      "sharper). Only the FIRST light of a scene emits caustic photons: put the `Sun` first in " +
+      "intensity, whatever the `distance`); `distance` sets how uniform the light is, not the " +
+      "penumbra: shading falls off as 1/(1+r^2) from the disk, exact at the origin, so a point s " +
+      "units toward the light is about (1 + 2s/distance) brighter (default 1000: under 1 % " +
+      "over +-4 units). Only the FIRST light of a scene emits caustic photons: put the `Sun` first in " +
       "`lights` when the scene has caustics (menger#158).",
     "Planes: `Y at -2f` is an infinite plane that faces the origin, so a floor below the " +
       "scene is lit from above and receives shadows. Shadows are on by default.",
@@ -204,7 +206,7 @@ object DslSemantics:
     ("Sun", "diameterDegrees") ->
       "Apparent diameter of the sun's disk in degrees, above 0 and at most 10; the sun is 0.53.",
     ("Sun", "distance") ->
-      "Distance of the disk from the origin; does not change the brightness, only the penumbra.",
+      "Distance of the disk from the origin (default 1000); larger = more uniform light across the scene, the penumbra stays.",
     ("Sun", "intensity") -> "Brightness, as for Directional.",
     ("Plane", "axisPosition") ->
       "`Y at -2f` = floor at y = -2 facing up (planes face the origin).",

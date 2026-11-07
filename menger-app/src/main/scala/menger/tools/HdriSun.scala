@@ -30,6 +30,8 @@ object HdriSun extends LazyLogging:
   val PeakFraction = 0.1
   val MaxSunDiameterDegrees: Double = menger.dsl.Sun.MaxDiameterDegrees.toDouble
   val MaxPixels: Long = 1L << 26
+  private val MaxSunSolidAngle: Double =
+    2 * math.Pi * (1 - math.cos(math.toRadians(MaxSunDiameterDegrees / 2)))
 
   private val RadianceMagicPrefix = "#?"
   private val SupportedFormat = "32-bit_rle_rgbe"
@@ -217,32 +219,43 @@ object HdriSun extends LazyLogging:
     else
       val solidAngles = Array.tabulate(image.height)(rowSolidAngle(image, _))
       val peakIndex = luminances.indexOf(peak)
-      val members = connectedToPeak(image, luminances, peakIndex, PeakFraction * peak)
-      estimate(image, luminances, solidAngles, members)
+      connectedToPeak(image, luminances, solidAngles, peakIndex, PeakFraction * peak)
+        .toRight(wideRegionMessage(s"wider than ${fixed(MaxSunDiameterDegrees, 0)} degrees"))
+        .flatMap(estimate(image, luminances, solidAngles, _))
 
   private def rowSolidAngle(image: HdrImage, row: Int): Double =
     val elevation = (0.5 - (row + 0.5) / image.height) * math.Pi
     math.cos(elevation) * (math.Pi / image.height) * (2 * math.Pi / image.width)
 
+  /** The region, or `None` as soon as it outgrows a sun: an overcast or flat map would
+    * otherwise grow it over the whole image. */
   private def connectedToPeak(
-    image: HdrImage, luminances: Array[Double], peakIndex: Int, threshold: Double
-  ): Array[Int] =
+    image: HdrImage, luminances: Array[Double], solidAngles: Array[Double], peakIndex: Int,
+    threshold: Double
+  ): Option[Array[Int]] =
+    def solidAngleOf(index: Int): Double = solidAngles(index / image.width)
     val isMember = new Array[Boolean](image.pixelCount)
     val members = mutable.ArrayBuffer(peakIndex)
     val pending = mutable.ArrayDeque(peakIndex)
     isMember(peakIndex) = true
-    @tailrec def drain(): Unit = pending.removeLastOption() match
-      case None => ()
-      case Some(index) =>
-        neighbours(image, index).filter(n => !isMember(n) && luminances(n) >= threshold)
-          .foreach { n =>
+    @tailrec def drain(grown: Double): Boolean =
+      if grown > MaxSunSolidAngle then false
+      else pending.removeLastOption() match
+        case None => true
+        case Some(index) =>
+          val added = neighbours(image, index)
+            .filter(n => !isMember(n) && luminances(n) >= threshold)
+          added.foreach { n =>
             isMember(n) = true
             members += n
             pending.append(n)
           }
-        drain()
-    drain()
-    members.toArray
+          drain(grown + added.map(solidAngleOf).sum)
+    if drain(solidAngleOf(peakIndex)) then Some(members.toArray) else None
+
+  private def wideRegionMessage(extent: String): String =
+    s"no sun found: the brightest region (at least ${fixed(PeakFraction * PercentPerUnit, 0)} % " +
+      s"of the peak) is $extent, a sun is at most ${fixed(MaxSunDiameterDegrees, 0)} degrees"
 
   private def neighbours(image: HdrImage, index: Int): Seq[Int] =
     val (row, column) = (index / image.width, index % image.width)
@@ -266,24 +279,19 @@ object HdriSun extends LazyLogging:
     val regionSolidAngle = members.map(solidAngleOf).sum
     val capHalfAngle = math.acos((1 - regionSolidAngle / (2 * math.Pi)).max(-1.0))
     val diameterDegrees = math.toDegrees(2 * capHalfAngle)
-    val weighted = members.map { i =>
-      val (d, w) = (directionAt(i), luminances(i) * solidAngleOf(i))
-      (d.x * w, d.y * w, d.z * w)
-    }
-    val sum = Direction(weighted.map(_._1).sum, weighted.map(_._2).sum, weighted.map(_._3).sum)
-    if diameterDegrees > MaxSunDiameterDegrees || sum.length == 0.0 then
-      Left(
-        "no sun found: the brightest region (at least " +
-          s"${fixed(PeakFraction * PercentPerUnit, 0)} % of the peak) is " +
-          s"${fixed(diameterDegrees, 1)} degrees wide, a sun is at most " +
-          s"${fixed(MaxSunDiameterDegrees, 0)}"
-      )
+    if diameterDegrees > MaxSunDiameterDegrees then
+      Left(wideRegionMessage(s"${fixed(diameterDegrees, 1)} degrees wide"))
     else
+      val weighted = members.map { i =>
+        val (d, w) = (directionAt(i), luminances(i) * solidAngleOf(i))
+        (d.x * w, d.y * w, d.z * w)
+      }
+      val sum = Direction(weighted.map(_._1).sum, weighted.map(_._2).sum, weighted.map(_._3).sum)
       val toward = sum.normalized
       val (u, v) = uvOf(toward)
       val regionLight = members.map(i => luminances(i) * solidAngleOf(i)).sum
       Right(SunEstimate(
-        toward, u, v, math.toDegrees(math.asin(toward.y)), diameterDegrees,
+        toward, u, v, math.toDegrees(math.asin(toward.y.max(-1.0).min(1.0))), diameterDegrees,
         meanColor(image, members, solidAngleOf),
         regionLight / totalLight(image, luminances, solidAngles), members.length
       ))
@@ -338,8 +346,8 @@ object HdriSun extends LazyLogging:
     args.toList match
       case List(path) =>
         for
-          bytes <- Try(Files.readAllBytes(Paths.get(path))).toEither.left.map(_ =>
-            s"cannot read $path: no such readable file")
+          bytes <- Try(Files.readAllBytes(Paths.get(path))).toEither.left.map(e =>
+            s"cannot read $path (${e.getClass.getSimpleName}: ${e.getMessage})")
           image <- decode(bytes).left.map(problem => s"$path: $problem")
           sun <- findSun(image).left.map(problem => s"$path: $problem")
         yield report(path, image, sun)

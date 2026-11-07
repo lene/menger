@@ -16,10 +16,13 @@
   `Plinth`, a glass sphere whose shadow and caustic fall on the plinth's top cap
   (lene/menger#156).
 - A `Sun` light for the DSL, matched to the Sprint 38 scene's Kiara 2 Sunrise HDRI (grid cell G3,
-  lene/menger#158): `Sun(direction, diameterDegrees = 0.53, distance = 50, color, intensity)` is
+  lene/menger#158): `Sun(direction, diameterDegrees = 0.53, distance = 1000, color, intensity)` is
   an area light on the sun's direction, `radius = distance * tan(diameter / 2)`, with its
   intensity scaled by `1 + distance^2` so that it lights the origin like a `Directional` of the
-  same intensity whatever the distance (only the penumbra changes). `direction` is the direction
+  same intensity at the origin; the distance sets how uniform the light is (a point `s` units toward
+  the light is about `1 + 2s / distance` brighter, under 1 % over +-4 units at the default), not
+  the penumbra. With `ibl` on the sun is counted twice, and until lene/optix-jni#112 is fixed IBL
+  lights from the opposite azimuth of the visible sky, which the `Sun` does not. `direction` is the direction
   the light travels, as for `Directional`. A zero direction, a diameter of 0 or less or above 10
   degrees, a distance of 0 or less and a negative intensity are rejected at scene load, naming the
   field. Only the first light emits caustic photons, so a scene with caustics needs the `Sun`

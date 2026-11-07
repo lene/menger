@@ -32,7 +32,8 @@ object SunKeyLight:
       Cube(pos = (0f, -0.05f, 0f), material = Some(Material.Glass), size = 0.8f)
     ),
     lights = List(
-      // Low and from the left behind the cube, so the shadow and the caustic fall in front of it.
+      // From about 42 degrees up, behind the cube and to the left, so the shadow and the caustic
+      // fall in front of it.
       Sun(direction = (0.6f, -0.7f, 0.5f))
     ),
     caustics = Some(Caustics(photonsPerIteration = 200000, iterations = 10)),

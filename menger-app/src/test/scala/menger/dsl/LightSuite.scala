@@ -176,10 +176,10 @@ class LightSuite extends AnyFlatSpec with Matchers:
         area.shape shouldBe menger.common.AreaLightShape.Disk
       case _ => fail("Expected Area light")
 
-  "Sun" should "default to the sun's apparent size, 50 units away, white, intensity 1" in:
+  "Sun" should "default to the sun's apparent size, 1000 units away, white, intensity 1" in:
     val sun = Sun(Vec3(0f, -1f, 0f))
     sun.diameterDegrees shouldBe 0.53f
-    sun.distance shouldBe 50f
+    sun.distance shouldBe 1000f
     sun.color shouldBe Color.White
     sun.intensity shouldBe 1f
 

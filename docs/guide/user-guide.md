@@ -946,7 +946,8 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
   (the real sun: 0.53 degrees); an area light underneath, so shadows get a penumbra and, as the
   scene's first light, the sun emits the caustic photons (only the first light does)
 - DSL only: `Sun(direction, diameterDegrees, distance, color, intensity)`; `intensity` means the
-  same as for a directional light, whatever the `distance` (details: DSL reference, Lights)
+  same as for a directional light, at the origin; `distance` (default 1000) sets how uniform it is across the scene (details: DSL
+  reference, Lights)
 - Example: `--scene examples.dsl.SunKeyLight`
 
 **Light Parameters:**

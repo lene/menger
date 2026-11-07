@@ -25,8 +25,10 @@ class SunRenderSuite extends AnyFlatSpec with Matchers:
   private val MinBrightness = 20.0
   private val TestIntensity = 0.5f // leaves headroom below clipping
   private val SunDirection = Vec3(0.3f, -1f, 0.2f)
+  private val LowSunDirection = Vec3(0.8f, -0.5f, 0f)
+  private val SceneRadius = 4f
 
-  private def floorBrightness(light: Light): Double =
+  private def floorBrightness(light: Light, at: (Float, Float) = (0f, 0f)): Double =
     val renderer =
       try
         val r = MengerRenderer()
@@ -36,7 +38,8 @@ class SunRenderSuite extends AnyFlatSpec with Matchers:
     try
       renderer.setAntialiasing(false, 1, 0.1f)
       renderer.setCamera(
-        Vector[3](0f, 6f, 0.5f), Vector[3](0f, FloorY, 0f), Vector[3](0f, 1f, 0f), 45f
+        Vector[3](at._1, 6f, at._2 + 0.5f), Vector[3](at._1, FloorY, at._2), Vector[3](0f, 1f, 0f),
+        45f
       )
       val grey = CommonColor(FloorGrey, FloorGrey, FloorGrey)
       renderer.addPlaneInstance(Vector[3](0f, 1f, 0f), FloorY, CommonMaterial.matte(grey))
@@ -66,3 +69,11 @@ class SunRenderSuite extends AnyFlatSpec with Matchers:
     val directional = floorBrightness(Directional(SunDirection, intensity = TestIntensity))
     info(f"lit floor: $sun%.2f for the Sun, $directional%.2f for the Directional")
     math.abs(sun - directional) / directional should be < SameBrightness
+
+  it should "light a point 4 units toward the light like the origin by default" in:
+    val sun = Sun(LowSunDirection, intensity = TestIntensity)
+    val origin = floorBrightness(sun)
+    val towardLight = floorBrightness(sun, at = (-SceneRadius, 0f))
+    info(f"lit floor: $origin%.2f at the origin, $towardLight%.2f 4 units toward the light")
+    origin should be > MinBrightness
+    math.abs(towardLight - origin) / origin should be < SameBrightness

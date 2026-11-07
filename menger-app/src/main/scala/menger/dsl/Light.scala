@@ -94,7 +94,10 @@ object AreaLight
 
 /** The sun (or any distant disk-shaped key light): an area light on the sun's direction, sized by
   * its angular diameter (menger#158). Lights the origin like `Directional` of the same
-  * `intensity`, whatever the `distance`; `distance` only sets the penumbra width.
+  * `intensity` at the origin; `distance` sets how uniform the light is: shading falls off as
+  * 1 / (1 + r^2) from the disk, exact at the origin, so a point s units toward the light is about
+  * (1 + 2s / distance) times brighter. The penumbra does not depend on it (the disk keeps its
+  * angular size).
   *
   * Only `lights(0)` emits caustic photons, so put the `Sun` first in a scene with caustics.
   * `HdriSun` (menger.tools) reads direction, diameter and colour off an HDRI.
@@ -102,7 +105,7 @@ object AreaLight
   * @param direction The direction the light travels, as `Directional.direction`; need not be
   *                  normalized, must not be zero
   * @param diameterDegrees Apparent diameter of the disk in degrees (0 to 10; the sun is 0.53)
-  * @param distance Distance of the disk from the origin along the light's way (default: 50)
+  * @param distance Distance of the disk from the origin along the light's way (default: 1000)
   * @param color Light color (default: white)
   * @param intensity Brightness, as for `Directional` (default: 1.0)
   */
@@ -137,6 +140,6 @@ case class Sun(
 
 object Sun:
   val ApparentDiameterDegrees: Float = 0.53f
-  val DefaultDistance: Float = 50f
+  val DefaultDistance: Float = 1000f
   val ShadowSamples: Int = 4
   val MaxDiameterDegrees: Float = 10f
