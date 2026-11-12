@@ -4,6 +4,7 @@ import scala.annotation.targetName
 
 import menger.objects.LSystemPresets
 import menger.objects.higher_d.AxisScaledMesh
+import menger.objects.higher_d.NdSpongeVariant
 import menger.spec.ConeGeometry
 import menger.spec.CurveData
 import menger.spec.CylinderGeometry
@@ -527,6 +528,79 @@ case class Hypercube(
     ).copy(dimension = Some(dimension))
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
+
+/** The Menger sponge of `dimension` 4..8 (menger#166): `VolumeRemoving` keeps the sub-cubes of
+  * each 3-split that have at most `maxCentreCoordinates` (k) coordinates in the middle third (1:
+  * rule A, N-2: rule B), `SurfaceSubdividing` is rule S. Level 0 is the n-cube. Drawn on the CPU
+  * through `projection` (`ProjectionSpec(dimension)` when absent) and re-projected every frame;
+  * a fractional level fades the new holes in. The highest level is what `ResourceLimits` allows
+  * for the dimension. No edge tubes. */
+case class HypercubeSponge(
+  dimension: Int,
+  spongeType: TesseractSpongeType,
+  level: Float,
+  maxCentreCoordinates: Int = 1,
+  pos: Vec3 = Vec3.Zero,
+  material: Option[Material] = None,
+  color: Option[Color] = None,
+  size: Float = 1.0f,
+  ior: Float = 1.0f,
+  texture: Option[String] = None,
+  videoTexture: Option[VideoTexture] = None,
+  normalMap: Option[String] = None,
+  roughnessMap: Option[String] = None,
+  proceduralType: Int = 0,
+  proceduralScale: Float = 1.0f,
+  projection: Option[ProjectionSpec] = None,
+  scale: Option[Scale[?]] = None,
+  rotation: Vec3 = Vec3.Zero
+) extends SceneObject:
+  FieldConstraints.check("HypercubeSponge", "dimension", dimension)
+  require(
+    maxCentreCoordinates >= 1 && maxCentreCoordinates <= dimension - 1,
+    s"maxCentreCoordinates must be in the range 1..${dimension - 1} for dimension $dimension, " +
+      s"got $maxCentreCoordinates"
+  )
+  require(level >= 0f, s"Level must be non-negative, got $level")
+  private val levelLimit = ResourceLimits.ndSpongeLevel(variant, dimension)
+  require(
+    level <= levelLimit.max,
+    s"HypercubeSponge level $level exceeds the maximum ${levelLimit.max} for dimension " +
+      s"$dimension (${spongeType.toString}, the scene's triangle budget)"
+  )
+  require(size > 0f, s"Size must be positive, got $size")
+  require(ior >= 0f, s"IOR must be non-negative, got $ior")
+  scale.foreach { factors =>
+    require(
+      factors.dimension == dimension,
+      s"a $dimension-dimensional sponge needs a Scale of $dimension factors, " +
+        s"got ${factors.dimension}"
+    )
+  }
+  projection.foreach { view =>
+    require(
+      view.dimension >= dimension,
+      s"a $dimension-dimensional sponge needs a projection of dimension $dimension or more, " +
+        s"got ProjectionSpec(dimension = ${view.dimension})"
+    )
+  }
+
+  private def variant: NdSpongeVariant = spongeType match
+    case TesseractSpongeType.VolumeRemoving => NdSpongeVariant.Volume
+    case TesseractSpongeType.SurfaceSubdividing => NdSpongeVariant.Surface
+
+  def toObjectSpec: ObjectSpec =
+    baseObjectSpec(
+      HypercubeSponge.objectTypeName(spongeType),
+      level = Some(level),
+      projection = Some(projection.getOrElse(ProjectionSpec(dimension))),
+      scale = ScaleRules.toSpec(scale)
+    ).copy(dimension = Some(dimension), maxCentreCoordinates = Some(maxCentreCoordinates))
+
+object HypercubeSponge:
+  private def objectTypeName(spongeType: TesseractSpongeType): String = spongeType match
+    case TesseractSpongeType.VolumeRemoving => "n-sponge-volume"
+    case TesseractSpongeType.SurfaceSubdividing => "n-sponge-surface"
 
 // The other regular 4D polytopes, with the same fields and 4D handling as Tesseract. The
 // renderer supported them all along, but only the CLI could create them -- a DSL scene (and so

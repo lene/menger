@@ -122,6 +122,18 @@ object NdSponge:
   private def surfaceChildrenPerFace(n: Int): Long =
     FlatParts - 1L + WallsPerNormal.toLong * (n - 2)
 
+  /** Whether `apply` can build this sponge at all: the face key fits a Long and every array the
+    * build allocates fits an Int. Says nothing about memory. */
+  def isBuildable(variant: NdSpongeVariant, n: Int, level: Int, k: Int): Boolean =
+    scala.util.Try {
+      requireKeyFits(n, level, k)
+      requireBuildableFaces(variant, n, level, k)
+      if variant == NdSpongeVariant.Volume then
+        requireBuildable(
+          saturatingPower(keptPerStep(n, k), level), Int.MaxValue / n, n, level, k, "kept cells"
+        )
+    }.isSuccess
+
   private def requireBuildableFaces(variant: NdSpongeVariant, n: Int, level: Int, k: Int): Unit =
     requireBuildable(
       upperBoundFaces(variant, n, level, k), Int.MaxValue / IndexedMeshN.CornersPerFace,

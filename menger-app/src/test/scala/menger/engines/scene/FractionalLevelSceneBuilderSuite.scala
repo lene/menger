@@ -20,7 +20,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val fractionalSpec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.5").toOption.get
 
     // Use reflection to access private method for testing
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
+    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
 
     isFractional4DSpongeMethod.invoke(builder, integerSpec).asInstanceOf[Boolean] shouldBe false
@@ -30,7 +30,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val builder = TriangleMeshSceneBuilder(".")
     val fractionalSpec = ObjectSpecParser.parse("type=tesseract-sponge-2:level=2.7").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
+    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
 
     isFractional4DSpongeMethod.invoke(builder, fractionalSpec).asInstanceOf[Boolean] shouldBe true
@@ -41,7 +41,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val spongeSpec = ObjectSpecParser.parse("type=sponge-volume:level=1.5").toOption.get
     val tesseractSpec = ObjectSpecParser.parse("type=tesseract").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
+    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
 
     isFractional4DSpongeMethod.invoke(builder, cubeSpec).asInstanceOf[Boolean] shouldBe false
@@ -160,7 +160,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val builder = TriangleMeshSceneBuilder(".")
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=0.0").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
+    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
 
     isFractional4DSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe false
@@ -169,7 +169,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val builder = TriangleMeshSceneBuilder(".")
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.0").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
+    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
 
     isFractional4DSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe false
@@ -178,7 +178,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val builder = TriangleMeshSceneBuilder(".")
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=2.0").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
+    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
 
     isFractional4DSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe false
@@ -187,7 +187,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val builder = TriangleMeshSceneBuilder(".")
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.01").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
+    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
 
     isFractional4DSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe true
@@ -196,7 +196,7 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val builder = TriangleMeshSceneBuilder(".")
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.99").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractional4DSponge", classOf[ObjectSpec])
+    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
     isFractional4DSpongeMethod.setAccessible(true)
 
     isFractional4DSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe true

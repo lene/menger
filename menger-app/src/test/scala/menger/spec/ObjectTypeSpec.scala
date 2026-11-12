@@ -168,7 +168,9 @@ class ObjectTypeSpec extends AnyFlatSpec with Matchers:
     ObjectType.VALID_TYPES should contain("hexadecachoron4d")
     ObjectType.VALID_TYPES should contain("curve")
     ObjectType.VALID_TYPES should contain("lsystem")
-    ObjectType.VALID_TYPES.size shouldBe 28
+    ObjectType.VALID_TYPES should contain("n-sponge-volume")
+    ObjectType.VALID_TYPES should contain("n-sponge-surface")
+    ObjectType.VALID_TYPES.size shouldBe 30
 
   // menger#156: a cylinder mixes with meshes like the other analytic primitives, and only it
   // is shaded opaque whatever its material.

@@ -72,7 +72,10 @@ case class ObjectSpec(
   dimension: Option[Int] = None,
   // Per-axis geometry scale, applied after `size` and before rotation and projection (menger#164):
   // one factor >= 0 per axis of the object's own dimension. None means all 1.
-  scale: Option[IndexedSeq[Float]] = None
+  scale: Option[IndexedSeq[Float]] = None,
+  // The n-sponge's k: the most middle-third coordinates a kept sub-cube may have (menger#166);
+  // None for every other type.
+  maxCentreCoordinates: Option[Int] = None
 ):
   require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
   scale.foreach { factors =>

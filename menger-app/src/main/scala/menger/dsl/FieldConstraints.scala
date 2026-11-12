@@ -2,6 +2,8 @@ package menger.dsl
 
 import menger.common.CausticsConfig
 import menger.common.RenderLimits
+import menger.objects.higher_d.NdSponge
+import menger.objects.higher_d.NdSpongeVariant
 import menger.spec.ProjectionSpec
 
 /** Every bound a DSL field has, declared once (review 2026-10-14, menger#114, msa#28): the DSL
@@ -31,6 +33,12 @@ object FieldConstraints:
 
   private val L = ResourceLimits
 
+  /** The highest level any dimension allows: the bound the manifest shows. The constructor
+    * checks the dimension's own maximum. */
+  private def loosestNdSpongeLevel(variant: NdSpongeVariant): ResourceLimits.LevelLimit =
+    val limits = (NdSponge.MinDimension to NdSponge.MaxDimension).map(L.ndSpongeLevel(variant, _))
+    ResourceLimits.LevelLimit(limits.map(_.warnAt).max, limits.map(_.max).max)
+
   /** Per-variant level bounds; the field-level bound below is the conservative minimum of them. */
   val bySubtype: Map[(String, String), BySubtype] = Map(
     ("Sponge", "level") -> BySubtype("spongeType", Map(
@@ -42,6 +50,10 @@ object FieldConstraints:
     ("TesseractSponge", "level") -> BySubtype("spongeType", Map(
       "VolumeRemoving"     -> Bounds.level(L.tesseractSpongeVolumeLevel),
       "SurfaceSubdividing" -> Bounds.level(L.tesseractSpongeSurfaceLevel)
+    )),
+    ("HypercubeSponge", "level") -> BySubtype("spongeType", Map(
+      "VolumeRemoving"     -> Bounds.level(loosestNdSpongeLevel(NdSpongeVariant.Volume)),
+      "SurfaceSubdividing" -> Bounds.level(loosestNdSpongeLevel(NdSpongeVariant.Surface))
     ))
   )
 
@@ -53,6 +65,14 @@ object FieldConstraints:
       Some(math.min(L.tesseractSpongeVolumeLevel.max, L.tesseractSpongeSurfaceLevel.max).toDouble),
       Some(math.min(L.tesseractSpongeVolumeLevel.warnAt, L.tesseractSpongeSurfaceLevel.warnAt)
         .toDouble)),
+    ("HypercubeSponge", "level") -> Bounds(Some(0d),
+      Some(math.min(
+        loosestNdSpongeLevel(NdSpongeVariant.Volume).max,
+        loosestNdSpongeLevel(NdSpongeVariant.Surface).max).toDouble)),
+    ("HypercubeSponge", "dimension") ->
+      Bounds.between(NdSponge.MinDimension.toDouble, NdSponge.MaxDimension.toDouble),
+    ("HypercubeSponge", "maxCentreCoordinates") ->
+      Bounds.between(1d, (NdSponge.MaxDimension - 1).toDouble),
     ("PentachoronGasket", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),
     ("Menger4D", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),
     ("HexadecachoronGasket", "level") -> Bounds.between(0d, L.ifs4dMaxLevel.toDouble),

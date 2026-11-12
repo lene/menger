@@ -19,6 +19,8 @@ object ObjectType:
     "sponge-recursive-ias",
     "tesseract",
     "n-cube",
+    "n-sponge-volume",
+    "n-sponge-surface",
     "pentachoron",
     "16-cell",
     "24-cell",
@@ -63,6 +65,10 @@ object ObjectType:
     * path, never on the 4D fast paths, which is why it is not one of the projected 4D types. */
   val NCUBE_TYPES: Set[String] = Set("n-cube")
 
+  /** The nD Menger sponges for N = 4..8 (menger#166): volume (rule A, generalised by k) and
+    * surface (rule S). CPU path only, like the n-cube; not edge-tubed. */
+  val NSPONGE_TYPES: Set[String] = Set("n-sponge-volume", "n-sponge-surface")
+
   val ANALYTICAL_PRIMITIVE_TYPES: Set[String] = Set("sphere", "cone", "cylinder", "plane")
 
   /** Types optix-jni shades opaque whatever their material: transparency and refraction are
@@ -73,7 +79,8 @@ object ObjectType:
     Set("cube", "parametric", "tetrahedron", "octahedron", "dodecahedron", "icosahedron") ++
     SPONGE_TYPES.filter(_ != "cube-sponge") ++
     PROJECTED_4D_TYPES ++
-    NCUBE_TYPES
+    NCUBE_TYPES ++
+    NSPONGE_TYPES
 
   // Deprecated names map to new canonical names
   private val DEPRECATED_ALIASES: Map[String, String] = Map(
@@ -106,6 +113,9 @@ object ObjectType:
 
   def isNCube(objectType: String): Boolean =
     NCUBE_TYPES.contains(normalize(objectType))
+
+  def isNdSponge(objectType: String): Boolean =
+    NSPONGE_TYPES.contains(normalize(objectType))
 
   /** Meshes drawn with edge tubes by `TesseractEdgeSceneBuilder`: the projected 4D types and
     * the n-cube. */

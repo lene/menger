@@ -5,6 +5,7 @@ import menger.dsl.ResourceLimits
 import menger.geometry.LevelMix
 import menger.objects.SpongeByVolume
 import menger.objects.higher_d.NCube
+import menger.objects.higher_d.NdSponge
 import menger.objects.higher_d.TesseractSponge2Mesh
 import menger.objects.higher_d.TesseractSpongeMesh
 import menger.spec.ObjectSpec
@@ -63,9 +64,38 @@ object SceneCost:
   private def nCubeTriangles(spec: ObjectSpec): Long =
     spec.dimension.fold(0L)(n => TrianglesPerSquare * NCube.faceCount(n))
 
+  /** The triangles of an n-sponge at a whole level, which no formula gives exactly: below the
+    * budget the cheap upper bound of its faces is enough. Above it, when the bound is within
+    * `ResourceLimits`' headroom, the sponge is built through [[NdSpongeScene]]'s memo and its
+    * faces counted, so a level that fits is never refused for the looseness of the bound. A
+    * level past the headroom is not built: it costs its bound, which is over the budget. */
+  private def ndSpongeTriangles(spec: ObjectSpec, level: Int): Long =
+    val variant = NdSpongeScene.variantOf(spec)
+    val k = NdSpongeScene.maxCentreCoordinatesOf(spec)
+    spec.dimension.fold(0L) { n =>
+      val bound = NdSponge.upperBoundFaces(variant, n, level, k)
+      if bound <= ResourceLimits.sceneMaxTriangles / TrianglesPerSquare then
+        TrianglesPerSquare * bound
+      else if ResourceLimits.ndSpongeBoundAdmits(bound) &&
+        NdSponge.isBuildable(variant, n, level, k)
+      then TrianglesPerSquare * NdSpongeScene.faceCount(spec.copy(level = Some(level.toFloat)))
+      else math.min(Long.MaxValue / RefusedSummands, saturatingTimes(bound, TrianglesPerSquare))
+    }
+
+  // a refused sponge costs about this much, kept small enough to add a few of them up
+  private val RefusedSummands = 1024L
+
+  private def saturatingTimes(a: Long, b: Long): Long =
+    if a > Long.MaxValue / b then Long.MaxValue else a * b
+
+  /** The triangles per whole level of a levelled mesh type, None for the other types. */
+  private def trianglesAtLevel(spec: ObjectSpec): Option[Int => Long] =
+    if ObjectType.isNdSponge(spec.objectType) then Some(ndSpongeTriangles(spec, _))
+    else levelTriangles.get(ObjectType.normalize(spec.objectType))
+
   private def meshTriangles(spec: ObjectSpec): Long =
     val byLevel = for
-      estimate <- levelTriangles.get(ObjectType.normalize(spec.objectType))
+      estimate <- trianglesAtLevel(spec)
       level    <- spec.level
     yield
       val lower = level.floor.toInt
@@ -86,7 +116,7 @@ object SceneCost:
     val total = specs.map(triangles).sum
     val levelled = for
       spec     <- specs
-      perLevel <- levelTriangles.get(ObjectType.normalize(spec.objectType))
+      perLevel <- trianglesAtLevel(spec)
       level    <- spec.level
     yield (spec, perLevel, level)
     if total <= ResourceLimits.sceneMaxTriangles then None

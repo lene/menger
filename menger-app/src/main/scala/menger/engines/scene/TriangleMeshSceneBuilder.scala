@@ -94,7 +94,7 @@ class TriangleMeshSceneBuilder(
       val ops: List[FractionalOp] =
         if mixer.isDefined && !ObjectType.isRecursiveIASSponge(spec.objectType) then
           buildTwoLevelOps(spec, baseMaterial)
-        else if isFractional4DSponge(spec) then
+        else if isFractionalProjectedSponge(spec) then
           buildFractionalGpuOps(spec, baseMaterial)
         else
           List(FractionalOp(MeshFactory.createUpload(spec), baseMaterial))
@@ -258,7 +258,7 @@ class TriangleMeshSceneBuilder(
         ObjectType.isRecursiveIASSponge(spec.objectType) && spec.level.exists(isFractional)
       val faces =
         if fractionalIAS then 2L
-        else if isFractional4DSponge(spec) then 2L
+        else if isFractionalProjectedSponge(spec) then 2L
         else if isLeveled(spec) &&
           LevelMixing.appliesTo(spec.level, MaterialExtractor.extract(spec)) then 2L
         else 1L
@@ -275,16 +275,18 @@ class TriangleMeshSceneBuilder(
   // A sponge type whose level this builder draws (3D, 4D or recursive IAS).
   private def isLeveled(spec: ObjectSpec): Boolean =
     val t = spec.objectType.toLowerCase
-    ObjectType.isSponge(t) || ObjectType.is4DSponge(t) || ObjectType.isRecursiveIASSponge(t)
+    ObjectType.isSponge(t) || ObjectType.is4DSponge(t) || ObjectType.isNdSponge(t) ||
+      ObjectType.isRecursiveIASSponge(t)
 
   private def isTriangleMeshType(spec: ObjectSpec): Boolean =
     ObjectType.isTriangleMesh(spec.objectType)
 
   /**
-   * Check if a spec is a 4D sponge with fractional level.
+   * Check if a spec is a projected sponge (4D or nD) with fractional level.
    */
-  private def isFractional4DSponge(spec: ObjectSpec): Boolean =
-    ObjectType.is4DSponge(spec.objectType) && spec.level.exists(isFractional)
+  private def isFractionalProjectedSponge(spec: ObjectSpec): Boolean =
+    (ObjectType.is4DSponge(spec.objectType) || ObjectType.isNdSponge(spec.objectType)) &&
+      spec.level.exists(isFractional)
 
   /**
    * Check if a level value has a fractional component.
