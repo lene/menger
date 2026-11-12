@@ -4,6 +4,8 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 import menger.common.Material
+import menger.dsl.Scale
+import menger.dsl.Tesseract
 import menger.spec.ObjectSpec
 import menger.spec.Projection4DSpec
 import org.scalatest.flatspec.AnyFlatSpec
@@ -458,6 +460,37 @@ class ObjectSpecParserSuite extends AnyFlatSpec with Matchers:
     val result = ObjectSpecParser.parse("type=tesseract:rot-xw=notanumber")
     result shouldBe a[Left[?, ?]]
     result.left.map(_ should include("Invalid rot-xw"))
+
+  // menger#164: the per-axis scale replaced w-scale.
+  it should "read the scale keyword like the DSL's Scale[4]" in:
+    val parsed = ObjectSpecParser.parse("type=tesseract:scale=1,1,1,0.5")
+    parsed.map(_.scale) shouldBe Right(Some(IndexedSeq(1f, 1f, 1f, 0.5f)))
+    parsed.map(_.scale) shouldBe
+      Right(Tesseract(scale = Some(Scale[4](1f, 1f, 1f, 0.5f))).toObjectSpec.scale)
+
+  it should "read no scale, or an identity scale, as no scale" in:
+    ObjectSpecParser.parse("type=tesseract").map(_.scale) shouldBe Right(None)
+    ObjectSpecParser.parse("type=tesseract:scale=1,1,1,1").map(_.scale) shouldBe Right(None)
+
+  it should "take a scale on the 4D polytopes and sponges" in:
+    ObjectSpecParser.parse("type=24-cell:scale=1,1,1,0").map(_.scale) shouldBe
+      Right(Some(IndexedSeq(1f, 1f, 1f, 0f)))
+    ObjectSpecParser.parse("type=tesseract-sponge:level=1:scale=2,1,1,1").isRight shouldBe true
+
+  it should "reject the removed w-scale key, naming scale=" in:
+    val result = ObjectSpecParser.parse("type=tesseract:w-scale=0.5")
+    result.left.toOption.get should (include("w-scale") and include("scale=1,1,1,0.5"))
+
+  it should "reject a scale that does not have four factors >= 0" in:
+    Seq("1,1,1", "1,1,1,1,1", "1,-1,1,1", "1,1,1,NaN", "1,1,1,Infinity", "a,b,c,d", "").foreach {
+      scale =>
+        val result = ObjectSpecParser.parse(s"type=tesseract:scale=$scale")
+        result.left.toOption.get should (include("4 comma-separated factors") and include(">= 0"))
+    }
+
+  it should "reject a scale on a type that has none" in:
+    ObjectSpecParser.parse("type=cube:scale=1,1,1,1").isLeft shouldBe true
+    ObjectSpecParser.parse("type=menger4d:level=1:scale=1,1,1,1").isLeft shouldBe true
 
   it should "combine 4D parameters with other attributes" in:
     val result = ObjectSpecParser.parse("type=tesseract:pos=1,2,3:size=2.5:color=#FF0000:rot-xw=45:eye-w=4.0:screen-w=1.0")

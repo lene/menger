@@ -297,7 +297,8 @@ class MengerCLIOptions(arguments: Seq[String])
       "Common: pos=x,y,z, size=S, color=#RGB, ior=I, material=PRESET, texture=FILE, emission=E, film-thickness=NM. " +
       "3D sponge: level=L. " +
       "4D sponge: level=L (required). " +
-      "4D projection: rot-xw, rot-yw, rot-zw, eye-w, screen-w, w-scale. " +
+      "4D projection: rot-xw, rot-yw, rot-zw, eye-w, screen-w. " +
+      "4D scale: scale=A,B,C,D (four factors >= 0, after size). " +
       "4D edges: edge-radius=R, edge-material=PRESET, edge-color=#RGB, edge-emission=E"
   )(using objectSpecConverter)
 

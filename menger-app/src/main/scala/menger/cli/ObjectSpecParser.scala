@@ -24,6 +24,9 @@ import menger.spec.TextureMaps
   * its examples are documented on `ObjectSpec`). */
 object ObjectSpecParser extends LazyLogging:
 
+  private val ScaleFactors = 4
+  private val RemovedWScaleKey = "w-scale"
+
   /**
    * Parse object specification from keyword=value format.
    * Format: type=TYPE:pos=x,y,z:size=S:level=L:color=#RRGGBB:ior=I:material=PRESET:texture=FILE
@@ -45,8 +48,11 @@ object ObjectSpecParser extends LazyLogging:
     *   rot-xw=DEGREES  - XW plane rotation angle (default: 15)
     *   rot-yw=DEGREES  - YW plane rotation angle (default: 10)
     *   rot-zw=DEGREES  - ZW plane rotation angle (default: 0)
-    *   w-scale=VALUE   - scales w before rotation, >= 0 (default: 1; 0 flattens to 3D)
     *
+   * 4D geometry keyword (the 4D polytopes and sponges):
+   *   scale=A,B,C,D   - per-axis scale after size, four factors >= 0 (default: 1,1,1,1;
+   *                     scale=1,1,1,0 flattens to 3D)
+   *
     * 3D rotation keywords (for all object types):
     *   rot-x=DEGREES  - X-axis rotation (default: 0)
     *   rot-y=DEGREES  - Y-axis rotation (default: 0)
@@ -70,7 +76,7 @@ object ObjectSpecParser extends LazyLogging:
     "type", "pos", "size", "level", "color", "ior",
     "material", "roughness", "metallic", "specular",
     "emission", "film-thickness", "dispersion", "texture",
-    "eye-w", "screen-w", "rot-xw", "rot-yw", "rot-zw", "w-scale",
+    "eye-w", "screen-w", "rot-xw", "rot-yw", "rot-zw", "scale",
     "rot-x", "rot-y", "rot-z",
     "edge-radius", "edge-material", "edge-color",
     "edge-emission",
@@ -106,6 +112,7 @@ object ObjectSpecParser extends LazyLogging:
       material <- parseMaterial(kvPairs, color, ior, dispersion)
       texture <- parseTexture(kvPairs)
       projection4D <- parse4DProjection(kvPairs, objType)
+      scale <- parseScale(kvPairs, objType)
       edgeParams <- parseEdgeParameters(kvPairs, objType)
       rotation <- parseRotation3DDeg(kvPairs)
       coneGeom <- parseConeGeometry(kvPairs, objType)
@@ -138,6 +145,7 @@ object ObjectSpecParser extends LazyLogging:
       material = material,
       texture = texture,
       projection = projection4D,
+      scale = scale,
       edgeRadius = edgeParams._1,
       edgeMaterial = edgeParams._2,
       rotation = rotation,
@@ -170,7 +178,12 @@ object ObjectSpecParser extends LazyLogging:
     kvPairs: Map[String, String]
   ): Either[String, Unit] =
     val unknownKeys = kvPairs.keySet -- ValidKeys
-    if unknownKeys.nonEmpty then
+    if kvPairs.contains(RemovedWScaleKey) then
+      Left(
+        s"Unknown key '$RemovedWScaleKey': it was replaced by the per-axis scale=A,B,C,D, " +
+          s"e.g. scale=1,1,1,0.5 for $RemovedWScaleKey=0.5"
+      )
+    else if unknownKeys.nonEmpty then
       val sorted = unknownKeys.toList.sorted.mkString("', '")
       Left(
         s"Unknown key(s): '$sorted'. " +
@@ -393,14 +406,26 @@ object ObjectSpecParser extends LazyLogging:
         rotXW <- parseFloatParam(kvPairs, "rot-xw", Projection4DSpec.DefaultRotXW.value, "XW rotation angle in degrees")
         rotYW <- parseFloatParam(kvPairs, "rot-yw", Projection4DSpec.DefaultRotYW.value, "YW rotation angle in degrees")
         rotZW <- parseFloatParam(kvPairs, "rot-zw", Projection4DSpec.DefaultRotZW.value, "ZW rotation angle in degrees")
-        wScale <- parseFloatParam(kvPairs, "w-scale", Projection4DSpec.DefaultWScale, "w scale >= 0")
         _ <- validate4DParams(eyeW, screenW)
-        _ <- Either.cond(wScale >= 0f, (), s"w-scale must be >= 0, got $wScale")
-      yield Some(Projection4DSpec(
-        eyeW, screenW, Degrees(rotXW), Degrees(rotYW), Degrees(rotZW), wScale
-      ))
+      yield Some(Projection4DSpec(eyeW, screenW, Degrees(rotXW), Degrees(rotYW), Degrees(rotZW)))
     else
       Right(None)
+
+  private def parseScale(
+    kvPairs: Map[String, String],
+    objType: String
+  ): Either[String, Option[IndexedSeq[Float]]] =
+    kvPairs.get("scale") match
+      case None => Right(None)
+      case Some(_) if !ObjectType.isProjected4D(objType) =>
+        Left(s"scale applies to the 4D polytopes and sponges only, not to $objType")
+      case Some(raw) =>
+        val invalid = s"Invalid scale '$raw': expected $ScaleFactors comma-separated factors " +
+          ">= 0, e.g. scale=1,1,1,0.5"
+        Try(raw.split(",", -1).map(_.trim.toFloat).toIndexedSeq).toOption
+          .filter(f => f.size == ScaleFactors && f.forall(x => x.isFinite && x >= 0f))
+          .map(f => Some(f).filterNot(_.forall(_ == 1f)))
+          .toRight(invalid)
 
   private def parseFloatParam(
     kvPairs: Map[String, String],

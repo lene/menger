@@ -37,6 +37,23 @@ class HypercubeSuite extends AnyFlatSpec with Matchers:
     Hypercube(5, projection = Some(ProjectionSpec(5))).projection should not be empty
     Hypercube(5, projection = Some(ProjectionSpec(7))).projection should not be empty
 
+  it should "accept a Scale of the cube's own dimension" in:
+    Hypercube(5, scale = Some(Scale.identity[5].withLast(0.5f))).toObjectSpec.scale shouldBe
+      Some(IndexedSeq(1f, 1f, 1f, 1f, 0.5f))
+    val collapsed = Hypercube(8, scale = Some(Scale.identity[8].withLast(0f)))
+    collapsed.toObjectSpec.scale.map(_.last) shouldBe Some(0f)
+
+  it should "reject a Scale of another dimension, naming both" in:
+    val refusal = the[IllegalArgumentException] thrownBy
+      Hypercube(6, scale = Some(Scale[5](1f, 1f, 1f, 1f, 0.5f)))
+    refusal.getMessage should (include("6-cube") and include("6 factors") and include("5"))
+
+  it should "reject a negative factor in the Scale itself" in:
+    an[IllegalArgumentException] should be thrownBy Scale[5](1f, 1f, 1f, 1f, -0.5f)
+
+  it should "carry no scale for an identity Scale" in:
+    Hypercube(5, scale = Some(Scale.identity[5])).toObjectSpec.scale shouldBe None
+
   it should "validate positive size and non-negative ior" in:
     an[IllegalArgumentException] should be thrownBy Hypercube(5, size = 0f)
     an[IllegalArgumentException] should be thrownBy Hypercube(5, ior = -1f)

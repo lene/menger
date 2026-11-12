@@ -56,38 +56,46 @@ object NCube:
 
   def faceCount(dimension: Int): Int = dimension * (dimension - 1) / 2 * (1 << (dimension - 2))
 
-  /** The cube of a dimension known only at runtime, drawn through `view`: its vertices are
-    * zero-padded to the view's dimension, turned and projected, and a face with a vertex at or
-    * behind a stage's eye is left out. */
+  /** The cube of a dimension known only at runtime, scaled per axis by `scales` (none: unscaled),
+    * drawn through `view`: its vertices are zero-padded to the view's dimension, turned and
+    * projected, and a face with a vertex at or behind a stage's eye is left out. */
   def projected(
-    dimension: Int, size: Float, view: LiftedProjection, center: Vector[3] = Vector.Zero[3]
+    dimension: Int, size: Float, view: LiftedProjection, center: Vector[3] = Vector.Zero[3],
+    scales: Option[IndexedSeq[Float]] = None
   ): ProjectedMesh[?] =
     val d = Dimension.of(dimension)
     given ValueOf[d.N] = d.valueOf
-    NCubeProjection[d.N](NCube[d.N](size), view, center)
+    val cube = NCube[d.N](size)
+    val mesh: Mesh[d.N] = scales.fold[Mesh[d.N]](cube)(AxisScaledMesh(cube, _))
+    NCubeProjection[d.N](mesh, view, center)
 
-  /** The cube's edges, in `orderedEdges` order, as 3D endpoints through `view`; None for an
-    * edge with an endpoint at or behind a stage's eye. */
+  /** The cube's edges, scaled per axis by `scales` (none: unscaled), in `orderedEdges` order, as
+    * 3D endpoints through `view`; None for an edge with an endpoint at or behind a stage's eye. */
   def projectedEdges(
-    dimension: Int, size: Float, view: LiftedProjection
+    dimension: Int, size: Float, view: LiftedProjection,
+    scales: Option[IndexedSeq[Float]] = None
   ): IndexedSeq[Option[(Vector[3], Vector[3])]] =
     val d = Dimension.of(dimension)
     given ValueOf[d.N] = d.valueOf
+    val scale = scales.map(factors => Vector.Scale[d.N](factors*))
+    def scaled(vertex: Vector[d.N]): IndexedSeq[Float] =
+      scale.fold(vertex)(_(vertex)).toIndexedSeq
     NCube[d.N](size).orderedEdges.map { (from, to) =>
       for
-        p0 <- view.project(from.toIndexedSeq)
-        p1 <- view.project(to.toIndexedSeq)
+        p0 <- view.project(scaled(from))
+        p1 <- view.project(scaled(to))
       yield (p0, p1)
     }
 
-/** A [[NCube]] drawn as a triangle mesh through a [[LiftedProjection]]. */
+/** An n-cube mesh (an [[NCube]], possibly scaled per axis) drawn as a triangle mesh through a
+  * [[LiftedProjection]]. */
 final case class NCubeProjection[N <: Int & Singleton](
-  cube: NCube[N],
+  mesh: Mesh[N],
   view: LiftedProjection,
   center: Vector[3]
 )(using ValueOf[N]) extends ProjectedMesh[N]:
 
-  def sourceMesh: Mesh[N] = cube
+  def sourceMesh: Mesh[N] = mesh
 
   override protected def projectVertex(vertex: Vector[N]): Vector[3] = view(vertex.toIndexedSeq)
 

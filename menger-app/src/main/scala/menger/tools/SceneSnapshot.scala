@@ -37,7 +37,7 @@ object SceneSnapshot:
   ) derives ReadWriter
 
   case class ProjectionValues(
-    eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float, wScale: Float
+    eyeW: Float, screenW: Float, rotXW: Float, rotYW: Float, rotZW: Float
   ) derives ReadWriter
 
   case class PlaneRotationValues(plane: String, angle: Float) derives ReadWriter
@@ -69,7 +69,9 @@ object SceneSnapshot:
     proceduralScale: Float,
     ndProjection: Option[NdProjectionValues] = None,
     // The n-cube's own dimension (Hypercube); its `ndProjection.dimension` is at least this.
-    dimension: Option[Int] = None
+    dimension: Option[Int] = None,
+    // The per-axis geometry scale (menger#164); None for the identity scale.
+    scale: Option[List[Float]] = None
   ) derives ReadWriter
 
   case class LightValues(
@@ -184,12 +186,13 @@ object SceneSnapshot:
       edgeRadius = spec.edgeRadius,
       edgeMaterial = spec.edgeMaterial.map(materialValues),
       projection = spec.projection4D.map(p =>
-        ProjectionValues(p.eyeW, p.screenW, p.rotXW.value, p.rotYW.value, p.rotZW.value, p.wScale)
+        ProjectionValues(p.eyeW, p.screenW, p.rotXW.value, p.rotYW.value, p.rotZW.value)
       ),
       proceduralType = spec.procedural.proceduralType,
       proceduralScale = spec.procedural.scale,
       ndProjection = spec.projectionN.map(ndProjectionValues),
-      dimension = spec.dimension
+      dimension = spec.dimension,
+      scale = spec.scale.map(_.toList)
     )
 
   private def ndProjectionValues(view: ProjectionSpec): NdProjectionValues =

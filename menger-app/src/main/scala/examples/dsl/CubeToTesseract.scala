@@ -10,14 +10,14 @@ import menger.spec.Projection4DSpec
  * hand-over (usability review 2026-10, session 5, F124, menger#132).
  *
  * What makes the hand-over seamless:
- *   - the 4D rotations stay 0 while `wScale` grows, so at wScale 0 the tesseract is the cube;
+ *   - the 4D rotations stay 0 while the w `scale` grows, so at scale 0 the tesseract is the cube;
  *   - the tesseract's size is the cube's times eyeW / (eyeW - screenW): a flat 4D object is
  *     shown at (eyeW - screenW) / eyeW of its size;
  *   - both have the same material and the same edge tubes. A material, not just a colour: a
  *     4D object with edge tubes and no material is drawn as edges only;
- *   - the cube stands in for the tesseract at wScale exactly 0: there the tesseract's faces and
+ *   - the cube stands in for the tesseract at scale exactly 0: there the tesseract's faces and
  *     edges lie on top of each other in pairs, and a transparent material speckles between
- *     the coincident copies. At any wScale above 0 it is the tesseract.
+ *     the coincident copies. At any scale above 0 it is the tesseract.
  *
  * Usage:
  *   --scene examples.dsl.CubeToTesseract --t 3
@@ -47,8 +47,8 @@ object CubeToTesseract:
       else
         Tesseract(material = material, size = tesseractSize, edgeRadius = edgeRadius,
           edgeMaterial = edgeMaterial,
-          projection = Some(Projection4DSpec(eyeW = eyeW, screenW = screenW,
-            rotXW = turn, wScale = extruded)))
+          scale = Some(Scale[4](1f, 1f, 1f, extruded)),
+          projection = Some(Projection4DSpec(eyeW = eyeW, screenW = screenW, rotXW = turn)))
     Scene(
       camera = Camera(position = (2.5f, 2f, 4f), lookAt = (0f, 0f, 0f)),
       objects = List(shape),

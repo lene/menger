@@ -271,7 +271,7 @@ echo -e "${YELLOW}--- 4D Tesseract ---${NC}"
 run_test "Tesseract (default)" "-o --objects type=tesseract -s $OUTPUT_DIR/33-tesseract.png"
 run_test "Tesseract (rotated)" "-o --objects type=tesseract:rot-xw=45:rot-yw=30 -s $OUTPUT_DIR/34-tesseract-rot.png"
 run_test "Tesseract (projection)" "-o --objects type=tesseract:eye-w=4.0:screen-w=2.0 -s $OUTPUT_DIR/35-tesseract-proj.png"
-run_test "Tesseract (w-scale 0.3, part-way out of a cube)" "-o --objects type=tesseract:w-scale=0.3 -s $OUTPUT_DIR/35b-tesseract-wscale.png"
+run_test "Tesseract (scale 1,1,1,0.3, part-way out of a cube)" "-o --objects type=tesseract:scale=1,1,1,0.3 -s $OUTPUT_DIR/35b-tesseract-scale.png"
 run_test "Tesseract (glass)" "-o --objects type=tesseract:material=glass --plane y:-2 -s $OUTPUT_DIR/36-tesseract-glass.png"
 run_test "Tesseract (chrome)" "-o --objects type=tesseract:material=chrome -s $OUTPUT_DIR/37-tesseract-chrome.png"
 
@@ -417,8 +417,8 @@ run_test "OrbitingSphere t=3.14" "-o --scene examples.dsl.OrbitingSphere --t 3.1
 run_test "PulsingSponge t=0" "-o --scene examples.dsl.PulsingSponge --t 0 -s $OUTPUT_DIR/103-pulsing-t0.png"
 run_test "PulsingSponge t=1.5" "-o --scene examples.dsl.PulsingSponge --t 1.5 -s $OUTPUT_DIR/104-pulsing-t1.5.png"
 run_test "PulsingSponge t=3" "-o --scene examples.dsl.PulsingSponge --t 3 -s $OUTPUT_DIR/105-pulsing-t3.png"
-run_test "CubeToTesseract t=1 (Film cube at wScale 0, the hand-over)" "-o --scene examples.dsl.CubeToTesseract --t 1 -s $OUTPUT_DIR/105a-cube-to-tesseract-t1.png"
-run_test "CubeToTesseract t=1.004 (tesseract at wScale 0.001: the cube's picture, no speckle)" "-o --scene examples.dsl.CubeToTesseract --t 1.004 -s $OUTPUT_DIR/105b-cube-to-tesseract-t1.004.png"
+run_test "CubeToTesseract t=1 (Film cube at w scale 0, the hand-over)" "-o --scene examples.dsl.CubeToTesseract --t 1 -s $OUTPUT_DIR/105a-cube-to-tesseract-t1.png"
+run_test "CubeToTesseract t=1.004 (tesseract at w scale 0.001: the cube's picture, no speckle)" "-o --scene examples.dsl.CubeToTesseract --t 1.004 -s $OUTPUT_DIR/105b-cube-to-tesseract-t1.004.png"
 run_test "CubeToTesseract t=3 (extrusion halfway)" "-o --scene examples.dsl.CubeToTesseract --t 3 -s $OUTPUT_DIR/105c-cube-to-tesseract-t3.png"
 run_test "CubeToTesseract t=7 (turning in XW after the extrusion)" "-o --scene examples.dsl.CubeToTesseract --t 7 -s $OUTPUT_DIR/105d-cube-to-tesseract-t7.png"
 run_test "TesseractToPenteract t=0 (5D lift, unturned)" "-o --scene examples.dsl.TesseractToPenteract --t 0 -s $OUTPUT_DIR/105e-tesseract-to-penteract-t0.png"
@@ -428,6 +428,8 @@ run_test "TesseractToPenteract t=8 (xv, yv and zv turned)" "-o --scene examples.
 run_test "HexeractTurning t=0 (6-cube, unturned)" "-o --scene examples.dsl.HexeractTurning --t 0 -s $OUTPUT_DIR/105i-hexeract-turning-t0.png"
 run_test "HexeractTurning t=2 (xu turned 45 degrees)" "-o --scene examples.dsl.HexeractTurning --t 2 -s $OUTPUT_DIR/105j-hexeract-turning-t2.png"
 run_test "HexeractTurning t=4 (xu turned 90 degrees)" "-o --scene examples.dsl.HexeractTurning --t 4 -s $OUTPUT_DIR/105k-hexeract-turning-t4.png"
+run_test "PenteractFold t=3 (penteract at scale 0.5 along v)" "-o --scene examples.dsl.PenteractFold --t 3 -s $OUTPUT_DIR/105l-penteract-fold-t3.png"
+run_test "PenteractFold t=6 (penteract at scale 1, unfolded)" "-o --scene examples.dsl.PenteractFold --t 6 -s $OUTPUT_DIR/105m-penteract-fold-t6.png"
 
 # Colored Shadows Phase 1 (single-object)
 echo -e "${YELLOW}--- Colored Shadows (Phase 1: single object) ---${NC}"

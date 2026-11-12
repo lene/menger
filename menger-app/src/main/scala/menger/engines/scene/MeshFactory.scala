@@ -11,6 +11,7 @@ import menger.objects.Octahedron
 import menger.objects.SpongeBySurface
 import menger.objects.SpongeByVolume
 import menger.objects.Tetrahedron
+import menger.objects.higher_d.AxisScaledMesh
 import menger.objects.higher_d.Hecatonicosachoron
 import menger.objects.higher_d.Hexacosichoron
 import menger.objects.higher_d.Hexadecachoron
@@ -24,7 +25,6 @@ import menger.objects.higher_d.ProjectedMesh4D
 import menger.objects.higher_d.Tesseract
 import menger.objects.higher_d.TesseractSponge
 import menger.objects.higher_d.TesseractSponge2
-import menger.objects.higher_d.WScaledMesh4D
 import menger.spec.ObjectSpec
 import menger.spec.ObjectType
 import menger.spec.Projection4DSpec
@@ -49,6 +49,9 @@ import menger.spec.Projection4DSpec
  * Positioning is handled separately via instance transforms.
  */
 object MeshFactory:
+
+  /** The dimension of the 4D polytope and sponge types, whose `scale` has this many factors. */
+  private val LegacyDimension = 4
 
   /**
    * Create a triangle mesh for the given ObjectSpec.
@@ -156,14 +159,14 @@ object MeshFactory:
       )
     }
 
-  /** The pre-projection 4D buffer depends only on the object's type, level, size, w-scale and
+  /** The pre-projection 4D buffer depends only on the object's type, level, size, scale and
     * whether it is the hole-cap mesh, not on the view: an animation or reload that changes the
     * level every frame rebuilt it every frame (level 3 took ~20 s; usability review 2026-09,
     * session 2, F52). Bounded LRU: a level-3 volume sponge's buffer is ~80 MB.
     * The buffers are shared and must never be mutated. */
   private object Gpu4DBufferCache:
     private val MaxEntries = 4
-    private type Key = (String, Option[Float], Float, Float, Boolean)
+    private type Key = (String, Option[Float], Float, IndexedSeq[Float], Boolean)
 
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
     private val entries = new java.util.LinkedHashMap[Key, (Array[Float], Int)](
@@ -176,7 +179,8 @@ object MeshFactory:
     def buffer(spec: ObjectSpec, holeCaps: Boolean): Option[(Array[Float], Int)] =
       if !spec.isLegacyView then
         Fail.internal(s"no GPU 4D buffer for ${spec.objectType}: it has a ProjectionSpec")
-      val key: Key = (spec.objectType, spec.level, spec.size, spec.wScale, holeCaps)
+      val key: Key =
+        (spec.objectType, spec.level, spec.size, spec.axisScales(LegacyDimension), holeCaps)
       entries.synchronized(Option(entries.get(key))).orElse {
         renderMesh4D(spec).map { m =>
           val built =
@@ -214,10 +218,10 @@ object MeshFactory:
         Some(Hecatonicosachoron(size = spec.size))
       case _ => None
 
-  /** The 4D mesh the render paths draw: [[mesh4D]] with the spec's w-scale applied (menger#65).
+  /** The 4D mesh the render paths draw: [[mesh4D]] with the spec's scale applied (menger#65, #164).
     * The validator keeps the unscaled mesh, whose polytope invariants it checks. */
   def renderMesh4D(spec: ObjectSpec): Option[Mesh4D] =
-    mesh4D(spec).map(WScaledMesh4D.of(_, spec.wScale))
+    mesh4D(spec).map(AxisScaledMesh.of(_, spec.axisScales(LegacyDimension)))
 
   private def mesh4DProjection(spec: ObjectSpec): Option[ProjectedMesh4D] =
     renderMesh4D(spec).map { mesh =>

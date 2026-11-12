@@ -288,7 +288,7 @@ class TesseractEdgeSceneBuilder(
       levelSpec.withoutView, extractEdges(createMesh4D(levelSpec)).toIndexedSeq
     )
 
-  // The same w-scaled mesh as the faces (menger#65), not a second copy of the type switch.
+  // The same scaled mesh as the faces (menger#65, #164), not a second copy of the type switch.
   private def createMesh4D(spec: ObjectSpec): Mesh4D =
     MeshFactory.renderMesh4D(spec.copy(objectType = spec.objectType.toLowerCase)).getOrElse(
       Fail.configuration(

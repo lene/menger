@@ -31,6 +31,29 @@ class NCubeSceneSuite extends AnyFlatSpec with Matchers:
       edgeRadius = Option.when(edges)(0.02f), edgeMaterial = Option.when(edges)(Material.Film)
     )
 
+  private def scaled(spec: ObjectSpec, lastFactor: Float): ObjectSpec =
+    val dimension = spec.dimension.get
+    spec.copy(scale = Some(IndexedSeq.fill(dimension - 1)(1f) :+ lastFactor))
+
+  private val RoundingFactor = 10000f
+  private val MinTriangleArea = 1e-6f
+
+  /** The corners of the faces that are not degenerate, rounded to 1e-4: a collapsed axis turns
+    * the faces that use it into lines, which draw nothing. */
+  private def nonDegenerateVertices(spec: ObjectSpec): Set[Seq[Int]] =
+    val mesh = MeshFactory.create(spec)
+    val points = mesh.vertices.grouped(mesh.vertexStride).map(_.take(3).toIndexedSeq).toIndexedSeq
+    def area(a: IndexedSeq[Float], b: IndexedSeq[Float], c: IndexedSeq[Float]): Float =
+      val u = a.zip(b).map((p, q) => q - p)
+      val v = a.zip(c).map((p, q) => q - p)
+      val cross = Seq(
+        u(1) * v(2) - u(2) * v(1), u(2) * v(0) - u(0) * v(2), u(0) * v(1) - u(1) * v(0)
+      )
+      math.sqrt(cross.map(x => x * x).sum).toFloat / 2
+    mesh.indices.grouped(3)
+      .filter(t => area(points(t(0)), points(t(1)), points(t(2))) > MinTriangleArea)
+      .flatMap(_.map(points)).map(_.map(x => math.round(x * RoundingFactor))).toSet
+
   private def positions(spec: ObjectSpec): Set[Seq[Float]] =
     val mesh = MeshFactory.create(spec)
     mesh.vertices.grouped(mesh.vertexStride).map(_.take(3).toSeq).toSet
@@ -78,6 +101,37 @@ class NCubeSceneSuite extends AnyFlatSpec with Matchers:
     MeshFactory.create(spec).numTriangles shouldBe 2 * 24
     NCubeScene.edgeEndpoints(spec).flatten should have size 32
     NCubeScene.edgeEndpoints(spec) should have size 80
+
+  // menger#164: the per-axis scale extrudes along the newest axis.
+  it should "scale the last axis of a penteract and leave the others" in:
+    val size = 1.2f
+    val spec = hypercube(5).copy(size = size, scale = Some(IndexedSeq(1f, 1f, 1f, 1f, 0.3f)))
+    val extents = (0 until 5).map { axis =>
+      val coordinates = NCubeScene.faces(spec).sourceMesh.vertices.map(_(axis))
+      coordinates.max - coordinates.min
+    }
+    extents.take(4).foreach(_ shouldBe size +- 1e-5f)
+    extents(4) shouldBe 0.3f * size +- 1e-5f
+
+  it should "show Hypercube(n) with the last scale 0 as Hypercube(n-1), for n = 5..8" in:
+    (5 to 8).foreach { n =>
+      val view = Some(ProjectionSpec(n))
+      nonDegenerateVertices(scaled(hypercube(n, view), 0f)) shouldBe
+        nonDegenerateVertices(hypercube(n - 1, view))
+    }
+
+  it should "show Cube(s) as Hypercube(4) with w scale 0 and size s * eye / (eye - screen)" in:
+    val cubeSize = 1.2f
+    val view = ProjectionSpec(4)
+    val flat = scaled(hypercube(4, Some(view)), 0f)
+      .copy(size = cubeSize * view.eye / (view.eye - view.screen))
+    nonDegenerateVertices(flat) shouldBe nonDegenerateVertices(ObjectSpec("cube", size = cubeSize))
+
+  it should "leave out the edges that a collapsed axis left without length" in:
+    val flat = scaled(hypercube(5, edges = true), 0f)
+    NCubeScene.edgeEndpoints(flat) should have size 80
+    NCubeScene.edgeEndpoints(flat).flatten should have size 64
+    NCubeScene.edgeEndpoints(hypercube(5, edges = true)).flatten should have size 80
 
   "MeshFactory.createUpload" should "build a CPU mesh for an n-cube" in:
     MeshFactory.createUpload(hypercube(5)) shouldBe a[MeshUploadPlan.Cpu]

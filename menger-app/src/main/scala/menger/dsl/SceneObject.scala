@@ -32,6 +32,13 @@ private[dsl] object ProjectionRules:
         "(Tesseract, TesseractSponge or a regular polytope), not a GPU-traced IFS fractal"
     )
 
+/** How a DSL [[Scale]] becomes the spec's scale. */
+private[dsl] object ScaleRules:
+
+  /** None for an identity scale, so that it renders and compares as no scale at all. */
+  def toSpec(scale: Option[Scale[?]]): Option[IndexedSeq[Float]] =
+    scale.filterNot(_.isIdentity).map(_.toIndexedSeq)
+
 /** Base trait for all scene objects */
 sealed trait SceneObject:
   def pos: Vec3
@@ -56,7 +63,8 @@ sealed trait SceneObject:
     edgeRadius: Option[Float] = None,
     edgeMaterial: Option[menger.common.Material] = None,
     meshData: Option[menger.common.TriangleMeshData] = None,
-    curveData: Option[CurveData] = None
+    curveData: Option[CurveData] = None,
+    scale: Option[IndexedSeq[Float]] = None
   ): ObjectSpec =
     ObjectSpec(
       objectType = objectType,
@@ -77,7 +85,8 @@ sealed trait SceneObject:
       procedural = ProceduralSpec(proceduralType, proceduralScale),
       textureMaps = TextureMaps(normalMap = normalMap, roughnessMap = roughnessMap),
       meshData = meshData,
-      curveData = curveData
+      curveData = curveData,
+      scale = scale
     )
 
 /** Sphere object */
@@ -437,7 +446,8 @@ case class Tesseract(
   projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
-  rotation: Vec3 = Vec3.Zero
+  rotation: Vec3 = Vec3.Zero,
+  scale: Option[Scale[4]] = None
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
@@ -447,7 +457,8 @@ case class Tesseract(
       "tesseract",
       projection = projection,
       edgeRadius = edgeRadius,
-      edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+      edgeMaterial = edgeMaterial.map(_.toCoreMaterial),
+      scale = ScaleRules.toSpec(scale)
     )
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
@@ -485,11 +496,18 @@ case class Hypercube(
   projection: Option[ProjectionSpec] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
-  rotation: Vec3 = Vec3.Zero
+  rotation: Vec3 = Vec3.Zero,
+  scale: Option[Scale[?]] = None
 ) extends SceneObject:
   FieldConstraints.check("Hypercube", "dimension", dimension)
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
+  scale.foreach { factors =>
+    require(
+      factors.dimension == dimension,
+      s"a $dimension-cube needs a Scale of $dimension factors, got ${factors.dimension}"
+    )
+  }
   projection.foreach { view =>
     require(
       view.dimension >= dimension,
@@ -503,7 +521,8 @@ case class Hypercube(
       "n-cube",
       projection = Some(projection.getOrElse(ProjectionSpec(dimension))),
       edgeRadius = edgeRadius,
-      edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+      edgeMaterial = edgeMaterial.map(_.toCoreMaterial),
+      scale = ScaleRules.toSpec(scale)
     ).copy(dimension = Some(dimension))
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
@@ -530,14 +549,16 @@ case class Pentachoron(
   projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
-  rotation: Vec3 = Vec3.Zero
+  rotation: Vec3 = Vec3.Zero,
+  scale: Option[Scale[4]] = None
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec = baseObjectSpec(
     "pentachoron", projection = projection, edgeRadius = edgeRadius,
-    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial),
+    scale = ScaleRules.toSpec(scale)
   )
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
@@ -558,14 +579,16 @@ case class Hexadecachoron(
   projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
-  rotation: Vec3 = Vec3.Zero
+  rotation: Vec3 = Vec3.Zero,
+  scale: Option[Scale[4]] = None
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec = baseObjectSpec(
     "16-cell", projection = projection, edgeRadius = edgeRadius,
-    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial),
+    scale = ScaleRules.toSpec(scale)
   )
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
@@ -586,14 +609,16 @@ case class Icositetrachoron(
   projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
-  rotation: Vec3 = Vec3.Zero
+  rotation: Vec3 = Vec3.Zero,
+  scale: Option[Scale[4]] = None
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec = baseObjectSpec(
     "24-cell", projection = projection, edgeRadius = edgeRadius,
-    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial),
+    scale = ScaleRules.toSpec(scale)
   )
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
@@ -614,14 +639,16 @@ case class Hexacosichoron(
   projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
-  rotation: Vec3 = Vec3.Zero
+  rotation: Vec3 = Vec3.Zero,
+  scale: Option[Scale[4]] = None
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec = baseObjectSpec(
     "600-cell", projection = projection, edgeRadius = edgeRadius,
-    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial),
+    scale = ScaleRules.toSpec(scale)
   )
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
@@ -642,14 +669,16 @@ case class Hecatonicosachoron(
   projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
-  rotation: Vec3 = Vec3.Zero
+  rotation: Vec3 = Vec3.Zero,
+  scale: Option[Scale[4]] = None
 ) extends SceneObject:
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
 
   def toObjectSpec: ObjectSpec = baseObjectSpec(
     "120-cell", projection = projection, edgeRadius = edgeRadius,
-    edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+    edgeMaterial = edgeMaterial.map(_.toCoreMaterial),
+    scale = ScaleRules.toSpec(scale)
   )
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList
@@ -673,7 +702,8 @@ case class TesseractSponge(
   projection: Option[ProjectionLike] = None,
   edgeRadius: Option[Float] = None,
   edgeMaterial: Option[Material] = None,
-  rotation: Vec3 = Vec3.Zero
+  rotation: Vec3 = Vec3.Zero,
+  scale: Option[Scale[4]] = None
 ) extends SceneObject:
   require(level >= 0f, s"Level must be non-negative, got $level")
   require(size > 0f, s"Size must be positive, got $size")
@@ -693,7 +723,8 @@ case class TesseractSponge(
       level = Some(level),
       projection = projection,
       edgeRadius = edgeRadius,
-      edgeMaterial = edgeMaterial.map(_.toCoreMaterial)
+      edgeMaterial = edgeMaterial.map(_.toCoreMaterial),
+      scale = ScaleRules.toSpec(scale)
     )
 
   override def materialsToValidate: List[Material] = material.toList ++ edgeMaterial.toList

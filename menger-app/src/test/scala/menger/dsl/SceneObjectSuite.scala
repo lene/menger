@@ -307,6 +307,19 @@ class SceneObjectSuite extends AnyFlatSpec with Matchers:
     TesseractSpongeType.VolumeRemoving.objectTypeName shouldBe "tesseract-sponge-volume"
     TesseractSpongeType.SurfaceSubdividing.objectTypeName shouldBe "tesseract-sponge-surface"
 
+  "The 4D objects' scale" should "reach the spec as one factor per axis" in:
+    val scale = Some(Scale[4](1f, 1f, 1f, 0.5f))
+    val expected = Some(IndexedSeq(1f, 1f, 1f, 0.5f))
+    Seq[SceneObject](
+      Tesseract(scale = scale), Pentachoron(scale = scale), Hexadecachoron(scale = scale),
+      Icositetrachoron(scale = scale), Hexacosichoron(scale = scale),
+      Hecatonicosachoron(scale = scale), TesseractSponge(VolumeRemoving, level = 1f, scale = scale)
+    ).foreach(_.toObjectSpec.scale shouldBe expected)
+
+  it should "be absent by default and for an identity Scale" in:
+    Tesseract().toObjectSpec.scale shouldBe None
+    Tesseract(scale = Some(Scale.identity[4])).toObjectSpec.scale shouldBe None
+
   "Tesseract" should "be constructible with defaults" in:
     val tesseract = Tesseract()
     tesseract.pos shouldBe Vec3.Zero

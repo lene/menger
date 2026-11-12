@@ -101,10 +101,11 @@ class ProjectionSpecSuite extends AnyFlatSpec with Matchers:
     nd.projectionN shouldBe Some(ProjectionSpec(5))
     ObjectSpec("tesseract").isLegacyView shouldBe true
 
-  it should "drop a ProjectionSpec with the rest of the view, but keep the w-scale" in:
+  it should "drop a ProjectionSpec with the rest of the view, but keep the scale" in:
     val nd = ObjectSpec("tesseract", projection = Some(ProjectionSpec(5)))
     nd.withoutView shouldBe ObjectSpec("tesseract")
     val scaled = ObjectSpec(
-      "tesseract", projection = Some(Projection4DSpec(rotXW = 9f, wScale = 0.5f))
+      "tesseract", projection = Some(Projection4DSpec(rotXW = 9f)),
+      scale = Some(IndexedSeq(1f, 1f, 1f, 0.5f))
     )
-    scaled.withoutView.projection shouldBe Some(Projection4DSpec(wScale = 0.5f))
+    scaled.withoutView shouldBe ObjectSpec("tesseract", scale = scaled.scale)

@@ -16,6 +16,8 @@ import menger.spec.ProjectionSpec
   * as faces on the CPU path and as one tube per edge. */
 object NCubeScene:
 
+  private val MinEdgeLength = 1e-6f
+
   def dimensionOf(spec: ObjectSpec): Int =
     spec.dimension.getOrElse(Fail.configuration(s"${spec.objectType} needs a dimension"))
 
@@ -33,14 +35,15 @@ object NCubeScene:
     ProjectionConversion.liftedProjection(viewOf(spec))
 
   def faces(spec: ObjectSpec): ProjectedMesh[?] =
-    NCube.projected(dimensionOf(spec), spec.size, liftedView(spec))
+    NCube.projected(dimensionOf(spec), spec.size, liftedView(spec), scales = spec.scale)
 
   def edgeCount(spec: ObjectSpec): Int = NCube.edgeCount(dimensionOf(spec))
 
   /** The 3D endpoints of every edge in `NCube.orderedEdges` order, moved to the spec's
-    * position; None where an endpoint is at or behind a stage's eye. */
+    * position; None where an endpoint is at or behind a stage's eye, or where a collapsed axis
+    * left the edge without length. */
   def edgeEndpoints(spec: ObjectSpec): IndexedSeq[Option[(Vector[3], Vector[3])]] =
     def placed(p: Vector[3]): Vector[3] = Vector[3](p.x + spec.x, p.y + spec.y, p.z + spec.z)
-    NCube.projectedEdges(dimensionOf(spec), spec.size, liftedView(spec)).map(
-      _.map((p0, p1) => (placed(p0), placed(p1)))
+    NCube.projectedEdges(dimensionOf(spec), spec.size, liftedView(spec), spec.scale).map(
+      _.filter((p0, p1) => p0.dst(p1) >= MinEdgeLength).map((p0, p1) => (placed(p0), placed(p1)))
     )

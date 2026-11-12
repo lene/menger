@@ -604,7 +604,7 @@ object WithAnimation:
     * 6, menger#129). A `ProjectionSpec` has no in-place update: a changed one is a rebuild
     * (menger#162). */
   def specsDifferAtMostIn4DProjection(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
-    // A w-scale change is a different mesh, not a re-projection (menger#65).
+    // A scale change is a different mesh, not a re-projection (menger#65, #164).
     prev.length == next.length &&
       prev.lazyZip(next).forall((a, b) =>
         a == b || (a.isLegacyView && b.isLegacyView && a.withoutView == b.withoutView)

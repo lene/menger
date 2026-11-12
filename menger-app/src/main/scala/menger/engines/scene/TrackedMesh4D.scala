@@ -35,7 +35,7 @@ object TrackedMesh4D:
       a.isLegacyView && b.isLegacyView && geometry(a) == geometry(b)
     )
 
-  // The view drops out, the w-scale stays: it changes the 4D mesh itself (menger#65).
+  // The view drops out, the scale stays: it changes the 4D mesh itself (menger#65, #164).
   private def geometry(spec: ObjectSpec): ObjectSpec =
     spec.withoutView.copy(
       level = spec.level.map(levelInterval), x = 0f, y = 0f, z = 0f, rotation = ObjectRotation()

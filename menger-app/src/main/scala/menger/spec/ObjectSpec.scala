@@ -69,7 +69,10 @@ case class ObjectSpec(
   lsystemDim: Int = 3,
   dispersion: Float = 0.0f,
   // The n-cube's dimension (menger#163); None for every other type.
-  dimension: Option[Int] = None
+  dimension: Option[Int] = None,
+  // Per-axis geometry scale, applied after `size` and before rotation and projection (menger#164):
+  // one factor >= 0 per axis of the object's own dimension. None means all 1.
+  scale: Option[IndexedSeq[Float]] = None
 ):
   require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
 
@@ -104,18 +107,18 @@ case class ObjectSpec(
     * path or be rotated by the window. */
   def isLegacyView: Boolean = projectionN.isEmpty
 
-  /** The 4D w-scale; 1 without a projection. */
-  def wScale: Float = projection4D.fold(Projection4DSpec.DefaultWScale)(_.wScale)
+  /** The per-axis scale of an object with `dimension` axes: all 1 without a `scale`. */
+  def axisScales(dimension: Int): IndexedSeq[Float] =
+    scale.getOrElse(IndexedSeq.fill(dimension)(ObjectSpec.IdentityScale))
 
-  /** This spec without its view (eye, screen, rotations; a [[ProjectionSpec]] altogether) but
-    * with its w-scale: a view change re-projects the same 4D mesh, a w-scale change is a
-    * different mesh (menger#65). */
-  def withoutView: ObjectSpec =
-    copy(projection =
-      Some(wScale).filter(_ != Projection4DSpec.DefaultWScale).map(w => Projection4DSpec(wScale = w))
-    )
+  /** This spec without its view (eye, screen, rotations; a [[ProjectionSpec]] altogether): a view
+    * change re-projects the same mesh, while a `scale` change is a different mesh (menger#65,
+    * #164), and stays. */
+  def withoutView: ObjectSpec = copy(projection = None)
 
 object ObjectSpec:
+
+  val IdentityScale: Float = 1f
 
   /** The 3D types with edge tubes: triangle meshes whose edges come from their faces
     * (MeshEdges3D, menger#132). A recursive-IAS sponge has no flat mesh to take them from. */
