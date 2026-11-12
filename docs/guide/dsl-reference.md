@@ -450,6 +450,51 @@ Hypercube(
 - The command line has no `Hypercube`: `--objects` keeps the 4D `type=tesseract`.
 - Example: `HexeractTurning`, a 6-cube with film faces and gold edges turning in `xu`.
 
+**HypercubeSponge (the Menger sponge of 4 to 8 dimensions):**
+
+`HypercubeSponge(dimension = N, spongeType, level, maxCentreCoordinates = k)` is the Menger
+sponge built from the N-cube: every axis is split in thirds, `level` times over. It has the
+fields of `Hypercube` without the edge ones, and `scale: Option[Scale[?]]` (see above).
+
+```scala
+HypercubeSponge(
+  dimension = 5,
+  spongeType = TesseractSpongeType.SurfaceSubdividing, // or VolumeRemoving
+  level = 1.5f,                              // 0 is the penteract itself; fractional is fine
+  maxCentreCoordinates = 1,                  // k, default 1
+  material = Some(Material.Glass),
+  size = 1.6f,
+  projection = Some(ProjectionSpec(5, planes = List(PlaneRotation("xv", 30f))))
+)
+```
+
+- `VolumeRemoving` keeps the sub-cubes of each 3-split that have at most `k` coordinates in
+  the middle third. `k = 1` (default) is rule A, the generalisation of `TesseractSponge`;
+  `k = N - 2` is rule B, which removes only the middle cell and its axis neighbours; `k` is
+  1 to N - 1, anything else is rejected, the message naming the range. `k` sets the surface
+  sponge's inside test too.
+- `SurfaceSubdividing` is rule S: every square face splits into nine, the middle one is
+  replaced by walls one square deep around a hole, along each of the face's N - 2 normals.
+- Level 0 is the n-cube, with the same faces, view and size as `Hypercube(N)`; at N = 4 the
+  faces of both variants are those of `TesseractSponge`.
+- The highest `level` comes from the scene's triangle budget (`ResourceLimits`, 16M triangles
+  today), so it falls with the dimension: volume 3, 2, 2, 1, 1 and surface 4, 3, 3, 2, 2 for
+  N = 4 to 8 at k = 1. A level over it is rejected, the message naming the maximum for that
+  dimension. A larger `k` multiplies the faces of every level: it can fit at a lower level
+  than `k = 1` does, and a scene over the budget is refused when it is loaded, naming a level
+  that fits. Whole levels cost two triangles per face, counted exactly (a 5D surface sponge of
+  level 2 has 28,160 faces).
+- It is drawn on the CPU through `projection` (a `ProjectionSpec` of at least N dimensions,
+  default `ProjectionSpec(N)`). The sponge is built once per whole level and kept; a frame
+  that only turns, scales or re-views it projects it again. There are no edge tubes.
+- A fractional level fades the holes of the next level in: with an opaque material the caps of
+  the lower level's holes fade out over the upper level; with a refractive one (IOR above
+  1.05) the two whole levels are rendered and mixed, as for `TesseractSponge`. Both work with
+  a `ProjectionSpec`.
+- The command line has no `HypercubeSponge` (`type=n-sponge-volume` is refused, pointing to
+  the DSL): `--objects` keeps the 4D `tesseract-sponge-volume` and `-surface`.
+- Example: `PenteractSpongeBreath`, a 5D surface sponge breathing between level 0 and 2.
+
 **TesseractSponge (4D Menger Sponge):**
 ```scala
 // Two sponge types

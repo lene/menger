@@ -52,4 +52,5 @@ object SceneIndex:
     TesseractToPenteract.scene,
     HexeractTurning.scene,
     PenteractFold.scene,
+    PenteractSpongeBreath.scene,
   )

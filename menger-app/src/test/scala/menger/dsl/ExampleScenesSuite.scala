@@ -343,6 +343,54 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     spec.edgeRadius should not be empty
     spec.material should not be empty
 
+  it should "load PenteractSpongeBreath as an animated 5D surface sponge (menger#166)" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractSpongeBreath"))
+    val duration = examples.dsl.PenteractSpongeBreath.durationSeconds
+    duration shouldBe 16f
+    for t <- List(0f, 2.6108146f, 4f, 8f, 12f) do
+      val scene = fn(t)
+      scene.objects should have length 1
+      scene.lights should have length 2
+      val spec = scene.objects.head.toObjectSpec
+      (spec.objectType, spec.dimension, spec.maxCentreCoordinates) shouldBe
+        (("n-sponge-surface", Some(5), Some(1)))
+      spec.edgeRadius shouldBe None
+      spec.material should not be empty
+
+  it should "breathe PenteractSpongeBreath from level 0 to 2 and back, chrome to glass" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractSpongeBreath"))
+    val duration = examples.dsl.PenteractSpongeBreath.durationSeconds
+    def spec(t: Float) = fn(t).objects.head.toObjectSpec
+    spec(0f).level shouldBe Some(0f)
+    spec(duration).level shouldBe Some(0f)
+    spec(duration / 2).level shouldBe Some(2f)
+    spec(duration / 4).level.get shouldBe 1f +- 1e-5f
+    spec(2.6108146f).level.get shouldBe 0.5f +- 1e-4f
+    spec(0f).material.get.metallic shouldBe 1f
+    spec(0f).material.get.ior shouldBe 1f
+    spec(duration / 2).material.get.ior shouldBe 1.5f +- 1e-5f
+    spec(duration / 2).material.get.metallic shouldBe 0f
+
+  it should "stay within the level limits of a 5D surface sponge for every t" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractSpongeBreath"))
+    (0 to 160).foreach { step =>
+      val level = fn(step * 0.1f).objects.head.toObjectSpec.level.get
+      level should (be >= 0f and be <= 2f)
+    }
+
+  it should "turn PenteractSpongeBreath in xv and xz, a full turn over the loop" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractSpongeBreath"))
+    val duration = examples.dsl.PenteractSpongeBreath.durationSeconds
+    def turns(t: Float) =
+      fn(t).objects.head.toObjectSpec.projectionN.get.planes.map(r =>
+        (r.plane.letters, r.angle.value))
+    turns(0f) shouldBe List(("xv", 0f), ("xz", 0f))
+    turns(duration / 4).foreach((_, angle) => angle shouldBe 90f +- 1e-3f)
+    turns(duration / 2).foreach((_, angle) => angle shouldBe 180f +- 1e-3f)
+    // the loop wraps: the end of the loop is its start, one full turn later
+    turns(duration).foreach((_, angle) => angle shouldBe 0f +- 1e-3f)
+    turns(duration - 0.01f).foreach((_, angle) => angle should be > 359f)
+
   it should "repeat PenteractFold's extrusion outside the loop's first period" in:
     val extrusion = examples.dsl.PenteractFold.extrusion
     extrusion(18f) shouldBe extrusion(6f) +- 1e-5f

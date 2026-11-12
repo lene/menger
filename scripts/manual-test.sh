@@ -430,6 +430,9 @@ run_test "HexeractTurning t=2 (xu turned 45 degrees)" "-o --scene examples.dsl.H
 run_test "HexeractTurning t=4 (xu turned 90 degrees)" "-o --scene examples.dsl.HexeractTurning --t 4 -s $OUTPUT_DIR/105k-hexeract-turning-t4.png"
 run_test "PenteractFold t=3 (penteract at scale 0.5 along v)" "-o --scene examples.dsl.PenteractFold --t 3 -s $OUTPUT_DIR/105l-penteract-fold-t3.png"
 run_test "PenteractFold t=6 (penteract at scale 1, unfolded)" "-o --scene examples.dsl.PenteractFold --t 6 -s $OUTPUT_DIR/105m-penteract-fold-t6.png"
+run_test "PenteractSpongeBreath t=2.61 (5D surface sponge, level 0.5)" "-o --scene examples.dsl.PenteractSpongeBreath --t 2.6108146 -s $OUTPUT_DIR/105n-penteract-sponge-breath-l0.5.png"
+run_test "PenteractSpongeBreath t=4 (level 1)" "-o --scene examples.dsl.PenteractSpongeBreath --t 4 -s $OUTPUT_DIR/105o-penteract-sponge-breath-l1.png"
+run_test "PenteractSpongeBreath t=8 (level 2, glass)" "-o --scene examples.dsl.PenteractSpongeBreath --t 8 -s $OUTPUT_DIR/105p-penteract-sponge-breath-l2.png"
 
 # Colored Shadows Phase 1 (single-object)
 echo -e "${YELLOW}--- Colored Shadows (Phase 1: single object) ---${NC}"

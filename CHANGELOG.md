@@ -14,6 +14,18 @@
 
 ### Added
 
+- `HypercubeSponge` (Sprint 38 grid cell G9, lene/menger#166): the Menger sponge of 4 to 8
+  dimensions in the DSL, as a volume (`VolumeRemoving`, rule A generalised by
+  `maxCentreCoordinates` = k) or a surface sponge (`SurfaceSubdividing`, rule S), with the fields
+  of `Hypercube` less the edge ones, a `ProjectionSpec` view and a `Scale[N]`. Level 0 is the
+  n-cube; fractional levels fade the holes in (opaque) or mix two whole levels (refractive), as
+  the 4D sponges do. The highest level per dimension comes from the scene's triangle budget,
+  and a level whose cheap face bound exceeds the budget is counted exactly before it is
+  refused. CPU only; the unprojected mesh is memoised, so an animation re-projects it per
+  frame. Object types `n-sponge-volume` and `n-sponge-surface` (DSL only, refused on the command
+  line), `ObjectSpec.maxCentreCoordinates`, `ResourceLimits.ndSpongeLevel`. Example:
+  `PenteractSpongeBreath`. Manifest and corpus gain the object and the scene; no schema bump.
+
 - A per-axis `scale` (menger-common 0.4.0 `Vector.Scale[N]`: one factor >= 0 per axis, applied
   after `size`) on `Hypercube` (`Scale[N]`, the length checked against the dimension) and on the
   seven 4D objects that had `wScale`: `Tesseract`, `TesseractSponge` and the regular polytopes

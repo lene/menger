@@ -105,6 +105,11 @@ through a `ProjectionSpec` of at least N dimensions. See [the DSL reference](dsl
 and the `HexeractTurning` example. Its `scale` extrudes it along the newest axis: the
 `PenteractFold` example unfolds a penteract out of a tesseract.
 
+The Menger sponge of 4 to 8 dimensions is DSL only as well: `HypercubeSponge(dimension = N,
+spongeType, level, maxCentreCoordinates = k)`, as a volume or a surface sponge, with fractional
+levels like the 4D sponges. The highest level falls with the dimension, as the number of faces
+grows steeply. See [the DSL reference](dsl-reference.md) and the `PenteractSpongeBreath` example.
+
 #### Removed flags
 
 `--sponge-type`, `--level` (outside `--animate`), `--lines`, `--color`, `--face-color`,
