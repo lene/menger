@@ -2,7 +2,26 @@
 
 ## [Unreleased]
 
+### Breaking
+
+- The extrusion along the newest axis is part of the geometry now (Sprint 38 grid cell G8,
+  lene/menger#164): `Projection4DSpec.wScale` is replaced by `scale` (`Scale[4](1,1,1,s)`) on the
+  object, and the CLI `w-scale=s` by `scale=1,1,1,s`; `wScale` no longer compiles and `w-scale`
+  is rejected as an unknown key naming `scale=`. A scene that did not use it renders as before,
+  and `CubeToTesseract` (migrated) renders the same. The manifest is 3.0.0 and the validator
+  result 2.0.0: the snapshot's `projection` loses `wScale` and its objects carry `scale`.
+  menger-scene-agent must regenerate its manifest and corpus and take over the new schemas.
+
 ### Added
+
+- A per-axis `scale` (menger-common 0.4.0 `Vector.Scale[N]`: one factor >= 0 per axis, applied
+  after `size`) on `Hypercube` (`Scale[N]`, the length checked against the dimension) and on the
+  seven 4D objects that had `wScale`: `Tesseract`, `TesseractSponge` and the regular polytopes
+  (`Scale[4]`), not the GPU IFS types. A zero factor collapses an axis, the last factor extrudes
+  along the newest one. The hand-over rule is in the manifest and the DSL reference: a
+  `Hypercube(n)` whose last factor is 0 is the `Hypercube(n - 1)`. A collapsed `Hypercube` draws
+  no edge tubes of zero length. Example: `PenteractFold`, a penteract unfolding out of a
+  tesseract and back. menger-common is pinned at 0.4.0.
 
 - A capped `Cylinder` for scenes, the round plinth of the Sprint 38 scene: DSL `Cylinder` with
   optional `p0`, `p1` (centres of its end caps, world coordinates; both or neither) and

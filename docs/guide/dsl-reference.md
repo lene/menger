@@ -223,7 +223,7 @@ Cylinder(p0 = Some(Vec3(0f, -0.65f, 0f)), p1 = Some(Vec3(0f, -0.45f, 0f)),
 
 **4D IFS fractals:** `Menger4D` (the `TesseractSponge`'s shape), `PentachoronGasket` and
 `HexadecachoronGasket` (Sierpinski gaskets of the 5-cell and the 16-cell) take a `level` and
-the fields of `Tesseract`. They are traced on the GPU without a stored mesh.
+the fields of `Tesseract`, with `scale: Option[Scale[?]]` (see above) in place of its 4D one. They are traced on the GPU without a stored mesh.
 `PentachoronGasket` was called `Sierpinski4D`; the old name still compiles, deprecated.
 
 Every command-line object type has a DSL class.
@@ -310,6 +310,10 @@ Tesseract(Material.Glass).copy(
   ))
 )
 
+// Per-axis geometry scale (four factors >= 0, after size): the w factor 0 flattens the
+// tesseract to a cube, animating it 0 -> 1 grows the tesseract out of it
+Tesseract(Material.Glass).copy(scale = Some(Scale[4](1f, 1f, 1f, 0.5f)))
+
 // With edge rendering (wireframe overlay)
 Tesseract(Material.Glass).copy(
   edgeRadius = Some(0.025f),
@@ -323,6 +327,39 @@ Tesseract(
   size = 1.0f
 )
 ```
+
+**Per-axis scale (`Scale`):**
+
+Every 4D object (`Tesseract`, `TesseractSponge`, the regular polytopes) takes
+`scale: Option[Scale[4]]` and `Hypercube` takes `Scale[N]` for its own dimension: one factor
+>= 0 per axis, applied to the object's coordinates after `size` and before rotation and
+projection. The default is all 1, and a scene without `scale` renders as before. A wrong number
+of factors (`Hypercube(6, scale = Some(Scale[5](...)))`) is rejected at scene load, naming both
+numbers; a negative, NaN or infinite factor is rejected by `Scale` itself. The GPU IFS types
+(`Menger4D`, `PentachoronGasket`, `HexadecachoronGasket`) and the 3D objects have no `scale`.
+
+```scala
+Tesseract(scale = Some(Scale[4](1f, 1f, 1f, 0.5f)))               // half as deep in w
+Hypercube(5, scale = Some(Scale.identity[5].withLast(0.3f)))      // v extent 0.3 x size
+```
+
+- A factor of 0 collapses the axis. The last factor of an object is its **extrusion along the
+  newest axis**: animating it 0 -> 1 grows a `Tesseract` out of a cube, or a `Hypercube(5)` out
+  of a tesseract. This replaces `Projection4DSpec.wScale`; `scale` is geometry, not view, so a
+  change of it rebuilds the object, where a change of `projection` re-projects it.
+- **Hand-over rule.** A `Hypercube(n)` whose last factor is 0 is the `Hypercube(n - 1)`, seen
+  in the same n-dimensional view. In the lower object's own (n - 1)-dimensional view it is
+  bigger than the flat higher one, which is shown at `(eye - screen) / eye` of its size (0.5
+  by default): swap at exactly 0 and give the higher object the size `s * eye / (eye -
+  screen)` of its first projection stage for a lower object of size `s`. A 3D `Cube` to
+  `Hypercube(4)` (or `Tesseract`) is the same rule. Every plane that involves the collapsing
+  axis must be at a multiple of 180 degrees when it collapses. Near 0 the two copies of each
+  face nearly coincide, so expect z-fighting for a few frames; edge tubes of zero length are
+  not drawn.
+- Examples: `CubeToTesseract` (3D to 4D) and `PenteractFold`, a penteract that unfolds out of
+  the tesseract along `v` and folds back, in a loop of 12 s.
+- On the command line the four factors are `scale=1,1,1,0.5` (the old `w-scale=0.5` is
+  rejected, naming `scale=`); it takes the 4D polytopes and sponges.
 
 **A 4D object in 5D to 8D (`ProjectionSpec`):**
 
@@ -365,8 +402,8 @@ Tesseract(
   (`Menger4D`, `PentachoronGasket`, `HexadecachoronGasket`) take a `Projection4DSpec` only.
   Shift+drag and Shift+scroll (eye) in the render window leave it alone (the log says so
   once), and the command line has no nD projection: `--objects` keeps the 4D keys.
-- A `ProjectionSpec` has no `wScale`: the cube-to-tesseract extrusion (`CubeToTesseract`)
-  cannot be combined with a lift into 5D or more.
+- The object's `scale` applies before the lift, so a scaled 4D object can be lifted into 5D or
+  more.
 - `ProjectionSpec(4, planes = List(PlaneRotation("zw", c), PlaneRotation("yw", b),
   PlaneRotation("xw", a)))` is `Projection4DSpec(rotXW = a, rotYW = b, rotZW = c)`.
 - Example: `TesseractToPenteract`, a tesseract with a strong 5D perspective

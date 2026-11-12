@@ -85,7 +85,12 @@ Common `--objects` keys: `pos=x,y,z`, `size=S`, `color=#RRGGBB`, `material=PRESE
 ```bash
 --objects type=tesseract:rot-xw=30:rot-yw=45     # Rotation in the XW / YW / ZW planes (degrees)
 --objects type=tesseract:eye-w=4:screen-w=2      # 4D projection eye / screen distance
+--objects type=tesseract:scale=1,1,1,0.5         # Per-axis scale after size: w at half depth
 ```
+
+`scale=a,b,c,d` is four factors >= 0 (default `1,1,1,1`); `scale=1,1,1,0` flattens a tesseract
+to a cube, and animating the last factor from 0 to 1 grows the tesseract out of it. It replaces
+the old `w-scale=` key, which is rejected.
 
 The global flags `--rot-x-w`, `--rot-y-w`, `--rot-z-w` (or the shorthand `--rotation-4d XW,YW,ZW`)
 and `--rot-x`, `--rot-y`, `--rot-z` add a rotation to **every** object on top of its own.
@@ -97,7 +102,8 @@ Shift+drag rotation and the Shift+scroll eye change do not apply to such an obje
 The cube of 4 to 8 dimensions (tesseract, penteract, hexeract, ...) is DSL only too:
 `Hypercube(dimension = N)`, with film faces and one tube per edge like the tesseract, seen
 through a `ProjectionSpec` of at least N dimensions. See [the DSL reference](dsl-reference.md)
-and the `HexeractTurning` example.
+and the `HexeractTurning` example. Its `scale` extrudes it along the newest axis: the
+`PenteractFold` example unfolds a penteract out of a tesseract.
 
 #### Removed flags
 
