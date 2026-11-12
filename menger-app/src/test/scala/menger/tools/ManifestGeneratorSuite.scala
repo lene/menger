@@ -208,6 +208,15 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     enums("AreaLightShape") should not be empty
     enums("DenoiseMode") should not be empty
 
+  // menger#164: the JVM erases a Scale's singleton dimension, so the manifest renders it as the
+  // DSL writes it.
+  it should "render the type of the per-axis scale fields" in:
+    val manifest = manifestFor(freshTempPath())
+    def scaleType(objectName: String): String =
+      manifest.objects.find(_.name == objectName).get.fields.find(_.name == "scale").get.`type`
+    scaleType("Tesseract") shouldBe "scala.Option<menger.common.Vector.Scale[N]>"
+    scaleType("Hypercube") shouldBe "scala.Option<menger.common.Vector.Scale[?]>"
+
   it should "carry the scene-composition types an agent needs to assemble a scene" in:
     val manifest = manifestFor(freshTempPath())
     manifest.sceneComposition.map(_.name) should contain allOf ("Camera", "Scene", "Caustics")

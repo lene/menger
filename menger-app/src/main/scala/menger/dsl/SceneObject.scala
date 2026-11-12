@@ -3,6 +3,7 @@ package menger.dsl
 import scala.annotation.targetName
 
 import menger.objects.LSystemPresets
+import menger.objects.higher_d.AxisScaledMesh
 import menger.spec.ConeGeometry
 import menger.spec.CurveData
 import menger.spec.CylinderGeometry
@@ -37,7 +38,7 @@ private[dsl] object ScaleRules:
 
   /** None for an identity scale, so that it renders and compares as no scale at all. */
   def toSpec(scale: Option[Scale[?]]): Option[IndexedSeq[Float]] =
-    scale.filterNot(_.isIdentity).map(_.toIndexedSeq)
+    scale.flatMap(factors => AxisScaledMesh.nonIdentity(factors.toIndexedSeq))
 
 /** Base trait for all scene objects */
 sealed trait SceneObject:

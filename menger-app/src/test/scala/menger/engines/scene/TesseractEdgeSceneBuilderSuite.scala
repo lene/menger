@@ -3,6 +3,7 @@ package menger.engines.scene
 import menger.cli.ObjectSpecParser
 import menger.spec.ObjectSpec
 import menger.spec.Projection4DSpec
+import menger.spec.ProjectionSpec
 import menger.common.ProfilingConfig
 import menger.common.Vector
 import org.scalatest.flatspec.AnyFlatSpec
@@ -41,6 +42,22 @@ class TesseractEdgeSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val absent = withoutProjection
     val rotated = absent.copy(projection = Some(Projection4DSpec(rotXW = 20f)))
     builder.isCompatible(rotated, absent) shouldBe true
+
+  // menger#164: a zero factor collapses an axis, so its edges have no length: no tube for them.
+  "edgeEndpoints" should "draw no tube for an edge a collapsed axis left without length" in:
+    val flat = ObjectSpec("tesseract", scale = Some(IndexedSeq(1f, 1f, 1f, 0f)))
+    val edges = MeshFactory.renderMesh4D(flat).get.edges.toIndexedSeq
+    edges.count((from, to) => from == to) shouldBe 8
+    val legacy = TesseractEdgeSceneBuilder.edgeEndpoints(flat, edges)
+    legacy should have size edges.size.toLong
+    legacy.flatten should have size 12
+    val lifted = flat.copy(projection = Some(ProjectionSpec(5)))
+    TesseractEdgeSceneBuilder.edgeEndpoints(lifted, edges).flatten should have size 12
+
+  it should "draw every edge of an unscaled tesseract" in:
+    val plain = ObjectSpec("tesseract")
+    val edges = MeshFactory.renderMesh4D(plain).get.edges.toIndexedSeq
+    TesseractEdgeSceneBuilder.edgeEndpoints(plain, edges).flatten should have size 32
 
   "isClippedByEyeW" should "not clip a vertex safely inside eyeW" in:
     builder.isClippedByEyeW(Vector[4](0f, 0f, 0f, 0f), eyeW = 3.0f) shouldBe false

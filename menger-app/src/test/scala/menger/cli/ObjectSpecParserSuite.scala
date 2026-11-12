@@ -480,6 +480,8 @@ class ObjectSpecParserSuite extends AnyFlatSpec with Matchers:
   it should "reject the removed w-scale key, naming scale=" in:
     val result = ObjectSpecParser.parse("type=tesseract:w-scale=0.5")
     result.left.toOption.get should (include("w-scale") and include("scale=1,1,1,0.5"))
+    ObjectSpecParser.parse("type=tesseract:w-scale=0.3").left.toOption.get should
+      include("scale=1,1,1,0.3")
 
   it should "reject a scale that does not have four factors >= 0" in:
     Seq("1,1,1", "1,1,1,1,1", "1,-1,1,1", "1,1,1,NaN", "1,1,1,Infinity", "a,b,c,d", "").foreach {

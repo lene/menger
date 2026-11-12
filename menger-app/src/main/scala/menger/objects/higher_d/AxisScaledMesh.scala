@@ -17,8 +17,16 @@ final case class AxisScaledMesh[N <: Int & Singleton](mesh: Mesh[N], scales: Ind
   lazy val faces: Seq[Polygon[N, V]] = mesh.faces.map(_.mapVertices(scale(_)))
 
 object AxisScaledMesh:
+  /** `scales` unless it is the identity scale, which is no scale at all. */
+  def nonIdentity(scales: IndexedSeq[Float]): Option[IndexedSeq[Float]] =
+    Some(scales).filterNot(_.forall(_ == 1f))
+
   /** `mesh` itself at the identity scale. */
   def of[N <: Int & Singleton](mesh: Mesh[N], scales: IndexedSeq[Float])(
-    using ValueOf[N]
+    using n: ValueOf[N]
   ): Mesh[N] =
-    if scales.forall(_ == 1f) then mesh else AxisScaledMesh(mesh, scales)
+    require(
+      scales.size == n.value,
+      s"a ${n.value}-dimensional mesh needs ${n.value} scale factors, got ${scales.size}"
+    )
+    nonIdentity(scales).fold(mesh)(AxisScaledMesh(mesh, _))

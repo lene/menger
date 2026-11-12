@@ -34,6 +34,20 @@ class MeshFactorySpec extends AnyFlatSpec with Matchers:
     ).map(quads)
     buffers.combinations(2).foreach { pair => pair(0) should not be theSameInstanceAs(pair(1)) }
 
+  // menger#164: the scale is part of the pre-projection buffer, so it must key the cache.
+  it should "not reuse the buffer of an unscaled object for a scaled one" in:
+    val plain = ObjectSpec("tesseract")
+    val halfDeep = plain.copy(scale = Some(IndexedSeq(1f, 1f, 1f, 0.5f)))
+    val plainBuffer = quads(MeshFactory.createUpload(plain))
+    val scaledBuffer = quads(MeshFactory.createUpload(halfDeep))
+    scaledBuffer should not be theSameInstanceAs(plainBuffer)
+    def coordinate(buffer: Array[Float], axis: Int): Seq[Float] =
+      buffer.grouped(4).map(_(axis)).toSeq
+    coordinate(scaledBuffer, 3) shouldBe coordinate(plainBuffer, 3).map(_ * 0.5f)
+    (0 until 3).foreach { axis =>
+      coordinate(scaledBuffer, axis) shouldBe coordinate(plainBuffer, axis)
+    }
+
   // --- 4D types → Gpu4D plan ---
 
   "MeshFactory.createUpload" should "return Gpu4D plan for tesseract" in:

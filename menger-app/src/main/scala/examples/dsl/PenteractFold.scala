@@ -8,10 +8,10 @@ import menger.spec.ProjectionSpec
 import menger.spec.ProjectionStage
 
 /**
- * Example: the penteract, the cube of five dimensions, unfolding out of the tesseract and folding
- * back into it (menger#164). Its `scale` along the newest axis v grows from 0 to 1 and back to
- * 0, eased by a smoothstep; at 0 the penteract is the tesseract, and nothing else of the scene
- * changes, so the dimension ladder's hand-over needs no cut.
+ * Example: the penteract, the cube of five dimensions, unfolding along its newest axis v and
+ * folding back (menger#164). Its `scale` along v grows from 0 to 1 and back to 0, eased by a
+ * smoothstep; at 0 the penteract is flat in v, a tesseract in the 5D view. This shows the
+ * per-axis scale, not the hand-over to a separate lower object (that is `CubeToTesseract`).
  *
  * It turns in the plane xv, which mixes the new axis into the old ones, and in the plane xz,
  * which is a whole turn of the 3D picture. Both make a full 360 degrees over the loop, so the
@@ -24,20 +24,33 @@ object PenteractFold:
   val durationSeconds = 12f
 
   private val fullTurn = 360f
-  private val stages = List.fill(2)(ProjectionStage(4f, 0.8f))
+  // Two projection stages (5D -> 4D -> 3D), each with its eye above the cube's extent along the
+  // axis it drops and the screen close to the origin, so the picture stays large.
+  private val stageEye = 4f
+  private val stageScreen = 0.8f
+  private val stageCount = 2
+  private val stages = List.fill(stageCount)(ProjectionStage(stageEye, stageScreen))
   private val size = 1.6f
-  private val material = Some(Material.Film)
+  // Film has an IOR of 1.33, which sends the shader down the refractive path; IOR 1 is a thin
+  // film without refraction.
+  private val material = Some(Material.Film.copy(ior = 1.0f))
   private val edgeRadius = Some(0.012f)
   private val edgeMaterial = Some(Material.Gold)
 
-  private def smoothstep(x: Float): Float = x * x * (3f - 2f * x)
+  private def smoothstep(x: Float): Float =
+    val clamped = math.min(1f, math.max(0f, x))
+    clamped * clamped * (3f - 2f * clamped)
+
+  /** The time within the loop, also for t outside 0 to `durationSeconds`. */
+  private def loopTime(t: Float): Float =
+    ((t % durationSeconds) + durationSeconds) % durationSeconds
 
   /** 0 at the start and the end of the loop, 1 in the middle. */
   def extrusion(t: Float): Float =
-    smoothstep(1f - math.abs(2f * t / durationSeconds - 1f))
+    smoothstep(1f - math.abs(2f * loopTime(t) / durationSeconds - 1f))
 
   def scene(t: Float): Scene =
-    val turn = fullTurn * t / durationSeconds
+    val turn = fullTurn * loopTime(t) / durationSeconds
     val view = ProjectionSpec(
       dimension = 5,
       planes = List(PlaneRotation("xv", turn), PlaneRotation("xz", turn)),

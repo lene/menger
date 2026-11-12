@@ -75,6 +75,12 @@ case class ObjectSpec(
   scale: Option[IndexedSeq[Float]] = None
 ):
   require(texture.isEmpty || videoTexture.isEmpty, "texture and videoTexture are mutually exclusive")
+  scale.foreach { factors =>
+    require(
+      factors.forall(f => f.isFinite && f >= 0f),
+      s"scale factors must be finite and >= 0, got ${factors.mkString(", ")}"
+    )
+  }
 
   def hasEdgeRendering: Boolean = edgeRadius.isDefined || edgeMaterial.isDefined
   def rotX: Float = rotation.x.value
@@ -109,6 +115,11 @@ case class ObjectSpec(
 
   /** The per-axis scale of an object with `dimension` axes: all 1 without a `scale`. */
   def axisScales(dimension: Int): IndexedSeq[Float] =
+    require(
+      scale.forall(_.size == dimension),
+      s"scale has ${scale.fold(0)(_.size)} factors, but ${objectType} is $dimension-dimensional " +
+        s"and needs $dimension"
+    )
     scale.getOrElse(IndexedSeq.fill(dimension)(ObjectSpec.IdentityScale))
 
   /** This spec without its view (eye, screen, rotations; a [[ProjectionSpec]] altogether): a view
@@ -119,6 +130,9 @@ case class ObjectSpec(
 object ObjectSpec:
 
   val IdentityScale: Float = 1f
+
+  /** The dimension of the 4D polytope and sponge types, whose `scale` has this many factors. */
+  val LegacyDimension: Int = 4
 
   /** The 3D types with edge tubes: triangle meshes whose edges come from their faces
     * (MeshEdges3D, menger#132). A recursive-IAS sponge has no flat mesh to take them from. */

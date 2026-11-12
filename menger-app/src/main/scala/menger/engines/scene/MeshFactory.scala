@@ -50,9 +50,6 @@ import menger.spec.Projection4DSpec
  */
 object MeshFactory:
 
-  /** The dimension of the 4D polytope and sponge types, whose `scale` has this many factors. */
-  private val LegacyDimension = 4
-
   /**
    * Create a triangle mesh for the given ObjectSpec.
    *
@@ -179,8 +176,8 @@ object MeshFactory:
     def buffer(spec: ObjectSpec, holeCaps: Boolean): Option[(Array[Float], Int)] =
       if !spec.isLegacyView then
         Fail.internal(s"no GPU 4D buffer for ${spec.objectType}: it has a ProjectionSpec")
-      val key: Key =
-        (spec.objectType, spec.level, spec.size, spec.axisScales(LegacyDimension), holeCaps)
+      val scales = spec.axisScales(ObjectSpec.LegacyDimension)
+      val key: Key = (spec.objectType, spec.level, spec.size, scales, holeCaps)
       entries.synchronized(Option(entries.get(key))).orElse {
         renderMesh4D(spec).map { m =>
           val built =
@@ -221,7 +218,7 @@ object MeshFactory:
   /** The 4D mesh the render paths draw: [[mesh4D]] with the spec's scale applied (menger#65, #164).
     * The validator keeps the unscaled mesh, whose polytope invariants it checks. */
   def renderMesh4D(spec: ObjectSpec): Option[Mesh4D] =
-    mesh4D(spec).map(AxisScaledMesh.of(_, spec.axisScales(LegacyDimension)))
+    mesh4D(spec).map(AxisScaledMesh.of(_, spec.axisScales(ObjectSpec.LegacyDimension)))
 
   private def mesh4DProjection(spec: ObjectSpec): Option[ProjectedMesh4D] =
     renderMesh4D(spec).map { mesh =>

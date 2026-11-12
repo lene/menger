@@ -343,6 +343,17 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     spec.edgeRadius should not be empty
     spec.material should not be empty
 
+  it should "repeat PenteractFold's extrusion outside the loop's first period" in:
+    val extrusion = examples.dsl.PenteractFold.extrusion
+    extrusion(18f) shouldBe extrusion(6f) +- 1e-5f
+    extrusion(-3f) shouldBe extrusion(9f) +- 1e-5f
+    extrusion(-3f) shouldBe 0.5f +- 1e-5f
+    extrusion(-12f) shouldBe 0f +- 1e-5f
+
+  it should "give PenteractFold's faces a thin film without refraction" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractFold"))
+    fn(3f).objects.head.toObjectSpec.material.map(_.ior) shouldBe Some(1.0f)
+
   it should "close the PenteractFold loop: the same mesh at the start and the end" in:
     given ProfilingConfig = ProfilingConfig.disabled
     val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractFold"))

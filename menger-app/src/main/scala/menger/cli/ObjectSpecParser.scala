@@ -8,6 +8,7 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.common.Color
 import menger.common.Material
 import menger.dsl.ResourceLimits
+import menger.objects.higher_d.AxisScaledMesh
 import menger.spec.ConeGeometry
 import menger.spec.CurveData
 import menger.spec.CylinderGeometry
@@ -24,7 +25,6 @@ import menger.spec.TextureMaps
   * its examples are documented on `ObjectSpec`). */
 object ObjectSpecParser extends LazyLogging:
 
-  private val ScaleFactors = 4
   private val RemovedWScaleKey = "w-scale"
 
   /**
@@ -181,7 +181,8 @@ object ObjectSpecParser extends LazyLogging:
     if kvPairs.contains(RemovedWScaleKey) then
       Left(
         s"Unknown key '$RemovedWScaleKey': it was replaced by the per-axis scale=A,B,C,D, " +
-          s"e.g. scale=1,1,1,0.5 for $RemovedWScaleKey=0.5"
+          s"e.g. scale=1,1,1,${kvPairs(RemovedWScaleKey)} for " +
+          s"$RemovedWScaleKey=${kvPairs(RemovedWScaleKey)}"
       )
     else if unknownKeys.nonEmpty then
       val sorted = unknownKeys.toList.sorted.mkString("', '")
@@ -420,11 +421,12 @@ object ObjectSpecParser extends LazyLogging:
       case Some(_) if !ObjectType.isProjected4D(objType) =>
         Left(s"scale applies to the 4D polytopes and sponges only, not to $objType")
       case Some(raw) =>
-        val invalid = s"Invalid scale '$raw': expected $ScaleFactors comma-separated factors " +
+        val factors = ObjectSpec.LegacyDimension
+        val invalid = s"Invalid scale '$raw': expected $factors comma-separated factors " +
           ">= 0, e.g. scale=1,1,1,0.5"
         Try(raw.split(",", -1).map(_.trim.toFloat).toIndexedSeq).toOption
-          .filter(f => f.size == ScaleFactors && f.forall(x => x.isFinite && x >= 0f))
-          .map(f => Some(f).filterNot(_.forall(_ == 1f)))
+          .filter(f => f.size == factors && f.forall(x => x.isFinite && x >= 0f))
+          .map(AxisScaledMesh.nonIdentity)
           .toRight(invalid)
 
   private def parseFloatParam(

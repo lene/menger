@@ -223,7 +223,8 @@ Cylinder(p0 = Some(Vec3(0f, -0.65f, 0f)), p1 = Some(Vec3(0f, -0.45f, 0f)),
 
 **4D IFS fractals:** `Menger4D` (the `TesseractSponge`'s shape), `PentachoronGasket` and
 `HexadecachoronGasket` (Sierpinski gaskets of the 5-cell and the 16-cell) take a `level` and
-the fields of `Tesseract`, with `scale: Option[Scale[?]]` (see above) in place of its 4D one. They are traced on the GPU without a stored mesh.
+the fields of `Tesseract`, except `scale`: they have none (see the per-axis scale below). They
+are traced on the GPU without a stored mesh.
 `PentachoronGasket` was called `Sierpinski4D`; the old name still compiles, deprecated.
 
 Every command-line object type has a DSL class.
@@ -414,7 +415,7 @@ Tesseract(
 `Hypercube(dimension = N)` is the cube of N dimensions: 4 is the tesseract, 5 the penteract, 6
 the hexeract, up to 8. It has 2^N vertices, N * 2^(N-1) edges and C(N,2) * 2^(N-2) square faces
 (5: 32, 80, 80; 8: 256, 1024, 1792). `size` is the edge length, `pos` the centre. It has the
-fields of `Tesseract`.
+fields of `Tesseract`, with `scale: Option[Scale[?]]` (see above) in place of its 4D one.
 
 ```scala
 import menger.spec.{PlaneRotation, ProjectionSpec}

@@ -135,6 +135,28 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     snapshot.lights.head.intensity shouldBe 1.5f
     result.cameraPath shouldBe empty
 
+  // menger#164: the per-axis scale reaches the agent; no scale reads as None.
+  it should "carry a 4D object's per-axis scale, and None for an unscaled one" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object ScaledScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 1f, 6f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(
+        |      Tesseract(scale = Some(Scale[4](1f, 1f, 1f, 0.5f))),
+        |      Hypercube(5, scale = Some(Scale[5](1f, 1f, 1f, 1f, 0.25f))),
+        |      Tesseract(pos = (3f, 0f, 0f))
+        |    ),
+        |    lights = List(Directional(direction = (1f, -1f, -1f), intensity = 1.5f))
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+    result.snapshots.head.objects.map(_.scale) shouldBe List(
+      Some(List(1f, 1f, 1f, 0.5f)), Some(List(1f, 1f, 1f, 1f, 0.25f)), None
+    )
+
   // Review 2026-10-14 (menger#92): planes were missing, so a plane change never reached the
   // agent's change list; objects carried only the renderer's name. In a node tree the DSL name
   // must pair with its own flattened spec.

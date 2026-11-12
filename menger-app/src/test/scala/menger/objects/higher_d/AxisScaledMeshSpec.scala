@@ -65,6 +65,23 @@ class AxisScaledMeshSpec extends AnyFlatSpec with Matchers:
     an[IllegalArgumentException] should be thrownBy
       AxisScaledMesh(Tesseract(), IndexedSeq(1f, 1f, 1f))
 
+  it should "check the length of the scales before the identity shortcut" in:
+    an[IllegalArgumentException] should be thrownBy
+      AxisScaledMesh.of(Tesseract(), IndexedSeq(1f, 1f, 1f))
+    AxisScaledMesh.nonIdentity(IndexedSeq(1f, 1f, 1f, 1f)) shouldBe None
+    AxisScaledMesh.nonIdentity(IndexedSeq(1f, 1f, 1f, 0f)) should not be empty
+
+  "ObjectSpec" should "reject a scale factor that is negative or not finite" in:
+    Seq(-1f, Float.NaN, Float.PositiveInfinity).foreach { bad =>
+      an[IllegalArgumentException] should be thrownBy
+        ObjectSpec("tesseract", scale = Some(IndexedSeq(1f, 1f, 1f, bad)))
+    }
+
+  it should "reject a scale of the wrong length when the scales are read" in:
+    val refusal = the[IllegalArgumentException] thrownBy
+      ObjectSpec("tesseract", scale = Some(IndexedSeq(1f, 1f, 1f))).axisScales(4)
+    refusal.getMessage should (include("3 factors") and include("4"))
+
   "ObjectSpec.axisScales" should "default to all 1 and read the scale" in:
     ObjectSpec("tesseract").axisScales(4) shouldBe IndexedSeq(1f, 1f, 1f, 1f)
     ObjectSpec("tesseract", scale = Some(IndexedSeq(1f, 1f, 1f, Half))).axisScales(4) shouldBe

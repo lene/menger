@@ -448,10 +448,11 @@ object TesseractEdgeSceneBuilder:
     spec: ObjectSpec,
     edges: IndexedSeq[(Vector[4], Vector[4])]
   ): IndexedSeq[Option[(Vector[3], Vector[3])]] =
-    spec.projectionN match
+    EdgeTubes.withLength(spec.projectionN match
       case Some(view) =>
         chainEdgeEndpoints(spec, ProjectionConversion.liftedProjection(view), edges)
       case None => legacyEdgeEndpoints(spec, edges)
+    )
 
   /** The same clip as the 4D view, applied at every stage of the chain. */
   private def chainEdgeEndpoints(
