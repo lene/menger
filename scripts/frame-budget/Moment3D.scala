@@ -26,7 +26,15 @@ object Moment3D:
   private val objectCentre = Vec3(0f, plinthTopY + 0.01f + objectSize / 2f, 0f)
   // Low, on the far side from the sun, 15 degrees to one side.
   private val cameraOffset = Vec3(-4.0f, -0.25f, -2.04f)
+  // t is the level. It should lie on the 0.25 grid and is valid for 0 to 5; larger values exceed
+  // the level limit of the object type (sponge-volume). The level is floored, with a margin
+  // for float error, so that the 3 frames of one measurement (t, t + 1/30, t + 2/30) draw the
+  // same geometry: a rounded level would step up inside them just below a half step.
   private val levelStepsPerUnit = 4f
+  private val levelFloatMargin = 1e-3
+
+  private def quantisedLevel(t: Float): Float =
+    (math.floor(t * levelStepsPerUnit + levelFloatMargin) / levelStepsPerUnit).toFloat
 
   val durationSeconds = 10f
 
@@ -43,7 +51,7 @@ object Moment3D:
         Sponge(
           spongeType = VolumeFilling,
           pos = objectCentre,
-          level = math.round(t * levelStepsPerUnit) / levelStepsPerUnit,
+          level = quantisedLevel(t),
           material = Some(Material.Glass),
           size = objectSize
         )
