@@ -2,6 +2,7 @@ package examples.dsl
 
 import examples.dsl.DimensionLadder.Kind
 import examples.dsl.DimensionLadder.Segment
+import menger.common.Material
 import menger.common.ProfilingConfig
 import menger.dsl.Scene
 import menger.dsl.SceneObject
@@ -18,7 +19,11 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
   private val tops = 4 to 8
   private val vertexTolerance = 1e-3f
   private val degenerateArea = 1e-9f
-  private val frames = 200
+  private val budgetFrames = 400
+  private val aroundBoundary = 1e-3f
+  private val cameraTolerance = 5e-3f
+  private val materialTolerance = 1e-5f
+  private val saneRadius = 5f
 
   private type Point = (Float, Float, Float)
 
@@ -57,9 +62,25 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
     val all = DimensionLadder.segments(cycle, top)
     all.zip(all.tail :+ all.head)
 
+  private def materialValues(m: Option[Material]): List[Float] =
+    m.toList.flatMap(x => List(x.color.r, x.color.g, x.color.b, x.color.a, x.ior, x.roughness,
+      x.metallic, x.specular, x.emission, x.filmThickness, x.dispersion))
+
+  private def withinTolerance(a: List[Float], b: List[Float]): Unit =
+    a.length shouldBe b.length
+    a.zip(b).foreach((x, y) => x shouldBe y +- materialTolerance)
+
+  private def withinBudget(scene: Scene): Unit =
+    val caustics = scene.caustics.fold(SceneCost.CausticsLoad.None)(c =>
+      SceneCost.CausticsLoad(c.photonsPerIteration.toLong, c.iterations.toLong))
+    val estimate = SceneCost.estimate(scene.objects.map(_.toObjectSpec),
+      scene.render.fold(1)(_.accumulation), caustics)
+    SceneCost.check(estimate) shouldBe Right(())
+
   "DimensionLadder" should "close the seam: scene(0) == scene(T)" in:
     DimensionLadder.scene(0f) shouldBe DimensionLadder.scene(cycle)
     DimensionLadder.scene(-cycle) shouldBe DimensionLadder.scene(0f)
+    DimensionLadder.scene(0f).camera shouldBe DimensionLadder.scene(cycle).camera
 
   it should "be periodic: scene(t) == scene(t + T)" in:
     val t = cycle / 3f
@@ -71,7 +92,14 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
       all.map(_.seconds).sum shouldBe length +- 1e-3f
       all.last.end shouldBe length +- 1e-3f
       all.zip(all.tail).foreach((a, b) => b.start shouldBe a.end)
-      all.filter(_.kind == Kind.Collapse).map(_.seconds).sum shouldBe length / 5f +- 1e-3f
+      all.filter(_.kind == Kind.Collapse).map(_.seconds).sum shouldBe
+        length * DimensionLadder.descentFraction +- 1e-3f
+
+  it should "reject a cycle that is not positive, and clamp how far into a segment it is" in:
+    an[IllegalArgumentException] should be thrownBy DimensionLadder.segments(0f)
+    an[IllegalArgumentException] should be thrownBy DimensionLadder.phaseOf(1f, -1f)
+    DimensionLadder.segmentAt(-1f)._2 shouldBe 0f
+    DimensionLadder.segmentAt(cycle + 1f)._2 shouldBe 1f
 
   it should "hand over every segment boundary with the same projected vertices" in:
     for top <- tops; (before, after) <- boundaries(top) do
@@ -86,12 +114,49 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
         sameShape(DimensionLadder.objectAt(fold, 0f, cycle, top),
           DimensionLadder.objectAt(fold, justAfter, cycle, top))
 
+  it should "show the lower object while a fold starts or a collapse ends, by flatness" in:
+    def kind(spec: menger.spec.ObjectSpec): (String, Option[Int]) =
+      (spec.objectType, spec.dimension)
+    def expected(n: Int): (String, Option[Int]) =
+      if n == 3 then ("cube", None) else ("n-cube", Some(n))
+    for top <- tops; segment <- DimensionLadder.segments(cycle, top) do
+      val n = segment.dimension
+      def shown(u: Float) = kind(DimensionLadder.objectAt(segment, u, cycle, top).toObjectSpec)
+      segment.kind match
+        case Kind.Fold =>
+          withClue(s"top $top, $segment: "):
+            List(0f, 0.01f).foreach(shown(_) shouldBe expected(n - 1))
+            shown(0.5f) shouldBe expected(n)
+        case Kind.Collapse =>
+          withClue(s"top $top, $segment: "):
+            List(1f, 0.99f).foreach(shown(_) shouldBe expected(n - 1))
+            shown(0.5f) shouldBe expected(n)
+        case _ => ()
+
+  it should "agree on material and edges across every segment boundary" in:
+    for top <- tops; (before, after) <- boundaries(top) do
+      withClue(s"top $top, $before -> $after: "):
+        val left = DimensionLadder.objectAt(before, 1f, cycle, top).toObjectSpec
+        val right = DimensionLadder.objectAt(after, 0f, cycle, top).toObjectSpec
+        withinTolerance(materialValues(left.material), materialValues(right.material))
+        withinTolerance(left.edgeRadius.toList, right.edgeRadius.toList)
+        withinTolerance(materialValues(left.edgeMaterial), materialValues(right.edgeMaterial))
+
+  it should "move the camera continuously across every segment boundary" in:
+    for top <- tops; segment <- DimensionLadder.segments(cycle, top) do
+      val at = segment.start
+      val (before, after) = (DimensionLadder.sceneAt(at - aroundBoundary, cycle, top).camera,
+        DimensionLadder.sceneAt(at + aroundBoundary, cycle, top).camera)
+      withClue(s"top $top, $segment: "):
+        List(before.position.x - after.position.x, before.position.y - after.position.y,
+          before.position.z - after.position.z).foreach(_ shouldBe 0f +- cameraTolerance)
+
   it should "turn every plane containing a collapsing axis a multiple of 180 degrees" in:
     for
       top <- tops
       collapse <- DimensionLadder.segments(cycle, top).filter(_.kind == Kind.Collapse)
     do
-      val axis = "xyzwvuts"(collapse.dimension - 1)
+      val axis = DimensionLadder.axisLetters(collapse.dimension - 1)
       val containing = DimensionLadder.planeAngles(collapse.end, cycle, top)
         .filter(_.plane.letters.contains(axis))
       containing should not be empty
@@ -101,19 +166,28 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
           math.min(offset, 180f - offset) shouldBe 0f +- 1e-3f
 
   it should "descend in planes among the extra axes only" in:
-    val descent = DimensionLadder.turns(cycle, 6).filter(_.from >= cycle * 0.8f - 1e-3f)
+    val descent = DimensionLadder.turns(cycle, 6)
+      .filter(_.from >= cycle * (1f - DimensionLadder.descentFraction) - 1e-3f)
     descent.map(_.plane).toSet shouldBe Set("wu", "vu", "wv")
     descent.foreach: turn =>
-      turn.plane.foreach(letter => "wvuts" should contain(letter))
+      turn.plane.foreach(letter => DimensionLadder.axisLetters.drop(3) should contain(letter))
 
-  it should "pass the scene budget at every sampled frame" in:
-    for i <- 0 until frames do
-      val scene: Scene = DimensionLadder.scene(cycle * i / frames)
-      val caustics = scene.caustics.fold(SceneCost.CausticsLoad.None)(c =>
-        SceneCost.CausticsLoad(c.photonsPerIteration.toLong, c.iterations.toLong))
-      val estimate = SceneCost.estimate(scene.objects.map(_.toObjectSpec),
-        scene.render.fold(1)(_.accumulation), caustics)
-      withClue(s"frame $i: ")(SceneCost.check(estimate) shouldBe Right(()))
+  it should "keep the projected half extent finite and inside the bounding radius, 3D to 8D" in:
+    for n <- 3 to 8; last <- List(0f, 0.5f, 1f) do
+      val extent = DimensionLadder.halfExtent(n, last)
+      withClue(s"dimension $n, extrusion $last: "):
+        extent.isFinite shouldBe true
+        extent should be < saneRadius
+        extent should be <= DimensionLadder.boundingRadius(n) + materialTolerance
+        DimensionLadder.boundingRadius(n) should be < saneRadius
+
+  it should "pass the scene budget at every sampled frame and breath peak, for every top" in:
+    for top <- tops do
+      val peaks = DimensionLadder.segments(cycle, top).filter(_.kind == Kind.Breath)
+        .map(s => s.start + s.seconds / 2f)
+      val sampled = (0 until budgetFrames).map(i => cycle * i / budgetFrames)
+      (sampled ++ peaks).foreach: t =>
+        withClue(s"top $top, t $t: ")(withinBudget(DimensionLadder.sceneAt(t, cycle, top)))
 
   it should "hold the seam and the timeline for every top dimension" in:
     for top <- tops do

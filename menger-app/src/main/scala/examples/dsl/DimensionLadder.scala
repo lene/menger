@@ -24,6 +24,8 @@ object DimensionLadder:
   val topDimension = 6
   // The tint, a hue from the highest dimension reached, is E8's (menger#172).
   val tint = Color(0.78f, 0.82f, 0.95f)
+  val axisLetters = "xyzwvuts"
+  val descentFraction = 1f / 5f
   // Part 2 reads the surface-sponge limit from `ResourceLimits.ndSpongeLevel`.
   def breathDepth(n: Int): Int = n match
     case 3 => 5
@@ -40,24 +42,28 @@ object DimensionLadder:
   case class Turn(plane: String, from: Float, to: Float):
     def degrees(phase: Float): Float = halfTurn * smoothstep((phase - from) / (to - from))
 
-  // Timeline weights in seconds, scaled so that the ascent fills the cycle but its last fifth.
+  // Timeline weights in seconds, scaled so that the ascent fills the cycle but the descent.
   private val holdSeconds = 2f
   private val foldSeconds = 6f
   private val solidifySeconds = 2f
   private val unsolidifySeconds = 2f
   private val breathSecondsPerLevel = 4f
-  private val descentShare = 5f
   private val halfTurn = 180f
   private val fullTurn = 360f
   private val turntableTurns = 2
-  private val axisLetters = "xyzwvuts"
   private val wakingPartners = "xyz"
   private val firstExtraAxis = 3
   private val minTop = 4
   private val maxTop = 8
-  // 3D -> 4D size rule s * eye / (eye - screen), also for each further stage.
-  private val eye = 4f
-  private val screen = 0.8f
+  // The stage dropping axis k has its eye and screen at these multiples of the object's size
+  // there, so every stage shrinks and the 3D -> 4D size rule s * eye / (eye - screen) holds for
+  // each further dimension. A stage keeps its values once its axis exists.
+  private val eyeRatio = 4f
+  private val screenRatio = 0.8f
+  private val growthPerDimension = eyeRatio / (eyeRatio - screenRatio)
+  // A fold or collapse this flat is drawn as the lower object: a near-zero axis would draw
+  // every face twice, and the two shapes differ by less than this fraction of the size.
+  private val standInExtrusion = 1e-3f
   private val baseSize = 1f
   private val edgeRadius = 0.012f
   private val filmRamp = 0.25f
@@ -71,15 +77,21 @@ object DimensionLadder:
     color = Color(1.00f, 0.86f, 0.40f)
   )
   private val plinthTopY = -0.45f
+  private val plinthThickness = 0.2f
+  private val plinthRadius = 1.8f
+  private val plinthColor = Color(0.85f, 0.82f, 0.76f)
   // 0.01 above the plinth's top cap: a bottom face on the cap itself speckles the refraction.
   private val plinthClearance = 0.01f
-  // Low, on the far side from the sun, 15 degrees to one side.
+  private val causticsPhotons = 200000
+  private val causticsIterations = 10
+  // Low, on the far side from the sun (along its rays), 15 degrees to one side.
   private val cameraDistance = 4.5f
   private val cameraYawDegrees = 15f
+  private val cameraBelowCentre = -0.15f
   private val cameraDirection =
     val yaw = math.toRadians(cameraYawDegrees)
-    val (x, y, z) = (-0.742f, -0.15f, -0.666f)
-    Vec3((x * math.cos(yaw) + z * math.sin(yaw)).toFloat, y,
+    val (x, z) = (sun.direction.x, sun.direction.z)
+    Vec3((x * math.cos(yaw) + z * math.sin(yaw)).toFloat, cameraBelowCentre,
       (-x * math.sin(yaw) + z * math.cos(yaw)).toFloat).normalize
 
   private def smoothstep(x: Float): Float =
@@ -97,7 +109,9 @@ object DimensionLadder:
       lerp(a.specular, b.specular), lerp(a.emission, b.emission),
       lerp(a.filmThickness, b.filmThickness), lerp(a.dispersion, b.dispersion))
 
-  def phaseOf(t: Float, cycle: Float = cycleSeconds): Float = ((t % cycle) + cycle) % cycle
+  def phaseOf(t: Float, cycle: Float = cycleSeconds): Float =
+    require(cycle > 0f, s"the cycle must be positive, got $cycle")
+    ((t % cycle) + cycle) % cycle
 
   private def ascentWeights(top: Int): List[(Kind, Int, Float)] =
     val perDimension = (3 to top).toList.flatMap: n =>
@@ -110,8 +124,9 @@ object DimensionLadder:
     (Kind.Hold, 3, holdSeconds) :: perDimension
 
   def segments(cycle: Float = cycleSeconds, top: Int = topDimension): List[Segment] =
+    require(cycle > 0f, s"the cycle must be positive, got $cycle")
     require(top >= minTop && top <= maxTop, s"topDimension must be 4 to 8, got $top")
-    val descent = cycle / descentShare
+    val descent = cycle * descentFraction
     val ascent = ascentWeights(top)
     val stretch = (cycle - descent) / ascent.map(_._3).sum
     val timed = ascent.map((kind, n, weight) => (kind, n, weight * stretch)) ++
@@ -119,18 +134,23 @@ object DimensionLadder:
     val starts = timed.map(_._3).scanLeft(0f)(_ + _)
     timed.zip(starts).map { case ((kind, n, seconds), start) => Segment(kind, n, start, seconds) }
 
+  private val defaultTimeline = segments()
+
+  private def timeline(cycle: Float, top: Int): List[Segment] =
+    if cycle == cycleSeconds && top == topDimension then defaultTimeline else segments(cycle, top)
+
   /** The segment at `phase` in the cycle, and how far into it, from 0 to 1. */
   def segmentAt(phase: Float, cycle: Float = cycleSeconds, top: Int = topDimension)
       : (Segment, Float) =
-    val all = segments(cycle, top)
+    val all = timeline(cycle, top)
     val segment = all.findLast(_.start <= phase).getOrElse(all.head)
-    (segment, math.min(1f, (phase - segment.start) / segment.seconds))
+    (segment, math.max(0f, math.min(1f, (phase - segment.start) / segment.seconds)))
 
   // The ascent planes between the new axis and x, y, z wake in the fold and settle at a half
   // turn before the next fold. The descent planes among the extra axes turn while their axis
   // collapses, so every plane is at a multiple of 180 degrees when its axis is gone.
   def turns(cycle: Float = cycleSeconds, top: Int = topDimension): List[Turn] =
-    val all = segments(cycle, top)
+    val all = timeline(cycle, top)
     def startOf(kind: Kind, n: Int): Option[Float] =
       all.find(s => s.kind == kind && s.dimension == n).map(_.start)
     val descentStart = all.find(_.kind == Kind.Collapse).fold(cycle)(_.start)
@@ -155,20 +175,37 @@ object DimensionLadder:
     turns(cycle, top).map(turn => PlaneRotation(turn.plane, turn.degrees(phase))) :+
       PlaneRotation("xz", turntableDegrees(phase, cycle))
 
-  private def sizeOf(n: Int): Float = baseSize * math.pow(eye / (eye - screen), n - 3).toFloat
+  private def sizeOf(n: Int): Float = baseSize * math.pow(growthPerDimension, n - 3).toFloat
 
-  // The projected distance of the (+h, ..., +h) corner from the centre, with the newest axis
-  // scaled by `extrusion`: it is continuous at every hand-over, so a dolly keeps the object's
-  // size in frame.
-  private def halfExtent(n: Int, extrusion: Float): Float =
+  // The stages of the n-view, the first dropping the highest axis; the tail is the (n-1)-view's.
+  private def stagesFor(n: Int): List[ProjectionStage] =
+    (n to minTop by -1).toList.map: k =>
+      ProjectionStage(eyeRatio * sizeOf(k), screenRatio * sizeOf(k))
+
+  private def stageFactor(stage: ProjectionStage, coordinate: Float): Float =
+    require(coordinate < stage.eye, s"coordinate $coordinate reaches the eye at ${stage.eye}")
+    (stage.eye - stage.screen) / (stage.eye - coordinate)
+
+  /** The projected distance of the (+h, ..., +h) corner from the centre, with the newest axis
+    * scaled by `last`: continuous at every hand-over, so a dolly keeps the object's size in
+    * frame. */
+  def halfExtent(n: Int, last: Float): Float =
     val h = sizeOf(n) / 2f
-    val corner = List.fill(n - 1)(h) :+ h * extrusion
-    val projected = (1 to n - 3).foldLeft(corner): (p, _) =>
-      p.init.map(_ * (eye - screen) / (eye - p.last))
+    val projected = stagesFor(n).foldLeft(List.fill(n - 1)(h) :+ h * last): (p, stage) =>
+      p.init.map(_ * stageFactor(stage, p.last))
     math.sqrt(projected.map(x => x * x).sum).toFloat
 
+  /** An upper bound of the projected distance from the centre of any point of the n-cube turned
+    * in any plane: the circumscribed radius, carried through the stages. A stage drops the
+    * coordinate c of a point at distance r; the rest, at most sqrt(r^2 - c^2) away, is scaled by
+    * (eye - screen) / (eye - c), which peaks at c = r^2 / eye. */
+  def boundingRadius(n: Int): Float =
+    stagesFor(n).foldLeft(sizeOf(n) / 2f * math.sqrt(n).toFloat): (r, stage) =>
+      require(r < stage.eye, s"radius $r reaches the eye at ${stage.eye}")
+      (stage.eye - stage.screen) * r / math.sqrt(stage.eye * stage.eye - r * r).toFloat
+
   private def centre(top: Int): Vec3 =
-    val widest = (3 to top).map(halfExtent(_, 1f)).max
+    val widest = (3 to top).map(boundingRadius).max + edgeRadius
     Vec3(0f, plinthTopY + plinthClearance + widest, 0f)
 
   private def extrusion(segment: Segment, u: Float): Float = segment.kind match
@@ -193,6 +230,8 @@ object DimensionLadder:
     val degrees = planes.find(_.plane.letters == "xz").fold(0f)(_.angle.value)
     Vec3(0f, math.toRadians(degrees).toFloat, 0f)
 
+  // `Scale` needs its dimension as a type, which a runtime n cannot give; `n.type` stands in,
+  // and `Scale` itself checks that it got n factors.
   private def scaleOf(n: Int, last: Float): Scale[?] =
     Scale[n.type]((List.fill(n - 1)(1f) :+ last)*)(using ValueOf(n))
 
@@ -203,8 +242,7 @@ object DimensionLadder:
         edgeRadius = skin.edgeRadius, edgeMaterial = skin.edgeRadius.map(_ => metal),
         rotation = turntable(planes))
     else
-      val view = ProjectionSpec(n, planes.filter(_.plane.highestAxis < n),
-        stages = List.fill(n - 3)(ProjectionStage(eye, screen)))
+      val view = ProjectionSpec(n, planes.filter(_.plane.highestAxis < n), stages = stagesFor(n))
       Hypercube(n, pos = centre(top), material = Some(skin.material), size = sizeOf(n),
         edgeRadius = skin.edgeRadius, edgeMaterial = skin.edgeRadius.map(_ => metal),
         projection = Some(view), scale = Some(scaleOf(n, last)))
@@ -217,25 +255,24 @@ object DimensionLadder:
         size = baseSize, rotation = turntable(planes))
     else hypercubeOf(n, Skin(material, None), 1f, planes, top)
 
-  /** The object in `segment`, `u` of the way through. At the start of a fold and at the end of
-    * a collapse the lower object stands in: the two are the same shape, and a higher object
-    * with an axis at exactly 0 would draw its faces twice. */
+  /** The object in `segment`, `u` of the way through. While the newest axis of a fold or
+    * collapse is flatter than `standInExtrusion`, the lower object stands in: it is the same
+    * shape, and the higher object would draw its faces twice. */
   def objectAt(segment: Segment, u: Float, cycle: Float = cycleSeconds, top: Int = topDimension)
       : SceneObject =
     val planes = planeAngles(segment.start + u * segment.seconds, cycle, top)
     val n = segment.dimension
+    val last = extrusion(segment, u)
+    val (shown, shownLast) = if last <= standInExtrusion then (n - 1, 1f) else (n, last)
     segment.kind match
       case Kind.Hold => hypercubeOf(3, skin(0f), 1f, planes, top)
       case Kind.Breath =>
         breathObject(n, breathDepth(n) * bell(u), mix(metal, Material.Glass, bell(u)), planes, top)
       case Kind.Solidify => hypercubeOf(n, skin(1f - smoothstep(u)), 1f, planes, top)
       case Kind.Unsolidify => hypercubeOf(n, skin(smoothstep(u)), 1f, planes, top)
-      case Kind.Fold if u == 0f => hypercubeOf(n - 1, skin(1f), 1f, planes, top)
-      case Kind.Fold => hypercubeOf(n, skin(1f), extrusion(segment, u), planes, top)
-      case Kind.Collapse if u >= 1f =>
-        hypercubeOf(n - 1, skin(collapseFilm(n, 1f, top)), 1f, planes, top)
+      case Kind.Fold => hypercubeOf(shown, skin(1f), shownLast, planes, top)
       case Kind.Collapse =>
-        hypercubeOf(n, skin(collapseFilm(n, u, top)), extrusion(segment, u), planes, top)
+        hypercubeOf(shown, skin(collapseFilm(n, u, top)), shownLast, planes, top)
 
   def sceneAt(t: Float, cycle: Float, top: Int): Scene =
     val (segment, u) = segmentAt(phaseOf(t, cycle), cycle, top)
@@ -246,17 +283,18 @@ object DimensionLadder:
         lookAt = target),
       objects = List(
         Cylinder(
-          p0 = Some(Vec3(0f, plinthTopY - 0.2f, 0f)),
+          p0 = Some(Vec3(0f, plinthTopY - plinthThickness, 0f)),
           p1 = Some(Vec3(0f, plinthTopY, 0f)),
-          radius = Some(1.8f),
-          material = Some(Material.matte(Color(0.85f, 0.82f, 0.76f)))
+          radius = Some(plinthRadius),
+          material = Some(Material.matte(plinthColor))
         ),
         objectAt(segment, u, cycle, top)
       ),
       lights = List(sun),
       envMap = Some(envMap),
       ibl = Some(IBL()),
-      caustics = Some(Caustics(photonsPerIteration = 200000, iterations = 10)),
+      caustics = Some(Caustics(photonsPerIteration = causticsPhotons,
+        iterations = causticsIterations)),
       render = Some(RenderSettings(antialiasing = true, shadows = true))
     )
 
