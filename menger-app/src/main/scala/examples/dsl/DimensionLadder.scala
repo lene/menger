@@ -3,6 +3,7 @@ package examples.dsl
 import scala.language.implicitConversions
 
 import menger.dsl._
+import menger.objects.higher_d.NdSpongeVariant
 import menger.spec.PlaneRotation
 import menger.spec.ProjectionSpec
 import menger.spec.ProjectionStage
@@ -13,7 +14,7 @@ import menger.spec.ProjectionStage
  * descends to the cube along a different path (planes among the extra axes only), under a
  * sunrise with one matching sun. A segment timeline (`segments`) drives everything, and
  * `scene(t)` depends on t only through its phase in the cycle, so scene(0) == scene(T).
- * Above 3D the breath is a placeholder, the hypercube itself.
+ * The breath is a Menger sponge in every dimension: the surface sponge (menger#166) above 3D.
  *
  * Usage: --scene examples.dsl.DimensionLadder --t 30
  */
@@ -26,12 +27,14 @@ object DimensionLadder:
   val tint = Color(0.78f, 0.82f, 0.95f)
   val axisLetters = "xyzwvuts"
   val descentFraction = 1f / 5f
-  // Part 2 reads the surface-sponge limit from `ResourceLimits.ndSpongeLevel`.
+  // The costed levels, capped above 3D by the surface sponge's triangle budget.
   def breathDepth(n: Int): Int = n match
     case 3 => 5
-    case 4 => 3
-    case 5 => 2
-    case _ => 1
+    case 4 => math.min(3, surfaceLimit(4))
+    case 5 => math.min(2, surfaceLimit(5))
+    case _ => math.min(1, surfaceLimit(n))
+  private def surfaceLimit(n: Int): Int =
+    ResourceLimits.ndSpongeLevel(NdSpongeVariant.Surface, n).max
 
   enum Kind:
     case Hold, Fold, Solidify, Breath, Unsolidify, Collapse
@@ -71,7 +74,7 @@ object DimensionLadder:
   private val film = Material.Film.copy(ior = 1.0f)
   // The render constants, copied from scripts/frame-budget/Moment3D.scala: G4 measures them.
   private val envMap = "assets/hdri/kiara_2_sunrise_4k.hdr"
-  private val sun = Sun(
+  private val keyLight = Sun(
     direction = Vec3(-0.7423f, -0.0722f, -0.6662f),
     diameterDegrees = 0.53f,
     color = Color(1.00f, 0.86f, 0.40f)
@@ -90,7 +93,7 @@ object DimensionLadder:
   private val cameraBelowCentre = -0.15f
   private val cameraDirection =
     val yaw = math.toRadians(cameraYawDegrees)
-    val (x, z) = (sun.direction.x, sun.direction.z)
+    val (x, z) = (keyLight.direction.x, keyLight.direction.z)
     Vec3((x * math.cos(yaw) + z * math.sin(yaw)).toFloat, cameraBelowCentre,
       (-x * math.sin(yaw) + z * math.cos(yaw)).toFloat).normalize
 
@@ -235,6 +238,9 @@ object DimensionLadder:
   private def scaleOf(n: Int, last: Float): Scale[?] =
     Scale[n.type]((List.fill(n - 1)(1f) :+ last)*)(using ValueOf(n))
 
+  private def viewOf(n: Int, planes: List[PlaneRotation]): ProjectionSpec =
+    ProjectionSpec(n, planes.filter(_.plane.highestAxis < n), stages = stagesFor(n))
+
   private def hypercubeOf(n: Int, skin: Skin, last: Float, planes: List[PlaneRotation], top: Int)
       : SceneObject =
     if n == 3 then
@@ -242,18 +248,19 @@ object DimensionLadder:
         edgeRadius = skin.edgeRadius, edgeMaterial = skin.edgeRadius.map(_ => metal),
         rotation = turntable(planes))
     else
-      val view = ProjectionSpec(n, planes.filter(_.plane.highestAxis < n), stages = stagesFor(n))
+      val view = viewOf(n, planes)
       Hypercube(n, pos = centre(top), material = Some(skin.material), size = sizeOf(n),
         edgeRadius = skin.edgeRadius, edgeMaterial = skin.edgeRadius.map(_ => metal),
         projection = Some(view), scale = Some(scaleOf(n, last)))
 
-  // Above 3D a placeholder: the hypercube itself, ignoring the level (part 2: HypercubeSponge).
   private def breathObject(n: Int, level: Float, material: Material,
       planes: List[PlaneRotation], top: Int): SceneObject =
     if n == 3 then
       Sponge(VolumeFilling, pos = centre(top), level = level, material = Some(material),
         size = baseSize, rotation = turntable(planes))
-    else hypercubeOf(n, Skin(material, None), 1f, planes, top)
+    else
+      HypercubeSponge(n, TesseractSpongeType.SurfaceSubdividing, level, pos = centre(top),
+        material = Some(material), size = sizeOf(n), projection = Some(viewOf(n, planes)))
 
   /** The object in `segment`, `u` of the way through. While the newest axis of a fold or
     * collapse is flatter than `standInExtrusion`, the lower object stands in: it is the same
@@ -290,12 +297,14 @@ object DimensionLadder:
         ),
         objectAt(segment, u, cycle, top)
       ),
-      lights = List(sun),
+      lights = List(keyLight),
       envMap = Some(envMap),
       ibl = Some(IBL()),
       caustics = Some(Caustics(photonsPerIteration = causticsPhotons,
         iterations = causticsIterations)),
-      render = Some(RenderSettings(antialiasing = true, shadows = true))
+      // User, 2026-11-12: "Yes, acc16 now"; accumulation does not smooth edges until
+      // optix-jni#116, and adaptive antialiasing costs ~140x on glass (optix-jni#115).
+      render = Some(RenderSettings(antialiasing = false, shadows = true, accumulation = 16))
     )
 
   def scene(t: Float): Scene = sceneAt(t, cycleSeconds, topDimension)

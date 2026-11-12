@@ -14,6 +14,15 @@
 
 ### Added
 
+- The dimension ladder, part 2 (Sprint 38 grid cell G5, lene/menger#160): `DimensionLadder`
+  breathes a real Menger sponge in every dimension: `HypercubeSponge` (surface variant) above
+  3D, at depths from `ResourceLimits.ndSpongeLevel` (capped by the costed 4 -> 3, 5 -> 2,
+  6 to 8 -> 1). The render settings are accumulation 16 without adaptive antialiasing (adaptive
+  antialiasing costs about 140 times on glass, optix-jni#115; accumulation does not smooth edges
+  until optix-jni#116), also in the frame-budget scenes `Moment3D` and `Moment4D`. Freeze frames
+  in the integration and manual suites (the integration ones skip without the Kiara HDRI), and a
+  user-guide section on rendering the full cycle.
+
 - `HypercubeSponge` (Sprint 38 grid cell G9, lene/menger#166): the Menger sponge of 4 to 8
   dimensions in the DSL, as a volume (`VolumeRemoving`, rule A generalised by
   `maxCentreCoordinates` = k) or a surface sponge (`SurfaceSubdividing`, rule S), with the fields

@@ -433,6 +433,13 @@ run_test "PenteractFold t=6 (penteract at scale 1, unfolded)" "-o --scene exampl
 run_test "PenteractSpongeBreath t=2.61 (5D surface sponge, level 0.5, hole caps fading in)" "-o --scene examples.dsl.PenteractSpongeBreath --t 2.6108146 -s $OUTPUT_DIR/105n-penteract-sponge-breath-l0.5.png"
 run_test "PenteractSpongeBreath t=4 (level 1)" "-o --scene examples.dsl.PenteractSpongeBreath --t 4 -s $OUTPUT_DIR/105o-penteract-sponge-breath-l1.png"
 run_test "PenteractSpongeBreath t=8 (level 2, grey plastic)" "-o --scene examples.dsl.PenteractSpongeBreath --t 8 -s $OUTPUT_DIR/105p-penteract-sponge-breath-l2.png"
+run_test "DimensionLadder t=0 (the metal cube, the seam)" "-o --scene examples.dsl.DimensionLadder --t 0 -s $OUTPUT_DIR/105q-ladder-cube.png"
+run_test "DimensionLadder t=22.7 (3D breath, glass sponge)" "-o --scene examples.dsl.DimensionLadder --t 22.736843 -s $OUTPUT_DIR/105r-ladder-3d-breath.png"
+run_test "DimensionLadder t=51.2 (fold into 4D)" "-o --scene examples.dsl.DimensionLadder --t 51.157898 -s $OUTPUT_DIR/105s-ladder-fold-4d.png"
+run_test "DimensionLadder t=72 (4D breath, surface sponge)" "-o --scene examples.dsl.DimensionLadder --t 72.00001 -s $OUTPUT_DIR/105t-ladder-breath-4d.png"
+run_test "DimensionLadder t=92.8 (fold into 5D)" "-o --scene examples.dsl.DimensionLadder --t 92.84211 -s $OUTPUT_DIR/105u-ladder-fold-5d.png"
+run_test "DimensionLadder t=140.2 (6D breath, the top)" "-o --scene examples.dsl.DimensionLadder --t 140.21054 -s $OUTPUT_DIR/105v-ladder-breath-6d.png"
+run_test "DimensionLadder t=162 (the descent)" "-o --scene examples.dsl.DimensionLadder --t 162 -s $OUTPUT_DIR/105w-ladder-descent.png"
 
 # Colored Shadows Phase 1 (single-object)
 echo -e "${YELLOW}--- Colored Shadows (Phase 1: single object) ---${NC}"

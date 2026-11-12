@@ -1284,6 +1284,46 @@ How it finds the sun, so that you can judge a result:
 
 ---
 
+### The dimension ladder -- *Sprint 38*
+
+`examples.dsl.DimensionLadder` (menger#160) is a looping animation of a metal cube on a plinth,
+lit by the Kiara 2 Sunrise sky and its sun. The cube breathes into a Menger sponge and back, folds
+out into 4D, breathes again as a 4D sponge, folds into 5D, and so on up to the top dimension; it
+then descends to the cube along another path, so that the last frame equals the first
+(`scene(0) == scene(T)`). During a breath the material goes from metal to glass and back. Above
+3D the breath is a surface sponge (`HypercubeSponge`) at the deepest level the triangle budget
+allows. The scene renders with accumulation 16 and without adaptive antialiasing, which is far
+too slow on glass sponges; accumulation averages sampling noise but does not smooth edges.
+
+It needs the Kiara HDRI (see *HDR Environment Maps* above): `scripts/fetch-kiara-hdri.sh 4k`.
+
+Its parameters are values in `object DimensionLadder`; change them there:
+
+| Parameter | Default | Meaning |
+|-----------|---------|---------|
+| `cycleSeconds` | 180 | length of the loop; the timeline scales to it |
+| `topDimension` | 6 | the highest dimension reached, 4 to 8 |
+| `tint` | pale blue-grey | the metal's colour |
+| `breathDepth(n)` | 5 in 3D, then 3, 2, 1... | the deepest sponge level of the breath in dimension n, capped by `ResourceLimits.ndSpongeLevel` |
+
+One frame at a moment of the loop:
+```bash
+menger-app --scene examples.dsl.DimensionLadder --t 72 --save-name ladder.png
+```
+Run it from the menger repository's root: the scene names the HDRI as `assets/hdri/...`.
+
+The whole cycle at 30 frames per second is 5400 frames (the end is one frame short of the
+cycle, which is the first frame again), then encoded:
+```bash
+menger-app --scene examples.dsl.DimensionLadder --frames 5400 --start-t 0 --end-t 179.96667 \
+  --save-name out/f_%04d.png
+ffmpeg -framerate 30 -i out/f_%04d.png -c:v libx264 -pix_fmt yuv420p ladder.mp4
+```
+The built-in video export (`--video`) writes 24 frames per second for now (menger#181), so
+encode the frames with ffmpeg to get 30.
+
+---
+
 ### 360 Video Backgrounds -- *Sprint 27*
 
 Use `EnvMapVideo` for animated equirectangular environment backgrounds. This is not an

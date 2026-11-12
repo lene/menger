@@ -6,10 +6,12 @@ import menger.common.Material
 import menger.common.ProfilingConfig
 import menger.dsl.Scene
 import menger.dsl.SceneObject
+import menger.dsl.ResourceLimits
 import menger.dsl.Sun
 import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
 import menger.engines.scene.TriangleMeshSceneBuilder
+import menger.objects.higher_d.NdSpongeVariant
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -194,6 +196,29 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
       DimensionLadder.sceneAt(0f, cycle, top) shouldBe DimensionLadder.sceneAt(cycle, cycle, top)
       DimensionLadder.segments(cycle, top).count(_.kind == Kind.Fold) shouldBe top - 3
       DimensionLadder.segments(cycle, top).count(_.kind == Kind.Collapse) shouldBe top - 3
+
+  it should "breathe a surface sponge above 3D, at the level the bell gives" in:
+    for top <- tops; breath <- DimensionLadder.segments(cycle, top).filter(_.kind == Kind.Breath) do
+      val n = breath.dimension
+      val spec = DimensionLadder.objectAt(breath, 0.25f, cycle, top).toObjectSpec
+      withClue(s"top $top, $breath: "):
+        if n == 3 then spec.objectType shouldBe "sponge-volume"
+        else
+          spec.objectType shouldBe "n-sponge-surface"
+          spec.dimension shouldBe Some(n)
+          spec.level.get shouldBe DimensionLadder.breathDepth(n) * 0.5f +- 1e-4f
+
+  it should "keep every breath depth within the surface sponge's budget limit" in:
+    for n <- 4 to 8 do
+      DimensionLadder.breathDepth(n) should be <=
+        ResourceLimits.ndSpongeLevel(NdSpongeVariant.Surface, n).max
+      DimensionLadder.breathDepth(n) should be >= 1
+
+  it should "render with accumulation and without adaptive antialiasing at any t" in:
+    for t <- List(0f, 7.3f, cycle / 2f, cycle - 0.1f); top <- tops do
+      val settings = DimensionLadder.sceneAt(t, cycle, top).render.get
+      settings.antialiasing shouldBe false
+      settings.accumulation shouldBe 16
 
   it should "light the scene with the sun first, because only the first light emits caustics" in:
     DimensionLadder.scene(10f).lights.head shouldBe a[Sun]
