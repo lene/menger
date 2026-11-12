@@ -98,24 +98,41 @@ object DslSemantics:
       "1.6x apart); to enlarge one without distorting it, scale `size`, `eyeW` and `screenW` " +
       "by the same factor (usability review 2026-10, session 3, F72). The projection scales " +
       "each point by (eyeW - screenW) / (eyeW - w); a flat object (every w = 0, e.g. " +
-      "`wScale = 0`) is therefore shown at (eyeW - screenW) / eyeW of its `size` -- 0.5 for " +
-      "eyeW 3, screenW 1.5. To match a 3D cube of size s, give the 4D object size " +
-      "s * eyeW / (eyeW - screenW) (usability review 2026-10, session 4, F101). " +
-      "`Projection4DSpec(wScale = s)` scales the object's w coordinate before the 4D rotation " +
-      "(default 1, must be >= 0): 0 flattens a Tesseract to a cube, and animating it from 0 to " +
-      "1 grows the tesseract out of the cube along w -- the nearest the DSL has to extruding a " +
-      "3D object into 4D; a `ProjectionSpec` (next convention) lifts a 4D object into 5D to 8D " +
-      "(menger#65, #59, #162). For the hand-over from a " +
-      "3D Cube or Sponge to be seamless: keep rotXW, rotYW and rotZW at 0 while wScale grows " +
-      "(a 4D rotation turns x into w, so wScale 0 is then not the cube), give the 4D object " +
-      "size s * eyeW / (eyeW - screenW) for a 3D object of size s, the same material and the " +
-      "same `edgeRadius`/`edgeMaterial` on both (a `material`, not only a `color`: a 4D object " +
-      "with edge tubes and no material is drawn as its edges alone), show the 3D object only " +
-      "while wScale is exactly 0 and the 4D object from any wScale above 0 (at 0 the 4D " +
-      "object's faces and edges lie on top of each other in pairs, which a transparent " +
-      "material shows as speckle), and let the extrusion " +
-      "take at least 3 s; rotate in 4D only after wScale reaches 1 (usability review 2026-10, " +
-      "session 5, F124, menger#132; example: CubeToTesseract).",
+      "`scale = Some(Scale[4](1f, 1f, 1f, 0f))`) is therefore shown at (eyeW - screenW) / " +
+      "eyeW of its `size` -- 0.5 for eyeW 3, screenW 1.5. To match a 3D cube of size s, give " +
+      "the 4D object size s * eyeW / (eyeW - screenW) (usability review 2026-10, session 4, " +
+      "F101). A `ProjectionSpec` (the nD view convention below) lifts a 4D object into 5D to 8D " +
+      "(menger#59, #162).",
+    "Per-axis scale: the 4D objects (Tesseract, the regular polytopes, TesseractSponge) take " +
+      "`scale = Some(Scale[4](x, y, z, w))` and Hypercube takes `Scale[N]` for its own " +
+      "dimension N: one factor >= 0 per axis, finite, applied to the object's coordinates " +
+      "after `size` and before the rotations and the projection (default all 1; a wrong " +
+      "number of factors or a negative one is rejected when the scene loads). 0 collapses an " +
+      "axis, so the last factor of an object is its extrusion along the newest axis: " +
+      "animating it 0 -> 1 grows a Tesseract out of a cube, or a Hypercube(5) out of a " +
+      "tesseract. `scale` is geometry, not view: a change rebuilds the object, where a change " +
+      "of `projection` re-projects it. The GPU IFS types (Menger4D, PentachoronGasket, " +
+      "HexadecachoronGasket) and the 3D objects have no `scale`. On the command line: " +
+      "`scale=1,1,1,0.5` (menger#65, #164).",
+    "Hand-over rule: a Hypercube(n) whose last `scale` factor is 0 is the Hypercube(n - 1), " +
+      "seen in the same n-dimensional view: the same vertices, and its faces that use the " +
+      "collapsed axis shrink to lines. So an animation can show the lower object, then the " +
+      "higher one growing out of it, with no cut. Mind four points. (1) In its own " +
+      "(n - 1)-view the lower object is bigger than the flat higher one, which is shown at " +
+      "(eye - screen) / eye of its size (0.5 by default), so swap exactly at scale 0 and " +
+      "give the higher object size s * eye / (eye - screen) of its first projection stage for " +
+      "a lower object of size s; the 3D Cube -> 4D case is the same rule (Hypercube(4) or " +
+      "Tesseract with a w scale, size s * eyeW / (eyeW - screenW)). (2) Every rotation plane " +
+      "that involves the collapsing axis must be at a multiple of 180 degrees when it " +
+      "collapses, or the flat object is a turned slice, not the lower object: keep those " +
+      "planes at 0 until the scale is above 0, or turn a whole 360 degrees. (3) Near 0 the " +
+      "two copies of each face nearly coincide: expect z-fighting for a few frames, and " +
+      "show the lower object at exactly 0 (a transparent material shows the coincident " +
+      "copies as speckle). (4) Give both objects the same material and the same " +
+      "`edgeRadius`/`edgeMaterial` (a `material`, not only a `color`: a 4D object with edge " +
+      "tubes and no material is drawn as its edges alone), and let the extrusion take at " +
+      "least 3 s; edge tubes of zero length are not drawn (usability review 2026-10, " +
+      "session 5, F124, menger#132, #164; examples: CubeToTesseract, PenteractFold).",
     "nD view: `projection = Some(ProjectionSpec(dimension, planes, eye, screen, stages))` " +
       "lifts a 4D object (Tesseract, TesseractSponge or a regular polytope) into `dimension` " +
       "4..8 dimensions: its x y z w coordinates stay, the further ones are 0. The axes are " +
@@ -140,8 +157,8 @@ object DslSemantics:
       "an animation rebuilds the object every frame, a sponge needs a whole `level`, the " +
       "IFS types (Menger4D, PentachoronGasket, HexadecachoronGasket) take a " +
       "`Projection4DSpec` only, and the render window's Shift+drag and Shift+scroll (eye) " +
-      "leave it alone (the log says so once). It has no `wScale`, so the cube-to-tesseract " +
-      "extrusion above cannot be combined with a lift into 5D or more. " +
+      "leave it alone (the log says so once). The object's `scale` applies before the lift, " +
+      "so a scaled 4D object can be lifted into 5D or more. " +
       "`ProjectionSpec(4, ...)` is the 4D view with the planes in " +
       "order: `Projection4DSpec(rotXW = a, rotYW = b, rotZW = c)` equals planes zw c, yw b, " +
       "xw a, in that order (menger#162; example: TesseractToPenteract).",
@@ -197,6 +214,12 @@ object DslSemantics:
       "radius is the scene's bounding-sphere radius, with a margin for comfortable framing."
   )
 
+  private val Scale4DDescription =
+    "Four factors `Scale[4](x, y, z, w)`, each >= 0, applied after `size` and before the 4D " +
+      "rotation; 0 collapses an axis, the last factor is the extrusion along w: 0 flattens " +
+      "the object to 3D, animating it 0 -> 1 grows it out of that. See the hand-over rule in " +
+      "conventions."
+
   /** Per-field notes, keyed by (DSL type's simple name, field name). */
   val fieldDescriptions: Map[(String, String), String] = Map(
     ("Directional", "direction") ->
@@ -228,6 +251,17 @@ object DslSemantics:
     ("Tesseract", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",
     ("Sphere", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",
     ("Sponge", "rotation") -> "Euler angles in radians around x, y, z.",
+    ("Tesseract", "scale") -> Scale4DDescription,
+    ("TesseractSponge", "scale") -> Scale4DDescription,
+    ("Pentachoron", "scale") -> Scale4DDescription,
+    ("Hexadecachoron", "scale") -> Scale4DDescription,
+    ("Icositetrachoron", "scale") -> Scale4DDescription,
+    ("Hexacosichoron", "scale") -> Scale4DDescription,
+    ("Hecatonicosachoron", "scale") -> Scale4DDescription,
+    ("Hypercube", "scale") -> ("One factor >= 0 per axis, `Scale[N]` for the cube's dimension N " +
+      "(a wrong count is rejected), applied after `size`; 0 collapses an axis, the last factor " +
+      "is the extrusion along the newest axis: Hypercube(n) with the last factor 0 is the " +
+      "Hypercube(n - 1). See the hand-over rule in conventions."),
     ("Hypercube", "dimension") -> ("Number of dimensions N, 4 to 8: the cube has 2^N " +
       "vertices; see conventions."),
     ("Hypercube", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",

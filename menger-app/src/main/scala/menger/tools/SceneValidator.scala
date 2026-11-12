@@ -103,7 +103,9 @@ object SceneValidator extends LazyLogging:
   //        `ProjectionSpec` (additive; menger#162).
   // 1.5.0: snapshot objects carry `dimension`, a `Hypercube`'s own dimension (additive;
   //        menger#163).
-  val SchemaVersion = "1.5.0"
+  // 2.0.0: snapshot objects carry `scale`, and the snapshot's `projection` has no `wScale`
+  //        (breaking; menger#164).
+  val SchemaVersion = "2.0.0"
 
   /** `messages` stays first-class and unchanged -- it is what the existing consumers read.
     * `findings`, `scene`, `schemaVersion`, `snapshots`, `cameraPath` and `loadError` are

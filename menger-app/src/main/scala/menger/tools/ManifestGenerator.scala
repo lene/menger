@@ -96,7 +96,9 @@ object ManifestGenerator extends LazyLogging:
   //        `ProjectionLike`, and snapshots carry `ndProjection`.
   // 2.2.0: the `Hypercube` object (the n-cube of 4 to 8 dimensions, menger#163) and the `Sun`
   //        light (menger#158) (additive).
-  private[tools] val SchemaVersion = "2.2.0"
+  // 3.0.0: `Projection4DSpec.wScale` removed; per-axis `scale` on the 4D objects and
+  //        `Hypercube`, breaking (menger#164).
+  private[tools] val SchemaVersion = "3.0.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
@@ -260,7 +262,7 @@ object ManifestGenerator extends LazyLogging:
       val (min, max) = DslSemantics.limitsOf(clazz.getSimpleName, p.getName)
       FieldManifest(
         p.getName,
-        p.getParameterizedType.getTypeName,
+        scaleTypesRendered(p.getParameterizedType.getTypeName),
         default,
         DslSemantics.descriptionOf(clazz.getSimpleName, p.getName),
         min,
@@ -275,6 +277,16 @@ object ManifestGenerator extends LazyLogging:
         FieldUnits.of(clazz.getSimpleName, p.getName)
       )
     }
+
+  // A `Scale[N]` has its singleton dimension erased by the JVM (`Vector$Scale<java.lang.Object>`),
+  // and a `Scale[?]` keeps its wildcard. The agent reads them as the DSL names them; the
+  // field's description says which N.
+  private val ErasedScale = "menger.common.Vector$Scale<java.lang.Object>"
+  private val WildcardScale = "menger.common.Vector$Scale<?>"
+
+  private def scaleTypesRendered(typeName: String): String =
+    typeName.replace(ErasedScale, "menger.common.Vector.Scale[N]")
+      .replace(WildcardScale, "menger.common.Vector.Scale[?]")
 
   private def typeManifestOf(clazz: Class[?]): TypeManifest =
     TypeManifest(clazz.getSimpleName, fieldsOf(clazz))
