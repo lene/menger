@@ -1,9 +1,10 @@
 package menger.tools
 
 import menger.dsl.FieldConstraints
+import menger.dsl.HypercubeSponge
 import menger.dsl.ResourceLimits
+import menger.dsl.TesseractSpongeType
 import menger.objects.higher_d.NdSponge
-import menger.objects.higher_d.NdSpongeVariant
 
 /** What the DSL's fields *mean* -- units, conventions and interactions that reflection cannot
   * recover (there is no scaladoc at runtime). Everything else in the manifest is derived from
@@ -16,19 +17,17 @@ import menger.objects.higher_d.NdSpongeVariant
   */
 object DslSemantics:
 
-  /** The highest level of each n-sponge variant per dimension, from the scene's triangle budget
-    * as it stands when the manifest is made. */
+  /** The upper limit of the level of each n-sponge rule per dimension at k = 1, from the scene's
+    * triangle budget as it stands when the manifest is made (the budget is a constant today; a
+    * configurable one, menger#179, must make this and `FieldConstraints.bySubtype` follow it). */
   private def hypercubeSpongeLevels: String =
-    List(
-      NdSpongeVariant.Volume -> "VolumeRemoving",
-      NdSpongeVariant.Surface -> "SurfaceSubdividing"
-    )
-      .map { (variant, name) =>
-        val perDimension = (NdSponge.MinDimension to NdSponge.MaxDimension).map(n =>
-          s"N=$n: ${ResourceLimits.ndSpongeLevel(variant, n).max}"
-        ).mkString(", ")
-        s"$name at k = 1 $perDimension"
-      }.mkString("; ")
+    TesseractSpongeType.values.map { spongeType =>
+      val variant = HypercubeSponge.variantOf(spongeType)
+      val perDimension = (NdSponge.MinDimension to NdSponge.MaxDimension).map(n =>
+        s"N=$n: ${ResourceLimits.ndSpongeLevel(variant, n).max}"
+      ).mkString(", ")
+      s"${spongeType.toString} ($perDimension)"
+    }.mkString("; ")
 
   /** Cross-cutting rules that belong to no single field. */
   val conventions: List[String] = List(
@@ -201,17 +200,24 @@ object DslSemantics:
       "`Film` material it looks calmer than the volume sponge. Level 0 is the n-cube " +
       "with the same view and size, so an animation can hand over to `Hypercube(N)` there " +
       "(the sponge itself has no edge tubes). The " +
-      "highest `level` follows the scene's triangle budget and so the dimension: " +
-      hypercubeSpongeLevels + ". A whole level costs 2 triangles per face " +
-      "(surface, N = 5, level 2: 28,160 faces); a level that fits the " +
-      "budget is accepted, one over it is refused with the level that fits. It takes a " +
+      "upper limit of `level` per dimension at k = 1, at today's " +
+      s"${ResourceLimits.sceneMaxTriangles}-triangle budget, is " +
+      hypercubeSpongeLevels + ": a level above it is rejected when the object is made. A " +
+      "whole level costs 2 triangles per face (surface, N = 5, level 2: 28,160 faces). A " +
+      "level within the limit still has to fit the scene's budget, which is checked when the " +
+      "scene loads: the limit comes from a cheap upper bound of the faces, so the check counts " +
+      "the faces exactly where the bound is not enough, and refuses a scene over the budget " +
+      "with the level that fits (a larger k keeps far more faces: a level that fits at k = 1 " +
+      "may not at k = 3). It takes a " +
       "`ProjectionSpec` of dimension N or more as `projection = Some(...)` (absent: " +
       "`ProjectionSpec(N)`) and a `Scale[N]` as `scale`. It is rendered on the CPU: " +
       "the unprojected sponge is built once and kept, so an animation that only turns, " +
-      "scales or re-views it projects it again each frame, but one that changes the level " +
-      "builds a sponge per whole level. A fractional level fades the new holes in over the " +
+      "scales or re-views it projects it again each frame, and one that changes the level " +
+      "builds each whole level once. A fractional level fades the new holes in over the " +
       "caps of the lower level (opaque materials) or mixes the two whole levels (refractive " +
-      "ones), as the 4D sponges do, and is allowed with a `ProjectionSpec`. DSL-only (the " +
+      "ones), as the 4D sponges do, and is allowed with a `ProjectionSpec`. Glass refracts through " +
+      "the many dense internal walls of levels 2 and up and shows a mosaic of overlapping " +
+      "faces: prefer an opaque material for them. DSL-only (the " +
       "command line has the 4D sponges); no edge tubes (menger#166; example: " +
       "PenteractSpongeBreath).",
     "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position " +

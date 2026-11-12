@@ -4,8 +4,14 @@ import java.util.Arrays
 
 import scala.annotation.tailrec
 
-enum NdSpongeVariant:
-  case Volume, Surface
+/** The two sponge rules, and the object type each is drawn as (the one place that maps them). */
+enum NdSpongeVariant(val objectTypeName: String):
+  case Volume extends NdSpongeVariant("n-sponge-volume")
+  case Surface extends NdSpongeVariant("n-sponge-surface")
+
+object NdSpongeVariant:
+  def fromObjectType(objectType: String): Option[NdSpongeVariant] =
+    values.find(_.objectTypeName == objectType)
 
 /** Menger sponges of 4 to 8 dimensions as sets of square faces (menger#166, decision card E2).
   *
@@ -62,9 +68,7 @@ object NdSponge:
   /** The centres of the kept finest cells, n integers per cell, one cell after the other. */
   def keptCells(n: Int, level: Int, k: Int): Array[Int] =
     requireKeyFits(n, level, k)
-    requireBuildable(
-      saturatingPower(keptPerStep(n, k), level), Int.MaxValue / n, n, level, k, "kept cells"
-    )
+    requireBuildable(keptCellCandidates(n, level, k), cellLimit(n), n, level, k, "kept cells")
     val offsets = keptOffsets(n, k).flatten.toArray
     val offsetCount = offsets.length / n
     (0 until level).foldLeft(Array.fill(n)(0)) { (cells, step) =>
@@ -122,22 +126,24 @@ object NdSponge:
   private def surfaceChildrenPerFace(n: Int): Long =
     FlatParts - 1L + WallsPerNormal.toLong * (n - 2)
 
-  /** Whether `apply` can build this sponge at all: the face key fits a Long and every array the
-    * build allocates fits an Int. Says nothing about memory. */
+  /** Whether `apply` can build this sponge at all: the arguments are in range, the face key fits
+    * a Long and every array the build allocates fits an Int. Says nothing about memory. The
+    * `require`s of the build check the same predicates. */
   def isBuildable(variant: NdSpongeVariant, n: Int, level: Int, k: Int): Boolean =
-    scala.util.Try {
-      requireKeyFits(n, level, k)
-      requireBuildableFaces(variant, n, level, k)
-      if variant == NdSpongeVariant.Volume then
-        requireBuildable(
-          saturatingPower(keptPerStep(n, k), level), Int.MaxValue / n, n, level, k, "kept cells"
-        )
-    }.isSuccess
+    inRange(n, k) && level >= 0 && keyFits(n, level) &&
+      upperBoundFaces(variant, n, level, k) <= FaceLimit &&
+      (variant != NdSpongeVariant.Volume || keptCellCandidates(n, level, k) <= cellLimit(n))
+
+  private val FaceLimit: Int = Int.MaxValue / IndexedMeshN.CornersPerFace
+
+  private def cellLimit(n: Int): Int = Int.MaxValue / n
+
+  private def keptCellCandidates(n: Int, level: Int, k: Int): Long =
+    saturatingPower(keptPerStep(n, k), level)
 
   private def requireBuildableFaces(variant: NdSpongeVariant, n: Int, level: Int, k: Int): Unit =
     requireBuildable(
-      upperBoundFaces(variant, n, level, k), Int.MaxValue / IndexedMeshN.CornersPerFace,
-      n, level, k, s"$variant faces"
+      upperBoundFaces(variant, n, level, k), FaceLimit, n, level, k, s"$variant faces"
     )
 
   private def requireBuildable(
@@ -148,6 +154,9 @@ object NdSponge:
       s"a ${n}D sponge of level $level (k=$k) is too large to build: up to $candidates $what, " +
         s"more than an array can hold ($limit)"
     )
+
+  private def inRange(n: Int, k: Int): Boolean =
+    n >= MinDimension && n <= MaxDimension && k >= 1 && k <= n - 1
 
   private def requireDimensionAndRange(n: Int, k: Int): Unit =
     require(
@@ -164,16 +173,18 @@ object NdSponge:
     if level > MaxExactLevel then java.lang.Long.SIZE
     else (BigInt(Base).pow(level) * 2).bitLength
 
+  // ponytail: n * bits + 6 <= 63 caps the level at 3 for n = 8, 4 for n = 7, 5 for n = 6,
+  // 6 for n = 5 and 8 for n = 4; wider keys would need two Longs per face.
+  private def keyFits(n: Int, level: Int): Boolean =
+    n * coordinateBits(level) + 2 * AxisIndexBits <= KeyBitBudget
+
   private def requireKeyFits(n: Int, level: Int, k: Int): Unit =
     requireDimensionAndRange(n, k)
     require(level >= 0, s"level must not be negative, got $level")
-    val bits = coordinateBits(level)
-    // ponytail: n * bits + 6 <= 63 caps the level at 3 for n = 8, 4 for n = 7, 5 for n = 6,
-    // 6 for n = 5 and 8 for n = 4; wider keys would need two Longs per face.
     require(
-      n * bits + 2 * AxisIndexBits <= KeyBitBudget,
-      s"N=$n, L=$level: the face key is too wide ($n coordinates of $bits bits and two axis " +
-        s"indices do not fit in $KeyBitBudget bits)"
+      keyFits(n, level),
+      s"N=$n, L=$level: the face key is too wide ($n coordinates of ${coordinateBits(level)} " +
+        s"bits and two axis indices do not fit in $KeyBitBudget bits)"
     )
 
   private[higher_d] def keysFor(n: Int, level: Int, k: Int): FaceKeys =

@@ -533,8 +533,9 @@ case class Hypercube(
   * each 3-split that have at most `maxCentreCoordinates` (k) coordinates in the middle third (1:
   * rule A, N-2: rule B), `SurfaceSubdividing` is rule S. Level 0 is the n-cube. Drawn on the CPU
   * through `projection` (`ProjectionSpec(dimension)` when absent) and re-projected every frame;
-  * a fractional level fades the new holes in. The highest level is what `ResourceLimits` allows
-  * for the dimension. No edge tubes. */
+  * a fractional level fades the new holes in. The constructor rejects a level above
+  * `ResourceLimits.ndSpongeLevel` for the dimension, an upper limit from a cheap bound; whether
+  * a scene fits the triangle budget is decided when it loads (`SceneCost`). No edge tubes. */
 case class HypercubeSponge(
   dimension: Int,
   spongeType: TesseractSpongeType,
@@ -566,7 +567,8 @@ case class HypercubeSponge(
   require(
     level <= levelLimit.max,
     s"HypercubeSponge level $level exceeds the maximum ${levelLimit.max} for dimension " +
-      s"$dimension (${spongeType.toString}, the scene's triangle budget)"
+      s"$dimension (${spongeType.toString}, an upper limit from the scene's triangle budget; " +
+      "a scene is checked against the budget when it loads)"
   )
   require(size > 0f, s"Size must be positive, got $size")
   require(ior >= 0f, s"IOR must be non-negative, got $ior")
@@ -585,22 +587,21 @@ case class HypercubeSponge(
     )
   }
 
-  private def variant: NdSpongeVariant = spongeType match
-    case TesseractSpongeType.VolumeRemoving => NdSpongeVariant.Volume
-    case TesseractSpongeType.SurfaceSubdividing => NdSpongeVariant.Surface
+  private def variant: NdSpongeVariant = HypercubeSponge.variantOf(spongeType)
 
   def toObjectSpec: ObjectSpec =
     baseObjectSpec(
-      HypercubeSponge.objectTypeName(spongeType),
+      variant.objectTypeName,
       level = Some(level),
       projection = Some(projection.getOrElse(ProjectionSpec(dimension))),
       scale = ScaleRules.toSpec(scale)
     ).copy(dimension = Some(dimension), maxCentreCoordinates = Some(maxCentreCoordinates))
 
 object HypercubeSponge:
-  private def objectTypeName(spongeType: TesseractSpongeType): String = spongeType match
-    case TesseractSpongeType.VolumeRemoving => "n-sponge-volume"
-    case TesseractSpongeType.SurfaceSubdividing => "n-sponge-surface"
+  /** The DSL's choice of rule as the engine's variant, which names the object type. */
+  def variantOf(spongeType: TesseractSpongeType): NdSpongeVariant = spongeType match
+    case TesseractSpongeType.VolumeRemoving => NdSpongeVariant.Volume
+    case TesseractSpongeType.SurfaceSubdividing => NdSpongeVariant.Surface
 
 // The other regular 4D polytopes, with the same fields and 4D handling as Tesseract. The
 // renderer supported them all along, but only the CLI could create them -- a DSL scene (and so

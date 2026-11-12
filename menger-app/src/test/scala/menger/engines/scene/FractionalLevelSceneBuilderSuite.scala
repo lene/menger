@@ -20,33 +20,44 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val fractionalSpec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.5").toOption.get
 
     // Use reflection to access private method for testing
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
-    isFractional4DSpongeMethod.setAccessible(true)
+    val isFractionalSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
+    isFractionalSpongeMethod.setAccessible(true)
 
-    isFractional4DSpongeMethod.invoke(builder, integerSpec).asInstanceOf[Boolean] shouldBe false
-    isFractional4DSpongeMethod.invoke(builder, fractionalSpec).asInstanceOf[Boolean] shouldBe true
+    isFractionalSpongeMethod.invoke(builder, integerSpec).asInstanceOf[Boolean] shouldBe false
+    isFractionalSpongeMethod.invoke(builder, fractionalSpec).asInstanceOf[Boolean] shouldBe true
+
+  it should "detect fractional levels for the nD sponges, and not whole ones" in:
+    val builder = TriangleMeshSceneBuilder(".")
+    val isFractionalSpongeMethod = builder.getClass.getDeclaredMethod(
+      "isFractionalProjectedSponge", classOf[ObjectSpec]
+    )
+    isFractionalSpongeMethod.setAccessible(true)
+    for objectType <- Seq("n-sponge-volume", "n-sponge-surface") do
+      def spec(level: Float) = ObjectSpec(objectType, level = Some(level), dimension = Some(5))
+      isFractionalSpongeMethod.invoke(builder, spec(1.5f)).asInstanceOf[Boolean] shouldBe true
+      isFractionalSpongeMethod.invoke(builder, spec(1f)).asInstanceOf[Boolean] shouldBe false
 
   it should "detect fractional levels for tesseract-sponge-2" in:
     val builder = TriangleMeshSceneBuilder(".")
     val fractionalSpec = ObjectSpecParser.parse("type=tesseract-sponge-2:level=2.7").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
-    isFractional4DSpongeMethod.setAccessible(true)
+    val isFractionalSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
+    isFractionalSpongeMethod.setAccessible(true)
 
-    isFractional4DSpongeMethod.invoke(builder, fractionalSpec).asInstanceOf[Boolean] shouldBe true
+    isFractionalSpongeMethod.invoke(builder, fractionalSpec).asInstanceOf[Boolean] shouldBe true
 
-  it should "not detect fractional levels for non-4D sponges" in:
+  it should "not detect fractional levels for objects that are no projected sponge" in:
     val builder = TriangleMeshSceneBuilder(".")
     val cubeSpec = ObjectSpecParser.parse("type=cube:size=1").toOption.get
     val spongeSpec = ObjectSpecParser.parse("type=sponge-volume:level=1.5").toOption.get
     val tesseractSpec = ObjectSpecParser.parse("type=tesseract").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
-    isFractional4DSpongeMethod.setAccessible(true)
+    val isFractionalSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
+    isFractionalSpongeMethod.setAccessible(true)
 
-    isFractional4DSpongeMethod.invoke(builder, cubeSpec).asInstanceOf[Boolean] shouldBe false
-    isFractional4DSpongeMethod.invoke(builder, spongeSpec).asInstanceOf[Boolean] shouldBe false
-    isFractional4DSpongeMethod.invoke(builder, tesseractSpec).asInstanceOf[Boolean] shouldBe false
+    isFractionalSpongeMethod.invoke(builder, cubeSpec).asInstanceOf[Boolean] shouldBe false
+    isFractionalSpongeMethod.invoke(builder, spongeSpec).asInstanceOf[Boolean] shouldBe false
+    isFractionalSpongeMethod.invoke(builder, tesseractSpec).asInstanceOf[Boolean] shouldBe false
 
   // === Instance Count Calculation Tests ===
 
@@ -160,46 +171,46 @@ class FractionalLevelSceneBuilderSuite extends AnyFlatSpec with Matchers:
     val builder = TriangleMeshSceneBuilder(".")
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=0.0").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
-    isFractional4DSpongeMethod.setAccessible(true)
+    val isFractionalSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
+    isFractionalSpongeMethod.setAccessible(true)
 
-    isFractional4DSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe false
+    isFractionalSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe false
 
   it should "handle level 1.0 as integer" in:
     val builder = TriangleMeshSceneBuilder(".")
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.0").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
-    isFractional4DSpongeMethod.setAccessible(true)
+    val isFractionalSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
+    isFractionalSpongeMethod.setAccessible(true)
 
-    isFractional4DSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe false
+    isFractionalSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe false
 
   it should "handle level 2.0 as integer" in:
     val builder = TriangleMeshSceneBuilder(".")
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=2.0").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
-    isFractional4DSpongeMethod.setAccessible(true)
+    val isFractionalSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
+    isFractionalSpongeMethod.setAccessible(true)
 
-    isFractional4DSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe false
+    isFractionalSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe false
 
   it should "handle very small fractional parts" in:
     val builder = TriangleMeshSceneBuilder(".")
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.01").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
-    isFractional4DSpongeMethod.setAccessible(true)
+    val isFractionalSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
+    isFractionalSpongeMethod.setAccessible(true)
 
-    isFractional4DSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe true
+    isFractionalSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe true
 
   it should "handle fractional part close to 1.0" in:
     val builder = TriangleMeshSceneBuilder(".")
     val spec = ObjectSpecParser.parse("type=tesseract-sponge:level=1.99").toOption.get
 
-    val isFractional4DSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
-    isFractional4DSpongeMethod.setAccessible(true)
+    val isFractionalSpongeMethod = builder.getClass.getDeclaredMethod("isFractionalProjectedSponge", classOf[ObjectSpec])
+    isFractionalSpongeMethod.setAccessible(true)
 
-    isFractional4DSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe true
+    isFractionalSpongeMethod.invoke(builder, spec).asInstanceOf[Boolean] shouldBe true
     // GPU split: level 1.99 still emits two instances (level 1 + level 2).
     builder.calculateInstanceCount(List(spec)) shouldBe 2L
 

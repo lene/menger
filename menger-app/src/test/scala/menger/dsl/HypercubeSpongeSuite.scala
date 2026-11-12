@@ -103,7 +103,7 @@ class HypercubeSpongeSuite extends AnyFlatSpec with Matchers:
     an[IllegalArgumentException] should be thrownBy HypercubeSponge(5, Volume, 1f, size = 0f)
     an[IllegalArgumentException] should be thrownBy HypercubeSponge(5, Volume, 1f, ior = -1f)
 
-  "The level limits" should "follow the triangle budget of each dimension, not a table" in:
+  "The level limits" should "be the upper limits of each dimension at today's 16M budget" in:
     // volume: 80 * 112^L faces at N = 5; each level multiplies by 112, so the bound of two
     // triangles per face stays within four budgets for L = 2 and not for L = 3
     ResourceLimits.ndSpongeLevel(NdSpongeVariant.Volume, 5).max shouldBe 2

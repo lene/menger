@@ -219,6 +219,15 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     scaleType("Tesseract") shouldBe "scala.Option<menger.common.Vector.Scale[N]>"
     scaleType("Hypercube") shouldBe "scala.Option<menger.common.Vector.Scale[?]>"
 
+  // menger#166: a sponge has holes, so something inside it stays visible: the `holed` trait.
+  it should "mark HypercubeSponge as holed, like the other sponges" in:
+    val manifest = manifestFor(freshTempPath())
+    def traits(objectName: String): List[String] =
+      manifest.objects.find(_.name == objectName).get.traits
+    traits("HypercubeSponge") should contain("holed")
+    traits("TesseractSponge") should contain("holed")
+    traits("Hypercube") should not contain "holed"
+
   it should "carry the scene-composition types an agent needs to assemble a scene" in:
     val manifest = manifestFor(freshTempPath())
     manifest.sceneComposition.map(_.name) should contain allOf ("Camera", "Scene", "Caustics")

@@ -1,5 +1,6 @@
 package menger.engines.scene
 
+import menger.common.ConfigurationException
 import menger.common.Material
 import menger.dsl.HexadecachoronGasket
 import menger.dsl.Menger4D
@@ -91,16 +92,17 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
     variant: NdSpongeVariant, n: Int, level: Float, k: Int = 1
   ): ObjectSpec =
     ObjectSpec(
-      objectType = if variant == NdSpongeVariant.Volume then "n-sponge-volume" else "n-sponge-surface",
+      objectType = variant.objectTypeName,
       level = Some(level), dimension = Some(n), maxCentreCoordinates = Some(k)
     )
 
-  private val TrianglesPerFace = 2L
+  private val TrianglesPerFace = ResourceLimits.TrianglesPerFace
+  private val Budget = ResourceLimits.sceneMaxTriangles
 
   "SceneCost for an n-sponge" should "cost its bound of faces when that is within the budget" in:
     val spec = ndSponge(NdSpongeVariant.Surface, 5, 2f)
     val bound = NdSponge.upperBoundFaces(NdSpongeVariant.Surface, 5, 2, 1)
-    bound * TrianglesPerFace should be <= ResourceLimits.sceneMaxTriangles
+    bound * TrianglesPerFace should be <= Budget
     SceneCost.triangles(spec) shouldBe TrianglesPerFace * bound
     SceneCost.triangles(spec) should be >= TrianglesPerFace * 28160L
 
@@ -109,7 +111,7 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
     // within its 4x headroom); the sponge has 2,426,880 faces, which fits.
     val spec = ndSponge(NdSpongeVariant.Surface, 6, 3f)
     val bound = NdSponge.upperBoundFaces(NdSpongeVariant.Surface, 6, 3, 1)
-    bound * TrianglesPerFace should be > ResourceLimits.sceneMaxTriangles
+    bound * TrianglesPerFace should be > Budget
     ResourceLimits.ndSpongeBoundAdmits(bound) shouldBe true
     SceneCost.triangles(spec) shouldBe TrianglesPerFace * 2426880L
     fits(List(spec)) shouldBe true
@@ -129,10 +131,9 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
   it should "refuse a level past the bound's headroom without building it" in:
     // 7D volume, level 2: 223M faces by the bound, far over 4x the budget; a build would not fit.
     val spec = ndSponge(NdSpongeVariant.Volume, 7, 2f)
-    ResourceLimits.ndSpongeBoundAdmits(
-      NdSponge.upperBoundFaces(NdSpongeVariant.Volume, 7, 2, 1)
-    ) shouldBe false
-    SceneCost.triangles(spec) should be > ResourceLimits.sceneMaxTriangles
+    val bound = NdSponge.upperBoundFaces(NdSpongeVariant.Volume, 7, 2, 1)
+    ResourceLimits.ndSpongeBoundAdmits(bound) shouldBe false
+    SceneCost.triangles(spec) should be > Budget
     fits(List(spec)) shouldBe false
     SceneCost.fittingLevel(List(spec)).map(_.level) shouldBe Some(1)
 
@@ -142,18 +143,66 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
     SceneCost.triangles(ndSponge(NdSpongeVariant.Surface, 5, 1.4f)) shouldBe
       SceneCost.triangles(lower) + SceneCost.triangles(upper)
 
-  it should "count nothing for a spec without a dimension" in:
-    SceneCost.triangles(ndSponge(NdSpongeVariant.Surface, 5, 1f).copy(dimension = None)) shouldBe 0L
+  it should "fail with a configuration error for a spec without a dimension" in:
+    val spec = ndSponge(NdSpongeVariant.Surface, 5, 1f).copy(dimension = None)
+    a[ConfigurationException] should be thrownBy SceneCost.triangles(spec)
 
-  it should "use the budget at call time for the level limit" in:
-    // the limit is derived from sceneMaxTriangles, with no table: at the current budget the
-    // highest level admitted is the highest whose bound is within 4x the budget
-    for n <- 4 to 8 do
-      val max = ResourceLimits.ndSpongeLevel(NdSpongeVariant.Surface, n).max
-      ResourceLimits.ndSpongeBoundAdmits(
-        NdSponge.upperBoundFaces(NdSpongeVariant.Surface, n, max, 1)
-      ) shouldBe true
-      NdSponge.isBuildable(NdSpongeVariant.Surface, n, max + 1, 1) &&
-        ResourceLimits.ndSpongeBoundAdmits(
-          NdSponge.upperBoundFaces(NdSpongeVariant.Surface, n, max + 1, 1)
-        ) shouldBe false
+  // The bounds are loose: 5D volume at level 2 has 1,003,520 faces by the bound and 450,560 in
+  // fact. Nine of them are 18.1M triangles by their bounds, over the budget, and 8.1M in fact.
+  it should "accept a scene whose bounds add up over the budget but whose exact counts fit" in:
+    val spec = ndSponge(NdSpongeVariant.Volume, 5, 2f)
+    val scene = List.fill(9)(spec)
+    scene.map(SceneCost.triangles).sum should be > Budget
+    val estimate = SceneCost.estimate(scene, 1, SceneCost.CausticsLoad.None)
+    estimate.triangles shouldBe 9 * TrianglesPerFace * 450560L
+    estimate.fittingLevel shouldBe None
+    fits(scene) shouldBe true
+    SceneCost.checkTriangles(scene) shouldBe Right(())
+
+  it should "still refuse a scene whose exact counts are over the budget" in:
+    // 19 x 901,120 = 17.1M triangles in fact; without the 18 others no level of the last fits
+    val scene = List.fill(19)(ndSponge(NdSpongeVariant.Volume, 5, 2f))
+    val estimate = SceneCost.estimate(scene, 1, SceneCost.CausticsLoad.None)
+    estimate.triangles shouldBe 19 * TrianglesPerFace * 450560L
+    SceneCost.check(estimate).left.getOrElse("") should include("triangles in total")
+
+  // k > 1 keeps more sub-cubes: the faces differ from k = 1 at the same level (menger#166).
+  it should "count a larger k exactly: 6D surface, level 3, k = 3" in:
+    val spec = ndSponge(NdSpongeVariant.Surface, 6, 3f, k = 3)
+    val bound = NdSponge.upperBoundFaces(NdSpongeVariant.Surface, 6, 3, 3)
+    bound * TrianglesPerFace should be > Budget
+    SceneCost.triangles(spec) shouldBe TrianglesPerFace * 3317760L
+    SceneCost.triangles(spec) should be >
+      SceneCost.triangles(ndSponge(NdSpongeVariant.Surface, 6, 3f))
+    fits(List(spec)) shouldBe true
+
+  it should "refuse three of them by their exact count, and name the level that fits" in:
+    val spec = ndSponge(NdSpongeVariant.Surface, 6, 3f, k = 3)
+    fits(List(spec, spec)) shouldBe true
+    val scene = List(spec, spec, spec)
+    SceneCost.estimate(scene, 1, SceneCost.CausticsLoad.None).triangles shouldBe
+      3 * TrianglesPerFace * 3317760L
+    fits(scene) shouldBe false
+    SceneCost.fittingLevel(scene).map(_.level) shouldBe Some(2)
+
+  it should "refuse a larger k whose bound is past the headroom, and name the level that fits" in:
+    // 6D volume, level 2, k = 2: 59M faces by the bound, which a k = 1 sponge would not have
+    val spec = ndSponge(NdSpongeVariant.Volume, 6, 2f, k = 2)
+    ResourceLimits.ndSpongeBoundAdmits(
+      NdSponge.upperBoundFaces(NdSpongeVariant.Volume, 6, 2, 2)
+    ) shouldBe false
+    fits(List(spec)) shouldBe false
+    fits(List(ndSponge(NdSpongeVariant.Volume, 6, 2f))) shouldBe true
+    SceneCost.fittingLevel(List(spec)).map(_.level) shouldBe Some(1)
+
+  "The n-sponge level limit" should "admit the highest level by its bound and no higher one" in:
+    for
+      variant <- NdSpongeVariant.values
+      n <- 4 to 8
+    do
+      val max = ResourceLimits.ndSpongeLevel(variant, n).max
+      def boundAt(level: Int) = NdSponge.upperBoundFaces(variant, n, level, 1)
+      ResourceLimits.ndSpongeBoundAdmits(boundAt(max)) shouldBe true
+      val next = max + 1
+      if NdSponge.isBuildable(variant, n, next, 1) then
+        ResourceLimits.ndSpongeBoundAdmits(boundAt(next)) shouldBe false

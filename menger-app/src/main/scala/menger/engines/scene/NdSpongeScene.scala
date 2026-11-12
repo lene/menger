@@ -1,10 +1,8 @@
 package menger.engines.scene
 
-import java.util.LinkedHashMap
-import java.util.{Map => JavaMap}
-
 import menger.common.TriangleMeshData
 import menger.common.Vector
+import menger.dsl.ResourceLimits
 import menger.failure.Fail
 import menger.objects.higher_d.IndexedMeshN
 import menger.objects.higher_d.NdSponge
@@ -20,19 +18,23 @@ import menger.spec.ObjectSpec
   * it once and only projects it again. */
 object NdSpongeScene:
 
-  private val MaxEntries = 4
   // variant, dimension, whole level, k, whether it is the hole-cap mesh
   private type Key = (NdSpongeVariant, Int, Int, Int, Boolean)
 
-  @SuppressWarnings(Array("org.wartremover.warts.Null"))
-  private val memo = new LinkedHashMap[Key, IndexedMeshN](MaxEntries + 1, 0.75f, true):
-    override def removeEldestEntry(eldest: JavaMap.Entry[Key, IndexedMeshN]): Boolean =
-      size() > MaxEntries
+  // Bounded by the faces retained, not by a count of entries: a scene of several sponges, or
+  // an animation through levels 0 to 2 and their hole caps, keeps every mesh it re-projects,
+  // and a few huge sponges cannot hold more than a scene's triangle budget in faces.
+  private val memo = FaceBoundedMemo[Key, IndexedMeshN](
+    () => ResourceLimits.sceneMaxTriangles, _.faceCount.toLong
+  )
 
-  def variantOf(spec: ObjectSpec): NdSpongeVariant = spec.objectType match
-    case "n-sponge-volume" => NdSpongeVariant.Volume
-    case "n-sponge-surface" => NdSpongeVariant.Surface
-    case other => Fail.internal(s"$other is not an n-sponge type")
+  /** The faces the memo holds now. */
+  private[scene] def retainedFaces: Long = memo.retainedWeight
+
+  def variantOf(spec: ObjectSpec): NdSpongeVariant =
+    NdSpongeVariant.fromObjectType(spec.objectType).getOrElse(
+      Fail.internal(s"${spec.objectType} is not an n-sponge type")
+    )
 
   def maxCentreCoordinatesOf(spec: ObjectSpec): Int =
     spec.maxCentreCoordinates.getOrElse(NdSponge.DefaultMaxCentreCoordinates)
@@ -48,11 +50,9 @@ object NdSpongeScene:
     val n = NCubeScene.dimensionOf(spec)
     val key: Key =
       (variantOf(spec), n, wholeLevelOf(spec), maxCentreCoordinatesOf(spec), holeCaps)
-    memo.synchronized(Option(memo.get(key))).getOrElse {
+    memo.getOrElseUpdate(key) {
       val sponge = NdSponge(key._1, n, key._3, key._4)
-      val built = if holeCaps then sponge.holeCaps else sponge
-      memo.synchronized(memo.put(key, built))
-      built
+      if holeCaps then sponge.holeCaps else sponge
     }
 
   /** The faces of a whole-level sponge: what a build would hold, counted exactly. */

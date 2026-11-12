@@ -50,35 +50,38 @@ object ResourceLimits:
   val tesseractSpongeSurfaceLevel: LevelLimit =
     LevelLimit(Const.Engine.tesseractSponge2WarnLevel, Const.Engine.tesseractSponge2MaxLevel)
 
-  private val TrianglesPerFace = 2L
-
-  /** The level range of an n-sponge (`HypercubeSponge`) in `n` dimensions at the default k:
-    * the highest level whose triangles (two per face) the scene's budget still allows. The
-    * face count is bounded from above, not counted, so a level the bound lets through may still
-    * exceed the budget, and a level up to 4x over the bound may still fit: `SceneCost` decides
-    * those two by counting exactly. `sceneMaxTriangles` is read on every call, so a budget made
-    * configurable (menger#179) moves the limit with it. */
-  def ndSpongeLevel(variant: NdSpongeVariant, n: Int): LevelLimit =
-    // ponytail: the 4x headroom lets the exact count in SceneCost decide the levels between the
-    // bound and the budget; it is no promise that a level up to the bound fits.
-    def fits(level: Int): Boolean =
-      NdSponge.isBuildable(variant, n, level, NdSponge.DefaultMaxCentreCoordinates) &&
-        ndSpongeBoundAdmits(
-          NdSponge.upperBoundFaces(variant, n, level, NdSponge.DefaultMaxCentreCoordinates)
-        )
-    @tailrec
-    def highest(level: Int): Int = if fits(level + 1) then highest(level + 1) else level
-    val max = highest(0)
-    LevelLimit(max, max)
+  /** Every face of a mesh sponge or n-cube is a square: two triangles. */
+  val TrianglesPerFace = 2L
 
   /** How many times over the budget the cheap face-count bound may run before an n-sponge level
     * is refused without counting. */
   val NdSpongeBoundHeadroom = 4L
 
+  /** The upper limit of an n-sponge's level (`HypercubeSponge.level`) in `n` dimensions at the
+    * default k: the highest level whose cheap bound of faces is within [[NdSpongeBoundHeadroom]]
+    * times the scene's triangle budget and which the build can allocate. It is a limit on what a
+    * constructor accepts, not a promise that the level fits: the bound is up to about 2x above
+    * the true face count, so `SceneCost` decides a scene at load time, counting exactly where the
+    * bound does not settle it. `sceneMaxTriangles` is read on every call, so a budget made
+    * configurable (menger#179) moves the limit with it. */
+  def ndSpongeLevel(variant: NdSpongeVariant, n: Int): LevelLimit =
+    // ponytail: the 4x headroom lets the exact count in SceneCost decide the levels between the
+    // bound and the budget; it is no promise that a level up to the bound fits.
+    def admitted(level: Int): Boolean =
+      NdSponge.isBuildable(variant, n, level, NdSponge.DefaultMaxCentreCoordinates) &&
+        ndSpongeBoundAdmits(
+          NdSponge.upperBoundFaces(variant, n, level, NdSponge.DefaultMaxCentreCoordinates)
+        )
+    @tailrec
+    def highest(level: Int): Int = if admitted(level + 1) then highest(level + 1) else level
+    val max = highest(0)
+    LevelLimit(max, max)
+
   /** Whether an n-sponge with at most `upperBoundFaces` faces is within the bound's headroom
-    * over `sceneMaxTriangles` (the bound saturates at Long.MaxValue, so it is not multiplied). */
+    * over `sceneMaxTriangles`: divided, not multiplied, since the bound saturates at
+    * Long.MaxValue. */
   def ndSpongeBoundAdmits(upperBoundFaces: Long): Boolean =
-    upperBoundFaces <= NdSpongeBoundHeadroom * sceneMaxTriangles / TrianglesPerFace
+    upperBoundFaces / NdSpongeBoundHeadroom <= sceneMaxTriangles / TrianglesPerFace
 
   /** Keyed by normalized object-type name (`menger.spec.ObjectType.normalize`). Shared by
     * `InteractiveEngine`'s level table and `ObjectSpecParser.validateSpongeLevel`. */

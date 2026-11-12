@@ -91,13 +91,15 @@ class TriangleMeshSceneBuilder(
       val baseMaterial = MaterialExtractor.extract(spec)
       val mixer = LevelMixing.mixer(renderer)
         .filter(_ => isLeveled(spec) && LevelMixing.appliesTo(spec.level, baseMaterial))
-      val ops: List[FractionalOp] =
+      val allOps: List[FractionalOp] =
         if mixer.isDefined && !ObjectType.isRecursiveIASSponge(spec.objectType) then
           buildTwoLevelOps(spec, baseMaterial)
         else if isFractionalProjectedSponge(spec) then
           buildFractionalGpuOps(spec, baseMaterial)
         else
           List(FractionalOp(MeshFactory.createUpload(spec), baseMaterial))
+      // a mesh with every face clipped at an eye has no triangles: nothing to upload or instance
+      val ops = allOps.filterNot(op => TriangleMeshSceneBuilder.isEmptyCpuMesh(op.plan))
 
       val levelInstances = ops.flatMap { op =>
         // Upload mesh and add instance
@@ -302,6 +304,11 @@ class TriangleMeshSceneBuilder(
       case None => true
 
 object TriangleMeshSceneBuilder:
+  /** A CPU mesh without triangles, which no renderer should be given. */
+  private[scene] def isEmptyCpuMesh(plan: MeshUploadPlan): Boolean = plan match
+    case MeshUploadPlan.Cpu(data) => data.indices.isEmpty
+    case _ => false
+
   /** The hole caps of a fractional sponge fade out as the level rises: instance coverage
     * 1 - fractional part, with the material untouched. Not alpha: a refractive material reads
     * alpha as absorption, so glass and film caps looked the same at every level (menger#56).

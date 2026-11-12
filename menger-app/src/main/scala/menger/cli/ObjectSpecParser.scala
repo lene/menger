@@ -206,8 +206,9 @@ object ObjectSpecParser extends LazyLogging:
       case Some(t) if ObjectType.isNdSponge(t) =>
         Left(s"'$t' objects (the DSL's HypercubeSponge) can only be created via the Scala DSL, " +
           "not the --object CLI flag: the command line stays 4D (use " +
-          "type=tesseract-sponge-volume or tesseract-sponge-surface). See examples.dsl.PenteractSpongeBreath and the " +
-          "HypercubeSponge entry of docs/guide/dsl-reference.md.")
+          "type=tesseract-sponge-volume or type=tesseract-sponge-surface). See " +
+          "examples.dsl.PenteractSpongeBreath and the HypercubeSponge entry of " +
+          "docs/guide/dsl-reference.md.")
       case Some(t) if ObjectType.isValid(t) => Right(t.toLowerCase)
       case Some(t) =>
         Left(s"Invalid object type: '$t'. Valid types: ${ObjectType.validTypesString}. " +
