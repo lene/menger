@@ -329,6 +329,30 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     end.length shouldBe start.length
     start.zip(end).foreach((a, b) => a shouldBe b +- 1e-5f)
 
+  it should "fold PenteractFold out of the tesseract and back: scale 0 at the ends (menger#164)" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractFold"))
+    val duration = examples.dsl.PenteractFold.durationSeconds
+    def lastScale(t: Float): Option[Float] =
+      fn(t).objects.head.toObjectSpec.scale.map(_.last)
+    lastScale(0f) shouldBe Some(0f)
+    lastScale(duration) shouldBe Some(0f)
+    lastScale(duration / 2) shouldBe None
+    lastScale(duration / 4).get shouldBe 0.5f +- 1e-5f
+    val spec = fn(3f).objects.head.toObjectSpec
+    (spec.objectType, spec.dimension) shouldBe (("n-cube", Some(5)))
+    spec.edgeRadius should not be empty
+    spec.material should not be empty
+
+  it should "close the PenteractFold loop: the same mesh at the start and the end" in:
+    given ProfilingConfig = ProfilingConfig.disabled
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractFold"))
+    def vertices(t: Float): Array[Float] =
+      MeshFactory.create(fn(t).objects.head.toObjectSpec).vertices
+    val start = vertices(0f)
+    val end = vertices(examples.dsl.PenteractFold.durationSeconds)
+    end.length shouldBe start.length
+    start.zip(end).foreach((a, b) => a shouldBe b +- 1e-4f)
+
   "SceneIndex" should "contain all static scenes" in:
     val all = examples.dsl.SceneIndex.all
     all should not be empty

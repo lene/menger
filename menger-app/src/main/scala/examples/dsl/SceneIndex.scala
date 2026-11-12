@@ -51,4 +51,5 @@ object SceneIndex:
     CubeToTesseract.scene,
     TesseractToPenteract.scene,
     HexeractTurning.scene,
+    PenteractFold.scene,
   )

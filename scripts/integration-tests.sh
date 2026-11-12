@@ -1188,8 +1188,8 @@ test_t_animation() {
         --scene examples.dsl.PulsingSponge --t 1.0
     run_test "t-animation freeze-frame SpongeLevelAnimation" \
         --scene examples.dsl.SpongeLevelAnimation --t 0.5
-    # The cube-to-tesseract hand-over at t = 1 (menger#132): the cube at wScale 0, the Film
-    # tesseract just after it (wScale 0.06), and halfway through the extrusion.
+    # The cube-to-tesseract hand-over at t = 1 (menger#132): the cube at w scale 0, the Film
+    # tesseract just after it (scale 0.06), and halfway through the extrusion.
     run_test "t-animation freeze-frame CubeToTesseract cube" \
         --scene examples.dsl.CubeToTesseract --t 0.9
     run_test "t-animation freeze-frame CubeToTesseract hand-over" \
@@ -1213,6 +1213,12 @@ test_t_animation() {
         --scene examples.dsl.HexeractTurning --t 2
     run_test "t-animation freeze-frame HexeractTurning xu 90" \
         --scene examples.dsl.HexeractTurning --t 4
+    # The penteract folding out of the tesseract along v (menger#164): the scale of the newest
+    # axis at 0.5 (t = 3 of the 12 s loop) and at 1 (t = 6), turned in xv and xz.
+    run_test "t-animation freeze-frame PenteractFold scale 0.5" \
+        --scene examples.dsl.PenteractFold --t 3
+    run_test "t-animation freeze-frame PenteractFold scale 1" \
+        --scene examples.dsl.PenteractFold --t 6
 
     # Multi-frame animation: 3 frames for speed
     local temp_dir
