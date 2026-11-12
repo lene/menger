@@ -477,23 +477,27 @@ HypercubeSponge(
   replaced by walls one square deep around a hole, along each of the face's N - 2 normals.
 - Level 0 is the n-cube, with the same faces, view and size as `Hypercube(N)`; at N = 4 the
   faces of both variants are those of `TesseractSponge`.
-- The highest `level` comes from the scene's triangle budget (`ResourceLimits`, 16M triangles
-  today), so it falls with the dimension: volume 3, 2, 2, 1, 1 and surface 4, 3, 3, 2, 2 for
-  N = 4 to 8 at k = 1. A level over it is rejected, the message naming the maximum for that
-  dimension. A larger `k` multiplies the faces of every level: it can fit at a lower level
-  than `k = 1` does, and a scene over the budget is refused when it is loaded, naming a level
-  that fits. Whole levels cost two triangles per face, counted exactly (a 5D surface sponge of
-  level 2 has 28,160 faces).
+- The `level` the constructor accepts is limited per dimension, from the scene's triangle
+  budget (`ResourceLimits`, 16M triangles today): volume 3, 2, 2, 1, 1 and surface 4, 3, 3, 2, 2
+  for N = 4 to 8 at k = 1, falling with the dimension. A level over it is rejected, the message
+  naming the maximum for that dimension. This is an upper limit, taken from a cheap bound of
+  the faces, not a promise that a level fits: when the scene loads, its cost is checked against
+  the budget, counting the faces exactly where the bound is not enough, and a scene over it
+  is refused with the level that fits. A whole level costs two triangles per face (a 5D surface
+  sponge of level 2 has 28,160 faces). A larger `k` multiplies the faces of every level, so a
+  level that fits at `k = 1` may not at `k = 3`.
 - It is drawn on the CPU through `projection` (a `ProjectionSpec` of at least N dimensions,
   default `ProjectionSpec(N)`). The sponge is built once per whole level and kept; a frame
   that only turns, scales or re-views it projects it again. There are no edge tubes.
 - A fractional level fades the holes of the next level in: with an opaque material the caps of
   the lower level's holes fade out over the upper level; with a refractive one (IOR above
   1.05) the two whole levels are rendered and mixed, as for `TesseractSponge`. Both work with
-  a `ProjectionSpec`.
+  a `ProjectionSpec`. Glass refracts through the many dense internal walls of levels 2 and up
+  and shows a mosaic of overlapping faces: prefer an opaque material there.
 - The command line has no `HypercubeSponge` (`type=n-sponge-volume` is refused, pointing to
   the DSL): `--objects` keeps the 4D `tesseract-sponge-volume` and `-surface`.
-- Example: `PenteractSpongeBreath`, a 5D surface sponge breathing between level 0 and 2.
+- Example: `PenteractSpongeBreath`, a 5D surface sponge breathing between level 0 and 2, from
+  chrome to a grey plastic.
 
 **TesseractSponge (4D Menger Sponge):**
 ```scala

@@ -10,12 +10,19 @@ import menger.spec.ProjectionStage
 /**
  * Example: a surface sponge of five dimensions, built from the penteract, that breathes between
  * level 0 and level 2 (menger#166). At level 0 it is the penteract itself, in chrome; the level
- * rises smoothly to 2, the material turns from chrome through a grey plastic to glass, and it
- * falls back, so the loop is seamless. Level 2 has 28,160 faces; each whole level is built
- * once and kept, so a frame only projects it again.
+ * rises smoothly to 2 while the chrome turns into a grey plastic, and it falls back, so the loop
+ * is seamless. Level 2 has 28,160 faces; each whole level is built once and kept, so a frame
+ * only projects it again.
+ *
+ * The material stays opaque (IOR 1) throughout: a glass sponge refracts through the many dense
+ * internal walls of the higher levels and shows as a mosaic of overlapping faces. An opaque
+ * material also fades the new holes in over the caps of the lower level in a single render.
  *
  * It turns 360 degrees in the plane xv, which mixes the fifth axis into the old ones, and 360
  * degrees in the plane xz, a whole turn of the 3D picture.
+ *
+ * The level is 2 * smoothstep(t / 8) for t up to 8, so level 1 is at t = 4 and level 0.5 at
+ * t = 2.6108146, where 3x^2 - 2x^3 = 0.25 and x = t / 8.
  *
  * Usage:
  *   --scene examples.dsl.PenteractSpongeBreath --t 8
@@ -33,11 +40,7 @@ object PenteractSpongeBreath:
   private val stageCount = 2
   private val stages = List.fill(stageCount)(ProjectionStage(stageEye, stageScreen))
   private val size = 1.6f
-  // The material changes in two halves of the level range: the metal first fades to a plain
-  // grey surface at IOR 1, then the glass appears (IOR up, absorption down).
-  private val halfWay = 0.5f
-  private val glassIor = 1.5f
-  private val glassAbsorption = 0.02f
+  private val plasticRoughness = 0.5f
 
   private def smoothstep(x: Float): Float =
     val clamped = math.min(1f, math.max(0f, x))
@@ -53,18 +56,13 @@ object PenteractSpongeBreath:
   def level(t: Float): Float =
     maxLevel * smoothstep(1f - math.abs(2f * loopTime(t) / durationSeconds - 1f))
 
-  /** Chrome at level 0, glass at `maxLevel`. */
+  /** Chrome at level 0, a grey plastic at `maxLevel`, opaque in between (IOR 1). */
   def material(level: Float): Material =
     val progress = level / maxLevel
-    if progress <= halfWay then
-      Material.Chrome.copy(metallic = 1f - progress / halfWay)
-    else
-      val glass = (progress - halfWay) / halfWay
-      Material.Chrome.copy(
-        color = Color(0.9f, 0.9f, 0.9f, lerp(1f, glassAbsorption, glass)),
-        ior = lerp(1f, glassIor, glass),
-        metallic = 0f
-      )
+    Material.Chrome.copy(
+      metallic = 1f - progress,
+      roughness = lerp(Material.Chrome.roughness, plasticRoughness, progress)
+    )
 
   def scene(t: Float): Scene =
     val turn = fullTurn * loopTime(t) / durationSeconds

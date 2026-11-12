@@ -1220,9 +1220,10 @@ test_t_animation() {
         --scene examples.dsl.PenteractFold --t 3
     run_test "t-animation freeze-frame PenteractFold scale 1" \
         --scene examples.dsl.PenteractFold --t 6
-    # The 5D surface sponge breathing between level 0 and 2 (menger#166): level 0.5 (opaque
-    # chrome-to-grey, hole caps fading in), level 1 (grey) and level 2 (glass), t = 2.6108146,
-    # 4 and 8 of the 16 s loop.
+    # The 5D surface sponge breathing between level 0 and 2 (menger#166), opaque throughout:
+    # level 0.5 (chrome turning grey, hole caps fading in), level 1 and level 2 (grey plastic),
+    # at t = 2.6108146, 4 and 8 of the 16 s loop. The level is 2 * smoothstep(t / 8) up to
+    # t = 8, so level 1 is at t = 4 and level 0.5 where 3x^2 - 2x^3 = 0.25, x = t / 8.
     run_test "t-animation freeze-frame PenteractSpongeBreath level 0.5" \
         --scene examples.dsl.PenteractSpongeBreath --t 2.6108146
     run_test "t-animation freeze-frame PenteractSpongeBreath level 1" \

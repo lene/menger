@@ -357,7 +357,17 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
       spec.edgeRadius shouldBe None
       spec.material should not be empty
 
-  it should "breathe PenteractSpongeBreath from level 0 to 2 and back, chrome to glass" in:
+  // The level is 2 * smoothstep(t / 8) up to t = 8: 0.5 where 3x^2 - 2x^3 = 0.25 (x = t / 8),
+  // which the freeze frames in integration-tests.sh and manual-test.sh use as t = 2.6108146.
+  it should "have PenteractSpongeBreath at level 0.5 at the freeze-frame time" in:
+    val x = (1 to 60).foldLeft((0.0, 1.0)) { case ((lo, hi), _) =>
+      val mid = (lo + hi) / 2
+      if 3 * mid * mid - 2 * mid * mid * mid < 0.25 then (mid, hi) else (lo, mid)
+    }._1
+    (x * examples.dsl.PenteractSpongeBreath.durationSeconds / 2).toFloat shouldBe 2.6108146f +- 1e-5f
+    examples.dsl.PenteractSpongeBreath.level(2.6108146f) shouldBe 0.5f +- 1e-5f
+
+  it should "breathe PenteractSpongeBreath from level 0 to 2 and back, chrome to grey plastic" in:
     val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractSpongeBreath"))
     val duration = examples.dsl.PenteractSpongeBreath.durationSeconds
     def spec(t: Float) = fn(t).objects.head.toObjectSpec
@@ -365,18 +375,28 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     spec(duration).level shouldBe Some(0f)
     spec(duration / 2).level shouldBe Some(2f)
     spec(duration / 4).level.get shouldBe 1f +- 1e-5f
-    spec(2.6108146f).level.get shouldBe 0.5f +- 1e-4f
     spec(0f).material.get.metallic shouldBe 1f
-    spec(0f).material.get.ior shouldBe 1f
-    spec(duration / 2).material.get.ior shouldBe 1.5f +- 1e-5f
     spec(duration / 2).material.get.metallic shouldBe 0f
 
-  it should "stay within the level limits of a 5D surface sponge for every t" in:
+  it should "keep PenteractSpongeBreath opaque, with no refraction, at every time" in:
     val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractSpongeBreath"))
+    (0 to 160).foreach { step =>
+      val material = fn(step * 0.1f).objects.head.toObjectSpec.material.get
+      material.ior shouldBe 1f
+      material.color.a shouldBe 1f
+    }
+
+  it should "keep PenteractSpongeBreath within the level limit of a 5D surface sponge" in:
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractSpongeBreath"))
+    val limit = menger.dsl.ResourceLimits.ndSpongeLevel(
+      menger.objects.higher_d.NdSpongeVariant.Surface, 5
+    ).max
+    limit should be >= 2
     (0 to 160).foreach { step =>
       val level = fn(step * 0.1f).objects.head.toObjectSpec.level.get
       level should (be >= 0f and be <= 2f)
     }
+    fn(8f).objects.head.toObjectSpec.level.get should be <= limit.toFloat
 
   it should "turn PenteractSpongeBreath in xv and xz, a full turn over the loop" in:
     val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.PenteractSpongeBreath"))
