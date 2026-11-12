@@ -80,6 +80,26 @@ if command -v xvfb-run > /dev/null; then
   report "all t time out: both rows listed, then exit 1" "$verdict"
 fi
 
+# A child that outlives the render (Xvfb after a kill) must not keep the GPU lock
+if command -v xvfb-run > /dev/null; then
+  ORPHAN_BIN="$WORK/orphan"
+  {
+    echo '#!/bin/sh'
+    echo 'sleep 20 &'
+    echo 'echo "$!" > "'"$WORK"'/orphan.pid"'
+    for k in 1 2 3; do
+      echo "echo \"10:00:0$k.000 INFO  x - Rendering frame $k/3 (t=1.0)\" >&2"
+    done
+  } > "$ORPHAN_BIN"
+  chmod +x "$ORPHAN_BIN"
+  GPU_LOCK="$WORK/lock2" "$SCRIPTS/frame-budget.sh" "$ORPHAN_BIN" "$WORK/Scene.scala" \
+    --at 1 --texture-dir "$WORK/tex" > /dev/null 2>&1
+  verdict=1
+  if flock -n "$WORK/lock2" true; then verdict=0; fi
+  kill "$(cat "$WORK/orphan.pid")" 2> /dev/null
+  report "orphaned child does not hold the GPU lock after the render" "$verdict"
+fi
+
 # Missing HDRI: exit 1 naming the fetch script
 FAKE_BIN="$WORK/bin"; echo '#!/bin/sh' > "$FAKE_BIN"; chmod +x "$FAKE_BIN"
 touch "$WORK/Scene.scala"; mkdir "$WORK/empty"

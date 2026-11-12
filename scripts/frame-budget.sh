@@ -81,7 +81,9 @@ measure_ms() {
     'BEGIN { printf "%.6f", t + (n - 1) / fps }')"
   log_file="$WORK/t_${t}.log"
   local status=0
-  flock "$GPU_LOCK" timeout -k "$KILL_GRACE_SECONDS" "$TIMEOUT_SECONDS" \
+  # -o: the lock fd is not inherited by the app's children (Xvfb outlives a killed render and
+  # would hold the lock); flock itself keeps the lock until the command exits.
+  flock -o "$GPU_LOCK" timeout -k "$KILL_GRACE_SECONDS" "$TIMEOUT_SECONDS" \
     env __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a "$BIN" --headless \
     --scene "$SCENE" --texture-dir "$TEXTURE_DIR" --frames "$FRAMES_PER_MEASUREMENT" \
     --start-t "$t" --end-t "$end_t" --save-name "$WORK/f_%03d.png" \
