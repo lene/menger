@@ -71,7 +71,9 @@ object SceneSnapshot:
     // The n-cube's own dimension (Hypercube); its `ndProjection.dimension` is at least this.
     dimension: Option[Int] = None,
     // The per-axis geometry scale (menger#164); None for the identity scale.
-    scale: Option[List[Float]] = None
+    scale: Option[List[Float]] = None,
+    // The n-sponge's k (HypercubeSponge.maxCentreCoordinates, menger#166).
+    maxCentreCoordinates: Option[Int] = None
   ) derives ReadWriter
 
   case class LightValues(
@@ -192,7 +194,8 @@ object SceneSnapshot:
       proceduralScale = spec.procedural.scale,
       ndProjection = spec.projectionN.map(ndProjectionValues),
       dimension = spec.dimension,
-      scale = spec.scale.map(_.toList)
+      scale = spec.scale.map(_.toList),
+      maxCentreCoordinates = spec.maxCentreCoordinates
     )
 
   private def ndProjectionValues(view: ProjectionSpec): NdProjectionValues =

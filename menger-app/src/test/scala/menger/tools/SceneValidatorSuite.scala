@@ -249,6 +249,42 @@ class SceneValidatorSuite extends AnyFlatSpec with Matchers:
     result.tag should not be SceneValidator.Tag.Ok
     result.messages.mkString(" ") should (include("6-cube") and include("dimension = 5"))
 
+  // menger#166: the n-sponge's k is in the snapshot next to its dimension.
+  it should "carry a HypercubeSponge's dimension and k" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object SpongeScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(
+        |      HypercubeSponge(6, TesseractSpongeType.VolumeRemoving, 1f, maxCentreCoordinates = 4)
+        |    ),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag shouldBe SceneValidator.Tag.Ok
+    val sponge = result.snapshots.head.objects.head
+    (sponge.dslType, sponge.objectType, sponge.dimension, sponge.maxCentreCoordinates) shouldBe
+      (("HypercubeSponge", "n-sponge-volume", Some(6), Some(4)))
+    sponge.ndProjection.get.dimension shouldBe 6
+
+  it should "refuse a HypercubeSponge level above its dimension's maximum, naming it" in:
+    val file = writeTempScene(
+      """import menger.dsl._
+        |object TallSpongeScene:
+        |  val scene: Scene = Scene(
+        |    camera = Camera(position = (0f, 2f, 5f), lookAt = (0f, 0f, 0f)),
+        |    objects = List(HypercubeSponge(8, TesseractSpongeType.VolumeRemoving, 3f)),
+        |    lights  = List()
+        |  )
+        |""".stripMargin
+    )
+    val result = SceneValidator.validate(file)
+    result.tag should not be SceneValidator.Tag.Ok
+    result.messages.mkString(" ") should (include("maximum 1") and include("dimension 8"))
+
   it should "carry an animated scene's snapshots and its densely sampled camera path" in:
     val file = writeTempScene(
       """import menger.dsl._

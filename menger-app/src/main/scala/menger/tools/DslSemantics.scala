@@ -1,6 +1,9 @@
 package menger.tools
 
 import menger.dsl.FieldConstraints
+import menger.dsl.ResourceLimits
+import menger.objects.higher_d.NdSponge
+import menger.objects.higher_d.NdSpongeVariant
 
 /** What the DSL's fields *mean* -- units, conventions and interactions that reflection cannot
   * recover (there is no scaladoc at runtime). Everything else in the manifest is derived from
@@ -12,6 +15,20 @@ import menger.dsl.FieldConstraints
   * (colour alpha) and promised glows the renderer cannot draw.
   */
 object DslSemantics:
+
+  /** The highest level of each n-sponge variant per dimension, from the scene's triangle budget
+    * as it stands when the manifest is made. */
+  private def hypercubeSpongeLevels: String =
+    List(
+      NdSpongeVariant.Volume -> "VolumeRemoving",
+      NdSpongeVariant.Surface -> "SurfaceSubdividing"
+    )
+      .map { (variant, name) =>
+        val perDimension = (NdSponge.MinDimension to NdSponge.MaxDimension).map(n =>
+          s"N=$n: ${ResourceLimits.ndSpongeLevel(variant, n).max}"
+        ).mkString(", ")
+        s"$name at k = 1 $perDimension"
+      }.mkString("; ")
 
   /** Cross-cutting rules that belong to no single field. */
   val conventions: List[String] = List(
@@ -173,6 +190,30 @@ object DslSemantics:
       "`edgeRadius`/`edgeMaterial` it has one tube per edge: 1024 on an 8-cube, which the " +
       "renderer's instance limit is raised for. Hypercube is DSL-only: the command line has " +
       "only the 4D `tesseract` (menger#163; example: HexeractTurning).",
+    "HypercubeSponge: `HypercubeSponge(dimension = N, spongeType, level, " +
+      "maxCentreCoordinates = k)` is the Menger sponge of N = 4..8 dimensions, built from the " +
+      "N-cube by splitting every axis in thirds, `level` times over. `VolumeRemoving` keeps " +
+      "the sub-cubes with at most k coordinates in the middle third: k = 1 (default) is rule " +
+      "A, the generalisation of the TesseractSponge, k = N - 2 is rule B, which removes only " +
+      "the middle cell and its axis neighbours, and k may be 1..N - 1. `SurfaceSubdividing` " +
+      "is rule S: every square face splits into nine and its middle one is replaced by walls " +
+      "one square deep around a hole, along each of the N - 2 normals of the face; with a " +
+      "`Film` material it looks calmer than the volume sponge. Level 0 is the n-cube " +
+      "with the same view and size, so an animation can hand over to `Hypercube(N)` there " +
+      "(the sponge itself has no edge tubes). The " +
+      "highest `level` follows the scene's triangle budget and so the dimension: " +
+      hypercubeSpongeLevels + ". A whole level costs 2 triangles per face " +
+      "(surface, N = 5, level 2: 28,160 faces); a level that fits the " +
+      "budget is accepted, one over it is refused with the level that fits. It takes a " +
+      "`ProjectionSpec` of dimension N or more as `projection = Some(...)` (absent: " +
+      "`ProjectionSpec(N)`) and a `Scale[N]` as `scale`. It is rendered on the CPU: " +
+      "the unprojected sponge is built once and kept, so an animation that only turns, " +
+      "scales or re-views it projects it again each frame, but one that changes the level " +
+      "builds a sponge per whole level. A fractional level fades the new holes in over the " +
+      "caps of the lower level (opaque materials) or mixes the two whole levels (refractive " +
+      "ones), as the 4D sponges do, and is allowed with a `ProjectionSpec`. DSL-only (the " +
+      "command line has the 4D sponges); no edge tubes (menger#166; example: " +
+      "PenteractSpongeBreath).",
     "Procedural colouring (`proceduralType`) is evaluated at the hit point's world position " +
       "(11 xyz_rgb_local: in the object's own box). " +
       "For a 4D object that is the projected 3D position, after `projection` and `pos`, so the " +
@@ -264,6 +305,21 @@ object DslSemantics:
       "Hypercube(n - 1). See the hand-over rule in conventions."),
     ("Hypercube", "dimension") -> ("Number of dimensions N, 4 to 8: the cube has 2^N " +
       "vertices; see conventions."),
+    ("HypercubeSponge", "dimension") -> ("Number of dimensions N, 4 to 8; see conventions " +
+      "for the highest level of each."),
+    ("HypercubeSponge", "spongeType") -> ("VolumeRemoving keeps the sub-cubes with at most " +
+      "`maxCentreCoordinates` middle coordinates (rule A for 1); SurfaceSubdividing is rule " +
+      "S, walls one square deep around the holes."),
+    ("HypercubeSponge", "level") -> ("0 is the n-cube; the maximum depends on the dimension " +
+      "and the variant (see conventions); a fractional level fades the new holes in."),
+    ("HypercubeSponge", "maxCentreCoordinates") -> ("k, 1..N-1: the most middle-third " +
+      "coordinates a kept sub-cube may have; 1 = rule A (default), N-2 = rule B. Higher k " +
+      "keeps more and costs far more faces, so a level that fits at k = 1 may not at k = 3."),
+    ("HypercubeSponge", "scale") -> ("One factor >= 0 per axis, `Scale[N]` for the sponge's " +
+      "dimension N (a wrong count is rejected), applied after `size`."),
+    ("HypercubeSponge", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",
+    ("HypercubeSponge", "rotation") -> ("3D Euler angles in radians, applied after " +
+      "projection; rotations in N dimensions go in `projection`."),
     ("Hypercube", "color") -> "Tints the material's RGB; alpha (transparency) is preserved.",
     ("Hypercube", "rotation") -> ("3D Euler angles in radians, applied after projection; " +
       "rotations in N dimensions go in `projection`."),
@@ -321,7 +377,8 @@ object DslSemantics:
     * so it never occludes (usability review 2026-10, F78). The agent kept this list itself
     * (review 2026-10-14, msa#28); the manifest now carries it as the `holed` trait. */
   val holedTypes: Set[String] =
-    Set("Sponge", "TesseractSponge", "PentachoronGasket", "Menger4D", "HexadecachoronGasket")
+    Set("Sponge", "TesseractSponge", "HypercubeSponge", "PentachoronGasket", "Menger4D",
+      "HexadecachoronGasket")
 
   // Bounds are `menger.dsl.FieldConstraints` (review 2026-10-14, menger#114): these were three
   // string-keyed tables parallel to the DSL `require`s. `Sponge`/`TesseractSponge` have a
