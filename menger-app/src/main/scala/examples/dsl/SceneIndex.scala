@@ -53,4 +53,5 @@ object SceneIndex:
     HexeractTurning.scene,
     PenteractFold.scene,
     PenteractSpongeBreath.scene,
+    DimensionLadder.scene,
   )
