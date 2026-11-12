@@ -9,6 +9,9 @@ import menger.common.z
 /** How one projected face becomes triangles, shared by every mesh that draws faces through a
   * projection ([[ProjectedMesh]], [[IndexedMeshN]]) so that they emit the same triangles. */
 private[higher_d] object FaceTriangles:
+  /** Floats per vertex: position(3), normal(3), uv(2). */
+  val VertexStride: Int = 8
+
 
   /** A fan of `face.size - 2` triangles over the corners, which carry the face's Newell normal
     * and the UVs of a square. */
@@ -37,10 +40,10 @@ private[higher_d] object FaceTriangles:
       if edgeLen < 1e-6f || nl < 1e-3f * edgeLen * edgeLen then (0f, 1f, 0f)
       else ((nxAcc / nl).toFloat, (nyAcc / nl).toFloat, (nzAcc / nl).toFloat)
 
-    val verts = Array.tabulate(vpf * 8) { idx =>
-      val j = idx / 8
+    val verts = Array.tabulate(vpf * VertexStride) { idx =>
+      val j = idx / VertexStride
       val v = face(j)
-      idx % 8 match
+      idx % VertexStride match
         case 0 => v.x
         case 1 => v.y
         case 2 => v.z
@@ -59,7 +62,7 @@ private[higher_d] object FaceTriangles:
         case _ => k
     }
 
-    TriangleMeshData(verts, indices, vertexStride = 8)
+    TriangleMeshData(verts, indices, VertexStride)
 
   def translateMesh(mesh: TriangleMeshData, offset: Vector[3]): TriangleMeshData =
     if offset.x == 0f && offset.y == 0f && offset.z == 0f then mesh

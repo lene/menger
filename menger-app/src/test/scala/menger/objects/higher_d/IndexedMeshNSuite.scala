@@ -115,7 +115,9 @@ class IndexedMeshNSuite extends AnyFlatSpec with Matchers:
     mesh.indices.toSeq shouldBe Seq(0, 1, 2, 0, 2, 3)
 
   it should "be empty when every face is dropped" in:
-    twoSquares.toTriangleMesh(1f, unscaled, _ => None, origin).numTriangles shouldBe 0
+    val empty = twoSquares.toTriangleMesh(1f, unscaled, _ => None, origin)
+    empty.numTriangles shouldBe 0
+    empty.vertexStride shouldBe 8
 
   it should "move the result to the center" in:
     val mesh = twoSquares.toTriangleMesh(1f, unscaled, firstThree, Vector[3](10f, 20f, 30f))

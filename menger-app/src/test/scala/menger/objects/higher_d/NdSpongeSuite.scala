@@ -116,12 +116,18 @@ class NdSpongeSuite extends AnyFlatSpec with Matchers with LazyLogging:
         NdSponge.upperBoundFaces(variant, n, level, k) should be >= faces.toLong
       }
     }
-    NdSponge.upperBoundFaces(Surface, 4, 1, 1) shouldBe 384L
     NdSponge.upperBoundFaces(Volume, 4, 1, 1) shouldBe 1152L
 
   they should "keep the 8D bound from overflowing" in:
     NdSponge.upperBoundFaces(Volume, 8, 12, 1) shouldBe Long.MaxValue
     NdSponge.upperBoundFaces(Surface, 8, 0, 1) shouldBe NCube.faceCount(8).toLong
+
+  they should "give the bound of a huge level at once, saturated" in:
+    val (bounds, millis) = timed(
+      Seq(Volume, Surface).map(NdSponge.upperBoundFaces(_, 8, Int.MaxValue, 1))
+    )
+    bounds shouldBe Seq(Long.MaxValue, Long.MaxValue)
+    millis should be < 1000L
 
   they should "keep 48, 112 and 1,280 sub-cubes per step with k = 1 in 4D, 5D and 8D" in:
     Seq(4 -> 48, 5 -> 112, 8 -> 1280).foreach { (n, kept) =>
@@ -151,6 +157,37 @@ class NdSpongeSuite extends AnyFlatSpec with Matchers with LazyLogging:
       NdSponge(variant, 5, 2, 1).vertices.foreach(math.abs(_) should be <= 0.5f)
     }
 
+  they should "reach +-0.5 on every axis at level 1" in:
+    Dimensions.foreach { n =>
+      Seq(Volume, Surface).foreach { variant =>
+        val points = NdSponge(variant, n, 1, 1).vertices.grouped(n).toSeq
+        (0 until n).foreach { axis =>
+          withClue(s"$variant, n = $n, axis $axis: ") {
+            points.map(_(axis)).max shouldBe 0.5f
+            points.map(_(axis)).min shouldBe -0.5f
+          }
+        }
+      }
+    }
+
+  they should "stay below their upper bound for every k (exhaustive for small n and level)" in:
+    val cases = for
+      (n, levels) <- Seq(4 -> Seq(1, 2, 3), 5 -> Seq(1, 2), 6 -> Seq(1, 2))
+      level <- levels
+      variant <- Seq(Volume, Surface)
+      k <- 1 until n
+    yield (variant, n, level, k)
+    cases.foreach { (variant, n, level, k) =>
+      withClue(s"$variant n = $n, level $level, k = $k: ") {
+        NdSponge(variant, n, level, k).faceCount.toLong should
+          be <= NdSponge.upperBoundFaces(variant, n, level, k)
+      }
+    }
+
+  they should "have a surface bound of 8 + 8(n-2) children per face and step" in:
+    NdSponge.upperBoundFaces(Surface, 4, 1, 1) shouldBe 24L * 24
+    NdSponge.upperBoundFaces(Surface, 8, 2, 1) shouldBe 1792L * 56 * 56
+
   "maxCentreCoordinates outside 1..n-1" should "be rejected, naming the range" in:
     Seq(0, 5).foreach { k =>
       val volume = the[IllegalArgumentException] thrownBy NdSponge.volume(5, 1, k)
@@ -176,6 +213,50 @@ class NdSpongeSuite extends AnyFlatSpec with Matchers with LazyLogging:
         val message = (the[IllegalArgumentException] thrownBy build()).getMessage
         message should (include("N=8") and include("L=4") and include("too wide"))
       }
+
+  "A sponge too large for an array" should "be rejected before anything is built" in:
+    // 1280^3 kept cells of 8D; 7D level 4 passes the key width but has 3.6e9 candidate faces
+    Seq[() => Any](
+      () => NdSponge.volume(8, 3, 1), () => NdSponge.keptCells(8, 3, 1),
+      () => NdSponge.surface(7, 4, 1), () => NdSponge.surface(6, 5, 1)
+    ).foreach { build =>
+      val (failure, millis) = timed(the[IllegalArgumentException] thrownBy build())
+      failure.getMessage should include("too large to build")
+      millis should be < 1000L
+    }
+
+  "A huge level" should "fail fast with the key-width message" in:
+    Seq[() => Any](
+      () => NdSponge.volume(5, Int.MaxValue, 1), () => NdSponge.surface(5, Int.MaxValue, 1),
+      () => NdSponge.keptCells(5, Int.MaxValue, 1)
+    ).foreach { build =>
+      val (failure, millis) = timed(the[IllegalArgumentException] thrownBy build())
+      failure.getMessage should (include("too wide") and include("L=2147483647"))
+      millis should be < 1000L
+    }
+
+  "The face key" should "round-trip at the widest accepted keys" in:
+    // n = 8 at level 3 uses 54 of the 63 key bits, n = 4 at level 8 uses 62
+    Seq((8, 3, 6, 7), (4, 8, 2, 3)).foreach { (n, level, i, j) =>
+      val keys = NdSponge.keysFor(n, level, 1)
+      val extent = keys.extent
+      val centres = Seq(
+        Array.fill(n)(extent), Array.fill(n)(-extent), Array.fill(n)(0),
+        Array.tabulate(n)(axis => if axis % 2 == 0 then extent else -extent)
+      )
+      centres.foreach { centre =>
+        withClue(s"n = $n, level $level, centre ${centre.toSeq}: ") {
+          val key = keys.encode(i, j, centre)
+          key should be >= 0L
+          keys.firstAxis(key) shouldBe i
+          keys.secondAxis(key) shouldBe j
+          keys.centre(key).toSeq shouldBe centre.toSeq
+        }
+      }
+      val corner = keys.corner(keys.encode(i, j, Array.fill(n)(0)), 1, -1)
+      (0 until n).map(keys.coordinate(corner, _)) shouldBe
+        (0 until n).map(axis => if axis == i then 1 else if axis == j then -1 else 0)
+    }
 
   private def defaultView(n: Int): LiftedProjection =
     ProjectionConversion.liftedProjection(ProjectionSpec(n))
@@ -217,16 +298,19 @@ class NdSpongeSuite extends AnyFlatSpec with Matchers with LazyLogging:
     val result = work
     (result, (System.nanoTime() - start) / 1000000)
 
-  "Building a large sponge" should "be measured, not asserted" taggedAs Slow in:
-    Seq((Volume, 5, 2), (Volume, 6, 2), (Surface, 8, 2)).foreach { (variant, n, level) =>
-      val (mesh, buildMillis) = timed(NdSponge(variant, n, level, 1))
-      val view = defaultView(n)
-      val (triangles, projectMillis) = timed(
-        mesh.toTriangleMesh(1f, IndexedSeq.fill(n)(1f), view.project, Vector.Zero[3])
-      )
-      logger.info(
-        s"$variant n = $n level $level: ${mesh.faceCount} faces, ${mesh.vertexCount} vertices, " +
-          s"built in $buildMillis ms; toTriangleMesh $projectMillis ms " +
-          s"(${triangles.numTriangles} triangles)"
-      )
+  "Building a large sponge" should "give the known face counts and log the times" taggedAs Slow in:
+    // counts.txt and the E2 card: 5D and 6D level 2 with rule A, 8D level 2 with rule S
+    Seq((Volume, 5, 2, 450560), (Volume, 6, 2, 5898240), (Surface, 8, 2, 1662976)).foreach {
+      (variant, n, level, faces) =>
+        val (mesh, buildMillis) = timed(NdSponge(variant, n, level, 1))
+        mesh.faceCount shouldBe faces
+        val view = defaultView(n)
+        val (triangles, projectMillis) = timed(
+          mesh.toTriangleMesh(1f, IndexedSeq.fill(n)(1f), view.project, Vector.Zero[3])
+        )
+        logger.info(
+          s"$variant n = $n level $level: ${mesh.faceCount} faces, ${mesh.vertexCount} " +
+            s"vertices, built in $buildMillis ms; toTriangleMesh $projectMillis ms " +
+            s"(${triangles.numTriangles} triangles)"
+        )
     }

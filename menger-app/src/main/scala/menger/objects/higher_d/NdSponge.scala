@@ -12,7 +12,8 @@ enum NdSpongeVariant:
   * The n-cube [-0.5, 0.5]^n is split 3 times per axis, level times over. `maxCentreCoordinates`
   * (k) is the most coordinates a kept sub-cube may have in the middle third of its parent: 1
   * gives the 4D `TesseractSponge` and `TesseractSponge2`, n - 2 removes only the middle cell and
-  * its axis neighbours.
+  * its axis neighbours, and n - 1 (the largest value) removes only the middle sub-cube of each
+  * step.
   *
   * Faces live on an integer grid in which a finest cell has half-size 1 and the cube spans
   * +-3^level, and are held as packed Long keys: two axis indices, then the n centre coordinates.
@@ -35,6 +36,13 @@ object NdSponge:
   // per normal axis: both directions, the face's two edge axes, both sides of the hole
   private val WallsPerNormal = 8
   private val OuterShift = 2
+  // the first axis of a face is stored in AxisIndexBits bits, the last axis index is n - 1
+  require(
+    MaxDimension <= (1 << AxisIndexBits),
+    s"a face key stores axis indices in $AxisIndexBits bits, too few for $MaxDimension dimensions"
+  )
+  // 2 * 3^39 is the largest coordinate range that a Long holds
+  private val MaxExactLevel = 39
 
   def apply(
     variant: NdSpongeVariant, n: Int, level: Int, k: Int = DefaultMaxCentreCoordinates
@@ -54,6 +62,9 @@ object NdSponge:
   /** The centres of the kept finest cells, n integers per cell, one cell after the other. */
   def keptCells(n: Int, level: Int, k: Int): Array[Int] =
     requireKeyFits(n, level, k)
+    requireBuildable(
+      saturatingPower(keptPerStep(n, k), level), Int.MaxValue / n, n, level, k, "kept cells"
+    )
     val offsets = keptOffsets(n, k).flatten.toArray
     val offsetCount = offsets.length / n
     (0 until level).foldLeft(Array.fill(n)(0)) { (cells, step) =>
@@ -70,15 +81,11 @@ object NdSponge:
     * inside the sponge. */
   def volume(n: Int, level: Int, k: Int = DefaultMaxCentreCoordinates): IndexedMeshN =
     val keys = keysFor(n, level, k)
+    requireBuildableFaces(NdSpongeVariant.Volume, n, level, k)
     val cells = keptCells(n, level, k)
     val cellCount = cells.length / n
     val templates = faceTemplates(keys)
-    val rawCount = cellCount.toLong * templates.length
-    require(
-      rawCount <= Int.MaxValue,
-      s"volume($n, $level, $k) has $rawCount faces before merging, more than an array can hold"
-    )
-    val raw = new Array[Long](rawCount.toInt)
+    val raw = new Array[Long](cellCount * templates.length)
     (0 until cellCount).foreach { cell =>
       val base = keys.cellBase(cells, cell)
       templates.indices.foreach(t => raw(cell * templates.length + t) = base + templates(t))
@@ -91,20 +98,44 @@ object NdSponge:
     * around its hole along each of the face's normals, and faces outside the sponge are dropped. */
   def surface(n: Int, level: Int, k: Int = DefaultMaxCentreCoordinates): IndexedMeshN =
     val keys = keysFor(n, level, k)
+    requireBuildableFaces(NdSpongeVariant.Surface, n, level, k)
     val finest = (1 to level).foldLeft(cubeFaces(keys)) { (faces, step) =>
       refine(keys, level, faces, step, k)
     }
     meshOf(keys, finest)
 
-  /** A cheap bound on the number of faces, from the number of faces before merging (volume) or
-    * the largest number a face can split into (surface). Saturates at Long.MaxValue. */
+  /** A cheap bound on the number of faces, which is also the number of face keys the build
+    * handles before merging: for the volume the faces of all kept cells, for the surface the
+    * slots of the last step. Saturates at Long.MaxValue. */
   def upperBoundFaces(variant: NdSpongeVariant, n: Int, level: Int, k: Int): Long =
     requireDimensionAndRange(n, k)
     require(level >= 0, s"level must not be negative, got $level")
     val perStep = variant match
       case NdSpongeVariant.Volume => keptPerStep(n, k)
-      case NdSpongeVariant.Surface => FlatParts - 1L + (WallsPerNormal / 2L) * (n - 2)
+      case NdSpongeVariant.Surface => surfaceChildrenPerFace(n)
     saturatingMultiply(NCube.faceCount(n).toLong, saturatingPower(perStep, level))
+
+  /** What `refine` reserves for one face: the 8 outer squares of the 3 x 3 split, and for each
+    * of the n - 2 normals up to 8 walls (both directions, 2 edge axes, 2 sides) for the middle
+    * square. The surface starts from C(n,2) 2^(n-2) faces and multiplies by this once per level,
+    * so no step has more faces than this bound allows. */
+  private def surfaceChildrenPerFace(n: Int): Long =
+    FlatParts - 1L + WallsPerNormal.toLong * (n - 2)
+
+  private def requireBuildableFaces(variant: NdSpongeVariant, n: Int, level: Int, k: Int): Unit =
+    requireBuildable(
+      upperBoundFaces(variant, n, level, k), Int.MaxValue / IndexedMeshN.CornersPerFace,
+      n, level, k, s"$variant faces"
+    )
+
+  private def requireBuildable(
+    candidates: Long, limit: Int, n: Int, level: Int, k: Int, what: String
+  ): Unit =
+    require(
+      candidates <= limit,
+      s"a ${n}D sponge of level $level (k=$k) is too large to build: up to $candidates $what, " +
+        s"more than an array can hold ($limit)"
+    )
 
   private def requireDimensionAndRange(n: Int, k: Int): Unit =
     require(
@@ -117,7 +148,9 @@ object NdSponge:
     )
 
   // coordinates 0..2*3^level need this many bits
-  private def coordinateBits(level: Int): Int = (BigInt(Base).pow(level) * 2).bitLength
+  private def coordinateBits(level: Int): Int =
+    if level > MaxExactLevel then java.lang.Long.SIZE
+    else (BigInt(Base).pow(level) * 2).bitLength
 
   private def requireKeyFits(n: Int, level: Int, k: Int): Unit =
     requireDimensionAndRange(n, k)
@@ -131,7 +164,7 @@ object NdSponge:
         s"indices do not fit in $KeyBitBudget bits)"
     )
 
-  private def keysFor(n: Int, level: Int, k: Int): FaceKeys =
+  private[higher_d] def keysFor(n: Int, level: Int, k: Int): FaceKeys =
     requireKeyFits(n, level, k)
     FaceKeys(n, coordinateBits(level), power(Base, level))
 
@@ -150,12 +183,15 @@ object NdSponge:
     else if a > Long.MaxValue / b then Long.MaxValue
     else a * b
 
-  private def saturatingPower(base: Long, exponent: Int): Long =
-    (0 until exponent).foldLeft(1L)((p, _) => saturatingMultiply(p, base))
+  // stops multiplying once the product has saturated: base is at least 2, level may be huge
+  @tailrec
+  private def saturatingPower(base: Long, exponent: Int, product: Long = 1L): Long =
+    if exponent == 0 || product == Long.MaxValue then product
+    else saturatingPower(base, exponent - 1, saturatingMultiply(product, base))
 
   /** A face key, its parts added to or taken from the key of the cell it belongs to: the key of
     * a face is the key of its centre point plus the axis pair. */
-  private final case class FaceKeys(n: Int, bits: Int, extent: Int):
+  private[higher_d] final case class FaceKeys(n: Int, bits: Int, extent: Int):
     private val coordinateMask = (1L << bits) - 1
     private val coordinatesBits = n * bits
     private val coordinatesMask = (1L << coordinatesBits) - 1
@@ -332,6 +368,10 @@ object NdSponge:
     val sortedCorners = cornerKeys.clone
     Arrays.sort(sortedCorners)
     val vertexKeys = uniqueRuns(sortedCorners, _ => true)
+    require(
+      vertexKeys.length.toLong * n <= Int.MaxValue,
+      s"a ${n}D sponge with ${vertexKeys.length} vertices is too large to build"
+    )
     val gridSize = (OuterShift * keys.extent).toFloat
     IndexedMeshN(
       n,

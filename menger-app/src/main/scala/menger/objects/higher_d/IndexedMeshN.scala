@@ -65,8 +65,13 @@ final case class IndexedMeshN(dimension: Int, vertices: Array[Float], quads: Arr
     def corners(face: Int): IndexedSeq[Vector[3]] =
       cornerIndices(face).flatMap(projected(_))
     val kept = (0 until faceCount).filter(corners(_).size == IndexedMeshN.CornersPerFace)
-    if kept.isEmpty then TriangleMeshData.empty
+    if kept.isEmpty then
+      TriangleMeshData(Array.emptyFloatArray, Array.emptyIntArray, FaceTriangles.VertexStride)
     else
+      require(
+        kept.size.toLong * IndexedMeshN.FloatsPerFace <= Int.MaxValue,
+        s"too many faces for one triangle mesh: ${kept.size}"
+      )
       val triangles = Array.ofDim[Float](kept.size * IndexedMeshN.FloatsPerFace)
       val indices = Array.ofDim[Int](kept.size * IndexedMeshN.IndicesPerFace)
       kept.zipWithIndex.foreach { (face, slot) =>
@@ -79,7 +84,7 @@ final case class IndexedMeshN(dimension: Int, vertices: Array[Float], quads: Arr
         }
       }
       FaceTriangles.translateMesh(
-        TriangleMeshData(triangles, indices, IndexedMeshN.VertexStride), center
+        TriangleMeshData(triangles, indices, FaceTriangles.VertexStride), center
       )
 
   private def cornerIndices(face: Int): IndexedSeq[Int] =
@@ -96,8 +101,7 @@ object IndexedMeshN:
   // a square is a fan of two triangles over its four corners
   private val TrianglesPerFace = 2
   private val IndicesPerTriangle = 3
-  private val VertexStride = 8
-  private val FloatsPerFace = CornersPerFace * VertexStride
+  private val FloatsPerFace = CornersPerFace * FaceTriangles.VertexStride
   private val IndicesPerFace = TrianglesPerFace * IndicesPerTriangle
 
   // the centre square of a face split into 3 x 3 is a third of its edge

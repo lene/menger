@@ -24,7 +24,7 @@ trait ProjectedMesh[N <: Int & Singleton] extends TriangleMeshSource:
 
   override def toTriangleMesh: TriangleMeshData =
     if sourceMesh.vertsPerFace < 3 then
-      TriangleMeshData(Array.emptyFloatArray, Array.emptyIntArray, vertexStride = 8)
+      TriangleMeshData(Array.emptyFloatArray, Array.emptyIntArray, FaceTriangles.VertexStride)
     else
       val faces = projectedVertices
       val meshDataList = faces.map(FaceTriangles.faceToTriangleMesh)
