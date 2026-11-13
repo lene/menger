@@ -8,7 +8,6 @@ import com.typesafe.scalalogging.LazyLogging
 import menger.common.Color
 import menger.common.Material
 import menger.dsl.ResourceLimits
-import menger.objects.higher_d.AxisScaledMesh
 import menger.spec.ConeGeometry
 import menger.spec.CurveData
 import menger.spec.CylinderGeometry
@@ -432,7 +431,7 @@ object ObjectSpecParser extends LazyLogging:
           ">= 0, e.g. scale=1,1,1,0.5"
         Try(raw.split(",", -1).map(_.trim.toFloat).toIndexedSeq).toOption
           .filter(f => f.size == factors && f.forall(x => x.isFinite && x >= 0f))
-          .map(AxisScaledMesh.nonIdentity)
+          .map(ObjectSpec.nonIdentityScale)
           .toRight(invalid)
 
   private def parseFloatParam(

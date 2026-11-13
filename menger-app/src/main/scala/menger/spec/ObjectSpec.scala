@@ -134,6 +134,11 @@ object ObjectSpec:
 
   val IdentityScale: Float = 1f
 
+  /** `scales` unless it is the identity scale, which is no scale at all. The CLI and the DSL may
+    * not depend on menger.objects, so this is the spec layer's copy of AxisScaledMesh's check. */
+  def nonIdentityScale(scales: IndexedSeq[Float]): Option[IndexedSeq[Float]] =
+    Some(scales).filterNot(_.forall(_ == IdentityScale))
+
   /** The dimension of the 4D polytope and sponge types, whose `scale` has this many factors. */
   val LegacyDimension: Int = 4
 
