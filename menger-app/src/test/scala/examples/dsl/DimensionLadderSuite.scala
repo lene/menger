@@ -4,14 +4,16 @@ import examples.dsl.DimensionLadder.Kind
 import examples.dsl.DimensionLadder.Segment
 import menger.common.Material
 import menger.common.ProfilingConfig
+import menger.dsl.Cylinder
+import menger.dsl.ResourceLimits
 import menger.dsl.Scene
 import menger.dsl.SceneObject
-import menger.dsl.ResourceLimits
 import menger.dsl.Sun
 import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.objects.higher_d.NdSpongeVariant
+import menger.spec.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -26,13 +28,14 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
   private val cameraTolerance = 5e-3f
   private val materialTolerance = 1e-5f
   private val saneRadius = 5f
+  private val clearance = 0.01f
+  private val looseness = 0.7f
 
   private type Point = (Float, Float, Float)
 
-  /** The distinct corners of the object's non-degenerate triangles, in world coordinates. */
-  private def worldVertices(obj: SceneObject): Seq[Point] =
+  /** The corners of the object's non-degenerate triangles, in world coordinates. */
+  private def worldCorners(spec: ObjectSpec): Iterator[Point] =
     given ProfilingConfig = ProfilingConfig.disabled
-    val spec = obj.toObjectSpec
     val mesh = MeshFactory.create(spec)
     val m = TriangleMeshSceneBuilder.instanceTransform(spec)
     def at(i: Int): Point =
@@ -45,9 +48,12 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
       val (vx, vy, vz) = (c._1 - a._1, c._2 - a._2, c._3 - a._3)
       val (cx, cy, cz) = (uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx)
       0.5f * math.sqrt(cx * cx + cy * cy + cz * cz).toFloat
-    val corners = mesh.indices.grouped(3).map(_.map(at))
-      .filter(t => area(t(0), t(1), t(2)) > degenerateArea)
-    corners.flatten.foldLeft(List.empty[Point]): (kept, p) =>
+    mesh.indices.grouped(3).map(_.map(at)).filter(t => area(t(0), t(1), t(2)) > degenerateArea)
+      .flatten
+
+  /** The distinct corners of the object's non-degenerate triangles, in world coordinates. */
+  private def worldVertices(obj: SceneObject): Seq[Point] =
+    worldCorners(obj.toObjectSpec).foldLeft(List.empty[Point]): (kept, p) =>
       if kept.exists(q => near(p, q)) then kept else p :: kept
 
   private def near(p: Point, q: Point): Boolean =
@@ -153,6 +159,31 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
         List(before.position.x - after.position.x, before.position.y - after.position.y,
           before.position.z - after.position.z).foreach(_ shouldBe 0f +- cameraTolerance)
 
+  it should "move the object and the aim of the camera continuously across every boundary" in:
+    def centreAndAim(t: Float, top: Int): List[Float] =
+      val scene = DimensionLadder.sceneAt(t, cycle, top)
+      val spec = scene.objects.last.toObjectSpec
+      List(spec.x, spec.y, spec.z, scene.camera.lookAt.x, scene.camera.lookAt.y,
+        scene.camera.lookAt.z)
+    for top <- tops; segment <- DimensionLadder.segments(cycle, top) do
+      withClue(s"top $top, $segment: "):
+        centreAndAim(segment.start - aroundBoundary, top)
+          .zip(centreAndAim(segment.start + aroundBoundary, top))
+          .foreach((before, after) => before shouldBe after +- cameraTolerance)
+
+  // The rest height is rotation-safe, so the lowest point may hover by the bound's slack.
+  it should "rest its lowest point above the plinth, and close to it, in every frame" in:
+    for top <- tops; i <- 0 until budgetFrames do
+      val scene = DimensionLadder.sceneAt(cycle * i / budgetFrames, cycle, top)
+      val plinthTop = scene.objects.collectFirst { case c: Cylinder => c.p1.get.y }.get
+      // A sponge's lowest point is its hull's, and its level-0 mesh is the hull: cheap to build.
+      val spec = scene.objects.last.toObjectSpec
+      val lowest = worldCorners(spec.copy(level = spec.level.map(_ => 0f))).map(_._2).min -
+        plinthTop
+      withClue(s"top $top, frame $i: "):
+        lowest should be >= clearance - vertexTolerance
+        lowest should be <= looseness * DimensionLadder.boundingRadius(top)
+
   it should "turn every plane containing a collapsing axis a multiple of 180 degrees" in:
     for
       top <- tops
@@ -182,6 +213,15 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
         extent should be < saneRadius
         extent should be <= DimensionLadder.boundingRadius(n) + materialTolerance
         DimensionLadder.boundingRadius(n) should be < saneRadius
+
+  it should "bound the half extent by a radius that is the lower cube's where an axis is flat" in:
+    for n <- 4 to 8 do
+      DimensionLadder.boundingRadius(n, 0f) shouldBe DimensionLadder.boundingRadius(n - 1) +-
+        materialTolerance
+      for last <- List(0f, 0.25f, 0.5f, 0.75f, 1f) do
+        withClue(s"dimension $n, extrusion $last: "):
+          DimensionLadder.halfExtent(n, last) should be <=
+            DimensionLadder.boundingRadius(n, last) + materialTolerance
 
   it should "pass the scene budget at every sampled frame and breath peak, for every top" in:
     for top <- tops do
