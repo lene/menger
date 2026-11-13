@@ -95,7 +95,9 @@ grep -qi "curl" <<< "$OUT"; check "offline: curl's error passed through" $?
 # Pins agree with PROVENANCE.yaml
 unset KIARA_HDRI_PINS
 script_pins="$(grep -E '^[0-9]+k [0-9a-f]{64}' "$SCRIPT" | tr -d '"' | awk '{print $1, $2}' | sort)"
-provenance_pins="$(grep -E '^ +[0-9]+k: *[0-9a-f]{64}' "$PROVENANCE" | tr -d ':' | awk '{print $1, $2}' | sort)"
+# Only the Kiara entry: other entries of PROVENANCE.yaml carry their own "<res>k:" pins.
+kiara_entry="$(awk '/^ *- path:/ { inside = /kiara_2_sunrise/ } inside' "$PROVENANCE")"
+provenance_pins="$(grep -E '^ +[0-9]+k: *[0-9a-f]{64}' <<< "$kiara_entry" | tr -d ':' | awk '{print $1, $2}' | sort)"
 [ -n "$script_pins" ] && [ "$script_pins" = "$provenance_pins" ]
 check "pins in the script and in PROVENANCE.yaml agree" $?
 
