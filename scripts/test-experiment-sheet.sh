@@ -155,6 +155,49 @@ else
     [ -f "$run_labelled/cells/Red_t0.png" ] && grep -q '^| Green ' "$run_labelled/times.md"
     report "--labels names the files and the rows" $?
 
+    # --force with a cell that now fails: its old image must go, the table and the sheet say
+    # failed, and the next plain rerun renders exactly that cell again.
+    FORCED="$TEST_DIR/forced"
+    run_sheet "$FORCED"
+    : > "$TEST_DIR/calls"
+    FAKE_MODE=exit1 FAKE_BAD_SCENE=examples.dsl.ladder.variants.Tint2 FAKE_BAD_T=0.5 \
+        run_sheet "$FORCED" --force
+    expect_equal "--force with one cell failing: exit status 1" "$RC" 1
+    expect_equal "...all 6 cells were tried" "$(calls)" 6
+    holds [ ! -f "$FORCED/cells/Tint2_t0.5.png" ] && holds [ -f "$FORCED/cells/Tint2_t0.5.log" ]; status=$?
+    report "...the failed cell's old image is gone, its log is kept" "$status"
+    grep -qE '^\| Tint2 \| [0-9]+ \| failed \| [0-9]+ \|$' "$FORCED/times.md"
+    report "...times.md says failed in that cell" $?
+    FAILED_TILE_PIXEL="$(convert "$FORCED/sheet.png" -format \
+        "%[pixel:p{$((SHEET_LABEL_WIDTH + CELL_WIDTH + 5)),$((SHEET_HEADER_HEIGHT + CELL_HEIGHT + 5))}]" info:)"
+    grep -qE 'gray\(12[78]\)|srgb\(12[78],' <<< "$FAILED_TILE_PIXEL"
+    report "...the sheet shows a grey tile there, not the old image ($FAILED_TILE_PIXEL)" $?
+    : > "$TEST_DIR/calls"
+    run_sheet "$FORCED"
+    expect_equal "a plain rerun after that: exit 0" "$RC" 0
+    expect_equal "...renders exactly the failed cell" "$(cat "$TEST_DIR/calls")" "examples.dsl.ladder.variants.Tint2 0.5"
+    holds [ -f "$FORCED/cells/Tint2_t0.5.png" ]; report "...and its image is back" $?
+    ! grep -q failed "$FORCED/times.md"; report "...times.md has no failed cell left" $?
+
+    # A different size or env map must not be mixed into the cells of the first run.
+    : > "$TEST_DIR/calls"
+    run_sheet "$GOOD" --width 80
+    expect_equal "a rerun with another --width: exit status 2" "$RC" 2
+    grep -qF "width was '$CELL_WIDTH', now '80'" <<< "$RUN_OUT" && grep -qF "$GOOD" <<< "$RUN_OUT"
+    report "...the message names the parameter and the directory" $?
+    expect_equal "...nothing was rendered" "$(calls)" 0
+
+    # A move that fails (the cell's image cannot be put in place) makes the cell fail.
+    NOMOVE="$TEST_DIR/nomove"
+    mkdir -p "$NOMOVE/cells"
+    touch "$NOMOVE/cells/Tint1_t0.log" "$NOMOVE/cells/Tint1_t0.cell"
+    chmod a-w "$NOMOVE/cells"   # the existing log and .cell stay writable, a new image cannot be made
+    run_sheet "$NOMOVE" --at 0 --scenes examples.dsl.ladder.variants.Tint1
+    expect_equal "an image that cannot be moved into place: exit status 1" "$RC" 1
+    grep -qE '^\| Tint1 \| failed \|$' "$NOMOVE/times.md"
+    report "...the cell is failed, not done" $?
+    chmod u+w "$NOMOVE/cells"
+
     cases=(exit1 error hang)
     for mode in "${cases[@]}"; do
         : > "$TEST_DIR/calls"

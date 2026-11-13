@@ -155,8 +155,21 @@ check_environment() {
 
 cell_base() { echo "$OUT_DIR/cells/${1}_t${2}"; } # cell_base <label> <t>
 
+# A cell is done when its image exists and its .cell holds the milliseconds. Decided from the
+# .cell text as well as the image, so that the table, the sheet and the skip test cannot disagree.
+cell_done() { # cell_done <base>
+  [ -f "$1.png" ] && [[ "$(cat "$1.cell" 2> /dev/null)" =~ ^[0-9]+$ ]]
+}
+
+fail_cell() { # fail_cell <base> <text>: no image, the text in the table; returns 1
+  rm -f "$1.png"
+  echo "$2" > "$1.cell"
+  return 1
+}
+
 # Renders one cell. Writes <base>.png on success and <base>.cell, the text for the table: the
-# milliseconds, or the failure. Returns 1 for a failed cell, whose log is kept.
+# milliseconds, or the failure. Returns 1 for a failed cell, whose log is kept and whose image,
+# from an earlier run, is removed.
 render_cell() { # render_cell <scene> <label> <t>
   local scene="$1" base candidate
   base="$(cell_base "$2" "$3")"
@@ -166,12 +179,13 @@ render_cell() { # render_cell <scene> <label> <t>
     --scene "$scene" --texture-dir "$TEXTURE_DIR" --t "$3" --save-name "$candidate" \
     --width "$WIDTH" --height "$HEIGHT"
   if stopped_by_timeout "$RENDER_STATUS" "$RENDER_ELAPSED_MS" "$TIMEOUT_SECONDS"; then
-    echo "> $TIMEOUT_SECONDS s" > "$base.cell"; return 1
+    fail_cell "$base" "> $TIMEOUT_SECONDS s"; return 1
   fi
   if [ "$RENDER_STATUS" -ne 0 ] || log_has_error "$base.log" || [ ! -f "$candidate" ]; then
-    echo "$FAILED_TEXT" > "$base.cell"; return 1
+    fail_cell "$base" "$FAILED_TEXT"; return 1
   fi
-  mv -f "$candidate" "$base.png"
+  # errexit is off in here (the caller tests the status), so the move is checked explicitly
+  mv -f "$candidate" "$base.png" || { fail_cell "$base" "$FAILED_TEXT"; return 1; }
   echo "$RENDER_ELAPSED_MS" > "$base.cell"
 }
 
@@ -181,7 +195,7 @@ render_all_cells() {
   for row in "${!SCENES[@]}"; do
     for column in "${!TIMES[@]}"; do
       base="$(cell_base "${LABELS[$row]}" "${TIMES[$column]}")"
-      if [ "$FORCE" -eq 0 ] && [ -f "$base.png" ]; then
+      if [ "$FORCE" -eq 0 ] && cell_done "$base"; then
         echo "kept   ${LABELS[$row]} t=${TIMES[$column]} (image exists)"
       elif render_cell "${SCENES[$row]}" "${LABELS[$row]}" "${TIMES[$column]}"; then
         echo "done   ${LABELS[$row]} t=${TIMES[$column]}: $(cat "$base.cell") ms"
@@ -206,7 +220,7 @@ text_tile() { # text_tile <file> <width> <height> <background> <fill> <text>
 tile_for() { # tile_for <label> <t> <file>
   local base
   base="$(cell_base "$1" "$2")"
-  if [ -f "$base.png" ]; then cp "$base.png" "$3"
+  if cell_done "$base"; then cp "$base.png" "$3"
   else text_tile "$3" "$WIDTH" "$HEIGHT" "$FAILED_TILE_COLOUR" "$SHEET_TEXT_FILL" "$(cell_text "$1" "$2")"; fi
 }
 
@@ -269,6 +283,7 @@ main() {
   parse_args "$@"
   check_environment
   mkdir -p "$OUT_DIR/cells" || fail "cannot create $OUT_DIR/cells"
+  check_run_params "$OUT_DIR/run.params" "$OUT_DIR" "width=$WIDTH" "height=$HEIGHT" "hdri=$HDRI"
   WORK="$(mktemp -d)"
   RENDER_STATE_DIR="$WORK"
   trap 'rm -rf "$WORK"' EXIT

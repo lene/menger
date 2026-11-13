@@ -136,3 +136,23 @@ provenance_line() {
   echo "${PROVENANCE_LABEL:-Frame budget} $(date '+%Y-%m-%d %H:%M'); GPU: $gpu; menger commit: $commit;" \
     "${WIDTH}x${HEIGHT}; timeout $TIMEOUT_SECONDS s; scene: $SCENE_NAME; hdri: $HDRI"
 }
+
+# check_run_params <stamp file> <out dir> <name=value>...
+# Records the parameters an output directory was made with on the first run, and refuses (exit 2)
+# a later run whose parameters differ: cells or frames already there would be reused as if they
+# came from the new ones.
+check_run_params() {
+  local stamp="$1" dir="$2" line name old differences=""
+  shift 2
+  if [ ! -f "$stamp" ]; then
+    printf '%s\n' "$@" > "$stamp" || fail "cannot write $stamp"
+    return 0
+  fi
+  for line in "$@"; do
+    name="${line%%=*}"
+    old="$(grep -m1 "^$name=" "$stamp" | cut -d= -f2-)" || old=""
+    [ "$old" = "${line#*=}" ] || differences+="; $name was '$old', now '${line#*=}'"
+  done
+  [ -z "$differences" ] \
+    || die_usage "the parameters differ from the first run in $dir$differences; use a new --out"
+}
