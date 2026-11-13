@@ -1250,19 +1250,19 @@ test_t_animation() {
     # skipped (SKIP, not FAIL) when it is missing.
     local kiara="assets/hdri/kiara_2_sunrise_4k.hdr" name
     name="t-animation freeze-frame DimensionLadder cube"           # the seam, t = 0
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.DimensionLadder --t 0
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 0
     name="t-animation freeze-frame DimensionLadder 3D breath"      # Breath(3), middle
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.DimensionLadder --t 22.736843
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 22.736843
     name="t-animation freeze-frame DimensionLadder fold 4D"        # Fold(4), middle
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.DimensionLadder --t 51.157898
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 51.157898
     name="t-animation freeze-frame DimensionLadder breath 4D"      # Breath(4), middle
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.DimensionLadder --t 72.00001
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 72.00001
     name="t-animation freeze-frame DimensionLadder fold 5D"        # Fold(5), middle
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.DimensionLadder --t 92.84211
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 92.84211
     name="t-animation freeze-frame DimensionLadder breath 6D"      # Breath(6), the top, middle
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.DimensionLadder --t 140.21054
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 140.21054
     name="t-animation freeze-frame DimensionLadder descent"        # the descent, middle (Collapse 5)
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.DimensionLadder --t 162
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 162
 
     # Multi-frame animation: 3 frames for speed
     local temp_dir

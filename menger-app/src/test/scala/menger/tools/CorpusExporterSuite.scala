@@ -20,8 +20,9 @@ class CorpusExporterSuite extends AnyFlatSpec with Matchers:
     * example scenes. Update deliberately when a scene is added or removed. */
   // + Plinth (menger#156), TesseractToPenteract (menger#162), HexeractTurning (menger#163),
   // SunKeyLight (menger#158), PenteractFold (menger#164), PenteractSpongeBreath (menger#166),
-  // DimensionLadder (menger#160)
-  private val ExpectedSceneCount = 41
+  // DimensionLadder (menger#160), then DimensionLadder moved to examples.dsl.ladder and left the
+  // corpus (menger#184)
+  private val ExpectedSceneCount = 40
 
   private def freshTempPath(): String =
     val dir = Files.createTempDirectory("corpus-exporter-suite")

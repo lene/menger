@@ -1,7 +1,7 @@
-package examples.dsl
+package examples.dsl.ladder
 
-import examples.dsl.DimensionLadder.Kind
-import examples.dsl.DimensionLadder.Segment
+import examples.dsl.ladder.DimensionLadder.Kind
+import examples.dsl.ladder.DimensionLadder.Segment
 import menger.common.Material
 import menger.common.ProfilingConfig
 import menger.dsl.Camera
@@ -339,9 +339,46 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
         withClue(s"$name, t $t: "):
           (segment.kind, segment.dimension) shouldBe (kind, dimension)
           u shouldBe middle +- 1e-3f
-    val manual = """examples\.dsl\.DimensionLadder --t ([0-9.]+)""".r
+    val manual = """examples\.dsl\.ladder\.DimensionLadder --t ([0-9.]+)""".r
       .findAllMatchIn(script("manual-test.sh")).map(_.group(1).toFloat).toList
     manual shouldBe defined.map(_._2)
 
   it should "light the scene with the sun first, because only the first light emits caustics" in:
     DimensionLadder.scene(10f).lights.head shouldBe a[Sun]
+
+  private val chrome = Look.default.copy(metal = menger.dsl.Material.Chrome)
+
+  "A look" should "change materials and nothing else" in:
+    for t <- List(0f, 22.7f, 51.2f, 72f, 162f) do
+      val (plain, changed) = (DimensionLadder.sceneAt(t), DimensionLadder.sceneAt(t, look = chrome))
+      withClue(s"t $t: "):
+        changed.camera shouldBe plain.camera
+        val (before, after) = (plain.objects.last.toObjectSpec, changed.objects.last.toObjectSpec)
+        after.objectType shouldBe before.objectType
+        after.level shouldBe before.level
+        after.size shouldBe before.size
+        after.projection shouldBe before.projection
+        after.scale shouldBe before.scale
+    DimensionLadder.sceneAt(0f, look = chrome).objects.last.toObjectSpec.material shouldBe
+      Some(menger.dsl.Material.Chrome.toCoreMaterial)
+
+  it should "set the breath depths" in:
+    val look = Look.default.copy(depths = Map(3 -> 2))
+    val breath = Choreography(cycle, DimensionLadder.topDimension, look.depths).segments
+      .find(s => s.kind == Kind.Breath && s.dimension == 3).get
+    val spec = DimensionLadder.sceneAt(breath.start + breath.seconds / 2f, look = look)
+      .objects.last.toObjectSpec
+    spec.level.get shouldBe 2f +- 1e-3f
+
+  it should "add fill lights after the sun" in:
+    val fill = menger.dsl.Directional(Vec3(0f, -1f, 0f))
+    val lights = DimensionLadder.sceneAt(10f, look = Look.default.copy(fillLights = List(fill)))
+      .lights
+    lights.head shouldBe a[Sun]
+    lights should have length 2
+
+  "Choreography" should "be equal for equal arguments" in:
+    val (first, second) = (Choreography(cycle, 6, Look.default.depths),
+      Choreography(cycle, 6, Look.default.depths))
+    first shouldBe second
+    first.segments shouldBe second.segments

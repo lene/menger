@@ -455,8 +455,9 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     animated should not be empty
 
   it should "load DimensionLadder as animated, at the cycle length (menger#160)" in:
-    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.DimensionLadder"))
-    examples.dsl.DimensionLadder.durationSeconds shouldBe examples.dsl.DimensionLadder.cycleSeconds
+    val fn = extractAnimatedFn(SceneLoader.load("examples.dsl.ladder.DimensionLadder"))
+    examples.dsl.ladder.DimensionLadder.durationSeconds shouldBe
+      examples.dsl.ladder.DimensionLadder.cycleSeconds
     for t <- List(0f, 30f, 90f, 150f, 175f) do
       val scene = fn(t)
       scene.objects should have length 2
