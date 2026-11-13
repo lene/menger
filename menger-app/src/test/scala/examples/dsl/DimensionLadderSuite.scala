@@ -4,11 +4,13 @@ import examples.dsl.DimensionLadder.Kind
 import examples.dsl.DimensionLadder.Segment
 import menger.common.Material
 import menger.common.ProfilingConfig
+import menger.dsl.Camera
 import menger.dsl.Cylinder
 import menger.dsl.ResourceLimits
 import menger.dsl.Scene
 import menger.dsl.SceneObject
 import menger.dsl.Sun
+import menger.dsl.Vec3
 import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
 import menger.engines.scene.TriangleMeshSceneBuilder
@@ -16,6 +18,8 @@ import menger.objects.higher_d.NdSpongeVariant
 import menger.spec.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import scala.io.Source
+import scala.util.Using
 
 class DimensionLadderSuite extends AnyFlatSpec with Matchers:
 
@@ -28,8 +32,18 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
   private val cameraTolerance = 5e-3f
   private val materialTolerance = 1e-5f
   private val saneRadius = 5f
+  // DimensionLadder's clearance and edge tube radius: the object rests that far above its bound.
   private val clearance = 0.01f
+  private val edgeTube = 0.012f
+  // How far above the plinth the lowest point may hover, as a fraction of the current object's
+  // bounding radius. The rest height is that radius, which a turned object reaches only at its
+  // worst angle; over tops 4 to 8 and 400 frames the measured worst is 0.67 of it (top 8).
   private val looseness = 0.7f
+  // The renderer's field of view is 45 degrees horizontal; the video is 16:9 (menger#160).
+  private val tanHalfFov = math.tan(math.toRadians(22.5)).toFloat
+  private val frameAspect = 16f / 9f
+  private val framingMargin = 0.95f
+  private val framingTolerance = 1e-3f
 
   private type Point = (Float, Float, Float)
 
@@ -171,18 +185,58 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
           .zip(centreAndAim(segment.start + aroundBoundary, top))
           .foreach((before, after) => before shouldBe after +- cameraTolerance)
 
-  // The rest height is rotation-safe, so the lowest point may hover by the bound's slack.
+  private def plinthOf(scene: Scene): Cylinder =
+    scene.objects.collectFirst { case c: Cylinder => c }.get
+
+  /** The bounding radius the object of `scene` rests on: its centre less the plinth's top, the
+    * clearance and the edge tube. */
+  private def restRadius(scene: Scene): Float =
+    scene.objects.last.toObjectSpec.y - plinthOf(scene).p1.get.y - clearance - edgeTube
+
   it should "rest its lowest point above the plinth, and close to it, in every frame" in:
     for top <- tops; i <- 0 until budgetFrames do
       val scene = DimensionLadder.sceneAt(cycle * i / budgetFrames, cycle, top)
-      val plinthTop = scene.objects.collectFirst { case c: Cylinder => c.p1.get.y }.get
       // A sponge's lowest point is its hull's, and its level-0 mesh is the hull: cheap to build.
       val spec = scene.objects.last.toObjectSpec
       val lowest = worldCorners(spec.copy(level = spec.level.map(_ => 0f))).map(_._2).min -
-        plinthTop
+        plinthOf(scene).p1.get.y
       withClue(s"top $top, frame $i: "):
         lowest should be >= clearance - vertexTolerance
-        lowest should be <= looseness * DimensionLadder.boundingRadius(top)
+        lowest should be <= looseness * restRadius(scene)
+
+  /** The point as fractions of the frame's half width and half height, seen from `camera`. */
+  private def inFrame(camera: Camera, point: Vec3): (Float, Float) =
+    val view = (camera.lookAt - camera.position).normalize
+    val right = view.cross(camera.up).normalize
+    val offset = point - camera.position
+    val depth = offset.dot(view)
+    depth should be > 0f
+    (offset.dot(right) / depth / tanHalfFov,
+      offset.dot(right.cross(view)) / depth / tanHalfFov * frameAspect)
+
+  it should "frame the object, the plinth's front edge and its width at 16:9, in every frame" in:
+    for top <- tops; i <- 0 until budgetFrames do
+      val scene = DimensionLadder.sceneAt(cycle * i / budgetFrames, cycle, top)
+      val (camera, plinth) = (scene.camera, plinthOf(scene))
+      val centre = scene.objects.last.toObjectSpec
+      val radius = plinth.radius.get
+      val (bottom, topY) = (plinth.p0.get.y, plinth.p1.get.y)
+      val away = Vec3(camera.position.x, 0f, camera.position.z)
+      val (distance, toCamera) = (away.magnitude, away.normalize)
+      val sideways = Vec3(-toCamera.z, 0f, toCamera.x)
+      // The silhouette's tangent points, not the points at the axis' height across the view.
+      val along = toCamera * (radius * radius / distance)
+      val halfChord = radius * math.sqrt(1 - radius * radius / (distance * distance)).toFloat
+      val across = sideways * halfChord
+      val points = Vec3(centre.x, centre.y + restRadius(scene), centre.z) ::
+        (toCamera * radius + Vec3(0f, bottom, 0f)) ::
+        (for side <- List(along + across, along - across); y <- List(bottom, topY)
+          yield side + Vec3(0f, y, 0f))
+      points.foreach: point =>
+        withClue(s"top $top, frame $i, point $point: "):
+          val (x, y) = inFrame(camera, point)
+          math.abs(x) should be <= framingMargin + framingTolerance
+          math.abs(y) should be <= framingMargin + framingTolerance
 
   it should "turn every plane containing a collapsing axis a multiple of 180 degrees" in:
     for
@@ -259,6 +313,35 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
       val settings = DimensionLadder.sceneAt(t, cycle, top).render.get
       settings.antialiasing shouldBe false
       settings.accumulation shouldBe 16
+
+  private val scriptsDir = List("scripts", "../scripts", "../../scripts")
+    .find(d => java.io.File(d, "integration-tests.sh").exists()).get
+
+  private def script(name: String): String =
+    Using.resource(Source.fromFile(s"$scriptsDir/$name"))(_.mkString)
+
+  // The freeze frames, as named in integration-tests.sh, the one place their t values are
+  // defined: the segment each is in, and whether it is the middle of it or the start.
+  private val freezeFrames = List(
+    ("cube", Kind.Hold, 3, 0f), ("3D breath", Kind.Breath, 3, 0.5f),
+    ("fold 4D", Kind.Fold, 4, 0.5f), ("breath 4D", Kind.Breath, 4, 0.5f),
+    ("fold 5D", Kind.Fold, 5, 0.5f), ("breath 6D", Kind.Breath, 6, 0.5f),
+    ("descent", Kind.Collapse, 5, 0.5f))
+
+  it should "put every freeze frame of the scripts in the segment its name says" in:
+    val frame = """DimensionLadder ([^"]+)"[^\n]*\n\s*require_asset[^\n]*--t ([0-9.]+)""".r
+    val defined = frame.findAllMatchIn(script("integration-tests.sh"))
+      .map(m => (m.group(1), m.group(2).toFloat)).toList
+    defined.map(_._1) shouldBe freezeFrames.map(_._1)
+    defined.zip(freezeFrames).foreach:
+      case ((name, t), (_, kind, dimension, middle)) =>
+        val (segment, u) = DimensionLadder.segmentAt(t, cycle, DimensionLadder.topDimension)
+        withClue(s"$name, t $t: "):
+          (segment.kind, segment.dimension) shouldBe (kind, dimension)
+          u shouldBe middle +- 1e-3f
+    val manual = """examples\.dsl\.DimensionLadder --t ([0-9.]+)""".r
+      .findAllMatchIn(script("manual-test.sh")).map(_.group(1).toFloat).toList
+    manual shouldBe defined.map(_._2)
 
   it should "light the scene with the sun first, because only the first light emits caustics" in:
     DimensionLadder.scene(10f).lights.head shouldBe a[Sun]

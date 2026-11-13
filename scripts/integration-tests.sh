@@ -245,12 +245,14 @@ should_skip_test() {
     return 0
 }
 
-# Succeed (0) when the asset exists. When it is missing, print "SKIP: <name> (missing <path>)"
-# and fail (1), so `require_asset <path> "<name>" && run_test "<name>" ...` skips the test.
-# Usage: require_asset <relative path> <test name>
+# Succeed (0) when the asset exists. A test the --filter excludes fails (1) silently; one whose
+# asset is missing prints "SKIP: <name> (missing <path>)" and fails too, so
+# `require_asset <path> "<name>" && run_test "<name>" ...` skips the test either way.
+# Usage: require_asset <path relative to the repository root> <test name>
 require_asset() {
     local path="$1" name="$2"
-    [ -f "$path" ] && return 0
+    should_skip_test "$name" && return 1
+    [ -f "$SCRIPT_DIR/../$path" ] && return 0
     echo "  SKIP: ${name} (missing ${path})"
     return 1
 }
@@ -1242,7 +1244,9 @@ test_t_animation() {
         --scene examples.dsl.PenteractSpongeBreath --t 8
 
     # The dimension ladder (menger#160, 180 s cycle, top dimension 6): t = 0 and the middle of
-    # each segment worth a frame, in seconds. The scene needs the Kiara HDRI, so each frame is
+    # each segment worth a frame, in seconds. These t values are the one place the frames are
+    # defined: DimensionLadderSuite checks that each falls in the segment its name says, and
+    # manual-test.sh uses the same values. The scene needs the Kiara HDRI, so each frame is
     # skipped (SKIP, not FAIL) when it is missing.
     local kiara="assets/hdri/kiara_2_sunrise_4k.hdr" name
     name="t-animation freeze-frame DimensionLadder cube"           # the seam, t = 0

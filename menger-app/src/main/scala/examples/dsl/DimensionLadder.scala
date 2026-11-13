@@ -10,11 +10,10 @@ import menger.spec.ProjectionStage
 
 /**
  * Example: the dimension ladder (menger#160), a looping animation. A metal cube breathes into a
- * Menger sponge, folds into 4D, breathes, folds into 5D and so on up to `topDimension`, then
- * descends to the cube along a different path (planes among the extra axes only), under a
- * sunrise with one matching sun. A segment timeline (`segments`) drives everything, and
- * `scene(t)` depends on t only through its phase in the cycle, so scene(0) == scene(T).
- * The breath is a Menger sponge in every dimension: the surface sponge (menger#166) above 3D.
+ * Menger sponge, folds into 4D, breathes (a surface sponge above 3D, menger#166), folds into 5D
+ * and so on up to `topDimension`, then descends to the cube along a different path (planes among
+ * the extra axes only), under a sunrise with one matching sun. A segment timeline (`segments`)
+ * drives everything, and `scene(t)` depends on t only through its phase: scene(0) == scene(T).
  *
  * Usage: --scene examples.dsl.DimensionLadder --t 30
  */
@@ -28,6 +27,7 @@ object DimensionLadder:
   // The costed levels, capped above 3D by the surface sponge's triangle budget.
   private val costedDepth = Map(3 -> 5, 4 -> 3, 5 -> 2).withDefaultValue(1)
   def breathDepth(n: Int): Int =
+    require(n >= 3 && n <= maxTop, s"breathDepth needs a dimension from 3 to $maxTop, got $n")
     if n == 3 then costedDepth(n)
     else math.min(costedDepth(n), ResourceLimits.ndSpongeLevel(NdSpongeVariant.Surface, n).max)
 
@@ -43,8 +43,7 @@ object DimensionLadder:
   private val (holdSeconds, foldSeconds, solidifySeconds, unsolidifySeconds) = (2f, 6f, 2f, 2f)
   private val breathSecondsPerLevel = 4f
   private val (halfTurn, fullTurn, turntableTurns) = (180f, 360f, 2)
-  private val wakingPartners = "xyz"
-  private val firstExtraAxis = 3
+  private val (wakingPartners, firstExtraAxis) = ("xyz", 3)
   private val (minTop, maxTop) = (4, 8)
   // The stage dropping axis k has its eye and screen at these multiples of the object's size
   // there, so every stage shrinks and the 3D -> 4D size rule s * eye / (eye - screen) holds for
@@ -67,9 +66,10 @@ object DimensionLadder:
   private val plinthClearance = 0.01f
   private val (causticsPhotons, causticsIterations) = (200000, 10)
   // Low, on the far side from the sun (along its rays), 15 degrees to one side, aimed between the
-  // object and the plinth. The field of view is fixed at 45 degrees across (tan 22.5 = 0.4142).
+  // object and the plinth. The fixed 45 degree field of view is HORIZONTAL (tan 22.5 = 0.4142): fit
+  // the video's 16:9 frame, 9/16 as tall as wide.
   private val (cameraDistance, cameraYawDegrees, cameraElevationDegrees) = (4.5f, 15f, 4f)
-  private val (tanHalfFovX, frameAspect, framingMargin) = (0.4142f, 4f / 3f, 0.95f)
+  private val (tanHalfFovX, frameAspect, framingMargin) = (0.4142f, 16f / 9f, 0.95f)
   private val cameraDirection =
     val (yaw, lift) = (math.toRadians(cameraYawDegrees), math.toRadians(cameraElevationDegrees))
     val (x, z) = (keyLight.direction.x, keyLight.direction.z)
@@ -302,8 +302,8 @@ object DimensionLadder:
       ibl = Some(IBL()),
       caustics = Some(Caustics(photonsPerIteration = causticsPhotons,
         iterations = causticsIterations)),
-      // User, 2026-11-12: "Yes, acc16 now"; accumulation does not smooth edges until
-      // optix-jni#116, and adaptive antialiasing costs ~140x on glass (optix-jni#115).
+      // Decided 2026-11-12: accumulation 16, no adaptive AA (~140x on glass, optix-jni#115);
+      // revisit when optix-jni#116 (jitter) lands, as accumulation does not smooth edges.
       render = Some(RenderSettings(antialiasing = false, shadows = true, accumulation = 16))
     )
 

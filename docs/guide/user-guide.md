@@ -1295,32 +1295,50 @@ then descends to the cube along another path, so that the last frame equals the 
 allows. The scene renders with accumulation 16 and without adaptive antialiasing, which is far
 too slow on glass sponges; accumulation averages sampling noise but does not smooth edges.
 
+The object rests on the plinth: its height follows the object shown, at its bounding radius (the
+farthest any turned point of it can be from its centre) plus a small clearance, so it grows and
+shrinks upwards with each fold and collapse instead of floating at the height of the biggest
+object. Because that radius holds for every turn, a turned object can still hover a little above
+the plinth. The camera fits itself: it looks from the far side of the sun, 4 degrees above the
+horizon, aims between the object and the plinth's top, and backs off as far as the object's top,
+the plinth's front edge and the plinth's width need.
+
+**The canonical render is 1920x1080, and the scene is framed for 16:9.** The renderer's field of
+view is fixed at 45 degrees horizontally, so a 16:9 frame is the least tall; a 4:3 render has more
+vertical room, and a render taller than 16:9 shows more sky and ground around the same picture.
+
 It needs the Kiara HDRI (see *HDR Environment Maps* above): `scripts/fetch-kiara-hdri.sh 4k`.
 
-Its parameters are values in `object DimensionLadder`; change them there:
+Its parameters are values in `object DimensionLadder`. To change one, edit the example and
+rebuild (`sbt mengerApp/stage`); the scene is not configurable from the command line.
 
 | Parameter | Default | Meaning |
 |-----------|---------|---------|
 | `cycleSeconds` | 180 | length of the loop; the timeline scales to it |
 | `topDimension` | 6 | the highest dimension reached, 4 to 8 |
 | `tint` | pale blue-grey | the metal's colour |
-| `breathDepth(n)` | 5 in 3D, then 3, 2, 1... | the deepest sponge level of the breath in dimension n, capped by `ResourceLimits.ndSpongeLevel` |
+| `breathDepth(n)` | 5 in 3D, then 3, 2, 1 in 4D, 5D, 6D to 8D | the deepest sponge level of the breath in dimension n, 3 to 8; these defaults are capped by `ResourceLimits.ndSpongeLevel`, so a smaller triangle budget lowers them |
 
 One frame at a moment of the loop:
 ```bash
-menger-app --scene examples.dsl.DimensionLadder --t 72 --save-name ladder.png
+menger-app --scene examples.dsl.DimensionLadder --t 72 --width 1920 --height 1080 \
+  --save-name ladder.png
 ```
 Run it from the menger repository's root: the scene names the HDRI as `assets/hdri/...`.
 
-The whole cycle at 30 frames per second is 5400 frames (the end is one frame short of the
-cycle, which is the first frame again), then encoded:
+The whole cycle: one frame per 1/30 s, so 180 s at 30 frames per second is 5400 frames, and the
+last `--end-t` is one frame short of the cycle (the cycle's end is the first frame again). Create
+the `out/` directory first, then encode the frames:
 ```bash
-menger-app --scene examples.dsl.DimensionLadder --frames 5400 --start-t 0 --end-t 179.96667 \
-  --save-name out/f_%04d.png
+mkdir -p out
+menger-app --scene examples.dsl.DimensionLadder --width 1920 --height 1080 \
+  --frames 5400 --start-t 0 --end-t 179.96667 --save-name out/f_%04d.png
 ffmpeg -framerate 30 -i out/f_%04d.png -c:v libx264 -pix_fmt yuv420p ladder.mp4
 ```
-The built-in video export (`--video`) writes 24 frames per second for now (menger#181), so
-encode the frames with ffmpeg to get 30.
+These numbers assume `cycleSeconds = 180` at 30 fps. For another cycle length or frame rate,
+`--frames` is cycle times fps and `--end-t` is the cycle minus 1/fps. The built-in video export
+(`--video`) writes 24 frames per second for now (menger#181), so encode the frames with ffmpeg to
+get 30.
 
 ---
 

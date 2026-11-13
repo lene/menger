@@ -60,6 +60,7 @@ object Moment3D:
       envMap = Some(envMap),
       ibl = Some(IBL()),
       caustics = Some(Caustics(photonsPerIteration = 200000, iterations = 10)),
-      // User, 2026-11-12: "Yes, acc16 now"; see optix-jni#115 (adaptive AA cost) and #116.
+      // Decided 2026-11-12: accumulation 16, no adaptive AA (~140x on glass, optix-jni#115);
+      // revisit when optix-jni#116 (jitter) lands.
       render = Some(RenderSettings(antialiasing = false, shadows = true, accumulation = 16))
     )

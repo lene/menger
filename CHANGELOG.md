@@ -21,7 +21,13 @@
   antialiasing costs about 140 times on glass, optix-jni#115; accumulation does not smooth edges
   until optix-jni#116), also in the frame-budget scenes `Moment3D` and `Moment4D`. Freeze frames
   in the integration and manual suites (the integration ones skip without the Kiara HDRI), and a
-  user-guide section on rendering the full cycle.
+  user-guide section on rendering the full cycle (1920x1080 at 30 fps; the cycle's numbers and
+  the example's parameters are documented there). The object rests on the plinth at a height that
+  follows the object shown (its rotation-safe bounding radius, continuous across hand-overs),
+  and the camera fits itself: 4 degrees above the horizon, aimed between the object and the
+  plinth, as far back as the object's top, the plinth's front edge and its width need, framed for
+  16:9 at the renderer's fixed 45 degree horizontal field of view. `breathDepth` takes a
+  dimension from 3 to 8.
 
 - `HypercubeSponge` (Sprint 38 grid cell G9, lene/menger#166): the Menger sponge of 4 to 8
   dimensions in the DSL, as a volume (`VolumeRemoving`, rule A generalised by
