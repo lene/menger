@@ -483,8 +483,11 @@ HypercubeSponge(
   naming the maximum for that dimension. This is an upper limit, taken from a cheap bound of
   the faces, not a promise that a level fits: when the scene loads, its cost is checked against
   the budget, counting the faces exactly (without building the sponge) where the bound is not
-  enough, and a scene over it is refused with the level that fits. A whole level costs two triangles per face (a 5D surface
-  sponge of level 2 has 28,160 faces). A larger `k` multiplies the faces of every level, so a
+  enough, and a scene over it is refused with the level that fits. The highest surface level
+  offered is no promise that it fits: 4D level 5 (22,732,800 triangles) and 7D level 3
+  (22,084,608) are over the 16M budget and always refused, after an exact count of 10 to 20 s;
+  5D level 4 (14,364,160) fits. A whole level costs two
+  triangles per face (a 5D surface sponge of level 2 has 28,160 faces). A larger `k` multiplies the faces of every level, so a
   level that fits at `k = 1` may not at `k = 3`.
 - It is drawn on the CPU through `projection` (a `ProjectionSpec` of at least N dimensions,
   default `ProjectionSpec(N)`). The sponge is built once per whole level and kept; a frame

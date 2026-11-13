@@ -208,7 +208,8 @@ object DslSemantics:
       "scene loads: the limit comes from a cheap upper bound of the faces, so the check counts " +
       "the faces exactly where the bound is not enough, and refuses a scene over the budget " +
       "with the level that fits (a larger k keeps far more faces: a level that fits at k = 1 " +
-      "may not at k = 3). It takes a " +
+      "may not at k = 3). The top surface level of N = 4 and N = 7 exceeds the triangle " +
+      "budget and is always refused: use one level lower. It takes a " +
       "`ProjectionSpec` of dimension N or more as `projection = Some(...)` (absent: " +
       "`ProjectionSpec(N)`) and a `Scale[N]` as `scale`. It is rendered on the CPU: " +
       "the unprojected sponge is built once and kept, so an animation that only turns, " +

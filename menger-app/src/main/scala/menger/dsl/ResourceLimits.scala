@@ -65,7 +65,10 @@ object ResourceLimits:
     * constructor accepts, not a promise that the level fits: the volume's bound is up to about
     * 2x above its true face count and the surface's about 1.4x, so `SceneCost` decides a scene
     * at load time, counting exactly where the bound does not settle it. At 16M triangles the
-    * surface limits are 5, 4, 3, 3, 2 (4D to 8D), the volume's 3, 2, 2, 1, 1.
+    * surface limits are 5, 4, 3, 3, 2 (4D to 8D), the volume's 3, 2, 2, 1, 1. The highest level
+    * offered is no promise that it fits: the surface at 4D level 5 (22,732,800 triangles) and
+    * 7D level 3 (22,084,608) is over the budget and refused by the cost check after an exact
+    * count of 10 to 20 s; 5D level 4 (14,364,160) fits.
     * `sceneMaxTriangles` is read on every call, so a budget made
     * configurable (menger#179) moves the limit with it. */
   def ndSpongeLevel(variant: NdSpongeVariant, n: Int): LevelLimit =
