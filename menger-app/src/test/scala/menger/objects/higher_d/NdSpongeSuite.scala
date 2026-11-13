@@ -188,6 +188,54 @@ class NdSpongeSuite extends AnyFlatSpec with Matchers with LazyLogging:
     NdSponge.upperBoundFaces(Surface, 4, 1, 1) shouldBe 24L * 24
     NdSponge.upperBoundFaces(Surface, 8, 2, 1) shouldBe 1792L * 56 * 56
 
+  // (n, level, k) -> faces. The first 14 rows are from the E2 prototype's counts.txt
+  // (_bmad-output/forge/dimension-ladder-scene/e2-prototype, workspace repo); the 15th is also
+  // pinned in SceneCostSpec from a built mesh; the 16th is the 4D level 3 count.
+  private val volumeCountRows = Seq(
+    (3, 1, 1, 72L), (3, 2, 1, 1056L),
+    (4, 1, 1, 768L), (4, 2, 1, 29184L), (4, 1, 2, 768L), (4, 2, 2, 30336L),
+    (5, 1, 1, 5120L), (5, 2, 1, 450560L), (5, 1, 3, 5440L),
+    (6, 1, 1, 30720L), (6, 1, 4, 33600L),
+    (7, 1, 1, 172032L), (7, 1, 5, 190848L),
+    (8, 1, 1, 917504L),
+    (6, 2, 1, 5898240L),
+    (4, 3, 1, 1247232L)
+  )
+
+  "volumeFaceCount" should "equal the prototype's counts, 3D to 8D" in:
+    volumeCountRows.foreach { (n, level, k, faces) =>
+      withClue(s"n = $n, level $level, k = $k: ") {
+        NdSponge.volumeFaceCount(n, level, k) shouldBe BigInt(faces)
+      }
+    }
+
+  it should "equal the built mesh for every small sponge" in:
+    val cases = for
+      (n, levels) <- Seq(4 -> (0 to 3), 5 -> (0 to 2), 6 -> (0 to 1))
+      level <- levels
+      k <- 1 until n
+      if NdSponge.isBuildable(Volume, n, level, k)
+    yield (n, level, k)
+    cases should not be empty
+    cases.foreach { (n, level, k) =>
+      withClue(s"n = $n, level $level, k = $k: ") {
+        NdSponge.volumeFaceCount(n, level, k) shouldBe
+          BigInt(NdSponge.volume(n, level, k).faceCount)
+      }
+    }
+
+  it should "be the n-cube's faces at level 0" in:
+    val cubeFacesOf3D = 6
+    (3 to 8).foreach { n =>
+      val expected = if n == 3 then cubeFacesOf3D else NCube.faceCount(n)
+      withClue(s"n = $n: ") { NdSponge.volumeFaceCount(n, 0, 1) shouldBe BigInt(expected) }
+    }
+
+  it should "saturate for a huge level" in:
+    val (count, millis) = timed(NdSponge.faceCount(Volume, 8, Int.MaxValue, 1))
+    count shouldBe Long.MaxValue
+    millis should be < 1000L
+
   "maxCentreCoordinates outside 1..n-1" should "be rejected, naming the range" in:
     Seq(0, 5).foreach { k =>
       val volume = the[IllegalArgumentException] thrownBy NdSponge.volume(5, 1, k)
