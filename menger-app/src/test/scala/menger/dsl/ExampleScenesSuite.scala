@@ -239,6 +239,19 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.caustics shouldBe defined
     SceneRegistry.list() should contain("sun-key-light")
 
+  // CausticsMeshValidation writes the canonical scene out (menger#149: a corpus example stands
+  // alone), so only this test keeps the copy equal to CausticsCanonical: everything but the
+  // sphere object (camera, lights, planes, background, tone mapping, caustics, render).
+  it should "keep the CausticsMeshValidation canonical scene equal to CausticsCanonical" in:
+    import examples.dsl.{CausticsCanonical, CausticsCanonicalOff}
+    import examples.dsl.{CausticsCanonicalParametric, CausticsCanonicalParametricOff}
+    // a Scene needs an object, so both sides get the same placeholder
+    def withoutObjects(scene: Scene): Scene = scene.copy(objects = List(Sphere()))
+    withoutObjects(CausticsCanonicalParametric.scene) shouldBe
+      withoutObjects(CausticsCanonical.scene)
+    withoutObjects(CausticsCanonicalParametricOff.scene) shouldBe
+      withoutObjects(CausticsCanonicalOff.scene)
+
   it should "load FilmSphere via reflection" in:
     val scene = extractStaticScene(SceneLoader.load("examples.dsl.FilmSphere"))
     scene.objects should have length 3

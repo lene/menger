@@ -14,8 +14,9 @@ import menger.dsl._
  *
  * The canonical scene is written out below (`canonicalScene`) so this file is self-contained
  * (menger#149: as a corpus example it could not resolve `CausticsCanonical`, which lives in
- * another file, so a model imitating it produced a scene that did not compile). Keep it in step
- * with `CausticsCanonical.scene`; the canonical scene's own file stays the pbrt twin.
+ * another file, so a model imitating it produced a scene that did not compile). The test "keep
+ * the CausticsMeshValidation canonical scene equal to CausticsCanonical"
+ * (ExampleScenesSuite) holds it equal to `CausticsCanonical.scene`, which stays the pbrt twin.
  *
  * Usage: --scene examples.dsl.CausticsCanonicalParametric --save-name out.pfm
  */
