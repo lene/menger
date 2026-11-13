@@ -54,15 +54,19 @@ object ResourceLimits:
   val TrianglesPerFace = 2L
 
   /** How many times over the budget the cheap face-count bound may run before an n-sponge level
-    * is refused without counting. */
+    * is refused without counting. For the surface, a level whose bound is over the budget but
+    * within this headroom is counted at load (on face keys, no mesh is built); for the volume,
+    * whose count is exact and free, it only caps the key array that a build allocates. */
   val NdSpongeBoundHeadroom = 4L
 
   /** The upper limit of an n-sponge's level (`HypercubeSponge.level`) in `n` dimensions at the
     * default k: the highest level whose cheap bound of faces is within [[NdSpongeBoundHeadroom]]
     * times the scene's triangle budget and which the build can allocate. It is a limit on what a
-    * constructor accepts, not a promise that the level fits: the bound is up to about 2x above
-    * the true face count, so `SceneCost` decides a scene at load time, counting exactly where the
-    * bound does not settle it. `sceneMaxTriangles` is read on every call, so a budget made
+    * constructor accepts, not a promise that the level fits: the volume's bound is up to about
+    * 2x above its true face count and the surface's about 1.4x, so `SceneCost` decides a scene
+    * at load time, counting exactly where the bound does not settle it. At 16M triangles the
+    * surface limits are 5, 4, 3, 3, 2 (4D to 8D), the volume's 3, 2, 2, 1, 1.
+    * `sceneMaxTriangles` is read on every call, so a budget made
     * configurable (menger#179) moves the limit with it. */
   def ndSpongeLevel(variant: NdSpongeVariant, n: Int): LevelLimit =
     // ponytail: the 4x headroom lets the exact count in SceneCost decide the levels between the

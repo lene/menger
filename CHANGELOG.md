@@ -116,6 +116,8 @@
 
 ### Changed
 
+- n-sponge level limits for the surface variant rise to 5, 4, 3, 3, 2 (4D to 8D) with a
+  tighter bound; the cost check no longer builds meshes (menger#183).
 - `ConeSceneBuilder` and the new `CylinderSceneBuilder` share `AxialPrimitiveSceneBuilder`: the
   placement by two axis end points and a radius, derived from `pos`, `size` and `rotation` when
   absent. Cones render as before.

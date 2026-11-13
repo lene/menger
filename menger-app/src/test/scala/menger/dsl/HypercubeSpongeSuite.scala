@@ -107,7 +107,9 @@ class HypercubeSpongeSuite extends AnyFlatSpec with Matchers:
     // volume: 80 * 112^L faces at N = 5; each level multiplies by 112, so the bound of two
     // triangles per face stays within four budgets for L = 2 and not for L = 3
     ResourceLimits.ndSpongeLevel(NdSpongeVariant.Volume, 5).max shouldBe 2
-    ResourceLimits.ndSpongeLevel(NdSpongeVariant.Surface, 5).max shouldBe 3
+    // surface: the bound is 80 * 20^L faces at N = 5, so L = 4 (12.8M faces) is within four
+    // budgets and L = 5 is not
+    ResourceLimits.ndSpongeLevel(NdSpongeVariant.Surface, 5).max shouldBe 4
     ResourceLimits.ndSpongeLevel(NdSpongeVariant.Volume, 8).max shouldBe 1
     ResourceLimits.ndSpongeLevel(NdSpongeVariant.Surface, 8).max shouldBe 2
 
