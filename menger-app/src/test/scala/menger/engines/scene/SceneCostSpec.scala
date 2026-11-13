@@ -149,14 +149,29 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
       SceneCost.triangles(lower) + SceneCost.triangles(upper)
 
   it should "not build a mesh to cost a sponge" in:
-    val before = NdSpongeScene.retainedFaces
+    // the counter is per thread and `estimate` runs on this one: no other suite moves it
+    val before = NdSponge.meshesBuiltOnThisThread
     SceneCost.estimate(
       List.fill(3)(ndSponge(NdSpongeVariant.Surface, 6, 3f)), 1, SceneCost.CausticsLoad.None
     )
     SceneCost.estimate(
       List(ndSponge(NdSpongeVariant.Volume, 6, 2f)), 1, SceneCost.CausticsLoad.None
     )
-    NdSpongeScene.retainedFaces shouldBe before
+    NdSponge.meshesBuiltOnThisThread shouldBe before
+
+  it should "stop counting surface sponges once the counted sum is over the budget" in:
+    // a 6D volume sponge of level 2 (11.8M triangles, exact) then two surface sponges (k = 1, 2)
+    // whose bounds sum over the budget: the first count (4.9M) takes the sum over it, the second
+    // is not counted and costs its bound; lowering the volume sponge still makes the scene fit
+    val volume = ndSponge(NdSpongeVariant.Volume, 6, 2f)
+    val surfaces = (1 to 2).toList.map(k => ndSponge(NdSpongeVariant.Surface, 6, 3f, k))
+    val scene = volume :: surfaces
+    val before = NdSponge.surfaceCountRequestsOnThisThread
+    val estimate = SceneCost.estimate(scene, 1, SceneCost.CausticsLoad.None)
+    NdSponge.surfaceCountRequestsOnThisThread - before shouldBe 1
+    estimate.triangles should be > Budget
+    estimate.fittingLevel should not be empty
+    fits(scene) shouldBe false
 
   it should "fail with a configuration error for a spec without a dimension" in:
     val spec = ndSponge(NdSpongeVariant.Surface, 5, 1f).copy(dimension = None)

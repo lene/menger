@@ -83,8 +83,8 @@ object SceneCost:
       NdSponge.isBuildable(variant, n, level, k)
     def counted =
       saturatingTimes(NdSponge.faceCount(variant, n, level, k), ResourceLimits.TrianglesPerFace)
-    variant match
-      case _ if !countable => math.min(Long.MaxValue / RefusedSummands, boundTriangles)
+    if !countable then math.min(Long.MaxValue / RefusedSummands, boundTriangles)
+    else variant match
       case NdSpongeVariant.Volume => counted
       case NdSpongeVariant.Surface =>
         if !exact && boundTriangles <= ResourceLimits.sceneMaxTriangles then boundTriangles
@@ -114,12 +114,24 @@ object SceneCost:
     * surface bound is loose (about 1.4 times the count for the 6D surface at level 3), so when
     * the bounds add up to more than the budget they are counted exactly (within the bound's
     * headroom) before the scene is judged: sponges that fit must not be refused for the sum of
-    * their bounds. */
+    * their bounds. The exact pass stops counting once the running sum is over the budget: the
+    * scene is refused anyway, and a count takes seconds. The specs after that point cost their
+    * bound, so the total stays over the budget and `fittingLevel` still names a level. */
   private def costs(specs: List[ObjectSpec]): (List[Long], Boolean) =
     val byBound = specs.map(triangles(_, exact = false))
     val hasNdSponge = specs.exists(spec => ObjectType.isNdSponge(spec.objectType))
     if byBound.sum <= ResourceLimits.sceneMaxTriangles || !hasNdSponge then (byBound, false)
-    else (specs.map(triangles(_, exact = true)), true)
+    else (countUntilOverBudget(specs), true)
+
+  private def countUntilOverBudget(specs: List[ObjectSpec]): List[Long] =
+    val (costsReversed, _) = specs.foldLeft((List.empty[Long], 0L)) { case ((done, sum), spec) =>
+      val cost = triangles(spec, exact = sum <= ResourceLimits.sceneMaxTriangles)
+      (cost :: done, saturatingPlus(sum, cost))
+    }
+    costsReversed.reverse
+
+  private def saturatingPlus(a: Long, b: Long): Long =
+    if a > Long.MaxValue - b then Long.MaxValue else a + b
 
   /** Whole renders per displayed frame: one per level-mix world, each repeated per accumulation
     * frame. */
