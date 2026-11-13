@@ -390,8 +390,8 @@ class NdSpongeSuite extends AnyFlatSpec with Matchers with LazyLogging:
         )
     }
     // surface levels that only get counted (no mesh): the levels the validator may now count
-    Seq((4, 5), (5, 4), (7, 3)).foreach { (n, level) =>
+    Seq((4, 5, 11366400L), (5, 4, 7182080L), (7, 3, 11042304L)).foreach { (n, level, expected) =>
       val (faces, countMillis) = timed(NdSponge.faceCount(Surface, n, level, 1))
       logger.info(s"$Surface n = $n level $level: counted $faces faces in $countMillis ms")
-      faces should be > 0L
+      faces shouldBe expected
     }
