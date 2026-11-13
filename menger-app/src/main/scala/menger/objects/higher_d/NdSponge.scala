@@ -107,10 +107,21 @@ object NdSponge:
   def surface(n: Int, level: Int, k: Int = DefaultMaxCentreCoordinates): IndexedMeshN =
     val keys = keysFor(n, level, k)
     requireBuildableFaces(NdSpongeVariant.Surface, n, level, k)
-    val finest = (1 to level).foldLeft(cubeFaces(keys)) { (faces, step) =>
-      refine(keys, level, faces, step, k)
-    }
-    meshOf(keys, finest)
+    meshOf(keys, surfaceKeys(keys, level, k))
+
+  private def surfaceKeys(keys: FaceKeys, level: Int, k: Int): Array[Long] =
+    (1 to level).foldLeft(cubeFaces(keys))((faces, step) => refine(keys, level, faces, step, k))
+
+  // (n, level, k) -> faces of the surface sponge; a few hundred Longs at most
+  private val surfaceCounts = scala.collection.concurrent.TrieMap.empty[(Int, Int, Int), Long]
+
+  /** The surface's faces counted on the face keys alone: no vertices, no mesh. */
+  private def surfaceFaceCount(n: Int, level: Int, k: Int): Long =
+    surfaceCounts.getOrElseUpdate((n, level, k), {
+      val keys = keysFor(n, level, k)
+      requireBuildableFaces(NdSpongeVariant.Surface, n, level, k)
+      surfaceKeys(keys, level, k).length.toLong
+    })
 
   /** A cheap bound on the number of faces, which is also the number of face keys the build
     * handles before merging: for the volume the faces of all kept cells, for the surface the
@@ -123,15 +134,16 @@ object NdSponge:
       case NdSpongeVariant.Surface => surfaceChildrenPerFace(n)
     saturatingMultiply(NCube.faceCount(n).toLong, saturatingPower(perStep, level))
 
-  /** The number of faces of the sponge, without building it. The volume is counted exactly by
-    * `volumeFaceCount`; a level so high that the bound saturates gives Long.MaxValue at once. */
+  /** The number of faces of the sponge, without building a mesh. The volume is counted exactly
+    * by `volumeFaceCount`, the surface by refining face keys only (memoised). A level so high
+    * that the bound saturates gives Long.MaxValue at once. */
   def faceCount(variant: NdSpongeVariant, n: Int, level: Int, k: Int): Long =
     requireDimensionAndRange(n, k)
     require(level >= 0, s"level must not be negative, got $level")
     if upperBoundFaces(variant, n, level, k) == Long.MaxValue then Long.MaxValue
     else variant match
       case NdSpongeVariant.Volume => volumeFaceCount(n, level, k).min(BigInt(Long.MaxValue)).toLong
-      case NdSpongeVariant.Surface => surface(n, level, k).faceCount.toLong
+      case NdSpongeVariant.Surface => surfaceFaceCount(n, level, k)
 
   /** The faces of the volume sponge by a recurrence over the levels, with no arrays of faces.
     *

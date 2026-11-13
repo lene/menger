@@ -245,6 +245,23 @@ class NdSpongeSuite extends AnyFlatSpec with Matchers with LazyLogging:
     count shouldBe Long.MaxValue
     millis should be < 1000L
 
+  "faceCount" should "equal the built surface mesh" in:
+    val cases = for
+      (n, levels) <- Seq(4 -> (0 to 3), 5 -> (0 to 2), 6 -> (0 to 2))
+      level <- levels
+      k <- 1 until n
+    yield (n, level, k)
+    cases.foreach { (n, level, k) =>
+      withClue(s"n = $n, level $level, k = $k: ") {
+        NdSponge.faceCount(Surface, n, level, k) shouldBe
+          NdSponge.surface(n, level, k).faceCount.toLong
+      }
+    }
+
+  it should "give 2,426,880 faces for the 6D surface at level 3" in:
+    // the number SceneCostSpec pins from a built mesh
+    NdSponge.faceCount(Surface, 6, 3, 1) shouldBe 2426880L
+
   "maxCentreCoordinates outside 1..n-1" should "be rejected, naming the range" in:
     Seq(0, 5).foreach { k =>
       val volume = the[IllegalArgumentException] thrownBy NdSponge.volume(5, 1, k)
@@ -371,4 +388,10 @@ class NdSpongeSuite extends AnyFlatSpec with Matchers with LazyLogging:
             s"vertices, built in $buildMillis ms; toTriangleMesh $projectMillis ms " +
             s"(${triangles.numTriangles} triangles)"
         )
+    }
+    // surface levels that only get counted (no mesh): the levels the validator may now count
+    Seq((4, 5), (5, 4), (7, 3)).foreach { (n, level) =>
+      val (faces, countMillis) = timed(NdSponge.faceCount(Surface, n, level, 1))
+      logger.info(s"$Surface n = $n level $level: counted $faces faces in $countMillis ms")
+      faces should be > 0L
     }
