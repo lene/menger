@@ -70,6 +70,7 @@ index.html
 index.js
 index
 lib
+!/scripts/lib/
 package.html
 /menger
 

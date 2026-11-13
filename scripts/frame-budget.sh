@@ -45,13 +45,11 @@
 # even if 3 frames were logged), the log has fewer than 3 frame lines, or every t timed out.
 # Exit 2: bad arguments.
 set -euo pipefail
-# awk would print "1,066667" in a decimal-comma locale, which the app rejects as a Float.
-export LC_ALL=C
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-GPU_LOCK="${GPU_LOCK:-/tmp/menger-gpu.lock}"   # overridable for the offline tests
-KILL_GRACE_SECONDS="${KILL_GRACE_SECONDS:-30}"
-DEFAULT_HDRI=assets/hdri/kiara_2_sunrise_4k.hdr
+SCRIPT_FILE="${BASH_SOURCE[0]}"
+SCRIPT_NAME="$(basename "$SCRIPT_FILE")"
+# shellcheck source-path=SCRIPTDIR source=lib/render-lock.sh
+source "$SCRIPT_DIR/lib/render-lock.sh"
 FRAMES_PER_MEASUREMENT=3
 FPS=30
 DEFAULT_WIDTH=1920
@@ -59,21 +57,6 @@ DEFAULT_HEIGHT=1080
 DEFAULT_TIMEOUT_SECONDS=1800
 MS_PER_DAY=86400000
 MS_PER_HOUR=3600000
-MS_PER_SECOND=1000
-TIMEOUT_EXIT=124
-KILLED_EXIT=137
-INTERRUPTED_EXIT=130
-INTERRUPT_GRACE_SECONDS=1
-NUMBER_PATTERN='^[0-9]+(\.[0-9]+)?$'
-POSITIVE_INTEGER_PATTERN='^[1-9][0-9]*$'
-ERROR_LINE_PATTERN='^[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3} +ERROR '
-# Runs as the render's shell under flock: records the start time and its own pid, which timeout
-# then keeps (exec) and makes the leader of a process group of its own.
-# shellcheck disable=SC2016
-RENDER_WRAPPER='date +%s%3N > "$1"; echo $$ > "$2"; shift 2; exec timeout "$@"'
-
-RENDER_PID=""
-RENDER_PGID_FILE=""
 
 # Prints the warm frame's cost in ms from a log: the timestamp of the 3rd "Rendering frame"
 # line minus that of the 2nd, modulo a day (the log pattern has no date, so a render across
@@ -103,102 +86,31 @@ timeout_cell() {
   else echo "> $1 s (timed out before frame 1)"; fi
 }
 
-# Whether a render that ended with exit status $1 after $2 ms was stopped by the timeout of $3
-# seconds: timeout's own 124, or a 137 (killed) that came only after the timeout had run out.
-# A 137 before that is something else, the OOM killer for one, and is a failure.
-stopped_by_timeout() {
-  local status="$1" elapsed_ms="$2" timeout_seconds="$3"
-  [ "$status" -eq "$TIMEOUT_EXIT" ] \
-    || { [ "$status" -eq "$KILLED_EXIT" ] && [ "$elapsed_ms" -ge "$((timeout_seconds * MS_PER_SECOND))" ]; }
-}
-
-# True when the app logged an ERROR line: a frame that failed to build or render does not
-# stop the animation, so a log with 3 frame lines can still hold no measurement.
-log_has_error() { grep -qE "$ERROR_LINE_PATTERN" "$1"; }
-
-fail() { echo "ERROR: $*" >&2; exit 1; }
-
-die_usage() {
-  echo "ERROR: $*" >&2
-  echo "Usage: see the header of scripts/frame-budget.sh, or run it with --help" >&2
-  exit 2
-}
-
-usage() { # usage <exit status>
-  sed -n '2,/^set -e/p' "${BASH_SOURCE[0]}" | sed '$d;s/^# \{0,1\}//' >&2
-  exit "${1:-2}"
-}
-
-is_number() { [[ "$1" =~ $NUMBER_PATTERN ]]; }
-is_positive_number() { is_number "$1" && awk -v n="$1" 'BEGIN { exit !(n > 0) }'; }
-is_positive_integer() { [[ "$1" =~ $POSITIVE_INTEGER_PATTERN ]]; }
-
-# Kills the render's process group: TERM, a moment to stop, then KILL, and waits for the lock
-# holder (flock) to be gone. A render must never outlive the lock it ran under.
-terminate_render() {
-  local pgid=""
-  [ -z "$RENDER_PGID_FILE" ] || pgid="$(cat "$RENDER_PGID_FILE" 2> /dev/null || true)"
-  if [ -n "$pgid" ]; then kill -TERM -- "-$pgid" 2> /dev/null || true; fi
-  sleep "$INTERRUPT_GRACE_SECONDS"
-  if [ -n "$pgid" ]; then kill -KILL -- "-$pgid" 2> /dev/null || true; fi
-  if [ -n "$RENDER_PID" ]; then
-    kill "$RENDER_PID" 2> /dev/null || true
-    wait "$RENDER_PID" 2> /dev/null || true
-  fi
-}
-
-on_interrupt() {
-  trap '' INT TERM HUP
-  terminate_render
-  exit "$INTERRUPTED_EXIT"
-}
-
-# Kills what is left of a finished render (a child that outlived it).
-sweep_render_group() {
-  local pgid
-  pgid="$(cat "$RENDER_PGID_FILE" 2> /dev/null || true)"
-  if [ -n "$pgid" ]; then kill -KILL -- "-$pgid" 2> /dev/null || true; fi
-}
-
 # Renders 3 frames from t. Sets CELL, the table cell, and MS, the warm frame's ms (empty when
 # the render timed out before logging 3 frames). Exits 1 on any failure.
 measure_ms() {
   local t="$1"
-  local end_t log_file started_file status=0 started_ms elapsed_ms
+  local end_t log_file
   end_t="$(awk -v t="$t" -v n="$FRAMES_PER_MEASUREMENT" -v fps="$FPS" \
     'BEGIN { printf "%.6f", t + (n - 1) / fps }')"
   log_file="$WORK/t_${t}.log"
-  started_file="$WORK/render.started"
-  RENDER_PGID_FILE="$WORK/render.pgid"
-  rm -f "$started_file" "$RENDER_PGID_FILE"
-  # -o: the lock fd is not inherited by the app's children (Xvfb outlives a killed render and
-  # would hold the lock); flock itself keeps the lock until the command exits. Run in the
-  # background and waited for, so that a trapped signal is handled at once.
-  flock -o "$GPU_LOCK" sh -c "$RENDER_WRAPPER" sh "$started_file" "$RENDER_PGID_FILE" \
-    -k "$KILL_GRACE_SECONDS" "$TIMEOUT_SECONDS" \
-    env __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a "$BIN" --headless \
+  run_render "$TIMEOUT_SECONDS" "$log_file" "$BIN" \
     --scene "$SCENE" --texture-dir "$TEXTURE_DIR" --frames "$FRAMES_PER_MEASUREMENT" \
     --start-t "$t" --end-t "$end_t" --save-name "$WORK/f_%03d.png" \
-    --width "$WIDTH" --height "$HEIGHT" > "$log_file" 2>&1 &
-  RENDER_PID=$!
-  wait "$RENDER_PID" || status=$?
-  sweep_render_group
-  RENDER_PID=""
-  started_ms="$(cat "$started_file" 2> /dev/null || date +%s%3N)"
-  elapsed_ms=$(( $(date +%s%3N) - started_ms ))
+    --width "$WIDTH" --height "$HEIGHT"
 
   if log_has_error "$log_file"; then
     cat "$log_file" >&2
     fail "the app logged an ERROR rendering $SCENE at t=$t (log above)"
   fi
   MS=""
-  if stopped_by_timeout "$status" "$elapsed_ms" "$TIMEOUT_SECONDS"; then
+  if stopped_by_timeout "$RENDER_STATUS" "$RENDER_ELAPSED_MS" "$TIMEOUT_SECONDS"; then
     MS="$(frame_ms_from_log "$log_file" || true)"
     if [ -n "$MS" ]; then CELL="$MS"; else CELL="$(timeout_cell "$TIMEOUT_SECONDS" "$log_file")"; fi
     return 0
   fi
-  [ "$status" -eq 0 ] \
-    || { cat "$log_file" >&2; fail "render of $SCENE at t=$t failed with exit status $status (log above)"; }
+  [ "$RENDER_STATUS" -eq 0 ] \
+    || { cat "$log_file" >&2; fail "render of $SCENE at t=$t failed with exit status $RENDER_STATUS (log above)"; }
   MS="$(frame_ms_from_log "$log_file")" \
     || { cat "$log_file" >&2; fail "fewer than $FRAMES_PER_MEASUREMENT 'Rendering frame' lines for t=$t (log above)"; }
   CELL="$MS"
@@ -211,12 +123,6 @@ emit() { echo "$1"; if [ -n "$OUT" ]; then echo "$1" >> "$OUT"; fi; }
 uniform_times() { # uniform_times <total> <step>
   awk -v total="$1" -v step="$2" \
     'BEGIN { for (i = 0; i * step < total - 1e-9; i++) printf "%.10g\n", i * step }'
-}
-
-need_values() { # need_values <count> <flag> <args after the flag...>
-  local count="$1" flag="$2"
-  shift 2
-  [ "$#" -ge "$count" ] || die_usage "$flag needs $count value(s)"
 }
 
 set_times_at() {
@@ -276,15 +182,6 @@ parse_args() {
   if [ -n "$OUT" ]; then : >> "$OUT" 2> /dev/null || die_usage "--out file is not writable: $OUT"; fi
 }
 
-provenance_line() {
-  local gpu commit
-  gpu="$(nvidia-smi --query-gpu=name --format=csv,noheader 2> /dev/null | head -n 1)" || true
-  [ -n "$gpu" ] || gpu="unknown"
-  commit="$(git -C "$SCRIPT_DIR" rev-parse --short HEAD 2> /dev/null)" || commit=unknown
-  echo "Frame budget $(date '+%Y-%m-%d %H:%M'); GPU: $gpu; menger commit: $commit;" \
-    "${WIDTH}x${HEIGHT}; timeout $TIMEOUT_SECONDS s; scene: $SCENE_NAME; hdri: $HDRI"
-}
-
 main() {
   parse_args "$@"
   [ -x "$BIN" ] || fail "launcher not found or not executable: $BIN (run: sbt mengerApp/stage)"
@@ -295,6 +192,7 @@ main() {
     || fail "$TEXTURE_DIR/$HDRI is missing; run scripts/fetch-kiara-hdri.sh 4k"
 
   WORK="$(mktemp -d)"
+  RENDER_STATE_DIR="$WORK"
   trap 'rm -rf "$WORK"' EXIT
   trap on_interrupt INT TERM HUP
   local scene_name results="" t measured=0 timed_out=0
