@@ -55,9 +55,6 @@ object NdSpongeScene:
       if holeCaps then sponge.holeCaps else sponge
     }
 
-  /** The faces of a whole-level sponge: what a build would hold, counted exactly. */
-  def faceCount(spec: ObjectSpec): Int = mesh(spec, holeCaps = false).faceCount
-
   /** The triangles of the (hole-cap) mesh seen through the spec's view: projected afresh. */
   def triangleMesh(spec: ObjectSpec, holeCaps: Boolean): TriangleMeshData =
     val n = NCubeScene.dimensionOf(spec)

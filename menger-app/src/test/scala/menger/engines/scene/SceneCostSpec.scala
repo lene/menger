@@ -86,8 +86,9 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
     an[IllegalArgumentException] should be thrownBy Menger4D(level = tooHigh)
     an[IllegalArgumentException] should be thrownBy HexadecachoronGasket(level = tooHigh)
 
-  // menger#166: an n-sponge's triangles are two per face. Below the budget the bound of its
-  // faces is the cost; above it, within the bound's headroom, the sponge is built and counted.
+  // menger#166: an n-sponge's triangles are two per face. The volume's faces are counted
+  // exactly; the surface's cost is the bound of its faces below the budget, and above it, within
+  // the bound's headroom, the faces counted on keys (menger#183: nothing is built).
   private def ndSponge(
     variant: NdSpongeVariant, n: Int, level: Float, k: Int = 1
   ): ObjectSpec =
@@ -106,15 +107,19 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
     SceneCost.triangles(spec) shouldBe TrianglesPerFace * bound
     SceneCost.triangles(spec) should be >= TrianglesPerFace * 28160L
 
-  it should "count the faces exactly when only the bound is over the budget" in:
-    // 6D surface, level 3: the bound is 15.36M faces (30.7M triangles, over the 16M budget but
-    // within its 4x headroom); the sponge has 2,426,880 faces, which fits.
+  it should "count the faces exactly when only the sum of the bounds is over the budget" in:
+    // 6D surface, level 3: the bound is 3,317,760 faces (6.6M triangles, within the 16M budget),
+    // the sponge has 2,426,880 faces. Three of them: 19.9M triangles by their bounds, over the
+    // budget, and 14.6M in fact, which fits.
     val spec = ndSponge(NdSpongeVariant.Surface, 6, 3f)
     val bound = NdSponge.upperBoundFaces(NdSpongeVariant.Surface, 6, 3, 1)
-    bound * TrianglesPerFace should be > Budget
-    ResourceLimits.ndSpongeBoundAdmits(bound) shouldBe true
-    SceneCost.triangles(spec) shouldBe TrianglesPerFace * 2426880L
-    fits(List(spec)) shouldBe true
+    bound * TrianglesPerFace should be <= Budget
+    SceneCost.triangles(spec) shouldBe TrianglesPerFace * bound
+    val scene = List.fill(3)(spec)
+    scene.map(SceneCost.triangles).sum should be > Budget
+    SceneCost.estimate(scene, 1, SceneCost.CausticsLoad.None).triangles shouldBe
+      3 * TrianglesPerFace * 2426880L
+    fits(scene) shouldBe true
 
   it should "refuse a level whose exact count is over the budget, and name the level that fits" in:
     // 6D volume, level 2, has 5,898,240 faces: one fits, two do not (23.6M triangles).
@@ -143,16 +148,25 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
     SceneCost.triangles(ndSponge(NdSpongeVariant.Surface, 5, 1.4f)) shouldBe
       SceneCost.triangles(lower) + SceneCost.triangles(upper)
 
+  it should "not build a mesh to cost a sponge" in:
+    val before = NdSpongeScene.retainedFaces
+    SceneCost.estimate(
+      List.fill(3)(ndSponge(NdSpongeVariant.Surface, 6, 3f)), 1, SceneCost.CausticsLoad.None
+    )
+    SceneCost.estimate(
+      List(ndSponge(NdSpongeVariant.Volume, 6, 2f)), 1, SceneCost.CausticsLoad.None
+    )
+    NdSpongeScene.retainedFaces shouldBe before
+
   it should "fail with a configuration error for a spec without a dimension" in:
     val spec = ndSponge(NdSpongeVariant.Surface, 5, 1f).copy(dimension = None)
     a[ConfigurationException] should be thrownBy SceneCost.triangles(spec)
 
-  // The bounds are loose: 5D volume at level 2 has 1,003,520 faces by the bound and 450,560 in
-  // fact. Nine of them are 18.1M triangles by their bounds, over the budget, and 8.1M in fact.
-  it should "accept a scene whose bounds add up over the budget but whose exact counts fit" in:
+  // The volume is counted exactly however loose its bound is: 5D volume at level 2 has 1,003,520
+  // faces by the bound and 450,560 in fact. Nine of them are 8.1M triangles.
+  it should "count volume sponges exactly, however loose their bound" in:
     val spec = ndSponge(NdSpongeVariant.Volume, 5, 2f)
     val scene = List.fill(9)(spec)
-    scene.map(SceneCost.triangles).sum should be > Budget
     val estimate = SceneCost.estimate(scene, 1, SceneCost.CausticsLoad.None)
     estimate.triangles shouldBe 9 * TrianglesPerFace * 450560L
     estimate.fittingLevel shouldBe None
@@ -169,11 +183,9 @@ class SceneCostSpec extends AnyFlatSpec with Matchers:
   // k > 1 keeps more sub-cubes: the faces differ from k = 1 at the same level (menger#166).
   it should "count a larger k exactly: 6D surface, level 3, k = 3" in:
     val spec = ndSponge(NdSpongeVariant.Surface, 6, 3f, k = 3)
-    val bound = NdSponge.upperBoundFaces(NdSpongeVariant.Surface, 6, 3, 3)
-    bound * TrianglesPerFace should be > Budget
     SceneCost.triangles(spec) shouldBe TrianglesPerFace * 3317760L
-    SceneCost.triangles(spec) should be >
-      SceneCost.triangles(ndSponge(NdSpongeVariant.Surface, 6, 3f))
+    NdSponge.faceCount(NdSpongeVariant.Surface, 6, 3, 3) should be >
+      NdSponge.faceCount(NdSpongeVariant.Surface, 6, 3, 1)
     fits(List(spec)) shouldBe true
 
   it should "refuse three of them by their exact count, and name the level that fits" in:
