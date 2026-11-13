@@ -1286,7 +1286,7 @@ How it finds the sun, so that you can judge a result:
 
 ### The dimension ladder -- *Sprint 38*
 
-`examples.dsl.DimensionLadder` (menger#160) is a looping animation of a metal cube on a plinth,
+`examples.dsl.ladder.DimensionLadder` (menger#160) is a looping animation of a metal cube on a plinth,
 lit by the Kiara 2 Sunrise sky and its sun. The cube breathes into a Menger sponge and back, folds
 out into 4D, breathes again as a 4D sponge, folds into 5D, and so on up to the top dimension; it
 then descends to the cube along another path, so that the last frame equals the first
@@ -1309,8 +1309,23 @@ vertical room, and a render taller than 16:9 shows more sky and ground around th
 
 It needs the Kiara HDRI (see *HDR Environment Maps* above): `scripts/fetch-kiara-hdri.sh 4k`.
 
-Its parameters are values in `object DimensionLadder`. To change one, edit the example and
-rebuild (`sbt mengerApp/stage`); the scene is not configurable from the command line.
+The ladder lives in the package `examples.dsl.ladder` and is loaded by name only (`--scene
+examples.dsl.ladder.DimensionLadder`, not by file path); it is not part of the scene agent's
+corpus. Its timeline is `Choreography`, its plinth and camera are `Stage`, and everything an
+experiment may vary (materials, edge radius, film ramp, lights, env map, IBL, caustics, render
+settings, breath depths) is a `Look`. The scene is not configurable from the command line. A
+variant is an object in `examples.dsl.ladder.variants` that calls `DimensionLadder.sceneAt` with
+a changed look, and is loaded by its own name after `sbt mengerApp/stage`:
+
+```scala
+package examples.dsl.ladder.variants
+
+import examples.dsl.ladder.{DimensionLadder, Look}
+import menger.dsl.Material
+
+object ChromeLadder:
+  def scene(t: Float) = DimensionLadder.sceneAt(t, look = Look.default.copy(metal = Material.Chrome))
+```
 
 | Parameter | Default | Meaning |
 |-----------|---------|---------|
@@ -1321,7 +1336,7 @@ rebuild (`sbt mengerApp/stage`); the scene is not configurable from the command 
 
 One frame at a moment of the loop:
 ```bash
-menger-app --scene examples.dsl.DimensionLadder --t 72 --width 1920 --height 1080 \
+menger-app --scene examples.dsl.ladder.DimensionLadder --t 72 --width 1920 --height 1080 \
   --save-name ladder.png
 ```
 Run it from the menger repository's root: the scene names the HDRI as `assets/hdri/...`.
@@ -1331,7 +1346,7 @@ last `--end-t` is one frame short of the cycle (the cycle's end is the first fra
 the `out/` directory first, then encode the frames:
 ```bash
 mkdir -p out
-menger-app --scene examples.dsl.DimensionLadder --width 1920 --height 1080 \
+menger-app --scene examples.dsl.ladder.DimensionLadder --width 1920 --height 1080 \
   --frames 5400 --start-t 0 --end-t 179.96667 --save-name out/f_%04d.png
 ffmpeg -framerate 30 -i out/f_%04d.png -c:v libx264 -pix_fmt yuv420p ladder.mp4
 ```

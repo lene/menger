@@ -129,6 +129,9 @@
   after it did not compile ("Not found: CausticsCanonical"). The scene is written out in the file,
   and `CorpusExporterSuite` compiles every corpus example through `SceneCompiler` on its own.
   No render change.
+- The dimension ladder is `examples.dsl.ladder.DimensionLadder` and no longer part of the agent
+  corpus (40 scenes); `sceneAt` takes a `Look` (menger#184). Load it by name, not by file path.
+  It renders as before.
 
 ### Known issues
 
