@@ -140,6 +140,9 @@ report "no HDRI: exit 1, names fetch-kiara-hdri.sh 4k" $?
 run_script "$FAKE" "$WORK/Scene.scala" --at 1 --texture-dir "$WORK/tex" --hdri assets/hdri/other.hdr
 [ "$RC" -eq 1 ] && grep -qF "assets/hdri/other.hdr is missing" <<< "$OUT"
 report "--hdri names the missing env map" $?
+run_script "$FAKE" "$WORK/Missing.scala" --at 1 --texture-dir "$WORK/tex"
+[ "$RC" -eq 1 ] && grep -qF "scene file not found" <<< "$OUT"
+report "a .scala path that does not exist: exit 1, scene file not found" $?
 
 # ---- whole runs with fake launchers ----
 
@@ -147,6 +150,7 @@ report "--hdri names the missing env map" $?
 cat > "$FAKE" <<'EOF'
 #!/bin/sh
 t=""
+[ -z "$FAKE_DIR" ] || echo "$*" > "$FAKE_DIR/launcher.args"
 while [ $# -gt 0 ]; do [ "$1" = --start-t ] && t="$2"; shift; done
 frame() { echo "$1 INFO  x.WithAnimation - Rendering frame $2/3 (t=$t)" >&2; }
 three_frames() { frame 10:00:00.000 1; frame 10:00:01.000 2; frame 10:02:01.000 3; }   # warm 120000 ms
@@ -187,6 +191,13 @@ if command -v xvfb-run > /dev/null; then
   head -n 1 "$WORK/out.md" | grep -q "^Frame budget [0-9-]* [0-9:]*; GPU: .*; menger commit: .*; 1920x1080; timeout 1800 s; scene: Scene; hdri: $DEFAULT_HDRI$"
   report "--out starts with the provenance line" $?
   grep -qF "Mean: 120000.0 ms/frame" "$WORK/out.md"; report "--out has the table and the budget" $?
+
+  OUT="$(FAKE_MODE=cost "$SCRIPT" "$FAKE" examples.dsl.ladder.DimensionLadder \
+    --texture-dir "$WORK/tex" --at 1 2>&1)"
+  RC=$?
+  [ "$RC" -eq 0 ] && grep -qF -- "--scene examples.dsl.ladder.DimensionLadder " "$WORK/launcher.args" \
+    && grep -qF "| DimensionLadder | 1 | 120000 |" <<< "$OUT"
+  report "a scene name is accepted and reaches the launcher as --scene <name>" $?
 
   HANG_T=0.5 run_fake hang_at --uniform 1 0.5 --timeout 1
   [ "$RC" -eq 0 ] && grep -qF "No budget: 1 of 2 samples timed out." <<< "$OUT"

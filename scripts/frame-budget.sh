@@ -20,6 +20,8 @@
 #
 #   BIN            the staged launcher, menger-app/target/universal/stage/bin/menger-app
 #   SCENE          a scene file with `def scene(t: Float)`, e.g. scripts/frame-budget/Moment3D.scala
+#                  (a value ending in .scala must be an existing file), or a scene name that
+#                  --scene resolves, e.g. examples.dsl.ladder.DimensionLadder (passed on unchecked)
 #   --at           measure at these t (seconds; non-negative numbers)
 #   --uniform T S  measure at t = i*S for i = 0, 1, ... while i*S < T, then print the mean and
 #                  the budget for an animation of T seconds at 30 fps: mean ms/frame x T x 30
@@ -286,7 +288,9 @@ provenance_line() {
 main() {
   parse_args "$@"
   [ -x "$BIN" ] || fail "launcher not found or not executable: $BIN (run: sbt mengerApp/stage)"
-  [ -f "$SCENE" ] || fail "scene file not found: $SCENE"
+  case "$SCENE" in
+    *.scala) [ -f "$SCENE" ] || fail "scene file not found: $SCENE" ;;
+  esac
   [ -f "$TEXTURE_DIR/$HDRI" ] \
     || fail "$TEXTURE_DIR/$HDRI is missing; run scripts/fetch-kiara-hdri.sh 4k"
 
@@ -294,7 +298,10 @@ main() {
   trap 'rm -rf "$WORK"' EXIT
   trap on_interrupt INT TERM HUP
   local scene_name results="" t measured=0 timed_out=0
-  scene_name="$(basename "$SCENE" .scala)"
+  case "$SCENE" in
+    *.scala) scene_name="$(basename "$SCENE" .scala)" ;;
+    *) scene_name="${SCENE##*.}" ;;
+  esac
   SCENE_NAME="$scene_name"
 
   emit "$(provenance_line)"
