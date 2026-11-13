@@ -15,3 +15,78 @@ entries:
       1k: e4cd96c6046b2c3b81bd74b0c8b0d680272420ebc00e88ab7ba1c9be5941069b
       4k: f06d8b697c97cbaf4614ff82ae65530ed85ec6ab515bdfa4edaa6901ec2c0079
       8k: c6a1686cbcf45af26982af550a1c9647c5b24643c593e90d9cf394c3f4437d63
+
+  - path: menger-app/src/test/resources/cliffside_2k.hdr
+    source: https://polyhaven.com/a/cliffside
+    download_url: https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/cliffside_2k.hdr
+    licence: CC0-1.0
+    author: Greg Zaal
+    kind: asset
+    # Checked 2026-11-13: the file's MD5 equals the one Poly Haven publishes
+    # (api.polyhaven.com/files/cliffside, 23e6448ba6783b1053318bdefcab09a0); author from api.polyhaven.com/info/cliffside.
+    sha256:
+      2k: e5b045067a210a2567afae0223bf26609a516e4d4ec1d2f8d6b8c32addfce2d0
+
+  - path: menger-app/src/test/resources/rogland_sunset_2k.hdr
+    source: https://polyhaven.com/a/rogland_sunset
+    download_url: https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/rogland_sunset_2k.hdr
+    licence: CC0-1.0
+    author: Greg Zaal
+    kind: asset
+    # Checked 2026-11-13: the file's MD5 equals the one Poly Haven publishes
+    # (api.polyhaven.com/files/rogland_sunset, f8ba2ea0c16528ce01332b8770cebd36); author from api.polyhaven.com/info/rogland_sunset.
+    sha256:
+      2k: 27ee3f4e044688f3c46eea32a56e96188ab4dd0492f9e614f6764c4ac25defae
+
+  - path: scripts/reference-images/caustics/*.png
+    source: this repository; pbrt-v4 renders of the caustics test scenes (the .manifest.txt next to each image names the pbrt binary hash, seed and spp)
+    licence: Apache-2.0
+    author: menger contributors
+    kind: generated
+    note: a .pfm and a .manifest.txt of the same name are committed next to each image.
+
+  - path: scripts/reference-images/*.png
+    source: this repository; rendered by menger-app (integration-tests.sh --update-references)
+    licence: Apache-2.0
+    author: menger contributors
+    kind: generated
+    note: golden images for the visual regression tests, see scripts/reference-images/README.md. The glob also matches the pbrt images under caustics/, which have their own entry.
+
+  - path: docs/website/docs/images/headless_*.png
+    source: this repository; rendered by menger-app, byte-identical to the reference image of the same name in scripts/reference-images
+    licence: Apache-2.0
+    author: menger contributors
+    kind: generated
+
+  - path: docs/website/docs/images/save_with_AA.png
+    source: this repository; rendered by menger-app, byte-identical to scripts/reference-images/save_with_AA.png
+    licence: Apache-2.0
+    author: menger contributors
+    kind: generated
+
+  - path: docs/website/docs/images/pbrt-reference.png
+    source: this repository; pbrt-v4 bdpt render of the caustics reference scene, byte-identical to optix-jni's test-resources/caustics-references/pbrt-reference.png
+    licence: Apache-2.0
+    author: optix-jni contributors
+    kind: generated
+
+  - path: scripts/test-assets/test_checker.png
+    source: this repository; synthetic 64x64 test texture (red and white checkerboard)
+    licence: Apache-2.0
+    author: menger contributors
+    kind: generated
+    note: no generator is tracked; added in commit 0952dbf7 for the Sprint 7 texture integration tests. Pixel contents checked 2026-11-13, exactly two colours.
+
+  - path: scripts/test-assets/test_hdr.hdr
+    source: this repository; synthetic 16x16 checkerboard in Radiance RGBE format
+    licence: Apache-2.0
+    author: menger contributors
+    kind: generated
+    note: added in commit cf3623ac ("16x16 checkerboard RGBE"); no generator is tracked.
+
+  - path: scripts/test-assets/texture-sets/tiny-pbr/*.png
+    source: this repository; synthetic 64x64 PBR texture set (checkerboard, flat normal and roughness, gradient AO and metalness)
+    licence: Apache-2.0
+    author: menger contributors
+    kind: generated
+    note: added in commits 30b5c8e9 and 83f88720 ("CC0 test data") for TextureSetResolverSuite; no generator is tracked. Pixel contents checked 2026-11-13, all procedural.
