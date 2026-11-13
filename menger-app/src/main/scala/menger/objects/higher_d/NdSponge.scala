@@ -42,6 +42,9 @@ object NdSponge:
   // per normal axis: both directions, the face's two edge axes, both sides of the hole
   private val WallsPerNormal = 8
   private val OuterShift = 2
+  private val InPlaneAxes = 2
+  // the volume recurrence also counts the 3D sponge, which the builds do not accept
+  private val MinSpongeDimension = 3
   // the first axis of a face is stored in AxisIndexBits bits, the last axis index is n - 1
   require(
     MaxDimension <= (1 << AxisIndexBits),
@@ -118,6 +121,77 @@ object NdSponge:
       case NdSpongeVariant.Volume => keptPerStep(n, k)
       case NdSpongeVariant.Surface => surfaceChildrenPerFace(n)
     saturatingMultiply(NCube.faceCount(n).toLong, saturatingPower(perStep, level))
+
+  /** The number of faces of the sponge, without building it. The volume is counted exactly by
+    * `volumeFaceCount`; a level so high that the bound saturates gives Long.MaxValue at once. */
+  def faceCount(variant: NdSpongeVariant, n: Int, level: Int, k: Int): Long =
+    requireDimensionAndRange(n, k)
+    require(level >= 0, s"level must not be negative, got $level")
+    if upperBoundFaces(variant, n, level, k) == Long.MaxValue then Long.MaxValue
+    else variant match
+      case NdSpongeVariant.Volume => volumeFaceCount(n, level, k).min(BigInt(Long.MaxValue)).toLong
+      case NdSpongeVariant.Surface => surface(n, level, k).faceCount.toLong
+
+  /** The faces of the volume sponge by a recurrence over the levels, with no arrays of faces.
+    *
+    * A face is a unit square of the finest grid: it spans two "in-plane" axes and has n - 2
+    * "normal" axes, on each of which it sits between two neighbouring cells or on the outer
+    * boundary. The mesh keeps it when some cell around it is kept and not all 2^(n-2) are.
+    *
+    * On an interior normal axis, the base-3 digits of the two neighbouring cells agree down to
+    * the "split level", where they are (0, 1) or (1, 2), and below it they are (2, 0): at the
+    * split level exactly one side has the middle digit, above it both do or neither, below it
+    * neither. With, at one level, c in-plane axes with the middle digit, a unsplit normal axes
+    * with it and m normal axes splitting there, some cell is kept iff a + c <= k at every
+    * level, and all are kept iff a + c + m <= k at every level. `unsplitWays` counts the digit
+    * choices level by level; boundary normal axes never have a middle digit. */
+  private[higher_d] def volumeFaceCount(n: Int, level: Int, k: Int): BigInt =
+    require(
+      n >= MinSpongeDimension && k >= 1 && k <= n - 1 && level >= 0,
+      s"volumeFaceCount needs n >= $MinSpongeDimension, 1 <= k <= n - 1 and level >= 0, " +
+        s"got n=$n, level=$level, k=$k"
+    )
+    val normals = n - InPlaneAxes
+    val anyKept = unsplitWays(level, normals, k, strict = false)
+    val allKept = unsplitWays(level, normals, k, strict = true)
+    val perAxisPair = (0 to normals).map { boundary =>
+      val allKeptFaces = if boundary == 0 then allKept(normals) else BigInt(0)
+      binomialBig(normals, boundary) * twoTo(boundary) *
+        (anyKept(normals - boundary) - allKeptFaces)
+    }.sum
+    binomialBig(n, InPlaneAxes) * perAxisPair
+
+  /** For each number u of unsplit interior normal axes, the ways to choose the digits of levels
+    * 1 to `level` of a face. `strict` counts the choices that keep every cell around the face. */
+  private def unsplitWays(
+    level: Int, normals: Int, k: Int, strict: Boolean
+  ): IndexedSeq[BigInt] =
+    val beyondFinest =
+      IndexedSeq.tabulate(normals + 1)(u => if u == 0 then BigInt(1) else BigInt(0))
+    (level to 1 by -1).foldLeft(beyondFinest) { (next, lv) =>
+      IndexedSeq.tabulate(normals + 1)(waysAtLevel(_, lv == level, k, strict, next))
+    }
+
+  private def waysAtLevel(
+    unsplit: Int, finest: Boolean, k: Int, strict: Boolean, next: IndexedSeq[BigInt]
+  ): BigInt =
+    val terms = for
+      splitting <- 0 to unsplit
+      if !finest || splitting == unsplit
+      middle <- 0 to unsplit - splitting
+      inPlane <- 0 to InPlaneAxes
+      if middle + inPlane + (if strict then splitting else 0) <= k
+    yield
+      val rest = unsplit - splitting
+      binomialBig(unsplit, splitting) * twoTo(splitting) *
+        binomialBig(rest, middle) * twoTo(rest - middle) *
+        binomialBig(InPlaneAxes, inPlane) * twoTo(InPlaneAxes - inPlane) *
+        next(rest)
+    terms.sum
+
+  private def binomialBig(n: Int, k: Int): BigInt = BigInt(binomial(n, k))
+
+  private def twoTo(exponent: Int): BigInt = BigInt(1) << exponent
 
   /** What `refine` reserves for one face: the 8 outer squares of the 3 x 3 split, and for each
     * of the n - 2 normals up to 8 walls (both directions, 2 edge axes, 2 sides) for the middle
