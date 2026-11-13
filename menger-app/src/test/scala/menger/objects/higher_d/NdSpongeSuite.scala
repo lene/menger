@@ -184,9 +184,18 @@ class NdSpongeSuite extends AnyFlatSpec with Matchers with LazyLogging:
       }
     }
 
-  they should "have a surface bound of 8 + 8(n-2) children per face and step" in:
-    NdSponge.upperBoundFaces(Surface, 4, 1, 1) shouldBe 24L * 24
-    NdSponge.upperBoundFaces(Surface, 8, 2, 1) shouldBe 1792L * 56 * 56
+  they should "have a surface bound of 8 + 4(n-2) children per face and step" in:
+    NdSponge.upperBoundFaces(Surface, 4, 1, 1) shouldBe 24L * 16
+    NdSponge.upperBoundFaces(Surface, 8, 2, 1) shouldBe 1792L * 32 * 32
+
+  "The surface bound" should "equal the count for k = n - 2 at levels 1 and 2" in:
+    for n <- Seq(4, 5); level <- Seq(1, 2) do
+      withClue(s"n = $n, level $level: ") {
+        NdSponge.surface(n, level, n - 2).faceCount.toLong shouldBe
+          NdSponge.upperBoundFaces(Surface, n, level, n - 2)
+      }
+    NdSponge.upperBoundFaces(Surface, 4, 2, 2) shouldBe 6144L
+    NdSponge.upperBoundFaces(Surface, 5, 2, 3) shouldBe 32000L
 
   // (n, level, k) -> faces. The first 14 rows are from the E2 prototype's counts.txt
   // (_bmad-output/forge/dimension-ladder-scene/e2-prototype, workspace repo); the 15th is also
@@ -263,10 +272,11 @@ class NdSpongeSuite extends AnyFlatSpec with Matchers with LazyLogging:
       }
 
   "A sponge too large for an array" should "be rejected before anything is built" in:
-    // 1280^3 kept cells of 8D; 7D level 4 passes the key width but has 3.6e9 candidate faces
+    // 1280^3 kept cells of 8D; 5D level 6 passes the key width but has 5.1e9 candidate faces
+    // (7D level 4 had 3.6e9 until the surface bound dropped to 4.1e8, which an array holds)
     Seq[() => Any](
       () => NdSponge.volume(8, 3, 1), () => NdSponge.keptCells(8, 3, 1),
-      () => NdSponge.surface(7, 4, 1), () => NdSponge.surface(6, 5, 1)
+      () => NdSponge.surface(5, 6, 1), () => NdSponge.surface(6, 5, 1)
     ).foreach { build =>
       val (failure, millis) = timed(the[IllegalArgumentException] thrownBy build())
       failure.getMessage should include("too large to build")

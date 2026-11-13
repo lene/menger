@@ -39,8 +39,9 @@ object NdSponge:
   private val CornerSignsJ = Array(-1, -1, 1, 1)
   // the nine sub-squares of a face split 3 x 3, row by row
   private val FlatParts = Base * Base
-  // per normal axis: both directions, the face's two edge axes, both sides of the hole
-  private val WallsPerNormal = 8
+  // per normal axis: the face's two edge axes, both sides of the hole; one direction, toward
+  // the centre
+  private val WallsPerNormal = 4
   private val OuterShift = 2
   private val InPlaneAxes = 2
   // the volume recurrence also counts the 3D sponge, which the builds do not accept
@@ -194,7 +195,7 @@ object NdSponge:
   private def twoTo(exponent: Int): BigInt = BigInt(1) << exponent
 
   /** What `refine` reserves for one face: the 8 outer squares of the 3 x 3 split, and for each
-    * of the n - 2 normals up to 8 walls (both directions, 2 edge axes, 2 sides) for the middle
+    * of the n - 2 normals up to 4 walls (toward the centre, 2 edge axes, 2 sides) for the middle
     * square. The surface starts from C(n,2) 2^(n-2) faces and multiplies by this once per level,
     * so no step has more faces than this bound allows. */
   private def surfaceChildrenPerFace(n: Int): Long =
@@ -392,20 +393,31 @@ object NdSponge:
     val normals = (0 until keys.n).filter(axis => axis != i && axis != j)
     val walls = for
       (normal, normalIndex) <- normals.zipWithIndex
-      direction <- directionsTowardCentre(centre(normal))
       (edgeAxis, acrossAxis, edgeIndex) <- Seq((i, j, 0), (j, i, 1))
       side <- Seq(-1, 1)
     yield
+      val direction = directionTowardCentre(centre(normal))
       val wall = centre.clone
       wall(acrossAxis) += side * half
       wall(normal) += direction * half
       val slot = FlatParts + normalIndex * WallsPerNormal +
-        (if direction > 0 then 4 else 0) + edgeIndex * 2 + (if side > 0 then 1 else 0)
+        edgeIndex * 2 + (if side > 0 then 1 else 0)
       (slot, keys.encode(math.min(edgeAxis, normal), math.max(edgeAxis, normal), wall))
     outer ++ walls
 
-  private def directionsTowardCentre(coordinate: Int): Seq[Int] =
-    if coordinate > 0 then Seq(-1) else if coordinate < 0 then Seq(1) else Seq(-1, 1)
+  // Why a surface face never lies on a centre plane: in every surface face the centre
+  // coordinates on the two in-plane axes are even and those on the n - 2 normal axes are odd, so
+  // a normal coordinate is never 0. By induction over the refinement, in the integer grid of
+  // cube extent 3^level (odd):
+  // - level 0 (`cubeFaces`): in-plane coordinates are 0, normal ones +-extent, which is odd;
+  // - an outer sub-square adds a multiple of OuterShift * half to in-plane coordinates only;
+  // - a wall starts from the centre sub-square of its parent (in-plane even, normals odd) and
+  //   adds +-half, odd as a power of 3, on the parent's across axis (even becomes odd) and on
+  //   the parent's normal (odd becomes even). It spans the edge axis and the old normal, both
+  //   even now, and its normals are the across axis (odd now) and the parent's other normals.
+  private def directionTowardCentre(coordinate: Int): Int =
+    require(coordinate != 0, "a surface face never lies on a centre plane")
+    if coordinate > 0 then -1 else 1
 
   /** A face survives when its centre and its four corners all lie in the closed sponge. */
   private def inSponge(
