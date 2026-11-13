@@ -124,6 +124,11 @@
   `Mesh4D` and `Face4D[V]` remain as aliases for N = 4). The unused `Rotation` factory taking
   `RotationProjectionParameters` (its z rotation scaled x instead of rotating) and
   `RotationProjectionParameters.rotation` are removed (lene/menger#162).
+- The corpus example `CausticsMeshValidation` stands alone (lene/menger#149): it carried the
+  canonical caustics scene by reference to `CausticsCanonical` in another file, so a scene written
+  after it did not compile ("Not found: CausticsCanonical"). The scene is written out in the file,
+  and `CorpusExporterSuite` compiles every corpus example through `SceneCompiler` on its own.
+  No render change.
 
 ### Known issues
 

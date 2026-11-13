@@ -119,6 +119,18 @@ class CorpusExporterSuite extends AnyFlatSpec with Matchers:
       _.trim.startsWith("import examples.")))
     crossImports.map(_.name) shouldBe empty
 
+  // menger#149: the agent is shown every corpus example in every prompt and imitates it, so each
+  // must compile by itself through the same restricted classpath a generated scene gets.
+  // CausticsMeshValidation used to need CausticsCanonical from another file ("Not found").
+  it should "carry only scenes that compile on their own through SceneCompiler" in:
+    val corpus = corpusFor(freshTempPath())
+    val dir = Files.createTempDirectory("corpus-standalone")
+    val failures = corpus.scenes.flatMap: scene =>
+      val file = dir.resolve(scene.name + ".scala")
+      Files.writeString(file, scene.source)
+      menger.scene.SceneCompiler.compile(file.toFile).left.toOption.map(err => s"${scene.name}: $err")
+    failures shouldBe empty
+
   private def corpusFor(outputPath: String): CorpusExporter.CorpusManifest =
     CorpusExporter.run(Array(outputPath, TestSourceDir)) shouldBe Right(())
     read[CorpusExporter.CorpusManifest](Files.readString(java.nio.file.Paths.get(outputPath)))
