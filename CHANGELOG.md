@@ -14,6 +14,9 @@
 
 ### Added
 
+- `scripts/render-cycle.sh` (menger#185) and `scripts/experiment-sheet.sh` (menger#186): the
+  canonical resumable render of a looping animation with an optional video, and a contact sheet
+  of scenes by moments with the render times.
 - The dimension ladder, part 2 (Sprint 38 grid cell G5, lene/menger#160): `DimensionLadder`
   breathes a real Menger sponge in every dimension: `HypercubeSponge` (surface variant) above
   3D, at depths from `ResourceLimits.ndSpongeLevel` (capped by the costed 4 -> 3, 5 -> 2,

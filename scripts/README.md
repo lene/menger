@@ -144,6 +144,21 @@ Infrastructure-as-code scripts for AWS GPU development workflow and local enviro
   - Estimates build costs and time
   - **Use when**: Before running `build-ami.sh` to catch issues early
 
+### Rendering Tools
+
+Both run the staged launcher (`menger-app/target/universal/stage/bin/menger-app`) headless under
+`flock /tmp/menger-gpu.lock`, with a timeout, and share `lib/render-lock.sh` with
+`frame-budget.sh`. Offline tests: `test-experiment-sheet.sh`, `test-render-cycle.sh` (fake
+launchers, no GPU; part of the unit suite).
+
+- `experiment-sheet.sh BIN --out DIR --at T1,T2 --scenes A,B` (menger#186) - a contact sheet:
+  one still per (scene, t) cell, `DIR/sheet.png` with the scenes as rows and the moments as
+  columns, and `DIR/times.md` with the render time of every cell. A cell that fails keeps its log
+  and shows as a grey tile; a rerun keeps the cells that exist, `--force` renders all again.
+- `render-cycle.sh BIN SCENE --seconds T --out DIR [--video FILE]` (menger#185) - the canonical
+  render of a looping animation: the frames in chunks, resumable, stopping at the first bad
+  chunk with its log named, then an optional ffmpeg video.
+
 ## Usage Patterns
 
 ### First-Time Setup

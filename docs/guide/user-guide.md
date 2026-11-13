@@ -1341,19 +1341,21 @@ menger-app --scene examples.dsl.ladder.DimensionLadder --t 72 --width 1920 --hei
 ```
 Run it from the menger repository's root: the scene names the HDRI as `assets/hdri/...`.
 
-The whole cycle: one frame per 1/30 s, so 180 s at 30 frames per second is 5400 frames, and the
-last `--end-t` is one frame short of the cycle (the cycle's end is the first frame again). Create
-the `out/` directory first, then encode the frames:
+The whole cycle: `scripts/render-cycle.sh` renders it in chunks of 60 frames and encodes the
+video. Frame `g` is at `t = g / fps`, so the last frame is one frame short of the cycle (the
+cycle's end is the first frame again). Run it from the menger repository's root:
 ```bash
-mkdir -p out
-menger-app --scene examples.dsl.ladder.DimensionLadder --width 1920 --height 1080 \
-  --frames 5400 --start-t 0 --end-t 179.96667 --save-name out/f_%04d.png
-ffmpeg -framerate 30 -i out/f_%04d.png -c:v libx264 -pix_fmt yuv420p ladder.mp4
+scripts/render-cycle.sh menger-app/target/universal/stage/bin/menger-app \
+  examples.dsl.ladder.DimensionLadder --seconds 180 --out out/ladder --video ladder.mp4
 ```
-These numbers assume `cycleSeconds = 180` at 30 fps. For another cycle length or frame rate,
-`--frames` is cycle times fps and `--end-t` is the cycle minus 1/fps. The built-in video export
-(`--video`) writes 24 frames per second for now (menger#181), so encode the frames with ffmpeg to
-get 30.
+`--seconds` is the scene's `cycleSeconds` (180 here). It resumes: a rerun skips every chunk whose frames exist, so an interrupted run (Ctrl-C) or a
+stopped one continues where it left off. It stops with exit status 1 on the first bad chunk (the
+app failed, logged an `ERROR`, or wrote too few frames), names the frame range and the log, and
+keeps the partial output in `out/ladder/work/` for inspection; it never deletes a rendered frame.
+The frames are `out/ladder/frames/f_%05d.png`, the logs `out/ladder/logs/`. `--fps` (default 30)
+and `--chunk` (default 60) change the frame rate and the chunk size; without `--video` it prints
+the ffmpeg command. The built-in video export (`--video` of the app) writes 24 frames per second
+for now (menger#181), which is why the frames are encoded with ffmpeg.
 
 ---
 
