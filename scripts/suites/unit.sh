@@ -19,6 +19,10 @@ if ! scripts/test-experiment-sheet.sh; then
   suite_fail unit 1 "test-experiment-sheet.sh"
   exit 1
 fi
+if ! scripts/test-render-cycle.sh; then
+  suite_fail unit 1 "test-render-cycle.sh"
+  exit 1
+fi
 
 if [ "${HAS_SCALA:-0}" -eq 0 ] && [ "${HAS_NATIVE:-0}" -eq 0 ]; then
   suite_skip unit "no Scala or native changes"
