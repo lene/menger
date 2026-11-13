@@ -13,7 +13,7 @@
 #   --seconds T    the cycle's length; F = round(T x fps) frames, frame g at t = g / fps, so the
 #                  last frame is at T - 1/fps and a looping scene does not repeat its first frame
 #   --out DIR      frames/f_%05d.png (numbered by the global frame index), logs/chunk_<c>.log, and
-#                  work/ for the chunk being rendered
+#                  work/ for the chunk being rendered, run.params
 #   --fps N        frames per second (positive number, default 30)
 #   --chunk N      frames per app invocation (positive integer, default 60)
 #   --width/height render size (positive integers, default 1920x1080); frames are not checked
@@ -32,11 +32,14 @@
 # the run stops with exit 1, naming the chunk, its frame range, the first missing frame and the
 # log, and leaves work/chunk_<c>/ in place. A rendered frame is never deleted; a work directory
 # left by an earlier failure is moved aside (work/chunk_<c>.old.<time>) before the chunk is tried
-# again. Every render runs under flock /tmp/menger-gpu.lock (GPU_LOCK overrides it, for the
+# again, and the log of each attempt is kept (logs/chunk_<c>.log, then chunk_<c>.attempt2.log, ...).
+# The first run stamps scene, seconds, fps, size and hdri in run.params; a rerun into the same --out
+# with different ones is refused (exit 2) instead of reusing frames of another render. The video
+# takes exactly F frames, whatever else frames/ holds. Every render runs under flock /tmp/menger-gpu.lock (GPU_LOCK overrides it, for the
 # tests) and never outlives it: on INT/TERM/HUP the render's process group is killed and the
 # script exits 130 with everything kept.
 # Exit 1: a chunk failed, the launcher, scene file or HDRI is missing, or ffmpeg failed.
-# Exit 2: bad arguments.
+# Exit 2: bad arguments, or parameters that differ from the first run in this --out.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_FILE="${BASH_SOURCE[0]}"
@@ -108,6 +111,8 @@ check_environment() {
   fi
   mkdir -p "$OUT_DIR/frames" "$OUT_DIR/work" "$OUT_DIR/logs" 2> /dev/null && [ -w "$OUT_DIR" ] \
     || fail "$OUT_DIR is not writable"
+  check_run_params "$OUT_DIR/run.params" "$OUT_DIR" "scene=$SCENE" "seconds=$SECONDS_TOTAL" \
+    "fps=$FPS" "width=$WIDTH" "height=$HEIGHT" "hdri=$HDRI"
 }
 
 # The t of global frame $1, with 6 decimals as the app is given it.
@@ -152,6 +157,15 @@ fail_chunk() { # fail_chunk <chunk> <first frame> <count> <work dir> <log> <reas
   exit 1
 }
 
+# The log of the next attempt at a chunk: chunk_<c>.log, then chunk_<c>.attempt2.log, ...; the
+# log of an earlier attempt is evidence and is never overwritten.
+next_chunk_log() { # next_chunk_log <chunk>
+  local base="$OUT_DIR/logs/chunk_$1" attempt=2
+  if [ ! -e "$base.log" ]; then echo "$base.log"; return 0; fi
+  while [ -e "$base.attempt$attempt.log" ]; do attempt=$((attempt + 1)); done
+  echo "$base.attempt$attempt.log"
+}
+
 # Moves a work directory left by an earlier failure out of the way; nothing is deleted.
 set_aside_stale_work() { # set_aside_stale_work <work dir>
   [ ! -e "$1" ] || mv "$1" "$1.old.$(date +%s%N)"
@@ -166,7 +180,7 @@ promote_frames() { # promote_frames <work dir> <first frame> <count>: local file
 render_chunk() { # render_chunk <chunk> <first frame> <count>
   local chunk="$1" g0="$2" n="$3" work log start_t end_t pattern reason="" missing
   work="$OUT_DIR/work/chunk_$chunk"
-  log="$OUT_DIR/logs/chunk_$chunk.log"
+  log="$(next_chunk_log "$chunk")"
   start_t="$(frame_t "$g0")"
   end_t="$(frame_t $((g0 + n - 1)))"
   set_aside_stale_work "$work"
@@ -202,14 +216,17 @@ print_progress() { # print_progress <frames done>
 }
 
 finish_video() {
-  local command=(ffmpeg -y -framerate "$FPS" -i "$OUT_DIR/frames/$GLOBAL_FRAME_PATTERN"
-    -c:v libx264 -pix_fmt yuv420p "${VIDEO:-VIDEO.mp4}")
+  local command line
+  command=(ffmpeg -y -framerate "$FPS" -i "$OUT_DIR/frames/$GLOBAL_FRAME_PATTERN"
+    -c:v libx264 -pix_fmt yuv420p -frames:v "$TOTAL_FRAMES" "${VIDEO:-VIDEO.mp4}")
+  line="$(printf '%q ' "${command[@]}")"
   if [ -z "$VIDEO" ]; then
     echo "all $TOTAL_FRAMES frames exist; to make a video:"
-    echo "  ${command[*]}"
+    echo "  $line"
     return 0
   fi
-  "${command[@]}" < /dev/null || fail "ffmpeg failed (command: ${command[*]})"
+  echo "encoding: $line"
+  "${command[@]}" < /dev/null || fail "ffmpeg failed (command: $line)"
   echo "video: $VIDEO"
 }
 

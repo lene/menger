@@ -77,7 +77,7 @@ report "an --out that cannot be created: exit 1, not writable" $?
 # ---- whole runs with a fake launcher ----
 
 # Writes --frames PNGs with the local numbering to --save-name and appends "start end frames" to
-# a call log. FAKE_MODE acts on the call whose --start-t is FAKE_BAD_START: error (an ERROR line,
+# a call log; each frame carries "start=<--start-t> i=<local index>" as its PNG comment. FAKE_MODE acts on the call whose --start-t is FAKE_BAD_START: error (an ERROR line,
 # exit 0), short (all frames but the last, exit 0), hang.
 cat > "$FAKE" <<'EOF'
 #!/bin/sh
@@ -99,7 +99,7 @@ if [ "$start" = "$FAKE_BAD_START" ]; then
 fi
 i=0
 while [ "$i" -lt "$write" ]; do
-  cp "$FAKE_DIR/base.png" "$(printf "$pattern" "$i")"
+  convert "$FAKE_DIR/base.png" -set comment "start=$start i=$i" "$(printf "$pattern" "$i")"
   i=$((i + 1))
 done
 EOF
@@ -107,6 +107,7 @@ chmod +x "$FAKE"
 
 calls() { wc -l < "$TEST_DIR/calls" 2> /dev/null || echo 0; }
 call_starts() { cut -d' ' -f1 "$TEST_DIR/calls" | paste -sd' '; }
+frame_comment() { identify -format '%c' "$1"; }
 frame_names() { (cd "$1/frames" && ls) | paste -sd' '; }
 mtimes() { stat -c %y "$1"/frames/f_0000[0-3].png "$1"/frames/f_0000[89].png; }
 
@@ -134,16 +135,32 @@ else
     expect_equal "...f_00000.png to f_00009.png exist, nothing else" "$(frame_names "$GOOD")" "$EXPECTED_NAMES"
     expect_equal "...the calls start at t = 0, 0.4 and 0.8" "$(call_starts)" "0.000000 0.400000 0.800000"
     expect_equal "...the last call ends at t = 0.9, with 2 frames" "$(tail -n 1 "$TEST_DIR/calls")" "0.800000 0.900000 2"
+    expect_equal "...f_00005.png is chunk 1's local frame 1" "$(frame_comment "$GOOD/frames/f_00005.png")" "start=0.400000 i=1"
+    expect_equal "...f_00000.png is chunk 0's local frame 0" "$(frame_comment "$GOOD/frames/f_00000.png")" "start=0.000000 i=0"
+    expect_equal "...f_00009.png is the last chunk's local frame 1" "$(frame_comment "$GOOD/frames/f_00009.png")" "start=0.800000 i=1"
     holds [ ! -d "$GOOD/work/chunk_0" ] && holds [ -f "$GOOD/logs/chunk_0.log" ] && holds [ -f "$GOOD/logs/chunk_2.log" ]
     report "...work directories are gone, the chunk logs are kept" $?
     grep -q "progress: 10 of 10 frames" <<< "$RUN_OUT"
     report "...a progress line after every chunk" $?
-    grep -qF "ffmpeg -y -framerate 10 -i $GOOD/frames/f_%05d.png -c:v libx264 -pix_fmt yuv420p" <<< "$RUN_OUT"
+    grep -qF "ffmpeg -y -framerate 10 -i $GOOD/frames/f_%05d.png -c:v libx264 -pix_fmt yuv420p -frames:v 10" <<< "$RUN_OUT"
     report "...without --video the ffmpeg command is printed" $?
 
     run_cycle "$GOOD" --seconds 1 --fps 10 --chunk 4
     expect_equal "a rerun: exit 0" "$RC" 0
     expect_equal "...makes no call" "$(calls)" 3
+
+    CALLS_BEFORE="$(calls)"
+    run_cycle "$GOOD" --seconds 1 --fps 20 --chunk 4
+    expect_equal "a rerun with another --fps: exit status 2" "$RC" 2
+    grep -qF "fps was '10', now '20'" <<< "$RUN_OUT" && grep -qF "$GOOD" <<< "$RUN_OUT"
+    report "...the message names the parameter and the directory" $?
+    RUN_OUT="$("$SCRIPT" "$FAKE" OtherScene --out "$GOOD" "${COMMON[@]}" --seconds 1 --fps 10 --chunk 4 2>&1)"; RC=$?
+    expect_equal "a rerun with another scene: exit status 2" "$RC" 2
+    grep -qF "scene was 'Scene', now 'OtherScene'" <<< "$RUN_OUT"
+    report "...the message names the scene" $?
+    run_cycle "$GOOD" --seconds 1 --fps 10 --chunk 4 --width 32
+    expect_equal "a rerun with another --width: exit status 2" "$RC" 2
+    expect_equal "...nothing was rendered" "$(calls)" "$CALLS_BEFORE"
 
     BEFORE="$(mtimes "$GOOD")"
     rm -f "$GOOD/frames/f_00005.png"
@@ -170,6 +187,9 @@ else
     expect_equal "the rerun after fixing the cause: exit 0" "$RC" 0
     expect_equal "...renders chunks 1 and 2 only" "$(calls)" 4
     expect_equal "...all frames exist" "$(frame_names "$BAD")" "$EXPECTED_NAMES"
+    grep -q "ERROR" "$BAD/logs/chunk_1.log" && holds [ -f "$BAD/logs/chunk_1.attempt2.log" ] \
+        && ! grep -q "ERROR" "$BAD/logs/chunk_1.attempt2.log"
+    report "...the failed attempt's log is kept, the retry has its own (chunk_1.attempt2.log)" $?
     holds [ ! -d "$BAD/work/chunk_1" ] && ls -d "$BAD"/work/chunk_1.old.* > /dev/null 2>&1
     report "...the failed work directory was set aside, not deleted" $?
 
@@ -215,8 +235,31 @@ else
         run_cycle "$GOOD" --seconds 1 --fps 10 --chunk 4 --video "$TEST_DIR/out.mp4"
         holds [ "$RC" -eq 0 ] && holds [ -s "$TEST_DIR/out.mp4" ]
         report "--video out.mp4 with all frames present: the file exists" $?
+        # frames/ holds more than F frames (an earlier, longer run into the same --out): the video
+        # takes F of them
+        LONG="$TEST_DIR/long"
+        run_cycle "$LONG" --seconds 1 --fps 10 --chunk 4
+        for extra in 10 11 12 13 14; do
+            cp "$LONG/frames/f_00000.png" "$(printf '%s/frames/f_%05d.png' "$LONG" "$extra")"
+        done
+        run_cycle "$LONG" --seconds 1 --fps 10 --chunk 4 --video "$TEST_DIR/long.mp4"
+        expect_equal "frames/ holds 15 frames, F = 10, --video: exit 0" "$RC" 0
+        if command -v ffprobe > /dev/null; then
+            expect_equal "...the video has 10 frames, not 15" \
+                "$(ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of csv=p=0 "$TEST_DIR/long.mp4")" 10
+        else
+            echo "SKIP: ffprobe is not installed: the frame count of the video"
+        fi
+
+        # paths with spaces: the printed command is copy-pasteable, with the real output path
+        SPACED="$TEST_DIR/sp ace"
+        run_cycle "$SPACED/o" --seconds 0.3 --fps 10 --chunk 4 --video "$SPACED/v.mp4"
+        expect_equal "paths with spaces: exit 0" "$RC" 0
+        holds [ -s "$SPACED/v.mp4" ]; report "...the video exists" $?
+        grep -qF "$(printf '%q ' ffmpeg -y -framerate 10 -i "$SPACED/o/frames/f_%05d.png" -c:v libx264 -pix_fmt yuv420p -frames:v 3 "$SPACED/v.mp4")" <<< "$RUN_OUT"
+        report "...the ffmpeg command is printed quoted, with the video path" $?
     else
-        echo "SKIP: ffmpeg is not installed: the --video case"
+        echo "SKIP: ffmpeg is not installed: the --video cases"
     fi
 fi
 

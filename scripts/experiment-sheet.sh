@@ -24,12 +24,14 @@
 #   --force        render every cell again; without it a cell whose image exists is kept
 #
 # A cell that times out, exits non-zero or logs an ERROR line is a failed cell: its log is kept,
-# no image is written, the sheet shows a grey tile and times.md says "failed" (or "> S s"), and the
+# no image is kept (also not the one of an earlier run, under --force), the sheet shows a grey tile and times.md says "failed" (or "> S s"), and the
 # run goes on. The sheet is written in any case; the exit status is 1 if any cell failed.
 # Every render runs under flock /tmp/menger-gpu.lock (GPU_LOCK overrides it, for the tests), and
-# never outlives it. times.md starts with a provenance line, as frame-budget.sh's tables do.
+# never outlives it. The first run stamps width, height and hdri in run.params; a rerun into the
+# same --out with different ones is refused (exit 2). times.md starts with a provenance line, as
+# frame-budget.sh's tables do.
 # Exit 1: a cell failed, or the launcher, a scene file, the HDRI or ImageMagick is missing.
-# Exit 2: bad arguments.
+# Exit 2: bad arguments, or parameters that differ from the first run in this --out.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_FILE="${BASH_SOURCE[0]}"
