@@ -188,6 +188,21 @@ else
     report "...the message says so" $?
     ! kill -0 "$(cat "$TEST_DIR/sleep.pid")" 2> /dev/null; report "...the hung launcher's child is gone" $?
 
+    # An interrupted run kills the render, keeps what exists and exits 130; the lock is free.
+    INT="$TEST_DIR/interrupted"
+    rm -f "$TEST_DIR/sleep.pid"
+    FAKE_MODE=hang FAKE_BAD_START=0.400000 "$SCRIPT" "$FAKE" Scene --out "$INT" "${COMMON[@]}" \
+        --seconds 1 --fps 10 --chunk 4 > /dev/null 2>&1 &
+    SCRIPT_PID=$!
+    for _ in $(seq 1 100); do [ -s "$TEST_DIR/sleep.pid" ] && break; sleep 0.1; done
+    kill -TERM "$SCRIPT_PID"
+    wait "$SCRIPT_PID"; STATUS=$?
+    expect_equal "TERM during chunk 1: the script exits 130" "$STATUS" 130
+    ! kill -0 "$(cat "$TEST_DIR/sleep.pid")" 2> /dev/null; report "...the render is gone with it" $?
+    flock -n "$TEST_DIR/lock" true; report "...the GPU lock is free" $?
+    expect_equal "...the frames of chunk 0 are kept" "$(frame_names "$INT")" "f_00000.png f_00001.png f_00002.png f_00003.png"
+    holds [ -d "$INT/work/chunk_1" ]; report "...the work directory of chunk 1 is kept" $?
+
     : > "$TEST_DIR/calls"
     ONE="$TEST_DIR/one"
     run_cycle "$ONE" --seconds 0.5 --fps 10 --chunk 4
