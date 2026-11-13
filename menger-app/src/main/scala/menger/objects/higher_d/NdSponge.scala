@@ -1,8 +1,10 @@
 package menger.objects.higher_d
 
 import java.util.Arrays
+import java.util.concurrent.atomic.AtomicInteger
 
 import scala.annotation.tailrec
+import scala.collection.concurrent.TrieMap
 
 /** The two sponge rules, and the object type each is drawn as (the one place that maps them). */
 enum NdSpongeVariant(val objectTypeName: String):
@@ -112,16 +114,34 @@ object NdSponge:
   private def surfaceKeys(keys: FaceKeys, level: Int, k: Int): Array[Long] =
     (1 to level).foldLeft(cubeFaces(keys))((faces, step) => refine(keys, level, faces, step, k))
 
+  // Work done on the calling thread, for tests that show a path builds no mesh and counts no
+  // more than it must (menger#183): they cannot read a count that other threads move.
+  private val meshesBuilt = ThreadLocal.withInitial(() => AtomicInteger(0))
+  private val surfaceCountRequests = ThreadLocal.withInitial(() => AtomicInteger(0))
+
+  /** The meshes `volume` and `surface` built on this thread so far. */
+  private[menger] def meshesBuiltOnThisThread: Int = meshesBuilt.get.get
+
+  /** The calls of `faceCount` for a surface on this thread so far, cached ones included. */
+  private[menger] def surfaceCountRequestsOnThisThread: Int = surfaceCountRequests.get.get
+
+  /** A surface count computed at most once, however many threads ask for it at the same time:
+    * a count takes seconds and some hundred MB. */
+  private final class CountOnce(compute: () => Long):
+    lazy val value: Long = compute()
+
   // (n, level, k) -> faces of the surface sponge; a few hundred Longs at most
-  private val surfaceCounts = scala.collection.concurrent.TrieMap.empty[(Int, Int, Int), Long]
+  private val surfaceCounts = TrieMap.empty[(Int, Int, Int), CountOnce]
 
   /** The surface's faces counted on the face keys alone: no vertices, no mesh. */
   private def surfaceFaceCount(n: Int, level: Int, k: Int): Long =
-    surfaceCounts.getOrElseUpdate((n, level, k), {
+    surfaceCountRequests.get.incrementAndGet()
+    val once = CountOnce { () =>
       val keys = keysFor(n, level, k)
       requireBuildableFaces(NdSpongeVariant.Surface, n, level, k)
       surfaceKeys(keys, level, k).length.toLong
-    })
+    }
+    surfaceCounts.putIfAbsent((n, level, k), once).getOrElse(once).value
 
   /** A cheap bound on the number of faces, which is also the number of face keys the build
     * handles before merging: for the volume the faces of all kept cells, for the surface the
@@ -135,8 +155,13 @@ object NdSponge:
     saturatingMultiply(NCube.faceCount(n).toLong, saturatingPower(perStep, level))
 
   /** The number of faces of the sponge, without building a mesh. The volume is counted exactly
-    * by `volumeFaceCount`, the surface by refining face keys only (memoised). A level so high
-    * that the bound saturates gives Long.MaxValue at once. */
+    * by `volumeFaceCount`, the surface by refining face keys only (memoised).
+    *
+    * The two differ at the limits. The surface path throws an IllegalArgumentException for a
+    * level past the key width or the array limit (what `isBuildable` says no to), while the
+    * volume path returns its count. When the upper bound saturates (a huge level) the result is
+    * Long.MaxValue at once: an upper limit, not an exact count. Callers guard with
+    * `isBuildable`. */
   def faceCount(variant: NdSpongeVariant, n: Int, level: Int, k: Int): Long =
     requireDimensionAndRange(n, k)
     require(level >= 0, s"level must not be negative, got $level")
@@ -405,10 +430,10 @@ object NdSponge:
     val normals = (0 until keys.n).filter(axis => axis != i && axis != j)
     val walls = for
       (normal, normalIndex) <- normals.zipWithIndex
+      direction = directionTowardCentre(centre(normal))
       (edgeAxis, acrossAxis, edgeIndex) <- Seq((i, j, 0), (j, i, 1))
       side <- Seq(-1, 1)
     yield
-      val direction = directionTowardCentre(centre(normal))
       val wall = centre.clone
       wall(acrossAxis) += side * half
       wall(normal) += direction * half
@@ -480,6 +505,7 @@ object NdSponge:
     Arrays.copyOf(sorted, compact(0, 0))
 
   private def meshOf(keys: FaceKeys, faces: Array[Long]): IndexedMeshN =
+    meshesBuilt.get.incrementAndGet()
     val n = keys.n
     val cornerKeys = Array.tabulate(faces.length * IndexedMeshN.CornersPerFace) { index =>
       val corner = index % IndexedMeshN.CornersPerFace
