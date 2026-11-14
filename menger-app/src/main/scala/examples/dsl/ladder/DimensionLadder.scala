@@ -73,7 +73,9 @@ object DimensionLadder:
   private def choreography(cycle: Float, top: Int, look: Look): Choreography =
     Choreography(cycle, top, look.depths)
 
-  private def stage(look: Look): Stage = Stage(look.keyLight.direction, look.edgeRadius)
+  private def stage(top: Int, look: Look): Stage =
+    Stage(look.keyLight.direction,
+      Stage.restDepth(top, extraTube = look.edgeRadius - Look.default.edgeRadius))
 
   def segments(cycle: Float = cycleSeconds, top: Int = topDimension): List[Segment] =
     choreography(cycle, top, Look.default).segments
@@ -161,7 +163,7 @@ object DimensionLadder:
     val planes = timeline.planeAngles(segment.start + u * segment.seconds)
     val n = segment.dimension
     val last = extrusion(segment, u)
-    val pos = stage(look).centreAt(segment, u)
+    val pos = stage(timeline.top, look).centre
     val (shown, shownLast) = if last <= standInExtrusion then (n - 1, 1f) else (n, last)
     segment.kind match
       case Kind.Hold => hypercubeOf(3, skin(0f, look), 1f, planes, pos)
@@ -179,7 +181,7 @@ object DimensionLadder:
       look: Look = Look.default): Scene =
     val timeline = choreography(cycle, top, look)
     val (segment, u) = timeline.segmentAt(timeline.phaseOf(t))
-    val stageOfLook = stage(look)
+    val stageOfLook = stage(top, look)
     Scene(
       camera = stageOfLook.cameraAt(segment, u),
       objects = List(stageOfLook.plinth, objectIn(timeline, segment, u, look)),

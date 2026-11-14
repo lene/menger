@@ -3,9 +3,10 @@ package examples.dsl.ladder
 import examples.dsl.ladder.Choreography.Segment
 import menger.dsl._
 
-/** The plinth the object rests above and the camera that frames both. The camera stands on the far
-  * side from the sun, so it needs the sun's direction; the rest height needs the edge tubes' radius. */
-final case class Stage(sunDirection: Vec3, edgeRadius: Float):
+/** The plinth the object rests above and the camera that frames both. The camera stands with the
+  * sun behind it, so it needs the sun's direction; the object's centre stays at one height, so that its
+  * lowest point over the whole cycle, `restDepth` below the centre, just clears the plinth. */
+final case class Stage(sunDirection: Vec3, restDepth: Float):
   import Stage._
 
   val plinth: Cylinder =
@@ -24,10 +25,9 @@ final case class Stage(sunDirection: Vec3, edgeRadius: Float):
   private val plinthFrontBottom = Vec3(cameraDirection.x, 0f, cameraDirection.z).normalize *
     plinthRadius + Vec3(0f, plinthTopY - plinthThickness, 0f)
 
-  /** Where the object rests: its bounding radius, edge tubes and clearance above the plinth. */
-  def centreAt(segment: Segment, u: Float): Vec3 =
-    val radius = Choreography.boundingRadius(segment.dimension, Choreography.extrusion(segment, u))
-    Vec3(0f, plinthTopY + plinthClearance + edgeRadius + radius, 0f)
+  /** Where the object's centre stays, at every t: its lowest point, in the lowest frame of the
+    * cycle, is the clearance above the plinth. */
+  val centre: Vec3 = Vec3(0f, plinthTopY + plinthClearance + restDepth, 0f)
 
   // The camera distance from `aim` at which `point` fits the frame: it projects at across /
   // (along + distance), `across` and `along` its offsets from the aim, at most the half tangent.
@@ -37,7 +37,7 @@ final case class Stage(sunDirection: Vec3, edgeRadius: Float):
 
   /** Aimed between the object and the plinth; as far as the object, plinth edge and width need. */
   def cameraAt(segment: Segment, u: Float): Camera =
-    val (last, centre) = (Choreography.extrusion(segment, u), centreAt(segment, u))
+    val last = Choreography.extrusion(segment, u)
     val aim = Vec3(0f, (centre.y + plinthTopY) / 2f, 0f)
     val objectTop = centre + Vec3(0f, Choreography.boundingRadius(segment.dimension, last), 0f)
     val dolly = Choreography.halfExtent(segment.dimension, last) / Choreography.halfExtent(3, 1f)
@@ -53,7 +53,21 @@ object Stage:
   private val plinthRadius = 1.8f
   private val plinthColor = Color(0.85f, 0.82f, 0.76f)
   // 0.01 above the plinth's top cap: a bottom face on the cap itself speckles the refraction.
-  private val plinthClearance = 0.01f
+  private[ladder] val plinthClearance = 0.01f
+  // How far below its centre the object reaches, edge tubes included, in the lowest frame of the
+  // cycle of each top dimension: the minimum over every frame at 30 fps and both ends of every
+  // segment, for `Look.default`'s breath depths and edge radius. RestHeightSuite recomputes it.
+  // The lowest point of a frame is its n-cube's lowest corner, and the cycle's lowest frame is a
+  // solidifying cube mid-turn, so the object touches the plinth once per cycle and floats above
+  // it otherwise.
+  private val restDepths = Map(4 -> 0.96035f, 5 -> 1.12766f, 6 -> 1.33819f, 7 -> 1.66853f,
+    8 -> 2.22141f)
+
+  /** The depth below the centre to rest on for `top`; a thicker tube than the default look's
+    * reaches `extraTube` further down. */
+  private[ladder] def restDepth(top: Int, extraTube: Float = 0f): Float =
+    restDepths(top) + math.max(0f, extraTube)
+
   // Low, on the far side from the sun (along its rays), 15 degrees to one side, aimed between the
   // object and the plinth. The fixed 45 degree field of view is HORIZONTAL (tan 22.5 = 0.4142): fit
   // the video's 16:9 frame, 9/16 as tall as wide.

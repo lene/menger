@@ -3,7 +3,6 @@ package examples.dsl.ladder
 import examples.dsl.ladder.DimensionLadder.Kind
 import examples.dsl.ladder.DimensionLadder.Segment
 import menger.common.Material
-import menger.common.ProfilingConfig
 import menger.dsl.Camera
 import menger.dsl.Cylinder
 import menger.dsl.ResourceLimits
@@ -11,11 +10,8 @@ import menger.dsl.Scene
 import menger.dsl.SceneObject
 import menger.dsl.Sun
 import menger.dsl.Vec3
-import menger.engines.scene.MeshFactory
 import menger.engines.scene.SceneCost
-import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.objects.higher_d.NdSpongeVariant
-import menger.spec.ObjectSpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import scala.io.Source
@@ -25,60 +21,22 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
 
   private val cycle = DimensionLadder.cycleSeconds
   private val tops = 4 to 8
-  private val vertexTolerance = 1e-3f
-  private val degenerateArea = 1e-9f
   private val budgetFrames = 400
   private val aroundBoundary = 1e-3f
   private val cameraTolerance = 5e-3f
   private val materialTolerance = 1e-5f
   private val saneRadius = 5f
-  // DimensionLadder's clearance and edge tube radius: the object rests that far above its bound.
-  private val clearance = 0.01f
-  private val edgeTube = 0.012f
-  // How far above the plinth the lowest point may hover, as a fraction of the current object's
-  // bounding radius. The rest height is that radius, which a turned object reaches only at its
-  // worst angle; over tops 4 to 8 and 400 frames the measured worst is 0.67 of it (top 8).
-  private val looseness = 0.7f
   // The renderer's field of view is 45 degrees horizontal; the video is 16:9 (menger#160).
   private val tanHalfFov = math.tan(math.toRadians(22.5)).toFloat
   private val frameAspect = 16f / 9f
   private val framingMargin = 0.95f
   private val framingTolerance = 1e-3f
 
-  private type Point = (Float, Float, Float)
-
-  /** The corners of the object's non-degenerate triangles, in world coordinates. */
-  private def worldCorners(spec: ObjectSpec): Iterator[Point] =
-    given ProfilingConfig = ProfilingConfig.disabled
-    val mesh = MeshFactory.create(spec)
-    val m = TriangleMeshSceneBuilder.instanceTransform(spec)
-    def at(i: Int): Point =
-      val base = i * mesh.vertexStride
-      val (x, y, z) = (mesh.vertices(base), mesh.vertices(base + 1), mesh.vertices(base + 2))
-      (m(0) * x + m(1) * y + m(2) * z + m(3), m(4) * x + m(5) * y + m(6) * z + m(7),
-        m(8) * x + m(9) * y + m(10) * z + m(11))
-    def area(a: Point, b: Point, c: Point): Float =
-      val (ux, uy, uz) = (b._1 - a._1, b._2 - a._2, b._3 - a._3)
-      val (vx, vy, vz) = (c._1 - a._1, c._2 - a._2, c._3 - a._3)
-      val (cx, cy, cz) = (uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx)
-      0.5f * math.sqrt(cx * cx + cy * cy + cz * cz).toFloat
-    mesh.indices.grouped(3).map(_.map(at)).filter(t => area(t(0), t(1), t(2)) > degenerateArea)
-      .flatten
-
-  /** The distinct corners of the object's non-degenerate triangles, in world coordinates. */
-  private def worldVertices(obj: SceneObject): Seq[Point] =
-    worldCorners(obj.toObjectSpec).foldLeft(List.empty[Point]): (kept, p) =>
-      if kept.exists(q => near(p, q)) then kept else p :: kept
-
-  private def near(p: Point, q: Point): Boolean =
-    math.abs(p._1 - q._1) < vertexTolerance && math.abs(p._2 - q._2) < vertexTolerance &&
-      math.abs(p._3 - q._3) < vertexTolerance
-
   private def sameShape(a: SceneObject, b: SceneObject): Unit =
-    val (left, right) = (worldVertices(a), worldVertices(b))
+    val (left, right) = (WorldMesh.vertices(a), WorldMesh.vertices(b))
     left should not be empty
-    left.filterNot(p => right.exists(near(p, _))) shouldBe empty
-    right.filterNot(p => left.exists(near(p, _))) shouldBe empty
+    left.filterNot(p => right.exists(WorldMesh.near(p, _))) shouldBe empty
+    right.filterNot(p => left.exists(WorldMesh.near(p, _))) shouldBe empty
 
   private def boundaries(top: Int): List[(Segment, Segment)] =
     val all = DimensionLadder.segments(cycle, top)
@@ -188,22 +146,6 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
   private def plinthOf(scene: Scene): Cylinder =
     scene.objects.collectFirst { case c: Cylinder => c }.get
 
-  /** The bounding radius the object of `scene` rests on: its centre less the plinth's top, the
-    * clearance and the edge tube. */
-  private def restRadius(scene: Scene): Float =
-    scene.objects.last.toObjectSpec.y - plinthOf(scene).p1.get.y - clearance - edgeTube
-
-  it should "rest its lowest point above the plinth, and close to it, in every frame" in:
-    for top <- tops; i <- 0 until budgetFrames do
-      val scene = DimensionLadder.sceneAt(cycle * i / budgetFrames, cycle, top)
-      // A sponge's lowest point is its hull's, and its level-0 mesh is the hull: cheap to build.
-      val spec = scene.objects.last.toObjectSpec
-      val lowest = worldCorners(spec.copy(level = spec.level.map(_ => 0f))).map(_._2).min -
-        plinthOf(scene).p1.get.y
-      withClue(s"top $top, frame $i: "):
-        lowest should be >= clearance - vertexTolerance
-        lowest should be <= looseness * restRadius(scene)
-
   /** The point as fractions of the frame's half width and half height, seen from `camera`. */
   private def inFrame(camera: Camera, point: Vec3): (Float, Float) =
     val view = (camera.lookAt - camera.position).normalize
@@ -216,9 +158,13 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
 
   it should "frame the object, the plinth's front edge and its width at 16:9, in every frame" in:
     for top <- tops; i <- 0 until budgetFrames do
-      val scene = DimensionLadder.sceneAt(cycle * i / budgetFrames, cycle, top)
+      val t = cycle * i / budgetFrames
+      val scene = DimensionLadder.sceneAt(t, cycle, top)
       val (camera, plinth) = (scene.camera, plinthOf(scene))
       val centre = scene.objects.last.toObjectSpec
+      val (segment, u) = DimensionLadder.segmentAt(t, cycle, top)
+      val objectRadius =
+        DimensionLadder.boundingRadius(segment.dimension, Choreography.extrusion(segment, u))
       val radius = plinth.radius.get
       val (bottom, topY) = (plinth.p0.get.y, plinth.p1.get.y)
       val away = Vec3(camera.position.x, 0f, camera.position.z)
@@ -228,7 +174,7 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
       val along = toCamera * (radius * radius / distance)
       val halfChord = radius * math.sqrt(1 - radius * radius / (distance * distance)).toFloat
       val across = sideways * halfChord
-      val points = Vec3(centre.x, centre.y + restRadius(scene), centre.z) ::
+      val points = Vec3(centre.x, centre.y + objectRadius, centre.z) ::
         (toCamera * radius + Vec3(0f, bottom, 0f)) ::
         (for side <- List(along + across, along - across); y <- List(bottom, topY)
           yield side + Vec3(0f, y, 0f))
