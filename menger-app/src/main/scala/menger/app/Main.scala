@@ -11,6 +11,7 @@ import ch.qos.logback.classic.Logger
 import com.badlogic.gdx.ApplicationListener
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
+import menger.assets.EnvMapSuns
 import menger.cli.LightSpec
 import menger.cli.MengerCLIOptions
 import menger.cli.MengerExitException
@@ -114,6 +115,11 @@ object Main:
 
   private def launchInProcess(opts: MengerCLIOptions): Unit =
     val config = getConfig(opts)
+    // A scene may take the sun from its env map (Sun.fromEnvMap) while it is built: it needs to
+    // know where the maps are, and a render needs them to be there. Here, not in createEngine:
+    // the setting is process-wide, and a test that creates an engine must not switch it for
+    // every other test of its JVM.
+    EnvMapSuns.configure(opts.textureDir(), strict = true)
     val rendering = createEngine(opts)
     rendering match
       case app: ApplicationListener =>
@@ -390,7 +396,8 @@ object Main:
         envMapVideo = configs.envMapVideo,
         iblEnabled = configs.iblEnabled,
         iblStrength = configs.iblStrength,
-        iblSamples = configs.iblSamples
+        iblSamples = configs.iblSamples,
+        iblSunExclusion = configs.iblSunExclusion
       ),
       execution = buildExecutionConfig(opts),
       render = mergedRender,

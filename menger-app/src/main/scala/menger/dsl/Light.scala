@@ -100,7 +100,8 @@ object AreaLight
   * angular size).
   *
   * Only `lights(0)` emits caustic photons, so put the `Sun` first in a scene with caustics.
-  * `HdriSun` (menger.tools) reads direction, diameter and colour off an HDRI.
+  * `HdriSun` (menger.tools) reads direction, diameter and colour off an HDRI;
+  * `Sun.fromEnvMap` takes the sun of the scene's own environment map.
   *
   * @param direction The direction the light travels, as `Directional.direction`; need not be
   *                  normalized, must not be zero
@@ -108,13 +109,18 @@ object AreaLight
   * @param distance Distance of the disk from the origin along the light's way (default: 1000)
   * @param color Light color (default: white)
   * @param intensity Brightness, as for `Directional` (default: 1.0)
+  * @param measuredFromEnvMap The environment map (path under `--texture-dir`) this sun was
+  *                           measured from: set by `Sun.fromEnvMap`, not by hand. When it is the
+  *                           scene's `envMap` and IBL is on, the renderer leaves that map's sun
+  *                           out of the image-based lighting, so the sun is not counted twice.
   */
 case class Sun(
   direction: Vec3,
   diameterDegrees: Float = Sun.ApparentDiameterDegrees,
   distance: Float = Sun.DefaultDistance,
   color: Color = Color.White,
-  intensity: Float = 1.0f
+  intensity: Float = 1.0f,
+  measuredFromEnvMap: Option[String] = None
 ) extends Light:
   require(direction.magnitude > 0f, "Sun.direction must not be the zero vector")
   require(diameterDegrees > 0f, s"Sun.diameterDegrees must be positive, got $diameterDegrees")
@@ -143,3 +149,29 @@ object Sun:
   val DefaultDistance: Float = 1000f
   val ShadowSamples: Int = 4
   val MaxDiameterDegrees: Float = 10f
+
+  /** Where the sun is when the environment map cannot be read (the scene validator mounts no
+    * texture directory): from above, behind and to the left, white, intensity 1.
+    */
+  private val StandInDirection = Vec3(0.5f, -0.7f, 0.5f)
+
+  /** The sun of the environment map at `path` (relative to `--texture-dir`), measured from the
+    * `.hdr`: it travels opposite to the direction the map's sun is in, has the map's sun colour
+    * and the intensity that lights a matte surface facing it as the map's sun does, and the
+    * physical 0.53 degree diameter. Measured once per file.
+    *
+    * Use it with `envMap = Some(path)` and `ibl`: the scene then lights with this sun and the
+    * renderer leaves the sun out of the map's lighting, so that it counts once. A map that is
+    * not there makes a stand-in sun (white, intensity 1) in the validator and an error in a
+    * render.
+    */
+  def fromEnvMap(path: String): Sun = fromMeasurement(path, EnvMapSunSource.measure(path))
+
+  private[dsl] def fromMeasurement(path: String, measurement: Option[EnvMapSunMeasurement]): Sun =
+    measurement.fold(Sun(direction = StandInDirection))(measured =>
+      Sun(
+        direction = measured.directionToSun * -1f,
+        color = measured.color,
+        intensity = measured.intensity,
+        measuredFromEnvMap = Some(path)
+      ))

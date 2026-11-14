@@ -14,6 +14,19 @@
 
 ### Added
 
+- `Sun.fromEnvMap(path)` (menger-toplevel#115; the names `Sun.fromEnvMap` and
+  `Sun.measuredFromEnvMap` decided by user 2026-11-15: "The names are approved."): the sun of an environment map as a `Sun`
+  key light.
+  Its direction, colour and intensity are measured from the `.hdr` (optix-jni's
+  `EnvMapSun.measure`: no GPU, under a second and about 600 MB resident for a 4K map, cached per
+  file), the diameter is the physical 0.53 degrees, and when the scene's `envMap` is that file and
+  `ibl` is on the renderer leaves the map's sun out of the image-based lighting
+  (`setIBLSunExclusion`, in the animation and the single-frame render paths), so the sun counts
+  once. A map that is not under `--texture-dir` stops a render; the scene validator, which mounts
+  no texture directory, gets a white stand-in sun. `Sun` gains `measuredFromEnvMap` (manifest
+  3.1.0), and `examples.dsl.envmap.SunFromEnvMap` is the example. `AssetPaths` moved to
+  `menger.assets`. `scripts/fetch-kiara-hdri.sh 4k kiara_4_mid-morning` fetches the Kiara 4
+  Mid-Morning HDRI.
 - `scripts/render-cycle.sh` (menger#185) and `scripts/experiment-sheet.sh` (menger#186): the
   canonical resumable render of a looping animation with an optional video, and a contact sheet
   of scenes by moments with the render times.
@@ -119,6 +132,12 @@
 
 ### Changed
 
+- The dimension ladder looks different (menger-toplevel#115, menger#160): the Kiara 4 Mid-Morning
+  sky, its sun as `Sun.fromEnvMap`, ACES tone mapping at exposure 1.0 and a plinth of albedo
+  0.28, under the physical image-based lighting of optix-jni 0.5.3. With `ibl` on, a matte
+  surface returns albedo * E / pi, there is no ambient fill (the ambient setting has no effect)
+  and no 0.7 blend factor, so IBL scenes change; a scene's tone mapping covers lit surfaces, not
+  only the background. References of the ladder and of the IBL scenes follow after review.
 - n-sponge level limits for the surface variant rise to 5, 4, 3, 3, 2 (4D to 8D) with a
   tighter bound; the cost check no longer builds meshes (menger#183).
 - `ConeSceneBuilder` and the new `CylinderSceneBuilder` share `AxialPrimitiveSceneBuilder`: the

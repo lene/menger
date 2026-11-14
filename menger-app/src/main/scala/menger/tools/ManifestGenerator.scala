@@ -98,7 +98,9 @@ object ManifestGenerator extends LazyLogging:
   //        light (menger#158) (additive).
   // 3.0.0: `Projection4DSpec.wScale` removed; per-axis `scale` on the 4D objects and
   //        `Hypercube`, breaking (menger#164).
-  private[tools] val SchemaVersion = "3.0.0"
+  // 3.1.0: `Sun.measuredFromEnvMap` and the `Sun.fromEnvMap` convention (additive,
+  //        menger-toplevel#115: the physical image-based lighting of optix-jni 0.5.3).
+  private[tools] val SchemaVersion = "3.1.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),

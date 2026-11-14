@@ -2,10 +2,10 @@ package menger.engines
 
 import io.github.lene.optix.OptiXException
 import io.github.lene.optix.TextureUploadException
+import menger.assets.AssetPaths
 import menger.common.EnvironmentException
 import menger.common.InternalException
 import menger.common.MengerException
-import menger.engines.scene.AssetPaths
 import menger.scene.LoadError
 
 /** Why a window could not show a scene, as its seams (a frame that failed to build, a reload that

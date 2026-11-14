@@ -6,11 +6,12 @@ import scala.util.Try
 import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.assets.AssetPaths
+import menger.assets.EnvMapSuns
 import menger.common.ProfilingConfig
 import menger.dsl.LoadedScene
 import menger.dsl.Scene
 import menger.engines.BuildPrecheck
-import menger.engines.scene.AssetPaths
 import menger.engines.scene.LevelMixing
 import menger.engines.scene.MaterialExtractor
 import menger.engines.scene.MeshFactory
@@ -187,6 +188,9 @@ object SceneValidator extends LazyLogging:
         ValidationResult(Tag.Refused, List(s"scene file not found: ${file.getAbsolutePath}"))
       case None =>
         val scenePath = file.getAbsolutePath
+        // A scene may take the sun of an env map (Sun.fromEnvMap): from the working directory if
+        // the map is there, from a stand-in if not (the sandbox mounts no texture directory).
+        EnvMapSuns.configure(".", strict = false)
         try
           (SceneLoader.load(scenePath) match
             case Left(err)     => classifyLoadFailure(err)

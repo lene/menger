@@ -56,7 +56,10 @@ object DslSemantics:
       "penumbra: shading falls off as 1/(1+r^2) from the disk, exact at the origin, so a point s " +
       "units toward the light is about (1 + 2s/distance) brighter (default 1000: under 1 % " +
       "over +-4 units). Only the FIRST light of a scene emits caustic photons: put the `Sun` first in " +
-      "`lights` when the scene has caustics (menger#158).",
+      "`lights` when the scene has caustics (menger#158). `Sun.fromEnvMap(path)` is the sun of the " +
+      "scene's environment map, measured from the `.hdr` (direction, colour and intensity; " +
+      "diameter 0.53): use it as the key light with `envMap = Some(path)` and `ibl`, and the " +
+      "renderer leaves that sun out of the map's lighting so it counts once.",
     "Planes: `Y at -2f` is an infinite plane that faces the origin, so a floor below the " +
       "scene is lit from above and receives shadows. Shadows are on by default.",
     "Colour and transparency: alpha 0 is fully transparent, 1 fully opaque. An object's " +
@@ -279,6 +282,8 @@ object DslSemantics:
     ("Sun", "distance") ->
       "Distance of the disk from the origin (default 1000); larger = more uniform light across the scene, the penumbra stays.",
     ("Sun", "intensity") -> "Brightness, as for Directional.",
+    ("Sun", "measuredFromEnvMap") ->
+      "The environment map this sun was measured from; set by `Sun.fromEnvMap`, not by hand.",
     ("Plane", "axisPosition") ->
       "`Y at -2f` = floor at y = -2 facing up (planes face the origin).",
     ("Camera", "position") -> "Eye position in world units.",

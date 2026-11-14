@@ -1,4 +1,4 @@
-package menger.engines.scene
+package menger.assets
 
 import java.nio.file.Path
 import java.nio.file.Paths

@@ -1178,6 +1178,11 @@ test_dsl_scenes() {
     run_test "DSL EnvMapDemo (IBL importance-sampled env lighting + accumulation)" \
         --scene examples.dsl.EnvMapDemo \
         --texture-dir menger-app/src/test/resources/
+    # The sun of an env map as the key light (Sun.fromEnvMap): IBL leaves the map's sun out, so
+    # it counts once, as the Sun; physical IBL, ACES. The map is the committed test sunset.
+    run_test "DSL SunFromEnvMap (the env map's sun as a Sun key light, left out of the IBL)" \
+        --scene examples.dsl.envmap.SunFromEnvMap \
+        --texture-dir menger-app/src/test/resources/
     run_test "DSL TrefoilKnot" --scene examples.dsl.TrefoilKnot
     # Sprint 35 §4.7 F14: close manual/integration gap — scenes were manual-only.
     # Reference images generated via UPDATE_BASELINE on GPU runner.

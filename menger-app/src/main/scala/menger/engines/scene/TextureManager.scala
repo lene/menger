@@ -11,6 +11,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureIndex
 import io.github.lene.optix.TextureUploadException
+import menger.assets.AssetPaths
 import menger.geometry.VideoLoader
 import menger.spec.ObjectSpec
 import menger.video.AnimationTimeRange

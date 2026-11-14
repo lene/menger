@@ -9,6 +9,7 @@ import scala.util.Success
 import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.assets.AssetPaths
 
 case class TextureData(
   name: String,

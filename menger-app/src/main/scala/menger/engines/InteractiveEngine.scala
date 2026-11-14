@@ -408,6 +408,7 @@ class InteractiveEngine(
         strength = environment.iblStrength,
         samples  = environment.iblSamples
       )
+      IblSetup.applySunExclusion(renderer, environment.iblSunExclusion)
 
   private def addCrossGeometry(renderer: io.github.lene.optix.OptiXRenderer): Unit =
     val length    = config.cross.length
@@ -547,7 +548,8 @@ class InteractiveEngine(
         envMapVideo = prevEnvironment.envMapVideo,
         iblEnabled = configs.iblEnabled,
         iblStrength = configs.iblStrength,
-        iblSamples = configs.iblSamples
+        iblSamples = configs.iblSamples,
+        iblSunExclusion = configs.iblSunExclusion
       ),
       renderConfig = configs.render.getOrElse(reloadable.get().renderConfig),
       caustics = configs.caustics,

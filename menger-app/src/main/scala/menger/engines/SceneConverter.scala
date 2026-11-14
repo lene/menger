@@ -7,13 +7,17 @@ import menger.common.Light
 import menger.common.RenderConfig
 import menger.common.{Color => CommonColor}
 import menger.config.CameraConfig
+import menger.config.IblSunExclusion
 import menger.config.PlaneConfig
 import menger.config.SceneConfig
 import menger.dsl.DenoiseMode
+import menger.dsl.EnvMapSunMeasurement
+import menger.dsl.EnvMapSunSource
 import menger.dsl.Material
 import menger.dsl.RenderSettings
 import menger.dsl.Scene
 import menger.dsl.SceneNode
+import menger.dsl.Sun
 import menger.dsl.ToneMapping
 import menger.dsl.Transform
 import menger.engines.scene.MaterialExtractor
@@ -46,11 +50,18 @@ object SceneConverter extends LazyLogging:
     iblEnabled: Boolean = false,
     iblStrength: Float = 1.0f,
     iblSamples: Int = 1,
+    iblSunExclusion: Option[IblSunExclusion] = None,
     accumulationFrames: Int = 1,
     denoiseMode: DenoiseMode = DenoiseMode.Off,
   )
 
-  def convert(dslScene: Scene, fallbackCaustics: CausticsConfig): SceneConfigs =
+  /** @param measureSun the sun of an env map, by its path: what leaves the map's own sun out of
+    *                   its image-based lighting (the default reads and caches the `.hdr`) */
+  def convert(
+    dslScene: Scene,
+    fallbackCaustics: CausticsConfig,
+    measureSun: String => Option[EnvMapSunMeasurement] = EnvMapSunSource.measure
+  ): SceneConfigs =
     validateEnvironmentMaps(dslScene)
     validateSceneMaterials(dslScene)
     val objectSpecs = dslScene.root match
@@ -83,6 +94,7 @@ object SceneConverter extends LazyLogging:
         (false, 1.0f, 1)
       case None =>
         (false, 1.0f, 1)
+    val iblSunExclusion    = if iblEnabled then sunExclusionOf(dslScene, measureSun) else None
     val accumulationFrames = dslScene.render.map(_.accumulation).getOrElse(1)
     val denoiseMode        = dslScene.render.map(_.denoise).getOrElse(DenoiseMode.Off)
     SceneConfigs(
@@ -101,9 +113,25 @@ object SceneConverter extends LazyLogging:
       iblEnabled,
       iblStrength,
       iblSamples,
+      iblSunExclusion,
       accumulationFrames,
       denoiseMode
     )
+
+  /** The cone of the scene's env map to leave out of its image-based lighting: the map's own sun,
+    * when a `Sun` of the scene was measured from that very map (`Sun.fromEnvMap`) and stands
+    * for it. Another map's sun, or a hand-made `Sun`, says nothing about this map.
+    */
+  private def sunExclusionOf(
+    dslScene: Scene, measureSun: String => Option[EnvMapSunMeasurement]
+  ): Option[IblSunExclusion] =
+    dslScene.envMap
+      .filter(path => dslScene.lights.exists {
+        case sun: Sun => sun.measuredFromEnvMap.contains(path)
+        case _        => false
+      })
+      .flatMap(measureSun)
+      .map(sun => IblSunExclusion(sun.directionToSun.toCommonVector, sun.halfAngleDegrees))
 
   /** Flatten a SceneNode tree to a list of ObjectSpecs.
     *
@@ -183,8 +211,10 @@ object SceneConverter extends LazyLogging:
       if lights.isEmpty then
         logger.warn("[Caustics] enabled but scene has no lights — no photons will be emitted")
 
-  // Tone-mapping operator ids passed to the GPU. These MUST stay in sync with the
-  // switch in optix-jni/src/main/native/shaders/miss_plane.cu (applyToneMapping).
+  // Tone-mapping operator ids passed to the GPU. These MUST stay in sync with the TONEMAP_*
+  // constants and applyToneMapping in optix-jni/src/main/native/shaders/helpers.cu, which every
+  // shader that turns a radiance into a display value (surfaces, the env map background in
+  // miss_plane.cu, caustics) calls.
   private object ToneMapOp:
     val None     = 0
     val Reinhard = 1

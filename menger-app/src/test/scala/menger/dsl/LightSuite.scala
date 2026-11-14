@@ -235,3 +235,33 @@ class LightSuite extends AnyFlatSpec with Matchers:
   it should "reject a negative intensity, naming the field" in:
     intercept[IllegalArgumentException](Sun(Vec3.UnitX, intensity = -0.1f)).getMessage should
       include("Sun.intensity")
+
+  private val measuredSun = EnvMapSunMeasurement(
+    directionToSun = Vec3(0f, 0.6f, 0.8f),
+    halfAngleDegrees = 2f,
+    intensity = 4.3f,
+    color = Color(1f, 0.9f, 0.7f)
+  )
+
+  "Sun.fromEnvMap" should "travel opposite to the direction the map's sun is in" in:
+    val sun = Sun.fromMeasurement("sky.hdr", Some(measuredSun))
+    sun.direction shouldBe Vec3(0f, -0.6f, -0.8f)
+
+  it should "take colour and intensity from the measurement and the physical diameter" in:
+    val sun = Sun.fromMeasurement("sky.hdr", Some(measuredSun))
+    sun.color shouldBe Color(1f, 0.9f, 0.7f)
+    sun.intensity shouldBe 4.3f
+    sun.diameterDegrees shouldBe Sun.ApparentDiameterDegrees
+
+  it should "remember the map it was measured from" in:
+    Sun.fromMeasurement("sky.hdr", Some(measuredSun)).measuredFromEnvMap shouldBe Some("sky.hdr")
+
+  it should "be a plain white sun, measured from nothing, when the map cannot be read" in:
+    val sun = Sun.fromMeasurement("sky.hdr", None)
+    sun.measuredFromEnvMap shouldBe None
+    sun.color shouldBe Color.White
+    sun.intensity shouldBe 1f
+    sun.direction.y should be < 0f
+
+  it should "give the stand-in sun for a map that is not in the texture directory" in:
+    Sun.fromEnvMap("assets/hdri/no-such-map.hdr").measuredFromEnvMap shouldBe None

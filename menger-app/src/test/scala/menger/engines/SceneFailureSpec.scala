@@ -3,13 +3,13 @@ package menger.engines
 import io.github.lene.optix.OptiXContextLostException
 import io.github.lene.optix.OptiXException
 import io.github.lene.optix.TextureUploadException
+import menger.assets.AssetPaths
 import menger.common.ConfigurationException
 import menger.common.EnvironmentException
 import menger.common.InternalException
 import menger.common.NotYetImplementedException
 import menger.common.UnknownGeometryException
 import menger.common.ValidationException
-import menger.engines.scene.AssetPaths
 import menger.scene.LoadError
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

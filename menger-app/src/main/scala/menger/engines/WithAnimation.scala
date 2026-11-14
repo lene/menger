@@ -14,13 +14,13 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.MeshSlot
 import io.github.lene.optix.OptiXRenderer
 import io.github.lene.optix.TextureIndex
+import menger.assets.AssetPaths
 import menger.common.CausticsConfig
 import menger.common.ImageSize
 import menger.common.RenderConfig
 import menger.config.PlaneConfig
 import menger.config.TAnimationConfig
 import menger.dsl.Scene
-import menger.engines.scene.AssetPaths
 import menger.engines.scene.TextureManager
 import menger.engines.scene.TrackedEdges4D
 import menger.engines.scene.TrackedMixed4D
@@ -249,6 +249,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
         strength = configs.iblStrength,
         samples  = configs.iblSamples,
       )
+      IblSetup.applySunExclusion(renderer, configs.iblSunExclusion)
 
   private def configureEnvMapVideoForFrame(
     configs: SceneConverter.SceneConfigs,

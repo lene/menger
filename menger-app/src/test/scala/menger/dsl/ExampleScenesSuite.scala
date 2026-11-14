@@ -239,6 +239,14 @@ class ExampleScenesSuite extends AnyFlatSpec with Matchers:
     scene.caustics shouldBe defined
     SceneRegistry.list() should contain("sun-key-light")
 
+  it should "load SunFromEnvMap: a Sun first, the map as envMap with IBL, a glass cube on a plinth" in:
+    val scene = extractStaticScene(SceneLoader.load("examples.dsl.envmap.SunFromEnvMap"))
+    scene.objects.map(_.toObjectSpec.objectType) shouldBe List("cylinder", "cube")
+    scene.lights.head shouldBe a[Sun]
+    scene.envMap shouldBe Some("rogland_sunset_2k.hdr")
+    scene.ibl shouldBe defined
+    scene.toneMapping shouldBe ToneMapping.ACES(1.0f)
+
   // CausticsMeshValidation writes the canonical scene out (menger#149: a corpus example stands
   // alone), so only this test keeps the copy equal to CausticsCanonical: everything but the
   // sphere object (camera, lights, planes, background, tone mapping, caustics, render).
