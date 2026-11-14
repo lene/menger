@@ -1,27 +1,42 @@
 #!/usr/bin/env bash
-# Fetches the Sprint 38 scene's environment map, Poly Haven's Kiara 2 Sunrise HDRI (CC0, Greg
-# Zaal, https://polyhaven.com/a/kiara_2_sunrise), into assets/hdri/ (gitignored: the 4K/8K files
+# Fetches the Sprint 38 scenes' environment maps, Poly Haven's Kiara 2 Sunrise and Kiara 4
+# Mid-Morning HDRIs (CC0, Greg Zaal, https://polyhaven.com/a/kiara_2_sunrise and
+# https://polyhaven.com/a/kiara_4_mid-morning), into assets/hdri/ (gitignored: the 4K/8K files
 # are 26 / 102 MB and the staged-hygiene hook rejects files over 5 MB) and verifies it against a
 # pinned SHA-256 (Poly Haven publishes MD5 only). Provenance: PROVENANCE.yaml.
 #
 # Use the file with: --texture-dir assets/hdri --env-map kiara_2_sunrise_<res>.hdr
 #
-# Usage: scripts/fetch-kiara-hdri.sh [1k|4k|8k]      (default 4k)
-# Env (for tests): KIARA_HDRI_BASE_URL, KIARA_HDRI_DIR, KIARA_HDRI_PINS ("<res> <sha256>" lines)
-# Exit: 0 verified file at the target; non-zero on unknown resolution, failed download or hash
-# mismatch, leaving nothing at the target path.
+# Usage: scripts/fetch-kiara-hdri.sh [1k|4k|8k] [kiara_2_sunrise|kiara_4_mid-morning]
+#        (default: 4k of kiara_2_sunrise; the dimension ladder uses kiara_4_mid-morning 4k)
+# Env (for tests): KIARA_HDRI_BASE_URL, KIARA_HDRI_DIR, KIARA_HDRI_PINS ("<res> <sha256>" lines,
+# for the map asked for)
+# Exit: 0 verified file at the target; non-zero on unknown map or resolution, failed download or
+# hash mismatch, leaving nothing at the target path.
 set -euo pipefail
 
 DEFAULT_RESOLUTION=4k
 DEFAULT_BASE_URL=https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+DEFAULT_MAP=kiara_2_sunrise
+
 # The SHA-256s of the files as downloaded on 2026-11-07; keep in sync with PROVENANCE.yaml
 # (scripts/test-fetch-kiara-hdri.sh checks that).
-DEFAULT_PINS="\
+SUNRISE_PINS="\
 1k e4cd96c6046b2c3b81bd74b0c8b0d680272420ebc00e88ab7ba1c9be5941069b
 4k f06d8b697c97cbaf4614ff82ae65530ed85ec6ab515bdfa4edaa6901ec2c0079
 8k c6a1686cbcf45af26982af550a1c9647c5b24643c593e90d9cf394c3f4437d63"
+# Downloaded 2026-11-14; the MD5 equals the one Poly Haven publishes.
+MID_MORNING_PINS="\
+4k 6103c59e9446a4d7cdaf8ab69092962de14c1034bfed86150e9461fede35e723"
+
+MAP="${2:-$DEFAULT_MAP}"
+case "$MAP" in
+    kiara_2_sunrise) DEFAULT_PINS="$SUNRISE_PINS" ;;
+    kiara_4_mid-morning) DEFAULT_PINS="$MID_MORNING_PINS" ;;
+    *) echo "unknown map '$MAP'; maps: kiara_2_sunrise kiara_4_mid-morning" >&2; exit 2 ;;
+esac
 
 PINS="${KIARA_HDRI_PINS:-$DEFAULT_PINS}"
 BASE_URL="${KIARA_HDRI_BASE_URL:-$DEFAULT_BASE_URL}"
@@ -38,7 +53,7 @@ if [ -z "$EXPECTED" ]; then
     exit 2
 fi
 
-NAME="kiara_2_sunrise_${RESOLUTION}.hdr"
+NAME="${MAP}_${RESOLUTION}.hdr"
 TARGET="$TARGET_DIR/$NAME"
 URL="$BASE_URL/$RESOLUTION/$NAME"
 

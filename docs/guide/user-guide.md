@@ -1241,6 +1241,11 @@ The script verifies the download against a pinned SHA-256, exits non-zero on any
 failed download and then leaves no file behind (a corrupt copy is removed too); with a verified
 file already there it downloads nothing. Source, licence and hashes: `PROVENANCE.yaml`.
 
+**Kiara 4 Mid-Morning (the dimension ladder's HDRI):** Poly Haven's
+[Kiara 4 Mid-Morning](https://polyhaven.com/a/kiara_4_mid-morning) (CC0, Greg Zaal, 4K 26 MB) is
+fetched the same way, by naming the map as the second argument:
+`scripts/fetch-kiara-hdri.sh 4k kiara_4_mid-morning`.
+
 #### Finding the sun in an HDRI
 
 The scene's caustics come only from scene lights: the environment map emits no photons. To get
@@ -1307,7 +1312,8 @@ the plinth's front edge and the plinth's width need.
 view is fixed at 45 degrees horizontally, so a 16:9 frame is the least tall; a 4:3 render has more
 vertical room, and a render taller than 16:9 shows more sky and ground around the same picture.
 
-It needs the Kiara HDRI (see *HDR Environment Maps* above): `scripts/fetch-kiara-hdri.sh 4k`.
+It needs the Kiara 4 Mid-Morning HDRI (see *HDR Environment Maps* above):
+`scripts/fetch-kiara-hdri.sh 4k kiara_4_mid-morning`.
 
 The ladder lives in the package `examples.dsl.ladder` and is loaded by name only (`--scene
 examples.dsl.ladder.DimensionLadder`, not by file path); it is not part of the scene agent's

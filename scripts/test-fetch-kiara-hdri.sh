@@ -92,14 +92,41 @@ KIARA_HDRI_BASE_URL="file://$WORK/nowhere" run_fetch "$DIR" 4k
 [ "$(leftovers "$DIR")" -eq 0 ]; check "offline: no temp file left behind" $?
 grep -qi "curl" <<< "$OUT"; check "offline: curl's error passed through" $?
 
-# Pins agree with PROVENANCE.yaml
+# Another map of the set: the file is named for it, the same pin discipline applies
+MID=kiara_4_mid-morning_4k.hdr
+echo "not really another HDRI" > "$SERVER/4k/$MID"
+MID_HASH="$(sha256sum "$SERVER/4k/$MID" | awk '{print $1}')"
+DIR="$WORK/mid-morning"
+KIARA_HDRI_PINS="4k $MID_HASH" run_fetch "$DIR" 4k kiara_4_mid-morning
+[ "$RC" -eq 0 ] && cmp -s "$DIR/$MID" "$SERVER/4k/$MID" && [ ! -e "$DIR/$NAME" ]
+check "mid-morning: kiara_4_mid-morning_4k.hdr downloaded and verified, exit 0" $?
+
+# Unknown map: exit non-zero before any download
+DIR="$WORK/badmap"
+run_fetch "$DIR" 4k kiara_9_nowhere
+[ "$RC" -ne 0 ] && [ ! -e "$DIR" ] && grep -q "maps: kiara_2_sunrise kiara_4_mid-morning" <<< "$OUT"
+check "unknown map: exit non-zero, nothing created, message lists the maps" $?
+
+# Pins agree with PROVENANCE.yaml, map by map
 unset KIARA_HDRI_PINS
-script_pins="$(grep -E '^[0-9]+k [0-9a-f]{64}' "$SCRIPT" | tr -d '"' | awk '{print $1, $2}' | sort)"
-# Only the Kiara entry: other entries of PROVENANCE.yaml carry their own "<res>k:" pins.
-kiara_entry="$(awk '/^ *- path:/ { inside = /kiara_2_sunrise/ } inside' "$PROVENANCE")"
-provenance_pins="$(grep -E '^ +[0-9]+k: *[0-9a-f]{64}' <<< "$kiara_entry" | tr -d ':' | awk '{print $1, $2}' | sort)"
-[ -n "$script_pins" ] && [ "$script_pins" = "$provenance_pins" ]
-check "pins in the script and in PROVENANCE.yaml agree" $?
+# The "<res> <sha256>" lines of the script's <VARIABLE>_PINS block.
+script_pins_of() {
+    awk -v var="$1" 'index($0, var "_PINS=") == 1 { inside = 1; next }
+        inside { line = $0; sub(/"$/, "", line); split(line, f, " "); print f[1], f[2]
+                 if (substr($0, length($0)) == "\"") inside = 0 }' "$SCRIPT" | sort
+}
+# Only one map's entry: other entries of PROVENANCE.yaml carry their own "<res>k:" pins.
+provenance_pins_of() {
+    local entry
+    entry="$(awk -v map="$1" '/^ *- path:/ { inside = index($0, map) > 0 } inside' "$PROVENANCE")"
+    grep -E '^ +[0-9]+k: *[0-9a-f]{64}' <<< "$entry" | tr -d ':' | awk '{print $1, $2}' | sort
+}
+for pair in SUNRISE:kiara_2_sunrise MID_MORNING:kiara_4_mid-morning; do
+    script_pins="$(script_pins_of "${pair%%:*}")"
+    provenance_pins="$(provenance_pins_of "${pair##*:}")"
+    [ -n "$script_pins" ] && [ "$script_pins" = "$provenance_pins" ]
+    check "pins of ${pair##*:} in the script and in PROVENANCE.yaml agree" $?
+done
 
 if (( FAILURES > 0 )); then echo "$FAILURES failure(s)"; exit 1; fi
 echo "all passed"

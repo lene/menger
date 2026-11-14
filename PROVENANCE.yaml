@@ -16,6 +16,18 @@ entries:
       4k: f06d8b697c97cbaf4614ff82ae65530ed85ec6ab515bdfa4edaa6901ec2c0079
       8k: c6a1686cbcf45af26982af550a1c9647c5b24643c593e90d9cf394c3f4437d63
 
+  - path: assets/hdri/kiara_4_mid-morning_*.hdr   # gitignored; fetched by scripts/fetch-kiara-hdri.sh 4k kiara_4_mid-morning
+    source: https://polyhaven.com/a/kiara_4_mid-morning
+    download_url: https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/<res>/kiara_4_mid-morning_<res>.hdr
+    licence: CC0-1.0
+    author: Greg Zaal
+    kind: asset
+    # Downloaded 2026-11-14; the file's MD5 equals the one Poly Haven publishes
+    # (api.polyhaven.com/files/kiara_4_mid-morning, 6ac29c08210d0047567f67e187927ee8); author from
+    # api.polyhaven.com/info/kiara_4_mid-morning.
+    sha256:
+      4k: 6103c59e9446a4d7cdaf8ab69092962de14c1034bfed86150e9461fede35e723
+
   - path: menger-app/src/test/resources/cliffside_2k.hdr
     source: https://polyhaven.com/a/cliffside
     download_url: https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/cliffside_2k.hdr
