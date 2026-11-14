@@ -10,3 +10,6 @@
 # (or a No-Render-Impact trailer). The live caustics shader itself is already covered by
 # the menger-geometry/src/main/native/ pattern above.
 ^scripts/caustics-validation/
+# The optix-jni and menger-common pins are in build.sbt, and optix-jni renders every pixel: a
+# pin bump must run the render suites and review the references (menger#144).
+^build\.sbt$

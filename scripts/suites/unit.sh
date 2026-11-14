@@ -24,6 +24,11 @@ if ! scripts/test-render-cycle.sh; then
   exit 1
 fi
 
+if ! scripts/test-qa-selection.sh; then
+  suite_fail unit 1 "test-qa-selection.sh"
+  exit 1
+fi
+
 if [ "${HAS_SCALA:-0}" -eq 0 ] && [ "${HAS_NATIVE:-0}" -eq 0 ]; then
   suite_skip unit "no Scala or native changes"
   exit 0
