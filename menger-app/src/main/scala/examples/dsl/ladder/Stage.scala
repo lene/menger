@@ -56,12 +56,13 @@ object Stage:
   private[ladder] val plinthClearance = 0.01f
   // How far below its centre the object reaches, edge tubes included, in the lowest frame of the
   // cycle of each top dimension: the minimum over every frame at 30 fps and both ends of every
-  // segment, for `Look.default`'s breath depths and edge radius. RestHeightSuite recomputes it.
+  // segment, for `Look.default`'s breath depths (the Deep ones, menger#167) and edge radius,
+  // rounded up to 1e-5. RestHeightSuite recomputes it.
   // The lowest point of a frame is its n-cube's lowest corner, and the cycle's lowest frame is a
   // solidifying cube mid-turn, so the object touches the plinth once per cycle and floats above
   // it otherwise.
-  private val restDepths = Map(4 -> 0.96035f, 5 -> 1.12766f, 6 -> 1.33819f, 7 -> 1.66853f,
-    8 -> 2.22141f)
+  private val restDepths = Map(4 -> 0.95848f, 5 -> 1.11713f, 6 -> 1.34740f, 7 -> 1.66853f,
+    8 -> 2.22143f)
 
   /** The depth below the centre to rest on for `top`; a thicker tube than the default look's
     * reaches `extraTube` further down. */

@@ -47,8 +47,10 @@ object Look:
     // Decided 2026-11-12: accumulation 16, no adaptive AA (~140x on glass, optix-jni#115);
     // revisit when optix-jni#116 (jitter) lands, as accumulation does not smooth edges.
     render = RenderSettings(antialiasing = false, shadows = true, accumulation = 16),
-    // The costed breath levels, capped above 3D by the surface sponge's triangle budget.
-    depths = Map(3 -> 5, 4 -> 3, 5 -> 2)
+    // The costed breath levels, the "Deep" variant, measured in E3 (menger#167) at about 8
+    // GPU-hours for the three nD breaths. Capped above 3D by the surface sponge's triangle
+    // budget: 4D level 5 is refused by SceneCost (22.7M triangles > 16M).
+    depths = Map(3 -> 5, 4 -> 4, 5 -> 3, 6 -> 2)
   )
 
 /**
