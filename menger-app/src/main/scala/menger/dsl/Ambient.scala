@@ -30,25 +30,27 @@ object Ambient:
   private val OcclusionName = "occlusion"
   private val UnlimitedRadiusName = "inf"
   private val Separator = ':'
-  private val MaxOcclusionParts = 3
+  private val Part = s"([^$Separator]*)"
+  private val OcclusionPattern =
+    s"$OcclusionName(?:$Separator$Part)?(?:$Separator$Part)?".r
 
   /** Reads `constant` or `occlusion[:samples[:radius]]`, the form of `--ambient`; a radius of
     * `inf` is unlimited. The error names the offending value and its range. */
   def parse(spec: String): Either[String, Ambient] =
-    spec.trim.toLowerCase.split(Separator).toList match
-      case ConstantName :: Nil => Right(Constant)
-      case OcclusionName :: params if params.length < MaxOcclusionParts =>
-        occlusionOf(params, spec)
+    spec.trim.toLowerCase match
+      case ConstantName => Right(Constant)
+      case OcclusionPattern(samples, radius) =>
+        occlusionOf(Option(samples).filter(_.nonEmpty), Option(radius).filter(_.nonEmpty), spec)
       case _ => Left(s"--ambient '$spec' is not recognized: expected '$ConstantName' or " +
         s"'$OcclusionName[:samples[:radius]]'")
 
-  private def occlusionOf(params: List[String], spec: String): Either[String, Ambient] =
+  private def occlusionOf(
+    samplesText: Option[String], radiusText: Option[String], spec: String
+  ): Either[String, Ambient] =
     val defaults = Occlusion()
     for
-      samples <- params.headOption.filter(_.nonEmpty)
-        .fold(Right(defaults.samples))(parseSamples(_, spec))
-      radius <- params.drop(1).headOption.filter(_.nonEmpty)
-        .fold(Right(defaults.radius))(parseRadius(_, spec))
+      samples <- samplesText.fold(Right(defaults.samples))(parseSamples(_, spec))
+      radius <- radiusText.fold(Right(defaults.radius))(parseRadius(_, spec))
       occlusion <- Try(Occlusion(samples, radius)).toEither.left.map(e => s"--ambient '$spec': " +
         Option(e.getMessage).getOrElse("out of range"))
     yield occlusion
