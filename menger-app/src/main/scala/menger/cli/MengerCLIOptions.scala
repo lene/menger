@@ -5,6 +5,7 @@ import scala.jdk.OptionConverters._
 
 import com.typesafe.scalalogging.LazyLogging
 import menger.cli.converters.ConverterUtils
+import menger.cli.converters.ambientConverter
 import menger.cli.converters.animationSpecificationSequenceConverter
 import menger.cli.converters.fogSpecConverter
 import menger.cli.converters.lightSpecConverter
@@ -19,6 +20,7 @@ import menger.common.RenderLimits
 import menger.common.Vector
 import menger.config.AnimationSpecificationSequence
 import menger.config.CrossConfig
+import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
 import menger.spec.ObjectSpec
 import menger.spec.ObjectType
@@ -411,6 +413,15 @@ class MengerCLIOptions(arguments: Seq[String])
       " >1 averages N frames for noise reduction.",
     validate = n => n >= 1 && n <= menger.dsl.ResourceLimits.renderAccumulationMax
   )
+  val ambient: ScallopOption[Ambient] = opt[Ambient](
+    name = "ambient", required = false, group = optixQualityGroup,
+    descr = "Ambient fill model: 'constant' or 'occlusion[:samples[:radius]]' (samples " +
+      s"1-${menger.dsl.ResourceLimits.ambientSamplesMax}, default 16; radius in world units >= " +
+      s"${menger.dsl.ResourceLimits.ambientRadiusMin} or 'inf' for unlimited, default inf). " +
+      "Overrides a scene's own choice. Without it a scene gets the renderer's default, " +
+      "occlusion:16:inf. A finite radius darkens only nearby occluders and is far less grainy " +
+      "than 'inf' without antialiasing or accumulation."
+  )(using ambientConverter)
   val allowUniformRender: ScallopOption[Boolean] = opt[Boolean](
     required = false, default = Some(false), group = optixQualityGroup,
     descr = "Allow renders where >=99% of pixels are the same colour (otherwise treated as a failure)"
@@ -471,6 +482,9 @@ class MengerCLIOptions(arguments: Seq[String])
     if noDenoise() then DenoiseMode.Off
     else if denoise() then DenoiseMode.Final
     else DenoiseMode.Off
+
+  /** The scene's ambient model, replaced by `--ambient` when that was given. */
+  def ambientOver(scene: Option[Ambient]): Option[Ambient] = ambient.toOption.orElse(scene)
 
   def denoiseModeSupplied: Boolean = denoise.isSupplied || noDenoise.isSupplied
 

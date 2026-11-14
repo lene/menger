@@ -1,6 +1,7 @@
 package menger.cli
 
 import menger.config.AnimationSpecification
+import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
 import org.rogach.scallop.exceptions.ScallopException
 import org.scalatest.flatspec.AnyFlatSpec
@@ -37,6 +38,41 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     options.denoiseModeSupplied shouldBe true
     options.denoise() shouldBe false
     options.denoiseMode shouldBe DenoiseMode.Off
+
+  "--ambient" should "be absent by default, leaving the renderer's own default" in:
+    val options = SafeMengerCLIOptions(Seq[String]())
+    options.ambient.isSupplied shouldBe false
+    options.ambient.toOption shouldBe None
+
+  it should "read constant" in:
+    SafeMengerCLIOptions(Seq("--ambient", "constant")).ambient() shouldBe Ambient.Constant
+
+  it should "read occlusion with its defaults" in:
+    SafeMengerCLIOptions(Seq("--ambient", "occlusion")).ambient() shouldBe Ambient.Occlusion()
+
+  it should "read occlusion with samples and radius" in:
+    SafeMengerCLIOptions(Seq("--ambient", "occlusion:64:0.5")).ambient() shouldBe
+      Ambient.Occlusion(64, 0.5f)
+
+  it should "read an unlimited radius as inf" in:
+    SafeMengerCLIOptions(Seq("--ambient", "occlusion:16:inf")).ambient() shouldBe
+      Ambient.Occlusion(16, Float.PositiveInfinity)
+
+  it should "be rejected at parse time for an unknown model, a sample count or a radius out of range" in:
+    for bad <- Seq("fog", "occlusion:0", "occlusion:65", "occlusion:16:0.001", "occlusion:x") do
+      withClue(bad) {
+        an [ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--ambient", bad))
+      }
+
+  it should "override the scene's model when supplied" in:
+    val sceneModel = Some(Ambient.Occlusion(8, 2f))
+    SafeMengerCLIOptions(Seq("--ambient", "constant")).ambientOver(sceneModel) shouldBe
+      Some(Ambient.Constant)
+
+  it should "leave the scene's model alone when not supplied" in:
+    val sceneModel = Some(Ambient.Occlusion(8, 2f))
+    SafeMengerCLIOptions(Seq[String]()).ambientOver(sceneModel) shouldBe sceneModel
+    SafeMengerCLIOptions(Seq[String]()).ambientOver(None) shouldBe None
 
   "rotation options" should "be valid if 0 <= x < 360" in:
     for opt <- Seq("--rot-x", "--rot-y", "--rot-z", "--rot-x-w", "--rot-y-w", "--rot-z-w") do

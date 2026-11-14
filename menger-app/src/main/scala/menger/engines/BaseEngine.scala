@@ -8,6 +8,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
 import menger.common.ProfilingConfig
 import menger.common.RenderConfig
+import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SceneCost
@@ -31,10 +32,18 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
   protected def renderConfig: RenderConfig
   protected def denoiseMode: DenoiseMode = DenoiseMode.Off
   protected def accumulationFrames: Int = 1
+  // The ambient model to set; None leaves the renderer's own default (occlusion).
+  protected def ambient: Option[Ambient] = None
 
   protected def configureOutputMode(renderer: OptiXRenderer): Unit =
     renderer.setDenoisingEnabled(denoiseMode == DenoiseMode.Final)
     if accumulationFrames > 1 then renderer.setAccumulationFrames(accumulationFrames)
+    applyAmbient(renderer, ambient)
+
+  protected def ambientFor(configs: SceneConverter.SceneConfigs): Option[Ambient] = configs.ambient
+
+  protected def applyAmbient(renderer: OptiXRenderer, model: Option[Ambient]): Unit =
+    model.foreach(a => renderer.setAmbient(AmbientMapping.toModel(a)))
 
   // Override in concrete engines that need auto-adjustment (e.g. InteractiveEngine)
   protected def computeEffectiveMaxInstances(builder: SceneBuilder, specs: List[ObjectSpec]): Int =

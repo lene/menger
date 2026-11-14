@@ -10,6 +10,7 @@ import menger.config.CameraConfig
 import menger.config.IblSunExclusion
 import menger.config.PlaneConfig
 import menger.config.SceneConfig
+import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
 import menger.dsl.EnvMapSunMeasurement
 import menger.dsl.EnvMapSunSource
@@ -53,6 +54,7 @@ object SceneConverter extends LazyLogging:
     iblSunExclusion: Option[IblSunExclusion] = None,
     accumulationFrames: Int = 1,
     denoiseMode: DenoiseMode = DenoiseMode.Off,
+    ambient: Option[Ambient] = None,
   )
 
   /** @param measureSun the sun of an env map, by its path: what leaves the map's own sun out of
@@ -97,6 +99,7 @@ object SceneConverter extends LazyLogging:
     val iblSunExclusion    = if iblEnabled then sunExclusionOf(dslScene, measureSun) else None
     val accumulationFrames = dslScene.render.map(_.accumulation).getOrElse(1)
     val denoiseMode        = dslScene.render.map(_.denoise).getOrElse(DenoiseMode.Off)
+    val ambient            = dslScene.render.flatMap(_.ambient)
     SceneConfigs(
       scene,
       camera,
@@ -115,7 +118,8 @@ object SceneConverter extends LazyLogging:
       iblSamples,
       iblSunExclusion,
       accumulationFrames,
-      denoiseMode
+      denoiseMode,
+      ambient
     )
 
   /** The cone of the scene's env map to leave out of its image-based lighting: the map's own sun,

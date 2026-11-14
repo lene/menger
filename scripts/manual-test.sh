@@ -513,6 +513,10 @@ echo -e "${YELLOW}--- Denoising ---${NC}"
 run_test "Denoise IBL baseline" "-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ -s $OUTPUT_DIR/151-denoise-ibl-baseline.png"
 run_test "Denoise IBL final" "-o --scene examples.dsl.DenoiseIblDemo --texture-dir menger-app/src/test/resources/ --denoise -s $OUTPUT_DIR/152-denoise-ibl-final.png"
 
+echo -e "${YELLOW}--- Ambient model ---${NC}"
+run_test "Ambient constant (holes as bright as faces)" "-o --objects type=sponge-volume:level=2 --plane y:-2 --light directional:1,-1,-1:1.5 --ambient constant -s $OUTPUT_DIR/169-ambient-constant.png"
+run_test "Ambient occlusion, radius 0.5 (holes darker, floor not grainy)" "-o --objects type=sponge-volume:level=2 --plane y:-2 --light directional:1,-1,-1:1.5 --ambient occlusion:16:0.5 -s $OUTPUT_DIR/170-ambient-occlusion-radius.png"
+
 echo -e "${YELLOW}--- Shader Execution Reordering (SER) ---${NC}"
 echo "  (Ada+ GPUs only — run with MENGER_OPTIX_SER=1 to enable)"
 # SER improves coherence on Ada Lovelace+ GPUs; benchmark compares on/off timing

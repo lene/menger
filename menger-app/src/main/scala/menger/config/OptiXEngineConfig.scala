@@ -2,6 +2,7 @@ package menger.config
 
 import menger.common.CausticsConfig
 import menger.common.RenderConfig
+import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
 
 /**
@@ -16,6 +17,7 @@ import menger.dsl.DenoiseMode
  * @param execution runtime behavior (timeout, logging, etc.)
  * @param render rendering quality settings (shadows, antialiasing, etc.)
  * @param caustics caustics rendering settings (experimental)
+ * @param ambient the ambient model to set; `None` keeps the renderer's own default
  */
 case class OptiXEngineConfig(
   scene: SceneConfig,
@@ -26,7 +28,8 @@ case class OptiXEngineConfig(
   caustics: CausticsConfig = CausticsConfig.Disabled,
   cross: CrossConfig = CrossConfig.Disabled,
   denoiseMode: DenoiseMode = DenoiseMode.Off,
-  accumulationFrames: Int = 1
+  accumulationFrames: Int = 1,
+  ambient: Option[Ambient] = None
 ):
   require(accumulationFrames >= 1, s"accumulationFrames must be >= 1, got $accumulationFrames")
 

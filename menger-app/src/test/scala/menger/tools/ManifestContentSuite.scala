@@ -49,6 +49,25 @@ class ManifestContentSuite extends AnyFlatSpec with Matchers:
     manifest.productCaps.map(c => (c.`type`, c.fields)) shouldBe
       List(("ParametricSurface", List("uSteps", "vSteps")))
 
+  // menger#175: the agent chooses the ambient model from the manifest alone.
+  "the ambient model" should "be a RenderSettings field the agent can set, with its choices" in:
+    val ambient = manifest.renderSettings.fields.find(_.name == "ambient").get
+    ambient.default shouldBe Some("None")
+    manifest.enums.find(_.name == "Ambient").map(_.values) shouldBe
+      Some(List("Constant", "Occlusion"))
+    val occlusion = manifest.sceneComposition.find(_.name == "Occlusion").get
+    occlusion.fields.map(f => (f.name, f.default)) shouldBe
+      List(("samples", Some("16")), ("radius", Some("Infinity")))
+    val bounds = occlusion.fields.map(f => f.name -> (f.min, f.max)).toMap
+    bounds("samples") shouldBe (Some(1d), Some(64d))
+    bounds("radius")._1 shouldBe Some(0.01d)
+    bounds("radius")._2 shouldBe None
+
+  it should "be explained in a convention: what it does, the default, the noise" in:
+    val convention = manifest.conventions.find(_.contains("Ambient")).getOrElse(fail("no convention"))
+    convention should (include("Ambient.Constant") and include("Ambient.Occlusion") and
+      include("radius") and include("grain"))
+
   // menger#95: the unit of an angle used to be a prose convention; it is read off the field's
   // type now (FieldUnits), so a field retyped Degrees <-> Radians changes it here.
   "angle-valued fields" should "state their unit" in:

@@ -284,6 +284,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
           // frame's lights: an animated scene's lights may move (F65).
           sceneConfigurator.configureLights(renderer, configs.lights.toArray)
           renderer.setRenderConfig(configs.render.getOrElse(renderConfig))
+          applyAmbient(renderer, ambientFor(configs))
           // Planes are real IAS instances: re-add them only when the instances were cleared,
           // or one more is added every in-place frame until the table is full (F58).
           if instancesCleared then PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)

@@ -14,6 +14,7 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
     rs.aaThreshold shouldBe 0.1f
     rs.maxRayDepth shouldBe None
     rs.denoise shouldBe DenoiseMode.Off
+    rs.ambient shouldBe None
 
   it should "be constructible with all fields" in:
     val rs = RenderSettings(
@@ -42,6 +43,17 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
   it should "reject maxRayDepth out of range" in:
     an[IllegalArgumentException] should be thrownBy RenderSettings(maxRayDepth = Some(0))
     an[IllegalArgumentException] should be thrownBy RenderSettings(maxRayDepth = Some(100))
+
+  it should "carry the ambient model it is given" in:
+    RenderSettings(ambient = Some(Ambient.Constant)).ambient shouldBe Some(Ambient.Constant)
+    RenderSettings(ambient = Some(Ambient.Occlusion(32, 0.5f))).ambient shouldBe
+      Some(Ambient.Occlusion(32, 0.5f))
+
+  it should "reject an ambient model whose values are out of range when it is built" in:
+    an[IllegalArgumentException] should be thrownBy
+      RenderSettings(ambient = Some(Ambient.Occlusion(samples = 65)))
+    an[IllegalArgumentException] should be thrownBy
+      RenderSettings(ambient = Some(Ambient.Occlusion(radius = 0f)))
 
   "RenderSettings.toRenderConfig" should "map all fields to RenderConfig" in:
     val rs = RenderSettings(

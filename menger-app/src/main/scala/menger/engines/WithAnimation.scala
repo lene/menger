@@ -122,6 +122,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
           renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
           if configs.accumulationFrames > 1 then
             renderer.setAccumulationFrames(configs.accumulationFrames)
+          applyAmbient(renderer, ambientFor(configs))
           // A frame with the geometry of the last one built (only the view moved) touches no
           // instance (menger#86); a frame that failed to build is never that base.
           val geometry = FrameChange.Geometry.of(configs)

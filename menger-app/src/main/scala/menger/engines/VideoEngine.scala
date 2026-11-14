@@ -5,6 +5,7 @@ import menger.common.ProfilingConfig
 import menger.common.RenderConfig
 import menger.config.ExecutionConfig
 import menger.config.TAnimationConfig
+import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
 import menger.dsl.Scene
 import menger.engines.scene.SceneBuilder
@@ -22,6 +23,7 @@ class VideoEngine(
   val videoQuality: Int,
   val keepFrames: Boolean,
   denoiseModeOverride: Option[DenoiseMode] = None,
+  ambientOverride: Option[Ambient] = None,
   userSetMaxInstances: Boolean = false
 )(using ProfilingConfig)
     extends BaseEngine(executionConfig.maxInstances)
@@ -46,6 +48,12 @@ class VideoEngine(
     denoiseModeOverride.getOrElse(firstFrameConfigs.denoiseMode)
 
   override protected def accumulationFrames: Int = firstFrameConfigs.accumulationFrames
+
+  // The command line's --ambient wins over the scene's, for every frame.
+  override protected def ambientFor(configs: SceneConverter.SceneConfigs): Option[Ambient] =
+    ambientOverride.orElse(configs.ambient)
+
+  override protected def ambient: Option[Ambient] = ambientFor(firstFrameConfigs)
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
     firstFrameConfigs.camera.position,

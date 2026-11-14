@@ -291,6 +291,7 @@ object Main:
           renderConfig    = opts.renderConfig,
           causticsConfig  = opts.causticsConfig,
           denoiseModeOverride = cliDenoiseOverride(opts),
+          ambientOverride = opts.ambient.toOption,
           userSetMaxInstances = opts.userSetMaxInstances,
           watchScenePath = sceneFileToWatch(opts, sceneName)
         )
@@ -314,6 +315,7 @@ object Main:
             videoQuality = opts.videoQuality(),
             keepFrames = opts.keepFrames(),
             denoiseModeOverride = cliDenoiseOverride(opts),
+            ambientOverride = opts.ambient.toOption,
             userSetMaxInstances = opts.userSetMaxInstances
           )
         else
@@ -324,6 +326,7 @@ object Main:
             renderConfig = opts.renderConfig,
             causticsConfig = opts.causticsConfig,
             denoiseModeOverride = cliDenoiseOverride(opts),
+            ambientOverride = opts.ambient.toOption,
             userSetMaxInstances = opts.userSetMaxInstances
           )
 
@@ -348,6 +351,7 @@ object Main:
           renderConfig    = opts.renderConfig,
           causticsConfig  = opts.causticsConfig,
           denoiseModeOverride = cliDenoiseOverride(opts),
+          ambientOverride = opts.ambient.toOption,
           realtime        = !everyFrame,
           userSetMaxInstances = opts.userSetMaxInstances,
           watchScenePath = sceneFileToWatch(opts, sceneName),
@@ -404,7 +408,8 @@ object Main:
       caustics = configs.caustics,
       cross = opts.crossConfig,
       denoiseMode = mergedDenoise,
-      accumulationFrames = mergedAccumulation
+      accumulationFrames = mergedAccumulation,
+      ambient = opts.ambientOver(configs.ambient)
     )
     InteractiveEngine(engineConfig, opts.userSetMaxInstances, renderT, watchScenePath)
 
@@ -431,7 +436,8 @@ object Main:
       caustics = opts.causticsConfig,
       cross = opts.crossConfig,
       denoiseMode = opts.denoiseMode,
-      accumulationFrames = opts.accumulationFrames()
+      accumulationFrames = opts.accumulationFrames(),
+      ambient = opts.ambient.toOption
     )
     opts.animate.toOption match
       case Some(animSpec) =>

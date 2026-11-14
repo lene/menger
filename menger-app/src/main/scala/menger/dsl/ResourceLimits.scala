@@ -127,6 +127,14 @@ object ResourceLimits:
     * re-runs the whole render, caustics included; the corpus goes up to 64. */
   val renderAccumulationMax = 256
 
+  /** `Occlusion.samples` / `--ambient occlusion:<samples>` upper bound: the ceiling optix-jni
+    * checks in `setAmbient` (`kMaxAmbientSamples`). The lower bound is 1. */
+  val ambientSamplesMax = 64
+
+  /** `Occlusion.radius` lower bound (world units; infinity is allowed and means unlimited):
+    * optix-jni's `kMinAmbientRadius`. */
+  val ambientRadiusMin = 0.01f
+
   // --- Scene-wide budget (review 2026-10-14, menger#80) -----------------------------------
   // Each limit above caps one field; the budget caps what they multiply into, so a scene with
   // every field inside its own cap still cannot hang or run the host renderer out of memory.

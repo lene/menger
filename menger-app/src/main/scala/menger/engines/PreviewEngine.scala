@@ -8,6 +8,7 @@ import menger.common.RenderConfig
 import menger.config.CameraConfig
 import menger.config.ExecutionConfig
 import menger.config.TAnimationConfig
+import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
 import menger.dsl.LoadedScene
 import menger.dsl.Scene
@@ -32,6 +33,7 @@ class PreviewEngine(
   override val renderConfig: RenderConfig,
   val causticsConfig: CausticsConfig,
   denoiseModeOverride: Option[DenoiseMode] = None,
+  ambientOverride: Option[Ambient] = None,
   override val realtime: Boolean = false,
   userSetMaxInstances: Boolean = false,
   // When set (a real `--scene <file.scala>`), the file is watched and an edit that stays an
@@ -105,6 +107,12 @@ class PreviewEngine(
     denoiseModeOverride.getOrElse(firstFrameConfigs.denoiseMode)
 
   override protected def accumulationFrames: Int = firstFrameConfigs.accumulationFrames
+
+  // The command line's --ambient wins over the scene's, for every frame.
+  override protected def ambientFor(configs: SceneConverter.SceneConfigs): Option[Ambient] =
+    ambientOverride.orElse(configs.ambient)
+
+  override protected def ambient: Option[Ambient] = ambientFor(firstFrameConfigs)
 
   override protected val cameraState: CameraState = CameraState(
     firstFrameConfigs.camera.position,

@@ -230,6 +230,20 @@ object DslSemantics:
       "colours follow the projected shape and change when the 4D rotation changes " +
       "(usability review 2026-09, session 2, F43); its box is taken from `size` before " +
       "projection, so xyz_rgb_local only approximately spans 0..1 on a 4D object.",
+    "Ambient light: every surface gets a fill of 0.3 times the light colour however the " +
+      "lights are placed. `RenderSettings(ambient = Some(Ambient.Occlusion(samples, radius)))` " +
+      "weights it by how much of the hemisphere above the surface is open: cavities (the holes " +
+      "of a sponge, a contact line under an object) darken, an open face keeps the full fill. " +
+      "`Some(Ambient.Constant)` is the same everywhere, so holes look as bright as faces. A " +
+      "scene without `ambient` gets `Occlusion(samples = 16, radius = Float.PositiveInfinity)`. " +
+      "`samples` is 1-64 rays per point; `radius` (world units, at least 0.01) is how far an " +
+      "occluder still counts, infinity counting every one. Occlusion is estimated with random " +
+      "rays, so a single frame is grainy where much of the sky is covered; an infinite radius " +
+      "is the worst case, because an infinite floor covers half the sky of every vertical face " +
+      "(grain, not a different look). A radius of about a quarter to a half of the object's " +
+      "size keeps the darkened holes and contact shadows and removes most of the grain; more " +
+      "`samples` or `accumulation` reduce it further at a cost per ray. The fill does not " +
+      "depend on `shadows` (menger#175).",
     "Shadows of transparent objects: `RenderSettings(transparentShadows = ...)` is `Auto` by " +
       "default, which makes a transparent object cast the colour seen through it when one is " +
       "tinted or procedurally coloured -- e.g. rainbow shadows of a glass object with " +

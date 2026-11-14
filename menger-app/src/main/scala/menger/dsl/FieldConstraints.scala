@@ -84,6 +84,8 @@ object FieldConstraints:
     ("ParametricSurface", "uSteps") -> Bounds.between(1d, L.parametricSurfaceMaxSamples.toDouble),
     ("ParametricSurface", "vSteps") -> Bounds.between(1d, L.parametricSurfaceMaxSamples.toDouble),
     ("RenderSettings", "accumulation") -> Bounds.between(1d, L.renderAccumulationMax.toDouble),
+    ("Occlusion", "samples") -> Bounds.between(1d, L.ambientSamplesMax.toDouble),
+    ("Occlusion", "radius") -> Bounds(Some(L.ambientRadiusMin.toString.toDouble), None),
     ("RenderSettings", "aaMaxDepth") -> Bounds.between(1d, 4d),
     ("RenderSettings", "aaThreshold") -> Bounds.between(0d, 1d),
     ("RenderSettings", "maxRayDepth") -> Bounds.between(1d, RenderLimits.MaxRayDepth.toDouble),
@@ -105,6 +107,10 @@ object FieldConstraints:
     fields.get((typeName, field)).foreach { b =>
       require(b.admits(value), s"$typeName.$field must be ${describe(b)}, got ${shown(value)}")
     }
+
+  /** A Float is judged by the decimal it was written as: 0.01f is not below 0.01. */
+  def checkFloat(typeName: String, field: String, value: Float): Unit =
+    check(typeName, field, value.toString.toDouble)
 
   private def describe(b: Bounds): String = (b.min, b.max) match
     case (Some(lo), Some(hi)) => s"${shown(lo)}-${shown(hi)}"

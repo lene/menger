@@ -1823,6 +1823,13 @@ test_denoising() {
     rm -f "$baseline_img" "$denoised_img" "$baseline_log" "$denoised_log"
 }
 
+test_ambient() {
+    echo "Ambient model:"
+    # The constant fill: no occlusion, so the holes of the sponge are as bright as its faces.
+    run_test "ambient constant" --objects type=sponge-volume:level=2 --plane y:-2 \
+        --light directional:1,-1,-1:1.5 --ambient constant
+}
+
 test_fog() {
     echo "Fog / Depth Cue:"
 
@@ -1959,6 +1966,7 @@ main() {
     test_video_output
     test_ibl
     test_denoising
+    test_ambient
     test_fog
     test_lsystem
     test_lsystem4d

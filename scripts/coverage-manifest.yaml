@@ -33,6 +33,7 @@ rendering_flags:
   - --antialiasing
   - --rot-x
   - --accumulation-frames
+  - --ambient
   # menger#93: rendering flags both scripts already exercised, now required too.
   - --aa-max-depth
   - --camera-lookat

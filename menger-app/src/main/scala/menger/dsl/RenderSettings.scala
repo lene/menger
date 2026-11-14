@@ -14,6 +14,8 @@ import menger.common.RenderConfig
   * @param aaMaxDepth Maximum AA recursion depth (1-4)
   * @param aaThreshold AA edge detection threshold (0.0-1.0)
   * @param maxRayDepth Maximum ray bounce depth (1 to RenderLimits.MaxRayDepth)
+  * @param ambient How the ambient fill is computed (`Ambient.Constant` or `Ambient.Occlusion`);
+  *   `None` keeps the renderer's default, occlusion with 16 samples and an unlimited radius
   */
 case class RenderSettings(
   shadows: Boolean = true,
@@ -25,6 +27,7 @@ case class RenderSettings(
   // Sprint 23.5: multi-frame accumulation for noise reduction.
   accumulation: Int = 1,
   denoise: DenoiseMode = DenoiseMode.Off,
+  ambient: Option[Ambient] = None,
 ):
   FieldConstraints.check("RenderSettings", "aaMaxDepth", aaMaxDepth)
   FieldConstraints.check("RenderSettings", "aaThreshold", aaThreshold)

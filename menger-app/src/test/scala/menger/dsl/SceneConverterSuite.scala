@@ -70,6 +70,18 @@ class SceneConverterSuite extends AnyFlatSpec with Matchers:
     val result = SceneConverter.convert(scene, fallbackCaustics)
     result.denoiseMode shouldBe DenoiseMode.Final
 
+  it should "leave the ambient model unset when the scene does not choose one" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass))
+    SceneConverter.convert(scene, fallbackCaustics).ambient shouldBe None
+    val withRender = scene.copy(render = Some(RenderSettings()))
+    SceneConverter.convert(withRender, fallbackCaustics).ambient shouldBe None
+
+  it should "forward the ambient model from render settings" in:
+    val scene = Scene(Camera.Default, Sphere(Material.Glass))
+      .copy(render = Some(RenderSettings(ambient = Some(Ambient.Occlusion(64, 0.5f)))))
+    SceneConverter.convert(scene, fallbackCaustics).ambient shouldBe
+      Some(Ambient.Occlusion(64, 0.5f))
+
   it should "default envMap to None when scene has no envMap set" in:
     val scene = Scene(Camera.Default, Sphere(Material.Glass))
     val result = SceneConverter.convert(scene, fallbackCaustics)

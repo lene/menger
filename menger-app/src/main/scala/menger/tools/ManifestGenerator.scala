@@ -15,6 +15,7 @@ import scala.util.Try
 import scala.util.control.NonFatal
 
 import com.typesafe.scalalogging.LazyLogging
+import menger.dsl.Ambient
 import menger.dsl.AreaLightShape
 import menger.dsl.AxisHelper
 import menger.dsl.Bezier
@@ -100,7 +101,9 @@ object ManifestGenerator extends LazyLogging:
   //        `Hypercube`, breaking (menger#164).
   // 3.1.0: `Sun.measuredFromEnvMap` and the `Sun.fromEnvMap` convention (additive,
   //        menger-toplevel#115: the physical image-based lighting of optix-jni 0.5.3).
-  private[tools] val SchemaVersion = "3.1.0"
+  // 3.2.0: `RenderSettings.ambient` and the `Ambient` choice (`Constant`, `Occlusion` with its
+  //        `samples` and `radius` bounds) (additive, menger#175).
+  private[tools] val SchemaVersion = "3.2.0"
 
   // Toolchain version pins (Always rule: no sbt-buildinfo -- a hardcoded constant is enough).
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
@@ -461,7 +464,8 @@ object ManifestGenerator extends LazyLogging:
         EnumManifest("TesseractSpongeType", sealedSubtypeNames[TesseractSpongeType]),
         EnumManifest("AreaLightShape", sealedSubtypeNames[AreaLightShape]),
         EnumManifest("DenoiseMode", sealedSubtypeNames[DenoiseMode]),
-        EnumManifest("TransparentShadows", sealedSubtypeNames[TransparentShadows])
+        EnumManifest("TransparentShadows", sealedSubtypeNames[TransparentShadows]),
+        EnumManifest("Ambient", sealedSubtypeNames[Ambient])
       ),
       // `dsl-surface.md`'s "Remaining surface": the scene-composition and environment types an
       // agent needs to assemble a scene at all. `Caustics` in particular is that document's
@@ -479,6 +483,7 @@ object ManifestGenerator extends LazyLogging:
         typeManifestOf(classOf[Caustics]),
         typeManifestOf(classOf[Fog]),
         typeManifestOf(classOf[IBL]),
+        typeManifestOf(classOf[Ambient.Occlusion]),
         typeManifestOf(classOf[Vec3])
       ),
       materials = zeroArgPresetNames(Material, classOf[Material]).map(materialManifestOf),

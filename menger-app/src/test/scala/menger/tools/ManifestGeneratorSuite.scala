@@ -267,7 +267,7 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     manifest.renderSettings.name shouldBe "RenderSettings"
     manifest.renderSettings.fields.map(_.name) shouldBe List(
       "shadows", "transparentShadows", "antialiasing", "aaMaxDepth",
-      "aaThreshold", "maxRayDepth", "accumulation", "denoise"
+      "aaThreshold", "maxRayDepth", "accumulation", "denoise", "ambient"
     )
     manifest.renderSettingsPresets.toSet shouldBe Set("Default", "HighQuality")
 

@@ -10,6 +10,7 @@ import menger.common.ProfilingConfig
 import menger.common.RenderConfig
 import menger.config.AnimationSpecificationSequence
 import menger.config.OptiXEngineConfig
+import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
 import menger.input.GdxRuntime
 import menger.optix.CameraState
@@ -41,6 +42,7 @@ class CliAnimationEngine(
   override protected def renderConfig: RenderConfig = config.render
   override protected def denoiseMode: DenoiseMode = config.denoiseMode
   override protected def accumulationFrames: Int  = config.accumulationFrames
+  override protected def ambient: Option[Ambient] = config.ambient
 
   override protected val sceneConfigurator: SceneConfigurator = SceneConfigurator(
     camera.position, camera.lookAt, camera.up,

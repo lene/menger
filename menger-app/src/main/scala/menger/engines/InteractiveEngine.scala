@@ -17,6 +17,7 @@ import menger.config.CameraConfig
 import menger.config.EnvironmentConfig
 import menger.config.LevelConfig
 import menger.config.OptiXEngineConfig
+import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
 import menger.dsl.LoadedScene
 import menger.dsl.ResourceLimits
@@ -77,7 +78,8 @@ class InteractiveEngine(
     caustics: menger.common.CausticsConfig,
     sceneConfigurator: SceneConfigurator,
     denoiseMode: DenoiseMode,
-    accumulationFrames: Int
+    accumulationFrames: Int,
+    ambient: Option[Ambient]
   )
 
   private val reloadable: AtomicReference[ReloadableSceneState] = new AtomicReference(
@@ -89,7 +91,8 @@ class InteractiveEngine(
         camera.position, camera.lookAt, camera.up, config.environment.lights.toArray
       ),
       denoiseMode = config.denoiseMode,
-      accumulationFrames = config.accumulationFrames
+      accumulationFrames = config.accumulationFrames,
+      ambient = config.ambient
     )
   )
 
@@ -99,6 +102,7 @@ class InteractiveEngine(
   override protected def renderConfig: menger.common.RenderConfig = reloadable.get().renderConfig
   override protected def denoiseMode: DenoiseMode = reloadable.get().denoiseMode
   override protected def accumulationFrames: Int = reloadable.get().accumulationFrames
+  override protected def ambient: Option[Ambient] = reloadable.get().ambient
 
   // Required by TimeoutSupport trait
   override def timeout: Float = execution.timeout
@@ -557,7 +561,8 @@ class InteractiveEngine(
         camera.position, camera.lookAt, camera.up, configs.lights.toArray
       ),
       denoiseMode = configs.denoiseMode,
-      accumulationFrames = configs.accumulationFrames
+      accumulationFrames = configs.accumulationFrames,
+      ambient = configs.ambient
     ))
     val fileSpecs = configs.scene.objectSpecs.getOrElse(List.empty)
     val specs = sceneSpecs(fileSpecs)
