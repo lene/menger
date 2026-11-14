@@ -140,7 +140,7 @@ sample count for the interactive window's back buffer (headless renders always u
 --aa-threshold <float>       # AA edge threshold (0.0-1.0, default: 0.1)
 --max-ray-depth <int>        # Bounce / refraction recursion depth (1..5, default: 5)
 --allow-uniform-render       # Disable the failed-render diagnostic (see "Render health checks")
---denoise                    # Apply OptiX AI denoiser to accumulated frame before tone mapping
+--denoise                    # Apply OptiX AI denoiser to the accumulated frame (it sees tone-mapped values)
 --no-denoise                 # Force denoising off, even if a DSL scene enables it
 --accumulation-frames <int>  # Temporal accumulation count (default: 1, >=1). >1 averages N frames
 
@@ -1263,7 +1263,7 @@ direction to the sun (background convention): (0.742, 0.072, 0.666)
 elevation: 4.1 degrees
 diameter: 0.53 degrees (29 pixels at 10 % of the peak luminance or more)
 colour: (1.000, 0.864, 0.402)
-share of the sky's light: 63 % (an IBL scene counts it twice, once as sky and once as the Sun light)
+share of the sky's light: 63 % (a hand-written Sun under IBL counts it twice, once as sky and once as the light; `Sun.fromEnvMap` avoids that)
 Sun(Vec3(-0.7423f, -0.0722f, -0.6662f), diameterDegrees = 0.53f, color = Color(1.00f, 0.86f, 0.40f))
 ```
 Use the 4K or larger file: at 1K the sun spans too few pixels (about 0.8 degrees). A file that
@@ -1281,18 +1281,22 @@ How it finds the sun, so that you can judge a result:
   (the rows near the poles are smaller), its diameter that of a disk with the region's solid
   angle, its colour the solid-angle weighted mean RGB scaled so that the largest channel is 1.
 - The share of the sky's light is the region's luminance times solid angle over the whole
-  sphere's. With `ibl` on the sun's light would be counted twice, as sky and as `Sun`; the
-  balance between the two is not decided here (menger#171).
-- The IBL lighting currently maps the map's azimuth half a turn off from the background
-  (lene/optix-jni#112), so an IBL-lit scene is lit from the opposite side of the visible sky
-  until that is fixed; the `Sun` follows the background.
+  sphere's. With `ibl` on, a `Sun` made from these values counts the sun twice, as sky and as
+  `Sun`: use `Sun.fromEnvMap`, which also leaves the map's sun out of the IBL (see
+  *Image-Based Lighting*). It measures the sun differently from this tool (the luminance
+  centroid of the brightest 0.01 % of the texels and the irradiance of the cone around it,
+  rather than a region at 10 % of the peak), so the two can differ a little; on Kiara 4
+  Mid-Morning 4K they agree on direction and colour to about 0.01.
+- IBL lights from the azimuth the background shows (optix-jni 0.5.3, optix-jni#112), so the
+  `Sun` and the sky agree.
 
 ---
 
 ### The dimension ladder -- *Sprint 38*
 
 `examples.dsl.ladder.DimensionLadder` (menger#160) is a looping animation of a metal cube on a plinth,
-lit by the Kiara 2 Sunrise sky and its sun. The cube breathes into a Menger sponge and back, folds
+lit by the Kiara 4 Mid-Morning sky and its sun (`Sun.fromEnvMap`: physical lighting, ACES tone
+mapping, a plinth of albedo 0.28). The cube breathes into a Menger sponge and back, folds
 out into 4D, breathes again as a 4D sponge, folds into 5D, and so on up to the top dimension; it
 then descends to the cube along another path, so that the last frame equals the first
 (`scene(0) == scene(T)`). During a breath the material goes from metal to glass and back. Above
@@ -1304,7 +1308,7 @@ The object rests on the plinth: its height follows the object shown, at its boun
 farthest any turned point of it can be from its centre) plus a small clearance, so it grows and
 shrinks upwards with each fold and collapse instead of floating at the height of the biggest
 object. Because that radius holds for every turn, a turned object can still hover a little above
-the plinth. The camera fits itself: it looks from the far side of the sun, 4 degrees above the
+the plinth. The camera fits itself: it looks from the far side of the sun, 8 degrees above the
 horizon, aims between the object and the plinth's top, and backs off as far as the object's top,
 the plinth's front edge and the plinth's width need.
 
@@ -1441,6 +1445,20 @@ Scene(
 
 Without `ibl`, the env map is background only (Sprint 22 behaviour, backward-compatible).
 
+**Lighting under IBL is physical** (optix-jni 0.5.3): a matte surface of albedo `a` returns
+`a * E / pi`, `E` being the map's irradiance, so under a uniform sky of radiance `L` it is as
+bright as the background it faces. There is no constant ambient fill and no 0.7 blend factor on
+lights, IBL and highlights: a surface neither the environment nor a light reaches is black, and
+**the ambient setting has no effect** (neither the 0.3 fill nor `RenderSettings.ambient` /
+`--ambient` from menger#175). A directional light keeps its convention, `intensity * cos`, and
+agrees with the map's own sun when `intensity = E_sun / pi`. With `ibl` off, or without a loaded
+map, lighting is the 0.3 ambient fill plus 0.7 times the direct light, as before.
+
+An env map with a sun lights the scene twice if the scene also has a light for that sun. Take the
+sun from the map instead: `Sun.fromEnvMap("<map>.hdr")` makes the `Sun` of that map and, when the
+map is the scene's `envMap`, the renderer leaves the sun out of the map's lighting, so it counts
+once. `examples.dsl.envmap.SunFromEnvMap` is a scene that does so.
+
 #### Noise Reduction via Accumulation
 
 IBL with `samples=1` produces stochastic noise. Average multiple renders for a cleaner result:
@@ -1504,8 +1522,13 @@ toneMapping = ToneMapping.Reinhard(exposure = 1.2f)
 toneMapping = ToneMapping.ACES(exposure = 0.9f)
 ```
 
-Tone mapping is applied to the HDR env map sample before writing to the output buffer.
-Non-HDR scene colors (already in [0,1]) are minimally affected by Reinhard at exposure 1.0.
+Tone mapping covers the whole image: a lit surface, the env map background and a caustic are
+each mapped once, where their radiance becomes a display value (optix-jni 0.5.3; before it only
+the background and caustics were). A reflection or refraction carries the mapped colour of what
+it saw. The frame is therefore mapped before it is accumulated and denoised: the denoiser sees
+tone-mapped values, and the final pass only converts them to bytes. With `ToneMapping.None` the
+radiance is clamped to [0,1] and renders are as they were. Non-HDR scene colors (already in
+[0,1]) are minimally affected by Reinhard at exposure 1.0.
 
 ---
 

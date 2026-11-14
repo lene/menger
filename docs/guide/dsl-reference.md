@@ -634,11 +634,21 @@ Sun(
 - Only the first light of a scene emits caustic photons: put the `Sun` first in `lights` when the
   scene has caustics.
 - The environment map emits no photons, so for caustics under an HDRI sky a `Sun` has to stand
-  where the HDRI's sun is; `menger.tools.HdriSun` reads that off the file (see
-  [Finding the sun in an HDRI](user-guide.md#finding-the-sun-in-an-hdri)). With `ibl`
-  on, the sun's light is then counted twice, once as sky and once as the `Sun`; how to balance the
-  two is an open experiment (menger#171). Until lene/optix-jni#112 is fixed, IBL also lights the
-  scene from the opposite azimuth of the visible sky, while the `Sun` follows the background.
+  where the HDRI's sun is. `Sun.fromEnvMap(path)` does that: it measures the
+  sun of the `.hdr` (see below), and `menger.tools.HdriSun` prints the same kind of values for a
+  hand-written `Sun` (see [Finding the sun in an HDRI](user-guide.md#finding-the-sun-in-an-hdri)).
+  With `ibl` on, a hand-written `Sun` counts the sun twice, once as sky and once as the `Sun`.
+- `Sun.fromEnvMap(path)` (`path` relative to `--texture-dir`, as for `envMap`)
+  is the sun of that environment map: it travels opposite to the direction the map's sun is in,
+  its `color` and `intensity` are measured so that a matte surface facing it is lit as the map's
+  sun lights it (`intensity` is the irradiance of the sun's cone over pi), and its diameter is
+  the physical 0.53 degrees. The measurement reads the file with no GPU, takes under a second
+  for a 4K map and is made once per file. When the scene's `envMap` is that same file and `ibl`
+  is on, the renderer leaves the map's sun out of the image-based lighting, so the sun counts
+  once, as the `Sun` (`Sun.measuredFromEnvMap` records which map; do not set it by hand). Put
+  it first in `lights` for caustics. A render stops with a message when the file is not under
+  `--texture-dir`; the scene validator, which mounts no texture directory, uses a white stand-in
+  sun of intensity 1 instead.
 - Example: `examples.dsl.SunKeyLight`.
 
 ### Parametric Surfaces
@@ -801,6 +811,16 @@ envMap = None
 The path is resolved relative to `--texture-dir` at render time. Only `.hdr` (Radiance RGBE)
 is supported.
 
+**Lighting with `ibl` on (optix-jni 0.5.3).** The environment is the sky and lighting is
+physically scaled: a matte surface of albedo `a` returns `a * E / pi`, `E` the irradiance of the
+map, so under a uniform sky of radiance `L` it is as bright as the background it faces. There is
+no ambient fill and no 0.7 blend factor on lights, IBL and highlights, so a surface that neither
+the environment nor a light reaches is black, and **the ambient setting has no effect** (the 0.3
+fill, and `RenderSettings.ambient` / `--ambient` of menger#175). A light of intensity `I` and the
+map's sun of irradiance `E_sun` agree when `I = E_sun / pi`; `Sun.fromEnvMap` measures exactly
+that, and leaves the map's sun out of the lighting so it is not counted twice. With `ibl` off,
+or without a loaded map, nothing changes: the 0.3 ambient fill plus 0.7 times the direct light.
+
 ### Environment Map Video
 
 An equirectangular 2:1 video can be used as the animated background. It uses the same
@@ -836,7 +856,9 @@ toneMapping = ToneMapping.ACES(exposure = 0.9f)
 ```
 
 `exposure` is a pre-tone-map multiplier. Values above 1.0 brighten; below 1.0 darken.
-Tone mapping applies only to the env map sample; scene geometry colors pass through unchanged.
+Tone mapping covers the whole image: lit surfaces, the env map background and caustics are each
+mapped once, where their radiance becomes a display value (optix-jni 0.5.3). A reflection or
+refraction carries the mapped colour of what it saw. `ToneMapping.None` clamps to [0,1].
 
 ### Complete Scene Example
 
