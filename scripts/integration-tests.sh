@@ -1253,7 +1253,7 @@ test_t_animation() {
     # defined: DimensionLadderSuite checks that each falls in the segment its name says, and
     # manual-test.sh uses the same values. The scene needs the Kiara HDRI, so each frame is
     # skipped (SKIP, not FAIL) when it is missing.
-    local kiara="assets/hdri/kiara_2_sunrise_4k.hdr" name
+    local kiara="assets/hdri/kiara_4_mid-morning_4k.hdr" name
     name="t-animation freeze-frame DimensionLadder cube"           # the seam, t = 0
     require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 0
     name="t-animation freeze-frame DimensionLadder 3D breath"      # Breath(3), middle

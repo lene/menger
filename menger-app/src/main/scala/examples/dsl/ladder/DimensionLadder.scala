@@ -25,24 +25,32 @@ final case class Look(
   fillLights: List[Light],
   envMap: String,
   ibl: IBL,
+  toneMapping: ToneMapping,
   caustics: Caustics,
   render: RenderSettings,
   depths: Map[Int, Int]
 )
 
 object Look:
-  val default: Look = Look(
+  private val envMapPath = "assets/hdri/kiara_4_mid-morning_4k.hdr"
+
+  // Lazy: measuring the map's sun reads the 4K file, and a scene index that only lists the ladder
+  // must not need the map.
+  lazy val default: Look = Look(
     metal = Material.metal(DimensionLadder.tint),
     film = Material.Film.copy(ior = 1.0f),
     glass = Material.Glass,
     edgeRadius = 0.012f,
     filmRamp = 0.25f,
-    // The render constants, copied from scripts/frame-budget/Moment3D.scala (G4 measures them).
-    keyLight = Sun(direction = Vec3(-0.7423f, -0.0722f, -0.6662f), diameterDegrees = 0.53f,
-      color = Color(1.00f, 0.86f, 0.40f)),
+    // The sun is the one the mid-morning map shows, measured from it at its physical strength,
+    // and left out of the map's own lighting so it counts once. Physical IBL: a matte surface
+    // returns albedo * E / pi, with no ambient fill. Tone mapping and plinth albedo decided by
+    // user 2026-11-14: "3. 0.28/1.0".
+    keyLight = Sun.fromEnvMap(envMapPath),
     fillLights = Nil,
-    envMap = "assets/hdri/kiara_2_sunrise_4k.hdr",
+    envMap = envMapPath,
     ibl = IBL(),
+    toneMapping = ToneMapping.ACES(exposure = 1.0f),
     caustics = Caustics(photonsPerIteration = 200000, iterations = 10),
     // Decided 2026-11-12: accumulation 16, no adaptive AA (~140x on glass, optix-jni#115);
     // revisit when optix-jni#116 (jitter) lands, as accumulation does not smooth edges.
@@ -57,8 +65,8 @@ object Look:
  * Example: the dimension ladder (menger#160), a looping animation. A metal cube breathes into a
  * Menger sponge, folds into 4D, breathes (a surface sponge above 3D, menger#166), folds into 5D
  * and so on up to `topDimension`, then descends to the cube along a different path (planes among
- * the extra axes only), under a sunrise with one matching sun. A segment timeline (`segments`)
- * drives everything, and `scene(t)` depends on t only through its phase: scene(0) == scene(T).
+ * the extra axes only), under a mid-morning sky whose sun is the scene's one light. A segment
+ * timeline (`segments`) drives everything, and `scene(t)` depends on t only through its phase: scene(0) == scene(T).
  * `sceneAt` takes a `Look` for the parts an experiment may vary (menger#184).
  *
  * The ladder lives in a sub-package, so it is loaded by name only (it stays out of the agent's
@@ -190,6 +198,7 @@ object DimensionLadder:
       lights = look.keyLight :: look.fillLights,
       envMap = Some(look.envMap),
       ibl = Some(look.ibl),
+      toneMapping = look.toneMapping,
       caustics = Some(look.caustics),
       render = Some(look.render)
     )

@@ -51,7 +51,9 @@ object Stage:
   private val plinthTopY = -0.45f
   private val plinthThickness = 0.2f
   private val plinthRadius = 1.8f
-  private val plinthColor = Color(0.85f, 0.82f, 0.76f)
+  // The warm grey the plinth had (0.85, 0.82, 0.76), scaled to a largest channel of 0.28, for
+  // physical lighting (albedo * E / pi). Decided by user 2026-11-14: "3. 0.28/1.0".
+  private val plinthColor = Color(0.28f, 0.27012f, 0.25035f)
   // 0.01 above the plinth's top cap: a bottom face on the cap itself speckles the refraction.
   private[ladder] val plinthClearance = 0.01f
   // How far below its centre the object reaches, edge tubes included, in the lowest frame of the
