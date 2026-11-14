@@ -68,12 +68,14 @@ object Stage:
   private[ladder] def restDepth(top: Int, extraTube: Float = 0f): Float =
     restDepths(top) + math.max(0f, extraTube)
 
-  // Low, on the far side from the sun (along its rays), 15 degrees to one side, aimed between the
-  // object and the plinth. The fixed 45 degree field of view is HORIZONTAL (tan 22.5 = 0.4142): fit
-  // the video's 16:9 frame, 9/16 as tall as wide.
+  // The sun behind the camera: 160 degrees round from the sun's rays puts the view 20 degrees off
+  // them, 8 degrees down. The object is the star, not the sun, so it is lit face-on and its
+  // shadows fall behind it, onto the plinth. Aimed between the object and the plinth. The fixed
+  // 45 degree field of view is HORIZONTAL (tan 22.5 = 0.4142): fit the video's 16:9 frame, 9/16
+  // as tall as wide.
   private val cameraDistance = 4.5f
-  private val cameraYawDegrees = 15f
-  private val cameraElevationDegrees = 4f
+  private val cameraYawDegrees = 160f
+  private val cameraElevationDegrees = 8f
   private val tanHalfFovX = 0.4142f
   private val frameAspect = 16f / 9f
   private val framingMargin = 0.95f
