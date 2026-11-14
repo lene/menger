@@ -860,6 +860,35 @@ Tone mapping covers the whole image: lit surfaces, the env map background and ca
 mapped once, where their radiance becomes a display value (optix-jni 0.5.3). A reflection or
 refraction carries the mapped colour of what it saw. `ToneMapping.None` clamps to [0,1].
 
+### Ambient Light
+
+Every surface gets an ambient fill, 0.3 times the light colour, however the lights are placed.
+`RenderSettings.ambient` chooses how it is computed:
+
+```scala
+render = Some(RenderSettings(ambient = Some(Ambient.Constant)))                       // same everywhere
+render = Some(RenderSettings(ambient = Some(Ambient.Occlusion())))                     // 16 samples, unlimited radius
+render = Some(RenderSettings(ambient = Some(Ambient.Occlusion(samples = 32, radius = 0.5f))))
+```
+
+| Model | Effect |
+|-------|--------|
+| `Ambient.Constant` | The fill is the same everywhere: the holes of a sponge are as bright as its faces. |
+| `Ambient.Occlusion(samples, radius)` | The fill is weighted by how much of the hemisphere above the surface is open: cavities, creases and the contact line under an object darken; a surface with nothing above it keeps the full fill. |
+
+`samples` is the number of rays per surface point (1-64, default 16). `radius` is how far from a
+surface an occluder still counts, in world units (at least 0.01, default `Float.PositiveInfinity`,
+which counts every occluder at any distance). A scene without `ambient` gets
+`Ambient.Occlusion(16, Float.PositiveInfinity)`. A value out of range is rejected when the scene
+loads, with a message naming the field, the range and the value. The fill does not depend on
+`shadows`.
+
+Occlusion is estimated with random rays: one frame is grainy, more `samples` or `accumulation`
+smooth it. An unlimited radius is the grainiest case: an infinite floor covers half the sky of
+every vertical face, and every ray counts. A finite radius darkens only what is near and is
+smoother for the same number of rays. `--ambient` on the command line overrides the scene's choice
+(see the [User Guide](user-guide.md#ambient-light)).
+
 ### Complete Scene Example
 
 ```scala

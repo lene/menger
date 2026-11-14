@@ -238,11 +238,12 @@ object DslSemantics:
       "scene without `ambient` gets `Occlusion(samples = 16, radius = Float.PositiveInfinity)`. " +
       "`samples` is 1-64 rays per point; `radius` (world units, at least 0.01) is how far an " +
       "occluder still counts, infinity counting every one. Occlusion is estimated with random " +
-      "rays, so a single frame is grainy where much of the sky is covered; an infinite radius " +
-      "is the worst case, because an infinite floor covers half the sky of every vertical face " +
-      "(grain, not a different look). A radius of about a quarter to a half of the object's " +
-      "size keeps the darkened holes and contact shadows and removes most of the grain; more " +
-      "`samples` or `accumulation` reduce it further at a cost per ray. The fill does not " +
+      "rays, so a single frame is grainy; an infinite radius is the worst case, because an " +
+      "infinite floor covers half the sky of every vertical face and every ray counts. A " +
+      "finite radius (a fraction of the object's size, e.g. 0.5 for a unit object) darkens " +
+      "only what is near -- holes, creases, contact with the floor -- and is less grainy; " +
+      "more `samples` or `accumulation` reduce the grain further, at a cost per ray. The fill " +
+      "does not " +
       "depend on `shadows` (menger#175).",
     "Shadows of transparent objects: `RenderSettings(transparentShadows = ...)` is `Auto` by " +
       "default, which makes a transparent object cast the colour seen through it when one is " +

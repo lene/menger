@@ -27,6 +27,14 @@
   3.1.0), and `examples.dsl.envmap.SunFromEnvMap` is the example. `AssetPaths` moved to
   `menger.assets`. `scripts/fetch-kiara-hdri.sh 4k kiara_4_mid-morning` fetches the Kiara 4
   Mid-Morning HDRI.
+- The ambient model in the DSL and the CLI (lene/menger#175): `RenderSettings(ambient =
+  Some(Ambient.Constant))` or `Some(Ambient.Occlusion(samples, radius))`, and `--ambient constant`
+  or `--ambient occlusion[:samples[:radius]]` (`inf` = unlimited radius), which overrides the
+  scene's choice. Samples 1 to 64 and radius at least 0.01 are checked where the value is made,
+  with a message naming the value and the range. A scene without the field keeps optix-jni's
+  default (occlusion, 16 samples, unlimited radius). The manifest is 3.2.0 (additive: the field,
+  the `Ambient` enum, the `Occlusion` type and an agent convention). The animated engines take the
+  override too. An integration scenario and a manual one use the constant model.
 - `scripts/render-cycle.sh` (menger#185) and `scripts/experiment-sheet.sh` (menger#186): the
   canonical resumable render of a looping animation with an optional video, and a contact sheet
   of scenes by moments with the render times.

@@ -143,6 +143,7 @@ sample count for the interactive window's back buffer (headless renders always u
 --denoise                    # Apply OptiX AI denoiser to the accumulated frame (it sees tone-mapped values)
 --no-denoise                 # Force denoising off, even if a DSL scene enables it
 --accumulation-frames <int>  # Temporal accumulation count (default: 1, >=1). >1 averages N frames
+--ambient <spec>             # Ambient fill: constant | occlusion[:samples[:radius]] (see "Ambient light")
 
 # Scene
 --plane <spec>               # Ground plane, e.g. y:-2 (no plane unless given)
@@ -1458,6 +1459,33 @@ An env map with a sun lights the scene twice if the scene also has a light for t
 sun from the map instead: `Sun.fromEnvMap("<map>.hdr")` makes the `Sun` of that map and, when the
 map is the scene's `envMap`, the renderer leaves the sun out of the map's lighting, so it counts
 once. `examples.dsl.envmap.SunFromEnvMap` is a scene that does so.
+
+#### Ambient light
+
+Without image-based lighting, every surface gets an ambient fill (with `ibl` on there is none, see
+above). By default it is weighted by ambient occlusion (the share of
+the hemisphere above the surface that is open sky), so the holes of a sponge and the contact line
+under an object are darker than an open face. `--ambient` chooses the model:
+
+```
+--ambient constant                    # the same everywhere: holes as bright as faces, no noise
+--ambient occlusion                   # occlusion, 16 samples, unlimited radius (the default)
+--ambient occlusion:64                # 64 samples per surface point (1-64)
+--ambient occlusion:16:0.5            # only occluders within 0.5 world units darken
+--ambient occlusion:16:inf            # radius inf = unlimited
+```
+
+In a DSL scene: `RenderSettings(ambient = Some(Ambient.Occlusion(samples = 16, radius = 0.5f)))` or
+`Some(Ambient.Constant)`. An explicit `--ambient` overrides the scene's choice. Values out of range
+(samples outside 1-64, radius below 0.01) are rejected with a message naming the value and the range.
+
+Occlusion is estimated with random rays, so a single frame (no `--antialiasing`, no
+`--accumulation-frames`) shows grain next to objects. An unlimited radius is the grainiest setting,
+because an infinite floor covers half the sky of every vertical face; a finite radius darkens only
+nearby occluders and is smoother. More samples or accumulated frames also smooth it, at a cost
+per ray. The radius is in world units, so choose it relative to the objects: for objects of size 1,
+0.25 to 0.5 keeps the dark holes and the contact line under an object and drops the far, noisy
+shadow of the floor.
 
 #### Noise Reduction via Accumulation
 

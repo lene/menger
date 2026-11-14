@@ -170,6 +170,7 @@ The [User Guide](docs/USER_GUIDE.md) has the full reference; this is the short v
 - `--aa-threshold <float>` - AA edge detection threshold (0.0-1.0, default: 0.1)
 - `--max-ray-depth <int>` - Maximum bounce depth (1-5, default: 5)
 - `--accumulation-frames <n>` - Average N frames to reduce noise
+- `--ambient <spec>` - Ambient fill: `constant` or `occlusion[:samples[:radius]]`
 - `--denoise` / `--no-denoise` - OptiX AI denoiser on the final frame
 
 #### Caustics (Progressive Photon Mapping)

@@ -108,6 +108,8 @@ with `Error: SceneConfig must provide objectSpecs`.
 -n, --no-denoise             Force denoising off, even if a DSL scene enables it
     --nodenoise              Disable denoising (does not override DSL scenes)
     --accumulation-frames N  Average N frames to reduce noise (default: 1)
+    --ambient <spec>         Ambient fill: constant | occlusion[:samples[:radius]]
+                             (samples 1-64, radius >= 0.01 or inf; default occlusion:16:inf)
     --allow-uniform-render   Accept renders where ≥99% of pixels have the same colour
                              (otherwise reported as a failed render)
 ```
