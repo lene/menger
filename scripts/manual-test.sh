@@ -449,12 +449,12 @@ run_test "PenteractSpongeBreath t=2.61 (5D surface sponge, level 0.5, hole caps 
 run_test "PenteractSpongeBreath t=4 (level 1)" "-o --scene examples.dsl.PenteractSpongeBreath --t 4 -s $OUTPUT_DIR/105o-penteract-sponge-breath-l1.png"
 run_test "PenteractSpongeBreath t=8 (level 2, grey plastic)" "-o --scene examples.dsl.PenteractSpongeBreath --t 8 -s $OUTPUT_DIR/105p-penteract-sponge-breath-l2.png"
 run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=0 (the metal cube, the seam)" "-o --scene examples.dsl.ladder.DimensionLadder --t 0 -s $OUTPUT_DIR/105q-ladder-cube.png"
-run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=19.6 (3D breath, glass sponge)" "-o --scene examples.dsl.ladder.DimensionLadder --t 19.636364 -s $OUTPUT_DIR/105r-ladder-3d-breath.png"
-run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=44.2 (fold into 4D)" "-o --scene examples.dsl.ladder.DimensionLadder --t 44.18182 -s $OUTPUT_DIR/105s-ladder-fold-4d.png"
-run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=65.5 (4D breath, surface sponge)" "-o --scene examples.dsl.ladder.DimensionLadder --t 65.45455 -s $OUTPUT_DIR/105t-ladder-breath-4d.png"
-run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=86.7 (fold into 5D)" "-o --scene examples.dsl.ladder.DimensionLadder --t 86.72727 -s $OUTPUT_DIR/105u-ladder-fold-5d.png"
-run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=137.5 (6D breath, the top)" "-o --scene examples.dsl.ladder.DimensionLadder --t 137.45454 -s $OUTPUT_DIR/105v-ladder-breath-6d.png"
-run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=162 (the descent)" "-o --scene examples.dsl.ladder.DimensionLadder --t 162 -s $OUTPUT_DIR/105w-ladder-descent.png"
+run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=22.7 (3D breath, glass sponge)" "-o --scene examples.dsl.ladder.DimensionLadder --t 22.73684 -s $OUTPUT_DIR/105r-ladder-3d-breath.png"
+run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=51.2 (fold into 4D)" "-o --scene examples.dsl.ladder.DimensionLadder --t 51.15789 -s $OUTPUT_DIR/105s-ladder-fold-4d.png"
+run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=75.8 (4D breath, surface sponge)" "-o --scene examples.dsl.ladder.DimensionLadder --t 75.78947 -s $OUTPUT_DIR/105t-ladder-breath-4d.png"
+run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=100.4 (fold into 5D)" "-o --scene examples.dsl.ladder.DimensionLadder --t 100.42105 -s $OUTPUT_DIR/105u-ladder-fold-5d.png"
+run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=159.2 (6D breath, the top)" "-o --scene examples.dsl.ladder.DimensionLadder --t 159.15789 -s $OUTPUT_DIR/105v-ladder-breath-6d.png"
+run_test_with_asset assets/hdri/kiara_4_mid-morning_4k.hdr "DimensionLadder t=184.7 (the descent)" "-o --scene examples.dsl.ladder.DimensionLadder --t 184.73684 -s $OUTPUT_DIR/105w-ladder-descent.png"
 
 # Colored Shadows Phase 1 (single-object)
 echo -e "${YELLOW}--- Colored Shadows (Phase 1: single object) ---${NC}"

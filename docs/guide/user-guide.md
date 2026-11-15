@@ -1339,10 +1339,10 @@ object ChromeLadder:
 
 | Parameter | Default | Meaning |
 |-----------|---------|---------|
-| `cycleSeconds` | 180 | length of the loop; the timeline scales to it |
+| `cycleSeconds` | 202.74 | length of the loop, derived: the ascent at 36/19 s per weight unit (hold 2, fold 6, solidify 2, unsolidify 2, breath 4 per level; 88 units for top 6 at the default depths) plus a 36 s descent. A render may use another length; the timeline scales to it |
 | `topDimension` | 6 | the highest dimension reached, 4 to 8 |
 | `tint` | pale blue-grey | the metal's colour |
-| `breathDepth(n)` | 5 in 3D, then 3, 2, 1 in 4D, 5D, 6D to 8D | the deepest sponge level of the breath in dimension n, 3 to 8; these defaults are capped by `ResourceLimits.ndSpongeLevel`, so a smaller triangle budget lowers them |
+| `breathDepth(n)` | 5 in 3D, then 4, 3, 2 in 4D, 5D, 6D, 1 above | the deepest sponge level of the breath in dimension n, 3 to 8; these defaults are capped by `ResourceLimits.ndSpongeLevel`, so a smaller triangle budget lowers them |
 
 One frame at a moment of the loop:
 ```bash
@@ -1356,9 +1356,9 @@ video. Frame `g` is at `t = g / fps`, so the last frame is one frame short of th
 cycle's end is the first frame again). Run it from the menger repository's root:
 ```bash
 scripts/render-cycle.sh menger-app/target/universal/stage/bin/menger-app \
-  examples.dsl.ladder.DimensionLadder --seconds 180 --out out/ladder --video ladder.mp4
+  examples.dsl.ladder.DimensionLadder --seconds 202.74 --out out/ladder --video ladder.mp4
 ```
-`--seconds` is the scene's `cycleSeconds` (180 here). It resumes: a rerun skips every chunk whose frames exist, so an interrupted run (Ctrl-C) or a
+`--seconds` is the scene's `cycleSeconds` (202.74 here; `DimensionLadder.cycleSeconds`). It resumes: a rerun skips every chunk whose frames exist, so an interrupted run (Ctrl-C) or a
 stopped one continues where it left off. It stops with exit status 1 on the first bad chunk (the
 app failed, logged an `ERROR`, or wrote too few frames), names the frame range and the log, and
 keeps the partial output in `out/ladder/work/` for inspection; it never deletes a rendered frame.

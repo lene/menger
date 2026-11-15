@@ -132,6 +132,11 @@
 
 ### Changed
 
+- The dimension ladder keeps its old pace (menger#160; decided by user 2026-11-15: "Keep the old pace."):
+  the ascent runs at 36/19 s per weight unit and the descent takes 36 s, whatever the breath depths,
+  so the cycle is derived from them (202.74 s for top 6 at the Deep depths, not a fixed 180 s that
+  squeezed every ascent segment by 14 %). The 3D breath is t = 3.789 to 41.684 s again; the
+  freeze frames of the integration and manual suites moved with it (same position in each segment).
 - The dimension ladder looks different (menger-toplevel#115, menger#160): the Kiara 4 Mid-Morning
   sky, its sun as `Sun.fromEnvMap`, ACES tone mapping at exposure 1.0 and a plinth of albedo
   0.28, under the physical image-based lighting of optix-jni 0.5.3. With `ibl` on, a matte

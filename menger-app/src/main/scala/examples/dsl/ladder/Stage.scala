@@ -59,7 +59,8 @@ object Stage:
   // How far below its centre the object reaches, edge tubes included, in the lowest frame of the
   // cycle of each top dimension: the minimum over every frame at 30 fps and both ends of every
   // segment, for `Look.default`'s breath depths (the Deep ones, menger#167) and edge radius,
-  // rounded up to 1e-5. RestHeightSuite recomputes it.
+  // rounded up to 1e-5. RestHeightSuite recomputes it. Recomputed over the derived 202.74 s cycle
+  // (menger#160, the old pace): unchanged, as the deepest frames are segment ends.
   // The lowest point of a frame is its n-cube's lowest corner, and the cycle's lowest frame is a
   // solidifying cube mid-turn, so the object touches the plinth once per cycle and floats above
   // it otherwise.

@@ -1248,7 +1248,7 @@ test_t_animation() {
     run_test "t-animation freeze-frame PenteractSpongeBreath level 2" \
         --scene examples.dsl.PenteractSpongeBreath --t 8
 
-    # The dimension ladder (menger#160, 180 s cycle, top dimension 6): t = 0 and the middle of
+    # The dimension ladder (menger#160, top dimension 6, a cycle of 202.74 s): t = 0 and the middle of
     # each segment worth a frame, in seconds. These t values are the one place the frames are
     # defined: DimensionLadderSuite checks that each falls in the segment its name says, and
     # manual-test.sh uses the same values. The scene needs the Kiara HDRI, so each frame is
@@ -1257,17 +1257,17 @@ test_t_animation() {
     name="t-animation freeze-frame DimensionLadder cube"           # the seam, t = 0
     require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 0
     name="t-animation freeze-frame DimensionLadder 3D breath"      # Breath(3), middle
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 19.636364
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 22.73684
     name="t-animation freeze-frame DimensionLadder fold 4D"        # Fold(4), middle
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 44.18182
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 51.15789
     name="t-animation freeze-frame DimensionLadder breath 4D"      # Breath(4), middle
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 65.45455
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 75.78947
     name="t-animation freeze-frame DimensionLadder fold 5D"        # Fold(5), middle
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 86.72727
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 100.42105
     name="t-animation freeze-frame DimensionLadder breath 6D"      # Breath(6), the top, middle
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 137.45454
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 159.15789
     name="t-animation freeze-frame DimensionLadder descent"        # the descent, middle (Collapse 5)
-    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 162
+    require_asset "$kiara" "$name" && run_test "$name" --scene examples.dsl.ladder.DimensionLadder --t 184.73684
 
     # Multi-frame animation: 3 frames for speed
     local temp_dir

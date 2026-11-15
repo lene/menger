@@ -8,33 +8,20 @@ import menger.spec.PlaneRotation
 import menger.spec.ProjectionSpec
 import menger.spec.ProjectionStage
 
-/** The timeline of one cycle: `depths` maps a dimension to its breath depth (a missing one is 1). */
+/** The timeline of one cycle: `depths` maps a dimension to its breath depth (a missing one is 1).
+  * `cycle` is how long the loop plays; the timeline scales to it. Its natural length, at the
+  * pace the ascent and the descent were designed at, is `Choreography.naturalCycle`. */
 final case class Choreography(cycle: Float, top: Int, depths: Map[Int, Int]):
   import Choreography._
 
   require(cycle > 0f, s"the cycle must be positive, got $cycle")
   require(top >= minTop && top <= maxTop, s"topDimension must be 4 to 8, got $top")
 
-  // The costed levels, capped above 3D by the surface sponge's triangle budget.
-  def breathDepth(n: Int): Int =
-    require(n >= 3 && n <= maxTop, s"breathDepth needs a dimension from 3 to $maxTop, got $n")
-    val costed = depths.getOrElse(n, 1)
-    if n == 3 then costed
-    else math.min(costed, ResourceLimits.ndSpongeLevel(NdSpongeVariant.Surface, n).max)
-
-  private def ascentWeights: List[(Kind, Int, Float)] =
-    val perDimension = (3 to top).toList.flatMap: n =>
-      List(
-        Option.when(n >= minTop)((Kind.Fold, n, foldSeconds)),
-        Option.when(n >= minTop)((Kind.Solidify, n, solidifySeconds)),
-        Some((Kind.Breath, n, breathDepth(n) * breathSecondsPerLevel)),
-        Option.when(n < top)((Kind.Unsolidify, n, unsolidifySeconds))
-      ).flatten
-    (Kind.Hold, 3, holdSeconds) :: perDimension
+  def breathDepth(n: Int): Int = breathDepthOf(depths, n)
 
   val segments: List[Segment] =
-    val descent = cycle * descentFraction
-    val ascent = ascentWeights
+    val descent = cycle * descentFraction(top, depths)
+    val ascent = ascentWeights(top, depths)
     val stretch = (cycle - descent) / ascent.map(_._3).sum
     val timed = ascent.map((kind, n, weight) => (kind, n, weight * stretch)) ++
       (top to minTop by -1).map(n => (Kind.Collapse, n, descent / (top - 3)))
@@ -76,7 +63,40 @@ final case class Choreography(cycle: Float, top: Int, depths: Map[Int, Int]):
 
 object Choreography:
   val axisLetters = "xyzwvuts"
-  val descentFraction = 1f / 5f
+
+  // The pace of the natural cycle, decided by user 2026-11-15: "Keep the old pace." It is the
+  // pace of the 180 s cycle at the depths before the Deep ones (3 -> 5, 4 -> 3, 5 -> 2, 6 -> 1):
+  // the ascent's 144 s spread over 76 weight units; the descent took 36 s. Deeper breaths now
+  // lengthen the cycle instead of squeezing every segment.
+  val ascentSecondsPerWeight = 36f / 19f
+  val descentSeconds = 36f
+
+  /** The costed levels of a breath, capped above 3D by the surface sponge's triangle budget. */
+  def breathDepthOf(depths: Map[Int, Int], n: Int): Int =
+    require(n >= 3 && n <= maxTop, s"breathDepth needs a dimension from 3 to $maxTop, got $n")
+    val costed = depths.getOrElse(n, 1)
+    if n == 3 then costed
+    else math.min(costed, ResourceLimits.ndSpongeLevel(NdSpongeVariant.Surface, n).max)
+
+  // The ascent's segments with their weights, the seconds each takes at one weight unit's pace.
+  private def ascentWeights(top: Int, depths: Map[Int, Int]): List[(Kind, Int, Float)] =
+    val perDimension = (3 to top).toList.flatMap: n =>
+      List(
+        Option.when(n >= minTop)((Kind.Fold, n, foldSeconds)),
+        Option.when(n >= minTop)((Kind.Solidify, n, solidifySeconds)),
+        Some((Kind.Breath, n, breathDepthOf(depths, n) * breathSecondsPerLevel)),
+        Option.when(n < top)((Kind.Unsolidify, n, unsolidifySeconds))
+      ).flatten
+    (Kind.Hold, 3, holdSeconds) :: perDimension
+
+  /** The length of the loop at the designed pace: the ascent at `ascentSecondsPerWeight`, then the
+    * descent. */
+  def naturalCycle(top: Int, depths: Map[Int, Int]): Float =
+    ascentWeights(top, depths).map(_._3).sum * ascentSecondsPerWeight + descentSeconds
+
+  /** The share of a cycle the descent takes: the same at every length the timeline scales to. */
+  def descentFraction(top: Int, depths: Map[Int, Int]): Float =
+    descentSeconds / naturalCycle(top, depths)
 
   enum Kind:
     case Hold, Fold, Solidify, Breath, Unsolidify, Collapse

@@ -34,6 +34,12 @@ final case class Look(
 object Look:
   private val envMapPath = "assets/hdri/kiara_4_mid-morning_4k.hdr"
 
+  // The costed breath levels, the "Deep" variant, measured in E3 (menger#167) at about 8
+  // GPU-hours for the three nD breaths. Capped above 3D by the surface sponge's triangle
+  // budget: 4D level 5 is refused by SceneCost (22.7M triangles > 16M). Not part of the lazy
+  // default look: the length of the cycle derives from them.
+  val defaultDepths: Map[Int, Int] = Map(3 -> 5, 4 -> 4, 5 -> 3, 6 -> 2)
+
   // Lazy: measuring the map's sun reads the 4K file, and a scene index that only lists the ladder
   // must not need the map.
   lazy val default: Look = Look(
@@ -55,10 +61,7 @@ object Look:
     // Decided 2026-11-12: accumulation 16, no adaptive AA (~140x on glass, optix-jni#115);
     // revisit when optix-jni#116 (jitter) lands, as accumulation does not smooth edges.
     render = RenderSettings(antialiasing = false, shadows = true, accumulation = 16),
-    // The costed breath levels, the "Deep" variant, measured in E3 (menger#167) at about 8
-    // GPU-hours for the three nD breaths. Capped above 3D by the surface sponge's triangle
-    // budget: 4D level 5 is refused by SceneCost (22.7M triangles > 16M).
-    depths = Map(3 -> 5, 4 -> 4, 5 -> 3, 6 -> 2)
+    depths = defaultDepths
   )
 
 /**
@@ -73,12 +76,17 @@ object Look:
  * corpus): --scene examples.dsl.ladder.DimensionLadder --t 30
  */
 object DimensionLadder:
-  val cycleSeconds = 180f
-  val durationSeconds = cycleSeconds
   val topDimension = 6 // E4 (menger#168) decides the top; 4 to 8 work
+  // Derived, not chosen: the pace of the ascent and of the descent, at the default breath depths.
+  val cycleSeconds: Float = Choreography.naturalCycle(topDimension, Look.defaultDepths)
+  val durationSeconds = cycleSeconds
   val tint = Color(0.78f, 0.82f, 0.95f) // E8 (menger#172) derives it from the top dimension
 
-  export Choreography.{Kind, Segment, Turn, axisLetters, descentFraction}
+  export Choreography.{Kind, Segment, Turn, axisLetters}
+
+  /** The share of a cycle the descent takes, at the default breath depths. */
+  def descentFraction(top: Int = topDimension): Float =
+    Choreography.descentFraction(top, Look.defaultDepths)
 
   private def choreography(cycle: Float, top: Int, look: Look): Choreography =
     Choreography(cycle, top, look.depths)
@@ -105,7 +113,7 @@ object DimensionLadder:
     choreography(cycle, topDimension, Look.default).phaseOf(t)
 
   def breathDepth(n: Int): Int =
-    choreography(cycleSeconds, topDimension, Look.default).breathDepth(n)
+    Choreography.breathDepthOf(Look.defaultDepths, n)
 
   def halfExtent(n: Int, last: Float): Float = Choreography.halfExtent(n, last)
 

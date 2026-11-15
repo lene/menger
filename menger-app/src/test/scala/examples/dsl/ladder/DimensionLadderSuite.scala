@@ -73,7 +73,23 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
       all.last.end shouldBe length +- 1e-3f
       all.zip(all.tail).foreach((a, b) => b.start shouldBe a.end)
       all.filter(_.kind == Kind.Collapse).map(_.seconds).sum shouldBe
-        length * DimensionLadder.descentFraction +- 1e-3f
+        length * DimensionLadder.descentFraction(top) +- 1e-3f
+
+  it should "keep the old pace: the ascent at 36/19 s per weight unit, a descent of 36 s" in:
+    val pace = 36f / 19f
+    cycle shouldBe 88f * pace + 36f +- 1e-3f
+    val all = DimensionLadder.segments(cycle, 6)
+    all.filter(_.kind == Kind.Collapse).map(_.seconds).sum shouldBe 36f +- 1e-3f
+    all.find(_.kind == Kind.Hold).get.seconds shouldBe 2f * pace +- 1e-3f
+    val breath = all.find(s => s.kind == Kind.Breath && s.dimension == 3).get
+    breath.start shouldBe 3.789f +- 1e-3f
+    breath.end shouldBe 41.684f +- 1e-3f
+    breath.seconds shouldBe 20f * pace +- 1e-3f
+
+  it should "lengthen the cycle with deeper breaths instead of squeezing the segments" in:
+    Choreography.naturalCycle(6, Map(3 -> 5, 4 -> 4, 5 -> 3, 6 -> 2)) should be >
+      Choreography.naturalCycle(6, Map(3 -> 5, 4 -> 3, 5 -> 2, 6 -> 1))
+    Choreography.naturalCycle(6, Map(3 -> 5, 4 -> 3, 5 -> 2, 6 -> 1)) shouldBe 180f +- 1e-3f
 
   it should "reject a cycle that is not positive, and clamp how far into a segment it is" in:
     an[IllegalArgumentException] should be thrownBy DimensionLadder.segments(0f)
@@ -200,7 +216,7 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
 
   it should "descend in planes among the extra axes only" in:
     val descent = DimensionLadder.turns(cycle, 6)
-      .filter(_.from >= cycle * (1f - DimensionLadder.descentFraction) - 1e-3f)
+      .filter(_.from >= cycle * (1f - DimensionLadder.descentFraction(6)) - 1e-3f)
     descent.map(_.plane).toSet shouldBe Set("wu", "vu", "wv")
     descent.foreach: turn =>
       turn.plane.foreach(letter => DimensionLadder.axisLetters.drop(3) should contain(letter))
