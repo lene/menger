@@ -5,6 +5,15 @@
 # smoke, because optix-jni renders every pixel (menger#144).
 # Run: scripts/test-qa-selection.sh
 set -u
+# Run from the pre-push hook, git exports GIT_DIR (and friends) of the repository being pushed:
+# left set, every `git -C "$repo"` below would act on that repository, not the scratch one
+# (it committed the stub tree onto the branch being pushed and set a test identity in its
+# config, 2026-11-15). Clear them all.
+# shellcheck disable=SC2046
+unset $(git rev-parse --local-env-vars)
+# The gate's own exports, likewise: with QA_RANGES set, the runner below would take the pushed
+# range (commits the scratch repo does not have) instead of CHANGED_FILES and select nothing.
+unset QA_RANGES QA_REMOTE QA_INTERACTIVE
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d)"
