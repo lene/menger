@@ -230,8 +230,9 @@ object DslSemantics:
       "colours follow the projected shape and change when the 4D rotation changes " +
       "(usability review 2026-09, session 2, F43); its box is taken from `size` before " +
       "projection, so xyz_rgb_local only approximately spans 0..1 on a 4D object.",
-    "Ambient light: every surface gets a fill of 0.3 times the light colour however the " +
-      "lights are placed. `RenderSettings(ambient = Some(Ambient.Occlusion(samples, radius)))` " +
+    "Ambient light: without image-based lighting, every surface gets a fill of 0.3 times the " +
+      "light colour wherever the lights are; with `ibl` on there is no fill (the environment " +
+      "map lights the scene physically) and `ambient` has no effect. `RenderSettings(ambient = Some(Ambient.Occlusion(samples, radius)))` " +
       "weights it by how much of the hemisphere above the surface is open: cavities (the holes " +
       "of a sponge, a contact line under an object) darken, an open face keeps the full fill. " +
       "`Some(Ambient.Constant)` is the same everywhere, so holes look as bright as faces. A " +
@@ -243,8 +244,7 @@ object DslSemantics:
       "finite radius (a fraction of the object's size, e.g. 0.5 for a unit object) darkens " +
       "only what is near -- holes, creases, contact with the floor -- and is less grainy; " +
       "more `samples` or `accumulation` reduce the grain further, at a cost per ray. The fill " +
-      "does not " +
-      "depend on `shadows` (menger#175).",
+      "does not depend on `shadows` (menger#175).",
     "Shadows of transparent objects: `RenderSettings(transparentShadows = ...)` is `Auto` by " +
       "default, which makes a transparent object cast the colour seen through it when one is " +
       "tinted or procedurally coloured -- e.g. rainbow shadows of a glass object with " +
