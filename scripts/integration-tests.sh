@@ -758,10 +758,14 @@ test_colored_glass_caustics() {
 
 test_dispersive_caustics() {
     echo "Dispersive PPM caustics (spectral floor caustic):"
+    # Each photon and each primary ray carries one wavelength. Seen from above on a grey floor,
+    # with 32 accumulated frames: a single frame shows the per-pixel wavelengths as a striped
+    # rainbow across the sphere.
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "dispersive caustics" \
-        --objects type=sphere:material=glass-dispersive:ior=1.5 --caustics \
-        --caustics-photons 1000 --caustics-iterations 1 \
-        --plane y:-2 --light point:0,10,0:500
+        --objects type=sphere:material=glass-dispersive:ior=1.5:size=0.6 \
+        --plane y:-2 --plane-color 999999 --light point:3,8,0:150 \
+        --camera-pos 0,4.5,4.5 --camera-lookat 0,-1.5,0 \
+        --caustics --caustics-photons 50000 --caustics-iterations 2 --accumulation-frames 32
 }
 
 test_mesh_receiver_caustics() {
@@ -795,9 +799,13 @@ test_torus_caustics() {
 
 test_icosahedron_caustics() {
     echo "Icosahedron caustics (faceted mesh geometry):"
+    # Seen from above on a light floor, with the point light at 150 (at 500 the floor saturates):
+    # the facets throw a pattern of bright patches into the shadow.
     TIMEOUT=$CAUSTICS_TIMEOUT run_test "icosahedron caustics" \
-        --objects type=icosahedron:size=0.8:material=glass --caustics \
-        --caustics-photons 1000 --caustics-iterations 1 --plane y:-2
+        --objects type=icosahedron:size=0.8:material=glass \
+        --plane y:-2 --plane-color CCCCCC --light point:0,10,0:150 \
+        --camera-pos 0,4.5,4.5 --camera-lookat 0,-1.5,0 \
+        --caustics --caustics-photons 20000 --caustics-iterations 2
 }
 
 test_caustics_ladder() {
@@ -958,8 +966,10 @@ test_menger4d() {
         --objects type=menger4d:level=2:dist-threshold=3:size=0.8
     run_test "menger4d with color" --plane y:-2 \
         --objects type=menger4d:level=1:color=#4488FF:size=0.8
+    # Gold and a closer camera: a chrome sponge at the default distance only mirrored the floor.
     run_test "menger4d with material" --plane y:-2 \
-        --objects type=menger4d:level=1:material=chrome:size=0.8
+        --objects type=menger4d:level=1:material=gold:size=0.8 \
+        --camera-pos 1.5,1,2.5 --camera-lookat 0,0,0
     run_test "menger4d fractional level 1.5" --plane y:-2 \
         --objects type=menger4d:level=1.5:pos=0,0,0:size=0.8
     run_test "menger4d fractional level 2.5" --plane y:-2 \
@@ -1247,6 +1257,16 @@ test_t_animation() {
         --scene examples.dsl.PenteractSpongeBreath --t 4
     run_test "t-animation freeze-frame PenteractSpongeBreath level 2" \
         --scene examples.dsl.PenteractSpongeBreath --t 8
+    # The 5- and 6-cube and their sponges on their own, turned in xw, yv (and zu): the cubes as
+    # a film with gold edges, the sponges in blue-tinted glass so the inner cells show.
+    run_test "DSL PenteractStill" --scene examples.dsl.stills.PenteractStill
+    run_test "DSL HexeractStill" --scene examples.dsl.stills.HexeractStill
+    run_test "DSL PenteractSpongeSurface1" --scene examples.dsl.stills.PenteractSpongeSurface1
+    run_test "DSL PenteractSpongeSurface2" --scene examples.dsl.stills.PenteractSpongeSurface2
+    run_test "DSL PenteractSpongeVolume1" --scene examples.dsl.stills.PenteractSpongeVolume1
+    run_test "DSL HexeractSpongeSurface1" --scene examples.dsl.stills.HexeractSpongeSurface1
+    run_test "DSL HexeractSpongeSurface2" --scene examples.dsl.stills.HexeractSpongeSurface2
+    run_test "DSL HexeractSpongeVolume1" --scene examples.dsl.stills.HexeractSpongeVolume1
 
     # The dimension ladder (menger#160, top dimension 6, a cycle of 202.74 s): t = 0 and the middle of
     # each segment worth a frame, in seconds. These t values are the one place the frames are

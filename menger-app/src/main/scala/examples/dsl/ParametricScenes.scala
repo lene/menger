@@ -69,11 +69,12 @@ object ParametricTorusCaustics:
   private val r = 0.4f
 
   val scene: Scene = Scene(
-    // Camera + light match CausticsCanonical (the pbrt-validated setup) so the caustic is
-    // both bright (intensity 500) and large on screen (camera at z=6).
+    // The light sits where CausticsCanonical's does (the pbrt-validated setup), but at 150, not
+    // 500: at 500 the floor saturates to white and the caustic cannot be brighter than it. The
+    // camera looks down on the floor, where the central spot and the ring of the caustic fall.
     camera = Camera(
-      position = (0f, 1.5f, 6f),
-      lookAt = (0f, 0f, 0f),
+      position = (0f, 4.5f, 4.5f),
+      lookAt = (0f, -1.5f, 0f),
       up = (0f, 1f, 0f)
     ),
     objects = List(ParametricSurface(
@@ -86,7 +87,7 @@ object ParametricTorusCaustics:
       closedU = true, closedV = true,
       material = Some(Material.Glass)
     )),
-    lights = List(Point(position = (0f, 10f, 0f), intensity = 500.0f)),
+    lights = List(Point(position = (0f, 10f, 0f), intensity = 150.0f)),
     planes = List(Plane(Y at -2, color = Color(0.8f, 0.8f, 0.8f))),
     background = Some(Color.Black),
     caustics = Some(Caustics.HighQuality)
@@ -113,7 +114,8 @@ object ParametricWavySheet:
   )
   SceneRegistry.register("parametric-wavy-sheet", scene)
 
-/** Parametric Moebius strip — film material.
+/** Parametric Moebius strip — an opaque plastic, so the strip and its half-twist read clearly
+  * (a film strip is nearly invisible over the checkered floor).
   * Usage: --scene examples.dsl.ParametricMoebius
   *
   * Note: closedU=false is geometrically correct. The strip wraps in u but with a half-twist,
@@ -140,7 +142,7 @@ object ParametricMoebius:
       uRange = (0f, TwoPi), vRange = (0f, 1f),
       uSteps = 128, vSteps = 16,
       closedU = false, closedV = false,
-      material = Some(Material.Film)
+      material = Some(Material.plastic(Color(0.2f, 0.6f, 0.9f)))
     )),
     lights = List(Directional(
       direction = (1f, -1f, -1f),
@@ -168,6 +170,13 @@ object ParametricKleinBottle:
     Vec3(r * cosU, r * sinU, sinHalfU * sinV + cosHalfU * sin2V)
 
   val scene: Scene = Scene(
+    // The bottle is about 7 wide around the z axis: the default camera at (0, 0, 3) sits
+    // inside its ring and sees only a blur of the near wall.
+    camera = Camera(
+      position = (5f, 3f, 11f),
+      lookAt = (0f, 0f, 0f),
+      up = (0f, 1f, 0f)
+    ),
     objects = List(ParametricSurface(
       f = f,
       uRange = (0f, TwoPi), vRange = (0f, TwoPi),
