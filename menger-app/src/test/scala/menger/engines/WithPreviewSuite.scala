@@ -19,11 +19,11 @@ class WithPreviewSuite extends AnyFlatSpec with Matchers:
 
   // Usability review 2026-10, session 4 (F95): a slow frame made the real-time window skip the
   // rest of the loop; the every-frame playback renders every frame, and a window left open pauses.
-  private val step = 1f / WithPreview.EveryFrameRate
+  private val step = 1.0 / WithPreview.EveryFrameRate
 
   "WithPreview.nextEveryFrame" should "advance one step once the wall clock has caught up" in:
     WithPreview.nextEveryFrame(1f, step, elapsedSeconds = 1.05, startT = 0f, endT = 10f) shouldBe
-      Some((1f + step, false))
+      Some((WithPreview.tAtFrame(26, 0.0, step), false))
 
   it should "wait while it is ahead of the wall clock (never faster than real time)" in:
     WithPreview.nextEveryFrame(1f, step, elapsedSeconds = 1.01, startT = 0f, endT = 10f) shouldBe None
@@ -31,21 +31,73 @@ class WithPreviewSuite extends AnyFlatSpec with Matchers:
   it should "not skip when frames are slow: one step per frame however late it is" in:
     // 8a: one frame took 2 s; the next t is still just one step on, not 2 s on.
     WithPreview.nextEveryFrame(10f, step, elapsedSeconds = 12.0, startT = 0f, endT = 12f) shouldBe
-      Some((10f + step, false))
+      Some((WithPreview.tAtFrame(251, 0.0, step), false))
 
   it should "wrap to the start at the end of the loop" in:
-    WithPreview.nextEveryFrame(11.99f, step, elapsedSeconds = 20.0, startT = 0f, endT = 12f) shouldBe
+    WithPreview.nextEveryFrame(11.99, step, elapsedSeconds = 20.0, startT = 0f, endT = 12f) shouldBe
       Some((0f, true))
 
   it should "not move for a non-positive step" in:
     WithPreview.nextEveryFrame(1f, 0f, elapsedSeconds = 9.0, startT = 0f, endT = 10f) shouldBe None
 
+  it should "step on the frame grid, not on the sum of the steps taken so far" in:
+    // After 100000 frames summed in Float the time was off by seconds; a frame's time is its
+    // index times the step, whatever was stepped before.
+    val frame = 100000
+    val t = WithPreview.tAtFrame(frame, 0.0, step)
+    t shouldBe (frame * step +- 1e-9)
+    WithPreview.nextEveryFrame(t, step, elapsedSeconds = 1e9, startT = 0.0, endT = 1e6) shouldBe
+      Some((WithPreview.tAtFrame(frame + 1, 0.0, step), false))
+
+  it should "snap a time between frames (after a key step) back onto the grid" in:
+    WithPreview.nextEveryFrame(
+      1.013, step, elapsedSeconds = 9.0, startT = 0.0, endT = 10.0
+    ) shouldBe Some((WithPreview.tAtFrame(26, 0.0, step), false))
+
+  "WithPreview.nextStepped" should "advance one frame and stop at the end" in:
+    val frameStep = 0.1
+    WithPreview.nextStepped(0.0, frameStep, 0.0, 1.0) shouldBe (0.1, false)
+    WithPreview.nextStepped(0.8, frameStep, 0.0, 1.0)._1 shouldBe (0.9 +- 1e-12)
+    WithPreview.nextStepped(0.9, frameStep, 0.0, 1.0) shouldBe (1.0, true)
+
+  it should "reach the last frame exactly after as many steps as the range has frames" in:
+    // 0..10 s in 101 frames: 100 steps of 0.1 summed in Float stop short of or overshoot 10.
+    val (start, end, frameStep) = (0.0, 10.0, 0.1)
+    val times = Iterator.iterate((start, false))((t, _) =>
+      WithPreview.nextStepped(t, frameStep, start, end))
+    val visited = times.take(200).takeWhile(!_._2).toList
+    visited.size shouldBe 100
+    visited.last._1 shouldBe (9.9 +- 1e-12)
+
+  "WithPreview.frameIndexAt" should "name the frame a time is nearest to" in:
+    WithPreview.frameIndexAt(0.26, 0.0, 0.1) shouldBe 3
+    WithPreview.frameIndexAt(5.0, 5.0, 0.1) shouldBe 0
+    WithPreview.frameIndexAt(3.0, 0.0, 0.0) shouldBe 0
+
+  // The real-time playback measured its skipped time from a time of its own, which stepping and
+  // jumping did not update: resuming after a jump counted the jump as skipped scene time.
+  "WithPreview.realtimeTick" should "count no skipped time for a jump the playhead already made" in:
+    val afterJump = 8.0
+    val tick = WithPreview.realtimeTick(
+      afterJump, 0.0, elapsedSeconds = 8.02, startT = 0.0, endT = 10.0)
+    tick.t shouldBe 8.02
+    tick.skippedTotal shouldBe 0.0
+
+  it should "add the scene time a slow frame jumped over" in:
+    val tick = WithPreview.realtimeTick(3.0, 1.0, elapsedSeconds = 5.0, startT = 0.0, endT = 10.0)
+    tick.skippedTotal shouldBe 3.0
+
+  it should "restart the total at a loop wrap" in:
+    val tick = WithPreview.realtimeTick(9.9, 4.0, elapsedSeconds = 10.05, startT = 0.0, endT = 10.0)
+    tick.t shouldBe (0.05 +- 1e-9)
+    tick.skippedTotal shouldBe 0.0
+
   "WithPreview.skippedSeconds" should "report scene time jumped over by a slow frame" in:
-    WithPreview.skippedSeconds(10.09f, 12.1f) shouldBe (2.01f +- 1e-4f)
+    WithPreview.skippedSeconds(10.09, 12.1) shouldBe (2.01 +- 1e-9)
 
   it should "report nothing for a normal step or a loop wrap" in:
-    WithPreview.skippedSeconds(5f, 5.04f) shouldBe 0f
-    WithPreview.skippedSeconds(11.9f, 0.05f) shouldBe 0f
+    WithPreview.skippedSeconds(5f, 5.04f) shouldBe 0.0
+    WithPreview.skippedSeconds(11.9, 0.05) shouldBe 0.0
 
   "WithPreview.isIdle" should "pause a window left alone past the limit, and not before" in:
     val second = 1000000000L
