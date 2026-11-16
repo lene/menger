@@ -31,16 +31,24 @@ class RunSandboxedScriptSuite extends AnyFlatSpec with Matchers:
 
   /** A `docker` that reports `label` for `inspect`, logs every call, and answers `run` with
     * the validator's `ok` JSON. */
-  private def stubDocker(label: String): File =
+  private val OkJson = """{"tag": "ok", "messages": [], "findings": [], "schemaVersion": "1.0.0"}"""
+  private val LintJson =
+    """{"tag": "lint-findings", "messages": [], "findings": [], "schemaVersion": "1.0.0"}"""
+
+  /** `runOutput` is what the container prints (lines) and `runExit` its exit status. */
+  private def stubDocker(
+    label: String, runOutput: List[String] = List(OkJson), runExit: Int = 0
+  ): File =
     val dir = Files.createTempDirectory("run-sandboxed-stub-").toFile
     dir.deleteOnExit()
     val stub = new File(dir, "docker")
+    val printed = if runOutput.isEmpty then ":" else runOutput.map(line => s"echo '$line'").mkString("; ")
     Files.writeString(stub.toPath,
       s"""#!/usr/bin/env bash
          |echo "$$1" >> "${dir.getPath}/calls"
          |case "$$1" in
          |  inspect) echo "$label" ;;
-         |  run) echo '{"tag": "ok", "messages": [], "findings": [], "schemaVersion": "1.0.0"}' ;;
+         |  run) $printed; exit $runExit ;;
          |esac
          |""".stripMargin)
     Files.setPosixFilePermissions(stub.toPath, PosixFilePermissions.fromString("rwxr-xr-x"))
@@ -77,3 +85,31 @@ class RunSandboxedScriptSuite extends AnyFlatSpec with Matchers:
     exit shouldBe 0
     out should include ("\"tag\": \"ok\"")
     calls should contain ("run")
+
+  // menger#137: what a scene writes to the container's stdout by another route must not pass for
+  // the verdict.
+  it should "print the validator's document when its tag agrees with the exit status" in:
+    val (exit, out, _) = run(stubDocker(ImageHash, List(LintJson), runExit = 1), ImageHash)
+    exit shouldBe 1
+    out should include ("\"tag\": \"lint-findings\"")
+
+  it should "refuse, and print nothing of what the container wrote, when it wrote two documents" in:
+    val (exit, out, _) = run(stubDocker(ImageHash, List(OkJson, LintJson), runExit = 1), ImageHash)
+    exit shouldBe 2
+    ujson.read(out)("tag").str shouldBe "refused"
+    out should not include "lint-findings"
+
+  it should "refuse a document whose tag the exit status contradicts" in:
+    val (exit, out, _) = run(stubDocker(ImageHash, List(OkJson), runExit = 1), ImageHash)
+    exit shouldBe 2
+    ujson.read(out)("tag").str shouldBe "refused"
+
+  it should "refuse output that is not a document" in:
+    val (exit, out, _) = run(stubDocker(ImageHash, List("this is not json"), runExit = 0), ImageHash)
+    exit shouldBe 2
+    ujson.read(out)("tag").str shouldBe "refused"
+
+  it should "pass a run killed from outside through, as it has no result to check" in:
+    val (exit, out, _) = run(stubDocker(ImageHash, Nil, runExit = 124), ImageHash)
+    exit shouldBe 124
+    out.trim shouldBe empty

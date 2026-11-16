@@ -133,9 +133,13 @@ esac
 # client is backgrounded, and the trap kills the container itself.
 CONTAINER_NAME="menger-scene-validator-$$-$(date +%s)"
 
+# The validator's stdout is held back until it is checked (verify_single_result below).
+STDOUT_FILE="$(mktemp)"
+
 cleanup() {
   docker kill "$CONTAINER_NAME" >/dev/null 2>&1 || true
   docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+  rm -f "$STDOUT_FILE"
 }
 trap cleanup EXIT INT TERM
 
@@ -154,9 +158,38 @@ timeout --signal=TERM --kill-after=10s "${TIMEOUT_SECONDS}s" \
   --tmpfs /tmp:rw,noexec,nosuid,size=256m \
   --mount "type=bind,source=$SCENE_FILE_ABS,target=/workspace/scene/$SCENE_BASENAME,readonly" \
   "$IMAGE_TAG" \
-  "/workspace/scene/$SCENE_BASENAME"
+  "/workspace/scene/$SCENE_BASENAME" > "$STDOUT_FILE"
 STATUS=$?
 set -e
+
+# menger#137: the verdict is the validator's one document and its exit code, in agreement. A scene
+# that gets a document onto the container's stdout by some other route (it runs next to the
+# validator) leaves two documents, or a tag the exit code contradicts, and that is `refused`,
+# never what the scene wrote. Only the validator's own exit codes are checked: a run killed from
+# outside (124, 137) has no result to hold to it.
+verify_single_result() {  # verify_single_result <stdout-file> <exit-status>: 0 if it holds
+  python3 - "$1" "$2" "$TAG_EXIT_CODES" <<'PY'
+import json, sys
+path, status, table = sys.argv[1], int(sys.argv[2]), dict(p.split(":") for p in sys.argv[3].split())
+limit = 16 * 1024 * 1024
+with open(path, encoding="utf-8", errors="replace") as f:
+    text = f.read(limit + 1)
+try:
+    document, end = json.JSONDecoder().raw_decode(text.lstrip())
+    ok = (len(text) <= limit and text.lstrip()[end:].strip() == "" and isinstance(document, dict)
+          and table.get(document.get("tag")) == str(status))
+except ValueError:
+    ok = False
+sys.exit(0 if ok else 1)
+PY
+}
+
+case "$STATUS" in
+  0|1|2)
+    verify_single_result "$STDOUT_FILE" "$STATUS" || \
+      refuse "the validator's output is not exactly one result document that agrees with its exit status $STATUS (the scene wrote to the validator's output?)" ;;
+esac
+cat "$STDOUT_FILE"
 
 # `timeout` reports 124 on expiry. cleanup() (via the EXIT trap) stops the container itself,
 # which is what the client being killed never did.

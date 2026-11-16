@@ -30,10 +30,16 @@ import upickle.default.read
   * nonce ([[WorkerProtocol]]) or, when there is none, `refused`. It is never `ok` on the
   * supervisor's own say-so.
   *
-  * What this does not stop: scene code runs with the worker's privileges, so a scene that reads
-  * the nonce out of the worker's own memory (a heap dump through the management interface, for
-  * one) can still print a forged line. The container is the security boundary, as before; `ok`
-  * holds against a scene that is wrong, greedy or casually hostile, not against every adversary. */
+  * The result line is signed with an HMAC keyed by the nonce, so that bytes a scene thread
+  * writes into it (a pipe write is atomic only up to 4096 bytes) make it `refused`.
+  *
+  * KNOWN LIMITATION: the scene's code runs in the worker's own process, so a scene that reads
+  * its own memory (a heap dump through the JVM's management interface, a few tens of lines;
+  * `/proc/self/mem` too where the JVM is dumpable) finds the nonce there and can sign a forged
+  * line that this class cannot tell from the worker's. `ok` holds against a scene that is wrong
+  * or greedy and against the attacks above, not against a scene written to forge it. The
+  * container is the security boundary, not the nonce. A stronger design (the worker in a second
+  * container) is pending the user's decision after menger-scene-agent#58. */
 object ValidationSupervisor extends LazyLogging:
 
   /** Below the 120 s the sandbox wrapper kills the container after: the supervisor can still
@@ -82,7 +88,7 @@ object ValidationSupervisor extends LazyLogging:
     val exitStatus = captured.toOption.filter(_.result.isEmpty).flatMap(_ => exitStatusIfEnded(worker))
     endProcessTree(worker)
     captured match
-      case Success(c) => resultOf(c, exitStatus)
+      case Success(c) => resultOf(c, nonce, exitStatus)
       case Failure(_: TimeoutException) =>
         refusedWithoutResult(
           s"the validation did not finish within ${timeLimit.toSeconds} s and was ended", None)
@@ -108,13 +114,21 @@ object ValidationSupervisor extends LazyLogging:
     worker.destroyForcibly()
     val _ = worker.waitFor(ExitGracePeriodSeconds, TimeUnit.SECONDS)
 
-  private def resultOf(captured: WorkerOutput.Captured, exitStatus: Option[Int]): ValidationResult =
+  private def resultOf(
+    captured: WorkerOutput.Captured, nonce: String, exitStatus: Option[Int]
+  ): ValidationResult =
     captured.result match
-      case Some(json) =>
-        Try(read[ValidationResult](json)).fold(
-          e => refusedWithResultProblem(s"could not read the worker's result: ${e.getMessage}", captured),
-          identity
-        )
+      case Some(payload) =>
+        WorkerProtocol.authenticated(nonce, payload) match
+          case None => refusedWithResultProblem(
+            "the worker's result line failed its authentication: something else wrote into it",
+            captured)
+          case Some(json) =>
+            Try(read[ValidationResult](json)).fold(
+              e => refusedWithResultProblem(
+                s"could not read the worker's result: ${e.getMessage}", captured),
+              identity
+            )
       case None if captured.resultTooLarge =>
         refusedWithResultProblem(
           s"the worker's result is longer than ${WorkerOutput.MaxResultBytes} bytes", captured)

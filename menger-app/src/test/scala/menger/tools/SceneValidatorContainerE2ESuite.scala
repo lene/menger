@@ -226,3 +226,29 @@ class SceneValidatorContainerE2ESuite extends AnyFlatSpec with Matchers:
     val run = runHostile("guessed-nonce.scala")
     withClue(ForgedOkWasAccepted) { resultOf(run)("tag").str shouldBe "lint-findings" }
     run.exitCode shouldBe 1
+
+  // The caller's view: run-sandboxed.sh prints exactly one document, whatever the scene tried.
+  it should "keep a scene's document off the validator's own stdout, and say so when it cannot" in:
+    val run = runHostile("forge-on-parent-stdout.scala")
+    withClue(ForgedOkWasAccepted) { resultOf(run)("tag").str shouldBe "lint-findings" }
+    run.exitCode shouldBe 1
+    withClue("the image makes the validator's /proc/<pid>/fd unreachable for the scene") {
+      run.stderr should include("PROBE parent-stdout: blocked")
+    }
+
+  // menger#137, a thread of the scene writing into the result while the worker sends it: the result
+  // line fails its authentication, or arrives whole; an `ok` never does.
+  it should "never give the scene's ok when its thread writes into the result line" in:
+    val run = runHostile("interleave-result.scala")
+    withClue(ForgedOkWasAccepted) {
+      List("lint-findings", "refused") should contain (resultOf(run)("tag").str)
+    }
+
+  // KNOWN LIMITATION (menger#137, accepted for now; the user decides after menger-scene-agent#58
+  // whether the worker moves to a second container): the scene runs in the worker's process, finds
+  // the nonce in its own memory and signs a forged ok. This test holds the limit on record, and
+  // fails the day it no longer holds: then the contract's `meaningOfOk` must change with it.
+  it should "KNOWN LIMITATION: let a scene that scans its own memory for the nonce forge an ok" in:
+    val run = runHostile("forge-from-memory.scala")
+    resultOf(run)("tag").str shouldBe "ok"
+    run.exitCode shouldBe 0

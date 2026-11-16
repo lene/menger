@@ -31,7 +31,14 @@ class ValidationSupervisorSuite extends AnyFlatSpec with Matchers:
   private def fakeWorker(body: String): List[String] =
     List("bash", "-c", s"read -r nonce\n$body")
 
-  private def line(json: String) = s"""printf '%s %s\\n' "$$nonce" '$json'"""
+  /** The result line the real worker prints: the nonce, the HMAC of the result keyed by the nonce
+    * (what `WorkerProtocol.mac` computes, here by openssl), the result. `printed` is what goes
+    * out as the result, a shell expression: it differs from `json` when a test tampers with it. */
+  private def signed(json: String, printed: String = "$json") =
+    s"""json='$json'; mac=$$(printf '%s' "$$json" | openssl dgst -sha256 -hmac "$$nonce" -r | """ +
+      s"""cut -d' ' -f1); printf '%s %s %s\\n' "$$nonce" "$$mac" "$printed" """
+
+  private def line(json: String) = signed(json)
 
   // --- the protocol ---------------------------------------------------------------------------
 
@@ -40,9 +47,26 @@ class ValidationSupervisorSuite extends AnyFlatSpec with Matchers:
     nonces.foreach(_ should fullyMatch regex "[0-9a-f]{32}")
     nonces.distinct should have size 50
 
+  // HMAC-SHA256, key "key", message "abc": openssl dgst -sha256 -hmac key. The fake workers
+  // sign with openssl, so this also holds the two implementations together.
+  private val KnownMac = "9c196e32dc0175f86f4b1cb89289d6619de6bee699e4c378e68309ed97a1a6ab"
+
+  "WorkerProtocol.mac" should "be the HMAC-SHA256 of the result keyed by the nonce" in:
+    WorkerProtocol.mac("key", "abc") shouldBe KnownMac
+
   "WorkerProtocol.resultLine" should "start with a line break, so a half-written scene line cannot join it" in:
-    val text = new String(WorkerProtocol.resultLine("abc", """{"a": 1}"""), UTF_8)
-    text shouldBe "\nabc {\"a\": 1}\n"
+    val text = new String(WorkerProtocol.resultLine("key", "abc"), UTF_8)
+    text shouldBe s"\nkey $KnownMac abc\n"
+
+  "WorkerProtocol.authenticated" should "give the result of a line the nonce signed" in:
+    WorkerProtocol.authenticated("key", s"$KnownMac abc") shouldBe Some("abc")
+
+  it should "reject a result that was changed, signed with another nonce, or not signed" in:
+    WorkerProtocol.authenticated("key", s"$KnownMac abd") shouldBe None
+    WorkerProtocol.authenticated("other", s"$KnownMac abc") shouldBe None
+    WorkerProtocol.authenticated("key", "abc") shouldBe None
+    WorkerProtocol.authenticated("key", KnownMac) shouldBe None
+    WorkerProtocol.authenticated("key", "") shouldBe None
 
   // --- reading the worker's output ------------------------------------------------------------
 
@@ -70,7 +94,7 @@ class ValidationSupervisorSuite extends AnyFlatSpec with Matchers:
   it should "find a result that follows a line without its line break, because the result line starts with one" in:
     val bytes = "half a line".getBytes(UTF_8) ++ WorkerProtocol.resultLine("N", "{}")
     val captured = WorkerOutput.read(new ByteArrayInputStream(bytes), "N")
-    captured.result shouldBe Some("{}")
+    captured.result shouldBe Some(s"${WorkerProtocol.mac("N", "{}")} {}")
     captured.sceneOutput shouldBe List("half a line")
 
   it should "keep the first 20 lines of scene output, each cut short, and count them all" in:
@@ -166,6 +190,26 @@ class ValidationSupervisorSuite extends AnyFlatSpec with Matchers:
     val flood = "head -c 52428800 /dev/zero | tr '\\0' x; echo"
     val result = ValidationSupervisor.supervise(fakeWorker(s"$flood; ${line(write(LintResult))}"), Generous)
     result shouldBe LintResult
+
+  it should "report refused when the line with the nonce is not signed" in:
+    val unsigned = s"""printf '%s %s\\n' "$$nonce" '$ForgedOk'"""
+    val result = ValidationSupervisor.supervise(fakeWorker(unsigned), Generous)
+    result.tag shouldBe Tag.Refused
+    result.messages.head should include("failed its authentication")
+
+  it should "report refused, not the forged ok, when the result was changed after it was signed" in:
+    val result = ValidationSupervisor.supervise(
+      fakeWorker(signed(write(LintResult), printed = ForgedOk)), Generous)
+    result.tag shouldBe Tag.Refused
+    result.messages.head should include("failed its authentication")
+
+  it should "report refused, not the scene's ok, when another thread's bytes landed inside the result" in:
+    val injected = """\",\"tag\":\"ok\",\"z\":\""""
+    val interleaved = "${json:0:30}" + injected + "${json:30}"
+    val result = ValidationSupervisor.supervise(
+      fakeWorker(signed(write(LintResult), printed = interleaved)), Generous)
+    result.tag shouldBe Tag.Refused
+    result.messages.head should include("failed its authentication")
 
   it should "report refused when the line with the nonce is not a result" in:
     val result = ValidationSupervisor.supervise(fakeWorker(line("not json")), Generous)

@@ -87,6 +87,14 @@ class ProcessContractSuite extends AnyFlatSpec with Matchers:
       ujson.read(stdout)("tag").str shouldBe "refused"
       exit shouldBe contract("exitCodes")("refused").num.toInt
 
+  // run-sandboxed.sh holds the validator's output to this table (menger#137).
+  "refused-result.sh" should "carry the contract's tag-to-exit-code table" in:
+    val line = Files.readAllLines(new File(repoRoot, "docker/scene-validator/refused-result.sh").toPath)
+      .toArray.map(_.toString).find(_.startsWith("TAG_EXIT_CODES=")).getOrElse(fail("no TAG_EXIT_CODES"))
+    val table = line.stripPrefix("TAG_EXIT_CODES=").stripPrefix("\"").takeWhile(_ != '"')
+      .split(" ").map(_.split(":")).map(pair => pair(0) -> pair(1).toInt).toMap
+    table shouldBe contract("exitCodes").obj.map((tag, code) => tag -> code.num.toInt).toMap
+
   "The window's events and state" should "match the contract's kinds and versions" in:
     val events = contract("windowEvents")
     WindowEvents.Kind.values.map(_.wire).toSet shouldBe events("kinds").arr.map(_.str).toSet

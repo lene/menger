@@ -6,6 +6,9 @@
 
 RESULT_SCHEMA_VERSION="2.0.0"   # = SceneValidator.SchemaVersion
 REFUSED_EXIT_CODE=2             # = SceneValidator.exitCodeFor(Refused)
+# tag:exit-code for every tag (= contracts/process-result.json `exitCodes`; ProcessContractSuite
+# holds this line to the file). run-sandboxed.sh checks the validator's output against it.
+TAG_EXIT_CODES="ok:0 compile-errors:1 lint-findings:1 refused:2"
 
 # json_string <text>: <text> as a JSON string literal.
 json_string() {

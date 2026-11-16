@@ -166,10 +166,19 @@
   or leaves a thread running no longer changes the verdict: no result line is `refused` (exit 2,
   "the scene ended the validation before a result", with the first 20 lines of the scene's output
   quoted and marked as the scene's), a result followed by a hang is used, and the validator's own
-  100 s limit gives `refused` instead of the wrapper's silent exit 124. Residual risk: a scene that
-  reads the nonce out of the worker's memory can still forge the line; the container remains the
-  boundary (`contracts/process-result.json`, `meaningOfOk`). The image's heap is split: 64 MB for
-  the validator, 60 % of the container's memory for the worker (was 75 % for one JVM).
+  100 s limit gives `refused` instead of the wrapper's silent exit 124. The result line is signed
+  with an HMAC keyed by the nonce, so bytes a scene thread writes into it make it `refused`; the
+  java executable in the image is execute-only, so that a scene cannot open the validator's
+  stdout through `/proc/<pid>/fd/1`; `run-sandboxed.sh` prints the validator's output only if it
+  is exactly one result document whose tag agrees with the exit status (else `refused`).
+  Known limitation, accepted for now: the scene's code runs in the worker's own process, so a
+  scene that reads its own process's memory (a heap dump through the management interface,
+  a few tens of lines) finds the nonce and can forge a verdict;
+  the container remains the boundary (`contracts/process-result.json`, `meaningOfOk`). A stronger
+  design (the worker in a second container) is pending the user's decision after
+  menger-scene-agent#58; menger#137 stays open until then. The
+  image's heap is split: 64 MB for the validator, 60 % of the container's memory for the worker
+  (was 75 % for one JVM).
 - The dimension ladder keeps its old pace (menger#160; decided by user 2026-11-15: "Keep the old pace."):
   the ascent runs at 36/19 s per weight unit and the descent takes 36 s, whatever the breath depths,
   so the cycle is derived from them (202.74 s for top 6 at the Deep depths, not a fixed 180 s that

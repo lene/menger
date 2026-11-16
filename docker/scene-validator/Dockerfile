@@ -95,6 +95,16 @@ ENV NVIDIA_DRIVER_CAPABILITIES=display
 # Runs as a non-root user: nothing in SceneValidator's own code path needs root, and AD-18's
 # containment is defense-in-depth, not a substitute for least privilege.
 RUN useradd --create-home --shell /usr/sbin/nologin scene-validator
+
+# menger#137: the worker JVM runs the scene's code as the same user as the validator JVM that
+# prints the result, and a same-user process may open /proc/<pid>/fd/1 of another one and write a
+# document of its own to the validator's real stdout. A process that was started from an
+# executable it cannot read is not dumpable, and the kernel then refuses that access to
+# everyone but root. So the java executable is execute-only: both JVMs start non-dumpable.
+# (A different user for the worker would do the same, but the container runs with `--cap-drop
+# ALL`, and changing user needs CAP_SETUID.) A process can still read its own memory.
+# SceneValidatorContainerE2ESuite (forge-on-parent-stdout.scala) holds this to account.
+RUN chmod 711 "$(readlink -f /usr/bin/java)"
 USER scene-validator
 
 WORKDIR /workspace
@@ -108,7 +118,12 @@ WORKDIR /workspace
 # a worker JVM that does (menger.tools.ValidationSupervisor). -Xmx64m is the validator's own
 # heap, enough to read a result. The worker takes the rest of the container's memory through
 # -XX:MaxRAMPercentage, which the validator passes on (it passes on every JVM option but
-# -Xmx/-Xms).
+# -Xmx/-Xms). The worker signs its result with the nonce the validator gave it; the scene runs in
+# the worker's own process, so a scene that reads its process memory (a heap dump through the
+# management interface; /proc/self/mem too, where the JVM is dumpable) finds the nonce and can
+# forge a verdict (documented, and held on record by forge-from-memory.scala). The
+# container, not the nonce, is the security boundary (a second container for the worker is
+# pending the user's decision after menger-scene-agent#58).
 # -XX:MaxRAMPercentage (review round 2): without it the JVM sizes its heap from the *host's*
 # memory view at ~25%, which under run-sandboxed.sh's `--memory 2g` lands near 512MB while
 # SceneCompiler drives the full Scala 3 compiler inside it. The resulting OutOfMemoryError is
