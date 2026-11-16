@@ -129,14 +129,18 @@ object SceneValidator extends LazyLogging:
     loadError: Option[LoadFailure] = None
   ) derives ReadWriter
 
+  /** Never loads scene code: the scene is loaded and checked by a worker JVM that
+    * [[ValidationSupervisor]] starts, and this process prints the result alone, so a scene that
+    * prints a result of its own or ends its JVM cannot give the validator's verdict (menger#137).
+    * The worker is [[SceneValidatorWorker]], which does what [[run]] does in this JVM. */
   def main(args: Array[String]): Unit =
-    val result = run(args) match
-      case Right(r)      => r
+    val result = args.headOption match
+      case Some(path) => ValidationSupervisor.validate(path)
       // A usage error is exactly what `refused` exists for: the pipeline was handed something
       // it cannot validate. Emitting the message through the logger and no JSON at all
       // (review round 2) broke run-sandboxed.sh's documented "prints a tagged JSON result"
       // contract for the one case most likely to be hit by a mis-wired caller.
-      case Left(message) => ValidationResult(Tag.Refused, List(message))
+      case None => ValidationResult(Tag.Refused, List(UsageMessage))
     SceneValidatorMain.printResult(write(result, indent = 2))
     SceneValidatorMain.exitWith(exitCodeFor(result.tag))
 
@@ -150,12 +154,14 @@ object SceneValidator extends LazyLogging:
     case Tag.Refused => 2
     case _           => 1
 
-  /** Pure-ish entry point (the only I/O is loading/compiling the scene file) -- kept separate
-    * from `main` so tests can observe results without triggering `sys.exit`, mirroring
-    * `ManifestGenerator.run`/`CorpusExporter.run`. */
+  private val UsageMessage = "Usage: SceneValidator <scene-file.scala>"
+
+  /** Validates in this JVM, which runs the scene's code: what the worker does, and what tests
+    * observe without a second JVM or `sys.exit`, mirroring `ManifestGenerator.run`/
+    * `CorpusExporter.run`. `main` does not call it. */
   def run(args: Array[String]): Either[String, ValidationResult] =
     args.headOption match
-      case None       => Left("Usage: SceneValidator <scene-file.scala>")
+      case None       => Left(UsageMessage)
       case Some(path) => Right(validate(new File(path)))
 
   /** Runs the full stage-1 + stage-4 gauntlet against `file` and returns SA-AD-5's tagged

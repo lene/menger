@@ -104,10 +104,16 @@ WORKDIR /workspace
 # mechanism `RestrictedClasspath.fullClasspath`'s `java.class.path` inspection relies on to
 # see each jar as its own classpath entry, individually name-matched against the DSL-surface
 # allowlist (see RestrictedClasspath.scala).
+# Two JVMs (menger#137): the validator that prints the result never runs scene code; it starts
+# a worker JVM that does (menger.tools.ValidationSupervisor). -Xmx64m is the validator's own
+# heap, enough to read a result. The worker takes the rest of the container's memory through
+# -XX:MaxRAMPercentage, which the validator passes on (it passes on every JVM option but
+# -Xmx/-Xms).
 # -XX:MaxRAMPercentage (review round 2): without it the JVM sizes its heap from the *host's*
 # memory view at ~25%, which under run-sandboxed.sh's `--memory 2g` lands near 512MB while
 # SceneCompiler drives the full Scala 3 compiler inside it. The resulting OutOfMemoryError is
 # now a tagged `lint-findings` rather than a crash (see SceneValidator.validate), but sizing the
-# heap to the cgroup limit is what stops it happening at all.
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-cp", "/opt/menger-app/lib/*", \
+# heap to the cgroup limit is what stops it happening at all. 60%, not the 75% of the single JVM
+# this was: the validator's JVM (64 MB of heap plus its own overhead) lives in the same 2 GB.
+ENTRYPOINT ["java", "-Xmx64m", "-XX:MaxRAMPercentage=60.0", "-cp", "/opt/menger-app/lib/*", \
             "menger.tools.SceneValidator"]

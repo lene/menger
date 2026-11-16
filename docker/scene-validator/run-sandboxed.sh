@@ -24,7 +24,8 @@ stdout. Exit codes mirror the validator's own: 0 for `ok`, 1 for a scene defect
 (compile-errors/lint-findings), 2 for `refused` -- including a usage error, as the validator's
 own (contracts/process-result.json). A run killed by the wall-clock timeout below exits 124
 with no JSON -- callers should treat "no valid JSON on stdout" as its own failure mode, not
-just a non-zero exit.
+just a non-zero exit. The validator's own time limit (100 s) is below that one: a scene that
+keeps the validation from ending gets a `refused` result with exit 2, not a 124 (menger#137).
 USAGE
   refuse "run-sandboxed.sh: usage error (see stderr)"
 }
