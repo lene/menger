@@ -41,26 +41,7 @@ case class Face(xCen: Float, yCen: Float, zCen: Float, scale: Float, normal: Dir
     * `dst` from `offset`, so a mesh of many faces fills one array instead of merging one small
     * mesh per face (usability review 2026-10, session 4, F86). */
   def writeVertices(dst: Array[Float], offset: Int): Unit =
-    val half = scale / 2
-    val n = normal.toFloatArray
-    // Face vertices are in the plane perpendicular to normal, at distance 0 from center
-    // The center (xCen, yCen, zCen) should already be positioned correctly by the caller
-    val offsets: Seq[Vec3[Float]] = normal match
-      case X | Direction.negX => Seq((0f, -half, -half), (0f, -half, half), (0f, half, half), (0f, half, -half))
-      case Y | Direction.negY => Seq((-half, 0f, -half), (half, 0f, -half), (half, 0f, half), (-half, 0f, half))
-      case Z | Direction.negZ => Seq((-half, -half, 0f), (half, -half, 0f), (half, half, 0f), (-half, half, 0f))
-
-    offsets.zip(Face.QuadUVs).zipWithIndex.foreach { case (((dx, dy, dz), (u, v)), corner) =>
-      val base = offset + corner * Face.VertexStride
-      dst(base) = xCen + dx
-      dst(base + 1) = yCen + dy
-      dst(base + 2) = zCen + dz
-      dst(base + 3) = n(0)
-      dst(base + 4) = n(1)
-      dst(base + 5) = n(2)
-      dst(base + 6) = u
-      dst(base + 7) = v
-    }
+    Face.writeQuad(dst, offset, xCen, yCen, zCen, scale, normal)
 
   // 8 sub-faces in the same plane: 3x3 grid minus center
   // Condition abs(x) + abs(y) > 0 excludes only (0,0), keeping the 8 surrounding positions
@@ -118,5 +99,47 @@ object Face:
   /** UV coordinates for quad corners: (0,0), (1,0), (1,1), (0,1) */
   val QuadUVs: Seq[(Float, Float)] = Seq((0f, 0f), (1f, 0f), (1f, 1f), (0f, 1f))
 
+  private val QuadU: Array[Float] = QuadUVs.map(_._1).toArray
+  private val QuadV: Array[Float] = QuadUVs.map(_._2).toArray
+
+  // The quad's corners as signs (-1 or 1) of half the edge, along the two axes of the face's
+  // plane: (y, z) for X faces, (x, z) for Y faces, (x, y) for Z faces.
+  private val SignsAcrossX = (Array(-1f, -1f, 1f, 1f), Array(-1f, 1f, 1f, -1f))
+  private val SignsAcrossYZ = (Array(-1f, 1f, 1f, -1f), Array(-1f, -1f, 1f, 1f))
+
   def apply(xyzCen: Vec3[Float], scale: Float, normal: Direction): Face =
     Face(xyzCen.x, xyzCen.y, xyzCen.z, scale, normal)
+
+  /** Writes the 4 vertices of the square of edge `scale` centred at `(xCen, yCen, zCen)` and
+    * perpendicular to `normal`, into `dst` from `offset`. Allocates nothing: it is called once
+    * per face of meshes with millions of them. */
+  def writeQuad(
+    dst: Array[Float], offset: Int, xCen: Float, yCen: Float, zCen: Float, scale: Float,
+    normal: Direction
+  ): Unit =
+    val half = scale / 2
+    val (alongA, alongB) = normal match
+      case X | Direction.negX => SignsAcrossX
+      case _ => SignsAcrossYZ
+    for corner <- 0 until VerticesPerFace do
+      val a = alongA(corner) * half
+      val b = alongB(corner) * half
+      val base = offset + corner * VertexStride
+      normal match
+        case X | Direction.negX =>
+          dst(base) = xCen + 0f
+          dst(base + 1) = yCen + a
+          dst(base + 2) = zCen + b
+        case Y | Direction.negY =>
+          dst(base) = xCen + a
+          dst(base + 1) = yCen + 0f
+          dst(base + 2) = zCen + b
+        case Z | Direction.negZ =>
+          dst(base) = xCen + a
+          dst(base + 1) = yCen + b
+          dst(base + 2) = zCen + 0f
+      dst(base + 3) = normal.x.toFloat
+      dst(base + 4) = normal.y.toFloat
+      dst(base + 5) = normal.z.toFloat
+      dst(base + 6) = QuadU(corner)
+      dst(base + 7) = QuadV(corner)

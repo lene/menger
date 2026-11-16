@@ -140,6 +140,10 @@
 
 ### Changed
 
+- The `sponge-volume` mesh at level 5 (13.1M triangles) builds in under a second instead of
+  4 s, and a headless render of it peaks at 2.6 GB resident instead of 4.7 GB (menger#68, F86): it writes the faces
+  straight into the two mesh arrays, the subtrees of the top levels in parallel, instead of
+  collecting a `Face` object per face first on one thread. The mesh is identical, byte for byte.
 - The dimension ladder keeps its old pace (menger#160; decided by user 2026-11-15: "Keep the old pace."):
   the ascent runs at 36/19 s per weight unit and the descent takes 36 s, whatever the breath depths,
   so the cycle is derived from them (202.74 s for top 6 at the Deep depths, not a fixed 180 s that

@@ -90,10 +90,40 @@ class SpongeByVolumeMeshSuite extends AnyFlatSpec with Matchers:
         mesh.vertices shouldBe reference.vertices
       }
 
+  // Level 4 is the first level whose subtrees are written in parallel (SpongeByVolume's
+  // ParallelFromFaces), which the levels above cannot tell from the sequential path.
+  it should "produce exactly the recursive merge's mesh where subtrees are written in parallel" taggedAs Slow in:
+    val mesh = SpongeByVolume(Vector.Zero[3], 1f, 4f).toTriangleMesh
+    val reference = legacyMesh(Vector.Zero[3], 1f, 4, Set.empty)
+    mesh.indices shouldBe reference.indices
+    mesh.vertices shouldBe reference.vertices
+
+  // Level 5 (F86, menger#68) held a Face object per face next to the mesh and ran the window out
+  // of memory: the build must allocate little more than the two arrays it returns.
+  it should "allocate little more than the mesh arrays it returns" in:
+    val level = 4
+    val meshBytes = SpongeByVolume.triangleCount(level) / 2 *
+      (Face.FloatsPerFace * java.lang.Float.BYTES + Face.QuadIndices.length * Integer.BYTES)
+    val allocated = allocatedBytesAcrossThreads:
+      SpongeByVolume(Vector.Zero[3], 1f, level.toFloat).toTriangleMesh
+    allocated should be < (meshBytes * MaxAllocationPerMeshByte).toLong
+
   "SpongeByVolume.triangleCount" should "match the generated mesh" in:
     for level <- 0 to 3 do
       SpongeByVolume.triangleCount(level) shouldBe
         SpongeByVolume(Vector.Zero[3], 1f, level.toFloat).toTriangleMesh.numTriangles.toLong
+
+  /** Bytes allocated by the JVM's threads while `body` runs: the fork-join workers that write
+    * parallel subtrees allocate too. Threads that ended meanwhile are not counted. */
+  private def allocatedBytesAcrossThreads(body: => Any): Long =
+    val threads = java.lang.management.ManagementFactory
+      .getPlatformMXBean(classOf[com.sun.management.ThreadMXBean])
+    def total = threads.getThreadAllocatedBytes(threads.getAllThreadIds).filter(_ >= 0).sum
+    val before = total
+    val _ = body
+    total - before
+
+  private val MaxAllocationPerMeshByte = 1.5
 
   private def legacyFaceMesh(f: Face): menger.common.TriangleMeshData =
     val half = f.scale / 2

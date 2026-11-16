@@ -28,7 +28,8 @@ object ResourceLimits:
 
   /** `sponge-volume`: one CPU mesh of the 20^level cubes' visible faces. Level 5 (13.1M
     * triangles) used to run the render window out of memory while it was merged level by
-    * level; built into one array it opens in about 10 s at about 4.5 GB (measured 2026-10-13). */
+    * level; written straight into the two mesh arrays, in parallel, the build takes under a second
+    * and needs no more heap than the mesh itself, about 1 GB (measured 2026-11-16, menger#68). */
   val volumeSpongeLevel: LevelLimit =
     LevelLimit(Const.Engine.spongeLevelWarningThreshold, Const.Engine.cubeSpongeMaxLevel)
 
