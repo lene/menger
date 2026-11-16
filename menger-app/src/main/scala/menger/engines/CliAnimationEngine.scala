@@ -97,7 +97,7 @@ class CliAnimationEngine(
       val geometry = FrameChange.Geometry(animatedSpecs, environment.planes, None,
         animatedTextures = animatedSpecs.exists(_.videoTexture.nonEmpty))
       if FrameChange.classify(lastGeometry.get, geometry) == FrameChange.Rebuild then
-        renderer.clearAllInstances()
+        clearScene(renderer)
         val built = buildSceneFromSpecs(animatedSpecs, renderer)
         built.failed.foreach(e => logger.error(FrameBuildFailure.message(s"frame $frame", e), e))
         lastGeometry.set(Option.when(built.isSuccess)(geometry))

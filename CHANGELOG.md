@@ -149,7 +149,11 @@
   triangle from the measured 141 B at the peak, a 256 MiB headroom, and 2.25 GiB reserved for the
   buffers the first render allocates), not the fixed 16M, so a bigger GPU accepts bigger scenes
   and a scene that does not fit is refused before the upload with the budget and the free memory
-  in the message. The scene being replaced counts as free (it is cleared before the rebuild).
+  in the message. The scene being replaced counts as free (it is cleared before the rebuild; the
+  credit is recorded when a build succeeds and dropped when the scene is cleared or a build
+  fails). The budget is also bounded by the JVM heap, 512 B per triangle beyond a 256 MiB reserve
+  (the surface sponge measured 510 B per triangle at the peak of building its mesh): the packaged
+  launcher's 8 GiB takes 16.2M triangles, and a refusal for the heap says to raise `-Xmx`.
   Where the memory cannot be read (the scene validator, the manifest, an engine before its
   renderer exists) the 16M of `ResourceLimits.sceneMaxTriangles` stays. The level limits of the
   constructors (`ResourceLimits.ndSpongeLevel` and the per-type ceilings) are unchanged.

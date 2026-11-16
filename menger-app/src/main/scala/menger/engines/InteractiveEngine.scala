@@ -599,7 +599,7 @@ class InteractiveEngine(
     // This engine builds through its own 4D-tracking builders, not `buildSceneFromSpecs`, so
     // the scene budget is checked here too: an over-budget first scene opened the window and
     // ran it out of memory (found by the WP-F startup check, review 2026-10-14, menger#80).
-    withinBudget(specs).flatMap(_ => buildTrackedOrFallback(specs, renderer))
+    building(specs)(buildTrackedOrFallback(specs, renderer))
 
   private def buildTrackedOrFallback(
     specs: List[ObjectSpec],
@@ -699,7 +699,7 @@ class InteractiveEngine(
         logger.debug(
           s"Rebuilding scene with updated rotation; camera: eye=$savedEye, lookAt=$savedLookAt"
         )
-        val built = Try { renderer.clearAllInstances() }
+        val built = Try { clearScene(renderer) }
           .flatMap(_ => buildScene4DTrackedOrFallback(specs, renderer))
         built.fold(
           _ => scene4DCache.set(Scene4DCache.Empty),

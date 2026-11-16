@@ -12,9 +12,9 @@ import menger.common.ProfilingConfig
 import menger.common.RenderConfig
 import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
-import menger.dsl.ResourceLimits
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SceneCost
+import menger.engines.scene.TriangleBudget
 import menger.engines.scene.VramBudget
 import menger.failure.Fail
 import menger.input.OptiXRenderResources
@@ -95,8 +95,9 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
   // Must be provided by concrete engine — where texture assets live
   protected def textureDir: String
 
-  // Triangles of the scene the last passing check let through: still on the GPU when the next
-  // check runs, and cleared before that scene is built (menger#179).
+  // Triangles of the scene on the GPU: set when a build succeeds, zero when the scene is cleared
+  // or a build fails. The next check counts them as free, since a rebuild clears them first
+  // (menger#179).
   private val residentTriangles = AtomicLong(0L)
 
   /** The device's free memory; None until the renderer exists, or when the query fails.
@@ -105,36 +106,53 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
 
   protected def firstRenderPending: Boolean = !rendererWrapper.hasRendered
 
+  protected def maxHeapBytes: Long = Runtime.getRuntime.maxMemory
+
   private def gpuMemory: Option[VramBudget.GpuMemory] =
     freeGpuMemoryBytes.map(VramBudget.GpuMemory(_, residentTriangles.get, firstRenderPending))
 
   /** Refuses a scene over the scene-wide budget before any mesh is allocated, on every build
     * path -- start, reload, preview, animation (review 2026-10-14, menger#80/#107). The triangle
-    * budget is what the free GPU memory takes (menger#179), the fixed
-    * `ResourceLimits.sceneMaxTriangles` where it cannot be read; the other budgets are
-    * `ResourceLimits`'. Caustics are left out: the validator checks them from the DSL scene. */
+    * budget is the smaller of what the free GPU memory takes and what the JVM heap takes
+    * (menger#179), the fixed `ResourceLimits.sceneMaxTriangles` where the GPU memory cannot be
+    * read; the other budgets are `ResourceLimits`'. Caustics are left out: the validator checks
+    * them from the DSL scene. A pure query: building a scene goes through [[building]]. */
   protected def withinBudget(specs: List[ObjectSpec]): Try[Unit] =
-    val memory = gpuMemory
-    val budget = memory.fold(ResourceLimits.sceneMaxTriangles)(VramBudget.triangleBudget)
+    estimateWithinBudget(specs).map(_ => ())
+
+  /** [[withinBudget]], with the estimate the scene was passed on. */
+  protected def estimateWithinBudget(specs: List[ObjectSpec]): Try[SceneCost.Estimate] =
+    val budget = TriangleBudget.resolve(gpuMemory, maxHeapBytes)
     val estimate =
-      SceneCost.estimate(specs, accumulationFrames, SceneCost.CausticsLoad.None, budget)
-    val overTriangleBudget = estimate.triangles > budget
+      SceneCost.estimate(specs, accumulationFrames, SceneCost.CausticsLoad.None, budget.triangles)
+    val origin = if estimate.triangles > budget.triangles && budget.origin.nonEmpty
+      then s" [${budget.origin}]" else ""
     SceneCost.check(estimate)
-      .left.map(problem =>
-        IllegalArgumentException(problem + budgetOrigin(memory.filter(_ => overTriangleBudget))))
-      .map(_ => residentTriangles.set(estimate.triangles))
+      .left.map(problem => IllegalArgumentException(problem + origin))
+      .map(_ => estimate)
       .toTry
 
-  // Where a refusal's triangle budget came from, so "budget 14,000,000" can be traced to the GPU
-  private def budgetOrigin(memory: Option[VramBudget.GpuMemory]): String =
-    memory.fold("")(m =>
-      s" [the triangle budget follows the free GPU memory: ${m.freeBytes / VramBudget.BytesPerMiB} MiB free]")
+  /** Checks the scene against the budget, then runs `build`: a build that succeeds leaves the
+    * scene's triangles on the GPU, a failed one leaves none (it clears the old scene first). */
+  protected def building(specs: List[ObjectSpec])(build: => Try[Unit]): Try[Unit] =
+    estimateWithinBudget(specs).flatMap(recordingResident(_)(build))
+
+  /** Runs `build` of a scene already checked as `estimate`, and records what is resident. */
+  protected def recordingResident(estimate: SceneCost.Estimate)(build: => Try[Unit]): Try[Unit] =
+    val built = Try(build).flatten
+    residentTriangles.set(if built.isSuccess then estimate.triangles else 0L)
+    built
+
+  /** Removes every instance; what the scene held on the GPU counts as free from here on. */
+  protected def clearScene(renderer: OptiXRenderer): Unit =
+    renderer.clearAllInstances()
+    residentTriangles.set(0L)
 
   protected def buildSceneFromSpecs(
     specs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
-    withinBudget(specs).flatMap(_ => buildSpecsWithinBudget(specs, renderer))
+    building(specs)(buildSpecsWithinBudget(specs, renderer))
 
   private def buildSpecsWithinBudget(
     specs: List[ObjectSpec],
@@ -172,7 +190,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     renderer: io.github.lene.optix.OptiXRenderer
   ): Try[Unit] =
     val specs = configs.scene.objectSpecs.getOrElse(List.empty)
-    withinBudget(specs).flatMap(_ => buildConfigSpecsWithinBudget(specs, renderer))
+    building(specs)(buildConfigSpecsWithinBudget(specs, renderer))
 
   private def buildConfigSpecsWithinBudget(
     specs: List[ObjectSpec],
@@ -202,8 +220,14 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
     specs: List[ObjectSpec],
     renderer: io.github.lene.optix.OptiXRenderer
   ): Unit =
-    withinBudget(specs).get // before clearing, so a refused scene leaves the old one standing
-    renderer.clearAllInstances()
+    // checked before clearing, so a refused scene leaves the old one standing
+    building(specs)(Try(rebuildGeometryChecked(specs, renderer))).get
+
+  private def rebuildGeometryChecked(
+    specs: List[ObjectSpec],
+    renderer: io.github.lene.optix.OptiXRenderer
+  ): Unit =
+    clearScene(renderer)
     RenderModeSelector.classify(specs) match
       case _ if SceneGroups.hasMixedEdge4D(specs) =>
         buildMixedSceneObjects(specs, renderer)
@@ -250,6 +274,7 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
   override def dispose(): Unit =
     renderResources.dispose()
     rendererWrapper.dispose()
+    residentTriangles.set(0L)
   override def pause(): Unit  = {}
   override def resume(): Unit = {}
 

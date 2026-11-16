@@ -352,15 +352,15 @@ trait WithPreview extends RenderEngine with LazyLogging:
           (inPlace.map(_ => ()), false)
         // The budget first, before the current frame's instances go: the tracked 4D build
         // does not pass through `buildSceneFromConfigs`, which checks it (menger#80).
-        case None => withinBudget(specs) match
-          case failed @ scala.util.Failure(_) => (failed, false)
-          case _ =>
-            renderer.clearAllInstances()
+        case None => estimateWithinBudget(specs) match
+          case scala.util.Failure(refused) => (scala.util.Failure(refused), false)
+          case scala.util.Success(estimate) =>
+            clearScene(renderer)
             tracked4D.set(None)
             trackedEdges.set(None)
             trackedMixed.set(None)
             val maxInstances = computeEffectiveMaxInstances(_, specs)
-            val rebuilt =
+            val rebuilt = recordingResident(estimate):
               if WithAnimation.is4DOnlyTriangleMeshScene(specs) then
                 scene.TrackedMesh4D.build(specs, renderer, textureDir, maxInstances)(using
                   profilingConfig).map(tracked4D.set)

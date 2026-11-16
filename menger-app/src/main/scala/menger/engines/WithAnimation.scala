@@ -425,7 +425,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       else tryAnim4DFastPath(newSpecs, renderer)
     if videoFastPathTaken || geometryFastPathTaken then true
     else
-      renderer.clearAllInstances()
+      clearScene(renderer)
       val built = buildAnim4DTrackedOrFallback(configs, newSpecs, renderer)
         .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, t))
       built.failed.foreach(e =>
@@ -485,7 +485,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   ): Try[Unit] =
     // The tracked 4D build does not pass through `buildSceneFromConfigs`, which checks the
     // budget, so it is checked here (menger#80).
-    withinBudget(newSpecs).flatMap(_ => buildAnim4DWithinBudget(configs, newSpecs, renderer))
+    building(newSpecs)(buildAnim4DWithinBudget(configs, newSpecs, renderer))
 
   private def buildAnim4DWithinBudget(
     configs: SceneConverter.SceneConfigs,
