@@ -42,6 +42,10 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
 
   protected def ambientFor(configs: SceneConverter.SceneConfigs): Option[Ambient] = configs.ambient
 
+  // A frame's denoising: an engine with a command-line override applies it to every frame.
+  protected def denoiseModeFor(configs: SceneConverter.SceneConfigs): DenoiseMode =
+    configs.denoiseMode
+
   protected def applyAmbient(renderer: OptiXRenderer, model: Option[Ambient]): Unit =
     model.foreach(a => renderer.setAmbient(AmbientMapping.toModel(a)))
 

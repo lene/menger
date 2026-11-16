@@ -77,6 +77,8 @@ class CliAnimationEngine(
     configureOutputMode(renderer)
     environment.background.foreach(c => sceneConfigurator.setBackgroundColor(renderer, c))
     environment.fog.foreach(f => sceneConfigurator.setFog(renderer, f))
+    // --env-map, as the single frame sets it (menger#139); the command line has no IBL option.
+    IblSetup.uploadEnvMap(renderer, textureDir, environment.envMap)
     GdxRuntime.setContinuousRendering(true)
 
   override def render(): Unit =

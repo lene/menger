@@ -207,6 +207,9 @@ trait WithPreview extends RenderEngine with LazyLogging:
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
     configureOutputMode(renderer)
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
+    // The sky and its lighting as the export renders them (menger#139); an env-map video is
+    // not played in the preview.
+    IblSetup.applyEnvironment(renderer, textureDir, firstFrameConfigs)
     GdxRuntime.setContinuousRendering(false)
     updateTitle()
     if playingClockMode then togglePlay()
@@ -275,7 +278,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
           setTitleNote(title4D, Window4DState.describe(configs.scene.objectSpecs.getOrElse(Nil)))
           val renderer = rendererWrapper.renderer
           configs.render.foreach(renderer.setRenderConfig)
-          renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
+          renderer.setDenoisingEnabled(denoiseModeFor(configs) == menger.dsl.DenoiseMode.Final)
           if configs.accumulationFrames > 1 then
             renderer.setAccumulationFrames(configs.accumulationFrames)
           val instancesCleared = updateOrRebuild(configs, renderer, t)

@@ -3,6 +3,7 @@ package menger.engines
 import scala.language.implicitConversions
 
 import io.github.lene.optix.OptiXRenderer
+import io.github.lene.optix.TextureIndex
 import menger.common.Vector
 import menger.config.IblSunExclusion
 import menger.dsl.Camera
@@ -81,3 +82,26 @@ class IblSunExclusionSuite extends AnyFlatSpec with Matchers with MockFactory:
     (renderer.clearIBLSunExclusion _).expects().once()
 
     IblSetup.applySunExclusion(renderer, None)
+
+  // menger#139: the preview and the CLI animation skipped the scene's image-based lighting.
+  "IblSetup.applyEnvironment" should "set the scene's env map and image-based lighting" in:
+    val configs = SceneConverter.convert(
+      sceneWith(List(Directional(Vec3(0f, -1f, 0f)))), fallbackCaustics, _ => None)
+    val renderer = mock[OptiXRenderer]
+    val skyIndex = TextureIndex(7)
+    (renderer.uploadTextureFromFile _).expects(where((path: String) => path.endsWith(sky)))
+      .returning(skyIndex).once()
+    (renderer.setEnvironmentMap _).expects(skyIndex).once()
+    (renderer.setIBL _).expects(true, configs.iblStrength, configs.iblSamples).once()
+    (renderer.clearIBLSunExclusion _).expects().once()
+
+    IblSetup.applyEnvironment(renderer, ".", configs)
+
+  it should "leave image-based lighting alone for a scene without it" in:
+    val configs = SceneConverter.convert(
+      sceneWith(List(Directional(Vec3(0f, -1f, 0f))), envMap = None, ibl = None), fallbackCaustics)
+    val renderer = mock[OptiXRenderer]
+    (renderer.setIBL _).expects(*, *, *).never()
+    (renderer.setEnvironmentMap _).expects(*).never()
+
+    IblSetup.applyEnvironment(renderer, ".", configs)

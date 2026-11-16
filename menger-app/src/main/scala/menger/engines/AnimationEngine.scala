@@ -41,8 +41,11 @@ class AnimationEngine(
   override protected val firstFrameConfigs: SceneConverter.SceneConfigs =
     SceneConverter.convert(_firstScene, causticsConfig)
 
-  override protected def denoiseMode: DenoiseMode =
-    denoiseModeOverride.getOrElse(firstFrameConfigs.denoiseMode)
+  // The command line's --denoise/--no-denoise wins over the scene's, for every frame.
+  override protected def denoiseModeFor(configs: SceneConverter.SceneConfigs): DenoiseMode =
+    denoiseModeOverride.getOrElse(configs.denoiseMode)
+
+  override protected def denoiseMode: DenoiseMode = denoiseModeFor(firstFrameConfigs)
 
   override protected def accumulationFrames: Int = firstFrameConfigs.accumulationFrames
 

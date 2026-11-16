@@ -88,7 +88,8 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     renderer.setCausticsConfig(firstFrameConfigs.caustics)
     configureOutputMode(renderer)
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
-    configureStaticEnvironmentMap(firstFrameConfigs, renderer)
+    // The static map first: an env-map video, set next, replaces it as the background.
+    IblSetup.uploadEnvMap(renderer, textureDir, firstFrameConfigs.envMap)
     configureEnvMapVideoForFrame(
       firstFrameConfigs,
       firstSpecs,
@@ -97,7 +98,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     ).recover { case e: Exception =>
       logger.error(s"Failed to load environment-map video: ${e.getMessage}", e)
     }
-    configureIBL(renderer, firstFrameConfigs)
+    IblSetup.applySceneIBL(renderer, firstFrameConfigs)
     GdxRuntime.setContinuousRendering(true)
 
   abstract override def render(): Unit =
@@ -119,7 +120,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
           val configs  = SceneConverter.convert(dslScene, causticsConfig)
           val renderer = rendererWrapper.renderer
           configs.render.foreach(renderer.setRenderConfig)
-          renderer.setDenoisingEnabled(configs.denoiseMode == menger.dsl.DenoiseMode.Final)
+          renderer.setDenoisingEnabled(denoiseModeFor(configs) == menger.dsl.DenoiseMode.Final)
           if configs.accumulationFrames > 1 then
             renderer.setAccumulationFrames(configs.accumulationFrames)
           applyAmbient(renderer, ambientFor(configs))
@@ -230,28 +231,6 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   private def resolveVideoPath(path: String): Path =
     AssetPaths.resolveOrThrow(textureDir, path)
 
-  private def configureStaticEnvironmentMap(
-    configs: SceneConverter.SceneConfigs,
-    renderer: OptiXRenderer
-  ): Unit =
-    configs.envMap.foreach { path =>
-      TextureManager.uploadFile(renderer, textureDir, path) match
-        case Right(idx)   => renderer.setEnvironmentMap(idx)
-        case Left(reason) => logger.error(s"Failed to load environment map: $path: $reason")
-    }
-
-  private def configureIBL(
-    renderer: OptiXRenderer,
-    configs: SceneConverter.SceneConfigs
-  ): Unit =
-    if configs.iblEnabled || configs.envMapVideo.nonEmpty then
-      renderer.setIBL(
-        enabled  = configs.iblEnabled,
-        strength = configs.iblStrength,
-        samples  = configs.iblSamples,
-      )
-      IblSetup.applySunExclusion(renderer, configs.iblSunExclusion)
-
   private def configureEnvMapVideoForFrame(
     configs: SceneConverter.SceneConfigs,
     newSpecs: List[ObjectSpec],
@@ -321,7 +300,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     val frameData = state.source.frameAt(t, AnimationTimeRange(animConfig.startT, animConfig.endT))
     renderer.updateTexture(state.textureIndex, frameData, state.source.width, state.source.height)
     renderer.setEnvironmentMap(state.textureIndex)
-    configureIBL(renderer, configs)
+    IblSetup.applySceneIBL(renderer, configs)
 
   private def buildSceneTrackingVideoTextures(
     configs: SceneConverter.SceneConfigs,

@@ -103,8 +103,11 @@ class PreviewEngine(
   override protected def onFrameFailed(context: String, e: Throwable): Unit = frameFailed(context, e)
   override protected def onFrameSlow(detail: String): Unit = frameSlow(detail)
 
-  override protected def denoiseMode: DenoiseMode =
-    denoiseModeOverride.getOrElse(firstFrameConfigs.denoiseMode)
+  // The command line's --denoise/--no-denoise wins over the scene's, for every frame.
+  override protected def denoiseModeFor(configs: SceneConverter.SceneConfigs): DenoiseMode =
+    denoiseModeOverride.getOrElse(configs.denoiseMode)
+
+  override protected def denoiseMode: DenoiseMode = denoiseModeFor(firstFrameConfigs)
 
   override protected def accumulationFrames: Int = firstFrameConfigs.accumulationFrames
 
