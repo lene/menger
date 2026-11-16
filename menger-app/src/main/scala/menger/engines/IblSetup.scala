@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix.OptiXRenderer
 import menger.config.IblSunExclusion
 import menger.engines.scene.TextureManager
+import menger.video.EnvMapVideo
 
 /** Image-based lighting state every render path (the animation frames, the preview, the CLI
   * animation, the single frame and the interactive window) pushes to the renderer, so that they
@@ -18,6 +19,29 @@ object IblSetup extends LazyLogging:
         case Right(idx)   => renderer.setEnvironmentMap(idx)
         case Left(reason) => logger.error(s"Failed to load environment map: $path: $reason")
     }
+
+  /** Uploads the environment map video's frame at `renderT` and makes it the background. */
+  def uploadEnvMapVideo(
+    renderer: OptiXRenderer,
+    textureDir: String,
+    envMapVideo: Option[EnvMapVideo],
+    renderT: Float
+  ): Unit =
+    envMapVideo.foreach(video =>
+      TextureManager.loadInitialEnvMapVideo(video, renderer, textureDir, renderT)
+        .foreach(renderer.setEnvironmentMap))
+
+  /** The environment map, then the env-map video, as the window sets them after every build: a
+    * builder's `renderer.reinitialize` and a rebuild both leave the renderer without them. */
+  def uploadEnvMaps(
+    renderer: OptiXRenderer,
+    textureDir: String,
+    envMap: Option[String],
+    envMapVideo: Option[EnvMapVideo],
+    renderT: Float
+  ): Unit =
+    uploadEnvMap(renderer, textureDir, envMap)
+    uploadEnvMapVideo(renderer, textureDir, envMapVideo, renderT)
 
   /** The scene's image-based lighting; an env-map video also sets it (off, unless asked for). */
   def applySceneIBL(renderer: OptiXRenderer, configs: SceneConverter.SceneConfigs): Unit =

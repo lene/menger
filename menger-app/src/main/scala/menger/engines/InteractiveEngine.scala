@@ -25,7 +25,6 @@ import menger.engines.scene.InstanceId
 import menger.engines.scene.Instanced4DSceneBuilder
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.TesseractEdgeSceneBuilder
-import menger.engines.scene.TextureManager
 import menger.engines.scene.TrackedEdges4D
 import menger.engines.scene.TriangleMeshSceneBuilder
 import menger.failure.Fail
@@ -208,9 +207,9 @@ class InteractiveEngine(
       })
       currentObjectSpecs.set(updatedSpecs)
       show4DState(updatedSpecs)
-      val _ = interactive4DOffset.updateAndGet(
-        _.plus(event.rotXW, event.rotYW, event.rotZW)
-      )
+      // The whole event: a Shift+scroll notch of eye-w is part of the offset too, or a live
+      // reload loses it (menger#139).
+      val _ = interactive4DOffset.updateAndGet(_.plus(event))
 
       // Nothing to move when no spec changed (every 4D object has a ProjectionSpec): not a
       // rebuild of the CPU mesh for an unchanged view.
@@ -366,19 +365,7 @@ class InteractiveEngine(
           PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
           sceneConfigurator.configureCamera(renderer)
           applyRendererState(renderer)
-          environment.envMap.foreach { path =>
-            TextureManager.uploadFile(renderer, config.execution.textureDir, path) match
-              case Right(idx)   => renderer.setEnvironmentMap(idx)
-              case Left(reason) => logger.error(s"Failed to load environment map: $path: $reason")
-          }
-          environment.envMapVideo.foreach { envMapVideo =>
-            TextureManager.loadInitialEnvMapVideo(
-              envMapVideo,
-              renderer,
-              config.execution.textureDir,
-              renderT
-            ).foreach(renderer.setEnvironmentMap)
-          }
+          applyEnvironmentMaps(renderer)
           if crossVisible.get then addCrossGeometry(renderer)
           finalizeCreate()
         }
@@ -413,6 +400,14 @@ class InteractiveEngine(
         samples  = environment.iblSamples
       )
       IblSetup.applySunExclusion(renderer, environment.iblSunExclusion)
+
+  /** The sky: the env map and the env-map video. A rebuild must set it again -- a builder's
+    * `renderer.reinitialize` drops it, and a live reload then rendered the scene without its sky
+    * (menger#139). */
+  private def applyEnvironmentMaps(renderer: io.github.lene.optix.OptiXRenderer): Unit =
+    IblSetup.uploadEnvMaps(
+      renderer, config.execution.textureDir, environment.envMap, environment.envMapVideo, renderT
+    )
 
   private def addCrossGeometry(renderer: io.github.lene.optix.OptiXRenderer): Unit =
     val length    = config.cross.length
@@ -708,6 +703,7 @@ class InteractiveEngine(
             // wiped them too, so they must be re-added on every rebuild, not just at create().
             PlaneConfigurer.configurePlanes(renderer, environment.planes.toArray)
             applyRendererState(renderer)
+            applyEnvironmentMaps(renderer)
             if crossVisible.get then addCrossGeometry(renderer)
             cameraState.updateCamera(renderer, savedEye.toVector3, savedLookAt.toVector3, savedUp.toVector3)
             logger.debug("Scene rebuild complete")

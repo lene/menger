@@ -105,3 +105,21 @@ class IblSunExclusionSuite extends AnyFlatSpec with Matchers with MockFactory:
     (renderer.setEnvironmentMap _).expects(*).never()
 
     IblSetup.applyEnvironment(renderer, ".", configs)
+
+  // menger#139: a live reload rebuilt the scene without its sky.
+  "IblSetup.uploadEnvMaps" should "set the env map again for every rebuild" in:
+    val renderer = mock[OptiXRenderer]
+    val skyIndex = TextureIndex(7)
+    (renderer.uploadTextureFromFile _).expects(where((path: String) => path.endsWith(sky)))
+      .returning(skyIndex).twice()
+    (renderer.setEnvironmentMap _).expects(skyIndex).twice()
+
+    IblSetup.uploadEnvMaps(renderer, ".", Some(sky), None, 0f)
+    IblSetup.uploadEnvMaps(renderer, ".", Some(sky), None, 0f)
+
+  it should "touch nothing for a scene without a sky" in:
+    val renderer = mock[OptiXRenderer]
+    (renderer.uploadTextureFromFile _).expects(*).never()
+    (renderer.setEnvironmentMap _).expects(*).never()
+
+    IblSetup.uploadEnvMaps(renderer, ".", None, None, 0f)

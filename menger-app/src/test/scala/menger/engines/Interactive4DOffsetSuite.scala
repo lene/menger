@@ -52,6 +52,18 @@ class Interactive4DOffsetSuite extends AnyFlatSpec with Matchers:
     val far = (1 to 60).foldLeft(Interactive4DOffset.Zero)((o, _) => o.plus(down))
     eyeW(far) should be > tesseract.projection4D.get.screenW
 
+  // menger#139: the window recorded a drag's rotation but not a Shift+scroll notch, so a live
+  // reload put the eye-w back. What the window keeps across events is what a reload applies.
+  "Interactive4DOffset" should "keep a Shift+scroll notch and a drag for the specs of a reload" in:
+    val scroll = RotationProjectionParameters(0, 0, 0, eyeW = Some(65f))
+    val drag = RotationProjectionParameters(rotXW = 5f)
+    val kept = List(drag, scroll, drag).foldLeft(Interactive4DOffset.Zero)(_.plus(_))
+    val reloaded = kept.applyTo(List(tesseract)).head.projection4D.get
+
+    kept.eyeWSteps shouldBe 1
+    reloaded.rotXW.value shouldBe 20f
+    reloaded.eyeW shouldBe math.pow(tesseract.projection4D.get.eyeW.toDouble, 1.1).toFloat +- 1e-5f
+
   "Window4DState.describe" should "show the first 4D object's rotation and eye-w with the controls" in:
     val state = Window4DState.describe(List(cube, tesseract)).get
     state should startWith("4D xw 10.0° yw 20.0° zw 0.0° eye-w 3.00")
