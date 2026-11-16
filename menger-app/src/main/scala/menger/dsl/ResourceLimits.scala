@@ -86,10 +86,10 @@ object ResourceLimits:
     LevelLimit(max, max)
 
   /** Whether an n-sponge with at most `upperBoundFaces` faces is within the bound's headroom
-    * over `sceneMaxTriangles`: divided, not multiplied, since the bound saturates at
-    * Long.MaxValue. */
-  def ndSpongeBoundAdmits(upperBoundFaces: Long): Boolean =
-    upperBoundFaces / NdSpongeBoundHeadroom <= sceneMaxTriangles / TrianglesPerFace
+    * over `budget` triangles (`sceneMaxTriangles` unless the engine knows the free GPU memory):
+    * divided, not multiplied, since the bound saturates at Long.MaxValue. */
+  def ndSpongeBoundAdmits(upperBoundFaces: Long, budget: Long = sceneMaxTriangles): Boolean =
+    upperBoundFaces / NdSpongeBoundHeadroom <= budget / TrianglesPerFace
 
   /** Keyed by normalized object-type name (`menger.spec.ObjectType.normalize`). Shared by
     * `InteractiveEngine`'s level table and `ObjectSpecParser.validateSpongeLevel`. */
@@ -144,7 +144,10 @@ object ResourceLimits:
 
   /** Triangles held at once by all mesh objects, both levels of a fractional one counted. One
     * level-5 volume sponge (13.1M, about 4.5 GB heap) fits; two -- which ran the render window
-    * out of memory in usability sessions 3 and 4 -- do not. */
+    * out of memory in usability sessions 3 and 4 -- do not. This is the budget wherever the free
+    * GPU memory is unknown (the scene validator and the manifest, which see no GPU, an engine
+    * before it has a renderer); an engine with a renderer uses what the free GPU memory takes
+    * instead (`VramBudget`, menger#179), which on a bigger GPU is more. */
   val sceneMaxTriangles = 16_000_000L
 
   /** Whole renders per displayed frame: level-mix worlds (`LevelMix.worlds`) x accumulation. */

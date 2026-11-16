@@ -27,9 +27,12 @@ object SceneCost:
     * rejection that names only the totals leaves the user to guess a level). */
   final case class FittingLevel(objectType: String, level: Int, sceneTriangles: Long)
 
-  /** `edgeTubeSpongeLevel`: the highest whole level whose edge tubes a 3D sponge draws. */
+  /** `edgeTubeSpongeLevel`: the highest whole level whose edge tubes a 3D sponge draws.
+    * `triangleBudget`: what `triangles` is judged against (menger#179): `ResourceLimits`' fixed
+    * budget unless the engine knows the free GPU memory ([[VramBudget]]). */
   final case class Estimate(triangles: Long, rendersPerFrame: Long, photonsPerFrame: Long,
-    edgeTubeSpongeLevel: Int = 0, fittingLevel: Option[FittingLevel] = None)
+    edgeTubeSpongeLevel: Int = 0, fittingLevel: Option[FittingLevel] = None,
+    triangleBudget: Long = ResourceLimits.sceneMaxTriangles)
 
   /** Caustics as far as cost is concerned: photons traced per render, or none. */
   final case class CausticsLoad(photonsPerIteration: Long, iterations: Long):
@@ -59,10 +62,12 @@ object SceneCost:
     * n-sponge volume counts exactly, an n-sponge surface by its cheap bound while that is within
     * the budget, else exactly, both without building a mesh (see [[ndSpongeTriangles]]); a scene
     * of them is judged by [[costs]]. */
-  def triangles(spec: ObjectSpec): Long = triangles(spec, exact = false)
+  def triangles(spec: ObjectSpec): Long =
+    triangles(spec, exact = false, ResourceLimits.sceneMaxTriangles)
 
-  private def triangles(spec: ObjectSpec, exact: Boolean): Long =
-    if ObjectType.isNCube(spec.objectType) then nCubeTriangles(spec) else meshTriangles(spec, exact)
+  private def triangles(spec: ObjectSpec, exact: Boolean, budget: Long): Long =
+    if ObjectType.isNCube(spec.objectType) then nCubeTriangles(spec)
+    else meshTriangles(spec, exact, budget)
 
   /** An n-cube's square faces, two triangles each (those clipped at an eye count too). */
   private def nCubeTriangles(spec: ObjectSpec): Long =
@@ -73,13 +78,13 @@ object SceneCost:
     * its cheap upper bound while that is within the budget (or, with `exact`, never), else its
     * faces counted on face keys alone. A level past `ResourceLimits`' headroom, or one a build
     * could not allocate, is not counted: it costs its bound, which is over the budget. */
-  private def ndSpongeTriangles(spec: ObjectSpec, level: Int, exact: Boolean): Long =
+  private def ndSpongeTriangles(spec: ObjectSpec, level: Int, exact: Boolean, budget: Long): Long =
     val variant = NdSpongeScene.variantOf(spec)
     val k = NdSpongeScene.maxCentreCoordinatesOf(spec)
     val n = NCubeScene.dimensionOf(spec)
     val bound = NdSponge.upperBoundFaces(variant, n, level, k)
     val boundTriangles = saturatingTimes(bound, ResourceLimits.TrianglesPerFace)
-    val countable = ResourceLimits.ndSpongeBoundAdmits(bound) &&
+    val countable = ResourceLimits.ndSpongeBoundAdmits(bound, budget) &&
       NdSponge.isBuildable(variant, n, level, k)
     def counted =
       saturatingTimes(NdSponge.faceCount(variant, n, level, k), ResourceLimits.TrianglesPerFace)
@@ -87,7 +92,7 @@ object SceneCost:
     else variant match
       case NdSpongeVariant.Volume => counted
       case NdSpongeVariant.Surface =>
-        if !exact && boundTriangles <= ResourceLimits.sceneMaxTriangles then boundTriangles
+        if !exact && boundTriangles <= budget then boundTriangles
         else counted
 
   // a refused sponge costs about this much, kept small enough to add a few of them up
@@ -97,13 +102,15 @@ object SceneCost:
     if a > Long.MaxValue / b then Long.MaxValue else a * b
 
   /** The triangles per whole level of a levelled mesh type, None for the other types. */
-  private def trianglesAtLevel(spec: ObjectSpec, exact: Boolean): Option[Int => Long] =
-    if ObjectType.isNdSponge(spec.objectType) then Some(ndSpongeTriangles(spec, _, exact))
+  private def trianglesAtLevel(
+    spec: ObjectSpec, exact: Boolean, budget: Long
+  ): Option[Int => Long] =
+    if ObjectType.isNdSponge(spec.objectType) then Some(ndSpongeTriangles(spec, _, exact, budget))
     else levelTriangles.get(ObjectType.normalize(spec.objectType))
 
-  private def meshTriangles(spec: ObjectSpec, exact: Boolean): Long =
+  private def meshTriangles(spec: ObjectSpec, exact: Boolean, budget: Long): Long =
     val byLevel = for
-      estimate <- trianglesAtLevel(spec, exact)
+      estimate <- trianglesAtLevel(spec, exact, budget)
       level    <- spec.level
     yield
       val lower = level.floor.toInt
@@ -117,15 +124,15 @@ object SceneCost:
     * their bounds. The exact pass stops counting once the running sum is over the budget: the
     * scene is refused anyway, and a count takes seconds. The specs after that point cost their
     * bound, so the total stays over the budget and `fittingLevel` still names a level. */
-  private def costs(specs: List[ObjectSpec]): (List[Long], Boolean) =
-    val byBound = specs.map(triangles(_, exact = false))
+  private def costs(specs: List[ObjectSpec], budget: Long): (List[Long], Boolean) =
+    val byBound = specs.map(triangles(_, exact = false, budget))
     val hasNdSponge = specs.exists(spec => ObjectType.isNdSponge(spec.objectType))
-    if byBound.sum <= ResourceLimits.sceneMaxTriangles || !hasNdSponge then (byBound, false)
-    else (countUntilOverBudget(specs), true)
+    if byBound.sum <= budget || !hasNdSponge then (byBound, false)
+    else (countUntilOverBudget(specs, budget), true)
 
-  private def countUntilOverBudget(specs: List[ObjectSpec]): List[Long] =
+  private def countUntilOverBudget(specs: List[ObjectSpec], budget: Long): List[Long] =
     val (costsReversed, _) = specs.foldLeft((List.empty[Long], 0L)) { case ((done, sum), spec) =>
-      val cost = triangles(spec, exact = sum <= ResourceLimits.sceneMaxTriangles)
+      val cost = triangles(spec, exact = sum <= budget, budget)
       (cost :: done, saturatingPlus(sum, cost))
     }
     costsReversed.reverse
@@ -143,38 +150,45 @@ object SceneCost:
   def edgeTubeSpongeLevel(specs: List[ObjectSpec]): Int =
     specs.filter(MeshEdges3D.appliesTo).flatMap(_.level).map(_.ceil.toInt).maxOption.getOrElse(0)
 
-  def fittingLevel(specs: List[ObjectSpec]): Option[FittingLevel] = fittingLevel(specs, costs(specs))
+  def fittingLevel(
+    specs: List[ObjectSpec], budget: Long = ResourceLimits.sceneMaxTriangles
+  ): Option[FittingLevel] = fittingLevelOf(specs, costs(specs, budget), budget)
 
-  private def fittingLevel(
-    specs: List[ObjectSpec], scene: (List[Long], Boolean)
+  private def fittingLevelOf(
+    specs: List[ObjectSpec], scene: (List[Long], Boolean), budget: Long
   ): Option[FittingLevel] =
     val (perObject, exact) = scene
     val total = perObject.sum
     val levelled = for
       (spec, cost) <- specs.zip(perObject)
-      perLevel     <- trianglesAtLevel(spec, exact)
+      perLevel     <- trianglesAtLevel(spec, exact, budget)
       level        <- spec.level
     yield (spec, cost, perLevel, level)
-    if total <= ResourceLimits.sceneMaxTriangles then None
+    if total <= budget then None
     else
       for
         (spec, cost, perLevel, level) <- levelled.maxByOption((_, cost, _, _) => cost)
         others = total - cost
         fit <- (level.floor.toInt to 0 by -1).find(l =>
-          others + perLevel(l) <= ResourceLimits.sceneMaxTriangles)
+          others + perLevel(l) <= budget)
       yield FittingLevel(ObjectType.normalize(spec.objectType), fit, others + perLevel(fit))
 
-  def estimate(specs: List[ObjectSpec], accumulation: Int, caustics: CausticsLoad): Estimate =
+  /** `triangleBudget`: the triangles the scene may have; the engine passes what the free GPU
+    * memory takes (menger#179), the validator, which sees no GPU, the fixed default. */
+  def estimate(
+    specs: List[ObjectSpec], accumulation: Int, caustics: CausticsLoad,
+    triangleBudget: Long = ResourceLimits.sceneMaxTriangles
+  ): Estimate =
     val renders = rendersPerFrame(specs, accumulation)
-    val scene = costs(specs)
+    val scene = costs(specs, triangleBudget)
     Estimate(scene._1.sum, renders, caustics.photonsPerRender * renders,
-      edgeTubeSpongeLevel(specs), fittingLevel(specs, scene))
+      edgeTubeSpongeLevel(specs), fittingLevelOf(specs, scene, triangleBudget), triangleBudget)
 
   /** `Left` names every budget the scene exceeds and what to lower; `Right` when it fits. */
   def check(estimate: Estimate): Either[String, Unit] =
     val problems = List(
-      Option.when(estimate.triangles > ResourceLimits.sceneMaxTriangles)(
-        s"${estimate.triangles} triangles in total, budget ${ResourceLimits.sceneMaxTriangles} " +
+      Option.when(estimate.triangles > estimate.triangleBudget)(
+        s"${estimate.triangles} triangles in total, budget ${estimate.triangleBudget} " +
           "(lower sponge levels, or use fewer high-level objects)" +
           estimate.fittingLevel.fold("")(fit =>
             s"; the ${fit.objectType} fits at level ${fit.level} " +
@@ -196,6 +210,9 @@ object SceneCost:
     if problems.isEmpty then Right(()) else Left(s"scene over budget: ${problems.mkString("; ")}")
 
   /** Triangles only: what an engine can check from the specs alone, before allocating meshes. */
-  def checkTriangles(specs: List[ObjectSpec]): Either[String, Unit] =
-    val scene = costs(specs)
-    check(Estimate(scene._1.sum, 1L, 0L, fittingLevel = fittingLevel(specs, scene)))
+  def checkTriangles(
+    specs: List[ObjectSpec], budget: Long = ResourceLimits.sceneMaxTriangles
+  ): Either[String, Unit] =
+    val scene = costs(specs, budget)
+    check(Estimate(scene._1.sum, 1L, 0L,
+      fittingLevel = fittingLevelOf(specs, scene, budget), triangleBudget = budget))

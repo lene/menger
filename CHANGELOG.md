@@ -144,6 +144,15 @@
   4 s, and a headless render of it peaks at 2.6 GB resident instead of 4.7 GB (menger#68, F86): it writes the faces
   straight into the two mesh arrays, the subtrees of the top levels in parallel, instead of
   collecting a `Face` object per face first on one thread. The mesh is identical, byte for byte.
+- The scene's triangle budget follows the free GPU memory (menger#179): an engine with a renderer
+  judges the scene's mesh triangles against what `cudaMemGetInfo` says the card takes (160 B per
+  triangle from the measured 141 B at the peak, a 256 MiB headroom, and 2.25 GiB reserved for the
+  buffers the first render allocates), not the fixed 16M, so a bigger GPU accepts bigger scenes
+  and a scene that does not fit is refused before the upload with the budget and the free memory
+  in the message. The scene being replaced counts as free (it is cleared before the rebuild).
+  Where the memory cannot be read (the scene validator, the manifest, an engine before its
+  renderer exists) the 16M of `ResourceLimits.sceneMaxTriangles` stays. The level limits of the
+  constructors (`ResourceLimits.ndSpongeLevel` and the per-type ceilings) are unchanged.
 - The dimension ladder keeps its old pace (menger#160; decided by user 2026-11-15: "Keep the old pace."):
   the ascent runs at 36/19 s per weight unit and the descent takes 36 s, whatever the breath depths,
   so the cycle is derived from them (202.74 s for top 6 at the Deep depths, not a fixed 180 s that

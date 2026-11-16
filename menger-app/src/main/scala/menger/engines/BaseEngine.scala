@@ -1,5 +1,7 @@
 package menger.engines
 
+import java.util.concurrent.atomic.AtomicLong
+
 import scala.util.Failure
 import scala.util.Try
 
@@ -10,8 +12,10 @@ import menger.common.ProfilingConfig
 import menger.common.RenderConfig
 import menger.dsl.Ambient
 import menger.dsl.DenoiseMode
+import menger.dsl.ResourceLimits
 import menger.engines.scene.SceneBuilder
 import menger.engines.scene.SceneCost
+import menger.engines.scene.VramBudget
 import menger.failure.Fail
 import menger.input.OptiXRenderResources
 import menger.optix.CameraState
@@ -91,12 +95,40 @@ abstract class BaseEngine(maxInstances: Int)(using protected val profilingConfig
   // Must be provided by concrete engine — where texture assets live
   protected def textureDir: String
 
-  /** Refuses a scene over `ResourceLimits`' scene-wide budget before any mesh is allocated, on
-    * every build path -- start, reload, preview, animation (review 2026-10-14, menger#80/#107).
-    * Caustics are left out: the validator checks them from the DSL scene. */
+  // Triangles of the scene the last passing check let through: still on the GPU when the next
+  // check runs, and cleared before that scene is built (menger#179).
+  private val residentTriangles = AtomicLong(0L)
+
+  /** The device's free memory; None until the renderer exists, or when the query fails.
+    * Overridable so a test can play a GPU of any size. */
+  protected def freeGpuMemoryBytes: Option[Long] = rendererWrapper.freeGpuMemoryBytes
+
+  protected def firstRenderPending: Boolean = !rendererWrapper.hasRendered
+
+  private def gpuMemory: Option[VramBudget.GpuMemory] =
+    freeGpuMemoryBytes.map(VramBudget.GpuMemory(_, residentTriangles.get, firstRenderPending))
+
+  /** Refuses a scene over the scene-wide budget before any mesh is allocated, on every build
+    * path -- start, reload, preview, animation (review 2026-10-14, menger#80/#107). The triangle
+    * budget is what the free GPU memory takes (menger#179), the fixed
+    * `ResourceLimits.sceneMaxTriangles` where it cannot be read; the other budgets are
+    * `ResourceLimits`'. Caustics are left out: the validator checks them from the DSL scene. */
   protected def withinBudget(specs: List[ObjectSpec]): Try[Unit] =
-    SceneCost.check(SceneCost.estimate(specs, accumulationFrames, SceneCost.CausticsLoad.None))
-      .left.map(IllegalArgumentException(_)).toTry
+    val memory = gpuMemory
+    val budget = memory.fold(ResourceLimits.sceneMaxTriangles)(VramBudget.triangleBudget)
+    val estimate =
+      SceneCost.estimate(specs, accumulationFrames, SceneCost.CausticsLoad.None, budget)
+    val overTriangleBudget = estimate.triangles > budget
+    SceneCost.check(estimate)
+      .left.map(problem =>
+        IllegalArgumentException(problem + budgetOrigin(memory.filter(_ => overTriangleBudget))))
+      .map(_ => residentTriangles.set(estimate.triangles))
+      .toTry
+
+  // Where a refusal's triangle budget came from, so "budget 14,000,000" can be traced to the GPU
+  private def budgetOrigin(memory: Option[VramBudget.GpuMemory]): String =
+    memory.fold("")(m =>
+      s" [the triangle budget follows the free GPU memory: ${m.freeBytes / VramBudget.BytesPerMiB} MiB free]")
 
   protected def buildSceneFromSpecs(
     specs: List[ObjectSpec],

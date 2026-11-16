@@ -1,8 +1,10 @@
 package menger.optix
 
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.jdk.OptionConverters._
+import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 import io.github.lene.optix._
@@ -13,6 +15,21 @@ import menger.geometry.MengerRenderer
 class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with AutoCloseable:
 
   private val _rendererRef = new AtomicReference[Option[OptiXRenderer]](None)
+  private val _hasRendered = new AtomicBoolean(false)
+
+  /** Whether a frame has been rendered: the first render allocates buffers (caustics, denoiser)
+    * that are not in the device's free memory before it. A renderer re-created by `reinitialize`
+    * counts as rendered until its own first render, so the next check is optimistic by those
+    * buffers (see `VramBudget`). */
+  def hasRendered: Boolean = _hasRendered.get()
+
+  /** The device's free memory (`cudaMemGetInfo`), None while there is no renderer yet (asking
+    * would create one) or when the query fails; callers fall back to a fixed budget then. */
+  def freeGpuMemoryBytes: Option[Long] =
+    _rendererRef.get().flatMap { r =>
+      Try(r.freeGpuMemoryBytes()).toEither.left.map(e =>
+        logger.warn(s"Cannot query the free GPU memory: ${e.getMessage}")).toOption
+    }
 
   def renderer: OptiXRenderer =
     _rendererRef.get() match
@@ -47,6 +64,7 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
     try
       val bytes = Option(renderer.render(size)).filter(_.nonEmpty)
       if bytes.isEmpty then logger.error("OptiX rendering failed - renderer returned null/empty")
+      else _hasRendered.set(true)
       bytes
     catch
       // optix-jni 0.5.0 throws this for every sticky CUDA error (optix-jni#73); menger matched
@@ -62,7 +80,9 @@ class OptiXRendererWrapper(maxInstances: Int = 64) extends LazyLogging with Auto
         None
 
   def renderSceneWithStats(size: ImageSize): Option[RenderResult] =
-    renderer.renderWithStats(size).toScala
+    val result = renderer.renderWithStats(size).toScala
+    if result.isDefined then _hasRendered.set(true)
+    result
 
   def dispose(): Unit =
     _rendererRef.get().foreach { r =>
