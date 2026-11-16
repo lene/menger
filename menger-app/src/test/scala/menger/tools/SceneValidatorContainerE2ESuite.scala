@@ -154,3 +154,75 @@ class SceneValidatorContainerE2ESuite extends AnyFlatSpec with Matchers:
     val (exitCode, output) = runSandboxed(script.get, scene)
     withClue(output) { exitCode should not be 0 }
     output should include("\"tag\": \"lint-findings\"")
+
+  // menger#137: the result is the validator's, not the scene's. Each hostile scene lives in
+  // docker/scene-validator/hostile/ and runs only here, inside the sandbox it tests.
+  private val HangVerdictSeconds = 60L
+
+  private case class RunOutput(exitCode: Int, stdout: String, stderr: String, seconds: Long)
+
+  private def runSandboxedSeparately(script: File, sceneFile: File): RunOutput =
+    val out = new StringBuilder
+    val err = new StringBuilder
+    val logger = ProcessLogger(
+      line => { out.append(line).append("\n"); () },
+      line => { err.append(line).append("\n"); () }
+    )
+    val started = System.nanoTime()
+    val running = Process(Seq(script.getAbsolutePath, sceneFile.getAbsolutePath, "--image", ImageTag))
+      .run(logger)
+    val finished = Future(running.exitValue())(ExecutionContext.global)
+    val exitCode =
+      try Await.result(finished, Duration(RunTimeoutSeconds, SECONDS))
+      catch
+        case _: TimeoutException =>
+          running.destroy()
+          fail(s"run-sandboxed.sh did not finish within ${RunTimeoutSeconds}s")
+    RunOutput(exitCode, out.toString, err.toString, (System.nanoTime() - started) / 1000000000L)
+
+  private def runHostile(name: String): RunOutput =
+    val script = findRunScript()
+    assumeSandboxAvailable(script)
+    val source = new File(script.get.getParentFile, s"hostile/$name")
+    runSandboxedSeparately(script.get, writeTempScene(Files.readString(source.toPath)))
+
+  /** The one result document on stdout: parsing fails if the scene's output got in beside it. */
+  private def resultOf(run: RunOutput): ujson.Value =
+    withClue(s"stdout: ${run.stdout.take(2000)}\nstderr: ${run.stderr.take(2000)}") {
+      ujson.read(run.stdout)
+    }
+
+  private val ForgedOkWasAccepted = "a forged ok must never be the verdict"
+
+  it should "report refused, not the scene's forged ok, when the scene prints an ok and halts" in:
+    val run = runHostile("forge-then-halt.scala")
+    withClue(ForgedOkWasAccepted) { resultOf(run)("tag").str shouldBe "refused" }
+    run.exitCode shouldBe 2
+    resultOf(run)("messages")(0).str should include("ended the validation before a result")
+
+  it should "give the real verdict, not the scene's forged ok printed before it" in:
+    val run = runHostile("forge-then-continue.scala")
+    withClue(ForgedOkWasAccepted) { resultOf(run)("tag").str shouldBe "lint-findings" }
+    run.exitCode shouldBe 1
+    resultOf(run)("findings").arr.map(_("invariant").str) should contain("scene-budget")
+
+  it should "report refused when the scene exits the JVM in its initializer" in:
+    val run = runHostile("exit-in-initializer.scala")
+    resultOf(run)("tag").str shouldBe "refused"
+    run.exitCode shouldBe 2
+
+  it should "return the verdict of a valid scene that leaves a thread running, well before the time limit" in:
+    val run = runHostile("hang-thread.scala")
+    resultOf(run)("tag").str shouldBe "ok"
+    run.exitCode shouldBe 0
+    withClue(s"took ${run.seconds}s") { run.seconds should be < HangVerdictSeconds }
+
+  it should "return the real verdict of a valid scene that prints 10 MB" in:
+    val run = runHostile("flood-output.scala")
+    resultOf(run)("tag").str shouldBe "ok"
+    run.exitCode shouldBe 0
+
+  it should "ignore a line that starts like a result line with a guessed nonce" in:
+    val run = runHostile("guessed-nonce.scala")
+    withClue(ForgedOkWasAccepted) { resultOf(run)("tag").str shouldBe "lint-findings" }
+    run.exitCode shouldBe 1
