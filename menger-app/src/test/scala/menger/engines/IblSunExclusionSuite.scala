@@ -123,3 +123,44 @@ class IblSunExclusionSuite extends AnyFlatSpec with Matchers with MockFactory:
     (renderer.setEnvironmentMap _).expects(*).never()
 
     IblSetup.uploadEnvMaps(renderer, ".", None, None, 0f)
+
+  // A plain rebuild keeps the uploaded texture: not an HDR read per step of a 4D rotation.
+  "IblSetup.applySky" should "upload the sky once and not again for a plain rebuild" in:
+    val renderer = mock[OptiXRenderer]
+    (() => renderer.maxInstances).expects().returning(64).anyNumberOfTimes()
+    (renderer.uploadTextureFromFile _).expects(*).returning(TextureIndex(7)).once()
+    (renderer.setEnvironmentMap _).expects(TextureIndex(7)).once()
+
+    val first = IblSetup.applySky(renderer, ".", Some(sky), None, 0f, None)
+    val second = IblSetup.applySky(renderer, ".", Some(sky), None, 0f, first)
+    val third = IblSetup.applySky(renderer, ".", Some(sky), None, 0f, second)
+
+    third shouldBe first
+
+  it should "upload again after the renderer was reinitialized with a larger capacity" in:
+    val renderer = mock[OptiXRenderer]
+    val capacities = Iterator(64, 64, 2048)
+    (() => renderer.maxInstances).expects().onCall(() => capacities.next()).repeat(3)
+    (renderer.uploadTextureFromFile _).expects(*).returning(TextureIndex(7)).twice()
+    (renderer.setEnvironmentMap _).expects(TextureIndex(7)).twice()
+
+    val first = IblSetup.applySky(renderer, ".", Some(sky), None, 0f, None)
+    val rebuilt = IblSetup.applySky(renderer, ".", Some(sky), None, 0f, first)
+    val reinitialized = IblSetup.applySky(renderer, ".", Some(sky), None, 0f, rebuilt)
+
+    reinitialized.map(_.rendererCapacity) shouldBe Some(2048)
+
+  it should "upload the new map when a reload changed the scene's env map" in:
+    val renderer = mock[OptiXRenderer]
+    (() => renderer.maxInstances).expects().returning(64).anyNumberOfTimes()
+    (renderer.uploadTextureFromFile _).expects(where((path: String) => path.endsWith(sky)))
+      .returning(TextureIndex(7)).once()
+    (renderer.uploadTextureFromFile _).expects(where((path: String) => path.endsWith("other.hdr")))
+      .returning(TextureIndex(8)).once()
+    (renderer.setEnvironmentMap _).expects(TextureIndex(7)).once()
+    (renderer.setEnvironmentMap _).expects(TextureIndex(8)).once()
+
+    val first = IblSetup.applySky(renderer, ".", Some(sky), None, 0f, None)
+    val reloaded = IblSetup.applySky(renderer, ".", Some("assets/hdri/other.hdr"), None, 0f, first)
+
+    reloaded.flatMap(_.envMap) shouldBe Some("assets/hdri/other.hdr")

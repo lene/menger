@@ -92,6 +92,28 @@ class WithPreviewSuite extends AnyFlatSpec with Matchers:
     tick.t shouldBe (0.05 +- 1e-9)
     tick.skippedTotal shouldBe 0.0
 
+  // A key step or a jump while playing moves t; the clock must move with it, or the next tick
+  // throws t back to the clock's time and counts the distance as skipped scene time.
+  "WithPreview.clockStartNanos" should "continue the real-time playback from a t moved while playing" in:
+    val second = 1000000000L
+    val now = 100 * second
+    def tickAfterMove(movedTo: Double, laterSeconds: Double) =
+      val start = WithPreview.clockStartNanos(now, movedTo, startT = 0.0)
+      val elapsed = (now + (laterSeconds * second).toLong - start) / WithPreview.NanosPerSecond
+      WithPreview.realtimeTick(movedTo, 0.0, elapsed, startT = 0.0, endT = 10.0)
+
+    // Stepped back half a second from t = 6, and jumped to the start.
+    val stepped = tickAfterMove(5.5, laterSeconds = 0.02)
+    stepped.t shouldBe (5.52 +- 1e-6)
+    stepped.skippedTotal shouldBe 0.0
+    val jumped = tickAfterMove(0.0, laterSeconds = 0.02)
+    jumped.t shouldBe (0.02 +- 1e-6)
+    jumped.skippedTotal shouldBe 0.0
+
+  it should "start the clock as long ago as the playback has run from the start of the range" in:
+    val second = 1000000000L
+    WithPreview.clockStartNanos(10 * second, 4.0, startT = 1.0) shouldBe 7 * second
+
   "WithPreview.skippedSeconds" should "report scene time jumped over by a slow frame" in:
     WithPreview.skippedSeconds(10.09, 12.1) shouldBe (2.01 +- 1e-9)
 

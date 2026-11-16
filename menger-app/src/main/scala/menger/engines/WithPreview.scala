@@ -126,6 +126,7 @@ trait WithPreview extends RenderEngine with LazyLogging:
   def stepT(delta: Float): Unit =
     val clamped = clampT(currentT.get() + delta.toDouble)
     currentT.set(clamped)
+    rebaseClock()
     updateTitle()
     needsRender.set(true)
     GdxRuntime.requestRendering()
@@ -149,12 +150,14 @@ trait WithPreview extends RenderEngine with LazyLogging:
 
   def jumpToStart(): Unit =
     currentT.set(startT)
+    rebaseClock()
     updateTitle()
     needsRender.set(true)
     GdxRuntime.requestRendering()
 
   def jumpToEnd(): Unit =
     currentT.set(endT)
+    rebaseClock()
     updateTitle()
     needsRender.set(true)
     GdxRuntime.requestRendering()
@@ -163,14 +166,20 @@ trait WithPreview extends RenderEngine with LazyLogging:
     val nowPlaying = !isPlaying.get()
     // Resuming real-time playback continues from the current t, not from the start.
     if nowPlaying && playingClockMode then
-      val playedNanos = ((currentT.get() - startT) * WithPreview.NanosPerSecond).toLong
-      playStartNanos.set(System.nanoTime() - playedNanos)
+      playStartNanos.set(WithPreview.clockStartNanos(System.nanoTime(), currentT.get(), startT))
     isPlaying.set(nowPlaying)
     if nowPlaying then
       idlePaused.set(false)
       lastActivityNanos.set(System.nanoTime())
     GdxRuntime.setContinuousRendering(nowPlaying)
     if nowPlaying then GdxRuntime.requestRendering()
+
+  // The clock modes read t off the wall clock: a t moved by a key step or a jump while playing
+  // must move the clock with it, or the next tick throws it back (and counts the difference as
+  // skipped scene time).
+  private def rebaseClock(): Unit =
+    if isPlaying.get() && playingClockMode then
+      playStartNanos.set(WithPreview.clockStartNanos(System.nanoTime(), currentT.get(), startT))
 
   private def clampT(v: Double): Double = math.max(startT, math.min(endT, v))
 
@@ -415,6 +424,11 @@ object WithPreview:
   def loopedT(elapsedSeconds: Double, startT: Double, endT: Double): Double =
     val span = endT - startT
     if span <= 0.0 then startT else startT + elapsedSeconds % span
+
+  /** The wall-clock time (nanoseconds) at which a playback now at `t` began: what the clock modes
+    * measure their elapsed time from. */
+  def clockStartNanos(nowNanos: Long, t: Double, startT: Double): Long =
+    nowNanos - ((t - startT) * NanosPerSecond).toLong
 
   /** The index of the frame, on the grid of `step` from `startT`, that `t` is nearest to. */
   def frameIndexAt(t: Double, startT: Double, step: Double): Int =

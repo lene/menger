@@ -401,13 +401,17 @@ class InteractiveEngine(
       )
       IblSetup.applySunExclusion(renderer, environment.iblSunExclusion)
 
-  /** The sky: the env map and the env-map video. A rebuild must set it again -- a builder's
-    * `renderer.reinitialize` drops it, and a live reload then rendered the scene without its sky
-    * (menger#139). */
+  // The sky the renderer holds: set again only when a builder's reinitialize dropped it or the
+  // scene's env map changed, not on every rebuild (an HDR is re-read from disk).
+  private val appliedSky = new AtomicReference[Option[IblSetup.Sky]](None)
+
+  /** The sky: the env map and the env-map video. A builder's `renderer.reinitialize` drops it, and
+    * a live reload then rendered the scene without its sky (menger#139). */
   private def applyEnvironmentMaps(renderer: io.github.lene.optix.OptiXRenderer): Unit =
-    IblSetup.uploadEnvMaps(
-      renderer, config.execution.textureDir, environment.envMap, environment.envMapVideo, renderT
-    )
+    appliedSky.set(IblSetup.applySky(
+      renderer, config.execution.textureDir, environment.envMap, environment.envMapVideo, renderT,
+      appliedSky.get
+    ))
 
   private def addCrossGeometry(renderer: io.github.lene.optix.OptiXRenderer): Unit =
     val length    = config.cross.length

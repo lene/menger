@@ -43,6 +43,30 @@ object IblSetup extends LazyLogging:
     uploadEnvMap(renderer, textureDir, envMap)
     uploadEnvMapVideo(renderer, textureDir, envMapVideo, renderT)
 
+  /** What the renderer was last given as its sky, and the capacity it had then: a builder's
+    * `reinitialize` grows the capacity and drops the textures, so a changed capacity means the
+    * sky is gone. */
+  final case class Sky(
+    envMap: Option[String], envMapVideo: Option[EnvMapVideo], rendererCapacity: Int
+  )
+
+  /** Sets the sky again only when the renderer does not hold it: it was never set, the scene's
+    * env map or video changed, or the renderer was reinitialized since. A plain rebuild keeps the
+    * uploaded texture, and re-reading an HDR (and recomputing its CDF) on every step of an
+    * interactive 4D rotation is a visible stall. Returns what the renderer holds now. */
+  def applySky(
+    renderer: OptiXRenderer,
+    textureDir: String,
+    envMap: Option[String],
+    envMapVideo: Option[EnvMapVideo],
+    renderT: Float,
+    applied: Option[Sky]
+  ): Option[Sky] =
+    val wanted = Sky(envMap, envMapVideo, renderer.maxInstances)
+    if !applied.contains(wanted) then
+      uploadEnvMaps(renderer, textureDir, envMap, envMapVideo, renderT)
+    Some(wanted)
+
   /** The scene's image-based lighting; an env-map video also sets it (off, unless asked for). */
   def applySceneIBL(renderer: OptiXRenderer, configs: SceneConverter.SceneConfigs): Unit =
     if configs.iblEnabled || configs.envMapVideo.nonEmpty then
