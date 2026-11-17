@@ -1,0 +1,49 @@
+# Sponge-under-a-directional-light pbrt-v4 twin (menger#150). A TEMPLATE: compare-sponge-caustics.sh
+# fills the @NAME@ fields and renders it three times (bare floor, opaque sponge, glass sponge).
+#
+# Twin of:  --objects type=sponge-volume:level=2:size=0.6:ior=1.5  --plane y:-0.5
+#           --light directional:0.3,-1,0.6  (the light travels along +x, -y, +z)
+#
+# Camera: menger's OptiX camera has a fixed 45 deg HORIZONTAL fov; pbrt applies fov to the shorter
+# image axis, so @FOV@ is the vertical equivalent. No `Scale -1 1 1` mirror here: with this LookAt
+# the two shadow footprints coincide unmirrored (measured, shadow-depth correlation 0.95).
+
+Film "rgb"
+    "string filename" "@OUTFILE@"
+    "integer xresolution" @WIDTH@
+    "integer yresolution" @HEIGHT@
+
+LookAt @EYE@
+       @LOOKAT@
+       0 1 0
+
+Camera "perspective"
+    "float fov" @FOV@
+
+Sampler "independent"
+    "integer pixelsamples" @SPP@
+
+@INTEGRATOR@
+
+WorldBegin
+
+# pbrt's distant light points TOWARDS the light: w = from - to. From the origin to the light's
+# travel direction, the light shines along that direction.
+LightSource "distant"
+    "point3 from" [ 0 0 0 ]
+    "point3 to" [ @LIGHT_DIR@ ]
+    "rgb L" [ @LIGHT_L@ @LIGHT_L@ @LIGHT_L@ ]
+
+# Floor: a quad of half-width @FLOOR_EXTENT@ at Y = @FLOOR_Y@
+AttributeBegin
+    Material "diffuse"
+        "rgb reflectance" [ @FLOOR_ALBEDO@ @FLOOR_ALBEDO@ @FLOOR_ALBEDO@ ]
+    Shape "trianglemesh"
+        "integer indices" [ 0 1 2 0 2 3 ]
+        "point3 P" [ @NEG_FLOOR_EXTENT@ @FLOOR_Y@ @NEG_FLOOR_EXTENT@
+                      @FLOOR_EXTENT@ @FLOOR_Y@ @NEG_FLOOR_EXTENT@
+                      @FLOOR_EXTENT@ @FLOOR_Y@  @FLOOR_EXTENT@
+                     @NEG_FLOOR_EXTENT@ @FLOOR_Y@  @FLOOR_EXTENT@ ]
+AttributeEnd
+
+@SPONGE@

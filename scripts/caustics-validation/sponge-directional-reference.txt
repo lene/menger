@@ -1,0 +1,12 @@
+# pbrt-v4 reference for the caustics ladder's directional-light rung (menger#150):
+# level-2 sponge-volume, size 0.6, glass IOR 1.5, light directional:0.3,-1,0.6, floor y -0.5.
+# The fractions of the light the opaque sponge blocks that the glass gives back to the floor,
+# inside the shadow footprint (fp) and over the whole floor (all), as sponge_caustics.py defines
+# them. Rendered by `compare-sponge-caustics.sh pbrt` (BDPT, 512 spp, floor albedo 0.102, 200x150,
+# pbrt-v4 at the commit built on the dev host); stable from 256 to 16384 spp to within 0.002.
+# tolerance: the largest relative difference of menger's fractions from these that still passes.
+# Proposed (agent), to be agreed by the user: menger measures 0.96 and 0.94 of them, run to run
+# within 0.01, so 0.12 leaves room for the gather's blur and for a different GPU.
+fp 0.393
+all 0.569
+tolerance 0.12

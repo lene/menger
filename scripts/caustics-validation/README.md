@@ -25,6 +25,31 @@ reserved for menger-vs-menger determinism (`RenderDeterminismSuite`).
 - `thresholds.txt` — per-scene MSE/FLIP bounds (locked in Task 33.8).
 - Committed references live in `../reference-images/caustics/` (PFM + PNG + manifest).
 
+## Sponge under a directional light (menger#150)
+
+How much of the light a glass sponge blocks does it give back to the floor? Level-2
+`sponge-volume`, size 0.6, glass IOR 1.5, `--light directional:0.3,-1,0.6`, floor at y -0.5.
+For each renderer three renders (bare floor, opaque sponge, glass sponge) give, per floor pixel,
+`T = (glass - opaque) / (bare - opaque)`.
+
+- `compare-sponge-caustics.sh [pbrt|menger|all|gate]` — renders the twins and prints the table
+  (`fp`: energy fraction returned inside the shadow footprint, `all`: over the whole floor).
+  pbrt uses BDPT, which can connect a path that went through the glass to the camera; its
+  fractions are stable from 256 spp to 16384 (512 by default, seconds on 8 threads).
+  `RUN_PREFIX="flock /tmp/menger-gpu.lock"` serialises the GPU with other work.
+- `make_sponge_ply.py` — the sponge surface as a PLY (menger's `SpongeByVolume` mesh).
+- `scenes/sponge-directional.pbrt.in` — the pbrt twin, filled in by the script.
+- `sponge_caustics.py` — the camera, floor-area weighting and fractions; `--gate` checks them.
+- `sponge-directional-reference.txt` + `gate` mode — the caustics ladder's directional-light
+  rung in `integration-tests.sh`: menger against the committed pbrt fractions, no pbrt needed
+  and no image to review.
+- `photon_walk_check.py` — CPU replica of the photon walk: the share of the light hitting the
+  sponge that reaches the floor, per photon bounce cap. Needs numpy.
+- `test_sponge_caustics.py` (run by `scripts/test-sponge-caustics.sh`) — offline tests.
+
+The camera looks at the shadow from the side it falls on; pixels that see the sponge's bounding
+cube are left out of every sum, in both renderers.
+
 ## Metric choice
 
 Primary perceptual gate is **FLIP** (Andersson et al. 2020, NVIDIA), provided by pbrt's

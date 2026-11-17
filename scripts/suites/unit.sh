@@ -23,6 +23,10 @@ if ! scripts/test-render-cycle.sh; then
   suite_fail unit 1 "test-render-cycle.sh"
   exit 1
 fi
+if ! scripts/test-sponge-caustics.sh; then
+  suite_fail unit 1 "test-sponge-caustics.sh"
+  exit 1
+fi
 
 if ! scripts/test-qa-selection.sh; then
   suite_fail unit 1 "test-qa-selection.sh"
