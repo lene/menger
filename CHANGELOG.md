@@ -216,6 +216,18 @@
   corpus (40 scenes); `sceneAt` takes a `Look` (menger#184). Load it by name, not by file path.
   It renders as before.
 
+### Fixed
+
+- Caustics under a glass sponge match pbrt-v4 (lene/menger#150; needs the optix-jni release that
+  carries the fix, the pin follows it). A level-2 glass sponge under `--light directional:0.3,-1,0.6`
+  returned 0.81 (inside its shadow) and 0.86 (over the whole floor) of the light it blocks, against
+  pbrt's 0.39 and 0.57, because the direct light passed through the glass and the photons carried
+  it again, while the photons themselves were a third of what they stand for. Now 0.38 and 0.53.
+  Every scene with `--caustics` changes: the caustic is about 2.2 times brighter and the shadow
+  under refractive glass is opaque (11 of the 27 caustics integration scenarios move pixels, the
+  references follow after review). `scripts/caustics-validation/compare-sponge-caustics.sh`
+  reproduces the comparison, and the caustics ladder gains a directional-light rung.
+
 ### Known issues
 
 - With the pinned optix-jni 0.5.0 a cylinder does not receive shadows (it casts them). The fix is

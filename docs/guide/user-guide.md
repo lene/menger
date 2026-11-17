@@ -1028,7 +1028,9 @@ sbt "run \
     --light directional:1,-1,1"
 ```
 
-Caustics (`--caustics`, or `Caustics` in a DSL scene) turn transparent shadows on in any case.
+Caustics (`--caustics`, or `Caustics` in a DSL scene) turn transparent shadows on in any case,
+but the first light's shadow under a refractive object (IOR above 1.05) is opaque: the caustic
+photons carry the light that passes through it.
 
 **How it works:** The shadow ray attenuates each RGB channel of the light by the object's
 Beer-Lambert absorption, as camera rays do, and by the Fresnel reflection at its surfaces. A red

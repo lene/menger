@@ -322,11 +322,16 @@ For more details, see [docs/caustics/CAUSTICS.md](../caustics/CAUSTICS.md).
 - **Single light source:** Photons are emitted from the first light only; multi-light caustics
   are not yet supported.
 - **Single plane deposition:** Caustic photons are deposited on the first ground plane only.
-- **Caustics imply transparent shadows:** `--caustics` (or `Caustics` in a DSL scene) turns
-  `--transparent-shadows` on: caustics are for the most realistic picture, and an opaque shadow
-  under glass contradicts it. The two are computed independently -- the caustic photons in a
-  separate PPM pass, the shadow by its own rays -- so light through glass is counted by both,
-  and against a physical renderer (pbrt-v4) the light under glass is not yet right.
+- **Caustics imply transparent shadows, except under refractive objects:** `--caustics` (or
+  `Caustics` in a DSL scene) turns `--transparent-shadows` on for what is not refractive (a tinted
+  film, IOR 1.05 or less). Under an object that refracts (IOR above 1.05) the first light's shadow
+  is opaque: the light the glass passes reaches the floor as the caustic photons, and letting the
+  direct light through as well counted it twice. A second light, ambient occlusion and
+  image-based light are not carried by photons and keep their transparent shadow. The caustic is
+  in the units of the direct light, so a flat pane of glass gives back what its surfaces let
+  through; against pbrt-v4 a level-2 glass sponge under a directional light returns 0.96 (inside
+  its shadow) and 0.94 (over the whole floor) of what pbrt returns, see
+  `scripts/caustics-validation/README.md`.
 - **Interactive mode:** In interactive (non-headless) mode, caustics quality improves progressively —
   each rendered frame adds one PPM iteration. Full convergence requires `--caustics-iterations`
   frames to elapse.
