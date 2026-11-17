@@ -605,6 +605,25 @@ cp canonical-caustics-reference.png ../../../../src/test/resources/
 - PBRT LTE-Orb scenes (spherical geometry)
 - Jensen's original photon mapping paper images
 
+### Step 8b: Directional light through a sponge (menger#150)
+
+**Goal:** The energy of a caustic, not only its shape, and a directional light (the rungs above
+use a point light over spheres).
+
+**Validation:** a level-2 `sponge-volume` (size 0.6, glass IOR 1.5) under
+`--light directional:0.3,-1,0.6` over a floor at y -0.5. Per floor pixel
+`T = (glass - opaque) / (bare - opaque)`; the fraction of the light the opaque sponge blocks that
+the glass returns, inside the shadow footprint (`fp`) and over the whole floor (`all`), must match
+pbrt-v4 (BDPT) within the tolerance in `scripts/caustics-validation/sponge-directional-reference.txt`
+and never exceed 1 (caustics plus direct light cannot exceed the bare floor).
+
+**Run:** `scripts/caustics-validation/compare-sponge-caustics.sh` renders both sides and prints the
+table; `... gate` is the rung `integration-tests.sh` runs (menger against the committed pbrt
+fractions, no pbrt needed). See `scripts/caustics-validation/README.md`.
+
+**Analytic companion:** a flat glass slab does not focus, so it must return the share its Fresnel
+loss leaves (0.9 at 45 degrees): optix-jni's `CausticsFlatGlassSuite`.
+
 ---
 
 ## Test Execution Order

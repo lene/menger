@@ -90,7 +90,7 @@ FRAMING_RESULTS=()  # "name|percent" entries (Sprint 36 F1, O6), for --framing-r
 # counted scenarios, so the final Passed+Failed total can exceed SCENARIO_TOTAL; this
 # counter tracks position among named scenarios, not a promise of an exact final match.
 SCENARIO_N=0
-SCENARIO_TOTAL=$(grep -cE '(^|[^A-Za-z_])(run_test(_hd|_hires|_should_fail|_with_output)?|run_ladder_scene)[[:space:]]+"' "$0")
+SCENARIO_TOTAL=$(grep -cE '(^|[^A-Za-z_])(run_test(_hd|_hires|_should_fail|_with_output)?|run_ladder_scene|run_ladder_sponge_gate)[[:space:]]+"' "$0")
 
 # Colors
 RED='\e[38;5;196m'
@@ -868,6 +868,32 @@ test_caustics_ladder() {
         --light point:0,10,0:500 \
         --camera-pos 0,1.5,6 --camera-lookat 0,0,0 \
         --caustics --caustics-photons "$CAUSTICS_LADDER_PHOTONS" --caustics-iterations "$CAUSTICS_LADDER_ITERS"
+
+    # The directional-light rung (menger#150): a level-2 glass sponge under a directional light.
+    # Gates the fractions of blocked light the glass gives back against pbrt's (committed in
+    # sponge-directional-reference.txt; no pbrt, no reference image), and that caustics plus
+    # direct light never exceed the bare floor.
+    run_ladder_sponge_gate() {
+        local name="$1"
+        SCENARIO_N=$((SCENARIO_N + 1))
+        echo "[$SCENARIO_N/$SCENARIO_TOTAL] $name"
+        should_skip_test "$name" && return 0
+        local cmp_log="$out_dir/sponge-gate.log"
+        if MENGER_BIN="$MENGER_BIN" OUT_DIR="$out_dir/sponge" PHOTONS=200000 ITERATIONS=10 \
+                RUN_PREFIX="env __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a" \
+                "$ladder_dir/compare-sponge-caustics.sh" gate >"$cmp_log" 2>&1; then
+            echo -e "  ${name} - pbrt fraction gate ${GREEN}✓${RESET}"
+            sed 's/^/    /' "$cmp_log"
+            ((PASSED++))
+        else
+            echo -e "  ${name} - pbrt fraction gate ${RED}✗${RESET}"
+            sed 's/^/    /' "$cmp_log"
+            ((FAILED++))
+            FAILED_TESTS="$FAILED_TESTS\n  - $name (caustics-ladder pbrt fraction gate)"
+        fi
+    }
+
+    run_ladder_sponge_gate "caustics ladder directional sponge"
 
     rm -rf "$out_dir"
 }
