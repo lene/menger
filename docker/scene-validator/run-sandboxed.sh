@@ -10,6 +10,7 @@ set -euo pipefail
 usage() {
   cat >&2 <<'USAGE'
 Usage: run-sandboxed.sh <scene-file.scala> [--image <tag>] [--expect-dsl-revision <hex>]
+       run-sandboxed.sh --attest [--image <tag>]
 
 Runs `menger.tools.SceneValidator` against <scene-file.scala> inside the SA-AD-18 sandbox.
 
@@ -18,6 +19,10 @@ Runs `menger.tools.SceneValidator` against <scene-file.scala> inside the SA-AD-1
                      Refuse (tag `refused`, exit 2, nothing run) unless the image's
                      `menger.dsl-content-revision` label is <hex> (the manifest's contentRevision): the caller's DSL and
                      the image's must be the same build (usability review 2026-10, F99).
+
+--attest prints one JSON line saying how this script runs its container (sandbox, network,
+root file system, image, image digest) and starts nothing: the scene agent asserts it instead of
+trusting the script's name (menger-scene-agent#58; contracts/process-result.json, launcherAttestation).
 
 Prints SceneValidator's tagged JSON result (ok | compile-errors | lint-findings | refused) to
 stdout. Exit codes mirror the validator's own: 0 for `ok`, 1 for a scene defect
@@ -32,6 +37,8 @@ USAGE
 
 # shellcheck source=refused-result.sh
 . "$(dirname "$(readlink -f "$0")")/refused-result.sh"   # refuse <message>: tagged JSON, exit 2
+# shellcheck source=attestation.sh
+. "$(dirname "$(readlink -f "$0")")/attestation.sh"      # containment_flags, attestation
 
 # Review round 1 findings, both fixed here: no resource/time bounds on the sandboxed process
 # (a pathological or adversarial generated scene could hang or exhaust the host), and the
@@ -58,6 +65,21 @@ MEMORY_LIMIT="${SCENE_VALIDATOR_MEMORY:-2g}"
 CPU_LIMIT="${SCENE_VALIDATOR_CPUS:-2}"
 PIDS_LIMIT="${SCENE_VALIDATOR_PIDS_LIMIT:-256}"
 
+containment_flags "$MEMORY_LIMIT" "$CPU_LIMIT" "$PIDS_LIMIT" rw,noexec,nosuid,size=256m
+IMAGE_TAG="menger-scene-validator:latest"
+
+# `--attest`: say how the container below is run (the very CONTAINMENT array), start nothing.
+if [ "${1:-}" = "--attest" ]; then
+  shift
+  case "$*" in
+    "") ;;
+    "--image "?*) IMAGE_TAG="$2" ;;
+    *) echo "--attest takes only --image <tag>" >&2; usage ;;
+  esac
+  attestation "$IMAGE_TAG" "${CONTAINMENT[@]}"
+  exit 0
+fi
+
 # Review round 2: `-h`/`--help` was handled in the option loop below, but never reached it --
 # the first positional was consumed as the scene file unconditionally, so `--help` reported
 # "Scene file not found: --help". Any leading flag is a usage error, not a filename.
@@ -68,7 +90,6 @@ case "$1" in
 esac
 
 SCENE_FILE="$1"; shift
-IMAGE_TAG="menger-scene-validator:latest"
 EXPECTED_DSL_REVISION=""
 
 while [ $# -gt 0 ]; do
@@ -106,6 +127,8 @@ case "$SCENE_FILE_ABS" in
 esac
 
 # --- Containment (SA-AD-18) -----------------------------------------------------------------
+# The flags below are spelled once, in attestation.sh's containment_flags (the CONTAINMENT array
+# the `docker run` gets and `--attest` reports); what each one is for:
 #   --pull never                        never implicitly fetch $IMAGE_TAG over the network if
 #                                        it's not already cached locally -- `docker run` alone
 #                                        would pull it via the *daemon's* own network access,
@@ -147,15 +170,7 @@ set +e
 timeout --signal=TERM --kill-after=10s "${TIMEOUT_SECONDS}s" \
   docker run --rm \
   --name "$CONTAINER_NAME" \
-  --pull never \
-  --network none \
-  --memory "$MEMORY_LIMIT" \
-  --cpus "$CPU_LIMIT" \
-  --pids-limit "$PIDS_LIMIT" \
-  --security-opt no-new-privileges \
-  --cap-drop ALL \
-  --read-only \
-  --tmpfs /tmp:rw,noexec,nosuid,size=256m \
+  "${CONTAINMENT[@]}" \
   --mount "type=bind,source=$SCENE_FILE_ABS,target=/workspace/scene/$SCENE_BASENAME,readonly" \
   "$IMAGE_TAG" \
   "/workspace/scene/$SCENE_BASENAME" > "$STDOUT_FILE"

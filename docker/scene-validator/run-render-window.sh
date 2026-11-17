@@ -15,6 +15,11 @@
 #   MENGER_RENDER_EXPECT_DSL_REVISION  refuse unless the image's DSL revision label matches
 #   MENGER_TEXTURE_DIR                 mounted read-only at its host path, if set
 #   MENGER_RENDER_MEMORY / _CPUS / _PIDS_LIMIT   resource bounds (12g / 4 / 1024)
+#
+# `--attest` (the only argument) prints one JSON line saying how this script runs its container
+# (sandbox, network, root file system, image, image digest) and starts nothing, not even an X
+# server: the scene agent asserts it instead of trusting the script's name (menger-scene-agent#58;
+# contracts/process-result.json, launcherAttestation).
 set -euo pipefail
 
 IMAGE="${MENGER_RENDER_IMAGE:-menger-render-window:latest}"
@@ -24,6 +29,17 @@ PIDS="${MENGER_RENDER_PIDS_LIMIT:-1024}"
 
 # shellcheck source=refused-result.sh
 . "$(dirname "$(readlink -f "$0")")/refused-result.sh"   # refuse <message>: tagged JSON, exit 2
+# shellcheck source=attestation.sh
+. "$(dirname "$(readlink -f "$0")")/attestation.sh"      # containment_flags, attestation
+
+# /tmp is exec: LWJGL and optix-jni extract their native libraries there.
+containment_flags "$MEMORY" "$CPUS" "$PIDS" rw,exec,nosuid,size=2g
+
+if [ "${1:-}" = "--attest" ]; then
+  [ $# -eq 1 ] || refuse "render window: --attest takes no other argument"
+  attestation "$IMAGE" "${CONTAINMENT[@]}"
+  exit 0
+fi
 
 scene="" display="${DISPLAY:-}" lock="" width=800 height=600 headless=""
 args=("$@") container_args=()
@@ -133,16 +149,10 @@ case "$scene_dir${MENGER_TEXTURE_DIR:-}$lock" in
 esac
 
 # Containment: as run-sandboxed.sh (no network, no capabilities, immutable root, bounded
-# resources, never pull), plus the GPU and the display the window exists for. /tmp is exec:
-# LWJGL and optix-jni extract their native libraries there.
+# resources, never pull; CONTAINMENT, attestation.sh), plus the GPU and the display the window
+# exists for.
 docker run --rm --name "$name" \
-  --pull never \
-  --network none \
-  --memory "$MEMORY" --cpus "$CPUS" --pids-limit "$PIDS" \
-  --security-opt no-new-privileges \
-  --cap-drop ALL \
-  --read-only \
-  --tmpfs /tmp:rw,exec,nosuid,size=2g \
+  "${CONTAINMENT[@]}" \
   --device nvidia.com/gpu=all \
   --user "$(id -u):$(id -g)" \
   -e DISPLAY=":$nested" -e XAUTHORITY=/xauth/cookie \

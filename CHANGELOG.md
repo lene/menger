@@ -157,6 +157,13 @@
   Where the memory cannot be read (the scene validator, the manifest, an engine before its
   renderer exists) the 16M of `ResourceLimits.sceneMaxTriangles` stays. The level limits of the
   constructors (`ResourceLimits.ndSpongeLevel` and the per-type ceilings) are unchanged.
+- `run-sandboxed.sh --attest [--image <tag>]` and `run-render-window.sh --attest` print one JSON
+  line (`sandbox`, `network`, `rootfs`, `image`, `image_digest`) built from the very argument list
+  the launcher passes to `docker run`, and start nothing (menger#137, menger-scene-agent#58). The
+  containment flags are spelled once, in `docker/scene-validator/attestation.sh`. The scene agent
+  asserts the line instead of trusting a launcher by its file name. The line is specified in
+  `contracts/process-result.json` (`launcherAttestation`), with its threat model: it guards
+  against a wrong or stale configuration, not against someone who controls the user's shell.
 - The validator's `ok` can no longer be forged by the scene it validates (lene/menger#137; the
   two-JVM design with a nonce decided by user 2026-11-15: "accept all recommendations"):
   `SceneValidator` starts a worker JVM (`SceneValidatorWorker`) that runs the scene's code, and
