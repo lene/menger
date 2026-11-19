@@ -109,7 +109,7 @@ object ManifestGenerator extends LazyLogging:
   // Keep in sync with menger-app/build.sbt (scalaVersion), build.sbt (optixJniDependency),
   // and the architecture spine's Stack table (minimum driver version).
   private val ScalaVersionPin = "3.8.3"
-  private val OptixJniVersionPin = "0.5.5"
+  private val OptixJniVersionPin = "0.5.7"
   private val MinDriverVersion = "580.65"
 
   private val DefaultOutputPath = "target/dsl-manifest.json"
