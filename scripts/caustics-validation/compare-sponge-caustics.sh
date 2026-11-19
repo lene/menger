@@ -14,9 +14,9 @@
 #   pbrt    only (re)render the pbrt side (CPU; needs no GPU)
 #   menger  only (re)render the menger side, reusing an existing pbrt side
 #   all     both, then the comparison table
-#   gate    the caustics ladder's directional-light rung (integration-tests.sh): render only
-#           menger's bare, opaque and caustics renders and check them against the committed pbrt
-#           fractions in sponge-directional-reference.txt. Needs no pbrt.
+#   gate    the caustics ladder's directional-light rung (integration-tests.sh): render menger's
+#           bare, opaque, caustics, plain-shadow and transparent-shadow renders and check them
+#           against the committed pbrt fractions in sponge-directional-reference.txt. Needs no pbrt.
 #
 # Environment (defaults in brackets):
 #   MENGER_BIN        the menger-app launcher [menger-app on PATH]
@@ -28,7 +28,14 @@
 #   PBRT_THREADS      pbrt render threads [8]
 #   PHOTONS ITERATIONS  menger photons per PPM iteration, iterations [500000 20]
 #   MENGER_FLAGS      extra menger flags for the caustics render, e.g. "--accumulation-frames 4" []
-#   MENGER_VARIANTS   menger glass variants to render [glass glass_ts glass_caustics]
+#   MENGER_VARIANTS   menger glass variants to render [glass glass_ts glass_caustics]:
+#                     glass = plain --shadows, glass_ts = --shadows --transparent-shadows,
+#                     glass_caustics = --caustics; the first two are the "no caustics" cases (optix-jni#132)
+#   FLOOR_Y EYE LOOKAT  the floor height and the camera [-0.5, 1.0,2.2,1.6, 0.1,-0.5,0.2]: the floor
+#                     distance changes how much of the bent light stays in the shadow (optix-jni#132)
+#   OBJECT            sponge | cube | sphere: the glass object, in both renderers [sponge]. The cube
+#                     and the sphere are the second and third scene for the no-caustics shadow
+#                     (optix-jni#132): a flat-faced body and a lens, next to the sponge.
 #   MENGER_LIGHT_INTENSITY  menger light intensity [5]; keep the brightest pixel below 1 (clipped)
 set -euo pipefail
 
@@ -47,11 +54,11 @@ MENGER_FLAGS="${MENGER_FLAGS:-}"
 MENGER_VARIANTS="${MENGER_VARIANTS:-glass glass_ts glass_caustics}"
 
 # The scene (the issue's, verbatim) and the view of it.
-LEVEL=2
-SIZE=0.6
+OBJECT="${OBJECT:-sponge}"
+SIZE=0.6                    # edge of the sponge / cube; the sphere's diameter (radius SIZE/2)
 IOR=1.5
 LIGHT_DIR="0.3,-1,0.6"
-FLOOR_Y=-0.5
+FLOOR_Y="${FLOOR_Y:--0.5}"
 FLOOR_EXTENT=2              # half-width of the pbrt floor quad; a small floor keeps BDPT's distant
                             # light from wasting samples far from the sponge
 # A dark floor: pbrt's glass render also carries the light the floor sends up into the sponge and
@@ -62,12 +69,21 @@ FLOOR_COLOR="${FLOOR_COLOR:-#1A1A1A}"
 FLOOR_ALBEDO="${FLOOR_ALBEDO:-0.102}"
 MENGER_LIGHT_INTENSITY="${MENGER_LIGHT_INTENSITY:-5}"  # direct light well above menger's constant ambient fill, no pixel clipped
 PBRT_LIGHT_L=3
-EYE="1.0,2.2,1.6"           # looks at the shadow from the side it falls on, so the sponge
-LOOKAT="0.1,-0.5,0.2"       # hides little of it
+EYE="${EYE:-1.0,2.2,1.6}"   # looks at the shadow from the side it falls on, so the sponge
+LOOKAT="${LOOKAT:-0.1,-0.5,0.2}"  # hides little of it
 UP="0,1,0"
 
 PBRT_BARE_OPAQUE_SPP=64     # no caustics to find: a path tracer is exact and cheap
 PBRT_MAX_DEPTH=50           # a photon crosses many walls of a level-2 sponge
+
+# The glass object: menger's geometry spec, the sponge-volume level for the PLY twin (pbrt has no
+# sponge shape; a level-0 sponge is the cube) or pbrt's own sphere.
+case "$OBJECT" in
+  sponge) MENGER_GEOMETRY="type=sponge-volume:level=2:size=$SIZE"; PLY_LEVEL=2 ;;
+  cube)   MENGER_GEOMETRY="type=sponge-volume:level=0:size=$SIZE"; PLY_LEVEL=0 ;;
+  sphere) MENGER_GEOMETRY="type=sphere:size=$(python3 -c "print($SIZE/2)")"; PLY_LEVEL="" ;;
+  *) echo "OBJECT must be sponge, cube or sphere" >&2; exit 2 ;;
+esac
 
 mkdir -p "$OUT_DIR"
 
@@ -97,12 +113,17 @@ PY
 }
 
 render_pbrt() {
-  python3 "$SCRIPT_DIR/make_sponge_ply.py" "$LEVEL" "$SIZE" "$OUT_DIR/sponge.ply"
+  local mesh
+  if [ -n "$PLY_LEVEL" ]; then
+    python3 "$SCRIPT_DIR/make_sponge_ply.py" "$PLY_LEVEL" "$SIZE" "$OUT_DIR/sponge.ply"
+    mesh='Shape "plymesh" "string filename" "sponge.ply"'
+  else
+    mesh="Shape \"sphere\" \"float radius\" $(python3 -c "print($SIZE/2)")"
+  fi
   local path="Integrator \"path\"
     \"integer maxdepth\" $PBRT_MAX_DEPTH"
   local bdpt="Integrator \"bdpt\"
     \"integer maxdepth\" $PBRT_MAX_DEPTH"
-  local mesh='Shape "plymesh" "string filename" "sponge.ply"'
   write_pbrt_scene bare   "$PBRT_BARE_OPAQUE_SPP" "$path" ""
   write_pbrt_scene opaque "$PBRT_BARE_OPAQUE_SPP" "$path" \
     "AttributeBegin
@@ -136,9 +157,9 @@ render_menger() {
 }
 
 render_menger_all() {
-  local glass="type=sponge-volume:level=$LEVEL:size=$SIZE:material=glass:ior=$IOR"
+  local glass="$MENGER_GEOMETRY:material=glass:ior=$IOR"
   render_menger bare   "type=sphere:size=0.001:pos=0,9,0"
-  render_menger opaque "type=sponge-volume:level=$LEVEL:size=$SIZE:color=#000000"
+  render_menger opaque "$MENGER_GEOMETRY:color=#000000"
   local variant
   for variant in $MENGER_VARIANTS; do
     case "$variant" in
@@ -162,19 +183,28 @@ report() {
     --size "$SIZE" --floor-y "$FLOOR_Y" --extent "$FLOOR_EXTENT" "${triples[@]}"
 }
 
-# gate: the pbrt fractions are committed (sponge-directional-reference.txt), not re-rendered
+# gate: the pbrt fractions are committed (sponge-directional-reference.txt), not re-rendered. With
+# caustics both fractions must match; without them (plain and transparent shadows) only the
+# footprint's, within the looser tolerance of what a straight shadow ray can approximate (optix-jni#132).
 gate() {
-  local reference="$SCRIPT_DIR/sponge-directional-reference.txt" fp all tolerance
+  local reference="$SCRIPT_DIR/sponge-directional-reference.txt" fp all tolerance fp_tolerance_no_caustics
   fp="$(awk '$1 == "fp" {print $2}' "$reference")"
   all="$(awk '$1 == "all" {print $2}' "$reference")"
   tolerance="$(awk '$1 == "tolerance" {print $2}' "$reference")"
-  MENGER_VARIANTS="glass_caustics"
+  fp_tolerance_no_caustics="$(awk '$1 == "fp_tolerance_no_caustics" {print $2}' "$reference")"
+  MENGER_VARIANTS="glass glass_ts glass_caustics"
   render_menger_all
   python3 "$SCRIPT_DIR/sponge_caustics.py" --eye "$EYE" --lookat "$LOOKAT" --up "$UP" \
     --size "$SIZE" --floor-y "$FLOOR_Y" --extent "$FLOOR_EXTENT" \
     --triple "menger caustics" "$OUT_DIR/menger_bare.pfm" "$OUT_DIR/menger_opaque.pfm" \
              "$OUT_DIR/menger_glass_caustics.pfm" \
-    --gate "menger caustics" "$fp" "$all" "$tolerance"
+    --triple "menger shadows" "$OUT_DIR/menger_bare.pfm" "$OUT_DIR/menger_opaque.pfm" \
+             "$OUT_DIR/menger_glass.pfm" \
+    --triple "menger transparent shadows" "$OUT_DIR/menger_bare.pfm" "$OUT_DIR/menger_opaque.pfm" \
+             "$OUT_DIR/menger_glass_ts.pfm" \
+    --gate "menger caustics" "$fp" "$all" "$tolerance" \
+    --gate-fp "menger shadows" "$fp" "$fp_tolerance_no_caustics" \
+    --gate-fp "menger transparent shadows" "$fp" "$fp_tolerance_no_caustics"
 }
 
 case "${1:-all}" in

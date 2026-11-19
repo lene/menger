@@ -47,6 +47,14 @@ For each renderer three renders (bare floor, opaque sponge, glass sponge) give, 
   sponge that reaches the floor, per photon bounce cap. Needs numpy.
 - `test_sponge_caustics.py` (run by `scripts/test-sponge-caustics.sh`) — offline tests.
 
+Without caustics (optix-jni#132) the same three renders compare `--shadows` and `--shadows
+--transparent-shadows` (menger variants `glass` and `glass_ts`): the glass's shadow is a straight
+shadow ray charged for the Fresnel and absorption losses along it and for the light the glass bends
+out of the shadow, which nothing without photons can put back, so only `fp` is comparable (`gate`
+checks it with `fp_tolerance_no_caustics`). `OBJECT=sponge|cube|sphere` and `FLOOR_Y`, `EYE`,
+`LOOKAT` render other scenes with a pbrt twin; the reference file lists what the approximation
+gives on them (a lens, the sphere, is outside any tolerance).
+
 The camera looks at the shadow from the side it falls on; pixels that see the sponge's bounding
 cube are left out of every sum, in both renderers.
 

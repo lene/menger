@@ -121,6 +121,14 @@ class FractionsTest(unittest.TestCase):
         self.assertFalse(sc._gate_passes(stats, 0.60, 0.62, 0.1, "x"))
         self.assertFalse(sc._gate_passes({"fp": 1.2, "all": 1.2}, 1.2, 1.2, 0.1, "x"))
 
+    def test_footprint_only_gate_ignores_the_whole_floor(self):
+        # Without caustics nothing lands outside the footprint: "all" equals "fp" there, and a
+        # gate on it would only repeat the footprint check against a number pbrt's does not match.
+        stats = {"fp": 0.40, "all": 0.40}
+        self.assertTrue(sc._gate_passes(stats, 0.42, None, 0.1, "x"))
+        self.assertFalse(sc._gate_passes(stats, 0.60, None, 0.1, "x"))
+        self.assertFalse(sc._gate_passes({"fp": 1.2, "all": 1.2}, 1.2, None, 0.1, "x"))
+
     def test_pfm_round_trip_keeps_the_top_row_first(self):
         rows = [[(float(x), float(y), 0.0) for x in range(3)] for y in range(2)]
         with tempfile.TemporaryDirectory() as d:

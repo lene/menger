@@ -621,6 +621,13 @@ and never exceed 1 (caustics plus direct light cannot exceed the bare floor).
 table; `... gate` is the rung `integration-tests.sh` runs (menger against the committed pbrt
 fractions, no pbrt needed). See `scripts/caustics-validation/README.md`.
 
+**Without caustics (optix-jni#132):** the gate also renders the glass with plain `--shadows` and
+with `--transparent-shadows` and compares the footprint fraction `fp` (only that one: the light
+the glass bends out of its shadow has nowhere to land without photons) with pbrt's 0.393 within
+`fp_tolerance_no_caustics`, so the same scene with and without caustics has comparably dark glass
+shadows. The approximation is one constant (`GlassShadowConstants::RETENTION` in optix-jni); it
+fits the sponge and a cube, not a lens, see the reference file.
+
 **Analytic companion:** a flat glass slab does not focus, so it must return the share its Fresnel
 loss leaves (0.9 at 45 degrees): optix-jni's `CausticsFlatGlassSuite`.
 

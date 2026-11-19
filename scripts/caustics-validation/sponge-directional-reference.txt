@@ -11,3 +11,16 @@
 fp 0.393
 all 0.569
 tolerance 0.12
+# Without caustics (optix-jni#132): a shadow ray is a straight line and the light the glass bends
+# out of the shadow has nowhere to land, so only the footprint fraction is compared, and a straight
+# shadow ray reaches it only to a looser tolerance. decided by user 2026-11-19: 0.15, relative;
+# menger measures 0.395 (plain and transparent shadows alike), 0.5% off, deterministic. The same constant of
+# optix-jni (GlassShadowConstants::RETENTION, 0.6 of the light a ray lets through stays in the
+# shadow; fixed, accepted by user 2026-11-19, lenses use --caustics) gives, against pbrt's footprint fraction, on other scenes (OBJECT, FLOOR_Y env of
+# compare-sponge-caustics.sh; menger no caustics / pbrt):
+#   sponge, gap object-floor 0.2 (committed scene) / 0.02 / 0.7:  0.395/0.393  0.404/0.399  0.403/0.337
+#   cube:                                             0.492/0.480  0.480/0.280  0.496/0.416
+#   sphere (a lens):                                  0.553/0.756  0.553/0.070  0.553/0.244
+# i.e. within 20% for the sponge, 2-19% (71% at a gap of 0.02) for the cube, and no
+# constant fits a lens: where the sphere's focus falls decides what its shadow returns.
+fp_tolerance_no_caustics 0.15

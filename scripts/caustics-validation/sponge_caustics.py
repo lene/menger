@@ -170,8 +170,12 @@ def fractions(bare, opaque, glass, areas, without=None):
 
 
 def _gate_passes(stats, want_fp, want_all, rel_tol, label):
+    """`want_all` None leaves the whole-floor fraction out: without caustics the light a glass
+    object bends out of its shadow has nowhere to land, so only the footprint is comparable."""
     ok = True
     for name, want in (("fp", want_fp), ("all", want_all)):
+        if want is None:
+            continue
         got = stats[name]
         if abs(got - want) > rel_tol * want:
             print(f"GATE FAIL {label}: {name} {got:.3f} is not within {rel_tol:.0%} of {want:.3f}")
@@ -204,6 +208,9 @@ def main(argv):
                    help="fail (exit 1) unless LABEL's fp and all are within REL_TOL (a fraction) of "
                         "FP and ALL, and neither exceeds 1 (the glass cannot return more light than "
                         "it blocks); repeatable")
+    p.add_argument("--gate-fp", nargs=3, action="append", metavar=("LABEL", "FP", "REL_TOL"), default=[],
+                   help="like --gate, for a render without caustics: only the footprint fraction "
+                        "is checked (optix-jni#132); repeatable")
     args = p.parse_args(argv)
 
     areas = None
@@ -225,8 +232,11 @@ def main(argv):
               f"{s['t_mean']:>7.2f}{s['t_p99']:>7.2f}{s['t_max']:>7.2f}")
         if s["glass_max"] >= 0.99:
             print(f"  note: {label} has pixels at 1.0, clipped values understate T there", file=sys.stderr)
-    return 0 if all(_gate_passes(results[label], float(fp), float(al), float(tol), label)
-                    for label, fp, al, tol in args.gate) else 1
+    checks = [_gate_passes(results[label], float(fp), float(al), float(tol), label)
+              for label, fp, al, tol in args.gate]
+    checks += [_gate_passes(results[label], float(fp), None, float(tol), label)
+               for label, fp, tol in args.gate_fp]
+    return 0 if all(checks) else 1
 
 
 if __name__ == "__main__":
