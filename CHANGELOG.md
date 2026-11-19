@@ -140,6 +140,18 @@
 
 ### Changed
 
+- A glass (IOR above 1.05) object's shadow without caustics is darker, about as dark as pbrt-v4's
+  (lene/optix-jni#132; needs the optix-jni release carrying it). A shadow ray is a straight line, so
+  the light glass bends away used to land in the shadow anyway: 0.97 of the light an opaque sponge
+  blocks came back through a glass sponge's shadow with `--shadows`, 0.65 with `--transparent-shadows`,
+  pbrt returns 0.39. The shadow now charges the Fresnel and absorption losses along the ray and 40%
+  of what is left for the light bent out of it: 0.395 on the sponge, with both options, now one model
+  for glass. `scripts/caustics-validation/compare-sponge-caustics.sh` (and its ladder rung) checks it
+  against pbrt (`fp_tolerance_no_caustics`, 0.15; tolerance and the fixed 40% accepted by the user 2026-11-19); its README and `sponge-directional-reference.txt` list
+  where it does not fit (a glass sphere, a lens: -27% to +690% by its distance from the floor).
+  With `--caustics` nothing changes. Every scene with glass and shadows but no caustics gets darker
+  glass shadows.
+
 - The `sponge-volume` mesh at level 5 (13.1M triangles) builds in under a second instead of
   4 s, and a headless render of it peaks at 2.6 GB resident instead of 4.7 GB (menger#68, F86): it writes the faces
   straight into the two mesh arrays, the subtrees of the top levels in parallel, instead of
