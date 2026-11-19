@@ -36,7 +36,7 @@ FROM nvidia/cuda:13.0.0-runtime-ubuntu24.04@sha256:95318efecfd68ab3d109da5277863
 # even with the base digest fixed, since the archive moves underneath it. Re-resolve with:
 #   docker run --rm ubuntu:24.04 sh -c \
 #     'apt-get update -qq && apt-cache policy openjdk-21-jre-headless'
-ARG JRE_VERSION=21.0.12+8-1~24.04
+ARG JRE_VERSION=21.0.13.1+2-1~24.04.1
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
