@@ -31,21 +31,21 @@ sbt "run --objects 'type=sphere:ior=1.5'"
 sbt "run --objects 'type=sphere:ior=1.5:size=1.5'"
 ```
 
-**Step 4: Add a floor and shadows** (shadows need a surface to fall on)
+**Step 4: Add a floor** (shadows are always on; they need a surface to fall on)
 ```bash
-sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 --shadows"
+sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2"
 ```
 
 **Step 5: Improve lighting**
 ```bash
-sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 --shadows \
+sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 \
     --light directional:1,-1,1:1.5 \
     --light point:2,3,2:0.8:ffffff"
 ```
 
 **Step 6: Add antialiasing**
 ```bash
-sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 --shadows \
+sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 \
     --antialiasing \
     --light directional:1,-1,1:1.5 \
     --light point:2,3,2:0.8:ffffff"
@@ -53,7 +53,7 @@ sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 --shadows \
 
 **Step 7: Save the image** (no window; the image is written once the render finishes)
 ```bash
-sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 --shadows \
+sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 \
     --antialiasing --headless --save-name my_first_sphere.png \
     --light directional:1,-1,1:1.5 \
     --light point:2,3,2:0.8:ffffff"
@@ -68,7 +68,6 @@ Glass requires careful attention to IOR, lighting, and scene setup.
 **Good Glass Setup:**
 ```bash
 sbt "run --objects 'type=sphere:ior=1.5:size=1.5' \
-    --shadows \
     --antialiasing \
     --plane y:-2 --plane-color ffffff:d0d0d0 \
     --light directional:1,-1,1:2.0 \
@@ -78,7 +77,6 @@ sbt "run --objects 'type=sphere:ior=1.5:size=1.5' \
 **Glass Menger Sponge:**
 ```bash
 sbt "run --objects 'type=sponge-surface:level=2:ior=1.5' \
-    --shadows \
     --antialiasing \
     --camera-pos -2,1.5,-2 \
     --plane y:-2 --plane-color ffffff:808080"
@@ -88,13 +86,13 @@ sbt "run --objects 'type=sponge-surface:level=2:ior=1.5' \
 ```bash
 sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 \
     --caustics --caustics-photons 200000 --caustics-iterations 20 \
-    --shadows --antialiasing \
+    --antialiasing \
     --light directional:1,-2,1:2.0"
 ```
 
 **Tips for Glass:**
 - Use IOR between 1.3-1.6 for realistic glass
-- Always enable shadows to see the transparency
+- Add a floor with `--plane`: the glass shadow is what shows its transparency
 - Antialiasing is crucial for clean edges
 - A checkered ground plane helps visualize refraction
 - Caustics add realism but are computationally expensive
@@ -112,7 +110,7 @@ sbt "run --objects 'type=sponge-surface:level=2'"
 ```bash
 sbt "run --objects 'type=sponge-surface:level=2' \
     --camera-pos -2,1.5,-2 \
-    --plane y:-2 --shadows \
+    --plane y:-2 \
     --light directional:1,-1,1"
 ```
 
@@ -120,7 +118,7 @@ sbt "run --objects 'type=sponge-surface:level=2' \
 ```bash
 sbt "run --objects 'type=sponge-surface:level=2' \
     --camera-pos -2,1.5,-2 \
-    --plane y:-2 --shadows \
+    --plane y:-2 \
     --light directional:1,-1,1 \
     --save-name sponge_rot_%03d.png \
     --animate frames=36:rot-y=0-360"
@@ -132,7 +130,7 @@ sbt "run --objects 'type=sponge-surface:level=2' \
 ```bash
 sbt "run --objects 'type=sponge-surface:level=2' \
     --camera-pos -2,1.5,-2 \
-    --shadows --antialiasing \
+    --antialiasing \
     --light directional:1,-1,1:1.5 \
     --plane y:-2 --plane-color ffffff:808080 \
     --save-name sponge_hq_%03d.png \
@@ -218,7 +216,7 @@ sbt "run \
     --objects 'type=sphere:pos=0,0,0:material=diamond:size=0.8' \
     --objects 'type=sphere:pos=1.5,0,0:material=gold:size=0.8' \
     --objects 'type=sphere:pos=3,0,0:material=chrome:size=0.8' \
-    --shadows --antialiasing \
+    --antialiasing \
     --light directional:1,-1,1:2.0 \
     --plane y:-1 --plane-color ffffff:c0c0c0 \
     --camera-pos 0,2,6"
@@ -230,7 +228,7 @@ sbt "run \
     --objects 'type=sponge-surface:level=1:pos=-2,0,0:material=glass' \
     --objects 'type=sponge-surface:level=1:pos=0,0,0:material=gold' \
     --objects 'type=sponge-surface:level=1:pos=2,0,0:material=copper' \
-    --shadows --antialiasing \
+    --antialiasing \
     --light directional:1,-1,1:1.5 \
     --light point:0,3,0:1.0 \
     --camera-pos 0,2,5"
@@ -244,7 +242,7 @@ sbt "run \
     --objects 'type=sphere:pos=3,0,0:size=0.5:color=#0000FF' \
     --objects 'type=cube:pos=-1.5,0,-2:size=0.4:material=gold' \
     --objects 'type=cube:pos=1.5,0,-2:size=0.4:material=chrome' \
-    --shadows --antialiasing \
+    --antialiasing \
     --light directional:1,-1,1:2.0 \
     --light point:0,5,0:1.5:ffffd0 \
     --plane y:-1 --plane-color ffffff:808080"

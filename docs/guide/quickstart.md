@@ -46,7 +46,7 @@ The project extends this concept to four dimensions with **tesseract sponges**, 
   - Multiple light sources (up to 8)
   - Directional, point and area lights (soft shadows) with color and intensity control
   - HDR environment maps (image-based lighting)
-  - Shadow rays for realistic shadows
+  - Shadow rays for realistic shadows (always on)
   - Caustics rendering via Progressive Photon Mapping (PPM)
 
 - **Animation System**
@@ -84,7 +84,7 @@ cd menger
 sbt compile
 
 # Open an interactive window with a level-2 Menger sponge
-sbt "run --objects 'type=sponge-volume:level=2:material=gold' --plane y:-2 --shadows"
+sbt "run --objects 'type=sponge-volume:level=2:material=gold' --plane y:-2"
 
 # Or ray-trace a glass sphere straight to a file, without a window
 sbt "run --objects 'type=sphere:ior=1.5:size=1.5' --plane y:-2 --headless --save-name sphere.png"

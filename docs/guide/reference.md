@@ -78,8 +78,8 @@ with `Error: SceneConfig must provide objectSpecs`.
                                area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color[:shape]]]]
                                  (disk emitter → soft shadows)
                              Color: hex (ffffff) or R,G,B; skip intensity with "::"
---shadows                    Enable shadow rays
---transparent-shadows        Colored shadows through transparent objects (requires --shadows;
+--transparent-shadows        Colored shadows through transparent objects (shadows themselves
+                             are always on, there is no option for them;
                              a DSL scene defaults to Auto: on for tinted or procedurally
                              coloured transparent objects; --caustics turns it on)
 ```
@@ -268,7 +268,6 @@ sbt "run --objects type=tesseract:rot-xw=30"       # Rotated tesseract
 
 # QUALITY IMPROVEMENTS
 --plane y:-2 --plane-color ffffff:808080   # Checkered floor
---shadows                                  # Add shadows
 --antialiasing                             # Smooth edges
 --accumulation-frames 8 --denoise          # Less noise
 

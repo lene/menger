@@ -881,7 +881,7 @@ surface an occluder still counts, in world units (at least 0.01, default `Float.
 which counts every occluder at any distance). A scene without `ambient` gets
 `Ambient.Occlusion(16, Float.PositiveInfinity)`. A value out of range is rejected when the scene
 loads, with a message naming the field, the range and the value. The fill does not depend on
-`shadows`.
+shadows, which are always on: `RenderSettings` has no field for them.
 
 Occlusion is estimated with random rays: one frame is grainy, more `samples` or `accumulation`
 smooth it. An unlimited radius is the grainiest case: an infinite floor covers half the sky of

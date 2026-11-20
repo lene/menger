@@ -621,7 +621,7 @@ and never exceed 1 (caustics plus direct light cannot exceed the bare floor).
 table; `... gate` is the rung `integration-tests.sh` runs (menger against the committed pbrt
 fractions, no pbrt needed). See `scripts/caustics-validation/README.md`.
 
-**Without caustics (optix-jni#132):** the gate also renders the glass with plain `--shadows` and
+**Without caustics (optix-jni#132):** the gate also renders the glass with plain shadows and
 with `--transparent-shadows` and compares the footprint fraction `fp` (only that one: the light
 the glass bends out of its shadow has nowhere to land without photons) with pbrt's 0.393 within
 `fp_tolerance_no_caustics` (0.15, decided by user 2026-11-19), so the same scene with and without caustics has comparably dark glass

@@ -271,14 +271,14 @@ GitHub deletes runner registrations that stay disconnected too long. If the runn
 
 **2. Reduce Quality for Previews**
 ```bash
-# Fast preview (no AA, no shadows)
+# Fast preview (no AA)
 sbt "run --objects 'type=sponge-surface:level=2'"
 
 # Medium quality (AA only)
 sbt "run --objects 'type=sponge-surface:level=2' --antialiasing"
 
-# Full quality (AA + shadows)
-sbt "run --objects 'type=sponge-surface:level=2' --antialiasing --shadows --plane y:-2"
+# Full quality (AA)
+sbt "run --objects 'type=sponge-surface:level=2' --antialiasing --plane y:-2"
 ```
 
 **3. Explore Cheaply, Then Render**
@@ -287,7 +287,7 @@ sbt "run --objects 'type=sponge-surface:level=2' --antialiasing --shadows --plan
 sbt "run --objects 'type=sponge-surface:level=1'"
 
 # Then render the final version headless with everything on
-sbt "run --objects 'type=sponge-surface:level=3' --antialiasing --shadows \
+sbt "run --objects 'type=sponge-surface:level=3' --antialiasing \
     --plane y:-2 --headless --save-name final.png"
 ```
 

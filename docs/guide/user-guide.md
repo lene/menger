@@ -132,7 +132,6 @@ sample count for the interactive window's back buffer (headless renders always u
                              # Types: directional:x,y,z[:i[:c]], point:x,y,z[:i[:c]],
                              #        area:px,py,pz:nx,ny,nz:radius[:samples[:i[:c[:shape]]]]
                              # directional x,y,z = direction the light travels
---shadows                    # Enable shadow rays
 
 # Quality
 --antialiasing               # Enable recursive adaptive antialiasing
@@ -149,8 +148,8 @@ sample count for the interactive window's back buffer (headless renders always u
 --plane <spec>               # Ground plane, e.g. y:-2 (no plane unless given)
 --plane-color <spec>         # Plane color (solid: RRGGBB, checkered: RRGGBB:RRGGBB)
 --plane-material <name>      # Plane material preset (chrome, gold, glass, …)
---transparent-shadows        # Colored shadow tinting through transparent objects (needs --shadows;
-                             # DSL scenes default to Auto, see Transparent Shadows)
+--transparent-shadows        # Colored shadow tinting through transparent objects (--caustics
+                             # turns it on; DSL scenes default to Auto, see Transparent Shadows)
 --env-map <file.hdr>         # HDR equirectangular environment map (image-based lighting)
 --fog density=D:color=r,g,b  # Depth-cue fog
 --texture-dir <dir>          # Base directory for texture= files
@@ -219,11 +218,11 @@ sbt "run --objects 'type=sphere:ior=1.5:size=1.5'"
 
 # High-quality Menger sponge with shadows and antialiasing on a checkered floor
 sbt "run --objects 'type=sponge-surface:level=2' \
-    --shadows --antialiasing --plane y:-2 --plane-color ffffff:808080"
+    --antialiasing --plane y:-2 --plane-color ffffff:808080"
 
 # Same, rendered straight to a file on a machine without a display
 __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a ./menger-app-0.9.1/bin/menger-app \
-    --objects 'type=sponge-surface:level=2' --shadows --antialiasing --plane y:-2 \
+    --objects 'type=sponge-surface:level=2' --antialiasing --plane y:-2 \
     --headless --save-name sponge.png
 ```
 
@@ -983,8 +982,8 @@ OptiX mode supports up to 8 light sources. Use the `--light` flag (repeatable):
 # Area light with 8 shadow samples for softer penumbra
 --light area:0,4,0:0,-1,0:1.5:8
 
-# Combine area light with shadows for soft shadow rendering
---shadows --light area:0,4,0:0,-1,0:2.0:8
+# Shadows are always on, so the area light gives soft shadows
+--light area:0,4,0:0,-1,0:2.0:8
 ```
 
 #### Multi-Light Setup
@@ -999,11 +998,11 @@ sbt "run --objects 'type=sphere' \
 
 #### Shadows
 
-Enable shadow rays for realistic shadows:
+Shadows are always on: there is no option to enable or disable them. A light casts a shadow
+onto a surface it falls on, so add a floor to see one:
 
 ```bash
-sbt "run --objects 'type=sphere' \
-    --shadows \
+sbt "run --objects 'type=sphere' --plane y:-2 \
     --light directional:1,-1,1"
 ```
 
@@ -1024,7 +1023,7 @@ casts an opaque gray shadow proportional to its alpha.
 ```bash
 sbt "run \
     --objects 'type=sphere:color=#FF000066:ior=1.5' \
-    --shadows --transparent-shadows \
+    --transparent-shadows \
     --light directional:1,-1,1"
 ```
 

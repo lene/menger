@@ -138,6 +138,16 @@
   (validator result schema 1.4.0). menger-scene-agent must regenerate its manifest and corpus
   and take over the new result schema. Example: `TesseractToPenteract`.
 
+### Removed
+
+- `--shadows` and `RenderSettings(shadows = ...)`: shadows are always on (decided by user 2026-11-20:
+  "shadows are always on - not just by default but always, period", lene/menger#196). The switch never
+  reached the renderer, so no image changes. `--shadows` is now rejected as an unknown option and
+  `RenderSettings(shadows = ...)` no longer compiles; drop the argument. `--transparent-shadows` and
+  `RenderSettings.transparentShadows` stay (tinted shadows). The DSL manifest lists no `shadows` field
+  on `RenderSettings` any more; menger-scene-agent must regenerate its manifest. menger-common's
+  `RenderConfig.shadows` goes the same way in its next release.
+
 ### Changed
 
 - A glass (IOR above 1.05) object's shadow without caustics is darker, about as dark as pbrt-v4's

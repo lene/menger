@@ -81,7 +81,7 @@ From a release (download `menger-<version>.zip` from the GitHub releases page an
 
 ```bash
 ./menger-app-0.9.0/bin/menger-app --objects type=sponge-volume:level=2:material=gold \
-    --plane y:-2 --shadows
+    --plane y:-2
 ```
 
 From source:
@@ -150,7 +150,6 @@ The [User Guide](docs/USER_GUIDE.md) has the full reference; this is the short v
       the direction the light travels)
     - `--light point:0,5,0:2.0:ffffff` - Bright white point light above
     - `--light directional:0,-1,0::ff0000` - Red light shining down (omit intensity with `::`)
-- `--shadows` - Enable shadow rays for realistic shadows
 
 #### Scene
 
@@ -247,8 +246,8 @@ sbt "run --objects type=sphere:size=1.5:material=glass"
 # Opaque cube
 sbt "run --objects type=cube:size=1:material=matte:color=#808080"
 
-# Sphere with shadows and custom lighting
-sbt "run --objects type=sphere:material=glass --shadows \
+# Sphere with custom lighting
+sbt "run --objects type=sphere:material=glass \
   --light directional:1,-1,1:1.5 \
   --light point:2,3,2:0.8:ffd700"
 
