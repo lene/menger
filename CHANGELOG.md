@@ -141,12 +141,14 @@
 ### Removed
 
 - `--shadows` and `RenderSettings(shadows = ...)`: shadows are always on (decided by user 2026-11-20:
-  "shadows are always on - not just by default but always, period", lene/menger#196). The switch never
-  reached the renderer, so no image changes. `--shadows` is now rejected as an unknown option and
+  "shadows are always on - not just by default but always, period", lene/menger#196). The switch reached
+  the renderer through optix-jni's `setRenderConfig`, but it was on by default and no scene turned it
+  off, so no reference image changes. `--shadows` is now rejected as an unknown option and
   `RenderSettings(shadows = ...)` no longer compiles; drop the argument. `--transparent-shadows` and
   `RenderSettings.transparentShadows` stay (tinted shadows). The DSL manifest lists no `shadows` field
-  on `RenderSettings` any more; menger-scene-agent must regenerate its manifest. menger-common's
-  `RenderConfig.shadows` goes the same way in its next release.
+  on `RenderSettings` any more; menger-scene-agent must regenerate its manifest. menger pins
+  menger-common 0.4.1, which drops `RenderConfig.shadows`, and optix-jni 0.5.8, which no longer reads
+  it (optix-jni 0.5.7 with menger-common 0.4.1 fails every render with `NoSuchMethodError`).
 
 ### Changed
 
