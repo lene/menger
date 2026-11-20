@@ -69,6 +69,16 @@ for wanted in integration smoke; do
     esac
 done
 
+# The DSL and the example scenes build the integration suite's scenes (the ladder's freeze frames):
+# a diff of only those must render (the step-0 push skipped integration, 2026-11-20).
+for scene_code in menger-app/src/main/scala/examples/dsl/ladder/DimensionLadder.scala \
+        menger-app/src/main/scala/menger/dsl/Material.scala; do
+    case " $(selected_suites "$scene_code") " in
+        *" integration "*) report "a diff of only $scene_code selects integration" 0 ;;
+        *) report "a diff of only $scene_code selects integration" 1 ;;
+    esac
+done
+
 readme_only="$(selected_suites 'README.md')"
 case " $readme_only " in
     *" integration "* | *" smoke "*) report "a README-only diff selects neither integration nor smoke" 1 ;;

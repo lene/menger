@@ -5,6 +5,10 @@
 ^menger-app/src/main/scala/menger/engines/scene/
 ^menger-app/src/main/scala/menger/objects/
 ^menger-app/src/main/scala/menger/optix/
+# The DSL builds every scene, and examples/dsl holds the integration suite's scenes (the dimension
+# ladder's freeze frames among them): a change there can move pixels too.
+^menger-app/src/main/scala/menger/dsl/
+^menger-app/src/main/scala/examples/dsl/
 # Caustics-validation harness (Sprint 33.11): changes to the compare scripts, pbrt twins,
 # or thresholds can alter the C8 gate, so they must come with a reference-image update
 # (or a No-Render-Impact trailer). The live caustics shader itself is already covered by
