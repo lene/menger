@@ -175,7 +175,8 @@ chmod +x "$FAKE"
 gone() { ! kill -0 "$(cat "$1")" 2> /dev/null; }
 
 if command -v xvfb-run > /dev/null; then
-  export FAKE_DIR="$WORK" GPU_LOCK="$WORK/lock" KILL_GRACE_SECONDS=1 RUNNER_PROBE=false RUNNER_POLL_SECONDS=1
+  export FAKE_DIR="$WORK" GPU_LOCK="$WORK/lock" KILL_GRACE_SECONDS=1
+  export RUNNER_PROBE=false RUNNER_POLL_SECONDS=1
   run_fake() { # run_fake <mode> <args...>: sets OUT and RC
       local mode="$1"; shift
       rm -f "$WORK/launcher.pid" "$WORK/sleep.pid"

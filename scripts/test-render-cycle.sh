@@ -124,7 +124,8 @@ done
 if [ -n "$missing_tools" ]; then
     echo "SKIP: missing tools:$missing_tools: the whole-run tests with a fake launcher"
 else
-    export FAKE_DIR="$TEST_DIR" GPU_LOCK="$TEST_DIR/lock" KILL_GRACE_SECONDS=1 RUNNER_PROBE=false RUNNER_POLL_SECONDS=1
+    export FAKE_DIR="$TEST_DIR" GPU_LOCK="$TEST_DIR/lock" KILL_GRACE_SECONDS=1
+    export RUNNER_PROBE=false RUNNER_POLL_SECONDS=1
     convert -size 8x8 xc:red "$TEST_DIR/base.png"
     GOOD="$TEST_DIR/good"
     EXPECTED_NAMES="f_00000.png f_00001.png f_00002.png f_00003.png f_00004.png f_00005.png f_00006.png f_00007.png f_00008.png f_00009.png"
@@ -194,16 +195,29 @@ else
     report "...the failed work directory was set aside, not deleted" $?
 
     # Every chunk waits while the CI runner works (CI has the GPU's priority): here it is busy for
-    # the first five probes. The wait (5 s) does not count toward the chunk's timeout (4 frames x 1 s).
+    # the first five probes. The wait (5 s) is not part of the chunk's timeout (4 frames x 1 s),
+    # nor of the mean time per frame it reports.
     : > "$TEST_DIR/calls"
     echo 0 > "$TEST_DIR/probes"
     WAITED="$TEST_DIR/waited"
+    export BUSY_PROBES=5
     # shellcheck disable=SC2016  # the probe is shell code that runs later
-    RUNNER_PROBE='n="$(cat "$FAKE_DIR/probes")"; echo $((n + 1)) > "$FAKE_DIR/probes"; [ "$n" -lt 5 ]' \
+    BUSY_PROBE='n="$(cat "$FAKE_DIR/probes")"; echo $((n + 1)) > "$FAKE_DIR/probes"
+        [ "$n" -lt "$BUSY_PROBES" ]'
+    RUNNER_PROBE="$BUSY_PROBE" \
         run_cycle "$WAITED" --seconds 0.4 --fps 10 --chunk 4 --timeout-per-frame 1
     expect_equal "a busy CI runner that turns idle: exit 0" "$RC" 0
     expect_equal "...the chunk was rendered once, after the wait" "$(calls)" 1
-    expect_equal "...the runner was probed until it was idle (6 probes)" "$(cat "$TEST_DIR/probes")" 6
+    expect_equal "...the runner was probed until it was idle (6 probes)" \
+        "$(cat "$TEST_DIR/probes")" $((BUSY_PROBES + 1))
+    waited_seconds="$(sed -n 's/^going on: .* after \([0-9]*\) s$/\1/p' <<< "$RUN_OUT")"
+    mean_seconds="$(sed -n 's/^progress: 4 of 4 frames, mean \([0-9.]*\) s.frame.*$/\1/p' \
+        <<< "$RUN_OUT")"
+    awk -v waited="${waited_seconds:-0}" -v mean="${mean_seconds:-999}" -v probes="$BUSY_PROBES" \
+        'BEGIN { exit !(waited >= probes && mean * 4 < waited) }'
+    status=$?
+    report "...the chunk's ${mean_seconds} s/frame x 4 exclude the ${waited_seconds} s waited" \
+        "$status"
     grep -qE '^waiting: the CI runner is working' <<< "$RUN_OUT" \
         && grep -qE '^going on: the CI runner is idle again after [0-9]+ s' <<< "$RUN_OUT"
     report "...one line when it starts to wait and one when it goes on" $?
@@ -211,7 +225,7 @@ else
     status=0
     [ "$(line_of '^chunk 0:')" -lt "$(line_of '^waiting')" ] || status=1
     [ "$(line_of '^waiting')" -lt "$(line_of '^progress')" ] || status=1
-    report "...the waiting lines sit between the chunk's announcement and its progress line" "$status"
+    report "...the waiting lines sit between the chunk's announcement and its progress" "$status"
 
     : > "$TEST_DIR/calls"
     SHORT="$TEST_DIR/bad_short"

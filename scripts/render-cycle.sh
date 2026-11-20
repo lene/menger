@@ -27,8 +27,9 @@
 #                  it the command is printed
 #
 # Before each render it waits while the self-hosted CI runner works (CI has the GPU's priority: a
-# Runner.Worker process of this user exists), polling every 30 s and printing a line when it starts to
-# wait and one when it goes on; RUNNER_PROBE and RUNNER_POLL_SECONDS override that (the tests do).
+# Runner.Worker process of this user exists), polling every 30 s and printing a line when it
+# starts to wait and one when it goes on; RUNNER_PROBE and RUNNER_POLL_SECONDS override that (the
+# tests do).
 #
 # A chunk whose global frames all exist is skipped, so a rerun continues with the first
 # incomplete chunk. A chunk is rendered into work/chunk_<c>/ and its frames are moved to their

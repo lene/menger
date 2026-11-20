@@ -10,8 +10,9 @@
 #   and, for the interrupt handling, `trap on_interrupt INT TERM HUP`.
 # GPU_LOCK, KILL_GRACE_SECONDS, RUNNER_PROBE and RUNNER_POLL_SECONDS may be overridden in the
 # environment (the offline tests do). RUNNER_PROBE is a command whose exit status 0 means "the CI
-# runner is working": a render waits for it, since CI has priority on the GPU. The default finds the
-# self-hosted runner's job process; run inside that job, set RUNNER_PROBE=false or it waits for itself.
+# runner is working": a render waits for it, since CI has priority on the GPU. The default finds
+# the self-hosted runner's job process; run inside that job, set RUNNER_PROBE=false or it waits
+# for itself.
 
 # awk would print "1,066667" in a decimal-comma locale, which the app rejects as a Float.
 export LC_ALL=C
