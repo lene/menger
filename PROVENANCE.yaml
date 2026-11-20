@@ -24,9 +24,11 @@ entries:
     kind: asset
     # Downloaded 2026-11-14; the file's MD5 equals the one Poly Haven publishes
     # (api.polyhaven.com/files/kiara_4_mid-morning, 6ac29c08210d0047567f67e187927ee8); author from
-    # api.polyhaven.com/info/kiara_4_mid-morning.
+    # api.polyhaven.com/info/kiara_4_mid-morning. 8k downloaded 2026-11-20, MD5
+    # 42146e1b3fa5363fba1f8538d1814ba6 as published.
     sha256:
       4k: 6103c59e9446a4d7cdaf8ab69092962de14c1034bfed86150e9461fede35e723
+      8k: 97e73f4ccd79763ed6688bb56b72402c1c15f1cd6db3bf8162b84e6a9d839caa
 
   - path: menger-app/src/test/resources/cliffside_2k.hdr
     source: https://polyhaven.com/a/cliffside

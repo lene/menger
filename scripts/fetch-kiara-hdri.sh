@@ -27,9 +27,10 @@ SUNRISE_PINS="\
 1k e4cd96c6046b2c3b81bd74b0c8b0d680272420ebc00e88ab7ba1c9be5941069b
 4k f06d8b697c97cbaf4614ff82ae65530ed85ec6ab515bdfa4edaa6901ec2c0079
 8k c6a1686cbcf45af26982af550a1c9647c5b24643c593e90d9cf394c3f4437d63"
-# Downloaded 2026-11-14; the MD5 equals the one Poly Haven publishes.
+# Downloaded 2026-11-14 (4k) and 2026-11-20 (8k); the MD5s equal the ones Poly Haven publishes.
 MID_MORNING_PINS="\
-4k 6103c59e9446a4d7cdaf8ab69092962de14c1034bfed86150e9461fede35e723"
+4k 6103c59e9446a4d7cdaf8ab69092962de14c1034bfed86150e9461fede35e723
+8k 97e73f4ccd79763ed6688bb56b72402c1c15f1cd6db3bf8162b84e6a9d839caa"
 
 MAP="${2:-$DEFAULT_MAP}"
 case "$MAP" in
