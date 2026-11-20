@@ -8,7 +8,10 @@
 # The sourcing script provides before the first render:
 #   RENDER_STATE_DIR  a writable directory for the render's bookkeeping files
 #   and, for the interrupt handling, `trap on_interrupt INT TERM HUP`.
-# GPU_LOCK and KILL_GRACE_SECONDS may be overridden in the environment (the offline tests do).
+# GPU_LOCK, KILL_GRACE_SECONDS, RUNNER_PROBE and RUNNER_POLL_SECONDS may be overridden in the
+# environment (the offline tests do). RUNNER_PROBE is a command whose exit status 0 means "the CI
+# runner is working": a render waits for it, since CI has priority on the GPU. The default finds the
+# self-hosted runner's job process; run inside that job, set RUNNER_PROBE=false or it waits for itself.
 
 # awk would print "1,066667" in a decimal-comma locale, which the app rejects as a Float.
 export LC_ALL=C
@@ -16,6 +19,8 @@ export LC_ALL=C
 RENDER_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GPU_LOCK="${GPU_LOCK:-/tmp/menger-gpu.lock}"   # overridable for the offline tests
 KILL_GRACE_SECONDS="${KILL_GRACE_SECONDS:-30}"
+RUNNER_PROBE="${RUNNER_PROBE:-pgrep -u \"\$(id -un)\" -x Runner.Worker}"
+RUNNER_POLL_SECONDS="${RUNNER_POLL_SECONDS:-30}"
 DEFAULT_HDRI=assets/hdri/kiara_2_sunrise_4k.hdr
 MS_PER_SECOND=1000
 TIMEOUT_EXIT=124
@@ -100,16 +105,39 @@ sweep_render_group() {
   if [ -n "$pgid" ]; then kill -KILL -- "-$pgid" 2> /dev/null || true; fi
 }
 
+# In a subshell: the probe is arbitrary shell, and must not set variables of the caller.
+ci_runner_busy() { (eval "$RUNNER_PROBE") > /dev/null 2>&1; }
+
+# Waits, before the render asks for the GPU lock, while the CI runner works: it polls every
+# RUNNER_POLL_SECONDS, and prints one line when it starts to wait and one when it goes on. The
+# sleep runs in the background and is waited for, so that a trapped signal ends it at once.
+wait_for_ci_runner() {
+  local waited_since
+  ci_runner_busy || return 0
+  waited_since="$(date +%s)"
+  echo "waiting: the CI runner is working (checking every $RUNNER_POLL_SECONDS s)"
+  while true; do
+    sleep "$RUNNER_POLL_SECONDS" &
+    RENDER_PID=$!
+    wait "$RENDER_PID" || true
+    RENDER_PID=""
+    ci_runner_busy || break
+  done
+  echo "going on: the CI runner is idle again after $(( $(date +%s) - waited_since )) s"
+}
+
 # run_render <timeout seconds> <log file> <launcher> <app arguments...>
-# Runs the app headless under the GPU lock and the timeout, its output in the log. Sets
-# RENDER_STATUS (the exit status) and RENDER_ELAPSED_MS (wall clock from the moment the lock
-# was taken). Judging the outcome (timeout, ERROR line, missing output) is the caller's.
+# Waits while the CI runner works, then runs the app headless under the GPU lock and the timeout,
+# its output in the log. Sets RENDER_STATUS (the exit status) and RENDER_ELAPSED_MS (wall clock
+# from the moment the lock was taken: neither wait counts). Judging the outcome (timeout, ERROR
+# line, missing output) is the caller's.
 run_render() {
   local timeout_seconds="$1" log_file="$2" launcher="$3"
   local started_file="$RENDER_STATE_DIR/render.started" started_ms status=0
   shift 3
   RENDER_PGID_FILE="$RENDER_STATE_DIR/render.pgid"
   rm -f "$started_file" "$RENDER_PGID_FILE"
+  wait_for_ci_runner
   # -o: the lock fd is not inherited by the app's children (Xvfb outlives a killed render and
   # would hold the lock); flock itself keeps the lock until the command exits. Run in the
   # background and waited for, so that a trapped signal is handled at once.

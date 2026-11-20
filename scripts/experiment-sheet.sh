@@ -26,6 +26,9 @@
 # A cell that times out, exits non-zero or logs an ERROR line is a failed cell: its log is kept,
 # no image is kept (also not the one of an earlier run, under --force), the sheet shows a grey tile and times.md says "failed" (or "> S s"), and the
 # run goes on. The sheet is written in any case; the exit status is 1 if any cell failed.
+# Before each render it waits while the self-hosted CI runner works (CI has the GPU's priority: a
+# Runner.Worker process of this user exists), polling every 30 s and printing a line when it starts to
+# wait and one when it goes on; RUNNER_PROBE and RUNNER_POLL_SECONDS override that (the tests do).
 # Every render runs under flock /tmp/menger-gpu.lock (GPU_LOCK overrides it, for the tests), and
 # never outlives it. The first run stamps width, height and hdri in run.params; a rerun into the
 # same --out with different ones is refused (exit 2). times.md starts with a provenance line, as

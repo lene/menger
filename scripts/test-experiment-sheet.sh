@@ -119,7 +119,7 @@ done
 if [ -n "$missing_tools" ]; then
     echo "SKIP: missing tools:$missing_tools: the whole-run tests with a fake launcher"
 else
-    export FAKE_DIR="$TEST_DIR" GPU_LOCK="$TEST_DIR/lock" KILL_GRACE_SECONDS=1
+    export FAKE_DIR="$TEST_DIR" GPU_LOCK="$TEST_DIR/lock" KILL_GRACE_SECONDS=1 RUNNER_PROBE=false RUNNER_POLL_SECONDS=1
     GOOD="$TEST_DIR/good"
     EXPECTED_WIDTH=$((SHEET_LABEL_WIDTH + 3 * CELL_WIDTH))
     EXPECTED_HEIGHT=$((SHEET_HEADER_HEIGHT + 2 * CELL_HEIGHT))
@@ -197,6 +197,41 @@ else
     grep -qE '^\| Tint1 \| failed \|$' "$NOMOVE/times.md"
     report "...the cell is failed, not done" $?
     chmod u+w "$NOMOVE/cells"
+
+    # The render waits while the CI runner works (CI has the GPU's priority), then runs; the wait
+    # is not part of the render's timeout. The fake runner is busy for its first two probes.
+    : > "$TEST_DIR/calls"
+    echo 0 > "$TEST_DIR/probes"
+    WAITED="$TEST_DIR/waited"
+    # shellcheck disable=SC2016  # the probe is shell code that runs later
+    RUNNER_PROBE='n="$(cat "$FAKE_DIR/probes")"; echo $((n + 1)) > "$FAKE_DIR/probes"; [ "$n" -lt 2 ]' \
+        run_sheet "$WAITED" --at 0 --scenes examples.dsl.ladder.variants.Tint1 --timeout 1
+    expect_equal "a busy CI runner that turns idle: exit 0" "$RC" 0
+    expect_equal "...the render ran once, after the wait" "$(calls)" 1
+    expect_equal "...the runner was probed until it was idle (3 probes)" "$(cat "$TEST_DIR/probes")" 3
+    grep -qE '^waiting: the CI runner is working' <<< "$RUN_OUT" \
+        && grep -qE '^going on: the CI runner is idle again after [0-9]+ s' <<< "$RUN_OUT" \
+        && [ "$(grep -cE '^(waiting|going on):' <<< "$RUN_OUT")" -eq 2 ]
+    report "...one line when it starts to wait and one when it goes on" $?
+    line_of() { grep -nE "$1" <<< "$RUN_OUT" | head -n 1 | cut -d: -f1; }
+    status=0
+    [ "$(line_of '^waiting')" -lt "$(line_of '^done ')" ] || status=1
+    report "...the waiting line comes before the cell's render" "$status"
+    grep -qE '^\| Tint1 \| [0-9]+ \|$' "$WAITED/times.md"
+    report "...the 2 s of waiting did not count toward the 1 s timeout" $?
+
+    : > "$TEST_DIR/calls"
+    run_sheet "$TEST_DIR/idle" --at 0 --scenes examples.dsl.ladder.variants.Tint1
+    ! grep -qE '^(waiting|going on):' <<< "$RUN_OUT"; report "an idle CI runner: no waiting lines" $?
+
+    # The default probe is a real command: it runs (pgrep's 0 or 1, not a usage error) and names
+    # the self-hosted runner's job process.
+    # shellcheck disable=SC2016  # the shell code runs in the child
+    env -u RUNNER_PROBE bash -c 'source "$1"; echo "$RUNNER_PROBE"; ci_runner_busy; [ "$?" -le 1 ]' \
+        probe "$SCRIPTS/lib/render-lock.sh" > "$TEST_DIR/probe.out" 2>&1
+    report "the default probe runs" $?
+    grep -qE '^pgrep -u "[^"]+" -x Runner\.Worker$' "$TEST_DIR/probe.out"
+    report "...and looks for the user's Runner.Worker process" $?
 
     cases=(exit1 error hang)
     for mode in "${cases[@]}"; do

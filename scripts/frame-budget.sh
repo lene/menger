@@ -38,6 +38,9 @@
 #   --out FILE     also append the markdown to FILE, starting with a provenance line: date, GPU,
 #                  commit, resolution, timeout, scene, hdri
 #
+# Before each render it waits while the self-hosted CI runner works (CI has the GPU's priority: a
+# Runner.Worker process of this user exists), polling every 30 s and printing a line when it starts to
+# wait and one when it goes on; RUNNER_PROBE and RUNNER_POLL_SECONDS override that (the tests do).
 # Every render runs under flock /tmp/menger-gpu.lock (GPU_LOCK overrides it, for the tests), and
 # never outlives it: on INT/TERM/HUP the render's process group is killed before this script
 # exits. The lock's file descriptor is closed for the render's children.

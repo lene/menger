@@ -124,7 +124,7 @@ done
 if [ -n "$missing_tools" ]; then
     echo "SKIP: missing tools:$missing_tools: the whole-run tests with a fake launcher"
 else
-    export FAKE_DIR="$TEST_DIR" GPU_LOCK="$TEST_DIR/lock" KILL_GRACE_SECONDS=1
+    export FAKE_DIR="$TEST_DIR" GPU_LOCK="$TEST_DIR/lock" KILL_GRACE_SECONDS=1 RUNNER_PROBE=false RUNNER_POLL_SECONDS=1
     convert -size 8x8 xc:red "$TEST_DIR/base.png"
     GOOD="$TEST_DIR/good"
     EXPECTED_NAMES="f_00000.png f_00001.png f_00002.png f_00003.png f_00004.png f_00005.png f_00006.png f_00007.png f_00008.png f_00009.png"
@@ -192,6 +192,26 @@ else
     report "...the failed attempt's log is kept, the retry has its own (chunk_1.attempt2.log)" $?
     holds [ ! -d "$BAD/work/chunk_1" ] && ls -d "$BAD"/work/chunk_1.old.* > /dev/null 2>&1
     report "...the failed work directory was set aside, not deleted" $?
+
+    # Every chunk waits while the CI runner works (CI has the GPU's priority): here it is busy for
+    # the first five probes. The wait (5 s) does not count toward the chunk's timeout (4 frames x 1 s).
+    : > "$TEST_DIR/calls"
+    echo 0 > "$TEST_DIR/probes"
+    WAITED="$TEST_DIR/waited"
+    # shellcheck disable=SC2016  # the probe is shell code that runs later
+    RUNNER_PROBE='n="$(cat "$FAKE_DIR/probes")"; echo $((n + 1)) > "$FAKE_DIR/probes"; [ "$n" -lt 5 ]' \
+        run_cycle "$WAITED" --seconds 0.4 --fps 10 --chunk 4 --timeout-per-frame 1
+    expect_equal "a busy CI runner that turns idle: exit 0" "$RC" 0
+    expect_equal "...the chunk was rendered once, after the wait" "$(calls)" 1
+    expect_equal "...the runner was probed until it was idle (6 probes)" "$(cat "$TEST_DIR/probes")" 6
+    grep -qE '^waiting: the CI runner is working' <<< "$RUN_OUT" \
+        && grep -qE '^going on: the CI runner is idle again after [0-9]+ s' <<< "$RUN_OUT"
+    report "...one line when it starts to wait and one when it goes on" $?
+    line_of() { grep -nE "$1" <<< "$RUN_OUT" | head -n 1 | cut -d: -f1; }
+    status=0
+    [ "$(line_of '^chunk 0:')" -lt "$(line_of '^waiting')" ] || status=1
+    [ "$(line_of '^waiting')" -lt "$(line_of '^progress')" ] || status=1
+    report "...the waiting lines sit between the chunk's announcement and its progress line" "$status"
 
     : > "$TEST_DIR/calls"
     SHORT="$TEST_DIR/bad_short"
