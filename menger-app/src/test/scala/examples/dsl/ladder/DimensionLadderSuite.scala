@@ -605,14 +605,17 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
       case other => fail(s"expected a ProjectionSpec, got $other")
 
   it should "hand a 3D object over to the 4D one with the same orientation, planes in order" in:
-    val justAfter = 1e-5f
+    // Late enough that the 4D object is drawn, not the 3D stand-in (standInExtrusion), and
+    // early enough that its new axis is still nearly flat.
+    val firstDrawn4D = 0.02f
     for planes <- List(List("yz" -> 30f, "xz" -> 45f), List("xz" -> 45f), List("yz" -> 30f),
         List("yz" -> 30f, "xz" -> 45f, "xy" -> 20f))
     do
       val look = turnedBy(planes*)
       withClue(s"planes $planes: "):
-        sameShape(DimensionLadder.objectAt(foldTo(4), 0f, look = look),
-          DimensionLadder.objectAt(foldTo(4), justAfter, look = look))
+        val after = DimensionLadder.objectAt(foldTo(4), firstDrawn4D, look = look)
+        after.toObjectSpec.objectType shouldBe "n-cube"
+        sameShape(DimensionLadder.objectAt(foldTo(4), 0f, look = look), after)
 
   it should "reject the planes of a 3D object in another order than yz, xz, xy" in:
     for planes <- List(List("xz" -> 45f, "yz" -> 30f), List("xy" -> 20f, "xz" -> 45f),
