@@ -28,8 +28,9 @@ object ReinitRestore:
   /** Sets what the renderer lost, or got a new value of, in a frame built with
     * `capacityBefore` instances: after a reinitialize the frame's settings, the caustics and the
     * sky; the static env map (re-read only then, or when it changed) first, then
-    * `configureEnvMapVideo`, which replaces it as the background, and the lighting last, since it
-    * samples the map the renderer holds. Returns the sky the renderer holds now. */
+    * `configureEnvMapVideo`, which replaces it as the background (told whether the renderer was
+    * reinitialized: the video's texture is gone then), and the lighting last, since it samples
+    * the map the renderer holds. Returns the sky the renderer holds now. */
   def restore(
     renderer: OptiXRenderer,
     textureDir: String,
@@ -37,7 +38,7 @@ object ReinitRestore:
     settings: FrameSettings,
     capacityBefore: Int,
     appliedSky: Option[IblSetup.Sky]
-  )(configureEnvMapVideo: => Unit): Option[IblSetup.Sky] =
+  )(configureEnvMapVideo: Boolean => Unit): Option[IblSetup.Sky] =
     val reinitialized = renderer.maxInstances != capacityBefore
     if reinitialized then
       settings.applyTo(renderer)
@@ -45,6 +46,6 @@ object ReinitRestore:
     val sky = IblSetup.applySky(
       renderer, textureDir, configs.envMap, None, 0f, appliedSky
     )
-    configureEnvMapVideo
+    configureEnvMapVideo(reinitialized)
     if reinitialized || sky != appliedSky then IblSetup.applySceneIBL(renderer, configs)
     sky

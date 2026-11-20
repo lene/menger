@@ -48,7 +48,7 @@ class ReinitRestoreSuite extends AnyFlatSpec with Matchers with MockFactory:
     (() => renderer.maxInstances).expects().returning(capacity).anyNumberOfTimes()
     renderer
 
-  "ReinitRestore.restore" should "set everything a reinitialize drops, in the order the code relies on" in:
+  "ReinitRestore.restore" should "set what a reinitialize drops, in the required order" in:
     val scene = configs()
     val renderer = rendererWithCapacity(GrownCapacity)
     inSequence:
@@ -68,9 +68,40 @@ class ReinitRestoreSuite extends AnyFlatSpec with Matchers with MockFactory:
 
     val after = ReinitRestore.restore(
       renderer, ".", scene, settings, StartCapacity, appliedAt(StartCapacity)
-    )(renderer.setEnvironmentMap(videoTexture))
+    )(_ => renderer.setEnvironmentMap(videoTexture))
 
     after shouldBe appliedAt(GrownCapacity)
+
+  // The video's texture index belongs to the renderer a reinitialize recreated: its state has
+  // to be dropped so the video is uploaded again.
+  it should "tell the video step that the renderer was reinitialized" in:
+    val renderer = rendererWithCapacity(GrownCapacity)
+    val told = new java.util.concurrent.atomic.AtomicReference[Option[Boolean]](None)
+    (renderer.uploadTextureFromFile _).expects(*).returning(skyTexture).once()
+    (renderer.setEnvironmentMap _).expects(*).once()
+    (renderer.setRenderConfig _).expects(*).once()
+    (renderer.setDenoisingEnabled _).expects(*).once()
+    (renderer.setAccumulationFrames _).expects(*).once()
+    (renderer.setAmbient _).expects(*).once()
+    (renderer.setCausticsConfig _).expects(*).once()
+    (renderer.setIBL _).expects(*, *, *).once()
+    (renderer.clearIBLSunExclusion _).expects().once()
+
+    ReinitRestore.restore(
+      renderer, ".", configs(), settings, StartCapacity, appliedAt(StartCapacity)
+    )(reinitialized => told.set(Some(reinitialized)))
+
+    told.get shouldBe Some(true)
+
+  it should "tell the video step that the renderer was not reinitialized" in:
+    val renderer = rendererWithCapacity(StartCapacity)
+    val told = new java.util.concurrent.atomic.AtomicReference[Option[Boolean]](None)
+
+    ReinitRestore.restore(
+      renderer, ".", configs(), settings, StartCapacity, appliedAt(StartCapacity)
+    )(reinitialized => told.set(Some(reinitialized)))
+
+    told.get shouldBe Some(false)
 
   it should "set the sun exclusion of the scene again" in:
     val cone = IblSunExclusion(menger.common.Vector[3](0f, 0.6f, 0.8f), 2f)
@@ -86,7 +117,9 @@ class ReinitRestoreSuite extends AnyFlatSpec with Matchers with MockFactory:
     (renderer.setIBL _).expects(*, *, *).once()
     (renderer.setIBLSunExclusion _).expects(cone.directionToSun, cone.halfAngleDegrees).once()
 
-    ReinitRestore.restore(renderer, ".", scene, settings, StartCapacity, appliedAt(StartCapacity))(())
+    ReinitRestore.restore(
+      renderer, ".", scene, settings, StartCapacity, appliedAt(StartCapacity)
+    )(_ => ())
 
   it should "touch nothing but the video when the renderer was not reinitialized" in:
     val renderer = rendererWithCapacity(StartCapacity)
@@ -101,7 +134,7 @@ class ReinitRestoreSuite extends AnyFlatSpec with Matchers with MockFactory:
 
     val after = ReinitRestore.restore(
       renderer, ".", configs(), settings, StartCapacity, appliedAt(StartCapacity)
-    )(renderer.setEnvironmentMap(videoTexture))
+    )(_ => renderer.setEnvironmentMap(videoTexture))
 
     after shouldBe appliedAt(StartCapacity)
 
@@ -115,7 +148,9 @@ class ReinitRestoreSuite extends AnyFlatSpec with Matchers with MockFactory:
     (renderer.setIBL _).expects(true, scene.iblStrength, scene.iblSamples).once()
     (renderer.clearIBLSunExclusion _).expects().once()
 
-    ReinitRestore.restore(renderer, ".", scene, settings, StartCapacity, appliedAt(StartCapacity))(())
+    ReinitRestore.restore(
+      renderer, ".", scene, settings, StartCapacity, appliedAt(StartCapacity)
+    )(_ => ())
 
   it should "not read the map again in a frame after the reinitialize" in:
     val renderer = rendererWithCapacity(GrownCapacity)
@@ -124,7 +159,7 @@ class ReinitRestoreSuite extends AnyFlatSpec with Matchers with MockFactory:
 
     val after = ReinitRestore.restore(
       renderer, ".", configs(), settings, GrownCapacity, appliedAt(GrownCapacity)
-    )(())
+    )(_ => ())
 
     after shouldBe appliedAt(GrownCapacity)
 
@@ -142,9 +177,9 @@ class ReinitRestoreSuite extends AnyFlatSpec with Matchers with MockFactory:
 
     ReinitRestore.restore(
       renderer, ".", bare, settings, StartCapacity, Some(IblSetup.Sky(None, None, StartCapacity))
-    )(())
+    )(_ => ())
 
-  "ReinitRestore.FrameSettings" should "leave accumulation alone for a single frame and the ambient to the renderer's default" in:
+  "ReinitRestore.FrameSettings" should "leave one frame and no ambient to the renderer" in:
     val renderer = mock[OptiXRenderer]
     (renderer.setRenderConfig _).expects(*).once()
     (renderer.setDenoisingEnabled _).expects(false).once()

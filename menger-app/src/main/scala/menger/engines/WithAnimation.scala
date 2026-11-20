@@ -157,13 +157,41 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     replaceEnvMapVideoState(None)
     super.dispose()
 
-  private def frameSettingsFor(configs: SceneConverter.SceneConfigs): ReinitRestore.FrameSettings =
+  private def frameSettingsFor(
+    configs: SceneConverter.SceneConfigs
+  ): ReinitRestore.FrameSettings =
     ReinitRestore.FrameSettings(
       configs.render.getOrElse(renderConfig),
       denoiseModeFor(configs),
       configs.accumulationFrames,
       ambientFor(configs)
     )
+
+  /** Runs `rebuild`, a build that may reinitialize the renderer (which drops the frame's
+    * settings, the caustics, the env map and the lighting, menger#198), then sets again what
+    * the reinitialize dropped. The capacity is read before the build: it is how the
+    * reinitialize is recognised. */
+  private[engines] def restoringAfter[A](
+    renderer: OptiXRenderer,
+    configs: SceneConverter.SceneConfigs,
+    newSpecs: List[ObjectSpec],
+    t: Float
+  )(rebuild: => A): A =
+    val capacityBefore = renderer.maxInstances
+    val result = rebuild
+    appliedSky.set(ReinitRestore.restore(
+      renderer, textureDir, configs, frameSettingsFor(configs), capacityBefore, appliedSky.get
+    ) { reinitialized =>
+      // The video's texture index belongs to the renderer that was recreated.
+      replaceEnvMapVideoState(
+        WithAnimation.envMapVideoStateAfter(envMapVideoState.get, reinitialized)
+      )
+      configureEnvMapVideoForFrame(configs, newSpecs, renderer, t).recover {
+        case e: Exception =>
+          logger.error(s"Failed to update environment-map video for t=$t: ${e.getMessage}", e)
+      }
+    })
+    result
 
   private def tryVideoFastPath(
     configs: SceneConverter.SceneConfigs,
@@ -434,22 +462,13 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       else tryAnim4DFastPath(newSpecs, renderer)
     if videoFastPathTaken || geometryFastPathTaken then true
     else
-      val capacityBefore = renderer.maxInstances
-      clearScene(renderer)
-      val built = buildAnim4DTrackedOrFallback(configs, newSpecs, renderer)
-        .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, t))
-      built.failed.foreach(e =>
-        logger.error(FrameBuildFailure.message(s"frame $frame (t=$t)", e), e))
-      // A builder may have reinitialized the renderer, which drops the frame's settings, the
-      // caustics, the env map and the lighting (menger#198).
-      appliedSky.set(ReinitRestore.restore(
-        renderer, textureDir, configs, frameSettingsFor(configs), capacityBefore, appliedSky.get
-      ) {
-        configureEnvMapVideoForFrame(configs, newSpecs, renderer, t).recover {
-          case e: Exception =>
-            logger.error(s"Failed to update environment-map video for t=$t: ${e.getMessage}", e)
-        }
-      })
+      val built = restoringAfter(renderer, configs, newSpecs, t):
+        clearScene(renderer)
+        val result = buildAnim4DTrackedOrFallback(configs, newSpecs, renderer)
+          .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, t))
+        result.failed.foreach(e =>
+          logger.error(FrameBuildFailure.message(s"frame $frame (t=$t)", e), e))
+        result
       // Planes are real IAS instances (Sprint 36 H3.1) — only re-add them when
       // clearAllInstances above actually ran; the fast paths leave existing
       // instances (including previously added planes) untouched.
@@ -606,6 +625,12 @@ object WithAnimation:
       prev.lazyZip(next).forall((a, b) =>
         a == b || (a.isLegacyView && b.isLegacyView && a.withoutView == b.withoutView)
       )
+
+  /** The env-map video's state after a frame's build: a reinitialize recreated the renderer, so
+    * the texture index the state holds names nothing, and the state is dropped, which uploads
+    * the video again into a live slot (menger#198). */
+  def envMapVideoStateAfter[S](state: Option[S], reinitialized: Boolean): Option[S] =
+    if reinitialized then None else state
 
   def specsCanReuseVideoTextureSlots(prev: List[ObjectSpec], next: List[ObjectSpec]): Boolean =
     prev == next && prev.exists(_.videoTexture.nonEmpty)

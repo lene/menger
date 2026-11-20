@@ -119,6 +119,31 @@ trait WithPreview extends RenderEngine with LazyLogging:
           f"render ${seconds(renderNanos)}%.1f s; ${HeapUsage.describe()}"
       )
 
+  private def frameSettingsFor(
+    configs: SceneConverter.SceneConfigs
+  ): ReinitRestore.FrameSettings =
+    ReinitRestore.FrameSettings(
+      configs.render.getOrElse(renderConfig),
+      denoiseModeFor(configs),
+      configs.accumulationFrames,
+      ambientFor(configs)
+    )
+
+  /** Runs `rebuild`, a build that may reinitialize the renderer (which drops the frame's
+    * settings, the caustics, the env map and the lighting, menger#198), then sets again what
+    * the reinitialize dropped. The capacity is read before the build: it is how the
+    * reinitialize is recognised. An env-map video is not played in the preview. */
+  private[engines] def restoringAfter[A](
+    renderer: io.github.lene.optix.OptiXRenderer,
+    configs: SceneConverter.SceneConfigs
+  )(rebuild: => A): A =
+    val capacityBefore = renderer.maxInstances
+    val result = rebuild
+    appliedSky.set(ReinitRestore.restore(
+      renderer, textureDir, configs, frameSettingsFor(configs), capacityBefore, appliedSky.get
+    )(_ => ()))
+    result
+
   private def startT: Double = previewConfig.startT.toDouble
   private def endT: Double = previewConfig.endT.toDouble
 
@@ -293,28 +318,14 @@ trait WithPreview extends RenderEngine with LazyLogging:
             ))
           setTitleNote(title4D, Window4DState.describe(configs.scene.objectSpecs.getOrElse(Nil)))
           val renderer = rendererWrapper.renderer
-          configs.render.foreach(renderer.setRenderConfig)
-          renderer.setDenoisingEnabled(denoiseModeFor(configs) == menger.dsl.DenoiseMode.Final)
-          if configs.accumulationFrames > 1 then
-            renderer.setAccumulationFrames(configs.accumulationFrames)
-          val capacityBefore = renderer.maxInstances
-          val instancesCleared = updateOrRebuild(configs, renderer, t)
-          // A builder may have reinitialized the renderer, which also drops the frame's
-          // settings, the caustics, the env map and the lighting (menger#198).
-          appliedSky.set(ReinitRestore.restore(
-            renderer, textureDir, configs,
-            ReinitRestore.FrameSettings(
-              configs.render.getOrElse(renderConfig), denoiseModeFor(configs),
-              configs.accumulationFrames, ambientFor(configs)
-            ),
-            capacityBefore, appliedSky.get
-          )(()))
-          // A builder may have reinitialized the renderer, discarding lights and render
-          // settings (usability review 2026-09, F22) -- restore them every frame, with this
-          // frame's lights: an animated scene's lights may move (F65).
+          frameSettingsFor(configs).applyTo(renderer)
+          val instancesCleared = restoringAfter(renderer, configs)(
+            updateOrRebuild(configs, renderer, t)
+          )
+          // A builder may have reinitialized the renderer, discarding the lights (usability
+          // review 2026-09, F22) -- set them every frame, with this frame's lights: an animated
+          // scene's lights may move (F65).
           sceneConfigurator.configureLights(renderer, configs.lights.toArray)
-          renderer.setRenderConfig(configs.render.getOrElse(renderConfig))
-          applyAmbient(renderer, ambientFor(configs))
           // Planes are real IAS instances: re-add them only when the instances were cleared,
           // or one more is added every in-place frame until the table is full (F58).
           if instancesCleared then PlaneConfigurer.configurePlanes(renderer, configs.planes.toArray)
