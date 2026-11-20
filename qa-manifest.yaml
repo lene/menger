@@ -26,13 +26,21 @@ change_classes:
   assets:
     - '^scripts/(test-)?fetch-kiara-hdri\.sh$'
     - '^PROVENANCE\.yaml$'
+  # The script tests `unit` runs besides sbt (scripts/suites/unit.sh) and what they test: a
+  # change to any of them alone must select `unit`, or its tests never run before the push.
+  unit-scripts:
+    - '^scripts/suites/unit\.sh$'
+    - '^scripts/test[-_][^/]*\.(sh|py)$'
+    - '^scripts/(check_shadow_tint\.py|experiment-sheet\.sh|render-cycle\.sh)$'
+    - '^scripts/(frame-budget|caustics-validation)/'
+    - '^(qa-manifest\.yaml|standards/scripts/qa-runner\.sh|standards/rendering-paths\.txt)$'
 
 suites:
   parity:        { tier: push,    requires: [] }
   policy:        { tier: push,    requires: [] }
   preflight:     { tier: push,    requires: [] }
   lint:          { tier: push,    requires: [] }
-  unit:          { tier: push,    requires: [scala, native, assets] }
+  unit:          { tier: push,    requires: [scala, native, assets, unit-scripts] }
   perf:          { tier: push,    requires: [scala, native], note: "Perf-tagged timing gates (RelativeBenchmark: interleaved subject/reference rounds, median + confidence interval), excluded from `unit` by build.sbt and run alone; inconclusive gates make the suite SKIP, never FAIL" }
   native-checks: { tier: push,    requires: [native] }
   coverage:      { tier: push,    requires: [scala, native] }

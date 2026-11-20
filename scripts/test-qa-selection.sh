@@ -48,7 +48,11 @@ stub_repo() {
 }
 
 # selected_suites <changed-files>: the suites qa-runner.sh invokes (not skipped) for that diff.
+# The runner's resume cache reports a suite that passed on the same tree as "CACHED PASS"
+# without invoking it, and every case runs on the same scratch tree: without clearing it, only
+# the first case would see its suites run and every later case would select nothing.
 selected_suites() {
+    rm -rf "$REPO/.git/qa-cache"
     (cd "$REPO" && CHANGED_FILES="$1" ./standards/scripts/qa-runner.sh --tier push --all 2>&1) \
         | grep -E '^SUITE [a-z-]+ PASS' | cut -d' ' -f2 | sort | paste -sd' ' -
 }
@@ -70,6 +74,16 @@ case " $readme_only " in
     *" integration "* | *" smoke "*) report "a README-only diff selects neither integration nor smoke" 1 ;;
     *) report "a README-only diff selects neither integration nor smoke" 0 ;;
 esac
+
+# A diff of only a script that unit.sh tests must select unit (it was skipped on the push of
+# scripts/check_shadow_tint.py and its test, menger#195, 2026-11-20).
+for script in scripts/check_shadow_tint.py scripts/test_check_shadow_tint.py scripts/suites/unit.sh \
+        scripts/render-cycle.sh scripts/caustics-validation/sponge_caustics.py; do
+    case " $(selected_suites "$script") " in
+        *" unit "*) report "a diff of only $script selects unit" 0 ;;
+        *) report "a diff of only $script selects unit" 1 ;;
+    esac
+done
 
 [ "$FAILURES" -eq 0 ] || { echo "$FAILURES failure(s)"; exit 1; }
 echo "all passed"
