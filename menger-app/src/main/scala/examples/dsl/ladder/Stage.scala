@@ -55,7 +55,7 @@ final case class Stage(sunDirection: Vec3, restDepth: Float, framing: Framing = 
     Camera(position = aim + cameraDirection * distance, lookAt = aim)
 
 object Stage:
-  private val plinthTopY = -0.45f
+  private[ladder] val plinthTopY = -0.45f
   private val plinthThickness = 0.2f
   private val plinthRadius = 1.8f
   // The warm grey the plinth had (0.85, 0.82, 0.76), scaled to a largest channel of 0.28, for

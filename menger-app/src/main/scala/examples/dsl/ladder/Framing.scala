@@ -2,7 +2,8 @@ package examples.dsl.ladder
 
 /** What the camera keeps inside the frame: the object's `Bound`, an upper bound for any turn of
   * it (`Choreography.boundingRadius`), or its `Extent`, the projected distance of its farthest
-  * corner in the frame being drawn (`Choreography.halfExtent`), which is tighter. */
+  * corner in the frame being drawn (`Choreography.halfExtent`), which is tighter but is no bound
+  * for a turned object: it may reach beyond the frame. */
 enum Fit:
   case Bound, Extent
 

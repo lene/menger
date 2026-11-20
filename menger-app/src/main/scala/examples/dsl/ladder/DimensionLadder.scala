@@ -17,12 +17,17 @@ import menger.spec.PlaneRotation
 /** Everything an experiment may vary without touching the choreography. The last fields are
   * what the experiments of Sprint 38 vary; each default is today's behaviour:
   *  - `sponge3D`: the 3D breath's sponge type (menger#167);
-  *  - `crossfade`: how metal and film mix while an object solidifies, unsolidifies or collapses
-  *    (menger#169): the materials, and how far from the first to the second, 0 to 1;
+  *  - `crossfade`: how metal and film mix while an object solidifies, unsolidifies, folds or
+  *    collapses (menger#169): the materials, and how far from the first to the second, 0 to 1.
+  *    The fold shows the film (t = 1) throughout, so a crossfade that does not return the film
+  *    at t = 1 changes the fold too;
   *  - `breathMaterial`: the breath's material from its bell value, 0 to 1; `None` mixes metal
   *    into glass (menger#169);
   *  - `framing`: the camera's field of view, margin and what it fits (menger#194);
-  *  - `turns`: the schedule of every plane's angle by phase, for a timeline (menger#193);
+  *  - `turns`: the schedule of every plane's angle by phase, for a timeline (menger#193). A
+  *    higher object turns its planes in list order. A 3D object turns by Euler angles, which
+  *    fix the order of the planes among x, y and z: yz, then xz, then xy. It rejects another
+  *    order, so that the 3D and the 4D object of a hand-over never differ in orientation;
   *  - `restDepth`: how far below its centre the object reaches in the whole cycle; `None` takes
   *    the stored depths, which hold for the default `turns` and `edgeRadius` (`RestDepth`
   *    measures it for others). */
@@ -180,8 +185,16 @@ object DimensionLadder:
 
   // A 3D object turns by the angles of the planes among x, y and z: yz about x, xz about y and xy
   // about z, each turning its second axis towards its first. The renderer applies them in that
-  // order, yz first.
+  // order, yz first: the planes of a schedule must come in that order, as a higher object turns
+  // them in list order and would otherwise differ from the 3D object it hands over from.
+  private val turntableOrder = List("yz", "xz", "xy")
+
   private def turntable(planes: List[PlaneRotation]): Vec3 =
+    val among = planes.map(_.plane.letters).filter(turntableOrder.contains)
+    val ranks = among.map(turntableOrder.indexOf)
+    require(ranks == ranks.sorted,
+      s"a 3D object turns its planes in the order ${turntableOrder.mkString(", ")}, got " +
+        among.mkString(", "))
     def radians(plane: String): Float =
       math.toRadians(planes.filter(_.plane.letters == plane).map(_.angle.value).sum).toFloat
     Vec3(0f - radians("yz"), radians("xz"), 0f - radians("xy"))

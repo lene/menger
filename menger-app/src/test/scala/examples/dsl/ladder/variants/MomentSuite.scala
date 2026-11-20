@@ -24,7 +24,8 @@ class MomentSuite extends AnyFlatSpec with Matchers:
 
   it should "return start + u * seconds inside a segment" in:
     val breath = timeline(6).segments.find(s => s.kind == Kind.Breath && s.dimension == 5).get
-    Moment.of(timeline(6), Kind.Breath, 5, 0.5f) shouldBe breath.start + 0.5f * breath.seconds +- 1e-4f
+    Moment.of(timeline(6), Kind.Breath, 5, 0.5f) shouldBe
+      breath.start + 0.5f * breath.seconds +- 1e-4f
     Moment.of(timeline(6), Kind.Breath, 5, 0f) shouldBe breath.start
 
   it should "stay inside the segment at u = 1, where the next one begins" in:
@@ -56,7 +57,7 @@ class MomentSuite extends AnyFlatSpec with Matchers:
     val column = Moment.ofColumn(timeline(6), Vector(Moment(Kind.Hold, 3, 0f)))
     List(-1f, 1f, 0.5f).foreach(c => an[IllegalArgumentException] should be thrownBy column(c))
 
-  "The example variant" should "show its moments in the column order, and nothing else of the look" in:
+  "The example variant" should "show its moments in the column order, and nothing else" in:
     val kinds = List(0f, 1f, 2f).map(t => Example.moments(t.toInt).kind)
     kinds shouldBe List(Kind.Hold, Kind.Breath, Kind.Fold)
     val scene = Example.scene(1f)

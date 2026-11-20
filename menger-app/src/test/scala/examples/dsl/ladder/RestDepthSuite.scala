@@ -11,7 +11,8 @@ class RestDepthSuite extends AnyFlatSpec with Matchers:
 
   "RestDepth.measure" should "give the stored depth, for the default look" in:
     for top <- List(4, 5) do
-      withClue(s"top $top: ")(RestDepth.measure(top, Look.default) shouldBe Stage.restDepth(top) +- stored)
+      withClue(s"top $top: "):
+        RestDepth.measure(top, Look.default) shouldBe Stage.restDepth(top) +- stored
 
   it should "reach further down, by at most the tube's growth, for thicker edge tubes" in:
     val thick = Look.default.copy(edgeRadius = Look.default.edgeRadius + tube)
@@ -31,4 +32,4 @@ class RestDepthSuite extends AnyFlatSpec with Matchers:
       menger.spec.PlaneRotation("yz", 35f) :: c.planeAngles(phase)).withMeasuredRestDepth(4)
     tilted.restDepth shouldBe Some(RestDepth.measure(4, tilted))
     val centre = DimensionLadder.sceneAt(0f, top = 4, look = tilted).objects.last.toObjectSpec.y
-    centre shouldBe -0.45f + 0.01f + tilted.restDepth.get +- stored
+    centre shouldBe Stage.plinthTopY + Stage.plinthClearance + tilted.restDepth.get +- stored

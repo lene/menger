@@ -376,6 +376,61 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
         DimensionLadder.sceneAt(t).camera.position shouldBe camera
         DimensionLadder.sceneAt(t).camera.lookAt shouldBe Vec3(0f, 0.22869998f, 0f)
 
+  // The object of the scene at each of the six times, as `toString` printed it at base commit
+  // 0c728092, before the look had these fields: its type, level, material, size, rotation,
+  // projection, scale and edge tubes, to the last digit. Captured from that commit's code.
+  private val objectBeforeNewFields = Map(
+    0f -> (
+      "Cube(Vec3(0.0,0.90739995,0.0),Some(Material(Color(0.78,0.82,0.95,1.0),1.0,0.1,1.0,1." +
+      "0,0.0,0.0,0.0)),None,1.0,1.0,None,None,None,None,0,1.0,None,None,Vec3(0.0,0.0,0.0))"),
+    22.7f -> (
+      "Sponge(VolumeFilling,Vec3(0.0,0.90739995,0.0),4.9999533,Some(Material(Color(0.999997" +
+      "9,0.99999833,0.9999995,0.020009171),1.4999952,9.357929E-7,9.357929E-6,1.0,0.0,0.0,0." +
+      "0)),None,1.0,1.0,None,None,None,None,0,1.0,None,None,Vec3(0.0,1.4070288,0.0))"),
+    51.2f -> (
+      "Hypercube(4,Vec3(0.0,0.90739995,0.0),Some(Material(Color(1.0,1.0,1.0,0.2),1.0,0.1,0." +
+      "0,0.5,0.0,500.0,0.0)),None,1.25,1.0,None,None,None,None,0,1.0,Some(ProjectionSpec(4," +
+      "List(PlaneRotation(xw,6.7308326), PlaneRotation(yw,6.7308326), PlaneRotation(zw,6.73" +
+      "08326), PlaneRotation(xz,181.83176)),3.0,1.5,List(ProjectionStage(5.0,1.0)))),Some(0" +
+      ".012),Some(Material(Color(0.78,0.82,0.95,1.0),1.0,0.1,1.0,1.0,0.0,0.0,0.0)),Vec3(0.0" +
+      ",0.0,0.0),Some(Scale<1, 1, 1, 0.51>))"),
+    72f -> (
+      "HypercubeSponge(4,SurfaceSubdividing,3.414212,1,Vec3(0.0,0.90739995,0.0),Some(Materi" +
+      "al(Color(0.96778166,0.97363955,0.9926776,0.16351806),1.4267764,0.0146447,0.146447,1." +
+      "0,0.0,0.0,0.0)),None,1.25,1.0,None,None,None,None,0,1.0,Some(ProjectionSpec(4,List(P" +
+      "laneRotation(xw,100.3641), PlaneRotation(yw,100.3641), PlaneRotation(zw,100.3641), P" +
+      "laneRotation(xz,255.70093)),3.0,1.5,List(ProjectionStage(5.0,1.0)))),None,Vec3(0.0,0" +
+      ".0,0.0))"),
+    102f -> (
+      "Hypercube(5,Vec3(0.0,0.90739995,0.0),Some(Material(Color(1.0,1.0,1.0,0.2),1.0,0.1,0." +
+      "0,0.5,0.0,500.0,0.0)),None,1.5625,1.0,None,None,None,None,0,1.0,Some(ProjectionSpec(" +
+      "5,List(PlaneRotation(xw,180.0), PlaneRotation(yw,180.0), PlaneRotation(zw,180.0), Pl" +
+      "aneRotation(xv,14.490178), PlaneRotation(yv,14.490178), PlaneRotation(zv,14.490178)," +
+      " PlaneRotation(wv,0.0), PlaneRotation(xz,362.24298)),3.0,1.5,List(ProjectionStage(6." +
+      "25,1.25), ProjectionStage(5.0,1.0)))),Some(0.012),Some(Material(Color(0.78,0.82,0.95" +
+      ",1.0),1.0,0.1,1.0,1.0,0.0,0.0,0.0)),Vec3(0.0,0.0,0.0),Some(Scale<1, 1, 1, 1, 0.70>))"),
+    162f -> (
+      "HypercubeSponge(6,SurfaceSubdividing,1.38269,1,Vec3(0.0,0.90739995,0.0),Some(Materia" +
+      "l(Color(0.9320959,0.9444421,0.9845673,0.32248193),1.3456725,0.030865503,0.30865502,1" +
+      ".0,0.0,0.0,0.0)),None,1.953125,1.0,None,None,None,None,0,1.0,Some(ProjectionSpec(6,L" +
+      "ist(PlaneRotation(xw,180.0), PlaneRotation(yw,180.0), PlaneRotation(zw,180.0), Plane" +
+      "Rotation(xv,180.0), PlaneRotation(yv,180.0), PlaneRotation(zv,180.0), PlaneRotation(" +
+      "xu,168.1896), PlaneRotation(yu,168.1896), PlaneRotation(zu,168.1896), PlaneRotation(" +
+      "wu,0.0), PlaneRotation(vu,0.0), PlaneRotation(wv,0.0), PlaneRotation(xz,575.3271)),3" +
+      ".0,1.5,List(ProjectionStage(7.8125,1.5625), ProjectionStage(6.25,1.25), ProjectionSt" +
+      "age(5.0,1.0)))),None,Vec3(0.0,0.0,0.0))"))
+  private val lightsBeforeNewFields =
+    "List(Sun(Vec3(0.5,-0.7,0.5),0.53,1000.0,Color(1.0,1.0,1.0,1.0),1.0,None))"
+
+  it should "build the object and the lights it built at base commit 0c728092" in:
+    objectBeforeNewFields.keySet shouldBe sixTimes.toSet
+    for (t, expected) <- objectBeforeNewFields do
+      withClue(s"t $t: "):
+        val scene = DimensionLadder.sceneAt(t)
+        objectOf(scene).toString shouldBe expected
+        scene.lights.toString shouldBe lightsBeforeNewFields
+        scene.objects should have length 2
+
   it should "return the choreography's own turns, the turntable included" in:
     val timeline = Choreography(cycle, DimensionLadder.topDimension, Look.default.depths)
     for t <- sixTimes do
@@ -400,8 +455,7 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
     for t <- sixTimes.filterNot(_ == 22.7f) do
       DimensionLadder.sceneAt(t, look = ias) shouldBe DimensionLadder.sceneAt(t)
 
-  private val metalAlways: (menger.dsl.Material, menger.dsl.Material, Float) => menger.dsl.Material =
-    (metal, _, _) => metal
+  private val metalAlways: Look.Crossfade = (metal, _, _) => metal
 
   "Look.crossfade" should "set how metal and film mix while solidifying, and nothing else" in:
     val look = Look.default.copy(crossfade = metalAlways)
@@ -445,7 +499,8 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
     val right = view.cross(camera.up).normalize
     val offset = point - camera.position
     val depth = offset.dot(view)
-    (offset.dot(right) / depth / halfTan, offset.dot(right.cross(view)) / depth / halfTan * frameAspect)
+    (offset.dot(right) / depth / halfTan,
+      offset.dot(right.cross(view)) / depth / halfTan * frameAspect)
 
   "Look.framing" should "default to a 45 degree field, a margin of 0.95 and the bounding radius" in:
     Look.default.framing shouldBe Framing(fovDegrees = 45f, margin = 0.95f, fit = Fit.Bound)
@@ -455,7 +510,8 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
     val extent = Look.default.copy(framing = Framing.default.copy(fit = Fit.Extent))
     for t <- sixTimes do
       withClue(s"t $t: "):
-        val (plain, changed) = (DimensionLadder.sceneAt(t), DimensionLadder.sceneAt(t, look = extent))
+        val plain = DimensionLadder.sceneAt(t)
+        val changed = DimensionLadder.sceneAt(t, look = extent)
         objectOf(changed) shouldBe objectOf(plain)
         changed.objects.head shouldBe plain.objects.head
         changed.lights shouldBe plain.lights
@@ -471,15 +527,18 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
     distances.exists((bound, tight) => away(tight) < away(bound) - 1e-3f) shouldBe true
 
   it should "keep the object and the plinth inside the margin it is given" in:
-    val look = Look.default.copy(framing = Framing(fovDegrees = 35f, margin = 0.85f, fit = Fit.Bound))
+    val framing = Framing(fovDegrees = 35f, margin = 0.85f, fit = Fit.Bound)
+    val look = Look.default.copy(framing = framing)
     val halfTan = math.tan(math.toRadians(17.5)).toFloat
     for i <- 0 until budgetFrames do
       val t = cycle * i / budgetFrames
       val scene = DimensionLadder.sceneAt(t, look = look)
       val (segment, u) = DimensionLadder.segmentAt(t)
       val centre = objectOf(scene).toObjectSpec
-      val radius = DimensionLadder.boundingRadius(segment.dimension, Choreography.extrusion(segment, u))
-      val (x, y) = inFrameWith(halfTan)(scene.camera, Vec3(centre.x, centre.y + radius, centre.z))
+      val radius =
+        DimensionLadder.boundingRadius(segment.dimension, Choreography.extrusion(segment, u))
+      val top = Vec3(centre.x, centre.y + radius, centre.z)
+      val (x, y) = inFrameWith(halfTan)(scene.camera, top)
       withClue(s"frame $i: "):
         math.abs(x) should be <= 0.85f + framingTolerance
         math.abs(y) should be <= 0.85f + framingTolerance
@@ -508,6 +567,9 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
     Look.default.copy(turns = _ => _ => planes.toList.map((plane, degrees) =>
       menger.spec.PlaneRotation(plane, degrees)))
 
+  private def foldTo(n: Int): Segment =
+    DimensionLadder.segments(cycle).find(s => s.kind == Kind.Fold && s.dimension == n).get
+
   "Look.turns" should "replace the turn schedule: none at all stops the turn" in:
     rotationOfCube(Look.default, 3f).y should be > 0f
     rotationOfCube(turnedBy(), 3f) shouldBe Vec3(0f, 0f, 0f)
@@ -515,7 +577,7 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
   it should "turn a 3D object in xz about y, as the turntable always did" in:
     rotationOfCube(turnedBy("xz" -> 90f)) shouldBe Vec3(0f, math.toRadians(90.0).toFloat, 0f)
 
-  it should "turn a 3D object in yz about x and in xy about z, the second axis towards the first" in:
+  it should "turn a 3D object in yz about x and in xy about z, second axis to the first" in:
     val half = math.toRadians(30.0).toFloat
     rotationOfCube(turnedBy("yz" -> 30f)) shouldBe Vec3(-half, 0f, 0f)
     rotationOfCube(turnedBy("xy" -> 30f)) shouldBe Vec3(0f, 0f, -half)
@@ -528,21 +590,51 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
     val breath = DimensionLadder.segments(cycle).find(s => s.kind == Kind.Breath).get
     DimensionLadder.objectAt(breath, 0.25f, look = look) match
       case sponge: menger.dsl.Sponge =>
-        sponge.rotation shouldBe Vec3(-math.toRadians(30.0).toFloat, math.toRadians(45.0).toFloat, 0f)
+        sponge.rotation shouldBe
+          Vec3(-math.toRadians(30.0).toFloat, math.toRadians(45.0).toFloat, 0f)
       case other => fail(s"expected a sponge, got $other")
 
   it should "hand the planes of the schedule to a higher object's projection" in:
     val look = turnedBy("xw" -> 40f, "yz" -> 15f)
-    val fold = DimensionLadder.segments(cycle).find(s => s.kind == Kind.Fold && s.dimension == 4).get
+    val fold = foldTo(4)
     val spec = DimensionLadder.objectAt(fold, 0.5f, look = look).toObjectSpec
     spec.projection match
       case Some(view: menger.spec.ProjectionSpec) =>
-        view.planes.map(p => (p.plane.letters, p.angle.value)) shouldBe List(("xw", 40f), ("yz", 15f))
+        view.planes.map(p => (p.plane.letters, p.angle.value)) shouldBe
+          List(("xw", 40f), ("yz", 15f))
+      case other => fail(s"expected a ProjectionSpec, got $other")
+
+  it should "hand a 3D object over to the 4D one with the same orientation, planes in order" in:
+    val justAfter = 1e-5f
+    for planes <- List(List("yz" -> 30f, "xz" -> 45f), List("xz" -> 45f), List("yz" -> 30f),
+        List("yz" -> 30f, "xz" -> 45f, "xy" -> 20f))
+    do
+      val look = turnedBy(planes*)
+      withClue(s"planes $planes: "):
+        sameShape(DimensionLadder.objectAt(foldTo(4), 0f, look = look),
+          DimensionLadder.objectAt(foldTo(4), justAfter, look = look))
+
+  it should "reject the planes of a 3D object in another order than yz, xz, xy" in:
+    for planes <- List(List("xz" -> 45f, "yz" -> 30f), List("xy" -> 20f, "xz" -> 45f),
+        List("xy" -> 20f, "yz" -> 30f))
+    do
+      val look = turnedBy(planes*)
+      withClue(s"planes $planes: "):
+        val e = the[IllegalArgumentException] thrownBy DimensionLadder.sceneAt(0f, look = look)
+        e.getMessage should include("yz, xz, xy")
+
+  it should "leave the order of the other planes to a higher object, as listed" in:
+    val look = turnedBy("xz" -> 45f, "xw" -> 40f, "yz" -> 30f)
+    val spec = DimensionLadder.objectAt(foldTo(4), 0.5f, look = look).toObjectSpec
+    spec.projection match
+      case Some(view: menger.spec.ProjectionSpec) =>
+        view.planes.map(_.plane.letters) shouldBe List("xz", "xw", "yz")
       case other => fail(s"expected a ProjectionSpec, got $other")
 
   it should "change nothing but the turn" in:
     for t <- List(3f, 22.7f, 102f) do
-      val (plain, changed) = (DimensionLadder.sceneAt(t), DimensionLadder.sceneAt(t, look = turnedBy()))
+      val plain = DimensionLadder.sceneAt(t)
+      val changed = DimensionLadder.sceneAt(t, look = turnedBy())
       changed.camera shouldBe plain.camera
       changed.objects.head shouldBe plain.objects.head
       changed.lights shouldBe plain.lights
@@ -554,7 +646,9 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
 
   "Look.restDepth" should "default to the stored depths and, when set, place the centre by it" in:
     Look.default.restDepth shouldBe None
-    val deeper = Look.default.copy(restDepth = Some(Stage.restDepth(DimensionLadder.topDimension) + 0.5f))
-    val (plain, changed) = (DimensionLadder.sceneAt(0f), DimensionLadder.sceneAt(0f, look = deeper))
+    val depth = Stage.restDepth(DimensionLadder.topDimension) + 0.5f
+    val deeper = Look.default.copy(restDepth = Some(depth))
+    val plain = DimensionLadder.sceneAt(0f)
+    val changed = DimensionLadder.sceneAt(0f, look = deeper)
     objectOf(changed).toObjectSpec.y shouldBe objectOf(plain).toObjectSpec.y + 0.5f +- 1e-5f
     changed.camera.lookAt.y should be > plain.camera.lookAt.y
