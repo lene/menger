@@ -27,6 +27,10 @@ if ! scripts/test-sponge-caustics.sh; then
   suite_fail unit 1 "test-sponge-caustics.sh"
   exit 1
 fi
+if ! scripts/test-check-shadow-tint.sh; then
+  suite_fail unit 1 "test-check-shadow-tint.sh"
+  exit 1
+fi
 
 if ! scripts/test-qa-selection.sh; then
   suite_fail unit 1 "test-qa-selection.sh"

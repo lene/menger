@@ -1347,41 +1347,90 @@ test_t_animation() {
     rm -rf "$temp_dir"
 }
 
+# The colored-shadow scenes (lene/menger#195). The default camera looks level and the default
+# light sends a sphere's shadow to the floor in front of the camera, out of frame: the shadow
+# must be in view, clear of the sphere, for its colour to show. The glass sphere is 1.0 across,
+# half a unit above the origin, so its shadow is large.
+COLORED_SHADOW_VIEW=(--plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
+                     --light directional:0.3,-1,0.1:2.0)
+COLORED_SHADOW_SPHERE="type=sphere:pos=0,-0.5,0:size=1.0:ior=1.5"
+# The same scene without the object (the lit floor): a sphere too small and too far to be seen.
+NO_OBJECT_SPEC="type=sphere:pos=0,50,0:size=0.01"
+SHADOW_TINT_CHECK="$SCRIPT_DIR/check_shadow_tint.py"
+
+# Fail unless the colored shadow of a scene lies on the floor, tinted the given channel.
+# Renders the scene with colored shadows, with scalar shadows (to find the sphere) and without
+# the object (the lit floor), and hands the three to check_shadow_tint.py.
+# Usage: check_shadow_tint <name> <R|G|B> <object spec> <menger args except objects and shadows>
+check_shadow_tint() {
+    local name="$1" channel="$2" object="$3"
+    shift 3
+    should_skip_test "$name" && return 0
+    [ "$UPDATE_REFERENCES" = true ] && return 0
+
+    local base="test_tint_$$_${RANDOM}"
+    local scene="${base}_scene.png" scalar="${base}_scalar.png" floor="${base}_floor.png"
+    local size=(--headless --width "$TEST_WIDTH" --height "$TEST_HEIGHT")
+    local rendered=true
+    run_menger_to_log /dev/null "${size[@]}" --save-name "$scene" "$@" --objects "$object" \
+        --shadows --transparent-shadows || rendered=false
+    run_menger_to_log /dev/null "${size[@]}" --save-name "$scalar" "$@" --objects "$object" \
+        --shadows || rendered=false
+    run_menger_to_log /dev/null "${size[@]}" --save-name "$floor" "$@" \
+        --objects "$NO_OBJECT_SPEC" --shadows || rendered=false
+
+    local message
+    if $rendered && message=$(python3 "$SHADOW_TINT_CHECK" "$scene" "$scalar" "$floor" "$channel"); then
+        ((PASSED++))
+        echo -e "  ${name} (${message}) ${GREEN}✓${RESET}"
+    else
+        ((FAILED++))
+        FAILED_TESTS="$FAILED_TESTS\n  - ${name} (${message:-render failed})"
+        echo -e "  ${name} - ${message:-render failed} ${RED}✗${RESET}"
+    fi
+    rm -f "$scene" "$scalar" "$floor"
+}
+
 test_colored_shadows() {
     echo "Colored Shadows:"
 
-    # Basic colored shadow tests — verify the feature renders successfully
-    run_test "colored shadow red sphere" --plane y:-2 --shadows --transparent-shadows \
-        --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5
+    # Colored shadow tests: the shadow is in view, and check_shadow_tint fails when it is missing
+    # or untinted (the earlier scenes had no shadow in frame and passed regardless).
+    run_test "colored shadow red sphere" --shadows --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" \
+        --objects "${COLORED_SHADOW_SPHERE}:color=#FF000080"
+    check_shadow_tint "colored shadow red tint" R "${COLORED_SHADOW_SPHERE}:color=#FF000080" \
+        "${COLORED_SHADOW_VIEW[@]}"
 
-    run_test "colored shadow green sphere" --plane y:-2 --shadows --transparent-shadows \
-        --objects type=sphere:pos=0,0,0:size=0.5:color=#00FF0080:ior=1.5
+    run_test "colored shadow green sphere" --shadows --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" \
+        --objects "${COLORED_SHADOW_SPHERE}:color=#00FF0080"
+    check_shadow_tint "colored shadow green tint" G "${COLORED_SHADOW_SPHERE}:color=#00FF0080" \
+        "${COLORED_SHADOW_VIEW[@]}"
 
-    run_test "colored shadow blue sphere" --plane y:-2 --shadows --transparent-shadows \
-        --objects type=sphere:pos=0,0,0:size=0.5:color=#0000FF80:ior=1.5
+    run_test "colored shadow blue sphere" --shadows --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" \
+        --objects "${COLORED_SHADOW_SPHERE}:color=#0000FF80"
+    check_shadow_tint "colored shadow blue tint" B "${COLORED_SHADOW_SPHERE}:color=#0000FF80" \
+        "${COLORED_SHADOW_VIEW[@]}"
 
     # Verify transparent-shadows produces different output than scalar shadows
-    # Render same scene WITH and WITHOUT --transparent-shadows, then compare
+    # Render same scene WITH and WITHOUT --transparent-shadows, then compare. The scene is the
+    # red one above, shadow in view: they differ in the shadow, not only in the sphere.
     local temp_with="test_cshadow_with_$$_${RANDOM}.png"
     local temp_without="test_cshadow_without_$$_${RANDOM}.png"
     rm -f "$temp_with" "$temp_without"
 
     local rendered_both=true
+    local red_object="${COLORED_SHADOW_SPHERE}:color=#FF000080"
 
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_with" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
-        --plane y:-2 --shadows --transparent-shadows \
-        --light directional:0,-1,0:2.0 \
-        --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
+        --shadows --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" --objects "$red_object" \
         >/dev/null 2>&1 || [ ! -f "$temp_with" ]; then
         rendered_both=false
     fi
 
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_without" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
-        --plane y:-2 --shadows \
-        --light directional:0,-1,0:2.0 \
-        --objects type=sphere:pos=0,0,0:size=0.5:color=#FF000080:ior=1.5 \
+        --shadows "${COLORED_SHADOW_VIEW[@]}" --objects "$red_object" \
         >/dev/null 2>&1 || [ ! -f "$temp_without" ]; then
         rendered_both=false
     fi
@@ -1485,10 +1534,15 @@ test_area_lights() {
         --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
 
     # Area light with transparent sphere — colored soft shadow
+    # The light is high and to one side, a small disc: a shadow clear of the sphere that is not all
+    # penumbra (lene/menger#195); check_shadow_tint fails when it is missing or untinted.
+    local area_args=(--light "area:1,4,1:0,-1,0:0.4:16:30"
+                     --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0)
     run_test "area light colored shadow" \
         --objects "type=sphere:color=#FF000066:ior=1.5" --shadows --transparent-shadows \
-        --light "area:0,2,2:0,-1,0:1.5:4:10" \
-        --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
+        "${area_args[@]}"
+    check_shadow_tint "area light colored shadow tint" R "type=sphere:color=#FF000066:ior=1.5" \
+        "${area_args[@]}"
 
     # Verify soft shadow is visually distinct from hard point shadow
     local soft_png="test_area_soft_$$.png"
