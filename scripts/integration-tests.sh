@@ -591,7 +591,7 @@ test_lighting() {
     run_test "point light" --objects type=sphere --light point:0,3,0:2.0 --plane y:-2
     run_test "directional light" --objects type=sphere --light directional:1,-1,-1:1.5 --plane y:-2
     run_test "colored light" --objects type=sphere --light point:2,2,2:1.5:#FF0000 --plane y:-2
-    run_test "shadows" --objects type=sphere --shadows --light directional:1,-1,-1:2.0 --plane y:-2
+    run_test "shadows" --objects type=sphere --light directional:1,-1,-1:2.0 --plane y:-2
 }
 
 test_scene_options() {
@@ -1224,11 +1224,11 @@ test_dsl_scenes() {
     # Reference images generated via UPDATE_BASELINE on GPU runner.
     run_test "DSL CausticsReferenceDefault" --scene examples.dsl.CausticsReferenceDefault
     run_test "DSL DiamondFire" --scene examples.dsl.DiamondFire --allow-uniform-render
-    run_test "DSL ParametricKleinBottle" --scene examples.dsl.ParametricKleinBottle --shadows
-    run_test "DSL ParametricKleinBottleFilm" --scene examples.dsl.ParametricKleinBottleFilm --shadows
-    run_test "DSL ParametricMoebius" --scene examples.dsl.ParametricMoebius --shadows
-    run_test "DSL ParametricTorus" --scene examples.dsl.ParametricTorus --shadows
-    run_test "DSL ParametricWavySheet" --scene examples.dsl.ParametricWavySheet --shadows
+    run_test "DSL ParametricKleinBottle" --scene examples.dsl.ParametricKleinBottle
+    run_test "DSL ParametricKleinBottleFilm" --scene examples.dsl.ParametricKleinBottleFilm
+    run_test "DSL ParametricMoebius" --scene examples.dsl.ParametricMoebius
+    run_test "DSL ParametricTorus" --scene examples.dsl.ParametricTorus
+    run_test "DSL ParametricWavySheet" --scene examples.dsl.ParametricWavySheet
     run_test "DSL PrismDispersion" --scene examples.dsl.PrismDispersion --allow-uniform-render
     run_test "DSL RenderSettingsDemo" --scene examples.dsl.RenderSettingsDemo
 }
@@ -1373,11 +1373,10 @@ check_shadow_tint() {
     local size=(--headless --width "$TEST_WIDTH" --height "$TEST_HEIGHT")
     local rendered=true
     run_menger_to_log /dev/null "${size[@]}" --save-name "$scene" "$@" --objects "$object" \
-        --shadows --transparent-shadows || rendered=false
-    run_menger_to_log /dev/null "${size[@]}" --save-name "$scalar" "$@" --objects "$object" \
-        --shadows || rendered=false
+        --transparent-shadows || rendered=false
+    run_menger_to_log /dev/null "${size[@]}" --save-name "$scalar" "$@" --objects "$object" || rendered=false
     run_menger_to_log /dev/null "${size[@]}" --save-name "$floor" "$@" \
-        --objects "$NO_OBJECT_SPEC" --shadows || rendered=false
+        --objects "$NO_OBJECT_SPEC" || rendered=false
 
     local message
     if $rendered && message=$(python3 "$SHADOW_TINT_CHECK" "$scene" "$scalar" "$floor" "$channel"); then
@@ -1396,17 +1395,17 @@ test_colored_shadows() {
 
     # Colored shadow tests: the shadow is in view, and check_shadow_tint fails when it is missing
     # or untinted (the earlier scenes had no shadow in frame and passed regardless).
-    run_test "colored shadow red sphere" --shadows --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" \
+    run_test "colored shadow red sphere" --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" \
         --objects "${COLORED_SHADOW_SPHERE}:color=#FF000080"
     check_shadow_tint "colored shadow red tint" R "${COLORED_SHADOW_SPHERE}:color=#FF000080" \
         "${COLORED_SHADOW_VIEW[@]}"
 
-    run_test "colored shadow green sphere" --shadows --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" \
+    run_test "colored shadow green sphere" --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" \
         --objects "${COLORED_SHADOW_SPHERE}:color=#00FF0080"
     check_shadow_tint "colored shadow green tint" G "${COLORED_SHADOW_SPHERE}:color=#00FF0080" \
         "${COLORED_SHADOW_VIEW[@]}"
 
-    run_test "colored shadow blue sphere" --shadows --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" \
+    run_test "colored shadow blue sphere" --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" \
         --objects "${COLORED_SHADOW_SPHERE}:color=#0000FF80"
     check_shadow_tint "colored shadow blue tint" B "${COLORED_SHADOW_SPHERE}:color=#0000FF80" \
         "${COLORED_SHADOW_VIEW[@]}"
@@ -1423,14 +1422,14 @@ test_colored_shadows() {
 
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_with" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
-        --shadows --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" --objects "$red_object" \
+        --transparent-shadows "${COLORED_SHADOW_VIEW[@]}" --objects "$red_object" \
         >/dev/null 2>&1 || [ ! -f "$temp_with" ]; then
         rendered_both=false
     fi
 
     if ! __GL_THREADED_OPTIMIZATIONS=0 xvfb-run -a $MENGER_BIN --headless \
         --save-name "$temp_without" --width "$TEST_WIDTH" --height "$TEST_HEIGHT" \
-        --shadows "${COLORED_SHADOW_VIEW[@]}" --objects "$red_object" \
+        "${COLORED_SHADOW_VIEW[@]}" --objects "$red_object" \
         >/dev/null 2>&1 || [ ! -f "$temp_without" ]; then
         rendered_both=false
     fi
@@ -1517,19 +1516,19 @@ test_area_lights() {
     echo "Area Lights (Soft Shadows):"
     # Basic area light renders successfully
     run_test "area light basic" \
-        --objects type=sphere --shadows \
+        --objects type=sphere \
         --light "area:0,2,2:0,-1,0:1.5:4:10" \
         --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
 
     # Larger radius → broader penumbra
     run_test "area light large radius" \
-        --objects type=sphere --shadows \
+        --objects type=sphere \
         --light "area:0,2,2:0,-1,0:3.0:8:10" \
         --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
 
     # Colored area light
     run_test "area light colored orange" \
-        --objects type=sphere --shadows \
+        --objects type=sphere \
         --light "area:0,2,2:0,-1,0:1.5:4:10:ff8800" \
         --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0
 
@@ -1539,7 +1538,7 @@ test_area_lights() {
     local area_args=(--light "area:1,4,1:0,-1,0:0.4:16:30"
                      --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0)
     run_test "area light colored shadow" \
-        --objects "type=sphere:color=#FF000066:ior=1.5" --shadows --transparent-shadows \
+        --objects "type=sphere:color=#FF000066:ior=1.5" --transparent-shadows \
         "${area_args[@]}"
     check_shadow_tint "area light colored shadow tint" R "type=sphere:color=#FF000066:ior=1.5" \
         "${area_args[@]}"
@@ -1547,7 +1546,7 @@ test_area_lights() {
     # Verify soft shadow is visually distinct from hard point shadow
     local soft_png="test_area_soft_$$.png"
     local hard_png="test_area_hard_$$.png"
-    local base_args="--objects type=sphere --shadows --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
+    local base_args="--objects type=sphere --plane y:-2 --camera-pos 0,3,5 --camera-lookat 0,-1,0"
 
     if $MENGER_BIN $base_args --light "area:0,2,2:0,-1,0:2.0:8:10" \
             --headless --save-name "$soft_png" 2>/dev/null ; then

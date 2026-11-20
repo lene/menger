@@ -65,5 +65,5 @@ object Moment4D:
       caustics = Some(Caustics(photonsPerIteration = 200000, iterations = 10)),
       // Decided 2026-11-12: accumulation 16, no adaptive AA (~140x on glass, optix-jni#115);
       // revisit when optix-jni#116 (jitter) lands.
-      render = Some(RenderSettings(antialiasing = false, shadows = true, accumulation = 16))
+      render = Some(RenderSettings(antialiasing = false, accumulation = 16))
     )

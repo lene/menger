@@ -7,7 +7,6 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
 
   "RenderSettings" should "have correct defaults" in:
     val rs = RenderSettings()
-    rs.shadows shouldBe true
     rs.transparentShadows shouldBe TransparentShadows.Auto
     rs.antialiasing shouldBe false
     rs.aaMaxDepth shouldBe 2
@@ -18,19 +17,23 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
 
   it should "be constructible with all fields" in:
     val rs = RenderSettings(
-      shadows = true,
       transparentShadows = true,
       antialiasing = true,
       aaMaxDepth = 3,
       aaThreshold = 0.05f,
       denoise = DenoiseMode.Final
     )
-    rs.shadows shouldBe true
     rs.transparentShadows shouldBe TransparentShadows.On
     rs.antialiasing shouldBe true
     rs.aaMaxDepth shouldBe 3
     rs.aaThreshold shouldBe 0.05f
     rs.denoise shouldBe DenoiseMode.Final
+
+  // Decided by user 2026-11-20: shadows are always on, there is no setting for them (menger#196).
+  it should "have no shadows setting" in:
+    RenderSettings().productElementNames.toList should not contain "shadows"
+    assertDoesNotCompile("RenderSettings(shadows = true)")
+    assertDoesNotCompile("RenderSettings(shadows = false)")
 
   it should "validate aaMaxDepth range" in:
     an[IllegalArgumentException] should be thrownBy RenderSettings(aaMaxDepth = 0)
@@ -57,14 +60,12 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
 
   "RenderSettings.toRenderConfig" should "map all fields to RenderConfig" in:
     val rs = RenderSettings(
-      shadows = true,
       transparentShadows = true,
       antialiasing = true,
       aaMaxDepth = 3,
       aaThreshold = 0.05f
     )
     val config = rs.toRenderConfig
-    config.shadows shouldBe true
     config.transparentShadows shouldBe true
     config.antialiasing shouldBe true
     config.aaMaxDepth shouldBe 3
@@ -80,7 +81,6 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
 
   it should "map defaults correctly" in:
     val config = RenderSettings().toRenderConfig
-    config.shadows shouldBe true
     config.transparentShadows shouldBe false
     config.antialiasing shouldBe false
     config.aaMaxDepth shouldBe 2
@@ -131,7 +131,6 @@ class RenderSettingsSuite extends AnyFlatSpec with Matchers:
 
   "RenderSettings.HighQuality" should "have elevated settings" in:
     val hq = RenderSettings.HighQuality
-    hq.shadows shouldBe true
     hq.antialiasing shouldBe true
     hq.aaMaxDepth shouldBe 3
     hq.aaThreshold shouldBe 0.05f

@@ -42,5 +42,5 @@ object SunFromEnvMap:
     ibl = Some(IBL(samples = 2)),
     toneMapping = ToneMapping.ACES(exposure = 1.0f),
     caustics = Some(Caustics(photonsPerIteration = 200000, iterations = 10)),
-    render = Some(RenderSettings(shadows = true, accumulation = 4))
+    render = Some(RenderSettings(accumulation = 4))
   )

@@ -323,15 +323,10 @@ class MengerCLIOptions(arguments: Seq[String])
     required = false, group = optixLightingGroup,
     descr = "Light source (repeatable, max 8). Types: directional:x,y,z[:intensity[:color]] (x,y,z is the direction the light travels, 0,-1,0 = straight down), point:x,y,z[:intensity[:color]], area:px,py,pz:nx,ny,nz:radius[:samples[:intensity[:color[:shape]]]] (disk emitter, soft shadows)"
   )(using lightSpecConverter)
-  val shadows: ScallopOption[Boolean] = opt[Boolean](
-    required = false, default = Some(true), group = optixLightingGroup,
-    descr = "Enable shadow rays for realistic shadows"
-  )
   val transparentShadows: ScallopOption[Boolean] = opt[Boolean](
     name = "transparent-shadows",
     required = false, default = Some(false), group = optixLightingGroup,
-    descr = "Enable colored light tinting through transparent/glass objects (requires --shadows; " +
-      "--caustics turns it on)"
+    descr = "Enable colored light tinting through transparent/glass objects (--caustics turns it on)"
   )
 
   // === OptiX Scene Options ===
@@ -458,7 +453,6 @@ class MengerCLIOptions(arguments: Seq[String])
 
   // Config accessors
   def renderConfig: RenderConfig = RenderConfig(
-    shadows = shadows(),
     // --caustics implies --transparent-shadows (decided by user 2026-10-23), as in a DSL scene.
     transparentShadows = transparentShadows() || caustics(),
     antialiasing = antialiasing(),
@@ -469,7 +463,6 @@ class MengerCLIOptions(arguments: Seq[String])
 
   /** A scene's render settings with each render flag given on the command line in its place. */
   def renderConfigOver(scene: RenderConfig): RenderConfig = scene.copy(
-    shadows = if shadows.isSupplied then shadows() else scene.shadows,
     transparentShadows =
       if transparentShadows.isSupplied then transparentShadows() else scene.transparentShadows,
     antialiasing = if antialiasing.isSupplied then antialiasing() else scene.antialiasing,

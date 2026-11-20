@@ -243,11 +243,10 @@ class SceneIntegrationSuite extends AnyFlatSpec with Matchers:
       camera = Camera.Default,
       objects = List(Sphere(Material.Chrome)),
       lights = List(Directional((1f, -1f, -1f))),
-      render = Some(RenderSettings(shadows = true, antialiasing = true))
+      render = Some(RenderSettings(antialiasing = true))
     )
     val result = SceneConverter.convert(scene, fallbackCaustics)
     result.render shouldBe defined
-    result.render.get.shadows shouldBe true
     result.render.get.antialiasing shouldBe true
 
   it should "be None in SceneConfigs when not set" in:

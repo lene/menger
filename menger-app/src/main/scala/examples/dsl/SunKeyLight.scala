@@ -39,7 +39,7 @@ object SunKeyLight:
       Sun(direction = (0.6f, -0.7f, 0.5f))
     ),
     caustics = Some(Caustics(photonsPerIteration = 200000, iterations = 10)),
-    render = Some(RenderSettings(shadows = true))
+    render = Some(RenderSettings())
   )
 
   SceneRegistry.register("sun-key-light", scene)

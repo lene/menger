@@ -40,7 +40,7 @@ object CausticsCanonicalParametric:
     background = Some(Color.Black),
     toneMapping = ToneMapping.None,
     caustics = Some(Caustics(photonsPerIteration = 500000, iterations = 20, radiusReduction = 0.8f)),
-    render = Some(RenderSettings(shadows = true))
+    render = Some(RenderSettings())
   )
 
   private val TwoPi = 2f * Pi.toFloat

@@ -266,7 +266,7 @@ class ManifestGeneratorSuite extends AnyFlatSpec with Matchers:
     val manifest = manifestFor(freshTempPath())
     manifest.renderSettings.name shouldBe "RenderSettings"
     manifest.renderSettings.fields.map(_.name) shouldBe List(
-      "shadows", "transparentShadows", "antialiasing", "aaMaxDepth",
+      "transparentShadows", "antialiasing", "aaMaxDepth",
       "aaThreshold", "maxRayDepth", "accumulation", "denoise", "ambient"
     )
     manifest.renderSettingsPresets.toSet shouldBe Set("Default", "HighQuality")

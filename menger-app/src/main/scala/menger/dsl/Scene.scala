@@ -14,7 +14,7 @@ import menger.video.EnvMapVideo
   * @param planes Floor/wall planes (up to 4 simultaneous planes)
   * @param caustics Optional caustics configuration for photon mapping
   * @param root Optional scene graph root node (overrides objects when set)
-  * @param render Optional render settings (quality, shadows, ray depth, etc.)
+  * @param render Optional render settings (quality, antialiasing, ray depth, etc.)
   */
 case class Fog(density: Float, color: Color = Color(0.8f, 0.8f, 0.9f))
 

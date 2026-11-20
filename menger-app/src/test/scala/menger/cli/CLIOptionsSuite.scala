@@ -335,6 +335,11 @@ class CLIOptionsSuite extends AnyFlatSpec with Matchers:
     SafeMengerCLIOptions(Seq("--caustics")).renderConfig.transparentShadows shouldBe true
     SafeMengerCLIOptions(Seq[String]()).renderConfig.transparentShadows shouldBe false
 
+  // Decided by user 2026-11-20: shadows are always on, there is no switch for them (menger#196).
+  "--shadows" should "be an unknown option" in:
+    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--shadows"))
+    an[ScallopException] should be thrownBy SafeMengerCLIOptions(Seq("--shadows=false"))
+
   // The DSL scene merge built a fresh RenderConfig and so lost the scene's maxRayDepth.
   "renderConfigOver" should "keep a scene's render settings where no flag is given" in:
     val scene = menger.common.RenderConfig(antialiasing = true, maxRayDepth = 3)

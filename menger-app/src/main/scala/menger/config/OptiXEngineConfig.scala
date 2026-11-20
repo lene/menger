@@ -15,7 +15,7 @@ import menger.dsl.DenoiseMode
  * @param camera where to view from
  * @param environment lighting and ground plane
  * @param execution runtime behavior (timeout, logging, etc.)
- * @param render rendering quality settings (shadows, antialiasing, etc.)
+ * @param render rendering quality settings (antialiasing, ray depth, etc.)
  * @param caustics caustics rendering settings (experimental)
  * @param ambient the ambient model to set; `None` keeps the renderer's own default
  */

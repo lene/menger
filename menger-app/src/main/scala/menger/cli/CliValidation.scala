@@ -24,7 +24,6 @@ trait CliValidation:
   protected def fourDRotation: ScallopOption[String]
   protected def scene: ScallopOption[String]
   protected def objects: ScallopOption[List[ObjectSpec]]
-  protected def shadows: ScallopOption[Boolean]
   protected def light: ScallopOption[List[LightSpec]]
   protected def antialiasing: ScallopOption[Boolean]
   protected def aaMaxDepth: ScallopOption[Int]

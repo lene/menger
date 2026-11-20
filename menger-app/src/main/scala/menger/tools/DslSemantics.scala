@@ -61,7 +61,7 @@ object DslSemantics:
       "diameter 0.53): use it as the key light with `envMap = Some(path)` and `ibl`, and the " +
       "renderer leaves that sun out of the map's lighting so it counts once.",
     "Planes: `Y at -2f` is an infinite plane that faces the origin, so a floor below the " +
-      "scene is lit from above and receives shadows. Shadows are on by default.",
+      "scene is lit from above and receives shadows. Shadows are always on; there is no setting for them.",
     "Colour and transparency: alpha 0 is fully transparent, 1 fully opaque. An object's " +
       "explicit `color` tints only the material's RGB; the material's own alpha (its " +
       "transparency) is preserved, so an opaque `color` on `Glass` or `Film` stays " +
@@ -244,7 +244,7 @@ object DslSemantics:
       "finite radius (a fraction of the object's size, e.g. 0.5 for a unit object) darkens " +
       "only what is near -- holes, creases, contact with the floor -- and is less grainy; " +
       "more `samples` or `accumulation` reduce the grain further, at a cost per ray. The fill " +
-      "does not depend on `shadows` (menger#175).",
+      "does not depend on shadows (menger#175).",
     "Shadows of transparent objects: `RenderSettings(transparentShadows = ...)` is `Auto` by " +
       "default, which makes a transparent object cast the colour seen through it when one is " +
       "tinted or procedurally coloured -- e.g. rainbow shadows of a glass object with " +

@@ -7,8 +7,9 @@ import menger.common.RenderConfig
   * These settings override CLI defaults when set in a scene file.
   * CLI flags take precedence over DSL values when explicitly supplied.
   *
-  * @param shadows Enable shadow rays for realistic shadows
-  * @param transparentShadows Colored tinting through transparent objects (requires shadows):
+  * Shadows are always on, so there is no setting for them.
+  *
+  * @param transparentShadows Colored tinting through transparent objects:
   *   `Auto` (default) when a transparent object is coloured, or `true`/`false`
   * @param antialiasing Enable recursive adaptive antialiasing
   * @param aaMaxDepth Maximum AA recursion depth (1-4)
@@ -18,7 +19,6 @@ import menger.common.RenderConfig
   *   `None` keeps the renderer's default, occlusion with 16 samples and an unlimited radius
   */
 case class RenderSettings(
-  shadows: Boolean = true,
   transparentShadows: TransparentShadows = TransparentShadows.Auto,
   antialiasing: Boolean = false,
   aaMaxDepth: Int = 2,
@@ -38,7 +38,6 @@ case class RenderSettings(
 
   /** `colouredTransparent`: the scene has a coloured transparent object, which `Auto` shows. */
   def toRenderConfigFor(colouredTransparent: Boolean): RenderConfig = RenderConfig(
-    shadows = shadows,
     transparentShadows = transparentShadows.enabled(colouredTransparent),
     antialiasing = antialiasing,
     aaMaxDepth = aaMaxDepth,
@@ -66,7 +65,6 @@ object RenderSettings:
   val Default: RenderSettings = RenderSettings()
 
   val HighQuality: RenderSettings = RenderSettings(
-    shadows = true,
     antialiasing = true,
     aaMaxDepth = 3,
     aaThreshold = 0.05f

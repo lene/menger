@@ -7,7 +7,7 @@ import menger.dsl._
 /**
  * Example: DSL-controlled render quality settings
  *
- * Demonstrates that render quality (shadows, antialiasing) can be set
+ * Demonstrates that render quality (antialiasing, ray depth) can be set
  * in the scene definition itself — no CLI flags needed. CLI flags can
  * still override DSL values when explicitly supplied.
  *
@@ -26,7 +26,6 @@ object RenderSettingsDemo:
     ),
     planes = List(Plane(Y at -1f, Color(0.6f, 0.6f, 0.6f))),
     render = Some(RenderSettings(
-      shadows = true,
       antialiasing = true,
       aaMaxDepth = 3,
       aaThreshold = 0.05f

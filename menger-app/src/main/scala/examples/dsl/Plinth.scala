@@ -36,7 +36,7 @@ object Plinth:
       Directional(direction = (0.5f, -1f, 0.5f))
     ),
     caustics = Some(Caustics(photonsPerIteration = 200000, iterations = 10)),
-    render = Some(RenderSettings(shadows = true))
+    render = Some(RenderSettings())
   )
 
   SceneRegistry.register("plinth", scene)

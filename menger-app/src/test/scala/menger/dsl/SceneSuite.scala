@@ -102,12 +102,12 @@ class SceneSuite extends AnyFlatSpec with Matchers:
     val scene = Scene(Camera.Default, sphere)
     scene.render shouldBe None
 
-  it should "accept Some(RenderSettings(shadows = true))" in:
+  it should "accept Some(RenderSettings(antialiasing = true))" in:
     val sphere = Sphere(Material.Glass)
-    val settings = RenderSettings(shadows = true)
+    val settings = RenderSettings(antialiasing = true)
     val scene = Scene(Camera.Default, List(sphere), render = Some(settings))
     scene.render shouldBe Some(settings)
-    scene.render.get.shadows shouldBe true
+    scene.render.get.antialiasing shouldBe true
 
   it should "be None when constructed via convenience apply methods" in:
     val sphere = Sphere(Material.Glass)

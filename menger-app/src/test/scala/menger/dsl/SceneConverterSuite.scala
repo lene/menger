@@ -59,10 +59,10 @@ class SceneConverterSuite extends AnyFlatSpec with Matchers:
     result.denoiseMode shouldBe DenoiseMode.Off
 
   it should "include render config when scene has render set" in:
-    val scene = Scene(Camera.Default, Sphere(Material.Glass)).copy(render = Some(RenderSettings(shadows = true)))
+    val scene = Scene(Camera.Default, Sphere(Material.Glass)).copy(render = Some(RenderSettings(antialiasing = true)))
     val result = SceneConverter.convert(scene, fallbackCaustics)
     result.render shouldBe defined
-    result.render.get.shadows shouldBe true
+    result.render.get.antialiasing shouldBe true
 
   it should "forward denoise mode from render settings" in:
     val scene = Scene(Camera.Default, Sphere(Material.Glass))

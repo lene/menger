@@ -29,7 +29,7 @@
 #   PHOTONS ITERATIONS  menger photons per PPM iteration, iterations [500000 20]
 #   MENGER_FLAGS      extra menger flags for the caustics render, e.g. "--accumulation-frames 4" []
 #   MENGER_VARIANTS   menger glass variants to render [glass glass_ts glass_caustics]:
-#                     glass = plain --shadows, glass_ts = --shadows --transparent-shadows,
+#                     glass = no flag, glass_ts = --transparent-shadows,
 #                     glass_caustics = --caustics; the first two are the "no caustics" cases (optix-jni#132)
 #   FLOOR_Y EYE LOOKAT  the floor height and the camera [-0.5, 1.0,2.2,1.6, 0.1,-0.5,0.2]: the floor
 #                     distance changes how much of the bent light stays in the shadow (optix-jni#132)
@@ -151,7 +151,7 @@ render_menger() {
   $RUN_PREFIX "$MENGER_BIN" --headless --allow-uniform-render --save-name "$OUT_DIR/menger_$variant.pfm" \
     --width "$WIDTH" --height "$HEIGHT" \
     --plane "y:$FLOOR_Y" --plane-color "$FLOOR_COLOR" \
-    --light "directional:$LIGHT_DIR:$MENGER_LIGHT_INTENSITY" --shadows --ambient constant \
+    --light "directional:$LIGHT_DIR:$MENGER_LIGHT_INTENSITY" --ambient constant \
     --camera-pos "$EYE" --camera-lookat "$LOOKAT" --camera-up "$UP" \
     --objects "$objects" "$@" 2>&1 | { grep -iE "error|exception" || true; }
 }

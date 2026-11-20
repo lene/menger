@@ -26,7 +26,6 @@ rendering_flags:
   - --caustics
   - --animate
   - --denoise
-  - --shadows
   - --transparent-shadows
   - --fog
   - --cross
