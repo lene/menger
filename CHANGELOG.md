@@ -150,7 +150,8 @@
   against pbrt (`fp_tolerance_no_caustics`, 0.15; tolerance and the fixed 40% accepted by the user 2026-11-19); its README and `sponge-directional-reference.txt` list
   where it does not fit (a glass sphere, a lens: -27% to +690% by its distance from the floor).
   With `--caustics` nothing changes. Every scene with glass and shadows but no caustics gets darker
-  glass shadows.
+  glass shadows on what is not glass (floors, opaque objects); glass lit through other glass, such as
+  a glass sponge's own walls, is shaded as before (optix-jni 0.5.7).
 
 - The `sponge-volume` mesh at level 5 (13.1M triangles) builds in under a second instead of
   4 s, and a headless render of it peaks at 2.6 GB resident instead of 4.7 GB (menger#68, F86): it writes the faces
