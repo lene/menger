@@ -63,6 +63,9 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
   // The geometry the renderer holds, after a frame that built it successfully (menger#86).
   private val lastGeometry: AtomicReference[Option[FrameChange.Geometry]] =
     new AtomicReference(None)
+  // The sky the renderer holds: set again only when a builder's reinitialize dropped it or the
+  // scene's env map changed, not on every rebuild (an HDR is re-read from disk), menger#198.
+  private val appliedSky: AtomicReference[Option[IblSetup.Sky]] = new AtomicReference(None)
   private val videoTextureState: AtomicReference[Option[WithAnimation.VideoTextureState]] =
     new AtomicReference(None)
   private val envMapVideoState: AtomicReference[Option[WithAnimation.EnvMapVideoState]] =
@@ -89,7 +92,9 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     configureOutputMode(renderer)
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
     // The static map first: an env-map video, set next, replaces it as the background.
-    IblSetup.uploadEnvMap(renderer, textureDir, firstFrameConfigs.envMap)
+    appliedSky.set(IblSetup.applySky(
+      renderer, textureDir, firstFrameConfigs.envMap, None, 0f, appliedSky.get
+    ))
     configureEnvMapVideoForFrame(
       firstFrameConfigs,
       firstSpecs,
@@ -119,11 +124,7 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
         case scala.util.Success(dslScene) =>
           val configs  = SceneConverter.convert(dslScene, causticsConfig)
           val renderer = rendererWrapper.renderer
-          configs.render.foreach(renderer.setRenderConfig)
-          renderer.setDenoisingEnabled(denoiseModeFor(configs) == menger.dsl.DenoiseMode.Final)
-          if configs.accumulationFrames > 1 then
-            renderer.setAccumulationFrames(configs.accumulationFrames)
-          applyAmbient(renderer, ambientFor(configs))
+          frameSettingsFor(configs).applyTo(renderer)
           // A frame with the geometry of the last one built (only the view moved) touches no
           // instance (menger#86); a frame that failed to build is never that base.
           val geometry = FrameChange.Geometry.of(configs)
@@ -155,6 +156,14 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
     replaceVideoTextureState(None)
     replaceEnvMapVideoState(None)
     super.dispose()
+
+  private def frameSettingsFor(configs: SceneConverter.SceneConfigs): ReinitRestore.FrameSettings =
+    ReinitRestore.FrameSettings(
+      configs.render.getOrElse(renderConfig),
+      denoiseModeFor(configs),
+      configs.accumulationFrames,
+      ambientFor(configs)
+    )
 
   private def tryVideoFastPath(
     configs: SceneConverter.SceneConfigs,
@@ -425,15 +434,22 @@ trait WithAnimation extends RenderEngine with SavesScreenshots with LazyLogging:
       else tryAnim4DFastPath(newSpecs, renderer)
     if videoFastPathTaken || geometryFastPathTaken then true
     else
+      val capacityBefore = renderer.maxInstances
       clearScene(renderer)
       val built = buildAnim4DTrackedOrFallback(configs, newSpecs, renderer)
         .flatMap(_ => updateTrackedVideoTexturesForFrame(renderer, t))
       built.failed.foreach(e =>
         logger.error(FrameBuildFailure.message(s"frame $frame (t=$t)", e), e))
-      configureEnvMapVideoForFrame(configs, newSpecs, renderer, t).recover {
-        case e: Exception =>
-          logger.error(s"Failed to update environment-map video for t=$t: ${e.getMessage}", e)
-      }
+      // A builder may have reinitialized the renderer, which drops the frame's settings, the
+      // caustics, the env map and the lighting (menger#198).
+      appliedSky.set(ReinitRestore.restore(
+        renderer, textureDir, configs, frameSettingsFor(configs), capacityBefore, appliedSky.get
+      ) {
+        configureEnvMapVideoForFrame(configs, newSpecs, renderer, t).recover {
+          case e: Exception =>
+            logger.error(s"Failed to update environment-map video for t=$t: ${e.getMessage}", e)
+        }
+      })
       // Planes are real IAS instances (Sprint 36 H3.1) — only re-add them when
       // clearAllInstances above actually ran; the fast paths leave existing
       // instances (including previously added planes) untouched.

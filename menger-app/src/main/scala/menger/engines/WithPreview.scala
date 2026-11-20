@@ -73,6 +73,9 @@ trait WithPreview extends RenderEngine with LazyLogging:
   private val lastPlanes = new AtomicReference[List[menger.config.PlaneConfig]](List.empty)
   // The geometry the renderer holds, after a frame that built it successfully (menger#86).
   private val lastGeometry = new AtomicReference[Option[FrameChange.Geometry]](None)
+  // The sky the renderer holds: set again only when a builder's reinitialize dropped it or the
+  // scene's env map changed, not on every rebuild (an HDR is re-read from disk), menger#198.
+  private val appliedSky = new AtomicReference[Option[IblSetup.Sky]](None)
   // Frames whose scene failed to build -- the window then shows the previous frame, so say so
   // in the title (menger#54).
   private val failedFrames = new AtomicInteger(0)
@@ -220,7 +223,10 @@ trait WithPreview extends RenderEngine with LazyLogging:
     PlaneConfigurer.configurePlanes(renderer, firstFrameConfigs.planes.toArray)
     // The sky and its lighting as the export renders them (menger#139); an env-map video is
     // not played in the preview.
-    IblSetup.applyEnvironment(renderer, textureDir, firstFrameConfigs)
+    appliedSky.set(IblSetup.applySky(
+      renderer, textureDir, firstFrameConfigs.envMap, None, 0f, appliedSky.get
+    ))
+    IblSetup.applySceneIBL(renderer, firstFrameConfigs)
     GdxRuntime.setContinuousRendering(false)
     updateTitle()
     if playingClockMode then togglePlay()
@@ -291,7 +297,18 @@ trait WithPreview extends RenderEngine with LazyLogging:
           renderer.setDenoisingEnabled(denoiseModeFor(configs) == menger.dsl.DenoiseMode.Final)
           if configs.accumulationFrames > 1 then
             renderer.setAccumulationFrames(configs.accumulationFrames)
+          val capacityBefore = renderer.maxInstances
           val instancesCleared = updateOrRebuild(configs, renderer, t)
+          // A builder may have reinitialized the renderer, which also drops the frame's
+          // settings, the caustics, the env map and the lighting (menger#198).
+          appliedSky.set(ReinitRestore.restore(
+            renderer, textureDir, configs,
+            ReinitRestore.FrameSettings(
+              configs.render.getOrElse(renderConfig), denoiseModeFor(configs),
+              configs.accumulationFrames, ambientFor(configs)
+            ),
+            capacityBefore, appliedSky.get
+          )(()))
           // A builder may have reinitialized the renderer, discarding lights and render
           // settings (usability review 2026-09, F22) -- restore them every frame, with this
           // frame's lights: an animated scene's lights may move (F65).
