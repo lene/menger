@@ -344,3 +344,217 @@ class DimensionLadderSuite extends AnyFlatSpec with Matchers:
       Choreography(cycle, 6, Look.default.depths))
     first shouldBe second
     first.segments shouldBe second.segments
+
+  // The default look's scene at the six times the freeze-frame references and the experiments
+  // look at, with the cameras the ladder had before the look got its framing, turns, depth and
+  // crossfade fields (the pre-change scenes, to the last bit).
+  private val sixTimes = List(0f, 22.7f, 51.2f, 72f, 102f, 162f)
+  private val cameraBeforeFramingKnob = List(
+    Vec3(-2.9823086f, 1.2204607f, -6.395582f), Vec3(-2.9823086f, 1.2204607f, -6.395582f),
+    Vec3(-3.098141f, 1.2589805f, -6.643985f), Vec3(-3.3042817f, 1.327532f, -7.0860553f),
+    Vec3(-3.5176127f, 1.3984749f, -7.5435452f), Vec3(-4.0993857f, 1.5919425f, -8.791162f))
+
+  private def objectOf(scene: Scene): SceneObject = scene.objects.last
+
+  /** What a look may change without moving the camera or the object's shape: its type, level
+    * and size. */
+  private def sameShapeAndFrame(changed: Scene, plain: Scene): Unit =
+    changed.camera shouldBe plain.camera
+    val (after, before) = (objectOf(changed).toObjectSpec, objectOf(plain).toObjectSpec)
+    after.objectType shouldBe before.objectType
+    after.level shouldBe before.level
+    after.size shouldBe before.size
+    after.projection shouldBe before.projection
+    after.scale shouldBe before.scale
+
+  "The default look" should "build the scene it built before the new fields, at six times" in:
+    val fresh = Look.default.copy()
+    for (t, camera) <- sixTimes.zip(cameraBeforeFramingKnob) do
+      withClue(s"t $t: "):
+        DimensionLadder.sceneAt(t, look = fresh) shouldBe DimensionLadder.sceneAt(t)
+        DimensionLadder.sceneAt(t, look = fresh) shouldBe DimensionLadder.scene(t)
+        DimensionLadder.sceneAt(t).camera.position shouldBe camera
+        DimensionLadder.sceneAt(t).camera.lookAt shouldBe Vec3(0f, 0.22869998f, 0f)
+
+  it should "return the choreography's own turns, the turntable included" in:
+    val timeline = Choreography(cycle, DimensionLadder.topDimension, Look.default.depths)
+    for t <- sixTimes do
+      Look.default.turns(timeline)(t) shouldBe timeline.planeAngles(t)
+
+  private def breathOf3D(look: Look): Scene =
+    val breath = Choreography(cycle, DimensionLadder.topDimension, look.depths).segments
+      .find(s => s.kind == Kind.Breath && s.dimension == 3).get
+    DimensionLadder.sceneAt(breath.start + breath.seconds / 4f, look = look)
+
+  "Look.sponge3D" should "set the 3D breath's sponge type and nothing else" in:
+    val ias = Look.default.copy(sponge3D = menger.dsl.RecursiveIAS)
+    val (plain, changed) = (breathOf3D(Look.default), breathOf3D(ias))
+    objectOf(plain).toObjectSpec.objectType shouldBe "sponge-volume"
+    objectOf(changed).toObjectSpec.objectType shouldBe "sponge-recursive-ias"
+    changed.camera shouldBe plain.camera
+    objectOf(changed).toObjectSpec.level shouldBe objectOf(plain).toObjectSpec.level
+    objectOf(changed).toObjectSpec.material shouldBe objectOf(plain).toObjectSpec.material
+
+  it should "leave every other segment alone" in:
+    val ias = Look.default.copy(sponge3D = menger.dsl.RecursiveIAS)
+    for t <- sixTimes.filterNot(_ == 22.7f) do
+      DimensionLadder.sceneAt(t, look = ias) shouldBe DimensionLadder.sceneAt(t)
+
+  private val metalAlways: (menger.dsl.Material, menger.dsl.Material, Float) => menger.dsl.Material =
+    (metal, _, _) => metal
+
+  "Look.crossfade" should "set how metal and film mix while solidifying, and nothing else" in:
+    val look = Look.default.copy(crossfade = metalAlways)
+    val solidifying = DimensionLadder.segments(cycle).find(_.kind == Kind.Solidify).get
+    val t = solidifying.start + solidifying.seconds / 2f
+    val (plain, changed) = (DimensionLadder.sceneAt(t), DimensionLadder.sceneAt(t, look = look))
+    sameShapeAndFrame(changed, plain)
+    objectOf(changed).toObjectSpec.material shouldBe Some(look.metal.toCoreMaterial)
+    objectOf(plain).toObjectSpec.material should not be Some(look.metal.toCoreMaterial)
+
+  it should "not touch the breath's mix of metal and glass" in:
+    val look = Look.default.copy(crossfade = metalAlways)
+    breathOf3D(look) shouldBe breathOf3D(Look.default)
+
+  "Look.breathMaterial" should "set the breath's material from its bell value, and nothing else" in:
+    val look = Look.default.copy(breathMaterial = Some(_ => Look.default.metal))
+    val (plain, changed) = (breathOf3D(Look.default), breathOf3D(look))
+    sameShapeAndFrame(changed, plain)
+    objectOf(changed).toObjectSpec.material shouldBe Some(Look.default.metal.toCoreMaterial)
+    objectOf(plain).toObjectSpec.material should not be objectOf(changed).toObjectSpec.material
+
+  it should "be given the bell value, 0 at the breath's ends and 1 at its middle" in:
+    val seen = scala.collection.mutable.ListBuffer.empty[Float]
+    val record: Float => menger.dsl.Material = b =>
+      seen += b
+      Look.default.metal
+    val look = Look.default.copy(breathMaterial = Some(record))
+    val breath = DimensionLadder.segments(cycle).find(s => s.kind == Kind.Breath).get
+    List(0f, 0.5f).foreach: u =>
+      DimensionLadder.objectAt(breath, u, look = look)
+    seen.toList shouldBe List(0f, 1f)
+
+  it should "leave the other segments alone" in:
+    val look = Look.default.copy(breathMaterial = Some(_ => Look.default.glass))
+    for t <- List(0f, 51.2f, 190f) do
+      DimensionLadder.sceneAt(t, look = look) shouldBe DimensionLadder.sceneAt(t)
+
+  /** `inFrame` for another field of view. */
+  private def inFrameWith(halfTan: Float)(camera: Camera, point: Vec3): (Float, Float) =
+    val view = (camera.lookAt - camera.position).normalize
+    val right = view.cross(camera.up).normalize
+    val offset = point - camera.position
+    val depth = offset.dot(view)
+    (offset.dot(right) / depth / halfTan, offset.dot(right.cross(view)) / depth / halfTan * frameAspect)
+
+  "Look.framing" should "default to a 45 degree field, a margin of 0.95 and the bounding radius" in:
+    Look.default.framing shouldBe Framing(fovDegrees = 45f, margin = 0.95f, fit = Fit.Bound)
+    Framing.default.tanHalfFovX shouldBe 0.4142f
+
+  it should "only move the camera, whatever it fits to" in:
+    val extent = Look.default.copy(framing = Framing.default.copy(fit = Fit.Extent))
+    for t <- sixTimes do
+      withClue(s"t $t: "):
+        val (plain, changed) = (DimensionLadder.sceneAt(t), DimensionLadder.sceneAt(t, look = extent))
+        objectOf(changed) shouldBe objectOf(plain)
+        changed.objects.head shouldBe plain.objects.head
+        changed.lights shouldBe plain.lights
+        changed.camera.lookAt shouldBe plain.camera.lookAt
+
+  it should "fit the frame's own extent, which is never farther than the bound" in:
+    val extent = Look.default.copy(framing = Framing.default.copy(fit = Fit.Extent))
+    val distances = for
+      t <- (0 until budgetFrames).map(cycle * _ / budgetFrames)
+    yield (DimensionLadder.sceneAt(t).camera, DimensionLadder.sceneAt(t, look = extent).camera)
+    def away(c: Camera) = (c.position - c.lookAt).magnitude
+    distances.foreach((bound, tight) => away(tight) should be <= away(bound) + materialTolerance)
+    distances.exists((bound, tight) => away(tight) < away(bound) - 1e-3f) shouldBe true
+
+  it should "keep the object and the plinth inside the margin it is given" in:
+    val look = Look.default.copy(framing = Framing(fovDegrees = 35f, margin = 0.85f, fit = Fit.Bound))
+    val halfTan = math.tan(math.toRadians(17.5)).toFloat
+    for i <- 0 until budgetFrames do
+      val t = cycle * i / budgetFrames
+      val scene = DimensionLadder.sceneAt(t, look = look)
+      val (segment, u) = DimensionLadder.segmentAt(t)
+      val centre = objectOf(scene).toObjectSpec
+      val radius = DimensionLadder.boundingRadius(segment.dimension, Choreography.extrusion(segment, u))
+      val (x, y) = inFrameWith(halfTan)(scene.camera, Vec3(centre.x, centre.y + radius, centre.z))
+      withClue(s"frame $i: "):
+        math.abs(x) should be <= 0.85f + framingTolerance
+        math.abs(y) should be <= 0.85f + framingTolerance
+
+  it should "move the camera back for a narrower field and a larger margin" in:
+    val t = 51.2f
+    def away(framing: Framing) =
+      val c = DimensionLadder.sceneAt(t, look = Look.default.copy(framing = framing)).camera
+      (c.position - c.lookAt).magnitude
+    away(Framing(fovDegrees = 35f)) should be > away(Framing.default)
+    away(Framing(margin = 0.85f)) should be > away(Framing.default)
+
+  it should "reject a field of view or a margin that cannot frame anything" in:
+    List(0f, -1f, 180f, 200f).foreach: fov =>
+      an[IllegalArgumentException] should be thrownBy Framing(fovDegrees = fov)
+    List(0f, -0.5f, 1.5f).foreach: margin =>
+      an[IllegalArgumentException] should be thrownBy Framing(margin = margin)
+
+  private def rotationOfCube(look: Look, t: Float = 0f): Vec3 =
+    objectOf(DimensionLadder.sceneAt(t, look = look)) match
+      case cube: menger.dsl.Cube => cube.rotation
+      case sponge: menger.dsl.Sponge => sponge.rotation
+      case other => fail(s"expected a cube or a sponge, got $other")
+
+  private def turnedBy(planes: (String, Float)*): Look =
+    Look.default.copy(turns = _ => _ => planes.toList.map((plane, degrees) =>
+      menger.spec.PlaneRotation(plane, degrees)))
+
+  "Look.turns" should "replace the turn schedule: none at all stops the turn" in:
+    rotationOfCube(Look.default, 3f).y should be > 0f
+    rotationOfCube(turnedBy(), 3f) shouldBe Vec3(0f, 0f, 0f)
+
+  it should "turn a 3D object in xz about y, as the turntable always did" in:
+    rotationOfCube(turnedBy("xz" -> 90f)) shouldBe Vec3(0f, math.toRadians(90.0).toFloat, 0f)
+
+  it should "turn a 3D object in yz about x and in xy about z, the second axis towards the first" in:
+    val half = math.toRadians(30.0).toFloat
+    rotationOfCube(turnedBy("yz" -> 30f)) shouldBe Vec3(-half, 0f, 0f)
+    rotationOfCube(turnedBy("xy" -> 30f)) shouldBe Vec3(0f, 0f, -half)
+    rotationOfCube(turnedBy("yz" -> 20f, "xz" -> 45f, "xy" -> 10f)) shouldBe
+      Vec3(-math.toRadians(20.0).toFloat, math.toRadians(45.0).toFloat,
+        -math.toRadians(10.0).toFloat)
+
+  it should "turn a 3D sponge in every plane too" in:
+    val look = turnedBy("yz" -> 30f, "xz" -> 45f)
+    val breath = DimensionLadder.segments(cycle).find(s => s.kind == Kind.Breath).get
+    DimensionLadder.objectAt(breath, 0.25f, look = look) match
+      case sponge: menger.dsl.Sponge =>
+        sponge.rotation shouldBe Vec3(-math.toRadians(30.0).toFloat, math.toRadians(45.0).toFloat, 0f)
+      case other => fail(s"expected a sponge, got $other")
+
+  it should "hand the planes of the schedule to a higher object's projection" in:
+    val look = turnedBy("xw" -> 40f, "yz" -> 15f)
+    val fold = DimensionLadder.segments(cycle).find(s => s.kind == Kind.Fold && s.dimension == 4).get
+    val spec = DimensionLadder.objectAt(fold, 0.5f, look = look).toObjectSpec
+    spec.projection match
+      case Some(view: menger.spec.ProjectionSpec) =>
+        view.planes.map(p => (p.plane.letters, p.angle.value)) shouldBe List(("xw", 40f), ("yz", 15f))
+      case other => fail(s"expected a ProjectionSpec, got $other")
+
+  it should "change nothing but the turn" in:
+    for t <- List(3f, 22.7f, 102f) do
+      val (plain, changed) = (DimensionLadder.sceneAt(t), DimensionLadder.sceneAt(t, look = turnedBy()))
+      changed.camera shouldBe plain.camera
+      changed.objects.head shouldBe plain.objects.head
+      changed.lights shouldBe plain.lights
+      val (after, before) = (objectOf(changed).toObjectSpec, objectOf(plain).toObjectSpec)
+      after.objectType shouldBe before.objectType
+      after.level shouldBe before.level
+      after.size shouldBe before.size
+      after.material shouldBe before.material
+
+  "Look.restDepth" should "default to the stored depths and, when set, place the centre by it" in:
+    Look.default.restDepth shouldBe None
+    val deeper = Look.default.copy(restDepth = Some(Stage.restDepth(DimensionLadder.topDimension) + 0.5f))
+    val (plain, changed) = (DimensionLadder.sceneAt(0f), DimensionLadder.sceneAt(0f, look = deeper))
+    objectOf(changed).toObjectSpec.y shouldBe objectOf(plain).toObjectSpec.y + 0.5f +- 1e-5f
+    changed.camera.lookAt.y should be > plain.camera.lookAt.y

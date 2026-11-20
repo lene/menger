@@ -14,7 +14,18 @@ import examples.dsl.ladder.Choreography.viewOf
 import menger.dsl._
 import menger.spec.PlaneRotation
 
-/** Everything an experiment may vary without touching the choreography. */
+/** Everything an experiment may vary without touching the choreography. The last fields are
+  * what the experiments of Sprint 38 vary; each default is today's behaviour:
+  *  - `sponge3D`: the 3D breath's sponge type (menger#167);
+  *  - `crossfade`: how metal and film mix while an object solidifies, unsolidifies or collapses
+  *    (menger#169): the materials, and how far from the first to the second, 0 to 1;
+  *  - `breathMaterial`: the breath's material from its bell value, 0 to 1; `None` mixes metal
+  *    into glass (menger#169);
+  *  - `framing`: the camera's field of view, margin and what it fits (menger#194);
+  *  - `turns`: the schedule of every plane's angle by phase, for a timeline (menger#193);
+  *  - `restDepth`: how far below its centre the object reaches in the whole cycle; `None` takes
+  *    the stored depths, which hold for the default `turns` and `edgeRadius` (`RestDepth`
+  *    measures it for others). */
 final case class Look(
   metal: Material,
   film: Material,
@@ -28,10 +39,37 @@ final case class Look(
   toneMapping: ToneMapping,
   caustics: Caustics,
   render: RenderSettings,
-  depths: Map[Int, Int]
-)
+  depths: Map[Int, Int],
+  sponge3D: SpongeType = VolumeFilling,
+  crossfade: Look.Crossfade = Look.mix,
+  breathMaterial: Option[Float => Material] = None,
+  framing: Framing = Framing.default,
+  turns: Look.Turns = Look.choreographyTurns,
+  restDepth: Option[Float] = None
+):
+  /** This look with the rest depth its `turns` and `edgeRadius` need for `top`. */
+  def withMeasuredRestDepth(top: Int): Look = copy(restDepth = Some(RestDepth.measure(top, this)))
 
 object Look:
+  /** The material a fraction `t` of the way from the first to the second. */
+  type Crossfade = (Material, Material, Float) => Material
+
+  /** The plane angles of a timeline at a phase: its turns and the turntable. */
+  type Turns = Choreography => Float => List[PlaneRotation]
+
+  /** Every field of the materials mixed linearly. */
+  val mix: Crossfade = (a, b, t) =>
+    def lerp(x: Float, y: Float): Float = x * (1f - t) + y * t
+    Material(
+      Color(lerp(a.color.r, b.color.r), lerp(a.color.g, b.color.g), lerp(a.color.b, b.color.b),
+        lerp(a.color.a, b.color.a)),
+      lerp(a.ior, b.ior), lerp(a.roughness, b.roughness), lerp(a.metallic, b.metallic),
+      lerp(a.specular, b.specular), lerp(a.emission, b.emission),
+      lerp(a.filmThickness, b.filmThickness), lerp(a.dispersion, b.dispersion))
+
+  /** The timeline's own plane angles: `Choreography.planeAngles`. */
+  val choreographyTurns: Turns = timeline => timeline.planeAngles
+
   private val envMapPath = "assets/hdri/kiara_4_mid-morning_4k.hdr"
 
   // The costed breath levels, the "Deep" variant, measured in E3 (menger#167) at about 8
@@ -93,7 +131,9 @@ object DimensionLadder:
 
   private def stage(top: Int, look: Look): Stage =
     Stage(look.keyLight.direction,
-      Stage.restDepth(top, extraTube = look.edgeRadius - Look.default.edgeRadius))
+      look.restDepth.getOrElse(
+        Stage.restDepth(top, extraTube = look.edgeRadius - Look.default.edgeRadius)),
+      look.framing)
 
   def segments(cycle: Float = cycleSeconds, top: Int = topDimension): List[Segment] =
     choreography(cycle, top, Look.default).segments
@@ -119,23 +159,17 @@ object DimensionLadder:
 
   def boundingRadius(n: Int, last: Float = 1f): Float = Choreography.boundingRadius(n, last)
 
-  private def mix(a: Material, b: Material, t: Float): Material =
-    def lerp(x: Float, y: Float): Float = x * (1f - t) + y * t
-    Material(
-      Color(lerp(a.color.r, b.color.r), lerp(a.color.g, b.color.g), lerp(a.color.b, b.color.b),
-        lerp(a.color.a, b.color.a)),
-      lerp(a.ior, b.ior), lerp(a.roughness, b.roughness), lerp(a.metallic, b.metallic),
-      lerp(a.specular, b.specular), lerp(a.emission, b.emission),
-      lerp(a.filmThickness, b.filmThickness), lerp(a.dispersion, b.dispersion))
-
   private case class Skin(material: Material, edgeRadius: Option[Float],
       edgeMaterial: Option[Material])
 
   // 0 is solid metal, 1 is film with edge tubes.
   private def skin(filminess: Float, look: Look): Skin =
-    Skin(mix(look.metal, look.film, filminess),
+    Skin(look.crossfade(look.metal, look.film, filminess),
       Option.when(filminess > 0f)(look.edgeRadius * filminess),
       Option.when(filminess > 0f)(look.metal))
+
+  private def breathMaterialAt(bellValue: Float, look: Look): Material =
+    look.breathMaterial.fold(Look.mix(look.metal, look.glass, bellValue))(_(bellValue))
 
   // The descent starts from the metal breath, so its first stretch grows the film, and the
   // last collapse lands as the metal cube.
@@ -144,9 +178,13 @@ object DimensionLadder:
     val solidified = if n == minTop then 1f - smoothstep(u) else 1f
     grown * solidified
 
+  // A 3D object turns by the angles of the planes among x, y and z: yz about x, xz about y and xy
+  // about z, each turning its second axis towards its first. The renderer applies them in that
+  // order, yz first.
   private def turntable(planes: List[PlaneRotation]): Vec3 =
-    val degrees = planes.find(_.plane.letters == "xz").fold(0f)(_.angle.value)
-    Vec3(0f, math.toRadians(degrees).toFloat, 0f)
+    def radians(plane: String): Float =
+      math.toRadians(planes.filter(_.plane.letters == plane).map(_.angle.value).sum).toFloat
+    Vec3(0f - radians("yz"), radians("xz"), 0f - radians("xy"))
 
   private def hypercubeOf(n: Int, skin: Skin, last: Float, planes: List[PlaneRotation], pos: Vec3)
       : SceneObject =
@@ -161,9 +199,9 @@ object DimensionLadder:
         projection = Some(view), scale = Some(scaleOf(n, last)))
 
   private def breathObject(n: Int, level: Float, material: Material,
-      planes: List[PlaneRotation], pos: Vec3): SceneObject =
+      planes: List[PlaneRotation], pos: Vec3, sponge3D: SpongeType): SceneObject =
     if n == 3 then
-      Sponge(VolumeFilling, pos = pos, level = level, material = Some(material),
+      Sponge(sponge3D, pos = pos, level = level, material = Some(material),
         size = baseSize, rotation = turntable(planes))
     else
       HypercubeSponge(n, TesseractSpongeType.SurfaceSubdividing, level, pos = pos,
@@ -178,7 +216,7 @@ object DimensionLadder:
 
   private def objectIn(timeline: Choreography, segment: Segment, u: Float, look: Look)
       : SceneObject =
-    val planes = timeline.planeAngles(segment.start + u * segment.seconds)
+    val planes = look.turns(timeline)(segment.start + u * segment.seconds)
     val n = segment.dimension
     val last = extrusion(segment, u)
     val pos = stage(timeline.top, look).centre
@@ -186,8 +224,8 @@ object DimensionLadder:
     segment.kind match
       case Kind.Hold => hypercubeOf(3, skin(0f, look), 1f, planes, pos)
       case Kind.Breath =>
-        breathObject(n, timeline.breathDepth(n) * bell(u),
-          mix(look.metal, look.glass, bell(u)), planes, pos)
+        breathObject(n, timeline.breathDepth(n) * bell(u), breathMaterialAt(bell(u), look), planes,
+          pos, look.sponge3D)
       case Kind.Solidify => hypercubeOf(n, skin(1f - smoothstep(u), look), 1f, planes, pos)
       case Kind.Unsolidify => hypercubeOf(n, skin(smoothstep(u), look), 1f, planes, pos)
       case Kind.Fold => hypercubeOf(shown, skin(1f, look), shownLast, planes, pos)

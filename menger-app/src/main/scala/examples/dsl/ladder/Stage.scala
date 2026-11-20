@@ -3,10 +3,11 @@ package examples.dsl.ladder
 import examples.dsl.ladder.Choreography.Segment
 import menger.dsl._
 
-/** The plinth the object rests above and the camera that frames both. The camera stands with the
-  * sun behind it, so it needs the sun's direction; the object's centre stays at one height, so that its
-  * lowest point over the whole cycle, `restDepth` below the centre, just clears the plinth. */
-final case class Stage(sunDirection: Vec3, restDepth: Float):
+/** The plinth the object rests above and the camera that frames both, as `framing` says. The
+  * camera stands with the sun behind it, so it needs the sun's direction; the object's centre
+  * stays at one height, so that its lowest point over the whole cycle, `restDepth` below the
+  * centre, just clears the plinth. */
+final case class Stage(sunDirection: Vec3, restDepth: Float, framing: Framing = Framing.default):
   import Stage._
 
   val plinth: Cylinder =
@@ -33,16 +34,22 @@ final case class Stage(sunDirection: Vec3, restDepth: Float):
   // (along + distance), `across` and `along` its offsets from the aim, at most the half tangent.
   private def fitDistance(point: Vec3, aim: Vec3, across: Vec3, halfTan: Float): Float =
     val offset = point - aim
-    math.abs(offset.dot(across)) / (halfTan * framingMargin) + offset.dot(cameraDirection)
+    math.abs(offset.dot(across)) / (halfTan * framing.margin) + offset.dot(cameraDirection)
+
+  // The height above the centre the camera must keep in the frame: what `fit` says of the object.
+  private def reachAbove(dimension: Int, last: Float): Float = framing.fit match
+    case Fit.Bound  => Choreography.boundingRadius(dimension, last)
+    case Fit.Extent => Choreography.halfExtent(dimension, last)
 
   /** Aimed between the object and the plinth; as far as the object, plinth edge and width need. */
   def cameraAt(segment: Segment, u: Float): Camera =
     val last = Choreography.extrusion(segment, u)
     val aim = Vec3(0f, (centre.y + plinthTopY) / 2f, 0f)
-    val objectTop = centre + Vec3(0f, Choreography.boundingRadius(segment.dimension, last), 0f)
+    val objectTop = centre + Vec3(0f, reachAbove(segment.dimension, last), 0f)
     val dolly = Choreography.halfExtent(segment.dimension, last) / Choreography.halfExtent(3, 1f)
+    val tanHalfFovX = framing.tanHalfFovX
     val tanHalfFovY = tanHalfFovX / frameAspect
-    val distance = List(cameraDistance * dolly, plinthRadius / (tanHalfFovX * framingMargin),
+    val distance = List(cameraDistance * dolly, plinthRadius / (tanHalfFovX * framing.margin),
       fitDistance(objectTop, aim, viewUp, tanHalfFovY),
       fitDistance(plinthFrontBottom, aim, viewUp, tanHalfFovY)).max
     Camera(position = aim + cameraDirection * distance, lookAt = aim)
@@ -74,12 +81,10 @@ object Stage:
 
   // The sun behind the camera: 160 degrees round from the sun's rays puts the view 20 degrees off
   // them, 8 degrees down. The object is the star, not the sun, so it is lit face-on and its
-  // shadows fall behind it, onto the plinth. Aimed between the object and the plinth. The fixed
-  // 45 degree field of view is HORIZONTAL (tan 22.5 = 0.4142): fit the video's 16:9 frame, 9/16
-  // as tall as wide.
+  // shadows fall behind it, onto the plinth. Aimed between the object and the plinth. The field
+  // of view of the `Framing` (45 degrees by default) is HORIZONTAL: fit the video's 16:9 frame,
+  // 9/16 as tall as wide.
   private val cameraDistance = 4.5f
   private val cameraYawDegrees = 160f
   private val cameraElevationDegrees = 8f
-  private val tanHalfFovX = 0.4142f
   private val frameAspect = 16f / 9f
-  private val framingMargin = 0.95f
